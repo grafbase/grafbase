@@ -112,8 +112,6 @@ pub async fn start(
         .await
         .expect("this really has to succeed");
 
-    eprintln!("Sent initial sdl");
-
     let server_config = ServerConfig {
         listen_addr: Some(listen_address),
         config_path: None,

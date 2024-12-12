@@ -1,7 +1,7 @@
 //! Handling of trusted documents and Automatic Persisted Queries (APQ).
 
 use crate::{
-    engine::cache::{Document, Key},
+    engine::cache::{DocumentKey, Key},
     request::{extensions::PersistedQueryRequestExtension, Request},
     response::{ErrorCode, GraphqlError},
     Engine, Runtime,
@@ -16,7 +16,7 @@ use super::PrepareContext;
 type DocumentFuture<'a> = BoxFuture<'a, Result<Cow<'a, str>, GraphqlError>>;
 
 pub(crate) struct OperationDocument<'a> {
-    pub cache_key: String,
+    pub cache_key: Key<'a>,
     pub load_fut: DocumentFuture<'a>,
 }
 
@@ -54,9 +54,8 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
                         cache_key: Key::Operation {
                             name,
                             schema,
-                            document: Document::Text(document),
-                        }
-                        .to_string(),
+                            document: DocumentKey::Text(Cow::Borrowed(document)),
+                        },
                         load_fut: Box::pin(std::future::ready(Ok(Cow::Borrowed(document)))),
                     })
                 } else {
@@ -91,12 +90,11 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
                     cache_key: Key::Operation {
                         name,
                         schema,
-                        document: Document::TrustedDocumentId {
-                            client_name,
+                        document: DocumentKey::TrustedDocumentId {
+                            client_name: Cow::Borrowed(client_name),
                             doc_id: doc_id.clone(),
                         },
-                    }
-                    .to_string(),
+                    },
                     load_fut: handle_trusted_document_query(self.engine, client_name, doc_id).boxed(),
                 })
             }
@@ -117,9 +115,8 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
                     cache_key: Key::Operation {
                         name,
                         schema,
-                        document: Document::AutomaticPersistedQuery(ext),
-                    }
-                    .to_string(),
+                        document: DocumentKey::AutomaticPersistedQuery(Cow::Borrowed(ext)),
+                    },
                     load_fut: handle_apq(query, ext).boxed(),
                 })
             }
@@ -133,9 +130,8 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
                     cache_key: Key::Operation {
                         name,
                         schema,
-                        document: Document::Text(document),
-                    }
-                    .to_string(),
+                        document: DocumentKey::Text(Cow::Borrowed(document)),
+                    },
                     load_fut: Box::pin(std::future::ready(Ok(Cow::Borrowed(document)))),
                 })
             }

@@ -6,6 +6,8 @@ pub struct OperationCaching {
     /// The maximum number of operations that can be kept in the cache.
     /// 1000 by default.
     pub limit: usize,
+    /// Whether the cache should be warmed before schema/config reload
+    pub warm_on_reload: bool,
 }
 
 impl Default for OperationCaching {
@@ -13,6 +15,7 @@ impl Default for OperationCaching {
         Self {
             enabled: true,
             limit: 1000,
+            warm_on_reload: false,
         }
     }
 }

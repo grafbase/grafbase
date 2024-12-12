@@ -1,6 +1,6 @@
 use std::{path::PathBuf, sync::Arc};
 
-use engine::Engine;
+use engine::{Engine, OperationForWarming};
 use futures_lite::{pin, StreamExt};
 use runtime_local::HooksWasi;
 use tokio::{
@@ -58,6 +58,7 @@ impl EngineReloader {
             gateway_config.borrow().clone(),
             graph_definition.clone(),
             context.clone(),
+            vec![],
         )
         .await?;
 
@@ -113,8 +114,16 @@ async fn update_loop(
             let graph_definition = graph_definition.clone();
             let engine_sender = engine_sender.clone();
 
+            let prewarm_operations = engine_sender
+                .borrow()
+                .runtime
+                .operation_cache
+                .values()
+                .map(OperationForWarming::new)
+                .collect();
+
             async move {
-                match build_new_engine(current_config, graph_definition, context).await {
+                match build_new_engine(current_config, graph_definition, context, prewarm_operations).await {
                     Ok(engine) => {
                         if let Err(err) = engine_sender.send(engine) {
                             tracing::error!("Could not send engine: {err:?}");
@@ -133,6 +142,7 @@ async fn build_new_engine(
     current_config: gateway_config::Config,
     graph_definition: GraphDefinition,
     context: Context,
+    operations_to_warm: Vec<OperationForWarming>,
 ) -> crate::Result<Arc<Engine<GatewayRuntime>>> {
     let engine = gateway::generate(
         graph_definition,
@@ -143,6 +153,10 @@ async fn build_new_engine(
     .await?;
 
     let engine = Arc::new(engine);
+
+    if current_config.operation_caching.warm_on_reload {
+        engine.warm_operation_cache(operations_to_warm).await;
+    }
 
     Ok(engine)
 }

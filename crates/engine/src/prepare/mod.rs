@@ -12,6 +12,7 @@ use runtime::hooks::Hooks;
 use tracing::{info_span, Instrument};
 
 use crate::{
+    engine::cache::DocumentKey,
     operation::{BoundOperation, OperationPlan, SolvedOperation, Variables},
     request::Request,
     response::Response,
@@ -51,6 +52,10 @@ pub struct CachedOperation {
     // This is optional because we only currently need it for complexity control
     // That may change in the future...
     pub(crate) operation: Option<BoundOperation>,
+
+    pub(crate) document_key: DocumentKey<'static>,
+    pub(crate) document: String,
+    pub(crate) operation_name: Option<String>,
 }
 
 impl CachedOperation {

@@ -8,7 +8,7 @@ use crate::{
 pub(super) type PrepareResult<T> = std::result::Result<T, PrepareError>;
 
 #[derive(Debug, thiserror::Error)]
-pub(super) enum PrepareError {
+pub(crate) enum PrepareError {
     #[error("{0}")]
     Parse(GraphqlError),
     #[error("{err}")]

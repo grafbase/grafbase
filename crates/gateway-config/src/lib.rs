@@ -1505,7 +1505,7 @@ mod tests {
 
         let config: Config = toml::from_str(input).unwrap();
 
-        insta::assert_debug_snapshot!(&config.gateway, @r###"
+        insta::assert_debug_snapshot!(&config.gateway, @r#"
         GatewayConfig {
             timeout: Some(
                 1s,
@@ -1544,7 +1544,7 @@ mod tests {
                 signature_parameters: None,
             },
         }
-        "###);
+        "#);
     }
 
     #[test]

@@ -27,6 +27,7 @@ url.workspace = true
 crossbeam-queue = "0.3.11"
 cynic-parser.workspace = true
 futures-util.workspace = true
+futures-lite.workspace = true
 fixedbitset.workspace = true
 futures.workspace = true
 grafbase-telemetry.workspace = true

@@ -26,6 +26,10 @@ where
     pub fn inactive() -> Self {
         Self::new(0)
     }
+
+    pub fn values(&self) -> impl Iterator<Item = V> + '_ {
+        self.inner.iter().map(|item| item.value().clone())
+    }
 }
 
 impl<V> OperationCache<V> for InMemoryOperationCache<V>
