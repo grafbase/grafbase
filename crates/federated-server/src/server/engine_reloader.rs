@@ -1,6 +1,6 @@
 use std::{path::PathBuf, sync::Arc};
 
-use engine::{Engine, PrewarmOperation};
+use engine::{Engine, OperationForWarming};
 use futures_lite::{pin, StreamExt};
 use runtime_local::HooksWasi;
 use tokio::{
@@ -119,7 +119,7 @@ async fn update_loop(
                 .runtime
                 .operation_cache
                 .values()
-                .map(PrewarmOperation::new)
+                .map(OperationForWarming::new)
                 .collect();
 
             async move {
@@ -142,7 +142,7 @@ async fn build_new_engine(
     current_config: gateway_config::Config,
     graph_definition: GraphDefinition,
     context: Context,
-    prewarm_operations: Vec<PrewarmOperation>,
+    operations_to_warm: Vec<OperationForWarming>,
 ) -> crate::Result<Arc<Engine<GatewayRuntime>>> {
     let engine = gateway::generate(
         graph_definition,
@@ -154,8 +154,8 @@ async fn build_new_engine(
 
     let engine = Arc::new(engine);
 
-    if current_config.gateway.prewarming.enabled {
-        engine.prewarm(prewarm_operations).await;
+    if current_config.operation_caching.warm_on_reload {
+        engine.warm_operation_cache(operations_to_warm).await;
     }
 
     Ok(engine)

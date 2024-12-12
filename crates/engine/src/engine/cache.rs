@@ -5,6 +5,10 @@ use schema::Schema;
 
 use crate::request::extensions::PersistedQueryRequestExtension;
 
+pub use self::warming::OperationForWarming;
+
+mod warming;
+
 mod namespaces {
     pub const OPERATION: &str = "op";
 }

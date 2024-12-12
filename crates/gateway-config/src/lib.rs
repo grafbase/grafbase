@@ -1,6 +1,5 @@
 use apq::AutomaticPersistedQueries;
 use operation_caching::OperationCaching;
-use prewarming::PrewarmingConfig;
 
 pub mod apq;
 pub mod authentication;
@@ -12,7 +11,6 @@ pub mod health;
 pub mod hooks;
 pub mod message_signatures;
 pub mod operation_caching;
-pub mod prewarming;
 pub mod rate_limit;
 mod size_ext;
 pub mod telemetry;
@@ -138,8 +136,6 @@ pub struct GatewayConfig {
     pub batching: BatchingConfig,
     /// Global message signatures config
     pub message_signatures: MessageSignaturesConfig,
-    /// Prewarming configuration
-    pub prewarming: PrewarmingConfig,
 }
 
 #[derive(Debug, Default, serde::Deserialize, Clone, Copy)]
@@ -1546,9 +1542,6 @@ mod tests {
                 },
                 derived_components: None,
                 signature_parameters: None,
-            },
-            prewarming: PrewarmingConfig {
-                enabled: false,
             },
         }
         "#);

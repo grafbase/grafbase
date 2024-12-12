@@ -19,7 +19,6 @@ pub(crate) use runtime::*;
 pub(crate) mod cache;
 mod errors;
 mod execute;
-pub(crate) mod prewarming;
 mod retry_budget;
 mod runtime;
 
