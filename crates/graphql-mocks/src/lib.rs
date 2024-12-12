@@ -1,6 +1,7 @@
 #![allow(clippy::panic)]
 //! A mock GraphQL server for testing the GraphQL connector
 
+use builder::MockGraphQlServerBuilder;
 use http::Uri;
 use serde_json::json;
 
@@ -23,6 +24,7 @@ use serde::ser::SerializeMap;
 use url::Url;
 
 mod almost_empty;
+mod builder;
 pub mod dynamic;
 mod echo;
 mod error_schema;
@@ -85,10 +87,14 @@ impl Drop for MockGraphQlServer {
 
 impl MockGraphQlServer {
     pub async fn new(schema: impl Schema + 'static) -> MockGraphQlServer {
-        Self::new_impl(Arc::new(schema)).await
+        Self::builder(schema).await
     }
 
-    async fn new_impl(schema: Arc<dyn Schema>) -> Self {
+    pub fn builder(schema: impl Schema + 'static) -> MockGraphQlServerBuilder {
+        MockGraphQlServerBuilder::new(Arc::new(schema))
+    }
+
+    async fn new_impl(schema: Arc<dyn Schema>, port: Option<u16>) -> Self {
         let state = AppState {
             schema: schema.clone(),
             received_requests: Default::default(),
@@ -102,7 +108,9 @@ impl MockGraphQlServer {
             .route_service("/ws", GraphQLSubscription::new(SchemaExecutor(schema)))
             .with_state(state.clone());
 
-        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{}", port.unwrap_or(0)))
+            .await
+            .unwrap();
         let port = listener.local_addr().unwrap().port();
 
         let (shutdown_sender, shutdown_receiver) = tokio::sync::oneshot::channel::<()>();
