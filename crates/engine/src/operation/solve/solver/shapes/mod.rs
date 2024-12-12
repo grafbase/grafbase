@@ -258,7 +258,7 @@ impl<'ctx> ShapesBuilder<'ctx> {
         // Preparation
         //
         let set_id = parent_fields.iter().find_map(|field| field.output_id);
-        let output_possible_types = output.possible_types();
+        let output_possible_types = output.possible_type_ids();
 
         let (
             data_fields_sorted_by_response_key_str_then_position,

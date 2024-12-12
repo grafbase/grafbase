@@ -5,8 +5,8 @@ use std::borrow::Cow;
 
 use fixedbitset::FixedBitSet;
 use schema::{
-    CompositeTypeId, DefinitionId, EntityDefinition, FieldDefinition, FieldSet, FieldSetRecord, Schema, SubgraphId,
-    TypeSystemDirective,
+    CompositeType, CompositeTypeId, DefinitionId, EntityDefinition, FieldDefinition, FieldSet, FieldSetRecord, Schema,
+    SubgraphId, TypeSystemDirective,
 };
 use walker::Walk;
 
@@ -82,6 +82,39 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
         self.providable_fields_bitset |= &self.deleted_fields_bitset;
         for field_id in self.providable_fields_bitset.zeroes().map(Op::FieldId::from) {
             let node_ix = self[field_id];
+            let Some(Node::QueryField(field)) = &mut self.graph.node_weight(node_ix) else {
+                continue;
+            };
+
+            // If not reachable, we can delete the node and its sub-selection.
+            if field.flags.contains(FieldFlags::UNREACHABLE) {
+                if let Some(parent_query_field_ix) = self
+                    .graph
+                    .edges_directed(node_ix, Direction::Incoming)
+                    .find(|edge| matches!(edge.weight(), Edge::Field))
+                    .map(|edge| edge.source())
+                {
+                    if !self
+                        .graph
+                        .edges_directed(parent_query_field_ix, Direction::Outgoing)
+                        .any(|edge| {
+                            matches!(edge.weight(), Edge::Field | Edge::TypenameField) && edge.target() != node_ix
+                        })
+                    {
+                        if let Node::QueryField(field) = &mut self.graph[parent_query_field_ix] {
+                            field.flags |= FieldFlags::LEAF_NODE;
+                        }
+                    }
+                }
+                let mut stack = vec![field_id];
+                while let Some(field_id) = stack.pop() {
+                    stack.extend(self.operation.subselection(field_id));
+                    self.graph.remove_node(self[field_id]);
+                    self.deleted_fields_bitset.put(field_id.into());
+                }
+
+                continue;
+            }
 
             // If the field is not associated with any providable field node and isn't a typename we can't plan it.
             if !self
@@ -161,7 +194,7 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
         CreateProvidableFields {
             parent_query_field_ix,
             parent_providable_field_or_root_ix,
-            parent_output_type: _,
+            parent_output_type,
             field_id,
         }: CreateProvidableFields<Op::FieldId>,
     ) {
@@ -179,34 +212,68 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
             }
             return;
         };
-        let field_definition = definition_id.walk(self.schema);
-
-        // TODO: Add me later.
-        // // If can never be present giving the parent type, we simply discard the field and its
-        // // sub-selection.
-        // if parent_output_type != field_definition.parent_entity_id.into()
-        //     && !parent_output_type
-        //         .walk(self.schema)
-        //         .has_non_empty_intersection_with(field_definition.parent_entity().into())
-        // {
-        //     let mut stack = vec![field_id];
-        //     while let Some(field_id) = stack.pop() {
-        //         stack.extend(self.operation.subselection(field_id));
-        //         self.graph.remove_node(self[field_id]);
-        //         self.deleted_fields_bitset.put(field_id.into());
-        //     }
-        //
-        //     return;
-        // }
-
-        // if it's the first time we see this field, there won't be any edges and we add any requirements from type system
-        // directives. Otherwise it means we're not the first resolver path to this operation
-        // field.
+        let mut first_time_seeing_this_field = false;
         if !self
             .graph
             .edges_directed(query_field_ix, Direction::Incoming)
             .any(|edge| matches!(edge.weight(), Edge::Field))
         {
+            first_time_seeing_this_field = true;
+            self.graph.add_edge(parent_query_field_ix, query_field_ix, Edge::Field);
+        }
+
+        let field_definition = definition_id.walk(self.schema);
+
+        // --
+        // If providable by parent, we don't need to find for a resolver.
+        // --
+        let provide_result = self.graph[parent_providable_field_or_root_ix]
+            .as_providable_field()
+            .map(|parent| self.provide_field_from_parent(parent, parent_output_type, field_id, field_definition))
+            .unwrap_or_default();
+        let could_be_provided_from_parent = match provide_result {
+            ParentProvideResult::Providable(child) => {
+                let providable_field_ix = self.graph.add_node(Node::ProvidableField(child));
+                self.graph.add_edge(
+                    parent_providable_field_or_root_ix,
+                    providable_field_ix,
+                    Edge::CanProvide,
+                );
+                self.graph.add_edge(providable_field_ix, query_field_ix, Edge::Provides);
+                self.providable_fields_bitset.put(field_id.into());
+                if let Some(output_type) = field_definition.ty().definition_id.as_composite_type() {
+                    for nested_field_id in self.operation.subselection(field_id) {
+                        self.field_ingestion_stack.push(CreateProvidableFields {
+                            parent_query_field_ix: query_field_ix,
+                            parent_providable_field_or_root_ix: providable_field_ix,
+                            parent_output_type: output_type,
+                            field_id: nested_field_id,
+                        })
+                    }
+                }
+                true
+            }
+            ParentProvideResult::NotProvidable => false,
+            ParentProvideResult::UnreachableObject => {
+                // If can never be present giving the parent type, we simply discard the field and its
+                // sub-selection.
+                let mut stack = vec![field_id];
+                while let Some(field_id) = stack.pop() {
+                    stack.extend(self.operation.subselection(field_id));
+                    let node_ix = self[field_id];
+                    let Node::QueryField(field) = &mut self.graph[node_ix] else {
+                        unreachable!()
+                    };
+                    field.flags |= FieldFlags::UNREACHABLE;
+                }
+                return;
+            }
+        };
+
+        // if it's the first time we see this field, there won't be any edges and we add any requirements from type system
+        // directives. Otherwise it means we're not the first resolver path to this operation
+        // field.
+        if first_time_seeing_this_field {
             for directive in field_definition.directives() {
                 let TypeSystemDirective::Authorized(auth) = directive else {
                     continue;
@@ -230,45 +297,15 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
                     })
                 }
             }
-            self.graph.add_edge(parent_query_field_ix, query_field_ix, Edge::Field);
         }
 
-        // --
-        // If providable by parent, we don't need to find for a resolver.
-        // --
-        let mut could_be_provided_from_parent = false;
-        if let Some(child) = self.graph[parent_providable_field_or_root_ix]
-            .as_providable_field()
-            .and_then(|parent| self.provide_field_from_parent(parent, field_id, field_definition))
-        {
-            could_be_provided_from_parent = true;
-            let providable_field_ix = self.graph.add_node(Node::ProvidableField(child));
-            self.graph.add_edge(
-                parent_providable_field_or_root_ix,
-                providable_field_ix,
-                Edge::CanProvide,
-            );
-            self.graph.add_edge(providable_field_ix, query_field_ix, Edge::Provides);
-            self.providable_fields_bitset.put(field_id.into());
-            if let Some(output_type) = field_definition.ty().definition_id.as_composite_type() {
-                for nested_field_id in self.operation.subselection(field_id) {
-                    self.field_ingestion_stack.push(CreateProvidableFields {
-                        parent_query_field_ix: query_field_ix,
-                        parent_providable_field_or_root_ix: providable_field_ix,
-                        parent_output_type: output_type,
-                        field_id: nested_field_id,
-                    })
-                }
-            }
-        }
-
-        // --
-        // Try to plan this field with alternative resolvers if any exist.
-        // --
         let parent_subgraph_id = self.graph[parent_providable_field_or_root_ix]
             .as_providable_field()
             .map(|field| field.subgraph_id());
 
+        // --
+        // Try to plan this field with alternative resolvers if any exist.
+        // --
         for resolver_definition in field_definition.resolvers() {
             // If within the same subgraph, we skip it. Resolvers are entrypoints.
             if could_be_provided_from_parent && Some(resolver_definition.subgraph_id()) == parent_subgraph_id {
@@ -389,56 +426,105 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
     fn provide_field_from_parent(
         &self,
         parent: &ProvidableField<'ctx, Op::FieldId>,
+        parent_output: CompositeTypeId,
         id: Op::FieldId,
-        definition: FieldDefinition<'ctx>,
-    ) -> Option<ProvidableField<'ctx, Op::FieldId>> {
+        field_definition: FieldDefinition<'ctx>,
+    ) -> ParentProvideResult<'ctx, Op::FieldId> {
         match parent {
             ProvidableField::InSubgraph {
                 subgraph_id, provides, ..
             } => {
                 let subgraph_id = *subgraph_id;
-                if self.is_field_resolvable_in(definition, subgraph_id)
-                    && definition.requires_for_subgraph(subgraph_id).is_none()
+                let is_reachable = self.is_field_parent_object_reachable_in_subgraph_from_parent_output(
+                    subgraph_id,
+                    parent_output,
+                    field_definition,
+                );
+                if is_reachable
+                    && self.is_field_providable_in_subgraph(subgraph_id, field_definition)
+                    && field_definition.requires_for_subgraph(subgraph_id).is_none()
                 {
-                    Some(ProvidableField::InSubgraph {
+                    ParentProvideResult::Providable(ProvidableField::InSubgraph {
                         subgraph_id,
                         id,
                         provides: self
-                            .find_in_provides(subgraph_id, provides, id, definition)
+                            .find_in_provides(subgraph_id, provides, id, field_definition)
                             .unwrap_or_else(|| {
-                                definition
+                                field_definition
                                     .provides_for_subgraph(subgraph_id)
                                     .map(|field_set| Cow::Borrowed(field_set.as_ref()))
                                     .unwrap_or(Cow::Borrowed(FieldSetRecord::empty()))
                             }),
                     })
                 } else {
-                    self.find_in_provides(subgraph_id, provides, id, definition)
-                        .map(|provides| ProvidableField::OnlyProvidable {
-                            subgraph_id,
-                            id,
-                            provides,
+                    self.find_in_provides(subgraph_id, provides, id, field_definition)
+                        .map(|provides| {
+                            ParentProvideResult::Providable(ProvidableField::OnlyProvidable {
+                                subgraph_id,
+                                id,
+                                provides,
+                            })
+                        })
+                        .unwrap_or_else(|| {
+                            if is_reachable {
+                                ParentProvideResult::NotProvidable
+                            } else {
+                                ParentProvideResult::UnreachableObject
+                            }
                         })
                 }
             }
             ProvidableField::OnlyProvidable {
                 subgraph_id, provides, ..
             } => self
-                .find_in_provides(*subgraph_id, provides, id, definition)
-                .map(|provides| ProvidableField::OnlyProvidable {
-                    subgraph_id: *subgraph_id,
-                    id,
-                    provides,
-                }),
+                .find_in_provides(*subgraph_id, provides, id, field_definition)
+                .map(|provides| {
+                    ParentProvideResult::Providable(ProvidableField::OnlyProvidable {
+                        subgraph_id: *subgraph_id,
+                        id,
+                        provides,
+                    })
+                })
+                .unwrap_or_default(),
         }
     }
 
-    fn is_field_resolvable_in(&self, field: FieldDefinition<'_>, subgraph_id: SubgraphId) -> bool {
-        match field.parent_entity() {
-            EntityDefinition::Interface(_) => field.resolvable_in_ids.contains(&subgraph_id),
+    fn is_field_providable_in_subgraph(&self, subgraph_id: SubgraphId, field_definition: FieldDefinition<'_>) -> bool {
+        match field_definition.parent_entity() {
+            EntityDefinition::Interface(_) => field_definition.exists_in_subgraph_ids.contains(&subgraph_id),
             EntityDefinition::Object(obj) => {
-                obj.exists_in_subgraph_ids.contains(&subgraph_id) && (field.resolvable_in_ids.contains(&subgraph_id))
+                obj.exists_in_subgraph_ids.contains(&subgraph_id)
+                    && (field_definition.exists_in_subgraph_ids.contains(&subgraph_id))
             }
+        }
+    }
+
+    fn is_field_parent_object_reachable_in_subgraph_from_parent_output(
+        &self,
+        subgraph_id: SubgraphId,
+        parent_output_type: CompositeTypeId,
+        field_definition: FieldDefinition<'_>,
+    ) -> bool {
+        match parent_output_type.walk(self.schema) {
+            // If the parent output_type is an interface, we can't say what the actual object type
+            // will be underneath. So we can't know whether an object is really unreachable or not.
+            CompositeType::Interface(_) => true,
+            // If the field is not part of any member of this union, we assume it's unreachable.
+            CompositeType::Union(union) => {
+                if union.is_fully_implemented_in(subgraph_id) {
+                    true
+                } else {
+                    // Not super efficient...
+                    for object in field_definition.parent_entity().possible_type_ids().walk(self.schema) {
+                        if union.has_member_in_subgraph(subgraph_id, object.id) {
+                            return true;
+                        }
+                    }
+                    false
+                }
+            }
+            // Whatever the field, we know the object type and it is providable by the parent.
+            CompositeType::Object(_) => true,
         }
     }
 
@@ -601,4 +687,12 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
         self.deleted_fields_bitset.grow(self.field_nodes.len());
         query_field_ix
     }
+}
+
+#[derive(Default)]
+enum ParentProvideResult<'ctx, FieldId> {
+    Providable(ProvidableField<'ctx, FieldId>),
+    UnreachableObject,
+    #[default]
+    NotProvidable,
 }

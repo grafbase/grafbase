@@ -247,7 +247,9 @@ impl QueryBuilderContext {
             // parent type.
 
             let fields = fields.collect::<Vec<_>>();
-            let possible_subgraph_objects = interface.possible_types().filter(|o| o.is_resolvable_in(&subgraph_id));
+            let possible_subgraph_objects = interface
+                .possible_types()
+                .filter(|o| o.exists_in_subgraph(&subgraph_id));
 
             let mut add_interface_fragment = false;
             for object in possible_subgraph_objects {

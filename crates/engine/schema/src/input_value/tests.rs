@@ -146,8 +146,6 @@ fn test_input_value() {
     let value = id.walk(&schema);
     let input_value = InputValue::from(value);
 
-    println!("hello");
-
     insta::assert_debug_snapshot!(input_value, @r#"
     InputObject(
         [

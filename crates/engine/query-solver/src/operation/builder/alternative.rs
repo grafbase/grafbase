@@ -139,7 +139,7 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
 
         if subgraph_ids.len() == 1 {
             let subgraph_id = subgraph_ids[0];
-            let left = parent_output.possible_types();
+            let left = parent_output.possible_type_ids();
             let right = &interface.possible_type_ids;
             let mut l = 0;
             let mut r = 0;
@@ -161,7 +161,7 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
                         // Object field is not resolvable by itself. We need to go through the
                         // interface which we can't provide (otherwise we wouldn't be here). So
                         // it's a planning error.
-                        if object_field_definition.resolvable_in_ids.is_empty() {
+                        if object_field_definition.exists_in_subgraph_ids.is_empty() {
                             return false;
                         }
 
@@ -239,6 +239,12 @@ impl<'ctx, Op: Operation> OperationGraphBuilder<'ctx, Op> {
         new_nodes_stack: &mut Vec<NodeIndex>,
     ) -> bool {
         let implemented_interfaces = field_definition.parent_entity().interface_ids();
+
+        // FIXME: Over-simplification, it might be unreachable for one subgraph but not for
+        // another one
+        if existing_node.flags.contains(FieldFlags::UNREACHABLE) {
+            return false;
+        }
 
         // If parent is an implemented interface.
         if let Some(interface) = parent_output

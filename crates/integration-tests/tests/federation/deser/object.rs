@@ -3,30 +3,30 @@ use serde_json::json;
 use super::run;
 
 const REQUIRED_OBJECT_SCHEMA: &str = r#"
-type Query {
-    user: User @join__field(graph: A)
-    dummy: String @join__field(graph: A)
+type Query @join__type(graph: A) {
+    user: User
+    dummy: String
 }
-type User {
-    organization: Organaization! @join__field(graph: A)
-    valid: String @join__field(graph: A)
+type User @join__type(graph: A) {
+    organization: Organaization!
+    valid: String
 }
-type Organaization {
+type Organaization @join__type(graph: A) {
     name: String!
     plan: String
 }
 "#;
 
 const NULLABLE_OBJECT_SCHEMA: &str = r#"
-type Query {
+type Query @join__type(graph: A) {
     user: User @join__field(graph: A)
     dummy: String @join__field(graph: A)
 }
-type User {
-    organization: Organaization @join__field(graph: A)
-    valid: String @join__field(graph: A)
+type User @join__type(graph: A) {
+    organization: Organaization
+    valid: String
 }
-type Organaization {
+type Organaization @join__type(graph: A) {
     name: String!
     plan: String
 }
