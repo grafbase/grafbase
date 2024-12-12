@@ -45,12 +45,12 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
-pub(crate) struct CachedOperation {
-    pub solved: SolvedOperation,
-    pub attributes: CachedOperationAttributes,
+pub struct CachedOperation {
+    pub(crate) solved: SolvedOperation,
+    pub(crate) attributes: CachedOperationAttributes,
     // This is optional because we only currently need it for complexity control
     // That may change in the future...
-    pub operation: Option<BoundOperation>,
+    pub(crate) operation: Option<BoundOperation>,
 }
 
 impl CachedOperation {

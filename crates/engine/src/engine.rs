@@ -1,4 +1,4 @@
-use ::runtime::{hooks::Hooks as _, operation_cache::OperationCacheFactory};
+use ::runtime::hooks::Hooks as _;
 use bytes::Bytes;
 use engine_auth::AuthService;
 use futures::{StreamExt, TryFutureExt};
@@ -31,7 +31,6 @@ pub struct Engine<R: Runtime> {
     pub(crate) runtime: R,
     auth: AuthService,
     retry_budgets: RetryBudgets,
-    pub(crate) operation_cache: <R::OperationCacheFactory as OperationCacheFactory>::Cache<Arc<CachedOperation>>,
     default_response_format: ResponseFormat,
 }
 
@@ -47,7 +46,6 @@ impl<R: Runtime> Engine<R> {
         Self {
             auth,
             retry_budgets: RetryBudgets::build(&schema),
-            operation_cache: runtime.operation_cache_factory().create().await,
             schema,
             runtime,
             // Could be coming from configuration one day

@@ -1,21 +1,23 @@
-use std::future::Future;
+use std::{future::Future, sync::Arc};
 
 use grafbase_telemetry::metrics::EngineMetrics;
 use runtime::{entity_cache::EntityCache, kv::KvStore, rate_limiting::RateLimiter};
+
+use super::CachedOperation;
 
 pub type HooksContext<R> = <<R as Runtime>::Hooks as runtime::hooks::Hooks>::Context;
 
 pub trait Runtime: Send + Sync + 'static {
     type Hooks: runtime::hooks::Hooks;
     type Fetcher: runtime::fetch::Fetcher;
-    type OperationCacheFactory: runtime::operation_cache::OperationCacheFactory;
+    type OperationCache: runtime::operation_cache::OperationCache<Arc<CachedOperation>>;
 
     fn fetcher(&self) -> &Self::Fetcher;
     fn kv(&self) -> &KvStore;
     fn trusted_documents(&self) -> &runtime::trusted_documents_client::Client;
     fn metrics(&self) -> &EngineMetrics;
     fn hooks(&self) -> &Self::Hooks;
-    fn operation_cache_factory(&self) -> &Self::OperationCacheFactory;
+    fn operation_cache(&self) -> &Self::OperationCache;
     fn rate_limiter(&self) -> &RateLimiter;
     fn sleep(&self, duration: std::time::Duration) -> impl Future<Output = ()> + Send;
     fn entity_cache(&self) -> &dyn EntityCache;

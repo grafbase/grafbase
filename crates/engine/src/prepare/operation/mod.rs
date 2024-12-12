@@ -31,7 +31,7 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
                 Err(err) => return Err(Response::refuse_request_with(http::StatusCode::BAD_REQUEST, vec![err])),
             };
 
-            if let Some(operation) = self.engine.operation_cache.get(&cache_key).await {
+            if let Some(operation) = self.operation_cache().get(&cache_key).await {
                 self.executed_operation_builder.set_cached_plan();
                 self.metrics().record_operation_cache_hit();
 
@@ -56,7 +56,7 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
                             Response::request_error(attributes, [err])
                         })?;
 
-                let cache_fut = self.engine.operation_cache.insert(cache_key, cached_operation.clone());
+                let cache_fut = self.operation_cache().insert(cache_key, cached_operation.clone());
                 self.push_background_future(cache_fut.boxed());
 
                 cached_operation

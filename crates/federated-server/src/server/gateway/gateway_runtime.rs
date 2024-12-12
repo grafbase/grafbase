@@ -1,12 +1,13 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 
+use engine::CachedOperation;
 use gateway_config::{Config, EntityCachingRedisConfig};
 use grafbase_telemetry::metrics::EngineMetrics;
 use runtime::entity_cache::EntityCache;
 use runtime_local::{
     rate_limiting::{in_memory::key_based::InMemoryRateLimiter, redis::RedisRateLimiter},
     redis::{RedisPoolFactory, RedisTlsConfig},
-    HooksWasi, InMemoryEntityCache, InMemoryKvStore, InMemoryOperationCacheFactory, NativeFetcher, RedisEntityCache,
+    HooksWasi, InMemoryEntityCache, InMemoryKvStore, InMemoryOperationCache, NativeFetcher, RedisEntityCache,
 };
 use runtime_noop::trusted_documents::NoopTrustedDocuments;
 
@@ -22,7 +23,7 @@ pub struct GatewayRuntime {
     hooks: HooksWasi,
     rate_limiter: runtime::rate_limiting::RateLimiter,
     entity_cache: Box<dyn EntityCache>,
-    operation_cache_factory: InMemoryOperationCacheFactory,
+    operation_cache: InMemoryOperationCache<Arc<CachedOperation>>,
 }
 
 impl GatewayRuntime {
@@ -79,10 +80,10 @@ impl GatewayRuntime {
             }
         };
 
-        let operation_cache_factory = if gateway_config.operation_caching.enabled {
-            InMemoryOperationCacheFactory::new(gateway_config.operation_caching.limit)
+        let operation_cache = if gateway_config.operation_caching.enabled {
+            InMemoryOperationCache::new(gateway_config.operation_caching.limit)
         } else {
-            InMemoryOperationCacheFactory::inactive()
+            InMemoryOperationCache::inactive()
         };
 
         let runtime = GatewayRuntime {
@@ -93,7 +94,7 @@ impl GatewayRuntime {
             metrics: EngineMetrics::build(&meter, version_id.map(|id| id.to_string())),
             rate_limiter,
             entity_cache,
-            operation_cache_factory,
+            operation_cache,
         };
 
         Ok(runtime)
@@ -103,7 +104,7 @@ impl GatewayRuntime {
 impl engine::Runtime for GatewayRuntime {
     type Hooks = HooksWasi;
     type Fetcher = NativeFetcher;
-    type OperationCacheFactory = InMemoryOperationCacheFactory;
+    type OperationCache = InMemoryOperationCache<Arc<CachedOperation>>;
 
     fn fetcher(&self) -> &Self::Fetcher {
         &self.fetcher
@@ -121,8 +122,8 @@ impl engine::Runtime for GatewayRuntime {
         &self.hooks
     }
 
-    fn operation_cache_factory(&self) -> &Self::OperationCacheFactory {
-        &self.operation_cache_factory
+    fn operation_cache(&self) -> &Self::OperationCache {
+        &self.operation_cache
     }
 
     fn rate_limiter(&self) -> &runtime::rate_limiting::RateLimiter {
