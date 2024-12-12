@@ -8,6 +8,7 @@ use used_fields::UsedFields;
 pub struct OperationAnalytics<'a> {
     /// Used fields, in the form of a iterator of (entity name, field name)
     pub used_fields: Option<UsedFields<'a>>,
+    pub normalized_document: String,
 }
 
 pub struct ExecutedRequest<'a> {
@@ -34,5 +35,8 @@ pub fn compute_post_execution_analytics<'a>(
 
     let used_fields = Some(self::used_fields::compute(schema, &operation));
 
-    OperationAnalytics { used_fields }
+    OperationAnalytics {
+        used_fields,
+        normalized_document: document,
+    }
 }
