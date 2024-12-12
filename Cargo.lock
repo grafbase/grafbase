@@ -2094,7 +2094,7 @@ dependencies = [
 
 [[package]]
 name = "engine"
-version = "3.0.31"
+version = "0.0.0"
 dependencies = [
  "async-sse",
  "base64 0.22.1",
@@ -2143,7 +2143,7 @@ dependencies = [
 
 [[package]]
 name = "engine-auth"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "base64 0.22.1",
  "engine-config",
@@ -2163,7 +2163,7 @@ dependencies = [
 
 [[package]]
 name = "engine-axum"
-version = "3.0.31"
+version = "0.0.0"
 dependencies = [
  "async-trait",
  "axum",
@@ -2184,7 +2184,7 @@ dependencies = [
 
 [[package]]
 name = "engine-codegen"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "anyhow",
  "case",
@@ -2203,7 +2203,7 @@ dependencies = [
 
 [[package]]
 name = "engine-config"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "base64 0.22.1",
  "gateway-config",
@@ -2235,7 +2235,7 @@ dependencies = [
 
 [[package]]
 name = "engine-id-derives"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "grafbase-workspace-hack",
  "proc-macro2",
@@ -2282,7 +2282,7 @@ dependencies = [
 
 [[package]]
 name = "engine-schema"
-version = "3.0.31"
+version = "0.0.0"
 dependencies = [
  "anyhow",
  "engine-config",
@@ -2314,9 +2314,55 @@ dependencies = [
 
 [[package]]
 name = "engine-walker"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "grafbase-workspace-hack",
+]
+
+[[package]]
+name = "engine_operation"
+version = "0.0.0"
+dependencies = [
+ "async-sse",
+ "base64 0.22.1",
+ "blake3",
+ "bytes",
+ "crossbeam-queue",
+ "cynic-parser",
+ "engine-id-derives",
+ "engine-id-newtypes",
+ "engine-schema",
+ "engine-walker",
+ "fixedbitset 0.5.7",
+ "futures",
+ "futures-util",
+ "grafbase-telemetry",
+ "grafbase-workspace-hack",
+ "headers",
+ "hex",
+ "http 1.2.0",
+ "im",
+ "itertools 0.13.0",
+ "lasso2",
+ "mediatype",
+ "mime",
+ "multipart-stream",
+ "operation-normalizer",
+ "pretty_assertions",
+ "rand 0.8.5",
+ "runtime",
+ "serde",
+ "serde-value",
+ "serde_json",
+ "serde_urlencoded",
+ "serde_with",
+ "sha2",
+ "strum",
+ "strum_macros",
+ "thiserror 2.0.6",
+ "tower 0.5.1",
+ "tracing",
+ "url",
 ]
 
 [[package]]

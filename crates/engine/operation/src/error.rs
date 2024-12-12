@@ -1,0 +1,46 @@
+use std::borrow::Cow;
+
+use crate::Location;
+
+pub(crate) type Result<T> = std::result::Result<T, Error>;
+
+pub enum Error {
+    Parsing {
+        message: Cow<'static, str>,
+        locations: Vec<Location>,
+    },
+    Validation {
+        message: Cow<'static, str>,
+        locations: Vec<Location>,
+    },
+}
+
+impl Error {
+    pub(crate) fn parsing(message: impl Into<Cow<'static, str>>) -> Self {
+        Error::Parsing {
+            message: message.into(),
+            locations: Vec::new(),
+        }
+    }
+
+    pub(crate) fn validation(message: impl Into<Cow<'static, str>>) -> Self {
+        Error::Validation {
+            message: message.into(),
+            locations: Vec::new(),
+        }
+    }
+
+    pub(crate) fn with_location(mut self, location: Location) -> Self {
+        match &mut self {
+            Error::Parsing { locations, .. } | Error::Validation { locations, .. } => locations.push(location),
+        }
+        self
+    }
+
+    pub(crate) fn with_locations(mut self, locations: impl IntoIterator<Item = Location>) -> Self {
+        match &mut self {
+            Error::Parsing { locations: loc, .. } | Error::Validation { locations: loc, .. } => loc.extend(locations),
+        }
+        self
+    }
+}

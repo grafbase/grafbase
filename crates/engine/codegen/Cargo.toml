@@ -2,7 +2,6 @@
 edition = "2021"
 name = "engine-codegen"
 publish = false
-version = "0.1.0"
 
 [dependencies]
 anyhow = "1"
