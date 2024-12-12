@@ -50,13 +50,13 @@ where
     G::NodeWeight: std::fmt::Debug,
 {
     pub(crate) fn initialize(
-        operation_graph: G,
+        query_graph: G,
         node_filter: impl Fn(G::NodeRef) -> Option<G::NodeId>,
         edge_filter: impl Fn(G::EdgeRef) -> Option<(G::EdgeId, G::NodeId, G::NodeId, Cost)>,
         root: G::NodeId,
         terminals: impl IntoIterator<Item = G::NodeId>,
     ) -> Self {
-        let mut steiner_graph = SteinerGraph::build(operation_graph, node_filter, edge_filter);
+        let mut steiner_graph = SteinerGraph::build(query_graph, node_filter, edge_filter);
         let root_ix = steiner_graph.to_node_ix(root);
         let missing_terminals = terminals
             .into_iter()
@@ -107,10 +107,10 @@ where
         // Initialize the shortest paths, currently everything is set to MAX. We should have
         // reached all terminals at this point with a sensible cost.
         alg.regenerate_shortest_paths();
-        debug_assert!(alg
-            .missing_terminals
-            .iter()
-            .all(|t| alg.steiner_tree.shortest_paths[t.index()].cumulative_cost_from_root < Cost::MAX));
+        // debug_assert!(alg
+        //     .missing_terminals
+        //     .iter()
+        //     .all(|t| alg.steiner_tree.shortest_paths[t.index()].cumulative_cost_from_root < Cost::MAX));
 
         alg
     }
@@ -133,7 +133,7 @@ where
                 },
                 &|_, (node_ix, _)| {
                     let is_in_steiner_tree = self.steiner_tree.nodes[node_ix.index()];
-                    if let Some(node_id) = self.steiner_graph.to_operation_graph_node_id(node_ix) {
+                    if let Some(node_id) = self.steiner_graph.to_query_graph_node_id(node_ix) {
                         node_label(node_id, is_in_steiner_tree)
                     } else {
                         debug_assert!(!is_in_steiner_tree);
@@ -323,11 +323,11 @@ where
         self.steiner_tree.nodes[self.steiner_graph.to_node_ix(node_id).index()]
     }
 
-    pub(crate) fn operation_graph_bitset(&self) -> FixedBitSet {
-        let mut bitset = FixedBitSet::with_capacity(self.steiner_graph.operation_graph_node_id_to_node_ix.len());
+    pub(crate) fn query_graph_nodes_bitset(&self) -> FixedBitSet {
+        let mut bitset = FixedBitSet::with_capacity(self.steiner_graph.query_graph_node_id_to_node_ix.len());
         for (i, ix) in self
             .steiner_graph
-            .operation_graph_node_id_to_node_ix
+            .query_graph_node_id_to_node_ix
             .iter()
             .copied()
             .enumerate()

@@ -7,7 +7,10 @@ use serde::{
 };
 use walker::Walk;
 
-use crate::response::{FieldShapeRecord, GraphqlError, ResponseValue};
+use crate::{
+    prepare::FieldShapeRecord,
+    response::{GraphqlError, ResponseValue},
+};
 
 use super::SeedContext;
 

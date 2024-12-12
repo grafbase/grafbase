@@ -9,6 +9,7 @@ members = [
     "crates/engine/config",
     "crates/engine/axum",
     "crates/engine/codegen",
+    "crates/engine/operation",
     "crates/engine/walker",
     "crates/engine/schema",
     "crates/engine/query-solver",

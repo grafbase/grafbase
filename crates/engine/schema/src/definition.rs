@@ -1,7 +1,8 @@
 use walker::Walk;
 
 use crate::{
-    CompositeType, CompositeTypeId, Definition, DefinitionId, EntityDefinition, EntityDefinitionId, TypeSystemDirective,
+    CompositeType, CompositeTypeId, Definition, DefinitionId, EntityDefinition, EntityDefinitionId,
+    TypeSystemDirective, TypeSystemDirectiveId,
 };
 
 impl<'a> Definition<'a> {
@@ -13,6 +14,17 @@ impl<'a> Definition<'a> {
             Definition::Object(item) => item.name(),
             Definition::Scalar(item) => item.name(),
             Definition::Union(item) => item.name(),
+        }
+    }
+
+    pub fn directive_ids(&self) -> &'a [TypeSystemDirectiveId] {
+        match self {
+            Definition::Enum(item) => &item.as_ref().directive_ids,
+            Definition::InputObject(item) => &item.as_ref().directive_ids,
+            Definition::Interface(item) => &item.as_ref().directive_ids,
+            Definition::Object(item) => &item.as_ref().directive_ids,
+            Definition::Scalar(item) => &item.as_ref().directive_ids,
+            Definition::Union(item) => &item.as_ref().directive_ids,
         }
     }
 

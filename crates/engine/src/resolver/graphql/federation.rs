@@ -9,7 +9,7 @@ use walker::Walk;
 
 use crate::{
     execution::ExecutionContext,
-    operation::{Plan, PlanError, PlanQueryPartition, PlanResult},
+    prepare::{Plan, PlanError, PlanQueryPartition, PlanResult},
     resolver::{
         graphql::request::{SubgraphGraphqlRequest, SubgraphVariables},
         ExecutionResult, Resolver,

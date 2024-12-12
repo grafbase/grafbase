@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     execution::{ExecutionContext, ExecutionResult},
-    operation::Plan,
+    prepare::Plan,
     response::{InputResponseObjectSet, SubgraphResponse},
     Runtime,
 };
@@ -14,7 +14,7 @@ pub(crate) struct IntrospectionResolver;
 
 impl IntrospectionResolver {
     #[allow(clippy::unnecessary_wraps)]
-    pub async fn execute<'ctx, R: Runtime>(
+    pub fn execute<'ctx, R: Runtime>(
         &'ctx self,
         ctx: ExecutionContext<'ctx, R>,
         plan: Plan<'ctx>,

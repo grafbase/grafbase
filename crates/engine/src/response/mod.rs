@@ -3,7 +3,6 @@ mod extensions;
 mod object_set;
 mod path;
 mod read;
-mod shape;
 mod value;
 mod write;
 
@@ -14,19 +13,16 @@ pub(crate) use error::*;
 use extensions::ResponseExtensions;
 pub(crate) use extensions::*;
 use grafbase_telemetry::graphql::{GraphqlExecutionTelemetry, GraphqlOperationAttributes, GraphqlResponseStatus};
-pub(crate) use key::*;
 pub(crate) use object_set::*;
 pub(crate) use path::*;
 pub(crate) use read::*;
 use schema::Schema;
-pub(crate) use shape::*;
 pub(crate) use value::*;
 pub(crate) use write::*;
 
 use crate::prepare::{CachedOperation, PreparedOperation};
 
 pub(crate) mod error;
-pub(crate) mod key;
 
 pub(crate) enum Response<OnOperationResponseHookOutput> {
     /// Before or while validating we have a well-formed GraphQL-over-HTTP request, we may

@@ -20,13 +20,16 @@ pub struct Domain {
     pub public_visibility: TokenStream,
     pub context_name: String,
     pub context_type: TokenStream,
+    pub domain_accessor_override: Option<TokenStream>,
     pub definitions_by_name: HashMap<String, Definition>,
     pub imported_domains: HashMap<String, ImportedDomain>,
 }
 
 impl Domain {
     pub fn domain_accessor(&self) -> TokenStream {
-        if self.name != self.context_name {
+        if let Some(domain_accessor) = &self.domain_accessor_override {
+            domain_accessor.clone()
+        } else if self.name != self.context_name {
             let domain = Ident::new(&self.name, Span::call_site());
             let ctx = Ident::new(&self.context_name, Span::call_site());
             quote! { #ctx.#domain }

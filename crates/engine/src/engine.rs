@@ -1,5 +1,6 @@
-use ::runtime::hooks::Hooks as _;
+use ::runtime::{hooks::Hooks as _, operation_cache::OperationCache};
 use bytes::Bytes;
+use cache::CacheKey;
 use engine_auth::AuthService;
 use futures::{StreamExt, TryFutureExt};
 use futures_util::Stream;
@@ -9,7 +10,7 @@ use std::{borrow::Cow, future::Future, sync::Arc};
 
 use crate::{
     graphql_over_http::{Http, ResponseFormat, StreamingResponseFormat},
-    prepare::CachedOperation,
+    prepare::{CachedOperation, OperationDocument},
     response::Response,
     websocket, Body, HooksExtension,
 };
@@ -51,6 +52,33 @@ impl<R: Runtime> Engine<R> {
             // Could be coming from configuration one day
             default_response_format: ResponseFormat::application_json(),
         }
+    }
+
+    pub async fn warm<'doc, Doc>(self: &Arc<Self>, documents: impl IntoIterator<Item = Doc, IntoIter: Send> + Send)
+    where
+        Doc: Into<OperationDocument<'doc>> + Send,
+    {
+        tracing::info!("Warming operations");
+
+        let mut count = 0;
+        for document in documents {
+            let document: OperationDocument<'_> = document.into();
+            let name = document.operation_name().map(|s| s.to_owned());
+            let cache_key = CacheKey::document(&self.schema, &document.key).to_string();
+            match self.warm_operation(document) {
+                Ok(cached) => {
+                    count += 1;
+                    self.runtime.operation_cache().insert(cache_key, Arc::new(cached)).await;
+                }
+                Err(err) => {
+                    // Ensure we're yield regularly.
+                    futures_lite::future::yield_now().await;
+                    tracing::warn!("Could not plan operation {}: {err}", name.unwrap_or_default());
+                }
+            }
+        }
+
+        tracing::info!("Warming finished, {} operations were warmed", count);
     }
 
     pub async fn execute<F>(self: &Arc<Self>, request: http::Request<F>) -> http::Response<Body>

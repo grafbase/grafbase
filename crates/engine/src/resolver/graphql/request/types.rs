@@ -1,7 +1,6 @@
+use operation::InputValueContext;
 use serde::ser::SerializeMap;
 use walker::Walk;
-
-use crate::operation::InputValueContext;
 
 use super::QueryVariables;
 

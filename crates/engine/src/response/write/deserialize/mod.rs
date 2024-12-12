@@ -6,7 +6,8 @@ use walker::Walk;
 
 use crate::{
     execution::ExecutionContext,
-    response::{ConcreteShapeId, GraphqlError, InputObjectId},
+    prepare::ConcreteShapeId,
+    response::{GraphqlError, InputObjectId},
     Runtime,
 };
 
@@ -42,7 +43,7 @@ impl<'ctx> UpdateSeed<'ctx> {
         Self {
             ctx: SeedContext {
                 schema: ctx.schema(),
-                operation: ctx.operation,
+                prepared_operation: ctx.operation,
                 subgraph_response,
                 bubbling_up_serde_error: Cell::new(false),
                 path,

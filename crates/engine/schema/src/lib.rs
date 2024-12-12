@@ -99,6 +99,12 @@ pub struct Schema {
 }
 
 impl Schema {
+    pub fn from_sdl_or_panic(sdl: &str) -> Self {
+        let graph = federated_graph::FederatedGraph::from_sdl(sdl).unwrap();
+        let config = config::Config::from_graph(graph);
+        Self::build(config, Version::from(Vec::new())).unwrap()
+    }
+
     pub fn build(config: config::Config, version: Version) -> Result<Schema, BuildError> {
         builder::build(config, version)
     }

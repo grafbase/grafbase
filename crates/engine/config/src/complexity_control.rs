@@ -12,6 +12,10 @@ pub enum ComplexityControl {
 }
 
 impl ComplexityControl {
+    pub fn is_enabled(&self) -> bool {
+        !matches!(self, ComplexityControl::Disabled)
+    }
+
     pub fn is_disabled(&self) -> bool {
         matches!(self, ComplexityControl::Disabled)
     }

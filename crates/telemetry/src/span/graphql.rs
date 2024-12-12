@@ -58,7 +58,7 @@ impl GraphqlOperationSpan {
         }
         self.record("graphql.operation.document", operation.sanitized_query.as_ref());
         self.record("graphql.operation.type", operation.ty.as_str());
-        if let Some(complexity) = operation.complexity {
+        if let Some(complexity) = operation.complexity_cost {
             self.record("graphql.operation.complexity", complexity);
         }
     }

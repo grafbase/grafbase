@@ -1,6 +1,6 @@
 ---
 source: crates/engine/query-solver/src/tests/tea_shop.rs
-expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n    1 [ label = \"Tea.id\", color=forestgreen ]\n    2 [ label = \"Tea.name\", color=forestgreen ]\n    3 [ label = \"Tea.style\", color=forestgreen ]\n    4 [ label = \"StyleContainer.name\", color=forestgreen ]\n    5 [ label = \"StyleContainer.style\", color=forestgreen ]\n    6 [ label = \"Root#tea-shop\", shape=parallelogram, color=dodgerblue, color=forestgreen ]\n    7 [ label = \"teaWithInaccessibleStyle#tea-shop\", shape=box, color=dodgerblue, color=forestgreen ]\n    8 [ label = \"style#tea-shop\", shape=box, color=dodgerblue, color=forestgreen ]\n    9 [ label = \"name#tea-shop\", shape=box, color=dodgerblue, color=forestgreen ]\n    10 [ label = \"recommendedTeas#tea-shop\", shape=box, color=dodgerblue, color=forestgreen ]\n    11 [ label = \"style#tea-shop\", shape=box, color=dodgerblue, color=forestgreen ]\n    12 [ label = \"name#tea-shop\", shape=box, color=dodgerblue, color=forestgreen ]\n    13 [ label = \"id#tea-shop\", shape=box, color=dodgerblue, color=forestgreen ]\n    14 [ label=\"\", style=dashed]\n    0 -> 6 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    6 -> 7 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    7 -> 8 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    8 -> 5 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    7 -> 9 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    9 -> 4 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    6 -> 10 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    10 -> 11 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    11 -> 3 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    10 -> 12 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    12 -> 2 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    10 -> 13 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    13 -> 1 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    14 -> 0 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n}\n"
+expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n    1 [ label = \"Tea.id\", color=forestgreen ]\n    2 [ label = \"Tea.name\", color=forestgreen ]\n    3 [ label = \"Tea.style\", color=forestgreen ]\n    4 [ label = \"StyleContainer.name\", color=forestgreen ]\n    5 [ label = \"StyleContainer.style\", color=forestgreen ]\n    6 [ label = \"Root#tea-shop\", shape=parallelogram, color=dodgerblue, color=forestgreen ]\n    7 [ label = \"recommendedTeas#tea-shop\", shape=box, color=dodgerblue, color=forestgreen ]\n    8 [ label = \"id#tea-shop\", shape=box, color=dodgerblue, color=forestgreen ]\n    9 [ label = \"name#tea-shop\", shape=box, color=dodgerblue, color=forestgreen ]\n    10 [ label = \"style#tea-shop\", shape=box, color=dodgerblue, color=forestgreen ]\n    11 [ label = \"teaWithInaccessibleStyle#tea-shop\", shape=box, color=dodgerblue, color=forestgreen ]\n    12 [ label = \"name#tea-shop\", shape=box, color=dodgerblue, color=forestgreen ]\n    13 [ label = \"style#tea-shop\", shape=box, color=dodgerblue, color=forestgreen ]\n    14 [ label=\"\", style=dashed]\n    0 -> 6 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    6 -> 7 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    7 -> 8 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    8 -> 1 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    7 -> 9 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    9 -> 2 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    7 -> 10 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    10 -> 3 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    6 -> 11 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    11 -> 12 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    12 -> 4 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    11 -> 13 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    13 -> 5 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    14 -> 0 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n}\n"
 ---
 digraph {
     0 [ label = "root", steiner=1 ]
@@ -10,26 +10,26 @@ digraph {
     4 [ label = "StyleContainer.name", steiner=1 ]
     5 [ label = "StyleContainer.style", steiner=1 ]
     6 [ label = "Root#tea-shop", steiner=1 ]
-    7 [ label = "teaWithInaccessibleStyle#tea-shop", steiner=1 ]
-    8 [ label = "style#tea-shop", steiner=1 ]
+    7 [ label = "recommendedTeas#tea-shop", steiner=1 ]
+    8 [ label = "id#tea-shop", steiner=1 ]
     9 [ label = "name#tea-shop", steiner=1 ]
-    10 [ label = "recommendedTeas#tea-shop", steiner=1 ]
-    11 [ label = "style#tea-shop", steiner=1 ]
+    10 [ label = "style#tea-shop", steiner=1 ]
+    11 [ label = "teaWithInaccessibleStyle#tea-shop", steiner=1 ]
     12 [ label = "name#tea-shop", steiner=1 ]
-    13 [ label = "id#tea-shop", steiner=1 ]
+    13 [ label = "style#tea-shop", steiner=1 ]
     14 [ label="", style=dashed]
     0 -> 6 [ cost=0, steiner=1]
     6 -> 7 [ cost=0, steiner=1]
     7 -> 8 [ cost=0, steiner=1]
-    8 -> 5 [ cost=0, steiner=1]
+    8 -> 1 [ cost=0, steiner=1]
     7 -> 9 [ cost=0, steiner=1]
-    9 -> 4 [ cost=0, steiner=1]
-    6 -> 10 [ cost=0, steiner=1]
-    10 -> 11 [ cost=0, steiner=1]
-    11 -> 3 [ cost=0, steiner=1]
-    10 -> 12 [ cost=0, steiner=1]
-    12 -> 2 [ cost=0, steiner=1]
-    10 -> 13 [ cost=0, steiner=1]
-    13 -> 1 [ cost=0, steiner=1]
+    9 -> 2 [ cost=0, steiner=1]
+    7 -> 10 [ cost=0, steiner=1]
+    10 -> 3 [ cost=0, steiner=1]
+    6 -> 11 [ cost=0, steiner=1]
+    11 -> 12 [ cost=0, steiner=1]
+    12 -> 4 [ cost=0, steiner=1]
+    11 -> 13 [ cost=0, steiner=1]
+    13 -> 5 [ cost=0, steiner=1]
     14 -> 0 [ cost=0, steiner=0]
 }

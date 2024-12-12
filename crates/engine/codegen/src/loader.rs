@@ -106,6 +106,7 @@ pub(super) fn load(path: PathBuf) -> anyhow::Result<domain::Domain> {
                         let name = Ident::new(ty.name(), Span::call_site());
                         quote! { &'a #name }
                     }),
+                domain_accessor_override: ctx.domain_accessor.map(|ac| ac.parse().unwrap()),
                 definitions_by_name: Default::default(),
                 public_visibility: ctx
                     .visibility
@@ -467,6 +468,7 @@ struct DomainDirective {
     visibility: Option<String>,
     context_name: Option<String>,
     context_type: Option<String>,
+    domain_accessor: Option<String>,
     #[deser(default)]
     imports: Vec<Import>,
 }

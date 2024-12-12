@@ -22,7 +22,7 @@ impl serde::Serialize for ResponseObjectViewWithExtraFields<'_> {
                 ctx: self.ctx,
                 value: self
                     .response_object
-                    .find_by_response_key(field.key.response_key)
+                    .find_by_response_key(field.response_key)
                     .ok_or_else(|| S::Error::custom(format!("Could not retrieve field {key}",)))?,
                 selection_set: selection.subselection(),
             };
@@ -42,7 +42,7 @@ impl serde::Serialize for ResponseObjectView<'_> {
         for selection in self.selection_set.iter() {
             let field = selection.data_field();
             let key = field.definition().name();
-            let value = match self.response_object.find_by_response_key(field.key.response_key) {
+            let value = match self.response_object.find_by_response_key(field.response_key) {
                 Some(value) => value,
                 None => {
                     // If this field doesn't match the actual response object, meaning this field

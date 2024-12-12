@@ -1,41 +1,44 @@
 //! Handling of trusted documents and Automatic Persisted Queries (APQ).
 
 use crate::{
-    engine::cache::{DocumentKey, Key},
-    request::{extensions::PersistedQueryRequestExtension, Request},
+    engine::cache::DocumentKey,
     response::{ErrorCode, GraphqlError},
     Engine, Runtime,
 };
 use futures::{future::BoxFuture, FutureExt};
 use grafbase_telemetry::grafbase_client::X_GRAFBASE_CLIENT_NAME;
+use operation::{extensions::PersistedQueryRequestExtension, Request};
 use runtime::trusted_documents_client::TrustedDocumentsError;
 use std::borrow::Cow;
 use tracing::Instrument;
 
-use super::PrepareContext;
+use super::{OperationDocument, PrepareContext};
+
+pub(super) struct ExtractedOperationDocument<'a> {
+    pub key: DocumentKey<'a>,
+    document_or_future: DocumentOrFuture<'a>,
+}
+
+enum DocumentOrFuture<'a> {
+    Document(Cow<'a, str>),
+    Future(DocumentFuture<'a>),
+}
 
 type DocumentFuture<'a> = BoxFuture<'a, Result<Cow<'a, str>, GraphqlError>>;
 
-pub(crate) struct OperationDocument<'a> {
-    pub cache_key: Key<'a>,
-    pub document_or_future: DocumentOrFuture<'a>,
-}
-
-impl<'a> DocumentOrFuture<'a> {
-    pub(super) async fn into_document(self) -> Result<Cow<'a, str>, GraphqlError> {
-        match self {
-            DocumentOrFuture::Document(cow) => Ok(cow),
+impl<'a> ExtractedOperationDocument<'a> {
+    pub(super) async fn into_operation_document(self) -> Result<OperationDocument<'a>, GraphqlError> {
+        match self.document_or_future {
+            DocumentOrFuture::Document(content) => Ok(OperationDocument { key: self.key, content }),
             DocumentOrFuture::Future(future) => {
                 let span = tracing::info_span!("load trusted document");
-                future.instrument(span).await
+                Ok(OperationDocument {
+                    key: self.key,
+                    content: future.instrument(span).await?,
+                })
             }
         }
     }
-}
-
-pub(super) enum DocumentOrFuture<'a> {
-    Document(Cow<'a, str>),
-    Future(DocumentFuture<'a>),
 }
 
 fn wrap_document(doc: &str) -> DocumentOrFuture<'_> {
@@ -45,10 +48,10 @@ fn wrap_document(doc: &str) -> DocumentOrFuture<'_> {
 impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
     /// Determines what document should be used for the request and provides an appropriate cache
     /// key for the operation cache and as a fallback a future to load said document.
-    pub(super) fn determine_operation_document<'r, 'f>(
+    pub(super) fn extract_operation_document<'r, 'f>(
         &mut self,
         request: &'r Request,
-    ) -> Result<OperationDocument<'f>, GraphqlError>
+    ) -> Result<ExtractedOperationDocument<'f>, GraphqlError>
     where
         'ctx: 'f,
         'r: 'f,
@@ -57,8 +60,7 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
         let trusted_documents = self.engine.runtime.trusted_documents();
         let persisted_query_extension = request.extensions.persisted_query.as_ref();
         let doc_id = request.doc_id.as_ref();
-        let name = request.operation_name.as_deref();
-        let schema = &self.engine.schema;
+        let operation_name = request.operation_name.as_deref().map(Cow::Borrowed);
 
         match (trusted_documents.is_enabled(), persisted_query_extension, doc_id) {
             (true, None, None) => {
@@ -72,11 +74,10 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
                         .as_deref()
                         .ok_or_else(|| GraphqlError::new("Missing query", ErrorCode::BadRequest))?;
 
-                    Ok(OperationDocument {
-                        cache_key: Key::Operation {
-                            name,
-                            schema,
-                            document: DocumentKey::Text(Cow::Borrowed(document)),
+                    Ok(ExtractedOperationDocument {
+                        key: DocumentKey::Text {
+                            operation_name,
+                            document: Cow::Borrowed(document),
                         },
                         document_or_future: wrap_document(document),
                     })
@@ -108,14 +109,11 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
                     unreachable!()
                 };
 
-                Ok(OperationDocument {
-                    cache_key: Key::Operation {
-                        name,
-                        schema,
-                        document: DocumentKey::TrustedDocumentId {
-                            client_name: Cow::Borrowed(client_name),
-                            doc_id: doc_id.clone(),
-                        },
+                Ok(ExtractedOperationDocument {
+                    key: DocumentKey::TrustedDocumentId {
+                        operation_name,
+                        client_name: Cow::Borrowed(client_name),
+                        doc_id: doc_id.clone(),
                     },
                     document_or_future: DocumentOrFuture::Future(
                         handle_trusted_document_query(self.engine, client_name, doc_id).boxed(),
@@ -135,11 +133,10 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
                     .as_deref()
                     .ok_or_else(|| GraphqlError::new("Missing query", ErrorCode::BadRequest))?;
 
-                Ok(OperationDocument {
-                    cache_key: Key::Operation {
-                        name,
-                        schema,
-                        document: DocumentKey::AutomaticPersistedQuery(Cow::Borrowed(ext)),
+                Ok(ExtractedOperationDocument {
+                    key: DocumentKey::AutomaticPersistedQuery {
+                        operation_name,
+                        ext: Cow::Borrowed(ext),
                     },
                     document_or_future: DocumentOrFuture::Future(handle_apq(query, ext).boxed()),
                 })
@@ -150,11 +147,10 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
                     .as_deref()
                     .ok_or_else(|| GraphqlError::new("Missing query", ErrorCode::BadRequest))?;
 
-                Ok(OperationDocument {
-                    cache_key: Key::Operation {
-                        name,
-                        schema,
-                        document: DocumentKey::Text(Cow::Borrowed(document)),
+                Ok(ExtractedOperationDocument {
+                    key: DocumentKey::Text {
+                        operation_name,
+                        document: Cow::Borrowed(document),
                     },
                     document_or_future: wrap_document(document),
                 })

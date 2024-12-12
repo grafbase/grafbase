@@ -1,0 +1,35 @@
+---
+source: crates/engine/query-solver/src/tests/flatten.rs
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#c\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"Query.feed\" ]\n    3 [ label = \"FedEntity#d\", color=royalblue,shape=parallelogram ]\n    4 [ label = \"Post.author\" ]\n    5 [ label = \"Author.id\" ]\n    6 [ label = \"Post.comments\" ]\n    7 [ label = \"Comment.id\" ]\n    8 [ label = \"*Post.comments\" ]\n    9 [ label = \"FedEntity#c\", color=royalblue,shape=parallelogram ]\n    10 [ label = \"*Comment.authorId\" ]\n    11 [ label = \"*Comment.id\" ]\n    12 [ label = \"*Post.id\" ]\n    0 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    1 -> 2 [ label = \"\" ]\n    2 -> 3 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    3 -> 4 [ label = \"\" ]\n    4 -> 5 [ label = \"\" ]\n    3 -> 6 [ label = \"\" ]\n    6 -> 7 [ label = \"\" ]\n    3 -> 8 [ label = \"\" ]\n    8 -> 9 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    9 -> 10 [ label = \"\" ]\n    8 -> 11 [ label = \"\" ]\n    2 -> 12 [ label = \"\" ]\n    3 -> 12 [ label = \"\", color=orangered,arrowhead=inv ]\n    4 -> 10 [ label = \"\", color=orangered,arrowhead=inv ]\n    4 -> 8 [ label = \"\", color=orangered,arrowhead=inv ]\n    9 -> 11 [ label = \"\", color=orangered,arrowhead=inv ]\n}\n"
+---
+digraph {
+    0 [ label = "root" ]
+    1 [ label = "Root#c" ]
+    2 [ label = "Query.feed" ]
+    3 [ label = "FedEntity#d" ]
+    4 [ label = "Post.author" ]
+    5 [ label = "Author.id" ]
+    6 [ label = "Post.comments" ]
+    7 [ label = "Comment.id" ]
+    8 [ label = "*Post.comments" ]
+    9 [ label = "FedEntity#c" ]
+    10 [ label = "*Comment.authorId" ]
+    11 [ label = "*Comment.id" ]
+    12 [ label = "*Post.id" ]
+    0 -> 1 [ label = "QueryPartition" ]
+    1 -> 2 [ label = "Field" ]
+    2 -> 3 [ label = "QueryPartition" ]
+    3 -> 4 [ label = "Field" ]
+    4 -> 5 [ label = "Field" ]
+    3 -> 6 [ label = "Field" ]
+    6 -> 7 [ label = "Field" ]
+    3 -> 8 [ label = "Field" ]
+    8 -> 9 [ label = "QueryPartition" ]
+    9 -> 10 [ label = "Field" ]
+    8 -> 11 [ label = "Field" ]
+    2 -> 12 [ label = "Field" ]
+    3 -> 12 [ label = "RequiredBySubgraph" ]
+    4 -> 10 [ label = "RequiredBySubgraph" ]
+    4 -> 8 [ label = "RequiredBySubgraph" ]
+    9 -> 11 [ label = "RequiredBySubgraph" ]
+}

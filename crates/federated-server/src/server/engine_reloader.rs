@@ -1,6 +1,6 @@
 use std::{path::PathBuf, sync::Arc};
 
-use engine::{Engine, OperationForWarming};
+use engine::{CachedOperation, Engine};
 use futures_lite::{pin, StreamExt};
 use runtime_local::HooksWasi;
 use tokio::{
@@ -136,13 +136,13 @@ async fn build_new_engine(
     config: gateway_config::Config,
     graph_definition: GraphDefinition,
     context: Context,
-    operations_to_warm: Vec<OperationForWarming>,
+    operations_to_warm: Vec<Arc<CachedOperation>>,
 ) -> crate::Result<Arc<Engine<GatewayRuntime>>> {
     let engine = gateway::generate(graph_definition, &config, context.hot_reload_config_path, context.hooks).await?;
 
     let engine = Arc::new(engine);
 
-    engine.warm_operation_cache(operations_to_warm).await;
+    engine.warm(operations_to_warm).await;
 
     Ok(engine)
 }
@@ -150,7 +150,7 @@ async fn build_new_engine(
 fn extract_operations_to_warm(
     config: &gateway_config::Config,
     engine_sender: &EngineSender,
-) -> Vec<OperationForWarming> {
+) -> Vec<Arc<CachedOperation>> {
     if !config.operation_caching.enabled || !config.operation_caching.warm_on_reload {
         return vec![];
     }
@@ -158,10 +158,7 @@ fn extract_operations_to_warm(
     let (operations, cache_count) = {
         let cache = &engine_sender.borrow().runtime.operation_cache;
 
-        (
-            cache.values().map(OperationForWarming::new).collect(),
-            cache.entry_count(),
-        )
+        (cache.values().collect(), cache.entry_count())
     };
 
     if config.operation_caching.warming_percent >= 100 {

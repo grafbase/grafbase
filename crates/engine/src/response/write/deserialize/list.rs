@@ -7,7 +7,10 @@ use serde::{
 use walker::Walk;
 
 use super::SeedContext;
-use crate::response::{FieldShapeRecord, GraphqlError, ResponseValue, ResponseValueId};
+use crate::{
+    prepare::FieldShapeRecord,
+    response::{GraphqlError, ResponseValue, ResponseValueId},
+};
 
 pub(super) struct ListSeed<'ctx, 'parent, Seed> {
     pub ctx: &'parent SeedContext<'ctx>,

@@ -26,7 +26,7 @@ pub(super) fn generate_imports<'a>(
             .map(|name| other_imports.entry(name).or_default());
         match definition {
             Definition::Object(Object { meta, .. }) | Definition::Union(Union { meta, .. }) => {
-                if meta.module_path.starts_with(current_module_path) {
+                if exernal_imports.is_none() && meta.module_path.starts_with(current_module_path) {
                     continue;
                 }
 

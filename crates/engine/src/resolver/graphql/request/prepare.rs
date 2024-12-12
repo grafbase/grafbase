@@ -5,9 +5,10 @@ use std::{
 
 use grafbase_telemetry::graphql::OperationType;
 use itertools::Itertools;
+use operation::QueryOrSchemaInputValueId;
 use schema::{CompositeType, EntityDefinition, SubgraphId};
 
-use crate::operation::{FieldArgument, PlanDataField, PlanQueryPartition, PlanSelectionSet, QueryInputValueId};
+use crate::prepare::{PartitionFieldArguments, PlanQueryPartition, SubgraphField, SubgraphSelectionSet};
 
 const VARIABLE_PREFIX: &str = "var";
 
@@ -106,10 +107,10 @@ impl PreparedFederationEntityOperation {
 /// All variables associated with a subgraph query. Each one is associated with the variable name
 /// "{$VARIABLE_PREFIX}{idx}" with `idx` being the position of the input value in the inner vec.
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub(crate) struct QueryVariables(Vec<QueryInputValueId>);
+pub(crate) struct QueryVariables(Vec<QueryOrSchemaInputValueId>);
 
 impl QueryVariables {
-    pub fn iter(&self) -> impl Iterator<Item = (String, QueryInputValueId)> + '_ {
+    pub fn iter(&self) -> impl Iterator<Item = (String, QueryOrSchemaInputValueId)> + '_ {
         self.0
             .iter()
             .enumerate()
@@ -124,7 +125,7 @@ struct QueryVariable {
 
 struct QueryBuilderContext {
     subgraph_id: SubgraphId,
-    variables: HashMap<QueryInputValueId, QueryVariable>,
+    variables: HashMap<QueryOrSchemaInputValueId, QueryVariable>,
     estimated_variable_definitions_string_len: usize,
 }
 
@@ -155,7 +156,7 @@ impl QueryBuilderContext {
         write!(
             out,
             "{}",
-            self.variables.values().format_with(",", |var, f| {
+            self.variables.values().format_with(", ", |var, f| {
                 // no need to add the default value, we'll always provide the variable.
                 f(&format_args!("${VARIABLE_PREFIX}{}: {}", var.idx, var.ty))
             })
@@ -166,7 +167,7 @@ impl QueryBuilderContext {
         &mut self,
         parent_type: ParentType<'_>,
         buffer: &mut String,
-        selection_set: PlanSelectionSet<'_>,
+        selection_set: SubgraphSelectionSet<'_>,
     ) -> Result<(), Error> {
         buffer.push_str(" {");
         let n = buffer.len();
@@ -189,7 +190,7 @@ impl QueryBuilderContext {
         &mut self,
         parent_type: ParentType<'_>,
         buffer: &mut String,
-        selection_set: PlanSelectionSet<'_>,
+        selection_set: SubgraphSelectionSet<'_>,
     ) -> Result<(), Error> {
         let subgraph_id = self.subgraph_id;
 
@@ -292,7 +293,7 @@ impl QueryBuilderContext {
         &mut self,
         buffer: &mut String,
         entity: EntityDefinition<'_>,
-        fields: impl Iterator<Item = PlanDataField<'a>>,
+        fields: impl Iterator<Item = SubgraphField<'a>>,
     ) -> Result<(), Error> {
         write!(buffer, " ... on {} {{", entity.name())?;
 
@@ -308,7 +309,7 @@ impl QueryBuilderContext {
     fn write_fields<'a>(
         &mut self,
         buffer: &mut String,
-        fields: impl Iterator<Item = PlanDataField<'a>>,
+        fields: impl Iterator<Item = SubgraphField<'a>>,
     ) -> Result<(), Error> {
         for field in fields {
             self.write_field(buffer, field)?;
@@ -317,7 +318,7 @@ impl QueryBuilderContext {
         Ok(())
     }
 
-    fn write_field(&mut self, buffer: &mut String, field: PlanDataField<'_>) -> Result<(), Error> {
+    fn write_field(&mut self, buffer: &mut String, field: SubgraphField<'_>) -> Result<(), Error> {
         let response_key = field.subgraph_response_key_str();
         let name = field.definition().name();
         buffer.push(' ');
@@ -340,11 +341,7 @@ impl QueryBuilderContext {
         Ok(())
     }
 
-    fn write_arguments<'a>(
-        &mut self,
-        buffer: &mut String,
-        arguments: impl ExactSizeIterator<Item = FieldArgument<'a>>,
-    ) -> Result<(), Error> {
+    fn write_arguments(&mut self, buffer: &mut String, arguments: PartitionFieldArguments<'_>) -> Result<(), Error> {
         if arguments.len() != 0 {
             write!(
                 buffer,

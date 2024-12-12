@@ -34,8 +34,8 @@ fn typename_alias_should_work() {
           {
             "a": "PullRequest",
             "__typename": {
-              "name": "Jim",
-              "email": "jim@example.com"
+              "email": "jim@example.com",
+              "name": "Jim"
             }
           },
           {
@@ -45,8 +45,8 @@ fn typename_alias_should_work() {
           {
             "a": "Issue",
             "__typename": {
-              "name": "The Pessimist",
-              "email": "pessimist@example.com"
+              "email": "pessimist@example.com",
+              "name": "The Pessimist"
             }
           }
         ]

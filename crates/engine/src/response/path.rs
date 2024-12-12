@@ -1,4 +1,6 @@
-use super::{DataPartId, ErrorPathSegment, ResponseKey, ResponseListId, ResponseObjectId};
+use operation::ResponseKey;
+
+use super::{DataPartId, ErrorPathSegment, ResponseListId, ResponseObjectId};
 
 /// Unique identifier of a value within the response. Used to propagate null at the right place
 /// and to generate the appropriate error path for GraphQL errors.

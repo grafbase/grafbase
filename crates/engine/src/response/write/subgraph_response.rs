@@ -2,10 +2,10 @@ use std::{cell::RefCell, rc::Rc, sync::Arc};
 
 use crate::{
     execution::ExecutionContext,
-    operation::ResponseObjectSetDefinitionId,
+    prepare::{ConcreteShapeId, ResponseObjectSetDefinitionId},
     response::{
-        ConcreteShapeId, DataPart, GraphqlError, InputObjectId, InputResponseObjectSet, ResponseObjectField,
-        ResponseObjectRef, ResponseObjectSet, ResponseValueId,
+        DataPart, GraphqlError, InputObjectId, InputResponseObjectSet, ResponseObjectField, ResponseObjectRef,
+        ResponseObjectSet, ResponseValueId,
     },
     Runtime,
 };

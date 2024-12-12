@@ -1,4 +1,4 @@
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
+#[derive(Clone, serde::Serialize, serde::Deserialize, Debug)]
 pub struct BitSet<Id> {
     inner: fixedbitset::FixedBitSet,
     _phantom: std::marker::PhantomData<Id>,
@@ -28,6 +28,10 @@ where
         }
     }
 
+    pub fn put(&mut self, id: Id) -> bool {
+        self.inner.put(usize::from(id))
+    }
+
     pub fn set(&mut self, id: Id, value: bool) {
         self.inner.set(usize::from(id), value)
     }
@@ -35,6 +39,13 @@ where
     pub fn push(&mut self, value: bool) {
         self.inner.grow(self.inner.len() + 1);
         self.inner.set(self.inner.len() - 1, value);
+    }
+
+    pub fn zeroes(&self) -> impl Iterator<Item = Id> + '_
+    where
+        Id: From<usize>,
+    {
+        self.inner.zeroes().map(|ix| Id::from(ix))
     }
 }
 

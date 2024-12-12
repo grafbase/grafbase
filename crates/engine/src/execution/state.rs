@@ -4,7 +4,7 @@ use id_derives::IndexedFields;
 use walker::Walk;
 
 use crate::{
-    operation::{Executable, Plan, PlanId, ResponseModifierId, ResponseObjectSetDefinitionId},
+    prepare::{Executable, Plan, PlanId, ResponseModifierId, ResponseObjectSetDefinitionId},
     response::{InputResponseObjectSet, ResponseBuilder, ResponseObjectSet},
     Runtime,
 };
@@ -47,7 +47,7 @@ impl<'ctx, R: Runtime> OperationExecutionState<'ctx, R> {
     pub(super) fn new(ctx: ExecutionContext<'ctx, R>) -> Self {
         Self {
             ctx,
-            response_object_sets: vec![None; ctx.operation.cached.solved.response_object_set_definitions.len()],
+            response_object_sets: vec![None; ctx.operation.cached.query_plan.response_object_set_definitions.len()],
             plan_to_parent_count: ctx.operation.plan.plans.iter().map(|plan| plan.parent_count).collect(),
             response_modifier_to_parent_count: ctx
                 .operation

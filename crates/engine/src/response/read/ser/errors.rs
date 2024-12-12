@@ -1,9 +1,10 @@
 use std::borrow::Cow;
 
+use operation::ResponseKeys;
 use serde::ser::{SerializeMap, SerializeSeq};
 
 use crate::{
-    response::{ErrorPathSegment, GraphqlError, ResponseKeys},
+    response::{ErrorPathSegment, GraphqlError},
     ErrorCode,
 };
 

@@ -7,10 +7,12 @@ use serde::{
 };
 use walker::Walk;
 
-use crate::response::{
-    write::deserialize::{key::Key, SeedContext},
-    FieldShapeRecord, GraphqlError, ObjectIdentifier, PolymorphicShapeId, PolymorphicShapeRecord, ResponseObject,
-    ResponseValue,
+use crate::{
+    prepare::{FieldShapeRecord, ObjectIdentifier, PolymorphicShapeId, PolymorphicShapeRecord},
+    response::{
+        write::deserialize::{key::Key, SeedContext},
+        GraphqlError, ResponseObject, ResponseValue,
+    },
 };
 
 use super::concrete::ConcreteShapeSeed;
