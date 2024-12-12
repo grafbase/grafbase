@@ -1,7 +1,7 @@
-use super::engine_reloader::GraphSender;
 use super::gateway::GraphDefinition;
 use graph_ref::GraphRef;
 use tokio::sync::mpsc;
+use tokio_stream::wrappers::ReceiverStream;
 
 /// The method of running the gateway.
 pub enum GraphFetchMethod {
@@ -21,18 +21,23 @@ pub enum GraphFetchMethod {
     },
 }
 
+pub type GraphStream = ReceiverStream<GraphDefinition>;
+
 impl GraphFetchMethod {
-    /// Converts the fetch method into an eventually existing graph definition. This can happen
-    /// in two ways: if providing a graph SDL, we send a new graph immediately. Alternatively,
-    /// if a graph ref and access token is provided, the function returns immediately, and
-    /// runs a background process to fetch the graph definition from the GDN
-    pub(crate) async fn start(self, sender: GraphSender) -> crate::Result<()> {
+    /// Converts the fetch method into a stream of graph definitions.
+    ///
+    /// This can happen in two ways: if providing a graph SDL, we return a new graph immediately.
+    /// Alternatively, if a graph ref and access token is provided, the function returns
+    /// immediately, and runs a background process to fetch the graph definition from the GDN
+    pub(crate) async fn into_stream(self) -> crate::Result<GraphStream> {
         #[cfg(feature = "lambda")]
         if matches!(self, GraphFetchMethod::FromGraphRef { .. }) {
             return Err(crate::Error::InternalError(
                 "Cannot fetch schema with graph in lambda mode.".to_string(),
             ));
         }
+
+        let (sender, receiver) = mpsc::channel(4);
 
         match self {
             GraphFetchMethod::FromGraphRef {
@@ -49,6 +54,9 @@ impl GraphFetchMethod {
             }
             GraphFetchMethod::FromSchema { federated_sdl } => {
                 sender.send(GraphDefinition::Sdl(federated_sdl)).await?;
+
+                // Leak the sender so the channel never closes
+                Box::leak(Box::new(sender));
             }
             GraphFetchMethod::FromSchemaReloadable { mut sdl_receiver } => {
                 tokio::spawn(async move {
@@ -61,6 +69,6 @@ impl GraphFetchMethod {
             }
         }
 
-        Ok(())
+        Ok(ReceiverStream::new(receiver))
     }
 }

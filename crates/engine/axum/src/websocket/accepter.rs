@@ -8,7 +8,7 @@ use tokio::sync::{mpsc, watch};
 use super::service::MessageConvert;
 use engine::websocket::{Event, Message};
 
-pub type EngineWatcher<R> = watch::Receiver<Option<Arc<Engine<R>>>>;
+pub type EngineWatcher<R> = watch::Receiver<Arc<Engine<R>>>;
 pub type WebsocketSender = tokio::sync::mpsc::Sender<WebSocket>;
 pub type WebsocketReceiver = tokio::sync::mpsc::Receiver<WebSocket>;
 
@@ -166,17 +166,7 @@ async fn accept_websocket<R: Runtime>(
             Event::ConnectionInit {
                 payload: InitPayload { headers },
             } => {
-                let Some(engine) = engine.borrow().clone() else {
-                    websocket
-                        .send(
-                            Message::<R>::close(4995, "register a subgraph before connecting")
-                                .to_axum_message()
-                                .unwrap(),
-                        )
-                        .await
-                        .ok();
-                    return None;
-                };
+                let engine = engine.borrow().clone();
 
                 let Ok(session) = engine.create_websocket_session(headers).await else {
                     websocket

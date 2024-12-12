@@ -292,9 +292,11 @@ pub async fn hot_reload(
     dev_configuration: DevConfiguration,
 ) {
     // start hot reloading once the server is ready
+    eprintln!("Waiting on ready receiver");
     if ready_receiver.recv().await.is_err() {
         return;
     }
+    eprintln!("Ready recievier says go");
 
     if gateway_config_path.is_none() && graph_overrides_path.is_none() {
         // return early since we don't hot reload graphs from the API

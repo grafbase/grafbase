@@ -7,18 +7,17 @@ use tokio::{
     sync::{mpsc, watch},
     task::JoinHandle,
 };
-use tokio_stream::{
-    wrappers::{ReceiverStream, WatchStream},
-    Stream,
-};
+use tokio_stream::{wrappers::WatchStream, Stream};
 
 use crate::server::gateway;
 
-use super::gateway::{EngineSender, EngineWatcher, GatewayRuntime, GraphDefinition};
+use super::{
+    gateway::{EngineSender, EngineWatcher, GatewayRuntime, GraphDefinition},
+    graph_fetch_method::GraphStream,
+};
 
 /// Handles graph and config updates by constructing a new engine
 pub(super) struct EngineReloader {
-    graph_sender: GraphSender,
     engine_watcher: EngineWatcher,
 }
 
@@ -32,47 +31,43 @@ enum Update {
 impl EngineReloader {
     pub async fn spawn(
         gateway_config: watch::Receiver<gateway_config::Config>,
+        mut graph_stream: GraphStream,
         hot_reload_config_path: Option<PathBuf>,
         hooks: HooksWasi,
     ) -> crate::Result<Self> {
-        let (graph_sender, mut graph_receiver) = mpsc::channel::<GraphDefinition>(4);
-        let (engine_sender, engine_watcher) = watch::channel::<Option<Arc<Engine<GatewayRuntime>>>>(None);
-
         let context = Context {
             hot_reload_config_path,
             hooks,
-            engine_sender,
         };
 
-        let Some(graph_definition) = graph_receiver.recv().await else {
+        tracing::debug!("Waiting for a graph...");
+        let Some(graph_definition) = graph_stream.next().await else {
             // This shouldn't really happen, but someone could mess up
-            return Err(crate::Error::InternalError("No initial graph setup".into()));
+            return Err(crate::Error::InternalError(
+                "No initial graph definition provided".into(),
+            ));
         };
 
-        build_new_engine(
+        tracing::debug!("Creating the engine");
+        let engine = build_new_engine(
             gateway_config.borrow().clone(),
             graph_definition.clone(),
             context.clone(),
         )
         .await?;
 
+        let (engine_sender, engine_watcher) = watch::channel(engine);
+
         tokio::spawn(async move {
-            let graph_stream = ReceiverStream::new(graph_receiver).map(Update::Graph);
+            let graph_stream = graph_stream.map(Update::Graph);
             let config_stream = WatchStream::from_changes(gateway_config.clone()).map(Update::Config);
             let updates = graph_stream.race(config_stream);
             let current_config = gateway_config.borrow().clone();
 
-            update_loop(updates, current_config, graph_definition, context).await
+            update_loop(updates, current_config, graph_definition, context, engine_sender).await
         });
 
-        Ok(EngineReloader {
-            graph_sender,
-            engine_watcher,
-        })
-    }
-
-    pub fn graph_sender(&self) -> GraphSender {
-        self.graph_sender.clone()
+        Ok(EngineReloader { engine_watcher })
     }
 
     pub fn engine_watcher(&self) -> EngineWatcher {
@@ -84,7 +79,6 @@ impl EngineReloader {
 struct Context {
     hot_reload_config_path: Option<PathBuf>,
     hooks: HooksWasi,
-    engine_sender: EngineSender,
 }
 
 async fn update_loop(
@@ -92,6 +86,7 @@ async fn update_loop(
     mut current_config: gateway_config::Config,
     mut graph_definition: GraphDefinition,
     context: Context,
+    engine_sender: EngineSender,
 ) {
     let mut in_progress_reload: Option<JoinHandle<()>> = None;
 
@@ -111,10 +106,18 @@ async fn update_loop(
             let context = context.clone();
             let current_config = current_config.clone();
             let graph_definition = graph_definition.clone();
+            let engine_sender = engine_sender.clone();
 
             async move {
-                if let Err(err) = build_new_engine(current_config, graph_definition, context).await {
-                    tracing::error!("Could not build engine from latest graph: {err}")
+                match build_new_engine(current_config, graph_definition, context).await {
+                    Ok(engine) => {
+                        if let Err(err) = engine_sender.send(engine) {
+                            tracing::error!("Could not send engine: {err:?}");
+                        }
+                    }
+                    Err(err) => {
+                        tracing::error!("Could not build engine from latest graph: {err}")
+                    }
                 }
             }
         }));
@@ -125,7 +128,7 @@ async fn build_new_engine(
     current_config: gateway_config::Config,
     graph_definition: GraphDefinition,
     context: Context,
-) -> crate::Result<()> {
+) -> crate::Result<Arc<Engine<GatewayRuntime>>> {
     let engine = gateway::generate(
         graph_definition,
         &current_config,
@@ -136,7 +139,5 @@ async fn build_new_engine(
 
     let engine = Arc::new(engine);
 
-    context.engine_sender.send(Some(engine))?;
-
-    Ok(())
+    Ok(engine)
 }

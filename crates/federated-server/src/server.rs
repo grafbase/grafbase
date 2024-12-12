@@ -110,17 +110,17 @@ pub async fn serve(
     let max_pool_size = config.hooks.as_ref().and_then(|config| config.max_pool_size);
     let hooks = HooksWasi::new(loader, max_pool_size, &meter, access_log_sender.clone()).await;
 
+    let graph_stream = fetch_method.into_stream().await?;
+
     let update_handler = EngineReloader::spawn(
         config_receiver,
+        graph_stream,
         config_hot_reload.then_some(config_path).flatten(),
         hooks.clone(),
     )
     .await?;
 
-    fetch_method.start(update_handler.graph_sender()).await?;
-
-    let mut gateway = update_handler.engine_watcher();
-    gateway.mark_unchanged();
+    let gateway = update_handler.engine_watcher();
 
     if config.gateway.access_logs.enabled {
         access_logs::start(&config.gateway.access_logs, access_log_receiver, pending_logs_counter)?;
@@ -137,13 +137,10 @@ pub async fn serve(
     };
 
     let state = ServerState::new(
-        gateway.clone(),
+        gateway,
         config.request_body_limit.bytes().max(0) as usize,
         server_runtime.clone(),
     );
-
-    tracing::debug!("Waiting for the engine to be ready...");
-    gateway.changed().await.ok();
 
     let mut router = server_runtime
         .get_external_router()
@@ -278,9 +275,7 @@ async fn engine_execute<T>(State(state): State<ServerState<T>>, request: axum::e
 where
     T: ServerRuntime,
 {
-    let Some(engine) = state.gateway.borrow().clone() else {
-        return engine_axum::internal_server_error("there are no subgraphs registered currently");
-    };
+    let engine = state.gateway.borrow().clone();
 
     let response = engine_axum::execute(engine, request, state.request_body_limit_bytes).await;
 

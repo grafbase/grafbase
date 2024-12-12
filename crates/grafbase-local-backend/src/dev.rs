@@ -104,13 +104,15 @@ pub async fn start(
         }
     };
 
-    let (sdl_sender, sdl_receiver) = mpsc::channel::<String>(1);
+    let (sdl_sender, sdl_receiver) = mpsc::channel::<String>(2);
     let (config_sender, config_receiver) = watch::channel(dev_configuration.merged_configuration.clone());
 
     sdl_sender
         .send(federated_sdl)
         .await
         .expect("this really has to succeed");
+
+    eprintln!("Sent initial sdl");
 
     let server_config = ServerConfig {
         listen_addr: Some(listen_address),
@@ -120,13 +122,13 @@ pub async fn start(
         fetch_method: GraphFetchMethod::FromSchemaReloadable { sdl_receiver },
     };
 
-    let hot_reload_ready_sender = ready_sender.subscribe();
+    let hot_reload_ready_receiver = ready_sender.subscribe();
 
     tokio::spawn(async move {
         hot_reload(
             config_sender,
             sdl_sender,
-            hot_reload_ready_sender,
+            hot_reload_ready_receiver,
             subgraph_cache,
             gateway_config_path,
             graph_overrides_path,
