@@ -65,7 +65,10 @@ where
         .map(|(key, value)| KeyValue::new(key.clone(), value.clone()))
         .collect();
 
-    resource_attributes.push(KeyValue::new("service.name", config.service_name.clone()));
+    resource_attributes.push(KeyValue::new(
+        "service.name",
+        config.service_name.clone().unwrap_or_else(|| "grafbase-gateway".into()),
+    ));
     let resource = Resource::new(resource_attributes);
 
     let meter_provider = Some(super::metrics::build_meter_provider(

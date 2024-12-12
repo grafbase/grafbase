@@ -19,7 +19,7 @@ pub use exporters::{BatchExportConfig, OpenTelemetryExportersConfig, StdoutExpor
 #[serde(default, deny_unknown_fields)]
 pub struct TelemetryConfig {
     /// The name of the service
-    pub service_name: String,
+    pub service_name: Option<String>,
     /// Additional resource attributes
     pub resource_attributes: HashMap<String, String>,
     /// Global exporters config
@@ -1218,7 +1218,7 @@ mod tests {
 
         assert_eq!(
             TelemetryConfig {
-                service_name: String::from(""),
+                service_name: None,
                 resource_attributes: Default::default(),
                 exporters: Default::default(),
                 logs: Default::default(),

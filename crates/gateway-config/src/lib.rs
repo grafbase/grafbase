@@ -984,7 +984,7 @@ mod tests {
     fn telemetry() {
         // prepare
         let telemetry_config = TelemetryConfig {
-            service_name: "test".to_string(),
+            service_name: Some("test".to_string()),
             resource_attributes: Default::default(),
             tracing: Default::default(),
             exporters: Default::default(),
