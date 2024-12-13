@@ -3,12 +3,7 @@
 //! ===================
 //! Generated with: `cargo run -p engine-codegen`
 //! Source file: <engine-codegen dir>/domain/operation.graphql
-mod include;
-mod skip;
-
-use crate::model::prelude::*;
-pub use include::*;
-pub use skip::*;
+use crate::model::{prelude::*, IncludeDirective, IncludeDirectiveRecord, SkipDirective, SkipDirectiveRecord};
 use walker::Walk;
 
 /// Generated from:
@@ -48,18 +43,18 @@ impl ExecutableDirectiveId {
     pub fn is_include(&self) -> bool {
         matches!(self, ExecutableDirectiveId::Include(_))
     }
-    pub fn as_include(&self) -> Option<IncludeDirectiveRecord> {
+    pub fn as_include(&self) -> Option<&IncludeDirectiveRecord> {
         match self {
-            ExecutableDirectiveId::Include(item) => Some(*item),
+            ExecutableDirectiveId::Include(item) => Some(item),
             _ => None,
         }
     }
     pub fn is_skip(&self) -> bool {
         matches!(self, ExecutableDirectiveId::Skip(_))
     }
-    pub fn as_skip(&self) -> Option<SkipDirectiveRecord> {
+    pub fn as_skip(&self) -> Option<&SkipDirectiveRecord> {
         match self {
-            ExecutableDirectiveId::Skip(item) => Some(*item),
+            ExecutableDirectiveId::Skip(item) => Some(item),
             _ => None,
         }
     }
@@ -77,17 +72,6 @@ impl std::fmt::Debug for ExecutableDirective<'_> {
             ExecutableDirective::Include(variant) => variant.fmt(f),
             ExecutableDirective::Skip(variant) => variant.fmt(f),
         }
-    }
-}
-
-impl<'a> From<IncludeDirective<'a>> for ExecutableDirective<'a> {
-    fn from(item: IncludeDirective<'a>) -> Self {
-        ExecutableDirective::Include(item)
-    }
-}
-impl<'a> From<SkipDirective<'a>> for ExecutableDirective<'a> {
-    fn from(item: SkipDirective<'a>) -> Self {
-        ExecutableDirective::Skip(item)
     }
 }
 
@@ -110,12 +94,6 @@ impl<'a> Walk<OperationContext<'a>> for ExecutableDirectiveId {
 }
 
 impl<'a> ExecutableDirective<'a> {
-    pub fn id(&self) -> ExecutableDirectiveId {
-        match self {
-            ExecutableDirective::Include(walker) => ExecutableDirectiveId::Include(walker.item),
-            ExecutableDirective::Skip(walker) => ExecutableDirectiveId::Skip(walker.item),
-        }
-    }
     pub fn is_include(&self) -> bool {
         matches!(self, ExecutableDirective::Include(_))
     }

@@ -1,10 +1,8 @@
 mod error;
 mod offsets;
-mod validation;
 
 use cynic_parser::{executable::OperationDefinition, ExecutableDocument};
 use offsets::LineOffsets;
-use schema::Schema;
 
 use self::error::{ParseError, ParseResult};
 use super::Location;
@@ -39,25 +37,17 @@ impl ParsedOperation {
 }
 
 /// Returns a valid GraphQL operation from the query string before.
-pub(crate) fn parse(
-    schema: &Schema,
-    operation_name: Option<&str>,
-    document_str: &str,
-) -> crate::Result<ParsedOperation> {
+pub(crate) fn parse_operation(operation_name: Option<&str>, document_str: &str) -> crate::Result<ParsedOperation> {
     let line_offsets = LineOffsets::new(document_str);
 
     let (name, document) =
         parse_impl(operation_name, document_str).map_err(|err| err.into_graphql_error(&line_offsets))?;
 
-    let operation = ParsedOperation {
+    Ok(ParsedOperation {
         name,
         document,
         line_offsets,
-    };
-
-    validation::validate(schema, &operation).map_err(|e| e.into_graphql_error(&operation.line_offsets))?;
-
-    Ok(operation)
+    })
 }
 
 fn parse_impl(operation_name: Option<&str>, document_str: &str) -> ParseResult<(Option<String>, ExecutableDocument)> {

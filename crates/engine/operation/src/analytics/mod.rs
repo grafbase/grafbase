@@ -1,8 +1,11 @@
-pub(crate) mod operation_name;
+mod operation_name;
 mod used_fields;
 
+use grafbase_telemetry::graphql::OperationName;
 use schema::Schema;
 use used_fields::UsedFields;
+
+pub(crate) use operation_name::*;
 
 #[derive(Default)]
 pub struct OperationAnalytics<'a> {
@@ -23,11 +26,21 @@ pub fn compute_post_execution_analytics<'a>(
         document,
     }: ExecutedRequest<'_>,
 ) -> OperationAnalytics<'a> {
-    let Ok(parsed_operation) = crate::parse(schema, operation_name, document) else {
+    let Ok(parsed_operation) = crate::parse::parse_operation(operation_name, document) else {
         return Default::default();
     };
 
-    let Ok(operation) = crate::bind(schema, &parsed_operation) else {
+    let Ok(operation) = crate::bind::bind_operation(
+        schema,
+        &parsed_operation,
+        // Attributes aren't needed, they were already computed at runtime. So we just created
+        // dummy ones here.
+        crate::OperationAttributes {
+            ty: grafbase_telemetry::graphql::OperationType::Query,
+            name: OperationName::Unknown,
+            sanitized_query: String::new().into(),
+        },
+    ) else {
         return Default::default();
     };
 

@@ -8,7 +8,7 @@ scalar Operation
     imports: [{ module: "schema", domain: "schema" }]
   )
 
-scalar PositionedResponseKey @copy
+scalar ResponseKey @copy
 scalar ResponseKey @copy
 scalar Location @copy
 scalar String @prelude
@@ -37,7 +37,7 @@ union Field @id @meta(module: "field") @variants(remove_suffix: true) = DataFiel
 
 "In opposition to a __typename field this field does retrieve data from a subgraph"
 type DataField @meta(module: "field/data", debug: false) @indexed(id_size: "u16") {
-  key: PositionedResponseKey!
+  key: ResponseKey!
   location: Location!
   directives: [ExecutableDirective!]!
   definition: FieldDefinition!
@@ -47,7 +47,7 @@ type DataField @meta(module: "field/data", debug: false) @indexed(id_size: "u16"
 
 "__typename field"
 type TypenameField @meta(module: "field/typename") @indexed(id_size: "u16") {
-  key: PositionedResponseKey!
+  key: ResponseKey!
   location: Location!
   directives: [ExecutableDirective!]!
 }
@@ -64,16 +64,9 @@ type VariableDefinition @meta(module: "variable") @indexed(id_size: "u16") {
   ty: Type!
 }
 
+scalar SkipDirective @record
+scalar IncludeDirective @record
+
 union ExecutableDirective @id @meta(module: "directive") @variants(remove_suffix: "Directive") =
   | SkipDirective
   | IncludeDirective
-
-type SkipDirective @meta(module: "directive/skip", derive: ["PartialEq", "Eq", "PartialOrd", "Ord", "Hash"]) @copy {
-  condition: QueryInputValueId!
-}
-
-type IncludeDirective
-  @meta(module: "directive/include", derive: ["PartialEq", "Eq", "PartialOrd", "Ord", "Hash"])
-  @copy {
-  condition: QueryInputValueId!
-}

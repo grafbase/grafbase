@@ -8,6 +8,16 @@ use super::{Field, OperationContext, Selection, SelectionId};
 #[derive(Default, Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]
 pub struct SelectionSetRecord(IdRange<SelectionIdSharedVecId>);
 
+impl SelectionSetRecord {
+    pub fn empty() -> Self {
+        Self(IdRange::empty())
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+}
+
 impl From<Range<usize>> for SelectionSetRecord {
     fn from(range: Range<usize>) -> Self {
         Self(IdRange::from(range))
@@ -70,7 +80,7 @@ impl<'a> Walk<OperationContext<'a>> for SelectionSetRecord {
 
 impl std::fmt::Debug for SelectionSet<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_list().entries(self.into_iter()).finish()
+        f.debug_list().entries(*self).finish()
     }
 }
 

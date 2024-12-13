@@ -1,11 +1,11 @@
 use cynic_parser::Span;
 
-use crate::{Error, Location};
+use crate::Location;
 
-use super::ParsedOperation;
+use super::{coercion::InputValueError, ParsedOperation};
 
 #[derive(thiserror::Error, Debug)]
-pub enum BindError {
+pub(crate) enum BindError {
     #[error("Unknown type named '{name}'")]
     UnknownType { name: String, span: Span },
     #[error("The field `{field_name}` does not have an argument named `{argument_name}")]
@@ -40,8 +40,6 @@ pub enum BindError {
         "Variable named '${name}' does not have a valid input type. Can only be a scalar, enum or input object. Found: '{ty}'."
     )]
     InvalidVariableType { name: String, ty: String, span: Span },
-    #[error("Too many fields selection set.")]
-    TooManyFields { span: Span },
     #[error("There can only be one variable named '${name}'")]
     DuplicateVariable { name: String, location: Location },
     #[error("Variable '${name}' is not used{operation}")]
@@ -60,15 +58,11 @@ pub enum BindError {
         directive: String,
         span: Span,
     },
-    #[error("Query is too high.")]
-    QueryTooHigh,
-    #[error("GraphQL introspection is not allowed, but the query contained __schema or __type")]
-    IntrospectionIsDisabled { location: Location },
 }
 
 impl BindError {
-    pub fn into_graphql_error(self, operation: &ParsedOperation) -> Error {
-        let locations = match self {
+    pub fn location(self, operation: &ParsedOperation) -> Option<Location> {
+        match self {
             BindError::UnknownField { span, .. }
             | BindError::UnknownArgument { span, .. }
             | BindError::UnknownType { span, .. }
@@ -78,19 +72,32 @@ impl BindError {
             | BindError::CannotHaveSelectionSet { span, .. }
             | BindError::DisjointTypeCondition { span, .. }
             | BindError::InvalidVariableType { span, .. }
-            | BindError::TooManyFields { span }
             | BindError::LeafMustBeAScalarOrEnum { span, .. }
             | BindError::MissingArgument { span, .. }
-            | BindError::MissingDirectiveArgument { span, .. } => vec![operation.span_to_location(span)],
-            BindError::DuplicateVariable { location, .. }
-            | BindError::UnusedVariable { location, .. }
-            | BindError::IntrospectionIsDisabled { location, .. } => vec![location],
-            BindError::InvalidInputValue(ref err) => vec![err.location()],
-            BindError::NoMutationDefined | BindError::NoSubscriptionDefined | BindError::QueryTooHigh => {
-                vec![]
+            | BindError::MissingDirectiveArgument { span, .. } => Some(operation.span_to_location(span)),
+            BindError::DuplicateVariable { location, .. } | BindError::UnusedVariable { location, .. } => {
+                Some(location)
             }
-        };
-        Error::validation(self.to_string()).with_locations(locations)
+            BindError::InvalidInputValue(ref err) => Some(err.location()),
+            BindError::NoMutationDefined | BindError::NoSubscriptionDefined => None,
+        }
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum VariableError {
+    #[error("Variable ${name} is missing")]
+    MissingVariable { name: String, location: Location },
+    #[error("Variable ${name} has an invalid value. {err}")]
+    InvalidValue { name: String, err: InputValueError },
+}
+
+impl VariableError {
+    pub fn location(&self) -> Location {
+        match self {
+            VariableError::MissingVariable { location, .. } => *location,
+            VariableError::InvalidValue { ref err, .. } => err.location(),
+        }
     }
 }
 

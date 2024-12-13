@@ -1,3 +1,4 @@
+mod directive;
 mod generated;
 mod input_value;
 mod location;
@@ -5,8 +6,11 @@ mod prelude;
 mod response_key;
 mod selection_set;
 
+use std::sync::Arc;
+
+pub use directive::*;
 pub use generated::*;
-use grafbase_telemetry::graphql::OperationType;
+use grafbase_telemetry::graphql::{OperationName, OperationType};
 pub use input_value::*;
 pub use location::*;
 pub use response_key::*;
@@ -15,8 +19,8 @@ pub use selection_set::*;
 use walker::{Iter, Walk};
 
 #[derive(serde::Serialize, serde::Deserialize, id_derives::IndexedFields)]
-pub(crate) struct Operation {
-    pub ty: OperationType,
+pub struct Operation {
+    pub attributes: OperationAttributes,
     pub root_object_id: ObjectDefinitionId,
     pub root_selection_set_record: SelectionSetRecord,
     pub response_keys: ResponseKeys,
@@ -37,6 +41,14 @@ pub(crate) struct Operation {
     pub query_input_values: QueryInputValues,
     #[indexed_by(SelectionIdSharedVecId)]
     pub shared_selection_ids: Vec<SelectionId>,
+}
+
+/// The set of Operation attributes that can be cached and kept in metrics/traces
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+pub struct OperationAttributes {
+    pub ty: OperationType,
+    pub name: OperationName,
+    pub sanitized_query: Arc<str>,
 }
 
 #[derive(id_derives::IndexedFields)]

@@ -6,7 +6,7 @@
 use crate::model::{
     generated::{ExecutableDirective, ExecutableDirectiveId, FieldArgument, FieldArgumentId},
     prelude::*,
-    Location, PositionedResponseKey, SelectionSet, SelectionSetRecord,
+    Location, ResponseKey, SelectionSet, SelectionSetRecord,
 };
 use schema::{FieldDefinition, FieldDefinitionId};
 use walker::{Iter, Walk};
@@ -18,7 +18,7 @@ use walker::{Iter, Walk};
 ///
 /// ```custom,{.language-graphql}
 /// type DataField @meta(module: "field/data", debug: false) @indexed(id_size: "u16") {
-///   key: PositionedResponseKey!
+///   key: ResponseKey!
 ///   location: Location!
 ///   directives: [ExecutableDirective!]!
 ///   definition: FieldDefinition!
@@ -28,7 +28,7 @@ use walker::{Iter, Walk};
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct DataFieldRecord {
-    pub key: PositionedResponseKey,
+    pub key: ResponseKey,
     pub location: Location,
     pub directive_ids: Vec<ExecutableDirectiveId>,
     pub definition_id: FieldDefinitionId,

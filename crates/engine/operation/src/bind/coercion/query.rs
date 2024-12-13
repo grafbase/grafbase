@@ -8,15 +8,15 @@ use schema::{
 };
 use walker::Walk;
 
-use super::super::Binder;
 use super::{
+    super::OperationBinder,
     error::InputValueError,
     path::{value_path_to_string, ValuePathSegment},
 };
-use crate::{Location, QueryInputValueId, QueryInputValueRecord};
+use crate::{Location, QueryInputValueId, QueryInputValueRecord, QueryInputValues};
 
 pub fn coerce_variable_default_value<'schema>(
-    binder: &mut Binder<'schema, '_>,
+    binder: &mut OperationBinder<'schema, '_>,
     ty: Type<'schema>,
     value: ConstValue<'_>,
 ) -> Result<QueryInputValueId, InputValueError> {
@@ -28,11 +28,11 @@ pub fn coerce_variable_default_value<'schema>(
         is_default_value: true,
     };
     let value = ctx.coerce_input_value(ty, value.into())?;
-    Ok(ctx.input_values.push_value(value))
+    Ok(ctx.query_input_values.push_value(value))
 }
 
 pub fn coerce_query_value<'schema>(
-    binder: &mut Binder<'schema, '_>,
+    binder: &mut OperationBinder<'schema, '_>,
     ty: Type<'schema>,
     value: cynic_parser::Value<'_>,
 ) -> Result<QueryInputValueId, InputValueError> {
@@ -44,19 +44,25 @@ pub fn coerce_query_value<'schema>(
         is_default_value: false,
     };
     let value = ctx.coerce_input_value(ty, value)?;
-    Ok(ctx.input_values.push_value(value))
+    Ok(ctx.query_input_values.push_value(value))
 }
 
 struct QueryValueCoercionContext<'binder, 'schema, 'parsed> {
-    binder: &'binder mut Binder<'schema, 'parsed>,
+    binder: &'binder mut OperationBinder<'schema, 'parsed>,
     location: Location,
     value_path: Vec<ValuePathSegment>,
     input_fields_buffer_pool: Vec<Vec<(InputValueDefinitionId, QueryInputValueRecord)>>,
     is_default_value: bool,
 }
 
+impl QueryValueCoercionContext<'_, '_, '_> {
+    fn input_values(&mut self) -> &mut QueryInputValues {
+        &mut self.binder.query_input_values
+    }
+}
+
 impl<'schema, 'parsed> std::ops::Deref for QueryValueCoercionContext<'_, 'schema, 'parsed> {
-    type Target = Binder<'schema, 'parsed>;
+    type Target = OperationBinder<'schema, 'parsed>;
 
     fn deref(&self) -> &Self::Target {
         self.binder
@@ -115,7 +121,7 @@ impl<'schema> QueryValueCoercionContext<'_, 'schema, '_> {
         if ty.wrapping.is_list() && !value.is_list() && !value.is_null() && !value.is_variable() {
             let mut value = self.coerce_named_type(ty.definition(), value)?;
             for _ in 0..ty.wrapping.list_wrappings().len() {
-                value = QueryInputValueRecord::List(IdRange::from_single(self.input_values.push_value(value)));
+                value = QueryInputValueRecord::List(IdRange::from_single(self.input_values().push_value(value)));
             }
             return Ok(value);
         }
@@ -170,10 +176,10 @@ impl<'schema> QueryValueCoercionContext<'_, 'schema, '_> {
             }),
             (Value::Null(_), ListWrapping::NullableList) => Ok(QueryInputValueRecord::Null),
             (Value::List(array), _) => {
-                let ids = self.input_values.reserve_list(array.len());
+                let ids = self.input_values().reserve_list(array.len());
                 for ((idx, value), id) in array.into_iter().enumerate().zip(ids) {
                     self.value_path.push(idx.into());
-                    self.input_values[id] = self.coerce_type(definition, wrapping.clone(), value)?;
+                    self.input_values()[id] = self.coerce_type(definition, wrapping.clone(), value)?;
                     self.value_path.pop();
                 }
                 Ok(QueryInputValueRecord::List(ids))
@@ -264,7 +270,7 @@ impl<'schema> QueryValueCoercionContext<'_, 'schema, '_> {
             });
         }
 
-        let ids = self.input_values.append_input_object(&mut fields_buffer);
+        let ids = self.input_values().append_input_object(&mut fields_buffer);
         self.input_fields_buffer_pool.push(fields_buffer);
         Ok(QueryInputValueRecord::InputObject(ids))
     }
@@ -311,17 +317,17 @@ impl<'schema> QueryValueCoercionContext<'_, 'schema, '_> {
                 Value::String(s) => QueryInputValueRecord::String(s.as_str().into()),
                 Value::Boolean(b) => QueryInputValueRecord::Boolean(b.value()),
                 Value::List(array) => {
-                    let ids = self.input_values.reserve_list(array.len());
+                    let ids = self.input_values().reserve_list(array.len());
                     for (value, id) in array.into_iter().zip(ids) {
-                        self.input_values[id] = self.coerce_scalar(scalar, value)?;
+                        self.input_values()[id] = self.coerce_scalar(scalar, value)?;
                     }
                     QueryInputValueRecord::List(ids)
                 }
                 Value::Object(fields) => {
-                    let ids = self.input_values.reserve_map(fields.len());
+                    let ids = self.input_values().reserve_map(fields.len());
                     for (field, id) in fields.into_iter().zip(ids) {
                         let key = field.name().to_string();
-                        self.input_values[id] = (key, self.coerce_scalar(scalar, field.value())?);
+                        self.input_values()[id] = (key, self.coerce_scalar(scalar, field.value())?);
                     }
                     QueryInputValueRecord::Map(ids)
                 }

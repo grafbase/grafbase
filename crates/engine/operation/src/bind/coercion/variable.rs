@@ -6,10 +6,7 @@ use schema::{
 use serde_json::Value;
 use walker::Walk;
 
-use crate::{
-    Location, VariableDefinition, VariableDefinitionRecord, VariableInputValueId, VariableInputValueRecord,
-    VariableInputValues,
-};
+use crate::{Location, VariableDefinition, VariableInputValueId, VariableInputValueRecord, VariableInputValues};
 
 use super::{
     error::InputValueError,

@@ -1,5 +1,7 @@
 use walker::Walk;
 
+use crate::{InputValueContext, VariableDefinitionId};
+
 use super::{QueryInputValue, QueryInputValueRecord};
 
 impl std::fmt::Debug for QueryInputValue<'_> {
@@ -27,7 +29,9 @@ impl std::fmt::Debug for QueryInputValue<'_> {
             QueryInputValueRecord::List(ids) => f.debug_list().entries(ids.walk(ctx)).finish(),
             QueryInputValueRecord::Map(ids) => f.debug_map().entries(ids.walk(ctx)).finish(),
             QueryInputValueRecord::DefaultValue(id) => id.walk(ctx.schema).fmt(f),
-            QueryInputValueRecord::Variable(id) => id.walk(ctx).fmt(f),
+            QueryInputValueRecord::Variable(id) => {
+                <VariableDefinitionId as Walk<InputValueContext<'_>>>::walk(*id, ctx).fmt(f)
+            }
         }
     }
 }

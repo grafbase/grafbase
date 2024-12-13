@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use crate::Location;
+use crate::{Location, OperationAttributes};
 
 pub(crate) type Result<T> = std::result::Result<T, Error>;
 
@@ -12,6 +12,7 @@ pub enum Error {
     Validation {
         message: Cow<'static, str>,
         locations: Vec<Location>,
+        attributes: OperationAttributes,
     },
 }
 
@@ -23,10 +24,11 @@ impl Error {
         }
     }
 
-    pub(crate) fn validation(message: impl Into<Cow<'static, str>>) -> Self {
+    pub(crate) fn validation(message: impl Into<Cow<'static, str>>, attributes: OperationAttributes) -> Self {
         Error::Validation {
             message: message.into(),
             locations: Vec::new(),
+            attributes,
         }
     }
 

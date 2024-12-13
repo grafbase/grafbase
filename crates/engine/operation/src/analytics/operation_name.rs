@@ -1,8 +1,8 @@
 use cynic_parser::executable::{Iter, Selection};
 
-use crate::ParsedOperation;
+use crate::parse::ParsedOperation;
 
-pub(crate) fn compute(operation: &ParsedOperation) -> Option<String> {
+pub(crate) fn compute_operation_name(operation: &ParsedOperation) -> Option<String> {
     fn first_field_in_set(mut selection_set: Iter<'_, Selection<'_>>) -> Option<String> {
         selection_set.find_map(|selection| match &selection {
             Selection::Field(field) => Some(field.alias().unwrap_or(field.name()).to_string()),

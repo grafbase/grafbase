@@ -2,27 +2,27 @@ use std::fmt::Write;
 
 use itertools::Itertools;
 use schema::{EntityDefinitionId, FieldDefinitionId, Schema};
+use walker::Walk;
 
-use crate::BoundOperation;
+use crate::Operation;
 
 pub struct UsedFields<'a> {
     schema: &'a Schema,
     fields: Vec<(EntityDefinitionId, FieldDefinitionId)>,
 }
 
-pub(super) fn compute<'s>(schema: &'s Schema, operation: &BoundOperation) -> UsedFields<'s> {
-    let mut fields = Vec::with_capacity(operation.fields.len());
-    for field in &operation.fields {
-        let Some(definition_id) = field.definition_id() else {
-            continue;
-        };
-
-        let field = schema.walk(definition_id);
-        let entity = field.parent_entity();
-        // Skipping introspection related fields
-        if !entity.name().starts_with("__") && !field.name().starts_with("__") {
-            fields.push((entity.id(), definition_id))
+pub(super) fn compute<'s>(schema: &'s Schema, operation: &Operation) -> UsedFields<'s> {
+    let mut fields = Vec::with_capacity(operation.data_fields.len());
+    let introspection = &schema.subgraphs.introspection;
+    for field in &operation.data_fields {
+        let field = field.definition_id.walk(schema);
+        if let EntityDefinitionId::Object(object_id) = field.parent_entity_id {
+            // Skipping introspection related fields
+            if introspection.meta_fields.contains(&field.id) || introspection.meta_objects.contains(&object_id) {
+                continue;
+            }
         }
+        fields.push((field.parent_entity_id, field.id))
     }
     fields.sort_unstable();
 

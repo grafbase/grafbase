@@ -1,20 +1,7 @@
-//! ===================
-//! !!! DO NOT EDIT !!!
-//! ===================
-//! Generated with: `cargo run -p engine-codegen`
-//! Source file: <engine-codegen dir>/domain/operation.graphql
-use crate::model::{prelude::*, QueryInputValueId};
 use walker::Walk;
 
-/// Generated from:
-///
-/// ```custom,{.language-graphql}
-/// type IncludeDirective
-///   @meta(module: "directive/include", derive: ["PartialEq", "Eq", "PartialOrd", "Ord", "Hash"])
-///   @copy {
-///   condition: QueryInputValueId!
-/// }
-/// ```
+use crate::{OperationContext, QueryInputValueId, QueryInputValueRecord, VariableDefinitionId};
+
 #[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
 pub struct IncludeDirectiveRecord {
     pub condition: QueryInputValueId,
@@ -33,7 +20,7 @@ impl std::ops::Deref for IncludeDirective<'_> {
     }
 }
 
-impl<'a> IncludeDirective<'a> {
+impl IncludeDirective<'_> {
     #[allow(clippy::should_implement_trait)]
     pub fn as_ref(&self) -> &IncludeDirectiveRecord {
         &self.item
@@ -59,8 +46,19 @@ impl<'a> Walk<OperationContext<'a>> for IncludeDirectiveRecord {
 
 impl std::fmt::Debug for IncludeDirective<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("IncludeDirective")
-            .field("condition", &self.condition)
-            .finish()
+        let mut f = f.debug_struct("SkipDirective");
+        match self.ctx.operation.query_input_values[self.item.condition] {
+            QueryInputValueRecord::Boolean(b) => f.field("condition", &b).finish(),
+            QueryInputValueRecord::Variable(id) => f
+                .field(
+                    "condition",
+                    &format!(
+                        "${}",
+                        <VariableDefinitionId as Walk<OperationContext<'_>>>::walk(id, self.ctx).name
+                    ),
+                )
+                .finish(),
+            _ => f.field("condition", &"???").finish(),
+        }
     }
 }

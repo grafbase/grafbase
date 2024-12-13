@@ -6,7 +6,7 @@ use id_derives::{Id, IndexedFields};
 use id_newtypes::IdRange;
 use schema::{EnumValueId, InputValueDefinition, InputValueDefinitionId, SchemaInputValueId, SchemaInputValueRecord};
 
-use crate::{OperationWalker, VariableDefinitionId};
+use crate::VariableDefinitionId;
 
 pub use view::*;
 pub use walker::*;
@@ -170,15 +170,15 @@ impl QueryInputValues {
     }
 }
 
-impl PartialEq<SchemaInputValueRecord> for OperationWalker<'_, &QueryInputValueRecord> {
+impl PartialEq<SchemaInputValueRecord> for QueryInputValue<'_> {
     fn eq(&self, other: &SchemaInputValueRecord) -> bool {
-        let input_values = &self.operation.query_input_values;
-        match (self.item, other) {
+        let input_values = &self.ctx.query_input_values;
+        match (self.ref_, other) {
             (QueryInputValueRecord::Null, SchemaInputValueRecord::Null) => true,
-            (QueryInputValueRecord::String(l), SchemaInputValueRecord::String(r)) => l == &self.schema[*r],
+            (QueryInputValueRecord::String(l), SchemaInputValueRecord::String(r)) => l == &self.ctx.schema[*r],
             (QueryInputValueRecord::EnumValue(l), SchemaInputValueRecord::EnumValue(r)) => l == r,
             (QueryInputValueRecord::UnboundEnumValue(l), SchemaInputValueRecord::UnboundEnumValue(r)) => {
-                l == &self.schema[*r]
+                l == &self.ctx.schema[*r]
             }
             (QueryInputValueRecord::Int(l), SchemaInputValueRecord::Int(r)) => l == r,
             (QueryInputValueRecord::BigInt(l), SchemaInputValueRecord::BigInt(r)) => l == r,
@@ -186,17 +186,14 @@ impl PartialEq<SchemaInputValueRecord> for OperationWalker<'_, &QueryInputValueR
             (QueryInputValueRecord::Float(l), SchemaInputValueRecord::Float(r)) => l == r,
             (QueryInputValueRecord::Boolean(l), SchemaInputValueRecord::Boolean(r)) => l == r,
             (QueryInputValueRecord::InputObject(lids), SchemaInputValueRecord::InputObject(rids)) => {
-                let op_input_values = &input_values[*lids];
-                let schema_input_values = &self.schema[*rids];
-
-                if op_input_values.len() != schema_input_values.len() {
+                if lids.len() != rids.len() {
                     return false;
                 }
 
-                for (id, input_value) in op_input_values {
-                    let input_value = self.walk(input_value);
+                let schema_input_values = &self.ctx.schema[*rids];
+                for (id, input_value) in &input_values[*lids] {
                     if let Ok(i) = schema_input_values.binary_search_by(|probe| probe.0.cmp(id)) {
-                        if !input_value.eq(&schema_input_values[i].1) {
+                        if !input_value.walk(self.ctx).eq(&schema_input_values[i].1) {
                             return false;
                         }
                     } else {
@@ -207,26 +204,28 @@ impl PartialEq<SchemaInputValueRecord> for OperationWalker<'_, &QueryInputValueR
                 true
             }
             (QueryInputValueRecord::List(lids), SchemaInputValueRecord::List(rids)) => {
-                let left = &input_values[*lids];
-                let right = &self.schema[*rids];
-                if left.len() != right.len() {
+                if lids.len() != rids.len() {
                     return false;
                 }
+
+                let left = &input_values[*lids];
+                let right = &self.ctx.schema[*rids];
                 for (left_value, right_value) in left.iter().zip(right) {
-                    if !self.walk(left_value).eq(right_value) {
+                    if !left_value.walk(self.ctx).eq(right_value) {
                         return false;
                     }
                 }
                 true
             }
-            (QueryInputValueRecord::Map(ids), SchemaInputValueRecord::Map(other_ids)) => {
-                let op_kv = &input_values[*ids];
-                let schema_kv = &self.schema[*other_ids];
+            (QueryInputValueRecord::Map(lids), SchemaInputValueRecord::Map(rids)) => {
+                if lids.len() != rids.len() {
+                    return false;
+                }
 
-                for (key, value) in op_kv {
-                    let value = self.walk(value);
-                    if let Ok(i) = schema_kv.binary_search_by(|probe| self.schema[probe.0].cmp(key)) {
-                        if !value.eq(&schema_kv[i].1) {
+                let schema_kv = &self.ctx.schema[*rids];
+                for (key, value) in &input_values[*lids] {
+                    if let Ok(i) = schema_kv.binary_search_by(|probe| self.ctx.schema[probe.0].cmp(key)) {
+                        if !value.walk(self.ctx).eq(&schema_kv[i].1) {
                             return false;
                         }
                     } else {
@@ -236,7 +235,9 @@ impl PartialEq<SchemaInputValueRecord> for OperationWalker<'_, &QueryInputValueR
 
                 true
             }
-            (QueryInputValueRecord::DefaultValue(id), value) => id.walk(self.schema).eq(&value.walk(self.schema)),
+            (QueryInputValueRecord::DefaultValue(id), value) => {
+                id.walk(self.ctx.schema).eq(&value.walk(self.ctx.schema))
+            }
             (QueryInputValueRecord::Variable(_), _) => false,
             // A bit tedious, but avoids missing a case
             (QueryInputValueRecord::Null, _) => false,

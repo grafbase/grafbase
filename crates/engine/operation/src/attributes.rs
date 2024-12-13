@@ -1,22 +1,14 @@
-use std::sync::Arc;
+use crate::OperationAttributes;
 
 use super::parse::ParsedOperation;
 use grafbase_telemetry::graphql::{OperationName, OperationType};
 
-/// The set of Operation attributes that can be cached
-#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
-pub struct CachedOperationAttributes {
-    pub ty: OperationType,
-    pub name: OperationName,
-    pub sanitized_query: Arc<str>,
-}
-
-pub(crate) fn extract_attributes(operation: &ParsedOperation) -> CachedOperationAttributes {
+pub(crate) fn extract_attributes(operation: &ParsedOperation) -> OperationAttributes {
     let ty = convert_operation_type(operation.operation().operation_type());
 
     let name = if let Some(name) = operation.name.clone() {
         OperationName::Original(name)
-    } else if let Some(name) = crate::analytics::operation_name::compute(operation) {
+    } else if let Some(name) = crate::analytics::compute_operation_name(operation) {
         // We have to compute the name during the execution to ensure traces and metrics are
         // consistent with each other. For metrics it can be computed later efficiently, but
         // not for spans.
@@ -27,7 +19,7 @@ pub(crate) fn extract_attributes(operation: &ParsedOperation) -> CachedOperation
 
     let sanitized_query = operation_normalizer::sanitize(operation.document()).into();
 
-    CachedOperationAttributes {
+    OperationAttributes {
         ty,
         name,
         sanitized_query,

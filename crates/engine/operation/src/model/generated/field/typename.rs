@@ -6,7 +6,7 @@
 use crate::model::{
     generated::{ExecutableDirective, ExecutableDirectiveId},
     prelude::*,
-    Location, PositionedResponseKey,
+    Location, ResponseKey,
 };
 use walker::{Iter, Walk};
 
@@ -17,14 +17,14 @@ use walker::{Iter, Walk};
 ///
 /// ```custom,{.language-graphql}
 /// type TypenameField @meta(module: "field/typename") @indexed(id_size: "u16") {
-///   key: PositionedResponseKey!
+///   key: ResponseKey!
 ///   location: Location!
 ///   directives: [ExecutableDirective!]!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct TypenameFieldRecord {
-    pub key: PositionedResponseKey,
+    pub key: ResponseKey,
     pub location: Location,
     pub directive_ids: Vec<ExecutableDirectiveId>,
 }

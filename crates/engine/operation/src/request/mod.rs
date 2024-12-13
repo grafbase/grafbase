@@ -1,4 +1,4 @@
-pub(crate) mod extensions;
+pub mod extensions;
 
 use extensions::RequestExtensions;
 use serde::Deserializer;
@@ -12,13 +12,13 @@ use std::{
 
 #[derive(serde::Deserialize)]
 #[serde(untagged)]
-pub(crate) enum BatchRequest {
+pub enum BatchRequest {
     Single(Request),
     Batch(Vec<Request>),
 }
 
 #[derive(serde::Deserialize, Debug)]
-pub(crate) struct Request {
+pub struct Request {
     #[serde(default)]
     pub query: Option<String>,
     #[serde(default, rename = "operationName")]
@@ -113,7 +113,7 @@ impl DerefMut for RawVariables {
     }
 }
 
-pub(crate) struct QueryParamsRequest(Request);
+pub struct QueryParamsRequest(Request);
 
 impl From<QueryParamsRequest> for Request {
     fn from(QueryParamsRequest(request): QueryParamsRequest) -> Request {
