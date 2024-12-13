@@ -105,8 +105,9 @@ fn push_schema_extension_changes(
 fn push_interface_implementer_changes(interface_impls: DiffMap<&str, Vec<&str>>, push_change: PushChangeFn<'_>) {
     // O(n²) but n should always be small enough to not matter
     for (implementer, (src, target)) in &interface_impls {
-        let src = src.as_deref().unwrap_or(&[]);
-        let target = target.as_deref().unwrap_or(&[]);
+        let Some((src, target)) = src.as_deref().zip(target.as_deref()) else {
+            continue;
+        };
 
         for src_impl in src {
             if !target.contains(src_impl) {

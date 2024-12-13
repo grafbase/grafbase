@@ -331,6 +331,21 @@ pub(crate) fn remove_object_type(args: CheckArgs<'_, '_>) -> Option<CheckDiagnos
     let type_name = &args.change.path;
     let src = args.check_params.source;
 
+    // FIXME: this shouldn't be an early return, we should be able to return multiple errors.
+    for interface_name in src.iter_interface_implementations(type_name) {
+        if args
+            .check_params
+            .field_usage
+            .type_condition_counts
+            .contains_key(&format!("{interface_name}.{type_name}"))
+        {
+            return Some(CheckDiagnostic {
+                message: format!("The interface implementation for `{interface_name}` on `{type_name}` was removed but it is still used by clients."),
+                severity: Severity::Error,
+            });
+        }
+    }
+
     if ![
         &src.query_type_name,
         &src.mutation_type_name,

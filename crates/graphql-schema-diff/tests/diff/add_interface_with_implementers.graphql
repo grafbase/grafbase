@@ -1,0 +1,22 @@
+interface Node {
+  id: ID!
+}
+
+interface Node {
+  name: String!
+}
+
+# --- #
+
+interface Node {
+  id: ID!
+}
+
+interface Node {
+  name: String!
+}
+
+interface Test implements Node & Named {
+  id: ID!
+  name: String!
+}

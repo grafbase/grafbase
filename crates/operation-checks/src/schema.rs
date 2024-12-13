@@ -20,6 +20,10 @@ pub struct Schema {
     // Invariant: sorted
     pub(crate) field_arguments: Vec<FieldArgument>,
 
+    /// (implementer, interface)
+    /// Invariant: sorted
+    pub(crate) interface_implementations: Vec<(String, String)>,
+
     pub(crate) input_objects: HashSet<String>,
 
     pub(crate) query_type_name: String,
@@ -81,6 +85,20 @@ impl Schema {
             )
             .enumerate()
             .map(move |(idx, arg)| (ArgumentId(idx + start), arg))
+    }
+
+    pub(crate) fn iter_interface_implementations<'a>(
+        &'a self,
+        type_name: &'a str,
+    ) -> impl Iterator<Item = &'a str> + 'a {
+        let start = self
+            .interface_implementations
+            .partition_point(|(implementer, _interface)| implementer.as_str() < type_name);
+
+        self.interface_implementations[start..]
+            .iter()
+            .take_while(move |(implementer, _interface)| implementer == type_name)
+            .map(|(_implementer, interface)| interface.as_str())
     }
 }
 

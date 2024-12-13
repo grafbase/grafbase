@@ -1,6 +1,22 @@
-use std::{fs, path::Path, sync::LazyLock};
+use std::{fmt, fs, path::Path, sync::LazyLock};
 
 static UPDATE_EXPECT: LazyLock<bool> = LazyLock::new(|| std::env::var("UPDATE_EXPECT").is_ok());
+
+struct DiffError(String);
+
+impl fmt::Debug for DiffError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl fmt::Display for DiffError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Debug::fmt(self, f)
+    }
+}
+
+impl std::error::Error for DiffError {}
 
 fn run_test(case: &Path) -> datatest_stable::Result<()> {
     if cfg!(windows) {
@@ -39,7 +55,7 @@ fn run_test(case: &Path) -> datatest_stable::Result<()> {
     }
 
     if snapshot != diff {
-        return Err(miette::miette!(
+        return Err(DiffError(format!(
             "{}\n\n\n=== Hint: run the tests again with UPDATE_EXPECT=1 to update the snapshot. ===",
             similar::udiff::unified_diff(
                 similar::Algorithm::default(),
@@ -48,7 +64,7 @@ fn run_test(case: &Path) -> datatest_stable::Result<()> {
                 5,
                 Some(("Snapshot", "Actual"))
             )
-        )
+        ))
         .into());
     }
 
