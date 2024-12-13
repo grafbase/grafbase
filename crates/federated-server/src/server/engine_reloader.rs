@@ -2,6 +2,7 @@ use std::{path::PathBuf, sync::Arc};
 
 use engine::{Engine, OperationForWarming};
 use futures_lite::{pin, StreamExt};
+use rand::{seq::SliceRandom, thread_rng};
 use runtime_local::HooksWasi;
 use tokio::{
     sync::{mpsc, watch},
@@ -114,16 +115,10 @@ async fn update_loop(
             let graph_definition = graph_definition.clone();
             let engine_sender = engine_sender.clone();
 
-            let prewarm_operations = engine_sender
-                .borrow()
-                .runtime
-                .operation_cache
-                .values()
-                .map(OperationForWarming::new)
-                .collect();
-
             async move {
-                match build_new_engine(current_config, graph_definition, context, prewarm_operations).await {
+                let operations_to_warm = extract_operations_to_warm(&current_config, &engine_sender);
+
+                match build_new_engine(current_config, graph_definition, context, operations_to_warm).await {
                     Ok(engine) => {
                         if let Err(err) = engine_sender.send(engine) {
                             tracing::error!("Could not send engine: {err:?}");
@@ -139,24 +134,46 @@ async fn update_loop(
 }
 
 async fn build_new_engine(
-    current_config: gateway_config::Config,
+    config: gateway_config::Config,
     graph_definition: GraphDefinition,
     context: Context,
     operations_to_warm: Vec<OperationForWarming>,
 ) -> crate::Result<Arc<Engine<GatewayRuntime>>> {
-    let engine = gateway::generate(
-        graph_definition,
-        &current_config,
-        context.hot_reload_config_path,
-        context.hooks,
-    )
-    .await?;
+    let engine = gateway::generate(graph_definition, &config, context.hot_reload_config_path, context.hooks).await?;
 
     let engine = Arc::new(engine);
 
-    if current_config.operation_caching.warm_on_reload {
-        engine.warm_operation_cache(operations_to_warm).await;
-    }
+    engine.warm_operation_cache(operations_to_warm).await;
 
     Ok(engine)
+}
+
+fn extract_operations_to_warm(
+    config: &gateway_config::Config,
+    engine_sender: &EngineSender,
+) -> Vec<OperationForWarming> {
+    if !config.operation_caching.enabled || !config.operation_caching.warm_on_reload {
+        return vec![];
+    }
+
+    let (mut operations, cache_count) = {
+        let cache = &engine_sender.borrow().runtime.operation_cache;
+
+        (
+            cache.values().map(OperationForWarming::new).collect(),
+            cache.entry_count(),
+        )
+    };
+
+    if config.operation_caching.warming_percent >= 100 {
+        return operations;
+    }
+
+    // If we're not taking 100% of the list we shuffle the list and take a percentage of it
+    operations.shuffle(&mut thread_rng());
+
+    operations
+        .into_iter()
+        .take(cache_count * (config.operation_caching.warming_percent as usize / 100))
+        .collect()
 }
