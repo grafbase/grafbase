@@ -22,7 +22,6 @@ workspace = true
 [dev-dependencies]
 datatest-stable.workspace = true
 similar = "2.5.0"
-miette = { workspace = true, features = ["fancy"] }
 serde_json.workspace = true
 
 [[test]]

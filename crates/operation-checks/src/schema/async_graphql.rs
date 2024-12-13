@@ -11,6 +11,7 @@ impl From<ServiceDocument> for schema::Schema {
         let mut subscription_type_name = None;
         let mut field_arguments = Vec::new();
         let mut input_objects = HashSet::new();
+        let mut interface_implementations = Vec::new();
 
         for definition in value.definitions {
             match definition {
@@ -37,6 +38,11 @@ impl From<ServiceDocument> for schema::Schema {
                         | async_graphql_parser::types::TypeKind::Scalar => (),
 
                         async_graphql_parser::types::TypeKind::Object(obj) => {
+                            for implemented_interface in &obj.implements {
+                                interface_implementations
+                                    .push((type_name.to_string(), implemented_interface.node.to_string()));
+                            }
+
                             for field in &obj.fields {
                                 let field_name = field.node.name.node.as_str();
                                 let (base_type, wrappers) = extract_type(&field.node.ty.node);
@@ -61,6 +67,11 @@ impl From<ServiceDocument> for schema::Schema {
                             }
                         }
                         async_graphql_parser::types::TypeKind::Interface(iface) => {
+                            for implemented_interface in &iface.implements {
+                                interface_implementations
+                                    .push((type_name.to_string(), implemented_interface.node.to_string()));
+                            }
+
                             for field in &iface.fields {
                                 let (base_type, wrappers) = extract_type(&field.node.ty.node);
                                 fields.push(schema::SchemaField {
@@ -91,11 +102,13 @@ impl From<ServiceDocument> for schema::Schema {
 
         fields.sort();
         field_arguments.sort();
+        interface_implementations.sort();
 
         schema::Schema {
             fields,
             field_arguments,
             input_objects,
+            interface_implementations,
             query_type_name: query_type_name.unwrap_or_else(|| "Query".to_owned()),
             mutation_type_name: mutation_type_name.unwrap_or_else(|| "Mutation".to_owned()),
             subscription_type_name: subscription_type_name.unwrap_or_else(|| "Subscription".to_owned()),

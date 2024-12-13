@@ -1,0 +1,22 @@
+{
+  "src → target": [
+    {
+      "path": "Test",
+      "kind": "AddInterface",
+      "span": {
+        "start": 68,
+        "end": 136
+      }
+    }
+  ],
+  "target → src": [
+    {
+      "path": "Test",
+      "kind": "RemoveInterface",
+      "span": {
+        "start": 68,
+        "end": 136
+      }
+    }
+  ]
+}

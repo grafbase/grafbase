@@ -1,5 +1,21 @@
 use operation_checks::CheckParams;
-use std::{fs, path::Path, sync::OnceLock};
+use std::{fmt, fs, path::Path, sync::OnceLock};
+
+struct DiffError(String);
+
+impl fmt::Debug for DiffError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl fmt::Display for DiffError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Debug::fmt(self, f)
+    }
+}
+
+impl std::error::Error for DiffError {}
 
 fn update_expect() -> bool {
     static UPDATE_EXPECT: OnceLock<bool> = OnceLock::new();
@@ -69,7 +85,7 @@ fn run_test(case_path: &Path) -> datatest_stable::Result<()> {
     }
 
     if snapshot != result {
-        return Err(miette::miette!(
+        return Err(DiffError(format!(
             "{}\n\n\n=== Hint: run the tests again with UPDATE_EXPECT=1 to update the snapshot. ===",
             similar::udiff::unified_diff(
                 similar::Algorithm::default(),
@@ -78,7 +94,7 @@ fn run_test(case_path: &Path) -> datatest_stable::Result<()> {
                 5,
                 Some(("Snapshot", "Actual"))
             )
-        )
+        ))
         .into());
     }
 

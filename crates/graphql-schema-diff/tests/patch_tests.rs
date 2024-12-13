@@ -1,4 +1,20 @@
-use std::{fs, path::Path};
+use std::{fmt, fs, path::Path};
+
+struct DiffError(String);
+
+impl fmt::Debug for DiffError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl fmt::Display for DiffError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Debug::fmt(self, f)
+    }
+}
+
+impl std::error::Error for DiffError {}
 
 fn read_schemas(case: &Path) -> datatest_stable::Result<(String, String)> {
     let schemas = fs::read_to_string(case)?;
@@ -32,7 +48,7 @@ fn run_test_impl(source: String, target: String) -> datatest_stable::Result<()> 
         let patched = graphql_schema_diff::patch(&source, &diff, &resolved_spans).unwrap();
 
         if patched.schema().trim() != target.trim() {
-            return Err(miette::miette!(
+            return Err(DiffError(format!(
                 "{}",
                 similar::udiff::unified_diff(
                     similar::Algorithm::default(),
@@ -41,7 +57,7 @@ fn run_test_impl(source: String, target: String) -> datatest_stable::Result<()> 
                     5,
                     Some(("Original target", "Patched"))
                 )
-            )
+            ))
             .into());
         }
     }
