@@ -128,7 +128,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install cargo binstall
-        uses: cargo-bins/cargo-binstall@v1.10.16
+        uses: cargo-bins/cargo-binstall@v1.10.17
 
       - name: Build the WASI components for tests
         shell: bash

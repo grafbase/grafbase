@@ -2,10 +2,14 @@ github.com/99designs/gqlgen v0.17.45 h1:bH0AH67vIJo8JKNKPJP+pOPpQhZeuVRQLf53dKIp
 github.com/99designs/gqlgen v0.17.45/go.mod h1:Bas0XQ+Jiu/Xm5E33jC8sES3G+iC2esHBMXcq0fUPs0=
 github.com/99designs/gqlgen v0.17.57 h1:Ak4p60BRq6QibxY0lEc0JnQhDurfhxA67sp02lMjmPc=
 github.com/99designs/gqlgen v0.17.57/go.mod h1:Jx61hzOSTcR4VJy/HFIgXiQ5rJ0Ypw8DxWLjbYDAUw0=
+github.com/99designs/gqlgen v0.17.60 h1:xxl7kQDCNw79itzWQtCUSXgkovCyq9r+ogSXfZpKPYM=
+github.com/99designs/gqlgen v0.17.60/go.mod h1:vQJzWXyGya2TYL7cig1G4OaCQzyck031MgYBlUwaI9I=
 github.com/99designs/gqlgen/_examples v0.0.0-20240411132148-79aa0ceb818d h1:9sLlT+422gH9wdnPNO/gJvqLxNltAWaIdQ74AImy/4M=
 github.com/99designs/gqlgen/_examples v0.0.0-20240411132148-79aa0ceb818d/go.mod h1:MjRZ8+hnSJu9lqGYZ70whj585ZCPw7iiQEVIzS+ESmA=
 github.com/99designs/gqlgen/_examples v0.0.0-20241208140723-3114065887ac h1:SCRPQC7+KEjzHGsoLkMGPDYX+JztpA4lCfRtD6wsLKk=
 github.com/99designs/gqlgen/_examples v0.0.0-20241208140723-3114065887ac/go.mod h1:1vfMBvRvVdax7g+4amfbuoP+KcZWYsEhOim7M2XI3oE=
+github.com/99designs/gqlgen/_examples v0.0.0-20241213180128-e92956a404c3 h1:1h8MknQ97wOr6A7by8ARd6JZGvVzONzWjTUzzEHtoh0=
+github.com/99designs/gqlgen/_examples v0.0.0-20241213180128-e92956a404c3/go.mod h1:C5UO856tLd5Oy/MQDM+KfvKGJljDeD26zhd97nKc0L8=
 github.com/PuerkitoBio/goquery v1.9.1 h1:mTL6XjbJTZdpfL+Gwl5U2h1l9yEkJjhmlTeV9VPW7UI=
 github.com/agnivade/levenshtein v1.1.1 h1:QY8M92nrzkmr798gCo3kmMyqXFzdQVpxLlGPRBij0P8=
 github.com/agnivade/levenshtein v1.1.1/go.mod h1:veldBMzWxcCG2ZvUTKD2kJNRdCk5hVbJomOvKkmgYbo=
