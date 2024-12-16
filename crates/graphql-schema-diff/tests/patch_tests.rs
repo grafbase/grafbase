@@ -48,16 +48,16 @@ fn run_test_impl(source: String, target: String) -> datatest_stable::Result<()> 
         let patched = graphql_schema_diff::patch(&source, &diff, &resolved_spans).unwrap();
 
         if patched.schema().trim() != target.trim() {
-            return Err(DiffError(format!(
-                "{}",
+            return Err(DiffError(
                 similar::udiff::unified_diff(
                     similar::Algorithm::default(),
                     &target,
                     patched.schema(),
                     5,
-                    Some(("Original target", "Patched"))
+                    Some(("Original target", "Patched")),
                 )
-            ))
+                .to_string(),
+            )
             .into());
         }
     }
