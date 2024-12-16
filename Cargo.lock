@@ -480,22 +480,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "aws_lambda_events"
-version = "0.16.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "52ddb91585253ccc85be3f2e0d5635529efdeadaf8a1da3230b433d3bbe43648"
-dependencies = [
- "base64 0.22.1",
- "bytes",
- "http 1.2.0",
- "http-body 1.0.1",
- "http-serde",
- "query_map",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "axum"
 version = "0.7.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -527,7 +511,7 @@ dependencies = [
  "sync_wrapper 1.0.2",
  "tokio",
  "tokio-tungstenite",
- "tower 0.5.1",
+ "tower 0.5.2",
  "tower-layer",
  "tower-service",
  "tracing",
@@ -545,8 +529,8 @@ dependencies = [
  "http 1.2.0",
  "http-body-util",
  "hyper 1.5.1",
- "lambda_http 0.13.0",
- "tower 0.5.1",
+ "lambda_http",
+ "tower 0.5.2",
  "tower-service",
 ]
 
@@ -693,7 +677,7 @@ dependencies = [
  "bitflags 2.6.0",
  "cexpr",
  "clang-sys",
- "itertools 0.10.5",
+ "itertools 0.12.1",
  "lazy_static",
  "lazycell",
  "log",
@@ -1184,7 +1168,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "117725a109d387c937a1533ce01b450cbde6b88abceea8473c4d7a85853cda3c"
 dependencies = [
  "lazy_static",
- "windows-sys 0.52.0",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
@@ -2156,7 +2140,7 @@ dependencies = [
  "strum",
  "strum_macros",
  "thiserror 2.0.7",
- "tower 0.5.1",
+ "tower 0.5.2",
  "tracing",
  "url",
 ]
@@ -2197,7 +2181,7 @@ dependencies = [
  "runtime",
  "serde_json",
  "tokio",
- "tower 0.5.1",
+ "tower 0.5.2",
  "tower-service",
  "tracing",
 ]
@@ -2531,7 +2515,7 @@ dependencies = [
  "graph-ref",
  "graphql-composition",
  "http 1.2.0",
- "lambda_http 0.14.0",
+ "lambda_http",
  "notify",
  "reqwest 0.12.9",
  "rolling-logger",
@@ -2543,7 +2527,7 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "toml",
- "tower 0.5.1",
+ "tower 0.5.2",
  "tower-http",
  "tracing",
  "ulid",
@@ -3343,7 +3327,7 @@ dependencies = [
  "toml_datetime",
  "toml_edit",
  "tower 0.4.13",
- "tower 0.5.1",
+ "tower 0.5.2",
  "tower-http",
  "tracing",
  "tracing-core",
@@ -4339,7 +4323,7 @@ dependencies = [
  "thiserror 2.0.7",
  "tokio",
  "toml",
- "tower 0.5.1",
+ "tower 0.5.2",
  "tracing",
  "tracing-subscriber",
  "ulid",
@@ -4554,34 +4538,7 @@ version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "67fe279be7f89f5f72c97c3a96f45c43db8edab1007320ecc6a5741273b4d6db"
 dependencies = [
- "aws_lambda_events 0.15.1",
- "base64 0.22.1",
- "bytes",
- "encoding_rs",
- "futures",
- "futures-util",
- "http 1.2.0",
- "http-body 1.0.1",
- "http-body-util",
- "hyper 1.5.1",
- "lambda_runtime",
- "mime",
- "percent-encoding",
- "pin-project-lite",
- "serde",
- "serde_json",
- "serde_urlencoded",
- "tokio-stream",
- "url",
-]
-
-[[package]]
-name = "lambda_http"
-version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "68b470cea1ec37b96e9543870a33c1f4b9e243754fe5892668efa3125ea12784"
-dependencies = [
- "aws_lambda_events 0.16.0",
+ "aws_lambda_events",
  "base64 0.22.1",
  "bytes",
  "encoding_rs",
@@ -4695,7 +4652,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc2f4eb4bc735547cfed7c0a4922cbd04a4655978c09b54f1f7b228750664c34"
 dependencies = [
  "cfg-if",
- "windows-targets 0.52.6",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
@@ -7979,14 +7936,14 @@ dependencies = [
 
 [[package]]
 name = "tower"
-version = "0.5.1"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2873938d487c3cfb9aed7546dc9f2711d867c9f90c46b889989a2cb84eba6b4f"
+checksum = "d039ad9159c98b70ecfd540b2573b97f7f52c3e8d9f8ad57a24b916a536975f9"
 dependencies = [
  "futures-core",
  "futures-util",
  "pin-project-lite",
- "sync_wrapper 0.1.2",
+ "sync_wrapper 1.0.2",
  "tokio",
  "tower-layer",
  "tower-service",
@@ -8974,7 +8931,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.52.0",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
