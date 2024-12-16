@@ -8152,7 +8152,6 @@ dependencies = [
  "rustls-pki-types",
  "sha1",
  "thiserror 1.0.69",
- "url",
  "utf-8",
 ]
 
@@ -8164,8 +8163,12 @@ checksum = "326eb16466ed89221beef69dbc94f517ee888bae959895472133924a25f7070e"
 dependencies = [
  "byteorder",
  "bytes",
+ "data-encoding",
+ "http 1.2.0",
+ "httparse",
  "log",
  "rand 0.8.5",
+ "sha1",
  "thiserror 2.0.7",
  "url",
  "utf-8",
