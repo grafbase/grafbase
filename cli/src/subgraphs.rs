@@ -1,4 +1,4 @@
-use crate::{cli_input::SubgraphsCommand, errors::CliError, output::report};
+use crate::{backend, cli_input::SubgraphsCommand, errors::CliError, output::report};
 
 #[tokio::main]
 pub(super) async fn subgraphs(cmd: SubgraphsCommand) -> Result<(), CliError> {

@@ -106,7 +106,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        package: [grafbase-local-backend, grafbase, grafbase-gateway, federated-server]
+        package: [grafbase, grafbase-gateway, federated-server]
     runs-on: ubicloud-standard-8
     steps:
       - name: Get sources

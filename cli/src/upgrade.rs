@@ -1,6 +1,6 @@
+use crate::common::consts::USER_AGENT;
 use crate::direct_install_executable_path;
 use crate::output::report;
-use common::consts::USER_AGENT;
 use fslock::LockFile;
 use futures_util::StreamExt;
 use indicatif::{ProgressBar, ProgressStyle};

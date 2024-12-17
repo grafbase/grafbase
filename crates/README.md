@@ -25,8 +25,6 @@
 
 | Crate                                                     | Description                                                         |
 | --------------------------------------------------------- | ------------------------------------------------------------------- |
-| [grafbase-local-backend](grafbase-local-backend/) | Universal backend for Grafbase devtools |
-| [grafbase-local-common](grafbase-local-common/)   | Shared functions and utilities          |
 | [`common-types`](common-types)                     | Various type definitions for the Grafbase platform                  |
 | [`graphql-composition`](graphql-composition)               | An implementation of GraphQL federated schema composition           |
 | [`engine-config-builder`](engine-config-builder)   | Engine configuration builder                                        |

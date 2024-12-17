@@ -1,4 +1,4 @@
-use crate::{cli_input::SchemaCommand, errors::CliError, output::report};
+use crate::{backend, cli_input::SchemaCommand, errors::CliError, output::report};
 
 #[tokio::main]
 pub(crate) async fn schema(cmd: SchemaCommand) -> Result<(), CliError> {

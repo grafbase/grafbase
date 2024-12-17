@@ -1,12 +1,15 @@
 use crate::{
+    backend,
+    common::{
+        environment::{PlatformData, Warning},
+        trusted_documents::TrustedDocumentsManifest,
+    },
+};
+use crate::{
     errors::CliError,
     watercolor::{self, watercolor},
 };
 use colored::Colorize;
-use common::{
-    environment::{PlatformData, Warning},
-    trusted_documents::TrustedDocumentsManifest,
-};
 
 /// reports to stdout that the server has started
 pub fn cli_header() {

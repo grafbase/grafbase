@@ -1104,6 +1104,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f46ad14479a25103f283c0f10005961cf086d8dc42205bb44c46ac563475dca6"
 
 [[package]]
+name = "cli-table"
+version = "0.4.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b53f9241f288a7b12c56565f04aaeaeeab6b8923d42d99255d4ca428b4d97f89"
+dependencies = [
+ "termcolor",
+ "unicode-width 0.1.14",
+]
+
+[[package]]
 name = "clickhouse"
 version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1168,7 +1178,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "117725a109d387c937a1533ce01b450cbde6b88abceea8473c4d7a85853cda3c"
 dependencies = [
  "lazy_static",
- "windows-sys 0.48.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2977,26 +2987,36 @@ dependencies = [
  "chrono",
  "clap",
  "clap_complete",
+ "cli-table",
  "colored",
+ "const_format",
+ "crossterm 0.28.1",
  "ctor",
  "cynic",
+ "cynic-codegen",
  "cynic-introspection",
  "derive_builder",
  "dirs",
  "duct",
+ "expect-test",
+ "federated-server",
+ "flate2",
  "fslock",
+ "futures",
  "futures-util",
+ "gateway-config",
  "grafbase-graphql-introspection",
- "grafbase-local-backend",
- "grafbase-local-common",
  "grafbase-workspace-hack",
  "graph-ref",
+ "graphql-composition",
+ "graphql-federated-graph",
  "graphql-lint",
  "graphql-mocks",
  "graphql-ws-client",
  "headers",
  "hex",
  "http 1.2.0",
+ "ignore",
  "indicatif",
  "indoc",
  "inquire",
@@ -3007,6 +3027,8 @@ dependencies = [
  "mimalloc",
  "more-asserts",
  "multipart-stream",
+ "notify",
+ "notify-debouncer-full",
  "os_type",
  "rand 0.8.5",
  "regex",
@@ -3017,6 +3039,8 @@ dependencies = [
  "rstest_reuse",
  "rustls 0.23.20",
  "serde",
+ "serde-dynamic-string",
+ "serde-toml-merge",
  "serde_derive",
  "serde_json",
  "sha2",
@@ -3024,14 +3048,18 @@ dependencies = [
  "strum",
  "syntect",
  "sysinfo",
+ "tar",
  "tempfile",
  "thiserror 2.0.7",
  "tokio",
+ "tokio-stream",
  "tokio-util",
+ "toml",
  "tower-http",
  "tracing",
  "tracing-subscriber",
  "url",
+ "urlencoding",
  "uuid",
  "webbrowser",
  "which 7.0.0",
@@ -3113,61 +3141,6 @@ dependencies = [
  "enumflags2",
  "quote",
  "syn 2.0.90",
-]
-
-[[package]]
-name = "grafbase-local-backend"
-version = "0.82.3"
-dependencies = [
- "axum",
- "chrono",
- "crossterm 0.28.1",
- "cynic",
- "cynic-codegen",
- "dirs",
- "federated-server",
- "flate2",
- "futures",
- "gateway-config",
- "grafbase-graphql-introspection",
- "grafbase-local-common",
- "grafbase-workspace-hack",
- "graphql-composition",
- "graphql-federated-graph",
- "ignore",
- "notify",
- "notify-debouncer-full",
- "reqwest 0.12.9",
- "serde",
- "serde-dynamic-string",
- "serde-toml-merge",
- "serde_json",
- "tar",
- "thiserror 2.0.7",
- "tokio",
- "tokio-stream",
- "tokio-util",
- "toml",
- "tower-http",
- "tracing",
- "url",
- "urlencoding",
-]
-
-[[package]]
-name = "grafbase-local-common"
-version = "0.82.3"
-dependencies = [
- "const_format",
- "dirs",
- "expect-test",
- "grafbase-workspace-hack",
- "serde",
- "serde_json",
- "strum",
- "thiserror 2.0.7",
- "tokio",
- "url",
 ]
 
 [[package]]
@@ -3306,7 +3279,6 @@ dependencies = [
  "serde_json",
  "serde_with",
  "sha2",
- "signal-hook-mio",
  "signature",
  "similar",
  "similar-asserts",
@@ -4652,7 +4624,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc2f4eb4bc735547cfed7c0a4922cbd04a4655978c09b54f1f7b228750664c34"
 dependencies = [
  "cfg-if",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.6",
 ]
 
 [[package]]
@@ -5176,7 +5148,7 @@ version = "5.0.0-rc.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "23d385da3c602d29036d2f70beed71c36604df7570be17fed4c5b839616785bf"
 dependencies = [
- "base64 0.21.7",
+ "base64 0.22.1",
  "chrono",
  "getrandom 0.2.15",
  "http 1.2.0",
@@ -8931,7 +8903,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]

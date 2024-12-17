@@ -1,5 +1,5 @@
+use crate::backend::api::check;
 use crate::{cli_input::CheckCommand, errors::CliError, report};
-use backend::api::check;
 use std::{
     fs,
     io::{IsTerminal, Read},
@@ -48,7 +48,6 @@ pub(crate) async fn check(command: CheckCommand) -> Result<(), CliError> {
     .map_err(CliError::BackendApiError)?;
 
     let check::SchemaCheck {
-        id: _,
         error_count,
         validation_check_errors,
         composition_check_errors,

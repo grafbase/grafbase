@@ -32,8 +32,8 @@ pub(crate) use sub_command::RequiresLogin;
 pub(crate) use sub_command::SubCommand;
 pub(crate) use subgraphs::SubgraphsCommand;
 
+use crate::common::consts::TRACE_LOG_FILTER;
 use clap::Parser;
-use common::consts::TRACE_LOG_FILTER;
 use std::path::PathBuf;
 
 fn split_header(header: &str) -> Option<(&str, &str)> {

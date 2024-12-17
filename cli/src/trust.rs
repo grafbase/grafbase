@@ -1,6 +1,7 @@
-use common::trusted_documents::TrustedDocumentsManifest;
-
-use crate::{cli_input::TrustCommand, errors::CliError, output::report};
+use crate::{
+    backend, cli_input::TrustCommand, common::trusted_documents::TrustedDocumentsManifest, errors::CliError,
+    output::report,
+};
 
 pub(crate) fn trust(
     TrustCommand {
@@ -28,7 +29,7 @@ pub(crate) fn trust(
             documents: manifest
                 .into_documents()
                 .map(
-                    |common::trusted_documents::TrustedDocument {
+                    |crate::common::trusted_documents::TrustedDocument {
                          document_id,
                          document_text,
                      }| backend::api::submit_trusted_documents::TrustedDocumentInput {

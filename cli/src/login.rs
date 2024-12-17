@@ -1,6 +1,6 @@
+use crate::backend::api::{login, types::LoginMessage};
+use crate::common::utils::get_thread_panic_message;
 use crate::{errors::CliError, output::report};
-use backend::api::{login, types::LoginMessage};
-use common::utils::get_thread_panic_message;
 use indicatif::{ProgressBar, ProgressStyle};
 use std::{
     sync::mpsc::{channel, RecvTimeoutError},
