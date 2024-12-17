@@ -1,4 +1,4 @@
-use crate::{cli_input::DevCommand, errors::CliError};
+use crate::{backend, cli_input::DevCommand, errors::CliError};
 
 pub fn dev(cmd: DevCommand) -> Result<(), CliError> {
     // temporary, until we use `GraphRef`

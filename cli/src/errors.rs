@@ -1,6 +1,6 @@
-use backend::api::errors::{ApiError, CreateError, LoginApiError, PublishError};
-use backend::errors::BackendError;
-use common::errors::CommonError;
+use crate::backend::api::errors::{ApiError, CreateError, LoginApiError, PublishError};
+use crate::backend::errors::BackendError;
+use crate::common::errors::CommonError;
 use std::io;
 use std::path::PathBuf;
 use thiserror::Error;
@@ -67,9 +67,6 @@ impl CliError {
     /// returns the appropriate hint for a [`CliError`]
     pub fn to_hint(&self) -> Option<String> {
         match self {
-            Self::CommonError(CommonError::FindGrafbaseDirectory) => {
-                Some("try running the CLI in your Grafbase project or any nested directory".to_owned())
-            }
             Self::BackendApiError(
                 ApiError::RequestError(_)
                 | ApiError::CreateError(CreateError::Unknown(_))
@@ -77,10 +74,6 @@ impl CliError {
             ) => Some("you may be using an older version of the Grafbase CLI, try updating".to_owned()),
             Self::BackendApiError(ApiError::NotLoggedIn) | Self::CommonError(CommonError::CorruptCredentialsFile) => {
                 Some("try running 'grafbase login'".to_owned())
-            }
-            Self::BackendApiError(ApiError::ProjectAlreadyLinked) => Some("try running 'grafbase deploy'".to_owned()),
-            Self::BackendApiError(ApiError::CorruptProjectMetadataFile) => {
-                Some("try running 'grafbase link'".to_owned())
             }
             Self::UpgradeError(UpgradeError::StartDownload | UpgradeError::StartGetLatestReleaseVersion) => {
                 Some("this may be caused by connection issues".to_owned())

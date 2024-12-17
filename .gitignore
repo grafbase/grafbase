@@ -54,3 +54,6 @@ yarn-error.log*
 
 # Nix
 /result
+
+# CLI assets
+/cli/assets

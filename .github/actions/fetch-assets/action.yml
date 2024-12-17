@@ -8,6 +8,6 @@ runs:
       shell: bash
       run: |
         CACHE_BREAKER=$(openssl rand -hex 8)
-        pushd crates/grafbase-local-backend/assets
+        pushd cli/assets
         curl -H "Cache-Control: must-revalidate, post-check=0, pre-check=0" -o pathfinder.tar.gz http://assets.grafbase.com/pathfinder/pathfinder.tar.gz?cache=$CACHE_BREAKER
         popd

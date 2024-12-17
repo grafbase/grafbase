@@ -1,4 +1,4 @@
-use crate::{cli_input::PublishCommand, errors::CliError, output::report};
+use crate::{backend, cli_input::PublishCommand, errors::CliError, output::report};
 use std::{
     fs,
     io::{IsTerminal, Read},
