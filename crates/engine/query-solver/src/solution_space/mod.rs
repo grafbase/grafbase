@@ -5,41 +5,43 @@ mod node;
 pub(crate) use edge::*;
 pub(crate) use node::*;
 
+use operation::{Operation, OperationContext};
 use schema::Schema;
 use tracing::{instrument, Level};
 
 use petgraph::{
     dot::{Config, Dot},
-    stable_graph::{NodeIndex, StableGraph},
+    stable_graph::StableGraph,
 };
 
-use crate::Operation;
+use crate::Query;
 
-pub(crate) struct OperationGraph<'ctx, Op: Operation> {
-    pub(crate) schema: &'ctx Schema,
-    pub(crate) operation: Op,
-    pub(crate) root_ix: NodeIndex,
-    pub(crate) graph: StableGraph<Node<'ctx, Op::FieldId>, Edge>,
-}
+pub(crate) type QuerySolutionSpace<'schema> = Query<StableGraph<SpaceNode<'schema>, SpaceEdge>>;
 
-impl<'ctx, Op: Operation> OperationGraph<'ctx, Op> {
+impl<'schema> QuerySolutionSpace<'schema> {
     #[instrument(skip_all, level = Level::DEBUG)]
-    pub fn new(schema: &'ctx Schema, operation: Op) -> crate::Result<OperationGraph<'ctx, Op>> {
-        Self::builder(schema, operation).build().inspect(|op| {
-            tracing::debug!("OperationGraph created:\n{}", op.to_pretty_dot_graph());
+    pub fn generate_solution_space<'op>(schema: &'schema Schema, operation: &'op Operation) -> crate::Result<Self>
+    where
+        'schema: 'op,
+    {
+        QuerySolutionSpace::builder(schema, operation).build().inspect(|query| {
+            tracing::debug!(
+                "OperationGraph created:\n{}",
+                query.to_pretty_dot_graph(OperationContext { schema, operation })
+            );
         })
     }
 
     /// Use https://dreampuf.github.io/GraphvizOnline
     /// or `echo '..." | dot -Tsvg` from graphviz
-    pub(crate) fn to_pretty_dot_graph(&self) -> String {
+    pub(crate) fn to_pretty_dot_graph(&self, ctx: OperationContext<'_>) -> String {
         format!(
             "{:?}",
             Dot::with_attr_getters(
                 &self.graph,
                 &[Config::EdgeNoLabel, Config::NodeNoLabel],
-                &|_, edge| edge.weight().pretty_label(self),
-                &|_, node| node.1.pretty_label(self).to_string()
+                &|_, edge| edge.weight().pretty_label().to_string(),
+                &|_, node| node.1.pretty_label(self, ctx).to_string()
             )
         )
     }
@@ -47,7 +49,7 @@ impl<'ctx, Op: Operation> OperationGraph<'ctx, Op> {
     /// Use https://dreampuf.github.io/GraphvizOnline
     /// or `echo '..." | dot -Tsvg` from graphviz
     #[cfg(test)]
-    pub(crate) fn to_dot_graph(&self) -> String {
+    pub(crate) fn to_dot_graph(&self, ctx: OperationContext<'_>) -> String {
         format!(
             "{:?}",
             Dot::with_attr_getters(
@@ -57,14 +59,14 @@ impl<'ctx, Op: Operation> OperationGraph<'ctx, Op> {
                     let label: &'static str = edge.weight().into();
                     crate::dot_graph::Attrs::label(label).to_string()
                 },
-                &|_, node| node.1.label(self).to_string(),
+                &|_, node| node.1.label(self, ctx).to_string(),
             )
         )
     }
 }
 
-impl<Op: Operation> std::fmt::Debug for OperationGraph<'_, Op> {
+impl std::fmt::Debug for QuerySolutionSpace<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("OperationGraph").finish_non_exhaustive()
+        f.debug_struct("Query").finish_non_exhaustive()
     }
 }

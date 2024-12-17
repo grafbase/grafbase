@@ -1,10 +1,12 @@
 use std::cmp::Ordering;
 
+use walker::Walk;
+
 #[derive(Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, serde::Serialize, serde::Deserialize, id_derives::Id)]
 pub struct QueryPosition(std::num::NonZero<u16>);
 
 impl QueryPosition {
-    pub const MAX: usize = u16::MAX as usize - 1;
+    pub const MAX: QueryPosition = QueryPosition(std::num::NonZero::new(u16::MAX - 1).unwrap());
     pub const EXTRA: usize = u16::MAX as usize;
 }
 
@@ -49,6 +51,21 @@ impl ResponseKey {
 /// incoming field name during deserialization.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
 pub struct ResponseKey(u16);
+
+impl<'a> Walk<&'a ResponseKeys> for ResponseKey {
+    type Walker<'w>
+        = &'w str
+    where
+        'a: 'w;
+    fn walk<'w>(self, ctx: impl Into<&'a ResponseKeys>) -> Self::Walker<'w>
+    where
+        Self: 'w,
+        'a: 'w,
+    {
+        let keys: &'a ResponseKeys = ctx.into();
+        &keys[self]
+    }
+}
 
 /// Interns all of the response keys strings.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

@@ -1,9 +1,7 @@
 use crate::dot_graph::Attrs;
 
-use super::{Operation, OperationGraph};
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, strum::IntoStaticStr)]
-pub(crate) enum Edge {
+pub(crate) enum SpaceEdge {
     ///
     /// -- Resolver --
     ///
@@ -17,8 +15,6 @@ pub(crate) enum Edge {
     ///
     /// From a parent QueryField to a nested QueryField.
     Field,
-    /// For a QueryField to a QueryField which is a __typename
-    TypenameField,
 
     ///
     /// -- Resolver <-> Query --
@@ -31,18 +27,16 @@ pub(crate) enum Edge {
     Requires,
 }
 
-impl Edge {
+impl SpaceEdge {
     /// Meant to be as readable as possible for large graphs with colors.
-    pub(crate) fn pretty_label<Op: Operation>(&self, _graph: &OperationGraph<'_, Op>) -> String {
+    pub(crate) fn pretty_label(&self) -> Attrs<'static> {
         match self {
-            Edge::CreateChildResolver => Attrs::default().with("color=royalblue,fontcolor=royalblue"),
-            Edge::CanProvide => Attrs::default().with("color=royalblue,fontcolor=royalblue"),
-            Edge::Provides => Attrs::default().with("color=violet,arrowhead=none"),
-            Edge::Field => Attrs::default(),
-            Edge::TypenameField => Attrs::label("Typename"),
-            Edge::Requires => Attrs::default().with("color=orangered,arrowhead=inv"),
-            Edge::HasChildResolver => Attrs::default().with("style=dashed,arrowhead=none"),
+            SpaceEdge::CreateChildResolver => Attrs::default().with("color=royalblue,fontcolor=royalblue"),
+            SpaceEdge::CanProvide => Attrs::default().with("color=royalblue,fontcolor=royalblue"),
+            SpaceEdge::Provides => Attrs::default().with("color=violet,arrowhead=none"),
+            SpaceEdge::Field => Attrs::default(),
+            SpaceEdge::Requires => Attrs::default().with("color=orangered,arrowhead=inv"),
+            SpaceEdge::HasChildResolver => Attrs::default().with("style=dashed,arrowhead=none"),
         }
-        .to_string()
     }
 }

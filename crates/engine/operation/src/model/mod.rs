@@ -1,4 +1,5 @@
 mod directive;
+mod field;
 mod generated;
 mod input_value;
 mod location;
@@ -85,6 +86,12 @@ pub struct OperationContext<'a> {
 impl<'a> From<OperationContext<'a>> for &'a Schema {
     fn from(ctx: OperationContext<'a>) -> Self {
         ctx.schema
+    }
+}
+
+impl<'a> From<OperationContext<'a>> for &'a ResponseKeys {
+    fn from(ctx: OperationContext<'a>) -> Self {
+        &ctx.operation.response_keys
     }
 }
 

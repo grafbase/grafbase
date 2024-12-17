@@ -1,4 +1,4 @@
-mod solution;
+mod post_process;
 mod solver;
 mod steiner_tree;
 
