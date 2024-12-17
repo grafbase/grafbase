@@ -18,13 +18,8 @@ services:
       - '4445:4445' # Admin port
     command: serve -c /etc/config/hydra/hydra.yml all --dev
     volumes:
-      - type: volume
-        source: hydra-sqlite
-        target: /var/lib/sqlite
-        read_only: false
-      - type: bind
-        source: ./data/hydra-config
-        target: /etc/config/hydra
+      - hydra-sqlite:/var/lib/sqlite:Z
+      - ./data/hydra-config:/etc/config/hydra:Z
     environment:
       DSN: 'sqlite:///var/lib/sqlite/db.sqlite?_fk=true'
       URLS_SELF_ISSUER: 'http://127.0.0.1:4444'
@@ -40,13 +35,8 @@ services:
       DSN: 'sqlite:///var/lib/sqlite/db.sqlite?_fk=true'
     command: migrate -c /etc/config/hydra/hydra.yml sql -e --yes
     volumes:
-      - type: volume
-        source: hydra-sqlite
-        target: /var/lib/sqlite
-        read_only: false
-      - type: bind
-        source: ./data/hydra-config
-        target: /etc/config/hydra
+      - hydra-sqlite:/var/lib/sqlite:Z
+      - ./data/hydra-config:/etc/config/hydra:Z
     restart: on-failure
     networks:
       - hydra
@@ -59,13 +49,8 @@ services:
       - '4455:4455' # Admin port
     command: serve -c /etc/config/hydra/hydra.yml all --dev
     volumes:
-      - type: volume
-        source: hydra-2-sqlite
-        target: /var/lib/sqlite
-        read_only: false
-      - type: bind
-        source: ./data/hydra-config
-        target: /etc/config/hydra
+      - hydra-2-sqlite:/var/lib/sqlite:Z
+      - ./data/hydra-config:/etc/config/hydra:Z
     environment:
       DSN: 'sqlite:///var/lib/sqlite/db.sqlite?_fk=true'
       URLS_SELF_ISSUER: 'http://127.0.0.1:4454'
@@ -83,13 +68,8 @@ services:
       DSN: 'sqlite:///var/lib/sqlite/db.sqlite?_fk=true'
     command: migrate -c /etc/config/hydra/hydra.yml sql -e --yes
     volumes:
-      - type: volume
-        source: hydra-2-sqlite
-        target: /var/lib/sqlite
-        read_only: false
-      - type: bind
-        source: ./data/hydra-config
-        target: /etc/config/hydra
+      - hydra-2-sqlite:/var/lib/sqlite:Z
+      - ./data/hydra-config:/etc/config/hydra:Z
     restart: on-failure
     networks:
       - hydra-2
