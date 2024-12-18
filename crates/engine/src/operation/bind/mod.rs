@@ -47,6 +47,7 @@ pub struct Binder<'schema, 'p> {
     response_modifiers: HashMap<ResponseModifierRule, (BoundResponseModifierId, Vec<BoundFieldId>)>,
 }
 
+#[tracing::instrument(name = "bind", level = "debug", skip_all)]
 pub(crate) fn bind(schema: &Schema, parsed_operation: &ParsedOperation) -> BindResult<BoundOperation> {
     let operation = parsed_operation.operation();
     let root_object_id = match operation.operation_type() {

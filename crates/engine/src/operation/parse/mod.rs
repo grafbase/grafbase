@@ -40,6 +40,7 @@ impl ParsedOperation {
 }
 
 /// Returns a valid GraphQL operation from the query string before.
+#[tracing::instrument(name = "parse", level = "debug", skip_all)]
 pub(crate) fn parse(
     schema: &Schema,
     operation_name: Option<&str>,

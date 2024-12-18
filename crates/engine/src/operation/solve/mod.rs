@@ -13,6 +13,7 @@ pub(crate) use model::*;
 ///    which part of query and all the field dependencies.
 /// 2. Take the SolutionGraph and the BoundOperation to create all the QueryPartitions in the SolvedOperation
 /// 3. Compute all the field shapes for each partition.
+#[tracing::instrument(name = "solve", level = "debug", skip_all)]
 pub(crate) fn solve(schema: &Schema, bound_operation: BoundOperation) -> SolveResult<SolvedOperation> {
     solver::Solver::build(schema, bound_operation)?.solve()
 }

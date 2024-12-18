@@ -7,6 +7,7 @@ use crate::{
 };
 
 impl<R: Runtime> PrepareContext<'_, R> {
+    #[tracing::instrument(name = "build operation" skip_all)]
     pub(crate) fn build_cached_operation(
         &self,
         operation_name: Option<&str>,

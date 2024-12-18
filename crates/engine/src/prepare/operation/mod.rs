@@ -7,7 +7,7 @@ use config::ComplexityControl;
 use futures::FutureExt;
 use runtime::hooks::Hooks;
 use schema::Settings;
-use std::sync::Arc;
+use std::{borrow::Cow, sync::Arc};
 
 use crate::{
     operation::Variables,
@@ -16,7 +16,14 @@ use crate::{
     ErrorCode, Runtime,
 };
 
-use super::{error::PrepareResult, trusted_documents::OperationDocument, PrepareContext, PreparedOperation};
+use super::{
+    error::PrepareResult, trusted_documents::OperationDocument, CachedOperation, PrepareContext, PreparedOperation,
+};
+
+enum Cache<'a> {
+    Hit(Arc<CachedOperation>),
+    Miss { cache_key: String, document: Cow<'a, str> },
+}
 
 impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
     pub(super) async fn prepare_operation_inner(
@@ -24,8 +31,11 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
         request: Request,
     ) -> Result<PreparedOperation, Response<<R::Hooks as Hooks>::OnOperationResponseOutput>> {
         let document_key;
-        let result = {
-            let OperationDocument { cache_key, load_fut } = match self.determine_operation_document(&request) {
+        let cache_response = {
+            let OperationDocument {
+                cache_key,
+                document_or_future,
+            } = match self.determine_operation_document(&request) {
                 Ok(doc) => doc,
                 // If we have an error a this stage, it means we couldn't determine what document
                 // to load, so we don't consider it a well-formed GraphQL-over-HTTP request.
@@ -39,19 +49,19 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
                 self.executed_operation_builder.set_cached_plan();
                 self.metrics().record_operation_cache_hit();
 
-                Ok(operation)
+                Cache::Hit(operation)
             } else {
                 self.metrics().record_operation_cache_miss();
-                match load_fut.await {
-                    Ok(document) => Err((cache_key, document)),
+                match document_or_future.into_document().await {
+                    Ok(document) => Cache::Miss { cache_key, document },
                     Err(err) => return Err(Response::request_error(None, [err])),
                 }
             }
         };
 
-        let cached_operation = match result {
-            Ok(op) => op,
-            Err((cache_key, document)) => {
+        let cached_operation = match cache_response {
+            Cache::Hit(op) => op,
+            Cache::Miss { cache_key, document } => {
                 let cached_operation = self
                     .build_cached_operation(request.operation_name.as_deref(), &document, document_key)
                     .map(Arc::new)

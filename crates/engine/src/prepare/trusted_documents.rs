@@ -10,6 +10,7 @@ use futures::{future::BoxFuture, FutureExt};
 use grafbase_telemetry::grafbase_client::X_GRAFBASE_CLIENT_NAME;
 use runtime::trusted_documents_client::TrustedDocumentsError;
 use std::borrow::Cow;
+use tracing::Instrument;
 
 use super::PrepareContext;
 
@@ -17,7 +18,28 @@ type DocumentFuture<'a> = BoxFuture<'a, Result<Cow<'a, str>, GraphqlError>>;
 
 pub(crate) struct OperationDocument<'a> {
     pub cache_key: Key<'a>,
-    pub load_fut: DocumentFuture<'a>,
+    pub document_or_future: DocumentOrFuture<'a>,
+}
+
+impl<'a> DocumentOrFuture<'a> {
+    pub(super) async fn into_document(self) -> Result<Cow<'a, str>, GraphqlError> {
+        match self {
+            DocumentOrFuture::Document(cow) => Ok(cow),
+            DocumentOrFuture::Future(future) => {
+                let span = tracing::info_span!("load trusted document");
+                future.instrument(span).await
+            }
+        }
+    }
+}
+
+pub(super) enum DocumentOrFuture<'a> {
+    Document(Cow<'a, str>),
+    Future(DocumentFuture<'a>),
+}
+
+fn wrap_document(doc: &str) -> DocumentOrFuture<'_> {
+    DocumentOrFuture::Document(Cow::Borrowed(doc))
 }
 
 impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
@@ -56,7 +78,7 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
                             schema,
                             document: DocumentKey::Text(Cow::Borrowed(document)),
                         },
-                        load_fut: Box::pin(std::future::ready(Ok(Cow::Borrowed(document)))),
+                        document_or_future: wrap_document(document),
                     })
                 } else {
                     let graphql_error = GraphqlError::new(
@@ -95,7 +117,9 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
                             doc_id: doc_id.clone(),
                         },
                     },
-                    load_fut: handle_trusted_document_query(self.engine, client_name, doc_id).boxed(),
+                    document_or_future: DocumentOrFuture::Future(
+                        handle_trusted_document_query(self.engine, client_name, doc_id).boxed(),
+                    ),
                 })
             }
             (false, Some(ext), _) => {
@@ -117,7 +141,7 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
                         schema,
                         document: DocumentKey::AutomaticPersistedQuery(Cow::Borrowed(ext)),
                     },
-                    load_fut: handle_apq(query, ext).boxed(),
+                    document_or_future: DocumentOrFuture::Future(handle_apq(query, ext).boxed()),
                 })
             }
             (false, None, _) => {
@@ -132,7 +156,7 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
                         schema,
                         document: DocumentKey::Text(Cow::Borrowed(document)),
                     },
-                    load_fut: Box::pin(std::future::ready(Ok(Cow::Borrowed(document)))),
+                    document_or_future: wrap_document(document),
                 })
             }
         }
