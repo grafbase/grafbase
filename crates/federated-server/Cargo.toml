@@ -30,7 +30,6 @@ graph-ref.workspace = true
 gateway-config.workspace = true
 graphql-composition.workspace = true
 http.workspace = true
-rand.workspace = true
 reqwest = { workspace = true, features = ["http2", "json", "rustls-tls"] }
 rolling-logger.workspace = true
 runtime.workspace = true
