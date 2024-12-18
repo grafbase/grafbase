@@ -2514,7 +2514,6 @@ dependencies = [
  "http 1.2.0",
  "lambda_http",
  "notify",
- "rand 0.8.5",
  "reqwest 0.12.9",
  "rolling-logger",
  "runtime",

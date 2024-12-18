@@ -2,7 +2,6 @@ use std::{path::PathBuf, sync::Arc};
 
 use engine::{Engine, OperationForWarming};
 use futures_lite::{pin, StreamExt};
-use rand::{seq::SliceRandom, thread_rng};
 use runtime_local::HooksWasi;
 use tokio::{
     sync::{mpsc, watch},
@@ -156,7 +155,7 @@ fn extract_operations_to_warm(
         return vec![];
     }
 
-    let (mut operations, cache_count) = {
+    let (operations, cache_count) = {
         let cache = &engine_sender.borrow().runtime.operation_cache;
 
         (
@@ -168,9 +167,6 @@ fn extract_operations_to_warm(
     if config.operation_caching.warming_percent >= 100 {
         return operations;
     }
-
-    // If we're not taking 100% of the list we shuffle the list and take a percentage of it
-    operations.shuffle(&mut thread_rng());
 
     operations
         .into_iter()
