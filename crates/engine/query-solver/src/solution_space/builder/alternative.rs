@@ -4,9 +4,11 @@ use walker::Walk;
 
 use crate::{FieldFlags, QueryField, QueryFieldId};
 
-use super::{builder::RawQueryBuilder, providable_fields::UnplannableField, QueryFieldNode, SpaceEdge, SpaceNode};
+use super::{
+    builder::QuerySolutionSpaceBuilder, providable_fields::UnplannableField, QueryFieldNode, SpaceEdge, SpaceNode,
+};
 
-impl<'schema, 'op> RawQueryBuilder<'schema, 'op>
+impl<'schema, 'op> QuerySolutionSpaceBuilder<'schema, 'op>
 where
     'schema: 'op,
 {
@@ -262,25 +264,6 @@ where
         }
 
         false
-    }
-
-    fn copy_edges(&mut self, existing: NodeIndex, new: NodeIndex) {
-        let mut edges = self
-            .query
-            .graph
-            .neighbors_directed(existing, Direction::Outgoing)
-            .detach();
-        while let Some((edge_ix, target)) = edges.next(&self.query.graph) {
-            self.query.graph.add_edge(new, target, self.query.graph[edge_ix]);
-        }
-        let mut edges = self
-            .query
-            .graph
-            .neighbors_directed(existing, Direction::Incoming)
-            .detach();
-        while let Some((edge_ix, source)) = edges.next(&self.query.graph) {
-            self.query.graph.add_edge(source, new, self.query.graph[edge_ix]);
-        }
     }
 
     fn deep_copy(&mut self, existing: NodeIndex, new: NodeIndex) {

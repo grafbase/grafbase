@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use query_solver::{
     petgraph::{graph::NodeIndex, visit::EdgeRef},
-    SolutionEdge as Edge,
+    Edge,
 };
 
 use crate::operation::{DataFieldId, RequiredFieldSetItemRecord, RequiredFieldSetRecord, SolveResult};

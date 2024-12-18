@@ -16,7 +16,8 @@ use petgraph::{
 
 use crate::Query;
 
-pub(crate) type QuerySolutionSpace<'schema> = Query<StableGraph<SpaceNode<'schema>, SpaceEdge>>;
+pub(crate) type QuerySolutionSpace<'schema> =
+    Query<StableGraph<SpaceNode<'schema>, SpaceEdge>, crate::query::steps::SolutionSpace>;
 
 impl<'schema> QuerySolutionSpace<'schema> {
     #[instrument(skip_all, level = Level::DEBUG)]

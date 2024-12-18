@@ -1,0 +1,15 @@
+---
+source: crates/engine/query-solver/src/tests/typename.rs
+assertion_line: 35
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"__typename\" ]\n    2 [ label = \"Query.topProducts\" ]\n    3 [ label = \"__typename\" ]\n    0 -> 1 [ label = \"\" ]\n    0 -> 2 [ label = \"\" ]\n    2 -> 3 [ label = \"\" ]\n}\n"
+snapshot_kind: text
+---
+digraph {
+    0 [ root]
+    1 [ __typename]
+    2 [ Query.topProducts]
+    3 [ __typename]
+    0 -> 1 [ label = "Field" ]
+    0 -> 2 [ label = "Field" ]
+    2 -> 3 [ label = "Field" ]
+}

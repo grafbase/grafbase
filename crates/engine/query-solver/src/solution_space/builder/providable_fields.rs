@@ -10,7 +10,7 @@ use walker::Walk;
 
 use crate::{FieldArguments, FieldFlags, QueryField};
 
-use super::{ProvidableField, QueryFieldId, QueryFieldNode, RawQueryBuilder, Resolver, SpaceEdge, SpaceNode};
+use super::{ProvidableField, QueryFieldId, QueryFieldNode, QuerySolutionSpaceBuilder, Resolver, SpaceEdge, SpaceNode};
 
 pub(super) struct CreateRequirementTask<'schema> {
     pub petitioner_field_id: QueryFieldId,
@@ -39,7 +39,7 @@ pub(super) struct UnplannableField {
     pub query_field_node_ix: NodeIndex,
 }
 
-impl<'schema, 'op> RawQueryBuilder<'schema, 'op>
+impl<'schema, 'op> QuerySolutionSpaceBuilder<'schema, 'op>
 where
     'schema: 'op,
 {

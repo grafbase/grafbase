@@ -1,0 +1,23 @@
+---
+source: crates/engine/query-solver/src/tests/tea_shop.rs
+assertion_line: 66
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Query.recommendedTeas\" ]\n    2 [ label = \"Query.teaWithInaccessibleStyle\" ]\n    3 [ label = \"StyleContainer.name\" ]\n    4 [ label = \"StyleContainer.style\" ]\n    5 [ label = \"Tea.id\" ]\n    6 [ label = \"Tea.name\" ]\n    7 [ label = \"Tea.style\" ]\n    0 -> 1 [ label = \"\" ]\n    0 -> 2 [ label = \"\" ]\n    2 -> 3 [ label = \"\" ]\n    2 -> 4 [ label = \"\" ]\n    1 -> 5 [ label = \"\" ]\n    1 -> 6 [ label = \"\" ]\n    1 -> 7 [ label = \"\" ]\n}\n"
+snapshot_kind: text
+---
+digraph {
+    0 [ root]
+    1 [ Query.recommendedTeas]
+    2 [ Query.teaWithInaccessibleStyle]
+    3 [ StyleContainer.name]
+    4 [ StyleContainer.style]
+    5 [ Tea.id]
+    6 [ Tea.name]
+    7 [ Tea.style]
+    0 -> 1 [ label = "Field" ]
+    0 -> 2 [ label = "Field" ]
+    2 -> 3 [ label = "Field" ]
+    2 -> 4 [ label = "Field" ]
+    1 -> 5 [ label = "Field" ]
+    1 -> 6 [ label = "Field" ]
+    1 -> 7 [ label = "Field" ]
+}

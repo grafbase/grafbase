@@ -1,15 +1,15 @@
 pub(crate) mod dot_graph;
 
+use std::marker::PhantomData;
+
 use bitflags::bitflags;
 use id_newtypes::IdRange;
 use operation::{FieldArgumentId, Location, QueryPosition, ResponseKey};
-use petgraph::{graph::NodeIndex, visit::GraphBase, Graph};
-use schema::{
-    CompositeTypeId, EntityDefinitionId, FieldDefinitionId, ResolverDefinitionId, Schema, SchemaFieldArgumentId,
-};
+use petgraph::{visit::GraphBase, Graph};
+use schema::{CompositeTypeId, EntityDefinitionId, FieldDefinitionId, ResolverDefinitionId, SchemaFieldArgumentId};
 
 #[derive(Debug, Clone, Copy)]
-pub enum SolutionNode {
+pub enum Node {
     Root,
     QueryPartition {
         entity_definition_id: EntityDefinitionId,
@@ -45,7 +45,7 @@ bitflags! {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, strum::IntoStaticStr)]
-pub enum SolutionEdge {
+pub enum Edge {
     QueryPartition,
     Field,
     RequiredBySubgraph,
@@ -53,12 +53,19 @@ pub enum SolutionEdge {
     MutationExecutedAfter,
 }
 
-pub type SolvedQuery = Query<SolutionGraph>;
+pub mod steps {
+    pub(crate) struct SolutionSpace;
+    pub(crate) struct SteinerTreeSolution;
+    pub struct Solution;
+}
 
-pub type SolutionGraph = Graph<SolutionNode, SolutionEdge>;
+pub type SolvedQuery = Query<SolutionGraph, steps::Solution>;
+
+pub type SolutionGraph = Graph<Node, Edge>;
 
 #[derive(id_derives::IndexedFields)]
-pub struct Query<G: GraphBase> {
+pub struct Query<G: GraphBase, Step> {
+    pub(crate) step: PhantomData<Step>,
     pub root_ix: G::NodeId,
     pub graph: G,
     #[indexed_by(QueryFieldId)]

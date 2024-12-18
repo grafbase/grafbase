@@ -5,7 +5,9 @@ use walker::Walk;
 
 use crate::{FieldFlags, QueryField};
 
-use super::{builder::RawQueryBuilder, providable_fields::CreateRequirementTask, QueryFieldNode, SpaceEdge, SpaceNode};
+use super::{
+    builder::QuerySolutionSpaceBuilder, providable_fields::CreateRequirementTask, QueryFieldNode, SpaceEdge, SpaceNode,
+};
 
 struct IngestSelectionSet<'op> {
     parent_query_field_ix: NodeIndex,
@@ -13,7 +15,7 @@ struct IngestSelectionSet<'op> {
     selection_set: operation::SelectionSet<'op>,
 }
 
-impl<'schema, 'op> RawQueryBuilder<'schema, 'op>
+impl<'schema, 'op> QuerySolutionSpaceBuilder<'schema, 'op>
 where
     'schema: 'op,
 {
@@ -35,7 +37,7 @@ where
 }
 
 struct OperationFieldsIngestor<'schema, 'op, 'builder> {
-    builder: &'builder mut RawQueryBuilder<'schema, 'op>,
+    builder: &'builder mut QuerySolutionSpaceBuilder<'schema, 'op>,
     stack: Vec<IngestSelectionSet<'op>>,
     parent_type_conditions: Vec<CompositeTypeId>,
     parent_directive_ids: Vec<ExecutableDirectiveId>,

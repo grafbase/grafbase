@@ -3,9 +3,9 @@ use petgraph::{
     Direction,
 };
 
-use super::{builder::RawQueryBuilder, SpaceEdge, SpaceNode};
+use super::{builder::QuerySolutionSpaceBuilder, SpaceEdge, SpaceNode};
 
-impl RawQueryBuilder<'_, '_> {
+impl QuerySolutionSpaceBuilder<'_, '_> {
     pub(super) fn prune_resolvers_not_leading_any_leafs(&mut self) {
         let mut visited = fixedbitset::FixedBitSet::with_capacity(self.query.graph.node_bound());
         let mut stack = Vec::new();

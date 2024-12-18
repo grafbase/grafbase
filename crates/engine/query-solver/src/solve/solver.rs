@@ -54,7 +54,7 @@ impl<'schema, 'op, 'q> Solver<'schema, 'op, 'q>
 where
     'schema: 'op,
 {
-    pub fn initialize(
+    pub(crate) fn initialize(
         schema: &'schema Schema,
         operation: &'op Operation,
         query_solution_space: &'q QuerySolutionSpace<'schema>,
@@ -109,7 +109,7 @@ where
         Ok(solver)
     }
 
-    pub fn solve(mut self) -> crate::Result<SteinerTreeSolution> {
+    pub(crate) fn solve(mut self) -> crate::Result<SteinerTreeSolution> {
         self.execute()?;
         Ok(self.into_solution())
     }

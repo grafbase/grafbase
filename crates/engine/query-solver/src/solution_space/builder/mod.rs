@@ -3,6 +3,8 @@ mod operation_fields;
 mod providable_fields;
 mod prune;
 
+use std::marker::PhantomData;
+
 use id_newtypes::BitSet;
 use providable_fields::{CreateProvidableFieldsTask, CreateRequirementTask, UnplannableField};
 use schema::{CompositeTypeId, Schema};
@@ -12,7 +14,7 @@ use crate::QueryFieldId;
 use super::*;
 
 #[derive(id_derives::IndexedFields)]
-pub(super) struct RawQueryBuilder<'schema, 'op> {
+pub(super) struct QuerySolutionSpaceBuilder<'schema, 'op> {
     schema: &'schema Schema,
     operation: &'op Operation,
     query: QuerySolutionSpace<'schema>,
@@ -24,7 +26,10 @@ pub(super) struct RawQueryBuilder<'schema, 'op> {
 }
 
 impl<'schema> QuerySolutionSpace<'schema> {
-    pub(super) fn builder<'op>(schema: &'schema Schema, operation: &'op Operation) -> RawQueryBuilder<'schema, 'op>
+    pub(super) fn builder<'op>(
+        schema: &'schema Schema,
+        operation: &'op Operation,
+    ) -> QuerySolutionSpaceBuilder<'schema, 'op>
     where
         'schema: 'op,
     {
@@ -32,10 +37,11 @@ impl<'schema> QuerySolutionSpace<'schema> {
         let mut graph = petgraph::stable_graph::StableGraph::with_capacity(n * 2, n * 2);
         let root_ix = graph.add_node(SpaceNode::Root);
 
-        RawQueryBuilder {
+        QuerySolutionSpaceBuilder {
             schema,
             operation,
             query: Query {
+                step: PhantomData,
                 root_ix,
                 graph,
                 fields: Vec::with_capacity(n),
@@ -51,7 +57,7 @@ impl<'schema> QuerySolutionSpace<'schema> {
     }
 }
 
-impl<'schema, 'op> RawQueryBuilder<'schema, 'op>
+impl<'schema, 'op> QuerySolutionSpaceBuilder<'schema, 'op>
 where
     'schema: 'op,
 {

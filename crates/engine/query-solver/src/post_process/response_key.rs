@@ -1,16 +1,36 @@
 use std::collections::HashMap;
 
-use operation::ResponseKey;
+use operation::{Operation, ResponseKey};
 use petgraph::visit::EdgeRef;
-use schema::{CompositeTypeId, DefinitionId, FieldDefinitionId, StringId, SubgraphId};
+use schema::{CompositeTypeId, DefinitionId, FieldDefinitionId, Schema, StringId, SubgraphId};
 use walker::Walk;
 
 use crate::{
-    query::{FieldFlags, SolutionEdge, SolutionNode},
+    query::{Edge, Node},
+    solve::CrudeSolvedQuery,
     QueryFieldId,
 };
 
-use super::SolvedQueryWithoutPostProcessing;
+pub(super) fn adjust_response_keys_to_avoid_collisions(
+    schema: &Schema,
+    operation: &mut Operation,
+    query: &mut CrudeSolvedQuery,
+) {
+    KeyGenerationContext {
+        schema,
+        operation,
+        query,
+        field_renames: HashMap::new(),
+    }
+    .adjust_response_keys_to_avoid_collision()
+}
+
+struct KeyGenerationContext<'a> {
+    schema: &'a Schema,
+    operation: &'a mut Operation,
+    query: &'a mut CrudeSolvedQuery,
+    field_renames: HashMap<FieldRenameConsistencyKey, ResponseKey>,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum FieldRenameConsistencyKey {
@@ -23,55 +43,63 @@ enum FieldRenameConsistencyKey {
     },
 }
 
-impl SolvedQueryWithoutPostProcessing<'_> {
-    pub(super) fn adjust_response_keys_to_avoid_collisions(&mut self) {
-        let mut field_renames = HashMap::<FieldRenameConsistencyKey, ResponseKey>::new();
-        let mut existing_fields = Vec::new();
-        let mut extra_fields = Vec::new();
+#[derive(Default)]
+struct SelectionSetContext {
+    keys: Vec<ResponseKey>,
+    fields: Vec<(SubgraphId, QueryFieldId)>,
+}
+
+impl SelectionSetContext {
+    fn clear(&mut self) {
+        self.keys.clear();
+        self.fields.clear();
+    }
+
+    fn push_field(&mut self, subgraph_id: SubgraphId, id: QueryFieldId, key: Option<ResponseKey>) {
+        self.fields.push((subgraph_id, id));
+        if let Some(key) = key {
+            self.keys.push(key);
+        }
+    }
+}
+
+impl KeyGenerationContext<'_> {
+    fn adjust_response_keys_to_avoid_collision(&mut self) {
+        let mut selection_set = SelectionSetContext::default();
         let mut stack = vec![(
             CompositeTypeId::from(self.operation.root_object_id),
             SubgraphId::Introspection,
-            self.root_node_ix,
+            self.query.root_ix,
         )];
         while let Some((parent_type, subgraph_id, node)) = stack.pop() {
-            extra_fields.clear();
-            existing_fields.clear();
-            for edge in self.graph.edges(node) {
-                if !matches!(edge.weight(), SolutionEdge::Field | SolutionEdge::QueryPartition) {
+            selection_set.clear();
+            for edge in self.query.graph.edges(node) {
+                if !matches!(edge.weight(), Edge::Field | Edge::QueryPartition) {
                     continue;
                 }
-                match self.graph[edge.target()] {
-                    SolutionNode::Field { id, flags, .. } => {
-                        if flags.contains(FieldFlags::EXTRA) {
-                            extra_fields.push((subgraph_id, id));
-                        } else {
-                            existing_fields.push((subgraph_id, id));
-                        }
-                        if let Some(parent_type) = self[id]
+                match self.query.graph[edge.target()] {
+                    Node::Field { id, .. } => {
+                        let field = &self.query[id];
+                        selection_set.push_field(subgraph_id, id, field.key);
+                        if let Some(parent_type) = field
                             .definition_id
                             .and_then(|id| id.walk(self.schema).ty().definition_id.as_composite_type())
                         {
                             stack.push((parent_type, subgraph_id, edge.target()));
                         }
                     }
-                    SolutionNode::QueryPartition {
+                    Node::QueryPartition {
                         resolver_definition_id, ..
                     } => {
                         let subgraph_id = resolver_definition_id.walk(self.schema).subgraph_id();
-                        for second_degree_edge in self.graph.edges(edge.target()) {
-                            if !matches!(
-                                second_degree_edge.weight(),
-                                SolutionEdge::Field | SolutionEdge::QueryPartition
-                            ) {
+                        for second_degree_edge in self.query.graph.edges(edge.target()) {
+                            if !matches!(second_degree_edge.weight(), Edge::Field | Edge::QueryPartition) {
                                 continue;
                             }
-                            if let SolutionNode::Field { id, flags, .. } = self.graph[second_degree_edge.target()] {
-                                if flags.contains(FieldFlags::EXTRA) {
-                                    extra_fields.push((subgraph_id, id));
-                                } else {
-                                    existing_fields.push((subgraph_id, id));
-                                }
-                                if let Some(parent_type) = self[id]
+                            if let Node::Field { id, .. } = self.query.graph[second_degree_edge.target()] {
+                                let field = &self.query[id];
+                                selection_set.push_field(subgraph_id, id, field.key);
+                                if let Some(parent_type) = field
                                     .definition_id
                                     .and_then(|id| id.walk(self.schema).ty().definition_id.as_composite_type())
                                 {
@@ -80,33 +108,23 @@ impl SolvedQueryWithoutPostProcessing<'_> {
                             }
                         }
                     }
-                    SolutionNode::Root => (),
+                    Node::Root => (),
                 }
             }
-            self.adjust_response_keys_to_avoid_collision_in_selection_set(
-                parent_type,
-                &extra_fields,
-                &existing_fields,
-                &mut field_renames,
-            );
+            self.adjust_response_keys_to_avoid_collision_in_selection_set(parent_type, &mut selection_set);
         }
     }
 
     fn adjust_response_keys_to_avoid_collision_in_selection_set(
         &mut self,
         parent_type: CompositeTypeId,
-        extra_fields: &[(SubgraphId, QueryFieldId)],
-        existing_fields: &[(SubgraphId, QueryFieldId)],
-        field_renames: &mut HashMap<FieldRenameConsistencyKey, ResponseKey>,
+        selection_set: &mut SelectionSetContext,
     ) {
-        let mut selection_set_keys = Vec::with_capacity(extra_fields.len() + existing_fields.len());
-        selection_set_keys.extend(existing_fields.iter().filter_map(|(_, id)| self[*id].key));
-
         // If the parent type is an object we don't need to deal with distinct types as we'll only
         // query a single object from the subgraph.
         if !parent_type.is_object() {
-            for (subgraph_id, query_field_id) in existing_fields.iter().copied() {
-                let query_field = &self[query_field_id];
+            for (subgraph_id, query_field_id) in selection_set.fields.iter().copied() {
+                let query_field = &self.query[query_field_id];
                 let Some((key, definition_id)) = query_field.key.zip(query_field.definition_id) else {
                     continue;
                 };
@@ -118,45 +136,38 @@ impl SolvedQueryWithoutPostProcessing<'_> {
                     .any(|record| record.subgraph_id == subgraph_id)
                 {
                     self.generate_new_key(
+                        selection_set,
                         Some(FieldRenameConsistencyKey::FieldWithDistinctType {
                             key,
                             field_definition_id: definition.id,
                         }),
-                        &selection_set_keys,
                         definition.name_id,
-                        field_renames,
                     )
                 } else if &self.operation.response_keys[key] == "__typename" {
                     self.generate_new_key(
+                        selection_set,
                         Some(FieldRenameConsistencyKey::FieldNamedTypename {
                             output_definition_id: definition.ty().definition_id,
                         }),
-                        &selection_set_keys,
                         definition.name_id,
-                        field_renames,
                     )
                 } else {
                     continue;
                 };
 
-                self[query_field_id].subgraph_key = Some(new_key);
-                selection_set_keys.push(new_key);
+                self.query[query_field_id].subgraph_key = Some(new_key);
+                selection_set.keys.push(new_key);
             }
         }
 
-        for (_, id) in extra_fields {
-            let Some(definition_id) = self[*id].definition_id else {
+        for (_, id) in &selection_set.fields {
+            let Some(definition_id) = self.query[*id].definition_id else {
                 continue;
             };
-            let key = self.generate_new_key(
-                None,
-                &selection_set_keys,
-                definition_id.walk(self.schema).name_id,
-                field_renames,
-            );
+            let key = self.generate_new_key(selection_set, None, definition_id.walk(self.schema).name_id);
 
-            self[*id].key = Some(key);
-            selection_set_keys.push(key);
+            self.query[*id].key = Some(key);
+            selection_set.keys.push(key);
         }
     }
 
@@ -240,12 +251,11 @@ impl SolvedQueryWithoutPostProcessing<'_> {
     /// their associated `SchemaFieldId` rather than
     fn generate_new_key(
         &mut self,
+        selection_set: &SelectionSetContext,
         rename_consistency_key: Option<FieldRenameConsistencyKey>,
-        selection_set_keys: &[ResponseKey],
         name_suggestion: StringId,
-        field_renames: &mut HashMap<FieldRenameConsistencyKey, ResponseKey>,
     ) -> ResponseKey {
-        if let Some(key) = rename_consistency_key.as_ref().and_then(|k| field_renames.get(k)) {
+        if let Some(key) = rename_consistency_key.as_ref().and_then(|k| self.field_renames.get(k)) {
             return *key;
         }
 
@@ -255,7 +265,7 @@ impl SolvedQueryWithoutPostProcessing<'_> {
         let Some(key) = self.operation.response_keys.get(name) else {
             let key = self.operation.response_keys.get_or_intern(name);
             if let Some(field_rename_key) = rename_consistency_key {
-                field_renames.insert(field_rename_key, key);
+                self.field_renames.insert(field_rename_key, key);
             }
             return key;
         };
@@ -263,7 +273,7 @@ impl SolvedQueryWithoutPostProcessing<'_> {
         // if we don't need to care about being consistent with the renaming across selection set,
         // we can just return the key if it's not present within the current one.
         // This is only present to generate nicer subgraph queries.
-        if rename_consistency_key.is_none() && !selection_set_keys.contains(&key) {
+        if rename_consistency_key.is_none() && !selection_set.keys.contains(&key) {
             return key;
         }
 
@@ -281,7 +291,7 @@ impl SolvedQueryWithoutPostProcessing<'_> {
             if !self.operation.response_keys.contains(&candidate) {
                 let key = self.operation.response_keys.get_or_intern(&candidate);
                 if let Some(field_rename_key) = rename_consistency_key {
-                    field_renames.insert(field_rename_key, key);
+                    self.field_renames.insert(field_rename_key, key);
                 }
                 return key;
             };

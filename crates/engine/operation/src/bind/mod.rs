@@ -1,5 +1,5 @@
 mod coercion;
-mod error;
+pub mod error;
 mod operation;
 
 use std::collections::HashMap;
@@ -99,7 +99,7 @@ pub(crate) fn bind_operation(
     }
 }
 
-pub fn bind_variables(
+pub(crate) fn bind_variables(
     schema: &Schema,
     operation: &Operation,
     mut request_variables: RawVariables,

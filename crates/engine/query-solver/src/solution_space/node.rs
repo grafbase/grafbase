@@ -82,10 +82,6 @@ impl QueryFieldNode {
         self.flags.contains(FieldFlags::EXTRA)
     }
 
-    pub fn is_typename(&self) -> bool {
-        self.flags.contains(FieldFlags::TYPENAME)
-    }
-
     pub fn is_leaf(&self) -> bool {
         self.flags.contains(FieldFlags::LEAF_NODE)
     }
@@ -116,13 +112,6 @@ impl ProvidableField<'_> {
         match self {
             ProvidableField::InSubgraph { subgraph_id, .. } => *subgraph_id,
             ProvidableField::OnlyProvidable { subgraph_id, .. } => *subgraph_id,
-        }
-    }
-
-    pub(crate) fn field_id(&self) -> QueryFieldId {
-        match self {
-            ProvidableField::InSubgraph { field_id: id, .. } => *id,
-            ProvidableField::OnlyProvidable { field_id: id, .. } => *id,
         }
     }
 }

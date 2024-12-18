@@ -4,11 +4,14 @@ use crate::{Location, OperationAttributes};
 
 pub(crate) type Result<T> = std::result::Result<T, Error>;
 
+#[derive(Debug, thiserror::Error)]
 pub enum Error {
+    #[error("{message}")]
     Parsing {
         message: Cow<'static, str>,
         locations: Vec<Location>,
     },
+    #[error("{message}")]
     Validation {
         message: Cow<'static, str>,
         locations: Vec<Location>,

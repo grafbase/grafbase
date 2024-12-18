@@ -6,10 +6,10 @@ use walker::Walk;
 
 use crate::{dot_graph::Attrs, FieldFlags};
 
-use super::{QueryField, SolutionEdge, SolutionNode, SolvedQuery};
+use super::{Edge, Node, Query, QueryField, SolutionGraph};
 
 #[allow(unused)]
-impl SolvedQuery {
+impl<Step> Query<SolutionGraph, Step> {
     /// Use https://dreampuf.github.io/GraphvizOnline
     /// or `echo '..." | dot -Tsvg` from graphviz
     pub(crate) fn to_pretty_dot_graph(&self, ctx: OperationContext<'_>) -> String {
@@ -42,14 +42,14 @@ impl SolvedQuery {
     }
 }
 
-impl SolutionNode {
-    fn label(&self, solution: &SolvedQuery, ctx: OperationContext<'_>) -> Attrs<'static> {
+impl Node {
+    fn label<Step>(&self, solution: &Query<SolutionGraph, Step>, ctx: OperationContext<'_>) -> Attrs<'static> {
         Attrs::label(match self {
-            SolutionNode::Root => "root".into(),
-            SolutionNode::QueryPartition {
+            Node::Root => "root".into(),
+            Node::QueryPartition {
                 resolver_definition_id, ..
             } => resolver_definition_id.walk(ctx.schema).name().into(),
-            SolutionNode::Field { id, flags, .. } => {
+            Node::Field { id, flags, .. } => {
                 let field = field_label(ctx, &solution[*id]);
                 format!("{}{}", if flags.contains(FieldFlags::EXTRA) { "*" } else { "" }, field)
             }
@@ -57,17 +57,17 @@ impl SolutionNode {
     }
 
     /// Meant to be as readable as possible for large graphs with colors.
-    fn pretty_label(&self, solution: &SolvedQuery, ctx: OperationContext<'_>) -> String {
+    fn pretty_label<Step>(&self, solution: &Query<SolutionGraph, Step>, ctx: OperationContext<'_>) -> String {
         self.label(solution, ctx)
             .with_if(
-                matches!(self, SolutionNode::QueryPartition { .. }),
+                matches!(self, Node::QueryPartition { .. }),
                 "color=royalblue,shape=parallelogram",
             )
             .to_string()
     }
 }
 
-impl SolutionEdge {
+impl Edge {
     /// Meant to be as readable as possible for large graphs with colors.
     fn pretty_label(&self) -> String {
         match self {
@@ -93,16 +93,22 @@ pub(crate) fn short_field_label<'a>(ctx: OperationContext<'a>, field: &QueryFiel
 
 pub(crate) fn field_label<'a>(ctx: OperationContext<'a>, field: &QueryField) -> Cow<'a, str> {
     if let Some(definition) = field.definition_id.walk(ctx) {
-        if let Some(alias) = field.key.walk(ctx).filter(|key| *key != definition.name()) {
-            Cow::Owned(format!(
-                "{}: {}.{}",
-                alias,
-                definition.parent_entity().name(),
-                definition.name()
-            ))
+        let alias = if let Some(alias) = field.key.walk(ctx).filter(|key| *key != definition.name()) {
+            format!("{}: ", alias)
         } else {
-            Cow::Owned(format!("{}.{}", definition.parent_entity().name(), definition.name()))
-        }
+            String::new()
+        };
+        let common = format!("{}.{}", definition.parent_entity().name(), definition.name());
+        let subgraph_key = if let Some((_, subgraph_key)) = field
+            .key
+            .zip(field.subgraph_key)
+            .filter(|(key, subgraph_key)| key != subgraph_key)
+        {
+            format!(" ({})", subgraph_key.walk(ctx))
+        } else {
+            String::new()
+        };
+        Cow::Owned(format!("{alias}{common}{subgraph_key}"))
     } else {
         field.key.walk(ctx).unwrap_or("__typename").into()
     }
