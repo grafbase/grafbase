@@ -6,10 +6,12 @@ mod prune;
 use std::marker::PhantomData;
 
 use id_newtypes::BitSet;
+use petgraph::stable_graph::NodeIndex;
 use providable_fields::{CreateProvidableFieldsTask, CreateRequirementTask, UnplannableField};
-use schema::{CompositeTypeId, Schema};
+use schema::{CompositeTypeId, DefinitionId, Schema};
+use walker::Walk;
 
-use crate::QueryFieldId;
+use crate::{FieldFlags, QueryFieldId};
 
 use super::*;
 
@@ -82,6 +84,7 @@ where
             }
         }
 
+        tracing::debug!("Query before pruning:\n{}", self.query.to_pretty_dot_graph(self.ctx()));
         self.prune_resolvers_not_leading_any_leafs();
 
         Ok(self.query)
@@ -100,6 +103,25 @@ where
                 break;
             }
         }
+    }
+
+    fn push_query_field_node(&mut self, id: QueryFieldId, mut flags: FieldFlags) -> NodeIndex {
+        if let Some(field_definition) = self.query[id].definition_id {
+            match field_definition.walk(self.schema).ty().definition_id {
+                DefinitionId::Scalar(_) | DefinitionId::Enum(_) => {
+                    flags |= FieldFlags::LEAF_NODE;
+                }
+                DefinitionId::Union(_) | DefinitionId::Interface(_) | DefinitionId::Object(_) => {
+                    flags |= FieldFlags::IS_COMPOSITE_TYPE;
+                }
+                _ => (),
+            }
+        } else {
+            flags |= FieldFlags::LEAF_NODE;
+        }
+
+        let query_field = SpaceNode::QueryField(QueryFieldNode { field_id: id, flags });
+        self.query.graph.add_node(query_field)
     }
 
     fn ctx(&self) -> OperationContext<'op> {

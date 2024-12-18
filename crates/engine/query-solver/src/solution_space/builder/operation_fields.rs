@@ -203,10 +203,11 @@ where
         };
         query.fields.push(query_field);
         let query_field_id = (query.fields.len() - 1).into();
-        let query_field_node_ix = query.graph.add_node(SpaceNode::QueryField(QueryFieldNode {
-            field_id: query_field_id,
-            flags: FieldFlags::INDISPENSABLE,
-        }));
+        let query_field_node_ix = self
+            .builder
+            .push_query_field_node(query_field_id, FieldFlags::INDISPENSABLE);
+
+        let query = &mut self.builder.query;
         if let Some(field_definition) = query[query_field_id].definition_id.walk(schema) {
             query
                 .graph

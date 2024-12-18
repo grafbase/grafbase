@@ -474,6 +474,9 @@ where
                         FieldFlags::EXTRA
                     },
                 );
+                self.query
+                    .graph
+                    .add_edge(parent_query_field_node_ix, query_field_node_ix, SpaceEdge::Field);
                 self.create_providable_fields_task_for_new_field(
                     parent_query_field_node_ix,
                     parent_output_type,
@@ -544,25 +547,6 @@ where
                     }),
             );
         }
-    }
-
-    pub(super) fn push_query_field_node(&mut self, id: QueryFieldId, mut flags: FieldFlags) -> NodeIndex {
-        if let Some(field_definition) = self.query[id].definition_id {
-            match field_definition.walk(self.schema).ty().definition_id {
-                DefinitionId::Scalar(_) | DefinitionId::Enum(_) => {
-                    flags |= FieldFlags::LEAF_NODE;
-                }
-                DefinitionId::Union(_) | DefinitionId::Interface(_) | DefinitionId::Object(_) => {
-                    flags |= FieldFlags::IS_COMPOSITE_TYPE;
-                }
-                _ => (),
-            }
-        } else {
-            flags |= FieldFlags::LEAF_NODE;
-        }
-
-        let query_field = SpaceNode::QueryField(QueryFieldNode { field_id: id, flags });
-        self.query.graph.add_node(query_field)
     }
 
     fn is_field_equivalent(&self, id: QueryFieldId, required: FieldSetItem<'_>) -> bool {
