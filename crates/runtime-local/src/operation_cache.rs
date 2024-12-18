@@ -27,6 +27,10 @@ where
         Self::new(0)
     }
 
+    pub fn entry_count(&self) -> usize {
+        self.inner.entry_count() as usize
+    }
+
     pub fn values(&self) -> impl Iterator<Item = V> + '_ {
         self.inner.iter().map(|item| item.value().clone())
     }
