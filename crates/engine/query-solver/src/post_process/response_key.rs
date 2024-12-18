@@ -161,7 +161,11 @@ impl KeyGenerationContext<'_> {
         }
 
         for (_, id) in &selection_set.fields {
-            let Some(definition_id) = self.query[*id].definition_id else {
+            let query_field = &self.query[*id];
+            if query_field.key.is_some() {
+                continue;
+            }
+            let Some(definition_id) = query_field.definition_id else {
                 continue;
             };
             let key = self.generate_new_key(selection_set, None, definition_id.walk(self.schema).name_id);

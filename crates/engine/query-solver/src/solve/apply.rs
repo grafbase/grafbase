@@ -45,7 +45,7 @@ pub(crate) fn generate_crude_solved_query(
 
     let mut nodes_with_dependencies = Vec::new();
     let mut edges_to_remove = Vec::new();
-    let mut field_to_solution_node = vec![root_node_ix; n];
+    let mut field_to_solution_node = vec![root_node_ix; query.fields.len()];
     while let Some((parent_solution_node_ix, node_ix)) = stack.pop() {
         let new_solution_node_ix = match &query.graph[node_ix] {
             SpaceNode::Resolver(resolver) if solution.node_bitset[node_ix.index()] => {

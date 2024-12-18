@@ -5,9 +5,7 @@ use walker::Walk;
 
 use crate::{FieldFlags, QueryField};
 
-use super::{
-    builder::QuerySolutionSpaceBuilder, providable_fields::CreateRequirementTask, QueryFieldNode, SpaceEdge, SpaceNode,
-};
+use super::{builder::QuerySolutionSpaceBuilder, providable_fields::CreateRequirementTask, SpaceEdge};
 
 struct IngestSelectionSet<'op> {
     parent_query_field_ix: NodeIndex,

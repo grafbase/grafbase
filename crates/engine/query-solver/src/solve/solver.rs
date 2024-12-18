@@ -62,7 +62,7 @@ where
         let mut terminals = Vec::new();
         for (node_ix, node) in query_solution_space.graph.node_references() {
             if let SpaceNode::QueryField(field) = node {
-                if field.flags.contains(FieldFlags::LEAF_NODE & FieldFlags::INDISPENSABLE) {
+                if field.flags.contains(FieldFlags::LEAF_NODE | FieldFlags::INDISPENSABLE) {
                     terminals.push(node_ix);
                 }
             }
@@ -131,7 +131,7 @@ where
 
     pub fn into_solution(self) -> SteinerTreeSolution {
         SteinerTreeSolution {
-            node_bitset: self.algorithm.operation_graph_bitset(),
+            node_bitset: self.algorithm.query_graph_nodes_bitset(),
         }
     }
 

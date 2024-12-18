@@ -3,14 +3,14 @@ use std::borrow::Cow;
 use operation::QueryInputValueRecord;
 use petgraph::{stable_graph::NodeIndex, visit::EdgeRef, Direction};
 use schema::{
-    CompositeType, CompositeTypeId, DefinitionId, EntityDefinition, FieldDefinition, FieldSet, FieldSetItem,
-    FieldSetRecord, SchemaInputValueRecord, SubgraphId,
+    CompositeType, CompositeTypeId, EntityDefinition, FieldDefinition, FieldSet, FieldSetItem, FieldSetRecord,
+    SchemaInputValueRecord, SubgraphId,
 };
 use walker::Walk;
 
 use crate::{FieldArguments, FieldFlags, QueryField};
 
-use super::{ProvidableField, QueryFieldId, QueryFieldNode, QuerySolutionSpaceBuilder, Resolver, SpaceEdge, SpaceNode};
+use super::{ProvidableField, QueryFieldId, QuerySolutionSpaceBuilder, Resolver, SpaceEdge, SpaceNode};
 
 pub(super) struct CreateRequirementTask<'schema> {
     pub petitioner_field_id: QueryFieldId,
