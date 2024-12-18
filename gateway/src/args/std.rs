@@ -107,7 +107,7 @@ impl super::Args for Args {
 
         if let Some((token, graph_ref)) = self.grafbase_access_token().as_ref().zip(self.graph_ref.as_ref()) {
             config.telemetry.grafbase = Some(OtlpExporterConfig {
-                endpoint: std::env::var("__GRAFBASE_OTEL_URL")
+                endpoint: std::env::var("GRAFBASE_OTEL_URL")
                     .unwrap_or("https://otel.grafbase.com".to_string())
                     .parse()
                     .unwrap(),
