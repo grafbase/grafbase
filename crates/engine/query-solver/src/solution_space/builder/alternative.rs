@@ -1,4 +1,4 @@
-use petgraph::{data::Build, stable_graph::NodeIndex, visit::EdgeRef, Direction};
+use petgraph::{stable_graph::NodeIndex, visit::EdgeRef, Direction};
 use schema::{CompositeType, CompositeTypeId, FieldDefinition};
 use walker::Walk;
 
@@ -22,11 +22,19 @@ where
         let SpaceNode::QueryField(QueryFieldNode { field_id, flags }) = self.query.graph[query_field_node_ix] else {
             return Ok(());
         };
-        // FIXME: Should only check for indispensable fields. And then if we add new indispensable
-        // field ensure we can provide them instead of everything at once...
         // FIXME: Over-simplification, it might be unreachable for one subgraph but not for
         // another one
-        if (flags & (FieldFlags::PROVIDABLE | FieldFlags::UNREACHABLE)) != FieldFlags::empty() {
+        if flags.contains(FieldFlags::UNREACHABLE) {
+            let mut stack = vec![query_field_node_ix];
+            while let Some(id) = stack.pop() {
+                stack.extend(self.query.graph.neighbors_directed(id, Direction::Outgoing));
+                self.query.graph.remove_node(id);
+            }
+            return Ok(());
+        }
+        // FIXME: Should only check for indispensable fields. And then if we add new indispensable
+        // field ensure we can provide them instead of everything at once...
+        if flags.contains(FieldFlags::PROVIDABLE) {
             return Ok(());
         }
 

@@ -125,6 +125,10 @@ where
                     .as_query_field_mut()
                     .unwrap()
                     .flags |= FieldFlags::UNREACHABLE;
+                self.maybe_unplannable_query_fields_stack.push(UnplannableField {
+                    parent_query_field_node_ix: parent.parent_query_field_node_ix,
+                    query_field_node_ix,
+                });
                 return;
             }
         };
