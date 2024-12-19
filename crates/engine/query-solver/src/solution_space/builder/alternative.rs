@@ -1,4 +1,4 @@
-use petgraph::{stable_graph::NodeIndex, visit::EdgeRef, Direction};
+use petgraph::{data::Build, stable_graph::NodeIndex, visit::EdgeRef, Direction};
 use schema::{CompositeType, CompositeTypeId, FieldDefinition};
 use walker::Walk;
 
@@ -143,21 +143,10 @@ where
             let mut l = 0;
             let mut r = 0;
 
-            enum State {
-                NoReplacement {
-                    existing_query_field_node_ix: NodeIndex,
-                },
-                ReplacedOnce {
-                    first_replacement_query_field_node_ix: NodeIndex,
-                },
-            }
-            let original_flags = self.query.graph[existing_query_field_node_ix]
+            let existing_flags = self.query.graph[existing_query_field_node_ix]
                 .as_query_field()
                 .unwrap()
                 .flags;
-            let mut state = State::NoReplacement {
-                existing_query_field_node_ix,
-            };
 
             let mut found_alternative = false;
             while let Some((left_id, right_id)) = left.get(l).copied().zip(right.get(r).copied()) {
@@ -180,32 +169,18 @@ where
                             return false;
                         }
 
-                        // The first time we replace the interface field with an object field, we
-                        // re-use the nodes & edges. Avoids removing interface nodes at the end
-                        // otherwise.
-                        let (new_query_field_node_ix, new_field_id) = match state {
-                            State::NoReplacement {
-                                existing_query_field_node_ix,
-                            } => {
-                                self.query[existing_query_field_id].definition_id = Some(object_field_definition.id);
-                                state = State::ReplacedOnce {
-                                    first_replacement_query_field_node_ix: existing_query_field_node_ix,
-                                };
-                                (existing_query_field_node_ix, existing_query_field_id)
-                            }
-                            State::ReplacedOnce {
-                                first_replacement_query_field_node_ix,
-                            } => {
-                                self.query.fields.push(QueryField {
-                                    definition_id: Some(object_field_definition.id),
-                                    ..self.query[existing_query_field_id].clone()
-                                });
-                                let new_field_id = QueryFieldId::from(self.query.fields.len() - 1);
-                                let new_query_field_node_ix = self.push_query_field_node(new_field_id, original_flags);
-                                self.deep_copy(first_replacement_query_field_node_ix, new_query_field_node_ix);
-                                (new_query_field_node_ix, new_field_id)
-                            }
-                        };
+                        self.query.fields.push(QueryField {
+                            definition_id: Some(object_field_definition.id),
+                            ..self.query[existing_query_field_id].clone()
+                        });
+                        let new_field_id = QueryFieldId::from(self.query.fields.len() - 1);
+                        let new_query_field_node_ix = self.push_query_field_node(new_field_id, existing_flags);
+                        self.query.graph.add_edge(
+                            parent_query_field_node_ix,
+                            new_query_field_node_ix,
+                            SpaceEdge::Field,
+                        );
+                        self.deep_copy_query_field_nodes(existing_query_field_node_ix, new_query_field_node_ix);
 
                         if !self.could_provide_new_field(
                             parent_query_field_node_ix,
@@ -220,6 +195,16 @@ where
                         l += 1;
                         r += 1;
                     }
+                }
+            }
+
+            if found_alternative {
+                // Removing original fields. We have no choice but to keep them intact until the
+                // end to only copy the original edges to new object field.
+                let mut stack = vec![existing_query_field_node_ix];
+                while let Some(id) = stack.pop() {
+                    stack.extend(self.query.graph.neighbors_directed(id, Direction::Outgoing));
+                    self.query.graph.remove_node(id);
                 }
             }
 
@@ -266,24 +251,30 @@ where
         false
     }
 
-    fn deep_copy(&mut self, existing: NodeIndex, new: NodeIndex) {
-        let mut edges = self
-            .query
-            .graph
-            .neighbors_directed(existing, Direction::Incoming)
-            .detach();
-        while let Some((edge_ix, source)) = edges.next(&self.query.graph) {
-            self.query.graph.add_edge(source, new, self.query.graph[edge_ix]);
-        }
-
-        let mut stack = vec![(existing, new)];
-        while let Some((existing, new)) = stack.pop() {
-            let mut edges = self
+    fn deep_copy_query_field_nodes(
+        &mut self,
+        existing_query_field_node_ix: NodeIndex,
+        new_query_field_node_ix: NodeIndex,
+    ) {
+        let mut stack = vec![(existing_query_field_node_ix, new_query_field_node_ix)];
+        while let Some((existing_node_ix, new_node_ix)) = stack.pop() {
+            let mut incoming_edges = self
                 .query
                 .graph
-                .neighbors_directed(existing, Direction::Outgoing)
+                .neighbors_directed(existing_node_ix, Direction::Incoming)
                 .detach();
-            while let Some((existing_edge_ix, existing_target)) = edges.next(&self.query.graph) {
+            while let Some((edge_ix, source)) = incoming_edges.next(&self.query.graph) {
+                let weight = self.query.graph[edge_ix];
+                if matches!(weight, SpaceEdge::Requires) {
+                    self.query.graph.add_edge(source, new_node_ix, weight);
+                }
+            }
+            let mut outgoing_edges = self
+                .query
+                .graph
+                .neighbors_directed(existing_node_ix, Direction::Outgoing)
+                .detach();
+            while let Some((existing_edge_ix, existing_target)) = outgoing_edges.next(&self.query.graph) {
                 debug_assert!(matches!(
                     self.query.graph[existing_edge_ix],
                     SpaceEdge::Field | SpaceEdge::TypenameField
@@ -291,7 +282,7 @@ where
                 let new_target = self.query.graph.add_node(self.query.graph[existing_target].clone());
                 self.query
                     .graph
-                    .add_edge(new, new_target, self.query.graph[existing_edge_ix]);
+                    .add_edge(new_node_ix, new_target, self.query.graph[existing_edge_ix]);
                 stack.push((existing_target, new_target));
             }
         }

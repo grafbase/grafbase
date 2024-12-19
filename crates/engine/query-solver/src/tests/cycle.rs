@@ -116,7 +116,7 @@ fn query_partitions_cycle() {
 }
 
 #[test]
-fn query_partitions_nested_cycle() {
+fn query_partitions_nested_cycle_1() {
     // 'first' and 'third' cannot be in the same query partitions as it would lead to a cyclic
     // dependency between query partitions.
     assert_solving_snapshots!(
@@ -125,6 +125,33 @@ fn query_partitions_nested_cycle() {
         r#"
         query {
           feed {
+            author {
+              id
+            }
+            comments(limit: 3) {
+              id
+            }
+          }
+        }
+        "#
+    );
+}
+
+// As we use a direct graph, ordering of edges matter. This query will process fields in the
+// reverse order ensuring we handle the directed edge correctly.
+#[test]
+fn query_partitions_nested_cycle_2() {
+    // 'first' and 'third' cannot be in the same query partitions as it would lead to a cyclic
+    // dependency between query partitions.
+    assert_solving_snapshots!(
+        "query_partitions_nested_cycle2",
+        SCHEMA,
+        r#"
+        query {
+          feed {
+            comments(limit: 3) {
+              id
+            }
             author {
               id
             }

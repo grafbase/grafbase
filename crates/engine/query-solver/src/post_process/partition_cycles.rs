@@ -16,21 +16,31 @@ pub(super) fn split_query_partition_dependency_cycles(query: &mut CrudeSolvedQue
         resolver_definition_id: ResolverDefinitionId,
         query_field_node_ix: NodeIndex,
     }
-    let mut partition_root_fields = Vec::new();
     let mut stack = starting_nodes;
-    let mut partitions = Vec::new();
+    let mut nested_partitions = Vec::new();
+    let mut nested_patitions_fields = Vec::new();
 
     while let Some(root_node_ix) = stack.pop() {
-        debug_assert!(partition_root_fields.is_empty());
-        for node_ix in query.graph.neighbors(root_node_ix) {
+        debug_assert!(nested_partitions.is_empty() && nested_patitions_fields.is_empty());
+        for edge in query.graph.edges(root_node_ix) {
+            // Ignoring requirements among other things.
+            if !matches!(edge.weight(), Edge::QueryPartition | Edge::Field) {
+                continue;
+            }
+            let node_ix = edge.target();
             match query.graph[node_ix] {
                 Node::QueryPartition {
                     resolver_definition_id, ..
                 } => {
-                    partitions.push((node_ix, resolver_definition_id));
-                    for second_degree_node_ix in query.graph.neighbors(node_ix) {
+                    nested_partitions.push((node_ix, resolver_definition_id));
+                    for second_degree_edge in query.graph.edges(node_ix) {
+                        // Ignoring requirements among other things.
+                        if !matches!(second_degree_edge.weight(), Edge::Field) {
+                            continue;
+                        }
+                        let second_degree_node_ix = second_degree_edge.target();
                         if let Node::Field { id, .. } = query.graph[second_degree_node_ix] {
-                            partition_root_fields.push(Field {
+                            nested_patitions_fields.push(Field {
                                 position: query[id].query_position,
                                 original_partition_node_ix: node_ix,
                                 resolver_definition_id,
@@ -47,14 +57,14 @@ pub(super) fn split_query_partition_dependency_cycles(query: &mut CrudeSolvedQue
             }
         }
 
-        if partition_root_fields.is_empty() {
+        if nested_patitions_fields.is_empty() {
             continue;
         }
 
-        partition_root_fields.sort_unstable_by(|a, b| a.position.cmp(&b.position));
+        nested_patitions_fields.sort_unstable_by(|a, b| a.position.cmp(&b.position));
 
         // Removing edges to the parent partitions
-        for field in &partition_root_fields {
+        for field in &nested_patitions_fields {
             if let Some(id) = query
                 .graph
                 .find_edge(field.original_partition_node_ix, field.query_field_node_ix)
@@ -68,9 +78,9 @@ pub(super) fn split_query_partition_dependency_cycles(query: &mut CrudeSolvedQue
             resolver_definition_id,
             query_field_node_ix,
             ..
-        } in partition_root_fields.drain(..)
+        } in nested_patitions_fields.drain(..)
         {
-            let partition_node_ix = partitions
+            let partition_node_ix = nested_partitions
                 .iter()
                 .filter(|(_, id)| *id == resolver_definition_id)
                 .filter_map(|(partition_node_ix, _)| {
@@ -84,13 +94,19 @@ pub(super) fn split_query_partition_dependency_cycles(query: &mut CrudeSolvedQue
                                 None
                             }
                         })
-                        .any(|partition_field_node_ix| {
+                        .any(|partition_query_field_node_ix| {
+                            let graph = EdgeFiltered::from_fn(&query.graph, |edge| {
+                                matches!(edge.weight(), Edge::RequiredBySubgraph)
+                            });
                             petgraph::algo::has_path_connecting(
-                                &EdgeFiltered::from_fn(&query.graph, |edge| {
-                                    matches!(edge.weight(), Edge::RequiredBySubgraph)
-                                }),
-                                partition_field_node_ix,
+                                &graph,
+                                partition_query_field_node_ix,
                                 query_field_node_ix,
+                                None,
+                            ) || petgraph::algo::has_path_connecting(
+                                &graph,
+                                query_field_node_ix,
+                                partition_query_field_node_ix,
                                 None,
                             )
                         });
@@ -116,7 +132,7 @@ pub(super) fn split_query_partition_dependency_cycles(query: &mut CrudeSolvedQue
                         }
                     }
 
-                    partitions.push((new_partition_ix, resolver_definition_id));
+                    nested_partitions.push((new_partition_ix, resolver_definition_id));
                     new_partition_ix
                 });
 
@@ -125,6 +141,6 @@ pub(super) fn split_query_partition_dependency_cycles(query: &mut CrudeSolvedQue
                 .add_edge(partition_node_ix, query_field_node_ix, Edge::Field);
         }
 
-        partitions.clear();
+        nested_partitions.clear();
     }
 }

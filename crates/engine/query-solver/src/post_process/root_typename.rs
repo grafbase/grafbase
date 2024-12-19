@@ -3,7 +3,7 @@ use petgraph::visit::EdgeRef;
 use schema::Schema;
 
 use crate::{
-    query::{Edge, FieldFlags, Node},
+    query::{Edge, Node},
     solve::CrudeSolvedQuery,
 };
 
