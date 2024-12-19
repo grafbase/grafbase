@@ -25,6 +25,7 @@ struct OperationBinder<'schema, 'p> {
     error_operation_name: ErrorOperationName,
     variable_definition_in_use: Vec<bool>,
     fragment_name_to_id: HashMap<&'p str, FragmentId>,
+    selection_buffers: Vec<Vec<SelectionId>>,
 
     response_keys: ResponseKeys,
     data_fields: Vec<DataFieldRecord>,
@@ -61,6 +62,7 @@ pub(crate) fn bind_operation(
         shared_selection_ids: Vec::new(),
         variable_definition_in_use: Vec::new(),
         fragment_name_to_id: HashMap::with_capacity(parsed_operation.document().fragments().count()),
+        selection_buffers: Vec::new(),
     };
 
     match binder.bind_root() {

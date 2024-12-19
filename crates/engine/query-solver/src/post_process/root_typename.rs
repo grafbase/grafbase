@@ -39,7 +39,7 @@ pub(super) fn assign_root_typename_fields(schema: &Schema, operation: &Operation
         .edges(query.root_ix)
         .filter_map(|edge| match edge.weight() {
             Edge::Field => match query.graph[edge.target()] {
-                Node::Field { flags, .. } if flags.contains(FieldFlags::TYPENAME) => Some(edge.target()),
+                Node::Field { id, .. } if query[id].definition_id.is_none() => Some(edge.target()),
                 _ => None,
             },
             _ => None,

@@ -31,7 +31,7 @@ pub(crate) fn generate_crude_solved_query(
             }
             // For now assign __typename fields to the root node, they will be later be added
             // to an appropriate query partition.
-            SpaceEdge::Field => {
+            SpaceEdge::TypenameField => {
                 if let SpaceNode::QueryField(QueryFieldNode { field_id, flags }) = query.graph[edge.target()] {
                     if query[field_id].definition_id.is_none() {
                         let typename_field_ix = graph.add_node(Node::Field { id: field_id, flags });
@@ -87,7 +87,7 @@ pub(crate) fn generate_crude_solved_query(
                         }
                         // Assigning __typename fields to the first resolver that provides the
                         // parent field. There might be multiple with shared root fields.
-                        SpaceEdge::Field => {
+                        SpaceEdge::TypenameField => {
                             edges_to_remove.push(edge.id());
                             if let SpaceNode::QueryField(QueryFieldNode { field_id, flags }) =
                                 query.graph[edge.target()]
@@ -134,7 +134,10 @@ pub(crate) fn generate_crude_solved_query(
                 .filter(|edge| {
                     matches!(
                         edge.weight(),
-                        SpaceEdge::CreateChildResolver | SpaceEdge::CanProvide | SpaceEdge::Field
+                        SpaceEdge::CreateChildResolver
+                            | SpaceEdge::CanProvide
+                            | SpaceEdge::Field
+                            | SpaceEdge::TypenameField
                     )
                 })
                 .map(|edge| (new_solution_node_ix, edge.target())),

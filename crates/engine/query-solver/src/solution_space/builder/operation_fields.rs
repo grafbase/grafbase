@@ -159,53 +159,56 @@ where
         field: operation::Field<'op>,
     ) {
         let schema = self.builder.schema;
-        let query_position = Some(self.next_query_position());
-        let query = &mut self.builder.query;
-        let type_conditions = {
-            let start = query.shared_type_conditions.len();
-            query
-                .shared_type_conditions
-                .extend_from_slice(&self.parent_type_conditions);
-            (start..query.shared_type_conditions.len()).into()
-        };
-        let query_field = match field {
-            operation::Field::Data(field) => QueryField {
-                query_position,
-                type_conditions,
-                key: Some(field.key),
-                subgraph_key: None,
-                definition_id: Some(field.definition_id),
-                argument_ids: field.argument_ids.into(),
-                location: field.location,
-                directive_ids: {
-                    let start = query.shared_directives.len();
-                    query.shared_directives.extend_from_slice(&self.parent_directive_ids);
-                    query.shared_directives.extend_from_slice(&field.directive_ids);
-                    (start..query.shared_directives.len()).into()
+        let query_field_id = {
+            let query_position = Some(self.next_query_position());
+            let query = &mut self.builder.query;
+            let type_conditions = {
+                let start = query.shared_type_conditions.len();
+                query
+                    .shared_type_conditions
+                    .extend_from_slice(&self.parent_type_conditions);
+                (start..query.shared_type_conditions.len()).into()
+            };
+            let query_field = match field {
+                operation::Field::Data(field) => QueryField {
+                    query_position,
+                    type_conditions,
+                    key: Some(field.key),
+                    subgraph_key: None,
+                    definition_id: Some(field.definition_id),
+                    argument_ids: field.argument_ids.into(),
+                    location: field.location,
+                    directive_ids: {
+                        let start = query.shared_directives.len();
+                        query.shared_directives.extend_from_slice(&self.parent_directive_ids);
+                        query.shared_directives.extend_from_slice(&field.directive_ids);
+                        (start..query.shared_directives.len()).into()
+                    },
                 },
-            },
-            operation::Field::Typename(field) => QueryField {
-                query_position,
-                type_conditions,
-                key: Some(field.key),
-                subgraph_key: None,
-                definition_id: None,
-                argument_ids: Default::default(),
-                location: field.location,
-                directive_ids: {
-                    let start = query.shared_directives.len();
-                    query.shared_directives.extend_from_slice(&self.parent_directive_ids);
-                    (start..query.shared_directives.len()).into()
+                operation::Field::Typename(field) => QueryField {
+                    query_position,
+                    type_conditions,
+                    key: Some(field.key),
+                    subgraph_key: None,
+                    definition_id: None,
+                    argument_ids: Default::default(),
+                    location: field.location,
+                    directive_ids: {
+                        let start = query.shared_directives.len();
+                        query.shared_directives.extend_from_slice(&self.parent_directive_ids);
+                        (start..query.shared_directives.len()).into()
+                    },
                 },
-            },
+            };
+            query.fields.push(query_field);
+            (query.fields.len() - 1).into()
         };
-        query.fields.push(query_field);
-        let query_field_id = (query.fields.len() - 1).into();
         let query_field_node_ix = self
             .builder
             .push_query_field_node(query_field_id, FieldFlags::INDISPENSABLE);
 
         let query = &mut self.builder.query;
+
         if let Some(field_definition) = query[query_field_id].definition_id.walk(schema) {
             query
                 .graph
@@ -251,9 +254,11 @@ where
                 })
             }
         } else {
-            query
-                .graph
-                .add_edge(parent_query_field_node_ix, query_field_node_ix, SpaceEdge::Field);
+            query.graph.add_edge(
+                parent_query_field_node_ix,
+                query_field_node_ix,
+                SpaceEdge::TypenameField,
+            );
         }
     }
 }

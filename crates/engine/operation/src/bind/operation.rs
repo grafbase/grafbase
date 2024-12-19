@@ -41,7 +41,7 @@ impl<'schema, 'p> OperationBinder<'schema, 'p> {
         parent_output_type: CompositeType<'schema>,
         selection_set: Iter<'p, Selection<'p>>,
     ) -> BindResult<crate::SelectionSetRecord> {
-        let start = self.shared_selection_ids.len();
+        let mut buffer = self.selection_buffers.pop().unwrap_or_default();
         for selection in selection_set {
             let id = match selection {
                 Selection::Field(field) => if field.name() == "__typename" {
@@ -53,9 +53,12 @@ impl<'schema, 'p> OperationBinder<'schema, 'p> {
                 Selection::FragmentSpread(spread) => self.bind_fragment_spread(parent_output_type, spread)?.into(),
                 Selection::InlineFragment(fragment) => self.bind_inline_fragment(parent_output_type, fragment)?.into(),
             };
-            self.shared_selection_ids.push(id);
+            buffer.push(id);
         }
 
+        let start = self.shared_selection_ids.len();
+        self.shared_selection_ids.append(&mut buffer);
+        self.selection_buffers.push(buffer);
         Ok((start..self.shared_selection_ids.len()).into())
     }
 

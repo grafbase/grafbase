@@ -120,46 +120,47 @@ impl KeyGenerationContext<'_> {
         parent_type: CompositeTypeId,
         selection_set: &mut SelectionSetContext,
     ) {
-        // If the parent type is an object we don't need to deal with distinct types as we'll only
-        // query a single object from the subgraph.
-        if !parent_type.is_object() {
-            for (subgraph_id, query_field_id) in selection_set.fields.iter().copied() {
-                let query_field = &self.query[query_field_id];
-                let Some((key, definition_id)) = query_field.key.zip(query_field.definition_id) else {
-                    continue;
-                };
-                let definition = definition_id.walk(self.schema);
+        // Generating a different subgraph key to prevent collisions.
+        for (subgraph_id, query_field_id) in selection_set.fields.iter().copied() {
+            let query_field = &self.query[query_field_id];
+            let Some((key, definition_id)) = query_field.key.zip(query_field.definition_id) else {
+                continue;
+            };
+            let definition = definition_id.walk(self.schema);
 
-                let new_key = if definition
+            // If the parent type is an object we don't need to deal with distinct types as we'll only
+            // query a single object from the subgraph.
+            let new_key = if !parent_type.is_object()
+                && definition
                     .subgraph_type_records
                     .iter()
                     .any(|record| record.subgraph_id == subgraph_id)
-                {
-                    self.generate_new_key(
-                        selection_set,
-                        Some(FieldRenameConsistencyKey::FieldWithDistinctType {
-                            key,
-                            field_definition_id: definition.id,
-                        }),
-                        definition.name_id,
-                    )
-                } else if &self.operation.response_keys[key] == "__typename" {
-                    self.generate_new_key(
-                        selection_set,
-                        Some(FieldRenameConsistencyKey::FieldNamedTypename {
-                            output_definition_id: definition.ty().definition_id,
-                        }),
-                        definition.name_id,
-                    )
-                } else {
-                    continue;
-                };
+            {
+                self.generate_new_key(
+                    selection_set,
+                    Some(FieldRenameConsistencyKey::FieldWithDistinctType {
+                        key,
+                        field_definition_id: definition.id,
+                    }),
+                    definition.name_id,
+                )
+            } else if &self.operation.response_keys[key] == "__typename" {
+                self.generate_new_key(
+                    selection_set,
+                    Some(FieldRenameConsistencyKey::FieldNamedTypename {
+                        output_definition_id: definition.ty().definition_id,
+                    }),
+                    definition.name_id,
+                )
+            } else {
+                continue;
+            };
 
-                self.query[query_field_id].subgraph_key = Some(new_key);
-                selection_set.keys.push(new_key);
-            }
+            self.query[query_field_id].subgraph_key = Some(new_key);
+            selection_set.keys.push(new_key);
         }
 
+        // Generating a key for extra fields we kept.
         for (_, id) in &selection_set.fields {
             let query_field = &self.query[*id];
             if query_field.key.is_some() {

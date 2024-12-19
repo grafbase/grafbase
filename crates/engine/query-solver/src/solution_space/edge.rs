@@ -15,6 +15,7 @@ pub(crate) enum SpaceEdge {
     ///
     /// From a parent QueryField to a nested QueryField.
     Field,
+    TypenameField,
 
     ///
     /// -- Resolver <-> Query --
@@ -34,7 +35,7 @@ impl SpaceEdge {
             SpaceEdge::CreateChildResolver => Attrs::default().with("color=royalblue,fontcolor=royalblue"),
             SpaceEdge::CanProvide => Attrs::default().with("color=royalblue,fontcolor=royalblue"),
             SpaceEdge::Provides => Attrs::default().with("color=violet,arrowhead=none"),
-            SpaceEdge::Field => Attrs::default(),
+            SpaceEdge::Field | SpaceEdge::TypenameField => Attrs::default(),
             SpaceEdge::Requires => Attrs::default().with("color=orangered,arrowhead=inv"),
             SpaceEdge::HasChildResolver => Attrs::default().with("style=dashed,arrowhead=none"),
         }

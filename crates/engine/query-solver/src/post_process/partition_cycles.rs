@@ -5,7 +5,7 @@ use petgraph::visit::EdgeRef;
 use schema::ResolverDefinitionId;
 
 use crate::{
-    query::{Edge, FieldFlags, Node},
+    query::{Edge, Node},
     solve::CrudeSolvedQuery,
 };
 
@@ -14,58 +14,50 @@ pub(super) fn split_query_partition_dependency_cycles(query: &mut CrudeSolvedQue
         position: Option<QueryPosition>,
         original_partition_node_ix: NodeIndex,
         resolver_definition_id: ResolverDefinitionId,
-        field_node_ix: NodeIndex,
+        query_field_node_ix: NodeIndex,
     }
-    let mut partition_fields = Vec::new();
+    let mut partition_root_fields = Vec::new();
     let mut stack = starting_nodes;
     let mut partitions = Vec::new();
 
     while let Some(root_node_ix) = stack.pop() {
-        partitions.clear();
-        debug_assert!(partition_fields.is_empty());
-        for edge in query.graph.edges(root_node_ix) {
-            if !matches!(edge.weight(), Edge::Field | Edge::QueryPartition) {
-                continue;
-            }
-            match query.graph[edge.target()] {
+        debug_assert!(partition_root_fields.is_empty());
+        for node_ix in query.graph.neighbors(root_node_ix) {
+            match query.graph[node_ix] {
                 Node::QueryPartition {
                     resolver_definition_id, ..
                 } => {
-                    partitions.push((edge.target(), resolver_definition_id));
-                    for second_degree_edge in query.graph.edges(edge.target()) {
-                        if !matches!(second_degree_edge.weight(), Edge::Field | Edge::QueryPartition) {
-                            continue;
-                        }
-                        let node_ix = second_degree_edge.target();
-                        if let Node::Field { id, flags, .. } = query.graph[node_ix] {
-                            partition_fields.push(Field {
+                    partitions.push((node_ix, resolver_definition_id));
+                    for second_degree_node_ix in query.graph.neighbors(node_ix) {
+                        if let Node::Field { id, .. } = query.graph[second_degree_node_ix] {
+                            partition_root_fields.push(Field {
                                 position: query[id].query_position,
-                                original_partition_node_ix: edge.target(),
+                                original_partition_node_ix: node_ix,
                                 resolver_definition_id,
-                                field_node_ix: node_ix,
+                                query_field_node_ix: second_degree_node_ix,
                             });
-                            if flags.contains(FieldFlags::IS_COMPOSITE_TYPE) {
-                                stack.push(node_ix);
-                            }
+                            stack.push(second_degree_node_ix);
                         }
                     }
                 }
-                Node::Field { flags, .. } => {
-                    if flags.contains(FieldFlags::IS_COMPOSITE_TYPE) {
-                        stack.push(edge.target());
-                    }
+                Node::Field { .. } => {
+                    stack.push(node_ix);
                 }
                 _ => (),
             }
         }
 
-        partition_fields.sort_unstable_by(|a, b| a.position.cmp(&b.position));
+        if partition_root_fields.is_empty() {
+            continue;
+        }
+
+        partition_root_fields.sort_unstable_by(|a, b| a.position.cmp(&b.position));
 
         // Removing edges to the parent partitions
-        for field in &partition_fields {
+        for field in &partition_root_fields {
             if let Some(id) = query
                 .graph
-                .find_edge(field.original_partition_node_ix, field.field_node_ix)
+                .find_edge(field.original_partition_node_ix, field.query_field_node_ix)
             {
                 query.graph.remove_edge(id);
             }
@@ -74,9 +66,9 @@ pub(super) fn split_query_partition_dependency_cycles(query: &mut CrudeSolvedQue
         for Field {
             original_partition_node_ix,
             resolver_definition_id,
-            field_node_ix,
+            query_field_node_ix,
             ..
-        } in partition_fields.drain(..)
+        } in partition_root_fields.drain(..)
         {
             let partition_node_ix = partitions
                 .iter()
@@ -98,7 +90,7 @@ pub(super) fn split_query_partition_dependency_cycles(query: &mut CrudeSolvedQue
                                     matches!(edge.weight(), Edge::RequiredBySubgraph)
                                 }),
                                 partition_field_node_ix,
-                                field_node_ix,
+                                query_field_node_ix,
                                 None,
                             )
                         });
@@ -128,7 +120,11 @@ pub(super) fn split_query_partition_dependency_cycles(query: &mut CrudeSolvedQue
                     new_partition_ix
                 });
 
-            query.graph.add_edge(partition_node_ix, field_node_ix, Edge::Field);
+            query
+                .graph
+                .add_edge(partition_node_ix, query_field_node_ix, Edge::Field);
         }
+
+        partitions.clear();
     }
 }

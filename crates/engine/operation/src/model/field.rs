@@ -15,6 +15,13 @@ impl<'a> TypenameField<'a> {
 }
 
 impl<'a> Field<'a> {
+    pub fn key_str(&self) -> &'a str {
+        match self {
+            Field::Data(data) => data.key_str(),
+            Field::Typename(typename) => typename.key_str(),
+        }
+    }
+
     pub fn selection_set(&self) -> SelectionSet<'a> {
         match self {
             Field::Data(data) => data.selection_set(),

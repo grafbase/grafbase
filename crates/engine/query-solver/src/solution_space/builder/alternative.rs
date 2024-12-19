@@ -284,7 +284,10 @@ where
                 .neighbors_directed(existing, Direction::Outgoing)
                 .detach();
             while let Some((existing_edge_ix, existing_target)) = edges.next(&self.query.graph) {
-                debug_assert!(matches!(self.query.graph[existing_edge_ix], SpaceEdge::Field));
+                debug_assert!(matches!(
+                    self.query.graph[existing_edge_ix],
+                    SpaceEdge::Field | SpaceEdge::TypenameField
+                ));
                 let new_target = self.query.graph.add_node(self.query.graph[existing_target].clone());
                 self.query
                     .graph

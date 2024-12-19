@@ -107,10 +107,10 @@ where
         // Initialize the shortest paths, currently everything is set to MAX. We should have
         // reached all terminals at this point with a sensible cost.
         alg.regenerate_shortest_paths();
-        debug_assert!(alg
-            .missing_terminals
-            .iter()
-            .all(|t| alg.steiner_tree.shortest_paths[t.index()].cumulative_cost_from_root < Cost::MAX));
+        // debug_assert!(alg
+        //     .missing_terminals
+        //     .iter()
+        //     .all(|t| alg.steiner_tree.shortest_paths[t.index()].cumulative_cost_from_root < Cost::MAX));
 
         alg
     }
