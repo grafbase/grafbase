@@ -1,8 +1,8 @@
 use walker::{Iter, Walk};
 
 use crate::{
-    DefinitionId, EntityDefinition, EntityDefinitionId, InterfaceDefinition, InterfaceDefinitionId, ObjectDefinitionId,
-    TypeSystemDirective,
+    CompositeType, CompositeTypeId, DefinitionId, EntityDefinition, EntityDefinitionId, InterfaceDefinition,
+    InterfaceDefinitionId, ObjectDefinitionId, TypeSystemDirective,
 };
 
 impl EntityDefinitionId {
@@ -13,6 +13,13 @@ impl EntityDefinitionId {
             _ => None,
         }
     }
+
+    pub fn as_composite_type(self) -> CompositeTypeId {
+        match self {
+            EntityDefinitionId::Object(id) => CompositeTypeId::Object(id),
+            EntityDefinitionId::Interface(id) => CompositeTypeId::Interface(id),
+        }
+    }
 }
 
 impl<'a> EntityDefinition<'a> {
@@ -20,6 +27,13 @@ impl<'a> EntityDefinition<'a> {
         match self {
             EntityDefinition::Object(item) => item.name(),
             EntityDefinition::Interface(item) => item.name(),
+        }
+    }
+
+    pub fn as_composite_type(self) -> CompositeType<'a> {
+        match self {
+            EntityDefinition::Object(item) => CompositeType::Object(item),
+            EntityDefinition::Interface(item) => CompositeType::Interface(item),
         }
     }
 

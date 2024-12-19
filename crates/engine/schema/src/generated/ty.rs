@@ -13,12 +13,12 @@ use walker::Walk;
 /// Generated from:
 ///
 /// ```custom,{.language-graphql}
-/// type Type @meta(module: "ty") @copy {
+/// type Type @meta(module: "ty", derive: ["PartialEq", "Eq"]) @copy {
 ///   definition: Definition!
 ///   wrapping: Wrapping!
 /// }
 /// ```
-#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, Copy)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Copy)]
 pub struct TypeRecord {
     pub definition_id: DefinitionId,
     pub wrapping: Wrapping,

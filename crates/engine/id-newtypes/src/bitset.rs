@@ -28,6 +28,10 @@ where
         }
     }
 
+    pub fn put(&mut self, id: Id) -> bool {
+        self.inner.put(usize::from(id))
+    }
+
     pub fn set(&mut self, id: Id, value: bool) {
         self.inner.set(usize::from(id), value)
     }
