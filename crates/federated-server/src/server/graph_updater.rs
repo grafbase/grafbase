@@ -239,7 +239,7 @@ impl GraphUpdater {
                 }
             };
 
-            tracing::info!("Fetched new Graph");
+            tracing::info!("Fetched new graph");
 
             let version_id = response.version_id;
 
