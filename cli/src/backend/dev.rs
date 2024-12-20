@@ -170,7 +170,7 @@ fn output_handler(
 
     stdout().queue(MoveUp(2))?.queue(Clear(ClearType::CurrentLine))?;
 
-    let pathfinder_url = format!(
+    let explorer_url = format!(
         "http://{}:{}",
         url.host()
             .map(|h| h.to_string())
@@ -178,11 +178,11 @@ fn output_handler(
         url.port().unwrap()
     );
 
-    println!("GraphQL endpoint:  {}", url.to_string().bold());
-    println!("Pathfinder:        {}\n", pathfinder_url.bold());
+    println!("GraphQL endpoint: {}", url.to_string().bold());
+    println!("Explorer:         {}\n", explorer_url.bold());
 
     if introspection_forced {
-        tracing::info!("introspection is always enabled in the dev mode, config overriden");
+        tracing::info!("introspection is always enabled in dev mode, config overriden");
     }
 
     Ok(())
