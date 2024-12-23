@@ -1,24 +1,24 @@
 ---
 source: crates/engine/query-solver/src/tests/mutation.rs
-expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#reviews\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"Mutation.updateReview\" ]\n    3 [ label = \"Review.id\" ]\n    4 [ label = \"Mutation.createReview\" ]\n    5 [ label = \"Review.id\" ]\n    6 [ label = \"Root#products\", color=royalblue,shape=parallelogram ]\n    7 [ label = \"Mutation.updateProduct\" ]\n    8 [ label = \"Product.upc\" ]\n    9 [ label = \"Mutation.createProduct\" ]\n    10 [ label = \"Product.upc\" ]\n    11 [ label = \"Root#accounts\", color=royalblue,shape=parallelogram ]\n    12 [ label = \"Mutation.updateUser\" ]\n    13 [ label = \"User.id\" ]\n    14 [ label = \"Mutation.createUser\" ]\n    15 [ label = \"User.id\" ]\n    0 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    1 -> 2 [ label = \"\" ]\n    2 -> 3 [ label = \"\" ]\n    1 -> 4 [ label = \"\" ]\n    4 -> 5 [ label = \"\" ]\n    0 -> 6 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    6 -> 7 [ label = \"\" ]\n    7 -> 8 [ label = \"\" ]\n    6 -> 9 [ label = \"\" ]\n    9 -> 10 [ label = \"\" ]\n    0 -> 11 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    11 -> 12 [ label = \"\" ]\n    12 -> 13 [ label = \"\" ]\n    11 -> 14 [ label = \"\" ]\n    14 -> 15 [ label = \"\" ]\n    6 -> 11 [ label = \"\", color=red,arrowhead=inv,style=dashed ]\n    1 -> 6 [ label = \"\", color=red,arrowhead=inv,style=dashed ]\n}\n"
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#accounts\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"Mutation.createUser\" ]\n    3 [ label = \"User.id\" ]\n    4 [ label = \"Mutation.updateUser\" ]\n    5 [ label = \"User.id\" ]\n    6 [ label = \"Root#products\", color=royalblue,shape=parallelogram ]\n    7 [ label = \"Mutation.createProduct\" ]\n    8 [ label = \"Product.upc\" ]\n    9 [ label = \"Mutation.updateProduct\" ]\n    10 [ label = \"Product.upc\" ]\n    11 [ label = \"Root#reviews\", color=royalblue,shape=parallelogram ]\n    12 [ label = \"Mutation.createReview\" ]\n    13 [ label = \"Review.id\" ]\n    14 [ label = \"Mutation.updateReview\" ]\n    15 [ label = \"Review.id\" ]\n    0 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    1 -> 2 [ label = \"\" ]\n    2 -> 3 [ label = \"\" ]\n    1 -> 4 [ label = \"\" ]\n    4 -> 5 [ label = \"\" ]\n    0 -> 6 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    6 -> 7 [ label = \"\" ]\n    7 -> 8 [ label = \"\" ]\n    6 -> 9 [ label = \"\" ]\n    9 -> 10 [ label = \"\" ]\n    0 -> 11 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    11 -> 12 [ label = \"\" ]\n    12 -> 13 [ label = \"\" ]\n    11 -> 14 [ label = \"\" ]\n    14 -> 15 [ label = \"\" ]\n    6 -> 1 [ label = \"\", color=red,arrowhead=inv,style=dashed ]\n    11 -> 6 [ label = \"\", color=red,arrowhead=inv,style=dashed ]\n}\n"
 ---
 digraph {
     0 [ label = "root" ]
-    1 [ label = "Root#reviews" ]
-    2 [ label = "Mutation.updateReview" ]
-    3 [ label = "Review.id" ]
-    4 [ label = "Mutation.createReview" ]
-    5 [ label = "Review.id" ]
+    1 [ label = "Root#accounts" ]
+    2 [ label = "Mutation.createUser" ]
+    3 [ label = "User.id" ]
+    4 [ label = "Mutation.updateUser" ]
+    5 [ label = "User.id" ]
     6 [ label = "Root#products" ]
-    7 [ label = "Mutation.updateProduct" ]
+    7 [ label = "Mutation.createProduct" ]
     8 [ label = "Product.upc" ]
-    9 [ label = "Mutation.createProduct" ]
+    9 [ label = "Mutation.updateProduct" ]
     10 [ label = "Product.upc" ]
-    11 [ label = "Root#accounts" ]
-    12 [ label = "Mutation.updateUser" ]
-    13 [ label = "User.id" ]
-    14 [ label = "Mutation.createUser" ]
-    15 [ label = "User.id" ]
+    11 [ label = "Root#reviews" ]
+    12 [ label = "Mutation.createReview" ]
+    13 [ label = "Review.id" ]
+    14 [ label = "Mutation.updateReview" ]
+    15 [ label = "Review.id" ]
     0 -> 1 [ label = "QueryPartition" ]
     1 -> 2 [ label = "Field" ]
     2 -> 3 [ label = "Field" ]
@@ -34,6 +34,6 @@ digraph {
     12 -> 13 [ label = "Field" ]
     11 -> 14 [ label = "Field" ]
     14 -> 15 [ label = "Field" ]
-    6 -> 11 [ label = "MutationExecutedAfter" ]
-    1 -> 6 [ label = "MutationExecutedAfter" ]
+    6 -> 1 [ label = "MutationExecutedAfter" ]
+    11 -> 6 [ label = "MutationExecutedAfter" ]
 }

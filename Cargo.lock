@@ -2126,7 +2126,7 @@ dependencies = [
 
 [[package]]
 name = "engine"
-version = "3.0.31"
+version = "0.0.0"
 dependencies = [
  "async-sse",
  "base64 0.22.1",
@@ -2176,7 +2176,7 @@ dependencies = [
 
 [[package]]
 name = "engine-auth"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "base64 0.22.1",
  "engine-config",
@@ -2196,7 +2196,7 @@ dependencies = [
 
 [[package]]
 name = "engine-axum"
-version = "3.0.31"
+version = "0.0.0"
 dependencies = [
  "async-trait",
  "axum",
@@ -2217,7 +2217,7 @@ dependencies = [
 
 [[package]]
 name = "engine-codegen"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "anyhow",
  "case",
@@ -2236,7 +2236,7 @@ dependencies = [
 
 [[package]]
 name = "engine-config"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "base64 0.22.1",
  "gateway-config",
@@ -2268,7 +2268,7 @@ dependencies = [
 
 [[package]]
 name = "engine-id-derives"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "grafbase-workspace-hack",
  "proc-macro2",
@@ -2288,24 +2288,44 @@ dependencies = [
 ]
 
 [[package]]
+name = "engine-operation"
+version = "0.0.0"
+dependencies = [
+ "blake3",
+ "cynic-parser",
+ "engine-id-derives",
+ "engine-id-newtypes",
+ "engine-schema",
+ "engine-walker",
+ "grafbase-telemetry",
+ "grafbase-workspace-hack",
+ "itertools 0.13.0",
+ "lasso2",
+ "operation-normalizer",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "strum",
+ "thiserror 2.0.6",
+]
+
+[[package]]
 name = "engine-query-solver"
 version = "0.0.0"
 dependencies = [
  "bitflags 2.6.0",
  "ctor",
- "cynic-parser",
- "engine-config",
  "engine-id-derives",
  "engine-id-newtypes",
+ "engine-operation",
  "engine-schema",
  "engine-walker",
  "fixedbitset 0.5.7",
  "grafbase-workspace-hack",
- "graphql-federated-graph",
+ "hex",
  "insta",
  "itertools 0.13.0",
  "petgraph",
- "serde",
  "similar",
  "strum",
  "thiserror 2.0.7",
@@ -2315,7 +2335,7 @@ dependencies = [
 
 [[package]]
 name = "engine-schema"
-version = "3.0.31"
+version = "0.0.0"
 dependencies = [
  "anyhow",
  "engine-config",
@@ -2347,7 +2367,7 @@ dependencies = [
 
 [[package]]
 name = "engine-walker"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "grafbase-workspace-hack",
 ]

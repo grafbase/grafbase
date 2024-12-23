@@ -103,7 +103,7 @@ type FieldRequires @meta(module: "field/requires") @copy {
   field_set: FieldSet!
 }
 
-type Type @meta(module: "ty") @copy {
+type Type @meta(module: "ty", derive: ["PartialEq", "Eq"]) @copy {
   definition: Definition!
   wrapping: Wrapping!
 }
