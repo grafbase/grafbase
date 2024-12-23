@@ -130,8 +130,7 @@ tungstenite = { version = "0.24", features = ["__rustls-tls"] }
 ulid = { version = "1", features = ["serde"] }
 url = { version = "2", features = ["serde"] }
 uuid = { version = "1", features = ["v4"] }
-wasmparser = { version = "0.219", default-features = false, features = ["component-model", "features", "serde", "std", "validate"] }
-zerocopy = { version = "0.7", features = ["derive", "simd"] }
+wasmparser = { version = "0.221", default-features = false, features = ["component-model", "features", "serde", "simd", "std", "validate"] }
 zeroize = { version = "1", features = ["zeroize_derive"] }
 
 [build-dependencies]
@@ -248,8 +247,7 @@ tungstenite = { version = "0.24", features = ["__rustls-tls"] }
 ulid = { version = "1", features = ["serde"] }
 url = { version = "2", features = ["serde"] }
 uuid = { version = "1", features = ["v4"] }
-wasmparser = { version = "0.219", default-features = false, features = ["component-model", "features", "serde", "std", "validate"] }
-zerocopy = { version = "0.7", features = ["derive", "simd"] }
+wasmparser = { version = "0.221", default-features = false, features = ["component-model", "features", "serde", "simd", "std", "validate"] }
 zeroize = { version = "1", features = ["zeroize_derive"] }
 
 [target.aarch64-apple-darwin.dependencies]

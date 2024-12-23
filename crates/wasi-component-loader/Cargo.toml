@@ -24,14 +24,14 @@ strum = { workspace = true, features = ["derive"] }
 enumflags2 = "0.7.10"
 
 [dependencies.wasmtime]
-version = "27"
+version = "28"
 
 [dependencies.wasmtime-wasi]
-version = "27"
+version = "28"
 default-features = false
 
 [dependencies.wasmtime-wasi-http]
-version = "27"
+version = "28"
 
 [lints]
 workspace = true
