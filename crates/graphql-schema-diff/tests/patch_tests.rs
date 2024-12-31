@@ -66,6 +66,6 @@ fn run_test_impl(source: String, target: String) -> datatest_stable::Result<()> 
 }
 
 datatest_stable::harness! {
-    run_test, "./tests/patch", r"^.*\.graphql$",
-    run_test_backwards, "./tests/patch", r"^.*\.graphql$",
+    { test = run_test, root = "./tests/patch", pattern = r"^.*\.graphql$" },
+    { test = run_test_backwards, root = "./tests/patch", pattern = r"^.*\.graphql$" },
 }

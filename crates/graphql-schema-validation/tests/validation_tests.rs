@@ -87,6 +87,6 @@ fn run_valid_schema_test(graphql_file_path: &Path) -> datatest_stable::Result<()
 }
 
 datatest_stable::harness! {
-    run_validation_error_test, "./tests/validation_errors", r"^.*\.graphql$",
-    run_valid_schema_test, "./tests/valid_schemas", r"^.*\.graphql$",
+    { test = run_validation_error_test, root = "./tests/validation_errors", pattern = r"^.*\.graphql$" },
+    { test = run_valid_schema_test, root = "./tests/valid_schemas", pattern = r"^.*\.graphql$" },
 }

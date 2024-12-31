@@ -102,5 +102,5 @@ fn run_test(case_path: &Path) -> datatest_stable::Result<()> {
 }
 
 datatest_stable::harness! {
-    run_test, "./tests/cases", r"^.*\.graphql$",
+   { test = run_test, root = "./tests/cases", pattern = r"^.*\.graphql$" },
 }
