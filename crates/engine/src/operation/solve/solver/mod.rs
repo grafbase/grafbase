@@ -6,7 +6,7 @@ use id_newtypes::{IdRange, IdToMany};
 use im::HashMap;
 use query_solver::{
     petgraph::{graph::NodeIndex, visit::EdgeRef},
-    SolutionEdge as Edge, SolutionGraph, SolutionNode as Node,
+    Edge, Node, SolutionGraph,
 };
 use schema::{Definition, EntityDefinitionId, ResolverDefinitionId, Schema};
 use walker::Walk;

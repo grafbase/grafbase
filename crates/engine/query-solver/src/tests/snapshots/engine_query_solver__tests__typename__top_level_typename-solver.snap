@@ -1,9 +1,11 @@
 ---
-source: engine/crates/engine/query-solver/src/tests/schema1.rs
-expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n    1 [ label=\"\", style=dashed]\n    1 -> 0 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n}\n"
+source: crates/engine/query-solver/src/tests/typename.rs
+expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n    1 [ label = \"__typename\", style=dashed ]\n    2 [ label=\"\", style=dashed]\n    0 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    2 -> 0 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n}\n"
 ---
 digraph {
     0 [ label = "root", steiner=1 ]
-    1 [ label="", style=dashed]
-    1 -> 0 [ cost=0, steiner=0]
+    1 [ label = "__typename", steiner=0 ]
+    2 [ label="", style=dashed]
+    0 -> 1 [ cost=0, steiner=0]
+    2 -> 0 [ cost=0, steiner=0]
 }
