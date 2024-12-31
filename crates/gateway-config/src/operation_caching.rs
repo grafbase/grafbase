@@ -8,6 +8,8 @@ pub struct OperationCaching {
     pub limit: usize,
     /// Whether the cache should be warmed before schema/config reload
     pub warm_on_reload: bool,
+    /// The percentage of the cache that will be warmed on reload
+    pub warming_percent: u8,
 }
 
 impl Default for OperationCaching {
@@ -16,6 +18,7 @@ impl Default for OperationCaching {
             enabled: true,
             limit: 1000,
             warm_on_reload: false,
+            warming_percent: 100,
         }
     }
 }

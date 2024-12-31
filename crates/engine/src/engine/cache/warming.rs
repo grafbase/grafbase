@@ -21,6 +21,7 @@ impl<R: Runtime> Engine<R> {
         if operations.is_empty() {
             return;
         }
+
         let Ok((request_context, hooks_context)) = self
             .create_request_context(
                 &EarlyHttpContext {
