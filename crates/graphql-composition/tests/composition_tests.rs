@@ -151,6 +151,6 @@ fn test_sdl_roundtrip(federated_graph_path: &Path) -> datatest_stable::Result<()
 }
 
 datatest_stable::harness! {
-    run_test, "./tests/composition", r"^.*federated.graphql$",
-    test_sdl_roundtrip, "./tests/composition", r"^.*federated.graphql$",
+    { test = run_test, root = "./tests/composition", pattern = r"^.*federated.graphql$" },
+    { test = test_sdl_roundtrip, root = "./tests/composition", pattern = r"^.*federated.graphql$" },
 }

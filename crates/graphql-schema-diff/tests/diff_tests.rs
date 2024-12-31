@@ -72,5 +72,5 @@ fn run_test(case: &Path) -> datatest_stable::Result<()> {
 }
 
 datatest_stable::harness! {
-    run_test, "./tests/diff", r"^.*\.graphql$",
+    { test = run_test, root = "./tests/diff", pattern = r"^.*\.graphql$" },
 }
