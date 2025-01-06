@@ -5,8 +5,8 @@ go 1.22.5
 toolchain go1.23.4
 
 require (
-	github.com/99designs/gqlgen v0.17.61
-	github.com/99designs/gqlgen/_examples v0.0.0-20241230155827-400e6c89ceb2
+	github.com/99designs/gqlgen v0.17.62
+	github.com/99designs/gqlgen/_examples v0.0.0-20241231200950-3fc5a53b32f2
 	github.com/vektah/gqlparser/v2 v2.5.21
 )
 

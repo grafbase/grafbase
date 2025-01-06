@@ -45,7 +45,7 @@ runs:
 
     - name: Install cargo binstall
       if: ${{ inputs.with-integration-tests == 'true' }}
-      uses: cargo-bins/cargo-binstall@v1.10.18
+      uses: cargo-bins/cargo-binstall@v1.10.19
 
     - name: Build the WASI components for tests
       if: ${{ inputs.with-integration-tests == 'true' }}

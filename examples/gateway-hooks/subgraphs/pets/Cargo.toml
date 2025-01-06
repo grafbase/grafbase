@@ -7,7 +7,7 @@ edition = "2021"
 anyhow = "1"
 async-graphql = { version = "7", features = ["time"] }
 async-graphql-axum = "7"
-axum = "0.7"
+axum = "0.8"
 serde_json = "1"
 time = "0.3"
 rand = "0.8"

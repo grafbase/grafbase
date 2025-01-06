@@ -108,7 +108,7 @@ regex = "1.10.4"
 reqwest = { workspace = true, features = ["rustls-tls", "json"] }
 reqwest-eventsource = "0.6"
 rsa = "0.9.6"
-rstest = "0.23"
+rstest = "0.24"
 rstest_reuse = "0.7"
 serde = { version = "1.0.199", features = ["derive"] }
 sha2.workspace = true
