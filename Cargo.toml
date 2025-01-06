@@ -53,8 +53,8 @@ ctor = "0.2.8"
 cynic = "3.9"
 cynic-codegen = { version = "3.9", features = ["rkyv"] }
 cynic-introspection = "3.9"
-cynic-parser = "0.8"
-cynic-parser-deser = "0.8"
+cynic-parser = "0.8.7"
+cynic-parser-deser = "0.8.7"
 datatest-stable = "0.3.0"
 deadpool = { version = "0.12.1", features = ["rt_tokio_1"] }
 derive_more = "1.0.0-beta.6"
