@@ -45,6 +45,10 @@ where
             return Some(value);
         };
 
-        self.distributed.as_ref()?.get(key).await
+        let value: V = self.distributed.as_ref()?.get(key).await?;
+
+        self.in_memory.insert(key.to_owned(), value.clone()).await;
+
+        Some(value)
     }
 }
