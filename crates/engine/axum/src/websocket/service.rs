@@ -91,7 +91,6 @@ impl FromStr for WebsocketProtocol {
     }
 }
 
-#[async_trait::async_trait]
 impl<S> FromRequestParts<S> for WebsocketProtocol
 where
     S: Send + Sync,
@@ -123,7 +122,7 @@ impl<R: engine::Runtime> MessageConvert for Message<R> {
                 code,
                 reason: reason.into(),
             }))),
-            message => Ok(ws::Message::Text(serde_json::to_string(&message)?)),
+            message => Ok(ws::Message::Text(serde_json::to_string(&message)?.into())),
         }
     }
 }
