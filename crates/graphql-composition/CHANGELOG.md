@@ -1,11 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.5.0 - 2025-01-06
 
 ### Features
 
 - Added composition for default values of output field arguments and input fields. They are now reflected in the federated graph.
-- Support the experimental @authorized directive
 - Selection sets inside `@requires` and `@provides` directives can now include inline fragments.
 - The selection sets in the "fields:" argument on `@requires` are now validated against the schema, with proper errors with context when invalid.
 - A new `Subgraphs::ingest_str()` method has been added to ingest a federated graph from a string, instead of from an async_graphql_parser AST. This is both for convenience and because async_graphql parser will soon not be part of the public API anymore.
@@ -13,6 +12,7 @@
 - `graphql_composition` now reexports the companion `graphql_federated_graph` crate (https://github.com/grafbase/grafbase/pull/2310).
 - Added support for the `@cost` directive (https://github.com/grafbase/grafbase/pull/2305).
 - We now validate that subgraphs do not define the `join__Graph` enum. (https://github.com/grafbase/grafbase/pull/2325)
+- Support the experimental `@authorized` directive
 
 ### Fixes
 
