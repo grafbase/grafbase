@@ -10,7 +10,7 @@ case = "1"
 cynic-parser = { workspace = true, features = ["report"] }
 cynic-parser-deser.workspace = true
 indoc = "2"
-itertools = "0.13"
+itertools = "0.14"
 proc-macro2 = "1"
 quote = "1"
 regex.workspace = true

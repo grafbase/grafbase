@@ -12,7 +12,7 @@ repository.workspace = true
 
 [dependencies]
 assert_matches = "1.5.0"
-axum.workspace = true
+axum = { workspace = true, features = ["http1", "tokio"] }
 backtrace = "0.3.71"
 chrono = "0.4.38"
 clap = { version = "4", features = ["cargo", "wrap_help", "derive", "env"] }
@@ -108,7 +108,7 @@ regex = "1.10.4"
 reqwest = { workspace = true, features = ["rustls-tls", "json"] }
 reqwest-eventsource = "0.6"
 rsa = "0.9.6"
-rstest = "0.23"
+rstest = "0.24"
 rstest_reuse = "0.7"
 serde = { version = "1.0.199", features = ["derive"] }
 sha2.workspace = true
