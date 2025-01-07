@@ -23,7 +23,7 @@ where
     V: Clone + Send + Sync + 'static + serde::Serialize + serde::de::DeserializeOwned,
 {
     async fn insert(&self, key: String, value: V) {
-        let Ok(value) = serde_json::to_vec(&value) else { return };
+        let Ok(value) = postcard::to_stdvec(&value) else { return };
         let Ok(mut connection) = self.pool.get().await else {
             return;
         };
@@ -55,7 +55,7 @@ where
             }
         };
 
-        match serde_json::from_slice(&bytes) {
+        match postcard::from_bytes(&bytes) {
             Ok(value) => Some(value),
             Err(err) => {
                 tracing::warn!("could not decode the data stored in key {key} from redis operation cache: {err}");

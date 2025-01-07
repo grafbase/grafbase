@@ -6664,6 +6664,7 @@ dependencies = [
  "mini-moka",
  "p256",
  "p384",
+ "postcard",
  "redis",
  "reqwest 0.12.9",
  "reqwest-eventsource",

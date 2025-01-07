@@ -34,6 +34,7 @@ httpsig.workspace = true
 httpsig-hyper.workspace = true
 p256 = { version = "0.13", features = ["jwk"] }
 p384 = { version = "0.13", features = ["jwk"] }
+postcard.workspace = true
 reqwest-eventsource = "0.6"
 serde.workspace = true
 serde_json = { workspace = true, features = ["raw_value"] }
