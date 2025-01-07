@@ -5,6 +5,7 @@ use gateway_config::{Config, EntityCachingRedisConfig};
 use grafbase_telemetry::metrics::EngineMetrics;
 use runtime::entity_cache::EntityCache;
 use runtime_local::{
+    operation_cache::{RedisOperationCache, TieredOperationCache},
     rate_limiting::{in_memory::key_based::InMemoryRateLimiter, redis::RedisRateLimiter},
     redis::{RedisPoolFactory, RedisTlsConfig},
     HooksWasi, InMemoryEntityCache, InMemoryKvStore, InMemoryOperationCache, NativeFetcher, RedisEntityCache,
@@ -23,7 +24,7 @@ pub struct GatewayRuntime {
     hooks: HooksWasi,
     rate_limiter: runtime::rate_limiting::RateLimiter,
     entity_cache: Box<dyn EntityCache>,
-    pub(crate) operation_cache: InMemoryOperationCache<Arc<CachedOperation>>,
+    pub(crate) operation_cache: TieredOperationCache<Arc<CachedOperation>>,
 }
 
 impl GatewayRuntime {
@@ -80,11 +81,7 @@ impl GatewayRuntime {
             }
         };
 
-        let operation_cache = if gateway_config.operation_caching.enabled {
-            InMemoryOperationCache::new(gateway_config.operation_caching.limit)
-        } else {
-            InMemoryOperationCache::inactive()
-        };
+        let operation_cache = operation_cache(gateway_config, &mut redis_factory)?;
 
         let runtime = GatewayRuntime {
             fetcher: NativeFetcher::new(gateway_config).map_err(|e| crate::Error::FetcherConfigError(e.to_string()))?,
@@ -104,7 +101,7 @@ impl GatewayRuntime {
 impl engine::Runtime for GatewayRuntime {
     type Hooks = HooksWasi;
     type Fetcher = NativeFetcher;
-    type OperationCache = InMemoryOperationCache<Arc<CachedOperation>>;
+    type OperationCache = TieredOperationCache<Arc<CachedOperation>>;
 
     fn fetcher(&self) -> &Self::Fetcher {
         &self.fetcher
@@ -141,4 +138,38 @@ impl engine::Runtime for GatewayRuntime {
     fn metrics(&self) -> &grafbase_telemetry::metrics::EngineMetrics {
         &self.metrics
     }
+}
+
+fn operation_cache(
+    gateway_config: &Config,
+    redis_factory: &mut RedisPoolFactory,
+) -> Result<TieredOperationCache<Arc<CachedOperation>>, crate::Error> {
+    Ok(
+        match (
+            gateway_config.operation_caching.enabled,
+            gateway_config.operation_caching.redis.as_ref(),
+        ) {
+            (false, _) => TieredOperationCache::new(InMemoryOperationCache::inactive(), None),
+            (true, None) => TieredOperationCache::new(
+                InMemoryOperationCache::new(gateway_config.operation_caching.limit),
+                None,
+            ),
+            (true, Some(redis_config)) => {
+                let tls = redis_config.tls.as_ref().map(|tls| RedisTlsConfig {
+                    cert: tls.cert.as_deref(),
+                    key: tls.key.as_deref(),
+                    ca: tls.ca.as_deref(),
+                });
+
+                let pool = redis_factory
+                    .pool(redis_config.url.as_ref(), tls)
+                    .map_err(|e| crate::Error::InternalError(e.to_string()))?;
+
+                TieredOperationCache::new(
+                    InMemoryOperationCache::new(gateway_config.operation_caching.limit),
+                    Some(RedisOperationCache::new(pool, &redis_config.key_prefix)),
+                )
+            }
+        },
+    )
 }

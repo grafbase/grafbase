@@ -3,7 +3,7 @@ mod fetch;
 #[cfg(feature = "wasi")]
 pub mod hooks;
 mod kv;
-mod operation_cache;
+pub mod operation_cache;
 pub mod rate_limiting;
 #[cfg(feature = "redis")]
 pub mod redis;
