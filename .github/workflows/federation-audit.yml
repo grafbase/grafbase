@@ -19,7 +19,7 @@ jobs:
   what-changed:
     runs-on: ubicloud-standard-2
     outputs:
-      rust: ${{ steps.what-rust-changed.outputs.rust }}
+      changed-packages: ${{ steps.rust.outputs.changed-packages }}
       github-action: ${{ steps.paths-changed.outputs.github-action }}
     steps:
       - name: Checkout Repository
@@ -32,36 +32,12 @@ jobs:
       - name: Install rust
         uses: ./.github/actions/install-rust
 
-      # If you're iterating on this you may want to change this to a cargo install
-      # while you work
-      - name: Install what-rust-changed
-        uses: ./.github/actions/install-what-rust-changed
-        with:
-          version: v0.1.0
-
       - name: Run what-rust-changed
-        id: what-rust-changed
-        shell: bash
-        env:
-          WHAT_RUST_CHANGED_CONFIG: .github/what-rust-changed.toml
-        run: |
-          set -euo pipefail
-          HEAD_REF="$(git rev-parse HEAD)"
-          BASE_REF="remotes/origin/${GITHUB_BASE_REF:-main}"
-          echo "Head: $HEAD_REF"
-          echo "Base: $BASE_REF"
-          MERGE_BASE=$(git merge-base $BASE_REF $HEAD_REF)
-          echo "Merge Base: $MERGE_BASE"
-          git checkout $MERGE_BASE
-          cargo metadata > /tmp/base.metadata.json
-          git checkout $HEAD_REF
-          cargo metadata --locked > /tmp/target.metadata.json
-          CHANGED_FILES=$(git diff --no-commit-id --name-only -r $MERGE_BASE HEAD)
-          CHANGES=$(echo $CHANGED_FILES | xargs what-rust-changed /tmp/base.metadata.json /tmp/target.metadata.json)
-          echo "rust=$CHANGES" >> "$GITHUB_OUTPUT"
-          echo "Done.  Output Contents:"
-          echo ""
-          cat $GITHUB_OUTPUT
+        id: rust
+        uses: grafbase/what-rust-changed@v0.2.0
+        with:
+          config: .github/what-rust-changed.toml
+          base: ${{ github.event.pull_request.base.ref || 'main' }}
 
       - name: Check paths changed
         uses: dorny/paths-filter@v3
@@ -74,8 +50,8 @@ jobs:
   audit:
     needs: [what-changed]
     if: |
-      contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'engine')
-      || contains(fromJson(needs.what-changed.outputs.rust).changed-packages, 'federation-audit-tests')
+      contains(fromJson(needs.what-changed.outputs.changed-packages), 'engine')
+      || contains(fromJson(needs.what-changed.outputs.changed-packages), 'federation-audit-tests')
       || needs.what-changed.outputs.github-action == 'true'
     runs-on: ubicloud-standard-8
     permissions:
@@ -86,11 +62,6 @@ jobs:
     steps:
       - name: Get sources
         uses: actions/checkout@v4
-
-      - name: Dump inputs for debugging
-        shell: bash
-        run: |
-          echo ${{ needs.what-changed.outputs.rust }}
 
       # Disabling caching for now because I'm worried about using up any more of our cache storage.
       # Can revisit later if we need to.
