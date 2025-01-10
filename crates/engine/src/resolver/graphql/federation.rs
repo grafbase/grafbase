@@ -179,8 +179,8 @@ where
     }
 }
 
-pub(super) async fn fetch_entities_without_cache<'ctx, R: Runtime>(
-    ctx: &mut SubgraphContext<'ctx, R>,
+pub(super) async fn fetch_entities_without_cache<R: Runtime>(
+    ctx: &mut SubgraphContext<'_, R>,
     subgraph_headers: http::HeaderMap,
     subgraph_operation: &PreparedFederationEntityOperation,
     entities_to_fetch: Vec<EntityToFetch>,
@@ -217,8 +217,8 @@ pub(super) async fn fetch_entities_without_cache<'ctx, R: Runtime>(
     execute_subgraph_request(ctx, subgraph_headers, body, ingester).await
 }
 
-pub(super) async fn fetch_entities_with_cache<'ctx, R: Runtime>(
-    ctx: &mut SubgraphContext<'ctx, R>,
+pub(super) async fn fetch_entities_with_cache<R: Runtime>(
+    ctx: &mut SubgraphContext<'_, R>,
     subgraph_headers: http::HeaderMap,
     subgraph_operation: &PreparedFederationEntityOperation,
     entities_to_fetch: Vec<EntityToFetch>,

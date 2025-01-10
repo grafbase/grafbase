@@ -44,8 +44,8 @@ pub(super) fn calculate_cache_ttl(
     Some(cache_ttl)
 }
 
-pub(super) async fn fetch_response<'ctx, R: Runtime>(
-    ctx: &mut SubgraphContext<'ctx, R>,
+pub(super) async fn fetch_response<R: Runtime>(
+    ctx: &mut SubgraphContext<'_, R>,
     subgraph_headers: &http::HeaderMap,
     subgraph_request_body: &[u8],
 ) -> Result<ResponseCacheHit, ResponseCacheMiss> {
@@ -77,8 +77,8 @@ pub(super) struct ResponseCacheMiss {
     pub key: String,
 }
 
-pub(super) async fn fetch_entities<'ctx, R: Runtime>(
-    ctx: &mut SubgraphContext<'ctx, R>,
+pub(super) async fn fetch_entities<R: Runtime>(
+    ctx: &mut SubgraphContext<'_, R>,
     subgraph_headers: &http::HeaderMap,
     entities_to_fetch: Vec<EntityToFetch>,
 ) -> CacheFetchEntitiesOutcome {

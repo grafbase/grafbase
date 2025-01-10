@@ -22,7 +22,7 @@ struct TokenQueryParams {
     api_url: String,
 }
 
-async fn token<'a>(
+async fn token(
     State(LoginApiState {
         auth_url,
         shutdown_sender,

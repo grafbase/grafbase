@@ -42,8 +42,8 @@ where
     }
 }
 
-pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
-    ctx: &mut SubgraphContext<'ctx, R>,
+pub(crate) async fn execute_subgraph_request<R: Runtime>(
+    ctx: &mut SubgraphContext<'_, R>,
     headers: http::HeaderMap,
     body: impl Into<Bytes> + Send,
     ingester: impl ResponseIngester,
@@ -158,8 +158,8 @@ pub(crate) async fn execute_subgraph_request<'ctx, 'a, R: Runtime>(
     }
 }
 
-pub(crate) async fn retrying_fetch<'ctx, R: Runtime, F, T>(
-    ctx: &mut SubgraphContext<'ctx, R>,
+pub(crate) async fn retrying_fetch<R: Runtime, F, T>(
+    ctx: &mut SubgraphContext<'_, R>,
     fetch: impl Fn() -> F + Send + Sync,
 ) -> ExecutionResult<T>
 where
@@ -206,8 +206,8 @@ where
     }
 }
 
-async fn rate_limited_fetch<'ctx, R: Runtime, F, T>(
-    ctx: &mut SubgraphContext<'ctx, R>,
+async fn rate_limited_fetch<R: Runtime, F, T>(
+    ctx: &mut SubgraphContext<'_, R>,
     fetch: impl Fn() -> F + Send,
 ) -> ExecutionResult<T>
 where

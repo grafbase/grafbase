@@ -103,8 +103,8 @@ impl GraphqlResolver {
     }
 }
 
-async fn fetch_response_without_cache<'ctx, R: Runtime>(
-    ctx: &mut SubgraphContext<'ctx, R>,
+async fn fetch_response_without_cache<R: Runtime>(
+    ctx: &mut SubgraphContext<'_, R>,
     subgraph_headers: http::HeaderMap,
     body: Vec<u8>,
     input_object_id: InputObjectId,
@@ -135,8 +135,8 @@ async fn fetch_response_without_cache<'ctx, R: Runtime>(
     .await
 }
 
-async fn fetch_response_with_cache<'ctx, R: Runtime>(
-    ctx: &mut SubgraphContext<'ctx, R>,
+async fn fetch_response_with_cache<R: Runtime>(
+    ctx: &mut SubgraphContext<'_, R>,
     subgraph_headers: http::HeaderMap,
     body: Vec<u8>,
     input_object_id: InputObjectId,
@@ -182,7 +182,7 @@ struct GraphqlWithCachePutIngester<'ctx, R: Runtime> {
     cache_key: String,
 }
 
-impl<'ctx, R> ResponseIngester for GraphqlWithCachePutIngester<'ctx, R>
+impl<R> ResponseIngester for GraphqlWithCachePutIngester<'_, R>
 where
     R: Runtime,
 {

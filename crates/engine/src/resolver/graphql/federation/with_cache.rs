@@ -46,7 +46,7 @@ pub(super) struct PartiallyCachedEntitiesIngester<'ctx, R: Runtime> {
     pub subgraph_default_cache_ttl: Option<Duration>,
 }
 
-impl<'ctx, R> ResponseIngester for PartiallyCachedEntitiesIngester<'ctx, R>
+impl<R> ResponseIngester for PartiallyCachedEntitiesIngester<'_, R>
 where
     R: Runtime,
 {

@@ -25,7 +25,7 @@ enum Cache<'a> {
     Miss { cache_key: String, document: Cow<'a, str> },
 }
 
-impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
+impl<R: Runtime> PrepareContext<'_, R> {
     pub(super) async fn prepare_operation_inner(
         &mut self,
         request: Request,
