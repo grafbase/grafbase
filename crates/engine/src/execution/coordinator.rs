@@ -30,7 +30,7 @@ pub(crate) trait ResponseSender<O>: Send {
     fn send(&mut self, response: Response<O>) -> impl Future<Output = Result<(), Self::Error>> + Send;
 }
 
-impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
+impl<R: Runtime> PrepareContext<'_, R> {
     pub async fn execute_query_or_mutation(
         mut self,
         operation: PreparedOperation,
@@ -242,10 +242,9 @@ struct SubscriptionExecution<'ctx, R: Runtime, S> {
     stream: S,
 }
 
-impl<'ctx, 'exec, R: Runtime, S> SubscriptionExecution<'ctx, R, S>
+impl<R: Runtime, S> SubscriptionExecution<'_, R, S>
 where
-    'ctx: 'exec,
-    S: Stream<Item = ExecutionResult<SubscriptionResponse>> + Send + 'exec,
+    S: Stream<Item = ExecutionResult<SubscriptionResponse>> + Send,
 {
     async fn execute(mut self, mut responses: impl ResponseSender<<R::Hooks as Hooks>::OnOperationResponseOutput>) {
         let subscription_stream = self.stream.fuse();

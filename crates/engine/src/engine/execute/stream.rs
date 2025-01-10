@@ -124,7 +124,7 @@ impl<R: Runtime> Engine<R> {
     }
 }
 
-impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
+impl<R: Runtime> PrepareContext<'_, R> {
     async fn execute_stream<S>(mut self, request: Request, mut sender: S) -> Option<GraphqlOperationAttributes>
     where
         S: ResponseSender<<R::Hooks as Hooks>::OnOperationResponseOutput, Error = mpsc::SendError>,

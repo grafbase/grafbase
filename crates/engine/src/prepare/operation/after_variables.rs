@@ -10,7 +10,7 @@ use crate::{
     Runtime,
 };
 
-impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
+impl<R: Runtime> PrepareContext<'_, R> {
     pub(super) async fn prepare_cached_operation(
         &mut self,
         cached_operation: Arc<CachedOperation>,

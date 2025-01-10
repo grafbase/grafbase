@@ -19,7 +19,7 @@ use crate::{
     Runtime,
 };
 
-impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
+impl<R: Runtime> PrepareContext<'_, R> {
     pub(crate) async fn prepare_operation(
         &mut self,
         request: Request,

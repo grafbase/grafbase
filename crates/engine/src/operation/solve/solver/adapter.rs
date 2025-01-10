@@ -42,7 +42,7 @@ impl<'a> OperationAdapter<'a> {
     }
 }
 
-impl<'a> query_solver::Operation for OperationAdapter<'a> {
+impl query_solver::Operation for OperationAdapter<'_> {
     type FieldId = BoundFieldId;
 
     fn field_ids(&self) -> impl ExactSizeIterator<Item = Self::FieldId> + 'static {

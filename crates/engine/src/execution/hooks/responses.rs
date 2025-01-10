@@ -2,7 +2,7 @@ use runtime::hooks::{ExecutedOperation, ExecutedSubgraphRequest, Hooks};
 
 use crate::response::GraphqlError;
 
-impl<'ctx, H: Hooks> super::RequestHooks<'ctx, H> {
+impl<H: Hooks> super::RequestHooks<'_, H> {
     pub async fn on_subgraph_response(
         &self,
         request: ExecutedSubgraphRequest<'_>,

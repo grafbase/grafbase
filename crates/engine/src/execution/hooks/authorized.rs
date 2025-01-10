@@ -10,7 +10,7 @@ use crate::{
     response::{GraphqlError, ResponseObjectsView},
 };
 
-impl<'ctx, H: Hooks> super::RequestHooks<'ctx, H> {
+impl<H: Hooks> super::RequestHooks<'_, H> {
     pub async fn authorize_edge_pre_execution(
         &self,
         definition: FieldDefinition<'_>,

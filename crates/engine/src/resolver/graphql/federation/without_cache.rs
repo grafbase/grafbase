@@ -22,7 +22,7 @@ pub(super) struct EntityIngester<'ctx, R: Runtime> {
     pub fetched_entities: Vec<EntityToFetch>,
 }
 
-impl<'ctx, R> ResponseIngester for EntityIngester<'ctx, R>
+impl<R> ResponseIngester for EntityIngester<'_, R>
 where
     R: Runtime,
 {

@@ -65,7 +65,7 @@ impl<R: Runtime> Engine<R> {
     }
 }
 
-impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
+impl<R: Runtime> PrepareContext<'_, R> {
     async fn execute_single(mut self, request: Request) -> Response<<R::Hooks as Hooks>::OnOperationResponseOutput> {
         let operation = match self.prepare_operation(request).await {
             Ok(operation) => operation,

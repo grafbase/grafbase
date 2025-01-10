@@ -3,7 +3,7 @@ use runtime::hooks::Hooks;
 
 use crate::response::GraphqlError;
 
-impl<'ctx, H: Hooks> super::RequestHooks<'ctx, H> {
+impl<H: Hooks> super::RequestHooks<'_, H> {
     pub async fn on_subgraph_request(
         &self,
         subgraph_name: &str,

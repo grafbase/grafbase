@@ -34,7 +34,7 @@ pub struct DeterministicEngineBuilder<'a> {
     subgraphs_json_responses: Vec<String>,
 }
 
-impl<'a> DeterministicEngineBuilder<'a> {
+impl DeterministicEngineBuilder<'_> {
     #[must_use]
     pub fn with_subgraph_response<T: serde::Serialize>(mut self, resp: T) -> Self {
         self.subgraphs_json_responses
