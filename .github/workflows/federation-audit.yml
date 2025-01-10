@@ -34,7 +34,7 @@ jobs:
 
       - name: Run what-rust-changed
         id: rust
-        uses: grafbase/what-rust-changed@obmarg/yosxprrlrxpm
+        uses: grafbase/what-rust-changed@v0.2.0
         with:
           config: .github/what-rust-changed.toml
           base: ${{ github.event.pull_request.base.ref || 'main' }}
