@@ -1,6 +1,6 @@
 # graphql-schema-diff
 
-[![crates.io](https://img.shields.io/crates/v/graphql-schema-diff)](https://crates.io/crates/graphql-schema-diff)]
+[![crates.io](https://img.shields.io/crates/v/graphql-schema-diff)](https://crates.io/crates/graphql-schema-diff)
 [![docs.rs](https://img.shields.io/docsrs/graphql-schema-diff)](https://docs.rs/graphql-schema-diff/)
 
 This crate implements diffing of two GraphQL schemas, returning a list of changes. It powers the changelog feature and operation checks at Grafbase.
