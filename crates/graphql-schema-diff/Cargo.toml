@@ -6,7 +6,7 @@ edition.workspace = true
 license = "MPL-2.0"
 homepage.workspace = true
 keywords = ["graphql"]
-repository = "https://github.com/grafbase/grafbase/tree/main/engine/crates/graphql-schema-diff"
+repository = "https://github.com/grafbase/grafbase/tree/main/crates/graphql-schema-diff"
 
 [dependencies]
 cynic-parser.workspace = true
