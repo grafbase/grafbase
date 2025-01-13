@@ -18,7 +18,7 @@ chrono = "0.4.38"
 clap = { version = "4", features = ["cargo", "wrap_help", "derive", "env"] }
 clap_complete = "4.5.2"
 cli-table = { version = "0.4.9", default-features = false }
-colored = "2.1.0"
+colored = "3.0.0"
 const_format = "0.2.32"
 crossterm = "0.28.1"
 cynic = { workspace = true, features = ["http-reqwest"] }
