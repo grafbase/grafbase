@@ -10,7 +10,11 @@ pub use bench::*;
 use futures::{future::BoxFuture, FutureExt};
 use gateway_config::Config;
 use graphql_mocks::MockGraphQlServer;
-use runtime::{fetch::dynamic::DynamicFetcher, hooks::DynamicHooks, trusted_documents_client};
+use runtime::{
+    fetch::dynamic::DynamicFetcher,
+    hooks::DynamicHooks,
+    trusted_documents_client::{self, TrustedDocumentsEnforcementMode},
+};
 pub use test_runtime::*;
 
 use super::{subgraph::Subgraphs, DockerSubgraph, TestGateway};
@@ -76,10 +80,14 @@ impl TestGatewayBuilder {
     // Prefer passing through either the TOML / SDL config when relevant, see update_runtime_with_toml_config
     //--
 
-    pub fn with_mock_trusted_documents(mut self, branch_id: String, documents: Vec<TestTrustedDocument>) -> Self {
+    pub fn with_mock_trusted_documents(
+        mut self,
+        enforcement_mode: TrustedDocumentsEnforcementMode,
+        documents: Vec<TestTrustedDocument>,
+    ) -> Self {
         self.trusted_documents = Some(trusted_documents_client::Client::new(MockTrustedDocumentsClient {
-            _branch_id: branch_id,
             documents,
+            enforcement_mode,
         }));
         self
     }

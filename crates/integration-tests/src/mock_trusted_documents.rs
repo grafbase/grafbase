@@ -1,4 +1,6 @@
-use runtime::trusted_documents_client::{TrustedDocumentsError, TrustedDocumentsResult};
+use runtime::trusted_documents_client::{
+    TrustedDocumentsEnforcementMode, TrustedDocumentsError, TrustedDocumentsResult,
+};
 
 #[derive(Debug, Clone)]
 pub struct TestTrustedDocument {
@@ -8,16 +10,24 @@ pub struct TestTrustedDocument {
     pub document_text: &'static str,
 }
 
-#[derive(Default)]
 pub(super) struct MockTrustedDocumentsClient {
     pub(crate) documents: Vec<TestTrustedDocument>,
-    pub(crate) _branch_id: String,
+    pub(crate) enforcement_mode: TrustedDocumentsEnforcementMode,
+}
+
+impl Default for MockTrustedDocumentsClient {
+    fn default() -> Self {
+        MockTrustedDocumentsClient {
+            documents: Vec::new(),
+            enforcement_mode: TrustedDocumentsEnforcementMode::Ignore,
+        }
+    }
 }
 
 #[async_trait::async_trait]
 impl runtime::trusted_documents_client::TrustedDocumentsClient for MockTrustedDocumentsClient {
-    fn is_enabled(&self) -> bool {
-        !self.documents.is_empty()
+    fn enforcement_mode(&self) -> TrustedDocumentsEnforcementMode {
+        self.enforcement_mode
     }
 
     fn bypass_header(&self) -> Option<(&str, &str)> {

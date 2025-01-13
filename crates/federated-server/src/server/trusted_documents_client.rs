@@ -1,3 +1,5 @@
+use runtime::trusted_documents_client::TrustedDocumentsEnforcementMode;
+
 const GRAFBASE_PRODUCTION_TRUSTED_DOCUMENTS_BUCKET: &str = "https://pub-72f3517515a34104921bb714721a885a.r2.dev";
 const GRAFBASE_ASSETS_URL_ENV_VAR: &str = "GRAFBASE_ASSETS_URL";
 
@@ -13,6 +15,8 @@ pub(crate) struct TrustedDocumentsClient {
 
     /// Optional header for bypassing into trusted document storage.
     bypass_header: Option<(String, String)>,
+
+    enforcement_mode: TrustedDocumentsEnforcementMode,
 }
 
 impl TrustedDocumentsClient {
@@ -31,6 +35,7 @@ impl TrustedDocumentsClient {
         http_client: reqwest::Client,
         branch_id: ulid::Ulid,
         bypass_header: Option<(String, String)>,
+        enforcement_mode: TrustedDocumentsEnforcementMode,
     ) -> Self {
         let assets_host: url::Url = std::env::var(GRAFBASE_ASSETS_URL_ENV_VAR)
             .unwrap_or(GRAFBASE_PRODUCTION_TRUSTED_DOCUMENTS_BUCKET.to_string())
@@ -42,14 +47,15 @@ impl TrustedDocumentsClient {
             http_client,
             branch_id,
             bypass_header,
+            enforcement_mode,
         }
     }
 }
 
 #[async_trait::async_trait]
 impl runtime::trusted_documents_client::TrustedDocumentsClient for TrustedDocumentsClient {
-    fn is_enabled(&self) -> bool {
-        true
+    fn enforcement_mode(&self) -> TrustedDocumentsEnforcementMode {
+        self.enforcement_mode
     }
 
     fn bypass_header(&self) -> Option<(&str, &str)> {

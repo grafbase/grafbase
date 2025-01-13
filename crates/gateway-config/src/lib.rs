@@ -9,15 +9,17 @@ pub mod entity_caching;
 pub mod header;
 pub mod health;
 pub mod hooks;
+mod log_level;
 pub mod message_signatures;
 pub mod operation_caching;
 pub mod rate_limit;
 mod size_ext;
 pub mod telemetry;
+mod trusted_documents;
 
 use std::{collections::BTreeMap, net::SocketAddr, path::PathBuf, time::Duration};
 
-use ascii::AsciiString;
+pub use self::{log_level::*, trusted_documents::*};
 pub use authentication::*;
 pub use complexity_control::*;
 pub use cors::*;
@@ -252,26 +254,6 @@ pub struct NetworkConfig {
 pub struct TlsConfig {
     pub certificate: PathBuf,
     pub key: PathBuf,
-}
-
-#[derive(Debug, serde::Deserialize, Default, Clone)]
-#[serde(default, deny_unknown_fields)]
-pub struct TrustedDocumentsConfig {
-    /// If true, the engine will only accept trusted document queries. Default: false.
-    pub enabled: bool,
-    /// See [BypassHeader]
-    #[serde(flatten)]
-    pub bypass_header: BypassHeader,
-}
-
-/// An optional header that can be passed by clients to bypass trusted documents enforcement, allowing arbitrary queries.
-#[derive(Debug, serde::Deserialize, Clone, Default)]
-#[serde(default, deny_unknown_fields)]
-pub struct BypassHeader {
-    /// Name of the optional header that can be set to bypass trusted documents enforcement, when `enabled = true`. Only meaningful in combination with `bypass_header_value`.
-    pub bypass_header_name: Option<AsciiString>,
-    /// Value of the optional header that can be set to bypass trusted documents enforcement, when `enabled = true`. Only meaningful in combination with `bypass_header_value`.
-    pub bypass_header_value: Option<DynamicString<String>>,
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, serde::Deserialize)]
@@ -764,15 +746,19 @@ mod tests {
 
         let config = toml::from_str::<Config>(input).unwrap();
 
-        insta::assert_debug_snapshot!(config.trusted_documents, @r###"
+        insta::assert_debug_snapshot!(config.trusted_documents, @r#"
         TrustedDocumentsConfig {
             enabled: false,
+            enforced: false,
             bypass_header: BypassHeader {
                 bypass_header_name: None,
                 bypass_header_value: None,
             },
+            document_id_unknown_log_level: Info,
+            document_id_and_query_mismatch_log_level: Info,
+            inline_document_unknown_log_level: Info,
         }
-        "###)
+        "#)
     }
 
     #[test]
@@ -784,15 +770,19 @@ mod tests {
 
         let config = toml::from_str::<Config>(input).unwrap();
 
-        insta::assert_debug_snapshot!(config.trusted_documents, @r###"
+        insta::assert_debug_snapshot!(config.trusted_documents, @r#"
         TrustedDocumentsConfig {
             enabled: true,
+            enforced: false,
             bypass_header: BypassHeader {
                 bypass_header_name: None,
                 bypass_header_value: None,
             },
+            document_id_unknown_log_level: Info,
+            document_id_and_query_mismatch_log_level: Info,
+            inline_document_unknown_log_level: Info,
         }
-        "###)
+        "#)
     }
 
     #[test]
@@ -820,15 +810,20 @@ mod tests {
         let input = r###"
             [trusted_documents]
             enabled = true # default: false
+            enforced = true
             bypass_header_name = "my-header-name" # default null
             bypass_header_value = "my-secret-value" # default null
+            document_id_unknown_log_level = "error"
+            document_id_and_query_mismatch_log_level = "OFF"
+            inline_document_unknown_log_level = "Warn"
         "###;
 
         let config = toml::from_str::<Config>(input).unwrap();
 
-        insta::assert_debug_snapshot!(config.trusted_documents, @r###"
+        insta::assert_debug_snapshot!(config.trusted_documents, @r#"
         TrustedDocumentsConfig {
             enabled: true,
+            enforced: true,
             bypass_header: BypassHeader {
                 bypass_header_name: Some(
                     "my-header-name",
@@ -839,8 +834,11 @@ mod tests {
                     ),
                 ),
             },
+            document_id_unknown_log_level: Error,
+            document_id_and_query_mismatch_log_level: Off,
+            inline_document_unknown_log_level: Warn,
         }
-        "###);
+        "#);
     }
 
     #[test]
