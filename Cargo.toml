@@ -79,6 +79,7 @@ insta = { version = "1.39.0", features = ["json", "redactions"] }
 internment = { version = "0.8", features = ["serde", "arc"] }
 itertools = "0.14.0"
 jsonwebtoken = "9.3.0"
+lambda_http = "0.14.0"
 governor = "0.8"
 mini-moka = "0.10"
 miette = "7.4"

@@ -12,6 +12,10 @@ version = "3.0.31"
 [lints]
 workspace = true
 
+[features]
+default = []
+lambda = ["dep:lambda_http", "dep:hyper"]
+
 [dependencies]
 async-trait = { version = "0.1.80" }
 axum = { workspace = true, features = ["ws", "json"] }
@@ -28,3 +32,5 @@ tower.workspace = true
 grafbase-telemetry.workspace = true
 http-body = "1.0.1"
 grafbase-workspace-hack.workspace = true
+lambda_http = { workspace = true, optional = true }
+hyper = { version = "1", optional = true }

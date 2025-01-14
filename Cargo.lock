@@ -464,22 +464,6 @@ dependencies = [
 
 [[package]]
 name = "aws_lambda_events"
-version = "0.15.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7319a086b79c3ff026a33a61e80f04fd3885fbb73237981ea080d21944e1cb1c"
-dependencies = [
- "base64 0.22.1",
- "bytes",
- "http 1.2.0",
- "http-body 1.0.1",
- "http-serde",
- "query_map",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "aws_lambda_events"
 version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "52ddb91585253ccc85be3f2e0d5635529efdeadaf8a1da3230b433d3bbe43648"
@@ -567,23 +551,6 @@ dependencies = [
  "tower-layer",
  "tower-service",
  "tracing",
-]
-
-[[package]]
-name = "axum-aws-lambda"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a21ae5caa7f49804ca2467334f70c362c89cf15431fe581d5d38ca770de112ac"
-dependencies = [
- "axum 0.7.9",
- "bytes",
- "futures-util",
- "http 1.2.0",
- "http-body-util",
- "hyper 1.5.2",
- "lambda_http 0.13.0",
- "tower 0.5.2",
- "tower-service",
 ]
 
 [[package]]
@@ -2262,6 +2229,8 @@ dependencies = [
  "http 1.2.0",
  "http-body 1.0.1",
  "http-body-util",
+ "hyper 1.5.2",
+ "lambda_http",
  "runtime",
  "serde_json",
  "tokio",
@@ -2591,7 +2560,6 @@ dependencies = [
  "ascii",
  "async-trait",
  "axum 0.8.1",
- "axum-aws-lambda",
  "axum-server",
  "blake3",
  "cfg-if",
@@ -2605,7 +2573,7 @@ dependencies = [
  "graph-ref",
  "graphql-composition",
  "http 1.2.0",
- "lambda_http 0.14.0",
+ "lambda_http",
  "notify 7.0.0",
  "reqwest 0.12.12",
  "rolling-logger",
@@ -3265,6 +3233,7 @@ dependencies = [
  "axum 0.7.9",
  "axum 0.8.1",
  "axum-core 0.4.5",
+ "axum-core 0.5.0",
  "base16ct",
  "bitflags 2.7.0",
  "bstr",
@@ -3311,6 +3280,7 @@ dependencies = [
  "group",
  "hashbrown 0.12.3",
  "hashbrown 0.14.5",
+ "hashbrown 0.15.2",
  "hex",
  "hyper 1.5.2",
  "hyper-util",
@@ -4600,38 +4570,11 @@ dependencies = [
 
 [[package]]
 name = "lambda_http"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "67fe279be7f89f5f72c97c3a96f45c43db8edab1007320ecc6a5741273b4d6db"
-dependencies = [
- "aws_lambda_events 0.15.1",
- "base64 0.22.1",
- "bytes",
- "encoding_rs",
- "futures",
- "futures-util",
- "http 1.2.0",
- "http-body 1.0.1",
- "http-body-util",
- "hyper 1.5.2",
- "lambda_runtime",
- "mime",
- "percent-encoding",
- "pin-project-lite",
- "serde",
- "serde_json",
- "serde_urlencoded",
- "tokio-stream",
- "url",
-]
-
-[[package]]
-name = "lambda_http"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68b470cea1ec37b96e9543870a33c1f4b9e243754fe5892668efa3125ea12784"
 dependencies = [
- "aws_lambda_events 0.16.0",
+ "aws_lambda_events",
  "base64 0.22.1",
  "bytes",
  "encoding_rs",
