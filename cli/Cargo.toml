@@ -34,7 +34,6 @@ ignore = "0.4.22"
 inquire = "0.7.5"
 log = "0.4.21"
 mimalloc = "0.1.41"
-notify = "7.0.0"
 notify-debouncer-full = "0.5.0"
 os_type = "2.6.0"
 reqwest = { workspace = true, features = [

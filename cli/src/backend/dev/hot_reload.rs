@@ -4,8 +4,11 @@ use crate::backend::dev::subgraphs::CachedIntrospectedSubgraph;
 use crate::backend::errors::BackendError;
 use gateway_config::Config;
 use grafbase_graphql_introspection::introspect;
-use notify::{RecommendedWatcher, RecursiveMode};
-use notify_debouncer_full::{new_debouncer, DebounceEventResult, Debouncer, RecommendedCache};
+use notify_debouncer_full::{
+    new_debouncer,
+    notify::{self, RecommendedWatcher, RecursiveMode},
+    DebounceEventResult, Debouncer, RecommendedCache,
+};
 use std::collections::HashSet;
 use std::sync::Arc;
 use std::{path::PathBuf, time::Duration};

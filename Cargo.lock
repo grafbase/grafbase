@@ -550,7 +550,6 @@ dependencies = [
  "tower 0.5.2",
  "tower-layer",
  "tower-service",
- "tracing",
 ]
 
 [[package]]
@@ -591,7 +590,6 @@ dependencies = [
  "sync_wrapper 1.0.2",
  "tower-layer",
  "tower-service",
- "tracing",
 ]
 
 [[package]]
@@ -3069,7 +3067,6 @@ dependencies = [
  "mimalloc",
  "more-asserts",
  "multipart-stream",
- "notify 7.0.0",
  "notify-debouncer-full",
  "os_type",
  "rand 0.8.5",
@@ -3233,7 +3230,6 @@ dependencies = [
  "axum 0.7.9",
  "axum 0.8.1",
  "axum-core 0.4.5",
- "axum-core 0.5.0",
  "base16ct",
  "bitflags 2.7.0",
  "bstr",
@@ -3418,7 +3414,7 @@ dependencies = [
  "async-graphql",
  "async-graphql-axum",
  "async-trait",
- "axum 0.8.1",
+ "axum 0.7.9",
  "crossbeam-queue",
  "cynic-parser",
  "futures",
