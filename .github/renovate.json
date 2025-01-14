@@ -1,6 +1,5 @@
 {
-  "extends": ["config:base"],
-  "preCommit": ["cargo hakari generate", "git add Cargo.lock", "git commit -m 'chore: Update Hakari generated files'"],
+  "extends": ["github>grafbase/renovate"],
   "packageRules": [
     {
       "matchPackageNames": ["axum"],
