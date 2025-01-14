@@ -49,26 +49,6 @@ union PartitionField @id @meta(module: "field") @variants(names: ["Data", "Typen
   | PartitionDataField
   | PartitionTypenameField
 
-# "In opposition to a __typename field this field does retrieve data from a subgraph"
-# type PartitionDataField @meta(module: "field/data", debug: false) @indexed(id_size: "u32") {
-#   data_field: DataField!
-#   required_fields: RequiredFieldSet!
-#   "Requirement of @authorized, etc."
-#   required_fields_by_supergraph: RequiredFieldSet! @field(record_field_name: "required_fields_record_by_supergraph")
-#   "All field shape ids generated for this field"
-#   shape_ids: [FieldShapeRefId!]!
-#   parent_field_output: ResponseObjectSetDefinition
-#   output: ResponseObjectSetDefinition
-#   selection_set: SelectionSet!
-#   "Whether __typename should be requested from the subgraph for this selection set"
-#   selection_set_requires_typename: Boolean!
-#   query_partition: QueryPartition!
-# }
-#
-# type PartitionTypenameField @meta(module: "field/typename") @indexed(id_size: "u32") {
-#
-# }
-
 # ------------
 # - Modifier -
 # ------------

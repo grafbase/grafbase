@@ -9,7 +9,6 @@ scalar Operation
   )
 
 scalar ResponseKey @copy
-scalar ResponseKey @copy
 scalar Location @copy
 scalar String @prelude
 scalar QueryInputValueId @id
