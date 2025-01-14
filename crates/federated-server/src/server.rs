@@ -246,7 +246,7 @@ async fn bind(
 #[cfg(feature = "lambda")]
 async fn lambda_bind(path: &str, router: Router<()>) -> crate::Result<()> {
     let app = tower::ServiceBuilder::new()
-        .layer(axum_aws_lambda::LambdaLayer::default())
+        .layer(engine_axum::lambda::LambdaLayer::default())
         .service(router);
 
     tracing::info!("GraphQL endpoint exposed at {path}");

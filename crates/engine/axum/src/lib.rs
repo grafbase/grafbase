@@ -5,6 +5,8 @@ use engine::{Body, Engine, ErrorCode, Runtime};
 use futures_util::TryFutureExt;
 use runtime::bytes::OwnedOrSharedBytes;
 
+#[cfg(feature = "lambda")]
+pub mod lambda;
 pub mod middleware;
 pub mod websocket;
 
