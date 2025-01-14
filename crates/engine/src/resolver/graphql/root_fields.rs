@@ -18,7 +18,7 @@ use super::{
 };
 use crate::{
     execution::{ExecutionContext, ExecutionError},
-    operation::{PlanError, PlanQueryPartition, PlanResult},
+    prepare::{PlanError, PlanQueryPartition, PlanResult},
     resolver::{graphql::request::SubgraphGraphqlRequest, ExecutionResult, Resolver},
     response::{ErrorPath, ErrorPathSegment, GraphqlError, InputObjectId, InputResponseObjectSet, SubgraphResponse},
     Runtime,

@@ -1,26 +1,26 @@
 use std::cell::{Cell, Ref, RefCell, RefMut};
 
 use crate::{
-    operation::{OperationPlanContext, SolvedOperationContext},
-    prepare::PreparedOperation,
-    response::{ResponseKeys, ResponseValueId, SubgraphResponseRefMut},
+    prepare::{CachedOperationContext, OperationPlanContext, PreparedOperation},
+    response::{ResponseValueId, SubgraphResponseRefMut},
 };
 use itertools::Itertools;
+use operation::ResponseKeys;
 use schema::Schema;
 
 pub(super) struct SeedContext<'ctx> {
     pub schema: &'ctx Schema,
-    pub operation: &'ctx PreparedOperation,
+    pub prepared_operation: &'ctx PreparedOperation,
     pub subgraph_response: SubgraphResponseRefMut<'ctx>,
     pub bubbling_up_serde_error: Cell<bool>,
     pub path: RefCell<Vec<ResponseValueId>>,
 }
 
-impl<'ctx> From<&SeedContext<'ctx>> for SolvedOperationContext<'ctx> {
+impl<'ctx> From<&SeedContext<'ctx>> for CachedOperationContext<'ctx> {
     fn from(ctx: &SeedContext<'ctx>) -> Self {
-        SolvedOperationContext {
+        CachedOperationContext {
             schema: ctx.schema,
-            operation: &ctx.operation.cached.solved,
+            cached: &ctx.prepared_operation.cached,
         }
     }
 }
@@ -29,19 +29,23 @@ impl<'ctx> From<&SeedContext<'ctx>> for OperationPlanContext<'ctx> {
     fn from(ctx: &SeedContext<'ctx>) -> Self {
         OperationPlanContext {
             schema: ctx.schema,
-            solved_operation: &ctx.operation.cached.solved,
-            operation_plan: &ctx.operation.plan,
+            cached: &ctx.prepared_operation.cached,
+            plan: &ctx.prepared_operation.plan,
         }
     }
 }
 
-impl SeedContext<'_> {
+impl<'ctx> SeedContext<'ctx> {
+    pub(super) fn response_keys(&self) -> &'ctx ResponseKeys {
+        &self.prepared_operation.cached.operation.response_keys
+    }
+
     pub(super) fn path(&self) -> RefMut<'_, Vec<ResponseValueId>> {
         self.path.borrow_mut()
     }
 
     pub(super) fn display_path(&self) -> impl std::fmt::Display + '_ {
-        let keys = &self.operation.cached.solved.response_keys;
+        let keys = &self.prepared_operation.cached.operation.response_keys;
         let path = self.path.borrow();
         DisplayPath { keys, path }
     }

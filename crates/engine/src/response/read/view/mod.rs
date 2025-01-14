@@ -4,7 +4,7 @@ mod ser;
 use std::{borrow::Cow, sync::Arc};
 
 use crate::{
-    operation::RequiredFieldSet,
+    prepare::RequiredFieldSet,
     response::{InputObjectId, InputResponseObjectSet, ResponseBuilder, ResponseObject, ResponseValue},
 };
 

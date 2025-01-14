@@ -1,9 +1,7 @@
-use crate::{
-    assert_solving_snapshots,
-    solve::Solver,
-    tests::{read_schema, TestOperation},
-    OperationGraph,
-};
+use operation::{Operation, OperationContext};
+use schema::Schema;
+
+use crate::{assert_solving_snapshots, solve::Solver, Query};
 
 const SCHEMA: &str = r###"
 enum join__Graph {
@@ -69,9 +67,10 @@ type Query
 
 #[test]
 fn requirements_cycle() {
-    let schema = read_schema(SCHEMA);
-    let mut operation = TestOperation::bind(
+    let schema = Schema::from_sdl_or_panic(SCHEMA);
+    let operation = Operation::parse(
         &schema,
+        None,
         r#"
         query {
           requirementsCycle {
@@ -79,16 +78,21 @@ fn requirements_cycle() {
           }
         }
     "#,
-    );
+    )
+    .unwrap();
 
-    let graph = OperationGraph::new(&schema, &mut operation).unwrap();
+    let query = Query::generate_solution_space(&schema, &operation).unwrap();
+    let ctx = OperationContext {
+        schema: &schema,
+        operation: &operation,
+    };
     insta::assert_snapshot!(
         "requirements_cycle-graph",
-        graph.to_dot_graph(),
-        &graph.to_pretty_dot_graph()
+        query.to_dot_graph(ctx),
+        &query.to_pretty_dot_graph(ctx)
     );
 
-    let err = Solver::initialize(&graph).unwrap_err();
+    let err = Solver::initialize(&schema, &operation, &query).unwrap_err();
     assert!(matches!(err, crate::Error::RequirementCycleDetected));
 }
 
@@ -112,7 +116,7 @@ fn query_partitions_cycle() {
 }
 
 #[test]
-fn query_partitions_nested_cycle() {
+fn query_partitions_nested_cycle_1() {
     // 'first' and 'third' cannot be in the same query partitions as it would lead to a cyclic
     // dependency between query partitions.
     assert_solving_snapshots!(
@@ -121,6 +125,33 @@ fn query_partitions_nested_cycle() {
         r#"
         query {
           feed {
+            author {
+              id
+            }
+            comments(limit: 3) {
+              id
+            }
+          }
+        }
+        "#
+    );
+}
+
+// As we use a direct graph, ordering of edges matter. This query will process fields in the
+// reverse order ensuring we handle the directed edge correctly.
+#[test]
+fn query_partitions_nested_cycle_2() {
+    // 'first' and 'third' cannot be in the same query partitions as it would lead to a cyclic
+    // dependency between query partitions.
+    assert_solving_snapshots!(
+        "query_partitions_nested_cycle2",
+        SCHEMA,
+        r#"
+        query {
+          feed {
+            comments(limit: 3) {
+              id
+            }
             author {
               id
             }

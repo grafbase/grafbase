@@ -1,19 +1,22 @@
 use std::num::NonZero;
 
+use ::operation::Operation;
 use fixedbitset::FixedBitSet;
 use id_newtypes::IdRange;
 use itertools::Itertools;
+use operation::OperationContext;
 use petgraph::{
     prelude::StableGraph,
     stable_graph::{EdgeIndex, EdgeReference, NodeIndex},
     visit::{EdgeRef, IntoNodeReferences},
     Direction,
 };
+use schema::Schema;
 
 use crate::{
     dot_graph::Attrs,
-    operation::{Edge, Node, OperationGraph},
-    Cost, FieldFlags, Operation,
+    solution_space::{SpaceEdge, SpaceNode},
+    Cost, FieldFlags, QuerySolutionSpace,
 };
 
 use super::steiner_tree;
@@ -31,9 +34,11 @@ use super::steiner_tree;
 ///
 /// As this extra cost changes every time we change the Steiner tree, we have to adjust those while
 /// constructing it.
-pub(crate) struct Solver<'g, 'ctx, Op: Operation> {
-    operation_graph: &'g OperationGraph<'ctx, Op>,
-    algorithm: steiner_tree::ShortestPathAlgorithm<&'g StableGraph<Node<'ctx, Op::FieldId>, Edge>>,
+pub(crate) struct Solver<'schema, 'op, 'q> {
+    schema: &'schema Schema,
+    operation: &'op Operation,
+    query_solution_space: &'q QuerySolutionSpace<'schema>,
+    algorithm: steiner_tree::ShortestPathAlgorithm<&'q StableGraph<SpaceNode<'schema>, SpaceEdge>>,
     /// Keeps track of dispensable requirements to adjust edge cost, ideally we'd like to avoid
     /// them.
     dispensable_requirements_metadata: DispensableRequirementsMetadata,
@@ -45,19 +50,26 @@ pub(crate) struct SteinerTreeSolution {
     pub node_bitset: FixedBitSet,
 }
 
-impl<'g, 'ctx, Op: Operation> Solver<'g, 'ctx, Op> {
-    pub fn initialize(operation_graph: &'g OperationGraph<'ctx, Op>) -> crate::Result<Self> {
+impl<'schema, 'op, 'q> Solver<'schema, 'op, 'q>
+where
+    'schema: 'op,
+{
+    pub(crate) fn initialize(
+        schema: &'schema Schema,
+        operation: &'op Operation,
+        query_solution_space: &'q QuerySolutionSpace<'schema>,
+    ) -> crate::Result<Self> {
         let mut terminals = Vec::new();
-        for (node_ix, node) in operation_graph.graph.node_references() {
-            if let Node::QueryField(field) = node {
+        for (node_ix, node) in query_solution_space.graph.node_references() {
+            if let SpaceNode::QueryField(field) = node {
                 if field.flags.contains(FieldFlags::LEAF_NODE | FieldFlags::INDISPENSABLE) {
                     terminals.push(node_ix);
                 }
             }
         }
-        let node_filter = |(node_ix, node): (NodeIndex, &Node<'ctx, Op::FieldId>)| match node {
-            Node::Root | Node::Resolver(_) | Node::ProvidableField(_) => Some(node_ix),
-            Node::QueryField(field) => {
+        let node_filter = |(node_ix, node): (NodeIndex, &SpaceNode<'schema>)| match node {
+            SpaceNode::Root | SpaceNode::Resolver(_) | SpaceNode::ProvidableField(_) => Some(node_ix),
+            SpaceNode::QueryField(field) => {
                 if field.is_leaf() {
                     Some(node_ix)
                 } else {
@@ -65,23 +77,27 @@ impl<'g, 'ctx, Op: Operation> Solver<'g, 'ctx, Op> {
                 }
             }
         };
-        let edge_filter = |edge: EdgeReference<'_, Edge, _>| match edge.weight() {
+        let edge_filter = |edge: EdgeReference<'_, SpaceEdge, _>| match edge.weight() {
             // Resolvers have an inherent cost of 1.
-            Edge::CreateChildResolver => Some((edge.id(), edge.source(), edge.target(), 1)),
-            Edge::CanProvide | Edge::Provides => Some((edge.id(), edge.source(), edge.target(), 0)),
-            Edge::Field | Edge::TypenameField | Edge::HasChildResolver | Edge::Requires => None,
+            SpaceEdge::CreateChildResolver => Some((edge.id(), edge.source(), edge.target(), 1)),
+            SpaceEdge::CanProvide | SpaceEdge::Provides | SpaceEdge::TypenameField => {
+                Some((edge.id(), edge.source(), edge.target(), 0))
+            }
+            SpaceEdge::Field | SpaceEdge::HasChildResolver | SpaceEdge::Requires => None,
         };
 
         let algorithm = steiner_tree::ShortestPathAlgorithm::initialize(
-            &operation_graph.graph,
+            &query_solution_space.graph,
             node_filter,
             edge_filter,
-            operation_graph.root_ix,
+            query_solution_space.root_node_ix,
             terminals,
         );
 
         let mut solver = Self {
-            operation_graph,
+            schema,
+            operation,
+            query_solution_space,
             algorithm,
             dispensable_requirements_metadata: DispensableRequirementsMetadata::default(),
             tmp_extra_terminals: Vec::new(),
@@ -95,7 +111,7 @@ impl<'g, 'ctx, Op: Operation> Solver<'g, 'ctx, Op> {
         Ok(solver)
     }
 
-    pub fn solve(mut self) -> crate::Result<SteinerTreeSolution> {
+    pub(crate) fn solve(mut self) -> crate::Result<SteinerTreeSolution> {
         self.execute()?;
         Ok(self.into_solution())
     }
@@ -117,7 +133,7 @@ impl<'g, 'ctx, Op: Operation> Solver<'g, 'ctx, Op> {
 
     pub fn into_solution(self) -> SteinerTreeSolution {
         SteinerTreeSolution {
-            node_bitset: self.algorithm.operation_graph_bitset(),
+            node_bitset: self.algorithm.query_graph_nodes_bitset(),
         }
     }
 
@@ -132,18 +148,18 @@ impl<'g, 'ctx, Op: Operation> Solver<'g, 'ctx, Op> {
     ///
     /// This method populates all the necessary metadata used to compute the extra requirements cost.
     fn populate_requirement_metadata(&mut self) -> crate::Result<()> {
-        for (node_ix, node) in self.operation_graph.graph.node_references() {
-            if !matches!(node, Node::Resolver(_) | Node::ProvidableField(_)) {
+        for (node_ix, node) in self.query_solution_space.graph.node_references() {
+            if !matches!(node, SpaceNode::Resolver(_) | SpaceNode::ProvidableField(_)) {
                 continue;
             }
 
             let extra_required_node_ids = self.dispensable_requirements_metadata.extend_extra_required_nodes(
-                self.operation_graph
+                self.query_solution_space
                     .graph
                     .edges_directed(node_ix, Direction::Outgoing)
                     .filter(|edge| {
-                        matches!(edge.weight(), Edge::Requires)
-                            && self.operation_graph.graph[edge.target()]
+                        matches!(edge.weight(), SpaceEdge::Requires)
+                            && self.query_solution_space.graph[edge.target()]
                                 .as_query_field()
                                 .map(|field| !field.is_indispensable() && field.is_leaf())
                                 .unwrap_or_default()
@@ -154,8 +170,12 @@ impl<'g, 'ctx, Op: Operation> Solver<'g, 'ctx, Op> {
                 continue;
             }
 
-            for edge in self.operation_graph.graph.edges_directed(node_ix, Direction::Incoming) {
-                if !matches!(edge.weight(), Edge::CreateChildResolver | Edge::CanProvide) {
+            for edge in self
+                .query_solution_space
+                .graph
+                .edges_directed(node_ix, Direction::Incoming)
+            {
+                if !matches!(edge.weight(), SpaceEdge::CreateChildResolver | SpaceEdge::CanProvide) {
                     continue;
                 }
 
@@ -167,10 +187,12 @@ impl<'g, 'ctx, Op: Operation> Solver<'g, 'ctx, Op> {
                     self.dispensable_requirements_metadata
                         .extend_zero_cost_parent_edges(std::iter::from_fn(|| {
                             let mut grand_parents = self
-                                .operation_graph
+                                .query_solution_space
                                 .graph
                                 .edges_directed(parent, Direction::Incoming)
-                                .filter(|edge| matches!(edge.weight(), Edge::CreateChildResolver | Edge::CanProvide));
+                                .filter(|edge| {
+                                    matches!(edge.weight(), SpaceEdge::CreateChildResolver | SpaceEdge::CanProvide)
+                                });
 
                             let first = grand_parents.next()?;
                             if grand_parents.next().is_none() {
@@ -185,7 +207,7 @@ impl<'g, 'ctx, Op: Operation> Solver<'g, 'ctx, Op> {
                     .push(EdgeWithDispensableRequirements {
                         edge_ix: edge.id(),
                         base_cost: match edge.weight() {
-                            Edge::CreateChildResolver => 1,
+                            SpaceEdge::CreateChildResolver => 1,
                             _ => 0,
                         },
                         extra_required_node_ids,
@@ -243,7 +265,7 @@ impl<'g, 'ctx, Op: Operation> Solver<'g, 'ctx, Op> {
             zero_cost_parent_edge_ids,
         }) = self.dispensable_requirements_metadata.edges.get(i)
         {
-            let (source_ix, target_ix) = self.operation_graph.graph.edge_endpoints(*edge_ix).unwrap();
+            let (source_ix, target_ix) = self.query_solution_space.graph.edge_endpoints(*edge_ix).unwrap();
             if self.algorithm.contains_node(target_ix) {
                 self.tmp_extra_terminals.extend(
                     self.dispensable_requirements_metadata[*extra_required_node_ids]
@@ -271,6 +293,10 @@ impl<'g, 'ctx, Op: Operation> Solver<'g, 'ctx, Op> {
     }
 
     pub fn to_pretty_dot_graph(&self) -> String {
+        let ctx = OperationContext {
+            schema: self.schema,
+            operation: self.operation,
+        };
         self.algorithm.to_dot_graph(
             |cost, is_in_steiner_tree| {
                 Attrs::label_if(cost > 0, cost.to_string())
@@ -280,11 +306,11 @@ impl<'g, 'ctx, Op: Operation> Solver<'g, 'ctx, Op> {
                     .to_string()
             },
             |node_id, is_in_steiner_tree| {
-                self.operation_graph
+                self.query_solution_space
                     .graph
                     .node_weight(node_id)
                     .unwrap()
-                    .pretty_label(self.operation_graph)
+                    .pretty_label(self.query_solution_space, ctx)
                     .with_if(!is_in_steiner_tree, "style=dashed")
                     .with_if(is_in_steiner_tree, "color=forestgreen")
                     .to_string()
@@ -296,15 +322,19 @@ impl<'g, 'ctx, Op: Operation> Solver<'g, 'ctx, Op> {
     /// or `echo '..." | dot -Tsvg` from graphviz
     #[cfg(test)]
     pub fn to_dot_graph(&self) -> String {
+        let ctx = OperationContext {
+            schema: self.schema,
+            operation: self.operation,
+        };
         self.algorithm.to_dot_graph(
             |cost, is_in_steiner_tree| format!("cost={cost}, steiner={}", is_in_steiner_tree as usize),
             |node_id, is_in_steiner_tree| {
                 Attrs::label(
-                    self.operation_graph
+                    self.query_solution_space
                         .graph
                         .node_weight(node_id)
                         .unwrap()
-                        .label(self.operation_graph),
+                        .label(self.query_solution_space, ctx),
                 )
                 .with(format!("steiner={}", is_in_steiner_tree as usize))
                 .to_string()
@@ -313,7 +343,7 @@ impl<'g, 'ctx, Op: Operation> Solver<'g, 'ctx, Op> {
     }
 }
 
-impl<Op: Operation> std::fmt::Debug for Solver<'_, '_, Op> {
+impl std::fmt::Debug for Solver<'_, '_, '_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Solver").finish_non_exhaustive()
     }

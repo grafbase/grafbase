@@ -1,8 +1,8 @@
 pub(crate) mod code;
 mod path;
 
-use crate::operation::Location;
 pub(crate) use code::*;
+use operation::Location;
 pub(crate) use path::*;
 use std::borrow::Cow;
 
@@ -70,6 +70,12 @@ impl From<runtime::error::PartialGraphqlError> for GraphqlError {
             locations: Vec::new(),
             path: None,
         }
+    }
+}
+
+impl From<operation::VariableError> for GraphqlError {
+    fn from(err: operation::VariableError) -> Self {
+        GraphqlError::new(err.to_string(), ErrorCode::VariableError).with_location(err.location())
     }
 }
 

@@ -7,7 +7,6 @@ keywords = ["graphql", "engine", "grafbase"]
 license = "MPL-2.0"
 name = "engine-axum"
 repository = "https://github.com/grafbase/grafbase"
-version = "3.0.31"
 
 [lints]
 workspace = true

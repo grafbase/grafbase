@@ -6,13 +6,13 @@ use ::runtime::{hooks::Hooks, rate_limiting::RateLimitKey};
 use bytes::Bytes;
 use futures::StreamExt;
 use grafbase_telemetry::grafbase_client::Client;
+use operation::{BatchRequest, QueryParamsRequest, Request};
 use runtime::{auth::AccessToken, error::ErrorResponse};
 use std::{future::Future, sync::Arc};
 
 use crate::{
     execution::create_subgraph_headers_with_rules,
     graphql_over_http::{Http, ResponseFormat},
-    request::{BatchRequest, QueryParamsRequest, Request},
     response::Response,
     Body,
 };

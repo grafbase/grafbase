@@ -1,9 +1,10 @@
 mod data;
 mod errors;
 
+use operation::ResponseKeys;
 use serde::ser::SerializeMap;
 
-use crate::response::{ExecutedResponse, RefusedRequestResponse, RequestErrorResponse, Response, ResponseKeys};
+use crate::response::{ExecutedResponse, RefusedRequestResponse, RequestErrorResponse, Response};
 
 impl<OnOperationResponseHookOutput> serde::Serialize for Response<OnOperationResponseHookOutput> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -21,7 +22,7 @@ impl<OnOperationResponseHookOutput> serde::Serialize for Response<OnOperationRes
             }) => {
                 let mut map = serializer.serialize_map(None)?;
 
-                let keys = &operation.solved.response_keys;
+                let keys = &operation.operation.response_keys;
                 if let Some(data) = data {
                     map.serialize_entry(
                         "data",

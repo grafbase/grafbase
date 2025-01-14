@@ -365,6 +365,13 @@ impl<'a> IdUnionWalkerIdMethodBranch<'a> {
                     return Err((&self.variant.variant.name, &object.name));
                 }
             }
+            Some(Definition::Union(Union {
+                kind: UnionKind::Id(_), ..
+            })) => {
+                quote! {
+                    #walker::#variant(walker) => #enum_::#variant(walker.id())
+                }
+            }
             Some(ty) => {
                 return Err((&self.variant.variant.name, ty.name()));
             }

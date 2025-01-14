@@ -36,7 +36,7 @@ fn multiple_operations_without_providing_operation_name_in_request() {
         {
           "message": "Missing operation name.",
           "extensions": {
-            "code": "OPERATION_VALIDATION_ERROR"
+            "code": "OPERATION_PARSING_ERROR"
           }
         }
       ]
@@ -160,7 +160,7 @@ fn unknown_operation_name() {
         {
           "message": "Unknown operation named 'Third'.",
           "extensions": {
-            "code": "OPERATION_VALIDATION_ERROR"
+            "code": "OPERATION_PARSING_ERROR"
           }
         }
       ]

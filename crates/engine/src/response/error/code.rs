@@ -37,6 +37,7 @@ pub enum ErrorCode {
     OperationParsingError,
     OperationValidationError,
     OperationPlanningError,
+    VariableError,
     // Runtime
     HookError,
     // Rate limit
@@ -51,6 +52,7 @@ impl ErrorCode {
             ErrorCode::OperationParsingError
             | ErrorCode::OperationValidationError
             | ErrorCode::OperationPlanningError
+            | ErrorCode::VariableError
             | ErrorCode::PersistedQueryNotFound
             | ErrorCode::PersistedQueryError
             | ErrorCode::TrustedDocumentError

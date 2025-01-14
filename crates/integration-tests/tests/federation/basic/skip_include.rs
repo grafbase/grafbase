@@ -48,14 +48,8 @@ fn skip_include() {
     {
       "data": {
         "pullRequestsAndIssues": [
-          {
-            "author": {}
-          },
-          {
-            "author": {
-              "id": "123"
-            }
-          },
+          {},
+          {},
           {
             "author": {}
           }

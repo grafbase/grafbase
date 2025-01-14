@@ -1,14 +1,13 @@
 use std::sync::Arc;
 
 use grafbase_telemetry::metrics::EngineMetrics;
+use operation::{InputValueContext, Variables};
 use runtime::auth::AccessToken;
 use schema::{HeaderRule, Schema};
 
 use crate::{
     engine::{HooksContext, RequestContext},
-    operation::{InputValueContext, OperationPlanContext, SolvedOperationContext, Variables},
-    prepare::PreparedOperation,
-    response::Shapes,
+    prepare::{CachedOperationContext, OperationPlanContext, PreparedOperation, Shapes},
     Engine, Runtime,
 };
 
@@ -49,6 +48,10 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
         &self.engine.schema
     }
 
+    pub fn variables(&self) -> &'ctx Variables {
+        &self.operation.variables
+    }
+
     pub fn metrics(&self) -> &'ctx EngineMetrics {
         self.engine.runtime.metrics()
     }
@@ -56,13 +59,13 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
     pub fn input_value_context(&self) -> InputValueContext<'ctx> {
         InputValueContext {
             schema: &self.engine.schema,
-            query_input_values: &self.operation.cached.solved.query_input_values,
+            query_input_values: &self.operation.cached.operation.query_input_values,
             variables: &self.operation.variables,
         }
     }
 
     pub fn shapes(&self) -> &'ctx Shapes {
-        &self.operation.cached.solved.shapes
+        &self.operation.cached.shapes
     }
 }
 
@@ -82,17 +85,17 @@ impl<'ctx, R: Runtime> From<&ExecutionContext<'ctx, R>> for InputValueContext<'c
     fn from(ctx: &ExecutionContext<'ctx, R>) -> Self {
         InputValueContext {
             schema: &ctx.engine.schema,
-            query_input_values: &ctx.operation.cached.solved.query_input_values,
+            query_input_values: &ctx.operation.cached.operation.query_input_values,
             variables: &ctx.operation.variables,
         }
     }
 }
 
-impl<'ctx, R: Runtime> From<&ExecutionContext<'ctx, R>> for SolvedOperationContext<'ctx> {
+impl<'ctx, R: Runtime> From<&ExecutionContext<'ctx, R>> for CachedOperationContext<'ctx> {
     fn from(ctx: &ExecutionContext<'ctx, R>) -> Self {
-        SolvedOperationContext {
+        CachedOperationContext {
             schema: &ctx.engine.schema,
-            operation: &ctx.operation.cached.solved,
+            cached: &ctx.operation.cached,
         }
     }
 }
@@ -101,8 +104,8 @@ impl<'ctx, R: Runtime> From<&ExecutionContext<'ctx, R>> for OperationPlanContext
     fn from(ctx: &ExecutionContext<'ctx, R>) -> Self {
         OperationPlanContext {
             schema: &ctx.engine.schema,
-            solved_operation: &ctx.operation.cached.solved,
-            operation_plan: &ctx.operation.plan,
+            cached: &ctx.operation.cached,
+            plan: &ctx.operation.plan,
         }
     }
 }

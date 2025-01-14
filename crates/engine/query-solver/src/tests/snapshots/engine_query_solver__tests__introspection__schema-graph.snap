@@ -1,25 +1,25 @@
 ---
 source: crates/engine/query-solver/src/tests/introspection.rs
-expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"__Type.name\" ]\n    2 [ label = \"__Schema.queryType\" ]\n    3 [ label = \"Query.__schema\" ]\n    4 [ label = \"Introspection\", shape=parallelogram, color=dodgerblue ]\n    5 [ label = \"__schema#introspection\", shape=box, color=dodgerblue ]\n    6 [ label = \"queryType#introspection\", shape=box, color=dodgerblue ]\n    7 [ label = \"name#introspection\", shape=box, color=dodgerblue ]\n    0 -> 3 [ label = \"\" ]\n    0 -> 4 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    0 -> 4 [ label = \"\", style=dashed,arrowhead=none ]\n    4 -> 5 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    5 -> 3 [ label = \"\", color=violet,arrowhead=none ]\n    3 -> 2 [ label = \"\" ]\n    5 -> 6 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    6 -> 2 [ label = \"\", color=violet,arrowhead=none ]\n    2 -> 1 [ label = \"\" ]\n    6 -> 7 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    7 -> 1 [ label = \"\", color=violet,arrowhead=none ]\n}\n"
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Query.__schema\" ]\n    2 [ label = \"__Schema.queryType\" ]\n    3 [ label = \"__Type.name\" ]\n    4 [ label = \"Introspection\", shape=parallelogram, color=dodgerblue ]\n    5 [ label = \"__schema#introspection\", shape=box, color=dodgerblue ]\n    6 [ label = \"queryType#introspection\", shape=box, color=dodgerblue ]\n    7 [ label = \"name#introspection\", shape=box, color=dodgerblue ]\n    0 -> 1 [ label = \"\" ]\n    1 -> 2 [ label = \"\" ]\n    2 -> 3 [ label = \"\" ]\n    0 -> 4 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    0 -> 4 [ label = \"\", style=dashed,arrowhead=none ]\n    4 -> 5 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    5 -> 1 [ label = \"\", color=violet,arrowhead=none ]\n    5 -> 6 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    6 -> 2 [ label = \"\", color=violet,arrowhead=none ]\n    6 -> 7 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    7 -> 3 [ label = \"\", color=violet,arrowhead=none ]\n}\n"
 ---
 digraph {
     0 [ root]
-    1 [ __Type.name]
+    1 [ Query.__schema]
     2 [ __Schema.queryType]
-    3 [ Query.__schema]
+    3 [ __Type.name]
     4 [ Introspection]
     5 [ __schema#introspection]
     6 [ queryType#introspection]
     7 [ name#introspection]
-    0 -> 3 [ label = "Field" ]
+    0 -> 1 [ label = "Field" ]
+    1 -> 2 [ label = "Field" ]
+    2 -> 3 [ label = "Field" ]
     0 -> 4 [ label = "CreateChildResolver" ]
     0 -> 4 [ label = "HasChildResolver" ]
     4 -> 5 [ label = "CanProvide" ]
-    5 -> 3 [ label = "Provides" ]
-    3 -> 2 [ label = "Field" ]
+    5 -> 1 [ label = "Provides" ]
     5 -> 6 [ label = "CanProvide" ]
     6 -> 2 [ label = "Provides" ]
-    2 -> 1 [ label = "Field" ]
     6 -> 7 [ label = "CanProvide" ]
-    7 -> 1 [ label = "Provides" ]
+    7 -> 3 [ label = "Provides" ]
 }

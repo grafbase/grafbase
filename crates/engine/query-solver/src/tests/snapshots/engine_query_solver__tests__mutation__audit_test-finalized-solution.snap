@@ -1,26 +1,26 @@
 ---
 source: crates/engine/query-solver/src/tests/mutation.rs
-expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#b\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"Mutation.delete\" ]\n    3 [ label = \"Root#c\", color=royalblue,shape=parallelogram ]\n    4 [ label = \"Mutation.add\" ]\n    5 [ label = \"Mutation.add\" ]\n    6 [ label = \"Root#a\", color=royalblue,shape=parallelogram ]\n    7 [ label = \"Mutation.multiply\" ]\n    8 [ label = \"Root#c\", color=royalblue,shape=parallelogram ]\n    0 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    1 -> 2 [ label = \"\" ]\n    0 -> 3 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    0 -> 8 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    3 -> 5 [ label = \"\" ]\n    0 -> 6 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    6 -> 7 [ label = \"\" ]\n    8 -> 4 [ label = \"\" ]\n    6 -> 3 [ label = \"\", color=red,arrowhead=inv,style=dashed ]\n    8 -> 6 [ label = \"\", color=red,arrowhead=inv,style=dashed ]\n    1 -> 8 [ label = \"\", color=red,arrowhead=inv,style=dashed ]\n}\n"
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#c\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"five: Mutation.add\" ]\n    3 [ label = \"twelve: Mutation.add\" ]\n    4 [ label = \"Root#a\", color=royalblue,shape=parallelogram ]\n    5 [ label = \"ten: Mutation.multiply\" ]\n    6 [ label = \"Root#b\", color=royalblue,shape=parallelogram ]\n    7 [ label = \"final: Mutation.delete\" ]\n    8 [ label = \"Root#c\", color=royalblue,shape=parallelogram ]\n    0 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    1 -> 2 [ label = \"\" ]\n    0 -> 8 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    0 -> 4 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    4 -> 5 [ label = \"\" ]\n    0 -> 6 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    6 -> 7 [ label = \"\" ]\n    8 -> 3 [ label = \"\" ]\n    4 -> 1 [ label = \"\", color=red,arrowhead=inv,style=dashed ]\n    8 -> 4 [ label = \"\", color=red,arrowhead=inv,style=dashed ]\n    6 -> 8 [ label = \"\", color=red,arrowhead=inv,style=dashed ]\n}\n"
 ---
 digraph {
     0 [ label = "root" ]
-    1 [ label = "Root#b" ]
-    2 [ label = "Mutation.delete" ]
-    3 [ label = "Root#c" ]
-    4 [ label = "Mutation.add" ]
-    5 [ label = "Mutation.add" ]
-    6 [ label = "Root#a" ]
-    7 [ label = "Mutation.multiply" ]
+    1 [ label = "Root#c" ]
+    2 [ label = "five: Mutation.add" ]
+    3 [ label = "twelve: Mutation.add" ]
+    4 [ label = "Root#a" ]
+    5 [ label = "ten: Mutation.multiply" ]
+    6 [ label = "Root#b" ]
+    7 [ label = "final: Mutation.delete" ]
     8 [ label = "Root#c" ]
     0 -> 1 [ label = "QueryPartition" ]
     1 -> 2 [ label = "Field" ]
-    0 -> 3 [ label = "QueryPartition" ]
     0 -> 8 [ label = "QueryPartition" ]
-    3 -> 5 [ label = "Field" ]
+    0 -> 4 [ label = "QueryPartition" ]
+    4 -> 5 [ label = "Field" ]
     0 -> 6 [ label = "QueryPartition" ]
     6 -> 7 [ label = "Field" ]
-    8 -> 4 [ label = "Field" ]
-    6 -> 3 [ label = "MutationExecutedAfter" ]
-    8 -> 6 [ label = "MutationExecutedAfter" ]
-    1 -> 8 [ label = "MutationExecutedAfter" ]
+    8 -> 3 [ label = "Field" ]
+    4 -> 1 [ label = "MutationExecutedAfter" ]
+    8 -> 4 [ label = "MutationExecutedAfter" ]
+    6 -> 8 [ label = "MutationExecutedAfter" ]
 }

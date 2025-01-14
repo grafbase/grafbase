@@ -1,6 +1,8 @@
 use walker::Walk;
 
-use crate::{FieldDefinition, FieldSet, InputValueDefinition, ListSizeDirective, SubgraphId, TypeSystemDirective};
+use crate::{
+    CostDirective, FieldDefinition, FieldSet, InputValueDefinition, ListSizeDirective, SubgraphId, TypeSystemDirective,
+};
 
 impl<'a> FieldDefinition<'a> {
     pub fn argument_by_name(&self, name: &str) -> Option<InputValueDefinition<'a>> {
@@ -46,9 +48,9 @@ impl<'a> FieldDefinition<'a> {
         self.schema.graph.inaccessible_field_definitions[self.id]
     }
 
-    pub fn cost(&self) -> Option<i32> {
+    pub fn cost(&self) -> Option<CostDirective> {
         self.directives().find_map(|directive| match directive {
-            TypeSystemDirective::Cost(cost) => Some(cost.weight),
+            TypeSystemDirective::Cost(cost) => Some(cost),
             _ => None,
         })
     }

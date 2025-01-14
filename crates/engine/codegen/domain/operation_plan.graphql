@@ -1,11 +1,12 @@
 scalar OperationPlan
   @domain(
-    destination: "src/operation/plan/model"
-    root_module: "operation/plan/model"
+    name: "plan"
+    destination: "src/prepare/operation_plan/model"
+    root_module: "prepare/operation_plan/model"
     context_name: "ctx"
     context_type: "OperationPlanContext"
     visibility: "(crate)"
-    imports: [{ module: "schema", domain: "schema" }, { module: "crate/operation/solve", domain: "solved_operation" }]
+    imports: [{ module: "schema", domain: "schema" }, { module: "crate/prepare/cached", domain: "query_plan" }]
   )
 
 union Executable @id @meta(module: "executable") = Plan | ResponseModifier
@@ -40,5 +41,5 @@ scalar ResponseKey @copy @prelude
 type ResponseModifierTarget @meta(module: "response_modifier/target") {
   set_id: ResponseObjectSetDefinitionId!
   ty: CompositeType!
-  field: DataField!
+  field: PartitionDataField!
 }

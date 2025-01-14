@@ -43,9 +43,16 @@ impl OperationType {
         }
     }
 
-    // for engine-v1
     pub fn is_mutation(&self) -> bool {
         matches!(self, Self::Mutation)
+    }
+
+    pub fn is_query(&self) -> bool {
+        matches!(self, Self::Query)
+    }
+
+    pub fn is_subscription(&self) -> bool {
+        matches!(self, Self::Subscription)
     }
 }
 
@@ -81,7 +88,7 @@ pub struct GraphqlOperationAttributes {
     pub ty: OperationType,
     pub name: OperationName,
     pub sanitized_query: Arc<str>,
-    pub complexity: Option<usize>,
+    pub complexity_cost: Option<usize>,
 }
 
 #[derive(Clone, Copy, Debug)]

@@ -51,7 +51,7 @@ use std::future::Future;
 
 use crate::{
     execution::{ExecutionContext, ExecutionError, ExecutionResult, SubscriptionResponse},
-    operation::{Plan, PlanQueryPartition, PlanResult},
+    prepare::{Plan, PlanQueryPartition, PlanResult},
     response::{ResponseObjectsView, SubgraphResponse},
     Runtime,
 };
@@ -132,7 +132,7 @@ impl Resolver {
             Resolver::Introspection(prepared) => {
                 let input_object_refs = root_response_objects.into_input_object_refs();
                 async move {
-                    let result = prepared.execute(ctx, plan, input_object_refs, subgraph_response).await;
+                    let result = prepared.execute(ctx, plan, input_object_refs, subgraph_response);
 
                     ResolverResult {
                         execution: result,

@@ -4,8 +4,7 @@ use serde::Serialize;
 use walker::Walk;
 
 use crate::{
-    operation::{Executable, OperationPlanContext, PlanId},
-    prepare::PreparedOperation,
+    prepare::{Executable, OperationPlanContext, PlanId, PreparedOperation},
     resolver::Resolver,
 };
 
@@ -37,15 +36,15 @@ impl GrafbaseResponseExtension {
         self
     }
 
-    pub fn with_query_plan(mut self, schema: &Schema, operation: &PreparedOperation) -> Self {
-        let mut nodes = Vec::with_capacity(operation.plan.plans.len());
+    pub fn with_query_plan(mut self, schema: &Schema, prepared_operation: &PreparedOperation) -> Self {
+        let mut nodes = Vec::with_capacity(prepared_operation.plan.plans.len());
         // at least one edge.
-        let mut edges = Vec::with_capacity(operation.plan.plans.len());
+        let mut edges = Vec::with_capacity(prepared_operation.plan.plans.len());
 
         let ctx = OperationPlanContext {
             schema,
-            solved_operation: &operation.cached.solved,
-            operation_plan: &operation.plan,
+            cached: &prepared_operation.cached,
+            plan: &prepared_operation.plan,
         };
 
         for plan in ctx.plans() {

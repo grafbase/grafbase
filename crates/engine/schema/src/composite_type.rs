@@ -109,4 +109,24 @@ impl<'a> CompositeType<'a> {
         }
         false
     }
+
+    pub fn is_subset_of(&self, other: CompositeType<'a>) -> bool {
+        let subset = self.possible_type_ids();
+        let superset = other.possible_type_ids();
+        if subset.len() > superset.len() {
+            return false;
+        }
+
+        let mut sub_i = 0;
+        let mut super_i = 0;
+        while let (Some(sub_id), Some(super_id)) = (subset.get(sub_i), superset.get(super_i)) {
+            match sub_id.cmp(super_id) {
+                // Cannot exist in superset, so not a superset.
+                std::cmp::Ordering::Less => return false,
+                std::cmp::Ordering::Equal => sub_i += 1,
+                std::cmp::Ordering::Greater => super_i += 1,
+            }
+        }
+        true
+    }
 }

@@ -15,24 +15,24 @@ workspace = true
 grafbase-workspace-hack.workspace = true
 id-newtypes = { path = "../id-newtypes", package = "engine-id-newtypes" }
 id-derives = { path = "../id-derives", package = "engine-id-derives" }
+operation = { path = "../operation", package = "engine-operation" }
 walker = { path = "../walker", package = "engine-walker" }
 fixedbitset.workspace = true
 bitflags.workspace = true
 petgraph.workspace = true
 itertools.workspace = true
+serde.workspace = true
 tracing.workspace = true
 thiserror.workspace = true
 strum.workspace = true
+hex.workspace = true
 schema = { path = "../schema", package = "engine-schema" }
+fxhash = "0.2"
 
 
 [dev-dependencies]
 ctor.workspace = true
-serde.workspace = true
 similar = "2"
-cynic-parser.workspace = true
-config = { path = "../config", package = "engine-config" }
-federated-graph.workspace = true
 tracing-subscriber = { workspace = true, features = [
     "fmt",
     "tracing-log",

@@ -30,7 +30,7 @@ pub struct SchemaInputValues {
     key_values: Vec<(StringId, SchemaInputValueRecord)>,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize, id_derives::Id)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
 pub struct SchemaInputValueId(NonZero<u32>);
 
 impl<'s> Walk<&'s Schema> for SchemaInputValueId {

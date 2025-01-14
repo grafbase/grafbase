@@ -13,7 +13,7 @@ use walker::Walk;
 
 use crate::{
     execution::ExecutionContext,
-    operation::{Executable, Plan, PlanId},
+    prepare::{Executable, Plan, PlanId},
     prepare::{PrepareContext, PreparedOperation},
     resolver::ResolverResult,
     response::{
@@ -110,8 +110,8 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
         executed_operation_builder: ExecutedOperationBuilder<<R::Hooks as Hooks>::OnSubgraphResponseOutput>,
     ) -> Response<<R::Hooks as Hooks>::OnOperationResponseOutput> {
         let executed_operation = executed_operation_builder.build(
-            self.operation.cached.attributes.name.original(),
-            &self.operation.cached.attributes.sanitized_query,
+            self.operation.cached.operation.attributes.name.original(),
+            &self.operation.cached.operation.attributes.sanitized_query,
             GraphqlResponseStatus::FieldError {
                 count: self.operation.plan.query_modifications.root_error_ids.len() as u64,
                 data_is_null: true,
@@ -154,7 +154,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
             response: ResponseBuilder::new(
                 self.engine.schema.clone(),
                 self.operation.cached.clone(),
-                self.operation.cached.solved.root_object_id,
+                self.operation.cached.operation.root_object_id,
             ),
             ctx: self,
         }
@@ -211,7 +211,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
         let mut response = ResponseBuilder::new(
             self.engine.schema.clone(),
             self.operation.cached.clone(),
-            self.operation.cached.solved.root_object_id,
+            self.operation.cached.operation.root_object_id,
         );
 
         let root_response_object_set = Arc::new(
@@ -315,10 +315,10 @@ where
                             response_futures.push_back(operation_execution.run(results));
                         }
                         Err(err) => {
-                            let operation = self.ctx.operation.cached.clone();
+                            let cached = self.ctx.operation.cached.clone();
                             let executed_operation = executed_operation_builder.build(
-                                operation.attributes.name.original(),
-                                &operation.attributes.sanitized_query,
+                                cached.operation.attributes.name.original(),
+                                &cached.operation.attributes.sanitized_query,
                                 GraphqlResponseStatus::FieldError {
                                     count: 1,
                                     data_is_null: true,
@@ -446,8 +446,8 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
 
         let operation = this.ctx.operation;
         let executed_operation = this.executed_operation_builder.build(
-            operation.cached.attributes.name.original(),
-            &operation.cached.attributes.sanitized_query,
+            operation.cached.operation.attributes.name.original(),
+            &operation.cached.operation.attributes.sanitized_query,
             this.response.graphql_status(),
         );
 

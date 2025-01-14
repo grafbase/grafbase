@@ -5,13 +5,13 @@ use grafbase_telemetry::{
     metrics::{GraphqlErrorAttributes, GraphqlRequestMetricsAttributes},
     span::graphql::GraphqlOperationSpan,
 };
+use operation::Request;
 use runtime::hooks::Hooks;
 use tracing::Instrument;
 
 use crate::{
     engine::{HooksContext, RequestContext},
     prepare::PrepareContext,
-    request::Request,
     response::{ErrorCode, GraphqlError, Response},
     Engine, Runtime,
 };

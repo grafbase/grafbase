@@ -1,0 +1,73 @@
+scalar Operation
+  @domain(
+    name: "operation"
+    destination: "operation/src/model"
+    root_module: "model"
+    context_name: "ctx"
+    context_type: "OperationContext"
+    imports: [{ module: "schema", domain: "schema" }]
+  )
+
+scalar ResponseKey @copy
+scalar Location @copy
+scalar String @prelude
+scalar QueryInputValueId @id
+scalar SelectionSet @record
+
+union Selection @id @meta(module: "selection") = Field | InlineFragment | FragmentSpread
+
+type InlineFragment @meta(module: "selection/inline_fragment") @indexed(id_size: "u16") {
+  type_condition: CompositeType
+  directives: [ExecutableDirective!]!
+  selection_set: SelectionSet!
+}
+
+type FragmentSpread @meta(module: "selection/fragment_spread") @indexed(id_size: "u16") {
+  directives: [ExecutableDirective!]!
+  fragment: Fragment!
+}
+
+type Fragment @meta(module: "fragment") @indexed(id_size: "u16") {
+  type_condition: CompositeType!
+  selection_set: SelectionSet!
+}
+
+union Field @id @meta(module: "field") @variants(remove_suffix: true) = DataField | TypenameField
+
+"In opposition to a __typename field this field does retrieve data from a subgraph"
+type DataField @meta(module: "field/data", debug: false) @indexed(id_size: "u16") {
+  response_key: ResponseKey!
+  location: Location!
+  directives: [ExecutableDirective!]!
+  definition: FieldDefinition!
+  "Ordered by input value definition id"
+  arguments: [FieldArgument!]!
+  selection_set: SelectionSet!
+}
+
+"__typename field"
+type TypenameField @meta(module: "field/typename") @indexed(id_size: "u16") {
+  response_key: ResponseKey!
+  location: Location!
+  directives: [ExecutableDirective!]!
+}
+
+type FieldArgument @meta(module: "field/argument") @indexed(id_size: "u16") {
+  definition: InputValueDefinition!
+  value_id: QueryInputValueId!
+}
+
+type VariableDefinition @meta(module: "variable") @indexed(id_size: "u16") {
+  name: String!
+  name_location: Location!
+  default_value_id: QueryInputValueId
+  ty: Type!
+}
+
+scalar SkipDirective @record
+scalar IncludeDirective @record
+
+"Deduplicated"
+union ExecutableDirective @id @meta(module: "directive") @variants(remove_suffix: "Directive") =
+  | SkipDirective
+  | IncludeDirective

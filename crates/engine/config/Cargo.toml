@@ -7,7 +7,6 @@ keywords = ["graphql", "engine", "grafbase"]
 license = "MPL-2.0"
 name = "engine-config"
 repository = "https://github.com/grafbase/grafbase"
-version = "0.1.0"
 
 [dependencies]
 base64.workspace = true

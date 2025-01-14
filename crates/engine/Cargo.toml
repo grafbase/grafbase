@@ -7,7 +7,6 @@ keywords = ["graphql", "engine", "grafbase"]
 license = "MPL-2.0"
 name = "engine"
 repository = "https://github.com/grafbase/grafbase"
-version = "3.0.31"
 
 [lib]
 doctest = false
@@ -25,7 +24,6 @@ blake3.workspace = true
 bytes.workspace = true
 url.workspace = true
 crossbeam-queue = "0.3.11"
-cynic-parser.workspace = true
 futures-util.workspace = true
 futures-lite.workspace = true
 fixedbitset.workspace = true
@@ -52,6 +50,7 @@ http.workspace = true
 headers.workspace = true
 
 engine-auth = { path = "./auth" }
+operation = { path = "./operation", package = "engine-operation" }
 operation-normalizer = { path = "../operation-normalizer" }
 config = { package = "engine-config", path = "./config" }
 schema = { path = "./schema", package = "engine-schema" }

@@ -1,7 +1,8 @@
+use operation::ResponseKeys;
 use schema::Schema;
 use serde::ser::{SerializeMap, SerializeSeq};
 
-use crate::response::{value::ResponseObjectField, ResponseData, ResponseKeys, ResponseObject, ResponseValue};
+use crate::response::{value::ResponseObjectField, ResponseData, ResponseObject, ResponseValue};
 
 #[derive(Clone, Copy)]
 pub(super) struct Context<'a> {
@@ -38,15 +39,16 @@ impl serde::Serialize for SerializableResponseObject<'_> {
         S: serde::Serializer,
     {
         let mut map = serializer.serialize_map(Some(self.object.len()))?;
-        // Thanks to the BoundResponseKey starting with the position and the fields being a BTreeMap
-        // we're ensuring the fields are serialized in the order they appear in the query.
-        for ResponseObjectField { key: edge, value, .. } in self.object.fields() {
-            if edge.query_position.is_none() {
-                // Bound response keys are always first, anything after are extra fields which
-                // don't need to be serialized.
-                break;
+        // Fields are ordered by their query_position, so ones without are first.
+        let mut fields = self.object.fields();
+        for ResponseObjectField { key, value, .. } in fields.by_ref() {
+            if key.query_position.is_some() {
+                map.serialize_key(&self.ctx.keys[key.response_key])?;
+                map.serialize_value(&SerializableResponseValue { ctx: self.ctx, value })?;
             };
-            map.serialize_key(&self.ctx.keys[edge.response_key])?;
+        }
+        for ResponseObjectField { key, value, .. } in fields.by_ref() {
+            map.serialize_key(&self.ctx.keys[key.response_key])?;
             map.serialize_value(&SerializableResponseValue { ctx: self.ctx, value })?;
         }
         map.end()

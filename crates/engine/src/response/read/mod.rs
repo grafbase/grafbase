@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::operation::RequiredFieldSet;
+use crate::prepare::RequiredFieldSet;
 
 use super::{InputResponseObjectSet, ResponseBuilder};
 mod ser;

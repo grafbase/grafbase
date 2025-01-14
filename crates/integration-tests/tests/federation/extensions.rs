@@ -493,10 +493,34 @@ fn complex_query_plan() {
               "queryPlan": {
                 "nodes": [
                   {
+                    "__typename": "IntrospectionResolver"
+                  },
+                  {
                     "__typename": "GraphqlResolver",
                     "subgraphName": "accounts",
                     "request": {
                       "query": "query { me { id username cart { products { name } } } }"
+                    }
+                  },
+                  {
+                    "__typename": "GraphqlResolver",
+                    "subgraphName": "inventory",
+                    "request": {
+                      "query": "query($var0: [_Any!]!) { _entities(representations: $var0) { ... on Product { availableShippingService { __typename id name } } } }"
+                    }
+                  },
+                  {
+                    "__typename": "GraphqlResolver",
+                    "subgraphName": "reviews",
+                    "request": {
+                      "query": "query($var0: [_Any!]!) { _entities(representations: $var0) { ... on ShippingService { reviews { body } } } }"
+                    }
+                  },
+                  {
+                    "__typename": "GraphqlResolver",
+                    "subgraphName": "products",
+                    "request": {
+                      "query": "query($var0: [_Any!]!) { _entities(representations: $var0) { ... on Product { upc weight(unit: KILOGRAM) price } } }"
                     }
                   },
                   {
@@ -512,52 +536,28 @@ fn complex_query_plan() {
                     "request": {
                       "query": "query($var0: [_Any!]!) { _entities(representations: $var0) { ... on User { username } } }"
                     }
-                  },
-                  {
-                    "__typename": "GraphqlResolver",
-                    "subgraphName": "products",
-                    "request": {
-                      "query": "query($var0: [_Any!]!) { _entities(representations: $var0) { ... on Product { price upc weight(unit: KILOGRAM) } } }"
-                    }
-                  },
-                  {
-                    "__typename": "GraphqlResolver",
-                    "subgraphName": "inventory",
-                    "request": {
-                      "query": "query($var0: [_Any!]!) { _entities(representations: $var0) { ... on Product { availableShippingService { __typename name id } } } }"
-                    }
-                  },
-                  {
-                    "__typename": "GraphqlResolver",
-                    "subgraphName": "reviews",
-                    "request": {
-                      "query": "query($var0: [_Any!]!) { _entities(representations: $var0) { ... on ShippingService { reviews { body } } } }"
-                    }
-                  },
-                  {
-                    "__typename": "IntrospectionResolver"
                   }
                 ],
                 "edges": [
                   [
-                    0,
+                    1,
+                    4
+                  ],
+                  [
+                    2,
                     3
                   ],
                   [
-                    1,
+                    4,
                     2
-                  ],
-                  [
-                    3,
-                    1
-                  ],
-                  [
-                    3,
-                    4
                   ],
                   [
                     4,
                     5
+                  ],
+                  [
+                    5,
+                    6
                   ]
                 ]
               }

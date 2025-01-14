@@ -11,6 +11,7 @@ use grafbase_telemetry::{
     metrics::{GraphqlErrorAttributes, GraphqlRequestMetricsAttributes},
     span::graphql::GraphqlOperationSpan,
 };
+use operation::Request;
 use runtime::hooks::Hooks;
 use tracing::Instrument;
 
@@ -18,7 +19,6 @@ use crate::{
     engine::{errors, HooksContext, RequestContext},
     execution::ResponseSender,
     prepare::PrepareContext,
-    request::Request,
     response::{ErrorCode, ErrorCodeCounter, GrafbaseResponseExtension, Response},
     utils::StreamJoinExt,
     Engine, Runtime,

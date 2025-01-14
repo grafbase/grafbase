@@ -4,10 +4,11 @@
 
 use std::{borrow::Cow, collections::HashMap};
 
+use operation::Request;
 use runtime::hooks::Hooks;
 use serde::Deserialize;
 
-use crate::{request::Request, Runtime};
+use crate::Runtime;
 
 #[derive(serde::Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]

@@ -6,7 +6,10 @@ use super::{
     object::{ConcreteShapeSeed, PolymorphicShapeSeed},
     EnumValueSeed, ListSeed, ScalarTypeSeed, SeedContext,
 };
-use crate::response::{FieldShapeRecord, GraphqlError, ResponseValue, Shape};
+use crate::{
+    prepare::{FieldShapeRecord, Shape},
+    response::{GraphqlError, ResponseValue},
+};
 
 #[derive(Clone)]
 pub(super) struct FieldSeed<'ctx, 'seed> {

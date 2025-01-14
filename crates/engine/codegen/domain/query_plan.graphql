@@ -1,0 +1,69 @@
+scalar QueryPlan
+  @domain(
+    destination: "src/prepare/cached/query_plan"
+    root_module: "prepare/cached/query_plan"
+    context_type: "CachedOperationContext"
+    context_name: "ctx"
+    domain_accessor: "ctx.cached.query_plan"
+    visibility: "(crate)"
+    imports: [{ module: "schema", domain: "schema" }, { module: "operation", domain: "operation" }]
+  )
+
+scalar String @prelude
+
+# ------------------
+# - QueryPartition -
+# ------------------
+
+scalar ConcreteShapeId @prelude @id
+scalar RequiredFieldSet @record
+
+type QueryPartition @indexed(id_size: "u16") @meta(module: "query_partition") {
+  entity_definition: EntityDefinition!
+  resolver_definition: ResolverDefinition!
+  selection_set: PartitionSelectionSet!
+  required_fields: RequiredFieldSet!
+  input: ResponseObjectSetDefinition!
+  shape_id: ConcreteShapeId!
+}
+
+type ResponseObjectSetDefinition @meta(module: "response_object_set") @indexed(id_size: "u16", deduplicated: true) {
+  ty: CompositeType!
+}
+
+# ----------------
+# - SelectionSet -
+# ----------------
+
+type PartitionSelectionSet @meta(module: "selection_set", derive: ["Default"]) @copy {
+  data_fields_ordered_by_type_conditions_then_position: [PartitionDataField!]!
+    @field(record_field_name: "data_field_ids_ordered_by_type_conditions_then_position")
+  typename_fields_ordered_by_type_conditions_then_position: [PartitionTypenameField!]!
+    @field(record_field_name: "typename_field_ids_ordered_by_type_conditions_then_position")
+}
+
+scalar PartitionDataField @record @indexed
+scalar PartitionTypenameField @record @indexed
+
+union PartitionField @id @meta(module: "field") @variants(names: ["Data", "Typename"]) =
+  | PartitionDataField
+  | PartitionTypenameField
+
+# ------------
+# - Modifier -
+# ------------
+
+scalar QueryModifierRule
+
+type QueryModifier @meta(module: "modifier", derive: ["Clone"]) {
+  rule: QueryModifierRule!
+  impacts_root_object: Boolean!
+  impacted_fields: [PartitionField!]!
+}
+
+scalar ResponseModifierRule
+
+type ResponseModifierDefinition @meta(module: "modifier") {
+  rule: ResponseModifierRule!
+  impacted_fields: [PartitionDataField!]! @vec
+}

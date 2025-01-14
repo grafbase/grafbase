@@ -1,8 +1,7 @@
+use operation::{PositionedResponseKey, ResponseKey};
 use schema::{ObjectDefinitionId, StringId};
 
-use super::{
-    PositionedResponseKey, ResponseInaccessibleValueId, ResponseKey, ResponseListId, ResponseMapId, ResponseObjectId,
-};
+use super::{ResponseInaccessibleValueId, ResponseListId, ResponseMapId, ResponseObjectId};
 
 #[derive(Debug)]
 pub(crate) struct ResponseObject {

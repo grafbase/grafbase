@@ -142,6 +142,7 @@ pub enum __Directive {
 pub struct IntrospectionMetadata {
     pub resolver_definition_id: ResolverDefinitionId,
     pub meta_fields: [FieldDefinitionId; 2],
+    pub meta_objects: [ObjectDefinitionId; 6],
     pub type_kind: TypeKind,
     pub directive_location: DirectiveLocation,
     pub __schema: IntrospectionObject<__Schema, { __Schema::COUNT }>,
@@ -607,6 +608,14 @@ impl<'a> IntrospectionBuilder<'a> {
         IntrospectionMetadata {
             resolver_definition_id,
             meta_fields: [__type_field_id, __schema_field_id],
+            meta_objects: [
+                __schema.id,
+                __type.id,
+                __enum_value.id,
+                __input_value.id,
+                __field.id,
+                __directive.id,
+            ],
             type_kind,
             directive_location,
             __schema,

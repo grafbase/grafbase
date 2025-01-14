@@ -1,0 +1,20 @@
+---
+source: crates/engine/query-solver/src/tests/inaccessible.rs
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Query.media\" ]\n    2 [ label = \"Movie.title\" ]\n    5 [ label = \"Root#b\", shape=parallelogram, color=dodgerblue ]\n    6 [ label = \"media#b\", shape=box, color=dodgerblue ]\n    7 [ label = \"title#b\", shape=box, color=dodgerblue ]\n    0 -> 1 [ label = \"\" ]\n    1 -> 2 [ label = \"\" ]\n    0 -> 5 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    0 -> 5 [ label = \"\", style=dashed,arrowhead=none ]\n    5 -> 6 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    6 -> 1 [ label = \"\", color=violet,arrowhead=none ]\n    6 -> 7 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    7 -> 2 [ label = \"\", color=violet,arrowhead=none ]\n}\n"
+---
+digraph {
+    0 [ root]
+    1 [ Query.media]
+    2 [ Movie.title]
+    5 [ Root#b]
+    6 [ media#b]
+    7 [ title#b]
+    0 -> 1 [ label = "Field" ]
+    1 -> 2 [ label = "Field" ]
+    0 -> 5 [ label = "CreateChildResolver" ]
+    0 -> 5 [ label = "HasChildResolver" ]
+    5 -> 6 [ label = "CanProvide" ]
+    6 -> 1 [ label = "Provides" ]
+    6 -> 7 [ label = "CanProvide" ]
+    7 -> 2 [ label = "Provides" ]
+}

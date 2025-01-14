@@ -1,6 +1,8 @@
 use std::{cell::RefMut, ops::Deref};
 
-use crate::response::{PositionedResponseKey, ResponseKey, ResponseValueId};
+use operation::{PositionedResponseKey, ResponseKey};
+
+use crate::response::ResponseValueId;
 
 #[derive(Debug, Clone)]
 pub(crate) struct ErrorPath(Vec<ErrorPathSegment>);

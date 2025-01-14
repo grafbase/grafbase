@@ -260,7 +260,7 @@ fn refuses_to_lose_precision_when_converting_variable_floats_to_ints() {
             }
           ],
           "extensions": {
-            "code": "OPERATION_VALIDATION_ERROR"
+            "code": "VARIABLE_ERROR"
           }
         }
       ]
