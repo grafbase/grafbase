@@ -1,0 +1,10 @@
+{
+  "extends": ["github>grafbase/renovate"],
+  "packageRules": [
+    {
+      "matchPackageNames": ["axum"],
+      "matchFileNames": ["crates/graphql-mocks/Cargo.toml"],
+      "updateTypes": ["patch"]
+    }
+  ]
+}
