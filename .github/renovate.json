@@ -1,8 +1,11 @@
 {
   "extends": ["config:base"],
-  "preCommit": [
-    "cargo hakari generate",
-    "git add Cargo.lock",
-    "git commit -m 'chore(deps): Update Hakari generated files'"
+  "preCommit": ["cargo hakari generate", "git add Cargo.lock", "git commit -m 'chore: Update Hakari generated files'"],
+  "packageRules": [
+    {
+      "matchPackageNames": ["axum"],
+      "matchFileNames": ["crates/graphql-mocks/Cargo.toml"],
+      "updateTypes": ["patch"]
+    }
   ]
 }
