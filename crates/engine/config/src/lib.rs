@@ -83,9 +83,10 @@ pub struct Config {
 
     #[serde(default)]
     pub apq: AutomaticPersistedQueries,
-
     #[serde(default)]
     pub trusted_documents: TrustedDocumentsConfig,
+    #[serde(default)]
+    pub websockets: WebsocketsConfig,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Default, Clone, Copy)]
@@ -97,6 +98,25 @@ pub struct AutomaticPersistedQueries {
 pub struct BatchingConfig {
     pub enabled: bool,
     pub limit: Option<usize>,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
+pub struct WebsocketsConfig {
+    pub forward_connection_init_payload: bool,
+}
+
+impl From<gateway_config::WebsocketsConfig> for WebsocketsConfig {
+    fn from(value: gateway_config::WebsocketsConfig) -> Self {
+        WebsocketsConfig {
+            forward_connection_init_payload: value.forward_connection_init_payload,
+        }
+    }
+}
+
+impl Default for WebsocketsConfig {
+    fn default() -> Self {
+        gateway_config::WebsocketsConfig::default().into()
+    }
 }
 
 impl std::ops::Index<StringId> for Config {
@@ -140,6 +160,7 @@ impl Config {
             apq: Default::default(),
             executable_document_limit_bytes: (32 * 1024),
             trusted_documents: Default::default(),
+            websockets: Default::default(),
         }
     }
 

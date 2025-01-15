@@ -56,6 +56,9 @@ tracing.workspace = true
 runtime = { workspace = true, features = ["test-utils"] }
 grafbase-workspace-hack.workspace = true
 serde_with = { workspace = true, features = ["hex"] }
+graphql-ws-client.workspace = true
+async-tungstenite.workspace = true
+futures-util.workspace = true
 
 [dependencies.tokio]
 version = "1.37"

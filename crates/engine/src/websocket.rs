@@ -2,11 +2,8 @@
 //!
 //! [1]: https://github.com/graphql/graphql-over-http/blob/main/rfcs/GraphQLOverWebSocket.md
 
-use std::{borrow::Cow, collections::HashMap};
-
 use operation::Request;
 use runtime::hooks::Hooks;
-use serde::Deserialize;
 
 use crate::Runtime;
 
@@ -39,24 +36,34 @@ pub struct SubscribeEvent {
 pub struct RequestPayload(pub(crate) Request);
 
 #[derive(Debug, Default, serde::Deserialize)]
-pub struct InitPayload {
-    #[serde(default, deserialize_with = "deserialize_as_hash_map")]
-    pub headers: http::HeaderMap,
-}
+pub struct InitPayload(pub(crate) serde_json::Map<String, serde_json::Value>);
 
-fn deserialize_as_hash_map<'de, D>(deserializer: D) -> Result<http::HeaderMap, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    let map = HashMap::<Cow<'_, str>, Cow<'_, str>>::deserialize(deserializer)?;
-    let mut headers = http::HeaderMap::new();
-    for (key, value) in map {
-        headers.insert(
-            http::HeaderName::try_from(key.as_ref()).map_err(serde::de::Error::custom)?,
-            http::HeaderValue::try_from(value.as_ref()).map_err(serde::de::Error::custom)?,
-        );
+impl InitPayload {
+    pub(crate) fn to_headers(&self) -> http::HeaderMap {
+        let mut headers = http::HeaderMap::new();
+
+        let headers_map = self.0.get("headers").and_then(|headers| headers.as_object());
+
+        for (key, value) in [Some(&self.0), headers_map]
+            .map(|map| map.into_iter().flatten())
+            .into_iter()
+            .flatten()
+        {
+            let Ok(key) = http::HeaderName::try_from(key.as_bytes()) else {
+                continue;
+            };
+
+            let Some(value_str) = value.as_str() else { continue };
+
+            let Ok(value) = http::HeaderValue::try_from(value_str) else {
+                continue;
+            };
+
+            headers.insert(key, value);
+        }
+
+        headers
     }
-    Ok(headers)
 }
 
 #[derive(serde::Serialize, Debug)]

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use async_graphql::{
     scalar, ComplexObject, EmptyMutation, EmptySubscription, InputObject, Interface, Object, SimpleObject, Union, ID,
 };
@@ -32,12 +34,15 @@ impl super::Schema for FakeGithubSchema {
     fn execute_stream(
         &self,
         request: async_graphql::Request,
+        session_data: Option<Arc<async_graphql::Data>>,
     ) -> futures::stream::BoxStream<'static, async_graphql::Response> {
-        Box::pin(
-            async_graphql::Schema::build(Query, EmptyMutation, EmptySubscription)
-                .finish()
-                .execute_stream(request),
-        )
+        let schema = async_graphql::Schema::build(Query, EmptyMutation, EmptySubscription).finish();
+
+        if let Some(data) = session_data {
+            Box::pin(schema.execute_stream_with_session_data(request, data))
+        } else {
+            Box::pin(schema.execute_stream(request))
+        }
     }
 
     fn sdl(&self) -> String {

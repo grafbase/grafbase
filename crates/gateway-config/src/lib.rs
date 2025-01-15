@@ -16,9 +16,11 @@ pub mod rate_limit;
 mod size_ext;
 pub mod telemetry;
 mod trusted_documents;
+mod websockets_config;
 
 use std::{collections::BTreeMap, net::SocketAddr, path::PathBuf, time::Duration};
 
+pub use self::websockets_config::WebsocketsConfig;
 pub use self::{log_level::*, trusted_documents::*};
 pub use authentication::*;
 pub use complexity_control::*;
@@ -81,6 +83,8 @@ pub struct Config {
     pub apq: AutomaticPersistedQueries,
     /// Operation caching configuration
     pub operation_caching: OperationCaching,
+    /// Websockets configuration
+    pub websockets: WebsocketsConfig,
 }
 
 impl Default for Config {
@@ -106,6 +110,7 @@ impl Default for Config {
             complexity_control: Default::default(),
             apq: Default::default(),
             operation_caching: Default::default(),
+            websockets: Default::default(),
         }
     }
 }

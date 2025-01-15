@@ -58,6 +58,7 @@ pub fn build_with_toml_config(config: &gateway_config::Config, graph: FederatedG
             .try_into()
             .expect("executable document limit should not be negative"),
         trusted_documents: config.trusted_documents.clone().into(),
+        websockets: config.websockets.clone().into(),
     }
 }
 

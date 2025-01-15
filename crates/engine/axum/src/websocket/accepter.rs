@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use ::axum::extract::ws::{self, WebSocket};
-use engine::{websocket::InitPayload, Engine, Runtime, WebsocketSession};
+use engine::{Engine, Runtime, WebsocketSession};
 use futures_util::{pin_mut, stream::SplitStream, SinkExt, Stream, StreamExt};
 use tokio::sync::{mpsc, watch};
 
@@ -163,12 +163,10 @@ async fn accept_websocket<R: Runtime>(
     while let Some(text) = websocket.recv_message().await {
         let event: Event = serde_json::from_str(&text).ok()?;
         match event {
-            Event::ConnectionInit {
-                payload: InitPayload { headers },
-            } => {
+            Event::ConnectionInit { payload } => {
                 let engine = engine.borrow().clone();
 
-                let Ok(session) = engine.create_websocket_session(headers).await else {
+                let Ok(session) = engine.create_websocket_session(payload).await else {
                     websocket
                         .send(Message::<R>::close(4403, "Forbidden").to_axum_message().unwrap())
                         .await

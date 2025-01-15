@@ -39,6 +39,7 @@ pub struct FetchRequest<'a, Body> {
     pub subgraph_name: &'a str,
     pub url: Cow<'a, url::Url>,
     pub method: http::Method,
+    pub websocket_init_payload: Option<serde_json::Map<String, serde_json::Value>>,
     pub headers: http::HeaderMap,
     pub body: Body,
     pub timeout: Duration,
@@ -132,6 +133,7 @@ pub mod dynamic {
         {
             self.0
                 .graphql_over_websocket_stream(FetchRequest {
+                    websocket_init_payload: request.websocket_init_payload,
                     subgraph_name: request.subgraph_name,
                     method: request.method,
                     url: request.url,

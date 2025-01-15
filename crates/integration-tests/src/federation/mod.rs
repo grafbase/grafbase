@@ -1,11 +1,13 @@
 mod builder;
 mod request;
 mod subgraph;
+mod websocket_request;
 
-use std::sync::Arc;
+use std::{future::IntoFuture, sync::Arc};
 
 pub use builder::*;
 use bytes::Bytes;
+use futures::Stream;
 use graphql_mocks::{MockGraphQlServer, ReceivedRequest};
 use http_body_util::BodyExt;
 pub use request::*;
@@ -76,6 +78,20 @@ impl TestGateway {
             parts,
             body: request.into(),
         }
+    }
+
+    pub async fn execute_ws(
+        &self,
+        init_payload: Option<serde_json::Value>,
+        request: impl Into<GraphQlRequest>,
+    ) -> Result<impl Stream<Item = GraphqlResponse>, graphql_ws_client::Error> {
+        websocket_request::WebsocketRequest {
+            router: self.router.clone(),
+            request: request.into(),
+            init_payload,
+        }
+        .into_future()
+        .await
     }
 
     pub async fn raw_execute(&self, request: http::Request<impl Into<axum::body::Body>>) -> http::Response<Bytes> {

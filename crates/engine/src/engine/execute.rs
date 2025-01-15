@@ -14,6 +14,7 @@ use crate::{
     execution::create_subgraph_headers_with_rules,
     graphql_over_http::{Http, ResponseFormat},
     response::Response,
+    websocket::InitPayload,
     Body,
 };
 
@@ -24,6 +25,7 @@ pub(crate) use stream::StreamResponse;
 pub(crate) struct RequestContext {
     pub mutations_allowed: bool,
     pub headers: http::HeaderMap,
+    pub websocket_init_payload: Option<serde_json::Map<String, serde_json::Value>>,
     pub response_format: ResponseFormat,
     pub client: Option<Client>,
     pub access_token: AccessToken,
@@ -81,6 +83,7 @@ impl<R: Runtime> Engine<R> {
         &self,
         ctx: &EarlyHttpContext,
         headers: http::HeaderMap,
+        websocket_init_payload: Option<InitPayload>,
     ) -> Result<
         (RequestContext, HooksContext<R>),
         (
@@ -103,6 +106,7 @@ impl<R: Runtime> Engine<R> {
         }
 
         let mut request_context = RequestContext {
+            websocket_init_payload: websocket_init_payload.map(|payload| payload.0),
             mutations_allowed: !ctx.method.is_safe(),
             headers,
             response_format: ctx.response_format,

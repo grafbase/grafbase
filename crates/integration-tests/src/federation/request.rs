@@ -11,7 +11,7 @@ use axum::body::Body;
 use bytes::Bytes;
 use futures::future::BoxFuture;
 use http_body_util::BodyExt;
-use serde::ser::SerializeMap;
+use serde::{ser::SerializeMap, Deserialize};
 pub use stream::*;
 use tower::ServiceExt;
 
@@ -238,7 +238,7 @@ impl serde::Serialize for QueryParams {
     }
 }
 
-#[derive(serde::Serialize, Debug)]
+#[derive(serde::Serialize, Debug, Deserialize)]
 pub struct GraphqlResponse {
     #[serde(skip)]
     pub status: http::StatusCode,

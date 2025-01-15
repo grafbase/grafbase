@@ -147,6 +147,7 @@ impl BuildContext {
                 apq_enabled: config.apq.enabled,
                 executable_document_limit_bytes: config.executable_document_limit_bytes,
                 trusted_documents: config.trusted_documents,
+                websocket_forward_connection_init_payload: config.websockets.forward_connection_init_payload,
             },
         })
     }

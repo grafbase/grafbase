@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use async_graphql::{EmptyMutation, EmptySubscription, Object, Schema};
 
 use crate::MockGraphQlServer;
@@ -51,8 +53,13 @@ impl crate::Schema for SlowSchema {
     fn execute_stream(
         &self,
         request: async_graphql::Request,
+        session_data: Option<Arc<async_graphql::Data>>,
     ) -> futures::stream::BoxStream<'static, async_graphql::Response> {
-        Box::pin(Self::schema().execute_stream(request))
+        if let Some(session_data) = session_data {
+            Box::pin(Self::schema().execute_stream_with_session_data(request, session_data))
+        } else {
+            Box::pin(Self::schema().execute_stream(request))
+        }
     }
 
     fn sdl(&self) -> String {
