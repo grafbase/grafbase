@@ -42,10 +42,10 @@ where
 #[test]
 fn relay_style_happy_path() {
     test(TrustedDocumentsEnforcementMode::Enforce, |engine| async move {
-        let send = || {
+        let send = |query| {
             engine
                 .post(GraphQlRequest {
-                    query: String::new(),
+                    query,
                     operation_name: None,
                     variables: None,
                     extensions: None,
@@ -54,8 +54,7 @@ fn relay_style_happy_path() {
                 .header("x-grafbase-client-name", "ios-app")
         };
 
-        let response = send().await;
-
+        let response = send(None).await;
         insta::assert_json_snapshot!(response, @r###"
         {
           "data": {
@@ -64,7 +63,7 @@ fn relay_style_happy_path() {
         }
         "###);
 
-        let second_response = send().await;
+        let second_response = send(Some(String::new())).await;
 
         assert_eq!(response.to_string(), second_response.to_string());
     })
@@ -73,16 +72,22 @@ fn relay_style_happy_path() {
 #[test]
 fn apollo_client_style_happy_path() {
     test(TrustedDocumentsEnforcementMode::Enforce, |engine| async move {
-        let send = || {
+        let send = |query| {
             engine
-                .post("")
+                .post(GraphQlRequest {
+                    query,
+                    operation_name: None,
+                    variables: None,
+                    extensions: None,
+                    doc_id: Some(TRUSTED_DOCUMENTS[1].document_id.to_owned()),
+                })
                 .extensions(
                     json!({"persistedQuery": { "version": 1, "sha256Hash": &TRUSTED_DOCUMENTS[0].document_id }}),
                 )
                 .header("x-grafbase-client-name", "ios-app")
         };
 
-        let response = send().await;
+        let response = send(None).await;
 
         insta::assert_json_snapshot!(response, @r###"
             {
@@ -92,7 +97,7 @@ fn apollo_client_style_happy_path() {
             }
             "###);
 
-        let second_response = send().await;
+        let second_response = send(Some(String::new())).await;
 
         assert_eq!(response.to_string(), second_response.to_string());
     })
@@ -164,7 +169,7 @@ fn enforce_mode_trusted_document_body_with_matching_document_id() {
     test(TrustedDocumentsEnforcementMode::Enforce, |engine| async move {
         let response = engine
             .post(GraphQlRequest {
-                query: TRUSTED_DOCUMENTS[1].document_text.to_owned(),
+                query: Some(TRUSTED_DOCUMENTS[1].document_text.to_owned()),
                 operation_name: None,
                 variables: None,
                 extensions: None,
@@ -188,7 +193,7 @@ fn enforce_mode_trusted_document_body_with_non_matching_document_id() {
     test(TrustedDocumentsEnforcementMode::Enforce, |engine| async move {
         let response = engine
             .post(GraphQlRequest {
-                query: "query { pullRequestsAndIssues(filter: { search: \"1\" }) { __typename } }".to_string(),
+                query: Some("query { pullRequestsAndIssues(filter: { search: \"1\" }) { __typename } }".to_string()),
                 operation_name: None,
                 variables: None,
                 extensions: None,
@@ -332,7 +337,7 @@ fn allow_mode_both_inline_document_and_document_id() {
     test(TrustedDocumentsEnforcementMode::Allow, |engine| async move {
         let response = engine
             .post(GraphQlRequest {
-                query: "query { pullRequestsAndIssues(filter: { search: \"1\" }) { __typename } }".to_string(),
+                query: Some("query { pullRequestsAndIssues(filter: { search: \"1\" }) { __typename } }".to_string()),
                 operation_name: None,
                 variables: None,
                 extensions: None,
@@ -366,7 +371,7 @@ fn allow_mode_only_document_id() {
     test(TrustedDocumentsEnforcementMode::Allow, |engine| async move {
         let response = engine
             .post(GraphQlRequest {
-                query: String::new(),
+                query: None,
                 operation_name: None,
                 variables: None,
                 extensions: None,
@@ -443,6 +448,6 @@ fn ignore_mode_with_relay_doc_id() {
     })
 }
 
-fn pull_requests_query() -> String {
-    "query { pullRequestsAndIssues(filter: { search: \"1\" }) { __typename } }".to_owned()
+fn pull_requests_query() -> Option<String> {
+    Some("query { pullRequestsAndIssues(filter: { search: \"1\" }) { __typename } }".to_owned())
 }
