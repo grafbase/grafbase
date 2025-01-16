@@ -25,10 +25,17 @@ pub enum TrustedDocumentsError {
 
 pub type TrustedDocumentsResult<T> = Result<T, TrustedDocumentsError>;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TrustedDocumentsEnforcementMode {
+    Ignore,
+    Allow,
+    Enforce,
+}
+
 /// A handle to trusted documents configuration and retrieval.
 #[async_trait::async_trait]
 pub trait TrustedDocumentsClient: Send + Sync {
-    fn is_enabled(&self) -> bool;
+    fn enforcement_mode(&self) -> TrustedDocumentsEnforcementMode;
 
     /// Users can optionally configure a header (name, value) which, when it is
     /// sent with a request, will bypass the trusted documents checks and allow running

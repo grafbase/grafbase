@@ -63,7 +63,7 @@ impl<R: Runtime> PrepareContext<'_, R> {
     ) -> Result<PreparedOperation, Response<<R::Hooks as Hooks>::OnOperationResponseOutput>> {
         let variables = std::mem::take(&mut request.variables);
         let cache_result = {
-            let extracted = match self.extract_operation_document(&request) {
+            let extracted = match self.extract_operation_document(&request).await {
                 Ok(doc) => doc,
                 // If we have an error a this stage, it means we couldn't determine what document
                 // to load, so we don't consider it a well-formed GraphQL-over-HTTP request.

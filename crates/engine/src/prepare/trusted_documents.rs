@@ -5,14 +5,19 @@ use crate::{
     response::{ErrorCode, GraphqlError},
     Engine, Runtime,
 };
-use futures::{future::BoxFuture, FutureExt};
+use config::LogLevel;
+use futures::{future::BoxFuture, FutureExt, TryFutureExt as _};
 use grafbase_telemetry::grafbase_client::X_GRAFBASE_CLIENT_NAME;
 use operation::{extensions::PersistedQueryRequestExtension, Request};
-use runtime::trusted_documents_client::TrustedDocumentsError;
+use runtime::{
+    operation_cache::OperationCache as _,
+    trusted_documents_client::{TrustedDocumentsEnforcementMode, TrustedDocumentsError},
+};
+use sha2::Digest;
 use std::borrow::Cow;
 use tracing::Instrument;
 
-use super::{OperationDocument, PrepareContext};
+use super::{CacheKey, OperationDocument, PrepareContext};
 
 pub(super) struct ExtractedOperationDocument<'a> {
     pub key: DocumentKey<'a>,
@@ -48,7 +53,7 @@ fn wrap_document(doc: &str) -> DocumentOrFuture<'_> {
 impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
     /// Determines what document should be used for the request and provides an appropriate cache
     /// key for the operation cache and as a fallback a future to load said document.
-    pub(super) fn extract_operation_document<'r, 'f>(
+    pub(super) async fn extract_operation_document<'r, 'f>(
         &mut self,
         request: &'r Request,
     ) -> Result<ExtractedOperationDocument<'f>, GraphqlError>
@@ -61,9 +66,10 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
         let persisted_query_extension = request.extensions.persisted_query.as_ref();
         let doc_id = request.doc_id.as_ref();
         let operation_name = request.operation_name.as_deref().map(Cow::Borrowed);
+        let apq_enabled = self.engine.schema.settings.apq_enabled;
 
-        match (trusted_documents.is_enabled(), persisted_query_extension, doc_id) {
-            (true, None, None) => {
+        match (trusted_documents.enforcement_mode(), persisted_query_extension, doc_id) {
+            (TrustedDocumentsEnforcementMode::Enforce, None, None) => {
                 if trusted_documents
                     .bypass_header()
                     .map(|(name, value)| self.headers().get(name).and_then(|v| v.to_str().ok()) == Some(value))
@@ -81,24 +87,55 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
                         },
                         document_or_future: wrap_document(document),
                     })
+                } else if let Some(query) = request.query.as_deref().filter(|query| !query.is_empty()) {
+                    // Just an inline document.
+                    let Some(client_name) = client_name else {
+                        return Err(missing_client_name_error());
+                    };
+
+                    //  We have to take a guess on the document id here. The best guess is a sha256, because that's what is the most common across the ecosystem.
+                    let hash = sha2::Sha256::digest(query.as_bytes());
+                    let doc_id = hex::encode(hash);
+
+                    Ok(ExtractedOperationDocument {
+                        key: DocumentKey::TrustedDocumentId {
+                            operation_name,
+                            client_name: Cow::Borrowed(client_name),
+                            doc_id: Cow::Owned(doc_id.clone()),
+                        },
+                        document_or_future: DocumentOrFuture::Future(
+                            handle_trusted_document_query(self.engine, client_name, Cow::Owned(doc_id.clone()))
+                                .map_err({
+                                    let log_level = self
+                                        .engine
+                                        .schema
+                                        .settings
+                                        .trusted_documents
+                                        .inline_document_unknown_log_level;
+
+                                    move |err| {
+                                        log_unknown_inline_document(log_level, doc_id.as_str());
+                                        GraphqlError::new(
+                                            format!("The query document does not match any trusted document. ({err})"),
+                                            err.code,
+                                        )
+                                    }
+                                })
+                                .boxed(),
+                        ),
+                    })
                 } else {
                     let graphql_error = GraphqlError::new(
-                        "Cannot execute a trusted document query: missing documentId, doc_id or the persistedQuery extension.",
-                        ErrorCode::TrustedDocumentError
+                        "Cannot execute a trusted document query.",
+                        ErrorCode::TrustedDocumentError,
                     );
                     Err(graphql_error)
                 }
             }
             // Apollo Client style trusted document query
-            (true, maybe_ext, maybe_doc_id) => {
+            (TrustedDocumentsEnforcementMode::Enforce, maybe_ext, maybe_doc_id) => {
                 let Some(client_name) = client_name else {
-                    return Err(GraphqlError::new(
-                        format!(
-                            "Trusted document queries must include the {} header",
-                            X_GRAFBASE_CLIENT_NAME.as_str()
-                        ),
-                        ErrorCode::TrustedDocumentError,
-                    ));
+                    return Err(missing_client_name_error());
                 };
 
                 let doc_id = if let Some(ext) = maybe_ext {
@@ -120,8 +157,127 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
                     ),
                 })
             }
-            (false, Some(ext), _) => {
-                if !self.engine.schema.settings.apq_enabled {
+            (TrustedDocumentsEnforcementMode::Allow, _, Some(doc_id)) => {
+                let Some(client_name) = client_name else {
+                    return Err(missing_client_name_error());
+                };
+
+                let query = request.query.as_deref();
+
+                Ok(ExtractedOperationDocument {
+                    // Reflect what actually gets executed. If there is an inline query document, it will always take priority.
+                    key: query
+                        .map({
+                            let operation_name = operation_name.clone();
+                            move |query| DocumentKey::Text {
+                                operation_name,
+                                document: Cow::Borrowed(query),
+                            }
+                        })
+                        .unwrap_or_else({
+                            let operation_name = operation_name.clone();
+                            || DocumentKey::TrustedDocumentId {
+                                operation_name,
+                                client_name: Cow::Borrowed(client_name),
+                                doc_id: Cow::Borrowed(doc_id),
+                            }
+                        }),
+                    document_or_future: {
+                        if let Some(inline_document) = query.filter(|query| !query.is_empty()) {
+                            let key = CacheKey::document(
+                                self.schema(),
+                                &DocumentKey::TrustedDocumentId {
+                                    operation_name,
+                                    client_name: Cow::Borrowed(client_name),
+                                    doc_id: Cow::Borrowed(doc_id),
+                                },
+                            );
+
+                            let trusted_doc_matches_inline_doc =
+                                match self.engine.runtime.operation_cache().get(&key).await {
+                                    Some(trusted_doc) => trusted_doc.document.content == inline_document,
+                                    None => {
+                                        handle_trusted_document_query(self.engine, client_name, Cow::Borrowed(doc_id))
+                                            .await?
+                                            == inline_document
+                                    }
+                                };
+
+                            if !trusted_doc_matches_inline_doc {
+                                log_document_id_and_query_mismatch(self.engine, doc_id.as_ref());
+                            }
+
+                            DocumentOrFuture::Document(Cow::Borrowed(inline_document))
+                        } else {
+                            DocumentOrFuture::Future(
+                                handle_trusted_document_query(self.engine, client_name, Cow::Borrowed(doc_id)).boxed(),
+                            )
+                        }
+                    },
+                })
+            }
+            (TrustedDocumentsEnforcementMode::Allow, Some(ext), _) if !apq_enabled => {
+                let Some(client_name) = client_name else {
+                    return Err(missing_client_name_error());
+                };
+
+                let query = request.query.as_deref();
+                let doc_id: Cow<'_, str> = Cow::Owned(hex::encode(&ext.sha256_hash));
+
+                Ok(ExtractedOperationDocument {
+                    // Reflect what actually gets executed. If there is an inline query document, it will always take priority.
+                    key: query
+                        .map({
+                            let operation_name = operation_name.clone();
+                            |query| DocumentKey::Text {
+                                operation_name,
+                                document: Cow::Borrowed(query),
+                            }
+                        })
+                        .unwrap_or_else({
+                            let operation_name = operation_name.clone();
+                            || DocumentKey::TrustedDocumentId {
+                                operation_name,
+                                client_name: Cow::Borrowed(client_name),
+                                doc_id: doc_id.clone(),
+                            }
+                        }),
+                    document_or_future: {
+                        if let Some(inline_document) = query.filter(|query| !query.is_empty()) {
+                            let key = CacheKey::document(
+                                self.schema(),
+                                &DocumentKey::TrustedDocumentId {
+                                    operation_name,
+                                    client_name: Cow::Borrowed(client_name),
+                                    doc_id: doc_id.clone(),
+                                },
+                            );
+
+                            let trusted_doc_matches_inline_doc =
+                                match self.engine.runtime.operation_cache().get(&key).await {
+                                    Some(trusted_doc) => trusted_doc.document.content == inline_document,
+                                    None => {
+                                        handle_trusted_document_query(self.engine, client_name, doc_id.clone()).await?
+                                            == inline_document
+                                    }
+                                };
+
+                            if !trusted_doc_matches_inline_doc {
+                                log_document_id_and_query_mismatch(self.engine, doc_id.as_ref());
+                            }
+
+                            DocumentOrFuture::Document(Cow::Borrowed(inline_document))
+                        } else {
+                            DocumentOrFuture::Future(
+                                handle_trusted_document_query(self.engine, client_name, doc_id).boxed(),
+                            )
+                        }
+                    },
+                })
+            }
+            (TrustedDocumentsEnforcementMode::Ignore, Some(ext), _)
+            | (TrustedDocumentsEnforcementMode::Allow, Some(ext), _) => {
+                if !apq_enabled {
                     return Err(GraphqlError::new(
                         "Persisted query not found",
                         ErrorCode::PersistedQueryNotFound,
@@ -141,7 +297,8 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
                     document_or_future: DocumentOrFuture::Future(handle_apq(query, ext).boxed()),
                 })
             }
-            (false, None, _) => {
+            (TrustedDocumentsEnforcementMode::Ignore, None, _)
+            | (TrustedDocumentsEnforcementMode::Allow, None, None) => {
                 let document = request
                     .query
                     .as_deref()
@@ -157,6 +314,16 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
             }
         }
     }
+}
+
+fn missing_client_name_error() -> GraphqlError {
+    GraphqlError::new(
+        format!(
+            "Trusted document queries must include the {} header",
+            X_GRAFBASE_CLIENT_NAME.as_str()
+        ),
+        ErrorCode::TrustedDocumentError,
+    )
 }
 
 #[tracing::instrument(skip_all)]
@@ -175,10 +342,14 @@ async fn handle_trusted_document_query<'ctx, 'r, R: Runtime>(
             format!("Internal server error while fetching trusted document: {err}"),
             ErrorCode::TrustedDocumentError,
         )),
-        Err(TrustedDocumentsError::DocumentNotFound) => Err(GraphqlError::new(
-            format!("Unknown document id: '{document_id}'"),
-            ErrorCode::TrustedDocumentError,
-        )),
+        Err(TrustedDocumentsError::DocumentNotFound) => {
+            log_unknown_trusted_document_id(engine, document_id.as_ref());
+
+            Err(GraphqlError::new(
+                format!("Unknown trusted document id: '{document_id}'"),
+                ErrorCode::TrustedDocumentError,
+            ))
+        }
         Ok(document_text) => Ok(Cow::Owned(document_text)),
     }
 }
@@ -214,4 +385,48 @@ async fn handle_apq<'r, 'f>(
         "Persisted query not found",
         ErrorCode::PersistedQueryNotFound,
     ))
+}
+
+/// When a request contains a trusted document id, but the trusted document is not found in GDN. Default: INFO.
+fn log_unknown_trusted_document_id<R: Runtime>(engine: &Engine<R>, document_id: &str) {
+    const MESSAGE: &str = "Unknown trusted document";
+
+    match engine.schema.settings.trusted_documents.document_id_unknown_log_level {
+        LogLevel::Off => (),
+        LogLevel::Debug => tracing::debug!(MESSAGE, document_id),
+        LogLevel::Info => tracing::info!(MESSAGE, document_id),
+        LogLevel::Warn => tracing::warn!(MESSAGE, document_id),
+        LogLevel::Error => tracing::error!(MESSAGE, document_id),
+    }
+}
+
+/// When a request contains a trusted document id and an inline document in `query`, but the trusted document body does not match the inline document.
+fn log_document_id_and_query_mismatch<R: Runtime>(engine: &Engine<R>, document_id: &str) {
+    const MESSAGE: &str = "The request contained both a GraphQL query document and a document id, but the trusted document with that ID does not match the inline query document.";
+
+    match engine
+        .schema
+        .settings
+        .trusted_documents
+        .document_id_and_query_mismatch_log_level
+    {
+        LogLevel::Off => (),
+        LogLevel::Debug => tracing::debug!(MESSAGE, document_id),
+        LogLevel::Info => tracing::info!(MESSAGE, document_id),
+        LogLevel::Warn => tracing::warn!(MESSAGE, document_id),
+        LogLevel::Error => tracing::error!(MESSAGE, document_id),
+    }
+}
+
+/// When a request contains only an inline document but it does not correspond to any trusted document.
+fn log_unknown_inline_document(log_level: LogLevel, document_id: &str) {
+    const MESSAGE: &str = "The GraphQL query document in the request does not match any trusted document.";
+
+    match log_level {
+        LogLevel::Off => (),
+        LogLevel::Debug => tracing::debug!(MESSAGE, document_id),
+        LogLevel::Info => tracing::info!(MESSAGE, document_id),
+        LogLevel::Warn => tracing::warn!(MESSAGE, document_id),
+        LogLevel::Error => tracing::error!(MESSAGE, document_id),
+    }
 }

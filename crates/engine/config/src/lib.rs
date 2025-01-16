@@ -7,6 +7,7 @@ mod rate_limit;
 pub mod response_extensions;
 mod retry;
 mod subgraph;
+mod trusted_documents;
 
 use std::{
     collections::BTreeMap,
@@ -14,6 +15,7 @@ use std::{
     time::Duration,
 };
 
+pub use self::trusted_documents::{LogLevel, TrustedDocumentsConfig};
 pub use auth::{AuthConfig, AuthProviderConfig, JwksConfig, JwtConfig};
 pub use complexity_control::ComplexityControl;
 pub use entity_caching::EntityCaching;
@@ -81,6 +83,9 @@ pub struct Config {
 
     #[serde(default)]
     pub apq: AutomaticPersistedQueries,
+
+    #[serde(default)]
+    pub trusted_documents: TrustedDocumentsConfig,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Default, Clone, Copy)]
@@ -134,6 +139,7 @@ impl Config {
             response_extension: Default::default(),
             apq: Default::default(),
             executable_document_limit_bytes: (32 * 1024),
+            trusted_documents: Default::default(),
         }
     }
 

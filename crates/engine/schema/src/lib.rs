@@ -141,6 +141,7 @@ pub struct Settings {
     pub response_extension: ResponseExtensionConfig,
     pub apq_enabled: bool,
     pub executable_document_limit_bytes: usize,
+    pub trusted_documents: config::TrustedDocumentsConfig,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, id_derives::IndexedFields)]

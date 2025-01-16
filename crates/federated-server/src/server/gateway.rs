@@ -2,7 +2,7 @@ use super::GdnResponse;
 use engine::{Engine, SchemaVersion};
 use gateway_config::Config;
 use graphql_composition::FederatedGraph;
-use runtime::trusted_documents_client::Client;
+use runtime::trusted_documents_client::{Client, TrustedDocumentsEnforcementMode};
 use runtime_local::HooksWasi;
 use std::{path::PathBuf, sync::Arc};
 use tokio::sync::watch;
@@ -118,6 +118,12 @@ fn gdn_graph(
     );
 
     let trusted_documents = if gateway_config.trusted_documents.enabled {
+        let enforcement_mode = if gateway_config.trusted_documents.enforced {
+            TrustedDocumentsEnforcementMode::Enforce
+        } else {
+            TrustedDocumentsEnforcementMode::Allow
+        };
+
         Some(runtime::trusted_documents_client::Client::new(
             super::trusted_documents_client::TrustedDocumentsClient::new(
                 Default::default(),
@@ -135,6 +141,7 @@ fn gdn_graph(
                             .as_ref(),
                     )
                     .map(|(name, value)| (name.clone().into(), String::from(value.as_ref()))),
+                enforcement_mode,
             ),
         ))
     } else {
