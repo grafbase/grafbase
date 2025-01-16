@@ -1,4 +1,5 @@
 use engine::Engine;
+use graphql_mocks::dynamic::DynamicSchema;
 use integration_tests::{federation::EngineExt, fetch::MockFetch, runtime};
 use serde_json::json;
 
@@ -185,4 +186,163 @@ fn gb7323_join_field_may_not_be_present() {
         }
         "###);
     });
+}
+
+#[test]
+fn gb8273_gateway_reports_missing_fields_present_in_subgraph_response() {
+    runtime().block_on(async move {
+        let gateway = Engine::builder()
+            .with_subgraph(
+                DynamicSchema::builder(
+                    r#"
+                    type Query {
+                        part(id: Int!): Part!
+                    }
+
+                    type Part {
+                        id: Int!
+                        canSeeEnterpriseParts: Boolean!
+                        manufacturerVendor: Vendor!
+                    }
+
+                    type Vendor {
+                        id: ID!
+                    }
+
+                    type User @key(fields: "id") {
+                        id: ID!
+                    }
+                "#,
+                )
+                .with_resolver(
+                    "Query",
+                    "part",
+                    json!({"canSeeEnterpriseParts":false,"manufacturerVendor":{"id": "M"},"id":28}),
+                )
+                .into_subgraph("x"),
+            )
+            .build()
+            .await;
+
+        let response = gateway
+            .post(
+                r#"
+                query PartDetailsQuery($id: Int!, $shouldFetchManufacturers: Boolean! = true) {
+                  part(id: $id) {
+                    ...PartDetailsFragment
+                    canSeeEnterpriseParts
+                    manufacturerVendor @include(if: $shouldFetchManufacturers) {
+                      id
+                      __typename
+                    }
+                    __typename
+                  }
+                }
+
+                fragment PartDetailsFragment on Part {
+                  id
+                }
+            "#,
+            )
+            .variables(json!({
+                "shouldFetchManufacturers": false,
+                "id": 28
+            }))
+            .await;
+
+        insta::assert_json_snapshot!(response, @r#"
+        {
+          "data": {
+            "part": {
+              "id": 28,
+              "canSeeEnterpriseParts": false,
+              "__typename": "Part"
+            }
+          }
+        }
+        "#);
+
+        let response = gateway
+            .post(
+                r#"
+                query PartDetailsQuery($id: Int!, $shouldFetchManufacturers: Boolean! = true) {
+                  part(id: $id) {
+                    ...PartDetailsFragment
+                    canSeeEnterpriseParts
+                    manufacturerVendor @include(if: $shouldFetchManufacturers) {
+                      id
+                      __typename
+                    }
+                    __typename
+                  }
+                }
+
+                fragment PartDetailsFragment on Part {
+                  id
+                }
+            "#,
+            )
+            .variables(json!({
+                "shouldFetchManufacturers": true,
+                "id": 28
+            }))
+            .await;
+
+        insta::assert_json_snapshot!(response, @r#"
+        {
+          "data": {
+            "part": {
+              "id": 28,
+              "canSeeEnterpriseParts": false,
+              "manufacturerVendor": {
+                "id": "M",
+                "__typename": "Vendor"
+              },
+              "__typename": "Part"
+            }
+          }
+        }
+        "#);
+
+        let response = gateway
+            .post(
+                r#"
+                query PartDetailsQuery($id: Int!, $shouldFetchManufacturers: Boolean! = true) {
+                  part(id: $id) {
+                    ...PartDetailsFragment
+                    canSeeEnterpriseParts
+                    manufacturerVendor @include(if: $shouldFetchManufacturers) {
+                      id
+                      __typename
+                    }
+                    __typename
+                  }
+                }
+
+                fragment PartDetailsFragment on Part {
+                  id
+                }
+            "#,
+            )
+            .variables(json!({
+                "id": 28
+            }))
+            .await;
+
+        insta::assert_json_snapshot!(response, @r#"
+        {
+          "data": {
+            "part": {
+              "id": 28,
+              "canSeeEnterpriseParts": false,
+              "manufacturerVendor": {
+                "id": "M",
+                "__typename": "Vendor"
+              },
+              "__typename": "Part"
+            }
+          }
+        }
+        "#);
+    })
 }

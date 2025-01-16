@@ -447,10 +447,7 @@ impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_> {
                 if field_shape.is_skipped() {
                     continue;
                 }
-                if response_fields[0..n]
-                    .binary_search_by(|field| field.key.cmp(&field_shape.key))
-                    .is_err()
-                {
+                if !response_fields[0..n].iter().any(|field| field.key == field_shape.key) {
                     if field_shape.wrapping.is_required() {
                         // If part of the query fields the user requested. We don't propagate null
                         // for extra fields.
