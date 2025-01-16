@@ -1,9 +1,6 @@
 use engine::Engine;
 use graphql_mocks::FakeGithubSchema;
-use integration_tests::{
-    federation::{EngineExt, GraphQlRequest},
-    runtime,
-};
+use integration_tests::{federation::EngineExt, runtime};
 
 #[test]
 fn multiple_operations_without_providing_operation_name_in_request() {
@@ -50,8 +47,8 @@ fn multiple_operations() {
         let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
 
         engine
-            .post(GraphQlRequest {
-                query: r"
+            .post(
+                r"
                     query First {
                         allBotPullRequests {
                             title
@@ -64,13 +61,9 @@ fn multiple_operations() {
                             checks
                         }
                     }
-                    "
-                .to_string(),
-                operation_name: Some("First".to_string()),
-                variables: None,
-                extensions: None,
-                doc_id: None,
-            })
+                    ",
+            )
+            .operation_name("First")
             .await
     });
 
@@ -130,8 +123,8 @@ fn unknown_operation_name() {
         let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
 
         engine
-            .post(GraphQlRequest {
-                query: r"
+            .post(
+                r"
                     query First {
                         allBotPullRequests {
                             title
@@ -144,13 +137,9 @@ fn unknown_operation_name() {
                             checks
                         }
                     }
-                    "
-                .to_string(),
-                operation_name: Some("Third".to_string()),
-                variables: None,
-                extensions: None,
-                doc_id: None,
-            })
+                    ",
+            )
+            .operation_name("Third")
             .await
     });
 

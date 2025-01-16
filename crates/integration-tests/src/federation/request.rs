@@ -62,6 +62,11 @@ impl TestRequest {
         self
     }
 
+    pub fn operation_name(mut self, name: impl Into<String>) -> Self {
+        self.body.operation_name = Some(name.into());
+        self
+    }
+
     pub fn into_multipart_stream(self) -> MultipartStreamRequest {
         MultipartStreamRequest(self)
     }
@@ -116,7 +121,8 @@ impl IntoFuture for TestRequest {
 
 #[derive(serde::Serialize)]
 pub struct GraphQlRequest {
-    pub query: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub query: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none", rename = "operationName")]
     pub operation_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -139,8 +145,20 @@ impl<'a> From<&'a str> for GraphQlRequest {
     }
 }
 
+impl<'a> From<Option<&'a str>> for GraphQlRequest {
+    fn from(value: Option<&'a str>) -> Self {
+        value.map(|s| s.to_string()).into()
+    }
+}
+
 impl From<String> for GraphQlRequest {
     fn from(query: String) -> Self {
+        Some(query).into()
+    }
+}
+
+impl From<Option<String>> for GraphQlRequest {
+    fn from(query: Option<String>) -> Self {
         Self {
             query,
             operation_name: None,
@@ -157,7 +175,7 @@ where
 {
     fn from(operation: cynic::Operation<T, V>) -> Self {
         GraphQlRequest {
-            query: operation.query,
+            query: Some(operation.query),
             variables: Some(serde_json::from_value(serde_json::to_value(operation.variables).unwrap()).unwrap()),
             operation_name: operation.operation_name.map(|name| name.to_string()),
             extensions: None,

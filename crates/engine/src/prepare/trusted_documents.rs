@@ -161,60 +161,15 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
                 let Some(client_name) = client_name else {
                     return Err(missing_client_name_error());
                 };
-
                 let query = request.query.as_deref();
 
-                Ok(ExtractedOperationDocument {
-                    // Reflect what actually gets executed. If there is an inline query document, it will always take priority.
-                    key: query
-                        .map({
-                            let operation_name = operation_name.clone();
-                            move |query| DocumentKey::Text {
-                                operation_name,
-                                document: Cow::Borrowed(query),
-                            }
-                        })
-                        .unwrap_or_else({
-                            let operation_name = operation_name.clone();
-                            || DocumentKey::TrustedDocumentId {
-                                operation_name,
-                                client_name: Cow::Borrowed(client_name),
-                                doc_id: Cow::Borrowed(doc_id),
-                            }
-                        }),
-                    document_or_future: {
-                        if let Some(inline_document) = query.filter(|query| !query.is_empty()) {
-                            let key = CacheKey::document(
-                                self.schema(),
-                                &DocumentKey::TrustedDocumentId {
-                                    operation_name,
-                                    client_name: Cow::Borrowed(client_name),
-                                    doc_id: Cow::Borrowed(doc_id),
-                                },
-                            );
-
-                            let trusted_doc_matches_inline_doc =
-                                match self.engine.runtime.operation_cache().get(&key).await {
-                                    Some(trusted_doc) => trusted_doc.document.content == inline_document,
-                                    None => {
-                                        handle_trusted_document_query(self.engine, client_name, Cow::Borrowed(doc_id))
-                                            .await?
-                                            == inline_document
-                                    }
-                                };
-
-                            if !trusted_doc_matches_inline_doc {
-                                log_document_id_and_query_mismatch(self.engine, doc_id.as_ref());
-                            }
-
-                            DocumentOrFuture::Document(Cow::Borrowed(inline_document))
-                        } else {
-                            DocumentOrFuture::Future(
-                                handle_trusted_document_query(self.engine, client_name, Cow::Borrowed(doc_id)).boxed(),
-                            )
-                        }
-                    },
-                })
+                self.handle_trusted_document_document_query_permissive(
+                    operation_name,
+                    query,
+                    client_name,
+                    Cow::Borrowed(doc_id),
+                )
+                .await
             }
             (TrustedDocumentsEnforcementMode::Allow, Some(ext), _) if !apq_enabled => {
                 let Some(client_name) = client_name else {
@@ -222,61 +177,12 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
                 };
 
                 let query = request.query.as_deref();
-                let doc_id: Cow<'_, str> = Cow::Owned(hex::encode(&ext.sha256_hash));
+                let doc_id = Cow::Owned(hex::encode(&ext.sha256_hash));
 
-                Ok(ExtractedOperationDocument {
-                    // Reflect what actually gets executed. If there is an inline query document, it will always take priority.
-                    key: query
-                        .map({
-                            let operation_name = operation_name.clone();
-                            |query| DocumentKey::Text {
-                                operation_name,
-                                document: Cow::Borrowed(query),
-                            }
-                        })
-                        .unwrap_or_else({
-                            let operation_name = operation_name.clone();
-                            || DocumentKey::TrustedDocumentId {
-                                operation_name,
-                                client_name: Cow::Borrowed(client_name),
-                                doc_id: doc_id.clone(),
-                            }
-                        }),
-                    document_or_future: {
-                        if let Some(inline_document) = query.filter(|query| !query.is_empty()) {
-                            let key = CacheKey::document(
-                                self.schema(),
-                                &DocumentKey::TrustedDocumentId {
-                                    operation_name,
-                                    client_name: Cow::Borrowed(client_name),
-                                    doc_id: doc_id.clone(),
-                                },
-                            );
-
-                            let trusted_doc_matches_inline_doc =
-                                match self.engine.runtime.operation_cache().get(&key).await {
-                                    Some(trusted_doc) => trusted_doc.document.content == inline_document,
-                                    None => {
-                                        handle_trusted_document_query(self.engine, client_name, doc_id.clone()).await?
-                                            == inline_document
-                                    }
-                                };
-
-                            if !trusted_doc_matches_inline_doc {
-                                log_document_id_and_query_mismatch(self.engine, doc_id.as_ref());
-                            }
-
-                            DocumentOrFuture::Document(Cow::Borrowed(inline_document))
-                        } else {
-                            DocumentOrFuture::Future(
-                                handle_trusted_document_query(self.engine, client_name, doc_id).boxed(),
-                            )
-                        }
-                    },
-                })
+                self.handle_trusted_document_document_query_permissive(operation_name, query, client_name, doc_id)
+                    .await
             }
-            (TrustedDocumentsEnforcementMode::Ignore, Some(ext), _)
-            | (TrustedDocumentsEnforcementMode::Allow, Some(ext), _) => {
+            (TrustedDocumentsEnforcementMode::Ignore | TrustedDocumentsEnforcementMode::Allow, Some(ext), _) => {
                 if !apq_enabled {
                     return Err(GraphqlError::new(
                         "Persisted query not found",
@@ -284,17 +190,12 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
                     ));
                 }
 
-                let query = request
-                    .query
-                    .as_deref()
-                    .ok_or_else(|| GraphqlError::new("Missing query", ErrorCode::BadRequest))?;
-
                 Ok(ExtractedOperationDocument {
                     key: DocumentKey::AutomaticPersistedQuery {
                         operation_name,
                         ext: Cow::Borrowed(ext),
                     },
-                    document_or_future: DocumentOrFuture::Future(handle_apq(query, ext).boxed()),
+                    document_or_future: DocumentOrFuture::Future(handle_apq(request.query.as_deref(), ext).boxed()),
                 })
             }
             (TrustedDocumentsEnforcementMode::Ignore, None, _)
@@ -312,6 +213,60 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
                     document_or_future: wrap_document(document),
                 })
             }
+        }
+    }
+
+    async fn handle_trusted_document_document_query_permissive<'r, 'f>(
+        &self,
+        operation_name: Option<Cow<'r, str>>,
+        query: Option<&'r str>,
+        client_name: &'r str,
+        doc_id: Cow<'r, str>,
+    ) -> Result<ExtractedOperationDocument<'f>, GraphqlError>
+    where
+        'ctx: 'f,
+        'r: 'f,
+    {
+        // Reflect what actually gets executed. If there is an inline query document, it will always take priority.
+        if let Some(inline_document) = query.filter(|query| !query.is_empty()) {
+            let key = CacheKey::document(
+                self.schema(),
+                &DocumentKey::TrustedDocumentId {
+                    operation_name: operation_name.clone(),
+                    client_name: Cow::Borrowed(client_name),
+                    doc_id: doc_id.clone(),
+                },
+            );
+
+            let trusted_doc_matches_inline_doc = match self.engine.runtime.operation_cache().get(&key).await {
+                Some(trusted_doc) => trusted_doc.document.content == inline_document,
+                None => {
+                    handle_trusted_document_query(self.engine, client_name, doc_id.clone()).await? == inline_document
+                }
+            };
+
+            if !trusted_doc_matches_inline_doc {
+                log_document_id_and_query_mismatch(self.engine, doc_id.as_ref());
+            }
+
+            Ok(ExtractedOperationDocument {
+                key: DocumentKey::Text {
+                    operation_name,
+                    document: Cow::Borrowed(inline_document),
+                },
+                document_or_future: DocumentOrFuture::Document(Cow::Borrowed(inline_document)),
+            })
+        } else {
+            Ok(ExtractedOperationDocument {
+                key: DocumentKey::TrustedDocumentId {
+                    operation_name,
+                    client_name: Cow::Borrowed(client_name),
+                    doc_id: doc_id.clone(),
+                },
+                document_or_future: DocumentOrFuture::Future(
+                    handle_trusted_document_query(self.engine, client_name, doc_id).boxed(),
+                ),
+            })
         }
     }
 }
@@ -359,7 +314,7 @@ async fn handle_trusted_document_query<'ctx, 'r, R: Runtime>(
 /// external cache for this one day, but not another in-memory cache.
 #[tracing::instrument(skip_all)]
 async fn handle_apq<'r, 'f>(
-    query: &'r str,
+    query: Option<&'r str>,
     ext: &'r PersistedQueryRequestExtension,
 ) -> Result<Cow<'r, str>, GraphqlError> {
     if ext.version != 1 {
@@ -369,7 +324,7 @@ async fn handle_apq<'r, 'f>(
         ));
     }
 
-    if !query.is_empty() {
+    if let Some(query) = query.filter(|q| !q.is_empty()) {
         use sha2::{Digest, Sha256};
         let digest = <Sha256 as Digest>::digest(query.as_bytes()).to_vec();
         if digest != ext.sha256_hash {
