@@ -1,12 +1,10 @@
 use petgraph::{stable_graph::NodeIndex, visit::EdgeRef, Direction};
-use schema::{CompositeType, CompositeTypeId, FieldDefinition};
+use schema::{CompositeType, FieldDefinition};
 use walker::Walk;
 
-use crate::{FieldFlags, QueryField, QueryFieldId};
+use crate::{NodeFlags, QueryField, QueryFieldId, QuerySelectionSetId};
 
-use super::{
-    builder::QuerySolutionSpaceBuilder, providable_fields::UnplannableField, QueryFieldNode, SpaceEdge, SpaceNode,
-};
+use super::{builder::QuerySolutionSpaceBuilder, providable_fields::UnplannableField, SpaceEdge, SpaceNode};
 
 impl<'schema, 'op> QuerySolutionSpaceBuilder<'schema, 'op>
 where
@@ -15,29 +13,28 @@ where
     pub(super) fn handle_unplannable_field(
         &mut self,
         UnplannableField {
-            parent_query_field_node_ix,
+            parent_selection_set_id,
             query_field_node_ix,
         }: UnplannableField,
     ) -> crate::Result<()> {
-        let SpaceNode::QueryField(QueryFieldNode {
+        let SpaceNode::QueryField {
             id: query_field_id,
             flags,
-        }) = self.query.graph[query_field_node_ix]
+        } = self.query.graph[query_field_node_ix]
         else {
             return Ok(());
         };
-        if flags.contains(FieldFlags::UNREACHABLE) {
+        if flags.contains(NodeFlags::UNREACHABLE) {
             if self
                 .query
                 .graph
                 .edges_directed(query_field_node_ix, Direction::Incoming)
                 .any(|edge| matches!(edge.weight(), SpaceEdge::Provides))
             {
-                let SpaceNode::QueryField(QueryFieldNode { flags, .. }) = &mut self.query.graph[query_field_node_ix]
-                else {
+                let SpaceNode::QueryField { flags, .. } = &mut self.query.graph[query_field_node_ix] else {
                     return Ok(());
                 };
-                flags.remove(FieldFlags::UNREACHABLE);
+                flags.remove(NodeFlags::UNREACHABLE);
                 return Ok(());
             }
             let mut stack = vec![query_field_node_ix];
@@ -49,35 +46,31 @@ where
         }
         // FIXME: Should only check for indispensable fields. And then if we add new indispensable
         // field ensure we can provide them instead of everything at once...
-        if flags.contains(FieldFlags::PROVIDABLE) {
+        if flags.contains(NodeFlags::PROVIDABLE) {
             return Ok(());
         }
 
-        if !self.query.graph[parent_query_field_node_ix]
-            .as_query_field()
-            .copied()
-            .map(|parent| {
-                self.try_providing_an_alternative_field(
-                    parent_query_field_node_ix,
-                    parent.id,
-                    query_field_node_ix,
-                    query_field_id,
-                )
-            })
-            .unwrap_or_default()
-        {
+        let parent_query_field_node_ix = self.query[parent_selection_set_id].parent_node_ix;
+        let SpaceNode::QueryField {
+            id: parent_query_field_id,
+            ..
+        } = self.query.graph[parent_query_field_node_ix]
+        else {
+            return Ok(());
+        };
+
+        if !self.try_providing_an_alternative_field(
+            parent_selection_set_id,
+            parent_query_field_node_ix,
+            parent_query_field_id,
+            query_field_node_ix,
+            query_field_id,
+        ) {
             tracing::debug!("Unplannable Query:\n{}", self.query.to_pretty_dot_graph(self.ctx()));
 
-            return Err(crate::Error::CouldNotPlanField {
-                name: self.query[query_field_id]
-                    .definition_id
-                    .walk(self.schema)
-                    .map(|def| {
-                        tracing::debug!("Could not plan field:\n{def:#?}");
-                        format!("{}.{}", def.parent_entity().name(), def.name())
-                    })
-                    .unwrap_or("__typename".into()),
-            });
+            let definition = self.query[query_field_id].definition_id.walk(self.schema);
+            let name = format!("{}.{}", definition.parent_entity().name(), definition.name());
+            return Err(crate::Error::CouldNotPlanField { name });
         };
 
         Ok(())
@@ -85,6 +78,7 @@ where
 
     pub(super) fn try_providing_an_alternative_field(
         &mut self,
+        parent_selection_set_id: QuerySelectionSetId,
         parent_query_field_node_ix: NodeIndex,
         parent_query_field_id: QueryFieldId,
         query_field_node_ix: NodeIndex,
@@ -93,14 +87,14 @@ where
         let Some(parent_output) = self.query[parent_query_field_id]
             .definition_id
             .walk(self.schema)
-            .and_then(|def| def.ty().definition().as_composite_type())
+            .ty()
+            .definition()
+            .as_composite_type()
         else {
             return false;
         };
 
-        let Some(field_definition) = self.query[query_field_id].definition_id.walk(self.schema) else {
-            return false;
-        };
+        let field_definition = self.query[query_field_id].definition_id.walk(self.schema);
 
         tracing::debug!(
             "Trying to find alternative for field {}.{}",
@@ -109,8 +103,8 @@ where
         );
 
         if self.try_providing_field_through_interface(
+            parent_selection_set_id,
             parent_output,
-            parent_query_field_node_ix,
             query_field_node_ix,
             query_field_id,
             field_definition,
@@ -119,6 +113,7 @@ where
         }
 
         if self.try_providing_interface_field_through_implementors(
+            parent_selection_set_id,
             parent_output,
             parent_query_field_node_ix,
             query_field_node_ix,
@@ -133,6 +128,7 @@ where
 
     fn try_providing_interface_field_through_implementors(
         &mut self,
+        parent_selection_set_id: QuerySelectionSetId,
         parent_output: CompositeType<'schema>,
         parent_query_field_node_ix: NodeIndex,
         existing_query_field_node_ix: NodeIndex,
@@ -167,9 +163,8 @@ where
             let mut r = 0;
 
             let existing_flags = self.query.graph[existing_query_field_node_ix]
-                .as_query_field()
-                .unwrap()
-                .flags;
+                .flags()
+                .unwrap_or_default();
 
             let mut found_alternative = false;
             while let Some((left_id, right_id)) = left.get(l).copied().zip(right.get(r).copied()) {
@@ -193,7 +188,7 @@ where
                         }
 
                         self.query.fields.push(QueryField {
-                            definition_id: Some(object_field_definition.id),
+                            definition_id: object_field_definition.id,
                             ..self.query[existing_query_field_id].clone()
                         });
                         let new_field_id = QueryFieldId::from(self.query.fields.len() - 1);
@@ -205,12 +200,8 @@ where
                         );
                         self.deep_copy_query_field_nodes(existing_query_field_node_ix, new_query_field_node_ix);
 
-                        if !self.could_provide_new_field(
-                            parent_query_field_node_ix,
-                            parent_output.id(),
-                            new_query_field_node_ix,
-                            new_field_id,
-                        ) {
+                        if !self.could_provide_new_field(parent_selection_set_id, new_query_field_node_ix, new_field_id)
+                        {
                             return false;
                         }
                         found_alternative = true;
@@ -243,8 +234,8 @@ where
 
     fn try_providing_field_through_interface(
         &mut self,
+        parent_selection_set_id: QuerySelectionSetId,
         parent_output: CompositeType<'schema>,
-        parent_query_field_node_ix: NodeIndex,
         existing_query_field_node_ix: NodeIndex,
         existing_query_field_id: QueryFieldId,
         field_definition: FieldDefinition<'schema>,
@@ -258,11 +249,10 @@ where
         {
             if let Some(interface_field_definition) = interface.find_field_by_name(field_definition.name()) {
                 // FIXME: Should not keep field if the interface field is already present.
-                self.query[existing_query_field_id].definition_id = Some(interface_field_definition.id);
+                self.query[existing_query_field_id].definition_id = interface_field_definition.id;
 
                 if self.could_provide_new_field(
-                    parent_query_field_node_ix,
-                    parent_output.id(),
+                    parent_selection_set_id,
                     existing_query_field_node_ix,
                     existing_query_field_id,
                 ) {
@@ -313,22 +303,15 @@ where
 
     fn could_provide_new_field(
         &mut self,
-        parent_query_field_node_ix: NodeIndex,
-        parent_output_type: CompositeTypeId,
+        parent_selection_set_id: QuerySelectionSetId,
         query_field_node_ix: NodeIndex,
         query_field_id: QueryFieldId,
     ) -> bool {
-        self.create_providable_fields_task_for_new_field(
-            parent_query_field_node_ix,
-            parent_output_type,
-            query_field_node_ix,
-            query_field_id,
-        );
+        self.create_providable_fields_task_for_new_field(parent_selection_set_id, query_field_node_ix, query_field_id);
         self.loop_over_tasks();
         self.query.graph[query_field_node_ix]
-            .as_query_field()
+            .flags()
             .unwrap()
-            .flags
-            .contains(FieldFlags::PROVIDABLE)
+            .contains(NodeFlags::PROVIDABLE)
     }
 }

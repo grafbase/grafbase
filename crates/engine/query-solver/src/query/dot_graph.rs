@@ -4,7 +4,7 @@ use operation::OperationContext;
 use petgraph::dot::{Config, Dot};
 use walker::Walk;
 
-use crate::{dot_graph::Attrs, FieldFlags};
+use crate::dot_graph::Attrs;
 
 use super::{Edge, Node, Query, QueryField, SolutionGraph};
 
@@ -49,10 +49,19 @@ impl Node {
             Node::QueryPartition {
                 resolver_definition_id, ..
             } => resolver_definition_id.walk(ctx.schema).name().into(),
-            Node::Field { id, flags, .. } => {
+            Node::Field { id, .. } => {
                 let field = field_label(ctx, &solution[*id]);
-                format!("{}{}", if flags.contains(FieldFlags::EXTRA) { "*" } else { "" }, field)
+                format!(
+                    "{}{}",
+                    if solution[*id].query_position.is_none() {
+                        "*"
+                    } else {
+                        ""
+                    },
+                    field
+                )
             }
+            Node::Typename => "__typename".into(),
         })
     }
 
@@ -84,32 +93,27 @@ impl Edge {
 pub(crate) fn short_field_label<'a>(ctx: OperationContext<'a>, field: &QueryField) -> Cow<'a, str> {
     if let Some(key) = field.response_key {
         key.walk(ctx).into()
-    } else if let Some(def) = field.definition_id {
-        def.walk(ctx).name().into()
     } else {
-        "__typename".into()
+        field.definition_id.walk(ctx).name().into()
     }
 }
 
 pub(crate) fn field_label<'a>(ctx: OperationContext<'a>, field: &QueryField) -> Cow<'a, str> {
-    if let Some(definition) = field.definition_id.walk(ctx) {
-        let alias = if let Some(alias) = field.response_key.walk(ctx).filter(|key| *key != definition.name()) {
-            format!("{}: ", alias)
-        } else {
-            String::new()
-        };
-        let common = format!("{}.{}", definition.parent_entity().name(), definition.name());
-        let subgraph_key = if let Some((_, subgraph_key)) = field
-            .response_key
-            .zip(field.subgraph_key)
-            .filter(|(key, subgraph_key)| key != subgraph_key)
-        {
-            format!(" ({})", subgraph_key.walk(ctx))
-        } else {
-            String::new()
-        };
-        Cow::Owned(format!("{alias}{common}{subgraph_key}"))
+    let definition = field.definition_id.walk(ctx);
+    let alias = if let Some(alias) = field.response_key.walk(ctx).filter(|key| *key != definition.name()) {
+        format!("{}: ", alias)
     } else {
-        field.response_key.walk(ctx).unwrap_or("__typename").into()
-    }
+        String::new()
+    };
+    let common = format!("{}.{}", definition.parent_entity().name(), definition.name());
+    let subgraph_key = if let Some((_, subgraph_key)) = field
+        .response_key
+        .zip(field.subgraph_key)
+        .filter(|(key, subgraph_key)| key != subgraph_key)
+    {
+        format!(" ({})", subgraph_key.walk(ctx))
+    } else {
+        String::new()
+    };
+    Cow::Owned(format!("{alias}{common}{subgraph_key}"))
 }

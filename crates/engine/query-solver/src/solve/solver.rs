@@ -16,7 +16,7 @@ use schema::Schema;
 use crate::{
     dot_graph::Attrs,
     solution_space::{SpaceEdge, SpaceNode},
-    Cost, FieldFlags, QuerySolutionSpace,
+    Cost, NodeFlags, QuerySolutionSpace,
 };
 
 use super::steiner_tree;
@@ -61,16 +61,16 @@ where
     ) -> crate::Result<Self> {
         let mut terminals = Vec::new();
         for (node_ix, node) in query_solution_space.graph.node_references() {
-            if let SpaceNode::QueryField(field) = node {
-                if field.flags.contains(FieldFlags::LEAF_NODE | FieldFlags::INDISPENSABLE) {
+            if let Some(flags) = node.flags() {
+                if flags.contains(NodeFlags::LEAF | NodeFlags::INDISPENSABLE) {
                     terminals.push(node_ix);
                 }
             }
         }
         let node_filter = |(node_ix, node): (NodeIndex, &SpaceNode<'schema>)| match node {
             SpaceNode::Root | SpaceNode::Resolver(_) | SpaceNode::ProvidableField(_) => Some(node_ix),
-            SpaceNode::QueryField(field) => {
-                if field.is_leaf() {
+            SpaceNode::QueryField { flags, .. } | SpaceNode::Typename { flags } => {
+                if flags.contains(NodeFlags::LEAF) {
                     Some(node_ix)
                 } else {
                     None
@@ -160,8 +160,8 @@ where
                     .filter(|edge| {
                         matches!(edge.weight(), SpaceEdge::Requires)
                             && self.query_solution_space.graph[edge.target()]
-                                .as_query_field()
-                                .map(|field| !field.is_indispensable() && field.is_leaf())
+                                .flags()
+                                .map(|flags| flags & (NodeFlags::INDISPENSABLE | NodeFlags::LEAF) == NodeFlags::LEAF)
                                 .unwrap_or_default()
                     })
                     .map(|edge| edge.target()),

@@ -32,19 +32,8 @@ pub(crate) fn generate_crude_solved_query(
             // For now assign __typename fields to the root node, they will be later be added
             // to an appropriate query partition.
             SpaceEdge::TypenameField => {
-                if let SpaceNode::QueryField(QueryFieldNode {
-                    id: query_field_id,
-                    flags,
-                }) = query.graph[edge.target()]
-                {
-                    if query[query_field_id].definition_id.is_none() {
-                        let typename_field_ix = graph.add_node(Node::Field {
-                            id: query_field_id,
-                            flags,
-                        });
-                        graph.add_edge(root_node_ix, typename_field_ix, Edge::Field);
-                    }
-                }
+                let typename_field_ix = graph.add_node(Node::Typename);
+                graph.add_edge(root_node_ix, typename_field_ix, Edge::Field);
             }
             _ => (),
         }
@@ -64,13 +53,13 @@ pub(crate) fn generate_crude_solved_query(
                 ix
             }
             SpaceNode::ProvidableField(_) if solution.node_bitset[node_ix.index()] => {
-                let (field_node_ix, field) = query
+                let (field_node_ix, id) = query
                     .graph
                     .edges(node_ix)
                     .find_map(|edge| {
                         if matches!(edge.weight(), SpaceEdge::Provides) {
-                            if let SpaceNode::QueryField(field) = &query.graph[edge.target()] {
-                                Some((edge.target(), field))
+                            if let SpaceNode::QueryField { id, .. } = query.graph[edge.target()] {
+                                Some((edge.target(), id))
                             } else {
                                 None
                             }
@@ -80,12 +69,9 @@ pub(crate) fn generate_crude_solved_query(
                     })
                     .unwrap();
 
-                let field_solution_node_ix = graph.add_node(Node::Field {
-                    id: field.id,
-                    flags: field.flags,
-                });
+                let field_solution_node_ix = graph.add_node(Node::Field { id });
                 graph.add_edge(parent_solution_node_ix, field_solution_node_ix, Edge::Field);
-                field_to_solution_node[usize::from(field.id)] = field_solution_node_ix;
+                field_to_solution_node[usize::from(id)] = field_solution_node_ix;
 
                 for edge in query.graph.edges(field_node_ix) {
                     match edge.weight() {
@@ -96,19 +82,9 @@ pub(crate) fn generate_crude_solved_query(
                         // parent field. There might be multiple with shared root fields.
                         SpaceEdge::TypenameField => {
                             edges_to_remove.push(edge.id());
-                            if let SpaceNode::QueryField(QueryFieldNode {
-                                id: query_field_id,
-                                flags,
-                            }) = query.graph[edge.target()]
-                            {
-                                if query[query_field_id].definition_id.is_none() {
-                                    let typename_field_ix = graph.add_node(Node::Field {
-                                        id: query_field_id,
-                                        flags,
-                                    });
-                                    graph.add_edge(field_solution_node_ix, typename_field_ix, Edge::Field);
-                                }
-                            }
+                            todo!();
+                            let typename_field_ix = graph.add_node(Node::Typename);
+                            graph.add_edge(field_solution_node_ix, typename_field_ix, Edge::Field);
                         }
                         _ => (),
                     }
@@ -120,14 +96,8 @@ pub(crate) fn generate_crude_solved_query(
 
                 field_solution_node_ix
             }
-            SpaceNode::QueryField(QueryFieldNode {
-                id: query_field_id,
-                flags,
-            }) if query[*query_field_id].definition_id.is_none() => {
-                let typename_field_ix = graph.add_node(Node::Field {
-                    id: *query_field_id,
-                    flags: *flags,
-                });
+            SpaceNode::Typename { .. } => {
+                let typename_field_ix = graph.add_node(Node::Typename);
                 graph.add_edge(parent_solution_node_ix, typename_field_ix, Edge::Field);
                 typename_field_ix
             }
@@ -161,18 +131,18 @@ pub(crate) fn generate_crude_solved_query(
 
     for (new_solution_node_ix, node_ix) in nodes_with_dependencies {
         let weight = match &query.graph[node_ix] {
-            SpaceNode::QueryField(_) => Edge::RequiredBySupergraph,
+            SpaceNode::QueryField { .. } => Edge::RequiredBySupergraph,
             _ => Edge::RequiredBySubgraph,
         };
         for edge in query.graph.edges(node_ix) {
             if !matches!(edge.weight(), SpaceEdge::Requires) {
                 continue;
             }
-            let SpaceNode::QueryField(field) = &query.graph[edge.target()] else {
+            let SpaceNode::QueryField { id, .. } = query.graph[edge.target()] else {
                 continue;
             };
 
-            let dependency = field_to_solution_node[usize::from(field.id)];
+            let dependency = field_to_solution_node[usize::from(id)];
             debug_assert_ne!(dependency, root_node_ix);
 
             graph.add_edge(new_solution_node_ix, dependency, weight);
@@ -182,6 +152,8 @@ pub(crate) fn generate_crude_solved_query(
         step: PhantomData,
         root_node_ix,
         graph,
+        root_selection_set_id: query.root_selection_set_id,
+        selection_sets: Vec::new(), // FIXME: breaks the contract with the root selection set id..
         fields: query.fields,
         shared_type_conditions: query.shared_type_conditions,
         deduplicated_flat_sorted_executable_directives: query.deduplicated_flat_sorted_executable_directives,

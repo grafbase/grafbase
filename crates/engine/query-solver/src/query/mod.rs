@@ -18,31 +18,24 @@ pub enum Node {
     },
     Field {
         id: QueryFieldId,
-        flags: FieldFlags,
     },
     Typename,
 }
 
 bitflags! {
     #[repr(transparent)]
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-    pub struct FieldFlags: u8 {
-        /// Extra field that is not part of the operation and should not be returned to the user.
-        const EXTRA = 1;
+    #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    pub struct NodeFlags: u8 {
         /// Defines whether a field must be requested from the subgraphs. Operations fields are
         /// obviously indispensable, but fields necessary for @authorized also are for example.
         const INDISPENSABLE = 1 << 1;
         /// Whether the field is a leaf node in the Steiner graph.
-        const LEAF_NODE = 1 << 2;
-        /// Whether the field is a __typename field.
-        const TYPENAME = 1 << 3;
-        /// Whether the field output is a composite type
-        const IS_COMPOSITE_TYPE = 1 << 4;
+        const LEAF = 1 << 2;
         /// If a field ended up being not reachable from a parent type/subgraph we mark it as
         /// unreachable. It might still be possible for it to be resolved from another path though.
         /// It just means that if we couldn't find any resolver for it, we can safely skip it.
-        const UNREACHABLE = 1 << 5;
-        const PROVIDABLE = 1 << 6;
+        const UNREACHABLE = 1 << 3;
+        const PROVIDABLE = 1 << 4;
     }
 }
 
@@ -70,6 +63,7 @@ pub struct Query<G: GraphBase, Step> {
     pub(crate) step: PhantomData<Step>,
     pub root_node_ix: G::NodeId,
     pub graph: G,
+    pub root_selection_set_id: QuerySelectionSetId,
     #[indexed_by(QuerySelectionSetId)]
     pub selection_sets: Vec<QuerySelectionSet<G>>,
     #[indexed_by(QueryFieldId)]

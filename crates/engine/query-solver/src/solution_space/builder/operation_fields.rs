@@ -10,7 +10,7 @@ use schema::{CompositeTypeId, TypeSystemDirective};
 use walker::Walk;
 
 use crate::{
-    are_arguments_equivalent, DeduplicatedFlatExecutableDirectivesId, FieldFlags, QueryField, QuerySelectionSet,
+    are_arguments_equivalent, DeduplicatedFlatExecutableDirectivesId, NodeFlags, QueryField, QuerySelectionSet,
     QuerySelectionSetId, QueryTypenameField,
 };
 
@@ -26,14 +26,8 @@ where
     'schema: 'op,
 {
     pub(super) fn ingest_operation_fields(&mut self) -> crate::Result<()> {
-        self.query.selection_sets.push(QuerySelectionSet {
-            parent_node_ix: self.query.root_node_ix,
-            output_type_id: self.operation.root_object_id.into(),
-            typename_node_ix: None,
-            typename_fields: Vec::new(),
-        });
         let queue = vec![IngestSelectionSet {
-            id: QuerySelectionSetId::from(0usize),
+            id: self.query.root_selection_set_id,
             selection_set: OperationContext {
                 schema: self.schema,
                 operation: self.operation,
@@ -204,11 +198,9 @@ where
                     });
 
                     if selection_set.typename_node_ix.is_none() {
-                        let ix = self
-                            .builder
-                            .query
-                            .graph
-                            .add_node(SpaceNode::Typename(super::TypenameFieldNode { indispensable: true }));
+                        let ix = self.builder.query.graph.add_node(SpaceNode::Typename {
+                            flags: NodeFlags::INDISPENSABLE,
+                        });
                         self.builder
                             .query
                             .graph
@@ -238,10 +230,10 @@ where
                 .graph
                 .neighbors_directed(parent_node_ix, Direction::Outgoing)
             {
-                let SpaceNode::QueryField(node) = self.builder.query.graph[node_ix] else {
+                let SpaceNode::QueryField { id, .. } = self.builder.query.graph[node_ix] else {
                     continue;
                 };
-                let query_field = &self.builder.query[node.id];
+                let query_field = &self.builder.query[id];
                 if query_field.response_key != Some(field.response_key) {
                     continue;
                 }
@@ -273,7 +265,7 @@ where
         let query_field_id = (self.builder.query.fields.len() - 1).into();
         let query_field_node_ix = self
             .builder
-            .push_query_field_node(query_field_id, FieldFlags::INDISPENSABLE);
+            .push_query_field_node(query_field_id, NodeFlags::INDISPENSABLE);
         self.builder
             .query
             .graph
@@ -325,9 +317,9 @@ where
                     petitioner_field_id: query_field_id,
                     dependent_ix: query_field_node_ix,
                     indispensable: query.graph[query_field_node_ix]
-                        .as_query_field()
+                        .flags()
                         .unwrap()
-                        .is_indispensable(),
+                        .contains(NodeFlags::INDISPENSABLE),
                     required_field_set: fields,
                     parent_selection_set_id: selection_set_id,
                 })
@@ -337,9 +329,9 @@ where
                     petitioner_field_id: query_field_id,
                     dependent_ix: query_field_node_ix,
                     indispensable: query.graph[query_field_node_ix]
-                        .as_query_field()
+                        .flags()
                         .unwrap()
-                        .is_indispensable(),
+                        .contains(NodeFlags::INDISPENSABLE),
                     parent_selection_set_id: selection_set_id,
                     required_field_set: node,
                 })

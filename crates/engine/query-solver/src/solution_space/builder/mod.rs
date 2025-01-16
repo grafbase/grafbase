@@ -9,10 +9,10 @@ use std::marker::PhantomData;
 use id_newtypes::BitSet;
 use petgraph::stable_graph::NodeIndex;
 use providable_fields::{CreateProvidableFieldsTask, CreateRequirementTask, UnplannableField};
-use schema::{CompositeTypeId, DefinitionId, Schema};
+use schema::{DefinitionId, Schema};
 use walker::Walk;
 
-use crate::{FieldFlags, QueryFieldId};
+use crate::{NodeFlags, QueryFieldId, QuerySelectionSet, QuerySelectionSetId};
 
 use super::*;
 
@@ -38,16 +38,24 @@ impl<'schema> QuerySolutionSpace<'schema> {
     {
         let n = operation.data_fields.len() + operation.typename_fields.len();
         let mut graph = petgraph::stable_graph::StableGraph::with_capacity(n * 2, n * 2);
-        let root_ix = graph.add_node(SpaceNode::Root);
+        let root_node_ix = graph.add_node(SpaceNode::Root);
+        let mut selection_sets = Vec::with_capacity(n >> 2);
+        selection_sets.push(QuerySelectionSet {
+            parent_node_ix: root_node_ix,
+            output_type_id: operation.root_object_id.into(),
+            typename_node_ix: None,
+            typename_fields: Vec::new(),
+        });
 
         QuerySolutionSpaceBuilder {
             schema,
             operation,
             query: Query {
                 step: PhantomData,
-                root_node_ix: root_ix,
+                root_node_ix,
+                root_selection_set_id: QuerySelectionSetId::from(0usize),
                 graph,
-                selection_sets: Vec::with_capacity(n >> 2),
+                selection_sets,
                 fields: Vec::with_capacity(n),
                 shared_type_conditions: Vec::new(),
                 deduplicated_flat_sorted_executable_directives: Default::default(),
@@ -71,9 +79,8 @@ where
         self.add_any_necessary_typename_fields()?;
 
         self.create_providable_fields_tasks_for_subselection(providable_fields::Parent {
-            query_field_node_ix: self.query.root_node_ix,
+            selection_set_id: self.query.root_selection_set_id,
             providable_field_or_root_ix: self.query.root_node_ix,
-            output_type: CompositeTypeId::Object(self.operation.root_object_id),
         });
 
         loop {
@@ -109,18 +116,15 @@ where
         }
     }
 
-    fn push_query_field_node(&mut self, id: QueryFieldId, mut flags: FieldFlags) -> NodeIndex {
+    fn push_query_field_node(&mut self, id: QueryFieldId, mut flags: NodeFlags) -> NodeIndex {
         match self.query[id].definition_id.walk(self.schema).ty().definition_id {
             DefinitionId::Scalar(_) | DefinitionId::Enum(_) => {
-                flags |= FieldFlags::LEAF_NODE;
-            }
-            DefinitionId::Union(_) | DefinitionId::Interface(_) | DefinitionId::Object(_) => {
-                flags |= FieldFlags::IS_COMPOSITE_TYPE;
+                flags |= NodeFlags::LEAF;
             }
             _ => (),
         }
 
-        let query_field = SpaceNode::QueryField(QueryFieldNode { id, flags });
+        let query_field = SpaceNode::QueryField { id, flags };
         self.query.graph.add_node(query_field)
     }
 

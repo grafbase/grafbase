@@ -8,7 +8,7 @@ use schema::{
 };
 use walker::Walk;
 
-use crate::{FieldFlags, QueryField, QueryOrSchemaFieldArgumentIds, QuerySelectionSet, QuerySelectionSetId};
+use crate::{NodeFlags, QueryField, QueryOrSchemaFieldArgumentIds, QuerySelectionSet, QuerySelectionSetId};
 
 use super::{ProvidableField, QueryFieldId, QuerySolutionSpaceBuilder, Resolver, SpaceEdge, SpaceNode};
 
@@ -22,8 +22,7 @@ pub(super) struct CreateRequirementTask<'schema> {
 
 #[derive(Clone)]
 pub(super) struct Parent {
-    pub query_field_node_ix: NodeIndex,
-    pub output_type: CompositeTypeId,
+    pub selection_set_id: QuerySelectionSetId,
     pub providable_field_or_root_ix: NodeIndex,
 }
 
@@ -34,7 +33,7 @@ pub(super) struct CreateProvidableFieldsTask {
 }
 
 pub(super) struct UnplannableField {
-    pub parent_query_field_node_ix: NodeIndex,
+    pub parent_selection_set_id: QuerySelectionSetId,
     pub query_field_node_ix: NodeIndex,
 }
 
@@ -43,18 +42,63 @@ where
     'schema: 'op,
 {
     pub(super) fn create_providable_fields_tasks_for_subselection(&mut self, parent: Parent) {
-        for subfield_ix in self
+        let mut neighbors = self
             .query
             .graph
-            .neighbors_directed(parent.query_field_node_ix, Direction::Outgoing)
-        {
-            if let SpaceNode::QueryField(subfield) = &self.query.graph[subfield_ix] {
-                self.create_provideable_fields_task_stack
-                    .push(CreateProvidableFieldsTask {
-                        parent: parent.clone(),
-                        query_field_node_ix: subfield_ix,
-                        query_field_id: subfield.id,
-                    });
+            .neighbors_directed(self.query[parent.selection_set_id].parent_node_ix, Direction::Outgoing)
+            .detach();
+        while let Some(node_ix) = neighbors.next_node(&self.query.graph) {
+            match &self.query.graph[node_ix] {
+                SpaceNode::QueryField { id, .. } => {
+                    self.create_provideable_fields_task_stack
+                        .push(CreateProvidableFieldsTask {
+                            parent: parent.clone(),
+                            query_field_node_ix: node_ix,
+                            query_field_id: *id,
+                        });
+                }
+                SpaceNode::Typename { .. } => {
+                    let QuerySelectionSet { parent_node_ix, .. } = self.query[parent.selection_set_id];
+                    if parent_node_ix == self.query.root_node_ix {
+                        let resolver_definition_id = self.schema.subgraphs.introspection.resolver_definition_id;
+                        let resolver_ix = if let Some(edge) = self
+                            .query
+                            .graph
+                            .edges_directed(parent_node_ix, Direction::Outgoing)
+                            .find(|edge| match edge.weight() {
+                                SpaceEdge::HasChildResolver { .. } => self.query.graph[edge.target()]
+                                    .as_resolver()
+                                    .is_some_and(|res| res.definition_id == resolver_definition_id),
+                                _ => false,
+                            }) {
+                            edge.target()
+                        } else {
+                            let resolver_ix = self.query.graph.add_node(SpaceNode::Resolver(Resolver {
+                                entity_definition_id: self.operation.root_object_id.into(),
+                                definition_id: resolver_definition_id,
+                            }));
+                            self.query.graph.add_edge(
+                                parent.providable_field_or_root_ix,
+                                resolver_ix,
+                                SpaceEdge::CreateChildResolver,
+                            );
+                            self.query
+                                .graph
+                                .add_edge(parent_node_ix, resolver_ix, SpaceEdge::HasChildResolver);
+                            resolver_ix
+                        };
+
+                        self.query
+                            .graph
+                            .add_edge(resolver_ix, node_ix, SpaceEdge::ProvidesTypename);
+
+                        self.query.graph[node_ix]
+                            .flags_mut()
+                            .unwrap()
+                            .insert(NodeFlags::PROVIDABLE);
+                    }
+                }
+                _ => (),
             }
         }
     }
@@ -67,17 +111,12 @@ where
             query_field_id,
         }: CreateProvidableFieldsTask,
     ) {
-        let query_field = &self.query[query_field_id];
-
-        let Some(definition_id) = query_field.definition_id else {
-            self.query.graph[query_field_node_ix]
-                .as_query_field_mut()
-                .unwrap()
-                .flags |= FieldFlags::PROVIDABLE;
-            return;
-        };
-
-        let field_definition = definition_id.walk(self.schema);
+        let &QuerySelectionSet {
+            parent_node_ix,
+            output_type_id: parent_output,
+            ..
+        } = &self.query[parent.selection_set_id];
+        let field_definition = self.query[query_field_id].definition_id.walk(self.schema);
 
         // --
         // If providable by parent, we don't need to find for a resolver.
@@ -85,12 +124,7 @@ where
         let provide_result = self.query.graph[parent.providable_field_or_root_ix]
             .as_providable_field()
             .map(|parent_providable_field| {
-                self.provide_field_from_parent(
-                    parent_providable_field,
-                    parent.output_type,
-                    query_field_id,
-                    field_definition,
-                )
+                self.provide_field_from_parent(parent_providable_field, parent_output, query_field_id, field_definition)
             })
             .unwrap_or_default();
         let could_be_provided_from_parent = match provide_result {
@@ -105,15 +139,13 @@ where
                     .graph
                     .add_edge(providable_field_ix, query_field_node_ix, SpaceEdge::Provides);
                 self.query.graph[query_field_node_ix]
-                    .as_query_field_mut()
+                    .flags_mut()
                     .unwrap()
-                    .flags |= FieldFlags::PROVIDABLE;
-
-                if let Some(output_type) = field_definition.ty().definition_id.as_composite_type() {
+                    .insert(NodeFlags::PROVIDABLE);
+                if let Some(selection_set_id) = self.query[query_field_id].selection_set_id {
                     self.create_providable_fields_tasks_for_subselection(Parent {
-                        query_field_node_ix,
+                        selection_set_id,
                         providable_field_or_root_ix: providable_field_ix,
-                        output_type,
                     });
                 }
                 true
@@ -121,11 +153,11 @@ where
             ParentProvideResult::NotProvidable => false,
             ParentProvideResult::UnreachableObject => {
                 self.query.graph[query_field_node_ix]
-                    .as_query_field_mut()
+                    .flags_mut()
                     .unwrap()
-                    .flags |= FieldFlags::UNREACHABLE;
+                    .insert(NodeFlags::UNREACHABLE);
                 self.maybe_unplannable_query_fields_stack.push(UnplannableField {
-                    parent_query_field_node_ix: parent.query_field_node_ix,
+                    parent_selection_set_id: parent.selection_set_id,
                     query_field_node_ix,
                 });
                 return;
@@ -150,7 +182,7 @@ where
             let resolver_ix = if let Some(edge) = self
                 .query
                 .graph
-                .edges_directed(parent.query_field_node_ix, Direction::Outgoing)
+                .edges_directed(parent_node_ix, Direction::Outgoing)
                 .find(|edge| match edge.weight() {
                     SpaceEdge::HasChildResolver { .. } => self.query.graph[edge.target()]
                         .as_resolver()
@@ -210,14 +242,13 @@ where
                 );
                 self.query
                     .graph
-                    .add_edge(parent.query_field_node_ix, resolver_ix, SpaceEdge::HasChildResolver);
+                    .add_edge(parent_node_ix, resolver_ix, SpaceEdge::HasChildResolver);
                 if let Some(required_field_set) = resolver_definition.required_field_set() {
                     self.create_requirement_task_stack.push(CreateRequirementTask {
+                        parent_selection_set_id: parent.selection_set_id,
                         petitioner_field_id: query_field_id,
                         dependent_ix: resolver_ix,
                         indispensable: false,
-                        parent_query_field_node_ix: parent.query_field_node_ix,
-                        parent_output_type: parent.output_type,
                         required_field_set,
                     });
                 };
@@ -239,11 +270,10 @@ where
             if let Some(required_field_set) = field_definition.requires_for_subgraph(resolver_definition.subgraph_id())
             {
                 self.create_requirement_task_stack.push(CreateRequirementTask {
+                    parent_selection_set_id: parent.selection_set_id,
                     petitioner_field_id: query_field_id,
                     dependent_ix: providable_field_ix,
                     indispensable: false,
-                    parent_query_field_node_ix: parent.query_field_node_ix,
-                    parent_output_type: parent.output_type,
                     required_field_set,
                 })
             }
@@ -255,25 +285,24 @@ where
                 .graph
                 .add_edge(providable_field_ix, query_field_node_ix, SpaceEdge::Provides);
             self.query.graph[query_field_node_ix]
-                .as_query_field_mut()
+                .flags_mut()
                 .unwrap()
-                .flags |= FieldFlags::PROVIDABLE;
+                .insert(NodeFlags::PROVIDABLE);
 
-            if let Some(output_type) = field_definition.ty().definition_id.as_composite_type() {
+            if let Some(selection_set_id) = self.query[query_field_id].selection_set_id {
                 self.create_providable_fields_tasks_for_subselection(Parent {
-                    query_field_node_ix,
+                    selection_set_id,
                     providable_field_or_root_ix: providable_field_ix,
-                    output_type,
                 });
             }
         }
 
-        let SpaceNode::QueryField(field) = &mut self.query.graph[query_field_node_ix] else {
+        let SpaceNode::QueryField { flags, .. } = &mut self.query.graph[query_field_node_ix] else {
             unreachable!()
         };
-        if !field.flags.contains(FieldFlags::PROVIDABLE) {
+        if !flags.contains(NodeFlags::PROVIDABLE) {
             self.maybe_unplannable_query_fields_stack.push(UnplannableField {
-                parent_query_field_node_ix: parent.query_field_node_ix,
+                parent_selection_set_id: parent.selection_set_id,
                 query_field_node_ix,
             });
         }
@@ -438,30 +467,37 @@ where
                 .graph
                 .edges_directed(parent_node_ix, Direction::Outgoing)
                 .filter_map(|edge| {
-                    if matches!(edge.weight(), SpaceEdge::Field) {
-                        self.query.graph[edge.target()]
-                            .as_query_field()
-                            .map(|field| (edge.target(), field))
+                    if let SpaceNode::QueryField { id, .. } = self.query.graph[edge.target()] {
+                        Some((edge.target(), id))
                     } else {
                         None
                     }
                 })
-                .filter(|(_, field)| self.is_field_equivalent(field.id, required_item))
+                .filter(|(_, id)| self.is_field_equivalent(*id, required_item))
                 // not sure if necessary but provides consistency
-                .min_by_key(|(_, field)| field.id);
+                .min_by_key(|(_, id)| *id);
 
             // Create the required field otherwise.
-            let (query_field_node_ix, query_field_id) = if let Some((query_field_node_ix, node)) = existing_field {
-                (query_field_node_ix, node.id)
+            let query_field_node_ix = if let Some((query_field_node_ix, id)) = existing_field {
+                if let Some(id) = self.query[id].selection_set_id {
+                    self.create_requirement_task_stack.push(CreateRequirementTask {
+                        petitioner_field_id,
+                        dependent_ix,
+                        indispensable,
+                        parent_selection_set_id: id,
+                        required_field_set: required_item.subselection(),
+                    });
+                }
+                query_field_node_ix
             } else {
                 // Create the QueryField Node
                 let query_field_id = self.query.fields.len().into();
                 let query_field_node_ix = self.push_query_field_node(
                     query_field_id,
                     if indispensable {
-                        FieldFlags::EXTRA | FieldFlags::INDISPENSABLE
+                        NodeFlags::INDISPENSABLE
                     } else {
-                        FieldFlags::EXTRA
+                        NodeFlags::empty()
                     },
                 );
                 let nested_selection_set_id = required_item
@@ -479,7 +515,16 @@ where
                         };
 
                         self.query.selection_sets.push(selection_set);
-                        (self.query.selection_sets.len() - 1).into()
+                        let id = (self.query.selection_sets.len() - 1).into();
+                        self.create_requirement_task_stack.push(CreateRequirementTask {
+                            petitioner_field_id,
+                            dependent_ix,
+                            indispensable,
+                            parent_selection_set_id: id,
+                            required_field_set: required_item.subselection(),
+                        });
+
+                        id
                     });
 
                 self.query.fields.push(QueryField {
@@ -512,26 +557,12 @@ where
                     query_field_id,
                 );
 
-                (query_field_node_ix, query_field_id)
+                query_field_node_ix
             };
 
             self.query
                 .graph
                 .add_edge(dependent_ix, query_field_node_ix, SpaceEdge::Requires);
-
-            if let Some(output_type) = self.query[query_field_id]
-                .definition_id
-                .and_then(|def| def.walk(self.schema).ty().definition_id.as_composite_type())
-            {
-                self.create_requirement_task_stack.push(CreateRequirementTask {
-                    petitioner_field_id,
-                    dependent_ix,
-                    indispensable,
-                    parent_query_field_node_ix: query_field_node_ix,
-                    parent_output_type: output_type,
-                    required_field_set: required_item.subselection(),
-                })
-            }
         }
     }
 
@@ -541,12 +572,12 @@ where
         query_field_node_ix: NodeIndex,
         query_field_id: QueryFieldId,
     ) {
-        if parent_query_field_node_ix == self.query.root_node_ix {
+        let selection_set = &self.query[parent_selection_set_id];
+        if selection_set.parent_node_ix == self.query.root_node_ix {
             self.create_provideable_fields_task_stack
                 .push(CreateProvidableFieldsTask {
                     parent: Parent {
-                        query_field_node_ix: parent_query_field_node_ix,
-                        output_type: parent_output_type,
+                        selection_set_id: parent_selection_set_id,
                         providable_field_or_root_ix: self.query.root_node_ix,
                     },
                     query_field_node_ix,
@@ -558,15 +589,14 @@ where
             self.create_provideable_fields_task_stack.extend(
                 self.query
                     .graph
-                    .edges_directed(parent_query_field_node_ix, Direction::Incoming)
+                    .edges_directed(selection_set.parent_node_ix, Direction::Incoming)
                     .filter(|edge| {
                         matches!(edge.weight(), SpaceEdge::Provides)
                             && self.query.graph[edge.source()].is_providable_field()
                     })
                     .map(|edge| CreateProvidableFieldsTask {
                         parent: Parent {
-                            query_field_node_ix: parent_query_field_node_ix,
-                            output_type: parent_output_type,
+                            selection_set_id: parent_selection_set_id,
                             providable_field_or_root_ix: edge.source(),
                         },
                         query_field_node_ix,
@@ -580,10 +610,7 @@ where
         let actual = &self.query[id];
         let required = required.field().as_ref();
 
-        let Some(definition_id) = actual.definition_id else {
-            return false;
-        };
-        if definition_id != required.definition_id {
+        if actual.definition_id != required.definition_id {
             return false;
         }
 

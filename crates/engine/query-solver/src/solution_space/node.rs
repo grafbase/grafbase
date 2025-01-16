@@ -4,7 +4,7 @@ use operation::OperationContext;
 use schema::{EntityDefinitionId, FieldSetRecord, ResolverDefinitionId, SubgraphId};
 use walker::Walk as _;
 
-use crate::{dot_graph::Attrs, FieldFlags, QueryFieldId};
+use crate::{dot_graph::Attrs, NodeFlags, QueryFieldId};
 
 use super::QuerySolutionSpace;
 
@@ -13,8 +13,13 @@ pub(crate) enum SpaceNode<'ctx> {
     /// Root node, unique
     Root,
     /// Field in the operation, or an extra one to satisfy requirements
-    QueryField(QueryFieldNode),
-    Typename(TypenameFieldNode),
+    QueryField {
+        id: QueryFieldId,
+        flags: NodeFlags,
+    },
+    Typename {
+        flags: NodeFlags,
+    },
     /// Defines how to access data from a subgraph
     Resolver(Resolver),
     /// Field that can be provided by a resolver with extra metadata such as field's @provides
@@ -30,10 +35,10 @@ impl SpaceNode<'_> {
     pub(crate) fn label<'a>(&self, query: &QuerySolutionSpace<'_>, ctx: OperationContext<'a>) -> Cow<'a, str> {
         match self {
             SpaceNode::Root => "root".into(),
-            SpaceNode::QueryField(node) => format!(
+            SpaceNode::QueryField { id, .. } => format!(
                 "{}{}",
-                if node.is_extra() { "*" } else { "" },
-                crate::query::dot_graph::field_label(ctx, &query[node.id])
+                if query[*id].query_position.is_none() { "*" } else { "" },
+                crate::query::dot_graph::field_label(ctx, &query[*id])
             )
             .into(),
             SpaceNode::ProvidableField(node) => match node {
@@ -54,7 +59,7 @@ impl SpaceNode<'_> {
             }
             .into(),
             SpaceNode::Resolver(resolver) => resolver.definition_id.walk(ctx).name(),
-            SpaceNode::Typename(_) => "__typename".into(),
+            SpaceNode::Typename { .. } => "__typename".into(),
         }
     }
 
@@ -72,25 +77,21 @@ impl SpaceNode<'_> {
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct QueryFieldNode {
     pub id: QueryFieldId,
-    pub flags: FieldFlags,
+    pub flags: NodeFlags,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct TypenameFieldNode {
-    pub indispensable: bool,
+    pub flags: NodeFlags,
 }
 
 impl QueryFieldNode {
     pub fn is_indispensable(&self) -> bool {
-        self.flags.contains(FieldFlags::INDISPENSABLE)
-    }
-
-    pub fn is_extra(&self) -> bool {
-        self.flags.contains(FieldFlags::EXTRA)
+        self.flags.contains(NodeFlags::INDISPENSABLE)
     }
 
     pub fn is_leaf(&self) -> bool {
-        self.flags.contains(FieldFlags::LEAF_NODE)
+        self.flags.contains(NodeFlags::LEAF)
     }
 }
 
@@ -142,17 +143,23 @@ impl<'ctx> SpaceNode<'ctx> {
         matches!(self, SpaceNode::ProvidableField(_))
     }
 
-    pub fn as_query_field_mut(&mut self) -> Option<&mut QueryFieldNode> {
+    pub fn flags(&self) -> Option<NodeFlags> {
         match self {
-            SpaceNode::QueryField(field) => Some(field),
-            _ => None,
+            SpaceNode::QueryField { flags, .. } => Some(*flags),
+            SpaceNode::Typename { flags } => Some(*flags),
+            SpaceNode::Resolver(_) => None,
+            SpaceNode::ProvidableField(_) => None,
+            SpaceNode::Root => None,
         }
     }
 
-    pub fn as_query_field(&self) -> Option<&QueryFieldNode> {
+    pub fn flags_mut(&mut self) -> Option<&mut NodeFlags> {
         match self {
-            SpaceNode::QueryField(field) => Some(field),
-            _ => None,
+            SpaceNode::QueryField { flags, .. } => Some(flags),
+            SpaceNode::Typename { flags } => Some(flags),
+            SpaceNode::Resolver(_) => None,
+            SpaceNode::ProvidableField(_) => None,
+            SpaceNode::Root => None,
         }
     }
 }

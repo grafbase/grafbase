@@ -24,6 +24,7 @@ pub(crate) enum SpaceEdge {
     HasChildResolver,
     /// From a ProvidableField to a Field
     Provides,
+    ProvidesTypename,
     /// From a Field (@authorized directive), Resolver or ProvidableField (@requires) to a Field
     Requires,
 }
@@ -34,7 +35,7 @@ impl SpaceEdge {
         match self {
             SpaceEdge::CreateChildResolver => Attrs::default().with("color=royalblue,fontcolor=royalblue"),
             SpaceEdge::CanProvide => Attrs::default().with("color=royalblue,fontcolor=royalblue"),
-            SpaceEdge::Provides => Attrs::default().with("color=violet,arrowhead=none"),
+            SpaceEdge::Provides | SpaceEdge::ProvidesTypename => Attrs::default().with("color=violet,arrowhead=none"),
             SpaceEdge::Field | SpaceEdge::TypenameField => Attrs::default(),
             SpaceEdge::Requires => Attrs::default().with("color=orangered,arrowhead=inv"),
             SpaceEdge::HasChildResolver => Attrs::default().with("style=dashed,arrowhead=none"),
