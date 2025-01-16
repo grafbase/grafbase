@@ -58,13 +58,28 @@ where
                         });
                 }
                 SpaceNode::Typename { .. } => {
-                    let QuerySelectionSet { parent_node_ix, .. } = self.query[parent.selection_set_id];
-                    if parent_node_ix == self.query.root_node_ix {
+                    if let SpaceNode::ProvidableField(providable_field) =
+                        &self.query.graph[parent.providable_field_or_root_ix]
+                    {
+                        let QuerySelectionSet { output_type_id, .. } = self.query[parent.selection_set_id];
+                        if output_type_id
+                            .as_interface()
+                            .map(|id| {
+                                id.walk(self.schema)
+                                    .is_interface_object_in_ids
+                                    .contains(&providable_field.subgraph_id())
+                            })
+                            .unwrap_or_default()
+                        {
+                        } else {
+                        }
+                    } else {
+                        debug_assert_eq!(parent.providable_field_or_root_ix, self.query.root_node_ix);
                         let resolver_definition_id = self.schema.subgraphs.introspection.resolver_definition_id;
                         let resolver_ix = if let Some(edge) = self
                             .query
                             .graph
-                            .edges_directed(parent_node_ix, Direction::Outgoing)
+                            .edges_directed(self.query.root_node_ix, Direction::Outgoing)
                             .find(|edge| match edge.weight() {
                                 SpaceEdge::HasChildResolver { .. } => self.query.graph[edge.target()]
                                     .as_resolver()
@@ -82,9 +97,11 @@ where
                                 resolver_ix,
                                 SpaceEdge::CreateChildResolver,
                             );
-                            self.query
-                                .graph
-                                .add_edge(parent_node_ix, resolver_ix, SpaceEdge::HasChildResolver);
+                            self.query.graph.add_edge(
+                                self.query.root_node_ix,
+                                resolver_ix,
+                                SpaceEdge::HasChildResolver,
+                            );
                             resolver_ix
                         };
 
