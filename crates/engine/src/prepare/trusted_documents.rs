@@ -9,12 +9,15 @@ use config::LogLevel;
 use futures::{future::BoxFuture, FutureExt, TryFutureExt as _};
 use grafbase_telemetry::grafbase_client::X_GRAFBASE_CLIENT_NAME;
 use operation::{extensions::PersistedQueryRequestExtension, Request};
-use runtime::trusted_documents_client::{TrustedDocumentsEnforcementMode, TrustedDocumentsError};
+use runtime::{
+    operation_cache::OperationCache as _,
+    trusted_documents_client::{TrustedDocumentsEnforcementMode, TrustedDocumentsError},
+};
 use sha2::Digest;
 use std::borrow::Cow;
 use tracing::Instrument;
 
-use super::{OperationDocument, PrepareContext};
+use super::{CacheKey, OperationDocument, PrepareContext};
 
 pub(super) struct ExtractedOperationDocument<'a> {
     pub key: DocumentKey<'a>,
@@ -50,7 +53,7 @@ fn wrap_document(doc: &str) -> DocumentOrFuture<'_> {
 impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
     /// Determines what document should be used for the request and provides an appropriate cache
     /// key for the operation cache and as a fallback a future to load said document.
-    pub(super) fn extract_operation_document<'r, 'f>(
+    pub(super) async fn extract_operation_document<'r, 'f>(
         &mut self,
         request: &'r Request,
     ) -> Result<ExtractedOperationDocument<'f>, GraphqlError>
@@ -171,20 +174,46 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
                                 document: Cow::Borrowed(query),
                             }
                         })
-                        .unwrap_or_else(|| DocumentKey::TrustedDocumentId {
-                            operation_name,
-                            client_name: Cow::Borrowed(client_name),
-                            doc_id: Cow::Borrowed(doc_id),
+                        .unwrap_or_else({
+                            let operation_name = operation_name.clone();
+                            || DocumentKey::TrustedDocumentId {
+                                operation_name,
+                                client_name: Cow::Borrowed(client_name),
+                                doc_id: Cow::Borrowed(doc_id),
+                            }
                         }),
-                    document_or_future: DocumentOrFuture::Future(
-                        handle_trusted_document_query_and_check_that_query_matches(
-                            self.engine,
-                            client_name,
-                            Cow::Borrowed(doc_id),
-                            query,
-                        )
-                        .boxed(),
-                    ),
+                    document_or_future: {
+                        if let Some(inline_document) = query.filter(|query| !query.is_empty()) {
+                            let key = CacheKey::document(
+                                self.schema(),
+                                &DocumentKey::TrustedDocumentId {
+                                    operation_name,
+                                    client_name: Cow::Borrowed(client_name),
+                                    doc_id: Cow::Borrowed(doc_id),
+                                },
+                            );
+
+                            let trusted_doc_matches_inline_doc =
+                                match self.engine.runtime.operation_cache().get(&key).await {
+                                    Some(trusted_doc) => trusted_doc.document.content == inline_document,
+                                    None => {
+                                        handle_trusted_document_query(self.engine, client_name, Cow::Borrowed(doc_id))
+                                            .await?
+                                            == inline_document
+                                    }
+                                };
+
+                            if !trusted_doc_matches_inline_doc {
+                                log_document_id_and_query_mismatch(self.engine, doc_id.as_ref());
+                            }
+
+                            DocumentOrFuture::Document(Cow::Borrowed(inline_document))
+                        } else {
+                            DocumentOrFuture::Future(
+                                handle_trusted_document_query(self.engine, client_name, Cow::Borrowed(doc_id)).boxed(),
+                            )
+                        }
+                    },
                 })
             }
             (TrustedDocumentsEnforcementMode::Allow, Some(ext), _) if !apq_enabled => {
@@ -205,20 +234,45 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
                                 document: Cow::Borrowed(query),
                             }
                         })
-                        .unwrap_or_else(|| DocumentKey::TrustedDocumentId {
-                            operation_name,
-                            client_name: Cow::Borrowed(client_name),
-                            doc_id: doc_id.clone(),
+                        .unwrap_or_else({
+                            let operation_name = operation_name.clone();
+                            || DocumentKey::TrustedDocumentId {
+                                operation_name,
+                                client_name: Cow::Borrowed(client_name),
+                                doc_id: doc_id.clone(),
+                            }
                         }),
-                    document_or_future: DocumentOrFuture::Future(
-                        handle_trusted_document_query_and_check_that_query_matches(
-                            self.engine,
-                            client_name,
-                            doc_id,
-                            query,
-                        )
-                        .boxed(),
-                    ),
+                    document_or_future: {
+                        if let Some(inline_document) = query.filter(|query| !query.is_empty()) {
+                            let key = CacheKey::document(
+                                self.schema(),
+                                &DocumentKey::TrustedDocumentId {
+                                    operation_name,
+                                    client_name: Cow::Borrowed(client_name),
+                                    doc_id: doc_id.clone(),
+                                },
+                            );
+
+                            let trusted_doc_matches_inline_doc =
+                                match self.engine.runtime.operation_cache().get(&key).await {
+                                    Some(trusted_doc) => trusted_doc.document.content == inline_document,
+                                    None => {
+                                        handle_trusted_document_query(self.engine, client_name, doc_id.clone()).await?
+                                            == inline_document
+                                    }
+                                };
+
+                            if !trusted_doc_matches_inline_doc {
+                                log_document_id_and_query_mismatch(self.engine, doc_id.as_ref());
+                            }
+
+                            DocumentOrFuture::Document(Cow::Borrowed(inline_document))
+                        } else {
+                            DocumentOrFuture::Future(
+                                handle_trusted_document_query(self.engine, client_name, doc_id).boxed(),
+                            )
+                        }
+                    },
                 })
             }
             (TrustedDocumentsEnforcementMode::Ignore, Some(ext), _)
@@ -270,31 +324,6 @@ fn missing_client_name_error() -> GraphqlError {
         ),
         ErrorCode::TrustedDocumentError,
     )
-}
-
-async fn handle_trusted_document_query_and_check_that_query_matches<'ctx, 'r, R: Runtime>(
-    engine: &'ctx Engine<R>,
-    client_name: &'ctx str,
-    document_id: Cow<'r, str>,
-    inline_document: Option<&'r str>,
-) -> Result<Cow<'r, str>, GraphqlError> {
-    let fetch_trusted_doc_result = handle_trusted_document_query(engine, client_name, document_id.clone()).await;
-
-    match (fetch_trusted_doc_result, inline_document.filter(|doc| !doc.is_empty())) {
-        (Ok(fetched), Some(received)) => {
-            if fetched != received {
-                log_document_id_and_query_mismatch(engine, document_id.as_ref());
-            }
-
-            Ok(Cow::Borrowed(received))
-        }
-        (Ok(fetched), None) => Ok(fetched),
-        (Err(_), Some(received)) => Ok(Cow::Borrowed(received)),
-        (Err(err), None) => Err(GraphqlError::new(
-            format!("Could not resolve query from document id nor from `query` key ({err})"),
-            ErrorCode::BadRequest,
-        )),
-    }
 }
 
 #[tracing::instrument(skip_all)]
