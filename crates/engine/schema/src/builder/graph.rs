@@ -46,7 +46,7 @@ impl<'a> GraphBuilder<'a> {
                 inaccessible_object_definitions: BitSet::new(),
                 interface_definitions: Vec::new(),
                 inaccessible_interface_definitions: BitSet::new(),
-                interface_has_inaccessible_implementors: BitSet::new(),
+                interface_has_inaccessible_implementor: BitSet::new(),
                 union_definitions: Vec::new(),
                 inaccessible_union_definitions: BitSet::new(),
                 union_has_inaccessible_member: BitSet::new(),
@@ -374,7 +374,7 @@ impl<'a> GraphBuilder<'a> {
     fn ingest_interfaces_after_objects(&mut self, config: &mut Config) {
         self.graph.interface_definitions = Vec::with_capacity(config.graph.interfaces.len());
         self.graph.inaccessible_interface_definitions = BitSet::with_capacity(config.graph.interfaces.len());
-        self.graph.interface_has_inaccessible_implementors = BitSet::with_capacity(config.graph.interfaces.len());
+        self.graph.interface_has_inaccessible_implementor = BitSet::with_capacity(config.graph.interfaces.len());
         for (ix, interface) in take(&mut config.graph.interfaces).into_iter().enumerate() {
             let name_id = interface.name.into();
             let federated_directives = &interface.directives;
@@ -385,12 +385,15 @@ impl<'a> GraphBuilder<'a> {
 
             let directives = self.push_directives(SchemaLocation::Definition { name: name_id }, federated_directives);
 
-            let exists_in_subgraph_ids = interface
-                .directives
-                .iter()
-                .filter_map(|dir| dir.as_join_type())
-                .map(|dir| SubgraphId::GraphqlEndpoint(dir.subgraph_id.into()))
-                .collect::<Vec<_>>();
+            let mut exists_in_subgraph_ids = Vec::new();
+            let mut is_interface_object_in_ids = Vec::new();
+
+            for dir in interface.directives.iter().filter_map(|dir| dir.as_join_type()) {
+                exists_in_subgraph_ids.push(SubgraphId::GraphqlEndpoint(dir.subgraph_id.into()));
+                if dir.is_interface_object {
+                    is_interface_object_in_ids.push(SubgraphId::GraphqlEndpoint(dir.subgraph_id.into()));
+                }
+            }
 
             self.graph.interface_definitions.push(InterfaceDefinitionRecord {
                 name_id,
@@ -404,6 +407,7 @@ impl<'a> GraphBuilder<'a> {
                 // Added at the end.
                 not_fully_implemented_in_ids: Vec::new(),
                 exists_in_subgraph_ids,
+                is_interface_object_in_ids,
             });
         }
 
@@ -413,7 +417,7 @@ impl<'a> GraphBuilder<'a> {
                 self.graph[interface_id].possible_type_ids.push(object_id);
                 if self.graph.inaccessible_object_definitions[object_id] {
                     self.graph
-                        .interface_has_inaccessible_implementors
+                        .interface_has_inaccessible_implementor
                         .set(interface_id, true);
                 }
             }

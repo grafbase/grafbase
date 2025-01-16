@@ -33,6 +33,7 @@ use walker::{Iter, Walk};
 ///   not_fully_implemented_in: [Subgraph!]!
 ///   "sorted by SubgraphId"
 ///   exists_in_subgraphs: [Subgraph!]!
+///   is_interface_object_in: [Subgraph!]!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -51,6 +52,7 @@ pub struct InterfaceDefinitionRecord {
     pub not_fully_implemented_in_ids: Vec<SubgraphId>,
     /// sorted by SubgraphId
     pub exists_in_subgraph_ids: Vec<SubgraphId>,
+    pub is_interface_object_in_ids: Vec<SubgraphId>,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
@@ -106,6 +108,9 @@ impl<'a> InterfaceDefinition<'a> {
     /// sorted by SubgraphId
     pub fn exists_in_subgraphs(&self) -> impl Iter<Item = Subgraph<'a>> + 'a {
         self.as_ref().exists_in_subgraph_ids.walk(self.schema)
+    }
+    pub fn is_interface_object_in(&self) -> impl Iter<Item = Subgraph<'a>> + 'a {
+        self.as_ref().is_interface_object_in_ids.walk(self.schema)
     }
 }
 

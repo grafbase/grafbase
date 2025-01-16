@@ -8,7 +8,7 @@ use schema::{
 };
 use walker::Walk;
 
-use crate::{FieldFlags, QueryField, QueryOrSchemaFieldArgumentIds};
+use crate::{FieldFlags, QueryField, QueryOrSchemaFieldArgumentIds, QuerySelectionSet, QuerySelectionSetId};
 
 use super::{ProvidableField, QueryFieldId, QuerySolutionSpaceBuilder, Resolver, SpaceEdge, SpaceNode};
 
@@ -16,8 +16,7 @@ pub(super) struct CreateRequirementTask<'schema> {
     pub petitioner_field_id: QueryFieldId,
     pub dependent_ix: NodeIndex,
     pub indispensable: bool,
-    pub parent_query_field_node_ix: NodeIndex,
-    pub parent_output_type: CompositeTypeId,
+    pub parent_selection_set_id: QuerySelectionSetId,
     pub required_field_set: FieldSet<'schema>,
 }
 
@@ -422,17 +421,22 @@ where
             petitioner_field_id,
             dependent_ix,
             indispensable,
-            parent_query_field_node_ix,
-            parent_output_type,
+            parent_selection_set_id,
             required_field_set,
         }: CreateRequirementTask<'schema>,
     ) {
+        let &QuerySelectionSet {
+            parent_node_ix,
+            output_type_id,
+            ..
+        } = &self.query[parent_selection_set_id];
+
         for required_item in required_field_set.items() {
             // Find an existing field that satisfies the requirement.
             let existing_field = self
                 .query
                 .graph
-                .edges_directed(parent_query_field_node_ix, Direction::Outgoing)
+                .edges_directed(parent_node_ix, Direction::Outgoing)
                 .filter_map(|edge| {
                     if matches!(edge.weight(), SpaceEdge::Field) {
                         self.query.graph[edge.target()]
@@ -452,26 +456,6 @@ where
             } else {
                 // Create the QueryField Node
                 let query_field_id = self.query.fields.len().into();
-                self.query.fields.push(QueryField {
-                    type_conditions: {
-                        let start = self.query.shared_type_conditions.len();
-                        let tyc = required_item.field().definition().parent_entity_id.as_composite_type();
-                        if tyc != parent_output_type {
-                            self.query.shared_type_conditions.push(tyc);
-                        }
-                        (start..self.query.shared_type_conditions.len()).into()
-                    },
-                    query_position: None,
-                    response_key: None,
-                    subgraph_key: None,
-                    definition_id: Some(required_item.field().definition_id),
-                    argument_ids: QueryOrSchemaFieldArgumentIds::Schema(required_item.field().sorted_argument_ids),
-                    location: self.query[petitioner_field_id].location,
-                    flat_directive_id: Default::default(),
-                });
-                self.providable_fields_bitset.push(false);
-                self.deleted_fields_bitset.push(false);
-
                 let query_field_node_ix = self.push_query_field_node(
                     query_field_id,
                     if indispensable {
@@ -480,12 +464,50 @@ where
                         FieldFlags::EXTRA
                     },
                 );
+                let nested_selection_set_id = required_item
+                    .field()
+                    .definition()
+                    .ty()
+                    .definition_id
+                    .as_composite_type()
+                    .map(|output_type_id| {
+                        let selection_set = QuerySelectionSet {
+                            parent_node_ix: query_field_node_ix,
+                            output_type_id,
+                            typename_node_ix: None,
+                            typename_fields: Vec::new(),
+                        };
+
+                        self.query.selection_sets.push(selection_set);
+                        (self.query.selection_sets.len() - 1).into()
+                    });
+
+                self.query.fields.push(QueryField {
+                    type_conditions: {
+                        let start = self.query.shared_type_conditions.len();
+                        let tyc = required_item.field().definition().parent_entity_id.as_composite_type();
+                        if tyc != output_type_id {
+                            self.query.shared_type_conditions.push(tyc);
+                        }
+                        (start..self.query.shared_type_conditions.len()).into()
+                    },
+                    query_position: None,
+                    response_key: None,
+                    subgraph_key: None,
+                    definition_id: required_item.field().definition_id,
+                    argument_ids: QueryOrSchemaFieldArgumentIds::Schema(required_item.field().sorted_argument_ids),
+                    location: self.query[petitioner_field_id].location,
+                    flat_directive_id: Default::default(),
+                    selection_set_id: nested_selection_set_id,
+                });
+                self.providable_fields_bitset.push(false);
+                self.deleted_fields_bitset.push(false);
+
                 self.query
                     .graph
-                    .add_edge(parent_query_field_node_ix, query_field_node_ix, SpaceEdge::Field);
+                    .add_edge(parent_node_ix, query_field_node_ix, SpaceEdge::Field);
                 self.create_providable_fields_task_for_new_field(
-                    parent_query_field_node_ix,
-                    parent_output_type,
+                    parent_selection_set_id,
                     query_field_node_ix,
                     query_field_id,
                 );
@@ -515,8 +537,7 @@ where
 
     pub(super) fn create_providable_fields_task_for_new_field(
         &mut self,
-        parent_query_field_node_ix: NodeIndex,
-        parent_output_type: CompositeTypeId,
+        parent_selection_set_id: QuerySelectionSetId,
         query_field_node_ix: NodeIndex,
         query_field_id: QueryFieldId,
     ) {

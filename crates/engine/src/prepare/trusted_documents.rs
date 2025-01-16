@@ -9,7 +9,7 @@ use futures::{future::BoxFuture, FutureExt};
 use grafbase_telemetry::grafbase_client::X_GRAFBASE_CLIENT_NAME;
 use operation::{extensions::PersistedQueryRequestExtension, Request};
 use runtime::trusted_documents_client::TrustedDocumentsError;
-use std::borrow::Cow;
+use std::{borrow::Cow, str::FromStr};
 use tracing::Instrument;
 
 use super::{OperationDocument, PrepareContext};
@@ -56,6 +56,7 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
         'ctx: 'f,
         'r: 'f,
     {
+        tracing::event!(tracing::Level::from_str("debug"), "hi");
         let client_name = self.request_context.client.as_ref().map(|c| c.name.as_ref());
         let trusted_documents = self.engine.runtime.trusted_documents();
         let persisted_query_extension = request.extensions.persisted_query.as_ref();

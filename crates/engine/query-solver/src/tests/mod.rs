@@ -5,6 +5,7 @@ mod entities;
 mod flatten;
 mod inaccessible;
 mod interface;
+mod interface_object;
 mod introspection;
 mod mutation;
 mod provides;

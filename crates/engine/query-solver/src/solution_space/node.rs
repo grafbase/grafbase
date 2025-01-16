@@ -14,6 +14,7 @@ pub(crate) enum SpaceNode<'ctx> {
     Root,
     /// Field in the operation, or an extra one to satisfy requirements
     QueryField(QueryFieldNode),
+    Typename(TypenameFieldNode),
     /// Defines how to access data from a subgraph
     Resolver(Resolver),
     /// Field that can be provided by a resolver with extra metadata such as field's @provides
@@ -53,6 +54,7 @@ impl SpaceNode<'_> {
             }
             .into(),
             SpaceNode::Resolver(resolver) => resolver.definition_id.walk(ctx).name(),
+            SpaceNode::Typename(_) => "__typename".into(),
         }
     }
 
@@ -71,6 +73,11 @@ impl SpaceNode<'_> {
 pub(crate) struct QueryFieldNode {
     pub id: QueryFieldId,
     pub flags: FieldFlags,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct TypenameFieldNode {
+    pub indispensable: bool,
 }
 
 impl QueryFieldNode {

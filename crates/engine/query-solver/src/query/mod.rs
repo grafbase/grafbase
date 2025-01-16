@@ -20,6 +20,7 @@ pub enum Node {
         id: QueryFieldId,
         flags: FieldFlags,
     },
+    Typename,
 }
 
 bitflags! {
@@ -69,6 +70,8 @@ pub struct Query<G: GraphBase, Step> {
     pub(crate) step: PhantomData<Step>,
     pub root_node_ix: G::NodeId,
     pub graph: G,
+    #[indexed_by(QuerySelectionSetId)]
+    pub selection_sets: Vec<QuerySelectionSet<G>>,
     #[indexed_by(QueryFieldId)]
     pub fields: Vec<QueryField>,
     #[indexed_by(TypeConditionSharedVecId)]
@@ -79,6 +82,9 @@ pub struct Query<G: GraphBase, Step> {
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, id_derives::Id)]
 pub struct QueryFieldId(u32);
+
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, id_derives::Id)]
+pub struct QuerySelectionSetId(std::num::NonZero<u32>);
 
 #[derive(Clone, Copy, id_derives::Id, serde::Serialize, serde::Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub struct TypeConditionSharedVecId(u32);
@@ -92,11 +98,24 @@ pub struct QueryField {
     pub query_position: Option<QueryPosition>,
     pub response_key: Option<ResponseKey>,
     pub subgraph_key: Option<ResponseKey>,
-    // If absent it's a typename field.
-    pub definition_id: Option<FieldDefinitionId>,
+    pub definition_id: FieldDefinitionId,
     pub argument_ids: QueryOrSchemaFieldArgumentIds,
     pub location: Location,
     pub flat_directive_id: Option<DeduplicatedFlatExecutableDirectivesId>,
+    pub selection_set_id: Option<QuerySelectionSetId>,
+}
+
+pub struct QuerySelectionSet<G: GraphBase> {
+    // Either a query field or root
+    pub parent_node_ix: G::NodeId,
+    pub output_type_id: CompositeTypeId,
+    pub typename_node_ix: Option<G::NodeId>,
+    pub typename_fields: Vec<QueryTypenameField>,
+}
+
+pub struct QueryTypenameField {
+    pub type_conditions: IdRange<TypeConditionSharedVecId>,
+    pub response_key: ResponseKey,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]

@@ -68,6 +68,14 @@ impl<'a> CompositeType<'a> {
         }
     }
 
+    pub fn has_inaccessible_possible_type(&self) -> bool {
+        match self {
+            CompositeType::Union(def) => def.has_inaccessible_member(),
+            CompositeType::Interface(def) => def.has_inaccessible_implementor(),
+            CompositeType::Object(def) => def.is_inaccessible(),
+        }
+    }
+
     pub fn is_fully_implemented_in_subgraph(&self, id: SubgraphId) -> bool {
         match self {
             CompositeType::Interface(def) => def.is_fully_implemented_in(id),

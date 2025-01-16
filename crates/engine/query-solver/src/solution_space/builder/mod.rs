@@ -2,6 +2,7 @@ mod alternative;
 mod operation_fields;
 mod providable_fields;
 mod prune;
+mod typename;
 
 use std::marker::PhantomData;
 
@@ -46,6 +47,7 @@ impl<'schema> QuerySolutionSpace<'schema> {
                 step: PhantomData,
                 root_node_ix: root_ix,
                 graph,
+                selection_sets: Vec::with_capacity(n >> 2),
                 fields: Vec::with_capacity(n),
                 shared_type_conditions: Vec::new(),
                 deduplicated_flat_sorted_executable_directives: Default::default(),
@@ -65,6 +67,8 @@ where
 {
     pub(super) fn build(mut self) -> crate::Result<QuerySolutionSpace<'schema>> {
         self.ingest_operation_fields()?;
+
+        self.add_any_necessary_typename_fields()?;
 
         self.create_providable_fields_tasks_for_subselection(providable_fields::Parent {
             query_field_node_ix: self.query.root_node_ix,
@@ -106,18 +110,14 @@ where
     }
 
     fn push_query_field_node(&mut self, id: QueryFieldId, mut flags: FieldFlags) -> NodeIndex {
-        if let Some(field_definition) = self.query[id].definition_id {
-            match field_definition.walk(self.schema).ty().definition_id {
-                DefinitionId::Scalar(_) | DefinitionId::Enum(_) => {
-                    flags |= FieldFlags::LEAF_NODE;
-                }
-                DefinitionId::Union(_) | DefinitionId::Interface(_) | DefinitionId::Object(_) => {
-                    flags |= FieldFlags::IS_COMPOSITE_TYPE;
-                }
-                _ => (),
+        match self.query[id].definition_id.walk(self.schema).ty().definition_id {
+            DefinitionId::Scalar(_) | DefinitionId::Enum(_) => {
+                flags |= FieldFlags::LEAF_NODE;
             }
-        } else {
-            flags |= FieldFlags::LEAF_NODE;
+            DefinitionId::Union(_) | DefinitionId::Interface(_) | DefinitionId::Object(_) => {
+                flags |= FieldFlags::IS_COMPOSITE_TYPE;
+            }
+            _ => (),
         }
 
         let query_field = SpaceNode::QueryField(QueryFieldNode { id, flags });
