@@ -83,16 +83,9 @@ where
             providable_field_or_root_ix: self.query.root_node_ix,
         });
 
-        loop {
-            self.loop_over_tasks();
-            if let Some(unplannable_field) = self.maybe_unplannable_query_fields_stack.pop() {
-                self.handle_unplannable_field(unplannable_field)?;
-                while let Some(unplannable_field) = self.maybe_unplannable_query_fields_stack.pop() {
-                    self.handle_unplannable_field(unplannable_field)?;
-                }
-            } else {
-                break;
-            }
+        self.loop_over_tasks();
+        while let Some(unplannable_field) = self.maybe_unplannable_query_fields_stack.pop() {
+            self.handle_unplannable_field(unplannable_field)?;
         }
 
         tracing::debug!("Query before pruning:\n{}", self.query.to_pretty_dot_graph(self.ctx()));

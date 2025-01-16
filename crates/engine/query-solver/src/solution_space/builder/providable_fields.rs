@@ -38,7 +38,7 @@ pub(super) struct CreateTypenameFieldTask {
 
 pub(super) struct UnplannableField {
     pub parent_selection_set_id: QuerySelectionSetId,
-    pub query_field_node_ix: NodeIndex,
+    pub node_ix: NodeIndex,
 }
 
 impl<'schema, 'op> QuerySolutionSpaceBuilder<'schema, 'op>
@@ -72,6 +72,13 @@ where
         let Some(typename_node_ix) = typename_node_ix else {
             return;
         };
+        if self.query.graph[typename_node_ix]
+            .flags()
+            .unwrap()
+            .contains(NodeFlags::PROVIDABLE)
+        {
+            return;
+        }
 
         let SpaceNode::ProvidableField(providable_field) = &self.query.graph[parent.providable_field_or_root_ix] else {
             debug_assert_eq!(parent.providable_field_or_root_ix, self.query.root_node_ix);
@@ -114,7 +121,7 @@ where
             return;
         };
 
-        if !output_type_id
+        if output_type_id
             .as_interface()
             .map(|id| {
                 id.walk(self.schema)
@@ -123,6 +130,11 @@ where
             })
             .unwrap_or_default()
         {
+            self.maybe_unplannable_query_fields_stack.push(UnplannableField {
+                parent_selection_set_id: parent.selection_set_id,
+                node_ix: typename_node_ix,
+            });
+        } else {
             self.query.graph.add_edge(
                 parent.providable_field_or_root_ix,
                 typename_node_ix,
@@ -192,7 +204,7 @@ where
                     .insert(NodeFlags::UNREACHABLE);
                 self.maybe_unplannable_query_fields_stack.push(UnplannableField {
                     parent_selection_set_id: parent.selection_set_id,
-                    query_field_node_ix,
+                    node_ix: query_field_node_ix,
                 });
                 return;
             }
@@ -355,7 +367,7 @@ where
         if !flags.contains(NodeFlags::PROVIDABLE) {
             self.maybe_unplannable_query_fields_stack.push(UnplannableField {
                 parent_selection_set_id: parent.selection_set_id,
-                query_field_node_ix,
+                node_ix: query_field_node_ix,
             });
         }
     }

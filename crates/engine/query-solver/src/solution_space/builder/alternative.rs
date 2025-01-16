@@ -14,9 +14,25 @@ where
         &mut self,
         UnplannableField {
             parent_selection_set_id,
-            query_field_node_ix,
+            node_ix,
         }: UnplannableField,
     ) -> crate::Result<()> {
+        match self.query.graph[node_ix] {
+            SpaceNode::Typename { flags } if !flags.contains(NodeFlags::PROVIDABLE) => {
+                return Ok(());
+            }
+            SpaceNode::QueryField { id, flags } if !flags.contains(NodeFlags::PROVIDABLE) => {
+                if flags.contains(NodeFlags::UNREACHABLE) {
+                    let mut stack = vec![node_ix];
+                    while let Some(id) = stack.pop() {
+                        stack.extend(self.query.graph.neighbors_directed(id, Direction::Outgoing));
+                        self.query.graph.remove_node(id);
+                    }
+                    return Ok(());
+                }
+            }
+            _ => (),
+        }
         let SpaceNode::QueryField {
             id: query_field_id,
             flags,
@@ -24,31 +40,6 @@ where
         else {
             return Ok(());
         };
-        if flags.contains(NodeFlags::UNREACHABLE) {
-            if self
-                .query
-                .graph
-                .edges_directed(query_field_node_ix, Direction::Incoming)
-                .any(|edge| matches!(edge.weight(), SpaceEdge::Provides))
-            {
-                let SpaceNode::QueryField { flags, .. } = &mut self.query.graph[query_field_node_ix] else {
-                    return Ok(());
-                };
-                flags.remove(NodeFlags::UNREACHABLE);
-                return Ok(());
-            }
-            let mut stack = vec![query_field_node_ix];
-            while let Some(id) = stack.pop() {
-                stack.extend(self.query.graph.neighbors_directed(id, Direction::Outgoing));
-                self.query.graph.remove_node(id);
-            }
-            return Ok(());
-        }
-        // FIXME: Should only check for indispensable fields. And then if we add new indispensable
-        // field ensure we can provide them instead of everything at once...
-        if flags.contains(NodeFlags::PROVIDABLE) {
-            return Ok(());
-        }
 
         let parent_query_field_node_ix = self.query[parent_selection_set_id].parent_node_ix;
         let SpaceNode::QueryField {
