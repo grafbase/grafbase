@@ -74,27 +74,6 @@ impl SpaceNode<'_> {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-pub(crate) struct QueryFieldNode {
-    pub id: QueryFieldId,
-    pub flags: NodeFlags,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub(crate) struct TypenameFieldNode {
-    pub flags: NodeFlags,
-}
-
-impl QueryFieldNode {
-    pub fn is_indispensable(&self) -> bool {
-        self.flags.contains(NodeFlags::INDISPENSABLE)
-    }
-
-    pub fn is_leaf(&self) -> bool {
-        self.flags.contains(NodeFlags::LEAF)
-    }
-}
-
 #[derive(Debug, Clone)]
 pub(crate) struct Resolver {
     pub entity_definition_id: EntityDefinitionId,

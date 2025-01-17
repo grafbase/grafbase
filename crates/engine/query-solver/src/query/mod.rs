@@ -103,7 +103,7 @@ pub struct QuerySelectionSet<G: GraphBase> {
     // Either a query field or root
     pub parent_node_ix: G::NodeId,
     pub output_type_id: CompositeTypeId,
-    pub typename_node_ix: Option<G::NodeId>,
+    pub typename_node_ix_and_petitioner_location: Option<(G::NodeId, Location)>,
     pub typename_fields: Vec<QueryTypenameField>,
 }
 

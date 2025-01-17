@@ -1,7 +1,6 @@
 mod mutation_order;
 mod partition_cycles;
 mod response_key;
-mod root_typename;
 
 use std::marker::PhantomData;
 
@@ -24,8 +23,6 @@ pub(crate) fn post_process(schema: &Schema, operation: &mut Operation, mut query
         partition_cycles::split_query_partition_dependency_cycles(&mut query, starting_nodes);
     }
 
-    root_typename::assign_root_typename_fields(schema, operation, &mut query);
-
     let query = SolvedQuery {
         step: PhantomData,
         graph: query.graph,
@@ -33,6 +30,8 @@ pub(crate) fn post_process(schema: &Schema, operation: &mut Operation, mut query
         fields: query.fields,
         shared_type_conditions: query.shared_type_conditions,
         deduplicated_flat_sorted_executable_directives: query.deduplicated_flat_sorted_executable_directives,
+        root_selection_set_id: query.root_selection_set_id,
+        selection_sets: query.selection_sets,
     };
 
     tracing::debug!(

@@ -43,7 +43,7 @@ impl<'schema> QuerySolutionSpace<'schema> {
         selection_sets.push(QuerySelectionSet {
             parent_node_ix: root_node_ix,
             output_type_id: operation.root_object_id.into(),
-            typename_node_ix: None,
+            typename_node_ix_and_petitioner_location: None,
             typename_fields: Vec::new(),
         });
 

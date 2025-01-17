@@ -7,7 +7,7 @@ use schema::Schema;
 use crate::{
     query::{Edge, Node},
     solution_space::{SpaceEdge, SpaceNode},
-    QueryFieldNode, QuerySolutionSpace,
+    QuerySolutionSpace,
 };
 
 use super::{CrudeSolvedQuery, SteinerTreeSolution};
@@ -15,7 +15,7 @@ use super::{CrudeSolvedQuery, SteinerTreeSolution};
 pub(crate) fn generate_crude_solved_query(
     schema: &Schema,
     operation: &Operation,
-    mut query: QuerySolutionSpace<'_>,
+    mut query_space: QuerySolutionSpace<'_>,
     solution: SteinerTreeSolution,
 ) -> crate::Result<CrudeSolvedQuery> {
     let n = operation.data_fields.len() + operation.typename_fields.len();
@@ -24,27 +24,26 @@ pub(crate) fn generate_crude_solved_query(
 
     let mut stack = Vec::new();
 
-    for edge in query.graph.edges(query.root_node_ix) {
-        match edge.weight() {
-            SpaceEdge::CreateChildResolver => {
-                stack.push((root_node_ix, edge.target()));
-            }
-            // For now assign __typename fields to the root node, they will be later be added
-            // to an appropriate query partition.
-            SpaceEdge::TypenameField => {
-                let typename_field_ix = graph.add_node(Node::Typename);
-                graph.add_edge(root_node_ix, typename_field_ix, Edge::Field);
-            }
-            _ => (),
+    for edge in query_space.graph.edges(query_space.root_node_ix) {
+        if matches!(edge.weight(), SpaceEdge::CreateChildResolver) {
+            stack.push((root_node_ix, edge.target()));
         }
     }
 
     let mut nodes_with_dependencies = Vec::new();
     let mut edges_to_remove = Vec::new();
-    let mut field_to_solution_node = vec![root_node_ix; query.fields.len()];
-    while let Some((parent_solution_node_ix, node_ix)) = stack.pop() {
-        let new_solution_node_ix = match &query.graph[node_ix] {
-            SpaceNode::Resolver(resolver) if solution.node_bitset[node_ix.index()] => {
+
+    #[derive(PartialEq, Eq, PartialOrd, Ord)]
+    struct SpaceToSolutionNode {
+        // SpaceNode MUST be first for sort order.
+        space_node_ix: petgraph::stable_graph::NodeIndex,
+        solution_node_ix: petgraph::graph::NodeIndex,
+    }
+    let mut space_to_solution_node = Vec::with_capacity(query_space.fields.len() + query_space.selection_sets.len());
+
+    while let Some((parent_solution_node_ix, space_node_ix)) = stack.pop() {
+        let new_solution_node_ix = match &query_space.graph[space_node_ix] {
+            SpaceNode::Resolver(resolver) if solution.node_bitset[space_node_ix.index()] => {
                 let ix = graph.add_node(Node::QueryPartition {
                     entity_definition_id: resolver.entity_definition_id,
                     resolver_definition_id: resolver.definition_id,
@@ -52,13 +51,13 @@ pub(crate) fn generate_crude_solved_query(
                 graph.add_edge(parent_solution_node_ix, ix, Edge::QueryPartition);
                 ix
             }
-            SpaceNode::ProvidableField(_) if solution.node_bitset[node_ix.index()] => {
-                let (field_node_ix, id) = query
+            SpaceNode::ProvidableField(_) if solution.node_bitset[space_node_ix.index()] => {
+                let (query_field_space_node_ix, id) = query_space
                     .graph
-                    .edges(node_ix)
+                    .edges(space_node_ix)
                     .find_map(|edge| {
                         if matches!(edge.weight(), SpaceEdge::Provides) {
-                            if let SpaceNode::QueryField { id, .. } = query.graph[edge.target()] {
+                            if let SpaceNode::QueryField { id, .. } = query_space.graph[edge.target()] {
                                 Some((edge.target(), id))
                             } else {
                                 None
@@ -71,92 +70,85 @@ pub(crate) fn generate_crude_solved_query(
 
                 let field_solution_node_ix = graph.add_node(Node::Field { id });
                 graph.add_edge(parent_solution_node_ix, field_solution_node_ix, Edge::Field);
-                field_to_solution_node[usize::from(id)] = field_solution_node_ix;
+                space_to_solution_node.push(SpaceToSolutionNode {
+                    space_node_ix: query_field_space_node_ix,
+                    solution_node_ix: field_solution_node_ix,
+                });
 
-                for edge in query.graph.edges(field_node_ix) {
-                    match edge.weight() {
-                        SpaceEdge::Requires => {
-                            nodes_with_dependencies.push((field_solution_node_ix, field_node_ix));
-                        }
-                        // Assigning __typename fields to the first resolver that provides the
-                        // parent field. There might be multiple with shared root fields.
-                        SpaceEdge::TypenameField => {
-                            edges_to_remove.push(edge.id());
-                            todo!();
-                            let typename_field_ix = graph.add_node(Node::Typename);
-                            graph.add_edge(field_solution_node_ix, typename_field_ix, Edge::Field);
-                        }
-                        _ => (),
-                    }
+                if query_space.graph.edges(space_node_ix).any(|edge| {
+                    matches!(
+                        edge.weight(),
+                        SpaceEdge::RequiredBySubgraph | SpaceEdge::RequiredBySupergraph
+                    )
+                }) {
+                    nodes_with_dependencies.push((field_solution_node_ix, space_node_ix));
                 }
 
                 for edge in edges_to_remove.drain(..) {
-                    query.graph.remove_edge(edge);
+                    query_space.graph.remove_edge(edge);
                 }
 
                 field_solution_node_ix
             }
-            SpaceNode::Typename { .. } => {
-                let typename_field_ix = graph.add_node(Node::Typename);
-                graph.add_edge(parent_solution_node_ix, typename_field_ix, Edge::Field);
-                typename_field_ix
+            SpaceNode::Typename { .. } if solution.node_bitset[space_node_ix.index()] => {
+                let typename_field_solution_node_ix = graph.add_node(Node::Typename);
+                graph.add_edge(parent_solution_node_ix, typename_field_solution_node_ix, Edge::Field);
+                space_to_solution_node.push(SpaceToSolutionNode {
+                    space_node_ix,
+                    solution_node_ix: typename_field_solution_node_ix,
+                });
+                typename_field_solution_node_ix
             }
             _ => continue,
         };
 
-        if query
-            .graph
-            .edges(node_ix)
-            .any(|edge| matches!(edge.weight(), SpaceEdge::Requires))
-        {
-            nodes_with_dependencies.push((new_solution_node_ix, node_ix));
+        if query_space.graph.edges(space_node_ix).any(|edge| {
+            matches!(
+                edge.weight(),
+                SpaceEdge::RequiredBySubgraph | SpaceEdge::RequiredBySupergraph
+            )
+        }) {
+            nodes_with_dependencies.push((new_solution_node_ix, space_node_ix));
         }
 
         stack.extend(
-            query
+            query_space
                 .graph
-                .edges(node_ix)
+                .edges(space_node_ix)
                 .filter(|edge| {
                     matches!(
                         edge.weight(),
-                        SpaceEdge::CreateChildResolver
-                            | SpaceEdge::CanProvide
-                            | SpaceEdge::Field
-                            | SpaceEdge::TypenameField
+                        SpaceEdge::CreateChildResolver | SpaceEdge::CanProvide | SpaceEdge::ProvidesTypename
                     )
                 })
                 .map(|edge| (new_solution_node_ix, edge.target())),
         );
     }
 
-    for (new_solution_node_ix, node_ix) in nodes_with_dependencies {
-        let weight = match &query.graph[node_ix] {
-            SpaceNode::QueryField { .. } => Edge::RequiredBySupergraph,
-            _ => Edge::RequiredBySubgraph,
-        };
-        for edge in query.graph.edges(node_ix) {
-            if !matches!(edge.weight(), SpaceEdge::Requires) {
-                continue;
-            }
-            let SpaceNode::QueryField { id, .. } = query.graph[edge.target()] else {
-                continue;
+    space_to_solution_node.sort_unstable();
+    for (new_solution_node_ix, space_node_ix) in nodes_with_dependencies {
+        for edge in query_space.graph.edges(space_node_ix) {
+            let weight = match edge.weight() {
+                SpaceEdge::RequiredBySupergraph => Edge::RequiredBySupergraph,
+                SpaceEdge::RequiredBySubgraph => Edge::RequiredBySubgraph,
+                _ => continue,
             };
-
-            let dependency = field_to_solution_node[usize::from(id)];
-            debug_assert_ne!(dependency, root_node_ix);
-
-            graph.add_edge(new_solution_node_ix, dependency, weight);
+            if let Ok(i) = space_to_solution_node.binary_search_by(|probe| probe.space_node_ix.cmp(&edge.target())) {
+                graph.add_edge(new_solution_node_ix, space_to_solution_node[i].solution_node_ix, weight);
+            } else {
+                tracing::warn!("Missing requirement in Solution?");
+            }
         }
     }
     let query = CrudeSolvedQuery {
         step: PhantomData,
         root_node_ix,
         graph,
-        root_selection_set_id: query.root_selection_set_id,
+        root_selection_set_id: query_space.root_selection_set_id,
         selection_sets: Vec::new(), // FIXME: breaks the contract with the root selection set id..
-        fields: query.fields,
-        shared_type_conditions: query.shared_type_conditions,
-        deduplicated_flat_sorted_executable_directives: query.deduplicated_flat_sorted_executable_directives,
+        fields: query_space.fields,
+        shared_type_conditions: query_space.shared_type_conditions,
+        deduplicated_flat_sorted_executable_directives: query_space.deduplicated_flat_sorted_executable_directives,
     };
 
     tracing::debug!(

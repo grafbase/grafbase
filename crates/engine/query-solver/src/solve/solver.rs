@@ -80,10 +80,13 @@ where
         let edge_filter = |edge: EdgeReference<'_, SpaceEdge, _>| match edge.weight() {
             // Resolvers have an inherent cost of 1.
             SpaceEdge::CreateChildResolver => Some((edge.id(), edge.source(), edge.target(), 1)),
-            SpaceEdge::CanProvide | SpaceEdge::Provides | SpaceEdge::TypenameField => {
+            SpaceEdge::CanProvide | SpaceEdge::Provides | SpaceEdge::TypenameField | SpaceEdge::ProvidesTypename => {
                 Some((edge.id(), edge.source(), edge.target(), 0))
             }
-            SpaceEdge::Field | SpaceEdge::HasChildResolver | SpaceEdge::Requires => None,
+            SpaceEdge::Field
+            | SpaceEdge::HasChildResolver
+            | SpaceEdge::RequiredBySubgraph
+            | SpaceEdge::RequiredBySupergraph => None,
         };
 
         let algorithm = steiner_tree::ShortestPathAlgorithm::initialize(
@@ -158,11 +161,13 @@ where
                     .graph
                     .edges_directed(node_ix, Direction::Outgoing)
                     .filter(|edge| {
-                        matches!(edge.weight(), SpaceEdge::Requires)
-                            && self.query_solution_space.graph[edge.target()]
-                                .flags()
-                                .map(|flags| flags & (NodeFlags::INDISPENSABLE | NodeFlags::LEAF) == NodeFlags::LEAF)
-                                .unwrap_or_default()
+                        matches!(
+                            edge.weight(),
+                            SpaceEdge::RequiredBySubgraph | SpaceEdge::RequiredBySupergraph
+                        ) && self.query_solution_space.graph[edge.target()]
+                            .flags()
+                            .map(|flags| flags & (NodeFlags::INDISPENSABLE | NodeFlags::LEAF) == NodeFlags::LEAF)
+                            .unwrap_or_default()
                     })
                     .map(|edge| edge.target()),
             );

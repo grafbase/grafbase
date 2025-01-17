@@ -26,7 +26,8 @@ pub(crate) enum SpaceEdge {
     Provides,
     ProvidesTypename,
     /// From a Field (@authorized directive), Resolver or ProvidableField (@requires) to a Field
-    Requires,
+    RequiredBySubgraph,
+    RequiredBySupergraph,
 }
 
 impl SpaceEdge {
@@ -37,7 +38,8 @@ impl SpaceEdge {
             SpaceEdge::CanProvide => Attrs::default().with("color=royalblue,fontcolor=royalblue"),
             SpaceEdge::Provides | SpaceEdge::ProvidesTypename => Attrs::default().with("color=violet,arrowhead=none"),
             SpaceEdge::Field | SpaceEdge::TypenameField => Attrs::default(),
-            SpaceEdge::Requires => Attrs::default().with("color=orangered,arrowhead=inv"),
+            SpaceEdge::RequiredBySubgraph => Attrs::default().with("color=orangered,arrowhead=inv"),
+            SpaceEdge::RequiredBySupergraph => Attrs::default().with("color=orangered,arrowhead=inv,style=dashed"),
             SpaceEdge::HasChildResolver => Attrs::default().with("style=dashed,arrowhead=none"),
         }
     }

@@ -1,12 +1,11 @@
 use std::collections::HashMap;
 
-use operation::{Operation, OperationContext, ResponseKey};
+use operation::{Operation, ResponseKey};
 use petgraph::visit::EdgeRef;
 use schema::{CompositeTypeId, DefinitionId, FieldDefinitionId, Schema, StringId, SubgraphId};
 use walker::Walk;
 
 use crate::{
-    are_arguments_equivalent,
     query::{Edge, Node},
     solve::CrudeSolvedQuery,
     QueryFieldId,
@@ -36,7 +35,7 @@ struct KeyGenerationContext<'a> {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum FieldRenameConsistencyKey {
     FieldWithDistinctType {
-        key: ResponseKey,
+        response_key: ResponseKey,
         field_definition_id: FieldDefinitionId,
     },
     FieldNamedTypename {
@@ -46,20 +45,20 @@ enum FieldRenameConsistencyKey {
 
 #[derive(Default)]
 struct SelectionSetContext {
-    keys: Vec<ResponseKey>,
+    response_keys: Vec<ResponseKey>,
     fields: Vec<(SubgraphId, QueryFieldId)>,
 }
 
 impl SelectionSetContext {
     fn clear(&mut self) {
-        self.keys.clear();
+        self.response_keys.clear();
         self.fields.clear();
     }
 
     fn push_field(&mut self, subgraph_id: SubgraphId, id: QueryFieldId, key: Option<ResponseKey>) {
         self.fields.push((subgraph_id, id));
         if let Some(key) = key {
-            self.keys.push(key);
+            self.response_keys.push(key);
         }
     }
 }
@@ -68,13 +67,13 @@ impl KeyGenerationContext<'_> {
     fn adjust_response_keys_to_avoid_collision(&mut self) {
         let mut selection_set = SelectionSetContext::default();
         let mut stack = vec![(
+            self.query.root_node_ix,
             CompositeTypeId::from(self.operation.root_object_id),
             SubgraphId::Introspection,
-            self.query.root_node_ix,
         )];
-        while let Some((parent_type, subgraph_id, node)) = stack.pop() {
+        while let Some((parent_node_ix, output_type_id, subgraph_id)) = stack.pop() {
             selection_set.clear();
-            for edge in self.query.graph.edges(node) {
+            for edge in self.query.graph.edges(parent_node_ix) {
                 if !matches!(edge.weight(), Edge::Field | Edge::QueryPartition) {
                     continue;
                 }
@@ -82,11 +81,8 @@ impl KeyGenerationContext<'_> {
                     Node::Field { id, .. } => {
                         let field = &self.query[id];
                         selection_set.push_field(subgraph_id, id, field.response_key);
-                        if let Some(parent_type) = field
-                            .definition_id
-                            .and_then(|id| id.walk(self.schema).ty().definition_id.as_composite_type())
-                        {
-                            stack.push((parent_type, subgraph_id, edge.target()));
+                        if let Some(ty) = field.selection_set_id.map(|id| self.query[id].output_type_id) {
+                            stack.push((edge.target(), ty, subgraph_id));
                         }
                     }
                     Node::QueryPartition {
@@ -94,25 +90,23 @@ impl KeyGenerationContext<'_> {
                     } => {
                         let subgraph_id = resolver_definition_id.walk(self.schema).subgraph_id();
                         for second_degree_edge in self.query.graph.edges(edge.target()) {
-                            if !matches!(second_degree_edge.weight(), Edge::Field | Edge::QueryPartition) {
+                            if !matches!(second_degree_edge.weight(), Edge::Field) {
                                 continue;
                             }
-                            if let Node::Field { id, .. } = self.query.graph[second_degree_edge.target()] {
+                            let field_node_ix = second_degree_edge.target();
+                            if let Node::Field { id, .. } = self.query.graph[field_node_ix] {
                                 let field = &self.query[id];
                                 selection_set.push_field(subgraph_id, id, field.response_key);
-                                if let Some(parent_type) = field
-                                    .definition_id
-                                    .and_then(|id| id.walk(self.schema).ty().definition_id.as_composite_type())
-                                {
-                                    stack.push((parent_type, subgraph_id, second_degree_edge.target()));
+                                if let Some(ty) = field.selection_set_id.map(|id| self.query[id].output_type_id) {
+                                    stack.push((field_node_ix, ty, subgraph_id));
                                 }
                             }
                         }
                     }
-                    Node::Root => (),
+                    Node::Root | Node::Typename => (),
                 }
             }
-            self.adjust_response_keys_to_avoid_collision_in_selection_set(parent_type, &mut selection_set);
+            self.adjust_response_keys_to_avoid_collision_in_selection_set(output_type_id, &mut selection_set);
         }
     }
 
@@ -124,14 +118,14 @@ impl KeyGenerationContext<'_> {
         // Generating a different subgraph key to prevent collisions.
         for (subgraph_id, query_field_id) in selection_set.fields.iter().copied() {
             let query_field = &self.query[query_field_id];
-            let Some((key, definition_id)) = query_field.response_key.zip(query_field.definition_id) else {
+            let Some(response_key) = query_field.response_key else {
                 continue;
             };
-            let definition = definition_id.walk(self.schema);
+            let definition = query_field.definition_id.walk(self.schema);
 
             // If the parent type is an object we don't need to deal with distinct types as we'll only
             // query a single object from the subgraph.
-            let new_key = if !parent_type.is_object()
+            let new_response_key = if !parent_type.is_object()
                 && definition
                     .subgraph_type_records
                     .iter()
@@ -140,12 +134,12 @@ impl KeyGenerationContext<'_> {
                 self.generate_new_key(
                     selection_set,
                     Some(FieldRenameConsistencyKey::FieldWithDistinctType {
-                        key,
+                        response_key,
                         field_definition_id: definition.id,
                     }),
                     definition.name_id,
                 )
-            } else if &self.operation.response_keys[key] == "__typename" {
+            } else if &self.operation.response_keys[response_key] == "__typename" {
                 self.generate_new_key(
                     selection_set,
                     Some(FieldRenameConsistencyKey::FieldNamedTypename {
@@ -157,8 +151,8 @@ impl KeyGenerationContext<'_> {
                 continue;
             };
 
-            self.query[query_field_id].subgraph_key = Some(new_key);
-            selection_set.keys.push(new_key);
+            self.query[query_field_id].subgraph_key = Some(new_response_key);
+            selection_set.response_keys.push(new_response_key);
         }
 
         // Generating a key for extra fields we kept.
@@ -167,15 +161,7 @@ impl KeyGenerationContext<'_> {
             if query_field.response_key.is_some() {
                 continue;
             }
-            let Some(definition_id) = query_field.definition_id else {
-                continue;
-            };
-            let argument_ids = query_field.argument_ids;
-            let definition = definition_id.walk(self.schema).as_ref();
-            let ctx = OperationContext {
-                schema: self.schema,
-                operation: self.operation,
-            };
+            let definition = query_field.definition_id.walk(self.schema).as_ref();
 
             // We may request the same field but from different objects (ex: Cat.name and Dog.name), if so we just re-use the
             // existing name for clarity.
@@ -184,14 +170,15 @@ impl KeyGenerationContext<'_> {
                 let Some(other_key) = other_field.response_key else {
                     continue;
                 };
-                let Some(other_definition_id) = other_field.definition_id else {
-                    continue;
-                };
-                let other_definition = other_definition_id.walk(self.schema).as_ref();
-                if definition_id != other_definition_id
-                    && other_definition.name_id == definition.name_id
+                let other_definition = other_field.definition_id.walk(self.schema).as_ref();
+
+                // if different object fields but implement the same interface fields
+                if other_definition.name_id == definition.name_id
                     && other_definition.ty_record == definition.ty_record
-                    && are_arguments_equivalent(ctx, argument_ids, other_field.argument_ids)
+                    && query_field.definition_id != other_field.definition_id
+                    && definition.parent_entity_id != other_definition.parent_entity_id
+                    && definition.parent_entity_id.is_object()
+                    && other_definition.parent_entity_id.is_object()
                 {
                     self.query[*id].response_key = Some(other_key);
                     continue 'extra_fields;
@@ -200,7 +187,7 @@ impl KeyGenerationContext<'_> {
             let key = self.generate_new_key(selection_set, None, definition.name_id);
 
             self.query[*id].response_key = Some(key);
-            selection_set.keys.push(key);
+            selection_set.response_keys.push(key);
         }
     }
 
@@ -306,7 +293,7 @@ impl KeyGenerationContext<'_> {
         // if we don't need to care about being consistent with the renaming across selection set,
         // we can just return the key if it's not present within the current one.
         // This is only present to generate nicer subgraph queries.
-        if rename_consistency_key.is_none() && !selection_set.keys.contains(&key) {
+        if rename_consistency_key.is_none() && !selection_set.response_keys.contains(&key) {
             return key;
         }
 

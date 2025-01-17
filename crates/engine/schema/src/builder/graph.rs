@@ -18,6 +18,24 @@ pub(crate) struct GraphBuilder<'a> {
     all_subgraphs: Vec<SubgraphId>,
     required_scopes: Interner<RequiresScopesDirectiveRecord, RequiresScopesDirectiveId>,
     graph: Graph,
+    entity_resolvers: HashMap<(EntityDefinitionId, GraphqlEndpointId), Vec<EntityResovler>>,
+}
+
+#[derive(Clone)]
+enum EntityResovler {
+    Root(ResolverDefinitionId),
+    Entity {
+        key: federated_graph::SelectionSet,
+        id: ResolverDefinitionId,
+    },
+}
+
+impl EntityResovler {
+    fn id(&self) -> ResolverDefinitionId {
+        match self {
+            EntityResovler::Root(id) | EntityResovler::Entity { id, .. } => *id,
+        }
+    }
 }
 
 impl<'a> GraphBuilder<'a> {
@@ -73,6 +91,7 @@ impl<'a> GraphBuilder<'a> {
                 cost_directives: Vec::new(),
                 list_size_directives: Vec::new(),
             },
+            entity_resolvers: Default::default(),
         };
         builder.ingest_config(config)?;
         builder.finalize()
@@ -85,7 +104,7 @@ impl<'a> GraphBuilder<'a> {
         self.ingest_input_values_after_scalars_and_input_objects_and_enums(config)?;
         self.ingest_fields_after_input_values(config);
         self.ingest_objects(config);
-        self.ingest_interfaces_after_objects(config);
+        self.ingest_interfaces_after_objects_and_fields(config);
         self.ingest_unions_after_objects(config);
 
         Ok(())
@@ -371,11 +390,12 @@ impl<'a> GraphBuilder<'a> {
         }
     }
 
-    fn ingest_interfaces_after_objects(&mut self, config: &mut Config) {
+    fn ingest_interfaces_after_objects_and_fields(&mut self, config: &mut Config) {
         self.graph.interface_definitions = Vec::with_capacity(config.graph.interfaces.len());
         self.graph.inaccessible_interface_definitions = BitSet::with_capacity(config.graph.interfaces.len());
         self.graph.interface_has_inaccessible_implementor = BitSet::with_capacity(config.graph.interfaces.len());
         for (ix, interface) in take(&mut config.graph.interfaces).into_iter().enumerate() {
+            let federated_id = federated_graph::InterfaceId::from(ix);
             let name_id = interface.name.into();
             let federated_directives = &interface.directives;
 
@@ -395,6 +415,21 @@ impl<'a> GraphBuilder<'a> {
                 }
             }
 
+            let mut typename_resolver_ids = Vec::new();
+            if !is_interface_object_in_ids.is_empty() {
+                let entity_id = EntityDefinitionId::from(federated_graph::EntityDefinitionId::from(federated_id));
+                for id in &exists_in_subgraph_ids {
+                    match *id {
+                        SubgraphId::GraphqlEndpoint(gql_id) if is_interface_object_in_ids.contains(id) => {
+                            if let Some(resolvers) = self.entity_resolvers.get(&(entity_id, gql_id)) {
+                                typename_resolver_ids.extend(resolvers.iter().map(|r| r.id()));
+                            }
+                        }
+                        _ => (),
+                    }
+                }
+            }
+
             self.graph.interface_definitions.push(InterfaceDefinitionRecord {
                 name_id,
                 description_id: interface.description.map(Into::into),
@@ -408,6 +443,7 @@ impl<'a> GraphBuilder<'a> {
                 not_fully_implemented_in_ids: Vec::new(),
                 exists_in_subgraph_ids,
                 is_interface_object_in_ids,
+                typename_resolver_ids,
             });
         }
 
@@ -468,26 +504,9 @@ impl<'a> GraphBuilder<'a> {
         .flatten()
         .collect::<Vec<_>>();
 
-        #[derive(Clone)]
-        enum FieldResovler {
-            Root(ResolverDefinitionId),
-            Entity {
-                key: federated_graph::SelectionSet,
-                id: ResolverDefinitionId,
-            },
-        }
-
-        impl FieldResovler {
-            fn id(&self) -> ResolverDefinitionId {
-                match self {
-                    FieldResovler::Root(id) | FieldResovler::Entity { id, .. } => *id,
-                }
-            }
-        }
-
         self.graph.field_definitions = Vec::with_capacity(config.graph.fields.len());
         self.graph.inaccessible_field_definitions = BitSet::with_capacity(config.graph.fields.len());
-        let mut field_resolvers = HashMap::<(EntityDefinitionId, GraphqlEndpointId), Vec<FieldResovler>>::new();
+        let mut entity_resolvers = std::mem::take(&mut self.entity_resolvers);
         for (ix, field) in take(&mut config.graph.fields).into_iter().enumerate() {
             let federated_id = federated_graph::FieldId::from(ix);
 
@@ -582,10 +601,10 @@ impl<'a> GraphBuilder<'a> {
             if root_entities.contains(&parent_entity_id) {
                 for &endpoint_id in &resolvable_in {
                     resolver_ids.extend(
-                        field_resolvers
+                        entity_resolvers
                             .entry((parent_entity_id, endpoint_id))
                             .or_insert_with(|| {
-                                vec![FieldResovler::Root(self.push_resolver(
+                                vec![EntityResovler::Root(self.push_resolver(
                                     ResolverDefinitionRecord::GraphqlRootField(
                                         GraphqlRootFieldResolverDefinitionRecord { endpoint_id },
                                     ),
@@ -598,7 +617,7 @@ impl<'a> GraphBuilder<'a> {
             } else {
                 for &endpoint_id in &resolvable_in {
                     let endpoint_resolvers =
-                        field_resolvers
+                        entity_resolvers
                             .entry((parent_entity_id, endpoint_id))
                             .or_insert_with(|| {
                                 parent_entity
@@ -619,12 +638,12 @@ impl<'a> GraphBuilder<'a> {
                                                 endpoint_id,
                                             },
                                         ));
-                                        FieldResovler::Entity { key: key.clone(), id }
+                                        EntityResovler::Entity { key: key.clone(), id }
                                     })
                                     .collect::<Vec<_>>()
                             });
                     for res in endpoint_resolvers {
-                        let FieldResovler::Entity { id, key } = res else {
+                        let EntityResovler::Entity { id, key } = res else {
                             continue;
                         };
                         // If part of the key we can't be provided by this resolver.
@@ -662,6 +681,8 @@ impl<'a> GraphBuilder<'a> {
                 directive_ids,
             })
         }
+
+        self.entity_resolvers = entity_resolvers;
     }
 
     fn finalize(self) -> Result<(Graph, IntrospectionMetadata), BuildError> {

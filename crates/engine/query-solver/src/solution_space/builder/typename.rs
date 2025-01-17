@@ -11,7 +11,7 @@ where
     pub(super) fn add_any_necessary_typename_fields(&mut self) -> crate::Result<()> {
         for selection_set in &mut self.query.selection_sets {
             let ty = selection_set.output_type_id.walk(self.schema);
-            if ty.has_inaccessible_possible_type() && selection_set.typename_node_ix.is_none() {
+            if ty.has_inaccessible_possible_type() && selection_set.typename_node_ix_and_petitioner_location.is_none() {
                 let ix = self.query.graph.add_node(SpaceNode::Typename {
                     flags: NodeFlags::INDISPENSABLE,
                 });

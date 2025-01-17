@@ -30,11 +30,12 @@ impl QuerySolutionSpaceBuilder<'_, '_> {
                 .count()
                 == 0
             {
-                let leaf_node_ix = if let Some(typename_node_ix) = selection_set.typename_node_ix {
-                    typename_node_ix
-                } else {
-                    selection_set.parent_node_ix
-                };
+                let leaf_node_ix =
+                    if let Some((typename_node_ix, _)) = selection_set.typename_node_ix_and_petitioner_location {
+                        typename_node_ix
+                    } else {
+                        selection_set.parent_node_ix
+                    };
                 self.query.graph[leaf_node_ix]
                     .flags_mut()
                     .unwrap()
@@ -55,7 +56,8 @@ impl QuerySolutionSpaceBuilder<'_, '_> {
                             | SpaceEdge::Provides
                             | SpaceEdge::ProvidesTypename => true,
                             SpaceEdge::Field
-                            | SpaceEdge::Requires { .. }
+                            | SpaceEdge::RequiredBySupergraph { .. }
+                            | SpaceEdge::RequiredBySubgraph { .. }
                             | SpaceEdge::HasChildResolver { .. }
                             | SpaceEdge::TypenameField => false,
                         })

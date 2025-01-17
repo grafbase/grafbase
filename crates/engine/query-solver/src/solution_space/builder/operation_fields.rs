@@ -197,7 +197,7 @@ where
                         response_key: field.response_key,
                     });
 
-                    if selection_set.typename_node_ix.is_none() {
+                    if selection_set.typename_node_ix_and_petitioner_location.is_none() {
                         let ix = self.builder.query.graph.add_node(SpaceNode::Typename {
                             flags: NodeFlags::INDISPENSABLE,
                         });
@@ -205,7 +205,7 @@ where
                             .query
                             .graph
                             .add_edge(selection_set.parent_node_ix, ix, SpaceEdge::TypenameField);
-                        selection_set.typename_node_ix = Some(ix);
+                        selection_set.typename_node_ix_and_petitioner_location = Some((ix, field.location));
                     }
                 }
 
@@ -280,7 +280,7 @@ where
                 let selection_set = QuerySelectionSet {
                     parent_node_ix: query_field_node_ix,
                     output_type_id,
-                    typename_node_ix: None,
+                    typename_node_ix_and_petitioner_location: None,
                     typename_fields: Vec::new(),
                 };
 
@@ -314,7 +314,7 @@ where
             };
             if let Some(fields) = auth.fields() {
                 self.builder.create_requirement_task_stack.push(CreateRequirementTask {
-                    petitioner_field_id: query_field_id,
+                    petitioner_location: field.location,
                     dependent_ix: query_field_node_ix,
                     indispensable: query.graph[query_field_node_ix]
                         .flags()
@@ -322,11 +322,12 @@ where
                         .contains(NodeFlags::INDISPENSABLE),
                     required_field_set: fields,
                     parent_selection_set_id: selection_set_id,
+                    required_for_resolution: false,
                 })
             }
             if let Some((node, selection_set_id)) = auth.node().zip(nested_selection_set_id) {
                 self.builder.create_requirement_task_stack.push(CreateRequirementTask {
-                    petitioner_field_id: query_field_id,
+                    petitioner_location: field.location,
                     dependent_ix: query_field_node_ix,
                     indispensable: query.graph[query_field_node_ix]
                         .flags()
@@ -334,6 +335,7 @@ where
                         .contains(NodeFlags::INDISPENSABLE),
                     parent_selection_set_id: selection_set_id,
                     required_field_set: node,
+                    required_for_resolution: false,
                 })
             }
         }

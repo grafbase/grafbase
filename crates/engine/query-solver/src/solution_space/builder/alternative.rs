@@ -1,10 +1,14 @@
 use petgraph::{stable_graph::NodeIndex, visit::EdgeRef, Direction};
-use schema::{CompositeType, FieldDefinition};
+use schema::{CompositeType, EntityDefinitionId, FieldDefinition};
 use walker::Walk;
 
-use crate::{NodeFlags, QueryField, QueryFieldId, QuerySelectionSetId};
+use crate::{NodeFlags, QueryField, QueryFieldId, QuerySelectionSet, QuerySelectionSetId};
 
-use super::{builder::QuerySolutionSpaceBuilder, providable_fields::UnplannableField, SpaceEdge, SpaceNode};
+use super::{
+    builder::QuerySolutionSpaceBuilder,
+    providable_fields::{CreateRequirementTask, UnplannableField},
+    Resolver, SpaceEdge, SpaceNode,
+};
 
 impl<'schema, 'op> QuerySolutionSpaceBuilder<'schema, 'op>
 where
@@ -19,6 +23,12 @@ where
     ) -> crate::Result<()> {
         match self.query.graph[node_ix] {
             SpaceNode::Typename { flags } if !flags.contains(NodeFlags::PROVIDABLE) => {
+                if !self.try_providing_typename_with_alternative_plan(parent_selection_set_id, node_ix) {
+                    tracing::debug!("Unplannable Query:\n{}", self.query.to_pretty_dot_graph(self.ctx()));
+                    return Err(crate::Error::CouldNotPlanField {
+                        name: "__typename".to_string(),
+                    });
+                }
                 return Ok(());
             }
             SpaceNode::QueryField { id, flags } if !flags.contains(NodeFlags::PROVIDABLE) => {
@@ -30,41 +40,123 @@ where
                     }
                     return Ok(());
                 }
+
+                let parent_query_field_node_ix = self.query[parent_selection_set_id].parent_node_ix;
+                let SpaceNode::QueryField {
+                    id: parent_query_field_id,
+                    ..
+                } = self.query.graph[parent_query_field_node_ix]
+                else {
+                    return Ok(());
+                };
+
+                if !self.try_providing_an_alternative_field(
+                    parent_selection_set_id,
+                    parent_query_field_node_ix,
+                    parent_query_field_id,
+                    node_ix,
+                    id,
+                ) {
+                    tracing::debug!("Unplannable Query:\n{}", self.query.to_pretty_dot_graph(self.ctx()));
+
+                    let definition = self.query[id].definition_id.walk(self.schema);
+                    let name = format!("{}.{}", definition.parent_entity().name(), definition.name());
+                    return Err(crate::Error::CouldNotPlanField { name });
+                };
             }
             _ => (),
         }
-        let SpaceNode::QueryField {
-            id: query_field_id,
-            flags,
-        } = self.query.graph[query_field_node_ix]
-        else {
-            return Ok(());
-        };
-
-        let parent_query_field_node_ix = self.query[parent_selection_set_id].parent_node_ix;
-        let SpaceNode::QueryField {
-            id: parent_query_field_id,
-            ..
-        } = self.query.graph[parent_query_field_node_ix]
-        else {
-            return Ok(());
-        };
-
-        if !self.try_providing_an_alternative_field(
-            parent_selection_set_id,
-            parent_query_field_node_ix,
-            parent_query_field_id,
-            query_field_node_ix,
-            query_field_id,
-        ) {
-            tracing::debug!("Unplannable Query:\n{}", self.query.to_pretty_dot_graph(self.ctx()));
-
-            let definition = self.query[query_field_id].definition_id.walk(self.schema);
-            let name = format!("{}.{}", definition.parent_entity().name(), definition.name());
-            return Err(crate::Error::CouldNotPlanField { name });
-        };
 
         Ok(())
+    }
+
+    pub(super) fn try_providing_typename_with_alternative_plan(
+        &mut self,
+        parent_selection_set_id: QuerySelectionSetId,
+        node_ix: NodeIndex,
+    ) -> bool {
+        let QuerySelectionSet {
+            parent_node_ix,
+            output_type_id,
+            typename_node_ix_and_petitioner_location,
+            ..
+        } = self.query[parent_selection_set_id];
+        let Some((typename_node_ix, petitioner_location)) = typename_node_ix_and_petitioner_location else {
+            return false;
+        };
+        debug_assert_eq!(typename_node_ix, node_ix);
+
+        let Some((entity_definition_id, resolvers)) = output_type_id
+            .as_interface()
+            .map(|id| (EntityDefinitionId::from(id), id.walk(self.schema).typename_resolvers()))
+        else {
+            return false;
+        };
+
+        for resolver_definition in resolvers {
+            // Try to find an existing resolver node if a sibling field already added it, otherwise
+            // create one.
+            let resolver_ix = self
+                .query
+                .graph
+                .edges_directed(parent_node_ix, Direction::Outgoing)
+                .find(|edge| match edge.weight() {
+                    SpaceEdge::HasChildResolver { .. } => self.query.graph[edge.target()]
+                        .as_resolver()
+                        .is_some_and(|res| res.definition_id == resolver_definition.id),
+                    _ => false,
+                })
+                .map(|edge| edge.target())
+                .unwrap_or_else(|| {
+                    let ix = self.query.graph.add_node(SpaceNode::Resolver(Resolver {
+                        entity_definition_id,
+                        definition_id: resolver_definition.id,
+                    }));
+                    self.query
+                        .graph
+                        .add_edge(parent_node_ix, ix, SpaceEdge::HasChildResolver);
+
+                    ix
+                });
+
+            let resolver_parents = self
+                .query
+                .graph
+                .edges_directed(resolver_ix, Direction::Incoming)
+                .filter(|edge| matches!(edge.weight(), SpaceEdge::Provides))
+                .map(|edge| edge.target())
+                .collect::<Vec<_>>();
+
+            let mut neighbors = self
+                .query
+                .graph
+                .neighbors_directed(parent_node_ix, Direction::Incoming)
+                .detach();
+            while let Some((edge_ix, node_ix)) = neighbors.next(&self.query.graph) {
+                if matches!(self.query.graph[edge_ix], SpaceEdge::Provides) && !resolver_parents.contains(&node_ix) {
+                    self.query
+                        .graph
+                        .add_edge(node_ix, resolver_ix, SpaceEdge::CreateChildResolver);
+                }
+            }
+
+            if let Some(required_field_set) = resolver_definition.required_field_set() {
+                self.create_requirement_task_stack.push(CreateRequirementTask {
+                    parent_selection_set_id,
+                    petitioner_location,
+                    dependent_ix: resolver_ix,
+                    indispensable: false,
+                    required_field_set,
+                    required_for_resolution: true,
+                });
+            };
+
+            self.query
+                .graph
+                .add_edge(resolver_ix, typename_node_ix, SpaceEdge::ProvidesTypename);
+        }
+
+        true
     }
 
     pub(super) fn try_providing_an_alternative_field(
@@ -269,7 +361,7 @@ where
                 .detach();
             while let Some((edge_ix, source)) = incoming_edges.next(&self.query.graph) {
                 let weight = self.query.graph[edge_ix];
-                if matches!(weight, SpaceEdge::Requires) {
+                if matches!(weight, SpaceEdge::RequiredBySubgraph | SpaceEdge::RequiredBySupergraph) {
                     self.query.graph.add_edge(source, new_node_ix, weight);
                 }
             }

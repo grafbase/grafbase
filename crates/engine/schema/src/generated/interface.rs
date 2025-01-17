@@ -5,8 +5,8 @@
 //! Source file: <engine-codegen dir>/domain/schema.graphql
 use crate::{
     generated::{
-        FieldDefinition, FieldDefinitionId, ObjectDefinition, ObjectDefinitionId, Subgraph, SubgraphId,
-        TypeSystemDirective, TypeSystemDirectiveId,
+        FieldDefinition, FieldDefinitionId, ObjectDefinition, ObjectDefinitionId, ResolverDefinition,
+        ResolverDefinitionId, Subgraph, SubgraphId, TypeSystemDirective, TypeSystemDirectiveId,
     },
     prelude::*,
     StringId,
@@ -34,6 +34,7 @@ use walker::{Iter, Walk};
 ///   "sorted by SubgraphId"
 ///   exists_in_subgraphs: [Subgraph!]!
 ///   is_interface_object_in: [Subgraph!]!
+///   typename_resolvers: [ResolverDefinition!]!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -53,6 +54,7 @@ pub struct InterfaceDefinitionRecord {
     /// sorted by SubgraphId
     pub exists_in_subgraph_ids: Vec<SubgraphId>,
     pub is_interface_object_in_ids: Vec<SubgraphId>,
+    pub typename_resolver_ids: Vec<ResolverDefinitionId>,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
@@ -111,6 +113,9 @@ impl<'a> InterfaceDefinition<'a> {
     }
     pub fn is_interface_object_in(&self) -> impl Iter<Item = Subgraph<'a>> + 'a {
         self.as_ref().is_interface_object_in_ids.walk(self.schema)
+    }
+    pub fn typename_resolvers(&self) -> impl Iter<Item = ResolverDefinition<'a>> + 'a {
+        self.as_ref().typename_resolver_ids.walk(self.schema)
     }
 }
 
