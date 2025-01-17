@@ -17,13 +17,15 @@ where
     pub(super) fn handle_unplannable_field(
         &mut self,
         UnplannableField {
+            parent_query_field_or_root_node_ix: parent_node_ix,
             parent_selection_set_id,
             node_ix,
         }: UnplannableField,
     ) -> crate::Result<()> {
-        match self.query.graph[node_ix] {
-            SpaceNode::Typename { flags } if !flags.contains(NodeFlags::PROVIDABLE) => {
-                if !self.try_providing_typename_with_alternative_plan(parent_selection_set_id, node_ix) {
+        match self.query.graph.node_weight(node_ix) {
+            Some(SpaceNode::Typename { flags }) if !flags.contains(NodeFlags::PROVIDABLE) => {
+                if !self.try_providing_typename_with_alternative_plan(parent_node_ix, parent_selection_set_id, node_ix)
+                {
                     tracing::debug!("Unplannable Query:\n{}", self.query.to_pretty_dot_graph(self.ctx()));
                     return Err(crate::Error::CouldNotPlanField {
                         name: "__typename".to_string(),
@@ -31,7 +33,7 @@ where
                 }
                 return Ok(());
             }
-            SpaceNode::QueryField { id, flags } if !flags.contains(NodeFlags::PROVIDABLE) => {
+            Some(SpaceNode::QueryField { id, flags, .. }) if !flags.contains(NodeFlags::PROVIDABLE) => {
                 if flags.contains(NodeFlags::UNREACHABLE) {
                     let mut stack = vec![node_ix];
                     while let Some(id) = stack.pop() {
@@ -41,18 +43,22 @@ where
                     return Ok(());
                 }
 
-                let parent_query_field_node_ix = self.query[parent_selection_set_id].parent_node_ix;
+                let id = *id;
                 let SpaceNode::QueryField {
                     id: parent_query_field_id,
                     ..
-                } = self.query.graph[parent_query_field_node_ix]
+                } = self.query.graph[parent_node_ix]
                 else {
-                    return Ok(());
+                    tracing::debug!("Unplannable Query:\n{}", self.query.to_pretty_dot_graph(self.ctx()));
+
+                    let definition = self.query[id].definition_id.walk(self.schema);
+                    let name = format!("{}.{}", definition.parent_entity().name(), definition.name());
+                    return Err(crate::Error::CouldNotPlanField { name });
                 };
 
                 if !self.try_providing_an_alternative_field(
                     parent_selection_set_id,
-                    parent_query_field_node_ix,
+                    parent_node_ix,
                     parent_query_field_id,
                     node_ix,
                     id,
@@ -72,15 +78,11 @@ where
 
     pub(super) fn try_providing_typename_with_alternative_plan(
         &mut self,
+        parent_node_ix: NodeIndex,
         parent_selection_set_id: QuerySelectionSetId,
         node_ix: NodeIndex,
     ) -> bool {
-        let QuerySelectionSet {
-            parent_node_ix,
-            output_type_id,
-            typename_node_ix_and_petitioner_location,
-            ..
-        } = self.query[parent_selection_set_id];
+        let QuerySelectionSet { output_type_id, .. } = self.query[parent_selection_set_id];
         let Some((typename_node_ix, petitioner_location)) = typename_node_ix_and_petitioner_location else {
             return false;
         };
@@ -371,10 +373,10 @@ where
                 .neighbors_directed(existing_node_ix, Direction::Outgoing)
                 .detach();
             while let Some((existing_edge_ix, existing_target)) = outgoing_edges.next(&self.query.graph) {
-                debug_assert!(matches!(
-                    self.query.graph[existing_edge_ix],
-                    SpaceEdge::Field | SpaceEdge::TypenameField
-                ));
+                // debug_assert!(matches!(
+                //     self.query.graph[existing_edge_ix],
+                //     SpaceEdge::Field | SpaceEdge::TypenameField
+                // ));
                 let new_target = self.query.graph.add_node(self.query.graph[existing_target].clone());
                 self.query
                     .graph

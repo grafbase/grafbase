@@ -82,8 +82,8 @@ digraph {
     26 -> 28 [ label = "CanProvide" ]
     28 -> 8 [ label = "Provides" ]
     26 -> 20 [ label = "CreateChildResolver" ]
-    24 -> 4 [ label = "Requires" ]
-    20 -> 7 [ label = "Requires" ]
-    17 -> 4 [ label = "Requires" ]
-    13 -> 2 [ label = "Requires" ]
+    24 -> 4 [ label = "RequiredBySubgraph" ]
+    20 -> 7 [ label = "RequiredBySubgraph" ]
+    17 -> 4 [ label = "RequiredBySubgraph" ]
+    13 -> 2 [ label = "RequiredBySubgraph" ]
 }

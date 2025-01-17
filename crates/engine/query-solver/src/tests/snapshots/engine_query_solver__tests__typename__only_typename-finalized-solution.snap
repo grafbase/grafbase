@@ -1,13 +1,11 @@
 ---
 source: crates/engine/query-solver/src/tests/typename.rs
-expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#products\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"Query.topProducts\" ]\n    3 [ label = \"__typename\" ]\n    0 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    2 -> 3 [ label = \"\" ]\n    1 -> 2 [ label = \"\" ]\n}\n"
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#products\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"Query.topProducts\" ]\n    0 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    1 -> 2 [ label = \"\" ]\n}\n"
 ---
 digraph {
     0 [ label = "root" ]
     1 [ label = "Root#products" ]
     2 [ label = "Query.topProducts" ]
-    3 [ label = "__typename" ]
     0 -> 1 [ label = "QueryPartition" ]
-    2 -> 3 [ label = "Field" ]
     1 -> 2 [ label = "Field" ]
 }

@@ -28,7 +28,7 @@ digraph {
     7 -> 8 [ label = "CanProvide" ]
     8 -> 3 [ label = "Provides" ]
     1 -> 9 [ label = "Field" ]
-    7 -> 9 [ label = "Requires" ]
+    7 -> 9 [ label = "RequiredBySubgraph" ]
     5 -> 10 [ label = "CanProvide" ]
     10 -> 9 [ label = "Provides" ]
 }

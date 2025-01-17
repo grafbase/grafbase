@@ -44,7 +44,7 @@ digraph {
     7 -> 10 [ label = "CreateChildResolver" ]
     5 -> 10 [ label = "CreateChildResolver" ]
     1 -> 13 [ label = "Field" ]
-    10 -> 13 [ label = "Requires" ]
+    10 -> 13 [ label = "RequiredBySubgraph" ]
     5 -> 14 [ label = "CanProvide" ]
     14 -> 13 [ label = "Provides" ]
     7 -> 15 [ label = "CanProvide" ]

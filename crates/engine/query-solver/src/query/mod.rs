@@ -65,7 +65,7 @@ pub struct Query<G: GraphBase, Step> {
     pub graph: G,
     pub root_selection_set_id: QuerySelectionSetId,
     #[indexed_by(QuerySelectionSetId)]
-    pub selection_sets: Vec<QuerySelectionSet<G>>,
+    pub selection_sets: Vec<QuerySelectionSet>,
     #[indexed_by(QueryFieldId)]
     pub fields: Vec<QueryField>,
     #[indexed_by(TypeConditionSharedVecId)]
@@ -99,11 +99,9 @@ pub struct QueryField {
     pub selection_set_id: Option<QuerySelectionSetId>,
 }
 
-pub struct QuerySelectionSet<G: GraphBase> {
+pub struct QuerySelectionSet {
     // Either a query field or root
-    pub parent_node_ix: G::NodeId,
     pub output_type_id: CompositeTypeId,
-    pub typename_node_ix_and_petitioner_location: Option<(G::NodeId, Location)>,
     pub typename_fields: Vec<QueryTypenameField>,
 }
 

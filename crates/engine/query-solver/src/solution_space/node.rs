@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 
-use operation::OperationContext;
+use operation::{Location, OperationContext};
+use petgraph::stable_graph::NodeIndex;
 use schema::{EntityDefinitionId, FieldSetRecord, ResolverDefinitionId, SubgraphId};
 use walker::Walk as _;
 
@@ -15,9 +16,11 @@ pub(crate) enum SpaceNode<'ctx> {
     /// Field in the operation, or an extra one to satisfy requirements
     QueryField {
         id: QueryFieldId,
+        typename_node_ix: Option<NodeIndex>,
         flags: NodeFlags,
     },
     Typename {
+        petitioner_location: Location,
         flags: NodeFlags,
     },
     /// Defines how to access data from a subgraph

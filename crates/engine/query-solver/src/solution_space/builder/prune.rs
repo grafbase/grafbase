@@ -36,10 +36,9 @@ impl QuerySolutionSpaceBuilder<'_, '_> {
                     } else {
                         selection_set.parent_node_ix
                     };
-                self.query.graph[leaf_node_ix]
-                    .flags_mut()
-                    .unwrap()
-                    .insert(NodeFlags::LEAF);
+                if let Some(flags) = self.query.graph[leaf_node_ix].flags_mut() {
+                    flags.insert(NodeFlags::LEAF);
+                }
                 stack.push(leaf_node_ix);
             }
         }

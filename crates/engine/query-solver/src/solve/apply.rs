@@ -7,7 +7,7 @@ use schema::Schema;
 use crate::{
     query::{Edge, Node},
     solution_space::{SpaceEdge, SpaceNode},
-    QuerySolutionSpace,
+    QuerySelectionSet, QuerySolutionSpace, QuerySolutionSpaceSelectionSet,
 };
 
 use super::{CrudeSolvedQuery, SteinerTreeSolution};
@@ -75,7 +75,7 @@ pub(crate) fn generate_crude_solved_query(
                     solution_node_ix: field_solution_node_ix,
                 });
 
-                if query_space.graph.edges(space_node_ix).any(|edge| {
+                if query_space.graph.edges(query_field_space_node_ix).any(|edge| {
                     matches!(
                         edge.weight(),
                         SpaceEdge::RequiredBySubgraph | SpaceEdge::RequiredBySupergraph
@@ -145,7 +145,20 @@ pub(crate) fn generate_crude_solved_query(
         root_node_ix,
         graph,
         root_selection_set_id: query_space.root_selection_set_id,
-        selection_sets: Vec::new(), // FIXME: breaks the contract with the root selection set id..
+        selection_sets: query_space
+            .selection_sets
+            .into_iter()
+            .map(
+                |QuerySolutionSpaceSelectionSet {
+                     output_type_id,
+                     typename_fields,
+                     ..
+                 }| QuerySelectionSet {
+                    output_type_id,
+                    typename_fields,
+                },
+            )
+            .collect(),
         fields: query_space.fields,
         shared_type_conditions: query_space.shared_type_conditions,
         deduplicated_flat_sorted_executable_directives: query_space.deduplicated_flat_sorted_executable_directives,

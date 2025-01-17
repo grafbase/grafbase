@@ -5,7 +5,7 @@ use std::{
 
 use fxhash::FxHasher32;
 use operation::{ExecutableDirectiveId, OperationContext, QueryPosition};
-use petgraph::Direction;
+use petgraph::{stable_graph::NodeIndex, Direction};
 use schema::{CompositeTypeId, TypeSystemDirective};
 use walker::Walk;
 
@@ -17,7 +17,8 @@ use crate::{
 use super::{builder::QuerySolutionSpaceBuilder, providable_fields::CreateRequirementTask, SpaceEdge, SpaceNode};
 
 struct IngestSelectionSet<'op> {
-    id: QuerySelectionSetId,
+    parent_node_ix: NodeIndex,
+    selection_set_id: QuerySelectionSetId,
     selection_set: operation::SelectionSet<'op>,
 }
 
@@ -27,7 +28,8 @@ where
 {
     pub(super) fn ingest_operation_fields(&mut self) -> crate::Result<()> {
         let queue = vec![IngestSelectionSet {
-            id: self.query.root_selection_set_id,
+            parent_node_ix: self.query.root_node_ix,
+            selection_set_id: self.query.root_selection_set_id,
             selection_set: OperationContext {
                 schema: self.schema,
                 operation: self.operation,
@@ -71,12 +73,32 @@ where
             usize,
             BuildHasherDefault<FxHasher32>,
         > = HashMap::with_capacity_and_hasher(self.builder.operation.data_fields.len() >> 2, Default::default());
-        while let Some(IngestSelectionSet { id, selection_set }) = self.queue.pop_front() {
+        while let Some(IngestSelectionSet {
+            parent_node_ix,
+            selection_set_id,
+            selection_set,
+        }) = self.queue.pop_front()
+        {
             self.parent_type_conditions.clear();
             self.parent_directive_ids.clear();
-            let bloom_filter = selection_set_to_response_key_bloom_filter.entry(id).or_default();
+            let bloom_filter = selection_set_to_response_key_bloom_filter
+                .entry(selection_set_id)
+                .or_default();
             self.response_key_bloom_filter = *bloom_filter;
-            self.rec_ingest_selection_set(id, selection_set)?;
+            let parent_output_type_id = self.builder.query[selection_set_id].output_type_id;
+            self.rec_ingest_selection_set(parent_node_ix, parent_output_type_id, selection_set_id, selection_set)?;
+
+            let selection_set = &self.builder.query[selection_set_id];
+            if !selection_set.output_type_id.is_object()
+                && (!selection_set.typename_fields.is_empty()
+                    || selection_set
+                        .output_type_id
+                        .walk(self.builder.schema)
+                        .has_inaccessible_possible_type())
+            {
+                self.builder.add_typename(parent_node_ix, None);
+            }
+
             *bloom_filter = self.response_key_bloom_filter;
         }
 
@@ -91,7 +113,9 @@ where
 
     fn rec_ingest_selection_set(
         &mut self,
-        id: QuerySelectionSetId,
+        parent_node_ix: NodeIndex,
+        parent_output_type_id: CompositeTypeId,
+        selection_set_id: QuerySelectionSetId,
         selection_set: operation::SelectionSet<'op>,
     ) -> crate::Result<()> {
         for selection in selection_set {
@@ -99,19 +123,19 @@ where
                 operation::Selection::Field(field) => {
                     if let operation::Field::Data(field) = field {
                         let ty = field.definition().parent_entity_id.as_composite_type();
-                        if !self.can_be_present(id, ty) {
+                        if !self.can_be_present(parent_output_type_id, ty) {
                             // This field can never appear, likely comes from a common
                             // fragment. In the Operation validation we only verify that fragments have
                             // a common element with their direct parent.
                             continue;
                         }
                     }
-                    self.add_operation_field(id, field)?;
+                    self.add_operation_field(parent_node_ix, selection_set_id, field)?;
                 }
                 operation::Selection::FragmentSpread(spread) => {
                     let fragment = spread.fragment();
                     let ty = fragment.type_condition_id;
-                    if !self.can_be_present(id, ty) {
+                    if !self.can_be_present(parent_output_type_id, ty) {
                         // This selection can never appear, likely comes from a common
                         // fragment. In the Operation validation we only verify that fragments have
                         // a common element with their direct
@@ -121,13 +145,18 @@ where
                     let n = self.parent_directive_ids.len();
                     self.parent_directive_ids.extend_from_slice(&spread.directive_ids);
                     self.parent_type_conditions.push(ty);
-                    self.rec_ingest_selection_set(id, fragment.selection_set())?;
+                    self.rec_ingest_selection_set(
+                        parent_node_ix,
+                        parent_output_type_id,
+                        selection_set_id,
+                        fragment.selection_set(),
+                    )?;
                     self.parent_type_conditions.pop();
                     self.parent_directive_ids.truncate(n);
                 }
                 operation::Selection::InlineFragment(fragment) => {
                     if let Some(ty) = fragment.type_condition_id {
-                        if !self.can_be_present(id, ty) {
+                        if !self.can_be_present(parent_output_type_id, ty) {
                             // This selection can never appear, likely comes from a common
                             // fragment. In the Operation validation we only verify that fragments have
                             // a common element with their direct
@@ -137,13 +166,23 @@ where
                         let n = self.parent_directive_ids.len();
                         self.parent_directive_ids.extend_from_slice(&fragment.directive_ids);
                         self.parent_type_conditions.push(ty);
-                        self.rec_ingest_selection_set(id, fragment.selection_set())?;
+                        self.rec_ingest_selection_set(
+                            parent_node_ix,
+                            parent_output_type_id,
+                            selection_set_id,
+                            fragment.selection_set(),
+                        )?;
                         self.parent_type_conditions.pop();
                         self.parent_directive_ids.truncate(n);
                     } else {
                         let n = self.parent_directive_ids.len();
                         self.parent_directive_ids.extend_from_slice(&fragment.directive_ids);
-                        self.rec_ingest_selection_set(id, fragment.selection_set())?;
+                        self.rec_ingest_selection_set(
+                            parent_node_ix,
+                            parent_output_type_id,
+                            selection_set_id,
+                            fragment.selection_set(),
+                        )?;
                         self.parent_directive_ids.truncate(n);
                     }
                 }
@@ -153,20 +192,20 @@ where
         Ok(())
     }
 
-    fn can_be_present(&self, id: QuerySelectionSetId, ty: CompositeTypeId) -> bool {
-        let parent_output_type = self.builder.query[id].output_type_id;
-        if parent_output_type == ty {
+    fn can_be_present(&self, parent_output_type_id: CompositeTypeId, ty: CompositeTypeId) -> bool {
+        if parent_output_type_id == ty {
             return true;
         }
         let ctx = self.builder.ctx();
-        parent_output_type
+        parent_output_type_id
             .walk(ctx)
             .has_non_empty_intersection_with(ty.walk(ctx))
     }
 
     fn add_operation_field(
         &mut self,
-        selection_set_id: QuerySelectionSetId,
+        parent_node_ix: NodeIndex,
+        parent_selection_set_id: QuerySelectionSetId,
         field: operation::Field<'op>,
     ) -> crate::Result<()> {
         let schema = self.builder.schema;
@@ -183,7 +222,7 @@ where
         let field = match field {
             operation::Field::Data(field) => field,
             operation::Field::Typename(field) => {
-                if self.builder.query[selection_set_id]
+                if self.builder.query[parent_selection_set_id]
                     .typename_fields
                     .iter()
                     .all(|existing| {
@@ -191,29 +230,17 @@ where
                             && existing.response_key != field.response_key
                     })
                 {
-                    let selection_set = &mut self.builder.query.selection_sets[usize::from(selection_set_id)];
+                    let selection_set = &mut self.builder.query.selection_sets[usize::from(parent_selection_set_id)];
                     selection_set.typename_fields.push(QueryTypenameField {
                         type_conditions,
                         response_key: field.response_key,
                     });
-
-                    if selection_set.typename_node_ix_and_petitioner_location.is_none() {
-                        let ix = self.builder.query.graph.add_node(SpaceNode::Typename {
-                            flags: NodeFlags::INDISPENSABLE,
-                        });
-                        self.builder
-                            .query
-                            .graph
-                            .add_edge(selection_set.parent_node_ix, ix, SpaceEdge::TypenameField);
-                        selection_set.typename_node_ix_and_petitioner_location = Some((ix, field.location));
-                    }
                 }
 
                 return Ok(());
             }
         };
 
-        let parent_node_ix = self.builder.query[selection_set_id].parent_node_ix;
         let bloom_bit_mask = 1 << (usize::from(field.response_key) % (usize::BITS - 1) as usize);
         let previous_bloom_filter = self.response_key_bloom_filter;
         self.response_key_bloom_filter |= bloom_bit_mask;
@@ -251,9 +278,10 @@ where
                 if self.builder.query[query_field.type_conditions] == self.builder.query[type_conditions]
                     && query_field.flat_directive_id == flat_directive_id
                 {
-                    if let Some(id) = query_field.selection_set_id {
+                    if let Some(nested_selection_set_id) = query_field.selection_set_id {
                         self.queue.push_back(IngestSelectionSet {
-                            id,
+                            parent_node_ix: node_ix,
+                            selection_set_id: nested_selection_set_id,
                             selection_set: field.selection_set(),
                         });
                     }
@@ -262,6 +290,18 @@ where
             }
         }
 
+        let query_field = QueryField {
+            query_position: Some(self.next_query_position()),
+            type_conditions,
+            response_key: Some(field.response_key),
+            subgraph_key: None,
+            definition_id: field.definition_id,
+            argument_ids: field.argument_ids.into(),
+            location: field.location,
+            flat_directive_id,
+            selection_set_id: None,
+        };
+        self.builder.query.fields.push(query_field);
         let query_field_id = (self.builder.query.fields.len() - 1).into();
         let query_field_node_ix = self
             .builder
@@ -278,34 +318,21 @@ where
             .as_composite_type()
             .map(|output_type_id| {
                 let selection_set = QuerySelectionSet {
-                    parent_node_ix: query_field_node_ix,
                     output_type_id,
-                    typename_node_ix_and_petitioner_location: None,
                     typename_fields: Vec::new(),
                 };
 
                 self.builder.query.selection_sets.push(selection_set);
-                let id = (self.builder.query.selection_sets.len() - 1).into();
+                let nested_selection_set_id = (self.builder.query.selection_sets.len() - 1).into();
                 self.queue.push_back(IngestSelectionSet {
-                    id,
+                    parent_node_ix: query_field_node_ix,
+                    selection_set_id: nested_selection_set_id,
                     selection_set: field.selection_set(),
                 });
 
-                id
+                nested_selection_set_id
             });
-
-        let query_field = QueryField {
-            query_position: Some(self.next_query_position()),
-            type_conditions,
-            response_key: Some(field.response_key),
-            subgraph_key: None,
-            definition_id: field.definition_id,
-            argument_ids: field.argument_ids.into(),
-            location: field.location,
-            flat_directive_id,
-            selection_set_id: nested_selection_set_id,
-        };
-        self.builder.query.fields.push(query_field);
+        self.builder.query[query_field_id].selection_set_id = nested_selection_set_id;
 
         let query = &mut self.builder.query;
         for directive in field.definition_id.walk(schema).directives() {
@@ -321,11 +348,12 @@ where
                         .unwrap()
                         .contains(NodeFlags::INDISPENSABLE),
                     required_field_set: fields,
-                    parent_selection_set_id: selection_set_id,
+                    parent_query_field_or_root_node_ix: parent_node_ix,
+                    parent_selection_set_id,
                     required_for_resolution: false,
                 })
             }
-            if let Some((node, selection_set_id)) = auth.node().zip(nested_selection_set_id) {
+            if let Some((node, nested_selection_set_id)) = auth.node().zip(nested_selection_set_id) {
                 self.builder.create_requirement_task_stack.push(CreateRequirementTask {
                     petitioner_location: field.location,
                     dependent_ix: query_field_node_ix,
@@ -333,7 +361,8 @@ where
                         .flags()
                         .unwrap()
                         .contains(NodeFlags::INDISPENSABLE),
-                    parent_selection_set_id: selection_set_id,
+                    parent_query_field_or_root_node_ix: query_field_node_ix,
+                    parent_selection_set_id: nested_selection_set_id,
                     required_field_set: node,
                     required_for_resolution: false,
                 })

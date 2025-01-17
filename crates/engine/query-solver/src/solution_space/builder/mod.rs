@@ -2,11 +2,11 @@ mod alternative;
 mod operation_fields;
 mod providable_fields;
 mod prune;
-mod typename;
 
 use std::marker::PhantomData;
 
 use id_newtypes::BitSet;
+use operation::Location;
 use petgraph::stable_graph::NodeIndex;
 use providable_fields::{CreateProvidableFieldsTask, CreateRequirementTask, UnplannableField};
 use schema::{DefinitionId, Schema};
@@ -41,9 +41,7 @@ impl<'schema> QuerySolutionSpace<'schema> {
         let root_node_ix = graph.add_node(SpaceNode::Root);
         let mut selection_sets = Vec::with_capacity(n >> 2);
         selection_sets.push(QuerySelectionSet {
-            parent_node_ix: root_node_ix,
             output_type_id: operation.root_object_id.into(),
-            typename_node_ix_and_petitioner_location: None,
             typename_fields: Vec::new(),
         });
 
@@ -76,9 +74,8 @@ where
     pub(super) fn build(mut self) -> crate::Result<QuerySolutionSpace<'schema>> {
         self.ingest_operation_fields()?;
 
-        self.add_any_necessary_typename_fields()?;
-
         self.create_providable_fields_tasks_for_subselection(providable_fields::Parent {
+            query_field_or_root_node_ix: self.query.root_node_ix,
             selection_set_id: self.query.root_selection_set_id,
             providable_field_or_root_ix: self.query.root_node_ix,
         });
@@ -117,8 +114,35 @@ where
             _ => (),
         }
 
-        let query_field = SpaceNode::QueryField { id, flags };
+        let query_field = SpaceNode::QueryField {
+            id,
+            flags,
+            typename_node_ix: None,
+        };
         self.query.graph.add_node(query_field)
+    }
+
+    fn add_typename(&mut self, parent_node_ix: NodeIndex, location: Option<Location>) -> NodeIndex {
+        let SpaceNode::QueryField {
+            id, typename_node_ix, ..
+        } = self.query.graph[parent_node_ix]
+        else {
+            unreachable!()
+        };
+        if let Some(typename_node_ix) = typename_node_ix {
+            return typename_node_ix;
+        }
+
+        let ix = self.query.graph.add_node(SpaceNode::Typename {
+            flags: NodeFlags::INDISPENSABLE,
+            petitioner_location: location.unwrap_or(self.query[id].location),
+        });
+        self.query.graph.add_edge(parent_node_ix, ix, SpaceEdge::TypenameField);
+
+        if let SpaceNode::QueryField { typename_node_ix, .. } = &mut self.query.graph[parent_node_ix] {
+            *typename_node_ix = Some(ix);
+        }
+        ix
     }
 
     fn ctx(&self) -> OperationContext<'op> {

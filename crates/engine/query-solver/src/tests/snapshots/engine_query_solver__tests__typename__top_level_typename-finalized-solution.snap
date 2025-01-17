@@ -1,11 +1,7 @@
 ---
-source: engine/crates/engine/query-solver/src/tests/typename.rs
-expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"__typename\" ]\n    2 [ label = \"Introspection\", color=royalblue,shape=parallelogram ]\n    0 -> 2 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    2 -> 1 [ label = \"\" ]\n}\n"
+source: crates/engine/query-solver/src/tests/typename.rs
+expression: "digraph {\n    0 [ label = \"root\" ]\n}\n"
 ---
 digraph {
     0 [ label = "root" ]
-    1 [ label = "__typename" ]
-    2 [ label = "Introspection" ]
-    0 -> 2 [ label = "QueryPartition" ]
-    2 -> 1 [ label = "Field" ]
 }

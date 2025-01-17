@@ -80,10 +80,11 @@ where
         let edge_filter = |edge: EdgeReference<'_, SpaceEdge, _>| match edge.weight() {
             // Resolvers have an inherent cost of 1.
             SpaceEdge::CreateChildResolver => Some((edge.id(), edge.source(), edge.target(), 1)),
-            SpaceEdge::CanProvide | SpaceEdge::Provides | SpaceEdge::TypenameField | SpaceEdge::ProvidesTypename => {
+            SpaceEdge::CanProvide | SpaceEdge::Provides | SpaceEdge::ProvidesTypename => {
                 Some((edge.id(), edge.source(), edge.target(), 0))
             }
             SpaceEdge::Field
+            | SpaceEdge::TypenameField
             | SpaceEdge::HasChildResolver
             | SpaceEdge::RequiredBySubgraph
             | SpaceEdge::RequiredBySupergraph => None,

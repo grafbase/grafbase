@@ -1,17 +1,15 @@
 ---
 source: crates/engine/query-solver/src/tests/typename.rs
-expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n    1 [ label = \"Query.topProducts\", style=dashed ]\n    2 [ label = \"__typename\", style=dashed ]\n    3 [ label = \"Root#products\", shape=parallelogram, color=dodgerblue, style=dashed ]\n    4 [ label = \"topProducts#products\", shape=box, color=dodgerblue, style=dashed ]\n    5 [ label=\"\", style=dashed]\n    1 -> 2 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    0 -> 3 [ label = <<b>1</b>>, color=royalblue,fontcolor=royalblue,style=dashed ]\n    3 -> 4 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    4 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    5 -> 0 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n}\n"
+expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n    1 [ label = \"Query.topProducts\", style=dashed ]\n    2 [ label = \"Root#products\", shape=parallelogram, color=dodgerblue, style=dashed ]\n    3 [ label = \"topProducts#products\", shape=box, color=dodgerblue, style=dashed ]\n    4 [ label=\"\", style=dashed]\n    0 -> 2 [ label = <<b>1</b>>, color=royalblue,fontcolor=royalblue,style=dashed ]\n    2 -> 3 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    3 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    4 -> 0 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n}\n"
 ---
 digraph {
     0 [ label = "root", steiner=1 ]
     1 [ label = "Query.topProducts", steiner=0 ]
-    2 [ label = "__typename", steiner=0 ]
-    3 [ label = "Root#products", steiner=0 ]
-    4 [ label = "topProducts#products", steiner=0 ]
-    5 [ label="", style=dashed]
-    1 -> 2 [ cost=0, steiner=0]
-    0 -> 3 [ cost=1, steiner=0]
-    3 -> 4 [ cost=0, steiner=0]
-    4 -> 1 [ cost=0, steiner=0]
-    5 -> 0 [ cost=0, steiner=0]
+    2 [ label = "Root#products", steiner=0 ]
+    3 [ label = "topProducts#products", steiner=0 ]
+    4 [ label="", style=dashed]
+    0 -> 2 [ cost=1, steiner=0]
+    2 -> 3 [ cost=0, steiner=0]
+    3 -> 1 [ cost=0, steiner=0]
+    4 -> 0 [ cost=0, steiner=0]
 }

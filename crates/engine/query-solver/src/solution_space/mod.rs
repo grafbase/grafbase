@@ -5,27 +5,19 @@ mod node;
 pub(crate) use edge::*;
 pub(crate) use node::*;
 
-use operation::{Location, Operation, OperationContext};
-use schema::{CompositeTypeId, Schema};
+use operation::{Operation, OperationContext};
+use schema::Schema;
 use tracing::{instrument, Level};
 
 use petgraph::{
     dot::{Config, Dot},
-    stable_graph::{NodeIndex, StableGraph},
+    stable_graph::StableGraph,
 };
 
-use crate::{Query, QueryTypenameField};
+use crate::Query;
 
 pub(crate) type QuerySolutionSpace<'schema> =
     Query<StableGraph<SpaceNode<'schema>, SpaceEdge>, crate::query::steps::SolutionSpace>;
-
-pub(crate) struct QuerySolutionSpaceSelectionSet {
-    // Either a query field or root
-    pub parent_node_ix: NodeIndex,
-    pub output_type_id: CompositeTypeId,
-    pub typename_node_ix_and_petitioner_location: Option<(NodeIndex, Location)>,
-    pub typename_fields: Vec<QueryTypenameField>,
-}
 
 impl<'schema> QuerySolutionSpace<'schema> {
     #[instrument(skip_all, level = Level::DEBUG)]

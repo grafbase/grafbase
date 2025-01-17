@@ -43,11 +43,11 @@ digraph {
     12 -> 13 [ label = "CanProvide" ]
     13 -> 5 [ label = "Provides" ]
     4 -> 14 [ label = "Field" ]
-    12 -> 14 [ label = "Requires" ]
+    12 -> 14 [ label = "RequiredBySubgraph" ]
     11 -> 15 [ label = "CanProvide" ]
     15 -> 14 [ label = "Provides" ]
     1 -> 16 [ label = "Field" ]
-    9 -> 16 [ label = "Requires" ]
+    9 -> 16 [ label = "RequiredBySubgraph" ]
     7 -> 17 [ label = "CanProvide" ]
     17 -> 16 [ label = "Provides" ]
 }

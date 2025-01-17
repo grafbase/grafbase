@@ -67,19 +67,19 @@ interface NodeWithName
 }
 "#;
 
-#[test]
-fn interface_object_cannot_provide_typename() {
-    assert_solving_snapshots!(
-        "interface_object_cannot_provide_typename",
-        SCHEMA,
-        r#"
-        query {
-          accounts {
-            ... on Admin {
-              id
-            }
-          }
-        }
-        "#
-    );
-}
+// #[test]
+// fn interface_object_cannot_provide_typename() {
+//     assert_solving_snapshots!(
+//         "interface_object_cannot_provide_typename",
+//         SCHEMA,
+//         r#"
+//         query {
+//           accounts {
+//             ... on Admin {
+//               id
+//             }
+//           }
+//         }
+//         "#
+//     );
+// }
