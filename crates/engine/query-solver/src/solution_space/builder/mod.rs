@@ -122,7 +122,11 @@ where
         self.query.graph.add_node(query_field)
     }
 
-    fn add_typename(&mut self, parent_node_ix: NodeIndex, location: Option<Location>) -> NodeIndex {
+    fn get_or_create_typename_field_node_ix(
+        &mut self,
+        parent_node_ix: NodeIndex,
+        location: Option<Location>,
+    ) -> Result<NodeIndex, NodeIndex> {
         let SpaceNode::QueryField {
             id, typename_node_ix, ..
         } = self.query.graph[parent_node_ix]
@@ -130,7 +134,7 @@ where
             unreachable!()
         };
         if let Some(typename_node_ix) = typename_node_ix {
-            return typename_node_ix;
+            return Ok(typename_node_ix);
         }
 
         let ix = self.query.graph.add_node(SpaceNode::Typename {
@@ -142,7 +146,7 @@ where
         if let SpaceNode::QueryField { typename_node_ix, .. } = &mut self.query.graph[parent_node_ix] {
             *typename_node_ix = Some(ix);
         }
-        ix
+        Err(ix)
     }
 
     fn ctx(&self) -> OperationContext<'op> {

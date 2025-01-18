@@ -62,13 +62,12 @@ where
                     });
             }
         }
-        self.create_provideable_typename_field(parent);
+        self.providea_typename_field(parent);
     }
 
-    pub(super) fn create_provideable_typename_field(&mut self, parent: Parent) {
-        let QuerySelectionSet { output_type_id, .. } = self.query[parent.selection_set_id];
+    pub(super) fn providea_typename_field(&mut self, parent: Parent) {
         let SpaceNode::QueryField {
-            typename_node_ix: Some((typename_node_ix, _)),
+            typename_node_ix: Some(typename_node_ix),
             ..
         } = self.query.graph[parent.query_field_or_root_node_ix]
         else {
@@ -123,7 +122,8 @@ where
             return;
         };
 
-        if output_type_id
+        if self.query[parent.selection_set_id]
+            .output_type_id
             .as_interface()
             .map(|id| {
                 id.walk(self.schema)
@@ -296,10 +296,16 @@ where
                 );
 
                 if parent_output.as_entity() != Some(field_definition.parent_entity_id) {
-                    let typename_node_ix = self.add_typename(
+                    let typename_node_ix = match self.get_or_create_typename_field_node_ix(
                         parent.query_field_or_root_node_ix,
                         Some(self.query[query_field_id].location),
-                    );
+                    ) {
+                        Ok(ix) => ix,
+                        Err(ix) => {
+                            self.providea_typename_field(parent);
+                            ix
+                        }
+                    };
                     self.query
                         .graph
                         .add_edge(resolver_ix, typename_node_ix, SpaceEdge::RequiredBySubgraph);
@@ -340,6 +346,7 @@ where
                     indispensable: false,
                     required_field_set,
                     required_for_resolution: true,
+                    parent_query_field_or_root_node_ix: parent.query_field_or_root_node_ix,
                 })
             }
 
@@ -356,6 +363,7 @@ where
 
             if let Some(selection_set_id) = self.query[query_field_id].selection_set_id {
                 self.create_providable_fields_tasks_for_subselection(Parent {
+                    query_field_or_root_node_ix: query_field_node_ix,
                     selection_set_id,
                     providable_field_or_root_ix: providable_field_ix,
                 });
@@ -367,7 +375,7 @@ where
         };
         if !flags.contains(NodeFlags::PROVIDABLE) {
             self.maybe_unplannable_query_fields_stack.push(UnplannableField {
-                parent_query_field_or_root_node_ix: parent,
+                parent_query_field_or_root_node_ix: parent.query_field_or_root_node_ix,
                 parent_selection_set_id: parent.selection_set_id,
                 node_ix: query_field_node_ix,
             });
