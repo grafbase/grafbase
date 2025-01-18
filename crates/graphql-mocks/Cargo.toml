@@ -26,6 +26,8 @@ crossbeam-queue = "0.3"
 http.workspace = true
 url.workspace = true
 grafbase-workspace-hack.workspace = true
+tower.workspace = true
+futures-util.workspace = true
 
 [lints]
 workspace = true

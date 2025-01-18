@@ -873,6 +873,11 @@ fn introspection_on_multiple_federation_subgraphs() {
       reviews: [ShippingServiceReview!]!
     }
 
+    """
+    A scalar that can represent any JSON value.
+    """
+    scalar JSON
+
     type Picture {
       height: Int!
       url: String!
@@ -914,6 +919,7 @@ fn introspection_on_multiple_federation_subgraphs() {
     }
 
     type Subscription {
+      connectionInitPayload: JSON
       newProducts: Product!
     }
 

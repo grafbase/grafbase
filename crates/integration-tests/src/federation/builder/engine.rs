@@ -55,9 +55,7 @@ pub(super) async fn build(
 
     let config = match config {
         Some(ConfigSource::Toml(ref config_toml)) => toml::from_str(config_toml).unwrap(),
-        Some(ConfigSource::TomlWebsocket) => {
-            let mut config_toml = String::new();
-
+        Some(ConfigSource::TomlWebsocket(mut config_toml)) => {
             for subgraph in subgraphs.iter() {
                 let name = subgraph.name();
                 let websocket_url = subgraph.websocket_url();

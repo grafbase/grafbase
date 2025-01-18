@@ -34,7 +34,7 @@ fn docker_see_subgraph_is_working() {
 }
 
 #[test]
-fn sse_supgraph_subscription() {
+fn sse_subgraph_subscription() {
     runtime().block_on(async move {
         let engine = Engine::builder()
             .with_docker_subgraph(DockerSubgraph::Sse)

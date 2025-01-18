@@ -2,11 +2,8 @@
 //!
 //! [1]: https://github.com/graphql/graphql-over-http/blob/main/rfcs/GraphQLOverWebSocket.md
 
-use std::{borrow::Cow, collections::HashMap};
-
 use operation::Request;
 use runtime::hooks::Hooks;
-use serde::Deserialize;
 
 use crate::Runtime;
 
@@ -39,25 +36,7 @@ pub struct SubscribeEvent {
 pub struct RequestPayload(pub(crate) Request);
 
 #[derive(Debug, Default, serde::Deserialize)]
-pub struct InitPayload {
-    #[serde(default, deserialize_with = "deserialize_as_hash_map")]
-    pub headers: http::HeaderMap,
-}
-
-fn deserialize_as_hash_map<'de, D>(deserializer: D) -> Result<http::HeaderMap, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    let map = HashMap::<Cow<'_, str>, Cow<'_, str>>::deserialize(deserializer)?;
-    let mut headers = http::HeaderMap::new();
-    for (key, value) in map {
-        headers.insert(
-            http::HeaderName::try_from(key.as_ref()).map_err(serde::de::Error::custom)?,
-            http::HeaderValue::try_from(value.as_ref()).map_err(serde::de::Error::custom)?,
-        );
-    }
-    Ok(headers)
-}
+pub struct InitPayload(pub(crate) Option<serde_json::Map<String, serde_json::Value>>);
 
 #[derive(serde::Serialize, Debug)]
 #[serde(tag = "type", rename_all = "snake_case", bound = "")]

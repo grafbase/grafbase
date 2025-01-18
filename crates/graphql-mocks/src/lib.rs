@@ -4,13 +4,14 @@
 use builder::MockGraphQlServerBuilder;
 use http::Uri;
 use serde_json::json;
+use websockets::SubscriptionService;
 
 use std::{
     sync::{Arc, Mutex},
     time::Duration,
 };
 
-use async_graphql_axum::{GraphQLRequest, GraphQLResponse, GraphQLSubscription};
+use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
 use axum::{
     extract::{FromRequestParts, State},
     http::HeaderMap,
@@ -34,6 +35,7 @@ mod secure;
 mod slow;
 mod stateful;
 mod tea_shop;
+mod websockets;
 
 pub use {
     almost_empty::AlmostEmptySchema, echo::EchoSchema, error_schema::ErrorSchema, fake_github::FakeGithubSchema,
@@ -105,7 +107,7 @@ impl MockGraphQlServer {
 
         let app = Router::new()
             .route("/", post(graphql_handler))
-            .route_service("/ws", GraphQLSubscription::new(SchemaExecutor(schema)))
+            .route_service("/ws", SubscriptionService::new(SchemaExecutor(schema)))
             .with_state(state.clone());
 
         let listener = tokio::net::TcpListener::bind(format!("127.0.0.1:{}", port.unwrap_or(0)))
@@ -229,6 +231,7 @@ pub trait Schema: Send + Sync {
     fn execute_stream(
         &self,
         request: async_graphql::Request,
+        session_data: Option<Arc<async_graphql::Data>>,
     ) -> futures::stream::BoxStream<'static, async_graphql::Response>;
 
     fn sdl(&self) -> String;
@@ -262,8 +265,9 @@ impl Schema for SchemaWithSdlOverride {
     fn execute_stream(
         &self,
         request: async_graphql::Request,
+        session_data: Option<Arc<async_graphql::Data>>,
     ) -> futures::stream::BoxStream<'static, async_graphql::Response> {
-        self.schema.execute_stream(request)
+        self.schema.execute_stream(request, session_data)
     }
 
     fn sdl(&self) -> String {
@@ -299,8 +303,17 @@ where
     fn execute_stream(
         &self,
         request: async_graphql::Request,
+        session_data: Option<Arc<async_graphql::Data>>,
     ) -> futures::stream::BoxStream<'static, async_graphql::Response> {
-        Box::pin(async_graphql::Schema::execute_stream(self, request))
+        if let Some(session_data) = session_data {
+            Box::pin(async_graphql::Schema::execute_stream_with_session_data(
+                self,
+                request,
+                session_data,
+            ))
+        } else {
+            Box::pin(async_graphql::Schema::execute_stream(self, request))
+        }
     }
 
     fn sdl(&self) -> String {
@@ -333,9 +346,9 @@ impl async_graphql::Executor for SchemaExecutor {
     fn execute_stream(
         &self,
         request: async_graphql::Request,
-        _session_data: Option<Arc<async_graphql::Data>>,
+        session_data: Option<Arc<async_graphql::Data>>,
     ) -> futures::stream::BoxStream<'static, async_graphql::Response> {
-        self.0.execute_stream(request)
+        self.0.execute_stream(request, session_data)
     }
 }
 

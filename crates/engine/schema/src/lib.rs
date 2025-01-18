@@ -142,6 +142,7 @@ pub struct Settings {
     pub apq_enabled: bool,
     pub executable_document_limit_bytes: usize,
     pub trusted_documents: config::TrustedDocumentsConfig,
+    pub websocket_forward_connection_init_payload: bool,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, id_derives::IndexedFields)]

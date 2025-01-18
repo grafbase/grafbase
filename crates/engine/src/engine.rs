@@ -4,6 +4,7 @@ use cache::CacheKey;
 use engine_auth::AuthService;
 use futures::{StreamExt, TryFutureExt};
 use futures_util::Stream;
+use http::HeaderMap;
 use retry_budget::RetryBudgets;
 use schema::Schema;
 use std::{borrow::Cow, future::Future, sync::Arc};
@@ -12,7 +13,8 @@ use crate::{
     graphql_over_http::{Http, ResponseFormat, StreamingResponseFormat},
     prepare::{CachedOperation, OperationDocument},
     response::Response,
-    websocket, Body, HooksExtension,
+    websocket::{self, InitPayload},
+    Body, HooksExtension,
 };
 pub(crate) use execute::*;
 pub(crate) use runtime::*;
@@ -91,7 +93,7 @@ impl<R: Runtime> Engine<R> {
         };
 
         let request_context_fut = self
-            .create_request_context(&ctx, headers)
+            .create_request_context(&ctx, headers, None)
             .map_err(|(response, context)| (response, Some(context)));
 
         let graphql_request_fut = self
@@ -125,7 +127,7 @@ impl<R: Runtime> Engine<R> {
 
     pub async fn create_websocket_session(
         self: &Arc<Self>,
-        headers: http::HeaderMap,
+        init_payload: InitPayload,
     ) -> Result<WebsocketSession<R>, Cow<'static, str>> {
         let response_format = ResponseFormat::Streaming(StreamingResponseFormat::GraphQLOverWebSocket);
 
@@ -135,16 +137,19 @@ impl<R: Runtime> Engine<R> {
             include_grafbase_response_extension: false,
         };
 
-        let (request_context, hooks_context) = match self.create_request_context(&ctx, headers).await {
-            Ok(context) => context,
-            Err((response, _)) => {
-                return Err(response
-                    .errors()
-                    .first()
-                    .map(|error| error.message.clone())
-                    .unwrap_or("Internal server error".into()))
-            }
-        };
+        let headers = HeaderMap::default();
+
+        let (request_context, hooks_context) =
+            match self.create_request_context(&ctx, headers, Some(init_payload)).await {
+                Ok(context) => context,
+                Err((response, _)) => {
+                    return Err(response
+                        .errors()
+                        .first()
+                        .map(|error| error.message.clone())
+                        .unwrap_or("Internal server error".into()))
+                }
+            };
 
         Ok(WebsocketSession {
             engine: Arc::clone(self),

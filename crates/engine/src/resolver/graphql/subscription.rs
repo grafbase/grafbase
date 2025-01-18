@@ -70,6 +70,12 @@ impl GraphqlResolver {
         let request = FetchRequest {
             subgraph_name: endpoint.subgraph_name(),
             url,
+            websocket_init_payload: ctx
+                .request_context
+                .websocket_init_payload
+                .as_ref()
+                .filter(|_| ctx.engine.schema.settings.websocket_forward_connection_init_payload)
+                .cloned(),
             method: http::Method::POST,
             headers,
             body: &SubgraphGraphqlRequest {
@@ -159,6 +165,7 @@ impl GraphqlResolver {
                 http::HeaderValue::from_static("text/even-stream,application/json;q=0.9"),
             );
             FetchRequest {
+                websocket_init_payload: None,
                 subgraph_name: endpoint.subgraph_name(),
                 url: Cow::Borrowed(endpoint.url()),
                 method: http::Method::POST,

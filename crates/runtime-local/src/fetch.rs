@@ -144,7 +144,6 @@ impl Fetcher for NativeFetcher {
 
         // graphql_ws_client requires a 'static body which we can't provide.
         let body = serde_json::value::to_raw_value(&request.body).map_err(|err| FetchError::any(err.to_string()));
-        let headers = Headers(request.headers);
         let mut ws_request = request.url.as_ref().into_client_request().unwrap();
 
         async move {
@@ -160,7 +159,7 @@ impl Fetcher for NativeFetcher {
             };
 
             Ok(graphql_ws_client::Client::build(connection)
-                .payload(headers)
+                .payload(request.websocket_init_payload)
                 .map_err(FetchError::any)?
                 .subscribe(WebsocketRequest(body?))
                 .await
@@ -180,25 +179,6 @@ fn into_reqwest(request: FetchRequest<'_, Bytes>) -> reqwest::Request {
     *req.body_mut() = Some(request.body.into());
     *req.timeout_mut() = Some(request.timeout);
     req
-}
-
-struct Headers(http::HeaderMap);
-
-impl serde::Serialize for Headers {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeMap;
-
-        let mut map = serializer.serialize_map(None)?;
-        for (name, value) in self.0.iter() {
-            if let Ok(value) = value.to_str() {
-                map.serialize_entry(name.as_str(), value)?;
-            }
-        }
-        map.end()
-    }
 }
 
 #[derive(serde::Serialize)]

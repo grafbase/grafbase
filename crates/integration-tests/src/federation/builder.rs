@@ -21,7 +21,7 @@ use super::{subgraph::Subgraphs, DockerSubgraph, TestGateway};
 
 enum ConfigSource {
     Toml(String),
-    TomlWebsocket,
+    TomlWebsocket(String),
 }
 
 #[must_use]
@@ -54,7 +54,13 @@ impl TestGatewayBuilder {
 
     pub fn with_websocket_config(mut self) -> Self {
         assert!(self.config.is_none(), "overwriting config!");
-        self.config = Some(ConfigSource::TomlWebsocket);
+        self.config = Some(ConfigSource::TomlWebsocket(String::new()));
+        self
+    }
+
+    pub fn with_custom_websocket_config(mut self, extra: impl Display) -> Self {
+        assert!(self.config.is_none(), "overwriting config!");
+        self.config = Some(ConfigSource::TomlWebsocket(extra.to_string()));
         self
     }
 

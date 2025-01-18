@@ -70,6 +70,7 @@ pub(crate) async fn execute_subgraph_request<R: Runtime>(
     );
 
     let request = FetchRequest {
+        websocket_init_payload: None,
         subgraph_name: endpoint.subgraph_name(),
         url: Cow::Borrowed(endpoint.url()),
         headers,
