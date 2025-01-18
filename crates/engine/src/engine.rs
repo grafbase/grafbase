@@ -4,6 +4,7 @@ use cache::CacheKey;
 use engine_auth::AuthService;
 use futures::{StreamExt, TryFutureExt};
 use futures_util::Stream;
+use http::HeaderMap;
 use retry_budget::RetryBudgets;
 use schema::Schema;
 use std::{borrow::Cow, future::Future, sync::Arc};
@@ -136,7 +137,7 @@ impl<R: Runtime> Engine<R> {
             include_grafbase_response_extension: false,
         };
 
-        let headers = init_payload.to_headers();
+        let headers = HeaderMap::default();
 
         let (request_context, hooks_context) =
             match self.create_request_context(&ctx, headers, Some(init_payload)).await {

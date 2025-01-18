@@ -106,7 +106,7 @@ impl<R: Runtime> Engine<R> {
         }
 
         let mut request_context = RequestContext {
-            websocket_init_payload: websocket_init_payload.map(|payload| payload.0),
+            websocket_init_payload: websocket_init_payload.and_then(|payload| payload.0),
             mutations_allowed: !ctx.method.is_safe(),
             headers,
             response_format: ctx.response_format,

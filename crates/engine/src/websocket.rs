@@ -36,35 +36,7 @@ pub struct SubscribeEvent {
 pub struct RequestPayload(pub(crate) Request);
 
 #[derive(Debug, Default, serde::Deserialize)]
-pub struct InitPayload(pub(crate) serde_json::Map<String, serde_json::Value>);
-
-impl InitPayload {
-    pub(crate) fn to_headers(&self) -> http::HeaderMap {
-        let mut headers = http::HeaderMap::new();
-
-        let headers_map = self.0.get("headers").and_then(|headers| headers.as_object());
-
-        for (key, value) in [Some(&self.0), headers_map]
-            .map(|map| map.into_iter().flatten())
-            .into_iter()
-            .flatten()
-        {
-            let Ok(key) = http::HeaderName::try_from(key.as_bytes()) else {
-                continue;
-            };
-
-            let Some(value_str) = value.as_str() else { continue };
-
-            let Ok(value) = http::HeaderValue::try_from(value_str) else {
-                continue;
-            };
-
-            headers.insert(key, value);
-        }
-
-        headers
-    }
-}
+pub struct InitPayload(pub(crate) Option<serde_json::Map<String, serde_json::Value>>);
 
 #[derive(serde::Serialize, Debug)]
 #[serde(tag = "type", rename_all = "snake_case", bound = "")]

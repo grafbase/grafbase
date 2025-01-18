@@ -4,7 +4,7 @@ use graphql_mocks::FederatedProductsSchema;
 use integration_tests::{federation::EngineExt as _, runtime};
 
 #[test]
-fn websockets_basic() {
+fn websockets_basic_no_init_payload() {
     let (first, second) = runtime().block_on(async move {
         let engine = Engine::builder()
             .with_subgraph(FederatedProductsSchema)
