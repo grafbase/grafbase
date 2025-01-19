@@ -13,7 +13,7 @@ repository.workspace = true
 async-graphql-axum.workspace = true
 async-graphql = { workspace = true, features = ["dynamic-schema"] }
 async-trait = "0.1.80"
-axum = { version = "=0.7", features = ["tokio", "http1"] }
+axum = { version = "=0.8.1", features = ["tokio", "http1"] }
 cynic-parser.workspace = true
 futures.workspace = true
 headers.workspace = true
