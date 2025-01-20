@@ -69,7 +69,7 @@ where
         }
         let node_filter = |(node_ix, node): (NodeIndex, &SpaceNode<'schema>)| match node {
             SpaceNode::Root | SpaceNode::Resolver(_) | SpaceNode::ProvidableField(_) => Some(node_ix),
-            SpaceNode::QueryField { flags, .. } | SpaceNode::Typename { flags } => {
+            SpaceNode::QueryField { flags, .. } | SpaceNode::Typename { flags, .. } => {
                 if flags.contains(NodeFlags::LEAF) {
                     Some(node_ix)
                 } else {

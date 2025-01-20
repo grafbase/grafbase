@@ -650,15 +650,16 @@ where
 
     pub(super) fn create_providable_fields_task_for_new_field(
         &mut self,
-        parent_node_ix: NodeIndex,
+        parent_query_field_or_root_node_ix: NodeIndex,
         parent_selection_set_id: QuerySelectionSetId,
         query_field_node_ix: NodeIndex,
         query_field_id: QueryFieldId,
     ) {
-        if parent_node_ix == self.query.root_node_ix {
+        if parent_query_field_or_root_node_ix == self.query.root_node_ix {
             self.create_provideable_fields_task_stack
                 .push(CreateProvidableFieldsTask {
                     parent: Parent {
+                        query_field_or_root_node_ix: parent_query_field_or_root_node_ix,
                         selection_set_id: parent_selection_set_id,
                         providable_field_or_root_ix: self.query.root_node_ix,
                     },
@@ -671,13 +672,14 @@ where
             self.create_provideable_fields_task_stack.extend(
                 self.query
                     .graph
-                    .edges_directed(parent_node_ix, Direction::Incoming)
+                    .edges_directed(parent_query_field_or_root_node_ix, Direction::Incoming)
                     .filter(|edge| {
                         matches!(edge.weight(), SpaceEdge::Provides)
                             && self.query.graph[edge.source()].is_providable_field()
                     })
                     .map(|edge| CreateProvidableFieldsTask {
                         parent: Parent {
+                            query_field_or_root_node_ix: parent_query_field_or_root_node_ix,
                             selection_set_id: parent_selection_set_id,
                             providable_field_or_root_ix: edge.source(),
                         },

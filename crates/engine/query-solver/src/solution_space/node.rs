@@ -128,7 +128,7 @@ impl<'ctx> SpaceNode<'ctx> {
     pub fn flags(&self) -> Option<NodeFlags> {
         match self {
             SpaceNode::QueryField { flags, .. } => Some(*flags),
-            SpaceNode::Typename { flags } => Some(*flags),
+            SpaceNode::Typename { flags, .. } => Some(*flags),
             SpaceNode::Resolver(_) => None,
             SpaceNode::ProvidableField(_) => None,
             SpaceNode::Root => None,
@@ -138,7 +138,7 @@ impl<'ctx> SpaceNode<'ctx> {
     pub fn flags_mut(&mut self) -> Option<&mut NodeFlags> {
         match self {
             SpaceNode::QueryField { flags, .. } => Some(flags),
-            SpaceNode::Typename { flags } => Some(flags),
+            SpaceNode::Typename { flags, .. } => Some(flags),
             SpaceNode::Resolver(_) => None,
             SpaceNode::ProvidableField(_) => None,
             SpaceNode::Root => None,

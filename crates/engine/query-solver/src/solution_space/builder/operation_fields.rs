@@ -96,7 +96,7 @@ where
                         .walk(self.builder.schema)
                         .has_inaccessible_possible_type())
             {
-                self.builder.get_or_create_typename_field_node_ix(parent_node_ix, None);
+                let _ = self.builder.get_or_create_typename_field_node_ix(parent_node_ix, None);
             }
 
             *bloom_filter = self.response_key_bloom_filter;

@@ -7,7 +7,7 @@ use schema::Schema;
 use crate::{
     query::{Edge, Node},
     solution_space::{SpaceEdge, SpaceNode},
-    QuerySelectionSet, QuerySolutionSpace, QuerySolutionSpaceSelectionSet,
+    QuerySolutionSpace,
 };
 
 use super::{CrudeSolvedQuery, SteinerTreeSolution};
@@ -145,20 +145,7 @@ pub(crate) fn generate_crude_solved_query(
         root_node_ix,
         graph,
         root_selection_set_id: query_space.root_selection_set_id,
-        selection_sets: query_space
-            .selection_sets
-            .into_iter()
-            .map(
-                |QuerySolutionSpaceSelectionSet {
-                     output_type_id,
-                     typename_fields,
-                     ..
-                 }| QuerySelectionSet {
-                    output_type_id,
-                    typename_fields,
-                },
-            )
-            .collect(),
+        selection_sets: query_space.selection_sets,
         fields: query_space.fields,
         shared_type_conditions: query_space.shared_type_conditions,
         deduplicated_flat_sorted_executable_directives: query_space.deduplicated_flat_sorted_executable_directives,

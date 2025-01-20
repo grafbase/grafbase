@@ -1,3 +1,4 @@
+use operation::Location;
 use petgraph::{stable_graph::NodeIndex, visit::EdgeRef, Direction};
 use schema::{CompositeType, EntityDefinitionId, FieldDefinition};
 use walker::Walk;
@@ -17,15 +18,22 @@ where
     pub(super) fn handle_unplannable_field(
         &mut self,
         UnplannableField {
-            parent_query_field_or_root_node_ix: parent_node_ix,
+            parent_query_field_or_root_node_ix,
             parent_selection_set_id,
             node_ix,
         }: UnplannableField,
     ) -> crate::Result<()> {
         match self.query.graph.node_weight(node_ix) {
-            Some(SpaceNode::Typename { flags }) if !flags.contains(NodeFlags::PROVIDABLE) => {
-                if !self.try_providing_typename_with_alternative_plan(parent_node_ix, parent_selection_set_id, node_ix)
-                {
+            Some(SpaceNode::Typename {
+                flags,
+                petitioner_location,
+            }) if !flags.contains(NodeFlags::PROVIDABLE) => {
+                if !self.try_providing_typename_with_alternative_plan(
+                    parent_query_field_or_root_node_ix,
+                    parent_selection_set_id,
+                    node_ix,
+                    *petitioner_location,
+                ) {
                     tracing::debug!("Unplannable Query:\n{}", self.query.to_pretty_dot_graph(self.ctx()));
                     return Err(crate::Error::CouldNotPlanField {
                         name: "__typename".to_string(),
@@ -47,7 +55,7 @@ where
                 let SpaceNode::QueryField {
                     id: parent_query_field_id,
                     ..
-                } = self.query.graph[parent_node_ix]
+                } = self.query.graph[parent_query_field_or_root_node_ix]
                 else {
                     tracing::debug!("Unplannable Query:\n{}", self.query.to_pretty_dot_graph(self.ctx()));
 
@@ -58,7 +66,7 @@ where
 
                 if !self.try_providing_an_alternative_field(
                     parent_selection_set_id,
-                    parent_node_ix,
+                    parent_query_field_or_root_node_ix,
                     parent_query_field_id,
                     node_ix,
                     id,
@@ -78,15 +86,12 @@ where
 
     pub(super) fn try_providing_typename_with_alternative_plan(
         &mut self,
-        parent_node_ix: NodeIndex,
+        parent_query_field_or_root_node_ix: NodeIndex,
         parent_selection_set_id: QuerySelectionSetId,
-        node_ix: NodeIndex,
+        typename_node_ix: NodeIndex,
+        petitioner_location: Location,
     ) -> bool {
         let QuerySelectionSet { output_type_id, .. } = self.query[parent_selection_set_id];
-        let Some((typename_node_ix, petitioner_location)) = typename_node_ix_and_petitioner_location else {
-            return false;
-        };
-        debug_assert_eq!(typename_node_ix, node_ix);
 
         let Some((entity_definition_id, resolvers)) = output_type_id
             .as_interface()
@@ -101,7 +106,7 @@ where
             let resolver_ix = self
                 .query
                 .graph
-                .edges_directed(parent_node_ix, Direction::Outgoing)
+                .edges_directed(parent_query_field_or_root_node_ix, Direction::Outgoing)
                 .find(|edge| match edge.weight() {
                     SpaceEdge::HasChildResolver { .. } => self.query.graph[edge.target()]
                         .as_resolver()
@@ -116,7 +121,7 @@ where
                     }));
                     self.query
                         .graph
-                        .add_edge(parent_node_ix, ix, SpaceEdge::HasChildResolver);
+                        .add_edge(parent_query_field_or_root_node_ix, ix, SpaceEdge::HasChildResolver);
 
                     ix
                 });
@@ -132,7 +137,7 @@ where
             let mut neighbors = self
                 .query
                 .graph
-                .neighbors_directed(parent_node_ix, Direction::Incoming)
+                .neighbors_directed(parent_query_field_or_root_node_ix, Direction::Incoming)
                 .detach();
             while let Some((edge_ix, node_ix)) = neighbors.next(&self.query.graph) {
                 if matches!(self.query.graph[edge_ix], SpaceEdge::Provides) && !resolver_parents.contains(&node_ix) {
@@ -146,6 +151,7 @@ where
                 self.create_requirement_task_stack.push(CreateRequirementTask {
                     parent_selection_set_id,
                     petitioner_location,
+                    parent_query_field_or_root_node_ix,
                     dependent_ix: resolver_ix,
                     indispensable: false,
                     required_field_set,
@@ -164,10 +170,10 @@ where
     pub(super) fn try_providing_an_alternative_field(
         &mut self,
         parent_selection_set_id: QuerySelectionSetId,
-        parent_query_field_node_ix: NodeIndex,
+        parent_query_field_or_root_node_ix: NodeIndex,
         parent_query_field_id: QueryFieldId,
-        query_field_node_ix: NodeIndex,
-        query_field_id: QueryFieldId,
+        existing_query_field_node_ix: NodeIndex,
+        existing_query_field_id: QueryFieldId,
     ) -> bool {
         let Some(parent_output) = self.query[parent_query_field_id]
             .definition_id
@@ -179,7 +185,7 @@ where
             return false;
         };
 
-        let field_definition = self.query[query_field_id].definition_id.walk(self.schema);
+        let field_definition = self.query[existing_query_field_id].definition_id.walk(self.schema);
 
         tracing::debug!(
             "Trying to find alternative for field {}.{}",
@@ -188,21 +194,22 @@ where
         );
 
         if self.try_providing_field_through_interface(
+            parent_query_field_or_root_node_ix,
             parent_selection_set_id,
             parent_output,
-            query_field_node_ix,
-            query_field_id,
+            existing_query_field_node_ix,
+            existing_query_field_id,
             field_definition,
         ) {
             return true;
         }
 
         if self.try_providing_interface_field_through_implementors(
+            parent_query_field_or_root_node_ix,
             parent_selection_set_id,
             parent_output,
-            parent_query_field_node_ix,
-            query_field_node_ix,
-            query_field_id,
+            existing_query_field_node_ix,
+            existing_query_field_id,
             field_definition,
         ) {
             return true;
@@ -213,9 +220,9 @@ where
 
     fn try_providing_interface_field_through_implementors(
         &mut self,
+        parent_query_field_or_root_node_ix: NodeIndex,
         parent_selection_set_id: QuerySelectionSetId,
         parent_output: CompositeType<'schema>,
-        parent_query_field_node_ix: NodeIndex,
         existing_query_field_node_ix: NodeIndex,
         existing_query_field_id: QueryFieldId,
         field_definition: FieldDefinition<'schema>,
@@ -227,7 +234,7 @@ where
         let mut subgraph_ids = self
             .query
             .graph
-            .edges_directed(parent_query_field_node_ix, Direction::Incoming)
+            .edges_directed(parent_query_field_or_root_node_ix, Direction::Incoming)
             .filter_map(|edge| {
                 if matches!(edge.weight(), SpaceEdge::Provides) {
                     self.query.graph[edge.source()].as_providable_field()
@@ -279,14 +286,18 @@ where
                         let new_field_id = QueryFieldId::from(self.query.fields.len() - 1);
                         let new_query_field_node_ix = self.push_query_field_node(new_field_id, existing_flags);
                         self.query.graph.add_edge(
-                            parent_query_field_node_ix,
+                            parent_query_field_or_root_node_ix,
                             new_query_field_node_ix,
                             SpaceEdge::Field,
                         );
                         self.deep_copy_query_field_nodes(existing_query_field_node_ix, new_query_field_node_ix);
 
-                        if !self.could_provide_new_field(parent_selection_set_id, new_query_field_node_ix, new_field_id)
-                        {
+                        if !self.could_provide_new_field(
+                            parent_query_field_or_root_node_ix,
+                            parent_selection_set_id,
+                            new_query_field_node_ix,
+                            new_field_id,
+                        ) {
                             return false;
                         }
                         found_alternative = true;
@@ -319,6 +330,7 @@ where
 
     fn try_providing_field_through_interface(
         &mut self,
+        parent_query_field_or_root_node_ix: NodeIndex,
         parent_selection_set_id: QuerySelectionSetId,
         parent_output: CompositeType<'schema>,
         existing_query_field_node_ix: NodeIndex,
@@ -337,6 +349,7 @@ where
                 self.query[existing_query_field_id].definition_id = interface_field_definition.id;
 
                 if self.could_provide_new_field(
+                    parent_query_field_or_root_node_ix,
                     parent_selection_set_id,
                     existing_query_field_node_ix,
                     existing_query_field_id,
@@ -388,11 +401,17 @@ where
 
     fn could_provide_new_field(
         &mut self,
+        parent_query_field_or_root_node_ix: NodeIndex,
         parent_selection_set_id: QuerySelectionSetId,
         query_field_node_ix: NodeIndex,
         query_field_id: QueryFieldId,
     ) -> bool {
-        self.create_providable_fields_task_for_new_field(parent_selection_set_id, query_field_node_ix, query_field_id);
+        self.create_providable_fields_task_for_new_field(
+            parent_query_field_or_root_node_ix,
+            parent_selection_set_id,
+            query_field_node_ix,
+            query_field_id,
+        );
         self.loop_over_tasks();
         self.query.graph[query_field_node_ix]
             .flags()
