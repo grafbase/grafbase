@@ -367,6 +367,40 @@ fn allow_mode_both_inline_document_and_document_id() {
 }
 
 #[test]
+fn allow_mode_both_inline_document_and_unknown_document_id() {
+    test(TrustedDocumentsEnforcementMode::Allow, |engine| async move {
+        let response = engine
+            .post(GraphQlRequest {
+                query: Some("query { pullRequestsAndIssues(filter: { search: \"1\" }) { __typename } }".to_string()),
+                operation_name: None,
+                variables: None,
+                extensions: None,
+                doc_id: Some("this-document-id-is-bogus".to_owned()),
+            })
+            .header("x-grafbase-client-name", "ios-app")
+            .await;
+
+        insta::assert_json_snapshot!(response, @r#"
+        {
+          "data": {
+            "pullRequestsAndIssues": [
+              {
+                "__typename": "PullRequest"
+              },
+              {
+                "__typename": "PullRequest"
+              },
+              {
+                "__typename": "Issue"
+              }
+            ]
+          }
+        }
+        "#);
+    })
+}
+
+#[test]
 fn allow_mode_only_document_id() {
     test(TrustedDocumentsEnforcementMode::Allow, |engine| async move {
         let response = engine
