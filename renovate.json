@@ -1,21 +1,11 @@
 {
   "branchPrefix": "renovate-",
-  "extends": [
-    "config:base",
-    "schedule:weekly"
-  ],
+  "extends": ["config:recommended", "schedule:weekly"],
   "packageRules": [
     {
       "groupName": "dependencies-non-major",
-      "matchUpdateTypes": [
-        "digest",
-        "minor",
-        "patch",
-        "pin"
-      ]
+      "matchUpdateTypes": ["digest", "minor", "patch", "pin"]
     }
   ],
-  "ignorePaths": [
-    "workspace-hack/Cargo.toml"
-  ]
+  "ignorePaths": ["workspace-hack/Cargo.toml"]
 }
