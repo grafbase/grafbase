@@ -1,9 +1,5 @@
 use operation::Location;
-use petgraph::{
-    stable_graph::NodeIndex,
-    visit::{EdgeRef, IntoEdgesDirected},
-    Direction,
-};
+use petgraph::{stable_graph::NodeIndex, visit::EdgeRef, Direction};
 use schema::{CompositeType, EntityDefinitionId, FieldDefinition};
 use walker::Walk;
 

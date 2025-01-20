@@ -116,12 +116,12 @@ pub(crate) fn field_label<'a, G: petgraph::visit::GraphBase, S>(
         String::new()
     };
     let mut tyc = String::new();
-    if !field.type_conditions.is_empty() {
-        tyc.push_str(" on");
+    if !query[field.type_conditions].is_empty() {
+        tyc.push_str("on");
         for ty in query[field.type_conditions].walk(ctx) {
             tyc.push_str(&format!(" {}", ty.name()));
         }
         tyc.push(' ');
     }
-    Cow::Owned(format!("{alias}{common}{subgraph_key}"))
+    Cow::Owned(format!("{tyc}{alias}{common}{subgraph_key}"))
 }

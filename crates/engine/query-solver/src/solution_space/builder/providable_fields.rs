@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use id_newtypes::IdRange;
 use operation::{Location, OperationContext, QueryInputValueRecord};
 use petgraph::{stable_graph::NodeIndex, visit::EdgeRef, Direction};
 use schema::{
@@ -530,8 +531,6 @@ where
             required_for_resolution,
         }: CreateRequirementTask<'schema>,
     ) {
-        let QuerySelectionSet { output_type_id, .. } = self.query[parent_selection_set_id];
-
         let required_edge_weight = if required_for_resolution {
             SpaceEdge::RequiredBySubgraph
         } else {
@@ -572,14 +571,7 @@ where
             } else {
                 // Create the QueryField Node
                 self.query.fields.push(QueryField {
-                    type_conditions: {
-                        let start = self.query.shared_type_conditions.len();
-                        let tyc = required_item.field().definition().parent_entity_id.as_composite_type();
-                        if tyc != output_type_id {
-                            self.query.shared_type_conditions.push(tyc);
-                        }
-                        (start..self.query.shared_type_conditions.len()).into()
-                    },
+                    type_conditions: IdRange::empty(),
                     query_position: None,
                     response_key: None,
                     subgraph_key: None,

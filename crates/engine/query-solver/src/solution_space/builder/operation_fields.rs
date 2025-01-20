@@ -226,7 +226,6 @@ where
                 query
                     .shared_type_conditions
                     .extend(self.parent_type_conditions.iter().filter(|ty| **ty != field_parent_id));
-                query.shared_type_conditions.push(field_parent_id)
             } else {
                 query
                     .shared_type_conditions
@@ -279,12 +278,12 @@ where
                     continue;
                 };
                 let query_field = &self.builder.query[id];
-                if query_field.response_key != Some(field.response_key) {
+                if query_field.response_key != Some(field.response_key)
+                    || query_field.definition_id != field.definition_id
+                {
                     continue;
                 }
-                if query_field.definition_id == field.definition_id
-                    && !are_arguments_equivalent(ctx, query_field.argument_ids, field.argument_ids.into())
-                {
+                if !are_arguments_equivalent(ctx, query_field.argument_ids, field.argument_ids.into()) {
                     return Err(crate::Error::InconsistentFieldArguments {
                         name: field.response_key_str().to_string(),
                         location1: query_field.location,
