@@ -1,5 +1,5 @@
 {
-  "extends": ["github>grafbase/renovate"],
+  "extends": ["github>grafbase/renovate", "github>grafbase/renovate:post-upgrade"],
   "packageRules": [
     {
       "matchPackageNames": ["axum"],
