@@ -44,7 +44,7 @@ tower-http = { workspace = true, features = ["cors", "timeout"] }
 tracing.workspace = true
 ulid = { workspace = true, features = ["serde"] }
 url = { workspace = true, features = ["serde"] }
-notify = "7.0.0"
+notify = "8.0.0"
 
 # Lambda dependencies
 tower = { workspace = true, optional = true }
