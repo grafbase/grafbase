@@ -18,34 +18,33 @@ impl QuerySolutionSpaceBuilder<'_, '_> {
                 continue;
             };
             // Any resolver that can eventually provide a scalar/__typename must be kept
-            if node.is_leaf() {
-                stack.push(node_ix);
-                if self.query[node.id].definition_id.is_none() {
-                    let Some(parent_edge) =
-                        self.query
-                            .graph
-                            .edges_directed(node_ix, Direction::Incoming)
-                            .find(|edge| {
-                                matches!(edge.weight(), SpaceEdge::TypenameField)
-                                    && matches!(self.query.graph[edge.source()], SpaceNode::QueryField(_))
-                            })
-                    else {
-                        continue;
-                    };
-                    // If the parent node only provides __typenames
-                    let parent_node_ix = parent_edge.source();
-                    if self
-                        .query
-                        .graph
-                        .edges(parent_node_ix)
-                        .filter(|edge| matches!(edge.weight(), SpaceEdge::Field))
-                        .count()
-                        == 0
-                    {
-                        extra_leafs.push(parent_node_ix);
-                        stack.push(parent_node_ix);
-                    }
+            if self.query[node.id].definition_id.is_none() {
+                let Some(parent_edge) = self
+                    .query
+                    .graph
+                    .edges_directed(node_ix, Direction::Incoming)
+                    .find(|edge| {
+                        matches!(edge.weight(), SpaceEdge::TypenameField)
+                            && matches!(self.query.graph[edge.source()], SpaceNode::QueryField(_))
+                    })
+                else {
+                    continue;
+                };
+                // If the parent node only provides __typenames
+                let parent_node_ix = parent_edge.source();
+                if self
+                    .query
+                    .graph
+                    .edges(parent_node_ix)
+                    .filter(|edge| matches!(edge.weight(), SpaceEdge::Field))
+                    .count()
+                    == 0
+                {
+                    extra_leafs.push(parent_node_ix);
+                    stack.push(parent_node_ix);
                 }
+            } else if node.is_leaf() {
+                stack.push(node_ix);
             }
         }
 

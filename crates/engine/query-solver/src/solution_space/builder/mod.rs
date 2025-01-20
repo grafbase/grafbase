@@ -95,9 +95,10 @@ where
         // stack as requirement may means adding new fields and adding new fields may add new
         // requirements.
         loop {
-            if let Some(task) = self.create_provideable_fields_task_stack.pop() {
+            while let Some(task) = self.create_provideable_fields_task_stack.pop() {
                 self.create_providable_fields(task);
-            } else if let Some(task) = self.create_requirement_task_stack.pop() {
+            }
+            if let Some(task) = self.create_requirement_task_stack.pop() {
                 self.create_requirement(task)
             } else {
                 break;
@@ -116,8 +117,6 @@ where
                 }
                 _ => (),
             }
-        } else {
-            flags |= FieldFlags::LEAF_NODE;
         }
 
         let query_field = SpaceNode::QueryField(QueryFieldNode { id, flags });
