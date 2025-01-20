@@ -227,9 +227,9 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
         'ctx: 'f,
         'r: 'f,
     {
-        // Reflect what actually gets executed. If there is an inline query document, it will always take priority.
+        // Reflect what actually gets executed in the key. If there is an inline query document, it will always take priority.
         if let Some(inline_document) = query.filter(|query| !query.is_empty()) {
-            let key = CacheKey::document(
+            let cache_key = CacheKey::document(
                 self.schema(),
                 &DocumentKey::TrustedDocumentId {
                     operation_name: operation_name.clone(),
@@ -238,11 +238,12 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
                 },
             );
 
-            let trusted_doc_matches_inline_doc = match self.engine.runtime.operation_cache().get(&key).await {
+            let trusted_doc_matches_inline_doc = match self.engine.runtime.operation_cache().get(&cache_key).await {
                 Some(trusted_doc) => trusted_doc.document.content == inline_document,
-                None => {
-                    handle_trusted_document_query(self.engine, client_name, doc_id.clone()).await? == inline_document
-                }
+                None => handle_trusted_document_query(self.engine, client_name, doc_id.clone())
+                    .await
+                    .map(|trusted_doc| trusted_doc == inline_document)
+                    .unwrap_or(true),
             };
 
             if !trusted_doc_matches_inline_doc {
