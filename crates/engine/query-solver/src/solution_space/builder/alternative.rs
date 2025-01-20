@@ -164,6 +164,14 @@ where
                 .add_edge(resolver_ix, typename_node_ix, SpaceEdge::ProvidesTypename);
         }
 
+        // Handle requirements we just added.
+        self.loop_over_tasks();
+
+        self.query.graph[typename_node_ix]
+            .flags_mut()
+            .unwrap()
+            .insert(NodeFlags::LEAF | NodeFlags::PROVIDABLE);
+
         true
     }
 
@@ -346,7 +354,19 @@ where
         {
             if let Some(interface_field_definition) = interface.find_field_by_name(field_definition.name()) {
                 // FIXME: Should not keep field if the interface field is already present.
-                self.query[existing_query_field_id].definition_id = interface_field_definition.id;
+                let start = self.query.shared_type_conditions.len();
+                for i in self.query.fields[usize::from(existing_query_field_id)].type_conditions {
+                    self.query
+                        .shared_type_conditions
+                        .push(self.query.shared_type_conditions[usize::from(i)])
+                }
+                self.query
+                    .shared_type_conditions
+                    .push(field_definition.parent_entity_id.into());
+                let end = self.query.shared_type_conditions.len();
+                let field = &mut self.query[existing_query_field_id];
+                field.type_conditions = (start..end).into();
+                field.definition_id = interface_field_definition.id;
 
                 if self.could_provide_new_field(
                     parent_query_field_or_root_node_ix,

@@ -1,6 +1,6 @@
 ---
 source: crates/engine/query-solver/src/tests/flatten.rs
-expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Query.node\" ]\n    2 [ label = \"on Post Node.id\" ]\n    3 [ label = \"on Comment Node.id\" ]\n    4 [ label = \"Root#d\", shape=parallelogram, color=dodgerblue ]\n    5 [ label = \"node#d\", shape=box, color=dodgerblue ]\n    6 [ label = \"id#d\", shape=box, color=dodgerblue ]\n    7 [ label = \"id#d\", shape=box, color=dodgerblue ]\n    0 -> 1 [ label = \"\" ]\n    1 -> 2 [ label = \"\" ]\n    1 -> 3 [ label = \"\" ]\n    0 -> 4 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    0 -> 4 [ label = \"\", style=dashed,arrowhead=none ]\n    4 -> 5 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    5 -> 1 [ label = \"\", color=violet,arrowhead=none ]\n    5 -> 6 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    6 -> 2 [ label = \"\", color=violet,arrowhead=none ]\n    5 -> 7 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    7 -> 3 [ label = \"\", color=violet,arrowhead=none ]\n}\n"
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Query.node\" ]\n    2 [ label = \"on Post Node.id\" ]\n    3 [ label = \"on Comment Node.id\" ]\n    4 [ label = \"Root#d\", shape=parallelogram, color=dodgerblue ]\n    5 [ label = \"node#d\", shape=box, color=dodgerblue ]\n    6 [ label = \"id#d\", shape=box, color=dodgerblue ]\n    7 [ label = \"__typename\" ]\n    8 [ label = \"id#d\", shape=box, color=dodgerblue ]\n    0 -> 1 [ label = \"\" ]\n    1 -> 2 [ label = \"\" ]\n    1 -> 3 [ label = \"\" ]\n    0 -> 4 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    0 -> 4 [ label = \"\", style=dashed,arrowhead=none ]\n    4 -> 5 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    5 -> 1 [ label = \"\", color=violet,arrowhead=none ]\n    5 -> 6 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    6 -> 2 [ label = \"\", color=violet,arrowhead=none ]\n    1 -> 7 [ label = \"\" ]\n    5 -> 7 [ label = \"\", color=violet,arrowhead=none ]\n    6 -> 7 [ label = \"\", color=orangered,arrowhead=inv,style=dashed ]\n    5 -> 8 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    8 -> 3 [ label = \"\", color=violet,arrowhead=none ]\n    8 -> 7 [ label = \"\", color=orangered,arrowhead=inv,style=dashed ]\n}\n"
 ---
 digraph {
     0 [ root]
@@ -10,7 +10,8 @@ digraph {
     4 [ Root#d]
     5 [ node#d]
     6 [ id#d]
-    7 [ id#d]
+    7 [ __typename]
+    8 [ id#d]
     0 -> 1 [ label = "Field" ]
     1 -> 2 [ label = "Field" ]
     1 -> 3 [ label = "Field" ]
@@ -20,6 +21,10 @@ digraph {
     5 -> 1 [ label = "Provides" ]
     5 -> 6 [ label = "CanProvide" ]
     6 -> 2 [ label = "Provides" ]
-    5 -> 7 [ label = "CanProvide" ]
-    7 -> 3 [ label = "Provides" ]
+    1 -> 7 [ label = "TypenameField" ]
+    5 -> 7 [ label = "ProvidesTypename" ]
+    6 -> 7 [ label = "RequiredBySupergraph" ]
+    5 -> 8 [ label = "CanProvide" ]
+    8 -> 3 [ label = "Provides" ]
+    8 -> 7 [ label = "RequiredBySupergraph" ]
 }

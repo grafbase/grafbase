@@ -164,7 +164,12 @@ where
             output_type_id: parent_output,
             ..
         } = self.query[parent.selection_set_id];
-        let field_definition = self.query[query_field_id].definition_id.walk(self.schema);
+        let QueryField {
+            definition_id,
+            type_conditions,
+            ..
+        } = self.query[query_field_id];
+        let field_definition = definition_id.walk(self.schema);
 
         // --
         // If providable by parent, we don't need to find for a resolver.
@@ -190,6 +195,23 @@ where
                     .flags_mut()
                     .unwrap()
                     .insert(NodeFlags::PROVIDABLE);
+
+                if parent_output.as_entity() != Some(field_definition.parent_entity_id) || !type_conditions.is_empty() {
+                    let typename_node_ix = match self.get_or_create_typename_field_node_ix(
+                        parent.query_field_or_root_node_ix,
+                        Some(self.query[query_field_id].location),
+                    ) {
+                        Ok(ix) => ix,
+                        Err(ix) => {
+                            self.providea_typename_field(parent);
+                            ix
+                        }
+                    };
+                    self.query
+                        .graph
+                        .add_edge(providable_field_ix, typename_node_ix, SpaceEdge::RequiredBySupergraph);
+                }
+
                 if let Some(selection_set_id) = self.query[query_field_id].selection_set_id {
                     self.create_providable_fields_tasks_for_subselection(Parent {
                         query_field_or_root_node_ix: query_field_node_ix,
@@ -685,6 +707,10 @@ where
     fn is_field_equivalent(&self, id: QueryFieldId, required: FieldSetItem<'_>) -> bool {
         let actual = &self.query[id];
         let required = required.field().as_ref();
+
+        if !self.query[id].type_conditions.is_empty() {
+            return false;
+        }
 
         if actual.definition_id != required.definition_id {
             return false;

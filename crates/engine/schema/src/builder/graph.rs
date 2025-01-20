@@ -420,7 +420,7 @@ impl<'a> GraphBuilder<'a> {
                 let entity_id = EntityDefinitionId::from(federated_graph::EntityDefinitionId::from(federated_id));
                 for id in &exists_in_subgraph_ids {
                     match *id {
-                        SubgraphId::GraphqlEndpoint(gql_id) if is_interface_object_in_ids.contains(id) => {
+                        SubgraphId::GraphqlEndpoint(gql_id) if !is_interface_object_in_ids.contains(id) => {
                             if let Some(resolvers) = self.entity_resolvers.get(&(entity_id, gql_id)) {
                                 typename_resolver_ids.extend(resolvers.iter().map(|r| r.id()));
                             }

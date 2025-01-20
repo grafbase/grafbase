@@ -1,6 +1,6 @@
 ---
 source: crates/engine/query-solver/src/tests/interface.rs
-expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Query.anotherUsers\" ]\n    2 [ label = \"User.age\" ]\n    3 [ label = \"Root#b\", shape=parallelogram, color=dodgerblue ]\n    4 [ label = \"anotherUsers#b\", shape=box, color=dodgerblue ]\n    5 [ label = \"FedEntity#a\", shape=parallelogram, color=dodgerblue ]\n    6 [ label = \"__typename\" ]\n    7 [ label = \"age#a\", shape=box, color=dodgerblue ]\n    8 [ label = \"*NodeWithName.id\" ]\n    9 [ label = \"id#b\", shape=box, color=dodgerblue ]\n    0 -> 1 [ label = \"\" ]\n    1 -> 2 [ label = \"\" ]\n    0 -> 3 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    0 -> 3 [ label = \"\", style=dashed,arrowhead=none ]\n    3 -> 4 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    4 -> 1 [ label = \"\", color=violet,arrowhead=none ]\n    4 -> 5 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    1 -> 5 [ label = \"\", style=dashed,arrowhead=none ]\n    1 -> 6 [ label = \"\" ]\n    5 -> 6 [ label = \"\", color=orangered,arrowhead=inv ]\n    5 -> 7 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    7 -> 2 [ label = \"\", color=violet,arrowhead=none ]\n    1 -> 8 [ label = \"\" ]\n    5 -> 8 [ label = \"\", color=orangered,arrowhead=inv ]\n    4 -> 9 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    9 -> 8 [ label = \"\", color=violet,arrowhead=none ]\n}\n"
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Query.anotherUsers\" ]\n    2 [ label = \"User.age\" ]\n    3 [ label = \"Root#b\", shape=parallelogram, color=dodgerblue ]\n    4 [ label = \"anotherUsers#b\", shape=box, color=dodgerblue ]\n    5 [ label = \"FedEntity#a\", shape=parallelogram, color=dodgerblue ]\n    6 [ label = \"__typename\" ]\n    7 [ label = \"age#a\", shape=box, color=dodgerblue ]\n    8 [ label = \"*on User NodeWithName.id\" ]\n    9 [ label = \"id#b\", shape=box, color=dodgerblue ]\n    10 [ label = \"FedEntity#a\", shape=parallelogram, color=dodgerblue ]\n    11 [ label = \"*NodeWithName.id\" ]\n    12 [ label = \"id#b\", shape=box, color=dodgerblue ]\n    0 -> 1 [ label = \"\" ]\n    1 -> 2 [ label = \"\" ]\n    0 -> 3 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    0 -> 3 [ label = \"\", style=dashed,arrowhead=none ]\n    3 -> 4 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    4 -> 1 [ label = \"\", color=violet,arrowhead=none ]\n    4 -> 5 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    1 -> 5 [ label = \"\", style=dashed,arrowhead=none ]\n    1 -> 6 [ label = \"\" ]\n    5 -> 6 [ label = \"\", color=orangered,arrowhead=inv ]\n    5 -> 7 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    7 -> 2 [ label = \"\", color=violet,arrowhead=none ]\n    1 -> 8 [ label = \"\" ]\n    5 -> 8 [ label = \"\", color=orangered,arrowhead=inv ]\n    4 -> 9 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    9 -> 8 [ label = \"\", color=violet,arrowhead=none ]\n    9 -> 6 [ label = \"\", color=orangered,arrowhead=inv,style=dashed ]\n    1 -> 10 [ label = \"\", style=dashed,arrowhead=none ]\n    4 -> 10 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    10 -> 6 [ label = \"\", color=violet,arrowhead=none ]\n    1 -> 11 [ label = \"\" ]\n    10 -> 11 [ label = \"\", color=orangered,arrowhead=inv ]\n    4 -> 12 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    12 -> 11 [ label = \"\", color=violet,arrowhead=none ]\n}\n"
 ---
 digraph {
     0 [ root]
@@ -11,8 +11,11 @@ digraph {
     5 [ FedEntity#a]
     6 [ __typename]
     7 [ age#a]
-    8 [ *NodeWithName.id]
+    8 [ *on User NodeWithName.id]
     9 [ id#b]
+    10 [ FedEntity#a]
+    11 [ *NodeWithName.id]
+    12 [ id#b]
     0 -> 1 [ label = "Field" ]
     1 -> 2 [ label = "Field" ]
     0 -> 3 [ label = "CreateChildResolver" ]
@@ -29,4 +32,12 @@ digraph {
     5 -> 8 [ label = "RequiredBySubgraph" ]
     4 -> 9 [ label = "CanProvide" ]
     9 -> 8 [ label = "Provides" ]
+    9 -> 6 [ label = "RequiredBySupergraph" ]
+    1 -> 10 [ label = "HasChildResolver" ]
+    4 -> 10 [ label = "CreateChildResolver" ]
+    10 -> 6 [ label = "ProvidesTypename" ]
+    1 -> 11 [ label = "Field" ]
+    10 -> 11 [ label = "RequiredBySubgraph" ]
+    4 -> 12 [ label = "CanProvide" ]
+    12 -> 11 [ label = "Provides" ]
 }

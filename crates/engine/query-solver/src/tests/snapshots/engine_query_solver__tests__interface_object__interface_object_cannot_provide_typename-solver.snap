@@ -1,0 +1,25 @@
+---
+source: crates/engine/query-solver/src/tests/interface_object.rs
+expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n    1 [ label = \"on Admin Account.id\", style=dashed ]\n    2 [ label = \"Root#b\", shape=parallelogram, color=dodgerblue, style=dashed ]\n    3 [ label = \"accounts#b\", shape=box, color=dodgerblue, style=dashed ]\n    4 [ label = \"id#b\", shape=box, color=dodgerblue, style=dashed ]\n    5 [ label = \"__typename\", style=dashed ]\n    6 [ label = \"FedEntity#a\", shape=parallelogram, color=dodgerblue, style=dashed ]\n    7 [ label = \"*Account.id\", style=dashed ]\n    8 [ label = \"id#b\", shape=box, color=dodgerblue, style=dashed ]\n    9 [ label=\"\", style=dashed]\n    0 -> 2 [ label = <<b>1</b>>, color=royalblue,fontcolor=royalblue,style=dashed ]\n    2 -> 3 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    3 -> 4 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    4 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    3 -> 6 [ label = <<b>1</b>>, color=royalblue,fontcolor=royalblue,style=dashed ]\n    6 -> 5 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    3 -> 8 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    8 -> 7 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    9 -> 0 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n}\n"
+---
+digraph {
+    0 [ label = "root", steiner=1 ]
+    1 [ label = "on Admin Account.id", steiner=0 ]
+    2 [ label = "Root#b", steiner=0 ]
+    3 [ label = "accounts#b", steiner=0 ]
+    4 [ label = "id#b", steiner=0 ]
+    5 [ label = "__typename", steiner=0 ]
+    6 [ label = "FedEntity#a", steiner=0 ]
+    7 [ label = "*Account.id", steiner=0 ]
+    8 [ label = "id#b", steiner=0 ]
+    9 [ label="", style=dashed]
+    0 -> 2 [ cost=1, steiner=0]
+    2 -> 3 [ cost=0, steiner=0]
+    3 -> 4 [ cost=0, steiner=0]
+    4 -> 1 [ cost=0, steiner=0]
+    3 -> 6 [ cost=1, steiner=0]
+    6 -> 5 [ cost=0, steiner=0]
+    3 -> 8 [ cost=0, steiner=0]
+    8 -> 7 [ cost=0, steiner=0]
+    9 -> 0 [ cost=0, steiner=0]
+}

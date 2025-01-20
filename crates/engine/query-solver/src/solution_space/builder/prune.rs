@@ -22,6 +22,13 @@ impl QuerySolutionSpaceBuilder<'_, '_> {
             {
                 if flags.contains(NodeFlags::LEAF) {
                     stack.push(node_ix);
+                } else if let Some(typename_node_ix) = typename_node_ix.filter(|ix| {
+                    self.query.graph[*ix]
+                        .flags()
+                        .map(|flags| flags.contains(NodeFlags::LEAF))
+                        .unwrap_or_default()
+                }) {
+                    stack.push(typename_node_ix);
                 } else if !self
                     .query
                     .graph
