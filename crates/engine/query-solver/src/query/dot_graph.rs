@@ -43,21 +43,17 @@ impl<Step> Query<SolutionGraph, Step> {
 }
 
 impl Node {
-    fn label<Step>(&self, solution: &Query<SolutionGraph, Step>, ctx: OperationContext<'_>) -> Attrs<'static> {
+    fn label<Step>(&self, query: &Query<SolutionGraph, Step>, ctx: OperationContext<'_>) -> Attrs<'static> {
         Attrs::label(match self {
             Node::Root => "root".into(),
             Node::QueryPartition {
                 resolver_definition_id, ..
             } => resolver_definition_id.walk(ctx.schema).name().into(),
             Node::Field { id, .. } => {
-                let field = field_label(ctx, &solution[*id]);
+                let field = field_label(query, ctx, &query[*id]);
                 format!(
                     "{}{}",
-                    if solution[*id].query_position.is_none() {
-                        "*"
-                    } else {
-                        ""
-                    },
+                    if query[*id].query_position.is_none() { "*" } else { "" },
                     field
                 )
             }
@@ -66,8 +62,8 @@ impl Node {
     }
 
     /// Meant to be as readable as possible for large graphs with colors.
-    fn pretty_label<Step>(&self, solution: &Query<SolutionGraph, Step>, ctx: OperationContext<'_>) -> String {
-        self.label(solution, ctx)
+    fn pretty_label<Step>(&self, query: &Query<SolutionGraph, Step>, ctx: OperationContext<'_>) -> String {
+        self.label(query, ctx)
             .with_if(
                 matches!(self, Node::QueryPartition { .. }),
                 "color=royalblue,shape=parallelogram",
@@ -98,7 +94,11 @@ pub(crate) fn short_field_label<'a>(ctx: OperationContext<'a>, field: &QueryFiel
     }
 }
 
-pub(crate) fn field_label<'a>(ctx: OperationContext<'a>, field: &QueryField) -> Cow<'a, str> {
+pub(crate) fn field_label<'a, G: petgraph::visit::GraphBase, S>(
+    query: &'a Query<G, S>,
+    ctx: OperationContext<'a>,
+    field: &QueryField,
+) -> Cow<'a, str> {
     let definition = field.definition_id.walk(ctx);
     let alias = if let Some(alias) = field.response_key.walk(ctx).filter(|key| *key != definition.name()) {
         format!("{}: ", alias)
@@ -115,5 +115,13 @@ pub(crate) fn field_label<'a>(ctx: OperationContext<'a>, field: &QueryField) -> 
     } else {
         String::new()
     };
+    let mut tyc = String::new();
+    if !field.type_conditions.is_empty() {
+        tyc.push_str(" on");
+        for ty in query[field.type_conditions].walk(ctx) {
+            tyc.push_str(&format!(" {}", ty.name()));
+        }
+        tyc.push(' ');
+    }
     Cow::Owned(format!("{alias}{common}{subgraph_key}"))
 }

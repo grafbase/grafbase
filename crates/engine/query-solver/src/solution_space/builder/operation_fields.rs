@@ -144,18 +144,27 @@ where
 
                     let n = self.parent_directive_ids.len();
                     self.parent_directive_ids.extend_from_slice(&spread.directive_ids);
-                    self.parent_type_conditions.push(ty);
-                    self.rec_ingest_selection_set(
-                        parent_node_ix,
-                        parent_output_type_id,
-                        selection_set_id,
-                        fragment.selection_set(),
-                    )?;
-                    self.parent_type_conditions.pop();
+                    if ty != parent_output_type_id {
+                        self.parent_type_conditions.push(ty);
+                        self.rec_ingest_selection_set(
+                            parent_node_ix,
+                            parent_output_type_id,
+                            selection_set_id,
+                            fragment.selection_set(),
+                        )?;
+                        self.parent_type_conditions.pop();
+                    } else {
+                        self.rec_ingest_selection_set(
+                            parent_node_ix,
+                            parent_output_type_id,
+                            selection_set_id,
+                            fragment.selection_set(),
+                        )?;
+                    }
                     self.parent_directive_ids.truncate(n);
                 }
                 operation::Selection::InlineFragment(fragment) => {
-                    if let Some(ty) = fragment.type_condition_id {
+                    if let Some(ty) = fragment.type_condition_id.filter(|ty| *ty != parent_output_type_id) {
                         if !self.can_be_present(parent_output_type_id, ty) {
                             // This selection can never appear, likely comes from a common
                             // fragment. In the Operation validation we only verify that fragments have
@@ -212,9 +221,18 @@ where
         let type_conditions = {
             let query = &mut self.builder.query;
             let start = query.shared_type_conditions.len();
-            query
-                .shared_type_conditions
-                .extend_from_slice(&self.parent_type_conditions);
+
+            if let Some(field_parent_id) = field.definition().map(|def| def.parent_entity_id.into()) {
+                query
+                    .shared_type_conditions
+                    .extend(self.parent_type_conditions.iter().filter(|ty| **ty != field_parent_id));
+                query.shared_type_conditions.push(field_parent_id)
+            } else {
+                query
+                    .shared_type_conditions
+                    .extend_from_slice(&self.parent_type_conditions);
+            }
+
             (start..query.shared_type_conditions.len()).into()
         };
         let flat_directive_id = self.ingest_directives(field.directive_ids());

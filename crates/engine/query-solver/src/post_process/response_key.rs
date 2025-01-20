@@ -155,6 +155,7 @@ impl KeyGenerationContext<'_> {
             selection_set.response_keys.push(new_response_key);
         }
 
+        let interface = parent_type.as_interface().walk(self.schema);
         // Generating a key for extra fields we kept.
         'extra_fields: for (_, id) in &selection_set.fields {
             let query_field = &self.query[*id];
@@ -163,25 +164,24 @@ impl KeyGenerationContext<'_> {
             }
             let definition = query_field.definition_id.walk(self.schema).as_ref();
 
-            // We may request the same field but from different objects (ex: Cat.name and Dog.name), if so we just re-use the
-            // existing name for clarity.
-            for (_, other_field_id) in &selection_set.fields {
-                let other_field = &self.query[*other_field_id];
-                let Some(other_key) = other_field.response_key else {
-                    continue;
-                };
-                let other_definition = other_field.definition_id.walk(self.schema).as_ref();
+            if interface
+                .map(|inf| inf.fields().any(|field| field.name_id == definition.name_id))
+                .unwrap_or_default()
+            {
+                // We may request the same field but from different objects (ex: Cat.name and Dog.name), if so we just re-use the
+                // existing name for clarity.
+                for (_, other_field_id) in &selection_set.fields {
+                    let other_field = &self.query[*other_field_id];
+                    let Some(other_key) = other_field.response_key else {
+                        continue;
+                    };
+                    let other_definition = other_field.definition_id.walk(self.schema).as_ref();
 
-                // if different object fields but implement the same interface fields
-                if other_definition.name_id == definition.name_id
-                    && other_definition.ty_record == definition.ty_record
-                    && query_field.definition_id != other_field.definition_id
-                    && definition.parent_entity_id != other_definition.parent_entity_id
-                    && definition.parent_entity_id.is_object()
-                    && other_definition.parent_entity_id.is_object()
-                {
-                    self.query[*id].response_key = Some(other_key);
-                    continue 'extra_fields;
+                    // if different object fields but implement the same interface fields
+                    if other_definition.name_id == definition.name_id {
+                        self.query[*id].response_key = Some(other_key);
+                        continue 'extra_fields;
+                    }
                 }
             }
             let key = self.generate_new_key(selection_set, None, definition.name_id);

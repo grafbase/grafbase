@@ -41,7 +41,7 @@ impl SpaceNode<'_> {
             SpaceNode::QueryField { id, .. } => format!(
                 "{}{}",
                 if query[*id].query_position.is_none() { "*" } else { "" },
-                crate::query::dot_graph::field_label(ctx, &query[*id])
+                crate::query::dot_graph::field_label(query, ctx, &query[*id])
             )
             .into(),
             SpaceNode::ProvidableField(node) => match node {
