@@ -40,8 +40,13 @@ pub struct Args {
 impl super::Args for Args {
     /// The method of fetching a graph
     fn fetch_method(&self) -> anyhow::Result<GraphFetchMethod> {
-        let federated_sdl = fs::read_to_string(&self.schema).context("could not read federated schema file")?;
-        Ok(GraphFetchMethod::FromSchema { federated_sdl })
+        let schema_path = self.schema.clone();
+        let federated_sdl = fs::read_to_string(&schema_path).context("could not read federated schema file")?;
+
+        Ok(GraphFetchMethod::FromSchema {
+            federated_sdl,
+            schema_path,
+        })
     }
 
     /// The gateway configuration

@@ -49,3 +49,4 @@ notify = "7.0.0"
 # Lambda dependencies
 tower = { workspace = true, optional = true }
 lambda_http = { workspace = true, optional = true }
+either = "1.13.0"
