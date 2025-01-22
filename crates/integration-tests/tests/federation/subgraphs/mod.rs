@@ -3,6 +3,7 @@ mod not_reachable;
 mod overrride;
 mod provides;
 mod requires;
+mod shared_root;
 mod sibling_dependencies;
 mod simple_key;
 

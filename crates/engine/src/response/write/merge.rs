@@ -5,17 +5,34 @@ use crate::response::{ResponseListId, ResponseObjectField, ResponseObjectId, Res
 use super::ResponseBuilder;
 
 impl ResponseBuilder {
-    pub(super) fn recursive_merge_object(
+    pub(super) fn recursive_merge_with_default_object(
         &mut self,
         object_id: ResponseObjectId,
-        new_fields_sorted_by_edge: Vec<ResponseObjectField>,
+        default_fields_sorted_by_key: &[ResponseObjectField],
     ) {
-        let mut new_fields_sorted_by_edge = VecDeque::from(new_fields_sorted_by_edge);
-        let Some(mut new_field) = new_fields_sorted_by_edge.pop_front() else {
+        self.recursive_merge_object(object_id, default_fields_sorted_by_key.to_vec(), true);
+    }
+
+    pub(super) fn recursive_merge_shared_object(
+        &mut self,
+        object_id: ResponseObjectId,
+        new_fields_sorted_by_key: Vec<ResponseObjectField>,
+    ) {
+        self.recursive_merge_object(object_id, new_fields_sorted_by_key, false);
+    }
+
+    fn recursive_merge_object(
+        &mut self,
+        object_id: ResponseObjectId,
+        new_fields_sorted_by_key: Vec<ResponseObjectField>,
+        skip_new_field_if_exists_already: bool,
+    ) {
+        let mut new_fields_sorted_by_key = VecDeque::from(new_fields_sorted_by_key);
+        let Some(mut new_field) = new_fields_sorted_by_key.pop_front() else {
             return;
         };
 
-        let mut existing_fields = std::mem::take(&mut self.data_parts[object_id].fields_sorted_by_query_position);
+        let mut existing_fields = std::mem::take(&mut self.data_parts[object_id].fields_sorted_by_key);
         let n = existing_fields.len();
         let mut i = 0;
         loop {
@@ -23,9 +40,7 @@ impl ResponseBuilder {
                 existing_fields.push(new_field);
                 break;
             }
-            // SAFETY we only push new elements and we compare against the initial size n. So i is
-            // guaranteed to be within the array.
-            let existing_field = unsafe { existing_fields.get_unchecked(i) };
+            let existing_field = &existing_fields[i];
             match existing_field.key.cmp(&new_field.key) {
                 Ordering::Less => {
                     i += 1;
@@ -33,16 +48,18 @@ impl ResponseBuilder {
                 Ordering::Greater => {
                     // Adding at the end and will be sorted later.
                     existing_fields.push(new_field);
-                    if let Some(next) = new_fields_sorted_by_edge.pop_front() {
+                    if let Some(next) = new_fields_sorted_by_key.pop_front() {
                         new_field = next;
                     } else {
                         break;
                     }
                 }
                 Ordering::Equal => {
-                    self.recursive_merge_value(existing_field.value.clone(), new_field.value);
+                    if !skip_new_field_if_exists_already {
+                        self.recursive_merge_value(existing_field.value.clone(), new_field.value);
+                    }
                     i += 1;
-                    if let Some(next) = new_fields_sorted_by_edge.pop_front() {
+                    if let Some(next) = new_fields_sorted_by_key.pop_front() {
                         new_field = next;
                     } else {
                         break;
@@ -50,18 +67,17 @@ impl ResponseBuilder {
                 }
             }
         }
-        existing_fields.append(&mut Vec::from(new_fields_sorted_by_edge));
+        existing_fields.append(&mut Vec::from(new_fields_sorted_by_key));
         existing_fields.sort_unstable_by(|a, b| a.key.cmp(&b.key));
 
-        self.data_parts[object_id].fields_sorted_by_query_position = existing_fields;
+        self.data_parts[object_id].fields_sorted_by_key = existing_fields;
     }
 
     fn recursive_merge_value(&mut self, existing: ResponseValue, new: ResponseValue) {
         match (existing, new) {
             (ResponseValue::Object { id: existing_id, .. }, ResponseValue::Object { id: new_id, .. }) => {
-                let new_fields_sorted_by_edge =
-                    std::mem::take(&mut self.data_parts[new_id].fields_sorted_by_query_position);
-                self.recursive_merge_object(existing_id, new_fields_sorted_by_edge);
+                let new_fields_sorted_by_key = std::mem::take(&mut self.data_parts[new_id].fields_sorted_by_key);
+                self.recursive_merge_object(existing_id, new_fields_sorted_by_key, false);
             }
             (ResponseValue::List { id: existing_id, .. }, ResponseValue::List { id: new_id, .. }) => {
                 self.recursive_merge_list(existing_id, new_id)
@@ -75,9 +91,12 @@ impl ResponseBuilder {
             (existing, ResponseValue::Inaccessible { id }) => {
                 self.recursive_merge_value(existing, self.data_parts[id].clone());
             }
-            _ => {
+            (ResponseValue::Null, ResponseValue::Null) => (),
+            (l, r) => {
                 // FIXME: Unlikely, but we should generate an error here.
-                tracing::error!("Trying to merge something values that aren't a couple of objects/list");
+                tracing::error!(
+                    "Trying to merge something values that aren't a couple of objects/list/couple of nulls {l:?} | {r:?}"
+                );
             }
         }
     }
