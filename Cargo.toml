@@ -66,7 +66,7 @@ futures-channel = "0.3.30"
 futures-lite = "2"
 futures-util = "0.3.30"
 graphql-ws-client = { version = "0.11.0", features = ["tungstenite"] }
-handlebars = "5.1.2"
+handlebars = "6.0.0"
 headers = "0.4"
 hex = "0.4.3"
 http = "1.1.0"
