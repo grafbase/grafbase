@@ -22,9 +22,8 @@ publish = false
 [dependencies]
 aho-corasick = { version = "1" }
 ascii = { version = "1", features = ["serde"] }
-axum-c38e5c1d305a1b54 = { package = "axum", version = "0.8", default-features = false, features = ["http1", "json", "macros", "query", "ws"] }
-axum-ca01ad9e24f5d932 = { package = "axum", version = "0.7" }
-axum-core = { version = "0.4", default-features = false, features = ["tracing"] }
+axum-c38e5c1d305a1b54 = { package = "axum", version = "0.8", features = ["macros", "ws"] }
+axum-core-d8f496e17d97b5cb = { package = "axum-core", version = "0.5", default-features = false, features = ["tracing"] }
 base16ct = { version = "0.2", default-features = false, features = ["alloc"] }
 bitflags = { version = "2", default-features = false, features = ["std"] }
 bstr = { version = "1", default-features = false, features = ["std"] }
@@ -136,9 +135,8 @@ zeroize = { version = "1", features = ["zeroize_derive"] }
 [build-dependencies]
 aho-corasick = { version = "1" }
 ascii = { version = "1", features = ["serde"] }
-axum-c38e5c1d305a1b54 = { package = "axum", version = "0.8", default-features = false, features = ["http1", "json", "macros", "query", "ws"] }
-axum-ca01ad9e24f5d932 = { package = "axum", version = "0.7" }
-axum-core = { version = "0.4", default-features = false, features = ["tracing"] }
+axum-c38e5c1d305a1b54 = { package = "axum", version = "0.8", features = ["macros", "ws"] }
+axum-core-d8f496e17d97b5cb = { package = "axum-core", version = "0.5", default-features = false, features = ["tracing"] }
 base16ct = { version = "0.2", default-features = false, features = ["alloc"] }
 bitflags = { version = "2", default-features = false, features = ["std"] }
 bstr = { version = "1", default-features = false, features = ["std"] }
@@ -252,7 +250,8 @@ zeroize = { version = "1", features = ["zeroize_derive"] }
 
 [target.aarch64-apple-darwin.dependencies]
 ahash = { version = "0.8" }
-axum-ca01ad9e24f5d932 = { package = "axum", version = "0.7", default-features = false, features = ["ws"] }
+axum-ca01ad9e24f5d932 = { package = "axum", version = "0.7", features = ["ws"] }
+axum-core-9fbad63c4bcf4a8f = { package = "axum-core", version = "0.4", default-features = false, features = ["tracing"] }
 getrandom = { version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
@@ -267,7 +266,8 @@ tungstenite-adf3d7031871b0af = { package = "tungstenite", version = "0.24", feat
 
 [target.aarch64-apple-darwin.build-dependencies]
 ahash = { version = "0.8" }
-axum-ca01ad9e24f5d932 = { package = "axum", version = "0.7", default-features = false, features = ["ws"] }
+axum-ca01ad9e24f5d932 = { package = "axum", version = "0.7", features = ["ws"] }
+axum-core-9fbad63c4bcf4a8f = { package = "axum-core", version = "0.4", default-features = false, features = ["tracing"] }
 getrandom = { version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
@@ -282,7 +282,8 @@ tungstenite-adf3d7031871b0af = { package = "tungstenite", version = "0.24", feat
 
 [target.x86_64-apple-darwin.dependencies]
 ahash = { version = "0.8" }
-axum-ca01ad9e24f5d932 = { package = "axum", version = "0.7", default-features = false, features = ["ws"] }
+axum-ca01ad9e24f5d932 = { package = "axum", version = "0.7", features = ["ws"] }
+axum-core-9fbad63c4bcf4a8f = { package = "axum-core", version = "0.4", default-features = false, features = ["tracing"] }
 getrandom = { version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
@@ -298,7 +299,8 @@ tungstenite-adf3d7031871b0af = { package = "tungstenite", version = "0.24", feat
 
 [target.x86_64-apple-darwin.build-dependencies]
 ahash = { version = "0.8" }
-axum-ca01ad9e24f5d932 = { package = "axum", version = "0.7", default-features = false, features = ["ws"] }
+axum-ca01ad9e24f5d932 = { package = "axum", version = "0.7", features = ["ws"] }
+axum-core-9fbad63c4bcf4a8f = { package = "axum-core", version = "0.4", default-features = false, features = ["tracing"] }
 getrandom = { version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
@@ -313,7 +315,8 @@ tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features 
 tungstenite-adf3d7031871b0af = { package = "tungstenite", version = "0.24", features = ["__rustls-tls"] }
 
 [target.x86_64-pc-windows-msvc.dependencies]
-axum-ca01ad9e24f5d932 = { package = "axum", version = "0.7", default-features = false, features = ["ws"] }
+axum-ca01ad9e24f5d932 = { package = "axum", version = "0.7", features = ["ws"] }
+axum-core-9fbad63c4bcf4a8f = { package = "axum-core", version = "0.4", default-features = false, features = ["tracing"] }
 getrandom = { version = "0.2", default-features = false, features = ["std"] }
 spin = { version = "0.9" }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["timeout"] }
@@ -321,9 +324,11 @@ tungstenite-adf3d7031871b0af = { package = "tungstenite", version = "0.24", feat
 winapi = { version = "0.3", default-features = false, features = ["cfg", "consoleapi", "errhandlingapi", "evntrace", "fileapi", "handleapi", "impl-default", "in6addr", "inaddr", "knownfolders", "minwinbase", "minwindef", "ntsecapi", "objbase", "processenv", "processthreadsapi", "profileapi", "shlobj", "synchapi", "winbase", "windef", "winerror", "winioctl", "winnt", "winuser"] }
 windows-sys-73dcd821b1037cfd = { package = "windows-sys", version = "0.59", features = ["Win32_Globalization", "Win32_Security_Authentication_Identity", "Win32_Security_Credentials", "Win32_Security_Cryptography", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_IO", "Win32_System_Kernel", "Win32_System_LibraryLoader", "Win32_System_Memory", "Win32_System_Pipes", "Win32_System_SystemInformation", "Win32_System_Threading", "Win32_System_WindowsProgramming", "Win32_UI_Shell"] }
 windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Wdk_System_IO", "Win32_Foundation", "Win32_NetworkManagement_IpHelper", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_IO", "Win32_System_Ioctl", "Win32_System_Kernel", "Win32_System_LibraryLoader", "Win32_System_Performance", "Win32_System_Pipes", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming", "Win32_UI_Input_KeyboardAndMouse"] }
+windows-sys-c8eced492e86ede7 = { package = "windows-sys", version = "0.48", features = ["Win32_Foundation", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_Registry", "Win32_System_SystemInformation", "Win32_System_Time"] }
 
 [target.x86_64-pc-windows-msvc.build-dependencies]
-axum-ca01ad9e24f5d932 = { package = "axum", version = "0.7", default-features = false, features = ["ws"] }
+axum-ca01ad9e24f5d932 = { package = "axum", version = "0.7", features = ["ws"] }
+axum-core-9fbad63c4bcf4a8f = { package = "axum-core", version = "0.4", default-features = false, features = ["tracing"] }
 getrandom = { version = "0.2", default-features = false, features = ["std"] }
 spin = { version = "0.9" }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["timeout"] }
@@ -331,10 +336,12 @@ tungstenite-adf3d7031871b0af = { package = "tungstenite", version = "0.24", feat
 winapi = { version = "0.3", default-features = false, features = ["cfg", "consoleapi", "errhandlingapi", "evntrace", "fileapi", "handleapi", "impl-default", "in6addr", "inaddr", "knownfolders", "minwinbase", "minwindef", "ntsecapi", "objbase", "processenv", "processthreadsapi", "profileapi", "shlobj", "synchapi", "winbase", "windef", "winerror", "winioctl", "winnt", "winuser"] }
 windows-sys-73dcd821b1037cfd = { package = "windows-sys", version = "0.59", features = ["Win32_Globalization", "Win32_Security_Authentication_Identity", "Win32_Security_Credentials", "Win32_Security_Cryptography", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_IO", "Win32_System_Kernel", "Win32_System_LibraryLoader", "Win32_System_Memory", "Win32_System_Pipes", "Win32_System_SystemInformation", "Win32_System_Threading", "Win32_System_WindowsProgramming", "Win32_UI_Shell"] }
 windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Wdk_System_IO", "Win32_Foundation", "Win32_NetworkManagement_IpHelper", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_IO", "Win32_System_Ioctl", "Win32_System_Kernel", "Win32_System_LibraryLoader", "Win32_System_Performance", "Win32_System_Pipes", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming", "Win32_UI_Input_KeyboardAndMouse"] }
+windows-sys-c8eced492e86ede7 = { package = "windows-sys", version = "0.48", features = ["Win32_Foundation", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_Registry", "Win32_System_SystemInformation", "Win32_System_Time"] }
 
 [target.x86_64-unknown-linux-musl.dependencies]
 ahash = { version = "0.8" }
-axum-ca01ad9e24f5d932 = { package = "axum", version = "0.7", default-features = false, features = ["ws"] }
+axum-ca01ad9e24f5d932 = { package = "axum", version = "0.7", features = ["ws"] }
+axum-core-9fbad63c4bcf4a8f = { package = "axum-core", version = "0.4", default-features = false, features = ["tracing"] }
 getrandom = { version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
@@ -351,7 +358,8 @@ tungstenite-adf3d7031871b0af = { package = "tungstenite", version = "0.24", feat
 
 [target.x86_64-unknown-linux-musl.build-dependencies]
 ahash = { version = "0.8" }
-axum-ca01ad9e24f5d932 = { package = "axum", version = "0.7", default-features = false, features = ["ws"] }
+axum-ca01ad9e24f5d932 = { package = "axum", version = "0.7", features = ["ws"] }
+axum-core-9fbad63c4bcf4a8f = { package = "axum-core", version = "0.4", default-features = false, features = ["tracing"] }
 getrandom = { version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
@@ -368,7 +376,8 @@ tungstenite-adf3d7031871b0af = { package = "tungstenite", version = "0.24", feat
 
 [target.aarch64-unknown-linux-musl.dependencies]
 ahash = { version = "0.8" }
-axum-ca01ad9e24f5d932 = { package = "axum", version = "0.7", default-features = false, features = ["ws"] }
+axum-ca01ad9e24f5d932 = { package = "axum", version = "0.7", features = ["ws"] }
+axum-core-9fbad63c4bcf4a8f = { package = "axum-core", version = "0.4", default-features = false, features = ["tracing"] }
 getrandom = { version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
@@ -384,7 +393,8 @@ tungstenite-adf3d7031871b0af = { package = "tungstenite", version = "0.24", feat
 
 [target.aarch64-unknown-linux-musl.build-dependencies]
 ahash = { version = "0.8" }
-axum-ca01ad9e24f5d932 = { package = "axum", version = "0.7", default-features = false, features = ["ws"] }
+axum-ca01ad9e24f5d932 = { package = "axum", version = "0.7", features = ["ws"] }
+axum-core-9fbad63c4bcf4a8f = { package = "axum-core", version = "0.4", default-features = false, features = ["tracing"] }
 getrandom = { version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
