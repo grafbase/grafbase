@@ -12,7 +12,7 @@ services:
   #
   # I only removed the consent service as we don't use it.
   hydra:
-    image: oryd/hydra:v2.3.0
+    image: oryd/hydra:v2.2.0
     ports:
       - '4444:4444' # Public port
       - '4445:4445' # Admin port
@@ -30,7 +30,7 @@ services:
       - hydra
 
   hydra-migrate:
-    image: oryd/hydra:v2.3.0
+    image: oryd/hydra:v2.2.0
     environment:
       DSN: 'sqlite:///var/lib/sqlite/db.sqlite?_fk=true'
     command: migrate -c /etc/config/hydra/hydra.yml sql -e --yes
@@ -43,7 +43,7 @@ services:
 
   # Adding a second hydra to act as a different OAuth2 provider
   hydra-2:
-    image: oryd/hydra:v2.3.0
+    image: oryd/hydra:v2.2.0
     ports:
       - '4454:4454' # Public port
       - '4455:4455' # Admin port
@@ -63,7 +63,7 @@ services:
       - hydra-2
 
   hydra-2-migrate:
-    image: oryd/hydra:v2.3.0
+    image: oryd/hydra:v2.2.0
     environment:
       DSN: 'sqlite:///var/lib/sqlite/db.sqlite?_fk=true'
     command: migrate -c /etc/config/hydra/hydra.yml sql -e --yes
