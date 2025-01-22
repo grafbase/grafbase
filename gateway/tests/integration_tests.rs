@@ -9,7 +9,7 @@ use std::{
     marker::PhantomData,
     net::{Ipv4Addr, SocketAddr, SocketAddrV4},
     panic::{catch_unwind, AssertUnwindSafe},
-    path,
+    path::{self, Path, PathBuf},
     sync::{Arc, Mutex, OnceLock},
     time::{Duration, SystemTime},
 };
@@ -144,10 +144,11 @@ pub struct Client {
     client: reqwest::Client,
     headers: HeaderMap,
     commands: CommandHandles,
+    schema_path: Option<PathBuf>,
 }
 
 impl Client {
-    pub fn new(endpoint: String, commands: CommandHandles) -> Self {
+    pub fn new(endpoint: String, commands: CommandHandles, schema_path: Option<PathBuf>) -> Self {
         Self {
             endpoint,
             headers: HeaderMap::new(),
@@ -156,7 +157,12 @@ impl Client {
                 .build()
                 .unwrap(),
             commands,
+            schema_path,
         }
+    }
+
+    pub fn schema_path(&self) -> Option<&Path> {
+        self.schema_path.as_deref()
     }
 
     pub fn with_header(mut self, key: &'static str, value: impl AsRef<str>) -> Self {
@@ -416,7 +422,7 @@ impl<'a> GatewayBuilder<'a> {
         let mut commands = CommandHandles::new();
         commands.push(command.start().unwrap());
 
-        let mut client = Client::new(endpoint, commands);
+        let mut client = Client::new(endpoint, commands, Some(schema_path));
 
         if let Some(headers) = self.client_headers {
             for header in headers {
@@ -503,7 +509,7 @@ where
         let mut commands = CommandHandles::new();
         commands.push(command.start().unwrap());
 
-        let client = Arc::new(Client::new(format!("http://{addr}/graphql"), commands));
+        let client = Arc::new(Client::new(format!("http://{addr}/graphql"), commands, None));
 
         client.poll_endpoint(30, 300).await;
 
@@ -993,6 +999,48 @@ fn health_custom_listener() {
           "status": "healthy"
         }
         "###);
+    });
+}
+
+#[test]
+fn schema_file_hot_reload() {
+    let config = indoc! {r#"
+        [graph]
+        introspection = true
+    "#};
+
+    let schema = load_schema("tiny");
+
+    with_static_server(config, &schema, None, None, |client| async move {
+        let result = introspect(client.endpoint()).await;
+
+        insta::assert_snapshot!(&result, @r#"
+        type Query {
+          me: User!
+        }
+
+        type User {
+          id: ID!
+          username: String!
+        }
+        "#);
+
+        let schema_path = client.schema_path().unwrap();
+
+        std::fs::write(schema_path, load_schema("tiny_modified")).unwrap();
+        std::thread::sleep(Duration::from_secs(6));
+
+        let result = introspect(client.endpoint()).await;
+
+        insta::assert_snapshot!(&result, @r#"
+        type Query {
+          me: User!
+        }
+
+        type User {
+          id: ID!
+        }
+        "#);
     });
 }
 

@@ -79,11 +79,14 @@ impl super::Args for Args {
                 graph_ref,
             }),
             None => {
-                let federated_sdl =
-                    fs::read_to_string(self.schema.as_ref().expect("must exist if graph-ref is not defined"))
-                        .context("could not read federated schema file")?;
+                let schema_path = self.schema.clone().expect("must exist if graph-ref is not defined");
 
-                Ok(GraphFetchMethod::FromSchema { federated_sdl })
+                let federated_sdl = fs::read_to_string(&schema_path).context("could not read federated schema file")?;
+
+                Ok(GraphFetchMethod::FromSchema {
+                    federated_sdl,
+                    schema_path,
+                })
             }
         }
     }

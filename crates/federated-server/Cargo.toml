@@ -40,6 +40,7 @@ thiserror.workspace = true
 toml.workspace = true
 tokio = { workspace = true, features = ["signal", "time", "net"] }
 tokio-stream = { version = "0.1.16", features = ["sync"] }
+tokio-util = { version = "0.7.13", features = ["codec"] }
 tower-http = { workspace = true, features = ["cors", "timeout"] }
 tracing.workspace = true
 ulid = { workspace = true, features = ["serde"] }
@@ -49,3 +50,4 @@ notify = "7.0.0"
 # Lambda dependencies
 tower = { workspace = true, optional = true }
 lambda_http = { workspace = true, optional = true }
+either = "1.13.0"
