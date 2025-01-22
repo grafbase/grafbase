@@ -80,12 +80,12 @@ impl ComplexSchemaAndQuery {
 
             interface Node {
                 id: ID!
-                node: Node!
+                node: Node
             }
 
             type Nothing implements Node {
                 id: ID!
-                node: Node!
+                node: Node
             }
             "###
         )

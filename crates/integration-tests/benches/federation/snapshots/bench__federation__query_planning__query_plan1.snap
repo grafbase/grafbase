@@ -1,0 +1,9 @@
+---
+source: crates/integration-tests/benches/federation/query_planning.rs
+expression: response
+---
+{
+  "data": {
+    "node": null
+  }
+}

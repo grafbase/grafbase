@@ -16,7 +16,7 @@ members = [
     "crates/engine/id-derives",
     "crates/engine/id-newtypes",
 ]
-exclude = ["crates/wasi-component-loader/examples", "examples/hooks-template"]
+exclude = ["crates/wasi-component-loader/examples", "examples/hooks-template", "examples/query_plan"]
 
 [patch.crates-io]
 multipart-stream = { git = "https://github.com/grafbase/multipart-stream-rs-fork", rev = "06ff198e4041c8a8c1c93e580c260d597727c193" } # http-1.0-fix-multipart-mixed
