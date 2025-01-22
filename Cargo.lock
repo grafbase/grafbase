@@ -3443,7 +3443,7 @@ dependencies = [
  "async-graphql",
  "async-graphql-axum",
  "async-trait",
- "axum 0.8.1",
+ "axum 0.7.9",
  "crossbeam-queue",
  "cynic-parser",
  "futures",
