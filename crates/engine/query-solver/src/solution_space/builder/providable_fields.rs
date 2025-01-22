@@ -185,13 +185,13 @@ where
                     .graph
                     .edges_directed(resolver_ix, Direction::Outgoing)
                     .any(|edge| match edge.weight() {
-                        SpaceEdge::CanProvide { .. } => self
-                            .query
-                            .graph
-                            .edges_directed(edge.target(), Direction::Outgoing)
-                            .any(|edge| {
-                                matches!(edge.weight(), SpaceEdge::Provides) && edge.target() == query_field_node_ix
-                            }),
+                        SpaceEdge::CanProvide => {
+                            if let SpaceNode::ProvidableField(field) = &self.query.graph[edge.target()] {
+                                field.query_field_id() == query_field_id
+                            } else {
+                                false
+                            }
+                        }
                         _ => false,
                     })
                 {

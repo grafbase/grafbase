@@ -1,7 +1,9 @@
-use std::num::NonZero;
+use std::hash::{BuildHasher, Hash};
 
 use ::operation::Operation;
 use fixedbitset::FixedBitSet;
+use fxhash::FxBuildHasher;
+use hashbrown::hash_table::Entry;
 use id_newtypes::IdRange;
 use itertools::Itertools;
 use operation::OperationContext;
@@ -16,10 +18,11 @@ use schema::Schema;
 use crate::{
     dot_graph::Attrs,
     solution_space::{SpaceEdge, SpaceNode},
+    solve::steiner_tree::SteinerContext,
     Cost, FieldFlags, QuerySolutionSpace,
 };
 
-use super::steiner_tree;
+use super::steiner_tree::{self, SteinerGraph};
 
 /// The solver is responsible for finding the optimal path from the root to the query fields.
 /// There are two cores aspects to this, expressing the problem as a Steiner tree problem and
@@ -38,7 +41,7 @@ pub(crate) struct Solver<'schema, 'op, 'q> {
     schema: &'schema Schema,
     operation: &'op Operation,
     query_solution_space: &'q QuerySolutionSpace<'schema>,
-    algorithm: steiner_tree::ShortestPathAlgorithm<&'q StableGraph<SpaceNode<'schema>, SpaceEdge>>,
+    algorithm: steiner_tree::ShortestPathAlgorithm<&'q StableGraph<SpaceNode<'schema>, SpaceEdge>, SteinerGraph>,
     /// Keeps track of dispensable requirements to adjust edge cost, ideally we'd like to avoid
     /// them.
     dispensable_requirements_metadata: DispensableRequirementsMetadata,
@@ -87,10 +90,12 @@ where
         };
 
         let algorithm = steiner_tree::ShortestPathAlgorithm::initialize(
-            &query_solution_space.graph,
-            node_filter,
-            edge_filter,
-            query_solution_space.root_node_ix,
+            SteinerContext::build(
+                &query_solution_space.graph,
+                query_solution_space.root_node_ix,
+                node_filter,
+                edge_filter,
+            ),
             terminals,
         );
 
@@ -137,8 +142,8 @@ where
         }
     }
 
-    /// For each node with dispensable requirements, we need its incoming edges cost to reflect
-    /// their cost if we were to chose that edge. Those dispensable requirements would then become
+    /// For each node with dispensable requirements, we need its incoming edge's cost to reflect
+    /// the requirements cost if we were to chose that edge. Those dispensable requirements would then become
     /// indispensable and added to the list of terminals we must find in the Steiner tree.
     ///
     /// A node may have multiple incoming edges being potentially resolved by different resolvers.
@@ -148,11 +153,26 @@ where
     ///
     /// This method populates all the necessary metadata used to compute the extra requirements cost.
     fn populate_requirement_metadata(&mut self) -> crate::Result<()> {
+        struct IncomingEdgeWithDispensableRequirements {
+            parent: NodeIndex,
+            extra_required_node_ids: IdRange<ExtraRequiredNodeId>,
+            incoming_edge_ix: EdgeIndex,
+            edge_cost: Cost,
+        }
+        let mut buffer = Vec::with_capacity(self.query_solution_space.graph.node_count() >> 4);
+
+        // Used to intern required node id ranges
+        let hasher = FxBuildHasher::default();
+        let mut requirements_interner = hashbrown::HashTable::<IdRange<ExtraRequiredNodeId>>::with_capacity(
+            self.query_solution_space.graph.node_count() >> 4,
+        );
+
         for (node_ix, node) in self.query_solution_space.graph.node_references() {
             if !matches!(node, SpaceNode::Resolver(_) | SpaceNode::ProvidableField(_)) {
                 continue;
             }
 
+            // Retrieve all the node ids on which we depend.
             let extra_required_node_ids = self.dispensable_requirements_metadata.extend_extra_required_nodes(
                 self.query_solution_space
                     .graph
@@ -170,50 +190,132 @@ where
                 continue;
             }
 
-            for edge in self
+            // De-duplicate the requirements
+            let key = &self.dispensable_requirements_metadata[extra_required_node_ids];
+            let extra_required_node_ids = match requirements_interner.entry(
+                hasher.hash_one(key),
+                |id| &self.dispensable_requirements_metadata[*id] == key,
+                |id| hasher.hash_one(&self.dispensable_requirements_metadata[*id]),
+            ) {
+                Entry::Occupied(entry) => {
+                    self.dispensable_requirements_metadata
+                        .extra_required_nodes
+                        .truncate(extra_required_node_ids.start.into());
+
+                    *entry.get()
+                }
+                Entry::Vacant(entry) => {
+                    entry.insert(extra_required_node_ids);
+                    extra_required_node_ids
+                }
+            };
+
+            // Given a parent node, if there is a ProvidableField neighbor that provides our field
+            // without any requirements, there is no cost associated with it.
+            // If for each parent all the requirements have no cost, there is no extra cost at all
+            // for this field.
+            if self
+                .query_solution_space
+                .graph
+                .edges_directed(node_ix, Direction::Incoming)
+                .filter(|edge| matches!(edge.weight(), SpaceEdge::CreateChildResolver | SpaceEdge::CanProvide))
+                .all(|incoming_edge| {
+                    let parent = incoming_edge.source();
+                    self.dispensable_requirements_metadata[extra_required_node_ids]
+                        .iter()
+                        .all(|required| {
+                            self.query_solution_space
+                                .graph
+                                .edges_directed(parent, Direction::Outgoing)
+                                .filter(|neighbor| matches!(neighbor.weight(), SpaceEdge::CanProvide))
+                                .any(|neighbor| {
+                                    let mut found_requirement = false;
+                                    for edge in self
+                                        .query_solution_space
+                                        .graph
+                                        .edges_directed(neighbor.target(), Direction::Outgoing)
+                                    {
+                                        if matches!(edge.weight(), SpaceEdge::Requires) {
+                                            return false;
+                                        }
+                                        found_requirement |=
+                                            matches!(edge.weight(), SpaceEdge::Provides) & (edge.target() == *required);
+                                    }
+                                    found_requirement
+                                })
+                        })
+                })
+            {
+                self.dispensable_requirements_metadata
+                    .free_requirements
+                    .push((node_ix, extra_required_node_ids));
+                continue;
+            }
+
+            for incoming_edge in self
                 .query_solution_space
                 .graph
                 .edges_directed(node_ix, Direction::Incoming)
             {
-                if !matches!(edge.weight(), SpaceEdge::CreateChildResolver | SpaceEdge::CanProvide) {
-                    continue;
-                }
-
-                let mut parent = edge.source();
-                // This will at least include the ProvidableField & Resolver that led to the
-                // parent. As we'll necessarily take them for this particular edge, they'll be set
-                // to 0 cost while estimating the requirement cost.
-                let zero_cost_parent_edge_ids =
-                    self.dispensable_requirements_metadata
-                        .extend_zero_cost_parent_edges(std::iter::from_fn(|| {
-                            let mut grand_parents = self
-                                .query_solution_space
-                                .graph
-                                .edges_directed(parent, Direction::Incoming)
-                                .filter(|edge| {
-                                    matches!(edge.weight(), SpaceEdge::CreateChildResolver | SpaceEdge::CanProvide)
-                                });
-
-                            let first = grand_parents.next()?;
-                            if grand_parents.next().is_none() {
-                                parent = first.source();
-                                Some(first.id())
-                            } else {
-                                None
-                            }
-                        }));
-                self.dispensable_requirements_metadata
-                    .edges
-                    .push(EdgeWithDispensableRequirements {
-                        edge_ix: edge.id(),
-                        base_cost: match edge.weight() {
-                            SpaceEdge::CreateChildResolver => 1,
-                            _ => 0,
-                        },
-                        extra_required_node_ids,
-                        zero_cost_parent_edge_ids,
-                    });
+                let edge_cost = match incoming_edge.weight() {
+                    SpaceEdge::CreateChildResolver => 1,
+                    SpaceEdge::CanProvide => 0,
+                    _ => continue,
+                };
+                buffer.push(IncomingEdgeWithDispensableRequirements {
+                    parent: incoming_edge.source(),
+                    extra_required_node_ids,
+                    incoming_edge_ix: incoming_edge.id(),
+                    edge_cost,
+                });
             }
+        }
+
+        buffer.sort_unstable_by(|a, b| {
+            a.parent
+                .cmp(&b.parent)
+                .then(a.extra_required_node_ids.cmp(&b.extra_required_node_ids))
+        });
+
+        for ((mut parent, extra_required_node_ids), chunk) in buffer
+            .into_iter()
+            .chunk_by(|item| (item.parent, item.extra_required_node_ids))
+            .into_iter()
+        {
+            let incoming_edge_and_cost_ids = self
+                .dispensable_requirements_metadata
+                .extend_incoming_edges_and_cost(chunk.into_iter().map(|item| (item.incoming_edge_ix, item.edge_cost)));
+
+            // This will at least include the ProvidableField & Resolver that led to the
+            // parent. As we'll necessarily take them for this particular edge, they'll be set
+            // to 0 cost while estimating the requirement cost.
+            let zero_cost_parent_edge_ids =
+                self.dispensable_requirements_metadata
+                    .extend_zero_cost_parent_edges(std::iter::from_fn(|| {
+                        let mut grand_parents = self
+                            .query_solution_space
+                            .graph
+                            .edges_directed(parent, Direction::Incoming)
+                            .filter(|edge| {
+                                matches!(edge.weight(), SpaceEdge::CreateChildResolver | SpaceEdge::CanProvide)
+                            });
+
+                        let first = grand_parents.next()?;
+                        if grand_parents.next().is_none() {
+                            parent = first.source();
+                            Some(first.id())
+                        } else {
+                            None
+                        }
+                    }));
+
+            self.dispensable_requirements_metadata
+                .maybe_costly_requirements
+                .push(DispensableRequirements {
+                    zero_cost_parent_edge_ids,
+                    extra_required_node_ids,
+                    incoming_edge_and_cost_ids,
+                });
         }
 
         Ok(())
@@ -258,35 +360,60 @@ where
     /// edge.
     fn generate_cost_updates_based_on_requirements(&mut self) {
         let mut i = 0;
-        while let Some(EdgeWithDispensableRequirements {
-            edge_ix,
-            base_cost,
-            extra_required_node_ids,
-            zero_cost_parent_edge_ids,
-        }) = self.dispensable_requirements_metadata.edges.get(i)
+        while let Some((node_id, extra_required_node_ids)) =
+            self.dispensable_requirements_metadata.free_requirements.get(i).copied()
         {
-            let (source_ix, target_ix) = self.query_solution_space.graph.edge_endpoints(*edge_ix).unwrap();
-            if self.algorithm.contains_node(target_ix) {
+            if self.algorithm.contains_node(node_id) {
                 self.tmp_extra_terminals.extend(
-                    self.dispensable_requirements_metadata[*extra_required_node_ids]
+                    self.dispensable_requirements_metadata[extra_required_node_ids]
                         .iter()
                         .copied(),
                 );
-                self.dispensable_requirements_metadata.edges.swap_remove(i);
+                self.dispensable_requirements_metadata.free_requirements.swap_remove(i);
+            } else {
+                i += 1;
+            }
+        }
+
+        i = 0;
+        while let Some(DispensableRequirements {
+            extra_required_node_ids,
+            zero_cost_parent_edge_ids,
+            incoming_edge_and_cost_ids,
+        }) = self
+            .dispensable_requirements_metadata
+            .maybe_costly_requirements
+            .get(i)
+            .copied()
+        {
+            if self.dispensable_requirements_metadata[incoming_edge_and_cost_ids]
+                .iter()
+                .any(|(incoming_edge, _)| {
+                    let (_, target_ix) = self.query_solution_space.graph.edge_endpoints(*incoming_edge).unwrap();
+                    self.algorithm.contains_node(target_ix)
+                })
+            {
+                self.tmp_extra_terminals.extend(
+                    self.dispensable_requirements_metadata[extra_required_node_ids]
+                        .iter()
+                        .copied(),
+                );
+                self.dispensable_requirements_metadata
+                    .maybe_costly_requirements
+                    .swap_remove(i);
                 continue;
             }
 
-            let new_cost = base_cost
-                + self.algorithm.estimate_extra_cost(
-                    self.dispensable_requirements_metadata[*zero_cost_parent_edge_ids]
-                        .iter()
-                        .copied(),
-                    self.dispensable_requirements_metadata[*extra_required_node_ids]
-                        .iter()
-                        .copied(),
-                );
+            let extra_cost = self.algorithm.estimate_extra_cost(
+                &self.dispensable_requirements_metadata[zero_cost_parent_edge_ids],
+                &self.dispensable_requirements_metadata[extra_required_node_ids],
+            );
 
-            self.algorithm.insert_edge_cost_update(source_ix, *edge_ix, new_cost);
+            for (incoming_edge, cost) in &self.dispensable_requirements_metadata[incoming_edge_and_cost_ids] {
+                let (source_ix, _) = self.query_solution_space.graph.edge_endpoints(*incoming_edge).unwrap();
+                self.algorithm
+                    .insert_edge_cost_update(source_ix, *incoming_edge, cost + extra_cost);
+            }
 
             i += 1;
         }
@@ -350,27 +477,32 @@ impl std::fmt::Debug for Solver<'_, '_, '_> {
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, id_derives::Id)]
-struct ExtraRequiredNodeId(NonZero<u32>);
+struct ExtraRequiredNodeId(u32);
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, id_derives::Id)]
-struct ZeroCostParentEdgeId(NonZero<u32>);
+struct ZeroCostParentEdgeId(u32);
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, id_derives::Id)]
+struct IncomingEdgeAndCostId(u32);
 
 #[derive(Default, id_derives::IndexedFields)]
 struct DispensableRequirementsMetadata {
-    edges: Vec<EdgeWithDispensableRequirements>,
+    free_requirements: Vec<(NodeIndex, IdRange<ExtraRequiredNodeId>)>,
+    maybe_costly_requirements: Vec<DispensableRequirements>,
     #[indexed_by(ExtraRequiredNodeId)]
     extra_required_nodes: Vec<NodeIndex>,
     #[indexed_by(ZeroCostParentEdgeId)]
     zero_cost_parent_edges: Vec<EdgeIndex>,
+    #[indexed_by(IncomingEdgeAndCostId)]
+    incoming_edges_and_cost: Vec<(EdgeIndex, Cost)>,
     independent_cost: Option<bool>,
 }
 
 #[derive(Clone, Copy)]
-struct EdgeWithDispensableRequirements {
-    edge_ix: EdgeIndex,
-    base_cost: Cost,
-    extra_required_node_ids: IdRange<ExtraRequiredNodeId>,
+struct DispensableRequirements {
     zero_cost_parent_edge_ids: IdRange<ZeroCostParentEdgeId>,
+    extra_required_node_ids: IdRange<ExtraRequiredNodeId>,
+    incoming_edge_and_cost_ids: IdRange<IncomingEdgeAndCostId>,
 }
 
 impl DispensableRequirementsMetadata {
@@ -390,5 +522,14 @@ impl DispensableRequirementsMetadata {
         let start = self.zero_cost_parent_edges.len();
         self.zero_cost_parent_edges.extend(edges);
         IdRange::from(start..self.zero_cost_parent_edges.len())
+    }
+
+    fn extend_incoming_edges_and_cost(
+        &mut self,
+        edges_and_cost: impl IntoIterator<Item = (EdgeIndex, Cost)>,
+    ) -> IdRange<IncomingEdgeAndCostId> {
+        let start = self.incoming_edges_and_cost.len();
+        self.incoming_edges_and_cost.extend(edges_and_cost);
+        IdRange::from(start..self.incoming_edges_and_cost.len())
     }
 }

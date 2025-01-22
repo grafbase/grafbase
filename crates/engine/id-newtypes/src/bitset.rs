@@ -41,6 +41,18 @@ where
         self.inner.set(self.inner.len() - 1, value);
     }
 
+    pub fn grow(&mut self, n: usize) {
+        self.inner.grow(n)
+    }
+
+    pub fn len(&self) -> usize {
+        self.inner.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.inner.is_empty()
+    }
+
     pub fn zeroes(&self) -> impl Iterator<Item = Id> + '_
     where
         Id: From<usize>,

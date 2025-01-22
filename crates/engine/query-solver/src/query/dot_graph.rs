@@ -51,7 +51,7 @@ impl Node {
             } => resolver_definition_id.walk(ctx.schema).name().into(),
             Node::Field { id, flags, .. } => {
                 let field = field_label(ctx, &solution[*id]);
-                format!("{}{}", if flags.contains(FieldFlags::EXTRA) { "*" } else { "" }, field)
+                format!("{}{}", if flags.contains(FieldFlags::EXTRA) { "*" } else { "" }, field,)
             }
         })
     }

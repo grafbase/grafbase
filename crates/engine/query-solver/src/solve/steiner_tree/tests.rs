@@ -4,6 +4,8 @@ use std::time::{Duration, Instant};
 
 use petgraph::visit::{EdgeRef, IntoNodeReferences};
 
+use crate::solve::steiner_tree::SteinerContext;
+
 use super::ShortestPathAlgorithm;
 
 /// Sanity check our ShortestPath Steiner Tree algorithm against a graph with known optimal cost.
@@ -12,10 +14,12 @@ fn shortest_path_steinlib_gene() {
     for gene in gene::load_dataset() {
         let start = Instant::now();
         let mut alg = ShortestPathAlgorithm::initialize(
-            &gene.graph,
-            |(node, _)| Some(node),
-            |edge| Some((edge.id(), edge.source(), edge.target(), *edge.weight())),
-            gene.root,
+            SteinerContext::build(
+                &gene.graph,
+                gene.root,
+                |(node, _)| Some(node),
+                |edge| Some((edge.id(), edge.source(), edge.target(), *edge.weight())),
+            ),
             gene.terminals.iter().copied(),
         );
         let prepare_duration = start.elapsed();
@@ -56,20 +60,22 @@ fn shortest_path_steinlib_gene() {
         );
 
         // all terminals are in the steiner tree, so should be free.
-        assert_eq!(alg.estimate_extra_cost([], gene.terminals.iter().copied()), 0);
+        assert_eq!(alg.estimate_extra_cost(&[], &gene.terminals), 0);
         // We should have the same result with this method. The only difference is that the one
         // before supports changing the cost and adding terminals between iterations, which we didn't
         // do.
         let mut alg2 = ShortestPathAlgorithm::initialize(
-            &gene.graph,
-            |(node, _)| Some(node),
-            |edge| Some((edge.id(), edge.source(), edge.target(), *edge.weight())),
-            gene.root,
+            SteinerContext::build(
+                &gene.graph,
+                gene.root,
+                |(node, _)| Some(node),
+                |edge| Some((edge.id(), edge.source(), edge.target(), *edge.weight())),
+            ),
             gene.terminals.iter().copied(),
         );
 
         let start = Instant::now();
-        let quick_cost = alg2.estimate_extra_cost([], gene.terminals.iter().copied());
+        let quick_cost = alg2.estimate_extra_cost(&[], &gene.terminals);
         assert!(total_cost <= quick_cost, "{total_cost} <= quick_cost");
         let ratio = (quick_cost as f64) / (gene.optimal_cost as f64);
         assert!((1.0..1.5).contains(&ratio), "{} {ratio}", gene.name);

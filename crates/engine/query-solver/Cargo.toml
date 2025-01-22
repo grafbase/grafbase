@@ -28,6 +28,7 @@ strum.workspace = true
 hex.workspace = true
 schema = { path = "../schema", package = "engine-schema" }
 fxhash = "0.2"
+hashbrown = "0.15"
 
 
 [dev-dependencies]

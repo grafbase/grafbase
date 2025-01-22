@@ -108,6 +108,13 @@ pub(crate) enum ProvidableField<'ctx> {
 }
 
 impl ProvidableField<'_> {
+    pub(crate) fn query_field_id(&self) -> QueryFieldId {
+        match self {
+            ProvidableField::InSubgraph { field_id, .. } => *field_id,
+            ProvidableField::OnlyProvidable { field_id, .. } => *field_id,
+        }
+    }
+
     pub(crate) fn subgraph_id(&self) -> SubgraphId {
         match self {
             ProvidableField::InSubgraph { subgraph_id, .. } => *subgraph_id,
