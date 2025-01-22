@@ -90,14 +90,15 @@ impl ResponseBuilder {
         root_response_object_set: Arc<InputResponseObjectSet>,
         error: ExecutionError,
     ) {
-        let (any_response_key, default_object) = self.extract_any_response_key_and_default_object(plan);
+        let (any_response_key, default_fields_sorted_by_key) =
+            self.extract_any_response_key_and_default_fields_sorted_by_key(plan);
         let error = GraphqlError::from(error);
         if let Some(any_response_key) = any_response_key {
-            if let Some(default_object) = &default_object {
+            if let Some(default_fields_sorted_by_key) = &default_fields_sorted_by_key {
                 for obj_ref in root_response_object_set.iter() {
                     self.errors
                         .push(error.clone().with_path((&obj_ref.path, any_response_key)));
-                    self.data_parts[obj_ref.id].extend(default_object.iter().cloned());
+                    self.recursive_merge_with_default_object(obj_ref.id, default_fields_sorted_by_key);
                 }
             } else {
                 for obj_ref in root_response_object_set.iter() {
@@ -112,7 +113,8 @@ impl ResponseBuilder {
     pub fn ingest(&mut self, plan: Plan<'_>, mut subgraph_response: SubgraphResponse) -> OutputResponseObjectSets {
         self.data_parts.insert(subgraph_response.data);
 
-        let (any_response_key, default_object) = self.extract_any_response_key_and_default_object(plan);
+        let (any_response_key, default_fields_sorted_by_key) =
+            self.extract_any_response_key_and_default_fields_sorted_by_key(plan);
         for (update, obj_ref) in subgraph_response
             .updates
             .into_iter()
@@ -131,8 +133,8 @@ impl ResponseBuilder {
                                 GraphqlError::invalid_subgraph_response().with_path((&obj_ref.path, any_response_key)),
                             );
                         }
-                        if let Some(default_object) = &default_object {
-                            self.data_parts[obj_ref.id].extend_from_slice(default_object);
+                        if let Some(default_fields_sorted_by_key) = &default_fields_sorted_by_key {
+                            self.recursive_merge_with_default_object(obj_ref.id, default_fields_sorted_by_key);
                         } else {
                             self.propagate_null(&obj_ref.path);
                         }
@@ -140,13 +142,13 @@ impl ResponseBuilder {
                 }
                 ObjectUpdate::Fields(mut fields) => {
                     fields.sort_unstable_by(|a, b| a.key.cmp(&b.key));
-                    self.recursive_merge_object(obj_ref.id, fields);
+                    self.recursive_merge_shared_object(obj_ref.id, fields);
                 }
                 ObjectUpdate::Error(error) => {
                     if let Some(any_response_key) = any_response_key {
                         self.errors.push(error.with_path((&obj_ref.path, any_response_key)));
-                        if let Some(default_object) = &default_object {
-                            self.data_parts[obj_ref.id].extend_from_slice(default_object);
+                        if let Some(default_fields_sorted_by_key) = &default_fields_sorted_by_key {
+                            self.recursive_merge_with_default_object(obj_ref.id, default_fields_sorted_by_key);
                         } else {
                             self.propagate_null(&obj_ref.path);
                         }
@@ -154,8 +156,8 @@ impl ResponseBuilder {
                 }
                 ObjectUpdate::PropagateNullWithoutError => {
                     if any_response_key.is_some() {
-                        if let Some(default_object) = &default_object {
-                            self.data_parts[obj_ref.id].extend_from_slice(default_object);
+                        if let Some(default_fields_sorted_by_key) = &default_fields_sorted_by_key {
+                            self.recursive_merge_with_default_object(obj_ref.id, default_fields_sorted_by_key);
                         } else {
                             self.propagate_null(&obj_ref.path);
                         }
@@ -211,7 +213,7 @@ impl ResponseBuilder {
         true
     }
 
-    fn extract_any_response_key_and_default_object(
+    fn extract_any_response_key_and_default_fields_sorted_by_key(
         &self,
         plan: Plan<'_>,
     ) -> (Option<PositionedResponseKey>, Option<Vec<ResponseObjectField>>) {
@@ -248,6 +250,7 @@ impl ResponseBuilder {
             })
         }
 
+        fields.sort_unstable_by(|a, b| a.key.cmp(&b.key));
         (any_response_key, Some(fields))
     }
 

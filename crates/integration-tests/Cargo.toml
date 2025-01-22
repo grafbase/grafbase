@@ -7,6 +7,7 @@ edition = "2021"
 workspace = true
 
 [dependencies]
+cfg-if = "1"
 axum.workspace = true
 async-graphql.workspace = true
 async-sse.workspace = true
@@ -68,6 +69,7 @@ features = ["full"]
 workspace = true
 
 [dev-dependencies]
+mimalloc = "0.1"
 base64.workspace = true
 criterion = { version = "0.5.1", features = ["async_tokio"] }
 cynic-parser.workspace = true

@@ -193,7 +193,7 @@ impl DataPart {
             } => {
                 debug_assert!(part_id == self.id && nullable, "{part_id} == {} && {nullable}", self.id);
                 let field = self[object_id]
-                    .fields_sorted_by_query_position
+                    .fields_sorted_by_key
                     .iter_mut()
                     .find(|field| field.key.response_key == key)
                     .expect("How could we have an id to id otherwise?");
@@ -234,7 +234,7 @@ impl DataPart {
     }
 
     pub fn put_object(&mut self, ResponseObjectId { part_id, object_id }: ResponseObjectId, object: ResponseObject) {
-        debug_assert!(part_id == self.id && self[object_id].fields_sorted_by_query_position.is_empty());
+        debug_assert!(part_id == self.id && self[object_id].fields_sorted_by_key.is_empty());
         self[object_id] = object;
     }
 

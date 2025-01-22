@@ -7,7 +7,7 @@ use super::{ResponseInaccessibleValueId, ResponseListId, ResponseMapId, Response
 pub(crate) struct ResponseObject {
     pub(super) definition_id: Option<ObjectDefinitionId>,
     /// fields are ordered by the position they appear in the query.
-    pub(super) fields_sorted_by_query_position: Vec<ResponseObjectField>,
+    pub(super) fields_sorted_by_key: Vec<ResponseObjectField>,
 }
 
 #[derive(Debug, Clone)]
@@ -21,32 +21,20 @@ impl ResponseObject {
         fields.sort_unstable_by(|a, b| a.key.cmp(&b.key));
         Self {
             definition_id,
-            fields_sorted_by_query_position: fields,
+            fields_sorted_by_key: fields,
         }
     }
 
-    pub fn extend(&mut self, fields: impl IntoIterator<Item = ResponseObjectField>) {
-        self.fields_sorted_by_query_position.extend(fields);
-        self.fields_sorted_by_query_position
-            .sort_unstable_by(|a, b| a.key.cmp(&b.key));
-    }
-
-    pub fn extend_from_slice(&mut self, fields: &[ResponseObjectField]) {
-        self.fields_sorted_by_query_position.extend_from_slice(fields);
-        self.fields_sorted_by_query_position
-            .sort_unstable_by(|a, b| a.key.cmp(&b.key));
-    }
-
     pub fn len(&self) -> usize {
-        self.fields_sorted_by_query_position.len()
+        self.fields_sorted_by_key.len()
     }
 
     pub fn fields(&self) -> impl Iterator<Item = &ResponseObjectField> {
-        self.fields_sorted_by_query_position.iter()
+        self.fields_sorted_by_key.iter()
     }
 
     pub fn find_by_response_key(&self, key: ResponseKey) -> Option<&ResponseValue> {
-        self.fields_sorted_by_query_position
+        self.fields_sorted_by_key
             .iter()
             .find(|field| field.key.response_key == key)
             .map(|field| &field.value)
@@ -57,13 +45,13 @@ impl std::ops::Index<usize> for ResponseObject {
     type Output = ResponseValue;
 
     fn index(&self, index: usize) -> &Self::Output {
-        &self.fields_sorted_by_query_position[index].value
+        &self.fields_sorted_by_key[index].value
     }
 }
 
 impl std::ops::IndexMut<usize> for ResponseObject {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        &mut self.fields_sorted_by_query_position[index].value
+        &mut self.fields_sorted_by_key[index].value
     }
 }
 
