@@ -8,6 +8,7 @@ use anyhow::Context;
 use clap::Parser;
 use federated_server::GraphFetchMethod;
 use gateway_config::Config;
+use graph_ref::GraphRef;
 
 use super::{log::LogStyle, LogLevel};
 
@@ -22,6 +23,8 @@ pub struct Args {
     /// to the Grafbase API.
     #[arg(env = "GRAFBASE_SCHEMA_PATH", default_value = "./federated.graphql")]
     pub schema: PathBuf,
+    #[arg(short, long, help = GraphRef::ARG_DESCRIPTION, env = "GRAFBASE_GRAPH_REF")]
+    pub graph_ref: Option<GraphRef>,
     /// Set the logging level, this applies to all spans, logs and trace events.
     ///
     /// Beware that *only* 'off', 'error', 'warn' and 'info' can be used safely in production. More
@@ -51,13 +54,19 @@ impl super::Args for Args {
 
     /// The gateway configuration
     fn config(&self) -> anyhow::Result<Config> {
-        match fs::read_to_string(&self.config) {
-            Ok(config) => Ok(toml::from_str(&config)?),
+        let mut config = match fs::read_to_string(&self.config) {
+            Ok(config) => toml::from_str(&config)?,
             Err(e) => match e.kind() {
-                ErrorKind::NotFound => Ok(Config::default()),
-                _ => Err(anyhow::anyhow!("error loading config file: {e}")),
+                ErrorKind::NotFound => Config::default(),
+                _ => return Err(anyhow::anyhow!("error loading config file: {e}")),
             },
+        };
+
+        if let Some(otel_config) = self.grafbase_otel_config()? {
+            config.telemetry.grafbase = Some(otel_config);
         }
+
+        Ok(config)
     }
 
     fn config_path(&self) -> Option<&Path> {
@@ -78,5 +87,9 @@ impl super::Args for Args {
 
     fn log_level(&self) -> LogLevel<'_> {
         LogLevel(&self.log_level)
+    }
+
+    fn graph_ref(&self) -> Option<&GraphRef> {
+        self.graph_ref.as_ref()
     }
 }

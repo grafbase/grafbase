@@ -7,26 +7,14 @@ use std::{
 
 use anyhow::Context;
 use ascii::AsciiString;
-use clap::{ArgGroup, Parser};
+use clap::Parser;
 use federated_server::GraphFetchMethod;
-use gateway_config::{BatchExportConfig, Config};
-use grafbase_telemetry::config::{OtlpExporterConfig, OtlpExporterGrpcConfig, OtlpExporterProtocol};
+use gateway_config::Config;
 use graph_ref::GraphRef;
 
 use super::{log::LogStyle, LogLevel};
 
 #[derive(Debug, Parser)]
-#[clap(
-    group(
-        ArgGroup::new("hybrid-or-airgapped")
-            .required(true)
-            .args(["graph_ref", "schema"])
-    ),
-    group(
-        ArgGroup::new("graph-ref-with-access-token")
-            .args(["graph_ref"])
-    )
-)]
 #[command(name = "Grafbase Gateway", version)]
 /// Grafbase Gateway
 pub struct Args {
@@ -60,32 +48,37 @@ pub struct Args {
     hot_reload: bool,
 }
 
-impl Args {
-    pub fn grafbase_access_token(&self) -> Option<String> {
-        std::env::var("GRAFBASE_ACCESS_TOKEN").ok()
-    }
-}
-
 impl super::Args for Args {
+    fn graph_ref(&self) -> Option<&GraphRef> {
+        self.graph_ref.as_ref()
+    }
+
     /// The method of fetching a graph
     fn fetch_method(&self) -> anyhow::Result<GraphFetchMethod> {
-        match self.graph_ref.clone() {
-            Some(graph_ref) => Ok(GraphFetchMethod::FromGraphRef {
-                access_token: AsciiString::from_ascii(self.grafbase_access_token().ok_or_else(|| {
-                    anyhow::format_err!(
-                        "The GRAFBASE_ACCESS_TOKEN environment variable must be set when a graph_ref is provided"
-                    )
-                })?)?,
-                graph_ref,
-            }),
-            None => {
-                let schema_path = self.schema.clone().expect("must exist if graph-ref is not defined");
-
+        match self.schema {
+            Some(ref schema) => {
+                let schema_path = schema.to_owned();
                 let federated_sdl = fs::read_to_string(&schema_path).context("could not read federated schema file")?;
 
                 Ok(GraphFetchMethod::FromSchema {
                     federated_sdl,
                     schema_path,
+                })
+            }
+            None => {
+                let graph_ref = self.graph_ref.clone().ok_or_else(|| {
+                    anyhow::format_err!("The graph-ref argument must be set if not using a static schema file.")
+                })?;
+
+                let access_token = self.grafbase_access_token().ok_or_else(|| {
+                    anyhow::format_err!(
+                        "The GRAFBASE_ACCESS_TOKEN environment variable must be set when a graph-ref is provided"
+                    )
+                })?;
+
+                Ok(GraphFetchMethod::FromGraphRef {
+                    access_token: AsciiString::from_ascii(access_token)?,
+                    graph_ref,
                 })
             }
         }
@@ -108,41 +101,8 @@ impl super::Args for Args {
             None => Config::default(),
         };
 
-        if let Some((token, graph_ref)) = self.grafbase_access_token().as_ref().zip(self.graph_ref.as_ref()) {
-            config.telemetry.grafbase = Some(OtlpExporterConfig {
-                endpoint: std::env::var("GRAFBASE_OTEL_URL")
-                    .unwrap_or("https://otel.grafbase.com".to_string())
-                    .parse()
-                    .unwrap(),
-                enabled: true,
-                protocol: OtlpExporterProtocol::Grpc,
-                grpc: Some(OtlpExporterGrpcConfig {
-                    tls: None,
-                    headers: vec![
-                        (
-                            AsciiString::from_ascii(b"authorization").context("Invalid auth header name")?,
-                            AsciiString::from_ascii(format!("Bearer {token}")).context("Invalid access token")?,
-                        ),
-                        (
-                            AsciiString::from_ascii(b"grafbase-graph-ref").context("Invalid graph ref header name")?,
-                            AsciiString::from_ascii(graph_ref.to_string().into_bytes()).context("Invalid graph ref")?,
-                        ),
-                    ]
-                    .into(),
-                }),
-                batch_export: if let Some(seconds) = std::env::var("__GRAFBASE_OTEL_EXPORT_DELAY")
-                    .ok()
-                    .and_then(|v| v.parse::<usize>().ok())
-                {
-                    BatchExportConfig {
-                        scheduled_delay: chrono::Duration::seconds(seconds as i64),
-                        ..Default::default()
-                    }
-                } else {
-                    Default::default()
-                },
-                ..Default::default()
-            });
+        if let Some(otel_config) = self.grafbase_otel_config()? {
+            config.telemetry.grafbase = Some(otel_config);
         }
 
         Ok(config)
