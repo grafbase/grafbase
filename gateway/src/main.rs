@@ -33,6 +33,10 @@ fn main() -> anyhow::Result<()> {
         let crate_version = crate_version!();
         tracing::info!("Grafbase Gateway {crate_version}");
 
+        if !args.can_export_telemetry_to_platform() {
+            tracing::warn!("To send telemetry to the Grafbase Platform, provide a valid graph-ref and access token");
+        }
+
         let config = ServerConfig {
             listen_addr: args.listen_address(),
             config_receiver: config_recevier(config),
