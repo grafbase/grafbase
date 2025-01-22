@@ -1,11 +1,13 @@
 use std::{
-    hash::{DefaultHasher, Hash, Hasher},
+    hash::{DefaultHasher, Hasher},
     path::{Path, PathBuf},
     time::SystemTime,
 };
 
 use crate::server::{engine_reloader::GraphSender, gateway::GraphDefinition};
 use either::Either;
+use futures_lite::StreamExt;
+use tokio_util::codec::{BytesCodec, FramedRead};
 
 /// How often we poll updates to the graph.
 const TICK_INTERVAL: std::time::Duration = std::time::Duration::from_secs(5);
@@ -23,8 +25,7 @@ impl SchemaFileGraphUpdater {
     pub async fn new(schema_path: PathBuf, sender: GraphSender) -> Self {
         let schema_fingerprint = schema_fingerprint(&schema_path)
             .await
-            .unwrap_or_else(|_| Either::Left(SystemTime::now()))
-            .map_right(|(hash, _)| hash);
+            .unwrap_or_else(|_| Either::Left(SystemTime::now()));
 
         Self {
             schema_path,
@@ -47,28 +48,16 @@ impl SchemaFileGraphUpdater {
                 continue;
             };
 
-            let (fingerprint, schema) = match fingerprint {
-                Either::Left(modified) => (Either::Left(modified), None),
-                Either::Right((hash, schema)) => (Either::Right(hash), Some(schema)),
-            };
-
             if fingerprint != self.schema_fingerprint {
                 self.schema_fingerprint = fingerprint;
 
-                let schema = match schema {
-                    Some(schema) => schema,
-                    None => {
-                        let Ok(schema) = tokio::fs::read_to_string(&self.schema_path).await else {
-                            tracing::warn!(
-                               "Could not load schema file in {}. The gateway will not use schema hot reload until file is available.",
-                               self.schema_path.to_str().unwrap_or_default()
-                           );
+                let Ok(schema) = tokio::fs::read_to_string(&self.schema_path).await else {
+                    tracing::warn!(
+                        "Could not load schema file in {}. The gateway will not use schema hot reload until file is available.",
+                        self.schema_path.to_str().unwrap_or_default()
+                    );
 
-                            continue;
-                        };
-
-                        schema
-                    }
+                    continue;
                 };
 
                 tracing::info!("Detected a schema file update");
@@ -84,7 +73,7 @@ impl SchemaFileGraphUpdater {
     }
 }
 
-async fn schema_fingerprint(schema_path: &Path) -> Result<Either<SystemTime, (u64, String)>, ()> {
+async fn schema_fingerprint(schema_path: &Path) -> Result<Either<SystemTime, u64>, ()> {
     let metadata = match tokio::fs::metadata(schema_path).await {
         Ok(metadata) => metadata,
         Err(_) => {
@@ -105,34 +94,32 @@ async fn schema_fingerprint(schema_path: &Path) -> Result<Either<SystemTime, (u6
         Err(_) => {
             tracing::debug!("The file system with the schema file does not support modification date. The schema hot reload will use a bit more CPU by hashing the file contents.");
 
-            match tokio::fs::read_to_string(schema_path).await {
-                Ok(schema) => {
-                    // For huge schema files in this scenario, we do _not_ want to block the runtime
-                    // for hashing.
-                    let result = tokio::task::spawn_blocking(move || {
-                        let mut hasher = DefaultHasher::new();
-                        schema.hash(&mut hasher);
-                        (hasher.finish(), schema)
-                    })
-                    .await;
+            let Ok(file) = tokio::fs::File::open(schema_path).await else {
+                tracing::warn!(
+                    "Could not open schema file in {}. The gateway will not use schema hot reload until file is available.",
+                    schema_path.to_str().unwrap_or_default()
+                );
 
-                    match result {
-                        Ok(result) => Ok(Either::Right(result)),
-                        Err(e) => {
-                            tracing::warn!("Internal error when hashing the schema changes: {e:?}",);
-                            Err(())
-                        }
-                    }
-                }
-                Err(_) => {
-                    tracing::warn!(
-                        "Could not load schema metadata from the filesystem. The gateway will not use schema hot reload until file is readable in {}.",
-                        schema_path.to_str().unwrap_or_default()
-                    );
+                return Err(());
+            };
 
-                    Err(())
-                }
+            let mut stream = FramedRead::new(file, BytesCodec::new());
+            let mut hasher = DefaultHasher::new();
+
+            while let Some(chunk) = stream.next().await {
+                tracing::warn!(
+                    "Could not open schema file in {}. The gateway will not use schema hot reload until file is available.",
+                    schema_path.to_str().unwrap_or_default()
+                );
+
+                let Ok(chunk) = chunk else {
+                    return Err(());
+                };
+
+                hasher.write(&chunk);
             }
+
+            Ok(Either::Right(hasher.finish()))
         }
     }
 }
