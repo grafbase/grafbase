@@ -1,12 +1,13 @@
 ---
-source: engine/crates/integration-tests/benches/federation/complex_shape.rs
+source: crates/integration-tests/benches/federation/complex_shape.rs
 expression: response
 ---
 {
   "data": {
     "node": {
       "__typename": "Nothing",
-      "id": "1234"
+      "id": "1234",
+      "node": null
     }
   }
 }
