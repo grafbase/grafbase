@@ -1,6 +1,5 @@
 [package]
 name = "subgraph_request"
-version.workspace = true
 edition.workspace = true
 license.workspace = true
 homepage.workspace = true

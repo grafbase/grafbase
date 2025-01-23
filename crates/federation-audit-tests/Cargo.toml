@@ -1,6 +1,5 @@
 [package]
 name = "federation-audit-tests"
-version.workspace = true
 edition.workspace = true
 license.workspace = true
 homepage.workspace = true

@@ -1,6 +1,5 @@
 [package]
 name = "serde-dynamic-string"
-version.workspace = true
 edition.workspace = true
 license.workspace = true
 homepage.workspace = true
