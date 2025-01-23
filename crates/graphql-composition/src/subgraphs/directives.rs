@@ -1,9 +1,15 @@
-use graphql_federated_graph::directives::ListSizeDirective;
+mod directive_definition;
+
+pub(crate) use self::directive_definition::*;
 
 use super::*;
+use graphql_federated_graph::directives::ListSizeDirective;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct DirectiveSiteId(usize);
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub(crate) struct DirectiveDefinitionId(usize);
 
 type Arguments = Vec<(StringId, Value)>;
 
@@ -43,15 +49,19 @@ pub(super) struct Directives {
     costs: BTreeMap<DirectiveSiteId, i32>,
     list_sizes: BTreeMap<DirectiveSiteId, ListSizeDirective>,
 
+    directive_definitions: Vec<DirectiveDefinition>,
+
     /// From @composeDirective.
-    ///
-    /// (subgraph_id, directive_name)
-    composed_directives: BTreeSet<(SubgraphId, StringId)>,
+    composed_directives: BTreeSet<StringId>,
 
     composed_directive_instances: Vec<(DirectiveSiteId, StringId, Arguments)>,
 }
 
 impl Subgraphs {
+    pub(crate) fn directive_definitions(&self) -> &[DirectiveDefinition] {
+        &self.directives.directive_definitions
+    }
+
     pub(crate) fn insert_authenticated(&mut self, id: DirectiveSiteId) {
         self.directives.authenticated.insert(id);
     }
@@ -60,11 +70,9 @@ impl Subgraphs {
         self.directives.authorized.insert(id, directive);
     }
 
-    pub(crate) fn insert_composed_directive(&mut self, subgraph_id: SubgraphId, directive_name: &str) {
+    pub(crate) fn insert_composed_directive(&mut self, directive_name: &str) {
         let directive_name = self.strings.intern(directive_name);
-        self.directives
-            .composed_directives
-            .insert((subgraph_id, directive_name));
+        self.directives.composed_directives.insert(directive_name);
     }
 
     pub(crate) fn insert_composed_directive_instance(
@@ -100,6 +108,10 @@ impl Subgraphs {
         self.directives.policies.insert((id, policies));
     }
 
+    pub(crate) fn is_composed_directive(&self, name_id: StringId) -> bool {
+        self.directives.composed_directives.contains(&name_id)
+    }
+
     pub(crate) fn append_required_scopes(&mut self, id: DirectiveSiteId, scopes: Vec<StringId>) {
         self.directives.requires_scopes.insert((id, scopes));
     }
@@ -107,6 +119,11 @@ impl Subgraphs {
     pub(crate) fn insert_tag(&mut self, id: DirectiveSiteId, tag: &str) {
         let tag = self.strings.intern(tag);
         self.directives.tags.insert((id, tag));
+    }
+
+    pub(crate) fn push_directive_definition(&mut self, definition: DirectiveDefinition) -> DirectiveDefinitionId {
+        let idx = self.directives.directive_definitions.push_return_idx(definition);
+        DirectiveDefinitionId(idx)
     }
 
     pub(crate) fn new_directive_site(&mut self) -> DirectiveSiteId {

@@ -1,0 +1,22 @@
+directive @ghi(a: Int, b: Float) on FIELD_DEFINITION # not in `@composeDirective`, so it does not matter that it doesn't match
+directive @pqr on FIELD_DEFINITION | OBJECT # location does not match
+directive @def(a: Int) on FIELD_DEFINITION # matches
+directive @mno(a: Int, b: String!) on FIELD_DEFINITION # argument b does not match
+directive @abc on FIELD_DEFINITION
+directive @jkl(a: Int, b: String!, c: [Float]) on FIELD_DEFINITION # argument c does not exist in the other subgraph
+directive @stu(a: String = "TEST") on FIELD_DEFINITION # different default value
+directive @vwx(a: Int, b: String! @b @c(d: "e")) on FIELD_DEFINITION # different directive on argument
+directive @yz(a: Int, b: String!) on FIELD_DEFINITION # no directive on argument
+extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@composeDirective"])
+  @composeDirective(name: "@abc")
+  @composeDirective(name: "@def")
+  @composeDirective(name: "@jkl")
+  @composeDirective(name: "@mno")
+  @composeDirective(name: "@pqr")
+  @composeDirective(name: "@vwx")
+  @composeDirective(name: "@yz")
+
+type Nougat {
+  id: ID! @ghi(a: 1, b: "2")
+}

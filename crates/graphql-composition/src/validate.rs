@@ -1,5 +1,6 @@
 use crate::subgraphs;
 
+mod compose_directive;
 mod input_selection;
 mod selection;
 mod subgraph_names;
@@ -11,6 +12,7 @@ pub(crate) fn validate(ctx: &mut ValidateContext<'_>) {
     subgraph_names::validate_subgraph_names(ctx);
     validate_query_nonempty(ctx);
     validate_fields(ctx);
+    compose_directive::validate_compose_directive(ctx);
 }
 
 fn validate_query_nonempty(ctx: &mut ValidateContext<'_>) {

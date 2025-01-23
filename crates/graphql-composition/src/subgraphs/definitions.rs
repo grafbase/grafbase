@@ -1,6 +1,5 @@
-use std::collections::btree_map;
-
 use super::*;
+use std::collections::btree_map;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct DefinitionId(pub(super) usize);

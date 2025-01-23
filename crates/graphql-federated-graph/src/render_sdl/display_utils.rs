@@ -26,20 +26,21 @@ where
     out.write_fmt(format_args!("{}", Helper(action)))
 }
 
-pub(super) fn write_quoted(sdl: &mut impl Write, s: &str) -> fmt::Result {
-    sdl.write_char('"')?;
-    for c in s.chars() {
+#[doc(hidden)]
+pub fn display_graphql_string_literal(string: &str, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.write_char('"')?;
+    for c in string.chars() {
         match c {
-            '\r' => sdl.write_str("\\r"),
-            '\n' => sdl.write_str("\\n"),
-            '\t' => sdl.write_str("\\t"),
-            '\\' => sdl.write_str("\\\\"),
-            '"' => sdl.write_str("\\\""),
-            c if c.is_control() => write!(sdl, "\\u{:04}", c as u32),
-            c => sdl.write_char(c),
+            '\r' => f.write_str("\\r"),
+            '\n' => f.write_str("\\n"),
+            '\t' => f.write_str("\\t"),
+            '\\' => f.write_str("\\\\"),
+            '"' => f.write_str("\\\""),
+            c if c.is_control() => write!(f, "\\u{:04}", c as u32),
+            c => f.write_char(c),
         }?
     }
-    sdl.write_char('"')
+    f.write_char('"')
 }
 
 pub(super) fn write_block(
@@ -92,7 +93,7 @@ impl fmt::Display for ValueDisplay<'_> {
 
         match value {
             crate::Value::Null => f.write_str("null"),
-            crate::Value::String(s) => write_quoted(f, &graph[*s]),
+            crate::Value::String(s) => display_graphql_string_literal(&graph[*s], f),
             crate::Value::Int(i) => Display::fmt(i, f),
             crate::Value::Float(val) => Display::fmt(val, f),
             crate::Value::UnboundEnumValue(val) => f.write_str(&graph[*val]),
@@ -136,7 +137,7 @@ impl fmt::Display for JsonValueDisplay<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.0 {
             serde_json::Value::Null => f.write_str("null"),
-            serde_json::Value::String(s) => write_quoted(f, s),
+            serde_json::Value::String(s) => display_graphql_string_literal(s, f),
             serde_json::Value::Number(num) => Display::fmt(num, f),
             serde_json::Value::Bool(true) => f.write_str("true"),
             serde_json::Value::Bool(false) => f.write_str("false"),
@@ -205,7 +206,7 @@ pub(super) struct SelectionSetDisplay<'a>(pub &'a crate::SelectionSet, pub &'a F
 impl Display for SelectionSetDisplay<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let out = format!("{}", BareSelectionSetDisplay(self.0, self.1));
-        write_quoted(f, &out)
+        display_graphql_string_literal(&out, f)
     }
 }
 
@@ -264,7 +265,7 @@ pub(super) struct InputValueDefinitionSetDisplay<'a>(pub &'a crate::InputValueDe
 impl Display for InputValueDefinitionSetDisplay<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let out = format!("{}", BareInputValueDefinitionSetDisplay(self.0, self.1));
-        write_quoted(f, &out)
+        display_graphql_string_literal(&out, f)
     }
 }
 
@@ -326,7 +327,7 @@ impl DisplayableArgument<'_> {
             DisplayableArgument::FieldSet(v) => v.fmt(f),
             DisplayableArgument::InputValueDefinitionSet(v) => v.fmt(f),
             DisplayableArgument::GraphEnumVariantName(inner) => inner.fmt(f),
-            DisplayableArgument::String(s) => write_quoted(f, s),
+            DisplayableArgument::String(s) => display_graphql_string_literal(s, f),
         }
     }
 }

@@ -11,6 +11,7 @@ keywords = ["graphql", "federation"]
 workspace = true
 
 [dependencies]
+bitflags.workspace = true
 cynic-parser = { workspace = true, features = ["report"] }
 cynic-parser-deser.workspace = true
 grafbase-workspace-hack.workspace = true
