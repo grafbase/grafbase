@@ -16,7 +16,7 @@ derive = ["dep:grafbase-hooks-derive"]
 grafbase-hooks-derive = { version = "0.1.0", path = "derive", optional = true }
 serde.workspace = true
 serde_json.workspace = true
-wit-bindgen = "0.37.0"
+wit-bindgen.workspace = true
 
 [lints]
 workspace = true

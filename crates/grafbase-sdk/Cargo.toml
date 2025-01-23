@@ -1,0 +1,22 @@
+[package]
+name = "grafbase-sdk"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+repository.workspace = true
+
+[dependencies]
+http.workspace = true
+minicbor-serde = { version = "0.3.2", features = ["alloc"] }
+semver = "1.0.25"
+serde.workspace = true
+serde_json.workspace = true
+serde_urlencoded.workspace = true
+url.workspace = true
+wit-bindgen.workspace = true
+grafbase-workspace-hack.workspace = true
+
+[lints]
+workspace = true
