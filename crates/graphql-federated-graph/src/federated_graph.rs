@@ -1,9 +1,11 @@
 mod debug;
+mod directive_definitions;
 mod directives;
 mod entity;
 mod enum_definitions;
 mod enum_values;
 mod ids;
+mod input_value_definitions;
 mod objects;
 mod root_operation_types;
 mod scalar_definitions;
@@ -13,6 +15,7 @@ mod view;
 use crate::directives::*;
 
 pub use self::{
+    directive_definitions::{DirectiveDefinition, DirectiveLocations},
     directives::*,
     entity::*,
     enum_definitions::EnumDefinitionRecord,
@@ -23,10 +26,11 @@ pub use self::{
     scalar_definitions::ScalarDefinitionRecord,
     view::{View, ViewNested},
 };
-use enum_definitions::EnumDefinition;
-use scalar_definitions::ScalarDefinition;
+pub use std::fmt;
 pub use wrapping::Wrapping;
 
+use enum_definitions::EnumDefinition;
+use scalar_definitions::ScalarDefinition;
 use std::ops::Range;
 
 #[derive(Clone)]
@@ -37,6 +41,7 @@ pub struct FederatedGraph {
     pub interfaces: Vec<Interface>,
     pub fields: Vec<Field>,
 
+    pub directive_definitions: Vec<DirectiveDefinition>,
     pub scalar_definitions: Vec<ScalarDefinitionRecord>,
     pub enum_definitions: Vec<EnumDefinitionRecord>,
     pub unions: Vec<Union>,
@@ -173,7 +178,7 @@ impl Value {
     }
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct InputValueDefinition {
     pub name: StringId,
     pub r#type: Type,
@@ -274,6 +279,7 @@ pub struct Key {
 impl Default for FederatedGraph {
     fn default() -> Self {
         FederatedGraph {
+            directive_definitions: Vec::new(),
             scalar_definitions: Vec::new(),
             enum_definitions: Vec::new(),
             subgraphs: Vec::new(),

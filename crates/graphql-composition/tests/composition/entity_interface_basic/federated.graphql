@@ -1,32 +1,25 @@
-directive @core(feature: String!) repeatable on SCHEMA
 
-directive @join__owner(graph: join__Graph!) on OBJECT
+directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
 
-directive @join__type(
-    graph: join__Graph!
-    key: join__FieldSet
-    resolvable: Boolean = true
-) repeatable on OBJECT | INTERFACE
-
-directive @join__field(
-    graph: join__Graph
-    requires: join__FieldSet
-    provides: join__FieldSet
-) on FIELD_DEFINITION
+directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
 
 directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 
-directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet) on FIELD_DEFINITION
 
-directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
+directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boolean = true) on OBJECT | INTERFACE
 
-scalar join__FieldSet
+directive @join__owner(graph: join__Graph!) on OBJECT
 
 enum join__Graph {
     FOREST @join__graph(name: "forest", url: "http://example.com/forest")
     SAVANNA @join__graph(name: "savanna", url: "http://example.com/savanna")
     STEPPE @join__graph(name: "steppe", url: "http://example.com/steppe")
 }
+
+scalar join__FieldSet
+
+scalar join__Graph
 
 type Squirrel
     @join__type(graph: FOREST)

@@ -1,15 +1,24 @@
 use itertools::Itertools;
 
-use super::{directive::write_directive, display_utils::*};
+use super::{directive::write_directive, directive_definition::display_directive_definition, display_utils::*};
 use crate::{directives::*, federated_graph::*};
 use std::fmt::{self, Write};
+
+const JOIN_GRAPH_ENUM_NAME: &str = "join__Graph";
 
 /// Render a GraphQL SDL string for a federated graph. It includes [join spec
 /// directives](https://specs.apollo.dev/join/v0.3/) about subgraphs and entities.
 pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
     let mut sdl = String::new();
 
-    write_prelude(&mut sdl, graph)?;
+    with_formatter(&mut sdl, |f| {
+        for definition in &graph.directive_definitions {
+            f.write_str("\n")?;
+            display_directive_definition(definition, directives_filter, graph, f)?;
+        }
+
+        f.write_str("\n")
+    })?;
 
     write_subgraphs_enum(graph, &mut sdl)?;
 
@@ -124,6 +133,10 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
     for r#enum in graph.iter_enum_definitions() {
         let enum_name = graph.at(r#enum.name).as_str();
 
+        if enum_name == JOIN_GRAPH_ENUM_NAME {
+            continue;
+        }
+
         if let Some(description) = r#enum.description {
             write!(sdl, "{}", Description(&graph[description], ""))?;
         }
@@ -214,61 +227,6 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
     sdl.push('\n');
 
     Ok(sdl)
-}
-
-fn write_prelude(sdl: &mut String, graph: &FederatedGraph) -> fmt::Result {
-    sdl.push_str(indoc::indoc! {r#"
-        directive @core(feature: String!) repeatable on SCHEMA
-
-        directive @join__owner(graph: join__Graph!) on OBJECT
-
-        directive @join__type(
-            graph: join__Graph!
-            key: join__FieldSet
-            resolvable: Boolean = true
-        ) repeatable on OBJECT | INTERFACE
-
-        directive @join__field(
-            graph: join__Graph
-            requires: join__FieldSet
-            provides: join__FieldSet
-        ) on FIELD_DEFINITION
-
-        directive @join__graph(name: String!, url: String!) on ENUM_VALUE
-
-        directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
-
-        directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
-
-        scalar join__FieldSet
-    "#});
-
-    if graph
-        .iter_objects()
-        .flat_map(|obj| obj.directives.iter())
-        .chain(graph.iter_interfaces().flat_map(|iface| iface.directives.iter()))
-        .chain(graph.iter_scalar_definitions().flat_map(|def| def.directives.iter()))
-        .chain(graph.iter_enum_definitions().flat_map(|def| def.directives.iter()))
-        .chain(graph.fields.iter().flat_map(|f| &f.directives))
-        .chain(graph.input_objects.iter().flat_map(|e| &e.directives))
-        .any(|directive| matches!(directive, Directive::Cost { .. }))
-    {
-        sdl.push('\n');
-        sdl.push_str(CostDirective::definition());
-    }
-
-    if graph
-        .fields
-        .iter()
-        .flat_map(|f| &f.directives)
-        .any(|directive| matches!(directive, Directive::ListSize(_)))
-    {
-        sdl.push('\n');
-        sdl.push_str(ListSizeDirective::definition());
-    }
-
-    sdl.push('\n');
-    Ok(())
 }
 
 fn write_subgraphs_enum(graph: &FederatedGraph, sdl: &mut String) -> fmt::Result {
@@ -524,6 +482,10 @@ impl std::fmt::Display for ListSizeRender<'_> {
     }
 }
 
+fn directives_filter(_: &Directive, _: &FederatedGraph) -> bool {
+    true
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -536,29 +498,7 @@ mod tests {
 
         let actual = render_federated_sdl(&empty).expect("valid");
         let expected = expect![[r#"
-            directive @core(feature: String!) repeatable on SCHEMA
 
-            directive @join__owner(graph: join__Graph!) on OBJECT
-
-            directive @join__type(
-                graph: join__Graph!
-                key: join__FieldSet
-                resolvable: Boolean = true
-            ) repeatable on OBJECT | INTERFACE
-
-            directive @join__field(
-                graph: join__Graph
-                requires: join__FieldSet
-                provides: join__FieldSet
-            ) on FIELD_DEFINITION
-
-            directive @join__graph(name: String!, url: String!) on ENUM_VALUE
-
-            directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
-
-            directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
-
-            scalar join__FieldSet
         "#]];
 
         expected.assert_eq(&actual);
@@ -581,29 +521,8 @@ mod tests {
 
         let actual = render_federated_sdl(&empty).expect("valid");
         let expected = expect![[r#"
-            directive @core(feature: String!) repeatable on SCHEMA
 
-            directive @join__owner(graph: join__Graph!) on OBJECT
-
-            directive @join__type(
-                graph: join__Graph!
-                key: join__FieldSet
-                resolvable: Boolean = true
-            ) repeatable on OBJECT | INTERFACE
-
-            directive @join__field(
-                graph: join__Graph
-                requires: join__FieldSet
-                provides: join__FieldSet
-            ) on FIELD_DEFINITION
-
-            directive @join__graph(name: String!, url: String!) on ENUM_VALUE
-
-            directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
-
-            directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
-
-            scalar join__FieldSet
+            directive @dummy(test: String!) on FIELD
 
             type Query
             {
@@ -637,29 +556,8 @@ mod tests {
 
         let actual = render_federated_sdl(&empty).expect("valid");
         let expected = expect![[r#"
-            directive @core(feature: String!) repeatable on SCHEMA
 
-            directive @join__owner(graph: join__Graph!) on OBJECT
-
-            directive @join__type(
-                graph: join__Graph!
-                key: join__FieldSet
-                resolvable: Boolean = true
-            ) repeatable on OBJECT | INTERFACE
-
-            directive @join__field(
-                graph: join__Graph
-                requires: join__FieldSet
-                provides: join__FieldSet
-            ) on FIELD_DEFINITION
-
-            directive @join__graph(name: String!, url: String!) on ENUM_VALUE
-
-            directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
-
-            directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
-
-            scalar join__FieldSet
+            directive @dummy(test: String!) on FIELD
 
             type Query
             {
@@ -687,29 +585,6 @@ mod tests {
         let rendered = render_federated_sdl(&parsed).unwrap();
 
         let expected = expect_test::expect![[r#"
-            directive @core(feature: String!) repeatable on SCHEMA
-
-            directive @join__owner(graph: join__Graph!) on OBJECT
-
-            directive @join__type(
-                graph: join__Graph!
-                key: join__FieldSet
-                resolvable: Boolean = true
-            ) repeatable on OBJECT | INTERFACE
-
-            directive @join__field(
-                graph: join__Graph
-                requires: join__FieldSet
-                provides: join__FieldSet
-            ) on FIELD_DEFINITION
-
-            directive @join__graph(name: String!, url: String!) on ENUM_VALUE
-
-            directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
-
-            directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
-
-            scalar join__FieldSet
 
             enum join__Graph {
                 MOCKSUBGRAPH @join__graph(name: "mocksubgraph", url: "https://mock.example.com/todo/graphql")

@@ -1,4 +1,4 @@
-use super::{directive::write_directive, display_utils::*};
+use super::{directive::write_directive, directive_definition::display_directive_definition, display_utils::*};
 use crate::{directives::*, federated_graph::*, FederatedGraph};
 use std::fmt::{self, Write as _};
 
@@ -29,6 +29,15 @@ impl fmt::Display for Renderer<'_> {
                 }
             }
         };
+
+        for definition in &graph.directive_definitions {
+            if graph[definition.name].starts_with("join__") {
+                continue;
+            }
+
+            display_directive_definition(definition, public_directives_filter, graph, f)?;
+            f.write_str("\n")?;
+        }
 
         for r#enum in graph.iter_enum_definitions() {
             if has_inaccessible(&r#enum.directives) {
@@ -209,6 +218,10 @@ impl fmt::Display for Renderer<'_> {
         for scalar in graph.iter_scalar_definitions() {
             let scalar_name = scalar.then(|scalar| scalar.name).as_str();
 
+            if scalar_name.starts_with("join__") {
+                continue;
+            }
+
             if BUILTIN_SCALARS.contains(&scalar_name) || has_inaccessible(&scalar.directives) {
                 continue;
             }
@@ -233,12 +246,8 @@ fn has_inaccessible(directives: &[Directive]) -> bool {
         .any(|directive| matches!(directive, Directive::Inaccessible))
 }
 
-fn write_public_directives<'a, 'b: 'a>(
-    f: &'a mut fmt::Formatter<'b>,
-    directives: &[Directive],
-    graph: &'a FederatedGraph,
-) -> fmt::Result {
-    for directive in directives.iter().filter(|directive| match directive {
+fn public_directives_filter(directive: &Directive, graph: &FederatedGraph) -> bool {
+    match directive {
         Directive::Inaccessible
         | Directive::Policy(_)
         | Directive::RequiresScopes(_)
@@ -254,7 +263,18 @@ fn write_public_directives<'a, 'b: 'a>(
 
         Directive::Other { name, .. } if graph[*name] == "tag" => false,
         Directive::Deprecated { .. } | Directive::Other { .. } => true,
-    }) {
+    }
+}
+
+fn write_public_directives<'a, 'b: 'a>(
+    f: &'a mut fmt::Formatter<'b>,
+    directives: &[Directive],
+    graph: &'a FederatedGraph,
+) -> fmt::Result {
+    for directive in directives
+        .iter()
+        .filter(|directive| public_directives_filter(directive, graph))
+    {
         f.write_str(" ")?;
         write_directive(f, directive, graph)?;
     }

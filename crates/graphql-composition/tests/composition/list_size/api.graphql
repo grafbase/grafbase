@@ -1,3 +1,5 @@
+directive @listSize(assumedSize: Int, slicingArguments: [String!], sizedFields: [String!], requireOneSlicingArgument: Boolean = true) on FIELD_DEFINITION
+
 type BarCollection {
     items: [Int]
 }

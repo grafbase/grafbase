@@ -1,3 +1,5 @@
+directive @authorized(arguments: String, fields: String, node: String, metadata: _Any) on OBJECT | FIELD_DEFINITION
+
 type Pet {
     age: String!
     id: Int!

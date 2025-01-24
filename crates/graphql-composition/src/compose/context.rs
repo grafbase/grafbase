@@ -58,6 +58,10 @@ impl<'a> Context<'a> {
         id
     }
 
+    pub(crate) fn insert_directive_definition(&mut self, definition: ir::DirectiveDefinitionIr) {
+        self.ir.directive_definitions.push(definition);
+    }
+
     pub(crate) fn insert_enum_value(
         &mut self,
         value: &str,

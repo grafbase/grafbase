@@ -1,3 +1,5 @@
+directive @cost(weight: Int!) on SCALAR | OBJECT | FIELD_DEFINITION | ARGUMENT_DEFINITION | ENUM | INPUT_FIELD_DEFINITION
+
 enum Blah {
     BLAH
 }

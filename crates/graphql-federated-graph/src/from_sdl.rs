@@ -1,5 +1,7 @@
 mod arguments;
 mod directive;
+mod directive_definition;
+mod input_value_definition;
 mod value;
 
 use self::{arguments::*, value::*};
@@ -11,13 +13,14 @@ use directive::{
     collect_definition_directives, collect_enum_value_directives, collect_field_directives,
     collect_input_value_directives,
 };
+use directive_definition::ingest_directive_definition;
 use indexmap::IndexSet;
+use input_value_definition::ingest_input_value_definition;
 use std::{collections::HashMap, error::Error as StdError, fmt, ops::Range};
 use wrapping::Wrapping;
 
 const JOIN_GRAPH_DIRECTIVE_NAME: &str = "join__graph";
 const JOIN_GRAPH_ENUM_NAME: &str = "join__Graph";
-const JOIN_FIELD_SET_SCALAR_NAME: &str = "join__FieldSet";
 
 #[derive(Debug)]
 pub struct DomainError(String);
@@ -210,7 +213,9 @@ pub(crate) fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
     let parsed = cynic_parser::parse_type_system_document(sdl).map_err(|err| DomainError(err.to_string()))?;
 
     ingest_definitions(&parsed, &mut state)?;
-    ingest_schema_definitions(&parsed, &mut state)?;
+
+    // This needs to happen after other definitions have been ingested, in order to resolve root and argument types.
+    ingest_schema_and_directive_definitions(&parsed, &mut state)?;
 
     // Ensure that the root query type is defined
     let query_type = state
@@ -245,6 +250,7 @@ pub(crate) fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
     ingest_directives_after_graph(&parsed, &mut state)?;
 
     let mut graph = FederatedGraph {
+        directive_definitions: std::mem::take(&mut state.graph.directive_definitions),
         root_operation_types: state.root_operation_types()?,
         enum_values: std::mem::take(&mut state.graph.enum_values),
         enum_definitions: std::mem::take(&mut state.graph.enum_definitions),
@@ -264,13 +270,19 @@ pub(crate) fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
     Ok(graph)
 }
 
-fn ingest_schema_definitions<'a>(
+fn ingest_schema_and_directive_definitions<'a>(
     parsed: &'a ast::TypeSystemDocument,
     state: &mut State<'a>,
 ) -> Result<(), DomainError> {
     for definition in parsed.definitions() {
-        if let ast::Definition::Schema(schema) = definition {
-            ingest_schema_definition(schema, state)?;
+        match definition {
+            ast::Definition::Schema(schema_definition) => {
+                ingest_schema_definition(schema_definition, state)?;
+            }
+            ast::Definition::Directive(directive_definition) => {
+                ingest_directive_definition(directive_definition, state)?;
+            }
+            _ => (),
         }
     }
 
@@ -433,10 +445,6 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                 match typedef {
                     ast::TypeDefinition::Enum(enm) if type_name == JOIN_GRAPH_ENUM_NAME => {
                         ingest_join_graph_enum(enm, state)?;
-                        continue;
-                    }
-                    ast::TypeDefinition::Scalar(_) if type_name == JOIN_FIELD_SET_SCALAR_NAME => {
-                        continue;
                     }
                     _ => (),
                 }
@@ -653,23 +661,7 @@ fn ingest_input_object<'a>(
             (input_object_id, field.name()),
             InputValueDefinitionId::from(state.graph.input_value_definitions.len()),
         );
-        let name = state.insert_string(field.name());
-        let r#type = state.field_type(field.ty())?;
-        let directives = collect_input_value_directives(field.directives(), state)?;
-        let description = field
-            .description()
-            .map(|description| state.insert_string(&description.to_cow()));
-        let default = field
-            .default_value()
-            .map(|default| state.insert_value(default, r#type.definition.as_enum()));
-
-        state.graph.input_value_definitions.push(InputValueDefinition {
-            name,
-            r#type,
-            directives,
-            description,
-            default,
-        });
+        ingest_input_value_definition(field, state)?;
     }
     let end = state.graph.input_value_definitions.len();
 
@@ -1401,34 +1393,27 @@ fn test_join_field_type() {
     "###;
 
     let expected = expect![[r#"
-        directive @core(feature: String!) repeatable on SCHEMA
 
-        directive @join__owner(graph: join__Graph!) on OBJECT
+        directive @join__enumValue(graph: join__Graph!) on ENUM_VALUE
 
-        directive @join__type(
-            graph: join__Graph!
-            key: join__FieldSet
-            resolvable: Boolean = true
-        ) repeatable on OBJECT | INTERFACE
-
-        directive @join__field(
-            graph: join__Graph
-            requires: join__FieldSet
-            provides: join__FieldSet
-        ) on FIELD_DEFINITION
+        directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, usedOverridden: Boolean) on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
 
         directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 
-        directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
+        directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
 
-        directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
+        directive @join__type(graph: join__Graph!, key: join__FieldSet, extension: Boolean! = false, resolvable: Boolean! = true, isInterfaceObject: Boolean! = false) on SCALAR | OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT
 
-        scalar join__FieldSet
+        directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
+
+        directive @link(url: String, as: String, for: link__Purpose, import: [link__Import]) on SCHEMA
 
         enum join__Graph {
             A @join__graph(name: "a", url: "http://localhost:4200/child-type-mismatch/a")
             B @join__graph(name: "b", url: "http://localhost:4200/child-type-mismatch/b")
         }
+
+        scalar join__FieldSet
 
         scalar link__Import
 

@@ -10,6 +10,9 @@ pub(super) struct Context<'a> {
     pub(super) selection_map: HashMap<(federated::Definition, federated::StringId), federated::FieldId>,
     pub(super) definitions: HashMap<federated::StringId, federated::Definition>,
 
+    pub(super) uses_cost_directive: bool,
+    pub(super) uses_list_size_directive: bool,
+
     strings_ir: ir::StringsIr,
 }
 
@@ -26,12 +29,18 @@ impl<'a> Context<'a> {
             strings_ir: std::mem::take(&mut ir.strings),
             selection_map: HashMap::with_capacity(ir.fields.len()),
             field_types_map: FieldTypesMap::default(),
+            uses_cost_directive: false,
+            uses_list_size_directive: false,
         }
     }
 
     /// Subgraphs string -> federated graph string.
     pub(crate) fn insert_string(&mut self, string: subgraphs::StringWalker<'_>) -> federated::StringId {
         self.strings_ir.insert(string.as_str())
+    }
+
+    pub(crate) fn insert_str(&mut self, string: &str) -> federated::StringId {
+        self.strings_ir.insert(string)
     }
 
     pub(crate) fn lookup_str(&self, string: &str) -> Option<federated::StringId> {
