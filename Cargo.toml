@@ -126,6 +126,7 @@ uuid = "1.8.0"
 ulid = "1.1.2"
 which = "7.0.0"
 wiremock = "0.6.0"
+wit-bindgen = "0.38.0"
 fnv = "1.0.7"
 sha2 = "0.10.8"
 
