@@ -1,6 +1,6 @@
 use runtime::trusted_documents_client::TrustedDocumentsEnforcementMode;
 
-const GRAFBASE_PRODUCTION_TRUSTED_DOCUMENTS_BUCKET: &str = "https://pub-72f3517515a34104921bb714721a885a.r2.dev";
+const GRAFBASE_PRODUCTION_TRUSTED_DOCUMENTS_CDN: &str = "https://assets.grafbase.com";
 const GRAFBASE_ASSETS_URL_ENV_VAR: &str = "GRAFBASE_ASSETS_URL";
 
 pub(crate) struct TrustedDocumentsClient {
@@ -38,7 +38,7 @@ impl TrustedDocumentsClient {
         enforcement_mode: TrustedDocumentsEnforcementMode,
     ) -> Self {
         let assets_host: url::Url = std::env::var(GRAFBASE_ASSETS_URL_ENV_VAR)
-            .unwrap_or(GRAFBASE_PRODUCTION_TRUSTED_DOCUMENTS_BUCKET.to_string())
+            .unwrap_or(GRAFBASE_PRODUCTION_TRUSTED_DOCUMENTS_CDN.to_string())
             .parse()
             .expect("assets url should be valid");
 
@@ -70,7 +70,7 @@ impl runtime::trusted_documents_client::TrustedDocumentsClient for TrustedDocume
         document_id: &str,
     ) -> runtime::trusted_documents_client::TrustedDocumentsResult<String> {
         let branch_id = self.branch_id;
-        let key = format!("{branch_id}/{client_name}/{document_id}");
+        let key = format!("trusted-documents/{branch_id}/{client_name}/{document_id}");
 
         let mut url = self.assets_host.clone();
         url.set_path(&key);
