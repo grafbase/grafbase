@@ -20,6 +20,7 @@ publish = false
 
 ### BEGIN HAKARI SECTION
 [dependencies]
+ahash = { version = "0.8" }
 aho-corasick = { version = "1" }
 ascii = { version = "1", features = ["serde"] }
 axum-c38e5c1d305a1b54 = { package = "axum", version = "0.8", default-features = false, features = ["http1", "json", "macros", "query", "ws"] }
@@ -64,6 +65,7 @@ futures-sink = { version = "0.3" }
 futures-task = { version = "0.3", default-features = false, features = ["std"] }
 futures-util = { version = "0.3", features = ["channel", "io", "sink"] }
 generic-array = { version = "0.14", default-features = false, features = ["more_lengths", "zeroize"] }
+getrandom = { version = "0.2", default-features = false, features = ["std"] }
 group = { version = "0.13", default-features = false, features = ["alloc"] }
 hashbrown-3575ec1268b04181 = { package = "hashbrown", version = "0.15" }
 hashbrown-582f2526e08bb6a0 = { package = "hashbrown", version = "0.14", features = ["raw", "serde"] }
@@ -131,9 +133,11 @@ ulid = { version = "1", features = ["serde"] }
 url = { version = "2", features = ["serde"] }
 uuid = { version = "1", features = ["v4"] }
 wasmparser = { version = "0.221", default-features = false, features = ["component-model", "features", "serde", "simd", "std", "validate"] }
+zerocopy = { version = "0.7", features = ["derive", "simd"] }
 zeroize = { version = "1", features = ["zeroize_derive"] }
 
 [build-dependencies]
+ahash = { version = "0.8" }
 aho-corasick = { version = "1" }
 ascii = { version = "1", features = ["serde"] }
 axum-c38e5c1d305a1b54 = { package = "axum", version = "0.8", default-features = false, features = ["http1", "json", "macros", "query", "ws"] }
@@ -180,6 +184,7 @@ futures-sink = { version = "0.3" }
 futures-task = { version = "0.3", default-features = false, features = ["std"] }
 futures-util = { version = "0.3", features = ["channel", "io", "sink"] }
 generic-array = { version = "0.14", default-features = false, features = ["more_lengths", "zeroize"] }
+getrandom = { version = "0.2", default-features = false, features = ["std"] }
 group = { version = "0.13", default-features = false, features = ["alloc"] }
 hashbrown-3575ec1268b04181 = { package = "hashbrown", version = "0.15" }
 hashbrown-582f2526e08bb6a0 = { package = "hashbrown", version = "0.14", features = ["raw", "serde"] }
@@ -248,12 +253,11 @@ ulid = { version = "1", features = ["serde"] }
 url = { version = "2", features = ["serde"] }
 uuid = { version = "1", features = ["v4"] }
 wasmparser = { version = "0.221", default-features = false, features = ["component-model", "features", "serde", "simd", "std", "validate"] }
+zerocopy = { version = "0.7", features = ["derive", "simd"] }
 zeroize = { version = "1", features = ["zeroize_derive"] }
 
 [target.aarch64-apple-darwin.dependencies]
-ahash = { version = "0.8" }
 axum-ca01ad9e24f5d932 = { package = "axum", version = "0.7", default-features = false, features = ["ws"] }
-getrandom = { version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -266,9 +270,7 @@ tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features 
 tungstenite-adf3d7031871b0af = { package = "tungstenite", version = "0.24", features = ["__rustls-tls"] }
 
 [target.aarch64-apple-darwin.build-dependencies]
-ahash = { version = "0.8" }
 axum-ca01ad9e24f5d932 = { package = "axum", version = "0.7", default-features = false, features = ["ws"] }
-getrandom = { version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -281,9 +283,7 @@ tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features 
 tungstenite-adf3d7031871b0af = { package = "tungstenite", version = "0.24", features = ["__rustls-tls"] }
 
 [target.x86_64-apple-darwin.dependencies]
-ahash = { version = "0.8" }
 axum-ca01ad9e24f5d932 = { package = "axum", version = "0.7", default-features = false, features = ["ws"] }
-getrandom = { version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -297,9 +297,7 @@ tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features 
 tungstenite-adf3d7031871b0af = { package = "tungstenite", version = "0.24", features = ["__rustls-tls"] }
 
 [target.x86_64-apple-darwin.build-dependencies]
-ahash = { version = "0.8" }
 axum-ca01ad9e24f5d932 = { package = "axum", version = "0.7", default-features = false, features = ["ws"] }
-getrandom = { version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -314,7 +312,6 @@ tungstenite-adf3d7031871b0af = { package = "tungstenite", version = "0.24", feat
 
 [target.x86_64-pc-windows-msvc.dependencies]
 axum-ca01ad9e24f5d932 = { package = "axum", version = "0.7", default-features = false, features = ["ws"] }
-getrandom = { version = "0.2", default-features = false, features = ["std"] }
 spin = { version = "0.9" }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["timeout"] }
 tungstenite-adf3d7031871b0af = { package = "tungstenite", version = "0.24", features = ["__rustls-tls"] }
@@ -324,7 +321,6 @@ windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", feat
 
 [target.x86_64-pc-windows-msvc.build-dependencies]
 axum-ca01ad9e24f5d932 = { package = "axum", version = "0.7", default-features = false, features = ["ws"] }
-getrandom = { version = "0.2", default-features = false, features = ["std"] }
 spin = { version = "0.9" }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["timeout"] }
 tungstenite-adf3d7031871b0af = { package = "tungstenite", version = "0.24", features = ["__rustls-tls"] }
@@ -333,9 +329,7 @@ windows-sys-73dcd821b1037cfd = { package = "windows-sys", version = "0.59", feat
 windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Wdk_System_IO", "Win32_Foundation", "Win32_NetworkManagement_IpHelper", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_IO", "Win32_System_Ioctl", "Win32_System_Kernel", "Win32_System_LibraryLoader", "Win32_System_Performance", "Win32_System_Pipes", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming", "Win32_UI_Input_KeyboardAndMouse"] }
 
 [target.x86_64-unknown-linux-musl.dependencies]
-ahash = { version = "0.8" }
 axum-ca01ad9e24f5d932 = { package = "axum", version = "0.7", default-features = false, features = ["ws"] }
-getrandom = { version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -350,9 +344,7 @@ tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features 
 tungstenite-adf3d7031871b0af = { package = "tungstenite", version = "0.24", features = ["__rustls-tls"] }
 
 [target.x86_64-unknown-linux-musl.build-dependencies]
-ahash = { version = "0.8" }
 axum-ca01ad9e24f5d932 = { package = "axum", version = "0.7", default-features = false, features = ["ws"] }
-getrandom = { version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -367,9 +359,7 @@ tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features 
 tungstenite-adf3d7031871b0af = { package = "tungstenite", version = "0.24", features = ["__rustls-tls"] }
 
 [target.aarch64-unknown-linux-musl.dependencies]
-ahash = { version = "0.8" }
 axum-ca01ad9e24f5d932 = { package = "axum", version = "0.7", default-features = false, features = ["ws"] }
-getrandom = { version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -383,9 +373,7 @@ tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features 
 tungstenite-adf3d7031871b0af = { package = "tungstenite", version = "0.24", features = ["__rustls-tls"] }
 
 [target.aarch64-unknown-linux-musl.build-dependencies]
-ahash = { version = "0.8" }
 axum-ca01ad9e24f5d932 = { package = "axum", version = "0.7", default-features = false, features = ["ws"] }
-getrandom = { version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }

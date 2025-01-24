@@ -17,7 +17,7 @@ impl Directive {
     /// the arguments of the directive.
     ///
     /// Error is returned if the directive argument does not match the output structure.
-    pub fn args<'de, T>(&'de self) -> Result<T, DecodeError>
+    pub fn arguments<'de, T>(&'de self) -> Result<T, DecodeError>
     where
         T: Deserialize<'de>,
     {
@@ -32,34 +32,22 @@ impl From<crate::wit::Directive> for Directive {
 }
 
 /// The input data structure of the field.
-pub struct FieldInput(crate::wit::FieldInput);
+pub struct FieldDefinition(crate::wit::FieldDefinition);
 
-impl FieldInput {
+impl FieldDefinition {
     /// The name of the field.
     pub fn name(&self) -> &str {
-        self.0.definition.name.as_str()
+        self.0.name.as_str()
     }
 
     /// The name of the field type.
     pub fn type_name(&self) -> &str {
-        self.0.definition.type_name.as_str()
-    }
-
-    /// Serialized field metadata, arguments and response data. Defined in the directive.
-    pub fn inputs<'de, T>(&'de self) -> Result<Vec<T>, DecodeError>
-    where
-        T: Deserialize<'de>,
-    {
-        self.0
-            .inputs
-            .iter()
-            .map(|input| minicbor_serde::from_slice(input))
-            .collect()
+        self.0.type_name.as_str()
     }
 }
 
-impl From<crate::wit::FieldInput> for FieldInput {
-    fn from(value: crate::wit::FieldInput) -> Self {
+impl From<crate::wit::FieldDefinition> for FieldDefinition {
+    fn from(value: crate::wit::FieldDefinition) -> Self {
         Self(value)
     }
 }
@@ -109,5 +97,25 @@ impl FieldOutput {
 impl From<FieldOutput> for crate::wit::FieldOutput {
     fn from(value: FieldOutput) -> Self {
         value.0
+    }
+}
+
+/// A container for field inputs.
+pub struct FieldInputs(Vec<Vec<u8>>);
+
+impl FieldInputs {
+    pub(crate) fn new(inputs: Vec<Vec<u8>>) -> Self {
+        Self(inputs)
+    }
+
+    /// Deserializes each byte slice in the `FieldInputs` to a collection of items.
+    pub fn deserialize<'de, T>(&'de self) -> Result<Vec<T>, Box<dyn std::error::Error>>
+    where
+        T: Deserialize<'de>,
+    {
+        self.0
+            .iter()
+            .map(|input| minicbor_serde::from_slice(input).map_err(|e| Box::new(e) as Box<dyn std::error::Error>))
+            .collect()
     }
 }

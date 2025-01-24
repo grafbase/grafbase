@@ -1,10 +1,11 @@
 [workspace]
-resolver = "2"
 members = [
     "cli",
     "gateway",
     "crates/*",
+    "extensions/*",
     "crates/grafbase-hooks/derive",
+    "crates/grafbase-sdk/derive",
     "crates/engine/auth",
     "crates/engine/config",
     "crates/engine/axum",
@@ -16,6 +17,7 @@ members = [
     "crates/engine/id-derives",
     "crates/engine/id-newtypes",
 ]
+resolver = "2"
 exclude = [
     "crates/wasi-component-loader/examples",
     "examples/hooks-template",
@@ -159,6 +161,7 @@ graphql-lint = { path = "crates/graphql-lint" }
 federated-server = { path = "crates/federated-server" }
 gateway-config = { path = "crates/gateway-config" }
 rolling-logger = { path = "crates/rolling-logger" }
+grafbase-sdk = { path = "crates/grafbase-sdk" }
 
 # Engine
 engine-config-builder = { path = "crates/engine-config-builder" }

@@ -37,12 +37,6 @@ world sdk {
       outputs: list<result<list<u8>, error>>
     }
 
-    record field-input {
-        definition: field-definition,
-        // Serialized metadata/arguments/response data as defined by the directive in CBOR
-        inputs: list<list<u8>>
-    }
-
     enum extension-type {
         resolver
     }
@@ -140,7 +134,8 @@ world sdk {
     export resolve-field: func(
        context: shared-context,
        directive: directive,
-       inputs: list<field-input>
+       definition: field-definition,
+       inputs: list<list<u8>>
     ) -> result<field-output, error>;
 
     // The extension registration function. Must be called before initialization.
