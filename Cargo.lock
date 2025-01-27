@@ -2526,6 +2526,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "extension"
+version = "0.0.0"
+dependencies = [
+ "grafbase-workspace-hack",
+ "semver",
+ "serde",
+]
+
+[[package]]
 name = "fallible-iterator"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
