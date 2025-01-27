@@ -129,6 +129,7 @@ wiremock = "0.6.0"
 wit-bindgen = "0.38.0"
 fnv = "1.0.7"
 sha2 = "0.10.8"
+semver = "1"
 
 # Serde
 serde = { version = "1.0.199", features = ["derive"] }
