@@ -56,7 +56,7 @@ pub(crate) fn write_directive<'a, 'b: 'a>(
         Directive::Cost { weight } => {
             DirectiveWriter::new("cost", f, graph)?.arg("weight", Value::Int(*weight as i64))?;
         }
-        Directive::Other { name, arguments } => {
+        Directive::Other { name, arguments } | Directive::ExtensionDirective { name, arguments, .. } => {
             let mut directive = DirectiveWriter::new(&graph[*name], f, graph)?;
 
             for (name, value) in arguments {

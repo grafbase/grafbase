@@ -13,16 +13,16 @@ use wrapping::{ListWrapping, MutableWrapping};
 
 use super::{BuildContext, DefinitionId};
 
-pub(super) struct InputValueCoercer<'a> {
-    ctx: &'a BuildContext,
+pub(super) struct InputValueCoercer<'a, EC> {
+    ctx: &'a BuildContext<EC>,
     graph: &'a Graph,
     input_values: &'a mut SchemaInputValues,
     value_path: Vec<ValuePathSegment>,
     input_fields_buffer_pool: Vec<Vec<(InputValueDefinitionId, SchemaInputValueRecord)>>,
 }
 
-impl<'a> InputValueCoercer<'a> {
-    pub fn new(ctx: &'a BuildContext, graph: &'a Graph, input_values: &'a mut SchemaInputValues) -> Self {
+impl<'a, EC> InputValueCoercer<'a, EC> {
+    pub fn new(ctx: &'a BuildContext<EC>, graph: &'a Graph, input_values: &'a mut SchemaInputValues) -> Self {
         Self {
             ctx,
             graph,

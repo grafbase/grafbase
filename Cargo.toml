@@ -163,6 +163,7 @@ federated-server = { path = "crates/federated-server" }
 gateway-config = { path = "crates/gateway-config" }
 rolling-logger = { path = "crates/rolling-logger" }
 grafbase-sdk = { path = "crates/grafbase-sdk" }
+extension = { path = "crates/extension" }
 
 # Engine
 engine-config-builder = { path = "crates/engine-config-builder" }

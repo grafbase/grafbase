@@ -34,6 +34,11 @@ pub enum Directive {
         arguments: Vec<(StringId, Value)>,
     },
     ListSize(ListSize),
+    ExtensionDirective {
+        extension_id: extension::Id,
+        name: StringId,
+        arguments: Vec<(StringId, Value)>,
+    },
 }
 
 impl From<JoinFieldDirective> for Directive {

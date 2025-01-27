@@ -5,6 +5,7 @@ pub mod bytes;
 pub mod cursor;
 pub mod entity_cache;
 pub mod error;
+pub mod extension;
 pub mod fetch;
 pub mod hooks;
 pub mod kv;

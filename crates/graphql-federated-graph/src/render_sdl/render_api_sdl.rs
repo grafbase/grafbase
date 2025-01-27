@@ -249,7 +249,8 @@ fn write_public_directives<'a, 'b: 'a>(
         | Directive::JoinUnionMember(_)
         | Directive::JoinImplements(_)
         | Directive::Authorized(_)
-        | Directive::ListSize(_) => false,
+        | Directive::ListSize(_)
+        | Directive::ExtensionDirective { .. } => false,
 
         Directive::Other { name, .. } if graph[*name] == "tag" => false,
         Directive::Deprecated { .. } | Directive::Other { .. } => true,

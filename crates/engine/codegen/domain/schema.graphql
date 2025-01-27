@@ -202,6 +202,7 @@ union TypeSystemDirective
   | AuthorizedDirective
   | CostDirective
   | ListSizeDirective
+  | ExtensionDirective
 
 type DeprecatedDirective
   @meta(module: "directive/deprecated", derive: ["PartialEq", "Eq", "PartialOrd", "Ord", "Hash"])
@@ -227,6 +228,14 @@ type ListSizeDirective @meta(module: "directive/complexity_control") @indexed(id
   slicing_arguments: [InputValueDefinition!]! @vec
   sized_fields: [FieldDefinition!]! @vec
   require_one_slicing_argument: Boolean!
+}
+
+scalar ExtensionId @id @prelude
+
+type ExtensionDirective @meta(module: "directive/extension") @indexed(id_size: "u32") {
+  extension_id: ExtensionId!
+  name: String!
+  arguments: SchemaInputValue!
 }
 
 # -------------

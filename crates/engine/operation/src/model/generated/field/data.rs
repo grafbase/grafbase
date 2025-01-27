@@ -22,6 +22,7 @@ use walker::{Iter, Walk};
 ///   location: Location!
 ///   directives: [ExecutableDirective!]!
 ///   definition: FieldDefinition!
+///   "Ordered by input value definition id"
 ///   arguments: [FieldArgument!]!
 ///   selection_set: SelectionSet!
 /// }
@@ -32,6 +33,7 @@ pub struct DataFieldRecord {
     pub location: Location,
     pub directive_ids: Vec<ExecutableDirectiveId>,
     pub definition_id: FieldDefinitionId,
+    /// Ordered by input value definition id
     pub argument_ids: IdRange<FieldArgumentId>,
     pub selection_set_record: SelectionSetRecord,
 }
@@ -65,6 +67,7 @@ impl<'a> DataField<'a> {
     pub fn definition(&self) -> FieldDefinition<'a> {
         self.definition_id.walk(self.ctx)
     }
+    /// Ordered by input value definition id
     pub fn arguments(&self) -> impl Iter<Item = FieldArgument<'a>> + 'a {
         self.as_ref().argument_ids.walk(self.ctx)
     }

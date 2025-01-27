@@ -33,6 +33,7 @@ use id_newtypes::{BitSet, IdRange};
 pub use ids::*;
 pub use input_value::*;
 use regex::Regex;
+use runtime::extension::ExtensionCatalog;
 pub use subgraph::*;
 use walker::{Iter, Walk};
 pub use wrapping::*;
@@ -102,11 +103,15 @@ impl Schema {
     pub fn from_sdl_or_panic(sdl: &str) -> Self {
         let graph = federated_graph::FederatedGraph::from_sdl(sdl).unwrap();
         let config = config::Config::from_graph(graph);
-        Self::build(config, Version::from(Vec::new())).unwrap()
+        Self::build(config, Version::from(Vec::new()), ()).unwrap()
     }
 
-    pub fn build(config: config::Config, version: Version) -> Result<Schema, BuildError> {
-        builder::build(config, version)
+    pub fn build(
+        config: config::Config,
+        version: Version,
+        extension_catalog: impl ExtensionCatalog,
+    ) -> Result<Schema, BuildError> {
+        builder::build(config, version, extension_catalog)
     }
 }
 
@@ -206,6 +211,9 @@ pub struct Graph {
     cost_directives: Vec<CostDirectiveRecord>,
     #[indexed_by(ListSizeDirectiveId)]
     list_size_directives: Vec<ListSizeDirectiveRecord>,
+
+    #[indexed_by(ExtensionDirectiveId)]
+    extension_directives: Vec<ExtensionDirectiveRecord>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, id_derives::IndexedFields)]

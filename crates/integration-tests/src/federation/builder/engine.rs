@@ -75,7 +75,7 @@ pub(super) async fn build(
 
     let config = build_with_toml_config(&config, graph);
 
-    let schema = engine::Schema::build(config, engine::SchemaVersion::from(ulid::Ulid::new().to_bytes())).unwrap();
+    let schema = engine::Schema::build(config, engine::SchemaVersion::from(ulid::Ulid::new().to_bytes()), ()).unwrap();
     let engine = engine::Engine::new(Arc::new(schema), runtime).await;
     let ctx = TestRuntimeContext { access_log_receiver };
 

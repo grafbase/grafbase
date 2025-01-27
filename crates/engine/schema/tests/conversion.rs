@@ -96,9 +96,7 @@ type User
 
 #[test]
 fn should_not_fail() {
-    let graph = config::FederatedGraph::from_sdl(SCHEMA).unwrap();
-    let config = config::Config::from_graph(graph);
-    let _schema = Schema::build(config, Version::from(Vec::new())).unwrap();
+    let _schema = Schema::from_sdl_or_panic(SCHEMA);
 }
 
 const SCHEMA_WITH_INACCESSIBLES: &str = r#"
@@ -238,7 +236,7 @@ fn serde_roundtrip(#[case] sdl: &str) {
         name: NameOrPattern::Pattern(Regex::new("^foo*").unwrap()),
     }));
 
-    let schema = Schema::build(config, Version::from("random")).unwrap();
+    let schema = Schema::build(config, Version::from("random"), ()).unwrap();
 
     let bytes = postcard::to_stdvec(&schema).unwrap();
     postcard::from_bytes::<Schema>(&bytes).unwrap();

@@ -1,4 +1,4 @@
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
 pub struct Id {
     /// From where was this extension manifest retrieved? For example:
     /// - URL: https://grafbase.com/extensions
@@ -6,6 +6,12 @@ pub struct Id {
     pub origin: String,
     pub name: String,
     pub version: semver::Version,
+}
+
+impl std::fmt::Display for Id {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}/{}@{}", self.origin, self.name, self.version)
+    }
 }
 
 impl Id {
