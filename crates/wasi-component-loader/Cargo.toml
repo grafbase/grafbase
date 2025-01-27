@@ -30,7 +30,7 @@ version = "28"
 default-features = false
 
 [dependencies.wasmtime-wasi-http]
-version = "28"
+version = "29"
 
 [lints]
 workspace = true
