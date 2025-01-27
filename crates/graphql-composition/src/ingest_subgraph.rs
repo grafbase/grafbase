@@ -1,6 +1,7 @@
 //! This is a separate module because we want to use only the public API of [Subgraphs] and avoid
 //! mixing GraphQL parser logic and types with our internals.
 
+mod directive_definitions;
 mod directives;
 mod enums;
 mod fields;
@@ -34,7 +35,7 @@ pub(crate) fn ingest_subgraph(document: &ast::TypeSystemDocument, name: &str, ur
     ingest_nested_key_fields(subgraph_id, subgraphs);
 
     for name in directive_matcher.iter_composed_directives() {
-        subgraphs.insert_composed_directive(subgraph_id, name)
+        subgraphs.insert_composed_directive(name)
     }
 }
 
@@ -146,7 +147,10 @@ fn ingest_top_level_definitions(
                     directive_matcher,
                 );
             }
-            ast::Definition::Schema(_) | ast::Definition::SchemaExtension(_) | ast::Definition::Directive(_) => (),
+            ast::Definition::Directive(directive_definition) => {
+                directive_definitions::ingest_directive_definition(directive_definition, subgraph_id, subgraphs);
+            }
+            ast::Definition::Schema(_) | ast::Definition::SchemaExtension(_) => (),
         }
     }
 }

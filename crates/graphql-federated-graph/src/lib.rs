@@ -10,7 +10,7 @@ pub use self::federated_graph::*;
 pub use directives::*;
 
 #[cfg(feature = "render_sdl")]
-pub use render_sdl::{render_api_sdl, render_federated_sdl};
+pub use render_sdl::{display_graphql_string_literal, render_api_sdl, render_federated_sdl};
 
 #[cfg(feature = "from_sdl")]
 pub use from_sdl::DomainError;
