@@ -7,6 +7,7 @@ pub mod host_io;
 pub mod types;
 
 pub use extension::{Extension, Resolver};
+pub use grafbase_sdk_derive::ResolverExtension;
 pub use wit::{Error, ExtensionType, SharedContext};
 
 use semver::Version;
@@ -39,68 +40,6 @@ fn unpack_version(version: u64) -> Version {
 }
 
 struct Component;
-
-/// Register the extension to the Grafbase Gateway. This macro must be called in the extension
-/// crate root for the local extension implementation.
-///
-/// The first parameter is an [`wit::ExtensionType`], and the second parameter a type implementing
-/// the [`extension::Extension`] trait together with the trait matching the extension type.
-///
-/// For example, to register a resolver extension:
-///
-/// ```rust
-/// struct MyExtension;
-///
-/// impl grafbase_sdk::Extension for MyExtension {
-///     fn new(schema_directives: Vec<grafbase_sdk::types::Directive>) -> Self
-///         where Self: Sized
-///     {
-///         Self
-///     }
-/// }
-///
-/// impl grafbase_sdk::Resolver for MyExtension {
-///     fn resolve_field(
-///         &self,
-///         context: grafbase_sdk::SharedContext,
-///         directive: grafbase_sdk::types::Directive,
-///         inputs: Vec<grafbase_sdk::types::FieldInput>,
-///     ) -> Result<grafbase_sdk::types::FieldOutput, grafbase_sdk::Error> {
-///         todo!()
-///     }
-/// }
-///
-/// grafbase_sdk::register_extension!(grafbase_sdk::ExtensionType::Resolver, MyExtension);
-/// ```
-#[macro_export]
-macro_rules! register_extension {
-    ($extension_type:expr, $extension:ty) => {
-        #[doc(hidden)]
-        #[export_name = "register-extension"]
-        pub extern "C" fn __register_extension(host_version: u64) -> i64 {
-            let version_result = grafbase_sdk::check_host_version(host_version);
-
-            if version_result < 0 {
-                return version_result;
-            }
-
-            match $extension_type {
-                grafbase_sdk::ExtensionType::Resolver => {
-                    // let init_fn = |directives| Box::new(<$extension as grafbase_sdk::Resolver>::new(directives));
-
-                    let init_fn = |directives| {
-                        let extension = <$extension as grafbase_sdk::Extension>::new(directives);
-                        Box::new(extension) as Box<dyn grafbase_sdk::Resolver>
-                    };
-
-                    grafbase_sdk::extension::resolver::register(Box::new(init_fn));
-                }
-            }
-
-            version_result
-        }
-    };
-}
 
 #[doc(hidden)]
 mod wit {

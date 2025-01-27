@@ -1,20 +1,20 @@
 use crate::{
-    types::{Directive, FieldInput, FieldOutput},
+    types::{Directive, FieldDefinition, FieldInputs, FieldOutput},
     wit::{Error, SharedContext},
 };
 
 use super::Extension;
 
-type InitFn = Box<dyn Fn(Vec<Directive>) -> Box<dyn Resolver>>;
+type InitFn = Box<dyn Fn(Vec<Directive>) -> Result<Box<dyn Resolver>, Box<dyn std::error::Error>>>;
 
 pub(super) static mut EXTENSION: Option<Box<dyn Resolver>> = None;
 pub static mut INIT_FN: Option<InitFn> = None;
 
-pub(super) fn get_extension() -> Result<&'static dyn Resolver, Error> {
+pub(super) fn get_extension() -> Result<&'static mut dyn Resolver, Error> {
     // Safety: This is hidden, only called by us. Every extension call to an instance happens
     // in a single-threaded environment. Do not call this multiple times from different threads.
     unsafe {
-        EXTENSION.as_deref().ok_or_else(|| Error {
+        EXTENSION.as_deref_mut().ok_or_else(|| Error {
             message: "Resolver extension not initialized correctly.".to_string(),
             extensions: Vec::new(),
         })
@@ -23,14 +23,11 @@ pub(super) fn get_extension() -> Result<&'static dyn Resolver, Error> {
 
 /// Initializes the resolver extension with the provided directives using the closure
 /// function created with the `register_extension!` macro.
-pub(super) fn init(directives: Vec<Directive>) -> Result<(), String> {
+pub(super) fn init(directives: Vec<Directive>) -> Result<(), Box<dyn std::error::Error>> {
     // Safety: This function is only called from the SDK macro, so we can assume that there is only one caller at a time.
     unsafe {
-        let init = INIT_FN
-            .as_ref()
-            .ok_or_else(|| String::from("Resolver extension not initialized correctly."))?;
-
-        EXTENSION = Some(init(directives));
+        let init = INIT_FN.as_ref().expect("Resolver extension not initialized correctly.");
+        EXTENSION = Some(init(directives)?);
     }
 
     Ok(())
@@ -75,9 +72,10 @@ pub trait Resolver: Extension {
     /// The `FieldOutput` type has multiple response values, which can be either successful or an
     /// error result.
     fn resolve_field(
-        &self,
+        &mut self,
         context: SharedContext,
         directive: Directive,
-        inputs: Vec<FieldInput>,
+        definition: FieldDefinition,
+        inputs: FieldInputs,
     ) -> Result<FieldOutput, Error>;
 }

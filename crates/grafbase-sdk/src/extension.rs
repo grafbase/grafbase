@@ -5,7 +5,8 @@ pub mod resolver;
 pub use resolver::Resolver;
 
 use crate::{
-    wit::{Directive, Error, ExtensionType, FieldInput, FieldOutput, Guest, SharedContext},
+    types::FieldInputs,
+    wit::{Directive, Error, ExtensionType, FieldDefinition, FieldOutput, Guest, SharedContext},
     Component,
 };
 
@@ -20,7 +21,7 @@ pub trait Extension {
     /// The directives must be defined in the extension configuration, and written
     /// to the federated schema. The directives are deserialized from their GraphQL
     /// definitions to the corresponding `Directive` instances.
-    fn new(schema_directives: Vec<crate::types::Directive>) -> Self
+    fn new(schema_directives: Vec<crate::types::Directive>) -> Result<Self, Box<dyn std::error::Error>>
     where
         Self: Sized;
 }
@@ -28,19 +29,23 @@ pub trait Extension {
 impl Guest for Component {
     fn init_gateway_extension(r#type: ExtensionType, directives: Vec<Directive>) -> Result<(), String> {
         match r#type {
-            ExtensionType::Resolver => resolver::init(directives.into_iter().map(Into::into).collect()),
+            ExtensionType::Resolver => {
+                resolver::init(directives.into_iter().map(Into::into).collect()).map_err(|e| e.to_string())
+            }
         }
     }
 
     fn resolve_field(
         context: SharedContext,
         directive: Directive,
-        inputs: Vec<FieldInput>,
+        definition: FieldDefinition,
+        inputs: Vec<Vec<u8>>,
     ) -> Result<FieldOutput, Error> {
         let result = resolver::get_extension()?.resolve_field(
             context,
             directive.into(),
-            inputs.into_iter().map(Into::into).collect(),
+            definition.into(),
+            FieldInputs::new(inputs),
         );
 
         result.map(Into::into)

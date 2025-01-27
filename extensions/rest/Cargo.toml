@@ -1,5 +1,5 @@
 [package]
-name = "grafbase-sdk"
+name = "rest"
 version = "0.1.0"
 edition.workspace = true
 license.workspace = true
@@ -8,16 +8,13 @@ keywords.workspace = true
 repository.workspace = true
 
 [dependencies]
-grafbase-sdk-derive = { path = "./derive" }
-http.workspace = true
-minicbor-serde = { version = "0.3.2", features = ["alloc"] }
-semver = "1.0.25"
+grafbase-sdk.workspace = true
+jaq-interpret = "1.5.0"
+jaq-parse = "1.0.3"
 serde.workspace = true
 serde_json.workspace = true
-serde_urlencoded.workspace = true
-url.workspace = true
-wit-bindgen.workspace = true
 grafbase-workspace-hack.workspace = true
+http.workspace = true
 
 [lints]
 workspace = true

@@ -2,11 +2,15 @@
 //! Functions are synchronous from the guest's perspective, yet they run asynchronously on the host side.
 //! While waiting for request completion, the host thread can execute other tasks concurrently.
 
-use serde::Serialize;
+use std::string::FromUtf8Error;
+
+pub use crate::wit::{HttpError, HttpMethod, HttpVersion};
+pub use http::StatusCode;
+pub use serde_json::Error as JsonDeserializeError;
 pub use url::Url;
 
 use crate::wit::HttpClient;
-pub use crate::wit::{HttpError, HttpMethod, HttpResponse, HttpVersion};
+use serde::Serialize;
 
 /// Executes a single HTTP request and returns a result containing either an `HttpResponse` or an `HttpError`.
 ///
@@ -24,7 +28,7 @@ pub use crate::wit::{HttpError, HttpMethod, HttpResponse, HttpVersion};
 /// This function returns a `Result<HttpResponse, HttpError>`, which represents either the successful response from the server
 /// (`HttpResponse`) or an error that occurred during the execution of the HTTP request (`HttpError`).
 pub fn execute(request: &HttpRequest) -> Result<HttpResponse, HttpError> {
-    HttpClient::execute(&request.0)
+    HttpClient::execute(&request.0).map(HttpResponse)
 }
 
 /// Executes multiple HTTP requests in a batch and returns their results.
@@ -45,21 +49,33 @@ pub fn execute(request: &HttpRequest) -> Result<HttpResponse, HttpError> {
 /// if the request was successful or an `HttpError` if there was an issue with that particular request.
 pub fn execute_many(requests: BatchHttpRequest) -> Vec<Result<HttpResponse, HttpError>> {
     HttpClient::execute_many(&requests.requests)
+        .into_iter()
+        .map(|r| r.map(HttpResponse))
+        .collect()
 }
 
-impl HttpMethod {
-    /// Returns string slice representation of HTTP Method.
-    pub fn as_str(&self) -> &str {
-        match self {
-            HttpMethod::Get => "GET",
-            HttpMethod::Post => "POST",
-            HttpMethod::Put => "PUT",
-            HttpMethod::Delete => "DELETE",
-            HttpMethod::Patch => "PATCH",
-            HttpMethod::Head => "HEAD",
-            HttpMethod::Options => "OPTIONS",
-            HttpMethod::Trace => "TRACE",
-            HttpMethod::Connect => "CONNECT",
+impl From<http::Method> for HttpMethod {
+    fn from(value: http::Method) -> Self {
+        if value == http::Method::GET {
+            Self::Get
+        } else if value == http::Method::POST {
+            Self::Post
+        } else if value == http::Method::PUT {
+            Self::Put
+        } else if value == http::Method::DELETE {
+            Self::Delete
+        } else if value == http::Method::HEAD {
+            Self::Head
+        } else if value == http::Method::OPTIONS {
+            Self::Options
+        } else if value == http::Method::CONNECT {
+            Self::Connect
+        } else if value == http::Method::TRACE {
+            Self::Trace
+        } else if value == http::Method::PATCH {
+            Self::Patch
+        } else {
+            unreachable!()
         }
     }
 }
@@ -78,7 +94,7 @@ impl HttpRequest {
     ///
     /// A builder object (`HttpRequestBuilder`) that can be used to further customize the HTTP request before execution.
     pub fn get(url: Url) -> HttpRequestBuilder {
-        Self::builder(url, HttpMethod::Get)
+        Self::builder(url, http::Method::GET)
     }
 
     /// Constructs a new `HttpRequestBuilder` for sending a POST request to the specified URL.
@@ -91,7 +107,7 @@ impl HttpRequest {
     ///
     /// A builder object (`HttpRequestBuilder`) that can be used to further customize the HTTP request before execution.
     pub fn post(url: Url) -> HttpRequestBuilder {
-        Self::builder(url, HttpMethod::Post)
+        Self::builder(url, http::Method::POST)
     }
 
     /// Constructs a new `HttpRequestBuilder` for sending a PUT request to the specified URL.
@@ -104,7 +120,7 @@ impl HttpRequest {
     ///
     /// A builder object (`HttpRequestBuilder`) that can be used to further customize the HTTP request before execution.
     pub fn put(url: Url) -> HttpRequestBuilder {
-        Self::builder(url, HttpMethod::Put)
+        Self::builder(url, http::Method::PUT)
     }
 
     /// Constructs a new `HttpRequestBuilder` for sending a DELETE request to the specified URL.
@@ -117,7 +133,7 @@ impl HttpRequest {
     ///
     /// A builder object (`HttpRequestBuilder`) that can be used to further customize the HTTP request before execution.
     pub fn delete(url: Url) -> HttpRequestBuilder {
-        Self::builder(url, HttpMethod::Delete)
+        Self::builder(url, http::Method::DELETE)
     }
 
     /// Constructs a new `HttpRequestBuilder` for sending a PATCH request to the specified URL.
@@ -130,7 +146,7 @@ impl HttpRequest {
     ///
     /// A builder object (`HttpRequestBuilder`) that can be used to further customize the HTTP request before execution.
     pub fn patch(url: Url) -> HttpRequestBuilder {
-        Self::builder(url, HttpMethod::Patch)
+        Self::builder(url, http::Method::PATCH)
     }
 
     /// Constructs a new `HttpRequestBuilder` for sending a HEAD request to the specified URL.
@@ -143,7 +159,7 @@ impl HttpRequest {
     ///
     /// A builder object (`HttpRequestBuilder`) that can be used to further customize the HTTP request before execution.
     pub fn head(url: Url) -> HttpRequestBuilder {
-        Self::builder(url, HttpMethod::Head)
+        Self::builder(url, http::Method::HEAD)
     }
 
     /// Constructs a new `HttpRequestBuilder` for sending an OPTIONS request to the specified URL.
@@ -156,7 +172,7 @@ impl HttpRequest {
     ///
     /// A builder object (`HttpRequestBuilder`) that can be used to further customize the HTTP request before execution.
     pub fn options(url: Url) -> HttpRequestBuilder {
-        Self::builder(url, HttpMethod::Options)
+        Self::builder(url, http::Method::OPTIONS)
     }
 
     /// Constructs a new `HttpRequestBuilder` for sending a TRACE request to the specified URL.
@@ -169,7 +185,7 @@ impl HttpRequest {
     ///
     /// A builder object (`HttpRequestBuilder`) that can be used to further customize the HTTP request before execution.
     pub fn trace(url: Url) -> HttpRequestBuilder {
-        Self::builder(url, HttpMethod::Trace)
+        Self::builder(url, http::Method::TRACE)
     }
 
     /// Constructs a new `HttpRequestBuilder` for sending a CONNECT request to the specified URL.
@@ -182,7 +198,7 @@ impl HttpRequest {
     ///
     /// A builder object (`HttpRequestBuilder`) that can be used to further customize the HTTP request before execution.
     pub fn connect(url: Url) -> HttpRequestBuilder {
-        Self::builder(url, HttpMethod::Connect)
+        Self::builder(url, http::Method::CONNECT)
     }
 
     /// Constructs a new `HttpRequestBuilder` for sending an HTTP request with the specified method and URL.
@@ -195,9 +211,9 @@ impl HttpRequest {
     /// # Returns
     ///
     /// A builder object (`HttpRequestBuilder`) that can be used to further customize the HTTP request before execution.
-    pub fn builder(url: Url, method: HttpMethod) -> HttpRequestBuilder {
+    pub fn builder(url: Url, method: http::Method) -> HttpRequestBuilder {
         HttpRequestBuilder(crate::wit::HttpRequest {
-            method,
+            method: method.into(),
             url: url.to_string(),
             headers: Default::default(),
             body: Default::default(),
@@ -295,6 +311,11 @@ impl HttpRequestBuilder {
     /// This method constructs and returns a new `HttpRequest` with the specified body.
     pub fn body(mut self, body: Vec<u8>) -> HttpRequest {
         self.0.body = body;
+        self.build()
+    }
+
+    /// Constructs a fully configured `HttpRequest` from the builder.
+    pub fn build(self) -> HttpRequest {
         HttpRequest(self.0)
     }
 }
@@ -331,5 +352,46 @@ impl BatchHttpRequest {
 impl Default for BatchHttpRequest {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+/// A struct that represents an HTTP response.
+pub struct HttpResponse(crate::wit::HttpResponse);
+
+impl HttpResponse {
+    /// Returns the status code of the HTTP response.
+    pub fn status(&self) -> http::StatusCode {
+        http::StatusCode::from_u16(self.0.status).expect("must be valid, this comes from reqwest")
+    }
+
+    /// Returns the headers of the HTTP response.
+    pub fn headers(&self) -> &[(String, String)] {
+        &self.0.headers
+    }
+
+    /// Returns the body of the HTTP response.
+    pub fn body(&self) -> &[u8] {
+        &self.0.body
+    }
+
+    /// Attempts to convert the HTTP response body into a UTF-8 encoded `String`.
+    ///
+    /// This method takes ownership of the `HttpResponse` and returns a `Result<String, std::string::FromUtf8Error>`.
+    /// It attempts to interpret the bytes in the body as a valid UTF-8 sequence.
+    pub fn text(self) -> Result<String, FromUtf8Error> {
+        String::from_utf8(self.0.body)
+    }
+
+    /// Attempts to deserialize the HTTP response body as JSON.
+    ///
+    /// This method takes ownership of the `HttpResponse` and returns a `Result<serde_json::Value, serde_json::Error>`.
+    ///
+    /// It attempts to interpret the bytes in the body as valid JSON. The conversion is successful if the
+    /// byte slice represents a valid JSON value according to the JSON specification.
+    pub fn json<'de, T>(&'de self) -> Result<T, JsonDeserializeError>
+    where
+        T: serde::de::Deserialize<'de>,
+    {
+        serde_json::from_slice(&self.0.body)
     }
 }
