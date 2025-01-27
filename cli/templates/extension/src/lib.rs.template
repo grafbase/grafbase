@@ -1,0 +1,25 @@
+use grafbase_sdk::{
+    types::{Directive, FieldDefinition, FieldInputs, FieldOutput},
+    Error, Extension, Resolver, ResolverExtension, SharedContext,
+};
+
+#[derive(ResolverExtension)]
+struct {{name}};
+
+impl Extension for {{name}} {
+    fn new(schema_directives: Vec<Directive>) -> Result<Self, Box<dyn std::error::Error>> {
+        Ok(Self)
+    }
+}
+
+impl Resolver for {{name}} {
+    fn resolve_field(
+        &mut self,
+        context: SharedContext,
+        directive: Directive,
+        field_definition: FieldDefinition,
+        inputs: FieldInputs,
+    ) -> Result<FieldOutput, Error> {
+        todo!()
+    }
+}

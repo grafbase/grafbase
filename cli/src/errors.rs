@@ -61,6 +61,9 @@ pub enum CliError {
     /// wraps an error originating in the local-backend crate
     #[error(transparent)]
     BackendError(BackendError),
+    /// wraps an error with extension subcommand
+    #[error(transparent)]
+    ExtensionError(#[from] anyhow::Error),
 }
 
 impl CliError {

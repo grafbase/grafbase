@@ -72,6 +72,9 @@ graphql-composition.workspace = true
 graphql-lint.workspace = true
 graph-ref.workspace = true
 grafbase-workspace-hack.workspace = true
+anyhow.workspace = true
+convert_case = "0.7.1"
+askama = "0.12.1"
 
 [dev-dependencies]
 async-graphql-axum.workspace = true

@@ -1,0 +1,11 @@
+[package]
+name = "{{name}}"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+
+[dependencies]
+grafbase-sdk = "{{sdk_version}}"
+
+[lib]
+crate-type = ["cdylib"]

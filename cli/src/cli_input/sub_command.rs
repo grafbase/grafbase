@@ -4,7 +4,7 @@ use crate::is_not_direct_install;
 
 use super::{
     branch::BranchCommand, trust::TrustCommand, CheckCommand, CompletionsCommand, CreateCommand, DevCommand,
-    IntrospectCommand, LintCommand, LoginCommand, PublishCommand, SchemaCommand, SubgraphsCommand,
+    ExtensionCommand, IntrospectCommand, LintCommand, LoginCommand, PublishCommand, SchemaCommand, SubgraphsCommand,
 };
 
 #[derive(Debug, Parser, strum::AsRefStr, strum::Display)]
@@ -40,6 +40,8 @@ pub enum SubCommand {
     Lint(LintCommand),
     /// Start a development server
     Dev(DevCommand),
+    /// Develop gateway extensions
+    Extension(ExtensionCommand),
 }
 
 pub trait RequiresLogin {
