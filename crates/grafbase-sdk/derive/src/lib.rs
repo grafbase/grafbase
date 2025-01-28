@@ -11,7 +11,7 @@ pub fn resolver_extension(input: TokenStream) -> TokenStream {
 fn expand(init: proc_macro2::TokenStream) -> TokenStream {
     let token_stream = quote! {
         #[doc(hidden)]
-        #[export_name = "register_extension"]
+        #[export_name = "register-extension"]
         pub extern "C" fn __register_extension(host_version: u64) -> i64 {
             let version_result = grafbase_sdk::check_host_version(host_version);
 
