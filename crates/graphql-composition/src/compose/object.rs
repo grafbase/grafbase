@@ -83,12 +83,17 @@ pub(super) fn merge_field_arguments<'a>(
             ));
         }
 
+        let description = arguments
+            .iter()
+            .find_map(|(_, arg)| arg.description())
+            .map(|description| ctx.insert_string(description.id));
+
         let name = ctx.insert_string(argument_name);
         let id = ctx.insert_input_value_definition(ir::InputValueDefinitionIr {
             name,
             r#type: argument_type,
             directives,
-            description: None,
+            description,
             default,
         });
 

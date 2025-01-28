@@ -54,7 +54,7 @@ type Tofu
     """
     List of recipes that include this tofu.
     """
-    recipes(filter: RecipeFilter): [Recipe]
+    recipes("Which recipes to include. See [RecipeFilter]." filter: RecipeFilter): [Recipe]
     """
     The texture profile of the tofu, expressed through a custom scalar.
     """
