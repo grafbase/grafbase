@@ -10,6 +10,7 @@ use crate::{
     watercolor::{self, watercolor},
 };
 use colored::Colorize;
+use extension::Manifest;
 
 /// reports to stdout that the server has started
 pub fn cli_header() {
@@ -265,4 +266,21 @@ pub(crate) fn lint_success() {
 
 pub(crate) fn lint_warning(warning: String) {
     watercolor::output!("⚠️ [Warning] {warning}", @BrightYellow);
+}
+
+pub(crate) fn extension_build_start() {
+    watercolor::output!("🔨 Building extension...", @BrightBlue);
+}
+
+pub(crate) fn extension_built(manifest: &Manifest) {
+    let name = &manifest.name;
+    let version = &manifest.version;
+    let minimum_gateway_version = &manifest.minimum_gateway_version;
+    let sdk_version = &manifest.sdk_version;
+
+    watercolor::output!("✨ Extension {name} built successfully", @BrightGreen);
+    println!();
+    println!("- Extension version: {version}");
+    println!("- Minimum Grafbase Gateway version: {minimum_gateway_version}");
+    println!("- SDK version: {sdk_version}");
 }

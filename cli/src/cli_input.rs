@@ -23,7 +23,7 @@ pub(crate) use branch_ref::BranchRef;
 pub(crate) use completions::CompletionsCommand;
 pub(crate) use create::CreateCommand;
 pub(crate) use dev::DevCommand;
-pub(crate) use extension::{ExtensionCommand, ExtensionInitCommand, ExtensionSubCommand};
+pub(crate) use extension::{ExtensionBuildCommand, ExtensionCommand, ExtensionInitCommand, ExtensionSubCommand};
 pub(crate) use graph_ref::FullGraphRef;
 pub(crate) use introspect::IntrospectCommand;
 pub(crate) use lint::LintCommand;

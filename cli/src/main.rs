@@ -135,7 +135,7 @@ fn try_main(args: Args) -> Result<(), CliError> {
             BranchSubCommand::Create(cmd) => branch::create(cmd.branch_ref),
         },
         SubCommand::Dev(cmd) => dev::dev(cmd),
-        SubCommand::Extension(cmd) => Ok(extension::extension(cmd)?),
+        SubCommand::Extension(cmd) => Ok(extension::execute(cmd)?),
     }
 }
 

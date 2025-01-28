@@ -3,7 +3,6 @@ members = [
     "cli",
     "gateway",
     "crates/*",
-    "extensions/*",
     "crates/grafbase-hooks/derive",
     "crates/grafbase-sdk/derive",
     "crates/engine/auth",
@@ -22,6 +21,7 @@ exclude = [
     "crates/wasi-component-loader/examples",
     "examples/hooks-template",
     "examples/query_plan",
+    "extensions/rest",
 ]
 
 [patch.crates-io]
@@ -163,6 +163,7 @@ federated-server = { path = "crates/federated-server" }
 gateway-config = { path = "crates/gateway-config" }
 rolling-logger = { path = "crates/rolling-logger" }
 grafbase-sdk = { path = "crates/grafbase-sdk" }
+extension = { path = "crates/extension" }
 
 # Engine
 engine-config-builder = { path = "crates/engine-config-builder" }

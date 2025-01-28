@@ -1,0 +1,31 @@
+directive @restEndpoint(
+  name: String
+  http: HttpEndpointDefinition
+) repeatable on SCHEMA
+
+directive @rest(
+  endpoint: String
+  http: HttpRequestDefinition
+  selection: String
+) on FIELD_DEFINITION
+
+type HttpEndpointDefinition {
+  baseURL: String
+}
+
+type HttpRequestDefinition {
+  method: HttpMethod
+  path: String
+}
+
+enum HttpMethod {
+  GET
+  POST
+  PUT
+  DELETE
+  HEAD
+  OPTIONS
+  CONNECT
+  TRACE
+  PATCH
+}

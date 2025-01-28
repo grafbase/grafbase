@@ -1,20 +1,19 @@
 [package]
 name = "rest"
-version = "0.1.0"
-edition.workspace = true
-license.workspace = true
-homepage.workspace = true
-keywords.workspace = true
-repository.workspace = true
+version = "0.1.2"
+edition = "2021"
+license = "MPL-2"
+homepage = "https://grafbase.com"
+keywords = ["graphql"]
+repository = "https://github.com/grafbase/grafbase"
 
 [dependencies]
-grafbase-sdk.workspace = true
+grafbase-sdk = { path = "../../crates/grafbase-sdk" }
 jaq-interpret = "1.5.0"
 jaq-parse = "1.0.3"
-serde.workspace = true
-serde_json.workspace = true
-grafbase-workspace-hack.workspace = true
-http.workspace = true
+serde = "1"
+serde_json = "1"
+http = "1"
 
-[lints]
-workspace = true
+[lib]
+crate-type = ["cdylib"]
