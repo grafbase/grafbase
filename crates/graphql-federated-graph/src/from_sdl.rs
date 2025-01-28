@@ -977,7 +977,7 @@ fn ingest_join_graph_enum<'a>(enm: ast::EnumDefinition<'a>, state: &mut State<'a
         let url = state.insert_string(url.value());
         let id = SubgraphId::from(state.graph.subgraphs.push_return_idx(Subgraph {
             name: subgraph_name,
-            url,
+            url: Some(url),
         }));
         state.graph_by_enum_str.insert(sdl_name, id);
         state.graph_by_name.insert(name.value(), id);

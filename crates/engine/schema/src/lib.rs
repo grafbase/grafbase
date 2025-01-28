@@ -130,6 +130,7 @@ id_newtypes::forward! {
     impl Index<SchemaInputObjectFieldValueId, Output = (InputValueDefinitionId, SchemaInputValueRecord)> for Schema.graph.input_values,
     impl Index<SchemaInputKeyValueId, Output = (StringId, SchemaInputValueRecord)> for Schema.graph.input_values,
     impl Index<GraphqlEndpointId, Output = GraphqlEndpointRecord> for Schema.subgraphs,
+    impl Index<VirtualSubgraphId, Output = VirtualSubgraphRecord> for Schema.subgraphs,
 }
 
 #[derive(Default, serde::Serialize, serde::Deserialize)]
@@ -163,7 +164,7 @@ pub struct Graph {
     #[indexed_by(InterfaceDefinitionId)]
     interface_definitions: Vec<InterfaceDefinitionRecord>,
     inaccessible_interface_definitions: BitSet<InterfaceDefinitionId>,
-    interface_has_inaccessible_implementors: BitSet<InterfaceDefinitionId>,
+    interface_has_inaccessible_implementor: BitSet<InterfaceDefinitionId>,
     #[indexed_by(FieldDefinitionId)]
     field_definitions: Vec<FieldDefinitionRecord>,
     inaccessible_field_definitions: BitSet<FieldDefinitionId>,
@@ -220,6 +221,8 @@ pub struct Graph {
 pub struct SubGraphs {
     #[indexed_by(GraphqlEndpointId)]
     graphql_endpoints: Vec<GraphqlEndpointRecord>,
+    #[indexed_by(VirtualSubgraphId)]
+    virtual_subgraphs: Vec<VirtualSubgraphRecord>,
     pub introspection: introspection::IntrospectionMetadata,
 }
 

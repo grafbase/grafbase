@@ -3,13 +3,18 @@
 //! ===================
 //! Generated with: `cargo run -p engine-codegen`
 //! Source file: <engine-codegen dir>/domain/schema.graphql
-use crate::{prelude::*, SchemaInputValue, SchemaInputValueId, StringId};
+use crate::{
+    generated::{Subgraph, SubgraphId},
+    prelude::*,
+    SchemaInputValue, SchemaInputValueId, StringId,
+};
 use walker::Walk;
 
 /// Generated from:
 ///
 /// ```custom,{.language-graphql}
 /// type ExtensionDirective @meta(module: "directive/extension") @indexed(id_size: "u32") {
+///   subgraph: Subgraph!
 ///   extension_id: ExtensionId!
 ///   name: String!
 ///   arguments: SchemaInputValue!
@@ -17,6 +22,7 @@ use walker::Walk;
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct ExtensionDirectiveRecord {
+    pub subgraph_id: SubgraphId,
     pub extension_id: ExtensionId,
     pub name_id: StringId,
     pub arguments_id: SchemaInputValueId,
@@ -43,6 +49,9 @@ impl<'a> ExtensionDirective<'a> {
     #[allow(clippy::should_implement_trait)]
     pub fn as_ref(&self) -> &'a ExtensionDirectiveRecord {
         &self.schema[self.id]
+    }
+    pub fn subgraph(&self) -> Subgraph<'a> {
+        self.subgraph_id.walk(self.schema)
     }
     pub fn name(&self) -> &'a str {
         self.name_id.walk(self.schema)
@@ -72,6 +81,7 @@ impl<'a> Walk<&'a Schema> for ExtensionDirectiveId {
 impl std::fmt::Debug for ExtensionDirective<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ExtensionDirective")
+            .field("subgraph", &self.subgraph())
             .field("extension_id", &self.extension_id)
             .field("name", &self.name())
             .field("arguments", &self.arguments())

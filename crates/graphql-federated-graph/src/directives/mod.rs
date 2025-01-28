@@ -1,6 +1,7 @@
 mod authorized;
 mod complexity_control;
 mod deprecated;
+mod extension;
 mod federation;
 
 use crate::{ListSize, StringId, Value};
@@ -10,6 +11,7 @@ pub use self::{
     deprecated::DeprecatedDirective,
 };
 pub use authorized::*;
+pub use extension::*;
 pub use federation::*;
 
 #[derive(PartialEq, PartialOrd, Clone, Debug)]
@@ -34,11 +36,7 @@ pub enum Directive {
         arguments: Vec<(StringId, Value)>,
     },
     ListSize(ListSize),
-    ExtensionDirective {
-        extension_id: extension::Id,
-        name: StringId,
-        arguments: Vec<(StringId, Value)>,
-    },
+    ExtensionDirective(ExtensionDirective),
 }
 
 impl From<JoinFieldDirective> for Directive {
@@ -78,6 +76,13 @@ impl Directive {
     pub fn as_join_union_member(&self) -> Option<&JoinUnionMemberDirective> {
         match self {
             Directive::JoinUnionMember(d) => Some(d),
+            _ => None,
+        }
+    }
+
+    pub fn as_extension_directive(&self) -> Option<&ExtensionDirective> {
+        match self {
+            Directive::ExtensionDirective(d) => Some(d),
             _ => None,
         }
     }

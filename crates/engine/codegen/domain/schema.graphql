@@ -70,6 +70,7 @@ type InterfaceDefinition @meta(module: "interface", debug: false) @indexed(dedup
   not_fully_implemented_in: [Subgraph!]!
   "sorted by SubgraphId"
   exists_in_subgraphs: [Subgraph!]!
+  is_interface_object_in: [Subgraph!]!
 }
 
 type FieldDefinition @meta(module: "field") @indexed(id_size: "u32") {
@@ -233,6 +234,7 @@ type ListSizeDirective @meta(module: "directive/complexity_control") @indexed(id
 scalar ExtensionId @id @prelude
 
 type ExtensionDirective @meta(module: "directive/extension") @indexed(id_size: "u32") {
+  subgraph: Subgraph!
   extension_id: ExtensionId!
   name: String!
   arguments: SchemaInputValue!
@@ -244,7 +246,9 @@ type ExtensionDirective @meta(module: "directive/extension") @indexed(id_size: "
 
 scalar SubgraphConfig
 
-union Subgraph @id @meta(module: "subgraph") @variants(empty: ["Introspection"]) = GraphqlEndpoint
+union Subgraph @id @meta(module: "subgraph") @variants(empty: ["Introspection"], remove_suffix: "Subgraph") =
+  | GraphqlEndpoint
+  | VirtualSubgraph
 
 type GraphqlEndpoint @meta(module: "subgraph/graphql") @indexed(id_size: "u16") {
   subgraph_name: String!
@@ -252,6 +256,13 @@ type GraphqlEndpoint @meta(module: "subgraph/graphql") @indexed(id_size: "u16") 
   websocket_url: Url
   header_rules: [HeaderRule!]!
   config: SubgraphConfig!
+}
+
+"Virtual subgraphs have no dedicated support on the engine side, everything is resolved through extensions."
+type VirtualSubgraph @meta(module: "subgraph/virtual_") @indexed(id_size: "u16") {
+  subgraph_name: String!
+  "Schema directives applied by the given subgraph"
+  directives: [TypeSystemDirective!]!
 }
 
 # ----------------
@@ -295,10 +306,11 @@ type RenameDuplicateHeaderRule @meta(module: "header_rule/rename_duplicate") @co
 
 union ResolverDefinition
   @meta(module: "resolver")
-  @variants(empty: ["Introspection"], remove_suffix: true)
+  @variants(empty: ["Introspection"], names: ["GraphqlRootField", "GraphqlFederationEntity", "FieldResolverExtension"])
   @indexed(deduplicated: true, id_size: "u32") =
   | GraphqlRootFieldResolverDefinition
   | GraphqlFederationEntityResolverDefinition
+  | FieldResolverExtensionDefinition
 
 type GraphqlRootFieldResolverDefinition @meta(module: "resolver/graphql") @copy {
   endpoint: GraphqlEndpoint!
@@ -307,4 +319,8 @@ type GraphqlRootFieldResolverDefinition @meta(module: "resolver/graphql") @copy 
 type GraphqlFederationEntityResolverDefinition @meta(module: "resolver/graphql") @copy {
   endpoint: GraphqlEndpoint!
   key_fields: FieldSet!
+}
+
+type FieldResolverExtensionDefinition @meta(module: "resolver/field_resolver_ext") @copy {
+  directive: ExtensionDirective!
 }

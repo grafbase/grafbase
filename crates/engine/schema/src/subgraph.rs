@@ -6,6 +6,7 @@ impl<'a> Subgraph<'a> {
     pub fn name(&self) -> &'a str {
         match self {
             Subgraph::GraphqlEndpoint(endpoint) => endpoint.subgraph_name(),
+            Subgraph::Virtual(subgraph) => subgraph.subgraph_name(),
             Subgraph::Introspection => "introspection",
         }
     }

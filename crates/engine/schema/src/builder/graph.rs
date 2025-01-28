@@ -1,11 +1,9 @@
-use std::{
-    collections::{BTreeSet, HashMap},
-    mem::take,
-};
+use std::{collections::BTreeSet, mem::take};
 
 use builder::{coerce::InputValueCoercer, external_sources::ExternalDataSources};
 use config::Config;
 use federated_graph::{JoinFieldDirective, JoinImplementsDirective, JoinTypeDirective, JoinUnionMemberDirective};
+use fxhash::FxHashMap;
 use introspection::{IntrospectionBuilder, IntrospectionMetadata};
 use runtime::extension::ExtensionCatalog;
 
@@ -15,24 +13,42 @@ use super::{interner::Interner, BuildContext, BuildError, FieldSetsBuilder, Sche
 
 pub(crate) struct GraphBuilder<'a, EC> {
     ctx: &'a mut BuildContext<EC>,
+    sources: &'a ExternalDataSources,
     field_sets: FieldSetsBuilder,
     all_subgraphs: Vec<SubgraphId>,
     required_scopes: Interner<RequiresScopesDirectiveRecord, RequiresScopesDirectiveId>,
     graph: Graph,
+    graphql_federated_entity_resolvers: FxHashMap<(EntityDefinitionId, GraphqlEndpointId), Vec<EntityResovler>>,
+}
+
+#[derive(Clone)]
+enum EntityResovler {
+    Root(ResolverDefinitionId),
+    Entity {
+        key: federated_graph::SelectionSet,
+        id: ResolverDefinitionId,
+    },
+}
+
+impl EntityResovler {
+    fn id(&self) -> ResolverDefinitionId {
+        match self {
+            EntityResovler::Root(id) | EntityResovler::Entity { id, .. } => *id,
+        }
+    }
 }
 
 impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
     pub fn build(
         ctx: &'a mut BuildContext<EC>,
-        sources: &ExternalDataSources,
+        sources: &'a ExternalDataSources,
         config: &mut Config,
     ) -> Result<(Graph, IntrospectionMetadata), BuildError> {
-        let mut all_subgraphs = (0..sources.graphql_endpoints.len())
-            .map(|i| SubgraphId::GraphqlEndpoint(GraphqlEndpointId::from(i)))
-            .collect::<Vec<_>>();
+        let mut all_subgraphs = sources.iter().collect::<Vec<_>>();
         all_subgraphs.sort_unstable();
         let mut builder = GraphBuilder {
             ctx,
+            sources,
             field_sets: Default::default(),
             all_subgraphs,
             required_scopes: Default::default(),
@@ -47,7 +63,7 @@ impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
                 inaccessible_object_definitions: BitSet::new(),
                 interface_definitions: Vec::new(),
                 inaccessible_interface_definitions: BitSet::new(),
-                interface_has_inaccessible_implementors: BitSet::new(),
+                interface_has_inaccessible_implementor: BitSet::new(),
                 union_definitions: Vec::new(),
                 inaccessible_union_definitions: BitSet::new(),
                 union_has_inaccessible_member: BitSet::new(),
@@ -75,6 +91,7 @@ impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
                 list_size_directives: Vec::new(),
                 extension_directives: Vec::new(),
             },
+            graphql_federated_entity_resolvers: Default::default(),
         };
         builder.ingest_config(config)?;
         builder.finalize()
@@ -87,7 +104,7 @@ impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
         self.ingest_input_values_after_scalars_and_input_objects_and_enums(config)?;
         self.ingest_fields_after_input_values(config)?;
         self.ingest_objects(config)?;
-        self.ingest_interfaces_after_objects(config)?;
+        self.ingest_interfaces_after_objects_and_fields(config)?;
         self.ingest_unions_after_objects(config)?;
 
         Ok(())
@@ -215,7 +232,7 @@ impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
                 .filter_map(|dir| dir.as_join_union_member())
                 .map(
                     |&JoinUnionMemberDirective { subgraph_id, object_id }| JoinMemberDefinitionRecord {
-                        subgraph_id: SubgraphId::GraphqlEndpoint(subgraph_id.into()),
+                        subgraph_id: self.sources[subgraph_id],
                         member_id: object_id.into(),
                     },
                 )
@@ -349,7 +366,7 @@ impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
                          interface_id,
                      }| {
                         JoinImplementsDefinitionRecord {
-                            subgraph_id: SubgraphId::GraphqlEndpoint(subgraph_id.into()),
+                            subgraph_id: self.sources[subgraph_id],
                             interface_id: interface_id.into(),
                         }
                     },
@@ -362,7 +379,7 @@ impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
                 .directives
                 .iter()
                 .filter_map(|dir| dir.as_join_type())
-                .map(|dir| SubgraphId::GraphqlEndpoint(dir.subgraph_id.into()))
+                .map(|dir| self.sources[dir.subgraph_id])
                 .collect::<Vec<_>>();
             if exists_in_subgraph_ids.is_empty() {
                 exists_in_subgraph_ids = self.all_subgraphs.clone()
@@ -384,10 +401,10 @@ impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
         Ok(())
     }
 
-    fn ingest_interfaces_after_objects(&mut self, config: &mut Config) -> Result<(), BuildError> {
+    fn ingest_interfaces_after_objects_and_fields(&mut self, config: &mut Config) -> Result<(), BuildError> {
         self.graph.interface_definitions = Vec::with_capacity(config.graph.interfaces.len());
         self.graph.inaccessible_interface_definitions = BitSet::with_capacity(config.graph.interfaces.len());
-        self.graph.interface_has_inaccessible_implementors = BitSet::with_capacity(config.graph.interfaces.len());
+        self.graph.interface_has_inaccessible_implementor = BitSet::with_capacity(config.graph.interfaces.len());
         for (ix, interface) in take(&mut config.graph.interfaces).into_iter().enumerate() {
             let name_id = interface.name.into();
             let federated_directives = &interface.directives;
@@ -399,12 +416,15 @@ impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
             let directives =
                 self.push_directives(SchemaLocation::Definition { name: name_id }, federated_directives)?;
 
-            let exists_in_subgraph_ids = interface
-                .directives
-                .iter()
-                .filter_map(|dir| dir.as_join_type())
-                .map(|dir| SubgraphId::GraphqlEndpoint(dir.subgraph_id.into()))
-                .collect::<Vec<_>>();
+            let mut exists_in_subgraph_ids = Vec::new();
+            let mut is_interface_object_in_ids = Vec::new();
+
+            for dir in interface.directives.iter().filter_map(|dir| dir.as_join_type()) {
+                exists_in_subgraph_ids.push(self.sources[dir.subgraph_id]);
+                if dir.is_interface_object {
+                    is_interface_object_in_ids.push(self.sources[dir.subgraph_id]);
+                }
+            }
 
             self.graph.interface_definitions.push(InterfaceDefinitionRecord {
                 name_id,
@@ -418,6 +438,7 @@ impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
                 // Added at the end.
                 not_fully_implemented_in_ids: Vec::new(),
                 exists_in_subgraph_ids,
+                is_interface_object_in_ids,
             });
         }
 
@@ -427,7 +448,7 @@ impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
                 self.graph[interface_id].possible_type_ids.push(object_id);
                 if self.graph.inaccessible_object_definitions[object_id] {
                     self.graph
-                        .interface_has_inaccessible_implementors
+                        .interface_has_inaccessible_implementor
                         .set(interface_id, true);
                 }
             }
@@ -480,26 +501,9 @@ impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
         .flatten()
         .collect::<Vec<_>>();
 
-        #[derive(Clone)]
-        enum FieldResovler {
-            Root(ResolverDefinitionId),
-            Entity {
-                key: federated_graph::SelectionSet,
-                id: ResolverDefinitionId,
-            },
-        }
-
-        impl FieldResovler {
-            fn id(&self) -> ResolverDefinitionId {
-                match self {
-                    FieldResovler::Root(id) | FieldResovler::Entity { id, .. } => *id,
-                }
-            }
-        }
-
         self.graph.field_definitions = Vec::with_capacity(config.graph.fields.len());
         self.graph.inaccessible_field_definitions = BitSet::with_capacity(config.graph.fields.len());
-        let mut field_resolvers = HashMap::<(EntityDefinitionId, GraphqlEndpointId), Vec<FieldResovler>>::new();
+        let mut graphql_federated_entity_resolvers = std::mem::take(&mut self.graphql_federated_entity_resolvers);
         for (ix, field) in take(&mut config.graph.fields).into_iter().enumerate() {
             let federated_id = federated_graph::FieldId::from(ix);
 
@@ -532,9 +536,12 @@ impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
                 ..
             } in field.directives.iter().filter_map(|dir| dir.as_join_field())
             {
+                // If there is a @join__field we rely solely on that to define the subgraphs in
+                // which this field exists. It may not specify a subgraph at all, in that case it's
+                // a interfaceObject field.
                 has_join_field = true;
-                if let Some(federated_subgraph_id) = federated_subgraph_id {
-                    let subgraph_id = SubgraphId::GraphqlEndpoint((*federated_subgraph_id).into());
+                if let Some(federated_subgraph_id) = *federated_subgraph_id {
+                    let subgraph_id = self.sources[federated_subgraph_id];
                     if let Some(r#type) = r#type.filter(|ty| ty != &field.r#type) {
                         subgraph_type_records.push(SubgraphTypeRecord {
                             subgraph_id,
@@ -555,7 +562,7 @@ impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
                             field_set_id,
                         });
                     }
-                    resolvable_in.insert((*federated_subgraph_id).into());
+                    resolvable_in.insert(subgraph_id);
                 }
             }
 
@@ -570,11 +577,11 @@ impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
                 parent_has_join_type = true;
                 // If present in the keys as a subgraph must always be able to provide those at least.
                 if key.as_ref().and_then(|key| key.find_field(federated_id)).is_some() {
-                    resolvable_in.insert((*subgraph_id).into());
+                    resolvable_in.insert(self.sources[*subgraph_id]);
                 } else if !has_join_field && *resolvable {
                     // If there is no @join__field we rely solely @join__type to define the subgraphs
                     // in which this field is resolvable in.
-                    resolvable_in.insert((*subgraph_id).into());
+                    resolvable_in.insert(self.sources[*subgraph_id]);
                 }
             }
 
@@ -583,34 +590,42 @@ impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
                 if let Some(r#override) = &directive.r#override {
                     match r#override {
                         federated_graph::OverrideSource::Subgraph(subgraph_id) => {
-                            resolvable_in.remove(&(*subgraph_id).into());
+                            resolvable_in.remove(&self.sources[*subgraph_id]);
                         }
                         federated_graph::OverrideSource::Missing(_) => (),
                     };
                 }
             }
 
-            let mut resolver_ids = vec![];
-            if root_entities.contains(&parent_entity_id) {
-                for &endpoint_id in &resolvable_in {
-                    resolver_ids.extend(
-                        field_resolvers
-                            .entry((parent_entity_id, endpoint_id))
-                            .or_insert_with(|| {
-                                vec![FieldResovler::Root(self.push_resolver(
-                                    ResolverDefinitionRecord::GraphqlRootField(
-                                        GraphqlRootFieldResolverDefinitionRecord { endpoint_id },
-                                    ),
-                                ))]
-                            })
-                            .iter()
-                            .map(|res| res.id()),
-                    );
-                }
+            // If there is no @join__field and no @join__type at all, we assume this field to be
+            // available everywhere.
+            let exists_in_subgraph_ids = if !has_join_field && !parent_has_join_type {
+                self.all_subgraphs.clone()
             } else {
-                for &endpoint_id in &resolvable_in {
-                    let endpoint_resolvers =
-                        field_resolvers
+                resolvable_in.into_iter().collect::<Vec<_>>()
+            };
+
+            let mut resolver_ids: Vec<ResolverDefinitionId> = vec![];
+            let is_root_entity = root_entities.contains(&parent_entity_id);
+            for &subgraph_id in &exists_in_subgraph_ids {
+                match subgraph_id {
+                    SubgraphId::GraphqlEndpoint(endpoint_id) if is_root_entity => {
+                        resolver_ids.extend(
+                            graphql_federated_entity_resolvers
+                                .entry((parent_entity_id, endpoint_id))
+                                .or_insert_with(|| {
+                                    vec![EntityResovler::Root(self.push_resolver(
+                                        ResolverDefinitionRecord::GraphqlRootField(
+                                            GraphqlRootFieldResolverDefinitionRecord { endpoint_id },
+                                        ),
+                                    ))]
+                                })
+                                .iter()
+                                .map(|res| res.id()),
+                        );
+                    }
+                    SubgraphId::GraphqlEndpoint(endpoint_id) => {
+                        let endpoint_resolvers = graphql_federated_entity_resolvers
                             .entry((parent_entity_id, endpoint_id))
                             .or_insert_with(|| {
                                 parent_entity
@@ -619,7 +634,7 @@ impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
                                     .filter_map(|dir| {
                                         dir.key.as_ref().filter(|key| {
                                             !key.is_empty()
-                                                && GraphqlEndpointId::from(dir.subgraph_id) == endpoint_id
+                                                && self.sources[dir.subgraph_id] == subgraph_id
                                                 && dir.resolvable
                                         })
                                     })
@@ -631,34 +646,42 @@ impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
                                                 endpoint_id,
                                             },
                                         ));
-                                        FieldResovler::Entity { key: key.clone(), id }
+                                        EntityResovler::Entity { key: key.clone(), id }
                                     })
                                     .collect::<Vec<_>>()
                             });
-                    for res in endpoint_resolvers {
-                        let FieldResovler::Entity { id, key } = res else {
-                            continue;
-                        };
-                        // If part of the key we can't be provided by this resolver.
-                        if key.find_field(federated_id).is_none() {
-                            resolver_ids.push(*id);
+                        for res in endpoint_resolvers {
+                            let EntityResovler::Entity { id, key } = res else {
+                                continue;
+                            };
+                            // If part of the key we can't be provided by this resolver.
+                            if key.find_field(federated_id).is_none() {
+                                resolver_ids.push(*id);
+                            }
                         }
                     }
+                    SubgraphId::Virtual(_) | SubgraphId::Introspection => (),
                 }
             }
 
-            // If there is no @join__field and no @join__type at all, we assume this field to be
-            // available everywhere.
-            let resolvable_in_ids = if !has_join_field && !parent_has_join_type {
-                self.all_subgraphs.clone()
-            } else {
-                resolvable_in
-                    .into_iter()
-                    .map(SubgraphId::GraphqlEndpoint)
-                    .collect::<Vec<_>>()
-            };
-
             let directive_ids = self.push_directives(field_schema_location, &field.directives)?;
+            resolver_ids.extend(
+                directive_ids
+                    .iter()
+                    .filter_map(|id| id.as_extension())
+                    .filter_map(|id| {
+                        if exists_in_subgraph_ids.contains(&self.graph[id].subgraph_id) {
+                            self.graph
+                                .resolver_definitions
+                                .push(ResolverDefinitionRecord::FieldResolverExtension(
+                                    FieldResolverExtensionDefinitionRecord { directive_id: id },
+                                ));
+                            Some(ResolverDefinitionId::from(self.graph.resolver_definitions.len() - 1))
+                        } else {
+                            None
+                        }
+                    }),
+            );
 
             self.graph.field_definitions.push(FieldDefinitionRecord {
                 name_id: field.name.into(),
@@ -666,7 +689,7 @@ impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
                 parent_entity_id,
                 subgraph_type_records,
                 ty_record: self.ctx.convert_type(field.r#type),
-                exists_in_subgraph_ids: resolvable_in_ids,
+                exists_in_subgraph_ids,
                 resolver_ids,
                 provides_records,
                 requires_records,
@@ -675,6 +698,7 @@ impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
             })
         }
 
+        self.graphql_federated_entity_resolvers = graphql_federated_entity_resolvers;
         Ok(())
     }
 
@@ -858,11 +882,12 @@ impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
                     });
                     TypeSystemDirectiveId::ListSize(list_size_id)
                 }
-                federated_graph::Directive::ExtensionDirective {
+                federated_graph::Directive::ExtensionDirective(federated_graph::ExtensionDirective {
+                    subgraph_id,
                     extension_id,
                     name,
                     arguments,
-                } => {
+                }) => {
                     let Some(id) = self.ctx.extension_catalog.find_compatible_extension(extension_id) else {
                         return Err(BuildError::UnknownDirectiveExtension {
                             name: self.ctx.strings[StringId::from(*name)].to_string(),
@@ -871,6 +896,7 @@ impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
                     };
 
                     self.graph.extension_directives.push(ExtensionDirectiveRecord {
+                        subgraph_id: self.sources[*subgraph_id],
                         extension_id: id,
                         name_id: (*name).into(),
                         arguments_id: {

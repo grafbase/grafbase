@@ -81,6 +81,7 @@ impl Resolver {
             ResolverDefinitionVariant::GraphqlFederationEntity(definition) => {
                 FederationEntityResolver::prepare(definition, plan_query_partition)
             }
+            ResolverDefinitionVariant::FieldResolverExtension(_) => todo!(),
         }
     }
 }

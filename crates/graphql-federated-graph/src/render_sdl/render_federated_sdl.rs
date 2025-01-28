@@ -282,12 +282,13 @@ fn write_subgraphs_enum(graph: &FederatedGraph, sdl: &mut String) -> fmt::Result
 
     for subgraph in &graph.subgraphs {
         let name_str = &graph[subgraph.name];
-        let url = &graph[subgraph.url];
         let loud_name = GraphEnumVariantName(name_str);
-        writeln!(
-            sdl,
-            r#"{INDENT}{loud_name} @join__graph(name: "{name_str}", url: "{url}")"#
-        )?;
+        write!(sdl, r#"{INDENT}{loud_name} @join__graph(name: "{name_str}""#)?;
+        if let Some(url) = subgraph.url {
+            let url = &graph[url];
+            write!(sdl, r#", url: "{url}""#)?;
+        }
+        writeln!(sdl, ")")?;
     }
 
     sdl.push_str("}\n\n");

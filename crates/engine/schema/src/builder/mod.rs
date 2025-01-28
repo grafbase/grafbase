@@ -35,6 +35,7 @@ pub(crate) fn build(
     let (graph, introspection) = GraphBuilder::build(&mut ctx, &sources, &mut config)?;
     let subgraphs = SubGraphs {
         graphql_endpoints: sources.graphql_endpoints,
+        virtual_subgraphs: Vec::new(),
         introspection,
     };
     ctx.finalize(subgraphs, graph, config, version)
@@ -197,7 +198,6 @@ from_id_newtypes! {
     federated_graph::InterfaceId => InterfaceDefinitionId,
     federated_graph::ObjectId => ObjectDefinitionId,
     federated_graph::StringId => StringId,
-    federated_graph::SubgraphId => GraphqlEndpointId,
     federated_graph::UnionId => UnionDefinitionId,
     federated_graph::EnumValueId => EnumValueId,
     federated_graph::InputValueDefinitionId => InputValueDefinitionId,

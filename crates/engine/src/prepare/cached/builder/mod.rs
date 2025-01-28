@@ -601,7 +601,7 @@ fn to_data_field_or_typename_field(
             selection_set_requires_typename: match definition_id.walk(schema).ty().definition() {
                 // If we may encounter an inaccessible object, we have to detect it
                 Definition::Union(union) => union.has_inaccessible_member(),
-                Definition::Interface(interface) => interface.has_inaccessible_implementors(),
+                Definition::Interface(interface) => interface.has_inaccessible_implementor(),
                 _ => false,
             },
             shape_ids: IdRange::empty(),

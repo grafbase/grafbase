@@ -3,9 +3,11 @@
 //! ===================
 //! Generated with: `cargo run -p engine-codegen`
 //! Source file: <engine-codegen dir>/domain/schema.graphql
+mod field_resolver_ext;
 mod graphql;
 
 use crate::prelude::*;
+pub use field_resolver_ext::*;
 pub use graphql::*;
 use walker::Walk;
 
@@ -14,13 +16,15 @@ use walker::Walk;
 /// ```custom,{.language-graphql}
 /// union ResolverDefinition
 ///   @meta(module: "resolver")
-///   @variants(empty: ["Introspection"], remove_suffix: true)
+///   @variants(empty: ["Introspection"], names: ["GraphqlRootField", "GraphqlFederationEntity", "FieldResolverExtension"])
 ///   @indexed(deduplicated: true, id_size: "u32") =
 ///   | GraphqlRootFieldResolverDefinition
 ///   | GraphqlFederationEntityResolverDefinition
+///   | FieldResolverExtensionDefinition
 /// ```
 #[derive(serde::Serialize, serde::Deserialize)]
 pub enum ResolverDefinitionRecord {
+    FieldResolverExtension(FieldResolverExtensionDefinitionRecord),
     GraphqlFederationEntity(GraphqlFederationEntityResolverDefinitionRecord),
     GraphqlRootField(GraphqlRootFieldResolverDefinitionRecord),
     Introspection,
@@ -29,6 +33,7 @@ pub enum ResolverDefinitionRecord {
 impl std::fmt::Debug for ResolverDefinitionRecord {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            ResolverDefinitionRecord::FieldResolverExtension(variant) => variant.fmt(f),
             ResolverDefinitionRecord::GraphqlFederationEntity(variant) => variant.fmt(f),
             ResolverDefinitionRecord::GraphqlRootField(variant) => variant.fmt(f),
             ResolverDefinitionRecord::Introspection => write!(f, "Introspection"),
@@ -37,6 +42,15 @@ impl std::fmt::Debug for ResolverDefinitionRecord {
 }
 
 impl ResolverDefinitionRecord {
+    pub fn is_field_resolver_extension(&self) -> bool {
+        matches!(self, ResolverDefinitionRecord::FieldResolverExtension(_))
+    }
+    pub fn as_field_resolver_extension(&self) -> Option<FieldResolverExtensionDefinitionRecord> {
+        match self {
+            ResolverDefinitionRecord::FieldResolverExtension(item) => Some(*item),
+            _ => None,
+        }
+    }
     pub fn is_graphql_federation_entity(&self) -> bool {
         matches!(self, ResolverDefinitionRecord::GraphqlFederationEntity(_))
     }
@@ -71,6 +85,7 @@ pub struct ResolverDefinition<'a> {
 
 #[derive(Clone, Copy)]
 pub enum ResolverDefinitionVariant<'a> {
+    FieldResolverExtension(FieldResolverExtensionDefinition<'a>),
     GraphqlFederationEntity(GraphqlFederationEntityResolverDefinition<'a>),
     GraphqlRootField(GraphqlRootFieldResolverDefinition<'a>),
     Introspection,
@@ -79,6 +94,7 @@ pub enum ResolverDefinitionVariant<'a> {
 impl std::fmt::Debug for ResolverDefinitionVariant<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            ResolverDefinitionVariant::FieldResolverExtension(variant) => variant.fmt(f),
             ResolverDefinitionVariant::GraphqlFederationEntity(variant) => variant.fmt(f),
             ResolverDefinitionVariant::GraphqlRootField(variant) => variant.fmt(f),
             ResolverDefinitionVariant::Introspection => write!(f, "Introspection"),
@@ -101,6 +117,9 @@ impl<'a> ResolverDefinition<'a> {
     pub fn variant(&self) -> ResolverDefinitionVariant<'a> {
         let schema = self.schema;
         match self.as_ref() {
+            ResolverDefinitionRecord::FieldResolverExtension(item) => {
+                ResolverDefinitionVariant::FieldResolverExtension(item.walk(schema))
+            }
             ResolverDefinitionRecord::GraphqlFederationEntity(item) => {
                 ResolverDefinitionVariant::GraphqlFederationEntity(item.walk(schema))
             }
@@ -108,6 +127,15 @@ impl<'a> ResolverDefinition<'a> {
                 ResolverDefinitionVariant::GraphqlRootField(item.walk(schema))
             }
             ResolverDefinitionRecord::Introspection => ResolverDefinitionVariant::Introspection,
+        }
+    }
+    pub fn is_field_resolver_extension(&self) -> bool {
+        matches!(self.variant(), ResolverDefinitionVariant::FieldResolverExtension(_))
+    }
+    pub fn as_field_resolver_extension(&self) -> Option<FieldResolverExtensionDefinition<'a>> {
+        match self.variant() {
+            ResolverDefinitionVariant::FieldResolverExtension(item) => Some(item),
+            _ => None,
         }
     }
     pub fn is_graphql_federation_entity(&self) -> bool {
