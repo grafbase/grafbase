@@ -11,8 +11,9 @@ pub(crate) fn display_directive_definition(
     f.write_str("directive @")?;
     f.write_str(&graph[directive_definition.name])?;
 
-    if directive_definition.arguments.1 > 0 {
+    if !graph[directive_definition.arguments].is_empty() {
         f.write_str("(")?;
+
         let mut arguments = graph[directive_definition.arguments].iter().peekable();
 
         while let Some(argument) = arguments.next() {

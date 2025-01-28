@@ -12,6 +12,10 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
     let mut sdl = String::new();
 
     with_formatter(&mut sdl, |f| {
+        if graph.directive_definitions.is_empty() {
+            return Ok(());
+        }
+
         for definition in &graph.directive_definitions {
             f.write_str("\n")?;
             display_directive_definition(definition, directives_filter, graph, f)?;
