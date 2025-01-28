@@ -45,6 +45,7 @@ impl<'a> Context<'a> {
         let description = description.map(|description| self.ir.strings.insert(description));
 
         let r#enum = federated::EnumDefinitionRecord {
+            namespace: None,
             name,
             description,
             // Populated when emitting the federated graph.
@@ -193,6 +194,7 @@ impl<'a> Context<'a> {
         let description = description.map(|description| self.ir.strings.insert(description));
 
         let scalar = federated::ScalarDefinitionRecord {
+            namespace: None,
             name,
             description,
             // Populated when emitting the federated graph.

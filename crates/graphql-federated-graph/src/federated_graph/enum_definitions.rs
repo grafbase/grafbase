@@ -12,6 +12,7 @@ impl std::fmt::Debug for EnumDefinition<'_> {
 
 #[derive(Clone, Debug)]
 pub struct EnumDefinitionRecord {
+    pub namespace: Option<StringId>,
     pub name: StringId,
     pub directives: Vec<Directive>,
     pub description: Option<StringId>,

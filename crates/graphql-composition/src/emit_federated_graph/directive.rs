@@ -366,6 +366,7 @@ pub(super) fn emit_list_size_directive_definition(ctx: &mut Context<'_>) {
     });
 
     ctx.out.directive_definitions.push(federated::DirectiveDefinition {
+        namespace: None,
         name,
         arguments: (arguments_start, 4),
         locations: federated::DirectiveLocations::FIELD_DEFINITION,
@@ -402,6 +403,7 @@ pub(super) fn emit_cost_directive_definition(ctx: &mut Context<'_>) {
     });
 
     ctx.out.directive_definitions.push(federated::DirectiveDefinition {
+        namespace: None,
         name,
         arguments: (arguments_start, 1),
         locations: federated::DirectiveLocations::ARGUMENT_DEFINITION

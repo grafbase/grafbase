@@ -4,7 +4,7 @@ pub(super) fn ingest_directive_definition<'a>(
     directive_definition: ast::DirectiveDefinition<'a>,
     state: &mut State<'a>,
 ) -> Result<(), DomainError> {
-    let name = state.insert_string(directive_definition.name());
+    let (namespace, name) = split_namespace_name(directive_definition.name(), state);
 
     let mut locations = DirectiveLocations::default();
 
@@ -48,6 +48,7 @@ pub(super) fn ingest_directive_definition<'a>(
     }
 
     let definition = DirectiveDefinition {
+        namespace,
         name,
         locations,
         arguments: arguments_start

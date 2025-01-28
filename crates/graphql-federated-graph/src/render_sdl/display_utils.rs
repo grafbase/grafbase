@@ -425,13 +425,20 @@ impl Drop for DirectiveWriter<'_, '_> {
 }
 
 pub(super) fn render_field_type(field_type: &Type, graph: &FederatedGraph) -> String {
-    let name_id = match field_type.definition {
-        Definition::Scalar(scalar_id) => graph[scalar_id].name,
-        Definition::Object(object_id) => graph.view(object_id).name,
-        Definition::Interface(interface_id) => graph.view(interface_id).name,
-        Definition::Union(union_id) => graph[union_id].name,
-        Definition::Enum(enum_id) => graph[enum_id].name,
-        Definition::InputObject(input_object_id) => graph[input_object_id].name,
+    let (namespace_id, name_id) = match field_type.definition {
+        Definition::Scalar(scalar_id) => {
+            let scalar = &graph[scalar_id];
+
+            (scalar.namespace, scalar.name)
+        }
+        Definition::Object(object_id) => (None, graph.view(object_id).name),
+        Definition::Interface(interface_id) => (None, graph.view(interface_id).name),
+        Definition::Union(union_id) => (None, graph[union_id].name),
+        Definition::Enum(enum_id) => {
+            let r#enum = &graph[enum_id];
+            (r#enum.namespace, r#enum.name)
+        }
+        Definition::InputObject(input_object_id) => (None, graph[input_object_id].name),
     };
     let name = &graph[name_id];
     let mut out = String::with_capacity(name.len());
@@ -440,7 +447,13 @@ pub(super) fn render_field_type(field_type: &Type, graph: &FederatedGraph) -> St
         out.push('[');
     }
 
-    write!(out, "{name}").unwrap();
+    write!(
+        out,
+        "{namespace}{separator}{name}",
+        namespace = namespace_id.map(|ns| graph[ns].as_str()).unwrap_or(""),
+        separator = if namespace_id.is_some() { "__" } else { "" }
+    )
+    .unwrap();
     if field_type.wrapping.inner_is_required() {
         out.push('!');
     }

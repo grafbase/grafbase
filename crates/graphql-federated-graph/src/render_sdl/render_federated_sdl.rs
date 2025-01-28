@@ -2,9 +2,9 @@ use itertools::Itertools;
 
 use super::{directive::write_directive, directive_definition::display_directive_definition, display_utils::*};
 use crate::{directives::*, federated_graph::*};
-use std::fmt::{self, Write};
+use std::fmt::{self, Display, Write};
 
-const JOIN_GRAPH_ENUM_NAME: &str = "join__Graph";
+const JOIN_GRAPH_ENUM_NAMESPACE_AND_NAME: (Option<&str>, &str) = (Some("join"), "Graph");
 
 /// Render a GraphQL SDL string for a federated graph. It includes [join spec
 /// directives](https://specs.apollo.dev/join/v0.3/) about subgraphs and entities.
@@ -21,27 +21,38 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
             display_directive_definition(definition, directives_filter, graph, f)?;
         }
 
-        f.write_str("\n")
+        f.write_str("\n")?;
+
+        write_subgraphs_enum(graph, f)?;
+
+        for scalar in graph.iter_scalar_definitions() {
+            let namespace = scalar.namespace.map(|namespace| &graph[namespace]);
+            let name = scalar.then(|scalar| scalar.name).as_str();
+
+            if let Some(description) = scalar.description {
+                Description(&graph[description], "").fmt(f)?;
+            }
+
+            if BUILTIN_SCALARS.contains(&name) {
+                continue;
+            }
+
+            f.write_str("scalar ")?;
+
+            if let Some(namespace) = namespace {
+                f.write_str(namespace)?;
+                f.write_str("__")?;
+            }
+
+            f.write_str(name)?;
+
+            display_definition_directives(&scalar.directives, graph, f)?;
+
+            f.write_str("\n\n")?;
+        }
+
+        Ok(())
     })?;
-
-    write_subgraphs_enum(graph, &mut sdl)?;
-
-    for scalar in graph.iter_scalar_definitions() {
-        let name = scalar.then(|scalar| scalar.name).as_str();
-
-        if let Some(description) = scalar.description {
-            write!(sdl, "{}", Description(&graph[description], ""))?;
-        }
-
-        if BUILTIN_SCALARS.contains(&name) {
-            continue;
-        }
-
-        write!(sdl, "scalar {name}")?;
-        write_definition_directives(&scalar.directives, graph, &mut sdl)?;
-        sdl.push('\n');
-        sdl.push('\n');
-    }
 
     for object in graph.iter_objects() {
         let object_name = &graph[object.name];
@@ -135,9 +146,10 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
     }
 
     for r#enum in graph.iter_enum_definitions() {
+        let namespace = r#enum.namespace.map(|namespace| graph[namespace].as_str());
         let enum_name = graph.at(r#enum.name).as_str();
 
-        if enum_name == JOIN_GRAPH_ENUM_NAME {
+        if (namespace, enum_name) == JOIN_GRAPH_ENUM_NAMESPACE_AND_NAME {
             continue;
         }
 
@@ -145,8 +157,17 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
             write!(sdl, "{}", Description(&graph[description], ""))?;
         }
 
-        write!(sdl, "enum {enum_name}")?;
-        write_definition_directives(&r#enum.directives, graph, &mut sdl)?;
+        with_formatter(&mut sdl, |f| {
+            f.write_str("enum ")?;
+            if let Some(namespace) = namespace {
+                f.write_str(namespace)?;
+                f.write_str("__")?;
+            }
+            f.write_str(enum_name)?;
+
+            display_definition_directives(&r#enum.directives, graph, f)
+        })?;
+
         if !sdl.ends_with('\n') {
             sdl.push('\n');
         }
@@ -233,27 +254,26 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
     Ok(sdl)
 }
 
-fn write_subgraphs_enum(graph: &FederatedGraph, sdl: &mut String) -> fmt::Result {
+fn write_subgraphs_enum(graph: &FederatedGraph, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     if graph.subgraphs.is_empty() {
         return Ok(());
     }
 
-    sdl.push_str("enum join__Graph");
+    f.write_str("enum join__Graph")?;
 
-    sdl.push_str(" {\n");
+    f.write_str(" {\n")?;
 
     for subgraph in &graph.subgraphs {
         let name_str = &graph[subgraph.name];
         let loud_name = GraphEnumVariantName(name_str);
         write!(sdl, r#"{INDENT}{loud_name} @join__graph(name: "{name_str}""#)?;
-        if let Some(url) = subgraph.url {
             let url = &graph[url];
             write!(sdl, r#", url: "{url}""#)?;
         }
         writeln!(sdl, ")")?;
     }
 
-    sdl.push_str("}\n\n");
+    f.write_str("}\n\n")?;
 
     Ok(())
 }
@@ -305,15 +325,21 @@ fn write_field(
     Ok(())
 }
 
-fn write_definition_directives(directives: &[Directive], graph: &FederatedGraph, sdl: &mut String) -> fmt::Result {
-    with_formatter(sdl, |f| {
-        for directive in directives {
-            f.write_fmt(format_args!("\n{INDENT}"))?;
-            write_directive(f, directive, graph)?;
-        }
+fn display_definition_directives(
+    directives: &[Directive],
+    graph: &FederatedGraph,
+    f: &mut fmt::Formatter<'_>,
+) -> fmt::Result {
+    for directive in directives {
+        f.write_fmt(format_args!("\n{INDENT}"))?;
+        write_directive(f, directive, graph)?;
+    }
 
-        Ok(())
-    })
+    Ok(())
+}
+
+fn write_definition_directives(directives: &[Directive], graph: &FederatedGraph, sdl: &mut String) -> fmt::Result {
+    with_formatter(sdl, |f| display_definition_directives(directives, graph, f))
 }
 
 fn write_field_directives(

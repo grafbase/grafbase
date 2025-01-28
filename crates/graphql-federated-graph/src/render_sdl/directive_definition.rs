@@ -8,7 +8,15 @@ pub(crate) fn display_directive_definition(
     graph: &FederatedGraph,
     f: &mut fmt::Formatter<'_>,
 ) -> fmt::Result {
+    let namespace = directive_definition.namespace.map(|namespace| &graph[namespace]);
+
     f.write_str("directive @")?;
+
+    if let Some(namespace) = namespace {
+        f.write_str(&namespace)?;
+        f.write_str("__")?;
+    }
+
     f.write_str(&graph[directive_definition.name])?;
 
     if !graph[directive_definition.arguments].is_empty() {

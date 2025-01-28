@@ -31,7 +31,7 @@ impl fmt::Display for Renderer<'_> {
         };
 
         for definition in &graph.directive_definitions {
-            if graph[definition.name].starts_with("join__") {
+            if definition.namespace.is_some() {
                 continue;
             }
 
@@ -218,7 +218,7 @@ impl fmt::Display for Renderer<'_> {
         for scalar in graph.iter_scalar_definitions() {
             let scalar_name = scalar.then(|scalar| scalar.name).as_str();
 
-            if scalar_name.starts_with("join__") {
+            if scalar.namespace.is_some() {
                 continue;
             }
 

@@ -2,6 +2,7 @@ use super::*;
 
 #[derive(Debug, Clone)]
 pub struct DirectiveDefinition {
+    pub namespace: Option<StringId>,
     pub name: StringId,
     pub locations: DirectiveLocations,
     pub arguments: InputValueDefinitions,

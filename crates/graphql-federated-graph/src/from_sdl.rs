@@ -449,7 +449,8 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                     _ => (),
                 }
 
-                let type_name_id = state.insert_string(type_name);
+                let (namespace, type_name_id) = split_namespace_name(type_name, state);
+
                 let description = typedef
                     .description()
                     .map(|description| state.insert_string(&description.to_cow()));
@@ -457,6 +458,7 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                 match typedef {
                     ast::TypeDefinition::Scalar(_) => {
                         let scalar_definition_id = state.graph.push_scalar_definition(ScalarDefinitionRecord {
+                            namespace,
                             name: type_name_id,
                             directives: Vec::new(),
                             description,
@@ -500,6 +502,7 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                     }
                     ast::TypeDefinition::Enum(enm) => {
                         let enum_definition_id = state.graph.push_enum_definition(EnumDefinitionRecord {
+                            namespace,
                             name: type_name_id,
                             directives: Vec::new(),
                             description,
@@ -552,6 +555,7 @@ fn insert_builtin_scalars(state: &mut State<'_>) {
     for name_str in ["String", "ID", "Float", "Boolean", "Int"] {
         let name = state.insert_string(name_str);
         let id = state.graph.push_scalar_definition(ScalarDefinitionRecord {
+            namespace: None,
             name,
             directives: Vec::new(),
             description: None,
@@ -1257,6 +1261,18 @@ fn test_from_sdl_with_missing_query_root() {
         assert!(schema[query_object.fields.clone()]
             .iter()
             .any(|f| usize::from(f.name) == field_name));
+    }
+}
+
+fn split_namespace_name(original_name: &str, state: &mut State<'_>) -> (Option<StringId>, StringId) {
+    match original_name.split_once("__") {
+        Some((namespace, name)) => {
+            let namespace = state.insert_string(namespace);
+            let name = state.insert_string(name);
+
+            (Some(namespace), name)
+        }
+        None => (None, state.insert_string(original_name)),
     }
 }
 
