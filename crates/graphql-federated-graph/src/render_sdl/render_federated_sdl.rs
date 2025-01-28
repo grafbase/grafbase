@@ -426,12 +426,21 @@ fn render_field_arguments(args: &[InputValueDefinition], graph: &FederatedGraph)
                 let r#type = render_field_type(&arg.r#type, graph);
                 let directives = &arg.directives;
                 let default = arg.default.as_ref();
-                (name, r#type, directives, default)
+                let description = arg.description;
+                (name, r#type, directives, default, description)
             })
             .peekable();
         let mut out = String::from('(');
 
-        while let Some((name, ty, directives, default)) = inner.next() {
+        while let Some((name, ty, directives, default, description)) = inner.next() {
+            if let Some(description) = description {
+                with_formatter(&mut out, |f| {
+                    display_graphql_string_literal(&graph[description], f)?;
+                    f.write_str(" ")
+                })
+                .unwrap();
+            }
+
             out.push_str(name);
             out.push_str(": ");
             out.push_str(&ty);

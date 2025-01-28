@@ -263,4 +263,10 @@ impl<'a> FieldArgumentWalker<'a> {
     pub(crate) fn default(&self) -> Option<&'a Value> {
         self.subgraphs.fields.field_argument_defaults.get(&self.id.0)
     }
+
+    pub(crate) fn description(&self) -> Option<StringWalker<'a>> {
+        let (_, tuple) = self.id;
+        let description = tuple.description?;
+        Some(self.walk(description))
+    }
 }

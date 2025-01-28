@@ -3,7 +3,12 @@ type Tofu @shareable {
   name: String!
   type: TofuType
   nutrition: Nutrition
-  recipes(filter: RecipeFilter): [Recipe]
+  recipes(
+    """
+    Which recipes to include. See [RecipeFilter].
+    """
+    filter: RecipeFilter
+  ): [Recipe]
   texture: TextureProfile
 }
 

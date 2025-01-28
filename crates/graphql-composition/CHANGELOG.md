@@ -6,6 +6,10 @@
 
 - Implemented the rule that any directive composed with `@composeDirective` must have the same definition in all subgraphs. (https://github.com/grafbase/grafbase/pull/2532)
 
+### Fixes
+
+- Descriptions of field arguments was not implemented. They are now properly included in the federated graph. (https://github.com/grafbase/grafbase/pull/2544)
+
 ## 0.5.0 - 2025-01-06
 
 ### Features
