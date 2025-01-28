@@ -139,5 +139,5 @@ world sdk {
     ) -> result<field-output, error>;
 
     // The extension registration function. Must be called before initialization.
-    export register-extension: func(host-version: u32) -> s32;
+    export register-extension: func(host-version: u64) -> s64;
 }
