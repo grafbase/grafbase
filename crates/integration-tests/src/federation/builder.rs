@@ -1,7 +1,6 @@
 mod bench;
 mod engine;
 mod router;
-mod test_runtime;
 
 use std::{any::TypeId, collections::HashSet, fmt::Display};
 
@@ -15,9 +14,8 @@ use runtime::{
     hooks::DynamicHooks,
     trusted_documents_client::{self, TrustedDocumentsEnforcementMode},
 };
-pub use test_runtime::*;
 
-use super::{subgraph::Subgraphs, DockerSubgraph, TestGateway};
+use super::{subgraph::Subgraphs, DockerSubgraph, TestExtensions, TestGateway, TestRuntime};
 
 enum ConfigSource {
     Toml(String),
@@ -35,6 +33,7 @@ pub struct TestGatewayBuilder {
     trusted_documents: Option<trusted_documents_client::Client>,
     hooks: Option<DynamicHooks>,
     fetcher: Option<DynamicFetcher>,
+    extensions: TestExtensions,
 }
 
 pub trait EngineExt {
@@ -98,6 +97,11 @@ impl TestGatewayBuilder {
         self
     }
 
+    pub fn with_extensions(mut self, f: impl FnOnce(TestExtensions) -> TestExtensions) -> Self {
+        self.extensions = f(self.extensions);
+        self
+    }
+
     pub fn with_mock_hooks(mut self, hooks: impl Into<DynamicHooks>) -> Self {
         self.hooks = Some(hooks.into());
         self
@@ -118,9 +122,11 @@ impl TestGatewayBuilder {
             trusted_documents,
             hooks,
             fetcher,
+            extensions,
         } = self;
 
         let mut runtime = build_runtime(config.as_ref());
+        runtime.extensions = extensions;
 
         if let Some(trusted_documents) = trusted_documents {
             runtime.trusted_documents = trusted_documents;

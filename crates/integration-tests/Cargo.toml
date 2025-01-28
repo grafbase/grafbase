@@ -60,6 +60,7 @@ serde_with = { workspace = true, features = ["hex"] }
 graphql-ws-client.workspace = true
 async-tungstenite.workspace = true
 futures-util.workspace = true
+extension.workspace = true
 
 [dependencies.tokio]
 version = "1.37"

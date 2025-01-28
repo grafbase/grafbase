@@ -4403,6 +4403,7 @@ dependencies = [
  "engine",
  "engine-axum",
  "engine-config-builder",
+ "extension",
  "futures",
  "futures-util",
  "gateway-config",
