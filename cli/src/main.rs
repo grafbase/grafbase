@@ -8,6 +8,7 @@ mod common;
 mod create;
 mod dev;
 mod errors;
+mod extension;
 mod introspect;
 mod lint;
 mod login;
@@ -134,6 +135,7 @@ fn try_main(args: Args) -> Result<(), CliError> {
             BranchSubCommand::Create(cmd) => branch::create(cmd.branch_ref),
         },
         SubCommand::Dev(cmd) => dev::dev(cmd),
+        SubCommand::Extension(cmd) => Ok(extension::extension(cmd)?),
     }
 }
 
