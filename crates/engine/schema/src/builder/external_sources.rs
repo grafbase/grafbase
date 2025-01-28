@@ -9,7 +9,7 @@ pub struct ExternalDataSources {
 }
 
 impl ExternalDataSources {
-    pub(super) fn build(ctx: &mut BuildContext, config: &mut Config) -> Self {
+    pub(super) fn build<EC>(ctx: &mut BuildContext<EC>, config: &mut Config) -> Self {
         let graphql_endpoints = take(&mut config.graph.subgraphs)
             .into_iter()
             .enumerate()

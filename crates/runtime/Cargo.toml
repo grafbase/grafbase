@@ -24,6 +24,9 @@ serde_json.workspace = true
 strum.workspace = true
 thiserror.workspace = true
 url.workspace = true
+semver = "1"
+id-derives = { path = "../engine/id-derives", package = "engine-id-derives" }
+extension.workspace = true
 
 grafbase-workspace-hack.workspace = true
 

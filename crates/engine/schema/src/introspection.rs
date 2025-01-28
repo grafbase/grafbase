@@ -221,27 +221,27 @@ pub struct DirectiveLocation {
     pub input_field_definition: StringId,
 }
 
-pub(crate) struct IntrospectionBuilder<'a> {
-    ctx: &'a mut BuildContext,
+pub(crate) struct IntrospectionBuilder<'a, EC> {
+    ctx: &'a mut BuildContext<EC>,
     graph: &'a mut Graph,
 }
 
-impl Deref for IntrospectionBuilder<'_> {
+impl<EC> Deref for IntrospectionBuilder<'_, EC> {
     type Target = Graph;
     fn deref(&self) -> &Self::Target {
         self.graph
     }
 }
 
-impl DerefMut for IntrospectionBuilder<'_> {
+impl<EC> DerefMut for IntrospectionBuilder<'_, EC> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.graph
     }
 }
 
-impl<'a> IntrospectionBuilder<'a> {
+impl<'a, EC> IntrospectionBuilder<'a, EC> {
     pub fn create_data_source_and_insert_fields(
-        ctx: &'a mut BuildContext,
+        ctx: &'a mut BuildContext<EC>,
         graph: &'a mut Graph,
     ) -> IntrospectionMetadata {
         Self { ctx, graph }.create_fields_and_insert_them()

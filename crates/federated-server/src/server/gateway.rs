@@ -75,7 +75,7 @@ pub(super) async fn generate(
         runtime.trusted_documents = trusted_documents;
     }
 
-    let schema = engine::Schema::build(config, schema_version)
+    let schema = engine::Schema::build(config, schema_version, ())
         .map_err(|err| crate::Error::SchemaValidationError(err.to_string()))?;
 
     Ok(Engine::new(Arc::new(schema), runtime).await)
