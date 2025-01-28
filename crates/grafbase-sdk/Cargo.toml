@@ -1,6 +1,6 @@
 [package]
 name = "grafbase-sdk"
-version = "0.1.1"
+version = "0.1.2"
 description = "An SDK to implement extensions for the Grafbase Gateway"
 edition.workspace = true
 license.workspace = true
@@ -9,16 +9,17 @@ keywords.workspace = true
 repository.workspace = true
 
 [dependencies]
-grafbase-sdk-derive = { version = "0.1.0", path = "derive" }
+grafbase-sdk-derive = { version = "0.1.1", path = "derive" }
 http.workspace = true
 minicbor-serde = { version = "0.3.2", features = ["alloc"] }
-semver = "1.0.25"
 serde.workspace = true
 serde_json.workspace = true
 serde_urlencoded.workspace = true
 url.workspace = true
 wit-bindgen.workspace = true
-grafbase-workspace-hack.workspace = true
 
 [lints]
 workspace = true
+
+[build-dependencies]
+semver = "1.0.25"

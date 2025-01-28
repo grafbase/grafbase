@@ -75,6 +75,10 @@ grafbase-workspace-hack.workspace = true
 anyhow.workspace = true
 convert_case = "0.7.1"
 askama = "0.12.1"
+semver.workspace = true
+wasmparser = "0.224.0"
+extension.workspace = true
+cynic-parser = { workspace = true, features = ["report"] }
 
 [dev-dependencies]
 async-graphql-axum.workspace = true

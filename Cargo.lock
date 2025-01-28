@@ -1103,15 +1103,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "chumsky"
-version = "0.9.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8eebd66744a15ded14960ab4ccdbfb51ad3b81f51f3f04a80adac98c985396c9"
-dependencies = [
- "hashbrown 0.14.5",
-]
-
-[[package]]
 name = "ciborium"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3146,10 +3137,12 @@ dependencies = [
  "cynic",
  "cynic-codegen",
  "cynic-introspection",
+ "cynic-parser",
  "derive_builder",
  "dirs",
  "duct",
  "expect-test",
+ "extension",
  "federated-server",
  "flate2",
  "fslock",
@@ -3188,6 +3181,7 @@ dependencies = [
  "rstest",
  "rstest_reuse",
  "rustls 0.23.21",
+ "semver",
  "serde",
  "serde-dynamic-string",
  "serde-toml-merge",
@@ -3211,6 +3205,7 @@ dependencies = [
  "url",
  "urlencoding",
  "uuid",
+ "wasmparser 0.224.0",
  "webbrowser",
  "which 7.0.1",
  "wiremock",
@@ -3295,10 +3290,9 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "grafbase-sdk-derive",
- "grafbase-workspace-hack",
  "http 1.2.0",
  "minicbor-serde",
  "semver",
@@ -3311,9 +3305,8 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk-derive"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
- "grafbase-workspace-hack",
  "proc-macro2",
  "quote",
  "syn 2.0.96",
@@ -3493,7 +3486,6 @@ dependencies = [
  "winapi",
  "windows-sys 0.52.0",
  "windows-sys 0.59.0",
- "zerocopy",
  "zeroize",
 ]
 
@@ -3829,12 +3821,6 @@ name = "hex"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
-
-[[package]]
-name = "hifijson"
-version = "0.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9958ab3ce3170c061a27679916bd9b969eceeb5e8b120438e6751d0987655c42"
 
 [[package]]
 name = "hkdf"
@@ -4628,40 +4614,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "52f5385394064fa2c886205dba02598013ce83d3e92d33dbdc0c52fe0e7bf4fc"
 dependencies = [
  "cc",
-]
-
-[[package]]
-name = "jaq-interpret"
-version = "1.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2fe95ec3c24af3fd9f3dd1091593f5e49b003a66c496a8aa39d764d0a06ae17b"
-dependencies = [
- "ahash 0.8.11",
- "dyn-clone",
- "hifijson",
- "indexmap 2.7.0",
- "jaq-syn",
- "once_cell",
- "serde_json",
-]
-
-[[package]]
-name = "jaq-parse"
-version = "1.0.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0346d7d3146cdda8acd929581f3d6626a332356c74d5c95aeaffaac2eb6dee82"
-dependencies = [
- "chumsky",
- "jaq-syn",
-]
-
-[[package]]
-name = "jaq-syn"
-version = "1.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1ba44fe4428c71304604261ecbae047ee9cfb60c4f1a6bd222ebbb31726d3948"
-dependencies = [
- "serde",
 ]
 
 [[package]]
@@ -6745,19 +6697,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rest"
-version = "0.1.0"
-dependencies = [
- "grafbase-sdk",
- "grafbase-workspace-hack",
- "http 1.2.0",
- "jaq-interpret",
- "jaq-parse",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "rfc6979"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8813,6 +8752,7 @@ dependencies = [
  "hashbrown 0.15.2",
  "indexmap 2.7.0",
  "semver",
+ "serde",
 ]
 
 [[package]]
