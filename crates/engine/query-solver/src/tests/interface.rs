@@ -88,8 +88,7 @@ fn interface_field_providing_object_field() {
 
 #[test]
 fn entity_interface_field() {
-    // age is coming from subgraph A, but needs User.id for this. `anotherUsers` returns an
-    // interface though, so need to retrieve the `NodeWithName.id` as an alternative for `User.id`
+    // username  comes from the subgraph B and requires the NodeWithName.id
     assert_solving_snapshots!(
         "entity_interface_field",
         SCHEMA,

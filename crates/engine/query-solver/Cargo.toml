@@ -27,7 +27,7 @@ thiserror.workspace = true
 strum.workspace = true
 hex.workspace = true
 schema = { path = "../schema", package = "engine-schema" }
-fxhash = "0.2"
+fxhash.workspace = true
 hashbrown = "0.15"
 
 

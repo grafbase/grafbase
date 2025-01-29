@@ -5,7 +5,7 @@ use crate::{
         AuthorizedDirective, JoinFieldDirective, JoinImplementsDirective, JoinTypeDirective, JoinUnionMemberDirective,
     },
     render_sdl::display_utils::render_field_type,
-    Directive, FederatedGraph, OverrideLabel, OverrideSource, Value,
+    Directive, ExtensionDirective, FederatedGraph, OverrideLabel, OverrideSource, Value,
 };
 
 use super::{
@@ -56,7 +56,8 @@ pub(crate) fn write_directive<'a, 'b: 'a>(
         Directive::Cost { weight } => {
             DirectiveWriter::new("cost", f, graph)?.arg("weight", Value::Int(*weight as i64))?;
         }
-        Directive::Other { name, arguments } | Directive::ExtensionDirective { name, arguments, .. } => {
+        Directive::Other { name, arguments }
+        | Directive::ExtensionDirective(ExtensionDirective { name, arguments, .. }) => {
             let mut directive = DirectiveWriter::new(&graph[*name], f, graph)?;
 
             for (name, value) in arguments {

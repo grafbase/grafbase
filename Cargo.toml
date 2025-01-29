@@ -70,6 +70,7 @@ futures = "0.3.30"
 futures-channel = "0.3.30"
 futures-lite = "2"
 futures-util = "0.3.30"
+fxhash = "0.2"
 graphql-ws-client = { version = "0.11.0", features = ["tungstenite"] }
 handlebars = "6.0.0"
 headers = "0.4"

@@ -198,12 +198,8 @@ pub(super) fn load(path: PathBuf) -> anyhow::Result<domain::Domain> {
                                     let name = member.name();
                                     match &variant.remove_suffix {
                                         RemoveSuffix::No => name,
-                                        RemoveSuffix::Yes => name
-                                            .strip_suffix(union.name())
-                                            .expect("union name is not a suffix of the variant"),
-                                        RemoveSuffix::Specific(suffix) => {
-                                            name.strip_suffix(suffix).expect("Suffix not found in variant")
-                                        }
+                                        RemoveSuffix::Yes => name.strip_suffix(union.name()).unwrap_or(name),
+                                        RemoveSuffix::Specific(suffix) => name.strip_suffix(suffix).unwrap_or(name),
                                     }
                                     .to_string()
                                 }

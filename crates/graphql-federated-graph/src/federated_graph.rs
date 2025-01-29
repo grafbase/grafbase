@@ -96,7 +96,7 @@ impl FederatedGraph {
 #[derive(Clone)]
 pub struct Subgraph {
     pub name: StringId,
-    pub url: StringId,
+    pub url: Option<StringId>,
 }
 
 #[derive(Clone)]

@@ -1,12 +1,11 @@
 use std::collections::HashMap;
 
-use operation::{Operation, OperationContext, ResponseKey};
+use operation::{Operation, ResponseKey};
 use petgraph::visit::EdgeRef;
 use schema::{CompositeTypeId, DefinitionId, FieldDefinitionId, Schema, StringId, SubgraphId};
 use walker::Walk;
 
 use crate::{
-    are_arguments_equivalent,
     query::{Edge, Node},
     solve::CrudeSolvedQuery,
     QueryFieldId,
@@ -46,20 +45,20 @@ enum FieldRenameConsistencyKey {
 
 #[derive(Default)]
 struct SelectionSetContext {
-    keys: Vec<ResponseKey>,
+    response_keys: Vec<ResponseKey>,
     fields: Vec<(SubgraphId, QueryFieldId)>,
 }
 
 impl SelectionSetContext {
     fn clear(&mut self) {
-        self.keys.clear();
+        self.response_keys.clear();
         self.fields.clear();
     }
 
     fn push_field(&mut self, subgraph_id: SubgraphId, id: QueryFieldId, key: Option<ResponseKey>) {
         self.fields.push((subgraph_id, id));
         if let Some(key) = key {
-            self.keys.push(key);
+            self.response_keys.push(key);
         }
     }
 }
@@ -131,7 +130,7 @@ impl KeyGenerationContext<'_> {
 
             // If the parent type is an object we don't need to deal with distinct types as we'll only
             // query a single object from the subgraph.
-            let new_key = if !parent_type.is_object()
+            let new_response_key = if !parent_type.is_object()
                 && definition
                     .subgraph_type_records
                     .iter()
@@ -157,10 +156,11 @@ impl KeyGenerationContext<'_> {
                 continue;
             };
 
-            self.query[query_field_id].subgraph_key = Some(new_key);
-            selection_set.keys.push(new_key);
+            self.query[query_field_id].subgraph_key = Some(new_response_key);
+            selection_set.response_keys.push(new_response_key);
         }
 
+        let interface = parent_type.as_interface().walk(self.schema);
         // Generating a key for extra fields we kept.
         'extra_fields: for (_, id) in &selection_set.fields {
             let query_field = &self.query[*id];
@@ -170,37 +170,34 @@ impl KeyGenerationContext<'_> {
             let Some(definition_id) = query_field.definition_id else {
                 continue;
             };
-            let argument_ids = query_field.argument_ids;
             let definition = definition_id.walk(self.schema).as_ref();
-            let ctx = OperationContext {
-                schema: self.schema,
-                operation: self.operation,
-            };
 
-            // We may request the same field but from different objects (ex: Cat.name and Dog.name), if so we just re-use the
-            // existing name for clarity.
-            for (_, other_field_id) in &selection_set.fields {
-                let other_field = &self.query[*other_field_id];
-                let Some(other_key) = other_field.response_key else {
-                    continue;
-                };
-                let Some(other_definition_id) = other_field.definition_id else {
-                    continue;
-                };
-                let other_definition = other_definition_id.walk(self.schema).as_ref();
-                if definition_id != other_definition_id
-                    && other_definition.name_id == definition.name_id
-                    && other_definition.ty_record == definition.ty_record
-                    && are_arguments_equivalent(ctx, argument_ids, other_field.argument_ids)
-                {
-                    self.query[*id].response_key = Some(other_key);
-                    continue 'extra_fields;
+            if interface
+                .map(|inf| inf.fields().any(|field| field.name_id == definition.name_id))
+                .unwrap_or_default()
+            {
+                // We may request the same field but from different objects (ex: Cat.name and Dog.name), if so we just re-use the
+                // existing name for clarity.
+                for (_, other_field_id) in &selection_set.fields {
+                    let other_field = &self.query[*other_field_id];
+                    let Some(other_key) = other_field.response_key else {
+                        continue;
+                    };
+                    let Some(other_definition) = other_field.definition_id.walk(self.schema) else {
+                        continue;
+                    };
+
+                    // if different object fields but implement the same interface fields
+                    if other_definition.name_id == definition.name_id {
+                        self.query[*id].response_key = Some(other_key);
+                        continue 'extra_fields;
+                    }
                 }
             }
             let key = self.generate_new_key(selection_set, None, definition.name_id);
 
             self.query[*id].response_key = Some(key);
-            selection_set.keys.push(key);
+            selection_set.response_keys.push(key);
         }
     }
 
@@ -306,7 +303,7 @@ impl KeyGenerationContext<'_> {
         // if we don't need to care about being consistent with the renaming across selection set,
         // we can just return the key if it's not present within the current one.
         // This is only present to generate nicer subgraph queries.
-        if rename_consistency_key.is_none() && !selection_set.keys.contains(&key) {
+        if rename_consistency_key.is_none() && !selection_set.response_keys.contains(&key) {
             return key;
         }
 

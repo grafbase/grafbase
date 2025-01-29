@@ -36,7 +36,7 @@ impl<'a> PlanQueryPartition<'a> {
             requires_typename: self
                 .entity_definition()
                 .as_interface()
-                .map(|inf| inf.has_inaccessible_implementors())
+                .map(|inf| inf.has_inaccessible_implementor())
                 .unwrap_or_default(),
         }
     }

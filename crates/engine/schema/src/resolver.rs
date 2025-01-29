@@ -3,32 +3,36 @@ use std::borrow::Cow;
 use walker::Walk;
 
 use crate::{
-    FieldSet, FieldSetId, GraphqlFederationEntityResolverDefinition, GraphqlRootFieldResolverDefinition,
-    ResolverDefinition, ResolverDefinitionRecord, ResolverDefinitionVariant, Subgraph, SubgraphId,
+    FieldResolverExtensionDefinition, FieldSet, FieldSetId, GraphqlFederationEntityResolverDefinition,
+    GraphqlRootFieldResolverDefinition, ResolverDefinition, ResolverDefinitionRecord, ResolverDefinitionVariant,
+    Subgraph, SubgraphId,
 };
 
 impl ResolverDefinitionRecord {
-    pub fn subgraph_id(&self) -> SubgraphId {
-        match self {
-            ResolverDefinitionRecord::GraphqlFederationEntity(resolver) => {
-                SubgraphId::GraphqlEndpoint(resolver.endpoint_id)
-            }
-            ResolverDefinitionRecord::GraphqlRootField(resolver) => SubgraphId::GraphqlEndpoint(resolver.endpoint_id),
-            ResolverDefinitionRecord::Introspection => SubgraphId::Introspection,
-        }
-    }
-
     pub fn required_field_set_id(&self) -> Option<FieldSetId> {
         match self {
             ResolverDefinitionRecord::GraphqlFederationEntity(resolver) => Some(resolver.key_fields_id),
-            ResolverDefinitionRecord::GraphqlRootField(_) | ResolverDefinitionRecord::Introspection => None,
+            ResolverDefinitionRecord::GraphqlRootField(_)
+            | ResolverDefinitionRecord::FieldResolverExtension(_)
+            | ResolverDefinitionRecord::Introspection => None,
         }
     }
 }
 
 impl<'a> ResolverDefinition<'a> {
     pub fn subgraph(&self) -> Subgraph<'a> {
-        self.as_ref().subgraph_id().walk(self.schema)
+        self.subgraph_id().walk(self.schema)
+    }
+
+    pub fn subgraph_id(&self) -> SubgraphId {
+        match self.variant() {
+            ResolverDefinitionVariant::GraphqlFederationEntity(resolver) => {
+                SubgraphId::GraphqlEndpoint(resolver.endpoint_id)
+            }
+            ResolverDefinitionVariant::GraphqlRootField(resolver) => SubgraphId::GraphqlEndpoint(resolver.endpoint_id),
+            ResolverDefinitionVariant::Introspection => SubgraphId::Introspection,
+            ResolverDefinitionVariant::FieldResolverExtension(resolver) => resolver.directive().subgraph_id,
+        }
     }
 
     pub fn required_field_set(&self) -> Option<FieldSet<'a>> {
@@ -40,7 +44,14 @@ impl<'a> ResolverDefinition<'a> {
             ResolverDefinitionVariant::Introspection => "Introspection".into(),
             ResolverDefinitionVariant::GraphqlRootField(resolver) => resolver.name().into(),
             ResolverDefinitionVariant::GraphqlFederationEntity(resolver) => resolver.name().into(),
+            ResolverDefinitionVariant::FieldResolverExtension(resolver) => resolver.name().into(),
         }
+    }
+}
+
+impl FieldResolverExtensionDefinition<'_> {
+    pub fn name(&self) -> String {
+        format!("{}#{}", self.directive().name(), self.directive().subgraph().name())
     }
 }
 
