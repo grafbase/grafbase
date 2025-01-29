@@ -1,25 +1,15 @@
 use super::*;
 
-pub(super) fn ingest_enum(
-    definition_id: DefinitionId,
-    enum_type: ast::EnumDefinition<'_>,
-    subgraphs: &mut Subgraphs,
-    federation_directives_matcher: &DirectiveMatcher<'_>,
-    subgraph: SubgraphId,
-) {
+pub(super) fn ingest_enum(ctx: &mut Context<'_>, definition_id: DefinitionId, enum_type: ast::EnumDefinition<'_>) {
     for value in enum_type.values() {
-        let value_name = subgraphs.strings.intern(value.value());
-        let value_directives = subgraphs.new_directive_site();
+        let value_name = ctx.subgraphs.strings.intern(value.value());
+        let value_directives = ctx.subgraphs.new_directive_site();
 
-        subgraphs.push_enum_value(definition_id, value_name, value_directives);
+        ctx.subgraphs
+            .push_enum_value(definition_id, value_name, value_directives);
 
-        directives::ingest_directives(
-            value_directives,
-            value.directives(),
-            subgraphs,
-            federation_directives_matcher,
-            subgraph,
-            |subgraphs| subgraphs.walk(definition_id).name().as_str().to_owned(),
-        );
+        directives::ingest_directives(ctx, value_directives, value.directives(), |subgraphs| {
+            subgraphs.walk(definition_id).name().as_str().to_owned()
+        });
     }
 }

@@ -1,13 +1,11 @@
 use super::*;
 use graphql_federated_graph::DirectiveLocations;
 
-pub(super) fn ingest_directive_definition(
-    directive_definition: ast::DirectiveDefinition<'_>,
-    subgraph_id: SubgraphId,
-    subgraphs: &mut Subgraphs,
-) {
-    let name = subgraphs.strings.intern(directive_definition.name());
+pub(super) fn ingest_directive_definition(directive_definition: ast::DirectiveDefinition<'_>, ctx: &mut Context<'_>) {
+    let name = ctx.subgraphs.strings.intern(directive_definition.name());
     let mut locations = DirectiveLocations::default();
+    let subgraphs = &mut ctx.subgraphs;
+    let subgraph_id = ctx.subgraph_id;
 
     for location in directive_definition.locations() {
         let location = match location {

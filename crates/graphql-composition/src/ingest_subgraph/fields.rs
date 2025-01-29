@@ -4,35 +4,28 @@ use super::*;
 use crate::subgraphs::FieldId;
 
 pub(super) fn ingest_input_fields(
+    ctx: &mut Context<'_>,
     parent_definition_id: DefinitionId,
     fields: ast::Iter<'_, ast::InputValueDefinition<'_>>,
-    matcher: &DirectiveMatcher<'_>,
-    subgraphs: &mut Subgraphs,
-    subgraph_id: SubgraphId,
 ) {
     for field in fields {
-        let field_type = subgraphs.intern_field_type(field.ty());
-        let directives = subgraphs.new_directive_site();
+        let field_type = ctx.subgraphs.intern_field_type(field.ty());
+        let directives = ctx.subgraphs.new_directive_site();
         let field_name = field.name();
 
-        directives::ingest_directives(
-            directives,
-            field.directives(),
-            subgraphs,
-            matcher,
-            subgraph_id,
-            |subgraphs| format!("{}.{field_name}", subgraphs.walk(parent_definition_id).name().as_str(),),
-        );
+        directives::ingest_directives(ctx, directives, field.directives(), |subgraphs| {
+            format!("{}.{field_name}", subgraphs.walk(parent_definition_id).name().as_str(),)
+        });
 
         let description = field
             .description()
-            .map(|description| subgraphs.strings.intern(description.to_cow()));
+            .map(|description| ctx.subgraphs.strings.intern(description.to_cow()));
 
         let default = field
             .default_value()
-            .map(|default| crate::ast_value_to_subgraph_value(default, subgraphs));
+            .map(|default| crate::ast_value_to_subgraph_value(default, ctx.subgraphs));
 
-        subgraphs.push_field(subgraphs::FieldIngest {
+        ctx.subgraphs.push_field(subgraphs::FieldIngest {
             parent_definition_id,
             field_name,
             field_type,
@@ -44,55 +37,45 @@ pub(super) fn ingest_input_fields(
 }
 
 fn ingest_field_arguments(
+    ctx: &mut Context<'_>,
     field_id: FieldId,
     arguments: ast::iter::Iter<'_, InputValueDefinition<'_>>,
-    matcher: &DirectiveMatcher<'_>,
-    subgraph_id: SubgraphId,
-    subgraphs: &mut Subgraphs,
 ) {
     for argument in arguments {
-        let r#type = subgraphs.intern_field_type(argument.ty());
-        let name = subgraphs.strings.intern(argument.name());
+        let r#type = ctx.subgraphs.intern_field_type(argument.ty());
+        let name = ctx.subgraphs.strings.intern(argument.name());
 
-        let argument_directives = subgraphs.new_directive_site();
+        let argument_directives = ctx.subgraphs.new_directive_site();
 
-        ingest_directives(
-            argument_directives,
-            argument.directives(),
-            subgraphs,
-            matcher,
-            subgraph_id,
-            |subgraphs| {
-                let field = subgraphs.walk_field(field_id);
-                format!(
-                    "{}.{}({}:)",
-                    field.parent_definition().name().as_str(),
-                    field.name().as_str(),
-                    argument.name()
-                )
-            },
-        );
+        ingest_directives(ctx, argument_directives, argument.directives(), |subgraphs| {
+            let field = subgraphs.walk_field(field_id);
+            format!(
+                "{}.{}({}:)",
+                field.parent_definition().name().as_str(),
+                field.name().as_str(),
+                argument.name()
+            )
+        });
 
         let description = argument
             .description()
             .as_ref()
-            .map(|description| subgraphs.strings.intern(description.to_cow()));
+            .map(|description| ctx.subgraphs.strings.intern(description.to_cow()));
 
         let default = argument
             .default_value()
-            .map(|default| ast_value_to_subgraph_value(default, subgraphs));
+            .map(|default| ast_value_to_subgraph_value(default, ctx.subgraphs));
 
-        subgraphs.insert_field_argument(field_id, name, r#type, argument_directives, description, default);
+        ctx.subgraphs
+            .insert_field_argument(field_id, name, r#type, argument_directives, description, default);
     }
 }
 
 pub(super) fn ingest_fields(
+    ctx: &mut Context<'_>,
     definition_id: DefinitionId,
     fields: ast::iter::Iter<'_, ast::FieldDefinition<'_>>,
-    directive_matcher: &DirectiveMatcher<'_>,
     parent_is_query_root_type: bool,
-    subgraph_id: SubgraphId,
-    subgraphs: &mut Subgraphs,
 ) {
     for field in fields {
         let field_name = field.name();
@@ -104,12 +87,12 @@ pub(super) fn ingest_fields(
 
         let description = field
             .description()
-            .map(|description| subgraphs.strings.intern(description.to_cow()));
+            .map(|description| ctx.subgraphs.strings.intern(description.to_cow()));
 
-        let field_type = subgraphs.intern_field_type(field.ty());
-        let directives = subgraphs.new_directive_site();
+        let field_type = ctx.subgraphs.intern_field_type(field.ty());
+        let directives = ctx.subgraphs.new_directive_site();
 
-        let field_id = subgraphs.push_field(crate::subgraphs::FieldIngest {
+        let field_id = ctx.subgraphs.push_field(crate::subgraphs::FieldIngest {
             parent_definition_id: definition_id,
             field_name,
             field_type,
@@ -118,15 +101,10 @@ pub(super) fn ingest_fields(
             default: None,
         });
 
-        directives::ingest_directives(
-            directives,
-            field.directives(),
-            subgraphs,
-            directive_matcher,
-            subgraph_id,
-            |subgraphs| format!("{}.{}", subgraphs.walk(definition_id).name().as_str(), field_name),
-        );
+        directives::ingest_directives(ctx, directives, field.directives(), |subgraphs| {
+            format!("{}.{}", subgraphs.walk(definition_id).name().as_str(), field_name)
+        });
 
-        ingest_field_arguments(field_id, field.arguments(), directive_matcher, subgraph_id, subgraphs);
+        ingest_field_arguments(ctx, field_id, field.arguments());
     }
 }

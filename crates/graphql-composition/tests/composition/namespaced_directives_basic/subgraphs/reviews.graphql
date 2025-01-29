@@ -1,0 +1,11 @@
+extend schema @link(url: "https://example.com/nats/v2.3", as: "queue")
+
+type Review @key(fields: "id") {
+  id: ID!
+  message: String!
+  author: ID!
+}
+
+type Mutation {
+  createReview(message: String!, author: ID!): Alert @queue__post(topic: "reviews")
+}

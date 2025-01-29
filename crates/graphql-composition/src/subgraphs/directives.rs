@@ -109,6 +109,13 @@ impl Subgraphs {
     }
 
     pub(crate) fn is_composed_directive(&self, name_id: StringId) -> bool {
+        // The `@authorized` directive is an exception. Directives used in subgraph schemas are either built-in federation directives (`@requires`, `@key`, etc.) or custom, composed directives with `@composeDirective`. Since `@authorized` is not part of the federation spec, some frameworks like async-graphql (Rust) will produce an `@composeDirective` with the `@authorized` directive. We should not consider `@authorized` as a composed directive however, because that means we would emit it again.
+        //
+        // TODO: as for other imported composition directives, we should forbid their use in `@composeDirective`.
+        if Some(name_id) == self.strings.lookup("authorized") {
+            return false;
+        }
+
         self.directives.composed_directives.contains(&name_id)
     }
 

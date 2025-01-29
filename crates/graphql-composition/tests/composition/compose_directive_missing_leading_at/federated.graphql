@@ -1,1 +1,1 @@
-# [sg]: The `noAt` directive is missing the `@` prefix in @composeDirective.
+# [sg]: Invalid `@composeDirective` directive: `name` argument must start with `@`

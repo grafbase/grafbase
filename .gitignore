@@ -18,6 +18,7 @@ target
 # misc
 .DS_Store
 *.pem
+/.cargo
 
 # debug
 npm-debug.log*
@@ -47,14 +48,10 @@ yarn-error.log*
 # Jujutsu
 .jj/
 
-# Direnv
-.envrc
-.env
-.direnv/
-
 # Nix
 /result
 
 # CLI assets
 /cli/assets
+
 .aider*
