@@ -9,6 +9,7 @@ use crate::{directives::*, federated_graph::*};
 use cynic_parser::{
     common::WrappingType, executable as executable_ast, type_system as ast, values::ConstValue as ParserValue,
 };
+use cynic_parser_deser::{ConstDeserializer, ValueDeserialize};
 use directive::{
     collect_definition_directives, collect_enum_value_directives, collect_field_directives,
     collect_input_value_directives,
@@ -23,7 +24,7 @@ const JOIN_GRAPH_DIRECTIVE_NAME: &str = "join__graph";
 const JOIN_GRAPH_ENUM_NAME: &str = "join__Graph";
 
 #[derive(Debug)]
-pub struct DomainError(String);
+pub struct DomainError(pub(crate) String);
 
 impl fmt::Display for DomainError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -34,8 +35,9 @@ impl fmt::Display for DomainError {
 impl StdError for DomainError {}
 
 #[derive(Default)]
-struct State<'a> {
+pub(crate) struct State<'a> {
     graph: FederatedGraph,
+    extension_by_enum_value_str: HashMap<&'a str, ExtensionId>,
 
     strings: IndexSet<String>,
     query_type_name: Option<String>,
@@ -204,24 +206,17 @@ impl<'a> State<'a> {
     }
 }
 
-pub(crate) fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
-    dbg!(sdl);
-    if sdl.trim().is_empty() {
-        return Ok(FederatedGraph::default());
-    }
-
-    let mut state = State::default();
+pub(crate) fn from_sdl<'a>(
+    mut state: State<'a>,
+    parsed: &'a ast::TypeSystemDocument,
+) -> Result<FederatedGraph, DomainError> {
     state.graph.strings.clear();
     state.graph.objects.clear();
     state.graph.fields.clear();
     state.graph.scalar_definitions.clear();
 
-    let parsed = cynic_parser::parse_type_system_document(sdl).map_err(|err| DomainError(err.to_string()))?;
-
-    ingest_definitions(&parsed, &mut state)?;
-
-    // This needs to happen after other definitions have been ingested, in order to resolve root and argument types.
-    ingest_schema_and_directive_definitions(&parsed, &mut state)?;
+    ingest_definitions(parsed, &mut state)?;
+    ingest_schema_and_directive_definitions(parsed, &mut state)?;
 
     // Ensure that the root query type is defined
     let query_type = state
@@ -250,26 +245,17 @@ pub(crate) fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
         ingest_object_fields(object_id, std::iter::empty(), &mut state)?;
     }
 
-    ingest_fields(&parsed, &mut state)?;
+    ingest_fields(parsed, &mut state)?;
 
     // This needs to happen after all fields have been ingested, in order to attach selection sets.
-    ingest_directives_after_graph(&parsed, &mut state)?;
+    ingest_directives_after_graph(parsed, &mut state)?;
 
     let mut graph = FederatedGraph {
         directive_definitions: std::mem::take(&mut state.graph.directive_definitions),
         directive_definition_arguments: std::mem::take(&mut state.graph.directive_definition_arguments),
         root_operation_types: state.root_operation_types()?,
-        enum_values: std::mem::take(&mut state.graph.enum_values),
-        enum_definitions: std::mem::take(&mut state.graph.enum_definitions),
-        scalar_definitions: std::mem::take(&mut state.graph.scalar_definitions),
-        subgraphs: std::mem::take(&mut state.graph.subgraphs),
-        objects: std::mem::take(&mut state.graph.objects),
-        interfaces: std::mem::take(&mut state.graph.interfaces),
-        fields: std::mem::take(&mut state.graph.fields),
-        unions: std::mem::take(&mut state.graph.unions),
-        input_objects: std::mem::take(&mut state.graph.input_objects),
-        input_value_definitions: std::mem::take(&mut state.graph.input_value_definitions),
         strings: state.strings.into_iter().collect(),
+        ..state.graph
     };
 
     graph.enum_values.sort_unstable_by_key(|v| v.enum_id);
@@ -458,6 +444,13 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                 match typedef {
                     ast::TypeDefinition::Enum(enm) if type_name == JOIN_GRAPH_ENUM_NAME => {
                         ingest_join_graph_enum(namespace, type_name_id, description, type_name, enm, state)?;
+                        continue;
+                    }
+                    // If we loaded the extension__Link enum already, no need to do again.
+                    ast::TypeDefinition::Enum(_)
+                        if type_name == EXTENSION_LINK_ENUM && !state.extension_by_enum_value_str.is_empty() =>
+                    {
+                        continue;
                     }
                     _ => (),
                 }
@@ -1024,6 +1017,52 @@ fn ingest_join_graph_enum<'a>(
     Ok(())
 }
 
+#[cfg(feature = "extension")]
+pub(super) async fn ingest_extension_link_enum<'a>(
+    enm: ast::EnumDefinition<'a>,
+    state: &mut State<'a>,
+) -> Result<(), DomainError> {
+    for value in enm.values() {
+        let enum_value_name_str = value.value();
+        let directive = value
+            .directives()
+            .find(|directive| directive.name() == EXTENSION_LINK_DIRECTIVE)
+            .ok_or_else(|| {
+                DomainError(format!(
+                    "Missing @{} directive on {} enum value.",
+                    EXTENSION_LINK_DIRECTIVE, EXTENSION_LINK_ENUM
+                ))
+            })?;
+        let ExtensionLink { url } = directive.deserialize().map_err(|err| {
+            DomainError(format!(
+                "Error parsing @{} directive on {} enum value: {}",
+                EXTENSION_LINK_DIRECTIVE, EXTENSION_LINK_ENUM, err
+            ))
+        })?;
+
+        let (id, manifest) = extension::load(&url)
+            .await
+            .map_err(|err| crate::DomainError(err.to_string()))?;
+
+        let enum_value_name = state.insert_string(enum_value_name_str);
+        let url = state.insert_string(&url);
+        let id = ExtensionId::from(state.graph.extensions.push_return_idx(Extension {
+            url,
+            enum_value_name,
+            id,
+            manifest,
+        }));
+        state.extension_by_enum_value_str.insert(enum_value_name_str, id);
+    }
+
+    Ok(())
+}
+
+#[derive(ValueDeserialize)]
+struct ExtensionLink {
+    url: String,
+}
+
 trait VecExt<T> {
     fn push_return_idx(&mut self, elem: T) -> usize;
 }
@@ -1522,4 +1561,112 @@ fn test_join_field_type() {
     let actual = crate::render_sdl::render_federated_sdl(&FederatedGraph::from_sdl(sdl).unwrap()).unwrap();
 
     expected.assert_eq(&actual);
+}
+
+#[cfg(test)]
+#[tokio::test]
+async fn load_with_extensions() {
+    use expect_test::expect;
+
+    let dir = tempfile::tempdir().unwrap();
+    let manifest_path = dir.path().join("manifest.json");
+    let manifest = extension::Manifest {
+        name: "my-extension".to_string(),
+        version: "1.0.0".parse().unwrap(),
+        kind: extension::Kind::FieldResolver(extension::FieldResolver {
+            resolver_directives: vec!["resolver".to_string()],
+        }),
+        sdk_version: "0.3.0".parse().unwrap(),
+        minimum_gateway_version: "0.90.0".parse().unwrap(),
+        sdl: None,
+    };
+    tokio::fs::write(&manifest_path, serde_json::to_string(&manifest).unwrap())
+        .await
+        .unwrap();
+
+    let make_sdl = |path: &str| {
+        format!(
+            r###"
+        directive @join__type(
+            graph: join__Graph!
+            key: join__FieldSet
+            resolvable: Boolean = true
+        ) repeatable on OBJECT | INTERFACE
+
+        directive @join__field(
+            graph: join__Graph
+            requires: join__FieldSet
+            provides: join__FieldSet
+        ) on FIELD_DEFINITION
+
+        directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+        scalar join__FieldSet
+
+        enum join__Graph {{
+            A @join__graph(name: "a", url: "http://localhost:4200/child-type-mismatch/a")
+            B @join__graph(name: "b", url: "http://localhost:4200/child-type-mismatch/b")
+        }}
+
+        enum extension__Link {{
+            REST @extension__link(url: "file://{}")
+        }}
+
+        scalar link__Import
+
+        type Query @join__type(graph: A) {{
+            users: [User!]! @join__field(graph: A) @extension__directive(graph: A, extension: REST, name: "rest", arguments: [{{name: "method", value: GET}}])
+        }}
+
+        type User @join__type(graph: A) {{
+            id: ID!
+        }}
+        "###,
+            path
+        )
+    };
+
+    let graph = FederatedGraph::from_sdl_with_extensions(&make_sdl(&manifest_path.to_string_lossy()))
+        .await
+        .unwrap();
+    pretty_assertions::assert_eq!(graph.extensions.first().unwrap().manifest, manifest);
+
+    let expected = expect![[r#"
+        directive @join__type(graph: join__Graph!, key: join__FieldSet, resolvable: Boolean = true) on OBJECT | INTERFACE
+
+        directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet) on FIELD_DEFINITION
+
+        directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+        scalar join__FieldSet
+
+        scalar link__Import
+
+        type Query
+            @join__type(graph: A)
+        {
+            users: [User!]! @extension__directive(graph: A, extension: REST, name: "rest", arguments: [{name: "method", value: GET}])
+        }
+
+        type User
+            @join__type(graph: A)
+        {
+            id: ID!
+        }
+
+        enum join__Graph
+        {
+            A @join__graph(name: "a", url: "http://localhost:4200/child-type-mismatch/a")
+            B @join__graph(name: "b", url: "http://localhost:4200/child-type-mismatch/b")
+        }
+
+        enum extension__Link
+        {
+            REST @extension__link(url: "file://dummy")
+        }
+    "#]];
+
+    let without_extension =
+        crate::render_sdl::render_federated_sdl(&FederatedGraph::from_sdl(&make_sdl("dummy")).unwrap()).unwrap();
+    expected.assert_eq(&without_extension);
 }

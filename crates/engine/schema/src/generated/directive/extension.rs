@@ -17,7 +17,7 @@ use walker::Walk;
 ///   subgraph: Subgraph!
 ///   extension_id: ExtensionId!
 ///   name: String!
-///   arguments: SchemaInputValue!
+///   arguments: SchemaInputValue
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -25,7 +25,7 @@ pub struct ExtensionDirectiveRecord {
     pub subgraph_id: SubgraphId,
     pub extension_id: ExtensionId,
     pub name_id: StringId,
-    pub arguments_id: SchemaInputValueId,
+    pub arguments_id: Option<SchemaInputValueId>,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
@@ -56,7 +56,7 @@ impl<'a> ExtensionDirective<'a> {
     pub fn name(&self) -> &'a str {
         self.name_id.walk(self.schema)
     }
-    pub fn arguments(&self) -> SchemaInputValue<'a> {
+    pub fn arguments(&self) -> Option<SchemaInputValue<'a>> {
         self.arguments_id.walk(self.schema)
     }
 }

@@ -52,6 +52,7 @@ id_newtypes! {
     objects[ObjectId] -> Object,
     strings[StringId] -> String,
     subgraphs[SubgraphId] -> Subgraph,
+    extensions[ExtensionId] -> Extension,
     scalar_definitions[ScalarDefinitionId] -> ScalarDefinitionRecord,
     unions[UnionId] -> Union,
 }

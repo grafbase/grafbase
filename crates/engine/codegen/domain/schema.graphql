@@ -237,7 +237,7 @@ type ExtensionDirective @meta(module: "directive/extension") @indexed(id_size: "
   subgraph: Subgraph!
   extension_id: ExtensionId!
   name: String!
-  arguments: SchemaInputValue!
+  arguments: SchemaInputValue
 }
 
 # -------------
