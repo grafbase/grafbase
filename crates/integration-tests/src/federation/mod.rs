@@ -1,5 +1,6 @@
 mod builder;
 mod request;
+mod runtime;
 mod subgraph;
 mod websocket_request;
 
@@ -11,6 +12,7 @@ use futures::Stream;
 use graphql_mocks::{MockGraphQlServer, ReceivedRequest};
 use http_body_util::BodyExt;
 pub use request::*;
+pub use runtime::*;
 use runtime_local::hooks::ChannelLogReceiver;
 use tower::ServiceExt;
 use url::Url;

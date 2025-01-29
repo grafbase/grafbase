@@ -1,3 +1,5 @@
+mod extension;
+
 use std::sync::Arc;
 
 use engine::CachedOperation;
@@ -13,6 +15,8 @@ use runtime_local::{
 use runtime_noop::trusted_documents::NoopTrustedDocuments;
 use tokio::sync::watch;
 
+pub use extension::*;
+
 pub struct TestRuntime {
     pub fetcher: DynamicFetcher,
     pub trusted_documents: trusted_documents_client::Client,
@@ -22,6 +26,7 @@ pub struct TestRuntime {
     pub hooks: DynamicHooks,
     pub rate_limiter: runtime::rate_limiting::RateLimiter,
     pub entity_cache: InMemoryEntityCache,
+    pub extensions: TestExtensions,
 }
 
 impl TestRuntime {
@@ -37,6 +42,7 @@ impl TestRuntime {
             rate_limiter: InMemoryRateLimiter::runtime_with_watcher(rx),
             entity_cache: InMemoryEntityCache::default(),
             operation_cache: InMemoryOperationCache::default(),
+            extensions: Default::default(),
         }
     }
 }
@@ -45,6 +51,7 @@ impl engine::Runtime for TestRuntime {
     type Hooks = DynamicHooks;
     type Fetcher = DynamicFetcher;
     type OperationCache = InMemoryOperationCache<Arc<CachedOperation>>;
+    type Extensions = TestExtensions;
 
     fn fetcher(&self) -> &Self::Fetcher {
         &self.fetcher
@@ -80,5 +87,9 @@ impl engine::Runtime for TestRuntime {
 
     fn metrics(&self) -> &EngineMetrics {
         &self.metrics
+    }
+
+    fn extensions(&self) -> &Self::Extensions {
+        &self.extensions
     }
 }

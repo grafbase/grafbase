@@ -102,6 +102,7 @@ impl engine::Runtime for GatewayRuntime {
     type Hooks = HooksWasi;
     type Fetcher = NativeFetcher;
     type OperationCache = TieredOperationCache<Arc<CachedOperation>>;
+    type Extensions = ();
 
     fn fetcher(&self) -> &Self::Fetcher {
         &self.fetcher
@@ -137,6 +138,10 @@ impl engine::Runtime for GatewayRuntime {
 
     fn metrics(&self) -> &grafbase_telemetry::metrics::EngineMetrics {
         &self.metrics
+    }
+
+    fn extensions(&self) -> &Self::Extensions {
+        &()
     }
 }
 
