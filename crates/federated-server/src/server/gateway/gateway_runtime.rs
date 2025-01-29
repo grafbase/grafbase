@@ -8,7 +8,8 @@ use runtime_local::{
     operation_cache::{RedisOperationCache, TieredOperationCache},
     rate_limiting::{in_memory::key_based::InMemoryRateLimiter, redis::RedisRateLimiter},
     redis::{RedisPoolFactory, RedisTlsConfig},
-    HooksWasi, InMemoryEntityCache, InMemoryKvStore, InMemoryOperationCache, NativeFetcher, RedisEntityCache,
+    wasi::{extensions::WasiExtensions, hooks::HooksWasi},
+    InMemoryEntityCache, InMemoryKvStore, InMemoryOperationCache, NativeFetcher, RedisEntityCache,
 };
 use runtime_noop::trusted_documents::NoopTrustedDocuments;
 
@@ -22,6 +23,7 @@ pub struct GatewayRuntime {
     kv: runtime::kv::KvStore,
     metrics: EngineMetrics,
     hooks: HooksWasi,
+    extensions: WasiExtensions,
     rate_limiter: runtime::rate_limiting::RateLimiter,
     entity_cache: Box<dyn EntityCache>,
     pub(crate) operation_cache: TieredOperationCache<Arc<CachedOperation>>,
@@ -34,6 +36,7 @@ impl GatewayRuntime {
         config: &engine::config::Config,
         version_id: Option<ulid::Ulid>,
         hooks: HooksWasi,
+        extensions: WasiExtensions,
     ) -> Result<GatewayRuntime, crate::Error> {
         let mut redis_factory = RedisPoolFactory::default();
         let watcher = ConfigWatcher::init(gateway_config.clone(), hot_reload_config_path)?;
@@ -88,6 +91,7 @@ impl GatewayRuntime {
             kv: InMemoryKvStore::runtime(),
             trusted_documents: runtime::trusted_documents_client::Client::new(NoopTrustedDocuments),
             hooks,
+            extensions,
             metrics: EngineMetrics::build(&meter, version_id.map(|id| id.to_string())),
             rate_limiter,
             entity_cache,
@@ -102,7 +106,7 @@ impl engine::Runtime for GatewayRuntime {
     type Hooks = HooksWasi;
     type Fetcher = NativeFetcher;
     type OperationCache = TieredOperationCache<Arc<CachedOperation>>;
-    type Extensions = ();
+    type Extensions = WasiExtensions;
 
     fn fetcher(&self) -> &Self::Fetcher {
         &self.fetcher
@@ -141,7 +145,7 @@ impl engine::Runtime for GatewayRuntime {
     }
 
     fn extensions(&self) -> &Self::Extensions {
-        &()
+        &self.extensions
     }
 }
 

@@ -1,3 +1,23 @@
+// Shared
+
+pub(crate) const CONTEXT_RESOURCE: &str = "context";
+pub(crate) const CONTEXT_SET_METHOD: &str = "[method]context.set";
+pub(crate) const CONTEXT_GET_METHOD: &str = "[method]context.get";
+pub(crate) const CONTEXT_DELETE_METHOD: &str = "[method]context.delete";
+
+pub(crate) const SHARED_CONTEXT_RESOURCE: &str = "shared-context";
+pub(crate) const SHARED_CONTEXT_GET_METHOD: &str = "[method]shared-context.get";
+pub(crate) const SHARED_CONTEXT_TRACE_ID_METHOD: &str = "[method]shared-context.trace-id";
+
+pub(crate) const HTTP_CLIENT_RESOURCE: &str = "http-client";
+pub(crate) const HTTP_CLIENT_EXECUTE_FUNCTION: &str = "[static]http-client.execute";
+pub(crate) const HTTP_CLIENT_EXECUTE_MANY_FUNCTION: &str = "[static]http-client.execute-many";
+
+pub(crate) const ACCESS_LOG_RESOURCE: &str = "access-log";
+pub(crate) const ACCESS_LOG_SEND_FUNCTION: &str = "[static]access-log.send";
+
+// Hooks
+
 pub(crate) const INIT_HOOKS_FUNCTION: &str = "init-hooks";
 pub(crate) const GATEWAY_HOOK_FUNCTION: &str = "on-gateway-request";
 pub(crate) const AUTHORIZE_EDGE_PRE_EXECUTION_HOOK_FUNCTION: &str = "authorize-edge-pre-execution";
@@ -17,18 +37,8 @@ pub(crate) const HEADERS_GET_METHOD: &str = "[method]headers.get";
 pub(crate) const HEADERS_DELETE_METHOD: &str = "[method]headers.delete";
 pub(crate) const HEADERS_ENTRIES_METHOD: &str = "[method]headers.entries";
 
-pub(crate) const CONTEXT_RESOURCE: &str = "context";
-pub(crate) const CONTEXT_SET_METHOD: &str = "[method]context.set";
-pub(crate) const CONTEXT_GET_METHOD: &str = "[method]context.get";
-pub(crate) const CONTEXT_DELETE_METHOD: &str = "[method]context.delete";
+// Extensions
 
-pub(crate) const SHARED_CONTEXT_RESOURCE: &str = "shared-context";
-pub(crate) const SHARED_CONTEXT_GET_METHOD: &str = "[method]shared-context.get";
-pub(crate) const SHARED_CONTEXT_TRACE_ID_METHOD: &str = "[method]shared-context.trace-id";
-
-pub(crate) const HTTP_CLIENT_RESOURCE: &str = "http-client";
-pub(crate) const HTTP_CLIENT_EXECUTE_FUNCTION: &str = "[static]http-client.execute";
-pub(crate) const HTTP_CLIENT_EXECUTE_MANY_FUNCTION: &str = "[static]http-client.execute-many";
-
-pub(crate) const ACCESS_LOG_RESOURCE: &str = "access-log";
-pub(crate) const ACCESS_LOG_SEND_FUNCTION: &str = "[static]access-log.send";
+pub(crate) const REGISTER_EXTENSION_FUNCTION: &str = "register-extension";
+pub(crate) const INIT_GATEWAY_EXTENSION_FUNCTION: &str = "init-gateway-extension";
+pub(crate) const RESOLVE_FIELD_EXTENSION_FUNCTION: &str = "resolve-field";

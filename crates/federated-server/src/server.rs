@@ -12,7 +12,10 @@ mod trusted_documents_client;
 pub use graph_fetch_method::GraphFetchMethod;
 pub use state::ServerState;
 
-use runtime_local::{hooks, ComponentLoader, HooksWasi};
+use runtime_local::wasi::{
+    extensions::WasiExtensions,
+    hooks::{self, ComponentLoader, HooksWasi},
+};
 use ulid::Ulid;
 
 use axum::{extract::State, response::IntoResponse, routing::get, Router};
@@ -99,16 +102,20 @@ pub async fn serve(
     let (access_log_sender, access_log_receiver) =
         hooks::create_log_channel(config.gateway.access_logs.lossy_log(), pending_logs_counter.clone());
 
-    let loader = config
+    let hooks_loader = config
         .hooks
         .clone()
-        .map(ComponentLoader::new)
+        .map(ComponentLoader::hooks)
         .transpose()
         .map_err(|e| crate::Error::InternalError(e.to_string()))?
         .flatten();
 
     let max_pool_size = config.hooks.as_ref().and_then(|config| config.max_pool_size);
-    let hooks = HooksWasi::new(loader, max_pool_size, &meter, access_log_sender.clone()).await;
+    let hooks = HooksWasi::new(hooks_loader, max_pool_size, &meter, access_log_sender.clone()).await;
+
+    // TODO: load the extensions
+    let extensions = WasiExtensions::new(access_log_sender.clone(), Vec::new())
+        .map_err(|e| crate::Error::InternalError(e.to_string()))?;
 
     let graph_stream = fetch_method.into_stream().await?;
 
@@ -117,6 +124,7 @@ pub async fn serve(
         graph_stream,
         config_hot_reload.then_some(config_path).flatten(),
         hooks.clone(),
+        extensions,
     )
     .await?;
 

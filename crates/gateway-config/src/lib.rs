@@ -6,6 +6,7 @@ pub mod authentication;
 mod complexity_control;
 pub mod cors;
 pub mod entity_caching;
+pub mod extensions;
 pub mod header;
 pub mod health;
 pub mod hooks;
@@ -26,6 +27,7 @@ pub use authentication::*;
 pub use complexity_control::*;
 pub use cors::*;
 pub use entity_caching::*;
+pub use extensions::*;
 pub use header::*;
 pub use health::*;
 pub use hooks::*;
@@ -73,6 +75,8 @@ pub struct Config {
     pub subgraphs: BTreeMap<String, SubgraphConfig>,
     /// Hooks configuration
     pub hooks: Option<HooksWasiConfig>,
+    /// Extensions configuration
+    pub extensions: Option<BTreeMap<String, ExtensionsConfig>>,
     /// Health check endpoint configuration
     pub health: HealthConfig,
     /// Global configuration for entity caching
@@ -111,6 +115,7 @@ impl Default for Config {
             apq: Default::default(),
             operation_caching: Default::default(),
             websockets: Default::default(),
+            extensions: Default::default(),
         }
     }
 }
@@ -2095,5 +2100,57 @@ mod tests {
 
         assert!(!config.operation_caching.enabled);
         assert_eq!(500, config.operation_caching.limit);
+    }
+
+    #[test]
+    fn extension_only_version() {
+        let input = indoc! {r#"
+            [extensions]
+            rest = "0.1"
+        "#};
+
+        let config: Config = toml::from_str(input).unwrap();
+
+        insta::assert_debug_snapshot!(&config.extensions, @r#"
+        Some(
+            {
+                "rest": Version(
+                    "0.1",
+                ),
+            },
+        )
+        "#);
+    }
+
+    #[test]
+    fn extension_structured() {
+        let input = indoc! {r#"
+            [extensions.rest]
+            version = "0.1"
+            networking = false
+            stdout = false
+            stderr = false
+            environment_variables = false
+            max_pool_size = 1000
+        "#};
+
+        let config: Config = toml::from_str(input).unwrap();
+
+        insta::assert_debug_snapshot!(&config.extensions, @r#"
+        Some(
+            {
+                "rest": Structured(
+                    StructuredExtensionsConfig {
+                        version: "0.1",
+                        networking: false,
+                        stdout: false,
+                        stderr: false,
+                        environment_variables: false,
+                        max_pool_size: 1000,
+                    },
+                ),
+            },
+        )
+        "#);
     }
 }

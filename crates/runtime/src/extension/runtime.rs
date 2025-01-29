@@ -1,5 +1,3 @@
-use std::future::Future;
-
 use crate::{
     error::PartialGraphqlError,
     hooks::{Anything, EdgeDefinition},
@@ -17,18 +15,18 @@ pub enum Data {
     CborBytes(Vec<u8>),
 }
 
+#[allow(async_fn_in_trait)]
 pub trait ExtensionRuntime: Send + Sync + 'static {
     type SharedContext: Clone + Send + Sync + 'static;
 
-    fn resolve_field<'a>(
+    async fn resolve_field<'a>(
         &self,
         id: ExtensionId,
-        subgraph_directives: impl IntoIterator<Item = ExtensionDirective<'a, impl Anything<'a>>> + Send,
         context: &Self::SharedContext,
         field: EdgeDefinition<'a>,
         directive: ExtensionDirective<'a, impl Anything<'a>>,
         inputs: impl IntoIterator<Item: Anything<'a>> + Send,
-    ) -> impl Future<Output = Result<Vec<Result<Data, PartialGraphqlError>>, PartialGraphqlError>> + Send;
+    ) -> Result<Vec<Result<Data, PartialGraphqlError>>, PartialGraphqlError>;
 }
 
 impl ExtensionRuntime for () {
@@ -37,7 +35,6 @@ impl ExtensionRuntime for () {
     async fn resolve_field<'a>(
         &self,
         _id: ExtensionId,
-        _subgraph_directives: impl IntoIterator<Item = ExtensionDirective<'a, impl Anything<'a>>> + Send,
         _context: &Self::SharedContext,
         _field: EdgeDefinition<'a>,
         _directive: ExtensionDirective<'a, impl Anything<'a>>,

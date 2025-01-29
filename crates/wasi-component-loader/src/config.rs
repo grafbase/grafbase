@@ -1,17 +1,34 @@
-pub use gateway_config::hooks::HooksWasiConfig as Config;
+use gateway_config::WasiExtensionsConfig;
+pub use gateway_config::{extensions::ExtensionsConfig, hooks::HooksWasiConfig};
 use wasmtime_wasi::{DirPerms, FilePerms, WasiCtx, WasiCtxBuilder};
 
-/// Builds a WASI state sandbox based on the provided configuration.
-///
-/// # Arguments
-///
-/// * `config` - A reference to the configuration object containing settings for the WASI context.
-///
-/// # Returns
-///
-/// Returns a `WasiCtx` configured according to the specified settings in the `config`.
-pub(crate) fn build_wasi_context(
-    Config {
+pub(crate) fn build_extensions_context(config: &WasiExtensionsConfig) -> WasiCtx {
+    let mut builder = WasiCtxBuilder::new();
+
+    if config.networking {
+        builder.inherit_network();
+        builder.allow_tcp(true);
+        builder.allow_udp(true);
+        builder.allow_ip_name_lookup(true);
+    }
+
+    if config.environment_variables {
+        builder.inherit_env();
+    }
+
+    if config.stdout {
+        builder.inherit_stdout();
+    }
+
+    if config.stderr {
+        builder.inherit_stderr();
+    }
+
+    builder.build()
+}
+
+pub(crate) fn build_hooks_context(
+    HooksWasiConfig {
         max_pool_size: _,
         location: _,
         networking,
@@ -19,7 +36,7 @@ pub(crate) fn build_wasi_context(
         stdout,
         stderr,
         preopened_directories,
-    }: &Config,
+    }: &HooksWasiConfig,
 ) -> WasiCtx {
     let mut builder = WasiCtxBuilder::new();
 

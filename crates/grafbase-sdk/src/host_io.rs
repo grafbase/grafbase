@@ -4,4 +4,5 @@
 //! The interfaces are blocking from the guest's perspective, but the host runtime executes the IO asynchronously without
 //! blocking the host thread when guest is waiting for IO.
 
+pub mod access_log;
 pub mod http;
