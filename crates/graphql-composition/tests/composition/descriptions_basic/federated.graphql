@@ -1,4 +1,3 @@
-
 directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
 
 directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
@@ -11,19 +10,12 @@ directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boole
 
 directive @join__owner(graph: join__Graph!) on OBJECT
 
-enum join__Graph {
-    SELFEXPLANATORYTOFU @join__graph(name: "selfExplanatoryTofu", url: "http://example.com/selfExplanatoryTofu")
-    TOFU @join__graph(name: "tofu", url: "http://example.com/tofu")
-}
-
 """
 Custom scalar to represent the texture profile of tofu.
 """
 scalar TextureProfile
 
 scalar join__FieldSet
-
-scalar join__Graph
 
 """
 The Tofu type represents various properties of tofu.
@@ -157,6 +149,12 @@ enum TofuType
     SILKEN
     FIRM
     EXTRA_FIRM
+}
+
+enum join__Graph
+{
+    SELFEXPLANATORYTOFU @join__graph(name: "selfExplanatoryTofu", url: "http://example.com/selfExplanatoryTofu")
+    TOFU @join__graph(name: "tofu", url: "http://example.com/tofu")
 }
 
 """

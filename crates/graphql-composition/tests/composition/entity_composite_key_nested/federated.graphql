@@ -1,4 +1,3 @@
-
 directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
 
 directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
@@ -11,14 +10,7 @@ directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boole
 
 directive @join__owner(graph: join__Graph!) on OBJECT
 
-enum join__Graph {
-    PATIENT_INFO @join__graph(name: "patient-info", url: "http://example.com/patient-info")
-    PATIENT_RECORD @join__graph(name: "patient-record", url: "http://example.com/patient-record")
-}
-
 scalar join__FieldSet
-
-scalar join__Graph
 
 type Patient
     @join__type(graph: PATIENT_INFO, key: "id")
@@ -48,4 +40,10 @@ type Query
     patientRecord(recordId: ID!, patientId: ID!): PatientRecord @join__field(graph: PATIENT_RECORD)
     patientRecords: [PatientRecord] @join__field(graph: PATIENT_RECORD)
     patients: [Patient] @join__field(graph: PATIENT_INFO)
+}
+
+enum join__Graph
+{
+    PATIENT_INFO @join__graph(name: "patient-info", url: "http://example.com/patient-info")
+    PATIENT_RECORD @join__graph(name: "patient-record", url: "http://example.com/patient-record")
 }

@@ -3,7 +3,6 @@ mod error;
 mod external_sources;
 mod field_set;
 mod graph;
-mod id_map;
 mod input_values;
 mod interner;
 

@@ -1,4 +1,3 @@
-
 directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
 
 directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
@@ -11,14 +10,7 @@ directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boole
 
 directive @join__owner(graph: join__Graph!) on OBJECT
 
-enum join__Graph {
-    PAYROLL @join__graph(name: "payroll", url: "http://example.com/payroll")
-    REGISTRY @join__graph(name: "registry", url: "http://example.com/registry")
-}
-
 scalar join__FieldSet
-
-scalar join__Graph
 
 type Producer implements MusicEntity
     @join__type(graph: PAYROLL, key: "id")
@@ -66,4 +58,10 @@ interface MusicEntity
 {
     id: ID!
     name: String!
+}
+
+enum join__Graph
+{
+    PAYROLL @join__graph(name: "payroll", url: "http://example.com/payroll")
+    REGISTRY @join__graph(name: "registry", url: "http://example.com/registry")
 }

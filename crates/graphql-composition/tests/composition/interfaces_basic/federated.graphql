@@ -1,4 +1,3 @@
-
 directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
 
 directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
@@ -11,15 +10,7 @@ directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boole
 
 directive @join__owner(graph: join__Graph!) on OBJECT
 
-enum join__Graph {
-    ELECTRONICS @join__graph(name: "electronics", url: "http://example.com/electronics")
-    PHYSICAL @join__graph(name: "physical", url: "http://example.com/physical")
-    SOCIAL @join__graph(name: "social", url: "http://example.com/social")
-}
-
 scalar join__FieldSet
-
-scalar join__Graph
 
 type Furby implements FurbyType & SocialFurby
     @join__type(graph: SOCIAL)
@@ -65,4 +56,11 @@ interface SocialFurby
     @join__type(graph: SOCIAL)
 {
     friends: [Furby!]
+}
+
+enum join__Graph
+{
+    ELECTRONICS @join__graph(name: "electronics", url: "http://example.com/electronics")
+    PHYSICAL @join__graph(name: "physical", url: "http://example.com/physical")
+    SOCIAL @join__graph(name: "social", url: "http://example.com/social")
 }

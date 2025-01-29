@@ -1,4 +1,3 @@
-
 directive @authorized(arguments: String, fields: String, node: String, metadata: _Any) on OBJECT | FIELD_DEFINITION
 
 directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
@@ -13,16 +12,9 @@ directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boole
 
 directive @join__owner(graph: join__Graph!) on OBJECT
 
-enum join__Graph {
-    PETS @join__graph(name: "pets", url: "http://example.com/pets")
-    USERS @join__graph(name: "users", url: "http://example.com/users")
-}
-
 scalar _Any
 
 scalar join__FieldSet
-
-scalar join__Graph
 
 type Pet
     @join__type(graph: PETS, key: "id")
@@ -53,4 +45,10 @@ type Query
     pets: [Pet]! @join__field(graph: PETS)
     user(id: Int!): User @authorized(arguments: "id") @join__field(graph: USERS)
     users: [User]! @authorized(node: "id", metadata: {role: "admin"}) @join__field(graph: USERS)
+}
+
+enum join__Graph
+{
+    PETS @join__graph(name: "pets", url: "http://example.com/pets")
+    USERS @join__graph(name: "users", url: "http://example.com/users")
 }

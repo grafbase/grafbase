@@ -1,6 +1,6 @@
 use crate::ObjectId;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct RootOperationTypes {
     pub query: ObjectId,
     pub mutation: Option<ObjectId>,

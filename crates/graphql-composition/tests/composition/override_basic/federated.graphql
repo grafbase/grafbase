@@ -1,4 +1,3 @@
-
 directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
 
 directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
@@ -11,14 +10,7 @@ directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boole
 
 directive @join__owner(graph: join__Graph!) on OBJECT
 
-enum join__Graph {
-    MANGROVE @join__graph(name: "mangrove", url: "http://example.com/mangrove")
-    STEPPE @join__graph(name: "steppe", url: "http://example.com/steppe")
-}
-
 scalar join__FieldSet
-
-scalar join__Graph
 
 type Mammoth
     @join__type(graph: MANGROVE)
@@ -31,4 +23,10 @@ type Mammoth
 type Query
 {
     getMammoth: Mammoth @join__field(graph: MANGROVE, override: "steppe")
+}
+
+enum join__Graph
+{
+    MANGROVE @join__graph(name: "mangrove", url: "http://example.com/mangrove")
+    STEPPE @join__graph(name: "steppe", url: "http://example.com/steppe")
 }

@@ -1,4 +1,4 @@
-use super::*;
+use super::{input_value_definition::convert_input_value_definition, *};
 
 pub(super) fn ingest_directive_definition<'a>(
     directive_definition: ast::DirectiveDefinition<'a>,
@@ -34,30 +34,22 @@ pub(super) fn ingest_directive_definition<'a>(
         locations |= location;
     }
 
-    let mut arguments_start: Option<InputValueDefinitionId> = None;
-    let mut arguments_len = 0;
-
-    for argument in directive_definition.arguments() {
-        let id = ingest_input_value_definition(argument, state)?;
-
-        if arguments_start.is_none() {
-            arguments_start = Some(id);
-        }
-
-        arguments_len += 1;
-    }
-
-    let definition = DirectiveDefinition {
+    let definition = DirectiveDefinitionRecord {
         namespace,
         name,
         locations,
-        arguments: arguments_start
-            .map(|arguments_start| (arguments_start, arguments_len))
-            .unwrap_or(NO_INPUT_VALUE_DEFINITION),
         repeatable: directive_definition.is_repeatable(),
     };
 
+    let directive_definition_id = state.graph.directive_definitions.len().into();
     state.graph.directive_definitions.push(definition);
+
+    for argument in directive_definition.arguments() {
+        let input_value_definition = convert_input_value_definition(argument, state)?;
+        state
+            .graph
+            .push_directive_definition_argument(directive_definition_id, input_value_definition);
+    }
 
     Ok(())
 }

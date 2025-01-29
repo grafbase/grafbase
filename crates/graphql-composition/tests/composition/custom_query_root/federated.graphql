@@ -1,4 +1,3 @@
-
 directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
 
 directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
@@ -11,14 +10,7 @@ directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boole
 
 directive @join__owner(graph: join__Graph!) on OBJECT
 
-enum join__Graph {
-    HAZARDOUS_WASTE @join__graph(name: "hazardous-waste", url: "http://example.com/hazardous-waste")
-    WASTE_COLLECTION @join__graph(name: "waste-collection", url: "http://example.com/waste-collection")
-}
-
 scalar join__FieldSet
-
-scalar join__Graph
 
 type RecyclingCenter
     @join__type(graph: HAZARDOUS_WASTE)
@@ -74,4 +66,10 @@ type Query
     recyclingCenters(city: String!): [RecyclingCenter] @join__field(graph: HAZARDOUS_WASTE)
     wasteCollectionPoints(city: String!): [CollectionPoint] @join__field(graph: WASTE_COLLECTION)
     wasteStatistics(city: String!): WasteStats @join__field(graph: WASTE_COLLECTION)
+}
+
+enum join__Graph
+{
+    HAZARDOUS_WASTE @join__graph(name: "hazardous-waste", url: "http://example.com/hazardous-waste")
+    WASTE_COLLECTION @join__graph(name: "waste-collection", url: "http://example.com/waste-collection")
 }

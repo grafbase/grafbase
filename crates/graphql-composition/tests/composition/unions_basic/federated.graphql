@@ -1,4 +1,3 @@
-
 directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
 
 directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
@@ -11,14 +10,7 @@ directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boole
 
 directive @join__owner(graph: join__Graph!) on OBJECT
 
-enum join__Graph {
-    PIZZA @join__graph(name: "pizza", url: "http://example.com/pizza")
-    SUSHI @join__graph(name: "sushi", url: "http://example.com/sushi")
-}
-
 scalar join__FieldSet
-
-scalar join__Graph
 
 type Pizza
     @join__type(graph: PIZZA)
@@ -71,6 +63,12 @@ type Omelet
 type Query
 {
     pizza(id: ID!): Pizza @join__field(graph: PIZZA)
+}
+
+enum join__Graph
+{
+    PIZZA @join__graph(name: "pizza", url: "http://example.com/pizza")
+    SUSHI @join__graph(name: "sushi", url: "http://example.com/sushi")
 }
 
 union Topping

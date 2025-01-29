@@ -1,4 +1,3 @@
-
 directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
 
 directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
@@ -11,14 +10,7 @@ directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boole
 
 directive @join__owner(graph: join__Graph!) on OBJECT
 
-enum join__Graph {
-    FIRST @join__graph(name: "first", url: "http://example.com/first")
-    SECOND @join__graph(name: "second", url: "http://example.com/second")
-}
-
 scalar join__FieldSet
-
-scalar join__Graph
 
 type A
     @join__type(graph: FIRST, key: "b { id } c")
@@ -40,4 +32,10 @@ type Query
 {
     as: [A] @join__field(graph: FIRST)
     bs: [B] @join__field(graph: SECOND)
+}
+
+enum join__Graph
+{
+    FIRST @join__graph(name: "first", url: "http://example.com/first")
+    SECOND @join__graph(name: "second", url: "http://example.com/second")
 }

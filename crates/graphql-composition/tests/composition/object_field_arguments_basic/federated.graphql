@@ -1,4 +1,3 @@
-
 directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
 
 directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
@@ -11,15 +10,7 @@ directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boole
 
 directive @join__owner(graph: join__Graph!) on OBJECT
 
-enum join__Graph {
-    HISTORY @join__graph(name: "history", url: "http://example.com/history")
-    INVENTORY @join__graph(name: "inventory", url: "http://example.com/inventory")
-    PERFORMANCE @join__graph(name: "performance", url: "http://example.com/performance")
-}
-
 scalar join__FieldSet
-
-scalar join__Graph
 
 type RollerCoaster
     @join__type(graph: HISTORY)
@@ -46,4 +37,11 @@ type HistoricalData
 type Query
 {
     getRollerCoaster(id: ID!): RollerCoaster @join__field(graph: HISTORY) @join__field(graph: INVENTORY) @join__field(graph: PERFORMANCE)
+}
+
+enum join__Graph
+{
+    HISTORY @join__graph(name: "history", url: "http://example.com/history")
+    INVENTORY @join__graph(name: "inventory", url: "http://example.com/inventory")
+    PERFORMANCE @join__graph(name: "performance", url: "http://example.com/performance")
 }

@@ -1,10 +1,8 @@
 use itertools::Itertools;
 
-use super::{directive::write_directive, directive_definition::display_directive_definition, display_utils::*};
+use super::{directive::write_directive, directive_definition::display_directive_definitions, display_utils::*};
 use crate::{directives::*, federated_graph::*};
 use std::fmt::{self, Display, Write};
-
-const JOIN_GRAPH_ENUM_NAMESPACE_AND_NAME: (Option<&str>, &str) = (Some("join"), "Graph");
 
 /// Render a GraphQL SDL string for a federated graph. It includes [join spec
 /// directives](https://specs.apollo.dev/join/v0.3/) about subgraphs and entities.
@@ -12,18 +10,7 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
     let mut sdl = String::new();
 
     with_formatter(&mut sdl, |f| {
-        if graph.directive_definitions.is_empty() {
-            return Ok(());
-        }
-
-        for definition in &graph.directive_definitions {
-            f.write_str("\n")?;
-            display_directive_definition(definition, directives_filter, graph, f)?;
-        }
-
-        f.write_str("\n")?;
-
-        write_subgraphs_enum(graph, f)?;
+        display_directive_definitions(|_| true, directives_filter, graph, f)?;
 
         for scalar in graph.iter_scalar_definitions() {
             let namespace = scalar.namespace.map(|namespace| &graph[namespace]);
@@ -149,10 +136,6 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
         let namespace = r#enum.namespace.map(|namespace| graph[namespace].as_str());
         let enum_name = graph.at(r#enum.name).as_str();
 
-        if (namespace, enum_name) == JOIN_GRAPH_ENUM_NAMESPACE_AND_NAME {
-            continue;
-        }
-
         if let Some(description) = r#enum.description {
             write!(sdl, "{}", Description(&graph[description], ""))?;
         }
@@ -252,30 +235,6 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
     sdl.push('\n');
 
     Ok(sdl)
-}
-
-fn write_subgraphs_enum(graph: &FederatedGraph, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    if graph.subgraphs.is_empty() {
-        return Ok(());
-    }
-
-    f.write_str("enum join__Graph")?;
-
-    f.write_str(" {\n")?;
-
-    for subgraph in &graph.subgraphs {
-        let name_str = &graph[subgraph.name];
-        let loud_name = GraphEnumVariantName(name_str);
-        write!(sdl, r#"{INDENT}{loud_name} @join__graph(name: "{name_str}""#)?;
-            let url = &graph[url];
-            write!(sdl, r#", url: "{url}""#)?;
-        }
-        writeln!(sdl, ")")?;
-    }
-
-    f.write_str("}\n\n")?;
-
-    Ok(())
 }
 
 fn write_input_field(
@@ -522,16 +481,10 @@ mod tests {
 
     #[test]
     fn test_render_empty() {
-        use expect_test::expect;
-
         let empty = FederatedGraph::default();
 
         let actual = render_federated_sdl(&empty).expect("valid");
-        let expected = expect![[r#"
-
-        "#]];
-
-        expected.assert_eq(&actual);
+        assert_eq!(actual, "\n");
     }
 
     #[test]
@@ -551,7 +504,6 @@ mod tests {
 
         let actual = render_federated_sdl(&empty).expect("valid");
         let expected = expect![[r#"
-
             directive @dummy(test: String!) on FIELD
 
             type Query
@@ -586,7 +538,6 @@ mod tests {
 
         let actual = render_federated_sdl(&empty).expect("valid");
         let expected = expect![[r#"
-
             directive @dummy(test: String!) on FIELD
 
             type Query
@@ -616,16 +567,16 @@ mod tests {
 
         let expected = expect_test::expect![[r#"
 
-            enum join__Graph {
-                MOCKSUBGRAPH @join__graph(name: "mocksubgraph", url: "https://mock.example.com/todo/graphql")
-            }
-
-
 
             interface b
-                @join__type(graph: MOCKSUBGRAPH)
+                @join__type(graph: a)
             {
                 c: String
+            }
+
+            enum join__Graph
+            {
+                a @join__graph(name: "mocksubgraph", url: "https://mock.example.com/todo/graphql")
             }
         "#]];
 

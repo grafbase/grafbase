@@ -205,10 +205,16 @@ impl<'a> State<'a> {
 }
 
 pub(crate) fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
+    dbg!(sdl);
+    if sdl.trim().is_empty() {
+        return Ok(FederatedGraph::default());
+    }
+
     let mut state = State::default();
     state.graph.strings.clear();
     state.graph.objects.clear();
     state.graph.fields.clear();
+    state.graph.scalar_definitions.clear();
 
     let parsed = cynic_parser::parse_type_system_document(sdl).map_err(|err| DomainError(err.to_string()))?;
 
@@ -251,6 +257,7 @@ pub(crate) fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
 
     let mut graph = FederatedGraph {
         directive_definitions: std::mem::take(&mut state.graph.directive_definitions),
+        directive_definition_arguments: std::mem::take(&mut state.graph.directive_definition_arguments),
         root_operation_types: state.root_operation_types()?,
         enum_values: std::mem::take(&mut state.graph.enum_values),
         enum_definitions: std::mem::take(&mut state.graph.enum_definitions),
@@ -442,18 +449,18 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
             ast::Definition::TypeExtension(typedef) | ast::Definition::Type(typedef) => {
                 let type_name = typedef.name();
 
-                match typedef {
-                    ast::TypeDefinition::Enum(enm) if type_name == JOIN_GRAPH_ENUM_NAME => {
-                        ingest_join_graph_enum(enm, state)?;
-                    }
-                    _ => (),
-                }
-
                 let (namespace, type_name_id) = split_namespace_name(type_name, state);
 
                 let description = typedef
                     .description()
                     .map(|description| state.insert_string(&description.to_cow()));
+
+                match typedef {
+                    ast::TypeDefinition::Enum(enm) if type_name == JOIN_GRAPH_ENUM_NAME => {
+                        ingest_join_graph_enum(namespace, type_name_id, description, type_name, enm, state)?;
+                    }
+                    _ => (),
+                }
 
                 match typedef {
                     ast::TypeDefinition::Scalar(_) => {
@@ -501,33 +508,11 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                         state.definition_names.insert(type_name, Definition::Union(union_id));
                     }
                     ast::TypeDefinition::Enum(enm) => {
-                        let enum_definition_id = state.graph.push_enum_definition(EnumDefinitionRecord {
-                            namespace,
-                            name: type_name_id,
-                            directives: Vec::new(),
-                            description,
-                        });
-
-                        state
-                            .definition_names
-                            .insert(type_name, Definition::Enum(enum_definition_id));
-
-                        for value in enm.values() {
-                            let description = value
-                                .description()
-                                .map(|description| state.insert_string(&description.to_cow()));
-
-                            let directives = collect_enum_value_directives(value.directives(), state)?;
-                            let value_string_id = state.insert_string(value.value());
-                            let id = state.graph.push_enum_value(EnumValueRecord {
-                                enum_id: enum_definition_id,
-                                value: value_string_id,
-                                directives,
-                                description,
-                            });
-
-                            state.enum_values_map.insert((enum_definition_id, value.value()), id);
+                        if enm.name() == JOIN_GRAPH_ENUM_NAME {
+                            continue;
                         }
+
+                        ingest_enum_definition(namespace, type_name_id, description, type_name, enm, state)?;
                     }
                     ast::TypeDefinition::InputObject(_) => {
                         let input_object_id =
@@ -549,6 +534,45 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
     insert_builtin_scalars(state);
 
     Ok(())
+}
+
+fn ingest_enum_definition<'a>(
+    namespace: Option<StringId>,
+    type_name_id: StringId,
+    description: Option<StringId>,
+    type_name: &'a str,
+    enm: ast::EnumDefinition<'a>,
+    state: &mut State<'a>,
+) -> Result<EnumDefinitionId, DomainError> {
+    let enum_definition_id = state.graph.push_enum_definition(EnumDefinitionRecord {
+        namespace,
+        name: type_name_id,
+        directives: Vec::new(),
+        description,
+    });
+
+    state
+        .definition_names
+        .insert(type_name, Definition::Enum(enum_definition_id));
+
+    for value in enm.values() {
+        let description = value
+            .description()
+            .map(|description| state.insert_string(&description.to_cow()));
+
+        let directives = collect_enum_value_directives(value.directives(), state)?;
+        let value_string_id = state.insert_string(value.value());
+        let id = state.graph.push_enum_value(EnumValueRecord {
+            enum_id: enum_definition_id,
+            value: value_string_id,
+            directives,
+            description,
+        });
+
+        state.enum_values_map.insert((enum_definition_id, value.value()), id);
+    }
+
+    Ok(enum_definition_id)
 }
 
 fn insert_builtin_scalars(state: &mut State<'_>) {
@@ -933,7 +957,16 @@ fn attach_input_value_set_rec<'a>(
         .collect()
 }
 
-fn ingest_join_graph_enum<'a>(enm: ast::EnumDefinition<'a>, state: &mut State<'a>) -> Result<(), DomainError> {
+fn ingest_join_graph_enum<'a>(
+    namespace: Option<StringId>,
+    type_name_id: StringId,
+    description: Option<StringId>,
+    type_name: &'a str,
+    enm: ast::EnumDefinition<'a>,
+    state: &mut State<'a>,
+) -> Result<(), DomainError> {
+    let enum_definition_id = ingest_enum_definition(namespace, type_name_id, description, type_name, enm, state)?;
+
     for value in enm.values() {
         let sdl_name = value.value();
         let directive = value
@@ -971,8 +1004,17 @@ fn ingest_join_graph_enum<'a>(enm: ast::EnumDefinition<'a>, state: &mut State<'a
 
         let subgraph_name = state.insert_string(name.value());
         let url = state.insert_string(url.value());
+        let sdl_name_string_id = state.insert_string(sdl_name);
+        let join_graph_enum_value_name = state
+            .graph
+            .iter_enum_values(enum_definition_id)
+            .find(|value| value.value == sdl_name_string_id)
+            .unwrap()
+            .id();
+
         let id = SubgraphId::from(state.graph.subgraphs.push_return_idx(Subgraph {
             name: subgraph_name,
+            join_graph_enum_value: join_graph_enum_value_name,
             url: Some(url),
         }));
         state.graph_by_enum_str.insert(sdl_name, id);
@@ -1409,7 +1451,6 @@ fn test_join_field_type() {
     "###;
 
     let expected = expect![[r#"
-
         directive @join__enumValue(graph: join__Graph!) on ENUM_VALUE
 
         directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, usedOverridden: Boolean) on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
@@ -1423,11 +1464,6 @@ fn test_join_field_type() {
         directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
 
         directive @link(url: String, as: String, for: link__Purpose, import: [link__Import]) on SCHEMA
-
-        enum join__Graph {
-            A @join__graph(name: "a", url: "http://localhost:4200/child-type-mismatch/a")
-            B @join__graph(name: "b", url: "http://localhost:4200/child-type-mismatch/b")
-        }
 
         scalar join__FieldSet
 
@@ -1456,6 +1492,12 @@ fn test_join_field_type() {
             id: ID @join__field(graph: A, type: "ID") @join__field(graph: B, type: "ID!")
             name: String @join__field(graph: B)
             similarAccounts: [Account!]! @join__field(graph: B)
+        }
+
+        enum join__Graph
+        {
+            A @join__graph(name: "a", url: "http://localhost:4200/child-type-mismatch/a")
+            B @join__graph(name: "b", url: "http://localhost:4200/child-type-mismatch/b")
         }
 
         enum link__Purpose

@@ -1,4 +1,3 @@
-
 directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
 
 directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
@@ -11,15 +10,7 @@ directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boole
 
 directive @join__owner(graph: join__Graph!) on OBJECT
 
-enum join__Graph {
-    FOODSEARCH @join__graph(name: "foodSearch", url: "http://example.com/foodSearch")
-    PRODUCTSEARCH @join__graph(name: "productSearch", url: "http://example.com/productSearch")
-    USERSEARCH @join__graph(name: "userSearch", url: "http://example.com/userSearch")
-}
-
 scalar join__FieldSet
-
-scalar join__Graph
 
 type Query
 {
@@ -35,4 +26,11 @@ enum FilterName
 {
     NAME
     CREATED_AT
+}
+
+enum join__Graph
+{
+    FOODSEARCH @join__graph(name: "foodSearch", url: "http://example.com/foodSearch")
+    PRODUCTSEARCH @join__graph(name: "productSearch", url: "http://example.com/productSearch")
+    USERSEARCH @join__graph(name: "userSearch", url: "http://example.com/userSearch")
 }

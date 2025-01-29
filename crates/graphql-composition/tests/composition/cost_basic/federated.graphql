@@ -1,4 +1,3 @@
-
 directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
 
 directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
@@ -13,16 +12,10 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 
 directive @cost(weight: Int!) on SCALAR | OBJECT | FIELD_DEFINITION | ARGUMENT_DEFINITION | ENUM | INPUT_FIELD_DEFINITION
 
-enum join__Graph {
-    A @join__graph(name: "a", url: "http://example.com/a")
-}
-
 scalar Foo
     @cost(weight: 6)
 
 scalar join__FieldSet
-
-scalar join__Graph
 
 type Query
     @cost(weight: 1)
@@ -44,6 +37,11 @@ enum Blah
     @join__type(graph: A)
 {
     BLAH
+}
+
+enum join__Graph
+{
+    A @join__graph(name: "a", url: "http://example.com/a")
 }
 
 input Bar

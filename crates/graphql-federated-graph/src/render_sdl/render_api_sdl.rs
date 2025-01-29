@@ -1,4 +1,4 @@
-use super::{directive::write_directive, directive_definition::display_directive_definition, display_utils::*};
+use super::{directive::write_directive, directive_definition::display_directive_definitions, display_utils::*};
 use crate::{directives::*, federated_graph::*, FederatedGraph};
 use std::fmt::{self, Write as _};
 
@@ -30,17 +30,10 @@ impl fmt::Display for Renderer<'_> {
             }
         };
 
-        for definition in &graph.directive_definitions {
-            if definition.namespace.is_some() {
-                continue;
-            }
-
-            display_directive_definition(definition, public_directives_filter, graph, f)?;
-            f.write_str("\n")?;
-        }
+        display_directive_definitions(|def| def.namespace.is_none(), public_directives_filter, graph, f)?;
 
         for r#enum in graph.iter_enum_definitions() {
-            if has_inaccessible(&r#enum.directives) {
+            if has_inaccessible(&r#enum.directives) || r#enum.namespace.is_some() {
                 continue;
             }
 
@@ -259,6 +252,7 @@ fn public_directives_filter(directive: &Directive, graph: &FederatedGraph) -> bo
         | Directive::JoinImplements(_)
         | Directive::Authorized(_)
         | Directive::ListSize(_)
+        | Directive::JoinGraph(_)
         | Directive::ExtensionDirective { .. } => false,
 
         Directive::Other { name, .. } if graph[*name] == "tag" => false,

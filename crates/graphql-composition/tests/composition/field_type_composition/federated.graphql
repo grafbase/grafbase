@@ -1,4 +1,3 @@
-
 directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
 
 directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
@@ -11,14 +10,7 @@ directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boole
 
 directive @join__owner(graph: join__Graph!) on OBJECT
 
-enum join__Graph {
-    SPINNERS_A @join__graph(name: "spinners-a", url: "http://example.com/spinners-a")
-    SPINNERS_B @join__graph(name: "spinners-b", url: "http://example.com/spinners-b")
-}
-
 scalar join__FieldSet
-
-scalar join__Graph
 
 type FidgetSpinner implements Spinner
     @join__type(graph: SPINNERS_A)
@@ -51,6 +43,12 @@ interface Spinner
 {
     id: ID!
     model: String @join__field(graph: SPINNERS_A) @join__field(graph: SPINNERS_B, type: "String!")
+}
+
+enum join__Graph
+{
+    SPINNERS_A @join__graph(name: "spinners-a", url: "http://example.com/spinners-a")
+    SPINNERS_B @join__graph(name: "spinners-b", url: "http://example.com/spinners-b")
 }
 
 input SpinnerFilter

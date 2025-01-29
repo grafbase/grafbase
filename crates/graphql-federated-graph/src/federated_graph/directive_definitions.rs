@@ -1,12 +1,51 @@
 use super::*;
 
+pub type DirectiveDefinition<'a> = super::view::ViewNested<'a, DirectiveDefinitionId, DirectiveDefinitionRecord>;
+
 #[derive(Debug, Clone)]
-pub struct DirectiveDefinition {
+pub struct DirectiveDefinitionRecord {
     pub namespace: Option<StringId>,
     pub name: StringId,
     pub locations: DirectiveLocations,
-    pub arguments: InputValueDefinitions,
     pub repeatable: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct DirectiveDefinitionArgument {
+    pub directive_definition_id: DirectiveDefinitionId,
+    pub input_value_definition: InputValueDefinition,
+}
+
+impl FederatedGraph {
+    pub fn iter_directive_definitions(&self) -> impl ExactSizeIterator<Item = DirectiveDefinition<'_>> {
+        self.directive_definitions
+            .iter()
+            .enumerate()
+            .map(move |(idx, record)| DirectiveDefinition {
+                graph: self,
+                view: View { id: idx.into(), record },
+            })
+    }
+
+    pub fn push_directive_definition_argument(
+        &mut self,
+        directive_definition_id: DirectiveDefinitionId,
+        argument: InputValueDefinition,
+    ) {
+        self.directive_definition_arguments.push(DirectiveDefinitionArgument {
+            directive_definition_id,
+            input_value_definition: argument,
+        })
+    }
+
+    pub fn push_directive_definition(
+        &mut self,
+        directive_definitons: DirectiveDefinitionRecord,
+    ) -> DirectiveDefinitionId {
+        let id = self.directive_definitions.len().into();
+        self.directive_definitions.push(directive_definitons);
+        id
+    }
 }
 
 bitflags::bitflags! {

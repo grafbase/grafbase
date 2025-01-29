@@ -1,4 +1,4 @@
-use crate::{InterfaceId, ObjectId, OverrideLabel, OverrideSource, SelectionSet, SubgraphId, Type};
+use crate::{InterfaceId, ObjectId, OverrideLabel, OverrideSource, SelectionSet, StringId, SubgraphId, Type};
 
 ///```ignore,graphql
 /// directive @join__type(
@@ -70,4 +70,13 @@ pub struct JoinUnionMemberDirective {
 #[derive(Clone, PartialEq, PartialOrd, Debug)]
 pub struct JoinEnumValueDirective {
     pub subgraph_id: SubgraphId,
+}
+
+/// ```ignore,graphql
+/// directive @join__graph(name: String!) on SCHEMA
+/// ```
+#[derive(Clone, PartialEq, PartialOrd, Debug)]
+pub struct JoinGraphDirective {
+    pub name: StringId,
+    pub url: Option<StringId>,
 }

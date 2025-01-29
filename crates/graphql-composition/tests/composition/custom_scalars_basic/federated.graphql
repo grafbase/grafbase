@@ -1,4 +1,3 @@
-
 directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
 
 directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
@@ -11,12 +10,6 @@ directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boole
 
 directive @join__owner(graph: join__Graph!) on OBJECT
 
-enum join__Graph {
-    BAR @join__graph(name: "bar", url: "http://example.com/bar")
-    BAZ @join__graph(name: "baz", url: "http://example.com/baz")
-    FOO @join__graph(name: "foo", url: "http://example.com/foo")
-}
-
 scalar Yan
 
 scalar Tan
@@ -26,8 +19,6 @@ scalar Texture
 scalar Tethera
 
 scalar join__FieldSet
-
-scalar join__Graph
 
 type Sheep
     @join__type(graph: BAZ)
@@ -40,4 +31,11 @@ type Sheep
 type Query
 {
     sheep: Sheep @join__field(graph: FOO)
+}
+
+enum join__Graph
+{
+    BAR @join__graph(name: "bar", url: "http://example.com/bar")
+    BAZ @join__graph(name: "baz", url: "http://example.com/baz")
+    FOO @join__graph(name: "foo", url: "http://example.com/foo")
 }

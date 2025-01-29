@@ -1,4 +1,3 @@
-
 directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
 
 directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
@@ -11,16 +10,7 @@ directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boole
 
 directive @join__owner(graph: join__Graph!) on OBJECT
 
-enum join__Graph {
-    FOREST @join__graph(name: "forest", url: "http://example.com/forest")
-    MANGROVE @join__graph(name: "mangrove", url: "http://example.com/mangrove")
-    SAVANA @join__graph(name: "savana", url: "http://example.com/savana")
-    STEPPE @join__graph(name: "steppe", url: "http://example.com/steppe")
-}
-
 scalar join__FieldSet
-
-scalar join__Graph
 
 type Squirrel
     @join__type(graph: FOREST)
@@ -63,4 +53,12 @@ interface Animal
     species: String! @join__field(graph: FOREST) @join__field(graph: MANGROVE) @join__field(graph: SAVANA) @join__field(graph: STEPPE)
     swimSpeedKmh: Float @join__field(graph: MANGROVE)
     weightGrams: Int @join__field(graph: STEPPE)
+}
+
+enum join__Graph
+{
+    FOREST @join__graph(name: "forest", url: "http://example.com/forest")
+    MANGROVE @join__graph(name: "mangrove", url: "http://example.com/mangrove")
+    SAVANA @join__graph(name: "savana", url: "http://example.com/savana")
+    STEPPE @join__graph(name: "steppe", url: "http://example.com/steppe")
 }

@@ -1,4 +1,3 @@
-
 directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
 
 directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
@@ -11,18 +10,11 @@ directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boole
 
 directive @join__owner(graph: join__Graph!) on OBJECT
 
-enum join__Graph {
-    APPLE @join__graph(name: "apple", url: "http://example.com/apple")
-    ORANGE @join__graph(name: "orange", url: "http://example.com/orange")
-}
-
 scalar Texture
     @tag(name: "appleTexture")
     @tag(name: "orangeTexture")
 
 scalar join__FieldSet
-
-scalar join__Graph
 
 type Apple implements HasId
     @tag(name: "appleType")
@@ -67,6 +59,12 @@ enum AppleVariety
     FUJI
     GRANNY_SMITH
     HONEYCRISP @tag(name: "appleEnumValue")
+}
+
+enum join__Graph
+{
+    APPLE @join__graph(name: "apple", url: "http://example.com/apple")
+    ORANGE @join__graph(name: "orange", url: "http://example.com/orange")
 }
 
 input Filter

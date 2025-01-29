@@ -316,7 +316,6 @@ pub(crate) enum DisplayableArgument<'a> {
     JsonValue(serde_json::Value),
     FieldSet(SelectionSetDisplay<'a>),
     InputValueDefinitionSet(InputValueDefinitionSetDisplay<'a>),
-    GraphEnumVariantName(GraphEnumVariantName<'a>),
 }
 
 impl DisplayableArgument<'_> {
@@ -326,15 +325,8 @@ impl DisplayableArgument<'_> {
             DisplayableArgument::JsonValue(v) => JsonValueDisplay(v).fmt(f),
             DisplayableArgument::FieldSet(v) => v.fmt(f),
             DisplayableArgument::InputValueDefinitionSet(v) => v.fmt(f),
-            DisplayableArgument::GraphEnumVariantName(inner) => inner.fmt(f),
             DisplayableArgument::String(s) => display_graphql_string_literal(s, f),
         }
-    }
-}
-
-impl<'a> From<GraphEnumVariantName<'a>> for DisplayableArgument<'a> {
-    fn from(value: GraphEnumVariantName<'a>) -> Self {
-        DisplayableArgument::GraphEnumVariantName(value)
     }
 }
 
@@ -466,23 +458,4 @@ pub(super) fn render_field_type(field_type: &Type, graph: &FederatedGraph) -> St
     }
 
     out
-}
-
-pub(in crate::render_sdl) struct GraphEnumVariantName<'a>(pub &'a str);
-
-impl Display for GraphEnumVariantName<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for char in self.0.chars() {
-            match char {
-                '-' | '_' | ' ' => f.write_char('_')?,
-                other => {
-                    for char in other.to_uppercase() {
-                        f.write_char(char)?;
-                    }
-                }
-            }
-        }
-
-        Ok(())
-    }
 }

@@ -1,4 +1,3 @@
-
 directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
 
 directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
@@ -11,16 +10,9 @@ directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boole
 
 directive @join__owner(graph: join__Graph!) on OBJECT
 
-enum join__Graph {
-    LENTILS @join__graph(name: "lentils", url: "http://example.com/lentils")
-    RICE @join__graph(name: "rice", url: "http://example.com/rice")
-}
-
 scalar _Any
 
 scalar join__FieldSet
-
-scalar join__Graph
 
 type Lentil
     @join__type(graph: LENTILS, key: "id")
@@ -65,6 +57,12 @@ type Mutation
 {
     addLentil(input: AddLentilInput!): Lentil @join__field(graph: LENTILS)
     deleteLentil(id: ID!): Lentil @join__field(graph: LENTILS)
+}
+
+enum join__Graph
+{
+    LENTILS @join__graph(name: "lentils", url: "http://example.com/lentils")
+    RICE @join__graph(name: "rice", url: "http://example.com/rice")
 }
 
 input AddLentilInput

@@ -12,10 +12,8 @@ mod scalar_definitions;
 mod r#type;
 mod view;
 
-use crate::directives::*;
-
 pub use self::{
-    directive_definitions::{DirectiveDefinition, DirectiveLocations},
+    directive_definitions::*,
     directives::*,
     entity::*,
     enum_definitions::EnumDefinitionRecord,
@@ -29,6 +27,7 @@ pub use self::{
 pub use std::fmt;
 pub use wrapping::Wrapping;
 
+use crate::directives::*;
 use enum_definitions::EnumDefinition;
 use scalar_definitions::ScalarDefinition;
 use std::ops::Range;
@@ -41,7 +40,8 @@ pub struct FederatedGraph {
     pub interfaces: Vec<Interface>,
     pub fields: Vec<Field>,
 
-    pub directive_definitions: Vec<DirectiveDefinition>,
+    pub directive_definitions: Vec<DirectiveDefinitionRecord>,
+    pub directive_definition_arguments: Vec<DirectiveDefinitionArgument>,
     pub scalar_definitions: Vec<ScalarDefinitionRecord>,
     pub enum_definitions: Vec<EnumDefinitionRecord>,
     pub unions: Vec<Union>,
@@ -98,13 +98,14 @@ impl FederatedGraph {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Subgraph {
     pub name: StringId,
+    pub join_graph_enum_value: EnumValueId,
     pub url: Option<StringId>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Union {
     pub name: StringId,
     pub description: Option<StringId>,
@@ -112,7 +113,7 @@ pub struct Union {
     pub directives: Vec<Directive>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct InputObject {
     pub name: StringId,
     pub description: Option<StringId>,
@@ -140,7 +141,7 @@ pub enum Value {
     List(Box<[Value]>),
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Object {
     pub name: StringId,
     pub directives: Vec<Directive>,
@@ -149,7 +150,7 @@ pub struct Object {
     pub fields: Fields,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Interface {
     pub name: StringId,
     pub directives: Vec<Directive>,
@@ -158,7 +159,7 @@ pub struct Interface {
     pub fields: Fields,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Field {
     pub parent_entity_id: EntityDefinitionId,
     pub name: StringId,
@@ -280,7 +281,7 @@ impl Default for FederatedGraph {
     fn default() -> Self {
         FederatedGraph {
             directive_definitions: Vec::new(),
-            scalar_definitions: Vec::new(),
+            directive_definition_arguments: Vec::new(),
             enum_definitions: Vec::new(),
             subgraphs: Vec::new(),
             interfaces: Vec::new(),
@@ -289,6 +290,12 @@ impl Default for FederatedGraph {
             enum_values: Vec::new(),
             input_value_definitions: Vec::new(),
 
+            scalar_definitions: vec![ScalarDefinitionRecord {
+                namespace: None,
+                name: StringId::from(3),
+                description: None,
+                directives: Vec::new(),
+            }],
             root_operation_types: RootOperationTypes {
                 query: ObjectId::from(0),
                 mutation: None,
@@ -325,7 +332,7 @@ impl Default for FederatedGraph {
                     directives: Vec::new(),
                 },
             ],
-            strings: ["Query", "__type", "__schema"]
+            strings: ["Query", "__type", "__schema", "String"]
                 .into_iter()
                 .map(|string| string.to_owned())
                 .collect(),

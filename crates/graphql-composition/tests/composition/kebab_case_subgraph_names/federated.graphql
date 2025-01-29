@@ -1,4 +1,3 @@
-
 directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
 
 directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
@@ -11,15 +10,7 @@ directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boole
 
 directive @join__owner(graph: join__Graph!) on OBJECT
 
-enum join__Graph {
-    BROCHETTE_REPOSITORY @join__graph(name: "brochette-repository", url: "http://example.com/brochette-repository")
-    KUSHI_STORE @join__graph(name: "kushi-store", url: "http://example.com/kushi-store")
-    SCHASCHLIK_SERVICE @join__graph(name: "schaschlik-service", url: "http://example.com/schaschlik-service")
-}
-
 scalar join__FieldSet
-
-scalar join__Graph
 
 type Kebab
     @join__type(graph: BROCHETTE_REPOSITORY, key: "id")
@@ -67,4 +58,11 @@ type Query
     kushis: [Kushi] @join__field(graph: KUSHI_STORE)
     schaschlik(id: ID!): Schaschlik @join__field(graph: SCHASCHLIK_SERVICE)
     schaschliks: [Schaschlik] @join__field(graph: SCHASCHLIK_SERVICE)
+}
+
+enum join__Graph
+{
+    BROCHETTE_REPOSITORY @join__graph(name: "brochette-repository", url: "http://example.com/brochette-repository")
+    KUSHI_STORE @join__graph(name: "kushi-store", url: "http://example.com/kushi-store")
+    SCHASCHLIK_SERVICE @join__graph(name: "schaschlik-service", url: "http://example.com/schaschlik-service")
 }

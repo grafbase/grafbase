@@ -1,4 +1,3 @@
-
 directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
 
 directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
@@ -11,15 +10,7 @@ directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boole
 
 directive @join__owner(graph: join__Graph!) on OBJECT
 
-enum join__Graph {
-    ACCOUNTS @join__graph(name: "accounts", url: "http://example.com/accounts")
-    MARKETING @join__graph(name: "marketing", url: "http://example.com/marketing")
-    SUBSCRIPTIONS @join__graph(name: "subscriptions", url: "http://example.com/subscriptions")
-}
-
 scalar join__FieldSet
-
-scalar join__Graph
 
 type Customer
     @join__type(graph: ACCOUNTS)
@@ -43,4 +34,11 @@ enum Plan
 {
     Hobby
     Pro
+}
+
+enum join__Graph
+{
+    ACCOUNTS @join__graph(name: "accounts", url: "http://example.com/accounts")
+    MARKETING @join__graph(name: "marketing", url: "http://example.com/marketing")
+    SUBSCRIPTIONS @join__graph(name: "subscriptions", url: "http://example.com/subscriptions")
 }

@@ -1,4 +1,3 @@
-
 directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
 
 directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
@@ -11,21 +10,10 @@ directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boole
 
 directive @join__owner(graph: join__Graph!) on OBJECT
 
-enum join__Graph {
-    FIVE_WITH_ENUM @join__graph(name: "five-with-enum", url: "http://example.com/five-with-enum")
-    FOUR_WITH_UNION @join__graph(name: "four-with-union", url: "http://example.com/four-with-union")
-    ONE @join__graph(name: "one", url: "http://example.com/one")
-    SIX_WITH_INPUT_OBJECT @join__graph(name: "six-with-input-object", url: "http://example.com/six-with-input-object")
-    THREE_WITH_INTERFACE @join__graph(name: "three-with-interface", url: "http://example.com/three-with-interface")
-    TWO @join__graph(name: "two", url: "http://example.com/two")
-}
-
 scalar Time
     @inaccessible
 
 scalar join__FieldSet
-
-scalar join__Graph
 
 type Ungulate
     @join__type(graph: FIVE_WITH_ENUM)
@@ -131,6 +119,16 @@ enum UngulateType
     CAMEL
     RHINOCEROS
     GIRAFFE
+}
+
+enum join__Graph
+{
+    FIVE_WITH_ENUM @join__graph(name: "five-with-enum", url: "http://example.com/five-with-enum")
+    FOUR_WITH_UNION @join__graph(name: "four-with-union", url: "http://example.com/four-with-union")
+    ONE @join__graph(name: "one", url: "http://example.com/one")
+    SIX_WITH_INPUT_OBJECT @join__graph(name: "six-with-input-object", url: "http://example.com/six-with-input-object")
+    THREE_WITH_INTERFACE @join__graph(name: "three-with-interface", url: "http://example.com/three-with-interface")
+    TWO @join__graph(name: "two", url: "http://example.com/two")
 }
 
 union TVContent

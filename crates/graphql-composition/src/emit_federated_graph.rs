@@ -40,6 +40,7 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
         },
         subgraphs: vec![],
         directive_definitions: vec![],
+        directive_definition_arguments: vec![],
         fields: vec![],
         input_value_definitions: vec![],
         strings: vec![],
@@ -52,13 +53,13 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
     ir.fields
         .sort_unstable_by_key(|field| (field.parent_definition_name, &ctx[field.field_name]));
 
-    emit_directive_definitions(&ir, &mut ctx);
-    emit_subgraphs(&mut ctx);
+    let join_graph_enum_id = emit_subgraphs(&mut ctx);
     emit_input_value_definitions(&ir.input_value_definitions, &mut ctx);
     emit_fields(&ir.fields, &mut ctx);
+    emit_directive_definitions(&ir, &mut ctx);
 
     emit_union_members_after_objects(&ir.union_members, &mut ctx);
-    federation_builtins::emit_federation_builtins(&mut ctx);
+    federation_builtins::emit_federation_builtins(&mut ctx, join_graph_enum_id);
 
     emit_directives_and_implements_interface(&mut ctx, ir);
 
@@ -338,10 +339,51 @@ fn attach_selection(
         .collect()
 }
 
-fn emit_subgraphs(ctx: &mut Context<'_>) {
+fn emit_subgraphs(ctx: &mut Context<'_>) -> federated::EnumDefinitionId {
+    let join_namespace = ctx.insert_str("join");
+    let join_graph_name = ctx.insert_str("Graph");
+    let join_graph_enum_id = ctx.out.push_enum_definition(federated::EnumDefinitionRecord {
+        namespace: Some(join_namespace),
+        name: join_graph_name,
+        directives: Vec::new(),
+        description: None,
+    });
+
     for subgraph in ctx.subgraphs.iter_subgraphs() {
         let name = ctx.insert_string(subgraph.name());
         let url = ctx.insert_string(subgraph.url());
-        ctx.out.subgraphs.push(federated::Subgraph { name, url: Some(url) });
+        let join_graph_enum_value_name = ctx.insert_str(&join_graph_enum_variant_name(subgraph.name().as_str()));
+        let join_graph_enum_value_id = ctx.out.push_enum_value(federated::EnumValueRecord {
+            enum_id: join_graph_enum_id,
+            value: join_graph_enum_value_name,
+            directives: vec![federated::Directive::JoinGraph(federated::JoinGraphDirective {
+                name,
+                url: Some(url),
+            })],
+            description: None,
+        });
+
+        ctx.out.subgraphs.push(federated::Subgraph {
+            name,
+            join_graph_enum_value: join_graph_enum_value_id,
+            url: Some(url),
+        });
     }
+
+    join_graph_enum_id
+}
+
+fn join_graph_enum_variant_name(original_name: &str) -> String {
+    let mut out = String::with_capacity(original_name.len());
+    for char in original_name.chars() {
+        match char {
+            '-' | '_' | ' ' => out.push('_'),
+            other => {
+                for char in other.to_uppercase() {
+                    out.push(char);
+                }
+            }
+        }
+    }
+    out
 }

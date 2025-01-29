@@ -1,4 +1,3 @@
-
 directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
 
 directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
@@ -11,14 +10,7 @@ directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boole
 
 directive @join__owner(graph: join__Graph!) on OBJECT
 
-enum join__Graph {
-    MULTI_KEY @join__graph(name: "multi-key", url: "http://example.com/multi-key")
-    SINGLE_KEY @join__graph(name: "single-key", url: "http://example.com/single-key")
-}
-
 scalar join__FieldSet
-
-scalar join__Graph
 
 type User
     @join__type(graph: MULTI_KEY, key: "id")
@@ -52,4 +44,10 @@ type Query
 {
     getUser(id: ID!): User @join__field(graph: SINGLE_KEY)
     getUserComments(name: String!, email: String!): User @join__field(graph: MULTI_KEY)
+}
+
+enum join__Graph
+{
+    MULTI_KEY @join__graph(name: "multi-key", url: "http://example.com/multi-key")
+    SINGLE_KEY @join__graph(name: "single-key", url: "http://example.com/single-key")
 }

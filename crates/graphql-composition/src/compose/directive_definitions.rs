@@ -1,5 +1,3 @@
-use graphql_federated_graph::NO_INPUT_VALUE_DEFINITION;
-
 use super::*;
 
 pub(super) fn compose_directive_definitions(ctx: &mut Context<'_>) {
@@ -17,8 +15,7 @@ pub(super) fn compose_directive_definitions(ctx: &mut Context<'_>) {
     // Emit
     for definition in definitions {
         let name = ctx.insert_string(definition.name);
-        let mut arguments_start: Option<federated::InputValueDefinitionId> = None;
-        let mut arguments_len = 0;
+        let mut arguments = Vec::with_capacity(definition.arguments.len());
 
         for argument in &definition.arguments {
             let input_value_definition = ir::InputValueDefinitionIr {
@@ -40,17 +37,8 @@ pub(super) fn compose_directive_definitions(ctx: &mut Context<'_>) {
                 default: argument.default_value.clone(),
             };
 
-            let id = ctx.insert_input_value_definition(input_value_definition);
-            arguments_len += 1;
-
-            if arguments_start.is_none() {
-                arguments_start = Some(id);
-            }
+            arguments.push(input_value_definition);
         }
-
-        let arguments = arguments_start
-            .map(|start| -> federated::InputValueDefinitions { (start, arguments_len) })
-            .unwrap_or(NO_INPUT_VALUE_DEFINITION);
 
         ctx.insert_directive_definition(ir::DirectiveDefinitionIr {
             name,

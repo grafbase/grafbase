@@ -1,4 +1,3 @@
-
 directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
 
 directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
@@ -11,13 +10,7 @@ directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boole
 
 directive @join__owner(graph: join__Graph!) on OBJECT
 
-enum join__Graph {
-    MAIN @join__graph(name: "main", url: "http://example.com/main")
-}
-
 scalar join__FieldSet
-
-scalar join__Graph
 
 type Organization implements Account
     @join__type(graph: MAIN)
@@ -35,4 +28,9 @@ interface Account
     @join__type(graph: MAIN)
 {
     foos(filter: String): String!
+}
+
+enum join__Graph
+{
+    MAIN @join__graph(name: "main", url: "http://example.com/main")
 }
