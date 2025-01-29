@@ -14,3 +14,10 @@ workspace = true
 semver = { workspace = true, features = ["serde"] }
 grafbase-workspace-hack.workspace = true
 serde.workspace = true
+url.workspace = true
+reqwest.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true
+tempfile = "3"

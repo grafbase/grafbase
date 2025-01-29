@@ -1,3 +1,5 @@
+use itertools::Itertools;
+
 use crate::*;
 use std::{
     borrow::Cow,
@@ -309,62 +311,75 @@ pub(super) fn write_description(
     Display::fmt(&Description(&graph[description], indent), f)
 }
 
-pub(crate) enum DisplayableArgument<'a> {
-    Value(Value),
+pub(crate) enum AnyValue<'a> {
+    Value(Cow<'a, Value>),
     String(Cow<'a, str>),
     /// Be careful using this - it will not encode enums correctly...
     JsonValue(serde_json::Value),
     FieldSet(SelectionSetDisplay<'a>),
     InputValueDefinitionSet(InputValueDefinitionSetDisplay<'a>),
+    DirectiveArguments(&'a [DirectiveArgument]),
 }
 
-impl DisplayableArgument<'_> {
-    pub(crate) fn display(&self, f: &mut fmt::Formatter<'_>, graph: &FederatedGraph) -> fmt::Result {
-        match self {
-            DisplayableArgument::Value(v) => ValueDisplay(v, graph).fmt(f),
-            DisplayableArgument::JsonValue(v) => JsonValueDisplay(v).fmt(f),
-            DisplayableArgument::FieldSet(v) => v.fmt(f),
-            DisplayableArgument::InputValueDefinitionSet(v) => v.fmt(f),
-            DisplayableArgument::String(s) => display_graphql_string_literal(s, f),
+struct DisplayableAnyValue<'a> {
+    graph: &'a FederatedGraph,
+    value: AnyValue<'a>,
+}
+
+impl std::fmt::Display for DisplayableAnyValue<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match &self.value {
+            AnyValue::Value(v) => ValueDisplay(v, self.graph).fmt(f),
+            AnyValue::JsonValue(v) => JsonValueDisplay(v).fmt(f),
+            AnyValue::FieldSet(v) => v.fmt(f),
+            AnyValue::InputValueDefinitionSet(v) => v.fmt(f),
+            AnyValue::String(s) => display_graphql_string_literal(s, f),
+            AnyValue::DirectiveArguments(arguments) => write_arguments(self.graph, f, arguments),
         }
     }
 }
 
-impl From<Value> for DisplayableArgument<'_> {
+impl From<Value> for AnyValue<'_> {
     fn from(value: Value) -> Self {
-        DisplayableArgument::Value(value)
+        AnyValue::Value(Cow::Owned(value))
     }
 }
 
-impl<'a> From<SelectionSetDisplay<'a>> for DisplayableArgument<'a> {
+impl<'a> From<SelectionSetDisplay<'a>> for AnyValue<'a> {
     fn from(value: SelectionSetDisplay<'a>) -> Self {
-        DisplayableArgument::FieldSet(value)
+        AnyValue::FieldSet(value)
     }
 }
 
-impl<'a> From<InputValueDefinitionSetDisplay<'a>> for DisplayableArgument<'a> {
+impl<'a> From<InputValueDefinitionSetDisplay<'a>> for AnyValue<'a> {
     fn from(value: InputValueDefinitionSetDisplay<'a>) -> Self {
-        DisplayableArgument::InputValueDefinitionSet(value)
+        AnyValue::InputValueDefinitionSet(value)
     }
 }
 
-impl From<serde_json::Value> for DisplayableArgument<'_> {
+impl From<serde_json::Value> for AnyValue<'_> {
     fn from(value: serde_json::Value) -> Self {
-        DisplayableArgument::JsonValue(value)
+        AnyValue::JsonValue(value)
     }
 }
-impl From<String> for DisplayableArgument<'_> {
+impl From<String> for AnyValue<'_> {
     fn from(value: String) -> Self {
-        DisplayableArgument::String(value.into())
+        AnyValue::String(value.into())
     }
 }
 
-impl<'a, 'b> From<&'a str> for DisplayableArgument<'b>
+impl<'a> From<&'a Vec<DirectiveArgument>> for AnyValue<'a> {
+    fn from(value: &'a Vec<DirectiveArgument>) -> Self {
+        AnyValue::DirectiveArguments(value.as_slice())
+    }
+}
+
+impl<'a, 'b> From<&'a str> for AnyValue<'b>
 where
     'a: 'b,
 {
     fn from(value: &'a str) -> Self {
-        DisplayableArgument::String(value.into())
+        AnyValue::String(value.into())
     }
 }
 
@@ -390,7 +405,7 @@ impl<'a, 'b> DirectiveWriter<'a, 'b> {
         })
     }
 
-    pub(crate) fn arg<'c>(mut self, name: &str, value: impl Into<DisplayableArgument<'c>>) -> Result<Self, fmt::Error> {
+    pub(crate) fn arg<'c>(mut self, name: &str, value: impl Into<AnyValue<'c>>) -> Result<Self, fmt::Error> {
         if !self.paren_open {
             self.f.write_str("(")?;
             self.paren_open = true;
@@ -402,7 +417,14 @@ impl<'a, 'b> DirectiveWriter<'a, 'b> {
 
         self.f.write_str(name)?;
         self.f.write_str(": ")?;
-        value.display(self.f, self.graph)?;
+        write!(
+            self.f,
+            "{}",
+            DisplayableAnyValue {
+                graph: self.graph,
+                value
+            }
+        )?;
 
         Ok(self)
     }
@@ -458,4 +480,18 @@ pub(super) fn render_field_type(field_type: &Type, graph: &FederatedGraph) -> St
     }
 
     out
+}
+
+fn write_arguments(graph: &FederatedGraph, f: &mut fmt::Formatter<'_>, arguments: &[DirectiveArgument]) -> fmt::Result {
+    write!(
+        f,
+        "[{}]",
+        arguments.iter().format_with(", ", |arg, f| {
+            let value = DisplayableAnyValue {
+                graph,
+                value: AnyValue::Value(Cow::Borrowed(&arg.value)),
+            };
+            f(&format_args!("{}: {}", graph[arg.name], value))
+        })
+    )
 }

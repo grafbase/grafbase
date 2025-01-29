@@ -2595,8 +2595,13 @@ name = "extension"
 version = "0.0.0"
 dependencies = [
  "grafbase-workspace-hack",
+ "reqwest 0.12.12",
  "semver",
  "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "url",
 ]
 
 [[package]]
@@ -3431,6 +3436,7 @@ dependencies = [
  "num-integer",
  "num-traits",
  "object",
+ "once_cell",
  "p256",
  "p384",
  "percent-encoding",
@@ -3529,8 +3535,11 @@ dependencies = [
  "indexmap 2.7.0",
  "indoc",
  "itertools 0.14.0",
+ "pretty_assertions",
  "serde",
  "serde_json",
+ "tempfile",
+ "tokio",
 ]
 
 [[package]]

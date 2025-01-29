@@ -9,13 +9,14 @@ use std::fmt::{self, Display, Write};
 pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
     let mut sdl = String::new();
 
+    write_extensions_enum(graph, &mut sdl)?;
+
     with_formatter(&mut sdl, |f| {
         display_directive_definitions(|_| true, directives_filter, graph, f)?;
 
         for scalar in graph.iter_scalar_definitions() {
             let namespace = scalar.namespace.map(|namespace| &graph[namespace]);
             let name = scalar.then(|scalar| scalar.name).as_str();
-
             if let Some(description) = scalar.description {
                 Description(&graph[description], "").fmt(f)?;
             }
@@ -235,6 +236,24 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
     sdl.push('\n');
 
     Ok(sdl)
+}
+
+fn write_extensions_enum(graph: &FederatedGraph, sdl: &mut String) -> fmt::Result {
+    if graph.extensions.is_empty() {
+        return Ok(());
+    }
+
+    writeln!(
+        sdl,
+        "enum {} {{\n{}\n}}\n",
+        EXTENSION_LINK_ENUM,
+        graph.extensions.iter().format_with("\n", |ext, f| {
+            f(&format_args!(
+                r#"  {} @{}(url: "{}")"#,
+                graph[ext.enum_value_name], EXTENSION_LINK_DIRECTIVE, graph[ext.url],
+            ))
+        })
+    )
 }
 
 fn write_input_field(

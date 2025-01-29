@@ -10,7 +10,7 @@ pub struct Id {
 
 impl std::fmt::Display for Id {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}/{}@{}", self.origin, self.name, self.version)
+        write!(f, "{}/{}/{}", self.origin, self.name, self.version)
     }
 }
 
@@ -31,11 +31,85 @@ impl Id {
         };
         expected_version.matches(&self.version)
     }
+
+    pub fn from_url(mut url: url::Url, manifest: &crate::Manifest) -> Self {
+        if url.path_segments().and_then(|seq| seq.last()) == Some("manifest.json") {
+            url.path_segments_mut().unwrap().pop();
+        }
+        if url
+            .path_segments()
+            .and_then(|seg| seg.last())
+            .and_then(|last| {
+                let version = manifest.version.to_string();
+                last.strip_suffix(&version).map(|last| last.is_empty() || last == "v")
+            })
+            .unwrap_or_default()
+        {
+            url.path_segments_mut().unwrap().pop();
+        }
+        if url.path_segments().and_then(|seg| seg.last()) == Some(&manifest.name) {
+            url.path_segments_mut().unwrap().pop();
+        }
+        if let Ok(mut seg) = url.path_segments_mut() {
+            seg.pop_if_empty();
+        }
+        Self {
+            origin: url.to_string(),
+            name: manifest.name.clone(),
+            version: manifest.version.clone(),
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_from_url() {
+        let manifest = crate::Manifest {
+            name: "test-ext".to_string(),
+            version: semver::Version::parse("1.2.3").unwrap(),
+            kind: crate::Kind::FieldResolver(crate::FieldResolver {
+                resolver_directives: Vec::new(),
+            }),
+            sdk_version: "0.3.0".parse().unwrap(),
+            minimum_gateway_version: "0.90.0".parse().unwrap(),
+            sdl: None,
+        };
+
+        // Test basic URL
+        let url = url::Url::parse("https://example.com/extensions").unwrap();
+        let id = Id::from_url(url, &manifest);
+        assert_eq!(id.origin, "https://example.com/extensions");
+        assert_eq!(id.name, "test-ext");
+        assert_eq!(id.version, manifest.version);
+
+        // Test URL with manifest.json
+        let url = url::Url::parse("https://example.com/extensions/manifest.json").unwrap();
+        let id = Id::from_url(url, &manifest);
+        assert_eq!(id.origin, "https://example.com/extensions");
+
+        // Test URL with version
+        let url = url::Url::parse("https://example.com/extensions/v1.2.3").unwrap();
+        let id = Id::from_url(url, &manifest);
+        assert_eq!(id.origin, "https://example.com/extensions");
+
+        // Test URL with name and version
+        let url = url::Url::parse("https://example.com/extensions/test-ext/1.2.3").unwrap();
+        let id = Id::from_url(url, &manifest);
+        assert_eq!(id.origin, "https://example.com/extensions");
+
+        // Test URL with name and version and manifest.json
+        let url = url::Url::parse("https://example.com/extensions/test-ext/1.2.3/manifest.json").unwrap();
+        let id = Id::from_url(url, &manifest);
+        assert_eq!(id.origin, "https://example.com/extensions");
+
+        // Test URL with name and version and manifest.json 2
+        let url = url::Url::parse("https://example.com/extensions/test-ext/v1.2.3/manifest.json").unwrap();
+        let id = Id::from_url(url, &manifest);
+        assert_eq!(id.origin, "https://example.com/extensions");
+    }
 
     #[test]
     fn id_is_compatible_with() {

@@ -63,13 +63,15 @@ pub(crate) fn write_directive<'a, 'b: 'a>(
                 directive.arg("url", Value::String(*url))?;
             }
         }
-        Directive::Other { name, arguments }
-        | Directive::ExtensionDirective(ExtensionDirective { name, arguments, .. }) => {
+        Directive::Other { name, arguments } => {
             let mut directive = DirectiveWriter::new(&graph[*name], f, graph)?;
 
             for (name, value) in arguments {
                 directive = directive.arg(&graph[*name], value.clone())?;
             }
+        }
+        Directive::ExtensionDirective(directive) => {
+            render_extension_directive(f, directive, graph)?;
         }
         Directive::JoinField(directive) => {
             render_join_field_directive(f, directive, graph)?;
@@ -91,6 +93,24 @@ pub(crate) fn write_directive<'a, 'b: 'a>(
         }
     }
 
+    Ok(())
+}
+
+fn render_extension_directive(
+    f: &mut fmt::Formatter<'_>,
+    directive: &ExtensionDirective,
+    graph: &FederatedGraph,
+) -> fmt::Result {
+    let writer = DirectiveWriter::new("grafbase__extensionDirective", f, graph)?
+        .arg("graph", Value::UnboundEnumValue(graph[directive.subgraph_id].name))?
+        .arg(
+            "extension",
+            Value::UnboundEnumValue(graph[directive.extension_id].enum_value_name),
+        )?
+        .arg("name", Value::String(directive.name))?;
+    if let Some(arguments) = directive.arguments.as_ref() {
+        writer.arg("arguments", arguments)?;
+    }
     Ok(())
 }
 

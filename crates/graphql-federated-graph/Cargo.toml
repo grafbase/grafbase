@@ -22,14 +22,17 @@ cynic-parser = { workspace = true, optional = true }
 cynic-parser-deser.workspace = true
 indexmap = { optional = true, workspace = true }
 grafbase-workspace-hack.workspace = true
-extension.workspace = true
+extension = { workspace = true, optional = true }
 
 
 [dev-dependencies]
 expect-test = "1.5"
+tempfile = "3"
+tokio.workspace = true
 serde_json.workspace = true
+pretty_assertions = "1"
 
 [features]
-default = ["render_sdl", "from_sdl"]
+default = ["render_sdl", "from_sdl", "extension"]
 render_sdl = []
 from_sdl = ["dep:cynic-parser", "dep:indexmap"]

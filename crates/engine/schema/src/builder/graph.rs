@@ -129,6 +129,7 @@ impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
                 self.graph.inaccessible_input_value_definitions.set(id, true);
             }
             let directive_ids = self.push_directives(
+                config,
                 // FIXME: better input value schema location...
                 SchemaLocation::Definition {
                     name: definition.name.into(),
@@ -180,6 +181,7 @@ impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
                 self.graph.inaccessible_input_object_definitions.set(ix.into(), true);
             }
             let directive_ids = self.push_directives(
+                config,
                 SchemaLocation::Definition {
                     name: definition.name.into(),
                 },
@@ -221,6 +223,7 @@ impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
             }
 
             let directive_ids = self.push_directives(
+                config,
                 SchemaLocation::Definition {
                     name: union.name.into(),
                 },
@@ -290,6 +293,7 @@ impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
                 .push(has_inaccessible(&federated_enum.directives));
 
             let directive_ids = self.push_directives(
+                config,
                 SchemaLocation::Definition {
                     name: federated_enum.name.into(),
                 },
@@ -311,6 +315,7 @@ impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
                 self.graph.inaccessible_enum_values.set(ix.into(), true);
             }
             let directive_ids = self.push_directives(
+                config,
                 // FIXME: better schema location for enum values...
                 SchemaLocation::Definition {
                     name: enum_value.value.into(),
@@ -339,7 +344,8 @@ impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
                 .inaccessible_scalar_definitions
                 .push(has_inaccessible(&scalar.directives));
             let name = StringId::from(scalar.name);
-            let directive_ids = self.push_directives(SchemaLocation::Definition { name }, &scalar.directives)?;
+            let directive_ids =
+                self.push_directives(config, SchemaLocation::Definition { name }, &scalar.directives)?;
             self.graph.scalar_definitions.push(ScalarDefinitionRecord {
                 name_id: name,
                 ty: ScalarType::from_scalar_name(&self.ctx.strings[name]),
@@ -362,8 +368,11 @@ impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
                 self.graph.inaccessible_object_definitions.set(ix.into(), true);
             }
 
-            let directives =
-                self.push_directives(SchemaLocation::Definition { name: name_id }, federated_directives)?;
+            let directives = self.push_directives(
+                config,
+                SchemaLocation::Definition { name: name_id },
+                federated_directives,
+            )?;
 
             let mut join_implement_records: Vec<_> = object
                 .directives
@@ -422,8 +431,11 @@ impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
                 self.graph.inaccessible_interface_definitions.set(ix.into(), true);
             }
 
-            let directives =
-                self.push_directives(SchemaLocation::Definition { name: name_id }, federated_directives)?;
+            let directives = self.push_directives(
+                config,
+                SchemaLocation::Definition { name: name_id },
+                federated_directives,
+            )?;
 
             let mut exists_in_subgraph_ids = Vec::new();
             let mut is_interface_object_in_ids = Vec::new();
@@ -673,7 +685,7 @@ impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
                 }
             }
 
-            let directive_ids = self.push_directives(field_schema_location, &field.directives)?;
+            let directive_ids = self.push_directives(config, field_schema_location, &field.directives)?;
             resolver_ids.extend(
                 directive_ids
                     .iter()
@@ -825,6 +837,7 @@ impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
 
     fn push_directives<'d>(
         &mut self,
+        config: &Config,
         schema_location: SchemaLocation,
         directives: impl IntoIterator<Item = &'d federated_graph::Directive>,
     ) -> Result<Vec<TypeSystemDirectiveId>, BuildError> {
@@ -897,6 +910,7 @@ impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
                     name,
                     arguments,
                 }) => {
+                    let extension_id = &config.graph[*extension_id].id;
                     let Some(id) = self.ctx.extension_catalog.find_compatible_extension(extension_id) else {
                         return Err(BuildError::UnknownDirectiveExtension {
                             name: self.ctx.strings[StringId::from(*name)].to_string(),
@@ -908,13 +922,14 @@ impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
                         subgraph_id: self.sources[*subgraph_id],
                         extension_id: id,
                         name_id: (*name).into(),
-                        arguments_id: {
-                            let value = self.graph.input_values.ingest_arbitrary_value(
-                                self.ctx,
-                                federated_graph::Value::Object(arguments.clone().into()),
-                            );
+                        arguments_id: arguments.as_ref().map(|arguments| {
+                            let arguments = arguments.iter().map(|arg| (arg.name, arg.value.clone())).collect();
+                            let value = self
+                                .graph
+                                .input_values
+                                .ingest_arbitrary_value(self.ctx, federated_graph::Value::Object(arguments));
                             self.graph.input_values.push_value(value)
-                        },
+                        }),
                     });
                     let id = (self.graph.extension_directives.len() - 1).into();
                     TypeSystemDirectiveId::Extension(id)

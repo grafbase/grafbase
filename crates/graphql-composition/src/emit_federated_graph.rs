@@ -44,6 +44,7 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
         fields: vec![],
         input_value_definitions: vec![],
         strings: vec![],
+        extensions: Vec::new(),
     };
 
     let mut ctx = Context::new(&mut ir, subgraphs, &mut out);
