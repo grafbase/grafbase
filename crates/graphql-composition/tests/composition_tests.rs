@@ -136,7 +136,8 @@ fn test_sdl_roundtrip_inner(federated_graph_path: &Path) -> Result<(), Error> {
     }
 
     let roundtripped = graphql_federated_graph::render_federated_sdl(
-        &FederatedGraph::from_sdl(&sdl).map_err(|err| miette::miette!("Error ingesting SDL: {err}\n\nSDL:\n{sdl}"))?,
+        &FederatedGraph::from_sdl_without_extensions(&sdl)
+            .map_err(|err| miette::miette!("Error ingesting SDL: {err}\n\nSDL:\n{sdl}"))?,
     )?;
 
     if roundtripped == sdl {

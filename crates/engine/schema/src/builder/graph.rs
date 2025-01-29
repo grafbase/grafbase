@@ -126,11 +126,10 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
                     extension_id: id,
                     name_id: directive.name.into(),
                     arguments_id: directive.arguments.map(|arguments| {
-                        let arguments = arguments.into_iter().map(|arg| (arg.name, arg.value)).collect();
-                        let value = self
-                            .graph
-                            .input_values
-                            .ingest_arbitrary_value(self.ctx, federated_graph::Value::Object(arguments));
+                        let value = self.graph.input_values.ingest_arbitrary_value(
+                            self.ctx,
+                            federated_graph::Value::Object(arguments.into_boxed_slice()),
+                        );
                         self.graph.input_values.push_value(value)
                     }),
                 });
@@ -729,12 +728,12 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
                 directive_ids
                     .iter()
                     .filter_map(|id| id.as_extension())
-                    .filter_map(|id| {
-                        if exists_in_subgraph_ids.contains(&self.graph[id].subgraph_id) {
+                    .filter_map(|directive_id| {
+                        if exists_in_subgraph_ids.contains(&self.graph[directive_id].subgraph_id) {
                             self.graph
                                 .resolver_definitions
                                 .push(ResolverDefinitionRecord::FieldResolverExtension(
-                                    FieldResolverExtensionDefinitionRecord { directive_id: id },
+                                    FieldResolverExtensionDefinitionRecord { directive_id },
                                 ));
                             Some(ResolverDefinitionId::from(self.graph.resolver_definitions.len() - 1))
                         } else {
@@ -961,11 +960,10 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
                         extension_id: id,
                         name_id: (*name).into(),
                         arguments_id: arguments.as_ref().map(|arguments| {
-                            let arguments = arguments.iter().map(|arg| (arg.name, arg.value.clone())).collect();
-                            let value = self
-                                .graph
-                                .input_values
-                                .ingest_arbitrary_value(self.ctx, federated_graph::Value::Object(arguments));
+                            let value = self.graph.input_values.ingest_arbitrary_value(
+                                self.ctx,
+                                federated_graph::Value::Object(arguments.clone().into()),
+                            );
                             self.graph.input_values.push_value(value)
                         }),
                     });

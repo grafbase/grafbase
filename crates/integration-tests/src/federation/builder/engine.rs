@@ -17,9 +17,9 @@ pub(super) async fn build(
     mut runtime: TestRuntime,
     subgraphs: &Subgraphs,
 ) -> (Arc<Engine<TestRuntime>>, TestRuntimeContext) {
-    let graph = federated_sdl
-        .map(|sdl| federated_graph::FederatedGraph::from_sdl(&sdl).unwrap())
-        .unwrap_or_else(|| {
+    let graph = match federated_sdl {
+        Some(sdl) => federated_graph::FederatedGraph::from_sdl(&sdl).await.unwrap(),
+        None => {
             if !subgraphs.is_empty() {
                 graphql_composition::compose(&subgraphs.iter().fold(
                     graphql_composition::Subgraphs::default(),
@@ -35,13 +35,14 @@ pub(super) async fn build(
             } else {
                 federated_graph::FederatedGraph::default()
             }
-        });
+        }
+    };
 
     // Ensure SDL/JSON serialization work as a expected
     let graph = {
         let sdl = federated_graph::render_federated_sdl(&graph).expect("render_federated_sdl()");
         println!("{sdl}");
-        FederatedGraph::from_sdl(&sdl).unwrap()
+        FederatedGraph::from_sdl(&sdl).await.unwrap()
     };
 
     let counter = grafbase_telemetry::metrics::meter_from_global_provider()

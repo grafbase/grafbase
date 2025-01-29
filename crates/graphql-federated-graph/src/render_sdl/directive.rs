@@ -6,6 +6,7 @@ use crate::{
     },
     render_sdl::display_utils::render_field_type,
     Directive, ExtensionDirective, FederatedGraph, JoinGraphDirective, OverrideLabel, OverrideSource, Value,
+    EXTENSION_DIRECTIVE_DIRECTIVE,
 };
 
 use super::{
@@ -101,8 +102,11 @@ fn render_extension_directive(
     directive: &ExtensionDirective,
     graph: &FederatedGraph,
 ) -> fmt::Result {
-    let writer = DirectiveWriter::new("grafbase__extensionDirective", f, graph)?
-        .arg("graph", Value::UnboundEnumValue(graph[directive.subgraph_id].name))?
+    let writer = DirectiveWriter::new(EXTENSION_DIRECTIVE_DIRECTIVE, f, graph)?
+        .arg(
+            "graph",
+            Value::EnumValue(graph[directive.subgraph_id].join_graph_enum_value),
+        )?
         .arg(
             "extension",
             Value::UnboundEnumValue(graph[directive.extension_id].enum_value_name),

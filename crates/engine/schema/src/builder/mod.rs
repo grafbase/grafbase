@@ -35,7 +35,7 @@ pub(crate) fn build(
     let (graph, introspection) = GraphBuilder::build(&mut ctx, &mut sources, &mut config)?;
     let subgraphs = SubGraphs {
         graphql_endpoints: sources.graphql_endpoints,
-        virtual_subgraphs: Vec::new(),
+        virtual_subgraphs: sources.virtual_subgraphs,
         introspection,
     };
     ctx.finalize(subgraphs, graph, config, version)

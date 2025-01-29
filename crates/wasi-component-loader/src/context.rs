@@ -26,6 +26,16 @@ pub struct SharedContext {
     trace_id: TraceId,
 }
 
+// FIXME: Remove me once hooks & extensions context are merged.
+impl Default for SharedContext {
+    fn default() -> Self {
+        Self {
+            kv: Arc::new(HashMap::new()),
+            trace_id: TraceId::INVALID,
+        }
+    }
+}
+
 impl SharedContext {
     /// Creates a new shared context.
     pub fn new(kv: Arc<HashMap<String, String>>, trace_id: TraceId) -> Self {

@@ -510,7 +510,7 @@ mod tests {
     fn escape_strings() {
         use expect_test::expect;
 
-        let empty = FederatedGraph::from_sdl(
+        let empty = FederatedGraph::from_sdl_without_extensions(
             r###"
             directive @dummy(test: String!) on FIELD
 
@@ -538,7 +538,7 @@ mod tests {
     fn multiline_strings() {
         use expect_test::expect;
 
-        let empty = FederatedGraph::from_sdl(
+        let empty = FederatedGraph::from_sdl_without_extensions(
             r###"
             directive @dummy(test: String!) on FIELD
 
@@ -581,7 +581,7 @@ mod tests {
             }
         "##;
 
-        let parsed = FederatedGraph::from_sdl(schema).unwrap();
+        let parsed = FederatedGraph::from_sdl_without_extensions(schema).unwrap();
         let rendered = render_federated_sdl(&parsed).unwrap();
 
         let expected = expect_test::expect![[r#"
@@ -603,7 +603,7 @@ mod tests {
 
         // Check that from_sdl accepts the rendered sdl
         {
-            FederatedGraph::from_sdl(&rendered).unwrap();
+            FederatedGraph::from_sdl_without_extensions(&rendered).unwrap();
         }
     }
 }

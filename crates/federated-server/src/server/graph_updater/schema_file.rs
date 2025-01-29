@@ -67,7 +67,7 @@ impl SchemaFileGraphUpdater {
                     .await
                     .expect("channel must be up");
             } else {
-                tracing::debug!("No schema file update detected");
+                tracing::trace!("No schema file update detected");
             }
         }
     }

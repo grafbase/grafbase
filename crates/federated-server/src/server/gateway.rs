@@ -2,7 +2,7 @@ use crate::Error;
 
 use super::GdnResponse;
 use engine::{Engine, SchemaVersion};
-use extension_catalog::{Extension, ExtensionCatalog, ExtensionId, Id, Manifest};
+use extension_catalog::{Extension, ExtensionCatalog, ExtensionId, Id, Manifest, VersionedManifest};
 use gateway_config::{Config, WasiExtensionsConfig};
 use graphql_composition::FederatedGraph;
 use runtime::trusted_documents_client::{Client, TrustedDocumentsEnforcementMode};
@@ -70,8 +70,9 @@ pub(super) async fn generate(
     };
 
     let config = {
-        let graph =
-            FederatedGraph::from_sdl(&federated_sdl).map_err(|e| crate::Error::SchemaValidationError(e.to_string()))?;
+        let graph = FederatedGraph::from_sdl(&federated_sdl)
+            .await
+            .map_err(|e| crate::Error::SchemaValidationError(e.to_string()))?;
 
         engine_config_builder::build_with_toml_config(gateway_config, graph)
     };
@@ -148,8 +149,8 @@ fn create_wasi_extension_configs(
             let config = &mut wasi_extensions[usize::from(schema_directive.extension_id)];
 
             let directive = match schema_directive.arguments() {
-                Some(args) => Directive::new(config.name.clone(), subgraph.name().to_string(), args.as_ref()),
-                None => Directive::new(config.name.clone(), subgraph.name().to_string(), &""),
+                Some(args) => Directive::new(config.name.clone(), subgraph.name().to_string(), &args),
+                None => Directive::new(config.name.clone(), subgraph.name().to_string(), &Option::<()>::None),
             };
 
             config.schema_directives.push(directive);
@@ -186,11 +187,12 @@ fn create_extension_catalog(gateway_config: &Config) -> crate::Result<ExtensionC
 
         let manifest_data = File::open(path.join("manifest.json")).map_err(|e| Error::InternalError(e.to_string()))?;
 
-        let manifest: Manifest =
+        let manifest: VersionedManifest =
             serde_json::from_reader(manifest_data).map_err(|e| Error::InternalError(e.to_string()))?;
+        let manifest = manifest.into_latest();
 
         let id = Id {
-            origin: format!("file://{}", path.display()).parse().unwrap(),
+            origin: url::Url::from_file_path(path).unwrap(),
             name: manifest.name.clone(),
             version: manifest.version.clone(),
         };

@@ -33,7 +33,7 @@ fn setup_logging() {
 #[macro_export]
 macro_rules! assert_solving_snapshots {
     ($name: expr, $schema: expr, $query: expr) => {
-        let schema = ::schema::Schema::from_sdl_or_panic($schema);
+        let schema = ::schema::Schema::from_sdl_without_extensions_or_panic($schema);
         let name = $name;
         let query = $query;
         let mut operation = ::operation::Operation::parse(&schema, None, query).unwrap();

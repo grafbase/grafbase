@@ -318,7 +318,7 @@ pub(crate) enum AnyValue<'a> {
     JsonValue(serde_json::Value),
     FieldSet(SelectionSetDisplay<'a>),
     InputValueDefinitionSet(InputValueDefinitionSetDisplay<'a>),
-    DirectiveArguments(&'a [DirectiveArgument]),
+    DirectiveArguments(&'a [(StringId, Value)]),
 }
 
 struct DisplayableAnyValue<'a> {
@@ -368,8 +368,8 @@ impl From<String> for AnyValue<'_> {
     }
 }
 
-impl<'a> From<&'a Vec<DirectiveArgument>> for AnyValue<'a> {
-    fn from(value: &'a Vec<DirectiveArgument>) -> Self {
+impl<'a> From<&'a Vec<(StringId, Value)>> for AnyValue<'a> {
+    fn from(value: &'a Vec<(StringId, Value)>) -> Self {
         AnyValue::DirectiveArguments(value.as_slice())
     }
 }
@@ -482,16 +482,16 @@ pub(super) fn render_field_type(field_type: &Type, graph: &FederatedGraph) -> St
     out
 }
 
-fn write_arguments(graph: &FederatedGraph, f: &mut fmt::Formatter<'_>, arguments: &[DirectiveArgument]) -> fmt::Result {
+fn write_arguments(graph: &FederatedGraph, f: &mut fmt::Formatter<'_>, arguments: &[(StringId, Value)]) -> fmt::Result {
     write!(
         f,
-        "[{}]",
-        arguments.iter().format_with(", ", |arg, f| {
+        "{{{}}}",
+        arguments.iter().format_with(", ", |(name, value), f| {
             let value = DisplayableAnyValue {
                 graph,
-                value: AnyValue::Value(Cow::Borrowed(&arg.value)),
+                value: AnyValue::Value(Cow::Borrowed(value)),
             };
-            f(&format_args!("{}: {}", graph[arg.name], value))
+            f(&format_args!(r#"{{ {}: {} }}"#, graph[*name], value))
         })
     )
 }

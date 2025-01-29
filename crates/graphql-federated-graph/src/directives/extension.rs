@@ -17,7 +17,7 @@ pub const EXTENSION_DIRECTIVE_DIRECTIVE: &str = "extension__directive";
 ///   extension: grafbase__Extension!
 ///   "The name of the directive. Composition has removed the import prefix if there was one in the original subgraph schema."
 ///   name: String!
-///   arguments: [DirectiveArgument!]
+///   arguments: DirectiveArguments
 /// ) repeatable ON FIELD | SCHEMA | SCALAR | OBJECT | FIELD_DEFINITION | ARGUMENT_DEFINITION | INTERFACE | UNION | ENUM | ENUM_VALUE | INPUT_OBJECT | INPUT_FIELD_DEFINITION
 /// ```
 #[derive(PartialEq, PartialOrd, Clone, Debug)]
@@ -25,18 +25,5 @@ pub struct ExtensionDirective {
     pub subgraph_id: SubgraphId,
     pub extension_id: ExtensionId,
     pub name: StringId,
-    pub arguments: Option<Vec<DirectiveArgument>>,
-}
-
-/// ```ignore,graphql
-/// input DirectiveArgument {
-///   name: String!
-///   value: Any
-/// }
-/// ```
-#[derive(PartialEq, PartialOrd, Clone, Debug)]
-pub struct DirectiveArgument {
-    pub name: StringId,
-    // FIXME: Lacks type information.
-    pub value: Value,
+    pub arguments: Option<Vec<(StringId, Value)>>,
 }

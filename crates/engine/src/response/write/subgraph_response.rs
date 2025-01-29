@@ -68,7 +68,8 @@ impl SubgraphResponse {
         self.updates[usize::from(id)] = update;
     }
 
-    pub fn insert_errors(&mut self, error: GraphqlError, ids: impl IntoIterator<Item = InputObjectId>) {
+    pub fn insert_errors(&mut self, error: impl Into<GraphqlError>, ids: impl IntoIterator<Item = InputObjectId>) {
+        let error: GraphqlError = error.into();
         for id in ids {
             self.insert_update(id, ObjectUpdate::Error(error.clone()));
         }

@@ -11,7 +11,7 @@ repository.workspace = true
 [dependencies]
 grafbase-sdk-derive = { version = "0.1.1", path = "derive" }
 http.workspace = true
-minicbor-serde = { version = "0.3.2", features = ["alloc"] }
+minicbor-serde = { workspace = true, features = ["alloc"] }
 serde.workspace = true
 serde_json.workspace = true
 serde_urlencoded.workspace = true

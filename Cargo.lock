@@ -2238,6 +2238,7 @@ dependencies = [
  "lasso2",
  "mediatype",
  "mime",
+ "minicbor-serde",
  "multipart-stream",
  "operation-normalizer",
  "pretty_assertions",

@@ -5,7 +5,7 @@ use cynic_parser_deser::ConstDeserializer;
 
 use super::{
     attach_input_value_set_to_field_arguments, attach_selection_set, parse_selection_set, AuthorizedDirective,
-    CostDirective, Definition, DeprecatedDirective, Directive, DirectiveArgument, DomainError, ExtensionDirective,
+    CostDirective, Definition, DeprecatedDirective, Directive, DomainError, ExtensionDirective,
     ExtensionSchemaDirective, FieldId, GetArgumentsExt, InputValueDefinitionId, IntoJson, JoinFieldDirective,
     JoinImplementsDirective, JoinTypeDirective, JoinUnionMemberDirective, ListSize, ListSizeDirective, OverrideLabel,
     OverrideSource, State, StringId, Value, EXTENSION_DIRECTIVE_DIRECTIVE,
@@ -27,8 +27,7 @@ pub(super) fn collect_definition_directives<'a>(
             }
             "join__implements" => out.push(parse_join_implements(directive, state)?),
             "join__unionMember" => out.push(parse_join_union_member(directive, state)?),
-            EXTENSION_DIRECTIVE_DIRECTIVE => out.push(parse_extension_directive(directive, state)?),
-            _ => out.extend(parse_common_directives(directive, state)),
+            _ => out.extend(parse_common_directives(directive, state)?),
         }
     }
     Ok(out)
@@ -52,7 +51,7 @@ pub(super) fn collect_field_directives<'a>(
             "listSize" => {
                 out.extend(parse_list_size_directive(field_id, directive, state)?);
             }
-            _ => out.extend(parse_common_directives(directive, state)),
+            _ => out.extend(parse_common_directives(directive, state)?),
         }
     }
     Ok(out)
@@ -62,32 +61,38 @@ pub(super) fn collect_input_value_directives<'a>(
     directives: impl Iterator<Item = ast::Directive<'a>>,
     state: &mut State<'a>,
 ) -> Result<Vec<Directive>, DomainError> {
-    Ok(directives
-        .filter_map(|directive| parse_common_directives(directive, state))
-        .collect())
+    directives
+        .filter_map(|directive| parse_common_directives(directive, state).transpose())
+        .collect()
 }
 
 pub(super) fn collect_enum_value_directives<'a>(
     directives: impl Iterator<Item = ast::Directive<'a>>,
     state: &mut State<'a>,
 ) -> Result<Vec<Directive>, DomainError> {
-    Ok(directives
-        .filter_map(|directive| parse_common_directives(directive, state))
-        .collect())
+    directives
+        .filter_map(|directive| parse_common_directives(directive, state).transpose())
+        .collect()
 }
 
-fn parse_common_directives<'a>(directive: ast::Directive<'a>, state: &mut State<'a>) -> Option<Directive> {
+fn parse_common_directives<'a>(
+    directive: ast::Directive<'a>,
+    state: &mut State<'a>,
+) -> Result<Option<Directive>, DomainError> {
     match directive.name() {
-        "inaccessible" => Some(Directive::Inaccessible),
-        "deprecated" => Some(parse_deprecated(directive, state)),
-        "requiresScopes" => parse_requires_scopes(directive, state),
-        "policy" => parse_policy(directive, state),
-        "authenticated" => Some(Directive::Authenticated),
+        "inaccessible" => Ok(Some(Directive::Inaccessible)),
+        "deprecated" => Ok(Some(parse_deprecated(directive, state))),
+        "requiresScopes" => Ok(parse_requires_scopes(directive, state)),
+        "policy" => Ok(parse_policy(directive, state)),
+        "authenticated" => Ok(Some(Directive::Authenticated)),
         "cost" => directive
             .deserialize::<CostDirective>()
-            .map(|dir| Directive::Cost { weight: dir.weight })
-            .ok(),
-        _ => Some(parse_other(directive, state)),
+            .map_err(|err| DomainError(format!("Invalid cost directive: {}", err)))
+            .map(|dir| Some(Directive::Cost { weight: dir.weight })),
+        EXTENSION_DIRECTIVE_DIRECTIVE if state.extensions_loaded => {
+            parse_extension_directive(directive, state).map(Some)
+        }
+        _ => Ok(Some(parse_other(directive, state))),
     }
 }
 
@@ -466,7 +471,8 @@ pub(super) fn parse_extension_link(
                                 .and_then(|name| state.graph_by_enum_str.get(name).copied())
                                 .ok_or_else(|| {
                                     DomainError(
-                                        "Missing or invalid 'graph' argument in @extension__directive".to_owned(),
+                                        "Missing or invalid 'graph' argument in schema directive for @extension__link"
+                                            .to_owned(),
                                     )
                                 })?;
 
@@ -474,7 +480,7 @@ pub(super) fn parse_extension_link(
                                 DomainError("Missing or invalid 'name' in SchemaDirective".to_owned())
                             })?;
 
-                            let arguments = parse_directive_argument_list(state, obj.get("arguments"))?;
+                            let arguments = parse_directive_arguments(state, obj.get("arguments"))?;
 
                             Ok(ExtensionSchemaDirective {
                                 subgraph_id,
@@ -501,7 +507,7 @@ pub(crate) struct ExtensionLink {
 ///   graph: join__Graph!
 ///   extension: grafbase__Extension!
 ///   name: String!
-///   arguments: [DirectiveArgument!]
+///   arguments: DirectiveArguments
 /// ) repeatable ON FIELD | SCHEMA | SCALAR | OBJECT | FIELD_DEFINITION | ARGUMENT_DEFINITION | INTERFACE | UNION | ENUM | ENUM_VALUE | INPUT_OBJECT | INPUT_FIELD_DEFINITION
 /// ```
 fn parse_extension_directive(directive: ast::Directive<'_>, state: &mut State<'_>) -> Result<Directive, DomainError> {
@@ -523,7 +529,7 @@ fn parse_extension_directive(directive: ast::Directive<'_>, state: &mut State<'_
         .map(|name| state.insert_string(name))
         .ok_or_else(|| DomainError("Missing or invalid 'name' argument in @extension__directive".to_owned()))?;
 
-    let arguments = parse_directive_argument_list(state, directive.get_argument("arguments"))?;
+    let arguments = parse_directive_arguments(state, directive.get_argument("arguments"))?;
 
     Ok(Directive::ExtensionDirective(ExtensionDirective {
         subgraph_id,
@@ -533,37 +539,26 @@ fn parse_extension_directive(directive: ast::Directive<'_>, state: &mut State<'_
     }))
 }
 
-fn parse_directive_argument_list(
+fn parse_directive_arguments(
     state: &mut State<'_>,
     arguments: Option<cynic_parser::values::ConstValue<'_>>,
-) -> Result<Option<Vec<DirectiveArgument>>, DomainError> {
+) -> Result<Option<Vec<(StringId, Value)>>, DomainError> {
     let Some(arguments) = arguments else {
         return Ok(None);
     };
 
-    arguments
-        .as_list()
-        .ok_or_else(|| DomainError("Expected [DirectiveArgument]".to_string()))
-        .and_then(|args| {
-            args.into_iter()
-                .map(|arg| {
-                    arg.as_object()
-                        .ok_or_else(|| DomainError("Expected an DirectiveArgument".to_string()))
-                        .and_then(|obj| {
-                            let name = obj
-                                .get("name")
-                                .and_then(|v| v.as_str())
-                                .ok_or_else(|| DomainError("Expected a name: String key".to_string()))?;
-                            let value = obj
-                                .get("value")
-                                .ok_or_else(|| DomainError("Expected a value key".to_string()))?;
-                            Ok(DirectiveArgument {
-                                name: state.insert_string(name),
-                                value: state.insert_value(value, None),
-                            })
-                        })
-                })
-                .collect::<Result<Vec<_>, DomainError>>()
-                .map(Some)
-        })
+    let arguments = arguments
+        .as_object()
+        .ok_or_else(|| DomainError("Expected an object for directive arguments.".into()))?;
+
+    Ok(Some(
+        arguments
+            .into_iter()
+            .map(|field| {
+                let name = state.insert_string(field.name());
+                let value = state.insert_value(field.value(), None);
+                (name, value)
+            })
+            .collect(),
+    ))
 }

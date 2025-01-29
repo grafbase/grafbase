@@ -62,7 +62,7 @@ impl DeterministicEngineBuilder<'_> {
                 .collect(),
             dummy_responses_index.clone(),
         );
-        let graph = FederatedGraph::from_sdl(self.schema).unwrap();
+        let graph = FederatedGraph::from_sdl_without_extensions(self.schema).unwrap();
         let config = engine::config::Config::from_graph(graph);
 
         let schema = engine::Schema::build(

@@ -12,6 +12,7 @@ mod inaccessible;
 mod introspection;
 mod issues;
 mod message_signing;
+mod response_extensions;
 mod subgraph_retries;
 mod subgraphs;
 mod subscriptions;

@@ -34,8 +34,11 @@ pub(crate) fn execute(cmd: ExtensionBuildCommand) -> anyhow::Result<()> {
     let manifest = parse_manifest(&source_dir, &wasm_path)?;
 
     std::fs::rename(wasm_path, output_dir.join("extension.wasm")).context("failed to move wasm file")?;
-    std::fs::write(output_dir.join("manifest.json"), serde_json::to_vec(&manifest).unwrap())
-        .context("failed to write manifest file")?;
+    std::fs::write(
+        output_dir.join("manifest.json"),
+        serde_json::to_vec(&manifest.clone().into_versioned()).unwrap(),
+    )
+    .context("failed to write manifest file")?;
 
     report::extension_built(&manifest);
 
