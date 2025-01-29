@@ -11,6 +11,7 @@ keywords = ["graphql", "federation"]
 workspace = true
 
 [dependencies]
+bitflags.workspace = true
 wrapping = { path = "../graphql-wrapping-types", package = "graphql-wrapping-types", version = "0.2.0" }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true

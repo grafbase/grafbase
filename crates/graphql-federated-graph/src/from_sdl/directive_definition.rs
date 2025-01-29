@@ -1,12 +1,11 @@
-use super::*;
-use graphql_federated_graph::DirectiveLocations;
+use super::{input_value_definition::convert_input_value_definition, *};
 
-pub(super) fn ingest_directive_definition(
-    directive_definition: ast::DirectiveDefinition<'_>,
-    subgraph_id: SubgraphId,
-    subgraphs: &mut Subgraphs,
-) {
-    let name = subgraphs.strings.intern(directive_definition.name());
+pub(super) fn ingest_directive_definition<'a>(
+    directive_definition: ast::DirectiveDefinition<'a>,
+    state: &mut State<'a>,
+) -> Result<(), DomainError> {
+    let (namespace, name) = split_namespace_name(directive_definition.name(), state);
+
     let mut locations = DirectiveLocations::default();
 
     for location in directive_definition.locations() {
@@ -35,44 +34,22 @@ pub(super) fn ingest_directive_definition(
         locations |= location;
     }
 
-    let mut arguments = Vec::with_capacity(directive_definition.arguments().len());
-
-    for argument in directive_definition.arguments() {
-        let argument_name = subgraphs.strings.intern(argument.name());
-        let r#type = subgraphs.intern_field_type(argument.ty());
-        let default_value = argument
-            .default_value()
-            .map(|default| crate::ast_value_to_subgraph_value(default, subgraphs));
-
-        let directives = argument
-            .directives()
-            .map(|directive| subgraphs::Directive {
-                name: subgraphs.strings.intern(directive.name()),
-                arguments: directive
-                    .arguments()
-                    .map(|arg| {
-                        (
-                            subgraphs.strings.intern(arg.name()),
-                            crate::ast_value_to_subgraph_value(arg.value(), subgraphs),
-                        )
-                    })
-                    .collect(),
-            })
-            .collect();
-
-        arguments.push(subgraphs::InputValueDefinition {
-            name: argument_name,
-            r#type,
-            default_value,
-            directives,
-        });
-    }
-
-    subgraphs.push_directive_definition(subgraphs::DirectiveDefinition {
-        subgraph_id,
+    let definition = DirectiveDefinitionRecord {
+        namespace,
         name,
         locations,
-        arguments,
         repeatable: directive_definition.is_repeatable(),
-    });
+    };
+
+    let directive_definition_id = state.graph.directive_definitions.len().into();
+    state.graph.directive_definitions.push(definition);
+
+    for argument in directive_definition.arguments() {
+        let input_value_definition = convert_input_value_definition(argument, state)?;
+        state
+            .graph
+            .push_directive_definition_argument(directive_definition_id, input_value_definition);
+    }
+
+    Ok(())
 }

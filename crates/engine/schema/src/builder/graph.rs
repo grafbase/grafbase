@@ -46,6 +46,7 @@ impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
     ) -> Result<(Graph, IntrospectionMetadata), BuildError> {
         let mut all_subgraphs = sources.iter().collect::<Vec<_>>();
         all_subgraphs.sort_unstable();
+
         let mut builder = GraphBuilder {
             ctx,
             sources,
@@ -278,6 +279,10 @@ impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
 
     fn ingest_enums(&mut self, config: &mut Config) -> Result<(), BuildError> {
         for federated_enum in config.graph.iter_enum_definitions() {
+            if federated_enum.namespace.is_some() {
+                continue;
+            }
+
             let id = EnumDefinitionId::from(self.graph.enum_definitions.len());
             self.ctx.enum_mapping.insert(federated_enum.id(), id);
             self.graph
@@ -324,6 +329,10 @@ impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
 
     fn ingest_scalars(&mut self, config: &mut Config) -> Result<(), BuildError> {
         for scalar in config.graph.iter_scalar_definitions() {
+            if scalar.namespace.is_some() {
+                continue;
+            }
+
             let id = ScalarDefinitionId::from(self.graph.scalar_definitions.len());
             self.ctx.scalar_mapping.insert(scalar.id(), id);
             self.graph
@@ -914,6 +923,7 @@ impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
                 | federated_graph::Directive::Inaccessible
                 | federated_graph::Directive::Policy(_)
                 | federated_graph::Directive::JoinField(_)
+                | federated_graph::Directive::JoinGraph(_)
                 | federated_graph::Directive::JoinType(_)
                 | federated_graph::Directive::JoinUnionMember(_)
                 | federated_graph::Directive::JoinImplements(_) => continue,

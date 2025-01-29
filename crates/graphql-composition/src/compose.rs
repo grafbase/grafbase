@@ -1,4 +1,5 @@
 mod context;
+mod directive_definitions;
 mod directives;
 mod entity_interface;
 mod enums;
@@ -49,6 +50,7 @@ pub(crate) fn compose_subgraphs(ctx: &mut Context<'_>) {
     });
 
     roots::merge_root_fields(ctx);
+    directive_definitions::compose_directive_definitions(ctx);
 }
 
 fn merge_object_definitions<'a>(

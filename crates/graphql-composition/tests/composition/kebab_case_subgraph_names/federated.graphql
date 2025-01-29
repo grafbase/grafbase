@@ -1,32 +1,16 @@
-directive @core(feature: String!) repeatable on SCHEMA
+directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
 
-directive @join__owner(graph: join__Graph!) on OBJECT
-
-directive @join__type(
-    graph: join__Graph!
-    key: join__FieldSet
-    resolvable: Boolean = true
-) repeatable on OBJECT | INTERFACE
-
-directive @join__field(
-    graph: join__Graph
-    requires: join__FieldSet
-    provides: join__FieldSet
-) on FIELD_DEFINITION
+directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
 
 directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 
-directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet) on FIELD_DEFINITION
 
-directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
+directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boolean = true) on OBJECT | INTERFACE
+
+directive @join__owner(graph: join__Graph!) on OBJECT
 
 scalar join__FieldSet
-
-enum join__Graph {
-    BROCHETTE_REPOSITORY @join__graph(name: "brochette-repository", url: "http://example.com/brochette-repository")
-    KUSHI_STORE @join__graph(name: "kushi-store", url: "http://example.com/kushi-store")
-    SCHASCHLIK_SERVICE @join__graph(name: "schaschlik-service", url: "http://example.com/schaschlik-service")
-}
 
 type Kebab
     @join__type(graph: BROCHETTE_REPOSITORY, key: "id")
@@ -74,4 +58,11 @@ type Query
     kushis: [Kushi] @join__field(graph: KUSHI_STORE)
     schaschlik(id: ID!): Schaschlik @join__field(graph: SCHASCHLIK_SERVICE)
     schaschliks: [Schaschlik] @join__field(graph: SCHASCHLIK_SERVICE)
+}
+
+enum join__Graph
+{
+    BROCHETTE_REPOSITORY @join__graph(name: "brochette-repository", url: "http://example.com/brochette-repository")
+    KUSHI_STORE @join__graph(name: "kushi-store", url: "http://example.com/kushi-store")
+    SCHASCHLIK_SERVICE @join__graph(name: "schaschlik-service", url: "http://example.com/schaschlik-service")
 }

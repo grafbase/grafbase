@@ -44,6 +44,7 @@ macro_rules! id_newtypes {
 id_newtypes! {
     enum_values[EnumValueId] -> EnumValueRecord,
     enum_definitions[EnumDefinitionId] -> EnumDefinitionRecord,
+    directive_definitions[DirectiveDefinitionId] -> DirectiveDefinitionRecord,
     fields[FieldId] -> Field,
     input_objects[InputObjectId] -> InputObject,
     input_value_definitions[InputValueDefinitionId] -> InputValueDefinition,

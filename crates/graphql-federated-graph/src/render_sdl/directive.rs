@@ -5,11 +5,11 @@ use crate::{
         AuthorizedDirective, JoinFieldDirective, JoinImplementsDirective, JoinTypeDirective, JoinUnionMemberDirective,
     },
     render_sdl::display_utils::render_field_type,
-    Directive, ExtensionDirective, FederatedGraph, OverrideLabel, OverrideSource, Value,
+    Directive, ExtensionDirective, FederatedGraph, JoinGraphDirective, OverrideLabel, OverrideSource, Value,
 };
 
 use super::{
-    display_utils::{DirectiveWriter, GraphEnumVariantName, InputValueDefinitionSetDisplay, SelectionSetDisplay},
+    display_utils::{DirectiveWriter, InputValueDefinitionSetDisplay, SelectionSetDisplay},
     render_federated_sdl::ListSizeRender,
 };
 
@@ -56,6 +56,13 @@ pub(crate) fn write_directive<'a, 'b: 'a>(
         Directive::Cost { weight } => {
             DirectiveWriter::new("cost", f, graph)?.arg("weight", Value::Int(*weight as i64))?;
         }
+        Directive::JoinGraph(JoinGraphDirective { name, url }) => {
+            let directive = DirectiveWriter::new("join__graph", f, graph)?.arg("name", Value::String(*name))?;
+
+            if let Some(url) = url {
+                directive.arg("url", Value::String(*url))?;
+            }
+        }
         Directive::Other { name, arguments }
         | Directive::ExtensionDirective(ExtensionDirective { name, arguments, .. }) => {
             let mut directive = DirectiveWriter::new(&graph[*name], f, graph)?;
@@ -92,10 +99,11 @@ fn render_join_union_member_directive(
     directive: &JoinUnionMemberDirective,
     graph: &FederatedGraph,
 ) -> fmt::Result {
-    let subgraph_name = GraphEnumVariantName(&graph[graph[directive.subgraph_id].name]);
-
     DirectiveWriter::new("join__unionMember", f, graph)?
-        .arg("graph", subgraph_name)?
+        .arg(
+            "graph",
+            Value::EnumValue(graph.at(directive.subgraph_id).join_graph_enum_value),
+        )?
         .arg("member", Value::String(graph.view(directive.object_id).name))?;
 
     Ok(())
@@ -108,8 +116,7 @@ fn render_join_field_directive(
 ) -> fmt::Result {
     let mut writer = DirectiveWriter::new("join__field", f, graph)?;
     if let Some(subgraph_id) = directive.subgraph_id {
-        let subgraph_name = GraphEnumVariantName(&graph[graph[subgraph_id].name]);
-        writer = writer.arg("graph", subgraph_name)?;
+        writer = writer.arg("graph", Value::EnumValue(graph.at(subgraph_id).join_graph_enum_value))?;
     }
 
     if let Some(requires) = directive.requires.as_ref().filter(|requires| !requires.is_empty()) {
@@ -147,9 +154,10 @@ fn render_join_type_directive(
     directive: &JoinTypeDirective,
     graph: &FederatedGraph,
 ) -> fmt::Result {
-    let subgraph_name = GraphEnumVariantName(&graph[graph[directive.subgraph_id].name]);
-
-    let mut writer = DirectiveWriter::new("join__type", f, graph)?.arg("graph", subgraph_name)?;
+    let mut writer = DirectiveWriter::new("join__type", f, graph)?.arg(
+        "graph",
+        Value::EnumValue(graph.at(directive.subgraph_id).join_graph_enum_value),
+    )?;
 
     if let Some(key) = directive.key.as_ref().filter(|key| !key.is_empty()) {
         writer = writer.arg("key", SelectionSetDisplay(key, graph))?;
@@ -171,10 +179,11 @@ fn render_join_implements_directive(
     directive: &JoinImplementsDirective,
     graph: &FederatedGraph,
 ) -> fmt::Result {
-    let subgraph_name = GraphEnumVariantName(&graph[graph[directive.subgraph_id].name]);
-
     DirectiveWriter::new("join__implements", f, graph)?
-        .arg("graph", subgraph_name)?
+        .arg(
+            "graph",
+            Value::EnumValue(graph.at(directive.subgraph_id).join_graph_enum_value),
+        )?
         .arg("interface", Value::String(graph.view(directive.interface_id).name))?;
 
     Ok(())

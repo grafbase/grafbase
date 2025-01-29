@@ -1,7 +1,9 @@
 mod directive;
+mod directive_definition;
 mod field_ir;
 
-pub(crate) use self::{directive::*, field_ir::*};
+pub(crate) use self::{directive::*, directive_definition::*, field_ir::*};
+
 use crate::subgraphs::{self};
 use graphql_federated_graph::{self as federated};
 use std::collections::{BTreeSet, HashMap};
@@ -26,6 +28,7 @@ pub(crate) struct CompositionIr {
     pub(crate) enum_values: Vec<EnumValueIr>,
     pub(crate) input_objects: Vec<InputObjectIr>,
     pub(crate) input_value_definitions: Vec<InputValueDefinitionIr>,
+    pub(crate) directive_definitions: Vec<DirectiveDefinitionIr>,
 
     /// The root `Query` type
     pub(crate) query_type: Option<federated::ObjectId>,

@@ -3503,7 +3503,6 @@ dependencies = [
 name = "graphql-composition"
 version = "0.5.0"
 dependencies = [
- "bitflags 2.8.0",
  "cynic-parser",
  "cynic-parser-deser",
  "datatest-stable",
@@ -3520,6 +3519,7 @@ dependencies = [
 name = "graphql-federated-graph"
 version = "0.5.0"
 dependencies = [
+ "bitflags 2.8.0",
  "cynic-parser",
  "cynic-parser-deser",
  "expect-test",

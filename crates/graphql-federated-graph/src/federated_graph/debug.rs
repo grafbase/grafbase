@@ -29,6 +29,11 @@ impl fmt::Debug for FederatedGraph {
                         .finish()
                 }),
             )
+            .field("scalar_definitions", &self.scalar_definitions)
+            .field("input_value_definitions", &self.input_value_definitions)
+            .field("object_definitions", &self.objects)
+            .field("fields", &self.fields)
+            .field("strings", &self.strings)
             .finish_non_exhaustive()
     }
 }

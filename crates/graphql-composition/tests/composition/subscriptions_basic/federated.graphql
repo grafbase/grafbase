@@ -1,31 +1,16 @@
-directive @core(feature: String!) repeatable on SCHEMA
+directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
 
-directive @join__owner(graph: join__Graph!) on OBJECT
-
-directive @join__type(
-    graph: join__Graph!
-    key: join__FieldSet
-    resolvable: Boolean = true
-) repeatable on OBJECT | INTERFACE
-
-directive @join__field(
-    graph: join__Graph
-    requires: join__FieldSet
-    provides: join__FieldSet
-) on FIELD_DEFINITION
+directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
 
 directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 
-directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet) on FIELD_DEFINITION
 
-directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
+directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boolean = true) on OBJECT | INTERFACE
+
+directive @join__owner(graph: join__Graph!) on OBJECT
 
 scalar join__FieldSet
-
-enum join__Graph {
-    PRODUCTS @join__graph(name: "products", url: "http://example.com/products")
-    REVIEWS @join__graph(name: "reviews", url: "http://example.com/reviews")
-}
 
 type Product
     @join__type(graph: PRODUCTS, key: "id")
@@ -51,4 +36,10 @@ type Query
 type Subscription
 {
     topProducts: Product @join__field(graph: PRODUCTS)
+}
+
+enum join__Graph
+{
+    PRODUCTS @join__graph(name: "products", url: "http://example.com/products")
+    REVIEWS @join__graph(name: "reviews", url: "http://example.com/reviews")
 }

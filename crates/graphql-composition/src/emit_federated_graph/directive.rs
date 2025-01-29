@@ -1,13 +1,13 @@
 use crate::composition_ir as ir;
-use graphql_federated_graph::{self as federated, Definition, EntityDefinitionId};
+use graphql_federated_graph::{self as federated, Definition, EntityDefinitionId, Wrapping};
 
 use super::{attach_argument_selection::attach_argument_selection, attach_selection, context::Context};
 
 pub(super) fn transform_arbitray_type_directives(
     ctx: &mut Context<'_>,
-    diretives: Vec<ir::Directive>,
+    directives: Vec<ir::Directive>,
 ) -> Vec<federated::Directive> {
-    diretives
+    directives
         .into_iter()
         .filter_map(|directive| match directive {
             ir::Directive::JoinType(dir) if dir.key.is_none() => {
@@ -25,9 +25,9 @@ pub(super) fn transform_arbitray_type_directives(
 
 pub(super) fn transform_input_value_directives(
     ctx: &mut Context<'_>,
-    diretives: Vec<ir::Directive>,
+    directives: Vec<ir::Directive>,
 ) -> Vec<federated::Directive> {
-    diretives
+    directives
         .into_iter()
         .filter_map(|directive| match directive {
             ir::Directive::JoinInputField(dir) => {
@@ -47,9 +47,9 @@ pub(super) fn transform_input_value_directives(
 
 pub(super) fn transform_enum_value_directives(
     ctx: &mut Context<'_>,
-    diretives: Vec<ir::Directive>,
+    directives: Vec<ir::Directive>,
 ) -> Vec<federated::Directive> {
-    diretives
+    directives
         .into_iter()
         .filter_map(|directive| transform_common_directive(ctx, directive))
         .collect()
@@ -104,7 +104,10 @@ fn transform_common_directive(ctx: &mut Context<'_>, directive: ir::Directive) -
         ir::Directive::Inaccessible => federated::Directive::Inaccessible,
         ir::Directive::Policy(policies) => federated::Directive::Policy(policies),
         ir::Directive::RequiresScopes(scopes) => federated::Directive::RequiresScopes(scopes),
-        ir::Directive::Cost { weight } => federated::Directive::Cost { weight },
+        ir::Directive::Cost { weight } => {
+            ctx.uses_cost_directive = true;
+            federated::Directive::Cost { weight }
+        }
         ir::Directive::Other { name, arguments } => federated::Directive::Other {
             name,
             arguments: arguments
@@ -151,6 +154,8 @@ fn transform_list_size_directive(
         require_one_slicing_argument,
     }: federated::ListSizeDirective,
 ) -> federated::Directive {
+    ctx.uses_list_size_directive = true;
+
     let field = &ctx.out[field_id];
     let argument_base_id = field.arguments.0;
     let arguments = &ctx.out[field.arguments];
@@ -289,4 +294,137 @@ fn transform_authorized_field_directive(
         arguments,
         metadata,
     })
+}
+
+pub(super) fn emit_list_size_directive_definition(ctx: &mut Context<'_>) {
+    if !ctx.uses_list_size_directive {
+        return;
+    }
+
+    // directive @listSize(
+    //   assumedSize: Int,
+    //   slicingArguments: [String!],
+    //   sizedFields: [String!],
+    //   requireOneSlicingArgument: Boolean = true
+    // ) on FIELD_DEFINITION
+
+    let string_definition = ctx.definitions[&ctx.lookup_str("String").expect("String to be defined")];
+    let int_definition = ctx.definitions[&ctx.lookup_str("Int").expect("Int to be defined")];
+    let boolean_definition = ctx.definitions[&ctx.lookup_str("Boolean").expect("Boolean to be defined")];
+
+    let name = ctx.insert_str("listSize");
+    let assumed_size_str = ctx.insert_str("assumedSize");
+
+    let directive_definition_id = ctx.out.push_directive_definition(federated::DirectiveDefinitionRecord {
+        namespace: None,
+        name,
+        locations: federated::DirectiveLocations::FIELD_DEFINITION,
+        repeatable: false,
+    });
+
+    ctx.out.push_directive_definition_argument(
+        directive_definition_id,
+        federated::InputValueDefinition {
+            name: assumed_size_str,
+            r#type: federated::Type {
+                wrapping: Wrapping::new(false),
+                definition: int_definition,
+            },
+            directives: Vec::new(),
+            description: None,
+            default: None,
+        },
+    );
+
+    let slicing_arguments_str = ctx.insert_str("slicingArguments");
+
+    ctx.out.push_directive_definition_argument(
+        directive_definition_id,
+        federated::InputValueDefinition {
+            name: slicing_arguments_str,
+            r#type: federated::Type {
+                wrapping: Wrapping::required().wrap_list(),
+                definition: string_definition,
+            },
+            directives: Vec::new(),
+            description: None,
+            default: None,
+        },
+    );
+
+    let sized_fields_str = ctx.insert_str("sizedFields");
+
+    ctx.out.push_directive_definition_argument(
+        directive_definition_id,
+        federated::InputValueDefinition {
+            name: sized_fields_str,
+            r#type: federated::Type {
+                wrapping: Wrapping::required().wrap_list(),
+                definition: string_definition,
+            },
+            directives: Vec::new(),
+            description: None,
+            default: None,
+        },
+    );
+
+    let require_one_slicing_argument_str = ctx.insert_str("requireOneSlicingArgument");
+
+    ctx.out.push_directive_definition_argument(
+        directive_definition_id,
+        federated::InputValueDefinition {
+            name: require_one_slicing_argument_str,
+            r#type: federated::Type {
+                wrapping: Wrapping::new(false),
+                definition: boolean_definition,
+            },
+            directives: Vec::new(),
+            description: None,
+            default: Some(federated::Value::Boolean(true)),
+        },
+    );
+}
+
+pub(super) fn emit_cost_directive_definition(ctx: &mut Context<'_>) {
+    if !ctx.uses_cost_directive {
+        return;
+    }
+
+    // directive @cost(weight: Int!) on
+    //     ARGUMENT_DEFINITION
+    //   | ENUM
+    //   | FIELD_DEFINITION
+    //   | INPUT_FIELD_DEFINITION
+    //   | OBJECT
+    //   | SCALAR
+
+    let int_definition = ctx.definitions[&ctx.lookup_str("Int").expect("Int to be defined")];
+    let name = ctx.insert_str("cost");
+    let weight_str = ctx.insert_str("weight");
+
+    let directive_definition_id = ctx.out.push_directive_definition(federated::DirectiveDefinitionRecord {
+        namespace: None,
+        name,
+        locations: federated::DirectiveLocations::ARGUMENT_DEFINITION
+            | federated::DirectiveLocations::ENUM
+            | federated::DirectiveLocations::FIELD_DEFINITION
+            | federated::DirectiveLocations::INPUT_FIELD_DEFINITION
+            | federated::DirectiveLocations::OBJECT
+            | federated::DirectiveLocations::SCALAR,
+        repeatable: false,
+    });
+
+    ctx.out.push_directive_definition_argument(
+        directive_definition_id,
+        federated::InputValueDefinition {
+            name: weight_str,
+            r#type: federated::Type {
+                wrapping: Wrapping::required(),
+                definition: int_definition,
+            },
+            directives: Vec::new(),
+            description: None,
+            default: None,
+        },
+    );
 }

@@ -45,6 +45,7 @@ impl<'a> Context<'a> {
         let description = description.map(|description| self.ir.strings.insert(description));
 
         let r#enum = federated::EnumDefinitionRecord {
+            namespace: None,
             name,
             description,
             // Populated when emitting the federated graph.
@@ -56,6 +57,10 @@ impl<'a> Context<'a> {
             .definitions_by_name
             .insert(name, federated::Definition::Enum(id));
         id
+    }
+
+    pub(crate) fn insert_directive_definition(&mut self, definition: ir::DirectiveDefinitionIr) {
+        self.ir.directive_definitions.push(definition);
     }
 
     pub(crate) fn insert_enum_value(
@@ -189,6 +194,7 @@ impl<'a> Context<'a> {
         let description = description.map(|description| self.ir.strings.insert(description));
 
         let scalar = federated::ScalarDefinitionRecord {
+            namespace: None,
             name,
             description,
             // Populated when emitting the federated graph.

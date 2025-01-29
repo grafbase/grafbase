@@ -1,19 +1,24 @@
 mod attach_argument_selection;
 mod context;
 mod directive;
+mod directive_definitions;
 mod emit_fields;
+mod federation_builtins;
 mod field_types_map;
 
-use self::context::Context;
+use self::{
+    context::Context,
+    directive::{
+        transform_arbitray_type_directives, transform_enum_value_directives, transform_field_directives,
+        transform_input_value_directives, transform_type_directives,
+    },
+    directive_definitions::emit_directive_definitions,
+};
 use crate::{
     composition_ir::{CompositionIr, FieldIr, InputValueDefinitionIr},
-    subgraphs::{self},
-    Subgraphs, VecExt,
+    subgraphs, Subgraphs, VecExt,
 };
-use directive::{
-    transform_arbitray_type_directives, transform_enum_value_directives, transform_field_directives,
-    transform_input_value_directives, transform_type_directives,
-};
+use directive::{emit_cost_directive_definition, emit_list_size_directive_definition};
 use graphql_federated_graph::{self as federated};
 use itertools::Itertools;
 use std::{collections::BTreeSet, mem};
@@ -34,6 +39,8 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
             subscription: ir.subscription_type,
         },
         subgraphs: vec![],
+        directive_definitions: vec![],
+        directive_definition_arguments: vec![],
         fields: vec![],
         input_value_definitions: vec![],
         strings: vec![],
@@ -46,23 +53,27 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
     ir.fields
         .sort_unstable_by_key(|field| (field.parent_definition_name, &ctx[field.field_name]));
 
-    emit_subgraphs(&mut ctx);
+    let join_graph_enum_id = emit_subgraphs(&mut ctx);
     emit_input_value_definitions(&ir.input_value_definitions, &mut ctx);
     emit_fields(&ir.fields, &mut ctx);
+    emit_directive_definitions(&ir, &mut ctx);
 
     emit_union_members_after_objects(&ir.union_members, &mut ctx);
+    federation_builtins::emit_federation_builtins(&mut ctx, join_graph_enum_id);
 
-    emit_directives_and_implements_interface(ctx, ir);
+    emit_directives_and_implements_interface(&mut ctx, ir);
 
-    out.enum_values.sort_unstable_by_key(|v| v.enum_id);
+    ctx.out.enum_values.sort_unstable_by_key(|v| v.enum_id);
+
+    drop(ctx);
 
     out
 }
 
-fn emit_directives_and_implements_interface(mut ctx: Context<'_>, mut ir: CompositionIr) {
+fn emit_directives_and_implements_interface(ctx: &mut Context<'_>, mut ir: CompositionIr) {
     for (i, (_object, directives)) in ir.objects.into_iter().enumerate() {
         ctx.out[federated::ObjectId::from(i)].directives = transform_type_directives(
-            &mut ctx,
+            ctx,
             federated::Definition::Object(federated::ObjectId::from(i)),
             directives,
         );
@@ -70,7 +81,7 @@ fn emit_directives_and_implements_interface(mut ctx: Context<'_>, mut ir: Compos
 
     for (i, (_interface, directives)) in ir.interfaces.into_iter().enumerate() {
         ctx.out[federated::InterfaceId::from(i)].directives = transform_type_directives(
-            &mut ctx,
+            ctx,
             federated::Definition::Interface(federated::InterfaceId::from(i)),
             directives,
         );
@@ -78,7 +89,7 @@ fn emit_directives_and_implements_interface(mut ctx: Context<'_>, mut ir: Compos
 
     for (i, union) in ir.unions.into_iter().enumerate() {
         ctx.out.unions[i].directives = transform_type_directives(
-            &mut ctx,
+            ctx,
             federated::Definition::Union(federated::UnionId::from(i)),
             union.directives,
         );
@@ -86,40 +97,39 @@ fn emit_directives_and_implements_interface(mut ctx: Context<'_>, mut ir: Compos
 
     for (i, input_object) in ir.input_objects.into_iter().enumerate() {
         ctx.out.input_objects[i].directives = transform_type_directives(
-            &mut ctx,
+            ctx,
             federated::Definition::InputObject(federated::InputObjectId::from(i)),
             input_object.directives,
         );
     }
 
     for (i, field) in ir.fields.into_iter().enumerate() {
-        ctx.out.fields[i].directives =
-            transform_field_directives(&mut ctx, federated::FieldId::from(i), field.directives);
+        ctx.out.fields[i].directives = transform_field_directives(ctx, federated::FieldId::from(i), field.directives);
     }
 
     for (i, enum_value) in ir.enum_values.into_iter().enumerate() {
-        ctx.out.enum_values[i].directives = transform_enum_value_directives(&mut ctx, enum_value.directives);
+        ctx.out.enum_values[i].directives = transform_enum_value_directives(ctx, enum_value.directives);
     }
 
     for (i, input_value_definition) in ir.input_value_definitions.into_iter().enumerate() {
         ctx.out.input_value_definitions[i].directives =
-            transform_input_value_directives(&mut ctx, input_value_definition.directives);
+            transform_input_value_directives(ctx, input_value_definition.directives);
     }
 
     for (i, (_enum_definition, directives)) in ir.enum_definitions.iter_mut().enumerate() {
         if !directives.is_empty() {
-            ctx.out.enum_definitions[i].directives =
-                transform_arbitray_type_directives(&mut ctx, mem::take(directives));
+            ctx.out.enum_definitions[i].directives = transform_arbitray_type_directives(ctx, mem::take(directives));
         }
     }
 
     for (i, (_scalar_definition, directives)) in ir.scalar_definitions.iter_mut().enumerate() {
         if !directives.is_empty() {
-            ctx.out.scalar_definitions[i].directives =
-                transform_arbitray_type_directives(&mut ctx, mem::take(directives));
+            ctx.out.scalar_definitions[i].directives = transform_arbitray_type_directives(ctx, mem::take(directives));
         }
     }
 
+    emit_cost_directive_definition(ctx);
+    emit_list_size_directive_definition(ctx);
     emit_interface_after_directives(ctx);
 }
 
@@ -151,7 +161,7 @@ fn emit_input_value_definitions(input_value_definitions: &[InputValueDefinitionI
         .collect()
 }
 
-fn emit_interface_after_directives(mut ctx: Context<'_>) {
+fn emit_interface_after_directives(ctx: &mut Context<'_>) {
     for (implementee_name, implementer_name) in ctx.subgraphs.iter_interface_impls() {
         let implementer = ctx.insert_string(ctx.subgraphs.walk(implementer_name));
         let implementee = ctx.insert_string(ctx.subgraphs.walk(implementee_name));
@@ -329,10 +339,51 @@ fn attach_selection(
         .collect()
 }
 
-fn emit_subgraphs(ctx: &mut Context<'_>) {
+fn emit_subgraphs(ctx: &mut Context<'_>) -> federated::EnumDefinitionId {
+    let join_namespace = ctx.insert_str("join");
+    let join_graph_name = ctx.insert_str("Graph");
+    let join_graph_enum_id = ctx.out.push_enum_definition(federated::EnumDefinitionRecord {
+        namespace: Some(join_namespace),
+        name: join_graph_name,
+        directives: Vec::new(),
+        description: None,
+    });
+
     for subgraph in ctx.subgraphs.iter_subgraphs() {
         let name = ctx.insert_string(subgraph.name());
         let url = ctx.insert_string(subgraph.url());
-        ctx.out.subgraphs.push(federated::Subgraph { name, url: Some(url) });
+        let join_graph_enum_value_name = ctx.insert_str(&join_graph_enum_variant_name(subgraph.name().as_str()));
+        let join_graph_enum_value_id = ctx.out.push_enum_value(federated::EnumValueRecord {
+            enum_id: join_graph_enum_id,
+            value: join_graph_enum_value_name,
+            directives: vec![federated::Directive::JoinGraph(federated::JoinGraphDirective {
+                name,
+                url: Some(url),
+            })],
+            description: None,
+        });
+
+        ctx.out.subgraphs.push(federated::Subgraph {
+            name,
+            join_graph_enum_value: join_graph_enum_value_id,
+            url: Some(url),
+        });
     }
+
+    join_graph_enum_id
+}
+
+fn join_graph_enum_variant_name(original_name: &str) -> String {
+    let mut out = String::with_capacity(original_name.len());
+    for char in original_name.chars() {
+        match char {
+            '-' | '_' | ' ' => out.push('_'),
+            other => {
+                for char in other.to_uppercase() {
+                    out.push(char);
+                }
+            }
+        }
+    }
+    out
 }

@@ -26,6 +26,7 @@ pub enum Directive {
     Cost {
         weight: i32,
     },
+    JoinGraph(JoinGraphDirective),
     JoinField(JoinFieldDirective),
     JoinType(JoinTypeDirective),
     JoinUnionMember(JoinUnionMemberDirective),

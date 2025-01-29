@@ -16,6 +16,8 @@ enum Error {
     #[error("{0}")]
     Miette(miette::Report),
     #[error(transparent)]
+    Fmt(#[from] std::fmt::Error),
+    #[error(transparent)]
     IO(#[from] std::io::Error),
 }
 
@@ -117,6 +119,10 @@ fn miette_run_test(federated_graph_path: &Path) -> Result<(), Error> {
 }
 
 fn test_sdl_roundtrip(federated_graph_path: &Path) -> datatest_stable::Result<()> {
+    test_sdl_roundtrip_inner(federated_graph_path).map_err(Into::into)
+}
+
+fn test_sdl_roundtrip_inner(federated_graph_path: &Path) -> Result<(), Error> {
     if cfg!(windows) {
         return Ok(()); // newlines
     }

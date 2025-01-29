@@ -1,31 +1,16 @@
-directive @core(feature: String!) repeatable on SCHEMA
+directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
 
-directive @join__owner(graph: join__Graph!) on OBJECT
-
-directive @join__type(
-    graph: join__Graph!
-    key: join__FieldSet
-    resolvable: Boolean = true
-) repeatable on OBJECT | INTERFACE
-
-directive @join__field(
-    graph: join__Graph
-    requires: join__FieldSet
-    provides: join__FieldSet
-) on FIELD_DEFINITION
+directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
 
 directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 
-directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet) on FIELD_DEFINITION
 
-directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
+directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boolean = true) on OBJECT | INTERFACE
+
+directive @join__owner(graph: join__Graph!) on OBJECT
 
 scalar join__FieldSet
-
-enum join__Graph {
-    CHILIES @join__graph(name: "chilies", url: "http://example.com/chilies")
-    FARMS @join__graph(name: "farms", url: "http://example.com/farms")
-}
 
 type Farm
     @join__type(graph: CHILIES, key: "id")
@@ -53,4 +38,10 @@ type Query
     chiliVariety(id: ID!): ChiliVariety @join__field(graph: CHILIES)
     farm(id: ID!): Farm @join__field(graph: FARMS)
     farms: [Farm] @join__field(graph: FARMS)
+}
+
+enum join__Graph
+{
+    CHILIES @join__graph(name: "chilies", url: "http://example.com/chilies")
+    FARMS @join__graph(name: "farms", url: "http://example.com/farms")
 }
