@@ -290,13 +290,19 @@ fn write_field_arguments<'a, 'b: 'a>(
             let r#type = render_field_type(&arg.r#type, graph);
             let directives = &arg.directives;
             let default = arg.default.as_ref();
-            (name, r#type, directives, default)
+            let description = arg.description;
+            (name, r#type, directives, default, description)
         })
         .peekable();
 
     f.write_str("(")?;
 
-    while let Some((name, ty, directives, default)) = inner.next() {
+    while let Some((name, ty, directives, default, description)) = inner.next() {
+        if let Some(description) = description {
+            display_graphql_string_literal(&graph[description], f)?;
+            f.write_str(" ")?;
+        }
+
         f.write_str(name)?;
         f.write_str(": ")?;
         f.write_str(&ty)?;
