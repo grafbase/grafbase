@@ -10,7 +10,7 @@ pub const EXTENSION_DIRECTIVE_DIRECTIVE: &str = "extension__directive";
 /// are a hoisted version of the original directive. We do this so we can add the `graph` and
 /// `extension` arguments.
 /// """
-/// directive @grafbase__extensionDirective(
+/// directive @extension__directive(
 ///   "Which subgraph the directive comes from"
 ///   graph: join__Graph!
 ///   "Which extension the directive is imported from"

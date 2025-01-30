@@ -9,7 +9,6 @@ use crate::{directives::*, federated_graph::*};
 use cynic_parser::{
     common::WrappingType, executable as executable_ast, type_system as ast, values::ConstValue as ParserValue,
 };
-use cynic_parser_deser::{ConstDeserializer, ValueDeserialize};
 use directive::{
     collect_definition_directives, collect_enum_value_directives, collect_field_directives,
     collect_input_value_directives,
@@ -1022,6 +1021,8 @@ pub(super) async fn ingest_extension_link_enum<'a>(
     enm: ast::EnumDefinition<'a>,
     state: &mut State<'a>,
 ) -> Result<(), DomainError> {
+    use directive::{parse_extension_link, ExtensionLink};
+
     for value in enm.values() {
         let enum_value_name_str = value.value();
         let directive = value
@@ -1033,12 +1034,7 @@ pub(super) async fn ingest_extension_link_enum<'a>(
                     EXTENSION_LINK_DIRECTIVE, EXTENSION_LINK_ENUM
                 ))
             })?;
-        let ExtensionLink { url } = directive.deserialize().map_err(|err| {
-            DomainError(format!(
-                "Error parsing @{} directive on {} enum value: {}",
-                EXTENSION_LINK_DIRECTIVE, EXTENSION_LINK_ENUM, err
-            ))
-        })?;
+        let ExtensionLink { url, schema_directives } = parse_extension_link(directive, state)?;
 
         let (id, manifest) = extension::load(&url)
             .await
@@ -1051,16 +1047,12 @@ pub(super) async fn ingest_extension_link_enum<'a>(
             enum_value_name,
             id,
             manifest,
+            schema_directives,
         }));
         state.extension_by_enum_value_str.insert(enum_value_name_str, id);
     }
 
     Ok(())
-}
-
-#[derive(ValueDeserialize)]
-struct ExtensionLink {
-    url: String,
 }
 
 trait VecExt<T> {
