@@ -90,7 +90,13 @@ ingress:
 
 # Resource requests and limits for the Grafbase gateway containers.
 # https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
-resources: {}
+resources:
+  requests:
+    cpu: 4
+    memory: 1Gi
+  limits:
+    cpu: 10
+    memory: 2Gi
 
 # https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/
 autoscaling:
@@ -98,13 +104,13 @@ autoscaling:
   enabled: true
 
   # Minimum number of replicas.
-  minReplicas: 1
+  minReplicas: 2
 
   # Maximum number of replicas.
-  maxReplicas: 2
+  maxReplicas: 20
 
   # Target CPU utilization for scaling.
-  targetCPUUtilizationPercentage: 50
+  targetCPUUtilizationPercentage: 70
 
 # Node selector for pod scheduling.
 # https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector
