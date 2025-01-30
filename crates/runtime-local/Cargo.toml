@@ -42,6 +42,8 @@ tracing.workspace = true
 tungstenite = { workspace = true, features = ["url", "handshake"] }
 tokio = { workspace = true, features = ["macros", "sync"] }
 runtime.workspace = true
+extension-catalog.workspace = true
+engine-schema.workspace = true
 gateway-config.workspace = true
 url = { workspace = true, optional = true }
 mini-moka.workspace = true

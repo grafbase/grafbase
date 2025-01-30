@@ -19,7 +19,7 @@ impl From<StringId> for ValuePathSegment {
     }
 }
 
-pub(super) fn value_path_to_string<EC>(ctx: &BuildContext<EC>, values: &[ValuePathSegment]) -> String {
+pub(super) fn value_path_to_string(ctx: &BuildContext<'_>, values: &[ValuePathSegment]) -> String {
     let mut output = String::new();
     if values.is_empty() {
         return output;

@@ -57,7 +57,7 @@ fn create_schema_and_input_value() -> (Schema, SchemaInputValueId) {
 
     let graph = FederatedGraph::from_sdl(SDL).unwrap();
     let config = config::Config::from_graph(graph);
-    let schema = Schema::build(config, Version::from(Vec::new()), ()).unwrap();
+    let schema = Schema::build(config, Version::from(Vec::new()), &Default::default()).unwrap();
 
     let id = schema
         .query()

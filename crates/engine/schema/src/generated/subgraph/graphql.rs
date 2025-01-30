@@ -4,7 +4,7 @@
 //! Generated with: `cargo run -p engine-codegen`
 //! Source file: <engine-codegen dir>/domain/schema.graphql
 use crate::{
-    generated::{HeaderRule, HeaderRuleId},
+    generated::{HeaderRule, HeaderRuleId, TypeSystemDirective, TypeSystemDirectiveId},
     prelude::*,
     StringId, SubgraphConfig, UrlId,
 };
@@ -19,6 +19,8 @@ use walker::{Iter, Walk};
 ///   websocket_url: Url
 ///   header_rules: [HeaderRule!]!
 ///   config: SubgraphConfig!
+///   "Schema directives applied by the given subgraph"
+///   schema_directives: [TypeSystemDirective!]!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -28,6 +30,8 @@ pub struct GraphqlEndpointRecord {
     pub websocket_url_id: Option<UrlId>,
     pub header_rule_ids: Vec<HeaderRuleId>,
     pub config: SubgraphConfig,
+    /// Schema directives applied by the given subgraph
+    pub schema_directive_ids: Vec<TypeSystemDirectiveId>,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
@@ -64,6 +68,10 @@ impl<'a> GraphqlEndpoint<'a> {
     pub fn header_rules(&self) -> impl Iter<Item = HeaderRule<'a>> + 'a {
         self.as_ref().header_rule_ids.walk(self.schema)
     }
+    /// Schema directives applied by the given subgraph
+    pub fn schema_directives(&self) -> impl Iter<Item = TypeSystemDirective<'a>> + 'a {
+        self.as_ref().schema_directive_ids.walk(self.schema)
+    }
 }
 
 impl<'a> Walk<&'a Schema> for GraphqlEndpointId {
@@ -91,6 +99,7 @@ impl std::fmt::Debug for GraphqlEndpoint<'_> {
             .field("websocket_url", &self.websocket_url())
             .field("header_rules", &self.header_rules())
             .field("config", &self.config)
+            .field("schema_directives", &self.schema_directives())
             .finish()
     }
 }

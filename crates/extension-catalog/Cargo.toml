@@ -1,0 +1,18 @@
+[package]
+edition.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+license = "MPL-2.0"
+name = "extension-catalog"
+repository.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+extension.workspace = true
+id-derives = { path = "../engine/id-derives", package = "engine-id-derives" }
+id-newtypes = { path = "../engine/id-newtypes", package = "engine-id-newtypes" }
+serde.workspace = true
+grafbase-workspace-hack.workspace = true
+

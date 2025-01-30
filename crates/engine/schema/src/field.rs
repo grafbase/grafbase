@@ -35,7 +35,7 @@ impl<'a> FieldDefinition<'a> {
             .iter()
             .any(|requires| requires.subgraph_id == subgraph_id)
             || self.directives().any(|directive| match directive {
-                TypeSystemDirective::Authenticated
+                TypeSystemDirective::Authenticated(_)
                 | TypeSystemDirective::Deprecated(_)
                 | TypeSystemDirective::RequiresScopes(_)
                 | TypeSystemDirective::Cost(_)

@@ -35,8 +35,7 @@ wrapping.workspace = true
 regex.workspace = true
 serde_regex = "1.1.0"
 grafbase-workspace-hack.workspace = true
-runtime.workspace = true
-extension.workspace = true
+extension-catalog.workspace = true
 
 [dev-dependencies]
 insta.workspace = true

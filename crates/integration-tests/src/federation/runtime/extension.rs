@@ -1,36 +1,53 @@
+use engine_schema::SubgraphId;
+use extension_catalog::{Extension, ExtensionCatalog, ExtensionId, Id};
 use runtime::{
     error::PartialGraphqlError,
-    extension::{Data, ExtensionDirective, ExtensionDirectiveKind, ExtensionId},
+    extension::{Data, ExtensionDirective},
     hooks::{Anything, DynHookContext, EdgeDefinition},
 };
 use serde::Deserialize;
 
 #[derive(Default)]
 pub struct TestExtensions {
-    extensions: Vec<extension::Id>,
+    catalog: ExtensionCatalog,
     field_resolvers: Vec<FieldResolver>,
 }
 
 struct FieldResolver {
     id: ExtensionId,
     resolver: Box<dyn TestFieldResolvereExtension>,
-    directives: Vec<String>,
 }
 
 impl TestExtensions {
     pub fn with_field_resolver(
         mut self,
-        id: extension::Id,
+        id: Id,
         directives: &[&str],
         resolver: impl TestFieldResolvereExtension + 'static,
     ) -> Self {
-        self.field_resolvers.push(FieldResolver {
-            id: self.extensions.len().into(),
-            resolver: Box::new(resolver),
-            directives: directives.iter().map(|s| s.to_string()).collect(),
+        let id = self.catalog.push(Extension {
+            id: id.clone(),
+            manifest: extension_catalog::Manifest {
+                name: id.name,
+                version: id.version,
+                kind: extension_catalog::Kind::FieldResolver(extension_catalog::FieldResolver {
+                    resolver_directives: directives.iter().map(|s| s.to_string()).collect(),
+                }),
+                sdk_version: "0.0.0".parse().unwrap(),
+                minimum_gateway_version: "0.0.0".parse().unwrap(),
+                sdl: None,
+            },
+            wasm: Vec::new(),
         });
-        self.extensions.push(id);
+        self.field_resolvers.push(FieldResolver {
+            id,
+            resolver: Box::new(resolver),
+        });
         self
+    }
+
+    pub fn catalog(&self) -> &ExtensionCatalog {
+        &self.catalog
     }
 }
 
@@ -45,40 +62,20 @@ pub trait TestFieldResolvereExtension: Send + Sync + 'static {
     ) -> Result<Vec<Result<serde_json::Value, PartialGraphqlError>>, PartialGraphqlError>;
 }
 
-impl runtime::extension::ExtensionCatalog for TestExtensions {
-    fn find_compatible_extension(&self, id: &extension::Id) -> Option<ExtensionId> {
-        self.extensions
-            .iter()
-            .enumerate()
-            .find(|(_, existing)| existing.is_compatible_with(id))
-            .map(|(ix, _)| ix.into())
-    }
-
-    fn get_directive_kind(&self, id: ExtensionId, name: &str) -> runtime::extension::ExtensionDirectiveKind {
-        if self
-            .field_resolvers
-            .iter()
-            .any(|res| res.id == id && res.directives.iter().any(|s| s == name))
-        {
-            ExtensionDirectiveKind::FieldResolver
-        } else {
-            ExtensionDirectiveKind::Unknown
-        }
-    }
-}
-
 impl runtime::extension::ExtensionRuntime for TestExtensions {
     type SharedContext = DynHookContext;
 
     async fn resolve_field<'a>(
         &self,
-        id: ExtensionId,
+        extension_id: ExtensionId,
+        _subgraph_id: SubgraphId,
         context: &Self::SharedContext,
         field: EdgeDefinition<'a>,
         directive: ExtensionDirective<'a, impl Anything<'a>>,
         inputs: impl IntoIterator<Item: Anything<'a>> + Send,
     ) -> Result<Vec<Result<runtime::extension::Data, PartialGraphqlError>>, PartialGraphqlError> {
-        let Some(FieldResolver { resolver, .. }) = self.field_resolvers.iter().find(|res| res.id == id) else {
+        let Some(FieldResolver { resolver, .. }) = self.field_resolvers.iter().find(|res| res.id == extension_id)
+        else {
             return Err(PartialGraphqlError::internal_hook_error());
         };
 

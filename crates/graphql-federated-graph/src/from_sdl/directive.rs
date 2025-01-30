@@ -470,17 +470,15 @@ pub(super) fn parse_extension_link(
                                     )
                                 })?;
 
-                            let name = obj
-                                .get("name")
-                                .and_then(|v| v.as_str())
-                                .ok_or_else(|| DomainError("Missing or invalid 'name' in SchemaDirective".to_owned()))?
-                                .to_string();
+                            let name = obj.get("name").and_then(|v| v.as_str()).ok_or_else(|| {
+                                DomainError("Missing or invalid 'name' in SchemaDirective".to_owned())
+                            })?;
 
                             let arguments = parse_directive_argument_list(state, obj.get("arguments"))?;
 
                             Ok(ExtensionSchemaDirective {
                                 subgraph_id,
-                                name,
+                                name: state.insert_string(name),
                                 arguments,
                             })
                         })

@@ -256,13 +256,15 @@ type GraphqlEndpoint @meta(module: "subgraph/graphql") @indexed(id_size: "u16") 
   websocket_url: Url
   header_rules: [HeaderRule!]!
   config: SubgraphConfig!
+  "Schema directives applied by the given subgraph"
+  schema_directives: [TypeSystemDirective!]!
 }
 
 "Virtual subgraphs have no dedicated support on the engine side, everything is resolved through extensions."
 type VirtualSubgraph @meta(module: "subgraph/virtual_") @indexed(id_size: "u16") {
   subgraph_name: String!
   "Schema directives applied by the given subgraph"
-  directives: [TypeSystemDirective!]!
+  schema_directives: [TypeSystemDirective!]!
 }
 
 # ----------------

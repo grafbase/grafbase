@@ -58,6 +58,7 @@ pub fn generate_enum(
 
     let debug_variants = variants.iter().copied().map(|variant| DebugVariantBranch {
         variant,
+        is_walker: false,
         enum_name: union.enum_name(),
     });
     code_sections.push(quote! {

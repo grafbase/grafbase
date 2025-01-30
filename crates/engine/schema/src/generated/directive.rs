@@ -147,7 +147,7 @@ impl TypeSystemDirectiveId {
 
 #[derive(Clone, Copy)]
 pub enum TypeSystemDirective<'a> {
-    Authenticated,
+    Authenticated(&'a Schema),
     Authorized(AuthorizedDirective<'a>),
     Cost(CostDirective<'a>),
     Deprecated(DeprecatedDirective<'a>),
@@ -159,7 +159,7 @@ pub enum TypeSystemDirective<'a> {
 impl std::fmt::Debug for TypeSystemDirective<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            TypeSystemDirective::Authenticated => write!(f, "Authenticated"),
+            TypeSystemDirective::Authenticated(_) => write!(f, "Authenticated"),
             TypeSystemDirective::Authorized(variant) => variant.fmt(f),
             TypeSystemDirective::Cost(variant) => variant.fmt(f),
             TypeSystemDirective::Deprecated(variant) => variant.fmt(f),
@@ -208,7 +208,7 @@ impl<'a> Walk<&'a Schema> for TypeSystemDirectiveId {
     {
         let schema: &'a Schema = schema.into();
         match self {
-            TypeSystemDirectiveId::Authenticated => TypeSystemDirective::Authenticated,
+            TypeSystemDirectiveId::Authenticated => TypeSystemDirective::Authenticated(schema),
             TypeSystemDirectiveId::Authorized(id) => TypeSystemDirective::Authorized(id.walk(schema)),
             TypeSystemDirectiveId::Cost(id) => TypeSystemDirective::Cost(id.walk(schema)),
             TypeSystemDirectiveId::Deprecated(item) => TypeSystemDirective::Deprecated(item.walk(schema)),
@@ -222,7 +222,7 @@ impl<'a> Walk<&'a Schema> for TypeSystemDirectiveId {
 impl<'a> TypeSystemDirective<'a> {
     pub fn id(&self) -> TypeSystemDirectiveId {
         match self {
-            TypeSystemDirective::Authenticated => TypeSystemDirectiveId::Authenticated,
+            TypeSystemDirective::Authenticated(_) => TypeSystemDirectiveId::Authenticated,
             TypeSystemDirective::Authorized(walker) => TypeSystemDirectiveId::Authorized(walker.id),
             TypeSystemDirective::Cost(walker) => TypeSystemDirectiveId::Cost(walker.id),
             TypeSystemDirective::Deprecated(walker) => TypeSystemDirectiveId::Deprecated(walker.item),

@@ -1,9 +1,10 @@
+use engine_schema::SubgraphId;
+use extension_catalog::ExtensionId;
+
 use crate::{
     error::PartialGraphqlError,
     hooks::{Anything, EdgeDefinition},
 };
-
-use super::ExtensionId;
 
 pub struct ExtensionDirective<'a, Args> {
     pub name: &'a str,
@@ -21,7 +22,8 @@ pub trait ExtensionRuntime: Send + Sync + 'static {
 
     async fn resolve_field<'a>(
         &self,
-        id: ExtensionId,
+        extension_id: ExtensionId,
+        subgraph_id: SubgraphId,
         context: &Self::SharedContext,
         field: EdgeDefinition<'a>,
         directive: ExtensionDirective<'a, impl Anything<'a>>,
@@ -34,7 +36,8 @@ impl ExtensionRuntime for () {
 
     async fn resolve_field<'a>(
         &self,
-        _id: ExtensionId,
+        _extension_id: ExtensionId,
+        _subgraph_id: SubgraphId,
         _context: &Self::SharedContext,
         _field: EdgeDefinition<'a>,
         _directive: ExtensionDirective<'a, impl Anything<'a>>,

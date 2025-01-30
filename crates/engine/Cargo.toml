@@ -53,8 +53,8 @@ config = { package = "engine-config", path = "./config" }
 schema = { path = "./schema", package = "engine-schema" }
 walker = { path = "./walker", package = "engine-walker" }
 query-solver = { path = "./query-solver", package = "engine-query-solver" }
-runtime.workspace = true
 rand.workspace = true
+runtime.workspace = true
 grafbase-workspace-hack.workspace = true
 async-sse.workspace = true
 mime = "0.3.17"

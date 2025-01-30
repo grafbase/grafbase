@@ -2432,7 +2432,7 @@ dependencies = [
  "engine-id-derives",
  "engine-id-newtypes",
  "engine-walker",
- "extension",
+ "extension-catalog",
  "fnv",
  "fxhash",
  "gateway-config",
@@ -2447,7 +2447,6 @@ dependencies = [
  "rand 0.8.5",
  "regex",
  "rstest",
- "runtime",
  "serde",
  "serde_json",
  "serde_regex",
@@ -2602,6 +2601,17 @@ dependencies = [
  "tempfile",
  "tokio",
  "url",
+]
+
+[[package]]
+name = "extension-catalog"
+version = "0.0.0"
+dependencies = [
+ "engine-id-derives",
+ "engine-id-newtypes",
+ "extension",
+ "grafbase-workspace-hack",
+ "serde",
 ]
 
 [[package]]
@@ -4475,7 +4485,8 @@ dependencies = [
  "engine",
  "engine-axum",
  "engine-config-builder",
- "extension",
+ "engine-schema",
+ "extension-catalog",
  "futures",
  "futures-util",
  "gateway-config",
@@ -6851,7 +6862,9 @@ dependencies = [
  "async-trait",
  "bytes",
  "engine-id-derives",
+ "engine-schema",
  "extension",
+ "extension-catalog",
  "futures-util",
  "grafbase-telemetry",
  "grafbase-workspace-hack",
@@ -6876,7 +6889,9 @@ dependencies = [
  "deadpool 0.12.1",
  "ed25519-compact",
  "elliptic-curve",
+ "engine-schema",
  "enumflags2",
+ "extension-catalog",
  "futures-util",
  "gateway-config",
  "governor",

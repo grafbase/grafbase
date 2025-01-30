@@ -27,7 +27,8 @@ url.workspace = true
 semver = "1"
 id-derives = { path = "../engine/id-derives", package = "engine-id-derives" }
 extension.workspace = true
-
+extension-catalog.workspace = true
+engine-schema.workspace = true
 grafbase-workspace-hack.workspace = true
 
 [features]
