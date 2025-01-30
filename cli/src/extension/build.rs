@@ -13,22 +13,27 @@ use crate::{cli_input::ExtensionBuildCommand, output::report};
 const RUST_TARGET: &str = "wasm32-wasip2";
 
 pub(crate) fn execute(cmd: ExtensionBuildCommand) -> anyhow::Result<()> {
-    if !cmd.output.exists() {
-        std::fs::create_dir_all(&cmd.output).context("failed to create the output directory")?;
+    let output_dir = cmd.output_dir;
+    let scratch_dir = cmd.scratch_dir;
+    let source_dir = cmd.source_dir;
+    let release_mode = cmd.release;
+
+    if !output_dir.exists() {
+        std::fs::create_dir_all(&output_dir).context("failed to create the output directory")?;
     }
 
-    if !cmd.output.is_dir() {
-        anyhow::bail!("output path is not a directory");
+    if !output_dir.is_dir() {
+        anyhow::bail!("output path '{}' is not a directory", output_dir.display());
     }
 
     check_rust()?;
     install_wasm_target_if_needed()?;
 
-    let wasm_path = compile_extension(&cmd)?;
-    let manifest = parse_manifest(&cmd, &wasm_path)?;
+    let wasm_path = compile_extension(release_mode, &scratch_dir, &source_dir, &output_dir)?;
+    let manifest = parse_manifest(&source_dir, &wasm_path)?;
 
-    std::fs::rename(wasm_path, cmd.output.join("extension.wasm")).context("failed to move wasm file")?;
-    std::fs::write(cmd.output.join("manifest.json"), serde_json::to_vec(&manifest).unwrap())
+    std::fs::rename(wasm_path, output_dir.join("extension.wasm")).context("failed to move wasm file")?;
+    std::fs::write(output_dir.join("manifest.json"), serde_json::to_vec(&manifest).unwrap())
         .context("failed to write manifest file")?;
 
     report::extension_built(&manifest);
@@ -144,15 +149,21 @@ fn install_wasm_target_if_needed() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn compile_extension(cmd: &ExtensionBuildCommand) -> anyhow::Result<PathBuf> {
+fn compile_extension(
+    release: bool,
+    scratch_dir: &Path,
+    source_dir: &Path,
+    output_dir: &Path,
+) -> anyhow::Result<PathBuf> {
     report::extension_build_start();
 
     let output = new_command("cargo")
         .args(["build", "--target", RUST_TARGET])
-        .args(cmd.release.then_some("--release"))
+        .args(release.then_some("--release"))
         // disable sscache, if enabled. does not work with wasi builds :P
         .env("RUSTC_WRAPPER", "")
-        .current_dir(&cmd.path)
+        .env("CARGO_TARGET_DIR", scratch_dir)
+        .current_dir(source_dir)
         .stderr(Stdio::piped())
         .stdout(Stdio::inherit())
         .output()
@@ -165,19 +176,18 @@ fn compile_extension(cmd: &ExtensionBuildCommand) -> anyhow::Result<PathBuf> {
         );
     }
 
-    if !std::fs::exists(&cmd.output)? {
-        std::fs::create_dir_all(&cmd.output).context("failed to create the output directory")?;
+    if !std::fs::exists(output_dir)? {
+        std::fs::create_dir_all(output_dir).context("failed to create the output directory")?;
     }
 
-    let cargo_toml = std::fs::read_to_string(cmd.path.join("Cargo.toml"))?;
+    let cargo_toml = std::fs::read_to_string(source_dir.join("Cargo.toml"))?;
     let cargo_toml: CargoToml = toml::from_str(&cargo_toml)?;
 
-    let mut wasm_path = cmd.path.clone();
+    let mut wasm_path = scratch_dir.to_path_buf();
 
     wasm_path.extend([
-        "target",
         RUST_TARGET,
-        if cmd.release { "release" } else { "debug" },
+        if release { "release" } else { "debug" },
         &cargo_toml.package.name.replace('-', "_"),
     ]);
 
@@ -186,8 +196,8 @@ fn compile_extension(cmd: &ExtensionBuildCommand) -> anyhow::Result<PathBuf> {
     Ok(wasm_path)
 }
 
-fn parse_manifest(cmd: &ExtensionBuildCommand, wasm_path: &Path) -> anyhow::Result<Manifest> {
-    let extension_toml = std::fs::read_to_string(cmd.path.join("extension.toml"))
+fn parse_manifest(source_dir: &Path, wasm_path: &Path) -> anyhow::Result<Manifest> {
+    let extension_toml = std::fs::read_to_string(source_dir.join("extension.toml"))
         .context("could not find extension.toml file from the extension project")?;
     let extension_toml: ExtensionToml = toml::from_str(&extension_toml).context("could not parse extension.toml")?;
 
@@ -207,7 +217,7 @@ fn parse_manifest(cmd: &ExtensionBuildCommand, wasm_path: &Path) -> anyhow::Resu
         }
     };
 
-    let sdl = match extension_toml.directives.definitions.map(|path| cmd.path.join(&path)) {
+    let sdl = match extension_toml.directives.definitions.map(|path| source_dir.join(&path)) {
         Some(ref path) => {
             let Ok(sdl) = std::fs::read_to_string(path) else {
                 anyhow::bail!("failed to read directive definitions in {}", path.display())

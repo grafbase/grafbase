@@ -92,23 +92,23 @@ fn build() {
     let temp_dir = tempdir().unwrap();
     let project_path = temp_dir.path().join("test_project");
     let project_path_str = project_path.to_string_lossy();
-    let build_path = project_path.join("build");
-    let build_path_str = build_path.to_string_lossy();
 
     let args = vec!["extension", "init", &*project_path_str];
     let command = cmd(cargo_bin("grafbase"), &args).stdout_null().stderr_null();
     command.run().unwrap();
 
-    let args = vec!["extension", "build", "-p", &*project_path_str, "-o", &*build_path_str];
+    let args = vec!["extension", "build"];
 
     let command = cmd(cargo_bin("grafbase"), &args)
         // we do -D warnings in CI, the template has unused variable warnings...
         .env("RUSTFLAGS", "")
+        .dir(&project_path)
         .stderr_null()
         .stdout_null();
 
     command.run().unwrap();
 
+    let build_path = project_path.join("build");
     assert!(std::fs::exists(build_path.join("extension.wasm")).unwrap());
     assert!(std::fs::exists(build_path.join("manifest.json")).unwrap());
 

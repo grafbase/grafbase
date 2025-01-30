@@ -26,12 +26,15 @@ pub struct ExtensionInitCommand {
 #[derive(Debug, Parser)]
 pub struct ExtensionBuildCommand {
     /// Output path for the built extension.
-    #[arg(long, short, default_value = "./build")]
-    pub output: PathBuf,
+    #[arg(short, long, default_value = "./build")]
+    pub output_dir: PathBuf,
     /// Builds the extension in release mode.
     #[arg(long)]
     pub release: bool,
     /// Path to the extension source code.
-    #[arg(long, short, default_value = ".")]
-    pub path: PathBuf,
+    #[arg(short, long, default_value = ".")]
+    pub source_dir: PathBuf,
+    /// Path to the extension scratch build directory.
+    #[arg(long, default_value = "./target")]
+    pub scratch_dir: PathBuf,
 }
