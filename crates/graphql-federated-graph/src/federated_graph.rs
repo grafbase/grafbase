@@ -157,7 +157,7 @@ pub struct Extension {
 #[derive(Clone, Debug)]
 pub struct ExtensionSchemaDirective {
     pub subgraph_id: SubgraphId,
-    pub name: String,
+    pub name: StringId,
     pub arguments: Option<Vec<DirectiveArgument>>,
 }
 

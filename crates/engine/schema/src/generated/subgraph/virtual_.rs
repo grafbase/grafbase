@@ -19,14 +19,14 @@ use walker::{Iter, Walk};
 /// type VirtualSubgraph @meta(module: "subgraph/virtual_") @indexed(id_size: "u16") {
 ///   subgraph_name: String!
 ///   "Schema directives applied by the given subgraph"
-///   directives: [TypeSystemDirective!]!
+///   schema_directives: [TypeSystemDirective!]!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct VirtualSubgraphRecord {
     pub subgraph_name_id: StringId,
     /// Schema directives applied by the given subgraph
-    pub directive_ids: Vec<TypeSystemDirectiveId>,
+    pub schema_directive_ids: Vec<TypeSystemDirectiveId>,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
@@ -56,8 +56,8 @@ impl<'a> VirtualSubgraph<'a> {
         self.subgraph_name_id.walk(self.schema)
     }
     /// Schema directives applied by the given subgraph
-    pub fn directives(&self) -> impl Iter<Item = TypeSystemDirective<'a>> + 'a {
-        self.as_ref().directive_ids.walk(self.schema)
+    pub fn schema_directives(&self) -> impl Iter<Item = TypeSystemDirective<'a>> + 'a {
+        self.as_ref().schema_directive_ids.walk(self.schema)
     }
 }
 
@@ -82,7 +82,7 @@ impl std::fmt::Debug for VirtualSubgraph<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("VirtualSubgraph")
             .field("subgraph_name", &self.subgraph_name())
-            .field("directives", &self.directives())
+            .field("schema_directives", &self.schema_directives())
             .finish()
     }
 }

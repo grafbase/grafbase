@@ -236,7 +236,7 @@ fn serde_roundtrip(#[case] sdl: &str) {
         name: NameOrPattern::Pattern(Regex::new("^foo*").unwrap()),
     }));
 
-    let schema = Schema::build(config, Version::from("random"), ()).unwrap();
+    let schema = Schema::build(config, Version::from("random"), &Default::default()).unwrap();
 
     let bytes = postcard::to_stdvec(&schema).unwrap();
     postcard::from_bytes::<Schema>(&bytes).unwrap();

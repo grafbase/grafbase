@@ -1,9 +1,11 @@
 mod pool;
 
+use engine_schema::SubgraphId;
+use extension_catalog::ExtensionId;
 use gateway_config::WasiExtensionsConfig;
 use runtime::{
     error::{PartialErrorCode, PartialGraphqlError},
-    extension::{Data, ExtensionDirective, ExtensionId, ExtensionRuntime},
+    extension::{Data, ExtensionDirective, ExtensionRuntime},
     hooks::{Anything, EdgeDefinition},
 };
 use std::{collections::HashMap, sync::Arc};
@@ -54,7 +56,8 @@ impl ExtensionRuntime for WasiExtensions {
 
     async fn resolve_field<'a>(
         &self,
-        id: ExtensionId,
+        extension_id: ExtensionId,
+        _subgraph_id: SubgraphId,
         context: &Self::SharedContext,
         field: EdgeDefinition<'a>,
         directive: ExtensionDirective<'a, impl Anything<'a>>,
@@ -64,7 +67,7 @@ impl ExtensionRuntime for WasiExtensions {
             return Err(PartialGraphqlError::internal_extension_error());
         };
 
-        let Some(pool) = inner.instance_pools.get(&id) else {
+        let Some(pool) = inner.instance_pools.get(&extension_id) else {
             return Err(PartialGraphqlError::internal_extension_error());
         };
 

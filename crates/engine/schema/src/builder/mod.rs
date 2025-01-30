@@ -11,8 +11,8 @@ use std::mem::take;
 use std::time::Duration;
 
 use config::Config;
+use extension_catalog::ExtensionCatalog;
 use external_sources::ExternalDataSources;
-use runtime::extension::ExtensionCatalog;
 use url::Url;
 
 use self::error::*;
@@ -28,11 +28,11 @@ use interner::Interner;
 pub(crate) fn build(
     mut config: Config,
     version: Version,
-    extension_catalog: impl ExtensionCatalog,
+    extension_catalog: &ExtensionCatalog,
 ) -> Result<Schema, BuildError> {
     let mut ctx = BuildContext::new(&mut config, extension_catalog);
-    let sources = ExternalDataSources::build(&mut ctx, &mut config);
-    let (graph, introspection) = GraphBuilder::build(&mut ctx, &sources, &mut config)?;
+    let mut sources = ExternalDataSources::build(&mut ctx, &mut config);
+    let (graph, introspection) = GraphBuilder::build(&mut ctx, &mut sources, &mut config)?;
     let subgraphs = SubGraphs {
         graphql_endpoints: sources.graphql_endpoints,
         virtual_subgraphs: Vec::new(),
@@ -41,8 +41,8 @@ pub(crate) fn build(
     ctx.finalize(subgraphs, graph, config, version)
 }
 
-pub(crate) struct BuildContext<EC> {
-    pub extension_catalog: EC,
+pub(crate) struct BuildContext<'a> {
+    pub extension_catalog: &'a ExtensionCatalog,
     pub strings: Interner<String, StringId>,
     pub regexps: ProxyKeyInterner<Regex, RegexId>,
     urls: Interner<Url, UrlId>,
@@ -50,8 +50,8 @@ pub(crate) struct BuildContext<EC> {
     enum_mapping: HashMap<federated_graph::EnumDefinitionId, EnumDefinitionId>,
 }
 
-impl<EC> BuildContext<EC> {
-    fn new(config: &mut Config, extension_catalog: EC) -> Self {
+impl<'a> BuildContext<'a> {
+    fn new(config: &mut Config, extension_catalog: &'a ExtensionCatalog) -> Self {
         Self {
             extension_catalog,
             strings: Interner::from_vec(take(&mut config.graph.strings)),

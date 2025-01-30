@@ -17,6 +17,7 @@ crossbeam-queue = "0.3"
 cynic.workspace = true
 cynic-introspection.workspace = true
 engine-axum.workspace = true
+engine-schema.workspace = true
 engine.workspace = true
 graphql-mocks.workspace = true
 httpsig.workspace = true
@@ -60,7 +61,7 @@ serde_with = { workspace = true, features = ["hex"] }
 graphql-ws-client.workspace = true
 async-tungstenite.workspace = true
 futures-util.workspace = true
-extension.workspace = true
+extension-catalog.workspace = true
 
 [dependencies.tokio]
 version = "1.37"

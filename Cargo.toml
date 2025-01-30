@@ -165,10 +165,12 @@ gateway-config = { path = "crates/gateway-config" }
 rolling-logger = { path = "crates/rolling-logger" }
 grafbase-sdk = { path = "crates/grafbase-sdk" }
 extension = { path = "crates/extension" }
+extension-catalog = { path = "crates/extension-catalog" }
 
 # Engine
 engine-config-builder = { path = "crates/engine-config-builder" }
 engine = { path = "crates/engine" }
+engine-schema = { path = "crates/engine/schema" }
 engine-auth = { path = "crates/engine/auth" }
 engine-axum = { path = "crates/engine/axum" }
 engine-config = { path = "crates/engine/config" }

@@ -6,7 +6,7 @@
 /// figure out how to import everything external it needs - it can just
 /// `use prelude::*` and be done with it.
 pub(crate) use crate::Schema; // Having the Schema here guarantees the prelude::* is never unused
+pub(crate) use extension_catalog::ExtensionId;
 pub(crate) use id_newtypes::IdRange;
 pub(crate) use regex::Regex;
-pub(crate) use runtime::extension::ExtensionId;
 pub(crate) use url::Url;

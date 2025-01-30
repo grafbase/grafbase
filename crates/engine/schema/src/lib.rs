@@ -27,13 +27,13 @@ mod union;
 pub use self::builder::BuildError;
 use config::ResponseExtensionConfig;
 pub use directive::*;
+use extension_catalog::{ExtensionCatalog, ExtensionId};
 pub use field_set::*;
 pub use generated::*;
 use id_newtypes::{BitSet, IdRange};
 pub use ids::*;
 pub use input_value::*;
 use regex::Regex;
-use runtime::extension::ExtensionCatalog;
 pub use subgraph::*;
 use walker::{Iter, Walk};
 pub use wrapping::*;
@@ -103,15 +103,32 @@ impl Schema {
     pub fn from_sdl_or_panic(sdl: &str) -> Self {
         let graph = federated_graph::FederatedGraph::from_sdl(sdl).unwrap();
         let config = config::Config::from_graph(graph);
-        Self::build(config, Version::from(Vec::new()), ()).unwrap()
+        Self::build(config, Version::from(Vec::new()), &Default::default()).unwrap()
     }
 
     pub fn build(
         config: config::Config,
         version: Version,
-        extension_catalog: impl ExtensionCatalog,
+        extension_catalog: &ExtensionCatalog,
     ) -> Result<Schema, BuildError> {
         builder::build(config, version, extension_catalog)
+    }
+
+    pub fn extension_schema_directives(
+        &self,
+        subgraph_id: SubgraphId,
+        extension_id: ExtensionId,
+    ) -> impl Iterator<Item = ExtensionDirective<'_>> + '_ {
+        static EMPTY_DIRECTIVES: &[TypeSystemDirectiveId] = &[];
+
+        let ids = match subgraph_id {
+            SubgraphId::GraphqlEndpoint(id) => &self[id].schema_directive_ids,
+            SubgraphId::Introspection => EMPTY_DIRECTIVES,
+            SubgraphId::Virtual(id) => &self[id].schema_directive_ids,
+        };
+        ids.walk(self)
+            .filter_map(|dir| dir.as_extension())
+            .filter(move |dir| dir.extension_id == extension_id)
     }
 }
 

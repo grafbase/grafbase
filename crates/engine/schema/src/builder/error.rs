@@ -9,7 +9,7 @@ pub enum SchemaLocation {
 }
 
 impl SchemaLocation {
-    pub fn to_string<EC>(self, ctx: &BuildContext<EC>) -> String {
+    pub fn to_string(self, ctx: &BuildContext<'_>) -> String {
         match self {
             SchemaLocation::Definition { name } => ctx.strings[name].to_string(),
             SchemaLocation::Field { ty, name } => format!("{}.{}", &ctx.strings[ty], &ctx.strings[name]),
@@ -25,6 +25,6 @@ pub enum BuildError {
     DefaultValueCoercionError { name: String, err: InputValueError },
     #[error(transparent)]
     GraphFromSdlError(#[from] federated_graph::DomainError),
-    #[error("Directive named '{name}' is not associated with an known extension: {id}")]
-    UnknownDirectiveExtension { name: String, id: extension::Id },
+    #[error("Unsupported extension: {id}")]
+    UnsupportedExtension { id: extension_catalog::Id },
 }

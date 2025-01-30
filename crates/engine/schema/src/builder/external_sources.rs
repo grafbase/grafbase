@@ -3,11 +3,16 @@ use std::{mem::take, time::Duration};
 use config::{Config, SubgraphConfig};
 use fxhash::FxHashMap;
 
-use super::{BuildContext, GraphqlEndpointRecord, SubgraphId, VirtualSubgraphRecord};
+use super::{
+    BuildContext, GraphqlEndpointId, GraphqlEndpointRecord, SubgraphId, VirtualSubgraphId, VirtualSubgraphRecord,
+};
 
+#[derive(id_derives::IndexedFields)]
 pub struct ExternalDataSources {
     pub id_mapping: FxHashMap<federated_graph::SubgraphId, SubgraphId>,
+    #[indexed_by(GraphqlEndpointId)]
     pub graphql_endpoints: Vec<GraphqlEndpointRecord>,
+    #[indexed_by(VirtualSubgraphId)]
     pub virtual_subgraphs: Vec<VirtualSubgraphRecord>,
 }
 
@@ -19,7 +24,7 @@ impl std::ops::Index<federated_graph::SubgraphId> for ExternalDataSources {
 }
 
 impl ExternalDataSources {
-    pub(super) fn build<EC>(ctx: &mut BuildContext<EC>, config: &mut Config) -> Self {
+    pub(super) fn build(ctx: &mut BuildContext<'_>, config: &mut Config) -> Self {
         let mut sources = ExternalDataSources {
             id_mapping: Default::default(),
             graphql_endpoints: Vec::new(),
@@ -51,8 +56,8 @@ impl ExternalDataSources {
                             retry: retry.map(Into::into),
                             cache_ttl: entity_caching.as_ref().unwrap_or(&config.entity_caching).ttl(),
                         },
+                        schema_directive_ids: Vec::new(),
                     }),
-
                     None => sources.graphql_endpoints.push(GraphqlEndpointRecord {
                         subgraph_name_id,
                         url_id: ctx.urls.insert(sdl_url),
@@ -63,6 +68,7 @@ impl ExternalDataSources {
                             retry: None,
                             cache_ttl: config.entity_caching.ttl(),
                         },
+                        schema_directive_ids: Vec::new(),
                     }),
                 }
                 sources.id_mapping.insert(
@@ -72,7 +78,7 @@ impl ExternalDataSources {
             } else {
                 sources.virtual_subgraphs.push(VirtualSubgraphRecord {
                     subgraph_name_id,
-                    directive_ids: Vec::new(),
+                    schema_directive_ids: Vec::new(),
                 });
                 sources
                     .id_mapping

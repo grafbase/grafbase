@@ -20,7 +20,7 @@ impl FieldSetsBuilder {
         id
     }
 
-    pub(super) fn try_insert_into<EC>(self, ctx: &BuildContext<EC>, graph: &mut Graph) -> Result<(), BuildError> {
+    pub(super) fn try_insert_into(self, ctx: &BuildContext<'_>, graph: &mut Graph) -> Result<(), BuildError> {
         let mut input_values = std::mem::take(&mut graph.input_values);
         let mut converter = Converter {
             ctx,
@@ -53,15 +53,15 @@ impl FieldSetsBuilder {
     }
 }
 
-struct Converter<'a, EC> {
-    ctx: &'a BuildContext<EC>,
+struct Converter<'a, 'c> {
+    ctx: &'a BuildContext<'c>,
     graph: &'a Graph,
-    coercer: InputValueCoercer<'a, EC>,
+    coercer: InputValueCoercer<'a, 'c>,
     deduplicated_fields: BTreeMap<SchemaFieldRecord, SchemaFieldId>,
     field_arguments: Vec<SchemaFieldArgumentRecord>,
 }
 
-impl<EC> Converter<'_, EC> {
+impl Converter<'_, '_> {
     fn convert_set(&mut self, field_set: federated_graph::SelectionSet) -> Result<FieldSetRecord, InputValueError> {
         let mut out = Vec::with_capacity(field_set.len());
         self.convert_set_rec(field_set, &mut out)?;

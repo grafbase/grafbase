@@ -5,11 +5,7 @@ use crate::{SchemaInputValueRecord, SchemaInputValues};
 use super::BuildContext;
 
 impl SchemaInputValues {
-    pub(crate) fn ingest_arbitrary_value<EC>(
-        &mut self,
-        ctx: &BuildContext<EC>,
-        value: Value,
-    ) -> SchemaInputValueRecord {
+    pub(crate) fn ingest_arbitrary_value(&mut self, ctx: &BuildContext<'_>, value: Value) -> SchemaInputValueRecord {
         match value {
             Value::Null => SchemaInputValueRecord::Null,
             Value::String(id) => SchemaInputValueRecord::String(id.into()),

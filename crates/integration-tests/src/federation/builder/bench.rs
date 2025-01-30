@@ -65,8 +65,12 @@ impl DeterministicEngineBuilder<'_> {
         let graph = FederatedGraph::from_sdl(self.schema).unwrap();
         let config = engine::config::Config::from_graph(graph);
 
-        let schema =
-            engine::Schema::build(config, engine::SchemaVersion::from(ulid::Ulid::new().to_bytes()), ()).unwrap();
+        let schema = engine::Schema::build(
+            config,
+            engine::SchemaVersion::from(ulid::Ulid::new().to_bytes()),
+            &Default::default(),
+        )
+        .unwrap();
         let engine = engine::Engine::new(
             Arc::new(schema),
             TestRuntime {

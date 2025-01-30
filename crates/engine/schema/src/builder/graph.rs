@@ -5,15 +5,14 @@ use config::Config;
 use federated_graph::{JoinFieldDirective, JoinImplementsDirective, JoinTypeDirective, JoinUnionMemberDirective};
 use fxhash::FxHashMap;
 use introspection::{IntrospectionBuilder, IntrospectionMetadata};
-use runtime::extension::ExtensionCatalog;
 
 use crate::*;
 
 use super::{interner::Interner, BuildContext, BuildError, FieldSetsBuilder, SchemaLocation};
 
-pub(crate) struct GraphBuilder<'a, EC> {
-    ctx: &'a mut BuildContext<EC>,
-    sources: &'a ExternalDataSources,
+pub(crate) struct GraphBuilder<'a, 'c> {
+    ctx: &'a mut BuildContext<'c>,
+    sources: &'a mut ExternalDataSources,
     field_sets: FieldSetsBuilder,
     all_subgraphs: Vec<SubgraphId>,
     required_scopes: Interner<RequiresScopesDirectiveRecord, RequiresScopesDirectiveId>,
@@ -38,10 +37,10 @@ impl EntityResovler {
     }
 }
 
-impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
+impl<'a, 'c> GraphBuilder<'a, 'c> {
     pub fn build(
-        ctx: &'a mut BuildContext<EC>,
-        sources: &'a ExternalDataSources,
+        ctx: &'a mut BuildContext<'c>,
+        sources: &'a mut ExternalDataSources,
         config: &mut Config,
     ) -> Result<(Graph, IntrospectionMetadata), BuildError> {
         let mut all_subgraphs = sources.iter().collect::<Vec<_>>();
@@ -99,6 +98,8 @@ impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
     }
 
     fn ingest_config(&mut self, config: &mut Config) -> Result<(), BuildError> {
+        self.ingest_extension_schema_directives(config)?;
+
         self.ingest_enums(config)?;
         self.ingest_scalars(config)?;
         self.ingest_input_objects(config)?;
@@ -107,6 +108,41 @@ impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
         self.ingest_objects(config)?;
         self.ingest_interfaces_after_objects_and_fields(config)?;
         self.ingest_unions_after_objects(config)?;
+
+        Ok(())
+    }
+
+    fn ingest_extension_schema_directives(&mut self, config: &mut Config) -> Result<(), BuildError> {
+        for extension in &mut config.graph.extensions {
+            let Some(id) = self.ctx.extension_catalog.find_compatible_extension(&extension.id) else {
+                return Err(BuildError::UnsupportedExtension {
+                    id: extension.id.clone(),
+                });
+            };
+            for directive in take(&mut extension.schema_directives) {
+                let subgraph_id = self.sources.id_mapping[&directive.subgraph_id];
+                self.graph.extension_directives.push(ExtensionDirectiveRecord {
+                    subgraph_id,
+                    extension_id: id,
+                    name_id: directive.name.into(),
+                    arguments_id: directive.arguments.map(|arguments| {
+                        let arguments = arguments.into_iter().map(|arg| (arg.name, arg.value)).collect();
+                        let value = self
+                            .graph
+                            .input_values
+                            .ingest_arbitrary_value(self.ctx, federated_graph::Value::Object(arguments));
+                        self.graph.input_values.push_value(value)
+                    }),
+                });
+                let directive_id = TypeSystemDirectiveId::Extension((self.graph.extension_directives.len() - 1).into());
+
+                match subgraph_id {
+                    SubgraphId::GraphqlEndpoint(id) => self.sources[id].schema_directive_ids.push(directive_id),
+                    SubgraphId::Virtual(id) => self.sources[id].schema_directive_ids.push(directive_id),
+                    SubgraphId::Introspection => (),
+                }
+            }
+        }
 
         Ok(())
     }
@@ -649,27 +685,30 @@ impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
                         let endpoint_resolvers = graphql_federated_entity_resolvers
                             .entry((parent_entity_id, endpoint_id))
                             .or_insert_with(|| {
-                                parent_entity
-                                    .directives()
-                                    .filter_map(|dir| dir.as_join_type())
-                                    .filter_map(|dir| {
-                                        dir.key.as_ref().filter(|key| {
-                                            !key.is_empty()
-                                                && self.sources[dir.subgraph_id] == subgraph_id
-                                                && dir.resolvable
-                                        })
-                                    })
-                                    .map(|key| {
-                                        let key_fields_id = self.field_sets.push(type_schema_location, key.clone());
-                                        let id = self.push_resolver(ResolverDefinitionRecord::GraphqlFederationEntity(
-                                            GraphqlFederationEntityResolverDefinitionRecord {
-                                                key_fields_id,
-                                                endpoint_id,
-                                            },
-                                        ));
-                                        EntityResovler::Entity { key: key.clone(), id }
-                                    })
-                                    .collect::<Vec<_>>()
+                                let mut result = Vec::new();
+
+                                for dir in parent_entity.directives() {
+                                    let Some(join_type) = dir.as_join_type() else {
+                                        continue;
+                                    };
+                                    let Some(key) = join_type.key.as_ref().filter(|key| {
+                                        !key.is_empty()
+                                            && self.sources[join_type.subgraph_id] == subgraph_id
+                                            && join_type.resolvable
+                                    }) else {
+                                        continue;
+                                    };
+                                    let key_fields_id = self.field_sets.push(type_schema_location, key.clone());
+                                    let id = self.push_resolver(ResolverDefinitionRecord::GraphqlFederationEntity(
+                                        GraphqlFederationEntityResolverDefinitionRecord {
+                                            key_fields_id,
+                                            endpoint_id,
+                                        },
+                                    ));
+                                    result.push(EntityResovler::Entity { key: key.clone(), id });
+                                }
+
+                                result
                             });
                         for res in endpoint_resolvers {
                             let EntityResovler::Entity { id, key } = res else {
@@ -912,8 +951,7 @@ impl<'a, EC: ExtensionCatalog> GraphBuilder<'a, EC> {
                 }) => {
                     let extension_id = &config.graph[*extension_id].id;
                     let Some(id) = self.ctx.extension_catalog.find_compatible_extension(extension_id) else {
-                        return Err(BuildError::UnknownDirectiveExtension {
-                            name: self.ctx.strings[StringId::from(*name)].to_string(),
+                        return Err(BuildError::UnsupportedExtension {
                             id: extension_id.clone(),
                         });
                     };
