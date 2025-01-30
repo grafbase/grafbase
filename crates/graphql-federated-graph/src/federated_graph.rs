@@ -151,6 +151,14 @@ pub struct Extension {
     pub id: extension::Id,
     #[cfg(feature = "extension")]
     pub manifest: extension::Manifest,
+    pub schema_directives: Vec<ExtensionSchemaDirective>,
+}
+
+#[derive(Clone, Debug)]
+pub struct ExtensionSchemaDirective {
+    pub subgraph_id: SubgraphId,
+    pub name: String,
+    pub arguments: Option<Vec<DirectiveArgument>>,
 }
 
 #[derive(Clone, Debug)]

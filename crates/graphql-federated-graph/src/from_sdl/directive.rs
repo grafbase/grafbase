@@ -5,9 +5,10 @@ use cynic_parser_deser::ConstDeserializer;
 
 use super::{
     attach_input_value_set_to_field_arguments, attach_selection_set, parse_selection_set, AuthorizedDirective,
-    CostDirective, Definition, DeprecatedDirective, Directive, DomainError, FieldId, GetArgumentsExt,
-    InputValueDefinitionId, IntoJson, JoinFieldDirective, JoinImplementsDirective, JoinTypeDirective,
-    JoinUnionMemberDirective, ListSize, ListSizeDirective, OverrideLabel, OverrideSource, State, StringId, Value,
+    CostDirective, Definition, DeprecatedDirective, Directive, DirectiveArgument, DomainError, ExtensionDirective,
+    ExtensionSchemaDirective, FieldId, GetArgumentsExt, InputValueDefinitionId, IntoJson, JoinFieldDirective,
+    JoinImplementsDirective, JoinTypeDirective, JoinUnionMemberDirective, ListSize, ListSizeDirective, OverrideLabel,
+    OverrideSource, State, StringId, Value, EXTENSION_DIRECTIVE_DIRECTIVE,
 };
 
 pub(super) fn collect_definition_directives<'a>(
@@ -26,6 +27,7 @@ pub(super) fn collect_definition_directives<'a>(
             }
             "join__implements" => out.push(parse_join_implements(directive, state)?),
             "join__unionMember" => out.push(parse_join_union_member(directive, state)?),
+            EXTENSION_DIRECTIVE_DIRECTIVE => out.push(parse_extension_directive(directive, state)?),
             _ => out.extend(parse_common_directives(directive, state)),
         }
     }
@@ -425,4 +427,145 @@ fn parse_list_size_directive<'a>(
         sized_fields,
         require_one_slicing_argument,
     })))
+}
+
+/// ```ignore,graphl
+/// directive @extension__link(
+///   url: String!
+///   schema_directives: [SchemaDirective!]
+/// ) repeatable ENUM_VALUE
+///
+/// input SchemaDirective {
+///   name: String!
+///   arguments: [DirectiveArgument!]
+/// }
+/// ```
+pub(super) fn parse_extension_link(
+    directive: ast::Directive<'_>,
+    state: &mut State<'_>,
+) -> Result<ExtensionLink, DomainError> {
+    let url = directive
+        .get_argument("url")
+        .and_then(|arg| arg.as_str())
+        .ok_or_else(|| DomainError("Missing or invalid 'url' argument in @extension__link".to_owned()))?
+        .to_string();
+
+    let schema_directives = directive
+        .get_argument("schema_directives")
+        .and_then(|arg| arg.as_list())
+        .map(|directives| {
+            directives
+                .into_iter()
+                .map(|dir| {
+                    dir.as_object()
+                        .ok_or_else(|| DomainError("Expected SchemaDirective object".to_owned()))
+                        .and_then(|obj| {
+                            let subgraph_id = obj
+                                .get("graph")
+                                .and_then(|arg| arg.as_enum_value())
+                                .and_then(|name| state.graph_by_enum_str.get(name).copied())
+                                .ok_or_else(|| {
+                                    DomainError(
+                                        "Missing or invalid 'graph' argument in @extension__directive".to_owned(),
+                                    )
+                                })?;
+
+                            let name = obj
+                                .get("name")
+                                .and_then(|v| v.as_str())
+                                .ok_or_else(|| DomainError("Missing or invalid 'name' in SchemaDirective".to_owned()))?
+                                .to_string();
+
+                            let arguments = parse_directive_argument_list(state, obj.get("arguments"))?;
+
+                            Ok(ExtensionSchemaDirective {
+                                subgraph_id,
+                                name,
+                                arguments,
+                            })
+                        })
+                })
+                .collect::<Result<Vec<_>, DomainError>>()
+        })
+        .transpose()?
+        .unwrap_or_default();
+
+    Ok(ExtensionLink { url, schema_directives })
+}
+
+pub(crate) struct ExtensionLink {
+    pub(crate) url: String,
+    pub(crate) schema_directives: Vec<ExtensionSchemaDirective>,
+}
+
+/// ```ignore,graphl
+/// directive @extension__directive(
+///   graph: join__Graph!
+///   extension: grafbase__Extension!
+///   name: String!
+///   arguments: [DirectiveArgument!]
+/// ) repeatable ON FIELD | SCHEMA | SCALAR | OBJECT | FIELD_DEFINITION | ARGUMENT_DEFINITION | INTERFACE | UNION | ENUM | ENUM_VALUE | INPUT_OBJECT | INPUT_FIELD_DEFINITION
+/// ```
+fn parse_extension_directive(directive: ast::Directive<'_>, state: &mut State<'_>) -> Result<Directive, DomainError> {
+    let subgraph_id = directive
+        .get_argument("graph")
+        .and_then(|arg| arg.as_enum_value())
+        .and_then(|name| state.graph_by_enum_str.get(name).copied())
+        .ok_or_else(|| DomainError("Missing or invalid 'graph' argument in @extension__directive".to_owned()))?;
+
+    let extension_id = directive
+        .get_argument("extension")
+        .and_then(|arg| arg.as_enum_value())
+        .and_then(|name| state.extension_by_enum_value_str.get(name).copied())
+        .ok_or_else(|| DomainError("Missing or invalid 'extension' argument in @extension__directive".to_owned()))?;
+
+    let name = directive
+        .get_argument("name")
+        .and_then(|arg| arg.as_str())
+        .map(|name| state.insert_string(name))
+        .ok_or_else(|| DomainError("Missing or invalid 'name' argument in @extension__directive".to_owned()))?;
+
+    let arguments = parse_directive_argument_list(state, directive.get_argument("arguments"))?;
+
+    Ok(Directive::ExtensionDirective(ExtensionDirective {
+        subgraph_id,
+        extension_id,
+        name,
+        arguments,
+    }))
+}
+
+fn parse_directive_argument_list(
+    state: &mut State<'_>,
+    arguments: Option<cynic_parser::values::ConstValue<'_>>,
+) -> Result<Option<Vec<DirectiveArgument>>, DomainError> {
+    let Some(arguments) = arguments else {
+        return Ok(None);
+    };
+
+    arguments
+        .as_list()
+        .ok_or_else(|| DomainError("Expected [DirectiveArgument]".to_string()))
+        .and_then(|args| {
+            args.into_iter()
+                .map(|arg| {
+                    arg.as_object()
+                        .ok_or_else(|| DomainError("Expected an DirectiveArgument".to_string()))
+                        .and_then(|obj| {
+                            let name = obj
+                                .get("name")
+                                .and_then(|v| v.as_str())
+                                .ok_or_else(|| DomainError("Expected a name: String key".to_string()))?;
+                            let value = obj
+                                .get("value")
+                                .ok_or_else(|| DomainError("Expected a value key".to_string()))?;
+                            Ok(DirectiveArgument {
+                                name: state.insert_string(name),
+                                value: state.insert_value(value, None),
+                            })
+                        })
+                })
+                .collect::<Result<Vec<_>, DomainError>>()
+                .map(Some)
+        })
 }
