@@ -92,11 +92,11 @@ ingress:
 # https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
 resources:
   requests:
-    cpu: 4
-    memory: 1Gi
+    cpu: 1
+    memory: 256Mi
   limits:
-    cpu: 10
-    memory: 2Gi
+    cpu: 2
+    memory: 512Mi
 
 # https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/
 autoscaling:
@@ -104,10 +104,10 @@ autoscaling:
   enabled: true
 
   # Minimum number of replicas.
-  minReplicas: 2
+  minReplicas: 1
 
   # Maximum number of replicas.
-  maxReplicas: 20
+  maxReplicas: 5
 
   # Target CPU utilization for scaling.
   targetCPUUtilizationPercentage: 70
