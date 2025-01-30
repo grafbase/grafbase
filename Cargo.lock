@@ -2594,12 +2594,8 @@ name = "extension"
 version = "0.0.0"
 dependencies = [
  "grafbase-workspace-hack",
- "reqwest 0.12.12",
  "semver",
  "serde",
- "serde_json",
- "tempfile",
- "tokio",
  "url",
 ]
 
@@ -2611,7 +2607,12 @@ dependencies = [
  "engine-id-newtypes",
  "extension",
  "grafbase-workspace-hack",
+ "reqwest 0.12.12",
  "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "url",
 ]
 
 [[package]]
@@ -3540,6 +3541,7 @@ dependencies = [
  "cynic-parser-deser",
  "expect-test",
  "extension",
+ "extension-catalog",
  "grafbase-workspace-hack",
  "graphql-wrapping-types",
  "indexmap 2.7.0",
@@ -3550,6 +3552,7 @@ dependencies = [
  "serde_json",
  "tempfile",
  "tokio",
+ "url",
 ]
 
 [[package]]

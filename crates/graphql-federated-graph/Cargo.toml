@@ -23,6 +23,7 @@ cynic-parser-deser.workspace = true
 indexmap = { optional = true, workspace = true }
 grafbase-workspace-hack.workspace = true
 extension = { workspace = true, optional = true }
+extension-catalog = { workspace = true, optional = true }
 
 
 [dev-dependencies]
@@ -31,8 +32,10 @@ tempfile = "3"
 tokio.workspace = true
 serde_json.workspace = true
 pretty_assertions = "1"
+url.workspace = true
 
 [features]
 default = ["render_sdl", "from_sdl", "extension"]
 render_sdl = []
 from_sdl = ["dep:cynic-parser", "dep:indexmap"]
+extension = ["extension-catalog", "dep:extension"]

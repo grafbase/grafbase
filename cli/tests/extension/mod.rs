@@ -115,7 +115,14 @@ fn build() {
     let manifest = std::fs::read_to_string(build_path.join("manifest.json")).unwrap();
     let manifest: Manifest = serde_json::from_str(&manifest).unwrap();
 
-    insta::assert_snapshot!(&serde_json::to_string_pretty(&manifest).unwrap(), @r#"
+    let manifest = serde_json::to_value(&manifest).unwrap();
+    insta::assert_json_snapshot!(
+        manifest,
+        {
+            ".sdk_version" => "<sdk_version>",
+            ".minimum_gateway_version" => "<minimum_gateway_version>"
+        },
+        @r#"
     {
       "name": "test-project",
       "version": "0.1.0",
@@ -126,9 +133,10 @@ fn build() {
           ]
         }
       },
-      "sdk_version": "0.1.2",
-      "minimum_gateway_version": "0.28.0",
+      "sdk_version": "<sdk_version>",
+      "minimum_gateway_version": "<minimum_gateway_version>",
       "sdl": "\"\"\"\nFill in here the directives and types that the extension needs.\nRemove this file and the definition in extension.toml if the extension does not need any directives.\n\"\"\"\ndirective @testProjectConfiguration(arg1: String) repeatable on SCHEMA\ndirective @testProjectDirective on FIELD_DEFINITION"
     }
-    "#);
+    "#
+    );
 }

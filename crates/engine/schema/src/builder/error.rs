@@ -26,5 +26,5 @@ pub enum BuildError {
     #[error(transparent)]
     GraphFromSdlError(#[from] federated_graph::DomainError),
     #[error("Unsupported extension: {id}")]
-    UnsupportedExtension { id: extension_catalog::Id },
+    UnsupportedExtension { id: Box<extension_catalog::Id> },
 }

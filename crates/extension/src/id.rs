@@ -1,9 +1,13 @@
+use url::Url;
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
 pub struct Id {
     /// From where was this extension manifest retrieved? For example:
     /// - URL: https://grafbase.com/extensions
     /// - Local directory: file:///home/x/my-extension/build
-    pub origin: String,
+    ///
+    /// It should not include the name/version
+    pub origin: Url,
     pub name: String,
     pub version: semver::Version,
 }
@@ -54,7 +58,7 @@ impl Id {
             seg.pop_if_empty();
         }
         Self {
-            origin: url.to_string(),
+            origin: url,
             name: manifest.name.clone(),
             version: manifest.version.clone(),
         }
@@ -81,40 +85,40 @@ mod tests {
         // Test basic URL
         let url = url::Url::parse("https://example.com/extensions").unwrap();
         let id = Id::from_url(url, &manifest);
-        assert_eq!(id.origin, "https://example.com/extensions");
+        assert_eq!(id.origin, "https://example.com/extensions".parse().unwrap());
         assert_eq!(id.name, "test-ext");
         assert_eq!(id.version, manifest.version);
 
         // Test URL with manifest.json
         let url = url::Url::parse("https://example.com/extensions/manifest.json").unwrap();
         let id = Id::from_url(url, &manifest);
-        assert_eq!(id.origin, "https://example.com/extensions");
+        assert_eq!(id.origin, "https://example.com/extensions".parse().unwrap());
 
         // Test URL with version
         let url = url::Url::parse("https://example.com/extensions/v1.2.3").unwrap();
         let id = Id::from_url(url, &manifest);
-        assert_eq!(id.origin, "https://example.com/extensions");
+        assert_eq!(id.origin, "https://example.com/extensions".parse().unwrap());
 
         // Test URL with name and version
         let url = url::Url::parse("https://example.com/extensions/test-ext/1.2.3").unwrap();
         let id = Id::from_url(url, &manifest);
-        assert_eq!(id.origin, "https://example.com/extensions");
+        assert_eq!(id.origin, "https://example.com/extensions".parse().unwrap());
 
         // Test URL with name and version and manifest.json
         let url = url::Url::parse("https://example.com/extensions/test-ext/1.2.3/manifest.json").unwrap();
         let id = Id::from_url(url, &manifest);
-        assert_eq!(id.origin, "https://example.com/extensions");
+        assert_eq!(id.origin, "https://example.com/extensions".parse().unwrap());
 
         // Test URL with name and version and manifest.json 2
         let url = url::Url::parse("https://example.com/extensions/test-ext/v1.2.3/manifest.json").unwrap();
         let id = Id::from_url(url, &manifest);
-        assert_eq!(id.origin, "https://example.com/extensions");
+        assert_eq!(id.origin, "https://example.com/extensions".parse().unwrap());
     }
 
     #[test]
     fn id_is_compatible_with() {
         let expected = Id {
-            origin: "https://grafbase.com/extensions".to_string(),
+            origin: "https://grafbase.com/extensions".parse().unwrap(),
             name: "my-extension".to_string(),
             version: semver::Version::parse("1.0.0").unwrap(),
         };
@@ -140,7 +144,7 @@ mod tests {
         assert!(!id.is_compatible_with(&expected));
 
         let id = Id {
-            origin: "file:///home/x/my-extension/build".to_string(),
+            origin: "file:///home/x/my-extension/build".parse().unwrap(),
             ..expected.clone()
         };
         assert!(!id.is_compatible_with(&expected));
