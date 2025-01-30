@@ -6,7 +6,7 @@ use std::{
 use deadpool::managed;
 use grafbase_telemetry::otel::opentelemetry::metrics::UpDownCounter;
 use tracing::{info_span, Instrument};
-use wasi_component_loader::{ChannelLogSender, ComponentInstance, ComponentLoader};
+use wasi_component_loader::{ChannelLogSender, ComponentLoader, HooksComponentInstance};
 
 pub(super) struct Pool {
     inner: managed::Pool<ComponentManager>,
@@ -19,7 +19,7 @@ pub(super) struct ComponentGuard {
 }
 
 impl Deref for ComponentGuard {
-    type Target = ComponentInstance;
+    type Target = HooksComponentInstance;
 
     fn deref(&self) -> &Self::Target {
         &self.inner
@@ -60,7 +60,7 @@ impl Pool {
 
     pub(super) async fn get(&self) -> ComponentGuard {
         self.pool_busy_counter.add(1, &[]);
-        let span = info_span!("get instance from pool");
+        let span = info_span!("get hook from pool");
         let inner = self.inner.get().instrument(span).await.expect("no io, should not fail");
 
         ComponentGuard {
@@ -90,12 +90,12 @@ impl ComponentManager {
 }
 
 impl managed::Manager for ComponentManager {
-    type Type = ComponentInstance;
+    type Type = HooksComponentInstance;
     type Error = wasi_component_loader::Error;
 
     async fn create(&self) -> Result<Self::Type, Self::Error> {
         self.pool_allocated_instances.add(1, &[]);
-        ComponentInstance::new(&self.component_loader, self.access_log.clone()).await
+        HooksComponentInstance::new(&self.component_loader, self.access_log.clone()).await
     }
 
     async fn recycle(&self, instance: &mut Self::Type, _: &managed::Metrics) -> managed::RecycleResult<Self::Error> {

@@ -1,15 +1,11 @@
-use std::{any::Any, str::FromStr};
+use std::str::FromStr;
 
 use anyhow::anyhow;
 use enumflags2::BitFlags;
 use http::HeaderMap;
 use url::Url;
-use wasmtime::{
-    component::{ComponentNamedList, Instance, Lift, Lower, Resource, TypedFunc},
-    Engine, Store,
-};
+use wasmtime::component::{ComponentNamedList, Lift, Lower, Resource, TypedFunc};
 
-use crate::{config::build_wasi_context, state::WasiState, ComponentLoader, Config, SharedContext};
 use crate::{error::guest::ErrorResponse, ChannelLogSender};
 use crate::{
     http_client::HttpMethod,
@@ -21,35 +17,16 @@ use crate::{
         ON_SUBGRAPH_RESPONSE_FUNCTION,
     },
 };
+use crate::{ComponentLoader, SharedContext};
 use crate::{
     ContextMap, EdgeDefinition, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, GuestResult,
     NodeDefinition,
 };
 
+use super::ComponentInstance;
+
 pub(crate) mod authorization;
 pub(crate) mod response;
-
-/// Initializes a new `Store<WasiState>` with the given configuration and engine.
-///
-/// # Arguments
-///
-/// * `config` - A reference to the configuration used to build the WASI context.
-/// * `engine` - A reference to the Wasmtime engine used for creating the store.
-///
-/// # Returns
-///
-/// A `Result` containing a `Store<WasiState>` on success, or an error if initialization fails.
-///
-/// This function creates a new `WasiState` using the provided configuration, initializes the store
-/// with the maximum fuel, and sets a yield interval how often to allow the main thread to be yielded.
-fn initialize_store(config: &Config, engine: &Engine, access_log: ChannelLogSender) -> crate::Result<Store<WasiState>> {
-    let state = WasiState::new(build_wasi_context(config), access_log);
-    let store = Store::new(engine, state);
-
-    Ok(store)
-}
-
-type FunctionCache = Vec<(&'static str, Option<Box<dyn Any + Send + Sync + 'static>>)>;
 
 /// An enum representing the different hook implementations that can be called by the guest.
 #[enumflags2::bitflags]
@@ -127,21 +104,13 @@ impl FromStr for HookImplementation {
 }
 
 /// An instance of a hooks component.
-pub struct ComponentInstance {
-    /// The store associated with the WASI state.
-    store: Store<WasiState>,
-    /// The instance of the component.
-    instance: Instance,
-    /// A cache for storing instantiated hook functions.
-    function_cache: FunctionCache,
-    /// Indicates whether the instance has encountered a fatal error.
-    poisoned: bool,
-    /// The implemented hooks
+pub struct HooksComponentInstance {
+    component: ComponentInstance,
     hooks: BitFlags<HookImplementation>,
 }
 
-impl ComponentInstance {
-    /// Creates a new instance of the component.
+impl HooksComponentInstance {
+    /// Creates a new hooks component instance.
     ///
     /// # Arguments
     ///
@@ -152,22 +121,17 @@ impl ComponentInstance {
     ///
     /// A `Result` containing the newly created component instance on success, or an error on failure.
     pub async fn new(loader: &ComponentLoader, access_log: ChannelLogSender) -> crate::Result<Self> {
-        let mut store = initialize_store(loader.config(), loader.engine(), access_log)?;
+        let mut component = ComponentInstance::new(loader, access_log).await?;
 
-        let instance = loader
-            .linker()
-            .instantiate_async(&mut store, loader.component())
-            .await?;
+        let init = component
+            .get_typed_func::<(), (i64,)>(INIT_HOOKS_FUNCTION)
+            .ok_or_else(|| anyhow!("init-hooks function not found"))?;
 
-        let init = instance.get_typed_func::<(), (i64,)>(&mut store, INIT_HOOKS_FUNCTION)?;
-        let (bits,) = init.call_async(&mut store, ()).await?;
-        init.post_return_async(&mut store).await?;
+        let (bits,) = init.call_async(component.store_mut(), ()).await?;
+        init.post_return_async(component.store_mut()).await?;
 
         Ok(Self {
-            store,
-            instance,
-            function_cache: Default::default(),
-            poisoned: false,
+            component,
             hooks: BitFlags::<HookImplementation>::from_bits(bits as u32).unwrap(),
         })
     }
@@ -198,27 +162,27 @@ impl ComponentInstance {
         };
 
         // adds the data to the shared memory
-        let context = self.store.data_mut().push_resource(context)?;
-        let headers = self.store.data_mut().push_resource(headers)?;
+        let context = self.component.store_mut().data_mut().push_resource(context)?;
+        let headers = self.component.store_mut().data_mut().push_resource(headers)?;
 
         // we need to take the pointers now, because a resource is not Copy and we need
         // the pointers to get the data back from the shared memory.
         let headers_rep = headers.rep();
         let context_rep = context.rep();
 
-        let result = hook.call_async(&mut self.store, (context, headers)).await;
+        let result = hook.call_async(self.component.store_mut(), (context, headers)).await;
 
         if result.is_err() {
-            self.poisoned = true;
+            self.component.poison();
         } else {
-            hook.post_return_async(&mut self.store).await?;
+            hook.post_return_async(self.component.store_mut()).await?;
         }
 
         result?.0?;
 
         // take the data back from the shared memory
-        let context = self.store.data_mut().take_resource(context_rep)?;
-        let headers = self.store.data_mut().take_resource(headers_rep)?;
+        let context = self.component.store_mut().data_mut().take_resource(context_rep)?;
+        let headers = self.component.store_mut().data_mut().take_resource(headers_rep)?;
 
         Ok((context, headers))
     }
@@ -254,8 +218,8 @@ impl ComponentInstance {
         let method = HttpMethod::from(method);
 
         // adds the data to the shared memory
-        let context = self.store.data_mut().push_resource(context)?;
-        let headers = self.store.data_mut().push_resource(headers)?;
+        let context = self.component.store_mut().data_mut().push_resource(context)?;
+        let headers = self.component.store_mut().data_mut().push_resource(headers)?;
 
         // we need to take the pointers now, because a resource is not Copy and we need
         // the pointers to get the data back from the shared memory.
@@ -263,20 +227,27 @@ impl ComponentInstance {
         let context_rep = context.rep();
 
         let result = hook
-            .call_async(&mut self.store, (context, subgraph_name, method, url, headers))
+            .call_async(
+                self.component.store_mut(),
+                (context, subgraph_name, method, url, headers),
+            )
             .await;
 
         if result.is_err() {
-            self.poisoned = true;
+            self.component.poison();
         } else {
-            hook.post_return_async(&mut self.store).await?;
+            hook.post_return_async(self.component.store_mut()).await?;
         }
 
         result?.0?;
 
         // take the data back from the shared memory
-        self.store.data_mut().take_resource::<SharedContext>(context_rep)?;
-        let headers = self.store.data_mut().take_resource(headers_rep)?;
+        self.component
+            .store_mut()
+            .data_mut()
+            .take_resource::<SharedContext>(context_rep)?;
+
+        let headers = self.component.store_mut().data_mut().take_resource(headers_rep)?;
 
         Ok(headers)
     }
@@ -556,25 +527,25 @@ impl ComponentInstance {
             return Ok(());
         };
 
-        let context = self.store.data_mut().push_resource(context)?;
+        let context = self.component.store_mut().data_mut().push_resource(context)?;
         let context_rep = context.rep();
 
-        let result = hook.call_async(&mut self.store, (context, arg)).await;
+        let result = hook.call_async(self.component.store_mut(), (context, arg)).await;
 
         // We check if the hook call trapped, and if so we mark the instance poisoned.
         //
         // If no traps, we mark this hook so it can be called again.
         if result.is_err() {
-            self.poisoned = true;
+            self.component.poison();
         } else {
-            hook.post_return_async(&mut self.store).await?;
+            hook.post_return_async(self.component.store_mut()).await?;
         }
 
         result?;
 
         // This is a bit ugly because we don't need it, but we need to clean the shared
         // resources before exiting or this will leak RAM.
-        let _: SharedContext = self.store.data_mut().take_resource(context_rep)?;
+        let _: SharedContext = self.component.store_mut().data_mut().take_resource(context_rep)?;
 
         Ok(())
     }
@@ -611,25 +582,25 @@ impl ComponentInstance {
             return Ok(None);
         };
 
-        let context = self.store.data_mut().push_resource(context)?;
+        let context = self.component.store_mut().data_mut().push_resource(context)?;
         let context_rep = context.rep();
 
-        let result = hook.call_async(&mut self.store, (context, arg)).await;
+        let result = hook.call_async(self.component.store_mut(), (context, arg)).await;
 
         // We check if the hook call trapped, and if so we mark the instance poisoned.
         //
         // If no traps, we mark this hook so it can be called again.
         if result.is_err() {
-            self.poisoned = true;
+            self.component.poison();
         } else {
-            hook.post_return_async(&mut self.store).await?;
+            hook.post_return_async(self.component.store_mut()).await?;
         }
 
         let result = result?.0;
 
         // This is a bit ugly because we don't need it, but we need to clean the shared
         // resources before exiting or this will leak RAM.
-        let _: SharedContext = self.store.data_mut().take_resource(context_rep)?;
+        let _: SharedContext = self.component.store_mut().data_mut().take_resource(context_rep)?;
 
         Ok(Some(result))
     }
@@ -667,25 +638,27 @@ impl ComponentInstance {
             return Ok(None);
         };
 
-        let context = self.store.data_mut().push_resource(context)?;
+        let context = self.component.store_mut().data_mut().push_resource(context)?;
         let context_rep = context.rep();
 
-        let result = hook.call_async(&mut self.store, (context, args.0, args.1)).await;
+        let result = hook
+            .call_async(self.component.store_mut(), (context, args.0, args.1))
+            .await;
 
         // We check if the hook call trapped, and if so we mark the instance poisoned.
         //
         // If no traps, we mark this hook so it can be called again.
         if result.is_err() {
-            self.poisoned = true;
+            self.component.poison();
         } else {
-            hook.post_return_async(&mut self.store).await?;
+            hook.post_return_async(self.component.store_mut()).await?;
         }
 
         let result = result?.0;
 
         // This is a bit ugly because we don't need it, but we need to clean the shared
         // resources before exiting or this will leak RAM.
-        let _: SharedContext = self.store.data_mut().take_resource(context_rep)?;
+        let _: SharedContext = self.component.store_mut().data_mut().take_resource(context_rep)?;
 
         Ok(Some(result))
     }
@@ -724,27 +697,27 @@ impl ComponentInstance {
             return Ok(None);
         };
 
-        let context = self.store.data_mut().push_resource(context)?;
+        let context = self.component.store_mut().data_mut().push_resource(context)?;
         let context_rep = context.rep();
 
         let result = hook
-            .call_async(&mut self.store, (context, args.0, args.1, args.2))
+            .call_async(self.component.store_mut(), (context, args.0, args.1, args.2))
             .await;
 
         // We check if the hook call trapped, and if so we mark the instance poisoned.
         //
         // If no traps, we mark this hook so it can be called again.
         if result.is_err() {
-            self.poisoned = true;
+            self.component.poison();
         } else {
-            hook.post_return_async(&mut self.store).await?;
+            hook.post_return_async(self.component.store_mut()).await?;
         }
 
         let result = result?.0;
 
         // This is a bit ugly because we don't need it, but we need to clean the shared
         // resources before exiting or this will leak RAM.
-        let _: SharedContext = self.store.data_mut().take_resource(context_rep)?;
+        let _: SharedContext = self.component.store_mut().data_mut().take_resource(context_rep)?;
 
         Ok(Some(result))
     }
@@ -773,44 +746,17 @@ impl ComponentInstance {
             return None;
         }
 
-        let function_name = hook.name();
-
-        if let Some((_, cached)) = self.function_cache.iter().find(|(name, _)| *name == function_name) {
-            return cached.as_ref().and_then(|func| func.downcast_ref().copied());
-        }
-
-        match self.instance.get_typed_func(&mut self.store, function_name) {
-            Ok(hook) => {
-                tracing::debug!("instantized the {function_name} hook Wasm function");
-
-                self.function_cache.push((function_name, Some(Box::new(hook))));
-
-                Some(hook)
-            }
-            Err(e) => {
-                // Shouldn't happen, so we keep spamming errors to be sure it's seen.
-                tracing::error!("error instantizing the {function_name} hook Wasm function: {e}");
-
-                None
-            }
-        }
+        self.component.get_typed_func(hook.name())
     }
 
-    /// Resets the component instance for reuse.
-    ///
-    /// This function sets the fuel of the store to its maximum value, allowing
-    /// the instance to be recycled for future calls. If the instance has
-    /// encountered a fatal error (marked as poisoned), this function will
-    /// return an error instead.
-    ///
-    /// This function must be called before reusing for another request.
+    /// Checks if the instance can be recycled.
     ///
     /// # Returns
     ///
     /// A `Result` indicating success or failure. On success, it returns `Ok(())`.
     /// On failure, it returns an error if the instance is poisoned.
     pub fn recycle(&mut self) -> crate::Result<()> {
-        if self.poisoned {
+        if self.component.poisoned() {
             return Err(anyhow!("this instance is poisoned").into());
         }
 

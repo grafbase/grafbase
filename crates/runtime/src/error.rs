@@ -12,6 +12,7 @@ pub enum PartialErrorCode {
     BadRequest,
     Unauthorized,
     HookError,
+    ExtensionError,
 }
 
 pub struct ErrorResponse {
@@ -68,6 +69,14 @@ impl PartialGraphqlError {
         PartialGraphqlError {
             message: Cow::Borrowed("Internal hook error"),
             code: PartialErrorCode::HookError,
+            extensions: Vec::new(),
+        }
+    }
+
+    pub fn internal_extension_error() -> Self {
+        PartialGraphqlError {
+            message: Cow::Borrowed("Internal extension error"),
+            code: PartialErrorCode::ExtensionError,
             extensions: Vec::new(),
         }
     }

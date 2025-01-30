@@ -41,6 +41,20 @@ world sdk {
         resolver
     }
 
+    // A sender for the system access log.
+    resource access-log {
+        // Sends the data to the access log.
+        send: static func(data: list<u8>) -> result<_, log-error>;
+    }
+
+    // Error variant sent if failing to write to access log.
+    variant log-error {
+        // The log channel is over capacity. The data is returned to the caller.
+        channel-full(list<u8>),
+        // The channel is closed.
+        channel-closed,
+    }
+
     // A HTTP client.
     resource http-client {
         // Executes a request and returns the response, yielding the current future until finished.

@@ -1,7 +1,7 @@
 use gateway_config::{AccessLogsConfig, RotateMode};
 use grafbase_telemetry::otel::opentelemetry::metrics::UpDownCounter;
 use rolling_logger::{RollingLogger, RotateStrategy};
-use runtime_local::hooks::{AccessLogMessage, ChannelLogReceiver};
+use runtime_local::wasi::hooks::{AccessLogMessage, ChannelLogReceiver};
 use std::io::Write;
 
 /// Starts the access logging process.

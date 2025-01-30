@@ -5,7 +5,7 @@ use wasi_component_loader::{
     HookImplementation, RequestError, SubgraphRequestExecutionKind, SubgraphResponse,
 };
 
-use crate::HooksWasi;
+use crate::wasi::hooks::HooksWasi;
 
 use super::Context;
 

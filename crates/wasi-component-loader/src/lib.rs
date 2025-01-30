@@ -13,8 +13,8 @@ mod config;
 mod context;
 mod error;
 mod headers;
-mod hooks;
 mod http_client;
+mod instance;
 mod names;
 mod state;
 
@@ -22,18 +22,21 @@ mod state;
 mod tests;
 
 pub use access_log::{create_log_channel, AccessLogMessage, ChannelLogReceiver, ChannelLogSender};
-pub use config::Config;
+pub use config::{ExtensionsConfig, HooksWasiConfig};
 pub use context::{ContextMap, SharedContext};
 pub use crossbeam::channel::Sender;
 pub use crossbeam::sync::WaitGroup;
+use either::Either;
 pub use error::{guest::GuestError, Error, GatewayError};
-pub use hooks::{
+use gateway_config::WasiExtensionsConfig;
+pub use instance::extensions::{Directive, ExtensionType, ExtensionsComponentInstance, FieldDefinition, FieldOutput};
+pub use instance::hooks::{
     authorization::{EdgeDefinition, NodeDefinition},
     response::{
         CacheStatus, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, FieldError,
         GraphqlResponseStatus, RequestError, SubgraphRequestExecutionKind, SubgraphResponse,
     },
-    ComponentInstance, HookImplementation,
+    HookImplementation, HooksComponentInstance,
 };
 
 /// The crate result type
@@ -45,7 +48,7 @@ pub type GatewayResult<T> = std::result::Result<T, GatewayError>;
 
 use state::WasiState;
 use wasmtime::{
-    component::{Component, Linker},
+    component::{Component, Linker, LinkerInstance},
     Engine,
 };
 
@@ -63,46 +66,60 @@ pub struct ComponentLoader {
     /// The WebAssembly component being loaded.
     component: Component,
     /// Configuration settings for the component loader.
-    config: Config,
+    config: Either<HooksWasiConfig, (String, WasiExtensionsConfig)>,
 }
 
 impl ComponentLoader {
-    /// Creates a new instance of `ComponentLoader` with the specified configuration.
-    ///
-    /// This function initializes the Wasmtime engine and linker, loads the WebAssembly
-    /// component from the specified location in the configuration, and sets up the necessary
-    /// WASI interfaces. If the component is loaded successfully, it returns an instance of
-    /// `ComponentLoader`; otherwise, it returns `None`.
-    ///
-    /// # Arguments
-    ///
-    /// - `config`: The configuration settings for the component loader.
-    ///
-    /// # Returns
-    ///
-    /// Returns a `Result` containing an `Option<Self>`. The `Option` will be `Some` if the
-    /// component is loaded successfully, or `None` if there was an error during loading.
-    pub fn new(config: Config) -> Result<Option<Self>> {
+    /// Creates a new instance of `ComponentLoader` for gateway hooks with the specified
+    /// configuration.
+    pub fn hooks(config: HooksWasiConfig) -> Result<Option<Self>> {
+        let instantiate = |mut instance: LinkerInstance<'_, WasiState>| -> Result<()> {
+            headers::inject_mapping(&mut instance)?;
+            context::inject_mapping(&mut instance)?;
+            context::inject_shared_mapping(&mut instance)?;
+            http_client::inject_mapping(&mut instance)?;
+            access_log::inject_mapping(&mut instance)?;
+
+            Ok(())
+        };
+
+        Self::new(Either::Left(config), instantiate)
+    }
+
+    /// Creates a new instance of `ComponentLoader` for gateway extensions with the specified
+    /// configuration.
+    pub fn extensions(extension_name: String, config: impl Into<WasiExtensionsConfig>) -> Result<Option<Self>> {
+        let instantiate = |mut instance: LinkerInstance<'_, WasiState>| -> Result<()> {
+            context::inject_shared_mapping(&mut instance)?;
+            http_client::inject_mapping(&mut instance)?;
+            access_log::inject_mapping(&mut instance)?;
+
+            Ok(())
+        };
+
+        Self::new(Either::Right((extension_name, config.into())), instantiate)
+    }
+
+    fn new<F>(config: Either<HooksWasiConfig, (String, WasiExtensionsConfig)>, instantiate: F) -> Result<Option<Self>>
+    where
+        F: FnOnce(LinkerInstance<'_, WasiState>) -> Result<()>,
+    {
         let mut wasm_config = wasmtime::Config::new();
 
-        // Read more on WebAssembly component model:
-        // https://component-model.bytecodealliance.org/
         wasm_config.wasm_component_model(true);
-
-        // Read more on Wasmtime async functions and fuel consumption:
-        // https://docs.rs/wasmtime/latest/wasmtime/struct.Config.html#method.async_support
         wasm_config.async_support(true);
-
-        // https://github.com/bytecodealliance/wasmtime/issues/8897
-        #[cfg(not(target_os = "windows"))]
-        wasm_config.native_unwind_info(false);
 
         let engine = Engine::new(&wasm_config)?;
 
-        let this = match Component::from_file(&engine, &config.location) {
+        let (networking, location) = match config {
+            Either::Left(ref hooks) => (hooks.networking, hooks.location.clone()),
+            Either::Right((_, ref config)) => (config.networking, config.location.clone()),
+        };
+
+        let this = match Component::from_file(&engine, &location) {
             Ok(component) => {
                 tracing::debug!(
-                    location = config.location.to_str(),
+                    location = location.to_str(),
                     "loaded the provided web assembly component successfully",
                 );
 
@@ -111,18 +128,12 @@ impl ComponentLoader {
                 // adds the wasi interfaces to our component
                 wasmtime_wasi::add_to_linker_async(&mut linker)?;
 
-                if config.networking {
+                if networking {
                     // adds the wasi http interfaces to our component
                     wasmtime_wasi_http::add_only_http_to_linker_async(&mut linker)?;
                 }
 
-                let mut instance = linker.root();
-
-                headers::inject_mapping(&mut instance)?;
-                context::inject_mapping(&mut instance)?;
-                context::inject_shared_mapping(&mut instance)?;
-                http_client::inject_mapping(&mut instance)?;
-                access_log::inject_mapping(&mut instance)?;
+                instantiate(linker.root())?;
 
                 Some(Self {
                     engine,
@@ -133,7 +144,7 @@ impl ComponentLoader {
             }
             Err(e) => {
                 tracing::error!(
-                    location = config.location.to_str(),
+                    location = location.to_str(),
                     "error loading web assembly component: {e}",
                 );
 
@@ -148,7 +159,7 @@ impl ComponentLoader {
     ///
     /// This function provides access to the `Config` structure, which contains the
     /// configuration settings that were used to initialize the `ComponentLoader`.
-    pub(crate) fn config(&self) -> &Config {
+    pub(crate) fn config(&self) -> &Either<HooksWasiConfig, (String, WasiExtensionsConfig)> {
         &self.config
     }
 

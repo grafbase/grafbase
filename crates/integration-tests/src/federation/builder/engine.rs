@@ -5,10 +5,7 @@ use engine_config_builder::build_with_toml_config;
 use federated_graph::FederatedGraph;
 use grafbase_telemetry::metrics::meter_from_global_provider;
 use runtime::hooks::DynamicHooks;
-use runtime_local::{
-    hooks::{self, ChannelLogSender},
-    ComponentLoader, HooksWasi,
-};
+use runtime_local::wasi::hooks::{self, ChannelLogSender, ComponentLoader, HooksWasi};
 
 use engine::Engine;
 
@@ -88,7 +85,7 @@ async fn update_runtime_with_toml_config(
     access_log_sender: ChannelLogSender,
 ) {
     if let Some(hooks_config) = config.hooks.clone() {
-        let loader = ComponentLoader::new(hooks_config)
+        let loader = ComponentLoader::hooks(hooks_config)
             .ok()
             .flatten()
             .expect("Wasm examples weren't built, please run:\ncd crates/wasi-component-loader/examples && cargo build --target wasm32-wasip2");

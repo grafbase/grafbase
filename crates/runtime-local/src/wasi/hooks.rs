@@ -23,9 +23,11 @@ use tracing::{info_span, Instrument, Span};
 use url::Url;
 use wasi_component_loader::HookImplementation;
 pub use wasi_component_loader::{
-    create_log_channel, AccessLogMessage, ChannelLogReceiver, ChannelLogSender, ComponentLoader,
-    Config as HooksWasiConfig, GuestError, SharedContext,
+    create_log_channel, AccessLogMessage, ChannelLogReceiver, ChannelLogSender, ComponentLoader, GuestError,
+    HooksWasiConfig as Config, SharedContext,
 };
+
+use super::guest_error_as_gql;
 
 #[derive(Clone)]
 pub struct HooksWasi(Option<Arc<HooksWasiInner>>);
@@ -309,23 +311,5 @@ impl Hooks for HooksWasi {
         request: runtime::hooks::ExecutedHttpRequest<Self::OnOperationResponseOutput>,
     ) -> impl Future<Output = Result<(), PartialGraphqlError>> + Send {
         HooksWasi::on_http_response(self, context, request)
-    }
-}
-
-fn guest_error_as_gql(error: wasi_component_loader::GuestError, code: PartialErrorCode) -> PartialGraphqlError {
-    let extensions = error
-        .extensions
-        .into_iter()
-        .map(|(key, value)| {
-            let value = serde_json::from_str(&value).unwrap_or(serde_json::Value::String(value));
-
-            (key.into(), value)
-        })
-        .collect();
-
-    PartialGraphqlError {
-        message: error.message.into(),
-        code,
-        extensions,
     }
 }

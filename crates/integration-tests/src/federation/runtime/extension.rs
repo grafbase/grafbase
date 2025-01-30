@@ -38,7 +38,6 @@ impl TestExtensions {
 pub trait TestFieldResolvereExtension: Send + Sync + 'static {
     async fn resolve<'a>(
         &self,
-        subgraph_directives: Vec<ExtensionDirective<'a, serde_json::Value>>,
         context: &DynHookContext,
         field: EdgeDefinition<'a>,
         directive: ExtensionDirective<'a, serde_json::Value>,
@@ -74,7 +73,6 @@ impl runtime::extension::ExtensionRuntime for TestExtensions {
     async fn resolve_field<'a>(
         &self,
         id: ExtensionId,
-        subgraph_directives: impl IntoIterator<Item = ExtensionDirective<'a, impl Anything<'a>>> + Send,
         context: &Self::SharedContext,
         field: EdgeDefinition<'a>,
         directive: ExtensionDirective<'a, impl Anything<'a>>,
@@ -86,13 +84,6 @@ impl runtime::extension::ExtensionRuntime for TestExtensions {
 
         resolver
             .resolve(
-                subgraph_directives
-                    .into_iter()
-                    .map(|ExtensionDirective { name, static_arguments }| ExtensionDirective {
-                        name,
-                        static_arguments: serde_json::Value::deserialize(static_arguments).unwrap(),
-                    })
-                    .collect(),
                 context,
                 field,
                 ExtensionDirective {

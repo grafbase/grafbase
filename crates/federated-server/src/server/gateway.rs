@@ -3,7 +3,7 @@ use engine::{Engine, SchemaVersion};
 use gateway_config::Config;
 use graphql_composition::FederatedGraph;
 use runtime::trusted_documents_client::{Client, TrustedDocumentsEnforcementMode};
-use runtime_local::HooksWasi;
+use runtime_local::wasi::{extensions::WasiExtensions, hooks::HooksWasi};
 use std::{path::PathBuf, sync::Arc};
 use tokio::sync::watch;
 use ulid::Ulid;
@@ -51,6 +51,7 @@ pub(super) async fn generate(
     gateway_config: &Config,
     hot_reload_config_path: Option<PathBuf>,
     hooks: HooksWasi,
+    extensions: WasiExtensions,
 ) -> crate::Result<Engine<GatewayRuntime>> {
     let Graph {
         federated_sdl,
@@ -69,7 +70,15 @@ pub(super) async fn generate(
         engine_config_builder::build_with_toml_config(gateway_config, graph)
     };
 
-    let mut runtime = GatewayRuntime::build(gateway_config, hot_reload_config_path, &config, version_id, hooks).await?;
+    let mut runtime = GatewayRuntime::build(
+        gateway_config,
+        hot_reload_config_path,
+        &config,
+        version_id,
+        hooks,
+        extensions,
+    )
+    .await?;
 
     if let Some(trusted_documents) = trusted_documents {
         runtime.trusted_documents = trusted_documents;
