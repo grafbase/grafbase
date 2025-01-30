@@ -272,6 +272,7 @@ impl Schema {
             let id = VirtualSubgraphId::from(i);
             Subgraph::from(id.walk(self))
         });
+
         self.graphql_endpoints()
             .map(Into::into)
             .chain(virt)

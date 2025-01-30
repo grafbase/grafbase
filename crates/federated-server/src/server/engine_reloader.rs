@@ -2,7 +2,7 @@ use std::{path::PathBuf, sync::Arc};
 
 use engine::{CachedOperation, Engine};
 use futures_lite::{pin, StreamExt};
-use runtime_local::wasi::{extensions::WasiExtensions, hooks::HooksWasi};
+use runtime_local::wasi::hooks::{ChannelLogSender, HooksWasi};
 use tokio::{
     sync::{mpsc, watch},
     task::JoinHandle,
@@ -39,12 +39,12 @@ impl EngineReloader {
         // functionality into gateway_config above at some point...
         hot_reload_config_path: Option<PathBuf>,
         hooks: HooksWasi,
-        extensions: WasiExtensions,
+        access_log: ChannelLogSender,
     ) -> crate::Result<Self> {
         let context = Context {
             hot_reload_config_path,
             hooks,
-            extensions,
+            access_log,
         };
 
         tracing::debug!("Waiting for a graph...");
@@ -87,7 +87,7 @@ impl EngineReloader {
 struct Context {
     hot_reload_config_path: Option<PathBuf>,
     hooks: HooksWasi,
-    extensions: WasiExtensions,
+    access_log: ChannelLogSender,
 }
 
 async fn update_loop(
@@ -146,7 +146,7 @@ async fn build_new_engine(
         &config,
         context.hot_reload_config_path,
         context.hooks,
-        context.extensions,
+        context.access_log,
     )
     .await?;
 

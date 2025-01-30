@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 pub use extension::*;
 
 #[derive(Clone, Copy, PartialEq, Hash, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize, id_derives::Id)]
@@ -12,7 +14,7 @@ pub struct ExtensionCatalog {
 pub struct Extension {
     pub id: Id,
     pub manifest: Manifest,
-    pub wasm: Vec<u8>,
+    pub wasm_path: PathBuf,
 }
 
 #[derive(Default)]
@@ -52,5 +54,18 @@ impl ExtensionCatalog {
     pub fn push(&mut self, extension: Extension) -> ExtensionId {
         self.extensions.push(extension);
         (self.extensions.len() - 1).into()
+    }
+
+    pub fn iter(&self) -> impl ExactSizeIterator<Item = &Extension> {
+        self.extensions.iter()
+    }
+
+    pub fn len(&self) -> usize {
+        self.extensions.len()
+    }
+
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 }

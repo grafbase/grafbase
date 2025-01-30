@@ -12,9 +12,14 @@ struct RestExtension {
     filters: HashMap<String, Filter>,
 }
 
+struct RestEndpoint {
+    subgraph_name: String,
+    args: RestEndpointArgs,
+}
+
 #[derive(serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct RestEndpoint {
+struct RestEndpointArgs {
     name: String,
     http: HttpSettings,
 }
@@ -59,10 +64,19 @@ impl Extension for RestExtension {
         let mut endpoints = Vec::<RestEndpoint>::new();
 
         for directive in schema_directives {
-            endpoints.push(directive.arguments()?);
+            let endpoint = RestEndpoint {
+                subgraph_name: directive.subgraph_name().to_string(),
+                args: directive.arguments()?,
+            };
+
+            endpoints.push(endpoint);
         }
 
-        endpoints.sort_by(|a, b| a.name.cmp(&b.name));
+        endpoints.sort_by(|a, b| {
+            let by_name = a.args.name.cmp(&b.args.name);
+            let by_subgraph = a.subgraph_name.cmp(&b.subgraph_name);
+            by_name.then(by_subgraph)
+        });
 
         Ok(Self {
             endpoints,
@@ -72,9 +86,14 @@ impl Extension for RestExtension {
 }
 
 impl RestExtension {
-    pub fn get_endpoint(&self, endpoint: &str) -> Option<&RestEndpoint> {
+    pub fn get_endpoint(&self, name: &str, subgraph_name: &str) -> Option<&RestEndpoint> {
         self.endpoints
-            .binary_search_by(|e| e.name.as_str().cmp(endpoint))
+            .binary_search_by(|e| {
+                let by_name = e.args.name.as_str().cmp(name);
+                let by_subgraph = e.subgraph_name.as_str().cmp(subgraph_name);
+
+                by_name.then(by_subgraph)
+            })
             .map(|i| &self.endpoints[i])
             .ok()
     }
@@ -121,14 +140,14 @@ impl Resolver for RestExtension {
             message: format!("Could not parse directive arguments: {e}"),
         })?;
 
-        let Some(endpoint) = self.get_endpoint(rest.endpoint) else {
+        let Some(endpoint) = self.get_endpoint(rest.endpoint, directive.subgraph_name()) else {
             return Err(Error {
                 extensions: Vec::new(),
                 message: format!("Endpoint not found: {}", rest.endpoint),
             });
         };
 
-        let url = Url::parse(&format!("{}/{}", endpoint.http.base_url, rest.http.path)).map_err(|e| Error {
+        let url = Url::parse(&format!("{}/{}", endpoint.args.http.base_url, rest.http.path)).map_err(|e| Error {
             extensions: Vec::new(),
             message: format!("Could not parse URL: {e}"),
         })?;

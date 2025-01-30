@@ -206,7 +206,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "grafbase-sdk-derive",
  "http",
@@ -580,7 +580,7 @@ dependencies = [
 
 [[package]]
 name = "rest"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "grafbase-sdk",
  "http",

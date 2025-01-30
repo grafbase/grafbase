@@ -12,10 +12,7 @@ mod trusted_documents_client;
 pub use graph_fetch_method::GraphFetchMethod;
 pub use state::ServerState;
 
-use runtime_local::wasi::{
-    extensions::WasiExtensions,
-    hooks::{self, ComponentLoader, HooksWasi},
-};
+use runtime_local::wasi::hooks::{self, ComponentLoader, HooksWasi};
 use ulid::Ulid;
 
 use axum::{extract::State, response::IntoResponse, routing::get, Router};
@@ -113,10 +110,6 @@ pub async fn serve(
     let max_pool_size = config.hooks.as_ref().and_then(|config| config.max_pool_size);
     let hooks = HooksWasi::new(hooks_loader, max_pool_size, &meter, access_log_sender.clone()).await;
 
-    // TODO: load the extensions
-    let extensions = WasiExtensions::new(access_log_sender.clone(), Vec::new())
-        .map_err(|e| crate::Error::InternalError(e.to_string()))?;
-
     let graph_stream = fetch_method.into_stream().await?;
 
     let update_handler = EngineReloader::spawn(
@@ -124,7 +117,7 @@ pub async fn serve(
         graph_stream,
         config_hot_reload.then_some(config_path).flatten(),
         hooks.clone(),
-        extensions,
+        access_log_sender.clone(),
     )
     .await?;
 

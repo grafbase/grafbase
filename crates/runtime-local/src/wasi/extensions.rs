@@ -1,6 +1,6 @@
 mod pool;
 
-use engine_schema::SubgraphId;
+use engine_schema::Subgraph;
 use extension_catalog::ExtensionId;
 use gateway_config::WasiExtensionsConfig;
 use runtime::{
@@ -9,15 +9,14 @@ use runtime::{
     hooks::{Anything, EdgeDefinition},
 };
 use std::{collections::HashMap, sync::Arc};
-use wasi_component_loader::{
-    ChannelLogSender, ComponentLoader, Directive, ExtensionType, FieldDefinition, SharedContext,
-};
+use wasi_component_loader::{ChannelLogSender, ComponentLoader, FieldDefinition, SharedContext};
+pub use wasi_component_loader::{Directive, ExtensionType};
 
 use pool::Pool;
 
 use super::guest_error_as_gql;
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct WasiExtensions(Option<Arc<WasiExtensionsInner>>);
 
 impl WasiExtensions {
@@ -57,7 +56,7 @@ impl ExtensionRuntime for WasiExtensions {
     async fn resolve_field<'a>(
         &self,
         extension_id: ExtensionId,
-        _subgraph_id: SubgraphId,
+        subgraph: Subgraph<'a>,
         context: &Self::SharedContext,
         field: EdgeDefinition<'a>,
         directive: ExtensionDirective<'a, impl Anything<'a>>,
@@ -73,7 +72,11 @@ impl ExtensionRuntime for WasiExtensions {
 
         let mut instance = pool.get().await;
 
-        let directive = Directive::new(directive.name.to_string(), &directive.static_arguments);
+        let directive = Directive::new(
+            directive.name.to_string(),
+            subgraph.name().to_string(),
+            &directive.static_arguments,
+        );
 
         let definition = FieldDefinition {
             type_name: field.parent_type_name.to_string(),

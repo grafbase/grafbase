@@ -26,7 +26,7 @@ fn init() {
     license = "Apache-2.0"
 
     [dependencies]
-    grafbase-sdk = "0.1.2"
+    grafbase-sdk = "0.1.3"
 
     [lib]
     crate-type = ["cdylib"]
