@@ -95,7 +95,7 @@ resources:
     cpu: 4
     memory: 1Gi
   limits:
-    cpu: 4
+    cpu: 10
     memory: 2Gi
 
 # https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/
