@@ -73,7 +73,7 @@ impl SubgraphId {
 #[derive(Clone, Copy)]
 pub enum Subgraph<'a> {
     GraphqlEndpoint(GraphqlEndpoint<'a>),
-    Introspection,
+    Introspection(&'a Schema),
     Virtual(VirtualSubgraph<'a>),
 }
 
@@ -81,7 +81,7 @@ impl std::fmt::Debug for Subgraph<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Subgraph::GraphqlEndpoint(variant) => variant.fmt(f),
-            Subgraph::Introspection => write!(f, "Introspection"),
+            Subgraph::Introspection(_) => write!(f, "Introspection"),
             Subgraph::Virtual(variant) => variant.fmt(f),
         }
     }
@@ -111,7 +111,7 @@ impl<'a> Walk<&'a Schema> for SubgraphId {
         let schema: &'a Schema = schema.into();
         match self {
             SubgraphId::GraphqlEndpoint(id) => Subgraph::GraphqlEndpoint(id.walk(schema)),
-            SubgraphId::Introspection => Subgraph::Introspection,
+            SubgraphId::Introspection => Subgraph::Introspection(schema),
             SubgraphId::Virtual(id) => Subgraph::Virtual(id.walk(schema)),
         }
     }
@@ -121,7 +121,7 @@ impl<'a> Subgraph<'a> {
     pub fn id(&self) -> SubgraphId {
         match self {
             Subgraph::GraphqlEndpoint(walker) => SubgraphId::GraphqlEndpoint(walker.id),
-            Subgraph::Introspection => SubgraphId::Introspection,
+            Subgraph::Introspection(_) => SubgraphId::Introspection,
             Subgraph::Virtual(walker) => SubgraphId::Virtual(walker.id),
         }
     }

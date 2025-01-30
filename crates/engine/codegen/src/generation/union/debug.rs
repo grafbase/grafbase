@@ -6,6 +6,7 @@ use super::VariantContext;
 
 pub struct DebugVariantBranch<'a> {
     pub variant: VariantContext<'a>,
+    pub is_walker: bool,
     pub enum_name: &'a str,
 }
 
@@ -17,6 +18,11 @@ impl quote::ToTokens for DebugVariantBranch<'_> {
         let tt = if self.variant.value.is_some() {
             quote! {
                 #enum_::#variant(variant) => variant.fmt(f),
+            }
+        } else if self.is_walker {
+            let name = proc_macro2::Literal::string(&self.variant.name);
+            quote! {
+                #enum_::#variant(_) => write!(f, #name),
             }
         } else {
             let name = proc_macro2::Literal::string(&self.variant.name);

@@ -53,6 +53,7 @@ pub fn generate_walker(
 
     let debug_variants = variants.iter().copied().map(|variant| DebugVariantBranch {
         variant,
+        is_walker: true,
         enum_name: union.walker_enum_name(),
     });
     code_sections.push(quote! {
@@ -238,7 +239,8 @@ impl quote::ToTokens for WalkerVariant<'_> {
         tokens.append_all(if let Some(ty) = self.0.value_type() {
             quote! { #variant(#ty) }
         } else {
-            quote! { #variant }
+            let context_type = &self.0.domain.context_type;
+            quote! { #variant(#context_type) }
         })
     }
 }
@@ -279,7 +281,7 @@ impl quote::ToTokens for RecordUnionWalkerBranch<'_> {
                 }
             }
         } else {
-            quote! { #enum_::#variant => #walker::#variant }
+            quote! { #enum_::#variant => #walker::#variant(#ctx) }
         };
         tokens.append_all(tt);
     }
@@ -318,7 +320,7 @@ impl quote::ToTokens for IdUnionWalkerBranch<'_> {
             }
             _ => {
                 quote! {
-                    #enum_::#variant => #walker::#variant
+                    #enum_::#variant => #walker::#variant(#ctx)
                 }
             }
         };
@@ -377,7 +379,7 @@ impl<'a> IdUnionWalkerIdMethodBranch<'a> {
             }
             None => {
                 quote! {
-                    #walker::#variant => #enum_::#variant
+                    #walker::#variant(_) => #enum_::#variant
                 }
             }
         };
@@ -447,7 +449,7 @@ impl quote::ToTokens for AsVariantWalkerVariant<'_> {
         } else {
             tokens.append_all(quote! {
                 pub #public fn #is_variant(&self) -> bool {
-                    matches!(self.variant(), #enum_::#variant)
+                    matches!(self.variant(), #enum_::#variant(_))
                 }
             });
         }

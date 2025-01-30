@@ -27,7 +27,7 @@ mod union;
 pub use self::builder::BuildError;
 use config::ResponseExtensionConfig;
 pub use directive::*;
-use extension_catalog::{ExtensionCatalog, ExtensionId};
+use extension_catalog::ExtensionCatalog;
 pub use field_set::*;
 pub use generated::*;
 use id_newtypes::{BitSet, IdRange};
@@ -112,23 +112,6 @@ impl Schema {
         extension_catalog: &ExtensionCatalog,
     ) -> Result<Schema, BuildError> {
         builder::build(config, version, extension_catalog)
-    }
-
-    pub fn extension_schema_directives(
-        &self,
-        subgraph_id: SubgraphId,
-        extension_id: ExtensionId,
-    ) -> impl Iterator<Item = ExtensionDirective<'_>> + '_ {
-        static EMPTY_DIRECTIVES: &[TypeSystemDirectiveId] = &[];
-
-        let ids = match subgraph_id {
-            SubgraphId::GraphqlEndpoint(id) => &self[id].schema_directive_ids,
-            SubgraphId::Introspection => EMPTY_DIRECTIVES,
-            SubgraphId::Virtual(id) => &self[id].schema_directive_ids,
-        };
-        ids.walk(self)
-            .filter_map(|dir| dir.as_extension())
-            .filter(move |dir| dir.extension_id == extension_id)
     }
 }
 
@@ -282,6 +265,17 @@ impl Schema {
             let id = GraphqlEndpointId::from(i);
             id.walk(self)
         })
+    }
+
+    pub fn subgraphs(&self) -> impl Iterator<Item = Subgraph<'_>> + '_ {
+        let virt = (0..self.subgraphs.graphql_endpoints.len()).map(move |i| {
+            let id = VirtualSubgraphId::from(i);
+            Subgraph::from(id.walk(self))
+        });
+        self.graphql_endpoints()
+            .map(Into::into)
+            .chain(virt)
+            .chain(std::iter::once(Subgraph::Introspection(self)))
     }
 }
 

@@ -88,7 +88,7 @@ pub enum ResolverDefinitionVariant<'a> {
     FieldResolverExtension(FieldResolverExtensionDefinition<'a>),
     GraphqlFederationEntity(GraphqlFederationEntityResolverDefinition<'a>),
     GraphqlRootField(GraphqlRootFieldResolverDefinition<'a>),
-    Introspection,
+    Introspection(&'a Schema),
 }
 
 impl std::fmt::Debug for ResolverDefinitionVariant<'_> {
@@ -97,7 +97,7 @@ impl std::fmt::Debug for ResolverDefinitionVariant<'_> {
             ResolverDefinitionVariant::FieldResolverExtension(variant) => variant.fmt(f),
             ResolverDefinitionVariant::GraphqlFederationEntity(variant) => variant.fmt(f),
             ResolverDefinitionVariant::GraphqlRootField(variant) => variant.fmt(f),
-            ResolverDefinitionVariant::Introspection => write!(f, "Introspection"),
+            ResolverDefinitionVariant::Introspection(_) => write!(f, "Introspection"),
         }
     }
 }
@@ -126,7 +126,7 @@ impl<'a> ResolverDefinition<'a> {
             ResolverDefinitionRecord::GraphqlRootField(item) => {
                 ResolverDefinitionVariant::GraphqlRootField(item.walk(schema))
             }
-            ResolverDefinitionRecord::Introspection => ResolverDefinitionVariant::Introspection,
+            ResolverDefinitionRecord::Introspection => ResolverDefinitionVariant::Introspection(schema),
         }
     }
     pub fn is_field_resolver_extension(&self) -> bool {
@@ -157,7 +157,7 @@ impl<'a> ResolverDefinition<'a> {
         }
     }
     pub fn is_introspection(&self) -> bool {
-        matches!(self.variant(), ResolverDefinitionVariant::Introspection)
+        matches!(self.variant(), ResolverDefinitionVariant::Introspection(_))
     }
 }
 

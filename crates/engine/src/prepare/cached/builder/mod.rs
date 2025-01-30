@@ -323,7 +323,7 @@ impl<'a> Solver<'a> {
                 let definition = self.output.query_plan[field_id].definition_id.walk(self.schema);
                 for directive in definition.directives() {
                     let rule = match directive {
-                        TypeSystemDirective::Authenticated => Rule::Query(QueryModifierRule::Authenticated),
+                        TypeSystemDirective::Authenticated(_) => Rule::Query(QueryModifierRule::Authenticated),
                         TypeSystemDirective::Authorized(dir) => {
                             if dir.node_id.is_some() {
                                 if self.output.query_plan[field_id].output_id.is_none() {
@@ -419,7 +419,7 @@ impl<'a> Solver<'a> {
                 let output_definition = definition.ty().definition();
                 for directive in output_definition.directives() {
                     let rule = match directive {
-                        TypeSystemDirective::Authenticated => Rule::Query(QueryModifierRule::Authenticated),
+                        TypeSystemDirective::Authenticated(_) => Rule::Query(QueryModifierRule::Authenticated),
                         TypeSystemDirective::Authorized(dir) => {
                             if dir.fields_id.is_some() {
                                 Rule::Resp(ResponseModifierRule::AuthorizedEdgeChild {
@@ -478,7 +478,7 @@ impl<'a> Solver<'a> {
 
         for directive in self.output.operation.root_object_id.walk(self.schema).directives() {
             let rule = match directive {
-                TypeSystemDirective::Authenticated => QueryModifierRule::Authenticated,
+                TypeSystemDirective::Authenticated(_) => QueryModifierRule::Authenticated,
                 TypeSystemDirective::Authorized(dir) => QueryModifierRule::AuthorizedDefinition {
                     directive_id: dir.id,
                     definition_id: self.output.operation.root_object_id.into(),

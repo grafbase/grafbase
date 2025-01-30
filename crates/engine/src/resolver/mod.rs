@@ -74,7 +74,7 @@ pub(crate) enum Resolver {
 impl Resolver {
     pub fn prepare(operation_type: OperationType, plan_query_partition: PlanQueryPartition<'_>) -> PlanResult<Self> {
         match plan_query_partition.resolver_definition().variant() {
-            ResolverDefinitionVariant::Introspection => Ok(Resolver::Introspection(IntrospectionResolver)),
+            ResolverDefinitionVariant::Introspection(_) => Ok(Resolver::Introspection(IntrospectionResolver)),
             ResolverDefinitionVariant::GraphqlRootField(definition) => {
                 GraphqlResolver::prepare(definition, operation_type, plan_query_partition)
             }

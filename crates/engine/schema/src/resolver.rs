@@ -30,7 +30,7 @@ impl<'a> ResolverDefinition<'a> {
                 SubgraphId::GraphqlEndpoint(resolver.endpoint_id)
             }
             ResolverDefinitionVariant::GraphqlRootField(resolver) => SubgraphId::GraphqlEndpoint(resolver.endpoint_id),
-            ResolverDefinitionVariant::Introspection => SubgraphId::Introspection,
+            ResolverDefinitionVariant::Introspection(_) => SubgraphId::Introspection,
             ResolverDefinitionVariant::FieldResolverExtension(resolver) => resolver.directive().subgraph_id,
         }
     }
@@ -41,7 +41,7 @@ impl<'a> ResolverDefinition<'a> {
 
     pub fn name(&self) -> Cow<'static, str> {
         match self.variant() {
-            ResolverDefinitionVariant::Introspection => "Introspection".into(),
+            ResolverDefinitionVariant::Introspection(_) => "Introspection".into(),
             ResolverDefinitionVariant::GraphqlRootField(resolver) => resolver.name().into(),
             ResolverDefinitionVariant::GraphqlFederationEntity(resolver) => resolver.name().into(),
             ResolverDefinitionVariant::FieldResolverExtension(resolver) => resolver.name().into(),
