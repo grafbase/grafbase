@@ -5,12 +5,13 @@ pub use extension::*;
 #[derive(Clone, Copy, PartialEq, Hash, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize, id_derives::Id)]
 pub struct ExtensionId(u16);
 
-#[derive(Default, id_derives::IndexedFields)]
+#[derive(Debug, Default, id_derives::IndexedFields)]
 pub struct ExtensionCatalog {
     #[indexed_by(ExtensionId)]
     extensions: Vec<Extension>,
 }
 
+#[derive(Debug)]
 pub struct Extension {
     pub id: Id,
     pub manifest: Manifest,

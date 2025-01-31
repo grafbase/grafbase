@@ -10,7 +10,7 @@ use runtime_local::wasi::{
     extensions::{Directive, ExtensionConfig, ExtensionType, WasiExtensions},
     hooks::{ChannelLogSender, HooksWasi},
 };
-use std::{env, fs::File, path::PathBuf, sync::Arc};
+use std::{env, fs::File, ops::Not, path::PathBuf, sync::Arc};
 use tokio::sync::watch;
 use ulid::Ulid;
 
@@ -108,15 +108,14 @@ fn create_wasi_extension_configs(
     gateway_config: &Config,
     schema: &engine::Schema,
 ) -> Option<Vec<ExtensionConfig>> {
-    let mut wasi_extensions = Vec::with_capacity(extension_catalog.len());
+    let mut wasi_extensions: Vec<ExtensionConfig> = Vec::with_capacity(extension_catalog.len());
+
+    let extension_configs = gateway_config.extensions.as_ref()?;
 
     for (id, extension) in extension_catalog.iter().enumerate() {
-        let Some(extension_config) = gateway_config.extensions.as_ref().and_then(|h| {
-            let config = h.get(&extension.manifest.name);
-            config.filter(|e| e.version().matches(&extension.manifest.version))
-        }) else {
-            continue;
-        };
+        let extension_config = extension_configs
+            .get(&extension.manifest.name)
+            .expect("we made sure in the create_extension_catalog that this extension is in the config");
 
         let extension_type = match &extension.manifest.kind {
             extension_catalog::Kind::FieldResolver(_) => ExtensionType::Resolver,
@@ -130,41 +129,79 @@ fn create_wasi_extension_configs(
             environment_variables: extension_config.environment_variables(),
         };
 
-        let extension_id = ExtensionId::from(id);
-
-        let mut config = ExtensionConfig {
-            id: extension_id,
+        wasi_extensions.push(ExtensionConfig {
+            id: ExtensionId::from(id),
             name: extension.manifest.name.clone(),
+            version: extension.manifest.version.clone(),
             extension_type,
             schema_directives: Vec::new(),
             max_pool_size: extension_config.max_pool_size(),
             wasi_config,
-        };
-
-        for subgraph in schema.subgraphs() {
-            let directives = subgraph
-                .extension_schema_directives()
-                .filter(|d| d.as_ref().extension_id == extension_id);
-
-            for schema_directive in directives {
-                let directive = match schema_directive.arguments() {
-                    Some(args) => Directive::new(config.name.clone(), subgraph.name().to_string(), args.as_ref()),
-                    None => Directive::new(config.name.clone(), subgraph.name().to_string(), &""),
-                };
-
-                config.schema_directives.push(directive);
-            }
-        }
-
-        wasi_extensions.push(config);
+        });
     }
 
-    wasi_extensions.is_empty().then_some(wasi_extensions)
+    for subgraph in schema.subgraphs() {
+        let directives = subgraph.extension_schema_directives();
+
+        for schema_directive in directives {
+            let config = &mut wasi_extensions[usize::from(schema_directive.extension_id)];
+
+            let directive = match schema_directive.arguments() {
+                Some(args) => Directive::new(config.name.clone(), subgraph.name().to_string(), args.as_ref()),
+                None => Directive::new(config.name.clone(), subgraph.name().to_string(), &""),
+            };
+
+            config.schema_directives.push(directive);
+        }
+    }
+
+    wasi_extensions.is_empty().not().then_some(wasi_extensions)
 }
 
 // TODO: with lock file this will be smarter...
 fn create_extension_catalog(gateway_config: &Config) -> crate::Result<ExtensionCatalog> {
     let mut catalog = ExtensionCatalog::default();
+
+    let Some(ref extension_configs) = gateway_config.extensions else {
+        return Ok(catalog);
+    };
+
+    for (_, config) in extension_configs.iter() {
+        let Some(path) = config.path() else {
+            continue;
+        };
+
+        let Ok(mut extension_dir) = path.read_dir() else {
+            continue;
+        };
+
+        if !extension_dir.all(|entry| {
+            entry
+                .map(|e| e.file_name() == "extension.wasm" || e.file_name() == "manifest.json")
+                .unwrap_or(false)
+        }) {
+            continue;
+        }
+
+        let manifest_data = File::open(path.join("manifest.json")).map_err(|e| Error::InternalError(e.to_string()))?;
+
+        let manifest: Manifest =
+            serde_json::from_reader(manifest_data).map_err(|e| Error::InternalError(e.to_string()))?;
+
+        let id = Id {
+            origin: format!("file://{}", path.display()).parse().unwrap(),
+            name: manifest.name.clone(),
+            version: manifest.version.clone(),
+        };
+
+        let extension = Extension {
+            id,
+            manifest,
+            wasm_path: path.join("extension.wasm").canonicalize().unwrap(),
+        };
+
+        catalog.push(extension);
+    }
 
     let Ok(grafbase_extensions) = env::current_dir()
         .map_err(|e| Error::InternalError(e.to_string()))?
@@ -216,6 +253,14 @@ fn create_extension_catalog(gateway_config: &Config) -> crate::Result<ExtensionC
         }
 
         if let Some((wasm_path, manifest)) = wasm_path.zip(manifest) {
+            if extension_configs
+                .get(&manifest.name)
+                .filter(|c| c.version().matches(&manifest.version))
+                .is_none()
+            {
+                continue;
+            }
+
             let full_path = wasm_path.parent().unwrap().to_str().unwrap();
 
             let id = Id {
@@ -233,46 +278,6 @@ fn create_extension_catalog(gateway_config: &Config) -> crate::Result<ExtensionC
             catalog.push(extension);
         }
     }
-
-    if let Some(ref extension_config) = gateway_config.extensions {
-        for (_, config) in extension_config.iter() {
-            let Some(path) = config.path() else {
-                continue;
-            };
-
-            let Ok(mut extension_dir) = path.read_dir() else {
-                continue;
-            };
-
-            if !extension_dir.all(|entry| {
-                entry
-                    .map(|e| e.file_name() == "extension.wasm" || e.file_name() == "manifest.json")
-                    .unwrap_or(false)
-            }) {
-                continue;
-            }
-
-            let manifest_data =
-                File::open(path.join("manifest.json")).map_err(|e| Error::InternalError(e.to_string()))?;
-
-            let manifest: Manifest =
-                serde_json::from_reader(manifest_data).map_err(|e| Error::InternalError(e.to_string()))?;
-
-            let id = Id {
-                origin: format!("file://{}", path.display()).parse().unwrap(),
-                name: manifest.name.clone(),
-                version: manifest.version.clone(),
-            };
-
-            let extension = Extension {
-                id,
-                manifest,
-                wasm_path: path.join("extension.wasm").canonicalize().unwrap(),
-            };
-
-            catalog.push(extension);
-        }
-    };
 
     Ok(catalog)
 }

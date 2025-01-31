@@ -11,6 +11,7 @@ pub enum ExtensionsConfig {
 
 #[derive(PartialEq, serde::Deserialize, Debug, Clone)]
 pub struct StructuredExtensionsConfig {
+    #[serde(default = "default_version")]
     pub version: VersionReq,
     #[serde(default)]
     pub path: Option<PathBuf>,
@@ -24,6 +25,10 @@ pub struct StructuredExtensionsConfig {
     pub environment_variables: bool,
     #[serde(default)]
     pub max_pool_size: Option<usize>,
+}
+
+fn default_version() -> VersionReq {
+    VersionReq::parse("*").unwrap()
 }
 
 #[derive(Debug, Clone)]

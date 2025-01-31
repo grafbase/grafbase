@@ -8,6 +8,7 @@ use runtime::{
     extension::{Data, ExtensionDirective, ExtensionRuntime},
     hooks::{Anything, EdgeDefinition},
 };
+use semver::Version;
 use std::{collections::HashMap, sync::Arc};
 use wasi_component_loader::{ChannelLogSender, ComponentLoader, FieldDefinition, SharedContext};
 pub use wasi_component_loader::{Directive, ExtensionType};
@@ -35,6 +36,8 @@ impl WasiExtensions {
                 extension_type: config.extension_type,
                 schema_directives: config.schema_directives,
             };
+
+            tracing::info!("Loading extension {} {}", config.name, config.version);
 
             let Some(loader) = ComponentLoader::extensions(config.name, config.wasi_config)? else {
                 continue;
@@ -124,6 +127,7 @@ struct WasiExtensionsInner {
 pub struct ExtensionConfig {
     pub id: ExtensionId,
     pub name: String,
+    pub version: Version,
     pub extension_type: ExtensionType,
     pub schema_directives: Vec<Directive>,
     pub max_pool_size: Option<usize>,

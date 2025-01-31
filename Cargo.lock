@@ -6937,6 +6937,7 @@ dependencies = [
  "reqwest 0.12.12",
  "reqwest-eventsource",
  "runtime",
+ "semver",
  "serde",
  "serde_json",
  "tokio",
