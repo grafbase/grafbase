@@ -2,6 +2,7 @@ mod pool;
 
 use engine_schema::Subgraph;
 use extension_catalog::ExtensionId;
+use futures_util::StreamExt;
 use gateway_config::WasiExtensionsConfig;
 use runtime::{
     error::{PartialErrorCode, PartialGraphqlError},
@@ -10,6 +11,7 @@ use runtime::{
 };
 use semver::Version;
 use std::{collections::HashMap, sync::Arc};
+use tokio::task::JoinHandle;
 use wasi_component_loader::{ChannelLogSender, ComponentLoader, FieldDefinition, SharedContext};
 pub use wasi_component_loader::{Directive, ExtensionType};
 
@@ -21,7 +23,7 @@ use super::guest_error_as_gql;
 pub struct WasiExtensions(Option<Arc<WasiExtensionsInner>>);
 
 impl WasiExtensions {
-    pub fn new(
+    pub async fn new(
         access_log: ChannelLogSender,
         extensions: Vec<ExtensionConfig>,
     ) -> Result<Self, wasi_component_loader::Error> {
@@ -29,9 +31,25 @@ impl WasiExtensions {
             return Ok(Self(None));
         }
 
-        let mut instance_pools = HashMap::new();
+        let instance_pools = create_pools(access_log, extensions).await?;
+        let inner = WasiExtensionsInner { instance_pools };
 
-        for config in extensions {
+        Ok(Self(Some(Arc::new(inner))))
+    }
+}
+
+async fn create_pools(
+    access_log: ChannelLogSender,
+    extensions: Vec<ExtensionConfig>,
+) -> Result<HashMap<ExtensionId, Pool>, wasi_component_loader::Error> {
+    type Handle = JoinHandle<Result<Option<(ExtensionId, Pool)>, wasi_component_loader::Error>>;
+
+    let mut creating_pools: Vec<Handle> = Vec::new();
+
+    for config in extensions {
+        let access_log = access_log.clone();
+
+        creating_pools.push(tokio::task::spawn_blocking(move || {
             let manager_config = pool::ComponentManagerConfig {
                 extension_type: config.extension_type,
                 schema_directives: config.schema_directives,
@@ -39,18 +57,32 @@ impl WasiExtensions {
 
             tracing::info!("Loading extension {} {}", config.name, config.version);
 
-            let Some(loader) = ComponentLoader::extensions(config.name, config.wasi_config)? else {
-                continue;
-            };
-
-            let pool = Pool::new(loader, manager_config, config.max_pool_size, access_log.clone());
-            instance_pools.insert(config.id, pool);
-        }
-
-        let inner = WasiExtensionsInner { instance_pools };
-
-        Ok(Self(Some(Arc::new(inner))))
+            match ComponentLoader::extensions(config.name, config.wasi_config)? {
+                Some(loader) => {
+                    let pool = Pool::new(loader, manager_config, config.max_pool_size, access_log);
+                    Ok(Some((config.id, pool)))
+                }
+                None => Ok(None),
+            }
+        }));
     }
+
+    let mut pools = HashMap::new();
+
+    let mut creating_pools = futures_util::stream::iter(creating_pools)
+        .buffer_unordered(std::thread::available_parallelism().map(|i| i.get()).unwrap_or(1));
+
+    while let Some(result) = creating_pools.next().await {
+        match result.unwrap() {
+            Ok(Some((id, pool))) => {
+                pools.insert(id, pool);
+            }
+            Ok(None) => {}
+            Err(error) => return Err(error),
+        }
+    }
+
+    Ok(pools)
 }
 
 impl ExtensionRuntime for WasiExtensions {

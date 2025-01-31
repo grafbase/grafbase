@@ -96,8 +96,9 @@ pub(super) async fn generate(
         .map_err(|err| crate::Error::SchemaValidationError(err.to_string()))?;
 
     if let Some(extensions) = create_wasi_extension_configs(&extension_catalog, gateway_config, &schema) {
-        runtime.extensions =
-            WasiExtensions::new(access_log, extensions).map_err(|e| Error::InternalError(e.to_string()))?;
+        runtime.extensions = WasiExtensions::new(access_log, extensions)
+            .await
+            .map_err(|e| Error::InternalError(e.to_string()))?;
     }
 
     Ok(Engine::new(Arc::new(schema), runtime).await)
