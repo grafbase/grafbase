@@ -12,6 +12,7 @@ pub struct WebsocketRequest {
     pub(super) headers: http::HeaderMap,
     pub(super) init_payload: Option<serde_json::Value>,
     pub(super) router: axum::Router<()>,
+    pub(super) path: &'static str,
 }
 
 impl WebsocketRequest {
@@ -59,10 +60,23 @@ impl WebsocketRequest {
         self.init_payload = Some(payload);
         self
     }
+
+    pub fn with_path(mut self, path: &'static str) -> Self {
+        self.path = path;
+        self
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum WebsocketRequestError {
+    #[error(transparent)]
+    WsClient(#[from] graphql_ws_client::Error),
+    #[error(transparent)]
+    Tungstenite(#[from] async_tungstenite::tungstenite::Error),
 }
 
 impl IntoFuture for WebsocketRequest {
-    type Output = Result<BoxStream<'static, GraphqlResponse>, graphql_ws_client::Error>;
+    type Output = Result<BoxStream<'static, GraphqlResponse>, WebsocketRequestError>;
     type IntoFuture = BoxFuture<'static, Self::Output>;
 
     fn into_future(self) -> Self::IntoFuture {
@@ -74,7 +88,8 @@ impl IntoFuture for WebsocketRequest {
             let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
 
             let mut url: Url = format!("http://{}", listener.local_addr().unwrap()).parse().unwrap();
-            url.set_path("/ws");
+
+            url.set_path(self.path);
             url.set_scheme("ws").unwrap();
 
             // It's fine to leave this running since nextest is process-per-test.
@@ -88,7 +103,7 @@ impl IntoFuture for WebsocketRequest {
                 HeaderValue::from_str("graphql-transport-ws").unwrap(),
             );
 
-            let (connection, _) = async_tungstenite::tokio::connect_async(request).await.unwrap();
+            let (connection, _) = async_tungstenite::tokio::connect_async(request).await?;
 
             let (client, actor) = graphql_ws_client::Client::build(connection)
                 .payload(self.init_payload.unwrap_or_default())?
@@ -103,7 +118,7 @@ impl IntoFuture for WebsocketRequest {
                     .map(move |item| -> GraphqlResponse { item.unwrap() }),
             );
 
-            Ok::<_, graphql_ws_client::Error>(stream)
+            Ok::<_, WebsocketRequestError>(stream)
         })
     }
 }
