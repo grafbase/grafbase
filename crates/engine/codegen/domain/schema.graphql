@@ -245,7 +245,7 @@ type ExtensionDirective @meta(module: "directive/extension") @indexed(id_size: "
 # -------------
 
 scalar SubgraphConfig
-scalar SubscriptionsProtocol @copy
+scalar SubscriptionProtocol @copy
 
 union Subgraph @id @meta(module: "subgraph") @variants(empty: ["Introspection"], remove_suffix: "Subgraph") =
   | GraphqlEndpoint
@@ -260,7 +260,7 @@ type GraphqlEndpoint @meta(module: "subgraph/graphql") @indexed(id_size: "u16") 
   "Schema directives applied by the given subgraph"
   schema_directives: [TypeSystemDirective!]!
   "The protocol to use for subscriptions from this subgraph"
-  subscriptions_protocol: SubscriptionsProtocol!
+  subscription_protocol: SubscriptionProtocol!
 }
 
 "Virtual subgraphs have no dedicated support on the engine side, everything is resolved through extensions."

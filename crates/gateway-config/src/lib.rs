@@ -15,7 +15,7 @@ pub mod message_signatures;
 pub mod operation_caching;
 pub mod rate_limit;
 mod size_ext;
-mod subscriptions_protocol;
+mod subscription_protocol;
 pub mod telemetry;
 mod trusted_documents;
 mod websockets_config;
@@ -23,7 +23,7 @@ mod websockets_config;
 use std::{collections::BTreeMap, net::SocketAddr, path::PathBuf, time::Duration};
 
 pub use self::{
-    log_level::*, subscriptions_protocol::SubscriptionsProtocol, trusted_documents::*,
+    log_level::*, subscription_protocol::SubscriptionProtocol, trusted_documents::*,
     websockets_config::WebsocketsConfig,
 };
 pub use authentication::*;
@@ -226,7 +226,7 @@ pub struct SubgraphConfig {
     /// Header configuration for subgraph introspection (dev only).
     pub introspection_headers: Option<BTreeMap<String, DynamicString<String>>>,
     /// The protocol used for subscriptions
-    pub subscriptions_protocol: Option<SubscriptionsProtocol>,
+    pub subscription_protocol: Option<SubscriptionProtocol>,
 }
 
 #[derive(Debug, serde::Deserialize, Clone, Copy, Default, PartialEq)]
@@ -1468,7 +1468,7 @@ mod tests {
                 schema_path: None,
                 introspection_url: None,
                 introspection_headers: None,
-                subscriptions_protocol: None,
+                subscription_protocol: None,
             },
         }
         "#);
@@ -1931,7 +1931,7 @@ mod tests {
                 schema_path: None,
                 introspection_url: None,
                 introspection_headers: None,
-                subscriptions_protocol: None,
+                subscription_protocol: None,
             },
         }
         "#);

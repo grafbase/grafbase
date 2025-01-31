@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use federated_graph::StringId;
-use gateway_config::SubscriptionsProtocol;
+use gateway_config::SubscriptionProtocol;
 use url::Url;
 
 use crate::{EntityCaching, GraphRateLimit, HeaderRuleId, RetryConfig};
@@ -12,7 +12,7 @@ pub struct SubgraphConfig {
     pub name: StringId,
     pub url: Option<Url>,
     pub websocket_url: Option<StringId>,
-    pub subscriptions_protocol: Option<SubscriptionsProtocol>,
+    pub subscription_protocol: Option<SubscriptionProtocol>,
     pub headers: Vec<HeaderRuleId>,
     #[serde(default)]
     pub rate_limit: Option<GraphRateLimit>,
