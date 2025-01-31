@@ -6,7 +6,7 @@
 use crate::{
     generated::{HeaderRule, HeaderRuleId, TypeSystemDirective, TypeSystemDirectiveId},
     prelude::*,
-    StringId, SubgraphConfig, UrlId,
+    StringId, SubgraphConfig, SubscriptionsProtocol, UrlId,
 };
 use walker::{Iter, Walk};
 
@@ -21,6 +21,8 @@ use walker::{Iter, Walk};
 ///   config: SubgraphConfig!
 ///   "Schema directives applied by the given subgraph"
 ///   schema_directives: [TypeSystemDirective!]!
+///   "The protocol to use for subscriptions from this subgraph"
+///   subscriptions_protocol: SubscriptionsProtocol!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -32,6 +34,8 @@ pub struct GraphqlEndpointRecord {
     pub config: SubgraphConfig,
     /// Schema directives applied by the given subgraph
     pub schema_directive_ids: Vec<TypeSystemDirectiveId>,
+    /// The protocol to use for subscriptions from this subgraph
+    pub subscriptions_protocol: SubscriptionsProtocol,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
@@ -100,6 +104,7 @@ impl std::fmt::Debug for GraphqlEndpoint<'_> {
             .field("header_rules", &self.header_rules())
             .field("config", &self.config)
             .field("schema_directives", &self.schema_directives())
+            .field("subscriptions_protocol", &self.subscriptions_protocol)
             .finish()
     }
 }

@@ -2,6 +2,7 @@ use std::{mem::take, time::Duration};
 
 use config::{Config, SubgraphConfig};
 use fxhash::FxHashMap;
+use gateway_config::SubscriptionsProtocol;
 
 use super::{
     BuildContext, GraphqlEndpointId, GraphqlEndpointRecord, SubgraphId, VirtualSubgraphId, VirtualSubgraphRecord,
@@ -38,6 +39,7 @@ impl ExternalDataSources {
                 let sdl_url = url::Url::parse(&ctx.strings[url.into()]).expect("valid url");
                 match config.subgraph_configs.remove(&id) {
                     Some(SubgraphConfig {
+                        subscriptions_protocol,
                         websocket_url,
                         url,
                         headers,
@@ -48,6 +50,12 @@ impl ExternalDataSources {
                     }) => sources.graphql_endpoints.push(GraphqlEndpointRecord {
                         subgraph_name_id,
                         url_id: ctx.urls.insert(url.unwrap_or(sdl_url)),
+                        subscriptions_protocol: match subscriptions_protocol {
+                            Some(protocol) => protocol,
+                            None if websocket_url.is_some() => SubscriptionsProtocol::Websocket,
+                            None => SubscriptionsProtocol::ServerSentEvents,
+                        },
+
                         websocket_url_id: websocket_url
                             .map(|url| ctx.urls.insert(url::Url::parse(&config[url]).expect("valid url"))),
                         header_rule_ids: headers.into_iter().map(Into::into).collect(),
@@ -62,6 +70,7 @@ impl ExternalDataSources {
                         subgraph_name_id,
                         url_id: ctx.urls.insert(sdl_url),
                         websocket_url_id: None,
+                        subscriptions_protocol: SubscriptionsProtocol::ServerSentEvents,
                         header_rule_ids: Vec::new(),
                         config: super::SubgraphConfig {
                             timeout: DEFAULT_SUBGRAPH_TIMEOUT,
