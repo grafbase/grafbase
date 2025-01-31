@@ -158,4 +158,18 @@ impl Subscription {
 
         futures::stream::once(std::future::ready(if payload.is_null() { None } else { Some(payload) }))
     }
+
+    async fn http_header(&self, ctx: &Context<'_>, name: Vec<String>) -> impl Stream<Item = serde_json::Value> {
+        let headers = ctx.data_unchecked::<http::HeaderMap>().clone();
+        futures::stream::iter(name.into_iter().map(move |name| {
+            let value = headers
+                .get(&name)
+                .map(|value| serde_json::Value::String(String::from_utf8_lossy(value.as_bytes()).into()))
+                .unwrap_or_default();
+            serde_json::json!({
+                "name": name,
+                "value": value,
+            })
+        }))
+    }
 }

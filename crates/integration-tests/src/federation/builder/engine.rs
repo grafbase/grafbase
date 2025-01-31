@@ -9,11 +9,11 @@ use runtime_local::wasi::hooks::{self, ChannelLogSender, ComponentLoader, HooksW
 
 use engine::Engine;
 
-use super::{ConfigSource, TestRuntime};
+use super::{TestConfig, TestRuntime};
 
 pub(super) async fn build(
     federated_sdl: Option<String>,
-    config: Option<ConfigSource>,
+    mut config: TestConfig,
     mut runtime: TestRuntime,
     subgraphs: &Subgraphs,
 ) -> (Arc<Engine<TestRuntime>>, TestRuntimeContext) {
@@ -50,23 +50,18 @@ pub(super) async fn build(
 
     let (access_log_sender, access_log_receiver) = hooks::create_log_channel(false, counter);
 
-    let config = match config {
-        Some(ConfigSource::Toml(ref config_toml)) => toml::from_str(config_toml).unwrap(),
-        Some(ConfigSource::TomlWebsocket(mut config_toml)) => {
-            for subgraph in subgraphs.iter() {
-                let name = subgraph.name();
-                let websocket_url = subgraph.websocket_url();
+    if config.add_websocket_url {
+        for subgraph in subgraphs.iter() {
+            let name = subgraph.name();
+            let websocket_url = subgraph.websocket_url();
 
-                config_toml.push_str(&indoc::formatdoc! {r#"
-                    [subgraphs.{name}]
-                    websocket_url = "{websocket_url}"
-                "#});
-            }
-
-            toml::from_str(&config_toml).unwrap()
+            config.toml.push_str(&indoc::formatdoc! {r#"
+                [subgraphs.{name}]
+                websocket_url = "{websocket_url}"
+            "#});
         }
-        None => gateway_config::Config::default(),
-    };
+    }
+    let config = toml::from_str(&config.toml).unwrap();
 
     update_runtime_with_toml_config(&mut runtime, &config, access_log_sender).await;
 

@@ -157,7 +157,7 @@ fn handle_forward(headers: &mut http::HeaderMap, request_context: &RequestContex
 }
 
 fn is_header_denied(name: &HeaderName) -> bool {
-    static DENY_LIST: OnceLock<[&str; 15]> = OnceLock::new();
+    static DENY_LIST: OnceLock<[&str; 21]> = OnceLock::new();
     let blacklist = DENY_LIST.get_or_init(|| {
         let mut blacklist = [
             header::ACCEPT.as_str(),
@@ -175,7 +175,13 @@ fn is_header_denied(name: &HeaderName) -> bool {
             header::TRAILER.as_str(),
             header::TRANSFER_ENCODING.as_str(),
             header::UPGRADE.as_str(),
+            header::ORIGIN.as_str(),
             header::HOST.as_str(),
+            header::SEC_WEBSOCKET_VERSION.as_str(),
+            header::SEC_WEBSOCKET_KEY.as_str(),
+            header::SEC_WEBSOCKET_ACCEPT.as_str(),
+            header::SEC_WEBSOCKET_PROTOCOL.as_str(),
+            header::SEC_WEBSOCKET_EXTENSIONS.as_str(),
         ];
         blacklist.sort_unstable();
         blacklist

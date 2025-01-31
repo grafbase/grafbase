@@ -145,14 +145,14 @@ impl Fetcher for NativeFetcher {
         // graphql_ws_client requires a 'static body which we can't provide.
         let body = serde_json::value::to_raw_value(&request.body).map_err(|err| FetchError::any(err.to_string()));
         let mut ws_request = request.url.as_ref().into_client_request().unwrap();
+        ws_request.headers_mut().extend(request.headers);
+        ws_request.headers_mut().insert(
+            http::header::SEC_WEBSOCKET_PROTOCOL,
+            HeaderValue::from_str("graphql-transport-ws").unwrap(),
+        );
 
         async move {
             let (connection, _) = {
-                ws_request.headers_mut().insert(
-                    "Sec-WebSocket-Protocol",
-                    HeaderValue::from_str("graphql-transport-ws").unwrap(),
-                );
-
                 async_tungstenite::tokio::connect_async(ws_request)
                     .await
                     .map_err(FetchError::any)?

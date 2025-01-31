@@ -7,7 +7,6 @@ use std::{any::TypeId, collections::HashSet, fmt::Display};
 use crate::{mock_trusted_documents::MockTrustedDocumentsClient, TestTrustedDocument};
 pub use bench::*;
 use futures::{future::BoxFuture, FutureExt};
-use gateway_config::Config;
 use graphql_mocks::MockGraphQlServer;
 use runtime::{
     fetch::dynamic::DynamicFetcher,
@@ -17,9 +16,10 @@ use runtime::{
 
 use super::{subgraph::Subgraphs, DockerSubgraph, TestExtensions, TestGateway, TestRuntime};
 
-enum ConfigSource {
-    Toml(String),
-    TomlWebsocket(String),
+#[derive(Default)]
+struct TestConfig {
+    toml: String,
+    add_websocket_url: bool,
 }
 
 #[must_use]
@@ -28,7 +28,7 @@ pub struct TestGatewayBuilder {
     federated_sdl: Option<String>,
     mock_subgraphs: Vec<(TypeId, String, BoxFuture<'static, MockGraphQlServer>)>,
     docker_subgraphs: HashSet<DockerSubgraph>,
-    config: Option<ConfigSource>,
+    config: TestConfig,
 
     trusted_documents: Option<trusted_documents_client::Client>,
     hooks: Option<DynamicHooks>,
@@ -46,20 +46,13 @@ impl EngineExt for ::engine::Engine<TestRuntime> {}
 
 impl TestGatewayBuilder {
     pub fn with_toml_config(mut self, toml: impl Display) -> Self {
-        assert!(self.config.is_none(), "overwriting config!");
-        self.config = Some(ConfigSource::Toml(toml.to_string()));
+        assert!(self.config.toml.is_empty(), "overwriting config!");
+        self.config.toml = toml.to_string();
         self
     }
 
-    pub fn with_websocket_config(mut self) -> Self {
-        assert!(self.config.is_none(), "overwriting config!");
-        self.config = Some(ConfigSource::TomlWebsocket(String::new()));
-        self
-    }
-
-    pub fn with_custom_websocket_config(mut self, extra: impl Display) -> Self {
-        assert!(self.config.is_none(), "overwriting config!");
-        self.config = Some(ConfigSource::TomlWebsocket(extra.to_string()));
+    pub fn with_websocket_urls(mut self) -> Self {
+        self.config.add_websocket_url = true;
         self
     }
 
@@ -125,7 +118,8 @@ impl TestGatewayBuilder {
             extensions,
         } = self;
 
-        let mut runtime = build_runtime(config.as_ref());
+        let gateway_config = toml::from_str(&config.toml).expect("to be able to parse config");
+        let mut runtime = TestRuntime::new(&gateway_config);
         runtime.extensions = extensions;
 
         if let Some(trusted_documents) = trusted_documents {
@@ -151,15 +145,5 @@ impl TestGatewayBuilder {
             context,
             subgraphs,
         }
-    }
-}
-
-fn build_runtime(config_toml: Option<&ConfigSource>) -> TestRuntime {
-    match config_toml {
-        Some(ConfigSource::Toml(config)) => {
-            let config = toml::from_str(config).expect("to be able to parse config");
-            TestRuntime::new(&config)
-        }
-        _ => TestRuntime::new(&Config::default()),
     }
 }

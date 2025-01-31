@@ -127,6 +127,7 @@ impl<R: Runtime> Engine<R> {
 
     pub async fn create_websocket_session(
         self: &Arc<Self>,
+        headers: HeaderMap,
         init_payload: InitPayload,
     ) -> Result<WebsocketSession<R>, Cow<'static, str>> {
         let response_format = ResponseFormat::Streaming(StreamingResponseFormat::GraphQLOverWebSocket);
@@ -136,8 +137,6 @@ impl<R: Runtime> Engine<R> {
             response_format,
             include_grafbase_response_extension: false,
         };
-
-        let headers = HeaderMap::default();
 
         let (request_context, hooks_context) =
             match self.create_request_context(&ctx, headers, Some(init_payload)).await {

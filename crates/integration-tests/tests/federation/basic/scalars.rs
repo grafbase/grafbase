@@ -4,6 +4,40 @@ use integration_tests::{federation::EngineExt, runtime};
 use serde_json::json;
 
 #[test]
+fn should_not_raise_an_error_on_null_for_required_json() {
+    runtime().block_on(async move {
+        let gateway = Engine::builder()
+            .with_subgraph(
+                DynamicSchema::builder(
+                    r#"
+                    scalar JSON
+
+                    type Query {
+                        node: JSON!
+                    }
+                    "#,
+                )
+                .with_resolver("Query", "node", json!({"name": "Alice", "id": null}))
+                .into_subgraph("x"),
+            )
+            .build()
+            .await;
+
+        let response = gateway.post("{ node }").await;
+        insta::assert_json_snapshot!(response, @r#"
+        {
+          "data": {
+            "node": {
+              "name": "Alice",
+              "id": null
+            }
+          }
+        }
+        "#);
+    })
+}
+
+#[test]
 fn supports_custom_scalars() {
     let response = runtime().block_on(async move {
         let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;

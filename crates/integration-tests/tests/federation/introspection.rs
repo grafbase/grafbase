@@ -920,6 +920,7 @@ fn introspection_on_multiple_federation_subgraphs() {
 
     type Subscription {
       connectionInitPayload: JSON
+      httpHeader(name: [String!]!): JSON!
       newProducts: Product!
     }
 

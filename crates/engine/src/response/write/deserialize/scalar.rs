@@ -9,7 +9,6 @@ use crate::{
 
 use super::SeedContext;
 
-#[derive(Clone)]
 pub(crate) struct ScalarTypeSeed<'ctx, 'seed> {
     pub ctx: &'seed SeedContext<'ctx>,
     pub parent_field: &'ctx FieldShapeRecord,
@@ -344,7 +343,12 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
                 if let Some(size_hist) = seq.size_hint() {
                     list.reserve(size_hist);
                 }
-                while let Some(value) = seq.next_element_seed(self.clone())? {
+                while let Some(value) = seq.next_element_seed(ScalarTypeSeed {
+                    ctx: self.ctx,
+                    parent_field: self.parent_field,
+                    is_required: false,
+                    ty: ScalarType::Unknown,
+                })? {
                     list.push(value);
                 }
                 Ok(ResponseValue::List {
@@ -368,7 +372,12 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
             ScalarType::Unknown => {
                 let mut key_values = Vec::new();
                 while let Some(key) = map.next_key::<String>()? {
-                    let value = map.next_value_seed(self.clone())?;
+                    let value = map.next_value_seed(ScalarTypeSeed {
+                        ctx: self.ctx,
+                        parent_field: self.parent_field,
+                        is_required: false,
+                        ty: ScalarType::Unknown,
+                    })?;
                     key_values.push((key, value));
                 }
                 Ok(ResponseValue::Map {

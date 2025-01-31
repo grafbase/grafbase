@@ -60,11 +60,10 @@ impl GraphqlResolver {
             _ => Cow::Borrowed(websocket_url),
         };
 
-        let header_rules = ctx.subgraph_headers_with_rules(endpoint.header_rules());
-
+        let headers = ctx.subgraph_headers_with_rules(endpoint.header_rules());
         let headers = ctx
             .hooks()
-            .on_subgraph_request(endpoint.subgraph_name(), http::Method::POST, &url, header_rules)
+            .on_subgraph_request(endpoint.subgraph_name(), http::Method::POST, &url, headers)
             .await?;
 
         let request = FetchRequest {
