@@ -141,9 +141,9 @@ pub struct Subgraph {
 
 #[derive(Clone, Debug)]
 pub struct Extension {
-    /// Name of the extension within the federated graph. It does NOT necessarily matches the extension's name
+    /// Enum value representing the extension within the federated graph. It does NOT necessarily matches the extension's name
     /// in its manifest, see the `id` field for this.
-    pub enum_value_name: StringId,
+    pub enum_value_id: EnumValueId,
     pub url: StringId,
 
     // -- loaded from the extension manifest --
@@ -189,9 +189,6 @@ pub enum Value {
     /// Different from `String`.
     ///
     /// `@tag(name: "SOMETHING")` vs `@tag(name: SOMETHING)`
-    ///
-    /// FIXME: This is currently required because we do not keep accurate track of the directives in use in the schema, but we should strive towards removing UnboundEnumValue in favour of EnumValue.
-    UnboundEnumValue(StringId),
     EnumValue(EnumValueId),
     Object(Box<[(StringId, Value)]>),
     List(Box<[Value]>),

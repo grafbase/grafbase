@@ -248,9 +248,10 @@ fn write_extensions_enum(graph: &FederatedGraph, sdl: &mut String) -> fmt::Resul
         "enum {} {{\n{}\n}}\n",
         EXTENSION_LINK_ENUM,
         graph.extensions.iter().format_with("\n", |ext, f| {
+            let enum_value = graph.at(ext.enum_value_id).then(|value| value.value).as_str();
             f(&format_args!(
-                r#"  {} @{}(url: "{}")"#,
-                graph[ext.enum_value_name], EXTENSION_LINK_DIRECTIVE, graph[ext.url],
+                r#"  {enum_value} @{}(url: "{}")"#,
+                EXTENSION_LINK_DIRECTIVE, graph[ext.url],
             ))
         })
     )

@@ -70,13 +70,11 @@ impl<'a> Context<'a> {
             subgraphs::Value::Boolean(value) => federated::Value::Boolean(*value),
             subgraphs::Value::Enum(value) => {
                 let value_name = self.insert_string(self.subgraphs.walk(*value));
-                let enum_value = enum_type.and_then(|enum_id| self.out.find_enum_value_by_name_id(enum_id, value_name));
+                let enum_value = enum_type
+                    .and_then(|enum_id| self.out.find_enum_value_by_name_id(enum_id, value_name))
+                    .expect("Failed to find enum value in enum");
 
-                if let Some(enum_value) = enum_value {
-                    federated::Value::EnumValue(enum_value.id())
-                } else {
-                    federated::Value::UnboundEnumValue(value_name)
-                }
+                federated::Value::EnumValue(enum_value.id())
             }
             subgraphs::Value::Object(value) => federated::Value::Object(
                 value

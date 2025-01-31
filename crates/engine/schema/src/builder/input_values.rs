@@ -9,7 +9,6 @@ impl SchemaInputValues {
         match value {
             Value::Null => SchemaInputValueRecord::Null,
             Value::String(id) => SchemaInputValueRecord::String(id.into()),
-            Value::UnboundEnumValue(id) => SchemaInputValueRecord::UnboundEnumValue(id.into()),
             Value::Int(n) => SchemaInputValueRecord::BigInt(n),
             Value::Float(f) => SchemaInputValueRecord::Float(f),
             Value::Boolean(b) => SchemaInputValueRecord::Boolean(b),

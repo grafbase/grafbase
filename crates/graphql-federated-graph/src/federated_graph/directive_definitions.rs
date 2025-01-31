@@ -27,6 +27,27 @@ impl FederatedGraph {
             })
     }
 
+    pub fn find_directive_definition_argument_by_name(
+        &self,
+        definition_id: DirectiveDefinitionId,
+        name: StringId,
+    ) -> Option<&InputValueDefinition> {
+        let start = self
+            .directive_definition_arguments
+            .partition_point(|arg| arg.directive_definition_id < definition_id);
+
+        self.directive_definition_arguments[start..]
+            .iter()
+            .take_while(|arg| arg.directive_definition_id == definition_id)
+            .find_map(|arg| {
+                if arg.input_value_definition.name == name {
+                    Some(&arg.input_value_definition)
+                } else {
+                    None
+                }
+            })
+    }
+
     pub fn push_directive_definition_argument(
         &mut self,
         directive_definition_id: DirectiveDefinitionId,

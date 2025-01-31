@@ -183,19 +183,6 @@ impl<'a, 'c> InputValueCoercer<'a, 'c> {
         let r#enum = &self.graph[enum_id];
         match &value {
             Value::EnumValue(id) => Ok(SchemaInputValueRecord::EnumValue((*id).into())),
-            Value::UnboundEnumValue(id) => {
-                let string_value = &self.ctx.strings[(*id).into()];
-                for id in r#enum.value_ids {
-                    if &self.ctx.strings[self.graph[id].name_id] == string_value {
-                        return Ok(SchemaInputValueRecord::EnumValue(id));
-                    }
-                }
-                Err(InputValueError::UnknownEnumValue {
-                    r#enum: self.ctx.strings[r#enum.name_id].to_string(),
-                    value: string_value.to_string(),
-                    path: self.path(),
-                })
-            }
             value => Err(InputValueError::IncorrectEnumValueType {
                 r#enum: self.ctx.strings[r#enum.name_id].to_string(),
                 actual: value.into(),

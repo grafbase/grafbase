@@ -44,6 +44,10 @@ pub(super) fn ingest_directive_definition<'a>(
     let directive_definition_id = state.graph.directive_definitions.len().into();
     state.graph.directive_definitions.push(definition);
 
+    state
+        .directive_definition_names
+        .insert(directive_definition.name(), directive_definition_id);
+
     for argument in directive_definition.arguments() {
         let input_value_definition = convert_input_value_definition(argument, state)?;
         state

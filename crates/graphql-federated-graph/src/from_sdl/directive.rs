@@ -196,9 +196,22 @@ fn parse_policy<'a>(directive: ast::Directive<'a>, state: &mut State<'a>) -> Opt
 
 fn parse_other<'a>(directive: ast::Directive<'a>, state: &mut State<'a>) -> Directive {
     let name = state.insert_string(directive.name());
+    let definition = state.directive_definition_names.get(directive.name()).copied();
+
     let arguments = directive
         .arguments()
-        .map(|arg| -> (StringId, Value) { (state.insert_string(arg.name()), state.insert_value(arg.value(), None)) })
+        .map(|arg| -> (StringId, Value) {
+            let name_id = state.insert_string(arg.name());
+            let expected_enum_id = definition
+                .and_then(|definition_id| {
+                    state
+                        .graph
+                        .find_directive_definition_argument_by_name(definition_id, name)
+                })
+                .and_then(|input_value_definition| input_value_definition.r#type.definition.as_enum());
+
+            (name_id, state.insert_value(arg.value(), expected_enum_id))
+        })
         .collect();
     Directive::Other { name, arguments }
 }

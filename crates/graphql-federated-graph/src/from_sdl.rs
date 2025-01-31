@@ -44,6 +44,7 @@ pub(crate) struct State<'a> {
     subscription_type_name: Option<String>,
 
     definition_names: HashMap<&'a str, Definition>,
+    directive_definition_names: HashMap<&'a str, DirectiveDefinitionId>,
     selection_map: HashMap<(Definition, &'a str), FieldId>,
     input_values_map: HashMap<(InputObjectId, &'a str), InputValueDefinitionId>,
     enum_values_map: HashMap<(EnumDefinitionId, &'a str), EnumValueId>,
@@ -140,6 +141,7 @@ impl<'a> State<'a> {
     }
 
     fn insert_value(&mut self, node: ParserValue<'_>, expected_enum_type: Option<EnumDefinitionId>) -> Value {
+        dbg!(&node);
         match node {
             ParserValue::Null(_) => Value::Null,
             ParserValue::Int(n) => Value::Int(n.as_i64()),
@@ -148,10 +150,12 @@ impl<'a> State<'a> {
             ParserValue::Boolean(b) => Value::Boolean(b.value()),
             ParserValue::Enum(enm) => expected_enum_type
                 .and_then(|enum_id| {
+                    dbg!(self.strings.get_index(self.graph.at(enum_id).name.into()));
+                    dbg!(enm.name());
                     let enum_value_id = self.enum_values_map.get(&(enum_id, enm.name()))?;
                     Some(Value::EnumValue(*enum_value_id))
                 })
-                .unwrap_or(Value::UnboundEnumValue(self.insert_string(enm.name()))),
+                .expect("failed to find value in enum"),
             ParserValue::List(list) => Value::List(
                 list.items()
                     .map(|value| self.insert_value(value, expected_enum_type))
@@ -1023,6 +1027,15 @@ pub(super) async fn ingest_extension_link_enum<'a>(
 ) -> Result<(), DomainError> {
     use directive::{parse_extension_link, ExtensionLink};
 
+    let name = state.insert_string(enm.name());
+
+    let enum_id = state.graph.push_enum_definition(EnumDefinitionRecord {
+        namespace: None,
+        name,
+        directives: vec![],
+        description: None,
+    });
+
     for value in enm.values() {
         let enum_value_name_str = value.value();
         let directive = value
@@ -1043,9 +1056,17 @@ pub(super) async fn ingest_extension_link_enum<'a>(
 
         let enum_value_name = state.insert_string(enum_value_name_str);
         let url = state.insert_string(&url);
+
+        let enum_value_id = state.graph.push_enum_value(EnumValueRecord {
+            enum_id,
+            value: enum_value_name,
+            directives: vec![],
+            description: None,
+        });
+
         let id = ExtensionId::from(state.graph.extensions.push_return_idx(Extension {
             url,
-            enum_value_name,
+            enum_value_id,
             id,
             manifest,
             schema_directives,

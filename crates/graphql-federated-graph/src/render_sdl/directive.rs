@@ -102,10 +102,13 @@ fn render_extension_directive(
     graph: &FederatedGraph,
 ) -> fmt::Result {
     let writer = DirectiveWriter::new("grafbase__extensionDirective", f, graph)?
-        .arg("graph", Value::UnboundEnumValue(graph[directive.subgraph_id].name))?
+        .arg(
+            "graph",
+            Value::EnumValue(graph.at(directive.subgraph_id).join_graph_enum_value),
+        )?
         .arg(
             "extension",
-            Value::UnboundEnumValue(graph[directive.extension_id].enum_value_name),
+            Value::EnumValue(graph[directive.extension_id].enum_value_id),
         )?
         .arg("name", Value::String(directive.name))?;
     if let Some(arguments) = directive.arguments.as_ref() {

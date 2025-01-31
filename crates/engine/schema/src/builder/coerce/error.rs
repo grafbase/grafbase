@@ -80,7 +80,7 @@ impl From<&Value> for ValueKind {
             Value::Null => ValueKind::Null,
             Value::List(_) => ValueKind::List,
             Value::Object(_) => ValueKind::Object,
-            Value::UnboundEnumValue(_) | Value::EnumValue(_) => ValueKind::Enum,
+            Value::EnumValue(_) => ValueKind::Enum,
         }
     }
 }
