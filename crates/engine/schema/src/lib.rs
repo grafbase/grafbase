@@ -268,7 +268,7 @@ impl Schema {
     }
 
     pub fn subgraphs(&self) -> impl Iterator<Item = Subgraph<'_>> + '_ {
-        let virt = (0..self.subgraphs.graphql_endpoints.len()).map(move |i| {
+        let virt = (0..self.subgraphs.virtual_subgraphs.len()).map(move |i| {
             let id = VirtualSubgraphId::from(i);
             Subgraph::from(id.walk(self))
         });
