@@ -116,7 +116,7 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
         for extension in &mut config.graph.extensions {
             let Some(id) = self.ctx.extension_catalog.find_compatible_extension(&extension.id) else {
                 return Err(BuildError::UnsupportedExtension {
-                    id: extension.id.clone(),
+                    id: Box::new(extension.id.clone()),
                 });
             };
             for directive in take(&mut extension.schema_directives) {
@@ -952,7 +952,7 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
                     let extension_id = &config.graph[*extension_id].id;
                     let Some(id) = self.ctx.extension_catalog.find_compatible_extension(extension_id) else {
                         return Err(BuildError::UnsupportedExtension {
-                            id: extension_id.clone(),
+                            id: Box::new(extension_id.clone()),
                         });
                     };
 

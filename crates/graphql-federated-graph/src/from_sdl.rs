@@ -1036,9 +1036,10 @@ pub(super) async fn ingest_extension_link_enum<'a>(
             })?;
         let ExtensionLink { url, schema_directives } = parse_extension_link(directive, state)?;
 
-        let (id, manifest) = extension::load(&url)
-            .await
-            .map_err(|err| crate::DomainError(err.to_string()))?;
+        let (id, manifest) =
+            extension_catalog::load_manifest(url.parse().map_err(|err| DomainError(format!("Invalid url: {err}")))?)
+                .await
+                .map_err(|err| crate::DomainError(err.to_string()))?;
 
         let enum_value_name = state.insert_string(enum_value_name_str);
         let url = state.insert_string(&url);
@@ -1559,6 +1560,7 @@ fn test_join_field_type() {
 #[tokio::test]
 async fn load_with_extensions() {
     use expect_test::expect;
+    use url::Url;
 
     let dir = tempfile::tempdir().unwrap();
     let manifest_path = dir.path().join("manifest.json");
@@ -1576,7 +1578,7 @@ async fn load_with_extensions() {
         .await
         .unwrap();
 
-    let make_sdl = |path: &str| {
+    let make_sdl = |url: Url| {
         format!(
             r###"
         directive @join__type(
@@ -1601,7 +1603,7 @@ async fn load_with_extensions() {
         }}
 
         enum extension__Link {{
-            REST @extension__link(url: "file://{}")
+            REST @extension__link(url: "{}")
         }}
 
         scalar link__Import
@@ -1614,11 +1616,11 @@ async fn load_with_extensions() {
             id: ID!
         }}
         "###,
-            path
+            url
         )
     };
 
-    let graph = FederatedGraph::from_sdl_with_extensions(&make_sdl(&manifest_path.to_string_lossy()))
+    let graph = FederatedGraph::from_sdl_with_extensions(&make_sdl(Url::from_file_path(manifest_path).unwrap()))
         .await
         .unwrap();
     pretty_assertions::assert_eq!(graph.extensions.first().unwrap().manifest, manifest);
@@ -1654,11 +1656,13 @@ async fn load_with_extensions() {
 
         enum extension__Link
         {
-            REST @extension__link(url: "file://dummy")
+            REST @extension__link(url: "file:///dummy")
         }
     "#]];
 
-    let without_extension =
-        crate::render_sdl::render_federated_sdl(&FederatedGraph::from_sdl(&make_sdl("dummy")).unwrap()).unwrap();
+    let without_extension = crate::render_sdl::render_federated_sdl(
+        &FederatedGraph::from_sdl(&make_sdl("file:///dummy".parse().unwrap())).unwrap(),
+    )
+    .unwrap();
     expected.assert_eq(&without_extension);
 }

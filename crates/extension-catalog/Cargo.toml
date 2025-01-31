@@ -15,4 +15,11 @@ id-derives = { path = "../engine/id-derives", package = "engine-id-derives" }
 id-newtypes = { path = "../engine/id-newtypes", package = "engine-id-newtypes" }
 serde.workspace = true
 grafbase-workspace-hack.workspace = true
+url.workspace = true
+reqwest.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true
+tempfile = "3"
 
