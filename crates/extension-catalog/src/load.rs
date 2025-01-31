@@ -11,7 +11,11 @@ pub async fn load_manifest(mut url: Url) -> Result<(Id, Manifest), String> {
     }
 
     let manifest = if url.scheme() == "file" {
-        let content = std::fs::read(url.path()).map_err(|err| err.to_string())?;
+        let content = std::fs::read(
+            url.to_file_path()
+                .map_err(|_| "Could not convert to file path".to_string())?,
+        )
+        .map_err(|err| err.to_string())?;
         serde_json::from_slice(&content).map_err(|err| err.to_string())?
     } else {
         reqwest::get(url.clone())
