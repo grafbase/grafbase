@@ -60,7 +60,7 @@ where
                     .on_connection_init(move |payload| async move {
                         let mut out = Data::default();
                         out.insert(ConnectionInitPayload(payload));
-
+                        out.insert(parts.headers);
                         Ok(out)
                     })
                     .serve()

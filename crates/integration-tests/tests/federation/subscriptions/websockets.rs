@@ -8,14 +8,11 @@ fn websockets_basic_no_init_payload() {
     let (first, second) = runtime().block_on(async move {
         let engine = Engine::builder()
             .with_subgraph(FederatedProductsSchema)
-            .with_websocket_config()
+            .with_websocket_urls()
             .build()
             .await;
 
-        let mut stream = engine
-            .execute_ws(None, "subscription { newProducts { upc } }")
-            .await
-            .unwrap();
+        let mut stream = engine.ws("subscription { newProducts { upc } }").await.unwrap();
 
         let first = stream.next().await.unwrap();
         let second = stream.next().await.unwrap();
@@ -45,28 +42,74 @@ fn websockets_basic_no_init_payload() {
 }
 
 #[test]
+fn websockets_forward_subgraph_headers() {
+    runtime().block_on(async move {
+        let engine = Engine::builder()
+            .with_subgraph(FederatedProductsSchema)
+            .with_websocket_urls()
+            .with_toml_config(
+                r#"
+            [[headers]]
+            rule = "forward"
+            name = "authorization"
+            "#,
+            )
+            .build()
+            .await;
+
+        let stream = engine
+            .ws(r#"subscription { httpHeader(name: ["authorization", "other"]) }"#)
+            .header("authorization", "super secret")
+            .header("other", "not forwarded")
+            .await
+            .unwrap();
+
+        let responses = stream.collect::<Vec<_>>().await;
+
+        insta::assert_json_snapshot!(responses, @r#"
+        [
+          {
+            "data": {
+              "httpHeader": {
+                "name": "authorization",
+                "value": "super secret"
+              }
+            }
+          },
+          {
+            "data": {
+              "httpHeader": {
+                "name": "other",
+                "value": null
+              }
+            }
+          }
+        ]
+        "#);
+    });
+}
+
+#[test]
 fn websocket_connection_init_payload() {
     let response = runtime().block_on(async move {
         let engine = Engine::builder()
             .with_subgraph(FederatedProductsSchema)
-            .with_websocket_config()
+            .with_websocket_urls()
             .build()
             .await;
 
         let mut stream = engine
-            .execute_ws(
-                Some(serde_json::json!({
-                    "authorization": "Bearer token",
-                    "somethingElse": true,
-                    "something": {
-                        "nested": {
-                            "level": 3,
-                            "array": [1, 2, 3],
-                        }
+            .ws("subscription { connectionInitPayload }")
+            .init_payload(serde_json::json!({
+                "authorization": "Bearer token",
+                "somethingElse": true,
+                "something": {
+                    "nested": {
+                        "level": 3,
+                        "array": [1, 2, 3],
                     }
-                })),
-                "subscription { connectionInitPayload }",
-            )
+                }
+            }))
             .await
             .unwrap();
 
@@ -103,29 +146,28 @@ fn websocket_connection_init_payload_forwarding_disabled() {
     let response = runtime().block_on(async move {
         let engine = Engine::builder()
             .with_subgraph(FederatedProductsSchema)
-            .with_custom_websocket_config(
+            .with_toml_config(
                 "
                 [websockets]
                 forward_connection_init_payload = false
             ",
             )
+            .with_websocket_urls()
             .build()
             .await;
 
         let mut stream = engine
-            .execute_ws(
-                Some(serde_json::json!({
-                    "authorization": "Bearer token",
-                    "somethingElse": true,
-                    "something": {
-                        "nested": {
-                            "level": 3,
-                            "array": [1, 2, 3],
-                        }
+            .ws("subscription { connectionInitPayload }")
+            .init_payload(serde_json::json!({
+                "authorization": "Bearer token",
+                "somethingElse": true,
+                "something": {
+                    "nested": {
+                        "level": 3,
+                        "array": [1, 2, 3],
                     }
-                })),
-                "subscription { connectionInitPayload }",
-            )
+                }
+            }))
             .await
             .unwrap();
 

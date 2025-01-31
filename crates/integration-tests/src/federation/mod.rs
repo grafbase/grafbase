@@ -4,11 +4,10 @@ mod runtime;
 mod subgraph;
 mod websocket_request;
 
-use std::{future::IntoFuture, sync::Arc};
+use std::sync::Arc;
 
 pub use builder::*;
 use bytes::Bytes;
-use futures::Stream;
 use graphql_mocks::{MockGraphQlServer, ReceivedRequest};
 use http_body_util::BodyExt;
 pub use request::*;
@@ -16,6 +15,7 @@ pub use runtime::*;
 use runtime_local::wasi::hooks::ChannelLogReceiver;
 use tower::ServiceExt;
 use url::Url;
+use websocket_request::WebsocketRequest;
 
 pub struct TestGateway {
     router: axum::Router,
@@ -82,18 +82,13 @@ impl TestGateway {
         }
     }
 
-    pub async fn execute_ws(
-        &self,
-        init_payload: Option<serde_json::Value>,
-        request: impl Into<GraphQlRequest>,
-    ) -> Result<impl Stream<Item = GraphqlResponse>, graphql_ws_client::Error> {
+    pub fn ws(&self, request: impl Into<GraphQlRequest>) -> WebsocketRequest {
         websocket_request::WebsocketRequest {
             router: self.router.clone(),
-            request: request.into(),
-            init_payload,
+            gql: request.into(),
+            headers: http::HeaderMap::default(),
+            init_payload: None,
         }
-        .into_future()
-        .await
     }
 
     pub async fn raw_execute(&self, request: http::Request<impl Into<axum::body::Body>>) -> http::Response<Bytes> {

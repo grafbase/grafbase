@@ -17,7 +17,7 @@ use tower_service::Service;
 
 use engine::websocket::Message;
 
-use super::WebsocketSender;
+use super::{WebsocketRequest, WebsocketSender};
 
 /// A tower service that accepts websocket connections, passing them to the provided sender
 #[derive(Clone)]
@@ -61,7 +61,13 @@ where
             let resp = upgrade
                 .protocols(SUPPORTED_PROTOCOL_IDS)
                 .on_upgrade(move |websocket| async move {
-                    sender.send(websocket).await.ok();
+                    sender
+                        .send(WebsocketRequest {
+                            websocket,
+                            headers: parts.headers,
+                        })
+                        .await
+                        .ok();
                 });
 
             Ok(resp.into_response())

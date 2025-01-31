@@ -5,12 +5,10 @@ use engine::{Engine, Runtime, WebsocketSession};
 use futures_util::{pin_mut, stream::SplitStream, SinkExt, Stream, StreamExt};
 use tokio::sync::{mpsc, watch};
 
-use super::service::MessageConvert;
+use super::{service::MessageConvert, WebsocketReceiver, WebsocketRequest};
 use engine::websocket::{Event, Message};
 
 pub type EngineWatcher<R> = watch::Receiver<Arc<Engine<R>>>;
-pub type WebsocketSender = tokio::sync::mpsc::Sender<WebSocket>;
-pub type WebsocketReceiver = tokio::sync::mpsc::Receiver<WebSocket>;
 
 const CONNECTION_INIT_WAIT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(3);
 
@@ -26,21 +24,23 @@ impl<R: Runtime> WebsocketAccepter<R> {
     }
 
     pub async fn handler(mut self) {
-        while let Some(mut connection) = self.sockets.recv().await {
+        while let Some(WebsocketRequest { mut websocket, headers }) = self.sockets.recv().await {
             let engine = self.engine.clone();
 
             tokio::spawn(async move {
-                let accept_future =
-                    tokio::time::timeout(CONNECTION_INIT_WAIT_TIMEOUT, accept_websocket(&mut connection, &engine));
+                let accept_future = tokio::time::timeout(
+                    CONNECTION_INIT_WAIT_TIMEOUT,
+                    accept_websocket(headers, &mut websocket, &engine),
+                );
 
                 match accept_future.await {
-                    Ok(Some(session)) => websocket_loop(connection, session).await,
+                    Ok(Some(session)) => websocket_loop(websocket, session).await,
                     Ok(None) => {
                         tracing::warn!("Failed to accept websocket connection");
                     }
                     Err(_) => {
                         tracing::info!("Connection wasn't initialised on time, dropping");
-                        connection
+                        websocket
                             .send(
                                 Message::<R>::close(4408, "Connection initialisation timeout")
                                     .to_axum_message()
@@ -56,9 +56,9 @@ impl<R: Runtime> WebsocketAccepter<R> {
 }
 
 /// Message handling loop for a single websocket connection
-async fn websocket_loop<R: Runtime>(socket: WebSocket, session: WebsocketSession<R>) {
+async fn websocket_loop<R: Runtime>(websocket: WebSocket, session: WebsocketSession<R>) {
     let (sender, mut receiver) = {
-        let (mut socket_sender, socket_receiver) = socket.split();
+        let (mut socket_sender, socket_receiver) = websocket.split();
 
         // The WebSocket sender isn't clone, so we switch it for an mpsc and
         // spawn a message pumping task to hook up the mpsc & the sender.
@@ -157,6 +157,7 @@ async fn subscription_loop<R: engine::Runtime>(
 }
 
 async fn accept_websocket<R: Runtime>(
+    headers: http::HeaderMap,
     websocket: &mut WebSocket,
     engine: &EngineWatcher<R>,
 ) -> Option<WebsocketSession<R>> {
@@ -166,7 +167,7 @@ async fn accept_websocket<R: Runtime>(
             Event::ConnectionInit { payload } => {
                 let engine = engine.borrow().clone();
 
-                let Ok(session) = engine.create_websocket_session(payload).await else {
+                let Ok(session) = engine.create_websocket_session(headers, payload).await else {
                     websocket
                         .send(Message::<R>::close(4403, "Forbidden").to_axum_message().unwrap())
                         .await
