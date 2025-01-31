@@ -54,6 +54,7 @@ impl<'a> BuildContext<'a> {
                 rate_limit,
                 timeout,
                 entity_caching,
+                subscriptions_protocol,
                 ..
             } = config;
 
@@ -88,6 +89,7 @@ impl<'a> BuildContext<'a> {
                     url: url.clone(),
                     headers,
                     websocket_url,
+                    subscriptions_protocol: *subscriptions_protocol,
                     rate_limit,
                     timeout: *timeout,
                     retry,

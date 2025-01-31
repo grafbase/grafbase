@@ -15,14 +15,17 @@ pub mod message_signatures;
 pub mod operation_caching;
 pub mod rate_limit;
 mod size_ext;
+mod subscriptions_protocol;
 pub mod telemetry;
 mod trusted_documents;
 mod websockets_config;
 
 use std::{collections::BTreeMap, net::SocketAddr, path::PathBuf, time::Duration};
 
-pub use self::websockets_config::WebsocketsConfig;
-pub use self::{log_level::*, trusted_documents::*};
+pub use self::{
+    log_level::*, subscriptions_protocol::SubscriptionsProtocol, trusted_documents::*,
+    websockets_config::WebsocketsConfig,
+};
 pub use authentication::*;
 pub use complexity_control::*;
 pub use cors::*;
@@ -222,6 +225,8 @@ pub struct SubgraphConfig {
     pub introspection_url: Option<Url>,
     /// Header configuration for subgraph introspection (dev only).
     pub introspection_headers: Option<BTreeMap<String, DynamicString<String>>>,
+    /// The protocol used for subscriptions
+    pub subscriptions_protocol: Option<SubscriptionsProtocol>,
 }
 
 #[derive(Debug, serde::Deserialize, Clone, Copy, Default, PartialEq)]
@@ -1437,7 +1442,7 @@ mod tests {
 
         let result: Config = toml::from_str(input).unwrap();
 
-        insta::assert_debug_snapshot!(&result.subgraphs, @r###"
+        insta::assert_debug_snapshot!(&result.subgraphs, @r#"
         {
             "products": SubgraphConfig {
                 url: None,
@@ -1463,9 +1468,10 @@ mod tests {
                 schema_path: None,
                 introspection_url: None,
                 introspection_headers: None,
+                subscriptions_protocol: None,
             },
         }
-        "###);
+        "#);
     }
 
     #[test]
@@ -1903,7 +1909,7 @@ mod tests {
 
         let config: Config = toml::from_str(input).unwrap();
 
-        insta::assert_debug_snapshot!(&config.subgraphs, @r###"
+        insta::assert_debug_snapshot!(&config.subgraphs, @r#"
         {
             "products": SubgraphConfig {
                 url: None,
@@ -1925,9 +1931,10 @@ mod tests {
                 schema_path: None,
                 introspection_url: None,
                 introspection_headers: None,
+                subscriptions_protocol: None,
             },
         }
-        "###);
+        "#);
     }
 
     #[test]

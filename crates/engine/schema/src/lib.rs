@@ -29,6 +29,7 @@ use config::ResponseExtensionConfig;
 pub use directive::*;
 use extension_catalog::ExtensionCatalog;
 pub use field_set::*;
+pub use gateway_config::SubscriptionsProtocol;
 pub use generated::*;
 use id_newtypes::{BitSet, IdRange};
 pub use ids::*;
