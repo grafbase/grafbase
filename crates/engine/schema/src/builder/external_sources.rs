@@ -2,7 +2,7 @@ use std::{mem::take, time::Duration};
 
 use config::{Config, SubgraphConfig};
 use fxhash::FxHashMap;
-use gateway_config::SubscriptionsProtocol;
+use gateway_config::SubscriptionProtocol;
 
 use super::{
     BuildContext, GraphqlEndpointId, GraphqlEndpointRecord, SubgraphId, VirtualSubgraphId, VirtualSubgraphRecord,
@@ -39,7 +39,7 @@ impl ExternalDataSources {
                 let sdl_url = url::Url::parse(&ctx.strings[url.into()]).expect("valid url");
                 match config.subgraph_configs.remove(&id) {
                     Some(SubgraphConfig {
-                        subscriptions_protocol,
+                        subscription_protocol,
                         websocket_url,
                         url,
                         headers,
@@ -50,10 +50,10 @@ impl ExternalDataSources {
                     }) => sources.graphql_endpoints.push(GraphqlEndpointRecord {
                         subgraph_name_id,
                         url_id: ctx.urls.insert(url.unwrap_or(sdl_url)),
-                        subscriptions_protocol: match subscriptions_protocol {
+                        subscription_protocol: match subscription_protocol {
                             Some(protocol) => protocol,
-                            None if websocket_url.is_some() => SubscriptionsProtocol::Websocket,
-                            None => SubscriptionsProtocol::ServerSentEvents,
+                            None if websocket_url.is_some() => SubscriptionProtocol::Websocket,
+                            None => SubscriptionProtocol::ServerSentEvents,
                         },
 
                         websocket_url_id: websocket_url
@@ -70,7 +70,7 @@ impl ExternalDataSources {
                         subgraph_name_id,
                         url_id: ctx.urls.insert(sdl_url),
                         websocket_url_id: None,
-                        subscriptions_protocol: SubscriptionsProtocol::ServerSentEvents,
+                        subscription_protocol: SubscriptionProtocol::ServerSentEvents,
                         header_rule_ids: Vec::new(),
                         config: super::SubgraphConfig {
                             timeout: DEFAULT_SUBGRAPH_TIMEOUT,

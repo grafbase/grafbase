@@ -5,7 +5,7 @@ use futures::{FutureExt, TryStreamExt};
 use futures_util::{stream::BoxStream, StreamExt};
 use headers::HeaderMapExt;
 use runtime::fetch::{FetchRequest, Fetcher};
-use schema::SubscriptionsProtocol;
+use schema::SubscriptionProtocol;
 use serde::de::DeserializeSeed;
 use tracing::Instrument;
 use url::Url;
@@ -30,9 +30,9 @@ impl GraphqlResolver {
         new_response: impl Fn() -> SubscriptionResponse + Send + 'ctx,
     ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<SubscriptionResponse>>> {
         let endpoint = ctx.endpoint();
-        match endpoint.subscriptions_protocol {
-            SubscriptionsProtocol::ServerSentEvents => self.execute_sse_subscription(ctx, new_response).await,
-            SubscriptionsProtocol::Websocket => {
+        match endpoint.subscription_protocol {
+            SubscriptionProtocol::ServerSentEvents => self.execute_sse_subscription(ctx, new_response).await,
+            SubscriptionProtocol::Websocket => {
                 let websocket_url = endpoint.websocket_url().unwrap_or_else(|| endpoint.url());
 
                 self.execute_websocket_subscription(ctx, new_response, websocket_url)
