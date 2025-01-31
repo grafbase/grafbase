@@ -1,0 +1,50 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Federated SDL
+input_file: crates/graphql-composition/tests/composition/input_object_basic/test.md
+---
+directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
+
+directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet) on FIELD_DEFINITION
+
+directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boolean = true) on OBJECT | INTERFACE
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+scalar join__FieldSet
+
+type Person
+    @join__type(graph: EMAILBOOK, key: "id")
+    @join__type(graph: PHONEBOOK, key: "id")
+{
+    age: Int!
+    email: String! @join__field(graph: EMAILBOOK)
+    firstName: String!
+    id: ID!
+    lastName: String!
+    phoneNumber: String @join__field(graph: PHONEBOOK)
+}
+
+type Query
+{
+    getPersonInfo(input: InputPerson!): Person @join__field(graph: EMAILBOOK)
+    searchPerson(input: InputPerson!): [Person] @join__field(graph: PHONEBOOK)
+}
+
+enum join__Graph
+{
+    EMAILBOOK @join__graph(name: "emailbook", url: "http://example.com/emailbook")
+    PHONEBOOK @join__graph(name: "phonebook", url: "http://example.com/phonebook")
+}
+
+input InputPerson
+    @join__type(graph: EMAILBOOK)
+    @join__type(graph: PHONEBOOK)
+{
+    firstName: String!
+    lastName: String!
+}

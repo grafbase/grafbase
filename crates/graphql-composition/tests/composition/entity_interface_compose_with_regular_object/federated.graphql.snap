@@ -1,0 +1,8 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Federated SDL
+input_file: crates/graphql-composition/tests/composition/entity_interface_compose_with_regular_object/test.md
+---
+# The object type `Animal` is annotated with @interfaceObject but missing a key in the `forest` subgraph.
+# `Animal` is an entity interface but the object type `Animal` is missing the @interfaceObject directive in the `steppe` subgraph.
+# The object type `Animal` is annotated with @interfaceObject but missing a key in the `steppe` subgraph.

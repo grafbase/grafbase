@@ -20,11 +20,5 @@ url.workspace = true
 
 [dev-dependencies]
 grafbase-workspace-hack.workspace = true
-datatest-stable.workspace = true
-similar = "2.5.0"
-thiserror.workspace = true
-miette = { workspace = true, features = ["fancy"] }
-
-[[test]]
-name = "composition_tests"
-harness = false
+anyhow.workspace = true
+insta.workspace = true

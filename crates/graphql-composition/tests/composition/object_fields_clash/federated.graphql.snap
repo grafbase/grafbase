@@ -1,0 +1,6 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Federated SDL
+input_file: crates/graphql-composition/tests/composition/object_fields_clash/test.md
+---
+# The field `name` on `Band` is defined in two subgraphs (`critics` and `label`).

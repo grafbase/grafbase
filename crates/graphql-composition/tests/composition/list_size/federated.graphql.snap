@@ -1,0 +1,38 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Federated SDL
+input_file: crates/graphql-composition/tests/composition/list_size/test.md
+---
+directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
+
+directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet) on FIELD_DEFINITION
+
+directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boolean = true) on OBJECT | INTERFACE
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+directive @listSize(assumedSize: Int, slicingArguments: [String!], sizedFields: [String!], requireOneSlicingArgument: Boolean = true) on FIELD_DEFINITION
+
+scalar join__FieldSet
+
+type BarCollection
+    @join__type(graph: A)
+{
+    items: [Int]
+}
+
+type Query
+{
+    bar(slice: Int!): BarCollection  @listSize(slicingArguments: ["slice"], sizedFields: ["items"], requireOneSlicingArgument: false) @join__field(graph: A)
+    baz(slice: Int!): [String]  @listSize(slicingArguments: ["slice"]) @join__field(graph: A)
+    foo: [String!]  @listSize(assumedSize: 10) @join__field(graph: A)
+}
+
+enum join__Graph
+{
+    A @join__graph(name: "a", url: "http://example.com/a")
+}

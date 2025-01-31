@@ -1,0 +1,31 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: actual_api_sdl
+input_file: crates/graphql-composition/tests/composition/namespaced_directive_without_import_are_ignored/subgraphs/test.md
+---
+enum Severity {
+    OK
+    FINE
+    GREAT
+}
+
+type Alert {
+    id: ID!
+    message: String!
+    severity: Severity!
+}
+
+type Review {
+    author: ID!
+    id: ID!
+    message: String!
+}
+
+type Query {
+    alert(id: ID!): Alert
+}
+
+type Mutation {
+    createAlert(message: String!, severity: Severity!): Alert
+    createReview(message: String!, author: ID!): Alert
+}

@@ -1,0 +1,6 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Federated SDL
+input_file: crates/graphql-composition/tests/composition/enum_strict_matching_error/test.md
+---
+# The enum FavoriteToy should match exactly in all subgraphs, but it does not

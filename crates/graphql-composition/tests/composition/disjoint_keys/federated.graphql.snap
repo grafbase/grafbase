@@ -1,0 +1,88 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Federated SDL
+input_file: crates/graphql-composition/tests/composition/disjoint_keys/test.md
+---
+directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
+
+directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet) on FIELD_DEFINITION
+
+directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boolean = true) on OBJECT | INTERFACE
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+scalar join__FieldSet
+
+type Author
+    @join__type(graph: ACADEMIA, key: "name")
+    @join__type(graph: NOVELISTS, key: "id")
+{
+    age: Int @join__field(graph: NOVELISTS)
+    articles: [Article] @join__field(graph: ACADEMIA)
+    books: [Book] @join__field(graph: NOVELISTS)
+    id: ID!
+    name: String!
+}
+
+type Article
+    @join__type(graph: ACADEMIA)
+{
+    author: Author
+    content: String
+    id: ID!
+    title: String!
+}
+
+type Book
+    @join__type(graph: NOVELISTS)
+{
+    author: Author
+    genre: Genre
+    id: ID!
+    publisher: Publisher
+    title: String!
+}
+
+type Publisher
+    @join__type(graph: NOVELISTS)
+{
+    books: [Book]
+    id: ID!
+    location: String
+    name: String!
+}
+
+type Query
+{
+    articleById(id: ID!): Article @join__field(graph: ACADEMIA)
+    articles: [Article] @join__field(graph: ACADEMIA)
+    authorById(id: ID!): Author @join__field(graph: ACADEMIA)
+    authors: [Author] @join__field(graph: ACADEMIA)
+}
+
+type Mutation
+{
+    addArticle(title: String!, content: String, authorId: ID!): Article @join__field(graph: ACADEMIA)
+    addAuthor(name: String!, age: Int): Author @join__field(graph: ACADEMIA)
+}
+
+enum Genre
+    @join__type(graph: NOVELISTS)
+{
+    FICTION
+    NONFICTION
+    SCIFI
+    FANTASY
+    MYSTERY
+    BIOGRAPHY
+}
+
+enum join__Graph
+{
+    ACADEMIA @join__graph(name: "academia", url: "http://example.com/academia")
+    NOVELISTS @join__graph(name: "novelists", url: "http://example.com/novelists")
+}

@@ -1,0 +1,18 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: actual_api_sdl
+input_file: crates/graphql-composition/tests/composition/entity_unresolvable_keys/test.md
+---
+type User {
+    id: ID!
+    posts: [Post!]!
+}
+
+type Post {
+    id: ID!
+    name: String
+}
+
+type Query {
+    getUser(id: ID!): User
+}

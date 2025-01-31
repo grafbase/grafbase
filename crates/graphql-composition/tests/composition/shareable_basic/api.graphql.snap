@@ -1,0 +1,18 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: actual_api_sdl
+input_file: crates/graphql-composition/tests/composition/shareable_basic/test.md
+---
+enum Plan {
+    Hobby
+    Pro
+}
+
+type Customer {
+    id: ID!
+    name: String
+}
+
+type Query {
+    customer(id: ID!): Customer
+}

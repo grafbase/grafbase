@@ -1,0 +1,11 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Federated SDL
+input_file: crates/graphql-composition/tests/composition/compose_directive_different_definitions/test.md
+---
+# Directive `jkl` is defined with different arguments:\n- (a: Int, b: String!) in chocolate\n- (a: Int, b: String!, c: [Float]) in nougat
+# Directive `mno` is defined with different arguments:\n- (a: Int, b: String) in chocolate\n- (a: Int, b: String!) in nougat
+# Directive `stu` is defined with different arguments:\n- (a: String = "NO CAP") in chocolate\n- (a: String = "TEST") in nougat
+# Directive `pqr` is defined with different locations:\n FIELD_DEFINITION in chocolate\n OBJECT | FIELD_DEFINITION in nougat
+# Directive `vwx` is defined with different arguments:\n- (a: Int, b: String! @b @c(d: "boom")) in chocolate\n- (a: Int, b: String! @b @c(d: "e")) in nougat
+# Directive `yz` is defined with different arguments:\n- (a: Int, b: String! @b(d: "e")) in chocolate\n- (a: Int, b: String!) in nougat

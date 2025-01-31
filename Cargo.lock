@@ -3388,7 +3388,6 @@ dependencies = [
  "axum-core 0.4.5",
  "base16ct",
  "bitflags 2.8.0",
- "bstr",
  "byteorder",
  "bytes",
  "cc",
@@ -3527,16 +3526,14 @@ dependencies = [
 name = "graphql-composition"
 version = "0.5.0"
 dependencies = [
+ "anyhow",
  "cynic-parser",
  "cynic-parser-deser",
- "datatest-stable",
  "grafbase-workspace-hack",
  "graphql-federated-graph",
  "indexmap 2.7.0",
+ "insta",
  "itertools 0.14.0",
- "miette",
- "similar",
- "thiserror 2.0.11",
  "url",
 ]
 
@@ -4454,12 +4451,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6513e4067e16e69ed1db5ab56048ed65db32d10ba5fc1217f5393f8f17d8b5a5"
 dependencies = [
  "console",
+ "globset",
  "linked-hash-map",
  "once_cell",
  "pest",
  "pest_derive",
  "serde",
  "similar",
+ "walkdir",
 ]
 
 [[package]]

@@ -1,0 +1,57 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Federated SDL
+input_file: crates/graphql-composition/tests/composition/authorized_with_composeDirective/test.md
+---
+directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
+
+directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet) on FIELD_DEFINITION
+
+directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boolean = true) on OBJECT | INTERFACE
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+scalar _Any
+
+scalar join__FieldSet
+
+type Pet
+    @join__type(graph: PETS, key: "id")
+{
+    age: String!
+    id: Int!
+    name: String!
+}
+
+type User
+    @join__type(graph: PETS, key: "id")
+    @join__type(graph: USERS, key: "id")
+{
+    address: Address @authorized(fields: "id") @join__field(graph: USERS)
+    id: Int!
+    name: String! @join__field(graph: USERS)
+    pets: [Pet!]! @join__field(graph: PETS)
+}
+
+type Address
+    @join__type(graph: USERS)
+{
+    street: String!
+}
+
+type Query
+{
+    pets: [Pet]! @join__field(graph: PETS)
+    user(id: Int!): User @authorized(arguments: "id") @join__field(graph: USERS)
+    users: [User]! @authorized(node: "id", metadata: {role: "admin"}) @join__field(graph: USERS)
+}
+
+enum join__Graph
+{
+    PETS @join__graph(name: "pets", url: "http://example.com/pets")
+    USERS @join__graph(name: "users", url: "http://example.com/users")
+}

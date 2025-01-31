@@ -1,6 +1,0 @@
-# The LettuceInterface.variety field has conflicting types in different subgraphs: String! in lettuces-a but Int! in lettuces-b
-# The Lettuce.variety field has conflicting types in different subgraphs: String! in lettuces-a but Int! in lettuces-b
-# The Lettuce.origin field has conflicting types in different subgraphs: Int! in lettuces-a but String! in lettuces-b
-# The Lettuce.leaves(onlyEdible:) argument has conflicting types in different subgraphs: Int in lettuces-a but Boolean in lettuces-b
-# The Lettuce.leaves field has conflicting types in different subgraphs: [Leaf]! in lettuces-a but [Leaf!]! in lettuces-b
-# The LettuceInput.variety field has conflicting types in different subgraphs: String! in lettuces-a but Int! in lettuces-b

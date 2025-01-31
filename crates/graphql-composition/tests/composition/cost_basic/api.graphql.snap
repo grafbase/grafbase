@@ -1,0 +1,26 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: actual_api_sdl
+input_file: crates/graphql-composition/tests/composition/cost_basic/test.md
+---
+directive @cost(weight: Int!) on SCALAR | OBJECT | FIELD_DEFINITION | ARGUMENT_DEFINITION | ENUM | INPUT_FIELD_DEFINITION
+
+enum Blah {
+    BLAH
+}
+
+type Query {
+    foo(name: String): String
+    id: ID!
+}
+
+interface Account {
+    foo(name: String): String
+    id: ID!
+}
+
+input Bar {
+    x: String
+}
+
+scalar Foo

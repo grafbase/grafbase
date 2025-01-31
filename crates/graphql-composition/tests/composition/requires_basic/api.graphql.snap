@@ -1,0 +1,26 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: actual_api_sdl
+input_file: crates/graphql-composition/tests/composition/requires_basic/test.md
+---
+type Farm {
+    chiliDetails: ChiliVariety
+    chiliId: ID!
+    id: ID!
+    location: String!
+    name: String!
+}
+
+type ChiliVariety {
+    description: String
+    id: ID!
+    name: String!
+    spicinessScale: Int!
+}
+
+type Query {
+    chiliVarieties: [ChiliVariety]
+    chiliVariety(id: ID!): ChiliVariety
+    farm(id: ID!): Farm
+    farms: [Farm]
+}

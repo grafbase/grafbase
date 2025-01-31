@@ -1,0 +1,9 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Federated SDL
+input_file: crates/graphql-composition/tests/composition/authorized_validation/test.md
+---
+# [bank-account]: Error validating the @authorized directive at Mutation.createUser: could not parse the `arguments` argument in `@authorized` as a selection set: invalid token: -
+# Error in @authorized at Account.balance: the userId field does not exist on Account
+# Error in @authorized at Account.transactions: the accountLevel field does not exist on Account
+# Error in @authorized: the userId argument does not exist on Mutation.deleteUser. Did you use the `arguments` argument instead of `fields`?

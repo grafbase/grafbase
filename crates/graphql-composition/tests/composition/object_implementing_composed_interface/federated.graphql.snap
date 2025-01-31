@@ -1,0 +1,6 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Federated SDL
+input_file: crates/graphql-composition/tests/composition/object_implementing_composed_interface/test.md
+---
+# The `Edible.calories` field is not implemented by `PuddingDessert`, but it should be.

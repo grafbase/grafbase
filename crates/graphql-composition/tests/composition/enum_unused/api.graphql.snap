@@ -1,0 +1,18 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: actual_api_sdl
+input_file: crates/graphql-composition/tests/composition/enum_unused/test.md
+---
+enum UserType {
+    ADMIN
+    REGULAR
+}
+
+type User {
+    id: ID!
+    name: String!
+}
+
+type Query {
+    user: User
+}

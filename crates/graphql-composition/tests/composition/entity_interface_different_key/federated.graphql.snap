@@ -1,0 +1,7 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Federated SDL
+input_file: crates/graphql-composition/tests/composition/entity_interface_different_key/test.md
+---
+# [steppe] The object type `Animal` is annotated with @interfaceObject but has a different key than the entity interface `Animal`.
+# [savanna] The object type `Cheetah` implements the entity interface `Animal` but does not have the same key. The key must match exactly.

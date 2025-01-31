@@ -1,0 +1,6 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Federated SDL
+input_file: crates/graphql-composition/tests/composition/entity_interfaces_multi_subgraph_missing_implementer/test.md
+---
+# [mangrove]: Interface type "Animal" has a resolvable key in subgraph "mangrove" but that subgraph is missing some of the supergraph implementation types of "Animal". Subgraph "mangrove" should define types Cheetah.

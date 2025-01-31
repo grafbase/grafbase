@@ -1,0 +1,6 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Federated SDL
+input_file: crates/graphql-composition/tests/composition/object_interface_clash/test.md
+---
+# Cannot merge Object with Interface (`Customer` in `accounting` and `inventory`)

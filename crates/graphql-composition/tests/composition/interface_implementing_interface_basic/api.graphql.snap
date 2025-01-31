@@ -1,0 +1,33 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: actual_api_sdl
+input_file: crates/graphql-composition/tests/composition/interface_implementing_interface_basic/test.md
+---
+type Product {
+    description: String
+    id: ID!
+    name: String!
+    price: Float!
+}
+
+type User {
+    createdAt: String!
+    email: String!
+    id: ID!
+    updatedAt: String!
+    username: String!
+}
+
+type Query {
+    user(id: ID!): User
+}
+
+interface Node {
+    id: ID!
+}
+
+interface Timestamped {
+    createdAt: String!
+    id: ID!
+    updatedAt: String!
+}

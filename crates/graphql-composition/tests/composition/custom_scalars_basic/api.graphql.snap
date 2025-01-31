@@ -1,0 +1,21 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: actual_api_sdl
+input_file: crates/graphql-composition/tests/composition/custom_scalars_basic/test.md
+---
+type Sheep {
+    sheepIdx: Tethera
+    texture: Texture!
+}
+
+type Query {
+    sheep: Sheep
+}
+
+scalar Yan
+
+scalar Tan
+
+scalar Texture
+
+scalar Tethera

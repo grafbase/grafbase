@@ -1,0 +1,62 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Federated SDL
+input_file: crates/graphql-composition/tests/composition/entity_interface_basic/test.md
+---
+directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
+
+directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet) on FIELD_DEFINITION
+
+directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boolean = true) on OBJECT | INTERFACE
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+scalar join__FieldSet
+
+type Squirrel
+    @join__type(graph: FOREST)
+{
+    favouriteFood: String
+}
+
+type Cheetah implements Animal
+    @join__type(graph: SAVANNA, key: "species")
+    @join__implements(graph: SAVANNA, interface: "Animal")
+{
+    favouriteFood: String @join__field
+    species: String!
+    topSpeed: Int!
+    weightGrams: Int @join__field
+}
+
+type Mammoth
+    @join__type(graph: STEPPE)
+{
+    tuskLength: Int
+}
+
+type Query
+{
+    getMammoth: Mammoth @join__field(graph: STEPPE)
+}
+
+interface Animal
+    @join__type(graph: SAVANNA, key: "species")
+    @join__type(graph: FOREST, key: "species", isInterfaceObject: true)
+    @join__type(graph: STEPPE, key: "species", isInterfaceObject: true)
+{
+    favouriteFood: String @join__field(graph: FOREST)
+    species: String @join__field(graph: FOREST) @join__field(graph: SAVANNA, type: "String!") @join__field(graph: STEPPE)
+    weightGrams: Int @join__field(graph: STEPPE)
+}
+
+enum join__Graph
+{
+    FOREST @join__graph(name: "forest", url: "http://example.com/forest")
+    SAVANNA @join__graph(name: "savanna", url: "http://example.com/savanna")
+    STEPPE @join__graph(name: "steppe", url: "http://example.com/steppe")
+}

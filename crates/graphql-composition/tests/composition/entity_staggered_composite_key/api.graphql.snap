@@ -1,0 +1,20 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: actual_api_sdl
+input_file: crates/graphql-composition/tests/composition/entity_staggered_composite_key/test.md
+---
+type A {
+    b: B!
+    c: String!
+}
+
+type B {
+    bar: String
+    foo: String
+    id: ID!
+}
+
+type Query {
+    as: [A]
+    bs: [B]
+}

@@ -1,0 +1,53 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Federated SDL
+input_file: crates/graphql-composition/tests/composition/entity_interfaces_with_requires/test.md
+---
+directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
+
+directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet) on FIELD_DEFINITION
+
+directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boolean = true) on OBJECT | INTERFACE
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+scalar join__FieldSet
+
+type Book implements Media
+    @join__type(graph: A, key: "id")
+    @join__implements(graph: A, interface: "Media")
+{
+    id: ID!
+    reviews: [Review!]! @join__field
+    title: String!
+}
+
+type Review
+    @join__type(graph: B)
+{
+    score: Int!
+}
+
+type Query
+{
+    topRatedMedia: [Media!]! @join__field(graph: B)
+}
+
+interface Media
+    @join__type(graph: A, key: "id")
+    @join__type(graph: B, key: "id", isInterfaceObject: true)
+{
+    id: ID!
+    reviews: [Review!]! @join__field(graph: B, requires: "title")
+    title: String! @join__field(graph: A)
+}
+
+enum join__Graph
+{
+    A @join__graph(name: "a", url: "http://example.com/a")
+    B @join__graph(name: "b", url: "http://example.com/b")
+}
