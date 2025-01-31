@@ -249,6 +249,7 @@ pub struct RetryConfig {
 #[serde(default, deny_unknown_fields)]
 pub struct GraphConfig {
     pub path: Option<String>,
+    pub websocket_path: Option<String>,
     pub introspection: Option<bool>,
 }
 
@@ -380,6 +381,7 @@ mod tests {
 
         assert!(config.graph.introspection.is_none());
         assert_eq!(None, config.graph.path.as_deref());
+        assert!(config.graph.websocket_path.is_none());
     }
 
     #[test]
@@ -394,6 +396,22 @@ mod tests {
 
         assert!(config.graph.introspection.unwrap());
         assert_eq!(Some("/enterprise"), config.graph.path.as_deref());
+        assert!(config.graph.websocket_path.is_none());
+    }
+
+    #[test]
+    fn graph_with_websocket_path() {
+        let input = indoc! {r#"
+            [graph]
+            path = "/enterprise"
+            websocket_path = "/subscriptions"
+        "#};
+
+        let config: Config = toml::from_str(input).unwrap();
+
+        assert!(config.graph.introspection.is_none());
+        assert_eq!(Some("/enterprise"), config.graph.path.as_deref());
+        assert_eq!(Some("/subscriptions"), config.graph.websocket_path.as_deref());
     }
 
     #[test]

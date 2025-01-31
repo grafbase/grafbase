@@ -61,6 +61,7 @@ pub(super) async fn build(
             "#});
         }
     }
+
     let config = toml::from_str(&config.toml).unwrap();
 
     update_runtime_with_toml_config(&mut runtime, &config, access_log_sender).await;

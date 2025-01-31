@@ -88,6 +88,7 @@ impl TestGateway {
             gql: request.into(),
             headers: http::HeaderMap::default(),
             init_payload: None,
+            path: "/ws",
         }
     }
 

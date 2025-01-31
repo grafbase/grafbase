@@ -92,6 +92,7 @@ pub async fn serve(
 ) -> crate::Result<()> {
     let config = config_receiver.borrow().clone();
     let path = config.graph.path.as_deref().unwrap_or("/graphql");
+    let websocket_path = config.graph.websocket_path.as_deref().unwrap_or("/ws");
 
     let meter = grafbase_telemetry::metrics::meter_from_global_provider();
     let pending_logs_counter = meter.i64_up_down_counter("grafbase.gateway.access_log.pending").build();
@@ -147,7 +148,7 @@ pub async fn serve(
         .get_external_router()
         .unwrap_or_default()
         .route(path, get(engine_execute).post(engine_execute))
-        .route_service("/ws", WebsocketService::new(websocket_sender))
+        .route_service(websocket_path, WebsocketService::new(websocket_sender))
         .layer(ResponseHookLayer::new(hooks))
         .layer(TelemetryLayer::new(
             grafbase_telemetry::metrics::meter_from_global_provider(),
