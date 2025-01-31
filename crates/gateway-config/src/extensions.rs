@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use semver::VersionReq;
 
@@ -12,10 +12,17 @@ pub enum ExtensionsConfig {
 #[derive(PartialEq, serde::Deserialize, Debug, Clone)]
 pub struct StructuredExtensionsConfig {
     pub version: VersionReq,
+    #[serde(default)]
+    pub path: Option<PathBuf>,
+    #[serde(default)]
     pub networking: bool,
+    #[serde(default)]
     pub stdout: bool,
+    #[serde(default)]
     pub stderr: bool,
+    #[serde(default)]
     pub environment_variables: bool,
+    #[serde(default)]
     pub max_pool_size: Option<usize>,
 }
 
@@ -68,6 +75,13 @@ impl ExtensionsConfig {
         match self {
             ExtensionsConfig::Version(_) => None,
             ExtensionsConfig::Structured(config) => config.max_pool_size,
+        }
+    }
+
+    pub fn path(&self) -> Option<&Path> {
+        match self {
+            ExtensionsConfig::Version(_) => None,
+            ExtensionsConfig::Structured(config) => config.path.as_deref(),
         }
     }
 }

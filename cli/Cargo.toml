@@ -79,6 +79,7 @@ semver.workspace = true
 wasmparser = "0.224.0"
 extension.workspace = true
 cynic-parser = { workspace = true, features = ["report"] }
+serde_valid = "1.0.5"
 
 [dev-dependencies]
 async-graphql-axum.workspace = true

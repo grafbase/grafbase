@@ -2168,6 +2168,7 @@ mod tests {
                                 },
                             ],
                         },
+                        path: None,
                         networking: false,
                         stdout: false,
                         stderr: false,

@@ -90,7 +90,7 @@ pub(super) async fn generate(
         runtime.trusted_documents = trusted_documents;
     }
 
-    let extension_catalog = create_extension_catalog()?;
+    let extension_catalog = create_extension_catalog(gateway_config)?;
 
     let schema = engine::Schema::build(config, schema_version, &extension_catalog)
         .map_err(|err| crate::Error::SchemaValidationError(err.to_string()))?;
@@ -163,7 +163,7 @@ fn create_wasi_extension_configs(
 }
 
 // TODO: with lock file this will be smarter...
-fn create_extension_catalog() -> crate::Result<ExtensionCatalog> {
+fn create_extension_catalog(gateway_config: &Config) -> crate::Result<ExtensionCatalog> {
     let mut catalog = ExtensionCatalog::default();
 
     let Ok(grafbase_extensions) = env::current_dir()
@@ -233,6 +233,46 @@ fn create_extension_catalog() -> crate::Result<ExtensionCatalog> {
             catalog.push(extension);
         }
     }
+
+    if let Some(ref extension_config) = gateway_config.extensions {
+        for (_, config) in extension_config.iter() {
+            let Some(path) = config.path() else {
+                continue;
+            };
+
+            let Ok(mut extension_dir) = path.read_dir() else {
+                continue;
+            };
+
+            if !extension_dir.all(|entry| {
+                entry
+                    .map(|e| e.file_name() == "extension.wasm" || e.file_name() == "manifest.json")
+                    .unwrap_or(false)
+            }) {
+                continue;
+            }
+
+            let manifest_data =
+                File::open(path.join("manifest.json")).map_err(|e| Error::InternalError(e.to_string()))?;
+
+            let manifest: Manifest =
+                serde_json::from_reader(manifest_data).map_err(|e| Error::InternalError(e.to_string()))?;
+
+            let id = Id {
+                origin: format!("file://{}", path.display()).parse().unwrap(),
+                name: manifest.name.clone(),
+                version: manifest.version.clone(),
+            };
+
+            let extension = Extension {
+                id,
+                manifest,
+                wasm_path: path.join("extension.wasm").canonicalize().unwrap(),
+            };
+
+            catalog.push(extension);
+        }
+    };
 
     Ok(catalog)
 }
