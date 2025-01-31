@@ -2122,7 +2122,19 @@ mod tests {
         Some(
             {
                 "rest": Version(
-                    "0.1",
+                    VersionReq {
+                        comparators: [
+                            Comparator {
+                                op: Caret,
+                                major: 0,
+                                minor: Some(
+                                    1,
+                                ),
+                                patch: None,
+                                pre: Prerelease(""),
+                            },
+                        ],
+                    },
                 ),
             },
         )
@@ -2133,7 +2145,7 @@ mod tests {
     fn extension_structured() {
         let input = indoc! {r#"
             [extensions.rest]
-            version = "0.1"
+            version = "0.1.0"
             networking = false
             stdout = false
             stderr = false
@@ -2148,12 +2160,29 @@ mod tests {
             {
                 "rest": Structured(
                     StructuredExtensionsConfig {
-                        version: "0.1",
+                        version: VersionReq {
+                            comparators: [
+                                Comparator {
+                                    op: Caret,
+                                    major: 0,
+                                    minor: Some(
+                                        1,
+                                    ),
+                                    patch: Some(
+                                        0,
+                                    ),
+                                    pre: Prerelease(""),
+                                },
+                            ],
+                        },
+                        path: None,
                         networking: false,
                         stdout: false,
                         stderr: false,
                         environment_variables: false,
-                        max_pool_size: 1000,
+                        max_pool_size: Some(
+                            1000,
+                        ),
                     },
                 ),
             },

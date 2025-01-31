@@ -23,7 +23,7 @@ pub struct GatewayRuntime {
     kv: runtime::kv::KvStore,
     metrics: EngineMetrics,
     hooks: HooksWasi,
-    extensions: WasiExtensions,
+    pub(crate) extensions: WasiExtensions,
     rate_limiter: runtime::rate_limiting::RateLimiter,
     entity_cache: Box<dyn EntityCache>,
     pub(crate) operation_cache: TieredOperationCache<Arc<CachedOperation>>,

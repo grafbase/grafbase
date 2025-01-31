@@ -17,15 +17,20 @@ pub enum ExtensionType {
 #[derive(Debug, Clone, Lower, ComponentType)]
 #[component(record)]
 pub struct Directive {
+    #[component(name = "name")]
     name: String,
+    #[component(name = "subgraph-name")]
+    subgraph_name: String,
+    #[component(name = "arguments")]
     arguments: Vec<u8>,
 }
 
 impl Directive {
     /// Creates a new directive with the specified name and arguments.
-    pub fn new<S: serde::Serialize>(name: String, arguments: &S) -> Self {
+    pub fn new<S: serde::Serialize>(name: String, subgraph_name: String, arguments: &S) -> Self {
         Self {
             name,
+            subgraph_name,
             arguments: minicbor_serde::to_vec(arguments).unwrap(),
         }
     }

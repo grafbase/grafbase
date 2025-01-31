@@ -1,10 +1,16 @@
+use crate::Error;
+
 use super::GdnResponse;
 use engine::{Engine, SchemaVersion};
-use gateway_config::Config;
+use extension_catalog::{Extension, ExtensionCatalog, ExtensionId, Id, Manifest};
+use gateway_config::{Config, WasiExtensionsConfig};
 use graphql_composition::FederatedGraph;
 use runtime::trusted_documents_client::{Client, TrustedDocumentsEnforcementMode};
-use runtime_local::wasi::{extensions::WasiExtensions, hooks::HooksWasi};
-use std::{path::PathBuf, sync::Arc};
+use runtime_local::wasi::{
+    extensions::{Directive, ExtensionConfig, ExtensionType, WasiExtensions},
+    hooks::{ChannelLogSender, HooksWasi},
+};
+use std::{env, fs::File, ops::Not, path::PathBuf, sync::Arc};
 use tokio::sync::watch;
 use ulid::Ulid;
 
@@ -51,7 +57,7 @@ pub(super) async fn generate(
     gateway_config: &Config,
     hot_reload_config_path: Option<PathBuf>,
     hooks: HooksWasi,
-    extensions: WasiExtensions,
+    access_log: ChannelLogSender,
 ) -> crate::Result<Engine<GatewayRuntime>> {
     let Graph {
         federated_sdl,
@@ -76,7 +82,7 @@ pub(super) async fn generate(
         &config,
         version_id,
         hooks,
-        extensions,
+        Default::default(),
     )
     .await?;
 
@@ -84,10 +90,196 @@ pub(super) async fn generate(
         runtime.trusted_documents = trusted_documents;
     }
 
-    let schema = engine::Schema::build(config, schema_version, &Default::default())
+    let extension_catalog = create_extension_catalog(gateway_config)?;
+
+    let schema = engine::Schema::build(config, schema_version, &extension_catalog)
         .map_err(|err| crate::Error::SchemaValidationError(err.to_string()))?;
 
+    if let Some(extensions) = create_wasi_extension_configs(&extension_catalog, gateway_config, &schema) {
+        runtime.extensions =
+            WasiExtensions::new(access_log, extensions).map_err(|e| Error::InternalError(e.to_string()))?;
+    }
+
     Ok(Engine::new(Arc::new(schema), runtime).await)
+}
+
+fn create_wasi_extension_configs(
+    extension_catalog: &ExtensionCatalog,
+    gateway_config: &Config,
+    schema: &engine::Schema,
+) -> Option<Vec<ExtensionConfig>> {
+    let mut wasi_extensions: Vec<ExtensionConfig> = Vec::with_capacity(extension_catalog.len());
+
+    let extension_configs = gateway_config.extensions.as_ref()?;
+
+    for (id, extension) in extension_catalog.iter().enumerate() {
+        let extension_config = extension_configs
+            .get(&extension.manifest.name)
+            .expect("we made sure in the create_extension_catalog that this extension is in the config");
+
+        let extension_type = match &extension.manifest.kind {
+            extension_catalog::Kind::FieldResolver(_) => ExtensionType::Resolver,
+        };
+
+        let wasi_config = WasiExtensionsConfig {
+            location: extension.wasm_path.clone(),
+            networking: extension_config.networking(),
+            stdout: extension_config.stdout(),
+            stderr: extension_config.stderr(),
+            environment_variables: extension_config.environment_variables(),
+        };
+
+        wasi_extensions.push(ExtensionConfig {
+            id: ExtensionId::from(id),
+            name: extension.manifest.name.clone(),
+            version: extension.manifest.version.clone(),
+            extension_type,
+            schema_directives: Vec::new(),
+            max_pool_size: extension_config.max_pool_size(),
+            wasi_config,
+        });
+    }
+
+    for subgraph in schema.subgraphs() {
+        let directives = subgraph.extension_schema_directives();
+
+        for schema_directive in directives {
+            let config = &mut wasi_extensions[usize::from(schema_directive.extension_id)];
+
+            let directive = match schema_directive.arguments() {
+                Some(args) => Directive::new(config.name.clone(), subgraph.name().to_string(), args.as_ref()),
+                None => Directive::new(config.name.clone(), subgraph.name().to_string(), &""),
+            };
+
+            config.schema_directives.push(directive);
+        }
+    }
+
+    wasi_extensions.is_empty().not().then_some(wasi_extensions)
+}
+
+// TODO: with lock file this will be smarter...
+fn create_extension_catalog(gateway_config: &Config) -> crate::Result<ExtensionCatalog> {
+    let mut catalog = ExtensionCatalog::default();
+
+    let Some(ref extension_configs) = gateway_config.extensions else {
+        return Ok(catalog);
+    };
+
+    for (_, config) in extension_configs.iter() {
+        let Some(path) = config.path() else {
+            continue;
+        };
+
+        let Ok(mut extension_dir) = path.read_dir() else {
+            continue;
+        };
+
+        if !extension_dir.all(|entry| {
+            entry
+                .map(|e| e.file_name() == "extension.wasm" || e.file_name() == "manifest.json")
+                .unwrap_or(false)
+        }) {
+            continue;
+        }
+
+        let manifest_data = File::open(path.join("manifest.json")).map_err(|e| Error::InternalError(e.to_string()))?;
+
+        let manifest: Manifest =
+            serde_json::from_reader(manifest_data).map_err(|e| Error::InternalError(e.to_string()))?;
+
+        let id = Id {
+            origin: format!("file://{}", path.display()).parse().unwrap(),
+            name: manifest.name.clone(),
+            version: manifest.version.clone(),
+        };
+
+        let extension = Extension {
+            id,
+            manifest,
+            wasm_path: path.join("extension.wasm").canonicalize().unwrap(),
+        };
+
+        catalog.push(extension);
+    }
+
+    let Ok(grafbase_extensions) = env::current_dir()
+        .map_err(|e| Error::InternalError(e.to_string()))?
+        .join("grafbase_extensions")
+        .read_dir()
+    else {
+        return Ok(catalog);
+    };
+
+    for extension_dir in grafbase_extensions {
+        let extension_dir = extension_dir.map_err(|e| Error::InternalError(e.to_string()))?;
+
+        if !extension_dir.path().is_dir() {
+            continue;
+        }
+
+        let extension_dir = extension_dir
+            .path()
+            .read_dir()
+            .map_err(|e| Error::InternalError(e.to_string()))?;
+
+        let mut manifest = None;
+        let mut wasm_path = None;
+
+        for file in extension_dir {
+            let file = file.map_err(|e| Error::InternalError(e.to_string()))?;
+
+            if file.path().is_dir() {
+                continue;
+            }
+
+            let path = file.path();
+            let file_name = path.file_name().and_then(|n| n.to_str());
+
+            if file_name == Some("manifest.json") {
+                let manifest_data = File::open(file.path()).map_err(|e| Error::InternalError(e.to_string()))?;
+
+                let manifest_data: Manifest =
+                    serde_json::from_reader(manifest_data).map_err(|e| Error::InternalError(e.to_string()))?;
+
+                manifest = Some(manifest_data);
+
+                continue;
+            }
+
+            if file_name == Some("extension.wasm") {
+                wasm_path = Some(file.path().to_path_buf());
+            }
+        }
+
+        if let Some((wasm_path, manifest)) = wasm_path.zip(manifest) {
+            if extension_configs
+                .get(&manifest.name)
+                .filter(|c| c.version().matches(&manifest.version))
+                .is_none()
+            {
+                continue;
+            }
+
+            let full_path = wasm_path.parent().unwrap().to_str().unwrap();
+
+            let id = Id {
+                origin: format!("file://{}", full_path).parse().unwrap(),
+                name: manifest.name.clone(),
+                version: manifest.version.clone(),
+            };
+
+            let extension = Extension {
+                id,
+                manifest,
+                wasm_path: wasm_path.canonicalize().unwrap(),
+            };
+
+            catalog.push(extension);
+        }
+    }
+
+    Ok(catalog)
 }
 
 fn sdl_graph(federated_sdl: String) -> Graph {

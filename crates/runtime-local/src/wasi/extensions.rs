@@ -1,6 +1,6 @@
 mod pool;
 
-use engine_schema::SubgraphId;
+use engine_schema::Subgraph;
 use extension_catalog::ExtensionId;
 use gateway_config::WasiExtensionsConfig;
 use runtime::{
@@ -8,16 +8,16 @@ use runtime::{
     extension::{Data, ExtensionDirective, ExtensionRuntime},
     hooks::{Anything, EdgeDefinition},
 };
+use semver::Version;
 use std::{collections::HashMap, sync::Arc};
-use wasi_component_loader::{
-    ChannelLogSender, ComponentLoader, Directive, ExtensionType, FieldDefinition, SharedContext,
-};
+use wasi_component_loader::{ChannelLogSender, ComponentLoader, FieldDefinition, SharedContext};
+pub use wasi_component_loader::{Directive, ExtensionType};
 
 use pool::Pool;
 
 use super::guest_error_as_gql;
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct WasiExtensions(Option<Arc<WasiExtensionsInner>>);
 
 impl WasiExtensions {
@@ -36,6 +36,8 @@ impl WasiExtensions {
                 extension_type: config.extension_type,
                 schema_directives: config.schema_directives,
             };
+
+            tracing::info!("Loading extension {} {}", config.name, config.version);
 
             let Some(loader) = ComponentLoader::extensions(config.name, config.wasi_config)? else {
                 continue;
@@ -57,7 +59,7 @@ impl ExtensionRuntime for WasiExtensions {
     async fn resolve_field<'a>(
         &self,
         extension_id: ExtensionId,
-        _subgraph_id: SubgraphId,
+        subgraph: Subgraph<'a>,
         context: &Self::SharedContext,
         field: EdgeDefinition<'a>,
         directive: ExtensionDirective<'a, impl Anything<'a>>,
@@ -73,7 +75,11 @@ impl ExtensionRuntime for WasiExtensions {
 
         let mut instance = pool.get().await;
 
-        let directive = Directive::new(directive.name.to_string(), &directive.static_arguments);
+        let directive = Directive::new(
+            directive.name.to_string(),
+            subgraph.name().to_string(),
+            &directive.static_arguments,
+        );
 
         let definition = FieldDefinition {
             type_name: field.parent_type_name.to_string(),
@@ -121,6 +127,7 @@ struct WasiExtensionsInner {
 pub struct ExtensionConfig {
     pub id: ExtensionId,
     pub name: String,
+    pub version: Version,
     pub extension_type: ExtensionType,
     pub schema_directives: Vec<Directive>,
     pub max_pool_size: Option<usize>,

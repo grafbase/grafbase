@@ -7,6 +7,7 @@ use std::{
 use anyhow::Context;
 use extension::{FieldResolver, Kind, Manifest};
 use semver::Version;
+use serde_valid::Validate;
 
 use crate::{cli_input::ExtensionBuildCommand, output::report};
 
@@ -57,10 +58,11 @@ struct ExtensionToml {
     directives: ExtensionTomlDirectives,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Validate)]
 struct ExtensionTomlExtension {
+    #[validate(pattern = "^[a-z0-9-]+$")]
     name: String,
-    version: String,
+    version: Version,
     kind: ExtensionKind,
 }
 
@@ -199,15 +201,14 @@ fn compile_extension(
 fn parse_manifest(source_dir: &Path, wasm_path: &Path) -> anyhow::Result<Manifest> {
     let extension_toml = std::fs::read_to_string(source_dir.join("extension.toml"))
         .context("could not find extension.toml file from the extension project")?;
-    let extension_toml: ExtensionToml = toml::from_str(&extension_toml).context("could not parse extension.toml")?;
+
+    let extension_toml: ExtensionToml =
+        toml::from_str(&extension_toml).map_err(|e| anyhow::anyhow!("extension.toml contains invalid data\n{e}"))?;
 
     let wasm_bytes =
         std::fs::read(wasm_path).with_context(|| format!("failed to read extension `{}`", wasm_path.display()))?;
 
     let versions = parse_versions(&wasm_bytes)?;
-
-    let extension_version =
-        Version::parse(&extension_toml.extension.version).context("failed to parse extension version")?;
 
     let kind = match extension_toml.extension.kind {
         ExtensionKind::Resolver => {
@@ -235,7 +236,7 @@ fn parse_manifest(source_dir: &Path, wasm_path: &Path) -> anyhow::Result<Manifes
 
     let manifest = Manifest {
         name: extension_toml.extension.name,
-        version: extension_version,
+        version: extension_toml.extension.version,
         kind,
         sdk_version: versions.sdk_version,
         minimum_gateway_version: versions.minimum_gateway_version,

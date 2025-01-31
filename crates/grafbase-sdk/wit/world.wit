@@ -3,6 +3,7 @@ package component:grafbase-sdk;
 world sdk {
     record directive {
         name: string,
+        subgraph-name: string,
         // serialized in CBOR
         arguments: list<u8>
     }

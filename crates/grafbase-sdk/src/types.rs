@@ -13,6 +13,11 @@ impl Directive {
         &self.0.name
     }
 
+    /// The name of the subgraph this directive is part of.
+    pub fn subgraph_name(&self) -> &str {
+        &self.0.subgraph_name
+    }
+
     /// The directive arguments. The output is a Serde structure, that must map to
     /// the arguments of the directive.
     ///

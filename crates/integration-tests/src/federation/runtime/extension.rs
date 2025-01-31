@@ -1,4 +1,4 @@
-use engine_schema::SubgraphId;
+use engine_schema::Subgraph;
 use extension_catalog::{Extension, ExtensionCatalog, ExtensionId, Id};
 use runtime::{
     error::PartialGraphqlError,
@@ -37,7 +37,7 @@ impl TestExtensions {
                 minimum_gateway_version: "0.0.0".parse().unwrap(),
                 sdl: None,
             },
-            wasm: Vec::new(),
+            wasm_path: Default::default(),
         });
         self.field_resolvers.push(FieldResolver {
             id,
@@ -68,7 +68,7 @@ impl runtime::extension::ExtensionRuntime for TestExtensions {
     async fn resolve_field<'a>(
         &self,
         extension_id: ExtensionId,
-        _subgraph_id: SubgraphId,
+        _subgraph: Subgraph<'a>,
         context: &Self::SharedContext,
         field: EdgeDefinition<'a>,
         directive: ExtensionDirective<'a, impl Anything<'a>>,

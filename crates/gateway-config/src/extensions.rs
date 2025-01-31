@@ -1,20 +1,34 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+
+use semver::VersionReq;
 
 #[derive(PartialEq, serde::Deserialize, Debug, Clone)]
 #[serde(untagged)]
 pub enum ExtensionsConfig {
-    Version(String),
+    Version(VersionReq),
     Structured(StructuredExtensionsConfig),
 }
 
 #[derive(PartialEq, serde::Deserialize, Debug, Clone)]
 pub struct StructuredExtensionsConfig {
-    pub version: String,
+    #[serde(default = "default_version")]
+    pub version: VersionReq,
+    #[serde(default)]
+    pub path: Option<PathBuf>,
+    #[serde(default)]
     pub networking: bool,
+    #[serde(default)]
     pub stdout: bool,
+    #[serde(default)]
     pub stderr: bool,
+    #[serde(default)]
     pub environment_variables: bool,
-    pub max_pool_size: usize,
+    #[serde(default)]
+    pub max_pool_size: Option<usize>,
+}
+
+fn default_version() -> VersionReq {
+    VersionReq::parse("*").unwrap()
 }
 
 #[derive(Debug, Clone)]
@@ -24,44 +38,55 @@ pub struct WasiExtensionsConfig {
     pub stdout: bool,
     pub stderr: bool,
     pub environment_variables: bool,
-    pub max_pool_size: Option<usize>,
 }
 
-impl From<(String, ExtensionsConfig)> for WasiExtensionsConfig {
-    fn from((name, config): (String, ExtensionsConfig)) -> Self {
-        match config {
-            ExtensionsConfig::Version(version) => {
-                let location = std::env::current_dir()
-                    .unwrap()
-                    .join("grafbase_extensions")
-                    .join(format!("{name}-{version}"))
-                    .join("extension.wasm");
+impl ExtensionsConfig {
+    pub fn version(&self) -> &VersionReq {
+        match self {
+            ExtensionsConfig::Version(ref version) => version,
+            ExtensionsConfig::Structured(config) => &config.version,
+        }
+    }
 
-                Self {
-                    location,
-                    networking: false,
-                    stdout: false,
-                    stderr: false,
-                    environment_variables: false,
-                    max_pool_size: None,
-                }
-            }
-            ExtensionsConfig::Structured(config) => {
-                let location = std::env::current_dir()
-                    .unwrap()
-                    .join("grafbase_extensions")
-                    .join(format!("{name}-{}", config.version))
-                    .join("extension.wasm");
+    pub fn networking(&self) -> bool {
+        match self {
+            ExtensionsConfig::Version(_) => false,
+            ExtensionsConfig::Structured(config) => config.networking,
+        }
+    }
 
-                Self {
-                    location,
-                    networking: config.networking,
-                    stdout: config.stdout,
-                    stderr: config.stderr,
-                    environment_variables: config.environment_variables,
-                    max_pool_size: Some(config.max_pool_size),
-                }
-            }
+    pub fn stdout(&self) -> bool {
+        match self {
+            ExtensionsConfig::Version(_) => false,
+            ExtensionsConfig::Structured(config) => config.stdout,
+        }
+    }
+
+    pub fn stderr(&self) -> bool {
+        match self {
+            ExtensionsConfig::Version(_) => false,
+            ExtensionsConfig::Structured(config) => config.stderr,
+        }
+    }
+
+    pub fn environment_variables(&self) -> bool {
+        match self {
+            ExtensionsConfig::Version(_) => false,
+            ExtensionsConfig::Structured(config) => config.environment_variables,
+        }
+    }
+
+    pub fn max_pool_size(&self) -> Option<usize> {
+        match self {
+            ExtensionsConfig::Version(_) => None,
+            ExtensionsConfig::Structured(config) => config.max_pool_size,
+        }
+    }
+
+    pub fn path(&self) -> Option<&Path> {
+        match self {
+            ExtensionsConfig::Version(_) => None,
+            ExtensionsConfig::Structured(config) => config.path.as_deref(),
         }
     }
 }

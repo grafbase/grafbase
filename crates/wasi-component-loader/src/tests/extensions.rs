@@ -25,14 +25,13 @@ async fn simple_resolver() {
         stdout: false,
         stderr: false,
         environment_variables: false,
-        max_pool_size: None,
     };
 
     assert!(config.location.exists());
 
     let (access_log, _) = create_log_channel();
     let loader = ComponentLoader::extensions(String::new(), config).unwrap().unwrap();
-    let schema_directive = Directive::new("schemaArgs".into(), &SchemaArgs { id: 10 });
+    let schema_directive = Directive::new("schemaArgs".into(), "mySubgraph".into(), &SchemaArgs { id: 10 });
 
     let mut extension =
         ExtensionsComponentInstance::new(&loader, ExtensionType::Resolver, vec![schema_directive], access_log)
@@ -41,7 +40,7 @@ async fn simple_resolver() {
 
     let context = SharedContext::new(Arc::new(HashMap::new()), TraceId::INVALID);
 
-    let field_directive = Directive::new("myDirective".into(), &FieldArgs { name: "cat" });
+    let field_directive = Directive::new("myDirective".into(), "mySubgraph".into(), &FieldArgs { name: "cat" });
 
     let definition = FieldDefinition {
         type_name: "Query".into(),

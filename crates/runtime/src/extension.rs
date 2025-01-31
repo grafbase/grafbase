@@ -1,4 +1,4 @@
-use engine_schema::SubgraphId;
+use engine_schema::Subgraph;
 use extension_catalog::ExtensionId;
 
 use crate::{
@@ -23,7 +23,7 @@ pub trait ExtensionRuntime: Send + Sync + 'static {
     async fn resolve_field<'a>(
         &self,
         extension_id: ExtensionId,
-        subgraph_id: SubgraphId,
+        subgraph: Subgraph<'a>,
         context: &Self::SharedContext,
         field: EdgeDefinition<'a>,
         directive: ExtensionDirective<'a, impl Anything<'a>>,
@@ -37,7 +37,7 @@ impl ExtensionRuntime for () {
     async fn resolve_field<'a>(
         &self,
         _extension_id: ExtensionId,
-        _subgraph_id: SubgraphId,
+        _subgraph: Subgraph<'a>,
         _context: &Self::SharedContext,
         _field: EdgeDefinition<'a>,
         _directive: ExtensionDirective<'a, impl Anything<'a>>,
