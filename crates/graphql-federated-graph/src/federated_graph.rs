@@ -128,8 +128,6 @@ pub struct Extension {
 
     // -- loaded from the extension manifest --
     #[cfg(feature = "extension")]
-    pub id: extension::Id,
-    #[cfg(feature = "extension")]
     pub manifest: extension::Manifest,
     pub schema_directives: Vec<ExtensionSchemaDirective>,
 }

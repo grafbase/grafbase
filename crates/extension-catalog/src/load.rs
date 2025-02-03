@@ -1,7 +1,7 @@
 use extension::*;
 use url::Url;
 
-pub async fn load_manifest(mut url: Url) -> Result<(Id, Manifest), String> {
+pub async fn load_manifest(mut url: Url) -> Result<Manifest, String> {
     if url
         .path_segments()
         .and_then(|segments| segments.last())
@@ -22,10 +22,7 @@ pub async fn load_manifest(mut url: Url) -> Result<(Id, Manifest), String> {
             .await
             .map_err(|err| err.to_string())?
     };
-    let manifest = manifest.into_latest();
-
-    let id = Id::from_url(url, manifest.name.clone(), manifest.version.clone());
-    Ok((id, manifest))
+    Ok(manifest.into_latest())
 }
 
 #[cfg(test)]
@@ -40,8 +37,10 @@ mod tests {
 
         let manifest_path = dir.path().join("manifest.json");
         let expected = Manifest {
-            name: "my-extension".to_string(),
-            version: "1.0.0".parse().unwrap(),
+            id: Id {
+                name: "my-extension".to_string(),
+                version: "1.0.0".parse().unwrap(),
+            },
             kind: Kind::FieldResolver(FieldResolver {
                 resolver_directives: vec!["resolver".to_string()],
             }),
@@ -55,15 +54,12 @@ mod tests {
         )
         .await
         .unwrap();
-        let (id, manifest) = load_manifest(Url::from_file_path(dir.path()).unwrap()).await.unwrap();
-        assert_eq!(id.origin, url::Url::from_file_path(dir.path()).unwrap());
-        assert_eq!(id.name, manifest.name);
-        assert_eq!(id.version, manifest.version);
+        let manifest = load_manifest(Url::from_file_path(dir.path()).unwrap()).await.unwrap();
         assert_eq!(manifest, expected);
 
-        let (other_id, other_manifest) = load_manifest(Url::from_file_path(manifest_path).unwrap())
+        let other_manifest = load_manifest(Url::from_file_path(manifest_path).unwrap())
             .await
             .unwrap();
-        assert_eq!((id, manifest), (other_id, other_manifest));
+        assert_eq!(manifest, other_manifest);
     }
 }

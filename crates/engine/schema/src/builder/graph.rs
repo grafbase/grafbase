@@ -114,9 +114,13 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
 
     fn ingest_extension_schema_directives(&mut self, config: &mut Config) -> Result<(), BuildError> {
         for extension in &mut config.graph.extensions {
-            let Some(id) = self.ctx.extension_catalog.find_compatible_extension(&extension.id) else {
+            let Some(id) = self
+                .ctx
+                .extension_catalog
+                .find_compatible_extension(&extension.manifest.id)
+            else {
                 return Err(BuildError::UnsupportedExtension {
-                    id: Box::new(extension.id.clone()),
+                    id: Box::new(extension.manifest.id.clone()),
                 });
             };
             for directive in take(&mut extension.schema_directives) {
@@ -948,7 +952,7 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
                     name,
                     arguments,
                 }) => {
-                    let extension_id = &config.graph[*extension_id].id;
+                    let extension_id = &config.graph[*extension_id].manifest.id;
                     let Some(id) = self.ctx.extension_catalog.find_compatible_extension(extension_id) else {
                         return Err(BuildError::UnsupportedExtension {
                             id: Box::new(extension_id.clone()),

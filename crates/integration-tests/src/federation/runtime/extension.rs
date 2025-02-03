@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use engine_schema::Subgraph;
 use extension_catalog::{Extension, ExtensionCatalog, ExtensionId, Id};
 use runtime::{
@@ -22,13 +24,13 @@ impl TestExtensions {
     #[track_caller]
     pub fn with_field_resolver(
         mut self,
+        path: &Path,
         id: Id,
         directives: &[&str],
         resolver: impl TestFieldResolvereExtension + 'static,
     ) -> Self {
         let manifest = extension_catalog::Manifest {
-            name: id.name.clone(),
-            version: id.version.clone(),
+            id: id.clone(),
             kind: extension_catalog::Kind::FieldResolver(extension_catalog::FieldResolver {
                 resolver_directives: directives.iter().map(|s| s.to_string()).collect(),
             }),
@@ -37,12 +39,11 @@ impl TestExtensions {
             sdl: None,
         };
         std::fs::write(
-            id.origin.clone().to_file_path().unwrap().join("manifest.json"),
+            path.join("manifest.json"),
             serde_json::to_vec(&manifest.clone().into_versioned()).unwrap(),
         )
         .unwrap();
         let id = self.catalog.push(Extension {
-            id,
             manifest,
             wasm_path: Default::default(),
         });

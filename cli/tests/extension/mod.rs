@@ -124,8 +124,10 @@ fn build() {
         },
         @r#"
     {
-      "name": "test-project",
-      "version": "0.1.0",
+      "id": {
+        "name": "test-project",
+        "version": "0.1.0"
+      },
       "kind": {
         "FieldResolver": {
           "resolver_directives": [
