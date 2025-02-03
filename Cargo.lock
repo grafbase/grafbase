@@ -2420,6 +2420,7 @@ dependencies = [
  "similar",
  "strum",
  "thiserror 2.0.11",
+ "tokio",
  "tracing",
  "tracing-subscriber",
 ]
@@ -2455,6 +2456,7 @@ dependencies = [
  "strum",
  "strum_macros",
  "thiserror 2.0.11",
+ "tokio",
  "url",
 ]
 
@@ -3546,8 +3548,6 @@ dependencies = [
  "cynic-parser",
  "cynic-parser-deser",
  "expect-test",
- "extension",
- "extension-catalog",
  "grafbase-workspace-hack",
  "graphql-wrapping-types",
  "indexmap 2.7.0",

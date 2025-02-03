@@ -18,7 +18,7 @@ pub(super) async fn build(
     subgraphs: &Subgraphs,
 ) -> (Arc<Engine<TestRuntime>>, TestRuntimeContext) {
     let graph = match federated_sdl {
-        Some(sdl) => federated_graph::FederatedGraph::from_sdl(&sdl).await.unwrap(),
+        Some(sdl) => federated_graph::FederatedGraph::from_sdl(&sdl).unwrap(),
         None => {
             if !subgraphs.is_empty() {
                 graphql_composition::compose(&subgraphs.iter().fold(
@@ -42,7 +42,7 @@ pub(super) async fn build(
     let graph = {
         let sdl = federated_graph::render_federated_sdl(&graph).expect("render_federated_sdl()");
         println!("{sdl}");
-        FederatedGraph::from_sdl(&sdl).await.unwrap()
+        FederatedGraph::from_sdl(&sdl).unwrap()
     };
 
     let counter = grafbase_telemetry::metrics::meter_from_global_provider()
@@ -74,6 +74,7 @@ pub(super) async fn build(
         engine::SchemaVersion::from(ulid::Ulid::new().to_bytes()),
         runtime.extensions.catalog(),
     )
+    .await
     .unwrap();
     let engine = engine::Engine::new(Arc::new(schema), runtime).await;
     let ctx = TestRuntimeContext { access_log_receiver };

@@ -9,8 +9,6 @@ use std::fmt::{self, Display, Write};
 pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error> {
     let mut sdl = String::new();
 
-    write_extensions_enum(graph, &mut sdl)?;
-
     with_formatter(&mut sdl, |f| {
         display_directive_definitions(|_| true, directives_filter, graph, f)?;
 
@@ -236,24 +234,6 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
     sdl.push('\n');
 
     Ok(sdl)
-}
-
-fn write_extensions_enum(graph: &FederatedGraph, sdl: &mut String) -> fmt::Result {
-    if graph.extensions.is_empty() {
-        return Ok(());
-    }
-
-    writeln!(
-        sdl,
-        "enum {} {{\n{}\n}}\n",
-        EXTENSION_LINK_ENUM,
-        graph.extensions.iter().format_with("\n", |ext, f| {
-            f(&format_args!(
-                r#"  {} @{}(url: "{}")"#,
-                graph[ext.enum_value_name], EXTENSION_LINK_DIRECTIVE, graph[ext.url],
-            ))
-        })
-    )
 }
 
 fn write_input_field(
@@ -510,7 +490,7 @@ mod tests {
     fn escape_strings() {
         use expect_test::expect;
 
-        let empty = FederatedGraph::from_sdl_without_extensions(
+        let empty = FederatedGraph::from_sdl(
             r###"
             directive @dummy(test: String!) on FIELD
 
@@ -538,7 +518,7 @@ mod tests {
     fn multiline_strings() {
         use expect_test::expect;
 
-        let empty = FederatedGraph::from_sdl_without_extensions(
+        let empty = FederatedGraph::from_sdl(
             r###"
             directive @dummy(test: String!) on FIELD
 
@@ -581,7 +561,7 @@ mod tests {
             }
         "##;
 
-        let parsed = FederatedGraph::from_sdl_without_extensions(schema).unwrap();
+        let parsed = FederatedGraph::from_sdl(schema).unwrap();
         let rendered = render_federated_sdl(&parsed).unwrap();
 
         let expected = expect_test::expect![[r#"
@@ -603,7 +583,7 @@ mod tests {
 
         // Check that from_sdl accepts the rendered sdl
         {
-            FederatedGraph::from_sdl_without_extensions(&rendered).unwrap();
+            FederatedGraph::from_sdl(&rendered).unwrap();
         }
     }
 }

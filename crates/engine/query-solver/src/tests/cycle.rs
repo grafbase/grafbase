@@ -65,9 +65,9 @@ type Query
 }
 "###;
 
-#[test]
-fn requirements_cycle() {
-    let schema = Schema::from_sdl_without_extensions_or_panic(SCHEMA);
+#[tokio::test]
+async fn requirements_cycle() {
+    let schema = Schema::from_sdl_or_panic(SCHEMA).await;
     let operation = Operation::parse(
         &schema,
         None,
@@ -96,8 +96,8 @@ fn requirements_cycle() {
     assert!(matches!(err, crate::Error::RequirementCycleDetected));
 }
 
-#[test]
-fn query_partitions_cycle() {
+#[tokio::test]
+async fn query_partitions_cycle() {
     // 'first' and 'third' cannot be in the same query partitions as it would lead to a cyclic
     // dependency between query partitions.
     assert_solving_snapshots!(
@@ -115,8 +115,8 @@ fn query_partitions_cycle() {
     );
 }
 
-#[test]
-fn query_partitions_nested_cycle_1() {
+#[tokio::test]
+async fn query_partitions_nested_cycle_1() {
     // 'first' and 'third' cannot be in the same query partitions as it would lead to a cyclic
     // dependency between query partitions.
     assert_solving_snapshots!(
@@ -139,8 +139,8 @@ fn query_partitions_nested_cycle_1() {
 
 // As we use a direct graph, ordering of edges matter. This query will process fields in the
 // reverse order ensuring we handle the directed edge correctly.
-#[test]
-fn query_partitions_nested_cycle_2() {
+#[tokio::test]
+async fn query_partitions_nested_cycle_2() {
     // 'first' and 'third' cannot be in the same query partitions as it would lead to a cyclic
     // dependency between query partitions.
     assert_solving_snapshots!(

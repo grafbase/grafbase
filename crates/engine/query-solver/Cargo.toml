@@ -41,3 +41,4 @@ tracing-subscriber = { workspace = true, features = [
     "ansi",
 ] }
 insta.workspace = true
+tokio.workspace = true

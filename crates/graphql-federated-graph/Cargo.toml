@@ -22,8 +22,6 @@ cynic-parser = { workspace = true, optional = true }
 cynic-parser-deser.workspace = true
 indexmap = { optional = true, workspace = true }
 grafbase-workspace-hack.workspace = true
-extension = { workspace = true, optional = true }
-extension-catalog = { workspace = true, optional = true }
 
 
 [dev-dependencies]
@@ -35,7 +33,6 @@ pretty_assertions = "1"
 url.workspace = true
 
 [features]
-default = ["render_sdl", "from_sdl", "extension"]
+default = ["render_sdl", "from_sdl"]
 render_sdl = []
 from_sdl = ["dep:cynic-parser", "dep:indexmap"]
-extension = ["extension-catalog", "dep:extension"]

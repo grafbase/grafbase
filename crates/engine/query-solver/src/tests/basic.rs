@@ -55,8 +55,8 @@ type User
 }
 "###;
 
-#[test]
-fn test_basic_operation_graph() {
+#[tokio::test]
+async fn test_basic_operation_graph() {
     assert_solving_snapshots!(
         "basic",
         SCHEMA,

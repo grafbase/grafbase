@@ -55,8 +55,8 @@ type User
 }
 "###;
 
-#[test]
-fn single_subgraph() {
+#[tokio::test]
+async fn single_subgraph() {
     assert_solving_snapshots!(
         "single_subgraph",
         SCHEMA,
@@ -69,8 +69,8 @@ fn single_subgraph() {
     );
 }
 
-#[test]
-fn consecutive_subgraphs() {
+#[tokio::test]
+async fn consecutive_subgraphs() {
     assert_solving_snapshots!(
         "consecutive_subgraphs",
         SCHEMA,
@@ -84,8 +84,8 @@ fn consecutive_subgraphs() {
     );
 }
 
-#[test]
-fn consecutive_subgraphs_with_multiple_fields() {
+#[tokio::test]
+async fn consecutive_subgraphs_with_multiple_fields() {
     assert_solving_snapshots!(
         "consecutive_subgraphs_with_multiple_fields",
         SCHEMA,
@@ -102,8 +102,8 @@ fn consecutive_subgraphs_with_multiple_fields() {
     );
 }
 
-#[test]
-fn interleaved_subgraph_fields() {
+#[tokio::test]
+async fn interleaved_subgraph_fields() {
     assert_solving_snapshots!(
         "interleaved_subgraph_fields",
         SCHEMA,
@@ -120,8 +120,8 @@ fn interleaved_subgraph_fields() {
     );
 }
 
-#[test]
-fn audit_test() {
+#[tokio::test]
+async fn audit_test() {
     assert_solving_snapshots!(
         "audit_test",
         SCHEMA,

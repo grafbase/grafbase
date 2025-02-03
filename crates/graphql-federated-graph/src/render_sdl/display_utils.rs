@@ -491,7 +491,7 @@ fn write_arguments(graph: &FederatedGraph, f: &mut fmt::Formatter<'_>, arguments
                 graph,
                 value: AnyValue::Value(Cow::Borrowed(value)),
             };
-            f(&format_args!(r#"{{ {}: {} }}"#, graph[*name], value))
+            f(&format_args!(r#"{}: {}"#, graph[*name], value))
         })
     )
 }

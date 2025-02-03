@@ -43,3 +43,4 @@ serde_json.workspace = true
 postcard.workspace = true
 rstest.workspace = true
 pretty_assertions = "1"
+tokio.workspace = true

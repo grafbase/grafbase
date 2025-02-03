@@ -57,23 +57,12 @@ pub struct FederatedGraph {
 }
 
 impl FederatedGraph {
-    #[cfg(all(feature = "from_sdl", feature = "extension"))]
-    pub async fn from_sdl(sdl: &str) -> Result<Self, crate::DomainError> {
-        if sdl.trim().is_empty() {
-            return Ok(Default::default());
-        }
-        crate::from_sdl::from_sdl(sdl).await
-    }
-
-    /// Instantiate a [FederatedGraph] from a federated schema string
     #[cfg(feature = "from_sdl")]
-    pub fn from_sdl_without_extensions(sdl: &str) -> Result<Self, crate::DomainError> {
+    pub fn from_sdl(sdl: &str) -> Result<Self, crate::DomainError> {
         if sdl.trim().is_empty() {
             return Ok(Default::default());
         }
-        let parsed =
-            cynic_parser::parse_type_system_document(sdl).map_err(|err| crate::DomainError(err.to_string()))?;
-        crate::from_sdl::from_sdl_without_extensions(Default::default(), &parsed)
+        crate::from_sdl::from_sdl(sdl)
     }
 
     pub fn definition_name(&self, definition: Definition) -> &str {
@@ -123,12 +112,8 @@ pub struct Subgraph {
 pub struct Extension {
     /// Name of the extension within the federated graph. It does NOT necessarily matches the extension's name
     /// in its manifest, see the `id` field for this.
-    pub enum_value_name: StringId,
+    pub enum_value: EnumValueId,
     pub url: StringId,
-
-    // -- loaded from the extension manifest --
-    #[cfg(feature = "extension")]
-    pub manifest: extension::Manifest,
     pub schema_directives: Vec<ExtensionSchemaDirective>,
 }
 
