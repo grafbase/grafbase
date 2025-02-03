@@ -70,9 +70,8 @@ pub(super) async fn generate(
     };
 
     let config = {
-        let graph = FederatedGraph::from_sdl(&federated_sdl)
-            .await
-            .map_err(|e| crate::Error::SchemaValidationError(e.to_string()))?;
+        let graph =
+            FederatedGraph::from_sdl(&federated_sdl).map_err(|e| crate::Error::SchemaValidationError(e.to_string()))?;
 
         engine_config_builder::build_with_toml_config(gateway_config, graph)
     };
@@ -94,6 +93,7 @@ pub(super) async fn generate(
     let extension_catalog = create_extension_catalog(gateway_config)?;
 
     let schema = engine::Schema::build(config, schema_version, &extension_catalog)
+        .await
         .map_err(|err| crate::Error::SchemaValidationError(err.to_string()))?;
 
     if let Some(extensions) = create_wasi_extension_configs(&extension_catalog, gateway_config, &schema) {

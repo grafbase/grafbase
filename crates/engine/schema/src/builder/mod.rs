@@ -25,14 +25,14 @@ use crate::*;
 use field_set::*;
 use interner::Interner;
 
-pub(crate) fn build(
+pub(crate) async fn build(
     mut config: Config,
     version: Version,
     extension_catalog: &ExtensionCatalog,
 ) -> Result<Schema, BuildError> {
     let mut ctx = BuildContext::new(&mut config, extension_catalog);
     let mut sources = ExternalDataSources::build(&mut ctx, &mut config);
-    let (graph, introspection) = GraphBuilder::build(&mut ctx, &mut sources, &mut config)?;
+    let (graph, introspection) = GraphBuilder::build(&mut ctx, &mut sources, &mut config).await?;
     let subgraphs = SubGraphs {
         graphql_endpoints: sources.graphql_endpoints,
         virtual_subgraphs: sources.virtual_subgraphs,

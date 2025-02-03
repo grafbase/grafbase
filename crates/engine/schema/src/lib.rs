@@ -101,18 +101,20 @@ pub struct Schema {
 }
 
 impl Schema {
-    pub fn from_sdl_without_extensions_or_panic(sdl: &str) -> Self {
-        let graph = federated_graph::FederatedGraph::from_sdl_without_extensions(sdl).unwrap();
+    pub async fn from_sdl_or_panic(sdl: &str) -> Self {
+        let graph = federated_graph::FederatedGraph::from_sdl(sdl).unwrap();
         let config = config::Config::from_graph(graph);
-        Self::build(config, Version::from(Vec::new()), &Default::default()).unwrap()
+        Self::build(config, Version::from(Vec::new()), &Default::default())
+            .await
+            .unwrap()
     }
 
-    pub fn build(
+    pub async fn build(
         config: config::Config,
         version: Version,
         extension_catalog: &ExtensionCatalog,
     ) -> Result<Schema, BuildError> {
-        builder::build(config, version, extension_catalog)
+        builder::build(config, version, extension_catalog).await
     }
 }
 

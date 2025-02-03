@@ -17,8 +17,8 @@ type Query
 }
 "###;
 
-#[test]
-fn top_level_typename() {
+#[tokio::test]
+async fn top_level_typename() {
     assert_solving_snapshots!(
         "top_level_typename",
         SCHEMA,
@@ -30,8 +30,8 @@ fn top_level_typename() {
     );
 }
 
-#[test]
-fn only_typename() {
+#[tokio::test]
+async fn only_typename() {
     assert_solving_snapshots!(
         "only_typename",
         SCHEMA,

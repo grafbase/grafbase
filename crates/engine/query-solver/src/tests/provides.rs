@@ -35,8 +35,8 @@ type Query {
 }
 "#;
 
-#[test]
-fn provides_full() {
+#[tokio::test]
+async fn provides_full() {
     assert_solving_snapshots!(
         "provides_full",
         SCHEMA,
@@ -58,8 +58,8 @@ fn provides_full() {
     );
 }
 
-#[test]
-fn provides_with_entity_join() {
+#[tokio::test]
+async fn provides_with_entity_join() {
     assert_solving_snapshots!(
         "provide_with_entity_join",
         SCHEMA,

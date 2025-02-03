@@ -28,8 +28,8 @@ type Query
 }
 "###;
 
-#[test]
-fn all_fields() {
+#[tokio::test]
+async fn all_fields() {
     assert_solving_snapshots!(
         "all_fields",
         SCHEMA,
@@ -46,8 +46,8 @@ fn all_fields() {
     );
 }
 
-#[test]
-fn single_field() {
+#[tokio::test]
+async fn single_field() {
     assert_solving_snapshots!(
         "single_field",
         SCHEMA,

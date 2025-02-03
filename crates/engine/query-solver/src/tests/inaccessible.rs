@@ -63,8 +63,8 @@ union ViewerMedia
  = Book | Song | Movie
 "#;
 
-#[test]
-fn inaccessible_field_for_one_subgraph() {
+#[tokio::test]
+async fn inaccessible_field_for_one_subgraph() {
     // title is available in subgraph B not in A. Query.media is accessible in both.
     assert_solving_snapshots!(
         "inaccessible_field_for_one_subgraph",

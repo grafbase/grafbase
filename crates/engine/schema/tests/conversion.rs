@@ -94,9 +94,9 @@ type User
 }
 "#;
 
-#[test]
-fn should_not_fail() {
-    let _schema = Schema::from_sdl_without_extensions_or_panic(SCHEMA);
+#[tokio::test]
+async fn should_not_fail() {
+    let _schema = Schema::from_sdl_or_panic(SCHEMA).await;
 }
 
 const SCHEMA_WITH_INACCESSIBLES: &str = r#"
@@ -228,15 +228,18 @@ input BookInput2 {
 #[rstest::rstest]
 #[case(SCHEMA)]
 #[case(SCHEMA_WITH_INACCESSIBLES)]
-fn serde_roundtrip(#[case] sdl: &str) {
-    let graph = config::FederatedGraph::from_sdl_without_extensions(sdl).unwrap();
+#[tokio::test]
+async fn serde_roundtrip(#[case] sdl: &str) {
+    let graph = config::FederatedGraph::from_sdl(sdl).unwrap();
     let mut config = config::Config::from_graph(graph);
 
     config.header_rules.push(HeaderRule::Remove(HeaderRemove {
         name: NameOrPattern::Pattern(Regex::new("^foo*").unwrap()),
     }));
 
-    let schema = Schema::build(config, Version::from("random"), &Default::default()).unwrap();
+    let schema = Schema::build(config, Version::from("random"), &Default::default())
+        .await
+        .unwrap();
 
     let bytes = postcard::to_stdvec(&schema).unwrap();
     postcard::from_bytes::<Schema>(&bytes).unwrap();

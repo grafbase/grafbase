@@ -7,7 +7,7 @@ use crate::{InputValue, Schema, Version};
 
 use super::*;
 
-fn create_schema_and_input_value() -> (Schema, SchemaInputValueId) {
+async fn create_schema_and_input_value() -> (Schema, SchemaInputValueId) {
     const SDL: &str = r###"
     input InputObject {
         fieldA: State
@@ -55,9 +55,11 @@ fn create_schema_and_input_value() -> (Schema, SchemaInputValueId) {
     }
     "###;
 
-    let graph = FederatedGraph::from_sdl_without_extensions(SDL).unwrap();
+    let graph = FederatedGraph::from_sdl(SDL).unwrap();
     let config = config::Config::from_graph(graph);
-    let schema = Schema::build(config, Version::from(Vec::new()), &Default::default()).unwrap();
+    let schema = Schema::build(config, Version::from(Vec::new()), &Default::default())
+        .await
+        .unwrap();
 
     let id = schema
         .query()
@@ -72,17 +74,17 @@ fn create_schema_and_input_value() -> (Schema, SchemaInputValueId) {
     (schema, id)
 }
 
-#[test]
-fn test_display() {
-    let (schema, id) = create_schema_and_input_value();
+#[tokio::test]
+async fn test_display() {
+    let (schema, id) = create_schema_and_input_value().await;
     let value = id.walk(&schema);
 
     insta::assert_snapshot!(value, @r#"{inputObject:{fieldA:INACTIVE,fieldB:"some string value"},list:[null,ACTIVE,73],object:{null:null,string:"some string value",enumValue:ACTIVE,int:7,bigInt:8,float:10,boolean:true}}"#);
 }
 
-#[test]
-fn test_serialize() {
-    let (schema, id) = create_schema_and_input_value();
+#[tokio::test]
+async fn test_serialize() {
+    let (schema, id) = create_schema_and_input_value().await;
     let value = id.walk(&schema);
 
     insta::assert_json_snapshot!(value, @r###"
@@ -109,9 +111,9 @@ fn test_serialize() {
     "###);
 }
 
-#[test]
-fn test_deserializer() {
-    let (schema, id) = create_schema_and_input_value();
+#[tokio::test]
+async fn test_deserializer() {
+    let (schema, id) = create_schema_and_input_value().await;
     let value = id.walk(&schema);
 
     let value = serde_json::Value::deserialize(value).unwrap();
@@ -140,9 +142,9 @@ fn test_deserializer() {
     "###);
 }
 
-#[test]
-fn test_input_value() {
-    let (schema, id) = create_schema_and_input_value();
+#[tokio::test]
+async fn test_input_value() {
+    let (schema, id) = create_schema_and_input_value().await;
     let value = id.walk(&schema);
     let input_value = InputValue::from(value);
 
@@ -694,9 +696,9 @@ fn test_input_value() {
     "###);
 }
 
-#[test]
-fn test_struct_deserializer() {
-    let (schema, id) = create_schema_and_input_value();
+#[tokio::test]
+async fn test_struct_deserializer() {
+    let (schema, id) = create_schema_and_input_value().await;
     let value = id.walk(&schema);
 
     #[allow(unused)]

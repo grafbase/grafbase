@@ -1,7 +1,8 @@
-use std::{collections::BTreeSet, mem::take};
+use std::{collections::BTreeSet, mem::take, str::FromStr};
 
 use builder::{coerce::InputValueCoercer, external_sources::ExternalDataSources};
 use config::Config;
+use extension_catalog::Manifest;
 use federated_graph::{JoinFieldDirective, JoinImplementsDirective, JoinTypeDirective, JoinUnionMemberDirective};
 use fxhash::FxHashMap;
 use introspection::{IntrospectionBuilder, IntrospectionMetadata};
@@ -10,11 +11,14 @@ use crate::*;
 
 use super::{interner::Interner, BuildContext, BuildError, FieldSetsBuilder, SchemaLocation};
 
+#[derive(id_derives::IndexedFields)]
 pub(crate) struct GraphBuilder<'a, 'c> {
     ctx: &'a mut BuildContext<'c>,
     sources: &'a mut ExternalDataSources,
     field_sets: FieldSetsBuilder,
     all_subgraphs: Vec<SubgraphId>,
+    #[indexed_by(federated_graph::ExtensionId)]
+    extension_manifests: Vec<Manifest>,
     required_scopes: Interner<RequiresScopesDirectiveRecord, RequiresScopesDirectiveId>,
     graph: Graph,
     graphql_federated_entity_resolvers: FxHashMap<(EntityDefinitionId, GraphqlEndpointId), Vec<EntityResovler>>,
@@ -38,7 +42,7 @@ impl EntityResovler {
 }
 
 impl<'a, 'c> GraphBuilder<'a, 'c> {
-    pub fn build(
+    pub async fn build(
         ctx: &'a mut BuildContext<'c>,
         sources: &'a mut ExternalDataSources,
         config: &mut Config,
@@ -51,6 +55,7 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
             sources,
             field_sets: Default::default(),
             all_subgraphs,
+            extension_manifests: Vec::new(),
             required_scopes: Default::default(),
             graph: Graph {
                 description_id: None,
@@ -93,12 +98,13 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
             },
             graphql_federated_entity_resolvers: Default::default(),
         };
-        builder.ingest_config(config)?;
+        builder.ingest_config(config).await?;
         builder.finalize()
     }
 
-    fn ingest_config(&mut self, config: &mut Config) -> Result<(), BuildError> {
-        self.ingest_extension_schema_directives(config)?;
+    async fn ingest_config(&mut self, config: &mut Config) -> Result<(), BuildError> {
+        self.load_manifests_and_ingest_extension_schema_directives(config)
+            .await?;
 
         self.ingest_enums(config)?;
         self.ingest_scalars(config)?;
@@ -112,17 +118,31 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
         Ok(())
     }
 
-    fn ingest_extension_schema_directives(&mut self, config: &mut Config) -> Result<(), BuildError> {
+    async fn load_manifests_and_ingest_extension_schema_directives(
+        &mut self,
+        config: &mut Config,
+    ) -> Result<(), BuildError> {
         for extension in &mut config.graph.extensions {
-            let Some(id) = self
-                .ctx
-                .extension_catalog
-                .find_compatible_extension(&extension.manifest.id)
-            else {
+            let url_str = &self.ctx.strings[extension.url.into()];
+            let url = url::Url::from_str(&self.ctx.strings[extension.url.into()]).map_err(|err| {
+                BuildError::CouldNotLoadExtension {
+                    url: url_str.to_string(),
+                    err: err.to_string(),
+                }
+            })?;
+            let manifest =
+                extension_catalog::load_manifest(url)
+                    .await
+                    .map_err(|err| BuildError::CouldNotLoadExtension {
+                        url: url_str.to_string(),
+                        err: err.to_string(),
+                    })?;
+            let Some(id) = self.ctx.extension_catalog.find_compatible_extension(&manifest.id) else {
                 return Err(BuildError::UnsupportedExtension {
-                    id: Box::new(extension.manifest.id.clone()),
+                    id: Box::new(manifest.id.clone()),
                 });
             };
+            self.extension_manifests.push(manifest);
             for directive in take(&mut extension.schema_directives) {
                 let subgraph_id = self.sources.id_mapping[&directive.subgraph_id];
                 self.graph.extension_directives.push(ExtensionDirectiveRecord {
@@ -168,7 +188,6 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
                 self.graph.inaccessible_input_value_definitions.set(id, true);
             }
             let directive_ids = self.push_directives(
-                config,
                 // FIXME: better input value schema location...
                 SchemaLocation::Definition {
                     name: definition.name.into(),
@@ -220,7 +239,6 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
                 self.graph.inaccessible_input_object_definitions.set(ix.into(), true);
             }
             let directive_ids = self.push_directives(
-                config,
                 SchemaLocation::Definition {
                     name: definition.name.into(),
                 },
@@ -262,7 +280,6 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
             }
 
             let directive_ids = self.push_directives(
-                config,
                 SchemaLocation::Definition {
                     name: union.name.into(),
                 },
@@ -332,7 +349,6 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
                 .push(has_inaccessible(&federated_enum.directives));
 
             let directive_ids = self.push_directives(
-                config,
                 SchemaLocation::Definition {
                     name: federated_enum.name.into(),
                 },
@@ -354,7 +370,6 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
                 self.graph.inaccessible_enum_values.set(ix.into(), true);
             }
             let directive_ids = self.push_directives(
-                config,
                 // FIXME: better schema location for enum values...
                 SchemaLocation::Definition {
                     name: enum_value.value.into(),
@@ -383,8 +398,7 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
                 .inaccessible_scalar_definitions
                 .push(has_inaccessible(&scalar.directives));
             let name = StringId::from(scalar.name);
-            let directive_ids =
-                self.push_directives(config, SchemaLocation::Definition { name }, &scalar.directives)?;
+            let directive_ids = self.push_directives(SchemaLocation::Definition { name }, &scalar.directives)?;
             self.graph.scalar_definitions.push(ScalarDefinitionRecord {
                 name_id: name,
                 ty: ScalarType::from_scalar_name(&self.ctx.strings[name]),
@@ -407,11 +421,8 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
                 self.graph.inaccessible_object_definitions.set(ix.into(), true);
             }
 
-            let directives = self.push_directives(
-                config,
-                SchemaLocation::Definition { name: name_id },
-                federated_directives,
-            )?;
+            let directives =
+                self.push_directives(SchemaLocation::Definition { name: name_id }, federated_directives)?;
 
             let mut join_implement_records: Vec<_> = object
                 .directives
@@ -470,11 +481,8 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
                 self.graph.inaccessible_interface_definitions.set(ix.into(), true);
             }
 
-            let directives = self.push_directives(
-                config,
-                SchemaLocation::Definition { name: name_id },
-                federated_directives,
-            )?;
+            let directives =
+                self.push_directives(SchemaLocation::Definition { name: name_id }, federated_directives)?;
 
             let mut exists_in_subgraph_ids = Vec::new();
             let mut is_interface_object_in_ids = Vec::new();
@@ -727,7 +735,7 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
                 }
             }
 
-            let directive_ids = self.push_directives(config, field_schema_location, &field.directives)?;
+            let directive_ids = self.push_directives(field_schema_location, &field.directives)?;
             resolver_ids.extend(
                 directive_ids
                     .iter()
@@ -879,7 +887,6 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
 
     fn push_directives<'d>(
         &mut self,
-        config: &Config,
         schema_location: SchemaLocation,
         directives: impl IntoIterator<Item = &'d federated_graph::Directive>,
     ) -> Result<Vec<TypeSystemDirectiveId>, BuildError> {
@@ -952,7 +959,7 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
                     name,
                     arguments,
                 }) => {
-                    let extension_id = &config.graph[*extension_id].manifest.id;
+                    let extension_id = &self[*extension_id].id;
                     let Some(id) = self.ctx.extension_catalog.find_compatible_extension(extension_id) else {
                         return Err(BuildError::UnsupportedExtension {
                             id: Box::new(extension_id.clone()),
