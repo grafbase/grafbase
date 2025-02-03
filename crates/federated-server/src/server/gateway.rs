@@ -69,17 +69,18 @@ pub(super) async fn generate(
         GraphDefinition::Sdl(federated_sdl) => sdl_graph(federated_sdl),
     };
 
-    let config = {
-        let graph =
-            FederatedGraph::from_sdl(&federated_sdl).map_err(|e| crate::Error::SchemaValidationError(e.to_string()))?;
+    let extension_catalog = create_extension_catalog(gateway_config)?;
 
-        engine_config_builder::build_with_toml_config(gateway_config, graph)
-    };
+    let federated_graph =
+        FederatedGraph::from_sdl(&federated_sdl).map_err(|e| crate::Error::SchemaValidationError(e.to_string()))?;
+
+    let schema = engine::Schema::build(gateway_config, federated_graph, &extension_catalog, schema_version)
+        .await
+        .map_err(|err| crate::Error::SchemaValidationError(err.to_string()))?;
 
     let mut runtime = GatewayRuntime::build(
         gateway_config,
         hot_reload_config_path,
-        &config,
         version_id,
         hooks,
         Default::default(),
@@ -89,12 +90,6 @@ pub(super) async fn generate(
     if let Some(trusted_documents) = trusted_documents {
         runtime.trusted_documents = trusted_documents;
     }
-
-    let extension_catalog = create_extension_catalog(gateway_config)?;
-
-    let schema = engine::Schema::build(config, schema_version, &extension_catalog)
-        .await
-        .map_err(|err| crate::Error::SchemaValidationError(err.to_string()))?;
 
     if let Some(extensions) = create_wasi_extension_configs(&extension_catalog, gateway_config, &schema) {
         runtime.extensions = WasiExtensions::new(access_log, extensions)

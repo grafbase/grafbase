@@ -2,6 +2,7 @@ use std::sync::OnceLock;
 
 mod builder;
 mod composite_type;
+mod config;
 mod definition;
 mod directive;
 mod entity;
@@ -25,7 +26,7 @@ mod ty;
 mod union;
 
 pub use self::builder::BuildError;
-use config::ResponseExtensionConfig;
+pub use config::*;
 pub use directive::*;
 use extension_catalog::ExtensionCatalog;
 pub use field_set::*;
@@ -97,24 +98,28 @@ pub struct Schema {
     #[indexed_by(HeaderRuleId)]
     header_rules: Vec<HeaderRuleRecord>,
 
-    pub settings: Settings,
+    pub settings: PartialConfig,
 }
 
 impl Schema {
     pub async fn from_sdl_or_panic(sdl: &str) -> Self {
-        let graph = federated_graph::FederatedGraph::from_sdl(sdl).unwrap();
-        let config = config::Config::from_graph(graph);
-        Self::build(config, Version::from(Vec::new()), &Default::default())
+        let federated_graph = federated_graph::FederatedGraph::from_sdl(sdl).unwrap();
+        let mut config: gateway_config::Config = Default::default();
+        config.graph.introspection = Some(true);
+        let version = Version::from(Vec::new());
+        let extension_catalog = Default::default();
+        Self::build(&config, federated_graph, &extension_catalog, version)
             .await
             .unwrap()
     }
 
     pub async fn build(
-        config: config::Config,
-        version: Version,
+        config: &gateway_config::Config,
+        federated_graph: federated_graph::FederatedGraph,
         extension_catalog: &ExtensionCatalog,
+        version: Version,
     ) -> Result<Schema, BuildError> {
-        builder::build(config, version, extension_catalog).await
+        builder::build(config, federated_graph, extension_catalog, version).await
     }
 }
 
@@ -134,24 +139,6 @@ id_newtypes::forward! {
     impl Index<SchemaInputKeyValueId, Output = (StringId, SchemaInputValueRecord)> for Schema.graph.input_values,
     impl Index<GraphqlEndpointId, Output = GraphqlEndpointRecord> for Schema.subgraphs,
     impl Index<VirtualSubgraphId, Output = VirtualSubgraphRecord> for Schema.subgraphs,
-}
-
-#[derive(Default, serde::Serialize, serde::Deserialize)]
-pub struct Settings {
-    default_header_rules: Vec<HeaderRuleId>,
-
-    pub timeout: std::time::Duration,
-    pub auth_config: Option<config::AuthConfig>,
-    pub operation_limits: config::OperationLimits,
-    pub disable_introspection: bool,
-    pub retry: Option<RetryConfig>,
-    pub batching: config::BatchingConfig,
-    pub complexity_control: config::ComplexityControl,
-    pub response_extension: ResponseExtensionConfig,
-    pub apq_enabled: bool,
-    pub executable_document_limit_bytes: usize,
-    pub trusted_documents: config::TrustedDocumentsConfig,
-    pub websocket_forward_connection_init_payload: bool,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, id_derives::IndexedFields)]

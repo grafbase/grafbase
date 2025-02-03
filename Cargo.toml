@@ -6,7 +6,6 @@ members = [
     "crates/grafbase-hooks/derive",
     "crates/grafbase-sdk/derive",
     "crates/engine/auth",
-    "crates/engine/config",
     "crates/engine/axum",
     "crates/engine/codegen",
     "crates/engine/operation",
@@ -169,12 +168,10 @@ extension = { path = "crates/extension" }
 extension-catalog = { path = "crates/extension-catalog" }
 
 # Engine
-engine-config-builder = { path = "crates/engine-config-builder" }
 engine = { path = "crates/engine" }
 engine-schema = { path = "crates/engine/schema" }
 engine-auth = { path = "crates/engine/auth" }
 engine-axum = { path = "crates/engine/axum" }
-engine-config = { path = "crates/engine/config" }
 federated-graph = { path = "crates/graphql-federated-graph", package = "graphql-federated-graph" }
 grafbase-telemetry = { path = "crates/telemetry" }
 graphql-composition = { path = "crates/graphql-composition" }

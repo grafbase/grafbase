@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use crate::federation::{subgraph::Subgraphs, TestRuntimeContext};
-use engine_config_builder::build_with_toml_config;
 use federated_graph::FederatedGraph;
 use grafbase_telemetry::metrics::meter_from_global_provider;
 use runtime::hooks::DynamicHooks;
@@ -67,12 +66,11 @@ pub(super) async fn build(
 
     update_runtime_with_toml_config(&mut runtime, &config, access_log_sender).await;
 
-    let config = build_with_toml_config(&config, graph);
-
     let schema = engine::Schema::build(
-        config,
-        engine::SchemaVersion::from(ulid::Ulid::new().to_bytes()),
+        &config,
+        graph,
         runtime.extensions.catalog(),
+        engine::SchemaVersion::from(ulid::Ulid::new().to_bytes()),
     )
     .await
     .unwrap();

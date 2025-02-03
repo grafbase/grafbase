@@ -30,7 +30,7 @@ pub struct GraphqlEndpointRecord {
     pub subgraph_name_id: StringId,
     pub url_id: UrlId,
     pub websocket_url_id: Option<UrlId>,
-    pub header_rule_ids: Vec<HeaderRuleId>,
+    pub header_rule_ids: IdRange<HeaderRuleId>,
     pub config: SubgraphConfig,
     /// Schema directives applied by the given subgraph
     pub schema_directive_ids: Vec<TypeSystemDirectiveId>,

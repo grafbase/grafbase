@@ -3,10 +3,10 @@ mod path;
 
 use crate::{
     EnumDefinitionId, Graph, InputObjectDefinitionId, InputValueDefinitionId, ScalarDefinitionId, ScalarType,
-    SchemaInputValueId, SchemaInputValueRecord, SchemaInputValues, StringId, TypeRecord,
+    SchemaInputValueId, SchemaInputValueRecord, SchemaInputValues, TypeRecord,
 };
 pub use error::*;
-use federated_graph::Value;
+use federated_graph::{FederatedGraph, Value};
 use id_newtypes::IdRange;
 use path::*;
 use wrapping::{ListWrapping, MutableWrapping};
@@ -14,7 +14,8 @@ use wrapping::{ListWrapping, MutableWrapping};
 use super::{BuildContext, DefinitionId};
 
 pub(super) struct InputValueCoercer<'a, 'c> {
-    ctx: &'a BuildContext<'c>,
+    pub(super) ctx: &'a mut BuildContext<'c>,
+    federated_graph: &'a FederatedGraph,
     graph: &'a Graph,
     input_values: &'a mut SchemaInputValues,
     value_path: Vec<ValuePathSegment>,
@@ -22,9 +23,15 @@ pub(super) struct InputValueCoercer<'a, 'c> {
 }
 
 impl<'a, 'c> InputValueCoercer<'a, 'c> {
-    pub fn new(ctx: &'a BuildContext<'c>, graph: &'a Graph, input_values: &'a mut SchemaInputValues) -> Self {
+    pub fn new(
+        ctx: &'a mut BuildContext<'c>,
+        graph: &'a Graph,
+        federated_graph: &'a FederatedGraph,
+        input_values: &'a mut SchemaInputValues,
+    ) -> Self {
         Self {
             ctx,
+            federated_graph,
             graph,
             input_values,
             value_path: Vec::new(),
@@ -127,49 +134,42 @@ impl<'a, 'c> InputValueCoercer<'a, 'c> {
             });
         };
 
-        let mut fields = fields
-            .into_vec()
-            .into_iter()
-            .map(|(id, value)| (id, Some(value)))
-            .collect::<Vec<_>>();
-        fields.sort_unstable_by_key(|(id, _)| *id);
         let mut fields_buffer = self.input_fields_buffer_pool.pop().unwrap_or_default();
+        let mut fields = Vec::from(fields);
         for (input_field, input_field_id) in self.graph[input_object.input_field_ids]
             .iter()
             .zip(input_object.input_field_ids)
         {
-            match fields.binary_search_by_key(&input_field.name_id, |(id, _)| StringId::from(*id)) {
-                Ok(i) => {
-                    let value = std::mem::take(&mut fields[i].1).unwrap();
-                    self.value_path.push(input_field.name_id.into());
-                    let value = self.coerce_input_value(input_field.ty_record, value)?;
-                    fields_buffer.push((input_field_id, value));
-                    self.value_path.pop();
-                }
-                Err(_) => {
-                    if let Some(default_value_id) = input_field.default_value_id {
-                        fields_buffer.push((input_field_id, self.graph.input_values[default_value_id]));
-                    } else if input_field.ty_record.wrapping.is_required() {
-                        return Err(InputValueError::UnexpectedNull {
-                            expected: self.type_name(input_field.ty_record),
-                            path: self.path(),
-                        });
-                    }
-                }
+            if let Some(index) = fields
+                .iter()
+                .position(|(id, _)| self.federated_graph[*id] == self.ctx.strings[input_field.name_id])
+            {
+                let (_, value) = fields.swap_remove(index);
+                self.value_path.push(input_field.name_id.into());
+                let value = self.coerce_input_value(input_field.ty_record, value)?;
+                fields_buffer.push((input_field_id, value));
+                self.value_path.pop();
+            } else if let Some(default_value_id) = input_field.default_value_id {
+                fields_buffer.push((input_field_id, self.graph.input_values[default_value_id]));
+            } else if input_field.ty_record.wrapping.is_required() {
+                return Err(InputValueError::UnexpectedNull {
+                    expected: self.type_name(input_field.ty_record),
+                    path: self.path(),
+                });
             }
         }
-        if let Some((id, _)) = fields
-            .into_iter()
-            .filter_map(|(id, maybe_value)| Some((id, maybe_value?)))
-            .next()
-        {
+
+        if let Some((id, _)) = fields.first() {
             return Err(InputValueError::UnknownInputField {
                 input_object: self.ctx.strings[input_object.name_id].to_string(),
-                name: self.ctx.strings[StringId::from(id)].to_string(),
+                name: self.federated_graph[*id].to_string(),
                 path: self.path(),
             });
         }
-        fields_buffer.sort_unstable_by_key(|(id, _)| *id);
+
+        // We iterate over input fields in order which is a range, so it should be sorted by the
+        // id.
+        debug_assert!(fields_buffer.is_sorted_by_key(|(id, _)| *id));
         let ids = self.input_values.append_input_object(&mut fields_buffer);
         self.input_fields_buffer_pool.push(fields_buffer);
         Ok(SchemaInputValueRecord::InputObject(ids))
@@ -184,7 +184,7 @@ impl<'a, 'c> InputValueCoercer<'a, 'c> {
         match &value {
             Value::EnumValue(id) => Ok(SchemaInputValueRecord::EnumValue((*id).into())),
             Value::UnboundEnumValue(id) => {
-                let string_value = &self.ctx.strings[(*id).into()];
+                let string_value = &self.federated_graph[*id];
                 for id in r#enum.value_ids {
                     if &self.ctx.strings[self.graph[id].name_id] == string_value {
                         return Ok(SchemaInputValueRecord::EnumValue(id));
@@ -211,7 +211,7 @@ impl<'a, 'c> InputValueCoercer<'a, 'c> {
     ) -> Result<SchemaInputValueRecord, InputValueError> {
         match self.graph[scalar_id].ty {
             ScalarType::String => match value {
-                Value::String(id) => Some(id.into()),
+                Value::String(id) => Some(self.ctx.strings.get_or_new(&self.federated_graph[id])),
                 _ => None,
             }
             .map(SchemaInputValueRecord::String),
@@ -245,7 +245,9 @@ impl<'a, 'c> InputValueCoercer<'a, 'c> {
             }
             .map(SchemaInputValueRecord::Boolean),
             ScalarType::Unknown => {
-                return Ok(self.input_values.ingest_arbitrary_value(self.ctx, value));
+                return Ok(self
+                    .input_values
+                    .ingest_arbitrary_value(self.ctx, value, self.federated_graph));
             }
         }
         .ok_or_else(|| InputValueError::IncorrectScalarType {

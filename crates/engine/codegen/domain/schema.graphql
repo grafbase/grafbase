@@ -275,10 +275,7 @@ type VirtualSubgraph @meta(module: "subgraph/virtual_") @indexed(id_size: "u16")
 # ----------------
 
 union NameOrPattern @id @meta(module: "header_rule") @variants(names: ["Pattern", "Name"]) = Regex | String
-union HeaderRule
-  @meta(module: "header_rule")
-  @variants(remove_suffix: true)
-  @indexed(id_size: "u32", deduplicated: true) =
+union HeaderRule @meta(module: "header_rule") @variants(remove_suffix: true) @indexed(id_size: "u32") =
   | ForwardHeaderRule
   | InsertHeaderRule
   | RemoveHeaderRule

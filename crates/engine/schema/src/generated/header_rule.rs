@@ -124,10 +124,7 @@ impl<'a> NameOrPattern<'a> {
 /// Generated from:
 ///
 /// ```custom,{.language-graphql}
-/// union HeaderRule
-///   @meta(module: "header_rule")
-///   @variants(remove_suffix: true)
-///   @indexed(id_size: "u32", deduplicated: true) =
+/// union HeaderRule @meta(module: "header_rule") @variants(remove_suffix: true) @indexed(id_size: "u32") =
 ///   | ForwardHeaderRule
 ///   | InsertHeaderRule
 ///   | RemoveHeaderRule

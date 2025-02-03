@@ -1,11 +1,12 @@
 use std::{mem::take, time::Duration};
 
-use config::{Config, SubgraphConfig};
+use federated_graph::FederatedGraph;
 use fxhash::FxHashMap;
-use gateway_config::SubscriptionProtocol;
+use gateway_config::{SubgraphConfig, SubscriptionProtocol};
 
 use super::{
-    BuildContext, GraphqlEndpointId, GraphqlEndpointRecord, SubgraphId, VirtualSubgraphId, VirtualSubgraphRecord,
+    BuildContext, BuildError, GraphqlEndpointId, GraphqlEndpointRecord, SubgraphId, VirtualSubgraphId,
+    VirtualSubgraphRecord,
 };
 
 #[derive(id_derives::IndexedFields)]
@@ -25,19 +26,26 @@ impl std::ops::Index<federated_graph::SubgraphId> for ExternalDataSources {
 }
 
 impl ExternalDataSources {
-    pub(super) fn build(ctx: &mut BuildContext<'_>, config: &mut Config) -> Self {
+    pub(super) fn build(ctx: &mut BuildContext<'_>, graph: &mut FederatedGraph) -> Result<Self, BuildError> {
         let mut sources = ExternalDataSources {
-            id_mapping: Default::default(),
+            id_mapping: FxHashMap::with_capacity_and_hasher(graph.subgraphs.len(), Default::default()),
             graphql_endpoints: Vec::new(),
             virtual_subgraphs: Vec::new(),
         };
 
-        for (index, subgraph) in take(&mut config.graph.subgraphs).into_iter().enumerate() {
-            let subgraph_name_id = subgraph.name.into();
+        let default_cache_ttl = if ctx.config.entity_caching.enabled {
+            Some(ctx.config.entity_caching.ttl)
+        } else {
+            None
+        };
+
+        for (index, subgraph) in take(&mut graph.subgraphs).into_iter().enumerate() {
+            let subgraph_name_id = ctx.strings.get_or_new(&graph[subgraph.name]);
             let id = federated_graph::SubgraphId::from(index);
-            if let Some(url) = subgraph.url {
-                let sdl_url = url::Url::parse(&ctx.strings[url.into()]).expect("valid url");
-                match config.subgraph_configs.remove(&id) {
+            let config = ctx.config.subgraphs.get(&graph[subgraph.name]);
+
+            if subgraph.url.is_some() || config.is_some_and(|cfg| cfg.url.is_some()) {
+                match config {
                     Some(SubgraphConfig {
                         subscription_protocol,
                         websocket_url,
@@ -49,33 +57,56 @@ impl ExternalDataSources {
                         ..
                     }) => sources.graphql_endpoints.push(GraphqlEndpointRecord {
                         subgraph_name_id,
-                        url_id: ctx.urls.insert(url.unwrap_or(sdl_url)),
+                        url_id: ctx.urls.insert(match url {
+                            Some(url) => url.clone(),
+                            None => {
+                                let url = &graph[subgraph.url.expect("Config doesn't exist, so SDL must have URL")];
+                                url::Url::parse(url).map_err(|err| BuildError::InvalidUrl {
+                                    url: url.to_string(),
+                                    err: err.to_string(),
+                                })?
+                            }
+                        }),
                         subscription_protocol: match subscription_protocol {
-                            Some(protocol) => protocol,
+                            Some(protocol) => *protocol,
                             None if websocket_url.is_some() => SubscriptionProtocol::Websocket,
                             None => SubscriptionProtocol::ServerSentEvents,
                         },
 
-                        websocket_url_id: websocket_url
-                            .map(|url| ctx.urls.insert(url::Url::parse(&config[url]).expect("valid url"))),
-                        header_rule_ids: headers.into_iter().map(Into::into).collect(),
+                        websocket_url_id: websocket_url.clone().map(|url| ctx.urls.insert(url)),
+                        header_rule_ids: ctx.ingest_header_rules(headers),
                         config: super::SubgraphConfig {
                             timeout: timeout.unwrap_or(DEFAULT_SUBGRAPH_TIMEOUT),
                             retry: retry.map(Into::into),
-                            cache_ttl: entity_caching.as_ref().unwrap_or(&config.entity_caching).ttl(),
+                            cache_ttl: entity_caching
+                                .as_ref()
+                                .and_then(|cfg| {
+                                    cfg.enabled
+                                        .unwrap_or(ctx.config.entity_caching.enabled)
+                                        .then_some(cfg.ttl)
+                                        .flatten()
+                                })
+                                .or(default_cache_ttl),
                         },
                         schema_directive_ids: Vec::new(),
                     }),
                     None => sources.graphql_endpoints.push(GraphqlEndpointRecord {
                         subgraph_name_id,
-                        url_id: ctx.urls.insert(sdl_url),
+                        url_id: {
+                            let url = &graph[subgraph.url.expect("Config doesn't exist, so SDL must have URL")];
+                            let url = url::Url::parse(url).map_err(|err| BuildError::InvalidUrl {
+                                url: url.to_string(),
+                                err: err.to_string(),
+                            })?;
+                            ctx.urls.insert(url)
+                        },
                         websocket_url_id: None,
                         subscription_protocol: SubscriptionProtocol::ServerSentEvents,
-                        header_rule_ids: Vec::new(),
+                        header_rule_ids: Default::default(),
                         config: super::SubgraphConfig {
                             timeout: DEFAULT_SUBGRAPH_TIMEOUT,
                             retry: None,
-                            cache_ttl: config.entity_caching.ttl(),
+                            cache_ttl: default_cache_ttl,
                         },
                         schema_directive_ids: Vec::new(),
                     }),
@@ -95,7 +126,7 @@ impl ExternalDataSources {
             }
         }
 
-        sources
+        Ok(sources)
     }
 
     pub(super) fn iter(&self) -> impl Iterator<Item = SubgraphId> + '_ {

@@ -1,6 +1,5 @@
-use config::{HeaderRemove, HeaderRule, NameOrPattern};
 use engine_schema::{Schema, Version};
-use regex::Regex;
+use postcard::ser_flavors::Flavor;
 
 const SCHEMA: &str = r#"
 schema
@@ -230,19 +229,43 @@ input BookInput2 {
 #[case(SCHEMA_WITH_INACCESSIBLES)]
 #[tokio::test]
 async fn serde_roundtrip(#[case] sdl: &str) {
-    let graph = config::FederatedGraph::from_sdl(sdl).unwrap();
-    let mut config = config::Config::from_graph(graph);
+    use federated_graph::FederatedGraph;
 
-    config.header_rules.push(HeaderRule::Remove(HeaderRemove {
-        name: NameOrPattern::Pattern(Regex::new("^foo*").unwrap()),
-    }));
+    let graph = FederatedGraph::from_sdl(sdl).unwrap();
+    let config: gateway_config::Config = toml::from_str(
+        r#"
+        [[headers]]
+        rule = "insert"
+        name = "x-foo"
+        value = "BAR"
 
-    let schema = Schema::build(config, Version::from("random"), &Default::default())
+        [[headers]]
+        rule = "forward"
+        name = "x-source"
+        rename = "x-forwarded"
+        "#,
+    )
+    .unwrap();
+
+    let schema = Schema::build(&config, graph, &Default::default(), Version::from("random"))
         .await
         .unwrap();
 
-    let bytes = postcard::to_stdvec(&schema).unwrap();
-    postcard::from_bytes::<Schema>(&bytes).unwrap();
+    let mut serializer = postcard::Serializer {
+        output: postcard::ser_flavors::AllocVec::new(),
+    };
+    let result = serde_path_to_error::serialize(&schema, &mut serializer);
+    if let Err(err) = result {
+        let path = err.path().to_string();
+        panic!("Failed serialization at {path}: {}", err.into_inner());
+    }
+
+    let bytes = serializer.output.finalize().unwrap();
+    let result: Result<Schema, _> = serde_path_to_error::deserialize(&mut postcard::Deserializer::from_bytes(&bytes));
+    if let Err(err) = result {
+        let path = err.path().to_string();
+        panic!("Failed deserialization at {path}: {}", err.into_inner());
+    }
 }
 
 #[test]

@@ -5,7 +5,6 @@ use crate::{
     response::{ErrorCode, GraphqlError},
     Engine, Runtime,
 };
-use config::LogLevel;
 use futures::{future::BoxFuture, FutureExt, TryFutureExt as _};
 use grafbase_telemetry::grafbase_client::X_GRAFBASE_CLIENT_NAME;
 use operation::{extensions::PersistedQueryRequestExtension, Request};
@@ -13,6 +12,7 @@ use runtime::{
     operation_cache::OperationCache as _,
     trusted_documents_client::{TrustedDocumentsEnforcementMode, TrustedDocumentsError},
 };
+use schema::LogLevel;
 use sha2::Digest;
 use std::borrow::Cow;
 use tracing::Instrument;

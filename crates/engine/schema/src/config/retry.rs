@@ -9,6 +9,16 @@ pub struct RetryConfig {
     /// The fraction of the successful requests budget that can be used for retries.
     pub retry_percent: Option<f32>,
     /// Whether mutations should be retried at all. False by default.
-    #[serde(default)]
     pub retry_mutations: bool,
+}
+
+impl From<gateway_config::RetryConfig> for RetryConfig {
+    fn from(config: gateway_config::RetryConfig) -> Self {
+        RetryConfig {
+            min_per_second: config.min_per_second,
+            ttl: config.ttl,
+            retry_percent: config.retry_percent,
+            retry_mutations: config.retry_mutations,
+        }
+    }
 }

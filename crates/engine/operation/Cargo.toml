@@ -25,7 +25,6 @@ strum.workspace = true
 grafbase-telemetry.workspace = true
 id-newtypes = { path = "../id-newtypes", package = "engine-id-newtypes" }
 id-derives = { path = "../id-derives", package = "engine-id-derives" }
-config = { package = "engine-config", path = "../config" }
 itertools.workspace = true
 lasso2 = { version = "0.8.2", features = ["serialize"] }
 serde = { workspace = true, features = ["rc"] }
