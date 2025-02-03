@@ -19,9 +19,6 @@ pub(super) fn ingest_directives(
     for directive in directives_node {
         let (directive_name_id, match_result) = match_directive_name(ctx, directive.name());
 
-        dbg!(directive.name());
-        dbg!(match_result);
-
         match match_result {
             DirectiveNameMatch::NoMatch
             | DirectiveNameMatch::Imported(_)
