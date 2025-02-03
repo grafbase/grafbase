@@ -1,42 +1,17 @@
-use std::{fs, path::Path, sync::OnceLock};
+use std::{fs, path::Path};
 
 use graphql_composition::FederatedGraph;
 
-fn update_expect() -> bool {
-    static UPDATE_EXPECT: OnceLock<bool> = OnceLock::new();
-    *UPDATE_EXPECT.get_or_init(|| std::env::var("UPDATE_EXPECT").is_ok())
-}
-
-fn run_test(federated_graph_path: &Path) -> datatest_stable::Result<()> {
-    miette_run_test(federated_graph_path).map_err(Into::into)
-}
-
-#[derive(thiserror::Error, Debug)]
-enum Error {
-    #[error("{0}")]
-    Miette(miette::Report),
-    #[error(transparent)]
-    Fmt(#[from] std::fmt::Error),
-    #[error(transparent)]
-    IO(#[from] std::io::Error),
-}
-
-impl From<miette::Report> for Error {
-    fn from(report: miette::Report) -> Self {
-        Error::Miette(report)
-    }
-}
-
-fn miette_run_test(federated_graph_path: &Path) -> Result<(), Error> {
+fn run_test(test_path: &Path) -> anyhow::Result<()> {
     if cfg!(windows) {
         return Ok(()); // newlines
     }
 
-    let subgraphs_dir = federated_graph_path.with_file_name("").join("subgraphs");
-    let api_sdl_path = federated_graph_path.with_file_name("api.graphql");
+    let test_description = fs::read_to_string(test_path)?;
+    let subgraphs_dir = test_path.with_file_name("").join("subgraphs");
 
     if !subgraphs_dir.is_dir() {
-        return Err(miette::miette!("{} is not a directory.", subgraphs_dir.display()).into());
+        return Err(anyhow::anyhow!("{} is not a directory.", subgraphs_dir.display()));
     }
 
     let mut subgraphs_sdl = fs::read_dir(subgraphs_dir)?
@@ -56,14 +31,9 @@ fn miette_run_test(federated_graph_path: &Path) -> Result<(), Error> {
 
         subgraphs
             .ingest_str(&sdl, &name, &format!("http://example.com/{name}"))
-            .map_err(|err| miette::miette!("Error parsing {}: \n{err:#}", path.display()))?;
+            .map_err(|err| anyhow::anyhow!("Error parsing {}: \n{err:#}", path.display()))?;
     }
 
-    let expected_federated_sdl = fs::read_to_string(federated_graph_path)
-        .map_err(|err| miette::miette!("Error trying to read federated.graphql: {}", err))?;
-    let expected_api_sdl = fs::read_to_string(&api_sdl_path)
-        .map_err(|err| miette::miette!("Error trying to read api.graphql: {}", err))
-        .ok();
     let (actual_federated_sdl, actual_api_sdl) = match graphql_composition::compose(&subgraphs).into_result() {
         Ok(federated_graph) => (
             graphql_federated_graph::render_federated_sdl(&federated_graph).expect("rendering federated SDL"),
@@ -82,81 +52,46 @@ fn miette_run_test(federated_graph_path: &Path) -> Result<(), Error> {
         ),
     };
 
-    if update_expect() {
-        if let Some(sdl) = actual_api_sdl {
-            fs::write(api_sdl_path, sdl).unwrap();
-        }
+    let test_description = Some(test_description.as_str().trim())
+        .filter(|desc| !desc.is_empty())
+        .unwrap_or("Federated SDL");
 
-        fs::write(federated_graph_path, actual_federated_sdl)?;
-        return Ok(());
+    insta::assert_snapshot!("federated.graphql", actual_federated_sdl, test_description);
+
+    if let Some(actual_api_sdl) = actual_api_sdl {
+        insta::assert_snapshot!("api.graphql", actual_api_sdl);
     }
 
-    if expected_federated_sdl != actual_federated_sdl {
-        return Err(miette::miette!(
-            "{}\n\n\n=== Hint: run the tests again with UPDATE_EXPECT=1 to update the snapshot. ===",
-            similar::udiff::unified_diff(
-                similar::Algorithm::default(),
-                &expected_federated_sdl,
-                &actual_federated_sdl,
-                5,
-                Some(("Expected", "Actual"))
-            )
-        )
-        .into());
-    }
-
-    match (expected_api_sdl, actual_api_sdl) {
-        (None, None) => Ok(()),
-        (Some(_), None) => Err(miette::miette!("Expected no API SDL, but there is an api.graphql expectation.").into()),
-        (None, Some(_)) => Err(miette::miette!("Expected an api.graphql, but found none.").into()),
-        (Some(a), Some(b)) if a == b => Ok(()),
-        (Some(a), Some(b)) => Err(miette::miette!(
-            "{}\n\n\n=== Hint: run the tests again with UPDATE_EXPECT=1 to update the snapshot. ===",
-            similar::udiff::unified_diff(similar::Algorithm::default(), &a, &b, 5, Some(("Expected", "Actual")))
-        )
-        .into()),
-    }
+    test_sdl_roundtrip(&actual_federated_sdl)
 }
 
-fn test_sdl_roundtrip(federated_graph_path: &Path) -> datatest_stable::Result<()> {
-    test_sdl_roundtrip_inner(federated_graph_path).map_err(Into::into)
-}
-
-fn test_sdl_roundtrip_inner(federated_graph_path: &Path) -> Result<(), Error> {
-    if cfg!(windows) {
-        return Ok(()); // newlines
-    }
-
-    let sdl = fs::read_to_string(federated_graph_path)
-        .map_err(|err| miette::miette!("Error trying to read federated.graphql: {}", err))?;
-
+fn test_sdl_roundtrip(sdl: &str) -> anyhow::Result<()> {
     // Exclude tests with an empty schema. This is the case for composition error tests.
     if sdl.lines().all(|line| line.is_empty() || line.starts_with('#')) {
         return Ok(());
     }
 
     let roundtripped = graphql_federated_graph::render_federated_sdl(
-        &FederatedGraph::from_sdl(&sdl).map_err(|err| miette::miette!("Error ingesting SDL: {err}\n\nSDL:\n{sdl}"))?,
+        &FederatedGraph::from_sdl(&sdl).map_err(|err| anyhow::anyhow!("Error ingesting SDL: {err}\n\nSDL:\n{sdl}"))?,
     )?;
 
     if roundtripped == sdl {
         return Ok(());
     }
 
-    Err(miette::miette!(
-        "{}\n\n\n=== Hint: run the tests again with UPDATE_EXPECT=1 to update the snapshot. ===",
-        similar::udiff::unified_diff(
-            similar::Algorithm::default(),
-            &sdl,
-            &roundtripped,
-            5,
-            Some(("Expected", "Actual"))
-        )
-    )
-    .into())
+    Err(anyhow::anyhow!("Roundtrip failed",))
 }
 
-datatest_stable::harness! {
-    { test = run_test, root = "./tests/composition", pattern = r"^.*federated.graphql$" },
-    { test = test_sdl_roundtrip, root = "./tests/composition", pattern = r"^.*federated.graphql$" },
+#[test]
+fn composition_tests() {
+    insta::glob!("composition/**/test.md", |test_path| {
+        let snapshot_path = test_path.parent().unwrap();
+        insta::with_settings!({
+            snapshot_path => snapshot_path.to_str().unwrap(),
+            prepend_module_to_snapshot => false,
+            snapshot_suffix => "",
+        }, {
+            run_test(test_path).unwrap();
+        });
+    });
 }

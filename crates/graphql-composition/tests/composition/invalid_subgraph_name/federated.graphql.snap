@@ -1,0 +1,8 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Federated SDL
+input_file: crates/graphql-composition/tests/composition/invalid_subgraph_name/test.md
+---
+# Invalid subgraph name: "2timesmoreinvalid". Only alphanumeric characters and hyphens (`-`) are allowed, and the first character must be alphabetic.
+# Invalid subgraph name: "-alsonotvalid". Only alphanumeric characters and hyphens (`-`) are allowed, and the first character must be alphabetic.
+# Invalid subgraph name: "invalid×name". Only alphanumeric characters and hyphens (`-`) are allowed, and the first character must be alphabetic.

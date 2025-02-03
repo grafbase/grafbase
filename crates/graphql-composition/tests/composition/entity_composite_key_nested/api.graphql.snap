@@ -1,0 +1,27 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: actual_api_sdl
+input_file: crates/graphql-composition/tests/composition/entity_composite_key_nested/test.md
+---
+type Patient {
+    dateOfBirth: String
+    id: ID!
+    medicalRecords: [PatientRecord]
+    name: String
+}
+
+type PatientRecord {
+    admissionDate: String
+    diagnosis: String
+    extendPatientRecord: PatientRecord
+    patient: Patient
+    recordId: ID!
+    treatmentPlan: String
+}
+
+type Query {
+    patient(id: ID!): Patient
+    patientRecord(recordId: ID!, patientId: ID!): PatientRecord
+    patientRecords: [PatientRecord]
+    patients: [Patient]
+}

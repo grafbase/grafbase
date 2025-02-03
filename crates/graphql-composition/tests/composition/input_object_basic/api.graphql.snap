@@ -1,0 +1,23 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: actual_api_sdl
+input_file: crates/graphql-composition/tests/composition/input_object_basic/test.md
+---
+type Person {
+    age: Int!
+    email: String!
+    firstName: String!
+    id: ID!
+    lastName: String!
+    phoneNumber: String
+}
+
+type Query {
+    getPersonInfo(input: InputPerson!): Person
+    searchPerson(input: InputPerson!): [Person]
+}
+
+input InputPerson {
+    firstName: String!
+    lastName: String!
+}

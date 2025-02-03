@@ -1,0 +1,15 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: actual_api_sdl
+input_file: crates/graphql-composition/tests/composition/objects_basic/test.md
+---
+type User {
+    age: Int
+    id: ID!
+    name: String!
+    score: Float
+}
+
+type Query {
+    user: User
+}

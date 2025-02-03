@@ -1,0 +1,16 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: actual_api_sdl
+input_file: crates/graphql-composition/tests/composition/interfaces_single_subgraph/test.md
+---
+type Organization {
+    foos(filter: String): String!
+}
+
+type Query {
+    account: Account!
+}
+
+interface Account {
+    foos(filter: String): String!
+}

@@ -1,0 +1,6 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Federated SDL
+input_file: crates/graphql-composition/tests/composition/entity_interface_only_interface_objects/test.md
+---
+# The entity interface `Animal` is not defined as an interface in any subgraph.

@@ -1,0 +1,38 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Federated SDL
+input_file: crates/graphql-composition/tests/composition/shareable_is_repeatable/test.md
+---
+directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
+
+directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet) on FIELD_DEFINITION
+
+directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boolean = true) on OBJECT | INTERFACE
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+scalar join__FieldSet
+
+type Color
+    @join__type(graph: THEOONE)
+{
+    blue: Int!
+    green: Int!
+    name: String!
+    red: Int!
+}
+
+type Query
+{
+    doubleRainbowAllTheWay: [Color!]! @join__field(graph: THEOONE)
+    version: String @join__field(graph: THEOONE)
+}
+
+enum join__Graph
+{
+    THEOONE @join__graph(name: "theoone", url: "http://example.com/theoone")
+}

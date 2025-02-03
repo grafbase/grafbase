@@ -1,0 +1,72 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Federated SDL
+input_file: crates/graphql-composition/tests/composition/requires_with_nested_inline_fragment/test.md
+---
+directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
+
+directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet) on FIELD_DEFINITION
+
+directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boolean = true) on OBJECT | INTERFACE
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+scalar join__FieldSet
+
+type Producer implements MusicEntity
+    @join__type(graph: PAYROLL, key: "id")
+    @join__type(graph: REGISTRY, key: "id")
+    @join__implements(graph: PAYROLL, interface: "MusicEntity")
+    @join__implements(graph: REGISTRY, interface: "MusicEntity")
+{
+    albumsProduced: [String!]! @join__field(graph: REGISTRY)
+    id: ID!
+    name: String!
+    studioName: String! @join__field(graph: REGISTRY)
+}
+
+type Band implements MusicEntity
+    @join__type(graph: PAYROLL, key: "id")
+    @join__type(graph: REGISTRY, key: "id")
+    @join__implements(graph: PAYROLL, interface: "MusicEntity")
+    @join__implements(graph: REGISTRY, interface: "MusicEntity")
+{
+    genre: String! @join__field(graph: REGISTRY)
+    id: ID!
+    members: [String!]! @join__field(graph: REGISTRY)
+    name: String!
+}
+
+type Payroll
+    @join__type(graph: PAYROLL)
+{
+    amount: Int! @join__field(graph: PAYROLL, requires: "musicEntity { ... on Producer { studioName }... on Band { members } }")
+    id: ID!
+    musicEntity: MusicEntity!
+}
+
+type Query
+{
+    getAllMusicEntities: [MusicEntity!]! @join__field(graph: REGISTRY)
+    getBand(id: ID!): Band @join__field(graph: REGISTRY)
+    getPayroll: [Payroll] @join__field(graph: PAYROLL)
+    getProducer(id: ID!): Producer @join__field(graph: REGISTRY)
+}
+
+interface MusicEntity
+    @join__type(graph: PAYROLL)
+    @join__type(graph: REGISTRY)
+{
+    id: ID!
+    name: String!
+}
+
+enum join__Graph
+{
+    PAYROLL @join__graph(name: "payroll", url: "http://example.com/payroll")
+    REGISTRY @join__graph(name: "registry", url: "http://example.com/registry")
+}

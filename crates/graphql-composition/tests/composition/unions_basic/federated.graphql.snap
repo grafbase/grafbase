@@ -1,0 +1,85 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Federated SDL
+input_file: crates/graphql-composition/tests/composition/unions_basic/test.md
+---
+directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
+
+directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet) on FIELD_DEFINITION
+
+directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boolean = true) on OBJECT | INTERFACE
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+scalar join__FieldSet
+
+type Pizza
+    @join__type(graph: PIZZA)
+{
+    id: ID!
+    nameEn: String
+    nameIt: String!
+    toppings: [Topping!]!
+}
+
+type Onion
+    @join__type(graph: PIZZA)
+{
+    variety: String
+}
+
+type Cheese
+    @join__type(graph: PIZZA)
+{
+    quantity: Int!
+    type: String!
+}
+
+type Pineapple
+    @join__type(graph: PIZZA)
+{
+    isAnanas: Boolean!
+}
+
+type Sushi
+    @join__type(graph: SUSHI)
+{
+    id: ID!
+    topping: Topping
+}
+
+type Salmon
+    @join__type(graph: SUSHI)
+{
+    id: ID!
+    raw: Boolean
+}
+
+type Omelet
+    @join__type(graph: SUSHI)
+{
+    isRectangular: Boolean
+}
+
+type Query
+{
+    pizza(id: ID!): Pizza @join__field(graph: PIZZA)
+}
+
+enum join__Graph
+{
+    PIZZA @join__graph(name: "pizza", url: "http://example.com/pizza")
+    SUSHI @join__graph(name: "sushi", url: "http://example.com/sushi")
+}
+
+union Topping
+    @join__unionMember(graph: PIZZA, member: "Onion")
+    @join__unionMember(graph: PIZZA, member: "Cheese")
+    @join__unionMember(graph: PIZZA, member: "Pineapple")
+    @join__unionMember(graph: SUSHI, member: "Salmon")
+    @join__unionMember(graph: SUSHI, member: "Omelet")
+ = Onion | Cheese | Pineapple | Salmon | Omelet

@@ -1,0 +1,40 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: actual_api_sdl
+input_file: crates/graphql-composition/tests/composition/entity_composite_key_basic/test.md
+---
+type Course {
+    description: String
+    enrolledStudents: [Student]
+    id: ID!
+    name: String
+}
+
+type Enrollment {
+    course: Course
+    courseId: ID!
+    enrollmentDate: String
+    enrollmentDetails: Enrollment
+    rating: CourseRating
+    studentId: ID!
+}
+
+type CourseRating {
+    comments: String
+    courseId: ID!
+    rating: Float
+}
+
+type Student {
+    enrollments: [Enrollment]
+    id: ID!
+    name: String
+}
+
+type Query {
+    course(id: ID!): Course
+    courseRating(courseId: ID!): [CourseRating]
+    courses: [Course]
+    student(id: ID!): Student
+    students: [Student]
+}

@@ -1,0 +1,29 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: actual_api_sdl
+input_file: crates/graphql-composition/tests/composition/entity_multiple_keys_basic/test.md
+---
+type User {
+    comments: [Comment!]!
+    email: String!
+    id: ID!
+    name: String!
+    posts: [Post!]!
+}
+
+type Comment {
+    id: ID!
+    text: String!
+}
+
+type Post {
+    body: String!
+    id: ID!
+    published: Boolean!
+    title: String!
+}
+
+type Query {
+    getUser(id: ID!): User
+    getUserComments(name: String!, email: String!): User
+}
