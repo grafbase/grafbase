@@ -3,7 +3,7 @@ use std::any::Any;
 use gateway_config::{HooksWasiConfig, WasiExtensionsConfig};
 use wasmtime::{
     component::{ComponentNamedList, Instance, Lift, Lower, TypedFunc},
-    Engine, Store,
+    Store,
 };
 
 use crate::{
@@ -17,22 +17,22 @@ pub mod hooks;
 
 fn initialize_hooks_store(
     config: &HooksWasiConfig,
-    engine: &Engine,
+    loader: &ComponentLoader,
     access_log: ChannelLogSender,
 ) -> crate::Result<Store<WasiState>> {
-    let state = WasiState::new(build_hooks_context(config), access_log);
-    let store = Store::new(engine, state);
+    let state = WasiState::new(build_hooks_context(config), access_log, loader.cache().clone());
+    let store = Store::new(loader.engine(), state);
 
     Ok(store)
 }
 
 fn initialize_extensions_store(
     config: &WasiExtensionsConfig,
-    engine: &Engine,
+    loader: &ComponentLoader,
     access_log: ChannelLogSender,
 ) -> crate::Result<Store<WasiState>> {
-    let state = WasiState::new(build_extensions_context(config), access_log);
-    let store = Store::new(engine, state);
+    let state = WasiState::new(build_extensions_context(config), access_log, loader.cache().clone());
+    let store = Store::new(loader.engine(), state);
 
     Ok(store)
 }
@@ -50,8 +50,8 @@ pub struct ComponentInstance {
 impl ComponentInstance {
     pub async fn new(loader: &ComponentLoader, access_log: ChannelLogSender) -> crate::Result<Self> {
         let mut store = match loader.config() {
-            either::Either::Left(config) => initialize_hooks_store(config, loader.engine(), access_log)?,
-            either::Either::Right((_, config)) => initialize_extensions_store(config, loader.engine(), access_log)?,
+            either::Either::Left(config) => initialize_hooks_store(config, loader, access_log)?,
+            either::Either::Right((_, config)) => initialize_extensions_store(config, loader, access_log)?,
         };
 
         let instance = loader

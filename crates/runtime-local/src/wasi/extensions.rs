@@ -59,7 +59,14 @@ async fn create_pools(
 
             match ComponentLoader::extensions(config.name, config.wasi_config)? {
                 Some(loader) => {
-                    let pool = Pool::new(loader, manager_config, config.max_pool_size, access_log);
+                    let pool = Pool::new(
+                        loader,
+                        manager_config,
+                        config.max_pool_size,
+                        config.extension_config,
+                        access_log,
+                    );
+
                     Ok(Some((config.id, pool)))
                 }
                 None => Ok(None),
@@ -155,7 +162,6 @@ struct WasiExtensionsInner {
     instance_pools: HashMap<ExtensionId, Pool>,
 }
 
-#[derive(Debug, Clone)]
 pub struct ExtensionConfig {
     pub id: ExtensionId,
     pub name: String,
@@ -164,4 +170,5 @@ pub struct ExtensionConfig {
     pub schema_directives: Vec<Directive>,
     pub max_pool_size: Option<usize>,
     pub wasi_config: WasiExtensionsConfig,
+    pub extension_config: Box<dyn erased_serde::Serialize + Send + Sync>,
 }

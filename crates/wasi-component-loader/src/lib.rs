@@ -9,6 +9,7 @@
 #![deny(missing_docs)]
 
 mod access_log;
+mod cache;
 mod config;
 mod context;
 mod error;
@@ -21,7 +22,10 @@ mod state;
 #[cfg(test)]
 mod tests;
 
+use std::sync::Arc;
+
 pub use access_log::{create_log_channel, AccessLogMessage, ChannelLogReceiver, ChannelLogSender};
+use cache::Cache;
 pub use config::{ExtensionsConfig, HooksWasiConfig};
 pub use context::{ContextMap, SharedContext};
 pub use crossbeam::channel::Sender;
@@ -67,6 +71,8 @@ pub struct ComponentLoader {
     component: Component,
     /// Configuration settings for the component loader.
     config: Either<HooksWasiConfig, (String, WasiExtensionsConfig)>,
+    /// Shared cache between component instances.
+    cache: Arc<Cache>,
 }
 
 impl ComponentLoader {
@@ -90,9 +96,11 @@ impl ComponentLoader {
     /// configuration.
     pub fn extensions(extension_name: String, config: impl Into<WasiExtensionsConfig>) -> Result<Option<Self>> {
         let instantiate = |mut instance: LinkerInstance<'_, WasiState>| -> Result<()> {
+            headers::inject_mapping(&mut instance)?;
             context::inject_shared_mapping(&mut instance)?;
             http_client::inject_mapping(&mut instance)?;
             access_log::inject_mapping(&mut instance)?;
+            cache::inject_mapping(&mut instance)?;
 
             Ok(())
         };
@@ -140,6 +148,7 @@ impl ComponentLoader {
                     linker,
                     component,
                     config,
+                    cache: Arc::new(Cache::new()),
                 })
             }
             Err(e) => {
@@ -194,5 +203,10 @@ impl ComponentLoader {
     /// Checks if the WebAssembly component implements a specific interface.
     pub fn implements_interface(&self, interface_name: &'static str) -> bool {
         self.component.export_index(None, interface_name).is_some()
+    }
+
+    /// Shared cache between component instances.
+    fn cache(&self) -> &Arc<Cache> {
+        &self.cache
     }
 }

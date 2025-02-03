@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{de::DeserializeOwned, Deserialize};
 use wasmtime::component::{ComponentType, Lift, Lower};
 
 use crate::{Error, GuestError};
@@ -11,6 +11,9 @@ pub enum ExtensionType {
     /// A resolver extension can call the `resolve-field` function.
     #[component(name = "resolver")]
     Resolver,
+    /// A resolver extension can call the `authenticate` function.
+    #[component(name = "authentication")]
+    Authentication,
 }
 
 /// A directive related to the extension.
@@ -70,5 +73,21 @@ impl FieldOutput {
                 Err(error) => Err(Error::Guest(error)),
             })
             .collect()
+    }
+}
+
+#[derive(Clone, Lift, ComponentType)]
+#[component(record)]
+pub struct Token {
+    #[component(name = "claims")]
+    claims: Vec<u8>,
+}
+
+impl Token {
+    pub fn deserialize<S>(&self) -> anyhow::Result<S>
+    where
+        S: DeserializeOwned,
+    {
+        Ok(minicbor_serde::from_slice(&self.claims)?)
     }
 }

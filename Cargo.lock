@@ -2489,6 +2489,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5443807d6dff69373d433ab9ef5378ad8df50ca6298caf15de6e52e24aaf54d5"
 
 [[package]]
+name = "erased-serde"
+version = "0.4.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "24e2389d65ab4fab27dc2a5de7b191e1f6617d1f1c8855c0dc569c94a4cbb18d"
+dependencies = [
+ "serde",
+ "typeid",
+]
+
+[[package]]
 name = "errno"
 version = "0.3.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3284,7 +3294,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "grafbase-sdk-derive",
  "http 1.2.0",
@@ -3299,7 +3309,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk-derive"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3368,7 +3378,6 @@ dependencies = [
  "console",
  "crc32fast",
  "criterion",
- "crossbeam-channel",
  "crossbeam-queue",
  "crossbeam-utils",
  "cynic",
@@ -6893,6 +6902,7 @@ dependencies = [
  "elliptic-curve",
  "engine-schema",
  "enumflags2",
+ "erased-serde",
  "extension-catalog",
  "futures-util",
  "gateway-config",
@@ -8476,6 +8486,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6af6ae20167a9ece4bcb41af5b80f8a1f1df981f6391189ce00fd257af04126a"
 
 [[package]]
+name = "typeid"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0e13db2e0ccd5e14a544e8a246ba2312cd25223f616442d7f2cb0e3db614236e"
+
+[[package]]
 name = "typenum"
 version = "1.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8659,6 +8675,7 @@ dependencies = [
  "anyhow",
  "base64 0.22.1",
  "crossbeam",
+ "dashmap 6.1.0",
  "either",
  "enumflags2",
  "expect-test",
@@ -8669,6 +8686,7 @@ dependencies = [
  "http 1.2.0",
  "indoc",
  "insta",
+ "mini-moka",
  "minicbor-serde",
  "reqwest 0.12.12",
  "serde",
@@ -8679,6 +8697,7 @@ dependencies = [
  "tokio",
  "toml",
  "tracing",
+ "ulid",
  "url",
  "wasmtime",
  "wasmtime-wasi",
