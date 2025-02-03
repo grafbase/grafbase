@@ -17,7 +17,7 @@ pub(crate) fn execute(cmd: ExtensionBuildCommand) -> anyhow::Result<()> {
     let output_dir = cmd.output_dir;
     let scratch_dir = cmd.scratch_dir;
     let source_dir = cmd.source_dir;
-    let release_mode = cmd.release;
+    let debug_mode = cmd.debug;
 
     if !output_dir.exists() {
         std::fs::create_dir_all(&output_dir).context("failed to create the output directory")?;
@@ -30,7 +30,7 @@ pub(crate) fn execute(cmd: ExtensionBuildCommand) -> anyhow::Result<()> {
     check_rust()?;
     install_wasm_target_if_needed()?;
 
-    let wasm_path = compile_extension(release_mode, &scratch_dir, &source_dir, &output_dir)?;
+    let wasm_path = compile_extension(debug_mode, &scratch_dir, &source_dir, &output_dir)?;
     let manifest = parse_manifest(&source_dir, &wasm_path)?;
 
     std::fs::rename(wasm_path, output_dir.join("extension.wasm")).context("failed to move wasm file")?;
@@ -152,7 +152,7 @@ fn install_wasm_target_if_needed() -> anyhow::Result<()> {
 }
 
 fn compile_extension(
-    release: bool,
+    debug_mode: bool,
     scratch_dir: &Path,
     source_dir: &Path,
     output_dir: &Path,
@@ -161,7 +161,7 @@ fn compile_extension(
 
     let output = new_command("cargo")
         .args(["build", "--target", RUST_TARGET])
-        .args(release.then_some("--release"))
+        .args(if debug_mode { None } else { Some("--release") })
         // disable sscache, if enabled. does not work with wasi builds :P
         .env("RUSTC_WRAPPER", "")
         .env("CARGO_TARGET_DIR", scratch_dir)
@@ -189,7 +189,7 @@ fn compile_extension(
 
     wasm_path.extend([
         RUST_TARGET,
-        if release { "release" } else { "debug" },
+        if debug_mode { "debug" } else { "release" },
         &cargo_toml.package.name.replace('-', "_"),
     ]);
 

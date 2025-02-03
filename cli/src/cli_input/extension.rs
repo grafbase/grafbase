@@ -28,9 +28,9 @@ pub struct ExtensionBuildCommand {
     /// Output path for the built extension.
     #[arg(short, long, default_value = "./build")]
     pub output_dir: PathBuf,
-    /// Builds the extension in release mode.
+    /// Builds the extension in debug mode.
     #[arg(long)]
-    pub release: bool,
+    pub debug: bool,
     /// Path to the extension source code.
     #[arg(short, long, default_value = ".")]
     pub source_dir: PathBuf,
