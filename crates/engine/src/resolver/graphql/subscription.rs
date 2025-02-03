@@ -164,10 +164,6 @@ impl GraphqlResolver {
 
             headers.typed_insert(headers::ContentType::json());
             headers.typed_insert(headers::ContentLength(body.len() as u64));
-            headers.insert(
-                http::header::ACCEPT,
-                http::HeaderValue::from_static("text/even-stream,application/json;q=0.9"),
-            );
             FetchRequest {
                 websocket_init_payload: None,
                 subgraph_name: endpoint.subgraph_name(),
