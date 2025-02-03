@@ -1,6 +1,7 @@
 mod definitions;
 mod directives;
 mod enums;
+mod extensions;
 mod field_types;
 mod fields;
 mod ids;
@@ -15,6 +16,7 @@ mod walker;
 pub(crate) use self::{
     definitions::{DefinitionId, DefinitionKind, DefinitionWalker},
     directives::*,
+    extensions::*,
     field_types::*,
     fields::*,
     ids::*,
@@ -22,6 +24,7 @@ pub(crate) use self::{
     linked_schemas::*,
     strings::{StringId, StringWalker},
     top::*,
+    view::View,
     walker::Walker,
 };
 
@@ -42,6 +45,8 @@ pub struct Subgraphs {
     linked_schemas: linked_schemas::LinkedSchemas,
 
     ingestion_diagnostics: crate::Diagnostics,
+
+    extensions: Vec<ExtensionRecord>,
 
     // Secondary indexes.
 
@@ -73,6 +78,7 @@ impl Default for Subgraphs {
             ingestion_diagnostics: Default::default(),
             definition_names: Default::default(),
             linked_schemas: Default::default(),
+            extensions: Vec::new(),
         }
     }
 }
@@ -116,6 +122,21 @@ impl Subgraphs {
             })?;
         crate::ingest_subgraph::ingest_subgraph(&subgraph_schema, name, url, self);
         Ok(())
+    }
+
+    /// Add Grafbase extension schemas to compose. The extensions are referenced in subgraphs through their `url` in an `@link` directive.
+    #[cfg(feature = "grafbase-extensions")]
+    pub fn ingest_loaded_extensions(&mut self, extensions: impl ExactSizeIterator<Item = crate::LoadedExtension>) {
+        self.extensions.reserve_exact(extensions.len());
+
+        for extension in extensions {
+            let extension = ExtensionRecord {
+                url: self.strings.intern(extension.url),
+                name: self.strings.intern(extension.name),
+            };
+
+            self.extensions.push(extension);
+        }
     }
 
     /// Checks whether any subgraphs have been ingested

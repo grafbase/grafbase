@@ -14,6 +14,9 @@ extend schema
   @composeDirective(name: "@jkl")
   @composeDirective(name: "@mno")
   @composeDirective(name: "@stu")
+  @composeDirective(name: "@pqr")
+  @composeDirective(name: "@vwx")
+  @composeDirective(name: "@yz")
 
 type Chocolate {
   id: ID! @ghi(a: 1, b: "2")

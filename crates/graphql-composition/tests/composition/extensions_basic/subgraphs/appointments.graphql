@@ -1,0 +1,54 @@
+extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.6", import: ["@key", "@shareable"])
+  @link(url: "https://extensions.grafbase.com/extensions/kafka/v1.0.0", import: ["@post"])
+
+type Query {
+  appointments: [Appointment!]!
+  appointment(id: ID!): Appointment
+}
+
+type Subscription {
+  newAppointments(doctorId: ID!): Appointment! @kafka__tail(topic: "appointments", filter: "doctorId = $doctorId")
+}
+
+type Mutation {
+  scheduleAppointment(input: AppointmentInput!): Appointment!
+  cancelAppointment(id: ID!): Boolean!
+    @post(
+      topic: "cancellations"
+      value: """
+      {"id":$id}
+      """
+    )
+}
+
+type Appointment @key(fields: "id") {
+  id: ID!
+  datetime: String!
+  status: AppointmentStatus!
+  patient: Patient! @shareable
+  doctor: Doctor! @shareable
+  notes: String
+}
+
+input AppointmentInput {
+  datetime: String!
+  patientId: ID!
+  doctorId: ID!
+  notes: String
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+type Patient @key(fields: "id") {
+  id: ID!
+}
+
+type Doctor @key(fields: "id") {
+  id: ID!
+  appointments: [Appointment!]!
+}

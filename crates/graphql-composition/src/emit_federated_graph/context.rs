@@ -34,6 +34,10 @@ impl<'a> Context<'a> {
         }
     }
 
+    pub(crate) fn convert_extension_id(&self, extension_id: subgraphs::ExtensionId) -> federated::ExtensionId {
+        federated::ExtensionId::from(usize::from(extension_id))
+    }
+
     /// Subgraphs string -> federated graph string.
     pub(crate) fn insert_string(&mut self, string: subgraphs::StringWalker<'_>) -> federated::StringId {
         self.strings_ir.insert(string.as_str())

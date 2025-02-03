@@ -2,12 +2,7 @@ use super::*;
 
 pub(super) fn compose_directive_definitions(ctx: &mut Context<'_>) {
     // Filtered definitions. Sort by name, dedup.
-    let mut definitions: Vec<&subgraphs::DirectiveDefinition> = ctx
-        .subgraphs
-        .directive_definitions()
-        .iter()
-        .filter(|definition| ctx.subgraphs.is_composed_directive(definition.name))
-        .collect();
+    let mut definitions: Vec<&subgraphs::DirectiveDefinition> = ctx.subgraphs.directive_definitions().iter().collect();
 
     definitions.sort_by_key(|definition| definition.name);
     definitions.dedup_by_key(|definition| definition.name);
@@ -25,6 +20,7 @@ pub(super) fn compose_directive_definitions(ctx: &mut Context<'_>) {
                     .directives
                     .iter()
                     .map(|directive| ir::Directive::Other {
+                        provenance: ir::DirectiveProvenance::Builtin,
                         name: ctx.insert_string(directive.name),
                         arguments: directive
                             .arguments

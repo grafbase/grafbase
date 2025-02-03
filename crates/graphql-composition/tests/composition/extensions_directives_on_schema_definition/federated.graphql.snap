@@ -1,0 +1,35 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: "The directives from extensions that are on schema definitions are treated slightly differently, so this is a dedicated test case to check that they are emitted and roundtrip through SDL correctly."
+input_file: crates/graphql-composition/tests/composition/extensions_directives_on_schema_definition/test.md
+---
+directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
+
+directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet) on FIELD_DEFINITION
+
+directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boolean = true) on OBJECT | INTERFACE
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+scalar join__FieldSet
+
+type Query
+{
+    hello: String @join__field(graph: DEFINITION)
+    hi: String @join__field(graph: SCHEMA_EXTENSION)
+}
+
+enum join__Graph
+{
+    DEFINITION @join__graph(name: "definition", url: "http://example.com/definition")
+    SCHEMA_EXTENSION @join__graph(name: "schema-extension", url: "http://example.com/schema-extension")
+}
+
+enum extension__Link
+{
+    REST_CONNECTOR @extension__link(url: "https://extensions.grafbase.com/rest", schemaDirectives: [{graph: DEFINITION, name: "assured", arguments: {}}, {graph: SCHEMA_EXTENSION, name: "assured", arguments: {}}])
+}

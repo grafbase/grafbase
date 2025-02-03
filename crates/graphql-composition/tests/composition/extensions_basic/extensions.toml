@@ -1,0 +1,15 @@
+[[extensions]]
+url = "https://extensions.grafbase.com/extensions/kafka/v1.0.0"
+name = "kafka-connector"
+
+[[extensions]]
+url = "file:///home/lellison/src/oracle-grafbase-extension/dist"
+name = "oracle-connector"
+
+[[extensions]]
+url = "https://extensions.grafbase.com/extensions/rest"
+name = "rest-connector"
+
+[[extensions]]
+url = "https://example.com/unused/unused-extension/v1.0.0"
+name = "unused-extension"

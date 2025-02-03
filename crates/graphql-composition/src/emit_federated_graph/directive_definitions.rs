@@ -19,7 +19,7 @@ pub(super) fn emit_directive_definitions(ir: &CompositionIr, ctx: &mut Context<'
             let argument = federated::InputValueDefinition {
                 name: argument.name,
                 r#type,
-                directives: super::directive::transform_arbitray_type_directives(ctx, argument.directives.clone()),
+                directives: super::directive::transform_arbitray_type_directives(ctx, &argument.directives),
                 description: argument.description,
                 default,
             };

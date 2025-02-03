@@ -1,0 +1,7 @@
+schema @link(url: "https://extensions.grafbase.com/rest") @rest__assured {
+  query: Query
+}
+
+type Query {
+  hello: String
+}

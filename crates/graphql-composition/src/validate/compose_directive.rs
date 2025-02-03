@@ -6,7 +6,7 @@ pub(crate) fn validate_compose_directive(ctx: &mut ValidateContext<'_>) {
     let mut composed_directive_definitions_sorted_by_name: Vec<usize> = directive_definitions
         .iter()
         .enumerate()
-        .filter(|(_, def)| ctx.subgraphs.is_composed_directive(def.name))
+        .filter(|(_, def)| ctx.subgraphs.is_composed_directive(def.subgraph_id, def.name))
         .map(|(idx, _)| idx)
         .collect();
 

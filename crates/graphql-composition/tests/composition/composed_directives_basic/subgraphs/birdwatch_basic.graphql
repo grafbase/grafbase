@@ -1,19 +1,21 @@
+extend schema @link(url: "https://specs.birds.co.uk/link/birds", import: ["@pelagic"])
+
 scalar DateTime
 
 type Bird @shareable {
-    id: ID!
-    name: String!
-    species: String!
-    observedAt: DateTime! @deprecated(reason: "Use UNIX timestamps instead as customary in bird watching")
-    location: String! @tag(name: "locationService") @tag(name: "b")
-    notes: String
+  id: ID!
+  name: String!
+  species: String! @pelagic # Should NOT be in the federated graph, because the directive is not composed in this subgraph.
+  observedAt: DateTime! @deprecated(reason: "Use UNIX timestamps instead as customary in bird watching")
+  location: String! @tag(name: "locationService") @tag(name: "b")
+  notes: String
 }
 
 type Query {
-    birds: [Bird]
-    bird(id: ID!): Bird
+  birds: [Bird]
+  bird(id: ID!): Bird
 }
 
 schema {
-    query: Query
+  query: Query
 }

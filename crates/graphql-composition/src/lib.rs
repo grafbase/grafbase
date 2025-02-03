@@ -6,12 +6,16 @@ mod compose;
 mod composition_ir;
 mod diagnostics;
 mod emit_federated_graph;
+mod grafbase_extensions;
 mod ingest_subgraph;
 mod result;
 mod subgraphs;
 mod validate;
 
-pub use self::{diagnostics::Diagnostics, result::CompositionResult, subgraphs::IngestError, subgraphs::Subgraphs};
+pub use self::{
+    diagnostics::Diagnostics, grafbase_extensions::LoadedExtension, result::CompositionResult, subgraphs::IngestError,
+    subgraphs::Subgraphs,
+};
 pub use graphql_federated_graph::{
     self as graphql_federated_graph, render_api_sdl, render_federated_sdl, FederatedGraph,
 };

@@ -2,6 +2,7 @@ mod attach_argument_selection;
 mod context;
 mod directive;
 mod directive_definitions;
+mod emit_extensions;
 mod emit_fields;
 mod federation_builtins;
 mod field_types_map;
@@ -13,6 +14,7 @@ use self::{
         transform_input_value_directives, transform_type_directives,
     },
     directive_definitions::emit_directive_definitions,
+    emit_extensions::*,
 };
 use crate::{
     composition_ir::{CompositionIr, FieldIr, InputValueDefinitionIr},
@@ -21,7 +23,7 @@ use crate::{
 use directive::{emit_cost_directive_definition, emit_list_size_directive_definition};
 use graphql_federated_graph::{self as federated};
 use itertools::Itertools;
-use std::{collections::BTreeSet, mem};
+use std::collections::BTreeSet;
 
 /// This can't fail. All the relevant, correct information should already be in the CompositionIr.
 pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs) -> federated::FederatedGraph {
@@ -55,6 +57,7 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
         .sort_unstable_by_key(|field| (field.parent_definition_name, &ctx[field.field_name]));
 
     let join_graph_enum_id = emit_subgraphs(&mut ctx);
+    emit_extensions(&mut ctx, &ir);
     emit_input_value_definitions(&ir.input_value_definitions, &mut ctx);
     emit_fields(&ir.fields, &mut ctx);
     emit_directive_definitions(&ir, &mut ctx);
@@ -72,7 +75,7 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
 }
 
 fn emit_directives_and_implements_interface(ctx: &mut Context<'_>, mut ir: CompositionIr) {
-    for (i, (_object, directives)) in ir.objects.into_iter().enumerate() {
+    for (i, (_object, directives)) in ir.objects.iter().enumerate() {
         ctx.out[federated::ObjectId::from(i)].directives = transform_type_directives(
             ctx,
             federated::Definition::Object(federated::ObjectId::from(i)),
@@ -80,7 +83,7 @@ fn emit_directives_and_implements_interface(ctx: &mut Context<'_>, mut ir: Compo
         );
     }
 
-    for (i, (_interface, directives)) in ir.interfaces.into_iter().enumerate() {
+    for (i, (_interface, directives)) in ir.interfaces.iter().enumerate() {
         ctx.out[federated::InterfaceId::from(i)].directives = transform_type_directives(
             ctx,
             federated::Definition::Interface(federated::InterfaceId::from(i)),
@@ -88,11 +91,11 @@ fn emit_directives_and_implements_interface(ctx: &mut Context<'_>, mut ir: Compo
         );
     }
 
-    for (i, union) in ir.unions.into_iter().enumerate() {
+    for (i, union) in ir.unions.iter().enumerate() {
         ctx.out.unions[i].directives = transform_type_directives(
             ctx,
             federated::Definition::Union(federated::UnionId::from(i)),
-            union.directives,
+            &union.directives,
         );
     }
 
@@ -100,32 +103,32 @@ fn emit_directives_and_implements_interface(ctx: &mut Context<'_>, mut ir: Compo
         ctx.out.input_objects[i].directives = transform_type_directives(
             ctx,
             federated::Definition::InputObject(federated::InputObjectId::from(i)),
-            input_object.directives,
+            &input_object.directives,
         );
     }
 
     for (i, field) in ir.fields.into_iter().enumerate() {
-        ctx.out.fields[i].directives = transform_field_directives(ctx, federated::FieldId::from(i), field.directives);
+        ctx.out.fields[i].directives = transform_field_directives(ctx, federated::FieldId::from(i), &field.directives);
     }
 
     for (i, enum_value) in ir.enum_values.into_iter().enumerate() {
-        ctx.out.enum_values[i].directives = transform_enum_value_directives(ctx, enum_value.directives);
+        ctx.out.enum_values[i].directives = transform_enum_value_directives(ctx, &enum_value.directives);
     }
 
     for (i, input_value_definition) in ir.input_value_definitions.into_iter().enumerate() {
         ctx.out.input_value_definitions[i].directives =
-            transform_input_value_directives(ctx, input_value_definition.directives);
+            transform_input_value_directives(ctx, &input_value_definition.directives);
     }
 
     for (i, (_enum_definition, directives)) in ir.enum_definitions.iter_mut().enumerate() {
         if !directives.is_empty() {
-            ctx.out.enum_definitions[i].directives = transform_arbitray_type_directives(ctx, mem::take(directives));
+            ctx.out.enum_definitions[i].directives = transform_arbitray_type_directives(ctx, directives);
         }
     }
 
     for (i, (_scalar_definition, directives)) in ir.scalar_definitions.iter_mut().enumerate() {
         if !directives.is_empty() {
-            ctx.out.scalar_definitions[i].directives = transform_arbitray_type_directives(ctx, mem::take(directives));
+            ctx.out.scalar_definitions[i].directives = transform_arbitray_type_directives(ctx, directives);
         }
     }
 
@@ -218,6 +221,8 @@ fn emit_fields(fields: &[FieldIr], ctx: &mut Context<'_>) {
 
         let start = ctx.out.fields.len();
 
+        let mut fields = fields.to_owned();
+
         // Sort the fields by name.
         fields.sort_by(|a, b| ctx[a.field_name].cmp(&ctx[b.field_name]));
 
@@ -227,7 +232,7 @@ fn emit_fields(fields: &[FieldIr], ctx: &mut Context<'_>) {
             arguments,
             description,
             ..
-        } in fields.drain(..)
+        } in fields
         {
             let r#type = ctx.insert_field_type(ctx.subgraphs.walk(field_type));
             let field = federated::Field {

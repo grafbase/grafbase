@@ -27,3 +27,39 @@ pub struct ExtensionDirective {
     pub name: StringId,
     pub arguments: Option<Vec<(StringId, Value)>>,
 }
+
+/// ```ignore,graphl
+/// """
+/// The directive that associates values of the `extension__Link` enum to the extension's url.
+/// """
+/// directive @extension__link(
+///   """
+///   The `@link()`ed extension's url, including name and version.
+///   """
+///   url: String!
+///   """
+///   The directives on schema definitions and extensions that are associated with the extension.
+///   """
+///   schemaDirectives: [extension__LinkSchemaDirective!]
+/// ) repeatable on ENUM_VALUE
+///
+/// ```
+#[derive(PartialEq, PartialOrd, Clone, Debug)]
+pub struct ExtensionLinkDirective {
+    pub url: StringId,
+    pub schema_directives: Vec<ExtensionLinkSchemaDirective>,
+}
+
+/// ```ignore,graphql
+/// input extension__LinkSchemaDirective {
+///    graph: join__Graph!
+///    name: String!
+///    arguments: DirectiveArguments
+/// }
+/// ```
+#[derive(PartialEq, PartialOrd, Clone, Debug)]
+pub struct ExtensionLinkSchemaDirective {
+    pub subgraph_id: SubgraphId,
+    pub name: StringId,
+    pub arguments: Option<Vec<(StringId, Value)>>,
+}

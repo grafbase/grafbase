@@ -314,6 +314,8 @@ pub(super) fn write_description(
 pub(crate) enum AnyValue<'a> {
     Value(Cow<'a, Value>),
     String(Cow<'a, str>),
+    Object(Vec<(&'static str, AnyValue<'a>)>),
+    List(Vec<AnyValue<'a>>),
     /// Be careful using this - it will not encode enums correctly...
     JsonValue(serde_json::Value),
     FieldSet(SelectionSetDisplay<'a>),
@@ -321,20 +323,67 @@ pub(crate) enum AnyValue<'a> {
     DirectiveArguments(&'a [(StringId, Value)]),
 }
 
+impl<'a> From<Vec<AnyValue<'a>>> for AnyValue<'a> {
+    fn from(v: Vec<AnyValue<'a>>) -> Self {
+        Self::List(v)
+    }
+}
+
 struct DisplayableAnyValue<'a> {
     graph: &'a FederatedGraph,
-    value: AnyValue<'a>,
+    value: &'a AnyValue<'a>,
 }
 
 impl std::fmt::Display for DisplayableAnyValue<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match &self.value {
+        match self.value {
             AnyValue::Value(v) => ValueDisplay(v, self.graph).fmt(f),
             AnyValue::JsonValue(v) => JsonValueDisplay(v).fmt(f),
             AnyValue::FieldSet(v) => v.fmt(f),
             AnyValue::InputValueDefinitionSet(v) => v.fmt(f),
             AnyValue::String(s) => display_graphql_string_literal(s, f),
             AnyValue::DirectiveArguments(arguments) => write_arguments(self.graph, f, arguments),
+            AnyValue::List(elems) => {
+                f.write_char('[')?;
+
+                let mut elems = elems.iter().peekable();
+
+                while let Some(elem) = elems.next() {
+                    DisplayableAnyValue {
+                        graph: self.graph,
+                        value: elem,
+                    }
+                    .fmt(f)?;
+
+                    if elems.peek().is_some() {
+                        f.write_str(", ")?;
+                    }
+                }
+
+                f.write_char(']')
+            }
+            AnyValue::Object(items) => {
+                f.write_char('{')?;
+
+                let mut items = items.iter().peekable();
+
+                while let Some((key, value)) = items.next() {
+                    f.write_str(key)?;
+                    f.write_str(": ")?;
+
+                    DisplayableAnyValue {
+                        graph: self.graph,
+                        value,
+                    }
+                    .fmt(f)?;
+
+                    if items.peek().is_some() {
+                        f.write_str(", ")?;
+                    }
+                }
+
+                f.write_char('}')
+            }
         }
     }
 }
@@ -417,12 +466,13 @@ impl<'a, 'b> DirectiveWriter<'a, 'b> {
 
         self.f.write_str(name)?;
         self.f.write_str(": ")?;
+
         write!(
             self.f,
             "{}",
             DisplayableAnyValue {
                 graph: self.graph,
-                value
+                value: &value
             }
         )?;
 
@@ -489,7 +539,7 @@ fn write_arguments(graph: &FederatedGraph, f: &mut fmt::Formatter<'_>, arguments
         arguments.iter().format_with(", ", |(name, value), f| {
             let value = DisplayableAnyValue {
                 graph,
-                value: AnyValue::Value(Cow::Borrowed(value)),
+                value: &AnyValue::Value(Cow::Borrowed(value)),
             };
             f(&format_args!(r#"{}: {}"#, graph[*name], value))
         })

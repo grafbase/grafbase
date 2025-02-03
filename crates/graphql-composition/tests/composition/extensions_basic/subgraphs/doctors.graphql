@@ -1,0 +1,41 @@
+extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.0", import: ["@key", "@shareable"])
+  @link(url: "file:///home/lellison/src/oracle-grafbase-extension/dist", as: "oracle")
+  @link(url: "https://extensions.grafbase.com/extensions/rest")
+  @link(url: "https://extensions.grafbase.com/extensions/kafka/v1.0.0")
+
+type Query {
+  doctors: [Doctor!]!
+  doctor(id: ID!): Doctor
+}
+
+type Mutation {
+  createDoctor(input: DoctorInput!): Doctor!
+    @oracle__execute_sql(
+      sql: "INSERT INTO doctors (first_name, last_name, specialty, email, phone) VALUES ($input.firstName, $input.lastName, $input.specialty, $input.email, $input.phone) RETURNING *"
+    )
+  updateDoctor(id: ID!, input: DoctorInput!): Doctor!
+    @oracle__execute(procedure: "update_doctor")
+    @kafka__post(topic: "doctorUpdates")
+}
+
+type Doctor @key(fields: "id") {
+  id: ID!
+  firstName: String!
+  lastName: String!
+  specialty: String!
+  email: String!
+  phone: String @rest__call(method: GET, url: "https://my-phone_registry/doctors/{id}")
+}
+
+input DoctorInput {
+  firstName: String!
+  lastName: String!
+  specialty: String!
+  email: String!
+  phone: String
+}
+
+type Appointment @key(fields: "id") {
+  id: ID!
+}

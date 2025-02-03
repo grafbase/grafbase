@@ -43,29 +43,72 @@ pub(super) fn ingest_schema_definitions(ctx: &mut Context<'_>) {
         for directive in schema_definition.directives() {
             let (_directive_name_id, match_result) = match_directive_name(ctx, directive.name());
 
-            if let DirectiveNameMatch::ComposeDirective = match_result {
-                for arg in directive.arguments() {
-                    if arg.name() == "name" {
-                        let Some(name) = arg.value().as_str() else {
-                            ctx.subgraphs.push_ingestion_diagnostic(
-                                ctx.subgraph_id,
-                                "Invalid `@composeDirective` directive: `name` argument must be a string".to_owned(),
-                            );
-                            continue;
-                        };
+            match match_result {
+                DirectiveNameMatch::ComposeDirective => {
+                    for arg in directive.arguments() {
+                        if arg.name() == "name" {
+                            let Some(name) = arg.value().as_str() else {
+                                ctx.subgraphs.push_ingestion_diagnostic(
+                                    ctx.subgraph_id,
+                                    "Invalid `@composeDirective` directive: `name` argument must be a string"
+                                        .to_owned(),
+                                );
+                                continue;
+                            };
 
-                        if !name.starts_with('@') {
-                            ctx.subgraphs.push_ingestion_diagnostic(
-                                ctx.subgraph_id,
-                                "Invalid `@composeDirective` directive: `name` argument must start with `@`".to_owned(),
-                            );
+                            if !name.starts_with('@') {
+                                ctx.subgraphs.push_ingestion_diagnostic(
+                                    ctx.subgraph_id,
+                                    "Invalid `@composeDirective` directive: `name` argument must start with `@`"
+                                        .to_owned(),
+                                );
 
-                            continue;
+                                continue;
+                            }
+
+                            ctx.subgraphs
+                                .insert_composed_directive(ctx.subgraph_id, name.trim_start_matches('@'));
                         }
-
-                        ctx.subgraphs.insert_composed_directive(name.trim_start_matches('@'));
                     }
                 }
+                DirectiveNameMatch::Qualified {
+                    linked_schema_id,
+                    directive_unqualified_name,
+                } => {
+                    let arguments = ctx.ingest_extra_directive_arguments(directive.arguments());
+
+                    ctx.subgraphs.push_extra_directive_on_schema_definition_or_extension(
+                        ctx.subgraph_id,
+                        subgraphs::ExtraDirectiveRecord {
+                            directive_site_id: DirectiveSiteId::from(0usize),
+                            name: directive_unqualified_name,
+                            arguments,
+                            provenance: subgraphs::DirectiveProvenance::Linked {
+                                linked_schema_id,
+                                is_composed_directive: false,
+                            },
+                        },
+                    );
+                }
+                DirectiveNameMatch::Imported { linked_definition_id } => {
+                    let arguments = ctx.ingest_extra_directive_arguments(directive.arguments());
+                    let linked_definition = ctx.subgraphs.at(linked_definition_id);
+
+                    ctx.subgraphs.push_extra_directive_on_schema_definition_or_extension(
+                        ctx.subgraph_id,
+                        subgraphs::ExtraDirectiveRecord {
+                            directive_site_id: DirectiveSiteId::from(0usize),
+                            name: linked_definition.original_name,
+                            arguments,
+                            provenance: subgraphs::DirectiveProvenance::Linked {
+                                linked_schema_id: linked_definition.linked_schema_id,
+                                is_composed_directive: false,
+                            },
+                        },
+                    );
+                }
+
+                _ => (),
             }
         }
     }

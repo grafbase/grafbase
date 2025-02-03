@@ -19,9 +19,9 @@ pub struct EnumDefinitionRecord {
 }
 
 impl FederatedGraph {
-    pub fn push_enum_definition(&mut self, scalar_definition: EnumDefinitionRecord) -> EnumDefinitionId {
+    pub fn push_enum_definition(&mut self, enum_definition: EnumDefinitionRecord) -> EnumDefinitionId {
         let id = self.enum_definitions.len().into();
-        self.enum_definitions.push(scalar_definition);
+        self.enum_definitions.push(enum_definition);
         id
     }
 }

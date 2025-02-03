@@ -14,6 +14,7 @@ extend schema
   @composeDirective(name: "@jkl")
   @composeDirective(name: "@mno")
   @composeDirective(name: "@pqr")
+  @composeDirective(name: "@stu")
   @composeDirective(name: "@vwx")
   @composeDirective(name: "@yz")
 

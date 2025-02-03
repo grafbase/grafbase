@@ -9,10 +9,16 @@ fn run_test(test_path: &Path) -> anyhow::Result<()> {
 
     let test_description = fs::read_to_string(test_path)?;
     let subgraphs_dir = test_path.with_file_name("").join("subgraphs");
+    let extensions_path = test_path.with_file_name("extensions.toml");
 
     if !subgraphs_dir.is_dir() {
         return Err(anyhow::anyhow!("{} is not a directory.", subgraphs_dir.display()));
     }
+
+    let extensions: TestExtensions = fs::read_to_string(extensions_path)
+        .ok()
+        .map(|file| toml::from_str(&file).unwrap())
+        .unwrap_or_default();
 
     let mut subgraphs_sdl = fs::read_dir(subgraphs_dir)?
         .filter_map(Result::ok)
@@ -34,7 +40,14 @@ fn run_test(test_path: &Path) -> anyhow::Result<()> {
             .map_err(|err| anyhow::anyhow!("Error parsing {}: \n{err:#}", path.display()))?;
     }
 
-    let (actual_federated_sdl, actual_api_sdl) = match graphql_composition::compose(&subgraphs).into_result() {
+    subgraphs.ingest_loaded_extensions(
+        extensions
+            .extensions
+            .into_iter()
+            .map(|extension| graphql_composition::LoadedExtension::new(extension.url, extension.name)),
+    );
+
+    let (federated_sdl, api_sdl) = match graphql_composition::compose(&subgraphs).into_result() {
         Ok(federated_graph) => (
             graphql_federated_graph::render_federated_sdl(&federated_graph).expect("rendering federated SDL"),
             Some(graphql_federated_graph::render_api_sdl(&federated_graph)),
@@ -56,13 +69,13 @@ fn run_test(test_path: &Path) -> anyhow::Result<()> {
         .filter(|desc| !desc.is_empty())
         .unwrap_or("Federated SDL");
 
-    insta::assert_snapshot!("federated.graphql", actual_federated_sdl, test_description);
+    insta::assert_snapshot!("federated.graphql", federated_sdl, test_description);
 
-    if let Some(actual_api_sdl) = actual_api_sdl {
+    if let Some(actual_api_sdl) = api_sdl {
         insta::assert_snapshot!("api.graphql", actual_api_sdl);
     }
 
-    test_sdl_roundtrip(&actual_federated_sdl)
+    test_sdl_roundtrip(&federated_sdl)
 }
 
 fn test_sdl_roundtrip(sdl: &str) -> anyhow::Result<()> {
@@ -79,7 +92,8 @@ fn test_sdl_roundtrip(sdl: &str) -> anyhow::Result<()> {
         return Ok(());
     }
 
-    Err(anyhow::anyhow!("Roundtrip failed",))
+    pretty_assertions::assert_eq!(sdl, roundtripped, "SDL roundtrip failed");
+    Ok(())
 }
 
 #[test]
@@ -94,4 +108,15 @@ fn composition_tests() {
             run_test(test_path).unwrap();
         });
     });
+}
+
+#[derive(Debug, serde::Deserialize, Default)]
+struct TestExtensions {
+    extensions: Vec<TestExtension>,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct TestExtension {
+    url: String,
+    name: String,
 }

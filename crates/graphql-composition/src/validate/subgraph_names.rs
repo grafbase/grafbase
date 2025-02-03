@@ -2,9 +2,11 @@ use super::ValidateContext;
 use std::collections::HashSet;
 
 pub(crate) fn validate_subgraph_names(ctx: &mut ValidateContext<'_>) {
-    let mut seen = HashSet::new();
+    let subgraphs = ctx.subgraphs.iter_subgraphs();
 
-    for subgraph in ctx.subgraphs.iter_subgraphs() {
+    let mut seen = HashSet::with_capacity(subgraphs.len());
+
+    for subgraph in subgraphs {
         let name = subgraph.name().as_str();
         validate_name(name, ctx);
 

@@ -1,12 +1,20 @@
 mod directive_definition;
+mod link;
+mod record;
 
-pub(crate) use self::directive_definition::*;
+pub(crate) use self::{directive_definition::*, link::*, record::*};
 
 use super::*;
 use graphql_federated_graph::directives::ListSizeDirective;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct DirectiveSiteId(usize);
+
+impl From<usize> for DirectiveSiteId {
+    fn from(value: usize) -> Self {
+        DirectiveSiteId(value)
+    }
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct DirectiveDefinitionId(usize);
@@ -50,11 +58,10 @@ pub(super) struct Directives {
     list_sizes: BTreeMap<DirectiveSiteId, ListSizeDirective>,
 
     directive_definitions: Vec<DirectiveDefinition>,
+    composed_directives: HashSet<(SubgraphId, StringId)>,
 
-    /// From @composeDirective.
-    composed_directives: BTreeSet<StringId>,
-
-    composed_directive_instances: Vec<(DirectiveSiteId, StringId, Arguments)>,
+    pub(super) extra_directives: Vec<ExtraDirectiveRecord>,
+    extra_directives_on_schema_definitions_or_extensions: Vec<(SubgraphId, ExtraDirectiveRecord)>,
 }
 
 impl Subgraphs {
@@ -70,21 +77,17 @@ impl Subgraphs {
         self.directives.authorized.insert(id, directive);
     }
 
-    pub(crate) fn insert_composed_directive(&mut self, directive_name: &str) {
-        let directive_name = self.strings.intern(directive_name);
-        self.directives.composed_directives.insert(directive_name);
-    }
+    pub(crate) fn insert_composed_directive(&mut self, subgraph_id: SubgraphId, directive_name: &str) {
+        // The `@authorized` directive is an exception. Directives used in subgraph schemas are either built-in federation directives (`@requires`, `@key`, etc.) or custom, composed directives with `@composeDirective`. Since `@authorized` is not part of the federation spec, some frameworks like async-graphql (Rust) will produce an `@composeDirective` with the `@authorized` directive. We should not consider `@authorized` as a composed directive however, because that means we would emit it again.
+        if directive_name == "authorized" {
+            return;
+        }
 
-    pub(crate) fn insert_composed_directive_instance(
-        &mut self,
-        id: DirectiveSiteId,
-        directive_name: &str,
-        arguments: Arguments,
-    ) {
         let directive_name = self.strings.intern(directive_name);
+
         self.directives
-            .composed_directive_instances
-            .push((id, directive_name, arguments));
+            .composed_directives
+            .insert((subgraph_id, directive_name));
     }
 
     pub(crate) fn insert_deprecated(&mut self, id: DirectiveSiteId, reason: Option<&str>) {
@@ -108,15 +111,8 @@ impl Subgraphs {
         self.directives.policies.insert((id, policies));
     }
 
-    pub(crate) fn is_composed_directive(&self, name_id: StringId) -> bool {
-        // The `@authorized` directive is an exception. Directives used in subgraph schemas are either built-in federation directives (`@requires`, `@key`, etc.) or custom, composed directives with `@composeDirective`. Since `@authorized` is not part of the federation spec, some frameworks like async-graphql (Rust) will produce an `@composeDirective` with the `@authorized` directive. We should not consider `@authorized` as a composed directive however, because that means we would emit it again.
-        //
-        // TODO: as for other imported composition directives, we should forbid their use in `@composeDirective`.
-        if Some(name_id) == self.strings.lookup("authorized") {
-            return false;
-        }
-
-        self.directives.composed_directives.contains(&name_id)
+    pub(crate) fn is_composed_directive(&self, subgraph_id: SubgraphId, name_id: StringId) -> bool {
+        self.directives.composed_directives.contains(&(subgraph_id, name_id))
     }
 
     pub(crate) fn append_required_scopes(&mut self, id: DirectiveSiteId, scopes: Vec<StringId>) {
@@ -128,9 +124,31 @@ impl Subgraphs {
         self.directives.tags.insert((id, tag));
     }
 
+    pub(crate) fn push_extra_directive_on_schema_definition_or_extension(
+        &mut self,
+        subgraph_id: SubgraphId,
+        directive: ExtraDirectiveRecord,
+    ) {
+        self.directives
+            .extra_directives_on_schema_definitions_or_extensions
+            .push((subgraph_id, directive));
+    }
+
+    pub(crate) fn iter_extra_directives_on_schema_definition_or_extensions(
+        &self,
+    ) -> impl Iterator<Item = &(SubgraphId, ExtraDirectiveRecord)> {
+        self.directives
+            .extra_directives_on_schema_definitions_or_extensions
+            .iter()
+    }
+
     pub(crate) fn push_directive_definition(&mut self, definition: DirectiveDefinition) -> DirectiveDefinitionId {
         let idx = self.directives.directive_definitions.push_return_idx(definition);
         DirectiveDefinitionId(idx)
+    }
+
+    pub(crate) fn push_directive(&mut self, directive: ExtraDirectiveRecord) {
+        self.directives.extra_directives.push(directive);
     }
 
     pub(crate) fn new_directive_site(&mut self) -> DirectiveSiteId {
@@ -199,13 +217,18 @@ impl<'a> DirectiveSiteWalker<'a> {
         self.subgraphs.directives.interface_object.contains(&self.id)
     }
 
-    pub(crate) fn iter_composed_directives(&self) -> impl Iterator<Item = (StringId, &Arguments)> {
-        let instances = &self.subgraphs.directives.composed_directive_instances;
-        let partition_point = instances.partition_point(|(id, _, _)| id < &self.id);
+    pub(crate) fn iter_extra_directives(&self) -> impl Iterator<Item = ExtraDirective<'_>> {
+        let instances = &self.subgraphs.directives.extra_directives;
+        let partition_point = instances.partition_point(|record| record.directive_site_id < self.id);
+
         instances[partition_point..]
             .iter()
-            .take_while(|(id, _, _)| id == &self.id)
-            .map(|(_, name, args)| (*name, args))
+            .take_while(|record| record.directive_site_id == self.id)
+            .enumerate()
+            .map(move |(idx, record)| ExtraDirective {
+                id: (partition_point + idx).into(),
+                record,
+            })
     }
 
     /// ```graphql,ignore
