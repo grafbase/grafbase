@@ -2,7 +2,7 @@ use crate::Error;
 
 use super::GdnResponse;
 use engine::{Engine, SchemaVersion};
-use extension_catalog::{Extension, ExtensionCatalog, ExtensionId, Id, Manifest, VersionedManifest};
+use extension_catalog::{Extension, ExtensionCatalog, ExtensionId, Manifest, VersionedManifest};
 use gateway_config::{Config, WasiExtensionsConfig};
 use graphql_composition::FederatedGraph;
 use runtime::trusted_documents_client::{Client, TrustedDocumentsEnforcementMode};
@@ -116,7 +116,7 @@ fn create_wasi_extension_configs(
 
     for (id, extension) in extension_catalog.iter().enumerate() {
         let extension_config = extension_configs
-            .get(&extension.manifest.name)
+            .get(extension.manifest.name())
             .expect("we made sure in the create_extension_catalog that this extension is in the config");
 
         let extension_type = match &extension.manifest.kind {
@@ -133,8 +133,8 @@ fn create_wasi_extension_configs(
 
         wasi_extensions.push(ExtensionConfig {
             id: ExtensionId::from(id),
-            name: extension.manifest.name.clone(),
-            version: extension.manifest.version.clone(),
+            name: extension.manifest.name().to_owned(),
+            version: extension.manifest.version().to_owned(),
             extension_type,
             schema_directives: Vec::new(),
             max_pool_size: extension_config.max_pool_size(),
@@ -191,14 +191,7 @@ fn create_extension_catalog(gateway_config: &Config) -> crate::Result<ExtensionC
             serde_json::from_reader(manifest_data).map_err(|e| Error::InternalError(e.to_string()))?;
         let manifest = manifest.into_latest();
 
-        let id = Id {
-            origin: url::Url::from_file_path(path).unwrap(),
-            name: manifest.name.clone(),
-            version: manifest.version.clone(),
-        };
-
         let extension = Extension {
-            id,
             manifest,
             wasm_path: path.join("extension.wasm").canonicalize().unwrap(),
         };
@@ -257,23 +250,14 @@ fn create_extension_catalog(gateway_config: &Config) -> crate::Result<ExtensionC
 
         if let Some((wasm_path, manifest)) = wasm_path.zip(manifest) {
             if extension_configs
-                .get(&manifest.name)
-                .filter(|c| c.version().matches(&manifest.version))
+                .get(manifest.name())
+                .filter(|c| c.version().matches(manifest.version()))
                 .is_none()
             {
                 continue;
             }
 
-            let full_path = wasm_path.parent().unwrap().to_str().unwrap();
-
-            let id = Id {
-                origin: format!("file://{}", full_path).parse().unwrap(),
-                name: manifest.name.clone(),
-                version: manifest.version.clone(),
-            };
-
             let extension = Extension {
-                id,
                 manifest,
                 wasm_path: wasm_path.canonicalize().unwrap(),
             };

@@ -39,24 +39,24 @@ fn simple_extension() {
         let engine = Engine::builder()
             .with_federated_sdl(&format!(
                 r#"
-                enum extension__Link {{
-                    REST @extension__link(url: "{}")
-                }}
+                    enum extension__Link {{
+                        REST @extension__link(url: "{}")
+                    }}
 
-                enum join__Graph {{
-                    A @join__graph(name: "a")
-                }}
+                    enum join__Graph {{
+                        A @join__graph(name: "a")
+                    }}
 
-                extend type Query {{
-                    greeting(name: String): String @extension__directive(graph: A, extension: REST, name: "rest")
-                }}
-                "#,
+                    extend type Query {{
+                        greeting(name: String): String @extension__directive(graph: A, extension: REST, name: "rest")
+                    }}
+                    "#,
                 origin
             ))
             .with_extensions(|ext| {
                 ext.with_field_resolver(
+                    tmpdir.path(),
                     Id {
-                        origin,
                         name: "test".to_string(),
                         version: "1.0.0".parse().unwrap(),
                     },

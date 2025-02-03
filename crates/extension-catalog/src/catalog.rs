@@ -13,7 +13,6 @@ pub struct ExtensionCatalog {
 
 #[derive(Debug)]
 pub struct Extension {
-    pub id: Id,
     pub manifest: Manifest,
     pub wasm_path: PathBuf,
 }
@@ -37,7 +36,7 @@ impl ExtensionCatalog {
         self.extensions
             .iter()
             .enumerate()
-            .find(|(_, existing)| existing.id.is_compatible_with(id))
+            .find(|(_, existing)| existing.manifest.id.is_compatible_with(id))
             .map(|(ix, _)| ix.into())
     }
 

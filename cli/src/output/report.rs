@@ -273,8 +273,8 @@ pub(crate) fn extension_build_start() {
 }
 
 pub(crate) fn extension_built(manifest: &Manifest) {
-    let name = &manifest.name;
-    let version = &manifest.version;
+    let name = manifest.name();
+    let version = manifest.version();
     let minimum_gateway_version = &manifest.minimum_gateway_version;
     let sdk_version = &manifest.sdk_version;
 

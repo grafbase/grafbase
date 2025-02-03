@@ -1083,7 +1083,7 @@ async fn ingest_extension_link_enum<'a>(
             })?;
         let ExtensionLink { url, schema_directives } = parse_extension_link(directive, state)?;
 
-        let (id, manifest) =
+        let manifest =
             extension_catalog::load_manifest(url.parse().map_err(|err| DomainError(format!("Invalid url: {err}")))?)
                 .await
                 .map_err(|err| crate::DomainError(err.to_string()))?;
@@ -1093,7 +1093,6 @@ async fn ingest_extension_link_enum<'a>(
         let id = ExtensionId::from(state.graph.extensions.push_return_idx(Extension {
             url,
             enum_value_name,
-            id,
             manifest,
             schema_directives,
         }));
@@ -1615,8 +1614,10 @@ async fn load_with_extensions() {
     let dir = tempfile::tempdir().unwrap();
     let manifest_path = dir.path().join("manifest.json");
     let manifest = extension::Manifest {
-        name: "my-extension".to_string(),
-        version: "1.0.0".parse().unwrap(),
+        id: extension::Id {
+            name: "my-extension".to_string(),
+            version: "1.0.0".parse().unwrap(),
+        },
         kind: extension::Kind::FieldResolver(extension::FieldResolver {
             resolver_directives: vec!["resolver".to_string()],
         }),

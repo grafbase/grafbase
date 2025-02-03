@@ -1,7 +1,8 @@
+use crate::Id;
+
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Manifest {
-    pub name: String,
-    pub version: semver::Version,
+    pub id: Id,
     pub kind: Kind,
     pub sdk_version: semver::Version,
     pub minimum_gateway_version: semver::Version,
@@ -9,6 +10,14 @@ pub struct Manifest {
 }
 
 impl Manifest {
+    pub fn name(&self) -> &str {
+        &self.id.name
+    }
+
+    pub fn version(&self) -> &semver::Version {
+        &self.id.version
+    }
+
     pub fn into_versioned(self) -> super::VersionedManifest {
         super::VersionedManifest::V1(self)
     }

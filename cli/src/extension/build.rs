@@ -238,8 +238,10 @@ fn parse_manifest(source_dir: &Path, wasm_path: &Path) -> anyhow::Result<Manifes
     };
 
     let manifest = Manifest {
-        name: extension_toml.extension.name,
-        version: extension_toml.extension.version,
+        id: extension::Id {
+            name: extension_toml.extension.name,
+            version: extension_toml.extension.version,
+        },
         kind,
         sdk_version: versions.sdk_version,
         minimum_gateway_version: versions.minimum_gateway_version,
