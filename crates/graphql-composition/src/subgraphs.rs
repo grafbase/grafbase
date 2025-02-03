@@ -3,10 +3,13 @@ mod directives;
 mod enums;
 mod field_types;
 mod fields;
+mod ids;
 mod keys;
+mod linked_schemas;
 mod strings;
 mod top;
 mod unions;
+mod view;
 mod walker;
 
 pub(crate) use self::{
@@ -14,7 +17,9 @@ pub(crate) use self::{
     directives::*,
     field_types::*,
     fields::*,
+    ids::*,
     keys::*,
+    linked_schemas::*,
     strings::{StringId, StringWalker},
     top::*,
     walker::Walker,
@@ -34,6 +39,7 @@ pub struct Subgraphs {
     field_types: field_types::FieldTypes,
     keys: keys::Keys,
     unions: unions::Unions,
+    linked_schemas: linked_schemas::LinkedSchemas,
 
     ingestion_diagnostics: crate::Diagnostics,
 
@@ -66,6 +72,7 @@ impl Default for Subgraphs {
             unions: Default::default(),
             ingestion_diagnostics: Default::default(),
             definition_names: Default::default(),
+            linked_schemas: Default::default(),
         }
     }
 }
@@ -146,11 +153,6 @@ impl Subgraphs {
     pub(crate) fn push_ingestion_diagnostic(&mut self, subgraph: SubgraphId, message: String) {
         self.ingestion_diagnostics
             .push_fatal(format!("[{}]: {message}", self.walk_subgraph(subgraph).name().as_str()));
-    }
-
-    pub(crate) fn push_ingestion_warning(&mut self, subgraph: SubgraphId, message: String) {
-        self.ingestion_diagnostics
-            .push_warning(format!("[{}]: {message}", self.walk_subgraph(subgraph).name().as_str()));
     }
 
     pub(crate) fn walk<Id>(&self, id: Id) -> Walker<'_, Id> {

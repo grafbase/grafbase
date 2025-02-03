@@ -3534,6 +3534,7 @@ dependencies = [
  "miette",
  "similar",
  "thiserror 2.0.11",
+ "url",
 ]
 
 [[package]]

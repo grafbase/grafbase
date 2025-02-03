@@ -13,12 +13,13 @@ workspace = true
 [dependencies]
 cynic-parser = { workspace = true, features = ["report"] }
 cynic-parser-deser.workspace = true
-grafbase-workspace-hack.workspace = true
 graphql-federated-graph = { path = "../graphql-federated-graph", version = "0.5.0" }
 indexmap.workspace = true
 itertools.workspace = true
+url.workspace = true
 
 [dev-dependencies]
+grafbase-workspace-hack.workspace = true
 datatest-stable.workspace = true
 similar = "2.5.0"
 thiserror.workspace = true

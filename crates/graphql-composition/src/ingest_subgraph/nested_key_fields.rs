@@ -1,8 +1,10 @@
+use super::Context;
 use crate::subgraphs::*;
 
 /// See [crate::subgraphs::Keys::nested_key_fields].
-pub(super) fn ingest_nested_key_fields(subgraph_id: SubgraphId, subgraphs: &mut Subgraphs) {
-    subgraphs.with_nested_key_fields(|subgraphs, nested_key_fields| {
+pub(super) fn ingest_nested_key_fields(ctx: &mut Context<'_>) {
+    let subgraph_id = ctx.subgraph_id;
+    ctx.subgraphs.with_nested_key_fields(|subgraphs, nested_key_fields| {
         for definition in subgraphs.walk_subgraph(subgraph_id).definitions() {
             for key in definition.entity_keys() {
                 for selection in key.fields() {

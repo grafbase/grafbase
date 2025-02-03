@@ -1,0 +1,25 @@
+extend schema @link(url: "https://example.com/kafka/v2.3")
+
+type Alert @key(fields: "id") {
+  id: ID!
+  message: String!
+  severity: Severity!
+}
+
+enum Severity {
+  FINE
+  OK
+  GOOD
+}
+
+type Mutation {
+  createAlert(message: String!, severity: Severity!): Alert @kafka__post(topic: "alerts")
+}
+
+type Query {
+  alert(id: ID!): Alert
+}
+
+type Subscription {
+  alert(id: ID!): Alert @kafka__subscribe(topic: "alerts")
+}

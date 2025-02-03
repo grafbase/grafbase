@@ -27,7 +27,7 @@ impl Default for OryHydraOpenIDProvider {
         Self {
             issuer: IssuerUrl::new(ISSUER.to_string()).unwrap(),
             ory_config: Configuration {
-                base_path: dbg!(HYDRA_ADMIN_URL.to_string()),
+                base_path: HYDRA_ADMIN_URL.to_string(),
                 ..Default::default()
             },
         }

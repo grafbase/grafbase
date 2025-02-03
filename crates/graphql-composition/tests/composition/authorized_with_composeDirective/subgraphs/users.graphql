@@ -38,6 +38,4 @@ extend schema
     ]
   )
 
-extend schema
-  @link(url: "https://custom.spec.dev/extension/v1.0", import: ["@authorized"])
-  @composeDirective(name: "@authorized")
+extend schema @composeDirective(name: "@authorized")

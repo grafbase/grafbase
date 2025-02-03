@@ -1,0 +1,19 @@
+type Alert @key(fields: "id") {
+  id: ID!
+  message: String!
+  severity: Severity!
+}
+
+enum Severity {
+  OK
+  FINE
+  GREAT
+}
+
+type Mutation {
+  createAlert(message: String!, severity: Severity!): Alert @kafka__post(topic: "alerts")
+}
+
+type Query {
+  alert(id: ID!): Alert
+}
