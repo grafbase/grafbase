@@ -62,6 +62,11 @@ impl GrafbaseResponseExtension {
                         query: resolver.subgraph_operation.query.clone(),
                     },
                 }),
+                Resolver::FieldResolverExtension(resolver) => {
+                    QueryPlanNode::FieldResolverExtension(FieldResolverExtensionNode {
+                        subgraph_name: resolver.definition.walk(ctx).directive().subgraph().name().to_string(),
+                    })
+                }
             });
             for child in plan.children() {
                 if let Executable::Plan(child) = child {
@@ -99,6 +104,7 @@ struct QueryPlan {
 enum QueryPlanNode {
     IntrospectionResolver,
     GraphqlResolver(GraphqlResolverNode),
+    FieldResolverExtension(FieldResolverExtensionNode),
 }
 
 #[derive(Debug, Serialize)]
@@ -106,6 +112,12 @@ enum QueryPlanNode {
 struct GraphqlResolverNode {
     subgraph_name: String,
     request: GraphqlRequest,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct FieldResolverExtensionNode {
+    subgraph_name: String,
 }
 
 #[derive(Debug, Serialize)]

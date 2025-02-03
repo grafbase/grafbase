@@ -101,8 +101,8 @@ pub struct Schema {
 }
 
 impl Schema {
-    pub fn from_sdl_or_panic(sdl: &str) -> Self {
-        let graph = federated_graph::FederatedGraph::from_sdl(sdl).unwrap();
+    pub fn from_sdl_without_extensions_or_panic(sdl: &str) -> Self {
+        let graph = federated_graph::FederatedGraph::from_sdl_without_extensions(sdl).unwrap();
         let config = config::Config::from_graph(graph);
         Self::build(config, Version::from(Vec::new()), &Default::default()).unwrap()
     }

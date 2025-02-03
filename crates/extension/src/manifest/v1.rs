@@ -8,6 +8,12 @@ pub struct Manifest {
     pub sdl: Option<String>,
 }
 
+impl Manifest {
+    pub fn into_versioned(self) -> super::VersionedManifest {
+        super::VersionedManifest::V1(self)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Kind {
     FieldResolver(FieldResolver),

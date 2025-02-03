@@ -10,12 +10,9 @@ pub async fn load_manifest(mut url: Url) -> Result<(Id, Manifest), String> {
         url.path_segments_mut().unwrap().push("manifest.json");
     }
 
-    let manifest = if url.scheme() == "file" {
-        let content = std::fs::read(
-            url.to_file_path()
-                .map_err(|_| "Could not convert to file path".to_string())?,
-        )
-        .map_err(|err| err.to_string())?;
+    let manifest: VersionedManifest = if url.scheme() == "file" {
+        let content = std::fs::read(url.to_file_path().map_err(|_| "Could not convert to file path")?)
+            .map_err(|err| err.to_string())?;
         serde_json::from_slice(&content).map_err(|err| err.to_string())?
     } else {
         reqwest::get(url.clone())
@@ -25,8 +22,9 @@ pub async fn load_manifest(mut url: Url) -> Result<(Id, Manifest), String> {
             .await
             .map_err(|err| err.to_string())?
     };
+    let manifest = manifest.into_latest();
 
-    let id = Id::from_url(url, &manifest);
+    let id = Id::from_url(url, manifest.name.clone(), manifest.version.clone());
     Ok((id, manifest))
 }
 
@@ -51,9 +49,12 @@ mod tests {
             minimum_gateway_version: "0.90.0".parse().unwrap(),
             sdl: Some("directive foo on SCHEMA".to_string()),
         };
-        tokio::fs::write(&manifest_path, serde_json::to_string(&expected).unwrap())
-            .await
-            .unwrap();
+        tokio::fs::write(
+            &manifest_path,
+            serde_json::to_string(&expected.clone().into_versioned()).unwrap(),
+        )
+        .await
+        .unwrap();
         let (id, manifest) = load_manifest(Url::from_file_path(dir.path()).unwrap()).await.unwrap();
         assert_eq!(id.origin, url::Url::from_file_path(dir.path()).unwrap());
         assert_eq!(id.name, manifest.name);

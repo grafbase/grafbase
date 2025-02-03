@@ -1,3 +1,5 @@
+use std::future::Future;
+
 use engine_schema::Subgraph;
 use extension_catalog::ExtensionId;
 
@@ -20,7 +22,7 @@ pub enum Data {
 pub trait ExtensionRuntime: Send + Sync + 'static {
     type SharedContext: Clone + Send + Sync + 'static;
 
-    async fn resolve_field<'a>(
+    fn resolve_field<'a>(
         &self,
         extension_id: ExtensionId,
         subgraph: Subgraph<'a>,
@@ -28,7 +30,7 @@ pub trait ExtensionRuntime: Send + Sync + 'static {
         field: EdgeDefinition<'a>,
         directive: ExtensionDirective<'a, impl Anything<'a>>,
         inputs: impl IntoIterator<Item: Anything<'a>> + Send,
-    ) -> Result<Vec<Result<Data, PartialGraphqlError>>, PartialGraphqlError>;
+    ) -> impl Future<Output = Result<Vec<Result<Data, PartialGraphqlError>>, PartialGraphqlError>> + Send;
 }
 
 impl ExtensionRuntime for () {

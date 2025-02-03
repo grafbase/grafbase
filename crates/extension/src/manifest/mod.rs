@@ -5,7 +5,7 @@ pub use v1::*;
 
 /// Suitable for long-term storage as backwards-compatibility will be maintained.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(tag = "version", rename_all = "lowercase")]
+#[serde(tag = "manifest", rename_all = "lowercase")]
 pub enum VersionedManifest {
     V1(v1::Manifest),
 }

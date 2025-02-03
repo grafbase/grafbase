@@ -67,7 +67,7 @@ type Query
 
 #[test]
 fn requirements_cycle() {
-    let schema = Schema::from_sdl_or_panic(SCHEMA);
+    let schema = Schema::from_sdl_without_extensions_or_panic(SCHEMA);
     let operation = Operation::parse(
         &schema,
         None,

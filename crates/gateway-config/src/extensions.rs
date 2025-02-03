@@ -10,25 +10,29 @@ pub enum ExtensionsConfig {
 }
 
 #[derive(PartialEq, serde::Deserialize, Debug, Clone)]
+#[serde(default, deny_unknown_fields)]
 pub struct StructuredExtensionsConfig {
-    #[serde(default = "default_version")]
     pub version: VersionReq,
-    #[serde(default)]
     pub path: Option<PathBuf>,
-    #[serde(default)]
     pub networking: bool,
-    #[serde(default)]
     pub stdout: bool,
-    #[serde(default)]
     pub stderr: bool,
-    #[serde(default)]
     pub environment_variables: bool,
-    #[serde(default)]
     pub max_pool_size: Option<usize>,
 }
 
-fn default_version() -> VersionReq {
-    VersionReq::parse("*").unwrap()
+impl Default for StructuredExtensionsConfig {
+    fn default() -> Self {
+        Self {
+            version: VersionReq::parse("*").unwrap(),
+            path: None,
+            networking: false,
+            stdout: false,
+            stderr: false,
+            environment_variables: false,
+            max_pool_size: None,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]

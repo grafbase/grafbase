@@ -1,47 +1,4 @@
-//! Execution plans are responsible to retrieve a selection_set from a certain point in the query.
-//!
-//! Supposing we have a query like this:
-//! ```graphql
-//! query {
-//!     catalog {
-//!         products {
-//!             name
-//!             price
-//!         }
-//!     }
-//! }
-//! ```
-//!
-//! If `prices` comes from a different data source we would have two plans like:
-//! ```graphql
-//! # Catalog plan
-//! query {
-//!     catalog {
-//!         products {
-//!             id
-//!             name
-//!         }
-//!     }
-//! }
-//! ```
-//!
-//! ```graphql
-//! # Price plan
-//! query {
-//!      _entities(representations: [...]) {
-//!         ... on Product {
-//!             price
-//!         }
-//!     }
-//! }
-//! ```
-//!
-//! Execution plans define what to do at runtime for a given query. They only depend on the
-//! operation and thus can be cached and do not depend on any context. On the other hand,
-//! Executors are context (variables, response, headers, etc.) depend and built from the execution plans
-//!
-//! The executor for the catalog plan would have a single response object root and the price plan
-//! executor will have a root for each product in the response.
+use extension::FieldResolverExtension;
 use futures::FutureExt;
 use futures_util::stream::BoxStream;
 use grafbase_telemetry::graphql::OperationType;
@@ -61,6 +18,7 @@ use self::{
     introspection::IntrospectionResolver,
 };
 
+mod extension;
 mod graphql;
 mod introspection;
 
@@ -69,6 +27,7 @@ pub(crate) enum Resolver {
     Graphql(GraphqlResolver),
     FederationEntity(FederationEntityResolver),
     Introspection(IntrospectionResolver),
+    FieldResolverExtension(FieldResolverExtension),
 }
 
 impl Resolver {
@@ -81,7 +40,9 @@ impl Resolver {
             ResolverDefinitionVariant::GraphqlFederationEntity(definition) => {
                 FederationEntityResolver::prepare(definition, plan_query_partition)
             }
-            ResolverDefinitionVariant::FieldResolverExtension(_) => todo!(),
+            ResolverDefinitionVariant::FieldResolverExtension(definition) => {
+                Ok(FieldResolverExtension::prepare(definition))
+            }
         }
     }
 }
@@ -142,6 +103,16 @@ impl Resolver {
                 }
             }
             .boxed(),
+            Resolver::FieldResolverExtension(prepared) => {
+                let request = prepared.prepare_request(ctx, plan, root_response_objects, subgraph_response);
+                async move {
+                    ResolverResult {
+                        execution: request.execute(ctx).await,
+                        on_subgraph_response_hook_output: None,
+                    }
+                }
+                .boxed()
+            }
         }
     }
 
@@ -163,6 +134,9 @@ impl Resolver {
             )),
             Resolver::FederationEntity(_) => Err(ExecutionError::Internal(
                 "Subscriptions can only be at the root of a query so can't contain federated entitites".into(),
+            )),
+            Resolver::FieldResolverExtension(_) => Err(ExecutionError::Internal(
+                "Subscriptions cannot be used with a field resolver extension.".into(),
             )),
         }
     }

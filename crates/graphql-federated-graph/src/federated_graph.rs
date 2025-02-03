@@ -58,42 +58,22 @@ pub struct FederatedGraph {
 
 impl FederatedGraph {
     #[cfg(all(feature = "from_sdl", feature = "extension"))]
-    pub async fn from_sdl_with_extensions(sdl: &str) -> Result<Self, crate::DomainError> {
+    pub async fn from_sdl(sdl: &str) -> Result<Self, crate::DomainError> {
         if sdl.trim().is_empty() {
             return Ok(Default::default());
         }
-        let parsed =
-            cynic_parser::parse_type_system_document(sdl).map_err(|err| crate::DomainError(err.to_string()))?;
-        let mut state = crate::from_sdl::State::default();
-
-        if let Some(extension_link) = parsed.definitions().find_map(|def| {
-            if let cynic_parser::type_system::Definition::Type(cynic_parser::type_system::TypeDefinition::Enum(ty)) =
-                def
-            {
-                if ty.name() == EXTENSION_LINK_ENUM {
-                    Some(ty)
-                } else {
-                    None
-                }
-            } else {
-                None
-            }
-        }) {
-            crate::from_sdl::ingest_extension_link_enum(extension_link, &mut state).await?;
-        }
-
-        crate::from_sdl::from_sdl(state, &parsed)
+        crate::from_sdl::from_sdl(sdl).await
     }
 
     /// Instantiate a [FederatedGraph] from a federated schema string
     #[cfg(feature = "from_sdl")]
-    pub fn from_sdl(sdl: &str) -> Result<Self, crate::DomainError> {
+    pub fn from_sdl_without_extensions(sdl: &str) -> Result<Self, crate::DomainError> {
         if sdl.trim().is_empty() {
             return Ok(Default::default());
         }
         let parsed =
             cynic_parser::parse_type_system_document(sdl).map_err(|err| crate::DomainError(err.to_string()))?;
-        crate::from_sdl::from_sdl(Default::default(), &parsed)
+        crate::from_sdl::from_sdl_without_extensions(Default::default(), &parsed)
     }
 
     pub fn definition_name(&self, definition: Definition) -> &str {
@@ -158,7 +138,7 @@ pub struct Extension {
 pub struct ExtensionSchemaDirective {
     pub subgraph_id: SubgraphId,
     pub name: StringId,
-    pub arguments: Option<Vec<DirectiveArgument>>,
+    pub arguments: Option<Vec<(StringId, Value)>>,
 }
 
 #[derive(Clone, Debug)]

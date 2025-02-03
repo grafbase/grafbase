@@ -1,0 +1,23 @@
+enum join__Graph {
+  A @join__graph(name: "a")
+}
+
+enum extension__Link {
+  REST
+    @extension__link(
+      url: "file:///home/brabier/github/grafbase/grafbase/extensions/rest/build"
+      schema_directives: [
+        { graph: A, name: "restEndpoint", arguments: { name: "dummy", http: { baseUrl: "http://localhost:8080" } } }
+      ]
+    )
+}
+
+type Query @join__type(graph: A) {
+  greeting(name: String): String
+    @extension__directive(
+      graph: A
+      extension: REST
+      name: "rest"
+      arguments: { endpoint: "dummy", http: { method: GET, path: "/greet.json" }, selection: "." }
+    )
+}

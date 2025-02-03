@@ -57,6 +57,7 @@ rand.workspace = true
 runtime.workspace = true
 grafbase-workspace-hack.workspace = true
 async-sse.workspace = true
+minicbor-serde = { workspace = true, features = ["alloc"] }
 mime = "0.3.17"
 serde_with = { workspace = true, features = ["hex"] }
 multipart-stream.workspace = true

@@ -20,7 +20,7 @@ use std::{collections::HashMap, error::Error as StdError, fmt, ops::Range};
 use wrapping::Wrapping;
 
 const JOIN_GRAPH_DIRECTIVE_NAME: &str = "join__graph";
-const JOIN_GRAPH_ENUM_NAME: &str = "join__Graph";
+pub(crate) const JOIN_GRAPH_ENUM_NAME: &str = "join__Graph";
 
 #[derive(Debug)]
 pub struct DomainError(pub(crate) String);
@@ -36,6 +36,7 @@ impl StdError for DomainError {}
 #[derive(Default)]
 pub(crate) struct State<'a> {
     graph: FederatedGraph,
+    extensions_loaded: bool,
     extension_by_enum_value_str: HashMap<&'a str, ExtensionId>,
 
     strings: IndexSet<String>,
@@ -205,7 +206,53 @@ impl<'a> State<'a> {
     }
 }
 
-pub(crate) fn from_sdl<'a>(
+pub(crate) async fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
+    let parsed = cynic_parser::parse_type_system_document(sdl).map_err(|err| crate::DomainError(err.to_string()))?;
+    let mut state = State::default();
+
+    if let Some(join_graph) = parsed.definitions().find_map(|def| {
+        if let cynic_parser::type_system::Definition::Type(cynic_parser::type_system::TypeDefinition::Enum(ty)) = def {
+            if ty.name() == JOIN_GRAPH_ENUM_NAME {
+                Some(ty)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }) {
+        let (namespace, type_name_id) = split_namespace_name(join_graph.name(), &mut state);
+        let description = join_graph
+            .description()
+            .map(|description| state.insert_string(&description.to_cow()));
+
+        ingest_join_graph_enum(
+            namespace,
+            type_name_id,
+            description,
+            join_graph.name(),
+            join_graph,
+            &mut state,
+        )?;
+    }
+    if let Some(extension_link) = parsed.definitions().find_map(|def| {
+        if let cynic_parser::type_system::Definition::Type(cynic_parser::type_system::TypeDefinition::Enum(ty)) = def {
+            if ty.name() == EXTENSION_LINK_ENUM {
+                Some(ty)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }) {
+        ingest_extension_link_enum(extension_link, &mut state).await?;
+    }
+
+    from_sdl_without_extensions(state, &parsed)
+}
+
+pub(crate) fn from_sdl_without_extensions<'a>(
     mut state: State<'a>,
     parsed: &'a ast::TypeSystemDocument,
 ) -> Result<FederatedGraph, DomainError> {
@@ -442,7 +489,11 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
 
                 match typedef {
                     ast::TypeDefinition::Enum(enm) if type_name == JOIN_GRAPH_ENUM_NAME => {
-                        ingest_join_graph_enum(namespace, type_name_id, description, type_name, enm, state)?;
+                        // if not already ingested... Need to deal with it because we want to
+                        // support non-extension SDL I guess.
+                        if state.graph_by_enum_str.is_empty() {
+                            ingest_join_graph_enum(namespace, type_name_id, description, type_name, enm, state)?;
+                        }
                         continue;
                     }
                     // If we loaded the extension__Link enum already, no need to do again.
@@ -981,21 +1032,17 @@ fn ingest_join_graph_enum<'a>(
             })?;
         let url = directive
             .get_argument("url")
-            .ok_or_else(|| {
-                DomainError(
-                    "Missing `url` argument in `@join__graph` directive on `join__Graph` enum value.".to_owned(),
-                )
-            })
-            .and_then(|arg| match arg {
+            .map(|arg| match arg {
                 ParserValue::String(s) => Ok(s),
                 _ => Err(DomainError(
                     "Unexpected type for `url` argument in `@join__graph` directive on `join__Graph` enum value."
                         .to_owned(),
                 )),
-            })?;
+            })
+            .transpose()?;
 
         let subgraph_name = state.insert_string(name.value());
-        let url = state.insert_string(url.value());
+        let url = url.map(|url| state.insert_string(url.value()));
         let sdl_name_string_id = state.insert_string(sdl_name);
         let join_graph_enum_value_name = state
             .graph
@@ -1007,7 +1054,7 @@ fn ingest_join_graph_enum<'a>(
         let id = SubgraphId::from(state.graph.subgraphs.push_return_idx(Subgraph {
             name: subgraph_name,
             join_graph_enum_value: join_graph_enum_value_name,
-            url: Some(url),
+            url,
         }));
         state.graph_by_enum_str.insert(sdl_name, id);
         state.graph_by_name.insert(name.value(), id);
@@ -1017,7 +1064,7 @@ fn ingest_join_graph_enum<'a>(
 }
 
 #[cfg(feature = "extension")]
-pub(super) async fn ingest_extension_link_enum<'a>(
+async fn ingest_extension_link_enum<'a>(
     enm: ast::EnumDefinition<'a>,
     state: &mut State<'a>,
 ) -> Result<(), DomainError> {
@@ -1053,6 +1100,8 @@ pub(super) async fn ingest_extension_link_enum<'a>(
         state.extension_by_enum_value_str.insert(enum_value_name_str, id);
     }
 
+    state.extensions_loaded = true;
+
     Ok(())
 }
 
@@ -1072,7 +1121,7 @@ impl<T> VecExt<T> for Vec<T> {
 #[test]
 fn test_from_sdl() {
     // https://github.com/the-guild-org/gateways-benchmark/blob/main/federation-v1/gateways/apollo-router/supergraph.graphql
-    let schema = FederatedGraph::from_sdl(r#"
+    let schema = FederatedGraph::from_sdl_without_extensions(r#"
         schema
           @link(url: "https://specs.apollo.dev/link/v1.0")
           @link(url: "https://specs.apollo.dev/join/v0.3", for: EXECUTION)
@@ -1178,7 +1227,7 @@ fn test_from_sdl() {
 #[test]
 fn test_from_sdl_with_empty_query_root() {
     // https://github.com/the-guild-org/gateways-benchmark/blob/main/federation-v1/gateways/apollo-router/supergraph.graphql
-    let schema = FederatedGraph::from_sdl(
+    let schema = FederatedGraph::from_sdl_without_extensions(
         r#"
         schema
           @link(url: "https://specs.apollo.dev/link/v1.0")
@@ -1261,7 +1310,7 @@ fn test_from_sdl_with_empty_query_root() {
 #[test]
 fn test_from_sdl_with_missing_query_root() {
     // https://github.com/the-guild-org/gateways-benchmark/blob/main/federation-v1/gateways/apollo-router/supergraph.graphql
-    let schema = FederatedGraph::from_sdl(
+    let schema = FederatedGraph::from_sdl_without_extensions(
         r#"
         schema
           @link(url: "https://specs.apollo.dev/link/v1.0")
@@ -1338,7 +1387,7 @@ fn test_from_sdl_with_missing_query_root() {
     }
 }
 
-fn split_namespace_name(original_name: &str, state: &mut State<'_>) -> (Option<StringId>, StringId) {
+pub(crate) fn split_namespace_name(original_name: &str, state: &mut State<'_>) -> (Option<StringId>, StringId) {
     match original_name.split_once("__") {
         Some((namespace, name)) => {
             let namespace = state.insert_string(namespace);
@@ -1381,7 +1430,7 @@ fn test_missing_type() {
         getMammoth: Mammoth @join__field(graph: mangrove)
     }
     "###;
-    let actual = FederatedGraph::from_sdl(sdl);
+    let actual = FederatedGraph::from_sdl_without_extensions(sdl);
     assert!(actual.is_err());
 }
 
@@ -1551,7 +1600,8 @@ fn test_join_field_type() {
          = User | Admin
     "#]];
 
-    let actual = crate::render_sdl::render_federated_sdl(&FederatedGraph::from_sdl(sdl).unwrap()).unwrap();
+    let actual =
+        crate::render_sdl::render_federated_sdl(&FederatedGraph::from_sdl_without_extensions(sdl).unwrap()).unwrap();
 
     expected.assert_eq(&actual);
 }
@@ -1574,9 +1624,12 @@ async fn load_with_extensions() {
         minimum_gateway_version: "0.90.0".parse().unwrap(),
         sdl: None,
     };
-    tokio::fs::write(&manifest_path, serde_json::to_string(&manifest).unwrap())
-        .await
-        .unwrap();
+    tokio::fs::write(
+        &manifest_path,
+        serde_json::to_string(&manifest.clone().into_versioned()).unwrap(),
+    )
+    .await
+    .unwrap();
 
     let make_sdl = |url: Url| {
         format!(
@@ -1603,13 +1656,13 @@ async fn load_with_extensions() {
         }}
 
         enum extension__Link {{
-            REST @extension__link(url: "{}")
+            REST @extension__link(url: "{}", schema_directives: [{{graph: A, name: "test" arguments: {{method: "yes"}}}}])
         }}
 
         scalar link__Import
 
         type Query @join__type(graph: A) {{
-            users: [User!]! @join__field(graph: A) @extension__directive(graph: A, extension: REST, name: "rest", arguments: [{{name: "method", value: GET}}])
+            users: [User!]! @join__field(graph: A) @extension__directive(graph: A, extension: REST, name: "rest", arguments: {{ method: GET }})
         }}
 
         type User @join__type(graph: A) {{
@@ -1620,7 +1673,7 @@ async fn load_with_extensions() {
         )
     };
 
-    let graph = FederatedGraph::from_sdl_with_extensions(&make_sdl(Url::from_file_path(manifest_path).unwrap()))
+    let graph = FederatedGraph::from_sdl(&make_sdl(Url::from_file_path(manifest_path).unwrap()))
         .await
         .unwrap();
     pretty_assertions::assert_eq!(graph.extensions.first().unwrap().manifest, manifest);
@@ -1639,7 +1692,7 @@ async fn load_with_extensions() {
         type Query
             @join__type(graph: A)
         {
-            users: [User!]! @extension__directive(graph: A, extension: REST, name: "rest", arguments: [{name: "method", value: GET}])
+            users: [User!]! @extension__directive(graph: A, extension: REST, name: "rest", arguments: {method: GET})
         }
 
         type User
@@ -1656,12 +1709,12 @@ async fn load_with_extensions() {
 
         enum extension__Link
         {
-            REST @extension__link(url: "file:///dummy")
+            REST @extension__link(url: "file:///dummy", schema_directives: [{graph: A, name: "test", arguments: {method: "yes"}}])
         }
     "#]];
 
     let without_extension = crate::render_sdl::render_federated_sdl(
-        &FederatedGraph::from_sdl(&make_sdl("file:///dummy".parse().unwrap())).unwrap(),
+        &FederatedGraph::from_sdl_without_extensions(&make_sdl("file:///dummy".parse().unwrap())).unwrap(),
     )
     .unwrap();
     expected.assert_eq(&without_extension);

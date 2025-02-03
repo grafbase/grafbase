@@ -1,0 +1,2 @@
+[extensions]
+rest = { path = "/home/brabier/github/grafbase/grafbase/extensions/rest/build" }
