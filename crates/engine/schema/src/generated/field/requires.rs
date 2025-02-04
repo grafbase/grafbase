@@ -6,54 +6,55 @@
 use crate::{
     generated::{Subgraph, SubgraphId},
     prelude::*,
-    FieldSet, FieldSetId,
+    FieldSet, FieldSetRecord,
 };
 use walker::Walk;
 
 /// Generated from:
 ///
 /// ```custom,{.language-graphql}
-/// type FieldRequires @meta(module: "field/requires") @copy {
+/// type FieldRequires @meta(module: "field/requires") {
 ///   subgraph: Subgraph!
 ///   field_set: FieldSet!
 /// }
 /// ```
-#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, Copy)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct FieldRequiresRecord {
     pub subgraph_id: SubgraphId,
-    pub field_set_id: FieldSetId,
+    pub field_set_record: FieldSetRecord,
 }
 
 #[derive(Clone, Copy)]
 pub struct FieldRequires<'a> {
     pub(crate) schema: &'a Schema,
-    pub(crate) item: FieldRequiresRecord,
+    pub(crate) ref_: &'a FieldRequiresRecord,
 }
 
 impl std::ops::Deref for FieldRequires<'_> {
     type Target = FieldRequiresRecord;
     fn deref(&self) -> &Self::Target {
-        &self.item
+        self.ref_
     }
 }
 
 impl<'a> FieldRequires<'a> {
     #[allow(clippy::should_implement_trait)]
-    pub fn as_ref(&self) -> &FieldRequiresRecord {
-        &self.item
+    pub fn as_ref(&self) -> &'a FieldRequiresRecord {
+        self.ref_
     }
     pub fn subgraph(&self) -> Subgraph<'a> {
         self.subgraph_id.walk(self.schema)
     }
     pub fn field_set(&self) -> FieldSet<'a> {
-        self.field_set_id.walk(self.schema)
+        self.as_ref().field_set_record.walk(self.schema)
     }
 }
 
-impl<'a> Walk<&'a Schema> for FieldRequiresRecord {
+impl<'a> Walk<&'a Schema> for &FieldRequiresRecord {
     type Walker<'w>
         = FieldRequires<'w>
     where
+        Self: 'w,
         'a: 'w;
     fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
@@ -62,7 +63,7 @@ impl<'a> Walk<&'a Schema> for FieldRequiresRecord {
     {
         FieldRequires {
             schema: schema.into(),
-            item: self,
+            ref_: self,
         }
     }
 }

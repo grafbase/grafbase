@@ -325,7 +325,7 @@ impl<'a> Solver<'a> {
                     let rule = match directive {
                         TypeSystemDirective::Authenticated(_) => Rule::Query(QueryModifierRule::Authenticated),
                         TypeSystemDirective::Authorized(dir) => {
-                            if dir.node_id.is_some() {
+                            if dir.node_record.is_some() {
                                 if self.output.query_plan[field_id].output_id.is_none() {
                                     let output_id = Some(self.create_new_response_object_set_definition(node_ix));
                                     self.output.query_plan[field_id].output_id = output_id;
@@ -340,7 +340,7 @@ impl<'a> Solver<'a> {
                                     directive_id: dir.id,
                                     definition_id: definition.id,
                                 })
-                            } else if dir.fields_id.is_some() {
+                            } else if dir.fields_record.is_some() {
                                 if self.output.query_plan[field_id].parent_field_output_id.is_none() {
                                     let parent_ix = self
                                         .solution
@@ -421,7 +421,7 @@ impl<'a> Solver<'a> {
                     let rule = match directive {
                         TypeSystemDirective::Authenticated(_) => Rule::Query(QueryModifierRule::Authenticated),
                         TypeSystemDirective::Authorized(dir) => {
-                            if dir.fields_id.is_some() {
+                            if dir.fields_record.is_some() {
                                 Rule::Resp(ResponseModifierRule::AuthorizedEdgeChild {
                                     directive_id: dir.id,
                                     definition_id: definition.id,

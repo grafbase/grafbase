@@ -1,5 +1,3 @@
-use walker::Walk;
-
 use crate::{
     CostDirective, FieldDefinition, FieldSet, InputValueDefinition, ListSizeDirective, SubgraphId, TypeSystemDirective,
 };
@@ -10,9 +8,9 @@ impl<'a> FieldDefinition<'a> {
     }
 
     pub fn provides_for_subgraph(&self, subgraph_id: SubgraphId) -> Option<FieldSet<'a>> {
-        self.as_ref().provides_records.iter().find_map(|provide| {
+        self.provides().find_map(|provide| {
             if provide.subgraph_id == subgraph_id {
-                Some(provide.field_set_id.walk(self.schema))
+                Some(provide.field_set())
             } else {
                 None
             }
@@ -22,7 +20,7 @@ impl<'a> FieldDefinition<'a> {
     pub fn requires_for_subgraph(&self, subgraph_id: SubgraphId) -> Option<FieldSet<'a>> {
         self.requires().find_map(|requires| {
             if requires.as_ref().subgraph_id == subgraph_id {
-                Some(requires.field_set_id.walk(self.schema))
+                Some(requires.field_set())
             } else {
                 None
             }

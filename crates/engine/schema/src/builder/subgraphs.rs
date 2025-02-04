@@ -1,16 +1,13 @@
-use std::mem::take;
-
-use federated_graph::FederatedGraph;
 use fxhash::FxHashMap;
 use gateway_config::{SubgraphConfig, SubscriptionProtocol};
 
 use super::{
-    BuildContext, BuildError, GraphqlEndpointId, GraphqlEndpointRecord, SubgraphId, VirtualSubgraphId,
-    VirtualSubgraphRecord,
+    BuildError, Context, GraphqlEndpointId, GraphqlEndpointRecord, SubgraphId, VirtualSubgraphId, VirtualSubgraphRecord,
 };
 
-#[derive(id_derives::IndexedFields)]
-pub struct ExternalDataSources {
+#[derive(Default, id_derives::IndexedFields)]
+pub(crate) struct SubgraphsContext {
+    pub all: Vec<SubgraphId>,
     pub id_mapping: FxHashMap<federated_graph::SubgraphId, SubgraphId>,
     #[indexed_by(GraphqlEndpointId)]
     pub graphql_endpoints: Vec<GraphqlEndpointRecord>,
@@ -18,30 +15,31 @@ pub struct ExternalDataSources {
     pub virtual_subgraphs: Vec<VirtualSubgraphRecord>,
 }
 
-impl std::ops::Index<federated_graph::SubgraphId> for ExternalDataSources {
+impl std::ops::Index<federated_graph::SubgraphId> for SubgraphsContext {
     type Output = SubgraphId;
     fn index(&self, id: federated_graph::SubgraphId) -> &Self::Output {
         &self.id_mapping[&id]
     }
 }
 
-impl ExternalDataSources {
-    pub(super) fn build(ctx: &mut BuildContext<'_>, graph: &mut FederatedGraph) -> Result<Self, BuildError> {
-        let mut sources = ExternalDataSources {
-            id_mapping: FxHashMap::with_capacity_and_hasher(graph.subgraphs.len(), Default::default()),
+impl Context<'_> {
+    pub(super) fn load_subgraphs(&mut self) -> Result<(), BuildError> {
+        let mut subgraphs = SubgraphsContext {
+            all: Vec::with_capacity(self.federated_graph.subgraphs.len()),
+            id_mapping: FxHashMap::with_capacity_and_hasher(self.federated_graph.subgraphs.len(), Default::default()),
             graphql_endpoints: Vec::new(),
             virtual_subgraphs: Vec::new(),
         };
 
-        let default_cache_ttl = if ctx.config.entity_caching.enabled {
-            Some(ctx.config.entity_caching.ttl)
+        let default_cache_ttl = if self.config.entity_caching.enabled {
+            Some(self.config.entity_caching.ttl)
         } else {
             None
         };
 
-        for (index, subgraph) in take(&mut graph.subgraphs).into_iter().enumerate() {
-            let subgraph_name_id = ctx.strings.get_or_new(&graph[subgraph.name]);
-            let id = federated_graph::SubgraphId::from(index);
+        for (ix, subgraph) in self.federated_graph.subgraphs.iter().enumerate() {
+            let id = federated_graph::SubgraphId::from(ix);
+            let subgraph_name_id = self.get_or_insert_str(subgraph.name);
             let SubgraphConfig {
                 url,
                 headers,
@@ -51,10 +49,10 @@ impl ExternalDataSources {
                 entity_caching,
                 subscription_protocol,
                 ..
-            } = ctx
+            } = self
                 .config
                 .subgraphs
-                .get(&graph[subgraph.name])
+                .get(&self.federated_graph[subgraph.name])
                 .cloned()
                 .unwrap_or_default();
 
@@ -62,7 +60,7 @@ impl ExternalDataSources {
                 .map(Ok)
                 .or_else(|| {
                     subgraph.url.map(|url| {
-                        let url = &graph[url];
+                        let url = &self.federated_graph[url];
                         url::Url::parse(url).map_err(|err| BuildError::InvalidUrl {
                             url: url.to_string(),
                             err: err.to_string(),
@@ -71,18 +69,17 @@ impl ExternalDataSources {
                 })
                 .transpose()?;
 
-            if let Some(url) = url {
-                sources.graphql_endpoints.push(GraphqlEndpointRecord {
+            let subgraph_id = if let Some(url) = url {
+                subgraphs.graphql_endpoints.push(GraphqlEndpointRecord {
                     subgraph_name_id,
-                    url_id: ctx.urls.insert(url),
+                    url_id: self.urls.insert(url),
                     subscription_protocol: match subscription_protocol {
                         Some(protocol) => protocol,
                         None if websocket_url.is_some() => SubscriptionProtocol::Websocket,
                         None => SubscriptionProtocol::ServerSentEvents,
                     },
-
-                    websocket_url_id: websocket_url.clone().map(|url| ctx.urls.insert(url)),
-                    header_rule_ids: ctx.ingest_header_rules(&headers),
+                    websocket_url_id: websocket_url.clone().map(|url| self.urls.insert(url)),
+                    header_rule_ids: self.ingest_header_rules(&headers),
                     config: super::SubgraphConfig {
                         timeout,
                         retry: retry.map(Into::into),
@@ -90,7 +87,7 @@ impl ExternalDataSources {
                             .as_ref()
                             .and_then(|cfg| {
                                 cfg.enabled
-                                    .unwrap_or(ctx.config.entity_caching.enabled)
+                                    .unwrap_or(self.config.entity_caching.enabled)
                                     .then_some(cfg.ttl)
                                     .flatten()
                             })
@@ -98,25 +95,20 @@ impl ExternalDataSources {
                     },
                     schema_directive_ids: Vec::new(),
                 });
-                sources.id_mapping.insert(
-                    id,
-                    SubgraphId::GraphqlEndpoint((sources.graphql_endpoints.len() - 1).into()),
-                );
+                SubgraphId::GraphqlEndpoint((subgraphs.graphql_endpoints.len() - 1).into())
             } else {
-                sources.virtual_subgraphs.push(VirtualSubgraphRecord {
+                subgraphs.virtual_subgraphs.push(VirtualSubgraphRecord {
                     subgraph_name_id,
                     schema_directive_ids: Vec::new(),
                 });
-                sources
-                    .id_mapping
-                    .insert(id, SubgraphId::Virtual((sources.virtual_subgraphs.len() - 1).into()));
-            }
+                SubgraphId::Virtual((subgraphs.virtual_subgraphs.len() - 1).into())
+            };
+            subgraphs.all.push(subgraph_id);
+            subgraphs.id_mapping.insert(id, subgraph_id);
         }
 
-        Ok(sources)
-    }
+        self.subgraphs = subgraphs;
 
-    pub(super) fn iter(&self) -> impl Iterator<Item = SubgraphId> + '_ {
-        self.id_mapping.values().copied()
+        Ok(())
     }
 }

@@ -2,53 +2,29 @@ mod error;
 mod path;
 
 use crate::{
-    EnumDefinitionId, Graph, InputObjectDefinitionId, InputValueDefinitionId, ScalarDefinitionId, ScalarType,
-    SchemaInputValueId, SchemaInputValueRecord, SchemaInputValues, TypeRecord,
+    EnumDefinitionId, InputObjectDefinitionId, InputValueDefinitionId, ScalarDefinitionId, ScalarType,
+    SchemaInputValueId, SchemaInputValueRecord, TypeRecord,
 };
-pub use error::*;
-use federated_graph::{FederatedGraph, Value};
+pub(crate) use error::*;
+use federated_graph::Value;
 use id_newtypes::IdRange;
-use path::*;
+pub(super) use path::*;
 use wrapping::{ListWrapping, MutableWrapping};
 
-use super::{BuildContext, DefinitionId};
+use super::{DefinitionId, GraphContext};
 
-pub(super) struct InputValueCoercer<'a, 'c> {
-    pub(super) ctx: &'a mut BuildContext<'c>,
-    federated_graph: &'a FederatedGraph,
-    graph: &'a Graph,
-    input_values: &'a mut SchemaInputValues,
-    value_path: Vec<ValuePathSegment>,
-    input_fields_buffer_pool: Vec<Vec<(InputValueDefinitionId, SchemaInputValueRecord)>>,
-}
-
-impl<'a, 'c> InputValueCoercer<'a, 'c> {
-    pub fn new(
-        ctx: &'a mut BuildContext<'c>,
-        graph: &'a Graph,
-        federated_graph: &'a FederatedGraph,
-        input_values: &'a mut SchemaInputValues,
-    ) -> Self {
-        Self {
-            ctx,
-            federated_graph,
-            graph,
-            input_values,
-            value_path: Vec::new(),
-            input_fields_buffer_pool: Vec::new(),
-        }
-    }
-
-    pub fn coerce(&mut self, ty: TypeRecord, value: Value) -> Result<SchemaInputValueId, InputValueError> {
-        let value = self.coerce_input_value(ty, value)?;
-        Ok(self.input_values.push_value(value))
+impl GraphContext<'_> {
+    pub fn coerce(&mut self, id: InputValueDefinitionId, value: Value) -> Result<SchemaInputValueId, InputValueError> {
+        debug_assert!(self.value_path.is_empty());
+        let value = self.coerce_input_value(self.graph[id].ty_record, value)?;
+        Ok(self.graph.input_values.push_value(value))
     }
 
     fn coerce_input_value(&mut self, ty: TypeRecord, value: Value) -> Result<SchemaInputValueRecord, InputValueError> {
         if ty.wrapping.is_list() && !value.is_list() && !value.is_null() {
             let mut value = self.coerce_named_type(ty.definition_id, value)?;
             for _ in 0..ty.wrapping.list_wrappings().len() {
-                value = SchemaInputValueRecord::List(IdRange::from_single(self.input_values.push_value(value)));
+                value = SchemaInputValueRecord::List(IdRange::from_single(self.graph.input_values.push_value(value)));
             }
             return Ok(value);
         }
@@ -88,10 +64,10 @@ impl<'a, 'c> InputValueCoercer<'a, 'c> {
             }),
             (Value::Null, ListWrapping::NullableList) => Ok(SchemaInputValueRecord::Null),
             (Value::List(array), _) => {
-                let ids = self.input_values.reserve_list(array.len());
+                let ids = self.graph.input_values.reserve_list(array.len());
                 for ((idx, value), id) in array.into_vec().into_iter().enumerate().zip(ids) {
                     self.value_path.push(idx.into());
-                    self.input_values[id] = self.coerce_type(definition_id, wrapping.clone(), value)?;
+                    self.graph.input_values[id] = self.coerce_type(definition_id, wrapping.clone(), value)?;
                     self.value_path.pop();
                 }
                 Ok(SchemaInputValueRecord::List(ids))
@@ -136,24 +112,26 @@ impl<'a, 'c> InputValueCoercer<'a, 'c> {
 
         let mut fields_buffer = self.input_fields_buffer_pool.pop().unwrap_or_default();
         let mut fields = Vec::from(fields);
-        for (input_field, input_field_id) in self.graph[input_object.input_field_ids]
-            .iter()
-            .zip(input_object.input_field_ids)
-        {
+        for input_field_id in input_object.input_field_ids {
+            let input_field = &self.graph[input_field_id];
+            let name_id = input_field.name_id;
+            let ty_record = input_field.ty_record;
+            let default_value_id = input_field.default_value_id;
+
             if let Some(index) = fields
                 .iter()
-                .position(|(id, _)| self.federated_graph[*id] == self.ctx.strings[input_field.name_id])
+                .position(|(id, _)| self.federated_graph[*id] == self.ctx.strings[name_id])
             {
                 let (_, value) = fields.swap_remove(index);
                 self.value_path.push(input_field.name_id.into());
-                let value = self.coerce_input_value(input_field.ty_record, value)?;
+                let value = self.coerce_input_value(ty_record, value)?;
                 fields_buffer.push((input_field_id, value));
                 self.value_path.pop();
-            } else if let Some(default_value_id) = input_field.default_value_id {
+            } else if let Some(default_value_id) = default_value_id {
                 fields_buffer.push((input_field_id, self.graph.input_values[default_value_id]));
-            } else if input_field.ty_record.wrapping.is_required() {
+            } else if ty_record.wrapping.is_required() {
                 return Err(InputValueError::UnexpectedNull {
-                    expected: self.type_name(input_field.ty_record),
+                    expected: self.type_name(ty_record),
                     path: self.path(),
                 });
             }
@@ -161,7 +139,7 @@ impl<'a, 'c> InputValueCoercer<'a, 'c> {
 
         if let Some((id, _)) = fields.first() {
             return Err(InputValueError::UnknownInputField {
-                input_object: self.ctx.strings[input_object.name_id].to_string(),
+                input_object: self.ctx.strings[self.graph[input_object_id].name_id].to_string(),
                 name: self.federated_graph[*id].to_string(),
                 path: self.path(),
             });
@@ -170,7 +148,7 @@ impl<'a, 'c> InputValueCoercer<'a, 'c> {
         // We iterate over input fields in order which is a range, so it should be sorted by the
         // id.
         debug_assert!(fields_buffer.is_sorted_by_key(|(id, _)| *id));
-        let ids = self.input_values.append_input_object(&mut fields_buffer);
+        let ids = self.graph.input_values.append_input_object(&mut fields_buffer);
         self.input_fields_buffer_pool.push(fields_buffer);
         Ok(SchemaInputValueRecord::InputObject(ids))
     }
@@ -245,9 +223,7 @@ impl<'a, 'c> InputValueCoercer<'a, 'c> {
             }
             .map(SchemaInputValueRecord::Boolean),
             ScalarType::Unknown => {
-                return Ok(self
-                    .input_values
-                    .ingest_arbitrary_value(self.ctx, value, self.federated_graph));
+                return Ok(self.ingest_arbitrary_value(value));
             }
         }
         .ok_or_else(|| InputValueError::IncorrectScalarType {
@@ -272,7 +248,7 @@ impl<'a, 'c> InputValueCoercer<'a, 'c> {
     }
 
     fn path(&self) -> String {
-        value_path_to_string(self.ctx, &self.value_path)
+        value_path_to_string(self, &self.value_path)
     }
 }
 

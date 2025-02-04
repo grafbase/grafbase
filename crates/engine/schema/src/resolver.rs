@@ -3,21 +3,9 @@ use std::borrow::Cow;
 use walker::Walk;
 
 use crate::{
-    FieldResolverExtensionDefinition, FieldSet, FieldSetId, GraphqlFederationEntityResolverDefinition,
-    GraphqlRootFieldResolverDefinition, ResolverDefinition, ResolverDefinitionRecord, ResolverDefinitionVariant,
-    Subgraph, SubgraphId,
+    FieldResolverExtensionDefinition, FieldSet, GraphqlFederationEntityResolverDefinition,
+    GraphqlRootFieldResolverDefinition, ResolverDefinition, ResolverDefinitionVariant, Subgraph, SubgraphId,
 };
-
-impl ResolverDefinitionRecord {
-    pub fn required_field_set_id(&self) -> Option<FieldSetId> {
-        match self {
-            ResolverDefinitionRecord::GraphqlFederationEntity(resolver) => Some(resolver.key_fields_id),
-            ResolverDefinitionRecord::GraphqlRootField(_)
-            | ResolverDefinitionRecord::FieldResolverExtension(_)
-            | ResolverDefinitionRecord::Introspection => None,
-        }
-    }
-}
 
 impl<'a> ResolverDefinition<'a> {
     pub fn subgraph(&self) -> Subgraph<'a> {
@@ -36,7 +24,10 @@ impl<'a> ResolverDefinition<'a> {
     }
 
     pub fn required_field_set(&self) -> Option<FieldSet<'a>> {
-        self.as_ref().required_field_set_id().walk(self.schema)
+        match self.variant() {
+            ResolverDefinitionVariant::GraphqlFederationEntity(resolver) => Some(resolver.key_fields()),
+            _ => None,
+        }
     }
 
     pub fn name(&self) -> Cow<'static, str> {

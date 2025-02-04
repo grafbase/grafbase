@@ -1,18 +1,41 @@
-use crate::StringId;
-
-use super::{coerce::InputValueError, BuildContext};
+use super::{
+    graph::GraphContext, EntityDefinitionId, EnumDefinitionId, EnumValueId, FieldDefinitionId, InputObjectDefinitionId,
+    InputValueDefinitionId, InputValueError, InterfaceDefinitionId, ObjectDefinitionId, ScalarDefinitionId,
+    UnionDefinitionId,
+};
 
 #[derive(Debug, Copy, Clone)]
 pub enum SchemaLocation {
-    Definition { name_id: StringId },
-    Field { ty: StringId, name_id: StringId },
+    Scalar(ScalarDefinitionId, federated_graph::ScalarDefinitionId),
+    Object(ObjectDefinitionId, federated_graph::ObjectId),
+    Interface(InterfaceDefinitionId, federated_graph::InterfaceId),
+    Union(UnionDefinitionId, federated_graph::UnionId),
+    Enum(EnumDefinitionId, federated_graph::EnumDefinitionId),
+    InputObject(InputObjectDefinitionId, federated_graph::InputObjectId),
+    Field(FieldDefinitionId, federated_graph::FieldId),
+    InputValue(InputValueDefinitionId, federated_graph::InputValueDefinitionId),
+    EnumValue(EnumValueId, federated_graph::EnumValueId),
 }
 
 impl SchemaLocation {
-    pub fn to_string(self, ctx: &BuildContext<'_>) -> String {
+    pub fn to_string(self, GraphContext { ctx, graph, .. }: &GraphContext<'_>) -> String {
         match self {
-            SchemaLocation::Definition { name_id } => ctx.strings[name_id].to_string(),
-            SchemaLocation::Field { ty, name_id } => format!("{}.{}", &ctx.strings[ty], &ctx.strings[name_id]),
+            SchemaLocation::Enum(id, _) => ctx.strings[graph[id].name_id].clone(),
+            SchemaLocation::InputObject(id, _) => ctx.strings[graph[id].name_id].clone(),
+            SchemaLocation::Interface(id, _) => ctx.strings[graph[id].name_id].clone(),
+            SchemaLocation::Object(id, _) => ctx.strings[graph[id].name_id].clone(),
+            SchemaLocation::Scalar(id, _) => ctx.strings[graph[id].name_id].clone(),
+            SchemaLocation::Union(id, _) => ctx.strings[graph[id].name_id].clone(),
+            SchemaLocation::Field(id, _) => {
+                let field = &graph[id];
+                let parent_name_id = match field.parent_entity_id {
+                    EntityDefinitionId::Interface(id) => graph[id].name_id,
+                    EntityDefinitionId::Object(id) => graph[id].name_id,
+                };
+                format!("{}.{}", ctx.strings[parent_name_id], ctx.strings[field.name_id])
+            }
+            SchemaLocation::EnumValue(id, _) => ctx.strings[graph[id].name_id].clone(),
+            SchemaLocation::InputValue(id, _) => ctx.strings[graph[id].name_id].clone(),
         }
     }
 }

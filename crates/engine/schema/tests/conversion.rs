@@ -247,7 +247,7 @@ async fn serde_roundtrip(#[case] sdl: &str) {
     )
     .unwrap();
 
-    let schema = Schema::build(&config, graph, &Default::default(), Version::from("random"))
+    let schema = Schema::build(&config, &graph, &Default::default(), Version::from("random"))
         .await
         .unwrap();
 

@@ -1,8 +1,8 @@
-use crate::{builder::BuildContext, StringId};
+use crate::{builder::Context, StringId};
 use std::fmt::Write;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) enum ValuePathSegment {
+pub(crate) enum ValuePathSegment {
     Field(StringId),
     Index(usize),
 }
@@ -19,7 +19,7 @@ impl From<StringId> for ValuePathSegment {
     }
 }
 
-pub(super) fn value_path_to_string(ctx: &BuildContext<'_>, values: &[ValuePathSegment]) -> String {
+pub(super) fn value_path_to_string(ctx: &Context<'_>, values: &[ValuePathSegment]) -> String {
     let mut output = String::new();
     if values.is_empty() {
         return output;

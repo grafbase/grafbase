@@ -3,7 +3,7 @@
 //! ===================
 //! Generated with: `cargo run -p engine-codegen`
 //! Source file: <engine-codegen dir>/domain/schema.graphql
-use crate::{prelude::*, FieldSet, FieldSetId, InputValueSet, SchemaInputValue, SchemaInputValueId};
+use crate::{prelude::*, FieldSet, FieldSetRecord, InputValueSet, SchemaInputValue, SchemaInputValueId};
 use walker::Walk;
 
 /// Generated from:
@@ -11,7 +11,7 @@ use walker::Walk;
 /// ```custom,{.language-graphql}
 /// type AuthorizedDirective @meta(module: "directive/authorized") @indexed(id_size: "u32") {
 ///   arguments: InputValueSet!
-///   fields: FieldSet @field(record_field_name: "fields_id")
+///   fields: FieldSet
 ///   node: FieldSet
 ///   metadata: SchemaInputValue
 /// }
@@ -19,8 +19,8 @@ use walker::Walk;
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct AuthorizedDirectiveRecord {
     pub arguments: InputValueSet,
-    pub fields_id: Option<FieldSetId>,
-    pub node_id: Option<FieldSetId>,
+    pub fields_record: Option<FieldSetRecord>,
+    pub node_record: Option<FieldSetRecord>,
     pub metadata_id: Option<SchemaInputValueId>,
 }
 
@@ -47,10 +47,10 @@ impl<'a> AuthorizedDirective<'a> {
         &self.schema[self.id]
     }
     pub fn fields(&self) -> Option<FieldSet<'a>> {
-        self.fields_id.walk(self.schema)
+        self.as_ref().fields_record.as_ref().walk(self.schema)
     }
     pub fn node(&self) -> Option<FieldSet<'a>> {
-        self.node_id.walk(self.schema)
+        self.as_ref().node_record.as_ref().walk(self.schema)
     }
     pub fn metadata(&self) -> Option<SchemaInputValue<'a>> {
         self.metadata_id.walk(self.schema)

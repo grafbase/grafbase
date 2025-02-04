@@ -6,7 +6,7 @@
 use crate::{
     generated::{GraphqlEndpoint, GraphqlEndpointId},
     prelude::*,
-    FieldSet, FieldSetId,
+    FieldSet, FieldSetRecord,
 };
 use walker::Walk;
 
@@ -73,47 +73,48 @@ impl std::fmt::Debug for GraphqlRootFieldResolverDefinition<'_> {
 /// Generated from:
 ///
 /// ```custom,{.language-graphql}
-/// type GraphqlFederationEntityResolverDefinition @meta(module: "resolver/graphql") @copy {
+/// type GraphqlFederationEntityResolverDefinition @meta(module: "resolver/graphql") {
 ///   endpoint: GraphqlEndpoint!
 ///   key_fields: FieldSet!
 /// }
 /// ```
-#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, Copy)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct GraphqlFederationEntityResolverDefinitionRecord {
     pub endpoint_id: GraphqlEndpointId,
-    pub key_fields_id: FieldSetId,
+    pub key_fields_record: FieldSetRecord,
 }
 
 #[derive(Clone, Copy)]
 pub struct GraphqlFederationEntityResolverDefinition<'a> {
     pub(crate) schema: &'a Schema,
-    pub(crate) item: GraphqlFederationEntityResolverDefinitionRecord,
+    pub(crate) ref_: &'a GraphqlFederationEntityResolverDefinitionRecord,
 }
 
 impl std::ops::Deref for GraphqlFederationEntityResolverDefinition<'_> {
     type Target = GraphqlFederationEntityResolverDefinitionRecord;
     fn deref(&self) -> &Self::Target {
-        &self.item
+        self.ref_
     }
 }
 
 impl<'a> GraphqlFederationEntityResolverDefinition<'a> {
     #[allow(clippy::should_implement_trait)]
-    pub fn as_ref(&self) -> &GraphqlFederationEntityResolverDefinitionRecord {
-        &self.item
+    pub fn as_ref(&self) -> &'a GraphqlFederationEntityResolverDefinitionRecord {
+        self.ref_
     }
     pub fn endpoint(&self) -> GraphqlEndpoint<'a> {
         self.endpoint_id.walk(self.schema)
     }
     pub fn key_fields(&self) -> FieldSet<'a> {
-        self.key_fields_id.walk(self.schema)
+        self.as_ref().key_fields_record.walk(self.schema)
     }
 }
 
-impl<'a> Walk<&'a Schema> for GraphqlFederationEntityResolverDefinitionRecord {
+impl<'a> Walk<&'a Schema> for &GraphqlFederationEntityResolverDefinitionRecord {
     type Walker<'w>
         = GraphqlFederationEntityResolverDefinition<'w>
     where
+        Self: 'w,
         'a: 'w;
     fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
@@ -122,7 +123,7 @@ impl<'a> Walk<&'a Schema> for GraphqlFederationEntityResolverDefinitionRecord {
     {
         GraphqlFederationEntityResolverDefinition {
             schema: schema.into(),
-            item: self,
+            ref_: self,
         }
     }
 }
