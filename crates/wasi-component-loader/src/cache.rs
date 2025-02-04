@@ -5,7 +5,7 @@ use std::{
 
 use dashmap::DashMap;
 use futures::TryFutureExt;
-use tokio::sync::{mpsc, oneshot, Semaphore};
+use tokio::sync::{mpsc, oneshot};
 use ulid::Ulid;
 use wasmtime::{
     component::{LinkerInstance, ResourceType},
@@ -51,7 +51,6 @@ fn cache_set(
 
 pub(crate) struct Cache {
     cache: DashMap<String, CachedValue>,
-    semaphore: Semaphore,
     wait_list: DashMap<String, (Ulid, WaitListSender, WaitListReceiver)>,
 }
 
@@ -64,18 +63,17 @@ impl Cache {
     pub fn new() -> Self {
         Self {
             cache: DashMap::new(),
-            semaphore: Semaphore::new(1024),
             wait_list: DashMap::new(),
         }
     }
 
     /// Gets a value from the cache by key. If this function returns None, the caller must set a new one.
     pub async fn get(&self, key: &str) -> Option<Vec<u8>> {
-        if let Some(value) = self.cache.get(key) {
-            if value.expires_at.map(|expiry| expiry < Instant::now()) == Some(true) {
-                self.cache.remove(key);
+        if let dashmap::Entry::Occupied(entry) = self.cache.entry(key.to_string()) {
+            if entry.get().expires_at.map(|expiry| expiry < Instant::now()) == Some(true) {
+                entry.remove();
             } else {
-                return Some(value.data.clone());
+                return Some(entry.get().data.clone());
             }
         }
 
@@ -152,33 +150,32 @@ impl Cache {
     /// When the first caller sets a new value, this will send the value to everybody waiting
     /// in the wait list.
     async fn get_or_create_wait_list(&self, key: &str) -> Option<(WaitListSender, Ulid)> {
-        match self.wait_list.entry(key.to_string()) {
-            dashmap::Entry::Occupied(mut entry) => {
-                let (id, sender, _) = entry.get();
+        let mut created = false;
 
+        let entry = self
+            .wait_list
+            .entry(key.to_string())
+            .and_modify(|(id, sender, receiver)| {
                 if sender.is_closed() {
-                    let permit = self.semaphore.acquire().await.expect("we never close the semaphore");
-                    let (sender, receiver) = mpsc::channel(1024);
-                    let id = Ulid::new();
+                    let (new_sender, new_receiver) = mpsc::channel::<oneshot::Sender<Vec<u8>>>(1024);
 
-                    entry.insert((id, sender, receiver));
-                    drop(permit);
-
-                    None
-                } else {
-                    Some((sender.clone(), *id))
+                    *id = Ulid::new();
+                    *sender = new_sender;
+                    *receiver = new_receiver;
+                    created = true;
                 }
-            }
-            dashmap::Entry::Vacant(entry) => {
-                let permit = self.semaphore.acquire().await.expect("we never close the semaphore");
+            })
+            .or_insert_with(|| {
+                created = true;
+
                 let (sender, receiver) = mpsc::channel(1024);
-                let id = Ulid::new();
+                (Ulid::new(), sender, receiver)
+            });
 
-                entry.insert((id, sender, receiver));
-                drop(permit);
-
-                None
-            }
+        if created {
+            None
+        } else {
+            Some((entry.1.clone(), entry.0))
         }
     }
 }
