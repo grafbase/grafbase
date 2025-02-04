@@ -3,11 +3,14 @@ use crate::Error;
 use super::GdnResponse;
 use engine::{Engine, SchemaVersion};
 use extension_catalog::{Extension, ExtensionCatalog, ExtensionId, Manifest, VersionedManifest};
-use gateway_config::{Config, WasiExtensionsConfig};
+use gateway_config::{AuthenticationProvider, Config, WasiExtensionsConfig};
 use graphql_composition::FederatedGraph;
-use runtime::trusted_documents_client::{Client, TrustedDocumentsEnforcementMode};
+use runtime::{
+    extension::AuthorizerId,
+    trusted_documents_client::{Client, TrustedDocumentsEnforcementMode},
+};
 use runtime_local::wasi::{
-    extensions::{Directive, ExtensionConfig, ExtensionType, WasiExtensions},
+    extensions::{Directive, ExtensionConfig, ExtensionPoolId, ExtensionType, WasiExtensions},
     hooks::{ChannelLogSender, HooksWasi},
 };
 use std::{env, fs::File, ops::Not, path::PathBuf, sync::Arc};
@@ -116,6 +119,7 @@ fn create_wasi_extension_configs(
 
         let extension_type = match &extension.manifest.kind {
             extension_catalog::Kind::FieldResolver(_) => ExtensionType::Resolver,
+            extension_catalog::Kind::Authenticator => ExtensionType::Authentication,
         };
 
         let wasi_config = WasiExtensionsConfig {
@@ -126,17 +130,60 @@ fn create_wasi_extension_configs(
             environment_variables: extension_config.environment_variables(),
         };
 
-        wasi_extensions.push(ExtensionConfig {
-            id: ExtensionId::from(id),
-            name: extension.manifest.name().to_owned(),
-            version: extension.manifest.version().to_owned(),
-            extension_type,
-            schema_directives: Vec::new(),
-            max_pool_size: extension_config.max_pool_size(),
-            wasi_config,
-            // TODO: we actually need to pass the extension config here, sigh :(
-            extension_config: Vec::new(),
-        });
+        let name = extension.manifest.name().to_owned();
+        let version = extension.manifest.version().to_owned();
+        let max_pool_size = extension_config.max_pool_size();
+        let id = ExtensionId::from(id);
+
+        match extension_type {
+            ExtensionType::Resolver => {
+                let id = ExtensionPoolId::Resolver(id);
+
+                wasi_extensions.push(ExtensionConfig {
+                    id,
+                    name,
+                    version,
+                    extension_type,
+                    schema_directives: Vec::new(),
+                    max_pool_size,
+                    wasi_config,
+                    extension_config: Vec::new(),
+                });
+            }
+            ExtensionType::Authentication => {
+                let Some(auth_config) = gateway_config.authentication.as_ref() else {
+                    continue;
+                };
+
+                for (auth_id, provider) in auth_config.providers.iter().enumerate() {
+                    let AuthenticationProvider::Extension(ref extension_provider) = provider else {
+                        continue;
+                    };
+
+                    if extension_provider.extension != name {
+                        continue;
+                    }
+
+                    let extension_config = match extension_provider.config {
+                        Some(ref config) => minicbor_serde::to_vec(config).unwrap(),
+                        None => Vec::new(),
+                    };
+
+                    let id = ExtensionPoolId::Authorizer(id, AuthorizerId::from(auth_id));
+
+                    wasi_extensions.push(ExtensionConfig {
+                        id,
+                        name: name.clone(),
+                        version: version.clone(),
+                        extension_type,
+                        schema_directives: Vec::new(),
+                        max_pool_size,
+                        wasi_config: wasi_config.clone(),
+                        extension_config,
+                    });
+                }
+            }
+        }
     }
 
     for subgraph in schema.subgraphs() {

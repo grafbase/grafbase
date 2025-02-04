@@ -100,6 +100,17 @@ impl<R: Runtime> Engine<R> {
             return Err((errors::response::unauthenticated(), hooks_context));
         };
 
+        let (headers, access_token) = match self.auth_extension {
+            Some(ref auth) => match auth.authenticate(&self.runtime, headers).await {
+                Ok((headers, token)) => (headers, token),
+                Err(error) => {
+                    let response = Response::refuse_request_with(error.status, error.errors);
+                    return Err((response, hooks_context));
+                }
+            },
+            None => (headers, access_token),
+        };
+
         // Currently it doesn't rely on authentication, but likely will at some point.
         if self.runtime.rate_limiter().limit(&RateLimitKey::Global).await.is_err() {
             return Err((errors::response::gateway_rate_limited(), hooks_context));

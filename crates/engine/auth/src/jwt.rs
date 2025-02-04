@@ -125,8 +125,6 @@ impl Authorizer for JwtProvider {
 
 impl JwtProvider {
     async fn get_access_token(&self, headers: &http::HeaderMap) -> Option<AccessToken> {
-        use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
-
         let token_str = headers
             .get(&self.config.header_name)
             .and_then(|value| value.to_str().ok())
@@ -164,11 +162,7 @@ impl JwtProvider {
         // but 'iss' is the only one that I can think of that might be useful.
         claims.insert("iss".to_string(), issuer.into());
 
-        let signature = URL_SAFE_NO_PAD
-            .decode(token_str.rsplit('.').next().expect("valid jwt"))
-            .expect("valid jwt");
-
-        Some(AccessToken::Jwt(JwtToken { claims, signature }))
+        Some(AccessToken::Jwt(JwtToken { claims }))
     }
 }
 

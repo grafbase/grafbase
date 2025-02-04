@@ -18,14 +18,7 @@ pub struct AuthService {
 }
 
 impl AuthService {
-    pub fn new(authorizers: Vec<Box<dyn Authorizer>>) -> Self {
-        Self {
-            authorizers,
-            only_anonymous: false,
-        }
-    }
-
-    pub fn new_v2(config: AuthConfig, kv: KvStore) -> Self {
+    pub fn new(config: AuthConfig, kv: KvStore) -> Self {
         if config.providers.is_empty() {
             Self {
                 authorizers: vec![Box::new(AnonymousAuthorizer)],
@@ -35,10 +28,17 @@ impl AuthService {
             let authorizers = config
                 .providers
                 .into_iter()
-                .map(|config| {
-                    let authorizer: Box<dyn Authorizer> = match config {
-                        AuthProviderConfig::Jwt(config) => Box::new(jwt::JwtProvider::new(config, kv.clone())),
-                        AuthProviderConfig::Anonymous => Box::new(AnonymousAuthorizer),
+                .flat_map(|config| {
+                    let authorizer: Option<Box<dyn Authorizer>> = match config {
+                        AuthProviderConfig::Jwt(config) => {
+                            let authorizer = Box::new(jwt::JwtProvider::new(config, kv.clone()));
+                            Some(authorizer)
+                        }
+                        AuthProviderConfig::Anonymous => {
+                            let authorizer = Box::new(AnonymousAuthorizer);
+                            Some(authorizer)
+                        }
+                        AuthProviderConfig::Extension(_) => None,
                     };
                     authorizer
                 })
@@ -67,10 +67,5 @@ impl AuthService {
             let span = info_span!("authenticate");
             fut.next().instrument(span).await
         }
-    }
-
-    pub fn with_first_authorizer(mut self, authorizer: impl Authorizer) -> Self {
-        self.authorizers.insert(0, Box::new(authorizer));
-        self
     }
 }

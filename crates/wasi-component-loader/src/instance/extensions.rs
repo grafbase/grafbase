@@ -1,5 +1,7 @@
 mod types;
 
+use std::sync::Arc;
+
 use anyhow::anyhow;
 use http::HeaderMap;
 use serde::de::DeserializeOwned;
@@ -86,11 +88,11 @@ impl ExtensionsComponentInstance {
     }
 
     /// Performs authentication based on the provided request headers.
-    pub async fn authenticate<S>(&mut self, headers: HeaderMap) -> crate::GatewayResult<(HeaderMap, S)>
+    pub async fn authenticate<S>(&mut self, headers: Arc<HeaderMap>) -> crate::GatewayResult<S>
     where
         S: DeserializeOwned,
     {
-        type Params = (Resource<HeaderMap>,);
+        type Params = (Resource<Arc<HeaderMap>>,);
         type Response = Result<Token, ErrorResponse>;
 
         let headers = self.component.store_mut().data_mut().push_resource(headers)?;
@@ -100,13 +102,12 @@ impl ExtensionsComponentInstance {
             .call_typed_func::<Params, Response>(AUTEHNTICATE_EXTENSION_FUNCTION, (headers,))
             .await?;
 
-        let headers = self
-            .component
+        self.component
             .store_mut()
             .data_mut()
             .take_resource::<HeaderMap>(headers_rep)?;
 
-        Ok((headers, result?.deserialize()?))
+        Ok(result?.deserialize()?)
     }
 
     async fn init_gateway_extension(

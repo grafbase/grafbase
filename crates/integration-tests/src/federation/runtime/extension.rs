@@ -1,9 +1,9 @@
-use std::path::Path;
+use std::{collections::HashMap, path::Path};
 
 use engine_schema::Subgraph;
 use extension_catalog::{Extension, ExtensionCatalog, ExtensionId, Id};
 use runtime::{
-    error::PartialGraphqlError,
+    error::{ErrorResponse, PartialGraphqlError},
     extension::{Data, ExtensionDirective},
     hooks::{Anything, DynHookContext, EdgeDefinition},
 };
@@ -108,5 +108,14 @@ impl runtime::extension::ExtensionRuntime for TestExtensions {
                     .map(|res| res.map(|value| Data::JsonBytes(serde_json::to_vec(&value).unwrap())))
                     .collect()
             })
+    }
+
+    async fn authenticate(
+        &self,
+        _extension_id: ExtensionId,
+        _authorizer_id: runtime::extension::AuthorizerId,
+        _headers: std::sync::Arc<http::HeaderMap>,
+    ) -> Result<HashMap<String, serde_json::Value>, ErrorResponse> {
+        todo!()
     }
 }

@@ -21,11 +21,20 @@ impl Manifest {
     pub fn into_versioned(self) -> super::VersionedManifest {
         super::VersionedManifest::V1(self)
     }
+
+    pub fn is_resolver(&self) -> bool {
+        matches!(self.kind, Kind::FieldResolver(_))
+    }
+
+    pub fn is_authenticator(&self) -> bool {
+        matches!(self.kind, Kind::Authenticator)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Kind {
     FieldResolver(FieldResolver),
+    Authenticator,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]

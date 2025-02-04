@@ -73,6 +73,7 @@ struct ExtensionTomlExtension {
 #[serde(rename_all = "snake_case")]
 enum ExtensionKind {
     Resolver,
+    Authenticator,
 }
 
 #[derive(serde::Deserialize)]
@@ -219,6 +220,7 @@ fn parse_manifest(source_dir: &Path, wasm_path: &Path) -> anyhow::Result<Manifes
 
             Kind::FieldResolver(FieldResolver { resolver_directives })
         }
+        ExtensionKind::Authenticator => Kind::Authenticator,
     };
 
     let sdl = match extension_toml.directives.definitions.map(|path| source_dir.join(&path)) {

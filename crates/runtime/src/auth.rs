@@ -1,35 +1,28 @@
-use std::{
-    collections::HashMap,
-    hash::{Hash, Hasher},
-};
+use std::collections::HashMap;
 
 const NULL: serde_json::Value = serde_json::Value::Null;
 
 // TODO: Hash is only used to generate a cache key for engine. To be removed once moved to the
 // new cache key.
 // TODO: remove Clone with gateway refactor...
-#[derive(Clone, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(Clone)]
 pub enum AccessToken {
     Anonymous,
     Jwt(JwtToken),
+    Extension(ExtensionToken),
 }
 
 /// Represents an *arbitrary* JWT token. It's only guaranteed to have been validated
 /// according to auth config, but there is no guarantee on the claims content.
-#[derive(Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Clone)]
 pub struct JwtToken {
     /// Claims can be empty.
     pub claims: HashMap<String, serde_json::Value>,
-    /// Keeping the signature for faster hashing/cache key generation.
-    /// Ordering matters which isn't necessarily ideal, but that's something we can improve upon
-    /// later if necessary.
-    pub signature: Vec<u8>,
 }
 
-impl Hash for JwtToken {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.signature.hash(state);
-    }
+#[derive(Clone)]
+pub struct ExtensionToken {
+    pub claims: HashMap<String, serde_json::Value>,
 }
 
 impl AccessToken {
@@ -37,6 +30,7 @@ impl AccessToken {
         match self {
             AccessToken::Anonymous => 0,
             AccessToken::Jwt(_) => 1,
+            AccessToken::Extension(_) => 2,
         }
     }
 
@@ -48,6 +42,7 @@ impl AccessToken {
         match self {
             AccessToken::Anonymous => &NULL,
             AccessToken::Jwt(token) => token.claims.get(key).unwrap_or(&NULL),
+            AccessToken::Extension(token) => token.claims.get(key).unwrap_or(&NULL),
         }
     }
 
