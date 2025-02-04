@@ -1,0 +1,134 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: "A test with three extensions, used in different subgraphs with different imports. We expect to see the `extension__Link` enum and `extension__directive` instances in the right places.\n\nAlso note we have a facebook linked schema, that should not appear in the federated graph."
+input_file: crates/graphql-composition/tests/composition/extensions_basic/test.md
+---
+directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
+
+directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet) on FIELD_DEFINITION
+
+directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boolean = true) on OBJECT | INTERFACE
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+scalar join__FieldSet
+
+type Appointment
+    @join__type(graph: APPOINTMENTS, key: "id")
+    @join__type(graph: DOCTORS, key: "id")
+    @join__type(graph: PATIENTS, key: "id")
+{
+    datetime: String! @join__field(graph: APPOINTMENTS)
+    doctor: Doctor! @join__field(graph: APPOINTMENTS)
+    id: ID!
+    notes: String @join__field(graph: APPOINTMENTS)
+    patient: Patient! @join__field(graph: APPOINTMENTS)
+    status: AppointmentStatus! @join__field(graph: APPOINTMENTS)
+}
+
+type Patient
+    @join__type(graph: APPOINTMENTS, key: "id")
+    @join__type(graph: PATIENTS, key: "id")
+{
+    appointments: [Appointment!]! @join__field(graph: PATIENTS)
+    dateOfBirth: String! @join__field(graph: PATIENTS)
+    email: String! @join__field(graph: PATIENTS)
+    firstName: String! @join__field(graph: PATIENTS)
+    id: ID!
+    lastName: String! @join__field(graph: PATIENTS)
+    phone: String @join__field(graph: PATIENTS)
+}
+
+type Doctor
+    @join__type(graph: APPOINTMENTS, key: "id")
+    @join__type(graph: DOCTORS, key: "id")
+{
+    appointments: [Appointment!]! @join__field(graph: APPOINTMENTS)
+    email: String! @join__field(graph: DOCTORS)
+    firstName: String! @join__field(graph: DOCTORS)
+    id: ID!
+    lastName: String! @join__field(graph: DOCTORS)
+    phone: String @extension__directive(graph: DOCTORS, extension: REST_CONNECTOR, name: "call", arguments: {method: GET, url: "https://my-phone_registry/doctors/{id}"}) @join__field(graph: DOCTORS)
+    specialty: String! @join__field(graph: DOCTORS)
+}
+
+type Query
+{
+    appointment(id: ID!): Appointment @join__field(graph: APPOINTMENTS)
+    appointments: [Appointment!]! @join__field(graph: APPOINTMENTS)
+    doctor(id: ID!): Doctor @join__field(graph: DOCTORS)
+    doctors: [Doctor!]! @join__field(graph: DOCTORS)
+    patient(id: ID!): Patient @join__field(graph: PATIENTS)
+    patients: [Patient!]! @join__field(graph: PATIENTS)
+}
+
+type Mutation
+{
+    cancelAppointment(id: ID!): Boolean! @extension__directive(graph: APPOINTMENTS, extension: KAFKA_CONNECTOR, name: "post", arguments: {topic: "cancellations", value: "{\"id\":$id}"}) @join__field(graph: APPOINTMENTS)
+    createDoctor(input: DoctorInput!): Doctor! @extension__directive(graph: DOCTORS, extension: ORACLE_CONNECTOR, name: "execute_sql", arguments: {sql: "INSERT INTO doctors (first_name, last_name, specialty, email, phone) VALUES ($input.firstName, $input.lastName, $input.specialty, $input.email, $input.phone) RETURNING *"}) @join__field(graph: DOCTORS)
+    createPatient(input: PatientInput!): Patient! @extension__directive(graph: PATIENTS, extension: KAFKA_CONNECTOR, name: "post", arguments: {topic: "newPatients"}) @join__field(graph: PATIENTS)
+    scheduleAppointment(input: AppointmentInput!): Appointment! @join__field(graph: APPOINTMENTS)
+    updateDoctor(id: ID!, input: DoctorInput!): Doctor! @extension__directive(graph: DOCTORS, extension: ORACLE_CONNECTOR, name: "execute", arguments: {procedure: "update_doctor"}) @extension__directive(graph: DOCTORS, extension: KAFKA_CONNECTOR, name: "post", arguments: {topic: "doctorUpdates"}) @join__field(graph: DOCTORS)
+    updatePatient(id: ID!, input: PatientInput!): Patient! @join__field(graph: PATIENTS)
+}
+
+type Subscription
+{
+    newAppointments(doctorId: ID!): Appointment! @extension__directive(graph: APPOINTMENTS, extension: KAFKA_CONNECTOR, name: "tail", arguments: {topic: "appointments", filter: "doctorId = $doctorId"}) @join__field(graph: APPOINTMENTS)
+}
+
+enum AppointmentStatus
+    @join__type(graph: APPOINTMENTS)
+{
+    SCHEDULED
+    COMPLETED
+    CANCELLED
+}
+
+enum join__Graph
+{
+    APPOINTMENTS @join__graph(name: "appointments", url: "http://example.com/appointments")
+    DOCTORS @join__graph(name: "doctors", url: "http://example.com/doctors")
+    PATIENTS @join__graph(name: "patients", url: "http://example.com/patients")
+}
+
+enum extension__Link
+{
+    KAFKA_CONNECTOR @extension__link(url: "https://extensions.grafbase.com/extensions/kafka/v1.0.0")
+    ORACLE_CONNECTOR @extension__link(url: "file:///home/lellison/src/oracle-grafbase-extension/dist")
+    REST_CONNECTOR @extension__link(url: "https://extensions.grafbase.com/extensions/rest")
+    UNUSED_EXTENSION @extension__link(url: "https://example.com/unused/unused-extension/v1.0.0")
+}
+
+input AppointmentInput
+    @join__type(graph: APPOINTMENTS)
+{
+    doctorId: ID!
+    datetime: String!
+    notes: String
+    patientId: ID!
+}
+
+input DoctorInput
+    @join__type(graph: DOCTORS)
+{
+    firstName: String!
+    lastName: String!
+    specialty: String!
+    email: String!
+    phone: String
+}
+
+input PatientInput
+    @join__type(graph: PATIENTS)
+{
+    firstName: String!
+    lastName: String!
+    email: String!
+    phone: String
+    dateOfBirth: String!
+}

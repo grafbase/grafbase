@@ -3,12 +3,14 @@ use std::str::FromStr;
 use cynic_parser::type_system::{self as ast};
 use cynic_parser_deser::ConstDeserializer;
 
+use crate::ExtensionLinkSchemaDirective;
+
 use super::{
     attach_input_value_set_to_field_arguments, attach_selection_set, parse_selection_set, AuthorizedDirective,
-    CostDirective, Definition, DeprecatedDirective, Directive, DomainError, ExtensionDirective,
-    ExtensionSchemaDirective, FieldId, GetArgumentsExt, InputValueDefinitionId, IntoJson, JoinFieldDirective,
-    JoinImplementsDirective, JoinTypeDirective, JoinUnionMemberDirective, ListSize, ListSizeDirective, OverrideLabel,
-    OverrideSource, State, StringId, Value, EXTENSION_DIRECTIVE_DIRECTIVE,
+    CostDirective, Definition, DeprecatedDirective, Directive, DomainError, ExtensionDirective, FieldId,
+    GetArgumentsExt, InputValueDefinitionId, IntoJson, JoinFieldDirective, JoinImplementsDirective, JoinTypeDirective,
+    JoinUnionMemberDirective, ListSize, ListSizeDirective, OverrideLabel, OverrideSource, State, StringId, Value,
+    EXTENSION_DIRECTIVE_DIRECTIVE,
 };
 
 pub(super) fn collect_definition_directives<'a>(
@@ -482,7 +484,7 @@ pub(super) fn parse_extension_link(
 
                             let arguments = parse_directive_arguments(state, obj.get("arguments"))?;
 
-                            Ok(ExtensionSchemaDirective {
+                            Ok(ExtensionLinkSchemaDirective {
                                 subgraph_id,
                                 name: state.insert_string(name),
                                 arguments,
@@ -499,7 +501,7 @@ pub(super) fn parse_extension_link(
 
 pub(crate) struct ExtensionLink {
     pub(crate) url: String,
-    pub(crate) schema_directives: Vec<ExtensionSchemaDirective>,
+    pub(crate) schema_directives: Vec<ExtensionLinkSchemaDirective>,
 }
 
 /// ```ignore,graphl

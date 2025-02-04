@@ -1,0 +1,11 @@
+directive @unrelated on SCHEMA
+
+schema @link(url: "https://extensions.grafbase.com/rest") {
+  query: Query
+}
+
+extend schema @rest__assured @unrelated
+
+type Query {
+  hi: String
+}

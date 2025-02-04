@@ -1,10 +1,12 @@
 use super::*;
 
+pub(crate) type LinkedSchema<'a> = View<'a, LinkedSchemaId, LinkedSchemaRecord>;
+
 /// Schemas linked with `@link`.
 #[derive(Default)]
 pub(crate) struct LinkedSchemas {
     pub(super) schemas: Vec<LinkedSchemaRecord>,
-    namespaces: HashMap<StringId, LinkedSchemaId>,
+    namespaces: HashMap<(SubgraphId, StringId), LinkedSchemaId>,
     /// Directives that have been `@import`ed, and can be used with their unqualified, maybe aliased name.
     pub(super) definitions: Vec<LinkedDefinitionRecord>,
     imported_definitions_by_name: HashMap<StringId, LinkedDefinitionId>,
@@ -49,12 +51,20 @@ impl LinkedDefinitionRecord {
 }
 
 impl Subgraphs {
-    pub(crate) fn get_linked_schema(&self, namespace: StringId) -> Option<LinkedSchemaId> {
-        self.linked_schemas.namespaces.get(&namespace).copied()
+    pub(crate) fn get_linked_schema(&self, subgraph_id: SubgraphId, namespace: StringId) -> Option<LinkedSchemaId> {
+        self.linked_schemas.namespaces.get(&(subgraph_id, namespace)).copied()
     }
 
     pub(crate) fn get_imported_definition(&self, name: StringId) -> Option<LinkedDefinitionId> {
         self.linked_schemas.imported_definitions_by_name.get(&name).copied()
+    }
+
+    pub(crate) fn iter_linked_schemas(&self) -> impl ExactSizeIterator<Item = LinkedSchema<'_>> {
+        self.linked_schemas
+            .schemas
+            .iter()
+            .enumerate()
+            .map(|(idx, record)| View { id: idx.into(), record })
     }
 
     pub(crate) fn push_linked_definition(&mut self, linked_definition: LinkedDefinitionRecord) -> LinkedDefinitionId {
@@ -79,7 +89,14 @@ impl Subgraphs {
         }
 
         if let Some(namespace) = linked_schema.namespace() {
-            self.linked_schemas.namespaces.insert(namespace, id);
+            let previous = self
+                .linked_schemas
+                .namespaces
+                .insert((linked_schema.subgraph_id, namespace), id);
+
+            if previous.is_some() {
+                todo!("linked schema namespace collision");
+            }
         }
 
         self.linked_schemas.schemas.push(linked_schema);

@@ -42,6 +42,9 @@ pub(crate) struct CompositionIr {
     pub(crate) strings: StringsIr,
     pub(crate) fields: Vec<FieldIr>,
     pub(crate) union_members: BTreeSet<(federated::StringId, federated::StringId)>,
+
+    /// Link declaration in subgraphs that link to a Grafbase extension. Sorted.
+    pub(crate) linked_schema_to_extension: Vec<(subgraphs::LinkedSchemaId, subgraphs::ExtensionId)>,
 }
 
 pub(crate) struct InputObjectIr {
@@ -59,7 +62,6 @@ pub(crate) struct UnionIr {
     pub directives: Vec<Directive>,
 }
 
-#[derive(Clone)]
 pub(crate) struct InputValueDefinitionIr {
     pub(crate) name: federated::StringId,
     pub(crate) r#type: subgraphs::FieldTypeId,

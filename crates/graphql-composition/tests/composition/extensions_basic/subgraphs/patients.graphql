@@ -1,0 +1,36 @@
+extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.6", import: ["@key", "@shareable"])
+  @link(url: "https://facebook.com/grafbase-extensions/groups")
+  @link(url: "https://extensions.grafbase.com/extensions/kafka/v1.0.0", as: "queue")
+
+type Query {
+  patients: [Patient!]!
+  patient(id: ID!): Patient
+}
+
+type Mutation {
+  createPatient(input: PatientInput!): Patient! @groups__add @queue__post(topic: "newPatients")
+  updatePatient(id: ID!, input: PatientInput!): Patient!
+}
+
+type Patient @key(fields: "id") {
+  id: ID!
+  firstName: String!
+  lastName: String!
+  dateOfBirth: String!
+  email: String!
+  phone: String
+  appointments: [Appointment!]! @shareable
+}
+
+input PatientInput {
+  firstName: String!
+  lastName: String!
+  dateOfBirth: String!
+  email: String!
+  phone: String
+}
+
+type Appointment @key(fields: "id") {
+  id: ID!
+}

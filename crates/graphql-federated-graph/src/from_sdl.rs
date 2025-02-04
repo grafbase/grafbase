@@ -1034,9 +1034,7 @@ fn ingest_extension_link_enum<'a>(
                     EXTENSION_LINK_DIRECTIVE, EXTENSION_LINK_ENUM
                 ))
             })?;
-        let ExtensionLink { url, schema_directives } = parse_extension_link(directive, state)?;
 
-        let url = state.insert_string(&url);
         let enum_value_name_str_id = state.insert_string(enum_value_name_str);
         let enum_value_name = state
             .graph
@@ -1044,12 +1042,19 @@ fn ingest_extension_link_enum<'a>(
             .find(|value| value.value == enum_value_name_str_id)
             .unwrap()
             .id();
-        let id = ExtensionId::from(state.graph.extensions.push_return_idx(Extension {
+
+        let ExtensionLink { url, schema_directives } = parse_extension_link(directive, state)?;
+        let url = state.insert_string(&url);
+
+        let extension_id = state.graph.push_extension(Extension {
             url,
             enum_value: enum_value_name,
             schema_directives,
-        }));
-        state.extension_by_enum_value_str.insert(enum_value_name_str, id);
+        });
+
+        state
+            .extension_by_enum_value_str
+            .insert(enum_value_name_str, extension_id);
     }
 
     state.extensions_loaded = true;

@@ -12,6 +12,12 @@ macro_rules! make_ids {
             }
         }
 
+        impl From<$id_type_name> for usize {
+            fn from(value: $id_type_name) -> Self {
+                value.0
+            }
+        }
+
         impl std::ops::Index<$id_type_name> for Subgraphs {
             type Output = $out;
 
@@ -24,6 +30,8 @@ macro_rules! make_ids {
 }
 
 make_ids! {
-    linked_schemas,schemas[LinkedSchemaId] -> LinkedSchemaRecord,
+    directives,extra_directives[DirectiveId] -> ExtraDirectiveRecord,
+    extensions[ExtensionId] -> ExtensionRecord,
     linked_schemas,definitions[LinkedDefinitionId] -> LinkedDefinitionRecord,
+    linked_schemas,schemas[LinkedSchemaId] -> LinkedSchemaRecord,
 }

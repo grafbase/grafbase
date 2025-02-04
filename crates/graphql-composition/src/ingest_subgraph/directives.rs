@@ -18,13 +18,59 @@ pub(super) fn ingest_directives(
 ) {
     for directive in directives_node {
         let (directive_name_id, match_result) = match_directive_name(ctx, directive.name());
+        let is_composed_directive = ctx.subgraphs.is_composed_directive(ctx.subgraph_id, directive_name_id);
 
         match match_result {
-            DirectiveNameMatch::NoMatch
-            | DirectiveNameMatch::Imported(_)
-            | DirectiveNameMatch::Qualified(_, _)
-            | DirectiveNameMatch::ComposeDirective
-            | DirectiveNameMatch::Key => (),
+            DirectiveNameMatch::NoMatch if is_composed_directive => {
+                let arguments = ctx.ingest_extra_directive_arguments(directive.arguments());
+
+                let record = subgraphs::ExtraDirectiveRecord {
+                    directive_site_id,
+                    name: directive_name_id,
+                    arguments,
+                    provenance: subgraphs::DirectiveProvenance::ComposedDirective,
+                };
+
+                ctx.subgraphs.push_directive(record);
+            }
+
+            DirectiveNameMatch::Imported { linked_definition_id } => {
+                let arguments = ctx.ingest_extra_directive_arguments(directive.arguments());
+
+                let linked_definition = ctx.subgraphs.at(linked_definition_id);
+
+                let record = subgraphs::ExtraDirectiveRecord {
+                    directive_site_id,
+                    name: linked_definition.original_name,
+                    arguments,
+                    provenance: subgraphs::DirectiveProvenance::Linked {
+                        linked_schema_id: linked_definition.linked_schema_id,
+                        is_composed_directive,
+                    },
+                };
+
+                ctx.subgraphs.push_directive(record);
+            }
+
+            DirectiveNameMatch::Qualified {
+                linked_schema_id,
+                directive_unqualified_name,
+            } => {
+                let arguments = ctx.ingest_extra_directive_arguments(directive.arguments());
+
+                let record = subgraphs::ExtraDirectiveRecord {
+                    directive_site_id,
+                    name: directive_unqualified_name,
+                    arguments,
+                    provenance: subgraphs::DirectiveProvenance::Linked {
+                        linked_schema_id,
+                        is_composed_directive,
+                    },
+                };
+
+                ctx.subgraphs.push_directive(record);
+            }
+
             DirectiveNameMatch::Authorized => {
                 if let Err(err) = authorized::ingest(directive_site_id, directive, ctx.subgraphs) {
                     let location = location(ctx.subgraphs);
@@ -170,21 +216,8 @@ pub(super) fn ingest_directives(
                     ctx.subgraphs.insert_tag(directive_site_id, s);
                 }
             }
-        }
 
-        // FIXME: should happen in composition, not in ingestion. GB-8398.
-        if ctx.subgraphs.is_composed_directive(directive_name_id) {
-            let arguments = directive
-                .arguments()
-                .map(|argument| {
-                    (
-                        ctx.subgraphs.strings.intern(argument.name()),
-                        ast_value_to_subgraph_value(argument.value(), ctx.subgraphs),
-                    )
-                })
-                .collect();
-            ctx.subgraphs
-                .insert_composed_directive_instance(directive_site_id, directive.name(), arguments);
+            DirectiveNameMatch::ComposeDirective | DirectiveNameMatch::NoMatch | DirectiveNameMatch::Key => (),
         }
     }
 }

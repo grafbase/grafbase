@@ -30,7 +30,8 @@ pub(in crate::ingest_subgraph) fn match_directive_name(
         })
         .unwrap_or((None, directive_name));
 
-    let linked_schema_id = namespace.and_then(|namespace_str| ctx.subgraphs.get_linked_schema(namespace_str));
+    let linked_schema_id =
+        namespace.and_then(|namespace_str| ctx.subgraphs.get_linked_schema(ctx.subgraph_id, namespace_str));
 
     let directive_name_id = ctx.subgraphs.strings.intern(directive_name);
 
@@ -45,14 +46,17 @@ fn match_directive_name_inner(
     linked_schema_id: Option<subgraphs::LinkedSchemaId>,
     directive_name: &str,
 ) -> DirectiveNameMatch {
-    if let Some(linked_schema) = linked_schema_id {
+    if let Some(linked_schema_id) = linked_schema_id {
         // TODO: first check that the directive hasn't been imported.
 
-        if ctx.subgraphs.at(linked_schema).is_federation_v2(ctx.subgraphs) {
+        if ctx.subgraphs.at(linked_schema_id).is_federation_v2(ctx.subgraphs) {
             return match_federation_directive_by_original_name(directive_name);
         }
 
-        return DirectiveNameMatch::Qualified(linked_schema, directive_name_id);
+        return DirectiveNameMatch::Qualified {
+            linked_schema_id,
+            directive_unqualified_name: directive_name_id,
+        };
     }
 
     if let Some(imported_definition_id) = ctx.subgraphs.get_imported_definition(directive_name_id) {
@@ -64,7 +68,9 @@ fn match_directive_name_inner(
             return match_federation_directive_by_original_name(original_name);
         }
 
-        return DirectiveNameMatch::Imported(imported_definition_id);
+        return DirectiveNameMatch::Imported {
+            linked_definition_id: imported_definition_id,
+        };
     }
 
     match directive_name {
@@ -105,12 +111,16 @@ fn match_federation_directive_by_original_name(original_name: &str) -> Directive
     }
 }
 
-#[expect(unused)]
 #[derive(Debug, Clone, Copy)]
 pub(in crate::ingest_subgraph) enum DirectiveNameMatch {
     NoMatch,
-    Qualified(subgraphs::LinkedSchemaId, StringId),
-    Imported(subgraphs::LinkedDefinitionId),
+    Qualified {
+        linked_schema_id: subgraphs::LinkedSchemaId,
+        directive_unqualified_name: StringId,
+    },
+    Imported {
+        linked_definition_id: subgraphs::LinkedDefinitionId,
+    },
 
     Authorized,
     Deprecated,

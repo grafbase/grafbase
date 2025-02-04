@@ -1,6 +1,7 @@
 use crate::subgraphs;
 
 mod compose_directive;
+mod extension_names;
 mod input_selection;
 mod selection;
 mod subgraph_names;
@@ -9,6 +10,7 @@ type ValidateContext<'a> = crate::ComposeContext<'a>;
 
 /// Pre-composition validations happen here.
 pub(crate) fn validate(ctx: &mut ValidateContext<'_>) {
+    extension_names::validate_extension_names(ctx);
     subgraph_names::validate_subgraph_names(ctx);
     validate_query_nonempty(ctx);
     validate_fields(ctx);

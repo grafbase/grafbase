@@ -5,10 +5,10 @@ use super::{attach_argument_selection::attach_argument_selection, attach_selecti
 
 pub(super) fn transform_arbitray_type_directives(
     ctx: &mut Context<'_>,
-    directives: Vec<ir::Directive>,
+    directives: &[ir::Directive],
 ) -> Vec<federated::Directive> {
     directives
-        .into_iter()
+        .iter()
         .filter_map(|directive| match directive {
             ir::Directive::JoinType(dir) if dir.key.is_none() => {
                 Some(federated::Directive::JoinType(federated::JoinTypeDirective {
@@ -25,10 +25,10 @@ pub(super) fn transform_arbitray_type_directives(
 
 pub(super) fn transform_input_value_directives(
     ctx: &mut Context<'_>,
-    directives: Vec<ir::Directive>,
+    directives: &[ir::Directive],
 ) -> Vec<federated::Directive> {
     directives
-        .into_iter()
+        .iter()
         .filter_map(|directive| match directive {
             ir::Directive::JoinInputField(dir) => {
                 Some(federated::Directive::JoinField(federated::JoinFieldDirective {
@@ -47,10 +47,10 @@ pub(super) fn transform_input_value_directives(
 
 pub(super) fn transform_enum_value_directives(
     ctx: &mut Context<'_>,
-    directives: Vec<ir::Directive>,
+    directives: &[ir::Directive],
 ) -> Vec<federated::Directive> {
     directives
-        .into_iter()
+        .iter()
         .filter_map(|directive| transform_common_directive(ctx, directive))
         .collect()
 }
@@ -58,10 +58,10 @@ pub(super) fn transform_enum_value_directives(
 pub(super) fn transform_type_directives(
     ctx: &mut Context<'_>,
     parent: federated::Definition,
-    directives: Vec<ir::Directive>,
+    directives: &[ir::Directive],
 ) -> Vec<federated::Directive> {
     directives
-        .into_iter()
+        .iter()
         .filter_map(|directive| match (directive, parent) {
             (ir::Directive::Authorized(dir), Definition::Object(id)) => {
                 Some(transform_authorized_entity_directive(ctx, id.into(), dir))
@@ -81,10 +81,10 @@ pub(super) fn transform_type_directives(
 pub(super) fn transform_field_directives(
     ctx: &mut Context<'_>,
     field_id: federated::FieldId,
-    directives: Vec<ir::Directive>,
+    directives: &[ir::Directive],
 ) -> Vec<federated::Directive> {
     directives
-        .into_iter()
+        .iter()
         .filter_map(|directive| match directive {
             ir::Directive::JoinField(dir) => Some(transform_join_field_directive(ctx, field_id, dir)),
             ir::Directive::JoinEntityInterfaceField => {
@@ -97,24 +97,51 @@ pub(super) fn transform_field_directives(
         .collect()
 }
 
-fn transform_common_directive(ctx: &mut Context<'_>, directive: ir::Directive) -> Option<federated::Directive> {
+fn transform_common_directive(ctx: &mut Context<'_>, directive: &ir::Directive) -> Option<federated::Directive> {
     Some(match directive {
         ir::Directive::Authenticated => federated::Directive::Authenticated,
-        ir::Directive::Deprecated { reason } => federated::Directive::Deprecated { reason },
+        ir::Directive::Deprecated { reason } => federated::Directive::Deprecated { reason: *reason },
         ir::Directive::Inaccessible => federated::Directive::Inaccessible,
-        ir::Directive::Policy(policies) => federated::Directive::Policy(policies),
-        ir::Directive::RequiresScopes(scopes) => federated::Directive::RequiresScopes(scopes),
+        ir::Directive::Policy(policies) => federated::Directive::Policy(policies.clone()),
+        ir::Directive::RequiresScopes(scopes) => federated::Directive::RequiresScopes(scopes.clone()),
         ir::Directive::Cost { weight } => {
             ctx.uses_cost_directive = true;
-            federated::Directive::Cost { weight }
+            federated::Directive::Cost { weight: *weight }
         }
-        ir::Directive::Other { name, arguments } => federated::Directive::Other {
+        ir::Directive::Other {
             name,
+            arguments,
+            provenance: ir::DirectiveProvenance::Builtin | ir::DirectiveProvenance::ComposeDirective,
+        } => federated::Directive::Other {
+            name: *name,
             arguments: arguments
-                .into_iter()
-                .map(|(name, value)| (name, ctx.insert_value(&value)))
+                .iter()
+                .map(|(name, value)| (*name, ctx.insert_value(value)))
                 .collect(),
         },
+        ir::Directive::Other {
+            name,
+            arguments,
+            provenance:
+                ir::DirectiveProvenance::LinkedFromExtension {
+                    linked_schema_id,
+                    extension_id,
+                },
+        } => {
+            let subgraph_id = ctx.subgraphs.at(*linked_schema_id).subgraph_id;
+            let arguments = arguments
+                .iter()
+                .map(|(name, value)| (*name, ctx.insert_value(value)))
+                .collect();
+            let extension_id = ctx.convert_extension_id(*extension_id);
+
+            federated::Directive::ExtensionDirective(federated::ExtensionDirective {
+                subgraph_id: federated::SubgraphId::from(subgraph_id.idx()),
+                extension_id,
+                name: *name,
+                arguments: Some(arguments),
+            })
+        }
         ir::Directive::JoinField(_)
         | ir::Directive::Authorized(_)
         | ir::Directive::JoinType(_)
@@ -129,9 +156,9 @@ fn transform_common_directive(ctx: &mut Context<'_>, directive: ir::Directive) -
 
 fn transform_join_union_member_directive(
     ctx: &mut Context<'_>,
-    ir::JoinUnionMemberDirective { member }: ir::JoinUnionMemberDirective,
+    ir::JoinUnionMemberDirective { member }: &ir::JoinUnionMemberDirective,
 ) -> Option<federated::Directive> {
-    let member = ctx.subgraphs.walk(member);
+    let member = ctx.subgraphs.walk(*member);
     let name = ctx.insert_string(member.name());
     match &ctx.definitions[&name] {
         Definition::Object(object_id) => Some(federated::Directive::JoinUnionMember(
@@ -152,7 +179,7 @@ fn transform_list_size_directive(
         slicing_arguments,
         sized_fields,
         require_one_slicing_argument,
-    }: federated::ListSizeDirective,
+    }: &federated::ListSizeDirective,
 ) -> federated::Directive {
     ctx.uses_list_size_directive = true;
 
@@ -183,17 +210,17 @@ fn transform_list_size_directive(
         .collect();
 
     federated::Directive::ListSize(federated::ListSize {
-        assumed_size,
+        assumed_size: *assumed_size,
         slicing_arguments,
         sized_fields,
-        require_one_slicing_argument,
+        require_one_slicing_argument: *require_one_slicing_argument,
     })
 }
 
 fn transform_authorized_entity_directive(
     ctx: &mut Context<'_>,
     parent: EntityDefinitionId,
-    directive: ir::AuthorizedDirective,
+    directive: &ir::AuthorizedDirective,
 ) -> federated::Directive {
     let authorized = ctx.subgraphs.walk(directive.source).authorized().unwrap();
     let metadata = authorized.metadata.as_ref().map(|metadata| ctx.insert_value(metadata));
@@ -217,20 +244,20 @@ fn transform_join_type_directive(
         subgraph_id,
         key,
         is_interface_object,
-    }: ir::JoinTypeDirective,
+    }: &ir::JoinTypeDirective,
 ) -> federated::Directive {
     if let Some(key) = key {
-        let key = ctx.subgraphs.walk(key);
+        let key = ctx.subgraphs.walk(*key);
         let fields = attach_selection(key.fields(), parent, ctx);
         federated::Directive::JoinType(federated::JoinTypeDirective {
-            subgraph_id,
+            subgraph_id: *subgraph_id,
             key: if fields.is_empty() { None } else { Some(fields) },
-            is_interface_object,
+            is_interface_object: *is_interface_object,
             resolvable: key.is_resolvable(),
         })
     } else {
         federated::Directive::JoinType(federated::JoinTypeDirective {
-            subgraph_id,
+            subgraph_id: *subgraph_id,
             key: None,
             resolvable: true,
             is_interface_object: false,
@@ -246,9 +273,9 @@ fn transform_join_field_directive(
         r#override,
         override_label,
         r#type,
-    }: ir::JoinFieldDirective,
+    }: &ir::JoinFieldDirective,
 ) -> federated::Directive {
-    let field = ctx.subgraphs.walk(source_field);
+    let field = ctx.subgraphs.walk(*source_field);
     federated::Directive::JoinField(federated::JoinFieldDirective {
         subgraph_id: Some(federated::SubgraphId::from(
             field.parent_definition().subgraph_id().idx(),
@@ -262,15 +289,15 @@ fn transform_join_field_directive(
             .provides()
             .map(|field_set| attach_selection(field_set, ctx.out[field_id].r#type.definition, ctx)),
         r#type: r#type.map(|ty| ctx.insert_field_type(ctx.subgraphs.walk(ty))),
-        r#override,
-        override_label,
+        r#override: r#override.clone(),
+        override_label: override_label.clone(),
     })
 }
 
 fn transform_authorized_field_directive(
     ctx: &mut Context<'_>,
     field_id: federated::FieldId,
-    directive: ir::AuthorizedDirective,
+    directive: &ir::AuthorizedDirective,
 ) -> federated::Directive {
     let directive = ctx.subgraphs.walk(directive.source).authorized().unwrap();
     let fields = directive

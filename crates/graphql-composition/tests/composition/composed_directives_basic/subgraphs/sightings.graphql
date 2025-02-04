@@ -1,25 +1,26 @@
+extend schema @link(url: "https://specs.birds.co.uk/link/birds", import: ["@pelagic"])
+
 type Bird @shareable @fieldMarks(plumage: "juvenile") @fieldMarks(plumage: "adult") {
-    id: ID!
-    name: String!
-    species: String!
-    observedAt: DateTime! @deprecated
-    location: String!
-    notes: String @deprecated(reason: "Use `birdSighting` field instead.")
+  id: ID!
+  name: String!
+  species: String!
+  observedAt: DateTime! @deprecated
+  location: String!
+  notes: String @deprecated(reason: "Use `birdSighting` field instead.")
 }
 
 type BirdSighting @key(field: "id") @deprecated(reason: "we haven't seen any birds in a while :(") {
-    sightingID: ID!
-    bird: Bird! @pelagic
-    observer: String!
-    weatherConditions: String
+  sightingID: ID!
+  bird: Bird! @pelagic
+  observer: String!
+  weatherConditions: String
 }
 
 type Query {
-    birdSightings: [BirdSighting]
-    birdSighting(sightingID: ID!, private: Boolean @deprecated): BirdSighting
+  birdSightings: [BirdSighting]
+  birdSighting(sightingID: ID!, private: Boolean @deprecated): BirdSighting
 }
 
 schema @composeDirective(name: "@pelagic") @composeDirective(name: "@fieldMarks") {
-    query: Query
+  query: Query
 }
-

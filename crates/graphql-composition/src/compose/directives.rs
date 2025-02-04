@@ -62,14 +62,48 @@ pub(super) fn collect_composed_directives<'a>(
         cost = cost.or(site.cost());
         list_size = list_size.or(site.list_size());
 
-        for (name, arguments) in site.iter_composed_directives() {
-            let name = ctx.insert_string(name);
-            let arguments = arguments
+        for directive in site.iter_extra_directives() {
+            let provenance = match directive.provenance {
+                subgraphs::DirectiveProvenance::ComposedDirective => Some(ir::DirectiveProvenance::ComposeDirective),
+                subgraphs::DirectiveProvenance::Linked {
+                    linked_schema_id,
+                    is_composed_directive,
+                } => match (
+                    ctx.get_extension_for_linked_schema(linked_schema_id),
+                    is_composed_directive,
+                ) {
+                    (Some(_), true) => {
+                        ctx.diagnostics.push_fatal(String::from(
+                            "Directives from extensions must not be composed with `@composeDirective`",
+                        ));
+                        None
+                    }
+                    (Some(extension_id), false) => Some(ir::DirectiveProvenance::LinkedFromExtension {
+                        linked_schema_id,
+                        extension_id,
+                    }),
+                    (None, true) => Some(ir::DirectiveProvenance::ComposeDirective),
+                    (None, false) => None,
+                },
+            };
+
+            let Some(provenance) = provenance else {
+                continue;
+            };
+
+            let name = ctx.insert_string(directive.name);
+
+            let arguments = directive
+                .arguments
                 .iter()
                 .map(|(name, value)| (ctx.insert_string(*name), value.clone()))
                 .collect();
 
-            extra_directives.push(ir::Directive::Other { name, arguments });
+            extra_directives.push(ir::Directive::Other {
+                provenance,
+                name,
+                arguments,
+            });
         }
     }
 
@@ -131,6 +165,7 @@ pub(super) fn collect_composed_directives<'a>(
         let directive = ir::Directive::Other {
             name: ctx.insert_static_str("tag"),
             arguments: vec![(ctx.insert_static_str("name"), subgraphs::Value::String(tag))],
+            provenance: ir::DirectiveProvenance::Builtin,
         };
         out.push(directive);
     }

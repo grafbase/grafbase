@@ -2,7 +2,6 @@ use super::Subgraphs;
 use std::ops::{Deref, Index};
 
 pub(crate) struct View<'a, Id, Record> {
-    #[expect(unused)]
     pub(crate) id: Id,
     pub(crate) record: &'a Record,
 }

@@ -15,11 +15,11 @@ pub(crate) struct InputValueDefinition {
     pub(crate) name: StringId,
     pub(crate) r#type: FieldTypeId,
     pub(crate) default_value: Option<Value>,
-    pub(crate) directives: Vec<Directive>,
+    pub(crate) directives: Vec<InputValueDefinitionDirective>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub(crate) struct Directive {
+pub(crate) struct InputValueDefinitionDirective {
     pub(crate) name: StringId,
     pub(crate) arguments: Vec<(StringId, Value)>,
 }
@@ -76,7 +76,7 @@ impl Display for Walker<'_, &'_ Value> {
     }
 }
 
-impl Display for Walker<'_, &'_ Directive> {
+impl Display for Walker<'_, &'_ InputValueDefinitionDirective> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("@")?;
         f.write_str(self.subgraphs.walk(self.id.name).as_str())?;

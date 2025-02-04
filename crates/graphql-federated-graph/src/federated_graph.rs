@@ -4,6 +4,7 @@ mod directives;
 mod entity;
 mod enum_definitions;
 mod enum_values;
+mod extensions;
 mod ids;
 mod input_value_definitions;
 mod objects;
@@ -18,6 +19,7 @@ pub use self::{
     entity::*,
     enum_definitions::EnumDefinitionRecord,
     enum_values::{EnumValue, EnumValueRecord},
+    extensions::*,
     ids::*,
     r#type::{Definition, Type},
     root_operation_types::RootOperationTypes,
@@ -106,22 +108,6 @@ pub struct Subgraph {
     pub name: StringId,
     pub join_graph_enum_value: EnumValueId,
     pub url: Option<StringId>,
-}
-
-#[derive(Clone, Debug)]
-pub struct Extension {
-    /// Name of the extension within the federated graph. It does NOT necessarily matches the extension's name
-    /// in its manifest, see the `id` field for this.
-    pub enum_value: EnumValueId,
-    pub url: StringId,
-    pub schema_directives: Vec<ExtensionSchemaDirective>,
-}
-
-#[derive(Clone, Debug)]
-pub struct ExtensionSchemaDirective {
-    pub subgraph_id: SubgraphId,
-    pub name: StringId,
-    pub arguments: Option<Vec<(StringId, Value)>>,
 }
 
 #[derive(Clone, Debug)]

@@ -1,16 +1,12 @@
 use std::fmt;
 
 use crate::{
-    directives::{
-        AuthorizedDirective, JoinFieldDirective, JoinImplementsDirective, JoinTypeDirective, JoinUnionMemberDirective,
-    },
-    render_sdl::display_utils::render_field_type,
-    Directive, ExtensionDirective, FederatedGraph, JoinGraphDirective, OverrideLabel, OverrideSource, Value,
-    EXTENSION_DIRECTIVE_DIRECTIVE,
+    directives::*, render_sdl::display_utils::render_field_type, Directive, FederatedGraph, OverrideLabel,
+    OverrideSource, StringId, Value, EXTENSION_DIRECTIVE_DIRECTIVE,
 };
 
 use super::{
-    display_utils::{DirectiveWriter, InputValueDefinitionSetDisplay, SelectionSetDisplay},
+    display_utils::{AnyValue, DirectiveWriter, InputValueDefinitionSetDisplay, SelectionSetDisplay},
     render_federated_sdl::ListSizeRender,
 };
 
@@ -228,5 +224,47 @@ fn render_authorized_directive(
     if let Some(metadata) = directive.metadata.as_ref() {
         writer.arg("metadata", metadata.clone())?;
     }
+    Ok(())
+}
+
+pub(crate) fn render_extension_link_directive(
+    f: &mut fmt::Formatter<'_>,
+    url: StringId,
+    schema_directives: &[ExtensionLinkSchemaDirective],
+    graph: &FederatedGraph,
+) -> fmt::Result {
+    f.write_str(" ")?;
+    let directive = DirectiveWriter::new("extension__link", f, graph)?.arg("url", Value::String(url))?;
+
+    if !schema_directives.is_empty() {
+        let directives = schema_directives
+            .iter()
+            .map(
+                |ExtensionLinkSchemaDirective {
+                     subgraph_id,
+                     name,
+                     arguments,
+                 }| {
+                    let mut fields: Vec<(&'static str, AnyValue<'_>)> = Vec::with_capacity(3);
+
+                    fields.push((
+                        "graph",
+                        Value::EnumValue(graph.at(*subgraph_id).join_graph_enum_value).into(),
+                    ));
+
+                    fields.push(("name", Value::String(*name).into()));
+
+                    if let Some(arguments) = arguments {
+                        fields.push(("arguments", AnyValue::DirectiveArguments(arguments.as_slice())));
+                    }
+
+                    AnyValue::Object(fields)
+                },
+            )
+            .collect::<Vec<_>>();
+
+        directive.arg("schemaDirectives", directives)?;
+    }
+
     Ok(())
 }

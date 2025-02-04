@@ -1,8 +1,11 @@
 use super::*;
 use graphql_federated_graph::DirectiveLocations;
 
-pub(super) fn ingest_directive_definition(directive_definition: ast::DirectiveDefinition<'_>, ctx: &mut Context<'_>) {
-    let name = ctx.subgraphs.strings.intern(directive_definition.name());
+pub(super) fn ingest_directive_definition(
+    ctx: &mut Context<'_>,
+    directive_definition: ast::DirectiveDefinition<'_>,
+    name: subgraphs::StringId,
+) {
     let mut locations = DirectiveLocations::default();
     let subgraphs = &mut ctx.subgraphs;
     let subgraph_id = ctx.subgraph_id;
@@ -44,7 +47,7 @@ pub(super) fn ingest_directive_definition(directive_definition: ast::DirectiveDe
 
         let directives = argument
             .directives()
-            .map(|directive| subgraphs::Directive {
+            .map(|directive| subgraphs::InputValueDefinitionDirective {
                 name: subgraphs.strings.intern(directive.name()),
                 arguments: directive
                     .arguments()

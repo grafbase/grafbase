@@ -37,6 +37,7 @@ pub enum Directive {
         arguments: Vec<(StringId, Value)>,
     },
     ListSize(ListSize),
+
     ExtensionDirective(ExtensionDirective),
 }
 

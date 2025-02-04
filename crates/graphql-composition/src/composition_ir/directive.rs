@@ -1,7 +1,7 @@
 use crate::subgraphs::{self, DirectiveSiteId, FieldId, FieldTuple, FieldTypeId, KeyId};
 use graphql_federated_graph::{self as federated, OverrideLabel, OverrideSource};
 
-#[derive(PartialEq, PartialOrd, Clone)]
+#[derive(Clone, PartialEq)]
 pub enum Directive {
     Authenticated,
     Deprecated {
@@ -16,6 +16,7 @@ pub enum Directive {
     Other {
         name: federated::StringId,
         arguments: Vec<(federated::StringId, subgraphs::Value)>,
+        provenance: DirectiveProvenance,
     },
     JoinField(JoinFieldDirective),
     JoinEntityInterfaceField,
@@ -55,4 +56,14 @@ pub struct JoinTypeDirective {
     pub subgraph_id: federated::SubgraphId,
     pub key: Option<KeyId>,
     pub is_interface_object: bool,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub(crate) enum DirectiveProvenance {
+    LinkedFromExtension {
+        linked_schema_id: subgraphs::LinkedSchemaId,
+        extension_id: subgraphs::ExtensionId,
+    },
+    ComposeDirective,
+    Builtin,
 }

@@ -1,6 +1,7 @@
 //! This is a separate module because we want to use only the public API of [Subgraphs] and avoid
 //! mixing GraphQL parser logic and types with our internals.
 
+mod context;
 mod directive_definitions;
 mod directives;
 mod enums;
@@ -138,7 +139,12 @@ fn ingest_top_level_definitions(ctx: &mut Context<'_>) {
                 directives::ingest_keys(definition_id, type_definition.directives(), ctx);
             }
             ast::Definition::Directive(directive_definition) => {
-                directive_definitions::ingest_directive_definition(directive_definition, ctx);
+                let definition_name_id = ctx.subgraphs.strings.intern(directive_definition.name());
+
+                if !ctx.subgraphs.is_composed_directive(ctx.subgraph_id, definition_name_id) {
+                    continue;
+                }
+                directive_definitions::ingest_directive_definition(ctx, directive_definition, definition_name_id);
             }
             ast::Definition::Schema(_) | ast::Definition::SchemaExtension(_) => (),
         }
