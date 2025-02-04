@@ -31,6 +31,8 @@ pub(crate) enum BackendError {
     IntrospectSubgraph(String),
     #[error("no url or schema_path were defined for an overridden subgraph: {0}")]
     NoDefinedRouteToSubgraphSdl(String),
+    #[error("no url defined for an overridden subgraph: {0}")]
+    NoOverriddenSubgraphUrl(String),
     #[error("could not parse a subgraph:\n{0:#}")]
     IngestSubgraph(IngestError),
     #[error("could not start the federated gateway\nCaused by: {0}")]

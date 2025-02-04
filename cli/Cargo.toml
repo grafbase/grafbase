@@ -82,51 +82,14 @@ cynic-parser = { workspace = true, features = ["report"] }
 serde_valid = "1.0.5"
 
 [dev-dependencies]
-async-graphql-axum.workspace = true
-async-graphql.workspace = true
-async-trait = "0.1.80"
-async-tungstenite.workspace = true
-axum.workspace = true
-cfg-if = "1"
-chrono = "0.4.38"
-ctor.workspace = true
-cynic-introspection.workspace = true
-cynic.workspace = true
-derive_builder = "0.20"
-dirs = "6.0.0"
-duct = "0.13.7"
-fslock = "0.2.1"
-futures-util = "0.3.30"
 graphql-mocks.workspace = true
-graphql-ws-client = { version = "0.11.0", features = ["tungstenite"] }
-headers.workspace = true
-hex.workspace = true
-http.workspace = true
+integration-tests = { path = "../crates/integration-tests" }
+
+duct = "0.13.7"
 insta = { workspace = true, features = ["json", "redactions", "yaml"] }
-json_dotpath = "1.1.0"
-jwt-compact = { version = "0.8.0", default-features = false, features = [
-    "clock",
-    "rsa",
-] }
-more-asserts = "0.3.1"
-multipart-stream = "0.1.2"
 rand.workspace = true
-regex = "1.10.4"
-reqwest = { workspace = true, features = ["rustls-tls", "json"] }
-reqwest-eventsource = "0.6"
-rsa = "0.9.6"
-rstest = "0.24"
-rstest_reuse = "0.7"
-serde = { version = "1.0.199", features = ["derive"] }
-sha2.workspace = true
-strum = { version = "0.26.2", features = ["derive"] }
-sysinfo = "0.33.0"
+reqwest.workspace = true
 tempfile = "3.10.1"
-tokio = { version = "1.37.0", features = ["full"] }
-tower-http = "0.6.0"
-url = "2.5.0"
-which.workspace = true
-wiremock.workspace = true
 
 [build-dependencies]
 cynic-codegen.workspace = true

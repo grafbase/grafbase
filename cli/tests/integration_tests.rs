@@ -4,6 +4,9 @@ use std::{
 };
 
 mod extension;
+mod integration;
+
+const GRAFBASE_CLI_BIN_PATH: &str = env!("CARGO_BIN_EXE_grafbase");
 
 pub fn cargo_bin<S: AsRef<str>>(name: S) -> PathBuf {
     cargo_bin_str(name.as_ref())

@@ -111,7 +111,7 @@ pub async fn get_subgraph_sdls(
                     .or_else(|| remote_urls.get(&name).map(|url| url.as_str()))
                     .or(subgraph.introspection_url.as_ref().map(|url| url.as_str()))
                 else {
-                    return Err(BackendError::NoDefinedRouteToSubgraphSdl(name.clone()));
+                    return Err(BackendError::NoOverriddenSubgraphUrl(name.clone()));
                 };
 
                 if let Some(ref schema_path) = subgraph.schema_path {
