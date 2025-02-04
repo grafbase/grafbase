@@ -21,7 +21,7 @@ services:
 
   clickhouse:
     restart: unless-stopped
-    image: clickhouse/clickhouse-server:latest
+    image: clickhouse/clickhouse-server:25.1.2-alpine
     ports:
       - '9001:9000'
       - '8124:8123'

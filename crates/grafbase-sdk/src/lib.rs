@@ -6,9 +6,9 @@ pub mod extension;
 pub mod host_io;
 pub mod types;
 
-pub use extension::{Extension, Resolver};
-pub use grafbase_sdk_derive::ResolverExtension;
-pub use wit::{Error, ExtensionType, SharedContext};
+pub use extension::{Authenticator, Extension, Resolver};
+pub use grafbase_sdk_derive::{AuthenticationExtension, ResolverExtension};
+pub use wit::{Error, ExtensionType, Headers, SharedContext};
 
 struct Component;
 

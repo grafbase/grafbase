@@ -1,3 +1,6 @@
+use std::sync::Arc;
+
+use super::cache::Cache;
 use grafbase_telemetry::{metrics::meter_from_global_provider, otel::opentelemetry::metrics::Histogram};
 use wasmtime::component::Resource;
 use wasmtime_wasi::{ResourceTable, WasiCtx, WasiView};
@@ -28,6 +31,9 @@ pub(crate) struct WasiState {
 
     /// A sender for the access log channel.
     access_log: ChannelLogSender,
+
+    /// A cache to be used for storing data between calls to different instances of the same extension.
+    cache: Arc<Cache>,
 }
 
 impl WasiState {
@@ -41,7 +47,7 @@ impl WasiState {
     ///
     /// A new `WasiState` instance initialized with the provided context and default
     /// HTTP and resource table contexts.
-    pub fn new(ctx: WasiCtx, access_log: ChannelLogSender) -> Self {
+    pub fn new(ctx: WasiCtx, access_log: ChannelLogSender, cache: Arc<Cache>) -> Self {
         let meter = meter_from_global_provider();
         let request_durations = meter.u64_histogram("grafbase.hook.http_request.duration").build();
         let http_client = reqwest::Client::new();
@@ -53,6 +59,7 @@ impl WasiState {
             request_durations,
             http_client,
             access_log,
+            cache,
         }
     }
 
@@ -98,6 +105,11 @@ impl WasiState {
     /// Returns a reference to the access log sender.
     pub fn access_log(&self) -> &ChannelLogSender {
         &self.access_log
+    }
+
+    /// Returns a reference to the cache.
+    pub fn cache(&self) -> &Cache {
+        &self.cache
     }
 }
 

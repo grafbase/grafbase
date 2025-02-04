@@ -1,11 +1,11 @@
 use crate::{
-    types::{Directive, FieldDefinition, FieldInputs, FieldOutput},
+    types::{Configuration, Directive, FieldDefinition, FieldInputs, FieldOutput},
     wit::{Error, SharedContext},
 };
 
 use super::Extension;
 
-type InitFn = Box<dyn Fn(Vec<Directive>) -> Result<Box<dyn Resolver>, Box<dyn std::error::Error>>>;
+type InitFn = Box<dyn Fn(Vec<Directive>, Configuration) -> Result<Box<dyn Resolver>, Box<dyn std::error::Error>>>;
 
 pub(super) static mut EXTENSION: Option<Box<dyn Resolver>> = None;
 pub static mut INIT_FN: Option<InitFn> = None;
@@ -23,11 +23,11 @@ pub(super) fn get_extension() -> Result<&'static mut dyn Resolver, Error> {
 
 /// Initializes the resolver extension with the provided directives using the closure
 /// function created with the `register_extension!` macro.
-pub(super) fn init(directives: Vec<Directive>) -> Result<(), Box<dyn std::error::Error>> {
+pub(super) fn init(directives: Vec<Directive>, configuration: Configuration) -> Result<(), Box<dyn std::error::Error>> {
     // Safety: This function is only called from the SDK macro, so we can assume that there is only one caller at a time.
     unsafe {
         let init = INIT_FN.as_ref().expect("Resolver extension not initialized correctly.");
-        EXTENSION = Some(init(directives)?);
+        EXTENSION = Some(init(directives, configuration)?);
     }
 
     Ok(())

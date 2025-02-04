@@ -134,6 +134,8 @@ fn create_wasi_extension_configs(
             schema_directives: Vec::new(),
             max_pool_size: extension_config.max_pool_size(),
             wasi_config,
+            // TODO: we actually need to pass the extension config here, sigh :(
+            extension_config: Vec::new(),
         });
     }
 

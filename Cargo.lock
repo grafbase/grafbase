@@ -3284,7 +3284,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "grafbase-sdk-derive",
  "http 1.2.0",
@@ -3299,7 +3299,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk-derive"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3368,7 +3368,6 @@ dependencies = [
  "console",
  "crc32fast",
  "criterion",
- "crossbeam-channel",
  "crossbeam-queue",
  "crossbeam-utils",
  "cynic",
@@ -8659,6 +8658,7 @@ dependencies = [
  "anyhow",
  "base64 0.22.1",
  "crossbeam",
+ "dashmap 6.1.0",
  "either",
  "enumflags2",
  "expect-test",
@@ -8669,6 +8669,7 @@ dependencies = [
  "http 1.2.0",
  "indoc",
  "insta",
+ "mini-moka",
  "minicbor-serde",
  "reqwest 0.12.12",
  "serde",
@@ -8679,6 +8680,7 @@ dependencies = [
  "tokio",
  "toml",
  "tracing",
+ "ulid",
  "url",
  "wasmtime",
  "wasmtime-wasi",

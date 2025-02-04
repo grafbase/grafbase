@@ -1,12 +1,19 @@
 mod types;
 
 use anyhow::anyhow;
+use http::HeaderMap;
+use serde::de::DeserializeOwned;
+use types::Token;
 pub use types::{Directive, ExtensionType, FieldDefinition, FieldOutput};
 use wasmtime::component::{ComponentNamedList, Lift, Lower, Resource, TypedFunc};
 
 use super::ComponentInstance;
 use crate::{
-    names::{INIT_GATEWAY_EXTENSION_FUNCTION, REGISTER_EXTENSION_FUNCTION, RESOLVE_FIELD_EXTENSION_FUNCTION},
+    error::guest::ErrorResponse,
+    names::{
+        AUTEHNTICATE_EXTENSION_FUNCTION, INIT_GATEWAY_EXTENSION_FUNCTION, REGISTER_EXTENSION_FUNCTION,
+        RESOLVE_FIELD_EXTENSION_FUNCTION,
+    },
     ChannelLogSender, ComponentLoader, GuestError, SharedContext,
 };
 
@@ -21,6 +28,7 @@ impl ExtensionsComponentInstance {
         loader: &ComponentLoader,
         r#type: ExtensionType,
         schema_directives: Vec<Directive>,
+        configuration: Vec<u8>,
         access_log: ChannelLogSender,
     ) -> crate::Result<Self> {
         let mut component = ComponentInstance::new(loader, access_log).await?;
@@ -34,7 +42,8 @@ impl ExtensionsComponentInstance {
 
         let mut this = Self { component };
 
-        this.init_gateway_extension(r#type, schema_directives).await?;
+        this.init_gateway_extension(r#type, schema_directives, configuration)
+            .await?;
 
         Ok(this)
     }
@@ -76,15 +85,42 @@ impl ExtensionsComponentInstance {
         Ok(result?)
     }
 
+    /// Performs authentication based on the provided request headers.
+    pub async fn authenticate<S>(&mut self, headers: HeaderMap) -> crate::GatewayResult<(HeaderMap, S)>
+    where
+        S: DeserializeOwned,
+    {
+        type Params = (Resource<HeaderMap>,);
+        type Response = Result<Token, ErrorResponse>;
+
+        let headers = self.component.store_mut().data_mut().push_resource(headers)?;
+        let headers_rep = headers.rep();
+
+        let result = self
+            .call_typed_func::<Params, Response>(AUTEHNTICATE_EXTENSION_FUNCTION, (headers,))
+            .await?;
+
+        let headers = self
+            .component
+            .store_mut()
+            .data_mut()
+            .take_resource::<HeaderMap>(headers_rep)?;
+
+        Ok((headers, result?.deserialize()?))
+    }
+
     async fn init_gateway_extension(
         &mut self,
         r#type: ExtensionType,
         schema_directives: Vec<Directive>,
+        configuration: Vec<u8>,
     ) -> crate::Result<()> {
-        type Params = (ExtensionType, Vec<Directive>);
+        type Params = (ExtensionType, Vec<Directive>, Vec<u8>);
+
+        let params = (r#type, schema_directives, configuration);
 
         let result = self
-            .call_typed_func::<Params, Result<(), String>>(INIT_GATEWAY_EXTENSION_FUNCTION, (r#type, schema_directives))
+            .call_typed_func::<Params, Result<(), String>>(INIT_GATEWAY_EXTENSION_FUNCTION, params)
             .await?;
 
         Ok(result.map_err(|e| anyhow!(e))?)

@@ -31,9 +31,10 @@ impl Pool {
         loader: ComponentLoader,
         config: ComponentManagerConfig,
         size: Option<usize>,
+        extension_config: Vec<u8>,
         access_log: ChannelLogSender,
     ) -> Self {
-        let mgr = ComponentManager::new(loader, access_log, config);
+        let mgr = ComponentManager::new(loader, access_log, config, extension_config);
         let mut builder = managed::Pool::builder(mgr);
 
         if let Some(size) = size {
@@ -63,6 +64,7 @@ pub(super) struct ComponentManager {
     access_log: ChannelLogSender,
     extension_type: ExtensionType,
     schema_directives: Vec<Directive>,
+    config: Vec<u8>,
 }
 
 impl ComponentManager {
@@ -70,12 +72,14 @@ impl ComponentManager {
         component_loader: ComponentLoader,
         access_log: ChannelLogSender,
         config: ComponentManagerConfig,
+        extension_config: Vec<u8>,
     ) -> Self {
         Self {
             component_loader,
             access_log,
             extension_type: config.extension_type,
             schema_directives: config.schema_directives,
+            config: extension_config,
         }
     }
 }
@@ -89,6 +93,7 @@ impl Manager for ComponentManager {
             &self.component_loader,
             self.extension_type,
             self.schema_directives.clone(),
+            self.config.clone(),
             self.access_log.clone(),
         )
         .await
