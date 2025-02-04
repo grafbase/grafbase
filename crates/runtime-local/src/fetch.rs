@@ -103,7 +103,7 @@ impl Fetcher for NativeFetcher {
         &self,
         request: FetchRequest<'_, Bytes>,
     ) -> FetchResult<impl Stream<Item = FetchResult<OwnedOrSharedBytes>> + Send + 'static> {
-        let events = RequestBuilder::from_parts(self.client.clone(), into_reqwest(request))
+        let events = RequestBuilder::from_parts(Default::default(), into_reqwest(request))
             .eventsource()
             .unwrap()
             .map_err(|err| match err {
