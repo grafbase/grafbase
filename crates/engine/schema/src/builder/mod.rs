@@ -6,13 +6,9 @@ mod graph;
 mod input_values;
 mod interner;
 
-use std::collections::HashMap;
-use std::mem::take;
-use std::time::Duration;
-
-use config::Config;
 use extension_catalog::ExtensionCatalog;
 use external_sources::ExternalDataSources;
+use fxhash::FxHashMap;
 use url::Url;
 
 use self::error::*;
@@ -26,13 +22,14 @@ use field_set::*;
 use interner::Interner;
 
 pub(crate) async fn build(
-    mut config: Config,
-    version: Version,
+    config: &gateway_config::Config,
+    mut federated_graph: federated_graph::FederatedGraph,
     extension_catalog: &ExtensionCatalog,
+    version: Version,
 ) -> Result<Schema, BuildError> {
-    let mut ctx = BuildContext::new(&mut config, extension_catalog);
-    let mut sources = ExternalDataSources::build(&mut ctx, &mut config);
-    let (graph, introspection) = GraphBuilder::build(&mut ctx, &mut sources, &mut config).await?;
+    let mut ctx = BuildContext::new(config, extension_catalog, &federated_graph);
+    let mut sources = ExternalDataSources::build(&mut ctx, &mut federated_graph)?;
+    let (graph, introspection) = GraphBuilder::build(&mut ctx, &mut sources, federated_graph).await?;
     let subgraphs = SubGraphs {
         graphql_endpoints: sources.graphql_endpoints,
         virtual_subgraphs: sources.virtual_subgraphs,
@@ -42,90 +39,122 @@ pub(crate) async fn build(
 }
 
 pub(crate) struct BuildContext<'a> {
+    pub config: &'a gateway_config::Config,
     pub extension_catalog: &'a ExtensionCatalog,
     pub strings: Interner<String, StringId>,
     pub regexps: ProxyKeyInterner<Regex, RegexId>,
     urls: Interner<Url, UrlId>,
-    scalar_mapping: HashMap<federated_graph::ScalarDefinitionId, ScalarDefinitionId>,
-    enum_mapping: HashMap<federated_graph::EnumDefinitionId, EnumDefinitionId>,
+    header_rules: Vec<HeaderRuleRecord>,
+    scalar_mapping: FxHashMap<federated_graph::ScalarDefinitionId, ScalarDefinitionId>,
+    enum_mapping: FxHashMap<federated_graph::EnumDefinitionId, EnumDefinitionId>,
+}
+
+impl std::ops::Index<StringId> for BuildContext<'_> {
+    type Output = String;
+    fn index(&self, id: StringId) -> &String {
+        self.strings.get_by_id(id).unwrap()
+    }
+}
+
+impl std::ops::Index<RegexId> for BuildContext<'_> {
+    type Output = Regex;
+    fn index(&self, index: RegexId) -> &Regex {
+        &self.regexps[index]
+    }
+}
+
+impl std::ops::Index<UrlId> for BuildContext<'_> {
+    type Output = Url;
+    fn index(&self, id: UrlId) -> &Url {
+        self.urls.get_by_id(id).unwrap()
+    }
 }
 
 impl<'a> BuildContext<'a> {
-    fn new(config: &mut Config, extension_catalog: &'a ExtensionCatalog) -> Self {
+    fn new(
+        config: &'a gateway_config::Config,
+        extension_catalog: &'a ExtensionCatalog,
+        federated_graph: &federated_graph::FederatedGraph,
+    ) -> Self {
         Self {
+            config,
             extension_catalog,
-            strings: Interner::from_vec(take(&mut config.graph.strings)),
+            strings: Interner::with_capacity(federated_graph.strings.len()),
             regexps: Default::default(),
-            urls: Interner::default(),
-            scalar_mapping: HashMap::new(),
-            enum_mapping: HashMap::new(),
+            urls: Interner::with_capacity(federated_graph.subgraphs.len()),
+            scalar_mapping: FxHashMap::with_capacity_and_hasher(
+                federated_graph.scalar_definitions.len(),
+                Default::default(),
+            ),
+            enum_mapping: FxHashMap::with_capacity_and_hasher(
+                federated_graph.scalar_definitions.len(),
+                Default::default(),
+            ),
+            header_rules: Vec::new(),
         }
+    }
+
+    fn ingest_header_rules(&mut self, rules: &[gateway_config::HeaderRule]) -> IdRange<HeaderRuleId> {
+        use gateway_config::*;
+        let start = self.header_rules.len();
+        self.header_rules.extend(rules.iter().map(|rule| -> HeaderRuleRecord {
+            match rule {
+                HeaderRule::Forward(rule) => {
+                    let name_id = match &rule.name {
+                        NameOrPattern::Pattern(regex) => {
+                            NameOrPatternId::Pattern(self.regexps.get_or_insert(regex.clone()))
+                        }
+                        NameOrPattern::Name(name) => NameOrPatternId::Name(self.strings.get_or_new(name.as_ref())),
+                    };
+
+                    let default_id = rule.default.as_ref().map(|s| self.strings.get_or_new(s.as_ref()));
+                    let rename_id = rule.rename.as_ref().map(|s| self.strings.get_or_new(s.as_ref()));
+
+                    HeaderRuleRecord::Forward(ForwardHeaderRuleRecord {
+                        name_id,
+                        default_id,
+                        rename_id,
+                    })
+                }
+                HeaderRule::Insert(rule) => {
+                    let name_id = self.strings.get_or_new(rule.name.as_ref());
+                    let value_id = self.strings.get_or_new(rule.value.as_ref());
+
+                    HeaderRuleRecord::Insert(InsertHeaderRuleRecord { name_id, value_id })
+                }
+                HeaderRule::Remove(rule) => {
+                    let name_id = match &rule.name {
+                        NameOrPattern::Pattern(regex) => {
+                            NameOrPatternId::Pattern(self.regexps.get_or_insert(regex.clone()))
+                        }
+                        NameOrPattern::Name(name) => NameOrPatternId::Name(self.strings.get_or_new(name.as_ref())),
+                    };
+
+                    HeaderRuleRecord::Remove(RemoveHeaderRuleRecord { name_id })
+                }
+                HeaderRule::RenameDuplicate(rule) => {
+                    HeaderRuleRecord::RenameDuplicate(RenameDuplicateHeaderRuleRecord {
+                        name_id: self.strings.get_or_new(rule.name.as_ref()),
+                        default_id: rule
+                            .default
+                            .as_ref()
+                            .map(|default| self.strings.get_or_new(default.as_ref())),
+                        rename_id: self.strings.get_or_new(rule.rename.as_ref()),
+                    })
+                }
+            }
+        }));
+        (start..self.header_rules.len()).into()
     }
 
     fn finalize(
         mut self,
         subgraphs: SubGraphs,
         graph: Graph,
-        mut config: Config,
+        config: &gateway_config::Config,
         version: Version,
     ) -> Result<Schema, BuildError> {
-        let header_rules: Vec<_> = take(&mut config.header_rules)
-            .into_iter()
-            .map(|rule| -> HeaderRuleRecord {
-                match rule {
-                    config::HeaderRule::Forward(rule) => {
-                        let name_id = match rule.name {
-                            config::NameOrPattern::Pattern(regex) => {
-                                NameOrPatternId::Pattern(self.regexps.get_or_insert(regex))
-                            }
-                            config::NameOrPattern::Name(name) => {
-                                NameOrPatternId::Name(self.strings.get_or_new(&config[name]))
-                            }
-                        };
-
-                        let default_id = rule.default.map(|id| self.strings.get_or_new(&config[id]));
-                        let rename_id = rule.rename.map(|id| self.strings.get_or_new(&config[id]));
-
-                        HeaderRuleRecord::Forward(ForwardHeaderRuleRecord {
-                            name_id,
-                            default_id,
-                            rename_id,
-                        })
-                    }
-                    config::HeaderRule::Insert(rule) => {
-                        let name_id = self.strings.get_or_new(&config[rule.name]);
-                        let value_id = self.strings.get_or_new(&config[rule.value]);
-
-                        HeaderRuleRecord::Insert(InsertHeaderRuleRecord { name_id, value_id })
-                    }
-                    config::HeaderRule::Remove(rule) => {
-                        let name_id = match rule.name {
-                            config::NameOrPattern::Pattern(regex) => {
-                                NameOrPatternId::Pattern(self.regexps.get_or_insert(regex))
-                            }
-                            config::NameOrPattern::Name(name) => {
-                                NameOrPatternId::Name(self.strings.get_or_new(&config[name]))
-                            }
-                        };
-
-                        HeaderRuleRecord::Remove(RemoveHeaderRuleRecord { name_id })
-                    }
-                    config::HeaderRule::RenameDuplicate(rule) => {
-                        HeaderRuleRecord::RenameDuplicate(RenameDuplicateHeaderRuleRecord {
-                            name_id: self.strings.get_or_new(&config[rule.name]),
-                            default_id: rule.default.map(|id| self.strings.get_or_new(&config[id])),
-                            rename_id: self.strings.get_or_new(&config[rule.rename]),
-                        })
-                    }
-                }
-            })
-            .collect();
-
-        let default_header_rules = config
-            .default_header_rules
-            .into_iter()
-            .map(|id| HeaderRuleId::from(id.0))
-            .collect();
+        let default_header_rules = self.ingest_header_rules(&config.headers);
 
         Ok(Schema {
             subgraphs,
@@ -141,20 +170,30 @@ impl<'a> BuildContext<'a> {
                 .collect(),
             regexps: self.regexps.into(),
             urls: self.urls.into(),
-            header_rules,
-            settings: Settings {
-                timeout: config.timeout.unwrap_or(DEFAULT_GATEWAY_TIMEOUT),
+            header_rules: self.header_rules,
+            settings: PartialConfig {
+                timeout: config.gateway.timeout,
                 default_header_rules,
-                auth_config: take(&mut config.auth),
-                operation_limits: take(&mut config.operation_limits),
-                disable_introspection: config.disable_introspection,
-                retry: config.retry.map(Into::into),
-                batching: take(&mut config.batching),
-                complexity_control: take(&mut config.complexity_control),
-                response_extension: config.response_extension,
+                auth_config: config.authentication.as_ref().map(Into::into),
+                operation_limits: config.operation_limits.unwrap_or_default(),
+                disable_introspection: !config.graph.introspection.unwrap_or_default(),
+                retry: config.gateway.retry.enabled.then_some(config.gateway.retry.into()),
+                batching: config.gateway.batching.clone(),
+                complexity_control: (&config.complexity_control).into(),
+                response_extension: config
+                    .telemetry
+                    .exporters
+                    .response_extension
+                    .clone()
+                    .unwrap_or_default()
+                    .into(),
                 apq_enabled: config.apq.enabled,
-                executable_document_limit_bytes: config.executable_document_limit_bytes,
-                trusted_documents: config.trusted_documents,
+                executable_document_limit_bytes: config
+                    .executable_document_limit
+                    .bytes()
+                    .try_into()
+                    .expect("executable document limit should not be negative"),
+                trusted_documents: config.trusted_documents.clone().into(),
                 websocket_forward_connection_init_payload: config.websockets.forward_connection_init_payload,
             },
         })
@@ -197,12 +236,10 @@ from_id_newtypes! {
     federated_graph::InputObjectId => InputObjectDefinitionId,
     federated_graph::InterfaceId => InterfaceDefinitionId,
     federated_graph::ObjectId => ObjectDefinitionId,
-    federated_graph::StringId => StringId,
     federated_graph::UnionId => UnionDefinitionId,
     federated_graph::EnumValueId => EnumValueId,
     federated_graph::InputValueDefinitionId => InputValueDefinitionId,
     federated_graph::FieldId => FieldDefinitionId,
-    config::HeaderRuleId => HeaderRuleId,
 }
 
 impl From<federated_graph::EntityDefinitionId> for EntityDefinitionId {
@@ -213,5 +250,3 @@ impl From<federated_graph::EntityDefinitionId> for EntityDefinitionId {
         }
     }
 }
-
-const DEFAULT_GATEWAY_TIMEOUT: Duration = Duration::from_secs(30);

@@ -21,7 +21,6 @@ engine-schema.workspace = true
 engine.workspace = true
 graphql-mocks.workspace = true
 httpsig.workspace = true
-engine-config-builder = { path = "../engine-config-builder" }
 futures = "0.3.30"
 gateway-config.workspace = true
 graphql-composition.workspace = true

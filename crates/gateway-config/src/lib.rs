@@ -41,6 +41,8 @@ use size::Size;
 pub use telemetry::*;
 use url::Url;
 
+const DEFAULT_GATEWAY_TIMEOUT: Duration = Duration::from_secs(30);
+
 #[derive(Clone, Debug, serde::Deserialize)]
 #[serde(default, deny_unknown_fields)]
 /// Configuration struct to define settings for self-hosted
@@ -123,7 +125,7 @@ impl Default for Config {
     }
 }
 
-#[derive(Clone, Debug, Default, serde::Deserialize)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct BatchingConfig {
     /// If batching should be enabled.
@@ -132,12 +134,12 @@ pub struct BatchingConfig {
     pub limit: Option<u8>,
 }
 
-#[derive(Clone, Debug, Default, serde::Deserialize)]
+#[derive(Clone, Debug, serde::Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct GatewayConfig {
     /// Timeout for gateway requests.
-    #[serde(deserialize_with = "duration_str::deserialize_option_duration")]
-    pub timeout: Option<Duration>,
+    #[serde(deserialize_with = "duration_str::deserialize_duration")]
+    pub timeout: Duration,
     /// Default timeout for subgraph requests.
     #[serde(deserialize_with = "duration_str::deserialize_option_duration")]
     pub subgraph_timeout: Option<Duration>,
@@ -151,6 +153,20 @@ pub struct GatewayConfig {
     pub batching: BatchingConfig,
     /// Global message signatures config
     pub message_signatures: MessageSignaturesConfig,
+}
+
+impl Default for GatewayConfig {
+    fn default() -> Self {
+        Self {
+            timeout: DEFAULT_GATEWAY_TIMEOUT,
+            subgraph_timeout: Default::default(),
+            rate_limit: Default::default(),
+            retry: Default::default(),
+            access_logs: Default::default(),
+            batching: Default::default(),
+            message_signatures: Default::default(),
+        }
+    }
 }
 
 #[derive(Debug, Default, serde::Deserialize, Clone, Copy)]
@@ -216,7 +232,7 @@ pub struct SubgraphConfig {
     pub retry: Option<RetryConfig>,
     /// Subgraph specific entity caching config  this overrides the global config if there
     /// is any
-    pub entity_caching: Option<EntityCachingConfig>,
+    pub entity_caching: Option<SubgraphEntityCachingConfig>,
     /// Subgraph specific message signatures config
     pub message_signatures: Option<MessageSignaturesConfig>,
     /// The path of an SDL schema file for the subgraph (dev only).
@@ -245,11 +261,12 @@ pub struct RetryConfig {
     pub retry_mutations: bool,
 }
 
-#[derive(Clone, Debug, Default, serde::Deserialize)]
+#[derive(Clone, Default, Debug, serde::Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct GraphConfig {
     pub path: Option<String>,
     pub websocket_path: Option<String>,
+    // We do want to distinguish None for false for grafbase dev
     pub introspection: Option<bool>,
 }
 
@@ -272,7 +289,7 @@ pub struct TlsConfig {
     pub key: PathBuf,
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, serde::Deserialize)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct OperationLimitsConfig {
     /// Limits the deepest nesting of selection sets in an operation,
@@ -394,7 +411,7 @@ mod tests {
 
         let config: Config = toml::from_str(input).unwrap();
 
-        assert!(config.graph.introspection.unwrap());
+        assert_eq!(config.graph.introspection, Some(true));
         assert_eq!(Some("/enterprise"), config.graph.path.as_deref());
         assert!(config.graph.websocket_path.is_none());
     }
@@ -908,7 +925,7 @@ mod tests {
 
         let result: Config = toml::from_str(input).unwrap();
 
-        insta::assert_debug_snapshot!(&result.authentication.unwrap(), @r###"
+        insta::assert_debug_snapshot!(&result.authentication.unwrap(), @r#"
         AuthenticationConfig {
             providers: [
                 Jwt(
@@ -948,7 +965,7 @@ mod tests {
                 ),
             ],
         }
-        "###);
+        "#);
     }
 
     #[test]
@@ -1539,9 +1556,7 @@ mod tests {
 
         insta::assert_debug_snapshot!(&config.gateway, @r#"
         GatewayConfig {
-            timeout: Some(
-                1s,
-            ),
+            timeout: 1s,
             subgraph_timeout: Some(
                 2s,
             ),

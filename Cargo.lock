@@ -2216,7 +2216,6 @@ dependencies = [
  "bytes",
  "crossbeam-queue",
  "engine-auth",
- "engine-config",
  "engine-id-derives",
  "engine-id-newtypes",
  "engine-operation",
@@ -2263,7 +2262,7 @@ name = "engine-auth"
 version = "0.0.0"
 dependencies = [
  "base64 0.22.1",
- "engine-config",
+ "engine-schema",
  "futures-util",
  "grafbase-workspace-hack",
  "http 1.2.0",
@@ -2321,38 +2320,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "engine-config"
-version = "0.0.0"
-dependencies = [
- "base64 0.22.1",
- "gateway-config",
- "grafbase-workspace-hack",
- "graphql-federated-graph",
- "http 1.2.0",
- "insta",
- "regex",
- "secrecy",
- "serde",
- "serde_json",
- "serde_regex",
- "serde_with",
- "thiserror 2.0.11",
- "url",
-]
-
-[[package]]
-name = "engine-config-builder"
-version = "0.0.0"
-dependencies = [
- "engine-config",
- "gateway-config",
- "grafbase-workspace-hack",
- "graphql-federated-graph",
- "indexmap 2.7.0",
- "tracing",
-]
-
-[[package]]
 name = "engine-id-derives"
 version = "0.0.0"
 dependencies = [
@@ -2379,7 +2346,6 @@ version = "0.0.0"
 dependencies = [
  "blake3",
  "cynic-parser",
- "engine-config",
  "engine-id-derives",
  "engine-id-newtypes",
  "engine-schema",
@@ -2430,33 +2396,36 @@ name = "engine-schema"
 version = "0.0.0"
 dependencies = [
  "anyhow",
- "engine-config",
  "engine-id-derives",
  "engine-id-newtypes",
  "engine-walker",
  "extension-catalog",
- "fnv",
  "fxhash",
  "gateway-config",
  "grafbase-workspace-hack",
  "graphql-federated-graph",
  "graphql-wrapping-types",
  "hex",
+ "http 1.2.0",
  "indexmap 2.7.0",
  "insta",
  "postcard",
  "pretty_assertions",
  "rand 0.8.5",
+ "rapidhash",
  "regex",
  "rstest",
  "serde",
  "serde_json",
+ "serde_path_to_error",
  "serde_regex",
  "serde_with",
  "strum",
  "strum_macros",
  "thiserror 2.0.11",
  "tokio",
+ "toml",
+ "tracing",
  "url",
 ]
 
@@ -2683,7 +2652,6 @@ dependencies = [
  "either",
  "engine",
  "engine-axum",
- "engine-config-builder",
  "extension-catalog",
  "futures-lite 2.6.0",
  "gateway-config",
@@ -4492,7 +4460,6 @@ dependencies = [
  "elliptic-curve",
  "engine",
  "engine-axum",
- "engine-config-builder",
  "engine-schema",
  "extension-catalog",
  "futures",
@@ -6463,6 +6430,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "rapidhash"
+version = "1.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5c3cf30fb8a0540827f3e22514836533403dece9ac517631160a1fb36d0dd5d6"
+
+[[package]]
 name = "raw-cpuid"
 version = "11.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7161,15 +7134,6 @@ dependencies = [
  "pkcs8",
  "serdect",
  "subtle",
- "zeroize",
-]
-
-[[package]]
-name = "secrecy"
-version = "0.10.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e891af845473308773346dc847b2c23ee78fe442e0472ac50e22a18a93d3ae5a"
-dependencies = [
  "zeroize",
 ]
 

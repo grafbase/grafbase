@@ -1,11 +1,10 @@
-use engine_config::{AuthConfig, AuthProviderConfig};
-
 mod anonymous;
 mod jwt;
 
 use anonymous::AnonymousAuthorizer;
 use futures_util::{future::BoxFuture, stream::FuturesOrdered, StreamExt};
 use runtime::{auth::AccessToken, kv::KvStore};
+use schema::{AuthConfig, AuthProviderConfig};
 use tracing::{info_span, Instrument};
 
 pub trait Authorizer: Send + Sync + 'static {

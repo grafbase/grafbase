@@ -1,6 +1,5 @@
-use config::ComplexityControl;
 use grafbase_telemetry::graphql::OperationType;
-use schema::{InputObjectDefinition, StringId};
+use schema::{ComplexityControl, InputObjectDefinition, StringId};
 use serde::Deserialize;
 
 use crate::{DataField, Field, FieldArgument, OperationContext, SelectionSet, Variables};

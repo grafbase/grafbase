@@ -33,7 +33,6 @@ impl GatewayRuntime {
     pub(super) async fn build(
         gateway_config: &Config,
         hot_reload_config_path: Option<PathBuf>,
-        config: &engine::config::Config,
         version_id: Option<ulid::Ulid>,
         hooks: HooksWasi,
         extensions: WasiExtensions,
@@ -42,20 +41,20 @@ impl GatewayRuntime {
         let watcher = ConfigWatcher::init(gateway_config.clone(), hot_reload_config_path)?;
         let meter = grafbase_telemetry::metrics::meter_from_global_provider();
 
-        let rate_limiter = match config.rate_limit_config() {
+        let rate_limiter = match &gateway_config.gateway.rate_limit {
             Some(config) if config.storage.is_redis() => {
-                let tls = config.redis.tls.map(|tls| RedisTlsConfig {
-                    cert: tls.cert,
-                    key: tls.key,
-                    ca: tls.ca,
+                let tls = config.redis.tls.as_ref().map(|tls| RedisTlsConfig {
+                    cert: tls.cert.as_deref(),
+                    key: tls.key.as_deref(),
+                    ca: tls.ca.as_deref(),
                 });
 
                 let pool = redis_factory
-                    .pool(config.redis.url, tls)
+                    .pool(config.redis.url.as_str(), tls)
                     .map_err(|e| crate::Error::InternalError(e.to_string()))?;
 
                 let global_config = runtime_local::rate_limiting::redis::RateLimitRedisConfig {
-                    key_prefix: config.redis.key_prefix,
+                    key_prefix: &config.redis.key_prefix,
                 };
 
                 RedisRateLimiter::runtime(global_config, pool, watcher, &meter)

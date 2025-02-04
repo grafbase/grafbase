@@ -1,5 +1,5 @@
-use config::response_extensions::{AccessControl, HeaderAccessControl};
 use grafbase_telemetry::otel::{opentelemetry::trace::TraceContextExt, tracing_opentelemetry::OpenTelemetrySpanExt};
+use schema::{AccessControl, HeaderAccessControl};
 
 use crate::{response::GrafbaseResponseExtension, Engine, Runtime};
 

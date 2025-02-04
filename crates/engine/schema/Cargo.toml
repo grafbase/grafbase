@@ -14,7 +14,7 @@ anyhow.workspace = true
 rand.workspace = true
 
 [dependencies]
-fnv = "1.0.7"
+rapidhash = "1"
 hex.workspace = true
 id-derives = { path = "../id-derives", package = "engine-id-derives" }
 id-newtypes = { path = "../id-newtypes", package = "engine-id-newtypes" }
@@ -29,11 +29,12 @@ url.workspace = true
 gateway-config.workspace = true
 fxhash.workspace = true
 
-config = { package = "engine-config", path = "../config" }
 federated-graph.workspace = true
 wrapping.workspace = true
 regex.workspace = true
+http.workspace = true
 serde_regex = "1.1.0"
+tracing.workspace = true
 grafbase-workspace-hack.workspace = true
 extension-catalog.workspace = true
 
@@ -44,3 +45,5 @@ postcard.workspace = true
 rstest.workspace = true
 pretty_assertions = "1"
 tokio.workspace = true
+toml.workspace = true
+serde_path_to_error = "0.1"

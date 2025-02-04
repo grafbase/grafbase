@@ -1,8 +1,8 @@
 use std::{collections::BTreeSet, mem::take, str::FromStr};
 
 use builder::{coerce::InputValueCoercer, external_sources::ExternalDataSources};
-use config::Config;
 use extension_catalog::Manifest;
+use federated_graph::FederatedGraph;
 use federated_graph::{JoinFieldDirective, JoinImplementsDirective, JoinTypeDirective, JoinUnionMemberDirective};
 use fxhash::FxHashMap;
 use introspection::{IntrospectionBuilder, IntrospectionMetadata};
@@ -45,7 +45,7 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
     pub async fn build(
         ctx: &'a mut BuildContext<'c>,
         sources: &'a mut ExternalDataSources,
-        config: &mut Config,
+        mut graph: FederatedGraph,
     ) -> Result<(Graph, IntrospectionMetadata), BuildError> {
         let mut all_subgraphs = sources.iter().collect::<Vec<_>>();
         all_subgraphs.sort_unstable();
@@ -60,9 +60,9 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
             graph: Graph {
                 description_id: None,
                 root_operation_types_record: RootOperationTypesRecord {
-                    query_id: config.graph.root_operation_types.query.into(),
-                    mutation_id: config.graph.root_operation_types.mutation.map(Into::into),
-                    subscription_id: config.graph.root_operation_types.subscription.map(Into::into),
+                    query_id: graph.root_operation_types.query.into(),
+                    mutation_id: graph.root_operation_types.mutation.map(Into::into),
+                    subscription_id: graph.root_operation_types.subscription.map(Into::into),
                 },
                 object_definitions: Vec::new(),
                 inaccessible_object_definitions: BitSet::new(),
@@ -98,37 +98,35 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
             },
             graphql_federated_entity_resolvers: Default::default(),
         };
-        builder.ingest_config(config).await?;
-        builder.finalize()
+        builder.ingest_graph(&mut graph).await?;
+        builder.finalize(graph)
     }
 
-    async fn ingest_config(&mut self, config: &mut Config) -> Result<(), BuildError> {
-        self.load_manifests_and_ingest_extension_schema_directives(config)
+    async fn ingest_graph(&mut self, graph: &mut FederatedGraph) -> Result<(), BuildError> {
+        self.load_manifests_and_ingest_extension_schema_directives(graph)
             .await?;
 
-        self.ingest_enums(config)?;
-        self.ingest_scalars(config)?;
-        self.ingest_input_objects(config)?;
-        self.ingest_input_values_after_scalars_and_input_objects_and_enums(config)?;
-        self.ingest_fields_after_input_values(config)?;
-        self.ingest_objects(config)?;
-        self.ingest_interfaces_after_objects_and_fields(config)?;
-        self.ingest_unions_after_objects(config)?;
+        self.ingest_enums(graph)?;
+        self.ingest_scalars(graph)?;
+        self.ingest_input_objects(graph)?;
+        self.ingest_input_values_after_scalars_and_input_objects_and_enums(graph)?;
+        self.ingest_fields_after_input_values(graph)?;
+        self.ingest_objects(graph)?;
+        self.ingest_interfaces_after_objects_and_fields(graph)?;
+        self.ingest_unions_after_objects(graph)?;
 
         Ok(())
     }
 
     async fn load_manifests_and_ingest_extension_schema_directives(
         &mut self,
-        config: &mut Config,
+        graph: &mut FederatedGraph,
     ) -> Result<(), BuildError> {
-        for extension in &mut config.graph.extensions {
-            let url_str = &self.ctx.strings[extension.url.into()];
-            let url = url::Url::from_str(&self.ctx.strings[extension.url.into()]).map_err(|err| {
-                BuildError::CouldNotLoadExtension {
-                    url: url_str.to_string(),
-                    err: err.to_string(),
-                }
+        for extension in take(&mut graph.extensions) {
+            let url_str = &graph[extension.url];
+            let url = url::Url::from_str(&graph[extension.url]).map_err(|err| BuildError::InvalidUrl {
+                url: url_str.to_string(),
+                err: err.to_string(),
             })?;
             let manifest =
                 extension_catalog::load_manifest(url)
@@ -143,16 +141,17 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
                 });
             };
             self.extension_manifests.push(manifest);
-            for directive in take(&mut extension.schema_directives) {
+            for directive in extension.schema_directives {
                 let subgraph_id = self.sources.id_mapping[&directive.subgraph_id];
                 self.graph.extension_directives.push(ExtensionDirectiveRecord {
                     subgraph_id,
                     extension_id: id,
-                    name_id: directive.name.into(),
+                    name_id: self.ctx.strings.get_or_new(&graph[directive.name]),
                     arguments_id: directive.arguments.map(|arguments| {
                         let value = self.graph.input_values.ingest_arbitrary_value(
                             self.ctx,
                             federated_graph::Value::Object(arguments.into_boxed_slice()),
+                            graph,
                         );
                         self.graph.input_values.push_value(value)
                     }),
@@ -172,14 +171,13 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
 
     fn ingest_input_values_after_scalars_and_input_objects_and_enums(
         &mut self,
-        config: &mut Config,
+        graph: &mut FederatedGraph,
     ) -> Result<(), BuildError> {
         // Arbitrary initial capacity, to make it at least proportional to the input_values count.
-        let mut default_values = Vec::with_capacity(config.graph.input_value_definitions.len() / 20);
-        self.graph.input_value_definitions = Vec::with_capacity(config.graph.input_value_definitions.len());
-        self.graph.inaccessible_input_value_definitions =
-            BitSet::with_capacity(config.graph.input_value_definitions.len());
-        for (ix, definition) in take(&mut config.graph.input_value_definitions).into_iter().enumerate() {
+        let mut default_values = Vec::with_capacity(graph.input_value_definitions.len() / 20);
+        self.graph.input_value_definitions = Vec::with_capacity(graph.input_value_definitions.len());
+        self.graph.inaccessible_input_value_definitions = BitSet::with_capacity(graph.input_value_definitions.len());
+        for (ix, definition) in take(&mut graph.input_value_definitions).into_iter().enumerate() {
             let id = InputValueDefinitionId::from(ix);
             if let Some(value) = definition.default {
                 default_values.push((id, value));
@@ -187,16 +185,18 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
             if has_inaccessible(&definition.directives) {
                 self.graph.inaccessible_input_value_definitions.set(id, true);
             }
+            let name_id = self.ctx.strings.get_or_new(&graph[definition.name]);
+            let description_id = definition.description.map(|id| self.ctx.strings.get_or_new(&graph[id]));
+
             let directive_ids = self.push_directives(
                 // FIXME: better input value schema location...
-                SchemaLocation::Definition {
-                    name: definition.name.into(),
-                },
+                SchemaLocation::Definition { name_id },
                 &definition.directives,
+                graph,
             )?;
             self.graph.input_value_definitions.push(InputValueDefinitionRecord {
-                name_id: definition.name.into(),
-                description_id: definition.description.map(Into::into),
+                name_id,
+                description_id,
                 ty_record: self.ctx.convert_type(definition.r#type),
                 // Adding after ingesting all input values as input object fields are input values.
                 // So we need them for coercion.
@@ -206,21 +206,22 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
         }
 
         let mut input_values = take(&mut self.graph.input_values);
-        let mut coercer = InputValueCoercer::new(self.ctx, &self.graph, &mut input_values);
+        let mut coercer = InputValueCoercer::new(self.ctx, &self.graph, graph, &mut input_values);
 
         let default_values = default_values
             .into_iter()
             .map(|(id, value)| {
                 let input_value_definition = &self.graph[id];
-                let value = coercer.coerce(input_value_definition.ty_record, value).map_err(|err| {
-                    BuildError::DefaultValueCoercionError {
-                        err,
-                        name: self.ctx.strings[input_value_definition.name_id].to_string(),
-                    }
-                })?;
+                let value = coercer
+                    .coerce(input_value_definition.ty_record, value)
+                    .map_err(|err| (input_value_definition.name_id, err))?;
                 Ok((id, value))
             })
-            .collect::<Result<Vec<_>, BuildError>>()?;
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|(name_id, err)| BuildError::DefaultValueCoercionError {
+                err,
+                name: self.ctx.strings[name_id].to_string(),
+            })?;
 
         for (id, value_id) in default_values {
             self.graph[id].default_value_id = Some(value_id);
@@ -231,22 +232,20 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
         Ok(())
     }
 
-    fn ingest_input_objects(&mut self, config: &mut Config) -> Result<(), BuildError> {
-        self.graph.input_object_definitions = Vec::with_capacity(config.graph.input_objects.len());
-        self.graph.inaccessible_input_object_definitions = BitSet::with_capacity(config.graph.input_objects.len());
-        for (ix, definition) in take(&mut config.graph.input_objects).into_iter().enumerate() {
+    fn ingest_input_objects(&mut self, graph: &mut FederatedGraph) -> Result<(), BuildError> {
+        self.graph.input_object_definitions = Vec::with_capacity(graph.input_objects.len());
+        self.graph.inaccessible_input_object_definitions = BitSet::with_capacity(graph.input_objects.len());
+        for (ix, definition) in take(&mut graph.input_objects).into_iter().enumerate() {
             if has_inaccessible(&definition.directives) {
                 self.graph.inaccessible_input_object_definitions.set(ix.into(), true);
             }
-            let directive_ids = self.push_directives(
-                SchemaLocation::Definition {
-                    name: definition.name.into(),
-                },
-                &definition.directives,
-            )?;
+            let name_id = self.ctx.strings.get_or_new(&graph[definition.name]);
+            let description_id = definition.description.map(|id| self.ctx.strings.get_or_new(&graph[id]));
+            let directive_ids =
+                self.push_directives(SchemaLocation::Definition { name_id }, &definition.directives, graph)?;
             self.graph.input_object_definitions.push(InputObjectDefinitionRecord {
-                name_id: definition.name.into(),
-                description_id: definition.description.map(Into::into),
+                name_id,
+                description_id,
                 input_field_ids: IdRange::from_start_and_length(definition.fields),
                 directive_ids,
             });
@@ -255,11 +254,11 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
         Ok(())
     }
 
-    fn ingest_unions_after_objects(&mut self, config: &mut Config) -> Result<(), BuildError> {
-        self.graph.union_definitions = Vec::with_capacity(config.graph.unions.len());
-        self.graph.inaccessible_union_definitions = BitSet::with_capacity(config.graph.unions.len());
-        self.graph.union_has_inaccessible_member = BitSet::with_capacity(config.graph.unions.len());
-        for (ix, union) in take(&mut config.graph.unions).into_iter().enumerate() {
+    fn ingest_unions_after_objects(&mut self, graph: &mut FederatedGraph) -> Result<(), BuildError> {
+        self.graph.union_definitions = Vec::with_capacity(graph.unions.len());
+        self.graph.inaccessible_union_definitions = BitSet::with_capacity(graph.unions.len());
+        self.graph.union_has_inaccessible_member = BitSet::with_capacity(graph.unions.len());
+        for (ix, union) in take(&mut graph.unions).into_iter().enumerate() {
             if has_inaccessible(&union.directives) {
                 self.graph.inaccessible_union_definitions.set(ix.into(), true);
             }
@@ -279,12 +278,11 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
                 }
             }
 
-            let directive_ids = self.push_directives(
-                SchemaLocation::Definition {
-                    name: union.name.into(),
-                },
-                &union.directives,
-            )?;
+            let name_id = self.ctx.strings.get_or_new(&graph[union.name]);
+            let description_id = union.description.map(|id| self.ctx.strings.get_or_new(&graph[id]));
+
+            let directive_ids =
+                self.push_directives(SchemaLocation::Definition { name_id }, &union.directives, graph)?;
 
             let mut join_member_records: Vec<_> = union
                 .directives
@@ -322,8 +320,8 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
             }
 
             self.graph.union_definitions.push(UnionDefinitionRecord {
-                name_id: union.name.into(),
-                description_id: union.description.map(Into::into),
+                name_id,
+                description_id,
                 possible_type_ids,
                 // Added at the end.
                 possible_types_ordered_by_typename_ids: Vec::new(),
@@ -336,8 +334,8 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
         Ok(())
     }
 
-    fn ingest_enums(&mut self, config: &mut Config) -> Result<(), BuildError> {
-        for federated_enum in config.graph.iter_enum_definitions() {
+    fn ingest_enums(&mut self, graph: &mut FederatedGraph) -> Result<(), BuildError> {
+        for federated_enum in graph.iter_enum_definitions() {
             if federated_enum.namespace.is_some() {
                 continue;
             }
@@ -348,37 +346,42 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
                 .inaccessible_enum_definitions
                 .push(has_inaccessible(&federated_enum.directives));
 
+            let name_id = self.ctx.strings.get_or_new(&graph[federated_enum.name]);
+            let description_id = federated_enum
+                .description
+                .map(|id| self.ctx.strings.get_or_new(&graph[id]));
             let directive_ids = self.push_directives(
-                SchemaLocation::Definition {
-                    name: federated_enum.name.into(),
-                },
+                SchemaLocation::Definition { name_id },
                 &federated_enum.directives,
+                graph,
             )?;
             self.graph.enum_definitions.push(EnumDefinitionRecord {
-                name_id: federated_enum.name.into(),
-                description_id: federated_enum.description.map(Into::into),
-                value_ids: IdRange::from_start_and_length(config.graph.enum_value_range(federated_enum.id())),
+                name_id,
+                description_id,
+                value_ids: IdRange::from_start_and_length(graph.enum_value_range(federated_enum.id())),
                 directive_ids,
             })
         }
 
         // Enum values MUST be after enum definitions as otherwise enums will be empty.
-        self.graph.enum_values = Vec::with_capacity(config.graph.enum_values.len());
-        self.graph.inaccessible_enum_values = BitSet::with_capacity(config.graph.enum_values.len());
-        for (ix, enum_value) in take(&mut config.graph.enum_values).into_iter().enumerate() {
+        self.graph.enum_values = Vec::with_capacity(graph.enum_values.len());
+        self.graph.inaccessible_enum_values = BitSet::with_capacity(graph.enum_values.len());
+        for (ix, enum_value) in take(&mut graph.enum_values).into_iter().enumerate() {
             if has_inaccessible(&enum_value.directives) {
                 self.graph.inaccessible_enum_values.set(ix.into(), true);
             }
+
+            let name_id = self.ctx.strings.get_or_new(&graph[enum_value.value]);
+            let description_id = enum_value.description.map(|id| self.ctx.strings.get_or_new(&graph[id]));
             let directive_ids = self.push_directives(
                 // FIXME: better schema location for enum values...
-                SchemaLocation::Definition {
-                    name: enum_value.value.into(),
-                },
+                SchemaLocation::Definition { name_id },
                 &enum_value.directives,
+                graph,
             )?;
             self.graph.enum_values.push(EnumValueRecord {
-                name_id: enum_value.value.into(),
-                description_id: enum_value.description.map(Into::into),
+                name_id,
+                description_id,
                 directive_ids,
             });
         }
@@ -386,8 +389,8 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
         Ok(())
     }
 
-    fn ingest_scalars(&mut self, config: &mut Config) -> Result<(), BuildError> {
-        for scalar in config.graph.iter_scalar_definitions() {
+    fn ingest_scalars(&mut self, graph: &mut FederatedGraph) -> Result<(), BuildError> {
+        for scalar in graph.iter_scalar_definitions() {
             if scalar.namespace.is_some() {
                 continue;
             }
@@ -397,12 +400,14 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
             self.graph
                 .inaccessible_scalar_definitions
                 .push(has_inaccessible(&scalar.directives));
-            let name = StringId::from(scalar.name);
-            let directive_ids = self.push_directives(SchemaLocation::Definition { name }, &scalar.directives)?;
+            let name_id = self.ctx.strings.get_or_new(&graph[scalar.name]);
+            let description_id = scalar.description.map(|id| self.ctx.strings.get_or_new(&graph[id]));
+            let directive_ids =
+                self.push_directives(SchemaLocation::Definition { name_id }, &scalar.directives, graph)?;
             self.graph.scalar_definitions.push(ScalarDefinitionRecord {
-                name_id: name,
-                ty: ScalarType::from_scalar_name(&self.ctx.strings[name]),
-                description_id: scalar.description.map(Into::into),
+                name_id,
+                ty: ScalarType::from_scalar_name(&self.ctx.strings[name_id]),
+                description_id,
                 specified_by_url_id: None,
                 directive_ids,
             })
@@ -411,18 +416,19 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
         Ok(())
     }
 
-    fn ingest_objects(&mut self, config: &mut Config) -> Result<(), BuildError> {
-        self.graph.object_definitions = Vec::with_capacity(config.graph.objects.len());
-        self.graph.inaccessible_object_definitions = BitSet::with_capacity(config.graph.objects.len());
-        for (ix, object) in take(&mut config.graph.objects).into_iter().enumerate() {
-            let name_id = object.name.into();
+    fn ingest_objects(&mut self, graph: &mut FederatedGraph) -> Result<(), BuildError> {
+        self.graph.object_definitions = Vec::with_capacity(graph.objects.len());
+        self.graph.inaccessible_object_definitions = BitSet::with_capacity(graph.objects.len());
+        for (ix, object) in take(&mut graph.objects).into_iter().enumerate() {
+            let name_id = self.ctx.strings.get_or_new(&graph[object.name]);
+            let description_id = object.description.map(|id| self.ctx.strings.get_or_new(&graph[id]));
             let federated_directives = &object.directives;
             if has_inaccessible(federated_directives) {
                 self.graph.inaccessible_object_definitions.set(ix.into(), true);
             }
 
             let directives =
-                self.push_directives(SchemaLocation::Definition { name: name_id }, federated_directives)?;
+                self.push_directives(SchemaLocation::Definition { name_id }, federated_directives, graph)?;
 
             let mut join_implement_records: Vec<_> = object
                 .directives
@@ -457,7 +463,7 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
 
             self.graph.object_definitions.push(ObjectDefinitionRecord {
                 name_id,
-                description_id: object.description.map(Into::into),
+                description_id,
                 interface_ids: object.implements_interfaces.into_iter().map(Into::into).collect(),
                 directive_ids: directives,
                 field_ids: IdRange::from(object.fields),
@@ -469,12 +475,13 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
         Ok(())
     }
 
-    fn ingest_interfaces_after_objects_and_fields(&mut self, config: &mut Config) -> Result<(), BuildError> {
-        self.graph.interface_definitions = Vec::with_capacity(config.graph.interfaces.len());
-        self.graph.inaccessible_interface_definitions = BitSet::with_capacity(config.graph.interfaces.len());
-        self.graph.interface_has_inaccessible_implementor = BitSet::with_capacity(config.graph.interfaces.len());
-        for (ix, interface) in take(&mut config.graph.interfaces).into_iter().enumerate() {
-            let name_id = interface.name.into();
+    fn ingest_interfaces_after_objects_and_fields(&mut self, graph: &mut FederatedGraph) -> Result<(), BuildError> {
+        self.graph.interface_definitions = Vec::with_capacity(graph.interfaces.len());
+        self.graph.inaccessible_interface_definitions = BitSet::with_capacity(graph.interfaces.len());
+        self.graph.interface_has_inaccessible_implementor = BitSet::with_capacity(graph.interfaces.len());
+        for (ix, interface) in take(&mut graph.interfaces).into_iter().enumerate() {
+            let name_id = self.ctx.strings.get_or_new(&graph[interface.name]);
+            let description_id = interface.description.map(|id| self.ctx.strings.get_or_new(&graph[id]));
             let federated_directives = &interface.directives;
 
             if has_inaccessible(federated_directives) {
@@ -482,7 +489,7 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
             }
 
             let directives =
-                self.push_directives(SchemaLocation::Definition { name: name_id }, federated_directives)?;
+                self.push_directives(SchemaLocation::Definition { name_id }, federated_directives, graph)?;
 
             let mut exists_in_subgraph_ids = Vec::new();
             let mut is_interface_object_in_ids = Vec::new();
@@ -496,7 +503,7 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
 
             self.graph.interface_definitions.push(InterfaceDefinitionRecord {
                 name_id,
-                description_id: interface.description.map(Into::into),
+                description_id,
                 interface_ids: interface.implements_interfaces.into_iter().map(Into::into).collect(),
                 possible_type_ids: Vec::new(),
                 // Added at the end.
@@ -549,18 +556,16 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
         Ok(())
     }
 
-    fn ingest_fields_after_input_values(&mut self, config: &mut Config) -> Result<(), BuildError> {
+    fn ingest_fields_after_input_values(&mut self, graph: &mut FederatedGraph) -> Result<(), BuildError> {
         let root_entities = [
             Some(EntityDefinitionId::from(ObjectDefinitionId::from(
-                config.graph.root_operation_types.query,
+                graph.root_operation_types.query,
             ))),
-            config
-                .graph
+            graph
                 .root_operation_types
                 .mutation
                 .map(|id| EntityDefinitionId::from(ObjectDefinitionId::from(id))),
-            config
-                .graph
+            graph
                 .root_operation_types
                 .subscription
                 .map(|id| EntityDefinitionId::from(ObjectDefinitionId::from(id))),
@@ -569,24 +574,27 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
         .flatten()
         .collect::<Vec<_>>();
 
-        self.graph.field_definitions = Vec::with_capacity(config.graph.fields.len());
-        self.graph.inaccessible_field_definitions = BitSet::with_capacity(config.graph.fields.len());
+        self.graph.field_definitions = Vec::with_capacity(graph.fields.len());
+        self.graph.inaccessible_field_definitions = BitSet::with_capacity(graph.fields.len());
         let mut graphql_federated_entity_resolvers = std::mem::take(&mut self.graphql_federated_entity_resolvers);
-        for (ix, field) in take(&mut config.graph.fields).into_iter().enumerate() {
+        for (ix, field) in take(&mut graph.fields).into_iter().enumerate() {
             let federated_id = federated_graph::FieldId::from(ix);
+            let name_id = self.ctx.strings.get_or_new(&graph[field.name]);
+            let description_id = field.description.map(|id| self.ctx.strings.get_or_new(&graph[id]));
 
             if has_inaccessible(&field.directives) {
                 self.graph.inaccessible_field_definitions.set(ix.into(), true);
             }
 
             let parent_entity_id = field.parent_entity_id.into();
-            let parent_entity = config.graph.entity(field.parent_entity_id);
+            let parent_entity = graph.entity(field.parent_entity_id);
+            let parent_entity_name_id = self.ctx.strings.get_or_new(&graph[parent_entity.name()]);
             let type_schema_location = SchemaLocation::Definition {
-                name: parent_entity.name().into(),
+                name_id: parent_entity_name_id,
             };
             let field_schema_location = SchemaLocation::Field {
-                ty: parent_entity.name().into(),
-                name: field.name.into(),
+                ty: parent_entity_name_id,
+                name_id,
             };
 
             let mut subgraph_type_records = Vec::new();
@@ -735,7 +743,7 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
                 }
             }
 
-            let directive_ids = self.push_directives(field_schema_location, &field.directives)?;
+            let directive_ids = self.push_directives(field_schema_location, &field.directives, graph)?;
             resolver_ids.extend(
                 directive_ids
                     .iter()
@@ -755,8 +763,8 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
             );
 
             self.graph.field_definitions.push(FieldDefinitionRecord {
-                name_id: field.name.into(),
-                description_id: field.description.map(Into::into),
+                name_id,
+                description_id,
                 parent_entity_id,
                 subgraph_type_records,
                 ty_record: self.ctx.convert_type(field.r#type),
@@ -773,7 +781,7 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
         Ok(())
     }
 
-    fn finalize(self) -> Result<(Graph, IntrospectionMetadata), BuildError> {
+    fn finalize(self, federated_graph: FederatedGraph) -> Result<(Graph, IntrospectionMetadata), BuildError> {
         let Self {
             ctx,
             field_sets,
@@ -783,7 +791,7 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
         } = self;
 
         graph.required_scopes = required_scopes.into();
-        field_sets.try_insert_into(ctx, &mut graph)?;
+        field_sets.try_insert_into(ctx, &mut graph, &federated_graph)?;
 
         let introspection = IntrospectionBuilder::create_data_source_and_insert_fields(ctx, &mut graph);
 
@@ -889,6 +897,7 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
         &mut self,
         schema_location: SchemaLocation,
         directives: impl IntoIterator<Item = &'d federated_graph::Directive>,
+        graph: &FederatedGraph,
     ) -> Result<Vec<TypeSystemDirectiveId>, BuildError> {
         let mut directive_ids = Vec::new();
 
@@ -899,14 +908,20 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
                     let id = self.required_scopes.get_or_insert(RequiresScopesDirectiveRecord::new(
                         federated_scopes
                             .iter()
-                            .map(|scopes| scopes.iter().copied().map(Into::into).collect())
+                            .map(|scopes| {
+                                scopes
+                                    .iter()
+                                    .copied()
+                                    .map(|scope| self.ctx.strings.get_or_new(&graph[scope]))
+                                    .collect()
+                            })
                             .collect(),
                     ));
                     TypeSystemDirectiveId::RequiresScopes(id)
                 }
                 federated_graph::Directive::Deprecated { reason } => {
                     TypeSystemDirectiveId::Deprecated(DeprecatedDirectiveRecord {
-                        reason_id: reason.map(Into::into),
+                        reason_id: reason.map(|id| self.ctx.strings.get_or_new(&graph[id])),
                     })
                 }
                 federated_graph::Directive::Authorized(authorized) => {
@@ -925,7 +940,7 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
                             .as_ref()
                             .map(|field_set| self.field_sets.push(schema_location, field_set.clone())),
                         metadata_id: authorized.metadata.clone().map(|value| {
-                            let value = self.graph.input_values.ingest_arbitrary_value(self.ctx, value);
+                            let value = self.graph.input_values.ingest_arbitrary_value(self.ctx, value, graph);
                             self.graph.input_values.push_value(value)
                         }),
                     });
@@ -969,11 +984,12 @@ impl<'a, 'c> GraphBuilder<'a, 'c> {
                     self.graph.extension_directives.push(ExtensionDirectiveRecord {
                         subgraph_id: self.sources[*subgraph_id],
                         extension_id: id,
-                        name_id: (*name).into(),
+                        name_id: self.ctx.strings.get_or_new(&graph[*name]),
                         arguments_id: arguments.as_ref().map(|arguments| {
                             let value = self.graph.input_values.ingest_arbitrary_value(
                                 self.ctx,
                                 federated_graph::Value::Object(arguments.clone().into()),
+                                graph,
                             );
                             self.graph.input_values.push_value(value)
                         }),

@@ -19,6 +19,16 @@ where
     T::Err: std::error::Error,
     T: FromStr + AsRef<str> + Default + Write + Clone;
 
+impl<T> DynamicString<T>
+where
+    T::Err: std::error::Error,
+    T: FromStr + AsRef<str> + Default + Write + Clone,
+{
+    pub fn from_const_value(value: impl Into<T>) -> Self {
+        Self(value.into())
+    }
+}
+
 impl<T> FromStr for DynamicString<T>
 where
     T::Err: std::error::Error,

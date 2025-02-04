@@ -49,7 +49,6 @@ hashbrown = "0.15"
 engine-auth = { path = "./auth" }
 operation = { path = "./operation", package = "engine-operation" }
 operation-normalizer = { path = "../operation-normalizer" }
-config = { package = "engine-config", path = "./config" }
 schema = { path = "./schema", package = "engine-schema" }
 walker = { path = "./walker", package = "engine-walker" }
 query-solver = { path = "./query-solver", package = "engine-query-solver" }

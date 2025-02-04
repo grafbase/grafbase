@@ -1,24 +1,25 @@
 mod non_ord;
 
 pub use non_ord::ProxyKeyInterner;
+use rapidhash::RapidBuildHasher;
 
 use std::{borrow::Borrow, marker::PhantomData};
 
 #[derive(Debug)]
-pub struct Interner<T, Id>(indexmap::IndexSet<T, fnv::FnvBuildHasher>, PhantomData<Id>);
+pub struct Interner<T, Id>(indexmap::IndexSet<T, RapidBuildHasher>, PhantomData<Id>);
 
 impl<T, Id> Default for Interner<T, Id> {
     fn default() -> Self {
-        Self(
-            indexmap::IndexSet::with_hasher(fnv::FnvBuildHasher::default()),
-            PhantomData,
-        )
+        Self(Default::default(), PhantomData)
     }
 }
 
 impl<T: core::hash::Hash + PartialEq + Eq, Id: Copy + From<usize> + Into<usize>> Interner<T, Id> {
-    pub fn from_vec(existing: Vec<T>) -> Self {
-        Self(existing.into_iter().collect(), PhantomData)
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self(
+            indexmap::IndexSet::with_capacity_and_hasher(capacity, RapidBuildHasher::default()),
+            PhantomData,
+        )
     }
 
     pub fn get_by_id(&self, id: Id) -> Option<&T> {
@@ -62,7 +63,7 @@ impl<T, Id: Into<usize>> std::ops::Index<Id> for Interner<T, Id> {
 
 impl<T, Id> IntoIterator for Interner<T, Id> {
     type Item = T;
-    type IntoIter = <indexmap::IndexSet<T, fnv::FnvBuildHasher> as IntoIterator>::IntoIter;
+    type IntoIter = <indexmap::IndexSet<T, RapidBuildHasher> as IntoIterator>::IntoIter;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter()

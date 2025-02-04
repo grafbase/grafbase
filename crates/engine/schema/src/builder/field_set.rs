@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 
+use federated_graph::FederatedGraph;
 use id_newtypes::IdRange;
 
 use crate::{FieldSetId, Graph, SchemaFieldId};
@@ -20,26 +21,31 @@ impl FieldSetsBuilder {
         id
     }
 
-    pub(super) fn try_insert_into(self, ctx: &BuildContext<'_>, graph: &mut Graph) -> Result<(), BuildError> {
+    pub(super) fn try_insert_into(
+        self,
+        ctx: &mut BuildContext<'_>,
+        graph: &mut Graph,
+        federated_graph: &FederatedGraph,
+    ) -> Result<(), BuildError> {
         let mut input_values = std::mem::take(&mut graph.input_values);
         let mut converter = Converter {
-            ctx,
             graph,
-            coercer: InputValueCoercer::new(ctx, graph, &mut input_values),
+            coercer: InputValueCoercer::new(ctx, graph, federated_graph, &mut input_values),
             deduplicated_fields: BTreeMap::new(),
             field_arguments: Vec::new(),
         };
 
         let mut field_sets = Vec::with_capacity(self.0.len());
         for (location, field_set) in self.0 {
-            let set =
-                converter
-                    .convert_set(field_set)
-                    .map_err(|err| BuildError::RequiredFieldArgumentCoercionError {
+            match converter.convert_set(field_set) {
+                Ok(set) => field_sets.push(set),
+                Err(err) => {
+                    return Err(BuildError::RequiredFieldArgumentCoercionError {
                         location: location.to_string(ctx),
                         err,
-                    })?;
-            field_sets.push(set);
+                    });
+                }
+            }
         }
 
         let field_arguments = converter.field_arguments;
@@ -54,7 +60,6 @@ impl FieldSetsBuilder {
 }
 
 struct Converter<'a, 'c> {
-    ctx: &'a BuildContext<'c>,
     graph: &'a Graph,
     coercer: InputValueCoercer<'a, 'c>,
     deduplicated_fields: BTreeMap<SchemaFieldRecord, SchemaFieldId>,
@@ -123,7 +128,7 @@ impl Converter<'_, '_> {
                 });
             } else if input_value_definition.ty_record.wrapping.is_required() {
                 return Err(InputValueError::MissingRequiredArgument(
-                    self.ctx.strings[input_value_definition.name_id].clone(),
+                    self.coercer.ctx.strings[input_value_definition.name_id].clone(),
                 ));
             }
         }
