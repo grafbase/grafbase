@@ -32,7 +32,7 @@ pub(crate) struct WasiState {
     /// A sender for the access log channel.
     access_log: ChannelLogSender,
 
-    /// A cache to be used for storing data betwee.
+    /// A cache to be used for storing data between calls to different instances of the same extension.
     cache: Arc<Cache>,
 }
 

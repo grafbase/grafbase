@@ -170,5 +170,6 @@ pub struct ExtensionConfig {
     pub schema_directives: Vec<Directive>,
     pub max_pool_size: Option<usize>,
     pub wasi_config: WasiExtensionsConfig,
-    pub extension_config: Box<dyn erased_serde::Serialize + Send + Sync>,
+    // CBOR encoded extension configuration
+    pub extension_config: Vec<u8>,
 }

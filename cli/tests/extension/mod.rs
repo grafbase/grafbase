@@ -26,7 +26,7 @@ fn init() {
     license = "Apache-2.0"
 
     [dependencies]
-    grafbase-sdk = "0.1.3"
+    grafbase-sdk = "0.1.4"
 
     [lib]
     crate-type = ["cdylib"]
@@ -60,7 +60,7 @@ fn init() {
 
     insta::assert_snapshot!(&lib_rs, @r##"
     use grafbase_sdk::{
-        types::{Directive, FieldDefinition, FieldInputs, FieldOutput},
+        types::{Configuration, Directive, FieldDefinition, FieldInputs, FieldOutput},
         Error, Extension, Resolver, ResolverExtension, SharedContext,
     };
 
@@ -68,7 +68,7 @@ fn init() {
     struct TestProject;
 
     impl Extension for TestProject {
-        fn new(schema_directives: Vec<Directive>) -> Result<Self, Box<dyn std::error::Error>> {
+        fn new(schema_directives: Vec<Directive>, config: Configuration) -> Result<Self, Box<dyn std::error::Error>> {
             Ok(Self)
         }
     }

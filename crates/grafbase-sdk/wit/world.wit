@@ -150,7 +150,7 @@ world sdk {
     }
 
     record token {
-        claims: list<u8>,
+        raw: list<u8>,
     }
 
     resource cache {

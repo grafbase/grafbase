@@ -31,7 +31,7 @@ impl Pool {
         loader: ComponentLoader,
         config: ComponentManagerConfig,
         size: Option<usize>,
-        extension_config: Box<dyn erased_serde::Serialize + Send + Sync>,
+        extension_config: Vec<u8>,
         access_log: ChannelLogSender,
     ) -> Self {
         let mgr = ComponentManager::new(loader, access_log, config, extension_config);
@@ -64,7 +64,7 @@ pub(super) struct ComponentManager {
     access_log: ChannelLogSender,
     extension_type: ExtensionType,
     schema_directives: Vec<Directive>,
-    config: Box<dyn erased_serde::Serialize + Send + Sync>,
+    config: Vec<u8>,
 }
 
 impl ComponentManager {
@@ -72,7 +72,7 @@ impl ComponentManager {
         component_loader: ComponentLoader,
         access_log: ChannelLogSender,
         config: ComponentManagerConfig,
-        extension_config: Box<dyn erased_serde::Serialize + Send + Sync>,
+        extension_config: Vec<u8>,
     ) -> Self {
         Self {
             component_loader,
@@ -93,7 +93,7 @@ impl Manager for ComponentManager {
             &self.component_loader,
             self.extension_type,
             self.schema_directives.clone(),
-            &self.config,
+            self.config.clone(),
             self.access_log.clone(),
         )
         .await

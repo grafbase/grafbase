@@ -220,7 +220,7 @@ pub struct Token {
 
 impl From<Token> for wit::Token {
     fn from(token: Token) -> wit::Token {
-        wit::Token { claims: token.claims }
+        wit::Token { raw: token.claims }
     }
 }
 

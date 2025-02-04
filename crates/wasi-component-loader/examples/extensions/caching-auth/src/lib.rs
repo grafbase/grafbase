@@ -37,14 +37,15 @@ impl Authenticator for CachingProvider {
             .get("Authorization")
             .ok_or_else(|| ErrorResponse::new(StatusCode::UNAUTHORIZED))?;
 
+        let value = headers.get("value").unwrap_or_else(|| String::from("default"));
+
         let cache_key = format!("auth:{}:{header}", self.config.cache_config);
 
         let jwks: Jwks = Cache::get(&cache_key, || {
             std::thread::sleep(Duration::from_millis(300));
 
-            let jwks = Jwks { key: header };
-
-            let item = CachedItem::new(jwks, Some(Duration::from_millis(900)));
+            let jwks = Jwks { key: value };
+            let item = CachedItem::new(jwks, None);
 
             Ok(item)
         })

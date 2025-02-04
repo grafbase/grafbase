@@ -24,16 +24,13 @@ pub struct ExtensionsComponentInstance {
 
 impl ExtensionsComponentInstance {
     /// Creates a new extension component instance.
-    pub async fn new<T>(
+    pub async fn new(
         loader: &ComponentLoader,
         r#type: ExtensionType,
         schema_directives: Vec<Directive>,
-        configuration: &T,
+        configuration: Vec<u8>,
         access_log: ChannelLogSender,
-    ) -> crate::Result<Self>
-    where
-        T: serde::Serialize,
-    {
+    ) -> crate::Result<Self> {
         let mut component = ComponentInstance::new(loader, access_log).await?;
 
         let register = component
@@ -112,18 +109,14 @@ impl ExtensionsComponentInstance {
         Ok((headers, result?.deserialize()?))
     }
 
-    async fn init_gateway_extension<T>(
+    async fn init_gateway_extension(
         &mut self,
         r#type: ExtensionType,
         schema_directives: Vec<Directive>,
-        configuration: &T,
-    ) -> crate::Result<()>
-    where
-        T: serde::Serialize,
-    {
+        configuration: Vec<u8>,
+    ) -> crate::Result<()> {
         type Params = (ExtensionType, Vec<Directive>, Vec<u8>);
 
-        let configuration = minicbor_serde::to_vec(configuration).unwrap();
         let params = (r#type, schema_directives, configuration);
 
         let result = self

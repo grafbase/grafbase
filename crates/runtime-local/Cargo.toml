@@ -58,4 +58,3 @@ anyhow.workspace = true
 grafbase-workspace-hack.workspace = true
 enumflags2 = "0.7.10"
 semver.workspace = true
-erased-serde = "0.4.5"

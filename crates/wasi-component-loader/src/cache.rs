@@ -79,10 +79,12 @@ impl Cache {
             }
         }
 
-        // This will short-circuit a `None` out if there is no wait list. The function creates a new list,
-        // and the caller must call set with a new value. Subsequent calls will get the wait list
-        // and yield until the first caller creates the value.
-        let (wait_list_sender, wait_list_id) = self.get_or_create_wait_list(key).await?;
+        let Some((wait_list_sender, wait_list_id)) = self.get_or_create_wait_list(key).await else {
+            // This will short-circuit a `None` out if there is no wait list. The function creates a new list,
+            // and the caller must call set with a new value. Subsequent calls will get the wait list
+            // and yield until the first caller creates the value.
+            return None;
+        };
 
         // We have to have a timeout here, because the guest can do IO to get the cache value in the
         // init. If this never finishes, we will leak memory when new callers are added to the list.

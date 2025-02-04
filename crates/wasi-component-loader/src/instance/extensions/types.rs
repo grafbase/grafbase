@@ -79,8 +79,8 @@ impl FieldOutput {
 #[derive(Clone, Lift, ComponentType)]
 #[component(record)]
 pub struct Token {
-    #[component(name = "claims")]
-    claims: Vec<u8>,
+    #[component(name = "raw")]
+    raw: Vec<u8>,
 }
 
 impl Token {
@@ -88,6 +88,6 @@ impl Token {
     where
         S: DeserializeOwned,
     {
-        Ok(minicbor_serde::from_slice(&self.claims)?)
+        Ok(minicbor_serde::from_slice(&self.raw)?)
     }
 }
