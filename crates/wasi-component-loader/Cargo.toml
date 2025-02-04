@@ -25,7 +25,6 @@ serde.workspace = true
 minicbor-serde = { version = "0.3.2", features = ["alloc"] }
 either = "1.13.0"
 dashmap = "6.1.0"
-mini-moka.workspace = true
 ulid.workspace = true
 
 [dependencies.wasmtime]
