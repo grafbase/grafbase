@@ -1,4 +1,4 @@
-use std::{any::TypeId, borrow::Cow, collections::HashSet};
+use std::{any::TypeId, borrow::Cow, collections::HashSet, sync::Arc};
 
 use crate::federation::{DockerSubgraph, MockSubgraph};
 use cynic_introspection::{IntrospectionQuery, SpecificationVersion};
@@ -6,7 +6,8 @@ use futures::{future::BoxFuture, stream::FuturesUnordered, StreamExt};
 use graphql_mocks::MockGraphQlServer;
 use url::Url;
 
-pub(super) struct Subgraphs(Vec<Subgraph>);
+#[derive(Clone)]
+pub(super) struct Subgraphs(Arc<Vec<Subgraph>>);
 
 impl Subgraphs {
     pub fn is_empty(&self) -> bool {
@@ -77,7 +78,7 @@ impl Subgraphs {
         // Ensures consistency of composition and thus introspection tests.
         subgraphs.sort_unstable_by(|a, b| a.name().cmp(b.name()));
 
-        Self(subgraphs)
+        Self(Arc::new(subgraphs))
     }
 }
 

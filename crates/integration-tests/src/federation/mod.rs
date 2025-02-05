@@ -17,12 +17,13 @@ use tower::ServiceExt;
 use url::Url;
 use websocket_request::WebsocketRequest;
 
+#[derive(Clone)]
 pub struct TestGateway {
     router: axum::Router,
     #[allow(unused)]
     engine: Arc<engine::Engine<TestRuntime>>,
     #[allow(unused)]
-    context: TestRuntimeContext,
+    context: Arc<TestRuntimeContext>,
     subgraphs: subgraph::Subgraphs,
 }
 
@@ -45,18 +46,21 @@ impl std::ops::Deref for MockSubgraph {
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Copy)]
 pub enum DockerSubgraph {
     Sse,
+    Gqlgen,
 }
 
 impl DockerSubgraph {
     pub fn name(&self) -> &str {
         match self {
             DockerSubgraph::Sse => "sse",
+            DockerSubgraph::Gqlgen => "gqlgen",
         }
     }
 
     pub fn url(&self) -> Url {
         match self {
             DockerSubgraph::Sse => Url::parse("http://localhost:4092/graphql").unwrap(),
+            DockerSubgraph::Gqlgen => Url::parse("http://localhost:8080/query").unwrap(),
         }
     }
 }

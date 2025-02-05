@@ -370,8 +370,10 @@ fn get_must_not_be_used_for_mutations_with_sse(#[case] accept: &'static str) {
             .get("query { value }")
             .header(http::header::ACCEPT, accept.clone())
             .into_sse_stream()
+            .await
+            .collect()
             .await;
-        insta::assert_json_snapshot!(response.collected_body, @r###"
+        insta::assert_json_snapshot!(response.messages, @r###"
         [
           {
             "data": {
@@ -386,8 +388,10 @@ fn get_must_not_be_used_for_mutations_with_sse(#[case] accept: &'static str) {
             .get("mutation { set(val: 1) }")
             .header(http::header::ACCEPT, accept)
             .into_sse_stream()
+            .await
+            .collect()
             .await;
-        insta::assert_json_snapshot!(response.collected_body, @r###"
+        insta::assert_json_snapshot!(response.messages, @r###"
         [
           {
             "errors": [
