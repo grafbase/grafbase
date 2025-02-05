@@ -7,7 +7,7 @@ use graphql_mocks::MockGraphQlServer;
 use url::Url;
 
 #[derive(Clone)]
-pub(super) struct Subgraphs(Arc<Vec<Subgraph>>);
+pub struct Subgraphs(Arc<Vec<Subgraph>>);
 
 impl Subgraphs {
     pub fn is_empty(&self) -> bool {
@@ -82,7 +82,7 @@ impl Subgraphs {
     }
 }
 
-pub(super) enum Subgraph {
+pub enum Subgraph {
     Mock { type_id: TypeId, server: MockSubgraph },
     Docker { subgraph: DockerSubgraph, sdl: String },
 }

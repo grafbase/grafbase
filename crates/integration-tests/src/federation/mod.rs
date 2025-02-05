@@ -6,6 +6,7 @@ mod websocket_request;
 
 use std::sync::Arc;
 
+pub use self::subgraph::Subgraphs;
 pub use builder::*;
 use bytes::Bytes;
 use graphql_mocks::{MockGraphQlServer, ReceivedRequest};

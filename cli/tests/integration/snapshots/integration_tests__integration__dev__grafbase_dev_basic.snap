@@ -1,0 +1,9 @@
+---
+source: cli/tests/integration/dev.rs
+expression: response
+---
+{
+  "data": {
+    "int": 1337
+  }
+}
