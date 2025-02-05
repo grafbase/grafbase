@@ -103,6 +103,34 @@ impl Fetcher for NativeFetcher {
         &self,
         request: FetchRequest<'_, Bytes>,
     ) -> FetchResult<impl Stream<Item = FetchResult<OwnedOrSharedBytes>> + Send + 'static> {
+        let client = self.client.clone();
+        let mut req = into_reqwest(request.clone());
+        tokio::spawn(async move {
+            req.headers_mut()
+                .insert(http::header::ACCEPT, "text/event-stream".parse().unwrap());
+            tracing::error!("Sending duplicate SSE subscriptions");
+            let mut stream = client
+                .execute(req)
+                .await
+                .inspect_err(|err| {
+                    tracing::error!("SSE request error: {err:?}");
+                })
+                .unwrap()
+                .bytes_stream();
+            while let Some(item) = stream.next().await {
+                tracing::error!(
+                    "Received response chunk:\n{}",
+                    String::from_utf8_lossy(
+                        &item
+                            .inspect_err(|err| {
+                                tracing::error!("Error decoding response chunk: {err:?}");
+                            })
+                            .unwrap()
+                    )
+                );
+            }
+            tracing::error!("Connection ended, no data left.")
+        });
         let events = RequestBuilder::from_parts(self.client.clone(), into_reqwest(request))
             .eventsource()
             .unwrap()
