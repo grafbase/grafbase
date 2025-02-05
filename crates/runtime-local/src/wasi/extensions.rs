@@ -5,8 +5,8 @@ use extension_catalog::ExtensionId;
 use futures_util::StreamExt;
 use gateway_config::WasiExtensionsConfig;
 use runtime::{
-    error::{PartialErrorCode, PartialGraphqlError},
-    extension::{Data, ExtensionDirective, ExtensionRuntime},
+    error::{ErrorResponse, PartialErrorCode, PartialGraphqlError},
+    extension::{AuthorizerId, Data, ExtensionDirective, ExtensionRuntime},
     hooks::{Anything, EdgeDefinition},
 };
 use semver::Version;
@@ -41,8 +41,8 @@ impl WasiExtensions {
 async fn create_pools(
     access_log: ChannelLogSender,
     extensions: Vec<ExtensionConfig>,
-) -> Result<HashMap<ExtensionId, Pool>, wasi_component_loader::Error> {
-    type Handle = JoinHandle<Result<Option<(ExtensionId, Pool)>, wasi_component_loader::Error>>;
+) -> Result<HashMap<ExtensionPoolId, Pool>, wasi_component_loader::Error> {
+    type Handle = JoinHandle<Result<Option<(ExtensionPoolId, Pool)>, wasi_component_loader::Error>>;
 
     let mut creating_pools: Vec<Handle> = Vec::new();
 
@@ -108,7 +108,9 @@ impl ExtensionRuntime for WasiExtensions {
             return Err(PartialGraphqlError::internal_extension_error());
         };
 
-        let Some(pool) = inner.instance_pools.get(&extension_id) else {
+        let id = ExtensionPoolId::Resolver(extension_id);
+
+        let Some(pool) = inner.instance_pools.get(&id) else {
             return Err(PartialGraphqlError::internal_extension_error());
         };
 
@@ -156,14 +158,79 @@ impl ExtensionRuntime for WasiExtensions {
             },
         }
     }
+
+    async fn authenticate(
+        &self,
+        extension_id: ExtensionId,
+        authorizer_id: AuthorizerId,
+        headers: http::HeaderMap,
+    ) -> Result<(http::HeaderMap, HashMap<String, serde_json::Value>), ErrorResponse> {
+        let Some(inner) = self.0.as_ref() else {
+            return Err(ErrorResponse {
+                status: http::StatusCode::INTERNAL_SERVER_ERROR,
+                errors: vec![PartialGraphqlError::internal_extension_error()],
+            });
+        };
+
+        let id = ExtensionPoolId::Authorizer(extension_id, authorizer_id);
+
+        let Some(pool) = inner.instance_pools.get(&id) else {
+            return Err(ErrorResponse {
+                status: http::StatusCode::INTERNAL_SERVER_ERROR,
+                errors: vec![PartialGraphqlError::internal_extension_error()],
+            });
+        };
+
+        let mut instance = pool.get().await;
+
+        let result = instance.authenticate(headers).await;
+
+        match result {
+            Ok(result) => Ok(result),
+            Err(wasi_component_loader::GatewayError::Guest(error)) => {
+                let status =
+                    http::StatusCode::from_u16(error.status_code).unwrap_or(http::StatusCode::INTERNAL_SERVER_ERROR);
+
+                let errors = error
+                    .errors
+                    .into_iter()
+                    .map(|error| guest_error_as_gql(error, PartialErrorCode::Unauthorized))
+                    .collect();
+
+                Err(ErrorResponse { status, errors })
+            }
+            Err(wasi_component_loader::GatewayError::Internal(_)) => Err(ErrorResponse {
+                status: http::StatusCode::INTERNAL_SERVER_ERROR,
+                errors: vec![PartialGraphqlError::internal_extension_error()],
+            }),
+        }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Hash, Eq, PartialOrd, Ord)]
+pub enum ExtensionPoolId {
+    Resolver(ExtensionId),
+    Authorizer(ExtensionId, AuthorizerId),
+}
+
+impl From<ExtensionId> for ExtensionPoolId {
+    fn from(id: ExtensionId) -> Self {
+        Self::Resolver(id)
+    }
+}
+
+impl From<(ExtensionId, AuthorizerId)> for ExtensionPoolId {
+    fn from((id, authorizer_id): (ExtensionId, AuthorizerId)) -> Self {
+        Self::Authorizer(id, authorizer_id)
+    }
 }
 
 struct WasiExtensionsInner {
-    instance_pools: HashMap<ExtensionId, Pool>,
+    instance_pools: HashMap<ExtensionPoolId, Pool>,
 }
 
 pub struct ExtensionConfig {
-    pub id: ExtensionId,
+    pub id: ExtensionPoolId,
     pub name: String,
     pub version: Version,
     pub extension_type: ExtensionType,

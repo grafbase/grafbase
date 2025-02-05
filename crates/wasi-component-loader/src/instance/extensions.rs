@@ -106,7 +106,9 @@ impl ExtensionsComponentInstance {
             .data_mut()
             .take_resource::<HeaderMap>(headers_rep)?;
 
-        Ok((headers, result?.deserialize()?))
+        let result = result?.deserialize()?;
+
+        Ok((headers, result))
     }
 
     async fn init_gateway_extension(

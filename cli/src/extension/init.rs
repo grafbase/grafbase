@@ -3,7 +3,51 @@ use std::path::Path;
 use askama::Template;
 use convert_case::{Case, Casing};
 
-use crate::cli_input::ExtensionInitCommand;
+use crate::cli_input::{ExtensionInitCommand, ExtensionType};
+
+#[derive(askama::Template)]
+#[template(path = "extension/src/resolver.rs.template", escape = "none")]
+struct ResolverTemplate<'a> {
+    name: &'a str,
+}
+
+#[derive(askama::Template)]
+#[template(path = "extension/src/auth.rs.template", escape = "none")]
+struct AuthTemplate<'a> {
+    name: &'a str,
+}
+
+#[derive(serde::Deserialize)]
+struct SdkCargoToml {
+    package: SdkCargoTomlPackage,
+}
+
+#[derive(serde::Deserialize)]
+struct SdkCargoTomlPackage {
+    version: String,
+}
+
+#[derive(askama::Template)]
+#[template(path = "extension/Cargo.toml.template", escape = "none")]
+struct CargoTomlTemplate<'a> {
+    name: &'a str,
+    sdk_version: &'a str,
+}
+
+#[derive(askama::Template)]
+#[template(path = "extension/definitions.graphql.template", escape = "none")]
+struct GraphQLDefinitionsTemplate<'a> {
+    name: &'a str,
+}
+
+#[derive(askama::Template)]
+#[template(path = "extension/extension.toml.template", escape = "none")]
+struct ExtensionTomlTemplate<'a> {
+    name: &'a str,
+    name_camel: &'a str,
+    kind: ExtensionType,
+    needs_field_resolvers: bool,
+}
 
 pub(super) fn execute(cmd: ExtensionInitCommand) -> anyhow::Result<()> {
     if cmd.path.exists() {
@@ -13,9 +57,13 @@ pub(super) fn execute(cmd: ExtensionInitCommand) -> anyhow::Result<()> {
     std::fs::create_dir_all(&cmd.path)?;
 
     let extension_name = init_cargo_toml(&cmd.path)?;
-    init_extension_toml(&cmd.path, &extension_name)?;
-    init_definitions_graphql(&cmd.path, &extension_name)?;
-    init_lib_rs(&cmd.path, &extension_name)?;
+    init_extension_toml(&cmd.path, cmd.r#type, &extension_name)?;
+
+    if cmd.r#type == ExtensionType::Resolver {
+        init_definitions_graphql(&cmd.path, &extension_name)?;
+    }
+
+    init_lib_rs(&cmd.path, cmd.r#type, &extension_name)?;
     init_gitignore(&cmd.path)?;
 
     Ok(())
@@ -33,31 +81,23 @@ fn init_gitignore(path: &Path) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn init_lib_rs(path: &Path, extension_name: &str) -> anyhow::Result<()> {
-    #[derive(askama::Template)]
-    #[template(path = "extension/src/lib.rs.template", escape = "none")]
-    struct LibRsTemplate<'a> {
-        name: &'a str,
-    }
-
+fn init_lib_rs(path: &Path, extension_type: ExtensionType, extension_name: &str) -> anyhow::Result<()> {
     let struct_name = extension_name.to_case(Case::Pascal);
     let lib_rs_path = path.join("src");
 
     std::fs::create_dir(&lib_rs_path)?;
 
     let mut writer = std::fs::File::create(lib_rs_path.join("lib.rs"))?;
-    LibRsTemplate { name: &struct_name }.write_into(&mut writer)?;
+
+    match extension_type {
+        ExtensionType::Resolver => ResolverTemplate { name: &struct_name }.write_into(&mut writer)?,
+        ExtensionType::Auth => AuthTemplate { name: &struct_name }.write_into(&mut writer)?,
+    }
 
     Ok(())
 }
 
 fn init_definitions_graphql(path: &Path, extension_name: &str) -> anyhow::Result<()> {
-    #[derive(askama::Template)]
-    #[template(path = "extension/definitions.graphql.template", escape = "none")]
-    struct GraphQLDefinitionsTemplate<'a> {
-        name: &'a str,
-    }
-
     let name = extension_name.to_case(Case::Camel);
 
     let mut writer = std::fs::File::create(path.join("definitions.graphql"))?;
@@ -67,23 +107,6 @@ fn init_definitions_graphql(path: &Path, extension_name: &str) -> anyhow::Result
 }
 
 fn init_cargo_toml(project_path: &Path) -> anyhow::Result<String> {
-    #[derive(serde::Deserialize)]
-    struct SdkCargoToml {
-        package: SdkCargoTomlPackage,
-    }
-
-    #[derive(serde::Deserialize)]
-    struct SdkCargoTomlPackage {
-        version: String,
-    }
-
-    #[derive(askama::Template)]
-    #[template(path = "extension/Cargo.toml.template", escape = "none")]
-    struct CargoTomlTemplate<'a> {
-        name: &'a str,
-        sdk_version: &'a str,
-    }
-
     let cargo_toml_path = project_path.join("Cargo.toml");
 
     let sdk_cargo_toml = include_str!("../../../crates/grafbase-sdk/Cargo.toml");
@@ -106,14 +129,7 @@ fn init_cargo_toml(project_path: &Path) -> anyhow::Result<String> {
     Ok(name)
 }
 
-fn init_extension_toml(project_path: &Path, extension_name: &str) -> anyhow::Result<()> {
-    #[derive(askama::Template)]
-    #[template(path = "extension/extension.toml.template", escape = "none")]
-    struct ExtensionTomlTemplate<'a> {
-        name: &'a str,
-        name_camel: &'a str,
-    }
-
+fn init_extension_toml(project_path: &Path, kind: ExtensionType, extension_name: &str) -> anyhow::Result<()> {
     let extension_toml_path = project_path.join("extension.toml");
     let camel_case_extension = extension_name.to_case(Case::Camel);
 
@@ -122,6 +138,8 @@ fn init_extension_toml(project_path: &Path, extension_name: &str) -> anyhow::Res
     let template = ExtensionTomlTemplate {
         name: extension_name,
         name_camel: &camel_case_extension,
+        kind,
+        needs_field_resolvers: matches!(kind, ExtensionType::Resolver),
     };
 
     template.write_into(&mut writer)?;

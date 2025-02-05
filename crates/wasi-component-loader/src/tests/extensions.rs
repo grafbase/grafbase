@@ -99,7 +99,7 @@ async fn single_call_caching_auth() {
     let mut headers = HeaderMap::new();
     headers.insert("Authorization", HeaderValue::from_static("valid"));
 
-    let (headers, output): (_, serde_json::Value) = extension.authenticate(headers).await.unwrap();
+    let (headers, output): (HeaderMap, serde_json::Value) = extension.authenticate(headers).await.unwrap();
 
     assert!(headers.len() == 1);
     assert_eq!(Some(&HeaderValue::from_static("valid")), headers.get("Authorization"));

@@ -2222,6 +2222,7 @@ dependencies = [
  "engine-query-solver",
  "engine-schema",
  "engine-walker",
+ "extension-catalog",
  "fixedbitset",
  "futures",
  "futures-lite 2.6.0",
@@ -2655,6 +2656,7 @@ dependencies = [
  "graphql-composition",
  "http 1.2.0",
  "lambda_http",
+ "minicbor-serde",
  "notify",
  "reqwest 0.12.12",
  "rolling-logger",
@@ -3254,7 +3256,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "grafbase-sdk-derive",
  "http 1.2.0",

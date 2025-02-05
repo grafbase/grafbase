@@ -1,6 +1,6 @@
 use grafbase_sdk::{
     host_io::http::{self, HttpRequest, Url},
-    types::{Directive, FieldDefinition, FieldInputs, FieldOutput},
+    types::{Configuration, Directive, FieldDefinition, FieldInputs, FieldOutput},
     Error, Extension, Resolver, ResolverExtension, SharedContext,
 };
 use jaq_interpret::{Ctx, Filter, FilterT, ParseCtx, RcIter, Val};
@@ -60,7 +60,7 @@ impl From<HttpMethod> for ::http::Method {
 }
 
 impl Extension for RestExtension {
-    fn new(schema_directives: Vec<Directive>) -> Result<Self, Box<dyn std::error::Error>> {
+    fn new(schema_directives: Vec<Directive>, _: Configuration) -> Result<Self, Box<dyn std::error::Error>> {
         let mut endpoints = Vec::<RestEndpoint>::new();
 
         for directive in schema_directives {

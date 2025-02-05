@@ -40,6 +40,14 @@ impl ExtensionCatalog {
             .map(|(ix, _)| ix.into())
     }
 
+    pub fn get_id_by_name(&self, name: &str) -> Option<ExtensionId> {
+        self.extensions
+            .iter()
+            .enumerate()
+            .find(|(_, existing)| existing.manifest.name() == name)
+            .map(|(ix, _)| ix.into())
+    }
+
     pub fn get_directive_kind(&self, id: ExtensionId, name: &str) -> ExtensionDirectiveKind {
         match &self[id].manifest.kind {
             extension::Kind::FieldResolver(FieldResolver { resolver_directives })

@@ -5,4 +5,5 @@
 //! blocking the host thread when guest is waiting for IO.
 
 pub mod access_log;
+pub mod cache;
 pub mod http;

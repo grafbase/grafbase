@@ -15,7 +15,17 @@ pub struct AuthenticationConfig {
 #[serde(rename_all = "snake_case")]
 pub enum AuthenticationProvider {
     Jwt(Box<JwtProvider>),
+    Extension(Box<ExtensionProvider>),
     Anonymous,
+}
+
+#[derive(Debug, PartialEq, serde::Deserialize, Clone)]
+#[serde(rename_all = "snake_case")]
+pub struct ExtensionProvider {
+    /// The name of the provider
+    pub name: Option<String>,
+    pub extension: String,
+    pub config: Option<toml::Value>,
 }
 
 #[derive(Debug, PartialEq, serde::Deserialize, Clone)]

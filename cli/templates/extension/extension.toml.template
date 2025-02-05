@@ -1,8 +1,10 @@
 [extension]
 name = "{{name}}"
 version = "0.1.0"
-kind = "resolver"
+kind = "{{kind}}"
 
+{% if needs_field_resolvers -%}
 [directives]
 definitions = "definitions.graphql"
 field_resolvers = ["{{name_camel}}Directive"]
+{%- endif %}

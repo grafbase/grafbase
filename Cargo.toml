@@ -21,6 +21,7 @@ exclude = [
     "examples/hooks-template",
     "examples/query_plan",
     "extensions/rest",
+    "extensions/jwt",
 ]
 
 [patch.crates-io]

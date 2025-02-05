@@ -156,46 +156,59 @@ impl<'a> BuildContext<'a> {
     ) -> Result<Schema, BuildError> {
         let default_header_rules = self.ingest_header_rules(&config.headers);
 
+        let auth_config = config
+            .authentication
+            .as_ref()
+            .map(|auth| AuthConfig::new(auth, self.extension_catalog));
+
+        let response_extension = config
+            .telemetry
+            .exporters
+            .response_extension
+            .clone()
+            .unwrap_or_default()
+            .into();
+
+        let executable_document_limit_bytes = config
+            .executable_document_limit
+            .bytes()
+            .try_into()
+            .expect("executable document limit should not be negative");
+
+        let settings = PartialConfig {
+            timeout: config.gateway.timeout,
+            default_header_rules,
+            auth_config,
+            operation_limits: config.operation_limits.unwrap_or_default(),
+            disable_introspection: !config.graph.introspection.unwrap_or_default(),
+            retry: config.gateway.retry.enabled.then_some(config.gateway.retry.into()),
+            batching: config.gateway.batching.clone(),
+            complexity_control: (&config.complexity_control).into(),
+            response_extension,
+            apq_enabled: config.apq.enabled,
+            executable_document_limit_bytes,
+            trusted_documents: config.trusted_documents.clone().into(),
+            websocket_forward_connection_init_payload: config.websockets.forward_connection_init_payload,
+        };
+
+        let strings = self
+            .strings
+            .into_iter()
+            .map(|mut s| {
+                s.shrink_to_fit();
+                s
+            })
+            .collect();
+
         Ok(Schema {
             subgraphs,
             graph,
             version,
-            strings: self
-                .strings
-                .into_iter()
-                .map(|mut s| {
-                    s.shrink_to_fit();
-                    s
-                })
-                .collect(),
+            strings,
             regexps: self.regexps.into(),
             urls: self.urls.into(),
             header_rules: self.header_rules,
-            settings: PartialConfig {
-                timeout: config.gateway.timeout,
-                default_header_rules,
-                auth_config: config.authentication.as_ref().map(Into::into),
-                operation_limits: config.operation_limits.unwrap_or_default(),
-                disable_introspection: !config.graph.introspection.unwrap_or_default(),
-                retry: config.gateway.retry.enabled.then_some(config.gateway.retry.into()),
-                batching: config.gateway.batching.clone(),
-                complexity_control: (&config.complexity_control).into(),
-                response_extension: config
-                    .telemetry
-                    .exporters
-                    .response_extension
-                    .clone()
-                    .unwrap_or_default()
-                    .into(),
-                apq_enabled: config.apq.enabled,
-                executable_document_limit_bytes: config
-                    .executable_document_limit
-                    .bytes()
-                    .try_into()
-                    .expect("executable document limit should not be negative"),
-                trusted_documents: config.trusted_documents.clone().into(),
-                websocket_forward_connection_init_payload: config.websockets.forward_connection_init_payload,
-            },
+            settings,
         })
     }
 

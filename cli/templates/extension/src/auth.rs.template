@@ -1,0 +1,22 @@
+use grafbase_sdk::{
+    types::{Configuration, Directive, ErrorResponse, Token},
+    AuthenticationExtension, Authenticator, Extension, Headers,
+};
+
+#[derive(AuthenticationExtension)]
+struct {{name}};
+
+impl Extension for {{name}} {
+    fn new(schema_directives: Vec<Directive>, config: Configuration) -> Result<Self, Box<dyn std::error::Error>>
+    where
+        Self: Sized,
+    {
+        todo!()
+    }
+}
+
+impl Authenticator for {{name}} {
+    fn authenticate(&mut self, headers: Headers) -> Result<Token, ErrorResponse> {
+        todo!()
+    }
+}

@@ -52,3 +52,4 @@ lambda_http = { workspace = true, optional = true }
 either = "1.13.0"
 extension-catalog.workspace = true
 serde_json.workspace = true
+minicbor-serde = { workspace = true, features = ["alloc"] }

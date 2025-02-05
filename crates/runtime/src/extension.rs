@@ -1,10 +1,13 @@
-use std::future::Future;
+use std::{collections::HashMap, future::Future};
 
 use engine_schema::Subgraph;
 use extension_catalog::ExtensionId;
 
+#[derive(Clone, Copy, PartialEq, Hash, Eq, PartialOrd, Ord, id_derives::Id)]
+pub struct AuthorizerId(u16);
+
 use crate::{
-    error::PartialGraphqlError,
+    error::{ErrorResponse, PartialGraphqlError},
     hooks::{Anything, EdgeDefinition},
 };
 
@@ -31,6 +34,13 @@ pub trait ExtensionRuntime: Send + Sync + 'static {
         directive: ExtensionDirective<'a, impl Anything<'a>>,
         inputs: impl IntoIterator<Item: Anything<'a>> + Send,
     ) -> impl Future<Output = Result<Vec<Result<Data, PartialGraphqlError>>, PartialGraphqlError>> + Send;
+
+    fn authenticate(
+        &self,
+        _extension_id: ExtensionId,
+        _authorizer_id: AuthorizerId,
+        _headers: http::HeaderMap,
+    ) -> impl Future<Output = Result<(http::HeaderMap, HashMap<String, serde_json::Value>), ErrorResponse>> + Send;
 }
 
 impl ExtensionRuntime for () {
@@ -45,6 +55,18 @@ impl ExtensionRuntime for () {
         _directive: ExtensionDirective<'a, impl Anything<'a>>,
         _inputs: impl IntoIterator<Item: Anything<'a>> + Send,
     ) -> Result<Vec<Result<Data, PartialGraphqlError>>, PartialGraphqlError> {
-        Err(PartialGraphqlError::internal_hook_error())
+        Err(PartialGraphqlError::internal_extension_error())
+    }
+
+    async fn authenticate(
+        &self,
+        _extension_id: ExtensionId,
+        _authorizer_id: AuthorizerId,
+        _headers: http::HeaderMap,
+    ) -> Result<(http::HeaderMap, HashMap<String, serde_json::Value>), ErrorResponse> {
+        Err(ErrorResponse {
+            status: http::StatusCode::INTERNAL_SERVER_ERROR,
+            errors: vec![PartialGraphqlError::internal_extension_error()],
+        })
     }
 }
