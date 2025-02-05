@@ -2,7 +2,7 @@ mod bench;
 mod engine;
 mod router;
 
-use std::{any::TypeId, collections::HashSet, fmt::Display};
+use std::{any::TypeId, collections::HashSet, fmt::Display, sync::Arc};
 
 use crate::{mock_trusted_documents::MockTrustedDocumentsClient, TestTrustedDocument};
 pub use bench::*;
@@ -142,7 +142,7 @@ impl TestGatewayBuilder {
         TestGateway {
             router,
             engine,
-            context,
+            context: Arc::new(context),
             subgraphs,
         }
     }

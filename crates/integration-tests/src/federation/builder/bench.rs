@@ -140,11 +140,12 @@ impl DeterministicEngine {
         };
         let (parts, body) = self.engine.execute(request).await.into_parts();
         let stream = multipart_stream::parse(body.into_stream().map_ok(Into::into), "-")
-            .map(|result| serde_json::from_slice(&result.unwrap().body).unwrap());
+            .map(|result| serde_json::from_slice(&result.unwrap().body).unwrap())
+            .boxed();
         GraphqlStreamingResponse {
             status: parts.status,
             headers: parts.headers,
-            collected_body: stream.collect().await,
+            stream,
         }
     }
 }

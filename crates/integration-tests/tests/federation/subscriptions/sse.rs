@@ -27,9 +27,11 @@ fn single_subgraph_subscription() {
             )
             .into_sse_stream()
             .await
+            .collect()
+            .await
     });
 
-    insta::assert_json_snapshot!(response.collected_body, @r###"
+    insta::assert_json_snapshot!(response.messages, @r###"
     [
       {
         "data": {
@@ -72,9 +74,11 @@ fn request_error() {
             )
             .into_sse_stream()
             .await
+            .collect()
+            .await
     });
 
-    insta::assert_json_snapshot!(response.collected_body, @r###"
+    insta::assert_json_snapshot!(response.messages, @r###"
     [
       {
         "errors": [
@@ -128,9 +132,11 @@ fn actual_federated_subscription() {
             )
             .into_sse_stream()
             .await
+            .collect()
+            .await
     });
 
-    insta::assert_json_snapshot!(response.collected_body, @r###"
+    insta::assert_json_snapshot!(response.messages, @r###"
     [
       {
         "data": {
