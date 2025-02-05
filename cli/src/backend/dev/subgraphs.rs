@@ -1,16 +1,18 @@
-use super::FullGraphRef;
-use crate::backend::api::{
-    client::create_client,
-    graphql::queries::subgraph_schemas_by_branch::{
-        Subgraph, SubgraphSchemasByBranch, SubgraphSchemasByBranchVariables,
+use super::{extensions::*, FullGraphRef};
+use crate::backend::{
+    api::{
+        client::create_client,
+        graphql::queries::subgraph_schemas_by_branch::{
+            Subgraph, SubgraphSchemasByBranch, SubgraphSchemasByBranchVariables,
+        },
     },
+    errors::BackendError,
 };
-use crate::backend::errors::BackendError;
 use crate::common::environment::PlatformData;
 use cynic::{http::ReqwestExt, QueryBuilder};
-use gateway_config::Config;
+use gateway_config::{Config, SubgraphConfig};
 use grafbase_graphql_introspection::introspect;
-use graphql_composition::Subgraphs;
+use graphql_composition as composition;
 use serde_dynamic_string::DynamicString;
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
@@ -38,10 +40,10 @@ pub async fn get_subgraph_sdls(
     graph_ref: Option<&FullGraphRef>,
     overridden_subgraphs: &HashSet<String>,
     merged_configuration: &Config,
-    subgraphs: &mut Subgraphs,
+    subgraphs: &mut composition::Subgraphs,
     graph_overrides_path: Option<&PathBuf>,
 ) -> Result<Arc<SubgraphCache>, BackendError> {
-    let mut remote_urls: HashMap<&String, &String> = HashMap::new();
+    let mut remote_urls: HashMap<&str, &str> = HashMap::new();
     let remote_subgraphs: Vec<Subgraph>;
     let mut subgraph_cache = SubgraphCache {
         remote: BTreeMap::new(),
@@ -76,9 +78,8 @@ pub async fn get_subgraph_sdls(
                 subgraph.url.as_str()
             };
 
-            subgraphs
-                .ingest_str(&subgraph.schema, &subgraph.name, Some(url))
-                .map_err(BackendError::IngestSubgraph)?;
+            let parsed_sdl = cynic_parser::parse_type_system_document(&subgraph.schema)?;
+            subgraphs.ingest(&parsed_sdl, &subgraph.name, Some(url));
         }
     }
 
@@ -103,63 +104,103 @@ pub async fn get_subgraph_sdls(
         .map(|subgraph| (subgraph, &merged_configuration.subgraphs[subgraph]))
         .map(|(name, subgraph)| {
             let subgraph_cache = subgraph_cache.clone();
-            async move {
-                let Some(url) = subgraph
-                    .url
-                    .as_ref()
-                    .map(|url| url.as_str())
-                    .or_else(|| remote_urls.get(&name).map(|url| url.as_str()))
-                    .or(subgraph.introspection_url.as_ref().map(|url| url.as_str()))
-                else {
-                    return Err(BackendError::NoOverriddenSubgraphUrl(name.clone()));
-                };
-
-                if let Some(ref schema_path) = subgraph.schema_path {
-                    let sdl = fs::read_to_string(schema_path)
-                        .await
-                        .map_err(|error| BackendError::ReadSdlFromFile(schema_path.clone(), error))?;
-
-                    Ok((sdl, name, url))
-                } else if let Some(ref introspection_url) = subgraph.introspection_url {
-                    let headers: Vec<(&String, &DynamicString<String>)> = subgraph
-                        .introspection_headers
-                        .as_ref()
-                        .map(|intropection_headers| intropection_headers.iter().collect())
-                        .unwrap_or_default();
-
-                    // TODO: this also parses and prettifies, expose internal functionality
-                    let sdl = introspect(introspection_url.as_str(), &headers)
-                        .await
-                        .map_err(|_| BackendError::IntrospectSubgraph(introspection_url.to_string()))?;
-
-                    subgraph_cache.local.lock().await.insert(
-                        name.clone(),
-                        CachedIntrospectedSubgraph {
-                            introspection_url: introspection_url.to_string(),
-                            introspection_headers: headers
-                                .iter()
-                                .map(|(key, value)| ((*key).clone(), (*value).clone()))
-                                .collect(),
-                            sdl: sdl.clone(),
-                        },
-                    );
-
-                    Ok((sdl, name, url))
-                } else {
-                    Err(BackendError::NoDefinedRouteToSubgraphSdl(name.clone()))
-                }
-            }
+            handle_overridden_subgraph(subgraph_cache, remote_urls, name, subgraph)
         });
 
     let results = futures::future::try_join_all(futures).await?;
 
-    for (sdl, name, url) in results {
-        subgraphs
-            .ingest_str(&sdl, name, Some(url))
-            .map_err(BackendError::IngestSubgraph)?;
+    for OverriddenSubgraph {
+        parsed_schema,
+        url,
+        name,
+        extensions,
+    } in results
+    {
+        subgraphs.ingest(&parsed_schema, &name, url.as_deref());
+
+        let extensions = extensions
+            .into_iter()
+            .map(|extension| composition::LoadedExtension::new(extension.url, extension.name));
+        subgraphs.ingest_loaded_extensions(extensions);
     }
 
     Ok(subgraph_cache)
+}
+
+struct OverriddenSubgraph {
+    parsed_schema: cynic_parser::TypeSystemDocument,
+    url: Option<String>,
+    name: String,
+    extensions: Vec<DetectedExtension>,
+}
+
+async fn handle_overridden_subgraph(
+    subgraph_cache: Arc<SubgraphCache>,
+    remote_urls: &HashMap<&str, &str>,
+    name: &str,
+    subgraph: &SubgraphConfig,
+) -> Result<OverriddenSubgraph, BackendError> {
+    let url = subgraph
+        .url
+        .as_ref()
+        .map(|url| url.as_str())
+        .or_else(|| remote_urls.get(name).copied())
+        .or(subgraph.introspection_url.as_ref().map(|url| url.as_str()))
+        .map(String::from);
+
+    let parsed_url = url.as_ref().and_then(|url| reqwest::Url::parse(url).ok());
+
+    if let Some(ref schema_path) = subgraph.schema_path {
+        let sdl = fs::read_to_string(schema_path)
+            .await
+            .map_err(|error| BackendError::ReadSdlFromFile(schema_path.clone(), error))?;
+
+        let parsed_schema = cynic_parser::parse_type_system_document(&sdl).map_err(BackendError::ParseSubgraphSdl)?;
+
+        let extensions = detect_extensions(&parsed_schema).await;
+
+        Ok(OverriddenSubgraph {
+            parsed_schema,
+            url,
+            name: name.to_owned(),
+            extensions,
+        })
+    } else if let Some(introspection_url) = subgraph.introspection_url.as_ref().or(parsed_url.as_ref()) {
+        let headers: Vec<(&String, &DynamicString<String>)> = subgraph
+            .introspection_headers
+            .as_ref()
+            .map(|intropection_headers| intropection_headers.iter().collect())
+            .unwrap_or_default();
+
+        // TODO: this also parses and prettifies, expose internal functionality
+        let sdl = introspect(introspection_url.as_str(), &headers)
+            .await
+            .map_err(|_| BackendError::IntrospectSubgraph(introspection_url.to_string()))?;
+
+        subgraph_cache.local.lock().await.insert(
+            name.to_owned(),
+            CachedIntrospectedSubgraph {
+                introspection_url: introspection_url.to_string(),
+                introspection_headers: headers
+                    .iter()
+                    .map(|(key, value)| ((*key).clone(), (*value).clone()))
+                    .collect(),
+                sdl: sdl.clone(),
+            },
+        );
+
+        let parsed_schema = cynic_parser::parse_type_system_document(&sdl)?;
+        let extensions = detect_extensions(&parsed_schema).await;
+
+        Ok(OverriddenSubgraph {
+            parsed_schema,
+            url,
+            name: name.to_owned(),
+            extensions,
+        })
+    } else {
+        Err(BackendError::NoDefinedRouteToSubgraphSdl(name.to_owned()))
+    }
 }
 
 async fn fetch_remote_subgraphs(graph_ref: &FullGraphRef) -> Result<Vec<Subgraph>, BackendError> {

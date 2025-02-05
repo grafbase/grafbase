@@ -1,5 +1,4 @@
 use crate::common::errors::CommonError;
-use graphql_composition::IngestError;
 use notify_debouncer_full::notify;
 use std::{fmt, path::PathBuf};
 use thiserror::Error;
@@ -31,10 +30,8 @@ pub(crate) enum BackendError {
     IntrospectSubgraph(String),
     #[error("no url or schema_path were defined for an overridden subgraph: {0}")]
     NoDefinedRouteToSubgraphSdl(String),
-    #[error("no url defined for an overridden subgraph: {0}")]
-    NoOverriddenSubgraphUrl(String),
     #[error("could not parse a subgraph:\n{0:#}")]
-    IngestSubgraph(IngestError),
+    ParseSubgraphSdl(cynic_parser::Error),
     #[error("could not start the federated gateway\nCaused by: {0}")]
     Serve(federated_server::Error),
     #[error("could not compose subgraphs\nCaused by: {0}")]
@@ -61,4 +58,10 @@ pub(crate) enum BackendError {
     CreateDotGrafbaseDirectory(std::io::Error),
     #[error("could not access ~/.grafbase\nCaused by: {0}")]
     AccessDotGrafbaseDirectory(std::io::Error),
+}
+
+impl From<cynic_parser::Error> for BackendError {
+    fn from(v: cynic_parser::Error) -> Self {
+        Self::ParseSubgraphSdl(v)
+    }
 }

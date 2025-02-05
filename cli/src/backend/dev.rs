@@ -1,11 +1,12 @@
 mod configurations;
+mod extensions;
 mod hot_reload;
 mod pathfinder;
 mod subgraphs;
 
 use super::errors::BackendError;
 use configurations::get_and_merge_configurations;
-use federated_server::{serve, GraphFetchMethod, ServerConfig, ServerRouter, ServerRuntime};
+use federated_server::{GraphFetchMethod, ServerConfig, ServerRouter, ServerRuntime};
 use hot_reload::hot_reload;
 use pathfinder::{export_assets, get_pathfinder_router};
 use std::{
@@ -137,7 +138,7 @@ pub async fn start(
 
     let home_dir = dirs::home_dir().ok_or(BackendError::HomeDirectory)?;
 
-    serve(
+    federated_server::serve(
         server_config,
         CliRuntime {
             ready_sender,
@@ -182,7 +183,7 @@ fn output_handler(
     println!("Explorer:         {}\n", explorer_url.bold());
 
     if introspection_forced {
-        tracing::info!("introspection is always enabled in dev mode, config overriden");
+        tracing::info!("introspection is always enabled in dev mode, config overridden");
     }
 
     Ok(())

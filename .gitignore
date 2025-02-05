@@ -54,4 +54,7 @@ yarn-error.log*
 # CLI assets
 /cli/assets
 
+# Zed
+/.zed
+
 .aider*

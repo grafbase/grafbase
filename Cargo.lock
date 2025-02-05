@@ -3125,6 +3125,7 @@ dependencies = [
  "duct",
  "expect-test",
  "extension",
+ "extension-catalog",
  "federated-server",
  "flate2",
  "fslock",

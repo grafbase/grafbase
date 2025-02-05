@@ -1,0 +1,8 @@
+[extension]
+name = "echo-extension"
+version = "0.1.0"
+kind = "resolver"
+
+[directives]
+definitions = "definitions.graphql"
+field_resolvers = ["hello"]

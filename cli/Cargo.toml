@@ -64,6 +64,8 @@ urlencoding = "2.1.3"
 uuid = { version = "1.8.0", features = ["v4"] }
 webbrowser = "1.0"
 
+extension.workspace = true
+extension-catalog.workspace = true
 federated-graph.workspace = true
 federated-server.workspace = true
 gateway-config.workspace = true
@@ -77,7 +79,6 @@ convert_case = "0.7.1"
 askama = "0.12.1"
 semver.workspace = true
 wasmparser = "0.224.0"
-extension.workspace = true
 cynic-parser = { workspace = true, features = ["report"] }
 serde_valid = "1.0.5"
 
