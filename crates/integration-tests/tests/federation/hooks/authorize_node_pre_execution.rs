@@ -269,8 +269,10 @@ fn subscription_root_type() {
         .await
         .execute_stream()
         .await
+        .collect()
+        .await
     });
-    insta::assert_json_snapshot!(response.collected_body, @r###"
+    insta::assert_json_snapshot!(response.messages, @r###"
     [
       {
         "data": null,

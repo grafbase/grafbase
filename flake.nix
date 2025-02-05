@@ -58,6 +58,7 @@
             # Benchmark tool to send multiple requests
             hey
             k6
+            go
 
             # binary bloat inspector
             cargo-bloat

@@ -27,9 +27,11 @@ fn single_subgraph_subscription() {
             )
             .into_multipart_stream()
             .await
+            .collect()
+            .await
     });
 
-    insta::assert_json_snapshot!(response.collected_body, @r###"
+    insta::assert_json_snapshot!(response.messages, @r###"
     [
       {
         "data": {
@@ -84,9 +86,11 @@ fn actual_federated_subscription() {
             )
             .into_multipart_stream()
             .await
+            .collect()
+            .await
     });
 
-    insta::assert_json_snapshot!(response.collected_body, @r###"
+    insta::assert_json_snapshot!(response.messages, @r###"
     [
       {
         "data": {

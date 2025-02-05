@@ -11,9 +11,14 @@ fn can_run_a_query_via_execute_stream() {
     runtime().block_on(async move {
         let engine = Engine::builder().with_subgraph(Stateful::default()).build().await;
 
-        let response = engine.post("query { value }").into_multipart_stream().await;
+        let response = engine
+            .post("query { value }")
+            .into_multipart_stream()
+            .await
+            .collect()
+            .await;
 
-        insta::assert_json_snapshot!(response.collected_body, @r###"
+        insta::assert_json_snapshot!(response.messages, @r###"
         [
           {
             "data": {
@@ -43,9 +48,11 @@ fn can_run_a_mutation_via_execute_stream() {
                 ",
             )
             .into_multipart_stream()
+            .await
+            .collect()
             .await;
 
-        insta::assert_json_snapshot!(response.collected_body, @r###"
+        insta::assert_json_snapshot!(response.messages, @r###"
         [
           {
             "data": {

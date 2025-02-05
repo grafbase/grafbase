@@ -6,6 +6,13 @@ services:
     ports:
       - '4092:4092'
 
+  gqlgen-subgraph:
+    restart: unless-stopped
+    build:
+      context: ./data/gqlgen-subgraph
+    ports:
+      - '8080:8080'
+
   # Pretty much copy pasted from
   # https://www.ory.sh/docs/hydra/5min-tutorial
   # https://github.com/ory/hydra/blob/master/quickstart.yml
