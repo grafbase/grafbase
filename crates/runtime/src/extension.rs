@@ -1,4 +1,4 @@
-use std::{collections::HashMap, future::Future, sync::Arc};
+use std::{collections::HashMap, future::Future};
 
 use engine_schema::Subgraph;
 use extension_catalog::ExtensionId;
@@ -39,8 +39,8 @@ pub trait ExtensionRuntime: Send + Sync + 'static {
         &self,
         _extension_id: ExtensionId,
         _authorizer_id: AuthorizerId,
-        _headers: Arc<http::HeaderMap>,
-    ) -> impl Future<Output = Result<HashMap<String, serde_json::Value>, ErrorResponse>> + Send;
+        _headers: http::HeaderMap,
+    ) -> impl Future<Output = Result<(http::HeaderMap, HashMap<String, serde_json::Value>), ErrorResponse>> + Send;
 }
 
 impl ExtensionRuntime for () {
@@ -62,8 +62,8 @@ impl ExtensionRuntime for () {
         &self,
         _extension_id: ExtensionId,
         _authorizer_id: AuthorizerId,
-        _headers: Arc<http::HeaderMap>,
-    ) -> Result<HashMap<String, serde_json::Value>, ErrorResponse> {
+        _headers: http::HeaderMap,
+    ) -> Result<(http::HeaderMap, HashMap<String, serde_json::Value>), ErrorResponse> {
         Err(ErrorResponse {
             status: http::StatusCode::INTERNAL_SERVER_ERROR,
             errors: vec![PartialGraphqlError::internal_extension_error()],

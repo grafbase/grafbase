@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use extension_catalog::ExtensionId;
 use runtime::{
     auth::{AccessToken, ExtensionToken},
@@ -11,24 +9,22 @@ use schema::{AuthConfig, AuthProviderConfig};
 use super::Runtime;
 
 pub struct AuthExtensionService {
-    authorizers: Vec<(AuthorizerId, ExtensionId)>,
+    authorizer_id: AuthorizerId,
+    extension_id: ExtensionId,
 }
 
 impl AuthExtensionService {
     pub fn new(config: AuthConfig) -> Option<Self> {
-        let mut authorizers = Vec::new();
-
-        for (i, provider) in config.providers.iter().enumerate() {
+        config.providers.iter().enumerate().find_map(|(i, provider)| {
             if let AuthProviderConfig::Extension(extension_id) = provider {
-                authorizers.push((i.into(), *extension_id));
+                Some(Self {
+                    authorizer_id: i.into(),
+                    extension_id: *extension_id,
+                })
+            } else {
+                None
             }
-        }
-
-        if authorizers.is_empty() {
-            None
-        } else {
-            Some(Self { authorizers })
-        }
+        })
     }
 
     pub async fn authenticate<R: Runtime>(
@@ -36,45 +32,13 @@ impl AuthExtensionService {
         runtime: &R,
         headers: http::HeaderMap,
     ) -> Result<(http::HeaderMap, AccessToken), ErrorResponse> {
-        let headers = Arc::new(headers);
-        let mut last_result = None;
+        let (headers, claims) = runtime
+            .extensions()
+            .authenticate(self.extension_id, self.authorizer_id, headers)
+            .await?;
 
-        for (authorizer_id, extension_id) in &self.authorizers {
-            match authenticate(runtime, *extension_id, *authorizer_id, headers.clone()).await {
-                Ok(result) => {
-                    let headers = Arc::into_inner(headers).expect("we had more than one reference to headers");
+        let token = AccessToken::Extension(ExtensionToken { claims });
 
-                    return Ok((headers, result));
-                }
-                Err(err) => {
-                    last_result = Some(Err(err));
-                }
-            }
-        }
-
-        match last_result {
-            Some(result) => result,
-            None => {
-                let headers = Arc::into_inner(headers).expect("we had more than one reference to headers");
-
-                Ok((headers, AccessToken::Anonymous))
-            }
-        }
+        Ok((headers, token))
     }
-}
-
-async fn authenticate<R: Runtime>(
-    runtime: &R,
-    extension_id: ExtensionId,
-    authorizer_id: AuthorizerId,
-    headers: Arc<http::HeaderMap>,
-) -> Result<AccessToken, ErrorResponse> {
-    let claims = runtime
-        .extensions()
-        .authenticate(extension_id, authorizer_id, headers)
-        .await?;
-
-    let token = AccessToken::Extension(ExtensionToken { claims });
-
-    Ok(token)
 }

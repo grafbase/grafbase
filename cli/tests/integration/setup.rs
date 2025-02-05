@@ -78,7 +78,7 @@ impl GrafbaseDevConfig {
         let http_client = reqwest::Client::new();
 
         // We have to sleep to allow the process to start up and pick up the configuration.
-        tokio::time::sleep(Duration::from_millis(200)).await;
+        tokio::time::sleep(Duration::from_millis(600)).await;
 
         GrafbaseDev {
             _subgraphs: subgraphs,

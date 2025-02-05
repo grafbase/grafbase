@@ -99,8 +99,7 @@ async fn single_call_caching_auth() {
     let mut headers = HeaderMap::new();
     headers.insert("Authorization", HeaderValue::from_static("valid"));
 
-    let headers = Arc::new(headers);
-    let output: serde_json::Value = extension.authenticate(headers.clone()).await.unwrap();
+    let (headers, output): (HeaderMap, serde_json::Value) = extension.authenticate(headers).await.unwrap();
 
     assert!(headers.len() == 1);
     assert_eq!(Some(&HeaderValue::from_static("valid")), headers.get("Authorization"));
@@ -139,7 +138,7 @@ async fn single_call_caching_auth_invalid() {
             .unwrap();
 
     let result = extension
-        .authenticate::<serde_json::Value>(Arc::new(HeaderMap::new()))
+        .authenticate::<serde_json::Value>(HeaderMap::new())
         .await
         .unwrap_err();
 
@@ -194,8 +193,7 @@ async fn multiple_cache_calls() {
             headers.insert("Authorization", HeaderValue::from_static("valid"));
             headers.insert("value", HeaderValue::from_str(&format!("value_{i}")).unwrap());
 
-            let headers = Arc::new(headers);
-            let output: serde_json::Value = extension.authenticate(headers.clone()).await.unwrap();
+            let (_, output): (_, serde_json::Value) = extension.authenticate(headers).await.unwrap();
 
             // only the first key comes from the cahce.
 
@@ -228,8 +226,7 @@ async fn multiple_cache_calls() {
             .await
             .unwrap();
 
-    let headers = Arc::new(headers);
-    let output: serde_json::Value = extension.authenticate(headers.clone()).await.unwrap();
+    let (_, output): (_, serde_json::Value) = extension.authenticate(headers).await.unwrap();
 
     insta::allow_duplicates! {
         insta::assert_json_snapshot!(output, @r#"

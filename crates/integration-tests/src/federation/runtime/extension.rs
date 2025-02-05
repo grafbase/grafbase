@@ -114,8 +114,8 @@ impl runtime::extension::ExtensionRuntime for TestExtensions {
         &self,
         _extension_id: ExtensionId,
         _authorizer_id: runtime::extension::AuthorizerId,
-        _headers: std::sync::Arc<http::HeaderMap>,
-    ) -> Result<HashMap<String, serde_json::Value>, ErrorResponse> {
+        _headers: http::HeaderMap,
+    ) -> Result<(http::HeaderMap, HashMap<String, serde_json::Value>), ErrorResponse> {
         todo!()
     }
 }

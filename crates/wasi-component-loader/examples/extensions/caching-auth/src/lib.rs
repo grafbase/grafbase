@@ -1,7 +1,8 @@
 use std::time::Duration;
 
 use grafbase_sdk::{
-    types::{Cache, CachedItem, Configuration, Directive, ErrorResponse, StatusCode, Token},
+    host_io::cache::{self, CachedItem},
+    types::{Configuration, Directive, ErrorResponse, StatusCode, Token},
     AuthenticationExtension, Authenticator, Extension, Headers,
 };
 
@@ -41,7 +42,7 @@ impl Authenticator for CachingProvider {
 
         let cache_key = format!("auth:{}:{header}", self.config.cache_config);
 
-        let jwks: Jwks = Cache::get(&cache_key, || {
+        let jwks: Jwks = cache::get(&cache_key, || {
             std::thread::sleep(Duration::from_millis(300));
 
             let jwks = Jwks { key: value };

@@ -1,0 +1,29 @@
+[package]
+name = "jwt"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+
+[dependencies]
+duration-str = "0.12.0"
+grafbase-sdk = { path = "../../crates/grafbase-sdk" }
+jwt-compact = { version = "0.8.0", features = [
+    "clock",
+    "rsa",
+    "ed25519-compact",
+    "p256",
+] }
+serde = "1.0.217"
+serde_json = "1.0.138"
+serde_with = "3.12.0"
+strum = { version = "0.26.3", features = ["derive"] }
+url = { version = "2.5.4", features = ["serde"] }
+
+[lib]
+crate-type = ["cdylib"]
+
+[profile.release]
+opt-level = "z"
+strip = true
+lto = true
+codegen-units = 1

@@ -206,7 +206,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "grafbase-sdk-derive",
  "http",
@@ -221,7 +221,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk-derive"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "proc-macro2",
  "quote",

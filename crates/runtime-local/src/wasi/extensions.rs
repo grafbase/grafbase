@@ -163,8 +163,8 @@ impl ExtensionRuntime for WasiExtensions {
         &self,
         extension_id: ExtensionId,
         authorizer_id: AuthorizerId,
-        headers: Arc<http::HeaderMap>,
-    ) -> Result<HashMap<String, serde_json::Value>, ErrorResponse> {
+        headers: http::HeaderMap,
+    ) -> Result<(http::HeaderMap, HashMap<String, serde_json::Value>), ErrorResponse> {
         let Some(inner) = self.0.as_ref() else {
             return Err(ErrorResponse {
                 status: http::StatusCode::INTERNAL_SERVER_ERROR,

@@ -26,10 +26,16 @@ fn init_resolver() {
     license = "Apache-2.0"
 
     [dependencies]
-    grafbase-sdk = "0.1.4"
+    grafbase-sdk = "0.1.5"
 
     [lib]
     crate-type = ["cdylib"]
+
+    [profile.release]
+    opt-level = "z"
+    strip = true
+    lto = true
+    codegen-units = 1
     "#);
 
     let definitions = std::fs::read_to_string(project_path.join("definitions.graphql")).unwrap();
@@ -165,10 +171,16 @@ fn init_auth() {
     license = "Apache-2.0"
 
     [dependencies]
-    grafbase-sdk = "0.1.4"
+    grafbase-sdk = "0.1.5"
 
     [lib]
     crate-type = ["cdylib"]
+
+    [profile.release]
+    opt-level = "z"
+    strip = true
+    lto = true
+    codegen-units = 1
     "#);
 
     let extension_toml = std::fs::read_to_string(project_path.join("extension.toml")).unwrap();
