@@ -58,6 +58,7 @@ struct CargoTomlPackage {
 #[derive(serde::Deserialize)]
 struct ExtensionToml {
     extension: ExtensionTomlExtension,
+    #[serde(default)]
     directives: ExtensionTomlDirectives,
 }
 
@@ -73,10 +74,10 @@ struct ExtensionTomlExtension {
 #[serde(rename_all = "snake_case")]
 enum ExtensionKind {
     Resolver,
-    Authenticator,
+    Auth,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(Default, serde::Deserialize)]
 struct ExtensionTomlDirectives {
     definitions: Option<String>,
     field_resolvers: Option<Vec<String>>,
@@ -220,7 +221,7 @@ fn parse_manifest(source_dir: &Path, wasm_path: &Path) -> anyhow::Result<Manifes
 
             Kind::FieldResolver(FieldResolver { resolver_directives })
         }
-        ExtensionKind::Authenticator => Kind::Authenticator,
+        ExtensionKind::Auth => Kind::Authenticator,
     };
 
     let sdl = match extension_toml.directives.definitions.map(|path| source_dir.join(&path)) {

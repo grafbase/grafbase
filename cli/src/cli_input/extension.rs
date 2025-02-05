@@ -21,6 +21,18 @@ pub enum ExtensionSubCommand {
 pub struct ExtensionInitCommand {
     /// The path where to create the extension
     pub path: PathBuf,
+    /// The type of the extension
+    #[arg(long, value_enum)]
+    pub r#type: ExtensionType,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, clap::ValueEnum, strum::AsRefStr, strum::Display)]
+#[strum(serialize_all = "lowercase")]
+pub enum ExtensionType {
+    /// An extension that provides a field resolver
+    Resolver,
+    /// An extension that provides an authentication provider
+    Auth,
 }
 
 #[derive(Debug, Parser)]

@@ -6,6 +6,7 @@ pub struct Manifest {
     pub kind: Kind,
     pub sdk_version: semver::Version,
     pub minimum_gateway_version: semver::Version,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub sdl: Option<String>,
 }
 

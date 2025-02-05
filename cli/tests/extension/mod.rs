@@ -5,12 +5,12 @@ use tempfile::tempdir;
 use crate::cargo_bin;
 
 #[test]
-fn init() {
+fn init_resolver() {
     let temp_dir = tempdir().unwrap();
     let project_path = temp_dir.path().join("test_project");
     let project_path_str = project_path.to_string_lossy();
 
-    let args = vec!["extension", "init", &*project_path_str];
+    let args = vec!["extension", "init", "--type", "resolver", &*project_path_str];
 
     let command = cmd(cargo_bin("grafbase"), &args).stdout_null().stderr_null();
 
@@ -88,12 +88,12 @@ fn init() {
 }
 
 #[test]
-fn build() {
+fn build_resolver() {
     let temp_dir = tempdir().unwrap();
     let project_path = temp_dir.path().join("test_project");
     let project_path_str = project_path.to_string_lossy();
 
-    let args = vec!["extension", "init", &*project_path_str];
+    let args = vec!["extension", "init", "--type", "resolver", &*project_path_str];
     let command = cmd(cargo_bin("grafbase"), &args).stdout_null().stderr_null();
     command.run().unwrap();
 
@@ -138,6 +138,120 @@ fn build() {
       "sdk_version": "<sdk_version>",
       "minimum_gateway_version": "<minimum_gateway_version>",
       "sdl": "\"\"\"\nFill in here the directives and types that the extension needs.\nRemove this file and the definition in extension.toml if the extension does not need any directives.\n\"\"\"\ndirective @testProjectConfiguration(arg1: String) repeatable on SCHEMA\ndirective @testProjectDirective on FIELD_DEFINITION"
+    }
+    "#
+    );
+}
+
+#[test]
+fn init_auth() {
+    let temp_dir = tempdir().unwrap();
+    let project_path = temp_dir.path().join("test_project");
+    let project_path_str = project_path.to_string_lossy();
+
+    let args = vec!["extension", "init", "--type", "auth", &*project_path_str];
+
+    let command = cmd(cargo_bin("grafbase"), &args).stdout_null().stderr_null();
+
+    command.run().unwrap();
+
+    let cargo_toml = std::fs::read_to_string(project_path.join("Cargo.toml")).unwrap();
+
+    insta::assert_snapshot!(&cargo_toml, @r#"
+    [package]
+    name = "test-project"
+    version = "0.1.0"
+    edition = "2021"
+    license = "Apache-2.0"
+
+    [dependencies]
+    grafbase-sdk = "0.1.4"
+
+    [lib]
+    crate-type = ["cdylib"]
+    "#);
+
+    let extension_toml = std::fs::read_to_string(project_path.join("extension.toml")).unwrap();
+
+    insta::assert_snapshot!(&extension_toml, @r#"
+    [extension]
+    name = "test-project"
+    version = "0.1.0"
+    kind = "auth"
+    "#);
+
+    let lib_rs = std::fs::read_to_string(project_path.join("src/lib.rs")).unwrap();
+
+    insta::assert_snapshot!(&lib_rs, @r##"
+    use grafbase_sdk::{
+        types::{Configuration, Directive, ErrorResponse, Token},
+        AuthenticationExtension, Authenticator, Extension, Headers,
+    };
+
+    #[derive(AuthenticationExtension)]
+    struct TestProject;
+
+    impl Extension for TestProject {
+        fn new(schema_directives: Vec<Directive>, config: Configuration) -> Result<Self, Box<dyn std::error::Error>>
+        where
+            Self: Sized,
+        {
+            todo!()
+        }
+    }
+
+    impl Authenticator for TestProject {
+        fn authenticate(&mut self, headers: Headers) -> Result<Token, ErrorResponse> {
+            todo!()
+        }
+    }
+    "##);
+}
+
+#[test]
+fn build_auth() {
+    let temp_dir = tempdir().unwrap();
+    let project_path = temp_dir.path().join("test_project");
+    let project_path_str = project_path.to_string_lossy();
+
+    let args = vec!["extension", "init", "--type", "auth", &*project_path_str];
+    let command = cmd(cargo_bin("grafbase"), &args).stdout_null().stderr_null();
+    command.run().unwrap();
+
+    let args = vec!["extension", "build"];
+
+    let command = cmd(cargo_bin("grafbase"), &args)
+        // we do -D warnings in CI, the template has unused variable warnings...
+        .env("RUSTFLAGS", "")
+        .dir(&project_path)
+        .stderr_null()
+        .stdout_null();
+
+    command.run().unwrap();
+
+    let build_path = project_path.join("build");
+    assert!(std::fs::exists(build_path.join("extension.wasm")).unwrap());
+    assert!(std::fs::exists(build_path.join("manifest.json")).unwrap());
+
+    let manifest = std::fs::read_to_string(build_path.join("manifest.json")).unwrap();
+    let manifest: Manifest = serde_json::from_str(&manifest).unwrap();
+
+    let manifest = serde_json::to_value(&manifest).unwrap();
+    insta::assert_json_snapshot!(
+        manifest,
+        {
+            ".sdk_version" => "<sdk_version>",
+            ".minimum_gateway_version" => "<minimum_gateway_version>"
+        },
+        @r#"
+    {
+      "id": {
+        "name": "test-project",
+        "version": "0.1.0"
+      },
+      "kind": "Authenticator",
+      "sdk_version": "<sdk_version>",
+      "minimum_gateway_version": "<minimum_gateway_version>"
     }
     "#
     );
