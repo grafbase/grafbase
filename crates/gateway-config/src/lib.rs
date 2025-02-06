@@ -42,6 +42,7 @@ pub use telemetry::*;
 use url::Url;
 
 const DEFAULT_GATEWAY_TIMEOUT: Duration = Duration::from_secs(30);
+const DEFAULT_SUBGRAPH_TIMEOUT: Duration = Duration::from_secs(30);
 
 #[derive(Clone, Debug, serde::Deserialize)]
 #[serde(default, deny_unknown_fields)]
@@ -215,7 +216,7 @@ impl AccessLogsConfig {
     }
 }
 
-#[derive(Debug, Default, serde::Deserialize, Clone)]
+#[derive(Debug, serde::Deserialize, Clone)]
 #[serde(default, deny_unknown_fields)]
 pub struct SubgraphConfig {
     /// URL of the subgraph, overriding the one specified in the federated SDL.
@@ -227,8 +228,8 @@ pub struct SubgraphConfig {
     /// Rate limiting configuration specifically for this Subgraph
     pub rate_limit: Option<GraphRateLimit>,
     /// Timeout for subgraph requests in seconds. Default: 30 seconds.
-    #[serde(deserialize_with = "duration_str::deserialize_option_duration")]
-    pub timeout: Option<Duration>,
+    #[serde(deserialize_with = "duration_str::deserialize_duration")]
+    pub timeout: Duration,
     pub retry: Option<RetryConfig>,
     /// Subgraph specific entity caching config  this overrides the global config if there
     /// is any
@@ -243,6 +244,25 @@ pub struct SubgraphConfig {
     pub introspection_headers: Option<BTreeMap<String, DynamicString<String>>>,
     /// The protocol used for subscriptions
     pub subscription_protocol: Option<SubscriptionProtocol>,
+}
+
+impl Default for SubgraphConfig {
+    fn default() -> Self {
+        Self {
+            url: Default::default(),
+            headers: Default::default(),
+            websocket_url: Default::default(),
+            rate_limit: Default::default(),
+            timeout: DEFAULT_SUBGRAPH_TIMEOUT,
+            retry: Default::default(),
+            entity_caching: Default::default(),
+            message_signatures: Default::default(),
+            schema_path: Default::default(),
+            introspection_url: Default::default(),
+            introspection_headers: Default::default(),
+            subscription_protocol: Default::default(),
+        }
+    }
 }
 
 #[derive(Debug, serde::Deserialize, Clone, Copy, Default, PartialEq)]
@@ -1496,7 +1516,7 @@ mod tests {
                 ],
                 websocket_url: None,
                 rate_limit: None,
-                timeout: None,
+                timeout: 30s,
                 retry: None,
                 entity_caching: None,
                 message_signatures: None,
@@ -1949,7 +1969,7 @@ mod tests {
                 headers: [],
                 websocket_url: None,
                 rate_limit: None,
-                timeout: None,
+                timeout: 30s,
                 retry: Some(
                     RetryConfig {
                         enabled: true,
