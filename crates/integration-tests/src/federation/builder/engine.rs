@@ -24,7 +24,7 @@ pub(super) async fn build(
                     graphql_composition::Subgraphs::default(),
                     |mut subgraphs, subgraph| {
                         subgraphs
-                            .ingest_str(subgraph.sdl().as_ref(), subgraph.name(), subgraph.url().as_ref())
+                            .ingest_str(subgraph.sdl().as_ref(), subgraph.name(), Some(subgraph.url().as_ref()))
                             .expect("schema to be well formed");
                         subgraphs
                     },

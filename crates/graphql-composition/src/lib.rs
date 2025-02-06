@@ -92,7 +92,7 @@ mod tests {
 
         let mut subgraphs = Subgraphs::default();
         subgraphs
-            .ingest_str(&schema, "grafbase-api", "https://api.grafbase.com")
+            .ingest_str(&schema, "grafbase-api", Some("https://api.grafbase.com"))
             .unwrap();
         let result = compose(&subgraphs);
         assert!(!result.diagnostics().any_fatal());

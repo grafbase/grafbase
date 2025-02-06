@@ -3,11 +3,11 @@ fn subgraph_names_that_differ_only_by_case_are_not_allowed() {
     let mut subgraphs = graphql_composition::Subgraphs::default();
 
     subgraphs
-        .ingest_str("type Query { name: String }", "valid", "example.com")
+        .ingest_str("type Query { name: String }", "valid", Some("example.com"))
         .unwrap();
 
     subgraphs
-        .ingest_str("type Query { fullName: String }", "Valid", "example.com")
+        .ingest_str("type Query { fullName: String }", "Valid", Some("example.com"))
         .unwrap();
 
     let result = graphql_composition::compose(&subgraphs);

@@ -29,7 +29,12 @@ struct Context<'a> {
     root_type_matcher: RootTypeMatcher<'a>,
 }
 
-pub(crate) fn ingest_subgraph(document: &ast::TypeSystemDocument, name: &str, url: &str, subgraphs: &mut Subgraphs) {
+pub(crate) fn ingest_subgraph(
+    document: &ast::TypeSystemDocument,
+    name: &str,
+    url: Option<&str>,
+    subgraphs: &mut Subgraphs,
+) {
     let subgraph_id = subgraphs.push_subgraph(name, url);
 
     let mut ctx = Context {

@@ -109,12 +109,12 @@ impl std::fmt::Display for IngestError {
 
 impl Subgraphs {
     /// Add a subgraph to compose.
-    pub fn ingest(&mut self, subgraph_schema: &cynic_parser::TypeSystemDocument, name: &str, url: &str) {
+    pub fn ingest(&mut self, subgraph_schema: &cynic_parser::TypeSystemDocument, name: &str, url: Option<&str>) {
         crate::ingest_subgraph::ingest_subgraph(subgraph_schema, name, url, self);
     }
 
     /// Add a subgraph to compose.
-    pub fn ingest_str(&mut self, subgraph_schema: &str, name: &str, url: &str) -> Result<(), IngestError> {
+    pub fn ingest_str(&mut self, subgraph_schema: &str, name: &str, url: Option<&str>) -> Result<(), IngestError> {
         let subgraph_schema =
             cynic_parser::parse_type_system_document(subgraph_schema).map_err(|error| IngestError {
                 report: error.to_report(subgraph_schema).to_string(),

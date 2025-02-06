@@ -77,7 +77,7 @@ pub async fn get_subgraph_sdls(
             };
 
             subgraphs
-                .ingest_str(&subgraph.schema, &subgraph.name, url)
+                .ingest_str(&subgraph.schema, &subgraph.name, Some(url))
                 .map_err(BackendError::IngestSubgraph)?;
         }
     }
@@ -155,7 +155,7 @@ pub async fn get_subgraph_sdls(
 
     for (sdl, name, url) in results {
         subgraphs
-            .ingest_str(&sdl, name, url)
+            .ingest_str(&sdl, name, Some(url))
             .map_err(BackendError::IngestSubgraph)?;
     }
 
