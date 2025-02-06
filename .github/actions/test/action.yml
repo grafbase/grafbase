@@ -10,14 +10,14 @@ inputs:
     description: Token to log into docker hub
   with-integration-tests:
     required: false
-    default: 'true'
+    default: "true"
     description: If enabled, runs integration tests and needs docker
   datadog-api-key:
     required: true
     description: API key for datadog uploads
 
 runs:
-  using: 'composite'
+  using: "composite"
   steps:
     # https://github.com/actions/setup-node/issues/899
     - name: Enable Corepack before setting up Node
@@ -62,7 +62,6 @@ runs:
         docker compose -f crates/integration-tests/docker-compose.yml up -d
         RUST_BACKTRACE=1 cargo nextest run --workspace --profile ci \
           --exclude grafbase-gateway \
-          --exclude grafbase-docker-tests \
           --exclude federation-audit-tests
         docker compose -f crates/integration-tests/docker-compose.yml stop -t 3
 
@@ -97,7 +96,6 @@ runs:
       run: |
         RUST_BACKTRACE=1 cargo nextest run --workspace \
           --exclude integration-tests \
-          --exclude grafbase-docker-tests \
           --exclude grafbase-gateway \
           --exclude wasi-component-loader \
           --exclude federation-audit-tests \
