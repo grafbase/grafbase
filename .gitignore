@@ -19,6 +19,7 @@ target
 .DS_Store
 *.pem
 .cargo/
+.zed
 
 # debug
 npm-debug.log*

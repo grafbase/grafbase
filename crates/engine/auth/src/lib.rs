@@ -34,11 +34,10 @@ impl AuthService {
                             let authorizer = Box::new(jwt::JwtProvider::new(config, kv.clone()));
                             Some(authorizer)
                         }
-                        AuthProviderConfig::Anonymous => {
+                        AuthProviderConfig::Anonymous | AuthProviderConfig::Extension(_) => {
                             let authorizer = Box::new(AnonymousAuthorizer);
                             Some(authorizer)
                         }
-                        AuthProviderConfig::Extension(_) => None,
                     };
                     authorizer
                 })

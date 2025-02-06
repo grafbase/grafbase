@@ -8,6 +8,27 @@ homepage.workspace = true
 keywords.workspace = true
 repository.workspace = true
 
+[features]
+test-utils = [
+    "dep:async-graphql",
+    "dep:async-graphql-axum",
+    "dep:axum",
+    "dep:anyhow",
+    "dep:cynic-parser",
+    "dep:duct",
+    "dep:fslock",
+    "dep:indoc",
+    "dep:reqwest",
+    "dep:tempdir",
+    "dep:toml",
+    "dep:tokio",
+    "dep:which",
+    "dep:futures-util",
+    "dep:graphql-composition",
+    "dep:graphql-federated-graph",
+]
+graphql-federated-graph = ["dep:graphql-federated-graph"]
+
 [dependencies]
 grafbase-sdk-derive = { version = "0.1.2", path = "derive" }
 http.workspace = true
@@ -18,8 +39,27 @@ serde_urlencoded.workspace = true
 url.workspace = true
 wit-bindgen.workspace = true
 
+# for tests
+async-graphql = { workspace = true, features = ["dynamic-schema"], optional = true }
+axum = { workspace = true, features = ["tokio", "http1"], optional = true }
+anyhow = { workspace = true, optional = true }
+duct = { version = "0.13.7", optional = true }
+fslock = { version = "0.2.1", optional = true }
+indoc = { workspace = true, optional = true }
+reqwest = { workspace = true, features = ["json"], optional = true }
+tempdir = { version = "0.3.7", optional = true }
+toml = { workspace = true, optional = true }
+which = { workspace = true, optional = true }
+cynic-parser = { workspace = true, features = ["report"], optional = true }
+tokio = { workspace = true, features = ["sync"], optional = true }
+async-graphql-axum = { workspace = true, optional = true }
+futures-util = { workspace = true, optional = true }
+graphql-composition = { version = "0.5", optional = true }
+graphql-federated-graph = { version = "0.5", optional = true }
+
 [lints]
 workspace = true
 
 [build-dependencies]
 semver = "1.0.25"
+

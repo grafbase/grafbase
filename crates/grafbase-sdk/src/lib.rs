@@ -4,6 +4,8 @@
 #[doc(hidden)]
 pub mod extension;
 pub mod host_io;
+#[cfg(feature = "test-utils")]
+pub mod test;
 pub mod types;
 
 pub use extension::{Authenticator, Extension, Resolver};

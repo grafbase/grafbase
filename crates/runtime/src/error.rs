@@ -15,6 +15,7 @@ pub enum PartialErrorCode {
     ExtensionError,
 }
 
+#[derive(Debug)]
 pub struct ErrorResponse {
     pub status: http::StatusCode,
     pub errors: Vec<PartialGraphqlError>,

@@ -3,15 +3,25 @@ use jwt_compact::jwk::JsonWebKey;
 use std::{borrow::Cow, collections::HashMap, time::Duration};
 use url::Url;
 
-#[derive(serde::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 pub(super) struct JwtConfig {
     pub url: Url,
     pub issuer: Option<String>,
     pub audience: Option<String>,
     #[serde(default = "default_poll_interval", deserialize_with = "deserialize_duration")]
     pub poll_interval: Duration,
-    pub header_name: String,
-    pub header_value_prefix: String,
+    header_name: Option<String>,
+    header_value_prefix: Option<String>,
+}
+
+impl JwtConfig {
+    pub fn header_name(&self) -> &str {
+        self.header_name.as_deref().unwrap_or("Authorization")
+    }
+
+    pub fn header_value_prefix(&self) -> &str {
+        self.header_value_prefix.as_deref().unwrap_or("Bearer ")
+    }
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]

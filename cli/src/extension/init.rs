@@ -71,9 +71,11 @@ pub(super) fn execute(cmd: ExtensionInitCommand) -> anyhow::Result<()> {
 
 fn init_gitignore(path: &Path) -> anyhow::Result<()> {
     let gitignore_path = path.join(".gitignore");
+
     let contents = indoc::indoc! {r#"
         target
         build
+        .build.lock
     "#};
 
     std::fs::write(gitignore_path, contents)?;
