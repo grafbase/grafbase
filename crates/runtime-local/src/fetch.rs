@@ -103,7 +103,11 @@ impl Fetcher for NativeFetcher {
         &self,
         request: FetchRequest<'_, Bytes>,
     ) -> FetchResult<impl Stream<Item = FetchResult<OwnedOrSharedBytes>> + Send + 'static> {
-        let events = RequestBuilder::from_parts(self.client.clone(), into_reqwest(request))
+        let mut request = into_reqwest(request);
+        // We're doing a streaming request, for subscriptions, so we don't want to timeout
+        *request.timeout_mut() = None;
+
+        let events = RequestBuilder::from_parts(self.client.clone(), request)
             .eventsource()
             .unwrap()
             .map_err(|err| match err {

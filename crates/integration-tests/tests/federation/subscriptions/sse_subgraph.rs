@@ -112,6 +112,12 @@ fn gqlgen_subgraph_sse_subscription_with_initial_data() {
     runtime().block_on(async move {
         let engine = Engine::builder()
             .with_docker_subgraph(DockerSubgraph::Gqlgen)
+            .with_toml_config(
+                r#"
+            [subgraphs.gqlgen]
+            timeout = "1s"
+            "#,
+            )
             .build()
             .await;
 
@@ -156,7 +162,7 @@ fn gqlgen_subgraph_sse_subscription_with_initial_data() {
 
         let next_message = subscriptions.next();
         let delayed_message = async {
-            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+            tokio::time::sleep(std::time::Duration::from_millis(1500)).await;
             post_message("Hi").await
         };
 
@@ -180,6 +186,12 @@ fn gqlgen_subgraph_sse_subscription_without_initial_data() {
     runtime().block_on(async move {
         let engine = Engine::builder()
             .with_docker_subgraph(DockerSubgraph::Gqlgen)
+            .with_toml_config(
+                r#"
+            [subgraphs.gqlgen]
+            timeout = "1s"
+            "#,
+            )
             .build()
             .await;
 
@@ -211,7 +223,7 @@ fn gqlgen_subgraph_sse_subscription_without_initial_data() {
             .then(|mut stream| async move { stream.next().await });
 
         let delayed_message = async {
-            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+            tokio::time::sleep(std::time::Duration::from_millis(1500)).await;
             post_message("Hello").await
         };
 
