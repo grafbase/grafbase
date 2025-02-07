@@ -52,7 +52,7 @@ impl TestRunner {
         let federated_graph = graphql_composition::compose(&subgraphs).into_result().unwrap();
         let federated_graph = graphql_federated_graph::render_federated_sdl(&federated_graph)?;
 
-        Ok(Self {
+        let mut this = Self {
             http_client: reqwest::Client::new(),
             config,
             gateway_handle: None,
@@ -61,27 +61,15 @@ impl TestRunner {
             test_specific_temp_dir,
             _mock_subgraphs: mock_subgraphs,
             federated_graph,
-        })
+        };
+
+        this.start_servers().await?;
+
+        Ok(this)
     }
 
-    /// Starts the gateway process together with the configured subgraphs.
-    ///
-    /// This method:
-    /// 1. Builds or uses the provided extension
-    /// 2. Creates temporary config and schema files
-    /// 3. Launches the gateway process with the appropriate arguments
-    ///
-    /// The gateway process will continue running until the [`TestRunner`] is dropped.
-    ///
-    /// # Errors
-    ///
-    /// Will return an error if:
-    /// - Extension building fails
-    /// - Config file creation fails
-    /// - Schema file creation fails
-    /// - Gateway process fails to start
     #[must_use]
-    pub async fn start_servers(&mut self) -> anyhow::Result<()> {
+    async fn start_servers(&mut self) -> anyhow::Result<()> {
         let extension_path = self.build_extension()?;
         let extension_path = extension_path.to_string_lossy();
 

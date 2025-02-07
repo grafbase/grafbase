@@ -28,10 +28,7 @@ async fn test_example() {
 
     // A runner for building the extension, and executing the Grafbase Gateway together
     // with the subgraphs. The runner composes all subgraphs into a federated schema.
-    let mut runner = TestRunner::new(config).await.unwrap();
-
-    // This must be called before running any queries.
-    runner.start_servers().await.unwrap();
+    let runner = TestRunner::new(config).await.unwrap();
 
     let result: serde_json::Value = runner
         .graphql_query(r#"query { hi }"#)

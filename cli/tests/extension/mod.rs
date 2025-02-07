@@ -35,12 +35,12 @@ fn init_resolver() {
     codegen-units = 1
 
     [dependencies]
-    grafbase-sdk = "0.1.8"
+    grafbase-sdk = "0.1.9"
 
     [dev-dependencies]
     indoc = "2"
     insta = { version = "1.42.1", features = ["json"] }
-    grafbase-sdk = { version = "0.1.8", features = ["test-utils"] }
+    grafbase-sdk = { version = "0.1.9", features = ["test-utils"] }
     tokio = { version = "1", features = ["rt-multi-thread", "macros", "test-util"] }
     serde_json = "1"
     "#);
@@ -132,10 +132,7 @@ fn init_resolver() {
 
         // A runner for building the extension, and executing the Grafbase Gateway together
         // with the subgraphs. The runner composes all subgraphs into a federated schema.
-        let mut runner = TestRunner::new(config).await.unwrap();
-
-        // This must be called before running any queries.
-        runner.start_servers().await.unwrap();
+        let runner = TestRunner::new(config).await.unwrap();
 
         let result: serde_json::Value = runner
             .graphql_query(r#"query { hi }"#)
@@ -253,12 +250,12 @@ fn init_auth() {
     codegen-units = 1
 
     [dependencies]
-    grafbase-sdk = "0.1.8"
+    grafbase-sdk = "0.1.9"
 
     [dev-dependencies]
     indoc = "2"
     insta = { version = "1.42.1", features = ["json"] }
-    grafbase-sdk = { version = "0.1.8", features = ["test-utils"] }
+    grafbase-sdk = { version = "0.1.9", features = ["test-utils"] }
     tokio = { version = "1", features = ["rt-multi-thread", "macros", "test-util"] }
     serde_json = "1"
     "#);
@@ -332,10 +329,7 @@ fn init_auth() {
 
         // A runner for building the extension, and executing the Grafbase Gateway together
         // with the subgraphs. The runner composes all subgraphs into a federated schema.
-        let mut runner = TestRunner::new(config).await.unwrap();
-
-        // This must be called before running any queries.
-        runner.start_servers().await.unwrap();
+        let runner = TestRunner::new(config).await.unwrap();
 
         let result: serde_json::Value = runner
             .graphql_query(r#"query { hi }"#)
