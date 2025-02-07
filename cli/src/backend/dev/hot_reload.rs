@@ -398,7 +398,7 @@ async fn reload_subgraphs(
         .filter(|(name, _)| !overridden_subgraphs.contains(**name))
     {
         subgraphs
-            .ingest_str(&remote_subgraph.schema, name, &remote_subgraph.url)
+            .ingest_str(&remote_subgraph.schema, name, Some(&remote_subgraph.url))
             .map_err(BackendError::IngestSubgraph)?;
     }
 

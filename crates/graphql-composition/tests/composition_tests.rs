@@ -36,7 +36,7 @@ fn run_test(test_path: &Path) -> anyhow::Result<()> {
         let name = path.file_stem().unwrap().to_str().unwrap().replace('_', "-");
 
         subgraphs
-            .ingest_str(&sdl, &name, &format!("http://example.com/{name}"))
+            .ingest_str(&sdl, &name, Some(&format!("http://example.com/{name}")))
             .map_err(|err| anyhow::anyhow!("Error parsing {}: \n{err:#}", path.display()))?;
     }
 

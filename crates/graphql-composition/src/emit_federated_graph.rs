@@ -357,14 +357,14 @@ fn emit_subgraphs(ctx: &mut Context<'_>) -> federated::EnumDefinitionId {
 
     for subgraph in ctx.subgraphs.iter_subgraphs() {
         let name = ctx.insert_string(subgraph.name());
-        let url = ctx.insert_string(subgraph.url());
+        let url = subgraph.url().map(|url| ctx.insert_string(url));
         let join_graph_enum_value_name = ctx.insert_str(&join_graph_enum_variant_name(subgraph.name().as_str()));
         let join_graph_enum_value_id = ctx.out.push_enum_value(federated::EnumValueRecord {
             enum_id: join_graph_enum_id,
             value: join_graph_enum_value_name,
             directives: vec![federated::Directive::JoinGraph(federated::JoinGraphDirective {
                 name,
-                url: Some(url),
+                url,
             })],
             description: None,
         });
@@ -372,7 +372,7 @@ fn emit_subgraphs(ctx: &mut Context<'_>) -> federated::EnumDefinitionId {
         ctx.out.subgraphs.push(federated::Subgraph {
             name,
             join_graph_enum_value: join_graph_enum_value_id,
-            url: Some(url),
+            url,
         });
     }
 

@@ -435,7 +435,7 @@ where
     let federated_schema = {
         let mut subgraphs = graphql_composition::Subgraphs::default();
         subgraphs
-            .ingest_str(&subgraph_sdl, "the-subgraph", subgraph_server.url().as_str())
+            .ingest_str(&subgraph_sdl, "the-subgraph", Some(subgraph_server.url().as_str()))
             .unwrap();
         let graph = graphql_composition::compose(&subgraphs).into_result().unwrap();
         graphql_composition::render_federated_sdl(&graph).unwrap()

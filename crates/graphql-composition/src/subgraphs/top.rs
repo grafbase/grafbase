@@ -15,10 +15,12 @@ impl Subgraphs {
         })
     }
 
-    pub(crate) fn push_subgraph(&mut self, name: &str, url: &str) -> SubgraphId {
+    pub(crate) fn push_subgraph(&mut self, name: &str, url: Option<&str>) -> SubgraphId {
+        let url = url.map(|url| self.strings.intern(url));
+
         let subgraph = Subgraph {
             name: self.strings.intern(name),
-            url: self.strings.intern(url),
+            url,
 
             query_type: None,
             mutation_type: None,
@@ -52,7 +54,7 @@ pub(crate) struct Subgraph {
     /// The name of the subgraph. It is not contained in the GraphQL schema of the subgraph, it
     /// only makes sense within a project.
     name: StringId,
-    url: StringId,
+    url: Option<StringId>,
 
     query_type: Option<DefinitionId>,
     mutation_type: Option<DefinitionId>,
@@ -101,7 +103,7 @@ impl<'a> SubgraphWalker<'a> {
         self.walk(self.subgraph().name)
     }
 
-    pub(crate) fn url(self) -> StringWalker<'a> {
-        self.walk(self.subgraph().url)
+    pub(crate) fn url(self) -> Option<StringWalker<'a>> {
+        self.subgraph().url.map(|url| self.walk(url))
     }
 }
