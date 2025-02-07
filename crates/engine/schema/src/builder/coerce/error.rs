@@ -1,6 +1,16 @@
 use federated_graph::Value;
 
 #[derive(Debug, thiserror::Error)]
+pub enum ExtensionInputValueError {
+    #[error(transparent)]
+    InputValue(#[from] InputValueError),
+    #[error("Unknown type '{name}'")]
+    UnknownType { name: String },
+    #[error("Type '{name}' is used for an input value but is not a scalar, input object or enum.")]
+    NotAnInputType { name: String },
+}
+
+#[derive(Debug, thiserror::Error)]
 pub enum InputValueError {
     #[error("Found a null where we expected a {expected}{path}")]
     UnexpectedNull { expected: String, path: String },

@@ -38,6 +38,8 @@ serde_regex = "1.1.0"
 tracing.workspace = true
 grafbase-workspace-hack.workspace = true
 extension-catalog.workspace = true
+cynic-parser.workspace = true
+bitflags.workspace = true
 
 [dev-dependencies]
 insta.workspace = true

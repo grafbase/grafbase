@@ -1,4 +1,3 @@
-mod coerce;
 mod definitions;
 mod field_set;
 mod input_values;
@@ -6,13 +5,12 @@ mod post_process;
 
 use std::collections::BTreeMap;
 
-use coerce::ValuePathSegment;
+use builder::ValuePathSegment;
 use fxhash::FxHashMap;
 use introspection::IntrospectionMetadata;
 use post_process::post_process_schema_locations;
 
 use crate::*;
-pub(crate) use coerce::InputValueError;
 
 use super::{interner::Interner, BuildError, Context};
 
@@ -20,6 +18,8 @@ pub(crate) struct GraphContext<'a> {
     pub ctx: Context<'a>,
     pub graph: Graph,
     pub required_scopes: Interner<RequiresScopesDirectiveRecord, RequiresScopesDirectiveId>,
+    pub scalar_mapping: FxHashMap<federated_graph::ScalarDefinitionId, ScalarDefinitionId>,
+    pub enum_mapping: FxHashMap<federated_graph::EnumDefinitionId, EnumDefinitionId>,
     pub graphql_federated_entity_resolvers: FxHashMap<(EntityDefinitionId, GraphqlEndpointId), Vec<EntityResovler>>,
     // -- used for field sets
     pub deduplicated_fields: BTreeMap<SchemaFieldRecord, SchemaFieldId>,
@@ -81,7 +81,9 @@ impl Context<'_> {
 
         Ok((ctx, graph, introspection))
     }
+}
 
+impl GraphContext<'_> {
     fn convert_type(&self, federated_graph::Type { wrapping, definition }: federated_graph::Type) -> TypeRecord {
         TypeRecord {
             definition_id: self.convert_definition(definition),

@@ -83,10 +83,7 @@ impl<'ctx> FieldResolverExtensionRequest<'ctx> {
                 },
                 ExtensionDirective {
                     name: directive.name(),
-                    static_arguments: directive
-                        .arguments()
-                        .map(|args| serde_json::to_value(args).unwrap())
-                        .unwrap_or_default(),
+                    static_arguments: directive.static_arguments(),
                 },
                 (0..input_object_refs.len()).map(|_| serde_json::json!({})),
             )

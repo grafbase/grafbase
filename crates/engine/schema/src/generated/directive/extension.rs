@@ -6,7 +6,7 @@
 use crate::{
     generated::{Subgraph, SubgraphId},
     prelude::*,
-    SchemaInputValue, SchemaInputValueId, StringId,
+    ExtensionDirectiveArgumentId, StringId,
 };
 #[allow(unused_imports)]
 use walker::{Iter, Walk};
@@ -18,7 +18,7 @@ use walker::{Iter, Walk};
 ///   subgraph: Subgraph!
 ///   extension_id: ExtensionId!
 ///   name: String!
-///   arguments: SchemaInputValue
+///   argument_ids: [ExtensionDirectiveArgumentId!]!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -26,7 +26,7 @@ pub struct ExtensionDirectiveRecord {
     pub subgraph_id: SubgraphId,
     pub extension_id: ExtensionId,
     pub name_id: StringId,
-    pub arguments_id: Option<SchemaInputValueId>,
+    pub argument_ids: IdRange<ExtensionDirectiveArgumentId>,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
@@ -57,9 +57,6 @@ impl<'a> ExtensionDirective<'a> {
     pub fn name(&self) -> &'a str {
         self.name_id.walk(self.schema)
     }
-    pub fn arguments(&self) -> Option<SchemaInputValue<'a>> {
-        self.arguments_id.walk(self.schema)
-    }
 }
 
 impl<'a> Walk<&'a Schema> for ExtensionDirectiveId {
@@ -85,7 +82,7 @@ impl std::fmt::Debug for ExtensionDirective<'_> {
             .field("subgraph", &self.subgraph())
             .field("extension_id", &self.extension_id)
             .field("name", &self.name())
-            .field("arguments", &self.arguments())
+            .field("argument_ids", &self.argument_ids)
             .finish()
     }
 }

@@ -1,17 +1,12 @@
-mod error;
-mod path;
-
 use crate::{
-    EnumDefinitionId, InputObjectDefinitionId, InputValueDefinitionId, ScalarDefinitionId, ScalarType,
-    SchemaInputValueId, SchemaInputValueRecord, TypeRecord,
+    builder::GraphContext, DefinitionId, EnumDefinitionId, InputObjectDefinitionId, InputValueDefinitionId,
+    ScalarDefinitionId, ScalarType, SchemaInputValueId, SchemaInputValueRecord, TypeRecord,
 };
-pub(crate) use error::*;
 use federated_graph::Value;
 use id_newtypes::IdRange;
-pub(super) use path::*;
 use wrapping::{ListWrapping, MutableWrapping};
 
-use super::{DefinitionId, GraphContext};
+use super::{can_coerce_to_int, value_path_to_string, InputValueError};
 
 impl GraphContext<'_> {
     pub fn coerce(&mut self, id: InputValueDefinitionId, value: Value) -> Result<SchemaInputValueId, InputValueError> {
@@ -159,27 +154,28 @@ impl GraphContext<'_> {
         value: Value,
     ) -> Result<SchemaInputValueRecord, InputValueError> {
         let r#enum = &self.graph[enum_id];
-        match &value {
-            Value::EnumValue(id) => Ok(SchemaInputValueRecord::EnumValue((*id).into())),
-            Value::UnboundEnumValue(id) => {
-                let string_value = &self.federated_graph[*id];
-                for id in r#enum.value_ids {
-                    if &self.ctx.strings[self.graph[id].name_id] == string_value {
-                        return Ok(SchemaInputValueRecord::EnumValue(id));
-                    }
-                }
-                Err(InputValueError::UnknownEnumValue {
+        let value_id = match &value {
+            Value::EnumValue(id) => self.federated_graph[*id].value,
+            Value::UnboundEnumValue(id) => *id,
+            value => {
+                return Err(InputValueError::IncorrectEnumValueType {
                     r#enum: self.ctx.strings[r#enum.name_id].to_string(),
-                    value: string_value.to_string(),
+                    actual: value.into(),
                     path: self.path(),
-                })
+                });
             }
-            value => Err(InputValueError::IncorrectEnumValueType {
-                r#enum: self.ctx.strings[r#enum.name_id].to_string(),
-                actual: value.into(),
-                path: self.path(),
-            }),
+        };
+        let string_value = &self.federated_graph[value_id];
+        for id in r#enum.value_ids {
+            if &self.ctx.strings[self.graph[id].name_id] == string_value {
+                return Ok(SchemaInputValueRecord::EnumValue(id));
+            }
         }
+        Err(InputValueError::UnknownEnumValue {
+            r#enum: self.ctx.strings[r#enum.name_id].to_string(),
+            value: string_value.to_string(),
+            path: self.path(),
+        })
     }
 
     fn coerce_scalar(
@@ -250,8 +246,4 @@ impl GraphContext<'_> {
     fn path(&self) -> String {
         value_path_to_string(self, &self.value_path)
     }
-}
-
-fn can_coerce_to_int(float: f64) -> bool {
-    float.floor() == float && float < (i32::MAX as f64)
 }

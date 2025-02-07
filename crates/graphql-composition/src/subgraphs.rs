@@ -126,17 +126,11 @@ impl Subgraphs {
 
     /// Add Grafbase extension schemas to compose. The extensions are referenced in subgraphs through their `url` in an `@link` directive.
     #[cfg(feature = "grafbase-extensions")]
-    pub fn ingest_loaded_extensions(&mut self, extensions: impl ExactSizeIterator<Item = crate::LoadedExtension>) {
-        self.extensions.reserve_exact(extensions.len());
-
-        for extension in extensions {
-            let extension = ExtensionRecord {
-                url: self.strings.intern(extension.url),
-                name: self.strings.intern(extension.name),
-            };
-
-            self.extensions.push(extension);
-        }
+    pub fn ingest_loaded_extensions(&mut self, extensions: impl Iterator<Item = crate::LoadedExtension>) {
+        self.extensions.extend(extensions.map(|ext| ExtensionRecord {
+            url: self.strings.intern(ext.url),
+            name: self.strings.intern(ext.name),
+        }));
     }
 
     /// Checks whether any subgraphs have been ingested
