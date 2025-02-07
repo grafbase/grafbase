@@ -2410,6 +2410,7 @@ dependencies = [
  "http 1.2.0",
  "indexmap 2.7.0",
  "insta",
+ "itertools 0.14.0",
  "postcard",
  "pretty_assertions",
  "rand 0.8.5",

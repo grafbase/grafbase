@@ -77,7 +77,7 @@ pub(super) async fn generate(
     let federated_graph =
         FederatedGraph::from_sdl(&federated_sdl).map_err(|e| crate::Error::SchemaValidationError(e.to_string()))?;
 
-    let schema = engine::Schema::build(gateway_config, federated_graph, &extension_catalog, schema_version)
+    let schema = engine::Schema::build(gateway_config, &federated_graph, &extension_catalog, schema_version)
         .await
         .map_err(|err| crate::Error::SchemaValidationError(err.to_string()))?;
 

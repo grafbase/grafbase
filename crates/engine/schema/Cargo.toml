@@ -28,6 +28,7 @@ thiserror.workspace = true
 url.workspace = true
 gateway-config.workspace = true
 fxhash.workspace = true
+itertools.workspace = true
 
 federated-graph.workspace = true
 wrapping.workspace = true

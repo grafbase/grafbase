@@ -1,8 +1,6 @@
-use std::ops::{Deref, DerefMut};
-
 use crate::{
-    builder::BuildContext, DefinitionId, EntityDefinitionId, EnumDefinitionId, EnumDefinitionRecord, EnumValueId,
-    EnumValueRecord, FieldDefinitionId, FieldDefinitionRecord, Graph, IdRange, InputValueDefinitionId,
+    builder::GraphContext, DefinitionId, EntityDefinitionId, EnumDefinitionId, EnumDefinitionRecord, EnumValueId,
+    EnumValueRecord, FieldDefinitionId, FieldDefinitionRecord, IdRange, InputValueDefinitionId,
     InputValueDefinitionRecord, ObjectDefinitionId, ObjectDefinitionRecord, ResolverDefinitionId,
     ResolverDefinitionRecord, ScalarDefinitionId, ScalarType, SchemaInputValueId, SchemaInputValueRecord, StringId,
     SubgraphId, TypeRecord, Wrapping,
@@ -221,34 +219,9 @@ pub struct DirectiveLocation {
     pub input_field_definition: StringId,
 }
 
-pub(crate) struct IntrospectionBuilder<'a, 'c> {
-    ctx: &'a mut BuildContext<'c>,
-    graph: &'a mut Graph,
-}
-
-impl Deref for IntrospectionBuilder<'_, '_> {
-    type Target = Graph;
-    fn deref(&self) -> &Self::Target {
-        self.graph
-    }
-}
-
-impl DerefMut for IntrospectionBuilder<'_, '_> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        self.graph
-    }
-}
-
-impl<'a, 'c> IntrospectionBuilder<'a, 'c> {
-    pub fn create_data_source_and_insert_fields(
-        ctx: &'a mut BuildContext<'c>,
-        graph: &'a mut Graph,
-    ) -> IntrospectionMetadata {
-        Self { ctx, graph }.create_fields_and_insert_them()
-    }
-
+impl GraphContext<'_> {
     #[allow(non_snake_case)]
-    fn create_fields_and_insert_them(&mut self) -> IntrospectionMetadata {
+    pub(crate) fn create_introspection_metadata(&mut self) -> IntrospectionMetadata {
         let nullable_string = self.field_type("String", ScalarType::String, Wrapping::nullable());
         let required_string = self.field_type("String", ScalarType::String, Wrapping::required());
         let required_boolean = self.field_type("Boolean", ScalarType::Boolean, Wrapping::required());
@@ -280,14 +253,14 @@ impl<'a, 'c> IntrospectionBuilder<'a, 'c> {
             ],
         );
         let type_kind = TypeKind {
-            scalar: self.get_or_intern("SCALAR"),
-            object: self.get_or_intern("OBJECT"),
-            interface: self.get_or_intern("INTERFACE"),
-            union: self.get_or_intern("UNION"),
-            r#enum: self.get_or_intern("ENUM"),
-            input_object: self.get_or_intern("INPUT_OBJECT"),
-            list: self.get_or_intern("LIST"),
-            non_null: self.get_or_intern("NON_NULL"),
+            scalar: self.ctx.strings.get_or_new("SCALAR"),
+            object: self.ctx.strings.get_or_new("OBJECT"),
+            interface: self.ctx.strings.get_or_new("INTERFACE"),
+            union: self.ctx.strings.get_or_new("UNION"),
+            r#enum: self.ctx.strings.get_or_new("ENUM"),
+            input_object: self.ctx.strings.get_or_new("INPUT_OBJECT"),
+            list: self.ctx.strings.get_or_new("LIST"),
+            non_null: self.ctx.strings.get_or_new("NON_NULL"),
         };
 
         /*
@@ -338,25 +311,25 @@ impl<'a, 'c> IntrospectionBuilder<'a, 'c> {
             ],
         );
         let directive_location = DirectiveLocation {
-            query: self.get_or_intern("QUERY"),
-            mutation: self.get_or_intern("MUTATION"),
-            subscription: self.get_or_intern("SUBSCRIPTION"),
-            field: self.get_or_intern("FIELD"),
-            fragment_definition: self.get_or_intern("FRAGMENT_DEFINITION"),
-            fragment_spread: self.get_or_intern("FRAGMENT_SPREAD"),
-            inline_fragment: self.get_or_intern("INLINE_FRAGMENT"),
-            variable_definition: self.get_or_intern("VARIABLE_DEFINITION"),
-            schema: self.get_or_intern("SCHEMA"),
-            scalar: self.get_or_intern("SCALAR"),
-            object: self.get_or_intern("OBJECT"),
-            field_definition: self.get_or_intern("FIELD_DEFINITION"),
-            argument_definition: self.get_or_intern("ARGUMENT_DEFINITION"),
-            interface: self.get_or_intern("INTERFACE"),
-            union: self.get_or_intern("UNION"),
-            r#enum: self.get_or_intern("ENUM"),
-            enum_value: self.get_or_intern("ENUM_VALUE"),
-            input_object: self.get_or_intern("INPUT_OBJECT"),
-            input_field_definition: self.get_or_intern("INPUT_FIELD_DEFINITION"),
+            query: self.ctx.strings.get_or_new("QUERY"),
+            mutation: self.ctx.strings.get_or_new("MUTATION"),
+            subscription: self.ctx.strings.get_or_new("SUBSCRIPTION"),
+            field: self.ctx.strings.get_or_new("FIELD"),
+            fragment_definition: self.ctx.strings.get_or_new("FRAGMENT_DEFINITION"),
+            fragment_spread: self.ctx.strings.get_or_new("FRAGMENT_SPREAD"),
+            inline_fragment: self.ctx.strings.get_or_new("INLINE_FRAGMENT"),
+            variable_definition: self.ctx.strings.get_or_new("VARIABLE_DEFINITION"),
+            schema: self.ctx.strings.get_or_new("SCHEMA"),
+            scalar: self.ctx.strings.get_or_new("SCALAR"),
+            object: self.ctx.strings.get_or_new("OBJECT"),
+            field_definition: self.ctx.strings.get_or_new("FIELD_DEFINITION"),
+            argument_definition: self.ctx.strings.get_or_new("ARGUMENT_DEFINITION"),
+            interface: self.ctx.strings.get_or_new("INTERFACE"),
+            union: self.ctx.strings.get_or_new("UNION"),
+            r#enum: self.ctx.strings.get_or_new("ENUM"),
+            enum_value: self.ctx.strings.get_or_new("ENUM_VALUE"),
+            input_object: self.ctx.strings.get_or_new("INPUT_OBJECT"),
+            input_field_definition: self.ctx.strings.get_or_new("INPUT_FIELD_DEFINITION"),
         };
 
         /*
@@ -567,8 +540,10 @@ impl<'a, 'c> IntrospectionBuilder<'a, 'c> {
             ],
         );
 
-        let resolver_definition_id = ResolverDefinitionId::from(self.resolver_definitions.len());
-        self.resolver_definitions.push(ResolverDefinitionRecord::Introspection);
+        let resolver_definition_id = ResolverDefinitionId::from(self.graph.resolver_definitions.len());
+        self.graph
+            .resolver_definitions
+            .push(ResolverDefinitionRecord::Introspection);
 
         /*
         __schema: __Schema!
@@ -578,15 +553,15 @@ impl<'a, 'c> IntrospectionBuilder<'a, 'c> {
             wrapping: Wrapping::required(),
         };
         let [Some(__schema_field_id), Some(__type_field_id)] = ["__schema", "__type"].map(|name| {
-            self[self.root_operation_types_record.query_id]
+            self.graph[self.graph.root_operation_types_record.query_id]
                 .field_ids
                 .into_iter()
-                .find(|id| self.ctx.strings[self[*id].name_id] == name)
+                .find(|id| self.ctx.strings[self.graph[*id].name_id] == name)
         }) else {
             panic!("Invariant broken: missing Query.__type or Query.__schema");
         };
-        self[__schema_field_id].ty_record = field_type_id;
-        self[__schema_field_id].resolver_ids = vec![resolver_definition_id];
+        self.graph[__schema_field_id].ty_record = field_type_id;
+        self.graph[__schema_field_id].resolver_ids = vec![resolver_definition_id];
 
         /*
         __type(name: String!): __Type
@@ -595,11 +570,11 @@ impl<'a, 'c> IntrospectionBuilder<'a, 'c> {
             definition_id: __type.id.into(),
             wrapping: Wrapping::nullable(),
         };
-        self[__type_field_id].ty_record = field_type_id;
-        self[__type_field_id].resolver_ids = vec![resolver_definition_id];
+        self.graph[__type_field_id].ty_record = field_type_id;
+        self.graph[__type_field_id].resolver_ids = vec![resolver_definition_id];
 
         self.set_field_arguments(
-            self.root_operation_types_record.query_id,
+            self.graph.root_operation_types_record.query_id,
             "__type",
             std::iter::once(("name", required_string, None)),
         );
@@ -631,11 +606,11 @@ impl<'a, 'c> IntrospectionBuilder<'a, 'c> {
         let values = if values.is_empty() {
             IdRange::empty()
         } else {
-            let start_idx = self.enum_values.len();
+            let start_idx = self.graph.enum_values.len();
 
             for value in values {
-                let name_id = self.get_or_intern(value);
-                self.enum_values.push(EnumValueRecord {
+                let name_id = self.ctx.strings.get_or_new(*value);
+                self.graph.enum_values.push(EnumValueRecord {
                     name_id,
                     directive_ids: Vec::new(),
                     description_id: None,
@@ -644,25 +619,24 @@ impl<'a, 'c> IntrospectionBuilder<'a, 'c> {
 
             IdRange {
                 start: EnumValueId::from(start_idx),
-                end: EnumValueId::from(self.enum_values.len()),
+                end: EnumValueId::from(self.graph.enum_values.len()),
             }
         };
 
-        let name_id = self.get_or_intern(name);
-        self.enum_definitions.push(EnumDefinitionRecord {
+        let name_id = self.ctx.strings.get_or_new(name);
+        self.graph.enum_definitions.push(EnumDefinitionRecord {
             name_id,
             description_id: None,
             value_ids: values,
             directive_ids: Vec::new(),
         });
-        let enum_id = EnumDefinitionId::from(self.enum_definitions.len() - 1);
-        self.type_definitions_ordered_by_name.push(DefinitionId::Enum(enum_id));
-        enum_id
+
+        EnumDefinitionId::from(self.graph.enum_definitions.len() - 1)
     }
 
-    fn new_object(&mut self, name: &str) -> ObjectDefinitionId {
-        let name_id = self.get_or_intern(name);
-        self.object_definitions.push(ObjectDefinitionRecord {
+    fn insert_object(&mut self, name: &str) -> ObjectDefinitionId {
+        let name_id = self.ctx.strings.get_or_new(name);
+        self.graph.object_definitions.push(ObjectDefinitionRecord {
             name_id,
             description_id: None,
             interface_ids: Vec::new(),
@@ -671,7 +645,7 @@ impl<'a, 'c> IntrospectionBuilder<'a, 'c> {
             join_implement_records: Vec::new(),
             exists_in_subgraph_ids: vec![SubgraphId::Introspection],
         });
-        ObjectDefinitionId::from(self.object_definitions.len() - 1)
+        ObjectDefinitionId::from(self.graph.object_definitions.len() - 1)
     }
 
     fn insert_object_fields<E: std::fmt::Debug, const N: usize>(
@@ -679,14 +653,14 @@ impl<'a, 'c> IntrospectionBuilder<'a, 'c> {
         object_id: ObjectDefinitionId,
         fields: [(&str, TypeRecord, E); N],
     ) -> IntrospectionObject<E, N> {
-        let start = self.field_definitions.len().into();
+        let start = self.graph.field_definitions.len().into();
         let mut out_fields = Vec::new();
 
         for (name, r#type, tag) in fields {
-            let id = self.field_definitions.len().into();
+            let id = self.graph.field_definitions.len().into();
             let name_id = self.ctx.strings.get_or_new(name);
 
-            self.field_definitions.push(FieldDefinitionRecord {
+            self.graph.field_definitions.push(FieldDefinitionRecord {
                 name_id,
                 description_id: None,
                 ty_record: r#type,
@@ -703,20 +677,14 @@ impl<'a, 'c> IntrospectionBuilder<'a, 'c> {
             out_fields.push((id, tag));
         }
 
-        let end = self.field_definitions.len().into();
+        let end = self.graph.field_definitions.len().into();
 
-        self[object_id].field_ids = IdRange { start, end };
+        self.graph[object_id].field_ids = IdRange { start, end };
 
         IntrospectionObject {
             id: object_id,
             fields: out_fields.try_into().unwrap(),
         }
-    }
-
-    fn insert_object(&mut self, name: &str) -> ObjectDefinitionId {
-        let id = self.new_object(name);
-        self.type_definitions_ordered_by_name.push(DefinitionId::from(id));
-        id
     }
 
     /// Warning: if you call this twice, the second call will overwrite the first.
@@ -726,23 +694,23 @@ impl<'a, 'c> IntrospectionBuilder<'a, 'c> {
         field_name: &str,
         arguments: impl Iterator<Item = (&'b str, TypeRecord, Option<SchemaInputValueId>)>,
     ) {
-        let fields = self[object_id].field_ids;
+        let fields = self.graph[object_id].field_ids;
         let field_id = FieldDefinitionId::from(
             usize::from(fields.start)
-                + self[fields]
+                + self.graph[fields]
                     .iter()
                     .position(|field| self.ctx.strings[field.name_id] == field_name)
                     .expect("field to exist"),
         );
-        let start = self.input_value_definitions.len();
+        let start = self.graph.input_value_definitions.len();
 
         for (name, r#type, default_value) in arguments {
             self.insert_input_value(name, r#type, default_value);
         }
 
-        let end = self.input_value_definitions.len();
+        let end = self.graph.input_value_definitions.len();
 
-        self[field_id].argument_ids = IdRange {
+        self.graph[field_id].argument_ids = IdRange {
             start: start.into(),
             end: end.into(),
         };
@@ -754,19 +722,20 @@ impl<'a, 'c> IntrospectionBuilder<'a, 'c> {
         ty: TypeRecord,
         default_value_id: Option<SchemaInputValueId>,
     ) -> InputValueDefinitionId {
-        let name_id = self.get_or_intern(name);
-        self.input_value_definitions.push(InputValueDefinitionRecord {
+        let name_id = self.ctx.strings.get_or_new(name);
+        self.graph.input_value_definitions.push(InputValueDefinitionRecord {
             name_id,
             description_id: None,
             default_value_id,
             ty_record: ty,
             directive_ids: Vec::new(),
         });
-        InputValueDefinitionId::from(self.input_value_definitions.len() - 1)
+        InputValueDefinitionId::from(self.graph.input_value_definitions.len() - 1)
     }
 
     fn field_type(&mut self, scalar_name: &str, scalar_type: ScalarType, wrapping: Wrapping) -> TypeRecord {
         let scalar_id = match self
+            .graph
             .scalar_definitions
             .iter()
             .enumerate()
@@ -776,14 +745,14 @@ impl<'a, 'c> IntrospectionBuilder<'a, 'c> {
             Some(id) => id,
             None => {
                 let name_id = self.ctx.strings.get_or_new(scalar_name);
-                self.scalar_definitions.push(crate::ScalarDefinitionRecord {
+                self.graph.scalar_definitions.push(crate::ScalarDefinitionRecord {
                     name_id,
                     ty: scalar_type,
                     description_id: None,
                     specified_by_url_id: None,
                     directive_ids: Vec::new(),
                 });
-                ScalarDefinitionId::from(self.scalar_definitions.len() - 1)
+                ScalarDefinitionId::from(self.graph.scalar_definitions.len() - 1)
             }
         };
         let expected_kind = DefinitionId::from(scalar_id);
@@ -792,9 +761,5 @@ impl<'a, 'c> IntrospectionBuilder<'a, 'c> {
             definition_id: expected_kind,
             wrapping,
         }
-    }
-
-    fn get_or_intern(&mut self, value: &str) -> StringId {
-        self.ctx.strings.get_or_new(value)
     }
 }

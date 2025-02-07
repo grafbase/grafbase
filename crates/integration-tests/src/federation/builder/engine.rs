@@ -68,7 +68,7 @@ pub(super) async fn build(
 
     let schema = engine::Schema::build(
         &config,
-        graph,
+        &graph,
         runtime.extensions.catalog(),
         engine::SchemaVersion::from(ulid::Ulid::new().to_bytes()),
     )

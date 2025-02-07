@@ -54,9 +54,9 @@ impl ResolverDefinitionRecord {
     pub fn is_graphql_federation_entity(&self) -> bool {
         matches!(self, ResolverDefinitionRecord::GraphqlFederationEntity(_))
     }
-    pub fn as_graphql_federation_entity(&self) -> Option<GraphqlFederationEntityResolverDefinitionRecord> {
+    pub fn as_graphql_federation_entity(&self) -> Option<&GraphqlFederationEntityResolverDefinitionRecord> {
         match self {
-            ResolverDefinitionRecord::GraphqlFederationEntity(item) => Some(*item),
+            ResolverDefinitionRecord::GraphqlFederationEntity(item) => Some(item),
             _ => None,
         }
     }
@@ -120,7 +120,7 @@ impl<'a> ResolverDefinition<'a> {
             ResolverDefinitionRecord::FieldResolverExtension(item) => {
                 ResolverDefinitionVariant::FieldResolverExtension(item.walk(schema))
             }
-            ResolverDefinitionRecord::GraphqlFederationEntity(item) => {
+            ResolverDefinitionRecord::GraphqlFederationEntity(ref item) => {
                 ResolverDefinitionVariant::GraphqlFederationEntity(item.walk(schema))
             }
             ResolverDefinitionRecord::GraphqlRootField(item) => {

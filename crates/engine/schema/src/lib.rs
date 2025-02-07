@@ -108,14 +108,14 @@ impl Schema {
         config.graph.introspection = Some(true);
         let version = Version::from(Vec::new());
         let extension_catalog = Default::default();
-        Self::build(&config, federated_graph, &extension_catalog, version)
+        Self::build(&config, &federated_graph, &extension_catalog, version)
             .await
             .unwrap()
     }
 
     pub async fn build(
         config: &gateway_config::Config,
-        federated_graph: federated_graph::FederatedGraph,
+        federated_graph: &federated_graph::FederatedGraph,
         extension_catalog: &ExtensionCatalog,
         version: Version,
     ) -> Result<Schema, BuildError> {
