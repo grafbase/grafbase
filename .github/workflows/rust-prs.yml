@@ -332,11 +332,75 @@ jobs:
         run: |
           docker push ghcr.io/grafbase/gateway:$COMMIT_SHA
 
+  extensions:
+    needs: [what-changed]
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [{ 'runner': 'ubicloud-standard-8' }]
+    runs-on: ${{ matrix.platform.runner }}
+    if: |
+      needs.what-changed.outputs.changed-packages != '[]'
+            && !(cancelled())
+            && !(contains(needs.*.result, 'failure'))
+    steps:
+      - name: Get sources
+        uses: actions/checkout@v4
+
+      - name: Fetch CLI assets
+        uses: ./.github/actions/fetch-assets
+
+      - name: Dump inputs for debugging
+        shell: bash
+        run: |
+          echo ${{ needs.what-changed.outputs.changed-packages }}
+
+      - uses: Swatinem/rust-cache@v2
+        if: ${{ !startsWith(github.head_ref, 'renovate-') }}
+
+      - name: Install Rust
+        uses: ./.github/actions/install-rust
+        with:
+          components: clippy, rustfmt
+
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@v2
+        with:
+          tool: nextest
+
+      - name: Build CLI and Gateway
+        if: needs.what-changed.outputs.cargo-bin-specs
+        shell: bash
+        run: |
+          cargo build -p grafbase -p grafbase-gateway
+
+      - name: Login to Docker Hub
+        if: runner.os == 'Linux'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Start extensions docker compose
+        shell: bash
+        working-directory: extensions
+        run: docker compose up -d
+
+      - name: Test all extensions
+        shell: bash
+        working-directory: extensions
+        run: |
+          find . -type f -name 'Cargo.toml' | while read manifest; do
+            dir=$(dirname "$manifest")
+            echo "Testing extension in $dir"
+            (cd "$dir" && cargo nextest run --no-tests=pass)
+          done
+
   after-build-rust:
     # This job is responsible for reacting to build success or failure. It must
     # happen after the builds, hence the `needs`. But it must not be skipped
     # when the builds are cancelled or fail (hence the `if: ${{ always() }}`).
-    needs: [check-format, builds, docker-gateway]
+    needs: [check-format, builds, docker-gateway, extensions]
     runs-on: ubicloud-standard-2
     if: ${{ always() }}
     steps:
