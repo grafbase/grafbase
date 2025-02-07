@@ -1,8 +1,6 @@
-use std::path::PathBuf;
-
 use anyhow::Context;
-
-use super::mock::DynamicSubgraph;
+use grafbase_sdk_mock::DynamicSubgraph;
+use std::path::PathBuf;
 
 const GATEWAY_BINARY_NAME: &str = "grafbase-gateway";
 const CLI_BINARY_NAME: &str = "grafbase";

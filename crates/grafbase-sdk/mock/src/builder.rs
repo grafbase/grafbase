@@ -9,25 +9,24 @@ use async_graphql::{
 use cynic_parser::{common::WrappingType, type_system as parser};
 use serde::Deserialize;
 
-use crate::test::runner::listen_address;
-
 use super::{
     entity_resolver::{EntityResolver, EntityResolverContext},
     resolver::Resolver,
     DynamicSchema, DynamicSubgraph,
 };
 
+type ResolverMap = HashMap<(String, String), Box<dyn Resolver>>;
+type EntityResolverMap = HashMap<String, Box<dyn EntityResolver>>;
+
+/// A builder for dynamic GraphQL schemas.
 pub struct DynamicSchemaBuilder {
     sdl: String,
     field_resolvers: ResolverMap,
     entity_resolvers: EntityResolverMap,
 }
 
-type ResolverMap = HashMap<(String, String), Box<dyn Resolver>>;
-type EntityResolverMap = HashMap<String, Box<dyn EntityResolver>>;
-
 impl DynamicSchemaBuilder {
-    pub fn new(sdl: &str) -> Self {
+    pub(crate) fn new(sdl: &str) -> Self {
         DynamicSchemaBuilder {
             sdl: sdl.into(),
             field_resolvers: Default::default(),
@@ -35,28 +34,43 @@ impl DynamicSchemaBuilder {
         }
     }
 
+    /// Adds a field resolver to this schema.
+    ///
+    /// # Arguments
+    /// * `ty` - The name of the type that contains the field
+    /// * `field` - The name of the field to resolve
+    /// * `resolver` - A resolver implementation for the field
     pub fn with_resolver(mut self, ty: &str, field: &str, resolver: impl Resolver + 'static) -> Self {
         self.field_resolvers
             .insert((ty.into(), field.into()), Box::new(resolver));
         self
     }
 
+    /// Adds an entity resolver to this schema.
+    ///
+    /// # Arguments
+    /// * `entity` - The name of the entity type to resolve
+    /// * `resolver` - A resolver implementation for the entity
     pub fn with_entity_resolver(mut self, entity: &str, resolver: impl EntityResolver + 'static) -> Self {
         self.entity_resolvers.insert(entity.into(), Box::new(resolver));
         self
     }
 
+    /// Converts this schema builder into a dynamic subgraph with the given name.
+    ///
+    /// # Arguments
+    /// * `name` - The name to give this subgraph
+    ///
+    /// # Returns
+    /// A `DynamicSubgraph` that can be used in a federated schema
     pub fn into_subgraph(self, name: &str) -> anyhow::Result<DynamicSubgraph> {
-        let listen_address = listen_address()?;
-
         Ok(DynamicSubgraph {
             name: name.into(),
             schema: self.finish(),
-            listen_address,
         })
     }
 
-    pub fn finish(self) -> DynamicSchema {
+    fn finish(self) -> DynamicSchema {
         let Self {
             sdl,
             mut field_resolvers,

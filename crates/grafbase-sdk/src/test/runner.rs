@@ -5,11 +5,11 @@ use std::{
     time::Duration,
 };
 
+use super::TestConfig;
+use grafbase_sdk_mock::MockGraphQlServer;
 use graphql_composition::Subgraphs;
 use tempdir::TempDir;
 use url::Url;
-
-use super::{mock::MockGraphQlServer, TestConfig};
 
 /// A test runner that can start a gateway and execute GraphQL queries against it.
 pub struct TestRunner {
@@ -35,7 +35,7 @@ struct ExtensionDefinition {
 
 impl TestRunner {
     /// Creates a new [`TestRunner`] with the given [`TestConfig`].
-    pub fn new(mut config: TestConfig) -> anyhow::Result<Self> {
+    pub async fn new(mut config: TestConfig) -> anyhow::Result<Self> {
         let test_specific_temp_dir = TempDir::new("sdk-tests")?;
         let gateway_listen_address = listen_address()?;
         let gateway_endpoint = Url::parse(&format!("http://{}/graphql", gateway_listen_address))?;
@@ -44,8 +44,9 @@ impl TestRunner {
         let mut subgraphs = Subgraphs::default();
 
         for subgraph in config.mock_subgraphs.drain(..) {
-            subgraphs.ingest_str(subgraph.sdl(), subgraph.name(), subgraph.url().as_str())?;
-            mock_subgraphs.push(subgraph.start());
+            let mock_graph = subgraph.start().await;
+            subgraphs.ingest_str(mock_graph.sdl(), mock_graph.name(), mock_graph.url().as_str())?;
+            mock_subgraphs.push(mock_graph);
         }
 
         let federated_graph = graphql_composition::compose(&subgraphs).into_result().unwrap();

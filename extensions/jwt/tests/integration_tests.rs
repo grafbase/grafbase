@@ -58,7 +58,7 @@ async fn without_token() {
         .build(config())
         .unwrap();
 
-    let mut runner = TestRunner::new(config).unwrap();
+    let mut runner = TestRunner::new(config).await.unwrap();
     runner.start_servers().await.unwrap();
 
     let result: serde_json::Value = runner.graphql_query("query { hi }").send().await.unwrap();
@@ -87,7 +87,7 @@ async fn with_invalid_token() {
         .build(config())
         .unwrap();
 
-    let mut runner = TestRunner::new(config).unwrap();
+    let mut runner = TestRunner::new(config).await.unwrap();
     runner.start_servers().await.unwrap();
 
     let result: serde_json::Value = runner
@@ -127,7 +127,7 @@ async fn with_valid_token() {
         .build(config())
         .unwrap();
 
-    let mut runner = TestRunner::new(config).unwrap();
+    let mut runner = TestRunner::new(config).await.unwrap();
     runner.start_servers().await.unwrap();
 
     let result: serde_json::Value = runner
@@ -168,7 +168,7 @@ async fn test_different_header_location() {
         .build(config)
         .unwrap();
 
-    let mut runner = TestRunner::new(config).unwrap();
+    let mut runner = TestRunner::new(config).await.unwrap();
     runner.start_servers().await.unwrap();
 
     let token = OryHydraOpenIDProvider::default()
@@ -203,7 +203,7 @@ async fn test_tampered_jwt() {
         .build(config())
         .unwrap();
 
-    let mut runner = TestRunner::new(config).unwrap();
+    let mut runner = TestRunner::new(config).await.unwrap();
     runner.start_servers().await.unwrap();
 
     let token = OryHydraOpenIDProvider::default()
@@ -245,7 +245,7 @@ async fn test_wrong_provider() {
         .build(config())
         .unwrap();
 
-    let mut runner = TestRunner::new(config).unwrap();
+    let mut runner = TestRunner::new(config).await.unwrap();
     runner.start_servers().await.unwrap();
 
     let token = OryHydraOpenIDProvider::second_provider()
@@ -302,7 +302,7 @@ async fn test_audience() {
         .build(config)
         .unwrap();
 
-    let mut runner = TestRunner::new(config).unwrap();
+    let mut runner = TestRunner::new(config).await.unwrap();
     runner.start_servers().await.unwrap();
 
     let result: serde_json::Value = runner
