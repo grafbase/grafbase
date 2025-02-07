@@ -1,0 +1,1 @@
+directive @hello on FIELD_DEFINITION

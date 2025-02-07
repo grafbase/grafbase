@@ -397,9 +397,8 @@ async fn reload_subgraphs(
         .iter()
         .filter(|(name, _)| !overridden_subgraphs.contains(**name))
     {
-        subgraphs
-            .ingest_str(&remote_subgraph.schema, name, Some(&remote_subgraph.url))
-            .map_err(BackendError::IngestSubgraph)?;
+        let sdl = cynic_parser::parse_type_system_document(&remote_subgraph.schema)?;
+        subgraphs.ingest(&sdl, name, Some(&remote_subgraph.url));
     }
 
     // we're not passing in the graph ref to avoid fetching the remote subgraphs again
