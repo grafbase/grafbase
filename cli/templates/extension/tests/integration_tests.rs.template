@@ -16,10 +16,10 @@ async fn test_example() {
         # Add here any additional configuration for the Grafbase Gateway.
     "#};
 
-    /// The test configuration is built with the subgraph and networking enabled.
-    /// You must have the CLI and Grafbase Gateway for this to work. If you do not have
-    /// them in the PATH, you can specify the paths to the executables with the `.with_cli` and
-    /// `.with_gateway` methods.
+    // The test configuration is built with the subgraph and networking enabled.
+    // You must have the CLI and Grafbase Gateway for this to work. If you do not have
+    // them in the PATH, you can specify the paths to the executables with the `.with_cli` and
+    // `.with_gateway` methods.
     let config = TestConfigBuilder::new()
         .with_subgraph(subgraph)
         .enable_networking()
@@ -28,10 +28,7 @@ async fn test_example() {
 
     // A runner for building the extension, and executing the Grafbase Gateway together
     // with the subgraphs. The runner composes all subgraphs into a federated schema.
-    let mut runner = TestRunner::new(config).unwrap();
-
-    // This must be called before running any queries.
-    runner.start_servers().await.unwrap();
+    let runner = TestRunner::new(config).await.unwrap();
 
     let result: serde_json::Value = runner
         .graphql_query(r#"query { hi }"#)

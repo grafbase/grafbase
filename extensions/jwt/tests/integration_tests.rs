@@ -58,8 +58,7 @@ async fn without_token() {
         .build(config())
         .unwrap();
 
-    let mut runner = TestRunner::new(config).unwrap();
-    runner.start_servers().await.unwrap();
+    let runner = TestRunner::new(config).await.unwrap();
 
     let result: serde_json::Value = runner.graphql_query("query { hi }").send().await.unwrap();
 
@@ -87,8 +86,7 @@ async fn with_invalid_token() {
         .build(config())
         .unwrap();
 
-    let mut runner = TestRunner::new(config).unwrap();
-    runner.start_servers().await.unwrap();
+    let runner = TestRunner::new(config).await.unwrap();
 
     let result: serde_json::Value = runner
         .graphql_query("query { hi }")
@@ -127,8 +125,7 @@ async fn with_valid_token() {
         .build(config())
         .unwrap();
 
-    let mut runner = TestRunner::new(config).unwrap();
-    runner.start_servers().await.unwrap();
+    let runner = TestRunner::new(config).await.unwrap();
 
     let result: serde_json::Value = runner
         .graphql_query("query { hi }")
@@ -168,8 +165,7 @@ async fn test_different_header_location() {
         .build(config)
         .unwrap();
 
-    let mut runner = TestRunner::new(config).unwrap();
-    runner.start_servers().await.unwrap();
+    let runner = TestRunner::new(config).await.unwrap();
 
     let token = OryHydraOpenIDProvider::default()
         .create_client()
@@ -203,8 +199,7 @@ async fn test_tampered_jwt() {
         .build(config())
         .unwrap();
 
-    let mut runner = TestRunner::new(config).unwrap();
-    runner.start_servers().await.unwrap();
+    let runner = TestRunner::new(config).await.unwrap();
 
     let token = OryHydraOpenIDProvider::default()
         .create_client()
@@ -245,8 +240,7 @@ async fn test_wrong_provider() {
         .build(config())
         .unwrap();
 
-    let mut runner = TestRunner::new(config).unwrap();
-    runner.start_servers().await.unwrap();
+    let runner = TestRunner::new(config).await.unwrap();
 
     let token = OryHydraOpenIDProvider::second_provider()
         .create_client()
@@ -302,8 +296,7 @@ async fn test_audience() {
         .build(config)
         .unwrap();
 
-    let mut runner = TestRunner::new(config).unwrap();
-    runner.start_servers().await.unwrap();
+    let runner = TestRunner::new(config).await.unwrap();
 
     let result: serde_json::Value = runner
         .graphql_query("query { hi }")

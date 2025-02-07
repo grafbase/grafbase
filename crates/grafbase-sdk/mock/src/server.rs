@@ -1,12 +1,20 @@
-use std::{net::SocketAddr, sync::Arc};
+use std::{
+    net::{Ipv4Addr, SocketAddrV4},
+    sync::Arc,
+};
 
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
 use axum::{extract::State, response::IntoResponse, routing::post, Router};
+use url::Url;
 
 use super::DynamicSchema;
 
+/// Represents a mock GraphQL server used for testing purposes.
 pub struct MockGraphQlServer {
     shutdown: Option<tokio::sync::oneshot::Sender<()>>,
+    state: AppState,
+    url: Url,
+    name: String,
 }
 
 impl Drop for MockGraphQlServer {
@@ -23,7 +31,7 @@ struct AppState {
 }
 
 impl MockGraphQlServer {
-    pub fn new(schema: Arc<DynamicSchema>, listen_address: SocketAddr) -> Self {
+    pub(crate) async fn new(name: String, schema: Arc<DynamicSchema>) -> Self {
         let state = AppState { schema };
 
         let app = Router::new()
@@ -32,9 +40,12 @@ impl MockGraphQlServer {
 
         let (shutdown_sender, shutdown_receiver) = tokio::sync::oneshot::channel::<()>();
 
-        tokio::spawn(async move {
-            let listener = tokio::net::TcpListener::bind(listen_address).await.unwrap();
+        let listen_address = SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 0);
+        let listener = tokio::net::TcpListener::bind(listen_address).await.unwrap();
 
+        let listen_address = listener.local_addr().unwrap();
+
+        tokio::spawn(async move {
             axum::serve(listener, app)
                 .with_graceful_shutdown(async move {
                     shutdown_receiver.await.ok();
@@ -43,9 +54,29 @@ impl MockGraphQlServer {
                 .unwrap();
         });
 
+        let url = format!("http://{listen_address}").parse().unwrap();
+
         MockGraphQlServer {
             shutdown: Some(shutdown_sender),
+            url,
+            state,
+            name,
         }
+    }
+
+    /// Returns a reference to the URL of the mock GraphQL server
+    pub fn url(&self) -> &Url {
+        &self.url
+    }
+
+    /// Returns the Schema Definition Language representation of the underlying GraphQL schema
+    pub fn sdl(&self) -> &str {
+        self.state.schema.sdl()
+    }
+
+    /// Returns the name of the subgraph
+    pub fn name(&self) -> &str {
+        &self.name
     }
 }
 

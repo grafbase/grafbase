@@ -6,6 +6,7 @@ members = [
     "crates/*",
     "crates/grafbase-hooks/derive",
     "crates/grafbase-sdk/derive",
+    "crates/grafbase-sdk/mock",
     "crates/engine/auth",
     "crates/engine/axum",
     "crates/engine/codegen",
@@ -41,10 +42,10 @@ repository = "https://github.com/grafbase/grafbase"
 
 [workspace.dependencies]
 anyhow = "1"
-async-graphql = "7.0.3"
-async-graphql-axum = "7.0.3"
-async-graphql-parser = "7.0.3"
-async-graphql-value = "7.0.3"
+async-graphql = "7.0.15"
+async-graphql-axum = "7.0.15"
+async-graphql-parser = "7.0.15"
+async-graphql-value = "7.0.15"
 async-sse = "5"
 async-trait = "0.1.80"
 async-tungstenite = "0.28.0"

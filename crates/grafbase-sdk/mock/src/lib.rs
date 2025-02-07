@@ -1,13 +1,20 @@
+//! Provides a dynamic GraphQL schema and subgraph implementation that can be built and executed at runtime.
+//!
+//! This crate allows creating GraphQL schemas dynamically from SDL (Schema Definition Language) strings
+//! and executing queries against them. It also provides functionality for running mock GraphQL servers
+//! using these dynamic schemas.
+
+#![deny(missing_docs)]
+
 mod builder;
 mod entity_resolver;
 mod resolver;
 mod server;
 
-use std::{net::SocketAddr, sync::Arc};
+use std::sync::Arc;
 
 pub use builder::DynamicSchemaBuilder;
 pub use server::MockGraphQlServer;
-use url::Url;
 
 /// A dynamic GraphQL schema that can be built and executed at runtime.
 #[derive(Debug)]
@@ -26,11 +33,13 @@ impl DynamicSchema {
         DynamicSchemaBuilder::new(sdl.as_ref())
     }
 
-    async fn execute(&self, request: async_graphql::Request) -> async_graphql::Response {
+    /// Executes a GraphQL request against this schema.
+    pub async fn execute(&self, request: async_graphql::Request) -> async_graphql::Response {
         self.schema.execute(request).await
     }
 
-    fn sdl(&self) -> &str {
+    /// Returns the SDL (Schema Definition Language) string for this schema.
+    pub fn sdl(&self) -> &str {
         &self.sdl
     }
 }
@@ -40,23 +49,13 @@ impl DynamicSchema {
 pub struct DynamicSubgraph {
     schema: DynamicSchema,
     name: String,
-    listen_address: SocketAddr,
 }
 
 impl DynamicSubgraph {
-    pub(crate) fn name(&self) -> &str {
-        &self.name
-    }
-
-    pub(crate) fn start(self) -> MockGraphQlServer {
-        MockGraphQlServer::new(Arc::new(self.schema), self.listen_address)
-    }
-
-    pub(crate) fn sdl(&self) -> &str {
-        self.schema.sdl()
-    }
-
-    pub(crate) fn url(&self) -> Url {
-        format!("http://{}", self.listen_address).parse().unwrap()
+    /// Starts this subgraph as a mock GraphQL server.
+    ///
+    /// Returns a handle to the running server that can be used to stop it.
+    pub async fn start(self) -> MockGraphQlServer {
+        MockGraphQlServer::new(self.name, Arc::new(self.schema)).await
     }
 }

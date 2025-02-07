@@ -6,9 +6,8 @@
 //! - Building and loading extensions
 
 mod config;
-mod mock;
 mod runner;
 
 pub use config::{TestConfig, TestConfigBuilder};
-pub use mock::{DynamicSchema, DynamicSubgraph};
+pub use grafbase_sdk_mock::{DynamicSchema, DynamicSubgraph};
 pub use runner::{QueryBuilder, TestRunner};

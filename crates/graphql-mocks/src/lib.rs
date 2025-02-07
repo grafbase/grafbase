@@ -354,7 +354,6 @@ impl async_graphql::Executor for SchemaExecutor {
 
 struct ValidMessageSignature;
 
-#[async_trait::async_trait]
 impl axum::extract::FromRequestParts<AppState> for ValidMessageSignature {
     type Rejection = (http::StatusCode, axum::Json<serde_json::Value>);
 
@@ -391,7 +390,7 @@ async fn fix_uri(parts: &mut http::request::Parts) {
     // The uri axum gives us only has the path in it, whereas the uri when we send is the full
     // uri.  This is causing signature validation failures in tests, because we're not working off
     // the same things... Sigh..
-    let host = axum::extract::Host::from_request_parts(parts, &()).await.unwrap();
+    let host = axum_extra::extract::Host::from_request_parts(parts, &()).await.unwrap();
     let mut uri_parts = parts.uri.clone().into_parts();
     uri_parts.authority = Some(host.0.try_into().unwrap());
     uri_parts.scheme = Some("http".try_into().unwrap());
