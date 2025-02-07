@@ -25,9 +25,6 @@ fn init_resolver() {
     edition = "2021"
     license = "Apache-2.0"
 
-    [dependencies]
-    grafbase-sdk = "0.1.5"
-
     [lib]
     crate-type = ["cdylib"]
 
@@ -36,6 +33,16 @@ fn init_resolver() {
     strip = true
     lto = true
     codegen-units = 1
+
+    [dependencies]
+    grafbase-sdk = "0.1.7"
+
+    [dev-dependencies]
+    indoc = "2"
+    insta = { version = "1.42.1", features = ["json"] }
+    grafbase-sdk = { version = "0.1.7", features = ["test-utils"] }
+    tokio = { version = "1", features = ["rt-multi-thread", "macros", "test-util"] }
+    serde_json = "1"
     "#);
 
     let definitions = std::fs::read_to_string(project_path.join("definitions.graphql")).unwrap();
@@ -91,6 +98,61 @@ fn init_resolver() {
         }
     }
     "##);
+
+    let tests_rs = std::fs::read_to_string(project_path.join("tests/integration_tests.rs")).unwrap();
+
+    insta::assert_snapshot!(&tests_rs, @r##"
+    use grafbase_sdk::test::{DynamicSchema, DynamicSubgraph, TestConfigBuilder, TestRunner};
+    use indoc::indoc;
+
+    #[tokio::test]
+    async fn test_example() {
+        // Run the tests with `cargo test`.
+
+        // Create a subgraph with a single field
+        let subgraph = DynamicSchema::builder(r#"type Query { hi: String }"#)
+            .with_resolver("Query", "hi", String::from("hello"))
+            .into_subgraph("test")
+            .unwrap();
+
+        let config = indoc! {r#"
+            # The extension config is added automatically by the test runner.
+            # Add here any additional configuration for the Grafbase Gateway.
+        "#};
+
+        /// The test configuration is built with the subgraph and networking enabled.
+        /// You must have the CLI and Grafbase Gateway for this to work. If you do not have
+        /// them in the PATH, you can specify the paths to the executables with the `.with_cli` and
+        /// `.with_gateway` methods.
+        let config = TestConfigBuilder::new()
+            .with_subgraph(subgraph)
+            .enable_networking()
+            .build(config)
+            .unwrap();
+
+        // A runner for building the extension, and executing the Grafbase Gateway together
+        // with the subgraphs. The runner composes all subgraphs into a federated schema.
+        let mut runner = TestRunner::new(config).unwrap();
+
+        // This must be called before running any queries.
+        runner.start_servers().await.unwrap();
+
+        let result: serde_json::Value = runner
+            .graphql_query(r#"query { hi }"#)
+            .send()
+            .await
+            .unwrap();
+
+        // The result is compared against a snapshot.
+        insta::assert_json_snapshot!(result, @r#"
+        {
+          "data": {
+            "hi": "hello"
+          }
+        }
+        "#);
+    }
+    "##);
 }
 
 #[test]
@@ -102,6 +164,17 @@ fn build_resolver() {
     let args = vec!["extension", "init", "--type", "resolver", &*project_path_str];
     let command = cmd(cargo_bin("grafbase"), &args).stdout_null().stderr_null();
     command.run().unwrap();
+
+    let result = cmd("cargo", &["check", "--tests"])
+        .env("RUSTFLAGS", "")
+        .dir(&project_path)
+        .stdout_null()
+        .stderr_null()
+        .unchecked()
+        .run()
+        .unwrap();
+
+    assert!(result.status.success());
 
     let args = vec!["extension", "build"];
 
@@ -170,9 +243,6 @@ fn init_auth() {
     edition = "2021"
     license = "Apache-2.0"
 
-    [dependencies]
-    grafbase-sdk = "0.1.5"
-
     [lib]
     crate-type = ["cdylib"]
 
@@ -181,6 +251,16 @@ fn init_auth() {
     strip = true
     lto = true
     codegen-units = 1
+
+    [dependencies]
+    grafbase-sdk = "0.1.7"
+
+    [dev-dependencies]
+    indoc = "2"
+    insta = { version = "1.42.1", features = ["json"] }
+    grafbase-sdk = { version = "0.1.7", features = ["test-utils"] }
+    tokio = { version = "1", features = ["rt-multi-thread", "macros", "test-util"] }
+    serde_json = "1"
     "#);
 
     let extension_toml = std::fs::read_to_string(project_path.join("extension.toml")).unwrap();
@@ -218,6 +298,61 @@ fn init_auth() {
         }
     }
     "##);
+
+    let tests_rs = std::fs::read_to_string(project_path.join("tests/integration_tests.rs")).unwrap();
+
+    insta::assert_snapshot!(&tests_rs, @r##"
+    use grafbase_sdk::test::{DynamicSchema, DynamicSubgraph, TestConfigBuilder, TestRunner};
+    use indoc::indoc;
+
+    #[tokio::test]
+    async fn test_example() {
+        // Run the tests with `cargo test`.
+
+        // Create a subgraph with a single field
+        let subgraph = DynamicSchema::builder(r#"type Query { hi: String }"#)
+            .with_resolver("Query", "hi", String::from("hello"))
+            .into_subgraph("test")
+            .unwrap();
+
+        let config = indoc! {r#"
+            # The extension config is added automatically by the test runner.
+            # Add here any additional configuration for the Grafbase Gateway.
+        "#};
+
+        /// The test configuration is built with the subgraph and networking enabled.
+        /// You must have the CLI and Grafbase Gateway for this to work. If you do not have
+        /// them in the PATH, you can specify the paths to the executables with the `.with_cli` and
+        /// `.with_gateway` methods.
+        let config = TestConfigBuilder::new()
+            .with_subgraph(subgraph)
+            .enable_networking()
+            .build(config)
+            .unwrap();
+
+        // A runner for building the extension, and executing the Grafbase Gateway together
+        // with the subgraphs. The runner composes all subgraphs into a federated schema.
+        let mut runner = TestRunner::new(config).unwrap();
+
+        // This must be called before running any queries.
+        runner.start_servers().await.unwrap();
+
+        let result: serde_json::Value = runner
+            .graphql_query(r#"query { hi }"#)
+            .send()
+            .await
+            .unwrap();
+
+        // The result is compared against a snapshot.
+        insta::assert_json_snapshot!(result, @r#"
+        {
+          "data": {
+            "hi": "hello"
+          }
+        }
+        "#);
+    }
+    "##);
 }
 
 #[test]
@@ -229,6 +364,17 @@ fn build_auth() {
     let args = vec!["extension", "init", "--type", "auth", &*project_path_str];
     let command = cmd(cargo_bin("grafbase"), &args).stdout_null().stderr_null();
     command.run().unwrap();
+
+    let result = cmd("cargo", &["check", "--tests"])
+        .env("RUSTFLAGS", "")
+        .dir(&project_path)
+        .stdout_null()
+        .stderr_null()
+        .unchecked()
+        .run()
+        .unwrap();
+
+    assert!(result.status.success());
 
     let args = vec!["extension", "build"];
 

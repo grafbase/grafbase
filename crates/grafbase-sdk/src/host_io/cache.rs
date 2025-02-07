@@ -4,8 +4,8 @@ use std::time::Duration;
 
 /// Retrieves a value from the cache by key, initializing it if not present.
 ///
-/// If the value exists in the cache, deserializes and returns it.
-/// If not found, calls the initialization function, caches the result, and returns it.
+/// If the value exists in the cache, the function deserializes and returns it.
+/// If not found, it calls the initialization function, caches the result, and returns it.
 ///
 /// # Arguments
 ///

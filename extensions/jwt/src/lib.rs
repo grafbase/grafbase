@@ -30,11 +30,11 @@ impl Extension for Jwt {
 
 impl Authenticator for Jwt {
     fn authenticate(&mut self, headers: Headers) -> Result<Token, ErrorResponse> {
-        let Some(token_str) = headers.get(&self.config.header_name).and_then(|value| {
-            let stripped = value.strip_prefix(&self.config.header_value_prefix);
+        let Some(token_str) = headers.get(self.config.header_name()).and_then(|value| {
+            let stripped = value.strip_prefix(self.config.header_value_prefix());
             stripped.map(ToString::to_string)
         }) else {
-            return Err(internal_server_error());
+            return Err(unauthorized());
         };
 
         let jwks: Jwks<'_> = cache::get("jwt:jwks", || {

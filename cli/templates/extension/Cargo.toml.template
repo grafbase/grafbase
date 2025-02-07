@@ -4,9 +4,6 @@ version = "0.1.0"
 edition = "2021"
 license = "Apache-2.0"
 
-[dependencies]
-grafbase-sdk = "{{sdk_version}}"
-
 [lib]
 crate-type = ["cdylib"]
 
@@ -15,3 +12,13 @@ opt-level = "z"
 strip = true
 lto = true
 codegen-units = 1
+
+[dependencies]
+grafbase-sdk = "{{sdk_version}}"
+
+[dev-dependencies]
+indoc = "2"
+insta = { version = "1.42.1", features = ["json"] }
+grafbase-sdk = { version = "{{sdk_version}}", features = ["test-utils"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "test-util"] }
+serde_json = "1"

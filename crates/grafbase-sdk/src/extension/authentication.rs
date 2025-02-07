@@ -45,6 +45,7 @@ pub fn register(f: InitFn) {
     }
 }
 
+/// A trait that extends `Extension` and provides authentication functionality.
 pub trait Authenticator: Extension {
     fn authenticate(&mut self, headers: Headers) -> Result<Token, ErrorResponse>;
 }

@@ -27,3 +27,13 @@ opt-level = "z"
 strip = true
 lto = true
 codegen-units = 1
+
+[dev-dependencies]
+indoc = "2.0.5"
+tokio = { version = "1.43.0", features = ["rt-multi-thread", "macros", "test-util"] }
+grafbase-sdk = { path = "../../crates/grafbase-sdk", features = ["test-utils"] }
+insta = { version = "1.42.1", features = ["json"] }
+ory-client = "1.9.0"
+openidconnect = "4.0.0"
+reqwest = "0.12.12"
+base64 = "0.22.1"
