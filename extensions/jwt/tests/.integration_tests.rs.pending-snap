@@ -1,9 +1,0 @@
-{"run_id":"93d8be48-2b4f-4328-b03e-ca4d0845edb2","line":100,"new":{"module_name":"integration_tests","snapshot_name":"with_invalid_token","metadata":{"source":"tests/integration_tests.rs","assertion_line":100,"expression":"result"},"snapshot":"{\n  \"errors\": [\n    {\n      \"message\": \"Internal server error\",\n      \"extensions\": {\n        \"code\": \"UNAUTHORIZED\"\n      }\n    }\n  ]\n}"},"old":{"module_name":"integration_tests","metadata":{},"snapshot":"{\n  \"errors\": [\n    {\n      \"message\": \"Unauthorized\",\n      \"extensions\": {\n        \"code\": \"UNAUTHORIZED\"\n      }\n    }\n  ]\n}"}}
-{"run_id":"55ffbdeb-ac56-40ea-b881-2f92465ccdb9","line":66,"new":null,"old":null}
-{"run_id":"55ffbdeb-ac56-40ea-b881-2f92465ccdb9","line":100,"new":null,"old":null}
-{"run_id":"55ffbdeb-ac56-40ea-b881-2f92465ccdb9","line":187,"new":null,"old":null}
-{"run_id":"55ffbdeb-ac56-40ea-b881-2f92465ccdb9","line":224,"new":null,"old":null}
-{"run_id":"55ffbdeb-ac56-40ea-b881-2f92465ccdb9","line":315,"new":null,"old":null}
-{"run_id":"55ffbdeb-ac56-40ea-b881-2f92465ccdb9","line":336,"new":null,"old":null}
-{"run_id":"55ffbdeb-ac56-40ea-b881-2f92465ccdb9","line":264,"new":null,"old":null}
-{"run_id":"55ffbdeb-ac56-40ea-b881-2f92465ccdb9","line":140,"new":null,"old":null}
