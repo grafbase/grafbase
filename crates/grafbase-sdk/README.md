@@ -9,7 +9,7 @@ This crate provides building blocks for creating [Grafbase Gateway](https://graf
 Initialize a new project with the [Grafbase CLI](https://grafbase.com/docs/reference/grafbase-cli):
 
 ```bash,no_run
-grafbase extension init my-extension
+grafbase extension init --type auth/resolver my-extension
 ```
 
 This creates a new project with the necessary files and dependencies to get you started. Edit the `src/lib.rs` file to add your extension logic. The Grafbase Gateway initializes the struct `TestProject` once during the initial extension call. The Grafbase Gateway keeps extensions in a connection pool and reuses the struct for multiple requests. Because an extension is single-threaded, we keep multiple instances in the gateway memory to handle multiple requests concurrently.

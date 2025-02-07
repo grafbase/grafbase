@@ -49,6 +49,10 @@ struct ExtensionTomlTemplate<'a> {
     needs_field_resolvers: bool,
 }
 
+#[derive(askama::Template)]
+#[template(path = "extension/tests/integration_tests.rs.template", escape = "none")]
+struct IntegrationTestsTemplate;
+
 pub(super) fn execute(cmd: ExtensionInitCommand) -> anyhow::Result<()> {
     if cmd.path.exists() {
         anyhow::bail!("destination '{}' already exists", cmd.path.to_string_lossy());
@@ -63,7 +67,7 @@ pub(super) fn execute(cmd: ExtensionInitCommand) -> anyhow::Result<()> {
         init_definitions_graphql(&cmd.path, &extension_name)?;
     }
 
-    init_lib_rs(&cmd.path, cmd.r#type, &extension_name)?;
+    init_rust_files(&cmd.path, cmd.r#type, &extension_name)?;
     init_gitignore(&cmd.path)?;
 
     Ok(())
@@ -83,7 +87,7 @@ fn init_gitignore(path: &Path) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn init_lib_rs(path: &Path, extension_type: ExtensionType, extension_name: &str) -> anyhow::Result<()> {
+fn init_rust_files(path: &Path, extension_type: ExtensionType, extension_name: &str) -> anyhow::Result<()> {
     let struct_name = extension_name.to_case(Case::Pascal);
     let lib_rs_path = path.join("src");
 
@@ -95,6 +99,12 @@ fn init_lib_rs(path: &Path, extension_type: ExtensionType, extension_name: &str)
         ExtensionType::Resolver => ResolverTemplate { name: &struct_name }.write_into(&mut writer)?,
         ExtensionType::Auth => AuthTemplate { name: &struct_name }.write_into(&mut writer)?,
     }
+
+    let tests_path = path.join("tests");
+    std::fs::create_dir(&tests_path)?;
+
+    let mut writer = std::fs::File::create(tests_path.join("integration_tests.rs"))?;
+    IntegrationTestsTemplate.write_into(&mut writer)?;
 
     Ok(())
 }

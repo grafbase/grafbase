@@ -65,13 +65,15 @@ impl TestConfigBuilder {
         self
     }
 
-    /// Suppresses stdout output from the gateway and CLI.
+    /// Enables stdout output from the gateway and CLI. Useful for debugging errors in the gateway
+    /// and in the extension.
     pub fn enable_stdout(mut self) -> Self {
         self.enable_stdout = true;
         self
     }
 
-    /// Suppresses stderr output from the gateway and CLI.
+    /// Enables stderr output from the gateway and CLI. Useful for debugging errors in the gateway
+    /// and in the extension.
     pub fn enable_stderr(mut self) -> Self {
         self.enable_stderr = true;
         self

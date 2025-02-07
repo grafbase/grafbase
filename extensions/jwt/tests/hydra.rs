@@ -85,7 +85,7 @@ pub trait CoreClientExt {
     async fn get_access_token_with_client_credentials(&self, extra_params: &[(&str, &str)]) -> String;
 }
 
-/// Methods requiring a token endpoint.
+/// Methods requiring a token endpoint. To anybody who ever reads this, I'm sorry. I'm so sorry.
 impl<
         AC,
         AD,

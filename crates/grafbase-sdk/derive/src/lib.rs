@@ -2,12 +2,20 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::DeriveInput;
 
+/// A proc macro for generating initialization code for a resolver extension.
+///
+/// Add it on top of the type which implements `Extension` and `Resolver` traits to
+/// register it as a resolver extension.
 #[proc_macro_derive(ResolverExtension)]
 pub fn resolver_extension(input: TokenStream) -> TokenStream {
     let ast = syn::parse_macro_input!(input as DeriveInput);
     expand(resolver_init(ast))
 }
 
+/// A proc macro for generating initialization code for an authentication extension.
+///
+/// Add it on top of the type which implements `Extension` and `Authenticator` traits to
+/// register it as a resolver extension.
 #[proc_macro_derive(AuthenticationExtension)]
 pub fn authentication_extension(input: TokenStream) -> TokenStream {
     let ast = syn::parse_macro_input!(input as DeriveInput);
