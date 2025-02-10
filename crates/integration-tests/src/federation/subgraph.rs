@@ -29,6 +29,7 @@ impl Subgraphs {
     pub async fn load(
         mock_subgraphs: Vec<(TypeId, String, BoxFuture<'static, MockGraphQlServer>)>,
         docker_subgraphs: HashSet<DockerSubgraph>,
+        mut others: Vec<Subgraph>,
     ) -> Self {
         let mock_subgraphs_fut = mock_subgraphs
             .into_iter()
@@ -72,8 +73,9 @@ impl Subgraphs {
             .collect::<FuturesUnordered<_>>()
             .collect::<Vec<_>>();
 
-        let (mut subgraphs, docker_subgraphs) = futures::join!(mock_subgraphs_fut, docker_subgraphs_fut);
-        subgraphs.extend(docker_subgraphs);
+        let (mut subgraphs, mut docker_subgraphs) = futures::join!(mock_subgraphs_fut, docker_subgraphs_fut);
+        subgraphs.append(&mut docker_subgraphs);
+        subgraphs.append(&mut others);
 
         // Ensures consistency of composition and thus introspection tests.
         subgraphs.sort_unstable_by(|a, b| a.name().cmp(b.name()));
@@ -85,6 +87,7 @@ impl Subgraphs {
 pub enum Subgraph {
     Mock { type_id: TypeId, server: MockSubgraph },
     Docker { subgraph: DockerSubgraph, sdl: String },
+    Virtual { name: String, sdl: String },
 }
 
 impl Subgraph {
@@ -92,6 +95,7 @@ impl Subgraph {
         match self {
             Subgraph::Mock { server, .. } => &server.name,
             Subgraph::Docker { subgraph, .. } => subgraph.name(),
+            Subgraph::Virtual { name, .. } => name,
         }
     }
 
@@ -99,20 +103,23 @@ impl Subgraph {
         match self {
             Subgraph::Mock { server, .. } => server.sdl().into(),
             Subgraph::Docker { sdl, .. } => sdl.into(),
+            Subgraph::Virtual { sdl, .. } => sdl.into(),
         }
     }
 
-    pub fn url(&self) -> Url {
+    pub fn url(&self) -> Option<Url> {
         match self {
-            Subgraph::Mock { server, .. } => server.url(),
-            Subgraph::Docker { subgraph, .. } => subgraph.url(),
+            Subgraph::Mock { server, .. } => Some(server.url()),
+            Subgraph::Docker { subgraph, .. } => Some(subgraph.url()),
+            Subgraph::Virtual { .. } => None,
         }
     }
 
-    pub fn websocket_url(&self) -> Url {
+    pub fn websocket_url(&self) -> Option<Url> {
         match self {
-            Subgraph::Mock { server, .. } => server.websocket_url(),
-            Subgraph::Docker { subgraph, .. } => subgraph.url(),
+            Subgraph::Mock { server, .. } => Some(server.websocket_url()),
+            Subgraph::Docker { subgraph, .. } => Some(subgraph.url()),
+            Subgraph::Virtual { .. } => None,
         }
     }
 }

@@ -23,7 +23,7 @@ graphql-mocks.workspace = true
 httpsig.workspace = true
 futures = "0.3.30"
 gateway-config.workspace = true
-graphql-composition.workspace = true
+graphql-composition = { workspace = true, features = ["grafbase-extensions"] }
 federated-graph.workspace = true
 headers.workspace = true
 http.workspace = true
@@ -61,6 +61,8 @@ graphql-ws-client.workspace = true
 async-tungstenite.workspace = true
 futures-util.workspace = true
 extension-catalog.workspace = true
+tempfile = "3"
+dyn-clone = "1"
 
 [dependencies.tokio]
 version = "1.37"
@@ -83,7 +85,6 @@ rand.workspace = true
 rstest.workspace = true
 sha2.workspace = true
 similar-asserts = { version = "1.5", features = ["serde"] }
-tempfile = "3"
 
 [target.'cfg(unix)'.dependencies]
 pprof = { workspace = true, features = ["criterion", "flamegraph"] }
