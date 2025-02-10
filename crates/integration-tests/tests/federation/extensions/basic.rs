@@ -53,12 +53,7 @@ impl TestExtension for Ext {
         _directive: ExtensionDirective<'a, serde_json::Value>,
         inputs: Vec<serde_json::Value>,
     ) -> Result<Vec<Result<serde_json::Value, PartialGraphqlError>>, PartialGraphqlError> {
-        Ok(vec![
-            Ok(serde_json::json!({
-                "greeting": "Hi"
-            }));
-            inputs.len()
-        ])
+        Ok(vec![Ok(serde_json::json!("Hi!")); inputs.len()])
     }
 }
 
@@ -91,7 +86,7 @@ fn simple_resolver_from_federated_sdl() {
     insta::assert_json_snapshot!(response, @r#"
     {
       "data": {
-        "greeting": "Hi"
+        "greeting": "Hi!"
       }
     }
     "#);
@@ -122,7 +117,7 @@ fn simple_resolver_from_subgraph_sdl() {
     insta::assert_json_snapshot!(response, @r#"
     {
       "data": {
-        "greeting": "Hi"
+        "greeting": "Hi!"
       }
     }
     "#);

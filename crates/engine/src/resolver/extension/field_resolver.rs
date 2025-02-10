@@ -5,13 +5,12 @@ use runtime::{
     extension::{Data, ExtensionDirective, ExtensionRuntime},
     hooks::EdgeDefinition,
 };
-use schema::{FieldDefinition, FieldResolverExtensionDefinition, FieldResolverExtensionDefinitionRecord};
-use serde::de::DeserializeSeed;
+use schema::{FieldResolverExtensionDefinition, FieldResolverExtensionDefinitionRecord};
 use walker::Walk;
 
 use crate::{
     execution::{ExecutionContext, ExecutionResult},
-    prepare::Plan,
+    prepare::{Plan, SubgraphField},
     resolver::Resolver,
     response::{GraphqlError, InputResponseObjectSet, ResponseObjectsView, SubgraphResponse},
     Runtime,
@@ -42,11 +41,10 @@ impl FieldResolverExtension {
             .selection_set()
             .fields()
             .next()
-            .expect("At least one field must be present")
-            .definition();
+            .expect("At least one field must be present");
         FieldResolverExtensionRequest {
             directive,
-            field_definition,
+            field: field_definition,
             subgraph_response,
             input_object_refs,
         }
@@ -55,7 +53,7 @@ impl FieldResolverExtension {
 
 pub(in crate::resolver) struct FieldResolverExtensionRequest<'ctx> {
     directive: schema::ExtensionDirective<'ctx>,
-    field_definition: FieldDefinition<'ctx>,
+    field: SubgraphField<'ctx>,
     subgraph_response: SubgraphResponse,
     input_object_refs: Arc<InputResponseObjectSet>,
 }
@@ -64,11 +62,12 @@ impl<'ctx> FieldResolverExtensionRequest<'ctx> {
     pub async fn execute<R: Runtime>(self, ctx: ExecutionContext<'ctx, R>) -> ExecutionResult<SubgraphResponse> {
         let Self {
             directive,
-            field_definition,
+            field,
             mut subgraph_response,
             input_object_refs,
         } = self;
 
+        let field_definition = field.definition();
         let result = ctx
             .engine
             .runtime
@@ -103,7 +102,10 @@ impl<'ctx> FieldResolverExtensionRequest<'ctx> {
                             Data::JsonBytes(bytes) => {
                                 response
                                     .seed(&ctx, id)
-                                    .deserialize(&mut serde_json::Deserializer::from_slice(&bytes))
+                                    .deserialize_field_as_entity(
+                                        field.subgraph_response_key_str(),
+                                        &mut serde_json::Deserializer::from_slice(&bytes),
+                                    )
                                     .map_err(|err| {
                                         tracing::error!("Failed to deserialize subgraph response: {}", err);
                                         GraphqlError::invalid_subgraph_response()
@@ -112,7 +114,10 @@ impl<'ctx> FieldResolverExtensionRequest<'ctx> {
                             Data::CborBytes(bytes) => {
                                 response
                                     .seed(&ctx, id)
-                                    .deserialize(&mut minicbor_serde::Deserializer::new(&bytes))
+                                    .deserialize_field_as_entity(
+                                        field.subgraph_response_key_str(),
+                                        &mut minicbor_serde::Deserializer::new(&bytes),
+                                    )
                                     .map_err(|err| {
                                         tracing::error!("Failed to deserialize subgraph response: {}", err);
                                         GraphqlError::invalid_subgraph_response()
