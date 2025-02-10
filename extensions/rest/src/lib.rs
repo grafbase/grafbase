@@ -71,17 +71,25 @@ impl RestExtension {
 
             let loader = Loader::new(jaq_std::defs().chain(jaq_json::defs()));
 
-            let modules = loader.load(&self.arena, program).map_err(|e| Error {
-                extensions: Vec::new(),
-                message: format!("The selection is not in valid jq syntax: {e:?}"),
+            let modules = loader.load(&self.arena, program).map_err(|e| {
+                let error = e.first().map(|e| e.0.code).unwrap_or_default();
+
+                Error {
+                    extensions: Vec::new(),
+                    message: format!("The selection is not valid jq syntax: `{error}`"),
+                }
             })?;
 
             let filter = Compiler::default()
                 .with_funs(jaq_std::funs().chain(jaq_json::funs()))
                 .compile(modules)
-                .map_err(|e| Error {
-                    extensions: Vec::new(),
-                    message: format!("The selection is not in valid jq syntax: {e:?}"),
+                .map_err(|e| {
+                    let error = e.first().map(|e| e.0.code).unwrap_or_default();
+
+                    Error {
+                        extensions: Vec::new(),
+                        message: format!("The selection is not valid jq syntax: `{error}`"),
+                    }
                 })?;
 
             self.filters.insert(selection.to_string(), filter);
