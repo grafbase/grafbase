@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Fixes
+
+- Make the `url` argument optional in the definition of the `@join__graph` directive, to reflect the optionality of url introduced for virtual subgraphs in https://github.com/grafbase/grafbase/pull/2589.
+
 ## 0.6.0 - 2025-02-10
 
 ### Features
