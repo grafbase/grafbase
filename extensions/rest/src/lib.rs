@@ -3,13 +3,18 @@ use grafbase_sdk::{
     types::{Configuration, Directive, FieldDefinition, FieldInputs, FieldOutput},
     Error, Extension, Resolver, ResolverExtension, SharedContext,
 };
-use jaq_interpret::{Ctx, Filter, FilterT, ParseCtx, RcIter, Val};
+use jaq_core::{
+    load::{Arena, File, Loader},
+    Compiler, Ctx, Filter, RcIter,
+};
+use jaq_json::Val;
 use std::collections::HashMap;
 
 #[derive(ResolverExtension)]
 struct RestExtension {
     endpoints: Vec<RestEndpoint>,
-    filters: HashMap<String, Filter>,
+    filters: HashMap<String, Filter<jaq_core::Native<jaq_json::Val>>>,
+    arena: Arena,
 }
 
 #[derive(Debug)]
@@ -79,9 +84,12 @@ impl Extension for RestExtension {
             by_name.then(by_subgraph)
         });
 
+        let arena = Arena::default();
+
         Ok(Self {
             endpoints,
             filters: HashMap::new(),
+            arena,
         })
     }
 }
@@ -99,27 +107,30 @@ impl RestExtension {
             .ok()
     }
 
-    pub fn create_filter<'a>(&'a mut self, selection: &str) -> Result<&'a Filter, Error> {
+    pub fn create_filter<'a>(
+        &'a mut self,
+        selection: &str,
+    ) -> Result<&'a Filter<jaq_core::Native<jaq_json::Val>>, Error> {
         if !self.filters.contains_key(selection) {
-            let mut defs = ParseCtx::new(Vec::new());
+            let program = File {
+                code: selection,
+                path: (),
+            };
 
-            let (filter, errors) = jaq_parse::parse(selection, jaq_parse::main());
+            let loader = Loader::new(jaq_std::defs().chain(jaq_json::defs()));
 
-            if !errors.is_empty() {
-                return Err(Error {
+            let modules = loader.load(&self.arena, program).map_err(|e| Error {
+                extensions: Vec::new(),
+                message: format!("The selection is not in valid jq syntax: {e:?}"),
+            })?;
+
+            let filter = Compiler::default()
+                .with_funs(jaq_std::funs().chain(jaq_json::funs()))
+                .compile(modules)
+                .map_err(|e| Error {
                     extensions: Vec::new(),
-                    message: format!("The selection is not in valid jq syntax: {errors:?}"),
-                });
-            }
-
-            let filter = defs.compile(filter.expect("we handled errors above"));
-
-            if !defs.errs.is_empty() {
-                return Err(Error {
-                    extensions: Vec::new(),
-                    message: "Error compiling jq filter".to_string(),
-                });
-            }
+                    message: format!("The selection is not in valid jq syntax: {e:?}"),
+                })?;
 
             self.filters.insert(selection.to_string(), filter);
         }
@@ -190,7 +201,6 @@ impl Resolver for RestExtension {
 
         let filter = self.create_filter(rest.selection)?;
         let inputs = RcIter::new(core::iter::empty());
-
         let filtered = filter.run((Ctx::new([], &inputs), Val::from(data)));
 
         let mut results = FieldOutput::new();
