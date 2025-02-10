@@ -8,7 +8,7 @@ use std::{
 use super::TestConfig;
 use grafbase_sdk_mock::MockGraphQlServer;
 use graphql_composition::Subgraphs;
-use tempdir::TempDir;
+use tempfile::TempDir;
 use url::Url;
 
 /// A test runner that can start a gateway and execute GraphQL queries against it.
@@ -36,7 +36,7 @@ struct ExtensionDefinition {
 impl TestRunner {
     /// Creates a new [`TestRunner`] with the given [`TestConfig`].
     pub async fn new(mut config: TestConfig) -> anyhow::Result<Self> {
-        let test_specific_temp_dir = TempDir::new("sdk-tests")?;
+        let test_specific_temp_dir = tempfile::Builder::new().prefix("sdk-tests").tempdir()?;
         let gateway_listen_address = listen_address()?;
         let gateway_endpoint = Url::parse(&format!("http://{}/graphql", gateway_listen_address))?;
 
@@ -125,7 +125,13 @@ impl TestRunner {
 
         self.gateway_handle = Some(expr.start()?);
 
+        let mut i = 0;
         while !self.check_gateway_health().await? {
+            // printing every second only
+            if i % 10 == 0 {
+                println!("Waiting for gateway to be ready...");
+            }
+            i += 1;
             std::thread::sleep(Duration::from_millis(100));
         }
 
@@ -149,6 +155,7 @@ impl TestRunner {
             return Ok(path.canonicalize()?);
         }
 
+        println!("Building extension...");
         // Only one test can build the extension at a time. The others must
         // wait.
         let mut lock_file = fslock::LockFile::open(".build.lock")?;
