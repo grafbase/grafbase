@@ -278,3 +278,97 @@ async fn internal_server_error() {
     }
     "#);
 }
+
+#[tokio::test]
+async fn with_bad_jq() {
+    let response_body = json!([
+        {
+            "id": "1",
+            "name": "John Doe",
+            "age": 30,
+            "nonimportant": 2,
+        },
+        {
+            "id": "2",
+            "name": "Jane Doe",
+            "age": 25,
+            "nonimportant": 3,
+        }
+    ]);
+
+    let template = ResponseTemplate::new(200).set_body_json(response_body);
+    let mock_server = mock_server("/users", template).await;
+    let extension_path = std::env::current_dir().unwrap().join("build");
+    let path_str = format!("file://{}", extension_path.display());
+    let rest_endpoint = mock_server.uri();
+
+    let schema = formatdoc! {r#"
+        extend schema
+          @link(url: "https://specs.apollo.dev/federation/v2.0", import: ["@key", "@shareable"])
+          @link(url: "{path_str}", import: ["@restEndpoint", "@rest"])
+
+        @restEndpoint(
+          name: "endpoint",
+          http: {{
+            baseURL: "{rest_endpoint}"
+          }}
+        )
+
+        type Query {{
+          users: [User!]! @rest(
+            endpoint: "endpoint",
+            http: {{
+              method: GET,
+              path: "/users"
+            }}
+            selection: "\\||\\"
+          )
+        }}
+
+        type User {{
+          id: ID!
+          name: String!
+          age: Int!
+        }}
+    "#};
+
+    let subgraph = DynamicSchema::builder(schema)
+        .into_extension_only_subgraph("test", &extension_path)
+        .unwrap();
+
+    let config = TestConfigBuilder::new()
+        .with_cli(CLI_PATH)
+        .with_gateway(GATEWAY_PATH)
+        .with_subgraph(subgraph)
+        .enable_networking()
+        .build("")
+        .unwrap();
+
+    let runner = TestRunner::new(config).await.unwrap();
+
+    let query = indoc! {r#"
+        query {
+          users {
+            id
+            name
+            age
+          }
+        }
+    "#};
+
+    let result: serde_json::Value = runner.graphql_query(query).send().await.unwrap();
+
+    insta::assert_json_snapshot!(result, @r#"
+    {
+      "data": null,
+      "errors": [
+        {
+          "message": "The selection is not valid jq syntax: `\\||\\`",
+          "extensions": {
+            "code": "INTERNAL_SERVER_ERROR"
+          }
+        }
+      ]
+    }
+    "#);
+}
