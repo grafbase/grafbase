@@ -2,11 +2,13 @@
 
 ## Unreleased
 
+## 0.6.0 - 2025-02-10
+
 ### Features
 
 - Implemented the rule that any directive composed with `@composeDirective` must have the same definition in all subgraphs. (https://github.com/grafbase/grafbase/pull/2532)
 - The definitions for directives composed with `@composeDirective` are now included in the composed federated graph. (https://github.com/grafbase/grafbase/pull/2539)
-- The `url` argument of `Subgraph::ingest()` is now optional, to support virtual subgraphs that have no associated url.
+- The `url` argument of `Subgraph::ingest()` is now optional, to support virtual subgraphs that have no associated url. (https://github.com/grafbase/grafbase/pull/2589)
 
 ### Fixes
 
