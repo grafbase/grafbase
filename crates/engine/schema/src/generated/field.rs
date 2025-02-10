@@ -18,6 +18,7 @@ use crate::{
 pub use provides::*;
 pub use requires::*;
 pub use subgraph_type::*;
+#[allow(unused_imports)]
 use walker::{Iter, Walk};
 
 /// Generated from:

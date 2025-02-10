@@ -4,7 +4,8 @@
 //! Generated with: `cargo run -p engine-codegen`
 //! Source file: <engine-codegen dir>/domain/schema.graphql
 use crate::{prelude::*, FieldSet, FieldSetRecord, InputValueSet, SchemaInputValue, SchemaInputValueId};
-use walker::Walk;
+#[allow(unused_imports)]
+use walker::{Iter, Walk};
 
 /// Generated from:
 ///

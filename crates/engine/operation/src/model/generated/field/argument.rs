@@ -5,7 +5,8 @@
 //! Source file: <engine-codegen dir>/domain/operation.graphql
 use crate::model::{prelude::*, QueryInputValueId};
 use schema::{InputValueDefinition, InputValueDefinitionId};
-use walker::Walk;
+#[allow(unused_imports)]
+use walker::{Iter, Walk};
 
 /// Generated from:
 ///

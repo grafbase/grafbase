@@ -7,7 +7,8 @@ use crate::{
     generated::{Subgraph, SubgraphId, Type, TypeRecord},
     prelude::*,
 };
-use walker::Walk;
+#[allow(unused_imports)]
+use walker::{Iter, Walk};
 
 /// Generated from:
 ///

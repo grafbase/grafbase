@@ -9,6 +9,7 @@ use crate::model::{
     Location, ResponseKey, SelectionSet, SelectionSetRecord,
 };
 use schema::{FieldDefinition, FieldDefinitionId};
+#[allow(unused_imports)]
 use walker::{Iter, Walk};
 
 /// In opposition to a __typename field this field does retrieve data from a subgraph

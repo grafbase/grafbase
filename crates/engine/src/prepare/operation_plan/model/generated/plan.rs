@@ -7,6 +7,7 @@ use crate::prepare::operation_plan::model::{
     generated::{Executable, ExecutableId},
     prelude::*,
 };
+#[allow(unused_imports)]
 use walker::{Iter, Walk};
 
 /// Generated from:

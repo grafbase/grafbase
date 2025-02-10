@@ -8,7 +8,8 @@ use crate::{
     prelude::*,
     FieldSet, FieldSetRecord,
 };
-use walker::Walk;
+#[allow(unused_imports)]
+use walker::{Iter, Walk};
 
 /// Generated from:
 ///

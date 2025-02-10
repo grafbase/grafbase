@@ -48,11 +48,6 @@ pub fn generate_object<'a>(domain: &'a Domain, object: &'a Object) -> anyhow::Re
         code_sections,
         imports: Imports {
             generated: imported_definition_names,
-            walker_lib: if object.fields.iter().any(|field| field.has_list_wrapping()) {
-                HashSet::from_iter(["Iter"])
-            } else {
-                Default::default()
-            },
             ..Default::default()
         },
     })

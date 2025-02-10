@@ -11,7 +11,8 @@ use crate::{
     },
     prelude::*,
 };
-use walker::Walk;
+#[allow(unused_imports)]
+use walker::{Iter, Walk};
 
 /// Generated from:
 ///

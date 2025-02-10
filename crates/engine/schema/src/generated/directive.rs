@@ -13,7 +13,8 @@ pub use authorized::*;
 pub use complexity_control::*;
 pub use deprecated::*;
 pub use extension::*;
-use walker::Walk;
+#[allow(unused_imports)]
+use walker::{Iter, Walk};
 
 /// Generated from:
 ///

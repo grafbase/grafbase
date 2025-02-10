@@ -10,6 +10,7 @@ use crate::prepare::operation_plan::model::{
     prelude::*,
 };
 pub(crate) use target::*;
+#[allow(unused_imports)]
 use walker::{Iter, Walk};
 
 /// Generated from:

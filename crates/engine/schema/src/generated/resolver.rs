@@ -9,7 +9,8 @@ mod graphql;
 use crate::prelude::*;
 pub use field_resolver_ext::*;
 pub use graphql::*;
-use walker::Walk;
+#[allow(unused_imports)]
+use walker::{Iter, Walk};
 
 /// Generated from:
 ///

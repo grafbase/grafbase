@@ -9,6 +9,7 @@ use crate::model::{
     SelectionSet, SelectionSetRecord,
 };
 use schema::{CompositeType, CompositeTypeId};
+#[allow(unused_imports)]
 use walker::{Iter, Walk};
 
 /// Generated from:
