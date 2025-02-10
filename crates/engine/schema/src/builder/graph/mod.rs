@@ -5,7 +5,7 @@ mod post_process;
 
 use std::collections::BTreeMap;
 
-use builder::ValuePathSegment;
+use builder::{SchemaLocation, ValuePathSegment};
 use fxhash::FxHashMap;
 use introspection::IntrospectionMetadata;
 use post_process::post_process_schema_locations;
@@ -62,6 +62,19 @@ impl EntityResovler {
 impl Context<'_> {
     pub(crate) fn into_ctx_graph_introspection(self) -> Result<(Self, Graph, IntrospectionMetadata), BuildError> {
         let (mut ctx, locations) = self.into_graph_context()?;
+        for (ix, extension) in ctx.federated_graph.extensions.iter().enumerate() {
+            let extension_id = federated_graph::ExtensionId::from(ix);
+            for directive in &extension.schema_directives {
+                let id = ctx.ingest_extension_directive(
+                    SchemaLocation::SchemaDirective(directive.subgraph_id),
+                    directive.subgraph_id,
+                    extension_id,
+                    directive.name,
+                    &directive.arguments,
+                )?;
+                ctx.push_extension_schema_directive(id);
+            }
+        }
         let introspection = ctx.create_introspection_metadata();
         post_process_schema_locations(&mut ctx, locations)?;
 

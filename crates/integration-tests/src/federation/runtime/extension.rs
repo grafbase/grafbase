@@ -32,11 +32,11 @@ impl Default for TestExtensions {
 
 impl TestExtensions {
     #[track_caller]
-    pub fn push_extension<E: TestExtensionBuilder + Sized + Default>(&mut self) {
-        let config = E::config();
+    pub fn push_extension<Builder: TestExtensionBuilder + Sized + Default>(&mut self, builder: Builder) {
+        let config = builder.config();
 
         let manifest = extension_catalog::Manifest {
-            id: E::id(),
+            id: builder.id(),
             kind: config.kind,
             sdk_version: "0.0.0".parse().unwrap(),
             minimum_gateway_version: "0.0.0".parse().unwrap(),
@@ -53,7 +53,7 @@ impl TestExtensions {
             manifest,
             wasm_path: Default::default(),
         });
-        self.builders.insert(id, Box::new(E::default()));
+        self.builders.insert(id, Box::new(Builder::default()));
     }
 
     pub fn catalog(&self) -> &ExtensionCatalog {
@@ -77,11 +77,11 @@ pub struct TestExtensionConfig {
 
 #[allow(unused_variables)] // makes it easier to copy-paste relevant functions
 pub trait TestExtensionBuilder: Send + Sync + 'static {
-    fn id() -> Id
+    fn id(&self) -> Id
     where
         Self: Sized;
 
-    fn config() -> TestExtensionConfig
+    fn config(&self) -> TestExtensionConfig
     where
         Self: Sized;
 

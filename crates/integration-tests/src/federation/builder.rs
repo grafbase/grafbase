@@ -104,8 +104,8 @@ impl TestGatewayBuilder {
         self
     }
 
-    pub fn with_extension<E: TestExtensionBuilder + Sized + Default>(mut self) -> Self {
-        self.extensions.push_extension::<E>();
+    pub fn with_extension<Builder: TestExtensionBuilder + Sized + Default>(mut self, builder: Builder) -> Self {
+        self.extensions.push_extension(builder);
         self
     }
 

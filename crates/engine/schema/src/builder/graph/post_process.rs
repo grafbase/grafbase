@@ -69,6 +69,7 @@ pub(super) fn post_process_schema_locations(
                     ctx.push_directives(location, &ctx.federated_graph[federated_id].directives)?;
                 ingest_enum_value_directive(ctx, id, federated_id)?
             }
+            SchemaLocation::SchemaDirective(_) => (),
         }
     }
 
@@ -556,10 +557,14 @@ impl GraphContext<'_> {
                     });
                     TypeSystemDirectiveId::ListSize(list_size_id)
                 }
-                federated_graph::Directive::ExtensionDirective(directive) => {
-                    let record = self.ingest_extension_directive(location, directive)?;
-                    self.graph.extension_directives.push(record);
-                    let id = (self.graph.extension_directives.len() - 1).into();
+                federated_graph::Directive::ExtensionDirective(federated_graph::ExtensionDirective {
+                    subgraph_id,
+                    extension_id,
+                    name,
+                    arguments,
+                }) => {
+                    let id =
+                        self.ingest_extension_directive(location, *subgraph_id, *extension_id, *name, arguments)?;
                     TypeSystemDirectiveId::Extension(id)
                 }
                 federated_graph::Directive::Other { .. }
