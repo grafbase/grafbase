@@ -18,7 +18,7 @@ test-utils = [
     "dep:fslock",
     "dep:indoc",
     "dep:reqwest",
-    "dep:tempdir",
+    "dep:tempfile",
     "dep:toml",
     "dep:which",
     "dep:futures-util",
@@ -44,7 +44,7 @@ duct = { version = "0.13.7", optional = true }
 fslock = { version = "0.2.1", optional = true }
 indoc = { workspace = true, optional = true }
 reqwest = { workspace = true, features = ["json"], optional = true }
-tempdir = { version = "0.3.7", optional = true }
+tempfile = { version = "3", optional = true }
 toml = { workspace = true, optional = true }
 which = { workspace = true, optional = true }
 futures-util = { workspace = true, optional = true }
