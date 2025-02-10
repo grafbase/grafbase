@@ -44,7 +44,9 @@ impl GrafbaseDevConfig {
             gateway_config,
         } = self;
 
-        let subgraphs = integration_tests::federation::Subgraphs::load(mock_subgraphs, Default::default()).await;
+        let subgraphs =
+            integration_tests::federation::Subgraphs::load(mock_subgraphs, Default::default(), Default::default())
+                .await;
 
         let working_directory = tempfile::tempdir().unwrap();
 
@@ -64,7 +66,7 @@ impl GrafbaseDevConfig {
                 let sdl = subgraph.sdl();
                 // Not necessary right now, but we may want to allow overriding.
                 let schema_path = working_directory.path().join(format!("{}.graphql", subgraph.name()));
-                let subgraph_url = subgraph.url();
+                let subgraph_url = subgraph.url().unwrap();
                 fs::write(&schema_path, sdl.as_bytes()).unwrap();
 
                 writeln!(

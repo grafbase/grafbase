@@ -14,7 +14,10 @@ use runtime::{
     trusted_documents_client::{self, TrustedDocumentsEnforcementMode},
 };
 
-use super::{subgraph::Subgraphs, DockerSubgraph, TestExtensions, TestGateway, TestRuntime};
+use super::{
+    subgraph::{Subgraph, Subgraphs},
+    DockerSubgraph, TestExtensionBuilder, TestExtensions, TestGateway, TestRuntime,
+};
 
 #[derive(Default)]
 struct TestConfig {
@@ -28,6 +31,7 @@ pub struct TestGatewayBuilder {
     federated_sdl: Option<String>,
     mock_subgraphs: Vec<(TypeId, String, BoxFuture<'static, MockGraphQlServer>)>,
     docker_subgraphs: HashSet<DockerSubgraph>,
+    virtual_subgraphs: Vec<(String, String)>,
     config: TestConfig,
 
     trusted_documents: Option<trusted_documents_client::Client>,
@@ -68,6 +72,11 @@ impl TestGatewayBuilder {
         self
     }
 
+    pub fn with_subgraph_sdl(mut self, name: &str, sdl: &str) -> Self {
+        self.virtual_subgraphs.push((name.to_string(), sdl.to_string()));
+        self
+    }
+
     /// Will bypass the composition of subgraphs and be used at its stead.
     pub fn with_federated_sdl(mut self, sdl: &str) -> Self {
         self.federated_sdl = Some(sdl.to_string());
@@ -95,6 +104,11 @@ impl TestGatewayBuilder {
         self
     }
 
+    pub fn with_extension<E: TestExtensionBuilder + Sized + Default>(mut self) -> Self {
+        self.extensions.push_extension::<E>();
+        self
+    }
+
     pub fn with_mock_hooks(mut self, hooks: impl Into<DynamicHooks>) -> Self {
         self.hooks = Some(hooks.into());
         self
@@ -107,10 +121,15 @@ impl TestGatewayBuilder {
     //-- Runtime customization --
 
     pub async fn build(self) -> TestGateway {
+        self.try_build().await.unwrap()
+    }
+
+    pub async fn try_build(self) -> Result<TestGateway, String> {
         let Self {
             federated_sdl,
             mock_subgraphs,
             docker_subgraphs,
+            virtual_subgraphs,
             config,
             trusted_documents,
             hooks,
@@ -134,16 +153,24 @@ impl TestGatewayBuilder {
             runtime.fetcher = fetcher;
         }
 
-        let subgraphs = Subgraphs::load(mock_subgraphs, docker_subgraphs).await;
+        let subgraphs = Subgraphs::load(
+            mock_subgraphs,
+            docker_subgraphs,
+            virtual_subgraphs
+                .into_iter()
+                .map(|(name, sdl)| Subgraph::Virtual { name, sdl })
+                .collect(),
+        )
+        .await;
 
-        let (engine, context) = self::engine::build(federated_sdl, config, runtime, &subgraphs).await;
+        let (engine, context) = self::engine::build(federated_sdl, config, runtime, &subgraphs).await?;
         let router = self::router::build(engine.clone(), &gateway_config);
 
-        TestGateway {
+        Ok(TestGateway {
             router,
             engine,
             context: Arc::new(context),
             subgraphs,
-        }
+        })
     }
 }

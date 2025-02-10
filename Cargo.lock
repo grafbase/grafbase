@@ -4520,6 +4520,7 @@ dependencies = [
  "cynic",
  "cynic-introspection",
  "cynic-parser",
+ "dyn-clone",
  "ed25519-compact",
  "elliptic-curve",
  "engine",
