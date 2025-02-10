@@ -86,8 +86,6 @@ async fn get_all_fields() {
         .with_gateway(GATEWAY_PATH)
         .with_subgraph(subgraph)
         .enable_networking()
-        .enable_stdout()
-        .enable_stderr()
         .build("")
         .unwrap();
 
