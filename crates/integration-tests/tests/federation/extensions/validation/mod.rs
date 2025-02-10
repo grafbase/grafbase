@@ -1,3 +1,11 @@
+mod default_value;
+mod definition;
+mod enum_;
+mod fields;
+mod list;
+mod non_null;
+mod scalar;
+
 use std::{collections::HashMap, sync::Arc};
 
 use engine::Engine;
@@ -116,4 +124,70 @@ fn simple_echo() {
       }
     }
     "#);
+}
+
+#[test]
+fn too_many_arguments() {
+    runtime().block_on(async move {
+        // Invalid field directive
+        let result = Engine::builder()
+            .with_subgraph_sdl(
+                "a",
+                r#"
+                extend schema
+                    @link(url: "echo-1.0.0", import: ["@echo", "@meta"])
+
+                scalar JSON
+
+                type Query {
+                    echo: JSON @echo(value: "ste", other: 1)
+                }
+                "#,
+            )
+            .with_extension(EchoExt {
+                sdl: r#"
+                    directive @meta(value: String!) on SCHEMA
+                    directive @echo(value: String!) on FIELD_DEFINITION
+                "#,
+            })
+            .try_build()
+            .await;
+
+        insta::assert_debug_snapshot!(result.err(), @r#"
+        Some(
+            "At Query.echo for the extension 'echo-1.0.0' directive named 'echo': Unknown argumant named 'other'",
+        )
+        "#);
+
+        // Invalid schema directive
+        let result = Engine::builder()
+            .with_subgraph_sdl(
+                "a",
+                r#"
+                extend schema
+                    @link(url: "echo-1.0.0", import: ["@echo", "@meta"])
+                    @meta(value: "str", other: 1)
+
+                scalar JSON
+
+                type Query {
+                    echo: JSON
+                }
+                "#,
+            )
+            .with_extension(EchoExt {
+                sdl: r#"
+                    directive @meta(value: String!) on SCHEMA
+                    directive @echo(value: String!) on FIELD_DEFINITION
+                "#,
+            })
+            .try_build()
+            .await;
+
+        insta::assert_debug_snapshot!(result.err(), @r#"
+        Some(
+            "At subgraph named 'a' for the extension 'echo-1.0.0' directive named 'meta': Unknown argumant named 'other'",
+        )
+        "#);
+    });
 }

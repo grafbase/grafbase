@@ -244,6 +244,7 @@ impl<'schema> QueryValueCoercionContext<'_, 'schema, '_> {
             } else if let Some(default_value_id) = input_field.as_ref().default_value_id {
                 fields_buffer.push((input_field.id, QueryInputValueRecord::DefaultValue(default_value_id)));
             } else if input_field.ty().wrapping.is_required() {
+                self.value_path.push(input_field.as_ref().name_id.into());
                 return Err(InputValueError::UnexpectedNull {
                     expected: input_field.ty().to_string(),
                     path: self.path(),

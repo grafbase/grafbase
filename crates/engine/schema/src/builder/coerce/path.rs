@@ -4,6 +4,7 @@ use std::fmt::Write;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum ValuePathSegment {
     Field(StringId),
+    FieldStr(String),
     Index(usize),
 }
 
@@ -19,23 +20,39 @@ impl From<StringId> for ValuePathSegment {
     }
 }
 
+impl From<String> for ValuePathSegment {
+    fn from(s: String) -> ValuePathSegment {
+        ValuePathSegment::FieldStr(s)
+    }
+}
+
+impl From<&str> for ValuePathSegment {
+    fn from(s: &str) -> ValuePathSegment {
+        ValuePathSegment::FieldStr(s.to_string())
+    }
+}
+
 pub(super) fn value_path_to_string(ctx: &Context<'_>, values: &[ValuePathSegment]) -> String {
     let mut output = String::new();
     if values.is_empty() {
         return output;
     }
-    write!(&mut output, " at path '").unwrap();
+    output.push_str(" at path '");
     for segment in values {
+        output.push('.');
         match segment {
             ValuePathSegment::Field(id) => {
-                write!(&mut output, ".{}", ctx.strings[*id]).unwrap();
+                output.push_str(&ctx.strings[*id]);
             }
             ValuePathSegment::Index(idx) => {
-                write!(&mut output, ".{idx}").unwrap();
+                write!(&mut output, "{}", idx).unwrap();
+            }
+            ValuePathSegment::FieldStr(s) => {
+                output.push_str(s);
             }
         }
     }
-    write!(output, "'").unwrap();
+    output.push('\'');
 
     output
 }

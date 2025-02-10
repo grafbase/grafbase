@@ -48,12 +48,8 @@ impl SchemaLocation {
 pub enum BuildError {
     #[error("Invalid URL '{url}': {err}")]
     InvalidUrl { url: String, err: String },
-    #[error("At {location} for the extension '{extension_id}': {err}")]
-    ExtensionDirectiveArgumentsError {
-        location: String,
-        extension_id: Box<extension_catalog::Id>,
-        err: ExtensionInputValueError,
-    },
+    #[error("At {} for the extension '{}' directive named '{}': {}", .0.location, .0.extension_id, .0.directive, .0.err)]
+    ExtensionDirectiveArgumentsError(Box<ExtensionDirectiveArgumentsError>),
     #[error("At {location}, a required field argument is invalid: {err}")]
     RequiredFieldArgumentCoercionError { location: String, err: InputValueError },
     #[error("An input value named '{name}' has an invalid default value: {err}")]
@@ -82,4 +78,12 @@ pub enum BuildError {
         directive: String,
         argument: String,
     },
+}
+
+#[derive(Debug)]
+pub struct ExtensionDirectiveArgumentsError {
+    pub location: String,
+    pub directive: String,
+    pub extension_id: extension_catalog::Id,
+    pub err: ExtensionInputValueError,
 }

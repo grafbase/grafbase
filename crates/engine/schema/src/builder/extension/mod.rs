@@ -3,8 +3,8 @@ use std::str::FromStr as _;
 use crate::extension::ExtensionDirectiveArgumentRecord;
 
 use super::{
-    BuildError, Context, ExtensionDirectiveId, ExtensionDirectiveRecord, ExtensionInputValueCoercer, GraphContext,
-    SchemaLocation,
+    BuildError, Context, ExtensionDirectiveArgumentsError, ExtensionDirectiveId, ExtensionDirectiveRecord,
+    ExtensionInputValueCoercer, GraphContext, InputValueError, SchemaLocation,
 };
 
 pub(crate) struct SchemaExtension {
@@ -88,8 +88,10 @@ impl GraphContext<'_> {
             });
         };
 
+        let federated_graph = self.ctx.federated_graph;
         let start = self.graph.extension_directive_arguments.len();
         if let Some(arguments) = arguments {
+            let mut arguments = arguments.iter().collect::<Vec<_>>();
             self.graph.extension_directive_arguments.reserve(arguments.len());
             let mut coercer = ExtensionInputValueCoercer {
                 ctx: self,
@@ -97,34 +99,47 @@ impl GraphContext<'_> {
                 current_injection_stage: Default::default(),
             };
 
-            for (arg_name, value) in arguments {
-                let name_id = coercer.ctx.get_or_insert_str(*arg_name);
-                let name = &coercer.ctx.federated_graph[*arg_name];
-                let Some(def) = definition.arguments().find(|arg| arg.name() == name) else {
-                    return Err(BuildError::UnknownExtensionDirectiveArgument {
-                        id: coercer.get_extension_id(extension_id),
-                        directive: directive_name.to_string(),
-                        argument: name.to_string(),
-                    });
-                };
-                let (value, injection_stage) = coercer.coerce_extension_value(def, value).map_err(|err| {
-                    BuildError::ExtensionDirectiveArgumentsError {
+            for def in definition.arguments() {
+                let name_id = coercer.ctx.strings.get_or_new(def.name());
+                let sdl_value = arguments
+                    .iter()
+                    .position(|(name, _)| federated_graph[*name] == def.name())
+                    .map(|ix| &arguments.swap_remove(ix).1);
+
+                let maybe_coerced_argument = coercer.coerce_argument(def, sdl_value).map_err(|err| {
+                    BuildError::ExtensionDirectiveArgumentsError(Box::new(ExtensionDirectiveArgumentsError {
                         location: location.to_string(coercer.ctx),
-                        extension_id: Box::new(coercer.get_extension_id(extension_id)),
+                        directive: directive_name.to_string(),
+                        extension_id: coercer.get_extension_id(extension_id),
                         err,
-                    }
+                    }))
                 })?;
-                coercer
-                    .ctx
-                    .graph
-                    .extension_directive_arguments
-                    .push(ExtensionDirectiveArgumentRecord {
-                        name_id,
-                        value,
-                        injection_stage,
-                    });
+
+                if let Some((value, injection_stage)) = maybe_coerced_argument {
+                    coercer
+                        .ctx
+                        .graph
+                        .extension_directive_arguments
+                        .push(ExtensionDirectiveArgumentRecord {
+                            name_id,
+                            value,
+                            injection_stage,
+                        });
+                }
+            }
+
+            if let Some((name, _)) = arguments.first() {
+                return Err(BuildError::ExtensionDirectiveArgumentsError(Box::new(
+                    ExtensionDirectiveArgumentsError {
+                        location: location.to_string(coercer.ctx),
+                        directive: directive_name.to_string(),
+                        extension_id: coercer.get_extension_id(extension_id),
+                        err: InputValueError::UnknownArgument(federated_graph[*name].clone()).into(),
+                    },
+                )));
             }
         }
+
         let argument_ids = (start..self.graph.extension_directive_arguments.len()).into();
 
         self[extension_id].sdl = Some(sdl);
