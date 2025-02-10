@@ -36,8 +36,8 @@ impl std::fmt::Display for EdgeDefinition<'_> {
 }
 
 // Used as a sort of convenient type alias
-pub trait Anything<'a>: serde::Serialize + serde::de::Deserializer<'a> + Send {}
-impl<'a, T> Anything<'a> for T where T: serde::Serialize + serde::de::Deserializer<'a> + Send {}
+pub trait Anything<'a>: serde::Serialize + Send + 'a {}
+impl<'a, T> Anything<'a> for T where T: serde::Serialize + Send + 'a {}
 
 pub type AuthorizationVerdict = Result<(), PartialGraphqlError>;
 pub type AuthorizationVerdicts = Result<Vec<AuthorizationVerdict>, PartialGraphqlError>;

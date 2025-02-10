@@ -1,6 +1,6 @@
-mod non_ord;
+mod proxy;
 
-pub use non_ord::ProxyKeyInterner;
+pub use proxy::ProxyKeyInterner;
 use rapidhash::RapidBuildHasher;
 
 use std::{borrow::Borrow, marker::PhantomData};

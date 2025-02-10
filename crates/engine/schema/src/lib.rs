@@ -8,6 +8,7 @@ mod directive;
 mod entity;
 mod enum_def;
 mod enum_value;
+mod extension;
 mod field;
 mod field_set;
 mod generated;
@@ -28,6 +29,7 @@ mod union;
 pub use self::builder::BuildError;
 pub use config::*;
 pub use directive::*;
+pub use extension::*;
 use extension_catalog::ExtensionCatalog;
 pub use field_set::*;
 pub use gateway_config::SubscriptionProtocol;
@@ -205,6 +207,8 @@ pub struct Graph {
 
     #[indexed_by(ExtensionDirectiveId)]
     extension_directives: Vec<ExtensionDirectiveRecord>,
+    #[indexed_by(ExtensionDirectiveArgumentId)]
+    extension_directive_arguments: Vec<ExtensionDirectiveArgumentRecord>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, id_derives::IndexedFields)]

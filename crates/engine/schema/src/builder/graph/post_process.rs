@@ -399,7 +399,7 @@ fn ingest_field_directive(
     }
     ctx.graphql_federated_entity_resolvers = graphql_federated_entity_resolvers;
 
-    let directive_ids = ctx.push_directives(SchemaLocation::Field(id, federated_id), &federated_field.directives)?;
+    let directive_ids = take(&mut ctx.graph[id].directive_ids);
     resolver_ids.extend(
         directive_ids
             .iter()
@@ -419,6 +419,7 @@ fn ingest_field_directive(
     );
 
     let field = &mut ctx.graph[id];
+    field.directive_ids = directive_ids;
     field.subgraph_type_records = subgraph_type_records;
     field.exists_in_subgraph_ids = exists_in_subgraph_ids;
     field.resolver_ids = resolver_ids;
@@ -465,7 +466,7 @@ fn ingest_enum_value_directive(
 impl GraphContext<'_> {
     fn push_directives<'d>(
         &mut self,
-        schema_location: SchemaLocation,
+        location: SchemaLocation,
         directives: impl IntoIterator<Item = &'d federated_graph::Directive>,
     ) -> Result<Vec<TypeSystemDirectiveId>, BuildError> {
         let mut directive_ids = Vec::new();
@@ -507,7 +508,7 @@ impl GraphContext<'_> {
                             .map(|field_set| {
                                 self.convert_field_set(field_set).map_err(|err| {
                                     BuildError::RequiredFieldArgumentCoercionError {
-                                        location: schema_location.to_string(self),
+                                        location: location.to_string(self),
                                         err,
                                     }
                                 })
@@ -519,7 +520,7 @@ impl GraphContext<'_> {
                             .map(|field_set| {
                                 self.convert_field_set(field_set).map_err(|err| {
                                     BuildError::RequiredFieldArgumentCoercionError {
-                                        location: schema_location.to_string(self),
+                                        location: location.to_string(self),
                                         err,
                                     }
                                 })
@@ -555,29 +556,8 @@ impl GraphContext<'_> {
                     });
                     TypeSystemDirectiveId::ListSize(list_size_id)
                 }
-                federated_graph::Directive::ExtensionDirective(federated_graph::ExtensionDirective {
-                    subgraph_id,
-                    extension_id,
-                    name,
-                    arguments,
-                }) => {
-                    let extension_id = &self[*extension_id].id;
-                    let Some(id) = self.extension_catalog.find_compatible_extension(extension_id) else {
-                        return Err(BuildError::UnsupportedExtension {
-                            id: Box::new(extension_id.clone()),
-                        });
-                    };
-
-                    let record = ExtensionDirectiveRecord {
-                        subgraph_id: self.subgraphs[*subgraph_id],
-                        extension_id: id,
-                        name_id: self.get_or_insert_str(*name),
-                        arguments_id: arguments.as_ref().map(|arguments| {
-                            let value =
-                                self.ingest_arbitrary_value(federated_graph::Value::Object(arguments.clone().into()));
-                            self.graph.input_values.push_value(value)
-                        }),
-                    };
+                federated_graph::Directive::ExtensionDirective(directive) => {
+                    let record = self.ingest_extension_directive(location, directive)?;
                     self.graph.extension_directives.push(record);
                     let id = (self.graph.extension_directives.len() - 1).into();
                     TypeSystemDirectiveId::Extension(id)

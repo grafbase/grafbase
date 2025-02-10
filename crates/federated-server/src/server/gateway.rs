@@ -192,12 +192,11 @@ fn create_wasi_extension_configs(
         for schema_directive in directives {
             let config = &mut wasi_extensions[usize::from(schema_directive.extension_id)];
 
-            let directive = match schema_directive.arguments() {
-                Some(args) => Directive::new(config.name.clone(), subgraph.name().to_string(), &args),
-                None => Directive::new(config.name.clone(), subgraph.name().to_string(), &Option::<()>::None),
-            };
-
-            config.schema_directives.push(directive);
+            config.schema_directives.push(Directive::new(
+                config.name.clone(),
+                subgraph.name().to_string(),
+                schema_directive.static_arguments(),
+            ));
         }
     }
 

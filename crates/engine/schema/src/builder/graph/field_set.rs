@@ -3,7 +3,7 @@ use id_newtypes::IdRange;
 use crate::SchemaFieldId;
 
 use super::{
-    coerce::InputValueError, FieldSetItemRecord, FieldSetRecord, GraphContext, InputValueDefinitionId,
+    builder::InputValueError, FieldSetItemRecord, FieldSetRecord, GraphContext, InputValueDefinitionId,
     SchemaFieldArgumentRecord, SchemaFieldRecord,
 };
 

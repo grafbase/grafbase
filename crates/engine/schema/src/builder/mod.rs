@@ -1,8 +1,9 @@
+mod coerce;
 mod context;
 mod error;
+mod extension;
 mod graph;
 mod interner;
-mod manifests;
 mod subgraphs;
 
 use context::Context;
@@ -10,6 +11,7 @@ use extension_catalog::ExtensionCatalog;
 use subgraphs::SubgraphsContext;
 
 use self::error::*;
+pub(crate) use coerce::*;
 pub(crate) use graph::*;
 
 pub use self::error::BuildError;

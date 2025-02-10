@@ -30,7 +30,7 @@ pub struct Directive {
 
 impl Directive {
     /// Creates a new directive with the specified name and arguments.
-    pub fn new<S: serde::Serialize>(name: String, subgraph_name: String, arguments: &S) -> Self {
+    pub fn new(name: String, subgraph_name: String, arguments: impl serde::Serialize) -> Self {
         Self {
             name,
             subgraph_name,

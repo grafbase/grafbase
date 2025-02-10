@@ -1,7 +1,7 @@
 use super::{
-    graph::GraphContext, EntityDefinitionId, EnumDefinitionId, EnumValueId, FieldDefinitionId, InputObjectDefinitionId,
-    InputValueDefinitionId, InputValueError, InterfaceDefinitionId, ObjectDefinitionId, ScalarDefinitionId,
-    UnionDefinitionId,
+    graph::GraphContext, EntityDefinitionId, EnumDefinitionId, EnumValueId, ExtensionInputValueError,
+    FieldDefinitionId, InputObjectDefinitionId, InputValueDefinitionId, InputValueError, InterfaceDefinitionId,
+    ObjectDefinitionId, ScalarDefinitionId, UnionDefinitionId,
 };
 
 #[derive(Debug, Copy, Clone)]
@@ -44,6 +44,12 @@ impl SchemaLocation {
 pub enum BuildError {
     #[error("Invalid URL '{url}': {err}")]
     InvalidUrl { url: String, err: String },
+    #[error("At {location} for the extension '{extension_id}': {err}")]
+    ExtensionDirectiveArgumentsError {
+        location: String,
+        extension_id: Box<extension_catalog::Id>,
+        err: ExtensionInputValueError,
+    },
     #[error("At {location}, a required field argument is invalid: {err}")]
     RequiredFieldArgumentCoercionError { location: String, err: InputValueError },
     #[error("An input value named '{name}' has an invalid default value: {err}")]
@@ -51,7 +57,25 @@ pub enum BuildError {
     #[error(transparent)]
     GraphFromSdlError(#[from] federated_graph::DomainError),
     #[error("Unsupported extension: {id}")]
-    UnsupportedExtension { id: Box<extension_catalog::Id> },
+    UnsupportedExtension { id: extension_catalog::Id },
     #[error("Could not load extension at '{url}': {err}")]
     CouldNotLoadExtension { url: String, err: String },
+    #[error("Could not parse extension '{id}' GraphQL definitions: {err}")]
+    CouldNotParseExtension { id: extension_catalog::Id, err: String },
+    #[error("Extension '{id}' does not define any GraphQL definitions, but a directive '{directive}' was found")]
+    MissingGraphQLDefinitions {
+        id: extension_catalog::Id,
+        directive: String,
+    },
+    #[error("Unknown extension directive '{directive}' for extension '{id}'")]
+    UnknownExtensionDirective {
+        id: extension_catalog::Id,
+        directive: String,
+    },
+    #[error("Unknown argument '{argument}' for extension directive '{directive}' from '{id}'")]
+    UnknownExtensionDirectiveArgument {
+        id: extension_catalog::Id,
+        directive: String,
+        argument: String,
+    },
 }

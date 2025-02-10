@@ -1,9 +1,9 @@
 use builder::{
+    extension::SchemaExtension,
     interner::{Interner, ProxyKeyInterner},
     subgraphs::SubgraphsContext,
 };
-use extension_catalog::{ExtensionCatalog, Manifest};
-use fxhash::FxHashMap;
+use extension_catalog::ExtensionCatalog;
 use url::Url;
 
 use crate::*;
@@ -16,16 +16,13 @@ pub(crate) struct Context<'a> {
     pub extension_catalog: &'a ExtensionCatalog,
     // -- Immediately initialized
     #[indexed_by(federated_graph::ExtensionId)]
-    pub extension_manifests: Vec<Manifest>,
+    pub extensions: Vec<SchemaExtension>,
     pub subgraphs: SubgraphsContext,
     // --
     pub strings: Interner<String, StringId>,
     pub regexps: ProxyKeyInterner<Regex, RegexId>,
     pub urls: Interner<Url, UrlId>,
     pub header_rules: Vec<HeaderRuleRecord>,
-    pub scalar_mapping: FxHashMap<federated_graph::ScalarDefinitionId, ScalarDefinitionId>,
-    pub enum_mapping: FxHashMap<federated_graph::EnumDefinitionId, EnumDefinitionId>,
-    pub extension_mapping: FxHashMap<federated_graph::ExtensionId, extension_catalog::ExtensionId>,
 }
 
 impl std::ops::Index<StringId> for Context<'_> {
@@ -62,24 +59,12 @@ impl<'a> Context<'a> {
             strings: Interner::with_capacity(federated_graph.strings.len()),
             regexps: Default::default(),
             urls: Interner::with_capacity(federated_graph.subgraphs.len()),
-            scalar_mapping: FxHashMap::with_capacity_and_hasher(
-                federated_graph.scalar_definitions.len(),
-                Default::default(),
-            ),
-            enum_mapping: FxHashMap::with_capacity_and_hasher(
-                federated_graph.scalar_definitions.len(),
-                Default::default(),
-            ),
-            extension_mapping: FxHashMap::with_capacity_and_hasher(
-                federated_graph.extensions.len(),
-                Default::default(),
-            ),
             header_rules: Vec::new(),
             subgraphs: Default::default(),
-            extension_manifests: Vec::new(),
+            extensions: Vec::new(),
         };
         ctx.load_subgraphs()?;
-        ctx.load_manifests().await?;
+        ctx.load_extension_links().await?;
         Ok(ctx)
     }
 

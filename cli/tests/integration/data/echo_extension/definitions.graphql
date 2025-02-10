@@ -1,1 +1,1 @@
-directive @hello on FIELD_DEFINITION
+directive @hello(to: String) on FIELD_DEFINITION

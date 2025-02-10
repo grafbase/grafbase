@@ -7,7 +7,6 @@ use runtime::{
     extension::{Data, ExtensionDirective},
     hooks::{Anything, DynHookContext, EdgeDefinition},
 };
-use serde::Deserialize;
 
 #[derive(Default)]
 pub struct TestExtensions {
@@ -36,7 +35,8 @@ impl TestExtensions {
             }),
             sdk_version: "0.0.0".parse().unwrap(),
             minimum_gateway_version: "0.0.0".parse().unwrap(),
-            sdl: None,
+            // changed in next PR.
+            sdl: Some("directive @rest on FIELD_DEFINITION".to_string()),
         };
         std::fs::write(
             path.join("manifest.json"),
@@ -93,11 +93,11 @@ impl runtime::extension::ExtensionRuntime for TestExtensions {
                 field,
                 ExtensionDirective {
                     name: directive.name,
-                    static_arguments: serde_json::Value::deserialize(directive.static_arguments).unwrap(),
+                    static_arguments: serde_json::to_value(directive.static_arguments).unwrap(),
                 },
                 inputs
                     .into_iter()
-                    .map(serde_json::Value::deserialize)
+                    .map(serde_json::to_value)
                     .collect::<Result<_, _>>()
                     .unwrap(),
             )

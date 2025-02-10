@@ -2408,6 +2408,8 @@ name = "engine-schema"
 version = "0.0.0"
 dependencies = [
  "anyhow",
+ "bitflags 2.8.0",
+ "cynic-parser",
  "engine-id-derives",
  "engine-id-newtypes",
  "engine-walker",
