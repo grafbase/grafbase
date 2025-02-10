@@ -16,14 +16,14 @@ use runtime::{
 struct Ext;
 
 impl TestExtensionBuilder for Ext {
-    fn id() -> Id {
+    fn id(&self) -> Id {
         Id {
             name: "test".to_string(),
             version: "1.0.0".parse().unwrap(),
         }
     }
 
-    fn config() -> TestExtensionConfig {
+    fn config(&self) -> TestExtensionConfig {
         TestExtensionConfig {
             kind: extension_catalog::Kind::FieldResolver(extension_catalog::FieldResolver {
                 resolver_directives: vec!["rest".to_string()],
@@ -76,7 +76,7 @@ fn simple_resolver_from_federated_sdl() {
                 }
                 "#,
             )
-            .with_extension::<Ext>()
+            .with_extension(Ext)
             .build()
             .await;
 
@@ -107,7 +107,7 @@ fn simple_resolver_from_subgraph_sdl() {
                 }
                 "#,
             )
-            .with_extension::<Ext>()
+            .with_extension(Ext)
             .build()
             .await;
 

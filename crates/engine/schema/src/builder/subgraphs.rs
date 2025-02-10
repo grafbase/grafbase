@@ -2,7 +2,8 @@ use fxhash::FxHashMap;
 use gateway_config::{SubgraphConfig, SubscriptionProtocol};
 
 use super::{
-    BuildError, Context, GraphqlEndpointId, GraphqlEndpointRecord, SubgraphId, VirtualSubgraphId, VirtualSubgraphRecord,
+    BuildError, Context, ExtensionDirectiveId, GraphContext, GraphqlEndpointId, GraphqlEndpointRecord, SubgraphId,
+    VirtualSubgraphId, VirtualSubgraphRecord,
 };
 
 #[derive(Default, id_derives::IndexedFields)]
@@ -110,5 +111,20 @@ impl Context<'_> {
         self.subgraphs = subgraphs;
 
         Ok(())
+    }
+}
+
+impl GraphContext<'_> {
+    pub(super) fn push_extension_schema_directive(&mut self, id: ExtensionDirectiveId) {
+        let subgraph_id = self.graph[id].subgraph_id;
+        match subgraph_id {
+            SubgraphId::GraphqlEndpoint(subgraph_id) => {
+                self.subgraphs[subgraph_id].schema_directive_ids.push(id.into());
+            }
+            SubgraphId::Virtual(subgraph_id) => {
+                self.subgraphs[subgraph_id].schema_directive_ids.push(id.into());
+            }
+            SubgraphId::Introspection => unreachable!(),
+        }
     }
 }

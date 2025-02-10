@@ -2,7 +2,10 @@ use std::str::FromStr as _;
 
 use crate::extension::ExtensionDirectiveArgumentRecord;
 
-use super::{BuildError, Context, ExtensionDirectiveRecord, ExtensionInputValueCoercer, GraphContext, SchemaLocation};
+use super::{
+    BuildError, Context, ExtensionDirectiveId, ExtensionDirectiveRecord, ExtensionInputValueCoercer, GraphContext,
+    SchemaLocation,
+};
 
 pub(crate) struct SchemaExtension {
     pub catalog_id: extension_catalog::ExtensionId,
@@ -60,19 +63,17 @@ impl GraphContext<'_> {
     pub(crate) fn ingest_extension_directive(
         &mut self,
         location: SchemaLocation,
-        federated_graph::ExtensionDirective {
-            subgraph_id,
-            extension_id,
-            name,
-            arguments,
-        }: &federated_graph::ExtensionDirective,
-    ) -> Result<ExtensionDirectiveRecord, BuildError> {
-        let directive_name_id = self.get_or_insert_str(*name);
-        let directive_name = &self.ctx.federated_graph[*name];
+        subgraph_id: federated_graph::SubgraphId,
+        extension_id: federated_graph::ExtensionId,
+        name: federated_graph::StringId,
+        arguments: &Option<Vec<(federated_graph::StringId, federated_graph::Value)>>,
+    ) -> Result<ExtensionDirectiveId, BuildError> {
+        let directive_name_id = self.get_or_insert_str(name);
+        let directive_name = &self.ctx.federated_graph[name];
 
-        let Some(sdl) = self[*extension_id].sdl.take() else {
+        let Some(sdl) = self[extension_id].sdl.take() else {
             return Err(BuildError::MissingGraphQLDefinitions {
-                id: self.get_extension_id(*extension_id),
+                id: self.get_extension_id(extension_id),
                 directive: directive_name.clone(),
             });
         };
@@ -82,7 +83,7 @@ impl GraphContext<'_> {
             _ => None,
         }) else {
             return Err(BuildError::UnknownExtensionDirective {
-                id: self.get_extension_id(*extension_id),
+                id: self.get_extension_id(extension_id),
                 directive: directive_name.to_string(),
             });
         };
@@ -101,7 +102,7 @@ impl GraphContext<'_> {
                 let name = &coercer.ctx.federated_graph[*arg_name];
                 let Some(def) = definition.arguments().find(|arg| arg.name() == name) else {
                     return Err(BuildError::UnknownExtensionDirectiveArgument {
-                        id: coercer.get_extension_id(*extension_id),
+                        id: coercer.get_extension_id(extension_id),
                         directive: directive_name.to_string(),
                         argument: name.to_string(),
                     });
@@ -109,7 +110,7 @@ impl GraphContext<'_> {
                 let (value, injection_stage) = coercer.coerce_extension_value(def, value).map_err(|err| {
                     BuildError::ExtensionDirectiveArgumentsError {
                         location: location.to_string(coercer.ctx),
-                        extension_id: Box::new(coercer.get_extension_id(*extension_id)),
+                        extension_id: Box::new(coercer.get_extension_id(extension_id)),
                         err,
                     }
                 })?;
@@ -126,13 +127,16 @@ impl GraphContext<'_> {
         }
         let argument_ids = (start..self.graph.extension_directive_arguments.len()).into();
 
-        self[*extension_id].sdl = Some(sdl);
+        self[extension_id].sdl = Some(sdl);
 
-        Ok(ExtensionDirectiveRecord {
-            subgraph_id: self.subgraphs[*subgraph_id],
-            extension_id: self[*extension_id].catalog_id,
+        let record = ExtensionDirectiveRecord {
+            subgraph_id: self.subgraphs[subgraph_id],
+            extension_id: self[extension_id].catalog_id,
             name_id: directive_name_id,
             argument_ids,
-        })
+        };
+        self.graph.extension_directives.push(record);
+        let id = (self.graph.extension_directives.len() - 1).into();
+        Ok(id)
     }
 }

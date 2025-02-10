@@ -6,6 +6,7 @@ use super::{
 
 #[derive(Debug, Copy, Clone)]
 pub enum SchemaLocation {
+    SchemaDirective(federated_graph::SubgraphId),
     Scalar(ScalarDefinitionId, federated_graph::ScalarDefinitionId),
     Object(ObjectDefinitionId, federated_graph::ObjectId),
     Interface(InterfaceDefinitionId, federated_graph::InterfaceId),
@@ -36,6 +37,9 @@ impl SchemaLocation {
             }
             SchemaLocation::EnumValue(id, _) => ctx.strings[graph[id].name_id].clone(),
             SchemaLocation::InputValue(id, _) => ctx.strings[graph[id].name_id].clone(),
+            SchemaLocation::SchemaDirective(id) => {
+                format!("subgraph named '{}'", ctx.federated_graph[ctx.federated_graph[id].name])
+            }
         }
     }
 }
