@@ -12,25 +12,26 @@ struct RestExtension {
     filters: HashMap<String, Filter>,
 }
 
+#[derive(Debug)]
 struct RestEndpoint {
     subgraph_name: String,
     args: RestEndpointArgs,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 struct RestEndpointArgs {
     name: String,
     http: HttpSettings,
 }
 
-#[derive(serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(serde::Deserialize, Debug)]
 struct HttpSettings {
+    #[serde(rename = "baseURL")]
     base_url: String,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct Rest<'a> {
     endpoint: &'a str,
@@ -38,14 +39,14 @@ struct Rest<'a> {
     selection: &'a str,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct HttpCall<'a> {
     method: HttpMethod,
     path: &'a str,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "UPPERCASE")]
 enum HttpMethod {
     Get,
@@ -147,9 +148,25 @@ impl Resolver for RestExtension {
             });
         };
 
-        let url = Url::parse(&format!("{}/{}", endpoint.args.http.base_url, rest.http.path)).map_err(|e| Error {
+        let mut url = Url::parse(&endpoint.args.http.base_url).map_err(|e| Error {
             extensions: Vec::new(),
             message: format!("Could not parse URL: {e}"),
+        })?;
+
+        let path = rest.http.path.strip_prefix("/").unwrap_or(rest.http.path);
+
+        if !path.is_empty() {
+            let mut path_segments = url.path_segments_mut().map_err(|_| Error {
+                extensions: Vec::new(),
+                message: "Could not parse URL".to_string(),
+            })?;
+
+            path_segments.push(path);
+        }
+
+        let url = url.join(path).map_err(|e| Error {
+            extensions: Vec::new(),
+            message: format!("Could not parse URL path: {e}"),
         })?;
 
         let request = HttpRequest::builder(url, rest.http.method.into()).build();

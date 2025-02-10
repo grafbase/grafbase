@@ -1,13 +1,13 @@
 use std::{
     marker::PhantomData,
     net::{Ipv4Addr, SocketAddr, SocketAddrV4},
-    path::PathBuf,
+    path::Path,
     time::Duration,
 };
 
 use super::TestConfig;
-use grafbase_sdk_mock::MockGraphQlServer;
-use graphql_composition::Subgraphs;
+use grafbase_sdk_mock::{MockGraphQlServer, MockSubgraph};
+use graphql_composition::{LoadedExtension, Subgraphs};
 use tempfile::TempDir;
 use url::Url;
 
@@ -40,13 +40,35 @@ impl TestRunner {
         let gateway_listen_address = listen_address()?;
         let gateway_endpoint = Url::parse(&format!("http://{}/graphql", gateway_listen_address))?;
 
+        let extension_toml_path = std::env::current_dir()?.join("extension.toml");
+        let extension_toml = std::fs::read_to_string(&extension_toml_path)?;
+        let extension_toml: ExtensionToml = toml::from_str(&extension_toml)?;
+        let extension_name = extension_toml.extension.name;
+
         let mut mock_subgraphs = Vec::new();
         let mut subgraphs = Subgraphs::default();
 
+        let extension_path = match config.extension_path {
+            Some(ref path) => path.to_path_buf(),
+            None => std::env::current_dir()?.join("build"),
+        };
+
+        subgraphs.ingest_loaded_extensions(std::iter::once(LoadedExtension::new(
+            format!("file://{}", extension_path.display()),
+            extension_name.clone(),
+        )));
+
         for subgraph in config.mock_subgraphs.drain(..) {
-            let mock_graph = subgraph.start().await;
-            subgraphs.ingest_str(mock_graph.sdl(), mock_graph.name(), mock_graph.url().as_str())?;
-            mock_subgraphs.push(mock_graph);
+            match subgraph {
+                MockSubgraph::Dynamic(subgraph) => {
+                    let mock_graph = subgraph.start().await;
+                    subgraphs.ingest_str(mock_graph.sdl(), mock_graph.name(), Some(mock_graph.url().as_str()))?;
+                    mock_subgraphs.push(mock_graph);
+                }
+                MockSubgraph::ExtensionOnly(subgraph) => {
+                    subgraphs.ingest_str(subgraph.sdl(), subgraph.name(), None)?;
+                }
+            }
         }
 
         let federated_graph = graphql_composition::compose(&subgraphs).into_result().unwrap();
@@ -63,26 +85,20 @@ impl TestRunner {
             federated_graph,
         };
 
-        this.start_servers().await?;
+        this.build_extension(&extension_path)?;
+        this.start_servers(&extension_name, &extension_path).await?;
 
         Ok(this)
     }
 
     #[must_use]
-    async fn start_servers(&mut self) -> anyhow::Result<()> {
-        let extension_path = self.build_extension()?;
-        let extension_path = extension_path.to_string_lossy();
-
-        let extension_toml_path = std::env::current_dir()?.join("extension.toml");
-        let extension_toml = std::fs::read_to_string(&extension_toml_path)?;
-        let extension_toml: ExtensionToml = toml::from_str(&extension_toml)?;
-        let extension_name = extension_toml.extension.name;
-
+    async fn start_servers(&mut self, extension_name: &str, extension_path: &Path) -> anyhow::Result<()> {
+        let extension_path = extension_path.display();
         let config_path = self.test_specific_temp_dir.path().join("grafbase.toml");
         let schema_path = self.test_specific_temp_dir.path().join("federated-schema.graphql");
         let config = &self.config.gateway_configuration;
-        let enable_stdout = !self.config.enable_stderr;
-        let enable_stderr = !self.config.enable_stderr;
+        let enable_stdout = self.config.enable_stdout;
+        let enable_stderr = self.config.enable_stdout;
         let enable_networking = self.config.enable_networking;
         let enable_environment_variables = self.config.enable_environment_variables;
         let max_pool_size = self.config.max_pool_size.unwrap_or(100);
@@ -111,6 +127,8 @@ impl TestRunner {
             &config_path.to_string_lossy(),
             "--schema",
             &schema_path.to_string_lossy(),
+            "--log",
+            self.config.log_level.as_ref(),
         ];
 
         let mut expr = duct::cmd(&self.config.gateway_path, args);
@@ -150,17 +168,15 @@ impl TestRunner {
         Ok(result)
     }
 
-    fn build_extension(&mut self) -> anyhow::Result<PathBuf> {
-        if let Some(path) = self.config.extension_path.as_ref() {
-            return Ok(path.canonicalize()?);
-        }
+    fn build_extension(&mut self, extension_path: &Path) -> anyhow::Result<()> {
+        let extension_path = extension_path.to_string_lossy();
 
-        println!("Building extension...");
         // Only one test can build the extension at a time. The others must
         // wait.
         let mut lock_file = fslock::LockFile::open(".build.lock")?;
         lock_file.lock()?;
-        let args = &["extension", "build", "--debug"];
+
+        let args = &["extension", "build", "--debug", "--output-dir", &*extension_path];
         let mut expr = duct::cmd(&self.config.cli_path, args);
 
         if !self.config.enable_stdout {
@@ -174,7 +190,7 @@ impl TestRunner {
         expr.run()?;
         lock_file.unlock()?;
 
-        Ok(std::env::current_dir()?.join("build"))
+        Ok(())
     }
 
     /// Creates a new GraphQL query builder with the given query.

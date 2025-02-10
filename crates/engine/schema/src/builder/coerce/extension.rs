@@ -142,12 +142,18 @@ impl ExtensionInputValueCoercer<'_, '_> {
         };
 
         let mut map = Vec::new();
+        let mut unknown_fields = Vec::new();
+
         for field in def.fields() {
-            if let Some((name_id, value)) = fields.iter().find(|(id, _)| self.federated_graph[*id] == field.name()) {
+            let found_field = fields.iter().find(|(id, _)| self.federated_graph[*id] == field.name());
+
+            if let Some((name_id, value)) = found_field {
                 let name_id = self.get_or_insert_str(*name_id);
                 self.value_path.push(name_id.into());
+
                 let value = self.coerce_input_value(field.ty(), value)?;
                 map.push((name_id, value));
+
                 self.value_path.pop();
             } else if let Some(default_value) = field.default_value() {
                 map.push((
@@ -155,21 +161,25 @@ impl ExtensionInputValueCoercer<'_, '_> {
                     self.ingest_default_value(default_value),
                 ));
             } else if field.ty().is_non_null() {
-                return Err(InputValueError::UnexpectedNull {
+                let error = InputValueError::UnexpectedNull {
                     expected: self.type_name(field.ty().name(), field.ty().wrappers()),
                     path: self.path(),
-                }
-                .into());
+                };
+
+                return Err(error.into());
+            } else {
+                unknown_fields.push(field);
             }
         }
 
-        if let Some((id, _)) = fields.first() {
-            return Err(InputValueError::UnknownInputField {
+        if let Some(field) = unknown_fields.first() {
+            let error = InputValueError::UnknownInputField {
                 input_object: def.name().to_string(),
-                name: self.federated_graph[*id].to_string(),
+                name: field.name().to_string(),
                 path: self.path(),
-            }
-            .into());
+            };
+
+            return Err(error.into());
         }
 
         Ok(ExtensionInputValueRecord::Map(map))

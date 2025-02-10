@@ -35,12 +35,12 @@ fn init_resolver() {
     codegen-units = 1
 
     [dependencies]
-    grafbase-sdk = "0.1.9"
+    grafbase-sdk = "0.1.11"
 
     [dev-dependencies]
     indoc = "2"
     insta = { version = "1.42.1", features = ["json"] }
-    grafbase-sdk = { version = "0.1.9", features = ["test-utils"] }
+    grafbase-sdk = { version = "0.1.11", features = ["test-utils"] }
     tokio = { version = "1", features = ["rt-multi-thread", "macros", "test-util"] }
     serde_json = "1"
     "#);
@@ -102,7 +102,7 @@ fn init_resolver() {
     let tests_rs = std::fs::read_to_string(project_path.join("tests/integration_tests.rs")).unwrap();
 
     insta::assert_snapshot!(&tests_rs, @r##"
-    use grafbase_sdk::test::{DynamicSchema, DynamicSubgraph, TestConfigBuilder, TestRunner};
+    use grafbase_sdk::test::{DynamicSchema, TestConfigBuilder, TestRunner};
     use indoc::indoc;
 
     #[tokio::test]
@@ -250,12 +250,12 @@ fn init_auth() {
     codegen-units = 1
 
     [dependencies]
-    grafbase-sdk = "0.1.9"
+    grafbase-sdk = "0.1.11"
 
     [dev-dependencies]
     indoc = "2"
     insta = { version = "1.42.1", features = ["json"] }
-    grafbase-sdk = { version = "0.1.9", features = ["test-utils"] }
+    grafbase-sdk = { version = "0.1.11", features = ["test-utils"] }
     tokio = { version = "1", features = ["rt-multi-thread", "macros", "test-util"] }
     serde_json = "1"
     "#);
@@ -299,7 +299,7 @@ fn init_auth() {
     let tests_rs = std::fs::read_to_string(project_path.join("tests/integration_tests.rs")).unwrap();
 
     insta::assert_snapshot!(&tests_rs, @r##"
-    use grafbase_sdk::test::{DynamicSchema, DynamicSubgraph, TestConfigBuilder, TestRunner};
+    use grafbase_sdk::test::{DynamicSchema, TestConfigBuilder, TestRunner};
     use indoc::indoc;
 
     #[tokio::test]

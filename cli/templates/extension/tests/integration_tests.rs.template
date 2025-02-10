@@ -1,4 +1,4 @@
-use grafbase_sdk::test::{DynamicSchema, DynamicSubgraph, TestConfigBuilder, TestRunner};
+use grafbase_sdk::test::{DynamicSchema, TestConfigBuilder, TestRunner};
 use indoc::indoc;
 
 #[tokio::test]

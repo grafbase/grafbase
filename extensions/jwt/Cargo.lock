@@ -1529,7 +1529,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.1.9"
+version = "0.1.11"
 dependencies = [
  "anyhow",
  "duct",
@@ -1565,7 +1565,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk-mock"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "async-graphql",
@@ -1724,24 +1724,25 @@ checksum = "ebfd7fd1a0e3427f3e6c9ef7bc4e0d2f05c9e94ecf859176cdf297212fe8f06e"
 
 [[package]]
 name = "graphql-composition"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "21e6a545fe842b5e005f683546dba3da36063fd4cc665999d10ef98ba2d7f4bf"
+checksum = "db2967e890033c51901c701518daa689ce6cbccb37859c216ddfd2571018833f"
 dependencies = [
  "cynic-parser",
  "cynic-parser-deser",
- "grafbase-workspace-hack 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "graphql-federated-graph",
  "indexmap 2.7.1",
  "itertools 0.14.0",
+ "url",
 ]
 
 [[package]]
 name = "graphql-federated-graph"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cb3ddab73836d4faed47e656e5fc1e71c30a6f090c469bb0d9c6fa8e65c0a29d"
+checksum = "895a55bf1a7fcc72ec3908239921a11b0cf661fe3a6cfc550e89a2a6e0580fac"
 dependencies = [
+ "bitflags 2.8.0",
  "cynic-parser",
  "cynic-parser-deser",
  "grafbase-workspace-hack 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",

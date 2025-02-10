@@ -1,11 +1,40 @@
 use anyhow::Context;
-use grafbase_sdk_mock::DynamicSubgraph;
+use grafbase_sdk_mock::MockSubgraph;
 use std::path::PathBuf;
 
 const GATEWAY_BINARY_NAME: &str = "grafbase-gateway";
 const CLI_BINARY_NAME: &str = "grafbase";
 
+/// Log level for the test process output. Default value is `LogLevel::Error`.
+#[derive(Debug, Clone, Copy, Default)]
+pub enum LogLevel {
+    /// Show all output from traces upwards.
+    Trace,
+    /// Show all output from debug upwards.
+    Debug,
+    /// Show all output from info upwards.
+    #[default]
+    Info,
+    /// Show all output from warn upwards.
+    Warn,
+    /// Show only error messages.
+    Error,
+}
+
+impl AsRef<str> for LogLevel {
+    fn as_ref(&self) -> &str {
+        match self {
+            LogLevel::Trace => "trace",
+            LogLevel::Debug => "debug",
+            LogLevel::Info => "info",
+            LogLevel::Warn => "warn",
+            LogLevel::Error => "error",
+        }
+    }
+}
+
 /// Configuration for test cases.
+#[derive(Debug)]
 pub struct TestConfig {
     pub(super) gateway_path: PathBuf,
     pub(super) cli_path: PathBuf,
@@ -13,10 +42,11 @@ pub struct TestConfig {
     pub(super) gateway_configuration: String,
     pub(super) enable_stdout: bool,
     pub(super) enable_stderr: bool,
-    pub(super) mock_subgraphs: Vec<DynamicSubgraph>,
+    pub(super) mock_subgraphs: Vec<MockSubgraph>,
     pub(super) enable_networking: bool,
     pub(super) enable_environment_variables: bool,
     pub(super) max_pool_size: Option<usize>,
+    pub(super) log_level: LogLevel,
 }
 
 #[derive(Debug, Default)]
@@ -25,12 +55,13 @@ pub struct TestConfigBuilder {
     gateway_path: Option<PathBuf>,
     cli_path: Option<PathBuf>,
     extension_path: Option<PathBuf>,
-    mock_subgraphs: Vec<DynamicSubgraph>,
+    mock_subgraphs: Vec<MockSubgraph>,
     enable_stdout: bool,
     enable_stderr: bool,
     enable_networking: bool,
     enable_environment_variables: bool,
     max_pool_size: Option<usize>,
+    log_level: Option<LogLevel>,
 }
 
 impl TestConfigBuilder {
@@ -40,8 +71,8 @@ impl TestConfigBuilder {
     }
 
     /// Adds a dynamic subgraph to the test configuration.
-    pub fn with_subgraph(mut self, subgraph: DynamicSubgraph) -> Self {
-        self.mock_subgraphs.push(subgraph);
+    pub fn with_subgraph(mut self, subgraph: impl Into<MockSubgraph>) -> Self {
+        self.mock_subgraphs.push(subgraph.into());
         self
     }
 
@@ -95,6 +126,12 @@ impl TestConfigBuilder {
         self
     }
 
+    /// Sets the log level for the gateway process output.
+    pub fn log_level(mut self, level: LogLevel) -> Self {
+        self.log_level = Some(level);
+        self
+    }
+
     /// Builds the [`TestConfig`] with the given gateway configuration and federated graph schema.
     pub fn build(self, gateway_configuration: impl ToString) -> anyhow::Result<TestConfig> {
         let Self {
@@ -107,6 +144,7 @@ impl TestConfigBuilder {
             enable_networking,
             enable_environment_variables,
             max_pool_size,
+            log_level,
         } = self;
 
         let gateway_path = match gateway_path {
@@ -120,6 +158,7 @@ impl TestConfigBuilder {
         };
 
         let gateway_configuration = gateway_configuration.to_string();
+        let log_level = log_level.unwrap_or_default();
 
         Ok(TestConfig {
             gateway_path,
@@ -132,6 +171,7 @@ impl TestConfigBuilder {
             enable_networking,
             enable_environment_variables,
             max_pool_size,
+            log_level,
         })
     }
 }

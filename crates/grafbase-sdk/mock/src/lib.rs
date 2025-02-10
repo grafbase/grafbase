@@ -11,7 +11,10 @@ mod entity_resolver;
 mod resolver;
 mod server;
 
-use std::sync::Arc;
+use std::{
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 pub use builder::DynamicSchemaBuilder;
 pub use server::MockGraphQlServer;
@@ -57,5 +60,51 @@ impl DynamicSubgraph {
     /// Returns a handle to the running server that can be used to stop it.
     pub async fn start(self) -> MockGraphQlServer {
         MockGraphQlServer::new(self.name, Arc::new(self.schema)).await
+    }
+}
+
+/// A subgraph that only contains extension definitions. We do not spawn a GraphQL server for this subgraph.
+#[derive(Debug)]
+pub struct ExtensionOnlySubgraph {
+    schema: DynamicSchema,
+    name: String,
+    extension_path: PathBuf,
+}
+
+impl ExtensionOnlySubgraph {
+    /// Returns the SDL (Schema Definition Language) string for this schema
+    pub fn sdl(&self) -> &str {
+        self.schema.sdl()
+    }
+
+    /// Returns the name of this subgraph
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Returns the path to the extension definitions for this subgraph
+    pub fn extension_path(&self) -> &Path {
+        &self.extension_path
+    }
+}
+
+/// A mock subgraph that can either be a full dynamic GraphQL service or just extension definitions.
+#[derive(Debug)]
+pub enum MockSubgraph {
+    /// A full dynamic subgraph that can be started as a GraphQL server
+    Dynamic(DynamicSubgraph),
+    /// A subgraph that only contains extension definitions and is not started as a server
+    ExtensionOnly(ExtensionOnlySubgraph),
+}
+
+impl From<DynamicSubgraph> for MockSubgraph {
+    fn from(subgraph: DynamicSubgraph) -> Self {
+        MockSubgraph::Dynamic(subgraph)
+    }
+}
+
+impl From<ExtensionOnlySubgraph> for MockSubgraph {
+    fn from(subgraph: ExtensionOnlySubgraph) -> Self {
+        MockSubgraph::ExtensionOnly(subgraph)
     }
 }

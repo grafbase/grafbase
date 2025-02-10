@@ -1,6 +1,6 @@
 #![allow(clippy::panic)]
 
-use std::collections::HashMap;
+use std::{collections::HashMap, path::Path};
 
 use async_graphql::{
     dynamic::{FieldValue, ResolverContext},
@@ -8,6 +8,8 @@ use async_graphql::{
 };
 use cynic_parser::{common::WrappingType, type_system as parser};
 use serde::Deserialize;
+
+use crate::ExtensionOnlySubgraph;
 
 use super::{
     entity_resolver::{EntityResolver, EntityResolverContext},
@@ -67,6 +69,26 @@ impl DynamicSchemaBuilder {
         Ok(DynamicSubgraph {
             name: name.into(),
             schema: self.finish(),
+        })
+    }
+
+    /// Converts this schema builder into an extension-only subgraph.
+    ///
+    /// # Arguments
+    /// * `name` - The name to give this subgraph
+    /// * `extension_path` - Path to the extension directory with wasm and manifest files
+    ///
+    /// # Returns
+    /// An `ExtensionOnlySubgraph` that can be used in a federated schema
+    pub fn into_extension_only_subgraph(
+        self,
+        name: &str,
+        extension_path: &Path,
+    ) -> anyhow::Result<ExtensionOnlySubgraph> {
+        Ok(ExtensionOnlySubgraph {
+            name: name.into(),
+            schema: self.finish(),
+            extension_path: extension_path.to_path_buf(),
         })
     }
 

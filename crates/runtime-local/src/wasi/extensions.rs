@@ -139,7 +139,7 @@ impl ExtensionRuntime for WasiExtensions {
                     match result {
                         Ok(data) => results.push(Ok(Data::CborBytes(data))),
                         Err(error) => {
-                            let error = guest_error_as_gql(error, PartialErrorCode::Unauthorized);
+                            let error = guest_error_as_gql(error, PartialErrorCode::InternalServerError);
 
                             results.push(Err(error))
                         }
@@ -150,7 +150,7 @@ impl ExtensionRuntime for WasiExtensions {
             }
             Err(error) => match error {
                 wasi_component_loader::Error::Guest(error) => {
-                    let error = guest_error_as_gql(error, PartialErrorCode::Unauthorized);
+                    let error = guest_error_as_gql(error, PartialErrorCode::InternalServerError);
 
                     Err(error)
                 }
