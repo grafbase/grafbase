@@ -57,7 +57,7 @@ pub(super) fn emit_extensions(ctx: &mut Context<'_>, ir: &CompositionIr) {
         });
 
         ctx.out.push_extension(federated::Extension {
-            enum_value: enum_value_id,
+            enum_value_id,
             url,
             schema_directives,
         });

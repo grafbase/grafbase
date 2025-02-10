@@ -1021,10 +1021,23 @@ fn ingest_extension_link_enum<'a>(
     state: &mut State<'a>,
 ) -> Result<(), DomainError> {
     use directive::{parse_extension_link, ExtensionLink};
-    let enum_definition_id = ingest_enum_definition(namespace, type_name_id, description, type_name, enm, state)?;
+
+    let enum_definition_id = state.graph.push_enum_definition(EnumDefinitionRecord {
+        namespace,
+        name: type_name_id,
+        directives: Vec::new(),
+        description,
+    });
+
+    state
+        .definition_names
+        .insert(type_name, Definition::Enum(enum_definition_id));
 
     for value in enm.values() {
-        let enum_value_name_str = value.value();
+        let description = value
+            .description()
+            .map(|description| state.insert_string(&description.to_cow()));
+
         let directive = value
             .directives()
             .find(|directive| directive.name() == EXTENSION_LINK_DIRECTIVE)
@@ -1035,26 +1048,28 @@ fn ingest_extension_link_enum<'a>(
                 ))
             })?;
 
-        let enum_value_name_str_id = state.insert_string(enum_value_name_str);
-        let enum_value_name = state
-            .graph
-            .iter_enum_values(enum_definition_id)
-            .find(|value| value.value == enum_value_name_str_id)
-            .unwrap()
-            .id();
-
         let ExtensionLink { url, schema_directives } = parse_extension_link(directive, state)?;
         let url = state.insert_string(&url);
 
-        let extension_id = state.graph.push_extension(Extension {
-            url,
-            enum_value: enum_value_name,
-            schema_directives,
+        let value_string_id = state.insert_string(value.value());
+        let enum_value_id = state.graph.push_enum_value(EnumValueRecord {
+            enum_id: enum_definition_id,
+            value: value_string_id,
+            directives: Vec::new(),
+            description,
         });
 
         state
-            .extension_by_enum_value_str
-            .insert(enum_value_name_str, extension_id);
+            .enum_values_map
+            .insert((enum_definition_id, value.value()), enum_value_id);
+
+        let extension_id = state.graph.push_extension(Extension {
+            url,
+            enum_value_id,
+            schema_directives,
+        });
+
+        state.extension_by_enum_value_str.insert(value.value(), extension_id);
     }
 
     state.extensions_loaded = true;
@@ -1590,7 +1605,7 @@ async fn load_with_extensions() {
         }
 
         enum extension__Link {
-            REST @extension__link(url: "file:///dummy", schema_directives: [{graph: A, name: "test" arguments: {method: "yes"}}])
+            REST @extension__link(url: "file:///dummy", schemaDirectives: [{graph: A, name: "test" arguments: {method: "yes"}}])
         }
 
         scalar link__Import
@@ -1635,7 +1650,7 @@ async fn load_with_extensions() {
 
         enum extension__Link
         {
-            REST @extension__link(url: "file:///dummy", schema_directives: [{graph: A, name: "test", arguments: {method: "yes"}}])
+            REST @extension__link(url: "file:///dummy", schemaDirectives: [{graph: A, name: "test", arguments: {method: "yes"}}])
         }
     "#]];
 

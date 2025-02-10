@@ -165,24 +165,16 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
 
             write!(sdl, "{INDENT}{value_name}")?;
             with_formatter(&mut sdl, |f| {
-                let mut has_extension_link_directive = false;
-
                 for directive in &value.directives {
                     f.write_str(" ")?;
                     write_directive(f, directive, graph)?;
-
-                    if let Directive::Other { name, .. } = directive {
-                        if graph[*name] == "extension__link" {
-                            has_extension_link_directive = true;
-                        }
-                    }
                 }
 
-                if is_extension_link && !has_extension_link_directive {
+                if is_extension_link {
                     if let Some(extension) = graph
                         .extensions
                         .iter()
-                        .find(|extension| extension.enum_value == value.id())
+                        .find(|extension| extension.enum_value_id == value.id())
                     {
                         super::directive::render_extension_link_directive(
                             f,

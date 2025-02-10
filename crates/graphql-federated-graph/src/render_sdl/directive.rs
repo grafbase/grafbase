@@ -103,7 +103,10 @@ fn render_extension_directive(
             "graph",
             Value::EnumValue(graph[directive.subgraph_id].join_graph_enum_value),
         )?
-        .arg("extension", Value::EnumValue(graph[directive.extension_id].enum_value))?
+        .arg(
+            "extension",
+            Value::EnumValue(graph[directive.extension_id].enum_value_id),
+        )?
         .arg("name", Value::String(directive.name))?;
     if let Some(arguments) = directive.arguments.as_ref() {
         writer.arg("arguments", arguments)?;
