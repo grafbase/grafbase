@@ -1,0 +1,7 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: "Imports _must_ be of the same type, meaning if the original name has an `@` prefix, the imported name must also have an `@` prefix, and conversely, if the original name does not have an `@` prefix, the imported name must also not have an `@` prefix.\n\nReference: https://specs.apollo.dev/link/v1.0/#Import"
+input_file: crates/graphql-composition/tests/composition/link_import_as_errors/test.md
+---
+# [tagged]: Error in @link import: `@tag` is a directive, but it is imported as `label`. Missing @ prefix.
+# [tagged]: Error in @link import: `purpose` is not a directive, but it is imported as `@purpose`. Consider removing the @ prefix.
