@@ -1,0 +1,19 @@
+extend schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.0"
+    import: ["@key", { name: "@tag", as: "label" }, { name: "purpose", as: "@purpose" }]
+  )
+
+type AppleSauce @key(fields: "id") @label(name: "apple_sauce") {
+  id: ID!
+  sweetness: Int!
+  chunky: Boolean!
+  appleVariety: String
+  servingSize: Float
+  organic: Boolean
+}
+
+type Query {
+  getAppleSauce(id: ID!): AppleSauce
+  allAppleSauces: [AppleSauce!]!
+}

@@ -5,6 +5,7 @@
 ### Fixes
 
 - Make the `url` argument optional in the definition of the `@join__graph` directive, to reflect the optionality of url introduced for virtual subgraphs in https://github.com/grafbase/grafbase/pull/2589.
+- (BREAKING) Take the `@` prefix into account in aliased imports from `@link` directives. Previously, the `as:` argument for individual directives would only work if you did not prefix the alias with an `@`. But the link spec is clear: if you import a directive, you have to import it with an `@` prefix, and other types should be imported without. This behaviour is fixed, and the presence or absence of `@` is now enforced.
 
 ## 0.6.0 - 2025-02-10
 

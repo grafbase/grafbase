@@ -49,9 +49,30 @@ pub(super) fn ingest_link_directive(directive: ast::Directive<'_>, subgraph_id: 
                 name,
                 r#as,
             }) => {
-                let name = name.trim_start_matches("@");
-                let original_name = subgraphs.strings.intern(name);
-                let imported_as = r#as.map(|r#as| subgraphs.strings.intern(r#as));
+                let is_directive = name.starts_with('@');
+
+                let trimmed_name = name.trim_start_matches("@");
+                let original_name = subgraphs.strings.intern(trimmed_name);
+
+                let imported_as = if let Some(r#as) = r#as {
+                    if r#as.starts_with('@') != is_directive {
+                        if is_directive {
+                            subgraphs.push_ingestion_diagnostic(
+                                subgraph_id,
+                                format!("Error in @link import: `{name}` is a directive, but it is imported as `{as}`. Missing @ prefix."),
+                            );
+                        } else if !is_directive {
+                            subgraphs.push_ingestion_diagnostic(
+                                subgraph_id,
+                                format!("Error in @link import: `{name}` is not a directive, but it is imported as `{as}`. Consider removing the @ prefix."),
+                            );
+                        }
+                    }
+
+                    Some(subgraphs.strings.intern(r#as.trim_start_matches("@")))
+                } else {
+                    None
+                };
 
                 subgraphs.push_linked_definition(subgraphs::LinkedDefinitionRecord {
                     linked_schema_id,

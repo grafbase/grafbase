@@ -1,0 +1,41 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: "We want to test that a directive can be imported and renamed with `as`.\nExample: `@link(url: \"...\", import: [{name: \"@shareable\", as: \"@partageable\"}])`."
+input_file: crates/graphql-composition/tests/composition/link_import_as_valid/test.md
+---
+directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
+
+directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
+
+directive @join__graph(name: String!, url: String) on ENUM_VALUE
+
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet) on FIELD_DEFINITION
+
+directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boolean = true) on OBJECT | INTERFACE
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+scalar join__FieldSet
+
+type AppleSauce
+    @tag(name: "apple_sauce")
+    @join__type(graph: TAGGED, key: "id")
+{
+    appleVariety: String
+    chunky: Boolean!
+    id: ID!
+    organic: Boolean
+    servingSize: Float
+    sweetness: Int!
+}
+
+type Query
+{
+    allAppleSauces: [AppleSauce!]! @join__field(graph: TAGGED)
+    getAppleSauce(id: ID!): AppleSauce @join__field(graph: TAGGED)
+}
+
+enum join__Graph
+{
+    TAGGED @join__graph(name: "tagged", url: "http://example.com/tagged")
+}

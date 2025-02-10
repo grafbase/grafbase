@@ -1,0 +1,18 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: actual_api_sdl
+input_file: crates/graphql-composition/tests/composition/link_import_as_valid/test.md
+---
+type AppleSauce {
+    appleVariety: String
+    chunky: Boolean!
+    id: ID!
+    organic: Boolean
+    servingSize: Float
+    sweetness: Int!
+}
+
+type Query {
+    allAppleSauces: [AppleSauce!]!
+    getAppleSauce(id: ID!): AppleSauce
+}
