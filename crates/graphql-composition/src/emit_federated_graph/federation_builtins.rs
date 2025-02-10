@@ -103,7 +103,7 @@ pub(super) fn emit_federation_builtins(ctx: &mut Context<'_>, join_graph_enum_id
         );
     }
 
-    // directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+    // directive @join__graph(name: String!, url: String) on ENUM_VALUE
     {
         let directive_name = ctx.insert_str("graph");
         let directive_definition_id = ctx.out.push_directive_definition(federated::DirectiveDefinitionRecord {
@@ -132,7 +132,7 @@ pub(super) fn emit_federation_builtins(ctx: &mut Context<'_>, join_graph_enum_id
             federated::InputValueDefinition {
                 name: url_str,
                 r#type: federated::Type {
-                    wrapping: Wrapping::required(),
+                    wrapping: Wrapping::nullable(),
                     definition: string_definition,
                 },
                 directives: Vec::new(),
