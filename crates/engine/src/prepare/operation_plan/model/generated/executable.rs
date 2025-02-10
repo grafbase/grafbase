@@ -7,7 +7,8 @@ use crate::prepare::operation_plan::model::{
     generated::{Plan, PlanId, ResponseModifier, ResponseModifierId},
     prelude::*,
 };
-use walker::Walk;
+#[allow(unused_imports)]
+use walker::{Iter, Walk};
 
 /// Generated from:
 ///

@@ -6,7 +6,8 @@
 use crate::prepare::cached::query_plan::{
     prelude::*, PartitionDataField, PartitionDataFieldId, PartitionTypenameField, PartitionTypenameFieldId,
 };
-use walker::Walk;
+#[allow(unused_imports)]
+use walker::{Iter, Walk};
 
 /// Generated from:
 ///

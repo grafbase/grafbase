@@ -8,6 +8,7 @@ use crate::prepare::cached::query_plan::{
     prelude::*,
     PartitionDataField, PartitionDataFieldId, QueryModifierRule, ResponseModifierRule,
 };
+#[allow(unused_imports)]
 use walker::{Iter, Walk};
 
 /// Generated from:

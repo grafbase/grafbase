@@ -12,7 +12,8 @@ use crate::model::{
 };
 pub use fragment_spread::*;
 pub use inline_fragment::*;
-use walker::Walk;
+#[allow(unused_imports)]
+use walker::{Iter, Walk};
 
 /// Generated from:
 ///

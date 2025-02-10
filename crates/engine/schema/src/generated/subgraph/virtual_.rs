@@ -8,6 +8,7 @@ use crate::{
     prelude::*,
     StringId,
 };
+#[allow(unused_imports)]
 use walker::{Iter, Walk};
 
 /// Virtual subgraphs have no dedicated support on the engine side, everything is resolved through extensions.

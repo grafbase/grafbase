@@ -5,7 +5,7 @@ use quote::{quote, TokenStreamExt};
 
 use crate::{
     domain::{Definition, Domain, Object, Scalar, Union},
-    GENERATED_MODULE, WALKER_TRAIT,
+    GENERATED_MODULE,
 };
 
 use super::Imports;
@@ -13,7 +13,7 @@ use super::Imports;
 pub(super) fn generate_imports<'a>(
     domain: &'a Domain,
     current_module_path: &[String],
-    mut imports: Imports<'a>,
+    imports: Imports<'a>,
 ) -> anyhow::Result<TokenStream> {
     let mut scalar_imports = Vec::new();
     let mut generated_imports = Vec::new();
@@ -82,12 +82,6 @@ pub(super) fn generate_imports<'a>(
         }
     }
 
-    imports.walker_lib.insert(WALKER_TRAIT);
-    let walker_lib_imports = imports
-        .walker_lib
-        .into_iter()
-        .map(|name| Ident::new(name, Span::call_site()));
-
     let mut domain_imports = vec![quote! { prelude::* }];
     if !generated_imports.is_empty() {
         let generated_module_name = Ident::new(GENERATED_MODULE, Span::call_site());
@@ -110,7 +104,8 @@ pub(super) fn generate_imports<'a>(
 
     let domain_module = &domain.module;
     Ok(quote! {
-        use walker::{#(#walker_lib_imports),*};
+        #[allow(unused_imports)]
+        use walker::{Iter, Walk};
         use #domain_module::{#(#domain_imports),*};
         #other_imports
     })

@@ -11,6 +11,7 @@ use crate::{
     prelude::*,
     StringId,
 };
+#[allow(unused_imports)]
 use walker::{Iter, Walk};
 
 /// Generated from:

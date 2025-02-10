@@ -7,6 +7,7 @@ use crate::model::{
     generated::{ExecutableDirective, ExecutableDirectiveId, Fragment, FragmentId},
     prelude::*,
 };
+#[allow(unused_imports)]
 use walker::{Iter, Walk};
 
 /// Generated from:

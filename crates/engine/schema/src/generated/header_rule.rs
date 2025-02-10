@@ -13,7 +13,8 @@ pub use forward::*;
 pub use insert::*;
 pub use remove::*;
 pub use rename_duplicate::*;
-use walker::Walk;
+#[allow(unused_imports)]
+use walker::{Iter, Walk};
 
 /// Generated from:
 ///

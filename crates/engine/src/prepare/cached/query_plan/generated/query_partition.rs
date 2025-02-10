@@ -11,7 +11,8 @@ use crate::prepare::cached::query_plan::{
     RequiredFieldSet, RequiredFieldSetRecord,
 };
 use schema::{EntityDefinition, EntityDefinitionId, ResolverDefinition, ResolverDefinitionId};
-use walker::Walk;
+#[allow(unused_imports)]
+use walker::{Iter, Walk};
 
 /// Generated from:
 ///

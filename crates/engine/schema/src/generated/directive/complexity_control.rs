@@ -7,6 +7,7 @@ use crate::{
     generated::{FieldDefinition, FieldDefinitionId, InputValueDefinition, InputValueDefinitionId},
     prelude::*,
 };
+#[allow(unused_imports)]
 use walker::{Iter, Walk};
 
 /// Generated from:

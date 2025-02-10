@@ -9,7 +9,8 @@ mod virtual_;
 use crate::prelude::*;
 pub use graphql::*;
 pub use virtual_::*;
-use walker::Walk;
+#[allow(unused_imports)]
+use walker::{Iter, Walk};
 
 /// Generated from:
 ///

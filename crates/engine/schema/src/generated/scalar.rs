@@ -8,6 +8,7 @@ use crate::{
     prelude::*,
     ScalarType, StringId,
 };
+#[allow(unused_imports)]
 use walker::{Iter, Walk};
 
 /// Generated from:

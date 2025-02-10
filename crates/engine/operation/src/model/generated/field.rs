@@ -11,7 +11,8 @@ use crate::model::prelude::*;
 pub use argument::*;
 pub use data::*;
 pub use typename::*;
-use walker::Walk;
+#[allow(unused_imports)]
+use walker::{Iter, Walk};
 
 /// Generated from:
 ///

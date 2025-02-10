@@ -8,6 +8,7 @@ use crate::model::{
     prelude::*,
     Location, ResponseKey,
 };
+#[allow(unused_imports)]
 use walker::{Iter, Walk};
 
 /// __typename field
