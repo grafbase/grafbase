@@ -458,7 +458,7 @@ pub(super) fn parse_extension_link(
         .to_string();
 
     let schema_directives = directive
-        .get_argument("schema_directives")
+        .get_argument("schemaDirectives")
         .and_then(|arg| arg.as_list())
         .map(|directives| {
             directives

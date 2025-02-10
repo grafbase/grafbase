@@ -4,7 +4,7 @@ use super::*;
 pub struct Extension {
     /// Name of the extension within the federated graph. It does NOT necessarily matches the extension's name
     /// in its manifest, see the `id` field for this.
-    pub enum_value: EnumValueId,
+    pub enum_value_id: EnumValueId,
     pub url: StringId,
     pub schema_directives: Vec<ExtensionLinkSchemaDirective>,
 }
