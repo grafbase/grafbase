@@ -1,6 +1,6 @@
 [package]
 name = "grafbase-sdk-mock"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "Subgraph mock server for testing Grafbase extensions"
 license = "MPL-2.0"

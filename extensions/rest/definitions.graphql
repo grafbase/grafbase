@@ -1,19 +1,12 @@
-directive @restEndpoint(
-  name: String
-  http: HttpEndpointDefinition
-) repeatable on SCHEMA
+directive @restEndpoint(name: String, http: HttpEndpointDefinition) repeatable on SCHEMA
 
-directive @rest(
-  endpoint: String
-  http: HttpRequestDefinition
-  selection: String
-) on FIELD_DEFINITION
+directive @rest(endpoint: String, http: HttpRequestDefinition, selection: String) on FIELD_DEFINITION
 
-type HttpEndpointDefinition {
+input HttpEndpointDefinition {
   baseURL: String
 }
 
-type HttpRequestDefinition {
+input HttpRequestDefinition {
   method: HttpMethod
   path: String
 }

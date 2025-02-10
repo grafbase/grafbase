@@ -21,6 +21,7 @@ impl<'a> Subgraph<'a> {
             Subgraph::Introspection(schema) => (*schema, EMPTY_DIRECTIVES),
             Subgraph::Virtual(virt) => (virt.schema, virt.as_ref().schema_directive_ids.as_slice()),
         };
+
         ids.walk(schema).filter_map(|dir| dir.as_extension())
     }
 }

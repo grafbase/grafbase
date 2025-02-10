@@ -8,6 +8,6 @@
 mod config;
 mod runner;
 
-pub use config::{TestConfig, TestConfigBuilder};
-pub use grafbase_sdk_mock::{DynamicSchema, DynamicSubgraph};
+pub use config::{LogLevel, TestConfig, TestConfigBuilder};
+pub use grafbase_sdk_mock::{DynamicSchema, DynamicSubgraph, ExtensionOnlySubgraph};
 pub use runner::{QueryBuilder, TestRunner};
