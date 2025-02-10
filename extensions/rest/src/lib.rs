@@ -1,3 +1,5 @@
+mod types;
+
 use grafbase_sdk::{
     host_io::http::{self, HttpRequest, Url},
     types::{Configuration, Directive, FieldDefinition, FieldInputs, FieldOutput},
@@ -5,64 +7,17 @@ use grafbase_sdk::{
 };
 use jaq_core::{
     load::{Arena, File, Loader},
-    Compiler, Ctx, Filter, RcIter,
+    Compiler, Ctx, Filter, Native, RcIter,
 };
 use jaq_json::Val;
 use std::collections::HashMap;
+use types::{Rest, RestEndpoint};
 
 #[derive(ResolverExtension)]
 struct RestExtension {
     endpoints: Vec<RestEndpoint>,
-    filters: HashMap<String, Filter<jaq_core::Native<jaq_json::Val>>>,
+    filters: HashMap<String, Filter<Native<Val>>>,
     arena: Arena,
-}
-
-#[derive(Debug)]
-struct RestEndpoint {
-    subgraph_name: String,
-    args: RestEndpointArgs,
-}
-
-#[derive(serde::Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-struct RestEndpointArgs {
-    name: String,
-    http: HttpSettings,
-}
-
-#[derive(serde::Deserialize, Debug)]
-struct HttpSettings {
-    #[serde(rename = "baseURL")]
-    base_url: String,
-}
-
-#[derive(Debug, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct Rest<'a> {
-    endpoint: &'a str,
-    http: HttpCall<'a>,
-    selection: &'a str,
-}
-
-#[derive(Debug, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct HttpCall<'a> {
-    method: HttpMethod,
-    path: &'a str,
-}
-
-#[derive(Debug, serde::Deserialize)]
-#[serde(rename_all = "UPPERCASE")]
-enum HttpMethod {
-    Get,
-}
-
-impl From<HttpMethod> for ::http::Method {
-    fn from(method: HttpMethod) -> Self {
-        match method {
-            HttpMethod::Get => Self::GET,
-        }
-    }
 }
 
 impl Extension for RestExtension {
@@ -107,10 +62,7 @@ impl RestExtension {
             .ok()
     }
 
-    pub fn create_filter<'a>(
-        &'a mut self,
-        selection: &str,
-    ) -> Result<&'a Filter<jaq_core::Native<jaq_json::Val>>, Error> {
+    pub fn create_filter<'a>(&'a mut self, selection: &str) -> Result<&'a Filter<Native<Val>>, Error> {
         if !self.filters.contains_key(selection) {
             let program = File {
                 code: selection,
