@@ -1,7 +1,8 @@
 use std::cell::{Cell, Ref, RefCell};
 
+use field_to_entity::FieldToEntityDeserializer;
 use object::{ConcreteShapeFieldsSeed, ObjectValue};
-use serde::de::DeserializeSeed;
+use serde::{de::DeserializeSeed, Deserializer};
 use walker::Walk;
 
 use crate::{
@@ -14,6 +15,7 @@ use crate::{
 mod ctx;
 mod r#enum;
 mod field;
+mod field_to_entity;
 mod key;
 mod list;
 mod object;
@@ -51,6 +53,17 @@ impl<'ctx> UpdateSeed<'ctx> {
             shape_id,
             id,
         }
+    }
+
+    pub fn deserialize_field_as_entity<'k, 'de, D: Deserializer<'de>>(
+        self,
+        key: &'k str,
+        deserializer: D,
+    ) -> Result<(), D::Error>
+    where
+        'k: 'de,
+    {
+        self.deserialize(FieldToEntityDeserializer { key, deserializer })
     }
 }
 

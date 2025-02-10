@@ -22,7 +22,7 @@ impl Resolver for EchoExtension {
         &mut self,
         _context: SharedContext,
         directive: Directive,
-        field_definition: FieldDefinition,
+        _field_definition: FieldDefinition,
         _inputs: FieldInputs,
     ) -> Result<FieldOutput, Error> {
         let value = match directive.name() {
@@ -38,9 +38,8 @@ impl Resolver for EchoExtension {
 
         let mut output = FieldOutput::new();
 
-        let field_name = field_definition.name();
-        output.push_value(serde_json::json!({ field_name: value }));
+        output.push_value(serde_json::json!(value));
 
-        return Ok(output);
+        Ok(output)
     }
 }
