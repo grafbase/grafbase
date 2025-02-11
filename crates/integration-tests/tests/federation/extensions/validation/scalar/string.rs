@@ -80,7 +80,7 @@ fn invalid_string() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At Query.echo for the extension 'echo-1.0.0' directive named 'echo': Found a Float value where we expected a String scalar at path '.value'",
+            "At Query.echo for the extension 'echo-1.0.0' directive @echo: Found a Float value where we expected a String scalar at path '.value'",
         )
         "#);
 
@@ -111,7 +111,7 @@ fn invalid_string() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At subgraph named 'a' for the extension 'echo-1.0.0' directive named 'meta': Found a List value where we expected a String scalar at path '.value'",
+            "At subgraph named 'a' for the extension 'echo-1.0.0' directive @meta: Found a List value where we expected a String scalar at path '.value'",
         )
         "#);
     });

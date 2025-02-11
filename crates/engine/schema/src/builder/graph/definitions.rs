@@ -52,12 +52,15 @@ impl<'a> Context<'a> {
             FxHashMap::with_capacity_and_hasher(federated_graph.scalar_definitions.len(), Default::default());
         let enum_mapping =
             FxHashMap::with_capacity_and_hasher(federated_graph.scalar_definitions.len(), Default::default());
+        let input_value_mapping =
+            FxHashMap::with_capacity_and_hasher(federated_graph.input_value_definitions.len(), Default::default());
 
         let mut ctx = GraphContext {
             ctx: self,
             graph,
             scalar_mapping,
             enum_mapping,
+            input_value_mapping,
             deduplicated_fields: Default::default(),
             field_arguments: Default::default(),
             required_scopes: Default::default(),
@@ -103,63 +106,71 @@ impl<'a> Context<'a> {
                 continue;
             }
 
-            let id = EnumDefinitionId::from(ctx.graph.enum_definitions.len());
-            ctx.enum_mapping.insert(enm.id(), id);
-            schema_locations.push(SchemaLocation::Enum(id, enm.id()));
+            let enum_id = EnumDefinitionId::from(ctx.graph.enum_definitions.len());
+            let start = ctx.graph.enum_values.len();
+            for enum_value in federated_graph.iter_enum_values(enm.id()) {
+                let id = EnumValueId::from(ctx.graph.enum_values.len());
+                schema_locations.push(SchemaLocation::EnumValue(enum_id, id, enum_value.id()));
+
+                let name_id = ctx.get_or_insert_str(enum_value.value);
+                let description_id = enum_value.description.map(|id| ctx.get_or_insert_str(id));
+                ctx.graph.enum_values.push(EnumValueRecord {
+                    name_id,
+                    description_id,
+                    // Added afterwards
+                    directive_ids: Default::default(),
+                });
+            }
+            let value_ids = (start..ctx.graph.enum_values.len()).into();
+
+            ctx.enum_mapping.insert(enm.id(), enum_id);
+            schema_locations.push(SchemaLocation::Enum(enum_id, enm.id()));
 
             let name_id = ctx.get_or_insert_str(enm.name);
             let description_id = enm.description.map(|id| ctx.get_or_insert_str(id));
             ctx.graph.enum_definitions.push(EnumDefinitionRecord {
                 name_id,
                 description_id,
-                value_ids: IdRange::from_start_and_length(federated_graph.enum_value_range(enm.id())),
-                // Added afterwards
-                directive_ids: Default::default(),
-            })
-        }
-
-        // Enum values MUST be after enum definitions as otherwise enums will be empty.
-        for (ix, enum_value) in federated_graph.enum_values.iter().enumerate() {
-            let id = EnumValueId::from(ctx.graph.enum_values.len());
-            schema_locations.push(SchemaLocation::EnumValue(id, ix.into()));
-
-            let name_id = ctx.get_or_insert_str(enum_value.value);
-            let description_id = enum_value.description.map(|id| ctx.get_or_insert_str(id));
-            ctx.graph.enum_values.push(EnumValueRecord {
-                name_id,
-                description_id,
+                value_ids,
                 // Added afterwards
                 directive_ids: Default::default(),
             });
         }
 
         for (ix, input_object) in federated_graph.input_objects.iter().enumerate() {
-            let id = InputObjectDefinitionId::from(ctx.graph.input_object_definitions.len());
-            schema_locations.push(SchemaLocation::InputObject(id, ix.into()));
+            let input_object_id = InputObjectDefinitionId::from(ctx.graph.input_object_definitions.len());
 
+            let start = ctx.graph.input_value_definitions.len();
+            let (federated_id_start, length) = input_object.fields;
+            for offset in 0..length {
+                let federated_id =
+                    federated_graph::InputValueDefinitionId::from(usize::from(federated_id_start) + offset);
+                let input_value = &federated_graph[federated_id];
+                let id = InputValueDefinitionId::from(ctx.graph.input_value_definitions.len());
+                schema_locations.push(SchemaLocation::InputFieldDefinition(input_object_id, id, federated_id));
+                ctx.input_value_mapping.insert(federated_id, id);
+
+                let name_id = ctx.get_or_insert_str(input_value.name);
+                let description_id = input_value.description.map(|id| ctx.get_or_insert_str(id));
+                ctx.graph.input_value_definitions.push(InputValueDefinitionRecord {
+                    name_id,
+                    description_id,
+                    ty_record: ctx.convert_type(input_value.r#type),
+                    // Added afterwards
+                    default_value_id: None,
+                    directive_ids: Default::default(),
+                });
+            }
+            let input_field_ids = (start..ctx.graph.input_value_definitions.len()).into();
+
+            schema_locations.push(SchemaLocation::InputObject(input_object_id, ix.into()));
             let name_id = ctx.get_or_insert_str(input_object.name);
             let description_id = input_object.description.map(|id| ctx.get_or_insert_str(id));
             ctx.graph.input_object_definitions.push(InputObjectDefinitionRecord {
                 name_id,
                 description_id,
-                input_field_ids: IdRange::from_start_and_length(input_object.fields),
+                input_field_ids,
                 // Added afterwards
-                directive_ids: Default::default(),
-            });
-        }
-
-        for (ix, input_value) in federated_graph.input_value_definitions.iter().enumerate() {
-            let id = InputValueDefinitionId::from(ctx.graph.input_value_definitions.len());
-            schema_locations.push(SchemaLocation::InputValue(id, ix.into()));
-
-            let name_id = ctx.get_or_insert_str(input_value.name);
-            let description_id = input_value.description.map(|id| ctx.get_or_insert_str(id));
-            ctx.graph.input_value_definitions.push(InputValueDefinitionRecord {
-                name_id,
-                description_id,
-                ty_record: ctx.convert_type(input_value.r#type),
-                // Added afterwards
-                default_value_id: None,
                 directive_ids: Default::default(),
             });
         }
@@ -244,8 +255,32 @@ impl<'a> Context<'a> {
         }
 
         for (ix, field) in federated_graph.fields.iter().enumerate() {
-            let id = FieldDefinitionId::from(ctx.graph.field_definitions.len());
-            schema_locations.push(SchemaLocation::Field(id, ix.into()));
+            let field_id = FieldDefinitionId::from(ctx.graph.field_definitions.len());
+
+            let start = ctx.graph.input_value_definitions.len();
+            let (federated_id_start, length) = field.arguments;
+            for offset in 0..length {
+                let federated_id =
+                    federated_graph::InputValueDefinitionId::from(usize::from(federated_id_start) + offset);
+                let input_value = &federated_graph[federated_id];
+                let id = InputValueDefinitionId::from(ctx.graph.input_value_definitions.len());
+                schema_locations.push(SchemaLocation::ArgumentDefinition(field_id, id, federated_id));
+                ctx.input_value_mapping.insert(federated_id, id);
+
+                let name_id = ctx.get_or_insert_str(input_value.name);
+                let description_id = input_value.description.map(|id| ctx.get_or_insert_str(id));
+                ctx.graph.input_value_definitions.push(InputValueDefinitionRecord {
+                    name_id,
+                    description_id,
+                    ty_record: ctx.convert_type(input_value.r#type),
+                    // Added afterwards
+                    default_value_id: None,
+                    directive_ids: Default::default(),
+                });
+            }
+            let argument_ids = (start..ctx.graph.input_value_definitions.len()).into();
+
+            schema_locations.push(SchemaLocation::FieldDefinition(field_id, ix.into()));
             let name_id = ctx.get_or_insert_str(field.name);
             let description_id = field.description.map(|id| ctx.get_or_insert_str(id));
             ctx.graph.field_definitions.push(FieldDefinitionRecord {
@@ -253,7 +288,7 @@ impl<'a> Context<'a> {
                 description_id,
                 parent_entity_id: field.parent_entity_id.into(),
                 ty_record: ctx.convert_type(field.r#type),
-                argument_ids: IdRange::from_start_and_length(field.arguments),
+                argument_ids,
                 // Added at the end.
                 subgraph_type_records: Default::default(),
                 exists_in_subgraph_ids: Default::default(),

@@ -20,6 +20,7 @@ pub(crate) struct GraphContext<'a> {
     pub required_scopes: Interner<RequiresScopesDirectiveRecord, RequiresScopesDirectiveId>,
     pub scalar_mapping: FxHashMap<federated_graph::ScalarDefinitionId, ScalarDefinitionId>,
     pub enum_mapping: FxHashMap<federated_graph::EnumDefinitionId, EnumDefinitionId>,
+    pub input_value_mapping: FxHashMap<federated_graph::InputValueDefinitionId, InputValueDefinitionId>,
     pub graphql_federated_entity_resolvers: FxHashMap<(EntityDefinitionId, GraphqlEndpointId), Vec<EntityResovler>>,
     // -- used for field sets
     pub deduplicated_fields: BTreeMap<SchemaFieldRecord, SchemaFieldId>,
@@ -135,8 +136,6 @@ from_id_newtypes! {
     federated_graph::InterfaceId => InterfaceDefinitionId,
     federated_graph::ObjectId => ObjectDefinitionId,
     federated_graph::UnionId => UnionDefinitionId,
-    federated_graph::EnumValueId => EnumValueId,
-    federated_graph::InputValueDefinitionId => InputValueDefinitionId,
     federated_graph::FieldId => FieldDefinitionId,
 }
 

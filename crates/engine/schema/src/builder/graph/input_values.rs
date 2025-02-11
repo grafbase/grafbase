@@ -13,7 +13,10 @@ impl GraphContext<'_> {
             Value::Int(n) => SchemaInputValueRecord::BigInt(n),
             Value::Float(f) => SchemaInputValueRecord::Float(f),
             Value::Boolean(b) => SchemaInputValueRecord::Boolean(b),
-            Value::EnumValue(id) => SchemaInputValueRecord::EnumValue(id.into()),
+            Value::EnumValue(id) => {
+                let value = self.federated_graph[id].value;
+                SchemaInputValueRecord::UnboundEnumValue(self.get_or_insert_str(value))
+            }
             Value::Object(fields) => {
                 let ids = self.graph.input_values.reserve_map(fields.len());
                 for ((name, value), id) in fields.into_vec().into_iter().zip(ids) {
