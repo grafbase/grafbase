@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
+use futures::future::BoxFuture;
 use futures_lite::FutureExt;
 use runtime::{
-    extension::{Data, ExtensionDirective, ExtensionRuntime},
-    hooks::EdgeDefinition,
+    error::PartialGraphqlError,
+    extension::{Data, ExtensionFieldDirective, ExtensionRuntime},
 };
 use schema::{FieldResolverExtensionDefinition, FieldResolverExtensionDefinitionRecord};
 use walker::Walk;
@@ -35,65 +36,58 @@ impl FieldResolverExtension {
         root_response_objects: ResponseObjectsView<'_>,
         subgraph_response: SubgraphResponse,
     ) -> FieldResolverExtensionRequest<'ctx> {
-        let input_object_refs = root_response_objects.into_input_object_refs();
         let directive = self.definition.walk(ctx.schema()).directive();
-        let field_definition = plan
+        let field = plan
             .selection_set()
             .fields()
             .next()
             .expect("At least one field must be present");
-        FieldResolverExtensionRequest {
-            directive,
+
+        let field_definition = field.definition();
+        let extension_directive = ExtensionFieldDirective {
+            extension_id: directive.extension_id,
+            subgraph: directive.subgraph(),
             field: field_definition,
+            name: directive.name(),
+            arguments: field
+                .arguments()
+                .into_extension_directive_query_view(directive, ctx.variables()),
+        };
+
+        let future = ctx
+            .engine
+            .runtime
+            .extensions()
+            .resolve_field(ctx.hooks_context, extension_directive, root_response_objects.iter())
+            .boxed();
+
+        let input_object_refs = root_response_objects.into_input_object_refs();
+        FieldResolverExtensionRequest {
+            field,
             subgraph_response,
             input_object_refs,
+            future,
         }
     }
 }
 
 pub(in crate::resolver) struct FieldResolverExtensionRequest<'ctx> {
-    directive: schema::ExtensionDirective<'ctx>,
     field: SubgraphField<'ctx>,
     subgraph_response: SubgraphResponse,
     input_object_refs: Arc<InputResponseObjectSet>,
+    future: BoxFuture<'ctx, Result<Vec<Result<Data, PartialGraphqlError>>, PartialGraphqlError>>,
 }
 
 impl<'ctx> FieldResolverExtensionRequest<'ctx> {
     pub async fn execute<R: Runtime>(self, ctx: ExecutionContext<'ctx, R>) -> ExecutionResult<SubgraphResponse> {
         let Self {
-            directive,
             field,
             mut subgraph_response,
             input_object_refs,
+            future,
         } = self;
 
-        let field_definition = field.definition();
-        let result = ctx
-            .engine
-            .runtime
-            .extensions()
-            .resolve_field(
-                directive.extension_id,
-                directive.subgraph(),
-                &Default::default(),
-                EdgeDefinition {
-                    parent_type_name: field_definition.parent_entity().name(),
-                    field_name: field_definition.name(),
-                },
-                ExtensionDirective {
-                    name: directive.name(),
-                    static_arguments: directive.static_arguments(),
-                },
-                (0..input_object_refs.len()).map(|_| serde_json::json!({})),
-            )
-            // FIXME: Unfortunately, boxing seems to be the only solution for the bug explained here:
-            //        https://github.com/rust-lang/rust/issues/110338#issuecomment-1513761297
-            //        Otherwise is not correctly evaluated to be Send due with the associated
-            //        return type.
-            .boxed()
-            .await;
-
-        match result {
+        match future.await {
             Ok(result) => {
                 let response = subgraph_response.as_shared_mut();
                 for (id, result) in input_object_refs.ids().zip(result) {

@@ -22,6 +22,22 @@ pub struct ExtensionsComponentInstance {
     component: ComponentInstance,
 }
 
+/// List of inputs to be provided to the extension.
+/// The data itself is fully custom and thus will be serialized with serde to cross the Wasm
+/// boundary.
+#[derive(Default)]
+pub struct InputList(Vec<Vec<u8>>);
+
+impl<S: serde::Serialize> FromIterator<S> for InputList {
+    fn from_iter<T: IntoIterator<Item = S>>(iter: T) -> Self {
+        Self(
+            iter.into_iter()
+                .map(|input| minicbor_serde::to_vec(&input).unwrap())
+                .collect(),
+        )
+    }
+}
+
 impl ExtensionsComponentInstance {
     /// Creates a new extension component instance.
     pub async fn new(
@@ -49,31 +65,23 @@ impl ExtensionsComponentInstance {
     }
 
     /// A field resolver extension call.
-    pub async fn resolve_field<S>(
+    pub async fn resolve_field(
         &mut self,
         context: SharedContext,
         directive: Directive,
         definition: FieldDefinition,
-        inputs: impl IntoIterator<Item = S> + Send,
-    ) -> crate::Result<FieldOutput>
-    where
-        S: serde::Serialize,
-    {
+        inputs: InputList,
+    ) -> crate::Result<FieldOutput> {
         type Params = (Resource<SharedContext>, Directive, FieldDefinition, Vec<Vec<u8>>);
         type Response = Result<FieldOutput, GuestError>;
 
         let context = self.component.store_mut().data_mut().push_resource(context)?;
         let context_rep = context.rep();
 
-        let inputs = inputs
-            .into_iter()
-            .map(|input| minicbor_serde::to_vec(&input).unwrap())
-            .collect();
-
         let result = self
             .call_typed_func::<Params, Response>(
                 RESOLVE_FIELD_EXTENSION_FUNCTION,
-                (context, directive, definition, inputs),
+                (context, directive, definition, inputs.0),
             )
             .await?;
 

@@ -56,7 +56,7 @@ async fn simple_resolver() {
     };
 
     let output = extension
-        .resolve_field(context, field_directive, definition, Vec::<serde_json::Value>::new())
+        .resolve_field(context, field_directive, definition, Default::default())
         .await
         .unwrap();
 

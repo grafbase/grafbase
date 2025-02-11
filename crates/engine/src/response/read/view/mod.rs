@@ -48,6 +48,10 @@ impl<'a> ResponseObjectsView<'a> {
         self.response_object_set
     }
 
+    pub fn iter(&self) -> impl Iterator<Item = ResponseObjectView<'a>> + '_ {
+        self.iter_with_id().map(|(_, view)| view)
+    }
+
     pub fn with_extra_constant_fields(
         self,
         extra_constant_fields: Vec<(Cow<'static, str>, serde_json::Value)>,

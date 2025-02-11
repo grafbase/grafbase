@@ -11,7 +11,9 @@ pub trait Runtime: Send + Sync + 'static {
     type Hooks: runtime::hooks::Hooks;
     type Fetcher: runtime::fetch::Fetcher;
     type OperationCache: runtime::operation_cache::OperationCache<Arc<CachedOperation>>;
-    type Extensions: runtime::extension::ExtensionRuntime<SharedContext: Default>;
+    type Extensions: runtime::extension::ExtensionRuntime<
+        SharedContext = <Self::Hooks as runtime::hooks::Hooks>::Context,
+    >;
 
     fn fetcher(&self) -> &Self::Fetcher;
     fn kv(&self) -> &KvStore;

@@ -1,3 +1,4 @@
+use schema::InputValueSet;
 use walker::Walk;
 
 use crate::QueryInputValueRecord;
@@ -9,11 +10,9 @@ impl serde::Serialize for QueryInputValueView<'_> {
     where
         S: serde::Serializer,
     {
-        // Composition guarantees a proper InputValueSet, so if the selection set is empty it means
-        // we're serializing a scalar.
-        if self.selection_set.is_empty() {
+        let InputValueSet::SelectionSet(selection_set) = self.selection_set else {
             return self.value.serialize(serializer);
-        }
+        };
         let QueryInputValueRecord::InputObject(fields) = self.value.ref_ else {
             return Err(serde::ser::Error::custom(
                 "Can only select fields within an input object.",
@@ -23,10 +22,9 @@ impl serde::Serialize for QueryInputValueView<'_> {
             fields
                 .walk(self.value.ctx)
                 .filter_map(|(input_value_definition, value)| {
-                    if let Some(item) = self
-                        .selection_set
+                    if let Some(item) = selection_set
                         .iter()
-                        .find(|item| item.id == input_value_definition.id)
+                        .find(|item| item.definition_id == input_value_definition.id)
                     {
                         if value.is_undefined() {
                             input_value_definition.default_value().map(|value| {

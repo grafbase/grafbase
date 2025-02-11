@@ -502,7 +502,7 @@ impl GraphContext<'_> {
                         arguments: authorized
                             .arguments
                             .as_ref()
-                            .map(|set| self.convert_input_value_set(set))
+                            .map(|set| self.convert_federated_input_value_set(set))
                             .unwrap_or_default(),
                         fields_record: authorized
                             .fields
@@ -746,12 +746,18 @@ fn add_extra_vecs_with_different_ordering(GraphContext { ctx, graph, .. }: &mut 
 }
 
 impl GraphContext<'_> {
-    fn convert_input_value_set(&self, input_value_set: &federated_graph::InputValueDefinitionSet) -> InputValueSet {
+    fn convert_federated_input_value_set(
+        &self,
+        input_value_set: &federated_graph::InputValueDefinitionSet,
+    ) -> InputValueSet {
+        if input_value_set.is_empty() {
+            return InputValueSet::All;
+        }
         input_value_set
             .iter()
-            .map(|item| InputValueSetSelection {
-                id: self.input_value_mapping[&item.input_value_definition],
-                subselection: self.convert_input_value_set(&item.subselection),
+            .map(|item| InputValueSelection {
+                definition_id: self.input_value_mapping[&item.input_value_definition],
+                subselection: self.convert_federated_input_value_set(&item.subselection),
             })
             .collect()
     }

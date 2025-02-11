@@ -130,6 +130,10 @@ pub enum BuildError {
     },
     #[error("Extension {} directive @{} used in the wrong location {}, expected one of: {}", .0.id, .0.directive, .0.location, .0.expected.join(","))]
     ExtensionDirectiveLocationError(Box<ExtensionDirectiveLocationError>),
+    #[error("Could not read a @link directive used in the extension {id} GraphQL definitions: {err}")]
+    ExtensionCouldNotReadLink { id: extension_catalog::Id, err: String },
+    #[error("Extension {id} imports an unknown Grafbase definition: '{name}'")]
+    ExtensionLinksToUnknownGrafbaseDefinition { id: extension_catalog::Id, name: String },
 }
 
 #[derive(Debug)]

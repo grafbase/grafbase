@@ -15,15 +15,17 @@ use integration_tests::{
     federation::{EngineExt, TestExtension, TestExtensionBuilder, TestExtensionConfig},
     runtime,
 };
-use runtime::{
-    error::PartialGraphqlError,
-    extension::ExtensionDirective,
-    hooks::{DynHookContext, EdgeDefinition},
-};
+use runtime::{error::PartialGraphqlError, extension::ExtensionFieldDirective, hooks::DynHookContext};
 
 #[derive(Default)]
-struct EchoExt {
-    sdl: &'static str,
+pub struct EchoExt {
+    pub sdl: &'static str,
+}
+
+impl EchoExt {
+    pub fn with_sdl(sdl: &'static str) -> Self {
+        Self { sdl }
+    }
 }
 
 impl TestExtensionBuilder for EchoExt {
@@ -43,14 +45,11 @@ impl TestExtensionBuilder for EchoExt {
         }
     }
 
-    fn build(
-        &self,
-        schema_directives: Vec<ExtensionDirective<'_, serde_json::Value>>,
-    ) -> std::sync::Arc<dyn TestExtension> {
+    fn build(&self, schema_directives: Vec<(&str, serde_json::Value)>) -> std::sync::Arc<dyn TestExtension> {
         Arc::new(EchoInstance {
             schema_directives: schema_directives
                 .into_iter()
-                .map(|dir| (dir.name.to_string(), dir.static_arguments))
+                .map(|(name, args)| (name.to_string(), args))
                 .collect(),
         })
     }
@@ -65,17 +64,14 @@ impl TestExtension for EchoInstance {
     async fn resolve<'a>(
         &self,
         _context: &DynHookContext,
-        _field: EdgeDefinition<'a>,
-        directive: ExtensionDirective<'a, serde_json::Value>,
+        directive: ExtensionFieldDirective<'a, serde_json::Value>,
         inputs: Vec<serde_json::Value>,
     ) -> Result<Vec<Result<serde_json::Value, PartialGraphqlError>>, PartialGraphqlError> {
-        Ok(vec![
-            Ok(serde_json::json!({
-                "schema": &self.schema_directives,
-                "directive": &directive.static_arguments,
-            }));
-            inputs.len()
-        ])
+        let json = serde_json::json!({
+            "schema": self.schema_directives,
+            "directive": directive.arguments,
+        });
+        Ok(vec![Ok(json.clone()); inputs.len()])
     }
 }
 

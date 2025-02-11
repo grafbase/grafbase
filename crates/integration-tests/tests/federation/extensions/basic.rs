@@ -6,19 +6,23 @@ use integration_tests::{
     federation::{EngineExt, TestExtension, TestExtensionBuilder, TestExtensionConfig},
     runtime,
 };
-use runtime::{
-    error::PartialGraphqlError,
-    extension::ExtensionDirective,
-    hooks::{DynHookContext, EdgeDefinition},
-};
+use runtime::{error::PartialGraphqlError, extension::ExtensionFieldDirective, hooks::DynHookContext};
 
 #[derive(Default, Clone)]
-struct Ext;
+pub struct GreetExt {
+    sdl: Option<&'static str>,
+}
 
-impl TestExtensionBuilder for Ext {
+impl GreetExt {
+    pub fn with_sdl(sdl: &'static str) -> Self {
+        Self { sdl: Some(sdl) }
+    }
+}
+
+impl TestExtensionBuilder for GreetExt {
     fn id(&self) -> Id {
         Id {
-            name: "test".to_string(),
+            name: "greet".to_string(),
             version: "1.0.0".parse().unwrap(),
         }
     }
@@ -28,29 +32,25 @@ impl TestExtensionBuilder for Ext {
             kind: extension_catalog::Kind::FieldResolver(extension_catalog::FieldResolver {
                 resolver_directives: vec!["rest".to_string()],
             }),
-            sdl: Some(
+            sdl: self.sdl.or(Some(
                 r#"
                 directive @greet on FIELD_DEFINITION
                 "#,
-            ),
+            )),
         }
     }
 
-    fn build(
-        &self,
-        _schema_directives: Vec<ExtensionDirective<'_, serde_json::Value>>,
-    ) -> std::sync::Arc<dyn TestExtension> {
-        Arc::new(Ext)
+    fn build(&self, _schema_directives: Vec<(&str, serde_json::Value)>) -> std::sync::Arc<dyn TestExtension> {
+        Arc::new(GreetExt::default())
     }
 }
 
 #[async_trait::async_trait]
-impl TestExtension for Ext {
+impl TestExtension for GreetExt {
     async fn resolve<'a>(
         &self,
         _context: &DynHookContext,
-        _field: EdgeDefinition<'a>,
-        _directive: ExtensionDirective<'a, serde_json::Value>,
+        _directive: ExtensionFieldDirective<'a, serde_json::Value>,
         inputs: Vec<serde_json::Value>,
     ) -> Result<Vec<Result<serde_json::Value, PartialGraphqlError>>, PartialGraphqlError> {
         Ok(vec![Ok(serde_json::json!("Hi!")); inputs.len()])
@@ -64,7 +64,7 @@ fn simple_resolver_from_federated_sdl() {
             .with_federated_sdl(
                 r#"
                 enum extension__Link {
-                    REST @extension__link(url: "test-1.0.0")
+                    REST @extension__link(url: "greet-1.0.0")
                 }
 
                 enum join__Graph {
@@ -76,7 +76,7 @@ fn simple_resolver_from_federated_sdl() {
                 }
                 "#,
             )
-            .with_extension(Ext)
+            .with_extension(GreetExt::default())
             .build()
             .await;
 
@@ -100,14 +100,14 @@ fn simple_resolver_from_subgraph_sdl() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "test-1.0.0", import: ["@greet"])
+                    @link(url: "greet-1.0.0", import: ["@greet"])
 
                 type Query {
                     greeting(name: String): String @greet
                 }
                 "#,
             )
-            .with_extension(Ext)
+            .with_extension(GreetExt::default())
             .build()
             .await;
 

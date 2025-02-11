@@ -33,7 +33,9 @@ pub use crossbeam::sync::WaitGroup;
 use either::Either;
 pub use error::{guest::GuestError, Error, GatewayError};
 use gateway_config::WasiExtensionsConfig;
-pub use instance::extensions::{Directive, ExtensionType, ExtensionsComponentInstance, FieldDefinition, FieldOutput};
+pub use instance::extensions::{
+    Directive, ExtensionType, ExtensionsComponentInstance, FieldDefinition, FieldOutput, InputList,
+};
 pub use instance::hooks::{
     authorization::{EdgeDefinition, NodeDefinition},
     response::{

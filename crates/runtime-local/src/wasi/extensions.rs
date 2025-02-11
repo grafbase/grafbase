@@ -1,18 +1,17 @@
 mod pool;
 
-use engine_schema::Subgraph;
 use extension_catalog::ExtensionId;
 use futures_util::StreamExt;
 use gateway_config::WasiExtensionsConfig;
 use runtime::{
     error::{ErrorResponse, PartialErrorCode, PartialGraphqlError},
-    extension::{AuthorizerId, Data, ExtensionDirective, ExtensionRuntime},
-    hooks::{Anything, EdgeDefinition},
+    extension::{AuthorizerId, Data, ExtensionFieldDirective, ExtensionRuntime},
+    hooks::Anything,
 };
 use semver::Version;
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, future::Future, sync::Arc};
 use tokio::task::JoinHandle;
-use wasi_component_loader::{ChannelLogSender, ComponentLoader, FieldDefinition, SharedContext};
+use wasi_component_loader::{ChannelLogSender, ComponentLoader, FieldDefinition, InputList, SharedContext};
 pub use wasi_component_loader::{Directive, ExtensionType};
 
 use pool::Pool;
@@ -95,67 +94,73 @@ async fn create_pools(
 impl ExtensionRuntime for WasiExtensions {
     type SharedContext = SharedContext;
 
-    async fn resolve_field<'a>(
-        &self,
-        extension_id: ExtensionId,
-        subgraph: Subgraph<'a>,
-        context: &Self::SharedContext,
-        field: EdgeDefinition<'a>,
-        directive: ExtensionDirective<'a, impl Anything<'a>>,
-        inputs: impl IntoIterator<Item: Anything<'a>> + Send,
-    ) -> Result<Vec<Result<Data, PartialGraphqlError>>, PartialGraphqlError> {
-        let Some(inner) = self.0.as_ref() else {
-            return Err(PartialGraphqlError::internal_extension_error());
-        };
+    #[allow(clippy::manual_async_fn)]
+    fn resolve_field<'ctx, 'resp, 'f>(
+        &'ctx self,
+        context: &'ctx Self::SharedContext,
+        ExtensionFieldDirective {
+            extension_id,
+            subgraph,
+            field,
+            name,
+            arguments,
+        }: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
+        inputs: impl IntoIterator<Item: Anything<'resp>> + Send,
+    ) -> impl Future<Output = Result<Vec<Result<Data, PartialGraphqlError>>, PartialGraphqlError>> + Send + 'f
+    where
+        'ctx: 'f,
+    {
+        let inputs = InputList::from_iter(inputs);
+        async move {
+            let Some(inner) = self.0.as_ref() else {
+                return Err(PartialGraphqlError::internal_extension_error());
+            };
 
-        let id = ExtensionPoolId::Resolver(extension_id);
+            let id = ExtensionPoolId::Resolver(extension_id);
 
-        let Some(pool) = inner.instance_pools.get(&id) else {
-            return Err(PartialGraphqlError::internal_extension_error());
-        };
+            let Some(pool) = inner.instance_pools.get(&id) else {
+                return Err(PartialGraphqlError::internal_extension_error());
+            };
 
-        let mut instance = pool.get().await;
+            let mut instance = pool.get().await;
 
-        let directive = Directive::new(
-            directive.name.to_string(),
-            subgraph.name().to_string(),
-            &directive.static_arguments,
-        );
+            let directive = Directive::new(name.to_string(), subgraph.name().to_string(), arguments);
 
-        let definition = FieldDefinition {
-            type_name: field.parent_type_name.to_string(),
-            name: field.field_name.to_string(),
-        };
+            let definition = FieldDefinition {
+                type_name: field.parent_entity().name().to_string(),
+                name: field.name().to_string(),
+            };
 
-        let result = instance
-            .resolve_field(context.clone(), directive, definition, inputs)
-            .await;
+            let result = instance
+                .resolve_field(context.clone(), directive, definition, inputs)
+                .await;
 
-        match result {
-            Ok(output) => {
-                let mut results = Vec::new();
+            match result {
+                Ok(output) => {
+                    let mut results = Vec::new();
 
-                for result in output.outputs {
-                    match result {
-                        Ok(data) => results.push(Ok(Data::CborBytes(data))),
-                        Err(error) => {
-                            let error = guest_error_as_gql(error, PartialErrorCode::InternalServerError);
+                    for result in output.outputs {
+                        match result {
+                            Ok(data) => results.push(Ok(Data::CborBytes(data))),
+                            Err(error) => {
+                                let error = guest_error_as_gql(error, PartialErrorCode::InternalServerError);
 
-                            results.push(Err(error))
+                                results.push(Err(error))
+                            }
                         }
                     }
-                }
 
-                Ok(results)
+                    Ok(results)
+                }
+                Err(error) => match error {
+                    wasi_component_loader::Error::Guest(error) => {
+                        let error = guest_error_as_gql(error, PartialErrorCode::InternalServerError);
+
+                        Err(error)
+                    }
+                    _ => Err(PartialGraphqlError::internal_extension_error()),
+                },
             }
-            Err(error) => match error {
-                wasi_component_loader::Error::Guest(error) => {
-                    let error = guest_error_as_gql(error, PartialErrorCode::InternalServerError);
-
-                    Err(error)
-                }
-                _ => Err(PartialGraphqlError::internal_extension_error()),
-            },
         }
     }
 

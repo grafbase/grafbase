@@ -3,16 +3,12 @@ use operation::{
     QueryOrSchemaInputValueView, Variables,
 };
 use query_solver::QueryOrSchemaFieldArgumentIds;
-use schema::{
-    InputValueDefinition, InputValueDefinitionId, InputValueSerdeError, InputValueSet, SchemaInputValueRecord,
-};
-use serde::{
-    de::{value::MapDeserializer, IntoDeserializer, Visitor},
-    forward_to_deserialize_any,
-};
+use schema::{ExtensionDirective, InputValueDefinition, InputValueDefinitionId, InputValueSet, SchemaInputValueRecord};
 use walker::Walk;
 
 use crate::prepare::CachedOperationContext;
+
+use super::extension::ExtensionDirectiveArgumentsQueryView;
 
 #[derive(Clone, Copy)]
 pub(crate) struct PartitionFieldArguments<'a> {
@@ -43,6 +39,24 @@ impl<'ctx> PartitionFieldArguments<'ctx> {
             variables,
             ids: self.ids,
             selection_set,
+        }
+    }
+
+    pub(crate) fn into_extension_directive_query_view<'v, 's, 'view>(
+        self,
+        directive: ExtensionDirective<'s>,
+        variables: &'v Variables,
+    ) -> ExtensionDirectiveArgumentsQueryView<'view>
+    where
+        'ctx: 'view,
+        'v: 'view,
+        's: 'view,
+    {
+        ExtensionDirectiveArgumentsQueryView {
+            schema: self.ctx.schema,
+            argument_records: directive.argument_records(),
+            field_arguments: self,
+            variables,
         }
     }
 
@@ -246,119 +260,67 @@ impl serde::Serialize for PartitionFieldArgumentsView<'_> {
                     query_input_values: &self.ctx.cached.operation.query_input_values,
                     variables: self.variables,
                 };
-                serializer.collect_map(ids.walk(self.ctx).filter_map(|arg| {
-                    if let Some(item) = self.selection_set.iter().find(|item| item.id == arg.definition_id) {
+                if let InputValueSet::SelectionSet(selection_set) = self.selection_set {
+                    serializer.collect_map(ids.walk(self.ctx).filter_map(|arg| {
+                        if let Some(item) = selection_set
+                            .iter()
+                            .find(|item| item.definition_id == arg.definition_id)
+                        {
+                            let value = arg.value_id.walk(ctx);
+                            if value.is_undefined() {
+                                arg.definition().default_value().map(|value| {
+                                    (
+                                        arg.definition().name(),
+                                        QueryOrSchemaInputValueView::Schema(
+                                            value.with_selection_set(&item.subselection),
+                                        ),
+                                    )
+                                })
+                            } else {
+                                Some((
+                                    arg.definition().name(),
+                                    QueryOrSchemaInputValueView::Query(value.with_selection_set(&item.subselection)),
+                                ))
+                            }
+                        } else {
+                            None
+                        }
+                    }))
+                } else {
+                    serializer.collect_map(ids.walk(self.ctx).filter_map(|arg| {
                         let value = arg.value_id.walk(ctx);
                         if value.is_undefined() {
-                            arg.definition().default_value().map(|value| {
-                                (
-                                    arg.definition().name(),
-                                    QueryOrSchemaInputValueView::Schema(value.with_selection_set(&item.subselection)),
-                                )
-                            })
+                            arg.definition()
+                                .default_value()
+                                .map(|value| (arg.definition().name(), QueryOrSchemaInputValue::Schema(value)))
                         } else {
-                            Some((
-                                arg.definition().name(),
-                                QueryOrSchemaInputValueView::Query(value.with_selection_set(&item.subselection)),
-                            ))
+                            Some((arg.definition().name(), QueryOrSchemaInputValue::Query(value)))
                         }
-                    } else {
-                        None
-                    }
-                }))
+                    }))
+                }
             }
             QueryOrSchemaFieldArgumentIds::Schema(ids) => {
-                serializer.collect_map(ids.walk(self.ctx).filter_map(|arg| {
-                    self.selection_set
-                        .iter()
-                        .find(|item| item.id == arg.definition_id)
-                        .map(|item| {
-                            (
-                                arg.definition().name(),
-                                QueryOrSchemaInputValueView::Schema(arg.value().with_selection_set(&item.subselection)),
-                            )
-                        })
-                }))
-            }
-        }
-    }
-}
-
-impl<'de> serde::Deserializer<'de> for PartitionFieldArgumentsView<'de> {
-    type Error = InputValueSerdeError;
-
-    fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: serde::de::Visitor<'de>,
-    {
-        match self.ids {
-            QueryOrSchemaFieldArgumentIds::Query(ids) => {
-                let ctx = InputValueContext {
-                    schema: self.ctx.schema,
-                    query_input_values: &self.ctx.cached.operation.query_input_values,
-                    variables: self.variables,
-                };
-                MapDeserializer::new(ids.walk(self.ctx).filter_map(|arg| {
-                    if let Some(item) = self.selection_set.iter().find(|item| item.id == arg.definition_id) {
-                        let value = arg.value_id.walk(ctx);
-                        if value.is_undefined() {
-                            arg.definition().default_value().map(|value| {
+                if let InputValueSet::SelectionSet(selection_set) = self.selection_set {
+                    serializer.collect_map(ids.walk(self.ctx).filter_map(|arg| {
+                        selection_set
+                            .iter()
+                            .find(|item| item.definition_id == arg.definition_id)
+                            .map(|item| {
                                 (
                                     arg.definition().name(),
-                                    QueryOrSchemaInputValueView::Schema(value.with_selection_set(&item.subselection)),
+                                    QueryOrSchemaInputValueView::Schema(
+                                        arg.value().with_selection_set(&item.subselection),
+                                    ),
                                 )
                             })
-                        } else {
-                            Some((
-                                arg.definition().name(),
-                                QueryOrSchemaInputValueView::Query(value.with_selection_set(&item.subselection)),
-                            ))
-                        }
-                    } else {
-                        None
-                    }
-                }))
-                .deserialize_any(visitor)
+                    }))
+                } else {
+                    serializer.collect_map(
+                        ids.walk(self.ctx)
+                            .map(|arg| (arg.definition().name(), QueryOrSchemaInputValue::Schema(arg.value()))),
+                    )
+                }
             }
-            QueryOrSchemaFieldArgumentIds::Schema(ids) => MapDeserializer::new(ids.walk(self.ctx).filter_map(|arg| {
-                self.selection_set
-                    .iter()
-                    .find(|item| item.id == arg.definition_id)
-                    .map(|item| {
-                        (
-                            arg.definition().name(),
-                            QueryOrSchemaInputValueView::Schema(arg.value().with_selection_set(&item.subselection)),
-                        )
-                    })
-            }))
-            .deserialize_any(visitor),
         }
-    }
-
-    fn deserialize_option<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        visitor.visit_some(self)
-    }
-
-    fn deserialize_ignored_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
-    where
-        V: Visitor<'de>,
-    {
-        visitor.visit_unit()
-    }
-
-    forward_to_deserialize_any! {
-        bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string
-        bytes byte_buf unit unit_struct newtype_struct seq tuple
-        tuple_struct map struct enum identifier
-    }
-}
-
-impl<'de> IntoDeserializer<'de, InputValueSerdeError> for PartitionFieldArgumentsView<'de> {
-    type Deserializer = Self;
-    fn into_deserializer(self) -> Self::Deserializer {
-        self
     }
 }

@@ -3,9 +3,9 @@ use runtime::{
     hooks::{Anything, AuthorizationVerdict, AuthorizationVerdicts, AuthorizedHooks, EdgeDefinition, NodeDefinition},
 };
 use tracing::Instrument;
-use wasi_component_loader::HookImplementation;
+use wasi_component_loader::{HookImplementation, SharedContext};
 
-use super::{guest_error_as_gql, Context, HooksWasi};
+use super::{guest_error_as_gql, HooksWasi};
 
 macro_rules! prepare_authorized {
     ($span_name: expr; $impl:path; $self:ident named $func_name:literal at $definition:expr; [$(($name:literal, $input:expr),)+]) => {{
@@ -51,10 +51,10 @@ fn encode<'a>(
         .collect()
 }
 
-impl AuthorizedHooks<Context> for HooksWasi {
+impl AuthorizedHooks<SharedContext> for HooksWasi {
     async fn authorize_edge_pre_execution<'a>(
         &self,
-        context: &Context,
+        context: &SharedContext,
         definition: EdgeDefinition<'a>,
         arguments: impl Anything<'a>,
         metadata: Option<impl Anything<'a>>,
@@ -76,7 +76,7 @@ impl AuthorizedHooks<Context> for HooksWasi {
         inner
             .run_and_measure(
                 "authorize-edge-pre-execution",
-                instance.authorize_edge_pre_execution(inner.shared_context(context), definition, arguments, metadata),
+                instance.authorize_edge_pre_execution(context.clone(), definition, arguments, metadata),
             )
             .instrument(span)
             .await
@@ -93,7 +93,7 @@ impl AuthorizedHooks<Context> for HooksWasi {
 
     async fn authorize_node_pre_execution<'a>(
         &self,
-        context: &Context,
+        context: &SharedContext,
         definition: NodeDefinition<'a>,
         metadata: Option<impl Anything<'a>>,
     ) -> AuthorizationVerdict {
@@ -111,7 +111,7 @@ impl AuthorizedHooks<Context> for HooksWasi {
         inner
             .run_and_measure(
                 "authorize-node-pre-execution",
-                instance.authorize_node_pre_execution(inner.shared_context(context), definition, metadata),
+                instance.authorize_node_pre_execution(context.clone(), definition, metadata),
             )
             .instrument(span)
             .await
@@ -128,7 +128,7 @@ impl AuthorizedHooks<Context> for HooksWasi {
 
     async fn authorize_node_post_execution<'a>(
         &self,
-        _context: &Context,
+        _context: &SharedContext,
         definition: NodeDefinition<'a>,
         nodes: impl IntoIterator<Item: Anything<'a>> + Send,
         metadata: Option<impl Anything<'a>>,
@@ -149,7 +149,7 @@ impl AuthorizedHooks<Context> for HooksWasi {
 
     async fn authorize_parent_edge_post_execution<'a>(
         &self,
-        context: &Context,
+        context: &SharedContext,
         definition: EdgeDefinition<'a>,
         parents: impl IntoIterator<Item: Anything<'a>> + Send,
         metadata: Option<impl Anything<'a>>,
@@ -169,12 +169,7 @@ impl AuthorizedHooks<Context> for HooksWasi {
         let results = inner
             .run_and_measure_multi_error(
                 "authorize-parent-edge-post-execution",
-                instance.authorize_parent_edge_post_execution(
-                    inner.shared_context(context),
-                    definition,
-                    parents,
-                    metadata,
-                ),
+                instance.authorize_parent_edge_post_execution(context.clone(), definition, parents, metadata),
             )
             .instrument(span)
             .await
@@ -197,7 +192,7 @@ impl AuthorizedHooks<Context> for HooksWasi {
 
     async fn authorize_edge_node_post_execution<'a>(
         &self,
-        context: &Context,
+        context: &SharedContext,
         definition: EdgeDefinition<'a>,
         nodes: impl IntoIterator<Item: Anything<'a>> + Send,
         metadata: Option<impl Anything<'a>>,
@@ -217,7 +212,7 @@ impl AuthorizedHooks<Context> for HooksWasi {
         let result = inner
             .run_and_measure_multi_error(
                 "authorize-edge-node-post-execution",
-                instance.authorize_edge_node_post_execution(inner.shared_context(context), definition, nodes, metadata),
+                instance.authorize_edge_node_post_execution(context.clone(), definition, nodes, metadata),
             )
             .instrument(span)
             .await
@@ -240,7 +235,7 @@ impl AuthorizedHooks<Context> for HooksWasi {
 
     async fn authorize_edge_post_execution<'a, Parent, Nodes>(
         &self,
-        context: &Context,
+        context: &SharedContext,
         definition: EdgeDefinition<'a>,
         edges: impl IntoIterator<Item = (Parent, Nodes)> + Send,
         metadata: Option<impl Anything<'a>>,
@@ -289,7 +284,7 @@ impl AuthorizedHooks<Context> for HooksWasi {
         let result = inner
             .run_and_measure_multi_error(
                 "authorize-edge-post-execution",
-                instance.authorize_edge_post_execution(inner.shared_context(context), definition, edges, metadata),
+                instance.authorize_edge_post_execution(context.clone(), definition, edges, metadata),
             )
             .instrument(span)
             .await
