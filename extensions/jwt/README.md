@@ -1,16 +1,16 @@
 # JWT Authentication Extension
 
-This is a proof of concept authentication extension for the Grafbase Gateway, implementing the native JWT authentication mechanism as a WebAssembly component.
+This is a proof of concept authentication extension for the Grafbase Gateway that implements the native JWT authentication mechanism as a WebAssembly component.
 
 ## Installing
 
-Until the Grafbase Extension Registry is done, you must build this extension manually and copy the artifacts to a place where the gateway can find them.
+Until we complete the Grafbase Extension Registry, build this extension manually and copy the artifacts to a location where the gateway can find them.
 
 ```bash
 grafbase extension build
 ```
 
-The resulting wasm component and a manifest file are generated in the `build` directory.
+The `build` directory contains the resulting wasm component and manifest file.
 
 ```bash
 build/
@@ -23,4 +23,43 @@ In your gateway configuration, you can now load the extension from the `build` d
 ```toml
 [extensions.jwt]
 path = "/path/to/build"
+```
+
+## Configuration
+
+This extension acts as an authentication provider for the Grafbase Gateway. After adding it to the extensions section, configure it as an authentication provider.
+
+```toml
+[[authentication.providers]]
+
+[authentication.providers.extension]
+extension = "jwt"
+
+[authentication.providers.extension.config]
+url = "https://example.com/.well-known/jwks.json"
+issuer = "example.com"
+audience = "my-project"
+poll_interval = 60
+header_name = "Authorization"
+header_value_prefix = "Bearer "
+```
+
+## Testing
+
+Compile the CLI and gateway binaries first in the workspace root:
+
+```bash
+cargo build -p grafbase -p grafbase-gateway
+```
+
+Start the needed docker services in the `extensions` directory:
+
+```bash
+docker compose up -d
+```
+
+Run the tests in this directory:
+
+```bash
+cargo test
 ```
