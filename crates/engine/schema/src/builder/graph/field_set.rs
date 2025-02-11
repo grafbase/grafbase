@@ -75,6 +75,7 @@ impl GraphContext<'_> {
                 ));
             }
         }
+
         self.field_arguments[start..].sort_unstable_by_key(|arg| arg.definition_id);
         field.sorted_argument_ids = IdRange::from(start..self.field_arguments.len());
 

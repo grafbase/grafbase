@@ -31,15 +31,24 @@ impl std::ops::DerefMut for ExtensionInputValueCoercer<'_, '_> {
 }
 
 impl ExtensionInputValueCoercer<'_, '_> {
-    pub fn coerce_extension_value(
+    pub fn coerce_argument(
         &mut self,
         def: InputValueDefinition<'_>,
-        value: &Value,
-    ) -> Result<(ExtensionInputValueRecord, InjectionStage), ExtensionInputValueError> {
-        debug_assert!(self.value_path.is_empty());
+        value: Option<&Value>,
+    ) -> Result<Option<(ExtensionInputValueRecord, InjectionStage)>, ExtensionInputValueError> {
+        self.value_path.clear();
+        self.value_path.push(def.name().into());
         self.current_injection_stage = Default::default();
-        let value = self.coerce_input_value(def.ty(), value)?;
-        Ok((value, self.current_injection_stage))
+        let value = if let Some(value) = value {
+            self.coerce_input_value(def.ty(), value)?
+        } else if let Some(value) = def.default_value() {
+            self.ingest_default_value(value)
+        } else if def.ty().is_non_null() {
+            return Err(InputValueError::MissingRequiredArgument(def.name().to_string()).into());
+        } else {
+            return Ok(None);
+        };
+        Ok(Some((value, self.current_injection_stage)))
     }
 
     fn coerce_input_value(
@@ -75,7 +84,7 @@ impl ExtensionInputValueCoercer<'_, '_> {
             WrappingType::NonNull => {
                 if value.is_null() {
                     Err(InputValueError::UnexpectedNull {
-                        expected: self.type_name(name, wrappers),
+                        expected: self.type_name(name, wrappers, Some(WrappingType::NonNull)),
                         path: self.path(),
                     }
                     .into())
@@ -97,7 +106,7 @@ impl ExtensionInputValueCoercer<'_, '_> {
                     .map(ExtensionInputValueRecord::List),
                 _ => Err(InputValueError::MissingList {
                     actual: value.into(),
-                    expected: self.type_name(name, wrappers),
+                    expected: self.type_name(name, wrappers, Some(WrappingType::List)),
                     path: self.path(),
                 }
                 .into()),
@@ -142,40 +151,40 @@ impl ExtensionInputValueCoercer<'_, '_> {
         };
 
         let mut map = Vec::new();
-        let mut unknown_fields = Vec::new();
+        let mut fields = fields.iter().collect::<Vec<_>>();
 
-        for field in def.fields() {
-            let found_field = fields.iter().find(|(id, _)| self.federated_graph[*id] == field.name());
-
-            if let Some((name_id, value)) = found_field {
+        for input_value_def in def.fields() {
+            if let Some(index) = fields
+                .iter()
+                .position(|(id, _)| self.federated_graph[*id] == input_value_def.name())
+            {
+                let (name_id, value) = fields.swap_remove(index);
                 let name_id = self.get_or_insert_str(*name_id);
                 self.value_path.push(name_id.into());
 
-                let value = self.coerce_input_value(field.ty(), value)?;
+                let value = self.coerce_input_value(input_value_def.ty(), value)?;
                 map.push((name_id, value));
 
                 self.value_path.pop();
-            } else if let Some(default_value) = field.default_value() {
+            } else if let Some(default_value) = input_value_def.default_value() {
                 map.push((
-                    self.strings.get_or_new(field.name()),
+                    self.strings.get_or_new(input_value_def.name()),
                     self.ingest_default_value(default_value),
                 ));
-            } else if field.ty().is_non_null() {
+            } else if input_value_def.ty().is_non_null() {
+                self.value_path.push(input_value_def.name().into());
                 let error = InputValueError::UnexpectedNull {
-                    expected: self.type_name(field.ty().name(), field.ty().wrappers()),
+                    expected: self.type_name(input_value_def.ty().name(), input_value_def.ty().wrappers(), None),
                     path: self.path(),
                 };
-
                 return Err(error.into());
-            } else {
-                unknown_fields.push(field);
             }
         }
 
-        if let Some(field) = unknown_fields.first() {
+        if let Some((name, _)) = fields.first() {
             let error = InputValueError::UnknownInputField {
                 input_object: def.name().to_string(),
-                name: field.name().to_string(),
+                name: self.ctx.federated_graph[*name].to_string(),
                 path: self.path(),
             };
 
@@ -312,9 +321,11 @@ impl ExtensionInputValueCoercer<'_, '_> {
         }
     }
 
-    fn type_name(&self, name: &str, wrappers: TypeWrappersIter) -> String {
+    fn type_name(&self, name: &str, iter: TypeWrappersIter, outer: Option<WrappingType>) -> String {
         let mut out = String::new();
-        let wrappers = wrappers.collect::<Vec<_>>();
+        let mut wrappers = Vec::new();
+        wrappers.extend(outer);
+        wrappers.extend(iter);
         for wrapping in &wrappers {
             if let WrappingType::List = wrapping {
                 out.push('[');

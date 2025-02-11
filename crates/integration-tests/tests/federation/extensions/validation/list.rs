@@ -1,0 +1,178 @@
+use engine::Engine;
+use integration_tests::{federation::EngineExt, runtime};
+
+use super::EchoExt;
+
+#[test]
+fn list_coercion() {
+    let response = runtime().block_on(async move {
+        let engine = Engine::builder()
+            .with_subgraph_sdl(
+                "a",
+                r#"
+                extend schema
+                    @link(url: "echo-1.0.0", import: ["@echo", "@meta"])
+                    @meta(value: "meta")
+
+                scalar JSON
+
+                type Query {
+                    echo: JSON @echo(value: "something")
+                }
+                "#,
+            )
+            .with_extension(EchoExt {
+                sdl: r#"
+                    directive @meta(value: [String!]!) on SCHEMA
+                    directive @echo(value: [String!]!) on FIELD_DEFINITION
+                "#,
+            })
+            .build()
+            .await;
+
+        engine.post("query { echo }").await
+    });
+
+    insta::assert_json_snapshot!(response, @r#"
+    {
+      "data": {
+        "echo": {
+          "schema": {
+            "meta": {
+              "value": [
+                "meta"
+              ]
+            }
+          },
+          "directive": {
+            "value": [
+              "something"
+            ]
+          }
+        }
+      }
+    }
+    "#);
+}
+
+#[test]
+fn list_list_coercion() {
+    let response = runtime().block_on(async move {
+        let engine = Engine::builder()
+            .with_subgraph_sdl(
+                "a",
+                r#"
+                extend schema
+                    @link(url: "echo-1.0.0", import: ["@echo", "@meta"])
+                    @meta(value: "meta")
+
+                scalar JSON
+
+                type Query {
+                    echo: JSON @echo(value: "something")
+                }
+                "#,
+            )
+            .with_extension(EchoExt {
+                sdl: r#"
+                    directive @meta(value: [[String!]]) on SCHEMA
+                    directive @echo(value: [[String!]]) on FIELD_DEFINITION
+                "#,
+            })
+            .build()
+            .await;
+
+        engine.post("query { echo }").await
+    });
+
+    insta::assert_json_snapshot!(response, @r#"
+    {
+      "data": {
+        "echo": {
+          "schema": {
+            "meta": {
+              "value": [
+                [
+                  "meta"
+                ]
+              ]
+            }
+          },
+          "directive": {
+            "value": [
+              [
+                "something"
+              ]
+            ]
+          }
+        }
+      }
+    }
+    "#);
+}
+
+#[test]
+fn incompatible_list_wrapping() {
+    runtime().block_on(async move {
+        // Invalid field directive
+        let result = Engine::builder()
+            .with_subgraph_sdl(
+                "a",
+                r#"
+                extend schema
+                    @link(url: "echo-1.0.0", import: ["@echo", "@meta"])
+
+                scalar JSON
+
+                type Query {
+                    echo: JSON @echo(value: ["something"])
+                }
+                "#,
+            )
+            .with_extension(EchoExt {
+                sdl: r#"
+                    directive @meta(value: [[String!]]) on SCHEMA
+                    directive @echo(value: [[String!]]) on FIELD_DEFINITION
+                "#,
+            })
+            .try_build()
+            .await;
+
+        insta::assert_debug_snapshot!(result.err(), @r#"
+        Some(
+            "At Query.echo for the extension 'echo-1.0.0' directive named 'echo': Found a String value where we expected a [String!] at path '.value.0'",
+        )
+        "#);
+
+        // Invalid schema directive
+        let result = Engine::builder()
+            .with_subgraph_sdl(
+                "a",
+                r#"
+                extend schema
+                    @link(url: "echo-1.0.0", import: ["@echo", "@meta"])
+                    @meta(value: ["meta"])
+
+                scalar JSON
+
+                type Query {
+                    echo: JSON
+                }
+                "#,
+            )
+            .with_extension(EchoExt {
+                sdl: r#"
+                    directive @meta(value: [[String!]]) on SCHEMA
+                    directive @echo(value: [[String!]]) on FIELD_DEFINITION
+                "#,
+            })
+            .try_build()
+            .await;
+
+        insta::assert_debug_snapshot!(result.err(), @r#"
+        Some(
+            "At subgraph named 'a' for the extension 'echo-1.0.0' directive named 'meta': Found a String value where we expected a [String!] at path '.value.0'",
+        )
+        "#);
+    });
+}

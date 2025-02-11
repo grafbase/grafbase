@@ -58,6 +58,8 @@ pub enum InputValueError {
     },
     #[error("Missing required argument named '{0}'")]
     MissingRequiredArgument(String),
+    #[error("Unknown argumant named '{0}'")]
+    UnknownArgument(String),
     #[error("Used an inaccessible enum value{path}")]
     InaccessibleEnumValue { path: String },
 }

@@ -10,7 +10,8 @@ use super::{can_coerce_to_int, value_path_to_string, InputValueError};
 
 impl GraphContext<'_> {
     pub fn coerce(&mut self, id: InputValueDefinitionId, value: Value) -> Result<SchemaInputValueId, InputValueError> {
-        debug_assert!(self.value_path.is_empty());
+        self.value_path.clear();
+        self.value_path.push(self.graph[id].name_id.into());
         let value = self.coerce_input_value(self.graph[id].ty_record, value)?;
         Ok(self.graph.input_values.push_value(value))
     }
@@ -125,6 +126,7 @@ impl GraphContext<'_> {
             } else if let Some(default_value_id) = default_value_id {
                 fields_buffer.push((input_field_id, self.graph.input_values[default_value_id]));
             } else if ty_record.wrapping.is_required() {
+                self.value_path.push(name_id.into());
                 return Err(InputValueError::UnexpectedNull {
                     expected: self.type_name(ty_record),
                     path: self.path(),
