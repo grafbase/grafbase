@@ -32,7 +32,7 @@ fn unknown_type() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At Query.echo for the extension 'echo-1.0.0' directive named 'echo': Unknown type 'EchoInput'",
+            "At Query.echo for the extension 'echo-1.0.0' directive @echo: Unknown type 'EchoInput'",
         )
         "#);
 
@@ -63,7 +63,7 @@ fn unknown_type() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At subgraph named 'a' for the extension 'echo-1.0.0' directive named 'meta': Unknown type 'EchoInput'",
+            "At subgraph named 'a' for the extension 'echo-1.0.0' directive @meta: Unknown type 'EchoInput'",
         )
         "#);
     });
@@ -102,7 +102,7 @@ fn not_a_input_type() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At Query.echo for the extension 'echo-1.0.0' directive named 'echo': Type 'EchoInput' is used for an input value but is not a scalar, input object or enum.",
+            "At Query.echo for the extension 'echo-1.0.0' directive @echo: Type 'EchoInput' is used for an input value but is not a scalar, input object or enum.",
         )
         "#);
 
@@ -137,7 +137,7 @@ fn not_a_input_type() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At subgraph named 'a' for the extension 'echo-1.0.0' directive named 'meta': Type 'EchoInput' is used for an input value but is not a scalar, input object or enum.",
+            "At subgraph named 'a' for the extension 'echo-1.0.0' directive @meta: Type 'EchoInput' is used for an input value but is not a scalar, input object or enum.",
         )
         "#);
     });

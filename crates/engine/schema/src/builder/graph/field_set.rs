@@ -3,8 +3,8 @@ use id_newtypes::IdRange;
 use crate::SchemaFieldId;
 
 use super::{
-    builder::InputValueError, FieldSetItemRecord, FieldSetRecord, GraphContext, InputValueDefinitionId,
-    SchemaFieldArgumentRecord, SchemaFieldRecord,
+    builder::InputValueError, FieldSetItemRecord, FieldSetRecord, GraphContext, SchemaFieldArgumentRecord,
+    SchemaFieldRecord,
 };
 
 impl GraphContext<'_> {
@@ -47,7 +47,7 @@ impl GraphContext<'_> {
 
         let mut federated_arguments = arguments
             .iter()
-            .map(|(id, value)| (InputValueDefinitionId::from(*id), value))
+            .map(|(id, value)| (self.input_value_mapping[id], value))
             .collect::<Vec<_>>();
         let mut field = SchemaFieldRecord {
             definition_id: field_definition_id,

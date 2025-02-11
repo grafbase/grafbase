@@ -3,6 +3,7 @@ mod definition;
 mod enum_;
 mod fields;
 mod list;
+mod location;
 mod non_null;
 mod scalar;
 
@@ -155,7 +156,7 @@ fn too_many_arguments() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At Query.echo for the extension 'echo-1.0.0' directive named 'echo': Unknown argumant named 'other'",
+            "At Query.echo for the extension 'echo-1.0.0' directive @echo: Unknown argumant named 'other'",
         )
         "#);
 
@@ -186,7 +187,7 @@ fn too_many_arguments() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At subgraph named 'a' for the extension 'echo-1.0.0' directive named 'meta': Unknown argumant named 'other'",
+            "At subgraph named 'a' for the extension 'echo-1.0.0' directive @meta: Unknown argumant named 'other'",
         )
         "#);
     });

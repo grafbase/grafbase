@@ -128,7 +128,7 @@ fn invalid_float() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At Query.echo for the extension 'echo-1.0.0' directive named 'echo': Found a Object value where we expected a Float scalar at path '.value'",
+            "At Query.echo for the extension 'echo-1.0.0' directive @echo: Found a Object value where we expected a Float scalar at path '.value'",
         )
         "#);
 
@@ -159,7 +159,7 @@ fn invalid_float() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At subgraph named 'a' for the extension 'echo-1.0.0' directive named 'meta': Found a String value where we expected a Float scalar at path '.value'",
+            "At subgraph named 'a' for the extension 'echo-1.0.0' directive @meta: Found a String value where we expected a Float scalar at path '.value'",
         )
         "#);
     });

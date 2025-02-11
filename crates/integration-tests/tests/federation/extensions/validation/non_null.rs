@@ -32,7 +32,7 @@ fn unexpected_null() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At Query.echo for the extension 'echo-1.0.0' directive named 'echo': Found a null where we expected a String! at path '.value'",
+            "At Query.echo for the extension 'echo-1.0.0' directive @echo: Found a null where we expected a String! at path '.value'",
         )
         "#);
 
@@ -63,7 +63,7 @@ fn unexpected_null() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At subgraph named 'a' for the extension 'echo-1.0.0' directive named 'meta': Found a null where we expected a String! at path '.value'",
+            "At subgraph named 'a' for the extension 'echo-1.0.0' directive @meta: Found a null where we expected a String! at path '.value'",
         )
         "#);
     });
@@ -98,7 +98,7 @@ fn missing_required_argument() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At Query.echo for the extension 'echo-1.0.0' directive named 'echo': Missing required argument named 'value'",
+            "At Query.echo for the extension 'echo-1.0.0' directive @echo: Missing required argument named 'value'",
         )
         "#);
 
@@ -129,7 +129,7 @@ fn missing_required_argument() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At subgraph named 'a' for the extension 'echo-1.0.0' directive named 'meta': Missing required argument named 'value'",
+            "At subgraph named 'a' for the extension 'echo-1.0.0' directive @meta: Missing required argument named 'value'",
         )
         "#);
     });

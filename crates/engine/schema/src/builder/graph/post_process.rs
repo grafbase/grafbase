@@ -54,17 +54,18 @@ pub(super) fn post_process_schema_locations(
                     ctx.push_directives(location, &ctx.federated_graph[federated_id].directives)?;
                 ingest_union_definition_directive(ctx, id, federated_id)?
             }
-            SchemaLocation::Field(id, federated_id) => {
+            SchemaLocation::FieldDefinition(id, federated_id) => {
                 ctx.graph[id].directive_ids =
                     ctx.push_directives(location, &ctx.federated_graph[federated_id].directives)?;
                 ingest_field_directive(ctx, &root_entities, id, federated_id)?
             }
-            SchemaLocation::InputValue(id, federated_id) => {
+            SchemaLocation::InputFieldDefinition(_, id, federated_id)
+            | SchemaLocation::ArgumentDefinition(_, id, federated_id) => {
                 ctx.graph[id].directive_ids =
                     ctx.push_directives(location, &ctx.federated_graph[federated_id].directives)?;
                 ingest_input_value_directive(ctx, id, federated_id)?
             }
-            SchemaLocation::EnumValue(id, federated_id) => {
+            SchemaLocation::EnumValue(_, id, federated_id) => {
                 ctx.graph[id].directive_ids =
                     ctx.push_directives(location, &ctx.federated_graph[federated_id].directives)?;
                 ingest_enum_value_directive(ctx, id, federated_id)?
@@ -501,7 +502,7 @@ impl GraphContext<'_> {
                         arguments: authorized
                             .arguments
                             .as_ref()
-                            .map(convert_input_value_set)
+                            .map(|set| self.convert_input_value_set(set))
                             .unwrap_or_default(),
                         fields_record: authorized
                             .fields
@@ -551,7 +552,10 @@ impl GraphContext<'_> {
                     let list_size_id = self.graph.list_size_directives.len().into();
                     self.graph.list_size_directives.push(ListSizeDirectiveRecord {
                         assumed_size: *assumed_size,
-                        slicing_argument_ids: slicing_arguments.iter().copied().map(Into::into).collect(),
+                        slicing_argument_ids: slicing_arguments
+                            .iter()
+                            .map(|id| self.input_value_mapping[id])
+                            .collect(),
                         sized_field_ids: sized_fields.iter().copied().map(Into::into).collect(),
                         require_one_slicing_argument: *require_one_slicing_argument,
                     });
@@ -741,14 +745,16 @@ fn add_extra_vecs_with_different_ordering(GraphContext { ctx, graph, .. }: &mut 
     graph.union_definitions = union_definitions;
 }
 
-fn convert_input_value_set(input_value_set: &federated_graph::InputValueDefinitionSet) -> InputValueSet {
-    input_value_set
-        .iter()
-        .map(|item| InputValueSetSelection {
-            id: item.input_value_definition.into(),
-            subselection: convert_input_value_set(&item.subselection),
-        })
-        .collect()
+impl GraphContext<'_> {
+    fn convert_input_value_set(&self, input_value_set: &federated_graph::InputValueDefinitionSet) -> InputValueSet {
+        input_value_set
+            .iter()
+            .map(|item| InputValueSetSelection {
+                id: self.input_value_mapping[&item.input_value_definition],
+                subselection: self.convert_input_value_set(&item.subselection),
+            })
+            .collect()
+    }
 }
 
 fn has_inaccessible(directives: &[federated_graph::Directive]) -> bool {

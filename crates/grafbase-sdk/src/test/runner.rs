@@ -91,7 +91,6 @@ impl TestRunner {
         Ok(this)
     }
 
-    #[must_use]
     async fn start_servers(&mut self, extension_name: &str, extension_path: &Path) -> anyhow::Result<()> {
         let extension_path = extension_path.display();
         let config_path = self.test_specific_temp_dir.path().join("grafbase.toml");

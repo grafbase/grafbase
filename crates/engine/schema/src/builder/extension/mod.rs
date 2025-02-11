@@ -3,8 +3,8 @@ use std::str::FromStr as _;
 use crate::extension::ExtensionDirectiveArgumentRecord;
 
 use super::{
-    BuildError, Context, ExtensionDirectiveArgumentsError, ExtensionDirectiveId, ExtensionDirectiveRecord,
-    ExtensionInputValueCoercer, GraphContext, InputValueError, SchemaLocation,
+    BuildError, Context, ExtensionDirectiveArgumentsError, ExtensionDirectiveId, ExtensionDirectiveLocationError,
+    ExtensionDirectiveRecord, ExtensionInputValueCoercer, GraphContext, InputValueError, SchemaLocation,
 };
 
 pub(crate) struct SchemaExtension {
@@ -87,6 +87,21 @@ impl GraphContext<'_> {
                 directive: directive_name.to_string(),
             });
         };
+
+        let cynic_location = location.to_cynic_location();
+        if definition
+            .locations()
+            .all(|loc| loc.as_str() != cynic_location.as_str())
+        {
+            return Err(BuildError::ExtensionDirectiveLocationError(Box::new(
+                ExtensionDirectiveLocationError {
+                    id: self.get_extension_id(extension_id),
+                    directive: directive_name.to_string(),
+                    location: cynic_location.as_str(),
+                    expected: definition.locations().map(|loc| loc.as_str()).collect(),
+                },
+            )));
+        }
 
         let federated_graph = self.ctx.federated_graph;
         let start = self.graph.extension_directive_arguments.len();
