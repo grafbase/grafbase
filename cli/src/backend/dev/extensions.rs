@@ -136,9 +136,10 @@ mod tests {
                  UNCLEAR
             }}
             "###,
-            temp_dir.path().display()
+            temp_dir.path().display().to_string().replace('\\', r#"\\"#)
         );
 
+        eprintln!("{schema}");
         let ast = parse_type_system_document(&schema).unwrap();
 
         let detected_extensions = detect_extensions(&ast).await;
