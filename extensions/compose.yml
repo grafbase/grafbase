@@ -13,7 +13,7 @@ services:
     command: serve -c /etc/config/hydra/hydra.yml all --dev
     volumes:
       - hydra-sqlite:/var/lib/sqlite:Z
-      - ./hydra-config:/etc/config/hydra:Z
+      - ./docker/hydra-config:/etc/config/hydra:Z
     environment:
       DSN: 'sqlite:///var/lib/sqlite/db.sqlite?_fk=true'
       URLS_SELF_ISSUER: 'http://127.0.0.1:4444'
@@ -30,7 +30,7 @@ services:
     command: migrate -c /etc/config/hydra/hydra.yml sql -e --yes
     volumes:
       - hydra-sqlite:/var/lib/sqlite:Z
-      - ./hydra-config:/etc/config/hydra:Z
+      - ./docker/hydra-config:/etc/config/hydra:Z
     restart: on-failure
     networks:
       - hydra
@@ -44,7 +44,7 @@ services:
     command: serve -c /etc/config/hydra/hydra.yml all --dev
     volumes:
       - hydra-2-sqlite:/var/lib/sqlite:Z
-      - ./hydra-config:/etc/config/hydra:Z
+      - ./docker/hydra-config:/etc/config/hydra:Z
     environment:
       DSN: 'sqlite:///var/lib/sqlite/db.sqlite?_fk=true'
       URLS_SELF_ISSUER: 'http://127.0.0.1:4454'
@@ -63,7 +63,7 @@ services:
     command: migrate -c /etc/config/hydra/hydra.yml sql -e --yes
     volumes:
       - hydra-2-sqlite:/var/lib/sqlite:Z
-      - ./hydra-config:/etc/config/hydra:Z
+      - ./docker/hydra-config:/etc/config/hydra:Z
     restart: on-failure
     networks:
       - hydra-2

@@ -49,6 +49,13 @@ pub struct TestConfig {
     pub(super) log_level: LogLevel,
 }
 
+impl TestConfig {
+    /// Creates a new test configuration builder.
+    pub fn builder() -> TestConfigBuilder {
+        TestConfigBuilder::new()
+    }
+}
+
 #[derive(Debug, Default)]
 /// Builder pattern to create a [`TestConfig`].
 pub struct TestConfigBuilder {
@@ -66,7 +73,7 @@ pub struct TestConfigBuilder {
 
 impl TestConfigBuilder {
     /// Creates a new [`TestConfigBuilder`] with default values.
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self::default()
     }
 

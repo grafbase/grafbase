@@ -10,7 +10,9 @@ pub mod types;
 
 pub use extension::{Authenticator, Extension, Resolver};
 pub use grafbase_sdk_derive::{AuthenticationExtension, ResolverExtension};
-pub use wit::{Error, ExtensionType, Headers, SharedContext};
+#[doc(hidden)]
+pub use wit::ExtensionType;
+pub use wit::{Error, Headers, SharedContext};
 
 struct Component;
 

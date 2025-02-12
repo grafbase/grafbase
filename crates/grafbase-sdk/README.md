@@ -70,10 +70,10 @@ grafbase extension init --type auth my-extension
 The initialization needs a list of schema directives from the federated schema (empty for authentication extensions) and a [`Configuration`](types::Configuration) object that reflects the extension provider configuration in `grafbase.toml`. The [`AuthenticationExtension`] derive macro generates code to initialize a resolver extension and guides you to implement two traits: [`Extension`] and [`Authenticator`]. The [`Extension`] trait initializes the extension, and the [`Authenticator`] trait implements the extension logic to authenticate a request:
 
 ```rust
-use grafbase_sdk::{
-    types::{Configuration, Directive, ErrorResponse, Token},
-    AuthenticationExtension, Authenticator, Extension, Headers,
-};
+# use grafbase_sdk::{
+#     types::{Configuration, Directive, ErrorResponse, Token},
+#     AuthenticationExtension, Authenticator, Extension, Headers,
+# };
 
 #[derive(AuthenticationExtension)]
 struct TestProject;
@@ -129,8 +129,8 @@ This compiles your extension and creates two files:
 
 ```text
 build/
-├── manifest.json
-└── test_project.wasm
+├── extension.wasm
+└── manifest.json
 ```
 
 You can use the path to the `build` directory in your gateway configuration to try out the extension.
