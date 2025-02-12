@@ -5,6 +5,7 @@ pub(super) const EXTERNAL: &str = "external";
 pub(super) const INACCESSIBLE: &str = "inaccessible";
 pub(super) const INTERFACE_OBJECT: &str = "interfaceObject";
 pub(super) const KEY: &str = "key";
+pub(super) const LINK: &str = "link";
 pub(super) const OVERRIDE: &str = "override";
 pub(super) const POLICY: &str = "policy";
 pub(super) const PROVIDES: &str = "provides";

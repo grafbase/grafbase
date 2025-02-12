@@ -1,3 +1,5 @@
+use std::ops;
+
 use super::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -44,5 +46,13 @@ pub(crate) type StringWalker<'a> = Walker<'a, StringId>;
 impl<'a> StringWalker<'a> {
     pub(crate) fn as_str(self) -> &'a str {
         self.subgraphs.strings.resolve(self.id)
+    }
+}
+
+impl ops::Index<StringId> for Subgraphs {
+    type Output = Box<str>;
+
+    fn index(&self, index: StringId) -> &Self::Output {
+        self.strings.0.get_index(index.0).unwrap()
     }
 }

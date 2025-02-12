@@ -3,6 +3,8 @@ source: crates/graphql-composition/tests/composition_tests.rs
 expression: Federated SDL
 input_file: crates/graphql-composition/tests/composition/compose_directive_different_definitions/test.md
 ---
+# [chocolate]: Unknown directive `@ghi` at `Chocolate.id`
+# [nougat]: Unknown directive `@ghi` at `Nougat.id`
 # Directive `jkl` is defined with different arguments:\n- (a: Int, b: String!) in chocolate\n- (a: Int, b: String!, c: [Float]) in nougat
 # Directive `mno` is defined with different arguments:\n- (a: Int, b: String) in chocolate\n- (a: Int, b: String!) in nougat
 # Directive `stu` is defined with different arguments:\n- (a: String = "NO CAP") in chocolate\n- (a: String = "TEST") in nougat

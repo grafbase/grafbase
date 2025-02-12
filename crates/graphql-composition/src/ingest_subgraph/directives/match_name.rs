@@ -76,7 +76,8 @@ fn match_directive_name_inner(
     match directive_name {
         // FIXME: built-in, and has no schema url to import from. We should change that.
         AUTHORIZED => return DirectiveNameMatch::Authorized,
-        // GraphQL built-in, this one is fine.
+        // Built-ins
+        LINK => return DirectiveNameMatch::Link,
         "deprecated" => return DirectiveNameMatch::Deprecated,
         _ => (),
     }
@@ -132,6 +133,7 @@ pub(in crate::ingest_subgraph) enum DirectiveNameMatch {
     Inaccessible,
     InterfaceObject,
     Key,
+    Link,
     ListSize,
     Override,
     Policy,
