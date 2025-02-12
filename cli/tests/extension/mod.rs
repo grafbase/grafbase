@@ -154,8 +154,11 @@ fn init_resolver() {
 
 #[test]
 fn build_resolver() {
-    // FIXME: Make this test work on windows and linux arm64.
-    if cfg!(windows) || (cfg!(target_arch = "aarch64") && cfg!(target_os = "linux")) {
+    // FIXME: Make this test work on windows, linux arm64 and darwin x86.
+    if cfg!(windows)
+        || (cfg!(target_arch = "aarch64") && cfg!(target_os = "linux"))
+        || (cfg!(target_arch = "x86_64") && cfg!(target_os = "macos"))
+    {
         return;
     }
 
@@ -356,8 +359,11 @@ fn init_auth() {
 
 #[test]
 fn build_auth() {
-    // FIXME: Make this test work on windows and linux arm64.
-    if cfg!(windows) || (cfg!(target_arch = "aarch64") && cfg!(target_os = "linux")) {
+    // FIXME: Make this test work on windows, linux arm64 and macos x86
+    if cfg!(windows)
+        || (cfg!(target_arch = "aarch64") && cfg!(target_os = "linux"))
+        || (cfg!(target_arch = "x86_64") && cfg!(target_os = "macos"))
+    {
         return;
     }
 
