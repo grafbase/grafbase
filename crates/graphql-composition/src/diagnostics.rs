@@ -22,6 +22,13 @@ impl Diagnostics {
             is_fatal: true,
         });
     }
+
+    pub(crate) fn push_warning(&mut self, message: String) {
+        self.0.push(Diagnostic {
+            message,
+            is_fatal: false,
+        });
+    }
 }
 
 /// A composition diagnostic.

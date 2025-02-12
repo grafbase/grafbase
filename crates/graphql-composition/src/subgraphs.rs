@@ -170,6 +170,11 @@ impl Subgraphs {
             .push_fatal(format!("[{}]: {message}", self.walk_subgraph(subgraph).name().as_str()));
     }
 
+    pub(crate) fn push_ingestion_warning(&mut self, subgraph: SubgraphId, message: String) {
+        self.ingestion_diagnostics
+            .push_warning(format!("[{}]: {message}", self.walk_subgraph(subgraph).name().as_str()));
+    }
+
     pub(crate) fn walk<Id>(&self, id: Id) -> Walker<'_, Id> {
         Walker { id, subgraphs: self }
     }

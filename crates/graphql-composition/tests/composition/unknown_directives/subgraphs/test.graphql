@@ -1,0 +1,19 @@
+extend schema @doesNotExist
+
+extend type Farm @key(fields: "id") {
+  id: ID! @external
+  chiliId: ID! @external
+  chiliDetails: ChiliVariety @requires(fields: "chiliId nonExistent")
+}
+
+type ChiliVariety {
+  id: ID!
+  name: String! @whose
+  spicinessScale: Int!
+  description: String
+}
+
+type Query {
+  chiliVariety(id: ID!): ChiliVariety
+  chiliVarieties: [ChiliVariety]
+}

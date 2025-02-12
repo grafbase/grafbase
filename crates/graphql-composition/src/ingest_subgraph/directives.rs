@@ -217,7 +217,17 @@ pub(super) fn ingest_directives(
                 }
             }
 
-            DirectiveNameMatch::ComposeDirective | DirectiveNameMatch::NoMatch | DirectiveNameMatch::Key => (),
+            DirectiveNameMatch::NoMatch => {
+                let location = location(ctx.subgraphs);
+                let directive_name = ctx.subgraphs.at(directive_name_id);
+
+                ctx.subgraphs.push_ingestion_warning(
+                    ctx.subgraph_id,
+                    format!("Unknown directive `@{}` at `{}`", directive_name.as_ref(), location,),
+                );
+            }
+
+            DirectiveNameMatch::ComposeDirective | DirectiveNameMatch::Key | DirectiveNameMatch::Link => (),
         }
     }
 }

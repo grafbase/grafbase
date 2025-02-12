@@ -41,7 +41,7 @@ pub(super) fn ingest_schema_definitions(ctx: &mut Context<'_>) {
         _ => None,
     }) {
         for directive in schema_definition.directives() {
-            let (_directive_name_id, match_result) = match_directive_name(ctx, directive.name());
+            let (directive_name_id, match_result) = match_directive_name(ctx, directive.name());
 
             match match_result {
                 DirectiveNameMatch::ComposeDirective => {
@@ -105,6 +105,17 @@ pub(super) fn ingest_schema_definitions(ctx: &mut Context<'_>) {
                                 is_composed_directive: false,
                             },
                         },
+                    );
+                }
+
+                DirectiveNameMatch::NoMatch => {
+                    let directive_name = ctx.subgraphs.at(directive_name_id);
+                    ctx.subgraphs.push_ingestion_warning(
+                        ctx.subgraph_id,
+                        format!(
+                            "Unknown directive `@{}` on schema definition or extension.",
+                            directive_name.as_ref()
+                        ),
                     );
                 }
 
