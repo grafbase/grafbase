@@ -65,7 +65,7 @@ cynic-parser = "0.8.7"
 cynic-parser-deser = "0.8.7"
 datatest-stable = "0.3.0"
 deadpool = { version = "0.12.1", features = ["rt_tokio_1"] }
-derive_more = "1.0.0-beta.6"
+derive_more = "2.0.0"
 jwt-compact = "0.8"
 fixedbitset = "0.5"
 futures = "0.3.30"
