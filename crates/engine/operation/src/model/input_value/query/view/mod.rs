@@ -1,4 +1,3 @@
-mod de;
 mod ser;
 
 use schema::{InputValueSet, SchemaInputValueView};

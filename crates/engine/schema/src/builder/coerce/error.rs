@@ -1,9 +1,13 @@
 use federated_graph::Value;
 
+use super::input_value_set::InputValueSetError;
+
 #[derive(Debug, thiserror::Error)]
 pub enum ExtensionInputValueError {
     #[error(transparent)]
     InputValue(#[from] InputValueError),
+    #[error(transparent)]
+    InputValueSetSerror(#[from] InputValueSetError),
     #[error("Unknown type '{name}'")]
     UnknownType { name: String },
     #[error("Type '{name}' is used for an input value but is not a scalar, input object or enum.")]

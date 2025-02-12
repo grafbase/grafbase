@@ -32,13 +32,13 @@ impl From<&str> for ValuePathSegment {
     }
 }
 
-pub(super) fn value_path_to_string(ctx: &Context<'_>, values: &[ValuePathSegment]) -> String {
+pub(super) fn value_path_to_string(ctx: &Context<'_>, value_path: &[ValuePathSegment]) -> String {
     let mut output = String::new();
-    if values.is_empty() {
+    if value_path.is_empty() {
         return output;
     }
     output.push_str(" at path '");
-    for segment in values {
+    for segment in value_path {
         output.push('.');
         match segment {
             ValuePathSegment::Field(id) => {

@@ -115,6 +115,20 @@ impl GraphContext<'_> {
             federated_graph::Definition::InputObject(id) => DefinitionId::InputObject(id.into()),
         }
     }
+
+    pub(crate) fn type_name(&self, ty: TypeRecord) -> String {
+        let name = match ty.definition_id {
+            DefinitionId::Scalar(id) => &self.ctx.strings[self.graph[id].name_id],
+            DefinitionId::Object(id) => &self.ctx.strings[self.graph[id].name_id],
+            DefinitionId::Interface(id) => &self.ctx.strings[self.graph[id].name_id],
+            DefinitionId::Union(id) => &self.ctx.strings[self.graph[id].name_id],
+            DefinitionId::Enum(id) => &self.ctx.strings[self.graph[id].name_id],
+            DefinitionId::InputObject(id) => &self.ctx.strings[self.graph[id].name_id],
+        };
+        let mut s = String::new();
+        ty.wrapping.write_type_string(name, &mut s).unwrap();
+        s
+    }
 }
 
 macro_rules! from_id_newtypes {

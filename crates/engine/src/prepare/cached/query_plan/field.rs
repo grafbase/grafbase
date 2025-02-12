@@ -1,5 +1,6 @@
 mod argument;
 mod data;
+mod extension;
 mod typename;
 
 use walker::Iter;

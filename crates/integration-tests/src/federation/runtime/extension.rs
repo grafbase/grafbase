@@ -1,11 +1,11 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, future::Future, sync::Arc};
 
-use engine_schema::{Subgraph, SubgraphId};
+use engine_schema::SubgraphId;
 use extension_catalog::{Extension, ExtensionCatalog, ExtensionId, Id, Manifest};
 use runtime::{
     error::{ErrorResponse, PartialGraphqlError},
-    extension::{Data, ExtensionDirective},
-    hooks::{Anything, DynHookContext, EdgeDefinition},
+    extension::{Data, ExtensionFieldDirective},
+    hooks::{Anything, DynHookContext},
 };
 use tokio::sync::Mutex;
 use url::Url;
@@ -85,7 +85,7 @@ pub trait TestExtensionBuilder: Send + Sync + 'static {
     where
         Self: Sized;
 
-    fn build(&self, schema_directives: Vec<ExtensionDirective<'_, serde_json::Value>>) -> Arc<dyn TestExtension>;
+    fn build(&self, schema_directives: Vec<(&str, serde_json::Value)>) -> Arc<dyn TestExtension>;
 }
 
 #[allow(unused_variables)] // makes it easier to copy-paste relevant functions
@@ -94,8 +94,7 @@ pub trait TestExtension: Send + Sync + 'static {
     async fn resolve<'a>(
         &self,
         context: &DynHookContext,
-        field: EdgeDefinition<'a>,
-        directive: ExtensionDirective<'a, serde_json::Value>,
+        directive: ExtensionFieldDirective<'a, serde_json::Value>,
         inputs: Vec<serde_json::Value>,
     ) -> Result<Vec<Result<serde_json::Value, PartialGraphqlError>>, PartialGraphqlError> {
         Err(PartialGraphqlError::internal_extension_error())
@@ -105,55 +104,63 @@ pub trait TestExtension: Send + Sync + 'static {
 impl runtime::extension::ExtensionRuntime for TestExtensions {
     type SharedContext = DynHookContext;
 
-    async fn resolve_field<'a>(
-        &self,
-        extension_id: ExtensionId,
-        subgraph: Subgraph<'a>,
-        context: &Self::SharedContext,
-        field: EdgeDefinition<'a>,
-        directive: ExtensionDirective<'a, impl Anything<'a>>,
-        inputs: impl IntoIterator<Item: Anything<'a>> + Send,
-    ) -> Result<Vec<Result<runtime::extension::Data, PartialGraphqlError>>, PartialGraphqlError> {
-        let instance = self
-            .subgraph_instances
-            .lock()
-            .await
-            .entry((extension_id, subgraph.id()))
-            .or_insert_with(|| {
-                self.builders.get(&extension_id).unwrap().build(
-                    subgraph
-                        .extension_schema_directives()
-                        .filter(|dir| dir.extension_id == extension_id)
-                        .map(|dir| ExtensionDirective {
-                            name: dir.name(),
-                            static_arguments: serde_json::to_value(dir.static_arguments()).unwrap(),
-                        })
-                        .collect(),
-                )
-            })
-            .clone();
+    fn resolve_field<'ctx, 'resp, 'f>(
+        &'ctx self,
+        context: &'ctx Self::SharedContext,
+        ExtensionFieldDirective {
+            extension_id,
+            subgraph,
+            field,
+            name,
+            arguments,
+        }: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
+        inputs: impl IntoIterator<Item: Anything<'resp>> + Send,
+    ) -> impl Future<Output = Result<Vec<Result<Data, PartialGraphqlError>>, PartialGraphqlError>> + Send + 'f
+    where
+        'ctx: 'f,
+    {
+        let inputs = inputs
+            .into_iter()
+            .map(serde_json::to_value)
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+        async move {
+            let instance = self
+                .subgraph_instances
+                .lock()
+                .await
+                .entry((extension_id, subgraph.id()))
+                .or_insert_with(|| {
+                    self.builders.get(&extension_id).unwrap().build(
+                        subgraph
+                            .extension_schema_directives()
+                            .filter(|dir| dir.extension_id == extension_id)
+                            .map(|dir| (dir.name(), serde_json::to_value(dir.static_arguments()).unwrap()))
+                            .collect(),
+                    )
+                })
+                .clone();
 
-        instance
-            .resolve(
-                context,
-                field,
-                ExtensionDirective {
-                    name: directive.name,
-                    static_arguments: serde_json::to_value(directive.static_arguments).unwrap(),
-                },
-                inputs
-                    .into_iter()
-                    .map(serde_json::to_value)
-                    .collect::<Result<_, _>>()
-                    .unwrap(),
-            )
-            .await
-            .map(|items| {
-                items
-                    .into_iter()
-                    .map(|res| res.map(|value| Data::JsonBytes(serde_json::to_vec(&value).unwrap())))
-                    .collect()
-            })
+            instance
+                .resolve(
+                    context,
+                    ExtensionFieldDirective {
+                        extension_id,
+                        subgraph,
+                        field,
+                        name,
+                        arguments: serde_json::to_value(arguments).unwrap(),
+                    },
+                    inputs,
+                )
+                .await
+                .map(|items| {
+                    items
+                        .into_iter()
+                        .map(|res| res.map(|value| Data::JsonBytes(serde_json::to_vec(&value).unwrap())))
+                        .collect()
+                })
+        }
     }
 
     async fn authenticate(

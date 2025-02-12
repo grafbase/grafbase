@@ -9,7 +9,7 @@ use futures_util::Future;
 use grafbase_telemetry::otel::{
     opentelemetry::{
         metrics::{Histogram, Meter},
-        trace::{TraceContextExt, TraceId},
+        trace::TraceContextExt,
         KeyValue,
     },
     tracing_opentelemetry::OpenTelemetrySpanExt,
@@ -32,21 +32,6 @@ use super::guest_error_as_gql;
 #[derive(Clone)]
 pub struct HooksWasi(Option<Arc<HooksWasiInner>>);
 
-#[derive(Clone)]
-pub struct Context {
-    kv: Arc<HashMap<String, String>>,
-    trace_id: TraceId,
-}
-
-impl Context {
-    pub(crate) fn new(kv: HashMap<String, String>, trace_id: TraceId) -> Self {
-        Self {
-            kv: Arc::new(kv),
-            trace_id,
-        }
-    }
-}
-
 struct HooksWasiInner {
     pool: Pool,
     implemented_hooks: BitFlags<HookImplementation>,
@@ -54,10 +39,6 @@ struct HooksWasiInner {
 }
 
 impl HooksWasiInner {
-    pub fn shared_context(&self, context: &Context) -> SharedContext {
-        SharedContext::new(Arc::clone(&context.kv), context.trace_id)
-    }
-
     async fn run_and_measure<F, T, E>(&self, hook_name: &'static str, hook: F) -> Result<T, E>
     where
         F: Future<Output = Result<T, E>> + Instrument,
@@ -185,14 +166,14 @@ impl HooksWasi {
 }
 
 impl Hooks for HooksWasi {
-    type Context = Context;
+    type Context = SharedContext;
     type OnSubgraphResponseOutput = Vec<u8>;
     type OnOperationResponseOutput = Vec<u8>;
 
     fn new_context(&self) -> Self::Context {
         let kv = HashMap::new();
         let trace_id = Span::current().context().span().span_context().trace_id();
-        Context::new(kv, trace_id)
+        SharedContext::new(Arc::new(kv), trace_id)
     }
 
     async fn on_gateway_request(
@@ -203,11 +184,11 @@ impl Hooks for HooksWasi {
         let trace_id = Span::current().context().span().span_context().trace_id();
 
         let Some(ref inner) = self.0 else {
-            return Ok((Context::new(kv, trace_id), headers));
+            return Ok((SharedContext::new(Arc::new(kv), trace_id), headers));
         };
 
         if !inner.implemented_hooks.contains(HookImplementation::OnGatewayRequest) {
-            return Ok((Context::new(kv, trace_id), headers));
+            return Ok((SharedContext::new(Arc::new(kv), trace_id), headers));
         }
 
         let span = info_span!("hook: on-gateway-request");
@@ -217,9 +198,9 @@ impl Hooks for HooksWasi {
             .run_and_measure("on-gateway-request", hook.on_gateway_request(kv, headers))
             .instrument(span)
             .await
-            .map(|(kv, headers)| (Context::new(kv, trace_id), headers))
+            .map(|(kv, headers)| (SharedContext::new(Arc::new(kv), trace_id), headers))
             .map_err(|err| {
-                let context = Context::new(HashMap::new(), trace_id);
+                let context = SharedContext::new(Arc::new(HashMap::new()), trace_id);
 
                 match err {
                     wasi_component_loader::GatewayError::Internal(err) => {
@@ -252,7 +233,7 @@ impl Hooks for HooksWasi {
 
     async fn on_subgraph_request(
         &self,
-        context: &Context,
+        context: &Self::Context,
         subgraph_name: &str,
         method: http::Method,
         url: &Url,
@@ -272,7 +253,7 @@ impl Hooks for HooksWasi {
         inner
             .run_and_measure(
                 "on-subgraph-request",
-                hook.on_subgraph_request(inner.shared_context(context), subgraph_name, method, url, headers),
+                hook.on_subgraph_request(context.clone(), subgraph_name, method, url, headers),
             )
             .instrument(span)
             .await

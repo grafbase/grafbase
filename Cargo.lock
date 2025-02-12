@@ -2410,6 +2410,7 @@ dependencies = [
  "anyhow",
  "bitflags 2.8.0",
  "cynic-parser",
+ "cynic-parser-deser",
  "engine-id-derives",
  "engine-id-newtypes",
  "engine-walker",

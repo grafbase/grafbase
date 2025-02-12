@@ -1,5 +1,8 @@
 use crate::{
-    builder::{extension::ExtensionSdl, GraphContext},
+    builder::{
+        extension::{ExtensionSdl, GrafbaseScalar},
+        GraphContext, SchemaLocation,
+    },
     extension::{ExtensionInputValueRecord, InjectionStage},
 };
 use cynic_parser::{
@@ -14,6 +17,7 @@ use super::{value_path_to_string, ExtensionInputValueError, InputValueError};
 pub(crate) struct ExtensionInputValueCoercer<'a, 'b> {
     pub ctx: &'a mut GraphContext<'b>,
     pub sdl: &'a ExtensionSdl,
+    pub location: SchemaLocation,
     pub current_injection_stage: InjectionStage,
 }
 
@@ -121,6 +125,25 @@ impl ExtensionInputValueCoercer<'_, '_> {
     ) -> Result<ExtensionInputValueRecord, ExtensionInputValueError> {
         if matches!(name, "ID" | "String" | "Int" | "BigInt" | "Float" | "Boolean") {
             return self.coerce_scalar(name, value);
+        }
+        if let Some((_, scalar)) = self.sdl.grafbase_scalars.iter().find(|(s, _)| s == name) {
+            return match scalar {
+                GrafbaseScalar::InputValueSet => match value {
+                    Value::String(s) => {
+                        let selection_set = &self.ctx.federated_graph[*s];
+                        self.current_injection_stage = self.current_injection_stage.max(InjectionStage::Query);
+                        self.coerce_input_value_set(selection_set)
+                            .map(Into::into)
+                            .map_err(Into::into)
+                    }
+                    _ => Err(InputValueError::IncorrectScalarType {
+                        actual: value.into(),
+                        expected: name.to_string(),
+                        path: self.path(),
+                    }
+                    .into()),
+                },
+            };
         }
         let Some(def) = self.sdl.parsed.definitions().find_map(|def| match def {
             Definition::Type(def) if def.name() == name => Some(def),

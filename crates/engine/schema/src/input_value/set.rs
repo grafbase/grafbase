@@ -1,25 +1,41 @@
 use crate::InputValueDefinitionId;
 
-#[derive(Default, Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct InputValueSet(Vec<InputValueSetSelection>);
-
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct InputValueSetSelection {
-    pub id: InputValueDefinitionId,
-    pub subselection: InputValueSet,
+pub enum InputValueSet {
+    All,
+    SelectionSet(Vec<InputValueSelection>),
 }
 
-impl FromIterator<InputValueSetSelection> for InputValueSet {
-    fn from_iter<T: IntoIterator<Item = InputValueSetSelection>>(iter: T) -> Self {
-        let mut fields = iter.into_iter().collect::<Vec<_>>();
-        fields.sort_unstable_by_key(|field| field.id);
-        Self(fields)
+impl Default for InputValueSet {
+    fn default() -> Self {
+        Self::SelectionSet(Vec::new())
     }
 }
 
-impl std::ops::Deref for InputValueSet {
-    type Target = [InputValueSetSelection];
-    fn deref(&self) -> &Self::Target {
-        &self.0
+impl InputValueSet {
+    pub fn is_empty(&self) -> bool {
+        match self {
+            Self::All => false,
+            Self::SelectionSet(selection_set) => selection_set.is_empty(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct InputValueSelection {
+    pub definition_id: InputValueDefinitionId,
+    pub subselection: InputValueSet,
+}
+
+impl From<Vec<InputValueSelection>> for InputValueSet {
+    fn from(mut selections: Vec<InputValueSelection>) -> Self {
+        selections.sort_unstable_by_key(|selection| selection.definition_id);
+        Self::SelectionSet(selections)
+    }
+}
+
+impl FromIterator<InputValueSelection> for InputValueSet {
+    fn from_iter<T: IntoIterator<Item = InputValueSelection>>(iter: T) -> Self {
+        iter.into_iter().collect::<Vec<_>>().into()
     }
 }

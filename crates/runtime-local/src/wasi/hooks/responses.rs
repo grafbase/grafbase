@@ -2,17 +2,15 @@ use runtime::error::PartialGraphqlError;
 use tracing::{info_span, Instrument};
 use wasi_component_loader::{
     CacheStatus, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, FieldError, GraphqlResponseStatus,
-    HookImplementation, RequestError, SubgraphRequestExecutionKind, SubgraphResponse,
+    HookImplementation, RequestError, SharedContext, SubgraphRequestExecutionKind, SubgraphResponse,
 };
 
 use crate::wasi::hooks::HooksWasi;
 
-use super::Context;
-
 impl HooksWasi {
     pub(super) async fn on_subgraph_response(
         &self,
-        context: &Context,
+        context: &SharedContext,
         request: runtime::hooks::ExecutedSubgraphRequest<'_>,
     ) -> Result<Vec<u8>, PartialGraphqlError> {
         let Some(ref inner) = self.0 else {
@@ -74,7 +72,7 @@ impl HooksWasi {
         inner
             .run_and_measure(
                 "on-subgraph-response",
-                hook.on_subgraph_response(inner.shared_context(context), request),
+                hook.on_subgraph_response(context.clone(), request),
             )
             .instrument(span)
             .await
@@ -86,7 +84,7 @@ impl HooksWasi {
 
     pub(super) async fn on_operation_response(
         &self,
-        context: &Context,
+        context: &SharedContext,
         operation: runtime::hooks::ExecutedOperation<'_, Vec<u8>>,
     ) -> Result<Vec<u8>, PartialGraphqlError> {
         let Some(ref inner) = self.0 else {
@@ -137,7 +135,7 @@ impl HooksWasi {
         inner
             .run_and_measure(
                 "on-operation-response",
-                hook.on_operation_response(inner.shared_context(context), operation),
+                hook.on_operation_response(context.clone(), operation),
             )
             .instrument(span)
             .await
@@ -149,7 +147,7 @@ impl HooksWasi {
 
     pub(super) async fn on_http_response(
         &self,
-        context: &Context,
+        context: &SharedContext,
         request: runtime::hooks::ExecutedHttpRequest<Vec<u8>>,
     ) -> Result<(), PartialGraphqlError> {
         let Some(ref inner) = self.0 else {
@@ -178,10 +176,7 @@ impl HooksWasi {
         };
 
         inner
-            .run_and_measure(
-                "on-http-response",
-                hook.on_http_response(inner.shared_context(context), request),
-            )
+            .run_and_measure("on-http-response", hook.on_http_response(context.clone(), request))
             .instrument(span)
             .await
             .map_err(|err| {

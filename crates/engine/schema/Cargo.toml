@@ -39,6 +39,7 @@ tracing.workspace = true
 grafbase-workspace-hack.workspace = true
 extension-catalog.workspace = true
 cynic-parser.workspace = true
+cynic-parser-deser.workspace = true
 bitflags.workspace = true
 
 [dev-dependencies]
