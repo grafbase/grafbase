@@ -16,6 +16,18 @@ use self::state::*;
 use cynic_parser::type_system as ast;
 use std::collections::HashMap;
 
+/// Diff two already parsed ASTs. See [diff()] for the string based API.
+pub fn diff_asts(
+    source: Option<&cynic_parser::TypeSystemDocument>,
+    target: Option<&cynic_parser::TypeSystemDocument>,
+) -> Vec<Change> {
+    let mut state = DiffState::default();
+
+    traverse_schemas::traverse_schemas([source, target], &mut state);
+
+    state.into_changes()
+}
+
 /// Diff two GraphQL schemas.
 pub fn diff(source: &str, target: &str) -> Result<Vec<Change>, cynic_parser::Error> {
     let [source, target] = [source, target].map(|sdl| -> Result<_, cynic_parser::Error> {
@@ -27,11 +39,7 @@ pub fn diff(source: &str, target: &str) -> Result<Vec<Change>, cynic_parser::Err
     });
     let [source, target] = [source?, target?];
 
-    let mut state = DiffState::default();
-
-    traverse_schemas::traverse_schemas([source.as_ref(), target.as_ref()], &mut state);
-
-    Ok(state.into_changes())
+    Ok(diff_asts(source.as_ref(), target.as_ref()))
 }
 
 /// Resolve the spans from [Change]s and the corresponding schemas.
