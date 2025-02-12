@@ -74,7 +74,7 @@ impl GrafbaseDevConfig {
                     r#"
                     [subgraphs.{name}]
                     url = "{subgraph_url}"
-                    schema_path = "{schema_path}"
+                    schema_path = '{schema_path}'
                 "#,
                     name = subgraph.name(),
                     schema_path = schema_path.display(),
@@ -90,7 +90,7 @@ impl GrafbaseDevConfig {
                     out,
                     r#"
                     [subgraphs.{name}]
-                    schema_path = "{schema_path}"
+                    schema_path = '{schema_path}'
                 "#,
                     name = subgraph_name,
                     schema_path = schema_path.display(),
@@ -167,7 +167,7 @@ impl GrafbaseDev {
         let request: GraphQlRequest<'_> = request.into();
         let port = self.port;
 
-        let url = format!("http://localhost:{port}/graphql");
+        let url = format!("http://127.0.0.1:{port}/graphql");
 
         let response = self.http_client.post(url).json(&request).send().await.unwrap();
 
