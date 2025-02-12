@@ -1,4 +1,4 @@
-use grafbase_sdk::test::{DynamicSchema, TestConfigBuilder, TestRunner};
+use grafbase_sdk::test::{DynamicSchema, TestConfig, TestRunner};
 use indoc::indoc;
 
 #[tokio::test]
@@ -20,7 +20,7 @@ async fn test_example() {
     // You must have the CLI and Grafbase Gateway for this to work. If you do not have
     // them in the PATH, you can specify the paths to the executables with the `.with_cli` and
     // `.with_gateway` methods.
-    let config = TestConfigBuilder::new()
+    let config = TestConfig::builder()
         .with_subgraph(subgraph)
         .enable_networking()
         .build(config)

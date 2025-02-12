@@ -47,5 +47,13 @@ pub fn register(f: InitFn) {
 
 /// A trait that extends `Extension` and provides authentication functionality.
 pub trait Authenticator: Extension {
+    /// Authenticates the request using the provided headers.
+    ///
+    /// # Arguments
+    /// * `headers` - The request headers to authenticate with.
+    ///
+    /// # Returns
+    /// * `Ok(Token)` - A valid authentication token if successful.
+    /// * `Err(ErrorResponse)` - An error response if authentication fails.
     fn authenticate(&mut self, headers: Headers) -> Result<Token, ErrorResponse>;
 }

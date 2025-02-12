@@ -1,4 +1,4 @@
-use grafbase_sdk::test::{DynamicSchema, ExtensionOnlySubgraph, TestConfigBuilder, TestRunner};
+use grafbase_sdk::test::{DynamicSchema, ExtensionOnlySubgraph, TestConfig, TestRunner};
 use indoc::{formatdoc, indoc};
 use serde_json::json;
 use wiremock::{
@@ -81,7 +81,7 @@ async fn get_all_fields() {
     let mock_server = mock_server("/users", template).await;
     let subgraph = subgraph(&mock_server.uri());
 
-    let config = TestConfigBuilder::new()
+    let config = TestConfig::builder()
         .with_cli(CLI_PATH)
         .with_gateway(GATEWAY_PATH)
         .with_subgraph(subgraph)
@@ -142,7 +142,7 @@ async fn get_some_fields() {
     let mock_server = mock_server("/users", template).await;
     let subgraph = subgraph(&mock_server.uri());
 
-    let config = TestConfigBuilder::new()
+    let config = TestConfig::builder()
         .with_cli(CLI_PATH)
         .with_gateway(GATEWAY_PATH)
         .with_subgraph(subgraph)
@@ -192,7 +192,7 @@ async fn faulty_response() {
     let mock_server = mock_server("/users", template).await;
     let subgraph = subgraph(&mock_server.uri());
 
-    let config = TestConfigBuilder::new()
+    let config = TestConfig::builder()
         .with_cli(CLI_PATH)
         .with_gateway(GATEWAY_PATH)
         .with_subgraph(subgraph)
@@ -244,7 +244,7 @@ async fn internal_server_error() {
     let mock_server = mock_server("/users", template).await;
     let subgraph = subgraph(&mock_server.uri());
 
-    let config = TestConfigBuilder::new()
+    let config = TestConfig::builder()
         .with_cli(CLI_PATH)
         .with_gateway(GATEWAY_PATH)
         .with_subgraph(subgraph)
@@ -336,7 +336,7 @@ async fn with_bad_jq() {
         .into_extension_only_subgraph("test", &extension_path)
         .unwrap();
 
-    let config = TestConfigBuilder::new()
+    let config = TestConfig::builder()
         .with_cli(CLI_PATH)
         .with_gateway(GATEWAY_PATH)
         .with_subgraph(subgraph)
@@ -430,7 +430,7 @@ async fn with_path_in_the_endpoint() {
         .into_extension_only_subgraph("test", &extension_path)
         .unwrap();
 
-    let config = TestConfigBuilder::new()
+    let config = TestConfig::builder()
         .with_cli(CLI_PATH)
         .with_gateway(GATEWAY_PATH)
         .with_subgraph(subgraph)

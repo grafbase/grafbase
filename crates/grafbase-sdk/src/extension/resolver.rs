@@ -51,26 +51,18 @@ pub fn register(f: InitFn) {
 /// resolution logic needs to be encapsulated within a resolver object, allowing for modular
 /// and reusable code design.
 pub trait Resolver: Extension {
-    /// Resolves a field using the provided context, directive, and input values.
+    /// Resolves a field value based on the given context, directive, definition, and inputs.
     ///
     /// # Arguments
     ///
-    /// * `context` - A reference to a shared context that contains any necessary state or
-    ///   environment information needed for resolution.
-    /// * `directive` - The directive associated with the field being resolved. Directives can
-    ///   modify how fields are resolved, providing additional instructions or constraints.
-    /// * `inputs` - A vector of `FieldInput` values that provide input parameters required
-    ///   for resolving the field.
+    /// * `context` - The shared context containing runtime information
+    /// * `directive` - The directive associated with this field resolution
+    /// * `definition` - The field definition containing metadata
+    /// * `inputs` - The input values provided for this field
     ///
     /// # Returns
     ///
-    /// This method returns a `Result` which is:
-    /// * `Ok(FieldOutput)` on successful resolution, containing the resolved output values.
-    /// * `Err(Error)` if an error occurs during the resolution process, encapsulating details
-    ///   about what went wrong. This will prevent resolving of the field.
-    ///
-    /// The `FieldOutput` type has multiple response values, which can be either successful or an
-    /// error result.
+    /// Returns a `Result` containing either the resolved `FieldOutput` value or an `Error`
     fn resolve_field(
         &mut self,
         context: SharedContext,

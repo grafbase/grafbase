@@ -2,7 +2,7 @@ mod hydra;
 
 use std::collections::HashMap;
 
-use grafbase_sdk::test::{DynamicSchema, DynamicSubgraph, TestConfigBuilder, TestRunner};
+use grafbase_sdk::test::{DynamicSchema, DynamicSubgraph, TestConfig, TestRunner};
 use hydra::{CoreClientExt, OryHydraOpenIDProvider, AUDIENCE, JWKS_URI};
 use indoc::formatdoc;
 
@@ -50,7 +50,7 @@ fn tamper_jwt(token: String) -> String {
 
 #[tokio::test]
 async fn without_token() {
-    let config = TestConfigBuilder::new()
+    let config = TestConfig::builder()
         .with_cli(CLI_PATH)
         .with_gateway(GATEWAY_PATH)
         .with_subgraph(subgraph())
@@ -78,7 +78,7 @@ async fn without_token() {
 
 #[tokio::test]
 async fn with_invalid_token() {
-    let config = TestConfigBuilder::new()
+    let config = TestConfig::builder()
         .with_cli(CLI_PATH)
         .with_gateway(GATEWAY_PATH)
         .with_subgraph(subgraph())
@@ -117,7 +117,7 @@ async fn with_valid_token() {
         .get_access_token_with_client_credentials(&[])
         .await;
 
-    let config = TestConfigBuilder::new()
+    let config = TestConfig::builder()
         .with_cli(CLI_PATH)
         .with_gateway(GATEWAY_PATH)
         .with_subgraph(subgraph())
@@ -157,7 +157,7 @@ async fn test_different_header_location() {
         header_value_prefix = "Bearer2 "
     "#};
 
-    let config = TestConfigBuilder::new()
+    let config = TestConfig::builder()
         .with_cli(CLI_PATH)
         .with_gateway(GATEWAY_PATH)
         .with_subgraph(subgraph())
@@ -191,7 +191,7 @@ async fn test_different_header_location() {
 
 #[tokio::test]
 async fn test_tampered_jwt() {
-    let config = TestConfigBuilder::new()
+    let config = TestConfig::builder()
         .with_cli(CLI_PATH)
         .with_gateway(GATEWAY_PATH)
         .with_subgraph(subgraph())
@@ -232,7 +232,7 @@ async fn test_tampered_jwt() {
 
 #[tokio::test]
 async fn test_wrong_provider() {
-    let config = TestConfigBuilder::new()
+    let config = TestConfig::builder()
         .with_cli(CLI_PATH)
         .with_gateway(GATEWAY_PATH)
         .with_subgraph(subgraph())
@@ -288,7 +288,7 @@ async fn test_audience() {
         .get_access_token_with_client_credentials(&[("audience", AUDIENCE)])
         .await;
 
-    let config = TestConfigBuilder::new()
+    let config = TestConfig::builder()
         .with_cli(CLI_PATH)
         .with_gateway(GATEWAY_PATH)
         .with_subgraph(subgraph())

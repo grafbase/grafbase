@@ -35,12 +35,12 @@ fn init_resolver() {
     codegen-units = 1
 
     [dependencies]
-    grafbase-sdk = "0.1.12"
+    grafbase-sdk = "0.1.15"
 
     [dev-dependencies]
     indoc = "2"
     insta = { version = "1.42.1", features = ["json"] }
-    grafbase-sdk = { version = "0.1.12", features = ["test-utils"] }
+    grafbase-sdk = { version = "0.1.15", features = ["test-utils"] }
     tokio = { version = "1", features = ["rt-multi-thread", "macros", "test-util"] }
     serde_json = "1"
     "#);
@@ -102,7 +102,7 @@ fn init_resolver() {
     let tests_rs = std::fs::read_to_string(project_path.join("tests/integration_tests.rs")).unwrap();
 
     insta::assert_snapshot!(&tests_rs, @r##"
-    use grafbase_sdk::test::{DynamicSchema, TestConfigBuilder, TestRunner};
+    use grafbase_sdk::test::{DynamicSchema, TestConfig, TestRunner};
     use indoc::indoc;
 
     #[tokio::test]
@@ -124,7 +124,7 @@ fn init_resolver() {
         // You must have the CLI and Grafbase Gateway for this to work. If you do not have
         // them in the PATH, you can specify the paths to the executables with the `.with_cli` and
         // `.with_gateway` methods.
-        let config = TestConfigBuilder::new()
+        let config = TestConfig::builder()
             .with_subgraph(subgraph)
             .enable_networking()
             .build(config)
@@ -255,12 +255,12 @@ fn init_auth() {
     codegen-units = 1
 
     [dependencies]
-    grafbase-sdk = "0.1.12"
+    grafbase-sdk = "0.1.15"
 
     [dev-dependencies]
     indoc = "2"
     insta = { version = "1.42.1", features = ["json"] }
-    grafbase-sdk = { version = "0.1.12", features = ["test-utils"] }
+    grafbase-sdk = { version = "0.1.15", features = ["test-utils"] }
     tokio = { version = "1", features = ["rt-multi-thread", "macros", "test-util"] }
     serde_json = "1"
     "#);
@@ -304,7 +304,7 @@ fn init_auth() {
     let tests_rs = std::fs::read_to_string(project_path.join("tests/integration_tests.rs")).unwrap();
 
     insta::assert_snapshot!(&tests_rs, @r##"
-    use grafbase_sdk::test::{DynamicSchema, TestConfigBuilder, TestRunner};
+    use grafbase_sdk::test::{DynamicSchema, TestConfig, TestRunner};
     use indoc::indoc;
 
     #[tokio::test]
@@ -326,7 +326,7 @@ fn init_auth() {
         // You must have the CLI and Grafbase Gateway for this to work. If you do not have
         // them in the PATH, you can specify the paths to the executables with the `.with_cli` and
         // `.with_gateway` methods.
-        let config = TestConfigBuilder::new()
+        let config = TestConfig::builder()
             .with_subgraph(subgraph)
             .enable_networking()
             .build(config)
