@@ -12,6 +12,8 @@ pub enum ExtensionInputValueError {
     UnknownType { name: String },
     #[error("Type '{name}' is used for an input value but is not a scalar, input object or enum.")]
     NotAnInputType { name: String },
+    #[error("Invalid template: {0}")]
+    InvalidTemplate(#[from] ramhorns::Error),
 }
 
 #[derive(Debug, thiserror::Error)]

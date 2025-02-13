@@ -1,4 +1,4 @@
-use crate::{FieldSetRecord, InputValueSet, StringId};
+use crate::{FieldSetRecord, InputValueSet, StringId, TemplateId};
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub enum ExtensionInputValueRecord {
@@ -17,6 +17,7 @@ pub enum ExtensionInputValueRecord {
     // For data injection
     FieldSet(FieldSetRecord),
     InputValueSet(InputValueSet),
+    Template(TemplateId),
 }
 
 impl From<InputValueSet> for ExtensionInputValueRecord {

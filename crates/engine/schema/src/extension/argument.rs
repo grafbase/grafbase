@@ -114,7 +114,9 @@ impl serde::Serialize for ExtensionInputValueStaticView<'_> {
             ExtensionInputValueRecord::List(list) => {
                 serializer.collect_seq(list.iter().map(|ref_| Self { schema, ref_ }))
             }
-            ExtensionInputValueRecord::FieldSet(_) | ExtensionInputValueRecord::InputValueSet(_) => {
+            ExtensionInputValueRecord::FieldSet(_)
+            | ExtensionInputValueRecord::InputValueSet(_)
+            | ExtensionInputValueRecord::Template(_) => {
                 unreachable!("Invariant broken, cannot be a static value.")
             }
         }

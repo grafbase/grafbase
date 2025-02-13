@@ -23,6 +23,7 @@ pub(crate) struct Context<'a> {
     pub regexps: ProxyKeyInterner<Regex, RegexId>,
     pub urls: Interner<Url, UrlId>,
     pub header_rules: Vec<HeaderRuleRecord>,
+    pub templates: Vec<TemplateRecord>,
 }
 
 impl std::ops::Index<StringId> for Context<'_> {
@@ -62,6 +63,7 @@ impl<'a> Context<'a> {
             header_rules: Vec::new(),
             subgraphs: Default::default(),
             extensions: Vec::new(),
+            templates: Vec::new(),
         };
         ctx.load_subgraphs()?;
         ctx.load_extension_links().await?;

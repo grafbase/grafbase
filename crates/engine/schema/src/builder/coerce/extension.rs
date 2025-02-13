@@ -4,6 +4,7 @@ use crate::{
         GraphContext, SchemaLocation,
     },
     extension::{ExtensionInputValueRecord, InjectionStage},
+    TemplateEscaping, TemplateRecord,
 };
 use cynic_parser::{
     common::{TypeWrappersIter, WrappingType},
@@ -190,22 +191,31 @@ impl ExtensionInputValueCoercer<'_, '_> {
             return self.coerce_scalar_fed_value(name, value);
         }
         if let Some((_, scalar)) = self.sdl.grafbase_scalars.iter().find(|(s, _)| s == name) {
+            let Value::String(id) = value else {
+                return Err(InputValueError::IncorrectScalarType {
+                    actual: value.into(),
+                    expected: name.to_string(),
+                    path: self.path(),
+                }
+                .into());
+            };
+            let value = &self.ctx.federated_graph[*id];
+            self.current_injection_stage = self.current_injection_stage.max(InjectionStage::Query);
             return match scalar {
-                GrafbaseScalar::InputValueSet => match value {
-                    Value::String(s) => {
-                        let selection_set = &self.ctx.federated_graph[*s];
-                        self.current_injection_stage = self.current_injection_stage.max(InjectionStage::Query);
-                        self.coerce_input_value_set(selection_set)
-                            .map(Into::into)
-                            .map_err(Into::into)
-                    }
-                    _ => Err(InputValueError::IncorrectScalarType {
-                        actual: value.into(),
-                        expected: name.to_string(),
-                        path: self.path(),
-                    }
-                    .into()),
-                },
+                GrafbaseScalar::InputValueSet => self.coerce_input_value_set(value).map(Into::into).map_err(Into::into),
+                GrafbaseScalar::UrlTemplate | GrafbaseScalar::JsonTemplate => {
+                    let template = TemplateRecord::new(
+                        value.clone(),
+                        match scalar {
+                            GrafbaseScalar::UrlTemplate => TemplateEscaping::Url,
+                            GrafbaseScalar::JsonTemplate => TemplateEscaping::Json,
+                            _ => unreachable!(),
+                        },
+                    )?;
+                    let id = self.templates.len().into();
+                    self.templates.push(template);
+                    Ok(ExtensionInputValueRecord::Template(id))
+                }
             };
         }
         let Some(def) = self.sdl.parsed.definitions().find_map(|def| match def {
@@ -231,21 +241,30 @@ impl ExtensionInputValueCoercer<'_, '_> {
             return self.coerce_scalar_cynic_value(name, value);
         }
         if let Some((_, scalar)) = self.sdl.grafbase_scalars.iter().find(|(s, _)| s == name) {
+            let Some(value) = value.as_str() else {
+                return Err(InputValueError::IncorrectScalarType {
+                    actual: value.into(),
+                    expected: name.to_string(),
+                    path: self.path(),
+                }
+                .into());
+            };
+            self.current_injection_stage = self.current_injection_stage.max(InjectionStage::Query);
             return match scalar {
-                GrafbaseScalar::InputValueSet => match value.as_str() {
-                    Some(selection_set) => {
-                        self.current_injection_stage = self.current_injection_stage.max(InjectionStage::Query);
-                        self.coerce_input_value_set(selection_set)
-                            .map(Into::into)
-                            .map_err(Into::into)
-                    }
-                    _ => Err(InputValueError::IncorrectScalarType {
-                        actual: value.into(),
-                        expected: name.to_string(),
-                        path: self.path(),
-                    }
-                    .into()),
-                },
+                GrafbaseScalar::InputValueSet => self.coerce_input_value_set(value).map(Into::into).map_err(Into::into),
+                GrafbaseScalar::UrlTemplate | GrafbaseScalar::JsonTemplate => {
+                    let template = TemplateRecord::new(
+                        value.to_string(),
+                        match scalar {
+                            GrafbaseScalar::UrlTemplate => TemplateEscaping::Url,
+                            GrafbaseScalar::JsonTemplate => TemplateEscaping::Json,
+                            _ => unreachable!(),
+                        },
+                    )?;
+                    let id = self.templates.len().into();
+                    self.templates.push(template);
+                    Ok(ExtensionInputValueRecord::Template(id))
+                }
             };
         }
         let Some(def) = self.sdl.parsed.definitions().find_map(|def| match def {
