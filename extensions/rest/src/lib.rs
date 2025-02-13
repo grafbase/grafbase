@@ -140,7 +140,12 @@ impl Resolver for RestExtension {
             message: format!("Could not parse URL path: {e}"),
         })?;
 
-        let request = HttpRequest::builder(url, rest.http.method.into()).build();
+        let builder = HttpRequest::builder(url, rest.http.method.into());
+
+        let request = match rest.body() {
+            Some(ref body) => builder.json(body),
+            None => builder.build(),
+        };
 
         let result = http::execute(&request).map_err(|e| Error {
             extensions: Vec::new(),

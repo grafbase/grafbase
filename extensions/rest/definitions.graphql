@@ -1,6 +1,15 @@
-directive @restEndpoint(name: String, http: HttpEndpointDefinition) repeatable on SCHEMA
+extend schema @link(url: "https://specs.grafbase.com/grafbase", import: ["InputValueSet"])
 
-directive @rest(endpoint: String, http: HttpRequestDefinition, selection: String) on FIELD_DEFINITION
+directive @restEndpoint(name: String!, http: HttpEndpointDefinition!) repeatable on SCHEMA
+
+directive @rest(endpoint: String!, http: HttpRequestDefinition!, selection: String!, body: Body) on FIELD_DEFINITION
+
+scalar JSON
+
+input Body {
+  selection: InputValueSet
+  static: JSON
+}
 
 input HttpEndpointDefinition {
   baseURL: String

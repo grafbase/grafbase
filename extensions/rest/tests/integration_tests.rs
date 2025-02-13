@@ -2,7 +2,7 @@ use grafbase_sdk::test::{DynamicSchema, ExtensionOnlySubgraph, TestConfig, TestR
 use indoc::{formatdoc, indoc};
 use serde_json::json;
 use wiremock::{
-    matchers::{method, path},
+    matchers::{body_json, header, method, path},
     Mock, MockServer, ResponseTemplate,
 };
 
@@ -36,8 +36,35 @@ fn subgraph(rest_endpoint: &str) -> ExtensionOnlySubgraph {
           )
         }}
 
+        type Mutation {{
+          createUser(input: UserInput!): User! @rest(
+            endpoint: "endpoint",
+            http: {{
+              method: POST,
+              path: "/users"
+            }},
+            body: {{ selection: "*" }}
+            selection: "{{ id, name, age }}"
+          )
+
+          createStaticUser: User! @rest(
+            endpoint: "endpoint",
+            http: {{
+              method: POST,
+              path: "/users"
+            }},
+            body: {{ static: {{ name: "John Doe", age: 30 }} }}
+            selection: "{{ id, name, age }}"
+          )
+        }}
+
         type User {{
           id: ID!
+          name: String!
+          age: Int!
+        }}
+
+        input UserInput {{
           name: String!
           age: Int!
         }}
@@ -467,6 +494,128 @@ async fn with_path_in_the_endpoint() {
             "age": 25
           }
         ]
+      }
+    }
+    "#);
+}
+
+#[tokio::test]
+async fn dynamic_post() {
+    let request_body = json!({
+        "name": "John Doe",
+        "age": 30,
+    });
+
+    let response_body = json!({
+        "id": "1",
+        "name": "John Doe",
+        "age": 30,
+    });
+
+    let template = ResponseTemplate::new(201).set_body_json(response_body);
+    let mock_server = MockServer::builder().start().await;
+
+    Mock::given(method("POST"))
+        .and(path("/users"))
+        .and(body_json(request_body))
+        .and(header("Content-Type", "application/json"))
+        .respond_with(template)
+        .mount(&mock_server)
+        .await;
+
+    let subgraph = subgraph(&mock_server.uri());
+
+    let config = TestConfig::builder()
+        .with_cli(CLI_PATH)
+        .with_gateway(GATEWAY_PATH)
+        .with_subgraph(subgraph)
+        .enable_networking()
+        .build("")
+        .unwrap();
+
+    let runner = TestRunner::new(config).await.unwrap();
+
+    let mutation = indoc! {r#"
+        mutation {
+          createUser(input: { name: "John Doe", age: 30 }) {
+            id
+            name
+            age
+          }
+        }
+    "#};
+
+    let result: serde_json::Value = runner.graphql_query(mutation).send().await.unwrap();
+
+    insta::assert_json_snapshot!(result, @r#"
+    {
+      "data": {
+        "createUser": {
+          "id": "1",
+          "name": "John Doe",
+          "age": 30
+        }
+      }
+    }
+    "#);
+}
+
+#[tokio::test]
+async fn static_post() {
+    let request_body = json!({
+        "name": "John Doe",
+        "age": 30,
+    });
+
+    let response_body = json!({
+        "id": "1",
+        "name": "John Doe",
+        "age": 30,
+    });
+
+    let template = ResponseTemplate::new(201).set_body_json(response_body);
+    let mock_server = MockServer::builder().start().await;
+
+    Mock::given(method("POST"))
+        .and(path("/users"))
+        .and(body_json(request_body))
+        .and(header("Content-Type", "application/json"))
+        .respond_with(template)
+        .mount(&mock_server)
+        .await;
+
+    let subgraph = subgraph(&mock_server.uri());
+
+    let config = TestConfig::builder()
+        .with_cli(CLI_PATH)
+        .with_gateway(GATEWAY_PATH)
+        .with_subgraph(subgraph)
+        .enable_networking()
+        .build("")
+        .unwrap();
+
+    let runner = TestRunner::new(config).await.unwrap();
+
+    let mutation = indoc! {r#"
+        mutation {
+          createStaticUser {
+            id
+            name
+            age
+          }
+        }
+    "#};
+
+    let result: serde_json::Value = runner.graphql_query(mutation).send().await.unwrap();
+
+    insta::assert_json_snapshot!(result, @r#"
+    {
+      "data": {
+        "createStaticUser": {
+          "id": "1",
+          "name": "John Doe",
+          "age": 30
+        }
       }
     }
     "#);
