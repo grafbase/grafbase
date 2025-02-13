@@ -1,6 +1,6 @@
-# REST Resolver Extension
+# REST Extension
 
-This is a work in progress REST resolver extension for the Grafbase Gateway.
+This is a work in progress REST extension for the Grafbase Gateway.
 
 ** Work in progress. **
 
