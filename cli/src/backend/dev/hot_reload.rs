@@ -44,6 +44,7 @@ impl SubgraphWatcher {
     fn start(
         &mut self,
         sender: mpsc::Sender<String>,
+        composition_warnings_sender: mpsc::Sender<Vec<String>>,
         subgraph_cache: Arc<SubgraphCache>,
         overridden_subgraphs: Arc<HashSet<String>>,
         merged_configuration: Arc<Config>,
@@ -58,6 +59,7 @@ impl SubgraphWatcher {
 
         self.spawn_introspection_poller(
             sender.clone(),
+            composition_warnings_sender.clone(),
             subgraph_cache.clone(),
             overridden_subgraphs.clone(),
             merged_configuration.clone(),
@@ -66,6 +68,7 @@ impl SubgraphWatcher {
 
         self.spawn_schema_file_watcher(
             sender,
+            composition_warnings_sender,
             subgraph_cache,
             overridden_subgraphs,
             merged_configuration,
@@ -76,6 +79,7 @@ impl SubgraphWatcher {
     fn spawn_introspection_poller(
         &mut self,
         sender: mpsc::Sender<String>,
+        composition_warnings_sender: mpsc::Sender<Vec<String>>,
         subgraph_cache: Arc<SubgraphCache>,
         overridden_subgraphs: Arc<HashSet<String>>,
         merged_configuration: Arc<Config>,
@@ -162,6 +166,7 @@ impl SubgraphWatcher {
                     // (we'll need to prevent schema file and url reloads running at the same time to prevent stale data)
                     match reload_subgraphs(
                         sender.clone(),
+                        composition_warnings_sender.clone(),
                         subgraph_cache.clone(),
                         overridden_subgraphs.clone(),
                         merged_configuration.clone(),
@@ -184,6 +189,7 @@ impl SubgraphWatcher {
     fn spawn_schema_file_watcher(
         &mut self,
         sender: mpsc::Sender<String>,
+        composition_warnings_sender: mpsc::Sender<Vec<String>>,
         subgraph_cache: Arc<SubgraphCache>,
         overridden_subgraphs: Arc<HashSet<String>>,
         merged_configuration: Arc<Config>,
@@ -208,6 +214,7 @@ impl SubgraphWatcher {
             if result.is_err() {
                 return;
             }
+            let composition_warnings_sender = composition_warnings_sender.clone();
             let subgraph_cache = subgraph_cache.clone();
             let overridden_subgraphs = overridden_subgraphs.clone();
             let merged_configuration = watcher_merged_configuration.clone();
@@ -222,6 +229,7 @@ impl SubgraphWatcher {
             runtime_handle.block_on(async move {
                 match reload_subgraphs(
                     sender.clone(),
+                    composition_warnings_sender,
                     subgraph_cache,
                     overridden_subgraphs,
                     merged_configuration,
@@ -285,10 +293,12 @@ fn watch_configuration_files(
     Ok(watcher_receiver)
 }
 
-pub async fn hot_reload(
+#[allow(clippy::too_many_arguments)]
+pub(crate) async fn hot_reload(
     config_sender: watch::Sender<Config>,
     sdl_sender: mpsc::Sender<String>,
     mut ready_receiver: Receiver<String>,
+    composition_warnings_sender: mpsc::Sender<Vec<String>>,
     subgraph_cache: Arc<SubgraphCache>,
     gateway_config_path: Option<&'static PathBuf>,
     graph_overrides_path: Option<&'static PathBuf>,
@@ -321,6 +331,7 @@ pub async fn hot_reload(
     let _ = subgraph_watcher
         .start(
             sdl_sender.clone(),
+            composition_warnings_sender.clone(),
             subgraph_cache.clone(),
             overridden_subgraphs,
             merged_configuration,
@@ -353,6 +364,7 @@ pub async fn hot_reload(
 
             if let Err(error) = reload_subgraphs(
                 sdl_sender.clone(),
+                composition_warnings_sender.clone(),
                 subgraph_cache.clone(),
                 overridden_subgraphs.clone(),
                 merged_configuration.clone(),
@@ -370,6 +382,7 @@ pub async fn hot_reload(
             let _ = subgraph_watcher
                 .start(
                     sdl_sender.clone(),
+                    composition_warnings_sender.clone(),
                     subgraph_cache,
                     overridden_subgraphs,
                     merged_configuration,
@@ -384,6 +397,7 @@ pub async fn hot_reload(
 
 async fn reload_subgraphs(
     sender: mpsc::Sender<String>,
+    composition_warnings_sender: mpsc::Sender<Vec<String>>,
     subgraph_cache: Arc<SubgraphCache>,
     overridden_subgraphs: Arc<HashSet<String>>,
     merged_configuration: Arc<Config>,
@@ -413,6 +427,17 @@ async fn reload_subgraphs(
     .await?;
 
     let composition_result = graphql_composition::compose(&subgraphs);
+
+    {
+        let mut warnings = composition_result.diagnostics().iter_warnings().peekable();
+
+        if warnings.peek().is_some() {
+            composition_warnings_sender
+                .send(warnings.map(ToOwned::to_owned).collect())
+                .await
+                .unwrap();
+        }
+    }
 
     let federated_sdl = match composition_result.into_result() {
         Ok(result) => federated_graph::render_federated_sdl(&result).map_err(BackendError::ToFederatedSdl)?,
