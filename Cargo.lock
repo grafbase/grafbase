@@ -2252,7 +2252,9 @@ dependencies = [
  "minicbor-serde",
  "multipart-stream",
  "operation-normalizer",
+ "percent-encoding",
  "pretty_assertions",
+ "ramhorns",
  "rand 0.8.5",
  "runtime",
  "serde",
@@ -2415,6 +2417,7 @@ dependencies = [
  "engine-id-newtypes",
  "engine-walker",
  "extension-catalog",
+ "form_urlencoded",
  "fxhash",
  "gateway-config",
  "grafbase-workspace-hack",
@@ -2427,6 +2430,7 @@ dependencies = [
  "itertools 0.14.0",
  "postcard",
  "pretty_assertions",
+ "ramhorns",
  "rand 0.8.5",
  "rapidhash",
  "regex",
@@ -3372,6 +3376,7 @@ version = "0.1.0"
 dependencies = [
  "ahash 0.8.11",
  "aho-corasick",
+ "arrayvec 0.7.6",
  "ascii",
  "axum 0.8.1",
  "axum-core 0.5.0",
@@ -6388,6 +6393,30 @@ name = "radium"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dc33ff2d4973d518d823d61aa239014831e521c75da58e3df4840d3f47749d09"
+
+[[package]]
+name = "ramhorns"
+version = "1.0.1"
+source = "git+https://github.com/grafbase/ramhorns?branch=grafbase#cf17d841d507a1da7b357e7f8508a9f68be48a7a"
+dependencies = [
+ "arrayvec 0.7.6",
+ "beef",
+ "fnv",
+ "logos",
+ "ramhorns-derive",
+]
+
+[[package]]
+name = "ramhorns-derive"
+version = "1.0.1"
+source = "git+https://github.com/grafbase/ramhorns?branch=grafbase#cf17d841d507a1da7b357e7f8508a9f68be48a7a"
+dependencies = [
+ "fnv",
+ "heck 0.5.0",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.96",
+]
 
 [[package]]
 name = "rand"

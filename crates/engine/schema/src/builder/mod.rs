@@ -47,6 +47,7 @@ impl Context<'_> {
                 regexps,
                 header_rules,
                 extension_catalog,
+                templates,
                 ..
             },
             graph,
@@ -109,6 +110,7 @@ impl Context<'_> {
             strings,
             regexps: regexps.into(),
             urls: urls.into(),
+            templates,
             header_rules,
             settings,
         })

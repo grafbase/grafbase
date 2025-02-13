@@ -68,6 +68,7 @@ deadpool = { version = "0.12.1", features = ["rt_tokio_1"] }
 derive_more = "2.0.0"
 jwt-compact = "0.8"
 fixedbitset = "0.5"
+form_urlencoded = "1"
 futures = "0.3.30"
 futures-channel = "0.3.30"
 futures-lite = "2"
@@ -100,6 +101,7 @@ openidconnect = "4.0.0-rc.1"
 petgraph = "0.7"
 pprof = "0.14"
 postcard = { version = "1", features = ["use-std"] }
+ramhorns = { git = "https://github.com/grafbase/ramhorns", branch = "grafbase", default-features = false, features = ["indexes", "export_derive"] }
 rand = "0.8"
 regex = "1.10.4"
 redis = { version = "0.28.0", features = [

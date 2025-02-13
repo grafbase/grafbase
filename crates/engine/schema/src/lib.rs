@@ -23,6 +23,7 @@ mod prelude;
 mod resolver;
 mod scalar;
 mod subgraph;
+mod template;
 mod ty;
 mod union;
 
@@ -39,6 +40,7 @@ pub use ids::*;
 pub use input_value::*;
 use regex::Regex;
 pub use subgraph::*;
+pub use template::*;
 use walker::{Iter, Walk};
 pub use wrapping::*;
 
@@ -99,6 +101,8 @@ pub struct Schema {
     /// Headers we might want to send to a subgraph
     #[indexed_by(HeaderRuleId)]
     header_rules: Vec<HeaderRuleRecord>,
+    #[indexed_by(TemplateId)]
+    templates: Vec<TemplateRecord>,
 
     pub settings: PartialConfig,
 }

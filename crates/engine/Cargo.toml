@@ -44,7 +44,9 @@ tower = { workspace = true, features = ["retry"] }
 tracing.workspace = true
 http.workspace = true
 headers.workspace = true
+ramhorns.workspace = true
 hashbrown = "0.15"
+percent-encoding = "2"
 
 engine-auth = { path = "./auth" }
 operation = { path = "./operation", package = "engine-operation" }

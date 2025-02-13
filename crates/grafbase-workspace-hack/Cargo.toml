@@ -21,6 +21,7 @@ publish = false
 ### BEGIN HAKARI SECTION
 [dependencies]
 aho-corasick = { version = "1" }
+arrayvec = { version = "0.7" }
 ascii = { version = "1", features = ["serde"] }
 axum = { version = "0.8", default-features = false, features = ["http1", "json", "macros", "original-uri", "query", "tracing", "ws"] }
 axum-core = { version = "0.5", default-features = false, features = ["tracing"] }
@@ -137,6 +138,7 @@ zeroize = { version = "1", features = ["zeroize_derive"] }
 
 [build-dependencies]
 aho-corasick = { version = "1" }
+arrayvec = { version = "0.7" }
 ascii = { version = "1", features = ["serde"] }
 axum = { version = "0.8", default-features = false, features = ["http1", "json", "macros", "original-uri", "query", "tracing", "ws"] }
 axum-core = { version = "0.5", default-features = false, features = ["tracing"] }

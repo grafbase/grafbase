@@ -22,6 +22,8 @@ pub(crate) struct SchemaExtension {
 #[derive(Debug, strum_macros::EnumString, strum_macros::EnumIter, strum_macros::Display)]
 pub(crate) enum GrafbaseScalar {
     InputValueSet,
+    UrlTemplate,
+    JsonTemplate,
 }
 
 pub(crate) struct ExtensionSdl {
