@@ -14,9 +14,8 @@ use std::{
     path::PathBuf,
 };
 use subgraphs::get_subgraph_sdls;
-use tokio::sync::{mpsc, watch};
 use tokio::{
-    sync::broadcast::{channel, Receiver, Sender},
+    sync::{broadcast, mpsc, watch},
     task::spawn_blocking,
 };
 
@@ -31,7 +30,7 @@ const DEFAULT_PORT: u16 = 5000;
 
 #[derive(Clone)]
 struct CliRuntime {
-    ready_sender: Sender<String>,
+    ready_sender: broadcast::Sender<String>,
     port: u16,
     home_dir: PathBuf,
 }
@@ -62,7 +61,8 @@ pub async fn start(
     let gateway_config_path = Box::leak(Box::new(gateway_config_path)).as_ref();
     let graph_overrides_path = Box::leak(Box::new(graph_overrides_path)).as_ref();
 
-    let (ready_sender, mut _ready_receiver) = channel::<String>(1);
+    let (ready_sender, mut _ready_receiver) = broadcast::channel::<String>(1);
+    let (composition_warnings_sender, warnings_receiver) = mpsc::channel(12);
 
     let output_handler_ready_receiver = ready_sender.subscribe();
 
@@ -70,7 +70,7 @@ pub async fn start(
     let introspection_forced = dev_configuration.introspection_forced;
 
     spawn_blocking(move || {
-        let _ = output_handler(output_handler_ready_receiver, introspection_forced);
+        let _ = output_handler(output_handler_ready_receiver, warnings_receiver, introspection_forced);
     });
 
     let port = port
@@ -96,11 +96,22 @@ pub async fn start(
 
     let composition_result = graphql_composition::compose(&subgraphs);
 
+    {
+        let mut warnings = composition_result.diagnostics().iter_warnings().peekable();
+
+        if warnings.peek().is_some() {
+            composition_warnings_sender
+                .send(warnings.map(ToOwned::to_owned).collect())
+                .await
+                .unwrap();
+        }
+    }
+
     let federated_sdl = match composition_result.into_result() {
         Ok(result) => federated_graph::render_federated_sdl(&result).map_err(BackendError::ToFederatedSdl)?,
         Err(diagnostics) => {
             return Err(BackendError::Composition(
-                diagnostics.iter_messages().collect::<Vec<_>>().join("\n"),
+                diagnostics.iter_errors().collect::<Vec<_>>().join("\n"),
             ))
         }
     };
@@ -128,6 +139,7 @@ pub async fn start(
             config_sender,
             sdl_sender,
             hot_reload_ready_receiver,
+            composition_warnings_sender,
             subgraph_cache,
             gateway_config_path,
             graph_overrides_path,
@@ -153,7 +165,8 @@ pub async fn start(
 }
 
 fn output_handler(
-    mut receiver: Receiver<String>,
+    mut url_receiver: broadcast::Receiver<String>,
+    mut warnings_receiver: mpsc::Receiver<Vec<String>>,
     introspection_forced: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     use crossterm::{
@@ -166,7 +179,7 @@ fn output_handler(
 
     println!("{} your subgraphs...\n", "Fetching".yellow().bold());
 
-    let url = receiver.blocking_recv()?;
+    let url = url_receiver.blocking_recv()?;
     let url = url::Url::parse(&url)?;
 
     stdout().queue(MoveUp(2))?.queue(Clear(ClearType::CurrentLine))?;
@@ -184,6 +197,18 @@ fn output_handler(
 
     if introspection_forced {
         tracing::info!("introspection is always enabled in dev mode, config overridden");
+    }
+
+    while let Some(warnings) = warnings_receiver.blocking_recv() {
+        println!(
+            "⚠️ {}\n{}",
+            "Composition warnings:".yellow().bold(),
+            warnings
+                .into_iter()
+                .map(|warning| format!("- {warning}\n"))
+                .collect::<Vec<_>>()
+                .join("\n")
+        )
     }
 
     Ok(())

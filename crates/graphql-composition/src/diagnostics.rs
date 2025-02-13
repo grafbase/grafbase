@@ -3,8 +3,25 @@
 pub struct Diagnostics(Vec<Diagnostic>);
 
 impl Diagnostics {
-    pub(crate) fn any_fatal(&self) -> bool {
+    /// Is any of the diagnostics fatal, i.e. a hard error?
+    pub fn any_fatal(&self) -> bool {
         self.0.iter().any(|diagnostic| diagnostic.is_fatal)
+    }
+
+    /// Iterate non-fatal diagnostics.
+    pub fn iter_warnings(&self) -> impl Iterator<Item = &str> {
+        self.0
+            .iter()
+            .filter(|diagnostic| !diagnostic.is_fatal)
+            .map(|diagnostic| diagnostic.message.as_str())
+    }
+
+    /// Iterate fatal diagnostics.
+    pub fn iter_errors(&self) -> impl Iterator<Item = &str> {
+        self.0
+            .iter()
+            .filter(|diagnostic| diagnostic.is_fatal)
+            .map(|diagnostic| diagnostic.message.as_str())
     }
 
     pub(crate) fn clone_all_from(&mut self, other: &Diagnostics) {
