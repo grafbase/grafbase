@@ -1585,6 +1585,7 @@ version = "0.1.0"
 dependencies = [
  "ahash 0.8.11",
  "aho-corasick",
+ "arrayvec 0.7.6",
  "ascii",
  "axum",
  "axum-core",
