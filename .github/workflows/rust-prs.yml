@@ -214,7 +214,8 @@ jobs:
         if: needs.what-changed.outputs.cargo-bin-specs
         shell: bash
         run: |
-          cargo build --target ${{ matrix.platform.target }} ${{ needs.what-changed.outputs.cargo-bin-specs }}
+          # grafbase and grafbase-gateway are required for extension integration tests, so they can't be skipped
+          cargo build --target ${{ matrix.platform.target }} ${{ needs.what-changed.outputs.cargo-bin-specs }} --bin grafbase --bin grafbase-gateway
 
       - name: Clippy
         if: needs.what-changed.outputs.cargo-build-specs
