@@ -2,7 +2,12 @@ extend schema @link(url: "https://specs.grafbase.com/grafbase", import: ["InputV
 
 directive @restEndpoint(name: String!, http: HttpEndpointDefinition!) repeatable on SCHEMA
 
-directive @rest(endpoint: String!, http: HttpRequestDefinition!, selection: String!, body: Body) on FIELD_DEFINITION
+directive @rest(
+  endpoint: String!
+  http: HttpRequestDefinition!
+  selection: String!
+  body: Body = { selection: "*" }
+) on FIELD_DEFINITION
 
 scalar JSON
 

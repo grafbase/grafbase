@@ -152,7 +152,6 @@ type Mutation {
       method: POST,
       path: "/create"
     },
-    body: { selection: "input" },
     selection: "{ name: .name.official }"
   )
 }
