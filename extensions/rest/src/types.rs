@@ -61,6 +61,13 @@ pub struct HttpCall<'a> {
 pub enum HttpMethod {
     Get,
     Post,
+    Put,
+    Delete,
+    Head,
+    Options,
+    Connect,
+    Trace,
+    Patch,
 }
 
 impl From<HttpMethod> for ::http::Method {
@@ -68,6 +75,13 @@ impl From<HttpMethod> for ::http::Method {
         match method {
             HttpMethod::Get => Self::GET,
             HttpMethod::Post => Self::POST,
+            HttpMethod::Put => Self::PUT,
+            HttpMethod::Delete => Self::DELETE,
+            HttpMethod::Head => Self::HEAD,
+            HttpMethod::Options => Self::OPTIONS,
+            HttpMethod::Connect => Self::CONNECT,
+            HttpMethod::Trace => Self::TRACE,
+            HttpMethod::Patch => Self::PATCH,
         }
     }
 }
