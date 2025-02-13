@@ -81,6 +81,7 @@ impl From<http::Method> for HttpMethod {
 }
 
 /// A struct that represents an HTTP request.
+#[derive(Debug)]
 pub struct HttpRequest(crate::wit::HttpRequest);
 
 impl HttpRequest {

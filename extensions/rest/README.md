@@ -137,3 +137,41 @@ grafbase publish --name countries -m init my-org/my-federated-graph
 ```
 
 You can omit the `--url` parameter from a subgraph that only acts as a virtual graph for an extension.
+
+## Request Body
+
+Use the `body` argument to send data to the REST endpoint. The `body` argument accepts a JSON object or a selection that maps data from the input arguments.
+
+To send dynamic data from the input arguments, add a selection to the body. The extension looks for a body in an argument named `input`. Use this name to follow the expected convention:
+
+```graphql
+type Mutation {
+  createCountry(input: Country!): Country! @rest(
+    endpoint: "restCountries",
+    http: {
+      method: POST,
+      path: "/create"
+    },
+    body: { selection: "input" },
+    selection: "{ name: .name.official }"
+  )
+}
+```
+
+You can also use static data in the body:
+
+```graphql
+type Mutation {
+  createCountry: Country! @rest(
+    endpoint: "restCountries",
+    http: {
+      method: POST,
+      path: "/create"
+    },
+    body: { static: { name: "Georgia" } },
+    selection: "{ name: .name.official }"
+  )
+}
+```
+
+The extension checks static data first, then searches for a body in an argument named `input`.

@@ -109,6 +109,7 @@ impl From<FieldOutput> for crate::wit::FieldOutput {
 }
 
 /// A container for field inputs.
+#[derive(Debug)]
 pub struct FieldInputs(Vec<Vec<u8>>);
 
 impl FieldInputs {
