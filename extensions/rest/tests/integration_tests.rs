@@ -64,6 +64,24 @@ fn subgraph(rest_endpoint: &str) -> ExtensionOnlySubgraph {
             body: {{ static: {{ name: "John Doe", age: 30 }} }}
             selection: "{{ id, name, age }}"
           )
+
+          updateUser(id: Int!, input: UserInput!): User! @rest(
+            endpoint: "endpoint",
+            http: {{
+              method: PUT,
+              path: "/users/{{{{ args.id }}}}"
+            }},
+            selection: "{{ id, name, age }}"
+          )
+
+          deleteUser(id: Int!): User! @rest(
+            endpoint: "endpoint",
+            http: {{
+              method: DELETE,
+              path: "/users/{{{{ args.id }}}}"
+            }},
+            selection: "{{ id, name, age }}"
+          )
         }}
 
         type User {{
@@ -549,6 +567,121 @@ async fn with_path_in_the_endpoint() {
             "age": 25
           }
         ]
+      }
+    }
+    "#);
+}
+
+#[tokio::test]
+async fn update_user() {
+    let request_body = json!({
+        "name": "John Doe",
+        "age": 30,
+    });
+
+    let response_body = json!({
+        "id": "1",
+        "name": "John Doe",
+        "age": 30,
+    });
+
+    let template = ResponseTemplate::new(201).set_body_json(response_body);
+    let mock_server = MockServer::builder().start().await;
+
+    Mock::given(method("PUT"))
+        .and(path("/users/1"))
+        .and(body_json(request_body))
+        .and(header("Content-Type", "application/json"))
+        .respond_with(template)
+        .mount(&mock_server)
+        .await;
+
+    let subgraph = subgraph(&mock_server.uri());
+
+    let config = TestConfig::builder()
+        .with_cli(CLI_PATH)
+        .with_gateway(GATEWAY_PATH)
+        .with_subgraph(subgraph)
+        .enable_networking()
+        .build("")
+        .unwrap();
+
+    let runner = TestRunner::new(config).await.unwrap();
+
+    let mutation = indoc! {r#"
+        mutation {
+          updateUser(id: 1, input: { name: "John Doe", age: 30 }) {
+            id
+            name
+            age
+          }
+        }
+    "#};
+
+    let result: serde_json::Value = runner.graphql_query(mutation).send().await.unwrap();
+
+    insta::assert_json_snapshot!(result, @r#"
+    {
+      "data": {
+        "updateUser": {
+          "id": "1",
+          "name": "John Doe",
+          "age": 30
+        }
+      }
+    }
+    "#);
+}
+
+#[tokio::test]
+async fn delete_user() {
+    let response_body = json!({
+        "id": "1",
+        "name": "John Doe",
+        "age": 30,
+    });
+
+    let template = ResponseTemplate::new(201).set_body_json(response_body);
+    let mock_server = MockServer::builder().start().await;
+
+    Mock::given(method("DELETE"))
+        .and(path("/users/1"))
+        .respond_with(template)
+        .mount(&mock_server)
+        .await;
+
+    let subgraph = subgraph(&mock_server.uri());
+
+    let config = TestConfig::builder()
+        .with_cli(CLI_PATH)
+        .with_gateway(GATEWAY_PATH)
+        .with_subgraph(subgraph)
+        .enable_networking()
+        .build("")
+        .unwrap();
+
+    let runner = TestRunner::new(config).await.unwrap();
+
+    let mutation = indoc! {r#"
+        mutation {
+          deleteUser(id: 1) {
+            id
+            name
+            age
+          }
+        }
+    "#};
+
+    let result: serde_json::Value = runner.graphql_query(mutation).send().await.unwrap();
+
+    insta::assert_json_snapshot!(result, @r#"
+    {
+      "data": {
+        "deleteUser": {
+          "id": "1",
+          "name": "John Doe",
+          "age": 30
+        }
       }
     }
     "#);

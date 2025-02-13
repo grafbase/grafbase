@@ -174,3 +174,22 @@ type Mutation {
 ```
 
 The extension checks static data first, then searches for a body in an argument named `input`.
+
+## Arguments
+
+The path argument is used to specify the path to the REST endpoint. You can use the input arguments to construct the path:
+
+```graphql
+type Mutation {
+  getCountry(id: Int!): Country @rest(
+    endpoint: "restCountries",
+    http: {
+      method: GET,
+      path: "/fetch/{{ args.id }}"
+    },
+    selection: "{ name: .name.official }"
+  )
+}
+```
+
+The extension will generate the path based on the `id` argument.
