@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.6.1 - 2025-02-13
+
 ### Features
 
 - Unknown directives are now reported as warnings (https://github.com/grafbase/grafbase/pull/2618).
