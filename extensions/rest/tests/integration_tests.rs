@@ -34,6 +34,15 @@ fn subgraph(rest_endpoint: &str) -> ExtensionOnlySubgraph {
             }},
             selection: "[.[] | {{ id, name, age }}]"
           )
+
+          user(id: Int!): User @rest(
+            endpoint: "endpoint",
+            http: {{
+              method: GET,
+              path: "/users/{{{{ args.id }}}}"
+            }},
+            selection: "{{ id, name, age }}"
+          )
         }}
 
         type Mutation {{
@@ -87,7 +96,7 @@ async fn mock_server(listen_path: &str, template: ResponseTemplate) -> MockServe
 }
 
 #[tokio::test]
-async fn get_all_fields() {
+async fn get_many() {
     let response_body = json!([
         {
             "id": "1",
@@ -144,6 +153,53 @@ async fn get_all_fields() {
             "age": 25
           }
         ]
+      }
+    }
+    "#);
+}
+
+#[tokio::test]
+async fn get_one() {
+    let response_body = json!({
+        "id": "1",
+        "name": "John Doe",
+        "age": 30,
+    });
+
+    let template = ResponseTemplate::new(200).set_body_json(response_body);
+    let mock_server = mock_server("/users/1", template).await;
+    let subgraph = subgraph(&mock_server.uri());
+
+    let config = TestConfig::builder()
+        .with_cli(CLI_PATH)
+        .with_gateway(GATEWAY_PATH)
+        .with_subgraph(subgraph)
+        .enable_networking()
+        .build("")
+        .unwrap();
+
+    let runner = TestRunner::new(config).await.unwrap();
+
+    let query = indoc! {r#"
+        query {
+          user(id: 1) {
+            id
+            name
+            age
+          }
+        }
+    "#};
+
+    let result: serde_json::Value = runner.graphql_query(query).send().await.unwrap();
+
+    insta::assert_json_snapshot!(result, @r#"
+    {
+      "data": {
+        "user": {
+          "id": "1",
+          "name": "John Doe",
+          "age": 30
+        }
       }
     }
     "#);

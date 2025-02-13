@@ -1,4 +1,4 @@
-extend schema @link(url: "https://specs.grafbase.com/grafbase", import: ["InputValueSet"])
+extend schema @link(url: "https://specs.grafbase.com/grafbase", import: ["InputValueSet", "UrlTemplate"])
 
 directive @restEndpoint(name: String!, http: HttpEndpointDefinition!) repeatable on SCHEMA
 
@@ -17,12 +17,12 @@ input Body {
 }
 
 input HttpEndpointDefinition {
-  baseURL: String
+  baseURL: String!
 }
 
 input HttpRequestDefinition {
-  method: HttpMethod
-  path: String
+  method: HttpMethod!
+  path: UrlTemplate!
 }
 
 enum HttpMethod {
