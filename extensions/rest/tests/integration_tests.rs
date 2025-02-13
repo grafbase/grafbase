@@ -43,7 +43,6 @@ fn subgraph(rest_endpoint: &str) -> ExtensionOnlySubgraph {
               method: POST,
               path: "/users"
             }},
-            body: {{ selection: "*" }}
             selection: "{{ id, name, age }}"
           )
 
