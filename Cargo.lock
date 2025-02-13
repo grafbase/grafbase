@@ -2674,7 +2674,7 @@ dependencies = [
  "grafbase-telemetry",
  "grafbase-workspace-hack",
  "graph-ref",
- "graphql-composition 0.6.0",
+ "graphql-composition 0.6.1",
  "http 1.2.0",
  "lambda_http",
  "minicbor-serde",
@@ -2704,7 +2704,7 @@ version = "0.0.0"
 dependencies = [
  "cynic-parser",
  "grafbase-workspace-hack",
- "graphql-composition 0.6.0",
+ "graphql-composition 0.6.1",
  "integration-tests",
  "libtest-mimic",
  "reqwest 0.12.12",
@@ -3155,7 +3155,7 @@ dependencies = [
  "grafbase-graphql-introspection",
  "grafbase-workspace-hack",
  "graph-ref",
- "graphql-composition 0.6.0",
+ "graphql-composition 0.6.1",
  "graphql-federated-graph 0.6.0",
  "graphql-lint",
  "graphql-mocks",
@@ -3220,7 +3220,7 @@ dependencies = [
  "grafbase-telemetry",
  "grafbase-workspace-hack",
  "graph-ref",
- "graphql-composition 0.6.0",
+ "graphql-composition 0.6.1",
  "graphql-mocks",
  "handlebars 6.3.0",
  "http 1.2.0",
@@ -3286,7 +3286,7 @@ dependencies = [
  "futures-util",
  "grafbase-sdk-derive",
  "grafbase-sdk-mock",
- "graphql-composition 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "graphql-composition 0.6.0",
  "graphql-federated-graph 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "http 1.2.0",
  "indoc",
@@ -3513,6 +3513,20 @@ dependencies = [
 [[package]]
 name = "graphql-composition"
 version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "db2967e890033c51901c701518daa689ce6cbccb37859c216ddfd2571018833f"
+dependencies = [
+ "cynic-parser",
+ "cynic-parser-deser",
+ "graphql-federated-graph 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "indexmap 2.7.0",
+ "itertools 0.14.0",
+ "url",
+]
+
+[[package]]
+name = "graphql-composition"
+version = "0.6.1"
 dependencies = [
  "anyhow",
  "cynic-parser",
@@ -3525,20 +3539,6 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "toml",
- "url",
-]
-
-[[package]]
-name = "graphql-composition"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db2967e890033c51901c701518daa689ce6cbccb37859c216ddfd2571018833f"
-dependencies = [
- "cynic-parser",
- "cynic-parser-deser",
- "graphql-federated-graph 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "indexmap 2.7.0",
- "itertools 0.14.0",
  "url",
 ]
 
@@ -4534,7 +4534,7 @@ dependencies = [
  "gateway-config",
  "grafbase-telemetry",
  "grafbase-workspace-hack",
- "graphql-composition 0.6.0",
+ "graphql-composition 0.6.1",
  "graphql-federated-graph 0.6.0",
  "graphql-mocks",
  "graphql-ws-client",
