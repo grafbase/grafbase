@@ -100,3 +100,18 @@ impl From<&Value> for ValueKind {
         }
     }
 }
+
+impl From<cynic_parser::ConstValue<'_>> for ValueKind {
+    fn from(value: cynic_parser::ConstValue) -> Self {
+        match value {
+            cynic_parser::ConstValue::Int(_) => ValueKind::Integer,
+            cynic_parser::ConstValue::Float(_) => ValueKind::Float,
+            cynic_parser::ConstValue::String(_) => ValueKind::String,
+            cynic_parser::ConstValue::Boolean(_) => ValueKind::Boolean,
+            cynic_parser::ConstValue::Null(_) => ValueKind::Null,
+            cynic_parser::ConstValue::Enum(_) => ValueKind::Enum,
+            cynic_parser::ConstValue::List(_) => ValueKind::List,
+            cynic_parser::ConstValue::Object(_) => ValueKind::Object,
+        }
+    }
+}

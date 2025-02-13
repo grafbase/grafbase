@@ -43,13 +43,15 @@ fn default_values() {
               "schema": {
                 "meta": {
                   "a": {
-                    "x": 3
+                    "x": 3,
+                    "y": "default"
                   }
                 }
               },
               "directive": {
                 "a": {
-                  "x": 3
+                  "x": 3,
+                  "y": "default"
                 }
               }
             }
