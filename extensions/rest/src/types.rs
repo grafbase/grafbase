@@ -8,11 +8,6 @@ pub struct RestEndpoint {
 #[serde(rename_all = "camelCase")]
 pub struct RestEndpointArgs {
     pub name: String,
-    pub http: HttpSettings,
-}
-
-#[derive(serde::Deserialize, Debug)]
-pub struct HttpSettings {
     #[serde(rename = "baseURL")]
     pub base_url: String,
 }

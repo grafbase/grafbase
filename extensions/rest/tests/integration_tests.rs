@@ -20,9 +20,7 @@ fn subgraph(rest_endpoint: &str) -> ExtensionOnlySubgraph {
 
         @restEndpoint(
           name: "endpoint",
-          http: {{
-            baseURL: "{rest_endpoint}"
-          }}
+          baseURL: "{rest_endpoint}"
         )
 
         type Query {{
@@ -409,9 +407,7 @@ async fn with_bad_jq() {
 
         @restEndpoint(
           name: "endpoint",
-          http: {{
-            baseURL: "{rest_endpoint}"
-          }}
+          baseURL: "{rest_endpoint}"
         )
 
         type Query {{
@@ -503,9 +499,7 @@ async fn with_path_in_the_endpoint() {
 
         @restEndpoint(
           name: "endpoint",
-          http: {{
-            baseURL: "{rest_endpoint}/admin"
-          }}
+          baseURL: "{rest_endpoint}/admin"
         )
 
         type Query {{
