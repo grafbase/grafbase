@@ -9,10 +9,7 @@ use itertools::Itertools;
 
 use super::*;
 
-pub(super) fn post_process_schema_locations(
-    ctx: &mut GraphContext<'_>,
-    locations: Vec<SchemaLocation>,
-) -> Result<(), BuildError> {
+pub(super) fn process_directives(ctx: &mut GraphContext<'_>, locations: Vec<SchemaLocation>) -> Result<(), BuildError> {
     let root_entities = [
         Some(EntityDefinitionId::from(ctx.graph.root_operation_types_record.query_id)),
         ctx.graph.root_operation_types_record.mutation_id.map(Into::into),
@@ -76,7 +73,6 @@ pub(super) fn post_process_schema_locations(
 
     finalize_inaccessible(&mut ctx.graph);
     add_not_fully_implemented_in(&mut ctx.graph);
-    add_extra_vecs_with_different_ordering(ctx);
 
     Ok(())
 }
@@ -683,7 +679,9 @@ fn add_not_fully_implemented_in(graph: &mut Graph) {
     }
 }
 
-fn add_extra_vecs_with_different_ordering(GraphContext { ctx, graph, .. }: &mut GraphContext<'_>) {
+pub(super) fn add_extra_vecs_for_definitions_with_different_ordering(
+    GraphContext { ctx, graph, .. }: &mut GraphContext<'_>,
+) {
     graph.type_definitions_ordered_by_name = {
         let mut definitions = Vec::with_capacity(
             graph.scalar_definitions.len()
