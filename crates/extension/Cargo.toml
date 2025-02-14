@@ -9,10 +9,8 @@ repository.workspace = true
 [lints]
 workspace = true
 
-
 [dependencies]
-semver = { workspace = true, features = ["serde"] }
 grafbase-workspace-hack.workspace = true
+semver = { workspace = true, features = ["serde"] }
 serde.workspace = true
 url.workspace = true
-

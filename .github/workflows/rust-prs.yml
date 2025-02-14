@@ -99,6 +99,16 @@ jobs:
         run: |
           cargo fmt --check
 
+      - uses: uncenter/setup-taplo@v1
+        with:
+          version: '0.9.3'
+
+      - name: taplo fmt check
+        shell: bash
+        run: |
+          taplo fmt --check
+          taplo check
+
   example-component:
     if: |
       needs.what-changed.outputs.changed-packages != '[]'

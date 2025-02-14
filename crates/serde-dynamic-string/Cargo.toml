@@ -7,16 +7,16 @@ keywords.workspace = true
 repository.workspace = true
 
 [dependencies]
+grafbase-workspace-hack.workspace = true
 itertools.workspace = true
 regex.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_with.workspace = true
-grafbase-workspace-hack.workspace = true
 
 [lints]
 workspace = true
 
 [dev-dependencies]
-ascii = "1.1.0"
+ascii.workspace = true
 insta.workspace = true
-temp-env = "0.3.6"
+temp-env.workspace = true

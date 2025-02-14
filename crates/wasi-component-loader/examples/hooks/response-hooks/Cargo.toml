@@ -8,9 +8,9 @@ repository.workspace = true
 
 [dependencies]
 grafbase-hooks.workspace = true
-serde_json.workspace = true
-serde.workspace = true
 postcard = { version = "1.0.10", features = ["use-std"] }
+serde.workspace = true
+serde_json.workspace = true
 
 [lib]
 crate-type = ["cdylib"]

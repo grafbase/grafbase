@@ -21,20 +21,19 @@ qp = []
 [dependencies]
 blake3.workspace = true
 cynic-parser.workspace = true
-strum.workspace = true
 grafbase-telemetry.workspace = true
-id-newtypes = { path = "../id-newtypes", package = "engine-id-newtypes" }
 id-derives = { path = "../id-derives", package = "engine-id-derives" }
+id-newtypes = { path = "../id-newtypes", package = "engine-id-newtypes" }
 itertools.workspace = true
-lasso2 = { version = "0.8.2", features = ["serialize"] }
+lasso2 = { workspace = true, features = ["serialize"] }
 serde = { workspace = true, features = ["rc"] }
 serde_json = { workspace = true, features = ["raw_value"] }
+strum.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
 
+grafbase-workspace-hack.workspace = true
 operation-normalizer = { path = "../../operation-normalizer" }
 schema = { path = "../schema", package = "engine-schema" }
-walker = { path = "../walker", package = "engine-walker" }
-grafbase-workspace-hack.workspace = true
 serde_with = { workspace = true, features = ["hex"] }
-
+walker = { path = "../walker", package = "engine-walker" }

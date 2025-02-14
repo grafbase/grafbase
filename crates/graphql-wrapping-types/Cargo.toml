@@ -9,8 +9,8 @@ keywords.workspace = true
 repository.workspace = true
 
 [dependencies]
-serde.workspace = true
 grafbase-workspace-hack.workspace = true
+serde.workspace = true
 
 [lints]
 workspace = true

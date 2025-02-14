@@ -15,47 +15,47 @@ lambda = [
 ]
 
 [dependencies]
-anyhow = { version = "1", default-features = false }
-ascii = { version = "1", default-features = false }
+anyhow = { workspace = true, default-features = false }
+ascii.workspace = true
+cfg-if.workspace = true
 chrono.workspace = true
-clap = { version = "4", features = ["cargo", "wrap_help", "derive", "env"] }
+clap = { workspace = true, features = ["cargo", "wrap_help", "derive", "env"] }
 federated-server.workspace = true
 gateway-config.workspace = true
 grafbase-telemetry = { workspace = true, features = ["otlp"] }
+grafbase-workspace-hack.workspace = true
 graph-ref.workspace = true
 itertools.workspace = true
-mimalloc = "0.1"
-opentelemetry-aws = { version = "0.15.0" }
+mimalloc.workspace = true
+opentelemetry-aws = { workspace = true }
 rustls = { workspace = true, features = ["ring"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "signal"] }
-toml = "0.8"
+toml.workspace = true
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["json"] }
-cfg-if = "1"
-grafbase-workspace-hack.workspace = true
 
 [lints]
 workspace = true
 
 [dev-dependencies]
 async-graphql-parser.workspace = true
-clickhouse = { version = "0.13" }
+clickhouse.workspace = true
 ctor.workspace = true
-duct = "0.13.7"
-fslock = "0.2.1"
+duct.workspace = true
+fslock.workspace = true
 futures-util.workspace = true
-graphql-composition.workspace = true
 grafbase-graphql-introspection.workspace = true
+graphql-composition.workspace = true
 graphql-mocks.workspace = true
+handlebars.workspace = true
 http.workspace = true
 indoc.workspace = true
 insta = { workspace = true, features = ["json", "redactions", "yaml"] }
 rand.workspace = true
 reqwest.workspace = true
 serde.workspace = true
-serde_with.workspace = true
 serde_json.workspace = true
-tempfile = "3.10.1"
-wiremock.workspace = true
+serde_with.workspace = true
+tempfile.workspace = true
 ulid.workspace = true
-handlebars.workspace = true
+wiremock.workspace = true

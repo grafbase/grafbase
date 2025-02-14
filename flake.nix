@@ -55,6 +55,8 @@
             cargo-nextest
             cargo-expand
 
+            taplo
+
             # Benchmark tool to send multiple requests
             hey
             k6

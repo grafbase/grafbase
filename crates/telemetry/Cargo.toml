@@ -12,40 +12,31 @@ keywords = ["tracing", "grafbase"]
 workspace = true
 
 [dependencies]
-chrono.workspace = true
 base64.workspace = true
-hex.workspace = true
 blake3.workspace = true
+chrono.workspace = true
+gateway-config.workspace = true
+headers.workspace = true
+hex.workspace = true
 http.workspace = true
-http-body = "1.0"
+http-body.workspace = true
+itertools.workspace = true
+postcard.workspace = true
 serde.workspace = true
+serde-dynamic-string.workspace = true
+strum.workspace = true
 thiserror.workspace = true
 tonic = { workspace = true, optional = true, features = ["tls-roots"] }
 url = { workspace = true, features = ["serde"] }
-headers.workspace = true
-serde-dynamic-string.workspace = true
-postcard.workspace = true
-gateway-config.workspace = true
-itertools.workspace = true
-strum.workspace = true
 
 # tracing
-tracing = { workspace = true }
-tracing-subscriber = { workspace = true, features = ["env-filter"] }
-tracing-opentelemetry.workspace = true
+ascii = { workspace = true, features = ["serde"] }
+cfg-if.workspace = true
+either.workspace = true
+grafbase-workspace-hack.workspace = true
+opentelemetry = { workspace = true, features = ["otel_unstable", "trace"] }
 opentelemetry-appender-tracing = { workspace = true, features = [
     "experimental_metadata_attributes",
-] }
-opentelemetry = { workspace = true, features = ["otel_unstable", "trace"] }
-opentelemetry_sdk = { workspace = true, features = [
-    "rt-tokio",
-    "logs",
-    "spec_unstable_metrics_views",
-] }
-opentelemetry-stdout = { workspace = true, features = [
-    "trace",
-    "metrics",
-    "logs",
 ] }
 opentelemetry-otlp = { workspace = true, features = [
     "grpc-tonic",
@@ -56,10 +47,19 @@ opentelemetry-otlp = { workspace = true, features = [
     "tonic",
     "metrics",
 ], optional = true }
-ascii = { version = "1.1.0", features = ["serde"] }
-cfg-if = "1.0.0"
-either = "1.13.0"
-grafbase-workspace-hack.workspace = true
+opentelemetry-stdout = { workspace = true, features = [
+    "trace",
+    "metrics",
+    "logs",
+] }
+opentelemetry_sdk = { workspace = true, features = [
+    "rt-tokio",
+    "logs",
+    "spec_unstable_metrics_views",
+] }
+tracing = { workspace = true }
+tracing-opentelemetry.workspace = true
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
 
 [features]
 default = []
@@ -68,6 +68,6 @@ lambda = []
 
 [dev-dependencies]
 indoc.workspace = true
-insta = "1.38.0"
-tempfile = "3.10.1"
-toml = "0.8.12"
+insta.workspace = true
+tempfile.workspace = true
+toml.workspace = true

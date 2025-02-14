@@ -4,14 +4,15 @@ name = "engine-codegen"
 publish = false
 
 [dependencies]
-anyhow = "1"
-case = "1"
+anyhow.workspace = true
+case.workspace = true
 cynic-parser = { workspace = true, features = ["report"] }
 cynic-parser-deser.workspace = true
-indoc = "2"
-itertools = "0.14"
-proc-macro2 = "1"
-quote = "1"
+grafbase-workspace-hack.workspace = true
+indoc.workspace = true
+itertools.workspace = true
+proc-macro2.workspace = true
+quote.workspace = true
 regex.workspace = true
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = [
@@ -20,5 +21,4 @@ tracing-subscriber = { workspace = true, features = [
     "env-filter",
     "ansi",
 ] }
-xshell = "0.2"
-grafbase-workspace-hack.workspace = true
+xshell.workspace = true

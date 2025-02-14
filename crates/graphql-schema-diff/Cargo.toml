@@ -10,8 +10,8 @@ repository = "https://github.com/grafbase/grafbase/tree/main/crates/graphql-sche
 
 [dependencies]
 cynic-parser.workspace = true
-serde = { workspace = true, optional = true, features = ["derive"] }
 grafbase-workspace-hack.workspace = true
+serde = { workspace = true, optional = true, features = ["derive"] }
 
 [features]
 default = ["serde"]
@@ -21,8 +21,8 @@ workspace = true
 
 [dev-dependencies]
 datatest-stable.workspace = true
-similar = "2.5.0"
 serde_json.workspace = true
+similar.workspace = true
 
 [[test]]
 name = "diff_tests"

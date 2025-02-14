@@ -21,6 +21,7 @@ publish = false
 ### BEGIN HAKARI SECTION
 [dependencies]
 aho-corasick = { version = "1" }
+anyhow = { version = "1" }
 arrayvec = { version = "0.7" }
 ascii = { version = "1", features = ["serde"] }
 axum = { version = "0.8", default-features = false, features = ["http1", "json", "macros", "original-uri", "query", "tracing", "ws"] }
@@ -29,7 +30,7 @@ base16ct = { version = "0.2", default-features = false, features = ["alloc"] }
 bitflags = { version = "2", default-features = false, features = ["std"] }
 byteorder = { version = "1" }
 bytes = { version = "1", features = ["serde"] }
-chrono = { version = "0.4", features = ["serde"] }
+chrono = { version = "0.4", default-features = false, features = ["clock", "serde", "wasmbind"] }
 ciborium = { version = "0.2" }
 clap = { version = "4", features = ["cargo", "derive", "env", "wrap_help"] }
 clap_builder = { version = "4", default-features = false, features = ["cargo", "color", "env", "std", "suggestions", "usage", "wrap_help"] }
@@ -128,7 +129,7 @@ tower-http = { version = "0.6", features = ["cors", "fs", "set-header", "timeout
 tracing = { version = "0.1", features = ["log"] }
 tracing-core = { version = "0.1" }
 tracing-log = { version = "0.2" }
-tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+tracing-subscriber = { version = "0.3", default-features = false, features = ["ansi", "env-filter", "json", "tracing-log"] }
 tungstenite = { version = "0.26", default-features = false, features = ["handshake", "url"] }
 ulid = { version = "1", features = ["serde"] }
 url = { version = "2", features = ["serde"] }
@@ -138,6 +139,7 @@ zeroize = { version = "1", features = ["zeroize_derive"] }
 
 [build-dependencies]
 aho-corasick = { version = "1" }
+anyhow = { version = "1" }
 arrayvec = { version = "0.7" }
 ascii = { version = "1", features = ["serde"] }
 axum = { version = "0.8", default-features = false, features = ["http1", "json", "macros", "original-uri", "query", "tracing", "ws"] }
@@ -147,7 +149,7 @@ bitflags = { version = "2", default-features = false, features = ["std"] }
 byteorder = { version = "1" }
 bytes = { version = "1", features = ["serde"] }
 cc = { version = "1", default-features = false, features = ["parallel"] }
-chrono = { version = "0.4", features = ["serde"] }
+chrono = { version = "0.4", default-features = false, features = ["clock", "serde", "wasmbind"] }
 ciborium = { version = "0.2" }
 clap = { version = "4", features = ["cargo", "derive", "env", "wrap_help"] }
 clap_builder = { version = "4", default-features = false, features = ["cargo", "color", "env", "std", "suggestions", "usage", "wrap_help"] }
@@ -248,7 +250,7 @@ tower-http = { version = "0.6", features = ["cors", "fs", "set-header", "timeout
 tracing = { version = "0.1", features = ["log"] }
 tracing-core = { version = "0.1" }
 tracing-log = { version = "0.2" }
-tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+tracing-subscriber = { version = "0.3", default-features = false, features = ["ansi", "env-filter", "json", "tracing-log"] }
 tungstenite = { version = "0.26", default-features = false, features = ["handshake", "url"] }
 ulid = { version = "1", features = ["serde"] }
 url = { version = "2", features = ["serde"] }

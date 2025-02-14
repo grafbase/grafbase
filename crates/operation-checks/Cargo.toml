@@ -9,13 +9,13 @@ repository.workspace = true
 [dependencies]
 async-graphql-parser.workspace = true
 async-graphql-value.workspace = true
-graphql-schema-diff.path = "../graphql-schema-diff"
 grafbase-workspace-hack.workspace = true
+graphql-schema-diff = { path = "../graphql-schema-diff" }
 
 [dev-dependencies]
 datatest-stable.workspace = true
-expect-test = "1.5.0"
-similar = "2.5.0"
+expect-test.workspace = true
+similar.workspace = true
 
 [lints]
 workspace = true

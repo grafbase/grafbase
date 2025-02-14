@@ -9,13 +9,13 @@ repository = "https://github.com/grafbase/grafbase"
 
 [dependencies]
 grafbase-sdk = { path = "../../crates/grafbase-sdk" }
-jaq-parse = "1.0.3"
-serde = "1"
-serde_json = "1"
 http = "1"
 jaq-core = "2.1.0"
 jaq-json = { version = "1.1.0", features = ["serde_json"] }
+jaq-parse = "1.0.3"
 jaq-std = "2.1.0"
+serde = "1"
+serde_json = "1"
 
 [lib]
 crate-type = ["cdylib"]

@@ -18,47 +18,47 @@ workspace = true
 base64.workspace = true
 blake3.workspace = true
 bytes.workspace = true
-url.workspace = true
-crossbeam-queue = "0.3.11"
-futures-util.workspace = true
-futures-lite.workspace = true
+crossbeam-queue.workspace = true
 fixedbitset.workspace = true
 futures.workspace = true
+futures-lite.workspace = true
+futures-util.workspace = true
 grafbase-telemetry.workspace = true
+headers.workspace = true
 hex.workspace = true
-id-newtypes = { path = "./id-newtypes", package = "engine-id-newtypes" }
+http.workspace = true
 id-derives = { path = "./id-derives", package = "engine-id-derives" }
-im = "15.1.0"
+id-newtypes = { path = "./id-newtypes", package = "engine-id-newtypes" }
+im.workspace = true
 itertools.workspace = true
 mediatype.workspace = true
+percent-encoding.workspace = true
+ramhorns.workspace = true
 serde = { workspace = true, features = ["rc"] }
-serde-value = "0.7"
-serde_urlencoded.workspace = true
+serde-value.workspace = true
 serde_json = { workspace = true, features = ["raw_value"] }
+serde_urlencoded.workspace = true
 sha2.workspace = true
-strum_macros.workspace = true
 strum.workspace = true
+strum_macros.workspace = true
 thiserror.workspace = true
 tower = { workspace = true, features = ["retry"] }
 tracing.workspace = true
-http.workspace = true
-headers.workspace = true
-ramhorns.workspace = true
-percent-encoding = "2"
+url.workspace = true
 
+async-sse.workspace = true
 engine-auth = { path = "./auth" }
+extension-catalog.workspace = true
+grafbase-workspace-hack.workspace = true
+mime.workspace = true
+minicbor-serde = { workspace = true, features = ["alloc"] }
+multipart-stream.workspace = true
 operation = { path = "./operation", package = "engine-operation" }
-schema = { path = "./schema", package = "engine-schema" }
-walker = { path = "./walker", package = "engine-walker" }
 query-solver = { path = "./query-solver", package = "engine-query-solver" }
 rand.workspace = true
 runtime.workspace = true
-grafbase-workspace-hack.workspace = true
-async-sse.workspace = true
-minicbor-serde = { workspace = true, features = ["alloc"] }
-mime = "0.3.17"
-multipart-stream.workspace = true
-extension-catalog.workspace = true
+schema = { path = "./schema", package = "engine-schema" }
+walker = { path = "./walker", package = "engine-walker" }
 
 [dev-dependencies]
-pretty_assertions = "1"
+pretty_assertions.workspace = true
