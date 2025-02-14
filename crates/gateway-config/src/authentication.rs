@@ -1,7 +1,7 @@
-use std::time::Duration;
-
 use ascii::AsciiString;
 use duration_str::deserialize_duration;
+use serde::Deserialize;
+use std::time::Duration;
 use url::Url;
 
 /// Configures the GraphQL server JWT authentication
@@ -46,7 +46,8 @@ pub struct JwksConfig {
     /// The issuer URL
     pub issuer: Option<String>,
     /// The name of the audience, e.g. the project
-    pub audience: Option<String>,
+    #[serde(deserialize_with = "deserialize_string_or_vec", default)]
+    pub audience: Vec<String>,
     /// How often to poll changes to the configuration
     #[serde(default = "default_poll_interval", deserialize_with = "deserialize_duration")]
     pub poll_interval: Duration,
@@ -71,4 +72,43 @@ impl Default for AuthenticationHeader {
             value_prefix: AsciiString::from_ascii(b"Bearer ").expect("that is ascii"),
         }
     }
+}
+
+// Add this helper function
+fn deserialize_string_or_vec<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    struct StringOrVec;
+
+    impl<'de> serde::de::Visitor<'de> for StringOrVec {
+        type Value = Vec<String>;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            formatter.write_str("string or array of strings")
+        }
+
+        fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            Ok(vec![value.to_string()])
+        }
+
+        fn visit_string<E>(self, value: String) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            Ok(vec![value])
+        }
+
+        fn visit_seq<S>(self, visitor: S) -> Result<Self::Value, S::Error>
+        where
+            S: serde::de::SeqAccess<'de>,
+        {
+            Deserialize::deserialize(serde::de::value::SeqAccessDeserializer::new(visitor))
+        }
+    }
+
+    deserializer.deserialize_any(StringOrVec)
 }

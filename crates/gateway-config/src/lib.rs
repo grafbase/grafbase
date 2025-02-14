@@ -972,9 +972,70 @@ mod tests {
                             issuer: Some(
                                 "https://example.com/",
                             ),
-                            audience: Some(
+                            audience: [
                                 "my-project",
+                            ],
+                            poll_interval: 60s,
+                        },
+                        header: AuthenticationHeader {
+                            name: "Authorization",
+                            value_prefix: "Bearer ",
+                        },
+                    },
+                ),
+            ],
+        }
+        "#);
+    }
+
+    #[test]
+    fn authentication_config_multiple_audience() {
+        let input = indoc! {r#"
+            [[authentication.providers]]
+
+            [authentication.providers.jwt]
+            name = "foo"
+
+            [authentication.providers.jwt.jwks]
+            url = "https://example.com/.well-known/jwks.json"
+            issuer = "https://example.com/"
+            audience = ["my-project", "my-other-project"]
+            poll_interval = "60s"
+        "#};
+
+        let result: Config = toml::from_str(input).unwrap();
+
+        insta::assert_debug_snapshot!(&result.authentication.unwrap(), @r#"
+        AuthenticationConfig {
+            providers: [
+                Jwt(
+                    JwtProvider {
+                        name: Some(
+                            "foo",
+                        ),
+                        jwks: JwksConfig {
+                            url: Url {
+                                scheme: "https",
+                                cannot_be_a_base: false,
+                                username: "",
+                                password: None,
+                                host: Some(
+                                    Domain(
+                                        "example.com",
+                                    ),
+                                ),
+                                port: None,
+                                path: "/.well-known/jwks.json",
+                                query: None,
+                                fragment: None,
+                            },
+                            issuer: Some(
+                                "https://example.com/",
                             ),
+                            audience: [
+                                "my-project",
+                                "my-other-project",
+                            ],
                             poll_interval: 60s,
                         },
                         header: AuthenticationHeader {
