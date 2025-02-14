@@ -1,8 +1,7 @@
 use id_newtypes::IdRange;
 
 use crate::{
-    builder::GraphContext, DefinitionId, EntityDefinitionId, FieldDefinitionId, FieldSetItemRecord,
-    InputValueDefinitionId, InputValueSelection, InputValueSet, TypeRecord,
+    builder::GraphContext, CompositeTypeId, DefinitionId, EntityDefinitionId, FieldDefinitionId, FieldSetItemRecord, InputValueDefinitionId, InputValueSelection, InputValueSet, TypeRecord
 };
 
 use super::{value_path_to_string, ExtensionInputValueCoercer, InputValueError, ValuePathSegment};
@@ -19,20 +18,21 @@ pub enum FieldSetError {
     NotAnOutputType { ty: String, path: String },
     #[error("Type {ty} cannot have a selecction set{path}")]
     CannotHaveASelectionSet { ty: String, path: String },
-    #[error("InputValueSet can only be used in directive applied on FIELD_DEFINITION | OBJECT | INTERFACE, but found on {location}")]
-    InvalidInputValueSetOnLocation { location: &'static str },
+    #[error("FieldSet can only be used in directive applied on FIELD_DEFINITION | OBJECT | INTERFACE | UNION, but found on {location}")]
+    InvalidFieldSetOnLocation { location: &'static str },
     #[error("Invalid field argument{path}: {err}")]
     InvalidFieldArgument { err: InputValueError, path: String },
 }
 
 impl ExtensionInputValueCoercer<'_, '_> {
     pub(crate) fn coerce_field_set(&mut self, selection_set: &str) -> Result<InputValueSet, FieldSetError> {
-        let entity_id = match self.location {
+        let composite_type_id: CompositeTypeId = match self.location {
             crate::builder::SchemaLocation::Object(id, _) => id.into(),
             crate::builder::SchemaLocation::Interface(id, _) => id.into(),
-            crate::builder::SchemaLocation::FieldDefinition(id, _) => self.graph[id].parent_entity_id,
+            crate::builder::SchemaLocation::FieldDefinition(id, _) => self.graph[id].parent_entity_id.into(),
+            crate::builder::SchemaLocation::Union(id,_) => id.into(),
             _ => {
-                return Err(FieldSetError::InvalidInputValueSetOnLocation {
+                return Err(FieldSetError::InvalidFieldSetOnLocation {
                     location: self.location.to_cynic_location().as_str(),
                 });
             }
@@ -50,34 +50,35 @@ impl ExtensionInputValueCoercer<'_, '_> {
             })?
             .selection_set();
 
-        let selection_set = convert_selection_set(self, parent_entity_id, selection_set, &mut Vec::new())?;
+        let selection_set = convert_selection_set(self, composite_type_id, selection_set, &mut Vec::new())?;
         Ok(InputValueSet::SelectionSet(selection_set))
     }
 }
 
 fn convert_selection_set(
     ctx: &GraphContext<'_>,
-    parent_entity_id: EntityDefinitionId,
+    parent_field_output: CompositeTypeId,
     set: cynic_parser::executable::Iter<cynic_parser::executable::Selection>,
     value_path: &mut Vec<ValuePathSegment>,
 ) -> Result<Vec<InputValueSelection>, FieldSetError> {
     let mut out = Vec::new();
-    let stack = vec![(parent_entity_id, set)];
-    while let Some((entity_id, set)) = stack.pop() {
-        let field_definition_ids = match entity_id {
-            EntityDefinitionId::Interface(id) => ctx.graph[id].field_ids,
-            EntityDefinitionId::Object(id) => ctx.graph[id].field_ids,
-        };
+    let stack = vec![(parent_field_output, set)];
+    while let Some((parent_entity_id, set)) = stack.pop() {
         for selection in set {
             match selection {
                 cynic_parser::executable::Selection::Field(field) => {
+        let field_definition_ids = match parent_entity_id {
+            CompositeTypeId::Interface(id) => ctx.graph[id].field_ids,
+            CompositeTypeId::Object(id) => ctx.graph[id].field_ids,
+                        CompositeTypeId::Union(_) => todo!()
+        };
                     let definition_id = field_definition_ids
                         .into_iter()
                         .find(|id| &ctx.strings[ctx.graph[*id].name_id] == field.name())
                         .ok_or_else(|| FieldSetError::UnknownField {
                             name: field.name().to_string(),
                             ty: ctx.type_name(TypeRecord {
-                                definition_id: entity_id.into(),
+                                definition_id: parent_entity_id.into(),
                                 wrapping: Default::default(),
                             }),
                             path: value_path_to_string(ctx, value_path),
@@ -109,7 +110,7 @@ fn convert_selection_set(
                                 path: value_path_to_string(ctx, value_path),
                             })?;
 
-                        let Some(entity_id) = definition_id.as_entity() else {
+                        let Some(entity_id) = definition_id.as_composite_type() else {
                             return Err(FieldSetError::NotAnOutputType {
                                 ty: ctx.type_name(TypeRecord {
                                     definition_id,
@@ -121,7 +122,7 @@ fn convert_selection_set(
 
                         stack.push((entity_id, fragment.selection_set()));
                     } else {
-                        stack.push((parent_entity_id, fragment.subselection));
+                        stack.push((parent_field_output, fragment.selection_set()));
                     }
                 }
                 cynic_parser::executable::Selection::FragmentSpread(_) => todo!(),
@@ -176,4 +177,24 @@ fn convert_field(
     field: cynic_parser::executable::FieldSelection<'_>,
 ) -> Result<FieldSetItemRecord, FieldSetError> {
     todo!()
+}
+
+pub fn has_non_empty_intersection_with(
+    ctx: &GraphContext<'_>,
+    left: EntityDefinitionId,
+    right: EntityDefinitionId,
+) -> bool {
+    let left = match ;
+    let right = other.possible_type_ids();
+    let mut l = 0;
+    let mut r = 0;
+    while let (Some(left_id), Some(right_id)) = (left.get(l), right.get(r)) {
+        match left_id.cmp(right_id) {
+            std::cmp::Ordering::Less => l += 1,
+            // At least one common object
+            std::cmp::Ordering::Equal => return true,
+            std::cmp::Ordering::Greater => r += 1,
+        }
+    }
+    false
 }
