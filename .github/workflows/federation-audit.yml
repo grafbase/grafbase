@@ -122,14 +122,6 @@ jobs:
         run: |
           cargo nextest run --profile ci -p federation-audit-tests --test audit_tests
 
-      - name: Upload the JUnit files
-        if: ${{ ( success() || failure() ) && !contains(steps.tests.outputs.exitcode, '101') }}
-        uses: ./.github/actions/test_upload_datadog
-        with:
-          api_key: ${{ secrets.DATADOG_API_KEY }}
-          junit_path: target/nextest/ci/junit.xml
-          service: audit-tests
-
       - name: Publish Test Report
         uses: mikepenz/action-junit-report@v5.0.0-a03
         if: success() || failure()
