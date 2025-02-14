@@ -95,6 +95,12 @@ impl<'a> JsonContent<'a> {
         'a: 'b,
         's: 'b,
     {
+        if name == "." {
+            return Some(JsonContent {
+                value: Cow::Borrowed(self.value.as_ref()),
+                escaping: self.escaping,
+            });
+        }
         name.split('.')
             .try_fold(self.value.as_ref(), |parent, key| {
                 parent.as_object().and_then(|obj| obj.get(key))
@@ -121,17 +127,28 @@ fn urlencode(s: &str) -> impl std::fmt::Display + '_ {
 impl ramhorns::Content for JsonContent<'_> {
     fn is_truthy(&self) -> bool {
         match self.value.as_ref() {
-            serde_json::Value::Null => false,
-            serde_json::Value::Bool(b) => *b,
-            serde_json::Value::Number(n) => n.as_f64().map(|f| f <= f64::EPSILON).unwrap_or_default(),
-            serde_json::Value::String(s) => s.is_empty(),
-            serde_json::Value::Array(v) => v.is_empty(),
-            serde_json::Value::Object(o) => o.is_empty(),
+            serde_json::Value::Array(v) => !v.is_empty(),
+            serde_json::Value::Object(o) => !o.is_empty(),
+            _ => true,
         }
     }
 
     fn capacity_hint(&self, _tpl: &ramhorns::Template<'_>) -> usize {
-        0
+        match self.value.as_ref() {
+            serde_json::Value::Null => 4,
+            serde_json::Value::Bool(_) => 5,
+            serde_json::Value::Number(n) => {
+                let n = n.as_f64().unwrap();
+                if n.is_finite() {
+                    24
+                } else {
+                    64
+                }
+            }
+            serde_json::Value::String(s) => s.len(),
+            serde_json::Value::Array(v) => v.len() * 2,
+            serde_json::Value::Object(o) => o.len() * 2,
+        }
     }
 
     fn render_escaped<E: ramhorns::encoding::Encoder>(&self, encoder: &mut E) -> Result<(), E::Error> {
