@@ -155,7 +155,6 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Login to GitHub Container Registry
-        if: env.dockerhub_username != ''
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
