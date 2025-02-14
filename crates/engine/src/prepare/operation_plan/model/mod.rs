@@ -1,4 +1,3 @@
-#![allow(unused)]
 mod executable;
 mod field;
 mod generated;
@@ -7,23 +6,16 @@ mod prelude;
 mod query_partition;
 mod selection_set;
 
-use std::sync::Arc;
-
 use id_newtypes::IdRange;
-use operation::Operation;
-use schema::{EntityDefinitionId, FieldSetRecord, Schema};
+use schema::Schema;
 use walker::{Iter, Walk};
 
-use crate::{
-    prepare::{CachedOperation, CachedOperationContext, Shapes},
-    resolver::Resolver,
-};
+use crate::prepare::{CachedOperation, CachedOperationContext, Shapes};
 
 use super::QueryModifications;
 
 pub(crate) use field::*;
 pub(crate) use generated::*;
-pub(crate) use plan::*;
 pub(crate) use query_partition::*;
 pub(crate) use selection_set::*;
 

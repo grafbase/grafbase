@@ -1,4 +1,4 @@
-#![deny(unused_crate_dependencies)]
+#![deny(clippy::future_not_send, unused_crate_dependencies)]
 
 use grafbase_workspace_hack as _;
 

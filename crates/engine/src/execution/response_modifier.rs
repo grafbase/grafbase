@@ -49,7 +49,6 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                     let directive = directive_id.walk(self);
                     let input = Arc::new(input);
                     let parents = response.read(
-                        self.schema(),
                         input.clone(),
                         // FIXME: Total hack, assumes there is only one authorized directive on the field. Need
                         target_field.required_fields_by_supergraph(),
@@ -108,7 +107,6 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                     let directive = self.schema().walk(directive_id);
                     let input = Arc::new(input);
                     let nodes = response.read(
-                        self.schema(),
                         input.clone(),
                         // FIXME: Total hack, assumes there is only one authorized directive on the field. Need
                         target_field.required_fields_by_supergraph(),

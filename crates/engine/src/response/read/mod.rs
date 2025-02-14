@@ -6,14 +6,11 @@ use super::{InputResponseObjectSet, ResponseBuilder};
 mod ser;
 mod view;
 
-use schema::Schema;
 pub(crate) use view::*;
 
 impl ResponseBuilder {
-    #[allow(unused)]
     pub fn read<'a>(
         &'a self,
-        schema: &'a Schema,
         response_object_set: Arc<InputResponseObjectSet>,
         selection_set: RequiredFieldSet<'a>,
     ) -> ResponseObjectsView<'a> {

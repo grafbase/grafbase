@@ -30,15 +30,6 @@ pub(crate) struct OutputResponseObjectSets {
 }
 
 impl OutputResponseObjectSets {
-    #[allow(unused)]
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = (ResponseObjectSetDefinitionId, &mut ResponseObjectSet)> + '_ {
-        self.ids
-            .iter()
-            .copied()
-            .zip(self.sets.iter_mut())
-            .filter(|(_, set)| !set.is_empty())
-    }
-
     pub fn into_iter(self) -> impl Iterator<Item = (ResponseObjectSetDefinitionId, ResponseObjectSet)> {
         self.ids.into_iter().zip(self.sets).filter(|(_, set)| !set.is_empty())
     }

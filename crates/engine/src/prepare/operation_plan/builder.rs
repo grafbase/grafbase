@@ -18,13 +18,12 @@ use super::{
 };
 
 impl OperationPlan {
-    #[allow(unused)]
     pub(in crate::prepare) fn plan(
         ctx: &PrepareContext<'_, impl Runtime>,
         cached: &CachedOperation,
         query_modifications: QueryModifications,
     ) -> PlanResult<Self> {
-        let mut plan = Builder {
+        Builder {
             ctx,
             operation: cached,
             cached_ctx: CachedOperationContext {
@@ -40,14 +39,11 @@ impl OperationPlan {
             partition_to_plan: vec![None; cached.query_plan.partitions.len()],
             partition_modifiers: Vec::with_capacity(cached.query_plan.response_modifier_definitions.len()),
         }
-        .build()?;
-
-        Ok(plan)
+        .build()
     }
 }
 
 struct Builder<'op, 'ctx, R: Runtime> {
-    #[allow(unused)]
     ctx: &'op PrepareContext<'ctx, R>,
     operation: &'op CachedOperation,
     cached_ctx: CachedOperationContext<'op>,

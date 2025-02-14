@@ -1,10 +1,9 @@
-use itertools::Itertools;
 use schema::{EntityDefinition, ResolverDefinition};
-use walker::{Iter, Walk};
+use walker::Walk;
 
 use crate::prepare::{QueryPartitionId, QueryPartitionRecord};
 
-use super::{OperationPlanContext, SubgraphField, SubgraphSelectionSet};
+use super::{OperationPlanContext, SubgraphSelectionSet};
 
 #[derive(Clone, Copy)]
 pub(crate) struct PlanQueryPartition<'a> {

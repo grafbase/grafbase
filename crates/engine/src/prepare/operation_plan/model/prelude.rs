@@ -5,5 +5,3 @@ pub(super) use crate::{
     },
     resolver::Resolver,
 };
-pub(super) use operation::ResponseKey;
-pub(super) use schema::FieldSetRecord;
