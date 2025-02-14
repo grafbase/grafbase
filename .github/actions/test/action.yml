@@ -10,14 +10,11 @@ inputs:
     description: Token to log into docker hub
   with-integration-tests:
     required: false
-    default: "true"
+    default: 'true'
     description: If enabled, runs integration tests and needs docker
-  datadog-api-key:
-    required: true
-    description: API key for datadog uploads
 
 runs:
-  using: "composite"
+  using: 'composite'
   steps:
     # https://github.com/actions/setup-node/issues/899
     - name: Enable Corepack before setting up Node
@@ -37,7 +34,9 @@ runs:
         run_install: false
 
     - name: Login to Docker Hub
-      if: ${{ inputs.with-integration-tests == 'true' }}
+      env:
+        dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
+      if: inputs.with-integration-tests == 'true' && ${{ env.dockerhub_username != '' }}
       uses: docker/login-action@v3
       with:
         username: ${{ inputs.dockerhub-username }}
@@ -65,14 +64,6 @@ runs:
           --exclude federation-audit-tests
         docker compose -f crates/integration-tests/compose.yaml stop -t 3
 
-    - name: Upload the JUnit files
-      if: ${{ inputs.with-integration-tests == 'true' && ( success() || failure() ) && !contains(steps.all_tests.outputs.exitcode, '101') }}
-      uses: ./.github/actions/test_upload_datadog
-      with:
-        api_key: ${{ inputs.datadog-api-key }}
-        junit_path: target/nextest/ci/junit.xml
-        service: cli
-
     - name: Run gateway tests
       id: gateway_tests
       if: ${{ inputs.with-integration-tests == 'true' }}
@@ -80,14 +71,6 @@ runs:
       run: |
         docker compose -f gateway/docker-compose.yml up -d
         RUST_BACKTRACE=1 cargo nextest run -p grafbase-gateway --profile ci
-
-    - name: Upload the gateway junit files
-      if: ${{ inputs.with-integration-tests == 'true' && (success() || failure() ) && !contains(steps.gateway_tests.outputs.exitcode, '101') }}
-      uses: ./.github/actions/test_upload_datadog
-      with:
-        api_key: ${{ inputs.datadog-api-key }}
-        junit_path: target/nextest/ci/junit.xml
-        service: cli-gateway
 
     - name: Run tests without integration
       id: tests_no_integration
@@ -100,11 +83,3 @@ runs:
           --exclude wasi-component-loader \
           --exclude federation-audit-tests \
           --profile ci
-
-    - name: Upload the non-integration JUnit files
-      if: ${{ inputs.with-integration-tests == 'false' && ( success() || failure() ) && !contains(steps.tests_no_integration.outputs.exitcode, '101') }}
-      uses: ./.github/actions/test_upload_datadog
-      with:
-        api_key: ${{ inputs.datadog-api-key }}
-        junit_path: target/nextest/ci/junit.xml
-        service: cli
