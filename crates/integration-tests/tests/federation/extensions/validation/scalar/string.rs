@@ -21,12 +21,12 @@ fn valid_string() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(value: String!) on SCHEMA
-                    directive @echo(value: String!) on FIELD_DEFINITION
+            .with_extension(EchoExt::with_sdl(
+                r#"
+                directive @meta(value: String!) on SCHEMA
+                directive @echo(value: String!) on FIELD_DEFINITION
                 "#,
-            })
+            ))
             .build()
             .await;
 
@@ -44,7 +44,8 @@ fn valid_string() {
           },
           "directive": {
             "value": "xsdfwe"
-          }
+          },
+          "input": {}
         }
       }
     }
@@ -69,12 +70,10 @@ fn invalid_string() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(value: String!) on SCHEMA
-                    directive @echo(value: String!) on FIELD_DEFINITION
-                "#,
-            })
+            .with_extension(EchoExt::with_sdl(r#"
+                directive @meta(value: String!) on SCHEMA
+                directive @echo(value: String!) on FIELD_DEFINITION
+            "#))
             .try_build()
             .await;
 
@@ -100,12 +99,10 @@ fn invalid_string() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(value: String!) on SCHEMA
-                    directive @echo(value: String!) on FIELD_DEFINITION
-                "#,
-            })
+            .with_extension(EchoExt::with_sdl(r#"
+                directive @meta(value: String!) on SCHEMA
+                directive @echo(value: String!) on FIELD_DEFINITION
+            "#))
             .try_build()
             .await;
 

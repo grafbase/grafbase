@@ -21,12 +21,12 @@ fn valid_id() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(value: ID!) on SCHEMA
-                    directive @echo(value: ID!) on FIELD_DEFINITION
-                "#,
-            })
+            .with_extension(EchoExt::with_sdl(
+                r#"
+                directive @meta(value: ID!) on SCHEMA
+                directive @echo(value: ID!) on FIELD_DEFINITION
+            "#,
+            ))
             .build()
             .await;
 
@@ -44,7 +44,8 @@ fn valid_id() {
           },
           "directive": {
             "value": "xsdfwe"
-          }
+          },
+          "input": {}
         }
       }
     }
@@ -69,12 +70,10 @@ fn invalid_id() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(value: ID!) on SCHEMA
-                    directive @echo(value: ID!) on FIELD_DEFINITION
-                "#,
-            })
+            .with_extension(EchoExt::with_sdl(r#"
+                directive @meta(value: ID!) on SCHEMA
+                directive @echo(value: ID!) on FIELD_DEFINITION
+            "#))
             .try_build()
             .await;
 
@@ -100,12 +99,10 @@ fn invalid_id() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(value: ID!) on SCHEMA
-                    directive @echo(value: ID!) on FIELD_DEFINITION
-                "#,
-            })
+            .with_extension(EchoExt::with_sdl(r#"
+                directive @meta(value: ID!) on SCHEMA
+                directive @echo(value: ID!) on FIELD_DEFINITION
+            "#))
             .try_build()
             .await;
 

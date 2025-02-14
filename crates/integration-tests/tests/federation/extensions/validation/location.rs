@@ -21,12 +21,12 @@ fn invalid_location() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta on SCHEMA
-                    directive @echo on FIELD_DEFINITION
-                "#,
-            })
+            .with_extension(EchoExt::with_sdl(
+                r#"
+                directive @meta on SCHEMA
+                directive @echo on FIELD_DEFINITION
+            "#,
+            ))
             .try_build()
             .await;
 
@@ -52,12 +52,12 @@ fn invalid_location() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta on SCHEMA
-                    directive @echo on FIELD_DEFINITION
+            .with_extension(EchoExt::with_sdl(
+                r#"
+                directive @meta on SCHEMA
+                directive @echo on FIELD_DEFINITION
                 "#,
-            })
+            ))
             .try_build()
             .await;
 

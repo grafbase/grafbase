@@ -21,12 +21,12 @@ fn list_coercion() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(value: [String!]!) on SCHEMA
-                    directive @echo(value: [String!]!) on FIELD_DEFINITION
-                "#,
-            })
+            .with_extension(EchoExt::with_sdl(
+                r#"
+                directive @meta(value: [String!]!) on SCHEMA
+                directive @echo(value: [String!]!) on FIELD_DEFINITION
+            "#,
+            ))
             .build()
             .await;
 
@@ -48,7 +48,8 @@ fn list_coercion() {
             "value": [
               "something"
             ]
-          }
+          },
+          "input": {}
         }
       }
     }
@@ -73,12 +74,12 @@ fn list_list_coercion() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(value: [[String!]]) on SCHEMA
-                    directive @echo(value: [[String!]]) on FIELD_DEFINITION
+            .with_extension(EchoExt::with_sdl(
+                r#"
+                directive @meta(value: [[String!]]) on SCHEMA
+                directive @echo(value: [[String!]]) on FIELD_DEFINITION
                 "#,
-            })
+            ))
             .build()
             .await;
 
@@ -104,7 +105,8 @@ fn list_list_coercion() {
                 "something"
               ]
             ]
-          }
+          },
+          "input": {}
         }
       }
     }
@@ -129,12 +131,10 @@ fn incompatible_list_wrapping() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(value: [[String!]]) on SCHEMA
-                    directive @echo(value: [[String!]]) on FIELD_DEFINITION
-                "#,
-            })
+            .with_extension(EchoExt::with_sdl(r#"
+                directive @meta(value: [[String!]]) on SCHEMA
+                directive @echo(value: [[String!]]) on FIELD_DEFINITION
+            "#))
             .try_build()
             .await;
 
@@ -160,12 +160,10 @@ fn incompatible_list_wrapping() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(value: [[String!]]) on SCHEMA
-                    directive @echo(value: [[String!]]) on FIELD_DEFINITION
-                "#,
-            })
+            .with_extension(EchoExt::with_sdl(r#"
+                directive @meta(value: [[String!]]) on SCHEMA
+                directive @echo(value: [[String!]]) on FIELD_DEFINITION
+            "#))
             .try_build()
             .await;
 

@@ -1762,7 +1762,21 @@ version = "3.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c99c59968c8aa7f90d84240ab6ded4d3864125ce36b5b044554542cebc974946"
 dependencies = [
- "cynic-proc-macros",
+ "cynic-proc-macros 3.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ref-cast",
+ "reqwest 0.12.12",
+ "serde",
+ "serde_json",
+ "static_assertions",
+ "thiserror 1.0.69",
+]
+
+[[package]]
+name = "cynic"
+version = "3.10.0"
+source = "git+https://github.com/obmarg/cynic#2026a621938991991922af1653fa5cc6774279ef"
+dependencies = [
+ "cynic-proc-macros 3.10.0 (git+https://github.com/obmarg/cynic)",
  "ref-cast",
  "reqwest 0.12.12",
  "serde",
@@ -1777,7 +1791,24 @@ version = "3.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "332695dddff7f260dfda1e97502b6440d443816f576994548b7751494991d2e3"
 dependencies = [
- "cynic-parser",
+ "cynic-parser 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "darling",
+ "once_cell",
+ "ouroboros",
+ "proc-macro2",
+ "quote",
+ "rkyv",
+ "strsim 0.10.0",
+ "syn 2.0.96",
+ "thiserror 1.0.69",
+]
+
+[[package]]
+name = "cynic-codegen"
+version = "3.10.0"
+source = "git+https://github.com/obmarg/cynic#2026a621938991991922af1653fa5cc6774279ef"
+dependencies = [
+ "cynic-parser 0.9.0 (git+https://github.com/obmarg/cynic)",
  "darling",
  "once_cell",
  "ouroboros",
@@ -1792,11 +1823,10 @@ dependencies = [
 [[package]]
 name = "cynic-introspection"
 version = "3.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "599917874a01992b0bc254599da2bae33c066fc33a4fc99157c17d938221046c"
+source = "git+https://github.com/obmarg/cynic#2026a621938991991922af1653fa5cc6774279ef"
 dependencies = [
- "cynic",
- "cynic-codegen",
+ "cynic 3.10.0 (git+https://github.com/obmarg/cynic)",
+ "cynic-codegen 3.10.0 (git+https://github.com/obmarg/cynic)",
  "indenter",
  "thiserror 1.0.69",
 ]
@@ -1815,20 +1845,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "cynic-parser"
+version = "0.9.0"
+source = "git+https://github.com/obmarg/cynic#2026a621938991991922af1653fa5cc6774279ef"
+dependencies = [
+ "ariadne",
+ "indexmap 2.7.1",
+ "lalrpop-util",
+ "logos",
+ "pretty",
+]
+
+[[package]]
 name = "cynic-parser-deser"
 version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d0759b9ffa73e5c3b55eda8a93e5fcca20bb86e027766de561093afd014ff83b"
+source = "git+https://github.com/obmarg/cynic#2026a621938991991922af1653fa5cc6774279ef"
 dependencies = [
- "cynic-parser",
+ "cynic-parser 0.9.0 (git+https://github.com/obmarg/cynic)",
  "cynic-parser-deser-macros",
 ]
 
 [[package]]
 name = "cynic-parser-deser-macros"
 version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8bd1cb5c98fd6634c970ebc3311c078fdb9be59e44d2c87456c6ec559f66269e"
+source = "git+https://github.com/obmarg/cynic#2026a621938991991922af1653fa5cc6774279ef"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1841,7 +1881,18 @@ version = "3.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a7880789c425a73aff3ba286b2a9c794f330d4770769a42a1493d6175e4606c1"
 dependencies = [
- "cynic-codegen",
+ "cynic-codegen 3.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "darling",
+ "quote",
+ "syn 2.0.96",
+]
+
+[[package]]
+name = "cynic-proc-macros"
+version = "3.10.0"
+source = "git+https://github.com/obmarg/cynic#2026a621938991991922af1653fa5cc6774279ef"
+dependencies = [
+ "cynic-codegen 3.10.0 (git+https://github.com/obmarg/cynic)",
  "darling",
  "quote",
  "syn 2.0.96",
@@ -2370,7 +2421,7 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "case",
- "cynic-parser",
+ "cynic-parser 0.9.0 (git+https://github.com/obmarg/cynic)",
  "cynic-parser-deser",
  "grafbase-workspace-hack",
  "indoc",
@@ -2409,7 +2460,7 @@ name = "engine-operation"
 version = "0.0.0"
 dependencies = [
  "blake3",
- "cynic-parser",
+ "cynic-parser 0.9.0 (git+https://github.com/obmarg/cynic)",
  "engine-id-derives",
  "engine-id-newtypes",
  "engine-schema",
@@ -2460,7 +2511,7 @@ name = "engine-schema"
 version = "0.0.0"
 dependencies = [
  "anyhow",
- "cynic-parser",
+ "cynic-parser 0.9.0 (git+https://github.com/obmarg/cynic)",
  "cynic-parser-deser",
  "engine-id-derives",
  "engine-id-newtypes",
@@ -2754,7 +2805,7 @@ dependencies = [
 name = "federation-audit-tests"
 version = "0.0.0"
 dependencies = [
- "cynic-parser",
+ "cynic-parser 0.9.0 (git+https://github.com/obmarg/cynic)",
  "grafbase-workspace-hack",
  "graphql-composition",
  "integration-tests",
@@ -3202,9 +3253,9 @@ dependencies = [
  "const_format",
  "convert_case",
  "crossterm 0.28.1",
- "cynic",
- "cynic-codegen",
- "cynic-parser",
+ "cynic 3.10.0 (git+https://github.com/obmarg/cynic)",
+ "cynic-codegen 3.10.0 (git+https://github.com/obmarg/cynic)",
+ "cynic-parser 0.9.0 (git+https://github.com/obmarg/cynic)",
  "dirs 6.0.0",
  "duct",
  "expect-test",
@@ -3312,9 +3363,9 @@ dependencies = [
 name = "grafbase-graphql-introspection"
 version = "0.0.0"
 dependencies = [
- "cynic",
+ "cynic 3.10.0 (git+https://github.com/obmarg/cynic)",
  "cynic-introspection",
- "cynic-parser",
+ "cynic-parser 0.9.0 (git+https://github.com/obmarg/cynic)",
  "grafbase-workspace-hack",
  "indoc",
  "reqwest 0.12.12",
@@ -3384,7 +3435,7 @@ dependencies = [
  "async-graphql",
  "async-graphql-axum",
  "axum 0.8.1",
- "cynic-parser",
+ "cynic-parser 0.9.0 (git+https://github.com/obmarg/cynic)",
  "grafbase-workspace-hack",
  "serde",
  "serde_json",
@@ -3460,9 +3511,9 @@ dependencies = [
  "crossbeam-channel",
  "crossbeam-queue",
  "crossbeam-utils",
- "cynic",
- "cynic-codegen",
- "cynic-parser",
+ "cynic 3.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cynic-codegen 3.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cynic-parser 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "deadpool-runtime",
  "der",
  "deranged",
@@ -3584,7 +3635,7 @@ name = "graphql-composition"
 version = "0.6.1"
 dependencies = [
  "anyhow",
- "cynic-parser",
+ "cynic-parser 0.9.0 (git+https://github.com/obmarg/cynic)",
  "cynic-parser-deser",
  "grafbase-workspace-hack",
  "graphql-federated-graph",
@@ -3602,7 +3653,7 @@ name = "graphql-federated-graph"
 version = "0.6.0"
 dependencies = [
  "bitflags 2.8.0",
- "cynic-parser",
+ "cynic-parser 0.9.0 (git+https://github.com/obmarg/cynic)",
  "cynic-parser-deser",
  "expect-test",
  "grafbase-workspace-hack",
@@ -3623,7 +3674,7 @@ name = "graphql-lint"
 version = "0.1.3"
 dependencies = [
  "criterion",
- "cynic-parser",
+ "cynic-parser 0.9.0 (git+https://github.com/obmarg/cynic)",
  "grafbase-workspace-hack",
  "heck 0.5.0",
  "thiserror 2.0.11",
@@ -3639,7 +3690,7 @@ dependencies = [
  "axum 0.8.1",
  "axum-extra",
  "crossbeam-queue",
- "cynic-parser",
+ "cynic-parser 0.9.0 (git+https://github.com/obmarg/cynic)",
  "futures",
  "futures-util",
  "grafbase-workspace-hack",
@@ -3667,7 +3718,7 @@ dependencies = [
 name = "graphql-schema-diff"
 version = "0.2.0"
 dependencies = [
- "cynic-parser",
+ "cynic-parser 0.9.0 (git+https://github.com/obmarg/cynic)",
  "datatest-stable",
  "grafbase-workspace-hack",
  "serde",
@@ -4547,9 +4598,9 @@ dependencies = [
  "criterion",
  "crossbeam-queue",
  "ctor",
- "cynic",
+ "cynic 3.10.0 (git+https://github.com/obmarg/cynic)",
  "cynic-introspection",
- "cynic-parser",
+ "cynic-parser 0.9.0 (git+https://github.com/obmarg/cynic)",
  "ed25519-compact",
  "elliptic-curve",
  "engine",
@@ -5757,7 +5808,7 @@ name = "operation-normalizer"
 version = "0.0.0"
 dependencies = [
  "anyhow",
- "cynic-parser",
+ "cynic-parser 0.9.0 (git+https://github.com/obmarg/cynic)",
  "expect-test",
  "grafbase-workspace-hack",
  "graphql-parser",

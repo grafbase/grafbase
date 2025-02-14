@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 use builder::{SchemaLocation, ValuePathSegment};
 use fxhash::FxHashMap;
 use introspection::IntrospectionMetadata;
-use post_process::post_process_schema_locations;
+use post_process::process_directives;
 
 use crate::*;
 
@@ -62,11 +62,15 @@ impl EntityResovler {
 
 impl Context<'_> {
     pub(crate) fn into_ctx_graph_introspection(self) -> Result<(Self, Graph, IntrospectionMetadata), BuildError> {
-        let (mut ctx, locations) = self.into_graph_context()?;
+        let (mut ctx, locations, introspection) = self.into_graph_context()?;
+
+        // From this point on the definitions should have been all added and now we interpret the
+        // directives.
+
         for (ix, extension) in ctx.federated_graph.extensions.iter().enumerate() {
             let extension_id = federated_graph::ExtensionId::from(ix);
             for directive in &extension.schema_directives {
-                let id = ctx.ingest_extension_directive(
+                let (id, _) = ctx.ingest_extension_directive(
                     SchemaLocation::SchemaDirective(directive.subgraph_id),
                     directive.subgraph_id,
                     extension_id,
@@ -76,8 +80,8 @@ impl Context<'_> {
                 ctx.push_extension_schema_directive(id);
             }
         }
-        let introspection = ctx.create_introspection_metadata();
-        post_process_schema_locations(&mut ctx, locations)?;
+
+        process_directives(&mut ctx, locations)?;
 
         let GraphContext {
             ctx,

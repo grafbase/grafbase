@@ -46,10 +46,10 @@ pub struct JoinInputFieldDirective {
 #[derive(PartialEq, PartialOrd, Clone)]
 pub struct JoinFieldDirective {
     pub source_field: (FieldId, FieldTuple),
-    pub r#override: Option<OverrideSource>,
-    pub external: bool,
-    pub override_label: Option<OverrideLabel>,
     pub r#type: Option<FieldTypeId>,
+    pub external: bool,
+    pub r#override: Option<OverrideSource>,
+    pub override_label: Option<OverrideLabel>,
 }
 
 #[derive(PartialEq, PartialOrd, Clone)]

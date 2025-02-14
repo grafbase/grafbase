@@ -37,7 +37,8 @@ fn nullable_input_value_set() {
               "schema": {},
               "directive": {
                 "input": null
-              }
+              },
+              "input": {}
             }
           }
         }
@@ -78,7 +79,8 @@ fn nullable_input_value_set_not_provided() {
           "data": {
             "echo": {
               "schema": {},
-              "directive": {}
+              "directive": {},
+              "input": {}
             }
           }
         }
@@ -128,7 +130,8 @@ fn list_of_input_value_set() {
                     "b": "B"
                   }
                 ]
-              }
+              },
+              "input": {}
             }
           }
         }

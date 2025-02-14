@@ -21,12 +21,12 @@ fn valid_boolean() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(value: Boolean!) on SCHEMA
-                    directive @echo(value: Boolean!) on FIELD_DEFINITION
-                "#,
-            })
+            .with_extension(EchoExt::with_sdl(
+                r#"
+                directive @meta(value: Boolean!) on SCHEMA
+                directive @echo(value: Boolean!) on FIELD_DEFINITION
+            "#,
+            ))
             .build()
             .await;
 
@@ -44,7 +44,8 @@ fn valid_boolean() {
           },
           "directive": {
             "value": false
-          }
+          },
+          "input": {}
         }
       }
     }
@@ -69,12 +70,10 @@ fn invalid_boolean() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(value: Boolean!) on SCHEMA
-                    directive @echo(value: Boolean!) on FIELD_DEFINITION
-                "#,
-            })
+            .with_extension(EchoExt::with_sdl(r#"
+                directive @meta(value: Boolean!) on SCHEMA
+                directive @echo(value: Boolean!) on FIELD_DEFINITION
+            "#))
             .try_build()
             .await;
 
@@ -100,12 +99,10 @@ fn invalid_boolean() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(value: Boolean!) on SCHEMA
-                    directive @echo(value: Boolean!) on FIELD_DEFINITION
-                "#,
-            })
+            .with_extension(EchoExt::with_sdl(r#"
+                directive @meta(value: Boolean!) on SCHEMA
+                directive @echo(value: Boolean!) on FIELD_DEFINITION
+            "#))
             .try_build()
             .await;
 

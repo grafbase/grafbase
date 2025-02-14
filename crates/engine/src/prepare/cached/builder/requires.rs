@@ -50,10 +50,17 @@ impl Solver<'_> {
         // to find other dependencies and build so iteratively a FieldSet structure.
         let mut required_fields = Vec::new();
         while let Some(i) = dependencies.iter().position_min() {
-            let start = dependencies.swap_remove(i);
+            let node_ix = dependencies.swap_remove(i);
+            let matching_field_id = self.solution.graph[node_ix]
+                .as_query_field()
+                .and_then(|id| self.solution[id].matching_field_id)
+                .expect("We depend on this field, so it must be a QueryField and it must have a SchemaFieldId");
+            let data_field_id = self.get_field_id_for(node_ix).unwrap();
+
             required_fields.push(RequiredFieldSetItemRecord {
-                data_field_id: self.get_field_id_for(start).unwrap(),
-                subselection_record: self.create_subselection(start, &mut dependencies),
+                data_field_id,
+                matching_field_id,
+                subselection_record: self.create_subselection(node_ix, &mut dependencies),
             });
         }
         required_fields.into()
@@ -70,8 +77,17 @@ impl Solver<'_> {
                             continue;
                         };
                         dependencies.swap_remove(i);
+                        let matching_field_id = self.solution.graph[edge.target()]
+                            .as_query_field()
+                            .and_then(|id| self.solution[id].matching_field_id)
+                            .expect(
+                                "We depend on this field, so it must be a QueryField and it must have a SchemaFieldId",
+                            );
+                        let data_field_id = self.get_field_id_for(edge.target()).unwrap();
+
                         subselection.push(RequiredFieldSetItemRecord {
-                            data_field_id: self.get_field_id_for(edge.target()).unwrap(),
+                            data_field_id,
+                            matching_field_id,
                             subselection_record: self.create_subselection(edge.target(), dependencies),
                         });
                     }

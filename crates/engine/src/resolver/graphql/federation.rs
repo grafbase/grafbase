@@ -66,10 +66,11 @@ impl FederationEntityResolver {
         subgraph_response: SubgraphResponse,
     ) -> ExecutionResult<FederationEntityRequest<'ctx>> {
         ctx.span().in_scope(|| {
-            let root_response_objects = root_response_objects.with_extra_constant_fields(vec![(
+            let extra_fields = vec![(
                 "__typename".into(),
                 serde_json::Value::String(plan.entity_definition().name().to_string()),
-            )]);
+            )];
+            let root_response_objects = root_response_objects.with_extra_constant_fields(&extra_fields);
 
             let mut entities_to_fetch = Vec::with_capacity(root_response_objects.len());
             let mut entities_without_expected_requirements = Vec::new();

@@ -43,7 +43,8 @@ fn basic_input_value_set() {
                 "input": {
                   "id": "1"
                 }
-              }
+              },
+              "input": {}
             }
           }
         }

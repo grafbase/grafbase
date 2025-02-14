@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 
+use schema::SchemaFieldId;
 use walker::Walk;
 
 use crate::prepare::CachedOperationContext;
@@ -18,7 +19,7 @@ impl std::ops::Deref for RequiredFieldSetRecord {
 
 impl From<Vec<RequiredFieldSetItemRecord>> for RequiredFieldSetRecord {
     fn from(mut items: Vec<RequiredFieldSetItemRecord>) -> Self {
-        items.sort_unstable_by(|a, b| a.data_field_id.cmp(&b.data_field_id));
+        items.sort_unstable_by(|a, b| a.matching_field_id.cmp(&b.matching_field_id));
         Self(items)
     }
 }
@@ -42,6 +43,10 @@ impl<'a> RequiredFieldSet<'a> {
 
     pub fn is_empty(&self) -> bool {
         self.ref_.0.is_empty()
+    }
+
+    pub fn get(&self, index: usize) -> Option<RequiredFieldSetItem<'a>> {
+        self.ref_.0.get(index).map(|item| item.walk(self.ctx))
     }
 
     pub fn iter(&self) -> impl Iterator<Item = RequiredFieldSetItem<'a>> + 'a {
@@ -71,6 +76,7 @@ impl<'a> Walk<CachedOperationContext<'a>> for &RequiredFieldSetRecord {
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct RequiredFieldSetItemRecord {
     pub data_field_id: PartitionDataFieldId,
+    pub matching_field_id: SchemaFieldId,
     pub subselection_record: RequiredFieldSetRecord,
 }
 
@@ -150,7 +156,7 @@ impl RequiredFieldSetRecord {
         while l < left_set.len() && r < right_set.len() {
             let left = &left_set[l];
             let right = &right_set[r];
-            match left.data_field_id.cmp(&right.data_field_id) {
+            match left.matching_field_id.cmp(&right.matching_field_id) {
                 Ordering::Less => {
                     fields.push(left.clone());
                     l += 1;
@@ -162,6 +168,7 @@ impl RequiredFieldSetRecord {
                 Ordering::Equal => {
                     fields.push(RequiredFieldSetItemRecord {
                         data_field_id: left.data_field_id,
+                        matching_field_id: left.matching_field_id,
                         subselection_record: if left.subselection_record.is_empty() {
                             right.subselection_record.clone()
                         } else {
