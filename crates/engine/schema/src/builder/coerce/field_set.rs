@@ -10,7 +10,7 @@ use super::{value_path_to_string, ExtensionInputValueCoercer, InputValueError, V
 pub enum FieldSetError {
     #[error("Could not parse InputValueSet: {err}")]
     InvalidInputValueSet { err: String },
-    #[error("Uknown field named '{field}' on type '{ty}'{path}")]
+    #[error("Uknown field named '{name}' on type '{ty}'{path}")]
     UnknownField { name: String, ty: String, path: String },
     #[error("Uknown type named '{ty}'{path}")]
     UnknownType { ty: String, path: String },
