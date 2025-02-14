@@ -194,7 +194,6 @@ pub struct Graph {
     #[indexed_by(ResolverDefinitionId)]
     resolver_definitions: Vec<ResolverDefinitionRecord>,
 
-    #[indexed_by(FieldSetId)]
     field_sets: Vec<FieldSetRecord>,
     // deduplicated
     #[indexed_by(SchemaFieldId)]

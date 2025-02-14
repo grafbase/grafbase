@@ -24,6 +24,7 @@ pub(crate) enum GrafbaseScalar {
     InputValueSet,
     UrlTemplate,
     JsonTemplate,
+    FieldSet,
 }
 
 pub(crate) struct ExtensionSdl {

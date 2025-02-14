@@ -83,28 +83,6 @@ impl<'a> Walk<&'a Schema> for &FieldSetRecord {
     }
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-pub struct FieldSetId(std::num::NonZero<u32>);
-
-impl<'a> Walk<&'a Schema> for FieldSetId {
-    type Walker<'w>
-        = FieldSet<'w>
-    where
-        Self: 'w,
-        'a: 'w;
-    fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
-    where
-        Self: 'w,
-        'a: 'w,
-    {
-        let schema = schema.into();
-        FieldSet {
-            schema,
-            ref_: &schema[self],
-        }
-    }
-}
-
 impl std::fmt::Debug for FieldSet<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple("FieldSet").field(&self.items()).finish()
