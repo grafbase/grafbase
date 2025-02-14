@@ -66,7 +66,8 @@ pub struct JwtConfig {
 #[derive(Clone, PartialEq, Serialize, Deserialize, Debug)]
 pub struct JwksConfig {
     pub issuer: Option<String>,
-    pub audience: Option<String>,
+    #[serde(default)]
+    pub audience: Vec<String>,
     pub url: url::Url,
     pub poll_interval: std::time::Duration,
 }

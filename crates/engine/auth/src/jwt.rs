@@ -144,9 +144,12 @@ impl JwtProvider {
             }
         }
 
-        if let Some(expected) = self.config.jwks.audience.as_ref() {
+        if !self.config.jwks.audience.is_empty() {
             let audience = token.claims().custom.audience.as_ref()?;
-            if audience.iter().all(|aud| aud != expected) {
+            if audience
+                .iter()
+                .all(|aud| self.config.jwks.audience.iter().all(|expected| expected != aud))
+            {
                 return None;
             }
         }
