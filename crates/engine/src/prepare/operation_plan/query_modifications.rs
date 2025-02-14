@@ -17,7 +17,6 @@ use crate::{
 
 use super::PlanResult;
 
-#[allow(unused)]
 #[derive(Default, id_derives::IndexedFields)]
 pub(crate) struct QueryModifications {
     pub is_any_field_skipped: bool,

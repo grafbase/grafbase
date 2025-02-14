@@ -1,3 +1,7 @@
+#![deny(clippy::future_not_send, unused_crate_dependencies)]
+
+use grafbase_workspace_hack as _;
+
 use std::sync::OnceLock;
 
 mod builder;
@@ -26,6 +30,9 @@ mod subgraph;
 mod template;
 mod ty;
 mod union;
+
+#[cfg(test)]
+mod tests;
 
 pub use self::builder::BuildError;
 pub use config::*;

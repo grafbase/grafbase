@@ -1,6 +1,3 @@
-use itertools::Itertools;
-use walker::{Iter, Walk};
-
 use crate::prepare::PartitionSelectionSetRecord;
 
 use super::{OperationPlanContext, SubgraphField};

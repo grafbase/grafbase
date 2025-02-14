@@ -1,6 +1,6 @@
 use operation::Location;
 use schema::FieldDefinition;
-use walker::{Iter, Walk};
+use walker::Walk;
 
 use crate::prepare::{
     OperationPlanContext, PartitionDataFieldId, PartitionDataFieldRecord, PartitionFieldArguments, SubgraphSelectionSet,

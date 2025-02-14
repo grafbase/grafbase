@@ -1,10 +1,7 @@
-use schema::{EntityDefinition, FieldSetRecord, ResolverDefinition};
+use schema::{EntityDefinition, ResolverDefinition};
 use walker::Walk;
 
-use crate::{
-    prepare::{ConcreteShape, ConcreteShapeId, QueryPartition, ResponseObjectSetDefinitionId},
-    resolver::Resolver,
-};
+use crate::prepare::{ConcreteShape, ConcreteShapeId, QueryPartition, ResponseObjectSetDefinitionId};
 
 use super::{Plan, SubgraphSelectionSet};
 
@@ -21,6 +18,7 @@ impl<'a> Plan<'a> {
     pub(crate) fn entity_definition(&self) -> EntityDefinition<'a> {
         self.query_partition().entity_definition()
     }
+    #[allow(unused)]
     pub(crate) fn resolver_definition(&self) -> ResolverDefinition<'a> {
         self.query_partition().resolver_definition()
     }

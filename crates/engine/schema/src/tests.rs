@@ -1,4 +1,4 @@
-use engine_schema::{Schema, Version};
+use crate::{Schema, Version};
 use postcard::ser_flavors::Flavor;
 
 const SCHEMA: &str = r#"

@@ -3,6 +3,7 @@ use walker::{Iter, Walk};
 use super::Executable;
 
 impl<'a> Executable<'a> {
+    #[allow(unused)]
     pub(crate) fn parent_count(&self) -> usize {
         match self {
             Executable::Plan(plan) => plan.parent_count,

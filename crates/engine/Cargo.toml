@@ -30,7 +30,6 @@ id-newtypes = { path = "./id-newtypes", package = "engine-id-newtypes" }
 id-derives = { path = "./id-derives", package = "engine-id-derives" }
 im = "15.1.0"
 itertools.workspace = true
-lasso2 = { version = "0.8.2", features = ["serialize"] }
 mediatype.workspace = true
 serde = { workspace = true, features = ["rc"] }
 serde-value = "0.7"
@@ -45,12 +44,10 @@ tracing.workspace = true
 http.workspace = true
 headers.workspace = true
 ramhorns.workspace = true
-hashbrown = "0.15"
 percent-encoding = "2"
 
 engine-auth = { path = "./auth" }
 operation = { path = "./operation", package = "engine-operation" }
-operation-normalizer = { path = "../operation-normalizer" }
 schema = { path = "./schema", package = "engine-schema" }
 walker = { path = "./walker", package = "engine-walker" }
 query-solver = { path = "./query-solver", package = "engine-query-solver" }
@@ -60,7 +57,6 @@ grafbase-workspace-hack.workspace = true
 async-sse.workspace = true
 minicbor-serde = { workspace = true, features = ["alloc"] }
 mime = "0.3.17"
-serde_with = { workspace = true, features = ["hex"] }
 multipart-stream.workspace = true
 extension-catalog.workspace = true
 

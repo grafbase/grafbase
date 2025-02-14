@@ -1,4 +1,6 @@
-#![deny(clippy::future_not_send)]
+#![deny(clippy::future_not_send, unused_crate_dependencies)]
+
+use grafbase_workspace_hack as _;
 
 mod engine;
 mod execution;
