@@ -55,7 +55,8 @@ fn multiple_fields() {
                     }
                   }
                 }
-              }
+              },
+              "input": {}
             }
           }
         }
@@ -118,7 +119,8 @@ fn all() {
                     }
                   }
                 }
-              }
+              },
+              "input": {}
             }
           }
         }
@@ -180,7 +182,8 @@ fn nested_all() {
                     }
                   }
                 }
-              }
+              },
+              "input": {}
             }
           }
         }
@@ -241,7 +244,8 @@ fn default_values() {
                     }
                   }
                 }
-              }
+              },
+              "input": {}
             }
           }
         }
@@ -304,7 +308,8 @@ fn default_values_star() {
                     }
                   }
                 }
-              }
+              },
+              "input": {}
             }
           }
         }
@@ -367,7 +372,8 @@ fn extension_directive_default_value() {
                     }
                   }
                 }
-              }
+              },
+              "input": {}
             }
           }
         }

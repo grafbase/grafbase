@@ -71,7 +71,6 @@ generic-array = { version = "0.14", default-features = false, features = ["more_
 group = { version = "0.13", default-features = false, features = ["alloc"] }
 hashbrown-3575ec1268b04181 = { package = "hashbrown", version = "0.15", features = ["serde"] }
 hashbrown-582f2526e08bb6a0 = { package = "hashbrown", version = "0.14", features = ["raw", "serde"] }
-hashbrown-5ef9efb8ec2df382 = { package = "hashbrown", version = "0.12", features = ["raw"] }
 hex = { version = "0.4" }
 hyper = { version = "1", features = ["full"] }
 hyper-util = { version = "0.1", features = ["client-legacy", "server-auto", "service"] }
@@ -171,7 +170,6 @@ crossbeam-queue = { version = "0.3" }
 crossbeam-utils = { version = "0.8" }
 curve25519-dalek = { version = "4", default-features = false, features = ["alloc", "digest", "precomputed-tables", "zeroize"] }
 cynic = { version = "3", features = ["http-reqwest"] }
-cynic-codegen = { version = "3", features = ["rkyv"] }
 cynic-parser = { version = "0.9", features = ["pretty", "report"] }
 deadpool-runtime = { version = "0.1", default-features = false, features = ["tokio_1"] }
 der = { version = "0.7", default-features = false, features = ["oid", "pem", "std"] }
@@ -198,7 +196,6 @@ generic-array = { version = "0.14", default-features = false, features = ["more_
 group = { version = "0.13", default-features = false, features = ["alloc"] }
 hashbrown-3575ec1268b04181 = { package = "hashbrown", version = "0.15", features = ["serde"] }
 hashbrown-582f2526e08bb6a0 = { package = "hashbrown", version = "0.14", features = ["raw", "serde"] }
-hashbrown-5ef9efb8ec2df382 = { package = "hashbrown", version = "0.12", features = ["raw"] }
 hex = { version = "0.4" }
 hyper = { version = "1", features = ["full"] }
 hyper-util = { version = "0.1", features = ["client-legacy", "server-auto", "service"] }

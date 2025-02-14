@@ -5,7 +5,7 @@
 //! Source file: <engine-codegen dir>/domain/schema.graphql
 use crate::{
     StringId,
-    generated::{TypeSystemDirective, TypeSystemDirectiveId},
+    generated::{ExtensionDirective, ExtensionDirectiveId},
     prelude::*,
 };
 #[allow(unused_imports)]
@@ -20,14 +20,14 @@ use walker::{Iter, Walk};
 /// type VirtualSubgraph @meta(module: "subgraph/virtual_") @indexed(id_size: "u16") {
 ///   subgraph_name: String!
 ///   "Schema directives applied by the given subgraph"
-///   schema_directives: [TypeSystemDirective!]!
+///   schema_directives: [ExtensionDirective!]! @vec
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct VirtualSubgraphRecord {
     pub subgraph_name_id: StringId,
     /// Schema directives applied by the given subgraph
-    pub schema_directive_ids: Vec<TypeSystemDirectiveId>,
+    pub schema_directive_ids: Vec<ExtensionDirectiveId>,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
@@ -57,7 +57,7 @@ impl<'a> VirtualSubgraph<'a> {
         self.subgraph_name_id.walk(self.schema)
     }
     /// Schema directives applied by the given subgraph
-    pub fn schema_directives(&self) -> impl Iter<Item = TypeSystemDirective<'a>> + 'a {
+    pub fn schema_directives(&self) -> impl Iter<Item = ExtensionDirective<'a>> + 'a {
         self.as_ref().schema_directive_ids.walk(self.schema)
     }
 }

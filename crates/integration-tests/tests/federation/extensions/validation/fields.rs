@@ -21,16 +21,16 @@ fn missing_nullable_field() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(input: EchoInput!) on SCHEMA
-                    directive @echo(input: EchoInput!) on FIELD_DEFINITION
+            .with_extension(EchoExt::with_sdl(
+                r#"
+                directive @meta(input: EchoInput!) on SCHEMA
+                directive @echo(input: EchoInput!) on FIELD_DEFINITION
 
-                    input EchoInput {
-                        value: String
-                    }
+                input EchoInput {
+                    value: String
+                }
                 "#,
-            })
+            ))
             .build()
             .await;
 
@@ -46,7 +46,8 @@ fn missing_nullable_field() {
               },
               "directive": {
                 "input": {}
-              }
+              },
+              "input": {}
             }
           }
         }
@@ -72,16 +73,14 @@ fn missing_required_field() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(input: EchoInput!) on SCHEMA
-                    directive @echo(input: EchoInput!) on FIELD_DEFINITION
+            .with_extension(EchoExt::with_sdl(r#"
+                directive @meta(input: EchoInput!) on SCHEMA
+                directive @echo(input: EchoInput!) on FIELD_DEFINITION
 
-                    input EchoInput {
-                        value: String!
-                    }
-                "#,
-            })
+                input EchoInput {
+                    value: String!
+                }
+            "#))
             .try_build()
             .await;
 
@@ -107,16 +106,14 @@ fn missing_required_field() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(input: EchoInput!) on SCHEMA
-                    directive @echo(input: EchoInput!) on FIELD_DEFINITION
+            .with_extension(EchoExt::with_sdl(r#"
+                directive @meta(input: EchoInput!) on SCHEMA
+                directive @echo(input: EchoInput!) on FIELD_DEFINITION
 
-                    input EchoInput {
-                        value: String!
-                    }
-                "#,
-            })
+                input EchoInput {
+                    value: String!
+                }
+            "#))
             .try_build()
             .await;
 
@@ -146,16 +143,14 @@ fn too_many_fields() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(input: EchoInput!) on SCHEMA
-                    directive @echo(input: EchoInput!) on FIELD_DEFINITION
+            .with_extension(EchoExt::with_sdl(r#"
+                directive @meta(input: EchoInput!) on SCHEMA
+                directive @echo(input: EchoInput!) on FIELD_DEFINITION
 
-                    input EchoInput {
-                        value: String
-                    }
-                "#,
-            })
+                input EchoInput {
+                    value: String
+                }
+            "#))
             .try_build()
             .await;
 
@@ -181,16 +176,14 @@ fn too_many_fields() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(input: EchoInput!) on SCHEMA
-                    directive @echo(input: EchoInput!) on FIELD_DEFINITION
+            .with_extension(EchoExt::with_sdl(r#"
+                directive @meta(input: EchoInput!) on SCHEMA
+                directive @echo(input: EchoInput!) on FIELD_DEFINITION
 
-                    input EchoInput {
-                        value: String
-                    }
-                "#,
-            })
+                input EchoInput {
+                    value: String
+                }
+            "#))
             .try_build()
             .await;
 
@@ -220,16 +213,14 @@ fn not_an_object() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(input: EchoInput!) on SCHEMA
-                    directive @echo(input: EchoInput!) on FIELD_DEFINITION
+            .with_extension(EchoExt::with_sdl(r#"
+                directive @meta(input: EchoInput!) on SCHEMA
+                directive @echo(input: EchoInput!) on FIELD_DEFINITION
 
-                    input EchoInput {
-                        value: String
-                    }
-                "#,
-            })
+                input EchoInput {
+                    value: String
+                }
+            "#))
             .try_build()
             .await;
 
@@ -255,16 +246,14 @@ fn not_an_object() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(input: EchoInput!) on SCHEMA
-                    directive @echo(input: EchoInput!) on FIELD_DEFINITION
+            .with_extension(EchoExt::with_sdl(r#"
+                directive @meta(input: EchoInput!) on SCHEMA
+                directive @echo(input: EchoInput!) on FIELD_DEFINITION
 
-                    input EchoInput {
-                        value: String
-                    }
-                "#,
-            })
+                input EchoInput {
+                    value: String
+                }
+            "#))
             .try_build()
             .await;
 

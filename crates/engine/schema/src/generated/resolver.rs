@@ -46,9 +46,9 @@ impl ResolverDefinitionRecord {
     pub fn is_field_resolver_extension(&self) -> bool {
         matches!(self, ResolverDefinitionRecord::FieldResolverExtension(_))
     }
-    pub fn as_field_resolver_extension(&self) -> Option<FieldResolverExtensionDefinitionRecord> {
+    pub fn as_field_resolver_extension(&self) -> Option<&FieldResolverExtensionDefinitionRecord> {
         match self {
-            ResolverDefinitionRecord::FieldResolverExtension(item) => Some(*item),
+            ResolverDefinitionRecord::FieldResolverExtension(item) => Some(item),
             _ => None,
         }
     }

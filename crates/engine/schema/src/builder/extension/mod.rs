@@ -4,11 +4,9 @@ use strum::IntoEnumIterator as _;
 use cynic_parser_deser::ConstDeserializer;
 use federated_graph::link::LinkDirective;
 
-use crate::extension::ExtensionDirectiveArgumentRecord;
-
 use super::{
     BuildError, Context, ExtensionDirectiveArgumentsError, ExtensionDirectiveId, ExtensionDirectiveLocationError,
-    ExtensionDirectiveRecord, ExtensionInputValueCoercer, GraphContext, InputValueError, SchemaLocation,
+    ExtensionDirectiveRecord, FieldSetRecord, GraphContext, SchemaLocation,
 };
 
 const GRAFBASE_SPEC_URL: &str = "https://specs.grafbase.com/grafbase";
@@ -24,6 +22,7 @@ pub(crate) enum GrafbaseScalar {
     InputValueSet,
     UrlTemplate,
     JsonTemplate,
+    FieldSet,
 }
 
 pub(crate) struct ExtensionSdl {
@@ -125,7 +124,7 @@ impl GraphContext<'_> {
         extension_id: federated_graph::ExtensionId,
         name: federated_graph::StringId,
         arguments: &Option<Vec<(federated_graph::StringId, federated_graph::Value)>>,
-    ) -> Result<ExtensionDirectiveId, BuildError> {
+    ) -> Result<(ExtensionDirectiveId, FieldSetRecord), BuildError> {
         let directive_name_id = self.get_or_insert_str(name);
         let directive_name = &self.ctx.federated_graph[name];
 
@@ -160,61 +159,16 @@ impl GraphContext<'_> {
                 },
             )));
         }
-
-        let federated_graph = self.ctx.federated_graph;
-        let start = self.graph.extension_directive_arguments.len();
-        if let Some(arguments) = arguments {
-            let mut arguments = arguments.iter().collect::<Vec<_>>();
-            self.graph.extension_directive_arguments.reserve(arguments.len());
-            let mut coercer = ExtensionInputValueCoercer {
-                ctx: self,
-                sdl: &sdl,
-                location,
-                current_injection_stage: Default::default(),
-            };
-
-            for def in definition.arguments() {
-                let name_id = coercer.ctx.strings.get_or_new(def.name());
-                let sdl_value = arguments
-                    .iter()
-                    .position(|(name, _)| federated_graph[*name] == def.name())
-                    .map(|ix| &arguments.swap_remove(ix).1);
-
-                let maybe_coerced_argument = coercer.coerce_argument(def, sdl_value).map_err(|err| {
-                    BuildError::ExtensionDirectiveArgumentsError(Box::new(ExtensionDirectiveArgumentsError {
-                        location: location.to_string(coercer.ctx),
-                        directive: directive_name.to_string(),
-                        extension_id: coercer.get_extension_id(extension_id),
-                        err,
-                    }))
-                })?;
-
-                if let Some((value, injection_stage)) = maybe_coerced_argument {
-                    coercer
-                        .ctx
-                        .graph
-                        .extension_directive_arguments
-                        .push(ExtensionDirectiveArgumentRecord {
-                            name_id,
-                            value,
-                            injection_stage,
-                        });
-                }
-            }
-
-            if let Some((name, _)) = arguments.first() {
-                return Err(BuildError::ExtensionDirectiveArgumentsError(Box::new(
-                    ExtensionDirectiveArgumentsError {
-                        location: location.to_string(coercer.ctx),
-                        directive: directive_name.to_string(),
-                        extension_id: coercer.get_extension_id(extension_id),
-                        err: InputValueError::UnknownArgument(federated_graph[*name].clone()).into(),
-                    },
-                )));
-            }
-        }
-
-        let argument_ids = (start..self.graph.extension_directive_arguments.len()).into();
+        let (argument_ids, requirements) = self
+            .coerce_extension_directive_arguments(location, &sdl, definition, arguments)
+            .map_err(|err| {
+                BuildError::ExtensionDirectiveArgumentsError(Box::new(ExtensionDirectiveArgumentsError {
+                    location: location.to_string(self),
+                    directive: directive_name.to_string(),
+                    extension_id: self.get_extension_id(extension_id),
+                    err,
+                }))
+            })?;
 
         self[extension_id].sdl = Some(sdl);
 
@@ -226,6 +180,6 @@ impl GraphContext<'_> {
         };
         self.graph.extension_directives.push(record);
         let id = (self.graph.extension_directives.len() - 1).into();
-        Ok(id)
+        Ok((id, requirements))
     }
 }

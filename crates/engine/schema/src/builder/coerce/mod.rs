@@ -1,5 +1,6 @@
 mod error;
 mod extension;
+mod field_set;
 mod input_value_set;
 mod path;
 mod schema;

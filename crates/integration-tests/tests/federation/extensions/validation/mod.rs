@@ -67,11 +67,16 @@ impl TestExtension for EchoInstance {
         directive: ExtensionFieldDirective<'a, serde_json::Value>,
         inputs: Vec<serde_json::Value>,
     ) -> Result<Vec<Result<serde_json::Value, PartialGraphqlError>>, PartialGraphqlError> {
-        let json = serde_json::json!({
-            "schema": self.schema_directives,
-            "directive": directive.arguments,
-        });
-        Ok(vec![Ok(json.clone()); inputs.len()])
+        Ok(inputs
+            .into_iter()
+            .map(|input| {
+                Ok(serde_json::json!({
+                    "schema": self.schema_directives,
+                    "directive": directive.arguments,
+                    "input": input
+                }))
+            })
+            .collect())
     }
 }
 
@@ -93,12 +98,12 @@ fn simple_echo() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
+            .with_extension(EchoExt::with_sdl(
+                r#"
                     directive @meta(value: String!) on SCHEMA
                     directive @echo(value: String!) on FIELD_DEFINITION
                 "#,
-            })
+            ))
             .build()
             .await;
 
@@ -116,7 +121,8 @@ fn simple_echo() {
           },
           "directive": {
             "value": "something"
-          }
+          },
+          "input": {}
         }
       }
     }
@@ -141,12 +147,12 @@ fn too_many_arguments() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
+            .with_extension(EchoExt::with_sdl(
+                r#"
                     directive @meta(value: String!) on SCHEMA
                     directive @echo(value: String!) on FIELD_DEFINITION
                 "#,
-            })
+            ))
             .try_build()
             .await;
 
@@ -172,12 +178,12 @@ fn too_many_arguments() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
+            .with_extension(EchoExt::with_sdl(
+                r#"
                     directive @meta(value: String!) on SCHEMA
                     directive @echo(value: String!) on FIELD_DEFINITION
                 "#,
-            })
+            ))
             .try_build()
             .await;
 

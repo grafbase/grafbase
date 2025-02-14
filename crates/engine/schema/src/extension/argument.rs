@@ -14,19 +14,6 @@ pub struct ExtensionDirectiveArgumentRecord {
     pub injection_stage: InjectionStage,
 }
 
-impl<'a> ExtensionDirective<'a> {
-    pub fn argument_records(&self) -> &'a [ExtensionDirectiveArgumentRecord] {
-        &self.schema[self.as_ref().argument_ids]
-    }
-
-    pub fn static_arguments(&self) -> ExtensionDirectiveArgumentsStaticView<'a> {
-        ExtensionDirectiveArgumentsStaticView {
-            schema: self.schema,
-            ref_: self.argument_records(),
-        }
-    }
-}
-
 // When, at the earliest, can we compute the argument's value?
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum InjectionStage {
@@ -61,22 +48,20 @@ impl Ord for InjectionStage {
 
 #[derive(Clone, Copy)]
 pub struct ExtensionDirectiveArgumentsStaticView<'a> {
-    schema: &'a Schema,
-    ref_: &'a [ExtensionDirectiveArgumentRecord],
+    pub(super) directive: ExtensionDirective<'a>,
 }
 
 impl serde::Serialize for ExtensionDirectiveArgumentsStaticView<'_> {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let Self { schema, ref_ } = *self;
         serializer.collect_map(
-            ref_.iter()
-                .filter(|arg| matches!(arg.injection_stage, InjectionStage::Static))
-                .map(|arg| {
+            self.directive
+                .arguments_with_stage(|stage| matches!(stage, InjectionStage::Static))
+                .map(|(name, value)| {
                     (
-                        &schema[arg.name_id],
+                        name,
                         ExtensionInputValueStaticView {
-                            schema,
-                            ref_: &arg.value,
+                            schema: self.directive.schema,
+                            ref_: value,
                         },
                     )
                 }),

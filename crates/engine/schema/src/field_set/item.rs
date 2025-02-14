@@ -32,7 +32,18 @@ pub struct FieldSetItem<'a> {
     pub(crate) ref_: &'a FieldSetItemRecord,
 }
 
+impl std::ops::Deref for FieldSetItem<'_> {
+    type Target = FieldSetItemRecord;
+    fn deref(&self) -> &Self::Target {
+        self.ref_
+    }
+}
+
 impl<'a> FieldSetItem<'a> {
+    #[allow(clippy::should_implement_trait)]
+    pub fn as_ref(&self) -> &'a FieldSetItemRecord {
+        self.ref_
+    }
     pub fn field(&self) -> SchemaField<'a> {
         self.ref_.field_id.walk(self.schema)
     }

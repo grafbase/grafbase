@@ -386,8 +386,7 @@ impl<'a> Solver<'a> {
                         }
                         TypeSystemDirective::Cost(_)
                         | TypeSystemDirective::Deprecated(_)
-                        | TypeSystemDirective::ListSize(_)
-                        | TypeSystemDirective::Extension(_) => continue,
+                        | TypeSystemDirective::ListSize(_) => continue,
                     };
                     match rule {
                         Rule::Query(rule) => {
@@ -438,8 +437,7 @@ impl<'a> Solver<'a> {
                         }
                         TypeSystemDirective::Cost(_)
                         | TypeSystemDirective::Deprecated(_)
-                        | TypeSystemDirective::ListSize(_)
-                        | TypeSystemDirective::Extension(_) => continue,
+                        | TypeSystemDirective::ListSize(_) => continue,
                     };
                     match rule {
                         Rule::Query(rule) => {
@@ -486,8 +484,7 @@ impl<'a> Solver<'a> {
                 TypeSystemDirective::RequiresScopes(dir) => QueryModifierRule::RequiresScopes(dir.id),
                 TypeSystemDirective::Cost(_)
                 | TypeSystemDirective::Deprecated(_)
-                | TypeSystemDirective::ListSize(_)
-                | TypeSystemDirective::Extension(_) => continue,
+                | TypeSystemDirective::ListSize(_) => continue,
             };
             let ix = deduplicated_query_modifier_rules
                 .entry(rule.clone())

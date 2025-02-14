@@ -21,12 +21,12 @@ fn unknown_type() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(value: EchoInput!) on SCHEMA
-                    directive @echo(value: EchoInput!) on FIELD_DEFINITION
+            .with_extension(EchoExt::with_sdl(
+                r#"
+                directive @meta(value: EchoInput!) on SCHEMA
+                directive @echo(value: EchoInput!) on FIELD_DEFINITION
                 "#,
-            })
+            ))
             .try_build()
             .await;
 
@@ -52,12 +52,12 @@ fn unknown_type() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(value: EchoInput!) on SCHEMA
-                    directive @echo(value: EchoInput!) on FIELD_DEFINITION
+            .with_extension(EchoExt::with_sdl(
+                r#"
+                directive @meta(value: EchoInput!) on SCHEMA
+                directive @echo(value: EchoInput!) on FIELD_DEFINITION
                 "#,
-            })
+            ))
             .try_build()
             .await;
 
@@ -87,16 +87,14 @@ fn not_a_input_type() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(value: EchoInput!) on SCHEMA
-                    directive @echo(value: EchoInput!) on FIELD_DEFINITION
+            .with_extension(EchoExt::with_sdl(r#"
+                directive @meta(value: EchoInput!) on SCHEMA
+                directive @echo(value: EchoInput!) on FIELD_DEFINITION
 
-                    type EchoInput {
-                        a: Int!
-                    }
-                "#,
-            })
+                type EchoInput {
+                    a: Int!
+                }
+            "#))
             .try_build()
             .await;
 
@@ -122,16 +120,14 @@ fn not_a_input_type() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(value: EchoInput!) on SCHEMA
-                    directive @echo(value: EchoInput!) on FIELD_DEFINITION
+            .with_extension(EchoExt::with_sdl(r#"
+                directive @meta(value: EchoInput!) on SCHEMA
+                directive @echo(value: EchoInput!) on FIELD_DEFINITION
 
-                    type EchoInput {
-                        a: Int!
-                    }
-                "#,
-            })
+                type EchoInput {
+                    a: Int!
+                }
+            "#))
             .try_build()
             .await;
 
