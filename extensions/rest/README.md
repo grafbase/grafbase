@@ -45,9 +45,7 @@ extend schema
 
 @restEndpoint(
   name: "restCountries",
-  http: {
-    baseURL: "https://restcountries.com/v3.1"
-  }
+  baseURL: "https://restcountries.com/v3.1"
 )
 ```
 
