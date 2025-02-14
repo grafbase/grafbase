@@ -4,10 +4,13 @@ description: Run cargo fmt, clippy, test
 runs:
   using: 'composite'
   steps:
+    - uses: uncenter/setup-taplo@v1
+      with:
+        version: '0.9.3'
+
     - name: taplo fmt check
       shell: bash
       run: |
-        curl -fsSL https://github.com/tamasfe/taplo/releases/latest/download/taplo-full-linux-x86_64.gz | gzip -d - | install -m 755 /dev/stdin /usr/local/bin/taplo
         taplo fmt --check
         taplo check
 
