@@ -1,6 +1,10 @@
-extend schema @link(url: "https://specs.grafbase.com/grafbase", import: ["InputValueSet", "UrlTemplate"])
+extend schema
+  @link(
+    url: "https://specs.grafbase.com/grafbase"
+    import: ["InputValueSet", "UrlTemplate"]
+  )
 
-directive @restEndpoint(name: String!, http: HttpEndpointDefinition!) repeatable on SCHEMA
+directive @restEndpoint(name: String!, baseURL: String!) repeatable on SCHEMA
 
 directive @rest(
   endpoint: String!
@@ -14,10 +18,6 @@ scalar JSON
 input Body {
   selection: InputValueSet
   static: JSON
-}
-
-input HttpEndpointDefinition {
-  baseURL: String!
 }
 
 input HttpRequestDefinition {
@@ -36,3 +36,4 @@ enum HttpMethod {
   TRACE
   PATCH
 }
+

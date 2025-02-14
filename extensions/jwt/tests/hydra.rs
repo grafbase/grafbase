@@ -4,7 +4,7 @@ use openidconnect::{
 };
 use ory_client::apis::configuration::Configuration;
 
-// Defined in docker-compose.yml
+// Defined in compose.yaml
 pub const ISSUER: &str = "http://127.0.0.1:4444";
 pub const JWKS_URI: &str = "http://127.0.0.1:4444/.well-known/jwks.json";
 pub const AUDIENCE: &str = "integration-tests";

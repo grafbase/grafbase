@@ -119,7 +119,7 @@ impl Resolver for RestExtension {
             });
         };
 
-        let mut url = Url::parse(&endpoint.args.http.base_url).map_err(|e| Error {
+        let mut url = Url::parse(&endpoint.args.base_url).map_err(|e| Error {
             extensions: Vec::new(),
             message: format!("Could not parse URL: {e}"),
         })?;
