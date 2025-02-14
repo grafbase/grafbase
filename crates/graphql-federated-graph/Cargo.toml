@@ -12,24 +12,23 @@ workspace = true
 
 [dependencies]
 bitflags.workspace = true
-wrapping = { path = "../graphql-wrapping-types", package = "graphql-wrapping-types", version = "0.2.0" }
+indoc.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
-indoc.workspace = true
+wrapping = { path = "../graphql-wrapping-types", package = "graphql-wrapping-types", version = "0.2.0" }
 
-itertools.workspace = true
 cynic-parser = { workspace = true, optional = true }
 cynic-parser-deser.workspace = true
-indexmap = { optional = true, workspace = true }
 grafbase-workspace-hack.workspace = true
-
+indexmap = { optional = true, workspace = true }
+itertools.workspace = true
 
 [dev-dependencies]
-expect-test = "1.5"
-tempfile = "3"
-tokio.workspace = true
+expect-test.workspace = true
+pretty_assertions.workspace = true
 serde_json.workspace = true
-pretty_assertions = "1"
+tempfile.workspace = true
+tokio.workspace = true
 url.workspace = true
 
 [features]

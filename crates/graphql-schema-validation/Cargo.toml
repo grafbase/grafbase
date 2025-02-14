@@ -13,14 +13,14 @@ workspace = true
 [dependencies]
 async-graphql-parser.workspace = true
 async-graphql-value.workspace = true
-miette.workspace = true
 bitflags.workspace = true
 grafbase-workspace-hack.workspace = true
+miette.workspace = true
 
 [dev-dependencies]
-datatest-stable = "0.3.0"
-similar = "2.5.0"
+datatest-stable.workspace = true
 miette = { workspace = true, features = ["fancy"] }
+similar.workspace = true
 
 [[test]]
 name = "validation_tests"

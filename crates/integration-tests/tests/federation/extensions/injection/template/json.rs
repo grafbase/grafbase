@@ -214,7 +214,6 @@ fn json_should_render_lists_as_json() {
     });
 }
 
-#[ignore]
 #[test]
 fn complex_template() {
     runtime().block_on(async move {
@@ -228,19 +227,19 @@ fn complex_template() {
                 scalar JSON
 
                 type Query {
-                    echo(data: [String]): JSON @echo(data: """[{{#args.data}} { "value":{{.}} } {{/args.data}}]""")
+                    echo(data: JSON): JSON @echo(data: """[{{#args.data}} { "value":{{name}} } {{/args.data}}]""")
                 }
                 "#,
             )
             .with_extension(EchoJsonExt)
             .build()
             .await
-            .post(r#"query { echo(data: ["meow", "Alice"]) }"#)
+            .post(r#"query { echo(data: [{name: "Alice"}]) }"#)
             .await;
         insta::assert_json_snapshot!(response, @r#"
         {
           "data": {
-            "echo": {}
+            "echo": []
           }
         }
         "#);

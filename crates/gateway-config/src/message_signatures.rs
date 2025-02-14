@@ -232,26 +232,24 @@ mod tests {
 
         let result = toml::from_str::<MessageSignaturesConfig>(config);
 
-        insta::assert_debug_snapshot!(result, @r###"
+        insta::assert_debug_snapshot!(result, @r#"
         Err(
             Error {
-                inner: Error {
-                    inner: TomlError {
-                        message: "raw and file may not both be provided in a message signing key",
-                        raw: Some(
-                            "key.file = \"super-secret-key\"\nkey.inline = \"hello\"\n",
-                        ),
-                        keys: [
-                            "key",
-                        ],
-                        span: Some(
-                            0..3,
-                        ),
-                    },
+                inner: TomlError {
+                    message: "raw and file may not both be provided in a message signing key",
+                    raw: Some(
+                        "key.file = \"super-secret-key\"\nkey.inline = \"hello\"\n",
+                    ),
+                    keys: [
+                        "key",
+                    ],
+                    span: Some(
+                        0..3,
+                    ),
                 },
             },
         )
-        "###);
+        "#);
     }
 
     #[test]
@@ -262,25 +260,23 @@ mod tests {
 
         let result = toml::from_str::<MessageSignaturesConfig>(config);
 
-        insta::assert_debug_snapshot!(result, @r###"
+        insta::assert_debug_snapshot!(result, @r#"
         Err(
             Error {
-                inner: Error {
-                    inner: TomlError {
-                        message: "one of raw or file must be provided in the message signing key",
-                        raw: Some(
-                            "key = {}\n",
-                        ),
-                        keys: [
-                            "key",
-                        ],
-                        span: Some(
-                            6..8,
-                        ),
-                    },
+                inner: TomlError {
+                    message: "one of raw or file must be provided in the message signing key",
+                    raw: Some(
+                        "key = {}\n",
+                    ),
+                    keys: [
+                        "key",
+                    ],
+                    span: Some(
+                        6..8,
+                    ),
                 },
             },
         )
-        "###);
+        "#);
     }
 }

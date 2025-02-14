@@ -2027,11 +2027,31 @@ dependencies = [
 
 [[package]]
 name = "dirs"
+version = "4.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ca3aa72a6f96ea37bbc5aa912f6788242832f75369bdfdadcb0e38423f100059"
+dependencies = [
+ "dirs-sys 0.3.7",
+]
+
+[[package]]
+name = "dirs"
 version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3e8aa94d75141228480295a7d0e7feb620b1a5ad9f12bc40be62411e38cce4e"
 dependencies = [
- "dirs-sys",
+ "dirs-sys 0.5.0",
+]
+
+[[package]]
+name = "dirs-sys"
+version = "0.3.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1b1d1d91c932ef41c0f2663aa8b0ca0342d444d842c06914aa0a7e352d0bada6"
+dependencies = [
+ "libc",
+ "redox_users 0.4.6",
+ "winapi",
 ]
 
 [[package]]
@@ -2094,16 +2114,16 @@ checksum = "92773504d58c093f6de2459af4af33faa518c13451eb8f2b5698ed3d36e7c813"
 
 [[package]]
 name = "duration-str"
-version = "0.12.0"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "64ad6b66883f70e2f38f1ee99e3797b9d7e7b7fb051ed2e23e027c81753056c8"
+checksum = "99b55e40ba8fc1ef074c9f9031b4cb88bb1f30c946f80a9305df44973c0b9a2d"
 dependencies = [
  "chrono",
  "rust_decimal",
  "serde",
  "thiserror 2.0.11",
  "time",
- "winnow",
+ "winnow 0.6.8",
 ]
 
 [[package]]
@@ -2415,8 +2435,8 @@ dependencies = [
  "fxhash",
  "gateway-config",
  "grafbase-workspace-hack",
- "graphql-federated-graph 0.6.0",
- "graphql-wrapping-types 0.2.0",
+ "graphql-federated-graph",
+ "graphql-wrapping-types",
  "hex",
  "http 1.2.0",
  "indexmap 2.7.0",
@@ -2671,7 +2691,7 @@ dependencies = [
  "grafbase-telemetry",
  "grafbase-workspace-hack",
  "graph-ref",
- "graphql-composition 0.6.1",
+ "graphql-composition",
  "http 1.2.0",
  "lambda_http",
  "minicbor-serde",
@@ -2701,7 +2721,7 @@ version = "0.0.0"
 dependencies = [
  "cynic-parser",
  "grafbase-workspace-hack",
- "graphql-composition 0.6.1",
+ "graphql-composition",
  "integration-tests",
  "libtest-mimic",
  "reqwest 0.12.12",
@@ -3057,6 +3077,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "getrandom"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "43a49c392881ce6d5c3b8cb70f98717b7c07aabbdff06687b9030dbfbe2725f8"
+dependencies = [
+ "cfg-if",
+ "libc",
+ "wasi 0.13.3+wasi-0.2.2",
+ "windows-targets 0.52.6",
+]
+
+[[package]]
 name = "gimli"
 version = "0.31.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3138,7 +3170,7 @@ dependencies = [
  "cynic",
  "cynic-codegen",
  "cynic-parser",
- "dirs",
+ "dirs 6.0.0",
  "duct",
  "expect-test",
  "extension",
@@ -3152,8 +3184,8 @@ dependencies = [
  "grafbase-graphql-introspection",
  "grafbase-workspace-hack",
  "graph-ref",
- "graphql-composition 0.6.1",
- "graphql-federated-graph 0.6.0",
+ "graphql-composition",
+ "graphql-federated-graph",
  "graphql-lint",
  "graphql-mocks",
  "ignore",
@@ -3217,7 +3249,7 @@ dependencies = [
  "grafbase-telemetry",
  "grafbase-workspace-hack",
  "graph-ref",
- "graphql-composition 0.6.1",
+ "graphql-composition",
  "graphql-mocks",
  "handlebars 6.3.0",
  "http 1.2.0",
@@ -3283,8 +3315,8 @@ dependencies = [
  "futures-util",
  "grafbase-sdk-derive",
  "grafbase-sdk-mock",
- "graphql-composition 0.6.0",
- "graphql-federated-graph 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "graphql-composition",
+ "graphql-federated-graph",
  "http 1.2.0",
  "indoc",
  "minicbor-serde",
@@ -3369,6 +3401,7 @@ version = "0.1.0"
 dependencies = [
  "ahash 0.8.11",
  "aho-corasick",
+ "anyhow",
  "arrayvec 0.7.6",
  "ascii",
  "axum 0.8.1",
@@ -3510,27 +3543,13 @@ dependencies = [
 
 [[package]]
 name = "graphql-composition"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db2967e890033c51901c701518daa689ce6cbccb37859c216ddfd2571018833f"
-dependencies = [
- "cynic-parser",
- "cynic-parser-deser",
- "graphql-federated-graph 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "indexmap 2.7.0",
- "itertools 0.14.0",
- "url",
-]
-
-[[package]]
-name = "graphql-composition"
 version = "0.6.1"
 dependencies = [
  "anyhow",
  "cynic-parser",
  "cynic-parser-deser",
  "grafbase-workspace-hack",
- "graphql-federated-graph 0.6.0",
+ "graphql-federated-graph",
  "indexmap 2.7.0",
  "insta",
  "itertools 0.14.0",
@@ -3549,7 +3568,7 @@ dependencies = [
  "cynic-parser-deser",
  "expect-test",
  "grafbase-workspace-hack",
- "graphql-wrapping-types 0.2.0",
+ "graphql-wrapping-types",
  "indexmap 2.7.0",
  "indoc",
  "itertools 0.14.0",
@@ -3559,24 +3578,6 @@ dependencies = [
  "tempfile",
  "tokio",
  "url",
-]
-
-[[package]]
-name = "graphql-federated-graph"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "895a55bf1a7fcc72ec3908239921a11b0cf661fe3a6cfc550e89a2a6e0580fac"
-dependencies = [
- "bitflags 2.8.0",
- "cynic-parser",
- "cynic-parser-deser",
- "grafbase-workspace-hack",
- "graphql-wrapping-types 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "indexmap 2.7.0",
- "indoc",
- "itertools 0.14.0",
- "serde",
- "serde_json",
 ]
 
 [[package]]
@@ -3652,16 +3653,6 @@ dependencies = [
 [[package]]
 name = "graphql-wrapping-types"
 version = "0.2.0"
-dependencies = [
- "grafbase-workspace-hack",
- "serde",
-]
-
-[[package]]
-name = "graphql-wrapping-types"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "165aca8d4b7bba95daaac55f7e1e139475043a674768a659a4da80792ff74f96"
 dependencies = [
  "grafbase-workspace-hack",
  "serde",
@@ -4520,7 +4511,6 @@ dependencies = [
  "cynic",
  "cynic-introspection",
  "cynic-parser",
- "dyn-clone",
  "ed25519-compact",
  "elliptic-curve",
  "engine",
@@ -4532,8 +4522,8 @@ dependencies = [
  "gateway-config",
  "grafbase-telemetry",
  "grafbase-workspace-hack",
- "graphql-composition 0.6.1",
- "graphql-federated-graph 0.6.0",
+ "graphql-composition",
+ "graphql-federated-graph",
  "graphql-mocks",
  "graphql-ws-client",
  "headers",
@@ -7515,6 +7505,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "shellexpand"
+version = "2.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7ccc8076840c4da029af4f87e4e8daeb0fca6b87bbb02e10cb60b791450e11e4"
+dependencies = [
+ "dirs 4.0.0",
+]
+
+[[package]]
 name = "shlex"
 version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7954,13 +7953,13 @@ dependencies = [
 
 [[package]]
 name = "tempfile"
-version = "3.15.0"
+version = "3.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9a8a559c81686f576e8cd0290cd2a24a2a9ad80c98b3478856500fcbd7acd704"
+checksum = "38c246215d7d24f48ae091a2902398798e05d978b24315d6efbc00ede9a8bb91"
 dependencies = [
  "cfg-if",
  "fastrand 2.2.0",
- "getrandom 0.2.15",
+ "getrandom 0.3.1",
  "once_cell",
  "rustix",
  "windows-sys 0.59.0",
@@ -8222,15 +8221,15 @@ dependencies = [
 
 [[package]]
 name = "toml_edit"
-version = "0.22.22"
+version = "0.22.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ae48d6208a266e853d946088ed816055e556cc6028c5e8e2b84d9fa5dd7c7f5"
+checksum = "17b4795ff5edd201c7cd6dca065ae59972ce77d1b80fa0a84d94950ece7d1474"
 dependencies = [
  "indexmap 2.7.0",
  "serde",
  "serde_spanned",
  "toml_datetime",
- "winnow",
+ "winnow 0.7.2",
 ]
 
 [[package]]
@@ -8424,7 +8423,6 @@ dependencies = [
  "serde",
  "serde_json",
  "sharded-slab",
- "smallvec",
  "thread_local",
  "tracing",
  "tracing-core",
@@ -8676,6 +8674,15 @@ name = "wasi"
 version = "0.11.0+wasi-snapshot-preview1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9c8d87e72b64a3b4db28d11ce29237c246188f4f51057d65a7eab63b7987e423"
+
+[[package]]
+name = "wasi"
+version = "0.13.3+wasi-0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "26816d2e1a4a36a2940b96c5296ce403917633dff8f3440e9b236ed6f6bacad2"
+dependencies = [
+ "wit-bindgen-rt 0.33.0",
+]
 
 [[package]]
 name = "wasi-component-loader"
@@ -9118,6 +9125,7 @@ dependencies = [
  "trait-variant",
  "url",
  "wasmtime",
+ "wiggle",
  "windows-sys 0.59.0",
 ]
 
@@ -9175,6 +9183,15 @@ dependencies = [
 
 [[package]]
 name = "wast"
+version = "35.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2ef140f1b49946586078353a453a1d28ba90adfc54dde75710bc1931de204d68"
+dependencies = [
+ "leb128",
+]
+
+[[package]]
+name = "wast"
 version = "221.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fcc4470b9de917ba199157d1f0ae104f2ae362be728c43e68c571c7715bd629e"
@@ -9192,7 +9209,7 @@ version = "1.221.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6b1f3c6d82af47286494c6caea1d332037f5cbeeac82bbf5ef59cb8c201c466e"
 dependencies = [
- "wast",
+ "wast 221.0.2",
 ]
 
 [[package]]
@@ -9264,6 +9281,48 @@ dependencies = [
  "env_home",
  "rustix",
  "winsafe",
+]
+
+[[package]]
+name = "wiggle"
+version = "29.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4b9af35bc9629c52c261465320a9a07959164928b4241980ba1cf923b9e6751d"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "bitflags 2.8.0",
+ "thiserror 1.0.69",
+ "tracing",
+ "wasmtime",
+ "wiggle-macro",
+]
+
+[[package]]
+name = "wiggle-generate"
+version = "29.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2cf267dd05673912c8138f4b54acabe6bd53407d9d1536f0fadb6520dd16e101"
+dependencies = [
+ "anyhow",
+ "heck 0.5.0",
+ "proc-macro2",
+ "quote",
+ "shellexpand",
+ "syn 2.0.96",
+ "witx",
+]
+
+[[package]]
+name = "wiggle-macro"
+version = "29.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "08c5c473d4198e6c2d377f3809f713ff0c110cab88a0805ae099a82119ee250c"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.96",
+ "wiggle-generate",
 ]
 
 [[package]]
@@ -9570,9 +9629,18 @@ checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
 
 [[package]]
 name = "winnow"
-version = "0.6.20"
+version = "0.6.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "36c1fec1a2bb5866f07c25f68c26e565c4c200aebb96d7e55710c19d3e8ac49b"
+checksum = "c3c52e9c97a68071b23e836c9380edae937f17b9c4667bd021973efc689f618d"
+dependencies = [
+ "memchr",
+]
+
+[[package]]
+name = "winnow"
+version = "0.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "59690dea168f2198d1a3b0cac23b8063efcd11012f10ae4698f284808c8ef603"
 dependencies = [
  "memchr",
 ]
@@ -9633,7 +9701,7 @@ version = "0.38.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b550e454e4cce8984398539a94a0226511e1f295b14afdc8f08b4e2e2ff9de3a"
 dependencies = [
- "wit-bindgen-rt",
+ "wit-bindgen-rt 0.38.0",
  "wit-bindgen-rust-macro",
 ]
 
@@ -9646,6 +9714,15 @@ dependencies = [
  "anyhow",
  "heck 0.5.0",
  "wit-parser 0.224.0",
+]
+
+[[package]]
+name = "wit-bindgen-rt"
+version = "0.33.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3268f3d866458b787f390cf61f4bbb563b922d091359f9608842999eaee3943c"
+dependencies = [
+ "bitflags 2.8.0",
 ]
 
 [[package]]
@@ -9743,6 +9820,18 @@ dependencies = [
  "serde_json",
  "unicode-xid",
  "wasmparser 0.224.0",
+]
+
+[[package]]
+name = "witx"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e366f27a5cabcddb2706a78296a40b8fcc451e1a6aba2fc1d94b4a01bdaaef4b"
+dependencies = [
+ "anyhow",
+ "log",
+ "thiserror 1.0.69",
+ "wast 35.0.2",
 ]
 
 [[package]]

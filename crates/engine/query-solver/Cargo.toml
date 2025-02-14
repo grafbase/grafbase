@@ -12,33 +12,32 @@ repository = "https://github.com/grafbase/grafbase"
 workspace = true
 
 [dependencies]
-grafbase-workspace-hack.workspace = true
-id-newtypes = { path = "../id-newtypes", package = "engine-id-newtypes" }
-id-derives = { path = "../id-derives", package = "engine-id-derives" }
-operation = { path = "../operation", package = "engine-operation" }
-walker = { path = "../walker", package = "engine-walker" }
-fixedbitset.workspace = true
 bitflags.workspace = true
-petgraph.workspace = true
-itertools.workspace = true
-serde.workspace = true
-tracing.workspace = true
-thiserror.workspace = true
-strum.workspace = true
-hex.workspace = true
-schema = { path = "../schema", package = "engine-schema" }
+fixedbitset.workspace = true
 fxhash.workspace = true
-hashbrown = "0.15"
-
+grafbase-workspace-hack.workspace = true
+hashbrown.workspace = true
+hex.workspace = true
+id-derives = { path = "../id-derives", package = "engine-id-derives" }
+id-newtypes = { path = "../id-newtypes", package = "engine-id-newtypes" }
+itertools.workspace = true
+operation = { path = "../operation", package = "engine-operation" }
+petgraph.workspace = true
+schema = { path = "../schema", package = "engine-schema" }
+serde.workspace = true
+strum.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+walker = { path = "../walker", package = "engine-walker" }
 
 [dev-dependencies]
 ctor.workspace = true
-similar = "2"
+insta.workspace = true
+similar.workspace = true
+tokio.workspace = true
 tracing-subscriber = { workspace = true, features = [
     "fmt",
     "tracing-log",
     "env-filter",
     "ansi",
 ] }
-insta.workspace = true
-tokio.workspace = true

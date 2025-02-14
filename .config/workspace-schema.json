@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "$defs": {
+    "dependencyEntries": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "oneOf": [
+          {
+            "properties": {
+              "workspace": {
+                "type": "boolean",
+                "enum": [true]
+              }
+            },
+            "required": ["workspace"]
+          },
+          {
+            "properties": {
+              "path": {
+                "type": "string"
+              }
+            },
+            "required": ["path"]
+          }
+        ]
+      }
+    }
+  },
+  "properties": {
+    "dependencies": { "$ref": "#/$defs/dependencyEntries" },
+    "dev-dependencies": { "$ref": "#/$defs/dependencyEntries" },
+    "build-dependencies": { "$ref": "#/$defs/dependencyEntries" }
+  }
+}

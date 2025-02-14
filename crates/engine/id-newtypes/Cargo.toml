@@ -12,8 +12,8 @@ repository = "https://github.com/grafbase/grafbase"
 workspace = true
 
 [dependencies]
-serde.workspace = true
-itertools.workspace = true
-walker = { path = "../walker", package = "engine-walker" }
 fixedbitset = { workspace = true, features = ["serde"] }
 grafbase-workspace-hack.workspace = true
+itertools.workspace = true
+serde.workspace = true
+walker = { path = "../walker", package = "engine-walker" }

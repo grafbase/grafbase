@@ -9,14 +9,14 @@ repository.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.82"
-graphql-parser = { git = "https://github.com/graphql-rust/graphql-parser", version = "0.4.0" }
-grafbase-workspace-hack.workspace = true
+anyhow.workspace = true
 cynic-parser.workspace = true
+grafbase-workspace-hack.workspace = true
+graphql-parser.workspace = true
 
 [lints]
 workspace = true
 
 [dev-dependencies]
-expect-test = "1.5.0"
+expect-test.workspace = true
 indoc.workspace = true

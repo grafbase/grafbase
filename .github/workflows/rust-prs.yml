@@ -99,6 +99,13 @@ jobs:
         run: |
           cargo fmt --check
 
+      - name: taplo fmt check
+        shell: bash
+        run: |
+          curl -fsSL https://github.com/tamasfe/taplo/releases/latest/download/taplo-full-linux-x86_64.gz | gzip -d - | install -m 755 /dev/stdin /usr/local/bin/taplo
+          taplo fmt --check
+          taplo check
+
   example-component:
     if: |
       needs.what-changed.outputs.changed-packages != '[]'

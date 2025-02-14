@@ -7,84 +7,78 @@ edition = "2021"
 workspace = true
 
 [dependencies]
-cfg-if = "1"
-axum.workspace = true
 async-graphql.workspace = true
 async-sse.workspace = true
 async-trait.workspace = true
+async-tungstenite.workspace = true
+axum.workspace = true
 bytes.workspace = true
-crossbeam-queue = "0.3"
+cfg-if.workspace = true
+crossbeam-queue.workspace = true
+ctor.workspace = true
 cynic.workspace = true
 cynic-introspection.workspace = true
+engine.workspace = true
 engine-axum.workspace = true
 engine-schema.workspace = true
-engine.workspace = true
-graphql-mocks.workspace = true
-httpsig.workspace = true
-futures = "0.3.30"
-gateway-config.workspace = true
-graphql-composition = { workspace = true, features = ["grafbase-extensions"] }
+extension-catalog.workspace = true
 federated-graph.workspace = true
+futures.workspace = true
+futures-util.workspace = true
+gateway-config.workspace = true
+grafbase-telemetry.workspace = true
+grafbase-workspace-hack.workspace = true
+graphql-composition = { workspace = true, features = ["grafbase-extensions"] }
+graphql-mocks.workspace = true
+graphql-ws-client.workspace = true
 headers.workspace = true
 http.workspace = true
-http-body-util = "0.1.0"
+http-body-util.workspace = true
+httpsig.workspace = true
 indoc.workspace = true
 insta.workspace = true
 itertools.workspace = true
 multipart-stream.workspace = true
 openidconnect.workspace = true
+ory-client.workspace = true # overridden by patch, pointing to their last release on GitHub
 reqwest.workspace = true
-serde.workspace = true
-serde_urlencoded.workspace = true
-serde_json.workspace = true
-thiserror.workspace = true
-ulid.workspace = true
-url.workspace = true
+runtime = { workspace = true, features = ["test-utils"] }
 runtime-local = { workspace = true, features = ["wasi", "redis"] }
 runtime-noop.workspace = true
-ory-client = "1.9.0" # overridden by patch, pointing to their last release on GitHub
-tracing-subscriber = { version = "0.3.18", default-features = false, features = [
+rustls = { workspace = true, features = ["ring"] }
+serde.workspace = true
+serde_json.workspace = true
+serde_urlencoded.workspace = true
+serde_with = { workspace = true, features = ["hex"] }
+tempfile.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["full"] }
+toml.workspace = true
+tower.workspace = true
+tracing.workspace = true
+tracing-subscriber = { workspace = true, default-features = false, features = [
     "fmt",
     "tracing-log",
     "env-filter",
     "ansi",
 ] }
-ctor.workspace = true
-rustls = { workspace = true, features = ["ring"] }
-toml.workspace = true
-tower.workspace = true
-tracing.workspace = true
-runtime = { workspace = true, features = ["test-utils"] }
-grafbase-workspace-hack.workspace = true
-serde_with = { workspace = true, features = ["hex"] }
-graphql-ws-client.workspace = true
-async-tungstenite.workspace = true
-futures-util.workspace = true
-extension-catalog.workspace = true
-tempfile = "3"
-dyn-clone = "1"
-
-[dependencies.tokio]
-version = "1.37"
-features = ["full"]
-
-[dependencies.grafbase-telemetry]
-workspace = true
+ulid.workspace = true
+url.workspace = true
 
 [dev-dependencies]
-mimalloc = "0.1"
 base64.workspace = true
-criterion = { version = "0.5.1", features = ["async_tokio"] }
+criterion = { workspace = true, features = ["async_tokio"] }
 cynic-parser.workspace = true
-ed25519-compact = "2"
-elliptic-curve = "0.13"
+ed25519-compact.workspace = true
+elliptic-curve.workspace = true
 headers.workspace = true
 hex.workspace = true
-pretty_assertions = "1"
+mimalloc.workspace = true
+pretty_assertions.workspace = true
 rand.workspace = true
 rstest.workspace = true
 sha2.workspace = true
-similar-asserts = { version = "1.5", features = ["serde"] }
+similar-asserts = { workspace = true, features = ["serde"] }
 
 [target.'cfg(unix)'.dependencies]
 pprof = { workspace = true, features = ["criterion", "flamegraph"] }

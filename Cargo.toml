@@ -41,7 +41,10 @@ keywords = ["grafbase"]
 repository = "https://github.com/grafbase/grafbase"
 
 [workspace.dependencies]
-anyhow = "1"
+anyhow = { version = "1", default-features = false }
+ascii = "1"
+askama = "0.12"
+assert_matches = "1"
 async-graphql = "7.0.15"
 async-graphql-axum = "7.0.15"
 async-graphql-parser = "7.0.15"
@@ -50,135 +53,213 @@ async-sse = "5"
 async-trait = "0.1.80"
 async-tungstenite = "0.28.0"
 axum = { version = "0.8.0", default-features = false }
+axum-extra = "0.10"
 axum-server = { version = "0.7", default-features = false }
+backtrace = "0.3"
 base64 = "0.22.1"
 bitflags = "2"
 bitvec = "1"
 blake3 = "1.5.1"
 bytes = "1.6.0"
+case = "1"
+cfg-if = "1"
 chrono = { version = "0.4.38", default-features = false }
+clap = "4"
+clap_complete = "4.5"
+cli-table = { version = "0.4", default-features = false }
+clickhouse = "0.13"
+colored = "3"
+const_format = "0.2"
+convert_case = "0.7"
+criterion = "0.5"
+crossbeam = "0.8"
+crossbeam-queue = "0.3"
+crossterm = "0.28"
 ctor = "0.2.8"
 cynic = "3.9"
 cynic-codegen = { version = "3.9", features = ["rkyv"] }
 cynic-introspection = "3.9"
 cynic-parser = "0.8.7"
 cynic-parser-deser = "0.8.7"
+dashmap = "6.1"
 datatest-stable = "0.3.0"
 deadpool = { version = "0.12.1", features = ["rt_tokio_1"] }
 derive_more = "2.0.0"
-jwt-compact = "0.8"
+dirs = "6"
+duct = "0.13"
+duration-str = "0.13"
+ed25519-compact = "2"
+either = "1.13"
+elliptic-curve = "0.13"
+enumflags2 = "0.7"
+expect-test = "1.5"
 fixedbitset = "0.5"
+flate2 = "1"
+fnv = "1.0.7"
 form_urlencoded = "1"
+fslock = "0.2"
 futures = "0.3.30"
 futures-channel = "0.3.30"
 futures-lite = "2"
 futures-util = "0.3.30"
 fxhash = "0.2"
+governor = "0.8"
+graphql-parser = { git = "https://github.com/graphql-rust/graphql-parser", version = "0.4.0" }
 graphql-ws-client = { version = "0.11.0", features = ["tungstenite"] }
 handlebars = "6.0.0"
+hashbrown = "0.15"
 headers = "0.4"
+heck = "0.5"
 hex = "0.4.3"
 http = "1.1.0"
+http-body = "1"
+http-body-util = "0.1"
 httpsig = "0.0.17"
 httpsig-hyper = "0.0.17"
 hyper = { version = "1.3.1", features = ["http2"] }
 hyper-util = "0.1.3"
+ignore = "0.4"
+im = "15"
 indexmap = "2.2.6"
+indicatif = "0.17"
 indoc = "2"
+inquire = "0.7"
 insta = { version = "1.39.0", features = ["json", "redactions", "glob"] }
 internment = { version = "0.8", features = ["serde", "arc"] }
 itertools = "0.14.0"
 jsonwebtoken = "9.3.0"
+jwt-compact = "0.8"
 lambda_http = "0.14.0"
-governor = "0.8"
-minicbor-serde = "0.3.2"
-mini-moka = "0.10"
-miette = "7.4"
-multipart-stream = "0.1.2"
+lasso2 = "0.8"
+libtest-mimic = "0.8"
+log = "0.4"
 mediatype = "0.19"
+miette = "7.4"
+mimalloc = "0.1"
+mime = "0.3"
+mini-moka = "0.10"
+minicbor-serde = "0.3.2"
+multipart-stream = "0.1.2"
+notify = "8"
+notify-debouncer-full = "0.5"
 num-traits = "0.2.18"
 openidconnect = "4.0.0-rc.1"
+opentelemetry = "0.27"
+opentelemetry-appender-tracing = "0.27"
+opentelemetry-aws = "0.15"
+opentelemetry-otlp = "0.27"
+opentelemetry-stdout = "0.27"
+opentelemetry_sdk = "0.27"
+ory-client = "1.9"
+os_type = "2"
+p256 = "0.13"
+p384 = "0.13"
+percent-encoding = "2"
 petgraph = "0.7"
-pprof = "0.14"
 postcard = { version = "1", features = ["use-std"] }
-ramhorns = { git = "https://github.com/grafbase/ramhorns", branch = "grafbase", default-features = false, features = ["indexes", "export_derive"] }
+pprof = "0.14"
+pretty_assertions = "1"
+proc-macro2 = "1"
+quote = "1"
+ramhorns = { git = "https://github.com/grafbase/ramhorns", branch = "grafbase", default-features = false, features = [
+    "indexes",
+    "export_derive",
+] }
 rand = "0.8"
-regex = "1.10.4"
+rapidhash = "1"
 redis = { version = "0.28.0", features = [
     "tokio-rustls-comp",
     "connection-manager",
 ] }
+regex = "1.10.4"
 reqwest = { version = "0.12.8", default-features = false, features = ["http2"] }
+reqwest-eventsource = "0.6"
 rmp-serde = "1.3.0"
 rstest = "0.24"
 rustls = { version = "0.23.5", default-features = false }
 rustls-pemfile = { version = "2.1.2", default-features = false }
 rustls-webpki = { version = "0.102.3", default-features = false }
 secrecy = "0.10"
+semver = "1"
 send_wrapper = "0.6"
+serde = { version = "1.0.199", features = ["derive"] }
+serde-toml-merge = "0.3"
+serde-value = "0.7"
+serde_derive = "1"
+serde_dynamo = "4.2.14"
+serde_json = { version = "1.0.116", features = ["preserve_order"] }
+serde_path_to_error = "0.1"
+serde_regex = "1"
+serde_urlencoded = "0.7"
+serde_valid = "1"
+serde_with = "3.8.1"
+sha2 = "0.10.8"
+similar = "2.5"
+similar-asserts = "1.5"
+size = "0.5.0-preview2"
+slugify = "0.1"
 strum = "0.26.2"
 strum_macros = "0.26.2"
+syn = "2"
+syntect = "5"
 tar = "0.4.40"
+temp-env = "0.3"
+tempfile = "3.16"
 thiserror = "2.0.0"
 tokio = "1.37.0"
 tokio-rustls = { version = "0.26.0", default-features = false }
+tokio-stream = "0.1"
 tokio-tungstenite = { version = "0.26.0", default-features = false }
+tokio-util = "0.7"
 toml = "0.8"
-tungstenite = { version = "0.26.0", default-features = false }
 tonic = "0.12.0"
 tower = "0.5.0"
 tower-http = "0.6.0"
 tower-service = "0.3.2"
-url = "2.5.0"
-uuid = "1.8.0"
-ulid = "1.1.2"
-which = "7.0.0"
-wiremock = "0.6.0"
-wit-bindgen = "0.38.0"
-fnv = "1.0.7"
-sha2 = "0.10.8"
-semver = "1"
-
-# Serde
-serde = { version = "1.0.199", features = ["derive"] }
-serde_dynamo = "4.2.14"
-serde_json = { version = "1.0.116", features = ["preserve_order"] }
-serde_urlencoded = "0.7"
-serde_with = "3.8.1"
-
-# Tracing
 tracing = "0.1.40"
-tracing-subscriber = "0.3.18"
 tracing-futures = "0.2.5"
 tracing-mock = "0.1"
 tracing-opentelemetry = "0.28"
-opentelemetry = "0.27"
-opentelemetry_sdk = "0.27"
-opentelemetry-stdout = "0.27"
-opentelemetry-otlp = "0.27"
-opentelemetry-appender-tracing = "0.27"
+tracing-subscriber = { version = "0.3.18", default-features = false }
+tungstenite = { version = "0.26.0", default-features = false }
+ulid = "1.1.2"
+url = "2.5.0"
+urlencoding = "2.1"
+uuid = "1.8.0"
+wasmparser = "0.224.0"
+wasmtime = "29"
+wasmtime-wasi = "29"
+wasmtime-wasi-http = "29"
+webbrowser = "1"
+which = "7.0.0"
+wiremock = "0.6.0"
+wit-bindgen = "0.38.0"
+xshell = "0.2"
 
 # Common
-graph-ref = { path = "crates/graph-ref" }
-graphql-schema-validation = { path = "crates/graphql-schema-validation" }
 grafbase-graphql-introspection = { path = "crates/grafbase-graphql-introspection" }
+graph-ref = { path = "crates/graph-ref" }
+graphql-federated-graph = { path = "crates/graphql-federated-graph" }
 graphql-lint = { path = "crates/graphql-lint" }
+graphql-schema-validation = { path = "crates/graphql-schema-validation" }
 
 # Gateway
-federated-server = { path = "crates/federated-server" }
-gateway-config = { path = "crates/gateway-config" }
-rolling-logger = { path = "crates/rolling-logger" }
-grafbase-sdk = { path = "crates/grafbase-sdk" }
 extension = { path = "crates/extension" }
 extension-catalog = { path = "crates/extension-catalog" }
+federated-server = { path = "crates/federated-server" }
+gateway-config = { path = "crates/gateway-config" }
+grafbase-sdk = { path = "crates/grafbase-sdk" }
+rolling-logger = { path = "crates/rolling-logger" }
 
 # Engine
 engine = { path = "crates/engine" }
-engine-schema = { path = "crates/engine/schema" }
 engine-auth = { path = "crates/engine/auth" }
 engine-axum = { path = "crates/engine/axum" }
+engine-schema = { path = "crates/engine/schema" }
 federated-graph = { path = "crates/graphql-federated-graph", package = "graphql-federated-graph" }
+grafbase-hooks = { path = "crates/grafbase-hooks" }
 grafbase-telemetry = { path = "crates/telemetry" }
+grafbase-workspace-hack = { path = "crates/grafbase-workspace-hack", version = "0.1" }
 graphql-composition = { path = "crates/graphql-composition" }
 graphql-mocks = { path = "crates/graphql-mocks" }
 operation-normalizer = { path = "crates/operation-normalizer" }
@@ -186,8 +267,6 @@ runtime = { path = "crates/runtime" }
 runtime-local = { path = "crates/runtime-local" }
 runtime-noop = { path = "crates/runtime-noop" }
 serde-dynamic-string = { path = "crates/serde-dynamic-string" }
-grafbase-hooks = { path = "crates/grafbase-hooks" }
-grafbase-workspace-hack = { path = "crates/grafbase-workspace-hack", version = "0.1" }
 wrapping = { path = "crates/graphql-wrapping-types", package = "graphql-wrapping-types" }
 
 [profile.bench]

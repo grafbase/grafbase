@@ -5,4 +5,3 @@ publish = false
 
 [dependencies]
 grafbase-workspace-hack.workspace = true
-
