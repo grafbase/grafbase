@@ -39,7 +39,7 @@ fn main() -> anyhow::Result<()> {
 
         let config = ServerConfig {
             listen_addr: args.listen_address(),
-            config_receiver: config_recevier(config),
+            config_receiver: config_receiver(config),
             config_path: args.config_path().map(|p| p.to_owned()),
             config_hot_reload: args.hot_reload(),
             fetch_method: args.fetch_method()?,
@@ -57,7 +57,7 @@ fn main() -> anyhow::Result<()> {
     })
 }
 
-fn config_recevier(config: gateway_config::Config) -> watch::Receiver<gateway_config::Config> {
+fn config_receiver(config: gateway_config::Config) -> watch::Receiver<gateway_config::Config> {
     let (sender, receiver) = watch::channel(config);
 
     // Leak the sender so the channel never closes
