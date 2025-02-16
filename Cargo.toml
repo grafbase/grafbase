@@ -23,6 +23,7 @@ exclude = [
     "examples/hooks-template",
     "examples/query_plan",
     "extensions/rest",
+    "extensions/snowflake",
     "extensions/jwt",
 ]
 
