@@ -1,0 +1,19 @@
+"""
+Snowflake extension configuration directive
+"""
+directive @snowflakeConfiguration(
+  account: String!
+  username: String!
+  password: String!
+  database: String!
+  warehouse: String!
+  role: String
+) repeatable on SCHEMA
+
+"""
+Execute a Snowflake SQL query
+"""
+directive @snowflakeQuery(
+  sql: String!
+  params: [String!]
+) on FIELD_DEFINITION 

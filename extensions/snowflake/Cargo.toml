@@ -1,0 +1,30 @@
+[package]
+name = "grafbase-snowflake-extension"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+
+[lib]
+crate-type = ["cdylib"]
+
+[profile.release]
+opt-level = "z"
+strip = true
+lto = true
+codegen-units = 1
+
+[dependencies]
+grafbase-sdk = { path = "../../crates/grafbase-sdk" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+snowflake-api = "0.6"
+tokio = { version = "1", features = ["rt"] }
+deadpool = "0.9"
+thiserror = "1.0"
+tracing = "0.1"
+
+[dev-dependencies]
+indoc = "2"
+insta = { version = "1.42.1", features = ["json"] }
+grafbase-sdk = { path = "../../crates/grafbase-sdk", features = ["test-utils"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "test-util"] } 
