@@ -64,7 +64,7 @@ impl GrafbaseResponseExtension {
                 }),
                 Resolver::FieldResolverExtension(resolver) => {
                     QueryPlanNode::FieldResolverExtension(FieldResolverExtensionNode {
-                        subgraph_name: resolver.definition.walk(ctx).directive().subgraph().name().to_string(),
+                        subgraph_name: resolver.directive_id.walk(ctx).subgraph().name().to_string(),
                     })
                 }
             });

@@ -51,8 +51,9 @@ impl Solver<'_> {
         let mut required_fields = Vec::new();
         while let Some(i) = dependencies.iter().position_min() {
             let start = dependencies.swap_remove(i);
+            let data_field_id = self.get_field_id_for(start).unwrap();
             required_fields.push(RequiredFieldSetItemRecord {
-                data_field_id: self.get_field_id_for(start).unwrap(),
+                data_field_id,
                 subselection_record: self.create_subselection(start, &mut dependencies),
             });
         }

@@ -6,7 +6,7 @@ use runtime::{
     error::PartialGraphqlError,
     extension::{Data, ExtensionFieldDirective, ExtensionRuntime},
 };
-use schema::{FieldResolverExtensionDefinition, FieldResolverExtensionDefinitionRecord};
+use schema::{ExtensionDirectiveId, FieldResolverExtensionDefinition};
 use walker::Walk;
 
 use crate::{
@@ -19,13 +19,13 @@ use crate::{
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct FieldResolverExtension {
-    pub definition: FieldResolverExtensionDefinitionRecord,
+    pub directive_id: ExtensionDirectiveId,
 }
 
 impl FieldResolverExtension {
     pub(in crate::resolver) fn prepare(definition: FieldResolverExtensionDefinition<'_>) -> Resolver {
         Resolver::FieldResolverExtension(Self {
-            definition: *definition,
+            directive_id: definition.directive_id,
         })
     }
 
@@ -36,7 +36,7 @@ impl FieldResolverExtension {
         root_response_objects: ResponseObjectsView<'_>,
         subgraph_response: SubgraphResponse,
     ) -> FieldResolverExtensionRequest<'ctx> {
-        let directive = self.definition.walk(ctx.schema()).directive();
+        let directive = self.directive_id.walk(ctx.schema());
         let field = plan
             .selection_set()
             .fields()

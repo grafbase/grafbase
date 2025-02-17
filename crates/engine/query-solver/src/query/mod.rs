@@ -6,7 +6,9 @@ use bitflags::bitflags;
 use id_newtypes::IdRange;
 use operation::{FieldArgumentId, Location, OperationContext, QueryPosition, ResponseKey};
 use petgraph::{visit::GraphBase, Graph};
-use schema::{CompositeTypeId, EntityDefinitionId, FieldDefinitionId, ResolverDefinitionId, SchemaFieldArgumentId};
+use schema::{
+    CompositeTypeId, EntityDefinitionId, FieldDefinitionId, ResolverDefinitionId, SchemaFieldArgumentId, SchemaFieldId,
+};
 use walker::Walk;
 
 #[derive(Debug, Clone, Copy)]
@@ -94,6 +96,7 @@ pub struct QueryField {
     pub subgraph_key: Option<ResponseKey>,
     // If absent it's a typename field.
     pub definition_id: Option<FieldDefinitionId>,
+    pub matching_field_id: Option<SchemaFieldId>,
     pub argument_ids: QueryOrSchemaFieldArgumentIds,
     pub location: Location,
     pub flat_directive_id: Option<DeduplicatedFlatExecutableDirectivesId>,

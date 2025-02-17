@@ -4,12 +4,9 @@ use strum::IntoEnumIterator as _;
 use cynic_parser_deser::ConstDeserializer;
 use federated_graph::link::LinkDirective;
 
-use crate::extension::ExtensionDirectiveArgumentRecord;
-
 use super::{
-    BuildError, Context, ExtensionDirectiveArgumentsCoercer, ExtensionDirectiveArgumentsError, ExtensionDirectiveId,
-    ExtensionDirectiveLocationError, ExtensionDirectiveRecord, FieldSetRecord, GraphContext, InputValueError,
-    SchemaLocation,
+    BuildError, Context, ExtensionDirectiveArgumentsError, ExtensionDirectiveId, ExtensionDirectiveLocationError,
+    ExtensionDirectiveRecord, FieldSetRecord, GraphContext, SchemaLocation,
 };
 
 const GRAFBASE_SPEC_URL: &str = "https://specs.grafbase.com/grafbase";

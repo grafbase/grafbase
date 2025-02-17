@@ -119,10 +119,10 @@ impl GraphContext<'_> {
         let subgraph_id = self.graph[id].subgraph_id;
         match subgraph_id {
             SubgraphId::GraphqlEndpoint(subgraph_id) => {
-                self.subgraphs[subgraph_id].schema_directive_ids.push(id.into());
+                self.subgraphs[subgraph_id].schema_directive_ids.push(id);
             }
             SubgraphId::Virtual(subgraph_id) => {
-                self.subgraphs[subgraph_id].schema_directive_ids.push(id.into());
+                self.subgraphs[subgraph_id].schema_directive_ids.push(id);
             }
             SubgraphId::Introspection => unreachable!(),
         }

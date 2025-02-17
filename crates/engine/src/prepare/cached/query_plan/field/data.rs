@@ -1,7 +1,7 @@
 use id_newtypes::IdRange;
 use operation::{Location, QueryPosition, ResponseKey};
 use query_solver::TypeConditionSharedVecId;
-use schema::{CompositeType, FieldDefinition, FieldDefinitionId};
+use schema::{CompositeType, FieldDefinition, FieldDefinitionId, SchemaFieldId};
 use walker::{Iter, Walk};
 
 use crate::prepare::{
@@ -23,6 +23,7 @@ pub(crate) struct PartitionDataFieldRecord {
     pub location: Location,
     pub argument_ids: query_solver::QueryOrSchemaFieldArgumentIds,
     pub definition_id: FieldDefinitionId,
+    pub matching_field_id: Option<SchemaFieldId>,
 
     pub required_fields_record: RequiredFieldSetRecord,
     /// Requirement of @authorized, etc.

@@ -9,7 +9,7 @@ use crate::{
 use cynic_parser::{
     common::{TypeWrappersIter, WrappingType},
     type_system::{
-        Definition, DirectiveDefinition, EnumDefinition, InputObjectDefinition, InputValueDefinition, Iter, Type,
+        Definition, DirectiveDefinition, EnumDefinition, InputObjectDefinition, InputValueDefinition, Type,
         TypeDefinition,
     },
     ConstValue,

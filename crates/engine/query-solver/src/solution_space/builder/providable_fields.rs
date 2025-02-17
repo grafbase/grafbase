@@ -444,54 +444,58 @@ where
                 })
                 .filter(|(_, field)| self.is_field_equivalent(field.id, required_item))
                 // not sure if necessary but provides consistency
-                .min_by_key(|(_, field)| field.id);
+                .min_by_key(|(_, field)| field.id)
+                .map(|(node_ix, field)| (node_ix, field.id));
 
             // Create the required field otherwise.
-            let (query_field_node_ix, query_field_id) = if let Some((query_field_node_ix, node)) = existing_field {
-                (query_field_node_ix, node.id)
-            } else {
-                // Create the QueryField Node
-                let query_field_id = self.query.fields.len().into();
-                self.query.fields.push(QueryField {
-                    type_conditions: {
-                        let start = self.query.shared_type_conditions.len();
-                        let tyc = required_item.field().definition().parent_entity_id.as_composite_type();
-                        if tyc != parent_output_type {
-                            self.query.shared_type_conditions.push(tyc);
-                        }
-                        (start..self.query.shared_type_conditions.len()).into()
-                    },
-                    query_position: None,
-                    response_key: None,
-                    subgraph_key: None,
-                    definition_id: Some(required_item.field().definition_id),
-                    argument_ids: QueryOrSchemaFieldArgumentIds::Schema(required_item.field().sorted_argument_ids),
-                    location: self.query[petitioner_field_id].location,
-                    flat_directive_id: Default::default(),
-                });
-                self.providable_fields_bitset.push(false);
-                self.deleted_fields_bitset.push(false);
+            let (query_field_node_ix, query_field_id) =
+                if let Some((query_field_node_ix, query_field_id)) = existing_field {
+                    self.query[query_field_id].matching_field_id = Some(required_item.field_id);
+                    (query_field_node_ix, query_field_id)
+                } else {
+                    // Create the QueryField Node
+                    let query_field_id = self.query.fields.len().into();
+                    self.query.fields.push(QueryField {
+                        type_conditions: {
+                            let start = self.query.shared_type_conditions.len();
+                            let tyc = required_item.field().definition().parent_entity_id.as_composite_type();
+                            if tyc != parent_output_type {
+                                self.query.shared_type_conditions.push(tyc);
+                            }
+                            (start..self.query.shared_type_conditions.len()).into()
+                        },
+                        query_position: None,
+                        response_key: None,
+                        subgraph_key: None,
+                        definition_id: Some(required_item.field().definition_id),
+                        matching_field_id: Some(required_item.field_id),
+                        argument_ids: QueryOrSchemaFieldArgumentIds::Schema(required_item.field().sorted_argument_ids),
+                        location: self.query[petitioner_field_id].location,
+                        flat_directive_id: Default::default(),
+                    });
+                    self.providable_fields_bitset.push(false);
+                    self.deleted_fields_bitset.push(false);
 
-                let query_field_node_ix = self.push_query_field_node(
-                    query_field_id,
-                    if indispensable {
-                        FieldFlags::EXTRA | FieldFlags::INDISPENSABLE
-                    } else {
-                        FieldFlags::EXTRA
-                    },
-                );
-                self.query
-                    .graph
-                    .add_edge(parent_query_field_node_ix, query_field_node_ix, SpaceEdge::Field);
-                self.create_providable_fields_task_for_new_field(
-                    parent_query_field_node_ix,
-                    parent_output_type,
-                    query_field_node_ix,
-                    query_field_id,
-                );
+                    let query_field_node_ix = self.push_query_field_node(
+                        query_field_id,
+                        if indispensable {
+                            FieldFlags::EXTRA | FieldFlags::INDISPENSABLE
+                        } else {
+                            FieldFlags::EXTRA
+                        },
+                    );
+                    self.query
+                        .graph
+                        .add_edge(parent_query_field_node_ix, query_field_node_ix, SpaceEdge::Field);
+                    self.create_providable_fields_task_for_new_field(
+                        parent_query_field_node_ix,
+                        parent_output_type,
+                        query_field_node_ix,
+                        query_field_id,
+                    );
 
-                (query_field_node_ix, query_field_id)
-            };
+                    (query_field_node_ix, query_field_id)
+                };
 
             self.query
                 .graph
