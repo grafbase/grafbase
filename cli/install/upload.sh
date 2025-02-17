@@ -25,13 +25,14 @@ aws configure set default.s3.multipart_chunksize 128MB
 s3_path="s3://${bucket_name}/${key}"
 echo "Uploading to: $s3_path"
 
+# See https://developers.cloudflare.com/r2/examples/aws/aws-cli/ for the rationale behind the checksum algorithm: it is a compatibility issue between AWS CLI and R2.
 env -i \
     PATH="$PATH" \
     AWS_PAGER=0 \
     AWS_REGION=auto \
     AWS_ACCESS_KEY_ID="$CLOUDFLARE_ASSETS_R2_ACCESS_KEY_ID" \
     AWS_SECRET_ACCESS_KEY="$CLOUDFLARE_ASSETS_R2_SECRET_ACCESS_KEY" \
-    aws --endpoint-url "$endpoint_url" s3 cp --no-progress "$1" "$s3_path"
+    aws --endpoint-url "$endpoint_url" s3 cp --no-progress "$1" "$s3_path" --checksum-algorithm=CRC32
 
 env -i \
     PATH="$PATH" \
@@ -39,6 +40,6 @@ env -i \
     AWS_REGION=auto \
     AWS_ACCESS_KEY_ID="$CLOUDFLARE_ASSETS_R2_ACCESS_KEY_ID" \
     AWS_SECRET_ACCESS_KEY="$CLOUDFLARE_ASSETS_R2_SECRET_ACCESS_KEY" \
-    aws --endpoint-url "$endpoint_url" s3 ls "$s3_path" --human-readable
+    aws --endpoint-url "$endpoint_url" s3 ls "$s3_path" --human-readable --checksum-algorithm=CRC32
 
 echo "Done."
