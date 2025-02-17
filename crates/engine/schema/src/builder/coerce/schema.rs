@@ -181,35 +181,33 @@ impl GraphContext<'_> {
         }
     }
 
-    fn coerce_input_object_fed_value(
+    fn coerce_input_object_cynic_value(
         &mut self,
         input_object_id: InputObjectDefinitionId,
-        value: Value,
+        obj: ConstValue,
     ) -> Result<SchemaInputValueRecord, InputValueError> {
         let input_object = &self.graph[input_object_id];
-        let Value::Object(fields) = value else {
+        let ConstValue::Object(obj) = obj else {
             return Err(InputValueError::MissingObject {
                 name: self.ctx.strings[input_object.name_id].to_string(),
-                actual: value.into(),
+                actual: obj.into(),
                 path: self.path(),
             });
         };
 
         let mut fields_buffer = self.input_fields_buffer_pool.pop().unwrap_or_default();
-        let mut fields = Vec::from(fields);
+        let mut fields = obj.fields().collect::<Vec<_>>();
+
         for input_field_id in input_object.input_field_ids {
             let input_field = &self.graph[input_field_id];
             let name_id = input_field.name_id;
             let ty_record = input_field.ty_record;
             let default_value_id = input_field.default_value_id;
 
-            if let Some(index) = fields
-                .iter()
-                .position(|(id, _)| self.federated_graph[*id] == self.ctx.strings[name_id])
-            {
-                let (_, value) = fields.swap_remove(index);
+            if let Some(index) = fields.iter().position(|field| field.name() == self.ctx.strings[name_id]) {
+                let field = fields.swap_remove(index);
                 self.value_path.push(input_field.name_id.into());
-                let value = self.coerce_input_fed_value(ty_record, value)?;
+                let value = self.coerce_input_cynic_value(ty_record, field.value())?;
                 fields_buffer.push((input_field_id, value));
                 self.value_path.pop();
             } else if let Some(default_value_id) = default_value_id {
@@ -223,10 +221,10 @@ impl GraphContext<'_> {
             }
         }
 
-        if let Some((id, _)) = fields.first() {
+        if let Some(field) = fields.first() {
             return Err(InputValueError::UnknownInputField {
                 input_object: self.ctx.strings[self.graph[input_object_id].name_id].to_string(),
-                name: self.federated_graph[*id].to_string(),
+                name: field.name().to_string(),
                 path: self.path(),
             });
         }
