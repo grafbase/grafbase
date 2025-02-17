@@ -1548,6 +1548,7 @@ dependencies = [
  "serde_json",
  "serde_urlencoded",
  "tempfile",
+ "tokio",
  "toml",
  "url",
  "which 7.0.2",
@@ -1572,7 +1573,7 @@ dependencies = [
  "async-graphql-axum",
  "axum",
  "cynic-parser",
- "grafbase-workspace-hack 0.1.0",
+ "grafbase-workspace-hack",
  "serde",
  "serde_json",
  "tokio",
@@ -1585,6 +1586,7 @@ version = "0.1.0"
 dependencies = [
  "ahash 0.8.11",
  "aho-corasick",
+ "anyhow",
  "arrayvec 0.7.6",
  "ascii",
  "axum",
@@ -1718,16 +1720,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "grafbase-workspace-hack"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ebfd7fd1a0e3427f3e6c9ef7bc4e0d2f05c9e94ecf859176cdf297212fe8f06e"
-
-[[package]]
 name = "graphql-composition"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db2967e890033c51901c701518daa689ce6cbccb37859c216ddfd2571018833f"
+version = "0.6.1"
 dependencies = [
  "cynic-parser",
  "cynic-parser-deser",
@@ -1740,13 +1734,11 @@ dependencies = [
 [[package]]
 name = "graphql-federated-graph"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "895a55bf1a7fcc72ec3908239921a11b0cf661fe3a6cfc550e89a2a6e0580fac"
 dependencies = [
  "bitflags 2.8.0",
  "cynic-parser",
  "cynic-parser-deser",
- "grafbase-workspace-hack 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "grafbase-workspace-hack",
  "graphql-wrapping-types",
  "indexmap 2.7.1",
  "indoc",
@@ -1758,10 +1750,8 @@ dependencies = [
 [[package]]
 name = "graphql-wrapping-types"
 version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "165aca8d4b7bba95daaac55f7e1e139475043a674768a659a4da80792ff74f96"
 dependencies = [
- "grafbase-workspace-hack 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "grafbase-workspace-hack",
  "serde",
 ]
 
@@ -4694,7 +4684,6 @@ dependencies = [
  "serde",
  "serde_json",
  "sharded-slab",
- "smallvec",
  "thread_local",
  "tracing",
  "tracing-core",

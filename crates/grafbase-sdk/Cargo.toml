@@ -21,7 +21,6 @@ test-utils = [
     "dep:tempfile",
     "dep:toml",
     "dep:which",
-    "dep:futures-util",
     "dep:graphql-composition",
     "dep:graphql-federated-graph",
     "dep:grafbase-sdk-mock",
@@ -29,12 +28,15 @@ test-utils = [
 graphql-federated-graph = ["dep:graphql-federated-graph"]
 
 [dependencies]
+futures-util = { workspace = true }
 grafbase-sdk-derive = { path = "derive" }
 http.workspace = true
 minicbor-serde = { workspace = true, features = ["alloc"] }
 serde.workspace = true
 serde_json.workspace = true
 serde_urlencoded.workspace = true
+tokio = { version = "1", features = ["rt", "net", "sync"] }
+# tokio = { git = "https://github.com/pimeys/tokio", branch = "wasip2", features = ["rt", "net", "sync"] }
 url.workspace = true
 wit-bindgen.workspace = true
 
@@ -42,7 +44,6 @@ wit-bindgen.workspace = true
 anyhow = { workspace = true, optional = true }
 duct = { workspace = true, optional = true }
 fslock = { workspace = true, optional = true }
-futures-util = { workspace = true, optional = true }
 grafbase-sdk-mock = { path = "mock", optional = true }
 graphql-composition = { workspace = true, features = [
     "grafbase-extensions",

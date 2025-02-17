@@ -87,6 +87,7 @@ impl ComponentInstance {
                 Some(function)
             }
             Err(e) => {
+                dbg!(&e);
                 // Shouldn't happen, so we keep spamming errors to be sure it's seen.
                 tracing::error!("error instantizing the {function_name} hook Wasm function: {e}");
                 None

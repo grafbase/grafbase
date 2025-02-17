@@ -5,6 +5,7 @@ edition = "2021"
 license = "Apache-2.0"
 
 [dependencies]
+futures-util = "0.3.31"
 grafbase-sdk.workspace = true
 serde.workspace = true
 

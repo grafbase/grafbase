@@ -1,3 +1,5 @@
+use futures_util::future::LocalBoxFuture;
+
 use crate::{
     types::{Configuration, Directive, FieldDefinition, FieldInputs, FieldOutput},
     wit::{Error, SharedContext},
@@ -5,12 +7,13 @@ use crate::{
 
 use super::Extension;
 
-type InitFn = Box<dyn Fn(Vec<Directive>, Configuration) -> Result<Box<dyn Resolver>, Box<dyn std::error::Error>>>;
+type InitFn =
+    Box<dyn Fn(Vec<Directive>, Configuration) -> Result<Box<dyn Resolver + Send + Sync>, Box<dyn std::error::Error>>>;
 
-pub(super) static mut EXTENSION: Option<Box<dyn Resolver>> = None;
+pub(super) static mut EXTENSION: Option<Box<dyn Resolver + Send + Sync>> = None;
 pub static mut INIT_FN: Option<InitFn> = None;
 
-pub(super) fn get_extension() -> Result<&'static mut dyn Resolver, Error> {
+pub(super) fn get_extension() -> Result<&'static mut (dyn Resolver + Send + Sync), Error> {
     // Safety: This is hidden, only called by us. Every extension call to an instance happens
     // in a single-threaded environment. Do not call this multiple times from different threads.
     unsafe {
@@ -51,23 +54,11 @@ pub fn register(f: InitFn) {
 /// resolution logic needs to be encapsulated within a resolver object, allowing for modular
 /// and reusable code design.
 pub trait Resolver: Extension {
-    /// Resolves a field value based on the given context, directive, definition, and inputs.
-    ///
-    /// # Arguments
-    ///
-    /// * `context` - The shared context containing runtime information
-    /// * `directive` - The directive associated with this field resolution
-    /// * `definition` - The field definition containing metadata
-    /// * `inputs` - The input values provided for this field
-    ///
-    /// # Returns
-    ///
-    /// Returns a `Result` containing either the resolved `FieldOutput` value or an `Error`
     fn resolve_field(
         &mut self,
         context: SharedContext,
         directive: Directive,
         definition: FieldDefinition,
         inputs: FieldInputs,
-    ) -> Result<FieldOutput, Error>;
+    ) -> LocalBoxFuture<'_, Result<FieldOutput, Error>>;
 }

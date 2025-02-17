@@ -1,7 +1,8 @@
 mod types;
 
+use futures_util::future::LocalBoxFuture;
 use grafbase_sdk::{
-    host_io::http::{self, HttpRequest, Url},
+    host_io::http::Url,
     types::{Configuration, Directive, FieldDefinition, FieldInputs, FieldOutput},
     Error, Extension, Resolver, ResolverExtension, SharedContext,
 };
@@ -10,18 +11,23 @@ use jaq_core::{
     Compiler, Ctx, Filter, Native, RcIter,
 };
 use jaq_json::Val;
-use std::collections::HashMap;
+use rustls::client::WebPkiServerVerifier;
+use std::{collections::HashMap, sync::Arc};
 use types::{Rest, RestEndpoint};
 
 #[derive(ResolverExtension)]
 struct RestExtension {
+    http_client: reqwest::Client,
     endpoints: Vec<RestEndpoint>,
     filters: HashMap<String, Filter<Native<Val>>>,
-    arena: Arena,
 }
 
 impl Extension for RestExtension {
     fn new(schema_directives: Vec<Directive>, _: Configuration) -> Result<Self, Box<dyn std::error::Error>> {
+        rustls_rustcrypto::provider()
+            .install_default()
+            .expect("could not install crypto provider");
+
         let mut endpoints = Vec::<RestEndpoint>::new();
 
         for directive in schema_directives {
@@ -39,12 +45,22 @@ impl Extension for RestExtension {
             by_name.then(by_subgraph)
         });
 
-        let arena = Arena::default();
+        let root_store = rustls::RootCertStore {
+            roots: webpki_roots::TLS_SERVER_ROOTS.to_vec(),
+        };
+
+        let verifier = WebPkiServerVerifier::builder(Arc::new(root_store)).build()?;
+
+        let config = rustls::ClientConfig::builder()
+            .with_webpki_verifier(verifier)
+            .with_no_client_auth();
+
+        let http_client = reqwest::Client::builder().use_preconfigured_tls(config).build()?;
 
         Ok(Self {
             endpoints,
             filters: HashMap::new(),
-            arena,
+            http_client,
         })
     }
 }
@@ -70,8 +86,9 @@ impl RestExtension {
             };
 
             let loader = Loader::new(jaq_std::defs().chain(jaq_json::defs()));
+            let arena = Arena::default();
 
-            let modules = loader.load(&self.arena, program).map_err(|e| {
+            let modules = loader.load(&arena, program).map_err(|e| {
                 let error = e.first().map(|e| e.0.code).unwrap_or_default();
 
                 Error {
@@ -106,80 +123,82 @@ impl Resolver for RestExtension {
         directive: Directive,
         _: FieldDefinition,
         _: FieldInputs,
-    ) -> Result<FieldOutput, Error> {
-        let rest: Rest<'_> = directive.arguments().map_err(|e| Error {
-            extensions: Vec::new(),
-            message: format!("Could not parse directive arguments: {e}"),
-        })?;
-
-        let Some(endpoint) = self.get_endpoint(rest.endpoint, directive.subgraph_name()) else {
-            return Err(Error {
+    ) -> LocalBoxFuture<Result<FieldOutput, Error>> {
+        Box::pin(async move {
+            let rest: Rest<'_> = directive.arguments().map_err(|e| Error {
                 extensions: Vec::new(),
-                message: format!("Endpoint not found: {}", rest.endpoint),
-            });
-        };
-
-        let mut url = Url::parse(&endpoint.args.base_url).map_err(|e| Error {
-            extensions: Vec::new(),
-            message: format!("Could not parse URL: {e}"),
-        })?;
-
-        let path = rest.http.path.strip_prefix("/").unwrap_or(rest.http.path);
-
-        if !path.is_empty() {
-            let mut path_segments = url.path_segments_mut().map_err(|_| Error {
-                extensions: Vec::new(),
-                message: "Could not parse URL".to_string(),
+                message: format!("Could not parse directive arguments: {e}"),
             })?;
 
-            path_segments.push(path);
-        }
-
-        let url = url.join(path).map_err(|e| Error {
-            extensions: Vec::new(),
-            message: format!("Could not parse URL path: {e}"),
-        })?;
-
-        let builder = HttpRequest::builder(url, rest.http.method.into());
-
-        let request = match rest.body() {
-            Some(ref body) => builder.json(body),
-            None => builder.build(),
-        };
-
-        let result = http::execute(&request).map_err(|e| Error {
-            extensions: Vec::new(),
-            message: format!("HTTP request failed: {e}"),
-        })?;
-
-        if !result.status().is_success() {
-            return Err(Error {
-                extensions: Vec::new(),
-                message: format!("HTTP request failed with status: {}", result.status()),
-            });
-        }
-
-        let data: serde_json::Value = result.json().map_err(|e| Error {
-            extensions: Vec::new(),
-            message: format!("Error deserializing response: {e}"),
-        })?;
-
-        let filter = self.create_filter(rest.selection)?;
-        let inputs = RcIter::new(core::iter::empty());
-        let filtered = filter.run((Ctx::new([], &inputs), Val::from(data)));
-
-        let mut results = FieldOutput::new();
-
-        for result in filtered {
-            match result {
-                Ok(result) => results.push_value(serde_json::Value::from(result)),
-                Err(e) => results.push_error(Error {
+            let Some(endpoint) = self.get_endpoint(rest.endpoint, directive.subgraph_name()) else {
+                return Err(Error {
                     extensions: Vec::new(),
-                    message: format!("Error parsing result value: {e}"),
-                }),
-            }
-        }
+                    message: format!("Endpoint not found: {}", rest.endpoint),
+                });
+            };
 
-        Ok(results)
+            let mut url = Url::parse(&endpoint.args.base_url).map_err(|e| Error {
+                extensions: Vec::new(),
+                message: format!("Could not parse URL: {e}"),
+            })?;
+
+            let path = rest.http.path.strip_prefix("/").unwrap_or(rest.http.path);
+
+            if !path.is_empty() {
+                let mut path_segments = url.path_segments_mut().map_err(|_| Error {
+                    extensions: Vec::new(),
+                    message: "Could not parse URL".to_string(),
+                })?;
+
+                path_segments.push(path);
+            }
+
+            let url = url.join(path).map_err(|e| Error {
+                extensions: Vec::new(),
+                message: format!("Could not parse URL path: {e}"),
+            })?;
+
+            let builder = self.http_client.request(rest.http.method.into(), url);
+
+            let builder = match rest.body() {
+                Some(ref body) => builder.json(body),
+                None => builder,
+            };
+
+            let result = builder.send().await.map_err(|e| Error {
+                extensions: Vec::new(),
+                message: format!("HTTP request failed: {e}"),
+            })?;
+
+            if !result.status().is_success() {
+                return Err(Error {
+                    extensions: Vec::new(),
+                    message: format!("HTTP request failed with status: {}", result.status()),
+                });
+            }
+
+            let data: serde_json::Value = result.json().await.map_err(|e| Error {
+                extensions: Vec::new(),
+                message: format!("Error deserializing response: {e}"),
+            })?;
+
+            let filter = self.create_filter(rest.selection)?;
+            let inputs = RcIter::new(core::iter::empty());
+            let filtered = filter.run((Ctx::new([], &inputs), Val::from(data)));
+
+            let mut results = FieldOutput::new();
+
+            for result in filtered {
+                match result {
+                    Ok(result) => results.push_value(serde_json::Value::from(result)),
+                    Err(e) => results.push_error(Error {
+                        extensions: Vec::new(),
+                        message: format!("Error parsing result value: {e}"),
+                    }),
+                }
+            }
+
+            Ok(results)
+        })
     }
 }

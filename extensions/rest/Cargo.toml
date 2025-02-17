@@ -8,14 +8,29 @@ keywords = ["graphql"]
 repository = "https://github.com/grafbase/grafbase"
 
 [dependencies]
+futures-util = "0.3.31"
 grafbase-sdk = { path = "../../crates/grafbase-sdk" }
 http = "1"
 jaq-core = "2.1.0"
 jaq-json = { version = "1.1.0", features = ["serde_json"] }
 jaq-parse = "1.0.3"
 jaq-std = "2.1.0"
+rustls = { version = "0.23.23", default-features = false }
+rustls-rustcrypto = "0.0.2-alpha"
 serde = "1"
 serde_json = "1"
+webpki-roots = "0.26.8"
+
+[dependencies.reqwest]
+git = "https://github.com/pimeys/reqwest"
+branch = "wasip2"
+default-features = false
+features = ["rustls-tls-webpki-roots-no-provider", "json"]
+
+[patch.crates-io]
+tokio = { git = "https://github.com/pimeys/tokio", branch = "wasip2" }
+socket2 = { git = "https://github.com/pimeys/socket2", branch = "wasip2" }
+hyper-util = { git = "https://github.com/pimeys/hyper-util", branch = "wasip2" }
 
 [lib]
 crate-type = ["cdylib"]

@@ -39,10 +39,10 @@ pub(crate) const HEADERS_ENTRIES_METHOD: &str = "[method]headers.entries";
 
 // Extensions
 
+pub(crate) const AUTHENTICATE_EXTENSION_FUNCTION: &str = "authenticate";
 pub(crate) const REGISTER_EXTENSION_FUNCTION: &str = "register-extension";
 pub(crate) const INIT_GATEWAY_EXTENSION_FUNCTION: &str = "init-gateway-extension";
 pub(crate) const RESOLVE_FIELD_EXTENSION_FUNCTION: &str = "resolve-field";
-pub(crate) const AUTEHNTICATE_EXTENSION_FUNCTION: &str = "authenticate";
 
 pub(crate) const CACHE_RESOURCE: &str = "cache";
 pub(crate) const CACHE_GET_FUNCTION: &str = "[static]cache.get";

@@ -1,0 +1,7 @@
+[toolchain]
+profile = "default"
+channel = "nightly-2025-02-13"
+components = ["rustc", "rust-std", "cargo", "rustfmt", "clippy"]
+targets = [
+    "wasm32-wasip2",
+]

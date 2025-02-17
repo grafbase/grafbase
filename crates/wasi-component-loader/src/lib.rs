@@ -118,6 +118,8 @@ impl ComponentLoader {
 
         wasm_config.wasm_component_model(true);
         wasm_config.async_support(true);
+        wasm_config.wasm_backtrace(true);
+        wasm_config.wasm_backtrace_details(wasmtime::WasmBacktraceDetails::Enable);
 
         let engine = Engine::new(&wasm_config)?;
 

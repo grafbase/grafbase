@@ -42,7 +42,7 @@ fn resolver_init(ast: DeriveInput) -> proc_macro2::TokenStream {
     quote! {
         let init_fn = |directives, config| {
             let result = <#name #ty_generics as grafbase_sdk::Extension>::new(directives, config);
-            result.map(|extension| Box::new(extension) as Box<dyn grafbase_sdk::Resolver>)
+            result.map(|extension| Box::new(extension) as Box<dyn grafbase_sdk::Resolver + Send + Sync>)
         };
 
         grafbase_sdk::extension::resolver::register(Box::new(init_fn));

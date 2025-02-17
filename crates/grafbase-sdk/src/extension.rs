@@ -3,14 +3,24 @@
 pub mod authentication;
 pub mod resolver;
 
+use std::sync::LazyLock;
+
 pub use authentication::Authenticator;
 pub use resolver::Resolver;
+use tokio::runtime::{Builder, Runtime};
 
 use crate::{
     types::{Configuration, FieldInputs},
     wit::{Directive, Error, ExtensionType, FieldDefinition, FieldOutput, Guest, Headers, SharedContext, Token},
     Component,
 };
+
+static RUNTIME: LazyLock<Runtime> = LazyLock::new(|| {
+    Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .expect("Failed to create Tokio runtime")
+});
 
 /// A trait representing an extension that can be initialized from schema directives.
 ///
@@ -54,14 +64,15 @@ impl Guest for Component {
         definition: FieldDefinition,
         inputs: Vec<Vec<u8>>,
     ) -> Result<FieldOutput, Error> {
-        let result = resolver::get_extension()?.resolve_field(
-            context,
-            directive.into(),
-            definition.into(),
-            FieldInputs::new(inputs),
-        );
+        let result = RUNTIME.block_on(async move {
+            let result = resolver::get_extension()?
+                .resolve_field(context, directive.into(), definition.into(), FieldInputs::new(inputs))
+                .await;
 
-        result.map(Into::into)
+            Ok(result)
+        })??;
+
+        Ok(result.into())
     }
 
     fn authenticate(headers: Headers) -> Result<Token, crate::wit::ErrorResponse> {

@@ -1,3 +1,4 @@
+use futures_util::future::BoxFuture;
 use grafbase_sdk::{
     types::{Configuration, Directive, FieldDefinition, FieldInputs, FieldOutput},
     Error, Extension, Resolver, ResolverExtension, SharedContext,
@@ -44,16 +45,18 @@ impl Resolver for SimpleResolver {
         directive: Directive,
         _: FieldDefinition,
         _: FieldInputs,
-    ) -> Result<FieldOutput, Error> {
-        let args: FieldArgs = directive.arguments().unwrap();
+    ) -> BoxFuture<'_, Result<FieldOutput, Error>> {
+        Box::pin(async move {
+            let args: FieldArgs = directive.arguments().unwrap();
 
-        let mut output = FieldOutput::new();
+            let mut output = FieldOutput::new();
 
-        output.push_value(ResponseOutput {
-            id: self.schema_args.id,
-            name: args.name,
-        });
+            output.push_value(ResponseOutput {
+                id: self.schema_args.id,
+                name: args.name,
+            });
 
-        Ok(output)
+            Ok(output)
+        })
     }
 }

@@ -11,7 +11,7 @@ use super::ComponentInstance;
 use crate::{
     error::guest::ErrorResponse,
     names::{
-        AUTEHNTICATE_EXTENSION_FUNCTION, INIT_GATEWAY_EXTENSION_FUNCTION, REGISTER_EXTENSION_FUNCTION,
+        AUTHENTICATE_EXTENSION_FUNCTION, INIT_GATEWAY_EXTENSION_FUNCTION, REGISTER_EXTENSION_FUNCTION,
         RESOLVE_FIELD_EXTENSION_FUNCTION,
     },
     ChannelLogSender, ComponentLoader, GuestError, SharedContext,
@@ -105,7 +105,7 @@ impl ExtensionsComponentInstance {
         let headers_rep = headers.rep();
 
         let result = self
-            .call_typed_func::<Params, Response>(AUTEHNTICATE_EXTENSION_FUNCTION, (headers,))
+            .call_typed_func::<Params, Response>(AUTHENTICATE_EXTENSION_FUNCTION, (headers,))
             .await?;
 
         let headers = self
