@@ -12,11 +12,15 @@ impl GraphContext<'_> {
     pub fn coerce(&mut self, id: InputValueDefinitionId, value: Value) -> Result<SchemaInputValueId, InputValueError> {
         self.value_path.clear();
         self.value_path.push(self.graph[id].name_id.into());
-        let value = self.coerce_input_value(self.graph[id].ty_record, value)?;
+        let value = self.coerce_input_fed_value(self.graph[id].ty_record, value)?;
         Ok(self.graph.input_values.push_value(value))
     }
 
-    fn coerce_input_value(&mut self, ty: TypeRecord, value: Value) -> Result<SchemaInputValueRecord, InputValueError> {
+    fn coerce_input_fed_value(
+        &mut self,
+        ty: TypeRecord,
+        value: Value,
+    ) -> Result<SchemaInputValueRecord, InputValueError> {
         if ty.wrapping.is_list() && !value.is_list() && !value.is_null() {
             let mut value = self.coerce_named_type_fed_value(ty.definition_id, value)?;
             for _ in 0..ty.wrapping.list_wrappings().len() {
@@ -120,7 +124,7 @@ impl GraphContext<'_> {
             {
                 let (_, value) = fields.swap_remove(index);
                 self.value_path.push(input_field.name_id.into());
-                let value = self.coerce_input_value(ty_record, value)?;
+                let value = self.coerce_input_fed_value(ty_record, value)?;
                 fields_buffer.push((input_field_id, value));
                 self.value_path.pop();
             } else if let Some(default_value_id) = default_value_id {
