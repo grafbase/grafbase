@@ -10,7 +10,22 @@ use wrapping::{ListWrapping, MutableWrapping};
 use super::{can_coerce_to_int, value_path_to_string, InputValueError};
 
 impl GraphContext<'_> {
-    pub fn coerce(&mut self, id: InputValueDefinitionId, value: Value) -> Result<SchemaInputValueId, InputValueError> {
+    pub fn coerce_cynic_value(
+        &mut self,
+        id: InputValueDefinitionId,
+        value: ConstValue,
+    ) -> Result<SchemaInputValueId, InputValueError> {
+        self.value_path.clear();
+        self.value_path.push(self.graph[id].name_id.into());
+        let value = self.coerce_input_cynic_value(self.graph[id].ty_record, value)?;
+        Ok(self.graph.input_values.push_value(value))
+    }
+
+    pub fn coerce_fed_value(
+        &mut self,
+        id: InputValueDefinitionId,
+        value: Value,
+    ) -> Result<SchemaInputValueId, InputValueError> {
         self.value_path.clear();
         self.value_path.push(self.graph[id].name_id.into());
         let value = self.coerce_input_fed_value(self.graph[id].ty_record, value)?;
@@ -237,6 +252,64 @@ impl GraphContext<'_> {
         Ok(SchemaInputValueRecord::InputObject(ids))
     }
 
+    fn coerce_input_object_fed_value(
+        &mut self,
+        input_object_id: InputObjectDefinitionId,
+        value: Value,
+    ) -> Result<SchemaInputValueRecord, InputValueError> {
+        let input_object = &self.graph[input_object_id];
+        let Value::Object(fields) = value else {
+            return Err(InputValueError::MissingObject {
+                name: self.ctx.strings[input_object.name_id].to_string(),
+                actual: value.into(),
+                path: self.path(),
+            });
+        };
+
+        let mut fields_buffer = self.input_fields_buffer_pool.pop().unwrap_or_default();
+        let mut fields = Vec::from(fields);
+        for input_field_id in input_object.input_field_ids {
+            let input_field = &self.graph[input_field_id];
+            let name_id = input_field.name_id;
+            let ty_record = input_field.ty_record;
+            let default_value_id = input_field.default_value_id;
+
+            if let Some(index) = fields
+                .iter()
+                .position(|(id, _)| self.federated_graph[*id] == self.ctx.strings[name_id])
+            {
+                let (_, value) = fields.swap_remove(index);
+                self.value_path.push(input_field.name_id.into());
+                let value = self.coerce_input_fed_value(ty_record, value)?;
+                fields_buffer.push((input_field_id, value));
+                self.value_path.pop();
+            } else if let Some(default_value_id) = default_value_id {
+                fields_buffer.push((input_field_id, self.graph.input_values[default_value_id]));
+            } else if ty_record.wrapping.is_required() {
+                self.value_path.push(name_id.into());
+                return Err(InputValueError::UnexpectedNull {
+                    expected: self.type_name(ty_record),
+                    path: self.path(),
+                });
+            }
+        }
+
+        if let Some((id, _)) = fields.first() {
+            return Err(InputValueError::UnknownInputField {
+                input_object: self.ctx.strings[self.graph[input_object_id].name_id].to_string(),
+                name: self.federated_graph[*id].to_string(),
+                path: self.path(),
+            });
+        }
+
+        // We iterate over input fields in order which is a range, so it should be sorted by the
+        // id.
+        debug_assert!(fields_buffer.is_sorted_by_key(|(id, _)| *id));
+        let ids = self.graph.input_values.append_input_object(&mut fields_buffer);
+        self.input_fields_buffer_pool.push(fields_buffer);
+        Ok(SchemaInputValueRecord::InputObject(ids))
+    }
+
     fn coerce_enum_cynic_value(
         &mut self,
         enum_id: EnumDefinitionId,
@@ -255,7 +328,7 @@ impl GraphContext<'_> {
         };
 
         for id in r#enum.value_ids {
-            if &self.ctx.strings[self.graph[id].name_id] == value {
+            if self.ctx.strings[self.graph[id].name_id] == value {
                 return Ok(SchemaInputValueRecord::EnumValue(id));
             }
         }

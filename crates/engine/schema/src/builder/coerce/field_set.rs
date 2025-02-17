@@ -1,16 +1,17 @@
-use federated_graph::FieldSetItem;
 use id_newtypes::IdRange;
 
 use crate::{
-    builder::GraphContext, CompositeTypeId, DefinitionId, EntityDefinitionId, FieldDefinitionId, FieldSet,
-    FieldSetItemRecord, FieldSetRecord, InputValueDefinitionId, InputValueSelection, InputValueSet, ObjectDefinitionId,
-    TypeRecord,
+    builder::{GraphContext, SchemaLocation},
+    CompositeTypeId, DefinitionId, FieldDefinitionId, FieldSetItemRecord, FieldSetRecord, InputValueDefinitionRecord,
+    ObjectDefinitionId, SchemaFieldArgumentId, SchemaFieldArgumentRecord, SchemaFieldId, SchemaFieldRecord, TypeRecord,
 };
 
-use super::{value_path_to_string, ExtensionInputValueCoercer, InputValueError, ValuePathSegment};
+use super::{value_path_to_string, ExtensionDirectiveArgumentsCoercer, InputValueError, ValuePathSegment};
 
 #[derive(thiserror::Error, Debug)]
 pub enum FieldSetError {
+    #[error("Failed to coerce argument{path}: {err}")]
+    InputValueError { err: InputValueError, path: String },
     #[error("Could not parse InputValueSet: {err}")]
     InvalidInputValueSet { err: String },
     #[error("Uknown field '{name}' on type '{ty}'{path}")]
@@ -35,13 +36,13 @@ pub enum FieldSetError {
     CannotHaveSelectionSet { name: String, ty: String, path: String },
 }
 
-impl ExtensionInputValueCoercer<'_, '_> {
+impl ExtensionDirectiveArgumentsCoercer<'_, '_> {
     pub(crate) fn coerce_field_set(&mut self, selection_set: &str) -> Result<FieldSetRecord, FieldSetError> {
         let composite_type_id: CompositeTypeId = match self.location {
-            crate::builder::SchemaLocation::Object(id, _) => id.into(),
-            crate::builder::SchemaLocation::Interface(id, _) => id.into(),
-            crate::builder::SchemaLocation::FieldDefinition(id, _) => self.graph[id].parent_entity_id.into(),
-            crate::builder::SchemaLocation::Union(id, _) => id.into(),
+            SchemaLocation::Object(id, _) => id.into(),
+            SchemaLocation::Interface(id, _) => id.into(),
+            SchemaLocation::FieldDefinition(id, _) => self.graph[id].parent_entity_id.into(),
+            SchemaLocation::Union(id, _) => id.into(),
             _ => {
                 return Err(FieldSetError::InvalidFieldSetOnLocation {
                     location: self.location.to_cynic_location().as_str(),
@@ -90,7 +91,7 @@ fn convert_selection_set<'a>(
                     };
                     let definition_id = field_definition_ids
                         .into_iter()
-                        .find(|id| &ctx.strings[ctx.graph[*id].name_id] == field.name())
+                        .find(|id| ctx.strings[ctx.graph[*id].name_id] == field.name())
                         .ok_or_else(|| FieldSetError::UnknownField {
                             name: field.name().to_string(),
                             ty: ctx.type_name(TypeRecord {
@@ -100,7 +101,7 @@ fn convert_selection_set<'a>(
                             path: value_path_to_string(ctx, value_path),
                         })?;
                     value_path.push(ctx.graph[definition_id].name_id.into());
-                    out.push(convert_field(ctx, definition_id, field)?);
+                    out.push(convert_field(ctx, definition_id, field, value_path)?);
                     value_path.pop();
                 }
                 cynic_parser::executable::Selection::InlineFragment(fragment) => {
@@ -165,45 +166,7 @@ fn convert_selection_set<'a>(
             }
         }
     }
-    // set.into_iter()
-    //     .map(|selection| {
-    //         let cynic_parser::executable::Selection::Field(field) = selection else {
-    //             return Err(FieldSetError::CannotUseFragments);
-    //         };
-    //         let definition_id = field_ids
-    //             .into_iter()
-    //             .find(|id| ctx.strings[ctx.graph[*id].name_id] == field.name())
-    //             .ok_or_else(|| FieldSetError::UnknownInputValue {
-    //                 name: field.name().to_string(),
-    //                 path: value_path_to_string(ctx, value_path),
-    //             })?;
-    //
-    //         let subselection = if field.selection_set().len() == 0 {
-    //             InputValueSet::All
-    //         } else if let DefinitionId::InputObject(id) = ctx.graph[definition_id].ty_record.definition_id {
-    //             value_path.push(ctx.graph[definition_id].name_id.into());
-    //             let subselection = InputValueSet::SelectionSet(convert_selection_set(
-    //                 ctx,
-    //                 ctx.graph[id].input_field_ids,
-    //                 field.selection_set(),
-    //                 value_path,
-    //             )?);
-    //             value_path.pop();
-    //             subselection
-    //         } else {
-    //             value_path.push(ctx.graph[definition_id].name_id.into());
-    //             return Err(FieldSetError::CannotHaveASelectionSet {
-    //                 ty: ctx.type_name(ctx.graph[definition_id].ty_record),
-    //                 path: value_path_to_string(ctx, value_path),
-    //             });
-    //         };
-    //
-    //         Ok(InputValueSelection {
-    //             definition_id,
-    //             subselection,
-    //         })
-    //     })
-    //     .collect()
+
     Ok(FieldSetRecord::from(out))
 }
 
@@ -211,69 +174,96 @@ fn convert_field(
     ctx: &mut GraphContext<'_>,
     definition_id: FieldDefinitionId,
     field: cynic_parser::executable::FieldSelection<'_>,
-    path: &mut Vec<ValuePathSegment>,
+    value_path: &mut Vec<ValuePathSegment>,
 ) -> Result<FieldSetItemRecord, FieldSetError> {
     let subselection_record = if let Some(id) = ctx.graph[definition_id].ty_record.definition_id.as_composite_type() {
-        convert_selection_set(ctx, id.into(), field.selection_set(), path)?
+        convert_selection_set(ctx, id, field.selection_set(), value_path)?
     } else if field.selection_set().len() != 0 {
         return Err(FieldSetError::CannotHaveSelectionSet {
             name: ctx.strings[ctx.graph[definition_id].name_id].to_string(),
             ty: ctx.type_name(ctx.graph[definition_id].ty_record),
-            path: value_path_to_string(ctx, path),
+            path: value_path_to_string(ctx, value_path),
         });
     } else {
         Default::default()
     };
 
-    let mut federated_arguments = arguments
-        .iter()
-        .map(|(id, value)| (ctx.input_value_mapping[id], value))
-        .collect::<Vec<_>>();
-    let mut field = SchemaFieldRecord {
-        definition_id: field_definition_id,
-        sorted_argument_ids: IdRange::empty(),
+    let field = SchemaFieldRecord {
+        definition_id,
+        sorted_argument_ids: convert_field_arguments(ctx, definition_id, field).map_err(|err| {
+            FieldSetError::InputValueError {
+                err,
+                path: value_path_to_string(ctx, value_path),
+            }
+        })?,
     };
-
-    let start = ctx.field_arguments.len();
-    for definition_id in ctx.graph[field_definition_id].argument_ids {
-        let input_value_definition = &ctx.graph[definition_id];
-        if let Some(index) = federated_arguments.iter().position(|(id, _)| *id == definition_id) {
-            let (_, value) = federated_arguments.swap_remove(index);
-            let value_id = ctx.coerce(definition_id, value.clone())?;
-            ctx.field_arguments.push(SchemaFieldArgumentRecord {
-                definition_id,
-                value_id,
-            });
-        } else if let Some(value_id) = input_value_definition.default_value_id {
-            ctx.field_arguments.push(SchemaFieldArgumentRecord {
-                definition_id,
-                value_id,
-            });
-        } else if input_value_definition.ty_record.wrapping.is_required() {
-            return Err(InputValueError::MissingRequiredArgument(
-                ctx.ctx.strings[input_value_definition.name_id].clone(),
-            ));
-        }
-    }
-
-    ctx.field_arguments[start..].sort_unstable_by_key(|arg| arg.definition_id);
-    field.sorted_argument_ids = IdRange::from(start..ctx.field_arguments.len());
 
     let n = ctx.deduplicated_fields.len();
     // Deduplicating arguments allows us to cheaply merge field sets at runtime
-    let id = *ctx
+    let field_id = *ctx
         .deduplicated_fields
         .entry(field)
         .or_insert_with(|| SchemaFieldId::from(n));
 
-
     Ok(FieldSetItemRecord {
-        field_id: ,
+        field_id,
         subselection_record,
     })
 }
 
-pub fn is_disjoint(ctx: &GraphContext<'_>, left: CompositeTypeId, right: CompositeTypeId) -> bool {
+fn convert_field_arguments(
+    ctx: &mut GraphContext<'_>,
+    definition_id: FieldDefinitionId,
+    field: cynic_parser::executable::FieldSelection<'_>,
+) -> Result<IdRange<SchemaFieldArgumentId>, InputValueError> {
+    let mut arguments = field.arguments().collect::<Vec<_>>();
+
+    let start = ctx.field_arguments.len();
+    for argument_def_id in ctx.graph[definition_id].argument_ids {
+        let InputValueDefinitionRecord {
+            name_id,
+            default_value_id,
+            ty_record,
+            ..
+        } = ctx.graph[argument_def_id];
+        if let Some(index) = arguments
+            .iter()
+            .position(|argument| argument.name() == ctx.strings[name_id])
+        {
+            let argument = arguments.swap_remove(index);
+            let value: cynic_parser::ConstValue<'_> = argument
+                .value()
+                .try_into()
+                .map_err(|_| InputValueError::CannotUseVariables)?;
+            let value_id = ctx.coerce_cynic_value(argument_def_id, value)?;
+            ctx.field_arguments.push(SchemaFieldArgumentRecord {
+                definition_id: argument_def_id,
+                value_id,
+            });
+        } else if let Some(value_id) = default_value_id {
+            ctx.field_arguments.push(SchemaFieldArgumentRecord {
+                definition_id: argument_def_id,
+                value_id,
+            });
+        } else if ty_record.wrapping.is_required() {
+            return Err(InputValueError::MissingRequiredArgument(
+                ctx.ctx.strings[name_id].clone(),
+            ));
+        }
+    }
+
+    if let Some(first_unknown_argument) = arguments.first() {
+        return Err(InputValueError::UnknownArgument(
+            first_unknown_argument.name().to_string(),
+        ));
+    }
+
+    let end = ctx.field_arguments.len();
+    ctx.field_arguments[start..end].sort_unstable_by_key(|arg| arg.definition_id);
+    Ok(IdRange::from(start..ctx.field_arguments.len()))
+}
+
+fn is_disjoint(ctx: &GraphContext<'_>, left: CompositeTypeId, right: CompositeTypeId) -> bool {
     let left: &[ObjectDefinitionId] = match &left {
         CompositeTypeId::Object(id) => std::array::from_ref(id),
         CompositeTypeId::Interface(id) => &ctx.graph[*id].possible_type_ids,

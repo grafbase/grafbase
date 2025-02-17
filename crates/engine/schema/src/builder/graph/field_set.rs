@@ -63,7 +63,7 @@ fn convert_item(
         let input_value_definition = &ctx.graph[definition_id];
         if let Some(index) = federated_arguments.iter().position(|(id, _)| *id == definition_id) {
             let (_, value) = federated_arguments.swap_remove(index);
-            let value_id = ctx.coerce(definition_id, value.clone())?;
+            let value_id = ctx.coerce_fed_value(definition_id, value.clone())?;
             ctx.field_arguments.push(SchemaFieldArgumentRecord {
                 definition_id,
                 value_id,

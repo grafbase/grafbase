@@ -2,7 +2,7 @@ use id_newtypes::IdRange;
 
 use crate::{builder::GraphContext, DefinitionId, InputValueDefinitionId, InputValueSelection, InputValueSet};
 
-use super::{value_path_to_string, ExtensionInputValueCoercer, ValuePathSegment};
+use super::{value_path_to_string, ExtensionDirectiveArgumentsCoercer, ValuePathSegment};
 
 #[derive(thiserror::Error, Debug)]
 pub enum InputValueSetError {
@@ -18,7 +18,7 @@ pub enum InputValueSetError {
     InvalidInputValueSetOnLocation { location: &'static str },
 }
 
-impl ExtensionInputValueCoercer<'_, '_> {
+impl ExtensionDirectiveArgumentsCoercer<'_, '_> {
     pub(crate) fn coerce_input_value_set(&mut self, selection_set: &str) -> Result<InputValueSet, InputValueSetError> {
         let crate::builder::SchemaLocation::FieldDefinition(field_definition_id, _) = self.location else {
             return Err(InputValueSetError::InvalidInputValueSetOnLocation {

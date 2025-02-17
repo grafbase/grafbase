@@ -70,6 +70,8 @@ pub enum InputValueError {
     UnknownArgument(String),
     #[error("Used an inaccessible enum value{path}")]
     InaccessibleEnumValue { path: String },
+    #[error("Cannot use variables")]
+    CannotUseVariables,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display)]

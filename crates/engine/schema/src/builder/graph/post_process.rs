@@ -439,7 +439,7 @@ fn ingest_input_value_directive(
     if let Some(value) = ctx.federated_graph[federated_id].default.clone() {
         ctx.graph[id].default_value_id =
             Some(
-                ctx.coerce(id, value)
+                ctx.coerce_fed_value(id, value)
                     .map_err(|err| BuildError::DefaultValueCoercionError {
                         err,
                         name: ctx.strings[ctx.graph[id].name_id].to_string(),

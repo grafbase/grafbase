@@ -1,0 +1,48 @@
+use crate::federation::extensions::validation::EchoExt;
+use engine::Engine;
+use integration_tests::{federation::EngineExt, runtime};
+
+#[test]
+fn basic_field_set() {
+    runtime().block_on(async move {
+        let response = Engine::builder()
+            .with_subgraph_sdl(
+                "a",
+                r#"
+                extend schema
+                    @link(url: "echo-1.0.0", import: ["@echo"])
+
+                scalar JSON
+
+                type Query {
+                    echo(id: ID!): JSON @echo(input: "id")
+                }
+                "#,
+            )
+            .with_extension(EchoExt::with_sdl(
+                r#"
+                extend schema @link(url: "https://specs.grafbase.com/grafbase", import: ["FieldSet"])
+
+                directive @echo(fields: FieldSet!) on FIELD_DEFINITION
+                "#,
+            ))
+            .build()
+            .await
+            .post(r#"query { echo(id: "1") }"#)
+            .await;
+        insta::assert_json_snapshot!(response, @r#"
+        {
+          "data": {
+            "echo": {
+              "schema": {},
+              "directive": {
+                "input": {
+                  "id": "1"
+                }
+              }
+            }
+          }
+        }
+        "#);
+    });
+}
