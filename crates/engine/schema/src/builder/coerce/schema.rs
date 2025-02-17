@@ -2,7 +2,10 @@ use crate::{
     builder::GraphContext, DefinitionId, EnumDefinitionId, InputObjectDefinitionId, InputValueDefinitionId,
     ScalarDefinitionId, ScalarType, SchemaInputValueId, SchemaInputValueRecord, TypeRecord,
 };
-use cynic_parser::{common::{TypeWrappersIter, WrappingType}, ConstValue};
+use cynic_parser::{
+    common::{TypeWrappersIter, WrappingType},
+    ConstValue,
+};
 use federated_graph::Value;
 use id_newtypes::IdRange;
 use wrapping::{ListWrapping, MutableWrapping};
@@ -25,9 +28,7 @@ impl GraphContext<'_> {
         if ty.wrapping.is_list() && !value.is_list() && !value.is_null() {
             let mut value = self.coerce_named_type_cynic_value(ty.definition_id, value)?;
             for _ in 0..ty.wrapping.list_wrappings().len() {
-                value = SchemaInputValueRecord::List(IdRange::from_single(
-                    self.graph.input_values.push_value(value),
-                ));
+                value = SchemaInputValueRecord::List(IdRange::from_single(self.graph.input_values.push_value(value)));
             }
             return Ok(value);
         }
@@ -86,7 +87,8 @@ impl GraphContext<'_> {
                 let ids = self.graph.input_values.reserve_list(array.len());
                 for ((idx, value), id) in array.into_iter().enumerate().zip(ids) {
                     self.value_path.push(idx.into());
-                    self.graph.input_values[id] = self.coerce_type_cynic_value(definition_id, wrapping.clone(), value)?;
+                    self.graph.input_values[id] =
+                        self.coerce_type_cynic_value(definition_id, wrapping.clone(), value)?;
                     self.value_path.pop();
                 }
                 Ok(SchemaInputValueRecord::List(ids))
@@ -174,12 +176,12 @@ impl GraphContext<'_> {
         match definition_id {
             DefinitionId::Scalar(id) => self.coerce_scalar_fed_value(id, value),
             DefinitionId::Enum(id) => self.coerce_enum_fed_value(id, value),
-            DefinitionId::InputObject(id) => self.coerce_input_objet_fed_value(id, value),
+            DefinitionId::InputObject(id) => self.coerce_input_object_fed_value(id, value),
             _ => unreachable!("Cannot be an output type."),
         }
     }
 
-    fn coerce_input_objet_fed_value(
+    fn coerce_input_object_fed_value(
         &mut self,
         input_object_id: InputObjectDefinitionId,
         value: Value,
@@ -396,6 +398,37 @@ impl GraphContext<'_> {
             expected: self.ctx.strings[self.graph[scalar_id].name_id].to_string(),
             path: self.path(),
         })
+    }
+
+    fn ingest_arbitrary_cynic_value(&mut self, value: ConstValue) -> SchemaInputValueRecord {
+        match value {
+            ConstValue::Null(_) => SchemaInputValueRecord::Null,
+            ConstValue::String(s) => SchemaInputValueRecord::String(self.ctx.strings.get_or_new(s.value())),
+            ConstValue::Int(n) => SchemaInputValueRecord::BigInt(n.value()),
+            ConstValue::Float(f) => SchemaInputValueRecord::Float(f.value()),
+            ConstValue::Boolean(b) => SchemaInputValueRecord::Boolean(b.value()),
+            ConstValue::Enum(s) => SchemaInputValueRecord::UnboundEnumValue(self.ctx.strings.get_or_new(s.as_str())),
+            ConstValue::List(list) => {
+                let ids = self.graph.input_values.reserve_list(list.len());
+                for (value, id) in list.into_iter().zip(ids) {
+                    self.graph.input_values[id] = self.ingest_arbitrary_cynic_value(value);
+                }
+                SchemaInputValueRecord::List(ids)
+            }
+            ConstValue::Object(fields) => {
+                let ids = self.graph.input_values.reserve_map(fields.len());
+                for (field, id) in fields.into_iter().zip(ids) {
+                    let name = self.ctx.strings.get_or_new(field.name());
+                    let value = self.ingest_arbitrary_cynic_value(field.value());
+                    self.graph.input_values[id] = (name, value);
+                }
+                let ctx = &self.ctx;
+                self.graph.input_values[ids].sort_unstable_by(|(left_key, _), (right_key, _)| {
+                    ctx.strings.get_by_id(*left_key).cmp(&ctx.strings.get_by_id(*right_key))
+                });
+                SchemaInputValueRecord::Map(ids)
+            }
+        }
     }
 
     fn path(&self) -> String {
