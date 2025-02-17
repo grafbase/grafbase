@@ -2,10 +2,7 @@ use crate::{
     builder::GraphContext, DefinitionId, EnumDefinitionId, InputObjectDefinitionId, InputValueDefinitionId,
     ScalarDefinitionId, ScalarType, SchemaInputValueId, SchemaInputValueRecord, TypeRecord,
 };
-use cynic_parser::{
-    common::{TypeWrappersIter, WrappingType},
-    ConstValue,
-};
+use cynic_parser::ConstValue;
 use federated_graph::Value;
 use id_newtypes::IdRange;
 use wrapping::{ListWrapping, MutableWrapping};
@@ -204,7 +201,10 @@ impl GraphContext<'_> {
             let ty_record = input_field.ty_record;
             let default_value_id = input_field.default_value_id;
 
-            if let Some(index) = fields.iter().position(|field| field.name() == self.ctx.strings[name_id]) {
+            if let Some(index) = fields
+                .iter()
+                .position(|field| field.name() == self.ctx.strings[name_id])
+            {
                 let field = fields.swap_remove(index);
                 self.value_path.push(input_field.name_id.into());
                 let value = self.coerce_input_cynic_value(ty_record, field.value())?;
