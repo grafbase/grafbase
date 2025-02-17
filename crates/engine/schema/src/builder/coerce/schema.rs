@@ -2,6 +2,7 @@ use crate::{
     builder::GraphContext, DefinitionId, EnumDefinitionId, InputObjectDefinitionId, InputValueDefinitionId,
     ScalarDefinitionId, ScalarType, SchemaInputValueId, SchemaInputValueRecord, TypeRecord,
 };
+use cynic_parser::{common::{TypeWrappersIter, WrappingType}, ConstValue};
 use federated_graph::Value;
 use id_newtypes::IdRange;
 use wrapping::{ListWrapping, MutableWrapping};
@@ -14,6 +15,24 @@ impl GraphContext<'_> {
         self.value_path.push(self.graph[id].name_id.into());
         let value = self.coerce_input_fed_value(self.graph[id].ty_record, value)?;
         Ok(self.graph.input_values.push_value(value))
+    }
+
+    fn coerce_input_cynic_value(
+        &mut self,
+        ty: TypeRecord,
+        value: ConstValue,
+    ) -> Result<SchemaInputValueRecord, InputValueError> {
+        if ty.wrapping.is_list() && !value.is_list() && !value.is_null() {
+            let mut value = self.coerce_named_type_cynic_value(ty.definition_id, value)?;
+            for _ in 0..ty.wrapping.list_wrappings().len() {
+                value = SchemaInputValueRecord::List(IdRange::from_single(
+                    self.graph.input_values.push_value(value),
+                ));
+            }
+            return Ok(value);
+        }
+
+        self.coerce_type_cynic_value(ty.definition_id, ty.wrapping.into(), value)
     }
 
     fn coerce_input_fed_value(
@@ -30,6 +49,57 @@ impl GraphContext<'_> {
         }
 
         self.coerce_type_fed_value(ty.definition_id, ty.wrapping.into(), value)
+    }
+
+    fn coerce_type_cynic_value(
+        &mut self,
+        definition_id: DefinitionId,
+        mut wrapping: MutableWrapping,
+        value: ConstValue,
+    ) -> Result<SchemaInputValueRecord, InputValueError> {
+        let Some(list_wrapping) = wrapping.pop_outermost_list_wrapping() else {
+            if value.is_null() {
+                if wrapping.is_required() {
+                    return Err(InputValueError::UnexpectedNull {
+                        expected: self.type_name(TypeRecord {
+                            definition_id,
+                            wrapping: wrapping.into(),
+                        }),
+                        path: self.path(),
+                    });
+                }
+                return Ok(SchemaInputValueRecord::Null);
+            }
+            return self.coerce_named_type_cynic_value(definition_id, value);
+        };
+
+        match (value, list_wrapping) {
+            (ConstValue::Null(_), ListWrapping::RequiredList) => Err(InputValueError::UnexpectedNull {
+                expected: self.type_name(TypeRecord {
+                    definition_id,
+                    wrapping: wrapping.into(),
+                }),
+                path: self.path(),
+            }),
+            (ConstValue::Null(_), ListWrapping::NullableList) => Ok(SchemaInputValueRecord::Null),
+            (ConstValue::List(array), _) => {
+                let ids = self.graph.input_values.reserve_list(array.len());
+                for ((idx, value), id) in array.into_iter().enumerate().zip(ids) {
+                    self.value_path.push(idx.into());
+                    self.graph.input_values[id] = self.coerce_type_cynic_value(definition_id, wrapping.clone(), value)?;
+                    self.value_path.pop();
+                }
+                Ok(SchemaInputValueRecord::List(ids))
+            }
+            (value, _) => Err(InputValueError::MissingList {
+                actual: value.into(),
+                expected: self.type_name(TypeRecord {
+                    definition_id,
+                    wrapping: wrapping.into(),
+                }),
+                path: self.path(),
+            }),
+        }
     }
 
     fn coerce_type_fed_value(
@@ -80,6 +150,19 @@ impl GraphContext<'_> {
                 }),
                 path: self.path(),
             }),
+        }
+    }
+
+    fn coerce_named_type_cynic_value(
+        &mut self,
+        definition_id: DefinitionId,
+        value: ConstValue,
+    ) -> Result<SchemaInputValueRecord, InputValueError> {
+        match definition_id {
+            DefinitionId::Scalar(id) => self.coerce_scalar_cynic_value(id, value),
+            DefinitionId::Enum(id) => self.coerce_enum_cynic_value(id, value),
+            DefinitionId::InputObject(id) => self.coerce_input_object_cynic_value(id, value),
+            _ => unreachable!("Cannot be an output type."),
         }
     }
 
@@ -154,6 +237,35 @@ impl GraphContext<'_> {
         Ok(SchemaInputValueRecord::InputObject(ids))
     }
 
+    fn coerce_enum_cynic_value(
+        &mut self,
+        enum_id: EnumDefinitionId,
+        value: ConstValue,
+    ) -> Result<SchemaInputValueRecord, InputValueError> {
+        let r#enum = &self.graph[enum_id];
+        let value = match value {
+            ConstValue::Enum(e) => e.as_str(),
+            value => {
+                return Err(InputValueError::IncorrectEnumValueType {
+                    r#enum: self.ctx.strings[r#enum.name_id].to_string(),
+                    actual: value.into(),
+                    path: self.path(),
+                });
+            }
+        };
+
+        for id in r#enum.value_ids {
+            if &self.ctx.strings[self.graph[id].name_id] == value {
+                return Ok(SchemaInputValueRecord::EnumValue(id));
+            }
+        }
+        Err(InputValueError::UnknownEnumValue {
+            r#enum: self.ctx.strings[r#enum.name_id].to_string(),
+            value: value.to_string(),
+            path: self.path(),
+        })
+    }
+
     fn coerce_enum_fed_value(
         &mut self,
         enum_id: EnumDefinitionId,
@@ -180,6 +292,57 @@ impl GraphContext<'_> {
         Err(InputValueError::UnknownEnumValue {
             r#enum: self.ctx.strings[r#enum.name_id].to_string(),
             value: string_value.to_string(),
+            path: self.path(),
+        })
+    }
+
+    fn coerce_scalar_cynic_value(
+        &mut self,
+        scalar_id: ScalarDefinitionId,
+        value: ConstValue,
+    ) -> Result<SchemaInputValueRecord, InputValueError> {
+        match self.graph[scalar_id].ty {
+            ScalarType::String => match value {
+                ConstValue::String(s) => Some(self.ctx.strings.get_or_new(s.value())),
+                _ => None,
+            }
+            .map(SchemaInputValueRecord::String),
+            ScalarType::Float => match value {
+                ConstValue::Int(n) => Some(n.value() as f64),
+                ConstValue::Float(f) => Some(f.value()),
+                _ => None,
+            }
+            .map(SchemaInputValueRecord::Float),
+            ScalarType::Int => match value {
+                ConstValue::Int(n) => {
+                    let n = i32::try_from(n.value()).map_err(|_| InputValueError::IncorrectScalarValue {
+                        actual: n.to_string(),
+                        expected: self.ctx.strings[self.graph[scalar_id].name_id].to_string(),
+                        path: self.path(),
+                    })?;
+                    Some(n)
+                }
+                ConstValue::Float(f) if can_coerce_to_int(f.value()) => Some(f.value() as i32),
+                _ => None,
+            }
+            .map(SchemaInputValueRecord::Int),
+            ScalarType::BigInt => match value {
+                ConstValue::Int(n) => Some(n.value()),
+                _ => None,
+            }
+            .map(SchemaInputValueRecord::BigInt),
+            ScalarType::Boolean => match value {
+                ConstValue::Boolean(b) => Some(b.value()),
+                _ => None,
+            }
+            .map(SchemaInputValueRecord::Boolean),
+            ScalarType::Unknown => {
+                return Ok(self.ingest_arbitrary_cynic_value(value));
+            }
+        }
+        .ok_or_else(|| InputValueError::IncorrectScalarType {
+            actual: value.into(),
+            expected: self.ctx.strings[self.graph[scalar_id].name_id].to_string(),
             path: self.path(),
         })
     }
