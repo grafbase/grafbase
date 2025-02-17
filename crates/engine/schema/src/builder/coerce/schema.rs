@@ -18,17 +18,17 @@ impl GraphContext<'_> {
 
     fn coerce_input_value(&mut self, ty: TypeRecord, value: Value) -> Result<SchemaInputValueRecord, InputValueError> {
         if ty.wrapping.is_list() && !value.is_list() && !value.is_null() {
-            let mut value = self.coerce_named_type(ty.definition_id, value)?;
+            let mut value = self.coerce_named_type_fed_value(ty.definition_id, value)?;
             for _ in 0..ty.wrapping.list_wrappings().len() {
                 value = SchemaInputValueRecord::List(IdRange::from_single(self.graph.input_values.push_value(value)));
             }
             return Ok(value);
         }
 
-        self.coerce_type(ty.definition_id, ty.wrapping.into(), value)
+        self.coerce_type_fed_value(ty.definition_id, ty.wrapping.into(), value)
     }
 
-    fn coerce_type(
+    fn coerce_type_fed_value(
         &mut self,
         definition_id: DefinitionId,
         mut wrapping: MutableWrapping,
@@ -47,7 +47,7 @@ impl GraphContext<'_> {
                 }
                 return Ok(SchemaInputValueRecord::Null);
             }
-            return self.coerce_named_type(definition_id, value);
+            return self.coerce_named_type_fed_value(definition_id, value);
         };
 
         match (value, list_wrapping) {
@@ -63,7 +63,7 @@ impl GraphContext<'_> {
                 let ids = self.graph.input_values.reserve_list(array.len());
                 for ((idx, value), id) in array.into_vec().into_iter().enumerate().zip(ids) {
                     self.value_path.push(idx.into());
-                    self.graph.input_values[id] = self.coerce_type(definition_id, wrapping.clone(), value)?;
+                    self.graph.input_values[id] = self.coerce_type_fed_value(definition_id, wrapping.clone(), value)?;
                     self.value_path.pop();
                 }
                 Ok(SchemaInputValueRecord::List(ids))
@@ -79,20 +79,20 @@ impl GraphContext<'_> {
         }
     }
 
-    fn coerce_named_type(
+    fn coerce_named_type_fed_value(
         &mut self,
         definition_id: DefinitionId,
         value: Value,
     ) -> Result<SchemaInputValueRecord, InputValueError> {
         match definition_id {
-            DefinitionId::Scalar(id) => self.coerce_scalar(id, value),
-            DefinitionId::Enum(id) => self.coerce_enum(id, value),
-            DefinitionId::InputObject(id) => self.coerce_input_objet(id, value),
+            DefinitionId::Scalar(id) => self.coerce_scalar_fed_value(id, value),
+            DefinitionId::Enum(id) => self.coerce_enum_fed_value(id, value),
+            DefinitionId::InputObject(id) => self.coerce_input_objet_fed_value(id, value),
             _ => unreachable!("Cannot be an output type."),
         }
     }
 
-    fn coerce_input_objet(
+    fn coerce_input_objet_fed_value(
         &mut self,
         input_object_id: InputObjectDefinitionId,
         value: Value,
@@ -150,7 +150,7 @@ impl GraphContext<'_> {
         Ok(SchemaInputValueRecord::InputObject(ids))
     }
 
-    fn coerce_enum(
+    fn coerce_enum_fed_value(
         &mut self,
         enum_id: EnumDefinitionId,
         value: Value,
@@ -180,7 +180,7 @@ impl GraphContext<'_> {
         })
     }
 
-    fn coerce_scalar(
+    fn coerce_scalar_fed_value(
         &mut self,
         scalar_id: ScalarDefinitionId,
         value: Value,

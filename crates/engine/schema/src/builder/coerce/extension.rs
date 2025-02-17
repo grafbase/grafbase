@@ -202,8 +202,14 @@ impl ExtensionInputValueCoercer<'_, '_> {
             let value = &self.ctx.federated_graph[*id];
             self.current_injection_stage = self.current_injection_stage.max(InjectionStage::Query);
             return match scalar {
-                GrafbaseScalar::InputValueSet => self.coerce_input_value_set(value).map(Into::into).map_err(Into::into),
-                GrafbaseScalar::FieldSet => self.coerce_field_set(value).map(Into::into).map_err(Into::into),
+                GrafbaseScalar::InputValueSet => self
+                    .coerce_input_value_set(value)
+                    .map(ExtensionInputValueRecord::InputValueSet)
+                    .map_err(Into::into),
+                GrafbaseScalar::FieldSet => self
+                    .coerce_field_set(value)
+                    .map(ExtensionInputValueRecord::FieldSet)
+                    .map_err(Into::into),
                 GrafbaseScalar::UrlTemplate | GrafbaseScalar::JsonTemplate => {
                     let template = TemplateRecord::new(
                         value.clone(),
@@ -252,8 +258,14 @@ impl ExtensionInputValueCoercer<'_, '_> {
             };
             self.current_injection_stage = self.current_injection_stage.max(InjectionStage::Query);
             return match scalar {
-                GrafbaseScalar::InputValueSet => self.coerce_input_value_set(value).map(Into::into).map_err(Into::into),
-                GrafbaseScalar::FieldSet => self.coerce_field_set(value).map(Into::into).map_err(Into::into),
+                GrafbaseScalar::InputValueSet => self
+                    .coerce_input_value_set(value)
+                    .map(ExtensionInputValueRecord::InputValueSet)
+                    .map_err(Into::into),
+                GrafbaseScalar::FieldSet => self
+                    .coerce_field_set(value)
+                    .map(ExtensionInputValueRecord::FieldSet)
+                    .map_err(Into::into),
                 GrafbaseScalar::UrlTemplate | GrafbaseScalar::JsonTemplate => {
                     let template = TemplateRecord::new(
                         value.to_string(),

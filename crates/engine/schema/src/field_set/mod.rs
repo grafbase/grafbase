@@ -28,7 +28,12 @@ impl std::ops::Deref for FieldSetRecord {
 
 impl FromIterator<FieldSetItemRecord> for FieldSetRecord {
     fn from_iter<T: IntoIterator<Item = FieldSetItemRecord>>(iter: T) -> Self {
-        let mut items = iter.into_iter().collect::<Vec<_>>();
+        iter.into_iter().collect::<Vec<_>>().into()
+    }
+}
+
+impl From<Vec<FieldSetItemRecord>> for FieldSetRecord {
+    fn from(mut items: Vec<FieldSetItemRecord>) -> Self {
         items.sort_unstable_by(|a, b| a.field_id.cmp(&b.field_id));
         Self(items)
     }
