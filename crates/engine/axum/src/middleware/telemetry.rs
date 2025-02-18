@@ -185,8 +185,12 @@ where
                     match telemetry {
                         TelemetryExtension::Ready(telemetry) => {
                             http_span.record_graphql_execution_telemetry(&telemetry);
-                            attributes.has_graphql_errors = telemetry.errors_count() > 0;
-                            metrics.record_http_duration(attributes, start.elapsed());
+                            // FIXME: Use a different metric for subscriptions, the latency doesn't
+                            // have the same meaning.
+                            if !telemetry.operations.iter().any(|(ty, _)| ty.is_subscription()) {
+                                attributes.has_graphql_errors = telemetry.errors_count() > 0;
+                                metrics.record_http_duration(attributes, start.elapsed());
+                            }
                         }
                         TelemetryExtension::Future(channel) => {
                             let metrics = metrics.clone();
@@ -194,9 +198,11 @@ where
                             tokio::spawn(
                                 async move {
                                     let telemetry = channel.await.unwrap_or_default();
-                                    attributes.has_graphql_errors = telemetry.errors_count() > 0;
                                     http_span.record_graphql_execution_telemetry(&telemetry);
-                                    metrics.record_http_duration(attributes, start.elapsed());
+                                    if !telemetry.operations.iter().any(|(ty, _)| ty.is_subscription()) {
+                                        attributes.has_graphql_errors = telemetry.errors_count() > 0;
+                                        metrics.record_http_duration(attributes, start.elapsed());
+                                    }
                                 }
                                 // Ensures the span will have the proper end time.
                                 .instrument(span),

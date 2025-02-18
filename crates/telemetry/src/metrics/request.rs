@@ -29,7 +29,10 @@ pub struct RequestMetricsAttributes {
 impl RequestMetrics {
     pub fn build(meter: &Meter) -> Self {
         Self {
-            latency: meter.u64_histogram("http.server.request.duration").build(),
+            latency: meter
+                .u64_histogram("http.server.request.duration")
+                .with_unit("ms")
+                .build(),
             connected_clients: meter.i64_up_down_counter("http.server.connected.clients").build(),
             response_body_sizes: meter.u64_histogram("http.server.response.body.size").build(),
         }
