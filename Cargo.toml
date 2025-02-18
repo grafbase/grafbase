@@ -83,7 +83,7 @@ cynic-parser = "0.8.7"
 cynic-parser-deser = "0.8.7"
 dashmap = "6.1"
 datatest-stable = "0.3.0"
-deadpool = { version = "0.12.1", features = ["rt_tokio_1"] }
+deadpool = { version = "0.12.2", features = ["rt_tokio_1"] }
 derive_more = "2.0.0"
 dirs = "6"
 duct = "0.13"
