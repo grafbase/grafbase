@@ -43,7 +43,7 @@ crossbeam-channel = { version = "0.5" }
 crossbeam-queue = { version = "0.3" }
 crossbeam-utils = { version = "0.8" }
 cynic = { version = "3", features = ["http-reqwest"] }
-cynic-parser = { version = "0.8", features = ["pretty", "report"] }
+cynic-parser = { version = "0.9", features = ["pretty", "report"] }
 deadpool-runtime = { version = "0.1", default-features = false, features = ["tokio_1"] }
 der = { version = "0.7", default-features = false, features = ["oid", "pem", "std"] }
 deranged = { version = "0.3", default-features = false, features = ["powerfmt", "std"] }
@@ -163,7 +163,7 @@ crossbeam-queue = { version = "0.3" }
 crossbeam-utils = { version = "0.8" }
 cynic = { version = "3", features = ["http-reqwest"] }
 cynic-codegen = { version = "3", features = ["rkyv"] }
-cynic-parser = { version = "0.8", features = ["pretty", "report"] }
+cynic-parser = { version = "0.9", features = ["pretty", "report"] }
 deadpool-runtime = { version = "0.1", default-features = false, features = ["tokio_1"] }
 der = { version = "0.7", default-features = false, features = ["oid", "pem", "std"] }
 deranged = { version = "0.3", default-features = false, features = ["powerfmt", "std"] }
