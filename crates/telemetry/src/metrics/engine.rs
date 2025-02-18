@@ -90,8 +90,14 @@ impl EngineMetrics {
     pub fn build(meter: &Meter, graph_version: Option<String>) -> Self {
         Self {
             graph_version,
-            operation_latency: meter.u64_histogram("graphql.operation.duration").build(),
-            subgraph_latency: meter.u64_histogram("graphql.subgraph.request.duration").build(),
+            operation_latency: meter
+                .u64_histogram("graphql.operation.duration")
+                .with_unit("ms")
+                .build(),
+            subgraph_latency: meter
+                .u64_histogram("graphql.subgraph.request.duration")
+                .with_unit("ms")
+                .build(),
             subgraph_retries: meter.u64_counter("graphql.subgraph.request.retries").build(),
             subgraph_request_body_size: meter.u64_histogram("graphql.subgraph.request.body.size").build(),
             subgraph_response_body_size: meter.u64_histogram("graphql.subgraph.response.body.size").build(),
@@ -101,7 +107,10 @@ impl EngineMetrics {
             subgraph_cache_misses: meter.u64_counter("graphql.subgraph.request.cache.miss").build(),
             operation_cache_hits: meter.u64_counter("graphql.operation.cache.hit").build(),
             operation_cache_misses: meter.u64_counter("graphql.operation.cache.miss").build(),
-            query_preparation_latency: meter.u64_histogram("graphql.operation.prepare.duration").build(),
+            query_preparation_latency: meter
+                .u64_histogram("graphql.operation.prepare.duration")
+                .with_unit("ms")
+                .build(),
             batch_sizes: meter.u64_histogram("graphql.operation.batch.size").build(),
             request_body_sizes: meter.u64_histogram("http.server.request.body.size").build(),
             graphql_errors: meter.u64_counter("graphql.operation.errors").build(),
@@ -123,7 +132,7 @@ impl EngineMetrics {
         attributes
     }
 
-    pub fn record_operation_duration(
+    pub fn record_query_or_mutation_duration(
         &self,
         GraphqlRequestMetricsAttributes {
             operation,
@@ -133,6 +142,9 @@ impl EngineMetrics {
         }: GraphqlRequestMetricsAttributes,
         latency: std::time::Duration,
     ) {
+        if operation.ty.is_subscription() {
+            return;
+        }
         let mut attributes = self.create_operation_key_values(operation);
 
         if let Some(version) = self.graph_version.clone() {

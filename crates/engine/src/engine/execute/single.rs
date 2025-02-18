@@ -44,7 +44,7 @@ impl<R: Runtime> Engine<R> {
                     });
                 }
 
-                self.runtime.metrics().record_operation_duration(
+                self.runtime.metrics().record_query_or_mutation_duration(
                     GraphqlRequestMetricsAttributes {
                         operation,
                         status,
