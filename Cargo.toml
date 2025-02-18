@@ -77,10 +77,10 @@ crossbeam-queue = "0.3"
 crossterm = "0.28"
 ctor = "0.2.8"
 cynic = "3.9"
-cynic-codegen = { version = "3.9", features = ["rkyv"] }
-cynic-introspection = "3.9"
-cynic-parser = "0.8.7"
-cynic-parser-deser = "0.8.7"
+cynic-codegen = { version = "3.10.0", features = ["rkyv"] }
+cynic-introspection = "3.10.0"
+cynic-parser = "0.9.0"
+cynic-parser-deser = "0.9.0"
 dashmap = "6.1"
 datatest-stable = "0.3.0"
 deadpool = { version = "0.12.2", features = ["rt_tokio_1"] }

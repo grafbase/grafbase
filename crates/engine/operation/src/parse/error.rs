@@ -21,7 +21,12 @@ impl ParseError {
         let message = self.to_string();
         match self {
             ParseError::ParserError(err) => {
-                Error::parsing(message).with_locations(offsets.span_to_location(err.span()))
+                let error = Error::parsing(message);
+                if let Some(span) = err.span() {
+                    error.with_locations(offsets.span_to_location(span))
+                } else {
+                    error
+                }
             }
             ParseError::UnknowOperation(_) | ParseError::MissingOperationName | ParseError::MissingOperations => {
                 Error::parsing(message)
