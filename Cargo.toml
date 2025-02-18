@@ -63,7 +63,7 @@ blake3 = "1.5.1"
 bytes = "1.6.0"
 case = "1"
 cfg-if = "1"
-chrono = { version = "0.4.38", default-features = false }
+chrono = { version = "0.4.39", default-features = false }
 clap = "4"
 clap_complete = "4.5"
 cli-table = { version = "0.4", default-features = false }
