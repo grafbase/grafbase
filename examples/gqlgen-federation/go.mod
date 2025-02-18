@@ -1,13 +1,13 @@
 module github.com/grafbase/grafbase/examples/gqlgen-federation
 
-go 1.22.5
+go 1.22.12
 
-toolchain go1.23.5
+toolchain go1.24.0
 
 require (
 	github.com/99designs/gqlgen v0.17.63
-	github.com/99designs/gqlgen/_examples v0.0.0-20250115125504-7b1908e955f5
-	github.com/vektah/gqlparser/v2 v2.5.21
+	github.com/99designs/gqlgen/_examples v0.0.0-20250217153611-4abb488ef0c3
+	github.com/vektah/gqlparser/v2 v2.5.22
 )
 
 require (
@@ -23,5 +23,5 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/sosodev/duration v1.3.1 // indirect
 	golang.org/x/net v0.33.0 // indirect
-	golang.org/x/sys v0.29.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
 )
