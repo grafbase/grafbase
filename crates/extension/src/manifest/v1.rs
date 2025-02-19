@@ -6,8 +6,17 @@ pub struct Manifest {
     pub kind: Kind,
     pub sdk_version: semver::Version,
     pub minimum_gateway_version: semver::Version,
+    pub description: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sdl: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub readme: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub homepage_url: Option<url::Url>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub repository_url: Option<url::Url>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub license: Option<String>,
 }
 
 impl Manifest {
@@ -65,7 +74,9 @@ mod tests {
             },
             "sdl": "directive @custom on FIELD_DEFINITION",
             "sdk_version": "0.1.0",
-            "minimum_gateway_version": "0.1.0"
+            "minimum_gateway_version": "0.1.0",
+            "description": "Mandatory description",
+            "homepage_url": "http://example.com/my-extension",
         });
 
         let manifest: Manifest = serde_json::from_value(json).unwrap();
@@ -82,6 +93,11 @@ mod tests {
                 sdk_version: semver::Version::new(0, 1, 0),
                 minimum_gateway_version: semver::Version::new(0, 1, 0),
                 sdl: Some("directive @custom on FIELD_DEFINITION".to_string()),
+                description: "Mandatory description".to_owned(),
+                readme: None,
+                homepage_url: Some("http://example.com/my-extension".parse().unwrap()),
+                repository_url: None,
+                license: None
             }
         );
     }
@@ -95,7 +111,9 @@ mod tests {
                 "Authenticator": {}
             },
             "sdk_version": "0.1.0",
-            "minimum_gateway_version": "0.1.0"
+            "minimum_gateway_version": "0.1.0",
+            "description": "An extension in a test",
+            "homepage_url": "http://example.com/my-extension"
         });
 
         let manifest: Manifest = serde_json::from_value(json).unwrap();
@@ -109,7 +127,12 @@ mod tests {
                 kind: Kind::Authenticator(Empty {}),
                 sdk_version: semver::Version::new(0, 1, 0),
                 minimum_gateway_version: semver::Version::new(0, 1, 0),
-                sdl: None
+                sdl: None,
+                description: "An extension in a test".to_owned(),
+                readme: None,
+                homepage_url: Some("http://example.com/my-extension".parse().unwrap()),
+                repository_url: None,
+                license: None
             }
         )
     }
@@ -125,7 +148,8 @@ mod tests {
                 }
             },
             "sdk_version": "0.0.9",
-            "minimum_gateway_version": "0.0.9"
+            "minimum_gateway_version": "0.0.9",
+            "description": "mandatory description"
         });
 
         let manifest: Manifest = serde_json::from_value(json).unwrap();

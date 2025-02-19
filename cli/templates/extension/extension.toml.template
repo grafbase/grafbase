@@ -2,6 +2,10 @@
 name = "{{name}}"
 version = "0.1.0"
 kind = "{{kind}}"
+description = "A new extension"
+# homepage_url = "https://example.com/my-extension"
+# repository_url = "https://github.com/my-username/my-extension"
+# license = "MIT"
 
 {% if needs_field_resolvers -%}
 [directives]

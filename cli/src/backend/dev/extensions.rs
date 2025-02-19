@@ -114,6 +114,11 @@ mod tests {
             sdk_version: "1.0.0".parse().unwrap(),
             minimum_gateway_version: "1.0.0".parse().unwrap(),
             sdl: None,
+            description: "An extension in a test".to_owned(),
+            homepage_url: Some("http://example.com/my-extension".parse().unwrap()),
+            repository_url: None,
+            license: None,
+            readme: None,
         }
         .into_versioned();
 

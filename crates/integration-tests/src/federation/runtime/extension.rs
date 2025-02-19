@@ -41,6 +41,11 @@ impl TestExtensions {
             sdk_version: "0.0.0".parse().unwrap(),
             minimum_gateway_version: "0.0.0".parse().unwrap(),
             sdl: config.sdl.map(str::to_string),
+            description: "Test extension".to_owned(),
+            homepage_url: None,
+            license: None,
+            readme: None,
+            repository_url: None,
         };
         let dir = self.tmpdir.path().join(manifest.id.to_string());
         std::fs::create_dir(&dir).unwrap();
