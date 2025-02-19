@@ -79,6 +79,7 @@ fn match_directive_name_inner(
         // Built-ins
         LINK => return DirectiveNameMatch::Link,
         "deprecated" => return DirectiveNameMatch::Deprecated,
+        "specifiedBy" => return DirectiveNameMatch::SpecifiedBy,
         _ => (),
     }
 
@@ -124,8 +125,12 @@ pub(in crate::ingest_subgraph) enum DirectiveNameMatch {
     },
 
     Authorized,
-    Deprecated,
 
+    // GraphQL built-ins
+    Deprecated,
+    SpecifiedBy,
+
+    // Federation built-ins
     Authenticated,
     ComposeDirective,
     Cost,
