@@ -2,6 +2,7 @@
 name = "rest"
 version = "0.1.1"
 kind = "resolver"
+description = "Declarative REST resolver extension."
 
 [directives]
 definitions = "definitions.graphql"

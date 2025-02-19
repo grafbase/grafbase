@@ -47,6 +47,11 @@ mod tests {
             sdk_version: "0.3.0".parse().unwrap(),
             minimum_gateway_version: "0.90.0".parse().unwrap(),
             sdl: Some("directive foo on SCHEMA".to_string()),
+            license: None,
+            readme: None,
+            description: "My extension".to_string(),
+            homepage_url: None,
+            repository_url: None,
         };
         tokio::fs::write(
             &manifest_path,

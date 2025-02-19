@@ -58,16 +58,20 @@ fn init_resolver() {
 
     let extension_toml = std::fs::read_to_string(project_path.join("extension.toml")).unwrap();
 
-    insta::assert_snapshot!(&extension_toml, @r#"
+    insta::assert_snapshot!(&extension_toml, @r##"
     [extension]
     name = "test-project"
     version = "0.1.0"
     kind = "resolver"
+    description = "A new extension"
+    # homepage_url = "https://example.com/my-extension"
+    # repository_url = "https://github.com/my-username/my-extension"
+    # license = "MIT"
 
     [directives]
     definitions = "definitions.graphql"
     field_resolvers = ["testProjectDirective"]
-    "#);
+    "##);
 
     let lib_rs = std::fs::read_to_string(project_path.join("src/lib.rs")).unwrap();
 
@@ -221,6 +225,7 @@ fn build_resolver() {
       },
       "sdk_version": "<sdk_version>",
       "minimum_gateway_version": "<minimum_gateway_version>",
+      "description": "A new extension",
       "sdl": "\"\"\"\nFill in here the directives and types that the extension needs.\nRemove this file and the definition in extension.toml if the extension does not need any directives.\n\"\"\"\ndirective @testProjectConfiguration(arg1: String) repeatable on SCHEMA\ndirective @testProjectDirective on FIELD_DEFINITION"
     }
     "#
@@ -270,12 +275,16 @@ fn init_auth() {
 
     let extension_toml = std::fs::read_to_string(project_path.join("extension.toml")).unwrap();
 
-    insta::assert_snapshot!(&extension_toml, @r#"
+    insta::assert_snapshot!(&extension_toml, @r##"
     [extension]
     name = "test-project"
     version = "0.1.0"
     kind = "auth"
-    "#);
+    description = "A new extension"
+    # homepage_url = "https://example.com/my-extension"
+    # repository_url = "https://github.com/my-username/my-extension"
+    # license = "MIT"
+    "##);
 
     let lib_rs = std::fs::read_to_string(project_path.join("src/lib.rs")).unwrap();
 
@@ -421,7 +430,8 @@ fn build_auth() {
         "Authenticator": {}
       },
       "sdk_version": "<sdk_version>",
-      "minimum_gateway_version": "<minimum_gateway_version>"
+      "minimum_gateway_version": "<minimum_gateway_version>",
+      "description": "A new extension"
     }
     "#
     );

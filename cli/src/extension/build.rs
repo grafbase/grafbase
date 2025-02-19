@@ -68,6 +68,10 @@ struct ExtensionTomlExtension {
     name: String,
     version: Version,
     kind: ExtensionKind,
+    description: String,
+    homepage_url: Option<url::Url>,
+    repository_url: Option<url::Url>,
+    license: Option<String>,
 }
 
 #[derive(serde::Deserialize)]
@@ -249,6 +253,11 @@ fn parse_manifest(source_dir: &Path, wasm_path: &Path) -> anyhow::Result<Manifes
         sdk_version: versions.sdk_version,
         minimum_gateway_version: versions.minimum_gateway_version,
         sdl,
+        description: extension_toml.extension.description,
+        readme: None,
+        homepage_url: extension_toml.extension.homepage_url,
+        repository_url: extension_toml.extension.repository_url,
+        license: extension_toml.extension.license,
     };
 
     Ok(manifest)
