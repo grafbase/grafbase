@@ -119,7 +119,7 @@ fn create_wasi_extension_configs(
 
         let extension_type = match &extension.manifest.kind {
             extension_catalog::Kind::FieldResolver(_) => ExtensionType::Resolver,
-            extension_catalog::Kind::Authenticator => ExtensionType::Authentication,
+            extension_catalog::Kind::Authenticator(_) => ExtensionType::Authentication,
         };
 
         let wasi_config = WasiExtensionsConfig {

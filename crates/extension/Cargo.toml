@@ -14,3 +14,6 @@ grafbase-workspace-hack.workspace = true
 semver = { workspace = true, features = ["serde"] }
 serde.workspace = true
 url.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true

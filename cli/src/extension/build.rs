@@ -221,7 +221,7 @@ fn parse_manifest(source_dir: &Path, wasm_path: &Path) -> anyhow::Result<Manifes
 
             Kind::FieldResolver(FieldResolver { resolver_directives })
         }
-        ExtensionKind::Auth => Kind::Authenticator,
+        ExtensionKind::Auth => Kind::Authenticator(Default::default()),
     };
 
     let sdl = match extension_toml.directives.definitions.map(|path| source_dir.join(&path)) {
