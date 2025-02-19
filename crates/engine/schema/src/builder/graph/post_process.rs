@@ -247,6 +247,7 @@ fn ingest_field_directive(
         requires,
         provides,
         r#type,
+        external,
         ..
     } in federated_field.directives.iter().filter_map(|dir| dir.as_join_field())
     {
@@ -262,29 +263,31 @@ fn ingest_field_directive(
                     ty_record: ctx.convert_type(r#type),
                 });
             }
-            if let Some(provides) = provides.as_ref().filter(|provides| !provides.is_empty()) {
-                provides_records.push(FieldProvidesRecord {
-                    subgraph_id,
-                    field_set_record: ctx.convert_field_set(provides).map_err(|err| {
-                        BuildError::RequiredFieldArgumentCoercionError {
-                            location: ctx.strings[ctx.graph[id].name_id].to_string(),
-                            err,
-                        }
-                    })?,
-                });
+            if !external {
+                if let Some(provides) = provides.as_ref().filter(|provides| !provides.is_empty()) {
+                    provides_records.push(FieldProvidesRecord {
+                        subgraph_id,
+                        field_set_record: ctx.convert_field_set(provides).map_err(|err| {
+                            BuildError::RequiredFieldArgumentCoercionError {
+                                location: ctx.strings[ctx.graph[id].name_id].to_string(),
+                                err,
+                            }
+                        })?,
+                    });
+                }
+                if let Some(requires) = requires.as_ref().filter(|requires| !requires.is_empty()) {
+                    requires_records.push(FieldRequiresRecord {
+                        subgraph_id,
+                        field_set_record: ctx.convert_field_set(requires).map_err(|err| {
+                            BuildError::RequiredFieldArgumentCoercionError {
+                                location: ctx.strings[ctx.graph[id].name_id].to_string(),
+                                err,
+                            }
+                        })?,
+                    });
+                }
+                resolvable_in.insert(subgraph_id);
             }
-            if let Some(requires) = requires.as_ref().filter(|requires| !requires.is_empty()) {
-                requires_records.push(FieldRequiresRecord {
-                    subgraph_id,
-                    field_set_record: ctx.convert_field_set(requires).map_err(|err| {
-                        BuildError::RequiredFieldArgumentCoercionError {
-                            location: ctx.strings[ctx.graph[id].name_id].to_string(),
-                            err,
-                        }
-                    })?,
-                });
-            }
-            resolvable_in.insert(subgraph_id);
         }
     }
 
@@ -322,7 +325,7 @@ fn ingest_field_directive(
 
     // If there is no @join__field and no @join__type at all, we assume this field to be
     // available everywhere.
-    let exists_in_subgraph_ids = if !has_join_field && !parent_has_join_type {
+    let mut exists_in_subgraph_ids = if !has_join_field && !parent_has_join_type {
         ctx.subgraphs.all.clone()
     } else {
         resolvable_in.into_iter().collect::<Vec<_>>()
@@ -402,23 +405,20 @@ fn ingest_field_directive(
     ctx.graphql_federated_entity_resolvers = graphql_federated_entity_resolvers;
 
     let directive_ids = take(&mut ctx.graph[id].directive_ids);
-    resolver_ids.extend(
-        directive_ids
-            .iter()
-            .filter_map(|id| id.as_extension())
-            .filter_map(|directive_id| {
-                if exists_in_subgraph_ids.contains(&ctx.graph[directive_id].subgraph_id) {
-                    ctx.graph
-                        .resolver_definitions
-                        .push(ResolverDefinitionRecord::FieldResolverExtension(
-                            FieldResolverExtensionDefinitionRecord { directive_id },
-                        ));
-                    Some(ResolverDefinitionId::from(ctx.graph.resolver_definitions.len() - 1))
-                } else {
-                    None
-                }
-            }),
-    );
+    for directive_id in &directive_ids {
+        let &TypeSystemDirectiveId::Extension(directive_id) = directive_id else {
+            continue;
+        };
+        if !exists_in_subgraph_ids.contains(&ctx.graph[directive_id].subgraph_id) {
+            exists_in_subgraph_ids.push(ctx.graph[directive_id].subgraph_id);
+        }
+        ctx.graph
+            .resolver_definitions
+            .push(ResolverDefinitionRecord::FieldResolverExtension(
+                FieldResolverExtensionDefinitionRecord { directive_id },
+            ));
+        resolver_ids.push(ResolverDefinitionId::from(ctx.graph.resolver_definitions.len() - 1));
+    }
 
     let field = &mut ctx.graph[id];
     field.directive_ids = directive_ids;

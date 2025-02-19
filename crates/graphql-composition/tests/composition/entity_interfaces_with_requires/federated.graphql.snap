@@ -43,7 +43,7 @@ interface Media
 {
     id: ID!
     reviews: [Review!]! @join__field(graph: B, requires: "title")
-    title: String! @join__field(graph: A)
+    title: String! @join__field(graph: A) @join__field(graph: B, external: true)
 }
 
 enum join__Graph

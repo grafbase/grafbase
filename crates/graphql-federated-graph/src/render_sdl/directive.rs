@@ -151,6 +151,10 @@ fn render_join_field_directive(
         writer = writer.arg("type", render_field_type(ty, graph))?;
     }
 
+    if directive.external {
+        writer = writer.arg("external", Value::Boolean(true))?;
+    }
+
     if let Some(r#override) = &directive.r#override {
         let name = match r#override {
             OverrideSource::Subgraph(subgraph_id) => &graph.at(*subgraph_id).then(|subgraph| subgraph.name),

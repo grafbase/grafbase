@@ -23,10 +23,10 @@ type Producer implements MusicEntity
     @join__implements(graph: PAYROLL, interface: "MusicEntity")
     @join__implements(graph: REGISTRY, interface: "MusicEntity")
 {
-    albumsProduced: [String!]! @join__field(graph: REGISTRY)
+    albumsProduced: [String!]! @join__field(graph: PAYROLL, external: true) @join__field(graph: REGISTRY)
     id: ID!
     name: String!
-    studioName: String! @join__field(graph: REGISTRY)
+    studioName: String! @join__field(graph: PAYROLL, external: true) @join__field(graph: REGISTRY)
 }
 
 type Band implements MusicEntity
@@ -37,7 +37,7 @@ type Band implements MusicEntity
 {
     genre: String! @join__field(graph: REGISTRY)
     id: ID!
-    members: [String!]! @join__field(graph: REGISTRY)
+    members: [String!]! @join__field(graph: PAYROLL, external: true) @join__field(graph: REGISTRY)
     name: String!
 }
 

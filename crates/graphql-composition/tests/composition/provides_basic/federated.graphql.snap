@@ -39,7 +39,7 @@ type User
 {
     email: String @join__field(graph: USERS)
     id: ID!
-    name: String @join__field(graph: USERS)
+    name: String @join__field(graph: PRODUCTS, external: true) @join__field(graph: USERS)
 }
 
 type Query

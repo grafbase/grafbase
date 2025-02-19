@@ -339,8 +339,11 @@ fn write_field_directives(
                 fully_overridden_subgraph_ids.push(*id);
             }
             join_field_subgraph_ids.extend(dir.subgraph_id);
-            join_field_must_be_present |=
-                dir.r#override.is_some() | dir.requires.is_some() | dir.provides.is_some() | dir.r#type.is_some();
+            join_field_must_be_present |= dir.r#override.is_some()
+                | dir.requires.is_some()
+                | dir.provides.is_some()
+                | dir.r#type.is_some()
+                | dir.external;
         }
     }
 

@@ -36,6 +36,7 @@ pub(super) fn transform_input_value_directives(
                     requires: None,
                     provides: None,
                     r#type: dir.r#type.map(|ty| ctx.insert_field_type(ctx.subgraphs.walk(ty))),
+                    external: false,
                     r#override: None,
                     override_label: None,
                 }))
@@ -270,6 +271,7 @@ fn transform_join_field_directive(
     field_id: federated::FieldId,
     ir::JoinFieldDirective {
         source_field,
+        external,
         r#override,
         override_label,
         r#type,
@@ -289,6 +291,7 @@ fn transform_join_field_directive(
             .provides()
             .map(|field_set| attach_selection(field_set, ctx.out[field_id].r#type.definition, ctx)),
         r#type: r#type.map(|ty| ctx.insert_field_type(ctx.subgraphs.walk(ty))),
+        external: *external,
         r#override: r#override.clone(),
         override_label: override_label.clone(),
     })

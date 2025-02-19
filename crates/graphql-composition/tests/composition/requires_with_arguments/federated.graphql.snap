@@ -23,8 +23,8 @@ type WasabiPlant
     cultivationArea: String
     harvestTime: String @join__field(graph: WASABI, requires: "variety name(language: \"latin\")")
     id: ID!
-    name(language: String!): String!
-    variety: String!
+    name(language: String!): String! @join__field(graph: WASABI, external: true)
+    variety: String! @join__field(graph: WASABI, external: true)
 }
 
 type WasabiProduct
