@@ -94,6 +94,8 @@ impl<'ctx> FieldResolverExtensionRequest<'ctx> {
                     match result {
                         Ok(data) => match data {
                             Data::JsonBytes(bytes) => {
+                                tracing::debug!("Received:\n{}", String::from_utf8_lossy(&bytes));
+
                                 response
                                     .seed(&ctx, id)
                                     .deserialize_field_as_entity(
@@ -106,6 +108,14 @@ impl<'ctx> FieldResolverExtensionRequest<'ctx> {
                                     })?;
                             }
                             Data::CborBytes(bytes) => {
+                                tracing::debug!(
+                                    "Received:\n{}",
+                                    minicbor_serde::from_slice(&bytes)
+                                        .ok()
+                                        .and_then(|v: serde_json::Value| serde_json::to_string_pretty(&v).ok())
+                                        .unwrap_or_else(|| "<error>".to_string())
+                                );
+
                                 response
                                     .seed(&ctx, id)
                                     .deserialize_field_as_entity(

@@ -9,7 +9,7 @@ directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT |
 
 directive @join__graph(name: String!, url: String) on ENUM_VALUE
 
-directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet) on FIELD_DEFINITION
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, overrideLabel: String) on FIELD_DEFINITION
 
 directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boolean = true) on OBJECT | INTERFACE
 
@@ -23,10 +23,10 @@ type Producer implements MusicEntity
     @join__implements(graph: PAYROLL, interface: "MusicEntity")
     @join__implements(graph: REGISTRY, interface: "MusicEntity")
 {
-    albumsProduced: [String!]! @join__field(graph: REGISTRY)
+    albumsProduced: [String!]! @join__field(graph: PAYROLL, external: true) @join__field(graph: REGISTRY)
     id: ID!
     name: String!
-    studioName: String! @join__field(graph: REGISTRY)
+    studioName: String! @join__field(graph: PAYROLL, external: true) @join__field(graph: REGISTRY)
 }
 
 type Band implements MusicEntity
@@ -37,7 +37,7 @@ type Band implements MusicEntity
 {
     genre: String! @join__field(graph: REGISTRY)
     id: ID!
-    members: [String!]! @join__field(graph: REGISTRY)
+    members: [String!]! @join__field(graph: PAYROLL, external: true) @join__field(graph: REGISTRY)
     name: String!
 }
 

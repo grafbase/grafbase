@@ -146,6 +146,10 @@ pub(super) fn emit_federation_builtins(ctx: &mut Context<'_>, join_graph_enum_id
     //     graph: join__Graph
     //     requires: join__FieldSet
     //     provides: join__FieldSet
+    //     type: String,
+    //     external: Boolean,
+    //     override: String,
+    //     overrideLabel: String
     // ) on FIELD_DEFINITION
     {
         let directive_name = ctx.insert_str("field");
@@ -200,6 +204,58 @@ pub(super) fn emit_federation_builtins(ctx: &mut Context<'_>, join_graph_enum_id
                 default: None,
             },
         );
+
+        let argument = federated::InputValueDefinition {
+            name: ctx.insert_str("type"),
+            r#type: federated::Type {
+                wrapping: Wrapping::nullable(),
+                definition: string_definition,
+            },
+            directives: Vec::new(),
+            description: None,
+            default: None,
+        };
+        ctx.out
+            .push_directive_definition_argument(directive_definition_id, argument);
+
+        let argument = federated::InputValueDefinition {
+            name: ctx.insert_str("external"),
+            r#type: federated::Type {
+                wrapping: Wrapping::nullable(),
+                definition: boolean_definition,
+            },
+            directives: Vec::new(),
+            description: None,
+            default: None,
+        };
+        ctx.out
+            .push_directive_definition_argument(directive_definition_id, argument);
+
+        let argument = federated::InputValueDefinition {
+            name: ctx.insert_str("override"),
+            r#type: federated::Type {
+                wrapping: Wrapping::nullable(),
+                definition: string_definition,
+            },
+            directives: Vec::new(),
+            description: None,
+            default: None,
+        };
+        ctx.out
+            .push_directive_definition_argument(directive_definition_id, argument);
+
+        let argument = federated::InputValueDefinition {
+            name: ctx.insert_str("overrideLabel"),
+            r#type: federated::Type {
+                wrapping: Wrapping::nullable(),
+                definition: string_definition,
+            },
+            directives: Vec::new(),
+            description: None,
+            default: None,
+        };
+        ctx.out
+            .push_directive_definition_argument(directive_definition_id, argument);
     }
 
     // directive @join__type(

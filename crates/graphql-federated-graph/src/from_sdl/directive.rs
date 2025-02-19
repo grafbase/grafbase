@@ -286,14 +286,10 @@ fn parse_join_field_directive<'a>(
     state: &mut State<'a>,
 ) -> Result<Option<Directive>, DomainError> {
     let field_type = state.graph[field_id].r#type;
-    let is_external = directive
+    let external = directive
         .get_argument("external")
         .map(|arg| arg.as_bool().unwrap_or_default())
         .unwrap_or_default();
-
-    if is_external {
-        return Ok(None);
-    }
 
     let subgraph_id = directive
         .get_argument("graph")
@@ -345,6 +341,7 @@ fn parse_join_field_directive<'a>(
         requires,
         provides,
         r#type,
+        external,
         r#override,
         override_label,
     })))

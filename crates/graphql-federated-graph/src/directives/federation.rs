@@ -34,6 +34,7 @@ pub struct JoinFieldDirective {
     pub requires: Option<SelectionSet>,
     pub provides: Option<SelectionSet>,
     pub r#type: Option<Type>,
+    pub external: bool,
     pub r#override: Option<OverrideSource>,
     pub override_label: Option<OverrideLabel>,
 }

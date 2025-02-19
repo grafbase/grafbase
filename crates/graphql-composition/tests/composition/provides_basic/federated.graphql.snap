@@ -9,7 +9,7 @@ directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT |
 
 directive @join__graph(name: String!, url: String) on ENUM_VALUE
 
-directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet) on FIELD_DEFINITION
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, overrideLabel: String) on FIELD_DEFINITION
 
 directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boolean = true) on OBJECT | INTERFACE
 
@@ -39,7 +39,7 @@ type User
 {
     email: String @join__field(graph: USERS)
     id: ID!
-    name: String @join__field(graph: USERS)
+    name: String @join__field(graph: PRODUCTS, external: true) @join__field(graph: USERS)
 }
 
 type Query

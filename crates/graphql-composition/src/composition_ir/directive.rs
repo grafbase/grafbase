@@ -47,6 +47,7 @@ pub struct JoinInputFieldDirective {
 pub struct JoinFieldDirective {
     pub source_field: (FieldId, FieldTuple),
     pub r#override: Option<OverrideSource>,
+    pub external: bool,
     pub override_label: Option<OverrideLabel>,
     pub r#type: Option<FieldTypeId>,
 }

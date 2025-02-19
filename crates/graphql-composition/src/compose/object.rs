@@ -267,15 +267,11 @@ fn ingest_join_field_directives(
     out: &mut Vec<ir::Directive>,
 ) {
     for field in fields {
-        // If part of the key, it can't be external.
-        if field.directives().external() && !field.is_part_of_key() {
-            continue;
-        }
-
         let mut directive = ir::JoinFieldDirective {
             source_field: field.id,
             r#override: None,
             override_label: None,
+            external: field.directives().external() && !field.is_part_of_key(),
             r#type: if field.r#type() != composed_field_type {
                 Some(field.r#type().id)
             } else {
