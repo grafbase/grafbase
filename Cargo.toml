@@ -105,7 +105,7 @@ futures-util = "0.3.30"
 fxhash = "0.2"
 governor = "0.8"
 graphql-parser = { git = "https://github.com/graphql-rust/graphql-parser", version = "0.4.0" }
-graphql-ws-client = { version = "0.11.0", features = ["tungstenite"] }
+graphql-ws-client = { version = "0.11.1", features = ["tungstenite"] }
 handlebars = "6.0.0"
 hashbrown = "0.15"
 headers = "0.4"
