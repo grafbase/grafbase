@@ -2601,6 +2601,7 @@ dependencies = [
  "grafbase-workspace-hack",
  "semver",
  "serde",
+ "serde_json",
  "url",
 ]
 

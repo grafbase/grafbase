@@ -417,7 +417,9 @@ fn build_auth() {
         "name": "test-project",
         "version": "0.1.0"
       },
-      "kind": "Authenticator",
+      "kind": {
+        "Authenticator": {}
+      },
       "sdk_version": "<sdk_version>",
       "minimum_gateway_version": "<minimum_gateway_version>"
     }
