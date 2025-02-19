@@ -227,7 +227,10 @@ pub(super) fn ingest_directives(
                 );
             }
 
-            DirectiveNameMatch::ComposeDirective | DirectiveNameMatch::Key | DirectiveNameMatch::Link => (),
+            DirectiveNameMatch::ComposeDirective
+            | DirectiveNameMatch::Key
+            | DirectiveNameMatch::Link
+            | DirectiveNameMatch::SpecifiedBy => (),
         }
     }
 }
