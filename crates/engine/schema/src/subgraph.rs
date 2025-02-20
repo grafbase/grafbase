@@ -24,6 +24,17 @@ impl<'a> Subgraph<'a> {
 
         ids.walk(schema)
     }
+
+    /// Defines whether resolvers should also be treated as boundaries in addition to being
+    /// entrypoints. Meaning that if we encounter a field with a resolver from the same subgraph,
+    /// do we need to call it or can we just provide this field from the parent resolver?
+    pub fn resolvers_define_boundaries(&self) -> bool {
+        match self {
+            Subgraph::GraphqlEndpoint(_) => false,
+            Subgraph::Virtual(_) => true,
+            Subgraph::Introspection(_) => false,
+        }
+    }
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
