@@ -261,7 +261,8 @@ zeroize = { version = "1", features = ["zeroize_derive"] }
 [target.aarch64-apple-darwin.dependencies]
 ahash = { version = "0.8" }
 axum = { version = "0.8" }
-getrandom = { version = "0.2", default-features = false, features = ["std"] }
+getrandom-468e82937335b1c9 = { package = "getrandom", version = "0.3", default-features = false, features = ["std"] }
+getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -275,7 +276,8 @@ tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features 
 [target.aarch64-apple-darwin.build-dependencies]
 ahash = { version = "0.8" }
 axum = { version = "0.8" }
-getrandom = { version = "0.2", default-features = false, features = ["std"] }
+getrandom-468e82937335b1c9 = { package = "getrandom", version = "0.3", default-features = false, features = ["std"] }
+getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -289,7 +291,8 @@ tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features 
 [target.x86_64-apple-darwin.dependencies]
 ahash = { version = "0.8" }
 axum = { version = "0.8" }
-getrandom = { version = "0.2", default-features = false, features = ["std"] }
+getrandom-468e82937335b1c9 = { package = "getrandom", version = "0.3", default-features = false, features = ["std"] }
+getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -304,7 +307,8 @@ tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features 
 [target.x86_64-apple-darwin.build-dependencies]
 ahash = { version = "0.8" }
 axum = { version = "0.8" }
-getrandom = { version = "0.2", default-features = false, features = ["std"] }
+getrandom-468e82937335b1c9 = { package = "getrandom", version = "0.3", default-features = false, features = ["std"] }
+getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -318,7 +322,8 @@ tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features 
 
 [target.x86_64-pc-windows-msvc.dependencies]
 axum = { version = "0.8" }
-getrandom = { version = "0.2", default-features = false, features = ["std"] }
+getrandom-468e82937335b1c9 = { package = "getrandom", version = "0.3", default-features = false, features = ["std"] }
+getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 spin = { version = "0.9" }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["log", "timeout"] }
 winapi = { version = "0.3", default-features = false, features = ["consoleapi", "errhandlingapi", "fileapi", "handleapi", "impl-default", "knownfolders", "minwinbase", "minwindef", "objbase", "processenv", "processthreadsapi", "profileapi", "shlobj", "synchapi", "winbase", "winerror", "winnt", "winuser"] }
@@ -327,7 +332,8 @@ windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", feat
 
 [target.x86_64-pc-windows-msvc.build-dependencies]
 axum = { version = "0.8" }
-getrandom = { version = "0.2", default-features = false, features = ["std"] }
+getrandom-468e82937335b1c9 = { package = "getrandom", version = "0.3", default-features = false, features = ["std"] }
+getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 spin = { version = "0.9" }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["log", "timeout"] }
 winapi = { version = "0.3", default-features = false, features = ["consoleapi", "errhandlingapi", "fileapi", "handleapi", "impl-default", "knownfolders", "minwinbase", "minwindef", "objbase", "processenv", "processthreadsapi", "profileapi", "shlobj", "synchapi", "winbase", "winerror", "winnt", "winuser"] }
@@ -337,7 +343,8 @@ windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", feat
 [target.x86_64-unknown-linux-musl.dependencies]
 ahash = { version = "0.8" }
 axum = { version = "0.8" }
-getrandom = { version = "0.2", default-features = false, features = ["std"] }
+getrandom-468e82937335b1c9 = { package = "getrandom", version = "0.3", default-features = false, features = ["std"] }
+getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -353,7 +360,8 @@ tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features 
 [target.x86_64-unknown-linux-musl.build-dependencies]
 ahash = { version = "0.8" }
 axum = { version = "0.8" }
-getrandom = { version = "0.2", default-features = false, features = ["std"] }
+getrandom-468e82937335b1c9 = { package = "getrandom", version = "0.3", default-features = false, features = ["std"] }
+getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -369,7 +377,8 @@ tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features 
 [target.aarch64-unknown-linux-musl.dependencies]
 ahash = { version = "0.8" }
 axum = { version = "0.8" }
-getrandom = { version = "0.2", default-features = false, features = ["std"] }
+getrandom-468e82937335b1c9 = { package = "getrandom", version = "0.3", default-features = false, features = ["std"] }
+getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -384,7 +393,8 @@ tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features 
 [target.aarch64-unknown-linux-musl.build-dependencies]
 ahash = { version = "0.8" }
 axum = { version = "0.8" }
-getrandom = { version = "0.2", default-features = false, features = ["std"] }
+getrandom-468e82937335b1c9 = { package = "getrandom", version = "0.3", default-features = false, features = ["std"] }
+getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
