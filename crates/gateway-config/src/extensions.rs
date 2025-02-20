@@ -99,7 +99,7 @@ impl ExtensionsConfig {
     pub fn config(&self) -> Option<&toml::Value> {
         match self {
             ExtensionsConfig::Version(_) => None,
-            ExtensionsConfig::Structured(ref config) => config.config.as_ref(),
+            ExtensionsConfig::Structured(config) => config.config.as_ref(),
         }
     }
 }

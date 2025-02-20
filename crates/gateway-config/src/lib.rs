@@ -2297,6 +2297,7 @@ mod tests {
                         max_pool_size: Some(
                             1000,
                         ),
+                        config: None,
                     },
                 ),
             },

@@ -2,8 +2,8 @@ use std::future::Future;
 
 use async_nats::ServerAddr;
 use wasmtime::{
-    component::{LinkerInstance, Resource, ResourceType},
     StoreContextMut,
+    component::{LinkerInstance, Resource, ResourceType},
 };
 
 use crate::{
