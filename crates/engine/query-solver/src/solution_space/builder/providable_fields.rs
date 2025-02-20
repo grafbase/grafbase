@@ -136,13 +136,16 @@ where
         let parent_subgraph_id = self.query.graph[parent.providable_field_or_root_ix]
             .as_providable_field()
             .map(|field| field.subgraph_id());
+        let should_skip_resolvers_in_same_subgraph = could_be_provided_from_parent
+            & parent_subgraph_id
+                .map(|id| id.walk(self.schema).resolvers_define_boundaries())
+                .unwrap_or_default();
 
         // --
         // Try to plan this field with alternative resolvers if any exist.
         // --
         for resolver_definition in field_definition.resolvers() {
-            // If within the same subgraph, we skip it. Resolvers are entrypoints.
-            if could_be_provided_from_parent && Some(resolver_definition.subgraph_id()) == parent_subgraph_id {
+            if should_skip_resolvers_in_same_subgraph && Some(resolver_definition.subgraph_id()) == parent_subgraph_id {
                 continue;
             };
 
@@ -283,7 +286,7 @@ where
     fn provide_field_from_parent(
         &self,
         parent: &ProvidableField<'schema>,
-        parent_output: CompositeTypeId,
+        parent_output_type: CompositeTypeId,
         id: QueryFieldId,
         field_definition: FieldDefinition<'schema>,
     ) -> ParentProvideResult<'schema> {
@@ -294,10 +297,18 @@ where
                 let subgraph_id = *subgraph_id;
                 let is_reachable = self.is_field_parent_object_reachable_in_subgraph_from_parent_output(
                     subgraph_id,
-                    parent_output,
+                    parent_output_type,
                     field_definition,
                 );
+                let is_reachable_with_current_resolver = !subgraph_id.walk(self.schema).resolvers_define_boundaries()
+                    || field_definition
+                        .resolvers()
+                        .filter(|r| r.subgraph_id() == subgraph_id)
+                        .count()
+                        == 0;
+
                 if is_reachable
+                    && is_reachable_with_current_resolver
                     && self.is_field_providable_in_subgraph(subgraph_id, field_definition)
                     && field_definition.requires_for_subgraph(subgraph_id).is_none()
                 {
