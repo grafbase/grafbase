@@ -79,7 +79,7 @@ ctor = "0.2.8"
 cynic = "3.9"
 cynic-codegen = { version = "3.10.0", features = ["rkyv"] }
 cynic-introspection = "3.10.0"
-cynic-parser = "0.9.0"
+cynic-parser = "0.9.1"
 cynic-parser-deser = "0.9.0"
 dashmap = "6.1"
 datatest-stable = "0.3.2"
