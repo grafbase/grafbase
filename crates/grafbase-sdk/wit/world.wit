@@ -65,6 +65,27 @@ world sdk {
         channel-closed,
     }
 
+    variant nats-auth {
+        // Username and password authentication
+        username-password(tuple<string, string>),
+        // Token authentication
+        token(string),
+        // Credentials authentication
+        credentials(string),
+    }
+
+    // A NATS client
+    resource nats-client {
+        // Creates a new NATS client.
+        connect: static func(
+            servers: list<string>,
+            auth: option<nats-auth>
+        ) -> result<nats-client, string>;
+
+        // Publishes a message to a subject.
+        publish: func(subject: string, message: list<u8>) -> result<_, string>;
+    }
+
     // A HTTP client.
     resource http-client {
         // Executes a request and returns the response, yielding the current future until finished.

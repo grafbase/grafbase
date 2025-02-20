@@ -8,6 +8,7 @@ repository.workspace = true
 
 [dependencies]
 anyhow.workspace = true
+async-nats.workspace = true
 crossbeam = { workspace = true, features = ["crossbeam-channel"] }
 dashmap.workspace = true
 either.workspace = true
