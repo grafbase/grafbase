@@ -49,4 +49,8 @@ formatting = { reorder_keys = true }
 [[rule]]
 schema = { path = ".config/workspace-schema.json" }
 include = ["crates/**/Cargo.toml", "gateway/**/Cargo.toml", "cli/**/Cargo.toml"]
-exclude = ["crates/wasi-component-loader/examples/**/Cargo.toml", "crates/grafbase-workspace-hack/Cargo.toml"]
+exclude = [
+    "crates/wasi-component-loader/examples/**/Cargo.toml",
+    "crates/grafbase-workspace-hack/Cargo.toml",
+    "crates/grafbase-sdk/Cargo.toml",
+]
