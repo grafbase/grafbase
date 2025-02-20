@@ -18,7 +18,14 @@ type ConnectResult<'a> =
 type PublishResult<'a> = Box<dyn Future<Output = anyhow::Result<(Result<(), String>,)>> + Send + 'a>;
 
 pub(crate) fn inject_mapping(types: &mut LinkerInstance<'_, WasiState>) -> crate::Result<()> {
-    types.resource(NATS_CLIENT_RESOURCE, ResourceType::host::<()>(), |_, _| Ok(()))?;
+    types.resource(
+        NATS_CLIENT_RESOURCE,
+        ResourceType::host::<async_nats::Client>(),
+        |mut ctx, id| {
+            ctx.data_mut().take_resource(id)?;
+            Ok(())
+        },
+    )?;
 
     types.func_wrap_async(NATS_CLIENT_CONNECT_FUNCTION, connect)?;
     types.func_wrap_async(NATS_CLIENT_PUBLISH_METHOD, publish)?;

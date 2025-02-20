@@ -57,7 +57,8 @@ impl ComponentInstance {
         let instance = loader
             .linker()
             .instantiate_async(&mut store, loader.component())
-            .await?;
+            .await
+            .unwrap();
 
         Ok(Self {
             store,

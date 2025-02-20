@@ -24,6 +24,7 @@ exclude = [
     "examples/query_plan",
     "extensions/rest",
     "extensions/jwt",
+    "extensions/nats",
 ]
 
 [patch.crates-io]

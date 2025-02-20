@@ -92,7 +92,7 @@ impl Token {
     }
 }
 
-#[derive(Clone, Lift, ComponentType)]
+#[derive(Clone, Lift, Lower, ComponentType)]
 #[component(variant)]
 pub enum NatsAuth {
     #[component(name = "username-password")]
