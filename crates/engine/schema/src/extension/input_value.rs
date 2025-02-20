@@ -19,9 +19,3 @@ pub enum ExtensionInputValueRecord {
     InputValueSet(InputValueSet),
     Template(TemplateId),
 }
-
-impl From<InputValueSet> for ExtensionInputValueRecord {
-    fn from(set: InputValueSet) -> Self {
-        Self::InputValueSet(set)
-    }
-}

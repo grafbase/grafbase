@@ -44,7 +44,8 @@ fn url_template() {
               "schema": {},
               "directive": {
                 "url": "https://example.com/echo/?a=1&b=2.7&c=false&d=Hi%21&e=123890&f=Bonjour"
-              }
+              },
+              "input": {}
             }
           }
         }
@@ -87,7 +88,8 @@ fn url_template_should_escape_strings() {
               "schema": {},
               "directive": {
                 "url": "https://example.com/echo/?q=caf%C3%A9%20%21%3D%20th%C3%A9%2C%20non%3F"
-              }
+              },
+              "input": {}
             }
           }
         }
@@ -130,7 +132,8 @@ fn url_template_should_encode_objects_as_json_and_then_escape() {
               "schema": {},
               "directive": {
                 "url": "https://example.com/echo/?data=%7B%22key%22%3A%22value%22%7D"
-              }
+              },
+              "input": {}
             }
           }
         }
@@ -173,7 +176,8 @@ fn url_template_should_encode_lists_as_json_and_then_escape() {
               "schema": {},
               "directive": {
                 "url": "https://example.com/echo/?data=%5B1%2C%22value%22%5D"
-              }
+              },
+              "input": {}
             }
           }
         }

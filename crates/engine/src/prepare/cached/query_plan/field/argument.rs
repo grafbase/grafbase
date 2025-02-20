@@ -3,12 +3,10 @@ use operation::{
     QueryOrSchemaInputValueView, Variables,
 };
 use query_solver::QueryOrSchemaFieldArgumentIds;
-use schema::{ExtensionDirective, InputValueDefinition, InputValueDefinitionId, InputValueSet, SchemaInputValueRecord};
+use schema::{InputValueDefinition, InputValueDefinitionId, InputValueSet, SchemaInputValueRecord};
 use walker::Walk;
 
 use crate::prepare::CachedOperationContext;
-
-use super::extension::ExtensionDirectiveArgumentsQueryView;
 
 #[derive(Clone, Copy)]
 pub(crate) struct PartitionFieldArguments<'a> {
@@ -39,24 +37,6 @@ impl<'ctx> PartitionFieldArguments<'ctx> {
             variables,
             ids: self.ids,
             selection_set,
-        }
-    }
-
-    pub(crate) fn into_extension_directive_query_view<'v, 's, 'view>(
-        self,
-        directive: ExtensionDirective<'s>,
-        variables: &'v Variables,
-    ) -> ExtensionDirectiveArgumentsQueryView<'view>
-    where
-        'ctx: 'view,
-        'v: 'view,
-        's: 'view,
-    {
-        ExtensionDirectiveArgumentsQueryView {
-            schema: self.ctx.schema,
-            argument_records: directive.argument_records(),
-            field_arguments: self,
-            variables,
         }
     }
 

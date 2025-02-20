@@ -9,10 +9,7 @@ use itertools::Itertools;
 
 use super::*;
 
-pub(super) fn post_process_schema_locations(
-    ctx: &mut GraphContext<'_>,
-    locations: Vec<SchemaLocation>,
-) -> Result<(), BuildError> {
+pub(super) fn process_directives(ctx: &mut GraphContext<'_>, locations: Vec<SchemaLocation>) -> Result<(), BuildError> {
     let root_entities = [
         Some(EntityDefinitionId::from(ctx.graph.root_operation_types_record.query_id)),
         ctx.graph.root_operation_types_record.mutation_id.map(Into::into),
@@ -76,7 +73,6 @@ pub(super) fn post_process_schema_locations(
 
     finalize_inaccessible(&mut ctx.graph);
     add_not_fully_implemented_in(&mut ctx.graph);
-    add_extra_vecs_with_different_ordering(ctx);
 
     Ok(())
 }
@@ -404,24 +400,39 @@ fn ingest_field_directive(
     }
     ctx.graphql_federated_entity_resolvers = graphql_federated_entity_resolvers;
 
-    let directive_ids = take(&mut ctx.graph[id].directive_ids);
-    for directive_id in &directive_ids {
-        let &TypeSystemDirectiveId::Extension(directive_id) = directive_id else {
+    for directive in &ctx.federated_graph[federated_id].directives {
+        let federated_graph::Directive::ExtensionDirective(federated_graph::ExtensionDirective {
+            subgraph_id: federated_subgraph_id,
+            extension_id,
+            name,
+            arguments,
+        }) = directive
+        else {
             continue;
         };
-        if !exists_in_subgraph_ids.contains(&ctx.graph[directive_id].subgraph_id) {
-            exists_in_subgraph_ids.push(ctx.graph[directive_id].subgraph_id);
+        let subgraph_id = ctx.subgraphs.id_mapping[federated_subgraph_id];
+        if !exists_in_subgraph_ids.contains(&subgraph_id) {
+            exists_in_subgraph_ids.push(subgraph_id);
         }
+        let (directive_id, requirements_record) = ctx.ingest_extension_directive(
+            SchemaLocation::FieldDefinition(id, federated_id),
+            *federated_subgraph_id,
+            *extension_id,
+            *name,
+            arguments,
+        )?;
         ctx.graph
             .resolver_definitions
             .push(ResolverDefinitionRecord::FieldResolverExtension(
-                FieldResolverExtensionDefinitionRecord { directive_id },
+                FieldResolverExtensionDefinitionRecord {
+                    directive_id,
+                    requirements_record,
+                },
             ));
-        resolver_ids.push(ResolverDefinitionId::from(ctx.graph.resolver_definitions.len() - 1));
+        resolver_ids.push(ResolverDefinitionId::from(ctx.graph.resolver_definitions.len() - 1))
     }
 
     let field = &mut ctx.graph[id];
-    field.directive_ids = directive_ids;
     field.subgraph_type_records = subgraph_type_records;
     field.exists_in_subgraph_ids = exists_in_subgraph_ids;
     field.resolver_ids = resolver_ids;
@@ -439,16 +450,6 @@ fn ingest_input_value_directive(
     let directives = &ctx.federated_graph[federated_id].directives;
     if has_inaccessible(directives) {
         ctx.graph.inaccessible_input_value_definitions.set(id, true);
-    }
-    if let Some(value) = ctx.federated_graph[federated_id].default.clone() {
-        ctx.graph[id].default_value_id =
-            Some(
-                ctx.coerce(id, value)
-                    .map_err(|err| BuildError::DefaultValueCoercionError {
-                        err,
-                        name: ctx.strings[ctx.graph[id].name_id].to_string(),
-                    })?,
-            );
     }
     Ok(())
 }
@@ -561,16 +562,6 @@ impl GraphContext<'_> {
                     });
                     TypeSystemDirectiveId::ListSize(list_size_id)
                 }
-                federated_graph::Directive::ExtensionDirective(federated_graph::ExtensionDirective {
-                    subgraph_id,
-                    extension_id,
-                    name,
-                    arguments,
-                }) => {
-                    let id =
-                        self.ingest_extension_directive(location, *subgraph_id, *extension_id, *name, arguments)?;
-                    TypeSystemDirectiveId::Extension(id)
-                }
                 federated_graph::Directive::Other { .. }
                 | federated_graph::Directive::Inaccessible
                 | federated_graph::Directive::Policy(_)
@@ -578,7 +569,8 @@ impl GraphContext<'_> {
                 | federated_graph::Directive::JoinGraph(_)
                 | federated_graph::Directive::JoinType(_)
                 | federated_graph::Directive::JoinUnionMember(_)
-                | federated_graph::Directive::JoinImplements(_) => continue,
+                | federated_graph::Directive::JoinImplements(_)
+                | federated_graph::Directive::ExtensionDirective(_) => continue,
             };
 
             directive_ids.push(id);
@@ -681,68 +673,6 @@ fn add_not_fully_implemented_in(graph: &mut Graph) {
             .not_fully_implemented_in_ids
             .extend(not_fully_implemented_in_ids.drain(..).dedup())
     }
-}
-
-fn add_extra_vecs_with_different_ordering(GraphContext { ctx, graph, .. }: &mut GraphContext<'_>) {
-    graph.type_definitions_ordered_by_name = {
-        let mut definitions = Vec::with_capacity(
-            graph.scalar_definitions.len()
-                + graph.object_definitions.len()
-                + graph.interface_definitions.len()
-                + graph.union_definitions.len()
-                + graph.enum_definitions.len()
-                + graph.input_object_definitions.len(),
-        );
-
-        // Adding all definitions for introspection & query binding
-        definitions
-            .extend((0..graph.scalar_definitions.len()).map(|id| DefinitionId::Scalar(ScalarDefinitionId::from(id))));
-        definitions
-            .extend((0..graph.object_definitions.len()).map(|id| DefinitionId::Object(ObjectDefinitionId::from(id))));
-        definitions.extend(
-            (0..graph.interface_definitions.len()).map(|id| DefinitionId::Interface(InterfaceDefinitionId::from(id))),
-        );
-        definitions
-            .extend((0..graph.union_definitions.len()).map(|id| DefinitionId::Union(UnionDefinitionId::from(id))));
-        definitions.extend((0..graph.enum_definitions.len()).map(|id| DefinitionId::Enum(EnumDefinitionId::from(id))));
-        definitions.extend(
-            (0..graph.input_object_definitions.len())
-                .map(|id| DefinitionId::InputObject(InputObjectDefinitionId::from(id))),
-        );
-        definitions.sort_unstable_by_key(|definition| match *definition {
-            DefinitionId::Scalar(id) => &ctx.strings[graph[id].name_id],
-            DefinitionId::Object(id) => &ctx.strings[graph[id].name_id],
-            DefinitionId::Interface(id) => &ctx.strings[graph[id].name_id],
-            DefinitionId::Union(id) => &ctx.strings[graph[id].name_id],
-            DefinitionId::Enum(id) => &ctx.strings[graph[id].name_id],
-            DefinitionId::InputObject(id) => &ctx.strings[graph[id].name_id],
-        });
-        definitions
-    };
-
-    let mut interface_definitions = std::mem::take(&mut graph.interface_definitions);
-    for interface in &mut interface_definitions {
-        interface.possible_type_ids.sort_unstable();
-        interface
-            .possible_types_ordered_by_typename_ids
-            .clone_from(&interface.possible_type_ids);
-        interface
-            .possible_types_ordered_by_typename_ids
-            .sort_unstable_by_key(|id| &ctx.strings[graph[*id].name_id]);
-    }
-    graph.interface_definitions = interface_definitions;
-
-    let mut union_definitions = std::mem::take(&mut graph.union_definitions);
-    for union in &mut union_definitions {
-        union.possible_type_ids.sort_unstable();
-        union
-            .possible_types_ordered_by_typename_ids
-            .clone_from(&union.possible_type_ids);
-        union
-            .possible_types_ordered_by_typename_ids
-            .sort_unstable_by_key(|id| &ctx.strings[graph[*id].name_id]);
-    }
-    graph.union_definitions = union_definitions;
 }
 
 impl GraphContext<'_> {

@@ -35,7 +35,7 @@ pub trait ExtensionRuntime: Send + Sync + 'static {
         &'ctx self,
         context: &'ctx Self::SharedContext,
         directive: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
-        inputs: impl IntoIterator<Item: Anything<'resp>> + Send,
+        inputs: impl Iterator<Item: Anything<'resp>> + Send,
     ) -> impl Future<Output = Result<Vec<Result<Data, PartialGraphqlError>>, PartialGraphqlError>> + Send + 'f
     where
         'ctx: 'f;
@@ -56,7 +56,7 @@ impl ExtensionRuntime for () {
         &'ctx self,
         _context: &'ctx Self::SharedContext,
         _directive_context: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
-        _inputs: impl IntoIterator<Item: Anything<'resp>> + Send,
+        _inputs: impl Iterator<Item: Anything<'resp>> + Send,
     ) -> impl Future<Output = Result<Vec<Result<Data, PartialGraphqlError>>, PartialGraphqlError>> + Send + 'f
     where
         'ctx: 'f,

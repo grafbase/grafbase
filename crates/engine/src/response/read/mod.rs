@@ -17,7 +17,7 @@ impl ResponseBuilder {
         ResponseObjectsView {
             ctx: ViewContext { response: self },
             response_object_set,
-            selection_set,
+            view: selection_set,
         }
     }
 }

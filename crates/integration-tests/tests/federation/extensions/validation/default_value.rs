@@ -21,17 +21,17 @@ fn default_values() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(a: EchoInput! = { x: 3 }, b: Int) on SCHEMA
-                    directive @echo(a: EchoInput! = { x: 3 }, b: Int) on FIELD_DEFINITION
+            .with_extension(EchoExt::with_sdl(
+                r#"
+                directive @meta(a: EchoInput! = { x: 3 }, b: Int) on SCHEMA
+                directive @echo(a: EchoInput! = { x: 3 }, b: Int) on FIELD_DEFINITION
 
-                    input EchoInput {
-                        x: Int!
-                        y: String! = "default"
-                    }
+                input EchoInput {
+                    x: Int!
+                    y: String! = "default"
+                }
                 "#,
-            })
+            ))
             .build()
             .await;
 
@@ -53,7 +53,8 @@ fn default_values() {
                   "x": 3,
                   "y": "default"
                 }
-              }
+              },
+              "input": {}
             }
           }
         }
@@ -79,17 +80,17 @@ fn default_values_partial_override() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(a: EchoInput! = { x: 3 }, b: Int) on SCHEMA
-                    directive @echo(a: EchoInput! = { x: 3 }, b: Int) on FIELD_DEFINITION
+            .with_extension(EchoExt::with_sdl(
+                r#"
+                directive @meta(a: EchoInput! = { x: 3 }, b: Int) on SCHEMA
+                directive @echo(a: EchoInput! = { x: 3 }, b: Int) on FIELD_DEFINITION
 
-                    input EchoInput {
-                        x: Int!
-                        y: String! = "default"
-                    }
-                "#,
-            })
+                input EchoInput {
+                    x: Int!
+                    y: String! = "default"
+                }
+            "#,
+            ))
             .build()
             .await;
 
@@ -111,7 +112,8 @@ fn default_values_partial_override() {
                   "x": 5,
                   "y": "default"
                 }
-              }
+              },
+              "input": {}
             }
           }
         }
@@ -137,17 +139,17 @@ fn default_values_override() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(a: EchoInput! = { x: 3 }, b: Int) on SCHEMA
-                    directive @echo(a: EchoInput! = { x: 3 }, b: Int) on FIELD_DEFINITION
+            .with_extension(EchoExt::with_sdl(
+                r#"
+                directive @meta(a: EchoInput! = { x: 3 }, b: Int) on SCHEMA
+                directive @echo(a: EchoInput! = { x: 3 }, b: Int) on FIELD_DEFINITION
 
-                    input EchoInput {
-                        x: Int!
-                        y: String! = "default"
-                    }
-                "#,
-            })
+                input EchoInput {
+                    x: Int!
+                    y: String! = "default"
+                }
+            "#,
+            ))
             .build()
             .await;
 
@@ -169,7 +171,8 @@ fn default_values_override() {
                   "x": 5,
                   "y": "override"
                 }
-              }
+              },
+              "input": {}
             }
           }
         }

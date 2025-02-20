@@ -1,6 +1,7 @@
 mod builder;
 mod document;
 mod error;
+mod extension;
 mod query_plan;
 mod shape;
 
@@ -12,6 +13,7 @@ use walker::{Iter, Walk};
 
 pub(crate) use document::*;
 pub(crate) use error::*;
+pub(crate) use extension::*;
 pub(crate) use query_plan::*;
 pub(crate) use shape::*;
 

@@ -21,12 +21,12 @@ fn valid_float() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(value: Float!) on SCHEMA
-                    directive @echo(value: Float!) on FIELD_DEFINITION
-                "#,
-            })
+            .with_extension(EchoExt::with_sdl(
+                r#"
+                directive @meta(value: Float!) on SCHEMA
+                directive @echo(value: Float!) on FIELD_DEFINITION
+            "#,
+            ))
             .build()
             .await;
 
@@ -44,7 +44,8 @@ fn valid_float() {
           },
           "directive": {
             "value": -78901.23
-          }
+          },
+          "input": {}
         }
       }
     }
@@ -69,12 +70,12 @@ fn int_to_float_conversion() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(value: Float!) on SCHEMA
-                    directive @echo(value: Float!) on FIELD_DEFINITION
-                "#,
-            })
+            .with_extension(EchoExt::with_sdl(
+                r#"
+                directive @meta(value: Float!) on SCHEMA
+                directive @echo(value: Float!) on FIELD_DEFINITION
+            "#,
+            ))
             .build()
             .await;
 
@@ -92,7 +93,8 @@ fn int_to_float_conversion() {
           },
           "directive": {
             "value": -123.0
-          }
+          },
+          "input": {}
         }
       }
     }
@@ -117,12 +119,10 @@ fn invalid_float() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(value: Float!) on SCHEMA
-                    directive @echo(value: Float!) on FIELD_DEFINITION
-                "#,
-            })
+            .with_extension(EchoExt::with_sdl(r#"
+                directive @meta(value: Float!) on SCHEMA
+                directive @echo(value: Float!) on FIELD_DEFINITION
+            "#))
             .try_build()
             .await;
 
@@ -148,12 +148,10 @@ fn invalid_float() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(value: Float!) on SCHEMA
-                    directive @echo(value: Float!) on FIELD_DEFINITION
-                "#,
-            })
+            .with_extension(EchoExt::with_sdl(r#"
+                directive @meta(value: Float!) on SCHEMA
+                directive @echo(value: Float!) on FIELD_DEFINITION
+            "#))
             .try_build()
             .await;
 

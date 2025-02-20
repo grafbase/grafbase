@@ -203,7 +203,6 @@ union TypeSystemDirective
   | AuthorizedDirective
   | CostDirective
   | ListSizeDirective
-  | ExtensionDirective
 
 type DeprecatedDirective
   @meta(module: "directive/deprecated", derive: ["PartialEq", "Eq", "PartialOrd", "Ord", "Hash"])
@@ -259,7 +258,7 @@ type GraphqlEndpoint @meta(module: "subgraph/graphql") @indexed(id_size: "u16") 
   header_rules: [HeaderRule!]!
   config: SubgraphConfig!
   "Schema directives applied by the given subgraph"
-  schema_directives: [TypeSystemDirective!]!
+  schema_directives: [ExtensionDirective!]! @vec
   "The protocol to use for subscriptions from this subgraph"
   subscription_protocol: SubscriptionProtocol!
 }
@@ -268,7 +267,7 @@ type GraphqlEndpoint @meta(module: "subgraph/graphql") @indexed(id_size: "u16") 
 type VirtualSubgraph @meta(module: "subgraph/virtual_") @indexed(id_size: "u16") {
   subgraph_name: String!
   "Schema directives applied by the given subgraph"
-  schema_directives: [TypeSystemDirective!]!
+  schema_directives: [ExtensionDirective!]! @vec
 }
 
 # ----------------
@@ -324,6 +323,7 @@ type GraphqlFederationEntityResolverDefinition @meta(module: "resolver/graphql")
   key_fields: FieldSet!
 }
 
-type FieldResolverExtensionDefinition @meta(module: "resolver/field_resolver_ext") @copy {
+type FieldResolverExtensionDefinition @meta(module: "resolver/field_resolver_ext") {
   directive: ExtensionDirective!
+  requirements: FieldSet!
 }

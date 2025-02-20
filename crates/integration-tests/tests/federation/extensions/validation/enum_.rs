@@ -21,16 +21,16 @@ fn valid_enum_value() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(value: EchoEnum!) on SCHEMA
-                    directive @echo(value: EchoEnum!) on FIELD_DEFINITION
+            .with_extension(EchoExt::with_sdl(
+                r#"
+                directive @meta(value: EchoEnum!) on SCHEMA
+                directive @echo(value: EchoEnum!) on FIELD_DEFINITION
 
-                    enum EchoEnum {
-                        VALUE
-                    }
-                "#,
-            })
+                enum EchoEnum {
+                    VALUE
+                }
+            "#,
+            ))
             .build()
             .await;
 
@@ -48,7 +48,8 @@ fn valid_enum_value() {
           },
           "directive": {
             "value": "VALUE"
-          }
+          },
+          "input": {}
         }
       }
     }
@@ -73,16 +74,14 @@ fn unknown_enum_value() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(value: EchoEnum!) on SCHEMA
-                    directive @echo(value: EchoEnum!) on FIELD_DEFINITION
+            .with_extension(EchoExt::with_sdl(r#"
+                directive @meta(value: EchoEnum!) on SCHEMA
+                directive @echo(value: EchoEnum!) on FIELD_DEFINITION
 
-                    enum EchoEnum {
-                        VALUE
-                    }
-                "#,
-            })
+                enum EchoEnum {
+                    VALUE
+                }
+            "#))
             .try_build()
             .await;
 
@@ -108,16 +107,14 @@ fn unknown_enum_value() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(value: EchoEnum!) on SCHEMA
-                    directive @echo(value: EchoEnum!) on FIELD_DEFINITION
+            .with_extension(EchoExt::with_sdl(r#"
+                directive @meta(value: EchoEnum!) on SCHEMA
+                directive @echo(value: EchoEnum!) on FIELD_DEFINITION
 
-                    enum EchoEnum {
-                        VALUE
-                    }
-                "#,
-            })
+                enum EchoEnum {
+                    VALUE
+                }
+            "#))
             .try_build()
             .await;
 
@@ -147,16 +144,14 @@ fn invalid_enum_value() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(value: EchoEnum!) on SCHEMA
-                    directive @echo(value: EchoEnum!) on FIELD_DEFINITION
+            .with_extension(EchoExt::with_sdl(r#"
+                directive @meta(value: EchoEnum!) on SCHEMA
+                directive @echo(value: EchoEnum!) on FIELD_DEFINITION
 
-                    enum EchoEnum {
-                        VALUE
-                    }
-                "#,
-            })
+                enum EchoEnum {
+                    VALUE
+                }
+            "#))
             .try_build()
             .await;
 
@@ -182,16 +177,14 @@ fn invalid_enum_value() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(value: EchoEnum!) on SCHEMA
-                    directive @echo(value: EchoEnum!) on FIELD_DEFINITION
+            .with_extension(EchoExt::with_sdl(r#"
+                directive @meta(value: EchoEnum!) on SCHEMA
+                directive @echo(value: EchoEnum!) on FIELD_DEFINITION
 
-                    enum EchoEnum {
-                        VALUE
-                    }
-                "#,
-            })
+                enum EchoEnum {
+                    VALUE
+                }
+            "#))
             .try_build()
             .await;
 

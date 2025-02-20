@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use walker::Walk;
 
-use crate::{ExtensionDirective, RetryConfig, Subgraph, TypeSystemDirectiveId};
+use crate::{ExtensionDirective, ExtensionDirectiveId, RetryConfig, Subgraph};
 
 impl<'a> Subgraph<'a> {
     pub fn name(&self) -> &'a str {
@@ -14,7 +14,7 @@ impl<'a> Subgraph<'a> {
     }
 
     pub fn extension_schema_directives(&self) -> impl Iterator<Item = ExtensionDirective<'_>> + '_ {
-        static EMPTY_DIRECTIVES: &[TypeSystemDirectiveId] = &[];
+        static EMPTY_DIRECTIVES: &[ExtensionDirectiveId] = &[];
 
         let (schema, ids) = match self {
             Subgraph::GraphqlEndpoint(endpoint) => (endpoint.schema, endpoint.as_ref().schema_directive_ids.as_slice()),
@@ -22,7 +22,7 @@ impl<'a> Subgraph<'a> {
             Subgraph::Virtual(virt) => (virt.schema, virt.as_ref().schema_directive_ids.as_slice()),
         };
 
-        ids.walk(schema).filter_map(|dir| dir.as_extension())
+        ids.walk(schema)
     }
 }
 
