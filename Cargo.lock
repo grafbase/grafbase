@@ -7666,9 +7666,9 @@ dependencies = [
 
 [[package]]
 name = "size"
-version = "0.5.0-preview2"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c6916a53089eff8ecef2b6efe5335365be0f1b80c7b5bc725e9c8e0d9ee05ad5"
+checksum = "1b6709c7b6754dca1311b3c73e79fcce40dd414c782c66d88e8823030093b02b"
 
 [[package]]
 name = "sized-chunks"
