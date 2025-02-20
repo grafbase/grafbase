@@ -2,6 +2,7 @@ mod abstract_types;
 mod basic;
 mod cycle;
 mod entities;
+mod extension;
 mod flatten;
 mod inaccessible;
 mod interface;
