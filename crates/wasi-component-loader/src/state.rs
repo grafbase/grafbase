@@ -3,7 +3,7 @@ use std::sync::Arc;
 use super::cache::Cache;
 use grafbase_telemetry::{metrics::meter_from_global_provider, otel::opentelemetry::metrics::Histogram};
 use wasmtime::component::Resource;
-use wasmtime_wasi::{ResourceTable, WasiCtx, WasiView};
+use wasmtime_wasi::{IoView, ResourceTable, WasiCtx, WasiView};
 use wasmtime_wasi_http::{WasiHttpCtx, WasiHttpView};
 
 use crate::ChannelLogSender;
@@ -113,11 +113,13 @@ impl WasiState {
     }
 }
 
-impl WasiView for WasiState {
+impl IoView for WasiState {
     fn table(&mut self) -> &mut ResourceTable {
         &mut self.table
     }
+}
 
+impl WasiView for WasiState {
     fn ctx(&mut self) -> &mut WasiCtx {
         &mut self.ctx
     }
@@ -126,9 +128,5 @@ impl WasiView for WasiState {
 impl WasiHttpView for WasiState {
     fn ctx(&mut self) -> &mut WasiHttpCtx {
         &mut self.http_ctx
-    }
-
-    fn table(&mut self) -> &mut ResourceTable {
-        &mut self.table
     }
 }

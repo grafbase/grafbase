@@ -966,7 +966,7 @@ version = "3.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5aa0d13b24fe724349a8363f04183d4ee0dc2ab5e40c574f8f8ee2edbc0d344d"
 dependencies = [
- "cynic-parser",
+ "cynic-parser 0.8.7",
  "darling",
  "once_cell",
  "ouroboros",
@@ -984,6 +984,17 @@ version = "0.8.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "86a21da88ae46f2be6a622880a72f968d05c50b5a797e525332d0c988f693f70"
 dependencies = [
+ "indexmap 2.7.1",
+ "lalrpop-util",
+ "logos",
+]
+
+[[package]]
+name = "cynic-parser"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "718db83de607a233ef38f7cc2d18847c36a3529d7cd614b13c78c52c2fb61b7b"
+dependencies = [
  "ariadne",
  "indexmap 2.7.1",
  "lalrpop-util",
@@ -993,19 +1004,19 @@ dependencies = [
 
 [[package]]
 name = "cynic-parser-deser"
-version = "0.8.7"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c54d3ecc3d8af8d3f2410150b8eae8ce680b88517690e7963cb3f249819e6284"
+checksum = "d0759b9ffa73e5c3b55eda8a93e5fcca20bb86e027766de561093afd014ff83b"
 dependencies = [
- "cynic-parser",
+ "cynic-parser 0.9.0",
  "cynic-parser-deser-macros",
 ]
 
 [[package]]
 name = "cynic-parser-deser-macros"
-version = "0.8.7"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf926142311eac3d25aa9709f6321765115c0d1af545355984395c4eb3ac1565"
+checksum = "8bd1cb5c98fd6634c970ebc3311c078fdb9be59e44d2c87456c6ec559f66269e"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1571,8 +1582,8 @@ dependencies = [
  "async-graphql",
  "async-graphql-axum",
  "axum",
- "cynic-parser",
- "grafbase-workspace-hack 0.1.0",
+ "cynic-parser 0.9.0",
+ "grafbase-workspace-hack",
  "serde",
  "serde_json",
  "tokio",
@@ -1585,6 +1596,7 @@ version = "0.1.0"
 dependencies = [
  "ahash 0.8.11",
  "aho-corasick",
+ "anyhow",
  "arrayvec 0.7.6",
  "ascii",
  "axum",
@@ -1608,7 +1620,7 @@ dependencies = [
  "crossbeam-utils",
  "cynic",
  "cynic-codegen",
- "cynic-parser",
+ "cynic-parser 0.9.0",
  "deadpool-runtime",
  "der",
  "deranged",
@@ -1718,18 +1730,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "grafbase-workspace-hack"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ebfd7fd1a0e3427f3e6c9ef7bc4e0d2f05c9e94ecf859176cdf297212fe8f06e"
-
-[[package]]
 name = "graphql-composition"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db2967e890033c51901c701518daa689ce6cbccb37859c216ddfd2571018833f"
+version = "0.6.1"
 dependencies = [
- "cynic-parser",
+ "cynic-parser 0.9.0",
  "cynic-parser-deser",
  "graphql-federated-graph",
  "indexmap 2.7.1",
@@ -1740,13 +1744,11 @@ dependencies = [
 [[package]]
 name = "graphql-federated-graph"
 version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "895a55bf1a7fcc72ec3908239921a11b0cf661fe3a6cfc550e89a2a6e0580fac"
 dependencies = [
  "bitflags 2.8.0",
- "cynic-parser",
+ "cynic-parser 0.9.0",
  "cynic-parser-deser",
- "grafbase-workspace-hack 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "grafbase-workspace-hack",
  "graphql-wrapping-types",
  "indexmap 2.7.1",
  "indoc",
@@ -1758,10 +1760,8 @@ dependencies = [
 [[package]]
 name = "graphql-wrapping-types"
 version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "165aca8d4b7bba95daaac55f7e1e139475043a674768a659a4da80792ff74f96"
 dependencies = [
- "grafbase-workspace-hack 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "grafbase-workspace-hack",
  "serde",
 ]
 
@@ -4694,7 +4694,6 @@ dependencies = [
  "serde",
  "serde_json",
  "sharded-slab",
- "smallvec",
  "thread_local",
  "tracing",
  "tracing-core",
