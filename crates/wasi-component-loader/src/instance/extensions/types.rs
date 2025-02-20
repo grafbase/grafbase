@@ -91,3 +91,14 @@ impl Token {
         Ok(minicbor_serde::from_slice(&self.raw)?)
     }
 }
+
+#[derive(Clone, Lift, ComponentType)]
+#[component(variant)]
+pub enum NatsAuth {
+    #[component(name = "username-password")]
+    UsernamePassword((String, String)),
+    #[component(name = "token")]
+    Token(String),
+    #[component(name = "credentials")]
+    Credentials(String),
+}

@@ -795,6 +795,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "cranelift-bitset"
+version = "0.117.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9f1ca95140d8b9c0379ff20549de974a7141dd4dab4477b7c658fd9d1bde5b4b"
+dependencies = [
+ "serde",
+ "serde_derive",
+]
+
+[[package]]
 name = "crc32fast"
 version = "1.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1594,6 +1604,7 @@ dependencies = [
 name = "grafbase-workspace-hack"
 version = "0.1.0"
 dependencies = [
+ "addr2line",
  "ahash 0.8.11",
  "aho-corasick",
  "anyhow",
@@ -1613,6 +1624,7 @@ dependencies = [
  "combine",
  "concurrent-queue",
  "console",
+ "cranelift-bitset",
  "crc32fast",
  "criterion",
  "crossbeam-channel",
@@ -1676,6 +1688,7 @@ dependencies = [
  "pkcs8",
  "proc-macro2",
  "prost",
+ "pulley-interpreter",
  "quote",
  "rand",
  "regex",
@@ -1722,7 +1735,7 @@ dependencies = [
  "ulid",
  "url",
  "uuid",
- "wasmparser 0.221.3",
+ "wasmparser",
  "winapi",
  "windows-sys 0.52.0",
  "windows-sys 0.59.0",
@@ -3285,6 +3298,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 1.0.109",
+]
+
+[[package]]
+name = "pulley-interpreter"
+version = "30.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eddbfd9a6167f4c75c45885cdca6c52cfd9d159b3049e3a0f699278f2a6ffcd8"
+dependencies = [
+ "cranelift-bitset",
+ "log",
+ "wasmtime-math",
 ]
 
 [[package]]
@@ -4978,7 +5002,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b7249cf8cb0c6b9cb42bce90c0a5feb276fbf963fa385ff3d818ab3d90818ed6"
 dependencies = [
  "leb128",
- "wasmparser 0.224.0",
+ "wasmparser",
 ]
 
 [[package]]
@@ -4995,7 +5019,7 @@ dependencies = [
  "spdx",
  "url",
  "wasm-encoder",
- "wasmparser 0.224.0",
+ "wasmparser",
 ]
 
 [[package]]
@@ -5013,9 +5037,9 @@ dependencies = [
 
 [[package]]
 name = "wasmparser"
-version = "0.221.3"
+version = "0.224.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d06bfa36ab3ac2be0dee563380147a5b81ba10dd8885d7fbbc9eb574be67d185"
+checksum = "65881a664fdd43646b647bb27bf186ab09c05bf56779d40aed4c6dce47d423f5"
 dependencies = [
  "bitflags 2.8.0",
  "hashbrown 0.15.2",
@@ -5025,15 +5049,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "wasmparser"
-version = "0.224.0"
+name = "wasmtime-math"
+version = "30.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "65881a664fdd43646b647bb27bf186ab09c05bf56779d40aed4c6dce47d423f5"
+checksum = "348b90983b97b42b96396d39b71d23f3fec0b8ac8756ac3a5b74ed960fc83889"
 dependencies = [
- "bitflags 2.8.0",
- "hashbrown 0.15.2",
- "indexmap 2.7.1",
- "semver",
+ "libm",
 ]
 
 [[package]]
@@ -5428,7 +5449,7 @@ dependencies = [
  "serde_json",
  "wasm-encoder",
  "wasm-metadata",
- "wasmparser 0.224.0",
+ "wasmparser",
  "wit-parser",
 ]
 
@@ -5447,7 +5468,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "unicode-xid",
- "wasmparser 0.224.0",
+ "wasmparser",
 ]
 
 [[package]]

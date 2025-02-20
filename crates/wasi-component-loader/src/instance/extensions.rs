@@ -3,6 +3,7 @@ mod types;
 use anyhow::anyhow;
 use http::HeaderMap;
 use serde::de::DeserializeOwned;
+pub(crate) use types::NatsAuth;
 use types::Token;
 pub use types::{Directive, ExtensionType, FieldDefinition, FieldOutput};
 use wasmtime::component::{ComponentNamedList, Lift, Lower, Resource, TypedFunc};

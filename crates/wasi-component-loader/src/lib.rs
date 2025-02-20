@@ -17,6 +17,7 @@ mod headers;
 mod http_client;
 mod instance;
 mod names;
+mod nats;
 mod state;
 
 #[cfg(test)]
@@ -103,6 +104,7 @@ impl ComponentLoader {
             http_client::inject_mapping(&mut instance)?;
             access_log::inject_mapping(&mut instance)?;
             cache::inject_mapping(&mut instance)?;
+            nats::inject_mapping(&mut instance)?;
 
             Ok(())
         };
