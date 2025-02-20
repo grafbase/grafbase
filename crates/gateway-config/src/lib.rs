@@ -2303,4 +2303,88 @@ mod tests {
         )
         "#);
     }
+
+    #[test]
+    fn extension_structured_config() {
+        let input = indoc! {r#"
+            [extensions.nats]
+            version = "0.1.0"
+
+            [[extensions.nats.config.endpoint]]
+            name = "default"
+            servers = ["demo.nats.io"]
+
+            [extensions.nats.config.endpoint.authentication]
+            username = "user"
+            password = "password"
+        "#};
+
+        let config: Config = toml::from_str(input).unwrap();
+
+        insta::assert_debug_snapshot!(&config.extensions, @r#"
+        Some(
+            {
+                "nats": Structured(
+                    StructuredExtensionsConfig {
+                        version: VersionReq {
+                            comparators: [
+                                Comparator {
+                                    op: Caret,
+                                    major: 0,
+                                    minor: Some(
+                                        1,
+                                    ),
+                                    patch: Some(
+                                        0,
+                                    ),
+                                    pre: Prerelease(""),
+                                },
+                            ],
+                        },
+                        path: None,
+                        networking: false,
+                        stdout: false,
+                        stderr: false,
+                        environment_variables: false,
+                        max_pool_size: None,
+                        config: Some(
+                            Table(
+                                {
+                                    "endpoint": Array(
+                                        [
+                                            Table(
+                                                {
+                                                    "authentication": Table(
+                                                        {
+                                                            "password": String(
+                                                                "password",
+                                                            ),
+                                                            "username": String(
+                                                                "user",
+                                                            ),
+                                                        },
+                                                    ),
+                                                    "name": String(
+                                                        "default",
+                                                    ),
+                                                    "servers": Array(
+                                                        [
+                                                            String(
+                                                                "demo.nats.io",
+                                                            ),
+                                                        ],
+                                                    ),
+                                                },
+                                            ),
+                                        ],
+                                    ),
+                                },
+                            ),
+                        ),
+                    },
+                ),
+            },
+        )
+        "#);
+    }
 }

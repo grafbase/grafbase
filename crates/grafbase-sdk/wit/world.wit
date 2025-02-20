@@ -77,11 +77,7 @@ world sdk {
     // A NATS client
     resource nats-client {
         // Creates a new NATS client.
-        connect: static func(
-            servers: list<string>,
-            auth: option<nats-auth>
-        ) -> result<nats-client, string>;
-
+        connect: static func(servers: list<string>, auth: option<nats-auth>) -> result<nats-client, string>;
         // Publishes a message to a subject.
         publish: func(subject: string, message: list<u8>) -> result<_, string>;
     }

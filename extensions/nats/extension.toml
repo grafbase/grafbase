@@ -1,0 +1,12 @@
+[extension]
+name = "nats"
+version = "0.1.0"
+kind = "resolver"
+description = "A new extension"
+# homepage_url = "https://example.com/my-extension"
+# repository_url = "https://github.com/my-username/my-extension"
+# license = "MIT"
+
+[directives]
+definitions = "definitions.graphql"
+field_resolvers = ["natsPublish"]

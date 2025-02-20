@@ -19,6 +19,7 @@ pub struct StructuredExtensionsConfig {
     pub stderr: bool,
     pub environment_variables: bool,
     pub max_pool_size: Option<usize>,
+    pub config: Option<toml::Value>,
 }
 
 impl Default for StructuredExtensionsConfig {
@@ -31,6 +32,7 @@ impl Default for StructuredExtensionsConfig {
             stderr: false,
             environment_variables: false,
             max_pool_size: None,
+            config: None,
         }
     }
 }
@@ -91,6 +93,13 @@ impl ExtensionsConfig {
         match self {
             ExtensionsConfig::Version(_) => None,
             ExtensionsConfig::Structured(config) => config.path.as_deref(),
+        }
+    }
+
+    pub fn config(&self) -> Option<&toml::Value> {
+        match self {
+            ExtensionsConfig::Version(_) => None,
+            ExtensionsConfig::Structured(ref config) => config.config.as_ref(),
         }
     }
 }
