@@ -1816,9 +1816,9 @@ dependencies = [
 
 [[package]]
 name = "cynic-parser-deser"
-version = "0.9.0"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d0759b9ffa73e5c3b55eda8a93e5fcca20bb86e027766de561093afd014ff83b"
+checksum = "e4fabdc974620ca12f644fd77636cbcfc92c2de48ab7e701735489c3b44ddf2b"
 dependencies = [
  "cynic-parser",
  "cynic-parser-deser-macros",
