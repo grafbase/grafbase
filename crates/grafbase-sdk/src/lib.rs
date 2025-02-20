@@ -13,7 +13,7 @@ pub use extension::{Authenticator, Extension, Resolver};
 pub use grafbase_sdk_derive::{AuthenticationExtension, ResolverExtension};
 #[doc(hidden)]
 pub use wit::ExtensionType;
-pub use wit::{Error, Headers, SharedContext};
+pub use wit::{Error, Headers, NatsAuth, SharedContext};
 
 struct Component;
 

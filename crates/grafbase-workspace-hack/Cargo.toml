@@ -43,14 +43,17 @@ criterion = { version = "0.5", features = ["async_tokio", "html_reports"] }
 crossbeam-channel = { version = "0.5" }
 crossbeam-queue = { version = "0.3" }
 crossbeam-utils = { version = "0.8" }
+curve25519-dalek = { version = "4", default-features = false, features = ["alloc", "digest", "precomputed-tables", "zeroize"] }
 cynic = { version = "3", features = ["http-reqwest"] }
 cynic-parser = { version = "0.9", features = ["pretty", "report"] }
 deadpool-runtime = { version = "0.1", default-features = false, features = ["tokio_1"] }
 der = { version = "0.7", default-features = false, features = ["oid", "pem", "std"] }
-deranged = { version = "0.3", default-features = false, features = ["powerfmt", "std"] }
+deranged = { version = "0.3", default-features = false, features = ["powerfmt", "serde", "std"] }
 digest = { version = "0.10", features = ["mac", "oid", "std"] }
 ecdsa = { version = "0.16", default-features = false, features = ["pem", "signing", "std", "verifying"] }
+ed25519 = { version = "2", default-features = false, features = ["pem", "std"] }
 ed25519-compact = { version = "2" }
+ed25519-dalek = { version = "2", features = ["digest", "pem"] }
 either = { version = "1" }
 elliptic-curve = { version = "0.13", features = ["ecdh", "hazmat", "jwk", "pem", "std"] }
 fastrand = { version = "2" }
@@ -90,6 +93,7 @@ p384 = { version = "0.13", features = ["jwk"] }
 percent-encoding = { version = "2" }
 pkcs1 = { version = "0.7", default-features = false, features = ["pem", "pkcs8", "std"] }
 pkcs8 = { version = "0.10", default-features = false, features = ["pem", "std"] }
+portable-atomic = { version = "1", features = ["require-cas"] }
 proc-macro2 = { version = "1" }
 prost = { version = "0.13" }
 pulley-interpreter = { version = "30", default-features = false, features = ["disas", "interp", "std"] }
@@ -119,8 +123,8 @@ spki = { version = "0.7", default-features = false, features = ["pem", "std"] }
 strum = { version = "0.26", features = ["derive"] }
 subtle = { version = "2" }
 sync_wrapper = { version = "1", default-features = false, features = ["futures"] }
-time = { version = "0.3", features = ["formatting", "parsing"] }
-tokio = { version = "1", features = ["full"] }
+time = { version = "0.3", features = ["serde-well-known"] }
+tokio = { version = "1", features = ["full", "test-util"] }
 tokio-rustls = { version = "0.26", default-features = false, features = ["logging", "ring", "tls12"] }
 tokio-stream = { version = "0.1", features = ["net", "sync"] }
 tokio-util = { version = "0.7", features = ["codec", "compat", "io"] }
@@ -165,15 +169,18 @@ criterion = { version = "0.5", features = ["async_tokio", "html_reports"] }
 crossbeam-channel = { version = "0.5" }
 crossbeam-queue = { version = "0.3" }
 crossbeam-utils = { version = "0.8" }
+curve25519-dalek = { version = "4", default-features = false, features = ["alloc", "digest", "precomputed-tables", "zeroize"] }
 cynic = { version = "3", features = ["http-reqwest"] }
 cynic-codegen = { version = "3", features = ["rkyv"] }
 cynic-parser = { version = "0.9", features = ["pretty", "report"] }
 deadpool-runtime = { version = "0.1", default-features = false, features = ["tokio_1"] }
 der = { version = "0.7", default-features = false, features = ["oid", "pem", "std"] }
-deranged = { version = "0.3", default-features = false, features = ["powerfmt", "std"] }
+deranged = { version = "0.3", default-features = false, features = ["powerfmt", "serde", "std"] }
 digest = { version = "0.10", features = ["mac", "oid", "std"] }
 ecdsa = { version = "0.16", default-features = false, features = ["pem", "signing", "std", "verifying"] }
+ed25519 = { version = "2", default-features = false, features = ["pem", "std"] }
 ed25519-compact = { version = "2" }
+ed25519-dalek = { version = "2", features = ["digest", "pem"] }
 either = { version = "1" }
 elliptic-curve = { version = "0.13", features = ["ecdh", "hazmat", "jwk", "pem", "std"] }
 fastrand = { version = "2" }
@@ -213,6 +220,7 @@ p384 = { version = "0.13", features = ["jwk"] }
 percent-encoding = { version = "2" }
 pkcs1 = { version = "0.7", default-features = false, features = ["pem", "pkcs8", "std"] }
 pkcs8 = { version = "0.10", default-features = false, features = ["pem", "std"] }
+portable-atomic = { version = "1", features = ["require-cas"] }
 proc-macro2 = { version = "1" }
 prost = { version = "0.13" }
 pulley-interpreter = { version = "30", default-features = false, features = ["disas", "interp", "std"] }
@@ -243,8 +251,8 @@ strum = { version = "0.26", features = ["derive"] }
 subtle = { version = "2" }
 syn = { version = "2", features = ["extra-traits", "fold", "full", "visit", "visit-mut"] }
 sync_wrapper = { version = "1", default-features = false, features = ["futures"] }
-time = { version = "0.3", features = ["formatting", "parsing"] }
-tokio = { version = "1", features = ["full"] }
+time = { version = "0.3", features = ["serde-well-known"] }
+tokio = { version = "1", features = ["full", "test-util"] }
 tokio-rustls = { version = "0.26", default-features = false, features = ["logging", "ring", "tls12"] }
 tokio-stream = { version = "0.1", features = ["net", "sync"] }
 tokio-util = { version = "0.7", features = ["codec", "compat", "io"] }

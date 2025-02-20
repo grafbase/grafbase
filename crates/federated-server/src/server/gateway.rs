@@ -139,6 +139,11 @@ fn create_wasi_extension_configs(
             ExtensionType::Resolver => {
                 let id = ExtensionPoolId::Resolver(id);
 
+                let extension_config = match extension_config.config() {
+                    Some(config) => minicbor_serde::to_vec(config).unwrap(),
+                    None => Vec::new(),
+                };
+
                 wasi_extensions.push(ExtensionConfig {
                     id,
                     name,
@@ -147,7 +152,7 @@ fn create_wasi_extension_configs(
                     schema_directives: Vec::new(),
                     max_pool_size,
                     wasi_config,
-                    extension_config: Vec::new(),
+                    extension_config,
                 });
             }
             ExtensionType::Authentication => {

@@ -83,6 +83,7 @@ impl ComponentLoader {
     /// configuration.
     pub fn hooks(config: HooksWasiConfig) -> Result<Option<Self>> {
         let instantiate = |mut instance: LinkerInstance<'_, WasiState>| -> Result<()> {
+            nats::inject_mapping(&mut instance)?;
             headers::inject_mapping(&mut instance)?;
             context::inject_mapping(&mut instance)?;
             context::inject_shared_mapping(&mut instance)?;
@@ -99,12 +100,12 @@ impl ComponentLoader {
     /// configuration.
     pub fn extensions(extension_name: String, config: impl Into<WasiExtensionsConfig>) -> Result<Option<Self>> {
         let instantiate = |mut instance: LinkerInstance<'_, WasiState>| -> Result<()> {
+            nats::inject_mapping(&mut instance)?;
             headers::inject_mapping(&mut instance)?;
             context::inject_shared_mapping(&mut instance)?;
             http_client::inject_mapping(&mut instance)?;
             access_log::inject_mapping(&mut instance)?;
             cache::inject_mapping(&mut instance)?;
-            nats::inject_mapping(&mut instance)?;
 
             Ok(())
         };
