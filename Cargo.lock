@@ -396,6 +396,42 @@ dependencies = [
 ]
 
 [[package]]
+name = "async-nats"
+version = "0.39.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a798aab0c0203b31d67d501e5ed1f3ac6c36a329899ce47fc93c3bea53f3ae89"
+dependencies = [
+ "base64 0.22.1",
+ "bytes",
+ "futures",
+ "memchr",
+ "nkeys",
+ "nuid",
+ "once_cell",
+ "pin-project",
+ "portable-atomic",
+ "rand 0.8.5",
+ "regex",
+ "ring",
+ "rustls-native-certs 0.7.3",
+ "rustls-pemfile",
+ "rustls-webpki",
+ "serde",
+ "serde_json",
+ "serde_nanos",
+ "serde_repr",
+ "thiserror 1.0.69",
+ "time",
+ "tokio",
+ "tokio-rustls 0.26.1",
+ "tokio-util",
+ "tokio-websockets",
+ "tracing",
+ "tryhard",
+ "url",
+]
+
+[[package]]
 name = "async-sse"
 version = "5.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1777,7 +1813,7 @@ version = "3.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "332695dddff7f260dfda1e97502b6440d443816f576994548b7751494991d2e3"
 dependencies = [
- "cynic-parser",
+ "cynic-parser 0.9.0",
  "darling",
  "once_cell",
  "ouroboros",
@@ -1803,6 +1839,18 @@ dependencies = [
 
 [[package]]
 name = "cynic-parser"
+version = "0.8.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "86a21da88ae46f2be6a622880a72f968d05c50b5a797e525332d0c988f693f70"
+dependencies = [
+ "ariadne",
+ "indexmap 2.7.1",
+ "lalrpop-util",
+ "logos",
+]
+
+[[package]]
+name = "cynic-parser"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "718db83de607a233ef38f7cc2d18847c36a3529d7cd614b13c78c52c2fb61b7b"
@@ -1816,12 +1864,33 @@ dependencies = [
 
 [[package]]
 name = "cynic-parser-deser"
+version = "0.8.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c54d3ecc3d8af8d3f2410150b8eae8ce680b88517690e7963cb3f249819e6284"
+dependencies = [
+ "cynic-parser 0.8.7",
+ "cynic-parser-deser-macros 0.8.7",
+]
+
+[[package]]
+name = "cynic-parser-deser"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d0759b9ffa73e5c3b55eda8a93e5fcca20bb86e027766de561093afd014ff83b"
 dependencies = [
- "cynic-parser",
- "cynic-parser-deser-macros",
+ "cynic-parser 0.9.0",
+ "cynic-parser-deser-macros 0.9.0",
+]
+
+[[package]]
+name = "cynic-parser-deser-macros"
+version = "0.8.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cf926142311eac3d25aa9709f6321765115c0d1af545355984395c4eb3ac1565"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.96",
 ]
 
 [[package]]
@@ -2210,6 +2279,7 @@ dependencies = [
  "ed25519",
  "serde",
  "sha2",
+ "signature",
  "subtle",
  "zeroize",
 ]
@@ -2370,8 +2440,8 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "case",
- "cynic-parser",
- "cynic-parser-deser",
+ "cynic-parser 0.9.0",
+ "cynic-parser-deser 0.9.0",
  "grafbase-workspace-hack",
  "indoc",
  "itertools 0.14.0",
@@ -2409,7 +2479,7 @@ name = "engine-operation"
 version = "0.0.0"
 dependencies = [
  "blake3",
- "cynic-parser",
+ "cynic-parser 0.9.0",
  "engine-id-derives",
  "engine-id-newtypes",
  "engine-schema",
@@ -2460,8 +2530,8 @@ name = "engine-schema"
 version = "0.0.0"
 dependencies = [
  "anyhow",
- "cynic-parser",
- "cynic-parser-deser",
+ "cynic-parser 0.9.0",
+ "cynic-parser-deser 0.9.0",
  "engine-id-derives",
  "engine-id-newtypes",
  "engine-walker",
@@ -2469,8 +2539,8 @@ dependencies = [
  "fxhash",
  "gateway-config",
  "grafbase-workspace-hack",
- "graphql-federated-graph",
- "graphql-wrapping-types",
+ "graphql-federated-graph 0.6.0",
+ "graphql-wrapping-types 0.2.0",
  "hex",
  "http 1.2.0",
  "indexmap 2.7.1",
@@ -2726,7 +2796,7 @@ dependencies = [
  "grafbase-telemetry",
  "grafbase-workspace-hack",
  "graph-ref",
- "graphql-composition",
+ "graphql-composition 0.6.1",
  "http 1.2.0",
  "lambda_http",
  "minicbor-serde",
@@ -2754,9 +2824,9 @@ dependencies = [
 name = "federation-audit-tests"
 version = "0.0.0"
 dependencies = [
- "cynic-parser",
+ "cynic-parser 0.9.0",
  "grafbase-workspace-hack",
- "graphql-composition",
+ "graphql-composition 0.6.1",
  "integration-tests",
  "libtest-mimic",
  "reqwest 0.12.12",
@@ -3204,7 +3274,7 @@ dependencies = [
  "crossterm 0.28.1",
  "cynic",
  "cynic-codegen",
- "cynic-parser",
+ "cynic-parser 0.9.0",
  "dirs 6.0.0",
  "duct",
  "expect-test",
@@ -3219,8 +3289,8 @@ dependencies = [
  "grafbase-graphql-introspection",
  "grafbase-workspace-hack",
  "graph-ref",
- "graphql-composition",
- "graphql-federated-graph",
+ "graphql-composition 0.6.1",
+ "graphql-federated-graph 0.6.0",
  "graphql-lint",
  "graphql-mocks",
  "ignore",
@@ -3284,7 +3354,7 @@ dependencies = [
  "grafbase-telemetry",
  "grafbase-workspace-hack",
  "graph-ref",
- "graphql-composition",
+ "graphql-composition 0.6.1",
  "graphql-mocks",
  "handlebars 6.3.1",
  "http 1.2.0",
@@ -3314,7 +3384,7 @@ version = "0.0.0"
 dependencies = [
  "cynic",
  "cynic-introspection",
- "cynic-parser",
+ "cynic-parser 0.9.0",
  "grafbase-workspace-hack",
  "indoc",
  "reqwest 0.12.12",
@@ -3342,7 +3412,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.1.15"
+version = "0.1.16"
 dependencies = [
  "anyhow",
  "duct",
@@ -3350,8 +3420,8 @@ dependencies = [
  "futures-util",
  "grafbase-sdk-derive",
  "grafbase-sdk-mock",
- "graphql-composition",
- "graphql-federated-graph",
+ "graphql-composition 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "graphql-federated-graph 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "http 1.2.0",
  "indoc",
  "minicbor-serde",
@@ -3384,7 +3454,7 @@ dependencies = [
  "async-graphql",
  "async-graphql-axum",
  "axum 0.8.1",
- "cynic-parser",
+ "cynic-parser 0.9.0",
  "grafbase-workspace-hack",
  "serde",
  "serde_json",
@@ -3460,15 +3530,18 @@ dependencies = [
  "crossbeam-channel",
  "crossbeam-queue",
  "crossbeam-utils",
+ "curve25519-dalek",
  "cynic",
  "cynic-codegen",
- "cynic-parser",
+ "cynic-parser 0.9.0",
  "deadpool-runtime",
  "der",
  "deranged",
  "digest",
  "ecdsa",
+ "ed25519",
  "ed25519-compact",
+ "ed25519-dalek",
  "either",
  "elliptic-curve",
  "fastrand 2.2.0",
@@ -3517,6 +3590,7 @@ dependencies = [
  "percent-encoding",
  "pkcs1",
  "pkcs8",
+ "portable-atomic",
  "proc-macro2",
  "prost",
  "pulley-interpreter",
@@ -3586,10 +3660,10 @@ name = "graphql-composition"
 version = "0.6.1"
 dependencies = [
  "anyhow",
- "cynic-parser",
- "cynic-parser-deser",
+ "cynic-parser 0.9.0",
+ "cynic-parser-deser 0.9.0",
  "grafbase-workspace-hack",
- "graphql-federated-graph",
+ "graphql-federated-graph 0.6.0",
  "indexmap 2.7.1",
  "insta",
  "itertools 0.14.0",
@@ -3600,15 +3674,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "graphql-composition"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d1abe2c78547bfd903d4f41339882ee74ccc1e9d1bd19b9ed8bdfe607517bfa3"
+dependencies = [
+ "cynic-parser 0.8.7",
+ "cynic-parser-deser 0.8.7",
+ "graphql-federated-graph 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "indexmap 2.7.1",
+ "itertools 0.14.0",
+ "url",
+]
+
+[[package]]
 name = "graphql-federated-graph"
 version = "0.6.0"
 dependencies = [
  "bitflags 2.8.0",
- "cynic-parser",
- "cynic-parser-deser",
+ "cynic-parser 0.9.0",
+ "cynic-parser-deser 0.9.0",
  "expect-test",
  "grafbase-workspace-hack",
- "graphql-wrapping-types",
+ "graphql-wrapping-types 0.2.0",
  "indexmap 2.7.1",
  "indoc",
  "itertools 0.14.0",
@@ -3621,11 +3709,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "graphql-federated-graph"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "895a55bf1a7fcc72ec3908239921a11b0cf661fe3a6cfc550e89a2a6e0580fac"
+dependencies = [
+ "bitflags 2.8.0",
+ "cynic-parser 0.8.7",
+ "cynic-parser-deser 0.8.7",
+ "grafbase-workspace-hack",
+ "graphql-wrapping-types 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "indexmap 2.7.1",
+ "indoc",
+ "itertools 0.14.0",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "graphql-lint"
 version = "0.1.3"
 dependencies = [
  "criterion",
- "cynic-parser",
+ "cynic-parser 0.9.0",
  "grafbase-workspace-hack",
  "heck 0.5.0",
  "thiserror 2.0.11",
@@ -3641,7 +3747,7 @@ dependencies = [
  "axum 0.8.1",
  "axum-extra",
  "crossbeam-queue",
- "cynic-parser",
+ "cynic-parser 0.9.0",
  "futures",
  "futures-util",
  "grafbase-workspace-hack",
@@ -3669,7 +3775,7 @@ dependencies = [
 name = "graphql-schema-diff"
 version = "0.2.0"
 dependencies = [
- "cynic-parser",
+ "cynic-parser 0.9.0",
  "datatest-stable",
  "grafbase-workspace-hack",
  "serde",
@@ -3693,6 +3799,16 @@ dependencies = [
 [[package]]
 name = "graphql-wrapping-types"
 version = "0.2.0"
+dependencies = [
+ "grafbase-workspace-hack",
+ "serde",
+]
+
+[[package]]
+name = "graphql-wrapping-types"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "165aca8d4b7bba95daaac55f7e1e139475043a674768a659a4da80792ff74f96"
 dependencies = [
  "grafbase-workspace-hack",
  "serde",
@@ -4551,7 +4667,7 @@ dependencies = [
  "ctor",
  "cynic",
  "cynic-introspection",
- "cynic-parser",
+ "cynic-parser 0.9.0",
  "ed25519-compact",
  "elliptic-curve",
  "engine",
@@ -4563,8 +4679,8 @@ dependencies = [
  "gateway-config",
  "grafbase-telemetry",
  "grafbase-workspace-hack",
- "graphql-composition",
- "graphql-federated-graph",
+ "graphql-composition 0.6.1",
+ "graphql-federated-graph 0.6.0",
  "graphql-mocks",
  "graphql-ws-client",
  "headers",
@@ -5308,6 +5424,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "nkeys"
+version = "0.4.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9f49e787f4c61cbd0f9320b31cc26e58719f6aa5068e34697dd3aea361412fe3"
+dependencies = [
+ "data-encoding",
+ "ed25519",
+ "ed25519-dalek",
+ "getrandom 0.2.15",
+ "log",
+ "rand 0.8.5",
+ "signatory",
+]
+
+[[package]]
 name = "no-std-compat"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5375,6 +5506,15 @@ checksum = "77a8165726e8236064dbb45459242600304b42a5ea24ee2948e18e023bf7ba84"
 dependencies = [
  "overload",
  "winapi",
+]
+
+[[package]]
+name = "nuid"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fc895af95856f929163a0aa20c26a78d26bfdc839f51b9d5aa7a5b79e52b7e83"
+dependencies = [
+ "rand 0.8.5",
 ]
 
 [[package]]
@@ -5759,7 +5899,7 @@ name = "operation-normalizer"
 version = "0.0.0"
 dependencies = [
  "anyhow",
- "cynic-parser",
+ "cynic-parser 0.9.0",
  "expect-test",
  "grafbase-workspace-hack",
  "graphql-parser",
@@ -7378,6 +7518,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_nanos"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a93142f0367a4cc53ae0fead1bcda39e85beccfad3dcd717656cacab94b12985"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "serde_path_to_error"
 version = "0.1.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7415,6 +7564,17 @@ checksum = "a8136f1a4ea815d7eac4101cfd0b16dc0cb5e1fe1b8609dfd728058656b7badf"
 dependencies = [
  "regex",
  "serde",
+]
+
+[[package]]
+name = "serde_repr"
+version = "0.1.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6c64451ba24fc7a6a2d60fc75dd9c83c90903b19028d4eff35e88fc1e86564e9"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.96",
 ]
 
 [[package]]
@@ -7625,6 +7785,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a9e9e0b4211b72e7b8b6e85c807d36c212bdb33ea8587f7569562a84df5465b1"
 dependencies = [
  "libc",
+]
+
+[[package]]
+name = "signatory"
+version = "0.27.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c1e303f8205714074f6068773f0e29527e0453937fe837c9717d066635b65f31"
+dependencies = [
+ "pkcs8",
+ "rand_core 0.6.4",
+ "signature",
+ "zeroize",
 ]
 
 [[package]]
@@ -8276,6 +8448,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "tokio-websockets"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f591660438b3038dd04d16c938271c79e7e06260ad2ea2885a4861bfb238605d"
+dependencies = [
+ "base64 0.22.1",
+ "bytes",
+ "futures-core",
+ "futures-sink",
+ "http 1.2.0",
+ "httparse",
+ "rand 0.8.5",
+ "ring",
+ "rustls-pki-types",
+ "tokio",
+ "tokio-rustls 0.26.1",
+ "tokio-util",
+ "webpki-roots",
+]
+
+[[package]]
 name = "toml"
 version = "0.8.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8531,6 +8724,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
 
 [[package]]
+name = "tryhard"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9c9f0a709784e86923586cff0d872dba54cd2d2e116b3bc57587d15737cfce9d"
+dependencies = [
+ "futures",
+ "pin-project-lite",
+ "tokio",
+]
+
+[[package]]
 name = "tungstenite"
 version = "0.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8766,6 +8970,7 @@ name = "wasi-component-loader"
 version = "0.0.0"
 dependencies = [
  "anyhow",
+ "async-nats",
  "base64 0.22.1",
  "crossbeam",
  "dashmap 6.1.0",

@@ -1,0 +1,12 @@
+extend schema @link(url: "https://specs.grafbase.com/grafbase", import: ["InputValueSet", "UrlTemplate"])
+
+directive @natsPublish(
+  provider: String! = "default"
+  subject: UrlTemplate!
+  body: Body! = { selection: "*" }
+) on FIELD_DEFINITION
+
+input Body {
+  selection: InputValueSet
+  static: JSON
+}
