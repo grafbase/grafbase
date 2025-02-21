@@ -1,4 +1,3 @@
-
   × Duplicate definition. There can only be one typed name "Test"
    ╭─[1:6]
  1 │ type Test {

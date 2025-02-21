@@ -234,19 +234,17 @@ mod tests {
 
         insta::assert_debug_snapshot!(result, @r#"
         Err(
-            Error {
-                inner: TomlError {
-                    message: "raw and file may not both be provided in a message signing key",
-                    raw: Some(
-                        "key.file = \"super-secret-key\"\nkey.inline = \"hello\"\n",
-                    ),
-                    keys: [
-                        "key",
-                    ],
-                    span: Some(
-                        0..3,
-                    ),
-                },
+            TomlError {
+                message: "raw and file may not both be provided in a message signing key",
+                raw: Some(
+                    "key.file = \"super-secret-key\"\nkey.inline = \"hello\"\n",
+                ),
+                keys: [
+                    "key",
+                ],
+                span: Some(
+                    0..3,
+                ),
             },
         )
         "#);
@@ -262,19 +260,17 @@ mod tests {
 
         insta::assert_debug_snapshot!(result, @r#"
         Err(
-            Error {
-                inner: TomlError {
-                    message: "one of raw or file must be provided in the message signing key",
-                    raw: Some(
-                        "key = {}\n",
-                    ),
-                    keys: [
-                        "key",
-                    ],
-                    span: Some(
-                        6..8,
-                    ),
-                },
+            TomlError {
+                message: "one of raw or file must be provided in the message signing key",
+                raw: Some(
+                    "key = {}\n",
+                ),
+                keys: [
+                    "key",
+                ],
+                span: Some(
+                    6..8,
+                ),
             },
         )
         "#);

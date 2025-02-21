@@ -1,4 +1,3 @@
-
   × Name "__mytype" must not begin with "__", which is reserved by GraphQL introspection.
    ╭─[1:6]
  1 │ type __mytype {

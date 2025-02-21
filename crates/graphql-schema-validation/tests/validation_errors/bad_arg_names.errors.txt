@@ -1,4 +1,3 @@
-
   × Argument names can't start with __
    ╭─[2:9]
  1 │ type Query {
