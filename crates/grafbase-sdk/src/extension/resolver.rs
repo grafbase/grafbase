@@ -70,4 +70,30 @@ pub trait Resolver: Extension {
         definition: FieldDefinition,
         inputs: FieldInputs,
     ) -> Result<FieldOutput, Error>;
+
+    /// Resolves a subscription field based on the given context, directive, and definition.
+    ///
+    /// The function should initialize a subscription internally, but not return any data.
+    /// Use the `resolve_next_subscription_item` method to retrieve the next item in the subscription.
+    ///
+    /// # Arguments
+    ///
+    /// * `context` - The shared context containing runtime information
+    /// * `directive` - The directive associated with this subscription
+    /// * `definition` - The field definition containing metadata
+    fn resolve_subscription(
+        &mut self,
+        context: SharedContext,
+        directive: Directive,
+        definition: FieldDefinition,
+    ) -> Result<(), Error>;
+
+    /// Retrieves the next item in a subscription stream.
+    ///
+    /// This method is called repeatedly to get sequential items from an active subscription.
+    ///
+    /// # Returns
+    ///
+    /// Returns a `Result` containing either the next `FieldOutput` value in the subscription stream or an `Error`
+    fn resolve_next_subscription_item(&mut self) -> Result<Option<FieldOutput>, Error>;
 }

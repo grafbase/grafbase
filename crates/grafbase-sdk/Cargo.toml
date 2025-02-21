@@ -1,19 +1,18 @@
 [package]
 name = "grafbase-sdk"
-version = "0.1.16"
+version = "0.2.1"
 description = "An SDK to implement extensions for the Grafbase Gateway"
-edition.workspace = true
+edition = "2021"
 license.workspace = true
 homepage.workspace = true
 keywords.workspace = true
 repository.workspace = true
 
 [package.metadata.docs.rs]
-features = ["test-utils"]
+features = ["test-utils", "jq-selection"]
 
 [features]
 test-utils = [
-    "dep:anyhow",
     "dep:duct",
     "dep:fslock",
     "dep:indoc",
@@ -25,34 +24,49 @@ test-utils = [
     "dep:graphql-composition",
     "dep:graphql-federated-graph",
     "dep:grafbase-sdk-mock",
+    "dep:graphql-ws-client",
+    "dep:async-tungstenite",
+    "dep:tokio",
+    "dep:tungstenite",
 ]
-graphql-federated-graph = ["dep:graphql-federated-graph"]
+jq-selection = [
+    "dep:jaq-core",
+    "dep:jaq-json",
+    "dep:jaq-std",
+    "dep:hashbrown",
+]
 
 [dependencies]
-grafbase-sdk-derive = { version = "0.1.3", path = "derive" }
-http.workspace = true
-minicbor-serde = { workspace = true, features = ["alloc"] }
-serde.workspace = true
-serde_json.workspace = true
-serde_urlencoded.workspace = true
-url.workspace = true
-wit-bindgen.workspace = true
-
-# for tests
-anyhow = { workspace = true, optional = true }
+anyhow.workspace = true
+async-tungstenite = { workspace = true, optional = true, features = ["tokio-runtime"] }
 duct = { workspace = true, optional = true }
 fslock = { workspace = true, optional = true }
 futures-util = { workspace = true, optional = true }
+grafbase-sdk-derive = { version = "0.1.3", path = "derive" }
 grafbase-sdk-mock = { version = "0.1.1", path = "mock", optional = true }
 graphql-composition = { version = "0.6.2", features = [
     "grafbase-extensions",
 ], optional = true }
 graphql-federated-graph = { version = "0.6.1", optional = true }
+graphql-ws-client = { workspace = true, optional = true }
+hashbrown = { workspace = true, optional = true }
+http.workspace = true
 indoc = { workspace = true, optional = true }
+jaq-core = { version = "2.1.0", optional = true }
+jaq-json = { version = "1.1.0", features = ["serde_json"], optional = true }
+jaq-std = { version = "2.1.0", optional = true }
+minicbor-serde = { workspace = true, features = ["alloc"] }
 reqwest = { workspace = true, features = ["json"], optional = true }
+serde.workspace = true
+serde_json.workspace = true
+serde_urlencoded.workspace = true
 tempfile = { workspace = true, optional = true }
+tokio = { workspace = true, features = ["net"], optional = true }
 toml = { workspace = true, optional = true }
+tungstenite = { workspace = true, optional = true }
+url.workspace = true
 which = { workspace = true, optional = true }
+wit-bindgen.workspace = true
 
 [lints]
 workspace = true

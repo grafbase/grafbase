@@ -277,8 +277,9 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.1.16"
+version = "0.2.1"
 dependencies = [
+ "anyhow",
  "grafbase-sdk-derive",
  "http",
  "minicbor-serde",

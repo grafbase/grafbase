@@ -459,7 +459,7 @@ async fn with_bad_jq() {
       "data": null,
       "errors": [
         {
-          "message": "The selection is not valid jq syntax: `\\||\\`",
+          "message": "Error selecting result value: The selection is not valid jq syntax: `\\||\\`",
           "extensions": {
             "code": "INTERNAL_SERVER_ERROR"
           }

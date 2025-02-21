@@ -1,4 +1,5 @@
 use std::{
+    future::IntoFuture,
     marker::PhantomData,
     net::{Ipv4Addr, SocketAddr, SocketAddrV4},
     path::Path,
@@ -6,9 +7,18 @@ use std::{
 };
 
 use super::TestConfig;
+use async_tungstenite::tungstenite::handshake::client::Request;
+use futures_util::{stream::BoxStream, StreamExt};
 use grafbase_sdk_mock::{MockGraphQlServer, MockSubgraph};
 use graphql_composition::{LoadedExtension, Subgraphs};
+use graphql_ws_client::graphql::GraphqlOperation;
+use http::{
+    header::{IntoHeaderName, SEC_WEBSOCKET_PROTOCOL},
+    HeaderValue,
+};
+use serde::de::DeserializeOwned;
 use tempfile::TempDir;
+use tungstenite::client::IntoClientRequest;
 use url::Url;
 
 /// A test runner that can start a gateway and execute GraphQL queries against it.
@@ -215,6 +225,41 @@ impl TestRunner {
         }
     }
 
+    ///
+    /// # Arguments
+    ///
+    /// * `query` - The GraphQL subscription query string to execute
+    ///
+    /// # Returns
+    ///
+    /// A [`SubscriptionBuilder`] that can be used to customize and execute the subscription
+    pub fn graphql_subscription<Response>(
+        &self,
+        query: impl Into<String>,
+    ) -> anyhow::Result<SubscriptionBuilder<Response>> {
+        let mut url = self.gateway_endpoint.clone();
+
+        url.set_path("/ws");
+        url.set_scheme("ws").unwrap();
+
+        let mut request_builder = url.as_ref().into_client_request()?;
+
+        request_builder
+            .headers_mut()
+            .insert(SEC_WEBSOCKET_PROTOCOL, HeaderValue::from_static("graphql-transport-ws"));
+
+        let operation = Operation {
+            query: query.into(),
+            variables: None,
+            phantom: PhantomData,
+        };
+
+        Ok(SubscriptionBuilder {
+            operation,
+            request_builder,
+        })
+    }
+
     /// Returns the federated schema as a string.
     pub fn federated_graph(&self) -> &str {
         &self.federated_graph
@@ -326,5 +371,87 @@ impl<Response> QueryBuilder<Response> {
     {
         let json = serde_json::to_value(&self)?;
         Ok(self.reqwest_builder.json(&json).send().await?.json().await?)
+    }
+}
+
+#[must_use]
+/// A builder for constructing GraphQL queries with customizable parameters and headers.
+pub struct SubscriptionBuilder<Response> {
+    operation: Operation<Response>,
+    request_builder: Request,
+}
+
+#[derive(serde::Serialize)]
+struct Operation<Response> {
+    query: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    variables: Option<serde_json::Value>,
+    #[serde(skip)]
+    phantom: PhantomData<fn() -> Response>,
+}
+
+impl<Response> GraphqlOperation for Operation<Response>
+where
+    Response: DeserializeOwned,
+{
+    type Response = Response;
+    type Error = serde_json::Error;
+
+    fn decode(&self, data: serde_json::Value) -> Result<Self::Response, Self::Error> {
+        serde_json::from_value(data)
+    }
+}
+
+impl<Response> SubscriptionBuilder<Response>
+where
+    Response: DeserializeOwned + 'static,
+{
+    /// Adds variables to the GraphQL subscription.
+    ///
+    /// # Arguments
+    ///
+    /// * `variables` - The variables to include with the subscription, serializable to JSON
+    pub fn with_variables(mut self, variables: impl serde::Serialize) -> Self {
+        self.operation.variables = Some(serde_json::to_value(variables).unwrap());
+        self
+    }
+
+    /// Adds a header to the GraphQL request.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The header name
+    /// * `value` - The header value
+    pub fn with_header<K, V>(mut self, name: K, value: HeaderValue) -> Self
+    where
+        K: IntoHeaderName,
+    {
+        self.request_builder.headers_mut().insert(name, value);
+        self
+    }
+
+    /// Subscribes to the GraphQL subscription and returns a stream of responses.
+    ///
+    /// # Returns
+    ///
+    /// A pinned stream that yields the deserialized subscription responses
+    ///
+    /// # Errors
+    ///
+    /// Will return an error if:
+    /// - WebSocket connection fails
+    /// - GraphQL subscription initialization fails
+    pub async fn subscribe(self) -> anyhow::Result<BoxStream<'static, Response>> {
+        let (connection, _) = async_tungstenite::tokio::connect_async(self.request_builder).await?;
+        let (client, actor) = graphql_ws_client::Client::build(connection).await?;
+
+        tokio::spawn(actor.into_future());
+
+        let stream = client
+            .subscribe(self.operation)
+            .await?
+            .map(move |item| -> Response { item.unwrap() });
+
+        Ok(Box::pin(stream))
     }
 }

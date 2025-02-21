@@ -186,4 +186,15 @@ impl runtime::extension::ExtensionRuntime for TestExtensions {
             errors: Vec::new(),
         })
     }
+
+    async fn resolve_field_subscription<'ctx, 'f>(
+        &'ctx self,
+        _: &'ctx Self::SharedContext,
+        _: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
+    ) -> Result<tokio::sync::mpsc::Receiver<Result<Data, PartialGraphqlError>>, PartialGraphqlError>
+    where
+        'ctx: 'f,
+    {
+        todo!()
+    }
 }

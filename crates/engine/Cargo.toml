@@ -58,6 +58,8 @@ query-solver = { path = "./query-solver", package = "engine-query-solver" }
 rand.workspace = true
 runtime.workspace = true
 schema = { path = "./schema", package = "engine-schema" }
+tokio = { workspace = true, features = ["sync"] }
+tokio-stream.workspace = true
 walker = { path = "./walker", package = "engine-walker" }
 
 [dev-dependencies]

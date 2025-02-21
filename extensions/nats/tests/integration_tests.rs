@@ -1,7 +1,10 @@
+use std::time::Duration;
+
 use async_nats::ConnectOptions;
 use futures::StreamExt;
 use grafbase_sdk::test::{DynamicSchema, ExtensionOnlySubgraph, TestConfig, TestRunner};
 use indoc::{formatdoc, indoc};
+use serde_json::json;
 
 const CLI_PATH: &str = "../../target/debug/grafbase";
 const GATEWAY_PATH: &str = "../../target/debug/grafbase-gateway";
@@ -20,7 +23,7 @@ fn subgraph() -> ExtensionOnlySubgraph {
     let schema = formatdoc! {r#"
         extend schema
           @link(url: "https://specs.apollo.dev/federation/v2.0", import: ["@key", "@shareable"])
-          @link(url: "{path_str}", import: ["@natsPublish", "NatsPublishResult"])
+          @link(url: "{path_str}", import: ["@natsPublish", "@natsSubscription", "NatsPublishResult"])
 
         type Query {{
           hello: String!
@@ -28,7 +31,13 @@ fn subgraph() -> ExtensionOnlySubgraph {
 
         type Mutation {{
           publishUserEvent(id: Int!, input: UserEventInput!): NatsPublishResult! @natsPublish(
-            subject: "user.{{{{args.id}}}}.events"
+            subject: "publish.user.{{{{args.id}}}}.events"
+          )
+        }}
+
+        type Subscription {{
+          userEvents(id: Int!): UserEvent! @natsSubscription(
+            subject: "subscription.user.{{{{args.id}}}}.events"
           )
         }}
 
@@ -37,6 +46,11 @@ fn subgraph() -> ExtensionOnlySubgraph {
         }}
 
         input UserEventInput {{
+          email: String!
+          name: String!
+        }}
+
+        type UserEvent {{
           email: String!
           name: String!
         }}
@@ -60,17 +74,72 @@ fn config() -> &'static str {
 }
 
 #[tokio::test]
-async fn test_publish() {
+async fn test_subscribe() {
     let nats = nats_client().await;
-    let mut subscriber = nats.subscribe("user.>").await.unwrap();
 
     let config = TestConfig::builder()
         .with_cli(CLI_PATH)
         .with_gateway(GATEWAY_PATH)
         .with_subgraph(subgraph())
         .enable_networking()
-        .enable_stderr()
-        .enable_stdout()
+        .build(config())
+        .unwrap();
+
+    let runner = TestRunner::new(config).await.unwrap();
+
+    let query = indoc! {r#"
+        subscription {
+          userEvents(id: 1) {
+            email
+            name
+          }
+        }
+    "#};
+
+    let mut subscription = runner
+        .graphql_subscription::<serde_json::Value>(query)
+        .unwrap()
+        .subscribe()
+        .await
+        .unwrap();
+
+    tokio::spawn(async move {
+        loop {
+            let event = json!({ "email": "user1@example.com", "name": "User One" });
+            let event = serde_json::to_vec(&event).unwrap();
+
+            nats.publish("subscription.user.1.events", event.into()).await.unwrap();
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+    });
+
+    let event = tokio::time::timeout(Duration::from_secs(5), subscription.next())
+        .await
+        .unwrap()
+        .unwrap();
+
+    insta::assert_json_snapshot!(&event, @r#"
+    {
+      "data": {
+        "userEvents": {
+          "email": "user1@example.com",
+          "name": "User One"
+        }
+      }
+    }
+    "#);
+}
+
+#[tokio::test]
+async fn test_publish() {
+    let nats = nats_client().await;
+    let mut subscriber = nats.subscribe("publish.user.>").await.unwrap();
+
+    let config = TestConfig::builder()
+        .with_cli(CLI_PATH)
+        .with_gateway(GATEWAY_PATH)
+        .with_subgraph(subgraph())
+        .enable_networking()
         .build(config())
         .unwrap();
 
@@ -85,7 +154,6 @@ async fn test_publish() {
     "#};
 
     let result: serde_json::Value = runner.graphql_query(query).send().await.unwrap();
-
     insta::assert_json_snapshot!(result, @r#"
     {
       "data": {
@@ -97,11 +165,9 @@ async fn test_publish() {
     "#);
 
     let event = subscriber.next().await.unwrap();
-
-    assert_eq!(event.subject.as_str(), "user.1.events");
+    assert_eq!(event.subject.as_str(), "publish.user.1.events");
 
     let event: serde_json::Value = serde_json::from_slice(event.payload.as_ref()).unwrap();
-
     insta::assert_json_snapshot!(&event, @r#"
     {
       "email": "alice@example.com",

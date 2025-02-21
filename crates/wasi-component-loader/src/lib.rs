@@ -16,7 +16,6 @@ mod headers;
 mod http_client;
 mod instance;
 mod names;
-mod nats;
 pub mod resources;
 mod state;
 mod subgraph_request;
@@ -82,7 +81,7 @@ impl ComponentLoader {
     pub fn hooks(config: HooksWasiConfig) -> Result<Option<Self>> {
         let instantiate = |liner: &mut Linker<WasiState>| -> Result<()> {
             let mut instance = liner.root();
-            nats::inject_mapping(&mut instance)?;
+
             headers::inject_mapping(&mut instance)?;
             subgraph_request::inject_mapping(&mut instance)?;
             context::inject_mapping(&mut instance)?;

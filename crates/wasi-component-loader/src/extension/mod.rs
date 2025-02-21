@@ -19,6 +19,7 @@ pub(crate) mod wit {
             "grafbase:sdk/types/shared-context": crate::resources::SharedContext,
             "grafbase:sdk/types/access-log": crate::resources::AccessLogSender,
             "grafbase:sdk/types/nats-client": crate::resources::NatsClient,
+            "grafbase:sdk/types/nats-subscriber": crate::resources::NatsSubscriber,
         },
         trappable_imports: true,
         ownership: Borrowing {

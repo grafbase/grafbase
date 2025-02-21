@@ -6,6 +6,8 @@ directive @natsPublish(
   body: Body! = { selection: "*" }
 ) on FIELD_DEFINITION
 
+directive @natsSubscription(provider: String! = "default", subject: UrlTemplate!, selection: String) on FIELD_DEFINITION
+
 input Body {
   selection: InputValueSet
   static: JSON

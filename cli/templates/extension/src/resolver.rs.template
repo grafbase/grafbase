@@ -22,4 +22,17 @@ impl Resolver for {{name}} {
     ) -> Result<FieldOutput, Error> {
         todo!()
     }
+
+    fn resolve_subscription(
+        &mut self,
+        context: SharedContext,
+        directive: Directive,
+        field_definition: FieldDefinition,
+    ) -> Result<(), Error> {
+        todo!()
+    }
+
+    fn resolve_next_subscription_item(&mut self) -> Result<Option<FieldOutput>, Error> {
+        todo!()
+    }
 }

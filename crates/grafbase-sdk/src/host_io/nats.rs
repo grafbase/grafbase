@@ -27,6 +27,75 @@ impl NatsClient {
     {
         Ok(self.inner.publish(subject, &serde_json::to_vec(payload).unwrap())?)
     }
+
+    /// Subscribes to messages on the specified NATS subject
+    ///
+    /// # Arguments
+    ///
+    /// * `subject` - The NATS subject to subscribe to
+    ///
+    /// # Returns
+    ///
+    /// Result containing the subscription or an error if subscription fails
+    pub fn subscribe(&self, subject: &str) -> Result<NatsSubscriber, Box<dyn std::error::Error>> {
+        Ok(self.inner.subscribe(subject).map(Into::into)?)
+    }
+}
+
+/// A subscription to a NATS subject that receives messages published to that subject
+pub struct NatsSubscriber {
+    inner: crate::wit::NatsSubscriber,
+}
+
+impl From<crate::wit::NatsSubscriber> for NatsSubscriber {
+    fn from(inner: crate::wit::NatsSubscriber) -> Self {
+        NatsSubscriber { inner }
+    }
+}
+
+impl NatsSubscriber {
+    /// Gets the next message from the subscription
+    ///
+    /// # Returns
+    ///
+    /// Result containing the next message or an error if retrieval fails
+    pub fn next(&self) -> Option<NatsMessage> {
+        self.inner.next().map(Into::into)
+    }
+}
+
+/// A message received from a NATS subscription containing the payload data
+pub struct NatsMessage {
+    inner: crate::wit::NatsMessage,
+}
+
+impl From<crate::wit::NatsMessage> for NatsMessage {
+    fn from(inner: crate::wit::NatsMessage) -> Self {
+        NatsMessage { inner }
+    }
+}
+
+impl NatsMessage {
+    /// Gets the payload data of the message
+    ///
+    /// # Returns
+    ///
+    /// Result containing the payload data or an error if retrieval fails
+    pub fn payload<S>(&self) -> anyhow::Result<S>
+    where
+        S: for<'de> serde::Deserialize<'de>,
+    {
+        Ok(serde_json::from_slice(&self.inner.payload)?)
+    }
+
+    /// Gets the subject of the message
+    ///
+    /// # Returns
+    ///
+    /// The NATS subject this message was published to
+    pub fn subject(&self) -> &str {
+        &self.inner.subject
+    }
 }
 
 /// Connects to one or more NATS servers
