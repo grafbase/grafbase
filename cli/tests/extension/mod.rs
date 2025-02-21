@@ -22,7 +22,7 @@ fn init_resolver() {
     [package]
     name = "test-project"
     version = "0.1.0"
-    edition = "2021"
+    edition = "2024"
     license = "Apache-2.0"
 
     [lib]
@@ -250,7 +250,7 @@ fn init_auth() {
     [package]
     name = "test-project"
     version = "0.1.0"
-    edition = "2021"
+    edition = "2024"
     license = "Apache-2.0"
 
     [lib]
