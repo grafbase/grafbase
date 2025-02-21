@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use query_solver::{
-    petgraph::{graph::NodeIndex, visit::EdgeRef},
     Edge,
+    petgraph::{graph::NodeIndex, visit::EdgeRef},
 };
 
 use crate::prepare::PartitionFieldId;

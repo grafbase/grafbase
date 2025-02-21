@@ -21,9 +21,9 @@ pub use self::{
     enum_values::{EnumValue, EnumValueRecord},
     extensions::*,
     ids::*,
-    r#type::{Definition, Type},
     root_operation_types::RootOperationTypes,
     scalar_definitions::ScalarDefinitionRecord,
+    r#type::{Definition, Type},
     view::{View, ViewNested},
 };
 pub use std::fmt;

@@ -6,7 +6,7 @@ use super::{
     graphql::mutations::{SchemaCheckCreate, SchemaCheckCreateArguments, SchemaCheckCreateInput, SchemaCheckPayload},
 };
 use crate::common::environment::PlatformData;
-use cynic::{http::ReqwestExt, MutationBuilder};
+use cynic::{MutationBuilder, http::ReqwestExt};
 
 pub enum SchemaCheckResult {
     Ok(SchemaCheck),

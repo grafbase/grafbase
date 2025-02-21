@@ -7,8 +7,8 @@ use super::graphql::mutations::{
 use super::graphql::queries::viewer_for_create::Viewer;
 use super::types::Account;
 use crate::common::environment::PlatformData;
-use cynic::http::ReqwestExt;
 use cynic::Id;
+use cynic::http::ReqwestExt;
 use cynic::{MutationBuilder, QueryBuilder};
 
 /// # Errors

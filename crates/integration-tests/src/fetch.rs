@@ -7,7 +7,7 @@ use bytes::Bytes;
 use graphql_mocks::ReceivedRequest;
 use runtime::{
     bytes::OwnedOrSharedBytes,
-    fetch::{dynamic::DynFetcher, FetchError, FetchRequest, FetchResult},
+    fetch::{FetchError, FetchRequest, FetchResult, dynamic::DynFetcher},
     hooks::ResponseInfo,
 };
 

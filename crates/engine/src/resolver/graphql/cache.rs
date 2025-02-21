@@ -7,7 +7,7 @@ use runtime::entity_cache::EntityCache;
 use serde_json::value::RawValue;
 use std::time::Duration;
 
-use crate::{response::InputObjectId, Runtime};
+use crate::{Runtime, response::InputObjectId};
 
 use super::{EntityToFetch, SubgraphContext};
 

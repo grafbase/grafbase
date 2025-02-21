@@ -1,6 +1,6 @@
 use duration_str::deserialize_duration;
-use serde::de::Error;
 use serde::Deserializer;
+use serde::de::Error;
 use std::path::PathBuf;
 use std::time::Duration;
 

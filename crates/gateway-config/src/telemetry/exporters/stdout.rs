@@ -1,4 +1,4 @@
-use super::{default_export_timeout, deserialize_duration, BatchExportConfig};
+use super::{BatchExportConfig, default_export_timeout, deserialize_duration};
 
 /// Stdout exporter configuration
 #[derive(Debug, Clone, PartialEq, serde::Deserialize)]

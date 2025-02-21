@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::context::Context;
-use async_graphql_parser::{types as ast, Positioned};
+use async_graphql_parser::{Positioned, types as ast};
 use async_graphql_value::Name;
 
 pub(crate) fn validate_implements_list<'a>(

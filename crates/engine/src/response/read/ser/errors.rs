@@ -4,8 +4,8 @@ use operation::ResponseKeys;
 use serde::ser::{SerializeMap, SerializeSeq};
 
 use crate::{
-    response::{ErrorPathSegment, GraphqlError},
     ErrorCode,
+    response::{ErrorPathSegment, GraphqlError},
 };
 
 pub(super) struct SerializableErrors<'a> {

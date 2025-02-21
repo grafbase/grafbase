@@ -6,9 +6,9 @@ use schema::{CompositeTypeId, DefinitionId, FieldDefinitionId, Schema, StringId,
 use walker::Walk;
 
 use crate::{
+    QueryFieldId,
     query::{Edge, Node},
     solve::CrudeSolvedQuery,
-    QueryFieldId,
 };
 
 pub(super) fn adjust_response_keys_to_avoid_collisions(

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use async_graphql::{
-    EmptyMutation, EmptySubscription, Enum, InputObject, Json, MaybeUndefined, Object, SimpleObject, ID,
+    EmptyMutation, EmptySubscription, Enum, ID, InputObject, Json, MaybeUndefined, Object, SimpleObject,
 };
 
 /// A schema that just echoes stuff back at you.

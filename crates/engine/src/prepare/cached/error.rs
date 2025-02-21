@@ -1,4 +1,4 @@
-use crate::{response::GraphqlError, ErrorCode};
+use crate::{ErrorCode, response::GraphqlError};
 
 pub(crate) type SolveResult<T> = Result<T, SolveError>;
 

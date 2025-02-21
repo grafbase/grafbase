@@ -174,7 +174,7 @@ impl<'ctx> ShapesBuilder<'ctx> {
                     // fields aren't sorted by the response key but by the string value they point
                     // to. However, response keys are deduplicated so the equality also works here
                     // to ensure we only have distinct values.
-                    .map_or(true, |key| key.response_key != field.response_key)
+                    .is_none_or(|key| key.response_key != field.response_key)
                 {
                     distinct_typename_response_keys.push(field.response_key.with_position(field.query_position));
                 }

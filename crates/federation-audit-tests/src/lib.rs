@@ -3,6 +3,6 @@ mod cache;
 mod response;
 
 pub use self::{
-    cache::{cached_tests, CachedTest},
+    cache::{CachedTest, cached_tests},
     response::Response,
 };

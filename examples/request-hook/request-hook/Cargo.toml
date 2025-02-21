@@ -1,7 +1,7 @@
 [package]
 name = "request-hook"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 grafbase-hooks = "0.1.8"

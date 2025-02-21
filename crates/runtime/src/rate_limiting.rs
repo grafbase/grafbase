@@ -2,8 +2,8 @@ use std::borrow::Cow;
 use std::net::IpAddr;
 use std::sync::Arc;
 
-use futures_util::future::BoxFuture;
 use futures_util::FutureExt;
+use futures_util::future::BoxFuture;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {

@@ -156,7 +156,7 @@ fn create_wasi_extension_configs(
                 };
 
                 for (auth_id, provider) in auth_config.providers.iter().enumerate() {
-                    let AuthenticationProvider::Extension(ref extension_provider) = provider else {
+                    let AuthenticationProvider::Extension(extension_provider) = provider else {
                         continue;
                     };
 

@@ -4,7 +4,7 @@ use graphql_mocks::Schema;
 use indoc::formatdoc;
 use rand::Rng;
 
-use crate::{runtime, Client};
+use crate::{Client, runtime};
 
 #[test]
 fn entity_caching_via_redis() {

@@ -3,7 +3,7 @@ use crate::{
     state::WasiState,
 };
 use futures::FutureExt;
-use grafbase_telemetry::otel::opentelemetry::{metrics::Histogram, KeyValue};
+use grafbase_telemetry::otel::opentelemetry::{KeyValue, metrics::Histogram};
 use http::{HeaderName, HeaderValue};
 use std::{
     future::Future,
@@ -11,10 +11,10 @@ use std::{
     time::{Duration, Instant},
 };
 use strum::AsRefStr;
-use tracing::{field::Empty, info_span, Instrument};
+use tracing::{Instrument, field::Empty, info_span};
 use wasmtime::{
-    component::{ComponentType, Lift, LinkerInstance, Lower, ResourceType},
     StoreContextMut,
+    component::{ComponentType, Lift, LinkerInstance, Lower, ResourceType},
 };
 
 pub(crate) fn inject_mapping(types: &mut LinkerInstance<'_, WasiState>) -> crate::Result<()> {
@@ -352,7 +352,7 @@ fn request_attributes(request: &HttpRequest) -> Vec<KeyValue> {
 
 fn merge_response_attributes(attributes: &mut Vec<KeyValue>, result: &Result<reqwest::Response, reqwest::Error>) {
     match result {
-        Ok(ref response) => {
+        Ok(response) => {
             attributes.push(KeyValue::new(
                 "http.response.status_code",
                 response.status().as_u16().to_string(),

@@ -1,5 +1,5 @@
-use futures::future::{ready, BoxFuture};
 use futures::FutureExt;
+use futures::future::{BoxFuture, ready};
 
 use runtime::rate_limiting::{Error, RateLimiter, RateLimiterContext, RateLimiterInner};
 

@@ -18,8 +18,8 @@ use self::{
     directive_definitions::*, enums::*, input_objects::*, input_types::*, interfaces::*, objects::*, scalars::*,
     schema_definition::*, type_definition::*, unions::*,
 };
-use crate::{diagnostics, Context, Options, SchemaDefinition};
-use async_graphql_parser::{types as ast, Positioned};
+use crate::{Context, Options, SchemaDefinition, diagnostics};
+use async_graphql_parser::{Positioned, types as ast};
 
 pub(crate) fn validate<'a>(parsed_ast: &'a ast::ServiceDocument, ctx: &mut Context<'a>) {
     let mut schema_definitions = Vec::new();

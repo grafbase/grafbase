@@ -1,9 +1,9 @@
 use std::{collections::HashMap, path::PathBuf};
 
-use cynic_parser::type_system::{iter::Iter, Definition, Directive, TypeDefinition};
+use cynic_parser::type_system::{Definition, Directive, TypeDefinition, iter::Iter};
 use cynic_parser_deser::{ConstDeserializer, DeserValue, ValueDeserialize};
 use proc_macro2::{Ident, Span};
-use quote::{quote, TokenStreamExt};
+use quote::{TokenStreamExt, quote};
 
 use crate::{
     domain::{self, ImportedDomain},
@@ -312,7 +312,7 @@ fn finalize_field_struct_names(
         .collect::<HashMap<_, _>>();
 
     for definition in definitions_by_name.values_mut() {
-        let domain::Definition::Object(ref mut object) = definition else {
+        let domain::Definition::Object(object) = definition else {
             continue;
         };
         for field in &mut object.fields {

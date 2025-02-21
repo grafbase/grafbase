@@ -1,5 +1,6 @@
 #![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/README.md"))]
 #![deny(missing_docs)]
+#![expect(unsafe_op_in_unsafe_fn)]
 
 #[cfg(feature = "derive")]
 pub use grafbase_hooks_derive::grafbase_hooks;
@@ -8,8 +9,8 @@ mod hooks;
 pub mod host_io;
 
 pub use hooks::{
-    hooks, EdgeNodePostExecutionArguments, EdgePostExecutionArguments, EdgePreExecutionArguments, HookExports,
-    HookImpls, Hooks, NodePreExecutionArguments, ParentEdgePostExecutionArguments, SubgraphRequest,
+    EdgeNodePostExecutionArguments, EdgePostExecutionArguments, EdgePreExecutionArguments, HookExports, HookImpls,
+    Hooks, NodePreExecutionArguments, ParentEdgePostExecutionArguments, SubgraphRequest, hooks,
 };
 pub use wit::{
     CacheStatus, Context, Error, ErrorResponse, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest,
@@ -31,7 +32,7 @@ pub fn init_hooks(hooks: fn() -> Box<dyn hooks::Hooks>) {
 macro_rules! register_hooks {
     ($name:ident < ($args:tt)* >) => {
         #[doc(hidden)]
-        #[export_name = "init-hooks"]
+        #[unsafe(export_name = "init-hooks")]
         pub extern "C" fn __init_hooks() -> i64 {
             grafbase_hooks::init_hooks(|| Box::new(<$name<$($args)*> as grafbase_hooks::Hooks>::new()));
             grafbase_hooks::hooks().hook_implementations() as i64
@@ -41,7 +42,7 @@ macro_rules! register_hooks {
     };
     ($hook_type:ty) => {
         #[doc(hidden)]
-        #[export_name = "init-hooks"]
+        #[unsafe(export_name = "init-hooks")]
         pub extern "C" fn __init_hooks() -> i64 {
             grafbase_hooks::init_hooks(|| Box::new(<$hook_type as grafbase_hooks::Hooks>::new()));
             grafbase_hooks::hooks().hook_implementations() as i64
@@ -52,7 +53,7 @@ macro_rules! register_hooks {
 }
 
 mod wit {
-    #![allow(clippy::too_many_arguments, clippy::missing_safety_doc, missing_docs)]
+    #![expect(clippy::too_many_arguments, missing_docs)]
 
     wit_bindgen::generate!({
         skip: ["init-hooks"],

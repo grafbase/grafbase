@@ -1,8 +1,8 @@
 #![allow(clippy::panic)]
 
 use std::sync::{
-    atomic::{AtomicUsize, Ordering},
     Arc,
+    atomic::{AtomicUsize, Ordering},
 };
 
 use async_graphql::{Context, EmptySubscription, FieldResult, Object, Schema};

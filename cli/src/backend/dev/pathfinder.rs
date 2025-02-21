@@ -1,10 +1,10 @@
 use crate::backend::errors::BackendError;
 use axum::{
+    Router,
     extract::State,
     http::HeaderValue,
     response::{Html, IntoResponse},
     routing::{get, get_service},
-    Router,
 };
 use federated_server::ServerRouter;
 use flate2::bufread::GzDecoder;

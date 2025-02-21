@@ -11,17 +11,17 @@ use tracing::Instrument;
 use walker::Walk;
 
 use super::{
+    SubgraphContext,
     cache::{ResponseCacheHit, ResponseCacheMiss},
     deserialize::{GraphqlErrorsSeed, GraphqlResponseSeed},
-    request::{execute_subgraph_request, PreparedGraphqlOperation, ResponseIngester, SubgraphVariables},
-    SubgraphContext,
+    request::{PreparedGraphqlOperation, ResponseIngester, SubgraphVariables, execute_subgraph_request},
 };
 use crate::{
+    Runtime,
     execution::{ExecutionContext, ExecutionError},
     prepare::{PlanError, PlanQueryPartition, PlanResult},
-    resolver::{graphql::request::SubgraphGraphqlRequest, ExecutionResult, Resolver},
+    resolver::{ExecutionResult, Resolver, graphql::request::SubgraphGraphqlRequest},
     response::{ErrorPath, ErrorPathSegment, GraphqlError, InputObjectId, InputResponseObjectSet, SubgraphResponse},
-    Runtime,
 };
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]

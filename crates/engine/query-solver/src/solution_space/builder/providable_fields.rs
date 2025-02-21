@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use operation::{OperationContext, QueryInputValueRecord};
-use petgraph::{stable_graph::NodeIndex, visit::EdgeRef, Direction};
+use petgraph::{Direction, stable_graph::NodeIndex, visit::EdgeRef};
 use schema::{
     CompositeType, CompositeTypeId, EntityDefinition, FieldDefinition, FieldSet, FieldSetItem, FieldSetRecord,
     SchemaInputValueRecord, SubgraphId,

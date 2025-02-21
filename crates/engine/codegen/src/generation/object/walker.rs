@@ -1,14 +1,14 @@
 use cynic_parser::common::WrappingType;
 use proc_macro2::{Ident, Span, TokenStream};
-use quote::{quote, ToTokens, TokenStreamExt};
+use quote::{ToTokens, TokenStreamExt, quote};
 use tracing::instrument;
 
 use crate::{
-    domain::{AccessKind, Domain, Object},
     WALKER_TRAIT,
+    domain::{AccessKind, Domain, Object},
 };
 
-use super::{debug::WalkerDebug, FieldContext};
+use super::{FieldContext, debug::WalkerDebug};
 
 #[instrument(skip_all)]
 pub fn generate_walker(
@@ -284,19 +284,23 @@ impl quote::ToTokens for WalkerFieldMethod<'_> {
                     }
                 }
             },
-            [WrappingType::NonNull, WrappingType::List, WrappingType::NonNull, WrappingType::List, WrappingType::NonNull] => {
-                match kind {
-                    AccessKind::IdRef => quote! {
-                        impl Iter<Item: Iter<Item = &'a #ty> + 'a> + 'a {
-                            self.as_ref().#field.walk(self.#ctx)
-                        }
-                    },
-                    accessor => {
-                        tracing::error!("Unsupported {accessor:?} for {}", self.0.ty.name());
-                        unimplemented!()
+            [
+                WrappingType::NonNull,
+                WrappingType::List,
+                WrappingType::NonNull,
+                WrappingType::List,
+                WrappingType::NonNull,
+            ] => match kind {
+                AccessKind::IdRef => quote! {
+                    impl Iter<Item: Iter<Item = &'a #ty> + 'a> + 'a {
+                        self.as_ref().#field.walk(self.#ctx)
                     }
+                },
+                accessor => {
+                    tracing::error!("Unsupported {accessor:?} for {}", self.0.ty.name());
+                    unimplemented!()
                 }
-            }
+            },
             _ => {
                 tracing::error!("Unsupported wrapping {:?}", self.0.wrapping);
                 unimplemented!()

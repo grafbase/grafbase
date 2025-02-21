@@ -1,7 +1,7 @@
 mod expand;
 
 use proc_macro::TokenStream;
-use syn::{parse_macro_input, ItemImpl};
+use syn::{ItemImpl, parse_macro_input};
 
 /// Registers the hook implementations to the gateway. This macro must be added to the
 /// local implementation of the `Hooks` trait.

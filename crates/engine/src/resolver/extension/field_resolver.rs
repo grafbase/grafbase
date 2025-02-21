@@ -10,11 +10,11 @@ use schema::{FieldResolverExtensionDefinition, FieldResolverExtensionDefinitionR
 use walker::Walk;
 
 use crate::{
+    Runtime,
     execution::{ExecutionContext, ExecutionResult},
     prepare::{Plan, SubgraphField},
     resolver::Resolver,
     response::{GraphqlError, InputResponseObjectSet, ResponseObjectsView, SubgraphResponse},
-    Runtime,
 };
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]

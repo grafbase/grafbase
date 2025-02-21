@@ -1,6 +1,6 @@
 use engine::HooksExtension;
 use futures_util::Future;
-use http::{response, Request, Response};
+use http::{Request, Response, response};
 use http_body::Body;
 use runtime::hooks::{self, ExecutedHttpRequest};
 use std::{fmt::Display, pin::Pin};

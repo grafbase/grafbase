@@ -9,8 +9,8 @@ use operation::Variables;
 pub(crate) use query_modifications::*;
 
 use crate::{
-    prepare::{CachedOperation, PrepareContext},
     Runtime,
+    prepare::{CachedOperation, PrepareContext},
 };
 
 #[tracing::instrument(name = "plan", level = "debug", skip_all)]

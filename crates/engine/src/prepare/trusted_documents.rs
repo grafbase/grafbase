@@ -1,13 +1,13 @@
 //! Handling of trusted documents and Automatic Persisted Queries (APQ).
 
 use crate::{
+    Engine, Runtime,
     engine::cache::DocumentKey,
     response::{ErrorCode, GraphqlError},
-    Engine, Runtime,
 };
-use futures::{future::BoxFuture, FutureExt, TryFutureExt as _};
+use futures::{FutureExt, TryFutureExt as _, future::BoxFuture};
 use grafbase_telemetry::grafbase_client::X_GRAFBASE_CLIENT_NAME;
-use operation::{extensions::PersistedQueryRequestExtension, Request};
+use operation::{Request, extensions::PersistedQueryRequestExtension};
 use runtime::{
     operation_cache::OperationCache as _,
     trusted_documents_client::{TrustedDocumentsEnforcementMode, TrustedDocumentsError},

@@ -4,12 +4,12 @@ use operation::{Operation, RawVariables, Variables};
 use runtime::hooks::Hooks;
 
 use crate::{
+    ErrorCode, Runtime,
     prepare::{PrepareContext, PreparedOperation},
     response::{GraphqlError, Response},
-    ErrorCode, Runtime,
 };
 
-use super::{mutation_not_allowed_with_safe_method, OperationDocument};
+use super::{OperationDocument, mutation_not_allowed_with_safe_method};
 
 impl<R: Runtime> PrepareContext<'_, R> {
     pub(super) async fn prepare_operation_without_cache(
@@ -43,7 +43,7 @@ impl<R: Runtime> PrepareContext<'_, R> {
                         Some(attributes.with_complexity_cost(None)),
                         [GraphqlError::new(message, ErrorCode::OperationValidationError).with_locations(locations)],
                     ),
-                })
+                });
             }
         };
 
@@ -67,7 +67,7 @@ impl<R: Runtime> PrepareContext<'_, R> {
                 return Err(Response::request_error(
                     Some(operation.attributes.with_complexity_cost(None)),
                     errors,
-                ))
+                ));
             }
         };
 
@@ -77,7 +77,7 @@ impl<R: Runtime> PrepareContext<'_, R> {
                 return Err(Response::request_error(
                     Some(operation.attributes.with_complexity_cost(None)),
                     [GraphqlError::new(err.to_string(), ErrorCode::OperationValidationError)],
-                ))
+                ));
             }
         };
 
@@ -88,7 +88,7 @@ impl<R: Runtime> PrepareContext<'_, R> {
                 return Err(Response::request_error(
                     Some(attributes.with_complexity_cost(complexity_cost)),
                     [err],
-                ))
+                ));
             }
         };
 
@@ -98,7 +98,7 @@ impl<R: Runtime> PrepareContext<'_, R> {
                 return Err(Response::request_error(
                     Some(attributes.with_complexity_cost(complexity_cost)),
                     [err],
-                ))
+                ));
             }
         };
 

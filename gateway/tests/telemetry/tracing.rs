@@ -6,7 +6,7 @@ use std::{
 use futures_util::Future;
 use indoc::formatdoc;
 
-use crate::{clickhouse_client, runtime, Client};
+use crate::{Client, clickhouse_client, runtime};
 
 const TRACE_INGESTION_DELAY: std::time::Duration = std::time::Duration::from_secs(2);
 

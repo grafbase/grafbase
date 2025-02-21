@@ -1,7 +1,7 @@
 use std::{fmt::Write, sync::OnceLock};
 
 use criterion::{BenchmarkId, Criterion, Throughput};
-use futures::{stream::FuturesUnordered, StreamExt};
+use futures::{StreamExt, stream::FuturesUnordered};
 use indoc::{indoc, writedoc};
 use integration_tests::{federation::DeterministicEngine, runtime};
 use itertools::Itertools;

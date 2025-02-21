@@ -1,8 +1,8 @@
 use std::fmt;
 
 use crate::{
-    directives::*, render_sdl::display_utils::render_field_type, Directive, FederatedGraph, OverrideLabel,
-    OverrideSource, StringId, Value, EXTENSION_DIRECTIVE_DIRECTIVE,
+    Directive, EXTENSION_DIRECTIVE_DIRECTIVE, FederatedGraph, OverrideLabel, OverrideSource, StringId, Value,
+    directives::*, render_sdl::display_utils::render_field_type,
 };
 
 use super::{

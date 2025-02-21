@@ -1,5 +1,5 @@
 use super::*;
-use async_graphql_parser::{types::ExecutableDocument, Positioned};
+use async_graphql_parser::{Positioned, types::ExecutableDocument};
 use async_graphql_value::ConstValue;
 
 impl From<ExecutableDocument> for super::Operation {

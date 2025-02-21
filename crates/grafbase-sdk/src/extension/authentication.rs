@@ -1,7 +1,7 @@
 use crate::{
+    Error,
     types::{Configuration, Directive, ErrorResponse, Token},
     wit::Headers,
-    Error,
 };
 
 use super::Extension;

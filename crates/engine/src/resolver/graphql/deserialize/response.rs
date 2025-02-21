@@ -2,8 +2,8 @@ use std::fmt;
 
 use grafbase_telemetry::graphql::GraphqlResponseStatus;
 use serde::{
-    de::{DeserializeSeed, IgnoredAny, MapAccess, Visitor},
     Deserializer,
+    de::{DeserializeSeed, IgnoredAny, MapAccess, Visitor},
 };
 
 /// Deserialize a GraphQL response with the help of a DataSeed and an ErrorsSeed:

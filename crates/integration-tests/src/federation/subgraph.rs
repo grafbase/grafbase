@@ -2,7 +2,7 @@ use std::{any::TypeId, borrow::Cow, collections::HashSet, sync::Arc};
 
 use crate::federation::{DockerSubgraph, MockSubgraph};
 use cynic_introspection::{IntrospectionQuery, SpecificationVersion};
-use futures::{future::BoxFuture, stream::FuturesUnordered, StreamExt};
+use futures::{StreamExt, future::BoxFuture, stream::FuturesUnordered};
 use graphql_mocks::MockGraphQlServer;
 use url::Url;
 

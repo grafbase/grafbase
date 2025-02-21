@@ -1,6 +1,6 @@
 use proc_macro2::TokenStream;
-use quote::{quote, TokenStreamExt};
-use syn::{parse_macro_input, Field, MetaList};
+use quote::{TokenStreamExt, quote};
+use syn::{Field, MetaList, parse_macro_input};
 
 pub fn derive_indexes(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as syn::DeriveInput);

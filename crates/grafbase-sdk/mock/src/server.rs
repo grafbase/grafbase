@@ -4,7 +4,7 @@ use std::{
 };
 
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
-use axum::{extract::State, response::IntoResponse, routing::post, Router};
+use axum::{Router, extract::State, response::IntoResponse, routing::post};
 use url::Url;
 
 use super::DynamicSchema;

@@ -10,11 +10,11 @@
 //! simple request in the browser cannot change the headers, so this is enough to prevent the attack vector.
 
 use axum::{
+    Router,
     body::Body,
     extract::Request,
     middleware::{self, Next},
     response::Response,
-    Router,
 };
 
 const GRAFBASE_CSRF_HEADER: &str = "X-Grafbase-CSRF-Protection";

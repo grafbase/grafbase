@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 // See https://github.com/async-graphql/examples
-use async_graphql::{ComplexObject, EmptyMutation, EmptySubscription, Object, Schema, SimpleObject, ID};
+use async_graphql::{ComplexObject, EmptyMutation, EmptySubscription, ID, Object, Schema, SimpleObject};
 
 pub struct FederatedAccountsSchema;
 

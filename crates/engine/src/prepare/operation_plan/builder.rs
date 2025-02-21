@@ -4,12 +4,12 @@ use schema::CompositeTypeId;
 use walker::Walk;
 
 use crate::{
+    Runtime,
     prepare::{
         CachedOperation, CachedOperationContext, PlanError, PrepareContext, QueryPartition, QueryPartitionId,
         RequiredFieldSet, RequiredFieldSetRecord, ResponseModifierDefinition, ResponseModifierRule,
     },
     resolver::Resolver,
-    Runtime,
 };
 
 use super::{

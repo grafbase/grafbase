@@ -3,8 +3,8 @@ use serde::de::DeserializeSeed;
 use walker::Walk;
 
 use super::{
-    object::{ConcreteShapeSeed, PolymorphicShapeSeed},
     EnumValueSeed, ListSeed, ScalarTypeSeed, SeedContext,
+    object::{ConcreteShapeSeed, PolymorphicShapeSeed},
 };
 use crate::{
     prepare::{FieldShapeRecord, Shape},

@@ -21,11 +21,7 @@ pub enum OverrideLabel {
 
 impl OverrideLabel {
     pub fn as_percent(&self) -> Option<u8> {
-        if let Self::Percent(v) = self {
-            Some(*v)
-        } else {
-            None
-        }
+        if let Self::Percent(v) = self { Some(*v) } else { None }
     }
 }
 

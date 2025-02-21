@@ -1,4 +1,4 @@
-use async_graphql::{dynamic::ResolverContext, ServerError};
+use async_graphql::{ServerError, dynamic::ResolverContext};
 
 pub struct EntityResolverContext<'a> {
     pub inner_context: &'a ResolverContext<'a>,

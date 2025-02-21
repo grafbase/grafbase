@@ -1,6 +1,6 @@
-use crate::telemetry::metrics::{SumRow, METRICS_DELAY};
+use crate::telemetry::metrics::{METRICS_DELAY, SumRow};
 
-use super::{with_gateway, ExponentialHistogramRow};
+use super::{ExponentialHistogramRow, with_gateway};
 
 #[test]
 fn basic() {

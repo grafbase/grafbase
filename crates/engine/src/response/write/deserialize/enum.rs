@@ -2,8 +2,8 @@ use std::borrow::Cow;
 
 use schema::EnumDefinitionId;
 use serde::{
-    de::{DeserializeSeed, Error, IgnoredAny, Unexpected, Visitor},
     Deserializer,
+    de::{DeserializeSeed, Error, IgnoredAny, Unexpected, Visitor},
 };
 use walker::Walk;
 

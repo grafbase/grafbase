@@ -1,6 +1,6 @@
 use case::CaseExt;
 use proc_macro2::{Ident, Span, TokenStream};
-use quote::{quote, TokenStreamExt};
+use quote::{TokenStreamExt, quote};
 use tracing::instrument;
 
 use crate::{
@@ -8,7 +8,7 @@ use crate::{
     generation::docstr,
 };
 
-use super::{debug::DebugVariantBranch, VariantContext};
+use super::{VariantContext, debug::DebugVariantBranch};
 
 #[instrument(skip_all)]
 pub fn generate_enum(

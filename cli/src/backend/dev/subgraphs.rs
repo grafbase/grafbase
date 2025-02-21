@@ -1,4 +1,4 @@
-use super::{extensions::*, FullGraphRef};
+use super::{FullGraphRef, extensions::*};
 use crate::backend::{
     api::{
         client::create_client,
@@ -9,7 +9,7 @@ use crate::backend::{
     errors::BackendError,
 };
 use crate::common::environment::PlatformData;
-use cynic::{http::ReqwestExt, QueryBuilder};
+use cynic::{QueryBuilder, http::ReqwestExt};
 use gateway_config::{Config, SubgraphConfig};
 use grafbase_graphql_introspection::introspect;
 use graphql_composition as composition;

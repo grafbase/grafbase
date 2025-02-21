@@ -3,8 +3,8 @@ use id_newtypes::IdRange;
 use crate::SchemaFieldId;
 
 use super::{
-    builder::InputValueError, FieldSetItemRecord, FieldSetRecord, GraphContext, SchemaFieldArgumentRecord,
-    SchemaFieldRecord,
+    FieldSetItemRecord, FieldSetRecord, GraphContext, SchemaFieldArgumentRecord, SchemaFieldRecord,
+    builder::InputValueError,
 };
 
 impl GraphContext<'_> {

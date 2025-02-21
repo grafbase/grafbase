@@ -1,9 +1,9 @@
 use std::future::Future;
 
 use futures::{
+    FutureExt, Stream, StreamExt,
     future::{self, BoxFuture},
     stream::{self, BoxStream},
-    FutureExt, Stream, StreamExt,
 };
 
 pub trait StreamJoinExt<'a> {
@@ -59,7 +59,7 @@ where
                             }
                         }
                         ProducerState::Draining(mut stream) => {
-                            return Some((stream.next().await?, ProducerState::Draining(stream)))
+                            return Some((stream.next().await?, ProducerState::Draining(stream)));
                         }
                     }
                 }

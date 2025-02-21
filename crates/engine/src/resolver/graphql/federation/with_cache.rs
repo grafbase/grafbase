@@ -3,20 +3,20 @@ use std::{borrow::Cow, time::Duration};
 use futures::future::join_all;
 use runtime::{bytes::OwnedOrSharedBytes, hooks::GraphqlResponseStatus};
 use serde::{
-    de::{DeserializeSeed, Error, IgnoredAny, SeqAccess, Visitor},
     Deserializer,
+    de::{DeserializeSeed, Error, IgnoredAny, SeqAccess, Visitor},
 };
 use serde_json::value::RawValue;
 
 use crate::{
+    Runtime,
     execution::{ExecutionContext, ExecutionError, ExecutionResult},
     resolver::graphql::{
-        cache::{calculate_cache_ttl, CacheFetchEntitiesOutcome, EntityCacheHit, EntityCacheMiss},
+        cache::{CacheFetchEntitiesOutcome, EntityCacheHit, EntityCacheMiss, calculate_cache_ttl},
         deserialize::{EntitiesDataSeed, EntityErrorPathConverter, GraphqlErrorsSeed, GraphqlResponseSeed},
         request::ResponseIngester,
     },
     response::{GraphqlError, SubgraphResponse, SubgraphResponseRefMut},
-    Runtime,
 };
 
 pub(super) fn ingest_hits(

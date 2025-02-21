@@ -1,19 +1,19 @@
 use crate::{
+    TemplateEscaping, TemplateRecord,
     builder::{
-        extension::{ExtensionSdl, GrafbaseScalar},
         GraphContext, SchemaLocation,
+        extension::{ExtensionSdl, GrafbaseScalar},
     },
     extension::{ExtensionInputValueRecord, InjectionStage},
-    TemplateEscaping, TemplateRecord,
 };
 use cynic_parser::{
+    ConstValue,
     common::{TypeWrappersIter, WrappingType},
     type_system::{Definition, EnumDefinition, InputObjectDefinition, InputValueDefinition, Type, TypeDefinition},
-    ConstValue,
 };
 use federated_graph::Value;
 
-use super::{can_coerce_to_int, value_path_to_string, ExtensionInputValueError, InputValueError};
+use super::{ExtensionInputValueError, InputValueError, can_coerce_to_int, value_path_to_string};
 
 pub(crate) struct ExtensionInputValueCoercer<'a, 'b> {
     pub ctx: &'a mut GraphContext<'b>,

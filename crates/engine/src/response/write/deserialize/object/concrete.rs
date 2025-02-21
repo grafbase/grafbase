@@ -2,8 +2,8 @@ use id_newtypes::IdRange;
 use operation::PositionedResponseKey;
 use schema::ObjectDefinitionId;
 use serde::{
-    de::{DeserializeSeed, IgnoredAny, MapAccess, Unexpected, Visitor},
     Deserializer,
+    de::{DeserializeSeed, IgnoredAny, MapAccess, Unexpected, Visitor},
 };
 use std::fmt;
 use walker::Walk;
@@ -11,9 +11,9 @@ use walker::Walk;
 use crate::{
     prepare::{ConcreteShape, ConcreteShapeId, FieldShapeId, FieldShapeRecord, ObjectIdentifier},
     response::{
-        value::ResponseObjectField,
-        write::deserialize::{field::FieldSeed, key::Key, SeedContext},
         GraphqlError, ResponseObject, ResponseObjectId, ResponseObjectRef, ResponseValue, ResponseValueId,
+        value::ResponseObjectField,
+        write::deserialize::{SeedContext, field::FieldSeed, key::Key},
     },
 };
 

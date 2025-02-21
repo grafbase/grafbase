@@ -17,10 +17,10 @@ use tower::retry::budget::Budget;
 use tracing::{Instrument, Span};
 
 use crate::{
+    Runtime,
     execution::{ExecutionError, ExecutionResult},
     resolver::graphql::SubgraphContext,
     response::{ErrorCode, GraphqlError, SubgraphResponse},
-    Runtime,
 };
 
 pub trait ResponseIngester: Send {

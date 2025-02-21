@@ -1,6 +1,6 @@
 use runtime::operation_cache::OperationCache;
 
-use super::{redis::RedisOperationCache, InMemoryOperationCache};
+use super::{InMemoryOperationCache, redis::RedisOperationCache};
 
 pub struct TieredOperationCache<V> {
     in_memory: InMemoryOperationCache<V>,

@@ -1,4 +1,4 @@
-use serde::{de::DeserializeSeed, Deserializer};
+use serde::{Deserializer, de::DeserializeSeed};
 
 use crate::response::{ErrorCode, ErrorPath, GraphqlError, SubgraphResponseRefMut};
 

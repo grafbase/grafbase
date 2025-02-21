@@ -1,4 +1,4 @@
-use serde::{de::DeserializeOwned, Deserialize};
+use serde::{Deserialize, de::DeserializeOwned};
 use wasmtime::component::{ComponentType, Lift, Lower};
 
 use crate::{Error, GuestError};

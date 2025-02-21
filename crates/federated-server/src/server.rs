@@ -15,7 +15,7 @@ pub use state::ServerState;
 use runtime_local::wasi::hooks::{self, ComponentLoader, HooksWasi};
 use ulid::Ulid;
 
-use axum::{extract::State, response::IntoResponse, routing::get, Router};
+use axum::{Router, extract::State, response::IntoResponse, routing::get};
 use engine_axum::{
     middleware::{ResponseHookLayer, TelemetryLayer},
     websocket::{WebsocketAccepter, WebsocketService},

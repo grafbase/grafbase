@@ -11,11 +11,11 @@ use schema::Schema;
 use std::{borrow::Cow, future::Future, sync::Arc};
 
 use crate::{
+    Body, HooksExtension,
     graphql_over_http::{Http, ResponseFormat, StreamingResponseFormat},
     prepare::{CachedOperation, OperationDocument},
     response::Response,
     websocket::{self, InitPayload},
-    Body, HooksExtension,
 };
 pub(crate) use execute::*;
 pub(crate) use runtime::*;
@@ -152,7 +152,7 @@ impl<R: Runtime> Engine<R> {
                         .errors()
                         .first()
                         .map(|error| error.message.clone())
-                        .unwrap_or("Internal server error".into()))
+                        .unwrap_or("Internal server error".into()));
                 }
             };
 
@@ -181,7 +181,7 @@ impl<R: Runtime> Clone for WebsocketSession<R> {
 }
 
 impl<R: Runtime> WebsocketSession<R> {
-    pub fn execute(&self, event: websocket::SubscribeEvent) -> impl Stream<Item = websocket::Message<R>> {
+    pub fn execute(&self, event: websocket::SubscribeEvent) -> impl Stream<Item = websocket::Message<R>> + 'static {
         let websocket::SubscribeEvent { id, payload } = event;
         // TODO: Call a websocket hook?
         let StreamResponse { stream, .. } = self.engine.execute_websocket_well_formed_graphql_request(

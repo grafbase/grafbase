@@ -1,9 +1,9 @@
 use std::{sync::Arc, time::Instant};
 
 use futures::{
+    StreamExt as _,
     channel::{mpsc, oneshot},
     stream::BoxStream,
-    StreamExt as _,
 };
 use futures_util::SinkExt;
 use grafbase_telemetry::{
@@ -16,12 +16,12 @@ use runtime::hooks::Hooks;
 use tracing::Instrument;
 
 use crate::{
-    engine::{errors, HooksContext, RequestContext},
+    Engine, Runtime,
+    engine::{HooksContext, RequestContext, errors},
     execution::ResponseSender,
     prepare::PrepareContext,
     response::{ErrorCode, ErrorCodeCounter, GrafbaseResponseExtension, Response},
     utils::StreamJoinExt,
-    Engine, Runtime,
 };
 
 pub(crate) struct StreamResponse<OnOperationResponseOutput> {

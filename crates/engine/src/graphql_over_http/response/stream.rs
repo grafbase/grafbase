@@ -2,8 +2,8 @@ use async_sse::Sender;
 use bytes::Bytes;
 
 use crate::utils::StreamJoinExt;
-use futures::{pin_mut, AsyncBufReadExt};
-use futures_util::{stream::BoxStream, Stream, StreamExt};
+use futures::{AsyncBufReadExt, pin_mut};
+use futures_util::{Stream, StreamExt, stream::BoxStream};
 use headers::HeaderMapExt;
 
 use crate::graphql_over_http::StreamingResponseFormat;

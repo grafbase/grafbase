@@ -1,4 +1,4 @@
-use cynic::{http::ReqwestExt, QueryBuilder};
+use cynic::{QueryBuilder, http::ReqwestExt};
 use cynic_introspection::{CapabilitiesQuery, IntrospectionQuery, SpecificationVersion};
 use engine::Engine;
 use graphql_mocks::{

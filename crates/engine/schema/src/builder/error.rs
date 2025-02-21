@@ -1,7 +1,7 @@
 use super::{
-    graph::GraphContext, EntityDefinitionId, EnumDefinitionId, EnumValueId, ExtensionInputValueError,
-    FieldDefinitionId, InputObjectDefinitionId, InputValueDefinitionId, InputValueError, InterfaceDefinitionId,
-    ObjectDefinitionId, ScalarDefinitionId, UnionDefinitionId,
+    EntityDefinitionId, EnumDefinitionId, EnumValueId, ExtensionInputValueError, FieldDefinitionId,
+    InputObjectDefinitionId, InputValueDefinitionId, InputValueError, InterfaceDefinitionId, ObjectDefinitionId,
+    ScalarDefinitionId, UnionDefinitionId, graph::GraphContext,
 };
 
 #[derive(Debug, Copy, Clone)]

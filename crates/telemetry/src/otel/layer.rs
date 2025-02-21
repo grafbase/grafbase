@@ -1,15 +1,15 @@
 use opentelemetry::trace::TracerProvider;
 use opentelemetry::{InstrumentationScope, KeyValue};
 use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
+use opentelemetry_sdk::Resource;
 use opentelemetry_sdk::runtime::RuntimeChannel;
 use opentelemetry_sdk::trace::IdGenerator;
-use opentelemetry_sdk::Resource;
 use tracing::Subscriber;
 use tracing_opentelemetry::OpenTelemetryLayer;
+use tracing_subscriber::Layer;
 use tracing_subscriber::filter::Filtered;
 use tracing_subscriber::layer::Filter;
 use tracing_subscriber::registry::LookupSpan;
-use tracing_subscriber::Layer;
 
 use crate::config::TelemetryConfig;
 use crate::error::TracingError;

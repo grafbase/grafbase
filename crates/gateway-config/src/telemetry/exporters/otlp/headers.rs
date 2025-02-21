@@ -1,7 +1,7 @@
 use ascii::AsciiString;
 use serde::{
-    de::{MapAccess, Visitor},
     Deserialize, Deserializer,
+    de::{MapAccess, Visitor},
 };
 use serde_dynamic_string::DynamicString;
 use std::{collections::HashMap, fmt::Formatter, str::FromStr};

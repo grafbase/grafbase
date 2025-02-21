@@ -1,6 +1,6 @@
 use opentelemetry::{
-    metrics::{Counter, Histogram, Meter, UpDownCounter},
     KeyValue,
+    metrics::{Counter, Histogram, Meter, UpDownCounter},
 };
 
 use crate::{

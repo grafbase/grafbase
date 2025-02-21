@@ -1,8 +1,8 @@
 use crossbeam::{channel::TrySendError, sync::WaitGroup};
 use grafbase_telemetry::otel::opentelemetry::metrics::UpDownCounter;
 use wasmtime::{
-    component::{ComponentType, LinkerInstance, Lower, ResourceType},
     StoreContextMut,
+    component::{ComponentType, LinkerInstance, Lower, ResourceType},
 };
 
 use crate::{

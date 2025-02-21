@@ -9,7 +9,7 @@ use walker::Walk;
 use super::{
     super::OperationBinder,
     error::InputValueError,
-    path::{value_path_to_string, ValuePathSegment},
+    path::{ValuePathSegment, value_path_to_string},
 };
 use crate::{Location, QueryInputValueId, QueryInputValueRecord, QueryInputValues};
 
@@ -282,7 +282,7 @@ impl<'schema> QueryValueCoercionContext<'_, 'schema, '_> {
                     actual: value.into(),
                     path: self.path(),
                     location: self.location,
-                })
+                });
             }
         };
 

@@ -3,20 +3,20 @@ use serde_json::json; // Don't use this directly but we need to enable its JWK f
 
 use std::{collections::HashSet, time::Duration};
 
-use anyhow::{anyhow, Context};
-use base64::{prelude::BASE64_URL_SAFE_NO_PAD, Engine};
+use anyhow::{Context, anyhow};
+use base64::{Engine, prelude::BASE64_URL_SAFE_NO_PAD};
 use gateway_config::{
-    message_signatures::{DerivedComponent, MessageSigningAlgorithm, MessageSigningKey, SignatureParameter},
     MessageSignaturesConfig,
+    message_signatures::{DerivedComponent, MessageSigningAlgorithm, MessageSigningKey, SignatureParameter},
 };
 use httpsig::prelude::{
-    message_component::HttpMessageComponentId, HttpSignatureParams, SecretKey, SharedKey, SigningKey,
+    HttpSignatureParams, SecretKey, SharedKey, SigningKey, message_component::HttpMessageComponentId,
 };
 use httpsig_hyper::MessageSignatureReq;
 use runtime::fetch::FetchError;
 use tracing::Instrument;
 
-use super::{reqwest_error_to_fetch_error, NativeFetcher};
+use super::{NativeFetcher, reqwest_error_to_fetch_error};
 
 impl NativeFetcher {
     pub async fn sign_request(
@@ -258,7 +258,7 @@ impl Key {
                 return Err(anyhow::anyhow!(
                     "you requested {algorithm} message signing but {name} contains a {} key",
                     key.alg().as_str()
-                ))
+                ));
             }
         }
 

@@ -2,8 +2,8 @@ use std::{collections::HashMap, sync::Arc};
 
 use grafbase_telemetry::otel::opentelemetry::trace::TraceId;
 use wasmtime::{
-    component::{LinkerInstance, Resource, ResourceType},
     StoreContextMut,
+    component::{LinkerInstance, Resource, ResourceType},
 };
 
 use crate::{

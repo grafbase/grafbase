@@ -1,13 +1,12 @@
-use super::configurations::{get_and_merge_configurations, DevConfiguration};
-use super::subgraphs::{get_subgraph_sdls, SubgraphCache};
+use super::configurations::{DevConfiguration, get_and_merge_configurations};
+use super::subgraphs::{SubgraphCache, get_subgraph_sdls};
 use crate::backend::dev::subgraphs::CachedIntrospectedSubgraph;
 use crate::backend::errors::BackendError;
 use gateway_config::Config;
 use grafbase_graphql_introspection::introspect;
 use notify_debouncer_full::{
-    new_debouncer,
+    DebounceEventResult, Debouncer, RecommendedCache, new_debouncer,
     notify::{self, RecommendedWatcher, RecursiveMode},
-    DebounceEventResult, Debouncer, RecommendedCache,
 };
 use std::collections::HashSet;
 use std::sync::Arc;
@@ -16,7 +15,7 @@ use tokio::runtime::Handle;
 use tokio::sync::broadcast::Receiver;
 use tokio::sync::{mpsc, watch};
 use tokio::time::MissedTickBehavior;
-use tokio_stream::{wrappers::ReceiverStream, StreamExt};
+use tokio_stream::{StreamExt, wrappers::ReceiverStream};
 use tokio_util::sync::CancellationToken;
 
 struct SubgraphWatcher {

@@ -5,7 +5,7 @@ use runtime::{
 use tracing::Instrument;
 use wasi_component_loader::{HookImplementation, SharedContext};
 
-use super::{guest_error_as_gql, HooksWasi};
+use super::{HooksWasi, guest_error_as_gql};
 
 macro_rules! prepare_authorized {
     ($span_name: expr; $impl:path; $self:ident named $func_name:literal at $definition:expr; [$(($name:literal, $input:expr),)+]) => {{

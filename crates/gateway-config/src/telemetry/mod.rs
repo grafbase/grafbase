@@ -9,7 +9,7 @@ pub use exporters::{
     OtlpExporterTlsConfig,
 };
 pub use exporters::{
-    LogsConfig, MetricsConfig, PropagationConfig, {TracingCollectConfig, TracingConfig, DEFAULT_SAMPLING},
+    LogsConfig, MetricsConfig, PropagationConfig, {DEFAULT_SAMPLING, TracingCollectConfig, TracingConfig},
 };
 
 pub use exporters::{BatchExportConfig, OpenTelemetryExportersConfig, StdoutExporterConfig};

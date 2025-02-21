@@ -1,4 +1,4 @@
-use crate::telemetry::metrics::{with_custom_gateway, ExponentialHistogramRow, METRICS_DELAY};
+use crate::telemetry::metrics::{ExponentialHistogramRow, METRICS_DELAY, with_custom_gateway};
 
 #[test]
 fn on_gateway_request_success() {

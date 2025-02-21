@@ -7,12 +7,12 @@ use serde::Deserialize;
 use walker::Walk;
 
 use crate::{
+    Runtime,
     prepare::{
         CachedOperation, CachedOperationContext, ConcreteShapeId, ErrorCode, FieldShapeId, GraphqlError,
         PartitionDataFieldId, PartitionField, PartitionTypenameFieldId, PrepareContext, QueryModifier,
         QueryModifierRule, RequiredFieldSetRecord,
     },
-    Runtime,
 };
 
 use super::PlanResult;

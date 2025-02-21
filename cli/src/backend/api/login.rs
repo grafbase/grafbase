@@ -3,10 +3,10 @@ use super::types::LoginMessage;
 use crate::common::consts::CREDENTIALS_FILE;
 use crate::common::environment::{Credentials, Environment, PlatformData};
 use axum::{
+    Router,
     extract::{Query, State},
     response::Redirect,
     routing::get,
-    Router,
 };
 use serde::Deserialize;
 use std::{fs::create_dir_all, net::Ipv4Addr, path::PathBuf, sync::mpsc::Sender as MspcSender};

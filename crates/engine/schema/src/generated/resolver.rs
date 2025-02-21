@@ -121,7 +121,7 @@ impl<'a> ResolverDefinition<'a> {
             ResolverDefinitionRecord::FieldResolverExtension(item) => {
                 ResolverDefinitionVariant::FieldResolverExtension(item.walk(schema))
             }
-            ResolverDefinitionRecord::GraphqlFederationEntity(ref item) => {
+            ResolverDefinitionRecord::GraphqlFederationEntity(item) => {
                 ResolverDefinitionVariant::GraphqlFederationEntity(item.walk(schema))
             }
             ResolverDefinitionRecord::GraphqlRootField(item) => {

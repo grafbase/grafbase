@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use tracing::{info_span, Span};
+use tracing::{Span, info_span};
 
 use crate::{
     graphql::{GraphqlOperationAttributes, GraphqlResponseStatus, OperationName},

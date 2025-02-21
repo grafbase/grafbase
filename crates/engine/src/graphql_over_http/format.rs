@@ -60,8 +60,8 @@ impl CompleteResponseFormat {
 }
 
 mod mediatypes {
-    use mediatype::names::*;
     use mediatype::MediaType;
+    use mediatype::names::*;
 
     pub const STAR_STAR: MediaType<'static> = MediaType::new(_STAR, _STAR);
     pub const APPLICATION_STAR: MediaType<'static> = MediaType::new(APPLICATION, _STAR);

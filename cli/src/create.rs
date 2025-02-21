@@ -1,6 +1,6 @@
 use crate::backend::api::{create, types::Account};
 use crate::{errors::CliError, output::report, prompts::handle_inquire_error};
-use inquire::{validator::Validation, Confirm, Select, Text};
+use inquire::{Confirm, Select, Text, validator::Validation};
 use slugify::slugify;
 use std::fmt::Display;
 

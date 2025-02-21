@@ -3,7 +3,7 @@
 use std::sync::Arc;
 
 use async_graphql::{
-    ComplexObject, Context, EmptyMutation, EmptySubscription, FieldResult, Interface, Object, Schema, SimpleObject, ID,
+    ComplexObject, Context, EmptyMutation, EmptySubscription, FieldResult, ID, Interface, Object, Schema, SimpleObject,
 };
 
 pub struct FederatedShippingSchema;

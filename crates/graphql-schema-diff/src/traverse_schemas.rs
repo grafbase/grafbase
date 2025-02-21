@@ -1,4 +1,4 @@
-use crate::{ast, DiffMap, DiffState};
+use crate::{DiffMap, DiffState, ast};
 use std::{collections::hash_map::Entry, hash::Hash};
 
 /// Traverse the source and target schemas, populating the `DiffState`.

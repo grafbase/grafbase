@@ -1,13 +1,13 @@
 use std::{path::PathBuf, sync::Arc};
 
 use engine::{CachedOperation, Engine};
-use futures_lite::{pin, StreamExt};
+use futures_lite::{StreamExt, pin};
 use runtime_local::wasi::hooks::{ChannelLogSender, HooksWasi};
 use tokio::{
     sync::{mpsc, watch},
     task::JoinHandle,
 };
-use tokio_stream::{wrappers::WatchStream, Stream};
+use tokio_stream::{Stream, wrappers::WatchStream};
 
 use crate::server::gateway;
 

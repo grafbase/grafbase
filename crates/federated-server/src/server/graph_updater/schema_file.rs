@@ -92,7 +92,9 @@ async fn schema_fingerprint(schema_path: &Path) -> Result<Either<SystemTime, u64
         // This is a fallback for file systems that do not support modification date. It loads and hashes the file
         // contents to check for changes.
         Err(_) => {
-            tracing::debug!("The file system with the schema file does not support modification date. The schema hot reload will use a bit more CPU by hashing the file contents.");
+            tracing::debug!(
+                "The file system with the schema file does not support modification date. The schema hot reload will use a bit more CPU by hashing the file contents."
+            );
 
             let Ok(file) = tokio::fs::File::open(schema_path).await else {
                 tracing::warn!(

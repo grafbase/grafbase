@@ -25,7 +25,7 @@ pub fn authentication_extension(input: TokenStream) -> TokenStream {
 fn expand(init: proc_macro2::TokenStream) -> TokenStream {
     let token_stream = quote! {
         #[doc(hidden)]
-        #[export_name = "register-extension"]
+        #[unsafe(export_name = "register-extension")]
         pub extern "C" fn __register_extension() {
             #init
         }

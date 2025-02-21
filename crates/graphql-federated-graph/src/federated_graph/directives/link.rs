@@ -48,7 +48,7 @@ impl<'a> ValueDeserialize<'a> for LinkDirective<'a> {
                     return Err(cynic_parser_deser::Error::custom(
                         format!("Unknown argument `{}` in `@link` directive", other),
                         field.name_span(),
-                    ))
+                    ));
                 }
             }
         }

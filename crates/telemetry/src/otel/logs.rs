@@ -1,6 +1,6 @@
 use crate::{config::TelemetryConfig, error::TracingError};
 
-use opentelemetry_sdk::{logs::LoggerProvider, runtime::RuntimeChannel, Resource};
+use opentelemetry_sdk::{Resource, logs::LoggerProvider, runtime::RuntimeChannel};
 
 #[allow(unused_variables)]
 pub(super) fn build_logs_provider<R>(

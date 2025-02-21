@@ -38,7 +38,9 @@ pub enum CliError {
     Introspection(String),
     #[error("could not read the trusted documents manifest: {0}")]
     TrustedDocumentsManifestReadError(#[source] io::Error),
-    #[error("could not parse the trusted documents manifest. Expecting a map from document id to GraphQL string or an Apollo Client manifest ({0})")]
+    #[error(
+        "could not parse the trusted documents manifest. Expecting a map from document id to GraphQL string or an Apollo Client manifest ({0})"
+    )]
     TrustedDocumentsManifestParseError(#[source] serde_json::Error),
     #[error("could not read the GraphQL schema")]
     SchemaReadError(#[source] io::Error),

@@ -3,7 +3,7 @@ mod complex_shape;
 mod introspection;
 mod query_planning;
 
-use criterion::{criterion_group, Criterion};
+use criterion::{Criterion, criterion_group};
 use pprof::criterion::{Output, PProfProfiler};
 
 const SCHEMA: &str = include_str!("../../data/federated-graph-schema.graphql");

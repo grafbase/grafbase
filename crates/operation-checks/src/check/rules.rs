@@ -294,7 +294,9 @@ pub(super) fn remove_interface_implementation(
     }
 
     Some(CheckDiagnostic {
-        message: format!("The interface implementation for `{interface_name}` on `{type_name}` was removed but it is still used by clients."),
+        message: format!(
+            "The interface implementation for `{interface_name}` on `{type_name}` was removed but it is still used by clients."
+        ),
         severity: Severity::Error,
     })
 }
@@ -340,7 +342,9 @@ pub(crate) fn remove_object_type(args: CheckArgs<'_, '_>) -> Option<CheckDiagnos
             .contains_key(&format!("{interface_name}.{type_name}"))
         {
             return Some(CheckDiagnostic {
-                message: format!("The interface implementation for `{interface_name}` on `{type_name}` was removed but it is still used by clients."),
+                message: format!(
+                    "The interface implementation for `{interface_name}` on `{type_name}` was removed but it is still used by clients."
+                ),
                 severity: Severity::Error,
             });
         }

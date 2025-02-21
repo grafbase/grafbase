@@ -5,7 +5,7 @@ use std::{
     task::{Context, Poll},
 };
 
-use async_graphql::{http::ALL_WEBSOCKET_PROTOCOLS, Data};
+use async_graphql::{Data, http::ALL_WEBSOCKET_PROTOCOLS};
 use async_graphql_axum::{GraphQLProtocol, GraphQLWebSocket};
 use axum::{
     body::{Body, HttpBody},

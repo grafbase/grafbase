@@ -6,12 +6,12 @@ use runtime::auth::AccessToken;
 use schema::{HeaderRule, Schema};
 
 use crate::{
+    Engine, Runtime,
     engine::{HooksContext, RequestContext},
     prepare::{CachedOperationContext, OperationPlanContext, PreparedOperation, Shapes},
-    Engine, Runtime,
 };
 
-use super::{header_rule::create_subgraph_headers_with_rules, RequestHooks};
+use super::{RequestHooks, header_rule::create_subgraph_headers_with_rules};
 
 /// Data available during the executor life during its build & execution phases.
 pub(crate) struct ExecutionContext<'ctx, R: Runtime> {

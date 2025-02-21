@@ -1,6 +1,6 @@
 use cynic_parser::common::WrappingType;
 use proc_macro2::{Ident, Span, TokenStream};
-use quote::{quote, TokenStreamExt};
+use quote::{TokenStreamExt, quote};
 use tracing::instrument;
 
 use crate::{
@@ -72,7 +72,13 @@ impl quote::ToTokens for StructField<'_> {
                     quote! { Vec<#ty> }
                 }
             }
-            [WrappingType::NonNull, WrappingType::List, WrappingType::NonNull, WrappingType::List, WrappingType::NonNull] => {
+            [
+                WrappingType::NonNull,
+                WrappingType::List,
+                WrappingType::NonNull,
+                WrappingType::List,
+                WrappingType::NonNull,
+            ] => {
                 if storage_type.list_as_id_range() {
                     quote! { Vec<IdRange<#ty>> }
                 } else {

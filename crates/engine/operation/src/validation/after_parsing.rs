@@ -1,6 +1,6 @@
 use cynic_parser::{
-    executable::{FieldSelection, FragmentSpread, InlineFragment, Iter, Selection},
     Span,
+    executable::{FieldSelection, FragmentSpread, InlineFragment, Iter, Selection},
 };
 use itertools::Itertools;
 use schema::Schema;
@@ -84,7 +84,7 @@ impl<'p> Visitor<'p> {
                     if self.complexity > self.max_complexity {
                         return Err(ValidationError::QueryTooComplex {
                             complexity: self.complexity,
-                            span: field.selection_set_span().map(Into::into).unwrap_or(span),
+                            span: field.selection_set_span().unwrap_or(span),
                         });
                     }
                     self.visit_field(field)?;

@@ -25,10 +25,10 @@ use grafbase_telemetry::{
 };
 
 use crate::{
+    Engine, Runtime,
     execution::{ExecutionContext, ExecutionError, ExecutionResult, RequestHooks},
     resolver::ResolverResult,
     response::SubgraphResponse,
-    Engine, Runtime,
 };
 
 #[derive(Clone)]

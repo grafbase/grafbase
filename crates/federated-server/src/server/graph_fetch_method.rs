@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use super::gateway::GraphDefinition;
-use futures_lite::{stream, StreamExt};
+use futures_lite::{StreamExt, stream};
 use graph_ref::GraphRef;
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;

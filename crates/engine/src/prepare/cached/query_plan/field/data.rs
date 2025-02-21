@@ -5,11 +5,11 @@ use schema::{CompositeType, FieldDefinition, FieldDefinitionId};
 use walker::{Iter, Walk};
 
 use crate::prepare::{
+    CachedOperationContext, RequiredFieldSet,
     cached::query_plan::{
         FieldShapeRefId, PartitionSelectionSet, PartitionSelectionSetRecord, QueryPartitionId, RequiredFieldSetRecord,
         ResponseObjectSetDefinitionId,
     },
-    CachedOperationContext, RequiredFieldSet,
 };
 
 use super::PartitionFieldArguments;

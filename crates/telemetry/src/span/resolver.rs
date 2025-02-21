@@ -1,4 +1,4 @@
-use tracing::{info_span, Span};
+use tracing::{Span, info_span};
 
 use crate::span::ResolverInvocationRecorderSpanExt;
 

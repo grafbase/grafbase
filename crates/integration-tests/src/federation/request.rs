@@ -11,7 +11,7 @@ use axum::body::Body;
 use bytes::Bytes;
 use futures::future::BoxFuture;
 use http_body_util::BodyExt;
-use serde::{ser::SerializeMap, Deserialize};
+use serde::{Deserialize, ser::SerializeMap};
 pub use stream::*;
 use tower::ServiceExt;
 

@@ -1,7 +1,7 @@
 use runtime::kv::{KvResult, KvStore, KvStoreInner};
 use std::{
     borrow::Cow,
-    collections::{hash_map::Entry, HashMap},
+    collections::{HashMap, hash_map::Entry},
     sync::Mutex,
     time::{Duration, Instant},
 };

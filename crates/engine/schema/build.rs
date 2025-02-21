@@ -1,6 +1,6 @@
 use std::{fmt::Write, process::Command};
 
-use rand::{distributions::Alphanumeric, Rng};
+use rand::{Rng, distributions::Alphanumeric};
 
 fn main() -> anyhow::Result<()> {
     // Note: the built crate puportes to do this, but it pulls in libgit2

@@ -2,7 +2,7 @@ use super::errors::ApiError;
 use crate::common::consts::USER_AGENT;
 use crate::common::environment::{LoginState, PlatformData};
 use reqwest::header::HeaderValue;
-use reqwest::{header, Client};
+use reqwest::{Client, header};
 
 const CLIENT_NAME_HEADER: &str = "x-grafbase-client-name";
 const CLIENT_VERSION_HEADER: &str = "x-grafbase-client-version";

@@ -1,4 +1,4 @@
-use serde::{de::Visitor, Deserializer};
+use serde::{Deserializer, de::Visitor};
 use size::Size;
 
 pub(crate) fn deserialize_positive_size<'de, D>(deserializer: D) -> Result<Size, D::Error>

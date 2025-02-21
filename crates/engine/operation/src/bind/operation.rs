@@ -1,7 +1,7 @@
 use cynic_parser::{
+    Span,
     common::OperationType,
     executable::{Argument, Directive, FieldSelection, Iter, Selection},
-    Span,
 };
 use id_newtypes::IdRange;
 use schema::{CompositeType, Definition, FieldDefinition, ObjectDefinitionId, TypeRecord, Wrapping};
@@ -14,8 +14,8 @@ use crate::{
 };
 
 use super::{
-    coercion::{coerce_query_value, coerce_variable_default_value},
     BindError, BindResult, OperationBinder,
+    coercion::{coerce_query_value, coerce_variable_default_value},
 };
 
 impl<'schema, 'p> OperationBinder<'schema, 'p> {

@@ -4,12 +4,12 @@ use itertools::Itertools;
 use walker::Walk;
 
 use crate::{
+    Runtime,
     prepare::{ResponseModifier, ResponseModifierRule},
     response::{ErrorCode, GraphqlError, InputResponseObjectSet, ResponseBuilder, ResponseValueId},
-    Runtime,
 };
 
-use super::{state::OperationExecutionState, ExecutionContext};
+use super::{ExecutionContext, state::OperationExecutionState};
 
 impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
     pub(super) async fn execute_response_modifier(

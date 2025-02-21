@@ -20,7 +20,7 @@ fn introspect_remote(url: &str, headers: &[(&str, &str)], no_color: bool) -> Res
 }
 
 fn print_introspected_schema(sdl: &str, no_color: bool) {
-    use syntect::util::{as_24_bit_terminal_escaped, LinesWithEndings};
+    use syntect::util::{LinesWithEndings, as_24_bit_terminal_escaped};
 
     let mut stdout = std::io::stdout();
 

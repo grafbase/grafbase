@@ -1,12 +1,12 @@
 use crate::{
-    server::{engine_reloader::GraphSender, gateway::GraphDefinition},
     GdnResponse,
+    server::{engine_reloader::GraphSender, gateway::GraphDefinition},
 };
 
 use ascii::AsciiString;
 use grafbase_telemetry::{
     metrics::meter_from_global_provider,
-    otel::opentelemetry::{metrics::Histogram, KeyValue},
+    otel::opentelemetry::{KeyValue, metrics::Histogram},
 };
 use graph_ref::GraphRef;
 use http::{HeaderValue, StatusCode};
@@ -215,7 +215,9 @@ impl GdnGraphUpdater {
 
                 match e.status() {
                     Some(StatusCode::NOT_FOUND) => {
-                        tracing::warn!("Federated schema not found. Is your graph configured as self-hosted? Did you publish at least one subgraph?");
+                        tracing::warn!(
+                            "Federated schema not found. Is your graph configured as self-hosted? Did you publish at least one subgraph?"
+                        );
                     }
                     _ => {
                         tracing::error!("Failed to update graph: {e}");

@@ -3,8 +3,8 @@
 use std::{collections::HashMap, path::Path};
 
 use async_graphql::{
-    dynamic::{FieldValue, ResolverContext},
     ServerError,
+    dynamic::{FieldValue, ResolverContext},
 };
 use cynic_parser::{common::WrappingType, type_system as parser};
 use serde::Deserialize;
@@ -12,9 +12,9 @@ use serde::Deserialize;
 use crate::ExtensionOnlySubgraph;
 
 use super::{
+    DynamicSchema, DynamicSubgraph,
     entity_resolver::{EntityResolver, EntityResolverContext},
     resolver::Resolver,
-    DynamicSchema, DynamicSubgraph,
 };
 
 type ResolverMap = HashMap<(String, String), Box<dyn Resolver>>;
@@ -373,7 +373,7 @@ fn root_types(schema: &cynic_parser::TypeSystemDocument) -> (&str, Option<&str>,
     (query_name, mutation_name, subscription_name)
 }
 
-fn default_field_resolver(field_name: &str) -> impl Resolver {
+fn default_field_resolver(field_name: &str) -> impl Resolver + 'static {
     let field_name = async_graphql::Name::new(field_name);
 
     move |context: ResolverContext<'_>| {

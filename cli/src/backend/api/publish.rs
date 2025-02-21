@@ -7,7 +7,7 @@ use super::{
     },
 };
 use crate::common::environment::PlatformData;
-use cynic::{http::ReqwestExt, MutationBuilder};
+use cynic::{MutationBuilder, http::ReqwestExt};
 
 pub enum PublishOutcome {
     Success { composition_errors: Vec<String> },

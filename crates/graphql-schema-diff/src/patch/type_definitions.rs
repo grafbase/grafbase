@@ -4,7 +4,7 @@ use cynic_parser::type_system::{
 
 use crate::ChangeKind;
 
-use super::{directives::patch_directives, paths::Paths, DefinitionOrExtension, INDENTATION};
+use super::{DefinitionOrExtension, INDENTATION, directives::patch_directives, paths::Paths};
 
 pub(super) fn patch_type_definition<T: AsRef<str>>(
     ty: TypeDefinition<'_>,

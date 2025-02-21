@@ -831,7 +831,7 @@ fn attach_inline_fragment(
         None => {
             return Err(DomainError(
                 "Fragments without type condition are not supported".to_owned(),
-            ))
+            ));
         }
     };
 
@@ -1020,7 +1020,7 @@ fn ingest_extension_link_enum<'a>(
     enm: ast::EnumDefinition<'a>,
     state: &mut State<'a>,
 ) -> Result<(), DomainError> {
-    use directive::{parse_extension_link, ExtensionLink};
+    use directive::{ExtensionLink, parse_extension_link};
 
     let enum_definition_id = state.graph.push_enum_definition(EnumDefinitionRecord {
         namespace,
@@ -1189,9 +1189,11 @@ fn test_from_sdl() {
 
     for field_name in ["__type", "__schema"] {
         let field_name = schema.strings.iter().position(|s| s == field_name).unwrap();
-        assert!(schema[query_object.fields.clone()]
-            .iter()
-            .any(|f| usize::from(f.name) == field_name));
+        assert!(
+            schema[query_object.fields.clone()]
+                .iter()
+                .any(|f| usize::from(f.name) == field_name)
+        );
     }
 }
 
@@ -1272,9 +1274,11 @@ fn test_from_sdl_with_empty_query_root() {
 
     for field_name in ["__type", "__schema"] {
         let field_name = schema.strings.iter().position(|s| s == field_name).unwrap();
-        assert!(schema[query_object.fields.clone()]
-            .iter()
-            .any(|f| usize::from(f.name) == field_name));
+        assert!(
+            schema[query_object.fields.clone()]
+                .iter()
+                .any(|f| usize::from(f.name) == field_name)
+        );
     }
 }
 
@@ -1353,9 +1357,11 @@ fn test_from_sdl_with_missing_query_root() {
 
     for field_name in ["__type", "__schema"] {
         let field_name = schema.strings.iter().position(|s| s == field_name).unwrap();
-        assert!(schema[query_object.fields.clone()]
-            .iter()
-            .any(|f| usize::from(f.name) == field_name));
+        assert!(
+            schema[query_object.fields.clone()]
+                .iter()
+                .any(|f| usize::from(f.name) == field_name)
+        );
     }
 }
 

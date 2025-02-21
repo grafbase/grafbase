@@ -2,7 +2,7 @@ use cynic_parser::type_system::SchemaDefinition;
 
 use crate::ChangeKind;
 
-use super::{directives::patch_directives, paths::Paths, DefinitionOrExtension, INDENTATION};
+use super::{DefinitionOrExtension, INDENTATION, directives::patch_directives, paths::Paths};
 
 pub(super) fn patch_schema_definition<T: AsRef<str>>(
     definition: SchemaDefinition<'_>,

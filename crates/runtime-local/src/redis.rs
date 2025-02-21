@@ -1,7 +1,7 @@
 mod pool;
 
 use std::{
-    collections::{hash_map::Entry, HashMap},
+    collections::{HashMap, hash_map::Entry},
     fs::File,
     io::{BufReader, Read},
     path::{Path, PathBuf},

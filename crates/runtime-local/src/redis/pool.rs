@@ -1,5 +1,5 @@
 use deadpool::managed::{self, Metrics};
-use redis::{aio::MultiplexedConnection, Client, ClientTlsConfig, RedisError, RedisResult, TlsCertificates};
+use redis::{Client, ClientTlsConfig, RedisError, RedisResult, TlsCertificates, aio::MultiplexedConnection};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 #[derive(Debug)]

@@ -2,16 +2,16 @@ use std::{collections::VecDeque, fmt};
 
 use schema::Definition;
 use serde::{
-    de::{DeserializeSeed, IgnoredAny, MapAccess, Unexpected, Visitor},
     Deserializer,
+    de::{DeserializeSeed, IgnoredAny, MapAccess, Unexpected, Visitor},
 };
 use walker::Walk;
 
 use crate::{
     prepare::{FieldShapeRecord, ObjectIdentifier, PolymorphicShapeId, PolymorphicShapeRecord},
     response::{
-        write::deserialize::{key::Key, SeedContext},
         GraphqlError, ResponseObject, ResponseValue,
+        write::deserialize::{SeedContext, key::Key},
     },
 };
 

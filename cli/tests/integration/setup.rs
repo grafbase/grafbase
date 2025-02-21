@@ -4,7 +4,7 @@ pub(crate) use self::test_extensions::*;
 
 use std::{any::TypeId, borrow::Cow, fs, io::Write as _, process, time::Duration};
 
-use futures::{future::BoxFuture, FutureExt as _};
+use futures::{FutureExt as _, future::BoxFuture};
 use graphql_mocks::MockGraphQlServer;
 use rand::random;
 

@@ -1,11 +1,11 @@
 use petgraph::{
-    visit::{EdgeRef, IntoNodeReferences, NodeIndexable},
     Direction,
+    visit::{EdgeRef, IntoNodeReferences, NodeIndexable},
 };
 
 use crate::FieldFlags;
 
-use super::{builder::QuerySolutionSpaceBuilder, SpaceEdge, SpaceNode};
+use super::{SpaceEdge, SpaceNode, builder::QuerySolutionSpaceBuilder};
 
 impl QuerySolutionSpaceBuilder<'_, '_> {
     pub(super) fn prune_resolvers_not_leading_any_leafs(&mut self) {

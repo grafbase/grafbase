@@ -1,10 +1,10 @@
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
 use crate::{
-    tests::create_log_channel, ComponentLoader, Directive, ExtensionType, ExtensionsComponentInstance, FieldDefinition,
-    SharedContext,
+    ComponentLoader, Directive, ExtensionType, ExtensionsComponentInstance, FieldDefinition, SharedContext,
+    tests::create_log_channel,
 };
-use futures::{stream::FuturesOrdered, StreamExt};
+use futures::{StreamExt, stream::FuturesOrdered};
 use gateway_config::WasiExtensionsConfig;
 use grafbase_telemetry::otel::opentelemetry::trace::TraceId;
 use http::{HeaderMap, HeaderValue};

@@ -2,7 +2,7 @@ use operation::ResponseKeys;
 use schema::Schema;
 use serde::ser::{SerializeMap, SerializeSeq};
 
-use crate::response::{value::ResponseObjectField, ResponseData, ResponseObject, ResponseValue};
+use crate::response::{ResponseData, ResponseObject, ResponseValue, value::ResponseObjectField};
 
 #[derive(Clone, Copy)]
 pub(super) struct Context<'a> {

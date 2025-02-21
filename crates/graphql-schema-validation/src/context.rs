@@ -1,5 +1,5 @@
 use crate::diagnostics::Diagnostics;
-use async_graphql_parser::{types as ast, Pos, Positioned};
+use async_graphql_parser::{Pos, Positioned, types as ast};
 use async_graphql_value::Name;
 use std::collections::HashMap;
 

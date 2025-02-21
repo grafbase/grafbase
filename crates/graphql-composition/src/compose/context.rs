@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
 use crate::{
+    Diagnostics, VecExt,
     composition_ir::{self as ir, CompositionIr},
     subgraphs::{self, StringWalker},
-    Diagnostics, VecExt,
 };
 use graphql_federated_graph as federated;
 

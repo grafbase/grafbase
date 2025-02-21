@@ -1,17 +1,17 @@
 use runtime::{bytes::OwnedOrSharedBytes, hooks::GraphqlResponseStatus};
 use serde::{
-    de::{DeserializeSeed, IgnoredAny, SeqAccess, Visitor},
     Deserializer,
+    de::{DeserializeSeed, IgnoredAny, SeqAccess, Visitor},
 };
 
 use crate::{
+    Runtime,
     execution::{ExecutionContext, ExecutionError},
     resolver::graphql::{
         deserialize::{EntitiesDataSeed, EntityErrorPathConverter, GraphqlErrorsSeed, GraphqlResponseSeed},
         request::ResponseIngester,
     },
     response::{GraphqlError, SubgraphResponse, SubgraphResponseRefMut},
-    Runtime,
 };
 
 use super::EntityToFetch;

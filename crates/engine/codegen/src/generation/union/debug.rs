@@ -1,5 +1,5 @@
 use proc_macro2::{Ident, Span};
-use quote::{quote, TokenStreamExt};
+use quote::{TokenStreamExt, quote};
 use tracing::instrument;
 
 use super::VariantContext;

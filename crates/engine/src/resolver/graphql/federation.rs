@@ -8,19 +8,19 @@ use tracing::Instrument;
 use walker::Walk;
 
 use crate::{
+    Runtime,
     execution::ExecutionContext,
     prepare::{Plan, PlanError, PlanQueryPartition, PlanResult},
     resolver::{
-        graphql::request::{SubgraphGraphqlRequest, SubgraphVariables},
         ExecutionResult, Resolver,
+        graphql::request::{SubgraphGraphqlRequest, SubgraphVariables},
     },
     response::{InputObjectId, ObjectUpdate, ResponseObjectsView, SubgraphResponse},
-    Runtime,
 };
 
 use super::{
-    request::{execute_subgraph_request, PreparedFederationEntityOperation},
     SubgraphContext,
+    request::{PreparedFederationEntityOperation, execute_subgraph_request},
 };
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]

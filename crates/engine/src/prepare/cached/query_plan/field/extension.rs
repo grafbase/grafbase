@@ -113,7 +113,7 @@ impl<'a> JsonContent<'a> {
 }
 
 fn urlencode(s: &str) -> impl std::fmt::Display + '_ {
-    use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
+    use percent_encoding::{NON_ALPHANUMERIC, utf8_percent_encode};
 
     // Urlencode char encoding set. Only the characters in the unreserved set don't
     // have any special purpose in any part of a URI and can be safely left
@@ -135,11 +135,7 @@ impl ramhorns::Content for JsonContent<'_> {
             serde_json::Value::Bool(_) => 5,
             serde_json::Value::Number(n) => {
                 let n = n.as_f64().unwrap();
-                if n.is_finite() {
-                    24
-                } else {
-                    64
-                }
+                if n.is_finite() { 24 } else { 64 }
             }
             serde_json::Value::String(s) => s.len(),
             serde_json::Value::Array(v) => v.len() * 2,

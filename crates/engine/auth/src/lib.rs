@@ -2,10 +2,10 @@ mod anonymous;
 mod jwt;
 
 use anonymous::AnonymousAuthorizer;
-use futures_util::{future::BoxFuture, stream::FuturesOrdered, StreamExt};
+use futures_util::{StreamExt, future::BoxFuture, stream::FuturesOrdered};
 use runtime::{auth::AccessToken, kv::KvStore};
 use schema::{AuthConfig, AuthProviderConfig};
-use tracing::{info_span, Instrument};
+use tracing::{Instrument, info_span};
 
 pub trait Authorizer: Send + Sync + 'static {
     fn get_access_token<'a>(&'a self, headers: &'a http::HeaderMap) -> BoxFuture<'a, Option<AccessToken>>;

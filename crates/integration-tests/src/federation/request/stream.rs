@@ -1,6 +1,6 @@
 use std::future::IntoFuture;
 
-use futures::{future::BoxFuture, stream::BoxStream, StreamExt, TryStreamExt};
+use futures::{StreamExt, TryStreamExt, future::BoxFuture, stream::BoxStream};
 use tower::ServiceExt;
 
 pub struct MultipartStreamRequest(pub(super) super::TestRequest);

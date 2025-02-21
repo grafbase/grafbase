@@ -14,6 +14,8 @@ fn main() {
     println!("cargo::rerun-if-changed=assets/pathfinder.tar.gz");
 
     if !exists("assets/pathfinder.tar.gz").is_ok_and(|exists| exists) {
-        panic!("The Pathfinder assets are missing and are required to build the CLI, please run `cargo make fetch-assets` in the `cli` directory");
+        panic!(
+            "The Pathfinder assets are missing and are required to build the CLI, please run `cargo make fetch-assets` in the `cli` directory"
+        );
     }
 }

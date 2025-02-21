@@ -8,14 +8,14 @@ use std::{
     env, fs,
     marker::PhantomData,
     net::{Ipv4Addr, SocketAddr, SocketAddrV4},
-    panic::{catch_unwind, AssertUnwindSafe},
+    panic::{AssertUnwindSafe, catch_unwind},
     path::{self, Path, PathBuf},
     sync::{Arc, Mutex, OnceLock},
     time::{Duration, SystemTime},
 };
 
 use crate::mocks::gdn::GdnResponseMock;
-use duct::{cmd, Handle};
+use duct::{Handle, cmd};
 use futures_util::future::BoxFuture;
 use futures_util::{Future, FutureExt};
 use http::{HeaderMap, StatusCode};
@@ -24,8 +24,8 @@ use tempfile::tempdir;
 use tokio::runtime::Runtime;
 use tokio::time::Instant;
 use wiremock::{
-    matchers::{header, method, path},
     Mock, ResponseTemplate,
+    matchers::{header, method, path},
 };
 
 const ACCESS_TOKEN: &str = "test";

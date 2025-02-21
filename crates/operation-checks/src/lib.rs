@@ -13,7 +13,7 @@ mod check;
 mod operation;
 mod schema;
 
-pub use aggregate_field_usage::{aggregate_field_usage, FieldUsage};
-pub use check::{check, CheckDiagnostic, CheckParams, Severity};
+pub use aggregate_field_usage::{FieldUsage, aggregate_field_usage};
+pub use check::{CheckDiagnostic, CheckParams, Severity, check};
 pub use operation::Operation;
 pub use schema::Schema;

@@ -2,7 +2,7 @@ mod headers;
 
 pub use headers::Headers;
 
-use super::{default_export_timeout, deserialize_duration, BatchExportConfig};
+use super::{BatchExportConfig, default_export_timeout, deserialize_duration};
 use std::{path::PathBuf, str::FromStr};
 use url::Url;
 

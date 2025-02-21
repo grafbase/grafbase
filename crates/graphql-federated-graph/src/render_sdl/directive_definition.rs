@@ -1,5 +1,5 @@
 use super::input_value_definition::display_input_value_definition;
-use crate::{federated_graph::*, Directive, FederatedGraph};
+use crate::{Directive, FederatedGraph, federated_graph::*};
 use std::fmt;
 
 pub(crate) fn display_directive_definitions(

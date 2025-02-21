@@ -1,5 +1,6 @@
 #![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/README.md"))]
 #![deny(missing_docs)]
+#![expect(unsafe_op_in_unsafe_fn)]
 
 #[doc(hidden)]
 pub mod extension;
@@ -17,19 +18,19 @@ pub use wit::{Error, Headers, SharedContext};
 struct Component;
 
 #[cfg(target_arch = "wasm32")]
-#[link_section = "sdk:minimum-gateway-version"]
+#[unsafe(link_section = "sdk:minimum-gateway-version")]
 #[doc(hidden)]
 pub static MINIMUM_GATEWAY_VERSION: [u8; 6] =
     *include_bytes!(concat!(env!("OUT_DIR"), "/minimum_gateway_version_bytes"));
 
 #[cfg(target_arch = "wasm32")]
-#[link_section = "sdk:version"]
+#[unsafe(link_section = "sdk:version")]
 #[doc(hidden)]
 pub static SDK_VERSION: [u8; 6] = *include_bytes!(concat!(env!("OUT_DIR"), "/sdk_version_bytes"));
 
 #[doc(hidden)]
 mod wit {
-    #![allow(clippy::too_many_arguments, clippy::missing_safety_doc, missing_docs)]
+    #![expect(clippy::too_many_arguments, missing_docs)]
 
     wit_bindgen::generate!({
         skip: ["register-extension"],
