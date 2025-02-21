@@ -105,11 +105,9 @@ pub trait DynHooks: Send + Sync + 'static {
         &self,
         context: &DynHookContext,
         subgraph_name: &str,
-        method: http::Method,
-        url: &Url,
-        headers: HeaderMap,
-    ) -> Result<HeaderMap, PartialGraphqlError> {
-        Ok(headers)
+        request: SubgraphRequest,
+    ) -> Result<SubgraphRequest, PartialGraphqlError> {
+        Ok(request)
     }
 
     async fn on_subgraph_response(
@@ -218,13 +216,9 @@ impl Hooks for DynamicHooks {
         &self,
         context: &DynHookContext,
         subgraph_name: &str,
-        method: http::Method,
-        url: &Url,
-        headers: HeaderMap,
-    ) -> Result<HeaderMap, PartialGraphqlError> {
-        self.0
-            .on_subgraph_request(context, subgraph_name, method, url, headers)
-            .await
+        request: SubgraphRequest,
+    ) -> Result<SubgraphRequest, PartialGraphqlError> {
+        self.0.on_subgraph_request(context, subgraph_name, request).await
     }
 
     async fn on_subgraph_response(
@@ -504,28 +498,17 @@ impl<H: Hooks> DynHooks for DynWrapper<H> {
             .boxed()
     }
 
-    fn on_subgraph_request<'a, 'b, 'c, 'd, 'fut>(
+    fn on_subgraph_request<'a, 'b, 'c, 'fut>(
         &'a self,
         context: &'b DynHookContext,
         subgraph_name: &'c str,
-        method: http::Method,
-        url: &'d Url,
-        headers: HeaderMap,
-    ) -> BoxFuture<'fut, Result<HeaderMap, PartialGraphqlError>>
+        request: SubgraphRequest,
+    ) -> BoxFuture<'fut, Result<SubgraphRequest, PartialGraphqlError>>
     where
         'a: 'fut,
         'b: 'fut,
         'c: 'fut,
-        'd: 'fut,
     {
-        Hooks::on_subgraph_request(
-            &self.0,
-            context.typed_get().unwrap(),
-            subgraph_name,
-            method,
-            url,
-            headers,
-        )
-        .boxed()
+        Hooks::on_subgraph_request(&self.0, context.typed_get().unwrap(), subgraph_name, request).boxed()
     }
 }

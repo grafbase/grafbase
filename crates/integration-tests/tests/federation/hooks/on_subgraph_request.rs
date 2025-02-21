@@ -1,82 +1,11 @@
 use engine::Engine;
-use graphql_mocks::{EchoSchema, FakeGithubSchema};
-use http::HeaderMap;
+use graphql_mocks::{EchoSchema, FakeGithubSchema, Stateful, Subgraph};
 use integration_tests::{federation::EngineExt, runtime};
 use runtime::{
     error::{PartialErrorCode, PartialGraphqlError},
-    hooks::{DynHookContext, DynHooks},
+    hooks::{DynHookContext, DynHooks, SubgraphRequest},
 };
 use url::Url;
-
-#[test]
-fn wasi() {
-    use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
-
-    let mut response = runtime().block_on(async move {
-        let engine = Engine::builder()
-            .with_subgraph(EchoSchema)
-            .with_toml_config(
-                r###"
-                [[subgraphs.echo.headers]]
-                rule = "forward"
-                name = "hi"
-
-                [hooks]
-                location = "../wasi-component-loader/examples/target/wasm32-wasip2/debug/subgraph_request.wasm"
-                "###,
-            )
-            .build()
-            .await;
-
-        engine
-            .post(
-                r###"
-            query {
-                hi: header(name: "hi")
-                everything: header(name: "everything")
-            }
-            "###,
-            )
-            .header("hi", "Rusty")
-            .await
-    });
-    let value = response["data"]["everything"].as_str().unwrap();
-    let value: serde_json::Value = serde_json::from_slice(&URL_SAFE_NO_PAD.decode(value).unwrap()).unwrap();
-    response["data"]["everything"] = value;
-
-    let url_redaction = insta::dynamic_redaction(|value, _path| {
-        let url = value.as_str().unwrap();
-        assert!(url.starts_with("http://127.0.0.1:") || url.starts_with("http://localhost:"));
-        "[url]"
-    });
-    // the content of everything has no particular order.
-    insta::with_settings!({sort_maps => true}, {
-        insta::assert_json_snapshot!(
-            response,
-            {
-                ".data.everything.url" => url_redaction,
-            },
-            @r###"
-        {
-          "data": {
-            "everything": {
-              "headers": [
-                [
-                  "hi",
-                  "Rusty"
-                ]
-              ],
-              "method": "POST",
-              "subgraph_name": "echo",
-              "url": "[url]"
-            },
-            "hi": "Rusty"
-          }
-        }
-        "###
-        );
-    });
-}
 
 #[test]
 fn can_modify_headers() {
@@ -88,13 +17,11 @@ fn can_modify_headers() {
             &self,
             _context: &DynHookContext,
             _subgraph_name: &str,
-            _method: http::Method,
-            _url: &Url,
-            mut headers: HeaderMap,
-        ) -> Result<HeaderMap, PartialGraphqlError> {
-            headers.insert("b", "22".parse().unwrap());
-            headers.remove("c");
-            Ok(headers)
+            mut request: SubgraphRequest,
+        ) -> Result<SubgraphRequest, PartialGraphqlError> {
+            request.headers.insert("b", "22".parse().unwrap());
+            request.headers.remove("c");
+            Ok(request)
         }
     }
 
@@ -150,6 +77,80 @@ fn can_modify_headers() {
 }
 
 #[test]
+fn can_modify_url() {
+    runtime().block_on(async {
+        let subgraph = Stateful::default().start().await;
+
+        struct TestHooks {
+            url: Url,
+        }
+
+        #[async_trait::async_trait]
+        impl DynHooks for TestHooks {
+            async fn on_subgraph_request(
+                &self,
+                _context: &DynHookContext,
+                _subgraph_name: &str,
+                mut request: SubgraphRequest,
+            ) -> Result<SubgraphRequest, PartialGraphqlError> {
+                if request.headers.contains_key("redirect") {
+                    request.url = self.url.clone();
+                }
+                Ok(request)
+            }
+        }
+
+        let engine = Engine::builder()
+            .with_mock_hooks(TestHooks { url: subgraph.url() })
+            .with_subgraph(Stateful::default())
+            .with_toml_config(
+                r#"
+                [[subgraphs.stateful.headers]]
+                rule = "forward"
+                name = "redirect"
+                "#,
+            )
+            .build()
+            .await;
+
+        let response = engine
+            .post(
+                r###"
+                mutation {
+                    add(val: 1)
+                }
+            "###,
+            )
+            .await;
+        insta::assert_json_snapshot!(response, @r#"
+        {
+          "data": {
+            "add": 1
+          }
+        }
+        "#);
+
+        let response = engine
+            .post(
+                r###"
+                mutation {
+                    add(val: 7)
+                }
+            "###,
+            )
+            .header("redirect", "1")
+            .await;
+        insta::assert_json_snapshot!(response, @r#"
+        {
+          "data": {
+            "add": 7
+          }
+        }
+        "#);
+    });
+}
+
+#[test]
 fn error_is_propagated_back_to_the_user() {
     struct TestHooks;
 
@@ -159,10 +160,8 @@ fn error_is_propagated_back_to_the_user() {
             &self,
             _context: &DynHookContext,
             _subgraph_name: &str,
-            _method: http::Method,
-            _url: &Url,
-            _headers: HeaderMap,
-        ) -> Result<HeaderMap, PartialGraphqlError> {
+            _request: SubgraphRequest,
+        ) -> Result<SubgraphRequest, PartialGraphqlError> {
             Err(PartialGraphqlError::new("impossible error", PartialErrorCode::HookError).with_extension("foo", "bar"))
         }
     }
@@ -206,10 +205,8 @@ fn error_code_is_propagated_back_to_the_user() {
             &self,
             _context: &DynHookContext,
             _subgraph_name: &str,
-            _method: http::Method,
-            _url: &Url,
-            _headers: HeaderMap,
-        ) -> Result<HeaderMap, PartialGraphqlError> {
+            _request: SubgraphRequest,
+        ) -> Result<SubgraphRequest, PartialGraphqlError> {
             Err(
                 PartialGraphqlError::new("impossible error", PartialErrorCode::HookError)
                     .with_extension("code", "IMPOSSIBLE"),

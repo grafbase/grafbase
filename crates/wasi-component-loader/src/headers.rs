@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use http::{HeaderMap, HeaderName, HeaderValue};
+use http::{HeaderName, HeaderValue};
 use wasmtime::{
     StoreContextMut,
     component::{ComponentType, LinkerInstance, Lower, Resource, ResourceType},
@@ -8,8 +8,10 @@ use wasmtime::{
 
 use crate::{
     names::{HEADERS_DELETE_METHOD, HEADERS_ENTRIES_METHOD, HEADERS_GET_METHOD, HEADERS_RESOURCE, HEADERS_SET_METHOD},
-    state::WasiState,
+    state::{OwnedOrRef, WasiState},
 };
+
+pub(crate) type HttpHeaders = OwnedOrRef<http::HeaderMap>;
 
 #[derive(Debug, ComponentType, Lower, Clone, Copy)]
 #[component(enum)]
@@ -34,7 +36,22 @@ enum HeaderError {
 /// }
 /// ```
 pub(crate) fn inject_mapping(types: &mut LinkerInstance<'_, WasiState>) -> crate::Result<()> {
-    types.resource(HEADERS_RESOURCE, ResourceType::host::<HeaderMap>(), |_, _| Ok(()))?;
+    types.resource(
+        HEADERS_RESOURCE,
+        ResourceType::host::<HttpHeaders>(),
+        |mut store, rep| {
+            let resource = wasmtime::component::Resource::<HttpHeaders>::new_own(rep);
+            // FIXME: Doesn't seem like a great idea, but today if it's an owned version it means
+            // the caller provided it in the store and will cleanup himself afterwards...
+            if store.data_mut().get(&resource).unwrap().is_ref() {
+                store
+                    .data_mut()
+                    .table
+                    .delete(wasmtime::component::Resource::<HttpHeaders>::new_own(rep))?;
+            }
+            Ok(())
+        },
+    )?;
     types.func_wrap(HEADERS_SET_METHOD, set)?;
     types.func_wrap(HEADERS_GET_METHOD, get)?;
     types.func_wrap(HEADERS_DELETE_METHOD, delete)?;
@@ -49,9 +66,9 @@ pub(crate) fn inject_mapping(types: &mut LinkerInstance<'_, WasiState>) -> crate
 /// `set: func(key: string, value: string) -> result<_, header-error>`
 fn set(
     mut store: StoreContextMut<'_, WasiState>,
-    (this, key, value): (Resource<HeaderMap>, String, String),
+    (this, key, value): (Resource<HttpHeaders>, String, String),
 ) -> anyhow::Result<(Result<(), HeaderError>,)> {
-    let headers = store.data_mut().get_mut(&this).expect("must exist");
+    let headers = store.data_mut().get_ref_mut(&this).expect("must exist");
 
     let key = match HeaderName::from_str(&key) {
         Ok(key) => key,
@@ -73,10 +90,10 @@ fn set(
 ///
 /// `get: func(key: string) -> result<option<string>, header-error>`
 fn get(
-    store: StoreContextMut<'_, WasiState>,
-    (this, key): (Resource<HeaderMap>, String),
+    mut store: StoreContextMut<'_, WasiState>,
+    (this, key): (Resource<HttpHeaders>, String),
 ) -> anyhow::Result<(Option<String>,)> {
-    let headers = store.data().get(&this).expect("must exist");
+    let headers = store.data_mut().get_ref(&this).expect("must exist");
 
     let value = headers
         .get(&key)
@@ -91,9 +108,9 @@ fn get(
 /// `delete: func(key: string) -> result<option<string>, header-error>`
 fn delete(
     mut store: StoreContextMut<'_, WasiState>,
-    (this, key): (Resource<HeaderMap>, String),
+    (this, key): (Resource<HttpHeaders>, String),
 ) -> anyhow::Result<(Option<String>,)> {
-    let headers = store.data_mut().get_mut(&this).expect("must exist");
+    let headers = store.data_mut().get_ref_mut(&this).expect("must exist");
 
     let old_value = headers
         .remove(&key)
@@ -104,9 +121,9 @@ fn delete(
 
 fn entries(
     mut store: StoreContextMut<'_, WasiState>,
-    (this,): (Resource<HeaderMap>,),
+    (this,): (Resource<HttpHeaders>,),
 ) -> anyhow::Result<(Vec<(String, String)>,)> {
-    let headers = store.data_mut().get_mut(&this).expect("must exist");
+    let headers = store.data_mut().get_ref_mut(&this).expect("must exist");
 
     let entries = headers
         .iter()

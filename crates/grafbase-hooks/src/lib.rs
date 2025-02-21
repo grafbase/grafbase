@@ -10,11 +10,11 @@ pub mod host_io;
 
 pub use hooks::{
     EdgeNodePostExecutionArguments, EdgePostExecutionArguments, EdgePreExecutionArguments, HookExports, HookImpls,
-    Hooks, NodePreExecutionArguments, ParentEdgePostExecutionArguments, SubgraphRequest, hooks,
+    Hooks, NodePreExecutionArguments, ParentEdgePostExecutionArguments, hooks,
 };
 pub use wit::{
     CacheStatus, Context, Error, ErrorResponse, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest,
-    FieldError, GraphqlResponseStatus, HeaderError, Headers, LogError, RequestError, SharedContext,
+    FieldError, GraphqlResponseStatus, HeaderError, Headers, LogError, RequestError, SharedContext, SubgraphRequest,
     SubgraphRequestExecutionKind, SubgraphResponse,
 };
 

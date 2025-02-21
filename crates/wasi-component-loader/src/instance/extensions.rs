@@ -12,6 +12,7 @@ use super::ComponentInstance;
 use crate::{
     ChannelLogSender, ComponentLoader, GuestError, SharedContext,
     error::guest::ErrorResponse,
+    headers::HttpHeaders,
     names::{
         AUTEHNTICATE_EXTENSION_FUNCTION, INIT_GATEWAY_EXTENSION_FUNCTION, REGISTER_EXTENSION_FUNCTION,
         RESOLVE_FIELD_EXTENSION_FUNCTION,
@@ -99,10 +100,14 @@ impl ExtensionsComponentInstance {
     where
         S: DeserializeOwned,
     {
-        type Params = (Resource<HeaderMap>,);
+        type Params = (Resource<HttpHeaders>,);
         type Response = Result<Token, ErrorResponse>;
 
-        let headers = self.component.store_mut().data_mut().push_resource(headers)?;
+        let headers = self
+            .component
+            .store_mut()
+            .data_mut()
+            .push_resource(HttpHeaders::from(headers))?;
         let headers_rep = headers.rep();
 
         let result = self
@@ -113,7 +118,9 @@ impl ExtensionsComponentInstance {
             .component
             .store_mut()
             .data_mut()
-            .take_resource::<HeaderMap>(headers_rep)?;
+            .take_resource::<HttpHeaders>(headers_rep)?
+            .into_owned()
+            .unwrap();
 
         let result = result?.deserialize()?;
 

@@ -599,18 +599,24 @@ async fn on_subgraph_request() {
 
     let context = SharedContext::new(Arc::new(context), TraceId::INVALID);
 
-    let headers = hook
+    let request = hook
         .on_subgraph_request(
             context,
             "dummy",
-            http::Method::POST,
-            &"http://example.com".parse().unwrap(),
-            headers,
+            runtime::hooks::SubgraphRequest {
+                method: http::Method::POST,
+                url: "http://example.com".parse().unwrap(),
+                headers,
+            },
         )
         .await
         .unwrap();
 
-    let everything = headers
+    assert_eq!(request.method, http::Method::TRACE);
+    insta::assert_debug_snapshot!(request.url.to_string(), @r#""https://dark-onion.web/""#);
+
+    let everything = request
+        .headers
         .get("everything")
         .map(|value| URL_SAFE_NO_PAD.decode(value.to_str().unwrap()).unwrap())
         .unwrap_or_default();
@@ -633,16 +639,7 @@ async fn on_subgraph_request() {
 
     let context = SharedContext::new(Arc::new(context), TraceId::INVALID);
 
-    let error = hook
-        .on_subgraph_request(
-            context,
-            "dummy",
-            http::Method::POST,
-            &"http://example.com".parse().unwrap(),
-            headers,
-        )
-        .await
-        .unwrap_err();
+    let error = hook.on_subgraph_request(context, "dummy", request).await.unwrap_err();
 
     insta::assert_debug_snapshot!(error, @r#"
     Guest(

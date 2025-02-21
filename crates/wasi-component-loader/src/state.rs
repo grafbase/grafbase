@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{any::Any, sync::Arc};
 
 use super::cache::Cache;
 use grafbase_telemetry::{metrics::meter_from_global_provider, otel::opentelemetry::metrics::Histogram};
@@ -21,7 +21,7 @@ pub(crate) struct WasiState {
     http_ctx: WasiHttpCtx,
 
     /// The resource table that manages shared resources in memory.
-    table: ResourceTable,
+    pub table: ResourceTable,
 
     /// The histogram for request durations.
     request_durations: Histogram<u64>,
@@ -35,6 +35,63 @@ pub(crate) struct WasiState {
     /// A cache to be used for storing data between calls to different instances of the same extension.
     cache: Arc<Cache>,
 }
+
+// Allows to define method for a resource that is either owned or an attribute from another one.
+// In the later case we need the parent resource id and a method to retrieve our data.
+// This is for SubgraphRequest and Headers typically, the former holds the actual http::HeaderMap,
+// so for the guest to access it, we provide a "Ref" variant, but in other places we provide an
+// "Owned" variant instead. For the guest, it's transparent.
+pub(crate) enum OwnedOrRef<T> {
+    Ref {
+        parent: u32,
+        get: for<'a> fn(elem: &'a mut (dyn Any + 'static)) -> &'a mut T,
+    },
+    Owned(T),
+}
+
+impl<T> From<T> for OwnedOrRef<T> {
+    fn from(value: T) -> Self {
+        Self::Owned(value)
+    }
+}
+
+impl<T> OwnedOrRef<T> {
+    pub fn is_ref(&self) -> bool {
+        matches!(self, Self::Ref { .. })
+    }
+
+    pub fn into_owned(self) -> Option<T> {
+        match self {
+            Self::Owned(data) => Some(data),
+            _ => None,
+        }
+    }
+}
+
+// Simple macro to create a ref resource for a field of an existing resource.
+macro_rules! get_child_ref {
+    ($store: ident, $resource: ident: $rty: ty => $field: ident: $ty: ty) => {{
+        let store = $store.data_mut();
+
+        let _ = store.get(&$resource)?;
+
+        fn get(elem: &mut dyn std::any::Any) -> &mut $ty {
+            &mut elem.downcast_mut::<$rty>().unwrap().$field
+        }
+
+        let field_ref = store.table.push_child(
+            $crate::OwnedOrRef::Ref {
+                parent: $resource.rep(),
+                get,
+            },
+            &$resource,
+        )?;
+
+        field_ref
+    }};
+}
+
+pub(crate) use get_child_ref;
 
 impl WasiState {
     /// Creates a new instance of `WasiState` with the given WASI context.
@@ -90,6 +147,34 @@ impl WasiState {
         let entry = self.table.get(resource).map_err(anyhow::Error::from)?;
 
         Ok(entry)
+    }
+
+    pub fn get_ref_mut<T: 'static>(&mut self, resource: &Resource<OwnedOrRef<T>>) -> crate::Result<&mut T> {
+        let data = self.table.get(resource).map_err(anyhow::Error::from)?;
+
+        if let OwnedOrRef::Ref { parent, get } = *data {
+            let data = self.table.get_any_mut(parent).map_err(anyhow::Error::from)?;
+            return Ok(get(data));
+        }
+
+        match self.table.get_mut(resource).map_err(anyhow::Error::from)? {
+            OwnedOrRef::Owned(data) => Ok(data),
+            _ => unreachable!(),
+        }
+    }
+
+    pub fn get_ref<T: 'static>(&mut self, resource: &Resource<OwnedOrRef<T>>) -> crate::Result<&T> {
+        let data = self.table.get(resource).map_err(anyhow::Error::from)?;
+
+        if let OwnedOrRef::Ref { parent, get } = *data {
+            let data = self.table.get_any_mut(parent).map_err(anyhow::Error::from)?;
+            return Ok(get(data));
+        }
+
+        match self.table.get(resource).map_err(anyhow::Error::from)? {
+            OwnedOrRef::Owned(data) => Ok(data),
+            _ => unreachable!(),
+        }
     }
 
     /// Returns a reference to the histogram tracking request durations.

@@ -50,9 +50,18 @@ pub(crate) async fn execute_subgraph_request<R: Runtime>(
 ) -> ExecutionResult<SubgraphResponse> {
     let endpoint = ctx.endpoint();
 
-    let mut headers = ctx
+    let req = runtime::hooks::SubgraphRequest {
+        method: http::Method::POST,
+        url: endpoint.url().clone(),
+        headers,
+    };
+    let runtime::hooks::SubgraphRequest {
+        method,
+        url,
+        mut headers,
+    } = ctx
         .hooks()
-        .on_subgraph_request(endpoint.subgraph_name(), http::Method::POST, endpoint.url(), headers)
+        .on_subgraph_request(endpoint.subgraph_name(), req)
         .await
         .inspect_err(|_| {
             ctx.set_as_hook_error();
@@ -72,9 +81,9 @@ pub(crate) async fn execute_subgraph_request<R: Runtime>(
     let request = FetchRequest {
         websocket_init_payload: None,
         subgraph_name: endpoint.subgraph_name(),
-        url: Cow::Borrowed(endpoint.url()),
+        url: Cow::Owned(url),
         headers,
-        method: http::Method::POST,
+        method,
         body,
         timeout: endpoint.config.timeout,
     };

@@ -3395,7 +3395,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-hooks"
-version = "0.1.8"
+version = "0.2.0"
 dependencies = [
  "grafbase-hooks-derive",
  "serde",
@@ -8985,6 +8985,7 @@ dependencies = [
  "insta",
  "minicbor-serde",
  "reqwest 0.12.12",
+ "runtime",
  "serde",
  "serde_json",
  "strum",

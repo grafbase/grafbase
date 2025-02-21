@@ -42,6 +42,13 @@ impl<'a, T> Anything<'a> for T where T: serde::Serialize + Send + 'a {}
 pub type AuthorizationVerdict = Result<(), PartialGraphqlError>;
 pub type AuthorizationVerdicts = Result<Vec<AuthorizationVerdict>, PartialGraphqlError>;
 
+#[derive(Debug)]
+pub struct SubgraphRequest {
+    pub method: http::Method,
+    pub url: Url,
+    pub headers: HeaderMap,
+}
+
 #[allow(unused)]
 pub trait Hooks: Send + Sync + 'static {
     type Context: Clone + Send + Sync + 'static;
@@ -59,11 +66,9 @@ pub trait Hooks: Send + Sync + 'static {
         &self,
         context: &Self::Context,
         subgraph_name: &str,
-        method: http::Method,
-        url: &Url,
-        headers: HeaderMap,
-    ) -> impl Future<Output = Result<HeaderMap, PartialGraphqlError>> + Send {
-        async { Ok(headers) }
+        request: SubgraphRequest,
+    ) -> impl Future<Output = Result<SubgraphRequest, PartialGraphqlError>> + Send {
+        async { Ok(request) }
     }
 
     fn on_subgraph_response(

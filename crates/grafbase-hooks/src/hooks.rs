@@ -1,16 +1,14 @@
 mod authorization;
-mod subgraph;
 
+use crate::Component;
 pub use crate::wit::{
     Context, EdgeDefinition, Error, ErrorResponse, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest,
-    Guest, Headers, NodeDefinition, SharedContext,
+    Guest, Headers, NodeDefinition, SharedContext, SubgraphRequest,
 };
-use crate::{Component, wit::HttpMethod};
 pub use authorization::{
     EdgeNodePostExecutionArguments, EdgePostExecutionArguments, EdgePreExecutionArguments, NodePreExecutionArguments,
     ParentEdgePostExecutionArguments,
 };
-pub use subgraph::SubgraphRequest;
 
 pub(super) static mut HOOKS: Option<Box<dyn Hooks>> = None;
 
@@ -33,12 +31,9 @@ impl Guest for Component {
     fn on_subgraph_request(
         context: SharedContext,
         subgraph_name: String,
-        method: HttpMethod,
-        url: String,
-        headers: Headers,
+        request: SubgraphRequest,
     ) -> Result<(), Error> {
-        let subgraph_request = SubgraphRequest::new(subgraph_name, method, url);
-        hooks().on_subgraph_request(context, headers, subgraph_request)
+        hooks().on_subgraph_request(context, subgraph_name, request)
     }
 
     fn authorize_edge_pre_execution(
@@ -145,8 +140,8 @@ pub trait Hooks: HookImpls + HookExports {
     fn on_subgraph_request(
         &mut self,
         context: SharedContext,
-        headers: Headers,
-        subgraph_request: SubgraphRequest,
+        subgraph_name: String,
+        request: SubgraphRequest,
     ) -> Result<(), Error> {
         todo!()
     }
