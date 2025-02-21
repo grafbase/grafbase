@@ -3364,7 +3364,7 @@ dependencies = [
 name = "grafbase-hooks"
 version = "0.2.0"
 dependencies = [
- "grafbase-hooks-derive 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "grafbase-hooks-derive",
  "serde",
  "serde_json",
  "wit-bindgen",
@@ -3373,17 +3373,6 @@ dependencies = [
 [[package]]
 name = "grafbase-hooks-derive"
 version = "0.1.0"
-dependencies = [
- "enumflags2",
- "quote",
- "syn 2.0.98",
-]
-
-[[package]]
-name = "grafbase-hooks-derive"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3fb0cfbdb23fe84f383921258e25bc561a1440c32da12eef610bcd60c9e65923"
 dependencies = [
  "enumflags2",
  "quote",
