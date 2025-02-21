@@ -1,6 +1,6 @@
 use federated_graph::Value;
 
-use super::input_value_set::InputValueSetError;
+use super::{field_set::FieldSetError, input_value_set::InputValueSetError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum ExtensionInputValueError {
@@ -8,6 +8,8 @@ pub enum ExtensionInputValueError {
     InputValue(#[from] InputValueError),
     #[error(transparent)]
     InputValueSetSerror(#[from] InputValueSetError),
+    #[error(transparent)]
+    FieldSetSerror(#[from] FieldSetError),
     #[error("Unknown type '{name}'")]
     UnknownType { name: String },
     #[error("Type '{name}' is used for an input value but is not a scalar, input object or enum.")]
@@ -68,6 +70,8 @@ pub enum InputValueError {
     UnknownArgument(String),
     #[error("Used an inaccessible enum value{path}")]
     InaccessibleEnumValue { path: String },
+    #[error("Cannot use variables")]
+    CannotUseVariables,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display)]

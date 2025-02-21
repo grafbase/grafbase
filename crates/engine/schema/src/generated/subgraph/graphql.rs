@@ -5,7 +5,7 @@
 //! Source file: <engine-codegen dir>/domain/schema.graphql
 use crate::{
     StringId, SubgraphConfig, SubscriptionProtocol, UrlId,
-    generated::{HeaderRule, HeaderRuleId, TypeSystemDirective, TypeSystemDirectiveId},
+    generated::{ExtensionDirective, ExtensionDirectiveId, HeaderRule, HeaderRuleId},
     prelude::*,
 };
 #[allow(unused_imports)]
@@ -21,7 +21,7 @@ use walker::{Iter, Walk};
 ///   header_rules: [HeaderRule!]!
 ///   config: SubgraphConfig!
 ///   "Schema directives applied by the given subgraph"
-///   schema_directives: [TypeSystemDirective!]!
+///   schema_directives: [ExtensionDirective!]! @vec
 ///   "The protocol to use for subscriptions from this subgraph"
 ///   subscription_protocol: SubscriptionProtocol!
 /// }
@@ -34,7 +34,7 @@ pub struct GraphqlEndpointRecord {
     pub header_rule_ids: IdRange<HeaderRuleId>,
     pub config: SubgraphConfig,
     /// Schema directives applied by the given subgraph
-    pub schema_directive_ids: Vec<TypeSystemDirectiveId>,
+    pub schema_directive_ids: Vec<ExtensionDirectiveId>,
     /// The protocol to use for subscriptions from this subgraph
     pub subscription_protocol: SubscriptionProtocol,
 }
@@ -74,7 +74,7 @@ impl<'a> GraphqlEndpoint<'a> {
         self.as_ref().header_rule_ids.walk(self.schema)
     }
     /// Schema directives applied by the given subgraph
-    pub fn schema_directives(&self) -> impl Iter<Item = TypeSystemDirective<'a>> + 'a {
+    pub fn schema_directives(&self) -> impl Iter<Item = ExtensionDirective<'a>> + 'a {
         self.as_ref().schema_directive_ids.walk(self.schema)
     }
 }

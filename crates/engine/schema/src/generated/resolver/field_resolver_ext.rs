@@ -4,6 +4,7 @@
 //! Generated with: `cargo run -p engine-codegen`
 //! Source file: <engine-codegen dir>/domain/schema.graphql
 use crate::{
+    FieldSet, FieldSetRecord,
     generated::{ExtensionDirective, ExtensionDirectiveId},
     prelude::*,
 };
@@ -13,42 +14,48 @@ use walker::{Iter, Walk};
 /// Generated from:
 ///
 /// ```custom,{.language-graphql}
-/// type FieldResolverExtensionDefinition @meta(module: "resolver/field_resolver_ext") @copy {
+/// type FieldResolverExtensionDefinition @meta(module: "resolver/field_resolver_ext") {
 ///   directive: ExtensionDirective!
+///   requirements: FieldSet!
 /// }
 /// ```
-#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, Copy)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct FieldResolverExtensionDefinitionRecord {
     pub directive_id: ExtensionDirectiveId,
+    pub requirements_record: FieldSetRecord,
 }
 
 #[derive(Clone, Copy)]
 pub struct FieldResolverExtensionDefinition<'a> {
     pub(crate) schema: &'a Schema,
-    pub(crate) item: FieldResolverExtensionDefinitionRecord,
+    pub(crate) ref_: &'a FieldResolverExtensionDefinitionRecord,
 }
 
 impl std::ops::Deref for FieldResolverExtensionDefinition<'_> {
     type Target = FieldResolverExtensionDefinitionRecord;
     fn deref(&self) -> &Self::Target {
-        &self.item
+        self.ref_
     }
 }
 
 impl<'a> FieldResolverExtensionDefinition<'a> {
     #[allow(clippy::should_implement_trait)]
-    pub fn as_ref(&self) -> &FieldResolverExtensionDefinitionRecord {
-        &self.item
+    pub fn as_ref(&self) -> &'a FieldResolverExtensionDefinitionRecord {
+        self.ref_
     }
     pub fn directive(&self) -> ExtensionDirective<'a> {
         self.directive_id.walk(self.schema)
     }
+    pub fn requirements(&self) -> FieldSet<'a> {
+        self.as_ref().requirements_record.walk(self.schema)
+    }
 }
 
-impl<'a> Walk<&'a Schema> for FieldResolverExtensionDefinitionRecord {
+impl<'a> Walk<&'a Schema> for &FieldResolverExtensionDefinitionRecord {
     type Walker<'w>
         = FieldResolverExtensionDefinition<'w>
     where
+        Self: 'w,
         'a: 'w;
     fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
     where
@@ -57,7 +64,7 @@ impl<'a> Walk<&'a Schema> for FieldResolverExtensionDefinitionRecord {
     {
         FieldResolverExtensionDefinition {
             schema: schema.into(),
-            item: self,
+            ref_: self,
         }
     }
 }
@@ -66,6 +73,7 @@ impl std::fmt::Debug for FieldResolverExtensionDefinition<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("FieldResolverExtensionDefinition")
             .field("directive", &self.directive())
+            .field("requirements", &self.requirements())
             .finish()
     }
 }

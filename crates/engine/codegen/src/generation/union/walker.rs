@@ -277,7 +277,7 @@ impl quote::ToTokens for RecordUnionWalkerBranch<'_> {
                     quote! { #enum_::#variant(item) => #walker::#variant(item.walk(#ctx)) }
                 }
                 AccessKind::RefWalker => {
-                    quote! { #enum_::#variant(ref item) => #walker::#variant(item.walk(#ctx)) }
+                    quote! { #enum_::#variant(item) => #walker::#variant(item.walk(#ctx)) }
                 }
             }
         } else {

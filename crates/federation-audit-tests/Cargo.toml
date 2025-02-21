@@ -14,7 +14,7 @@ serde.workspace = true
 serde_json.workspace = true
 
 [dev-dependencies]
-cynic-parser.workspace = true
+cynic-parser = { workspace = true, features = ["pretty"] }
 graphql-composition.workspace = true
 integration-tests = { path = "../integration-tests" }
 libtest-mimic.workspace = true

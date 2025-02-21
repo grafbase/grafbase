@@ -21,12 +21,12 @@ fn valid_big_int() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(value: BigInt!) on SCHEMA
-                    directive @echo(value: BigInt!) on FIELD_DEFINITION
-                "#,
-            })
+            .with_extension(EchoExt::with_sdl(
+                r#"
+                directive @meta(value: BigInt!) on SCHEMA
+                directive @echo(value: BigInt!) on FIELD_DEFINITION
+            "#,
+            ))
             .build()
             .await;
 
@@ -44,7 +44,8 @@ fn valid_big_int() {
           },
           "directive": {
             "value": -923372036854775807
-          }
+          },
+          "input": {}
         }
       }
     }
@@ -69,12 +70,12 @@ fn float_to_big_int_coercion() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
+            .with_extension(EchoExt::with_sdl(
+                r#"
                     directive @meta(value: BigInt!) on SCHEMA
                     directive @echo(value: BigInt!) on FIELD_DEFINITION
                 "#,
-            })
+            ))
             .build()
             .await;
 
@@ -92,7 +93,8 @@ fn float_to_big_int_coercion() {
           },
           "directive": {
             "value": 7
-          }
+          },
+          "input": {}
         }
       }
     }
@@ -117,12 +119,10 @@ fn invalid_big_int() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
+            .with_extension(EchoExt::with_sdl(r#"
                     directive @meta(value: BigInt!) on SCHEMA
                     directive @echo(value: BigInt!) on FIELD_DEFINITION
-                "#,
-            })
+                "#))
             .try_build()
             .await;
 
@@ -148,12 +148,10 @@ fn invalid_big_int() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
+            .with_extension(EchoExt::with_sdl(r#"
                     directive @meta(value: BigInt!) on SCHEMA
                     directive @echo(value: BigInt!) on FIELD_DEFINITION
-                "#,
-            })
+                "#))
             .try_build()
             .await;
 

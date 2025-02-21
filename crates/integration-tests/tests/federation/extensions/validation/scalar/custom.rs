@@ -21,14 +21,14 @@ fn valid_string() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(value: Any!) on SCHEMA
-                    directive @echo(value: Any!) on FIELD_DEFINITION
+            .with_extension(EchoExt::with_sdl(
+                r#"
+                directive @meta(value: Any!) on SCHEMA
+                directive @echo(value: Any!) on FIELD_DEFINITION
 
-                    scalar Any
-                "#,
-            })
+                scalar Any
+            "#,
+            ))
             .build()
             .await;
 
@@ -57,7 +57,8 @@ fn valid_string() {
               "z": false,
               "w": "VALUE"
             }
-          }
+          },
+          "input": {}
         }
       }
     }

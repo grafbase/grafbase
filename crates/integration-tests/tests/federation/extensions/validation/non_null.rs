@@ -21,12 +21,10 @@ fn unexpected_null() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(value: String!) on SCHEMA
-                    directive @echo(value: String!) on FIELD_DEFINITION
-                "#,
-            })
+            .with_extension(EchoExt::with_sdl(r#"
+                directive @meta(value: String!) on SCHEMA
+                directive @echo(value: String!) on FIELD_DEFINITION
+            "#))
             .try_build()
             .await;
 
@@ -52,12 +50,10 @@ fn unexpected_null() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(value: String!) on SCHEMA
-                    directive @echo(value: String!) on FIELD_DEFINITION
-                "#,
-            })
+            .with_extension(EchoExt::with_sdl(r#"
+                directive @meta(value: String!) on SCHEMA
+                directive @echo(value: String!) on FIELD_DEFINITION
+            "#))
             .try_build()
             .await;
 
@@ -87,12 +83,10 @@ fn missing_required_argument() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(value: String!) on SCHEMA
-                    directive @echo(value: String!) on FIELD_DEFINITION
-                "#,
-            })
+            .with_extension(EchoExt::with_sdl(r#"
+                directive @meta(value: String!) on SCHEMA
+                directive @echo(value: String!) on FIELD_DEFINITION
+            "#))
             .try_build()
             .await;
 
@@ -118,12 +112,10 @@ fn missing_required_argument() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(value: String!) on SCHEMA
-                    directive @echo(value: String!) on FIELD_DEFINITION
-                "#,
-            })
+            .with_extension(EchoExt::with_sdl(r#"
+                directive @meta(value: String!) on SCHEMA
+                directive @echo(value: String!) on FIELD_DEFINITION
+            "#))
             .try_build()
             .await;
 
@@ -153,12 +145,12 @@ fn missing_nullable_argument() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(value: String) on SCHEMA
-                    directive @echo(value: String) on FIELD_DEFINITION
+            .with_extension(EchoExt::with_sdl(
+                r#"
+                directive @meta(value: String) on SCHEMA
+                directive @echo(value: String) on FIELD_DEFINITION
                 "#,
-            })
+            ))
             .build()
             .await;
 
@@ -170,7 +162,8 @@ fn missing_nullable_argument() {
               "schema": {
                 "meta": {}
               },
-              "directive": {}
+              "directive": {},
+              "input": {}
             }
           }
         }
@@ -196,12 +189,12 @@ fn distinquish_providing_null_from_not_present_at_all() {
                 }
                 "#,
             )
-            .with_extension(EchoExt {
-                sdl: r#"
-                    directive @meta(a: String, b: String) on SCHEMA
-                    directive @echo(a: String, b: String) on FIELD_DEFINITION
+            .with_extension(EchoExt::with_sdl(
+                r#"
+                directive @meta(a: String, b: String) on SCHEMA
+                directive @echo(a: String, b: String) on FIELD_DEFINITION
                 "#,
-            })
+            ))
             .build()
             .await;
 
@@ -217,7 +210,8 @@ fn distinquish_providing_null_from_not_present_at_all() {
               },
               "directive": {
                 "a": null
-              }
+              },
+              "input": {}
             }
           }
         }

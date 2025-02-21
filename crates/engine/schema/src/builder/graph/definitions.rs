@@ -5,7 +5,9 @@ use crate::BuildError;
 use super::*;
 
 impl<'a> Context<'a> {
-    pub(super) fn into_graph_context(self) -> Result<(GraphContext<'a>, Vec<SchemaLocation>), BuildError> {
+    pub(super) fn into_graph_context(
+        self,
+    ) -> Result<(GraphContext<'a>, Vec<SchemaLocation>, IntrospectionMetadata), BuildError> {
         let federated_graph = self.federated_graph;
         let graph = Graph {
             description_id: None,
@@ -80,6 +82,7 @@ impl<'a> Context<'a> {
                 + federated_graph.input_objects.len()
                 + federated_graph.input_value_definitions.len(),
         );
+        let mut federated_default_values = Vec::with_capacity(federated_graph.input_value_definitions.len() >> 3);
 
         for scalar in federated_graph.iter_scalar_definitions() {
             if scalar.namespace.is_some() {
@@ -152,6 +155,9 @@ impl<'a> Context<'a> {
 
                 let name_id = ctx.get_or_insert_str(input_value.name);
                 let description_id = input_value.description.map(|id| ctx.get_or_insert_str(id));
+                if let Some(value) = &input_value.default {
+                    federated_default_values.push((id, value));
+                }
                 ctx.graph.input_value_definitions.push(InputValueDefinitionRecord {
                     name_id,
                     description_id,
@@ -269,6 +275,9 @@ impl<'a> Context<'a> {
 
                 let name_id = ctx.get_or_insert_str(input_value.name);
                 let description_id = input_value.description.map(|id| ctx.get_or_insert_str(id));
+                if let Some(value) = &input_value.default {
+                    federated_default_values.push((id, value));
+                }
                 ctx.graph.input_value_definitions.push(InputValueDefinitionRecord {
                     name_id,
                     description_id,
@@ -299,6 +308,88 @@ impl<'a> Context<'a> {
             });
         }
 
-        Ok((ctx, schema_locations))
+        let introspection = ctx.create_introspection_metadata();
+        ingest_all_default_values(&mut ctx, federated_default_values)?;
+        add_extra_vecs_for_definitions_with_different_ordering(&mut ctx);
+
+        Ok((ctx, schema_locations, introspection))
     }
+}
+
+fn add_extra_vecs_for_definitions_with_different_ordering(GraphContext { ctx, graph, .. }: &mut GraphContext<'_>) {
+    graph.type_definitions_ordered_by_name = {
+        let mut definitions = Vec::with_capacity(
+            graph.scalar_definitions.len()
+                + graph.object_definitions.len()
+                + graph.interface_definitions.len()
+                + graph.union_definitions.len()
+                + graph.enum_definitions.len()
+                + graph.input_object_definitions.len(),
+        );
+
+        // Adding all definitions for introspection & query binding
+        definitions
+            .extend((0..graph.scalar_definitions.len()).map(|id| DefinitionId::Scalar(ScalarDefinitionId::from(id))));
+        definitions
+            .extend((0..graph.object_definitions.len()).map(|id| DefinitionId::Object(ObjectDefinitionId::from(id))));
+        definitions.extend(
+            (0..graph.interface_definitions.len()).map(|id| DefinitionId::Interface(InterfaceDefinitionId::from(id))),
+        );
+        definitions
+            .extend((0..graph.union_definitions.len()).map(|id| DefinitionId::Union(UnionDefinitionId::from(id))));
+        definitions.extend((0..graph.enum_definitions.len()).map(|id| DefinitionId::Enum(EnumDefinitionId::from(id))));
+        definitions.extend(
+            (0..graph.input_object_definitions.len())
+                .map(|id| DefinitionId::InputObject(InputObjectDefinitionId::from(id))),
+        );
+        definitions.sort_unstable_by_key(|definition| match *definition {
+            DefinitionId::Scalar(id) => &ctx.strings[graph[id].name_id],
+            DefinitionId::Object(id) => &ctx.strings[graph[id].name_id],
+            DefinitionId::Interface(id) => &ctx.strings[graph[id].name_id],
+            DefinitionId::Union(id) => &ctx.strings[graph[id].name_id],
+            DefinitionId::Enum(id) => &ctx.strings[graph[id].name_id],
+            DefinitionId::InputObject(id) => &ctx.strings[graph[id].name_id],
+        });
+        definitions
+    };
+
+    let mut interface_definitions = std::mem::take(&mut graph.interface_definitions);
+    for interface in &mut interface_definitions {
+        interface.possible_type_ids.sort_unstable();
+        interface
+            .possible_types_ordered_by_typename_ids
+            .clone_from(&interface.possible_type_ids);
+        interface
+            .possible_types_ordered_by_typename_ids
+            .sort_unstable_by_key(|id| &ctx.strings[graph[*id].name_id]);
+    }
+    graph.interface_definitions = interface_definitions;
+
+    let mut union_definitions = std::mem::take(&mut graph.union_definitions);
+    for union in &mut union_definitions {
+        union.possible_type_ids.sort_unstable();
+        union
+            .possible_types_ordered_by_typename_ids
+            .clone_from(&union.possible_type_ids);
+        union
+            .possible_types_ordered_by_typename_ids
+            .sort_unstable_by_key(|id| &ctx.strings[graph[*id].name_id]);
+    }
+    graph.union_definitions = union_definitions;
+}
+
+fn ingest_all_default_values(
+    ctx: &mut GraphContext<'_>,
+    federated_default_values: Vec<(InputValueDefinitionId, &federated_graph::Value)>,
+) -> Result<(), BuildError> {
+    for (id, default_value) in federated_default_values {
+        ctx.graph[id].default_value_id = Some(ctx.coerce_fed_value(id, default_value.clone()).map_err(|err| {
+            BuildError::DefaultValueCoercionError {
+                err,
+                name: ctx.strings[ctx.graph[id].name_id].to_string(),
+            }
+        })?);
+    }
+
+    Ok(())
 }

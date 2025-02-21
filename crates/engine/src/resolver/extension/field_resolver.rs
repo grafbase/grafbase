@@ -6,26 +6,26 @@ use runtime::{
     error::PartialGraphqlError,
     extension::{Data, ExtensionFieldDirective, ExtensionRuntime},
 };
-use schema::{FieldResolverExtensionDefinition, FieldResolverExtensionDefinitionRecord};
+use schema::{ExtensionDirectiveId, FieldResolverExtensionDefinition};
 use walker::Walk;
 
 use crate::{
     Runtime,
     execution::{ExecutionContext, ExecutionResult},
-    prepare::{Plan, SubgraphField},
+    prepare::{Plan, SubgraphField, create_extension_directive_arguments_view},
     resolver::Resolver,
     response::{GraphqlError, InputResponseObjectSet, ResponseObjectsView, SubgraphResponse},
 };
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct FieldResolverExtension {
-    pub definition: FieldResolverExtensionDefinitionRecord,
+    pub directive_id: ExtensionDirectiveId,
 }
 
 impl FieldResolverExtension {
     pub(in crate::resolver) fn prepare(definition: FieldResolverExtensionDefinition<'_>) -> Resolver {
         Resolver::FieldResolverExtension(Self {
-            definition: *definition,
+            directive_id: definition.directive_id,
         })
     }
 
@@ -36,7 +36,7 @@ impl FieldResolverExtension {
         root_response_objects: ResponseObjectsView<'_>,
         subgraph_response: SubgraphResponse,
     ) -> FieldResolverExtensionRequest<'ctx> {
-        let directive = self.definition.walk(ctx.schema()).directive();
+        let directive = self.directive_id.walk(ctx.schema());
         let field = plan
             .selection_set()
             .fields()
@@ -44,21 +44,26 @@ impl FieldResolverExtension {
             .expect("At least one field must be present");
 
         let field_definition = field.definition();
+        let (query_view, response_view) = create_extension_directive_arguments_view(
+            ctx.schema(),
+            directive,
+            field.arguments(),
+            ctx.variables(),
+            root_response_objects.clone(),
+        );
         let extension_directive = ExtensionFieldDirective {
             extension_id: directive.extension_id,
             subgraph: directive.subgraph(),
             field: field_definition,
             name: directive.name(),
-            arguments: field
-                .arguments()
-                .into_extension_directive_query_view(directive, ctx.variables()),
+            arguments: query_view,
         };
 
         let future = ctx
             .engine
             .runtime
             .extensions()
-            .resolve_field(ctx.hooks_context, extension_directive, root_response_objects.iter())
+            .resolve_field(ctx.hooks_context, extension_directive, response_view.iter())
             .boxed();
 
         let input_object_refs = root_response_objects.into_input_object_refs();

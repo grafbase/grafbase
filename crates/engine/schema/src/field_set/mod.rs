@@ -28,7 +28,12 @@ impl std::ops::Deref for FieldSetRecord {
 
 impl FromIterator<FieldSetItemRecord> for FieldSetRecord {
     fn from_iter<T: IntoIterator<Item = FieldSetItemRecord>>(iter: T) -> Self {
-        let mut items = iter.into_iter().collect::<Vec<_>>();
+        iter.into_iter().collect::<Vec<_>>().into()
+    }
+}
+
+impl From<Vec<FieldSetItemRecord>> for FieldSetRecord {
+    fn from(mut items: Vec<FieldSetItemRecord>) -> Self {
         items.sort_unstable_by(|a, b| a.field_id.cmp(&b.field_id));
         Self(items)
     }
@@ -79,28 +84,6 @@ impl<'a> Walk<&'a Schema> for &FieldSetRecord {
         FieldSet {
             schema: schema.into(),
             ref_: self,
-        }
-    }
-}
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-pub struct FieldSetId(std::num::NonZero<u32>);
-
-impl<'a> Walk<&'a Schema> for FieldSetId {
-    type Walker<'w>
-        = FieldSet<'w>
-    where
-        Self: 'w,
-        'a: 'w;
-    fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
-    where
-        Self: 'w,
-        'a: 'w,
-    {
-        let schema = schema.into();
-        FieldSet {
-            schema,
-            ref_: &schema[self],
         }
     }
 }

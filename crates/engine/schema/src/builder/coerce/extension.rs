@@ -1,5 +1,5 @@
 use crate::{
-    TemplateEscaping, TemplateRecord,
+    ExtensionDirectiveArgumentId, ExtensionDirectiveArgumentRecord, FieldSetRecord, TemplateEscaping, TemplateRecord,
     builder::{
         GraphContext, SchemaLocation,
         extension::{ExtensionSdl, GrafbaseScalar},
@@ -9,33 +9,92 @@ use crate::{
 use cynic_parser::{
     ConstValue,
     common::{TypeWrappersIter, WrappingType},
-    type_system::{Definition, EnumDefinition, InputObjectDefinition, InputValueDefinition, Type, TypeDefinition},
+    type_system::{
+        Definition, DirectiveDefinition, EnumDefinition, InputObjectDefinition, InputValueDefinition, Type,
+        TypeDefinition,
+    },
 };
 use federated_graph::Value;
+use id_newtypes::IdRange;
 
 use super::{ExtensionInputValueError, InputValueError, can_coerce_to_int, value_path_to_string};
 
-pub(crate) struct ExtensionInputValueCoercer<'a, 'b> {
-    pub ctx: &'a mut GraphContext<'b>,
-    pub sdl: &'a ExtensionSdl,
-    pub location: SchemaLocation,
-    pub current_injection_stage: InjectionStage,
+pub(crate) struct ExtensionDirectiveArgumentsCoercer<'a, 'b> {
+    pub(super) ctx: &'a mut GraphContext<'b>,
+    pub(super) sdl: &'a ExtensionSdl,
+    pub(super) location: SchemaLocation,
+    pub(super) current_injection_stage: InjectionStage,
+    pub(super) requirements: FieldSetRecord,
 }
 
-impl<'b> std::ops::Deref for ExtensionInputValueCoercer<'_, 'b> {
+impl<'b> std::ops::Deref for ExtensionDirectiveArgumentsCoercer<'_, 'b> {
     type Target = GraphContext<'b>;
     fn deref(&self) -> &Self::Target {
         self.ctx
     }
 }
 
-impl std::ops::DerefMut for ExtensionInputValueCoercer<'_, '_> {
+impl std::ops::DerefMut for ExtensionDirectiveArgumentsCoercer<'_, '_> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.ctx
     }
 }
 
-impl ExtensionInputValueCoercer<'_, '_> {
+impl GraphContext<'_> {
+    pub fn coerce_extension_directive_arguments(
+        &mut self,
+        location: SchemaLocation,
+        sdl: &ExtensionSdl,
+        directive: DirectiveDefinition<'_>,
+        arguments: &Option<Vec<(federated_graph::StringId, federated_graph::Value)>>,
+    ) -> Result<(IdRange<ExtensionDirectiveArgumentId>, FieldSetRecord), ExtensionInputValueError> {
+        let federated_graph = self.ctx.federated_graph;
+        let start = self.graph.extension_directive_arguments.len();
+        let mut coercer = ExtensionDirectiveArgumentsCoercer {
+            ctx: self,
+            sdl,
+            location,
+            current_injection_stage: Default::default(),
+            requirements: Default::default(),
+        };
+        if let Some(arguments) = arguments {
+            let mut arguments = arguments.iter().collect::<Vec<_>>();
+            coercer.graph.extension_directive_arguments.reserve(arguments.len());
+
+            for def in directive.arguments() {
+                let name_id = coercer.strings.get_or_new(def.name());
+                let sdl_value = arguments
+                    .iter()
+                    .position(|(name, _)| federated_graph[*name] == def.name())
+                    .map(|ix| &arguments.swap_remove(ix).1);
+
+                let maybe_coerced_argument = coercer.coerce_argument(def, sdl_value)?;
+
+                if let Some((value, injection_stage)) = maybe_coerced_argument {
+                    coercer
+                        .ctx
+                        .graph
+                        .extension_directive_arguments
+                        .push(ExtensionDirectiveArgumentRecord {
+                            name_id,
+                            value,
+                            injection_stage,
+                        });
+                }
+            }
+
+            if let Some((name, _)) = arguments.first() {
+                return Err(InputValueError::UnknownArgument(federated_graph[*name].clone()).into());
+            }
+        }
+
+        let requirements = coercer.requirements;
+        let argument_ids = (start..self.graph.extension_directive_arguments.len()).into();
+        Ok((argument_ids, requirements))
+    }
+}
+
+impl ExtensionDirectiveArgumentsCoercer<'_, '_> {
     pub fn coerce_argument(
         &mut self,
         def: InputValueDefinition<'_>,
@@ -200,10 +259,21 @@ impl ExtensionInputValueCoercer<'_, '_> {
                 .into());
             };
             let value = &self.ctx.federated_graph[*id];
-            self.current_injection_stage = self.current_injection_stage.max(InjectionStage::Query);
             return match scalar {
-                GrafbaseScalar::InputValueSet => self.coerce_input_value_set(value).map(Into::into).map_err(Into::into),
+                GrafbaseScalar::InputValueSet => {
+                    self.current_injection_stage = self.current_injection_stage.max(InjectionStage::Query);
+                    self.coerce_input_value_set(value)
+                        .map(ExtensionInputValueRecord::InputValueSet)
+                        .map_err(Into::into)
+                }
+                GrafbaseScalar::FieldSet => {
+                    self.current_injection_stage = self.current_injection_stage.max(InjectionStage::Response);
+                    let field_set = self.coerce_field_set(value)?;
+                    self.requirements = self.requirements.union(&field_set);
+                    Ok(ExtensionInputValueRecord::FieldSet(field_set))
+                }
                 GrafbaseScalar::UrlTemplate | GrafbaseScalar::JsonTemplate => {
+                    self.current_injection_stage = self.current_injection_stage.max(InjectionStage::Query);
                     let template = TemplateRecord::new(
                         value.clone(),
                         match scalar {
@@ -249,10 +319,21 @@ impl ExtensionInputValueCoercer<'_, '_> {
                 }
                 .into());
             };
-            self.current_injection_stage = self.current_injection_stage.max(InjectionStage::Query);
             return match scalar {
-                GrafbaseScalar::InputValueSet => self.coerce_input_value_set(value).map(Into::into).map_err(Into::into),
+                GrafbaseScalar::InputValueSet => {
+                    self.current_injection_stage = self.current_injection_stage.max(InjectionStage::Query);
+                    self.coerce_input_value_set(value)
+                        .map(ExtensionInputValueRecord::InputValueSet)
+                        .map_err(Into::into)
+                }
+                GrafbaseScalar::FieldSet => {
+                    self.current_injection_stage = self.current_injection_stage.max(InjectionStage::Response);
+                    self.coerce_field_set(value)
+                        .map(ExtensionInputValueRecord::FieldSet)
+                        .map_err(Into::into)
+                }
                 GrafbaseScalar::UrlTemplate | GrafbaseScalar::JsonTemplate => {
+                    self.current_injection_stage = self.current_injection_stage.max(InjectionStage::Query);
                     let template = TemplateRecord::new(
                         value.to_string(),
                         match scalar {
