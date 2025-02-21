@@ -13,7 +13,7 @@ use runtime_local::wasi::{
     extensions::{Directive, ExtensionConfig, ExtensionPoolId, ExtensionType, WasiExtensions},
     hooks::{ChannelLogSender, HooksWasi},
 };
-use std::{env, fs::File, ops::Not, path::PathBuf, sync::Arc};
+use std::{collections::HashMap, env, fs::File, ops::Not, path::PathBuf, sync::Arc};
 use tokio::sync::watch;
 use ulid::Ulid;
 
@@ -171,7 +171,7 @@ fn create_wasi_extension_configs(
 
                     let extension_config = match extension_provider.config {
                         Some(ref config) => minicbor_serde::to_vec(config).unwrap(),
-                        None => Vec::new(),
+                        None => minicbor_serde::to_vec(HashMap::<String, String>::new()).unwrap(),
                     };
 
                     let id = ExtensionPoolId::Authorizer(id, AuthorizerId::from(auth_id));
