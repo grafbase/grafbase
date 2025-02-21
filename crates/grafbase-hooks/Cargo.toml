@@ -13,7 +13,7 @@ default = ["derive"]
 derive = ["dep:grafbase-hooks-derive"]
 
 [dependencies]
-grafbase-hooks-derive = { path = "derive", optional = true }
+grafbase-hooks-derive = { version = "0.1.0", optional = true }
 serde.workspace = true
 serde_json.workspace = true
 wit-bindgen.workspace = true
