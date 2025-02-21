@@ -2508,7 +2508,7 @@ dependencies = [
  "fxhash",
  "gateway-config",
  "grafbase-workspace-hack",
- "graphql-federated-graph 0.6.0",
+ "graphql-federated-graph 0.6.1",
  "graphql-wrapping-types 0.2.0",
  "hex",
  "http 1.2.0",
@@ -2765,7 +2765,7 @@ dependencies = [
  "grafbase-telemetry",
  "grafbase-workspace-hack",
  "graph-ref",
- "graphql-composition 0.6.1",
+ "graphql-composition 0.6.2",
  "http 1.2.0",
  "lambda_http",
  "minicbor-serde",
@@ -2795,7 +2795,7 @@ version = "0.0.0"
 dependencies = [
  "cynic-parser",
  "grafbase-workspace-hack",
- "graphql-composition 0.6.1",
+ "graphql-composition 0.6.2",
  "integration-tests",
  "libtest-mimic",
  "reqwest 0.12.12",
@@ -3258,8 +3258,8 @@ dependencies = [
  "grafbase-graphql-introspection",
  "grafbase-workspace-hack",
  "graph-ref",
- "graphql-composition 0.6.1",
- "graphql-federated-graph 0.6.0",
+ "graphql-composition 0.6.2",
+ "graphql-federated-graph 0.6.1",
  "graphql-lint",
  "graphql-mocks",
  "ignore",
@@ -3323,7 +3323,7 @@ dependencies = [
  "grafbase-telemetry",
  "grafbase-workspace-hack",
  "graph-ref",
- "graphql-composition 0.6.1",
+ "graphql-composition 0.6.2",
  "graphql-mocks",
  "handlebars 6.3.1",
  "http 1.2.0",
@@ -3400,8 +3400,8 @@ dependencies = [
  "futures-util",
  "grafbase-sdk-derive",
  "grafbase-sdk-mock",
- "graphql-composition 0.6.2",
- "graphql-federated-graph 0.6.1",
+ "graphql-composition 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "graphql-federated-graph 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "http 1.2.0",
  "indoc",
  "minicbor-serde",
@@ -3637,13 +3637,13 @@ dependencies = [
 
 [[package]]
 name = "graphql-composition"
-version = "0.6.1"
+version = "0.6.2"
 dependencies = [
  "anyhow",
  "cynic-parser",
  "cynic-parser-deser",
  "grafbase-workspace-hack",
- "graphql-federated-graph 0.6.0",
+ "graphql-federated-graph 0.6.1",
  "indexmap 2.7.1",
  "insta",
  "itertools 0.14.0",
@@ -3661,7 +3661,7 @@ checksum = "93340435553102d769e19893add506aef5e313eb3bf67e9a03dcde1b8c8c0dd4"
 dependencies = [
  "cynic-parser",
  "cynic-parser-deser",
- "graphql-federated-graph 0.6.1",
+ "graphql-federated-graph 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "indexmap 2.7.1",
  "itertools 0.14.0",
  "url",
@@ -3669,7 +3669,7 @@ dependencies = [
 
 [[package]]
 name = "graphql-federated-graph"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "bitflags 2.8.0",
  "cynic-parser",
@@ -4659,8 +4659,8 @@ dependencies = [
  "gateway-config",
  "grafbase-telemetry",
  "grafbase-workspace-hack",
- "graphql-composition 0.6.1",
- "graphql-federated-graph 0.6.0",
+ "graphql-composition 0.6.2",
+ "graphql-federated-graph 0.6.1",
  "graphql-mocks",
  "graphql-ws-client",
  "headers",
