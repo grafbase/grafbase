@@ -86,7 +86,15 @@ impl Mutation {
     async fn multiply(&self, ctx: &Context<'_>, by: usize) -> usize {
         let state = ctx.data_unchecked::<Arc<AtomicUsize>>();
         state
-            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |val| Some(val * by))
+            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |current| Some(current * by))
+            .unwrap();
+        state.load(Ordering::Relaxed)
+    }
+
+    async fn add(&self, ctx: &Context<'_>, val: usize) -> usize {
+        let state = ctx.data_unchecked::<Arc<AtomicUsize>>();
+        state
+            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |current| Some(current + val))
             .unwrap();
         state.load(Ordering::Relaxed)
     }

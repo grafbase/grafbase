@@ -37,6 +37,13 @@ pub(crate) const HEADERS_GET_METHOD: &str = "[method]headers.get";
 pub(crate) const HEADERS_DELETE_METHOD: &str = "[method]headers.delete";
 pub(crate) const HEADERS_ENTRIES_METHOD: &str = "[method]headers.entries";
 
+pub(crate) const SUBGRAPH_REQUEST_RESOURCE: &str = "subgraph-request";
+pub(crate) const SUBGRAPH_REQUEST_GET_METHOD_METHOD: &str = "[method]subgraph-request.method";
+pub(crate) const SUBGRAPH_REQUEST_SET_METHOD_METHOD: &str = "[method]subgraph-request.set-method";
+pub(crate) const SUBGRAPH_REQUEST_GET_URL_METHOD: &str = "[method]subgraph-request.url";
+pub(crate) const SUBGRAPH_REQUEST_SET_URL_METHOD: &str = "[method]subgraph-request.set-url";
+pub(crate) const SUBGRAPH_REQUEST_GET_HEADERS_METHOD: &str = "[method]subgraph-request.headers";
+
 // Extensions
 
 pub(crate) const REGISTER_EXTENSION_FUNCTION: &str = "register-extension";

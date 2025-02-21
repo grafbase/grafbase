@@ -17,10 +17,9 @@ use grafbase_telemetry::otel::{
 use pool::Pool;
 use runtime::{
     error::{ErrorResponse, PartialErrorCode, PartialGraphqlError},
-    hooks::{AuthorizedHooks, HeaderMap, Hooks},
+    hooks::{AuthorizedHooks, HeaderMap, Hooks, SubgraphRequest},
 };
 use tracing::{Instrument, Span, info_span};
-use url::Url;
 use wasi_component_loader::HookImplementation;
 pub use wasi_component_loader::{
     AccessLogMessage, ChannelLogReceiver, ChannelLogSender, ComponentLoader, GuestError, HooksWasiConfig as Config,
@@ -235,16 +234,14 @@ impl Hooks for HooksWasi {
         &self,
         context: &Self::Context,
         subgraph_name: &str,
-        method: http::Method,
-        url: &Url,
-        headers: HeaderMap,
-    ) -> Result<HeaderMap, PartialGraphqlError> {
+        request: SubgraphRequest,
+    ) -> Result<SubgraphRequest, PartialGraphqlError> {
         let Some(ref inner) = self.0 else {
-            return Ok(headers);
+            return Ok(request);
         };
 
         if !inner.implemented_hooks.contains(HookImplementation::OnSubgraphRequest) {
-            return Ok(headers);
+            return Ok(request);
         }
 
         let span = info_span!("hook: on-subgraph-request");
@@ -253,7 +250,7 @@ impl Hooks for HooksWasi {
         inner
             .run_and_measure(
                 "on-subgraph-request",
-                hook.on_subgraph_request(context.clone(), subgraph_name, method, url, headers),
+                hook.on_subgraph_request(context.clone(), subgraph_name, request),
             )
             .instrument(span)
             .await

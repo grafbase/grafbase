@@ -20,6 +20,7 @@ grafbase-workspace-hack.workspace = true
 http.workspace = true
 minicbor-serde = { workspace = true, features = ["alloc"] }
 reqwest.workspace = true
+runtime.workspace = true
 serde.workspace = true
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true

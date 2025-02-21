@@ -65,21 +65,24 @@ impl GraphqlResolver {
         };
 
         let headers = ctx.subgraph_headers_with_rules(endpoint.header_rules());
-        let headers = ctx
-            .hooks()
-            .on_subgraph_request(endpoint.subgraph_name(), http::Method::POST, &url, headers)
-            .await?;
+        let req = runtime::hooks::SubgraphRequest {
+            method: http::Method::POST,
+            url: url.into_owned(),
+            headers,
+        };
+        let runtime::hooks::SubgraphRequest { method, url, headers } =
+            ctx.hooks().on_subgraph_request(endpoint.subgraph_name(), req).await?;
 
         let request = FetchRequest {
             subgraph_name: endpoint.subgraph_name(),
-            url,
+            url: Cow::Owned(url),
             websocket_init_payload: ctx
                 .request_context
                 .websocket_init_payload
                 .as_ref()
                 .filter(|_| ctx.engine.schema.settings.websocket_forward_connection_init_payload)
                 .cloned(),
-            method: http::Method::POST,
+            method,
             headers,
             body: &SubgraphGraphqlRequest {
                 query: &self.subgraph_operation.query,
@@ -155,19 +158,24 @@ impl GraphqlResolver {
             .map_err(|err| format!("Failed to serialize query: {err}"))?;
 
             let headers = ctx.subgraph_headers_with_rules(endpoint.header_rules());
-
-            let mut headers = ctx
-                .hooks()
-                .on_subgraph_request(endpoint.subgraph_name(), http::Method::POST, endpoint.url(), headers)
-                .await?;
+            let req = runtime::hooks::SubgraphRequest {
+                method: http::Method::POST,
+                url: endpoint.url().clone(),
+                headers,
+            };
+            let runtime::hooks::SubgraphRequest {
+                method,
+                url,
+                mut headers,
+            } = ctx.hooks().on_subgraph_request(endpoint.subgraph_name(), req).await?;
 
             headers.typed_insert(headers::ContentType::json());
             headers.typed_insert(headers::ContentLength(body.len() as u64));
             FetchRequest {
                 websocket_init_payload: None,
                 subgraph_name: endpoint.subgraph_name(),
-                url: Cow::Borrowed(endpoint.url()),
-                method: http::Method::POST,
+                url: Cow::Owned(url),
+                method,
                 headers,
                 body: Bytes::from(body),
                 timeout: endpoint.config.timeout,

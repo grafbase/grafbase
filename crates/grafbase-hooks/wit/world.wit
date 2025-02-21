@@ -291,6 +291,20 @@ world hooks {
         connect(string),
     }
 
+    // GraphQL HTTP request that will be sent to a subgraph. Allows inspecting and modifying the method, url and headers.
+    resource subgraph-request {
+        // The HTTP method.
+        method: func() -> http-method;
+        set-method: func(method: http-method);
+
+        // The URL to send the request to.
+        url: func() -> string;
+        set-url: func(url: string) -> result<_, string>;
+
+        // The headers to send with the request.
+        headers: func() -> headers;
+    }
+
     // The hook is called in the federated gateway just before authentication. It can be used
     // to read and modify the request headers. The context object is provided in a mutable form,
     // allowing storage for the subsequent hooks to read.
@@ -304,9 +318,7 @@ world hooks {
     export on-subgraph-request: func(
         context: shared-context,
         subgraph-name: string,
-        method: http-method,
-        url: string,
-        headers: headers
+        request: subgraph-request
     ) -> result<_, error>;
 
     // The hook is called in the request cycle if the schema defines an authorization directive on

@@ -19,6 +19,7 @@ mod instance;
 mod names;
 mod nats;
 mod state;
+mod subgraph_request;
 
 #[cfg(test)]
 mod tests;
@@ -53,7 +54,7 @@ pub type GuestResult<T> = std::result::Result<T, GuestError>;
 /// The gateway result type
 pub type GatewayResult<T> = std::result::Result<T, GatewayError>;
 
-use state::WasiState;
+use state::{OwnedOrRef, WasiState};
 use wasmtime::{
     Engine,
     component::{Component, Linker, LinkerInstance},
@@ -85,6 +86,7 @@ impl ComponentLoader {
         let instantiate = |mut instance: LinkerInstance<'_, WasiState>| -> Result<()> {
             nats::inject_mapping(&mut instance)?;
             headers::inject_mapping(&mut instance)?;
+            subgraph_request::inject_mapping(&mut instance)?;
             context::inject_mapping(&mut instance)?;
             context::inject_shared_mapping(&mut instance)?;
             http_client::inject_mapping(&mut instance)?;

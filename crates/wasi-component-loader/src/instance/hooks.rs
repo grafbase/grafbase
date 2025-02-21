@@ -3,24 +3,22 @@ use std::str::FromStr;
 use anyhow::anyhow;
 use enumflags2::BitFlags;
 use http::HeaderMap;
-use url::Url;
+use runtime::hooks::SubgraphRequest;
 use wasmtime::component::{ComponentNamedList, Lift, Lower, Resource, TypedFunc};
 
+use crate::headers::HttpHeaders;
+use crate::names::{
+    AUTHORIZE_EDGE_NODE_POST_EXECUTION_HOOK_FUNCTION, AUTHORIZE_EDGE_POST_EXECUTION_HOOK_FUNCTION,
+    AUTHORIZE_EDGE_PRE_EXECUTION_HOOK_FUNCTION, AUTHORIZE_NODE_PRE_EXECUTION_HOOK_FUNCTION,
+    AUTHORIZE_PARENT_EDGE_POST_EXECUTION_HOOK_FUNCTION, GATEWAY_HOOK_FUNCTION, INIT_HOOKS_FUNCTION,
+    ON_HTTP_RESPONSE_FUNCTION, ON_OPERATION_RESPONSE_FUNCTION, ON_SUBGRAGH_REQUEST_HOOK_FUNCTION,
+    ON_SUBGRAPH_RESPONSE_FUNCTION,
+};
 use crate::{ChannelLogSender, error::guest::ErrorResponse};
 use crate::{ComponentLoader, SharedContext};
 use crate::{
     ContextMap, EdgeDefinition, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, GuestResult,
     NodeDefinition,
-};
-use crate::{
-    http_client::HttpMethod,
-    names::{
-        AUTHORIZE_EDGE_NODE_POST_EXECUTION_HOOK_FUNCTION, AUTHORIZE_EDGE_POST_EXECUTION_HOOK_FUNCTION,
-        AUTHORIZE_EDGE_PRE_EXECUTION_HOOK_FUNCTION, AUTHORIZE_NODE_PRE_EXECUTION_HOOK_FUNCTION,
-        AUTHORIZE_PARENT_EDGE_POST_EXECUTION_HOOK_FUNCTION, GATEWAY_HOOK_FUNCTION, INIT_HOOKS_FUNCTION,
-        ON_HTTP_RESPONSE_FUNCTION, ON_OPERATION_RESPONSE_FUNCTION, ON_SUBGRAGH_REQUEST_HOOK_FUNCTION,
-        ON_SUBGRAPH_RESPONSE_FUNCTION,
-    },
 };
 
 use super::ComponentInstance;
@@ -163,7 +161,11 @@ impl HooksComponentInstance {
 
         // adds the data to the shared memory
         let context = self.component.store_mut().data_mut().push_resource(context)?;
-        let headers = self.component.store_mut().data_mut().push_resource(headers)?;
+        let headers = self
+            .component
+            .store_mut()
+            .data_mut()
+            .push_resource(HttpHeaders::from(headers))?;
 
         // we need to take the pointers now, because a resource is not Copy and we need
         // the pointers to get the data back from the shared memory.
@@ -182,9 +184,9 @@ impl HooksComponentInstance {
 
         // take the data back from the shared memory
         let context = self.component.store_mut().data_mut().take_resource(context_rep)?;
-        let headers = self.component.store_mut().data_mut().take_resource(headers_rep)?;
+        let headers: HttpHeaders = self.component.store_mut().data_mut().take_resource(headers_rep)?;
 
-        Ok((context, headers))
+        Ok((context, headers.into_owned().unwrap()))
     }
 
     /// A hook called just before executing a subgraph request.
@@ -205,32 +207,25 @@ impl HooksComponentInstance {
         &mut self,
         context: SharedContext,
         subgraph_name: &str,
-        method: http::Method,
-        url: &Url,
-        headers: http::HeaderMap,
-    ) -> crate::Result<http::HeaderMap> {
+        request: SubgraphRequest,
+    ) -> crate::Result<SubgraphRequest> {
         let Some(hook) = self.get_hook::<_, (GuestResult<()>,)>(HookImplementation::OnSubgraphRequest) else {
-            return Ok(headers);
+            return Ok(request);
         };
 
         let subgraph_name = subgraph_name.to_string();
-        let url = url.to_string();
-        let method = HttpMethod::from(method);
 
         // adds the data to the shared memory
         let context = self.component.store_mut().data_mut().push_resource(context)?;
-        let headers = self.component.store_mut().data_mut().push_resource(headers)?;
+        let request = self.component.store_mut().data_mut().push_resource(request)?;
 
         // we need to take the pointers now, because a resource is not Copy and we need
         // the pointers to get the data back from the shared memory.
-        let headers_rep = headers.rep();
+        let request_rep = request.rep();
         let context_rep = context.rep();
 
         let result = hook
-            .call_async(
-                self.component.store_mut(),
-                (context, subgraph_name, method, url, headers),
-            )
+            .call_async(self.component.store_mut(), (context, subgraph_name, request))
             .await;
 
         if result.is_err() {
@@ -247,9 +242,9 @@ impl HooksComponentInstance {
             .data_mut()
             .take_resource::<SharedContext>(context_rep)?;
 
-        let headers = self.component.store_mut().data_mut().take_resource(headers_rep)?;
+        let request = self.component.store_mut().data_mut().take_resource(request_rep)?;
 
-        Ok(headers)
+        Ok(request)
     }
 
     /// Calls the pre authorize hook for an edge.
