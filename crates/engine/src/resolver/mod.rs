@@ -119,7 +119,7 @@ impl Resolver {
     pub async fn execute_subscription<'ctx, R: Runtime>(
         &'ctx self,
         ctx: ExecutionContext<'ctx, R>,
-        _plan: Plan<'ctx>,
+        plan: Plan<'ctx>,
         new_response: impl Fn() -> SubscriptionResponse + Send + 'ctx,
     ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<SubscriptionResponse>>> {
         match self {
@@ -135,9 +135,10 @@ impl Resolver {
             Resolver::FederationEntity(_) => Err(ExecutionError::Internal(
                 "Subscriptions can only be at the root of a query so can't contain federated entitites".into(),
             )),
-            Resolver::FieldResolverExtension(_) => Err(ExecutionError::Internal(
-                "Subscriptions cannot be used with a field resolver extension.".into(),
-            )),
+            Resolver::FieldResolverExtension(prepared) => {
+                let request = prepared.prepare_subscription(ctx, plan);
+                request.execute_subscription(ctx, new_response).await
+            }
         }
     }
 }

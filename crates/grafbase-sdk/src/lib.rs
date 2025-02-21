@@ -5,6 +5,8 @@
 #[doc(hidden)]
 pub mod extension;
 pub mod host_io;
+#[cfg(feature = "jq-selection")]
+pub mod jq_selection;
 #[cfg(feature = "test-utils")]
 pub mod test;
 pub mod types;

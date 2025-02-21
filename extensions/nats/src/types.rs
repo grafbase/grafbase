@@ -48,6 +48,25 @@ pub struct RestInput {
 }
 
 #[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct NatsPublishResult {
     pub success: bool,
+}
+
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SubscribeArguments<'a> {
+    pub provider: &'a str,
+    pub subject: &'a str,
+    pub selection: Option<&'a str>,
+    #[allow(dead_code)] // will get to this with jetstream
+    pub stream_config: Option<NatsStreamConfiguration<'a>>,
+}
+
+#[allow(dead_code)] // will get to this with jetstream
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NatsStreamConfiguration<'a> {
+    pub consumer: &'a str,
+    pub stream: &'a str,
 }

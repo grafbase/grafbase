@@ -74,12 +74,28 @@ interface types {
         credentials(string),
     }
 
+    // Represents a NATS message.
+    record nats-message {
+        // The subject or channel name of the NATS message
+        subject: string,
+        // The raw payload data of the message as bytes
+        payload: list<u8>,
+    }
+
     // A NATS client
     resource nats-client {
         // Creates a new NATS client.
         connect: static func(servers: list<string>, auth: option<nats-auth>) -> result<nats-client, string>;
         // Publishes a message to a subject.
         publish: func(subject: string, message: list<u8>) -> result<_, string>;
+        // Subscribes to a subject.
+        subscribe: func(subject: string) -> result<nats-subscriber, string>;
+    }
+
+    // A NATS subscriber resource for receiving messages from a subject
+    resource nats-subscriber {
+        // Retrieves the next message from the subscription
+        next: func() -> option<nats-message>;
     }
 
     // A HTTP client.
@@ -199,6 +215,16 @@ interface extension {
        definition: field-definition,
        inputs: list<list<u8>>
     ) -> result<field-output, error>;
+
+    // initializes a new subscription stream
+    resolve-field-subscription: func(
+        context: shared-context,
+        directive: directive,
+        definition: field-definition,
+    ) -> result<_, error>;
+
+    // resolves the next item in a subscription stream. must be called after resolve-field-subscription
+    resolve-next-subscription-item: func() -> result<option<field-output>, error>;
 
     authenticate: func(
         headers: headers,

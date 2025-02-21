@@ -9,3 +9,4 @@ pub struct SharedResources {
 }
 
 pub type NatsClient = async_nats::Client;
+pub type NatsSubscriber = async_nats::Subscriber;

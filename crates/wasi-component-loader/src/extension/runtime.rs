@@ -1,6 +1,7 @@
 use crate::{error::guest::guest_error_as_gql, extension::ExtensionLoader, resources::SharedResources};
 
 use super::{ExtensionGuestConfig, InputList, pool::Pool, wit};
+use deadpool::managed::Object;
 use extension_catalog::ExtensionId;
 use futures_util::StreamExt;
 use gateway_config::WasiExtensionsConfig;
@@ -10,7 +11,10 @@ use runtime::{
     hooks::Anything,
 };
 use std::{collections::HashMap, future::Future, sync::Arc};
-use tokio::task::JoinHandle;
+use tokio::{
+    sync::mpsc::{self, Receiver},
+    task::JoinHandle,
+};
 
 #[derive(Clone, Default)]
 pub struct ExtensionsWasiRuntime(Option<Arc<WasiExtensionsInner>>);
@@ -192,6 +196,102 @@ impl ExtensionRuntime for ExtensionsWasiRuntime {
                 status: http::StatusCode::INTERNAL_SERVER_ERROR,
                 errors: vec![PartialGraphqlError::internal_extension_error()],
             }),
+        }
+    }
+
+    async fn resolve_field_subscription<'ctx, 'f>(
+        &'ctx self,
+        context: &'ctx Self::SharedContext,
+        directive: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
+    ) -> Result<Receiver<Result<Data, PartialGraphqlError>>, PartialGraphqlError>
+    where
+        'ctx: 'f,
+    {
+        let Some(inner) = self.0.as_ref() else {
+            return Err(PartialGraphqlError::internal_extension_error());
+        };
+
+        let ExtensionFieldDirective {
+            extension_id,
+            subgraph,
+            field,
+            name,
+            arguments,
+        } = directive;
+
+        let id = ExtensionPoolId::Resolver(extension_id);
+
+        let Some(pool) = inner.instance_pools.get(&id) else {
+            return Err(PartialGraphqlError::internal_extension_error());
+        };
+
+        let mut instance = Object::take(pool.get().await.into_inner());
+        let arguments = minicbor_serde::to_vec(arguments).unwrap();
+
+        let directive = wit::Directive {
+            name,
+            subgraph_name: subgraph.name(),
+            arguments: &arguments,
+        };
+
+        let definition = wit::FieldDefinition {
+            type_name: field.parent_entity().name(),
+            name: field.name(),
+        };
+
+        let result = instance
+            .resolve_field_subscription(context.clone(), directive, definition)
+            .await;
+
+        match result {
+            Ok(()) => {
+                let (tx, rx) = mpsc::channel(10000);
+
+                tokio::spawn(async move {
+                    'outer: loop {
+                        match instance.resolve_next_subscription_item().await {
+                            Ok(Some(item)) => {
+                                for item in item.outputs {
+                                    match item {
+                                        Ok(item) => {
+                                            if tx.send(Ok(Data::CborBytes(item))).await.is_err() {
+                                                tracing::debug!("channel closed");
+                                                break 'outer;
+                                            }
+                                        }
+                                        Err(error) => {
+                                            let error =
+                                                guest_error_as_gql(error, PartialErrorCode::InternalServerError);
+
+                                            if tx.send(Err(error)).await.is_err() {
+                                                tracing::debug!("channel closed");
+                                                break 'outer;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            Ok(None) => {
+                                tracing::debug!("subscription completed");
+                                break;
+                            }
+                            Err(e) => {
+                                tracing::error!("error resolving subscription item: {}", e);
+                                break;
+                            }
+                        }
+                    }
+                });
+
+                Ok(rx)
+            }
+            Err(error) => match error {
+                crate::Error::Guest(error) => {
+                    let error = guest_error_as_gql(error, PartialErrorCode::InternalServerError);
+                    Err(error)
+                }
+                _ => Err(PartialGraphqlError::internal_extension_error()),
+            },
         }
     }
 }

@@ -7,9 +7,9 @@ pub use authentication::Authenticator;
 pub use resolver::Resolver;
 
 use crate::{
-    Component,
     types::{Configuration, FieldInputs},
     wit::{Directive, Error, ExtensionType, FieldDefinition, FieldOutput, Guest, Headers, SharedContext, Token},
+    Component,
 };
 
 /// A trait representing an extension that can be initialized from schema directives.
@@ -62,6 +62,20 @@ impl Guest for Component {
         );
 
         result.map(Into::into)
+    }
+
+    fn resolve_field_subscription(
+        context: SharedContext,
+        directive: Directive,
+        definition: FieldDefinition,
+    ) -> Result<(), Error> {
+        resolver::get_extension()?.resolve_subscription(context, directive.into(), definition.into())
+    }
+
+    fn resolve_next_subscription_item() -> Result<Option<FieldOutput>, Error> {
+        resolver::get_extension()?
+            .resolve_next_subscription_item()
+            .map(|v| v.map(Into::into))
     }
 
     fn authenticate(headers: Headers) -> Result<Token, crate::wit::ErrorResponse> {

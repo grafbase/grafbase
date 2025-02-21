@@ -51,6 +51,45 @@ impl ExtensionInstance {
         }
     }
 
+    pub async fn resolve_field_subscription(
+        &mut self,
+        context: wit::SharedContext,
+        directive: wit::Directive<'_>,
+        definition: wit::FieldDefinition<'_>,
+    ) -> Result<(), crate::Error> {
+        let context = self.store.data_mut().push_resource(context)?;
+
+        let result = self
+            .inner
+            .grafbase_sdk_extension()
+            .call_resolve_field_subscription(&mut self.store, context, directive, definition)
+            .await;
+
+        match result {
+            Ok(output) => output.map_err(Into::into),
+            Err(e) => {
+                self.poisoned = true;
+                Err(e.into())
+            }
+        }
+    }
+
+    pub async fn resolve_next_subscription_item(&mut self) -> Result<Option<FieldOutput>, crate::Error> {
+        let result = self
+            .inner
+            .grafbase_sdk_extension()
+            .call_resolve_next_subscription_item(&mut self.store)
+            .await;
+
+        match result {
+            Ok(output) => output.map_err(Into::into),
+            Err(e) => {
+                self.poisoned = true;
+                Err(e.into())
+            }
+        }
+    }
+
     pub async fn authenticate(
         &mut self,
         headers: http::HeaderMap,

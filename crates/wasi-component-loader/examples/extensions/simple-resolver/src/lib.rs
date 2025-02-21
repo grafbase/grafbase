@@ -1,6 +1,6 @@
 use grafbase_sdk::{
-    types::{Configuration, Directive, FieldDefinition, FieldInputs, FieldOutput},
     Error, Extension, Resolver, ResolverExtension, SharedContext,
+    types::{Configuration, Directive, FieldDefinition, FieldInputs, FieldOutput},
 };
 
 #[derive(ResolverExtension)]
@@ -55,5 +55,13 @@ impl Resolver for SimpleResolver {
         });
 
         Ok(output)
+    }
+
+    fn resolve_subscription(&mut self, _: SharedContext, _: Directive, _: FieldDefinition) -> Result<(), Error> {
+        todo!()
+    }
+
+    fn resolve_next_subscription_item(&mut self) -> Result<Option<FieldOutput>, Error> {
+        todo!()
     }
 }

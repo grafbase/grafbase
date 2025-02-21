@@ -8,7 +8,7 @@ keywords = ["graphql"]
 repository = "https://github.com/grafbase/grafbase"
 
 [dependencies]
-grafbase-sdk = { path = "../../crates/grafbase-sdk" }
+grafbase-sdk = { path = "../../crates/grafbase-sdk", features = ["jq-selection"] }
 http = "1"
 jaq-core = "2.1.1"
 jaq-json = { version = "1.1.1", features = ["serde_json"] }

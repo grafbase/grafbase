@@ -7,8 +7,8 @@ use super::{ArgumentsContext, template::JsonContent};
 
 #[derive(Clone, Copy)]
 pub struct ExtensionDirectiveArgumentsQueryView<'a> {
-    pub(super) ctx: ArgumentsContext<'a>,
-    pub(super) directive: ExtensionDirective<'a>,
+    pub(crate) ctx: ArgumentsContext<'a>,
+    pub(crate) directive: ExtensionDirective<'a>,
 }
 
 impl serde::Serialize for ExtensionDirectiveArgumentsQueryView<'_> {

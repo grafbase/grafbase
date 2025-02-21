@@ -43,9 +43,3 @@ pub(crate) const SUBGRAPH_REQUEST_SET_METHOD_METHOD: &str = "[method]subgraph-re
 pub(crate) const SUBGRAPH_REQUEST_GET_URL_METHOD: &str = "[method]subgraph-request.url";
 pub(crate) const SUBGRAPH_REQUEST_SET_URL_METHOD: &str = "[method]subgraph-request.set-url";
 pub(crate) const SUBGRAPH_REQUEST_GET_HEADERS_METHOD: &str = "[method]subgraph-request.headers";
-
-// Extensions
-
-pub(crate) const NATS_CLIENT_RESOURCE: &str = "nats-client";
-pub(crate) const NATS_CLIENT_CONNECT_FUNCTION: &str = "[static]nats-client.connect";
-pub(crate) const NATS_CLIENT_PUBLISH_METHOD: &str = "[method]nats-client.publish";

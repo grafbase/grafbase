@@ -2,6 +2,7 @@ use std::future::Future;
 
 use engine_schema::{FieldDefinition, Subgraph};
 use extension_catalog::ExtensionId;
+use tokio::sync::mpsc;
 
 #[derive(Clone, Copy, PartialEq, Hash, Eq, PartialOrd, Ord, id_derives::Id)]
 pub struct AuthorizerId(u16);
@@ -40,6 +41,14 @@ pub trait ExtensionRuntime: Send + Sync + 'static {
     where
         'ctx: 'f;
 
+    fn resolve_field_subscription<'ctx, 'f>(
+        &'ctx self,
+        context: &'ctx Self::SharedContext,
+        directive: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
+    ) -> impl Future<Output = Result<mpsc::Receiver<Result<Data, PartialGraphqlError>>, PartialGraphqlError>> + Send + 'f
+    where
+        'ctx: 'f;
+
     fn authenticate(
         &self,
         _extension_id: ExtensionId,
@@ -74,5 +83,16 @@ impl ExtensionRuntime for () {
             status: http::StatusCode::INTERNAL_SERVER_ERROR,
             errors: vec![PartialGraphqlError::internal_extension_error()],
         })
+    }
+
+    async fn resolve_field_subscription<'ctx, 'f>(
+        &'ctx self,
+        _: &'ctx Self::SharedContext,
+        _: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
+    ) -> Result<mpsc::Receiver<Result<Data, PartialGraphqlError>>, PartialGraphqlError>
+    where
+        'ctx: 'f,
+    {
+        Err(PartialGraphqlError::internal_extension_error())
     }
 }

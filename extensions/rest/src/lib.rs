@@ -1,23 +1,18 @@
+mod selection_filter;
 mod types;
 
 use grafbase_sdk::{
-    host_io::http::{self, HttpRequest, Url},
-    types::{Configuration, Directive, FieldDefinition, FieldInputs, FieldOutput},
     Error, Extension, Resolver, ResolverExtension, SharedContext,
+    host_io::http::{self, HttpRequest, Url},
+    jq_selection::JqSelection,
+    types::{Configuration, Directive, FieldDefinition, FieldInputs, FieldOutput},
 };
-use jaq_core::{
-    load::{Arena, File, Loader},
-    Compiler, Ctx, Filter, Native, RcIter,
-};
-use jaq_json::Val;
-use std::collections::HashMap;
 use types::{Rest, RestEndpoint};
 
 #[derive(ResolverExtension)]
 struct RestExtension {
     endpoints: Vec<RestEndpoint>,
-    filters: HashMap<String, Filter<Native<Val>>>,
-    arena: Arena,
+    jq_selection: JqSelection,
 }
 
 impl Extension for RestExtension {
@@ -39,12 +34,9 @@ impl Extension for RestExtension {
             by_name.then(by_subgraph)
         });
 
-        let arena = Arena::default();
-
         Ok(Self {
             endpoints,
-            filters: HashMap::new(),
-            arena,
+            jq_selection: JqSelection::default(),
         })
     }
 }
@@ -60,42 +52,6 @@ impl RestExtension {
             })
             .map(|i| &self.endpoints[i])
             .ok()
-    }
-
-    pub fn create_filter<'a>(&'a mut self, selection: &str) -> Result<&'a Filter<Native<Val>>, Error> {
-        if !self.filters.contains_key(selection) {
-            let program = File {
-                code: selection,
-                path: (),
-            };
-
-            let loader = Loader::new(jaq_std::defs().chain(jaq_json::defs()));
-
-            let modules = loader.load(&self.arena, program).map_err(|e| {
-                let error = e.first().map(|e| e.0.code).unwrap_or_default();
-
-                Error {
-                    extensions: Vec::new(),
-                    message: format!("The selection is not valid jq syntax: `{error}`"),
-                }
-            })?;
-
-            let filter = Compiler::default()
-                .with_funs(jaq_std::funs().chain(jaq_json::funs()))
-                .compile(modules)
-                .map_err(|e| {
-                    let error = e.first().map(|e| e.0.code).unwrap_or_default();
-
-                    Error {
-                        extensions: Vec::new(),
-                        message: format!("The selection is not valid jq syntax: `{error}`"),
-                    }
-                })?;
-
-            self.filters.insert(selection.to_string(), filter);
-        }
-
-        Ok(self.filters.get(selection).unwrap())
     }
 }
 
@@ -164,15 +120,16 @@ impl Resolver for RestExtension {
             message: format!("Error deserializing response: {e}"),
         })?;
 
-        let filter = self.create_filter(rest.selection)?;
-        let inputs = RcIter::new(core::iter::empty());
-        let filtered = filter.run((Ctx::new([], &inputs), Val::from(data)));
+        let filtered = self.jq_selection.select(rest.selection, data).map_err(|e| Error {
+            extensions: Vec::new(),
+            message: format!("Error selecting result value: {e}"),
+        })?;
 
         let mut results = FieldOutput::new();
 
         for result in filtered {
             match result {
-                Ok(result) => results.push_value(serde_json::Value::from(result)),
+                Ok(result) => results.push_value(result),
                 Err(e) => results.push_error(Error {
                     extensions: Vec::new(),
                     message: format!("Error parsing result value: {e}"),
@@ -181,5 +138,13 @@ impl Resolver for RestExtension {
         }
 
         Ok(results)
+    }
+
+    fn resolve_subscription(&mut self, _: SharedContext, _: Directive, _: FieldDefinition) -> Result<(), Error> {
+        unreachable!()
+    }
+
+    fn resolve_next_subscription_item(&mut self) -> Result<Option<FieldOutput>, Error> {
+        unreachable!()
     }
 }
