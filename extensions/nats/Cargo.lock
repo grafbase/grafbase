@@ -360,9 +360,9 @@ checksum = "ace50bade8e6234aa140d9a2f552bbee1db4d353f69b8217bc503490fc1a9f26"
 
 [[package]]
 name = "aws-lc-rs"
-version = "1.12.3"
+version = "1.12.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c6a895b664295a4ba0c2c0203c7075ea585dd75cd5c37a8efac829e13e460ef"
+checksum = "4cd755adf9707cf671e31d944a189be3deaaeee11c8bc1d669bb8022ac90fbd0"
 dependencies = [
  "aws-lc-sys",
  "paste",
@@ -612,9 +612,9 @@ checksum = "37b2a672a2cb129a2e41c10b1224bb368f9f37a2b16b612598138befd7b37eb5"
 
 [[package]]
 name = "cc"
-version = "1.2.14"
+version = "1.2.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c3d1b2e905a3a7b00a6141adb0e4c0bb941d11caf55349d863942a1cc44e3c9"
+checksum = "c736e259eea577f443d5c86c304f9f4ae0295c43f3ba05c21f1d66b5f06001af"
 dependencies = [
  "jobserver",
  "libc",
@@ -1000,7 +1000,7 @@ version = "3.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "332695dddff7f260dfda1e97502b6440d443816f576994548b7751494991d2e3"
 dependencies = [
- "cynic-parser 0.9.0",
+ "cynic-parser",
  "darling",
  "once_cell",
  "ouroboros",
@@ -1014,21 +1014,9 @@ dependencies = [
 
 [[package]]
 name = "cynic-parser"
-version = "0.8.7"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "86a21da88ae46f2be6a622880a72f968d05c50b5a797e525332d0c988f693f70"
-dependencies = [
- "ariadne",
- "indexmap 2.7.1",
- "lalrpop-util",
- "logos",
-]
-
-[[package]]
-name = "cynic-parser"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "718db83de607a233ef38f7cc2d18847c36a3529d7cd614b13c78c52c2fb61b7b"
+checksum = "cbb0f21f2f8d3134c2e887a16564c165694231f48b6ae2769193299081ecf662"
 dependencies = [
  "ariadne",
  "indexmap 2.7.1",
@@ -1039,19 +1027,19 @@ dependencies = [
 
 [[package]]
 name = "cynic-parser-deser"
-version = "0.8.7"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c54d3ecc3d8af8d3f2410150b8eae8ce680b88517690e7963cb3f249819e6284"
+checksum = "e4fabdc974620ca12f644fd77636cbcfc92c2de48ab7e701735489c3b44ddf2b"
 dependencies = [
- "cynic-parser 0.8.7",
+ "cynic-parser",
  "cynic-parser-deser-macros",
 ]
 
 [[package]]
 name = "cynic-parser-deser-macros"
-version = "0.8.7"
+version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf926142311eac3d25aa9709f6321765115c0d1af545355984395c4eb3ac1565"
+checksum = "263bab9941a21ca9c16d0fe455a8b919b3eba78eadf7741599d92581141590d0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1583,7 +1571,7 @@ dependencies = [
  "async-graphql",
  "async-graphql-axum",
  "axum",
- "cynic-parser 0.9.0",
+ "cynic-parser",
  "grafbase-workspace-hack 0.1.0",
  "serde",
  "serde_json",
@@ -1624,7 +1612,7 @@ dependencies = [
  "curve25519-dalek",
  "cynic",
  "cynic-codegen",
- "cynic-parser 0.9.0",
+ "cynic-parser",
  "deadpool-runtime",
  "der",
  "deranged",
@@ -1747,11 +1735,11 @@ checksum = "ebfd7fd1a0e3427f3e6c9ef7bc4e0d2f05c9e94ecf859176cdf297212fe8f06e"
 
 [[package]]
 name = "graphql-composition"
-version = "0.6.1"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d1abe2c78547bfd903d4f41339882ee74ccc1e9d1bd19b9ed8bdfe607517bfa3"
+checksum = "93340435553102d769e19893add506aef5e313eb3bf67e9a03dcde1b8c8c0dd4"
 dependencies = [
- "cynic-parser 0.8.7",
+ "cynic-parser",
  "cynic-parser-deser",
  "graphql-federated-graph",
  "indexmap 2.7.1",
@@ -1761,12 +1749,12 @@ dependencies = [
 
 [[package]]
 name = "graphql-federated-graph"
-version = "0.6.0"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "895a55bf1a7fcc72ec3908239921a11b0cf661fe3a6cfc550e89a2a6e0580fac"
+checksum = "2ec235bbd27dc271777a6bcca6dda46132272788018bfadbe0b5b68b066eab73"
 dependencies = [
  "bitflags",
- "cynic-parser 0.8.7",
+ "cynic-parser",
  "cynic-parser-deser",
  "grafbase-workspace-hack 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "graphql-wrapping-types",
@@ -2417,9 +2405,9 @@ dependencies = [
 
 [[package]]
 name = "log"
-version = "0.4.25"
+version = "0.4.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "04cbf5b083de1c7e0222a7a51dbfdba1cbe1c6ab0b15e29fff3f6c077fd9cd9f"
+checksum = "30bde2b3dc3671ae49d8e2e9f044c7c005836e7a023ee57cffa25ab82764bb9e"
 
 [[package]]
 name = "logos"
@@ -4644,9 +4632,9 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
 name = "uuid"
-version = "1.13.2"
+version = "1.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8c1f41ffb7cf259f1ecc2876861a17e7142e63ead296f671f81f6ae85903e0d6"
+checksum = "93d59ca99a559661b96bf898d8fce28ed87935fd2bea9f05983c1464dd6c71b1"
 dependencies = [
  "getrandom 0.3.1",
 ]
