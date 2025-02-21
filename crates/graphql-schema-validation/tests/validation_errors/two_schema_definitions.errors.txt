@@ -1,4 +1,3 @@
-
   × Duplicate schema definition
    ╭─[1:1]
  1 │ schema {

@@ -1,11 +1,9 @@
-
   × `Float` is a reserved name.
    ╭─[1:6]
  1 │ type Float {
    ·      ─────
  2 │   beforeComma: String!
    ╰────
-
 
 
   × `String` is a reserved name.
@@ -17,7 +15,6 @@
    ╰────
 
 
-
   × `Int` is a reserved name.
     ╭─[11:8]
  10 │ 
@@ -25,7 +22,6 @@
     ·        ───
  12 │ scalar Boolean
     ╰────
-
 
 
   × `Boolean` is a reserved name.
