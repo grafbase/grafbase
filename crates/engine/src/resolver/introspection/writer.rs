@@ -1,20 +1,20 @@
 use schema::{
-    introspection::{
-        IntrospectionField, IntrospectionMetadata, IntrospectionObject, _Field, __EnumValue, __InputValue, __Schema,
-        __Type,
-    },
     Definition, EntityDefinition, EnumValue, FieldDefinition, InputValueDefinition, InterfaceDefinition, ListWrapping,
     MutableWrapping, ObjectDefinition, Schema, StringId, Type, TypeSystemDirective,
+    introspection::{
+        __EnumValue, __InputValue, __Schema, __Type, _Field, IntrospectionField, IntrospectionMetadata,
+        IntrospectionObject,
+    },
 };
 use walker::{Iter, Walk};
 
 use crate::{
+    Runtime,
     execution::ExecutionContext,
     prepare::{ConcreteShapeId, FieldShapeRecord, Plan, Shapes},
     response::{
         InputObjectId, ObjectUpdate, ResponseObject, ResponseObjectField, ResponseValue, SubgraphResponseRefMut,
     },
-    Runtime,
 };
 
 pub(super) struct IntrospectionWriter<'ctx, R: Runtime> {

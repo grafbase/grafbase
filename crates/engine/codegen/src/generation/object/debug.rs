@@ -1,6 +1,6 @@
 use cynic_parser::common::WrappingType;
 use proc_macro2::{Ident, Span};
-use quote::{quote, ToTokens, TokenStreamExt};
+use quote::{ToTokens, TokenStreamExt, quote};
 use tracing::instrument;
 
 use crate::domain::{AccessKind, Object};
@@ -54,8 +54,19 @@ impl ToTokens for DebugField<'_> {
                     | [WrappingType::NonNull, WrappingType::List] => {
                         quote! { .field(#name_string, &self.#name()) }
                     }
-                    [WrappingType::NonNull, WrappingType::List, WrappingType::NonNull, WrappingType::List, WrappingType::NonNull]
-                    | [WrappingType::NonNull, WrappingType::List, WrappingType::NonNull, WrappingType::List] => {
+                    [
+                        WrappingType::NonNull,
+                        WrappingType::List,
+                        WrappingType::NonNull,
+                        WrappingType::List,
+                        WrappingType::NonNull,
+                    ]
+                    | [
+                        WrappingType::NonNull,
+                        WrappingType::List,
+                        WrappingType::NonNull,
+                        WrappingType::List,
+                    ] => {
                         quote! { .field(#name_string, &self.#name().map(|items| items.collect::<Vec<_>>())) }
                     }
                     _ => {

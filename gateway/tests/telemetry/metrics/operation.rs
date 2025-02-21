@@ -1,9 +1,9 @@
 mod hooks;
 mod subgraph;
 
-use crate::telemetry::metrics::{SumRow, METRICS_DELAY};
+use crate::telemetry::metrics::{METRICS_DELAY, SumRow};
 
-use super::{with_custom_gateway, with_gateway, ExponentialHistogramRow};
+use super::{ExponentialHistogramRow, with_custom_gateway, with_gateway};
 
 #[test]
 fn basic() {

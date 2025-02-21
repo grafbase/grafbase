@@ -10,10 +10,10 @@ use id_derives::IndexedFields;
 use schema::Schema;
 
 use crate::{
-    parse::ParsedOperation, DataFieldRecord, FieldArgumentRecord, FragmentId, FragmentRecord, FragmentSpreadRecord,
-    InlineFragmentRecord, Operation, OperationAttributes, OperationContext, QueryInputValues, RawVariables,
-    ResponseKeys, SelectionId, TypenameFieldRecord, VariableDefinitionRecord, VariableInputValues, VariableValueRecord,
-    Variables,
+    DataFieldRecord, FieldArgumentRecord, FragmentId, FragmentRecord, FragmentSpreadRecord, InlineFragmentRecord,
+    Operation, OperationAttributes, OperationContext, QueryInputValues, RawVariables, ResponseKeys, SelectionId,
+    TypenameFieldRecord, VariableDefinitionRecord, VariableInputValues, VariableValueRecord, Variables,
+    parse::ParsedOperation,
 };
 
 type BindResult<T> = Result<T, BindError>;

@@ -6,7 +6,12 @@ use http::HeaderMap;
 use url::Url;
 use wasmtime::component::{ComponentNamedList, Lift, Lower, Resource, TypedFunc};
 
-use crate::{error::guest::ErrorResponse, ChannelLogSender};
+use crate::{ChannelLogSender, error::guest::ErrorResponse};
+use crate::{ComponentLoader, SharedContext};
+use crate::{
+    ContextMap, EdgeDefinition, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, GuestResult,
+    NodeDefinition,
+};
 use crate::{
     http_client::HttpMethod,
     names::{
@@ -16,11 +21,6 @@ use crate::{
         ON_HTTP_RESPONSE_FUNCTION, ON_OPERATION_RESPONSE_FUNCTION, ON_SUBGRAGH_REQUEST_HOOK_FUNCTION,
         ON_SUBGRAPH_RESPONSE_FUNCTION,
     },
-};
-use crate::{ComponentLoader, SharedContext};
-use crate::{
-    ContextMap, EdgeDefinition, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, GuestResult,
-    NodeDefinition,
 };
 
 use super::ComponentInstance;

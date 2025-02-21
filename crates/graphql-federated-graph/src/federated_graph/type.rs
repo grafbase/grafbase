@@ -20,11 +20,7 @@ pub enum Definition {
 
 impl Definition {
     pub fn as_enum(&self) -> Option<EnumDefinitionId> {
-        if let Self::Enum(v) = self {
-            Some(*v)
-        } else {
-            None
-        }
+        if let Self::Enum(v) = self { Some(*v) } else { None }
     }
 
     pub fn as_entity(&self) -> Option<EntityDefinitionId> {

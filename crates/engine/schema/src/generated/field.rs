@@ -8,12 +8,12 @@ mod requires;
 mod subgraph_type;
 
 use crate::{
+    StringId,
     generated::{
         EntityDefinition, EntityDefinitionId, InputValueDefinition, InputValueDefinitionId, ResolverDefinition,
         ResolverDefinitionId, Subgraph, SubgraphId, Type, TypeRecord, TypeSystemDirective, TypeSystemDirectiveId,
     },
     prelude::*,
-    StringId,
 };
 pub use provides::*;
 pub use requires::*;

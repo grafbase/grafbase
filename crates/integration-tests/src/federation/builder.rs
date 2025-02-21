@@ -4,9 +4,9 @@ mod router;
 
 use std::{any::TypeId, collections::HashSet, fmt::Display, sync::Arc};
 
-use crate::{mock_trusted_documents::MockTrustedDocumentsClient, TestTrustedDocument};
+use crate::{TestTrustedDocument, mock_trusted_documents::MockTrustedDocumentsClient};
 pub use bench::*;
-use futures::{future::BoxFuture, FutureExt};
+use futures::{FutureExt, future::BoxFuture};
 use graphql_mocks::MockGraphQlServer;
 use runtime::{
     fetch::dynamic::DynamicFetcher,
@@ -15,8 +15,8 @@ use runtime::{
 };
 
 use super::{
-    subgraph::{Subgraph, Subgraphs},
     DockerSubgraph, TestExtensionBuilder, TestExtensions, TestGateway, TestRuntime,
+    subgraph::{Subgraph, Subgraphs},
 };
 
 #[derive(Default)]

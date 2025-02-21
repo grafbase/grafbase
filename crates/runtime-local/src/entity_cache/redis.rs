@@ -1,7 +1,7 @@
 use deadpool::managed::Object;
-use futures_util::{future::BoxFuture, FutureExt};
+use futures_util::{FutureExt, future::BoxFuture};
 use redis::{AsyncCommands, SetOptions};
-use tracing::{field::Empty, Instrument};
+use tracing::{Instrument, field::Empty};
 
 use crate::redis::{Manager, Pool};
 

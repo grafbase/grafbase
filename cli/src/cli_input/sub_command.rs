@@ -3,8 +3,8 @@ use clap::Parser;
 use crate::is_not_direct_install;
 
 use super::{
-    branch::BranchCommand, trust::TrustCommand, CheckCommand, CompletionsCommand, CreateCommand, DevCommand,
-    ExtensionCommand, IntrospectCommand, LintCommand, LoginCommand, PublishCommand, SchemaCommand, SubgraphsCommand,
+    CheckCommand, CompletionsCommand, CreateCommand, DevCommand, ExtensionCommand, IntrospectCommand, LintCommand,
+    LoginCommand, PublishCommand, SchemaCommand, SubgraphsCommand, branch::BranchCommand, trust::TrustCommand,
 };
 
 #[derive(Debug, Parser, strum::AsRefStr, strum::Display)]

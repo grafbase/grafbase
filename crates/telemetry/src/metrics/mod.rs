@@ -3,8 +3,8 @@ mod request;
 
 pub use engine::*;
 use opentelemetry::{
-    metrics::{Meter, MeterProvider},
     InstrumentationScope,
+    metrics::{Meter, MeterProvider},
 };
 pub use request::*;
 

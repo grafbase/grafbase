@@ -17,8 +17,9 @@ use self::{
     emit_extensions::*,
 };
 use crate::{
+    Subgraphs, VecExt,
     composition_ir::{CompositionIr, FieldIr, InputValueDefinitionIr},
-    subgraphs, Subgraphs, VecExt,
+    subgraphs,
 };
 use directive::{emit_cost_directive_definition, emit_list_size_directive_definition};
 use graphql_federated_graph::{self as federated};

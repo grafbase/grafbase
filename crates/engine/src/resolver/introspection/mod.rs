@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
 use crate::{
+    Runtime,
     execution::{ExecutionContext, ExecutionResult},
     prepare::Plan,
     response::{InputResponseObjectSet, SubgraphResponse},
-    Runtime,
 };
 
 mod writer;

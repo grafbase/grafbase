@@ -5,8 +5,8 @@ use id_newtypes::{BitSet, IdRange};
 use im::HashMap;
 use operation::Operation;
 use query_solver::{
-    petgraph::{graph::NodeIndex, visit::EdgeRef, Direction},
     Edge, Node, QueryField, SolvedQuery,
+    petgraph::{Direction, graph::NodeIndex, visit::EdgeRef},
 };
 use schema::{Definition, EntityDefinitionId, ResolverDefinitionId, Schema, TypeSystemDirective};
 use walker::Walk;

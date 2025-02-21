@@ -1,6 +1,6 @@
 use crate::span::CacheRecorderSpanExt;
 use http::HeaderValue;
-use tracing::{info_span, Span};
+use tracing::{Span, info_span};
 
 /// Cache span name
 pub const CACHE_SPAN_NAME: &str = "cache";

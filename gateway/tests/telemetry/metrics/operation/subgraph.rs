@@ -1,5 +1,5 @@
 use crate::telemetry::metrics::{
-    with_custom_gateway, with_gateway, with_small_subgraph, ExponentialHistogramRow, SumRow, METRICS_DELAY,
+    ExponentialHistogramRow, METRICS_DELAY, SumRow, with_custom_gateway, with_gateway, with_small_subgraph,
 };
 
 #[test]

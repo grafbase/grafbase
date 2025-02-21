@@ -5,8 +5,8 @@ use crate::{
 use schema::{EntityDefinition, InputValueSerdeError};
 use serde::{
     de::{
-        value::{MapDeserializer, SeqDeserializer},
         IntoDeserializer, MapAccess, Visitor,
+        value::{MapDeserializer, SeqDeserializer},
     },
     forward_to_deserialize_any,
 };

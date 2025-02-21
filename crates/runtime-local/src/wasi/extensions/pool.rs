@@ -1,7 +1,7 @@
 use std::ops::{Deref, DerefMut};
 
 use deadpool::managed::{self, Manager};
-use tracing::{info_span, Instrument};
+use tracing::{Instrument, info_span};
 use wasi_component_loader::{ChannelLogSender, ComponentLoader, Directive, ExtensionType, ExtensionsComponentInstance};
 
 pub(super) struct Pool {

@@ -30,7 +30,7 @@ pub struct Metadata {
 macro_rules! panic_hook {
     () => {
         #[allow(unused_imports)]
-        use $crate::panic_hook::{handle_dump, print_msg, Metadata};
+        use $crate::panic_hook::{Metadata, handle_dump, print_msg};
 
         #[allow(unused_variables)]
         let meta = Metadata {

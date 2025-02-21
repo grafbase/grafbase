@@ -112,7 +112,7 @@ pub async fn start(
         Err(diagnostics) => {
             return Err(BackendError::Composition(
                 diagnostics.iter_errors().collect::<Vec<_>>().join("\n"),
-            ))
+            ));
         }
     };
 
@@ -170,10 +170,10 @@ fn output_handler(
     introspection_forced: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     use crossterm::{
+        QueueableCommand,
         cursor::MoveUp,
         style::Stylize,
         terminal::{Clear, ClearType},
-        QueueableCommand,
     };
     use std::io::stdout;
 

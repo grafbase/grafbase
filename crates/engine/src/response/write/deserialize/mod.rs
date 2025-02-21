@@ -2,14 +2,14 @@ use std::cell::{Cell, Ref, RefCell};
 
 use field_to_entity::FieldToEntityDeserializer;
 use object::{ConcreteShapeFieldsSeed, ObjectValue};
-use serde::{de::DeserializeSeed, Deserializer};
+use serde::{Deserializer, de::DeserializeSeed};
 use walker::Walk;
 
 use crate::{
+    Runtime,
     execution::ExecutionContext,
     prepare::ConcreteShapeId,
     response::{GraphqlError, InputObjectId},
-    Runtime,
 };
 
 mod ctx;

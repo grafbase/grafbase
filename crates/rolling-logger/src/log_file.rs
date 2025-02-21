@@ -4,7 +4,7 @@ use std::{
     path::Path,
 };
 
-use crate::{strategy::StrategyKind, RotateStrategy};
+use crate::{RotateStrategy, strategy::StrategyKind};
 
 /// The number of seconds in a minute.
 const MINUTE_SECS: u64 = 60;

@@ -7,9 +7,9 @@ pub use authentication::Authenticator;
 pub use resolver::Resolver;
 
 use crate::{
+    Component,
     types::{Configuration, FieldInputs},
     wit::{Directive, Error, ExtensionType, FieldDefinition, FieldOutput, Guest, Headers, SharedContext, Token},
-    Component,
 };
 
 /// A trait representing an extension that can be initialized from schema directives.

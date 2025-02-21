@@ -1,5 +1,5 @@
 use crate::context::Context;
-use async_graphql_parser::{types::TypeKind, Pos};
+use async_graphql_parser::{Pos, types::TypeKind};
 
 #[must_use]
 pub(crate) enum ValidateOutputTypeResult {

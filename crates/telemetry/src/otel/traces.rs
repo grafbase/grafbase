@@ -2,9 +2,9 @@ use std::time::Duration;
 
 use opentelemetry_sdk::export::trace;
 use opentelemetry_sdk::{
+    Resource,
     runtime::RuntimeChannel,
     trace::{BatchConfigBuilder, BatchSpanProcessor, Builder, IdGenerator, Sampler, TracerProvider},
-    Resource,
 };
 
 use crate::{

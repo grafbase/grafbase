@@ -6,11 +6,11 @@ use cynic_parser_deser::ConstDeserializer;
 use crate::ExtensionLinkSchemaDirective;
 
 use super::{
-    attach_input_value_set_to_field_arguments, attach_selection_set, parse_selection_set, AuthorizedDirective,
-    CostDirective, Definition, DeprecatedDirective, Directive, DomainError, ExtensionDirective, FieldId,
-    GetArgumentsExt, InputValueDefinitionId, IntoJson, JoinFieldDirective, JoinImplementsDirective, JoinTypeDirective,
-    JoinUnionMemberDirective, ListSize, ListSizeDirective, OverrideLabel, OverrideSource, State, StringId, Value,
-    EXTENSION_DIRECTIVE_DIRECTIVE,
+    AuthorizedDirective, CostDirective, Definition, DeprecatedDirective, Directive, DomainError,
+    EXTENSION_DIRECTIVE_DIRECTIVE, ExtensionDirective, FieldId, GetArgumentsExt, InputValueDefinitionId, IntoJson,
+    JoinFieldDirective, JoinImplementsDirective, JoinTypeDirective, JoinUnionMemberDirective, ListSize,
+    ListSizeDirective, OverrideLabel, OverrideSource, State, StringId, Value,
+    attach_input_value_set_to_field_arguments, attach_selection_set, parse_selection_set,
 };
 
 pub(super) fn collect_definition_directives<'a>(

@@ -1,6 +1,6 @@
-use cynic_parser::{type_system as ast, TypeSystemDocument};
+use cynic_parser::{TypeSystemDocument, type_system as ast};
 use extension_catalog::load_manifest;
-use futures::{future::join_all, TryFutureExt as _};
+use futures::{TryFutureExt as _, future::join_all};
 use url::Url;
 
 #[derive(Debug)]

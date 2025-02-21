@@ -1,6 +1,6 @@
 use serde::{
-    de::{DeserializeSeed, IgnoredAny, MapAccess, Visitor},
     Deserializer,
+    de::{DeserializeSeed, IgnoredAny, MapAccess, Visitor},
 };
 
 use crate::response::{ErrorPath, ErrorPathSegment, InputObjectId, SubgraphResponseRefMut};

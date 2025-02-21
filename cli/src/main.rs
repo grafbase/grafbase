@@ -40,7 +40,7 @@ use common::{
 use errors::CliError;
 use output::report;
 use std::{io::IsTerminal as _, path::PathBuf, process};
-use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 use watercolor::ShouldColorize;
 
 use mimalloc::MiMalloc;

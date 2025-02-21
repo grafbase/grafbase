@@ -1,4 +1,4 @@
-use super::{graph_ref::FullOrPartialGraphRef, FullGraphRef};
+use super::{FullGraphRef, graph_ref::FullOrPartialGraphRef};
 use std::path::PathBuf;
 
 #[derive(Debug, clap::Parser)]

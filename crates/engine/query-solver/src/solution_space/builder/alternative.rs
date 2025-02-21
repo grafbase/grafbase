@@ -1,11 +1,11 @@
-use petgraph::{stable_graph::NodeIndex, visit::EdgeRef, Direction};
+use petgraph::{Direction, stable_graph::NodeIndex, visit::EdgeRef};
 use schema::{CompositeType, CompositeTypeId, FieldDefinition};
 use walker::Walk;
 
 use crate::{FieldFlags, QueryField, QueryFieldId};
 
 use super::{
-    builder::QuerySolutionSpaceBuilder, providable_fields::UnplannableField, QueryFieldNode, SpaceEdge, SpaceNode,
+    QueryFieldNode, SpaceEdge, SpaceNode, builder::QuerySolutionSpaceBuilder, providable_fields::UnplannableField,
 };
 
 impl<'schema, 'op> QuerySolutionSpaceBuilder<'schema, 'op>

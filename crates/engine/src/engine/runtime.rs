@@ -11,9 +11,7 @@ pub trait Runtime: Send + Sync + 'static {
     type Hooks: runtime::hooks::Hooks;
     type Fetcher: runtime::fetch::Fetcher;
     type OperationCache: runtime::operation_cache::OperationCache<Arc<CachedOperation>>;
-    type Extensions: runtime::extension::ExtensionRuntime<
-        SharedContext = <Self::Hooks as runtime::hooks::Hooks>::Context,
-    >;
+    type Extensions: runtime::extension::ExtensionRuntime<SharedContext = <Self::Hooks as runtime::hooks::Hooks>::Context>;
 
     fn fetcher(&self) -> &Self::Fetcher;
     fn kv(&self) -> &KvStore;
@@ -29,7 +27,7 @@ pub trait Runtime: Send + Sync + 'static {
 
 pub(crate) trait RuntimeExt: Runtime {
     async fn with_timeout<T>(&self, timeout: std::time::Duration, fut: impl Future<Output = T> + Send) -> Option<T> {
-        use futures_util::{pin_mut, select, FutureExt};
+        use futures_util::{FutureExt, pin_mut, select};
 
         let timeout = async move {
             self.sleep(timeout).await;

@@ -1,5 +1,5 @@
-use clap::{command, CommandFactory, Parser};
-use clap_complete::{shells, Generator};
+use clap::{CommandFactory, Parser, command};
+use clap_complete::{Generator, shells};
 
 #[derive(Debug, Parser)]
 pub struct CompletionsCommand {

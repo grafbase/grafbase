@@ -7,7 +7,7 @@ pub(crate) use node::*;
 
 use operation::{Operation, OperationContext};
 use schema::Schema;
-use tracing::{instrument, Level};
+use tracing::{Level, instrument};
 
 use petgraph::{
     dot::{Config, Dot},

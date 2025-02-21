@@ -5,7 +5,7 @@ use std::{
 
 use deadpool::managed;
 use grafbase_telemetry::otel::opentelemetry::metrics::UpDownCounter;
-use tracing::{info_span, Instrument};
+use tracing::{Instrument, info_span};
 use wasi_component_loader::{ChannelLogSender, ComponentLoader, HooksComponentInstance};
 
 pub(super) struct Pool {

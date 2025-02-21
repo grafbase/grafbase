@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use axum::{extract::State, response::IntoResponse, routing::get, Router};
+use axum::{Router, extract::State, response::IntoResponse, routing::get};
 use engine::Engine;
 use engine_axum::websocket::{WebsocketAccepter, WebsocketService};
 use gateway_config::Config;

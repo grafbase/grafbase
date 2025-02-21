@@ -1,7 +1,7 @@
 use operation::{Operation, OperationContext};
 use schema::Schema;
 
-use crate::{assert_solving_snapshots, solve::Solver, Query};
+use crate::{Query, assert_solving_snapshots, solve::Solver};
 
 const SCHEMA: &str = r###"
 enum join__Graph {

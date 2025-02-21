@@ -1,7 +1,7 @@
 use std::time::Instant;
 
-use futures_util::{future::BoxFuture, FutureExt};
-use tracing::{field::Empty, Instrument};
+use futures_util::{FutureExt, future::BoxFuture};
+use tracing::{Instrument, field::Empty};
 
 pub struct InMemoryEntityCache {
     inner: mini_moka::sync::Cache<String, CacheValue>,

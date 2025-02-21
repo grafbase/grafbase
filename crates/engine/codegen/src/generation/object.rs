@@ -8,7 +8,7 @@ use tracing::instrument;
 
 use crate::domain::{Definition, Domain, Field, Object};
 
-use super::{id::generate_id, GeneratedCode, Imports};
+use super::{GeneratedCode, Imports, id::generate_id};
 
 #[instrument(skip(domain))]
 pub fn generate_object<'a>(domain: &'a Domain, object: &'a Object) -> anyhow::Result<GeneratedCode<'a>> {

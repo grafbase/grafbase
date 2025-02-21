@@ -4,11 +4,11 @@
 //! Generated with: `cargo run -p engine-codegen`
 //! Source file: <engine-codegen dir>/domain/query_plan.graphql
 use crate::prepare::cached::query_plan::{
+    RequiredFieldSet, RequiredFieldSetRecord,
     generated::{
         PartitionSelectionSet, PartitionSelectionSetRecord, ResponseObjectSetDefinition, ResponseObjectSetDefinitionId,
     },
     prelude::*,
-    RequiredFieldSet, RequiredFieldSetRecord,
 };
 use schema::{EntityDefinition, EntityDefinitionId, ResolverDefinition, ResolverDefinitionId};
 #[allow(unused_imports)]

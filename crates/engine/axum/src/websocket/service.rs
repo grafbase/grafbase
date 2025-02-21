@@ -8,8 +8,8 @@ use std::{
 
 use axum::{
     body::{Body, HttpBody},
-    extract::{ws, FromRequestParts, WebSocketUpgrade},
-    http::{self, request::Parts, Request, Response, StatusCode},
+    extract::{FromRequestParts, WebSocketUpgrade, ws},
+    http::{self, Request, Response, StatusCode, request::Parts},
     response::IntoResponse,
 };
 use futures_util::future::BoxFuture;

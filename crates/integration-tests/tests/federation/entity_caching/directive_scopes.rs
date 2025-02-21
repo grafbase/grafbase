@@ -5,7 +5,7 @@ use engine::Engine;
 use graphql_mocks::{FederatedInventorySchema, FederatedProductsSchema, FederatedReviewsSchema, SecureFederatedSchema};
 use integration_tests::{
     federation::{EngineExt, TestGateway},
-    openid::{CoreClientExt, OryHydraOpenIDProvider, JWKS_URI},
+    openid::{CoreClientExt, JWKS_URI, OryHydraOpenIDProvider},
     runtime,
 };
 

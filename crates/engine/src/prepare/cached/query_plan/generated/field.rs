@@ -4,7 +4,7 @@
 //! Generated with: `cargo run -p engine-codegen`
 //! Source file: <engine-codegen dir>/domain/query_plan.graphql
 use crate::prepare::cached::query_plan::{
-    prelude::*, PartitionDataField, PartitionDataFieldId, PartitionTypenameField, PartitionTypenameFieldId,
+    PartitionDataField, PartitionDataFieldId, PartitionTypenameField, PartitionTypenameFieldId, prelude::*,
 };
 #[allow(unused_imports)]
 use walker::{Iter, Walk};

@@ -4,9 +4,9 @@
 //! Generated with: `cargo run -p engine-codegen`
 //! Source file: <engine-codegen dir>/domain/schema.graphql
 use crate::{
+    FieldSet, FieldSetRecord,
     generated::{Subgraph, SubgraphId},
     prelude::*,
-    FieldSet, FieldSetRecord,
 };
 #[allow(unused_imports)]
 use walker::{Iter, Walk};

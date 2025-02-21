@@ -4,7 +4,7 @@ mod object_behind_union;
 use integration_tests::{federation::DeterministicEngine, runtime};
 use serde_json::json;
 
-use crate::federation::introspection::{introspection_to_sdl, PATHFINDER_INTROSPECTION_QUERY};
+use crate::federation::introspection::{PATHFINDER_INTROSPECTION_QUERY, introspection_to_sdl};
 
 const SCHEMA: &str = r###"
 directive @join__field(graph: join__Graph, requires: String, provides: String) on FIELD_DEFINITION

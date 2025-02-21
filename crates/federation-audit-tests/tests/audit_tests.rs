@@ -1,6 +1,7 @@
 use federation_audit_tests::{
+    CachedTest, Response,
     audit_server::{AuditServer, ExpectedResponse, Test},
-    cached_tests, CachedTest, Response,
+    cached_tests,
 };
 use integration_tests::federation::TestGatewayBuilder;
 use libtest_mimic::{Arguments, Failed, Trial};

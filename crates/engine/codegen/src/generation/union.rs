@@ -14,7 +14,7 @@ use crate::domain::{Definition, Domain, Scalar, Union, UnionKind, Variant};
 
 use self::bitpacked::generate_bitpacked_id_union;
 
-use super::{id::generate_id, GeneratedCode, Imports};
+use super::{GeneratedCode, Imports, id::generate_id};
 
 #[instrument(skip(domain))]
 pub fn generate_union<'a>(domain: &'a Domain, union: &'a Union) -> anyhow::Result<GeneratedCode<'a>> {

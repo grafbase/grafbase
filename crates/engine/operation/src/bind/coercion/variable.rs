@@ -10,7 +10,7 @@ use crate::{Location, VariableDefinition, VariableInputValueId, VariableInputVal
 
 use super::{
     error::InputValueError,
-    path::{value_path_to_string, ValuePathSegment},
+    path::{ValuePathSegment, value_path_to_string},
 };
 
 pub fn coerce_variable(
@@ -193,7 +193,7 @@ impl<'a> VariableCoercionContext<'a> {
                     actual: value.into(),
                     path: self.path(),
                     location: self.location,
-                })
+                });
             }
         };
 

@@ -1,5 +1,5 @@
 use proc_macro2::{Ident, Literal, Span, TokenStream};
-use quote::{quote, TokenStreamExt};
+use quote::{TokenStreamExt, quote};
 use tracing::instrument;
 
 use crate::domain::{BitPackedIdUnion, StorageType};

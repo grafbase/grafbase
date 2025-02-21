@@ -8,7 +8,7 @@ use crate::backend::api::graphql::queries::{
 
 use super::{client::create_client, errors::ApiError};
 use crate::common::environment::PlatformData;
-use cynic::{http::ReqwestExt, QueryBuilder};
+use cynic::{QueryBuilder, http::ReqwestExt};
 
 pub async fn schema(
     account: &str,

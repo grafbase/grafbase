@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
 use proc_macro2::{Ident, Span, TokenStream};
-use quote::{quote, TokenStreamExt};
+use quote::{TokenStreamExt, quote};
 
 use crate::{
-    domain::{Definition, Domain, Object, Scalar, Union},
     GENERATED_MODULE,
+    domain::{Definition, Domain, Object, Scalar, Union},
 };
 
 use super::Imports;

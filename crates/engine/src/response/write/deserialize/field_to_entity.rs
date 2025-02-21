@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use serde::{de::MapAccess, Deserializer};
+use serde::{Deserializer, de::MapAccess};
 
 pub(super) struct FieldToEntityDeserializer<'k, D> {
     pub key: &'k str,

@@ -2,8 +2,8 @@ use std::net::SocketAddr;
 
 use gateway_config::{HealthConfig, TlsConfig};
 
-use super::{state::ServerState, ServerRuntime};
-use axum::{extract::State, routing::get, Json, Router};
+use super::{ServerRuntime, state::ServerState};
+use axum::{Json, Router, extract::State, routing::get};
 use http::StatusCode;
 
 #[derive(Debug, serde::Serialize)]

@@ -1,7 +1,7 @@
 use std::{borrow::Cow, collections::HashMap};
 
 use futures_util::future::BoxFuture;
-use jwt_compact::{jwk::JsonWebKey, Algorithm, AlgorithmExt, TimeOptions, Token, UntrustedToken};
+use jwt_compact::{Algorithm, AlgorithmExt, TimeOptions, Token, UntrustedToken, jwk::JsonWebKey};
 use runtime::{auth::JwtToken, kv::KvStore};
 use schema::JwtConfig;
 use serde::de::DeserializeOwned;
@@ -51,7 +51,7 @@ impl<'a> std::ops::Deref for Jwk<'a> {
 impl JwtProvider {
     pub fn new(config: JwtConfig, kv: KvStore) -> Self {
         let key: String = {
-            use base64::{engine::general_purpose, Engine as _};
+            use base64::{Engine as _, engine::general_purpose};
             use sha2::{Digest, Sha256};
             let mut key = String::from("jwks-metadata-");
             let digest = <Sha256 as Digest>::digest(config.jwks.url.to_string().as_bytes());

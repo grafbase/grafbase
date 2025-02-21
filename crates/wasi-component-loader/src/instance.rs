@@ -2,14 +2,14 @@ use std::any::Any;
 
 use gateway_config::{HooksWasiConfig, WasiExtensionsConfig};
 use wasmtime::{
-    component::{ComponentNamedList, Instance, Lift, Lower, TypedFunc},
     Store,
+    component::{ComponentNamedList, Instance, Lift, Lower, TypedFunc},
 };
 
 use crate::{
+    ChannelLogSender, ComponentLoader,
     config::{build_extensions_context, build_hooks_context},
     state::WasiState,
-    ChannelLogSender, ComponentLoader,
 };
 
 pub mod extensions;

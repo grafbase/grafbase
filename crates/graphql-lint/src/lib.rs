@@ -1,9 +1,9 @@
+use cynic_parser::TypeSystemDocument;
 use cynic_parser::type_system::{
     Definition, Directive, DirectiveDefinition, EnumDefinition, EnumValueDefinition, FieldDefinition,
     InputObjectDefinition, InputValueDefinition, InterfaceDefinition, ObjectDefinition, ScalarDefinition,
     TypeDefinition, UnionDefinition,
 };
-use cynic_parser::TypeSystemDocument;
 use heck::{ToLowerCamelCase, ToPascalCase, ToShoutySnakeCase};
 use thiserror::Error;
 

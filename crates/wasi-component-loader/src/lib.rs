@@ -24,25 +24,25 @@ mod tests;
 
 use std::sync::Arc;
 
-pub use access_log::{create_log_channel, AccessLogMessage, ChannelLogReceiver, ChannelLogSender};
+pub use access_log::{AccessLogMessage, ChannelLogReceiver, ChannelLogSender, create_log_channel};
 use cache::Cache;
 pub use config::{ExtensionsConfig, HooksWasiConfig};
 pub use context::{ContextMap, SharedContext};
 pub use crossbeam::channel::Sender;
 pub use crossbeam::sync::WaitGroup;
 use either::Either;
-pub use error::{guest::GuestError, Error, GatewayError};
+pub use error::{Error, GatewayError, guest::GuestError};
 use gateway_config::WasiExtensionsConfig;
 pub use instance::extensions::{
     Directive, ExtensionType, ExtensionsComponentInstance, FieldDefinition, FieldOutput, InputList,
 };
 pub use instance::hooks::{
+    HookImplementation, HooksComponentInstance,
     authorization::{EdgeDefinition, NodeDefinition},
     response::{
         CacheStatus, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, FieldError,
         GraphqlResponseStatus, RequestError, SubgraphRequestExecutionKind, SubgraphResponse,
     },
-    HookImplementation, HooksComponentInstance,
 };
 
 /// The crate result type
@@ -54,8 +54,8 @@ pub type GatewayResult<T> = std::result::Result<T, GatewayError>;
 
 use state::WasiState;
 use wasmtime::{
-    component::{Component, Linker, LinkerInstance},
     Engine,
+    component::{Component, Linker, LinkerInstance},
 };
 
 /// A structure responsible for loading and managing WebAssembly components.

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use async_graphql::{
-    scalar, ComplexObject, EmptyMutation, EmptySubscription, InputObject, Interface, Object, SimpleObject, Union, ID,
+    ComplexObject, EmptyMutation, EmptySubscription, ID, InputObject, Interface, Object, SimpleObject, Union, scalar,
 };
 
 use crate::{MockGraphQlServer, Subgraph};

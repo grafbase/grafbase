@@ -1,6 +1,6 @@
 #![allow(clippy::panic)]
 
-use federation_audit_tests::{audit_server::AuditServer, cached_tests, CachedTest};
+use federation_audit_tests::{CachedTest, audit_server::AuditServer, cached_tests};
 
 #[test]
 fn ensure_test_cache_fresh() {
@@ -36,8 +36,12 @@ fn ensure_test_cache_fresh() {
     if tests != cached_tests() {
         if std::env::var("CI") != Ok("true".into()) {
             std::fs::write("tests.json", serde_json::to_vec_pretty(&tests).unwrap()).unwrap();
-            panic!("tests.json was not up to date.  it has been updated now, but if you weren't expecting this you should watch out");
+            panic!(
+                "tests.json was not up to date.  it has been updated now, but if you weren't expecting this you should watch out"
+            );
         }
-        panic!("tests.json is not up to date.  run `cargo test -p federation-audit-tests --test cache_freshness` to update");
+        panic!(
+            "tests.json is not up to date.  run `cargo test -p federation-audit-tests --test cache_freshness` to update"
+        );
     }
 }

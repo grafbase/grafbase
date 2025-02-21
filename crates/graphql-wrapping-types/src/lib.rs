@@ -115,11 +115,7 @@ pub enum ListWrapping {
 
 impl Wrapping {
     pub fn new(required: bool) -> Self {
-        if required {
-            Self::required()
-        } else {
-            Self::nullable()
-        }
+        if required { Self::required() } else { Self::nullable() }
     }
 
     pub fn is_nullable(self) -> bool {

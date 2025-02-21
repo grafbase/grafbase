@@ -1,13 +1,13 @@
 use std::marker::PhantomData;
 
 use operation::{Operation, OperationContext};
-use petgraph::{visit::EdgeRef, Graph};
+use petgraph::{Graph, visit::EdgeRef};
 use schema::Schema;
 
 use crate::{
+    QueryFieldNode, QuerySolutionSpace,
     query::{Edge, Node},
     solution_space::{SpaceEdge, SpaceNode},
-    QueryFieldNode, QuerySolutionSpace,
 };
 
 use super::{CrudeSolvedQuery, SteinerTreeSolution};

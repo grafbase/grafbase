@@ -8,9 +8,9 @@ use enumflags2::BitFlags;
 use futures_util::Future;
 use grafbase_telemetry::otel::{
     opentelemetry::{
+        KeyValue,
         metrics::{Histogram, Meter},
         trace::TraceContextExt,
-        KeyValue,
     },
     tracing_opentelemetry::OpenTelemetrySpanExt,
 };
@@ -19,12 +19,12 @@ use runtime::{
     error::{ErrorResponse, PartialErrorCode, PartialGraphqlError},
     hooks::{AuthorizedHooks, HeaderMap, Hooks},
 };
-use tracing::{info_span, Instrument, Span};
+use tracing::{Instrument, Span, info_span};
 use url::Url;
 use wasi_component_loader::HookImplementation;
 pub use wasi_component_loader::{
-    create_log_channel, AccessLogMessage, ChannelLogReceiver, ChannelLogSender, ComponentLoader, GuestError,
-    HooksWasiConfig as Config, SharedContext,
+    AccessLogMessage, ChannelLogReceiver, ChannelLogSender, ComponentLoader, GuestError, HooksWasiConfig as Config,
+    SharedContext, create_log_channel,
 };
 
 use super::guest_error_as_gql;

@@ -8,9 +8,9 @@ use futures_util::Future;
 use handlebars::Handlebars;
 use indoc::formatdoc;
 use serde::{Deserialize, Serialize};
-use wiremock::{matchers::method, Mock, ResponseTemplate};
+use wiremock::{Mock, ResponseTemplate, matchers::method};
 
-use crate::{clickhouse_client, load_schema, runtime, with_static_server, Client};
+use crate::{Client, clickhouse_client, load_schema, runtime, with_static_server};
 
 mod access_log;
 mod gdn;

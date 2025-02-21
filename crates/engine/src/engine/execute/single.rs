@@ -10,10 +10,10 @@ use runtime::hooks::Hooks;
 use tracing::Instrument;
 
 use crate::{
+    Engine, Runtime,
     engine::{HooksContext, RequestContext},
     prepare::PrepareContext,
     response::{ErrorCode, GraphqlError, Response},
-    Engine, Runtime,
 };
 
 impl<R: Runtime> Engine<R> {
@@ -75,7 +75,10 @@ impl<R: Runtime> PrepareContext<'_, R> {
         if matches!(operation.cached.ty(), OperationType::Subscription) {
             let response = Response::request_error(
                 Some(operation.attributes()),
-                [GraphqlError::new("Subscriptions are only suported on streaming transports. Try making a request with SSE or WebSockets", ErrorCode::BadRequest)],
+                [GraphqlError::new(
+                    "Subscriptions are only suported on streaming transports. Try making a request with SSE or WebSockets",
+                    ErrorCode::BadRequest,
+                )],
             );
             return response.with_grafbase_extension(self.grafbase_response_extension(None));
         }

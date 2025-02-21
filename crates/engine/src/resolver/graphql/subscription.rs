@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use bytes::Bytes;
 use futures::{FutureExt, TryStreamExt};
-use futures_util::{stream::BoxStream, StreamExt};
+use futures_util::{StreamExt, stream::BoxStream};
 use headers::HeaderMapExt;
 use runtime::fetch::{FetchRequest, Fetcher};
 use schema::SubscriptionProtocol;
@@ -11,16 +11,15 @@ use tracing::Instrument;
 use url::Url;
 
 use super::{
-    convert_root_error_path,
+    GraphqlResolver, SubgraphContext, convert_root_error_path,
     deserialize::{GraphqlErrorsSeed, GraphqlResponseSeed},
-    request::{retrying_fetch, SubgraphGraphqlRequest, SubgraphVariables},
-    GraphqlResolver, SubgraphContext,
+    request::{SubgraphGraphqlRequest, SubgraphVariables, retrying_fetch},
 };
 use crate::{
+    Runtime,
     execution::{ExecutionError, SubscriptionResponse},
     resolver::ExecutionResult,
     response::GraphqlError,
-    Runtime,
 };
 
 impl GraphqlResolver {

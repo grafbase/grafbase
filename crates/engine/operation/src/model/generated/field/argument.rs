@@ -3,7 +3,7 @@
 //! ===================
 //! Generated with: `cargo run -p engine-codegen`
 //! Source file: <engine-codegen dir>/domain/operation.graphql
-use crate::model::{prelude::*, QueryInputValueId};
+use crate::model::{QueryInputValueId, prelude::*};
 use schema::{InputValueDefinition, InputValueDefinitionId};
 #[allow(unused_imports)]
 use walker::{Iter, Walk};

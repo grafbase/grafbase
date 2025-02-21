@@ -16,12 +16,12 @@ use ::operation::{ComplexityCost, Request, Variables};
 use futures::FutureExt;
 use grafbase_telemetry::graphql::{GraphqlOperationAttributes, OperationName, OperationType};
 use runtime::{hooks::Hooks, operation_cache::OperationCache};
-use tracing::{info_span, Instrument};
+use tracing::{Instrument, info_span};
 
 use crate::{
+    Engine, ErrorCode, Runtime,
     engine::cache::CacheKey,
     response::{GraphqlError, Response},
-    Engine, ErrorCode, Runtime,
 };
 
 impl<R: Runtime> Engine<R> {

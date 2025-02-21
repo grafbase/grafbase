@@ -2,7 +2,7 @@ use cynic_parser::Span;
 
 use crate::Location;
 
-use super::{coercion::InputValueError, ParsedOperation};
+use super::{ParsedOperation, coercion::InputValueError};
 
 #[derive(thiserror::Error, Debug)]
 pub(crate) enum BindError {
@@ -22,7 +22,9 @@ pub(crate) enum BindError {
     },
     #[error("Unknown fragment named '{name}'")]
     UnknownFragment { name: String, span: Span },
-    #[error("Field '{name}' does not exists on {ty}, it's a union. Only interfaces and objects have fields, consider using a fragment with a type condition.")]
+    #[error(
+        "Field '{name}' does not exists on {ty}, it's a union. Only interfaces and objects have fields, consider using a fragment with a type condition."
+    )]
     UnionHaveNoFields { name: String, ty: String, span: Span },
     #[error("Field '{name}' cannot have a selection set, it's a {ty}. Only interfaces, unions and objects can.")]
     CannotHaveSelectionSet { name: String, ty: String, span: Span },
@@ -96,7 +98,7 @@ impl VariableError {
     pub fn location(&self) -> Location {
         match self {
             VariableError::MissingVariable { location, .. } => *location,
-            VariableError::InvalidValue { ref err, .. } => err.location(),
+            VariableError::InvalidValue { err, .. } => err.location(),
         }
     }
 }

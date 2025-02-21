@@ -4,7 +4,7 @@ use operation::OperationContext;
 use petgraph::dot::{Config, Dot};
 use walker::Walk;
 
-use crate::{dot_graph::Attrs, FieldFlags};
+use crate::{FieldFlags, dot_graph::Attrs};
 
 use super::{Edge, Node, Query, QueryField, SolutionGraph};
 

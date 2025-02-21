@@ -4,7 +4,7 @@ use operation::OperationContext;
 use schema::{EntityDefinitionId, FieldSetRecord, ResolverDefinitionId, SubgraphId};
 use walker::Walk as _;
 
-use crate::{dot_graph::Attrs, FieldFlags, QueryFieldId};
+use crate::{FieldFlags, QueryFieldId, dot_graph::Attrs};
 
 use super::QuerySolutionSpace;
 

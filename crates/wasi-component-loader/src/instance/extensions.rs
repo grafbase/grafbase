@@ -9,12 +9,12 @@ use wasmtime::component::{ComponentNamedList, Lift, Lower, Resource, TypedFunc};
 
 use super::ComponentInstance;
 use crate::{
+    ChannelLogSender, ComponentLoader, GuestError, SharedContext,
     error::guest::ErrorResponse,
     names::{
         AUTEHNTICATE_EXTENSION_FUNCTION, INIT_GATEWAY_EXTENSION_FUNCTION, REGISTER_EXTENSION_FUNCTION,
         RESOLVE_FIELD_EXTENSION_FUNCTION,
     },
-    ChannelLogSender, ComponentLoader, GuestError, SharedContext,
 };
 
 /// An instance of an extensions component.

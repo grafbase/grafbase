@@ -3,9 +3,9 @@ use std::borrow::Cow;
 use itertools::Itertools;
 
 use crate::{
+    Body,
     graphql_over_http::{Http, ResponseFormat},
     response::{ErrorCode, GraphqlError, Response},
-    Body,
 };
 
 use super::{Engine, RequestContext, Runtime};
@@ -90,8 +90,8 @@ impl<R: Runtime> Engine<R> {
 
 pub(crate) mod response {
     use crate::{
-        response::{GraphqlError, Response},
         ErrorCode,
+        response::{GraphqlError, Response},
     };
 
     pub(crate) fn gateway_rate_limited<OnOperationResponseHookOutput>() -> Response<OnOperationResponseHookOutput> {

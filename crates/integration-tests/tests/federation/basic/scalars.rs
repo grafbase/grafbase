@@ -1,5 +1,5 @@
 use engine::Engine;
-use graphql_mocks::{dynamic::DynamicSchema, AlmostEmptySchema, FakeGithubSchema};
+use graphql_mocks::{AlmostEmptySchema, FakeGithubSchema, dynamic::DynamicSchema};
 use integration_tests::{federation::EngineExt, runtime};
 use serde_json::json;
 

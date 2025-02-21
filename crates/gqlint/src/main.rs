@@ -1,6 +1,6 @@
 use clap::Parser;
 use colored::Colorize;
-use graphql_lint::{lint, LinterError, Severity};
+use graphql_lint::{LinterError, Severity, lint};
 use std::{fs, path::PathBuf, process};
 
 #[derive(Debug, Parser)]

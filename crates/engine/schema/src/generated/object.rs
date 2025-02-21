@@ -4,12 +4,12 @@
 //! Generated with: `cargo run -p engine-codegen`
 //! Source file: <engine-codegen dir>/domain/schema.graphql
 use crate::{
+    StringId,
     generated::{
         FieldDefinition, FieldDefinitionId, InterfaceDefinition, InterfaceDefinitionId, JoinImplementsDefinition,
         JoinImplementsDefinitionRecord, Subgraph, SubgraphId, TypeSystemDirective, TypeSystemDirectiveId,
     },
     prelude::*,
-    StringId,
 };
 #[allow(unused_imports)]
 use walker::{Iter, Walk};

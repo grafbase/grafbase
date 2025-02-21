@@ -110,11 +110,7 @@ pub(super) fn split_query_partition_dependency_cycles(query: &mut CrudeSolvedQue
                                 None,
                             )
                         });
-                    if is_connected {
-                        None
-                    } else {
-                        Some(*partition_node_ix)
-                    }
+                    if is_connected { None } else { Some(*partition_node_ix) }
                 })
                 .next()
                 .unwrap_or_else(|| {

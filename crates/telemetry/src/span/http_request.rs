@@ -7,7 +7,7 @@ use http::{Response, StatusCode};
 use http_body::Body;
 use itertools::Itertools;
 use tracing::field::Empty;
-use tracing::{info_span, Span};
+use tracing::{Span, info_span};
 
 use super::kind::GrafbaseSpanKind;
 

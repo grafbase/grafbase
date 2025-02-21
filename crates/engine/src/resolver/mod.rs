@@ -7,10 +7,10 @@ use schema::ResolverDefinitionVariant;
 use std::future::Future;
 
 use crate::{
+    Runtime,
     execution::{ExecutionContext, ExecutionError, ExecutionResult, SubscriptionResponse},
     prepare::{Plan, PlanQueryPartition, PlanResult},
     response::{ResponseObjectsView, SubgraphResponse},
-    Runtime,
 };
 
 use self::{

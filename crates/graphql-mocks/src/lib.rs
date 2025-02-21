@@ -13,11 +13,11 @@ use std::{
 
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
 use axum::{
+    Router,
     extract::{FromRequestParts, State},
     http::HeaderMap,
     response::IntoResponse,
     routing::post,
-    Router,
 };
 use futures::Future;
 use headers::HeaderMapExt;
@@ -226,7 +226,7 @@ pub trait Subgraph: 'static {
 #[async_trait::async_trait]
 pub trait Schema: Send + Sync {
     async fn execute(&self, headers: Vec<(String, String)>, request: async_graphql::Request)
-        -> async_graphql::Response;
+    -> async_graphql::Response;
 
     fn execute_stream(
         &self,

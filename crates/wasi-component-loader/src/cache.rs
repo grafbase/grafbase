@@ -8,8 +8,8 @@ use futures::TryFutureExt;
 use tokio::sync::{mpsc, oneshot};
 use ulid::Ulid;
 use wasmtime::{
-    component::{LinkerInstance, ResourceType},
     StoreContextMut,
+    component::{LinkerInstance, ResourceType},
 };
 
 use crate::{

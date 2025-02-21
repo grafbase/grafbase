@@ -2,8 +2,8 @@ use std::num::NonZeroU32;
 use std::sync::Arc;
 use std::{collections::HashMap, sync::RwLock};
 
-use futures_util::future::BoxFuture;
 use futures_util::FutureExt;
+use futures_util::future::BoxFuture;
 use gateway_config::{Config, GraphRateLimit};
 use governor::Quota;
 

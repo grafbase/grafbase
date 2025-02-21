@@ -9,7 +9,7 @@ mod traverse_schemas;
 
 pub use self::{
     change::{Change, ChangeKind, Span},
-    patch::{patch, PatchedSchema},
+    patch::{PatchedSchema, patch},
 };
 
 use self::state::*;

@@ -1,4 +1,4 @@
-use tracing::{field::Empty, info_span, Span};
+use tracing::{Span, field::Empty, info_span};
 use url::Url;
 
 use crate::graphql::SubgraphResponseStatus;

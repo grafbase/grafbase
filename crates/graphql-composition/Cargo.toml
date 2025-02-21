@@ -1,7 +1,7 @@
 [package]
 name = "graphql-composition"
 version = "0.6.1"
-edition = "2021"
+edition = "2024"
 license = "MPL-2.0"
 description = "An implementation of GraphQL federated schema composition"
 repository = "https://github.com/grafbase/grafbase/tree/main/engine/crates/composition"

@@ -1,5 +1,5 @@
 use crate::context::Context;
-use async_graphql_parser::{types as ast, Positioned};
+use async_graphql_parser::{Positioned, types as ast};
 use std::collections::HashSet;
 
 /// http://spec.graphql.org/draft/#sec-Input-Objects.Type-Validation

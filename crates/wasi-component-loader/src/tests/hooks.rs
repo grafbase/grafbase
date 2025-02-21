@@ -2,9 +2,9 @@ use std::{collections::HashMap, sync::Arc};
 
 use super::create_log_channel;
 use crate::{
-    error::guest::ErrorResponse, CacheStatus, ComponentLoader, EdgeDefinition, ExecutedHttpRequest, ExecutedOperation,
-    ExecutedSubgraphRequest, GuestError, HooksComponentInstance, HooksWasiConfig as Config, NodeDefinition,
-    SharedContext, SubgraphResponse,
+    CacheStatus, ComponentLoader, EdgeDefinition, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest,
+    GuestError, HooksComponentInstance, HooksWasiConfig as Config, NodeDefinition, SharedContext, SubgraphResponse,
+    error::guest::ErrorResponse,
 };
 use expect_test::expect;
 use grafbase_telemetry::otel::opentelemetry::trace::TraceId;
@@ -12,7 +12,7 @@ use http::{HeaderMap, HeaderValue};
 use indoc::{formatdoc, indoc};
 use serde_json::json;
 use tempfile::TempDir;
-use wiremock::{matchers::method, ResponseTemplate};
+use wiremock::{ResponseTemplate, matchers::method};
 
 #[tokio::test]
 async fn missing_wasm() {
@@ -50,7 +50,9 @@ async fn missing_hook() {
 async fn simple_no_io() {
     // the guest code in examples/simple/src/lib.rs
 
-    std::env::set_var("GRAFBASE_WASI_TEST", "meow");
+    unsafe {
+        std::env::set_var("GRAFBASE_WASI_TEST", "meow");
+    }
 
     let config = indoc! {r#"
         location = "examples/target/wasm32-wasip2/debug/simple.wasm"
@@ -165,7 +167,7 @@ async fn http_client() {
         .mount(&server)
         .await;
 
-    std::env::set_var("MOCK_SERVER_ADDRESS", format!("http://{}", server.address()));
+    unsafe { std::env::set_var("MOCK_SERVER_ADDRESS", format!("http://{}", server.address())) };
 
     let config = formatdoc! {r#"
         location = "examples/target/wasm32-wasip2/debug/http_client.wasm"
@@ -577,7 +579,7 @@ async fn authorize_edge_post_execution() {
 
 #[tokio::test]
 async fn on_subgraph_request() {
-    use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
+    use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 
     let config = indoc! {r#"
         location = "examples/target/wasm32-wasip2/debug/subgraph_request.wasm"

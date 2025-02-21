@@ -1,10 +1,10 @@
 use std::{collections::VecDeque, sync::Arc, time::Instant};
 
-use futures::{stream::FuturesOrdered, Future, FutureExt, Stream};
+use futures::{Future, FutureExt, Stream, stream::FuturesOrdered};
 use futures_util::{
+    StreamExt,
     future::BoxFuture,
     stream::{BoxStream, FuturesUnordered},
-    StreamExt,
 };
 use grafbase_telemetry::graphql::{GraphqlResponseStatus, OperationType};
 use runtime::hooks::{ExecutedOperationBuilder, Hooks};
@@ -12,6 +12,7 @@ use tracing::Instrument;
 use walker::Walk;
 
 use crate::{
+    Runtime,
     execution::ExecutionContext,
     prepare::{Executable, Plan, PlanId},
     prepare::{PrepareContext, PreparedOperation},
@@ -20,10 +21,9 @@ use crate::{
         GraphqlError, InputObjectId, InputResponseObjectSet, Response, ResponseBuilder, SubgraphResponse,
         SubgraphResponseRefMut,
     },
-    Runtime,
 };
 
-use super::{state::OperationExecutionState, ExecutionError, ExecutionResult};
+use super::{ExecutionError, ExecutionResult, state::OperationExecutionState};
 
 pub(crate) trait ResponseSender<O>: Send {
     type Error;

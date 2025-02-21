@@ -2,8 +2,8 @@ use std::str::FromStr;
 
 use http::{HeaderMap, HeaderName, HeaderValue};
 use wasmtime::{
-    component::{ComponentType, LinkerInstance, Lower, Resource, ResourceType},
     StoreContextMut,
+    component::{ComponentType, LinkerInstance, Lower, Resource, ResourceType},
 };
 
 use crate::{

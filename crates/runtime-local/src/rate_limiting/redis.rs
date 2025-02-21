@@ -3,12 +3,12 @@ use std::time::{Duration, SystemTime};
 use futures_util::future::BoxFuture;
 use gateway_config::{Config, GraphRateLimit};
 use grafbase_telemetry::otel::opentelemetry::{
-    metrics::{Histogram, Meter},
     KeyValue,
+    metrics::{Histogram, Meter},
 };
 use runtime::rate_limiting::{Error, RateLimitKey, RateLimiter, RateLimiterContext};
 use tokio::sync::watch;
-use tracing::{field::Empty, Instrument};
+use tracing::{Instrument, field::Empty};
 
 use crate::redis::Pool;
 
@@ -83,7 +83,7 @@ impl RedisRateLimiter {
             RateLimitKey::Global => {
                 format!("{}:rate_limit:global:{bucket}", self.key_prefix)
             }
-            RateLimitKey::Subgraph(ref graph) => {
+            RateLimitKey::Subgraph(graph) => {
                 format!("{}:subgraph:rate_limit:{graph}:{bucket}", self.key_prefix)
             }
         }

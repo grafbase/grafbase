@@ -1,4 +1,4 @@
-use std::sync::{atomic::AtomicBool, Arc};
+use std::sync::{Arc, atomic::AtomicBool};
 
 use super::with_engine_for_auth;
 use engine::Engine;
@@ -67,12 +67,13 @@ fn single_decision_applies_to_all() {
                 }
                 "#,
                 )
-                .with_entity_resolver("User", |ctx: EntityResolverContext<'_>| {
-                    match ctx.representation["id"].as_str().unwrap() {
-                        "1" => Some(serde_json::json!({"__typename": "User", "name": "Alice"})),
-                        "2" => Some(serde_json::json!({"__typename": "User", "name": "Bob"})),
-                        _ => unreachable!(),
-                    }
+                .with_entity_resolver("User", |ctx: EntityResolverContext<'_>| match ctx.representation["id"]
+                    .as_str()
+                    .unwrap()
+                {
+                    "1" => Some(serde_json::json!({"__typename": "User", "name": "Alice"})),
+                    "2" => Some(serde_json::json!({"__typename": "User", "name": "Bob"})),
+                    _ => unreachable!(),
                 })
                 .into_subgraph("y"),
             )
@@ -190,12 +191,13 @@ fn continue_execution() {
                 }
                 "#,
                 )
-                .with_entity_resolver("User", |ctx: EntityResolverContext<'_>| {
-                    match ctx.representation["id"].as_str().unwrap() {
-                        "1" => Some(serde_json::json!({"__typename": "User", "name": "Alice"})),
-                        "2" => Some(serde_json::json!({"__typename": "User", "name": "Bob"})),
-                        _ => unreachable!(),
-                    }
+                .with_entity_resolver("User", |ctx: EntityResolverContext<'_>| match ctx.representation["id"]
+                    .as_str()
+                    .unwrap()
+                {
+                    "1" => Some(serde_json::json!({"__typename": "User", "name": "Alice"})),
+                    "2" => Some(serde_json::json!({"__typename": "User", "name": "Bob"})),
+                    _ => unreachable!(),
                 })
                 .into_subgraph("y"),
             )

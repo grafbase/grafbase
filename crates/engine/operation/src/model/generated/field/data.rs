@@ -4,9 +4,9 @@
 //! Generated with: `cargo run -p engine-codegen`
 //! Source file: <engine-codegen dir>/domain/operation.graphql
 use crate::model::{
+    Location, ResponseKey, SelectionSet, SelectionSetRecord,
     generated::{ExecutableDirective, ExecutableDirectiveId, FieldArgument, FieldArgumentId},
     prelude::*,
-    Location, ResponseKey, SelectionSet, SelectionSetRecord,
 };
 use schema::{FieldDefinition, FieldDefinitionId};
 #[allow(unused_imports)]

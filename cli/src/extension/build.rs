@@ -96,7 +96,9 @@ fn check_rust() -> anyhow::Result<()> {
     let rustup = new_command("rustup").arg("--version").output()?;
 
     if !rustup.status.success() {
-        anyhow::bail!("A working rustup installation is required to build extensions. Please install it from https://rustup.rs/ before continuing.");
+        anyhow::bail!(
+            "A working rustup installation is required to build extensions. Please install it from https://rustup.rs/ before continuing."
+        );
     }
 
     let rustc_version = new_command("rustc").arg("--version").output()?;
@@ -117,7 +119,9 @@ fn check_rust() -> anyhow::Result<()> {
     let version = Version::parse(output).context("failed to parse rustc version")?;
 
     if version < Version::new(1, 82, 0) {
-        anyhow::bail!("Rust version 1.82.0 or newer is required to build extensions. Please update your Rust installation before continuing.");
+        anyhow::bail!(
+            "Rust version 1.82.0 or newer is required to build extensions. Please update your Rust installation before continuing."
+        );
     }
 
     Ok(())

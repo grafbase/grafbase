@@ -1,6 +1,6 @@
 use std::{str::FromStr, sync::Arc};
 
-use crate::federation::{subgraph::Subgraphs, TestRuntimeContext};
+use crate::federation::{TestRuntimeContext, subgraph::Subgraphs};
 use federated_graph::FederatedGraph;
 use grafbase_telemetry::metrics::meter_from_global_provider;
 use runtime::hooks::DynamicHooks;

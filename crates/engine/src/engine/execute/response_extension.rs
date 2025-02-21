@@ -1,7 +1,7 @@
 use grafbase_telemetry::otel::{opentelemetry::trace::TraceContextExt, tracing_opentelemetry::OpenTelemetrySpanExt};
 use schema::{AccessControl, HeaderAccessControl};
 
-use crate::{response::GrafbaseResponseExtension, Engine, Runtime};
+use crate::{Engine, Runtime, response::GrafbaseResponseExtension};
 
 use super::RequestContext;
 

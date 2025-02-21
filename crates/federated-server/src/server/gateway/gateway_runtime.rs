@@ -5,11 +5,11 @@ use gateway_config::{Config, EntityCachingRedisConfig};
 use grafbase_telemetry::metrics::EngineMetrics;
 use runtime::entity_cache::EntityCache;
 use runtime_local::{
+    InMemoryEntityCache, InMemoryKvStore, InMemoryOperationCache, NativeFetcher, RedisEntityCache,
     operation_cache::{RedisOperationCache, TieredOperationCache},
     rate_limiting::{in_memory::key_based::InMemoryRateLimiter, redis::RedisRateLimiter},
     redis::{RedisPoolFactory, RedisTlsConfig},
     wasi::{extensions::WasiExtensions, hooks::HooksWasi},
-    InMemoryEntityCache, InMemoryKvStore, InMemoryOperationCache, NativeFetcher, RedisEntityCache,
 };
 use runtime_noop::trusted_documents::NoopTrustedDocuments;
 

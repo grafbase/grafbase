@@ -17,11 +17,11 @@ pub use self::{
     subgraphs::Subgraphs,
 };
 pub use graphql_federated_graph::{
-    self as graphql_federated_graph, render_api_sdl, render_federated_sdl, FederatedGraph,
+    self as graphql_federated_graph, FederatedGraph, render_api_sdl, render_federated_sdl,
 };
 
 use self::{
-    compose::{compose_subgraphs, ComposeContext},
+    compose::{ComposeContext, compose_subgraphs},
     emit_federated_graph::emit_federated_graph,
     ingest_subgraph::ast_value_to_subgraph_value,
 };

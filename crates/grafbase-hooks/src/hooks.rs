@@ -5,7 +5,7 @@ pub use crate::wit::{
     Context, EdgeDefinition, Error, ErrorResponse, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest,
     Guest, Headers, NodeDefinition, SharedContext,
 };
-use crate::{wit::HttpMethod, Component};
+use crate::{Component, wit::HttpMethod};
 pub use authorization::{
     EdgeNodePostExecutionArguments, EdgePostExecutionArguments, EdgePreExecutionArguments, NodePreExecutionArguments,
     ParentEdgePostExecutionArguments,

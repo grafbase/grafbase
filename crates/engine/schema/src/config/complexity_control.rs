@@ -60,8 +60,8 @@ impl From<&gateway_config::ComplexityControlConfig> for ComplexityControl {
             },
             Some(ComplexityControlMode::Enforce) => {
                 tracing::warn!(
-                "Complexity control is configured to enforce limits but a limit was not configured.  Complexity will only be measured"
-            );
+                    "Complexity control is configured to enforce limits but a limit was not configured.  Complexity will only be measured"
+                );
                 ComplexityControl::Measure {
                     limit: config.limit,
                     list_size: list_size(config),

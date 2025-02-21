@@ -1,8 +1,8 @@
 use engine::Engine;
 use graphql_mocks::{
-    dynamic::{DynamicSchema, ServerError},
     FakeGithubSchema, FederatedAccountsSchema, FederatedInventorySchema, FederatedProductsSchema,
     FederatedReviewsSchema, FederatedShippingSchema,
+    dynamic::{DynamicSchema, ServerError},
 };
 use integration_tests::{federation::EngineExt, runtime};
 

@@ -12,7 +12,7 @@ use post_process::post_process_schema_locations;
 
 use crate::*;
 
-use super::{interner::Interner, BuildError, Context};
+use super::{BuildError, Context, interner::Interner};
 
 pub(crate) struct GraphContext<'a> {
     pub ctx: Context<'a>,

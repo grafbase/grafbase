@@ -10,7 +10,7 @@ pub use self::{
     resolvers::Resolver,
 };
 
-pub use async_graphql::{dynamic::ResolverContext, ServerError};
+pub use async_graphql::{ServerError, dynamic::ResolverContext};
 
 use crate::MockGraphQlServer;
 

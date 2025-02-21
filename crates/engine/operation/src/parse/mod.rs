@@ -1,7 +1,7 @@
 mod error;
 mod offsets;
 
-use cynic_parser::{executable::OperationDefinition, ExecutableDocument};
+use cynic_parser::{ExecutableDocument, executable::OperationDefinition};
 use offsets::LineOffsets;
 
 use self::error::{ParseError, ParseResult};

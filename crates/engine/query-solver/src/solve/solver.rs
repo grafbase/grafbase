@@ -8,18 +8,18 @@ use id_newtypes::IdRange;
 use itertools::Itertools;
 use operation::OperationContext;
 use petgraph::{
+    Direction,
     prelude::StableGraph,
     stable_graph::{EdgeIndex, EdgeReference, NodeIndex},
     visit::{EdgeRef, IntoNodeReferences},
-    Direction,
 };
 use schema::Schema;
 
 use crate::{
+    Cost, FieldFlags, QuerySolutionSpace,
     dot_graph::Attrs,
     solution_space::{SpaceEdge, SpaceNode},
     solve::steiner_tree::SteinerContext,
-    Cost, FieldFlags, QuerySolutionSpace,
 };
 
 use super::steiner_tree::{self, SteinerGraph};

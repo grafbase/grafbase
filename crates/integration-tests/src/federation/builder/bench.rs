@@ -1,6 +1,6 @@
 use std::sync::{
-    atomic::{AtomicUsize, Ordering},
     Arc,
+    atomic::{AtomicUsize, Ordering},
 };
 
 use bytes::Bytes;
@@ -9,7 +9,7 @@ use futures::{StreamExt, TryStreamExt};
 use gateway_config::Config;
 use runtime::{
     bytes::OwnedOrSharedBytes,
-    fetch::{dynamic::DynFetcher, FetchRequest, FetchResult},
+    fetch::{FetchRequest, FetchResult, dynamic::DynFetcher},
     hooks::{DynamicHooks, ResponseInfo},
 };
 use runtime_local::InMemoryOperationCache;

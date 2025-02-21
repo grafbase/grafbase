@@ -20,7 +20,7 @@ pub(crate) async fn publish(
     let schema = match schema_path {
         Some(path) => fs::read_to_string(path).map_err(CliError::SchemaReadError)?,
         None if std::io::stdin().is_terminal() => {
-            return Err(CliError::MissingArgument("--schema or a schema piped through stdin"))
+            return Err(CliError::MissingArgument("--schema or a schema piped through stdin"));
         }
         None => {
             let mut schema = String::new();

@@ -1,4 +1,4 @@
-use cynic::{http::ReqwestExt, QueryBuilder};
+use cynic::{QueryBuilder, http::ReqwestExt};
 use cynic_introspection::IntrospectionQuery;
 use reqwest::header::USER_AGENT;
 

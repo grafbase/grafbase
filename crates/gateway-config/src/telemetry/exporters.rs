@@ -12,7 +12,7 @@ pub use otlp::{
     OtlpExporterTlsConfig,
 };
 pub use response_extension::*;
-pub use tracing::{PropagationConfig, TracingCollectConfig, TracingConfig, DEFAULT_SAMPLING};
+pub use tracing::{DEFAULT_SAMPLING, PropagationConfig, TracingCollectConfig, TracingConfig};
 
 use serde::{Deserialize, Deserializer};
 pub use stdout::StdoutExporterConfig;

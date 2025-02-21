@@ -29,7 +29,9 @@ fn unnamed_query_with_variables() {
 
     let document = cynic_parser::parse_executable_document(input).unwrap();
     let output = crate::sanitize(&document);
-    let expected = expect!["query($id: ID!, $name: String, $ages: [Int!]!, $other: [String]) { user(id: $id, name: $name, ages: $ages, other: $other) { id } }"];
+    let expected = expect![
+        "query($id: ID!, $name: String, $ages: [Int!]!, $other: [String]) { user(id: $id, name: $name, ages: $ages, other: $other) { id } }"
+    ];
 
     expected.assert_eq(&output);
 }
@@ -338,7 +340,9 @@ fn nested_fragments() {
     let document = cynic_parser::parse_executable_document(input).unwrap();
     let output = crate::sanitize(&document);
 
-    let expected = expect!["query { user { ...UserFields  } } fragment UserFields on User { id name ...UserDetails  } fragment UserDetails on User { email phone }"];
+    let expected = expect![
+        "query { user { ...UserFields  } } fragment UserFields on User { id name ...UserDetails  } fragment UserDetails on User { email phone }"
+    ];
 
     expected.assert_eq(&output);
 }

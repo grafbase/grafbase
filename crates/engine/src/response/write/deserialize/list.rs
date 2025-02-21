@@ -1,8 +1,8 @@
 use std::fmt;
 
 use serde::{
-    de::{DeserializeSeed, IgnoredAny, SeqAccess, Unexpected, Visitor},
     Deserializer,
+    de::{DeserializeSeed, IgnoredAny, SeqAccess, Unexpected, Visitor},
 };
 use walker::Walk;
 

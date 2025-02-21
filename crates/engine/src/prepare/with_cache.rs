@@ -4,9 +4,9 @@ use operation::{RawVariables, Variables};
 use runtime::hooks::Hooks;
 
 use crate::{
+    ErrorCode, Runtime,
     prepare::{CachedOperation, PrepareContext, PreparedOperation},
     response::{GraphqlError, Response},
-    ErrorCode, Runtime,
 };
 
 use super::mutation_not_allowed_with_safe_method;
@@ -37,7 +37,7 @@ impl<R: Runtime> PrepareContext<'_, R> {
                 return Err(Response::request_error(
                     Some(cached.operation.attributes.clone().with_complexity_cost(None)),
                     errors,
-                ))
+                ));
             }
         };
 
@@ -50,7 +50,7 @@ impl<R: Runtime> PrepareContext<'_, R> {
                 return Err(Response::request_error(
                     Some(cached.operation.attributes.clone().with_complexity_cost(None)),
                     [GraphqlError::new(err.to_string(), ErrorCode::OperationValidationError)],
-                ))
+                ));
             }
         };
 
@@ -66,7 +66,7 @@ impl<R: Runtime> PrepareContext<'_, R> {
                             .with_complexity_cost(complexity_cost),
                     ),
                     [err],
-                ))
+                ));
             }
         };
 

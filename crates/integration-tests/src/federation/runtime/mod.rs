@@ -9,8 +9,8 @@ use runtime::{
     entity_cache::EntityCache, fetch::dynamic::DynamicFetcher, hooks::DynamicHooks, trusted_documents_client,
 };
 use runtime_local::{
-    rate_limiting::in_memory::key_based::InMemoryRateLimiter, InMemoryEntityCache, InMemoryKvStore,
-    InMemoryOperationCache, NativeFetcher,
+    InMemoryEntityCache, InMemoryKvStore, InMemoryOperationCache, NativeFetcher,
+    rate_limiting::in_memory::key_based::InMemoryRateLimiter,
 };
 use runtime_noop::trusted_documents::NoopTrustedDocuments;
 use tokio::sync::watch;

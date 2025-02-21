@@ -1,6 +1,6 @@
 use super::{
     directive::write_directive,
-    display_utils::{render_field_type, write_description, ValueDisplay, INDENT},
+    display_utils::{INDENT, ValueDisplay, render_field_type, write_description},
 };
 use crate::{Directive, FederatedGraph, InputValueDefinition};
 use std::fmt;

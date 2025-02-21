@@ -4,9 +4,9 @@
 //! Generated with: `cargo run -p engine-codegen`
 //! Source file: <engine-codegen dir>/domain/schema.graphql
 use crate::{
+    Wrapping,
     generated::{Definition, DefinitionId},
     prelude::*,
-    Wrapping,
 };
 #[allow(unused_imports)]
 use walker::{Iter, Walk};

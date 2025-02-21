@@ -10,7 +10,7 @@ use federated_server::GraphFetchMethod;
 use gateway_config::Config;
 use graph_ref::GraphRef;
 
-use super::{log::LogStyle, LogLevel};
+use super::{LogLevel, log::LogStyle};
 
 #[derive(Debug, Parser)]
 #[command(name = "Grafbase Lambda Gateway", version)]

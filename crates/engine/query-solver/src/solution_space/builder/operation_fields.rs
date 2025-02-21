@@ -5,13 +5,13 @@ use std::{
 
 use fxhash::FxHasher32;
 use operation::{ExecutableDirectiveId, OperationContext, QueryPosition};
-use petgraph::{stable_graph::NodeIndex, Direction};
+use petgraph::{Direction, stable_graph::NodeIndex};
 use schema::{CompositeTypeId, TypeSystemDirective};
 use walker::Walk;
 
-use crate::{are_arguments_equivalent, DeduplicatedFlatExecutableDirectivesId, FieldFlags, QueryField};
+use crate::{DeduplicatedFlatExecutableDirectivesId, FieldFlags, QueryField, are_arguments_equivalent};
 
-use super::{builder::QuerySolutionSpaceBuilder, providable_fields::CreateRequirementTask, SpaceEdge, SpaceNode};
+use super::{SpaceEdge, SpaceNode, builder::QuerySolutionSpaceBuilder, providable_fields::CreateRequirementTask};
 
 struct IngestSelectionSet<'op> {
     parent_query_field_node_ix: NodeIndex,

@@ -1,4 +1,4 @@
-use crate::{builder::Context, StringId};
+use crate::{StringId, builder::Context};
 use std::fmt::Write;
 
 #[derive(Debug, Clone, PartialEq, Eq)]

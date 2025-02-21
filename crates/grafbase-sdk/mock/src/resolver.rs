@@ -1,4 +1,4 @@
-use async_graphql::{dynamic::ResolverContext, ServerError};
+use async_graphql::{ServerError, dynamic::ResolverContext};
 
 pub trait Resolver: Send + Sync {
     fn resolve(&mut self, context: ResolverContext<'_>) -> Option<serde_json::Value>;

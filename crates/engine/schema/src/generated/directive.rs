@@ -8,7 +8,7 @@ mod complexity_control;
 mod deprecated;
 mod extension;
 
-use crate::{prelude::*, RequiresScopesDirective, RequiresScopesDirectiveId};
+use crate::{RequiresScopesDirective, RequiresScopesDirectiveId, prelude::*};
 pub use authorized::*;
 pub use complexity_control::*;
 pub use deprecated::*;

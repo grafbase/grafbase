@@ -7,7 +7,7 @@ use super::{
     },
 };
 use crate::common::environment::PlatformData;
-use cynic::{http::ReqwestExt, QueryBuilder};
+use cynic::{QueryBuilder, http::ReqwestExt};
 
 /// The `grafbase subgraphs` command. Returns (branch name, subgraphs).
 pub async fn subgraphs(account: &str, graph: &str, branch: Option<&str>) -> Result<(String, Vec<Subgraph>), ApiError> {

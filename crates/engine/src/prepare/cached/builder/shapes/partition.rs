@@ -369,7 +369,7 @@ mod tests {
 
     fn given_output(output: impl IntoIterator<Item = usize>) -> TestCase {
         TestCase {
-            output: output.into_iter().map(Into::into).collect(),
+            output: output.into_iter().collect(),
             type_conditions: Vec::new(),
         }
     }

@@ -1,12 +1,12 @@
 use crate::{
-    builder::GraphContext, DefinitionId, EnumDefinitionId, InputObjectDefinitionId, InputValueDefinitionId,
-    ScalarDefinitionId, ScalarType, SchemaInputValueId, SchemaInputValueRecord, TypeRecord,
+    DefinitionId, EnumDefinitionId, InputObjectDefinitionId, InputValueDefinitionId, ScalarDefinitionId, ScalarType,
+    SchemaInputValueId, SchemaInputValueRecord, TypeRecord, builder::GraphContext,
 };
 use federated_graph::Value;
 use id_newtypes::IdRange;
 use wrapping::{ListWrapping, MutableWrapping};
 
-use super::{can_coerce_to_int, value_path_to_string, InputValueError};
+use super::{InputValueError, can_coerce_to_int, value_path_to_string};
 
 impl GraphContext<'_> {
     pub fn coerce(&mut self, id: InputValueDefinitionId, value: Value) -> Result<SchemaInputValueId, InputValueError> {

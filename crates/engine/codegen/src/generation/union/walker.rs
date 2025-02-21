@@ -1,14 +1,14 @@
 use case::CaseExt;
 use proc_macro2::{Ident, Span, TokenStream};
-use quote::{quote, TokenStreamExt};
+use quote::{TokenStreamExt, quote};
 use tracing::instrument;
 
 use crate::{
-    domain::{AccessKind, Definition, Domain, Scalar, Union, UnionKind},
     WALKER_TRAIT,
+    domain::{AccessKind, Definition, Domain, Scalar, Union, UnionKind},
 };
 
-use super::{debug::DebugVariantBranch, VariantContext};
+use super::{VariantContext, debug::DebugVariantBranch};
 
 #[instrument(skip_all)]
 pub fn generate_walker(

@@ -1,7 +1,7 @@
 use serde::{
     de::{
-        value::{MapDeserializer, SeqDeserializer},
         IntoDeserializer, Visitor,
+        value::{MapDeserializer, SeqDeserializer},
     },
     forward_to_deserialize_any,
 };

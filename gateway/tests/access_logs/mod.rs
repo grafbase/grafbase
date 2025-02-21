@@ -1,12 +1,12 @@
 use std::{collections::BTreeMap, sync::Arc, time::Duration};
 
-use crate::{load_schema, runtime, with_static_server, Client};
+use crate::{Client, load_schema, runtime, with_static_server};
 use futures_util::Future;
 use handlebars::Handlebars;
 use indoc::formatdoc;
 use serde_json::Value;
 use tempfile::TempDir;
-use wiremock::{matchers::method, Mock, ResponseTemplate};
+use wiremock::{Mock, ResponseTemplate, matchers::method};
 
 #[derive(serde::Deserialize, serde::Serialize, Debug)]
 struct ResponseInfo {

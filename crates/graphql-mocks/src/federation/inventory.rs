@@ -84,11 +84,7 @@ pub enum WeightUnit {
 impl Product {
     #[graphql(requires = "weight(unit: KILOGRAM)")]
     async fn shipping_estimate(&self) -> u64 {
-        if self.weight > 0.300 {
-            3
-        } else {
-            1
-        }
+        if self.weight > 0.300 { 3 } else { 1 }
     }
 
     #[graphql(requires = "weight(unit: KILOGRAM)")]

@@ -1,6 +1,6 @@
 use std::{borrow::Cow, str::FromStr, sync::OnceLock};
 
-use http::{header, HeaderName};
+use http::{HeaderName, header};
 use schema::{
     ForwardHeaderRule, HeaderRule, HeaderRuleVariant, InsertHeaderRule, NameOrPattern, RemoveHeaderRule,
     RenameDuplicateHeaderRule,

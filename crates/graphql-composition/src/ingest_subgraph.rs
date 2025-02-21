@@ -11,10 +11,10 @@ mod schema_definitions;
 
 use self::{directives::*, nested_key_fields::ingest_nested_key_fields, schema_definitions::*};
 use crate::{
-    subgraphs::{self, DefinitionId, DefinitionKind, DirectiveSiteId, SubgraphId},
     Subgraphs,
+    subgraphs::{self, DefinitionId, DefinitionKind, DirectiveSiteId, SubgraphId},
 };
-use cynic_parser::{type_system as ast, ConstValue};
+use cynic_parser::{ConstValue, type_system as ast};
 
 /// _Service is a special type exposed by subgraphs. It should not be composed.
 const SERVICE_TYPE_NAME: &str = "_Service";

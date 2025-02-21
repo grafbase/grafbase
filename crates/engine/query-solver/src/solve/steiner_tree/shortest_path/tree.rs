@@ -3,7 +3,7 @@ use petgraph::{
     visit::{EdgeRef, GraphBase, NodeCount, NodeIndexable},
 };
 
-use crate::{solve::steiner_tree::SteinerGraph, Cost};
+use crate::{Cost, solve::steiner_tree::SteinerGraph};
 
 use super::{Reusable, SteinerContext};
 

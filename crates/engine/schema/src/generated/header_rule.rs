@@ -8,7 +8,7 @@ mod insert;
 mod remove;
 mod rename_duplicate;
 
-use crate::{prelude::*, RegexId, StringId};
+use crate::{RegexId, StringId, prelude::*};
 pub use forward::*;
 pub use insert::*;
 pub use remove::*;

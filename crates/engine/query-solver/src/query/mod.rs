@@ -5,7 +5,7 @@ use std::{collections::HashMap, marker::PhantomData};
 use bitflags::bitflags;
 use id_newtypes::IdRange;
 use operation::{FieldArgumentId, Location, OperationContext, QueryPosition, ResponseKey};
-use petgraph::{visit::GraphBase, Graph};
+use petgraph::{Graph, visit::GraphBase};
 use schema::{CompositeTypeId, EntityDefinitionId, FieldDefinitionId, ResolverDefinitionId, SchemaFieldArgumentId};
 use walker::Walk;
 

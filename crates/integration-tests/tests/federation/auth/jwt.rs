@@ -212,7 +212,7 @@ fn test_tampered_jwt() {
 
 #[allow(clippy::panic)]
 pub(super) fn tamper_jwt(token: String) -> String {
-    use base64::{engine::general_purpose, Engine as _};
+    use base64::{Engine as _, engine::general_purpose};
     #[allow(clippy::panic)]
     let [header, payload, signature] = token.split('.').collect::<Vec<_>>()[..] else {
         panic!("Invalid JWT");

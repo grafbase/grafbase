@@ -8,7 +8,7 @@ use crate::{
     },
     common::environment::PlatformData,
 };
-use cynic::{http::ReqwestExt, MutationBuilder};
+use cynic::{MutationBuilder, http::ReqwestExt};
 
 #[tokio::main]
 pub async fn submit_trusted_documents(

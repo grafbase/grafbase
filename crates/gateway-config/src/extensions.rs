@@ -47,7 +47,7 @@ pub struct WasiExtensionsConfig {
 impl ExtensionsConfig {
     pub fn version(&self) -> &VersionReq {
         match self {
-            ExtensionsConfig::Version(ref version) => version,
+            ExtensionsConfig::Version(version) => version,
             ExtensionsConfig::Structured(config) => &config.version,
         }
     }

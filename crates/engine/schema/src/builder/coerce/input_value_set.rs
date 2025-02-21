@@ -1,8 +1,8 @@
 use id_newtypes::IdRange;
 
-use crate::{builder::GraphContext, DefinitionId, InputValueDefinitionId, InputValueSelection, InputValueSet};
+use crate::{DefinitionId, InputValueDefinitionId, InputValueSelection, InputValueSet, builder::GraphContext};
 
-use super::{value_path_to_string, ExtensionInputValueCoercer, ValuePathSegment};
+use super::{ExtensionInputValueCoercer, ValuePathSegment, value_path_to_string};
 
 #[derive(thiserror::Error, Debug)]
 pub enum InputValueSetError {

@@ -10,7 +10,7 @@ homepage = "https://grafbase.com"
 repository = "https://github.com/grafbase/grafbase"
 readme = "README"
 license = "MPL-2.0"
-edition = "2021"
+edition = "2024"
 
 # You can choose to publish this crate: see https://docs.rs/cargo-hakari/latest/cargo_hakari/publishing.
 publish = false

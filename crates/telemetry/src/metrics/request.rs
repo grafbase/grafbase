@@ -1,8 +1,8 @@
 use std::net::SocketAddr;
 
 use opentelemetry::{
-    metrics::{Histogram, Meter, UpDownCounter},
     KeyValue,
+    metrics::{Histogram, Meter, UpDownCounter},
 };
 
 use crate::grafbase_client::Client;
