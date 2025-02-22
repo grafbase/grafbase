@@ -8,7 +8,7 @@ repository.workspace = true
 
 [dependencies]
 grafbase-hooks.workspace = true
-postcard = { version = "1.0.10", features = ["use-std"] }
+postcard = { version = "1.1.1", features = ["use-std"] }
 serde.workspace = true
 serde_json.workspace = true
 
