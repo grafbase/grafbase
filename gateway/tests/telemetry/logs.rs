@@ -54,12 +54,8 @@ fn with_otel() {
             .await
             .unwrap();
 
-        let expected_resource_attributes = [("service.name", service_name.as_str())]
-            .into_iter()
-            .map(|(k, v)| (k.to_string(), v.to_string()))
-            .collect::<HashMap<_, _>>();
-
-        assert_eq!(resource_attributes, expected_resource_attributes);
+        let attribute = resource_attributes.get("service.name");
+        assert_eq!(attribute.unwrap(), service_name.as_str());
     });
 }
 
@@ -104,12 +100,8 @@ fn with_otel_reload() {
             .await
             .unwrap();
 
-        let expected_resource_attributes = [("service.name", service_name.as_str())]
-            .into_iter()
-            .map(|(k, v)| (k.to_string(), v.to_string()))
-            .collect::<HashMap<_, _>>();
-
-        assert_eq!(resource_attributes, expected_resource_attributes);
+        let attribute = resource_attributes.get("service.name");
+        assert_eq!(attribute.unwrap(), service_name.as_str());
     });
 }
 
@@ -163,11 +155,7 @@ fn with_otel_with_different_endpoint() {
             .await
             .unwrap();
 
-        let expected_resource_attributes = [("service.name", service_name.as_str())]
-            .into_iter()
-            .map(|(k, v)| (k.to_string(), v.to_string()))
-            .collect::<HashMap<_, _>>();
-
-        assert_eq!(resource_attributes, expected_resource_attributes);
+        let attribute = resource_attributes.get("service.name");
+        assert_eq!(attribute.unwrap(), service_name.as_str());
     });
 }

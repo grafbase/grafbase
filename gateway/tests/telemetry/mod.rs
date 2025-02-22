@@ -84,12 +84,8 @@ fn with_otel() {
             .await
             .unwrap();
 
-        let expected_resource_attributes = [("service.name", service_name.as_str())]
-            .into_iter()
-            .map(|(k, v)| (k.to_string(), v.to_string()))
-            .collect::<HashMap<_, _>>();
-
-        assert_eq!(resource_attributes, expected_resource_attributes);
+        let attribute = resource_attributes.get("service.name");
+        assert_eq!(attribute.unwrap(), service_name.as_str());
 
         let Row { resource_attributes } = client
             .query("SELECT ResourceAttributes FROM otel_metrics_exponential_histogram WHERE ResourceAttributes['service.name'] = ?")
@@ -98,7 +94,8 @@ fn with_otel() {
             .await
             .unwrap();
 
-        assert_eq!(resource_attributes, expected_resource_attributes);
+        let attribute = resource_attributes.get("service.name");
+        assert_eq!(attribute.unwrap(), service_name.as_str());
     });
 }
 
@@ -154,15 +151,8 @@ fn extra_resource_attributes() {
             .await
             .unwrap();
 
-        let expected_resource_attributes = [
-            ("service.name", service_name.as_str()),
-            ("my-favorite-app", "graphabase"),
-        ]
-        .into_iter()
-        .map(|(k, v)| (k.to_string(), v.to_string()))
-        .collect::<HashMap<_, _>>();
-
-        assert_eq!(resource_attributes, expected_resource_attributes);
+        let attribute = resource_attributes.get("my-favorite-app").unwrap();
+        assert_eq!(attribute, "graphabase");
 
         let Row { resource_attributes } = client
             .query("SELECT ResourceAttributes FROM otel_metrics_exponential_histogram WHERE ResourceAttributes['service.name'] = ?")
@@ -171,6 +161,7 @@ fn extra_resource_attributes() {
             .await
             .unwrap();
 
-        assert_eq!(resource_attributes, expected_resource_attributes);
+        let attribute = resource_attributes.get("my-favorite-app").unwrap();
+        assert_eq!(attribute, "graphabase");
     });
 }

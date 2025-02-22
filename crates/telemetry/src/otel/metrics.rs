@@ -2,7 +2,6 @@ use opentelemetry_sdk::Resource;
 use opentelemetry_sdk::metrics::{
     Aggregation, Instrument, InstrumentKind, PeriodicReader, SdkMeterProvider, Stream, Temporality, View,
 };
-use opentelemetry_sdk::runtime::Runtime;
 use std::time::Duration;
 
 use crate::config::TelemetryConfig;
@@ -36,14 +35,10 @@ impl View for AggForLatencyHistogram {
     }
 }
 
-pub(super) fn build_meter_provider<R>(
-    runtime: R,
+pub(super) fn build_meter_provider(
     config: &TelemetryConfig,
     resource: Resource,
-) -> Result<SdkMeterProvider, TracingError>
-where
-    R: Runtime,
-{
+) -> Result<SdkMeterProvider, TracingError> {
     let mut provider = SdkMeterProvider::builder()
         .with_resource(resource)
         .with_view(AggForLatencyHistogram);
@@ -53,7 +48,6 @@ where
             opentelemetry_stdout::MetricExporter::builder()
                 .with_temporality(Temporality::Delta)
                 .build(),
-            runtime.clone(),
         )
         .with_interval(
             config
@@ -63,7 +57,6 @@ where
                 .to_std()
                 .unwrap_or(Duration::from_secs(10)),
         )
-        .with_timeout(config.timeout.to_std().unwrap_or(Duration::from_secs(60)))
         .build();
 
         provider = provider.with_reader(reader);
@@ -71,26 +64,22 @@ where
 
     #[cfg(feature = "otlp")]
     if let Some(config) = config.metrics_otlp_config() {
-        provider = attach_reader(config, &runtime, provider)?;
+        provider = attach_reader(config, provider)?;
     }
 
     #[cfg(feature = "otlp")]
     if let Some(config) = config.grafbase_otlp_config() {
-        provider = attach_reader(config, &runtime, provider)?;
+        provider = attach_reader(config, provider)?;
     }
 
     Ok(provider.build())
 }
 
 #[cfg(feature = "otlp")]
-fn attach_reader<R>(
+fn attach_reader(
     config: &crate::config::OtlpExporterConfig,
-    runtime: &R,
     provider: opentelemetry_sdk::metrics::MeterProviderBuilder,
-) -> Result<opentelemetry_sdk::metrics::MeterProviderBuilder, TracingError>
-where
-    R: Runtime,
-{
+) -> Result<opentelemetry_sdk::metrics::MeterProviderBuilder, TracingError> {
     use gateway_config::OtlpExporterProtocol;
     use opentelemetry_otlp::{MetricExporter, WithExportConfig, WithHttpConfig, WithTonicConfig};
 
@@ -126,7 +115,7 @@ where
         }
     };
 
-    let reader = PeriodicReader::builder(exporter, runtime.clone())
+    let reader = PeriodicReader::builder(exporter)
         .with_interval(
             config
                 .batch_export
@@ -134,7 +123,6 @@ where
                 .to_std()
                 .unwrap_or(Duration::from_secs(10)),
         )
-        .with_timeout(config.timeout.to_std().unwrap_or(Duration::from_secs(60)))
         .build();
 
     Ok(provider.with_reader(reader))

@@ -116,10 +116,9 @@ signature = { version = "2", default-features = false, features = ["digest", "ra
 similar = { version = "2", features = ["inline", "unicode"] }
 similar-asserts = { version = "1", features = ["serde"] }
 smallvec = { version = "1", default-features = false, features = ["const_new", "serde", "union"] }
-socket2 = { version = "0.5", default-features = false, features = ["all"] }
 spin = { version = "0.9", default-features = false, features = ["once", "spin_mutex"] }
 spki = { version = "0.7", default-features = false, features = ["pem", "std"] }
-strum = { version = "0.26", features = ["derive"] }
+strum = { version = "0.27", features = ["derive"] }
 subtle = { version = "2" }
 sync_wrapper = { version = "1", default-features = false, features = ["futures"] }
 time = { version = "0.3", features = ["serde-well-known"] }
@@ -140,7 +139,7 @@ tungstenite = { version = "0.26", default-features = false, features = ["handsha
 ulid = { version = "1", features = ["serde"] }
 url = { version = "2", features = ["serde"] }
 uuid = { version = "1", features = ["v4"] }
-wasmparser = { version = "0.224" }
+wasmparser = { version = "0.224", default-features = false, features = ["component-model", "features", "serde", "simd", "std", "validate"] }
 zeroize = { version = "1", features = ["zeroize_derive"] }
 
 [build-dependencies]
@@ -241,10 +240,9 @@ signature = { version = "2", default-features = false, features = ["digest", "ra
 similar = { version = "2", features = ["inline", "unicode"] }
 similar-asserts = { version = "1", features = ["serde"] }
 smallvec = { version = "1", default-features = false, features = ["const_new", "serde", "union"] }
-socket2 = { version = "0.5", default-features = false, features = ["all"] }
 spin = { version = "0.9", default-features = false, features = ["once", "spin_mutex"] }
 spki = { version = "0.7", default-features = false, features = ["pem", "std"] }
-strum = { version = "0.26", features = ["derive"] }
+strum = { version = "0.27", features = ["derive"] }
 subtle = { version = "2" }
 syn = { version = "2", features = ["extra-traits", "fold", "full", "visit", "visit-mut"] }
 sync_wrapper = { version = "1", default-features = false, features = ["futures"] }
@@ -266,7 +264,7 @@ tungstenite = { version = "0.26", default-features = false, features = ["handsha
 ulid = { version = "1", features = ["serde"] }
 url = { version = "2", features = ["serde"] }
 uuid = { version = "1", features = ["v4"] }
-wasmparser = { version = "0.224" }
+wasmparser = { version = "0.224", default-features = false, features = ["component-model", "features", "serde", "simd", "std", "validate"] }
 zeroize = { version = "1", features = ["zeroize_derive"] }
 
 [target.aarch64-apple-darwin.dependencies]
