@@ -19,10 +19,8 @@ impl federated_server::ServerRuntime for LambdaRuntime {
         //
         // read more: https://github.com/open-telemetry/opentelemetry-lambda/blob/main/docs/design_proposal.md
         if let Some(ref tracer_provider) = self.telemetry.tracer {
-            for result in tracer_provider.force_flush() {
-                if let Err(e) = result {
-                    println!("error flushing events: {e}");
-                }
+            if let Err(e) = tracer_provider.force_flush() {
+                println!("error flushing events: {e}");
             }
         }
     }

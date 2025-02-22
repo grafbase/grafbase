@@ -1,16 +1,12 @@
 use crate::{config::TelemetryConfig, error::TracingError};
 
-use opentelemetry_sdk::{Resource, logs::LoggerProvider, runtime::RuntimeChannel};
+use opentelemetry_sdk::{Resource, logs::SdkLoggerProvider};
 
 #[allow(unused_variables)]
-pub(super) fn build_logs_provider<R>(
-    runtime: R,
+pub(super) fn build_logs_provider(
     config: &TelemetryConfig,
     resource: Resource,
-) -> Result<Option<LoggerProvider>, TracingError>
-where
-    R: RuntimeChannel,
-{
+) -> Result<Option<SdkLoggerProvider>, TracingError> {
     cfg_if::cfg_if! {
         if #[cfg(feature = "otlp")] {
             use opentelemetry_otlp::{LogExporter, WithExportConfig, WithHttpConfig, WithTonicConfig};
@@ -18,7 +14,7 @@ where
             use opentelemetry_sdk::logs::{BatchConfigBuilder, BatchLogProcessor};
             use std::time::Duration;
 
-            let mut builder = LoggerProvider::builder().with_resource(resource);
+            let mut builder = SdkLoggerProvider::builder().with_resource(resource);
 
             if let Some(config) = config.logs_otlp_config() {
                 let exporter_timeout = Duration::from_secs(config.timeout.num_seconds() as u64);
@@ -58,7 +54,7 @@ where
                         .with_max_export_batch_size(config.max_export_batch_size)
                         .build();
 
-                    BatchLogProcessor::builder(exporter, runtime.clone())
+                    BatchLogProcessor::builder(exporter)
                         .with_batch_config(config)
                         .build()
                 };

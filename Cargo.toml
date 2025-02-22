@@ -53,7 +53,7 @@ async-graphql-value = "7.0.15"
 async-nats = "0.39.0"
 async-sse = "5"
 async-trait = "0.1.86"
-async-tungstenite = "0.29.1"
+async-tungstenite = "0.28.0"
 axum = { version = "0.8.1", default-features = false }
 axum-extra = "0.10"
 axum-server = { version = "0.7", default-features = false }

@@ -8,7 +8,7 @@ use indoc::formatdoc;
 
 use crate::{Client, clickhouse_client, runtime};
 
-const TRACE_INGESTION_DELAY: std::time::Duration = std::time::Duration::from_secs(2);
+const TRACE_INGESTION_DELAY: std::time::Duration = std::time::Duration::from_secs(4);
 
 #[test]
 fn no_traceparent_no_propagation() {

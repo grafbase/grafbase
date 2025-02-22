@@ -1,10 +1,10 @@
 use std::time::Duration;
 
-use opentelemetry_sdk::export::trace;
 use opentelemetry_sdk::{
     Resource,
-    runtime::RuntimeChannel,
-    trace::{BatchConfigBuilder, BatchSpanProcessor, Builder, IdGenerator, Sampler, TracerProvider},
+    trace::{
+        self, BatchConfigBuilder, BatchSpanProcessor, IdGenerator, Sampler, SdkTracerProvider, TracerProviderBuilder,
+    },
 };
 
 use crate::{
@@ -12,19 +12,16 @@ use crate::{
     error::TracingError,
 };
 
-pub(super) fn build_trace_provider<R, I>(
-    runtime: R,
+pub(super) fn build_trace_provider<I>(
     id_generator: I,
     config: &TelemetryConfig,
     resource: Resource,
-) -> Result<TracerProvider, TracingError>
+) -> Result<SdkTracerProvider, TracingError>
 where
-    R: RuntimeChannel,
     I: IdGenerator + 'static,
 {
     let base_sampler = Sampler::TraceIdRatioBased(config.tracing.sampling);
-
-    let mut builder = opentelemetry_sdk::trace::Builder::default().with_id_generator(id_generator);
+    let mut builder = TracerProviderBuilder::default().with_id_generator(id_generator);
 
     if config.tracing.parent_based_sampler {
         builder = builder.with_sampler(Sampler::ParentBased(Box::new(base_sampler)));
@@ -38,24 +35,19 @@ where
         .with_max_events_per_span(config.tracing.collect.max_events_per_span as u32)
         .with_resource(resource);
 
-    Ok(setup_exporters(builder, config, runtime)?.build())
+    Ok(setup_exporters(builder, config)?.build())
 }
 
-fn setup_exporters<R>(
-    mut tracer_provider_builder: Builder,
+fn setup_exporters(
+    mut tracer_provider_builder: TracerProviderBuilder,
     config: &TelemetryConfig,
-    runtime: R,
-) -> Result<Builder, TracingError>
-where
-    R: RuntimeChannel,
-{
+) -> Result<TracerProviderBuilder, TracingError> {
     // stdout
     if let Some(stdout_exporter) = config.tracing_stdout_config() {
         let span_processor = build_batched_span_processor(
             stdout_exporter.timeout,
             &stdout_exporter.batch_export.unwrap_or_default(),
             opentelemetry_stdout::SpanExporter::default(),
-            runtime.clone(),
         );
 
         tracer_provider_builder = tracer_provider_builder.with_span_processor(span_processor);
@@ -107,7 +99,6 @@ where
                     otlp_exporter_config.timeout,
                     &otlp_exporter_config.batch_export,
                     span_exporter,
-                    runtime.clone(),
                 );
 
                 tracer_provider_builder = tracer_provider_builder.with_span_processor(span_processor);
@@ -120,7 +111,6 @@ where
                     otlp_exporter_config.timeout,
                     &otlp_exporter_config.batch_export,
                     span_exporter,
-                    runtime.clone(),
                 );
 
                 tracer_provider_builder = tracer_provider_builder.with_span_processor(span_processor);
@@ -131,16 +121,12 @@ where
     Ok(tracer_provider_builder)
 }
 
-fn build_batched_span_processor<R>(
+fn build_batched_span_processor(
     timeout: chrono::Duration,
     config: &BatchExportConfig,
     exporter: impl trace::SpanExporter + 'static,
-    runtime: R,
-) -> BatchSpanProcessor<R>
-where
-    R: RuntimeChannel,
-{
-    BatchSpanProcessor::builder(exporter, runtime)
+) -> BatchSpanProcessor {
+    BatchSpanProcessor::builder(exporter)
         .with_batch_config(
             BatchConfigBuilder::default()
                 .with_max_concurrent_exports(config.max_concurrent_exports)

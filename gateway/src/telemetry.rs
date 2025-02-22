@@ -1,28 +1,31 @@
 use std::io::IsTerminal;
 
-use grafbase_telemetry::otel::opentelemetry_sdk::{logs::LoggerProvider, metrics::SdkMeterProvider};
+use grafbase_telemetry::otel::opentelemetry_sdk::{logs::SdkLoggerProvider, metrics::SdkMeterProvider};
 
 use grafbase_telemetry::config::TelemetryConfig;
 use grafbase_telemetry::otel::layer::OtelTelemetry;
-use grafbase_telemetry::otel::opentelemetry_sdk::runtime::Tokio;
-use grafbase_telemetry::otel::opentelemetry_sdk::trace::TracerProvider;
+use grafbase_telemetry::otel::opentelemetry_sdk::trace::SdkTracerProvider;
 use tracing_subscriber::EnvFilter;
 
 use crate::args::{Args, LogStyle};
 
 #[derive(Default, Clone)]
 pub(crate) struct OpenTelemetryProviders {
-    pub logger: Option<LoggerProvider>,
+    pub logger: Option<SdkLoggerProvider>,
     pub meter: Option<SdkMeterProvider>,
-    pub tracer: Option<TracerProvider>,
+    pub tracer: Option<SdkTracerProvider>,
 }
 
 impl OpenTelemetryProviders {
     pub(crate) async fn graceful_shutdown(&self) {
-        use grafbase_telemetry::otel::opentelemetry::global::shutdown_tracer_provider;
         use tokio::task::spawn_blocking;
 
-        let shutdown_tracer = spawn_blocking(shutdown_tracer_provider);
+        let tracer = self.tracer.clone();
+        let shutdown_tracer = spawn_blocking(|| {
+            if let Some(provider) = tracer {
+                let _ = provider.shutdown();
+            }
+        });
 
         let meter_provider = self.meter.clone();
         let shutdown_metrics = spawn_blocking(|| {
@@ -63,7 +66,7 @@ pub(crate) fn init(args: &impl Args, config: &TelemetryConfig) -> anyhow::Result
         tracer,
         meter_provider,
         logger,
-    } = grafbase_telemetry::otel::layer::build(config, id_generator, Tokio)?;
+    } = grafbase_telemetry::otel::layer::build(config, id_generator)?;
 
     if let Some(ref meter_provider) = meter_provider {
         grafbase_telemetry::otel::opentelemetry::global::set_meter_provider(meter_provider.clone());

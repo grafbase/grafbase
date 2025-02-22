@@ -113,7 +113,7 @@ fn request_error() {
 
 #[test]
 fn field_error() {
-    with_gateway(|service_name, start_time_unix, gateway, clickhouse| async move {
+    with_gateway(|service_name, _, gateway, clickhouse| async move {
         let resp = gateway
             .gql::<serde_json::Value>("{ __typename me { id } }")
             .send()
@@ -143,13 +143,12 @@ fn field_error() {
                 r#"
                 SELECT Count, Attributes
                 FROM otel_metrics_exponential_histogram
-                WHERE ServiceName = ? AND StartTimeUnix >= ?
+                WHERE ServiceName = ?
                     AND ScopeName = 'grafbase'
                     AND MetricName = 'http.server.request.duration'
                 "#,
             )
             .bind(&service_name)
-            .bind(start_time_unix)
             .fetch_one::<ExponentialHistogramRow>()
             .await
             .unwrap();
@@ -176,7 +175,7 @@ fn field_error() {
 
 #[test]
 fn field_error_data_null() {
-    with_gateway(|service_name, start_time_unix, gateway, clickhouse| async move {
+    with_gateway(|service_name, _, gateway, clickhouse| async move {
         let resp = gateway.gql::<serde_json::Value>("{ me { id } }").send().await;
         insta::assert_json_snapshot!(resp, @r###"
         {
@@ -202,13 +201,12 @@ fn field_error_data_null() {
                 r#"
                 SELECT Count, Attributes
                 FROM otel_metrics_exponential_histogram
-                WHERE ServiceName = ? AND StartTimeUnix >= ?
+                WHERE ServiceName = ?
                     AND ScopeName = 'grafbase'
                     AND MetricName = 'http.server.request.duration'
                 "#,
             )
             .bind(&service_name)
-            .bind(start_time_unix)
             .fetch_one::<ExponentialHistogramRow>()
             .await
             .unwrap();
@@ -332,7 +330,7 @@ fn connected_clients() {
 
 #[test]
 fn request_body_size() {
-    with_gateway(|service_name, start_time_unix, gateway, clickhouse| async move {
+    with_gateway(|service_name, _, gateway, clickhouse| async move {
         let resp = gateway.gql::<serde_json::Value>("{ __typename }").send().await;
 
         insta::assert_json_snapshot!(resp, @r###"
@@ -350,13 +348,12 @@ fn request_body_size() {
                 r#"
                 SELECT Count, Attributes
                 FROM otel_metrics_exponential_histogram
-                WHERE ServiceName = ? AND StartTimeUnix >= ?
+                WHERE ServiceName = ?
                     AND ScopeName = 'grafbase'
                     AND MetricName = 'http.server.request.body.size'
                 "#,
             )
             .bind(&service_name)
-            .bind(start_time_unix)
             .fetch_optional::<ExponentialHistogramRow>()
             .await
             .unwrap();

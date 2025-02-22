@@ -1,6 +1,6 @@
 use std::{fmt::Write, process::Command};
 
-use rand::{Rng, distributions::Alphanumeric};
+use rand::{Rng, distr::Alphanumeric};
 
 fn main() -> anyhow::Result<()> {
     // Note: the built crate puportes to do this, but it pulls in libgit2
@@ -8,7 +8,7 @@ fn main() -> anyhow::Result<()> {
     // and just seems overkill for what we need
     let mut output = String::new();
 
-    let token = rand::thread_rng()
+    let token = rand::rng()
         .sample_iter(&Alphanumeric)
         .take(32)
         .map(char::from)

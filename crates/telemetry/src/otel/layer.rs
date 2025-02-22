@@ -2,7 +2,6 @@ use opentelemetry::trace::TracerProvider;
 use opentelemetry::{InstrumentationScope, KeyValue};
 use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
 use opentelemetry_sdk::Resource;
-use opentelemetry_sdk::runtime::RuntimeChannel;
 use opentelemetry_sdk::trace::IdGenerator;
 use tracing::Subscriber;
 use tracing_opentelemetry::OpenTelemetryLayer;
@@ -29,12 +28,13 @@ pub struct OtelTelemetry<Subscriber> {
 
 pub struct Tracer<Subscriber> {
     pub layer: OpenTelemetryLayer<Subscriber, opentelemetry_sdk::trace::Tracer>,
-    pub provider: opentelemetry_sdk::trace::TracerProvider,
+    pub provider: opentelemetry_sdk::trace::SdkTracerProvider,
 }
 
 pub struct Logger {
-    pub layer: OpenTelemetryTracingBridge<opentelemetry_sdk::logs::LoggerProvider, opentelemetry_sdk::logs::Logger>,
-    pub provider: opentelemetry_sdk::logs::LoggerProvider,
+    pub layer:
+        OpenTelemetryTracingBridge<opentelemetry_sdk::logs::SdkLoggerProvider, opentelemetry_sdk::logs::SdkLogger>,
+    pub provider: opentelemetry_sdk::logs::SdkLoggerProvider,
 }
 
 /// Creates a new OTEL tracing layer that doesn't collect or export any tracing data.
@@ -53,10 +53,9 @@ where
 
 /// Creates a new OTEL tracing layer that uses a [`BatchSpanProcessor`] to collect and export traces.
 /// It's wrapped in a [`reload::Layer`] enabling its replacement.
-pub fn build<S, R, I>(config: &TelemetryConfig, id_generator: I, runtime: R) -> Result<OtelTelemetry<S>, TracingError>
+pub fn build<S, I>(config: &TelemetryConfig, id_generator: I) -> Result<OtelTelemetry<S>, TracingError>
 where
     S: Subscriber + for<'span> LookupSpan<'span> + Send + Sync,
-    R: RuntimeChannel,
     I: IdGenerator + 'static,
 {
     let mut resource_attributes: Vec<_> = config
@@ -66,15 +65,11 @@ where
         .collect();
 
     resource_attributes.push(KeyValue::new("service.name", config.service_name.clone()));
-    let resource = Resource::new(resource_attributes);
+    let resource = Resource::builder().with_attributes(resource_attributes).build();
 
-    let meter_provider = Some(super::metrics::build_meter_provider(
-        runtime.clone(),
-        config,
-        resource.clone(),
-    )?);
+    let meter_provider = Some(super::metrics::build_meter_provider(config, resource.clone())?);
 
-    let logger = match super::logs::build_logs_provider(runtime.clone(), config, resource.clone())? {
+    let logger = match super::logs::build_logs_provider(config, resource.clone())? {
         Some(provider) if config.logs_exporters_enabled() => Some(Logger {
             layer: OpenTelemetryTracingBridge::new(&provider),
             provider,
@@ -83,7 +78,7 @@ where
     };
 
     let tracer = if config.tracing_exporters_enabled() {
-        let provider = super::traces::build_trace_provider(runtime, id_generator, config, resource.clone())?;
+        let provider = super::traces::build_trace_provider(id_generator, config, resource.clone())?;
 
         let scope = InstrumentationScope::builder(crate::SCOPE)
             .with_version(crate::SCOPE_VERSION)

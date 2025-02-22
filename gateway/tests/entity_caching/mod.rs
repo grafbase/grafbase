@@ -9,8 +9,8 @@ use crate::{Client, runtime};
 #[test]
 fn entity_caching_via_redis() {
     // Create a random key prefix so we don't clash with other tests
-    let key_prefix = rand::thread_rng()
-        .sample_iter(&rand::distributions::Alphanumeric)
+    let key_prefix = rand::rng()
+        .sample_iter(&rand::distr::Alphanumeric)
         .take(6)
         .map(char::from)
         .collect::<String>();
