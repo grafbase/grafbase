@@ -5,7 +5,7 @@ go 1.22.12
 toolchain go1.24.0
 
 require (
-	github.com/99designs/gqlgen v0.17.63
+	github.com/99designs/gqlgen v0.17.66
 	github.com/99designs/gqlgen/_examples v0.0.0-20250221181145-9baafe1742da
 	github.com/vektah/gqlparser/v2 v2.5.22
 )
@@ -22,6 +22,6 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/sosodev/duration v1.3.1 // indirect
-	golang.org/x/net v0.33.0 // indirect
+	golang.org/x/net v0.35.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 )
