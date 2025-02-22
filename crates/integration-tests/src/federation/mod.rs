@@ -13,7 +13,7 @@ use graphql_mocks::{MockGraphQlServer, ReceivedRequest};
 use http_body_util::BodyExt;
 pub use request::*;
 pub use runtime::*;
-use runtime_local::wasi::hooks::ChannelLogReceiver;
+use runtime_local::wasi::hooks::AccessLogReceiver;
 use tower::ServiceExt;
 use url::Url;
 use websocket_request::WebsocketRequest;
@@ -29,7 +29,7 @@ pub struct TestGateway {
 }
 
 pub struct TestRuntimeContext {
-    pub access_log_receiver: ChannelLogReceiver,
+    pub access_log_receiver: AccessLogReceiver,
 }
 
 pub struct MockSubgraph {

@@ -30,12 +30,16 @@ pub static SDK_VERSION: [u8; 6] = *include_bytes!(concat!(env!("OUT_DIR"), "/sdk
 
 #[doc(hidden)]
 mod wit {
-    #![expect(clippy::too_many_arguments, missing_docs)]
+    #![expect(missing_docs)]
 
     wit_bindgen::generate!({
         skip: ["register-extension"],
         path: "./wit/world.wit",
+        world: "sdk",
     });
+
+    pub use exports::grafbase::sdk::extension::Guest;
+    pub use grafbase::sdk::types::*;
 }
 
 wit::export!(Component with_types_in wit);

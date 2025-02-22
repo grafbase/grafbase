@@ -22,8 +22,8 @@ use runtime::{
 use tracing::{Instrument, Span, info_span};
 use wasi_component_loader::HookImplementation;
 pub use wasi_component_loader::{
-    AccessLogMessage, ChannelLogReceiver, ChannelLogSender, ComponentLoader, GuestError, HooksWasiConfig as Config,
-    SharedContext, create_log_channel,
+    AccessLogMessage, AccessLogReceiver, AccessLogSender, ComponentLoader, GuestError, HooksWasiConfig as Config,
+    SharedContext, create_access_log_channel,
 };
 
 use super::guest_error_as_gql;
@@ -143,7 +143,7 @@ impl HooksWasi {
         loader: Option<ComponentLoader>,
         max_pool_size: Option<usize>,
         meter: &Meter,
-        access_log: ChannelLogSender,
+        access_log: AccessLogSender,
     ) -> Self {
         match loader.map(Arc::new) {
             Some(loader) => {

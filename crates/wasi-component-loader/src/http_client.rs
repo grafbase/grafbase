@@ -10,12 +10,13 @@ use std::{
     str::FromStr,
     time::{Duration, Instant},
 };
-use strum::AsRefStr;
 use tracing::{Instrument, field::Empty, info_span};
 use wasmtime::{
     StoreContextMut,
-    component::{ComponentType, Lift, LinkerInstance, Lower, ResourceType},
+    component::{LinkerInstance, ResourceType},
 };
+
+pub use crate::extension::wit::{HttpError, HttpRequest, HttpResponse};
 
 pub(crate) fn inject_mapping(types: &mut LinkerInstance<'_, WasiState>) -> crate::Result<()> {
     types.resource(HTTP_CLIENT_RESOURCE, ResourceType::host::<()>(), |_, _| Ok(()))?;
@@ -24,134 +25,6 @@ pub(crate) fn inject_mapping(types: &mut LinkerInstance<'_, WasiState>) -> crate
     types.func_wrap_async(HTTP_CLIENT_EXECUTE_MANY_FUNCTION, execute_many)?;
 
     Ok(())
-}
-
-#[derive(Clone, Lower, Lift, ComponentType)]
-#[component(record)]
-struct HttpRequest {
-    #[component(name = "method")]
-    method: HttpMethod,
-    #[component(name = "url")]
-    url: String,
-    #[component(name = "headers")]
-    headers: Vec<(String, String)>,
-    #[component(name = "body")]
-    body: Vec<u8>,
-    #[component(name = "timeout-ms")]
-    timeout_ms: Option<u64>,
-}
-
-#[derive(Clone, Copy, Lower, Lift, ComponentType)]
-#[component(enum)]
-#[repr(u8)]
-#[allow(dead_code)] // for some reason clippy thinks this is dead code, it's not.
-#[derive(AsRefStr)]
-#[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
-pub(crate) enum HttpMethod {
-    #[component(name = "get")]
-    Get,
-    #[component(name = "post")]
-    Post,
-    #[component(name = "put")]
-    Put,
-    #[component(name = "delete")]
-    Delete,
-    #[component(name = "patch")]
-    Patch,
-    #[component(name = "head")]
-    Head,
-    #[component(name = "options")]
-    Options,
-    #[component(name = "connect")]
-    Connect,
-    #[component(name = "trace")]
-    Trace,
-}
-
-impl From<HttpMethod> for reqwest::Method {
-    fn from(value: HttpMethod) -> Self {
-        match value {
-            HttpMethod::Get => reqwest::Method::GET,
-            HttpMethod::Post => reqwest::Method::POST,
-            HttpMethod::Put => reqwest::Method::PUT,
-            HttpMethod::Delete => reqwest::Method::DELETE,
-            HttpMethod::Patch => reqwest::Method::PATCH,
-            HttpMethod::Head => reqwest::Method::HEAD,
-            HttpMethod::Options => reqwest::Method::OPTIONS,
-            HttpMethod::Connect => reqwest::Method::CONNECT,
-            HttpMethod::Trace => reqwest::Method::TRACE,
-        }
-    }
-}
-
-impl From<http::Method> for HttpMethod {
-    fn from(value: http::Method) -> Self {
-        match value {
-            http::Method::GET => HttpMethod::Get,
-            http::Method::POST => HttpMethod::Post,
-            http::Method::PUT => HttpMethod::Put,
-            http::Method::DELETE => HttpMethod::Delete,
-            http::Method::PATCH => HttpMethod::Patch,
-            http::Method::HEAD => HttpMethod::Head,
-            http::Method::OPTIONS => HttpMethod::Options,
-            http::Method::CONNECT => HttpMethod::Connect,
-            http::Method::TRACE => HttpMethod::Trace,
-            method => todo!("unsupported http method: {method:?}"),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Lower, Lift, ComponentType)]
-#[component(record)]
-struct HttpResponse {
-    #[component(name = "status")]
-    status: u16,
-    #[component(name = "version")]
-    version: HttpVersion,
-    #[component(name = "headers")]
-    headers: Vec<(String, String)>,
-    #[component(name = "body")]
-    body: Vec<u8>,
-}
-
-#[derive(Debug, Clone, Copy, Lower, Lift, ComponentType)]
-#[component(enum)]
-#[repr(u8)]
-enum HttpVersion {
-    #[component(name = "http09")]
-    Http09,
-    #[component(name = "http10")]
-    Http1,
-    #[component(name = "http11")]
-    Http11,
-    #[component(name = "http20")]
-    Http2,
-    #[component(name = "http30")]
-    Http3,
-}
-
-impl From<reqwest::Version> for HttpVersion {
-    fn from(value: reqwest::Version) -> Self {
-        match value {
-            reqwest::Version::HTTP_09 => HttpVersion::Http09,
-            reqwest::Version::HTTP_10 => HttpVersion::Http1,
-            reqwest::Version::HTTP_11 => HttpVersion::Http11,
-            reqwest::Version::HTTP_2 => HttpVersion::Http2,
-            reqwest::Version::HTTP_3 => HttpVersion::Http3,
-            version => todo!("unsupported http version: {version:?}"),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Lower, Lift, ComponentType)]
-#[component(variant)]
-enum HttpError {
-    #[component(name = "timeout")]
-    Timeout,
-    #[component(name = "request")]
-    Request(String),
-    #[component(name = "connect")]
-    Connect(String),
 }
 
 type HttpResult<'a> = Box<dyn Future<Output = anyhow::Result<(Result<HttpResponse, HttpError>,)>> + Send + 'a>;
@@ -180,7 +53,7 @@ fn execute_many(ctx: StoreContextMut<'_, WasiState>, (requests,): (Vec<HttpReque
     })
 }
 
-async fn send_request(
+pub(crate) async fn send_request(
     http_client: reqwest::Client,
     request_durations: Histogram<u64>,
     request: HttpRequest,

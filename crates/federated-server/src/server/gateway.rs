@@ -2,20 +2,21 @@ use crate::Error;
 
 use super::GdnResponse;
 use engine::{Engine, SchemaVersion};
-use extension_catalog::{Extension, ExtensionCatalog, ExtensionId, Manifest, VersionedManifest};
+use extension_catalog::{Extension, ExtensionCatalog, ExtensionId, KindDiscriminants, Manifest, VersionedManifest};
 use gateway_config::{AuthenticationProvider, Config, WasiExtensionsConfig};
 use graphql_composition::FederatedGraph;
 use runtime::{
     extension::AuthorizerId,
     trusted_documents_client::{Client, TrustedDocumentsEnforcementMode},
 };
-use runtime_local::wasi::{
-    extensions::{Directive, ExtensionConfig, ExtensionPoolId, ExtensionType, WasiExtensions},
-    hooks::{ChannelLogSender, HooksWasi},
-};
-use std::{collections::HashMap, env, fs::File, ops::Not, path::PathBuf, sync::Arc};
+use runtime_local::wasi::hooks::{AccessLogSender, HooksWasi};
+use std::{env, fs::File, ops::Not, path::PathBuf, sync::Arc};
 use tokio::sync::watch;
 use ulid::Ulid;
+use wasi_component_loader::{
+    extension::{ExtensionConfig, ExtensionGuestConfig, ExtensionPoolId, ExtensionsWasiRuntime, SchemaDirective},
+    resources::SharedResources,
+};
 
 pub use gateway_runtime::GatewayRuntime;
 
@@ -60,7 +61,7 @@ pub(super) async fn generate(
     gateway_config: &Config,
     hot_reload_config_path: Option<PathBuf>,
     hooks: HooksWasi,
-    access_log: ChannelLogSender,
+    access_log: AccessLogSender,
 ) -> crate::Result<Engine<GatewayRuntime>> {
     let Graph {
         federated_sdl,
@@ -95,7 +96,7 @@ pub(super) async fn generate(
     }
 
     if let Some(extensions) = create_wasi_extension_configs(&extension_catalog, gateway_config, &schema) {
-        runtime.extensions = WasiExtensions::new(access_log, extensions)
+        runtime.extensions = ExtensionsWasiRuntime::new(SharedResources { access_log }, extensions)
             .await
             .map_err(|e| Error::InternalError(e.to_string()))?;
     }
@@ -107,8 +108,8 @@ fn create_wasi_extension_configs(
     extension_catalog: &ExtensionCatalog,
     gateway_config: &Config,
     schema: &engine::Schema,
-) -> Option<Vec<ExtensionConfig>> {
-    let mut wasi_extensions: Vec<ExtensionConfig> = Vec::with_capacity(extension_catalog.len());
+) -> Option<Vec<ExtensionConfig<Option<toml::Value>>>> {
+    let mut wasi_extensions = Vec::with_capacity(extension_catalog.len());
 
     let extension_configs = gateway_config.extensions.as_ref()?;
 
@@ -116,11 +117,6 @@ fn create_wasi_extension_configs(
         let extension_config = extension_configs
             .get(extension.manifest.name())
             .expect("we made sure in the create_extension_catalog that this extension is in the config");
-
-        let extension_type = match &extension.manifest.kind {
-            extension_catalog::Kind::FieldResolver(_) => ExtensionType::Resolver,
-            extension_catalog::Kind::Authenticator(_) => ExtensionType::Authentication,
-        };
 
         let wasi_config = WasiExtensionsConfig {
             location: extension.wasm_path.clone(),
@@ -130,32 +126,27 @@ fn create_wasi_extension_configs(
             environment_variables: extension_config.environment_variables(),
         };
 
-        let name = extension.manifest.name().to_owned();
-        let version = extension.manifest.version().to_owned();
         let max_pool_size = extension_config.max_pool_size();
         let id = ExtensionId::from(id);
 
-        match extension_type {
-            ExtensionType::Resolver => {
+        let r#type = KindDiscriminants::from(&extension.manifest.kind);
+        match r#type {
+            KindDiscriminants::FieldResolver => {
                 let id = ExtensionPoolId::Resolver(id);
-
-                let extension_config = match extension_config.config() {
-                    Some(config) => minicbor_serde::to_vec(config).unwrap(),
-                    None => Vec::new(),
-                };
 
                 wasi_extensions.push(ExtensionConfig {
                     id,
-                    name,
-                    version,
-                    extension_type,
-                    schema_directives: Vec::new(),
+                    manifest_id: extension.manifest.id.clone(),
                     max_pool_size,
                     wasi_config,
-                    extension_config,
+                    guest_config: ExtensionGuestConfig {
+                        r#type,
+                        schema_directives: Vec::new(),
+                        configuration: extension_config.config().cloned(),
+                    },
                 });
             }
-            ExtensionType::Authentication => {
+            KindDiscriminants::Authenticator => {
                 let Some(auth_config) = gateway_config.authentication.as_ref() else {
                     continue;
                 };
@@ -165,26 +156,22 @@ fn create_wasi_extension_configs(
                         continue;
                     };
 
-                    if extension_provider.extension != name {
+                    if extension_provider.extension != extension.manifest.name() {
                         continue;
                     }
-
-                    let extension_config = match extension_provider.config {
-                        Some(ref config) => minicbor_serde::to_vec(config).unwrap(),
-                        None => minicbor_serde::to_vec(HashMap::<String, String>::new()).unwrap(),
-                    };
 
                     let id = ExtensionPoolId::Authorizer(id, AuthorizerId::from(auth_id));
 
                     wasi_extensions.push(ExtensionConfig {
                         id,
-                        name: name.clone(),
-                        version: version.clone(),
-                        extension_type,
-                        schema_directives: Vec::new(),
+                        manifest_id: extension.manifest.id.clone(),
                         max_pool_size,
                         wasi_config: wasi_config.clone(),
-                        extension_config,
+                        guest_config: ExtensionGuestConfig {
+                            r#type,
+                            schema_directives: Vec::new(),
+                            configuration: extension_provider.config.clone(),
+                        },
                     });
                 }
             }
@@ -197,9 +184,9 @@ fn create_wasi_extension_configs(
         for schema_directive in directives {
             let config = &mut wasi_extensions[usize::from(schema_directive.extension_id)];
 
-            config.schema_directives.push(Directive::new(
-                config.name.clone(),
-                subgraph.name().to_string(),
+            config.guest_config.schema_directives.push(SchemaDirective::new(
+                schema_directive.name(),
+                subgraph.name(),
                 schema_directive.static_arguments(),
             ));
         }

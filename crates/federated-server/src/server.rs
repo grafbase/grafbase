@@ -98,7 +98,7 @@ pub async fn serve(
     let pending_logs_counter = meter.i64_up_down_counter("grafbase.gateway.access_log.pending").build();
 
     let (access_log_sender, access_log_receiver) =
-        hooks::create_log_channel(config.gateway.access_logs.lossy_log(), pending_logs_counter.clone());
+        hooks::create_access_log_channel(config.gateway.access_logs.lossy_log(), pending_logs_counter.clone());
 
     let hooks_loader = config
         .hooks

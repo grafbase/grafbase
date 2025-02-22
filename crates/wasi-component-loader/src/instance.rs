@@ -7,18 +7,17 @@ use wasmtime::{
 };
 
 use crate::{
-    ChannelLogSender, ComponentLoader,
+    AccessLogSender, ComponentLoader,
     config::{build_extensions_context, build_hooks_context},
     state::WasiState,
 };
 
-pub mod extensions;
 pub mod hooks;
 
 fn initialize_hooks_store(
     config: &HooksWasiConfig,
     loader: &ComponentLoader,
-    access_log: ChannelLogSender,
+    access_log: AccessLogSender,
 ) -> crate::Result<Store<WasiState>> {
     let state = WasiState::new(build_hooks_context(config), access_log, loader.cache().clone());
     let store = Store::new(loader.engine(), state);
@@ -29,7 +28,7 @@ fn initialize_hooks_store(
 fn initialize_extensions_store(
     config: &WasiExtensionsConfig,
     loader: &ComponentLoader,
-    access_log: ChannelLogSender,
+    access_log: AccessLogSender,
 ) -> crate::Result<Store<WasiState>> {
     let state = WasiState::new(build_extensions_context(config), access_log, loader.cache().clone());
     let store = Store::new(loader.engine(), state);
@@ -48,7 +47,7 @@ pub struct ComponentInstance {
 }
 
 impl ComponentInstance {
-    pub async fn new(loader: &ComponentLoader, access_log: ChannelLogSender) -> crate::Result<Self> {
+    pub async fn new(loader: &ComponentLoader, access_log: AccessLogSender) -> crate::Result<Self> {
         let mut store = match loader.config() {
             either::Either::Left(config) => initialize_hooks_store(config, loader, access_log)?,
             either::Either::Right((_, config)) => initialize_extensions_store(config, loader, access_log)?,

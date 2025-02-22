@@ -41,7 +41,7 @@ impl Manifest {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, strum::EnumDiscriminants)]
 pub enum Kind {
     FieldResolver(FieldResolver),
     Authenticator(Empty),

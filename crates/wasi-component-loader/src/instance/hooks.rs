@@ -6,7 +6,7 @@ use http::HeaderMap;
 use runtime::hooks::SubgraphRequest;
 use wasmtime::component::{ComponentNamedList, Lift, Lower, Resource, TypedFunc};
 
-use crate::headers::HttpHeaders;
+use crate::headers::Headers;
 use crate::names::{
     AUTHORIZE_EDGE_NODE_POST_EXECUTION_HOOK_FUNCTION, AUTHORIZE_EDGE_POST_EXECUTION_HOOK_FUNCTION,
     AUTHORIZE_EDGE_PRE_EXECUTION_HOOK_FUNCTION, AUTHORIZE_NODE_PRE_EXECUTION_HOOK_FUNCTION,
@@ -14,7 +14,7 @@ use crate::names::{
     ON_HTTP_RESPONSE_FUNCTION, ON_OPERATION_RESPONSE_FUNCTION, ON_SUBGRAGH_REQUEST_HOOK_FUNCTION,
     ON_SUBGRAPH_RESPONSE_FUNCTION,
 };
-use crate::{ChannelLogSender, error::guest::ErrorResponse};
+use crate::{AccessLogSender, error::guest::ErrorResponse};
 use crate::{ComponentLoader, SharedContext};
 use crate::{
     ContextMap, EdgeDefinition, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, GuestResult,
@@ -118,7 +118,7 @@ impl HooksComponentInstance {
     /// # Returns
     ///
     /// A `Result` containing the newly created component instance on success, or an error on failure.
-    pub async fn new(loader: &ComponentLoader, access_log: ChannelLogSender) -> crate::Result<Self> {
+    pub async fn new(loader: &ComponentLoader, access_log: AccessLogSender) -> crate::Result<Self> {
         let mut component = ComponentInstance::new(loader, access_log).await?;
 
         let init = component
@@ -165,7 +165,7 @@ impl HooksComponentInstance {
             .component
             .store_mut()
             .data_mut()
-            .push_resource(HttpHeaders::from(headers))?;
+            .push_resource(Headers::borrow(headers))?;
 
         // we need to take the pointers now, because a resource is not Copy and we need
         // the pointers to get the data back from the shared memory.
@@ -184,7 +184,7 @@ impl HooksComponentInstance {
 
         // take the data back from the shared memory
         let context = self.component.store_mut().data_mut().take_resource(context_rep)?;
-        let headers: HttpHeaders = self.component.store_mut().data_mut().take_resource(headers_rep)?;
+        let headers: Headers = self.component.store_mut().data_mut().take_resource(headers_rep)?;
 
         Ok((context, headers.into_owned().unwrap()))
     }

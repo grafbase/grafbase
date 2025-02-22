@@ -1,7 +1,6 @@
 use runtime::error::{PartialErrorCode, PartialGraphqlError};
 use wasi_component_loader::GuestError;
 
-pub mod extensions;
 pub mod hooks;
 
 fn guest_error_as_gql(error: GuestError, code: PartialErrorCode) -> PartialGraphqlError {

@@ -1,10 +1,17 @@
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
 use crate::{
-    ComponentLoader, Directive, ExtensionType, ExtensionsComponentInstance, FieldDefinition, SharedContext,
-    tests::create_log_channel,
+    SharedContext,
+    extension::{
+        ExtensionGuestConfig, ExtensionLoader, SchemaDirective,
+        wit::{Directive, FieldDefinition},
+    },
+    tests::create_shared_resources,
 };
-use futures::{StreamExt, stream::FuturesOrdered};
+use futures::{
+    StreamExt, TryStreamExt,
+    stream::{FuturesOrdered, FuturesUnordered},
+};
 use gateway_config::WasiExtensionsConfig;
 use grafbase_telemetry::otel::opentelemetry::trace::TraceId;
 use http::{HeaderMap, HeaderValue};
@@ -32,35 +39,49 @@ async fn simple_resolver() {
 
     assert!(config.location.exists());
 
-    let (access_log, _) = create_log_channel();
-    let loader = ComponentLoader::extensions(String::new(), config).unwrap().unwrap();
-    let schema_directive = Directive::new("schemaArgs".into(), "mySubgraph".into(), &SchemaArgs { id: 10 });
+    let (shared, _) = create_shared_resources();
 
-    let mut extension = ExtensionsComponentInstance::new(
-        &loader,
-        ExtensionType::Resolver,
-        vec![schema_directive],
-        Vec::new(),
-        access_log,
+    let loader = ExtensionLoader::new(
+        shared,
+        config,
+        ExtensionGuestConfig {
+            r#type: extension_catalog::KindDiscriminants::FieldResolver,
+            schema_directives: vec![SchemaDirective::new("schemaArgs", "mySubgraph", SchemaArgs { id: 10 })],
+            configuration: (),
+        },
     )
-    .await
     .unwrap();
 
     let context = SharedContext::new(Arc::new(HashMap::new()), TraceId::INVALID);
 
-    let field_directive = Directive::new("myDirective".into(), "mySubgraph".into(), &FieldArgs { name: "cat" });
-
-    let definition = FieldDefinition {
-        type_name: "Query".into(),
-        name: "cats".into(),
+    let field_directive = Directive {
+        name: "myDirective",
+        subgraph_name: "mySubgraph",
+        arguments: &minicbor_serde::to_vec(&FieldArgs { name: "cat" }).unwrap(),
     };
 
-    let output = extension
+    let definition = FieldDefinition {
+        type_name: "Query",
+        name: "cats",
+    };
+
+    let output = loader
+        .instantiate()
+        .await
+        .unwrap()
         .resolve_field(context, field_directive, definition, Default::default())
         .await
         .unwrap();
 
-    let result: serde_json::Value = output.serialize_outputs().pop().unwrap().unwrap();
+    let result: serde_json::Value = output
+        .outputs
+        .into_iter()
+        .flat_map(|result| {
+            let data = result.ok()?;
+            minicbor_serde::from_slice(&data).ok()
+        })
+        .next()
+        .unwrap();
 
     insta::assert_json_snapshot!(&result, @r#"
     {
@@ -82,28 +103,30 @@ async fn single_call_caching_auth() {
 
     assert!(config.location.exists());
 
-    let (access_log, _) = create_log_channel();
-    let loader = ComponentLoader::extensions(String::new(), config).unwrap().unwrap();
+    let (shared, _) = create_shared_resources();
 
-    let config = json!({
-        "cache_config": "test"
-    });
-
-    let config = minicbor_serde::to_vec(&config).unwrap();
-
-    let mut extension =
-        ExtensionsComponentInstance::new(&loader, ExtensionType::Authentication, Vec::new(), config, access_log)
-            .await
-            .unwrap();
+    let loader = ExtensionLoader::new(
+        shared,
+        config,
+        ExtensionGuestConfig {
+            r#type: extension_catalog::KindDiscriminants::Authenticator,
+            schema_directives: Vec::new(),
+            configuration: json!({
+                "cache_config": "test"
+            }),
+        },
+    )
+    .unwrap();
 
     let mut headers = HeaderMap::new();
     headers.insert("Authorization", HeaderValue::from_static("valid"));
 
-    let (headers, output): (HeaderMap, serde_json::Value) = extension.authenticate(headers).await.unwrap();
+    let (headers, token) = loader.instantiate().await.unwrap().authenticate(headers).await.unwrap();
 
     assert!(headers.len() == 1);
     assert_eq!(Some(&HeaderValue::from_static("valid")), headers.get("Authorization"));
 
+    let output: serde_json::Value = minicbor_serde::from_slice(&token.raw).unwrap();
     insta::assert_json_snapshot!(output, @r#"
     {
       "key": "default"
@@ -122,32 +145,40 @@ async fn single_call_caching_auth_invalid() {
     };
 
     assert!(config.location.exists());
+    let (shared, _) = create_shared_resources();
 
-    let (access_log, _) = create_log_channel();
-    let loader = ComponentLoader::extensions(String::new(), config).unwrap().unwrap();
-
-    let config = json!({
-        "cache_config": "test"
-    });
-
-    let config = minicbor_serde::to_vec(&config).unwrap();
-
-    let mut extension =
-        ExtensionsComponentInstance::new(&loader, ExtensionType::Authentication, Vec::new(), config, access_log)
-            .await
-            .unwrap();
-
-    let result = extension
-        .authenticate::<serde_json::Value>(HeaderMap::new())
-        .await
-        .unwrap_err();
-
-    insta::assert_debug_snapshot!(result, @r#"
-    Guest(
-        ErrorResponse {
-            status_code: 401,
-            errors: [],
+    let loader = ExtensionLoader::new(
+        shared,
+        config,
+        ExtensionGuestConfig {
+            r#type: extension_catalog::KindDiscriminants::Authenticator,
+            schema_directives: Vec::new(),
+            configuration: json!({
+                "cache_config": "test"
+            }),
         },
+    )
+    .unwrap();
+
+    let mut headers = HeaderMap::new();
+    headers.insert("Authorization", HeaderValue::from_static("valid"));
+
+    let err = loader
+        .instantiate()
+        .await
+        .unwrap()
+        .authenticate(http::HeaderMap::new())
+        .await
+        .err();
+
+    insta::assert_debug_snapshot!(err, @r#"
+    Some(
+        Guest(
+            ErrorResponse {
+                status-code: 401,
+                errors: [],
+            },
+        ),
     )
     "#);
 }
@@ -163,42 +194,44 @@ async fn multiple_cache_calls() {
     };
 
     assert!(config.location.exists());
+    let (shared, _) = create_shared_resources();
 
-    let loader = Arc::new(ComponentLoader::extensions(String::new(), config).unwrap().unwrap());
+    let loader = ExtensionLoader::new(
+        shared,
+        config,
+        ExtensionGuestConfig {
+            r#type: extension_catalog::KindDiscriminants::Authenticator,
+            schema_directives: Vec::new(),
+            configuration: json!({
+                "cache_config": "test"
+            }),
+        },
+    )
+    .unwrap();
 
     let mut tasks = FuturesOrdered::new();
 
-    for i in 0..200 {
-        let loader = loader.clone();
+    let extensions = (0..200)
+        .map(|_| loader.instantiate())
+        .collect::<FuturesUnordered<_>>()
+        .try_collect::<Vec<_>>()
+        .await
+        .unwrap();
 
-        let (access_log, _) = create_log_channel();
-        let config = json!({
-            "cache_config": "test"
-        });
-
+    for (i, mut extension) in extensions.into_iter().enumerate() {
         tasks.push_back(tokio::task::spawn(async move {
-            let config = minicbor_serde::to_vec(&config).unwrap();
-
-            let mut extension = ExtensionsComponentInstance::new(
-                &loader,
-                ExtensionType::Authentication,
-                Vec::new(),
-                config,
-                access_log,
-            )
-            .await
-            .unwrap();
-
             let mut headers = HeaderMap::new();
             headers.insert("Authorization", HeaderValue::from_static("valid"));
             headers.insert("value", HeaderValue::from_str(&format!("value_{i}")).unwrap());
 
-            let (_, output): (_, serde_json::Value) = extension.authenticate(headers).await.unwrap();
+            let (_, token) = extension.authenticate(headers).await.unwrap();
+            println!("{}", String::from_utf8_lossy(&token.raw));
+            let claims: serde_json::Value = minicbor_serde::from_slice(&token.raw).unwrap();
 
-            // only the first key comes from the cahce.
+            // only the first key comes from the cache.
 
             insta::allow_duplicates! {
-                insta::assert_json_snapshot!(output, @r#"
+                insta::assert_json_snapshot!(claims, @r#"
                 {
                   "key": "value_0"
                 }
@@ -211,22 +244,10 @@ async fn multiple_cache_calls() {
         task.unwrap();
     }
 
-    let (access_log, _) = create_log_channel();
-    let config = json!({
-        "cache_config": "test"
-    });
-
-    let config = minicbor_serde::to_vec(&config).unwrap();
-
     let mut headers = HeaderMap::new();
     headers.insert("Authorization", HeaderValue::from_static("nonvalid"));
-
-    let mut extension =
-        ExtensionsComponentInstance::new(&loader, ExtensionType::Authentication, Vec::new(), config, access_log)
-            .await
-            .unwrap();
-
-    let (_, output): (_, serde_json::Value) = extension.authenticate(headers).await.unwrap();
+    let (_, token) = loader.instantiate().await.unwrap().authenticate(headers).await.unwrap();
+    let output: serde_json::Value = minicbor_serde::from_slice(&token.raw).unwrap();
 
     insta::allow_duplicates! {
         insta::assert_json_snapshot!(output, @r#"

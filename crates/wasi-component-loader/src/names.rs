@@ -46,15 +46,6 @@ pub(crate) const SUBGRAPH_REQUEST_GET_HEADERS_METHOD: &str = "[method]subgraph-r
 
 // Extensions
 
-pub(crate) const REGISTER_EXTENSION_FUNCTION: &str = "register-extension";
-pub(crate) const INIT_GATEWAY_EXTENSION_FUNCTION: &str = "init-gateway-extension";
-pub(crate) const RESOLVE_FIELD_EXTENSION_FUNCTION: &str = "resolve-field";
-pub(crate) const AUTEHNTICATE_EXTENSION_FUNCTION: &str = "authenticate";
-
-pub(crate) const CACHE_RESOURCE: &str = "cache";
-pub(crate) const CACHE_GET_FUNCTION: &str = "[static]cache.get";
-pub(crate) const CACHE_SET_FUNCTION: &str = "[static]cache.set";
-
 pub(crate) const NATS_CLIENT_RESOURCE: &str = "nats-client";
 pub(crate) const NATS_CLIENT_CONNECT_FUNCTION: &str = "[static]nats-client.connect";
 pub(crate) const NATS_CLIENT_PUBLISH_METHOD: &str = "[method]nats-client.publish";

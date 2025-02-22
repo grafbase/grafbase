@@ -269,8 +269,6 @@ dependencies = [
 [[package]]
 name = "grafbase-hooks-derive"
 version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3fb0cfbdb23fe84f383921258e25bc561a1440c32da12eef610bcd60c9e65923"
 dependencies = [
  "enumflags2",
  "quote",

@@ -1,53 +1,11 @@
-use std::{
-    future::Future,
-    time::{Duration, Instant, SystemTime},
-};
+use std::time::{Duration, Instant, SystemTime};
 
 use dashmap::DashMap;
 use futures::TryFutureExt;
 use tokio::sync::{mpsc, oneshot};
 use ulid::Ulid;
-use wasmtime::{
-    StoreContextMut,
-    component::{LinkerInstance, ResourceType},
-};
-
-use crate::{
-    names::{CACHE_GET_FUNCTION, CACHE_RESOURCE, CACHE_SET_FUNCTION},
-    state::WasiState,
-};
-
 type WaitListReceiver = mpsc::Receiver<oneshot::Sender<Vec<u8>>>;
 type WaitListSender = mpsc::Sender<oneshot::Sender<Vec<u8>>>;
-
-pub(crate) fn inject_mapping(types: &mut LinkerInstance<'_, WasiState>) -> crate::Result<()> {
-    types.resource(CACHE_RESOURCE, ResourceType::host::<()>(), |_, _| Ok(()))?;
-    types.func_wrap_async(CACHE_GET_FUNCTION, cache_get)?;
-    types.func_wrap_async(CACHE_SET_FUNCTION, cache_set)?;
-
-    Ok(())
-}
-
-type CacheGetResult<'a> = Box<dyn Future<Output = anyhow::Result<(Option<Vec<u8>>,)>> + Send + 'a>;
-type CacheSetResult<'a> = Box<dyn Future<Output = anyhow::Result<()>> + Send + 'a>;
-
-fn cache_get(store: StoreContextMut<'_, WasiState>, (key,): (String,)) -> CacheGetResult<'_> {
-    Box::new(async move {
-        let value = store.data().cache().get(&key).await;
-
-        Ok((value,))
-    })
-}
-
-fn cache_set(
-    store: StoreContextMut<'_, WasiState>,
-    (key, value, ttl_ms): (String, Vec<u8>, Option<u64>),
-) -> CacheSetResult<'_> {
-    Box::new(async move {
-        store.data().cache().set(&key, value, ttl_ms).await;
-        Ok(())
-    })
-}
 
 pub(crate) struct Cache {
     cache: DashMap<String, CachedValue>,

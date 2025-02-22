@@ -1,7 +1,7 @@
 use gateway_config::{AccessLogsConfig, RotateMode};
 use grafbase_telemetry::otel::opentelemetry::metrics::UpDownCounter;
 use rolling_logger::{RollingLogger, RotateStrategy};
-use runtime_local::wasi::hooks::{AccessLogMessage, ChannelLogReceiver};
+use runtime_local::wasi::hooks::{AccessLogMessage, AccessLogReceiver};
 use std::io::Write;
 
 /// Starts the access logging process.
@@ -31,7 +31,7 @@ use std::io::Write;
 /// logger initialization or during log writing operations.
 pub(crate) fn start(
     config: &AccessLogsConfig,
-    access_log_receiver: ChannelLogReceiver,
+    access_log_receiver: AccessLogReceiver,
     pending_logs_counter: UpDownCounter<i64>,
 ) -> crate::Result<()> {
     let strategy = match config.rotate {

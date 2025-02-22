@@ -9,7 +9,7 @@ const NULL: serde_json::Value = serde_json::Value::Null;
 pub enum AccessToken {
     Anonymous,
     Jwt(JwtToken),
-    Extension(ExtensionToken),
+    Extension(Vec<u8>),
 }
 
 /// Represents an *arbitrary* JWT token. It's only guaranteed to have been validated
@@ -17,11 +17,6 @@ pub enum AccessToken {
 #[derive(Clone)]
 pub struct JwtToken {
     /// Claims can be empty.
-    pub claims: HashMap<String, serde_json::Value>,
-}
-
-#[derive(Clone)]
-pub struct ExtensionToken {
     pub claims: HashMap<String, serde_json::Value>,
 }
 
@@ -42,7 +37,7 @@ impl AccessToken {
         match self {
             AccessToken::Anonymous => &NULL,
             AccessToken::Jwt(token) => token.claims.get(key).unwrap_or(&NULL),
-            AccessToken::Extension(token) => token.claims.get(key).unwrap_or(&NULL),
+            AccessToken::Extension(_) => &NULL,
         }
     }
 
