@@ -35,7 +35,10 @@ fn authentication_returns_401(#[case] method: http::Method, #[case] accept: &'st
             .await;
 
         // Invalid request should not matter.
-        let response = engine.execute(method, "").header(http::header::ACCEPT, accept).await;
+        let response = engine
+            .execute(method, "/graphql", "")
+            .header(http::header::ACCEPT, accept)
+            .await;
         insta::assert_json_snapshot!(response, @r###"
         {
           "errors": [

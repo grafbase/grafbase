@@ -114,6 +114,8 @@ impl IntoFuture for TestRequest {
             let (router, request) = self.into_router_and_request();
             let (parts, body) = router.oneshot(request).await.unwrap().into_parts();
             let bytes = body.collect().await.unwrap().to_bytes();
+            println!("{parts:#?}");
+            println!("{}", String::from_utf8_lossy(&bytes));
             http::Response::from_parts(parts, bytes).try_into().unwrap()
         })
     }
@@ -256,7 +258,8 @@ impl TryFrom<http::Response<Bytes>> for GraphqlResponse {
 
         Ok(GraphqlResponse {
             status: parts.status,
-            body: serde_json::from_slice(body.as_ref())?,
+            body: serde_json::from_slice(body.as_ref())
+                .unwrap_or_else(|err| serde_json::Value::String(format!("Could not deserialize JSON data: {err}"))),
             headers: parts.headers,
         })
     }

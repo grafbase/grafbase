@@ -1,5 +1,4 @@
 use crate::telemetry::OpenTelemetryProviders;
-use federated_server::ServerRouter;
 
 #[cfg_attr(not(feature = "lambda"), allow(unused))]
 #[derive(Clone)]
@@ -8,10 +7,6 @@ struct LambdaRuntime {
 }
 
 impl federated_server::ServerRuntime for LambdaRuntime {
-    fn on_ready(&self, _url: String) {}
-    fn get_external_router<T>(&self) -> Option<ServerRouter<T>> {
-        None
-    }
     fn after_request(&self) {
         // lambda must flush the trace events here, otherwise the
         // function might fall asleep and the events are pending until

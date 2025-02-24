@@ -281,13 +281,23 @@ pub struct RetryConfig {
     pub retry_mutations: bool,
 }
 
-#[derive(Clone, Default, Debug, serde::Deserialize)]
+#[derive(Clone, Debug, serde::Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct GraphConfig {
-    pub path: Option<String>,
-    pub websocket_path: Option<String>,
-    // We do want to distinguish None for false for grafbase dev
+    pub path: String,
+    pub websocket_path: String,
+    // We do want to distinguish None from false for grafbase dev
     pub introspection: Option<bool>,
+}
+
+impl Default for GraphConfig {
+    fn default() -> Self {
+        Self {
+            path: "/graphql".to_string(),
+            websocket_path: "/ws".to_string(),
+            introspection: None,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Default, serde::Deserialize)]
@@ -417,8 +427,8 @@ mod tests {
         let config: Config = toml::from_str("").unwrap();
 
         assert!(config.graph.introspection.is_none());
-        assert_eq!(None, config.graph.path.as_deref());
-        assert!(config.graph.websocket_path.is_none());
+        assert_eq!(config.graph.path, "/graphql");
+        assert_eq!(config.graph.websocket_path, "/ws");
     }
 
     #[test]
@@ -432,8 +442,8 @@ mod tests {
         let config: Config = toml::from_str(input).unwrap();
 
         assert_eq!(config.graph.introspection, Some(true));
-        assert_eq!(Some("/enterprise"), config.graph.path.as_deref());
-        assert!(config.graph.websocket_path.is_none());
+        assert_eq!("/enterprise", config.graph.path);
+        assert_eq!(config.graph.websocket_path, "/ws");
     }
 
     #[test]
@@ -447,8 +457,8 @@ mod tests {
         let config: Config = toml::from_str(input).unwrap();
 
         assert!(config.graph.introspection.is_none());
-        assert_eq!(Some("/enterprise"), config.graph.path.as_deref());
-        assert_eq!(Some("/subscriptions"), config.graph.websocket_path.as_deref());
+        assert_eq!("/enterprise", config.graph.path);
+        assert_eq!("/subscriptions", config.graph.websocket_path);
     }
 
     #[test]

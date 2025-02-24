@@ -9,6 +9,7 @@ mod health;
 mod state;
 mod trusted_documents_client;
 
+use gateway::EngineWatcher;
 pub use graph_fetch_method::GraphFetchMethod;
 pub use state::ServerState;
 
@@ -20,19 +21,16 @@ use engine_axum::{
     middleware::{ResponseHookLayer, TelemetryLayer},
     websocket::{WebsocketAccepter, WebsocketService},
 };
-use engine_reloader::EngineReloader;
+use engine_reloader::GatewayEngineReloader;
 use gateway_config::{Config, TlsConfig};
 use std::{net::SocketAddr, path::PathBuf};
 use tokio::sync::mpsc;
 use tokio::{signal, sync::watch};
 use tower_http::cors::CorsLayer;
 
-pub type ServerRouter<T> = Router<ServerState<T>>;
-
 /// Start parameter for the gateway.
-pub struct ServerConfig {
-    /// The GraphQL endpoint listen address.
-    pub listen_addr: Option<SocketAddr>,
+pub struct ServeConfig {
+    pub listen_address: SocketAddr,
     /// The gateway configuration.
     pub config_receiver: watch::Receiver<Config>,
     /// The config file path for hot reload.
@@ -45,21 +43,18 @@ pub struct ServerConfig {
 }
 
 /// Trait for server runtime.
+#[allow(unused_variables)]
 pub trait ServerRuntime: Send + Sync + 'static + Clone {
     /// Called after each request
-    fn after_request(&self);
-    /// Called when the server is ready and listening
-    fn on_ready(&self, url: String);
-    fn get_external_router<T>(&self) -> Option<ServerRouter<T>>;
-}
-
-impl ServerRuntime for () {
     fn after_request(&self) {}
-    fn on_ready(&self, _url: String) {}
-    fn get_external_router<T>(&self) -> Option<ServerRouter<T>> {
+    /// Called when the server is ready and listening
+    fn on_ready(&self, url: String) {}
+    fn base_router<S>(&self) -> Option<axum::Router<S>> {
         None
     }
 }
+
+impl ServerRuntime for () {}
 
 /// Starts the server and listens for incoming requests.
 ///
@@ -81,24 +76,29 @@ impl ServerRuntime for () {
 ///
 /// This function may return errors related to configuration loading, server binding, or request handling.
 pub async fn serve(
-    ServerConfig {
-        listen_addr,
+    ServeConfig {
+        listen_address,
         config_receiver,
         config_path,
-        fetch_method,
         config_hot_reload,
-    }: ServerConfig,
+        fetch_method,
+    }: ServeConfig,
     server_runtime: impl ServerRuntime,
 ) -> crate::Result<()> {
     let config = config_receiver.borrow().clone();
-    let path = config.graph.path.as_deref().unwrap_or("/graphql");
-    let websocket_path = config.graph.websocket_path.as_deref().unwrap_or("/ws");
+    let path = config.graph.path.clone();
+    #[allow(unused)]
+    let tls = config.tls.clone();
 
     let meter = grafbase_telemetry::metrics::meter_from_global_provider();
     let pending_logs_counter = meter.i64_up_down_counter("grafbase.gateway.access_log.pending").build();
 
     let (access_log_sender, access_log_receiver) =
         hooks::create_access_log_channel(config.gateway.access_logs.lossy_log(), pending_logs_counter.clone());
+    let is_access_log_enabled = config.gateway.access_logs.enabled;
+    if is_access_log_enabled {
+        access_logs::start(&config.gateway.access_logs, access_log_receiver, pending_logs_counter)?;
+    }
 
     let hooks_loader = config
         .hooks
@@ -113,7 +113,7 @@ pub async fn serve(
 
     let graph_stream = fetch_method.into_stream().await?;
 
-    let update_handler = EngineReloader::spawn(
+    let update_handler = GatewayEngineReloader::spawn(
         config_receiver,
         graph_stream,
         config_hot_reload.then_some(config_path).flatten(),
@@ -122,14 +122,47 @@ pub async fn serve(
     )
     .await?;
 
-    let gateway = update_handler.engine_watcher();
+    let router = router(
+        config,
+        update_handler.engine_watcher(),
+        server_runtime.clone(),
+        |router| {
+            // Currently we're doing those after CORS handling in the request as we don't care
+            // about pre-flight requests.
+            router.layer(ResponseHookLayer::new(hooks)).layer(TelemetryLayer::new(
+                grafbase_telemetry::metrics::meter_from_global_provider(),
+                Some(listen_address),
+            ))
+        },
+    )
+    .await?;
 
-    if config.gateway.access_logs.enabled {
-        access_logs::start(&config.gateway.access_logs, access_log_receiver, pending_logs_counter)?;
+    cfg_if::cfg_if! {
+        if #[cfg(feature = "lambda")] {
+            let result = lambda_bind(&path, router).await;
+        } else {
+            let result = bind(listen_address, &path, router, tls.as_ref(), server_runtime).await;
+        }
+    }
+    // Once all pending requests have been dealt with, we shutdown everything else left (telemetry, logs)
+    if is_access_log_enabled {
+        access_log_sender.graceful_shutdown().await;
     }
 
+    result
+}
+
+pub async fn router<R: engine::Runtime, SR: ServerRuntime>(
+    config: gateway_config::Config,
+    engine: EngineWatcher<R>,
+    server_runtime: SR,
+    inject_layers_before_cors: impl FnOnce(axum::Router<ServerState<R, SR>>) -> axum::Router<ServerState<R, SR>>,
+) -> crate::Result<axum::Router> {
+    let path = &config.graph.path;
+    let websocket_path = &config.graph.websocket_path;
+
     let (websocket_sender, websocket_receiver) = mpsc::channel(16);
-    let websocket_accepter = WebsocketAccepter::new(websocket_receiver, gateway.clone());
+    let websocket_accepter = WebsocketAccepter::new(websocket_receiver, engine.clone());
 
     tokio::spawn(websocket_accepter.handler());
 
@@ -139,22 +172,18 @@ pub async fn serve(
     };
 
     let state = ServerState::new(
-        gateway,
+        engine,
         config.request_body_limit.bytes().max(0) as usize,
         server_runtime.clone(),
     );
 
     let mut router = server_runtime
-        .get_external_router()
+        .base_router()
         .unwrap_or_default()
         .route(path, get(engine_execute).post(engine_execute))
-        .route_service(websocket_path, WebsocketService::new(websocket_sender))
-        .layer(ResponseHookLayer::new(hooks))
-        .layer(TelemetryLayer::new(
-            grafbase_telemetry::metrics::meter_from_global_provider(),
-            listen_addr,
-        ))
-        .layer(cors);
+        .route_service(websocket_path, WebsocketService::new(websocket_sender));
+
+    router = inject_layers_before_cors(router).layer(cors);
 
     if config.health.enabled {
         if let Some(listen) = config.health.listen {
@@ -175,28 +204,7 @@ pub async fn serve(
         router = csrf::inject_layer(router);
     }
 
-    cfg_if::cfg_if! {
-        if #[cfg(feature = "lambda")] {
-            let result = lambda_bind(path, router).await;
-        } else {
-            use std::net::{IpAddr, Ipv4Addr};
-
-            const DEFAULT_LISTEN_ADDRESS: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 5000);
-
-            let addr = listen_addr
-                .or(config.network.listen_address)
-                .unwrap_or(DEFAULT_LISTEN_ADDRESS);
-
-            let result = bind(addr, path, router, config.tls.as_ref(), server_runtime).await;
-        }
-    }
-
-    // Once all pending requests have been dealt with, we shutdown everything else left (telemetry, logs)
-    if config.gateway.access_logs.enabled {
-        access_log_sender.graceful_shutdown().await;
-    }
-
-    result
+    Ok(router)
 }
 
 #[cfg_attr(feature = "lambda", allow(unused))]
@@ -273,11 +281,11 @@ async fn lambda_bind(path: &str, router: Router<()>) -> crate::Result<()> {
 ///
 /// If there are no subgraphs registered, an internal server error response will
 /// be returned.
-async fn engine_execute<T>(State(state): State<ServerState<T>>, request: axum::extract::Request) -> impl IntoResponse
-where
-    T: ServerRuntime,
-{
-    let engine = state.gateway.borrow().clone();
+async fn engine_execute<R: engine::Runtime, SR: ServerRuntime>(
+    State(state): State<ServerState<R, SR>>,
+    request: axum::extract::Request,
+) -> impl IntoResponse {
+    let engine = state.engine.borrow().clone();
 
     let response = engine_axum::execute(engine, request, state.request_body_limit_bytes).await;
 

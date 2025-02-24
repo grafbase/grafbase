@@ -6,7 +6,6 @@ use axum::{
     response::{Html, IntoResponse},
     routing::{get, get_service},
 };
-use federated_server::ServerRouter;
 use flate2::bufread::GzDecoder;
 use reqwest::header::CACHE_CONTROL;
 use std::path::Path;
@@ -57,7 +56,7 @@ pub async fn export_assets() -> Result<(), BackendError> {
     Ok(())
 }
 
-pub fn get_pathfinder_router<T>(port: u16, home_dir: &Path) -> ServerRouter<T> {
+pub fn get_pathfinder_router<S>(port: u16, home_dir: &Path) -> Router<S> {
     let index_path = home_dir
         .join(DOT_GRAFBASE_DIR)
         .join(PATHFINDER_ASSETS_DIR)
