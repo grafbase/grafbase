@@ -1,4 +1,4 @@
-use grafbase_hooks::{grafbase_hooks, Context, Error, ErrorResponse, Headers, Hooks};
+use grafbase_hooks::{Context, Error, ErrorResponse, Headers, Hooks, grafbase_hooks};
 
 struct Component;
 
@@ -11,7 +11,7 @@ impl Hooks for Component {
         Self
     }
 
-    fn on_gateway_request(&mut self, _: Context, _: Headers) -> Result<(), ErrorResponse> {
+    fn on_gateway_request(&mut self, _: Context, _: String, _: Headers) -> Result<(), ErrorResponse> {
         let error = Error {
             message: String::from("not found"),
             extensions: vec![(String::from("my"), String::from("extension"))],

@@ -16,10 +16,12 @@ fn can_modify_headers() {
         async fn on_gateway_request(
             &self,
             _context: &mut DynHookContext,
+            url: &str,
             mut headers: HeaderMap,
         ) -> Result<HeaderMap, ErrorResponse> {
             headers.insert("b", "22".parse().unwrap());
             headers.remove("c");
+            headers.insert("url", url.parse().unwrap());
             Ok(headers)
         }
     }
@@ -28,15 +30,7 @@ fn can_modify_headers() {
         let config = indoc::formatdoc! {r#"
             [[subgraphs.echo.headers]]
             rule = "forward"
-            name = "a"
-
-            [[subgraphs.echo.headers]]
-            rule = "forward"
-            name = "b"
-
-            [[subgraphs.echo.headers]]
-            rule = "forward"
-            name = "c"
+            pattern = ".*"
         "#};
 
         let engine = Engine::builder()
@@ -54,6 +48,7 @@ fn can_modify_headers() {
                 a: header(name: "a")
                 b: header(name: "b")
                 c: header(name: "c")
+                url: header(name: "url")
             }
             "###,
             )
@@ -63,16 +58,17 @@ fn can_modify_headers() {
             .await
     });
 
-    insta::assert_json_snapshot!(response, @r###"
+    insta::assert_json_snapshot!(response, @r#"
     {
       "data": {
         "unknown": null,
         "a": "1",
         "b": "22",
-        "c": null
+        "c": null,
+        "url": "http://127.0.0.1/graphql"
       }
     }
-    "###);
+    "#);
 }
 
 #[test]
@@ -84,6 +80,7 @@ fn error_is_propagated_back_to_the_user() {
         async fn on_gateway_request(
             &self,
             _context: &mut DynHookContext,
+            _url: &str,
             _headers: HeaderMap,
         ) -> Result<HeaderMap, ErrorResponse> {
             let error =
@@ -130,6 +127,7 @@ fn error_code_is_propagated_back_to_the_user() {
         async fn on_gateway_request(
             &self,
             _context: &mut DynHookContext,
+            _url: &str,
             _headers: HeaderMap,
         ) -> Result<HeaderMap, ErrorResponse> {
             let error = PartialGraphqlError::new("impossible error", PartialErrorCode::BadRequest)

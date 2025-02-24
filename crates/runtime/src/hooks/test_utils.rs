@@ -19,6 +19,7 @@ pub trait DynHooks: Send + Sync + 'static {
     async fn on_gateway_request(
         &self,
         context: &mut DynHookContext,
+        url: &str,
         headers: HeaderMap,
     ) -> Result<HeaderMap, ErrorResponse> {
         Ok(headers)
@@ -202,11 +203,12 @@ impl Hooks for DynamicHooks {
 
     async fn on_gateway_request(
         &self,
+        url: &str,
         headers: HeaderMap,
     ) -> Result<(Self::Context, HeaderMap), (Self::Context, ErrorResponse)> {
         let mut context = DynHookContext::default();
 
-        match self.0.on_gateway_request(&mut context, headers).await {
+        match self.0.on_gateway_request(&mut context, url, headers).await {
             Ok(headers) => Ok((context, headers)),
             Err(error) => Err((context, error)),
         }
@@ -375,17 +377,19 @@ impl AuthorizedHooks<DynHookContext> for DynamicHooks {
 struct DynWrapper<T>(T);
 
 impl<H: Hooks> DynHooks for DynWrapper<H> {
-    fn on_gateway_request<'a, 'b, 'fut>(
+    fn on_gateway_request<'a, 'b, 'c, 'fut>(
         &'a self,
         context: &'b mut DynHookContext,
+        url: &'c str,
         headers: HeaderMap,
     ) -> BoxFuture<'fut, Result<HeaderMap, ErrorResponse>>
     where
         'a: 'fut,
         'b: 'fut,
+        'c: 'fut,
     {
         async {
-            match Hooks::on_gateway_request(&self.0, headers).await {
+            match Hooks::on_gateway_request(&self.0, url, headers).await {
                 Ok((ctx, headers)) => {
                     context.typed_insert(ctx);
                     Ok(headers)

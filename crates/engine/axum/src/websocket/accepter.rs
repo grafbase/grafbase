@@ -24,13 +24,13 @@ impl<R: Runtime> WebsocketAccepter<R> {
     }
 
     pub async fn handler(mut self) {
-        while let Some(WebsocketRequest { mut websocket, headers }) = self.sockets.recv().await {
+        while let Some(WebsocketRequest { mut websocket, parts }) = self.sockets.recv().await {
             let engine = self.engine.clone();
 
             tokio::spawn(async move {
                 let accept_future = tokio::time::timeout(
                     CONNECTION_INIT_WAIT_TIMEOUT,
-                    accept_websocket(headers, &mut websocket, &engine),
+                    accept_websocket(parts, &mut websocket, &engine),
                 );
 
                 match accept_future.await {
@@ -157,7 +157,7 @@ async fn subscription_loop<R: engine::Runtime>(
 }
 
 async fn accept_websocket<R: Runtime>(
-    headers: http::HeaderMap,
+    parts: http::request::Parts,
     websocket: &mut WebSocket,
     engine: &EngineWatcher<R>,
 ) -> Option<WebsocketSession<R>> {
@@ -167,7 +167,7 @@ async fn accept_websocket<R: Runtime>(
             Event::ConnectionInit { payload } => {
                 let engine = engine.borrow().clone();
 
-                let Ok(session) = engine.create_websocket_session(headers, payload).await else {
+                let Ok(session) = engine.create_websocket_session(parts, payload).await else {
                     websocket
                         .send(Message::<R>::close(4403, "Forbidden").to_axum_message().unwrap())
                         .await

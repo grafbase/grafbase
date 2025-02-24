@@ -1,4 +1,4 @@
-use grafbase_hooks::{grafbase_hooks, Context, ErrorResponse, Headers, Hooks};
+use grafbase_hooks::{Context, ErrorResponse, Headers, Hooks, grafbase_hooks};
 
 struct Component;
 
@@ -11,7 +11,7 @@ impl Hooks for Component {
         Self
     }
 
-    fn on_gateway_request(&mut self, _: Context, headers: Headers) -> Result<(), ErrorResponse> {
+    fn on_gateway_request(&mut self, _: Context, _url: String, headers: Headers) -> Result<(), ErrorResponse> {
         match std::fs::read_to_string("./contents.txt") {
             Ok(contents) => headers.set("READ_CONTENTS", &contents).unwrap(),
             Err(e) => eprintln!("error reading file contents: {e}"),

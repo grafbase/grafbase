@@ -10,5 +10,5 @@ pub type WebsocketReceiver = tokio::sync::mpsc::Receiver<WebsocketRequest>;
 
 pub struct WebsocketRequest {
     websocket: WebSocket,
-    headers: http::HeaderMap,
+    parts: http::request::Parts,
 }

@@ -177,6 +177,7 @@ impl Hooks for HooksWasi {
 
     async fn on_gateway_request(
         &self,
+        url: &str,
         headers: HeaderMap,
     ) -> Result<(Self::Context, HeaderMap), (Self::Context, ErrorResponse)> {
         let kv = HashMap::new();
@@ -194,7 +195,7 @@ impl Hooks for HooksWasi {
         let mut hook = inner.pool.get().instrument(span.clone()).await;
 
         inner
-            .run_and_measure("on-gateway-request", hook.on_gateway_request(kv, headers))
+            .run_and_measure("on-gateway-request", hook.on_gateway_request(kv, url, headers))
             .instrument(span)
             .await
             .map(|(kv, headers)| (SharedContext::new(Arc::new(kv), trace_id), headers))
