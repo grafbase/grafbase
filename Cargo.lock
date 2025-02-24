@@ -2634,7 +2634,7 @@ dependencies = [
  "semver",
  "serde",
  "serde_json",
- "strum",
+ "strum 0.27.1",
  "url",
 ]
 
