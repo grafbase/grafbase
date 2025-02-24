@@ -24,8 +24,8 @@ pub fn hooks() -> &'static mut dyn Hooks {
 }
 
 impl Guest for Component {
-    fn on_gateway_request(context: Context, headers: Headers) -> Result<(), ErrorResponse> {
-        hooks().on_gateway_request(context, headers)
+    fn on_gateway_request(context: Context, url: String, headers: Headers) -> Result<(), ErrorResponse> {
+        hooks().on_gateway_request(context, url, headers)
     }
 
     fn on_subgraph_request(
@@ -131,7 +131,7 @@ pub trait Hooks: HookImpls + HookExports {
     /// object for subsequent hooks to read.
     ///
     /// When the hook returns an error, processing stops and returns the error to the client.
-    fn on_gateway_request(&mut self, context: Context, headers: Headers) -> Result<(), ErrorResponse> {
+    fn on_gateway_request(&mut self, context: Context, url: String, headers: Headers) -> Result<(), ErrorResponse> {
         todo!()
     }
 

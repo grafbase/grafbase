@@ -61,13 +61,7 @@ where
             let resp = upgrade
                 .protocols(SUPPORTED_PROTOCOL_IDS)
                 .on_upgrade(move |websocket| async move {
-                    sender
-                        .send(WebsocketRequest {
-                            websocket,
-                            headers: parts.headers,
-                        })
-                        .await
-                        .ok();
+                    sender.send(WebsocketRequest { websocket, parts }).await.ok();
                 });
 
             Ok(resp.into_response())

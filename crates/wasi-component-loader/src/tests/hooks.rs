@@ -38,7 +38,10 @@ async fn missing_hook() {
     let loader = ComponentLoader::hooks(config).unwrap().unwrap();
     let mut hook = HooksComponentInstance::new(&loader, access_log).await.unwrap();
 
-    let (context, headers) = hook.on_gateway_request(HashMap::new(), HeaderMap::new()).await.unwrap();
+    let (context, headers) = hook
+        .on_gateway_request(HashMap::new(), "", HeaderMap::new())
+        .await
+        .unwrap();
 
     assert_eq!(HeaderMap::new(), headers);
     assert_eq!(HashMap::new(), context);
@@ -69,11 +72,15 @@ async fn simple_no_io() {
 
     let (access_log, _) = create_test_access_log();
     let mut hook = HooksComponentInstance::new(&loader, access_log).await.unwrap();
-    let (context, headers) = hook.on_gateway_request(context, HeaderMap::new()).await.unwrap();
+    let (context, headers) = hook
+        .on_gateway_request(context, "example.com", HeaderMap::new())
+        .await
+        .unwrap();
 
     assert_eq!(Some(&HeaderValue::from_static("call")), headers.get("direct"));
     assert_eq!(Some(&HeaderValue::from_static("meow")), headers.get("fromEnv"));
     assert_eq!(Some("direct"), context.get("call").map(|v| v.as_str()));
+    assert_eq!(Some("example.com"), context.get("url").map(|v| v.as_str()));
 }
 
 #[tokio::test]
@@ -105,7 +112,10 @@ async fn dir_access_read_only() {
 
     let (access_log, _) = create_test_access_log();
     let mut hook = HooksComponentInstance::new(&loader, access_log).await.unwrap();
-    let (_, headers) = hook.on_gateway_request(HashMap::new(), HeaderMap::new()).await.unwrap();
+    let (_, headers) = hook
+        .on_gateway_request(HashMap::new(), "", HeaderMap::new())
+        .await
+        .unwrap();
 
     assert_eq!(
         Some(&HeaderValue::from_static("test string")),
@@ -143,7 +153,9 @@ async fn dir_access_write() {
     let loader = ComponentLoader::hooks(config).unwrap().unwrap();
     let (access_log, _) = create_test_access_log();
     let mut hook = HooksComponentInstance::new(&loader, access_log).await.unwrap();
-    hook.on_gateway_request(HashMap::new(), HeaderMap::new()).await.unwrap();
+    hook.on_gateway_request(HashMap::new(), "", HeaderMap::new())
+        .await
+        .unwrap();
 
     let path = path.join("guest_write.txt");
 
@@ -180,7 +192,10 @@ async fn http_client() {
     let loader = ComponentLoader::hooks(config).unwrap().unwrap();
     let (access_log, _) = create_test_access_log();
     let mut hook = HooksComponentInstance::new(&loader, access_log).await.unwrap();
-    let (context, _) = hook.on_gateway_request(HashMap::new(), HeaderMap::new()).await.unwrap();
+    let (context, _) = hook
+        .on_gateway_request(HashMap::new(), "", HeaderMap::new())
+        .await
+        .unwrap();
 
     assert_eq!(Some("kekw"), context.get("HTTP_RESPONSE").map(|s| s.as_str()));
 }
@@ -201,7 +216,7 @@ async fn guest_error() {
     let mut hook = HooksComponentInstance::new(&loader, access_log).await.unwrap();
 
     let error = hook
-        .on_gateway_request(HashMap::new(), HeaderMap::new())
+        .on_gateway_request(HashMap::new(), "", HeaderMap::new())
         .await
         .unwrap_err();
 
@@ -243,7 +258,7 @@ async fn authorize_edge_pre_execution_error() {
 
     let (access_log, _) = create_test_access_log();
     let mut hook = HooksComponentInstance::new(&loader, access_log).await.unwrap();
-    let (kv, _) = hook.on_gateway_request(HashMap::new(), headers).await.unwrap();
+    let (kv, _) = hook.on_gateway_request(HashMap::new(), "", headers).await.unwrap();
 
     let definition = EdgeDefinition {
         parent_type_name: String::new(),
@@ -294,7 +309,7 @@ async fn authorize_edge_pre_execution_success() {
 
     let (access_log, _) = create_test_access_log();
     let mut hook = HooksComponentInstance::new(&loader, access_log).await.unwrap();
-    let (context, _) = hook.on_gateway_request(HashMap::new(), headers).await.unwrap();
+    let (context, _) = hook.on_gateway_request(HashMap::new(), "", headers).await.unwrap();
 
     let definition = EdgeDefinition {
         parent_type_name: String::new(),
@@ -335,7 +350,7 @@ async fn authorize_node_pre_execution_error() {
 
     let (access_log, _) = create_test_access_log();
     let mut hook = HooksComponentInstance::new(&loader, access_log).await.unwrap();
-    let (context, _) = hook.on_gateway_request(HashMap::new(), headers).await.unwrap();
+    let (context, _) = hook.on_gateway_request(HashMap::new(), "", headers).await.unwrap();
 
     let definition = NodeDefinition {
         type_name: String::new(),
@@ -380,7 +395,7 @@ async fn authorize_node_pre_execution_success() {
 
     let (access_log, _) = create_test_access_log();
     let mut hook = HooksComponentInstance::new(&loader, access_log).await.unwrap();
-    let (context, _) = hook.on_gateway_request(HashMap::new(), headers).await.unwrap();
+    let (context, _) = hook.on_gateway_request(HashMap::new(), "", headers).await.unwrap();
 
     let definition = NodeDefinition {
         type_name: String::new(),
@@ -415,7 +430,7 @@ async fn authorize_parent_edge_post_execution() {
 
     let (access_log, _) = create_test_access_log();
     let mut hook = HooksComponentInstance::new(&loader, access_log).await.unwrap();
-    let (context, _) = hook.on_gateway_request(HashMap::new(), headers).await.unwrap();
+    let (context, _) = hook.on_gateway_request(HashMap::new(), "", headers).await.unwrap();
 
     let definition = EdgeDefinition {
         parent_type_name: String::new(),
@@ -471,7 +486,7 @@ async fn authorize_edge_node_post_execution() {
 
     let (access_log, _) = create_test_access_log();
     let mut hook = HooksComponentInstance::new(&loader, access_log).await.unwrap();
-    let (context, _) = hook.on_gateway_request(HashMap::new(), headers).await.unwrap();
+    let (context, _) = hook.on_gateway_request(HashMap::new(), "", headers).await.unwrap();
 
     let definition = EdgeDefinition {
         parent_type_name: String::new(),
@@ -528,7 +543,7 @@ async fn authorize_edge_post_execution() {
 
     let (access_log, _) = create_test_access_log();
     let mut hook = HooksComponentInstance::new(&loader, access_log).await.unwrap();
-    let (context, _) = hook.on_gateway_request(HashMap::new(), headers).await.unwrap();
+    let (context, _) = hook.on_gateway_request(HashMap::new(), "", headers).await.unwrap();
 
     let definition = EdgeDefinition {
         parent_type_name: String::new(),
@@ -603,7 +618,7 @@ async fn on_subgraph_request() {
 
     let (access_log, _) = create_test_access_log();
     let mut hook = HooksComponentInstance::new(&loader, access_log).await.unwrap();
-    let (context, headers) = hook.on_gateway_request(HashMap::new(), headers).await.unwrap();
+    let (context, headers) = hook.on_gateway_request(HashMap::new(), "", headers).await.unwrap();
 
     let context = SharedContext::new(Arc::new(context), TraceId::INVALID);
 

@@ -506,6 +506,7 @@ fn context_is_propagated() {
         async fn on_gateway_request(
             &self,
             context: &mut DynHookContext,
+            _url: &str,
             headers: HeaderMap,
         ) -> Result<HeaderMap, ErrorResponse> {
             if let Some(client) = headers

@@ -1,7 +1,6 @@
 use grafbase_hooks::{
-    grafbase_hooks,
+    Context, ErrorResponse, Headers, Hooks, grafbase_hooks,
     host_io::http::{self, HttpMethod, HttpRequest},
-    Context, ErrorResponse, Headers, Hooks,
 };
 
 struct Component;
@@ -15,7 +14,7 @@ impl Hooks for Component {
         Self
     }
 
-    fn on_gateway_request(&mut self, context: Context, _: Headers) -> Result<(), ErrorResponse> {
+    fn on_gateway_request(&mut self, context: Context, _: String, _: Headers) -> Result<(), ErrorResponse> {
         let address = std::env::var("MOCK_SERVER_ADDRESS").unwrap();
 
         let request = HttpRequest {

@@ -37,6 +37,7 @@ pub(crate) struct RequestContext {
 /// everywhere else. Contrary to the RequestContext this one never fails to be created.
 pub(super) struct EarlyHttpContext {
     pub method: http::method::Method,
+    pub uri: http::Uri,
     pub response_format: ResponseFormat,
     pub include_grafbase_response_extension: bool,
 }
@@ -45,7 +46,7 @@ impl<R: Runtime> Engine<R> {
     pub(super) fn unpack_http_request<B>(
         &self,
         request: http::Request<B>,
-    ) -> Result<(EarlyHttpContext, http::Uri, http::HeaderMap, B), http::Response<Body>> {
+    ) -> Result<(EarlyHttpContext, http::HeaderMap, B), http::Response<Body>> {
         let (parts, body) = request.into_parts();
         let Some(response_format) = ResponseFormat::extract_from(&parts.headers, self.default_response_format) else {
             // GraphQL-over-HTTP spec:
@@ -72,11 +73,12 @@ impl<R: Runtime> Engine<R> {
         let include_grafbase_response_extension = self.should_include_grafbase_response_extension(&parts.headers);
         let ctx = EarlyHttpContext {
             method: parts.method,
+            uri: parts.uri,
             response_format,
             include_grafbase_response_extension,
         };
 
-        Ok((ctx, parts.uri, parts.headers, body))
+        Ok((ctx, parts.headers, body))
     }
 
     pub(super) async fn create_request_context(
@@ -92,9 +94,14 @@ impl<R: Runtime> Engine<R> {
         ),
     > {
         let client = Client::extract_from(&headers);
-        let (hooks_context, headers) = self.runtime.hooks().on_gateway_request(headers).await.map_err(
-            |(context, ErrorResponse { status, errors })| (Response::refuse_request_with(status, errors), context),
-        )?;
+        let (hooks_context, headers) = self
+            .runtime
+            .hooks()
+            .on_gateway_request(&ctx.uri.to_string(), headers)
+            .await
+            .map_err(|(context, ErrorResponse { status, errors })| {
+                (Response::refuse_request_with(status, errors), context)
+            })?;
 
         let Some(access_token) = self.auth.authenticate(&headers).await else {
             return Err((errors::response::unauthenticated(), hooks_context));
@@ -135,7 +142,6 @@ impl<R: Runtime> Engine<R> {
     pub(super) async fn extract_well_formed_graphql_over_http_request<F>(
         &self,
         ctx: &EarlyHttpContext,
-        uri: http::Uri,
         body: F,
     ) -> Result<BatchRequest, Response<<R::Hooks as Hooks>::OnOperationResponseOutput>>
     where
@@ -152,7 +158,7 @@ impl<R: Runtime> Engine<R> {
                 errors::not_well_formed_graphql_over_http_request(format_args!("JSON deserialization failure: {err}",))
             })
         } else {
-            let query = uri.query().unwrap_or_default();
+            let query = ctx.uri.query().unwrap_or_default();
 
             serde_urlencoded::from_str::<QueryParamsRequest>(query)
                 .map(|request| BatchRequest::Single(request.into()))

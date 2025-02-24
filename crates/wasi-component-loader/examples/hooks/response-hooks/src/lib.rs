@@ -1,6 +1,6 @@
 use grafbase_hooks::{
-    grafbase_hooks, host_io::access_log, CacheStatus, Context, Error, ErrorResponse, ExecutedHttpRequest,
-    ExecutedOperation, ExecutedSubgraphRequest, Headers, Hooks, SharedContext, SubgraphRequestExecutionKind,
+    CacheStatus, Context, Error, ErrorResponse, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest,
+    Headers, Hooks, SharedContext, SubgraphRequestExecutionKind, grafbase_hooks, host_io::access_log,
 };
 
 struct Component;
@@ -80,7 +80,7 @@ impl Hooks for Component {
         Self
     }
 
-    fn on_gateway_request(&mut self, _: Context, headers: Headers) -> Result<(), ErrorResponse> {
+    fn on_gateway_request(&mut self, _: Context, _: String, headers: Headers) -> Result<(), ErrorResponse> {
         if headers.get("test-value").is_some() {
             let error = Error {
                 extensions: Vec::new(),

@@ -1,4 +1,4 @@
-use grafbase_hooks::{grafbase_hooks, register_hooks, Context, ErrorResponse, Headers, Hooks};
+use grafbase_hooks::{Context, ErrorResponse, Headers, Hooks, grafbase_hooks, register_hooks};
 
 struct MyHooks;
 
@@ -11,7 +11,7 @@ impl Hooks for MyHooks {
         MyHooks
     }
 
-    fn on_gateway_request(&mut self, context: Context, headers: Headers) -> Result<(), ErrorResponse> {
+    fn on_gateway_request(&mut self, context: Context, url: String, headers: Headers) -> Result<(), ErrorResponse> {
         headers.set("direct", "call").unwrap();
 
         assert_eq!(Some("call".to_string()), headers.get("direct"));
@@ -23,6 +23,7 @@ impl Hooks for MyHooks {
         assert_eq!(Some("lol".to_string()), context.get("kekw"));
 
         context.set("call", "direct");
+        context.set("url", &url);
 
         Ok(())
     }

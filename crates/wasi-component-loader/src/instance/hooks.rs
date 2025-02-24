@@ -153,6 +153,7 @@ impl HooksComponentInstance {
     pub async fn on_gateway_request(
         &mut self,
         context: ContextMap,
+        url: &str,
         headers: HeaderMap,
     ) -> crate::GatewayResult<(ContextMap, HeaderMap)> {
         let Some(hook) = self.get_hook::<_, (Result<(), ErrorResponse>,)>(HookImplementation::OnGatewayRequest) else {
@@ -172,7 +173,9 @@ impl HooksComponentInstance {
         let headers_rep = headers.rep();
         let context_rep = context.rep();
 
-        let result = hook.call_async(self.component.store_mut(), (context, headers)).await;
+        let result = hook
+            .call_async(self.component.store_mut(), (context, url, headers))
+            .await;
 
         if result.is_err() {
             self.component.poison();

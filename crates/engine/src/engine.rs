@@ -5,7 +5,6 @@ use cache::CacheKey;
 use engine_auth::AuthService;
 use futures::{StreamExt, TryFutureExt};
 use futures_util::Stream;
-use http::HeaderMap;
 use retry_budget::RetryBudgets;
 use schema::Schema;
 use std::{borrow::Cow, future::Future, sync::Arc};
@@ -93,7 +92,7 @@ impl<R: Runtime> Engine<R> {
     where
         F: Future<Output = Result<Bytes, (http::StatusCode, String)>> + Send,
     {
-        let (ctx, uri, headers, body) = match self.unpack_http_request(request) {
+        let (ctx, headers, body) = match self.unpack_http_request(request) {
             Ok(req) => req,
             Err(response) => return response,
         };
@@ -103,7 +102,7 @@ impl<R: Runtime> Engine<R> {
             .map_err(|(response, context)| (response, Some(context)));
 
         let graphql_request_fut = self
-            .extract_well_formed_graphql_over_http_request(&ctx, uri, body)
+            .extract_well_formed_graphql_over_http_request(&ctx, body)
             .map_err(|response| (response, None));
 
         // Retrieve the request body while processing the headers
@@ -133,19 +132,20 @@ impl<R: Runtime> Engine<R> {
 
     pub async fn create_websocket_session(
         self: &Arc<Self>,
-        headers: HeaderMap,
-        init_payload: InitPayload,
+        parts: http::request::Parts,
+        payload: InitPayload,
     ) -> Result<WebsocketSession<R>, Cow<'static, str>> {
         let response_format = ResponseFormat::Streaming(StreamingResponseFormat::GraphQLOverWebSocket);
 
         let ctx = EarlyHttpContext {
-            method: http::Method::POST,
+            method: parts.method,
+            uri: parts.uri,
             response_format,
             include_grafbase_response_extension: false,
         };
 
         let (request_context, hooks_context) =
-            match self.create_request_context(&ctx, headers, Some(init_payload)).await {
+            match self.create_request_context(&ctx, parts.headers, Some(payload)).await {
                 Ok(context) => context,
                 Err((response, _)) => {
                     return Err(response

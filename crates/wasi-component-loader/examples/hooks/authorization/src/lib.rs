@@ -1,6 +1,7 @@
 use grafbase_hooks::{
-    grafbase_hooks, Context, EdgeNodePostExecutionArguments, EdgePostExecutionArguments, EdgePreExecutionArguments,
-    Error, ErrorResponse, Headers, Hooks, NodePreExecutionArguments, ParentEdgePostExecutionArguments, SharedContext,
+    Context, EdgeNodePostExecutionArguments, EdgePostExecutionArguments, EdgePreExecutionArguments, Error,
+    ErrorResponse, Headers, Hooks, NodePreExecutionArguments, ParentEdgePostExecutionArguments, SharedContext,
+    grafbase_hooks,
 };
 
 struct Component;
@@ -30,7 +31,7 @@ impl Hooks for Component {
         Self
     }
 
-    fn on_gateway_request(&mut self, context: Context, headers: Headers) -> Result<(), ErrorResponse> {
+    fn on_gateway_request(&mut self, context: Context, _url: String, headers: Headers) -> Result<(), ErrorResponse> {
         if let Some(auth_header) = headers.get("Authorization") {
             context.set("entitlement", &auth_header);
         }
@@ -88,7 +89,7 @@ impl Hooks for Component {
                 return vec![Err(Error {
                     message: String::from("not authorized"),
                     extensions: Vec::new(),
-                })]
+                })];
             }
         };
 
@@ -120,7 +121,7 @@ impl Hooks for Component {
                 return vec![Err(Error {
                     message: String::from("not authorized"),
                     extensions: Vec::new(),
-                })]
+                })];
             }
         };
 
@@ -152,7 +153,7 @@ impl Hooks for Component {
                 return vec![Err(Error {
                     message: String::from("not authorized"),
                     extensions: Vec::new(),
-                })]
+                })];
             }
         };
 

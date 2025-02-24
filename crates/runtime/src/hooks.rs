@@ -59,6 +59,7 @@ pub trait Hooks: Send + Sync + 'static {
 
     fn on_gateway_request(
         &self,
+        url: &str,
         headers: HeaderMap,
     ) -> impl Future<Output = Result<(Self::Context, HeaderMap), (Self::Context, ErrorResponse)>> + Send;
 
@@ -158,6 +159,7 @@ impl Hooks for () {
 
     async fn on_gateway_request(
         &self,
+        _url: &str,
         headers: HeaderMap,
     ) -> Result<(Self::Context, HeaderMap), (Self::Context, ErrorResponse)> {
         Ok(((), headers))
