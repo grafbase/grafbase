@@ -2,7 +2,7 @@ use crossbeam::{channel::TrySendError, sync::WaitGroup};
 use grafbase_telemetry::otel::opentelemetry::metrics::UpDownCounter;
 use wasmtime::{
     StoreContextMut,
-    component::{ComponentType, LinkerInstance, Lower, ResourceType},
+    component::{LinkerInstance, ResourceType},
 };
 
 use crate::{
@@ -10,15 +10,17 @@ use crate::{
     state::WasiState,
 };
 
+pub use crate::extension::wit::LogError;
+
 /// Sender for a wasi hook to send logs to the writer.
 #[derive(Clone)]
-pub struct ChannelLogSender {
+pub struct AccessLogSender {
     sender: crossbeam::channel::Sender<AccessLogMessage>,
     lossy_log: bool,
     pending_logs_counter: UpDownCounter<i64>,
 }
 
-impl ChannelLogSender {
+impl AccessLogSender {
     /// Sends the given access log message to the access log.
     pub fn send(&self, data: AccessLogMessage) -> Result<(), LogError> {
         if self.lossy_log {
@@ -49,29 +51,20 @@ impl ChannelLogSender {
 }
 
 /// A receiver for the logger to receive messages and write them somewhere.
-pub type ChannelLogReceiver = crossbeam::channel::Receiver<AccessLogMessage>;
-
-#[derive(Debug, ComponentType, Lower)]
-#[component(variant)]
-pub enum LogError {
-    #[component(name = "channel-full")]
-    ChannelFull(Vec<u8>),
-    #[component(name = "channel-closed")]
-    ChannelClosed,
-}
+pub type AccessLogReceiver = crossbeam::channel::Receiver<AccessLogMessage>;
 
 /// https://github.com/tokio-rs/tracing/blob/master/tracing-appender/src/non_blocking.rs#L61-L70
 const DEFAULT_BUFFERED_LINES_LIMIT: usize = 128_000;
 
 /// Creates a new channel for access logs.
-pub fn create_log_channel(
+pub fn create_access_log_channel(
     lossy_log: bool,
     pending_logs_counter: UpDownCounter<i64>,
-) -> (ChannelLogSender, ChannelLogReceiver) {
+) -> (AccessLogSender, AccessLogReceiver) {
     let (sender, receiver) = crossbeam::channel::bounded(DEFAULT_BUFFERED_LINES_LIMIT);
 
     (
-        ChannelLogSender {
+        AccessLogSender {
             sender,
             lossy_log,
             pending_logs_counter,

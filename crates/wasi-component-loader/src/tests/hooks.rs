@@ -1,12 +1,10 @@
 use std::{collections::HashMap, sync::Arc};
 
-use super::create_log_channel;
+use super::create_test_access_log;
 use crate::{
     CacheStatus, ComponentLoader, EdgeDefinition, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest,
-    GuestError, HooksComponentInstance, HooksWasiConfig as Config, NodeDefinition, SharedContext, SubgraphResponse,
-    error::guest::ErrorResponse,
+    HooksComponentInstance, HooksWasiConfig as Config, NodeDefinition, SharedContext, SubgraphResponse,
 };
-use expect_test::expect;
 use grafbase_telemetry::otel::opentelemetry::trace::TraceId;
 use http::{HeaderMap, HeaderValue};
 use indoc::{formatdoc, indoc};
@@ -36,7 +34,7 @@ async fn missing_hook() {
     let config: Config = toml::from_str(config).unwrap();
     assert!(config.location.exists());
 
-    let (access_log, _) = create_log_channel();
+    let (access_log, _) = create_test_access_log();
     let loader = ComponentLoader::hooks(config).unwrap().unwrap();
     let mut hook = HooksComponentInstance::new(&loader, access_log).await.unwrap();
 
@@ -69,7 +67,7 @@ async fn simple_no_io() {
     let mut context = HashMap::new();
     context.insert("kekw".to_string(), "lol".to_string());
 
-    let (access_log, _) = create_log_channel();
+    let (access_log, _) = create_test_access_log();
     let mut hook = HooksComponentInstance::new(&loader, access_log).await.unwrap();
     let (context, headers) = hook.on_gateway_request(context, HeaderMap::new()).await.unwrap();
 
@@ -105,7 +103,7 @@ async fn dir_access_read_only() {
 
     let loader = ComponentLoader::hooks(config).unwrap().unwrap();
 
-    let (access_log, _) = create_log_channel();
+    let (access_log, _) = create_test_access_log();
     let mut hook = HooksComponentInstance::new(&loader, access_log).await.unwrap();
     let (_, headers) = hook.on_gateway_request(HashMap::new(), HeaderMap::new()).await.unwrap();
 
@@ -143,7 +141,7 @@ async fn dir_access_write() {
     std::fs::write(path.join("contents.txt"), "test string").unwrap();
 
     let loader = ComponentLoader::hooks(config).unwrap().unwrap();
-    let (access_log, _) = create_log_channel();
+    let (access_log, _) = create_test_access_log();
     let mut hook = HooksComponentInstance::new(&loader, access_log).await.unwrap();
     hook.on_gateway_request(HashMap::new(), HeaderMap::new()).await.unwrap();
 
@@ -180,7 +178,7 @@ async fn http_client() {
     assert!(config.location.exists());
 
     let loader = ComponentLoader::hooks(config).unwrap().unwrap();
-    let (access_log, _) = create_log_channel();
+    let (access_log, _) = create_test_access_log();
     let mut hook = HooksComponentInstance::new(&loader, access_log).await.unwrap();
     let (context, _) = hook.on_gateway_request(HashMap::new(), HeaderMap::new()).await.unwrap();
 
@@ -199,7 +197,7 @@ async fn guest_error() {
     assert!(config.location.exists());
 
     let loader = ComponentLoader::hooks(config).unwrap().unwrap();
-    let (access_log, _) = create_log_channel();
+    let (access_log, _) = create_test_access_log();
     let mut hook = HooksComponentInstance::new(&loader, access_log).await.unwrap();
 
     let error = hook
@@ -207,15 +205,24 @@ async fn guest_error() {
         .await
         .unwrap_err();
 
-    let expected = ErrorResponse {
-        status_code: 403,
-        errors: vec![GuestError {
-            message: String::from("not found"),
-            extensions: vec![(String::from("my"), String::from("extension"))],
-        }],
-    };
-
-    assert_eq!(Some(expected), error.into_guest_error());
+    insta::assert_debug_snapshot!(error, @r#"
+    Guest(
+        ErrorResponse {
+            status-code: 403,
+            errors: [
+                Error {
+                    extensions: [
+                        (
+                            "my",
+                            "extension",
+                        ),
+                    ],
+                    message: "not found",
+                },
+            ],
+        },
+    )
+    "#);
 }
 
 #[tokio::test]
@@ -234,7 +241,7 @@ async fn authorize_edge_pre_execution_error() {
 
     let loader = ComponentLoader::hooks(config).unwrap().unwrap();
 
-    let (access_log, _) = create_log_channel();
+    let (access_log, _) = create_test_access_log();
     let mut hook = HooksComponentInstance::new(&loader, access_log).await.unwrap();
     let (kv, _) = hook.on_gateway_request(HashMap::new(), headers).await.unwrap();
 
@@ -259,12 +266,14 @@ async fn authorize_edge_pre_execution_error() {
         .await
         .unwrap_err();
 
-    let expected = GuestError {
-        message: String::from("not authorized"),
-        extensions: vec![],
-    };
-
-    assert_eq!(Some(expected), error.into_guest_error());
+    insta::assert_debug_snapshot!(error, @r#"
+    Guest(
+        Error {
+            extensions: [],
+            message: "not authorized",
+        },
+    )
+    "#);
 }
 
 #[tokio::test]
@@ -283,7 +292,7 @@ async fn authorize_edge_pre_execution_success() {
 
     let loader = ComponentLoader::hooks(config).unwrap().unwrap();
 
-    let (access_log, _) = create_log_channel();
+    let (access_log, _) = create_test_access_log();
     let mut hook = HooksComponentInstance::new(&loader, access_log).await.unwrap();
     let (context, _) = hook.on_gateway_request(HashMap::new(), headers).await.unwrap();
 
@@ -324,7 +333,7 @@ async fn authorize_node_pre_execution_error() {
 
     let loader = ComponentLoader::hooks(config).unwrap().unwrap();
 
-    let (access_log, _) = create_log_channel();
+    let (access_log, _) = create_test_access_log();
     let mut hook = HooksComponentInstance::new(&loader, access_log).await.unwrap();
     let (context, _) = hook.on_gateway_request(HashMap::new(), headers).await.unwrap();
 
@@ -343,12 +352,14 @@ async fn authorize_node_pre_execution_error() {
         .await
         .unwrap_err();
 
-    let expected = GuestError {
-        message: String::from("not authorized"),
-        extensions: vec![],
-    };
-
-    assert_eq!(Some(expected), error.into_guest_error());
+    insta::assert_debug_snapshot!(error, @r#"
+    Guest(
+        Error {
+            extensions: [],
+            message: "not authorized",
+        },
+    )
+    "#);
 }
 
 #[tokio::test]
@@ -367,7 +378,7 @@ async fn authorize_node_pre_execution_success() {
 
     let loader = ComponentLoader::hooks(config).unwrap().unwrap();
 
-    let (access_log, _) = create_log_channel();
+    let (access_log, _) = create_test_access_log();
     let mut hook = HooksComponentInstance::new(&loader, access_log).await.unwrap();
     let (context, _) = hook.on_gateway_request(HashMap::new(), headers).await.unwrap();
 
@@ -402,7 +413,7 @@ async fn authorize_parent_edge_post_execution() {
 
     let loader = ComponentLoader::hooks(config).unwrap().unwrap();
 
-    let (access_log, _) = create_log_channel();
+    let (access_log, _) = create_test_access_log();
     let mut hook = HooksComponentInstance::new(&loader, access_log).await.unwrap();
     let (context, _) = hook.on_gateway_request(HashMap::new(), headers).await.unwrap();
 
@@ -427,21 +438,19 @@ async fn authorize_parent_edge_post_execution() {
         .await
         .unwrap();
 
-    let expected = expect![[r#"
-        [
-            Ok(
-                (),
-            ),
-            Err(
-                GuestError {
-                    extensions: [],
-                    message: "not authorized",
-                },
-            ),
-        ]
-    "#]];
-
-    expected.assert_debug_eq(&result);
+    insta::assert_debug_snapshot!(result, @r#"
+    [
+        Ok(
+            (),
+        ),
+        Err(
+            Error {
+                extensions: [],
+                message: "not authorized",
+            },
+        ),
+    ]
+    "#);
 }
 
 #[tokio::test]
@@ -460,7 +469,7 @@ async fn authorize_edge_node_post_execution() {
 
     let loader = ComponentLoader::hooks(config).unwrap().unwrap();
 
-    let (access_log, _) = create_log_channel();
+    let (access_log, _) = create_test_access_log();
     let mut hook = HooksComponentInstance::new(&loader, access_log).await.unwrap();
     let (context, _) = hook.on_gateway_request(HashMap::new(), headers).await.unwrap();
 
@@ -481,21 +490,22 @@ async fn authorize_edge_node_post_execution() {
         .await
         .unwrap();
 
-    let expected = expect![[r#"
-        [
-            Ok(
-                (),
-            ),
-            Err(
-                GuestError {
-                    extensions: [],
-                    message: "not authorized",
-                },
-            ),
-        ]
-    "#]];
-
-    expected.assert_debug_eq(&result);
+    insta::assert_debug_snapshot!(
+        result,
+        @r#"
+    [
+        Ok(
+            (),
+        ),
+        Err(
+            Error {
+                extensions: [],
+                message: "not authorized",
+            },
+        ),
+    ]
+    "#
+    );
 }
 
 #[tokio::test]
@@ -516,7 +526,7 @@ async fn authorize_edge_post_execution() {
 
     let loader = ComponentLoader::hooks(config).unwrap().unwrap();
 
-    let (access_log, _) = create_log_channel();
+    let (access_log, _) = create_test_access_log();
     let mut hook = HooksComponentInstance::new(&loader, access_log).await.unwrap();
     let (context, _) = hook.on_gateway_request(HashMap::new(), headers).await.unwrap();
 
@@ -551,13 +561,13 @@ async fn authorize_edge_post_execution() {
         .await
         .unwrap();
 
-    let expected = expect![[r#"
+    insta::assert_debug_snapshot!(result, @r#"
         [
             Ok(
                 (),
             ),
             Err(
-                GuestError {
+                Error {
                     extensions: [],
                     message: "not authorized",
                 },
@@ -566,15 +576,13 @@ async fn authorize_edge_post_execution() {
                 (),
             ),
             Err(
-                GuestError {
+                Error {
                     extensions: [],
                     message: "not authorized",
                 },
             ),
         ]
-    "#]];
-
-    expected.assert_debug_eq(&result);
+    "#);
 }
 
 #[tokio::test]
@@ -593,7 +601,7 @@ async fn on_subgraph_request() {
 
     let loader = ComponentLoader::hooks(config).unwrap().unwrap();
 
-    let (access_log, _) = create_log_channel();
+    let (access_log, _) = create_test_access_log();
     let mut hook = HooksComponentInstance::new(&loader, access_log).await.unwrap();
     let (context, headers) = hook.on_gateway_request(HashMap::new(), headers).await.unwrap();
 
@@ -643,7 +651,7 @@ async fn on_subgraph_request() {
 
     insta::assert_debug_snapshot!(error, @r#"
     Guest(
-        GuestError {
+        Error {
             extensions: [],
             message: "failure",
         },
@@ -664,7 +672,7 @@ async fn response_hooks() {
 
     let loader = ComponentLoader::hooks(config).unwrap().unwrap();
 
-    let (access_log, receiver) = create_log_channel();
+    let (access_log, receiver) = create_test_access_log();
     let mut hook = HooksComponentInstance::new(&loader, access_log).await.unwrap();
 
     let context = SharedContext::new(Arc::new(HashMap::new()), TraceId::INVALID);

@@ -46,7 +46,6 @@ crossbeam-utils = { version = "0.8" }
 curve25519-dalek = { version = "4", default-features = false, features = ["alloc", "digest", "precomputed-tables", "zeroize"] }
 cynic = { version = "3", features = ["http-reqwest"] }
 cynic-parser = { version = "0.9", features = ["pretty", "report"] }
-deadpool-runtime = { version = "0.1", default-features = false, features = ["tokio_1"] }
 der = { version = "0.7", default-features = false, features = ["oid", "pem", "std"] }
 deranged = { version = "0.3", default-features = false, features = ["powerfmt", "serde", "std"] }
 digest = { version = "0.10", features = ["mac", "oid", "std"] }
@@ -170,7 +169,6 @@ crossbeam-utils = { version = "0.8" }
 curve25519-dalek = { version = "4", default-features = false, features = ["alloc", "digest", "precomputed-tables", "zeroize"] }
 cynic = { version = "3", features = ["http-reqwest"] }
 cynic-parser = { version = "0.9", features = ["pretty", "report"] }
-deadpool-runtime = { version = "0.1", default-features = false, features = ["tokio_1"] }
 der = { version = "0.7", default-features = false, features = ["oid", "pem", "std"] }
 deranged = { version = "0.3", default-features = false, features = ["powerfmt", "serde", "std"] }
 digest = { version = "0.10", features = ["mac", "oid", "std"] }

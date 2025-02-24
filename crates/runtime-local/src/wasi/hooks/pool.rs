@@ -6,7 +6,7 @@ use std::{
 use deadpool::managed;
 use grafbase_telemetry::otel::opentelemetry::metrics::UpDownCounter;
 use tracing::{Instrument, info_span};
-use wasi_component_loader::{ChannelLogSender, ComponentLoader, HooksComponentInstance};
+use wasi_component_loader::{AccessLogSender, ComponentLoader, HooksComponentInstance};
 
 pub(super) struct Pool {
     inner: managed::Pool<ComponentManager>,
@@ -39,7 +39,7 @@ impl Drop for ComponentGuard {
 }
 
 impl Pool {
-    pub(super) fn new(loader: &Arc<ComponentLoader>, size: Option<usize>, access_log: ChannelLogSender) -> Self {
+    pub(super) fn new(loader: &Arc<ComponentLoader>, size: Option<usize>, access_log: AccessLogSender) -> Self {
         let meter = grafbase_telemetry::metrics::meter_from_global_provider();
         let pool_busy_counter = meter.i64_up_down_counter("grafbase.hook.pool.instances.busy").build();
 
@@ -73,11 +73,11 @@ impl Pool {
 pub(super) struct ComponentManager {
     component_loader: Arc<ComponentLoader>,
     pool_allocated_instances: UpDownCounter<i64>,
-    access_log: ChannelLogSender,
+    access_log: AccessLogSender,
 }
 
 impl ComponentManager {
-    pub(super) fn new(component_loader: Arc<ComponentLoader>, access_log: ChannelLogSender) -> Self {
+    pub(super) fn new(component_loader: Arc<ComponentLoader>, access_log: AccessLogSender) -> Self {
         let meter = grafbase_telemetry::metrics::meter_from_global_provider();
         let pool_allocated_instances = meter.i64_up_down_counter("grafbase.hook.pool.instances.size").build();
 

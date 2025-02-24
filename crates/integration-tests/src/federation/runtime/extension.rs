@@ -173,7 +173,7 @@ impl runtime::extension::ExtensionRuntime for TestExtensions {
         extension_id: ExtensionId,
         _authorizer_id: runtime::extension::AuthorizerId,
         _headers: http::HeaderMap,
-    ) -> Result<(http::HeaderMap, HashMap<String, serde_json::Value>), ErrorResponse> {
+    ) -> Result<(http::HeaderMap, Vec<u8>), ErrorResponse> {
         let _instance = self
             .global_instances
             .lock()

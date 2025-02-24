@@ -4,7 +4,7 @@ use crate::federation::{TestRuntimeContext, subgraph::Subgraphs};
 use federated_graph::FederatedGraph;
 use grafbase_telemetry::metrics::meter_from_global_provider;
 use runtime::hooks::DynamicHooks;
-use runtime_local::wasi::hooks::{self, ChannelLogSender, ComponentLoader, HooksWasi};
+use runtime_local::wasi::hooks::{self, AccessLogSender, ComponentLoader, HooksWasi};
 
 use engine::Engine;
 
@@ -77,7 +77,7 @@ pub(super) async fn build(
         .i64_up_down_counter("grafbase.gateway.access_log.pending")
         .build();
 
-    let (access_log_sender, access_log_receiver) = hooks::create_log_channel(false, counter);
+    let (access_log_sender, access_log_receiver) = hooks::create_access_log_channel(false, counter);
 
     if config.add_websocket_url {
         for subgraph in subgraphs.iter() {
@@ -112,7 +112,7 @@ pub(super) async fn build(
 async fn update_runtime_with_toml_config(
     runtime: &mut TestRuntime,
     config: &gateway_config::Config,
-    access_log_sender: ChannelLogSender,
+    access_log_sender: AccessLogSender,
 ) {
     if let Some(hooks_config) = config.hooks.clone() {
         let loader = ComponentLoader::hooks(hooks_config)

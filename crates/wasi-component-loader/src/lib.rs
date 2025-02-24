@@ -6,18 +6,18 @@
 //! It is important the compiled WebAssembly code implements at least the minimal required types and interfaces.
 //! More on those on the crate README.
 
-#![deny(missing_docs)]
-
 mod access_log;
 mod cache;
 mod config;
 mod context;
 mod error;
+pub mod extension;
 mod headers;
 mod http_client;
 mod instance;
 mod names;
 mod nats;
+pub mod resources;
 mod state;
 mod subgraph_request;
 
@@ -26,7 +26,7 @@ mod tests;
 
 use std::sync::Arc;
 
-pub use access_log::{AccessLogMessage, ChannelLogReceiver, ChannelLogSender, create_log_channel};
+pub use access_log::{AccessLogMessage, AccessLogReceiver, AccessLogSender, create_access_log_channel};
 use cache::Cache;
 pub use config::{ExtensionsConfig, HooksWasiConfig};
 pub use context::{ContextMap, SharedContext};
@@ -35,9 +35,6 @@ pub use crossbeam::sync::WaitGroup;
 use either::Either;
 pub use error::{Error, GatewayError, guest::GuestError};
 use gateway_config::WasiExtensionsConfig;
-pub use instance::extensions::{
-    Directive, ExtensionType, ExtensionsComponentInstance, FieldDefinition, FieldOutput, InputList,
-};
 pub use instance::hooks::{
     HookImplementation, HooksComponentInstance,
     authorization::{EdgeDefinition, NodeDefinition},
@@ -54,10 +51,10 @@ pub type GuestResult<T> = std::result::Result<T, GuestError>;
 /// The gateway result type
 pub type GatewayResult<T> = std::result::Result<T, GatewayError>;
 
-use state::{OwnedOrRef, WasiState};
+use state::{WasiState, WasmOwnedOrBorrowed};
 use wasmtime::{
     Engine,
-    component::{Component, Linker, LinkerInstance},
+    component::{Component, Linker},
 };
 
 /// A structure responsible for loading and managing WebAssembly components.
@@ -83,7 +80,8 @@ impl ComponentLoader {
     /// Creates a new instance of `ComponentLoader` for gateway hooks with the specified
     /// configuration.
     pub fn hooks(config: HooksWasiConfig) -> Result<Option<Self>> {
-        let instantiate = |mut instance: LinkerInstance<'_, WasiState>| -> Result<()> {
+        let instantiate = |liner: &mut Linker<WasiState>| -> Result<()> {
+            let mut instance = liner.root();
             nats::inject_mapping(&mut instance)?;
             headers::inject_mapping(&mut instance)?;
             subgraph_request::inject_mapping(&mut instance)?;
@@ -98,26 +96,9 @@ impl ComponentLoader {
         Self::new(Either::Left(config), instantiate)
     }
 
-    /// Creates a new instance of `ComponentLoader` for gateway extensions with the specified
-    /// configuration.
-    pub fn extensions(extension_name: String, config: impl Into<WasiExtensionsConfig>) -> Result<Option<Self>> {
-        let instantiate = |mut instance: LinkerInstance<'_, WasiState>| -> Result<()> {
-            nats::inject_mapping(&mut instance)?;
-            headers::inject_mapping(&mut instance)?;
-            context::inject_shared_mapping(&mut instance)?;
-            http_client::inject_mapping(&mut instance)?;
-            access_log::inject_mapping(&mut instance)?;
-            cache::inject_mapping(&mut instance)?;
-
-            Ok(())
-        };
-
-        Self::new(Either::Right((extension_name, config.into())), instantiate)
-    }
-
     fn new<F>(config: Either<HooksWasiConfig, (String, WasiExtensionsConfig)>, instantiate: F) -> Result<Option<Self>>
     where
-        F: FnOnce(LinkerInstance<'_, WasiState>) -> Result<()>,
+        F: FnOnce(&mut Linker<WasiState>) -> Result<()>,
     {
         let mut wasm_config = wasmtime::Config::new();
 
@@ -148,7 +129,7 @@ impl ComponentLoader {
                     wasmtime_wasi_http::add_only_http_to_linker_async(&mut linker)?;
                 }
 
-                instantiate(linker.root())?;
+                instantiate(&mut linker)?;
 
                 Some(Self {
                     engine,

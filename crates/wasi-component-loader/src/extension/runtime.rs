@@ -1,5 +1,6 @@
-mod pool;
+use crate::{error::guest::guest_error_as_gql, extension::ExtensionLoader, resources::SharedResources};
 
+use super::{ExtensionGuestConfig, InputList, pool::Pool, wit};
 use extension_catalog::ExtensionId;
 use futures_util::StreamExt;
 use gateway_config::WasiExtensionsConfig;
@@ -8,68 +9,47 @@ use runtime::{
     extension::{AuthorizerId, Data, ExtensionFieldDirective, ExtensionRuntime},
     hooks::Anything,
 };
-use semver::Version;
 use std::{collections::HashMap, future::Future, sync::Arc};
 use tokio::task::JoinHandle;
-use wasi_component_loader::{ChannelLogSender, ComponentLoader, FieldDefinition, InputList, SharedContext};
-pub use wasi_component_loader::{Directive, ExtensionType};
-
-use pool::Pool;
-
-use super::guest_error_as_gql;
 
 #[derive(Clone, Default)]
-pub struct WasiExtensions(Option<Arc<WasiExtensionsInner>>);
+pub struct ExtensionsWasiRuntime(Option<Arc<WasiExtensionsInner>>);
 
-impl WasiExtensions {
-    pub async fn new(
-        access_log: ChannelLogSender,
-        extensions: Vec<ExtensionConfig>,
-    ) -> Result<Self, wasi_component_loader::Error> {
+struct WasiExtensionsInner {
+    instance_pools: HashMap<ExtensionPoolId, Pool>,
+}
+
+impl ExtensionsWasiRuntime {
+    pub async fn new<T: serde::Serialize + Send + 'static>(
+        shared_resources: SharedResources,
+        extensions: Vec<ExtensionConfig<T>>,
+    ) -> crate::Result<Self> {
         if extensions.is_empty() {
             return Ok(Self(None));
         }
 
-        let instance_pools = create_pools(access_log, extensions).await?;
+        let instance_pools = create_pools(shared_resources, extensions).await?;
         let inner = WasiExtensionsInner { instance_pools };
 
         Ok(Self(Some(Arc::new(inner))))
     }
 }
 
-async fn create_pools(
-    access_log: ChannelLogSender,
-    extensions: Vec<ExtensionConfig>,
-) -> Result<HashMap<ExtensionPoolId, Pool>, wasi_component_loader::Error> {
-    type Handle = JoinHandle<Result<Option<(ExtensionPoolId, Pool)>, wasi_component_loader::Error>>;
+async fn create_pools<T: serde::Serialize + Send + 'static>(
+    shared_resources: SharedResources,
+    extensions: Vec<ExtensionConfig<T>>,
+) -> crate::Result<HashMap<ExtensionPoolId, Pool>> {
+    type Handle = JoinHandle<crate::Result<(ExtensionPoolId, Pool)>>;
 
     let mut creating_pools: Vec<Handle> = Vec::new();
 
     for config in extensions {
-        let access_log = access_log.clone();
+        let shared = shared_resources.clone();
 
         creating_pools.push(tokio::task::spawn_blocking(move || {
-            let manager_config = pool::ComponentManagerConfig {
-                extension_type: config.extension_type,
-                schema_directives: config.schema_directives,
-            };
-
-            tracing::info!("Loading extension {} {}", config.name, config.version);
-
-            match ComponentLoader::extensions(config.name, config.wasi_config)? {
-                Some(loader) => {
-                    let pool = Pool::new(
-                        loader,
-                        manager_config,
-                        config.max_pool_size,
-                        config.extension_config,
-                        access_log,
-                    );
-
-                    Ok(Some((config.id, pool)))
-                }
-                None => Ok(None),
-            }
+            tracing::info!("Loading extension {}", config.manifest_id);
+            let loader = ExtensionLoader::new(shared, config.wasi_config, config.guest_config)?;
+            Ok((config.id, Pool::new(loader, config.max_pool_size)))
         }));
     }
 
@@ -80,10 +60,9 @@ async fn create_pools(
 
     while let Some(result) = creating_pools.next().await {
         match result.unwrap() {
-            Ok(Some((id, pool))) => {
+            Ok((id, pool)) => {
                 pools.insert(id, pool);
             }
-            Ok(None) => {}
             Err(error) => return Err(error),
         }
     }
@@ -91,8 +70,8 @@ async fn create_pools(
     Ok(pools)
 }
 
-impl ExtensionRuntime for WasiExtensions {
-    type SharedContext = SharedContext;
+impl ExtensionRuntime for ExtensionsWasiRuntime {
+    type SharedContext = wit::SharedContext;
 
     #[allow(clippy::manual_async_fn)]
     fn resolve_field<'ctx, 'resp, 'f>(
@@ -124,11 +103,16 @@ impl ExtensionRuntime for WasiExtensions {
 
             let mut instance = pool.get().await;
 
-            let directive = Directive::new(name.to_string(), subgraph.name().to_string(), arguments);
+            let arguments = minicbor_serde::to_vec(arguments).unwrap();
+            let directive = wit::Directive {
+                name,
+                subgraph_name: subgraph.name(),
+                arguments: &arguments,
+            };
 
-            let definition = FieldDefinition {
-                type_name: field.parent_entity().name().to_string(),
-                name: field.name().to_string(),
+            let definition = wit::FieldDefinition {
+                type_name: field.parent_entity().name(),
+                name: field.name(),
             };
 
             let result = instance
@@ -153,7 +137,7 @@ impl ExtensionRuntime for WasiExtensions {
                     Ok(results)
                 }
                 Err(error) => match error {
-                    wasi_component_loader::Error::Guest(error) => {
+                    crate::Error::Guest(error) => {
                         let error = guest_error_as_gql(error, PartialErrorCode::InternalServerError);
 
                         Err(error)
@@ -169,7 +153,7 @@ impl ExtensionRuntime for WasiExtensions {
         extension_id: ExtensionId,
         authorizer_id: AuthorizerId,
         headers: http::HeaderMap,
-    ) -> Result<(http::HeaderMap, HashMap<String, serde_json::Value>), ErrorResponse> {
+    ) -> Result<(http::HeaderMap, Vec<u8>), ErrorResponse> {
         let Some(inner) = self.0.as_ref() else {
             return Err(ErrorResponse {
                 status: http::StatusCode::INTERNAL_SERVER_ERROR,
@@ -191,8 +175,8 @@ impl ExtensionRuntime for WasiExtensions {
         let result = instance.authenticate(headers).await;
 
         match result {
-            Ok(result) => Ok(result),
-            Err(wasi_component_loader::GatewayError::Guest(error)) => {
+            Ok((headers, token)) => Ok((headers, token.raw)),
+            Err(crate::GatewayError::Guest(error)) => {
                 let status =
                     http::StatusCode::from_u16(error.status_code).unwrap_or(http::StatusCode::INTERNAL_SERVER_ERROR);
 
@@ -204,7 +188,7 @@ impl ExtensionRuntime for WasiExtensions {
 
                 Err(ErrorResponse { status, errors })
             }
-            Err(wasi_component_loader::GatewayError::Internal(_)) => Err(ErrorResponse {
+            Err(crate::GatewayError::Internal(_)) => Err(ErrorResponse {
                 status: http::StatusCode::INTERNAL_SERVER_ERROR,
                 errors: vec![PartialGraphqlError::internal_extension_error()],
             }),
@@ -230,18 +214,10 @@ impl From<(ExtensionId, AuthorizerId)> for ExtensionPoolId {
     }
 }
 
-struct WasiExtensionsInner {
-    instance_pools: HashMap<ExtensionPoolId, Pool>,
-}
-
-pub struct ExtensionConfig {
+pub struct ExtensionConfig<T> {
     pub id: ExtensionPoolId,
-    pub name: String,
-    pub version: Version,
-    pub extension_type: ExtensionType,
-    pub schema_directives: Vec<Directive>,
+    pub manifest_id: extension_catalog::Id,
     pub max_pool_size: Option<usize>,
     pub wasi_config: WasiExtensionsConfig,
-    // CBOR encoded extension configuration
-    pub extension_config: Vec<u8>,
+    pub guest_config: ExtensionGuestConfig<T>,
 }

@@ -1,6 +1,6 @@
 use extension_catalog::ExtensionId;
 use runtime::{
-    auth::{AccessToken, ExtensionToken},
+    auth::AccessToken,
     error::ErrorResponse,
     extension::{AuthorizerId, ExtensionRuntime},
 };
@@ -32,12 +32,12 @@ impl AuthExtensionService {
         runtime: &R,
         headers: http::HeaderMap,
     ) -> Result<(http::HeaderMap, AccessToken), ErrorResponse> {
-        let (headers, claims) = runtime
+        let (headers, token) = runtime
             .extensions()
             .authenticate(self.extension_id, self.authorizer_id, headers)
             .await?;
 
-        let token = AccessToken::Extension(ExtensionToken { claims });
+        let token = AccessToken::Extension(token);
 
         Ok((headers, token))
     }

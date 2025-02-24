@@ -45,6 +45,7 @@ tower-http = { workspace = true, features = ["cors", "timeout"] }
 tracing.workspace = true
 ulid = { workspace = true, features = ["serde"] }
 url = { workspace = true, features = ["serde"] }
+wasi-component-loader.workspace = true
 
 # Lambda dependencies
 either.workspace = true

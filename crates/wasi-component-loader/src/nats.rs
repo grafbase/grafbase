@@ -7,7 +7,7 @@ use wasmtime::{
 };
 
 use crate::{
-    instance::extensions::NatsAuth,
+    extension::wit::NatsAuth,
     names::{NATS_CLIENT_CONNECT_FUNCTION, NATS_CLIENT_PUBLISH_METHOD, NATS_CLIENT_RESOURCE},
     state::WasiState,
 };

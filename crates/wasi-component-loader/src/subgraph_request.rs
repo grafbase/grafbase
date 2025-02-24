@@ -5,8 +5,8 @@ use wasmtime::{
 };
 
 use crate::{
-    headers::HttpHeaders,
-    http_client::HttpMethod,
+    extension::wit::HttpMethod,
+    headers::Headers,
     names::{
         SUBGRAPH_REQUEST_GET_HEADERS_METHOD, SUBGRAPH_REQUEST_GET_METHOD_METHOD, SUBGRAPH_REQUEST_GET_URL_METHOD,
         SUBGRAPH_REQUEST_RESOURCE, SUBGRAPH_REQUEST_SET_METHOD_METHOD, SUBGRAPH_REQUEST_SET_URL_METHOD,
@@ -70,7 +70,7 @@ fn get_url(store: StoreContextMut<'_, WasiState>, (this,): (Resource<SubgraphReq
 fn get_headers(
     mut store: StoreContextMut<'_, WasiState>,
     (this,): (Resource<SubgraphRequest>,),
-) -> anyhow::Result<(Resource<HttpHeaders>,)> {
+) -> anyhow::Result<(Resource<Headers>,)> {
     let headers = crate::state::get_child_ref!(store, this: SubgraphRequest => headers: http::HeaderMap);
     Ok((headers,))
 }

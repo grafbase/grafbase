@@ -2634,6 +2634,7 @@ dependencies = [
  "semver",
  "serde",
  "serde_json",
+ "strum",
  "url",
 ]
 
@@ -2746,6 +2747,7 @@ dependencies = [
  "tracing",
  "ulid",
  "url",
+ "wasi-component-loader",
 ]
 
 [[package]]
@@ -3455,7 +3457,6 @@ dependencies = [
  "curve25519-dalek",
  "cynic",
  "cynic-parser",
- "deadpool-runtime",
  "der",
  "deranged",
  "digest",
@@ -8803,10 +8804,13 @@ dependencies = [
  "base64 0.22.1",
  "crossbeam",
  "dashmap 6.1.0",
+ "deadpool 0.12.2",
  "either",
  "enumflags2",
  "expect-test",
+ "extension-catalog",
  "futures",
+ "futures-util",
  "gateway-config",
  "grafbase-telemetry",
  "grafbase-workspace-hack",

@@ -21,9 +21,9 @@ pub type ContextMap = HashMap<String, String>;
 #[derive(Clone)]
 pub struct SharedContext {
     /// Key-value storage.
-    kv: Arc<HashMap<String, String>>,
+    pub(crate) kv: Arc<HashMap<String, String>>,
     /// A log channel for access logs.
-    trace_id: TraceId,
+    pub(crate) trace_id: TraceId,
 }
 
 // FIXME: Remove me once hooks & extensions context are merged.

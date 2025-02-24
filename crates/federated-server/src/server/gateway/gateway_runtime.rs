@@ -9,9 +9,10 @@ use runtime_local::{
     operation_cache::{RedisOperationCache, TieredOperationCache},
     rate_limiting::{in_memory::key_based::InMemoryRateLimiter, redis::RedisRateLimiter},
     redis::{RedisPoolFactory, RedisTlsConfig},
-    wasi::{extensions::WasiExtensions, hooks::HooksWasi},
+    wasi::hooks::HooksWasi,
 };
 use runtime_noop::trusted_documents::NoopTrustedDocuments;
+use wasi_component_loader::extension::ExtensionsWasiRuntime;
 
 use crate::hot_reload::ConfigWatcher;
 
@@ -23,7 +24,7 @@ pub struct GatewayRuntime {
     kv: runtime::kv::KvStore,
     metrics: EngineMetrics,
     hooks: HooksWasi,
-    pub(crate) extensions: WasiExtensions,
+    pub(crate) extensions: ExtensionsWasiRuntime,
     rate_limiter: runtime::rate_limiting::RateLimiter,
     entity_cache: Box<dyn EntityCache>,
     pub(crate) operation_cache: TieredOperationCache<Arc<CachedOperation>>,
@@ -35,7 +36,7 @@ impl GatewayRuntime {
         hot_reload_config_path: Option<PathBuf>,
         version_id: Option<ulid::Ulid>,
         hooks: HooksWasi,
-        extensions: WasiExtensions,
+        extensions: ExtensionsWasiRuntime,
     ) -> Result<GatewayRuntime, crate::Error> {
         let mut redis_factory = RedisPoolFactory::default();
         let watcher = ConfigWatcher::init(gateway_config.clone(), hot_reload_config_path)?;
@@ -105,7 +106,7 @@ impl engine::Runtime for GatewayRuntime {
     type Hooks = HooksWasi;
     type Fetcher = NativeFetcher;
     type OperationCache = TieredOperationCache<Arc<CachedOperation>>;
-    type Extensions = WasiExtensions;
+    type Extensions = ExtensionsWasiRuntime;
 
     fn fetcher(&self) -> &Self::Fetcher {
         &self.fetcher

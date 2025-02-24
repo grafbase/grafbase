@@ -252,6 +252,7 @@ federated-server = { path = "crates/federated-server" }
 gateway-config = { path = "crates/gateway-config" }
 grafbase-sdk = { path = "crates/grafbase-sdk" }
 rolling-logger = { path = "crates/rolling-logger" }
+wasi-component-loader = { path = "crates/wasi-component-loader" }
 
 # Engine
 engine = { path = "crates/engine" }

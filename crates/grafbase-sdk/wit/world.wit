@@ -1,6 +1,6 @@
-package component:grafbase-sdk;
+package grafbase:sdk;
 
-world sdk {
+interface types {
     record directive {
         name: string,
         subgraph-name: string,
@@ -177,11 +177,15 @@ world sdk {
         get: static func(key: string) -> option<list<u8>>;
         set: static func(key: string, value: list<u8>, ttl-ms: option<u64>) -> ();
     }
+}
+
+interface extension {
+    use types.{directive, shared-context, error-response, error, field-definition, field-output, extension-type, access-log, log-error, nats-auth, nats-client, http-client, http-request, http-response, http-method, http-version, http-error, headers, token, cache};
 
     // initialization function called to set up the wasm extension
     // if an error happens here, the gateway will refuse to continue.
     // Receives a list of schema directives associated with the extension
-    export init-gateway-extension: func(
+    init-gateway-extension: func(
         extension-type: extension-type,
         schema-directives: list<directive>,
         configuration: list<u8>,
@@ -189,16 +193,20 @@ world sdk {
 
     // for each input and each edges inside we return a result<list<u8>, error>,
     // serialized data with an error.
-    export resolve-field: func(
+    resolve-field: func(
        context: shared-context,
        directive: directive,
        definition: field-definition,
        inputs: list<list<u8>>
     ) -> result<field-output, error>;
 
-    export authenticate: func(
+    authenticate: func(
         headers: headers,
     ) -> result<token, error-response>;
+}
+
+world sdk {
+    export extension;
 
     // The extension registration function. Must be called before initialization.
     export register-extension: func();
