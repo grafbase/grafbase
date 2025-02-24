@@ -17,8 +17,8 @@ use super::{
 };
 
 /// Handles graph and config updates by constructing a new engine
-pub(super) struct EngineReloader {
-    engine_watcher: EngineWatcher,
+pub(super) struct GatewayEngineReloader {
+    engine_watcher: EngineWatcher<GatewayRuntime>,
 }
 
 pub(crate) type GraphSender = mpsc::Sender<GraphDefinition>;
@@ -28,7 +28,7 @@ enum Update {
     Config(gateway_config::Config),
 }
 
-impl EngineReloader {
+impl GatewayEngineReloader {
     pub async fn spawn(
         // A receiver that passes the config in.  In the gateway this is usually
         // static, but in federated dev it will change on reloads.
@@ -75,10 +75,10 @@ impl EngineReloader {
             update_loop(updates, current_config, graph_definition, context, engine_sender).await
         });
 
-        Ok(EngineReloader { engine_watcher })
+        Ok(GatewayEngineReloader { engine_watcher })
     }
 
-    pub fn engine_watcher(&self) -> EngineWatcher {
+    pub fn engine_watcher(&self) -> EngineWatcher<GatewayRuntime> {
         self.engine_watcher.clone()
     }
 }

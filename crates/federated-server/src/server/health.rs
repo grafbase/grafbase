@@ -26,7 +26,9 @@ pub(crate) enum HealthState {
 /// # Returns
 ///
 /// A tuple containing the HTTP status code and a JSON representation of the health status.
-pub(crate) async fn health<SR>(State(_state): State<ServerState<SR>>) -> (StatusCode, Json<HealthState>) {
+pub(crate) async fn health<R: engine::Runtime, SR>(
+    State(_state): State<ServerState<R, SR>>,
+) -> (StatusCode, Json<HealthState>) {
     (StatusCode::OK, Json(HealthState::Healthy))
 }
 
@@ -42,11 +44,11 @@ pub(crate) async fn health<SR>(State(_state): State<ServerState<SR>>) -> (Status
 /// # Returns
 ///
 /// A `Result` indicating success or failure of binding the endpoint.
-pub(super) async fn bind_health_endpoint<SR: ServerRuntime>(
+pub(super) async fn bind_health_endpoint<R: engine::Runtime, SR: ServerRuntime>(
     addr: SocketAddr,
     tls_config: Option<TlsConfig>,
     health_config: HealthConfig,
-    state: ServerState<SR>,
+    state: ServerState<R, SR>,
 ) -> crate::Result<()> {
     let scheme = if tls_config.is_some() { "https" } else { "http" };
     let path = &health_config.path;

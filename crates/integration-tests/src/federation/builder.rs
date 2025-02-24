@@ -164,7 +164,7 @@ impl TestGatewayBuilder {
         .await;
 
         let (engine, context) = self::engine::build(federated_sdl, config, runtime, &subgraphs).await?;
-        let router = self::router::build(engine.clone(), &gateway_config);
+        let router = self::router::build(engine.clone(), gateway_config).await;
 
         Ok(TestGateway {
             router,

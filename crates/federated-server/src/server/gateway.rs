@@ -28,7 +28,7 @@ pub(crate) type EngineSender = watch::Sender<Arc<Engine<GatewayRuntime>>>;
 /// Receive half of the gateway watch channel.
 ///
 /// Anything part of the system that needs access to the gateway can use this
-pub(crate) type EngineWatcher = watch::Receiver<Arc<Engine<GatewayRuntime>>>;
+pub(crate) type EngineWatcher<R> = watch::Receiver<Arc<Engine<R>>>;
 
 #[derive(Clone)]
 pub(crate) enum GraphDefinition {

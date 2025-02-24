@@ -6,7 +6,7 @@ mod subgraphs;
 
 use super::errors::BackendError;
 use configurations::get_and_merge_configurations;
-use federated_server::{GraphFetchMethod, ServerConfig, ServerRouter, ServerRuntime};
+use federated_server::{GraphFetchMethod, ServeConfig, ServerRuntime};
 use hot_reload::hot_reload;
 use pathfinder::{export_assets, get_pathfinder_router};
 use std::{
@@ -36,13 +36,11 @@ struct CliRuntime {
 }
 
 impl ServerRuntime for CliRuntime {
-    fn after_request(&self) {}
-
     fn on_ready(&self, url: String) {
         self.ready_sender.send(url).expect("must still be open");
     }
 
-    fn get_external_router<T>(&self) -> Option<ServerRouter<T>> {
+    fn base_router<S>(&self) -> Option<axum::Router<S>> {
         Some(get_pathfinder_router(self.port, &self.home_dir))
     }
 }
@@ -124,8 +122,8 @@ pub async fn start(
         .await
         .expect("this really has to succeed");
 
-    let server_config = ServerConfig {
-        listen_addr: Some(listen_address),
+    let server_config = ServeConfig {
+        listen_address,
         config_path: None,
         config_hot_reload: false,
         config_receiver,

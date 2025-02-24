@@ -52,7 +52,7 @@ fn request_error(#[case] method: http::Method) {
         let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
 
         let response = engine
-            .execute(method, "query { unknown }")
+            .execute(method, "/graphql", "query { unknown }")
             .header(http::header::ACCEPT, APPLICATION_JSON)
             .await;
         insta::assert_json_snapshot!(response, @r###"
@@ -89,7 +89,7 @@ fn field_error(#[case] method: http::Method) {
         let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
 
         let response = engine
-            .execute(method, "query { fail }")
+            .execute(method, "/graphql", "query { fail }")
             .header(http::header::ACCEPT, APPLICATION_JSON)
             .await;
         insta::assert_json_snapshot!(response, @r###"

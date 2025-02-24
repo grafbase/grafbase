@@ -68,17 +68,17 @@ impl DockerSubgraph {
 
 impl TestGateway {
     pub fn get(&self, request: impl Into<GraphQlRequest>) -> TestRequest {
-        self.execute(http::Method::GET, request)
+        self.execute(http::Method::GET, "/graphql", request)
     }
 
     pub fn post(&self, request: impl Into<GraphQlRequest>) -> TestRequest {
-        self.execute(http::Method::POST, request)
+        self.execute(http::Method::POST, "/graphql", request)
     }
 
-    pub fn execute(&self, method: http::Method, request: impl Into<GraphQlRequest>) -> TestRequest {
+    pub fn execute(&self, method: http::Method, path: &str, request: impl Into<GraphQlRequest>) -> TestRequest {
         let (mut parts, _) = http::Request::new(()).into_parts();
         parts.method = method;
-        parts.uri = http::Uri::from_static("http://127.0.0.1/graphql");
+        parts.uri = format!("http://127.0.0.1{path}").parse().unwrap();
 
         TestRequest {
             router: self.router.clone(),
