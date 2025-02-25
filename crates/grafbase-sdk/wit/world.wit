@@ -223,6 +223,11 @@ interface extension {
     authenticate: func(
         headers: headers,
     ) -> result<token, error-response>;
+
+    authorize-query: func(
+        context: shared-context,
+        resources: list<query-resource>
+    )
 }
 
 world sdk {
