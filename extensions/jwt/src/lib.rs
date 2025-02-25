@@ -1,14 +1,14 @@
 mod types;
 
 use grafbase_sdk::{
+    AuthenticationExtension, Authenticator, Extension, Headers,
     host_io::{
         cache::{self, CachedItem},
         http::{self, HttpRequest},
     },
-    types::{Configuration, Directive, ErrorResponse, StatusCode, Token},
-    AuthenticationExtension, Authenticator, Error, Extension, Headers,
+    types::{Configuration, ErrorResponse, SchemaDirective, StatusCode, Token},
 };
-use jwt_compact::{jwk::JsonWebKey, Algorithm, AlgorithmExt, TimeOptions, UntrustedToken};
+use jwt_compact::{Algorithm, AlgorithmExt, TimeOptions, UntrustedToken, jwk::JsonWebKey};
 use serde::de::DeserializeOwned;
 use types::{Alg, CustomClaims, Jwk, Jwks, JwtConfig};
 
@@ -18,7 +18,7 @@ struct Jwt {
 }
 
 impl Extension for Jwt {
-    fn new(_: Vec<Directive>, config: Configuration) -> Result<Self, Box<dyn std::error::Error>>
+    fn new(_: Vec<SchemaDirective>, config: Configuration) -> Result<Self, Box<dyn std::error::Error>>
     where
         Self: Sized,
     {
@@ -44,7 +44,7 @@ impl Authenticator for Jwt {
 
             Ok(CachedItem::new(jwks, Some(self.config.poll_interval)))
         })
-        .map_err(|_| internal_server_error())?;
+        .map_err(|_| ErrorResponse::internal_server_error("Internal server error"))?;
 
         let token = UntrustedToken::new(&token_str).map_err(|_| unauthorized())?;
         let token = decode_token(jwks.keys, token).ok_or_else(unauthorized)?;
@@ -79,26 +79,8 @@ impl Authenticator for Jwt {
     }
 }
 
-fn internal_server_error() -> ErrorResponse {
-    let mut response = ErrorResponse::new(StatusCode::INTERNAL_SERVER_ERROR);
-
-    response.push_error(Error {
-        extensions: Vec::new(),
-        message: String::from("Internal server error"),
-    });
-
-    response
-}
-
 fn unauthorized() -> ErrorResponse {
-    let mut response = ErrorResponse::new(StatusCode::UNAUTHORIZED);
-
-    response.push_error(Error {
-        extensions: Vec::new(),
-        message: String::from("Unauthorized"),
-    });
-
-    response
+    ErrorResponse::new(StatusCode::UNAUTHORIZED).with_error("Unauthorized")
 }
 
 fn decode_token(jwks: Vec<Jwk<'_>>, untrusted_token: UntrustedToken<'_>) -> Option<jwt_compact::Token<CustomClaims>> {

@@ -1,6 +1,6 @@
 use grafbase_sdk::{
     Error, Extension, Resolver, ResolverExtension, SharedContext, Subscription,
-    types::{Configuration, Directive, FieldDefinition, FieldInputs, FieldOutput},
+    types::{Configuration, FieldDefinitionDirective, FieldInputs, FieldOutput, SchemaDirective},
 };
 
 #[derive(ResolverExtension)]
@@ -25,7 +25,7 @@ struct ResponseOutput<'a> {
 }
 
 impl Extension for SimpleResolver {
-    fn new(schema_directives: Vec<Directive>, _: Configuration) -> Result<Self, Box<dyn std::error::Error>> {
+    fn new(schema_directives: Vec<SchemaDirective>, _: Configuration) -> Result<Self, Box<dyn std::error::Error>> {
         let schema_args = schema_directives
             .into_iter()
             .filter(|d| d.name() == "schemaArgs")
@@ -41,8 +41,8 @@ impl Resolver for SimpleResolver {
     fn resolve_field(
         &mut self,
         _: SharedContext,
-        directive: Directive,
-        _: FieldDefinition,
+        _: &str,
+        directive: FieldDefinitionDirective,
         _: FieldInputs,
     ) -> Result<FieldOutput, Error> {
         let args: FieldArgs = directive.arguments().unwrap();
@@ -60,8 +60,8 @@ impl Resolver for SimpleResolver {
     fn resolve_subscription(
         &mut self,
         _: SharedContext,
-        _: Directive,
-        _: FieldDefinition,
+        _: &str,
+        _: FieldDefinitionDirective,
     ) -> Result<Box<dyn Subscription>, Error> {
         todo!()
     }

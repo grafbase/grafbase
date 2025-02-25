@@ -15,7 +15,7 @@ pub struct ExtensionLoader {
     #[allow(unused)] // MUST be unused, or at least immutable, we self-reference to it
     schema_directives: Vec<SchemaDirective>,
     // Self-reference to schema_directives
-    wit_schema_directives: Vec<wit::Directive<'static>>,
+    wit_schema_directives: Vec<wit::SchemaDirective<'static>>,
     pre: wit::SdkPre<WasiState>,
     cache: Arc<Cache>,
     shared: crate::resources::SharedResources,
@@ -84,14 +84,14 @@ impl ExtensionLoader {
         let wit_schema_directives = schema_directives
             .iter()
             .map(|dir| {
-                let dir = wit::Directive {
+                let dir = wit::SchemaDirective {
                     name: &dir.name,
                     subgraph_name: &dir.subgraph_name,
                     arguments: &dir.arguments,
                 };
                 // SAFETY: Self-reference to schema_directives which is kept alive and never
                 // changed.
-                let dir: wit::Directive<'static> = unsafe { std::mem::transmute(dir) };
+                let dir: wit::SchemaDirective<'static> = unsafe { std::mem::transmute(dir) };
                 dir
             })
             .collect();

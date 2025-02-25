@@ -1,22 +1,25 @@
 #![allow(static_mut_refs)]
 
 use crate::{
-    extension::resolver::Subscription,
-    types::{Configuration, Directive},
-    Error,
+    extension::{authorization::ResponseAuthorizer, resolver::Subscription},
+    types::{Configuration, SchemaDirective},
+    wit::{Error, QueryElements},
 };
 
 use super::extension::AnyExtension;
 
-type InitFn = Box<dyn Fn(Vec<Directive>, Configuration) -> Result<Box<dyn AnyExtension>, Box<dyn std::error::Error>>>;
+type InitFn =
+    Box<dyn Fn(Vec<SchemaDirective>, Configuration) -> Result<Box<dyn AnyExtension>, Box<dyn std::error::Error>>>;
 
-static mut EXTENSION: Option<Box<dyn AnyExtension>> = None;
-static mut SUBSCRIBTION: Option<Box<dyn Subscription>> = None;
 static mut INIT_FN: Option<InitFn> = None;
+static mut EXTENSION: Option<Box<dyn AnyExtension>> = None;
+static mut SUBSCRIPTION: Option<Box<dyn Subscription>> = None;
+static mut AUTHORIZER_CONTEXT: Option<QueryElements> = None;
+static mut RESPONSE_AUTHORIZER: Option<Box<dyn ResponseAuthorizer<'static>>> = None;
 
 /// Initializes the resolver extension with the provided directives using the closure
 /// function created with the `register_extension!` macro.
-pub(super) fn init(directives: Vec<Directive>, config: Configuration) -> Result<(), Box<dyn std::error::Error>> {
+pub(super) fn init(directives: Vec<SchemaDirective>, config: Configuration) -> Result<(), Box<dyn std::error::Error>> {
     // Safety: This function is only called from the SDK macro, so we can assume that there is only one caller at a time.
     unsafe {
         let init = INIT_FN.as_ref().expect("Resolver extension not initialized correctly.");
@@ -50,15 +53,53 @@ pub(super) fn extension() -> Result<&'static mut dyn AnyExtension, Error> {
 
 pub(super) fn set_subscription(subscription: Box<dyn Subscription>) {
     unsafe {
-        SUBSCRIBTION = Some(subscription);
+        SUBSCRIPTION = Some(subscription);
     }
 }
 
 pub(super) fn subscription() -> Result<&'static mut dyn Subscription, Error> {
     unsafe {
-        SUBSCRIBTION.as_deref_mut().ok_or_else(|| Error {
+        SUBSCRIPTION.as_deref_mut().ok_or_else(|| Error {
             message: "No active subscription.".to_string(),
             extensions: Vec::new(),
         })
     }
+}
+
+pub(super) fn set_authorizer_context(context: QueryElements) -> &'static QueryElements {
+    unsafe {
+        AUTHORIZER_CONTEXT = Some(context);
+        AUTHORIZER_CONTEXT.as_ref().unwrap()
+    }
+}
+
+pub(super) fn authorizer_context() -> Result<&'static QueryElements, Error> {
+    unsafe {
+        AUTHORIZER_CONTEXT.as_ref().ok_or_else(|| Error {
+            message: "No active authorizer context.".to_string(),
+            extensions: Vec::new(),
+        })
+    }
+}
+
+pub(super) unsafe fn drop_authorizer_context() -> Result<(), Error> {
+    unsafe {
+        AUTHORIZER_CONTEXT
+            .take()
+            .ok_or_else(|| Error {
+                message: "No active authorizer context.".to_string(),
+                extensions: Vec::new(),
+            })
+            .map(|_| ())
+    }
+}
+
+pub(super) fn set_response_authorizer(authorizer: Box<dyn ResponseAuthorizer<'static>>) {
+    unsafe {
+        RESPONSE_AUTHORIZER = Some(authorizer);
+    }
+}
+
+pub(super) fn take_response_authorizer() -> Option<Box<dyn ResponseAuthorizer<'static>>> {
+    unsafe { RESPONSE_AUTHORIZER.take() }
 }

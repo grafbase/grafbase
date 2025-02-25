@@ -1,67 +1,27 @@
 //! Type definitions of the input and output data structures of the SDK.
 
+mod authorization;
+mod directive;
+mod directive_site;
+mod elements;
+mod error;
+mod error_response;
+
+pub use authorization::*;
+pub use directive::*;
+pub use directive_site::*;
+pub use elements::*;
+pub use error::*;
+pub use error_response::*;
+
 pub use http::StatusCode;
-use minicbor_serde::error::DecodeError;
 pub use serde::Deserialize;
 use serde::Serialize;
 
 use crate::wit;
 
-/// The directive and its arguments which define the extension in the GraphQL SDK.
-pub struct Directive(crate::wit::Directive);
-
-impl Directive {
-    /// The name of the directive.
-    pub fn name(&self) -> &str {
-        &self.0.name
-    }
-
-    /// The name of the subgraph this directive is part of.
-    pub fn subgraph_name(&self) -> &str {
-        &self.0.subgraph_name
-    }
-
-    /// The directive arguments. The output is a Serde structure, that must map to
-    /// the arguments of the directive.
-    ///
-    /// Error is returned if the directive argument does not match the output structure.
-    pub fn arguments<'de, T>(&'de self) -> Result<T, DecodeError>
-    where
-        T: Deserialize<'de>,
-    {
-        minicbor_serde::from_slice(&self.0.arguments)
-    }
-}
-
-impl From<crate::wit::Directive> for Directive {
-    fn from(value: crate::wit::Directive) -> Self {
-        Self(value)
-    }
-}
-
-/// The input data structure of the field.
-pub struct FieldDefinition(crate::wit::FieldDefinition);
-
-impl FieldDefinition {
-    /// The name of the field.
-    pub fn name(&self) -> &str {
-        self.0.name.as_str()
-    }
-
-    /// The name of the field type.
-    pub fn type_name(&self) -> &str {
-        self.0.type_name.as_str()
-    }
-}
-
-impl From<crate::wit::FieldDefinition> for FieldDefinition {
-    fn from(value: crate::wit::FieldDefinition) -> Self {
-        Self(value)
-    }
-}
-
 /// Output responses from the field resolver.
-pub struct FieldOutput(crate::wit::FieldOutput);
+pub struct FieldOutput(wit::FieldOutput);
 
 impl Default for FieldOutput {
     fn default() -> Self {
@@ -72,7 +32,7 @@ impl Default for FieldOutput {
 impl FieldOutput {
     /// Construct a new output response.
     pub fn new() -> Self {
-        Self(crate::wit::FieldOutput { outputs: Vec::new() })
+        Self(wit::FieldOutput { outputs: Vec::new() })
     }
 
     /// Constructs a new, empty output with at least the specified capacity.
@@ -80,7 +40,7 @@ impl FieldOutput {
     /// The output will be able to hold at least `capacity` elements without
     /// reallocating.
     pub fn with_capacity(capacity: usize) -> Self {
-        Self(crate::wit::FieldOutput {
+        Self(wit::FieldOutput {
             outputs: Vec::with_capacity(capacity),
         })
     }
@@ -96,12 +56,12 @@ impl FieldOutput {
     }
 
     /// Push a new error to the response.
-    pub fn push_error(&mut self, error: crate::wit::Error) {
-        self.0.outputs.push(Err(error))
+    pub fn push_error(&mut self, error: impl Into<Error>) {
+        self.0.outputs.push(Err(Into::<Error>::into(error).into()));
     }
 }
 
-impl From<FieldOutput> for crate::wit::FieldOutput {
+impl From<FieldOutput> for wit::FieldOutput {
     fn from(value: FieldOutput) -> Self {
         value.0
     }
@@ -152,37 +112,6 @@ impl Configuration {
 
 /// A cache implementation for storing data between requests.
 pub struct Cache;
-
-/// A response containing a status code and multiple errors.
-pub struct ErrorResponse(crate::wit::ErrorResponse);
-
-impl From<ErrorResponse> for crate::wit::ErrorResponse {
-    fn from(resp: ErrorResponse) -> Self {
-        resp.0
-    }
-}
-
-impl ErrorResponse {
-    /// Creates a new `ErrorResponse` with the given HTTP status code.
-    pub fn new(status_code: http::StatusCode) -> Self {
-        Self(crate::wit::ErrorResponse {
-            status_code: status_code.as_u16(),
-            errors: Vec::new(),
-        })
-    }
-
-    /// Add a new error to the response and return self
-    #[must_use]
-    pub fn with_error(mut self, error: crate::wit::Error) -> Self {
-        self.0.errors.push(error);
-        self
-    }
-
-    /// Adds a new error to the response.
-    pub fn push_error(&mut self, error: crate::wit::Error) {
-        self.0.errors.push(error);
-    }
-}
 
 /// A structure representing an authentication token claims.
 pub struct Token {
