@@ -1,13 +1,15 @@
 //! Client interface for interacting with NATS messaging system
 //!
+//! Ok(Some(field_output))
+//!
 //! This module provides a high-level client for connecting to and interacting with NATS servers.
 //! It supports both authenticated and unauthenticated connections to one or more NATS servers.
 
-use crate::wit::NatsAuth;
+use crate::{types, wit, Error};
 
 /// A client for interacting with NATS servers
 pub struct NatsClient {
-    inner: crate::wit::NatsClient,
+    inner: wit::NatsClient,
 }
 
 impl NatsClient {
@@ -44,11 +46,11 @@ impl NatsClient {
 
 /// A subscription to a NATS subject that receives messages published to that subject
 pub struct NatsSubscriber {
-    inner: crate::wit::NatsSubscriber,
+    inner: wit::NatsSubscriber,
 }
 
-impl From<crate::wit::NatsSubscriber> for NatsSubscriber {
-    fn from(inner: crate::wit::NatsSubscriber) -> Self {
+impl From<wit::NatsSubscriber> for NatsSubscriber {
+    fn from(inner: wit::NatsSubscriber) -> Self {
         NatsSubscriber { inner }
     }
 }
@@ -126,10 +128,30 @@ pub fn connect(servers: impl IntoIterator<Item = impl ToString>) -> Result<NatsC
 /// Result containing the connected NATS client or an error if connection fails
 pub fn connect_with_auth(
     servers: impl IntoIterator<Item = impl ToString>,
-    auth: &NatsAuth,
+    auth: &crate::NatsAuth,
 ) -> Result<NatsClient, Box<dyn std::error::Error>> {
     let servers: Vec<_> = servers.into_iter().map(|s| s.to_string()).collect();
     let inner = crate::wit::NatsClient::connect(&servers, Some(auth))?;
 
     Ok(NatsClient { inner })
+}
+
+impl super::Subscriber for NatsSubscriber {
+    fn next(&mut self) -> Result<Option<types::FieldOutput>, Error> {
+        let item = match NatsSubscriber::next(self) {
+            Some(item) => item,
+            None => return Ok(None),
+        };
+
+        let mut field_output = types::FieldOutput::default();
+
+        let payload: serde_json::Value = item.payload().map_err(|e| Error {
+            extensions: Vec::new(),
+            message: format!("Error parsing NATS value as JSON: {e}"),
+        })?;
+
+        field_output.push_value(payload);
+
+        Ok(Some(field_output))
+    }
 }

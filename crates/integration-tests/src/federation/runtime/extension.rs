@@ -187,7 +187,7 @@ impl runtime::extension::ExtensionRuntime for TestExtensions {
         })
     }
 
-    async fn resolve_field_subscription<'ctx, 'f>(
+    async fn resolve_subscription<'ctx, 'f>(
         &'ctx self,
         _: &'ctx Self::SharedContext,
         _: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,

@@ -41,7 +41,7 @@ pub trait ExtensionRuntime: Send + Sync + 'static {
     where
         'ctx: 'f;
 
-    fn resolve_field_subscription<'ctx, 'f>(
+    fn resolve_subscription<'ctx, 'f>(
         &'ctx self,
         context: &'ctx Self::SharedContext,
         directive: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
@@ -85,7 +85,7 @@ impl ExtensionRuntime for () {
         })
     }
 
-    async fn resolve_field_subscription<'ctx, 'f>(
+    async fn resolve_subscription<'ctx, 'f>(
         &'ctx self,
         _: &'ctx Self::SharedContext,
         _: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,

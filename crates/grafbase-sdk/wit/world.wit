@@ -217,7 +217,7 @@ interface extension {
     ) -> result<field-output, error>;
 
     // initializes a new subscription stream
-    resolve-field-subscription: func(
+    resolve-subscription: func(
         context: shared-context,
         directive: directive,
         definition: field-definition,

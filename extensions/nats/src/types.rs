@@ -58,7 +58,7 @@ pub struct NatsPublishResult {
 pub struct SubscribeArguments<'a> {
     pub provider: &'a str,
     pub subject: &'a str,
-    pub selection: Option<&'a str>,
+    pub selection: Option<String>,
     #[allow(dead_code)] // will get to this with jetstream
     pub stream_config: Option<NatsStreamConfiguration<'a>>,
 }

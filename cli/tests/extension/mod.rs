@@ -35,12 +35,12 @@ fn init_resolver() {
     codegen-units = 1
 
     [dependencies]
-    grafbase-sdk = "0.2.1"
+    grafbase-sdk = "0.3.0"
 
     [dev-dependencies]
     indoc = "2"
     insta = { version = "1.42.1", features = ["json"] }
-    grafbase-sdk = { version = "0.2.1", features = ["test-utils"] }
+    grafbase-sdk = { version = "0.3.0", features = ["test-utils"] }
     tokio = { version = "1", features = ["rt-multi-thread", "macros", "test-util"] }
     serde_json = "1"
     "#);
@@ -77,6 +77,7 @@ fn init_resolver() {
 
     insta::assert_snapshot!(&lib_rs, @r##"
     use grafbase_sdk::{
+        host_io::pubsub::Subscriber,
         types::{Configuration, Directive, FieldDefinition, FieldInputs, FieldOutput},
         Error, Extension, Resolver, ResolverExtension, SharedContext,
     };
@@ -106,11 +107,7 @@ fn init_resolver() {
             context: SharedContext,
             directive: Directive,
             field_definition: FieldDefinition,
-        ) -> Result<(), Error> {
-            todo!()
-        }
-
-        fn resolve_next_subscription_item(&mut self) -> Result<Option<FieldOutput>, Error> {
+        ) -> Result<Box<dyn Subscriber>, Error> {
             todo!()
         }
     }
@@ -276,12 +273,12 @@ fn init_auth() {
     codegen-units = 1
 
     [dependencies]
-    grafbase-sdk = "0.2.1"
+    grafbase-sdk = "0.3.0"
 
     [dev-dependencies]
     indoc = "2"
     insta = { version = "1.42.1", features = ["json"] }
-    grafbase-sdk = { version = "0.2.1", features = ["test-utils"] }
+    grafbase-sdk = { version = "0.3.0", features = ["test-utils"] }
     tokio = { version = "1", features = ["rt-multi-thread", "macros", "test-util"] }
     serde_json = "1"
     "#);

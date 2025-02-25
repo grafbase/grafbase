@@ -199,7 +199,7 @@ impl ExtensionRuntime for ExtensionsWasiRuntime {
         }
     }
 
-    async fn resolve_field_subscription<'ctx, 'f>(
+    async fn resolve_subscription<'ctx, 'f>(
         &'ctx self,
         context: &'ctx Self::SharedContext,
         directive: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
@@ -240,7 +240,7 @@ impl ExtensionRuntime for ExtensionsWasiRuntime {
         };
 
         let result = instance
-            .resolve_field_subscription(context.clone(), directive, definition)
+            .resolve_subscription(context.clone(), directive, definition)
             .await;
 
         match result {

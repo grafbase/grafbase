@@ -64,18 +64,21 @@ impl Guest for Component {
         result.map(Into::into)
     }
 
-    fn resolve_field_subscription(
+    fn resolve_subscription(
         context: SharedContext,
         directive: Directive,
         definition: FieldDefinition,
     ) -> Result<(), Error> {
-        resolver::get_extension()?.resolve_subscription(context, directive.into(), definition.into())
+        let subscriber =
+            resolver::get_extension()?.resolve_subscription(context, directive.into(), definition.into())?;
+
+        resolver::set_subscriber(subscriber);
+
+        Ok(())
     }
 
     fn resolve_next_subscription_item() -> Result<Option<FieldOutput>, Error> {
-        resolver::get_extension()?
-            .resolve_next_subscription_item()
-            .map(|v| v.map(Into::into))
+        Ok(resolver::get_subscriber()?.next()?.map(Into::into))
     }
 
     fn authenticate(headers: Headers) -> Result<Token, crate::wit::ErrorResponse> {

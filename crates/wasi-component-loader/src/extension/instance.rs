@@ -51,7 +51,7 @@ impl ExtensionInstance {
         }
     }
 
-    pub async fn resolve_field_subscription(
+    pub async fn resolve_subscription(
         &mut self,
         context: wit::SharedContext,
         directive: wit::Directive<'_>,
@@ -62,7 +62,7 @@ impl ExtensionInstance {
         let result = self
             .inner
             .grafbase_sdk_extension()
-            .call_resolve_field_subscription(&mut self.store, context, directive, definition)
+            .call_resolve_subscription(&mut self.store, context, directive, definition)
             .await;
 
         match result {
