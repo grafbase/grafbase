@@ -23,6 +23,7 @@ fn basic() {
                 WHERE ServiceName = ? AND StartTimeUnix >= ?
                     AND ScopeName = 'grafbase'
                     AND MetricName = 'http.server.request.duration'
+                    AND Attributes['http.request.method'] = 'POST'
                 "#,
             )
             .bind(&service_name)
@@ -83,6 +84,7 @@ fn request_error() {
                 WHERE ServiceName = ? AND StartTimeUnix >= ?
                     AND ScopeName = 'grafbase'
                     AND MetricName = 'http.server.request.duration'
+                    AND Attributes['http.request.method'] = 'POST'
                 "#,
             )
             .bind(&service_name)
@@ -146,6 +148,7 @@ fn field_error() {
                 WHERE ServiceName = ?
                     AND ScopeName = 'grafbase'
                     AND MetricName = 'http.server.request.duration'
+                    AND Attributes['http.request.method'] = 'POST'
                 "#,
             )
             .bind(&service_name)
@@ -204,6 +207,7 @@ fn field_error_data_null() {
                 WHERE ServiceName = ?
                     AND ScopeName = 'grafbase'
                     AND MetricName = 'http.server.request.duration'
+                    AND Attributes['http.request.method'] = 'POST'
                 "#,
             )
             .bind(&service_name)
@@ -259,6 +263,7 @@ fn client() {
                 WHERE ServiceName = ? AND StartTimeUnix >= ?
                     AND ScopeName = 'grafbase'
                     AND MetricName = 'http.server.request.duration'
+                    AND Attributes['http.request.method'] = 'POST'
                 "#,
             )
             .bind(&service_name)
