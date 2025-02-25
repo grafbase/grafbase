@@ -2,6 +2,7 @@ use std::{collections::HashMap, future::Future, sync::Arc};
 
 use engine_schema::SubgraphId;
 use extension_catalog::{Extension, ExtensionCatalog, ExtensionId, Id, Manifest};
+use futures::stream::BoxStream;
 use runtime::{
     error::{ErrorResponse, PartialGraphqlError},
     extension::{Data, ExtensionFieldDirective},
@@ -187,11 +188,11 @@ impl runtime::extension::ExtensionRuntime for TestExtensions {
         })
     }
 
-    async fn resolve_field_subscription<'ctx, 'f>(
+    async fn resolve_subscription<'ctx, 'f>(
         &'ctx self,
         _: &'ctx Self::SharedContext,
         _: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
-    ) -> Result<tokio::sync::mpsc::Receiver<Result<Data, PartialGraphqlError>>, PartialGraphqlError>
+    ) -> Result<BoxStream<'f, Result<Data, PartialGraphqlError>>, PartialGraphqlError>
     where
         'ctx: 'f,
     {

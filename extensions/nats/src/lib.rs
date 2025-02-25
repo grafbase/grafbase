@@ -1,27 +1,26 @@
 mod config;
+mod subscription;
 mod types;
 
-use std::{collections::HashMap, str::FromStr};
+use std::{cell::RefCell, collections::HashMap, rc::Rc, str::FromStr};
 
 use config::AuthConfig;
 use grafbase_sdk::{
-    host_io::nats::{self, NatsClient, NatsSubscriber},
+    host_io::pubsub::{
+        nats::{self, NatsClient},
+        Subscription,
+    },
     jq_selection::JqSelection,
     types::{Configuration, Directive, FieldDefinition, FieldInputs, FieldOutput},
     Error, Extension, NatsAuth, Resolver, ResolverExtension, SharedContext,
 };
+use subscription::FilteredSubscription;
 use types::{DirectiveKind, NatsPublishResult, PublishArguments, SubscribeArguments};
 
 #[derive(ResolverExtension)]
 struct Nats {
     clients: HashMap<String, NatsClient>,
-    active_subscription: Option<ActiveSubscription>,
-    jq_selection: JqSelection,
-}
-
-struct ActiveSubscription {
-    subscriber: NatsSubscriber,
-    selection: Option<String>,
+    jq_selection: Rc<RefCell<JqSelection>>,
 }
 
 impl Extension for Nats {
@@ -49,8 +48,7 @@ impl Extension for Nats {
 
         Ok(Self {
             clients,
-            active_subscription: None,
-            jq_selection: JqSelection::default(),
+            jq_selection: Rc::new(RefCell::new(JqSelection::default())),
         })
     }
 }
@@ -87,7 +85,7 @@ impl Resolver for Nats {
         _: SharedContext,
         directive: Directive,
         _: FieldDefinition,
-    ) -> Result<(), Error> {
+    ) -> Result<Box<dyn Subscription>, Error> {
         let args: SubscribeArguments<'_> = directive.arguments().map_err(|e| Error {
             extensions: Vec::new(),
             message: format!("Error deserializing directive arguments: {e}"),
@@ -105,61 +103,11 @@ impl Resolver for Nats {
             message: format!("Failed to subscribe to subject '{}': {e}", args.subject),
         })?;
 
-        self.active_subscription = Some(ActiveSubscription {
+        Ok(Box::new(FilteredSubscription::new(
             subscriber,
-            selection: args.selection.map(ToString::to_string),
-        });
-
-        Ok(())
-    }
-
-    fn resolve_next_subscription_item(&mut self) -> Result<Option<FieldOutput>, Error> {
-        let Some(ActiveSubscription {
-            ref subscriber,
-            ref selection,
-        }) = self.active_subscription
-        else {
-            return Err(Error {
-                extensions: Vec::new(),
-                message: "No active subscription".to_string(),
-            });
-        };
-
-        match subscriber.next() {
-            Some(item) => {
-                let mut field_output = FieldOutput::default();
-
-                let payload: serde_json::Value = item.payload().map_err(|e| Error {
-                    extensions: Vec::new(),
-                    message: format!("Error parsing NATS value as JSON: {e}"),
-                })?;
-
-                match selection {
-                    Some(ref selection) => {
-                        let filtered = self.jq_selection.select(selection, payload).map_err(|e| Error {
-                            extensions: Vec::new(),
-                            message: format!("Failed to filter with selection: {e}"),
-                        })?;
-
-                        for payload in filtered {
-                            match payload {
-                                Ok(payload) => field_output.push_value(payload),
-                                Err(error) => field_output.push_error(Error {
-                                    extensions: Vec::new(),
-                                    message: format!("Error parsing result value: {error}"),
-                                }),
-                            }
-                        }
-                    }
-                    None => {
-                        field_output.push_value(payload);
-                    }
-                };
-
-                Ok(Some(field_output))
-            }
-            None => Ok(None),
-        }
+            self.jq_selection.clone(),
+            args.selection,
+        )))
     }
 }
 

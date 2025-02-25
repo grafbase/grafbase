@@ -1,4 +1,5 @@
 use crate::{
+    host_io::pubsub::Subscription,
     types::{Configuration, Directive, FieldDefinition, FieldInputs, FieldOutput},
     wit::{Error, SharedContext},
 };
@@ -10,12 +11,29 @@ type InitFn = Box<dyn Fn(Vec<Directive>, Configuration) -> Result<Box<dyn Resolv
 pub(super) static mut EXTENSION: Option<Box<dyn Resolver>> = None;
 pub static mut INIT_FN: Option<InitFn> = None;
 
+pub(super) static mut SUBSCRIBER: Option<Box<dyn Subscription>> = None;
+
 pub(super) fn get_extension() -> Result<&'static mut dyn Resolver, Error> {
     // Safety: This is hidden, only called by us. Every extension call to an instance happens
     // in a single-threaded environment. Do not call this multiple times from different threads.
     unsafe {
         EXTENSION.as_deref_mut().ok_or_else(|| Error {
             message: "Resolver extension not initialized correctly.".to_string(),
+            extensions: Vec::new(),
+        })
+    }
+}
+
+pub(super) fn set_subscriber(subscriber: Box<dyn Subscription>) {
+    unsafe {
+        SUBSCRIBER = Some(subscriber);
+    }
+}
+
+pub(super) fn get_subscriber() -> Result<&'static mut dyn Subscription, Error> {
+    unsafe {
+        SUBSCRIBER.as_deref_mut().ok_or_else(|| Error {
+            message: "No active subscription.".to_string(),
             extensions: Vec::new(),
         })
     }
@@ -71,29 +89,21 @@ pub trait Resolver: Extension {
         inputs: FieldInputs,
     ) -> Result<FieldOutput, Error>;
 
-    /// Resolves a subscription field based on the given context, directive, and definition.
-    ///
-    /// The function should initialize a subscription internally, but not return any data.
-    /// Use the `resolve_next_subscription_item` method to retrieve the next item in the subscription.
+    /// Resolves a subscription field by setting up a subscription handler.
     ///
     /// # Arguments
     ///
     /// * `context` - The shared context containing runtime information
-    /// * `directive` - The directive associated with this subscription
-    /// * `definition` - The field definition containing metadata
+    /// * `directive` - The directive associated with this subscription field
+    /// * `definition` - The field definition containing metadata about the subscription
+    ///
+    /// # Returns
+    ///
+    /// Returns a `Result` containing either a boxed `Subscriber` implementation or an `Error`
     fn resolve_subscription(
         &mut self,
         context: SharedContext,
         directive: Directive,
         definition: FieldDefinition,
-    ) -> Result<(), Error>;
-
-    /// Retrieves the next item in a subscription stream.
-    ///
-    /// This method is called repeatedly to get sequential items from an active subscription.
-    ///
-    /// # Returns
-    ///
-    /// Returns a `Result` containing either the next `FieldOutput` value in the subscription stream or an `Error`
-    fn resolve_next_subscription_item(&mut self) -> Result<Option<FieldOutput>, Error>;
+    ) -> Result<Box<dyn Subscription>, Error>;
 }

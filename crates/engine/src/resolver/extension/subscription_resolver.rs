@@ -1,8 +1,6 @@
 use futures::{TryStreamExt, future::BoxFuture, stream::BoxStream};
 use futures_lite::StreamExt;
 use runtime::{error::PartialGraphqlError, extension::Data};
-use tokio::sync::mpsc;
-use tokio_stream::wrappers::ReceiverStream;
 
 use crate::{
     Runtime,
@@ -13,7 +11,7 @@ use crate::{
 
 pub(in crate::resolver) struct SubscriptionResolverExtensionRequest<'ctx> {
     pub(super) field: SubgraphField<'ctx>,
-    pub(super) future: BoxFuture<'ctx, Result<mpsc::Receiver<Result<Data, PartialGraphqlError>>, PartialGraphqlError>>,
+    pub(super) future: BoxFuture<'ctx, Result<BoxStream<'ctx, Result<Data, PartialGraphqlError>>, PartialGraphqlError>>,
 }
 
 impl<'ctx> SubscriptionResolverExtensionRequest<'ctx> {
@@ -24,12 +22,12 @@ impl<'ctx> SubscriptionResolverExtensionRequest<'ctx> {
     ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<SubscriptionResponse>>> {
         let Self { field, future } = self;
 
-        let channel = match future.await {
+        let stream = match future.await {
             Ok(stream) => stream,
             Err(err) => return Err(ExecutionError::Graphql(err.into())),
         };
 
-        let stream = ReceiverStream::new(channel)
+        let stream = stream
             .map_err(move |error| ExecutionError::from(error.to_string()))
             .map(move |response| {
                 let data = response?;

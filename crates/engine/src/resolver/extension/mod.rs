@@ -59,7 +59,7 @@ impl FieldResolverExtension {
             .engine
             .runtime
             .extensions()
-            .resolve_field_subscription(ctx.hooks_context, extension_directive)
+            .resolve_subscription(ctx.hooks_context, extension_directive)
             .boxed();
 
         SubscriptionResolverExtensionRequest { field, future }

@@ -3,7 +3,10 @@ mod types;
 
 use grafbase_sdk::{
     Error, Extension, Resolver, ResolverExtension, SharedContext,
-    host_io::http::{self, HttpRequest, Url},
+    host_io::{
+        http::{self, HttpRequest, Url},
+        pubsub::Subscription,
+    },
     jq_selection::JqSelection,
     types::{Configuration, Directive, FieldDefinition, FieldInputs, FieldOutput},
 };
@@ -140,11 +143,12 @@ impl Resolver for RestExtension {
         Ok(results)
     }
 
-    fn resolve_subscription(&mut self, _: SharedContext, _: Directive, _: FieldDefinition) -> Result<(), Error> {
-        unreachable!()
-    }
-
-    fn resolve_next_subscription_item(&mut self) -> Result<Option<FieldOutput>, Error> {
+    fn resolve_subscription(
+        &mut self,
+        _: SharedContext,
+        _: Directive,
+        _: FieldDefinition,
+    ) -> Result<Box<dyn Subscription>, Error> {
         unreachable!()
     }
 }

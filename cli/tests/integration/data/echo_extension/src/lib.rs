@@ -1,5 +1,6 @@
 use grafbase_sdk::{
     Error, Extension, Resolver, ResolverExtension, SharedContext,
+    host_io::pubsub::Subscription,
     types::{Configuration, Directive, FieldDefinition, FieldInputs, FieldOutput},
 };
 
@@ -43,11 +44,12 @@ impl Resolver for EchoExtension {
         Ok(output)
     }
 
-    fn resolve_subscription(&mut self, _: SharedContext, _: Directive, _: FieldDefinition) -> Result<(), Error> {
-        todo!()
-    }
-
-    fn resolve_next_subscription_item(&mut self) -> Result<Option<FieldOutput>, Error> {
+    fn resolve_subscription(
+        &mut self,
+        _: SharedContext,
+        _: Directive,
+        _: FieldDefinition,
+    ) -> Result<Box<dyn Subscription>, Error> {
         todo!()
     }
 }
