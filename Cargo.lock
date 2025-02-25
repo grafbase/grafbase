@@ -3229,6 +3229,7 @@ dependencies = [
  "notify-debouncer-full",
  "os_type",
  "rand 0.9.0",
+ "regex",
  "reqwest 0.12.12",
  "rustls 0.23.23",
  "semver",

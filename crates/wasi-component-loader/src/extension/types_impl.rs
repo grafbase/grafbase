@@ -9,12 +9,3 @@ use super::wit::*;
 use crate::state::WasiState;
 
 impl Host for WasiState {}
-
-impl From<extension_catalog::KindDiscriminants> for ExtensionType {
-    fn from(value: extension_catalog::KindDiscriminants) -> Self {
-        match value {
-            extension_catalog::KindDiscriminants::FieldResolver => ExtensionType::Resolver,
-            extension_catalog::KindDiscriminants::Authenticator => ExtensionType::Authentication,
-        }
-    }
-}

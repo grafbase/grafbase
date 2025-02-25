@@ -172,6 +172,13 @@ impl ErrorResponse {
         })
     }
 
+    /// Add a new error to the response and return self
+    #[must_use]
+    pub fn with_error(mut self, error: crate::wit::Error) -> Self {
+        self.0.errors.push(error);
+        self
+    }
+
     /// Adds a new error to the response.
     pub fn push_error(&mut self, error: crate::wit::Error) {
         self.0.errors.push(error);

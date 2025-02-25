@@ -46,11 +46,6 @@ interface types {
       outputs: list<result<list<u8>, error>>
     }
 
-    enum extension-type {
-        resolver,
-        authentication,
-    }
-
     // A sender for the system access log.
     resource access-log {
         // Sends the data to the access log.
@@ -196,13 +191,12 @@ interface types {
 }
 
 interface extension {
-    use types.{directive, shared-context, error-response, error, field-definition, field-output, extension-type, access-log, log-error, nats-auth, nats-client, http-client, http-request, http-response, http-method, http-version, http-error, headers, token, cache};
+    use types.{directive, shared-context, error-response, error, field-definition, field-output, access-log, log-error, nats-auth, nats-client, http-client, http-request, http-response, http-method, http-version, http-error, headers, token, cache};
 
     // initialization function called to set up the wasm extension
     // if an error happens here, the gateway will refuse to continue.
     // Receives a list of schema directives associated with the extension
     init-gateway-extension: func(
-        extension-type: extension-type,
         schema-directives: list<directive>,
         configuration: list<u8>,
     ) -> result<_, string>;

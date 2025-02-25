@@ -1,7 +1,6 @@
 use grafbase_sdk::{
-    host_io::pubsub::Subscription,
     types::{Configuration, Directive, FieldDefinition, FieldInputs, FieldOutput},
-    Error, Extension, Resolver, ResolverExtension, SharedContext,
+    Error, Extension, Resolver, ResolverExtension, SharedContext, Subscription
 };
 
 #[derive(ResolverExtension)]

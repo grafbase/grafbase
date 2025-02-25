@@ -422,7 +422,7 @@ where
     ///
     /// * `name` - The header name
     /// * `value` - The header value
-    pub fn with_header<K, V>(mut self, name: K, value: HeaderValue) -> Self
+    pub fn with_header<K>(mut self, name: K, value: HeaderValue) -> Self
     where
         K: IntoHeaderName,
     {

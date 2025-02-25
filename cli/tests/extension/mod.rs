@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use duct::cmd;
 use extension::Manifest;
 use tempfile::tempdir;
@@ -77,9 +79,8 @@ fn init_resolver() {
 
     insta::assert_snapshot!(&lib_rs, @r##"
     use grafbase_sdk::{
-        host_io::pubsub::Subscription,
         types::{Configuration, Directive, FieldDefinition, FieldInputs, FieldOutput},
-        Error, Extension, Resolver, ResolverExtension, SharedContext,
+        Error, Extension, Resolver, ResolverExtension, SharedContext, Subscription
     };
 
     #[derive(ResolverExtension)]
@@ -184,16 +185,21 @@ fn build_resolver() {
     let command = cmd(cargo_bin("grafbase"), &args).stdout_null().stderr_null();
     command.run().unwrap();
 
+    use_latest_grafbase_sdk_in_cargo_toml(&project_path);
+
     let result = cmd("cargo", &["check", "--tests"])
         .env("RUSTFLAGS", "")
         .dir(&project_path)
-        .stdout_null()
-        .stderr_null()
         .unchecked()
         .run()
         .unwrap();
 
-    assert!(result.status.success());
+    assert!(
+        result.status.success(),
+        "{}\n{}",
+        String::from_utf8_lossy(&result.stdout),
+        String::from_utf8_lossy(&result.stderr)
+    );
 
     let args = vec!["extension", "build"];
 
@@ -394,16 +400,21 @@ fn build_auth() {
     let command = cmd(cargo_bin("grafbase"), &args).stdout_null().stderr_null();
     command.run().unwrap();
 
+    use_latest_grafbase_sdk_in_cargo_toml(&project_path);
+
     let result = cmd("cargo", &["check", "--tests"])
         .env("RUSTFLAGS", "")
         .dir(&project_path)
-        .stderr_null()
-        .stdout_null()
         .unchecked()
         .run()
         .unwrap();
 
-    assert!(result.status.success());
+    assert!(
+        result.status.success(),
+        "{}\n{}",
+        String::from_utf8_lossy(&result.stdout),
+        String::from_utf8_lossy(&result.stderr)
+    );
 
     let args = vec!["extension", "build"];
 
@@ -445,4 +456,24 @@ fn build_auth() {
     }
     "#
     );
+}
+
+fn use_latest_grafbase_sdk_in_cargo_toml(project_path: &Path) {
+    let grafbase_sdk_dir = format!("{}/../crates/grafbase-sdk", env!("CARGO_MANIFEST_DIR"));
+    let cargo_toml = std::fs::read_to_string(project_path.join("Cargo.toml")).unwrap();
+
+    let regex = regex::Regex::new(r#"grafbase-sdk\s*=\s*".*""#).unwrap();
+    let cargo_toml = regex.replace_all(
+        &cargo_toml,
+        format!(r#"grafbase-sdk = {{ path = "{grafbase_sdk_dir}" }}"#),
+    );
+
+    let regex = regex::Regex::new(r#"grafbase-sdk\s*=\s*\{\s*version\s*=\s*".*?"(.*)\}"#).unwrap();
+    let cargo_toml = regex.replace_all(
+        &cargo_toml,
+        format!(r#"grafbase-sdk = {{ path = "{grafbase_sdk_dir}", features = ["test-utils"] }}"#),
+    );
+    println!("{cargo_toml}");
+
+    std::fs::write(project_path.join("Cargo.toml"), cargo_toml.as_ref()).unwrap();
 }

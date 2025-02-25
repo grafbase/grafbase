@@ -2,11 +2,8 @@ mod selection_filter;
 mod types;
 
 use grafbase_sdk::{
-    Error, Extension, Resolver, ResolverExtension, SharedContext,
-    host_io::{
-        http::{self, HttpRequest, Url},
-        pubsub::Subscription,
-    },
+    Error, Extension, Resolver, ResolverExtension, SharedContext, Subscription,
+    host_io::http::{self, HttpRequest, Url},
     jq_selection::JqSelection,
     types::{Configuration, Directive, FieldDefinition, FieldInputs, FieldOutput},
 };

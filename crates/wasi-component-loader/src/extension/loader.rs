@@ -11,7 +11,6 @@ use wasmtime::{
 use crate::{cache::Cache, config::build_extensions_context, state::WasiState};
 pub struct ExtensionLoader {
     component_config: WasiExtensionsConfig,
-    r#type: wit::ExtensionType,
     guest_config: Vec<u8>,
     #[allow(unused)] // MUST be unused, or at least immutable, we self-reference to it
     schema_directives: Vec<SchemaDirective>,
@@ -100,7 +99,6 @@ impl ExtensionLoader {
         Ok(Self {
             shared,
             component_config,
-            r#type: guest_config.r#type.into(),
             guest_config: minicbor_serde::to_vec(&guest_config.configuration)
                 .context("Could not serialize configuration")?,
             schema_directives,
@@ -121,7 +119,7 @@ impl ExtensionLoader {
         inner.call_register_extension(&mut store).await?;
         inner
             .grafbase_sdk_extension()
-            .call_init_gateway_extension(&mut store, self.r#type, &self.wit_schema_directives, &self.guest_config)
+            .call_init_gateway_extension(&mut store, &self.wit_schema_directives, &self.guest_config)
             .await??;
         Ok(ExtensionInstance {
             store,

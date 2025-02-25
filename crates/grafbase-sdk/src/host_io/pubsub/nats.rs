@@ -5,7 +5,7 @@
 //! This module provides a high-level client for connecting to and interacting with NATS servers.
 //! It supports both authenticated and unauthenticated connections to one or more NATS servers.
 
-use crate::{types, wit, Error};
+use crate::{extension::resolver::Subscription, types, wit, Error};
 
 /// A client for interacting with NATS servers
 pub struct NatsClient {
@@ -39,23 +39,23 @@ impl NatsClient {
     /// # Returns
     ///
     /// Result containing the subscription or an error if subscription fails
-    pub fn subscribe(&self, subject: &str) -> Result<NatsSubscriber, Box<dyn std::error::Error>> {
+    pub fn subscribe(&self, subject: &str) -> Result<NatsSubscription, Box<dyn std::error::Error>> {
         Ok(self.inner.subscribe(subject).map(Into::into)?)
     }
 }
 
 /// A subscription to a NATS subject that receives messages published to that subject
-pub struct NatsSubscriber {
+pub struct NatsSubscription {
     inner: wit::NatsSubscriber,
 }
 
-impl From<wit::NatsSubscriber> for NatsSubscriber {
+impl From<wit::NatsSubscriber> for NatsSubscription {
     fn from(inner: wit::NatsSubscriber) -> Self {
-        NatsSubscriber { inner }
+        NatsSubscription { inner }
     }
 }
 
-impl NatsSubscriber {
+impl NatsSubscription {
     /// Gets the next message from the subscription
     ///
     /// # Returns
@@ -136,9 +136,9 @@ pub fn connect_with_auth(
     Ok(NatsClient { inner })
 }
 
-impl super::Subscription for NatsSubscriber {
+impl Subscription for NatsSubscription {
     fn next(&mut self) -> Result<Option<types::FieldOutput>, Error> {
-        let item = match NatsSubscriber::next(self) {
+        let item = match NatsSubscription::next(self) {
             Some(item) => item,
             None => return Ok(None),
         };
