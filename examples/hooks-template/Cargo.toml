@@ -8,7 +8,7 @@ keywords = ["grafbase"]
 repository = "https://github.com/grafbase/grafbase"
 
 [dependencies]
-grafbase-hooks = "0.2.0"
+grafbase-hooks = "0.3.0"
 
 [lib]
 crate-type = ["cdylib"]

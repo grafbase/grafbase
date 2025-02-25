@@ -34,6 +34,6 @@ grafbase-sdk = { path = "../../crates/grafbase-sdk", features = ["test-utils"] }
 indoc = "2.0.5"
 insta = { version = "1.42.1", features = ["json"] }
 openidconnect = "4.0.0"
-ory-client = "1.9.0"
+ory-client = "1.17.2"
 reqwest = "0.12.12"
 tokio = { version = "1.43.0", features = ["rt-multi-thread", "macros", "test-util"] }
