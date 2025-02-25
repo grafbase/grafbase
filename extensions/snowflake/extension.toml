@@ -1,0 +1,9 @@
+[extension]
+name = "snowflake"
+version = "0.1.0"
+kind = "resolver"
+description = "Snowflake database connector extension."
+
+[directives]
+definitions = "definitions.graphql"
+field_resolvers = ["snowflake"] 

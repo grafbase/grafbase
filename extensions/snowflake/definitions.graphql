@@ -1,0 +1,5 @@
+extend schema @link(url: "https://specs.grafbase.com/grafbase", import: ["InputValueSet"])
+
+directive @snowflakeQuery(query: String!, params: [JSON]) on FIELD_DEFINITION
+
+scalar JSON
