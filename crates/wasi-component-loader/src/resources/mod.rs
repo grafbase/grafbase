@@ -1,3 +1,5 @@
+use futures::StreamExt;
+
 pub use crate::access_log::AccessLogSender;
 pub use crate::context::SharedContext;
 
@@ -9,4 +11,21 @@ pub struct SharedResources {
 }
 
 pub type NatsClient = async_nats::Client;
-pub type NatsSubscriber = async_nats::Subscriber;
+
+pub enum NatsSubscriber {
+    Stream(async_nats::jetstream::consumer::pull::Stream),
+    Subject(async_nats::Subscriber),
+}
+
+impl NatsSubscriber {
+    pub async fn next(&mut self) -> Result<Option<async_nats::Message>, String> {
+        match self {
+            NatsSubscriber::Stream(stream) => match stream.next().await {
+                Some(Ok(message)) => Ok(Some(message.into())),
+                Some(Err(err)) => Err(err.to_string()),
+                None => Ok(None),
+            },
+            NatsSubscriber::Subject(subject) => Ok(subject.next().await),
+        }
+    }
+}

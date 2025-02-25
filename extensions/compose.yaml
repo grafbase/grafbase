@@ -72,18 +72,12 @@ services:
     ports:
       - '4222:4222'
       - '8222:8222'
-    command: '--cluster_name NATS --cluster nats://0.0.0.0:6222 --http_port 8222 --user grafbase --pass grafbase'
+    command: >
+      --jetstream
+      --http_port=8222
+      --user=grafbase
+      --pass=grafbase
     networks: ['nats']
-  nats-1:
-    image: nats
-    command: '--cluster_name NATS --cluster nats://0.0.0.0:6222 --routes=nats://grafbase:grafbase@nats:6222'
-    networks: ['nats']
-    depends_on: ['nats']
-  nats-2:
-    image: nats
-    command: '--cluster_name NATS --cluster nats://0.0.0.0:6222 --routes=nats://grafbase:grafbase@nats:6222'
-    networks: ['nats']
-    depends_on: ['nats']
 
 networks:
   hydra:

@@ -1,5 +1,7 @@
 use std::str::FromStr;
 
+use grafbase_sdk::host_io::pubsub::nats::{self, OffsetDateTime};
+
 #[derive(Debug)]
 pub enum DirectiveKind {
     Publish,
@@ -59,14 +61,57 @@ pub struct SubscribeArguments<'a> {
     pub provider: &'a str,
     pub subject: &'a str,
     pub selection: Option<String>,
-    #[allow(dead_code)] // will get to this with jetstream
     pub stream_config: Option<NatsStreamConfiguration<'a>>,
 }
 
-#[allow(dead_code)] // will get to this with jetstream
-#[derive(Debug, serde::Deserialize)]
+#[derive(Clone, Copy, Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NatsStreamConfiguration<'a> {
-    pub consumer: &'a str,
-    pub stream: &'a str,
+    pub stream_name: &'a str,
+    pub consumer_name: &'a str,
+    pub durable_name: Option<&'a str>,
+    pub description: Option<&'a str>,
+    pub inactive_threshold_ms: u64,
+    deliver_policy: NatsStreamDeliverPolicy,
+}
+
+impl NatsStreamConfiguration<'_> {
+    pub fn deliver_policy(self) -> nats::NatsStreamDeliverPolicy {
+        match self.deliver_policy.r#type {
+            NatsStreamDeliverPolicyType::All => nats::NatsStreamDeliverPolicy::All,
+            NatsStreamDeliverPolicyType::Last => nats::NatsStreamDeliverPolicy::Last,
+            NatsStreamDeliverPolicyType::New => nats::NatsStreamDeliverPolicy::New,
+            NatsStreamDeliverPolicyType::ByStartSequence => {
+                nats::NatsStreamDeliverPolicy::ByStartSequence(self.deliver_policy.start_sequence.unwrap_or(0))
+            }
+            NatsStreamDeliverPolicyType::ByStartTime => {
+                let time = match self.deliver_policy.start_time_ms {
+                    Some(ms) => OffsetDateTime::from_unix_timestamp_nanos((ms as i128) * 1_000_000).unwrap(),
+                    None => OffsetDateTime::now_utc(),
+                };
+
+                nats::NatsStreamDeliverPolicy::ByStartTime(time)
+            }
+            NatsStreamDeliverPolicyType::LastPerSubject => nats::NatsStreamDeliverPolicy::LastPerSubject,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NatsStreamDeliverPolicy {
+    r#type: NatsStreamDeliverPolicyType,
+    start_sequence: Option<u64>,
+    start_time_ms: Option<u64>,
+}
+
+#[derive(Clone, Copy, Debug, serde::Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+enum NatsStreamDeliverPolicyType {
+    All,
+    Last,
+    New,
+    ByStartSequence,
+    ByStartTime,
+    LastPerSubject,
 }

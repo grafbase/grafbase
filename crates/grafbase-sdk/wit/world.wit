@@ -77,6 +77,40 @@ interface types {
         payload: list<u8>,
     }
 
+    record nats-stream-config {
+        // Name that identifies the stream
+        stream-name: string,
+        // Name to identify a specific consumer
+        consumer-name: string,
+        // Optional name to identify a durable subscription
+        durable-name: option<string>,
+        // Optional description for the stream configuration
+        description: option<string>,
+        // Policy that determines which messages to deliver
+        deliver-policy: nats-stream-deliver-policy,
+        // Threshold in milliseconds for considering a consumer inactive
+        inactive-threshold-ms: u64,
+    }
+
+    variant nats-stream-deliver-policy {
+        // All causes the consumer to receive the oldest messages still present in the system.
+        // This is the default.
+        all,
+        // Last will start the consumer with the last sequence received.
+        last,
+        // New will only deliver new messages that are received by the JetStream server after
+        // the consumer is created.
+        new,
+        // ByStartSeq will look for a defined starting sequence to the consumer’s configured
+        // opt_start_seq parameter.
+        by-start-sequence(u64),
+        // ByStartTime will select the first message with a timestamp >= to the consumer’s
+        // configured opt_start_time parameter.
+        by-start-time-ms(u64),
+        // LastPerSubject will start the consumer with the last message for all subjects received.
+        last-per-subject
+    }
+
     // A NATS client
     resource nats-client {
         // Creates a new NATS client.
@@ -84,13 +118,13 @@ interface types {
         // Publishes a message to a subject.
         publish: func(subject: string, message: list<u8>) -> result<_, string>;
         // Subscribes to a subject.
-        subscribe: func(subject: string) -> result<nats-subscriber, string>;
+        subscribe: func(subject: string, stream-config: option<nats-stream-config>) -> result<nats-subscriber, string>;
     }
 
     // A NATS subscriber resource for receiving messages from a subject
     resource nats-subscriber {
         // Retrieves the next message from the subscription
-        next: func() -> option<nats-message>;
+        next: func() -> result<option<nats-message>, string>;
     }
 
     // A HTTP client.

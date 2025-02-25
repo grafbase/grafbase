@@ -14,7 +14,7 @@ pub mod types;
 
 pub use extension::{resolver::Subscription, Authenticator, Extension, Resolver};
 pub use grafbase_sdk_derive::{AuthenticationExtension, ResolverExtension};
-pub use wit::{Error, Headers, NatsAuth, SharedContext};
+pub use wit::{Error, Headers, NatsAuth, NatsStreamDeliverPolicy, SharedContext};
 
 use component::Component;
 

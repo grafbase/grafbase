@@ -2,11 +2,11 @@ mod config;
 mod subscription;
 mod types;
 
-use std::{cell::RefCell, collections::HashMap, rc::Rc, str::FromStr};
+use std::{cell::RefCell, collections::HashMap, rc::Rc, str::FromStr, time::Duration};
 
 use config::AuthConfig;
 use grafbase_sdk::{
-    host_io::pubsub::nats::{self, NatsClient},
+    host_io::pubsub::nats::{self, NatsClient, NatsStreamConfig},
     jq_selection::JqSelection,
     types::{Configuration, Directive, FieldDefinition, FieldInputs, FieldOutput},
     Error, Extension, NatsAuth, Resolver, ResolverExtension, SharedContext, Subscription,
@@ -95,7 +95,26 @@ impl Resolver for Nats {
             });
         };
 
-        let subscriber = client.subscribe(args.subject).map_err(|e| Error {
+        let stream_config = args.stream_config.map(|config| {
+            let mut stream_config = NatsStreamConfig::new(
+                config.stream_name.to_string(),
+                config.consumer_name.to_string(),
+                config.deliver_policy(),
+                Duration::from_millis(config.inactive_threshold_ms),
+            );
+
+            if let Some(name) = config.durable_name {
+                stream_config = stream_config.with_durable_name(name.to_string());
+            }
+
+            if let Some(description) = config.description {
+                stream_config = stream_config.with_description(description.to_string());
+            }
+
+            stream_config
+        });
+
+        let subscriber = client.subscribe(args.subject, stream_config).map_err(|e| Error {
             extensions: Vec::new(),
             message: format!("Failed to subscribe to subject '{}': {e}", args.subject),
         })?;

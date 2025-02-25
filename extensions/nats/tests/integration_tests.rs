@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use async_nats::ConnectOptions;
+use async_nats::{jetstream::stream::Config, ConnectOptions};
 use futures::StreamExt;
 use grafbase_sdk::test::{DynamicSchema, ExtensionOnlySubgraph, TestConfig, TestRunner};
 use indoc::{formatdoc, indoc};
@@ -23,7 +23,10 @@ fn subgraph() -> ExtensionOnlySubgraph {
     let schema = formatdoc! {r#"
         extend schema
           @link(url: "https://specs.apollo.dev/federation/v2.0", import: ["@key", "@shareable"])
-          @link(url: "{path_str}", import: ["@natsPublish", "@natsSubscription", "NatsPublishResult"])
+          @link(
+            url: "{path_str}",
+            import: ["@natsPublish", "@natsSubscription", "NatsPublishResult", "NatsStreamDeliverPolicy"]
+          )
 
         type Query {{
           hello: String!
@@ -39,6 +42,28 @@ fn subgraph() -> ExtensionOnlySubgraph {
           userEvents(id: Int!): UserEvent! @natsSubscription(
             subject: "subscription.user.{{{{args.id}}}}.events"
             selection: "{{ email, name, number }}"
+          )
+
+          persistenceEvents(id: Int!): UserEvent! @natsSubscription(
+            subject: "persistence.user.{{{{args.id}}}}.events"
+            selection: "{{ email, name, number }}"
+            streamConfig: {{
+              streamName: "testStream"
+              consumerName: "testConsumer"
+              durableName: "testConsumer"
+              description: "Test Description"
+            }}
+          )
+
+          nonexistingEvents(id: Int!): UserEvent! @natsSubscription(
+            subject: "persistence.user.{{{{args.id}}}}.events"
+            selection: "{{ email, name, number }}"
+            streamConfig: {{
+              streamName: "nonExistingStream"
+              consumerName: "testConsumer"
+              durableName: "testConsumer"
+              description: "Test Description"
+            }}
           )
         }}
 
@@ -236,5 +261,140 @@ async fn test_publish() {
       "email": "alice@example.com",
       "name": "Alice"
     }
+    "#);
+}
+
+#[tokio::test]
+async fn test_existing_stream() {
+    let nats = nats_client().await;
+    let context = async_nats::jetstream::new(nats);
+
+    let _ = context.delete_stream("testStream").await;
+
+    context
+        .create_stream(Config {
+            name: String::from("testStream"),
+            subjects: vec![String::from("persistence.user.1.events")],
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+
+    let config = TestConfig::builder()
+        .with_cli(CLI_PATH)
+        .with_gateway(GATEWAY_PATH)
+        .with_subgraph(subgraph())
+        .enable_networking()
+        .build(config())
+        .unwrap();
+
+    let runner = TestRunner::new(config).await.unwrap();
+
+    tokio::spawn(async move {
+        for i in 1.. {
+            let event = json!({ "email": "user1@example.com", "name": "User One", "number": i });
+            let event = serde_json::to_vec(&event).unwrap();
+
+            context
+                .publish("persistence.user.1.events", event.into())
+                .await
+                .unwrap();
+
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+    });
+
+    let query = indoc! {r#"
+        subscription {
+          persistenceEvents(id: 1) {
+            email
+            name
+            number
+          }
+        }
+    "#};
+
+    let subscription = runner
+        .graphql_subscription::<serde_json::Value>(query)
+        .unwrap()
+        .subscribe()
+        .await
+        .unwrap();
+
+    let events = tokio::time::timeout(Duration::from_secs(5), subscription.take(2).collect::<Vec<_>>())
+        .await
+        .unwrap();
+
+    insta::assert_json_snapshot!(&events, @r#"
+    [
+      {
+        "data": {
+          "persistenceEvents": {
+            "email": "user1@example.com",
+            "name": "User One",
+            "number": 1
+          }
+        }
+      },
+      {
+        "data": {
+          "persistenceEvents": {
+            "email": "user1@example.com",
+            "name": "User One",
+            "number": 2
+          }
+        }
+      }
+    ]
+    "#);
+}
+
+#[tokio::test]
+async fn test_non_existing_stream() {
+    let config = TestConfig::builder()
+        .with_cli(CLI_PATH)
+        .with_gateway(GATEWAY_PATH)
+        .with_subgraph(subgraph())
+        .enable_networking()
+        .build(config())
+        .unwrap();
+
+    let runner = TestRunner::new(config).await.unwrap();
+
+    let query = indoc! {r#"
+        subscription {
+          nonexistingEvents(id: 1) {
+            email
+            name
+            number
+          }
+        }
+    "#};
+
+    let subscription = runner
+        .graphql_subscription::<serde_json::Value>(query)
+        .unwrap()
+        .subscribe()
+        .await
+        .unwrap();
+
+    let events = tokio::time::timeout(Duration::from_secs(5), subscription.take(2).collect::<Vec<_>>())
+        .await
+        .unwrap();
+
+    insta::assert_json_snapshot!(&events, @r#"
+    [
+      {
+        "data": null,
+        "errors": [
+          {
+            "message": "Failed to subscribe to subject 'persistence.user.1.events': jetstream error: stream not found (code 404, error code 10059)",
+            "extensions": {
+              "code": "INTERNAL_SERVER_ERROR"
+            }
+          }
+        ]
+      }
+    ]
     "#);
 }

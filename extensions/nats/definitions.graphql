@@ -1,14 +1,155 @@
 extend schema @link(url: "https://specs.grafbase.com/grafbase", import: ["InputValueSet", "UrlTemplate"])
 
 directive @natsPublish(
+  """
+  The NATS provider to use
+  """
   provider: String! = "default"
+
+  """
+  The subject to publish to
+  This supports templating using GraphQL arguments: {{args.myArgument}}
+  """
   subject: UrlTemplate!
+
+  """
+  The body of the message to publish
+  """
   body: Body! = { selection: "*" }
 ) on FIELD_DEFINITION
 
-directive @natsSubscription(provider: String! = "default", subject: UrlTemplate!, selection: String) on FIELD_DEFINITION
+directive @natsSubscription(
+  """
+  The NATS provider to use
+  """
+  provider: String! = "default"
 
+  """
+  The subject to subscribe to
+  This supports templating using GraphQL arguments: {{args.myArgument}}
+  """
+  subject: UrlTemplate!
+
+  """
+  Selection to apply to the subscription payload. In jq syntax.
+  """
+  selection: String
+
+  """
+  Stream configuration for JetStream subscriptions
+  """
+  streamConfig: NatsStreamConfiguration
+) on FIELD_DEFINITION
+
+"""
+Configuration for a NATS stream subscription
+"""
+input NatsStreamConfiguration {
+  """
+  Stream name for the subscription, defines which stream to pull messages from
+  """
+  streamName: String!
+
+  """
+  Consumer name for the subscription
+  """
+  consumerName: String!
+
+  """
+  Setting durable_name will cause this consumer to be “durable”. This may be a good choice for workloads that benefit from the JetStream server or cluster remembering the progress of consumers for fault tolerance purposes. If a consumer crashes, the JetStream server or cluster will remember which messages the consumer acknowledged. When the consumer recovers, this information will allow the consumer to resume processing where it left off.
+  """
+  durableName: String
+
+  """
+  Description of the consumer
+  """
+  description: String
+
+  """
+  Delivery policy for the subscription
+  """
+  deliverPolicy: NatsStreamDeliverPolicy! = { type: ALL }
+
+  """
+  Threshold in milliseconds after which a consumer is considered inactive
+  """
+  inactiveThresholdMs: Int! = 30000
+}
+
+"""
+Delivery policy configuration for NATS streams
+"""
+input NatsStreamDeliverPolicy {
+  """
+  The type of delivery policy
+  """
+  type: NatsStreamDeliverPolicyType!
+
+  """
+  Starting sequence number for BY_START_SEQUENCE policy
+  """
+  startSequence: Int
+
+  """
+  Starting time in milliseconds for BY_START_TIME policy
+  """
+  startTimeMs: Int
+}
+
+"""
+Available delivery policy types for NATS streams
+"""
+enum NatsStreamDeliverPolicyType {
+  """
+  All causes the consumer to receive the oldest messages still present in the system.
+  This is the default.
+  """
+  ALL
+
+  """
+  Last will start the consumer with the last sequence received.
+  """
+  LAST
+
+  """
+  New will only deliver new messages that are received by the JetStream server after
+  the consumer is created.
+  """
+  NEW
+
+  """
+  ByStartSeq will look for a defined starting sequence to the consumer’s configured
+  opt_start_seq parameter.
+
+  Set the start sequence number in the policy's startSequence field. If not set, the consumer will start from the beginning.
+  """
+  BY_START_SEQUENCE
+
+  """
+  ByStartTime will select the first message with a timestamp >= to the consumer’s
+  configured opt_start_time parameter.
+
+  Set the start time in the policy's startTimeMs field. If not set, the consumer will start from the current time in UTC.
+  """
+  BY_START_TIME
+
+  """
+  LastPerSubject will start the consumer with the last message for all subjects received.
+  """
+  LAST_PER_SUBJECT
+}
+
+"""
+Body configuration for NATS publish operations
+"""
 input Body {
+  """
+  GraphQL selection to include in the message body
+  """
   selection: InputValueSet
+
+  """
+  Static JSON content to include in the message body
+  """
   static: JSON
 }
