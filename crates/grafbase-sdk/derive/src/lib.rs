@@ -40,12 +40,7 @@ fn resolver_init(ast: DeriveInput) -> proc_macro2::TokenStream {
     let (_, ty_generics, _) = ast.generics.split_for_impl();
 
     quote! {
-        let init_fn = |directives, config| {
-            let result = <#name #ty_generics as grafbase_sdk::Extension>::new(directives, config);
-            result.map(|extension| Box::new(extension) as Box<dyn grafbase_sdk::Resolver>)
-        };
-
-        grafbase_sdk::extension::resolver::register(Box::new(init_fn));
+        grafbase_sdk::extension::resolver::register::<#name #ty_generics>();
     }
 }
 
@@ -55,11 +50,6 @@ fn authentication_init(ast: DeriveInput) -> proc_macro2::TokenStream {
     let (_, ty_generics, _) = ast.generics.split_for_impl();
 
     quote! {
-        let init_fn = |directives, config| {
-            let result = <#name #ty_generics as grafbase_sdk::Extension>::new(directives, config);
-            result.map(|extension| Box::new(extension) as Box<dyn grafbase_sdk::Authenticator>)
-        };
-
-        grafbase_sdk::extension::authentication::register(Box::new(init_fn));
+        grafbase_sdk::extension::authentication::register::<#name #ty_generics>();
     }
 }
