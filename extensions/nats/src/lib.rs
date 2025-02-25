@@ -1,5 +1,5 @@
 mod config;
-mod subscriber;
+mod subscription;
 mod types;
 
 use std::{cell::RefCell, collections::HashMap, rc::Rc, str::FromStr};
@@ -8,13 +8,13 @@ use config::AuthConfig;
 use grafbase_sdk::{
     host_io::pubsub::{
         nats::{self, NatsClient},
-        Subscriber,
+        Subscription,
     },
     jq_selection::JqSelection,
     types::{Configuration, Directive, FieldDefinition, FieldInputs, FieldOutput},
     Error, Extension, NatsAuth, Resolver, ResolverExtension, SharedContext,
 };
-use subscriber::FilteringSubscriber;
+use subscription::FilteredSubscription;
 use types::{DirectiveKind, NatsPublishResult, PublishArguments, SubscribeArguments};
 
 #[derive(ResolverExtension)]
@@ -85,7 +85,7 @@ impl Resolver for Nats {
         _: SharedContext,
         directive: Directive,
         _: FieldDefinition,
-    ) -> Result<Box<dyn Subscriber>, Error> {
+    ) -> Result<Box<dyn Subscription>, Error> {
         let args: SubscribeArguments<'_> = directive.arguments().map_err(|e| Error {
             extensions: Vec::new(),
             message: format!("Error deserializing directive arguments: {e}"),
@@ -103,7 +103,7 @@ impl Resolver for Nats {
             message: format!("Failed to subscribe to subject '{}': {e}", args.subject),
         })?;
 
-        Ok(Box::new(FilteringSubscriber::new(
+        Ok(Box::new(FilteredSubscription::new(
             subscriber,
             self.jq_selection.clone(),
             args.selection,

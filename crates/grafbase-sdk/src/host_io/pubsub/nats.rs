@@ -136,7 +136,7 @@ pub fn connect_with_auth(
     Ok(NatsClient { inner })
 }
 
-impl super::Subscriber for NatsSubscriber {
+impl super::Subscription for NatsSubscriber {
     fn next(&mut self) -> Result<Option<types::FieldOutput>, Error> {
         let item = match NatsSubscriber::next(self) {
             Some(item) => item,

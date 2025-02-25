@@ -5,7 +5,7 @@ use grafbase_sdk::{
     Error, Extension, Resolver, ResolverExtension, SharedContext,
     host_io::{
         http::{self, HttpRequest, Url},
-        pubsub::Subscriber,
+        pubsub::Subscription,
     },
     jq_selection::JqSelection,
     types::{Configuration, Directive, FieldDefinition, FieldInputs, FieldOutput},
@@ -148,7 +148,7 @@ impl Resolver for RestExtension {
         _: SharedContext,
         _: Directive,
         _: FieldDefinition,
-    ) -> Result<Box<dyn Subscriber>, Error> {
+    ) -> Result<Box<dyn Subscription>, Error> {
         unreachable!()
     }
 }

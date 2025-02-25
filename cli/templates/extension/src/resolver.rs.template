@@ -1,5 +1,5 @@
 use grafbase_sdk::{
-    host_io::pubsub::Subscriber,
+    host_io::pubsub::Subscription,
     types::{Configuration, Directive, FieldDefinition, FieldInputs, FieldOutput},
     Error, Extension, Resolver, ResolverExtension, SharedContext,
 };
@@ -29,7 +29,7 @@ impl Resolver for {{name}} {
         context: SharedContext,
         directive: Directive,
         field_definition: FieldDefinition,
-    ) -> Result<Box<dyn Subscriber>, Error> {
+    ) -> Result<Box<dyn Subscription>, Error> {
         todo!()
     }
 }

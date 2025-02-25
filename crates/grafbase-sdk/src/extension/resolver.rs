@@ -1,5 +1,5 @@
 use crate::{
-    host_io::pubsub::Subscriber,
+    host_io::pubsub::Subscription,
     types::{Configuration, Directive, FieldDefinition, FieldInputs, FieldOutput},
     wit::{Error, SharedContext},
 };
@@ -11,7 +11,7 @@ type InitFn = Box<dyn Fn(Vec<Directive>, Configuration) -> Result<Box<dyn Resolv
 pub(super) static mut EXTENSION: Option<Box<dyn Resolver>> = None;
 pub static mut INIT_FN: Option<InitFn> = None;
 
-pub(super) static mut SUBSCRIBER: Option<Box<dyn Subscriber>> = None;
+pub(super) static mut SUBSCRIBER: Option<Box<dyn Subscription>> = None;
 
 pub(super) fn get_extension() -> Result<&'static mut dyn Resolver, Error> {
     // Safety: This is hidden, only called by us. Every extension call to an instance happens
@@ -24,13 +24,13 @@ pub(super) fn get_extension() -> Result<&'static mut dyn Resolver, Error> {
     }
 }
 
-pub(super) fn set_subscriber(subscriber: Box<dyn Subscriber>) {
+pub(super) fn set_subscriber(subscriber: Box<dyn Subscription>) {
     unsafe {
         SUBSCRIBER = Some(subscriber);
     }
 }
 
-pub(super) fn get_subscriber() -> Result<&'static mut dyn Subscriber, Error> {
+pub(super) fn get_subscriber() -> Result<&'static mut dyn Subscription, Error> {
     unsafe {
         SUBSCRIBER.as_deref_mut().ok_or_else(|| Error {
             message: "No active subscription.".to_string(),
@@ -105,5 +105,5 @@ pub trait Resolver: Extension {
         context: SharedContext,
         directive: Directive,
         definition: FieldDefinition,
-    ) -> Result<Box<dyn Subscriber>, Error>;
+    ) -> Result<Box<dyn Subscription>, Error>;
 }

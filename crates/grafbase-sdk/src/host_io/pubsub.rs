@@ -8,11 +8,18 @@ use crate::{types::FieldOutput, Error};
 
 pub mod nats;
 
-/// A trait for subscribing to a stream of field outputs.
-pub trait Subscriber {
-    /// Gets the next field output from the stream.
+/// A trait for consuming field outputs from streams.
+///
+/// This trait provides an abstraction over different implementations
+/// of subscriptions to field output streams. Implementors should handle
+/// the details of their specific transport mechanism while providing a
+/// consistent interface for consumers.
+pub trait Subscription {
+    /// Retrieves the next field output from the subscription.
     ///
-    /// Returns `Ok(Some(output))` if a field output is available,
-    /// `Ok(None)` if the stream has ended, or `Err` if an error occurred.
+    /// Returns:
+    /// - `Ok(Some(FieldOutput))` if a field output was available
+    /// - `Ok(None)` if the subscription has ended normally
+    /// - `Err(Error)` if an error occurred while retrieving the next field output
     fn next(&mut self) -> Result<Option<FieldOutput>, Error>;
 }

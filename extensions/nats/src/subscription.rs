@@ -3,20 +3,20 @@ use std::{cell::RefCell, rc::Rc};
 use grafbase_sdk::{
     host_io::pubsub::{
         nats::{self, NatsSubscriber},
-        Subscriber,
+        Subscription,
     },
     jq_selection::JqSelection,
     types::FieldOutput,
     Error,
 };
 
-pub struct FilteringSubscriber {
+pub struct FilteredSubscription {
     nats: nats::NatsSubscriber,
     jq_selection: Rc<RefCell<JqSelection>>,
     selection: Option<String>,
 }
 
-impl FilteringSubscriber {
+impl FilteredSubscription {
     pub fn new(nats: NatsSubscriber, jq_selection: Rc<RefCell<JqSelection>>, selection: Option<String>) -> Self {
         Self {
             nats,
@@ -26,7 +26,7 @@ impl FilteringSubscriber {
     }
 }
 
-impl Subscriber for FilteringSubscriber {
+impl Subscription for FilteredSubscription {
     fn next(&mut self) -> Result<Option<FieldOutput>, Error> {
         let item = match self.nats.next() {
             Some(item) => item,
