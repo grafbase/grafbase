@@ -19,7 +19,7 @@ pub trait Extension: 'static {
     /// to the federated schema. The directives are deserialized from their GraphQL
     /// definitions to the corresponding `Directive` instances.
     fn new(
-        schema_directives: Vec<crate::types::Directive>,
+        schema_directives: Vec<crate::types::SchemaDirective>,
         config: Configuration,
     ) -> Result<Self, Box<dyn std::error::Error>>
     where

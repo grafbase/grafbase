@@ -8,9 +8,9 @@ use serde::Serialize;
 use crate::wit;
 
 /// The directive and its arguments which define the extension in the GraphQL SDK.
-pub struct Directive(crate::wit::Directive);
+pub struct SchemaDirective(crate::wit::SchemaDirective);
 
-impl Directive {
+impl SchemaDirective {
     /// The name of the directive.
     pub fn name(&self) -> &str {
         &self.0.name
@@ -33,7 +33,7 @@ impl Directive {
     }
 }
 
-impl From<crate::wit::Directive> for Directive {
+impl From<crate::wit::Directive> for SchemaDirective {
     fn from(value: crate::wit::Directive) -> Self {
         Self(value)
     }

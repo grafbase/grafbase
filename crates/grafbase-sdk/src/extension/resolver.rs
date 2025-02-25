@@ -1,6 +1,6 @@
 use crate::{
     component::AnyExtension,
-    types::{Directive, FieldDefinition, FieldInputs, FieldOutput},
+    types::{FieldDefinition, FieldInputs, FieldOutput, SchemaDirective},
     wit::{Error, SharedContext},
 };
 
@@ -28,7 +28,7 @@ pub trait Resolver: Extension {
     fn resolve_field(
         &mut self,
         context: SharedContext,
-        directive: Directive,
+        directive: SchemaDirective,
         definition: FieldDefinition,
         inputs: FieldInputs,
     ) -> Result<FieldOutput, Error>;
@@ -47,7 +47,7 @@ pub trait Resolver: Extension {
     fn resolve_subscription(
         &mut self,
         context: SharedContext,
-        directive: Directive,
+        directive: SchemaDirective,
         definition: FieldDefinition,
     ) -> Result<Box<dyn Subscription>, Error>;
 }
@@ -76,7 +76,7 @@ pub fn register<T: Resolver>() {
         fn resolve_field(
             &mut self,
             context: SharedContext,
-            directive: Directive,
+            directive: SchemaDirective,
             definition: FieldDefinition,
             inputs: FieldInputs,
         ) -> Result<FieldOutput, Error> {
@@ -85,7 +85,7 @@ pub fn register<T: Resolver>() {
         fn resolve_subscription(
             &mut self,
             context: SharedContext,
-            directive: Directive,
+            directive: SchemaDirective,
             definition: FieldDefinition,
         ) -> Result<Box<dyn Subscription>, Error> {
             Resolver::resolve_subscription(&mut self.0, context, directive, definition)

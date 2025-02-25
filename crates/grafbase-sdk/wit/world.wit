@@ -1,10 +1,9 @@
 package grafbase:sdk;
 
 interface types {
-    record directive {
-        name: string,
+    record schema-directive {
         subgraph-name: string,
-        // serialized in CBOR
+        name: string,
         arguments: list<u8>
     }
 
@@ -34,11 +33,6 @@ interface types {
         extensions: list<tuple<string, string>>,
         // The error message.
         message: string,
-    }
-
-    record field-definition {
-        type-name: string,
-        name: string,
     }
 
     record field-output {
@@ -189,15 +183,30 @@ interface types {
         set: static func(key: string, value: list<u8>, ttl-ms: option<u64>) -> ();
     }
 
-    record directives-by-name {
+    record field-definition-directive {
         name: string,
+        site: field-definition-directive-site
+    }
+
+    record query-input-group {
+        directive-name: string,
         sites: list<directive-site>
+    }
+
+    record response-input-group {
+        directive-name: string,
+        elements: list<response-element>
+    }
+
+    record response-element {
+        site: directive-site,
+        items: list<list<u8>>
     }
 
     variant directive-site {
         object(object-directive-site),
-        field-definition(field-definition-directive-site)
-        interface(interface-directive-site),
+        field-definition(field-definition-directive-site),
+        %interface(interface-directive-site),
         union(union-directive-site)
     }
 
@@ -221,16 +230,21 @@ interface types {
         interface-name: string,
         arguments: list<u8>
     }
+
+    variant authorization-decision {
+        granted,
+        denied(option<error>)
+    }
 }
 
 interface extension {
-    use types.{directive, shared-context, error-response, error, field-definition, field-output, access-log, log-error, nats-auth, nats-client, http-client, http-request, http-response, http-method, http-version, http-error, headers, token, cache};
+    use types.{schema-directive, shared-context, error-response, error, field-output, access-log, log-error, nats-auth, nats-client, http-client, http-request, http-response, http-method, http-version, http-error, headers, token, cache, query-input-group, response-input-group, authorization-decision, field-definition-directive};
 
     // initialization function called to set up the wasm extension
     // if an error happens here, the gateway will refuse to continue.
     // Receives a list of schema directives associated with the extension
     init-gateway-extension: func(
-        schema-directives: list<directive>,
+        schema-directives: list<schema-directive>,
         configuration: list<u8>,
     ) -> result<_, string>;
 
@@ -238,16 +252,16 @@ interface extension {
     // serialized data with an error.
     resolve-field: func(
        context: shared-context,
-       directive: directive,
-       definition: field-definition,
+       subgraph-name: string,
+       directive: field-definition-directive,
        inputs: list<list<u8>>
     ) -> result<field-output, error>;
 
     // initializes a new subscription stream
     resolve-subscription: func(
         context: shared-context,
-        directive: directive,
-        definition: field-definition,
+        subgraph-name: string,
+        directive: field-definition-directive,
     ) -> result<_, error>;
 
     // resolves the next item in a subscription stream. must be called after resolve-field-subscription
@@ -259,8 +273,14 @@ interface extension {
 
     authorize-query: func(
         context: shared-context,
-        directives: list<directives-by-name>
-    )
+        inputs: list<query-input-group>
+    ) -> result<list<authorization-decision>, error-response>;
+
+    // Can only be called after authorize-query.
+    authorize-response: func(
+        context: shared-context,
+        inputs: list<response-input-group>
+    ) -> result<list<authorization-decision>, error>;
 }
 
 world sdk {
