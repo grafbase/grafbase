@@ -38,6 +38,7 @@ fn subgraph() -> ExtensionOnlySubgraph {
         type Subscription {{
           userEvents(id: Int!): UserEvent! @natsSubscription(
             subject: "subscription.user.{{{{args.id}}}}.events"
+            selection: "{{ email, name, number }}"
           )
         }}
 
@@ -53,6 +54,7 @@ fn subgraph() -> ExtensionOnlySubgraph {
         type UserEvent {{
           email: String!
           name: String!
+          number: Int!
         }}
     "#};
 
@@ -92,11 +94,29 @@ async fn test_subscribe() {
           userEvents(id: 1) {
             email
             name
+            number
           }
         }
     "#};
 
-    let mut subscription = runner
+    let subscription1 = runner
+        .graphql_subscription::<serde_json::Value>(query)
+        .unwrap()
+        .subscribe()
+        .await
+        .unwrap();
+
+    let query = indoc! {r#"
+        subscription {
+          userEvents(id: 2) {
+            email
+            name
+            number
+          }
+        }
+    "#};
+
+    let subscription2 = runner
         .graphql_subscription::<serde_json::Value>(query)
         .unwrap()
         .subscribe()
@@ -104,29 +124,72 @@ async fn test_subscribe() {
         .unwrap();
 
     tokio::spawn(async move {
-        loop {
-            let event = json!({ "email": "user1@example.com", "name": "User One" });
-            let event = serde_json::to_vec(&event).unwrap();
+        for i in 0.. {
+            let event1 = json!({ "email": "user1@example.com", "name": "User One", "number": i });
+            let event2 = json!({ "email": "user2@example.com", "name": "User Two", "number": i });
 
-            nats.publish("subscription.user.1.events", event.into()).await.unwrap();
+            let event1 = serde_json::to_vec(&event1).unwrap();
+            let event2 = serde_json::to_vec(&event2).unwrap();
+
+            nats.publish("subscription.user.1.events", event1.into()).await.unwrap();
+            nats.publish("subscription.user.2.events", event2.into()).await.unwrap();
+
             tokio::time::sleep(Duration::from_millis(100)).await;
         }
     });
 
-    let event = tokio::time::timeout(Duration::from_secs(5), subscription.next())
+    let events = tokio::time::timeout(Duration::from_secs(5), subscription1.take(2).collect::<Vec<_>>())
         .await
-        .unwrap()
         .unwrap();
 
-    insta::assert_json_snapshot!(&event, @r#"
-    {
-      "data": {
-        "userEvents": {
-          "email": "user1@example.com",
-          "name": "User One"
+    insta::assert_json_snapshot!(&events, @r#"
+    [
+      {
+        "data": {
+          "userEvents": {
+            "email": "user1@example.com",
+            "name": "User One",
+            "number": 1
+          }
+        }
+      },
+      {
+        "data": {
+          "userEvents": {
+            "email": "user1@example.com",
+            "name": "User One",
+            "number": 2
+          }
         }
       }
-    }
+    ]
+    "#);
+
+    let events = tokio::time::timeout(Duration::from_secs(5), subscription2.take(2).collect::<Vec<_>>())
+        .await
+        .unwrap();
+
+    insta::assert_json_snapshot!(&events, @r#"
+    [
+      {
+        "data": {
+          "userEvents": {
+            "email": "user2@example.com",
+            "name": "User Two",
+            "number": 1
+          }
+        }
+      },
+      {
+        "data": {
+          "userEvents": {
+            "email": "user2@example.com",
+            "name": "User Two",
+            "number": 2
+          }
+        }
+      }
+    ]
     "#);
 }
 
