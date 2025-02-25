@@ -28,37 +28,27 @@ impl Subscription for FilteredSubscription {
         let item = match self.nats.next() {
             Ok(Some(item)) => item,
             Ok(None) => return Ok(None),
-            Err(e) => {
-                return Err(Error {
-                    extensions: Vec::new(),
-                    message: format!("Failed to receive message from NATS: {e}"),
-                })
-            }
+            Err(e) => return Err(format!("Failed to receive message from NATS: {e}").into()),
         };
 
         let mut field_output = FieldOutput::default();
 
-        let payload: serde_json::Value = item.payload().map_err(|e| Error {
-            extensions: Vec::new(),
-            message: format!("Error parsing NATS value as JSON: {e}"),
-        })?;
+        let payload: serde_json::Value = item
+            .payload()
+            .map_err(|e| format!("Error parsing NATS value as JSON: {e}"))?;
 
         match self.selection {
             Some(ref selection) => {
                 let mut jq = self.jq_selection.borrow_mut();
 
-                let filtered = jq.select(selection, payload).map_err(|e| Error {
-                    extensions: Vec::new(),
-                    message: format!("Failed to filter with selection: {e}"),
-                })?;
+                let filtered = jq
+                    .select(selection, payload)
+                    .map_err(|e| format!("Failed to filter with selection: {e}"))?;
 
                 for payload in filtered {
                     match payload {
                         Ok(payload) => field_output.push_value(payload),
-                        Err(error) => field_output.push_error(Error {
-                            extensions: Vec::new(),
-                            message: format!("Error parsing result value: {error}"),
-                        }),
+                        Err(error) => field_output.push_error(format!("Error parsing result value: {error}")),
                     }
                 }
             }

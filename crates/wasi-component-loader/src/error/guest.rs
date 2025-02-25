@@ -7,8 +7,7 @@ pub(crate) fn guest_error_as_gql(error: GuestError, code: PartialErrorCode) -> P
         .extensions
         .into_iter()
         .map(|(key, value)| {
-            let value = serde_json::from_str(&value).unwrap_or(serde_json::Value::String(value));
-
+            let value = minicbor_serde::from_slice(&value).unwrap_or_default();
             (key.into(), value)
         })
         .collect();

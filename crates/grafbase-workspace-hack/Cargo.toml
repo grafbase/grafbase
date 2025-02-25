@@ -82,6 +82,8 @@ log = { version = "0.4", default-features = false, features = ["kv_unstable", "s
 memchr = { version = "2" }
 miette = { version = "7", features = ["fancy"] }
 mime_guess = { version = "2" }
+minicbor = { version = "0.26", default-features = false, features = ["alloc"] }
+minicbor-serde = { version = "0.4", default-features = false, features = ["alloc"] }
 minimal-lexical = { version = "0.2", default-features = false, features = ["std"] }
 nom = { version = "7" }
 num-bigint-dig = { version = "0.8", default-features = false, features = ["i128", "prime", "u64_digit", "zeroize"] }
@@ -211,6 +213,8 @@ log = { version = "0.4", default-features = false, features = ["kv_unstable", "s
 memchr = { version = "2" }
 miette = { version = "7", features = ["fancy"] }
 mime_guess = { version = "2" }
+minicbor = { version = "0.26", default-features = false, features = ["alloc"] }
+minicbor-serde = { version = "0.4", default-features = false, features = ["alloc"] }
 minimal-lexical = { version = "0.2", default-features = false, features = ["std"] }
 nom = { version = "7" }
 num-bigint-dig = { version = "0.8", default-features = false, features = ["i128", "prime", "u64_digit", "zeroize"] }

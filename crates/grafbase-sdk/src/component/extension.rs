@@ -1,43 +1,46 @@
 use crate::{
-    extension::resolver::Subscription,
-    types::{Directive, ErrorResponse, FieldDefinition, FieldInputs, FieldOutput, Token},
+    extension::{authorization::ResponseAuthorizer, resolver::Subscription},
+    types::{
+        Error, ErrorResponse, FieldDefinitionDirective, FieldInputs, FieldOutput, QueryAuthorization, QueryElements,
+        Token,
+    },
     wit::{Headers, SharedContext},
-    Error,
 };
 
 #[allow(unused_variables)]
 pub(crate) trait AnyExtension {
     fn authenticate(&mut self, headers: Headers) -> Result<Token, ErrorResponse> {
-        Err(
-            ErrorResponse::new(http::StatusCode::INTERNAL_SERVER_ERROR).with_error(Error {
-                extensions: Vec::new(),
-                message: String::from("Is not an authentication extension."),
-            }),
-        )
+        Err(ErrorResponse::internal_server_error(
+            "Authentication extension not initialized correctly.",
+        ))
     }
 
     fn resolve_field(
         &mut self,
         context: SharedContext,
-        directive: Directive,
-        definition: FieldDefinition,
+        subgraph_name: &str,
+        directive: FieldDefinitionDirective<'_>,
         inputs: FieldInputs,
     ) -> Result<FieldOutput, Error> {
-        Err(Error {
-            message: "Resolver extension not initialized correctly.".to_string(),
-            extensions: Vec::new(),
-        })
+        Err("Resolver extension not initialized correctly.".into())
     }
 
     fn resolve_subscription(
         &mut self,
         context: SharedContext,
-        directive: Directive,
-        definition: FieldDefinition,
+        subgraph_name: &str,
+        directive: FieldDefinitionDirective<'_>,
     ) -> Result<Box<dyn Subscription>, Error> {
-        Err(Error {
-            message: "Resolver extension not initialized correctly.".to_string(),
-            extensions: Vec::new(),
-        })
+        Err("Resolver extension not initialized correctly.".into())
+    }
+
+    fn authorize_query<'a>(
+        &'a mut self,
+        context: SharedContext,
+        elements: QueryElements<'a>,
+    ) -> Result<QueryAuthorization<Box<dyn ResponseAuthorizer<'a>>>, ErrorResponse> {
+        Err(ErrorResponse::internal_server_error(
+            "Authorization extension not initialized correctly.",
+        ))
     }
 }

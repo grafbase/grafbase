@@ -5,7 +5,7 @@ use grafbase_sdk::{
     Error, Extension, Resolver, ResolverExtension, SharedContext, Subscription,
     host_io::http::{self, HttpRequest, Url},
     jq_selection::JqSelection,
-    types::{Configuration, Directive, FieldDefinition, FieldInputs, FieldOutput},
+    types::{Configuration, FieldDefinitionDirective, FieldInputs, FieldOutput, SchemaDirective},
 };
 use types::{Rest, RestEndpoint};
 
@@ -16,7 +16,7 @@ struct RestExtension {
 }
 
 impl Extension for RestExtension {
-    fn new(schema_directives: Vec<Directive>, _: Configuration) -> Result<Self, Box<dyn std::error::Error>> {
+    fn new(schema_directives: Vec<SchemaDirective>, _: Configuration) -> Result<Self, Box<dyn std::error::Error>> {
         let mut endpoints = Vec::<RestEndpoint>::new();
 
         for directive in schema_directives {
@@ -59,42 +59,29 @@ impl Resolver for RestExtension {
     fn resolve_field(
         &mut self,
         _: SharedContext,
-        directive: Directive,
-        _: FieldDefinition,
+        subgraph_name: &str,
+        directive: FieldDefinitionDirective<'_>,
         _: FieldInputs,
     ) -> Result<FieldOutput, Error> {
-        let rest: Rest<'_> = directive.arguments().map_err(|e| Error {
-            extensions: Vec::new(),
-            message: format!("Could not parse directive arguments: {e}"),
-        })?;
+        let rest: Rest<'_> = directive
+            .arguments()
+            .map_err(|e| format!("Could not parse directive arguments: {e}"))?;
 
-        let Some(endpoint) = self.get_endpoint(rest.endpoint, directive.subgraph_name()) else {
-            return Err(Error {
-                extensions: Vec::new(),
-                message: format!("Endpoint not found: {}", rest.endpoint),
-            });
+        let Some(endpoint) = self.get_endpoint(rest.endpoint, subgraph_name) else {
+            return Err(format!("Endpoint not found: {}", rest.endpoint).into());
         };
 
-        let mut url = Url::parse(&endpoint.args.base_url).map_err(|e| Error {
-            extensions: Vec::new(),
-            message: format!("Could not parse URL: {e}"),
-        })?;
+        let mut url = Url::parse(&endpoint.args.base_url).map_err(|e| format!("Could not parse URL: {e}"))?;
 
         let path = rest.path.strip_prefix("/").unwrap_or(rest.path);
 
         if !path.is_empty() {
-            let mut path_segments = url.path_segments_mut().map_err(|_| Error {
-                extensions: Vec::new(),
-                message: "Could not parse URL".to_string(),
-            })?;
+            let mut path_segments = url.path_segments_mut().map_err(|_| "Could not parse URL")?;
 
             path_segments.push(path);
         }
 
-        let url = url.join(path).map_err(|e| Error {
-            extensions: Vec::new(),
-            message: format!("Could not parse URL path: {e}"),
-        })?;
+        let url = url.join(path).map_err(|e| format!("Could not parse URL path: {e}"))?;
 
         let builder = HttpRequest::builder(url, rest.method.into());
 
@@ -103,22 +90,15 @@ impl Resolver for RestExtension {
             None => builder.build(),
         };
 
-        let result = http::execute(&request).map_err(|e| Error {
-            extensions: Vec::new(),
-            message: format!("HTTP request failed: {e}"),
-        })?;
+        let result = http::execute(&request).map_err(|e| format!("HTTP request failed: {e}"))?;
 
         if !result.status().is_success() {
-            return Err(Error {
-                extensions: Vec::new(),
-                message: format!("HTTP request failed with status: {}", result.status()),
-            });
+            return Err(format!("HTTP request failed with status: {}", result.status()).into());
         }
 
-        let data: serde_json::Value = result.json().map_err(|e| Error {
-            extensions: Vec::new(),
-            message: format!("Error deserializing response: {e}"),
-        })?;
+        let data: serde_json::Value = result
+            .json()
+            .map_err(|e| format!("Error deserializing response: {e}"))?;
 
         let mut results = FieldOutput::new();
 
@@ -127,18 +107,15 @@ impl Resolver for RestExtension {
             return Ok(results);
         }
 
-        let filtered = self.jq_selection.select(rest.selection, data).map_err(|e| Error {
-            extensions: Vec::new(),
-            message: format!("Error selecting result value: {e}"),
-        })?;
+        let filtered = self
+            .jq_selection
+            .select(rest.selection, data)
+            .map_err(|e| format!("Error selecting result value: {e}"))?;
 
         for result in filtered {
             match result {
                 Ok(result) => results.push_value(result),
-                Err(e) => results.push_error(Error {
-                    extensions: Vec::new(),
-                    message: format!("Error parsing result value: {e}"),
-                }),
+                Err(e) => results.push_error(format!("Error parsing result value: {e}")),
             }
         }
 
@@ -148,8 +125,8 @@ impl Resolver for RestExtension {
     fn resolve_subscription(
         &mut self,
         _: SharedContext,
-        _: Directive,
-        _: FieldDefinition,
+        _: &str,
+        _: FieldDefinitionDirective<'_>,
     ) -> Result<Box<dyn Subscription>, Error> {
         unreachable!()
     }

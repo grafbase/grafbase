@@ -38,11 +38,27 @@ jq-selection = [
 
 [dependencies]
 anyhow.workspace = true
+grafbase-sdk-derive = { version = "0.2.0", path = "derive" }
+http.workspace = true
+minicbor.workspace = true
+minicbor-serde = { workspace = true, features = ["alloc"] }
+serde.workspace = true
+serde_json.workspace = true
+serde_urlencoded.workspace = true
+thiserror.workspace = true
+url.workspace = true
+wit-bindgen.workspace = true
+
+# jq selection
+jaq-core = { version = "2.1.1", optional = true }
+jaq-json = { version = "1.1.1", features = ["serde_json"], optional = true }
+jaq-std = { version = "2.1.0", optional = true }
+
+# test-utils
 async-tungstenite = { workspace = true, optional = true, features = ["tokio-runtime"] }
 duct = { workspace = true, optional = true }
 fslock = { workspace = true, optional = true }
 futures-util = { workspace = true, optional = true }
-grafbase-sdk-derive = { version = "0.2.0", path = "derive" }
 grafbase-sdk-mock = { version = "0.1.1", path = "mock", optional = true }
 graphql-composition = { version = "0.6.2", features = [
     "grafbase-extensions",
@@ -50,25 +66,14 @@ graphql-composition = { version = "0.6.2", features = [
 graphql-federated-graph = { version = "0.6.1", optional = true }
 graphql-ws-client = { workspace = true, optional = true }
 hashbrown = { workspace = true, optional = true }
-http.workspace = true
 indoc = { workspace = true, optional = true }
-jaq-core = { version = "2.1.1", optional = true }
-jaq-json = { version = "1.1.1", features = ["serde_json"], optional = true }
-jaq-std = { version = "2.1.0", optional = true }
-minicbor = "0.26.0"
-minicbor-serde = { workspace = true, features = ["alloc"] }
 reqwest = { workspace = true, features = ["json"], optional = true }
-serde.workspace = true
-serde_json.workspace = true
-serde_urlencoded.workspace = true
 tempfile = { workspace = true, optional = true }
 time.workspace = true
 tokio = { workspace = true, features = ["net"], optional = true }
 toml = { workspace = true, optional = true }
 tungstenite = { workspace = true, optional = true }
-url.workspace = true
 which = { workspace = true, optional = true }
-wit-bindgen.workspace = true
 
 [lints]
 workspace = true

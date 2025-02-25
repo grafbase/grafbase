@@ -36,6 +36,7 @@ http.workspace = true
 httpsig.workspace = true
 httpsig-hyper.workspace = true
 mini-moka.workspace = true
+minicbor-serde.workspace = true
 p256 = { workspace = true, features = ["jwk"] }
 p384 = { workspace = true, features = ["jwk"] }
 postcard.workspace = true

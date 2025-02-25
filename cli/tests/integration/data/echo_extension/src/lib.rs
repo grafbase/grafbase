@@ -1,13 +1,16 @@
 use grafbase_sdk::{
     Error, Extension, Resolver, ResolverExtension, SharedContext, Subscription,
-    types::{Configuration, Directive, FieldDefinition, FieldInputs, FieldOutput},
+    types::{Configuration, FieldDefinitionDirective, FieldInputs, FieldOutput, SchemaDirective},
 };
 
 #[derive(ResolverExtension)]
 struct EchoExtension;
 
 impl Extension for EchoExtension {
-    fn new(_schema_directives: Vec<Directive>, _config: Configuration) -> Result<Self, Box<dyn std::error::Error>> {
+    fn new(
+        _schema_directives: Vec<SchemaDirective>,
+        _config: Configuration,
+    ) -> Result<Self, Box<dyn std::error::Error>> {
         Ok(Self)
     }
 }
@@ -21,16 +24,13 @@ impl Resolver for EchoExtension {
     fn resolve_field(
         &mut self,
         _context: SharedContext,
-        directive: Directive,
-        _field_definition: FieldDefinition,
+        _: &str,
+        directive: FieldDefinitionDirective<'_>,
         _inputs: FieldInputs,
     ) -> Result<FieldOutput, Error> {
         let value = match directive.name() {
             "hello" => {
-                let args: HelloArguments = directive.arguments().map_err(|err| Error {
-                    extensions: Vec::new(),
-                    message: err.to_string(),
-                })?;
+                let args: HelloArguments = directive.arguments().map_err(|err| err.to_string())?;
                 format!("Hello, {}", args.to)
             }
             other => format!("unknown directive `{other}`"),
@@ -46,8 +46,8 @@ impl Resolver for EchoExtension {
     fn resolve_subscription(
         &mut self,
         _: SharedContext,
-        _: Directive,
-        _: FieldDefinition,
+        _: &str,
+        _: FieldDefinitionDirective<'_>,
     ) -> Result<Box<dyn Subscription>, Error> {
         todo!()
     }
