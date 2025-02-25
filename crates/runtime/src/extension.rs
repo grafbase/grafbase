@@ -2,7 +2,7 @@ use std::future::Future;
 
 use engine_schema::{FieldDefinition, Subgraph};
 use extension_catalog::ExtensionId;
-use tokio::sync::mpsc;
+use futures_util::stream::BoxStream;
 
 #[derive(Clone, Copy, PartialEq, Hash, Eq, PartialOrd, Ord, id_derives::Id)]
 pub struct AuthorizerId(u16);
@@ -45,7 +45,7 @@ pub trait ExtensionRuntime: Send + Sync + 'static {
         &'ctx self,
         context: &'ctx Self::SharedContext,
         directive: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
-    ) -> impl Future<Output = Result<mpsc::Receiver<Result<Data, PartialGraphqlError>>, PartialGraphqlError>> + Send + 'f
+    ) -> impl Future<Output = Result<BoxStream<'f, Result<Data, PartialGraphqlError>>, PartialGraphqlError>> + Send + 'f
     where
         'ctx: 'f;
 
@@ -89,7 +89,7 @@ impl ExtensionRuntime for () {
         &'ctx self,
         _: &'ctx Self::SharedContext,
         _: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
-    ) -> Result<mpsc::Receiver<Result<Data, PartialGraphqlError>>, PartialGraphqlError>
+    ) -> Result<BoxStream<'f, Result<Data, PartialGraphqlError>>, PartialGraphqlError>
     where
         'ctx: 'f,
     {
