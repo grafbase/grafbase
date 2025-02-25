@@ -2,6 +2,7 @@
 #![deny(missing_docs)]
 #![expect(unsafe_op_in_unsafe_fn)]
 
+mod component;
 #[doc(hidden)]
 pub mod extension;
 pub mod host_io;
@@ -11,13 +12,11 @@ pub mod jq_selection;
 pub mod test;
 pub mod types;
 
-pub use extension::{Authenticator, Extension, Resolver};
+pub use extension::{resolver::Subscription, Authenticator, Extension, Resolver};
 pub use grafbase_sdk_derive::{AuthenticationExtension, ResolverExtension};
-#[doc(hidden)]
-pub use wit::ExtensionType;
 pub use wit::{Error, Headers, NatsAuth, SharedContext};
 
-struct Component;
+use component::Component;
 
 #[cfg(target_arch = "wasm32")]
 #[unsafe(link_section = "sdk:minimum-gateway-version")]

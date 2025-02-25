@@ -1,6 +1,6 @@
 [package]
 name = "grafbase-sdk"
-version = "0.4.0"
+version = "0.5.0"
 description = "An SDK to implement extensions for the Grafbase Gateway"
 edition = "2021"
 license.workspace = true
@@ -42,7 +42,7 @@ async-tungstenite = { workspace = true, optional = true, features = ["tokio-runt
 duct = { workspace = true, optional = true }
 fslock = { workspace = true, optional = true }
 futures-util = { workspace = true, optional = true }
-grafbase-sdk-derive = { version = "0.1.3", path = "derive" }
+grafbase-sdk-derive = { version = "0.2.0", path = "derive" }
 grafbase-sdk-mock = { version = "0.1.1", path = "mock", optional = true }
 graphql-composition = { version = "0.6.2", features = [
     "grafbase-extensions",

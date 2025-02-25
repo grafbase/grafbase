@@ -6,13 +6,10 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc, str::FromStr};
 
 use config::AuthConfig;
 use grafbase_sdk::{
-    host_io::pubsub::{
-        nats::{self, NatsClient},
-        Subscription,
-    },
+    host_io::pubsub::nats::{self, NatsClient},
     jq_selection::JqSelection,
     types::{Configuration, Directive, FieldDefinition, FieldInputs, FieldOutput},
-    Error, Extension, NatsAuth, Resolver, ResolverExtension, SharedContext,
+    Error, Extension, NatsAuth, Resolver, ResolverExtension, SharedContext, Subscription,
 };
 use subscription::FilteredSubscription;
 use types::{DirectiveKind, NatsPublishResult, PublishArguments, SubscribeArguments};

@@ -1,6 +1,5 @@
 use grafbase_sdk::{
-    Error, Extension, Resolver, ResolverExtension, SharedContext,
-    host_io::pubsub::Subscription,
+    Error, Extension, Resolver, ResolverExtension, SharedContext, Subscription,
     types::{Configuration, Directive, FieldDefinition, FieldInputs, FieldOutput},
 };
 
