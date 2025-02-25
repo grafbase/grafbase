@@ -1,4 +1,5 @@
 pub mod authentication;
+pub mod authorization;
 pub mod resolver;
 
 pub use authentication::Authenticator;
