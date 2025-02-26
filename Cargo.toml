@@ -238,6 +238,7 @@ which = "7.0.2"
 wiremock = "0.6.2"
 wit-bindgen = "0.39.0"
 xshell = "0.2"
+zstd = "0.13"
 
 # Common
 grafbase-graphql-introspection = { path = "crates/grafbase-graphql-introspection" }

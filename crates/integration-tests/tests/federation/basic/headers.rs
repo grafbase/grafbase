@@ -209,7 +209,7 @@ fn should_not_propagate_blacklisted_headers() {
             .post("query { headers { name value }}")
             .header("User-Agent", "Rusty")
             .header("Accept", "application/json")
-            .header("Accept-Encoding", "gzip")
+            .header("Accept-Encoding", "custom")
             .header("Accept-Charset", "utf-8")
             .header("Accept-Ranges", "bytes")
             .header("Content-Length", "728")
