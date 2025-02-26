@@ -1,0 +1,21 @@
+---
+source: cli/tests/extension/update.rs
+expression: "&lockfile_contents"
+---
+version = "1"
+
+[[extensions]]
+name = "echo"
+version = "1.1.1"
+
+[[extensions]]
+name = "jwt"
+version = "0.19.7"
+
+[[extensions]]
+name = "rest"
+version = "0.3.0"
+
+[[extensions]]
+name = "spicedb"
+version = "2.7.0"
