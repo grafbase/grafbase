@@ -49,7 +49,7 @@ tracing.workspace = true
 tungstenite = { workspace = true, features = ["url", "handshake"] }
 url = { workspace = true, optional = true }
 
-reqwest = { workspace = true, features = ["json", "rustls-tls"] }
+reqwest = { workspace = true, features = ["json", "rustls-tls", "gzip", "brotli", "deflate", "zstd"] }
 
 anyhow.workspace = true
 deadpool = { workspace = true, optional = true }
