@@ -76,7 +76,7 @@ headers.workspace = true
 hex.workspace = true
 mimalloc.workspace = true
 pretty_assertions.workspace = true
-rand = "0.9"
+rand = "0.8"
 rstest.workspace = true
 sha2.workspace = true
 similar-asserts = { workspace = true, features = ["serde"] }

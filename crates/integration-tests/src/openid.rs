@@ -50,7 +50,7 @@ impl OryHydraOpenIDProvider {
     ) -> CoreClient<EndpointSet, EndpointNotSet, EndpointNotSet, EndpointNotSet, EndpointSet, EndpointMaybeSet> {
         let resp = ory_client::apis::o_auth2_api::create_o_auth2_client(
             &self.ory_config,
-            &ory_client::models::OAuth2Client {
+            ory_client::models::OAuth2Client {
                 access_token_strategy: Some("jwt".into()),
                 grant_types: Some(vec!["client_credentials".into()]),
                 // Allowed audiences
