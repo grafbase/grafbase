@@ -1,10 +1,11 @@
-use std::str::FromStr;
+use std::{str::FromStr, time::Duration};
 
 use grafbase_sdk::host_io::pubsub::nats::{self, OffsetDateTime};
 
 #[derive(Debug)]
 pub enum DirectiveKind {
     Publish,
+    Request,
 }
 
 impl FromStr for DirectiveKind {
@@ -13,6 +14,7 @@ impl FromStr for DirectiveKind {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "natsPublish" => Ok(DirectiveKind::Publish),
+            "natsRequest" => Ok(DirectiveKind::Request),
             _ => Err(format!("Unknown directive: {}", s)),
         }
     }
@@ -34,6 +36,37 @@ impl PublishArguments<'_> {
                 .or_else(|| body.selection.as_ref().and_then(|s| s.input.as_ref()))
         })
     }
+}
+
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RequestArguments<'a> {
+    pub provider: &'a str,
+    pub subject: &'a str,
+    pub selection: Option<&'a str>,
+    #[serde(rename = "timeoutMs", deserialize_with = "deserialize_duration_from_ms")]
+    pub timeout: Duration,
+    body: Option<Body>,
+}
+
+impl RequestArguments<'_> {
+    pub fn body(&self) -> Option<&serde_json::Value> {
+        self.body.as_ref().and_then(|body| {
+            body.r#static
+                .as_ref()
+                .or_else(|| body.selection.as_ref().and_then(|s| s.input.as_ref()))
+        })
+    }
+}
+
+fn deserialize_duration_from_ms<'de, D>(deserializer: D) -> Result<Duration, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::Deserialize;
+    let ms = u64::deserialize(deserializer)?;
+
+    Ok(Duration::from_millis(ms))
 }
 
 #[derive(Debug, serde::Deserialize)]
