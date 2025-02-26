@@ -12,7 +12,10 @@ use grafbase_sdk::{
     Error, Extension, NatsAuth, Resolver, ResolverExtension, SharedContext, Subscription,
 };
 use subscription::FilteredSubscription;
-use types::{DirectiveKind, NatsPublishResult, PublishArguments, RequestArguments, SubscribeArguments};
+use types::{
+    DirectiveKind, KeyValueAction, KeyValueArguments, NatsKvCreateResult, NatsKvDeleteResult, NatsPublishResult,
+    PublishArguments, RequestArguments, SubscribeArguments,
+};
 
 #[derive(ResolverExtension)]
 struct Nats {
@@ -81,6 +84,14 @@ impl Resolver for Nats {
                 })?;
 
                 self.request(args)
+            }
+            DirectiveKind::KeyValue => {
+                let args: KeyValueArguments<'_> = directive.arguments().map_err(|e| Error {
+                    extensions: Vec::new(),
+                    message: format!("Error deserializing directive arguments: {e}"),
+                })?;
+
+                self.key_value(args)
             }
         }
     }
@@ -202,6 +213,102 @@ impl Nats {
                     message: format!("Failed to filter with selection: {}", error),
                 }),
             }
+        }
+
+        Ok(output)
+    }
+
+    fn key_value(&self, args: KeyValueArguments<'_>) -> Result<FieldOutput, Error> {
+        let Some(client) = self.clients.get(args.provider) else {
+            return Err(Error {
+                extensions: Vec::new(),
+                message: format!("NATS provider not found: {}", args.provider),
+            });
+        };
+
+        let store = client.key_value(args.bucket).map_err(|e| Error {
+            extensions: Vec::new(),
+            message: format!("Failed to get key-value store: {e}"),
+        })?;
+
+        let mut output = FieldOutput::new();
+
+        match args.action {
+            KeyValueAction::Create => {
+                let body = args.body().unwrap_or(&serde_json::Value::Null);
+
+                match store.create(args.key, body) {
+                    Ok(sequence) => output.push_value(NatsKvCreateResult { sequence }),
+                    Err(error) => {
+                        return Err(Error {
+                            extensions: Vec::new(),
+                            message: format!("Failed to create key-value pair: {error}"),
+                        });
+                    }
+                }
+            }
+            KeyValueAction::Put => {
+                let body = args.body().unwrap_or(&serde_json::Value::Null);
+
+                match store.put(args.key, body) {
+                    Ok(sequence) => output.push_value(NatsKvCreateResult { sequence }),
+                    Err(error) => {
+                        return Err(Error {
+                            extensions: Vec::new(),
+                            message: format!("Failed to put key-value pair: {error}"),
+                        });
+                    }
+                }
+            }
+            KeyValueAction::Get => {
+                let value = match store.get::<serde_json::Value>(args.key) {
+                    Ok(Some(value)) => value,
+                    Ok(None) => {
+                        output.push_value(Option::<serde_json::Value>::None);
+                        return Ok(output);
+                    }
+                    Err(error) => {
+                        return Err(Error {
+                            extensions: Vec::new(),
+                            message: format!("Failed to get key-value pair: {error}"),
+                        });
+                    }
+                };
+
+                let selection = match args.selection {
+                    Some(selection) => selection,
+                    None => {
+                        output.push_value(value);
+                        return Ok(output);
+                    }
+                };
+
+                let mut jq = self.jq_selection.borrow_mut();
+
+                let selected = jq.select(selection, value).map_err(|e| Error {
+                    extensions: Vec::new(),
+                    message: format!("Failed to filter with selection: {}", e),
+                })?;
+
+                for payload in selected {
+                    match payload {
+                        Ok(payload) => output.push_value(payload),
+                        Err(error) => output.push_error(Error {
+                            extensions: Vec::new(),
+                            message: format!("Failed to filter with selection: {}", error),
+                        }),
+                    }
+                }
+            }
+            KeyValueAction::Delete => match store.delete(args.key) {
+                Ok(()) => output.push_value(NatsKvDeleteResult { success: true }),
+                Err(error) => {
+                    return Err(Error {
+                        extensions: Vec::new(),
+                        message: format!("Failed to delete key-value pair: {error}"),
+                    })
+                }
+            },
         }
 
         Ok(output)

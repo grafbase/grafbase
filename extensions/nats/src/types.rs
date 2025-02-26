@@ -6,6 +6,7 @@ use grafbase_sdk::host_io::pubsub::nats::{self, OffsetDateTime};
 pub enum DirectiveKind {
     Publish,
     Request,
+    KeyValue,
 }
 
 impl FromStr for DirectiveKind {
@@ -15,6 +16,7 @@ impl FromStr for DirectiveKind {
         match s {
             "natsPublish" => Ok(DirectiveKind::Publish),
             "natsRequest" => Ok(DirectiveKind::Request),
+            "natsKeyValue" => Ok(DirectiveKind::KeyValue),
             _ => Err(format!("Unknown directive: {}", s)),
         }
     }
@@ -71,6 +73,36 @@ where
 
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct KeyValueArguments<'a> {
+    pub provider: &'a str,
+    pub bucket: &'a str,
+    pub key: &'a str,
+    pub action: KeyValueAction,
+    pub selection: Option<&'a str>,
+    body: Option<Body>,
+}
+
+impl KeyValueArguments<'_> {
+    pub fn body(&self) -> Option<&serde_json::Value> {
+        self.body.as_ref().and_then(|body| {
+            body.r#static
+                .as_ref()
+                .or_else(|| body.selection.as_ref().and_then(|s| s.input.as_ref()))
+        })
+    }
+}
+
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum KeyValueAction {
+    Create,
+    Put,
+    Get,
+    Delete,
+}
+
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Body {
     pub selection: Option<RestInput>,
     pub r#static: Option<serde_json::Value>,
@@ -85,6 +117,18 @@ pub struct RestInput {
 #[derive(Debug, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NatsPublishResult {
+    pub success: bool,
+}
+
+#[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NatsKvCreateResult {
+    pub sequence: u64,
+}
+
+#[derive(Debug, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NatsKvDeleteResult {
     pub success: bool,
 }
 

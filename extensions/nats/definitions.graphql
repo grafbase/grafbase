@@ -70,6 +70,65 @@ directive @natsRequest(
   timeoutMs: Int! = 5000
 ) on FIELD_DEFINITION
 
+directive @natsKeyValue(
+  """
+  The NATS provider to use
+  """
+  provider: String! = "default"
+
+  """
+  The bucket name to operate on
+  This supports templating using GraphQL arguments: {{args.myArgument}}
+  """
+  bucket: UrlTemplate!
+
+  """
+  The key name to operate on
+  This supports templating using GraphQL arguments: {{args.myArgument}}
+  """
+  key: UrlTemplate!
+
+  """
+  The key-value operation to perform
+  """
+  action: NatsKeyValueAction!
+
+  """
+  The body of the message to put or create (only used for PUT and CREATE actions)
+  """
+  body: Body = { selection: "*" }
+
+  """
+  Selection to apply to the response payload. In jq syntax. (only used for GET action)
+  """
+  selection: String
+) on FIELD_DEFINITION
+
+"""
+Available key-value operations for NATS KV
+"""
+enum NatsKeyValueAction {
+  """
+  Create a new key-value pair. Fails if the key already exists.
+  """
+  CREATE
+
+  """
+  Put a value for the key, creating it if it doesn't exist or updating it if it does.
+  """
+  PUT
+
+  """
+  Get the value for the specified key.
+  """
+  GET
+
+  """
+  Delete the specified key-value pair.
+  """
+  DELETE
+}
+
 """
 Configuration for a NATS stream subscription
 """

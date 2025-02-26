@@ -20,6 +20,7 @@ pub(crate) mod wit {
             "grafbase:sdk/types/access-log": crate::resources::AccessLogSender,
             "grafbase:sdk/types/nats-client": crate::resources::NatsClient,
             "grafbase:sdk/types/nats-subscriber": crate::resources::NatsSubscriber,
+            "grafbase:sdk/types/nats-key-value": crate::resources::NatsKeyValue,
         },
         trappable_imports: true,
         ownership: Borrowing {

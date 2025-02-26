@@ -11,6 +11,7 @@ pub struct SharedResources {
 }
 
 pub type NatsClient = async_nats::Client;
+pub type NatsKeyValue = async_nats::jetstream::kv::Store;
 
 pub enum NatsSubscriber {
     Stream(async_nats::jetstream::consumer::pull::Stream),

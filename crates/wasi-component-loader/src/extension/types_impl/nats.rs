@@ -5,7 +5,10 @@ use wasmtime::component::Resource;
 
 use crate::{
     WasiState,
-    extension::wit::{self, HostNatsClient, HostNatsSubscriber, NatsAuth, NatsMessage, NatsStreamConfig},
+    extension::wit::{
+        self, HostNatsClient, HostNatsKeyValue, HostNatsSubscriber, NatsAuth, NatsKeyValue, NatsMessage,
+        NatsStreamConfig,
+    },
     resources::{NatsClient, NatsSubscriber},
 };
 
@@ -154,6 +157,23 @@ impl HostNatsClient for WasiState {
         }
     }
 
+    async fn key_value(
+        &mut self,
+        self_: Resource<NatsClient>,
+        bucket: String,
+    ) -> wasmtime::Result<Result<Resource<NatsKeyValue>, String>> {
+        let client = self.get_mut(&self_)?;
+        let stream = async_nats::jetstream::new(client.clone());
+
+        match stream.get_key_value(bucket).await {
+            Ok(store) => {
+                let resource = self.push_resource(store)?;
+                Ok(Ok(resource))
+            }
+            Err(err) => Ok(Err(err.to_string())),
+        }
+    }
+
     async fn drop(&mut self, rep: Resource<NatsClient>) -> wasmtime::Result<()> {
         self.table.delete(rep)?;
         Ok(())
@@ -176,6 +196,64 @@ impl HostNatsSubscriber for WasiState {
 
     async fn drop(&mut self, rep: Resource<NatsSubscriber>) -> wasmtime::Result<()> {
         self.table.delete(rep)?;
+        Ok(())
+    }
+}
+
+impl HostNatsKeyValue for WasiState {
+    async fn create(
+        &mut self,
+        self_: Resource<NatsKeyValue>,
+        key: String,
+        value: Vec<u8>,
+    ) -> wasmtime::Result<Result<u64, String>> {
+        let store = self.get_mut(&self_)?;
+
+        match store.create(&key, value.into()).await {
+            Ok(seq) => Ok(Ok(seq)),
+            Err(err) => Ok(Err(err.to_string())),
+        }
+    }
+
+    async fn put(
+        &mut self,
+        self_: Resource<NatsKeyValue>,
+        key: String,
+        value: Vec<u8>,
+    ) -> wasmtime::Result<Result<u64, String>> {
+        let store = self.get_mut(&self_)?;
+
+        match store.put(&key, value.into()).await {
+            Ok(seq) => Ok(Ok(seq)),
+            Err(e) => Ok(Err(e.to_string())),
+        }
+    }
+
+    async fn get(
+        &mut self,
+        self_: Resource<NatsKeyValue>,
+        key: String,
+    ) -> wasmtime::Result<Result<Option<Vec<u8>>, String>> {
+        let store = self.get_mut(&self_)?;
+
+        match store.get(&key).await {
+            Ok(value) => Ok(Ok(value.map(Into::into))),
+            Err(e) => Ok(Err(e.to_string())),
+        }
+    }
+
+    async fn delete(&mut self, self_: Resource<NatsKeyValue>, key: String) -> wasmtime::Result<Result<(), String>> {
+        let store = self.get_mut(&self_)?;
+
+        match store.delete(&key).await {
+            Ok(()) => Ok(Ok(())),
+            Err(e) => Ok(Err(e.to_string())),
+        }
+    }
+
+    async fn drop(&mut self, rep: Resource<NatsKeyValue>) -> wasmtime::Result<()> {
+        self.table.delete(rep)?;
+
         Ok(())
     }
 }
