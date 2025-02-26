@@ -103,7 +103,7 @@ rand_core = { version = "0.6", default-features = false, features = ["std"] }
 regex = { version = "1" }
 regex-automata = { version = "0.4", default-features = false, features = ["dfa", "hybrid", "meta", "nfa", "perf", "unicode"] }
 regex-syntax = { version = "0.8" }
-reqwest = { version = "0.12", default-features = false, features = ["blocking", "http2", "json", "rustls-tls", "stream"] }
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "brotli", "deflate", "gzip", "http2", "json", "rustls-tls", "stream", "zstd"] }
 rsa = { version = "0.9" }
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "logging", "ring", "std", "tls12"] }
 rustls-webpki = { version = "0.102", default-features = false, features = ["aws_lc_rs", "ring", "std"] }
@@ -229,7 +229,7 @@ rand_core = { version = "0.6", default-features = false, features = ["std"] }
 regex = { version = "1" }
 regex-automata = { version = "0.4", default-features = false, features = ["dfa", "hybrid", "meta", "nfa", "perf", "unicode"] }
 regex-syntax = { version = "0.8" }
-reqwest = { version = "0.12", default-features = false, features = ["blocking", "http2", "json", "rustls-tls", "stream"] }
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "brotli", "deflate", "gzip", "http2", "json", "rustls-tls", "stream", "zstd"] }
 rsa = { version = "0.9" }
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "logging", "ring", "std", "tls12"] }
 rustls-webpki = { version = "0.102", default-features = false, features = ["aws_lc_rs", "ring", "std"] }

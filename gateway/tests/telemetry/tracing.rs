@@ -36,7 +36,7 @@ fn no_traceparent_no_propagation() {
                 .send()
                 .await;
 
-            response.assert_header_names(&["accept", "content-length", "content-type"]);
+            response.assert_header_names(&["accept", "accept-encoding", "content-length", "content-type"]);
         },
     );
 }
@@ -113,7 +113,14 @@ fn tracecontext_traceparent_propagation() {
                 .send()
                 .await;
 
-            response.assert_header_names(&["accept", "content-length", "content-type", "traceparent", "tracestate"]);
+            response.assert_header_names(&[
+                "accept",
+                "accept-encoding",
+                "content-length",
+                "content-type",
+                "traceparent",
+                "tracestate",
+            ]);
             response.assert_header_content("tracestate", "");
 
             let trace_parent = response.assert_header("traceparent");
@@ -180,6 +187,7 @@ fn tracecontext_and_baggage_propagation() {
 
             response.assert_header_names(&[
                 "accept",
+                "accept-encoding",
                 "baggage",
                 "content-length",
                 "content-type",
@@ -277,7 +285,7 @@ fn baggage_propagation() {
                 .send()
                 .await;
 
-            response.assert_header_names(&["accept", "baggage", "content-length", "content-type"]);
+            response.assert_header_names(&["accept", "accept-encoding", "baggage", "content-length", "content-type"]);
             let values = response.assert_header("baggage");
             let mut values: Vec<_> = values.split(',').collect();
             values.sort();
@@ -315,7 +323,14 @@ fn aws_xray_propagation() {
                 .send()
                 .await;
 
-            response.assert_header_names(&["accept", "content-length", "content-type", "traceparent", "tracestate"]);
+            response.assert_header_names(&[
+                "accept",
+                "accept-encoding",
+                "content-length",
+                "content-type",
+                "traceparent",
+                "tracestate",
+            ]);
             response.assert_header_content("tracestate", "");
 
             let trace_parent = response.assert_header("traceparent");

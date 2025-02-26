@@ -32,6 +32,10 @@ fn test_default_headers() {
             "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
           },
           {
+            "name": "accept-encoding",
+            "value": "gzip, br, zstd, deflate"
+          },
+          {
             "name": "content-length",
             "value": "59"
           },
@@ -83,6 +87,10 @@ fn test_default_headers_forwarding() {
           {
             "name": "accept",
             "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
+          },
+          {
+            "name": "accept-encoding",
+            "value": "gzip, br, zstd, deflate"
           },
           {
             "name": "content-length",
@@ -145,6 +153,10 @@ fn test_subgraph_specific_header_forwarding() {
           {
             "name": "accept",
             "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
+          },
+          {
+            "name": "accept-encoding",
+            "value": "gzip, br, zstd, deflate"
           },
           {
             "name": "content-length",
@@ -221,6 +233,10 @@ fn should_not_propagate_blacklisted_headers() {
                 "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
               },
               {
+                "name": "accept-encoding",
+                "value": "gzip, br, zstd, deflate"
+              },
+              {
                 "name": "content-length",
                 "value": "59"
               },
@@ -269,6 +285,10 @@ fn test_regex_header_forwarding() {
           {
             "name": "accept",
             "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
+          },
+          {
+            "name": "accept-encoding",
+            "value": "gzip, br, zstd, deflate"
           },
           {
             "name": "content-length",
@@ -329,6 +349,10 @@ fn test_regex_header_forwarding_should_not_duplicate() {
             "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
           },
           {
+            "name": "accept-encoding",
+            "value": "gzip, br, zstd, deflate"
+          },
+          {
             "name": "content-length",
             "value": "59"
           },
@@ -381,6 +405,10 @@ fn test_header_forwarding_with_rename() {
             "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
           },
           {
+            "name": "accept-encoding",
+            "value": "gzip, br, zstd, deflate"
+          },
+          {
             "name": "content-length",
             "value": "59"
           },
@@ -424,6 +452,10 @@ fn test_header_forwarding_with_default() {
           {
             "name": "accept",
             "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
+          },
+          {
+            "name": "accept-encoding",
+            "value": "gzip, br, zstd, deflate"
           },
           {
             "name": "content-length",
@@ -472,6 +504,10 @@ fn test_header_forwarding_with_default_and_existing_header() {
           {
             "name": "accept",
             "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
+          },
+          {
+            "name": "accept-encoding",
+            "value": "gzip, br, zstd, deflate"
           },
           {
             "name": "content-length",
@@ -525,6 +561,10 @@ fn test_regex_header_forwarding_then_delete() {
           {
             "name": "accept",
             "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
+          },
+          {
+            "name": "accept-encoding",
+            "value": "gzip, br, zstd, deflate"
           },
           {
             "name": "content-length",
@@ -581,6 +621,10 @@ fn test_regex_header_forwarding_then_delete_with_regex() {
             "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
           },
           {
+            "name": "accept-encoding",
+            "value": "gzip, br, zstd, deflate"
+          },
+          {
             "name": "content-length",
             "value": "59"
           },
@@ -627,6 +671,10 @@ fn test_rename_duplicate_no_default() {
           {
             "name": "accept",
             "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
+          },
+          {
+            "name": "accept-encoding",
+            "value": "gzip, br, zstd, deflate"
           },
           {
             "name": "bar",
@@ -682,6 +730,10 @@ fn test_rename_duplicate_default() {
             "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
           },
           {
+            "name": "accept-encoding",
+            "value": "gzip, br, zstd, deflate"
+          },
+          {
             "name": "bar",
             "value": "lol"
           },
@@ -730,6 +782,10 @@ fn test_rename_duplicate_default_with_missing_value() {
           {
             "name": "accept",
             "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
+          },
+          {
+            "name": "accept-encoding",
+            "value": "gzip, br, zstd, deflate"
           },
           {
             "name": "bar",
@@ -784,6 +840,10 @@ fn regex_header_regex_forwarding_should_forward_duplicates_too() {
             "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
           },
           {
+            "name": "accept-encoding",
+            "value": "gzip, br, zstd, deflate"
+          },
+          {
             "name": "content-length",
             "value": "59"
           },
@@ -834,6 +894,10 @@ fn regex_header_forwarding_should_forward_duplicates() {
           {
             "name": "accept",
             "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
+          },
+          {
+            "name": "accept-encoding",
+            "value": "gzip, br, zstd, deflate"
           },
           {
             "name": "content-length",
@@ -889,6 +953,10 @@ fn regex_header_forwarding_should_forward_duplicates_with_rename() {
             "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
           },
           {
+            "name": "accept-encoding",
+            "value": "gzip, br, zstd, deflate"
+          },
+          {
             "name": "content-length",
             "value": "59"
           },
@@ -941,6 +1009,10 @@ fn header_remove_should_remove_duplicates() {
             "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
           },
           {
+            "name": "accept-encoding",
+            "value": "gzip, br, zstd, deflate"
+          },
+          {
             "name": "content-length",
             "value": "59"
           },
@@ -983,6 +1055,10 @@ fn header_regex_remove_should_remove_duplicates() {
           {
             "name": "accept",
             "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
+          },
+          {
+            "name": "accept-encoding",
+            "value": "gzip, br, zstd, deflate"
           },
           {
             "name": "content-length",
