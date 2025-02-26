@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use clap::Parser;
 
 const DEFAULT_OUTPUT_DIR: &str = "./build";
+const DEFAULT_GATEWAY_CONFIG_FILE_PATH: &str = "./grafbase.toml";
 
 #[derive(Debug, Parser)]
 pub(crate) struct ExtensionCommand {
@@ -19,6 +20,8 @@ pub enum ExtensionSubCommand {
     Build(ExtensionBuildCommand),
     /// Publish an extension
     Publish(ExtensionPublishCommand),
+    /// Update the lockfile (grafbase-extensions.locks)
+    Update(ExtensionUpdateCommand),
 }
 
 #[derive(Debug, Parser)]
@@ -60,4 +63,14 @@ pub(crate) struct ExtensionPublishCommand {
     /// Local path of the extension to publish. Typically the output dir of `grafbase extension build`.
     #[arg(default_value = DEFAULT_OUTPUT_DIR)]
     pub path: PathBuf,
+}
+
+#[derive(Debug, Parser)]
+pub(crate) struct ExtensionUpdateCommand {
+    /// The name of the extension(s) to update. This argument can be passed multiple times. If no --name is passed, all extensions are updated.
+    #[arg(short, long)]
+    pub name: Option<Vec<String>>,
+    /// The location of the gateway configuration file that contains the version requirements. Default: `./grafbase.toml`.
+    #[arg(short, long, default_value = DEFAULT_GATEWAY_CONFIG_FILE_PATH)]
+    pub config: PathBuf,
 }

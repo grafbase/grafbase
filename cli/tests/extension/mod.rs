@@ -1,4 +1,5 @@
 mod publish;
+mod update;
 
 use duct::cmd;
 use extension::Manifest;
