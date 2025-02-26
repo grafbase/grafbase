@@ -1,3 +1,4 @@
+pub(crate) mod extension_publish;
 pub(crate) mod submit_trusted_documents;
 
 use super::schema;

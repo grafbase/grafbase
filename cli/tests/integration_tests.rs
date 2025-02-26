@@ -1,3 +1,5 @@
+#![allow(clippy::panic)] // sir, this is a Wendy's
+
 use std::{
     env::{consts::EXE_SUFFIX, current_exe},
     path::PathBuf,

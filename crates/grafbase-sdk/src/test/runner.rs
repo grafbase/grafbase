@@ -142,7 +142,7 @@ impl TestRunner {
 
         let mut expr = duct::cmd(&self.config.gateway_path, args);
 
-        if !dbg!(self.config.enable_stderr) {
+        if !self.config.enable_stderr {
             expr = expr.stderr_null();
         }
 

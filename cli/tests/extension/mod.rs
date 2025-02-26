@@ -1,7 +1,8 @@
-use std::path::Path;
+mod publish;
 
 use duct::cmd;
 use extension::Manifest;
+use std::path::Path;
 use tempfile::tempdir;
 
 use crate::cargo_bin;

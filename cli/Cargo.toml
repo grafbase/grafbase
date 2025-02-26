@@ -40,6 +40,7 @@ reqwest = { workspace = true, features = [
     "rustls-tls",
     "stream",
     "json",
+    "multipart",
 ], default-features = false }
 rustls = { workspace = true, features = ["aws-lc-rs", "tls12"] }
 serde.workspace = true
@@ -92,6 +93,7 @@ rand.workspace = true
 regex.workspace = true
 reqwest.workspace = true
 tempfile.workspace = true
+wiremock.workspace = true
 
 [build-dependencies]
 cynic-codegen.workspace = true
