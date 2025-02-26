@@ -1,19 +1,21 @@
 use crate::{error::guest::guest_error_as_gql, extension::ExtensionLoader, resources::SharedResources};
 
 use super::{ExtensionGuestConfig, InputList, pool::Pool, wit};
-use deadpool::managed::Object;
 use extension_catalog::ExtensionId;
 use futures::stream::BoxStream;
-use futures_util::StreamExt;
+use futures_util::{StreamExt, stream};
 use gateway_config::WasiExtensionsConfig;
 use runtime::{
     error::{ErrorResponse, PartialErrorCode, PartialGraphqlError},
     extension::{AuthorizerId, Data, ExtensionFieldDirective, ExtensionRuntime},
     hooks::Anything,
 };
-use std::{collections::HashMap, future::Future, sync::Arc};
-use tokio::{sync::mpsc, task::JoinHandle};
-use tokio_stream::wrappers::ReceiverStream;
+use std::{
+    collections::{HashMap, VecDeque},
+    future::Future,
+    sync::Arc,
+};
+use tokio::task::JoinHandle;
 
 #[derive(Clone, Default)]
 pub struct ExtensionsWasiRuntime(Option<Arc<WasiExtensionsInner>>);
@@ -58,7 +60,7 @@ async fn create_pools<T: serde::Serialize + Send + 'static>(
 
     let mut pools = HashMap::new();
 
-    let mut creating_pools = futures_util::stream::iter(creating_pools)
+    let mut creating_pools = stream::iter(creating_pools)
         .buffer_unordered(std::thread::available_parallelism().map(|i| i.get()).unwrap_or(1));
 
     while let Some(result) = creating_pools.next().await {
@@ -222,7 +224,7 @@ impl ExtensionRuntime for ExtensionsWasiRuntime {
             return Err(PartialGraphqlError::internal_extension_error());
         };
 
-        let mut instance = Object::take(pool.get().await.into_inner());
+        let mut instance = pool.get().await.into_inner();
         let arguments = minicbor_serde::to_vec(arguments).unwrap();
 
         let directive = wit::Directive {
@@ -242,44 +244,42 @@ impl ExtensionRuntime for ExtensionsWasiRuntime {
 
         match result {
             Ok(()) => {
-                let (tx, rx) = mpsc::channel(10000);
+                let stream = stream::unfold((instance, VecDeque::new()), async move |(mut instance, mut tail)| {
+                    if let Some(data) = tail.pop_front() {
+                        return Some((data, (instance, tail)));
+                    }
 
-                tokio::spawn(async move {
-                    'outer: loop {
-                        let item = match instance.resolve_next_subscription_item().await {
-                            Ok(Some(item)) => item,
-                            Ok(None) => {
-                                tracing::debug!("subscription completed");
-                                break;
+                    let item = match instance.resolve_next_subscription_item().await {
+                        Ok(Some(item)) => {
+                            tracing::debug!("subscription item resolved");
+                            item
+                        }
+                        Ok(None) => {
+                            tracing::debug!("subscription completed");
+                            return None;
+                        }
+                        Err(e) => {
+                            tracing::error!("Error resolving subscription item: {e}");
+                            return Some((Err(PartialGraphqlError::internal_extension_error()), (instance, tail)));
+                        }
+                    };
+
+                    for item in item.outputs {
+                        match item {
+                            Ok(item) => {
+                                tail.push_back(Ok(Data::CborBytes(item)));
                             }
-                            Err(e) => {
-                                tracing::error!("error resolving subscription item: {}", e);
-                                break;
-                            }
-                        };
-
-                        for item in item.outputs {
-                            match item {
-                                Ok(item) => {
-                                    if tx.send(Ok(Data::CborBytes(item))).await.is_err() {
-                                        tracing::debug!("channel closed");
-                                        break 'outer;
-                                    }
-                                }
-                                Err(error) => {
-                                    let error = guest_error_as_gql(error, PartialErrorCode::InternalServerError);
-
-                                    if tx.send(Err(error)).await.is_err() {
-                                        tracing::debug!("channel closed");
-                                        break 'outer;
-                                    }
-                                }
+                            Err(error) => {
+                                let error = guest_error_as_gql(error, PartialErrorCode::InternalServerError);
+                                tail.push_back(Err(error));
                             }
                         }
                     }
+
+                    tail.pop_front().map(|item| (item, (instance, tail)))
                 });
 
-                Ok(Box::pin(ReceiverStream::new(rx)))
+                Ok(Box::pin(stream))
             }
             Err(error) => match error {
                 crate::Error::Guest(error) => {
