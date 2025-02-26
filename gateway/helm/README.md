@@ -56,7 +56,3 @@ image:
     ```
 
 ### GitHub Actions
-
-The repository is configured with a GitHub Actions workflow that automatically packages and pushes the Helm chart to ghcr.io when a new tag is created.
-
-To release a new version of the Helm chart, change the version from `gateway/helm/Chart.yaml`.
