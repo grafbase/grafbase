@@ -44,7 +44,7 @@ crossbeam-channel = { version = "0.5" }
 crossbeam-queue = { version = "0.3" }
 crossbeam-utils = { version = "0.8" }
 curve25519-dalek = { version = "4", default-features = false, features = ["alloc", "digest", "precomputed-tables", "zeroize"] }
-cynic = { version = "3", features = ["http-reqwest"] }
+cynic = { version = "3", features = ["http-reqwest", "http-surf"] }
 cynic-parser = { version = "0.9", features = ["pretty", "report"] }
 der = { version = "0.7", default-features = false, features = ["oid", "pem", "std"] }
 deranged = { version = "0.3", default-features = false, features = ["powerfmt", "serde", "std"] }
@@ -72,12 +72,13 @@ group = { version = "0.13", default-features = false, features = ["alloc"] }
 hashbrown-3575ec1268b04181 = { package = "hashbrown", version = "0.15", features = ["serde"] }
 hashbrown-582f2526e08bb6a0 = { package = "hashbrown", version = "0.14", features = ["raw", "serde"] }
 hex = { version = "0.4" }
+http-types = { version = "2" }
 hyper = { version = "1", features = ["full"] }
 hyper-util = { version = "0.1", features = ["client-legacy", "server-auto", "service"] }
 indexmap = { version = "2", features = ["serde"] }
 insta = { version = "1", features = ["glob", "json", "redactions", "yaml"] }
 lazy_static = { version = "1", default-features = false, features = ["spin_no_std"] }
-log = { version = "0.4", default-features = false, features = ["std"] }
+log = { version = "0.4", default-features = false, features = ["kv_unstable", "std"] }
 memchr = { version = "2" }
 miette = { version = "7", features = ["fancy"] }
 mime_guess = { version = "2" }
@@ -102,7 +103,7 @@ rand_core = { version = "0.6", default-features = false, features = ["std"] }
 regex = { version = "1" }
 regex-automata = { version = "0.4", default-features = false, features = ["dfa", "hybrid", "meta", "nfa", "perf", "unicode"] }
 regex-syntax = { version = "0.8" }
-reqwest = { version = "0.12", features = ["blocking", "json", "multipart", "rustls-tls", "stream"] }
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "http2", "json", "rustls-tls", "stream"] }
 rsa = { version = "0.9" }
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "logging", "ring", "std", "tls12"] }
 rustls-webpki = { version = "0.102", default-features = false, features = ["aws_lc_rs", "ring", "std"] }
@@ -110,7 +111,7 @@ sec1 = { version = "0.7", features = ["pem", "serde", "std", "subtle"] }
 semver = { version = "1", features = ["serde"] }
 serde = { version = "1", features = ["alloc", "derive", "rc"] }
 serde_json = { version = "1", features = ["alloc", "preserve_order", "raw_value"] }
-serde_with = { version = "3", features = ["base64", "hex"] }
+serde_with = { version = "3", features = ["hex"] }
 sha2 = { version = "0.10", features = ["oid"] }
 signature = { version = "2", default-features = false, features = ["digest", "rand_core", "std"] }
 similar = { version = "2", features = ["inline", "unicode"] }
@@ -118,6 +119,7 @@ similar-asserts = { version = "1", features = ["serde"] }
 smallvec = { version = "1", default-features = false, features = ["const_new", "serde", "union"] }
 spin = { version = "0.9", default-features = false, features = ["once", "spin_mutex"] }
 spki = { version = "0.7", default-features = false, features = ["pem", "std"] }
+standback = { version = "0.2", default-features = false, features = ["std"] }
 strum = { version = "0.27", features = ["derive"] }
 subtle = { version = "2" }
 sync_wrapper = { version = "1", default-features = false, features = ["futures"] }
@@ -138,7 +140,7 @@ tracing-subscriber = { version = "0.3", default-features = false, features = ["a
 tungstenite = { version = "0.26", default-features = false, features = ["handshake", "url"] }
 ulid = { version = "1", features = ["serde"] }
 url = { version = "2", features = ["serde"] }
-uuid = { version = "1", features = ["serde", "v4"] }
+uuid = { version = "1", features = ["v4"] }
 wasmparser = { version = "0.224", default-features = false, features = ["component-model", "features", "serde", "simd", "std", "validate"] }
 zeroize = { version = "1", features = ["zeroize_derive"] }
 
@@ -168,7 +170,7 @@ crossbeam-channel = { version = "0.5" }
 crossbeam-queue = { version = "0.3" }
 crossbeam-utils = { version = "0.8" }
 curve25519-dalek = { version = "4", default-features = false, features = ["alloc", "digest", "precomputed-tables", "zeroize"] }
-cynic = { version = "3", features = ["http-reqwest"] }
+cynic = { version = "3", features = ["http-reqwest", "http-surf"] }
 cynic-parser = { version = "0.9", features = ["pretty", "report"] }
 der = { version = "0.7", default-features = false, features = ["oid", "pem", "std"] }
 deranged = { version = "0.3", default-features = false, features = ["powerfmt", "serde", "std"] }
@@ -196,12 +198,13 @@ group = { version = "0.13", default-features = false, features = ["alloc"] }
 hashbrown-3575ec1268b04181 = { package = "hashbrown", version = "0.15", features = ["serde"] }
 hashbrown-582f2526e08bb6a0 = { package = "hashbrown", version = "0.14", features = ["raw", "serde"] }
 hex = { version = "0.4" }
+http-types = { version = "2" }
 hyper = { version = "1", features = ["full"] }
 hyper-util = { version = "0.1", features = ["client-legacy", "server-auto", "service"] }
 indexmap = { version = "2", features = ["serde"] }
 insta = { version = "1", features = ["glob", "json", "redactions", "yaml"] }
 lazy_static = { version = "1", default-features = false, features = ["spin_no_std"] }
-log = { version = "0.4", default-features = false, features = ["std"] }
+log = { version = "0.4", default-features = false, features = ["kv_unstable", "std"] }
 memchr = { version = "2" }
 miette = { version = "7", features = ["fancy"] }
 mime_guess = { version = "2" }
@@ -226,7 +229,7 @@ rand_core = { version = "0.6", default-features = false, features = ["std"] }
 regex = { version = "1" }
 regex-automata = { version = "0.4", default-features = false, features = ["dfa", "hybrid", "meta", "nfa", "perf", "unicode"] }
 regex-syntax = { version = "0.8" }
-reqwest = { version = "0.12", features = ["blocking", "json", "multipart", "rustls-tls", "stream"] }
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "http2", "json", "rustls-tls", "stream"] }
 rsa = { version = "0.9" }
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "logging", "ring", "std", "tls12"] }
 rustls-webpki = { version = "0.102", default-features = false, features = ["aws_lc_rs", "ring", "std"] }
@@ -234,7 +237,7 @@ sec1 = { version = "0.7", features = ["pem", "serde", "std", "subtle"] }
 semver = { version = "1", features = ["serde"] }
 serde = { version = "1", features = ["alloc", "derive", "rc"] }
 serde_json = { version = "1", features = ["alloc", "preserve_order", "raw_value"] }
-serde_with = { version = "3", features = ["base64", "hex"] }
+serde_with = { version = "3", features = ["hex"] }
 sha2 = { version = "0.10", features = ["oid"] }
 signature = { version = "2", default-features = false, features = ["digest", "rand_core", "std"] }
 similar = { version = "2", features = ["inline", "unicode"] }
@@ -242,6 +245,7 @@ similar-asserts = { version = "1", features = ["serde"] }
 smallvec = { version = "1", default-features = false, features = ["const_new", "serde", "union"] }
 spin = { version = "0.9", default-features = false, features = ["once", "spin_mutex"] }
 spki = { version = "0.7", default-features = false, features = ["pem", "std"] }
+standback = { version = "0.2", default-features = false, features = ["std"] }
 strum = { version = "0.27", features = ["derive"] }
 subtle = { version = "2" }
 syn = { version = "2", features = ["extra-traits", "fold", "full", "visit", "visit-mut"] }
@@ -263,7 +267,7 @@ tracing-subscriber = { version = "0.3", default-features = false, features = ["a
 tungstenite = { version = "0.26", default-features = false, features = ["handshake", "url"] }
 ulid = { version = "1", features = ["serde"] }
 url = { version = "2", features = ["serde"] }
-uuid = { version = "1", features = ["serde", "v4"] }
+uuid = { version = "1", features = ["v4"] }
 wasmparser = { version = "0.224", default-features = false, features = ["component-model", "features", "serde", "simd", "std", "validate"] }
 zeroize = { version = "1", features = ["zeroize_derive"] }
 
@@ -278,8 +282,7 @@ libc = { version = "0.2", features = ["extra_traits"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
-rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process", "procfs", "stdio", "termios", "thread", "time"] }
-security-framework-sys = { version = "2" }
+rustix = { version = "0.38", features = ["event", "mm", "net", "param", "pipe", "process", "procfs", "stdio", "termios", "thread", "time"] }
 stable_deref_trait = { version = "1" }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["log", "timeout"] }
 
@@ -294,8 +297,7 @@ libc = { version = "0.2", features = ["extra_traits"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
-rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process", "procfs", "stdio", "termios", "thread", "time"] }
-security-framework-sys = { version = "2" }
+rustix = { version = "0.38", features = ["event", "mm", "net", "param", "pipe", "process", "procfs", "stdio", "termios", "thread", "time"] }
 stable_deref_trait = { version = "1" }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["log", "timeout"] }
 
@@ -310,8 +312,7 @@ libc = { version = "0.2", features = ["extra_traits"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
-rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process", "procfs", "stdio", "termios", "thread", "time"] }
-security-framework-sys = { version = "2" }
+rustix = { version = "0.38", features = ["event", "mm", "net", "param", "pipe", "process", "procfs", "stdio", "termios", "thread", "time"] }
 spin = { version = "0.9" }
 stable_deref_trait = { version = "1" }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["log", "timeout"] }
@@ -327,8 +328,7 @@ libc = { version = "0.2", features = ["extra_traits"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
-rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process", "procfs", "stdio", "termios", "thread", "time"] }
-security-framework-sys = { version = "2" }
+rustix = { version = "0.38", features = ["event", "mm", "net", "param", "pipe", "process", "procfs", "stdio", "termios", "thread", "time"] }
 spin = { version = "0.9" }
 stable_deref_trait = { version = "1" }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["log", "timeout"] }
@@ -336,18 +336,20 @@ tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features 
 [target.x86_64-pc-windows-msvc.dependencies]
 axum = { version = "0.8" }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
+rustix = { version = "0.38", features = ["event", "fs", "net"] }
 spin = { version = "0.9" }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["log", "timeout"] }
-winapi = { version = "0.3", default-features = false, features = ["consoleapi", "errhandlingapi", "fileapi", "handleapi", "impl-default", "knownfolders", "minwinbase", "minwindef", "objbase", "processenv", "processthreadsapi", "profileapi", "shlobj", "synchapi", "winbase", "winerror", "winnt", "winuser"] }
+winapi = { version = "0.3", default-features = false, features = ["consoleapi", "errhandlingapi", "fileapi", "handleapi", "impl-default", "knownfolders", "minwinbase", "minwindef", "objbase", "processenv", "processthreadsapi", "profileapi", "shlobj", "synchapi", "timezoneapi", "winbase", "winerror", "winnt", "winuser"] }
 windows-sys-73dcd821b1037cfd = { package = "windows-sys", version = "0.59", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Win32_Globalization", "Win32_NetworkManagement_IpHelper", "Win32_Networking_WinSock", "Win32_Security_Authentication_Identity", "Win32_Security_Credentials", "Win32_Security_Cryptography", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_IO", "Win32_System_Ioctl", "Win32_System_Kernel", "Win32_System_LibraryLoader", "Win32_System_Memory", "Win32_System_Performance", "Win32_System_Pipes", "Win32_System_SystemInformation", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell"] }
 windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Wdk_System_IO", "Win32_Foundation", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_IO", "Win32_System_Pipes", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming"] }
 
 [target.x86_64-pc-windows-msvc.build-dependencies]
 axum = { version = "0.8" }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
+rustix = { version = "0.38", features = ["event", "fs", "net"] }
 spin = { version = "0.9" }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["log", "timeout"] }
-winapi = { version = "0.3", default-features = false, features = ["consoleapi", "errhandlingapi", "fileapi", "handleapi", "impl-default", "knownfolders", "minwinbase", "minwindef", "objbase", "processenv", "processthreadsapi", "profileapi", "shlobj", "synchapi", "winbase", "winerror", "winnt", "winuser"] }
+winapi = { version = "0.3", default-features = false, features = ["consoleapi", "errhandlingapi", "fileapi", "handleapi", "impl-default", "knownfolders", "minwinbase", "minwindef", "objbase", "processenv", "processthreadsapi", "profileapi", "shlobj", "synchapi", "timezoneapi", "winbase", "winerror", "winnt", "winuser"] }
 windows-sys-73dcd821b1037cfd = { package = "windows-sys", version = "0.59", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Win32_Globalization", "Win32_NetworkManagement_IpHelper", "Win32_Networking_WinSock", "Win32_Security_Authentication_Identity", "Win32_Security_Credentials", "Win32_Security_Cryptography", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_IO", "Win32_System_Ioctl", "Win32_System_Kernel", "Win32_System_LibraryLoader", "Win32_System_Memory", "Win32_System_Performance", "Win32_System_Pipes", "Win32_System_SystemInformation", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell"] }
 windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Wdk_System_IO", "Win32_Foundation", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_IO", "Win32_System_Pipes", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming"] }
 
@@ -363,7 +365,7 @@ linux-raw-sys = { version = "0.4", default-features = false, features = ["elf", 
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
-rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process", "procfs", "stdio", "termios", "thread", "time"] }
+rustix = { version = "0.38", features = ["event", "mm", "net", "param", "pipe", "process", "procfs", "stdio", "termios", "thread", "time"] }
 spin = { version = "0.9" }
 stable_deref_trait = { version = "1" }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["log", "timeout"] }
@@ -380,7 +382,7 @@ linux-raw-sys = { version = "0.4", default-features = false, features = ["elf", 
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
-rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process", "procfs", "stdio", "termios", "thread", "time"] }
+rustix = { version = "0.38", features = ["event", "mm", "net", "param", "pipe", "process", "procfs", "stdio", "termios", "thread", "time"] }
 spin = { version = "0.9" }
 stable_deref_trait = { version = "1" }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["log", "timeout"] }
@@ -397,7 +399,7 @@ linux-raw-sys = { version = "0.4", default-features = false, features = ["elf", 
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
-rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process", "procfs", "stdio", "termios", "thread", "time"] }
+rustix = { version = "0.38", features = ["event", "mm", "net", "param", "pipe", "process", "procfs", "stdio", "termios", "thread", "time"] }
 stable_deref_trait = { version = "1" }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["log", "timeout"] }
 
@@ -413,7 +415,7 @@ linux-raw-sys = { version = "0.4", default-features = false, features = ["elf", 
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
-rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process", "procfs", "stdio", "termios", "thread", "time"] }
+rustix = { version = "0.38", features = ["event", "mm", "net", "param", "pipe", "process", "procfs", "stdio", "termios", "thread", "time"] }
 stable_deref_trait = { version = "1" }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["log", "timeout"] }
 
