@@ -61,6 +61,7 @@ serde.workspace = true
 serde_json.workspace = true
 serde_urlencoded.workspace = true
 tempfile = { workspace = true, optional = true }
+time.workspace = true
 tokio = { workspace = true, features = ["net"], optional = true }
 toml = { workspace = true, optional = true }
 tungstenite = { workspace = true, optional = true }

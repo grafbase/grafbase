@@ -26,8 +26,14 @@ impl FilteredSubscription {
 impl Subscription for FilteredSubscription {
     fn next(&mut self) -> Result<Option<FieldOutput>, Error> {
         let item = match self.nats.next() {
-            Some(item) => item,
-            None => return Ok(None),
+            Ok(Some(item)) => item,
+            Ok(None) => return Ok(None),
+            Err(e) => {
+                return Err(Error {
+                    extensions: Vec::new(),
+                    message: format!("Failed to receive message from NATS: {e}"),
+                })
+            }
         };
 
         let mut field_output = FieldOutput::default();

@@ -208,6 +208,7 @@ tar = "0.4.44"
 temp-env = "0.3"
 tempfile = "3.16"
 thiserror = "2.0.11"
+time = "0.3.37"
 tokio = "1.43.0"
 tokio-rustls = { version = "0.26.1", default-features = false }
 tokio-stream = "0.1"

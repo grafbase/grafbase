@@ -6,6 +6,9 @@
 //! It supports both authenticated and unauthenticated connections to one or more NATS servers.
 
 use crate::{extension::resolver::Subscription, types, wit, Error};
+use std::time::Duration;
+
+pub use time::OffsetDateTime;
 
 /// A client for interacting with NATS servers
 pub struct NatsClient {
@@ -39,8 +42,17 @@ impl NatsClient {
     /// # Returns
     ///
     /// Result containing the subscription or an error if subscription fails
-    pub fn subscribe(&self, subject: &str) -> Result<NatsSubscription, Box<dyn std::error::Error>> {
-        Ok(self.inner.subscribe(subject).map(Into::into)?)
+    pub fn subscribe(
+        &self,
+        subject: &str,
+        config: Option<NatsStreamConfig>,
+    ) -> Result<NatsSubscription, Box<dyn std::error::Error>> {
+        let subscription = self
+            .inner
+            .subscribe(subject, config.map(Into::into).as_ref())
+            .map(Into::into)?;
+
+        Ok(subscription)
     }
 }
 
@@ -61,8 +73,8 @@ impl NatsSubscription {
     /// # Returns
     ///
     /// Result containing the next message or an error if retrieval fails
-    pub fn next(&self) -> Option<NatsMessage> {
-        self.inner.next().map(Into::into)
+    pub fn next(&self) -> Result<Option<NatsMessage>, Box<dyn std::error::Error>> {
+        Ok(self.inner.next()?.map(Into::into))
     }
 }
 
@@ -139,8 +151,14 @@ pub fn connect_with_auth(
 impl Subscription for NatsSubscription {
     fn next(&mut self) -> Result<Option<types::FieldOutput>, Error> {
         let item = match NatsSubscription::next(self) {
-            Some(item) => item,
-            None => return Ok(None),
+            Ok(Some(item)) => item,
+            Ok(None) => return Ok(None),
+            Err(e) => {
+                return Err(Error {
+                    extensions: Vec::new(),
+                    message: format!("Error receiving NATS message: {e}"),
+                })
+            }
         };
 
         let mut field_output = types::FieldOutput::default();
@@ -153,5 +171,115 @@ impl Subscription for NatsSubscription {
         field_output.push_value(payload);
 
         Ok(Some(field_output))
+    }
+}
+
+/// Configuration for NATS JetStream consumers
+///
+/// This struct wraps the internal configuration for JetStream consumers
+/// and provides a builder pattern for easy configuration.
+pub struct NatsStreamConfig(wit::NatsStreamConfig);
+
+impl From<NatsStreamConfig> for wit::NatsStreamConfig {
+    fn from(config: NatsStreamConfig) -> Self {
+        config.0
+    }
+}
+
+/// Delivery policy for NATS JetStream consumers
+///
+/// This enum defines the various policies that determine how messages are delivered to
+/// JetStream consumers, such as delivering all messages, only the latest message,
+/// or messages from a specific sequence or time.
+#[derive(Debug)]
+pub enum NatsStreamDeliverPolicy {
+    /// All causes the consumer to receive the oldest messages still present in the system.
+    /// This is the default.
+    All,
+    /// Last will start the consumer with the last sequence received.
+    Last,
+    /// New will only deliver new messages that are received by the JetStream server after
+    /// the consumer is created.
+    New,
+    /// ByStartSequence will look for a defined starting sequence to the consumer’s configured
+    /// opt_start_seq parameter.
+    ByStartSequence(u64),
+    /// ByStartTime will select the first message with a timestamp >= to the consumer’s
+    /// configured opt_start_time parameter.
+    ByStartTime(OffsetDateTime),
+    /// LastPerSubject will start the consumer with the last message for all subjects received.
+    LastPerSubject,
+}
+
+impl From<NatsStreamDeliverPolicy> for wit::NatsStreamDeliverPolicy {
+    fn from(value: NatsStreamDeliverPolicy) -> Self {
+        match value {
+            NatsStreamDeliverPolicy::All => wit::NatsStreamDeliverPolicy::All,
+            NatsStreamDeliverPolicy::Last => wit::NatsStreamDeliverPolicy::Last,
+            NatsStreamDeliverPolicy::New => wit::NatsStreamDeliverPolicy::New,
+            NatsStreamDeliverPolicy::ByStartSequence(seq) => wit::NatsStreamDeliverPolicy::ByStartSequence(seq),
+            NatsStreamDeliverPolicy::ByStartTime(time) => {
+                wit::NatsStreamDeliverPolicy::ByStartTimeMs((time.unix_timestamp_nanos() / 1_000_000) as u64)
+            }
+            NatsStreamDeliverPolicy::LastPerSubject => wit::NatsStreamDeliverPolicy::LastPerSubject,
+        }
+    }
+}
+
+impl NatsStreamConfig {
+    /// Creates a new JetStream consumer configuration
+    ///
+    /// # Arguments
+    ///
+    /// * `deliver_policy` - Determines how messages are delivered to the consumer
+    /// * `inactive_threshold` - Duration after which a consumer is considered inactive
+    ///
+    /// # Returns
+    ///
+    /// A new `NatsStreamConfig` with the specified settings
+    pub fn new(
+        stream_name: String,
+        consumer_name: String,
+        deliver_policy: NatsStreamDeliverPolicy,
+        inactive_threshold: Duration,
+    ) -> Self {
+        NatsStreamConfig(wit::NatsStreamConfig {
+            stream_name,
+            consumer_name,
+            durable_name: None,
+            deliver_policy: deliver_policy.into(),
+            inactive_threshold_ms: inactive_threshold.as_millis() as u64,
+            description: None,
+        })
+    }
+
+    /// Sets a durable name for the consumer
+    ///
+    /// Durable consumers maintain their state even when disconnected.
+    ///
+    /// # Arguments
+    ///
+    /// * `durable_name` - The durable name to use for this consumer
+    ///
+    /// # Returns
+    ///
+    /// The updated configuration
+    pub fn with_durable_name(mut self, durable_name: String) -> Self {
+        self.0.durable_name = Some(durable_name);
+        self
+    }
+
+    /// Sets a description for the consumer
+    ///
+    /// # Arguments
+    ///
+    /// * `description` - The description to use for this consumer
+    ///
+    /// # Returns
+    ///
+    /// The updated configuration
+    pub fn with_description(mut self, description: String) -> Self {
+        self.0.description = Some(description);
+        self
     }
 }
