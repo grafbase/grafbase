@@ -41,7 +41,7 @@ reqwest = { workspace = true, features = [
     "stream",
     "json",
 ], default-features = false }
-rustls = { workspace = true, features = ["ring", "tls12"] }
+rustls = { workspace = true, features = ["aws-lc-rs", "tls12"] }
 serde.workspace = true
 serde-dynamic-string.workspace = true
 serde-toml-merge.workspace = true
