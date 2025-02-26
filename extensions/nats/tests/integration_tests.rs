@@ -25,11 +25,35 @@ fn subgraph() -> ExtensionOnlySubgraph {
           @link(url: "https://specs.apollo.dev/federation/v2.0", import: ["@key", "@shareable"])
           @link(
             url: "{path_str}",
-            import: ["@natsPublish", "@natsSubscription", "NatsPublishResult", "NatsStreamDeliverPolicy"]
+            import: [
+              "@natsPublish",
+              "@natsSubscription",
+              "@natsRequest",
+              "NatsPublishResult",
+              "NatsStreamDeliverPolicy"
+            ]
           )
+
+        input RequestReplyInput {{
+          message: String!
+        }}
+
+        type RequestReplyResult {{
+          message: String!
+        }}
 
         type Query {{
           hello: String!
+
+          requestReply(input: RequestReplyInput!): RequestReplyResult! @natsRequest(
+            subject: "help.please"
+            timeoutMs: 500
+          )
+
+          timeoutReply(input: RequestReplyInput!): RequestReplyResult! @natsRequest(
+            subject: "timeout.please"
+            timeoutMs: 500
+          )
         }}
 
         type Mutation {{
@@ -91,7 +115,6 @@ fn subgraph() -> ExtensionOnlySubgraph {
 fn config() -> &'static str {
     indoc! {r#"
         [[extensions.nats.config.endpoint]]
-        name = "default"
         servers = ["nats://localhost:4222"]
 
         [extensions.nats.config.endpoint.authentication]
@@ -396,5 +419,99 @@ async fn test_non_existing_stream() {
         ]
       }
     ]
+    "#);
+}
+
+#[tokio::test]
+async fn request_reply() {
+    tokio::spawn(async move {
+        let nats = nats_client().await;
+        let mut subscription = nats.subscribe("help.please").await.unwrap();
+        let reply = json!({ "message": "OK, I CAN HELP!!!" });
+
+        while let Some(message) = subscription.next().await {
+            let reply_subject = message.reply.unwrap();
+
+            nats.publish(reply_subject, serde_json::to_vec(&reply).unwrap().into())
+                .await
+                .unwrap();
+        }
+    });
+
+    let config = TestConfig::builder()
+        .with_cli(CLI_PATH)
+        .with_gateway(GATEWAY_PATH)
+        .with_subgraph(subgraph())
+        .enable_networking()
+        .build(config())
+        .unwrap();
+
+    let runner = TestRunner::new(config).await.unwrap();
+
+    let query = indoc! {r#"
+        query {
+          requestReply(input: { message: "Help, please!" }) {
+            message
+          }
+        }
+    "#};
+
+    let result: serde_json::Value = runner.graphql_query(query).send().await.unwrap();
+    insta::assert_json_snapshot!(result, @r#"
+    {
+      "data": {
+        "requestReply": {
+          "message": "OK, I CAN HELP!!!"
+        }
+      }
+    }
+    "#);
+}
+
+#[tokio::test]
+async fn request_reply_timeout() {
+    tokio::spawn(async move {
+        let nats = nats_client().await;
+        let mut subscription = nats.subscribe("timeout.please").await.unwrap();
+        let reply = json!({ "message": "OK, I CAN HELP!!!" });
+
+        while (subscription.next().await).is_some() {
+            nats.publish("other.subject", serde_json::to_vec(&reply).unwrap().into())
+                .await
+                .unwrap();
+        }
+    });
+
+    let config = TestConfig::builder()
+        .with_cli(CLI_PATH)
+        .with_gateway(GATEWAY_PATH)
+        .with_subgraph(subgraph())
+        .enable_networking()
+        .build(config())
+        .unwrap();
+
+    let runner = TestRunner::new(config).await.unwrap();
+
+    let query = indoc! {r#"
+        query {
+          timeoutReply(input: { message: "Help, please!" }) {
+            message
+          }
+        }
+    "#};
+
+    let result: serde_json::Value = runner.graphql_query(query).send().await.unwrap();
+    insta::assert_json_snapshot!(result, @r#"
+    {
+      "data": null,
+      "errors": [
+        {
+          "message": "Failed to request message: deadline has elapsed",
+          "extensions": {
+            "code": "INTERNAL_SERVER_ERROR"
+          }
+        }
+      ]
+    }
     "#);
 }

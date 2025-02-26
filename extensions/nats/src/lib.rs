@@ -12,7 +12,7 @@ use grafbase_sdk::{
     Error, Extension, NatsAuth, Resolver, ResolverExtension, SharedContext, Subscription,
 };
 use subscription::FilteredSubscription;
-use types::{DirectiveKind, NatsPublishResult, PublishArguments, SubscribeArguments};
+use types::{DirectiveKind, NatsPublishResult, PublishArguments, RequestArguments, SubscribeArguments};
 
 #[derive(ResolverExtension)]
 struct Nats {
@@ -73,6 +73,14 @@ impl Resolver for Nats {
                 })?;
 
                 self.publish(args)
+            }
+            DirectiveKind::Request => {
+                let args: RequestArguments<'_> = directive.arguments().map_err(|e| Error {
+                    extensions: Vec::new(),
+                    message: format!("Error deserializing directive arguments: {e}"),
+                })?;
+
+                self.request(args)
             }
         }
     }
@@ -148,6 +156,53 @@ impl Nats {
         output.push_value(NatsPublishResult {
             success: result.is_ok(),
         });
+
+        Ok(output)
+    }
+
+    fn request(&self, request: RequestArguments<'_>) -> Result<FieldOutput, Error> {
+        let Some(client) = self.clients.get(request.provider) else {
+            return Err(Error {
+                extensions: Vec::new(),
+                message: format!("NATS provider not found: {}", request.provider),
+            });
+        };
+
+        let body = request.body().unwrap_or(&serde_json::Value::Null);
+
+        let message = client
+            .request::<_, serde_json::Value>(request.subject, body, Some(request.timeout))
+            .map_err(|e| Error {
+                extensions: Vec::new(),
+                message: format!("Failed to request message: {}", e),
+            })?;
+
+        let mut output = FieldOutput::new();
+
+        let selection = match request.selection {
+            Some(selection) => selection,
+            None => {
+                output.push_value(message);
+                return Ok(output);
+            }
+        };
+
+        let mut jq = self.jq_selection.borrow_mut();
+
+        let filtered = jq.select(selection, message).map_err(|e| Error {
+            extensions: Vec::new(),
+            message: format!("Failed to filter with selection: {}", e),
+        })?;
+
+        for payload in filtered {
+            match payload {
+                Ok(payload) => output.push_value(payload),
+                Err(error) => output.push_error(Error {
+                    extensions: Vec::new(),
+                    message: format!("Failed to filter with selection: {}", error),
+                }),
+            }
+        }
 
         Ok(output)
     }

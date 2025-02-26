@@ -43,7 +43,7 @@ impl ExtensionInstance {
             .await;
 
         match result {
-            Ok(output) => output.map_err(Into::into),
+            Ok(output) => output.map_err(|e| e.into()),
             Err(e) => {
                 self.poisoned = true;
                 Err(e.into())

@@ -33,6 +33,34 @@ impl NatsClient {
         Ok(self.inner.publish(subject, &serde_json::to_vec(payload).unwrap())?)
     }
 
+    /// Sends a request to the specified NATS subject and waits for a response
+    ///
+    /// # Arguments
+    ///
+    /// * `subject` - The NATS subject to send the request to
+    /// * `payload` - The request payload to serialize and send
+    /// * `timeout` - Optional duration to wait for a response before timing out
+    ///
+    /// # Returns
+    ///
+    /// Result containing the deserialized response or an error if the request fails
+    pub fn request<S, T>(
+        &self,
+        subject: &str,
+        payload: &S,
+        timeout: Option<Duration>,
+    ) -> Result<T, Box<dyn std::error::Error>>
+    where
+        S: serde::Serialize,
+        T: for<'de> serde::Deserialize<'de>,
+    {
+        let timeout = timeout.map(|t| t.as_millis() as u64);
+        let body = serde_json::to_vec(payload).unwrap();
+        let response = self.inner.request(subject, &body, timeout)?;
+
+        Ok(serde_json::from_slice(&response.payload)?)
+    }
+
     /// Subscribes to messages on the specified NATS subject
     ///
     /// # Arguments

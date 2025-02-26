@@ -121,6 +121,39 @@ impl HostNatsClient for WasiState {
         }
     }
 
+    async fn request(
+        &mut self,
+        self_: Resource<NatsClient>,
+        subject: String,
+        message: Vec<u8>,
+        timeout_ms: Option<u64>,
+    ) -> wasmtime::Result<Result<NatsMessage, String>> {
+        let client = self.get_mut(&self_)?;
+        let request = client.request(subject, message.into());
+
+        let result = match timeout_ms {
+            Some(ms) => {
+                let duration = Duration::from_millis(ms);
+
+                match tokio::time::timeout(duration, request).await {
+                    Ok(message) => message,
+                    Err(err) => {
+                        return Ok(Err(err.to_string()));
+                    }
+                }
+            }
+            None => request.await,
+        };
+
+        match result {
+            Ok(message) => Ok(Ok(NatsMessage {
+                subject: message.subject.to_string(),
+                payload: message.payload.into(),
+            })),
+            Err(err) => Ok(Err(err.to_string())),
+        }
+    }
+
     async fn drop(&mut self, rep: Resource<NatsClient>) -> wasmtime::Result<()> {
         self.table.delete(rep)?;
         Ok(())

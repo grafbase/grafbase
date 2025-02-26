@@ -41,6 +41,35 @@ directive @natsSubscription(
   streamConfig: NatsStreamConfiguration
 ) on FIELD_DEFINITION
 
+directive @natsRequest(
+  """
+  The NATS provider to use
+  """
+  provider: String! = "default"
+
+  """
+  The subject to publish to
+  This supports templating using GraphQL arguments: {{args.myArgument}}
+  """
+  subject: UrlTemplate!
+
+  """
+  Selection to apply to the subscription payload. In jq syntax.
+  """
+  selection: String
+
+  """
+  The body of the message to publish
+  """
+  body: Body! = { selection: "*" }
+
+  """
+  Timeout in milliseconds for the request. If the request does not receive a response within
+  this time, the request will fail with a timeout error.
+  """
+  timeoutMs: Int! = 5000
+) on FIELD_DEFINITION
+
 """
 Configuration for a NATS stream subscription
 """

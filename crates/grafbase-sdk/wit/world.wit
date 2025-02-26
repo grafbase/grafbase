@@ -119,6 +119,8 @@ interface types {
         publish: func(subject: string, message: list<u8>) -> result<_, string>;
         // Subscribes to a subject.
         subscribe: func(subject: string, stream-config: option<nats-stream-config>) -> result<nats-subscriber, string>;
+        // Sends a request to a subject and waits for a response
+        request: func(subject: string, message: list<u8>, timeout-ms: option<u64>) -> result<nats-message, string>;
     }
 
     // A NATS subscriber resource for receiving messages from a subject
@@ -214,12 +216,20 @@ interface types {
         get: func(name: string) -> option<string>;
     }
 
+    // A token represents an authenticated user identity.
     record token {
+        // The raw binary token data
         raw: list<u8>,
     }
 
+    // A resource for caching data with optional expiration.
     resource cache {
+        // Retrieves a value from the cache by key.
+        // Returns None if the key does not exist or has expired.
         get: static func(key: string) -> option<list<u8>>;
+        // Sets a value in the cache with the specified key.
+        // Optional ttl-ms parameter sets the time-to-live in milliseconds after which the value expires.
+        // If ttl-ms is None, the value will not expire automatically.
         set: static func(key: string, value: list<u8>, ttl-ms: option<u64>) -> ();
     }
 }
