@@ -15,7 +15,7 @@ pub use types::{Error, ResponseData};
 
 #[ctor::ctor]
 fn setup_rustls() {
-    rustls::crypto::ring::default_provider().install_default().unwrap();
+    rustls::crypto::aws_lc_rs::default_provider().install_default().unwrap();
 }
 
 #[ctor::ctor]

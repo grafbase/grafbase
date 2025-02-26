@@ -17,7 +17,7 @@ mod telemetry;
 const THREAD_NAME: &str = "grafbase-gateway";
 
 fn main() -> anyhow::Result<()> {
-    rustls::crypto::ring::default_provider()
+    rustls::crypto::aws_lc_rs::default_provider()
         .install_default()
         .expect("installing default crypto provider");
 

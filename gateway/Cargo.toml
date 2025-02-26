@@ -28,7 +28,7 @@ graph-ref.workspace = true
 itertools.workspace = true
 mimalloc.workspace = true
 opentelemetry-aws = { workspace = true }
-rustls = { workspace = true, features = ["ring"] }
+rustls = { workspace = true, features = ["aws-lc-rs"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "signal"] }
 toml.workspace = true
 tracing.workspace = true
