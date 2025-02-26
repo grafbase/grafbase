@@ -8890,7 +8890,6 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.11",
  "tokio",
- "tokio-stream",
  "toml",
  "tracing",
  "ulid",
