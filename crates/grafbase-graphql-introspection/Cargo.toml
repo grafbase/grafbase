@@ -10,7 +10,7 @@ repository.workspace = true
 workspace = true
 
 [dependencies]
-cynic = { workspace = true, features = ["http-reqwest"] }
+cynic = { workspace = true, features = ["http-surf"] }
 cynic-introspection.workspace = true
 cynic-parser = { workspace = true, features = ["pretty"] }
 grafbase-workspace-hack.workspace = true

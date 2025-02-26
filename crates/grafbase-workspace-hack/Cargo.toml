@@ -44,7 +44,7 @@ crossbeam-channel = { version = "0.5" }
 crossbeam-queue = { version = "0.3" }
 crossbeam-utils = { version = "0.8" }
 curve25519-dalek = { version = "4", default-features = false, features = ["alloc", "digest", "precomputed-tables", "zeroize"] }
-cynic = { version = "3", features = ["http-reqwest"] }
+cynic = { version = "3", features = ["http-reqwest", "http-surf"] }
 cynic-parser = { version = "0.9", features = ["pretty", "report"] }
 der = { version = "0.7", default-features = false, features = ["oid", "pem", "std"] }
 deranged = { version = "0.3", default-features = false, features = ["powerfmt", "serde", "std"] }
@@ -67,16 +67,18 @@ futures-sink = { version = "0.3" }
 futures-task = { version = "0.3", default-features = false, features = ["std"] }
 futures-util = { version = "0.3", features = ["channel", "io", "sink"] }
 generic-array = { version = "0.14", default-features = false, features = ["more_lengths", "zeroize"] }
+getrandom-468e82937335b1c9 = { package = "getrandom", version = "0.3", default-features = false, features = ["std", "wasm_js"] }
 group = { version = "0.13", default-features = false, features = ["alloc"] }
 hashbrown-3575ec1268b04181 = { package = "hashbrown", version = "0.15", features = ["serde"] }
 hashbrown-582f2526e08bb6a0 = { package = "hashbrown", version = "0.14", features = ["raw", "serde"] }
 hex = { version = "0.4" }
+http-types = { version = "2" }
 hyper = { version = "1", features = ["full"] }
 hyper-util = { version = "0.1", features = ["client-legacy", "server-auto", "service"] }
 indexmap = { version = "2", features = ["serde"] }
 insta = { version = "1", features = ["glob", "json", "redactions", "yaml"] }
 lazy_static = { version = "1", default-features = false, features = ["spin_no_std"] }
-log = { version = "0.4", default-features = false, features = ["std"] }
+log = { version = "0.4", default-features = false, features = ["kv_unstable", "std"] }
 memchr = { version = "2" }
 miette = { version = "7", features = ["fancy"] }
 mime_guess = { version = "2" }
@@ -117,6 +119,7 @@ similar-asserts = { version = "1", features = ["serde"] }
 smallvec = { version = "1", default-features = false, features = ["const_new", "serde", "union"] }
 spin = { version = "0.9", default-features = false, features = ["once", "spin_mutex"] }
 spki = { version = "0.7", default-features = false, features = ["pem", "std"] }
+standback = { version = "0.2", default-features = false, features = ["std"] }
 strum = { version = "0.27", features = ["derive"] }
 subtle = { version = "2" }
 sync_wrapper = { version = "1", default-features = false, features = ["futures"] }
@@ -167,7 +170,7 @@ crossbeam-channel = { version = "0.5" }
 crossbeam-queue = { version = "0.3" }
 crossbeam-utils = { version = "0.8" }
 curve25519-dalek = { version = "4", default-features = false, features = ["alloc", "digest", "precomputed-tables", "zeroize"] }
-cynic = { version = "3", features = ["http-reqwest"] }
+cynic = { version = "3", features = ["http-reqwest", "http-surf"] }
 cynic-parser = { version = "0.9", features = ["pretty", "report"] }
 der = { version = "0.7", default-features = false, features = ["oid", "pem", "std"] }
 deranged = { version = "0.3", default-features = false, features = ["powerfmt", "serde", "std"] }
@@ -190,16 +193,18 @@ futures-sink = { version = "0.3" }
 futures-task = { version = "0.3", default-features = false, features = ["std"] }
 futures-util = { version = "0.3", features = ["channel", "io", "sink"] }
 generic-array = { version = "0.14", default-features = false, features = ["more_lengths", "zeroize"] }
+getrandom-468e82937335b1c9 = { package = "getrandom", version = "0.3", default-features = false, features = ["std", "wasm_js"] }
 group = { version = "0.13", default-features = false, features = ["alloc"] }
 hashbrown-3575ec1268b04181 = { package = "hashbrown", version = "0.15", features = ["serde"] }
 hashbrown-582f2526e08bb6a0 = { package = "hashbrown", version = "0.14", features = ["raw", "serde"] }
 hex = { version = "0.4" }
+http-types = { version = "2" }
 hyper = { version = "1", features = ["full"] }
 hyper-util = { version = "0.1", features = ["client-legacy", "server-auto", "service"] }
 indexmap = { version = "2", features = ["serde"] }
 insta = { version = "1", features = ["glob", "json", "redactions", "yaml"] }
 lazy_static = { version = "1", default-features = false, features = ["spin_no_std"] }
-log = { version = "0.4", default-features = false, features = ["std"] }
+log = { version = "0.4", default-features = false, features = ["kv_unstable", "std"] }
 memchr = { version = "2" }
 miette = { version = "7", features = ["fancy"] }
 mime_guess = { version = "2" }
@@ -240,6 +245,7 @@ similar-asserts = { version = "1", features = ["serde"] }
 smallvec = { version = "1", default-features = false, features = ["const_new", "serde", "union"] }
 spin = { version = "0.9", default-features = false, features = ["once", "spin_mutex"] }
 spki = { version = "0.7", default-features = false, features = ["pem", "std"] }
+standback = { version = "0.2", default-features = false, features = ["std"] }
 strum = { version = "0.27", features = ["derive"] }
 subtle = { version = "2" }
 syn = { version = "2", features = ["extra-traits", "fold", "full", "visit", "visit-mut"] }
@@ -269,7 +275,6 @@ zeroize = { version = "1", features = ["zeroize_derive"] }
 addr2line = { version = "0.24", default-features = false, features = ["std"] }
 ahash = { version = "0.8" }
 axum = { version = "0.8" }
-getrandom-468e82937335b1c9 = { package = "getrandom", version = "0.3", default-features = false, features = ["std"] }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
@@ -277,7 +282,7 @@ libc = { version = "0.2", features = ["extra_traits"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
-rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process", "procfs", "stdio", "termios", "thread", "time"] }
+rustix = { version = "0.38", features = ["event", "mm", "net", "param", "pipe", "process", "procfs", "stdio", "termios", "thread", "time"] }
 stable_deref_trait = { version = "1" }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["log", "timeout"] }
 
@@ -285,7 +290,6 @@ tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features 
 addr2line = { version = "0.24", default-features = false, features = ["std"] }
 ahash = { version = "0.8" }
 axum = { version = "0.8" }
-getrandom-468e82937335b1c9 = { package = "getrandom", version = "0.3", default-features = false, features = ["std"] }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
@@ -293,7 +297,7 @@ libc = { version = "0.2", features = ["extra_traits"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
-rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process", "procfs", "stdio", "termios", "thread", "time"] }
+rustix = { version = "0.38", features = ["event", "mm", "net", "param", "pipe", "process", "procfs", "stdio", "termios", "thread", "time"] }
 stable_deref_trait = { version = "1" }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["log", "timeout"] }
 
@@ -301,7 +305,6 @@ tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features 
 addr2line = { version = "0.24", default-features = false, features = ["std"] }
 ahash = { version = "0.8" }
 axum = { version = "0.8" }
-getrandom-468e82937335b1c9 = { package = "getrandom", version = "0.3", default-features = false, features = ["std"] }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
@@ -309,7 +312,7 @@ libc = { version = "0.2", features = ["extra_traits"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
-rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process", "procfs", "stdio", "termios", "thread", "time"] }
+rustix = { version = "0.38", features = ["event", "mm", "net", "param", "pipe", "process", "procfs", "stdio", "termios", "thread", "time"] }
 spin = { version = "0.9" }
 stable_deref_trait = { version = "1" }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["log", "timeout"] }
@@ -318,7 +321,6 @@ tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features 
 addr2line = { version = "0.24", default-features = false, features = ["std"] }
 ahash = { version = "0.8" }
 axum = { version = "0.8" }
-getrandom-468e82937335b1c9 = { package = "getrandom", version = "0.3", default-features = false, features = ["std"] }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
@@ -326,38 +328,35 @@ libc = { version = "0.2", features = ["extra_traits"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
-rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process", "procfs", "stdio", "termios", "thread", "time"] }
+rustix = { version = "0.38", features = ["event", "mm", "net", "param", "pipe", "process", "procfs", "stdio", "termios", "thread", "time"] }
 spin = { version = "0.9" }
 stable_deref_trait = { version = "1" }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["log", "timeout"] }
 
 [target.x86_64-pc-windows-msvc.dependencies]
 axum = { version = "0.8" }
-getrandom-468e82937335b1c9 = { package = "getrandom", version = "0.3", default-features = false, features = ["std"] }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
+rustix = { version = "0.38", features = ["event", "fs", "net"] }
 spin = { version = "0.9" }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["log", "timeout"] }
-winapi = { version = "0.3", default-features = false, features = ["consoleapi", "errhandlingapi", "fileapi", "handleapi", "impl-default", "knownfolders", "minwinbase", "minwindef", "objbase", "processenv", "processthreadsapi", "profileapi", "shlobj", "synchapi", "winbase", "winerror", "winnt", "winuser"] }
+winapi = { version = "0.3", default-features = false, features = ["consoleapi", "errhandlingapi", "fileapi", "handleapi", "impl-default", "knownfolders", "minwinbase", "minwindef", "objbase", "processenv", "processthreadsapi", "profileapi", "shlobj", "synchapi", "timezoneapi", "winbase", "winerror", "winnt", "winuser"] }
 windows-sys-73dcd821b1037cfd = { package = "windows-sys", version = "0.59", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Win32_Globalization", "Win32_NetworkManagement_IpHelper", "Win32_Networking_WinSock", "Win32_Security_Authentication_Identity", "Win32_Security_Credentials", "Win32_Security_Cryptography", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_IO", "Win32_System_Ioctl", "Win32_System_Kernel", "Win32_System_LibraryLoader", "Win32_System_Memory", "Win32_System_Performance", "Win32_System_Pipes", "Win32_System_SystemInformation", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell"] }
 windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Wdk_System_IO", "Win32_Foundation", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_IO", "Win32_System_Pipes", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming"] }
-windows-sys-c8eced492e86ede7 = { package = "windows-sys", version = "0.48", features = ["Win32_Foundation", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_Registry", "Win32_System_SystemInformation", "Win32_System_Time"] }
 
 [target.x86_64-pc-windows-msvc.build-dependencies]
 axum = { version = "0.8" }
-getrandom-468e82937335b1c9 = { package = "getrandom", version = "0.3", default-features = false, features = ["std"] }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
+rustix = { version = "0.38", features = ["event", "fs", "net"] }
 spin = { version = "0.9" }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["log", "timeout"] }
-winapi = { version = "0.3", default-features = false, features = ["consoleapi", "errhandlingapi", "fileapi", "handleapi", "impl-default", "knownfolders", "minwinbase", "minwindef", "objbase", "processenv", "processthreadsapi", "profileapi", "shlobj", "synchapi", "winbase", "winerror", "winnt", "winuser"] }
+winapi = { version = "0.3", default-features = false, features = ["consoleapi", "errhandlingapi", "fileapi", "handleapi", "impl-default", "knownfolders", "minwinbase", "minwindef", "objbase", "processenv", "processthreadsapi", "profileapi", "shlobj", "synchapi", "timezoneapi", "winbase", "winerror", "winnt", "winuser"] }
 windows-sys-73dcd821b1037cfd = { package = "windows-sys", version = "0.59", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Win32_Globalization", "Win32_NetworkManagement_IpHelper", "Win32_Networking_WinSock", "Win32_Security_Authentication_Identity", "Win32_Security_Credentials", "Win32_Security_Cryptography", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_IO", "Win32_System_Ioctl", "Win32_System_Kernel", "Win32_System_LibraryLoader", "Win32_System_Memory", "Win32_System_Performance", "Win32_System_Pipes", "Win32_System_SystemInformation", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell"] }
 windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Wdk_System_IO", "Win32_Foundation", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_IO", "Win32_System_Pipes", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming"] }
-windows-sys-c8eced492e86ede7 = { package = "windows-sys", version = "0.48", features = ["Win32_Foundation", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_Registry", "Win32_System_SystemInformation", "Win32_System_Time"] }
 
 [target.x86_64-unknown-linux-musl.dependencies]
 addr2line = { version = "0.24", default-features = false, features = ["std"] }
 ahash = { version = "0.8" }
 axum = { version = "0.8" }
-getrandom-468e82937335b1c9 = { package = "getrandom", version = "0.3", default-features = false, features = ["std"] }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
@@ -366,7 +365,7 @@ linux-raw-sys = { version = "0.4", default-features = false, features = ["elf", 
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
-rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process", "procfs", "stdio", "termios", "thread", "time"] }
+rustix = { version = "0.38", features = ["event", "mm", "net", "param", "pipe", "process", "procfs", "stdio", "termios", "thread", "time"] }
 spin = { version = "0.9" }
 stable_deref_trait = { version = "1" }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["log", "timeout"] }
@@ -375,7 +374,6 @@ tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features 
 addr2line = { version = "0.24", default-features = false, features = ["std"] }
 ahash = { version = "0.8" }
 axum = { version = "0.8" }
-getrandom-468e82937335b1c9 = { package = "getrandom", version = "0.3", default-features = false, features = ["std"] }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
@@ -384,7 +382,7 @@ linux-raw-sys = { version = "0.4", default-features = false, features = ["elf", 
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
-rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process", "procfs", "stdio", "termios", "thread", "time"] }
+rustix = { version = "0.38", features = ["event", "mm", "net", "param", "pipe", "process", "procfs", "stdio", "termios", "thread", "time"] }
 spin = { version = "0.9" }
 stable_deref_trait = { version = "1" }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["log", "timeout"] }
@@ -393,7 +391,6 @@ tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features 
 addr2line = { version = "0.24", default-features = false, features = ["std"] }
 ahash = { version = "0.8" }
 axum = { version = "0.8" }
-getrandom-468e82937335b1c9 = { package = "getrandom", version = "0.3", default-features = false, features = ["std"] }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
@@ -402,7 +399,7 @@ linux-raw-sys = { version = "0.4", default-features = false, features = ["elf", 
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
-rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process", "procfs", "stdio", "termios", "thread", "time"] }
+rustix = { version = "0.38", features = ["event", "mm", "net", "param", "pipe", "process", "procfs", "stdio", "termios", "thread", "time"] }
 stable_deref_trait = { version = "1" }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["log", "timeout"] }
 
@@ -410,7 +407,6 @@ tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features 
 addr2line = { version = "0.24", default-features = false, features = ["std"] }
 ahash = { version = "0.8" }
 axum = { version = "0.8" }
-getrandom-468e82937335b1c9 = { package = "getrandom", version = "0.3", default-features = false, features = ["std"] }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
@@ -419,7 +415,7 @@ linux-raw-sys = { version = "0.4", default-features = false, features = ["elf", 
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
-rustix = { version = "0.38", features = ["event", "mm", "net", "param", "process", "procfs", "stdio", "termios", "thread", "time"] }
+rustix = { version = "0.38", features = ["event", "mm", "net", "param", "pipe", "process", "procfs", "stdio", "termios", "thread", "time"] }
 stable_deref_trait = { version = "1" }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["log", "timeout"] }
 
