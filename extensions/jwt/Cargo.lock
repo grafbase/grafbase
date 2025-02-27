@@ -1945,6 +1945,7 @@ dependencies = [
  "graphql-ws-client",
  "http 1.2.0",
  "indoc",
+ "minicbor",
  "minicbor-serde",
  "reqwest 0.12.12",
  "semver 1.0.25",

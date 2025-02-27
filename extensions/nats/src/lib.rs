@@ -258,7 +258,7 @@ impl Nats {
                 let value = match store.get::<serde_json::Value>(args.key) {
                     Ok(Some(value)) => value,
                     Ok(None) => {
-                        output.push_value(Option::<serde_json::Value>::None);
+                        output.push_value(serde_json::Value::Null);
                         return Ok(output);
                     }
                     Err(error) => {

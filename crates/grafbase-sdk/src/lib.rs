@@ -2,6 +2,7 @@
 #![deny(missing_docs)]
 #![expect(unsafe_op_in_unsafe_fn)]
 
+mod cbor;
 mod component;
 #[doc(hidden)]
 pub mod extension;

@@ -1,7 +1,7 @@
 //! Type definitions of the input and output data structures of the SDK.
 
 pub use http::StatusCode;
-pub use minicbor_serde::error::DecodeError;
+use minicbor_serde::error::DecodeError;
 pub use serde::Deserialize;
 use serde::Serialize;
 
@@ -90,8 +90,7 @@ impl FieldOutput {
     where
         T: Serialize,
     {
-        let output =
-            minicbor_serde::to_vec(output).expect("serialization error is Infallible, so it should never happen");
+        let output = crate::cbor::to_vec(output).expect("serialization error is Infallible, so it should never happen");
 
         self.0.outputs.push(Ok(output));
     }
@@ -205,8 +204,7 @@ impl Token {
         T: serde::Serialize,
     {
         Self {
-            claims: minicbor_serde::to_vec(&claims)
-                .expect("serialization error is Infallible, so it should never happen"),
+            claims: crate::cbor::to_vec(&claims).expect("serialization error is Infallible, so it should never happen"),
         }
     }
 }

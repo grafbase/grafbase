@@ -120,12 +120,17 @@ impl Resolver for RestExtension {
             message: format!("Error deserializing response: {e}"),
         })?;
 
+        let mut results = FieldOutput::new();
+
+        if !(data.is_object() || data.is_array()) {
+            results.push_value(data);
+            return Ok(results);
+        }
+
         let filtered = self.jq_selection.select(rest.selection, data).map_err(|e| Error {
             extensions: Vec::new(),
             message: format!("Error selecting result value: {e}"),
         })?;
-
-        let mut results = FieldOutput::new();
 
         for result in filtered {
             match result {

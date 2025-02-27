@@ -1944,6 +1944,7 @@ dependencies = [
  "jaq-core",
  "jaq-json",
  "jaq-std",
+ "minicbor",
  "minicbor-serde",
  "reqwest",
  "semver 1.0.25",

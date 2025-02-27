@@ -55,6 +55,7 @@ indoc = { workspace = true, optional = true }
 jaq-core = { version = "2.1.1", optional = true }
 jaq-json = { version = "1.1.1", features = ["serde_json"], optional = true }
 jaq-std = { version = "2.1.0", optional = true }
+minicbor = "0.26.0"
 minicbor-serde = { workspace = true, features = ["alloc"] }
 reqwest = { workspace = true, features = ["json"], optional = true }
 serde.workspace = true

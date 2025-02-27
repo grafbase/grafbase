@@ -26,7 +26,7 @@ where
         Ok(minicbor_serde::from_slice(&value)?)
     } else {
         let value = init()?;
-        let serialized = minicbor_serde::to_vec(&value.value)?;
+        let serialized = crate::cbor::to_vec(&value.value)?;
 
         crate::wit::Cache::set(key, &serialized, value.duration.map(|d| d.as_millis() as u64));
 
