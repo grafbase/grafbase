@@ -1,13 +1,18 @@
 name: Gateway Helm Chart
 
 on:
+  pull_request: {}
+  push:
+    branches:
+      - main
+    tags:
+      - 'gateway-*'
   workflow_dispatch:
     inputs:
       required_reviewers:
         description: 'Users or teams that must approve the workflow run'
         required: true
         default: 'Engineering'
-  push:
 
 permissions:
   contents: read

@@ -1,11 +1,11 @@
 # Grafbase Gateway Helm Chart
 
 The README file provides instructions for using and releasing the Grafbase Gateway Helm Chart.
-The repository is hosted on GitHub's Container Registry (ghcr.io).
+The repository is hosted on [GitHub's Container Registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry) (ghcr.io).
 
 ## What is ghcr.io?
 
-ghcr.io is GitHub's Container Registry, which allows you to store and manage Docker container images and Helm charts within your GitHub account.
+ghcr.io allows you to store and manage Docker container images and Helm charts within your GitHub account.
 It provides a secure and scalable way to distribute your containerized applications and Helm charts.
 
 ## Usage
