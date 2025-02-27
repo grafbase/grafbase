@@ -37,7 +37,18 @@ impl NativeFetcher {
             .collect::<anyhow::Result<_>>()?;
 
         Ok(NativeFetcher {
-            client: reqwest::Client::default(),
+            client: reqwest::Client::builder()
+                // Hyper connection pool only exposes two parameters max idle connections per host
+                // and idle connection timeout. There is not TTL on the connections themselves to
+                // force a refresh, necessary if the DNS changes its records. Somehow, even within
+                // a benchmark ramping *up* traffic, we do pick up DNS changes by setting a pool
+                // idle timeout of 5 seconds even though in theory no connection should be idle?
+                // A bit confusing, and I suspect I don't fully understand how Hyper is managing
+                // connections underneath. But seems like best choice we have right now, Apollo'
+                // router uses this same default value.
+                .pool_idle_timeout(Some(std::time::Duration::from_secs(5)))
+                .hickory_dns(true)
+                .build()?,
             default_signing_parameters: default_signing_params,
             subgraph_signing_parameters,
         })
@@ -59,13 +70,7 @@ impl Fetcher for NativeFetcher {
             Err(error) => return (Err(error), None),
         };
 
-        let result = self.client.execute(request).await.map_err(|e| {
-            if e.is_timeout() {
-                FetchError::Timeout
-            } else {
-                reqwest_error_to_fetch_error(e)
-            }
-        });
+        let result = self.client.execute(request).await.map_err(Into::into);
 
         info.track_connection();
 
@@ -80,13 +85,13 @@ impl Fetcher for NativeFetcher {
         let headers = std::mem::take(resp.headers_mut());
         let extensions = std::mem::take(resp.extensions_mut());
         let version = resp.version();
-        let result = resp.bytes().await.map_err(reqwest_error_to_fetch_error);
+        let result = resp.bytes().await;
 
         info.track_response();
 
         let bytes = match result {
             Ok(bytes) => bytes,
-            Err(e) => return (Err(e), Some(info.build(None))),
+            Err(e) => return (Err(e.into()), Some(info.build(None))),
         };
 
         // reqwest transforms the body into a stream with Into
@@ -114,7 +119,7 @@ impl Fetcher for NativeFetcher {
                 reqwest_eventsource::Error::InvalidStatusCode(status_code, _) => {
                     FetchError::InvalidStatusCode(status_code)
                 }
-                err => FetchError::AnyError(err.to_string()),
+                err => FetchError::Message(err.to_string()),
             })
             .try_take_while(|event| {
                 let is_complete = if let reqwest_eventsource::Event::Message(message) = event {
@@ -131,7 +136,7 @@ impl Fetcher for NativeFetcher {
                 if message.event == "next" {
                     Ok(Some(OwnedOrSharedBytes::Owned(message.data.into())))
                 } else {
-                    Err(FetchError::AnyError(format!("Unexpected event: {}", message.event)))
+                    Err(FetchError::Message(format!("Unexpected event: {}", message.event)))
                 }
             });
         Ok(events)
@@ -147,7 +152,7 @@ impl Fetcher for NativeFetcher {
         use tungstenite::{client::IntoClientRequest, http::HeaderValue};
 
         // graphql_ws_client requires a 'static body which we can't provide.
-        let body = serde_json::value::to_raw_value(&request.body).map_err(|err| FetchError::any(err.to_string()));
+        let body = serde_json::value::to_raw_value(&request.body).map_err(|err| err.to_string());
         let mut ws_request = request.url.as_ref().into_client_request().unwrap();
         ws_request.headers_mut().extend(request.headers);
         ws_request.headers_mut().insert(
@@ -159,22 +164,18 @@ impl Fetcher for NativeFetcher {
             let (connection, _) = {
                 async_tungstenite::tokio::connect_async(ws_request)
                     .await
-                    .map_err(FetchError::any)?
+                    .map_err(|err| err.to_string())?
             };
 
             Ok(graphql_ws_client::Client::build(connection)
                 .payload(request.websocket_init_payload)
-                .map_err(FetchError::any)?
+                .map_err(|err| err.to_string())?
                 .subscribe(WebsocketRequest(body?))
                 .await
-                .map_err(FetchError::any)?
-                .map(|item| item.map_err(FetchError::any)))
+                .map_err(|err| err.to_string())?
+                .map(|item| item.map_err(|err| FetchError::from(err.to_string()))))
         }
     }
-}
-
-fn reqwest_error_to_fetch_error(e: reqwest::Error) -> FetchError {
-    FetchError::any(e.without_url())
 }
 
 fn into_reqwest(request: FetchRequest<'_, Bytes>) -> reqwest::Request {

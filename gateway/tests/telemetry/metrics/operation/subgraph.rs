@@ -10,12 +10,12 @@ fn request_duration() {
             .send()
             .await;
 
-        insta::assert_json_snapshot!(response, @r###"
+        insta::assert_json_snapshot!(response, @r#"
         {
           "data": null,
           "errors": [
             {
-              "message": "Request to subgraph 'accounts' failed with: error sending request",
+              "message": "Request to subgraph 'accounts' failed.",
               "path": [
                 "me"
               ],
@@ -25,7 +25,7 @@ fn request_duration() {
             }
           ]
         }
-        "###);
+        "#);
 
         tokio::time::sleep(METRICS_DELAY).await;
 
@@ -143,12 +143,12 @@ fn retries() {
             .send()
             .await;
 
-        insta::assert_json_snapshot!(response, @r###"
+        insta::assert_json_snapshot!(response, @r#"
         {
           "data": null,
           "errors": [
             {
-              "message": "Request to subgraph 'accounts' failed with: error sending request",
+              "message": "Request to subgraph 'accounts' failed.",
               "path": [
                 "me"
               ],
@@ -158,7 +158,7 @@ fn retries() {
             }
           ]
         }
-        "###);
+        "#);
 
         tokio::time::sleep(METRICS_DELAY).await;
 
@@ -208,12 +208,12 @@ fn inflight() {
             .send()
             .await;
 
-        insta::assert_json_snapshot!(response, @r###"
+        insta::assert_json_snapshot!(response, @r#"
         {
           "data": null,
           "errors": [
             {
-              "message": "Request to subgraph 'accounts' failed with: error sending request",
+              "message": "Request to subgraph 'accounts' failed.",
               "path": [
                 "me"
               ],
@@ -223,7 +223,7 @@ fn inflight() {
             }
           ]
         }
-        "###);
+        "#);
 
         tokio::time::sleep(METRICS_DELAY).await;
 

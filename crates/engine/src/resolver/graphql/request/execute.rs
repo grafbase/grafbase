@@ -122,6 +122,7 @@ pub(crate) async fn execute_subgraph_request<R: Runtime>(
                 http_span.record_http_status_code(response.status());
             }
             Err(ref err) => {
+                tracing::error!("Request to subgraph {} failed with: {err}", endpoint.subgraph_name());
                 http_span.set_as_http_error(err.as_invalid_status_code());
             }
         };
