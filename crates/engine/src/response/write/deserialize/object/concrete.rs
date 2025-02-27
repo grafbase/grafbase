@@ -85,6 +85,7 @@ impl<'ctx> ConcreteShapeSeed<'ctx, '_> {
     {
         let shape = self.shape_id.walk(self.ctx);
         let object_id = self.ctx.subgraph_response.borrow_mut().data.reserve_object_id();
+
         Ok(self.post_process_fields_seed_result(
             shape,
             object_id,
@@ -240,8 +241,8 @@ impl<'de> Visitor<'de> for ConcreteShapeFieldsSeed<'_, '_> {
     {
         let schema = self.ctx.schema;
         let mut response_fields = Vec::with_capacity(self.field_shape_ids.len() + self.typename_response_keys.len());
-
         let mut maybe_object_definition_id = None;
+
         match self.object_identifier {
             ObjectIdentifier::Known(id) => {
                 maybe_object_definition_id = Some(id);

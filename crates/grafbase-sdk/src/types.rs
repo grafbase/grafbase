@@ -93,7 +93,7 @@ impl FieldOutput {
         let output =
             minicbor_serde::to_vec(output).expect("serialization error is Infallible, so it should never happen");
 
-        self.0.outputs.push(Ok(output))
+        self.0.outputs.push(Ok(output));
     }
 
     /// Push a new error to the response.

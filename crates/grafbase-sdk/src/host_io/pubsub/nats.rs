@@ -82,6 +82,102 @@ impl NatsClient {
 
         Ok(subscription)
     }
+
+    /// Gets a key-value store interface for the specified bucket
+    ///
+    /// # Arguments
+    ///
+    /// * `bucket` - The name of the JetStream KV bucket to access
+    ///
+    /// # Returns
+    ///
+    /// Result containing the key-value store interface or an error if retrieval fails
+    pub fn key_value(&self, bucket: &str) -> Result<NatsKeyValue, Box<dyn std::error::Error>> {
+        let store = self.inner.key_value(bucket)?;
+        Ok(store.into())
+    }
+}
+
+/// A key-value store for interacting with NATS JetStream KV buckets
+pub struct NatsKeyValue {
+    inner: wit::NatsKeyValue,
+}
+
+impl From<wit::NatsKeyValue> for NatsKeyValue {
+    fn from(inner: wit::NatsKeyValue) -> Self {
+        NatsKeyValue { inner }
+    }
+}
+
+impl NatsKeyValue {
+    /// Retrieves a value for the specified key
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - The key to retrieve the value for
+    ///
+    /// # Returns
+    ///
+    /// Result containing the deserialized value if found, or None if the key doesn't exist
+    pub fn get<S>(&self, key: &str) -> Result<Option<S>, Box<dyn std::error::Error>>
+    where
+        S: for<'a> serde::Deserialize<'a>,
+    {
+        match self.inner.get(key)? {
+            Some(ref value) => Ok(Some(serde_json::from_slice(value)?)),
+            None => Ok(None),
+        }
+    }
+
+    /// Stores a value for the specified key
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - The key to store the value under
+    /// * `value` - The value to store, which will be serialized to JSON
+    ///
+    /// # Returns
+    ///
+    /// Result containing the revision number of the stored value
+    pub fn put<S>(&self, key: &str, value: &S) -> Result<u64, Box<dyn std::error::Error>>
+    where
+        S: serde::Serialize,
+    {
+        let value = serde_json::to_vec(value)?;
+
+        Ok(self.inner.put(key, &value)?)
+    }
+
+    /// Creates a new key-value pair, failing if the key already exists
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - The key to create
+    /// * `value` - The value to store, which will be serialized to JSON
+    ///
+    /// # Returns
+    ///
+    /// Result containing the revision number of the created value
+    pub fn create<S>(&self, key: &str, value: &S) -> Result<u64, Box<dyn std::error::Error>>
+    where
+        S: serde::Serialize,
+    {
+        let value = serde_json::to_vec(value)?;
+        Ok(self.inner.create(key, &value)?)
+    }
+
+    /// Deletes the specified key and its associated value
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - The key to delete
+    ///
+    /// # Returns
+    ///
+    /// Result indicating success or an error if deletion fails
+    pub fn delete(&self, key: &str) -> Result<(), Box<dyn std::error::Error>> {
+        Ok(self.inner.delete(key)?)
+    }
 }
 
 /// A subscription to a NATS subject that receives messages published to that subject

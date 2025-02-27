@@ -1,6 +1,9 @@
 use std::time::Duration;
 
-use async_nats::{jetstream::stream::Config, ConnectOptions};
+use async_nats::{
+    jetstream::{kv, stream::Config},
+    ConnectOptions,
+};
 use futures::StreamExt;
 use grafbase_sdk::test::{DynamicSchema, ExtensionOnlySubgraph, TestConfig, TestRunner};
 use indoc::{formatdoc, indoc};
@@ -29,6 +32,7 @@ fn subgraph() -> ExtensionOnlySubgraph {
               "@natsPublish",
               "@natsSubscription",
               "@natsRequest",
+              "@natsKeyValue",
               "NatsPublishResult",
               "NatsStreamDeliverPolicy"
             ]
@@ -54,11 +58,43 @@ fn subgraph() -> ExtensionOnlySubgraph {
             subject: "timeout.please"
             timeoutMs: 500
           )
+
+          getUser(id: Int!): User @natsKeyValue(
+            bucket: "users"
+            key: "user.{{{{ args.id }}}}"
+            action: GET
+            selection: "{{ id, email, name }}"
+          )
+
+          getOtherUser(id: Int!): User @natsKeyValue(
+            bucket: "otherUsers"
+            key: "user.{{{{ args.id }}}}"
+            action: GET
+            selection: "{{ id, email, name }}"
+          )
         }}
 
         type Mutation {{
           publishUserEvent(id: Int!, input: UserEventInput!): NatsPublishResult! @natsPublish(
             subject: "publish.user.{{{{args.id}}}}.events"
+          )
+
+          kvPutUser(id: Int!, input: UserEventInput!): NatsKeyValueResult! @natsKeyValue(
+            bucket: "putUsers"
+            key: "user.{{{{ args.id }}}}"
+            action: PUT
+          )
+
+          kvCreateUser(id: Int!, input: UserEventInput!): NatsKeyValueResult! @natsKeyValue(
+            bucket: "createUsers"
+            key: "user.{{{{ args.id }}}}"
+            action: CREATE
+          )
+
+          kvDeleteUser(id: Int!): NatsPublishResult! @natsKeyValue(
+            bucket: "deleteUsers"
+            key: "user.{{{{ args.id }}}}"
+            action: DELETE
           )
         }}
 
@@ -95,6 +131,10 @@ fn subgraph() -> ExtensionOnlySubgraph {
           success: Boolean!
         }}
 
+        type NatsKeyValueResult {{
+          sequence: Int!
+        }}
+
         input UserEventInput {{
           email: String!
           name: String!
@@ -104,6 +144,12 @@ fn subgraph() -> ExtensionOnlySubgraph {
           email: String!
           name: String!
           number: Int!
+        }}
+
+        type User {{
+          id: Int!
+          email: String!
+          name: String!
         }}
     "#};
 
@@ -514,4 +560,270 @@ async fn request_reply_timeout() {
       ]
     }
     "#);
+}
+
+#[tokio::test]
+async fn kv_get_missing() {
+    let nats = nats_client().await;
+    let jet = async_nats::jetstream::new(nats);
+
+    let _ = jet.delete_key_value("users").await;
+
+    let kv_config = kv::Config {
+        bucket: String::from("users"),
+        ..Default::default()
+    };
+
+    jet.create_key_value(kv_config).await.unwrap();
+
+    let config = TestConfig::builder()
+        .with_cli(CLI_PATH)
+        .with_gateway(GATEWAY_PATH)
+        .with_subgraph(subgraph())
+        .enable_networking()
+        .build(config())
+        .unwrap();
+
+    let runner = TestRunner::new(config).await.unwrap();
+
+    let query = indoc! {r#"
+        query {
+          getUser(id: 1) {
+            id
+            email
+            name
+          }
+        }
+    "#};
+
+    let result: serde_json::Value = runner.graphql_query(query).send().await.unwrap();
+    insta::assert_json_snapshot!(result, @r#"
+    {
+      "data": {
+        "getUser": null
+      }
+    }
+    "#);
+}
+
+#[tokio::test]
+async fn kv_get_existing() {
+    let nats = nats_client().await;
+    let jet = async_nats::jetstream::new(nats);
+
+    let _ = jet.delete_key_value("otherUsers").await;
+
+    let kv_config = kv::Config {
+        bucket: String::from("otherUsers"),
+        ..Default::default()
+    };
+
+    let bucket = jet.create_key_value(kv_config).await.unwrap();
+    let data = json!({
+        "id": 1,
+        "email": "user1@example.com",
+        "name": "User One"
+    });
+
+    bucket
+        .create("user.1", serde_json::to_vec(&data).unwrap().into())
+        .await
+        .unwrap();
+
+    let config = TestConfig::builder()
+        .with_cli(CLI_PATH)
+        .with_gateway(GATEWAY_PATH)
+        .with_subgraph(subgraph())
+        .enable_networking()
+        .build(config())
+        .unwrap();
+
+    let runner = TestRunner::new(config).await.unwrap();
+
+    let query = indoc! {r#"
+        query {
+          getOtherUser(id: 1) {
+            id
+            email
+            name
+          }
+        }
+    "#};
+
+    let result: serde_json::Value = runner.graphql_query(query).send().await.unwrap();
+    insta::assert_json_snapshot!(result, @r#"
+    {
+      "data": {
+        "getOtherUser": {
+          "id": 1,
+          "email": "user1@example.com",
+          "name": "User One"
+        }
+      }
+    }
+    "#);
+}
+
+#[tokio::test]
+async fn kv_put() {
+    let nats = nats_client().await;
+    let jet = async_nats::jetstream::new(nats);
+
+    let _ = jet.delete_key_value("putUsers").await;
+
+    let kv_config = kv::Config {
+        bucket: String::from("putUsers"),
+        ..Default::default()
+    };
+
+    let bucket = jet.create_key_value(kv_config).await.unwrap();
+
+    let config = TestConfig::builder()
+        .with_cli(CLI_PATH)
+        .with_gateway(GATEWAY_PATH)
+        .with_subgraph(subgraph())
+        .enable_networking()
+        .build(config())
+        .unwrap();
+
+    let runner = TestRunner::new(config).await.unwrap();
+
+    let query = indoc! {r#"
+        mutation {
+          kvPutUser(id: 1,input: { email: "user1@example.com", name: "User One" }) {
+            sequence
+          }
+        }
+    "#};
+
+    let result: serde_json::Value = runner.graphql_query(query).send().await.unwrap();
+    insta::assert_json_snapshot!(result, @r#"
+    {
+      "data": {
+        "kvPutUser": {
+          "sequence": 1
+        }
+      }
+    }
+    "#);
+
+    let user = bucket.get("user.1").await.unwrap().unwrap();
+    let user: serde_json::Value = serde_json::from_slice(user.as_ref()).unwrap();
+
+    insta::assert_json_snapshot!(user, @r#"
+    {
+      "email": "user1@example.com",
+      "name": "User One"
+    }
+    "#);
+}
+
+#[tokio::test]
+async fn kv_create() {
+    let nats = nats_client().await;
+    let jet = async_nats::jetstream::new(nats);
+
+    let _ = jet.delete_key_value("createUsers").await;
+
+    let kv_config = kv::Config {
+        bucket: String::from("createUsers"),
+        ..Default::default()
+    };
+
+    let bucket = jet.create_key_value(kv_config).await.unwrap();
+
+    let config = TestConfig::builder()
+        .with_cli(CLI_PATH)
+        .with_gateway(GATEWAY_PATH)
+        .with_subgraph(subgraph())
+        .enable_networking()
+        .build(config())
+        .unwrap();
+
+    let runner = TestRunner::new(config).await.unwrap();
+
+    let query = indoc! {r#"
+        mutation {
+          kvCreateUser(id: 1,input: { email: "user1@example.com", name: "User One" }) {
+            sequence
+          }
+        }
+    "#};
+
+    let result: serde_json::Value = runner.graphql_query(query).send().await.unwrap();
+    insta::assert_json_snapshot!(result, @r#"
+    {
+      "data": {
+        "kvCreateUser": {
+          "sequence": 1
+        }
+      }
+    }
+    "#);
+
+    let user = bucket.get("user.1").await.unwrap().unwrap();
+    let user: serde_json::Value = serde_json::from_slice(user.as_ref()).unwrap();
+
+    insta::assert_json_snapshot!(user, @r#"
+    {
+      "email": "user1@example.com",
+      "name": "User One"
+    }
+    "#);
+}
+
+#[tokio::test]
+async fn kv_delete() {
+    let nats = nats_client().await;
+    let jet = async_nats::jetstream::new(nats);
+
+    let _ = jet.delete_key_value("deleteUsers").await;
+
+    let kv_config = kv::Config {
+        bucket: String::from("deleteUsers"),
+        ..Default::default()
+    };
+
+    let bucket = jet.create_key_value(kv_config).await.unwrap();
+
+    let user = json!({
+        "email": "user1@example.com",
+        "name": "User One"
+    });
+
+    bucket
+        .create("user.1", serde_json::to_vec(&user).unwrap().into())
+        .await
+        .unwrap();
+
+    let config = TestConfig::builder()
+        .with_cli(CLI_PATH)
+        .with_gateway(GATEWAY_PATH)
+        .with_subgraph(subgraph())
+        .enable_networking()
+        .build(config())
+        .unwrap();
+
+    let runner = TestRunner::new(config).await.unwrap();
+
+    let query = indoc! {r#"
+        mutation {
+          kvDeleteUser(id: 1) {
+            success
+          }
+        }
+    "#};
+
+    let result: serde_json::Value = runner.graphql_query(query).send().await.unwrap();
+    insta::assert_json_snapshot!(result, @r#"
+    {
+      "data": {
+        "kvDeleteUser": {
+          "success": true
+        }
+      }
+    }
+    "#);
+
+    assert!(bucket.get("user.1").await.unwrap().is_none());
 }
