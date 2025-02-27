@@ -1,8 +1,5 @@
 {
-  "extends": [
-    "github>grafbase/renovate",
-    "github>grafbase/renovate:post-upgrade"
-  ],
+  "extends": ["github>grafbase/renovate", "github>grafbase/renovate:post-upgrade"],
   "packageRules": [
     {
       "matchPackageNames": ["axum"],
@@ -17,6 +14,6 @@
       "matchPackageNames": ["rand"],
       "matchPaths": ["crates/integration-tests/Cargo.toml"],
       "enabled": false
-    },
+    }
   ]
 }
