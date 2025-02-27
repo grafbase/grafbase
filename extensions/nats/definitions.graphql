@@ -33,7 +33,7 @@ directive @natsSubscription(
   """
   Selection to apply to the subscription payload. In jq syntax.
   """
-  selection: String
+  selection: UrlTemplate
 
   """
   Stream configuration for JetStream subscriptions
@@ -56,7 +56,7 @@ directive @natsRequest(
   """
   Selection to apply to the subscription payload. In jq syntax.
   """
-  selection: String
+  selection: UrlTemplate
 
   """
   The body of the message to publish
@@ -101,7 +101,7 @@ directive @natsKeyValue(
   """
   Selection to apply to the response payload. In jq syntax. (only used for GET action)
   """
-  selection: String
+  selection: UrlTemplate
 ) on FIELD_DEFINITION
 
 """

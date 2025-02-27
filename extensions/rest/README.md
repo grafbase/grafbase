@@ -1,8 +1,9 @@
 # REST Extension
 
-This is a work in progress REST extension for the Grafbase Gateway.
+This is a REST extension for the Grafbase Gateway. It allows you to define REST endpoints and map them to GraphQL fields. It provides two directives:
 
-** Work in progress. **
+- `@restEndpoint`, which you can repeat on the schema, defines a REST endpoint.
+- `@rest`, defined on a field, specifies which endpoint the field uses, which path and method it uses and how it selects data from the REST response.
 
 ## Installing
 

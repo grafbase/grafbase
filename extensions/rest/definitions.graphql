@@ -48,7 +48,7 @@ directive @rest(
   """
   Specifies which fields from the GraphQL selection to include in the response
   """
-  selection: String!
+  selection: UrlTemplate!
 
   """
   Configuration for the request body, can include static values or

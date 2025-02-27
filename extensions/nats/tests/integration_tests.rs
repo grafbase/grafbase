@@ -41,27 +41,27 @@ fn subgraph() -> ExtensionOnlySubgraph {
           hello: String!
 
           requestReply(input: RequestReplyInput!): RequestReplyResult! @natsRequest(
-            subject: "help.please"
-            timeoutMs: 500
+            subject: "help.please",
+            timeoutMs: 500,
           )
 
           timeoutReply(input: RequestReplyInput!): RequestReplyResult! @natsRequest(
-            subject: "timeout.please"
-            timeoutMs: 500
+            subject: "timeout.please",
+            timeoutMs: 500,
           )
 
           getUser(id: Int!): User @natsKeyValue(
-            bucket: "users"
-            key: "user.{{{{ args.id }}}}"
-            action: GET
-            selection: "{{ id, email, name }}"
+            bucket: "users",
+            key: "user.{{{{ args.id }}}}",
+            action: GET,
+            selection: "{{ id, email, name }}",
           )
 
           getOtherUser(id: Int!): User @natsKeyValue(
-            bucket: "otherUsers"
-            key: "user.{{{{ args.id }}}}"
-            action: GET
-            selection: "{{ id, email, name }}"
+            bucket: "otherUsers",
+            key: "user.{{{{ args.id }}}}",
+            action: GET,
+            selection: "{{ id, email, name }}",
           )
         }}
 
@@ -71,50 +71,55 @@ fn subgraph() -> ExtensionOnlySubgraph {
           )
 
           kvPutUser(id: Int!, input: UserEventInput!): String! @natsKeyValue(
-            bucket: "putUsers"
-            key: "user.{{{{ args.id }}}}"
-            action: PUT
+            bucket: "putUsers",
+            key: "user.{{{{ args.id }}}}",
+            action: PUT,
           )
 
           kvCreateUser(id: Int!, input: UserEventInput!): String! @natsKeyValue(
-            bucket: "createUsers"
-            key: "user.{{{{ args.id }}}}"
-            action: CREATE
+            bucket: "createUsers",
+            key: "user.{{{{ args.id }}}}",
+            action: CREATE,
           )
 
           kvDeleteUser(id: Int!): Boolean! @natsKeyValue(
-            bucket: "deleteUsers"
-            key: "user.{{{{ args.id }}}}"
-            action: DELETE
+            bucket: "deleteUsers",
+            key: "user.{{{{ args.id }}}}",
+            action: DELETE,
           )
         }}
 
         type Subscription {{
           userEvents(id: Int!): UserEvent! @natsSubscription(
-            subject: "subscription.user.{{{{args.id}}}}.events"
-            selection: "{{ email, name, number }}"
+            subject: "subscription.user.{{{{args.id}}}}.events",
+            selection: "{{ email, name, number }}",
+          )
+
+          highPriorityBankEvents(limit: Int!): BankEvent! @natsSubscription(
+            subject: "subscription.bank",
+            selection: "select(.money > {{{{args.limit}}}}) | {{ id, account, money }}",
           )
 
           persistenceEvents(id: Int!): UserEvent! @natsSubscription(
-            subject: "persistence.user.{{{{args.id}}}}.events"
-            selection: "{{ email, name, number }}"
+            subject: "persistence.user.{{{{args.id}}}}.events",
+            selection: "{{ email, name, number }}",
             streamConfig: {{
-              streamName: "testStream"
-              consumerName: "testConsumer"
-              durableName: "testConsumer"
-              description: "Test Description"
-            }}
+              streamName: "testStream",
+              consumerName: "testConsumer",
+              durableName: "testConsumer",
+              description: "Test Description",
+            }},
           )
 
           nonexistingEvents(id: Int!): UserEvent! @natsSubscription(
-            subject: "persistence.user.{{{{args.id}}}}.events"
-            selection: "{{ email, name, number }}"
+            subject: "persistence.user.{{{{args.id}}}}.events",
+            selection: "{{ email, name, number }}",
             streamConfig: {{
-              streamName: "nonExistingStream"
-              consumerName: "testConsumer"
-              durableName: "testConsumer"
-              description: "Test Description"
-            }}
+              streamName: "nonExistingStream",
+              consumerName: "testConsumer",
+              durableName: "testConsumer",
+              description: "Test Description",
+            }},
           )
         }}
 
@@ -141,6 +146,12 @@ fn subgraph() -> ExtensionOnlySubgraph {
           id: Int!
           email: String!
           name: String!
+        }}
+
+        type BankEvent {{
+          id: Int!
+          account: String!
+          money: Int!
         }}
     "#};
 
@@ -271,6 +282,75 @@ async fn test_subscribe() {
             "email": "user2@example.com",
             "name": "User Two",
             "number": 2
+          }
+        }
+      }
+    ]
+    "#);
+}
+
+#[tokio::test]
+async fn test_subscribe_with_filter() {
+    let nats = nats_client().await;
+
+    let config = TestConfig::builder()
+        .with_cli(CLI_PATH)
+        .with_gateway(GATEWAY_PATH)
+        .with_subgraph(subgraph())
+        .enable_networking()
+        .build(config())
+        .unwrap();
+
+    let runner = TestRunner::new(config).await.unwrap();
+
+    let query = indoc! {r#"
+        subscription {
+          highPriorityBankEvents(limit: 1000) {
+            id
+            account
+            money
+          }
+        }
+    "#};
+
+    let subscription = runner
+        .graphql_subscription::<serde_json::Value>(query)
+        .unwrap()
+        .subscribe()
+        .await
+        .unwrap();
+
+    tokio::spawn(async move {
+        for i in 1000..=1002 {
+            let event = json!({ "id": 1, "account": "User One", "money": i });
+            let event = serde_json::to_vec(&event).unwrap();
+
+            nats.publish("subscription.bank", event.into()).await.unwrap();
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+    });
+
+    let events = tokio::time::timeout(Duration::from_secs(15), subscription.take(2).collect::<Vec<_>>())
+        .await
+        .unwrap();
+
+    insta::assert_json_snapshot!(&events, @r#"
+    [
+      {
+        "data": {
+          "highPriorityBankEvents": {
+            "id": 1,
+            "account": "User One",
+            "money": 1001
+          }
+        }
+      },
+      {
+        "data": {
+          "highPriorityBankEvents": {
+            "id": 1,
+            "account": "User One",
+            "money": 1002
           }
         }
       }
