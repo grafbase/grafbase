@@ -23,7 +23,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  REGISTRY_REPOSITORY: ghcr.io/grafbase/helm-charts
+  REGISTRY_REPOSITORY: ghcr.io/grafbase/helm-charts/test
   CHART_PATH: gateway/helm
 
 jobs:
@@ -60,7 +60,7 @@ jobs:
         shell: bash
         run: |
           echo "Login to ghcr.io"
-          echo ${{ secrets.DOCKERHUB_TOKEN }} | helm registry login ghcr.io --username ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+          echo ${{ secrets.GITHUB_TOKEN }} | helm registry login ghcr.io --username grafbase --password-stdin
 
       - name: Publish gateway helm chart dev
         if: github.ref_name != 'main'
