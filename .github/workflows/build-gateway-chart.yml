@@ -23,7 +23,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  REGISTRY_REPOSITORY: ghcr.io/grafbase/helm-charts/test
+  REGISTRY_REPOSITORY: ghcr.io/grafbase/helm-charts
   CHART_PATH: gateway/helm
 
 jobs:
