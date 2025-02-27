@@ -60,7 +60,7 @@ jobs:
         shell: bash
         run: |
           echo "Login to ghcr.io"
-          echo ${{ secrets.GITHUB_TOKEN }} | helm registry login ghcr.io --username ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+          echo ${{ secrets.DOCKERHUB_TOKEN }} | helm registry login ghcr.io --username ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
 
       - name: Publish gateway helm chart dev
         if: github.ref_name != 'main'
