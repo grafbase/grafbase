@@ -80,7 +80,7 @@ impl Resolver for RestExtension {
             message: format!("Could not parse URL: {e}"),
         })?;
 
-        let path = rest.http.path.strip_prefix("/").unwrap_or(rest.http.path);
+        let path = rest.path.strip_prefix("/").unwrap_or(rest.path);
 
         if !path.is_empty() {
             let mut path_segments = url.path_segments_mut().map_err(|_| Error {
@@ -96,7 +96,7 @@ impl Resolver for RestExtension {
             message: format!("Could not parse URL path: {e}"),
         })?;
 
-        let builder = HttpRequest::builder(url, rest.http.method.into());
+        let builder = HttpRequest::builder(url, rest.method.into());
 
         let request = match rest.body() {
             Some(ref body) => builder.json(body),
