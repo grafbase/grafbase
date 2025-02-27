@@ -8,6 +8,15 @@
       "matchPackageNames": ["axum"],
       "matchFileNames": ["crates/graphql-mocks/Cargo.toml"],
       "matchUpdateTypes": ["patch"]
-    }
+    },
+    {
+      "matchPackageNames": ["async-tungstenite", "ory-client"],
+      "enabled": false
+    },
+    {
+      "matchPackageNames": ["rand"],
+      "matchPaths": ["crates/integration-tests/Cargo.toml"],
+      "enabled": false
+    },
   ]
 }
