@@ -24,14 +24,17 @@ You can initialize a new resolver extension with the Grafbase CLI:
 grafbase extension init --type resolver my-extension
 ```
 
-The initialization accepts a list of schema directives from the federated schema (defined in the schema file) and a [`Configuration`](types::Configuration) object that remains empty for resolver extensions. The [`ResolverExtension`] derive macro generates the necessary code to initialize a resolver extension and guides you to implement two traits: [`Extension`] and [`Resolver`]. The [`Extension`] trait initializes the extension, and the [`Resolver`] trait implements the extension logic to resolve a field:
+The initialization accepts a list of schema directives from the federated schema (defined in the schema file) and a [`Configuration`](types::Configuration) object that remains empty for resolver extensions. The [`ResolverExtension`] derive macro generates the necessary code to initialize a resolver extension and guides you to implement two traits: [`Extension`] and [`Resolver`]. The [`Extension`] trait initializes the extension, and the [`Resolver`] trait implements the extension logic to resolve a field.
+
+The [`Resolver`] trait contains two methods: `resolve_field` and `resolve_subscription`. Either method can be left unimplemented if the extension does not need to handle that type of request.
 
 ```rust
-# use grafbase_sdk::{
-#    types::{Configuration, Directive, FieldDefinition, FieldInputs, FieldOutput},
-#    Error, Extension, Resolver, ResolverExtension, SharedContext,
-# };
-#[derive(ResolverExtension)]
+use grafbase_sdk::{
+   types::{Configuration, Directive, FieldDefinition, FieldInputs, FieldOutput},
+   Error, Extension, Resolver, ResolverExtension, SharedContext,
+};
+
+[derive(ResolverExtension)]
 struct TestProject;
 
 impl Extension for TestProject {
@@ -50,6 +53,15 @@ impl Resolver for TestProject {
     ) -> Result<FieldOutput, Error> {
         todo!()
     }
+
+    fn resolve_subscription(
+        &mut self,
+        context: SharedContext,
+        directive: Directive,
+        field_definition: FieldDefinition,
+    ) -> Result<Box<dyn Subscription>, Error> {
+        todo!()
+    }
 }
 ```
 
@@ -57,7 +69,9 @@ The `schema_directives` in the constructor provides serialized access to all the
 
 The [`FieldOutput`](types::FieldOutput) contains the serialized output of the resolver which transfers back to the gateway. Remember to match the serialized response to the type of the field resolver.
 
-You can find a full [example](https://github.com/grafbase/grafbase/blob/main/extensions/rest/) of a REST resolver extension in the Grafbase repository.
+The [`Subscription`] trait defines the logic for a subscription resolver extension.
+
+You can find a full [example](https://github.com/grafbase/grafbase/blob/main/extensions/rest/) of a REST resolver extension in the Grafbase repository. And a full example of a [subscription resolver extension](https://github.com/grafbase/grafbase/blob/main/extensions/nats/) for NATS.
 
 ### Authentication Example
 
@@ -70,10 +84,10 @@ grafbase extension init --type auth my-extension
 The initialization needs a list of schema directives from the federated schema (empty for authentication extensions) and a [`Configuration`](types::Configuration) object that reflects the extension provider configuration in `grafbase.toml`. The [`AuthenticationExtension`] derive macro generates code to initialize a resolver extension and guides you to implement two traits: [`Extension`] and [`Authenticator`]. The [`Extension`] trait initializes the extension, and the [`Authenticator`] trait implements the extension logic to authenticate a request:
 
 ```rust
-# use grafbase_sdk::{
-#     types::{Configuration, Directive, ErrorResponse, Token},
-#     AuthenticationExtension, Authenticator, Extension, Headers,
-# };
+use grafbase_sdk::{
+    types::{Configuration, Directive, ErrorResponse, Token},
+    AuthenticationExtension, Authenticator, Extension, Headers,
+};
 
 #[derive(AuthenticationExtension)]
 struct TestProject;
