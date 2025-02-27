@@ -12,10 +12,7 @@ use grafbase_sdk::{
     Error, Extension, NatsAuth, Resolver, ResolverExtension, SharedContext, Subscription,
 };
 use subscription::FilteredSubscription;
-use types::{
-    DirectiveKind, KeyValueAction, KeyValueArguments, NatsKvCreateResult, NatsKvDeleteResult, NatsPublishResult,
-    PublishArguments, RequestArguments, SubscribeArguments,
-};
+use types::{DirectiveKind, KeyValueAction, KeyValueArguments, PublishArguments, RequestArguments, SubscribeArguments};
 
 #[derive(ResolverExtension)]
 struct Nats {
@@ -163,10 +160,7 @@ impl Nats {
         });
 
         let mut output = FieldOutput::new();
-
-        output.push_value(NatsPublishResult {
-            success: result.is_ok(),
-        });
+        output.push_value(result.is_ok());
 
         Ok(output)
     }
@@ -238,7 +232,7 @@ impl Nats {
                 let body = args.body().unwrap_or(&serde_json::Value::Null);
 
                 match store.create(args.key, body) {
-                    Ok(sequence) => output.push_value(NatsKvCreateResult { sequence }),
+                    Ok(sequence) => output.push_value(sequence.to_string()),
                     Err(error) => {
                         return Err(Error {
                             extensions: Vec::new(),
@@ -251,7 +245,7 @@ impl Nats {
                 let body = args.body().unwrap_or(&serde_json::Value::Null);
 
                 match store.put(args.key, body) {
-                    Ok(sequence) => output.push_value(NatsKvCreateResult { sequence }),
+                    Ok(sequence) => output.push_value(sequence.to_string()),
                     Err(error) => {
                         return Err(Error {
                             extensions: Vec::new(),
@@ -264,7 +258,7 @@ impl Nats {
                 let value = match store.get::<serde_json::Value>(args.key) {
                     Ok(Some(value)) => value,
                     Ok(None) => {
-                        output.push_value(Option::<serde_json::Value>::None);
+                        output.push_value(serde_json::Value::Null);
                         return Ok(output);
                     }
                     Err(error) => {
@@ -301,7 +295,7 @@ impl Nats {
                 }
             }
             KeyValueAction::Delete => match store.delete(args.key) {
-                Ok(()) => output.push_value(NatsKvDeleteResult { success: true }),
+                Ok(()) => output.push_value(true),
                 Err(error) => {
                     return Err(Error {
                         extensions: Vec::new(),

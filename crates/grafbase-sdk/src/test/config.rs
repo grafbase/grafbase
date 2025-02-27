@@ -19,6 +19,8 @@ pub enum LogLevel {
     Warn,
     /// Show only error messages.
     Error,
+    /// Show all output from engine, debug upwards.
+    EngineDebug,
 }
 
 impl AsRef<str> for LogLevel {
@@ -29,6 +31,7 @@ impl AsRef<str> for LogLevel {
             LogLevel::Info => "info",
             LogLevel::Warn => "warn",
             LogLevel::Error => "error",
+            LogLevel::EngineDebug => "engine=debug",
         }
     }
 }

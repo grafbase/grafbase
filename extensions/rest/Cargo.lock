@@ -1917,7 +1917,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.5.2"
+version = "0.5.4"
 dependencies = [
  "anyhow",
  "async-tungstenite",
@@ -1935,6 +1935,7 @@ dependencies = [
  "jaq-core",
  "jaq-json",
  "jaq-std",
+ "minicbor",
  "minicbor-serde",
  "reqwest",
  "semver 1.0.25",
