@@ -222,7 +222,7 @@ impl ExtensionRuntime for ExtensionsWasiRuntime {
             return Err(PartialGraphqlError::internal_extension_error());
         };
 
-        let mut instance = pool.get().await.into_inner();
+        let mut instance = pool.get().await;
         let arguments = minicbor_serde::to_vec(arguments).unwrap();
         let directive = wit::FieldDefinitionDirective {
             name,

@@ -79,7 +79,7 @@ fn init_resolver() {
 
     insta::assert_snapshot!(&lib_rs, @r##"
     use grafbase_sdk::{
-        types::{Configuration, Directive, FieldDefinition, FieldInputs, FieldOutput},
+        types::{Configuration, SchemaDirective, FieldDefinitionDirective, FieldInputs, FieldOutput},
         Error, Extension, Resolver, ResolverExtension, SharedContext, Subscription
     };
 
@@ -87,7 +87,7 @@ fn init_resolver() {
     struct TestProject;
 
     impl Extension for TestProject {
-        fn new(schema_directives: Vec<Directive>, config: Configuration) -> Result<Self, Box<dyn std::error::Error>> {
+        fn new(schema_directives: Vec<SchemaDirective>, config: Configuration) -> Result<Self, Box<dyn std::error::Error>> {
             Ok(Self)
         }
     }
@@ -96,8 +96,8 @@ fn init_resolver() {
         fn resolve_field(
             &mut self,
             context: SharedContext,
-            directive: Directive,
-            field_definition: FieldDefinition,
+            subgraph_name: &str,
+            directive: FieldDefinitionDirective<'_>,
             inputs: FieldInputs,
         ) -> Result<FieldOutput, Error> {
             todo!()
@@ -106,8 +106,8 @@ fn init_resolver() {
         fn resolve_subscription(
             &mut self,
             context: SharedContext,
-            directive: Directive,
-            field_definition: FieldDefinition,
+            subgraph_name: &str,
+            directive: FieldDefinitionDirective<'_>,
         ) -> Result<Box<dyn Subscription>, Error> {
             todo!()
         }
@@ -308,7 +308,7 @@ fn init_auth() {
 
     insta::assert_snapshot!(&lib_rs, @r##"
     use grafbase_sdk::{
-        types::{Configuration, Directive, ErrorResponse, Token},
+        types::{Configuration, SchemaDirective, ErrorResponse, Token},
         AuthenticationExtension, Authenticator, Extension, Headers,
     };
 
@@ -316,7 +316,7 @@ fn init_auth() {
     struct TestProject;
 
     impl Extension for TestProject {
-        fn new(schema_directives: Vec<Directive>, config: Configuration) -> Result<Self, Box<dyn std::error::Error>>
+        fn new(schema_directives: Vec<SchemaDirective>, config: Configuration) -> Result<Self, Box<dyn std::error::Error>>
         where
             Self: Sized,
         {
