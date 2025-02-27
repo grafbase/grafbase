@@ -33,6 +33,10 @@ impl ExtensionInstance {
         directive: wit::FieldDefinitionDirective<'_>,
         inputs: InputList,
     ) -> crate::Result<FieldOutput> {
+        // Futures may be canceled, so we pro-actively mark the instance as poisoned until proven
+        // otherwise.
+        self.poisoned = true;
+
         let context = self.store.data_mut().push_resource(context)?;
         let inputs = inputs.0.iter().map(Vec::as_slice).collect::<Vec<_>>();
 
@@ -40,15 +44,10 @@ impl ExtensionInstance {
             .inner
             .grafbase_sdk_extension()
             .call_resolve_field(&mut self.store, context, subgraph_name, directive, &inputs)
-            .await;
+            .await?;
 
-        match result {
-            Ok(output) => output.map_err(|e| e.into()),
-            Err(e) => {
-                self.poisoned = true;
-                Err(e.into())
-            }
-        }
+        self.poisoned = false;
+        result.map_err(Into::into)
     }
 
     pub async fn resolve_subscription(
@@ -57,43 +56,45 @@ impl ExtensionInstance {
         subgraph_name: &str,
         directive: wit::FieldDefinitionDirective<'_>,
     ) -> Result<(), crate::Error> {
+        // Futures may be canceled, so we pro-actively mark the instance as poisoned until proven
+        // otherwise.
+        self.poisoned = true;
+
         let context = self.store.data_mut().push_resource(context)?;
 
         let result = self
             .inner
             .grafbase_sdk_extension()
             .call_resolve_subscription(&mut self.store, context, subgraph_name, directive)
-            .await;
+            .await?;
 
-        match result {
-            Ok(output) => output.map_err(Into::into),
-            Err(e) => {
-                self.poisoned = true;
-                Err(e.into())
-            }
-        }
+        self.poisoned = false;
+        result.map_err(Into::into)
     }
 
     pub async fn resolve_next_subscription_item(&mut self) -> Result<Option<FieldOutput>, crate::Error> {
+        // Futures may be canceled, so we pro-actively mark the instance as poisoned until proven
+        // otherwise.
+        self.poisoned = true;
+
         let result = self
             .inner
             .grafbase_sdk_extension()
             .call_resolve_next_subscription_item(&mut self.store)
-            .await;
+            .await?;
 
-        match result {
-            Ok(output) => output.map_err(Into::into),
-            Err(e) => {
-                self.poisoned = true;
-                Err(e.into())
-            }
-        }
+        self.poisoned = false;
+        result.map_err(Into::into)
     }
 
     pub async fn authenticate(
         &mut self,
         headers: http::HeaderMap,
     ) -> crate::GatewayResult<(http::HeaderMap, wit::Token)> {
+        // Futures may be canceled, so we pro-actively mark the instance as poisoned until proven
+        // otherwise.
+        self.poisoned = true;
+
         let headers = self.store.data_mut().push_resource(wit::Headers::borrow(headers))?;
         let headers_rep = headers.rep();
 
@@ -101,7 +102,7 @@ impl ExtensionInstance {
             .inner
             .grafbase_sdk_extension()
             .call_authenticate(&mut self.store, headers)
-            .await;
+            .await?;
 
         let headers = self
             .store
@@ -109,13 +110,8 @@ impl ExtensionInstance {
             .take_resource::<wit::Headers>(headers_rep)?
             .into_owned()
             .unwrap();
-        match result {
-            Ok(result) => result.map(|token| (headers, token)).map_err(Into::into),
-            Err(e) => {
-                self.poisoned = true;
-                Err(e.into())
-            }
-        }
+
+        result.map(|token| (headers, token)).map_err(Into::into)
     }
 
     pub fn recycle(&mut self) -> crate::Result<()> {

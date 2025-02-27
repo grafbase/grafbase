@@ -52,9 +52,9 @@ pub trait ExtensionRuntime: Send + Sync + 'static {
 
     fn authenticate(
         &self,
-        _extension_id: ExtensionId,
-        _authorizer_id: AuthorizerId,
-        _headers: http::HeaderMap,
+        extension_id: ExtensionId,
+        authorizer_id: AuthorizerId,
+        headers: http::HeaderMap,
     ) -> impl Future<Output = Result<(http::HeaderMap, Vec<u8>), ErrorResponse>> + Send;
 }
 
