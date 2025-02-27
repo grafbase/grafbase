@@ -229,7 +229,17 @@ async fn guest_error() {
                     extensions: [
                         (
                             "my",
-                            "extension",
+                            [
+                                101,
+                                120,
+                                116,
+                                101,
+                                110,
+                                115,
+                                105,
+                                111,
+                                110,
+                            ],
                         ),
                     ],
                     message: "not found",

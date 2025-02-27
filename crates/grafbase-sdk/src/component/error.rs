@@ -2,7 +2,7 @@ use crate::wit;
 
 /// Internal SDK error.
 #[derive(Debug)]
-pub struct SdkError(InternalErrorInner);
+pub struct SdkError(SdkErrorInner);
 
 impl std::fmt::Display for SdkError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -17,7 +17,7 @@ impl std::error::Error for SdkError {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub(crate) enum InternalErrorInner {
+pub(crate) enum SdkErrorInner {
     #[error("{0}")]
     Message(String),
     #[error("Serialization failed with: {0}")]
@@ -30,14 +30,14 @@ pub(crate) enum InternalErrorInner {
 
 impl<T> From<T> for SdkError
 where
-    InternalErrorInner: From<T>,
+    SdkErrorInner: From<T>,
 {
     fn from(err: T) -> Self {
         Self(err.into())
     }
 }
 
-impl From<String> for InternalErrorInner {
+impl From<String> for SdkErrorInner {
     fn from(err: String) -> Self {
         Self::Message(err)
     }
