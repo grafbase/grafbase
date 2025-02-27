@@ -5,10 +5,8 @@ use std::future::Future;
 
 use bytes::Bytes;
 use futures_util::Stream;
-use futures_util::{StreamExt, TryStreamExt};
+use futures_util::StreamExt;
 use gateway_config::Config;
-use reqwest::RequestBuilder;
-use reqwest_eventsource::RequestBuilderExt;
 use runtime::bytes::OwnedOrSharedBytes;
 use runtime::fetch::{FetchError, FetchRequest, FetchResult, Fetcher};
 use runtime::hooks::ResponseInfo;
@@ -101,40 +99,9 @@ impl Fetcher for NativeFetcher {
 
     async fn graphql_over_sse_stream(
         &self,
-        request: FetchRequest<'_, Bytes>,
+        _request: FetchRequest<'_, Bytes>,
     ) -> FetchResult<impl Stream<Item = FetchResult<OwnedOrSharedBytes>> + Send + 'static> {
-        let mut request = into_reqwest(request);
-        // We're doing a streaming request, for subscriptions, so we don't want to timeout
-        *request.timeout_mut() = None;
-
-        let events = RequestBuilder::from_parts(self.client.clone(), request)
-            .eventsource()
-            .unwrap()
-            .map_err(|err| match err {
-                reqwest_eventsource::Error::InvalidStatusCode(status_code, _) => {
-                    FetchError::InvalidStatusCode(status_code)
-                }
-                err => FetchError::AnyError(err.to_string()),
-            })
-            .try_take_while(|event| {
-                let is_complete = if let reqwest_eventsource::Event::Message(message) = event {
-                    message.event == "complete"
-                } else {
-                    false
-                };
-                async move { Ok(!is_complete) }
-            })
-            .try_filter_map(|event| async move {
-                let reqwest_eventsource::Event::Message(message) = event else {
-                    return Ok(None);
-                };
-                if message.event == "next" {
-                    Ok(Some(OwnedOrSharedBytes::Owned(message.data.into())))
-                } else {
-                    Err(FetchError::AnyError(format!("Unexpected event: {}", message.event)))
-                }
-            });
-        Ok(events)
+        Ok(futures_util::stream::empty())
     }
 
     fn graphql_over_websocket_stream<T>(

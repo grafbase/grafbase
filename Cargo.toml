@@ -174,7 +174,10 @@ redis = { version = "0.29.0", features = [
     "connection-manager",
 ] }
 regex = "1.11.1"
-reqwest = { version = "0.12.12", default-features = false, features = ["http2", "rustls-tls"] }
+reqwest = { git = "https://github.com/Finistere/reqwest", branch = "no-decoding", default-features = false, features = [
+    "http2",
+    "rustls-tls",
+] }
 reqwest-eventsource = "0.6"
 rmp-serde = "1.3.0"
 rstest = "0.24"

@@ -1,3 +1,4 @@
+#![allow(deprecated)]
 use std::{borrow::Cow, time::Duration};
 
 use bytes::Bytes;
@@ -87,6 +88,13 @@ pub(crate) async fn execute_subgraph_request<R: Runtime>(
         body,
         timeout: endpoint.config.timeout,
     };
+    println!("== Request Headers ==");
+    for (k, v) in request.headers.iter() {
+        println!("{}: {}", k, v.to_str().unwrap());
+    }
+    println!("== Request Body ==");
+    println!("{}", String::from_utf8_lossy(request.body.as_ref()));
+    println!("\n");
 
     ctx.record_request_size(&request);
 
@@ -140,6 +148,11 @@ pub(crate) async fn execute_subgraph_request<R: Runtime>(
             return Err(err);
         }
     };
+    println!("== Response Headers ==");
+    for (k, v) in response.headers().iter() {
+        println!("{}: {}", k, v.to_str().unwrap());
+    }
+    println!("== Response Body ==\n{}", base64::encode(response.body().as_ref()));
 
     // If the status code isn't a success as this point it means it's either a client error or
     // we've exhausted our retry budget for server errors.
