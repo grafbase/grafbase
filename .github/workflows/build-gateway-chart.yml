@@ -6,7 +6,7 @@ on:
       required_reviewers:
         description: 'Users or teams that must approve the workflow run'
         required: true
-        default: 'admin-team'
+        default: 'Engineering'
   push:
 
 permissions:
