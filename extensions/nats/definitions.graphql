@@ -241,3 +241,7 @@ input Body {
   """
   static: JSON
 }
+
+type NatsPublishResult {
+  success: Boolean!
+}

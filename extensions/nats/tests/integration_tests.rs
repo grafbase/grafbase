@@ -33,18 +33,9 @@ fn subgraph() -> ExtensionOnlySubgraph {
               "@natsSubscription",
               "@natsRequest",
               "@natsKeyValue",
-              "NatsPublishResult",
-              "NatsStreamDeliverPolicy"
+              "NatsStreamDeliverPolicy",
             ]
           )
-
-        input RequestReplyInput {{
-          message: String!
-        }}
-
-        type RequestReplyResult {{
-          message: String!
-        }}
 
         type Query {{
           hello: String!
@@ -75,23 +66,23 @@ fn subgraph() -> ExtensionOnlySubgraph {
         }}
 
         type Mutation {{
-          publishUserEvent(id: Int!, input: UserEventInput!): NatsPublishResult! @natsPublish(
+          publishUserEvent(id: Int!, input: UserEventInput!): Boolean! @natsPublish(
             subject: "publish.user.{{{{args.id}}}}.events"
           )
 
-          kvPutUser(id: Int!, input: UserEventInput!): NatsKeyValueResult! @natsKeyValue(
+          kvPutUser(id: Int!, input: UserEventInput!): String! @natsKeyValue(
             bucket: "putUsers"
             key: "user.{{{{ args.id }}}}"
             action: PUT
           )
 
-          kvCreateUser(id: Int!, input: UserEventInput!): NatsKeyValueResult! @natsKeyValue(
+          kvCreateUser(id: Int!, input: UserEventInput!): String! @natsKeyValue(
             bucket: "createUsers"
             key: "user.{{{{ args.id }}}}"
             action: CREATE
           )
 
-          kvDeleteUser(id: Int!): NatsPublishResult! @natsKeyValue(
+          kvDeleteUser(id: Int!): Boolean! @natsKeyValue(
             bucket: "deleteUsers"
             key: "user.{{{{ args.id }}}}"
             action: DELETE
@@ -127,12 +118,12 @@ fn subgraph() -> ExtensionOnlySubgraph {
           )
         }}
 
-        type NatsPublishResult {{
-          success: Boolean!
+        input RequestReplyInput {{
+          message: String!
         }}
 
-        type NatsKeyValueResult {{
-          sequence: Int!
+        type RequestReplyResult {{
+          message: String!
         }}
 
         input UserEventInput {{
@@ -304,9 +295,7 @@ async fn test_publish() {
 
     let query = indoc! {r#"
         mutation {
-          publishUserEvent(id: 1, input: { email: "alice@example.com", name: "Alice" }) {
-            success
-          }
+          publishUserEvent(id: 1, input: { email: "alice@example.com", name: "Alice" })
         }
     "#};
 
@@ -314,9 +303,7 @@ async fn test_publish() {
     insta::assert_json_snapshot!(result, @r#"
     {
       "data": {
-        "publishUserEvent": {
-          "success": true
-        }
+        "publishUserEvent": true
       }
     }
     "#);
@@ -690,9 +677,7 @@ async fn kv_put() {
 
     let query = indoc! {r#"
         mutation {
-          kvPutUser(id: 1,input: { email: "user1@example.com", name: "User One" }) {
-            sequence
-          }
+          kvPutUser(id: 1,input: { email: "user1@example.com", name: "User One" })
         }
     "#};
 
@@ -700,9 +685,7 @@ async fn kv_put() {
     insta::assert_json_snapshot!(result, @r#"
     {
       "data": {
-        "kvPutUser": {
-          "sequence": 1
-        }
+        "kvPutUser": "1"
       }
     }
     "#);
@@ -744,9 +727,7 @@ async fn kv_create() {
 
     let query = indoc! {r#"
         mutation {
-          kvCreateUser(id: 1,input: { email: "user1@example.com", name: "User One" }) {
-            sequence
-          }
+          kvCreateUser(id: 1,input: { email: "user1@example.com", name: "User One" })
         }
     "#};
 
@@ -754,9 +735,7 @@ async fn kv_create() {
     insta::assert_json_snapshot!(result, @r#"
     {
       "data": {
-        "kvCreateUser": {
-          "sequence": 1
-        }
+        "kvCreateUser": "1"
       }
     }
     "#);
@@ -808,9 +787,7 @@ async fn kv_delete() {
 
     let query = indoc! {r#"
         mutation {
-          kvDeleteUser(id: 1) {
-            success
-          }
+          kvDeleteUser(id: 1)
         }
     "#};
 
@@ -818,9 +795,7 @@ async fn kv_delete() {
     insta::assert_json_snapshot!(result, @r#"
     {
       "data": {
-        "kvDeleteUser": {
-          "success": true
-        }
+        "kvDeleteUser": true
       }
     }
     "#);
