@@ -379,7 +379,7 @@ jobs:
           tool: nextest
 
       - name: Build CLI and Gateway
-        if: needs.what-changed.outputs.cargo-bin-specs
+        # if: needs.what-chaged.outputs.cargo-bin-specs
         shell: bash
         run: |
           cargo build -p grafbase -p grafbase-gateway
