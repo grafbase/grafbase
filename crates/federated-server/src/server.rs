@@ -26,7 +26,7 @@ use gateway_config::{Config, TlsConfig};
 use std::{net::SocketAddr, path::PathBuf};
 use tokio::sync::mpsc;
 use tokio::{signal, sync::watch};
-use tower_http::cors::CorsLayer;
+use tower_http::{compression::CompressionLayer, cors::CorsLayer};
 
 /// Start parameter for the gateway.
 pub struct ServeConfig {
@@ -183,7 +183,9 @@ pub async fn router<R: engine::Runtime, SR: ServerRuntime>(
         .route(path, get(engine_execute).post(engine_execute))
         .route_service(websocket_path, WebsocketService::new(websocket_sender));
 
-    router = inject_layers_before_cors(router).layer(cors);
+    router = inject_layers_before_cors(router)
+        .layer(CompressionLayer::new())
+        .layer(cors);
 
     if config.health.enabled {
         if let Some(listen) = config.health.listen {

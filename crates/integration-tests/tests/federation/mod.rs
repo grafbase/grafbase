@@ -2,6 +2,7 @@ mod apq;
 mod auth;
 mod basic;
 mod complexity_control;
+mod compression;
 mod config;
 mod deser;
 mod entity_caching;

@@ -42,7 +42,14 @@ tokio = { workspace = true, features = ["signal", "time", "net"] }
 tokio-stream = { workspace = true, features = ["sync"] }
 tokio-util = { workspace = true, features = ["codec"] }
 toml.workspace = true
-tower-http = { workspace = true, features = ["cors", "timeout"] }
+tower-http = { workspace = true, features = [
+    "cors",
+    "timeout",
+    "compression-zstd",
+    "compression-deflate",
+    "compression-gzip",
+    "compression-br",
+] }
 tracing.workspace = true
 ulid = { workspace = true, features = ["serde"] }
 url = { workspace = true, features = ["serde"] }

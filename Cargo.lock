@@ -3887,6 +3887,9 @@ dependencies = [
  "windows-sys 0.52.0",
  "windows-sys 0.59.0",
  "zeroize",
+ "zstd",
+ "zstd-safe",
+ "zstd-sys",
 ]
 
 [[package]]
@@ -4998,6 +5001,7 @@ dependencies = [
  "tracing-subscriber",
  "ulid",
  "url",
+ "zstd",
 ]
 
 [[package]]
@@ -9052,8 +9056,10 @@ version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "403fa3b783d4b626a8ad51d766ab03cb6d2dbfc46b1c5d4448395e6628dc9697"
 dependencies = [
+ "async-compression",
  "bitflags 2.8.0",
  "bytes",
+ "futures-core",
  "futures-util",
  "http 1.2.0",
  "http-body 1.0.1",

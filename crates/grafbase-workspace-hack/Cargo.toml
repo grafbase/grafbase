@@ -132,7 +132,7 @@ toml_datetime = { version = "0.6", default-features = false, features = ["serde"
 toml_edit = { version = "0.22", features = ["serde"] }
 tower-9fbad63c4bcf4a8f = { package = "tower", version = "0.4", features = ["balance", "buffer", "limit", "util"] }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["make", "retry"] }
-tower-http = { version = "0.6", features = ["cors", "fs", "set-header", "timeout", "trace"] }
+tower-http = { version = "0.6", features = ["compression-br", "compression-deflate", "compression-gzip", "compression-zstd", "cors", "fs", "set-header", "timeout", "trace"] }
 tracing = { version = "0.1", features = ["log"] }
 tracing-core = { version = "0.1" }
 tracing-log = { version = "0.2" }
@@ -143,6 +143,9 @@ url = { version = "2", features = ["serde"] }
 uuid = { version = "1", features = ["v4"] }
 wasmparser = { version = "0.224", default-features = false, features = ["component-model", "features", "serde", "simd", "std", "validate"] }
 zeroize = { version = "1", features = ["zeroize_derive"] }
+zstd = { version = "0.13" }
+zstd-safe = { version = "7", default-features = false, features = ["arrays", "legacy", "std", "zdict_builder"] }
+zstd-sys = { version = "2", default-features = false, features = ["legacy", "std", "zdict_builder"] }
 
 [build-dependencies]
 aho-corasick = { version = "1" }
@@ -259,7 +262,7 @@ toml_datetime = { version = "0.6", default-features = false, features = ["serde"
 toml_edit = { version = "0.22", features = ["serde"] }
 tower-9fbad63c4bcf4a8f = { package = "tower", version = "0.4", features = ["balance", "buffer", "limit", "util"] }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["make", "retry"] }
-tower-http = { version = "0.6", features = ["cors", "fs", "set-header", "timeout", "trace"] }
+tower-http = { version = "0.6", features = ["compression-br", "compression-deflate", "compression-gzip", "compression-zstd", "cors", "fs", "set-header", "timeout", "trace"] }
 tracing = { version = "0.1", features = ["log"] }
 tracing-core = { version = "0.1" }
 tracing-log = { version = "0.2" }
@@ -270,6 +273,9 @@ url = { version = "2", features = ["serde"] }
 uuid = { version = "1", features = ["v4"] }
 wasmparser = { version = "0.224", default-features = false, features = ["component-model", "features", "serde", "simd", "std", "validate"] }
 zeroize = { version = "1", features = ["zeroize_derive"] }
+zstd = { version = "0.13" }
+zstd-safe = { version = "7", default-features = false, features = ["arrays", "legacy", "std", "zdict_builder"] }
+zstd-sys = { version = "2", default-features = false, features = ["legacy", "std", "zdict_builder"] }
 
 [target.aarch64-apple-darwin.dependencies]
 addr2line = { version = "0.24", default-features = false, features = ["std"] }
