@@ -55,12 +55,12 @@ jobs:
         uses: azure/setup-helm@v4.3.0
         with:
           version: "v3.16.2"
-
+  
       - name: Login to ghcr.io
         shell: bash
         run: |
           echo "Login to ghcr.io"
-          echo ${{ secrets.GITHUB_TOKEN }} | helm registry login ghcr.io --username grafbase-ci --password-stdin
+          echo ${{ secrets.GITHUB_TOKEN }} | helm registry login ghcr.io --username ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
 
       - name: Publish gateway helm chart dev
         if: github.ref_name != 'main'
