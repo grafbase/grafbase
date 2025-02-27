@@ -26,19 +26,15 @@ fn subgraph(rest_endpoint: &str) -> ExtensionOnlySubgraph {
         type Query {{
           users: [User!]! @rest(
             endpoint: "endpoint",
-            http: {{
-              method: GET,
-              path: "/users"
-            }},
+            method: GET,
+            path: "/users"
             selection: "[.[] | {{ id, name, age }}]"
           )
 
           user(id: Int!): User @rest(
             endpoint: "endpoint",
-            http: {{
-              method: GET,
-              path: "/users/{{{{ args.id }}}}"
-            }},
+            method: GET,
+            path: "/users/{{{{ args.id }}}}"
             selection: "{{ id, name, age }}"
           )
         }}
@@ -46,38 +42,30 @@ fn subgraph(rest_endpoint: &str) -> ExtensionOnlySubgraph {
         type Mutation {{
           createUser(input: UserInput!): User! @rest(
             endpoint: "endpoint",
-            http: {{
-              method: POST,
-              path: "/users"
-            }},
+            method: POST,
+            path: "/users"
             selection: "{{ id, name, age }}"
           )
 
           createStaticUser: User! @rest(
             endpoint: "endpoint",
-            http: {{
-              method: POST,
-              path: "/users"
-            }},
+            method: POST,
+            path: "/users"
             body: {{ static: {{ name: "John Doe", age: 30 }} }}
             selection: "{{ id, name, age }}"
           )
 
           updateUser(id: Int!, input: UserInput!): User! @rest(
             endpoint: "endpoint",
-            http: {{
-              method: PUT,
-              path: "/users/{{{{ args.id }}}}"
-            }},
+            method: PUT,
+            path: "/users/{{{{ args.id }}}}"
             selection: "{{ id, name, age }}"
           )
 
           deleteUser(id: Int!): User! @rest(
             endpoint: "endpoint",
-            http: {{
-              method: DELETE,
-              path: "/users/{{{{ args.id }}}}"
-            }},
+            method: DELETE,
+            path: "/users/{{{{ args.id }}}}"
             selection: "{{ id, name, age }}"
           )
         }}
@@ -499,10 +487,8 @@ async fn with_bad_jq() {
         type Query {{
           users: [User!]! @rest(
             endpoint: "endpoint",
-            http: {{
-              method: GET,
-              path: "/users"
-            }}
+            method: GET,
+            path: "/users"
             selection: "\\||\\"
           )
         }}
@@ -591,10 +577,8 @@ async fn with_path_in_the_endpoint() {
         type Query {{
           users: [User!]! @rest(
             endpoint: "endpoint",
-            http: {{
-              method: GET,
-              path: "/users"
-            }}
+            method: GET,
+            path: "/users"
             selection: "[.[] | {{ id, name, age }}]"
           )
         }}
