@@ -9,6 +9,7 @@ mod health;
 mod state;
 mod trusted_documents_client;
 
+pub(crate) use gateway::CreateExtensionCatalogError;
 use gateway::EngineWatcher;
 pub use graph_fetch_method::GraphFetchMethod;
 pub use state::ServerState;

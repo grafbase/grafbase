@@ -1,8 +1,13 @@
-use crate::Error;
+mod create_extension_catalog;
+mod gateway_runtime;
 
+pub use self::{create_extension_catalog::Error as CreateExtensionCatalogError, gateway_runtime::GatewayRuntime};
+
+use self::create_extension_catalog::create_extension_catalog;
 use super::GdnResponse;
+use crate::Error;
 use engine::{Engine, SchemaVersion};
-use extension_catalog::{Extension, ExtensionCatalog, ExtensionId, KindDiscriminants, Manifest, VersionedManifest};
+use extension_catalog::{ExtensionCatalog, ExtensionId, KindDiscriminants};
 use gateway_config::{AuthenticationProvider, Config, WasiExtensionsConfig};
 use graphql_composition::FederatedGraph;
 use runtime::{
@@ -10,17 +15,13 @@ use runtime::{
     trusted_documents_client::{Client, TrustedDocumentsEnforcementMode},
 };
 use runtime_local::wasi::hooks::{AccessLogSender, HooksWasi};
-use std::{env, fs::File, ops::Not, path::PathBuf, sync::Arc};
+use std::{ops::Not, path::PathBuf, sync::Arc};
 use tokio::sync::watch;
 use ulid::Ulid;
 use wasi_component_loader::{
     extension::{ExtensionConfig, ExtensionGuestConfig, ExtensionPoolId, ExtensionsWasiRuntime, SchemaDirective},
     resources::SharedResources,
 };
-
-pub use gateway_runtime::GatewayRuntime;
-
-mod gateway_runtime;
 
 /// Send half of the gateway watch channel
 pub(crate) type EngineSender = watch::Sender<Arc<Engine<GatewayRuntime>>>;
@@ -73,7 +74,7 @@ pub(super) async fn generate(
         GraphDefinition::Sdl(federated_sdl) => sdl_graph(federated_sdl),
     };
 
-    let extension_catalog = create_extension_catalog(gateway_config)?;
+    let extension_catalog = create_extension_catalog(gateway_config).await?;
 
     let federated_graph =
         FederatedGraph::from_sdl(&federated_sdl).map_err(|e| crate::Error::SchemaValidationError(e.to_string()))?;
@@ -201,115 +202,6 @@ fn create_wasi_extension_configs(
     }
 
     wasi_extensions.is_empty().not().then_some(wasi_extensions)
-}
-
-// TODO: with lock file this will be smarter...
-fn create_extension_catalog(gateway_config: &Config) -> crate::Result<ExtensionCatalog> {
-    let mut catalog = ExtensionCatalog::default();
-
-    let Some(ref extension_configs) = gateway_config.extensions else {
-        return Ok(catalog);
-    };
-
-    for (_, config) in extension_configs.iter() {
-        let Some(path) = config.path() else {
-            continue;
-        };
-
-        let Ok(mut extension_dir) = path.read_dir() else {
-            continue;
-        };
-
-        if !extension_dir.all(|entry| {
-            entry
-                .map(|e| e.file_name() == "extension.wasm" || e.file_name() == "manifest.json")
-                .unwrap_or(false)
-        }) {
-            continue;
-        }
-
-        let manifest_data = File::open(path.join("manifest.json")).map_err(|e| Error::InternalError(e.to_string()))?;
-
-        let manifest: VersionedManifest =
-            serde_json::from_reader(manifest_data).map_err(|e| Error::InternalError(e.to_string()))?;
-        let manifest = manifest.into_latest();
-
-        let extension = Extension {
-            manifest,
-            wasm_path: path.join("extension.wasm").canonicalize().unwrap(),
-        };
-
-        catalog.push(extension);
-    }
-
-    let Ok(grafbase_extensions) = env::current_dir()
-        .map_err(|e| Error::InternalError(e.to_string()))?
-        .join("grafbase_extensions")
-        .read_dir()
-    else {
-        return Ok(catalog);
-    };
-
-    for extension_dir in grafbase_extensions {
-        let extension_dir = extension_dir.map_err(|e| Error::InternalError(e.to_string()))?;
-
-        if !extension_dir.path().is_dir() {
-            continue;
-        }
-
-        let extension_dir = extension_dir
-            .path()
-            .read_dir()
-            .map_err(|e| Error::InternalError(e.to_string()))?;
-
-        let mut manifest = None;
-        let mut wasm_path = None;
-
-        for file in extension_dir {
-            let file = file.map_err(|e| Error::InternalError(e.to_string()))?;
-
-            if file.path().is_dir() {
-                continue;
-            }
-
-            let path = file.path();
-            let file_name = path.file_name().and_then(|n| n.to_str());
-
-            if file_name == Some("manifest.json") {
-                let manifest_data = File::open(file.path()).map_err(|e| Error::InternalError(e.to_string()))?;
-
-                let manifest_data: Manifest =
-                    serde_json::from_reader(manifest_data).map_err(|e| Error::InternalError(e.to_string()))?;
-
-                manifest = Some(manifest_data);
-
-                continue;
-            }
-
-            if file_name == Some("extension.wasm") {
-                wasm_path = Some(file.path().to_path_buf());
-            }
-        }
-
-        if let Some((wasm_path, manifest)) = wasm_path.zip(manifest) {
-            if extension_configs
-                .get(manifest.name())
-                .filter(|c| c.version().matches(manifest.version()))
-                .is_none()
-            {
-                continue;
-            }
-
-            let extension = Extension {
-                manifest,
-                wasm_path: wasm_path.canonicalize().unwrap(),
-            };
-
-            catalog.push(extension);
-        }
-    }
-
-    Ok(catalog)
 }
 
 fn sdl_graph(federated_sdl: String) -> Graph {
