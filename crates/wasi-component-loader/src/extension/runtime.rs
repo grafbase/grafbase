@@ -1,13 +1,20 @@
-use crate::{error::guest::guest_error_as_gql, extension::ExtensionLoader, resources::SharedResources};
+mod authorization;
 
-use super::{ExtensionGuestConfig, InputList, pool::Pool, wit};
+use crate::{cbor, extension::ExtensionLoader, resources::SharedResources};
+
+use super::{
+    ExtensionGuestConfig, InputList,
+    pool::{ExtensionGuard, Pool},
+    wit,
+};
+use engine_schema::Definition;
 use extension_catalog::ExtensionId;
 use futures::stream::BoxStream;
 use futures_util::{StreamExt, stream};
 use gateway_config::WasiExtensionsConfig;
 use runtime::{
     error::{ErrorResponse, PartialErrorCode, PartialGraphqlError},
-    extension::{AuthorizerId, Data, ExtensionFieldDirective, ExtensionRuntime},
+    extension::{AuthorizationDecisions, AuthorizerId, Data, DirectiveSite, ExtensionFieldDirective, ExtensionRuntime},
     hooks::Anything,
 };
 use std::{
@@ -37,6 +44,15 @@ impl ExtensionsWasiRuntime {
         let inner = WasiExtensionsInner { instance_pools };
 
         Ok(Self(Some(Arc::new(inner))))
+    }
+
+    async fn get(&self, id: ExtensionPoolId) -> Result<ExtensionGuard, PartialGraphqlError> {
+        let pool = self
+            .0
+            .as_ref()
+            .and_then(|inner| inner.instance_pools.get(&id))
+            .ok_or_else(PartialGraphqlError::internal_extension_error)?;
+        Ok(pool.get().await)
     }
 }
 
@@ -96,56 +112,35 @@ impl ExtensionRuntime for ExtensionsWasiRuntime {
     {
         let inputs = InputList::from_iter(inputs);
         async move {
-            let Some(inner) = self.0.as_ref() else {
-                return Err(PartialGraphqlError::internal_extension_error());
-            };
+            let mut instance = self.get(ExtensionPoolId::Resolver(extension_id)).await?;
 
-            let id = ExtensionPoolId::Resolver(extension_id);
-
-            let Some(pool) = inner.instance_pools.get(&id) else {
-                return Err(PartialGraphqlError::internal_extension_error());
-            };
-
-            let mut instance = pool.get().await;
-
-            let arguments = crate::cbor::to_vec(arguments).unwrap();
             let directive = wit::FieldDefinitionDirective {
                 name,
                 site: wit::FieldDefinitionDirectiveSite {
                     parent_type_name: field.parent_entity().name(),
                     field_name: field.name(),
-                    arguments: &arguments,
+                    arguments: cbor::to_vec(arguments).unwrap(),
                 },
             };
 
-            let result = instance
+            let output = instance
                 .resolve_field(context.clone(), subgraph.name(), directive, inputs)
-                .await;
+                .await
+                .map_err(|err| err.into_graphql_error(PartialErrorCode::ExtensionError))?;
 
-            match result {
-                Ok(output) => {
-                    let mut results = Vec::new();
+            let mut results = Vec::new();
 
-                    for result in output.outputs {
-                        match result {
-                            Ok(data) => results.push(Ok(Data::CborBytes(data))),
-                            Err(error) => {
-                                let error = guest_error_as_gql(error, PartialErrorCode::InternalServerError);
-                                results.push(Err(error))
-                            }
-                        }
+            for result in output.outputs {
+                match result {
+                    Ok(data) => results.push(Ok(Data::CborBytes(data))),
+                    Err(error) => {
+                        let error = error.into_graphql_error(PartialErrorCode::InternalServerError);
+                        results.push(Err(error))
                     }
-
-                    Ok(results)
                 }
-                Err(error) => match error {
-                    crate::Error::Guest(error) => {
-                        let error = guest_error_as_gql(error, PartialErrorCode::InternalServerError);
-                        Err(error)
-                    }
-                    _ => Err(PartialGraphqlError::internal_extension_error()),
-                },
             }
+
+            Ok(results)
         }
     }
 
@@ -155,44 +150,13 @@ impl ExtensionRuntime for ExtensionsWasiRuntime {
         authorizer_id: AuthorizerId,
         headers: http::HeaderMap,
     ) -> Result<(http::HeaderMap, Vec<u8>), ErrorResponse> {
-        let Some(inner) = self.0.as_ref() else {
-            return Err(ErrorResponse {
-                status: http::StatusCode::INTERNAL_SERVER_ERROR,
-                errors: vec![PartialGraphqlError::internal_extension_error()],
-            });
-        };
+        let mut instance = self
+            .get(ExtensionPoolId::Authorizer(extension_id, authorizer_id))
+            .await?;
 
-        let id = ExtensionPoolId::Authorizer(extension_id, authorizer_id);
-
-        let Some(pool) = inner.instance_pools.get(&id) else {
-            return Err(ErrorResponse {
-                status: http::StatusCode::INTERNAL_SERVER_ERROR,
-                errors: vec![PartialGraphqlError::internal_extension_error()],
-            });
-        };
-
-        let mut instance = pool.get().await;
-
-        let result = instance.authenticate(headers).await;
-
-        match result {
+        match instance.authenticate(headers).await {
             Ok((headers, token)) => Ok((headers, token.raw)),
-            Err(crate::GatewayError::Guest(error)) => {
-                let status =
-                    http::StatusCode::from_u16(error.status_code).unwrap_or(http::StatusCode::INTERNAL_SERVER_ERROR);
-
-                let errors = error
-                    .errors
-                    .into_iter()
-                    .map(|error| guest_error_as_gql(error, PartialErrorCode::Unauthorized))
-                    .collect();
-
-                Err(ErrorResponse { status, errors })
-            }
-            Err(crate::GatewayError::Internal(_)) => Err(ErrorResponse {
-                status: http::StatusCode::INTERNAL_SERVER_ERROR,
-                errors: vec![PartialGraphqlError::internal_extension_error()],
-            }),
+            Err(err) => Err(err.into_graphql_error_response(PartialErrorCode::Unauthenticated)),
         }
     }
 
@@ -204,10 +168,6 @@ impl ExtensionRuntime for ExtensionsWasiRuntime {
     where
         'ctx: 'f,
     {
-        let Some(inner) = self.0.as_ref() else {
-            return Err(PartialGraphqlError::internal_extension_error());
-        };
-
         let ExtensionFieldDirective {
             extension_id,
             subgraph,
@@ -216,74 +176,123 @@ impl ExtensionRuntime for ExtensionsWasiRuntime {
             arguments,
         } = directive;
 
-        let id = ExtensionPoolId::Resolver(extension_id);
-
-        let Some(pool) = inner.instance_pools.get(&id) else {
-            return Err(PartialGraphqlError::internal_extension_error());
-        };
-
-        let mut instance = pool.get().await;
-        let arguments = crate::cbor::to_vec(arguments).unwrap();
+        let mut instance = self.get(ExtensionPoolId::Resolver(extension_id)).await?;
         let directive = wit::FieldDefinitionDirective {
             name,
             site: wit::FieldDefinitionDirectiveSite {
                 parent_type_name: field.parent_entity().name(),
                 field_name: field.name(),
-                arguments: &arguments,
+                arguments: cbor::to_vec(arguments).unwrap(),
             },
         };
 
-        let result = instance
+        instance
             .resolve_subscription(context.clone(), subgraph.name(), directive)
-            .await;
+            .await
+            .map_err(|err| err.into_graphql_error(PartialErrorCode::ExtensionError))?;
 
-        match result {
-            Ok(()) => {
-                let stream = stream::unfold((instance, VecDeque::new()), async move |(mut instance, mut tail)| {
-                    if let Some(data) = tail.pop_front() {
-                        return Some((data, (instance, tail)));
-                    }
-
-                    let item = match instance.resolve_next_subscription_item().await {
-                        Ok(Some(item)) => {
-                            tracing::debug!("subscription item resolved");
-                            item
-                        }
-                        Ok(None) => {
-                            tracing::debug!("subscription completed");
-                            return None;
-                        }
-                        Err(e) => {
-                            tracing::error!("Error resolving subscription item: {e}");
-                            return Some((Err(PartialGraphqlError::internal_extension_error()), (instance, tail)));
-                        }
-                    };
-
-                    for item in item.outputs {
-                        match item {
-                            Ok(item) => {
-                                tail.push_back(Ok(Data::CborBytes(item)));
-                            }
-                            Err(error) => {
-                                let error = guest_error_as_gql(error, PartialErrorCode::InternalServerError);
-                                tail.push_back(Err(error));
-                            }
-                        }
-                    }
-
-                    tail.pop_front().map(|item| (item, (instance, tail)))
-                });
-
-                Ok(Box::pin(stream))
+        let stream = stream::unfold((instance, VecDeque::new()), async move |(mut instance, mut tail)| {
+            if let Some(data) = tail.pop_front() {
+                return Some((data, (instance, tail)));
             }
-            Err(error) => match error {
-                crate::Error::Guest(error) => {
-                    let error = guest_error_as_gql(error, PartialErrorCode::InternalServerError);
-                    Err(error)
+
+            let item = match instance.resolve_next_subscription_item().await {
+                Ok(Some(item)) => {
+                    tracing::debug!("subscription item resolved");
+                    item
                 }
-                _ => Err(PartialGraphqlError::internal_extension_error()),
-            },
+                Ok(None) => {
+                    tracing::debug!("subscription completed");
+                    return None;
+                }
+                Err(e) => {
+                    tracing::error!("Error resolving subscription item: {e}");
+                    return Some((Err(PartialGraphqlError::internal_extension_error()), (instance, tail)));
+                }
+            };
+
+            for item in item.outputs {
+                match item {
+                    Ok(item) => {
+                        tail.push_back(Ok(Data::CborBytes(item)));
+                    }
+                    Err(error) => {
+                        let error = error.into_graphql_error(PartialErrorCode::InternalServerError);
+                        tail.push_back(Err(error));
+                    }
+                }
+            }
+
+            tail.pop_front().map(|item| (item, (instance, tail)))
+        });
+
+        Ok(Box::pin(stream))
+    }
+
+    async fn authorize_query<'ctx>(
+        &'ctx self,
+        context: &'ctx Self::SharedContext,
+        extension_id: ExtensionId,
+        // (directive name, (definition, arguments))
+        elements: impl IntoIterator<
+            Item = (
+                &'ctx str,
+                impl IntoIterator<Item = DirectiveSite<'ctx, impl Anything<'ctx>>> + Send + 'ctx,
+            ),
+        > + Send
+        + 'ctx,
+    ) -> Result<AuthorizationDecisions, ErrorResponse> {
+        let mut instance = self.get(ExtensionPoolId::Authorization(extension_id)).await?;
+        let mut directive_names = Vec::<(&str, u32, u32)>::new();
+        let mut query_elements = Vec::new();
+        for (name, sites) in elements {
+            let start = query_elements.len();
+            for site in sites {
+                // Some help for rust-analyzer who struggles for some reason.
+                let site: DirectiveSite<'_, _> = site;
+                let arguments = cbor::to_vec(site.arguments).unwrap();
+
+                let query_element = match site.definition {
+                    Definition::InputObject(_) => unreachable!("We don't authorize inputs."),
+                    Definition::Enum(def) => wit::DirectiveSite::Enum(wit::EnumDirectiveSite {
+                        enum_name: def.name(),
+                        arguments,
+                    }),
+                    Definition::Interface(def) => wit::DirectiveSite::Interface(wit::InterfaceDirectiveSite {
+                        interface_name: def.name(),
+                        arguments,
+                    }),
+                    Definition::Object(def) => wit::DirectiveSite::Object(wit::ObjectDirectiveSite {
+                        object_name: def.name(),
+                        arguments,
+                    }),
+                    Definition::Scalar(def) => wit::DirectiveSite::Scalar(wit::ScalarDirectiveSite {
+                        scalar_name: def.name(),
+                        arguments,
+                    }),
+                    Definition::Union(def) => wit::DirectiveSite::Union(wit::UnionDirectiveSite {
+                        union_name: def.name(),
+                        arguments,
+                    }),
+                };
+
+                query_elements.push(query_element);
+            }
+            let end = query_elements.len();
+            directive_names.push((name, start as u32, end as u32));
         }
+
+        instance
+            .authorize_query(
+                context.clone(),
+                wit::QueryElements {
+                    directive_names: directive_names.as_slice(),
+                    elements: query_elements.as_slice(),
+                },
+            )
+            .await
+            .map(Into::into)
+            .map_err(|err| err.into_graphql_error_response(PartialErrorCode::Unauthorized))
     }
 }
 
@@ -291,6 +300,7 @@ impl ExtensionRuntime for ExtensionsWasiRuntime {
 pub enum ExtensionPoolId {
     Resolver(ExtensionId),
     Authorizer(ExtensionId, AuthorizerId),
+    Authorization(ExtensionId),
 }
 
 impl From<ExtensionId> for ExtensionPoolId {

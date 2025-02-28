@@ -1,21 +1,23 @@
-pub mod guest;
+use runtime::error::{PartialErrorCode, PartialGraphqlError};
+
+use crate::{cbor, extension::wit};
 
 /// The error type from a WASI call from the gateway.
 #[derive(Debug, thiserror::Error)]
-pub enum GatewayError {
+pub enum ErrorResponse {
     /// Error on initialization or mishandling of WASI components.
     #[error("{0}")]
     Internal(#[from] anyhow::Error),
     /// Error defined by the guest.
     #[error("{0}")]
-    Guest(#[from] guest::ErrorResponse),
+    Guest(#[from] wit::ErrorResponse),
 }
 
-impl From<Error> for GatewayError {
+impl From<Error> for ErrorResponse {
     fn from(value: Error) -> Self {
         match value {
-            Error::Internal(error) => GatewayError::Internal(error),
-            Error::Guest(error) => GatewayError::Guest(guest::ErrorResponse {
+            Error::Internal(error) => ErrorResponse::Internal(error),
+            Error::Guest(error) => ErrorResponse::Guest(wit::ErrorResponse {
                 status_code: 500,
                 errors: vec![error],
             }),
@@ -23,12 +25,25 @@ impl From<Error> for GatewayError {
     }
 }
 
-impl GatewayError {
-    /// Converts into user error response, if one.
-    pub fn into_guest_error(self) -> Option<guest::ErrorResponse> {
+impl ErrorResponse {
+    pub(crate) fn into_graphql_error_response(self, code: PartialErrorCode) -> runtime::error::ErrorResponse {
         match self {
-            GatewayError::Internal(_) => None,
-            GatewayError::Guest(error) => Some(error),
+            ErrorResponse::Internal(error) => runtime::error::ErrorResponse {
+                status: http::StatusCode::INTERNAL_SERVER_ERROR,
+                errors: vec![PartialGraphqlError::new(
+                    error.to_string(),
+                    PartialErrorCode::InternalServerError,
+                )],
+            },
+            ErrorResponse::Guest(error) => runtime::error::ErrorResponse {
+                status: http::StatusCode::from_u16(error.status_code)
+                    .unwrap_or(http::StatusCode::INTERNAL_SERVER_ERROR),
+                errors: error
+                    .errors
+                    .into_iter()
+                    .map(|err| err.into_graphql_error(code))
+                    .collect(),
+            },
         }
     }
 }
@@ -41,15 +56,14 @@ pub enum Error {
     Internal(#[from] anyhow::Error),
     /// User-thrown error of the WASI guest.
     #[error("{0}")]
-    Guest(#[from] guest::GuestError),
+    Guest(#[from] wit::Error),
 }
 
 impl Error {
-    /// Converts into user error response, if one.
-    pub fn into_guest_error(self) -> Option<guest::GuestError> {
+    pub(crate) fn into_graphql_error(self, code: PartialErrorCode) -> PartialGraphqlError {
         match self {
-            Error::Internal(_) => None,
-            Error::Guest(error) => Some(error),
+            Error::Internal(error) => PartialGraphqlError::new(error.to_string(), code),
+            Error::Guest(error) => error.into_graphql_error(code),
         }
     }
 }
@@ -63,5 +77,24 @@ impl From<String> for Error {
 impl From<reqwest::Error> for Error {
     fn from(value: reqwest::Error) -> Self {
         Self::Internal(value.into())
+    }
+}
+
+impl wit::Error {
+    pub(crate) fn into_graphql_error(self, code: PartialErrorCode) -> PartialGraphqlError {
+        let extensions = self
+            .extensions
+            .into_iter()
+            .map(|(key, value)| {
+                let value = cbor::from_slice(&value).unwrap_or_default();
+                (key.into(), value)
+            })
+            .collect();
+
+        PartialGraphqlError {
+            message: self.message.into(),
+            code,
+            extensions,
+        }
     }
 }

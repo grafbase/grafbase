@@ -1,6 +1,6 @@
 use std::{borrow::Cow, collections::HashMap};
 
-use crate::{wit, SdkError};
+use crate::{cbor, wit, SdkError};
 
 /// Graphql Error with a message and extensions
 #[derive(Clone)]
@@ -22,12 +22,7 @@ impl std::fmt::Debug for Error {
                     .0
                     .extensions
                     .iter()
-                    .map(|(key, value)| {
-                        (
-                            key,
-                            minicbor_serde::from_slice::<serde_json::Value>(value).unwrap_or_default(),
-                        )
-                    })
+                    .map(|(key, value)| (key, cbor::from_slice::<serde_json::Value>(value).unwrap_or_default()))
                     .collect::<HashMap<_, _>>(),
             )
             .finish()

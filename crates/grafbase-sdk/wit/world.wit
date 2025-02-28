@@ -1,12 +1,7 @@
 package grafbase:sdk;
 
 interface types {
-    record schema-directive {
-        subgraph-name: string,
-        name: string,
-        // encoded in CBOR.
-        arguments: list<u8>
-    }
+    use directive.{directive-site, field-definition-directive};
 
     // The context as a read-only object.
     resource shared-context {
@@ -248,6 +243,34 @@ interface types {
         set: static func(key: string, value: list<u8>, ttl-ms: option<u64>) -> ();
     }
 
+    record query-elements {
+        // Tuple of directive name and a range over the `elements` list it's associated with.
+        directive-names: list<tuple<string, u32, u32>>,
+        // Represents an element of the query associated with the directive
+        elements: list<directive-site>
+    }
+
+    variant authorization-decisions {
+        grant-all,
+        deny-all(error),
+        sparse-deny(sparse-deny-authorization-decisions)
+    }
+
+    record sparse-deny-authorization-decisions {
+        // For elements
+        element-to-error: list<tuple<u32, u32>>,
+        errors: list<error>
+    }
+}
+
+interface directive {
+    record schema-directive {
+        subgraph-name: string,
+        name: string,
+        // encoded in CBOR.
+        arguments: list<u8>
+    }
+
     record field-definition-directive {
         name: string,
         site: field-definition-directive-site
@@ -256,10 +279,12 @@ interface types {
     // Where and how the directive is applied
     // Each variant matches a GraphQL directive location
     variant directive-site {
+        scalar(scalar-directive-site),
         object(object-directive-site),
         field-definition(field-definition-directive-site),
         %interface(interface-directive-site),
-        union(union-directive-site)
+        union(union-directive-site),
+        %enum(enum-directive-site)
     }
 
     // Site for a directive applied on a OBJECT location
@@ -291,30 +316,24 @@ interface types {
         arguments: list<u8>
     }
 
-    record query-elements {
-        // Tuple of directive name and a range over the `elements` list it's associated with.
-        directive-names: list<tuple<string, u32, u32>>,
-        // Represents an element of the query associated with the directive
-        elements: list<directive-site>
+    // Site for a directive applied on a ENUM location
+    record enum-directive-site {
+        enum-name: string,
+        // serialized in CBOR
+        arguments: list<u8>
     }
 
-
-    variant authorization-decisions {
-        grant-all,
-        deny-all(error),
-        sparse-deny(sparse-deny-authorization-decisions)
+    // Site for a directive applied on a SCALAR location
+    record scalar-directive-site {
+        scalar-name: string,
+        // serialized in CBOR
+        arguments: list<u8>
     }
-
-    record sparse-deny-authorization-decisions {
-        // For elements
-        element-to-error: list<tuple<u32, u32>>,
-        errors: list<error>
-    }
-
 }
 
 interface extension {
-    use types.{schema-directive, shared-context, error-response, error, field-output, access-log, log-error, nats-auth, nats-client, http-client, http-request, http-response, http-method, http-version, http-error, headers, token, cache, query-elements, authorization-decisions, field-definition-directive};
+    use directive.{schema-directive, field-definition-directive};
+    use types.{shared-context, error-response, error, field-output, access-log, log-error, nats-auth, nats-client, http-client, http-request, http-response, http-method, http-version, http-error, headers, token, cache, query-elements, authorization-decisions};
 
     // initialization function called to set up the wasm extension
     // if an error happens here, the gateway will refuse to continue.

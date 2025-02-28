@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-use crate::{wit, SdkError};
+use crate::{cbor, wit, SdkError};
 
 use super::FieldDefinitionDirectiveSite;
 
@@ -29,7 +29,7 @@ impl SchemaDirective {
     where
         T: Deserialize<'de>,
     {
-        minicbor_serde::from_slice(&self.0.arguments).map_err(Into::into)
+        cbor::from_slice(&self.0.arguments).map_err(Into::into)
     }
 }
 

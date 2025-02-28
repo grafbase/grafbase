@@ -6,6 +6,8 @@ use http::HeaderMap;
 use runtime::hooks::SubgraphRequest;
 use wasmtime::component::{ComponentNamedList, Lift, Lower, Resource, TypedFunc};
 
+use crate::AccessLogSender;
+use crate::extension::wit;
 use crate::headers::Headers;
 use crate::names::{
     AUTHORIZE_EDGE_NODE_POST_EXECUTION_HOOK_FUNCTION, AUTHORIZE_EDGE_POST_EXECUTION_HOOK_FUNCTION,
@@ -14,7 +16,6 @@ use crate::names::{
     ON_HTTP_RESPONSE_FUNCTION, ON_OPERATION_RESPONSE_FUNCTION, ON_SUBGRAGH_REQUEST_HOOK_FUNCTION,
     ON_SUBGRAPH_RESPONSE_FUNCTION,
 };
-use crate::{AccessLogSender, error::guest::ErrorResponse};
 use crate::{ComponentLoader, SharedContext};
 use crate::{
     ContextMap, EdgeDefinition, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, GuestResult,
@@ -156,7 +157,8 @@ impl HooksComponentInstance {
         url: &str,
         headers: HeaderMap,
     ) -> crate::GatewayResult<(ContextMap, HeaderMap)> {
-        let Some(hook) = self.get_hook::<_, (Result<(), ErrorResponse>,)>(HookImplementation::OnGatewayRequest) else {
+        let Some(hook) = self.get_hook::<_, (Result<(), wit::ErrorResponse>,)>(HookImplementation::OnGatewayRequest)
+        else {
             return Ok((context, headers));
         };
 
@@ -345,7 +347,7 @@ impl HooksComponentInstance {
         definition: EdgeDefinition,
         parents: Vec<String>,
         metadata: String,
-    ) -> crate::Result<Vec<Result<(), crate::GuestError>>> {
+    ) -> crate::Result<Vec<Result<(), wit::Error>>> {
         self.call3_one_output(
             HookImplementation::AuthorizeParentEdgePostExecution,
             context,
@@ -384,7 +386,7 @@ impl HooksComponentInstance {
         definition: EdgeDefinition,
         nodes: Vec<String>,
         metadata: String,
-    ) -> crate::Result<Vec<Result<(), crate::GuestError>>> {
+    ) -> crate::Result<Vec<Result<(), wit::Error>>> {
         self.call3_one_output(
             HookImplementation::AuthorizeEdgeNodePostExecution,
             context,
@@ -423,7 +425,7 @@ impl HooksComponentInstance {
         definition: EdgeDefinition,
         edges: Vec<(String, Vec<String>)>,
         metadata: String,
-    ) -> crate::Result<Vec<Result<(), crate::GuestError>>> {
+    ) -> crate::Result<Vec<Result<(), wit::Error>>> {
         self.call3_one_output(
             HookImplementation::AuthorizeEdgePostExecution,
             context,
