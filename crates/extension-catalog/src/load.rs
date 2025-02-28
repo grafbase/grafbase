@@ -52,6 +52,7 @@ mod tests {
             description: "My extension".to_string(),
             homepage_url: None,
             repository_url: None,
+            permissions: Default::default(),
         };
         tokio::fs::write(
             &manifest_path,

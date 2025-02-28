@@ -71,6 +71,15 @@ fn init_resolver() {
     # repository_url = "https://github.com/my-username/my-extension"
     # license = "MIT"
 
+    # These are the default permissions for the extension.
+    # The user can enable or disable them as needed in the gateway
+    # configuration file.
+    [permissions]
+    network = false
+    stdout = false
+    stderr = false
+    environment_variables = false
+
     [directives]
     definitions = "definitions.graphql"
     field_resolvers = ["testProjectDirective"]
@@ -220,7 +229,7 @@ fn build_resolver() {
     assert!(std::fs::exists(build_path.join("manifest.json")).unwrap());
 
     let manifest = std::fs::read_to_string(build_path.join("manifest.json")).unwrap();
-    let manifest: Manifest = serde_json::from_str(&manifest).unwrap();
+    let manifest: Manifest = serde_json::from_str(dbg!(&manifest)).unwrap();
 
     let manifest = serde_json::to_value(&manifest).unwrap();
     insta::assert_json_snapshot!(
@@ -245,7 +254,8 @@ fn build_resolver() {
       "sdk_version": "<sdk_version>",
       "minimum_gateway_version": "<minimum_gateway_version>",
       "description": "A new extension",
-      "sdl": "\"\"\"\nFill in here the directives and types that the extension needs.\nRemove this file and the definition in extension.toml if the extension does not need any directives.\n\"\"\"\ndirective @testProjectConfiguration(arg1: String) repeatable on SCHEMA\ndirective @testProjectDirective on FIELD_DEFINITION"
+      "sdl": "\"\"\"\nFill in here the directives and types that the extension needs.\nRemove this file and the definition in extension.toml if the extension does not need any directives.\n\"\"\"\ndirective @testProjectConfiguration(arg1: String) repeatable on SCHEMA\ndirective @testProjectDirective on FIELD_DEFINITION",
+      "permissions": []
     }
     "#
     );
@@ -303,6 +313,15 @@ fn init_auth() {
     # homepage_url = "https://example.com/my-extension"
     # repository_url = "https://github.com/my-username/my-extension"
     # license = "MIT"
+
+    # These are the default permissions for the extension.
+    # The user can enable or disable them as needed in the gateway
+    # configuration file.
+    [permissions]
+    network = false
+    stdout = false
+    stderr = false
+    environment_variables = false
     "##);
 
     let lib_rs = std::fs::read_to_string(project_path.join("src/lib.rs")).unwrap();
@@ -457,7 +476,8 @@ fn build_auth() {
       },
       "sdk_version": "<sdk_version>",
       "minimum_gateway_version": "<minimum_gateway_version>",
-      "description": "A new extension"
+      "description": "A new extension",
+      "permissions": []
     }
     "#
     );

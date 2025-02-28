@@ -54,31 +54,31 @@ impl ExtensionsConfig {
         }
     }
 
-    pub fn networking(&self) -> bool {
+    pub fn networking(&self) -> Option<bool> {
         match self {
-            ExtensionsConfig::Version(_) => false,
-            ExtensionsConfig::Structured(config) => config.networking,
+            ExtensionsConfig::Version(_) => None,
+            ExtensionsConfig::Structured(config) => Some(config.networking),
         }
     }
 
-    pub fn stdout(&self) -> bool {
+    pub fn stdout(&self) -> Option<bool> {
         match self {
-            ExtensionsConfig::Version(_) => false,
-            ExtensionsConfig::Structured(config) => config.stdout,
+            ExtensionsConfig::Version(_) => None,
+            ExtensionsConfig::Structured(config) => Some(config.stdout),
         }
     }
 
-    pub fn stderr(&self) -> bool {
+    pub fn stderr(&self) -> Option<bool> {
         match self {
-            ExtensionsConfig::Version(_) => false,
-            ExtensionsConfig::Structured(config) => config.stderr,
+            ExtensionsConfig::Version(_) => None,
+            ExtensionsConfig::Structured(config) => Some(config.stderr),
         }
     }
 
-    pub fn environment_variables(&self) -> bool {
+    pub fn environment_variables(&self) -> Option<bool> {
         match self {
-            ExtensionsConfig::Version(_) => false,
-            ExtensionsConfig::Structured(config) => config.environment_variables,
+            ExtensionsConfig::Version(_) => None,
+            ExtensionsConfig::Structured(config) => Some(config.environment_variables),
         }
     }
 

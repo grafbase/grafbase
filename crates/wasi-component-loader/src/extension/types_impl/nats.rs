@@ -18,6 +18,10 @@ impl HostNatsClient for WasiState {
         servers: Vec<String>,
         auth: Option<NatsAuth>,
     ) -> wasmtime::Result<Result<Resource<NatsClient>, String>> {
+        if !self.network_enabled() {
+            return Ok(Err("Network operations are disabled".to_string()));
+        }
+
         let Ok(addrs) = servers
             .iter()
             .map(|url| url.parse())

@@ -1,3 +1,4 @@
+use anyhow::bail;
 use wasmtime::component::Resource;
 
 use crate::{
@@ -8,6 +9,10 @@ use crate::{
 
 impl HostHttpClient for WasiState {
     async fn execute(&mut self, request: HttpRequest) -> wasmtime::Result<Result<HttpResponse, HttpError>> {
+        if !self.network_enabled() {
+            bail!("Network operations are disabled");
+        }
+
         let request_durations = self.request_durations().clone();
         let http_client = self.http_client().clone();
 
@@ -18,6 +23,10 @@ impl HostHttpClient for WasiState {
         &mut self,
         requests: Vec<HttpRequest>,
     ) -> wasmtime::Result<Vec<Result<HttpResponse, HttpError>>> {
+        if !self.network_enabled() {
+            bail!("Network operations are disabled");
+        }
+
         let request_durations = self.request_durations().clone();
         let http_client = self.http_client().clone();
 

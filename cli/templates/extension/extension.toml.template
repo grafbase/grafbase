@@ -7,6 +7,15 @@ description = "A new extension"
 # repository_url = "https://github.com/my-username/my-extension"
 # license = "MIT"
 
+# These are the default permissions for the extension.
+# The user can enable or disable them as needed in the gateway
+# configuration file.
+[permissions]
+network = false
+stdout = false
+stderr = false
+environment_variables = false
+
 {% if needs_field_resolvers -%}
 [directives]
 definitions = "definitions.graphql"

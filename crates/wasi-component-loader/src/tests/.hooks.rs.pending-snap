@@ -1,0 +1,12 @@
+{"run_id":"1740748046-676532307","line":415,"new":{"module_name":"wasi_component_loader__tests__hooks","snapshot_name":"authorize_node_pre_execution_error","metadata":{"source":"crates/wasi-component-loader/src/tests/hooks.rs","assertion_line":415,"expression":"error"},"snapshot":"Internal(\n    \"authorize-edge-pre-execution hook must be defined if using the @authorized directive\",\n)"},"old":{"module_name":"wasi_component_loader__tests__hooks","metadata":{},"snapshot":"Guest(\n    Error {\n        extensions: [],\n        message: \"not authorized\",\n    },\n)"}}
+{"run_id":"1740748046-676532307","line":329,"new":{"module_name":"wasi_component_loader__tests__hooks","snapshot_name":"authorize_edge_pre_execution_error","metadata":{"source":"crates/wasi-component-loader/src/tests/hooks.rs","assertion_line":329,"expression":"error"},"snapshot":"Internal(\n    \"authorize-edge-pre-execution hook must be defined if using the @authorized directive\",\n)"},"old":{"module_name":"wasi_component_loader__tests__hooks","metadata":{},"snapshot":"Guest(\n    Error {\n        extensions: [],\n        message: \"not authorized\",\n    },\n)"}}
+{"run_id":"1740748177-564603590","line":780,"new":null,"old":null}
+{"run_id":"1740748177-564603590","line":258,"new":null,"old":null}
+{"run_id":"1740748177-564603590","line":684,"new":null,"old":null}
+{"run_id":"1740748177-564603590","line":329,"new":null,"old":null}
+{"run_id":"1740748177-564603590","line":553,"new":null,"old":null}
+{"run_id":"1740748177-564603590","line":624,"new":null,"old":null}
+{"run_id":"1740748177-564603590","line":501,"new":null,"old":null}
+{"run_id":"1740748177-564603590","line":415,"new":null,"old":null}
+{"run_id":"1740748177-564603590","line":692,"new":null,"old":null}
+{"run_id":"1740748177-564603590","line":712,"new":null,"old":null}
