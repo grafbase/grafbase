@@ -1,4 +1,5 @@
-extend schema @link(url: "https://specs.grafbase.com/grafbase", import: ["InputValueSet", "UrlTemplate"])
+extend schema
+  @link(url: "https://specs.grafbase.com/grafbase", import: ["InputValueSet", "UrlTemplate", "JsonTemplate"])
 
 """
 @restEndpoint directive enables defining named REST endpoints for the schema.
@@ -56,7 +57,7 @@ directive @rest(
   """
   Specifies which fields from the GraphQL selection to include in the response
   """
-  selection: UrlTemplate!
+  selection: JsonTemplate!
 
   """
   Configuration for the request body, can include static values or

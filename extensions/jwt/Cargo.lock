@@ -2128,7 +2128,6 @@ dependencies = [
  "uuid",
  "wasmparser 0.224.1",
  "winapi",
- "windows-sys 0.48.0",
  "windows-sys 0.52.0",
  "windows-sys 0.59.0",
  "zeroize",
