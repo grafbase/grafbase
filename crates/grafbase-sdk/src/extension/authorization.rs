@@ -1,7 +1,7 @@
 use crate::{
     component::AnyExtension,
-    types::{ErrorResponse, QueryAuthorization, QueryElements, ResponseAuthorization, ResponseElements},
-    wit, SharedContext,
+    types::{AuthorizationDecisions, ErrorResponse, QueryElements},
+    SharedContext,
 };
 
 use super::Extension;
@@ -20,22 +20,7 @@ pub trait Authorizer: Extension {
         &'a mut self,
         context: SharedContext,
         elements: QueryElements<'a>,
-    ) -> Result<QueryAuthorization<Box<dyn ResponseAuthorizer<'a>>>, ErrorResponse>;
-}
-
-pub trait ResponseAuthorizer<'a>: 'a {
-    /// Authorize response elements after receiving a subgraph response.
-    ///
-    /// Only elements explicitly mentioned in the query will be taken into account. Authorization
-    /// on a object behind an interface won't be called if it's not explicitly mentioned, so if
-    /// only interface fields are used.
-    fn authorize_response(&mut self, elements: ResponseElements<'_>) -> Result<ResponseAuthorization, wit::Error>;
-}
-
-impl<'a, T: ResponseAuthorizer<'a>> ResponseAuthorizer<'a> for Box<T> {
-    fn authorize_response(&mut self, elements: ResponseElements<'_>) -> Result<ResponseAuthorization, wit::Error> {
-        self.as_mut().authorize_response(elements)
-    }
+    ) -> Result<impl Into<AuthorizationDecisions>, ErrorResponse>;
 }
 
 #[doc(hidden)]
@@ -47,8 +32,8 @@ pub fn register<T: Authorizer>() {
             &'a mut self,
             context: SharedContext,
             elements: QueryElements<'a>,
-        ) -> Result<QueryAuthorization<Box<dyn ResponseAuthorizer<'a>>>, ErrorResponse> {
-            Authorizer::authorize_query(&mut self.0, context, elements)
+        ) -> Result<AuthorizationDecisions, ErrorResponse> {
+            Authorizer::authorize_query(&mut self.0, context, elements).map(Into::into)
         }
     }
 

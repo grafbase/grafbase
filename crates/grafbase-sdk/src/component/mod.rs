@@ -3,10 +3,10 @@ mod extension;
 mod state;
 
 use crate::{
-    types::{Configuration, FieldInputs, QueryAuthorization, ResponseAuthorization},
+    types::{Configuration, FieldInputs},
     wit::{
         AuthorizationDecisions, Error, ErrorResponse, FieldDefinitionDirective, FieldOutput, Guest, Headers,
-        QueryElements, ResponseElements, SchemaDirective, SharedContext, Token,
+        QueryElements, SchemaDirective, SharedContext, Token,
     },
 };
 
@@ -66,44 +66,10 @@ impl Guest for Component {
         context: SharedContext,
         elements: QueryElements,
     ) -> Result<AuthorizationDecisions, ErrorResponse> {
-        let extension = state::extension()?;
-        let elements = state::set_authorizer_context(elements);
-        match extension.authorize_query(context, elements.into()) {
-            Ok(QueryAuthorization {
-                decisions,
-                response_authorizer,
-            }) => {
-                if let Some(authorizer) = response_authorizer {
-                    state::set_response_authorizer(authorizer);
-                } else {
-                    // SAFETY: We don't have a response authorizer, so nothing depends on this context anymore.
-                    unsafe { state::drop_authorizer_context()? };
-                }
-                Ok(decisions)
-            }
-            Err(err) => {
-                // SAFETY: We don't have a response authorizer, so nothing depends on this context anymore.
-                unsafe { state::drop_authorizer_context()? }
-                Err(err.into())
-            }
-        }
-    }
-
-    fn authorize_response(elements: ResponseElements) -> Result<AuthorizationDecisions, Error> {
-        if let Some(mut response_authorizer) = state::take_response_authorizer() {
-            let query = state::authorizer_context()?;
-            let result =
-                response_authorizer.authorize_response(crate::types::ResponseElements { query, resp: &elements });
-            drop(response_authorizer);
-            // SAFETY: The response authorizer just executed and has been dropped. Nothing references the
-            //         authorization context anymore.
-            unsafe {
-                state::drop_authorizer_context()?;
-            }
-            result.map(|ResponseAuthorization { decisions, .. }| decisions)
-        } else {
-            todo!()
-        }
+        state::extension()?
+            .authorize_query(context, (&elements).into())
+            .map(Into::into)
+            .map_err(Into::into)
     }
 }
 

@@ -1,9 +1,38 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, collections::HashMap};
 
 use crate::{wit, SdkError};
 
 /// Graphql Error with a message and extensions
+#[derive(Clone)]
 pub struct Error(wit::Error);
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0.message)
+    }
+}
+
+impl std::fmt::Debug for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Error")
+            .field("message", &self.0.message)
+            .field(
+                "extensions",
+                &self
+                    .0
+                    .extensions
+                    .iter()
+                    .map(|(key, value)| {
+                        (
+                            key,
+                            minicbor_serde::from_slice::<serde_json::Value>(value).unwrap_or_default(),
+                        )
+                    })
+                    .collect::<HashMap<_, _>>(),
+            )
+            .finish()
+    }
+}
 
 impl From<Error> for wit::Error {
     fn from(err: Error) -> Self {

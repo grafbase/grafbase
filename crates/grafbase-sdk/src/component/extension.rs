@@ -1,8 +1,8 @@
 use crate::{
-    extension::{authorization::ResponseAuthorizer, resolver::Subscription},
+    extension::resolver::Subscription,
     types::{
-        Error, ErrorResponse, FieldDefinitionDirective, FieldInputs, FieldOutput, QueryAuthorization, QueryElements,
-        Token,
+        AuthorizationDecisions, Error, ErrorResponse, FieldDefinitionDirective, FieldInputs, FieldOutput,
+        QueryElements, Token,
     },
     wit::{Headers, SharedContext},
 };
@@ -38,7 +38,7 @@ pub(crate) trait AnyExtension {
         &'a mut self,
         context: SharedContext,
         elements: QueryElements<'a>,
-    ) -> Result<QueryAuthorization<Box<dyn ResponseAuthorizer<'a>>>, ErrorResponse> {
+    ) -> Result<AuthorizationDecisions, ErrorResponse> {
         Err(ErrorResponse::internal_server_error(
             "Authorization extension not initialized correctly.",
         ))

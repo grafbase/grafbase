@@ -254,6 +254,7 @@ interface types {
     }
 
     // Where and how the directive is applied
+    // Each variant matches a GraphQL directive location
     variant directive-site {
         object(object-directive-site),
         field-definition(field-definition-directive-site),
@@ -261,24 +262,32 @@ interface types {
         union(union-directive-site)
     }
 
+    // Site for a directive applied on a OBJECT location
     record object-directive-site {
         object-name: string,
+        // serialized in CBOR
         arguments: list<u8>
     }
 
+    // Site for a directive applied on a FIELD_DEFINITION location
     record field-definition-directive-site {
         parent-type-name: string,
         field-name: string,
+        // serialized in CBOR
         arguments: list<u8>
     }
 
+    // Site for a directive applied on a UNION location
     record union-directive-site {
         union-name: string,
+        // serialized in CBOR
         arguments: list<u8>
     }
 
+    // Site for a directive applied on a INTERFACE location
     record interface-directive-site {
         interface-name: string,
+        // serialized in CBOR
         arguments: list<u8>
     }
 
@@ -289,24 +298,23 @@ interface types {
         elements: list<directive-site>
     }
 
-    record response-elements {
-        // Tuple of directive name and a range over the `query-to-resp` list it's associated with.
-        directive-names: list<tuple<string, u32, u32>>,
-        // Tuples query element index (within a `query-elements` record) and a range of `elements` it's associated with.
-        query-to-resp: list<tuple<u32, u32, u32>>,
-        // Represents an element of the response associated with the directive, the data is the part of the directive arguments that relied on response data.
-        elements: list<list<u8>>
+
+    variant authorization-decisions {
+        grant-all,
+        deny-all(error),
+        sparse-deny(sparse-deny-authorization-decisions)
     }
 
-    record authorization-decisions {
-        granted-bitset: list<u8>,
-        element-ix-to-error-ix: list<tuple<u32, u32>>,
+    record sparse-deny-authorization-decisions {
+        // For elements
+        element-to-error: list<tuple<u32, u32>>,
         errors: list<error>
     }
+
 }
 
 interface extension {
-    use types.{schema-directive, shared-context, error-response, error, field-output, access-log, log-error, nats-auth, nats-client, http-client, http-request, http-response, http-method, http-version, http-error, headers, token, cache, query-elements, response-elements, authorization-decisions, field-definition-directive};
+    use types.{schema-directive, shared-context, error-response, error, field-output, access-log, log-error, nats-auth, nats-client, http-client, http-request, http-response, http-method, http-version, http-error, headers, token, cache, query-elements, authorization-decisions, field-definition-directive};
 
     // initialization function called to set up the wasm extension
     // if an error happens here, the gateway will refuse to continue.
@@ -343,11 +351,6 @@ interface extension {
         context: shared-context,
         elements: query-elements
     ) -> result<authorization-decisions, error-response>;
-
-    // Can only be called after authorize-query.
-    authorize-response: func(
-        elements: response-elements,
-    ) -> result<authorization-decisions, error>;
 }
 
 world sdk {

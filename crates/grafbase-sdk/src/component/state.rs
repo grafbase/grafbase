@@ -1,9 +1,9 @@
 #![allow(static_mut_refs)]
 
 use crate::{
-    extension::{authorization::ResponseAuthorizer, resolver::Subscription},
+    extension::resolver::Subscription,
     types::{Configuration, SchemaDirective},
-    wit::{Error, QueryElements},
+    wit::Error,
 };
 
 use super::extension::AnyExtension;
@@ -14,8 +14,6 @@ type InitFn =
 static mut INIT_FN: Option<InitFn> = None;
 static mut EXTENSION: Option<Box<dyn AnyExtension>> = None;
 static mut SUBSCRIPTION: Option<Box<dyn Subscription>> = None;
-static mut AUTHORIZER_CONTEXT: Option<QueryElements> = None;
-static mut RESPONSE_AUTHORIZER: Option<Box<dyn ResponseAuthorizer<'static>>> = None;
 
 /// Initializes the resolver extension with the provided directives using the closure
 /// function created with the `register_extension!` macro.
@@ -64,42 +62,4 @@ pub(super) fn subscription() -> Result<&'static mut dyn Subscription, Error> {
             extensions: Vec::new(),
         })
     }
-}
-
-pub(super) fn set_authorizer_context(context: QueryElements) -> &'static QueryElements {
-    unsafe {
-        AUTHORIZER_CONTEXT = Some(context);
-        AUTHORIZER_CONTEXT.as_ref().unwrap()
-    }
-}
-
-pub(super) fn authorizer_context() -> Result<&'static QueryElements, Error> {
-    unsafe {
-        AUTHORIZER_CONTEXT.as_ref().ok_or_else(|| Error {
-            message: "No active authorizer context.".to_string(),
-            extensions: Vec::new(),
-        })
-    }
-}
-
-pub(super) unsafe fn drop_authorizer_context() -> Result<(), Error> {
-    unsafe {
-        AUTHORIZER_CONTEXT
-            .take()
-            .ok_or_else(|| Error {
-                message: "No active authorizer context.".to_string(),
-                extensions: Vec::new(),
-            })
-            .map(|_| ())
-    }
-}
-
-pub(super) fn set_response_authorizer(authorizer: Box<dyn ResponseAuthorizer<'static>>) {
-    unsafe {
-        RESPONSE_AUTHORIZER = Some(authorizer);
-    }
-}
-
-pub(super) fn take_response_authorizer() -> Option<Box<dyn ResponseAuthorizer<'static>>> {
-    unsafe { RESPONSE_AUTHORIZER.take() }
 }
