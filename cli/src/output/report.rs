@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use crate::{
     backend,
     common::{
@@ -303,4 +305,8 @@ pub(crate) fn extension_publish_failed(err: &str) {
 
 pub(crate) fn extension_published(name: &str, version: &str) {
     println!("🌟 Extension `{name}@{version}` published successfully");
+}
+
+pub(crate) fn extension_install_start(target_path: &Path) {
+    watercolor::output!("🕒 Downloading the extensions from the lockfile to \"{}\"...", target_path.display(), @BrightBlue);
 }

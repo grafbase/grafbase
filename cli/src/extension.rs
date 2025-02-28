@@ -2,6 +2,7 @@ use crate::cli_input::{ExtensionCommand, ExtensionSubCommand};
 
 mod build;
 mod init;
+mod install;
 mod publish;
 mod update;
 
@@ -13,5 +14,6 @@ pub(crate) fn execute(cmd: ExtensionCommand) -> anyhow::Result<()> {
         ExtensionSubCommand::Build(cmd) => build::execute(cmd),
         ExtensionSubCommand::Publish(cmd) => publish::execute(cmd),
         ExtensionSubCommand::Update(cmd) => update::execute(cmd),
+        ExtensionSubCommand::Install => install::execute(),
     }
 }
