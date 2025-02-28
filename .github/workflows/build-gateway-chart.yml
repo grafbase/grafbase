@@ -1,0 +1,84 @@
+name: Gateway Helm Chart
+
+on:
+  pull_request: {}
+  push:
+    branches:
+      - main
+    tags:
+      - 'gateway-*'
+  workflow_dispatch:
+    inputs:
+      required_reviewers:
+        description: 'Users or teams that must approve the workflow run'
+        required: true
+        default: 'Engineering'
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref_name }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY_REPOSITORY: ghcr.io/grafbase/helm-charts
+  CHART_PATH: gateway/helm
+
+jobs:
+  detect-change-type:
+    runs-on: ubicloud-standard-2
+    outputs:
+      build: ${{ steps.filter.outputs.build }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Path filter check
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            build:
+              - gateway/helm
+
+  gateway-helm-release:
+    name: Build gateway helm chart
+    runs-on: ubicloud-standard-2
+    needs: [detect-change-type]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup helm
+        uses: azure/setup-helm@v4.3.0
+        with:
+          version: "v3.16.2"
+  
+      - name: Login to ghcr.io
+        shell: bash
+        run: |
+          echo "Login to ghcr.io"
+          echo ${{ secrets.GITHUB_TOKEN }} | helm registry login ghcr.io --username grafbase --password-stdin
+
+      - name: Publish gateway helm chart dev
+        if: github.ref_name != 'main'
+        shell: bash
+        run: |
+          set -x
+          echo "Building helm chart"
+          helm show chart ${{ env.CHART_PATH }}
+          CRT_VER=$(helm show chart ${{ env.CHART_PATH }} | grep "^version:" | gawk '{print $2}')
+          SANITIZED_REF_NAME=$(echo "${{ github.ref_name }}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/./g')
+          helm package ${{ env.CHART_PATH }} --version $CRT_VER-$SANITIZED_REF_NAME --app-version $CRT_VER
+          helm push gateway-$CRT_VER-$SANITIZED_REF_NAME.tgz oci://${{ env.REGISTRY_REPOSITORY }} --debug
+
+      - name: Publish gateway helm chart
+        if: github.ref_name == 'main'
+        shell: bash
+        run: |
+          echo "Building helm chart"
+          CRT_VER=$(helm show chart ${{ env.CHART_PATH }} | grep "^version:" | gawk '{print $2}')
+          helm package ${{ env.CHART_PATH }}
+          helm push gateway-$CRT_VER.tgz oci://${{ env.REGISTRY_REPOSITORY }} --debug
