@@ -22,8 +22,8 @@ use runtime::{
 use tracing::{Instrument, Span, info_span};
 use wasi_component_loader::HookImplementation;
 pub use wasi_component_loader::{
-    AccessLogMessage, AccessLogReceiver, AccessLogSender, ComponentLoader, GuestError, HooksWasiConfig as Config,
-    SharedContext, create_access_log_channel,
+    AccessLogMessage, AccessLogReceiver, AccessLogSender, ComponentLoader, HooksWasiConfig as Config, SharedContext,
+    create_access_log_channel,
 };
 
 use super::guest_error_as_gql;
@@ -63,13 +63,13 @@ impl HooksWasiInner {
         result
     }
 
-    async fn run_and_measure_multi_error<F, T>(
+    async fn run_and_measure_multi_error<F, T, E>(
         &self,
         hook_name: &'static str,
         hook: F,
-    ) -> Result<Vec<Result<T, GuestError>>, wasi_component_loader::Error>
+    ) -> Result<Vec<Result<T, E>>, wasi_component_loader::Error>
     where
-        F: Future<Output = Result<Vec<Result<T, GuestError>>, wasi_component_loader::Error>> + Instrument,
+        F: Future<Output = Result<Vec<Result<T, E>>, wasi_component_loader::Error>> + Instrument,
     {
         let span = info_span!("call instance");
         let start = SystemTime::now();
@@ -107,11 +107,11 @@ impl HookError for wasi_component_loader::Error {
     }
 }
 
-impl HookError for wasi_component_loader::GatewayError {
+impl HookError for wasi_component_loader::ErrorResponse {
     fn status(&self) -> ErrorStatus {
         match self {
-            wasi_component_loader::GatewayError::Internal(_) => ErrorStatus::HostError,
-            wasi_component_loader::GatewayError::Guest(_) => ErrorStatus::GuestError,
+            wasi_component_loader::ErrorResponse::Internal(_) => ErrorStatus::HostError,
+            wasi_component_loader::ErrorResponse::Guest(_) => ErrorStatus::GuestError,
         }
     }
 }
@@ -203,7 +203,7 @@ impl Hooks for HooksWasi {
                 let context = SharedContext::new(Arc::new(HashMap::new()), trace_id);
 
                 match err {
-                    wasi_component_loader::GatewayError::Internal(err) => {
+                    wasi_component_loader::ErrorResponse::Internal(err) => {
                         tracing::error!("on_gateway_request error: {err}");
 
                         let response = ErrorResponse {
@@ -213,7 +213,7 @@ impl Hooks for HooksWasi {
 
                         (context, response)
                     }
-                    wasi_component_loader::GatewayError::Guest(error) => {
+                    wasi_component_loader::ErrorResponse::Guest(error) => {
                         let status = http::StatusCode::from_u16(error.status_code)
                             .unwrap_or(http::StatusCode::INTERNAL_SERVER_ERROR);
 

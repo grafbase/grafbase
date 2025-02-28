@@ -40,6 +40,7 @@ pub enum ErrorCode {
     VariableError,
     // Runtime
     HookError,
+    ExtensionError,
     // Rate limit
     RateLimited,
     // Timeouts
@@ -65,7 +66,9 @@ impl ErrorCode {
             }
             ErrorCode::GatewayTimeout => (http::StatusCode::GATEWAY_TIMEOUT, 200),
             // least helpful error codes
-            ErrorCode::HookError | ErrorCode::InternalServerError => (http::StatusCode::INTERNAL_SERVER_ERROR, 0),
+            ErrorCode::HookError | ErrorCode::InternalServerError | ErrorCode::ExtensionError => {
+                (http::StatusCode::INTERNAL_SERVER_ERROR, 0)
+            }
         }
     }
 }
@@ -74,9 +77,11 @@ impl From<PartialErrorCode> for ErrorCode {
     fn from(code: PartialErrorCode) -> Self {
         match code {
             PartialErrorCode::HookError => Self::HookError,
+            PartialErrorCode::ExtensionError => Self::ExtensionError,
             PartialErrorCode::Unauthorized => Self::Unauthorized,
+            PartialErrorCode::Unauthenticated => Self::Unauthenticated,
             PartialErrorCode::BadRequest => Self::BadRequest,
-            _ => Self::InternalServerError,
+            PartialErrorCode::InternalServerError => Self::InternalServerError,
         }
     }
 }
