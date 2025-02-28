@@ -1,5 +1,5 @@
 use super::FullGraphRef;
-use clap::Parser;
+use clap::{Args, Parser};
 use url::Url;
 
 /// Publish a subgraph
@@ -17,11 +17,23 @@ pub struct PublishCommand {
     #[arg(long("schema"))]
     pub(crate) schema_path: Option<String>,
 
-    /// The URL to the GraphQL endpoint
-    #[arg(long)]
-    pub(crate) url: Url,
-
     /// The message to annotate the publication with
     #[arg(long, short = 'm')]
     pub(crate) message: Option<String>,
+
+    #[command(flatten)]
+    pub(crate) source: SubgraphSource,
+}
+
+#[derive(Debug, Args)]
+#[group(required = true, multiple = false)]
+pub(crate) struct SubgraphSource {
+    /// The URL to the GraphQL endpoint. Can be omitted if the subgraph is virtual and completely defined
+    /// by an extension.
+    #[arg(long)]
+    pub(crate) url: Option<Url>,
+
+    /// Subgraph does not exist, but is handled by an extension.
+    #[arg(long)]
+    pub(crate) r#virtual: bool,
 }

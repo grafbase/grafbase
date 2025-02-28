@@ -399,7 +399,7 @@ enum DeploymentStepStatus {
 type DeploymentSubgraph {
   name: String!
   versionNumber: Int!
-  url: String!
+  url: String
 }
 
 """
@@ -1526,7 +1526,7 @@ input PublishInput {
   projectSlug: String
   branch: String
   subgraph: String!
-  url: String!
+  url: String
   schema: String!
   message: String
 }
@@ -2678,7 +2678,7 @@ type StandaloneGraphsNoLongerSupportedError {
 
 type Subgraph {
   name: String!
-  url: String!
+  url: String
   schema: String!
   createdAt: DateTime!
   updatedAt: DateTime!
