@@ -7,3 +7,6 @@ description = "Declarative REST resolver extension."
 [directives]
 definitions = "definitions.graphql"
 field_resolvers = ["rest"]
+
+[permissions]
+network = true

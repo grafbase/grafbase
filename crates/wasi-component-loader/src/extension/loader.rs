@@ -53,6 +53,7 @@ impl ExtensionLoader {
         T: serde::Serialize,
     {
         let component_config: WasiExtensionsConfig = component_config.into();
+
         let mut engine_config = wasmtime::Config::new();
 
         engine_config.wasm_component_model(true);
@@ -113,14 +114,19 @@ impl ExtensionLoader {
             build_extensions_context(&self.component_config),
             self.shared.access_log.clone(),
             self.cache.clone(),
+            self.component_config.networking,
         );
+
         let mut store = Store::new(self.pre.engine(), state);
+
         let inner = self.pre.instantiate_async(&mut store).await?;
         inner.call_register_extension(&mut store).await?;
+
         inner
             .grafbase_sdk_extension()
             .call_init_gateway_extension(&mut store, &self.wit_schema_directives, &self.guest_config)
             .await??;
+
         Ok(ExtensionInstance {
             store,
             inner,

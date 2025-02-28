@@ -47,7 +47,9 @@ impl TestExtensions {
             license: None,
             readme: None,
             repository_url: None,
+            permissions: Default::default(),
         };
+
         let dir = self.tmpdir.path().join(manifest.id.to_string());
         std::fs::create_dir(&dir).unwrap();
         std::fs::write(

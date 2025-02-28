@@ -19,7 +19,15 @@ fn initialize_hooks_store(
     loader: &ComponentLoader,
     access_log: AccessLogSender,
 ) -> crate::Result<Store<WasiState>> {
-    let state = WasiState::new(build_hooks_context(config), access_log, loader.cache().clone());
+    let network_enabled = config.networking;
+
+    let state = WasiState::new(
+        build_hooks_context(config),
+        access_log,
+        loader.cache().clone(),
+        network_enabled,
+    );
+
     let store = Store::new(loader.engine(), state);
 
     Ok(store)
@@ -30,7 +38,15 @@ fn initialize_extensions_store(
     loader: &ComponentLoader,
     access_log: AccessLogSender,
 ) -> crate::Result<Store<WasiState>> {
-    let state = WasiState::new(build_extensions_context(config), access_log, loader.cache().clone());
+    let network_enabled = config.networking;
+
+    let state = WasiState::new(
+        build_extensions_context(config),
+        access_log,
+        loader.cache().clone(),
+        network_enabled,
+    );
+
     let store = Store::new(loader.engine(), state);
 
     Ok(store)

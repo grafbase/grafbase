@@ -120,10 +120,18 @@ fn create_wasi_extension_configs(
 
         let wasi_config = WasiExtensionsConfig {
             location: extension.wasm_path.clone(),
-            networking: extension_config.networking(),
-            stdout: extension_config.stdout(),
-            stderr: extension_config.stderr(),
-            environment_variables: extension_config.environment_variables(),
+            networking: extension_config
+                .networking()
+                .unwrap_or_else(|| extension.manifest.network_enabled()),
+            stdout: extension_config
+                .stdout()
+                .unwrap_or_else(|| extension.manifest.stdout_enabled()),
+            stderr: extension_config
+                .stderr()
+                .unwrap_or_else(|| extension.manifest.stderr_enabled()),
+            environment_variables: extension_config
+                .environment_variables()
+                .unwrap_or_else(|| extension.manifest.environment_variables_enabled()),
         };
 
         let max_pool_size = extension_config.max_pool_size();

@@ -181,6 +181,7 @@ async fn http_client() {
 
     let config = formatdoc! {r#"
         location = "examples/target/wasm32-wasip2/debug/http_client.wasm"
+        networking = true
         environment_variables = true
         stdout = true
         stderr = true
@@ -198,6 +199,40 @@ async fn http_client() {
         .unwrap();
 
     assert_eq!(Some("kekw"), context.get("HTTP_RESPONSE").map(|s| s.as_str()));
+}
+
+#[tokio::test]
+async fn http_client_networking_disabled() {
+    // the guest code in examples/http_client/src/lib.rs
+
+    let response = ResponseTemplate::new(200).set_body_string("kekw");
+    let server = wiremock::MockServer::start().await;
+
+    wiremock::Mock::given(method("GET"))
+        .respond_with(response)
+        .mount(&server)
+        .await;
+
+    unsafe { std::env::set_var("MOCK_SERVER_ADDRESS", format!("http://{}", server.address())) };
+
+    let config = formatdoc! {r#"
+        location = "examples/target/wasm32-wasip2/debug/http_client.wasm"
+        networking = false
+        environment_variables = true
+        stdout = true
+        stderr = true
+    "#};
+
+    let config: Config = toml::from_str(&config).unwrap();
+    assert!(config.location.exists());
+
+    let loader = ComponentLoader::hooks(config).unwrap().unwrap();
+    let (access_log, _) = create_test_access_log();
+    let mut hook = HooksComponentInstance::new(&loader, access_log).await.unwrap();
+
+    let result = hook.on_gateway_request(HashMap::new(), "", HeaderMap::new()).await;
+
+    assert!(result.is_err());
 }
 
 #[tokio::test]

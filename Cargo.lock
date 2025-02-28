@@ -2805,6 +2805,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ba2f4b465f5318854c6f8dd686ede6c0a9dc67d4b1ac241cf0eb51521a309147"
 dependencies = [
  "enumflags2_derive",
+ "serde",
 ]
 
 [[package]]
@@ -2927,6 +2928,7 @@ dependencies = [
 name = "extension"
 version = "0.0.0"
 dependencies = [
+ "enumflags2",
  "grafbase-workspace-hack",
  "semver 1.0.25",
  "serde",

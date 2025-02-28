@@ -10,3 +10,6 @@ description = "A new extension"
 [directives]
 definitions = "definitions.graphql"
 field_resolvers = ["natsPublish"]
+
+[permissions]
+network = true
