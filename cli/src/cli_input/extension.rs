@@ -22,6 +22,8 @@ pub enum ExtensionSubCommand {
     Publish(ExtensionPublishCommand),
     /// Update the lockfile (grafbase-extensions.locks)
     Update(ExtensionUpdateCommand),
+    /// Download the extensions captured in the lockfile.
+    Install,
 }
 
 #[derive(Debug, Parser)]
