@@ -4,6 +4,7 @@ pub(crate) mod client;
 pub(crate) mod create;
 pub(crate) mod errors;
 pub(crate) mod extension_publish;
+pub(crate) mod extension_versions_by_version_requirement;
 pub(crate) mod graphql;
 pub(crate) mod login;
 pub(crate) mod logout;

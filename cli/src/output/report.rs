@@ -284,3 +284,23 @@ pub(crate) fn extension_built(manifest: &Manifest) {
     println!("- Minimum Grafbase Gateway version: {minimum_gateway_version}");
     println!("- SDK version: {sdk_version}");
 }
+
+pub(crate) fn extension_update_extension_does_not_exist(name: &str) {
+    watercolor::output!(r#"❌ Extension "{name}" does not exist"#, @BrightRed);
+}
+
+pub(crate) fn extension_update_extension_version_does_not_exist(name: &str, version_req: &semver::VersionReq) {
+    watercolor::output!(r#"❌ No published version of extension "{name}" matches "{version_req}""#, @BrightRed);
+}
+
+pub(crate) fn extension_version_already_exists() {
+    println!("❌ Extension version already exists");
+}
+
+pub(crate) fn extension_publish_failed(err: &str) {
+    println!("❌ Failed to publish extension: {err}");
+}
+
+pub(crate) fn extension_published(name: &str, version: &str) {
+    println!("🌟 Extension `{name}@{version}` published successfully");
+}

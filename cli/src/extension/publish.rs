@@ -1,4 +1,4 @@
-use crate::{backend::api, cli_input::ExtensionPublishCommand};
+use crate::{backend::api, cli_input::ExtensionPublishCommand, output::report};
 use extension::VersionedManifest;
 use std::fs;
 
@@ -38,15 +38,15 @@ pub(super) async fn execute(cmd: ExtensionPublishCommand) -> anyhow::Result<()> 
 
     match api::extension_publish::extension_publish(manifest, &wasm_blob_path).await? {
         api::extension_publish::ExtensionPublishOutcome::Success { name, version } => {
-            println!("🌟 Extension `{name}@{version}` published successfully");
+            report::extension_published(&name, &version);
         }
         api::extension_publish::ExtensionPublishOutcome::BadWasmModuleError(err)
         | api::extension_publish::ExtensionPublishOutcome::ExtensionValidationError(err) => {
-            println!("❌ Failed to publish extension: {}", err);
+            report::extension_publish_failed(&err);
             std::process::exit(1);
         }
         api::extension_publish::ExtensionPublishOutcome::VersionAlreadyExists => {
-            println!("❌ Extension version already exists");
+            report::extension_version_already_exists();
             std::process::exit(1);
         }
     }
