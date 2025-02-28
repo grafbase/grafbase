@@ -1,4 +1,3 @@
-pub mod directory;
 pub mod lockfile;
 
 mod id;

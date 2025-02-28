@@ -10,7 +10,7 @@ use runtime::{
     trusted_documents_client::{Client, TrustedDocumentsEnforcementMode},
 };
 use runtime_local::wasi::hooks::{AccessLogSender, HooksWasi};
-use std::{env, fs::File, ops::Not, path::PathBuf, sync::Arc};
+use std::{collections::HashSet, env, fs::File, ops::Not, path::PathBuf, sync::Arc};
 use tokio::sync::watch;
 use ulid::Ulid;
 use wasi_component_loader::{
@@ -203,7 +203,6 @@ fn create_wasi_extension_configs(
     wasi_extensions.is_empty().not().then_some(wasi_extensions)
 }
 
-// TODO: with lock file this will be smarter...
 fn create_extension_catalog(gateway_config: &Config) -> crate::Result<ExtensionCatalog> {
     let mut catalog = ExtensionCatalog::default();
 
@@ -211,6 +210,9 @@ fn create_extension_catalog(gateway_config: &Config) -> crate::Result<ExtensionC
         return Ok(catalog);
     };
 
+    let mut loaded_from_path = HashSet::new();
+
+    // Load the extensions with a path, first.
     for (_, config) in extension_configs.iter() {
         let Some(path) = config.path() else {
             continue;
@@ -242,15 +244,28 @@ fn create_extension_catalog(gateway_config: &Config) -> crate::Result<ExtensionC
         catalog.push(extension);
     }
 
-    let Ok(grafbase_extensions) = env::current_dir()
+    let grafbase_extensions_dir = env::current_dir()
         .map_err(|e| Error::InternalError(e.to_string()))?
         .join("grafbase_extensions")
-        .read_dir()
     else {
         return Ok(catalog);
     };
 
-    for extension_dir in grafbase_extensions {
+    let extensions_dir_exists = grafbase_extensions_dir.exists();
+
+    // Now load the extensions from the lock file.
+    for (extension_name, extension_config) in extension_configs
+        .iter()
+        .filter(|(name, _)| !loaded_from_path.contains(name))
+    {
+        if !extensions_dir_exists {
+            std::fs::create_dir_all(&grafbase_extensions_dir).map_err(|err| todo!())?;
+        }
+
+        let extension_dir = grafbase_extensions_dir
+            .join(&extension_name)
+            .join(extension_config.version()); // TODO read from lockfile instead
+
         let extension_dir = extension_dir.map_err(|e| Error::InternalError(e.to_string()))?;
 
         if !extension_dir.path().is_dir() {
