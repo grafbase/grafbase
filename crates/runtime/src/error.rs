@@ -6,10 +6,10 @@ use std::{borrow::Cow, fmt};
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize, strum::Display)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 #[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
-#[non_exhaustive]
 pub enum PartialErrorCode {
     InternalServerError,
     BadRequest,
+    Unauthenticated,
     Unauthorized,
     HookError,
     ExtensionError,
@@ -19,6 +19,24 @@ pub enum PartialErrorCode {
 pub struct ErrorResponse {
     pub status: http::StatusCode,
     pub errors: Vec<PartialGraphqlError>,
+}
+
+impl ErrorResponse {
+    pub fn internal_server_error() -> Self {
+        ErrorResponse {
+            status: http::StatusCode::INTERNAL_SERVER_ERROR,
+            errors: vec![PartialGraphqlError::internal_server_error()],
+        }
+    }
+}
+
+impl From<PartialGraphqlError> for ErrorResponse {
+    fn from(error: PartialGraphqlError) -> Self {
+        ErrorResponse {
+            status: http::StatusCode::INTERNAL_SERVER_ERROR,
+            errors: vec![error],
+        }
+    }
 }
 
 impl From<Vec<PartialGraphqlError>> for ErrorResponse {
