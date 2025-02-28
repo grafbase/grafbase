@@ -1,10 +1,10 @@
 package grafbase:sdk;
 
 interface types {
-    record directive {
-        name: string,
+    record schema-directive {
         subgraph-name: string,
-        // serialized in CBOR
+        name: string,
+        // encoded in CBOR.
         arguments: list<u8>
     }
 
@@ -27,18 +27,10 @@ interface types {
     // An error response can be used to inject an error to the GraphQL response.
     record error {
         // Adds the given extensions to the response extensions. The first item in
-        // the tuple is the extension key, and the second item is the extension value.
-        // The extension value can be string-encoded JSON, which will be converted as
-        // JSON in the response. It can also be just a string, which will be converted as
-        // a JSON string in the response.
-        extensions: list<tuple<string, string>>,
+        // the tuple is the extension key, and the second item is the extension value encoded in CBOR
+        extensions: list<tuple<string, list<u8>>>,
         // The error message.
         message: string,
-    }
-
-    record field-definition {
-        type-name: string,
-        name: string,
     }
 
     record field-output {
@@ -255,16 +247,80 @@ interface types {
         // If ttl-ms is None, the value will not expire automatically.
         set: static func(key: string, value: list<u8>, ttl-ms: option<u64>) -> ();
     }
+
+    record field-definition-directive {
+        name: string,
+        site: field-definition-directive-site
+    }
+
+    // Where and how the directive is applied
+    // Each variant matches a GraphQL directive location
+    variant directive-site {
+        object(object-directive-site),
+        field-definition(field-definition-directive-site),
+        %interface(interface-directive-site),
+        union(union-directive-site)
+    }
+
+    // Site for a directive applied on a OBJECT location
+    record object-directive-site {
+        object-name: string,
+        // serialized in CBOR
+        arguments: list<u8>
+    }
+
+    // Site for a directive applied on a FIELD_DEFINITION location
+    record field-definition-directive-site {
+        parent-type-name: string,
+        field-name: string,
+        // serialized in CBOR
+        arguments: list<u8>
+    }
+
+    // Site for a directive applied on a UNION location
+    record union-directive-site {
+        union-name: string,
+        // serialized in CBOR
+        arguments: list<u8>
+    }
+
+    // Site for a directive applied on a INTERFACE location
+    record interface-directive-site {
+        interface-name: string,
+        // serialized in CBOR
+        arguments: list<u8>
+    }
+
+    record query-elements {
+        // Tuple of directive name and a range over the `elements` list it's associated with.
+        directive-names: list<tuple<string, u32, u32>>,
+        // Represents an element of the query associated with the directive
+        elements: list<directive-site>
+    }
+
+
+    variant authorization-decisions {
+        grant-all,
+        deny-all(error),
+        sparse-deny(sparse-deny-authorization-decisions)
+    }
+
+    record sparse-deny-authorization-decisions {
+        // For elements
+        element-to-error: list<tuple<u32, u32>>,
+        errors: list<error>
+    }
+
 }
 
 interface extension {
-    use types.{directive, shared-context, error-response, error, field-definition, field-output, access-log, log-error, nats-auth, nats-client, http-client, http-request, http-response, http-method, http-version, http-error, headers, token, cache};
+    use types.{schema-directive, shared-context, error-response, error, field-output, access-log, log-error, nats-auth, nats-client, http-client, http-request, http-response, http-method, http-version, http-error, headers, token, cache, query-elements, authorization-decisions, field-definition-directive};
 
     // initialization function called to set up the wasm extension
     // if an error happens here, the gateway will refuse to continue.
     // Receives a list of schema directives associated with the extension
     init-gateway-extension: func(
-        schema-directives: list<directive>,
+        schema-directives: list<schema-directive>,
         configuration: list<u8>,
     ) -> result<_, string>;
 
@@ -272,16 +328,16 @@ interface extension {
     // serialized data with an error.
     resolve-field: func(
        context: shared-context,
-       directive: directive,
-       definition: field-definition,
+       subgraph-name: string,
+       directive: field-definition-directive,
        inputs: list<list<u8>>
     ) -> result<field-output, error>;
 
     // initializes a new subscription stream
     resolve-subscription: func(
         context: shared-context,
-        directive: directive,
-        definition: field-definition,
+        subgraph-name: string,
+        directive: field-definition-directive,
     ) -> result<_, error>;
 
     // resolves the next item in a subscription stream. must be called after resolve-field-subscription
@@ -290,6 +346,11 @@ interface extension {
     authenticate: func(
         headers: headers,
     ) -> result<token, error-response>;
+
+    authorize-query: func(
+        context: shared-context,
+        elements: query-elements
+    ) -> result<authorization-decisions, error-response>;
 }
 
 world sdk {

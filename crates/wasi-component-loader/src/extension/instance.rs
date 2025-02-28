@@ -29,8 +29,8 @@ impl ExtensionInstance {
     pub async fn resolve_field(
         &mut self,
         context: wit::SharedContext,
-        directive: wit::Directive<'_>,
-        definition: wit::FieldDefinition<'_>,
+        subgraph_name: &str,
+        directive: wit::FieldDefinitionDirective<'_>,
         inputs: InputList,
     ) -> crate::Result<FieldOutput> {
         let context = self.store.data_mut().push_resource(context)?;
@@ -39,7 +39,7 @@ impl ExtensionInstance {
         let result = self
             .inner
             .grafbase_sdk_extension()
-            .call_resolve_field(&mut self.store, context, directive, definition, &inputs)
+            .call_resolve_field(&mut self.store, context, subgraph_name, directive, &inputs)
             .await;
 
         match result {
@@ -54,15 +54,15 @@ impl ExtensionInstance {
     pub async fn resolve_subscription(
         &mut self,
         context: wit::SharedContext,
-        directive: wit::Directive<'_>,
-        definition: wit::FieldDefinition<'_>,
+        subgraph_name: &str,
+        directive: wit::FieldDefinitionDirective<'_>,
     ) -> Result<(), crate::Error> {
         let context = self.store.data_mut().push_resource(context)?;
 
         let result = self
             .inner
             .grafbase_sdk_extension()
-            .call_resolve_subscription(&mut self.store, context, directive, definition)
+            .call_resolve_subscription(&mut self.store, context, subgraph_name, directive)
             .await;
 
         match result {

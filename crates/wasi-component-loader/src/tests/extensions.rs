@@ -2,10 +2,7 @@ use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
 use crate::{
     SharedContext,
-    extension::{
-        ExtensionGuestConfig, ExtensionLoader, SchemaDirective,
-        wit::{Directive, FieldDefinition},
-    },
+    extension::{ExtensionGuestConfig, ExtensionLoader, SchemaDirective, wit},
     tests::create_shared_resources,
 };
 use futures::{
@@ -54,22 +51,20 @@ async fn simple_resolver() {
 
     let context = SharedContext::new(Arc::new(HashMap::new()), TraceId::INVALID);
 
-    let field_directive = Directive {
+    let field_directive = wit::FieldDefinitionDirective {
         name: "myDirective",
-        subgraph_name: "mySubgraph",
-        arguments: &minicbor_serde::to_vec(&FieldArgs { name: "cat" }).unwrap(),
-    };
-
-    let definition = FieldDefinition {
-        type_name: "Query",
-        name: "cats",
+        site: wit::FieldDefinitionDirectiveSite {
+            parent_type_name: "Query",
+            field_name: "cats",
+            arguments: &minicbor_serde::to_vec(&FieldArgs { name: "cat" }).unwrap(),
+        },
     };
 
     let output = loader
         .instantiate()
         .await
         .unwrap()
-        .resolve_field(context, field_directive, definition, Default::default())
+        .resolve_field(context, "mySubgraph", field_directive, Default::default())
         .await
         .unwrap();
 

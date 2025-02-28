@@ -1,7 +1,7 @@
 use crate::{
     component::AnyExtension,
-    types::{Directive, FieldDefinition, FieldInputs, FieldOutput},
-    wit::{Error, SharedContext},
+    types::{Error, FieldDefinitionDirective, FieldInputs, FieldOutput},
+    wit::SharedContext,
 };
 
 use super::Extension;
@@ -28,8 +28,8 @@ pub trait Resolver: Extension {
     fn resolve_field(
         &mut self,
         context: SharedContext,
-        directive: Directive,
-        definition: FieldDefinition,
+        subgraph_name: &str,
+        directive: FieldDefinitionDirective<'_>,
         inputs: FieldInputs,
     ) -> Result<FieldOutput, Error>;
 
@@ -47,8 +47,8 @@ pub trait Resolver: Extension {
     fn resolve_subscription(
         &mut self,
         context: SharedContext,
-        directive: Directive,
-        definition: FieldDefinition,
+        subgraph_name: &str,
+        directive: FieldDefinitionDirective<'_>,
     ) -> Result<Box<dyn Subscription>, Error>;
 }
 
@@ -76,19 +76,19 @@ pub fn register<T: Resolver>() {
         fn resolve_field(
             &mut self,
             context: SharedContext,
-            directive: Directive,
-            definition: FieldDefinition,
+            subgraph_name: &str,
+            directive: FieldDefinitionDirective<'_>,
             inputs: FieldInputs,
         ) -> Result<FieldOutput, Error> {
-            Resolver::resolve_field(&mut self.0, context, directive, definition, inputs)
+            Resolver::resolve_field(&mut self.0, context, subgraph_name, directive, inputs)
         }
         fn resolve_subscription(
             &mut self,
             context: SharedContext,
-            directive: Directive,
-            definition: FieldDefinition,
+            subgraph_name: &str,
+            directive: FieldDefinitionDirective<'_>,
         ) -> Result<Box<dyn Subscription>, Error> {
-            Resolver::resolve_subscription(&mut self.0, context, directive, definition)
+            Resolver::resolve_subscription(&mut self.0, context, subgraph_name, directive)
         }
     }
     crate::component::register_extension(Box::new(|schema_directives, config| {

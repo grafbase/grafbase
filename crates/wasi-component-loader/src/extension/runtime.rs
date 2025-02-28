@@ -109,19 +109,17 @@ impl ExtensionRuntime for ExtensionsWasiRuntime {
             let mut instance = pool.get().await;
 
             let arguments = minicbor_serde::to_vec(arguments).unwrap();
-            let directive = wit::Directive {
+            let directive = wit::FieldDefinitionDirective {
                 name,
-                subgraph_name: subgraph.name(),
-                arguments: &arguments,
-            };
-
-            let definition = wit::FieldDefinition {
-                type_name: field.parent_entity().name(),
-                name: field.name(),
+                site: wit::FieldDefinitionDirectiveSite {
+                    parent_type_name: field.parent_entity().name(),
+                    field_name: field.name(),
+                    arguments: &arguments,
+                },
             };
 
             let result = instance
-                .resolve_field(context.clone(), directive, definition, inputs)
+                .resolve_field(context.clone(), subgraph.name(), directive, inputs)
                 .await;
 
             match result {
@@ -224,22 +222,19 @@ impl ExtensionRuntime for ExtensionsWasiRuntime {
             return Err(PartialGraphqlError::internal_extension_error());
         };
 
-        let mut instance = pool.get().await.into_inner();
+        let mut instance = pool.get().await;
         let arguments = minicbor_serde::to_vec(arguments).unwrap();
-
-        let directive = wit::Directive {
+        let directive = wit::FieldDefinitionDirective {
             name,
-            subgraph_name: subgraph.name(),
-            arguments: &arguments,
-        };
-
-        let definition = wit::FieldDefinition {
-            type_name: field.parent_entity().name(),
-            name: field.name(),
+            site: wit::FieldDefinitionDirectiveSite {
+                parent_type_name: field.parent_entity().name(),
+                field_name: field.name(),
+                arguments: &arguments,
+            },
         };
 
         let result = instance
-            .resolve_subscription(context.clone(), directive, definition)
+            .resolve_subscription(context.clone(), subgraph.name(), directive)
             .await;
 
         match result {
