@@ -3,6 +3,7 @@ pub(crate) mod check;
 pub(crate) mod client;
 pub(crate) mod create;
 pub(crate) mod errors;
+pub(crate) mod extension_publish;
 pub(crate) mod graphql;
 pub(crate) mod login;
 pub(crate) mod logout;

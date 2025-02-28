@@ -3580,6 +3580,7 @@ dependencies = [
  "uuid",
  "wasmparser 0.226.0",
  "webbrowser",
+ "wiremock",
 ]
 
 [[package]]
@@ -7310,6 +7311,7 @@ dependencies = [
  "js-sys",
  "log",
  "mime",
+ "mime_guess",
  "once_cell",
  "percent-encoding",
  "pin-project-lite",

@@ -4,6 +4,7 @@ type AccessToken implements Node {
   accountId: ID
   createdAt: DateTime!
   graphScopes: [Graph!]!
+  expiresAt: DateTime
 }
 
 type AccessTokenConnection {
@@ -27,6 +28,7 @@ input AccessTokenCreateInput {
   kind: AccessTokenKind! = USER
   graphScopes: [ID!]
   projectScopes: [ID!]
+  expiresAt: DateTime
 }
 
 union AccessTokenCreatePayload =
@@ -115,13 +117,19 @@ type AlreadyMemberError {
   query: Query!
 }
 
+type BadWasmModuleError {
+  error: String!
+  query: Query!
+}
+
 type Branch implements Node {
   id: ID!
   name: String!
   domains: [String!]!
   latestDeployment: Deployment
   activeDeployment: Deployment
-  deployments(after: String, before: String, first: Int, last: Int): DeploymentConnection!
+  deployments(after: String, before: String, first: Int, last: Int, filters: DeploymentFilters): DeploymentConnection!
+  analytics(filters: GraphAnalyticsFilters!): GraphAnalytics
   graph: Graph!
   environment: BranchEnvironment!
   schema: String
@@ -214,6 +222,7 @@ type CannotUseInvitationsWithSSO {
 type CompositionCheckError {
   title: String!
   message: String!
+  severity: SchemaCheckErrorSeverity!
 }
 
 type CouldNotFindGraphsError {
@@ -227,11 +236,6 @@ type CouldNotFindProjectsError {
 type CurrentPlanLimitReachedError {
   max: Int!
   query: Query!
-}
-
-type DailyDeploymentCountLimitExceededError {
-  query: Query!
-  limit: Int!
 }
 
 """
@@ -332,10 +336,6 @@ type DeploymentConnection {
   nodes: [Deployment!]!
 }
 
-type DeploymentDoesNotExistError {
-  query: Query!
-}
-
 """
 An edge in a connection.
 """
@@ -350,15 +350,24 @@ type DeploymentEdge {
   cursor: String!
 }
 
-union DeploymentRedeployPayload =
-  | DeploymentRedeploySuccess
-  | DeploymentDoesNotExistError
-  | DailyDeploymentCountLimitExceededError
-  | NotAllowedError
+input DeploymentFilters {
+  finishedAt: DeploymentFinishedAtFilters
+}
 
-type DeploymentRedeploySuccess {
-  deployment: Deployment!
-  query: Query!
+input DeploymentFinishedAtFilters {
+  """
+  Use this if you really care about having a specific duration like 1 hour, 7 days, etc.
+  """
+  range: Duration
+  """
+  Use this if you *at least* the data between `from` and `to` to be provided. You may get
+  more, but never less.
+  """
+  from: DateTime
+  """
+  To be used in conjunction with with either `range` or `from`.
+  """
+  to: DateTime!
 }
 
 enum DeploymentStatus {
@@ -391,6 +400,20 @@ type DeploymentSubgraph {
   name: String!
   versionNumber: Int!
   url: String!
+}
+
+"""
+One side of a two-sided diff. "Old" and "new" are to be taken in the most general sense.
+"""
+enum DiffSide {
+  """
+  The left side of the diff.
+  """
+  OLD
+  """
+  The right side of the diff.
+  """
+  NEW
 }
 
 type DiffSnippet {
@@ -442,6 +465,119 @@ type ErrorCountByCode {
   count: Int!
 }
 
+type Extension implements Node {
+  id: ID!
+  name: String!
+  highestVersion: ExtensionVersion
+  owners: [User!]
+  versions: [ExtensionVersion!]!
+}
+
+union ExtensionAddOwnerPayload = ExtensionAddOwnerSuccess | ExtensionUnauthorized | ExtensionDoesNotExistError
+
+type ExtensionAddOwnerSuccess {
+  query: Query!
+}
+
+type ExtensionConnection {
+  """
+  Information to aid in pagination.
+  """
+  pageInfo: PageInfo!
+  """
+  A list of edges.
+  """
+  edges: [ExtensionEdge!]!
+  """
+  A list of nodes.
+  """
+  nodes: [Extension!]!
+}
+
+type ExtensionDoesNotExistError {
+  query: Query!
+}
+
+"""
+An edge in a connection.
+"""
+type ExtensionEdge {
+  """
+  The item at the end of the edge
+  """
+  node: Extension!
+  """
+  A cursor for use in pagination
+  """
+  cursor: String!
+}
+
+input ExtensionFilter {
+  namePrefix: String
+}
+
+enum ExtensionKind {
+  FIELD_RESOLVER
+  AUTHENTICATOR
+}
+
+union ExtensionPublishPayload =
+  | ExtensionPublishSuccess
+  | BadWasmModuleError
+  | ExtensionValidationError
+  | ExtensionVersionAlreadyExistsError
+  | ExtensionUnauthorized
+
+type ExtensionPublishSuccess {
+  extensionVersion: ExtensionVersion!
+  query: Query!
+}
+
+union ExtensionRemoveOwnerPayload = ExtensionRemoveOwnerSuccess | ExtensionUnauthorized | ExtensionDoesNotExistError
+
+type ExtensionRemoveOwnerSuccess {
+  query: Query!
+}
+
+type ExtensionUnauthorized {
+  message: String!
+  query: Query!
+}
+
+type ExtensionValidationError {
+  error: String!
+  query: Query!
+}
+
+type ExtensionVersion {
+  version: SemverVersion!
+  kind: ExtensionKind!
+  createdAt: DateTime!
+  description: String!
+  license: String
+  readme: String
+  homepageUrl: Url
+  repositoryUrl: Url
+  sdl: String
+  extension: Extension!
+  publishedBy: User
+}
+
+type ExtensionVersionAlreadyExistsError {
+  query: Query!
+}
+
+type ExtensionVersionDoesNotExistError {
+  query: Query!
+}
+
+union ExtensionVersionMatch = ExtensionDoesNotExistError | ExtensionVersionDoesNotExistError | ExtensionVersion
+
+input ExtensionVersionRequirement {
+  extensionName: String!
+  version: SemverVersionRequirement!
+}
+
 type FederatedGraphCompositionError {
   query: Query!
   messages: [String!]!
@@ -487,9 +623,10 @@ type Graph implements Node {
   createdAt: DateTime!
   owners: [Team!]!
   account: Account!
+  branch(name: String): Branch
   branches(after: String, before: String, first: Int, last: Int): BranchConnection!
   productionBranch: Branch!
-  schemaChecks(first: Int, after: String, branch: String): SchemaCheckConnection!
+  schemaChecks(first: Int, after: String, last: Int, before: String, branch: String): SchemaCheckConnection!
   schemaProposals(after: String, first: Int): SchemaProposalConnection!
   operationChecksConfiguration: GraphOperationCheckConfiguration!
   analytics(filters: GraphAnalyticsFilters!): GraphAnalytics
@@ -557,7 +694,7 @@ input GraphAnalyticsFilters {
   """
   Defaults to production branch
   """
-  branchName: String
+  branchName: String @deprecated(reason: "Go through graph.branch instead.")
   """
   Use this if you really care about having a specific duration like 1 hour, 7 days, etc.
   """
@@ -576,7 +713,7 @@ input GraphAnalyticsFilters {
   had been specified instead. Meaning only the duration between `from` and `to` matters, not
   necessarily having a data point for `from` itself.
   """
-  isCustomRange: Boolean
+  isCustomRange: Boolean @deprecated(reason: "Use range instead")
   """
   If specified, overrides approximateNumberOfPoints. Must be in whole minutes.
   At most 150 points can be returned.
@@ -596,16 +733,16 @@ input GraphAnalyticsFilters {
   is currently in minutes. So cannot have 15:10:20, 15:11:20, etc.
   """
   alignPeriodWithAggregationStep: Boolean
-  operationName: String
+  operationName: [String!]
   """
   Only used if operation name is specified.
   """
-  operationNormalizedQueryHash: OperationNormalizedQueryHash
-  clientName: String
+  operationNormalizedQueryHash: [OperationNormalizedQueryHash!]
+  clientName: [String!]
   """
   Only used if client name is specified.
   """
-  clientVersion: String
+  clientVersion: [String!]
 }
 
 type GraphBranchDoesNotExistError {
@@ -767,6 +904,12 @@ union GraphUpdatePayload =
 type GraphUpdateSuccess {
   graph: Graph!
   query: Query!
+}
+
+interface InboxMessage {
+  id: ID!
+  createdAt: DateTime!
+  readAt: DateTime
 }
 
 type InvalidAccountError {
@@ -1000,14 +1143,11 @@ type Mutation {
     input: SchemaProposalsConfiguredReviewerRemoveInput!
   ): SchemaProposalsConfiguredReviewerRemovePayload!
   """
-  Create a new deployment for an existing graph.
+  Publish a version of an extension to the registry. If the extension does not already exist, it will be created.
   """
-  deploymentRedeploy(
-    """
-    ID of the deployment
-    """
-    id: ID!
-  ): DeploymentRedeployPayload!
+  extensionPublish(manifest: VersionedExtensionManifest!, wasmModule: Upload!): ExtensionPublishPayload
+  extensionAddOwner(extensionName: String!, userId: ID!): ExtensionAddOwnerPayload
+  extensionRemoveOwner(extensionName: String!, userId: ID!): ExtensionRemoveOwnerPayload
   """
   Create a new graph without any source for an initial deployment.
   """
@@ -1019,6 +1159,7 @@ type Mutation {
   graphDelete(input: GraphDeleteInput!): GraphDeletePayload!
   graphAddOwner(graphId: ID!, ownerId: ID!): GraphAddOwnerPayload!
   graphRemoveOwner(graphId: ID!, ownerId: ID!): GraphRemoveOwnerPayload!
+  notificationsMarkAsRead(notificationIds: [ID!]!): NotificationsMarkAsReadPayload!
   inviteSend(input: InviteSendInput!): InviteSendPayload!
   inviteCancel(input: InviteCancelInput!): InviteCancelPayload!
   inviteAccept(input: InviteAcceptInput!): InviteAcceptPayload!
@@ -1137,6 +1278,20 @@ type NotAllowedToSlugUpdateError {
 }
 
 type NotAllowedToUpdateOrganizationError {
+  query: Query!
+}
+
+type NotificationsInbox {
+  messages: [InboxMessage!]!
+}
+
+union NotificationsMarkAsReadPayload = NotificationsMarkAsReadSuccess
+
+type NotificationsMarkAsReadSuccess {
+  """
+  How many notifications were marked as read.
+  """
+  updated: Int!
   query: Query!
 }
 
@@ -1436,6 +1591,18 @@ type Query {
     """
     id: ID!
   ): Deployment
+  extensionByName(name: String!): Extension
+  extensions(after: String, first: Int, filter: ExtensionFilter): ExtensionConnection!
+  """
+  Looks for extension versions that match the requirements.
+
+  The results are returned in the same order as the requirements.
+  """
+  extensionVersionsByVersionRequirement(requirements: [ExtensionVersionRequirement!]!): [ExtensionVersionMatch!]
+  """
+  Return the notifications inbox of the currently connected user.
+  """
+  notificationsInbox: NotificationsInbox
   invite(id: ID!): Invite
   """
   Get a graph by account slug and slug of the graph itself.
@@ -1484,10 +1651,6 @@ type Query {
     """
     accountSlug: String!
     """
-    project slug
-    """
-    projectSlug: String
-    """
     graph slug
     """
     graphSlug: String
@@ -1498,7 +1661,7 @@ type Query {
     """
     name of the subgraph
     """
-    subgraphName: String
+    subgraphName: String @deprecated(reason: "Never did anything")
     """
     return only versions with changes
     """
@@ -1823,6 +1986,7 @@ type SchemaProposal {
   id: ID!
   title: String!
   author: User
+  branch: Branch
   description: String
   status: SchemaProposalStatus!
   createdAt: DateTime!
@@ -1859,11 +2023,12 @@ interface SchemaProposalActivityFeedItem {
   createdAt: DateTime!
 }
 
-type SchemaProposalApproval implements SchemaProposalActivityFeedItem {
+type SchemaProposalApproval implements SchemaProposalActivityFeedItem & SchemaProposalReview {
   id: ID!
   author: User
   message: String
   createdAt: DateTime!
+  schemaProposal: SchemaProposal!
 }
 
 input SchemaProposalApproveInput {
@@ -1930,6 +2095,7 @@ type SchemaProposalCommentOnLine implements SchemaProposalActivityFeedItem & Sch
     """
     contextLines: Int!
   ): String
+  diffSide: DiffSide!
 }
 
 type SchemaProposalCommentOnProposal implements SchemaProposalActivityFeedItem & SchemaProposalComment {
@@ -1988,6 +2154,12 @@ input SchemaProposalCommentThreadCreateInput {
   Must be provided if and only if location is Line.
   """
   line: Int
+  """
+  Whether the comment applies to the existing or the proposed schema.
+
+  Must be provided if and only if location is Line.
+  """
+  diffSide: DiffSide
   """
   The content of the comment.
   """
@@ -2129,11 +2301,12 @@ type SchemaProposalRejectSuccess {
   query: Query!
 }
 
-type SchemaProposalRejection implements SchemaProposalActivityFeedItem {
+type SchemaProposalRejection implements SchemaProposalActivityFeedItem & SchemaProposalReview {
   id: ID!
   author: User
   message: String
   createdAt: DateTime!
+  schemaProposal: SchemaProposal!
 }
 
 type SchemaProposalReply implements SchemaProposalComment {
@@ -2162,11 +2335,26 @@ type SchemaProposalRevertToDraftSuccess {
   query: Query!
 }
 
+interface SchemaProposalReview {
+  id: ID!
+  author: User
+  createdAt: DateTime!
+  schemaProposal: SchemaProposal!
+}
+
+type SchemaProposalReviewNotification implements InboxMessage {
+  id: ID!
+  createdAt: DateTime!
+  readAt: DateTime
+  review: SchemaProposalReview!
+}
+
 type SchemaProposalReviewRequest implements SchemaProposalActivityFeedItem {
   id: ID!
   requestedBy: ID!
   requestFor: UserOrTeam!
   createdAt: DateTime!
+  schemaProposal: SchemaProposal!
 }
 
 input SchemaProposalReviewRequestCreateInput {
@@ -2183,6 +2371,13 @@ union SchemaProposalReviewRequestCreatePayload =
 
 type SchemaProposalReviewRequestCreateSuccess {
   query: Query!
+}
+
+type SchemaProposalReviewRequestNotification implements InboxMessage {
+  id: ID!
+  createdAt: DateTime!
+  readAt: DateTime
+  reviewRequest: SchemaProposalReviewRequest!
 }
 
 union SchemaProposalReviewer = SchemaProposalReviewerTeam | SchemaProposalReviewerUser
@@ -2206,6 +2401,18 @@ type SchemaProposalReviewerUser {
   onBehalfOf: [Team!]!
 }
 
+type SchemaProposalRevision implements SchemaProposalActivityFeedItem {
+  """
+  The author of the revision.
+  """
+  author: User
+  """
+  The message entered when the author saved changes.
+  """
+  description: String
+  createdAt: DateTime!
+}
+
 enum SchemaProposalStatus {
   APPROVED
   DRAFT
@@ -2218,6 +2425,13 @@ type SchemaProposalStatusChange implements SchemaProposalActivityFeedItem {
   createdAt: DateTime!
   fromStatus: SchemaProposalStatus!
   toStatus: SchemaProposalStatus!
+  schemaProposal: SchemaProposal!
+}
+
+type SchemaProposalStatusChangeNotification implements InboxMessage {
+  id: ID!
+  createdAt: DateTime!
+  readAt: DateTime
 }
 
 type SchemaProposalSubgraph {
@@ -2311,6 +2525,7 @@ type SchemaVersion {
   changes(after: String, before: String, first: Int, last: Int): SchemaVersionChangeConnection!
   createdAt: DateTime!
   message: String
+  subgraph: Subgraph
 }
 
 type SchemaVersionChange {
@@ -2391,6 +2606,10 @@ type SchemaVersionEdge {
   """
   cursor: String!
 }
+
+scalar SemverVersion
+
+scalar SemverVersionRequirement
 
 """
 A Slack channel returned from the Slack API.
@@ -2484,6 +2703,13 @@ union SubgraphRemoveOwnerPayload = SubgraphRemoveOwnerSuccess
 
 type SubgraphRemoveOwnerSuccess {
   query: Query!
+}
+
+type Subscription {
+  """
+  Whenever new notifications are available for the current user, return how many.
+  """
+  notificationsInboxMessages: Int!
 }
 
 type Team implements Node {
@@ -2756,6 +2982,13 @@ type TrustedDocumentsSubmitSuccess {
   documents: [TrustedDocument!]!
 }
 
+scalar Upload
+
+"""
+URL is a String implementing the [URL Standard](http://url.spec.whatwg.org/)
+"""
+scalar Url
+
 input UsageFilters {
   """
   Use this if you really care about having a specific duration like 1 hour, 7 days, etc.
@@ -2878,6 +3111,8 @@ type ValidationCheckError {
   message: String!
 }
 
+scalar VersionedExtensionManifest
+
 """
 The `_Any` scalar is used to pass representations of entities from external
 services into the root `_entities` field for execution.
@@ -2897,4 +3132,5 @@ directive @specifiedBy(url: String!) on SCALAR
 schema {
   query: Query
   mutation: Mutation
+  subscription: Subscription
 }

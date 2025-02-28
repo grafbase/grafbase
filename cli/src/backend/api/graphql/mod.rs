@@ -1,2 +1,3 @@
 mod types;
-pub use types::{mutations, queries};
+
+pub(crate) use self::types::{mutations, queries};

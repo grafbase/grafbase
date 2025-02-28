@@ -17,15 +17,12 @@ mod sub_command;
 mod subgraphs;
 mod trust;
 
-pub(crate) use self::{check::CheckCommand, trust::TrustCommand};
+pub(crate) use self::{check::CheckCommand, extension::*, trust::TrustCommand};
 pub(crate) use branch::BranchSubCommand;
 pub(crate) use branch_ref::BranchRef;
 pub(crate) use completions::CompletionsCommand;
 pub(crate) use create::CreateCommand;
 pub(crate) use dev::DevCommand;
-pub(crate) use extension::{
-    ExtensionBuildCommand, ExtensionCommand, ExtensionInitCommand, ExtensionSubCommand, ExtensionType,
-};
 pub(crate) use graph_ref::FullGraphRef;
 pub(crate) use introspect::IntrospectCommand;
 pub(crate) use lint::LintCommand;

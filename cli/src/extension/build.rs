@@ -11,6 +11,8 @@ use serde_valid::Validate;
 
 use crate::{cli_input::ExtensionBuildCommand, output::report};
 
+use super::EXTENSION_WASM_MODULE_FILE_NAME;
+
 const RUST_TARGET: &str = "wasm32-wasip2";
 
 pub(crate) fn execute(cmd: ExtensionBuildCommand) -> anyhow::Result<()> {
@@ -33,7 +35,7 @@ pub(crate) fn execute(cmd: ExtensionBuildCommand) -> anyhow::Result<()> {
     let wasm_path = compile_extension(debug_mode, &scratch_dir, &source_dir, &output_dir)?;
     let manifest = parse_manifest(&source_dir, &wasm_path)?;
 
-    std::fs::rename(wasm_path, output_dir.join("extension.wasm")).context("failed to move wasm file")?;
+    std::fs::rename(wasm_path, output_dir.join(EXTENSION_WASM_MODULE_FILE_NAME)).context("failed to move wasm file")?;
     std::fs::write(
         output_dir.join("manifest.json"),
         serde_json::to_vec(&manifest.clone().into_versioned()).unwrap(),

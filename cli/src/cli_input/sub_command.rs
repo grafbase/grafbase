@@ -1,6 +1,6 @@
 use clap::Parser;
 
-use crate::is_not_direct_install;
+use crate::{cli_input::ExtensionSubCommand, is_not_direct_install};
 
 use super::{
     CheckCommand, CompletionsCommand, CreateCommand, DevCommand, ExtensionCommand, IntrospectCommand, LintCommand,
@@ -60,6 +60,9 @@ impl RequiresLogin for SubCommand {
                 | SubCommand::Branch(_)
                 | SubCommand::Schema(_)
                 | SubCommand::Dev(DevCommand { graph_ref: Some(_), .. })
+                | SubCommand::Extension(ExtensionCommand {
+                    command: ExtensionSubCommand::Publish(_)
+                })
         )
     }
 }
