@@ -304,9 +304,9 @@ jobs:
     env:
       COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
       dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
-    if: |
-      needs.what-changed.outputs.gateway-docker == 'true'
-      || contains(fromJson(needs.what-changed.outputs.changed-packages), 'grafbase-gateway')
+    # if: |
+    #   needs.what-changed.outputs.gateway-docker == 'true'
+    #   || contains(fromJson(needs.what-changed.outputs.changed-packages), 'grafbase-gateway')
     runs-on: ubicloud-standard-16
     permissions:
       packages: write
