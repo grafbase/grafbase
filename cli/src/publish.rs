@@ -11,7 +11,7 @@ pub(crate) async fn publish(
     PublishCommand {
         subgraph_name,
         graph_ref,
-        url,
+        source,
         schema_path,
         message,
         ..

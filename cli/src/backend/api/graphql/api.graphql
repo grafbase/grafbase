@@ -1,169 +1,163 @@
 type AccessToken implements Node {
-  id: ID!
-  name: String!
-  accountId: ID
-  createdAt: DateTime!
-  graphScopes: [Graph!]!
-  expiresAt: DateTime
+	id: ID!
+	name: String!
+	accountId: ID
+	createdAt: DateTime!
+	graphScopes: [Graph!]!
+	expiresAt: DateTime
 }
 
 type AccessTokenConnection {
-  """
-  Information to aid in pagination.
-  """
-  pageInfo: PageInfo!
-  """
-  A list of edges.
-  """
-  edges: [AccessTokenEdge!]!
-  """
-  A list of nodes.
-  """
-  nodes: [AccessToken!]!
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [AccessTokenEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [AccessToken!]!
 }
 
 input AccessTokenCreateInput {
-  name: String!
-  accountId: ID
-  kind: AccessTokenKind! = USER
-  graphScopes: [ID!]
-  projectScopes: [ID!]
-  expiresAt: DateTime
+	name: String!
+	accountId: ID
+	kind: AccessTokenKind! = USER
+	graphScopes: [ID!]
+	projectScopes: [ID!]
+	expiresAt: DateTime
 }
 
-union AccessTokenCreatePayload =
-  | AccessTokenCreateSuccess
-  | InvalidAccountError
-  | TokenLimitExceededError
-  | GraphScopeLimitExceededError
-  | CouldNotFindGraphsError
-  | ProjectScopeLimitExceededError
-  | CouldNotFindProjectsError
+union AccessTokenCreatePayload = AccessTokenCreateSuccess | InvalidAccountError | TokenLimitExceededError | GraphScopeLimitExceededError | CouldNotFindGraphsError | ProjectScopeLimitExceededError | CouldNotFindProjectsError
 
 type AccessTokenCreateSuccess {
-  token: AccessToken!
-  jwt: String!
-  query: Query!
+	token: AccessToken!
+	jwt: String!
+	query: Query!
 }
 
 input AccessTokenDeleteInput {
-  id: ID!
+	id: ID!
 }
 
 union AccessTokenDeletePayload = AccessTokenDeleteSuccess | TokenDoesNotExistError
 
 type AccessTokenDeleteSuccess {
-  deletedId: ID!
-  query: Query!
+	deletedId: ID!
+	query: Query!
 }
 
 """
 An edge in a connection.
 """
 type AccessTokenEdge {
-  """
-  The item at the end of the edge
-  """
-  node: AccessToken!
-  """
-  A cursor for use in pagination
-  """
-  cursor: String!
+	"""
+	The item at the end of the edge
+	"""
+	node: AccessToken!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
 }
 
 enum AccessTokenKind {
-  USER
-  ACCOUNT
+	USER
+	ACCOUNT
 }
 
 interface Account {
-  id: ID!
-  slug: String!
-  name: String!
-  plan: GrafbasePlan!
-  createdAt: DateTime!
-  status: AccountStatus!
-  graphs(after: String, before: String, first: Int, last: Int): GraphConnection!
-  usage(filters: UsageFilters!): AccountUsageTimeSeries
-  accessTokens(after: String, before: String, first: Int, last: Int): AccessTokenConnection!
+	id: ID!
+	slug: String!
+	name: String!
+	plan: GrafbasePlan!
+	createdAt: DateTime!
+	status: AccountStatus!
+	graphs(after: String, before: String, first: Int, last: Int): GraphConnection!
+	usage(filters: UsageFilters!): AccountUsageTimeSeries
+	accessTokens(after: String, before: String, first: Int, last: Int): AccessTokenConnection!
 }
 
 input AccountCreationValidateInput {
-  slug: String!
+	slug: String!
 }
 
 type AccountCreationValidatePayload {
-  slugAvailable: Boolean!
+	slugAvailable: Boolean!
 }
 
 type AccountDoesNotExistError {
-  query: Query!
+	query: Query!
 }
 
 type AccountStatus {
-  isEnabled: Boolean!
+	isEnabled: Boolean!
 }
 
 type AccountUsageTimeSeries {
-  overall: UsageMetrics!
-  points: [UsageMetricsTimeSeriesDataPoint!]!
+	overall: UsageMetrics!
+	points: [UsageMetricsTimeSeriesDataPoint!]!
 }
 
 type AlreadyExistsError {
-  query: Query!
+	query: Query!
 }
 
 type AlreadyMemberError {
-  query: Query!
+	query: Query!
 }
 
 type BadWasmModuleError {
-  error: String!
-  query: Query!
+	error: String!
+	query: Query!
 }
 
+
 type Branch implements Node {
-  id: ID!
-  name: String!
-  domains: [String!]!
-  latestDeployment: Deployment
-  activeDeployment: Deployment
-  deployments(after: String, before: String, first: Int, last: Int, filters: DeploymentFilters): DeploymentConnection!
-  analytics(filters: GraphAnalyticsFilters!): GraphAnalytics
-  graph: Graph!
-  environment: BranchEnvironment!
-  schema: String
-  federatedSchema: String
-  operationChecksEnabled: Boolean!
-  schemaProposals(first: Int, after: String, filter: SchemaProposalFilter!): SchemaProposalConnection!
-  schemaProposalsConfiguration: SchemaProposalsConfiguration!
-  subgraphs: [Subgraph!]!
-  endpointConfig: EndpointConfig
+	id: ID!
+	name: String!
+	domains: [String!]!
+	latestDeployment: Deployment
+	activeDeployment: Deployment
+	deployments(after: String, before: String, first: Int, last: Int, filters: DeploymentFilters): DeploymentConnection!
+	analytics(filters: GraphAnalyticsFilters!): GraphAnalytics
+	graph: Graph!
+	environment: BranchEnvironment!
+	schema: String
+	federatedSchema: String
+	operationChecksEnabled: Boolean!
+	schemaProposals(first: Int, after: String, filter: SchemaProposalFilter!): SchemaProposalConnection!
+	schemaProposalsConfiguration: SchemaProposalsConfiguration!
+	subgraphs: [Subgraph!]!
+	endpointConfig: EndpointConfig
 }
 
 type BranchAlreadyExistsError {
-  query: Query!
+	query: Query!
 }
 
 type BranchConnection {
-  """
-  Information to aid in pagination.
-  """
-  pageInfo: PageInfo!
-  """
-  A list of edges.
-  """
-  edges: [BranchEdge!]!
-  """
-  A list of nodes.
-  """
-  nodes: [Branch!]!
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [BranchEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [Branch!]!
 }
 
 input BranchCreateInput {
-  accountSlug: String!
-  graphSlug: String!
-  branchName: String!
+	accountSlug: String!
+	graphSlug: String!
+	branchName: String!
 }
 
 union BranchCreatePayload = Query | BranchAlreadyExistsError | GraphDoesNotExistError | GraphNotSelfHostedError
@@ -171,71 +165,71 @@ union BranchCreatePayload = Query | BranchAlreadyExistsError | GraphDoesNotExist
 union BranchDeletePayload = Query | BranchDoesNotExistError | CannotDeleteProductionBranchError
 
 type BranchDoesNotExistError {
-  query: Query!
+	query: Query!
 }
 
 """
 An edge in a connection.
 """
 type BranchEdge {
-  """
-  The item at the end of the edge
-  """
-  node: Branch!
-  """
-  A cursor for use in pagination
-  """
-  cursor: String!
+	"""
+	The item at the end of the edge
+	"""
+	node: Branch!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
 }
 
 enum BranchEnvironment {
-  PREVIEW
-  PRODUCTION
+	PREVIEW
+	PRODUCTION
 }
 
 input BranchUpdateInput {
-  accountSlug: String!
-  projectSlug: String
-  graphSlug: String
-  branchSlug: String!
-  trustedDocumentsEnforce: Boolean
-  trustedDocumentsBypassHeaderName: String
-  trustedDocumentsBypassHeaderValue: String
-  operationChecksEnabled: Boolean
-  schemaProposalsConfiguration: SchemaProposalsConfigurationUpdateInput
+	accountSlug: String!
+	projectSlug: String
+	graphSlug: String
+	branchSlug: String!
+	trustedDocumentsEnforce: Boolean
+	trustedDocumentsBypassHeaderName: String
+	trustedDocumentsBypassHeaderValue: String
+	operationChecksEnabled: Boolean
+	schemaProposalsConfiguration: SchemaProposalsConfigurationUpdateInput
 }
 
 union BranchUpdatePayload = Query | ProjectDoesNotExistError | GraphDoesNotExistError
 
 type CannotBeRenamedError {
-  query: Query!
+	query: Query!
 }
 
 type CannotDeleteProductionBranchError {
-  query: Query!
+	query: Query!
 }
 
 type CannotUseInvitationsWithSSO {
-  query: Query!
+	query: Query!
 }
 
 type CompositionCheckError {
-  title: String!
-  message: String!
-  severity: SchemaCheckErrorSeverity!
+	title: String!
+	message: String!
+	severity: SchemaCheckErrorSeverity!
 }
 
 type CouldNotFindGraphsError {
-  unknownGraphIds: [ID!]!
+	unknownGraphIds: [ID!]!
 }
 
 type CouldNotFindProjectsError {
-  unknownProjectIds: [ID!]!
+	unknownProjectIds: [ID!]!
 }
 
 type CurrentPlanLimitReachedError {
-  max: Int!
-  query: Query!
+	max: Int!
+	query: Query!
 }
 
 """
@@ -244,189 +238,179 @@ RFC3339 formatted date in the UTC time zone denoted by letter 'Z'
 scalar DateTime
 
 type DeleteSubgraphDeploymentFailure {
-  query: Query!
-  deploymentError: String!
+	query: Query!
+	deploymentError: String!
 }
 
 input DeleteSubgraphInput {
-  accountSlug: String!
-  graphSlug: String
-  projectSlug: String
-  branch: String!
-  subgraph: String!
-  message: String
-  dryRun: Boolean!
+	accountSlug: String!
+	graphSlug: String
+	projectSlug: String
+	branch: String!
+	subgraph: String!
+	message: String
+	dryRun: Boolean!
 }
 
-union DeleteSubgraphPayload =
-  | DeleteSubgraphSuccess
-  | SubgraphNotFoundError
-  | ProjectDoesNotExistError
-  | ProjectNotFederatedError
-  | ProjectBranchDoesNotExistError
-  | GraphDoesNotExistError
-  | GraphNotFederatedError
-  | GraphBranchDoesNotExistError
-  | FederatedGraphCompositionError
-  | DeleteSubgraphDeploymentFailure
+union DeleteSubgraphPayload = DeleteSubgraphSuccess | SubgraphNotFoundError | ProjectDoesNotExistError | ProjectNotFederatedError | ProjectBranchDoesNotExistError | GraphDoesNotExistError | GraphNotFederatedError | GraphBranchDoesNotExistError | FederatedGraphCompositionError | DeleteSubgraphDeploymentFailure
 
 type DeleteSubgraphSuccess {
-  query: Query!
+	query: Query!
 }
 
 """
 Deployment
 """
 type Deployment implements Node {
-  id: ID!
-  """
-  The schema exposed by the gateway.
-  """
-  apiSchema: String
-  """
-  The federated SDL used to initialize the gateway.
-  """
-  federatedSdl: String
-  branch: Branch!
-  createdAt: DateTime!
-  startedAt: DateTime
-  finishedAt: DateTime
-  isRedeployable: Boolean!
-  """
-  The duration of the deployment in milliseconds.
-  """
-  duration: Int
-  status: DeploymentStatus!
-  steps: [DeploymentStep!]!
-  compositionInputs: [DeploymentSubgraph!]!
-  """
-  The subgraph that was published or removed, triggering the deployment.
-
-  This is nullable in case we introduce back redeployments in the future.
-  """
-  subgraph: DeploymentSubgraph
-  """
-  Diff of the API SDL in this deployment with the last successful deployment. This field only makes sense for successful deployments, so it will be null on failed deployments.
-  """
-  apiSchemaDiff: [DiffSnippet!]
-  changeCounts: DeploymentChangeCounts
+	id: ID!
+	"""
+	The schema exposed by the gateway.
+	"""
+	apiSchema: String
+	"""
+	The federated SDL used to initialize the gateway.
+	"""
+	federatedSdl: String
+	branch: Branch!
+	createdAt: DateTime!
+	startedAt: DateTime
+	finishedAt: DateTime
+	isRedeployable: Boolean!
+	"""
+	The duration of the deployment in milliseconds.
+	"""
+	duration: Int
+	status: DeploymentStatus!
+	steps: [DeploymentStep!]!
+	compositionInputs: [DeploymentSubgraph!]!
+	"""
+	The subgraph that was published or removed, triggering the deployment.
+	
+	This is nullable in case we introduce back redeployments in the future.
+	"""
+	subgraph: DeploymentSubgraph
+	"""
+	Diff of the API SDL in this deployment with the last successful deployment. This field only makes sense for successful deployments, so it will be null on failed deployments.
+	"""
+	apiSchemaDiff: [DiffSnippet!]
+	changeCounts: DeploymentChangeCounts
 }
 
 type DeploymentChangeCounts {
-  addedTypes: Int!
-  removedTypes: Int!
-  changedTypes: Int!
-  addedFields: Int!
-  removedFields: Int!
-  changedFields: Int!
+	addedTypes: Int!
+	removedTypes: Int!
+	changedTypes: Int!
+	addedFields: Int!
+	removedFields: Int!
+	changedFields: Int!
 }
 
 type DeploymentConnection {
-  """
-  Information to aid in pagination.
-  """
-  pageInfo: PageInfo!
-  """
-  A list of edges.
-  """
-  edges: [DeploymentEdge!]!
-  """
-  A list of nodes.
-  """
-  nodes: [Deployment!]!
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [DeploymentEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [Deployment!]!
 }
 
 """
 An edge in a connection.
 """
 type DeploymentEdge {
-  """
-  The item at the end of the edge
-  """
-  node: Deployment!
-  """
-  A cursor for use in pagination
-  """
-  cursor: String!
+	"""
+	The item at the end of the edge
+	"""
+	node: Deployment!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
 }
 
 input DeploymentFilters {
-  finishedAt: DeploymentFinishedAtFilters
+	finishedAt: DeploymentFinishedAtFilters
 }
 
 input DeploymentFinishedAtFilters {
-  """
-  Use this if you really care about having a specific duration like 1 hour, 7 days, etc.
-  """
-  range: Duration
-  """
-  Use this if you *at least* the data between `from` and `to` to be provided. You may get
-  more, but never less.
-  """
-  from: DateTime
-  """
-  To be used in conjunction with with either `range` or `from`.
-  """
-  to: DateTime!
+	"""
+	Use this if you really care about having a specific duration like 1 hour, 7 days, etc.
+	"""
+	range: Duration
+	"""
+	Use this if you *at least* the data between `from` and `to` to be provided. You may get
+	more, but never less.
+	"""
+	from: DateTime
+	"""
+	To be used in conjunction with with either `range` or `from`.
+	"""
+	to: DateTime!
 }
 
 enum DeploymentStatus {
-  QUEUED
-  IN_PROGRESS
-  SUCCEEDED
-  FAILED
+	QUEUED
+	IN_PROGRESS
+	SUCCEEDED
+	FAILED
 }
 
 type DeploymentStep {
-  title: String!
-  durationMs: Int!
-  startedAt: DateTime!
-  status: DeploymentStepStatus!
-  errors: [DeploymentStepError!]!
+	title: String!
+	durationMs: Int!
+	startedAt: DateTime!
+	status: DeploymentStepStatus!
+	errors: [DeploymentStepError!]!
 }
 
 union DeploymentStepError = DeploymentStepGeneralError
 
 type DeploymentStepGeneralError {
-  message: String!
+	message: String!
 }
 
 enum DeploymentStepStatus {
-  SUCCESS
-  FAILURE
+	SUCCESS
+	FAILURE
 }
 
 type DeploymentSubgraph {
-  name: String!
-  versionNumber: Int!
-  url: String!
+	name: String!
+	versionNumber: Int!
+	url: String
 }
 
 """
 One side of a two-sided diff. "Old" and "new" are to be taken in the most general sense.
 """
 enum DiffSide {
-  """
-  The left side of the diff.
-  """
-  OLD
-  """
-  The right side of the diff.
-  """
-  NEW
+	"""
+	The left side of the diff.
+	"""
+	OLD
+	"""
+	The right side of the diff.
+	"""
+	NEW
 }
 
 type DiffSnippet {
-  originalSchemaSnippet: String!
-  originalSchemaSnippetFirstLine: Int!
-  proposedSchemaSnippet: String!
-  proposedSchemaSnippetFirstLine: Int!
-  addedLines: [Int!]!
-  removedLines: [Int!]!
+	originalSchemaSnippet: String!
+	originalSchemaSnippetFirstLine: Int!
+	proposedSchemaSnippet: String!
+	proposedSchemaSnippetFirstLine: Int!
+	addedLines: [Int!]!
+	removedLines: [Int!]!
 }
 
 type DisabledAccountError {
-  query: Query!
+	query: Query!
 }
 
 """
@@ -437,586 +421,555 @@ The input/output is a string in ISO8601 format.
 scalar Duration
 
 input DurationFilter {
-  lt: Duration
-  lte: Duration
-  gt: Duration
-  gte: Duration
+	lt: Duration
+	lte: Duration
+	gt: Duration
+	gte: Duration
 }
 
 type EndpointConfig {
-  url: String!
+	url: String!
 }
 
 input EndpointConfigInput {
-  url: String!
+	url: String!
 }
 
 input EndpointConfigUpdateInput {
-  accountSlug: String!
-  graphSlug: String!
-  branchSlug: String!
-  endpointConfig: EndpointConfigInput!
+	accountSlug: String!
+	graphSlug: String!
+	branchSlug: String!
+	endpointConfig: EndpointConfigInput!
 }
 
 union EndpointConfigUpdatePayload = Query | GraphDoesNotExistError
 
 type ErrorCountByCode {
-  code: String!
-  count: Int!
+	code: String!
+	count: Int!
 }
 
 type Extension implements Node {
-  id: ID!
-  name: String!
-  highestVersion: ExtensionVersion
-  owners: [User!]
-  versions: [ExtensionVersion!]!
+	id: ID!
+	name: String!
+	highestVersion: ExtensionVersion
+	owners: [User!]
+	versions: [ExtensionVersion!]!
 }
 
 union ExtensionAddOwnerPayload = ExtensionAddOwnerSuccess | ExtensionUnauthorized | ExtensionDoesNotExistError
 
 type ExtensionAddOwnerSuccess {
-  query: Query!
+	query: Query!
 }
 
 type ExtensionConnection {
-  """
-  Information to aid in pagination.
-  """
-  pageInfo: PageInfo!
-  """
-  A list of edges.
-  """
-  edges: [ExtensionEdge!]!
-  """
-  A list of nodes.
-  """
-  nodes: [Extension!]!
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [ExtensionEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [Extension!]!
 }
 
 type ExtensionDoesNotExistError {
-  query: Query!
+	query: Query!
 }
 
 """
 An edge in a connection.
 """
 type ExtensionEdge {
-  """
-  The item at the end of the edge
-  """
-  node: Extension!
-  """
-  A cursor for use in pagination
-  """
-  cursor: String!
+	"""
+	The item at the end of the edge
+	"""
+	node: Extension!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
 }
 
 input ExtensionFilter {
-  namePrefix: String
+	namePrefix: String
 }
 
 enum ExtensionKind {
-  FIELD_RESOLVER
-  AUTHENTICATOR
+	FIELD_RESOLVER
+	AUTHENTICATOR
 }
 
-union ExtensionPublishPayload =
-  | ExtensionPublishSuccess
-  | BadWasmModuleError
-  | ExtensionValidationError
-  | ExtensionVersionAlreadyExistsError
-  | ExtensionUnauthorized
+union ExtensionPublishPayload = ExtensionPublishSuccess | BadWasmModuleError | ExtensionValidationError | ExtensionVersionAlreadyExistsError | ExtensionUnauthorized
 
 type ExtensionPublishSuccess {
-  extensionVersion: ExtensionVersion!
-  query: Query!
+	extensionVersion: ExtensionVersion!
+	query: Query!
 }
 
 union ExtensionRemoveOwnerPayload = ExtensionRemoveOwnerSuccess | ExtensionUnauthorized | ExtensionDoesNotExistError
 
 type ExtensionRemoveOwnerSuccess {
-  query: Query!
+	query: Query!
 }
 
 type ExtensionUnauthorized {
-  message: String!
-  query: Query!
+	message: String!
+	query: Query!
 }
 
 type ExtensionValidationError {
-  error: String!
-  query: Query!
+	error: String!
+	query: Query!
 }
 
 type ExtensionVersion {
-  version: SemverVersion!
-  kind: ExtensionKind!
-  createdAt: DateTime!
-  description: String!
-  license: String
-  readme: String
-  homepageUrl: Url
-  repositoryUrl: Url
-  sdl: String
-  extension: Extension!
-  publishedBy: User
+	version: SemverVersion!
+	kind: ExtensionKind!
+	createdAt: DateTime!
+	description: String!
+	license: String
+	readme: String
+	homepageUrl: Url
+	repositoryUrl: Url
+	sdl: String
+	extension: Extension!
+	publishedBy: User
 }
 
 type ExtensionVersionAlreadyExistsError {
-  query: Query!
+	query: Query!
 }
 
 type ExtensionVersionDoesNotExistError {
-  query: Query!
+	query: Query!
 }
 
 union ExtensionVersionMatch = ExtensionDoesNotExistError | ExtensionVersionDoesNotExistError | ExtensionVersion
 
 input ExtensionVersionRequirement {
-  extensionName: String!
-  version: SemverVersionRequirement!
+	extensionName: String!
+	version: SemverVersionRequirement!
 }
 
 type FederatedGraphCompositionError {
-  query: Query!
-  messages: [String!]!
+	query: Query!
+	messages: [String!]!
 }
 
 type FieldAnalytics {
-  metrics: FieldMetricsTimeSeries
-  topClients(
-    """
-    Detaults to 10, Max 100
-    """
-    limit: Int
-    """
-    Search over the client names/versions
-    """
-    searchQuery: String
-  ): TopClientsForField
+	metrics: FieldMetricsTimeSeries
+	topClients(
+		"""
+		Detaults to 10, Max 100
+		"""
+		limit: Int,
+		"""
+		Search over the client names/versions
+		"""
+		searchQuery: String
+	): TopClientsForField
 }
 
 type FieldMetrics {
-  count: Int!
+	count: Int!
 }
 
 type FieldMetricsTimeSeries {
-  overall: FieldMetrics!
-  points: [FieldMetricsTimeSeriesDataPoint!]!
-  previousPeriod: FieldMetricsTimeSeries
+	overall: FieldMetrics!
+	points: [FieldMetricsTimeSeriesDataPoint!]!
+	previousPeriod: FieldMetricsTimeSeries
 }
 
 type FieldMetricsTimeSeriesDataPoint {
-  dateTime: DateTime!
-  count: Int!
+	dateTime: DateTime!
+	count: Int!
 }
 
+
 enum GrafbasePlan {
-  TRIAL
-  ENTERPRISE
+	TRIAL
+	ENTERPRISE
 }
 
 type Graph implements Node {
-  id: ID!
-  slug: String!
-  createdAt: DateTime!
-  owners: [Team!]!
-  account: Account!
-  branch(name: String): Branch
-  branches(after: String, before: String, first: Int, last: Int): BranchConnection!
-  productionBranch: Branch!
-  schemaChecks(first: Int, after: String, last: Int, before: String, branch: String): SchemaCheckConnection!
-  schemaProposals(after: String, first: Int): SchemaProposalConnection!
-  operationChecksConfiguration: GraphOperationCheckConfiguration!
-  analytics(filters: GraphAnalyticsFilters!): GraphAnalytics
-  requests(first: Int, last: Int, before: String, after: String, filters: RequestFilters!): RequestConnection
-  request(
-    branchName: String
-    """
-    The approximate timestamp of the request, within a few minutes of the actual request.
-    """
-    approximateTimestamp: DateTime!
-    traceId: ID!
-  ): Request
+	id: ID!
+	slug: String!
+	createdAt: DateTime!
+	owners: [Team!]!
+	account: Account!
+	branch(name: String): Branch
+	branches(after: String, before: String, first: Int, last: Int): BranchConnection!
+	productionBranch: Branch!
+	schemaChecks(first: Int, after: String, last: Int, before: String, branch: String): SchemaCheckConnection!
+	schemaProposals(after: String, first: Int): SchemaProposalConnection!
+	operationChecksConfiguration: GraphOperationCheckConfiguration!
+	analytics(filters: GraphAnalyticsFilters!): GraphAnalytics
+	requests(first: Int, last: Int, before: String, after: String, filters: RequestFilters!): RequestConnection
+	request(		branchName: String,
+		"""
+		The approximate timestamp of the request, within a few minutes of the actual request.
+		"""
+		approximateTimestamp: DateTime!,		traceId: ID!
+	): Request
 }
 
 union GraphAddOwnerPayload = GraphAddOwnerSuccess | GraphDoesNotExistError | NotAllowedError
 
 type GraphAddOwnerSuccess {
-  query: Query!
+	query: Query!
 }
 
 type GraphAnalytics {
-  forField(
-    """
-    Schema path defined as: '<parent-type-name>.<name>'
-    """
-    schemaPath: String!
-  ): FieldAnalytics!
-  requestMetrics(
-    """
-    Latency percentiles to retrieve. Ex: [50, 99, 99.9]
-    """
-    latencyPercentiles: [Float!]
-  ): RequestMetricsTimeSeriesV2
-  topOperations(
-    """
-    If not specified, top operations by latency will be empty. Ex: 95
-    """
-    latencyPercentile: Float
-    """
-    Detaults to 10, Max 100
-    """
-    limit: Int
-    """
-    Search over the opeartion names
-    """
-    searchQuery: String
-  ): TopOperations
-  topClients(
-    """
-    If not specified, top clients by latency will be empty. Ex: 95
-    """
-    latencyPercentile: Float
-    """
-    Detaults to 10, Max 100
-    """
-    limit: Int
-    """
-    Search over the client names/versions
-    """
-    searchQuery: String
-  ): TopClients
+	forField(
+		"""
+		Schema path defined as: '<parent-type-name>.<name>'
+		"""
+		schemaPath: String!
+	): FieldAnalytics!
+	requestMetrics(
+		"""
+		Latency percentiles to retrieve. Ex: [50, 99, 99.9]
+		"""
+		latencyPercentiles: [Float!]
+	): RequestMetricsTimeSeriesV2
+	topOperations(
+		"""
+		If not specified, top operations by latency will be empty. Ex: 95
+		"""
+		latencyPercentile: Float,
+		"""
+		Detaults to 10, Max 100
+		"""
+		limit: Int,
+		"""
+		Search over the opeartion names
+		"""
+		searchQuery: String
+	): TopOperations
+	topClients(
+		"""
+		If not specified, top clients by latency will be empty. Ex: 95
+		"""
+		latencyPercentile: Float,
+		"""
+		Detaults to 10, Max 100
+		"""
+		limit: Int,
+		"""
+		Search over the client names/versions
+		"""
+		searchQuery: String
+	): TopClients
 }
 
 input GraphAnalyticsFilters {
-  """
-  Defaults to production branch
-  """
-  branchName: String @deprecated(reason: "Go through graph.branch instead.")
-  """
-  Use this if you really care about having a specific duration like 1 hour, 7 days, etc.
-  """
-  range: Duration
-  """
-  Use this if you *at least* the data between `from` and `to` to be provided. You may get
-  more, but never less.
-  """
-  from: DateTime
-  """
-  To be used in conjunction with with either `range` or `from`.
-  """
-  to: DateTime!
-  """
-  If explicitly to false, specifying both `from` and `to` will be treated as if `range: (to - from)`
-  had been specified instead. Meaning only the duration between `from` and `to` matters, not
-  necessarily having a data point for `from` itself.
-  """
-  isCustomRange: Boolean @deprecated(reason: "Use range instead")
-  """
-  If specified, overrides approximateNumberOfPoints. Must be in whole minutes.
-  At most 150 points can be returned.
-  """
-  aggregationStep: Duration
-  """
-  Defaults to 100, at most 150 points can be returned.
-  """
-  approximateNumberOfDataPoints: Int
-  """
-  Defaults to true
-  Example: for an aggregationStep of 15 min:
-  - if true, only times with 00, 15, 30 and 45 minutes will appear in the time series
-  - if false, times in the time series will be adjusted to start from the periodStart (~from).
-  So if from = 15:32:00, times will end in 02, 17, 32 and 47.
-  I'll always align to the aggregation step used to store the data though, which
-  is currently in minutes. So cannot have 15:10:20, 15:11:20, etc.
-  """
-  alignPeriodWithAggregationStep: Boolean
-  operationName: [String!]
-  """
-  Only used if operation name is specified.
-  """
-  operationNormalizedQueryHash: [OperationNormalizedQueryHash!]
-  clientName: [String!]
-  """
-  Only used if client name is specified.
-  """
-  clientVersion: [String!]
+	"""
+	Defaults to production branch
+	"""
+	branchName: String @deprecated(reason: "Go through graph.branch instead.")
+	"""
+	Use this if you really care about having a specific duration like 1 hour, 7 days, etc.
+	"""
+	range: Duration
+	"""
+	Use this if you *at least* the data between `from` and `to` to be provided. You may get
+	more, but never less.
+	"""
+	from: DateTime
+	"""
+	To be used in conjunction with with either `range` or `from`.
+	"""
+	to: DateTime!
+	"""
+	If explicitly to false, specifying both `from` and `to` will be treated as if `range: (to - from)`
+	had been specified instead. Meaning only the duration between `from` and `to` matters, not
+	necessarily having a data point for `from` itself.
+	"""
+	isCustomRange: Boolean @deprecated(reason: "Use range instead")
+	"""
+	If specified, overrides approximateNumberOfPoints. Must be in whole minutes.
+	At most 150 points can be returned.
+	"""
+	aggregationStep: Duration
+	"""
+	Defaults to 100, at most 150 points can be returned.
+	"""
+	approximateNumberOfDataPoints: Int
+	"""
+	Defaults to true
+	Example: for an aggregationStep of 15 min:
+	- if true, only times with 00, 15, 30 and 45 minutes will appear in the time series
+	- if false, times in the time series will be adjusted to start from the periodStart (~from).
+	So if from = 15:32:00, times will end in 02, 17, 32 and 47.
+	I'll always align to the aggregation step used to store the data though, which
+	is currently in minutes. So cannot have 15:10:20, 15:11:20, etc.
+	"""
+	alignPeriodWithAggregationStep: Boolean
+	operationName: [String!]
+	"""
+	Only used if operation name is specified.
+	"""
+	operationNormalizedQueryHash: [OperationNormalizedQueryHash!]
+	clientName: [String!]
+	"""
+	Only used if client name is specified.
+	"""
+	clientVersion: [String!]
 }
 
 type GraphBranchDoesNotExistError {
-  query: Query!
+	query: Query!
 }
 
 type GraphConnection {
-  """
-  Information to aid in pagination.
-  """
-  pageInfo: PageInfo!
-  """
-  A list of edges.
-  """
-  edges: [GraphEdge!]!
-  """
-  A list of nodes.
-  """
-  nodes: [Graph!]!
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [GraphEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [Graph!]!
 }
 
 input GraphCreateInput {
-  accountId: ID!
-  graphSlug: String!
+	accountId: ID!
+	graphSlug: String!
 }
 
-union GraphCreatePayload =
-  | GraphCreateSuccess
-  | AccountDoesNotExistError
-  | CurrentPlanLimitReachedError
-  | DisabledAccountError
-  | SlugAlreadyExistsError
-  | SlugInvalidError
-  | SlugTooLongError
-  | StandaloneGraphsNoLongerSupportedError
-  | ManagedGraphsNoLongerSupportedError
+union GraphCreatePayload = GraphCreateSuccess | AccountDoesNotExistError | CurrentPlanLimitReachedError | DisabledAccountError | SlugAlreadyExistsError | SlugInvalidError | SlugTooLongError | StandaloneGraphsNoLongerSupportedError | ManagedGraphsNoLongerSupportedError
 
 type GraphCreateSuccess {
-  graph: Graph!
-  query: Query!
+	graph: Graph!
+	query: Query!
 }
 
 input GraphDeleteInput {
-  id: ID!
+	id: ID!
 }
 
 union GraphDeletePayload = GraphDeleteSuccess | GraphDoesNotExistError
 
 type GraphDeleteSuccess {
-  query: Query!
+	query: Query!
 }
 
 type GraphDoesNotExistError {
-  query: Query!
+	query: Query!
 }
 
 """
 An edge in a connection.
 """
 type GraphEdge {
-  """
-  The item at the end of the edge
-  """
-  node: Graph!
-  """
-  A cursor for use in pagination
-  """
-  cursor: String!
+	"""
+	The item at the end of the edge
+	"""
+	node: Graph!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
 }
 
 type GraphNotFederatedError {
-  query: Query!
+	query: Query!
 }
 
 type GraphNotSelfHostedError {
-  query: Query!
+	query: Query!
 }
 
 type GraphOperationCheckConfiguration {
-  """
-  The time range in days to consider for operation checks. Operations older than the specificied
-  number of days are ignored.
-  """
-  timeRangeDays: Int!
-  """
-  The request count threshold to consider for operation checks. Operations that have been
-  registered less than the specified number of occurrences are ignored.
-  """
-  requestCountThreshold: Int!
-  """
-  The clients to exclude from operation checks.
-  """
-  excludedClients: [String!]!
-  """
-  The operations to exclude from operation checks.
-  """
-  excludedOperations: [String!]!
+	"""
+	The time range in days to consider for operation checks. Operations older than the specificied
+	number of days are ignored.
+	"""
+	timeRangeDays: Int!
+	"""
+	The request count threshold to consider for operation checks. Operations that have been
+	registered less than the specified number of occurrences are ignored.
+	"""
+	requestCountThreshold: Int!
+	"""
+	The clients to exclude from operation checks.
+	"""
+	excludedClients: [String!]!
+	"""
+	The operations to exclude from operation checks.
+	"""
+	excludedOperations: [String!]!
 }
 
 input GraphOperationCheckConfigurationInput {
-  """
-  The graph to update.
-  """
-  graphId: ID!
-  """
-  Whether operation checks are enabled for the graph. This is ignored, since operation checks are now only enabled at the branch level.
-  """
-  enabled: Boolean
-  """
-  The time range in days to consider for operation checks. Operations older than the specificied
-  number of days are ignored.
-  """
-  timeRangeDays: Int
-  """
-  The request count threshold to consider for operation checks. Operations that have been
-  registered less than the specified number of occurrences are ignored.
-  """
-  requestCountThreshold: Int
-  """
-  The clients to exclude from operation checks.
-  """
-  excludedClients: [String!]
-  """
-  The operations to exclude from operation checks.
-  """
-  excludedOperations: [String!]
+	"""
+	The graph to update.
+	"""
+	graphId: ID!
+	"""
+	Whether operation checks are enabled for the graph. This is ignored, since operation checks are now only enabled at the branch level.
+	"""
+	enabled: Boolean
+	"""
+	The time range in days to consider for operation checks. Operations older than the specificied
+	number of days are ignored.
+	"""
+	timeRangeDays: Int
+	"""
+	The request count threshold to consider for operation checks. Operations that have been
+	registered less than the specified number of occurrences are ignored.
+	"""
+	requestCountThreshold: Int
+	"""
+	The clients to exclude from operation checks.
+	"""
+	excludedClients: [String!]
+	"""
+	The operations to exclude from operation checks.
+	"""
+	excludedOperations: [String!]
 }
 
-union GraphOperationCheckConfigurationUpdatePayload =
-  | GraphDoesNotExistError
-  | GraphOperationCheckConfiguration
-  | NotAllowedError
+union GraphOperationCheckConfigurationUpdatePayload = GraphDoesNotExistError | GraphOperationCheckConfiguration | NotAllowedError
 
 union GraphRemoveOwnerPayload = GraphRemoveOwnerSuccess | GraphDoesNotExistError | NotAllowedError
 
 type GraphRemoveOwnerSuccess {
-  query: Query!
+	query: Query!
 }
 
 type GraphScopeLimitExceededError {
-  query: Query!
+	query: Query!
 }
 
 input GraphUpdateInput {
-  id: ID!
-  graphSlug: String
-  productionBranch: String
+	id: ID!
+	graphSlug: String
+	productionBranch: String
 }
 
-union GraphUpdatePayload =
-  | GraphUpdateSuccess
-  | CannotBeRenamedError
-  | GraphDoesNotExistError
-  | NotAllowedError
-  | SlugAlreadyExistsError
-  | SlugInvalidError
-  | SlugTooLongError
+union GraphUpdatePayload = GraphUpdateSuccess | CannotBeRenamedError | GraphDoesNotExistError | NotAllowedError | SlugAlreadyExistsError | SlugInvalidError | SlugTooLongError
 
 type GraphUpdateSuccess {
-  graph: Graph!
-  query: Query!
+	graph: Graph!
+	query: Query!
 }
+
 
 interface InboxMessage {
-  id: ID!
-  createdAt: DateTime!
-  readAt: DateTime
+	id: ID!
+	createdAt: DateTime!
+	readAt: DateTime
 }
 
+
 type InvalidAccountError {
-  query: Query!
+	query: Query!
 }
 
 type Invite implements Node {
-  id: ID!
-  role: MemberRole!
-  email: String!
-  invitedBy: User!
-  lastRenewedAt: DateTime!
-  status: InviteStatus!
-  createdAt: DateTime!
-  organization: Organization!
+	id: ID!
+	role: MemberRole!
+	email: String!
+	invitedBy: User!
+	lastRenewedAt: DateTime!
+	status: InviteStatus!
+	createdAt: DateTime!
+	organization: Organization!
 }
 
 input InviteAcceptInput {
-  id: ID!
+	id: ID!
 }
 
-union InviteAcceptPayload =
-  | InviteAcceptSuccess
-  | InviteDoesNotExistError
-  | AlreadyMemberError
-  | CannotUseInvitationsWithSSO
+union InviteAcceptPayload = InviteAcceptSuccess | InviteDoesNotExistError | AlreadyMemberError | CannotUseInvitationsWithSSO
 
 type InviteAcceptSuccess {
-  member: Member!
-  query: Query!
+	member: Member!
+	query: Query!
 }
 
 input InviteCancelInput {
-  id: ID!
+	id: ID!
 }
 
 union InviteCancelPayload = InviteCancelSuccess | InviteDoesNotExistError | NotAllowedToCancelInvitesError
 
 type InviteCancelSuccess {
-  inviteId: ID!
-  query: Query!
+	inviteId: ID!
+	query: Query!
 }
 
 type InviteConnection {
-  """
-  Information to aid in pagination.
-  """
-  pageInfo: PageInfo!
-  """
-  A list of edges.
-  """
-  edges: [InviteEdge!]!
-  """
-  A list of nodes.
-  """
-  nodes: [Invite!]!
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [InviteEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [Invite!]!
 }
 
 input InviteDeclineInput {
-  id: ID!
+	id: ID!
 }
 
 union InviteDeclinePayload = InviteDeclineSuccess | InviteDoesNotExistError
 
 type InviteDeclineSuccess {
-  inviteId: ID!
-  query: Query!
+	inviteId: ID!
+	query: Query!
 }
 
 type InviteDoesNotExistError {
-  query: Query!
+	query: Query!
 }
 
 """
 An edge in a connection.
 """
 type InviteEdge {
-  """
-  The item at the end of the edge
-  """
-  node: Invite!
-  """
-  A cursor for use in pagination
-  """
-  cursor: String!
+	"""
+	The item at the end of the edge
+	"""
+	node: Invite!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
 }
 
 input InviteSendInput {
-  organizationId: ID!
-  email: String!
-  role: MemberRole!
+	organizationId: ID!
+	email: String!
+	role: MemberRole!
 }
 
-union InviteSendPayload =
-  | InviteSendSuccess
-  | OrganizationDoesNotExistError
-  | NotAllowedToSendInvitesError
-  | CannotUseInvitationsWithSSO
+union InviteSendPayload = InviteSendSuccess | OrganizationDoesNotExistError | NotAllowedToSendInvitesError | CannotUseInvitationsWithSSO
 
 type InviteSendSuccess {
-  invite: Invite!
-  query: Query!
+	invite: Invite!
+	query: Query!
 }
 
 enum InviteStatus {
-  PENDING
-  EXPIRED
+	PENDING
+	EXPIRED
 }
 
 """
@@ -1025,1488 +978,1418 @@ A scalar that can represent any JSON value.
 scalar JSON
 
 type LintCheckError {
-  title: String!
-  message: String!
-  severity: SchemaCheckErrorSeverity!
+	title: String!
+	message: String!
+	severity: SchemaCheckErrorSeverity!
 }
 
 type ManagedGraphsNoLongerSupportedError {
-  query: Query!
+	query: Query!
 }
 
 type Member implements Node {
-  id: ID!
-  role: MemberRole!
-  createdAt: DateTime!
-  account: Account!
-  user: User!
+	id: ID!
+	role: MemberRole!
+	createdAt: DateTime!
+	account: Account!
+	user: User!
 }
 
 type MemberConnection {
-  """
-  Information to aid in pagination.
-  """
-  pageInfo: PageInfo!
-  """
-  A list of edges.
-  """
-  edges: [MemberEdge!]!
-  """
-  A list of nodes.
-  """
-  nodes: [Member!]!
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [MemberEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [Member!]!
 }
 
 input MemberDeleteInput {
-  id: ID!
+	id: ID!
 }
 
 type MemberDeletePayload {
-  deletedMemberId: ID!
-  query: Query!
+	deletedMemberId: ID!
+	query: Query!
 }
 
 """
 An edge in a connection.
 """
 type MemberEdge {
-  """
-  The item at the end of the edge
-  """
-  node: Member!
-  """
-  A cursor for use in pagination
-  """
-  cursor: String!
+	"""
+	The item at the end of the edge
+	"""
+	node: Member!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
 }
 
 enum MemberRole {
-  OWNER
-  MEMBER
-  ADMIN
+	OWNER
+	MEMBER
+	ADMIN
 }
 
 input MemberUpdateInput {
-  id: ID!
-  role: MemberRole
+	id: ID!
+	role: MemberRole
 }
 
 type MemberUpdatePayload {
-  member: Member!
-  query: Query!
+	member: Member!
+	query: Query!
 }
 
 type Mutation {
-  """
-  Create a new access token.
-  """
-  accessTokenCreate(input: AccessTokenCreateInput!): AccessTokenCreatePayload!
-  """
-  Delete a given access token.
-  """
-  accessTokenDelete(input: AccessTokenDeleteInput!): AccessTokenDeletePayload!
-  """
-  Create new organization account owned by the current user. Slug must be unique.
-  """
-  organizationCreate(input: OrganizationCreateInput!): OrganizationCreatePayload!
-  organizationSlugUpdate(input: OrganizationSlugUpdateInput!): OrganizationSlugUpdatePayload!
-  organizationUpdate(input: OrganizationUpdateInput!): OrganizationUpdatePayload!
-  personalAccountUpdate(input: PersonalAccountUpdateInput!): PersonalAccountUpdatePayload!
-    @deprecated(reason: "to be removed")
-  personalAccountDelete: PersonalAccountDeletePayload! @deprecated(reason: "to be removed")
-  organizationDelete(input: OrganizationDeleteInput!): OrganizationDeletePayload!
-  branchCreate(input: BranchCreateInput!): BranchCreatePayload!
-  branchUpdate(input: BranchUpdateInput!): BranchUpdatePayload!
-  branchDelete(
-    """
-    slug of the account
-    """
-    accountSlug: String!
-    """
-    slug of the graph
-    """
-    graphSlug: String
-    """
-    slug of the project
-    """
-    projectSlug: String
-    """
-    name of the branch
-    """
-    branchName: String!
-  ): BranchDeletePayload!
-  endpointConfigUpdate(input: EndpointConfigUpdateInput!): EndpointConfigUpdatePayload!
-  branchSchemaProposalsConfiguredReviewerAdd(
-    input: SchemaProposalsConfiguredReviewerAddInput!
-  ): SchemaProposalsConfiguredReviewerAddPayload!
-  branchSchemaProposalsConfiguredReviewerRemove(
-    input: SchemaProposalsConfiguredReviewerRemoveInput!
-  ): SchemaProposalsConfiguredReviewerRemovePayload!
-  """
-  Publish a version of an extension to the registry. If the extension does not already exist, it will be created.
-  """
-  extensionPublish(manifest: VersionedExtensionManifest!, wasmModule: Upload!): ExtensionPublishPayload
-  extensionAddOwner(extensionName: String!, userId: ID!): ExtensionAddOwnerPayload
-  extensionRemoveOwner(extensionName: String!, userId: ID!): ExtensionRemoveOwnerPayload
-  """
-  Create a new graph without any source for an initial deployment.
-  """
-  graphCreate(input: GraphCreateInput!): GraphCreatePayload!
-  graphUpdate(input: GraphUpdateInput!): GraphUpdatePayload!
-  graphOperationCheckConfigurationUpdate(
-    input: GraphOperationCheckConfigurationInput!
-  ): GraphOperationCheckConfigurationUpdatePayload!
-  graphDelete(input: GraphDeleteInput!): GraphDeletePayload!
-  graphAddOwner(graphId: ID!, ownerId: ID!): GraphAddOwnerPayload!
-  graphRemoveOwner(graphId: ID!, ownerId: ID!): GraphRemoveOwnerPayload!
-  notificationsMarkAsRead(notificationIds: [ID!]!): NotificationsMarkAsReadPayload!
-  inviteSend(input: InviteSendInput!): InviteSendPayload!
-  inviteCancel(input: InviteCancelInput!): InviteCancelPayload!
-  inviteAccept(input: InviteAcceptInput!): InviteAcceptPayload!
-  inviteDecline(input: InviteDeclineInput!): InviteDeclinePayload!
-  """
-  Update role of an organization member
-  """
-  memberUpdate(input: MemberUpdateInput!): MemberUpdatePayload!
-  """
-  Remove member from an organization
-  """
-  memberDelete(input: MemberDeleteInput!): MemberDeletePayload!
-  """
-  Run checks against the given schema
-  """
-  schemaCheckCreate(input: SchemaCheckCreateInput!): SchemaCheckPayload!
-  schemaProposalCreate(input: SchemaProposalCreateInput!): SchemaProposalCreatePayload!
-  """
-  Take a schema proposal back to draft status. This is possible from any state.
-  """
-  schemaProposalRevertToDraft(schemaProposalId: ID!): SchemaProposalRevertToDraftPayload!
-  schemaProposalRequestReview(input: SchemaProposalRequestReviewInput!): SchemaProposalRequestReviewPayload!
-  schemaProposalApprove(input: SchemaProposalApproveInput!): SchemaProposalApprovePayload!
-  schemaProposalReject(input: SchemaProposalRejectInput!): SchemaProposalRejectPayload!
-  schemaProposalDelete(id: ID!): SchemaProposalDeletePayload!
-  """
-  Edit the contents of a proposal.
-
-  The proposed subgraphs can be just a subset of the subgraphs being edited in the proposal. The changes from the previous edit on other subgraphs be carried over.
-  """
-  schemaProposalEdit(input: SchemaProposalEditInput!): SchemaProposalEditPayload!
-  schemaProposalCommentThreadCreate(
-    input: SchemaProposalCommentThreadCreateInput!
-  ): SchemaProposalCommentThreadCreatePayload!
-  """
-  Mark a comment thread as resolved.
-  """
-  schemaProposalCommentThreadResolve(rootCommentId: ID!): SchemaProposalCommentThreadResolvePayload!
-  schemaProposalCommentReply(parentCommentId: ID!, text: String!): SchemaProposalCommentReplyPayload!
-  """
-  Reverts the resolution of a comment thread.
-  """
-  schemaProposalCommentThreadUnresolve(rootCommentId: ID!): SchemaProposalCommentThreadUnresolvePayload!
-  """
-  Request a review for a schema proposal from a user or a team.
-  """
-  schemaProposalReviewRequestCreate(
-    input: SchemaProposalReviewRequestCreateInput!
-  ): SchemaProposalReviewRequestCreatePayload!
-  """
-  Publish a new subgraph.
-  """
-  publish(input: PublishInput!): PublishPayload!
-  """
-  Delete a subgraph
-  """
-  deleteSubgraph(input: DeleteSubgraphInput!): DeleteSubgraphPayload!
-  slackIntegrationCreate(input: SlackIntegrationCreateInput!): SlackNotificationCreatePayload!
-  slackNotificationDelete(id: String!): SlackNotificationDeletePayload!
-  """
-  Assign a team as the owner of a subgraph
-  """
-  subgraphAddOwner(branchId: ID!, subgraphName: String!, owner: ID!): SubgraphAddOwnerPayload!
-  """
-  Unassign a team's ownership of a subgraph
-  """
-  subgraphRemoveOwner(branchId: ID!, subgraphName: String!): SubgraphRemoveOwnerPayload!
-  teamCreate(organizationId: ID!, name: String!): TeamCreatePayload!
-  teamDelete(teamId: ID!): TeamDeletePayload!
-  teamAddMember(teamId: ID!, memberId: ID!): TeamAddMemberPayload!
-  teamRemoveMember(teamId: ID!, memberId: ID!): TeamRemoveMemberPayload!
-  teamAssignRole(teamId: ID!, memberId: ID!, role: TeamRole!): TeamAssignRolePayload!
-  trustedDocumentsSubmit(
-    accountSlug: String
-    graphSlug: String
-    projectSlug: String
-    branchSlug: String!
-    clientName: String!
-    documents: [TrustedDocumentInput!]!
-  ): TrustedDocumentsSubmitPayload!
-  userUpdate(input: UserUpdateInput!): UserUpdatePayload!
-  """
-  Delete the user.
-  """
-  userDelete: UserDeletePayload!
+	"""
+	Create a new access token.
+	"""
+	accessTokenCreate(input: AccessTokenCreateInput!): AccessTokenCreatePayload!
+	"""
+	Delete a given access token.
+	"""
+	accessTokenDelete(input: AccessTokenDeleteInput!): AccessTokenDeletePayload!
+	"""
+	Create new organization account owned by the current user. Slug must be unique.
+	"""
+	organizationCreate(input: OrganizationCreateInput!): OrganizationCreatePayload!
+	organizationSlugUpdate(input: OrganizationSlugUpdateInput!): OrganizationSlugUpdatePayload!
+	organizationUpdate(input: OrganizationUpdateInput!): OrganizationUpdatePayload!
+	personalAccountUpdate(input: PersonalAccountUpdateInput!): PersonalAccountUpdatePayload! @deprecated(reason: "to be removed")
+	personalAccountDelete: PersonalAccountDeletePayload! @deprecated(reason: "to be removed")
+	organizationDelete(input: OrganizationDeleteInput!): OrganizationDeletePayload!
+	branchCreate(input: BranchCreateInput!): BranchCreatePayload!
+	branchUpdate(input: BranchUpdateInput!): BranchUpdatePayload!
+	branchDelete(
+		"""
+		slug of the account
+		"""
+		accountSlug: String!,
+		"""
+		slug of the graph
+		"""
+		graphSlug: String,
+		"""
+		slug of the project
+		"""
+		projectSlug: String,
+		"""
+		name of the branch
+		"""
+		branchName: String!
+	): BranchDeletePayload!
+	endpointConfigUpdate(input: EndpointConfigUpdateInput!): EndpointConfigUpdatePayload!
+	branchSchemaProposalsConfiguredReviewerAdd(input: SchemaProposalsConfiguredReviewerAddInput!): SchemaProposalsConfiguredReviewerAddPayload!
+	branchSchemaProposalsConfiguredReviewerRemove(input: SchemaProposalsConfiguredReviewerRemoveInput!): SchemaProposalsConfiguredReviewerRemovePayload!
+	"""
+	Publish a version of an extension to the registry. If the extension does not already exist, it will be created.
+	"""
+	extensionPublish(manifest: VersionedExtensionManifest!, wasmModule: Upload!): ExtensionPublishPayload
+	extensionAddOwner(extensionName: String!, userId: ID!): ExtensionAddOwnerPayload
+	extensionRemoveOwner(extensionName: String!, userId: ID!): ExtensionRemoveOwnerPayload
+	"""
+	Create a new graph without any source for an initial deployment.
+	"""
+	graphCreate(input: GraphCreateInput!): GraphCreatePayload!
+	graphUpdate(input: GraphUpdateInput!): GraphUpdatePayload!
+	graphOperationCheckConfigurationUpdate(input: GraphOperationCheckConfigurationInput!): GraphOperationCheckConfigurationUpdatePayload!
+	graphDelete(input: GraphDeleteInput!): GraphDeletePayload!
+	graphAddOwner(graphId: ID!, ownerId: ID!): GraphAddOwnerPayload!
+	graphRemoveOwner(graphId: ID!, ownerId: ID!): GraphRemoveOwnerPayload!
+	notificationsMarkAsRead(notificationIds: [ID!]!): NotificationsMarkAsReadPayload!
+	inviteSend(input: InviteSendInput!): InviteSendPayload!
+	inviteCancel(input: InviteCancelInput!): InviteCancelPayload!
+	inviteAccept(input: InviteAcceptInput!): InviteAcceptPayload!
+	inviteDecline(input: InviteDeclineInput!): InviteDeclinePayload!
+	"""
+	Update role of an organization member
+	"""
+	memberUpdate(input: MemberUpdateInput!): MemberUpdatePayload!
+	"""
+	Remove member from an organization
+	"""
+	memberDelete(input: MemberDeleteInput!): MemberDeletePayload!
+	"""
+	Run checks against the given schema
+	"""
+	schemaCheckCreate(input: SchemaCheckCreateInput!): SchemaCheckPayload!
+	schemaProposalCreate(input: SchemaProposalCreateInput!): SchemaProposalCreatePayload!
+	"""
+	Take a schema proposal back to draft status. This is possible from any state.
+	"""
+	schemaProposalRevertToDraft(schemaProposalId: ID!): SchemaProposalRevertToDraftPayload!
+	schemaProposalRequestReview(input: SchemaProposalRequestReviewInput!): SchemaProposalRequestReviewPayload!
+	schemaProposalApprove(input: SchemaProposalApproveInput!): SchemaProposalApprovePayload!
+	schemaProposalReject(input: SchemaProposalRejectInput!): SchemaProposalRejectPayload!
+	schemaProposalDelete(id: ID!): SchemaProposalDeletePayload!
+	"""
+	Edit the contents of a proposal.
+	
+	The proposed subgraphs can be just a subset of the subgraphs being edited in the proposal. The changes from the previous edit on other subgraphs be carried over.
+	"""
+	schemaProposalEdit(input: SchemaProposalEditInput!): SchemaProposalEditPayload!
+	schemaProposalCommentThreadCreate(input: SchemaProposalCommentThreadCreateInput!): SchemaProposalCommentThreadCreatePayload!
+	"""
+	Mark a comment thread as resolved.
+	"""
+	schemaProposalCommentThreadResolve(rootCommentId: ID!): SchemaProposalCommentThreadResolvePayload!
+	schemaProposalCommentReply(parentCommentId: ID!, text: String!): SchemaProposalCommentReplyPayload!
+	"""
+	Reverts the resolution of a comment thread.
+	"""
+	schemaProposalCommentThreadUnresolve(rootCommentId: ID!): SchemaProposalCommentThreadUnresolvePayload!
+	"""
+	Request a review for a schema proposal from a user or a team.
+	"""
+	schemaProposalReviewRequestCreate(input: SchemaProposalReviewRequestCreateInput!): SchemaProposalReviewRequestCreatePayload!
+	"""
+	Publish a new subgraph.
+	"""
+	publish(input: PublishInput!): PublishPayload!
+	"""
+	Delete a subgraph
+	"""
+	deleteSubgraph(input: DeleteSubgraphInput!): DeleteSubgraphPayload!
+	slackIntegrationCreate(input: SlackIntegrationCreateInput!): SlackNotificationCreatePayload!
+	slackNotificationDelete(id: String!): SlackNotificationDeletePayload!
+	"""
+	Assign a team as the owner of a subgraph
+	"""
+	subgraphAddOwner(branchId: ID!, subgraphName: String!, owner: ID!): SubgraphAddOwnerPayload!
+	"""
+	Unassign a team's ownership of a subgraph
+	"""
+	subgraphRemoveOwner(branchId: ID!, subgraphName: String!): SubgraphRemoveOwnerPayload!
+	teamCreate(organizationId: ID!, name: String!): TeamCreatePayload!
+	teamDelete(teamId: ID!): TeamDeletePayload!
+	teamAddMember(teamId: ID!, memberId: ID!): TeamAddMemberPayload!
+	teamRemoveMember(teamId: ID!, memberId: ID!): TeamRemoveMemberPayload!
+	teamAssignRole(teamId: ID!, memberId: ID!, role: TeamRole!): TeamAssignRolePayload!
+	trustedDocumentsSubmit(accountSlug: String, graphSlug: String, projectSlug: String, branchSlug: String!, clientName: String!, documents: [TrustedDocumentInput!]!): TrustedDocumentsSubmitPayload!
+	userUpdate(input: UserUpdateInput!): UserUpdatePayload!
+	"""
+	Delete the user.
+	"""
+	userDelete: UserDeletePayload!
 }
 
 type NameSizeCheckError {
-  maxLength: Int!
-  message: String!
-  query: Query!
+	maxLength: Int!
+	message: String!
+	query: Query!
 }
 
 interface Node {
-  id: ID!
+	id: ID!
 }
 
 type NotAllowedError {
-  query: Query!
+	query: Query!
 }
 
 type NotAllowedToCancelInvitesError {
-  query: Query!
+	query: Query!
 }
 
 type NotAllowedToDeleteOrganizationError {
-  query: Query!
+	query: Query!
 }
 
 type NotAllowedToSendInvitesError {
-  query: Query!
+	query: Query!
 }
 
 type NotAllowedToSlugUpdateError {
-  query: Query!
+	query: Query!
 }
 
 type NotAllowedToUpdateOrganizationError {
-  query: Query!
+	query: Query!
 }
 
 type NotificationsInbox {
-  messages: [InboxMessage!]!
+	messages: [InboxMessage!]!
 }
 
 union NotificationsMarkAsReadPayload = NotificationsMarkAsReadSuccess
 
 type NotificationsMarkAsReadSuccess {
-  """
-  How many notifications were marked as read.
-  """
-  updated: Int!
-  query: Query!
+	"""
+	How many notifications were marked as read.
+	"""
+	updated: Int!
+	query: Query!
 }
 
 type OldAccessTokenError {
-  query: Query!
+	query: Query!
 }
 
 type Operation implements Node {
-  name: String
-  type: OperationType!
-  normalizedQuery: String!
-  id: ID!
+	name: String
+	type: OperationType!
+	normalizedQuery: String!
+	id: ID!
 }
 
 type OperationCheckError {
-  title: String!
-  message: String!
-  severity: SchemaCheckErrorSeverity!
+	title: String!
+	message: String!
+	severity: SchemaCheckErrorSeverity!
 }
 
 scalar OperationNormalizedQueryHash
 
 enum OperationType {
-  QUERY
-  MUTATION
-  SUBSCRIPTION
+	QUERY
+	MUTATION
+	SUBSCRIPTION
 }
 
 type Organization implements Account & Node {
-  id: ID!
-  slug: String!
-  name: String!
-  createdAt: DateTime!
-  status: AccountStatus!
-  plan: GrafbasePlan!
-  samlDomain: String
-  graphs(after: String, before: String, first: Int, last: Int): GraphConnection!
-  invites(after: String, before: String, first: Int, last: Int): InviteConnection!
-  members(after: String, before: String, first: Int, last: Int): MemberConnection!
-  slackIntegration: SlackIntegration
-  """
-  The url for the UI button to install the Grafbase slack app. It is
-  important to use this link and keep it private, since it contains the signed
-  account id of the authenticated user.
-  """
-  addToSlackLink: String!
-  usage(filters: UsageFilters!): AccountUsageTimeSeries
-  accessTokens(after: String, before: String, first: Int, last: Int): AccessTokenConnection!
-  teams(after: String, first: Int): TeamConnection!
-  trialExpiresAt: DateTime
+	id: ID!
+	slug: String!
+	name: String!
+	createdAt: DateTime!
+	status: AccountStatus!
+	plan: GrafbasePlan!
+	samlDomain: String
+	graphs(after: String, before: String, first: Int, last: Int): GraphConnection!
+	invites(after: String, before: String, first: Int, last: Int): InviteConnection!
+	members(after: String, before: String, first: Int, last: Int): MemberConnection!
+	slackIntegration: SlackIntegration
+	"""
+	The url for the UI button to install the Grafbase slack app. It is
+	important to use this link and keep it private, since it contains the signed
+	account id of the authenticated user.
+	"""
+	addToSlackLink: String!
+	usage(filters: UsageFilters!): AccountUsageTimeSeries
+	accessTokens(after: String, before: String, first: Int, last: Int): AccessTokenConnection!
+	teams(after: String, first: Int): TeamConnection!
+	trialExpiresAt: DateTime
 }
 
 type OrganizationConnection {
-  """
-  Information to aid in pagination.
-  """
-  pageInfo: PageInfo!
-  """
-  A list of edges.
-  """
-  edges: [OrganizationEdge!]!
-  """
-  A list of nodes.
-  """
-  nodes: [Organization!]!
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [OrganizationEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [Organization!]!
 }
 
 input OrganizationCreateInput {
-  slug: String!
-  name: String!
-  email: String
+	slug: String!
+	name: String!
+	email: String
 }
 
-union OrganizationCreatePayload =
-  | OrganizationCreateSuccess
-  | SlugError
-  | SlugSizeCheckError
-  | NameSizeCheckError
-  | ReservedSlugsCheckError
-  | TrialPlanUnavailableError
-  | SlugAlreadyExistsError
+union OrganizationCreatePayload = OrganizationCreateSuccess | SlugError | SlugSizeCheckError | NameSizeCheckError | ReservedSlugsCheckError | TrialPlanUnavailableError | SlugAlreadyExistsError
 
 type OrganizationCreateSuccess {
-  organization: Organization!
-  member: Member!
-  query: Query!
+	organization: Organization!
+	member: Member!
+	query: Query!
 }
 
 input OrganizationDeleteInput {
-  id: ID!
+	id: ID!
 }
 
-union OrganizationDeletePayload =
-  | OrganizationDeleteSuccess
-  | OrganizationDoesNotExistError
-  | NotAllowedToDeleteOrganizationError
+union OrganizationDeletePayload = OrganizationDeleteSuccess | OrganizationDoesNotExistError | NotAllowedToDeleteOrganizationError
 
 type OrganizationDeleteSuccess {
-  deletedId: ID!
-  query: Query!
+	deletedId: ID!
+	query: Query!
 }
 
 type OrganizationDoesNotExistError {
-  query: Query!
+	query: Query!
 }
 
 """
 An edge in a connection.
 """
 type OrganizationEdge {
-  """
-  The item at the end of the edge
-  """
-  node: Organization!
-  """
-  A cursor for use in pagination
-  """
-  cursor: String!
+	"""
+	The item at the end of the edge
+	"""
+	node: Organization!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
 }
 
 type OrganizationOwnershipNotTransferredError {
-  query: Query!
+	query: Query!
 }
 
 input OrganizationSlugUpdateInput {
-  id: ID!
-  slug: String!
+	id: ID!
+	slug: String!
 }
 
-union OrganizationSlugUpdatePayload =
-  | OrganizationSlugUpdateSuccess
-  | SlugError
-  | SlugSizeCheckError
-  | ReservedSlugsCheckError
-  | SlugAlreadyExistsError
-  | OrganizationDoesNotExistError
-  | NotAllowedToSlugUpdateError
+union OrganizationSlugUpdatePayload = OrganizationSlugUpdateSuccess | SlugError | SlugSizeCheckError | ReservedSlugsCheckError | SlugAlreadyExistsError | OrganizationDoesNotExistError | NotAllowedToSlugUpdateError
 
 type OrganizationSlugUpdateSuccess {
-  organization: Organization!
-  query: Query!
+	organization: Organization!
+	query: Query!
 }
 
 input OrganizationUpdateInput {
-  id: ID!
-  name: String
+	id: ID!
+	name: String
 }
 
-union OrganizationUpdatePayload =
-  | OrganizationUpdateSuccess
-  | OrganizationDoesNotExistError
-  | NameSizeCheckError
-  | NotAllowedToUpdateOrganizationError
+union OrganizationUpdatePayload = OrganizationUpdateSuccess | OrganizationDoesNotExistError | NameSizeCheckError | NotAllowedToUpdateOrganizationError
 
 type OrganizationUpdateSuccess {
-  organization: Organization!
-  query: Query!
+	organization: Organization!
+	query: Query!
 }
 
 """
 Information about pagination in a connection
 """
 type PageInfo {
-  """
-  When paginating backwards, are there more items?
-  """
-  hasPreviousPage: Boolean!
-  """
-  When paginating forwards, are there more items?
-  """
-  hasNextPage: Boolean!
-  """
-  When paginating backwards, the cursor to continue.
-  """
-  startCursor: String
-  """
-  When paginating forwards, the cursor to continue.
-  """
-  endCursor: String
+	"""
+	When paginating backwards, are there more items?
+	"""
+	hasPreviousPage: Boolean!
+	"""
+	When paginating forwards, are there more items?
+	"""
+	hasNextPage: Boolean!
+	"""
+	When paginating backwards, the cursor to continue.
+	"""
+	startCursor: String
+	"""
+	When paginating forwards, the cursor to continue.
+	"""
+	endCursor: String
 }
 
 union PersonalAccountDeletePayload = PersonalAccountDeleteSuccess | OrganizationOwnershipNotTransferredError
 
 type PersonalAccountDeleteSuccess {
-  deletedId: ID!
-  query: Query!
+	deletedId: ID!
+	query: Query!
 }
 
 input PersonalAccountUpdateInput {
-  name: String!
+	name: String!
 }
 
 union PersonalAccountUpdatePayload = PersonalAccountUpdateSuccess | NameSizeCheckError
 
 type PersonalAccountUpdateSuccess {
-  query: Query!
+	query: Query!
 }
 
 type ProjectBranchDoesNotExistError {
-  query: Query!
+	query: Query!
 }
 
 type ProjectDoesNotExistError {
-  query: Query!
+	query: Query!
 }
 
 type ProjectNotFederatedError {
-  query: Query!
+	query: Query!
 }
 
 type ProjectScopeLimitExceededError {
-  query: Query!
+	query: Query!
 }
 
 type ProposalCheckError {
-  title: String!
-  message: String!
+	title: String!
+	message: String!
 }
 
 type PublishDeploymentFailure {
-  query: Query!
-  deploymentError: String!
+	query: Query!
+	deploymentError: String!
 }
 
 type PublishForbidden {
-  query: Query!
+	query: Query!
 }
 
 input PublishInput {
-  accountSlug: String!
-  graphSlug: String
-  projectSlug: String
-  branch: String
-  subgraph: String!
-  url: String!
-  schema: String!
-  message: String
+	accountSlug: String!
+	graphSlug: String
+	projectSlug: String
+	branch: String
+	subgraph: String!
+	url: String
+	schema: String!
+	message: String
 }
 
 """
 Returned when the client tries to publish the same subgraph schema with the same url as already published. Such a publish does not result in a deployment.
 """
 type PublishNoChange {
-  query: Query!
+	query: Query!
 }
 
-union PublishPayload =
-  | PublishSuccess
-  | ProjectDoesNotExistError
-  | GraphDoesNotExistError
-  | FederatedGraphCompositionError
-  | SchemaRegistryBranchDoesNotExistError
-  | PublishForbidden
-  | PublishDeploymentFailure
-  | PublishNoChange
+union PublishPayload = PublishSuccess | ProjectDoesNotExistError | GraphDoesNotExistError | FederatedGraphCompositionError | SchemaRegistryBranchDoesNotExistError | PublishForbidden | PublishDeploymentFailure | PublishNoChange
 
 type PublishSuccess {
-  query: Query!
+	query: Query!
 }
 
 type Query {
-  accessTokens(after: String, before: String, first: Int, last: Int): AccessTokenConnection!
-  accountBySlug(
-    """
-    slug of the account
-    """
-    slug: String!
-  ): Account
-  accountCreationValidate(input: AccountCreationValidateInput!): AccountCreationValidatePayload!
-  """
-  Get branch by account slug, graph slug and the name of the branch.
-  """
-  branch(
-    """
-    slug of the account
-    """
-    accountSlug: String
-    """
-    slug of the graph
-    """
-    graphSlug: String
-    """
-    slug of the project
-    """
-    projectSlug: String
-    """
-    name of the branch
-    """
-    name: String
-  ): Branch
-  """
-  Get deployment by ID.
-  """
-  deployment(
-    """
-    ID of the deployment
-    """
-    id: ID!
-  ): Deployment
-  extensionByName(name: String!): Extension
-  extensions(after: String, first: Int, filter: ExtensionFilter): ExtensionConnection!
-  """
-  Looks for extension versions that match the requirements.
-
-  The results are returned in the same order as the requirements.
-  """
-  extensionVersionsByVersionRequirement(requirements: [ExtensionVersionRequirement!]!): [ExtensionVersionMatch!]
-  """
-  Return the notifications inbox of the currently connected user.
-  """
-  notificationsInbox: NotificationsInbox
-  invite(id: ID!): Invite
-  """
-  Get a graph by account slug and slug of the graph itself.
-  """
-  graphByAccountSlug(
-    """
-    slug of the account
-    """
-    accountSlug: String!
-    """
-    slug of the graph
-    """
-    graphSlug: String!
-  ): Graph
-  schemaCheck(id: ID!): SchemaCheck
-  schemaProposal(id: ID!): SchemaProposal
-  """
-  Get subgraph.
-  """
-  subgraph(
-    """
-    account slug
-    """
-    accountSlug: String!
-    """
-    project slug
-    """
-    projectSlug: String
-    """
-    graph slug
-    """
-    graphSlug: String
-    """
-    name of the branch
-    """
-    branch: String
-    """
-    name of the subgraph
-    """
-    subgraphName: String!
-  ): Subgraph
-  schemaVersion(id: ID!): SchemaVersion
-  schemaVersions(
-    """
-    account slug
-    """
-    accountSlug: String!
-    """
-    graph slug
-    """
-    graphSlug: String
-    """
-    name of the branch
-    """
-    branch: String
-    """
-    name of the subgraph
-    """
-    subgraphName: String @deprecated(reason: "Never did anything")
-    """
-    return only versions with changes
-    """
-    populated: Boolean! = true
-    after: String
-    before: String
-    first: Int
-    last: Int
-  ): SchemaVersionConnection!
-  team(id: ID!): Team
-  teamBySlug(organizationSlug: String!, slug: String!): Team
-  """
-  Give the actual connected user.
-  """
-  viewer: User
-  node(id: ID!): Node
-  _service: _Service!
+	accessTokens(after: String, before: String, first: Int, last: Int): AccessTokenConnection!
+	accountBySlug(
+		"""
+		slug of the account
+		"""
+		slug: String!
+	): Account
+	accountCreationValidate(input: AccountCreationValidateInput!): AccountCreationValidatePayload!
+	"""
+	Get branch by account slug, graph slug and the name of the branch.
+	"""
+	branch(
+		"""
+		slug of the account
+		"""
+		accountSlug: String,
+		"""
+		slug of the graph
+		"""
+		graphSlug: String,
+		"""
+		slug of the project
+		"""
+		projectSlug: String,
+		"""
+		name of the branch
+		"""
+		name: String
+	): Branch
+	"""
+	Get deployment by ID.
+	"""
+	deployment(
+		"""
+		ID of the deployment
+		"""
+		id: ID!
+	): Deployment
+	extensionByName(name: String!): Extension
+	extensions(after: String, first: Int, filter: ExtensionFilter): ExtensionConnection!
+	"""
+	Looks for extension versions that match the requirements.
+	
+	The results are returned in the same order as the requirements.
+	"""
+	extensionVersionsByVersionRequirement(requirements: [ExtensionVersionRequirement!]!): [ExtensionVersionMatch!]
+	"""
+	Return the notifications inbox of the currently connected user.
+	"""
+	notificationsInbox: NotificationsInbox
+	invite(id: ID!): Invite
+	"""
+	Get a graph by account slug and slug of the graph itself.
+	"""
+	graphByAccountSlug(
+		"""
+		slug of the account
+		"""
+		accountSlug: String!,
+		"""
+		slug of the graph
+		"""
+		graphSlug: String!
+	): Graph
+	schemaCheck(id: ID!): SchemaCheck
+	schemaProposal(id: ID!): SchemaProposal
+	"""
+	Get subgraph.
+	"""
+	subgraph(
+		"""
+		account slug
+		"""
+		accountSlug: String!,
+		"""
+		project slug
+		"""
+		projectSlug: String,
+		"""
+		graph slug
+		"""
+		graphSlug: String,
+		"""
+		name of the branch
+		"""
+		branch: String,
+		"""
+		name of the subgraph
+		"""
+		subgraphName: String!
+	): Subgraph
+	schemaVersion(id: ID!): SchemaVersion
+	schemaVersions(
+		"""
+		account slug
+		"""
+		accountSlug: String!,
+		"""
+		graph slug
+		"""
+		graphSlug: String,
+		"""
+		name of the branch
+		"""
+		branch: String,
+		"""
+		name of the subgraph
+		"""
+		subgraphName: String @deprecated(reason: "Never did anything"),
+		"""
+		return only versions with changes
+		"""
+		populated: Boolean! = true,		after: String,		before: String,		first: Int,		last: Int
+	): SchemaVersionConnection!
+	team(id: ID!): Team
+	teamBySlug(organizationSlug: String!, slug: String!): Team
+	"""
+	Give the actual connected user.
+	"""
+	viewer: User
+	node(id: ID!): Node
+	_service: _Service!
 }
 
 type Request implements Node {
-  id: ID!
-  trace: Trace!
-  rootSpanId: ID!
-  startedAt: DateTime!
-  endedAt: DateTime!
-  httpRequestMethod: String!
-  httpStatusCode: Int!
-  urlPath: String!
-  userAgent: String!
-  clientName: String!
-  clientVersion: String!
-  errorCount: Int!
-  errorCountByCode: [ErrorCountByCode!]!
-  operations: [RequestOperation!]!
+	id: ID!
+	trace: Trace!
+	rootSpanId: ID!
+	startedAt: DateTime!
+	endedAt: DateTime!
+	httpRequestMethod: String!
+	httpStatusCode: Int!
+	urlPath: String!
+	userAgent: String!
+	clientName: String!
+	clientVersion: String!
+	errorCount: Int!
+	errorCountByCode: [ErrorCountByCode!]!
+	operations: [RequestOperation!]!
 }
 
 type RequestConnection {
-  """
-  Information to aid in pagination.
-  """
-  pageInfo: PageInfo!
-  """
-  A list of edges.
-  """
-  edges: [RequestEdge!]!
-  """
-  A list of nodes.
-  """
-  nodes: [Request!]!
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [RequestEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [Request!]!
 }
 
 """
 An edge in a connection.
 """
 type RequestEdge {
-  """
-  The item at the end of the edge
-  """
-  node: Request!
-  """
-  A cursor for use in pagination
-  """
-  cursor: String!
+	"""
+	The item at the end of the edge
+	"""
+	node: Request!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
 }
 
 input RequestFilters {
-  """
-  Defaults to production branch
-  """
-  branchName: String
-  """
-  Use this if you really care about having a specific duration like 1 hour, 7 days, etc.
-  """
-  range: Duration
-  """
-  Use this if you *at least* the data between `from` and `to` to be provided. You may get
-  more, but never less.
-  """
-  from: DateTime
-  """
-  To be used in conjunction with with either `range` or `from`.
-  """
-  to: DateTime!
-  operationName: [String!]
-  operationType: [OperationType!]
-  clientName: [String!]
-  """
-  Only used if client name is specified.
-  """
-  clientVersion: [String!]
-  traceId: [String!]
-  duration: DurationFilter
-  errorCode: [String!]
-  httpStatusCode: [Int!]
+	"""
+	Defaults to production branch
+	"""
+	branchName: String
+	"""
+	Use this if you really care about having a specific duration like 1 hour, 7 days, etc.
+	"""
+	range: Duration
+	"""
+	Use this if you *at least* the data between `from` and `to` to be provided. You may get
+	more, but never less.
+	"""
+	from: DateTime
+	"""
+	To be used in conjunction with with either `range` or `from`.
+	"""
+	to: DateTime!
+	operationName: [String!]
+	operationType: [OperationType!]
+	clientName: [String!]
+	"""
+	Only used if client name is specified.
+	"""
+	clientVersion: [String!]
+	traceId: [String!]
+	duration: DurationFilter
+	errorCode: [String!]
+	httpStatusCode: [Int!]
 }
 
 type RequestMetricsTimeSeriesDataPointV2 {
-  dateTime: DateTime!
-  count: Int!
-  cacheHitCount: Int!
-  cacheMissCount: Int!
-  cachePassCount: Int!
-  error4XxCount: Int!
-  error5XxCount: Int!
-  errorGraphqlCount: Int!
-  latencyMsPercentiles: [Int!]!
+	dateTime: DateTime!
+	count: Int!
+	cacheHitCount: Int!
+	cacheMissCount: Int!
+	cachePassCount: Int!
+	error4XxCount: Int!
+	error5XxCount: Int!
+	errorGraphqlCount: Int!
+	latencyMsPercentiles: [Int!]!
 }
 
 type RequestMetricsTimeSeriesV2 {
-  overall: RequestMetricsV2!
-  points: [RequestMetricsTimeSeriesDataPointV2!]!
-  previousPeriod: RequestMetricsTimeSeriesV2
+	overall: RequestMetricsV2!
+	points: [RequestMetricsTimeSeriesDataPointV2!]!
+	previousPeriod: RequestMetricsTimeSeriesV2
 }
 
 type RequestMetricsV2 {
-  count: Int!
-  cacheHitCount: Int!
-  cacheMissCount: Int!
-  cachePassCount: Int!
-  error4XxCount: Int!
-  error5XxCount: Int!
-  errorGraphqlCount: Int!
-  latencyMsPercentiles: [Int!]!
+	count: Int!
+	cacheHitCount: Int!
+	cacheMissCount: Int!
+	cachePassCount: Int!
+	error4XxCount: Int!
+	error5XxCount: Int!
+	errorGraphqlCount: Int!
+	latencyMsPercentiles: [Int!]!
 }
 
 type RequestOperation {
-  name: String!
-  type: OperationType!
+	name: String!
+	type: OperationType!
 }
 
 type ReservedSlugsCheckError {
-  message: String!
-  query: Query!
+	message: String!
+	query: Query!
 }
 
 """
 An occurrence of a trusted document that was submitted again (same id), but with a different document text. This is an error.
 """
 type ReusedId {
-  """
-  The document id
-  """
-  documentId: String!
-  """
-  The existing document body
-  """
-  existingDocumentText: String!
-  """
-  The different, newly submitted document body
-  """
-  newDocumentText: String!
+	"""
+	The document id
+	"""
+	documentId: String!
+	"""
+	The existing document body
+	"""
+	existingDocumentText: String!
+	"""
+	The different, newly submitted document body
+	"""
+	newDocumentText: String!
 }
 
 """
 Trusted documents that were uploaded again (same id), but with a different document body. This is an error.
 """
 type ReusedIds {
-  reused: [ReusedId!]!
+	reused: [ReusedId!]!
 }
 
 type ReviewerDoesNotExistError {
-  query: Query!
+	query: Query!
 }
 
 enum SchemaChangeType {
-  SCHEMA_DEFINITION_ADDED
-  SCHEMA_DEFINITION_REMOVED
-  SCHEMA_EXTENSION_ADDED
-  SCHEMA_EXTENSION_REMOVED
-  FIELD_ARGUMENT_DEFAULT_ADDED
-  FIELD_ARGUMENT_DEFAULT_REMOVED
-  FIELD_ARGUMENT_DESCRIPTION_CHANGED
-  FIELD_ARGUMENT_DEFAULT_CHANGED
-  FIELD_ARGUMENT_TYPE_CHANGED
-  DIRECTIVE_REMOVED
-  DIRECTIVE_ADDED
-  DIRECTIVE_DESCRIPTION_CHANGED
-  DIRECTIVE_LOCATION_ADDED
-  DIRECTIVE_LOCATION_REMOVED
-  DIRECTIVE_ARGUMENT_ADDED
-  DIRECTIVE_ARGUMENT_REMOVED
-  DIRECTIVE_ARGUMENT_DESCRIPTION_CHANGED
-  DIRECTIVE_ARGUMENT_DEFAULT_VALUE_CHANGED
-  DIRECTIVE_ARGUMENT_TYPE_CHANGED
-  ENUM_ADDED
-  ENUM_REMOVED
-  ENUM_VALUE_REMOVED
-  ENUM_VALUE_ADDED
-  ENUM_VALUE_DESCRIPTION_CHANGED
-  ENUM_VALUE_DEPRECATION_REASON_CHANGED
-  ENUM_VALUE_DEPRECATION_REASON_ADDED
-  ENUM_VALUE_DEPRECATION_REASON_REMOVED
-  FIELD_REMOVED
-  FIELD_ADDED
-  FIELD_DESCRIPTION_CHANGED
-  FIELD_DESCRIPTION_ADDED
-  FIELD_DESCRIPTION_REMOVED
-  FIELD_DEPRECATION_ADDED
-  FIELD_DEPRECATION_REMOVED
-  FIELD_DEPRECATION_REASON_CHANGED
-  FIELD_DEPRECATION_REASON_ADDED
-  FIELD_DEPRECATION_REASON_REMOVED
-  FIELD_TYPE_CHANGED
-  FIELD_ARGUMENT_ADDED
-  FIELD_ARGUMENT_REMOVED
-  INPUT_OBJECT_REMOVED
-  INPUT_OBJECT_ADDED
-  INPUT_FIELD_REMOVED
-  INPUT_FIELD_ADDED
-  INPUT_FIELD_DESCRIPTION_ADDED
-  INPUT_FIELD_DESCRIPTION_REMOVED
-  INPUT_FIELD_DESCRIPTION_CHANGED
-  INPUT_FIELD_DEFAULT_VALUE_CHANGED
-  INPUT_FIELD_TYPE_CHANGED
-  OBJECT_TYPE_INTERFACE_ADDED
-  OBJECT_TYPE_INTERFACE_REMOVED
-  SCHEMA_QUERY_TYPE_CHANGED
-  SCHEMA_MUTATION_TYPE_CHANGED
-  SCHEMA_SUBSCRIPTION_TYPE_CHANGED
-  TYPE_REMOVED
-  TYPE_ADDED
-  TYPE_KIND_CHANGED
-  TYPE_DESCRIPTION_CHANGED
-  TYPE_DESCRIPTION_REMOVED
-  TYPE_DESCRIPTION_ADDED
-  UNION_ADDED
-  UNION_REMOVED
-  UNION_MEMBER_REMOVED
-  UNION_MEMBER_ADDED
-  INTERFACE_ADDED
-  INTERFACE_REMOVED
-  INTERFACE_IMPLEMENTATION_ADDED
-  INTERFACE_IMPLEMENTATION_REMOVED
-  SCALAR_ADDED
-  SCALAR_REMOVED
+	SCHEMA_DEFINITION_ADDED
+	SCHEMA_DEFINITION_REMOVED
+	SCHEMA_EXTENSION_ADDED
+	SCHEMA_EXTENSION_REMOVED
+	FIELD_ARGUMENT_DEFAULT_ADDED
+	FIELD_ARGUMENT_DEFAULT_REMOVED
+	FIELD_ARGUMENT_DESCRIPTION_CHANGED
+	FIELD_ARGUMENT_DEFAULT_CHANGED
+	FIELD_ARGUMENT_TYPE_CHANGED
+	DIRECTIVE_REMOVED
+	DIRECTIVE_ADDED
+	DIRECTIVE_DESCRIPTION_CHANGED
+	DIRECTIVE_LOCATION_ADDED
+	DIRECTIVE_LOCATION_REMOVED
+	DIRECTIVE_ARGUMENT_ADDED
+	DIRECTIVE_ARGUMENT_REMOVED
+	DIRECTIVE_ARGUMENT_DESCRIPTION_CHANGED
+	DIRECTIVE_ARGUMENT_DEFAULT_VALUE_CHANGED
+	DIRECTIVE_ARGUMENT_TYPE_CHANGED
+	ENUM_ADDED
+	ENUM_REMOVED
+	ENUM_VALUE_REMOVED
+	ENUM_VALUE_ADDED
+	ENUM_VALUE_DESCRIPTION_CHANGED
+	ENUM_VALUE_DEPRECATION_REASON_CHANGED
+	ENUM_VALUE_DEPRECATION_REASON_ADDED
+	ENUM_VALUE_DEPRECATION_REASON_REMOVED
+	FIELD_REMOVED
+	FIELD_ADDED
+	FIELD_DESCRIPTION_CHANGED
+	FIELD_DESCRIPTION_ADDED
+	FIELD_DESCRIPTION_REMOVED
+	FIELD_DEPRECATION_ADDED
+	FIELD_DEPRECATION_REMOVED
+	FIELD_DEPRECATION_REASON_CHANGED
+	FIELD_DEPRECATION_REASON_ADDED
+	FIELD_DEPRECATION_REASON_REMOVED
+	FIELD_TYPE_CHANGED
+	FIELD_ARGUMENT_ADDED
+	FIELD_ARGUMENT_REMOVED
+	INPUT_OBJECT_REMOVED
+	INPUT_OBJECT_ADDED
+	INPUT_FIELD_REMOVED
+	INPUT_FIELD_ADDED
+	INPUT_FIELD_DESCRIPTION_ADDED
+	INPUT_FIELD_DESCRIPTION_REMOVED
+	INPUT_FIELD_DESCRIPTION_CHANGED
+	INPUT_FIELD_DEFAULT_VALUE_CHANGED
+	INPUT_FIELD_TYPE_CHANGED
+	OBJECT_TYPE_INTERFACE_ADDED
+	OBJECT_TYPE_INTERFACE_REMOVED
+	SCHEMA_QUERY_TYPE_CHANGED
+	SCHEMA_MUTATION_TYPE_CHANGED
+	SCHEMA_SUBSCRIPTION_TYPE_CHANGED
+	TYPE_REMOVED
+	TYPE_ADDED
+	TYPE_KIND_CHANGED
+	TYPE_DESCRIPTION_CHANGED
+	TYPE_DESCRIPTION_REMOVED
+	TYPE_DESCRIPTION_ADDED
+	UNION_ADDED
+	UNION_REMOVED
+	UNION_MEMBER_REMOVED
+	UNION_MEMBER_ADDED
+	INTERFACE_ADDED
+	INTERFACE_REMOVED
+	INTERFACE_IMPLEMENTATION_ADDED
+	INTERFACE_IMPLEMENTATION_REMOVED
+	SCALAR_ADDED
+	SCALAR_REMOVED
 }
 
 type SchemaCheck {
-  id: ID!
-  schema: String!
-  subgraphName: String
-  publishedSchemaVersion: ID @deprecated(reason: "This was never populated with relevant data")
-  errorCount: Int!
-  validationCheckErrors: [ValidationCheckError!]!
-  compositionCheckErrors: [CompositionCheckError!]!
-  operationCheckErrors: [OperationCheckError!]!
-  lintCheckErrors: [LintCheckError!]!
-  proposalCheckErrors: [ProposalCheckError!]!
-  createdAt: DateTime!
-  gitCommit: SchemaCheckGitCommit
+	id: ID!
+	schema: String!
+	subgraphName: String
+	publishedSchemaVersion: ID @deprecated(reason: "This was never populated with relevant data")
+	errorCount: Int!
+	validationCheckErrors: [ValidationCheckError!]!
+	compositionCheckErrors: [CompositionCheckError!]!
+	operationCheckErrors: [OperationCheckError!]!
+	lintCheckErrors: [LintCheckError!]!
+	proposalCheckErrors: [ProposalCheckError!]!
+	createdAt: DateTime!
+	gitCommit: SchemaCheckGitCommit
 }
 
 type SchemaCheckConnection {
-  """
-  Information to aid in pagination.
-  """
-  pageInfo: PageInfo!
-  """
-  A list of edges.
-  """
-  edges: [SchemaCheckEdge!]!
-  """
-  A list of nodes.
-  """
-  nodes: [SchemaCheck!]!
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [SchemaCheckEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [SchemaCheck!]!
 }
 
 input SchemaCheckCreateInput {
-  accountSlug: String!
-  projectSlug: String
-  graphSlug: String
-  branch: String
-  subgraphName: String
-  schema: String!
-  gitCommit: SchemaCheckGitCommitInput
+	accountSlug: String!
+	projectSlug: String
+	graphSlug: String
+	branch: String
+	subgraphName: String
+	schema: String!
+	gitCommit: SchemaCheckGitCommitInput
 }
 
 """
 An edge in a connection.
 """
 type SchemaCheckEdge {
-  """
-  The item at the end of the edge
-  """
-  node: SchemaCheck!
-  """
-  A cursor for use in pagination
-  """
-  cursor: String!
+	"""
+	The item at the end of the edge
+	"""
+	node: SchemaCheck!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
 }
 
 enum SchemaCheckErrorSeverity {
-  ERROR
-  WARNING
+	ERROR
+	WARNING
 }
 
 type SchemaCheckGitCommit {
-  branch: String!
-  commitSha: String!
-  commitUrl: String
-  message: String!
-  authorName: String!
-  authorAvatarUrl: String
+	branch: String!
+	commitSha: String!
+	commitUrl: String
+	message: String!
+	authorName: String!
+	authorAvatarUrl: String
 }
 
 input SchemaCheckGitCommitInput {
-  branch: String!
-  commitSha: String!
-  commitUrl: String
-  message: String!
-  authorName: String!
-  authorAvatarUrl: String
+	branch: String!
+	commitSha: String!
+	commitUrl: String
+	message: String!
+	authorName: String!
+	authorAvatarUrl: String
 }
 
-union SchemaCheckPayload =
-  | SchemaCheck
-  | GraphBranchDoesNotExistError
-  | GraphDoesNotExistError
-  | SubgraphNameMissingOnFederatedGraphError
+union SchemaCheckPayload = SchemaCheck | GraphBranchDoesNotExistError | GraphDoesNotExistError | SubgraphNameMissingOnFederatedGraphError
 
 type SchemaProposal {
-  id: ID!
-  title: String!
-  author: User
-  branch: Branch
-  description: String
-  status: SchemaProposalStatus!
-  createdAt: DateTime!
-  """
-  The whole activity feed.
-  """
-  activityFeed: [SchemaProposalActivityFeedItem!]!
-  """
-  All the reviewers and their status.
-
-  It will return all users that:
-
-  - Have been configured as reviewers for the branch of the proposal.
-  - Have been requested to review the proposal.
-  - Have reviewed the proposal.
-
-  And all the teams that have been configured or requested, but where the review is pending. This does not return teams that have already have a review status, because are returned in SchemaProposalReviewerUser.onBehalfOf.
-  """
-  reviewers: [SchemaProposalReviewer!]!
-  """
-  The revision number of the proposal, i.e. how many times edits were applied to the proposal's subgraphs.
-  """
-  revision: Int!
-  subgraph(subgraphName: String!): SchemaProposalSubgraph
-  subgraphs: [SchemaProposalSubgraph!]!
-  comments: [SchemaProposalComment!]!
-  """
-  Is the currently logged in user a reviewer of this proposal? That is to say, eitheir they are configured as a reviewer, or
-  """
-  viewerIsReviewer: Boolean!
+	id: ID!
+	title: String!
+	author: User
+	branch: Branch
+	description: String
+	status: SchemaProposalStatus!
+	createdAt: DateTime!
+	"""
+	The whole activity feed.
+	"""
+	activityFeed: [SchemaProposalActivityFeedItem!]!
+	"""
+	All the reviewers and their status.
+	
+	It will return all users that:
+	
+	- Have been configured as reviewers for the branch of the proposal.
+	- Have been requested to review the proposal.
+	- Have reviewed the proposal.
+	
+	And all the teams that have been configured or requested, but where the review is pending. This does not return teams that have already have a review status, because are returned in SchemaProposalReviewerUser.onBehalfOf.
+	"""
+	reviewers: [SchemaProposalReviewer!]!
+	"""
+	The revision number of the proposal, i.e. how many times edits were applied to the proposal's subgraphs.
+	"""
+	revision: Int!
+	subgraph(subgraphName: String!): SchemaProposalSubgraph
+	subgraphs: [SchemaProposalSubgraph!]!
+	comments: [SchemaProposalComment!]!
+	"""
+	Is the currently logged in user a reviewer of this proposal? That is to say, eitheir they are configured as a reviewer, or
+	"""
+	viewerIsReviewer: Boolean!
 }
 
 interface SchemaProposalActivityFeedItem {
-  createdAt: DateTime!
+	createdAt: DateTime!
 }
 
 type SchemaProposalApproval implements SchemaProposalActivityFeedItem & SchemaProposalReview {
-  id: ID!
-  author: User
-  message: String
-  createdAt: DateTime!
-  schemaProposal: SchemaProposal!
+	id: ID!
+	author: User
+	message: String
+	createdAt: DateTime!
+	schemaProposal: SchemaProposal!
 }
 
 input SchemaProposalApproveInput {
-  id: ID!
-  message: String
+	id: ID!
+	message: String
 }
 
 union SchemaProposalApprovePayload = SchemaProposalApproveSuccess | SchemaProposalDoesNotExistError
 
 type SchemaProposalApproveSuccess {
-  query: Query!
+	query: Query!
 }
 
 interface SchemaProposalComment {
-  id: ID!
-  text: String!
-  createdAt: DateTime!
-  author: User
+	id: ID!
+	text: String!
+	createdAt: DateTime!
+	author: User
 }
 
 type SchemaProposalCommentOnLine implements SchemaProposalActivityFeedItem & SchemaProposalComment {
-  id: ID!
-  """
-  Is this comment thread resolved?
-  """
-  resolved: Boolean!
-  """
-  The user who marked the thread as resolved.
-  """
-  resolvedBy: User
-  """
-  The content of the comment.
-  """
-  text: String!
-  createdAt: DateTime!
-  """
-  Who wrote the comment. Will be null in case the user was deleted.
-  """
-  author: User
-  """
-  All the replies in chronological order, from oldest to newest.
-  """
-  replies: [SchemaProposalReply!]!
-  """
-  Which subgraph the comment applies to.
-  """
-  subgraphName: String!
-  """
-  The logical path in the schema where the comment is located. This is only exposed for debugging, prefer using the `line` field.
-  """
-  path: String!
-  """
-  Which line the comment applies to in the subgraph SDL. This may be `null` if the comment was on an item that is no longer part of the current subgraph schema.
-
-  The line is 1-indexes
-  """
-  line: Int
-  """
-  The section of the subgraph SDL where the comment is located.
-  """
-  context(
-    """
-    How many lines around the commented line to include. Fewer lines can be returned if the context reaches the start or the end of the schema.
-    """
-    contextLines: Int!
-  ): String
-  diffSide: DiffSide!
+	id: ID!
+	"""
+	Is this comment thread resolved?
+	"""
+	resolved: Boolean!
+	"""
+	The user who marked the thread as resolved.
+	"""
+	resolvedBy: User
+	"""
+	The content of the comment.
+	"""
+	text: String!
+	createdAt: DateTime!
+	"""
+	Who wrote the comment. Will be null in case the user was deleted.
+	"""
+	author: User
+	"""
+	All the replies in chronological order, from oldest to newest.
+	"""
+	replies: [SchemaProposalReply!]!
+	"""
+	Which subgraph the comment applies to.
+	"""
+	subgraphName: String!
+	"""
+	The logical path in the schema where the comment is located. This is only exposed for debugging, prefer using the `line` field.
+	"""
+	path: String!
+	"""
+	Which line the comment applies to in the subgraph SDL. This may be `null` if the comment was on an item that is no longer part of the current subgraph schema.
+	
+	The line is 1-indexes
+	"""
+	line: Int
+	"""
+	The section of the subgraph SDL where the comment is located.
+	"""
+	context(
+		"""
+		How many lines around the commented line to include. Fewer lines can be returned if the context reaches the start or the end of the schema.
+		"""
+		contextLines: Int!
+	): String
+	diffSide: DiffSide!
 }
 
 type SchemaProposalCommentOnProposal implements SchemaProposalActivityFeedItem & SchemaProposalComment {
-  id: ID!
-  text: String!
-  createdAt: DateTime!
-  """
-  Who wrote the comment. Will be null in case the user was deleted.
-  """
-  author: User
-  replies: [SchemaProposalReply!]!
+	id: ID!
+	text: String!
+	createdAt: DateTime!
+	"""
+	Who wrote the comment. Will be null in case the user was deleted.
+	"""
+	author: User
+	replies: [SchemaProposalReply!]!
 }
 
 type SchemaProposalCommentOnSdl implements SchemaProposalActivityFeedItem & SchemaProposalComment {
-  id: ID!
-  """
-  Is this comment thread resolved?
-  """
-  resolved: Boolean!
-  """
-  The user who marked the thread as resolved.
-  """
-  resolvedBy: User
-  text: String!
-  createdAt: DateTime!
-  author: User
-  replies: [SchemaProposalReply!]!
+	id: ID!
+	"""
+	Is this comment thread resolved?
+	"""
+	resolved: Boolean!
+	"""
+	The user who marked the thread as resolved.
+	"""
+	resolvedBy: User
+	text: String!
+	createdAt: DateTime!
+	author: User
+	replies: [SchemaProposalReply!]!
 }
 
 union SchemaProposalCommentReplyPayload = SchemaProposalCommentReplySuccess
 
 type SchemaProposalCommentReplySuccess {
-  query: Query!
+	query: Query!
 }
 
 input SchemaProposalCommentThreadCreateInput {
-  """
-  The parent schema proposal.
-  """
-  schemaProposalId: ID!
-  """
-  Where the comment is located.
-  """
-  location: SchemaProposalCommentThreadLocation!
-  """
-  The revision / version number of the proposal, obtained from SchemaProposal.revision. Must be provided if and only if location is Line.
-
-  This argument is necessary to avoid cases where the schema has been updated between the time it was retried and the time the comment is posted. In these cases, if we use the latest subgraph schema, the line numbers may have changed and the comment would end up in the wrong place.
-  """
-  proposalRevision: Int
-  """
-  Must be provided if and only if location is Line.
-  """
-  subgraphName: String
-  """
-  Must be provided if and only if location is Line.
-  """
-  line: Int
-  """
-  Whether the comment applies to the existing or the proposed schema.
-
-  Must be provided if and only if location is Line.
-  """
-  diffSide: DiffSide
-  """
-  The content of the comment.
-  """
-  text: String!
+	"""
+	The parent schema proposal.
+	"""
+	schemaProposalId: ID!
+	"""
+	Where the comment is located.
+	"""
+	location: SchemaProposalCommentThreadLocation!
+	"""
+	The revision / version number of the proposal, obtained from SchemaProposal.revision. Must be provided if and only if location is Line.
+	
+	This argument is necessary to avoid cases where the schema has been updated between the time it was retried and the time the comment is posted. In these cases, if we use the latest subgraph schema, the line numbers may have changed and the comment would end up in the wrong place.
+	"""
+	proposalRevision: Int
+	"""
+	Must be provided if and only if location is Line.
+	"""
+	subgraphName: String
+	"""
+	Must be provided if and only if location is Line.
+	"""
+	line: Int
+	"""
+	Whether the comment applies to the existing or the proposed schema.
+	
+	Must be provided if and only if location is Line.
+	"""
+	diffSide: DiffSide
+	"""
+	The content of the comment.
+	"""
+	text: String!
 }
 
-union SchemaProposalCommentThreadCreatePayload =
-  | SchemaProposalCommentThreadCreateSuccess
-  | SchemaProposalDoesNotExistError
+union SchemaProposalCommentThreadCreatePayload = SchemaProposalCommentThreadCreateSuccess | SchemaProposalDoesNotExistError
 
 type SchemaProposalCommentThreadCreateSuccess {
-  query: Query!
+	query: Query!
 }
 
 enum SchemaProposalCommentThreadLocation {
-  """
-  On a specific line, in a specific subgraph
-  """
-  LINE
-  """
-  On the schema proposal SDL.
-  """
-  SDL
-  """
-  On the schema proposal itself.
-  """
-  PROPOSAL
+	"""
+	On a specific line, in a specific subgraph
+	"""
+	LINE
+	"""
+	On the schema proposal SDL.
+	"""
+	SDL
+	"""
+	On the schema proposal itself.
+	"""
+	PROPOSAL
 }
 
 union SchemaProposalCommentThreadResolvePayload = SchemaProposalCommentThreadResolveSuccess
 
 type SchemaProposalCommentThreadResolveSuccess {
-  query: Query!
-  affectedRows: Int!
+	query: Query!
+	affectedRows: Int!
 }
 
 union SchemaProposalCommentThreadUnresolvePayload = SchemaProposalCommentThreadUnresolveSuccess
 
 type SchemaProposalCommentThreadUnresolveSuccess {
-  query: Query!
-  affectedRows: Int!
+	query: Query!
+	affectedRows: Int!
 }
 
 type SchemaProposalConnection {
-  """
-  Information to aid in pagination.
-  """
-  pageInfo: PageInfo!
-  """
-  A list of edges.
-  """
-  edges: [SchemaProposalEdge!]!
-  """
-  A list of nodes.
-  """
-  nodes: [SchemaProposal!]!
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [SchemaProposalEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [SchemaProposal!]!
 }
 
 input SchemaProposalCreateInput {
-  title: String!
-  branchId: ID!
-  description: String
+	title: String!
+	branchId: ID!
+	description: String
 }
 
 union SchemaProposalCreatePayload = SchemaProposalCreateSuccess
 
 type SchemaProposalCreateSuccess {
-  schemaProposal: SchemaProposal!
-  query: Query!
+	schemaProposal: SchemaProposal!
+	query: Query!
 }
 
 union SchemaProposalDeletePayload = SchemaProposalDeleteSuccess | SchemaProposalDoesNotExistError
 
 type SchemaProposalDeleteSuccess {
-  query: Query!
+	query: Query!
 }
 
 type SchemaProposalDoesNotExistError {
-  query: Query!
+	query: Query!
 }
 
 """
 An edge in a connection.
 """
 type SchemaProposalEdge {
-  """
-  The item at the end of the edge
-  """
-  node: SchemaProposal!
-  """
-  A cursor for use in pagination
-  """
-  cursor: String!
+	"""
+	The item at the end of the edge
+	"""
+	node: SchemaProposal!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
 }
 
 input SchemaProposalEditInput {
-  schemaProposalId: ID!
-  subgraphs: [SchemaProposalEditSubgraph!]!
-  description: String
+	schemaProposalId: ID!
+	subgraphs: [SchemaProposalEditSubgraph!]!
+	description: String
 }
 
 type SchemaProposalEditParserError {
-  subgraphName: String!
-  error: String!
-  spanStart: Int!
-  spanEnd: Int!
+	subgraphName: String!
+	error: String!
+	spanStart: Int!
+	spanEnd: Int!
 }
 
 type SchemaProposalEditParserErrors {
-  errors: [SchemaProposalEditParserError!]!
+	errors: [SchemaProposalEditParserError!]!
 }
 
-union SchemaProposalEditPayload =
-  | SchemaProposalEditSuccess
-  | SchemaProposalDoesNotExistError
-  | SchemaProposalEditParserErrors
+union SchemaProposalEditPayload = SchemaProposalEditSuccess | SchemaProposalDoesNotExistError | SchemaProposalEditParserErrors
 
 input SchemaProposalEditSubgraph {
-  name: String!
-  schema: String
+	name: String!
+	schema: String
 }
 
 type SchemaProposalEditSuccess {
-  query: Query!
+	query: Query!
 }
 
 input SchemaProposalFilter {
-  status: SchemaProposalStatus
+	status: SchemaProposalStatus
 }
 
 input SchemaProposalRejectInput {
-  id: ID!
-  message: String
+	id: ID!
+	message: String
 }
 
 union SchemaProposalRejectPayload = SchemaProposalRejectSuccess | SchemaProposalDoesNotExistError
 
 type SchemaProposalRejectSuccess {
-  query: Query!
+	query: Query!
 }
 
 type SchemaProposalRejection implements SchemaProposalActivityFeedItem & SchemaProposalReview {
-  id: ID!
-  author: User
-  message: String
-  createdAt: DateTime!
-  schemaProposal: SchemaProposal!
+	id: ID!
+	author: User
+	message: String
+	createdAt: DateTime!
+	schemaProposal: SchemaProposal!
 }
 
 type SchemaProposalReply implements SchemaProposalComment {
-  id: ID!
-  text: String!
-  """
-  Who wrote the comment. Will be null in case the user was deleted.
-  """
-  author: User
-  createdAt: DateTime!
+	id: ID!
+	text: String!
+	"""
+	Who wrote the comment. Will be null in case the user was deleted.
+	"""
+	author: User
+	createdAt: DateTime!
 }
 
 input SchemaProposalRequestReviewInput {
-  id: ID!
+	id: ID!
 }
 
 union SchemaProposalRequestReviewPayload = SchemaProposalRequestReviewSuccess | SchemaProposalDoesNotExistError
 
 type SchemaProposalRequestReviewSuccess {
-  query: Query!
+	query: Query!
 }
 
 union SchemaProposalRevertToDraftPayload = SchemaProposalRevertToDraftSuccess | SchemaProposalDoesNotExistError
 
 type SchemaProposalRevertToDraftSuccess {
-  query: Query!
+	query: Query!
 }
 
 interface SchemaProposalReview {
-  id: ID!
-  author: User
-  createdAt: DateTime!
-  schemaProposal: SchemaProposal!
+	id: ID!
+	author: User
+	createdAt: DateTime!
+	schemaProposal: SchemaProposal!
 }
 
 type SchemaProposalReviewNotification implements InboxMessage {
-  id: ID!
-  createdAt: DateTime!
-  readAt: DateTime
-  review: SchemaProposalReview!
+	id: ID!
+	createdAt: DateTime!
+	readAt: DateTime
+	review: SchemaProposalReview!
 }
 
 type SchemaProposalReviewRequest implements SchemaProposalActivityFeedItem {
-  id: ID!
-  requestedBy: ID!
-  requestFor: UserOrTeam!
-  createdAt: DateTime!
-  schemaProposal: SchemaProposal!
+	id: ID!
+	requestedBy: ID!
+	requestFor: UserOrTeam!
+	createdAt: DateTime!
+	schemaProposal: SchemaProposal!
 }
 
 input SchemaProposalReviewRequestCreateInput {
-  schemaProposalId: ID!
-  """
-  Must be either a team id or a user id.
-  """
-  reviewerId: ID!
+	schemaProposalId: ID!
+	"""
+	Must be either a team id or a user id.
+	"""
+	reviewerId: ID!
 }
 
-union SchemaProposalReviewRequestCreatePayload =
-  | SchemaProposalReviewRequestCreateSuccess
-  | SchemaProposalDoesNotExistError
+union SchemaProposalReviewRequestCreatePayload = SchemaProposalReviewRequestCreateSuccess | SchemaProposalDoesNotExistError
 
 type SchemaProposalReviewRequestCreateSuccess {
-  query: Query!
+	query: Query!
 }
 
 type SchemaProposalReviewRequestNotification implements InboxMessage {
-  id: ID!
-  createdAt: DateTime!
-  readAt: DateTime
-  reviewRequest: SchemaProposalReviewRequest!
+	id: ID!
+	createdAt: DateTime!
+	readAt: DateTime
+	reviewRequest: SchemaProposalReviewRequest!
 }
 
 union SchemaProposalReviewer = SchemaProposalReviewerTeam | SchemaProposalReviewerUser
 
 enum SchemaProposalReviewerStatus {
-  PENDING
-  APPROVED
-  REJECTED
+	PENDING
+	APPROVED
+	REJECTED
 }
 
 type SchemaProposalReviewerTeam {
-  team: Team!
+	team: Team!
 }
 
 type SchemaProposalReviewerUser {
-  user: User!
-  status: SchemaProposalReviewerStatus!
-  """
-  The teams that were requested or configured for review that the user reviewed on behalf of.
-  """
-  onBehalfOf: [Team!]!
+	user: User!
+	status: SchemaProposalReviewerStatus!
+	"""
+	The teams that were requested or configured for review that the user reviewed on behalf of.
+	"""
+	onBehalfOf: [Team!]!
 }
 
 type SchemaProposalRevision implements SchemaProposalActivityFeedItem {
-  """
-  The author of the revision.
-  """
-  author: User
-  """
-  The message entered when the author saved changes.
-  """
-  description: String
-  createdAt: DateTime!
+	"""
+	The author of the revision.
+	"""
+	author: User
+	"""
+	The message entered when the author saved changes.
+	"""
+	description: String
+	createdAt: DateTime!
 }
 
 enum SchemaProposalStatus {
-  APPROVED
-  DRAFT
-  IMPLEMENTED
-  REJECTED
-  IN_REVIEW
+	APPROVED
+	DRAFT
+	IMPLEMENTED
+	REJECTED
+	IN_REVIEW
 }
 
 type SchemaProposalStatusChange implements SchemaProposalActivityFeedItem {
-  createdAt: DateTime!
-  fromStatus: SchemaProposalStatus!
-  toStatus: SchemaProposalStatus!
-  schemaProposal: SchemaProposal!
+	createdAt: DateTime!
+	fromStatus: SchemaProposalStatus!
+	toStatus: SchemaProposalStatus!
+	schemaProposal: SchemaProposal!
 }
 
 type SchemaProposalStatusChangeNotification implements InboxMessage {
-  id: ID!
-  createdAt: DateTime!
-  readAt: DateTime
+	id: ID!
+	createdAt: DateTime!
+	readAt: DateTime
 }
 
 type SchemaProposalSubgraph {
-  sdl: String
-  status: SchemaProposalSubgraphStatus!
-  name: String!
-  diffSnippets: [DiffSnippet!]!
-  comments: [SchemaProposalComment!]!
+	sdl: String
+	status: SchemaProposalSubgraphStatus!
+	name: String!
+	diffSnippets: [DiffSnippet!]!
+	comments: [SchemaProposalComment!]!
 }
 
 enum SchemaProposalSubgraphStatus {
-  CREATED
-  EDITED
-  DELETED
-  UNCHANGED
+	CREATED
+	EDITED
+	DELETED
+	UNCHANGED
 }
 
 type SchemaProposalsConfiguration {
-  enforceChecks: Boolean!
-  requireApprovalFromSubgraphOwners: Boolean!
-  keepApprovalsOnEdit: Boolean!
-  configuredReviewers: [SchemaProposalsConfiguredReviewers!]!
+	enforceChecks: Boolean!
+	requireApprovalFromSubgraphOwners: Boolean!
+	keepApprovalsOnEdit: Boolean!
+	configuredReviewers: [SchemaProposalsConfiguredReviewers!]!
 }
 
 input SchemaProposalsConfigurationUpdateInput {
-  enforceChecks: Boolean
-  requireApprovalFromSubgraphOwners: Boolean
-  keepApprovalsOnEdit: Boolean
+	enforceChecks: Boolean
+	requireApprovalFromSubgraphOwners: Boolean
+	keepApprovalsOnEdit: Boolean
 }
 
 input SchemaProposalsConfiguredReviewerAddInput {
-  branchId: ID!
-  """
-  Either a UserId or a TeamId
-  """
-  reviewerId: ID!
+	branchId: ID!
+	"""
+	Either a UserId or a TeamId
+	"""
+	reviewerId: ID!
 }
 
-union SchemaProposalsConfiguredReviewerAddPayload =
-  | SchemaProposalsConfiguredReviewerAddSuccess
-  | BranchDoesNotExistError
-  | UserDoesNotExistError
-  | TeamDoesNotExistError
-  | AlreadyExistsError
+union SchemaProposalsConfiguredReviewerAddPayload = SchemaProposalsConfiguredReviewerAddSuccess | BranchDoesNotExistError | UserDoesNotExistError | TeamDoesNotExistError | AlreadyExistsError
 
 type SchemaProposalsConfiguredReviewerAddSuccess {
-  query: Query!
-  reviewer: SchemaProposalsConfiguredReviewers!
+	query: Query!
+	reviewer: SchemaProposalsConfiguredReviewers!
 }
 
 input SchemaProposalsConfiguredReviewerRemoveInput {
-  branchId: ID!
-  """
-  Either a SchemaProposalUserReviewerId or a SchemaProposalTeamReviewerId
-  """
-  reviewerId: ID!
+	branchId: ID!
+	"""
+	Either a SchemaProposalUserReviewerId or a SchemaProposalTeamReviewerId
+	"""
+	reviewerId: ID!
 }
 
-union SchemaProposalsConfiguredReviewerRemovePayload =
-  | SchemaProposalsConfiguredReviewerRemoveSuccess
-  | BranchDoesNotExistError
-  | ReviewerDoesNotExistError
+union SchemaProposalsConfiguredReviewerRemovePayload = SchemaProposalsConfiguredReviewerRemoveSuccess | BranchDoesNotExistError | ReviewerDoesNotExistError
 
 type SchemaProposalsConfiguredReviewerRemoveSuccess {
-  query: Query!
+	query: Query!
 }
 
 type SchemaProposalsConfiguredReviewerTeam {
-  id: ID!
-  team: Team!
+	id: ID!
+	team: Team!
 }
 
 type SchemaProposalsConfiguredReviewerUser {
-  id: ID!
-  user: User!
+	id: ID!
+	user: User!
 }
 
 """
@@ -2515,96 +2398,96 @@ A (required) schema proposal reviewer in the branch configuration.
 union SchemaProposalsConfiguredReviewers = SchemaProposalsConfiguredReviewerUser | SchemaProposalsConfiguredReviewerTeam
 
 type SchemaRegistryBranchDoesNotExistError {
-  query: Query!
+	query: Query!
 }
 
 type SchemaVersion {
-  id: ID!
-  schema: String!
-  delta: SchemaVersionDelta!
-  changes(after: String, before: String, first: Int, last: Int): SchemaVersionChangeConnection!
-  createdAt: DateTime!
-  message: String
-  subgraph: Subgraph
+	id: ID!
+	schema: String!
+	delta: SchemaVersionDelta!
+	changes(after: String, before: String, first: Int, last: Int): SchemaVersionChangeConnection!
+	createdAt: DateTime!
+	message: String
+	subgraph: Subgraph
 }
 
 type SchemaVersionChange {
-  path: String
-  type: SchemaChangeType!
-  message: String!
+	path: String
+	type: SchemaChangeType!
+	message: String!
 }
 
 type SchemaVersionChangeConnection {
-  """
-  Information to aid in pagination.
-  """
-  pageInfo: PageInfo!
-  """
-  A list of edges.
-  """
-  edges: [SchemaVersionChangeEdge!]!
-  """
-  A list of nodes.
-  """
-  nodes: [SchemaVersionChange!]!
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [SchemaVersionChangeEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [SchemaVersionChange!]!
 }
 
 """
 An edge in a connection.
 """
 type SchemaVersionChangeEdge {
-  """
-  The item at the end of the edge
-  """
-  node: SchemaVersionChange!
-  """
-  A cursor for use in pagination
-  """
-  cursor: String!
+	"""
+	The item at the end of the edge
+	"""
+	node: SchemaVersionChange!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
 }
 
 type SchemaVersionConnection {
-  """
-  Information to aid in pagination.
-  """
-  pageInfo: PageInfo!
-  """
-  A list of edges.
-  """
-  edges: [SchemaVersionEdge!]!
-  """
-  A list of nodes.
-  """
-  nodes: [SchemaVersion!]!
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [SchemaVersionEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [SchemaVersion!]!
 }
 
 type SchemaVersionDelta {
-  """
-  Additions.
-  """
-  added: Int!
-  """
-  Removals.
-  """
-  removed: Int!
-  """
-  Modifications.
-  """
-  modified: Int!
+	"""
+	Additions.
+	"""
+	added: Int!
+	"""
+	Removals.
+	"""
+	removed: Int!
+	"""
+	Modifications.
+	"""
+	modified: Int!
 }
 
 """
 An edge in a connection.
 """
 type SchemaVersionEdge {
-  """
-  The item at the end of the edge
-  """
-  node: SchemaVersion!
-  """
-  A cursor for use in pagination
-  """
-  cursor: String!
+	"""
+	The item at the end of the edge
+	"""
+	node: SchemaVersion!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
 }
 
 scalar SemverVersion
@@ -2615,31 +2498,31 @@ scalar SemverVersionRequirement
 A Slack channel returned from the Slack API.
 """
 type SlackChannel {
-  id: String!
-  name: String!
+	id: String!
+	name: String!
 }
 
 type SlackIntegration {
-  availableChannels: [SlackChannel!]!
-  notifications: [SlackNotification!]!
+	availableChannels: [SlackChannel!]!
+	notifications: [SlackNotification!]!
 }
 
 input SlackIntegrationCreateInput {
-  tokenId: String!
-  """
-  The graph_id field is deprecated. Pass branch_id instead.
-  """
-  graphId: String
-  branchId: ID
-  channelId: String!
-  channelName: String!
+	tokenId: String!
+	"""
+	The graph_id field is deprecated. Pass branch_id instead.
+	"""
+	graphId: String
+	branchId: ID
+	channelId: String!
+	channelName: String!
 }
 
 type SlackNotification {
-  id: String!
-  graphId: String! @deprecated(reason: "Graphs are being removed. Please use SlackNotification.branch_id instead")
-  branchId: String!
-  channelName: String!
+	id: String!
+	graphId: String! @deprecated(reason: "Graphs are being removed. Please use SlackNotification.branch_id instead")
+	branchId: String!
+	channelName: String!
 }
 
 union SlackNotificationCreatePayload = SlackNotification | ProjectDoesNotExistError
@@ -2647,116 +2530,117 @@ union SlackNotificationCreatePayload = SlackNotification | ProjectDoesNotExistEr
 union SlackNotificationDeletePayload = Query
 
 type SlugAlreadyExistsError {
-  query: Query!
+	query: Query!
 }
 
 type SlugError {
-  message: String!
-  actual: String!
-  expected: String!
-  query: Query!
+	message: String!
+	actual: String!
+	expected: String!
+	query: Query!
 }
 
 type SlugInvalidError {
-  query: Query!
+	query: Query!
 }
 
 type SlugSizeCheckError {
-  maxLength: Int!
-  message: String!
-  query: Query!
+	maxLength: Int!
+	message: String!
+	query: Query!
 }
 
 type SlugTooLongError {
-  maxLength: Int!
-  query: Query!
+	maxLength: Int!
+	query: Query!
 }
 
 type StandaloneGraphsNoLongerSupportedError {
-  query: Query!
+	query: Query!
 }
 
+
 type Subgraph {
-  name: String!
-  url: String!
-  schema: String!
-  createdAt: DateTime!
-  updatedAt: DateTime!
-  owners: [Team!]!
+	name: String!
+	url: String
+	schema: String!
+	createdAt: DateTime!
+	updatedAt: DateTime!
+	owners: [Team!]!
 }
 
 union SubgraphAddOwnerPayload = SubgraphAddOwnerSuccess
 
 type SubgraphAddOwnerSuccess {
-  query: Query!
+	query: Query!
 }
 
 type SubgraphNameMissingOnFederatedGraphError {
-  query: Query!
+	query: Query!
 }
 
 type SubgraphNotFoundError {
-  query: Query!
+	query: Query!
 }
 
 union SubgraphRemoveOwnerPayload = SubgraphRemoveOwnerSuccess
 
 type SubgraphRemoveOwnerSuccess {
-  query: Query!
+	query: Query!
 }
 
 type Subscription {
-  """
-  Whenever new notifications are available for the current user, return how many.
-  """
-  notificationsInboxMessages: Int!
+	"""
+	Whenever new notifications are available for the current user, return how many.
+	"""
+	notificationsInboxMessages: Int!
 }
 
 type Team implements Node {
-  id: ID!
-  name: String!
-  slug: String!
-  """
-  The users that are part of the team
-  """
-  members(after: String, first: Int): UserConnection!
-  parentTeamId: ID
-  """
-  The team this team is member of, if any.
-  """
-  parent: Team
-  """
-  The teams that are part of the team
-  """
-  subteams(after: String, first: Int): TeamConnection!
-  query: Query!
+	id: ID!
+	name: String!
+	slug: String!
+	"""
+	The users that are part of the team
+	"""
+	members(after: String, first: Int): UserConnection!
+	parentTeamId: ID
+	"""
+	The team this team is member of, if any.
+	"""
+	parent: Team
+	"""
+	The teams that are part of the team
+	"""
+	subteams(after: String, first: Int): TeamConnection!
+	query: Query!
 }
 
 union TeamAddMemberPayload = TeamAddMemberSuccess | TeamDoesNotExistError
 
 type TeamAddMemberSuccess {
-  query: Query!
+	query: Query!
 }
 
 union TeamAssignRolePayload = TeamAssignRoleSuccess | TeamDoesNotExistError
 
 type TeamAssignRoleSuccess {
-  query: Query!
+	query: Query!
 }
 
 type TeamConnection {
-  """
-  Information to aid in pagination.
-  """
-  pageInfo: PageInfo!
-  """
-  A list of edges.
-  """
-  edges: [TeamEdge!]!
-  """
-  A list of nodes.
-  """
-  nodes: [Team!]!
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [TeamEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [Team!]!
 }
 
 union TeamCreatePayload = Team | OrganizationDoesNotExistError | TeamNameAlreadyTakenError
@@ -2764,222 +2648,217 @@ union TeamCreatePayload = Team | OrganizationDoesNotExistError | TeamNameAlready
 union TeamDeletePayload = TeamDeleteSuccess | TeamDoesNotExistError
 
 type TeamDeleteSuccess {
-  query: Query!
+	query: Query!
 }
 
 type TeamDoesNotExistError {
-  query: Query!
+	query: Query!
 }
 
 """
 An edge in a connection.
 """
 type TeamEdge {
-  """
-  The item at the end of the edge
-  """
-  node: Team!
-  """
-  A cursor for use in pagination
-  """
-  cursor: String!
+	"""
+	The item at the end of the edge
+	"""
+	node: Team!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
 }
 
 type TeamNameAlreadyTakenError {
-  query: Query!
+	query: Query!
 }
 
 union TeamRemoveMemberPayload = TeamRemoveMemberSuccess | TeamDoesNotExistError
 
 type TeamRemoveMemberSuccess {
-  query: Query!
+	query: Query!
 }
 
 enum TeamRole {
-  """
-  __Team__ admin
-  """
-  ADMIN
-  """
-  Regular non-admin member.
-  """
-  MEMBER
+	"""
+	__Team__ admin
+	"""
+	ADMIN
+	"""
+	Regular non-admin member.
+	"""
+	MEMBER
 }
 
 type TokenDoesNotExistError {
-  query: Query!
+	query: Query!
 }
 
 type TokenLimitExceededError {
-  query: Query!
+	query: Query!
 }
 
 type TopClientByNameAndVersionOrderedByHighestCount {
-  name: String!
-  version: String!
-  count: Int!
+	name: String!
+	version: String!
+	count: Int!
 }
 
 type TopClientByNameAndVersionOrderedByHighestErrorRatio {
-  name: String!
-  version: String!
-  count: Int!
-  errorCount: Int!
+	name: String!
+	version: String!
+	count: Int!
+	errorCount: Int!
 }
 
 type TopClientByNameAndVersionOrderedByHighestLatency {
-  name: String!
-  version: String!
-  latencyMs: Int!
+	name: String!
+	version: String!
+	latencyMs: Int!
 }
 
 type TopClientByNameOrderedByHighestCount {
-  name: String!
-  count: Int!
+	name: String!
+	count: Int!
 }
 
 type TopClientByNameOrderedByHighestErrorRatio {
-  name: String!
-  count: Int!
-  errorCount: Int!
+	name: String!
+	count: Int!
+	errorCount: Int!
 }
 
 type TopClientByNameOrderedByHighestLatency {
-  name: String!
-  latencyMs: Int!
+	name: String!
+	latencyMs: Int!
 }
 
 type TopClients {
-  byName: TopClientsByName!
-  byNameAndVersion: TopClientsByNameAndVersion!
+	byName: TopClientsByName!
+	byNameAndVersion: TopClientsByNameAndVersion!
 }
 
 type TopClientsByName {
-  orderedByHighestLatency: [TopClientByNameOrderedByHighestLatency!]!
-  orderedByHighestCount: [TopClientByNameOrderedByHighestCount!]!
-  orderedByHighestErrorRatio: [TopClientByNameOrderedByHighestErrorRatio!]!
+	orderedByHighestLatency: [TopClientByNameOrderedByHighestLatency!]!
+	orderedByHighestCount: [TopClientByNameOrderedByHighestCount!]!
+	orderedByHighestErrorRatio: [TopClientByNameOrderedByHighestErrorRatio!]!
 }
 
 type TopClientsByNameAndVersion {
-  orderedByHighestLatency: [TopClientByNameAndVersionOrderedByHighestLatency!]!
-  orderedByHighestCount: [TopClientByNameAndVersionOrderedByHighestCount!]!
-  orderedByHighestErrorRatio: [TopClientByNameAndVersionOrderedByHighestErrorRatio!]!
+	orderedByHighestLatency: [TopClientByNameAndVersionOrderedByHighestLatency!]!
+	orderedByHighestCount: [TopClientByNameAndVersionOrderedByHighestCount!]!
+	orderedByHighestErrorRatio: [TopClientByNameAndVersionOrderedByHighestErrorRatio!]!
 }
 
 type TopClientsForField {
-  byName: TopClientsForFieldByName!
-  byNameAndVersion: TopClientsForFieldByNameAndVersion!
+	byName: TopClientsForFieldByName!
+	byNameAndVersion: TopClientsForFieldByNameAndVersion!
 }
 
 type TopClientsForFieldByName {
-  orderedByHighestCount: [TopClientByNameOrderedByHighestCount!]!
+	orderedByHighestCount: [TopClientByNameOrderedByHighestCount!]!
 }
 
 type TopClientsForFieldByNameAndVersion {
-  orderedByHighestCount: [TopClientByNameAndVersionOrderedByHighestCount!]!
+	orderedByHighestCount: [TopClientByNameAndVersionOrderedByHighestCount!]!
 }
 
 type TopOperationByNameAndHashOrderedByHighestCount {
-  name: String!
-  normalizedQueryHash: OperationNormalizedQueryHash!
-  count: Int!
+	name: String!
+	normalizedQueryHash: OperationNormalizedQueryHash!
+	count: Int!
 }
 
 type TopOperationByNameAndHashOrderedByHighestErrorRatio {
-  name: String!
-  normalizedQueryHash: OperationNormalizedQueryHash!
-  count: Int!
-  errorCount: Int!
+	name: String!
+	normalizedQueryHash: OperationNormalizedQueryHash!
+	count: Int!
+	errorCount: Int!
 }
 
 type TopOperationByNameAndHashOrderedByHighestLatency {
-  name: String!
-  normalizedQueryHash: OperationNormalizedQueryHash!
-  latencyMs: Int!
+	name: String!
+	normalizedQueryHash: OperationNormalizedQueryHash!
+	latencyMs: Int!
 }
 
 type TopOperationByNameOrderedByHighestCount {
-  name: String!
-  count: Int!
+	name: String!
+	count: Int!
 }
 
 type TopOperationByNameOrderedByHighestErrorRatio {
-  name: String!
-  count: Int!
-  errorCount: Int!
+	name: String!
+	count: Int!
+	errorCount: Int!
 }
 
 type TopOperationByNameOrderedByHighestLatency {
-  name: String!
-  latencyMs: Int!
+	name: String!
+	latencyMs: Int!
 }
 
 type TopOperations {
-  byName: TopOperationsByName!
-  byNameAndHash: TopOperationsByNameAndHash!
+	byName: TopOperationsByName!
+	byNameAndHash: TopOperationsByNameAndHash!
 }
 
 type TopOperationsByName {
-  orderedByHighestLatency: [TopOperationByNameOrderedByHighestLatency!]!
-  orderedByHighestCount: [TopOperationByNameOrderedByHighestCount!]!
-  orderedByHighestErrorRatio: [TopOperationByNameOrderedByHighestErrorRatio!]!
+	orderedByHighestLatency: [TopOperationByNameOrderedByHighestLatency!]!
+	orderedByHighestCount: [TopOperationByNameOrderedByHighestCount!]!
+	orderedByHighestErrorRatio: [TopOperationByNameOrderedByHighestErrorRatio!]!
 }
 
 type TopOperationsByNameAndHash {
-  orderedByHighestLatency: [TopOperationByNameAndHashOrderedByHighestLatency!]!
-  orderedByHighestCount: [TopOperationByNameAndHashOrderedByHighestCount!]!
-  orderedByHighestErrorRatio: [TopOperationByNameAndHashOrderedByHighestErrorRatio!]!
+	orderedByHighestLatency: [TopOperationByNameAndHashOrderedByHighestLatency!]!
+	orderedByHighestCount: [TopOperationByNameAndHashOrderedByHighestCount!]!
+	orderedByHighestErrorRatio: [TopOperationByNameAndHashOrderedByHighestErrorRatio!]!
 }
 
 type Trace {
-  id: ID!
-  rootSpanId: ID!
-  spans: [TraceSpan!]!
+	id: ID!
+	rootSpanId: ID!
+	spans: [TraceSpan!]!
 }
 
 type TraceSpan {
-  id: ID!
-  parentId: ID
-  name: String!
-  startedAt: DateTime!
-  endedAt: DateTime!
-  statusCode: TraceSpanStatusCode
-  """
-  Attributes are key-value pairs that represent additional information about the span.
-  It's always a map of strings to strings.
-  """
-  attributes: JSON!
+	id: ID!
+	parentId: ID
+	name: String!
+	startedAt: DateTime!
+	endedAt: DateTime!
+	statusCode: TraceSpanStatusCode
+	"""
+	Attributes are key-value pairs that represent additional information about the span.
+	It's always a map of strings to strings.
+	"""
+	attributes: JSON!
 }
 
 enum TraceSpanStatusCode {
-  OK
-  ERROR
+	OK
+	ERROR
 }
 
 type TrialPlanUnavailableError {
-  query: Query!
+	query: Query!
 }
 
 type TrustedDocument {
-  documentId: String!
-  documentText: String!
+	documentId: String!
+	documentText: String!
 }
 
 input TrustedDocumentInput {
-  documentId: String!
-  documentText: String!
+	documentId: String!
+	documentText: String!
 }
 
-union TrustedDocumentsSubmitPayload =
-  | TrustedDocumentsSubmitSuccess
-  | ReusedIds
-  | GraphDoesNotExistError
-  | ProjectDoesNotExistError
-  | OldAccessTokenError
+union TrustedDocumentsSubmitPayload = TrustedDocumentsSubmitSuccess | ReusedIds | GraphDoesNotExistError | ProjectDoesNotExistError | OldAccessTokenError
 
 type TrustedDocumentsSubmitSuccess {
-  count: Int!
-  documents: [TrustedDocument!]!
+	count: Int!
+	documents: [TrustedDocument!]!
 }
 
 scalar Upload
@@ -2990,125 +2869,125 @@ URL is a String implementing the [URL Standard](http://url.spec.whatwg.org/)
 scalar Url
 
 input UsageFilters {
-  """
-  Use this if you really care about having a specific duration like 1 hour, 7 days, etc.
-  """
-  range: Duration
-  """
-  Use this if you *at least* the data between `from` and `to` to be provided. You may get
-  more, but never less.
-  """
-  from: DateTime
-  """
-  To be used in conjunction with with either `range` or `from`.
-  """
-  to: DateTime!
-  """
-  If explicitly to false, specifying both `from` and `to` will be treated as if `range: (to - from)`
-  had been specified instead. Meaning only the duration between `from` and `to` matters, not
-  necessarily having a data point for `from` itself.
-  """
-  isCustomRange: Boolean
-  """
-  If specified, overrides approximateNumberOfPoints. Must be in whole minutes.
-  At most 150 points can be returned.
-  """
-  aggregationStep: Duration
-  """
-  Defaults to 100, at most 150 points can be returned.
-  """
-  approximateNumberOfDataPoints: Int
-  """
-  Defaults to true
-  Example: for an aggregationStep of 15 min:
-  - if true, only times with 00, 15, 30 and 45 minutes will appear in the time series
-  - if false, times in the time series will be adjusted to start from the periodStart (~from).
-  So if from = 15:32:00, times will end in 02, 17, 32 and 47.
-  I'll always align to the aggregation step used to store the data though, which
-  is currently in minutes. So cannot have 15:10:20, 15:11:20, etc.
-  """
-  alignPeriodWithAggregationStep: Boolean
-  graphSlug: String
+	"""
+	Use this if you really care about having a specific duration like 1 hour, 7 days, etc.
+	"""
+	range: Duration
+	"""
+	Use this if you *at least* the data between `from` and `to` to be provided. You may get
+	more, but never less.
+	"""
+	from: DateTime
+	"""
+	To be used in conjunction with with either `range` or `from`.
+	"""
+	to: DateTime!
+	"""
+	If explicitly to false, specifying both `from` and `to` will be treated as if `range: (to - from)`
+	had been specified instead. Meaning only the duration between `from` and `to` matters, not
+	necessarily having a data point for `from` itself.
+	"""
+	isCustomRange: Boolean
+	"""
+	If specified, overrides approximateNumberOfPoints. Must be in whole minutes.
+	At most 150 points can be returned.
+	"""
+	aggregationStep: Duration
+	"""
+	Defaults to 100, at most 150 points can be returned.
+	"""
+	approximateNumberOfDataPoints: Int
+	"""
+	Defaults to true
+	Example: for an aggregationStep of 15 min:
+	- if true, only times with 00, 15, 30 and 45 minutes will appear in the time series
+	- if false, times in the time series will be adjusted to start from the periodStart (~from).
+	So if from = 15:32:00, times will end in 02, 17, 32 and 47.
+	I'll always align to the aggregation step used to store the data though, which
+	is currently in minutes. So cannot have 15:10:20, 15:11:20, etc.
+	"""
+	alignPeriodWithAggregationStep: Boolean
+	graphSlug: String
 }
 
 type UsageMetrics {
-  requestsCount: Int!
-  spansCount: Int!
+	requestsCount: Int!
+	spansCount: Int!
 }
 
 type UsageMetricsTimeSeriesDataPoint {
-  dateTime: DateTime!
-  requestsCount: Int!
-  spansCount: Int!
+	dateTime: DateTime!
+	requestsCount: Int!
+	spansCount: Int!
 }
 
 type User implements Node {
-  id: ID!
-  name: String!
-  email: String!
-  avatarUrl: String
-  createdAt: DateTime!
-  organizations(after: String, before: String, first: Int, last: Int): OrganizationConnection!
-  organizationMemberships: [Member!]!
-  canStartNewTrial: Boolean!
+	id: ID!
+	name: String!
+	email: String!
+	avatarUrl: String
+	createdAt: DateTime!
+	organizations(after: String, before: String, first: Int, last: Int): OrganizationConnection!
+	organizationMemberships: [Member!]!
+	canStartNewTrial: Boolean!
 }
 
 type UserConnection {
-  """
-  Information to aid in pagination.
-  """
-  pageInfo: PageInfo!
-  """
-  A list of edges.
-  """
-  edges: [UserEdge!]!
-  """
-  A list of nodes.
-  """
-  nodes: [User!]!
-  totalCount: Int!
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [UserEdge!]!
+	"""
+	A list of nodes.
+	"""
+	nodes: [User!]!
+	totalCount: Int!
 }
 
 union UserDeletePayload = UserDeleteSuccess | OrganizationOwnershipNotTransferredError
 
 type UserDeleteSuccess {
-  query: Query!
+	query: Query!
 }
 
 type UserDoesNotExistError {
-  query: Query!
+	query: Query!
 }
 
 """
 An edge in a connection.
 """
 type UserEdge {
-  """
-  The item at the end of the edge
-  """
-  node: User!
-  role: TeamRole!
-  """
-  A cursor for use in pagination
-  """
-  cursor: String!
+	"""
+	The item at the end of the edge
+	"""
+	node: User!
+	role: TeamRole!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
 }
 
 union UserOrTeam = User | Team
 
 input UserUpdateInput {
-  name: String!
+	name: String!
 }
 
 union UserUpdatePayload = UserUpdateSuccess | NameSizeCheckError
 
 type UserUpdateSuccess {
-  query: Query!
+	query: Query!
 }
 
 type ValidationCheckError {
-  title: String!
-  message: String!
+	title: String!
+	message: String!
 }
 
 scalar VersionedExtensionManifest
@@ -3120,17 +2999,16 @@ services into the root `_entities` field for execution.
 scalar _Any
 
 type _Service {
-  sdl: String
+	sdl: String
 }
 
-directive @deprecated(
-  reason: String = "No longer supported"
-) on FIELD_DEFINITION | ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION | ENUM_VALUE
+directive @deprecated(reason: String = "No longer supported") on FIELD_DEFINITION | ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION | ENUM_VALUE
 directive @include(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
 directive @skip(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
 directive @specifiedBy(url: String!) on SCALAR
 schema {
-  query: Query
-  mutation: Mutation
-  subscription: Subscription
+	query: Query
+	mutation: Mutation
+	subscription: Subscription
 }
+
