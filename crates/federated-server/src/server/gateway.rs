@@ -242,72 +242,72 @@ fn create_extension_catalog(gateway_config: &Config) -> crate::Result<ExtensionC
         catalog.push(extension);
     }
 
-    let Ok(grafbase_extensions) = env::current_dir()
-        .map_err(|e| Error::InternalError(e.to_string()))?
-        .join("grafbase_extensions")
-        .read_dir()
-    else {
-        return Ok(catalog);
-    };
+    // let Ok(grafbase_extensions) = env::current_dir()
+    //     .map_err(|e| Error::InternalError(e.to_string()))?
+    //     .join("grafbase_extensions")
+    //     .read_dir()
+    // else {
+    //     return Ok(catalog);
+    // };
 
-    for extension_dir in grafbase_extensions {
-        let extension_dir = extension_dir.map_err(|e| Error::InternalError(e.to_string()))?;
+    // for extension_dir in grafbase_extensions {
+    //     let extension_dir = extension_dir.map_err(|e| Error::InternalError(e.to_string()))?;
 
-        if !extension_dir.path().is_dir() {
-            continue;
-        }
+    //     if !extension_dir.path().is_dir() {
+    //         continue;
+    //     }
 
-        let extension_dir = extension_dir
-            .path()
-            .read_dir()
-            .map_err(|e| Error::InternalError(e.to_string()))?;
+    //     let extension_dir = extension_dir
+    //         .path()
+    //         .read_dir()
+    //         .map_err(|e| Error::InternalError(e.to_string()))?;
 
-        let mut manifest = None;
-        let mut wasm_path = None;
+    //     let mut manifest = None;
+    //     let mut wasm_path = None;
 
-        for file in extension_dir {
-            let file = file.map_err(|e| Error::InternalError(e.to_string()))?;
+    //     for file in extension_dir {
+    //         let file = file.map_err(|e| Error::InternalError(e.to_string()))?;
 
-            if file.path().is_dir() {
-                continue;
-            }
+    //         if file.path().is_dir() {
+    //             continue;
+    //         }
 
-            let path = file.path();
-            let file_name = path.file_name().and_then(|n| n.to_str());
+    //         let path = file.path();
+    //         let file_name = path.file_name().and_then(|n| n.to_str());
 
-            if file_name == Some("manifest.json") {
-                let manifest_data = File::open(file.path()).map_err(|e| Error::InternalError(e.to_string()))?;
+    //         if file_name == Some("manifest.json") {
+    //             let manifest_data = File::open(file.path()).map_err(|e| Error::InternalError(e.to_string()))?;
 
-                let manifest_data: Manifest =
-                    serde_json::from_reader(manifest_data).map_err(|e| Error::InternalError(e.to_string()))?;
+    //             let manifest_data: Manifest =
+    //                 serde_json::from_reader(manifest_data).map_err(|e| Error::InternalError(e.to_string()))?;
 
-                manifest = Some(manifest_data);
+    //             manifest = Some(manifest_data);
 
-                continue;
-            }
+    //             continue;
+    //         }
 
-            if file_name == Some("extension.wasm") {
-                wasm_path = Some(file.path().to_path_buf());
-            }
-        }
+    //         if file_name == Some("extension.wasm") {
+    //             wasm_path = Some(file.path().to_path_buf());
+    //         }
+    //     }
 
-        if let Some((wasm_path, manifest)) = wasm_path.zip(manifest) {
-            if extension_configs
-                .get(manifest.name())
-                .filter(|c| c.version().matches(manifest.version()))
-                .is_none()
-            {
-                continue;
-            }
+    //     if let Some((wasm_path, manifest)) = wasm_path.zip(manifest) {
+    //         if extension_configs
+    //             .get(manifest.name())
+    //             .filter(|c| c.version().matches(manifest.version()))
+    //             .is_none()
+    //         {
+    //             continue;
+    //         }
 
-            let extension = Extension {
-                manifest,
-                wasm_path: wasm_path.canonicalize().unwrap(),
-            };
+    //         let extension = Extension {
+    //             manifest,
+    //             wasm_path: wasm_path.canonicalize().unwrap(),
+    //         };
 
-            catalog.push(extension);
-        }
-    }
+    //         catalog.push(extension);
+    //     }
+    // }
 
     Ok(catalog)
 }
