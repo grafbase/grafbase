@@ -97,13 +97,13 @@ impl ComponentInstance {
 
         match self.instance.get_typed_func(&mut self.store, function_name) {
             Ok(function) => {
-                tracing::debug!("instantized the {function_name} hook Wasm function");
+                tracing::debug!("instantiating the {function_name} hook Wasm function");
                 self.function_cache.push((function_name, Some(Box::new(function))));
                 Some(function)
             }
             Err(e) => {
                 // Shouldn't happen, so we keep spamming errors to be sure it's seen.
-                tracing::error!("error instantizing the {function_name} hook Wasm function: {e}");
+                tracing::error!("error instantiating the {function_name} hook Wasm function: {e}");
                 None
             }
         }
