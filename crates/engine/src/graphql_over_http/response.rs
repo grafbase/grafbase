@@ -59,7 +59,7 @@ impl Http {
         hooks_context: C,
         mut responses: Vec<Response<O>>,
     ) -> http::Response<Body> {
-        let bytes = match serde_json::to_vec(&responses) {
+        let bytes = match sonic_rs::to_vec(&responses) {
             Ok(bytes) => OwnedOrSharedBytes::Owned(bytes),
             Err(err) => {
                 tracing::error!("Failed to serialize response: {err}");
@@ -172,7 +172,7 @@ impl Http {
         response: &Response<O>,
     ) -> http::Response<Body> {
         let telemetry = TelemetryExtension::Ready(response.execution_telemetry());
-        let bytes = match serde_json::to_vec(response) {
+        let bytes = match sonic_rs::to_vec(response) {
             Ok(bytes) => OwnedOrSharedBytes::Owned(bytes),
             Err(err) => {
                 tracing::error!("Failed to serialize response: {err}");

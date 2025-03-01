@@ -109,7 +109,7 @@ async fn handle_incoming_event<R: Runtime>(
     tasks: &mut tokio::task::JoinSet<()>,
     subscriptions: &mut HashMap<String, tokio::task::AbortHandle>,
 ) -> Option<Message<R>> {
-    let event: Event = serde_json::from_str(&text).ok()?;
+    let event: Event = sonic_rs::from_str(&text).ok()?;
     match event {
         Event::Subscribe(event) => {
             if subscriptions.contains_key(&event.id) {
@@ -162,7 +162,7 @@ async fn accept_websocket<R: Runtime>(
     engine: &EngineWatcher<R>,
 ) -> Option<WebsocketSession<R>> {
     while let Some(text) = websocket.recv_message().await {
-        let event: Event = serde_json::from_str(&text).ok()?;
+        let event: Event = sonic_rs::from_str(&text).ok()?;
         match event {
             Event::ConnectionInit { payload } => {
                 let engine = engine.borrow().clone();

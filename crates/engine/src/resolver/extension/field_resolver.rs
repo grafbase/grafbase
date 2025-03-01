@@ -53,7 +53,7 @@ impl<'ctx> FieldResolverExtensionRequest<'ctx> {
                         .seed(&ctx, id)
                         .deserialize_field_as_entity(
                             field.subgraph_response_key_str(),
-                            &mut serde_json::Deserializer::from_slice(&bytes),
+                            &mut sonic_rs::Deserializer::from_slice(&bytes),
                         )
                         .map_err(|err| {
                             tracing::error!("Failed to deserialize subgraph response: {}", err);
@@ -65,7 +65,7 @@ impl<'ctx> FieldResolverExtensionRequest<'ctx> {
                         "Received:\n{}",
                         minicbor_serde::from_slice(&bytes)
                             .ok()
-                            .and_then(|v: serde_json::Value| serde_json::to_string_pretty(&v).ok())
+                            .and_then(|v: sonic_rs::Value| sonic_rs::to_string_pretty(&v).ok())
                             .unwrap_or_else(|| "<error>".to_string())
                     );
 

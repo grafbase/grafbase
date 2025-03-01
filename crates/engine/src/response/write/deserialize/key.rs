@@ -31,7 +31,7 @@ mod tests {
     #[test]
     fn test_key_borrows() {
         assert_eq!(
-            serde_json::from_str::<Key<'_>>("\"hello\"").unwrap(),
+            sonic_rs::from_str::<Key<'_>>("\"hello\"").unwrap(),
             Key(Cow::Borrowed("hello"))
         );
     }

@@ -20,6 +20,7 @@ publish = false
 
 ### BEGIN HAKARI SECTION
 [dependencies]
+ahash = { version = "0.8" }
 aho-corasick = { version = "1" }
 anyhow = { version = "1" }
 arrayvec = { version = "0.7" }
@@ -28,6 +29,7 @@ axum = { version = "0.8", default-features = false, features = ["http1", "json",
 axum-core = { version = "0.5", default-features = false, features = ["tracing"] }
 base16ct = { version = "0.2", default-features = false, features = ["alloc"] }
 bitflags = { version = "2", default-features = false, features = ["std"] }
+bumpalo = { version = "3", features = ["allocator-api2"] }
 byteorder = { version = "1" }
 bytes = { version = "1", features = ["serde"] }
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde", "wasmbind"] }
@@ -150,6 +152,7 @@ zstd-safe = { version = "7", default-features = false, features = ["arrays", "le
 zstd-sys = { version = "2", default-features = false, features = ["legacy", "std", "zdict_builder"] }
 
 [build-dependencies]
+ahash = { version = "0.8" }
 aho-corasick = { version = "1" }
 anyhow = { version = "1" }
 arrayvec = { version = "0.7" }
@@ -158,6 +161,7 @@ axum = { version = "0.8", default-features = false, features = ["http1", "json",
 axum-core = { version = "0.5", default-features = false, features = ["tracing"] }
 base16ct = { version = "0.2", default-features = false, features = ["alloc"] }
 bitflags = { version = "2", default-features = false, features = ["std"] }
+bumpalo = { version = "3", features = ["allocator-api2"] }
 byteorder = { version = "1" }
 bytes = { version = "1", features = ["serde"] }
 cc = { version = "1", default-features = false, features = ["parallel"] }
@@ -283,7 +287,6 @@ zstd-sys = { version = "2", default-features = false, features = ["legacy", "std
 
 [target.aarch64-apple-darwin.dependencies]
 addr2line = { version = "0.24", default-features = false, features = ["std"] }
-ahash = { version = "0.8" }
 axum = { version = "0.8" }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
@@ -298,7 +301,6 @@ tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features 
 
 [target.aarch64-apple-darwin.build-dependencies]
 addr2line = { version = "0.24", default-features = false, features = ["std"] }
-ahash = { version = "0.8" }
 axum = { version = "0.8" }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
@@ -313,7 +315,6 @@ tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features 
 
 [target.x86_64-apple-darwin.dependencies]
 addr2line = { version = "0.24", default-features = false, features = ["std"] }
-ahash = { version = "0.8" }
 axum = { version = "0.8" }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
@@ -329,7 +330,6 @@ tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features 
 
 [target.x86_64-apple-darwin.build-dependencies]
 addr2line = { version = "0.24", default-features = false, features = ["std"] }
-ahash = { version = "0.8" }
 axum = { version = "0.8" }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
@@ -365,7 +365,6 @@ windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", feat
 
 [target.x86_64-unknown-linux-musl.dependencies]
 addr2line = { version = "0.24", default-features = false, features = ["std"] }
-ahash = { version = "0.8" }
 axum = { version = "0.8" }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
@@ -382,7 +381,6 @@ tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features 
 
 [target.x86_64-unknown-linux-musl.build-dependencies]
 addr2line = { version = "0.24", default-features = false, features = ["std"] }
-ahash = { version = "0.8" }
 axum = { version = "0.8" }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
@@ -399,7 +397,6 @@ tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features 
 
 [target.aarch64-unknown-linux-musl.dependencies]
 addr2line = { version = "0.24", default-features = false, features = ["std"] }
-ahash = { version = "0.8" }
 axum = { version = "0.8" }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
@@ -415,7 +412,6 @@ tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features 
 
 [target.aarch64-unknown-linux-musl.build-dependencies]
 addr2line = { version = "0.24", default-features = false, features = ["std"] }
-ahash = { version = "0.8" }
 axum = { version = "0.8" }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
