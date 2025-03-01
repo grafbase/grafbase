@@ -33,6 +33,7 @@ multipart-stream = { git = "https://github.com/grafbase/multipart-stream-rs-fork
 # this repo, but not when pulling it in
 # See https://docs.rs/cargo-hakari/0.9.30/cargo_hakari/patch_directive/index.html for details
 grafbase-workspace-hack.path = "crates/grafbase-workspace-hack"
+reqwest = { git = "https://github.com/Finistere/reqwest", branch = "show-extra-frames" }
 
 [workspace.package]
 edition = "2024"
