@@ -7,14 +7,13 @@ use super::{
     pool::{ExtensionGuard, Pool},
     wit,
 };
-use engine_schema::Definition;
 use extension_catalog::ExtensionId;
 use futures::stream::BoxStream;
 use futures_util::{StreamExt, stream};
 use gateway_config::WasiExtensionsConfig;
 use runtime::{
     error::{ErrorResponse, PartialErrorCode, PartialGraphqlError},
-    extension::{AuthorizationDecisions, AuthorizerId, Data, DirectiveSite, ExtensionFieldDirective, ExtensionRuntime},
+    extension::{AuthorizationDecisions, AuthorizerId, Data, ExtensionFieldDirective, ExtensionRuntime, QueryElement},
     hooks::Anything,
 };
 use std::{
@@ -119,8 +118,8 @@ impl ExtensionRuntime for ExtensionsWasiRuntime {
                 site: wit::FieldDefinitionDirectiveSite {
                     parent_type_name: field.parent_entity().name(),
                     field_name: field.name(),
-                    arguments: cbor::to_vec(arguments).unwrap(),
                 },
+                arguments: cbor::to_vec(arguments).unwrap(),
             };
 
             let output = instance
@@ -182,8 +181,8 @@ impl ExtensionRuntime for ExtensionsWasiRuntime {
             site: wit::FieldDefinitionDirectiveSite {
                 parent_type_name: field.parent_entity().name(),
                 field_name: field.name(),
-                arguments: cbor::to_vec(arguments).unwrap(),
             },
+            arguments: cbor::to_vec(arguments).unwrap(),
         };
 
         instance
@@ -234,70 +233,46 @@ impl ExtensionRuntime for ExtensionsWasiRuntime {
         Ok(Box::pin(stream))
     }
 
-    async fn authorize_query<'ctx>(
+    fn authorize_query<'ctx, 'fut, Groups, QueryElements, Arguments>(
         &'ctx self,
-        context: &'ctx Self::SharedContext,
         extension_id: ExtensionId,
-        // (directive name, (definition, arguments))
-        elements: impl IntoIterator<
-            Item = (
-                &'ctx str,
-                impl IntoIterator<Item = DirectiveSite<'ctx, impl Anything<'ctx>>> + Send + 'ctx,
-            ),
-        > + Send
-        + 'ctx,
-    ) -> Result<AuthorizationDecisions, ErrorResponse> {
-        let mut instance = self.get(ExtensionPoolId::Authorization(extension_id)).await?;
-        let mut directive_names = Vec::<(&str, u32, u32)>::new();
+        elements_grouped_by_directive_name: Groups,
+    ) -> impl Future<Output = Result<AuthorizationDecisions, ErrorResponse>> + Send + 'fut
+    where
+        'ctx: 'fut,
+        Groups: IntoIterator<Item = (&'ctx str, QueryElements)>,
+        QueryElements: IntoIterator<Item = QueryElement<'ctx, Arguments>>,
+        Arguments: Anything<'ctx>,
+    {
+        let mut directive_names = Vec::<(&'ctx str, u32, u32)>::new();
         let mut query_elements = Vec::new();
-        for (name, sites) in elements {
+        for (directive_name, elements) in elements_grouped_by_directive_name {
             let start = query_elements.len();
-            for site in sites {
+            for element in elements {
                 // Some help for rust-analyzer who struggles for some reason.
-                let site: DirectiveSite<'_, _> = site;
-                let arguments = cbor::to_vec(site.arguments).unwrap();
+                let element: QueryElement<'_, _> = element;
+                let arguments = cbor::to_vec(element.arguments).unwrap();
 
-                let query_element = match site.definition {
-                    Definition::InputObject(_) => unreachable!("We don't authorize inputs."),
-                    Definition::Enum(def) => wit::DirectiveSite::Enum(wit::EnumDirectiveSite {
-                        enum_name: def.name(),
-                        arguments,
-                    }),
-                    Definition::Interface(def) => wit::DirectiveSite::Interface(wit::InterfaceDirectiveSite {
-                        interface_name: def.name(),
-                        arguments,
-                    }),
-                    Definition::Object(def) => wit::DirectiveSite::Object(wit::ObjectDirectiveSite {
-                        object_name: def.name(),
-                        arguments,
-                    }),
-                    Definition::Scalar(def) => wit::DirectiveSite::Scalar(wit::ScalarDirectiveSite {
-                        scalar_name: def.name(),
-                        arguments,
-                    }),
-                    Definition::Union(def) => wit::DirectiveSite::Union(wit::UnionDirectiveSite {
-                        union_name: def.name(),
-                        arguments,
-                    }),
-                };
-
-                query_elements.push(query_element);
+                query_elements.push(wit::QueryElement {
+                    site: element.site.into(),
+                    arguments,
+                });
             }
             let end = query_elements.len();
-            directive_names.push((name, start as u32, end as u32));
+            directive_names.push((directive_name, start as u32, end as u32));
         }
 
-        instance
-            .authorize_query(
-                context.clone(),
-                wit::QueryElements {
-                    directive_names: directive_names.as_slice(),
-                    elements: query_elements.as_slice(),
-                },
-            )
-            .await
-            .map(Into::into)
-            .map_err(|err| err.into_graphql_error_response(PartialErrorCode::Unauthorized))
+        async move {
+            let mut instance = self.get(ExtensionPoolId::Authorization(extension_id)).await?;
+            instance
+                .authorize_query(wit::QueryElements {
+                    directive_names,
+                    elements: query_elements,
+                })
+                .await
+                .map(Into::into)
+                .map_err(|err| err.into_graphql_error_response(PartialErrorCode::Unauthorized))
+        }
     }
 }
 

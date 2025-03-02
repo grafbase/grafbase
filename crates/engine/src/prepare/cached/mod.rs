@@ -68,10 +68,6 @@ impl<'a> CachedOperationContext<'a> {
         IdRange::<PartitionDataFieldId>::from(0..self.cached.query_plan.data_fields.len()).walk(*self)
     }
 
-    pub(in crate::prepare) fn query_modifiers(&self) -> impl Iter<Item = QueryModifier<'a>> + 'a {
-        self.cached.query_plan.query_modifiers.walk(*self)
-    }
-
     pub(in crate::prepare) fn response_modifier_definitions(
         &self,
     ) -> impl Iter<Item = ResponseModifierDefinition<'a>> + 'a {

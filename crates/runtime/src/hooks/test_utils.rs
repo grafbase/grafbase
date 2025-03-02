@@ -4,7 +4,7 @@ use std::{
     sync::Arc,
 };
 
-use futures_util::{FutureExt, future::BoxFuture};
+use futures_util::{future::BoxFuture, FutureExt};
 
 use super::*;
 

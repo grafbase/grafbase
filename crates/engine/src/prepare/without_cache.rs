@@ -18,31 +18,32 @@ impl<R: Runtime> PrepareContext<'_, R> {
         variables: RawVariables,
     ) -> Result<PreparedOperation, Response<<R::Hooks as Hooks>::OnOperationResponseOutput>> {
         if document.content.len() >= self.schema().settings.executable_document_limit_bytes {
-            return Err(Response::request_error(
-                None,
-                [GraphqlError::new(
-                    "Executable document exceeded the maximum configured size",
-                    ErrorCode::OperationValidationError,
-                )],
-            ));
+            let error = GraphqlError::new(
+                "Executable document exceeded the maximum configured size",
+                ErrorCode::OperationValidationError,
+            );
+            return Err(Response::request_error([error]));
         }
 
         let operation = match Operation::parse(self.schema(), document.operation_name(), &document.content) {
             Ok(operation) => operation,
             Err(err) => {
                 return Err(match err {
-                    operation::Error::Parsing { message, locations } => Response::request_error(
-                        None,
-                        [GraphqlError::new(message, ErrorCode::OperationParsingError).with_locations(locations)],
-                    ),
+                    operation::Error::Parsing { message, locations } => {
+                        let error =
+                            GraphqlError::new(message, ErrorCode::OperationParsingError).with_locations(locations);
+                        Response::request_error([error])
+                    }
                     operation::Error::Validation {
                         message,
                         locations,
                         attributes,
-                    } => Response::request_error(
-                        Some(attributes.with_complexity_cost(None)),
-                        [GraphqlError::new(message, ErrorCode::OperationValidationError).with_locations(locations)],
-                    ),
+                    } => {
+                        let error =
+                            GraphqlError::new(message, ErrorCode::OperationValidationError).with_locations(locations);
+                        Response::request_error([error])
+                            .with_operation_attributes(attributes.with_complexity_cost(None))
+                    }
                 });
             }
         };
@@ -64,20 +65,17 @@ impl<R: Runtime> PrepareContext<'_, R> {
         let variables = match Variables::bind(self.schema(), &operation, variables) {
             Ok(variables) => variables,
             Err(errors) => {
-                return Err(Response::request_error(
-                    Some(operation.attributes.with_complexity_cost(None)),
-                    errors,
-                ));
+                return Err(Response::request_error(errors)
+                    .with_operation_attributes(operation.attributes.clone().with_complexity_cost(None)));
             }
         };
 
         let complexity_cost = match operation.compute_and_validate_complexity(self.schema(), &variables) {
             Ok(cost) => cost,
             Err(err) => {
-                return Err(Response::request_error(
-                    Some(operation.attributes.with_complexity_cost(None)),
-                    [GraphqlError::new(err.to_string(), ErrorCode::OperationValidationError)],
-                ));
+                let error = GraphqlError::new(err.to_string(), ErrorCode::OperationValidationError);
+                return Err(Response::request_error([error])
+                    .with_operation_attributes(operation.attributes.clone().with_complexity_cost(None)));
             }
         };
 
@@ -85,19 +83,20 @@ impl<R: Runtime> PrepareContext<'_, R> {
         let cached = match crate::prepare::solve(self.schema(), document, operation) {
             Ok(plan) => plan,
             Err(err) => {
-                return Err(Response::request_error(
-                    Some(attributes.with_complexity_cost(complexity_cost)),
-                    [err],
-                ));
+                return Err(Response::request_error([err])
+                    .with_operation_attributes(attributes.with_complexity_cost(complexity_cost)));
             }
         };
 
         let plan = match crate::prepare::plan(self, &cached, &variables).await {
             Ok(plan) => plan,
-            Err(err) => {
-                return Err(Response::request_error(
-                    Some(attributes.with_complexity_cost(complexity_cost)),
-                    [err],
+            Err(response) => {
+                return Err(response.with_operation_attributes(
+                    cached
+                        .operation
+                        .attributes
+                        .clone()
+                        .with_complexity_cost(complexity_cost),
                 ));
             }
         };

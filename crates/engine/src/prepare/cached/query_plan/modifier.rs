@@ -1,6 +1,6 @@
-use schema::{AuthorizedDirectiveId, DefinitionId, FieldDefinitionId, RequiresScopesDirectiveId};
+use schema::{AuthorizedDirectiveId, DefinitionId, ExtensionDirectiveId, FieldDefinitionId, RequiresScopesDirectiveId};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub(crate) enum QueryModifierRule {
     Authenticated,
     RequiresScopes(RequiresScopesDirectiveId),
@@ -21,6 +21,17 @@ pub(crate) enum QueryModifierRule {
         // sorted
         directives: Vec<operation::ExecutableDirectiveId>,
     },
+    Extension {
+        directive_id: ExtensionDirectiveId,
+        target: ModifierTarget,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+pub(crate) enum ModifierTarget {
+    Field(FieldDefinitionId),
+    FieldWithArguments(FieldDefinitionId, query_solver::QueryOrSchemaFieldArgumentIds),
+    Definition(DefinitionId),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]

@@ -11,7 +11,7 @@ use walker::Walk;
 use crate::{
     Runtime,
     execution::ExecutionContext,
-    prepare::{Plan, create_extension_directive_arguments_view, create_extension_directive_response_view},
+    prepare::{Plan, create_extension_directive_query_view, create_extension_directive_response_view},
     response::{ResponseObjectsView, SubgraphResponse},
 };
 
@@ -46,7 +46,7 @@ impl FieldResolverExtension {
         let field_definition = field.definition();
 
         let query_view =
-            create_extension_directive_arguments_view(ctx.schema(), directive, field.arguments(), ctx.variables());
+            create_extension_directive_query_view(ctx.schema(), directive, field.arguments(), ctx.variables());
 
         let extension_directive = ExtensionFieldDirective {
             extension_id: directive.extension_id,
@@ -85,7 +85,7 @@ impl FieldResolverExtension {
         let field_definition = field.definition();
 
         let query_view =
-            create_extension_directive_arguments_view(ctx.schema(), directive, field.arguments(), ctx.variables());
+            create_extension_directive_query_view(ctx.schema(), directive, field.arguments(), ctx.variables());
 
         let response_view =
             create_extension_directive_response_view(query_view.ctx, directive, root_response_objects.clone());

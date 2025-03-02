@@ -25,7 +25,7 @@ impl TestExtensionBuilder for DoubleEchoExt {
     fn config(&self) -> TestExtensionConfig {
         TestExtensionConfig {
             kind: extension_catalog::Kind::FieldResolver(extension_catalog::FieldResolver {
-                resolver_directives: vec!["echo".to_string(), "echoArgs".to_string()],
+                resolver_directives: Some(vec!["echo".to_string(), "echoArgs".to_string()]),
             }),
             sdl: Some(
                 r#"

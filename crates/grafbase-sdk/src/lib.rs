@@ -44,8 +44,9 @@ mod wit {
 
     pub use exports::grafbase::sdk::extension::Guest;
     pub use grafbase::sdk::directive::{
-        EnumDirectiveSite, FieldDefinitionDirective, FieldDefinitionDirectiveSite, InterfaceDirectiveSite,
-        ObjectDirectiveSite, ScalarDirectiveSite, SchemaDirective, UnionDirectiveSite,
+        DirectiveSite, EnumDirectiveSite, FieldDefinitionDirective, FieldDefinitionDirectiveSite,
+        InterfaceDirectiveSite, ObjectDirectiveSite, QueryElement, QueryElements, ScalarDirectiveSite, SchemaDirective,
+        UnionDirectiveSite,
     };
     pub use grafbase::sdk::types::*;
 }

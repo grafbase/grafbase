@@ -72,7 +72,8 @@ pub enum Kind {
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct FieldResolver {
-    pub resolver_directives: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub resolver_directives: Option<Vec<String>>,
 }
 
 // Allows us to add fields later, as adding a value to an enum that doesn't have one would be
@@ -110,7 +111,7 @@ mod tests {
                 version: semver::Version::new(1, 0, 0),
             },
             kind: Kind::FieldResolver(FieldResolver {
-                resolver_directives: vec!["custom".to_string()],
+                resolver_directives: Some(vec!["custom".to_string()]),
             }),
             sdk_version: semver::Version::new(0, 1, 0),
             minimum_gateway_version: semver::Version::new(0, 1, 0),
@@ -127,7 +128,7 @@ mod tests {
     }
 
     #[test]
-    fn v1_field_resolver_with_serde_rename() {
+    fn field_resolver() {
         // Test compatibility with previous snake_case/camelCase variations
         let json = json!({
             "id": {"name": "test", "version": "1.0.0"},
@@ -151,7 +152,7 @@ mod tests {
                 version: semver::Version::new(1, 0, 0),
             },
             kind: Kind::FieldResolver(FieldResolver {
-                resolver_directives: vec!["custom".to_string()],
+                resolver_directives: Some(vec!["custom".to_string()]),
             }),
             sdk_version: semver::Version::new(0, 1, 0),
             minimum_gateway_version: semver::Version::new(0, 1, 0),
@@ -168,7 +169,46 @@ mod tests {
     }
 
     #[test]
-    fn v1_authenticator_empty_compatibility() {
+    fn field_resolver_without_directives() {
+        // Test compatibility with previous snake_case/camelCase variations
+        let json = json!({
+            "id": {"name": "test", "version": "1.0.0"},
+            "kind": {
+                "FieldResolver": {}
+            },
+            "sdl": "directive @custom on FIELD_DEFINITION",
+            "sdk_version": "0.1.0",
+            "minimum_gateway_version": "0.1.0",
+            "description": "Mandatory description",
+            "homepage_url": "http://example.com/my-extension",
+        });
+
+        let manifest: Manifest = serde_json::from_value(json).unwrap();
+
+        let expected = Manifest {
+            id: Id {
+                name: "test".to_string(),
+                version: semver::Version::new(1, 0, 0),
+            },
+            kind: Kind::FieldResolver(FieldResolver {
+                resolver_directives: None,
+            }),
+            sdk_version: semver::Version::new(0, 1, 0),
+            minimum_gateway_version: semver::Version::new(0, 1, 0),
+            sdl: Some("directive @custom on FIELD_DEFINITION".to_string()),
+            description: "Mandatory description".to_owned(),
+            readme: None,
+            homepage_url: Some("http://example.com/my-extension".parse().unwrap()),
+            repository_url: None,
+            license: None,
+            permissions: BitFlags::empty(),
+        };
+
+        assert_eq!(manifest, expected,);
+    }
+
+    #[test]
+    fn authenticator_empty_compatibility() {
         // Test authenticator with empty object (previous versions might have had different structures)
         let json = json!({
             "id": {"name": "auth", "version": "2.0.0"},
@@ -204,7 +244,7 @@ mod tests {
     }
 
     #[test]
-    fn v1_missing_optional_fields() {
+    fn missing_optional_fields() {
         // Test older versions that might not have had the sdl field
         let json = json!({
             "id": {"name": "legacy", "version": "0.5.0"},

@@ -17,7 +17,7 @@ pub struct Extension {
     pub wasm_path: PathBuf,
 }
 
-#[derive(Default)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum ExtensionDirectiveKind {
     #[default]
     Unknown,
@@ -25,8 +25,12 @@ pub enum ExtensionDirectiveKind {
 }
 
 impl ExtensionDirectiveKind {
-    pub fn is_field_resolver(&self) -> bool {
+    pub fn is_resolver(&self) -> bool {
         matches!(self, Self::FieldResolver)
+    }
+
+    pub fn is_authorization(&self) -> bool {
+        false
     }
 }
 
@@ -50,12 +54,18 @@ impl ExtensionCatalog {
 
     pub fn get_directive_kind(&self, id: ExtensionId, name: &str) -> ExtensionDirectiveKind {
         match &self[id].manifest.kind {
-            extension::Kind::FieldResolver(FieldResolver { resolver_directives })
-                if resolver_directives.iter().any(|dir| dir == name) =>
-            {
-                ExtensionDirectiveKind::FieldResolver
+            extension::Kind::FieldResolver(FieldResolver { resolver_directives }) => {
+                if let Some(directives) = resolver_directives {
+                    directives
+                        .iter()
+                        .any(|dir| dir == name)
+                        .then_some(ExtensionDirectiveKind::FieldResolver)
+                        .unwrap_or_default()
+                } else {
+                    ExtensionDirectiveKind::FieldResolver
+                }
             }
-            _ => ExtensionDirectiveKind::Unknown,
+            extension::Kind::Authenticator(_) => Default::default(),
         }
     }
 

@@ -18,6 +18,17 @@ type RootOperationTypes @meta(module: "root") {
   subscription: ObjectDefinition
 }
 
+union DirectiveSite @id @meta(module: "directive_site") @variants(remove_suffix: "Definition") =
+  | ObjectDefinition
+  | InterfaceDefinition
+  | UnionDefinition
+  | EnumDefinition
+  | InputObjectDefinition
+  | ScalarDefinition
+  | FieldDefinition
+  | InputValueDefinition
+  | EnumValue
+
 union Definition @id @meta(module: "definition") @variants(remove_suffix: true) =
   | ObjectDefinition
   | InterfaceDefinition
@@ -203,6 +214,7 @@ union TypeSystemDirective
   | AuthorizedDirective
   | CostDirective
   | ListSizeDirective
+  | ExtensionDirective
 
 type DeprecatedDirective
   @meta(module: "directive/deprecated", derive: ["PartialEq", "Eq", "PartialOrd", "Ord", "Hash"])
@@ -232,12 +244,15 @@ type ListSizeDirective @meta(module: "directive/complexity_control") @indexed(id
 
 scalar ExtensionId @id @prelude
 scalar ExtensionDirectiveArgumentId @id
+scalar ExtensionDirectiveKind @copy @prelude
 
 type ExtensionDirective @meta(module: "directive/extension") @indexed(id_size: "u32") {
   subgraph: Subgraph!
   extension_id: ExtensionId!
+  kind: ExtensionDirectiveKind!
   name: String!
   argument_ids: [ExtensionDirectiveArgumentId!]!
+  requirements: FieldSet!
 }
 
 # -------------
@@ -326,5 +341,4 @@ type GraphqlFederationEntityResolverDefinition @meta(module: "resolver/graphql")
 
 type FieldResolverExtensionDefinition @meta(module: "resolver/field_resolver_ext") {
   directive: ExtensionDirective!
-  requirements: FieldSet!
 }

@@ -34,10 +34,8 @@ impl<R: Runtime> PrepareContext<'_, R> {
         let variables = match Variables::bind(self.schema(), &cached.operation, variables) {
             Ok(variables) => variables,
             Err(errors) => {
-                return Err(Response::request_error(
-                    Some(cached.operation.attributes.clone().with_complexity_cost(None)),
-                    errors,
-                ));
+                return Err(Response::request_error(errors)
+                    .with_operation_attributes(cached.operation.attributes.clone().with_complexity_cost(None)));
             }
         };
 
@@ -47,25 +45,21 @@ impl<R: Runtime> PrepareContext<'_, R> {
         {
             Ok(cost) => cost,
             Err(err) => {
-                return Err(Response::request_error(
-                    Some(cached.operation.attributes.clone().with_complexity_cost(None)),
-                    [GraphqlError::new(err.to_string(), ErrorCode::OperationValidationError)],
-                ));
+                let error = GraphqlError::new(err.to_string(), ErrorCode::OperationValidationError);
+                return Err(Response::request_error([error])
+                    .with_operation_attributes(cached.operation.attributes.clone().with_complexity_cost(None)));
             }
         };
 
         let plan = match crate::prepare::plan(self, &cached, &variables).await {
             Ok(plan) => plan,
-            Err(err) => {
-                return Err(Response::request_error(
-                    Some(
-                        cached
-                            .operation
-                            .attributes
-                            .clone()
-                            .with_complexity_cost(complexity_cost),
-                    ),
-                    [err],
+            Err(response) => {
+                return Err(response.with_operation_attributes(
+                    cached
+                        .operation
+                        .attributes
+                        .clone()
+                        .with_complexity_cost(complexity_cost),
                 ));
             }
         };

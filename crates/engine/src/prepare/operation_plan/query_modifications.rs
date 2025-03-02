@@ -1,8 +1,12 @@
 use std::{num::NonZero, ops::Deref};
 
-use id_newtypes::{BitSet, IdToMany};
+use extension_catalog::ExtensionId;
+use futures::{TryStreamExt as _, future::FutureExt, stream::FuturesUnordered};
+use id_newtypes::{BitSet, IdRange, IdToMany};
 use operation::{InputValueContext, Variables};
 use query_solver::QueryOrSchemaFieldArgumentIds;
+use runtime::extension::{AuthorizationDecisions, ExtensionRuntime, QueryElement};
+use schema::DirectiveSiteId;
 use serde::Deserialize;
 use walker::Walk;
 
@@ -10,8 +14,9 @@ use crate::{
     Runtime,
     prepare::{
         CachedOperation, CachedOperationContext, ConcreteShapeId, ErrorCode, FieldShapeId, GraphqlError,
-        PartitionDataFieldId, PartitionField, PartitionTypenameFieldId, PrepareContext, QueryModifier,
-        QueryModifierRule, RequiredFieldSetRecord,
+        ModifierTarget, PartitionDataFieldId, PartitionField, PartitionTypenameFieldId, PrepareContext,
+        QueryModifierByDirectiveGroupId, QueryModifierId, QueryModifierRecord, QueryModifierRule,
+        QueryOrStaticExtensionDirectiveArugmentsView, RequiredFieldSetRecord, create_extension_directive_query_view,
     },
 };
 
@@ -19,10 +24,9 @@ use super::PlanResult;
 
 #[derive(Default, id_derives::IndexedFields)]
 pub(crate) struct QueryModifications {
-    pub is_any_field_skipped: bool,
-    pub response_data_fields: BitSet<PartitionDataFieldId>,
-    pub response_typename_fields: BitSet<PartitionTypenameFieldId>,
-    pub subgraph_request_data_fields: BitSet<PartitionDataFieldId>,
+    pub included_response_data_fields: BitSet<PartitionDataFieldId>,
+    pub included_response_typename_fields: BitSet<PartitionTypenameFieldId>,
+    pub included_subgraph_request_data_fields: BitSet<PartitionDataFieldId>,
     #[indexed_by(ErrorId)]
     pub errors: Vec<GraphqlError>,
     pub concrete_shape_has_error: BitSet<ConcreteShapeId>,
@@ -53,10 +57,11 @@ impl QueryModifications {
             },
             field_shape_id_to_error_ids: Default::default(),
             modifications: QueryModifications {
-                is_any_field_skipped: false,
-                response_data_fields: cached.query_plan.response_data_fields.clone(),
-                response_typename_fields: cached.query_plan.response_typename_fields.clone(),
-                subgraph_request_data_fields: Default::default(),
+                included_response_data_fields: cached.query_plan.response_data_fields.clone(),
+                included_response_typename_fields: cached.query_plan.response_typename_fields.clone(),
+                // We initialize the subgraph_request_data_fields later from the
+                // response_data_fields.
+                included_subgraph_request_data_fields: Default::default(),
                 concrete_shape_has_error: BitSet::with_capacity(cached.shapes.concrete.len()),
                 errors: Vec::new(),
                 field_shape_id_to_error_ids: Default::default(),
@@ -82,19 +87,132 @@ where
     'ctx: 'op,
 {
     pub(super) async fn build(mut self) -> PlanResult<QueryModifications> {
+        // Hooks authorization will go away and @authenticiated &
+        // @requiresScopes will be an extension. So we're left with skip/include in the host part
+        // which don't need I/O. So no need to parallelize that today.
+        let modifiers = &self.operation_ctx.cached.query_plan.query_modifiers;
+        self.handle_native_modifiers(&modifiers[modifiers.native_ids]).await?;
+
+        let ctx = self.ctx;
+        let operation_ctx = self.operation_ctx;
+        let variables = &self.input_value_ctx.variables;
+        let decisions = modifiers
+            .by_extension
+            .iter()
+            .copied()
+            .map(async |(extension_id, group, modifier_ids)| {
+                Self::handle_extension_modifiers(ctx, operation_ctx, variables, extension_id, group)
+                    .await
+                    .map(|decisions| (modifier_ids, decisions))
+            })
+            .collect::<FuturesUnordered<_>>()
+            .try_collect::<Vec<_>>()
+            .await?;
+
+        for (modifier_ids, decisions) in decisions {
+            self.handle_extension_decisions(modifier_ids, decisions);
+        }
+
+        Ok(self.finalize())
+    }
+
+    async fn handle_extension_modifiers(
+        ctx: &'op PrepareContext<'ctx, R>,
+        operation_ctx: CachedOperationContext<'op>,
+        variables: &'op Variables,
+        extension_id: ExtensionId,
+        group: IdRange<QueryModifierByDirectiveGroupId>,
+    ) -> PlanResult<AuthorizationDecisions> {
+        let modifiers = &operation_ctx.cached.query_plan.query_modifiers;
+        let elements_grouped_by_directive_name = modifiers[group].iter().copied().map(|(name_id, ids)| {
+            let directive_name = operation_ctx.schema[name_id].as_str();
+            let elements = modifiers[ids]
+                .iter()
+                .map(|modifier| match modifier {
+                    QueryModifierRecord {
+                        rule: QueryModifierRule::Extension { directive_id, target },
+                        ..
+                    } => (directive_id, target),
+                    _ => unreachable!("Not an extension modifier"),
+                })
+                .map(move |(directive_id, target)| {
+                    let directive = directive_id.walk(operation_ctx);
+                    let element = match target {
+                        ModifierTarget::Field(definition) => QueryElement {
+                            site: DirectiveSiteId::from(*definition).walk(operation_ctx),
+                            arguments: QueryOrStaticExtensionDirectiveArugmentsView::Static(
+                                directive.static_arguments(),
+                            ),
+                        },
+                        ModifierTarget::FieldWithArguments(definition, argument_ids) => QueryElement {
+                            site: DirectiveSiteId::from(*definition).walk(operation_ctx),
+                            arguments: QueryOrStaticExtensionDirectiveArugmentsView::Query(
+                                create_extension_directive_query_view(
+                                    operation_ctx.schema,
+                                    directive,
+                                    argument_ids.walk(operation_ctx),
+                                    variables,
+                                ),
+                            ),
+                        },
+                        ModifierTarget::Definition(definition) => QueryElement {
+                            site: DirectiveSiteId::from(*definition).walk(operation_ctx),
+                            arguments: QueryOrStaticExtensionDirectiveArugmentsView::Static(
+                                directive.static_arguments(),
+                            ),
+                        },
+                    };
+                    element
+                });
+
+            (directive_name, elements)
+        });
+        ctx.extensions()
+            .authorize_query(extension_id, elements_grouped_by_directive_name)
+            .boxed()
+            .await
+            .map_err(Into::into)
+    }
+
+    fn handle_extension_decisions(
+        &mut self,
+        modifier_ids: IdRange<QueryModifierId>,
+        decisions: AuthorizationDecisions,
+    ) {
+        let modifiers = &self.operation_ctx.cached.query_plan.query_modifiers;
+        match decisions {
+            AuthorizationDecisions::GrantAll => (),
+            AuthorizationDecisions::DenyAll(error) => {
+                let error_id = self.push_error(error.into());
+                for modifier in &modifiers[modifier_ids] {
+                    self.deny_field(modifier, error_id);
+                }
+            }
+            AuthorizationDecisions::DenySome {
+                element_to_error,
+                errors,
+            } => {
+                let offset = self.modifications.errors.len();
+                self.modifications.errors.extend(errors.into_iter().map(Into::into));
+                for (element_ix, error_ix) in element_to_error {
+                    let modifier = &modifiers[modifier_ids.get(element_ix as usize).unwrap()];
+                    self.deny_field(modifier, (offset + error_ix as usize).into());
+                }
+            }
+        }
+    }
+
+    async fn handle_native_modifiers(&mut self, query_modifiers: &'op [QueryModifierRecord]) -> PlanResult<()> {
         let mut scope_jwt_claim = None;
 
-        for modifier in self.operation_ctx.query_modifiers() {
+        for modifier in query_modifiers {
             match &modifier.rule {
+                QueryModifierRule::Extension { .. } => unreachable!("Not a native modifier"),
                 QueryModifierRule::Authenticated => {
                     if self.ctx.access_token().is_anonymous() {
-                        self.handle_authorization_modifier(
-                            modifier,
-                            AuthorizationModifierResult::Denied(Some(GraphqlError::new(
-                                "Unauthenticated",
-                                ErrorCode::Unauthenticated,
-                            ))),
-                        );
+                        let error_id =
+                            self.push_error(GraphqlError::new("Unauthenticated", ErrorCode::Unauthenticated));
+                        self.deny_field(modifier, error_id);
                     }
                 }
                 QueryModifierRule::RequiresScopes(id) => {
@@ -108,13 +226,9 @@ where
                     });
 
                     if id.walk(self.ctx.schema()).matches(scope_jwt_claim).is_none() {
-                        self.handle_authorization_modifier(
-                            modifier,
-                            AuthorizationModifierResult::Denied(Some(GraphqlError::new(
-                                "Insufficient scopes",
-                                ErrorCode::Unauthorized,
-                            ))),
-                        );
+                        let error_id =
+                            self.push_error(GraphqlError::new("Insufficient scopes", ErrorCode::Unauthorized));
+                        self.deny_field(modifier, error_id);
                         continue;
                     };
                 }
@@ -135,7 +249,8 @@ where
                         )
                         .await;
                     if let Err(error) = verdict {
-                        self.handle_authorization_modifier(modifier, AuthorizationModifierResult::Denied(Some(error)));
+                        let error_id = self.push_error(error);
+                        self.deny_field(modifier, error_id);
                     }
                 }
                 QueryModifierRule::AuthorizedFieldWithArguments {
@@ -157,7 +272,8 @@ where
                         )
                         .await;
                     if let Err(error) = verdict {
-                        self.handle_authorization_modifier(modifier, AuthorizationModifierResult::Denied(Some(error)));
+                        let error_id = self.push_error(error);
+                        self.deny_field(modifier, error_id);
                     }
                 }
                 QueryModifierRule::AuthorizedDefinition {
@@ -172,7 +288,8 @@ where
                         .await;
 
                     if let Err(error) = result {
-                        self.handle_authorization_modifier(modifier, AuthorizationModifierResult::Denied(Some(error)));
+                        let error_id = self.push_error(error);
+                        self.deny_field(modifier, error_id);
                     }
                 }
                 QueryModifierRule::Executable { directives } => {
@@ -190,22 +307,27 @@ where
                     });
 
                     if is_skipped {
-                        self.handle_skipped_field(modifier)
+                        self.skip_field(modifier)
                     }
                 }
             }
         }
 
-        Ok(self.finalize())
+        Ok(())
     }
 
-    fn finalize(mut self) -> QueryModifications {
-        self.modifications.subgraph_request_data_fields = self.modifications.response_data_fields.clone();
+    fn finalize(self) -> QueryModifications {
+        let Self {
+            mut modifications,
+            operation_ctx,
+            ..
+        } = self;
+        modifications.included_subgraph_request_data_fields = modifications.included_response_data_fields.clone();
         let mut requires_stack: Vec<&'op RequiredFieldSetRecord> =
-            Vec::with_capacity(self.operation_ctx.query_partitions().len() * 2);
+            Vec::with_capacity(operation_ctx.query_partitions().len() * 2);
 
-        for field in self.operation_ctx.data_fields() {
-            if self.modifications.response_data_fields[field.id] {
+        for field in operation_ctx.data_fields() {
+            if modifications.included_response_data_fields[field.id] {
                 if !field.required_fields_record.is_empty() {
                     requires_stack.push(&field.as_ref().required_fields_record);
                 }
@@ -215,17 +337,17 @@ where
             }
         }
         // TODO: Don't include partitions without included subgraph fields.
-        for query_partition in self.operation_ctx.query_partitions() {
+        for query_partition in operation_ctx.query_partitions() {
             requires_stack.push(&query_partition.as_ref().required_fields_record);
         }
 
         while let Some(required_fields) = requires_stack.pop() {
             for item in required_fields.deref() {
-                self.modifications
-                    .subgraph_request_data_fields
+                modifications
+                    .included_subgraph_request_data_fields
                     .set(item.data_field_id, true);
                 requires_stack.push(&item.subselection_record);
-                let field = item.data_field_id.walk(self.operation_ctx);
+                let field = item.data_field_id.walk(operation_ctx);
                 if !field.required_fields_record.is_empty() {
                     requires_stack.push(&field.as_ref().required_fields_record);
                 }
@@ -235,17 +357,17 @@ where
             }
         }
 
-        for id in self.modifications.subgraph_request_data_fields.zeroes() {
-            for field_shape_id in id.walk(self.operation_ctx).shapes() {
-                self.modifications.skipped_field_shapes.set(field_shape_id, true);
+        for id in modifications.included_subgraph_request_data_fields.zeroes() {
+            for field_shape_id in id.walk(operation_ctx).shapes() {
+                modifications.skipped_field_shapes.set(field_shape_id, true);
             }
         }
 
         // Identify all concrete shapes with errors.
-        self.modifications.field_shape_id_to_error_ids = self.field_shape_id_to_error_ids.into();
-        let mut field_shape_ids_with_errors = self.modifications.field_shape_id_to_error_ids.ids();
+        modifications.field_shape_id_to_error_ids = self.field_shape_id_to_error_ids.into();
+        let mut field_shape_ids_with_errors = modifications.field_shape_id_to_error_ids.ids();
         if let Some(mut current) = field_shape_ids_with_errors.next() {
-            'outer: for (concrete_shape_id, shape) in self.operation_ctx.cached.shapes.concrete.iter().enumerate() {
+            'outer: for (concrete_shape_id, shape) in operation_ctx.cached.shapes.concrete.iter().enumerate() {
                 if current < shape.field_shape_ids.end {
                     let mut i = 0;
                     while let Some(field_shape_id) = shape.field_shape_ids.get(i) {
@@ -254,7 +376,7 @@ where
                                 i += 1;
                             }
                             std::cmp::Ordering::Equal => {
-                                self.modifications
+                                modifications
                                     .concrete_shape_has_error
                                     .set(ConcreteShapeId::from(concrete_shape_id), true);
                                 break;
@@ -272,46 +394,40 @@ where
         }
         drop(field_shape_ids_with_errors);
 
-        self.modifications
+        modifications
     }
 
-    fn handle_authorization_modifier(&mut self, modifier: QueryModifier<'op>, result: AuthorizationModifierResult) {
-        match result {
-            AuthorizationModifierResult::Denied(None) => {
-                todo!()
-            }
-            AuthorizationModifierResult::Denied(Some(error)) => {
-                let error_id = self.push_error(error);
-                if modifier.impacts_root_object {
-                    self.modifications.root_error_ids.push(error_id);
+    fn deny_field(&mut self, modifier: &'op QueryModifierRecord, error_id: ErrorId) {
+        if modifier.impacts_root_object {
+            self.modifications.root_error_ids.push(error_id);
+        }
+        for field in modifier.impacted_field_ids.walk(self.operation_ctx) {
+            match field {
+                PartitionField::Typename(field) => {
+                    self.modifications
+                        .included_response_typename_fields
+                        .set(field.id, false);
                 }
-                self.modifications.is_any_field_skipped = true;
-                for field in modifier.impacted_fields() {
-                    match field {
-                        PartitionField::Typename(field) => {
-                            self.modifications.response_typename_fields.set(field.id, false);
-                        }
-                        PartitionField::Data(field) => {
-                            self.modifications.response_data_fields.set(field.id, false);
-                            for field_shape_id in field.shapes() {
-                                self.field_shape_id_to_error_ids.push((field_shape_id, error_id));
-                            }
-                        }
+                PartitionField::Data(field) => {
+                    self.modifications.included_response_data_fields.set(field.id, false);
+                    for field_shape_id in field.shapes() {
+                        self.field_shape_id_to_error_ids.push((field_shape_id, error_id));
                     }
                 }
             }
         }
     }
 
-    fn handle_skipped_field(&mut self, modifier: QueryModifier<'op>) {
-        self.modifications.is_any_field_skipped = true;
-        for field in modifier.impacted_fields() {
+    fn skip_field(&mut self, modifier: &'op QueryModifierRecord) {
+        for field in modifier.impacted_field_ids.walk(self.operation_ctx) {
             match field {
                 PartitionField::Typename(field) => {
-                    self.modifications.response_typename_fields.set(field.id, false);
+                    self.modifications
+                        .included_response_typename_fields
+                        .set(field.id, false);
                 }
                 PartitionField::Data(field) => {
-                    self.modifications.response_data_fields.set(field.id, false);
+                    self.modifications.included_response_data_fields.set(field.id, false);
                 }
             }
         }
@@ -322,8 +438,4 @@ where
         self.modifications.errors.push(error);
         id
     }
-}
-
-enum AuthorizationModifierResult {
-    Denied(Option<GraphqlError>),
 }

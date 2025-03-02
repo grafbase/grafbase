@@ -1,4 +1,5 @@
-use crate::{types::DirectiveSite, wit};
+use crate::{types::DirectiveSite, wit, SdkError};
+use serde::Deserialize;
 
 /// A list of elements present in the query on which one of the extension's directive was applied on their definition.
 #[derive(Clone, Copy)]
@@ -25,7 +26,7 @@ impl<'a> QueryElements<'a> {
             .elements
             .iter()
             .enumerate()
-            .map(move |(ix, site)| QueryElement { site, ix: ix as u32 })
+            .map(move |(ix, element)| QueryElement { element, ix: ix as u32 })
     }
 
     /// Iterate over all elements grouped by the directive name.
@@ -40,8 +41,8 @@ impl<'a> QueryElements<'a> {
                 query.elements[start as usize..*end as usize]
                     .iter()
                     .enumerate()
-                    .map(move |(i, site)| QueryElement {
-                        site,
+                    .map(move |(i, element)| QueryElement {
+                        element,
                         ix: start + i as u32,
                     }),
             )
@@ -52,7 +53,7 @@ impl<'a> QueryElements<'a> {
 /// An element of the query on which a directive was applied.
 #[derive(Clone, Copy)]
 pub struct QueryElement<'a> {
-    site: &'a wit::DirectiveSite,
+    element: &'a wit::QueryElement,
     pub(super) ix: u32,
 }
 
@@ -61,6 +62,15 @@ impl<'a> QueryElement<'a> {
     /// The provided arguments will exclude anything that depend on response data such as
     /// `FieldSet`.
     pub fn site(&self) -> DirectiveSite<'a> {
-        self.site.into()
+        (&self.element.site).into()
+    }
+
+    /// Arguments of the directive with any query data injected. Any argument that depends on
+    /// response data will not be present here and be provided separately.
+    pub fn arguments<T>(&self) -> Result<T, SdkError>
+    where
+        T: Deserialize<'a>,
+    {
+        minicbor_serde::from_slice(&self.element.arguments).map_err(Into::into)
     }
 }

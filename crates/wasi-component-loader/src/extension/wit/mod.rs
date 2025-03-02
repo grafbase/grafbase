@@ -23,6 +23,6 @@ wasmtime::component::bindgen!({
 // flexibility. Either everything is borrowed or nothing is. So wrote those manually.
 pub use directive::{
     EnumDirectiveSite, FieldDefinitionDirective, FieldDefinitionDirectiveSite, InterfaceDirectiveSite,
-    ObjectDirectiveSite, ScalarDirectiveSite, SchemaDirective, UnionDirectiveSite,
+    ObjectDirectiveSite, QueryElement, QueryElements, ScalarDirectiveSite, SchemaDirective, UnionDirectiveSite,
 };
 pub use grafbase::sdk::types::*;

@@ -5,7 +5,7 @@ mod template;
 use operation::Variables;
 pub(crate) use query::*;
 pub(crate) use response::*;
-use schema::{ExtensionDirective, InjectionStage, Schema};
+use schema::{ExtensionDirective, ExtensionDirectiveArgumentsStaticView, InjectionStage, Schema};
 
 use crate::response::ResponseObjectsView;
 
@@ -18,7 +18,7 @@ pub(crate) struct ArgumentsContext<'a> {
     variables: &'a Variables,
 }
 
-pub(crate) fn create_extension_directive_arguments_view<'ctx>(
+pub(crate) fn create_extension_directive_query_view<'ctx>(
     schema: &'ctx Schema,
     directive: ExtensionDirective<'ctx>,
     field_arguments: PartitionFieldArguments<'ctx>,
@@ -49,5 +49,19 @@ where
         ctx,
         arguments,
         response_objects_view,
+    }
+}
+
+pub(crate) enum QueryOrStaticExtensionDirectiveArugmentsView<'a> {
+    Query(ExtensionDirectiveArgumentsQueryView<'a>),
+    Static(ExtensionDirectiveArgumentsStaticView<'a>),
+}
+
+impl serde::Serialize for QueryOrStaticExtensionDirectiveArugmentsView<'_> {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        match self {
+            QueryOrStaticExtensionDirectiveArugmentsView::Query(view) => view.serialize(serializer),
+            QueryOrStaticExtensionDirectiveArugmentsView::Static(view) => view.serialize(serializer),
+        }
     }
 }

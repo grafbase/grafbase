@@ -1,3 +1,4 @@
+mod modifiers;
 mod requires;
 mod shapes;
 
@@ -6,9 +7,9 @@ use im::HashMap;
 use operation::Operation;
 use query_solver::{
     Edge, Node, QueryField, SolvedQuery,
-    petgraph::{Direction, graph::NodeIndex, visit::EdgeRef},
+    petgraph::{graph::NodeIndex, visit::EdgeRef},
 };
-use schema::{Definition, EntityDefinitionId, ResolverDefinitionId, Schema, TypeSystemDirective};
+use schema::{Definition, EntityDefinitionId, ResolverDefinitionId, Schema};
 use walker::Walk;
 
 use super::*;
@@ -59,7 +60,6 @@ impl<'a> Solver<'a> {
                 query_plan: QueryPlan {
                     partitions: Vec::new(),
                     mutation_partition_order: Vec::new(),
-                    query_modifiers: Vec::new(),
                     shared_type_conditions: std::mem::take(&mut solution.shared_type_conditions),
                     field_shape_refs: Vec::new(),
                     data_fields: Vec::with_capacity(solution.fields.len()),
@@ -67,6 +67,7 @@ impl<'a> Solver<'a> {
                     response_object_set_definitions: Vec::new(),
                     response_data_fields: Default::default(),
                     response_typename_fields: Default::default(),
+                    query_modifiers: Default::default(),
                     response_modifier_definitions: Vec::new(),
                 },
                 operation,
@@ -289,221 +290,6 @@ impl<'a> Solver<'a> {
                     });
                 ResponseObjectSetDefinitionId::from(self.output.query_plan.response_object_set_definitions.len() - 1)
             })
-    }
-
-    fn populate_modifiers_after_partition_generation(&mut self) -> SolveResult<()> {
-        let mut response_modifier_definitions = Vec::new();
-        let mut query_modifiers = vec![
-            QueryModifierRecord {
-                rule: QueryModifierRule::Authenticated,
-                impacts_root_object: false,
-                impacted_field_ids: Vec::new(),
-            };
-            self.solution.deduplicated_flat_sorted_executable_directives.len()
-        ];
-        for (directives, id) in
-            std::mem::take(&mut self.solution.deduplicated_flat_sorted_executable_directives).into_iter()
-        {
-            query_modifiers[usize::from(id)].rule = QueryModifierRule::Executable { directives };
-        }
-
-        let mut deduplicated_query_modifier_rules = HashMap::new();
-        let mut deduplicated_response_modifier_rules = HashMap::new();
-        enum Rule {
-            Query(QueryModifierRule),
-            Resp(ResponseModifierRule),
-        }
-        let node_to_field = std::mem::take(&mut self.node_to_field);
-        for (node_ix, field_id) in node_to_field.iter().enumerate() {
-            let node_ix = NodeIndex::new(node_ix);
-            let Some(field_id) = field_id else {
-                continue;
-            };
-            if let PartitionFieldId::Data(field_id) = *field_id {
-                let definition = self.output.query_plan[field_id].definition_id.walk(self.schema);
-                for directive in definition.directives() {
-                    let rule = match directive {
-                        TypeSystemDirective::Authenticated(_) => Rule::Query(QueryModifierRule::Authenticated),
-                        TypeSystemDirective::Authorized(dir) => {
-                            if dir.node_record.is_some() {
-                                if self.output.query_plan[field_id].output_id.is_none() {
-                                    let output_id = Some(self.create_new_response_object_set_definition(node_ix));
-                                    self.output.query_plan[field_id].output_id = output_id;
-                                    for id in self.output.query_plan[field_id]
-                                        .selection_set_record
-                                        .data_field_ids_ordered_by_type_conditions_then_position
-                                    {
-                                        self.output.query_plan[id].parent_field_output_id = output_id;
-                                    }
-                                }
-                                Rule::Resp(ResponseModifierRule::AuthorizedEdgeChild {
-                                    directive_id: dir.id,
-                                    definition_id: definition.id,
-                                })
-                            } else if dir.fields_record.is_some() {
-                                if self.output.query_plan[field_id].parent_field_output_id.is_none() {
-                                    let parent_ix = self
-                                        .solution
-                                        .graph
-                                        .edges_directed(node_ix, Direction::Incoming)
-                                        .find(|edge| matches!(edge.weight(), Edge::Field))
-                                        .expect("Must have a parent field node or root")
-                                        .source();
-                                    let Some(PartitionFieldId::Data(parent_field_id)) =
-                                        node_to_field[parent_ix.index()]
-                                    else {
-                                        tracing::error!("@authorized with fields on root field isn't supported yet");
-                                        return Err(SolveError::InternalError);
-                                    };
-                                    let output_id = Some(self.create_new_response_object_set_definition(parent_ix));
-                                    self.output.query_plan[parent_field_id].output_id = output_id;
-                                    for id in self.output.query_plan[parent_field_id]
-                                        .selection_set_record
-                                        .data_field_ids_ordered_by_type_conditions_then_position
-                                    {
-                                        self.output.query_plan[id].parent_field_output_id = output_id;
-                                    }
-                                }
-                                Rule::Resp(ResponseModifierRule::AuthorizedParentEdge {
-                                    directive_id: dir.id,
-                                    definition_id: definition.id,
-                                })
-                            } else if !dir.arguments.is_empty() {
-                                Rule::Query(QueryModifierRule::AuthorizedFieldWithArguments {
-                                    directive_id: dir.id,
-                                    definition_id: definition.id,
-                                    argument_ids: self.output.query_plan[field_id].argument_ids,
-                                })
-                            } else {
-                                Rule::Query(QueryModifierRule::AuthorizedField {
-                                    directive_id: dir.id,
-                                    definition_id: definition.id,
-                                })
-                            }
-                        }
-                        TypeSystemDirective::RequiresScopes(dir) => {
-                            Rule::Query(QueryModifierRule::RequiresScopes(dir.id))
-                        }
-                        TypeSystemDirective::Cost(_)
-                        | TypeSystemDirective::Deprecated(_)
-                        | TypeSystemDirective::ListSize(_) => continue,
-                    };
-                    match rule {
-                        Rule::Query(rule) => {
-                            let ix = deduplicated_query_modifier_rules
-                                .entry(rule.clone())
-                                .or_insert_with(|| {
-                                    query_modifiers.push(QueryModifierRecord {
-                                        rule,
-                                        impacts_root_object: false,
-                                        impacted_field_ids: Vec::new(),
-                                    });
-                                    query_modifiers.len() - 1
-                                });
-                            query_modifiers[*ix].impacted_field_ids.push(field_id.into());
-                        }
-                        Rule::Resp(rule) => {
-                            let ix = deduplicated_response_modifier_rules.entry(rule).or_insert_with(|| {
-                                response_modifier_definitions.push(ResponseModifierDefinitionRecord {
-                                    rule,
-                                    impacted_field_ids: Vec::new(),
-                                });
-                                response_modifier_definitions.len() - 1
-                            });
-                            response_modifier_definitions[*ix].impacted_field_ids.push(field_id);
-                        }
-                    }
-                }
-
-                let output_definition = definition.ty().definition();
-                for directive in output_definition.directives() {
-                    let rule = match directive {
-                        TypeSystemDirective::Authenticated(_) => Rule::Query(QueryModifierRule::Authenticated),
-                        TypeSystemDirective::Authorized(dir) => {
-                            if dir.fields_record.is_some() {
-                                Rule::Resp(ResponseModifierRule::AuthorizedEdgeChild {
-                                    directive_id: dir.id,
-                                    definition_id: definition.id,
-                                })
-                            } else {
-                                Rule::Query(QueryModifierRule::AuthorizedDefinition {
-                                    directive_id: dir.id,
-                                    definition_id: output_definition.id(),
-                                })
-                            }
-                        }
-                        TypeSystemDirective::RequiresScopes(dir) => {
-                            Rule::Query(QueryModifierRule::RequiresScopes(dir.id))
-                        }
-                        TypeSystemDirective::Cost(_)
-                        | TypeSystemDirective::Deprecated(_)
-                        | TypeSystemDirective::ListSize(_) => continue,
-                    };
-                    match rule {
-                        Rule::Query(rule) => {
-                            let ix = deduplicated_query_modifier_rules
-                                .entry(rule.clone())
-                                .or_insert_with(|| {
-                                    query_modifiers.push(QueryModifierRecord {
-                                        rule,
-                                        impacts_root_object: false,
-                                        impacted_field_ids: Vec::new(),
-                                    });
-                                    query_modifiers.len() - 1
-                                });
-                            query_modifiers[*ix].impacted_field_ids.push(field_id.into());
-                        }
-                        Rule::Resp(rule) => {
-                            let ix = deduplicated_response_modifier_rules.entry(rule).or_insert_with(|| {
-                                response_modifier_definitions.push(ResponseModifierDefinitionRecord {
-                                    rule,
-                                    impacted_field_ids: Vec::new(),
-                                });
-                                response_modifier_definitions.len() - 1
-                            });
-                            response_modifier_definitions[*ix].impacted_field_ids.push(field_id);
-                        }
-                    }
-                }
-            }
-            let Node::Field { id, .. } = self.solution.graph[node_ix] else {
-                continue;
-            };
-            if let Some(id) = self.solution[id].flat_directive_id {
-                query_modifiers[usize::from(id)].impacted_field_ids.push(*field_id);
-            }
-        }
-
-        for directive in self.output.operation.root_object_id.walk(self.schema).directives() {
-            let rule = match directive {
-                TypeSystemDirective::Authenticated(_) => QueryModifierRule::Authenticated,
-                TypeSystemDirective::Authorized(dir) => QueryModifierRule::AuthorizedDefinition {
-                    directive_id: dir.id,
-                    definition_id: self.output.operation.root_object_id.into(),
-                },
-                TypeSystemDirective::RequiresScopes(dir) => QueryModifierRule::RequiresScopes(dir.id),
-                TypeSystemDirective::Cost(_)
-                | TypeSystemDirective::Deprecated(_)
-                | TypeSystemDirective::ListSize(_) => continue,
-            };
-            let ix = deduplicated_query_modifier_rules
-                .entry(rule.clone())
-                .or_insert_with(|| {
-                    query_modifiers.push(QueryModifierRecord {
-                        rule,
-                        impacts_root_object: true,
-                        impacted_field_ids: Vec::new(),
-                    });
-                    query_modifiers.len() - 1
-                });
-            query_modifiers[*ix].impacts_root_object = true;
-        }
-
-        self.node_to_field = node_to_field;
-        self.output.query_plan.query_modifiers = query_modifiers;
-        self.output.query_plan.response_modifier_definitions = response_modifier_definitions;
-
-        Ok(())
     }
 
     fn generate_mutation_partition_order_after_partition_generation(&mut self) -> SolveResult<()> {

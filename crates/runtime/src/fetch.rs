@@ -1,7 +1,7 @@
 use std::{borrow::Cow, future::Future, time::Duration};
 
 use bytes::Bytes;
-use futures_util::{Stream, StreamExt, TryFutureExt, stream::BoxStream};
+use futures_util::{stream::BoxStream, Stream, StreamExt, TryFutureExt};
 
 use crate::{bytes::OwnedOrSharedBytes, hooks::ResponseInfo};
 

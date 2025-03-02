@@ -56,7 +56,7 @@ pub(crate) fn refuse_request_with<OnOperationResponseHookOutput>(
 ) -> Response<OnOperationResponseHookOutput> {
     Response::<OnOperationResponseHookOutput>::refuse_request_with(
         status_code,
-        vec![GraphqlError::new(message, ErrorCode::BadRequest)],
+        [GraphqlError::new(message, ErrorCode::BadRequest)],
     )
 }
 
@@ -66,16 +66,11 @@ impl<R: Runtime> Engine<R> {
         ctx: &RequestContext,
         message: impl std::fmt::Display,
     ) -> http::Response<Body> {
+        let error = GraphqlError::new(format!("Bad request: {message}"), ErrorCode::BadRequest);
         Http::error(
             ctx.response_format,
-            Response::<()>::request_error(
-                None,
-                [GraphqlError::new(
-                    format!("Bad request: {message}"),
-                    ErrorCode::BadRequest,
-                )],
-            )
-            .with_grafbase_extension(self.default_grafbase_response_extension(ctx)),
+            Response::<()>::request_error([error])
+                .with_grafbase_extension(self.default_grafbase_response_extension(ctx)),
         )
     }
 
@@ -97,20 +92,21 @@ pub(crate) mod response {
     pub(crate) fn gateway_rate_limited<OnOperationResponseHookOutput>() -> Response<OnOperationResponseHookOutput> {
         Response::refuse_request_with(
             http::StatusCode::TOO_MANY_REQUESTS,
-            vec![GraphqlError::new("Rate limited", ErrorCode::RateLimited)],
+            [GraphqlError::new("Rate limited", ErrorCode::RateLimited)],
         )
     }
 
     pub(crate) fn unauthenticated<OnOperationResponseHookOutput>() -> Response<OnOperationResponseHookOutput> {
         Response::refuse_request_with(
             http::StatusCode::UNAUTHORIZED,
-            vec![GraphqlError::new("Unauthenticated", ErrorCode::Unauthenticated)],
+            [GraphqlError::new("Unauthenticated", ErrorCode::Unauthenticated)],
         )
     }
 
     // We assume any invalid request error would be raised before the timeout expires. So if we do
     // end up sending this error it means operation was valid and the query was just slow.
     pub(crate) fn gateway_timeout<OnOperationResponseHookOutput>() -> Response<OnOperationResponseHookOutput> {
-        Response::request_error(None, [GraphqlError::new("Gateway timeout", ErrorCode::GatewayTimeout)])
+        let error = GraphqlError::new("Gateway timeout", ErrorCode::GatewayTimeout);
+        Response::request_error([error])
     }
 }
