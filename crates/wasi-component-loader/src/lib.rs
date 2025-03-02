@@ -8,6 +8,7 @@
 
 mod access_log;
 mod cache;
+mod cbor;
 mod config;
 mod context;
 mod error;

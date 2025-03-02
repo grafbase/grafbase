@@ -1,4 +1,4 @@
-use minicbor_serde::{error::EncodeError, Serializer};
+use minicbor_serde::{Serializer, error::EncodeError};
 use serde::Serialize;
 
 /// Serialise a type implementing [`serde::Serialize`] and return the encoded byte vector.

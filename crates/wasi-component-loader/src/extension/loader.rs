@@ -38,7 +38,7 @@ impl SchemaDirective {
         Self {
             name: name.into(),
             subgraph_name: subgraph_name.into(),
-            arguments: minicbor_serde::to_vec(args).unwrap(),
+            arguments: crate::cbor::to_vec(args).unwrap(),
         }
     }
 }
@@ -100,7 +100,7 @@ impl ExtensionLoader {
         Ok(Self {
             shared,
             component_config,
-            guest_config: minicbor_serde::to_vec(&guest_config.configuration)
+            guest_config: crate::cbor::to_vec(&guest_config.configuration)
                 .context("Could not serialize configuration")?,
             schema_directives,
             wit_schema_directives,

@@ -56,7 +56,7 @@ async fn simple_resolver() {
         site: wit::FieldDefinitionDirectiveSite {
             parent_type_name: "Query",
             field_name: "cats",
-            arguments: &minicbor_serde::to_vec(&FieldArgs { name: "cat" }).unwrap(),
+            arguments: &crate::cbor::to_vec(&FieldArgs { name: "cat" }).unwrap(),
         },
     };
 
