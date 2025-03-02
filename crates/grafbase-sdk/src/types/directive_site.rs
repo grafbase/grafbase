@@ -12,6 +12,10 @@ pub enum DirectiveSite<'a> {
     Interface(InterfaceDirectiveSite<'a>),
     /// Directive applied to a union
     Union(UnionDirectiveSite<'a>),
+    /// Directive applied to an enum
+    Enum(EnumDirectiveSite<'a>),
+    /// Directive applied to a scalar
+    Scalar(ScalarDirectiveSite<'a>),
 }
 
 impl<'a> From<&'a wit::DirectiveSite> for DirectiveSite<'a> {
@@ -21,6 +25,8 @@ impl<'a> From<&'a wit::DirectiveSite> for DirectiveSite<'a> {
             wit::DirectiveSite::FieldDefinition(site) => DirectiveSite::FieldDefinition(site.into()),
             wit::DirectiveSite::Interface(site) => DirectiveSite::Interface(site.into()),
             wit::DirectiveSite::Union(site) => DirectiveSite::Union(site.into()),
+            wit::DirectiveSite::Enum(site) => DirectiveSite::Enum(site.into()),
+            wit::DirectiveSite::Scalar(site) => DirectiveSite::Scalar(site.into()),
         }
     }
 }
@@ -37,6 +43,8 @@ impl<'a> DirectiveSite<'a> {
             DirectiveSite::FieldDefinition(site) => &site.0.arguments,
             DirectiveSite::Interface(site) => &site.0.arguments,
             DirectiveSite::Union(site) => &site.0.arguments,
+            DirectiveSite::Enum(site) => &site.0.arguments,
+            DirectiveSite::Scalar(site) => &site.0.arguments,
         })
         .map_err(Into::into)
     }
@@ -126,7 +134,7 @@ impl<'a> From<&'a wit::UnionDirectiveSite> for UnionDirectiveSite<'a> {
     }
 }
 
-/// A directive site for interface types
+/// A directive site for interfaces
 pub struct InterfaceDirectiveSite<'a>(&'a wit::InterfaceDirectiveSite);
 
 impl<'a> InterfaceDirectiveSite<'a> {
@@ -148,6 +156,58 @@ impl<'a> InterfaceDirectiveSite<'a> {
 
 impl<'a> From<&'a wit::InterfaceDirectiveSite> for InterfaceDirectiveSite<'a> {
     fn from(value: &'a wit::InterfaceDirectiveSite) -> Self {
+        Self(value)
+    }
+}
+
+/// A directive site for scalars
+pub struct ScalarDirectiveSite<'a>(&'a wit::ScalarDirectiveSite);
+
+impl<'a> ScalarDirectiveSite<'a> {
+    /// The name of the interface type
+    #[inline]
+    pub fn interface_name(&self) -> &str {
+        &self.0.scalar_name
+    }
+
+    /// Arguments of the directive with any query data injected. Any argument that depends on
+    /// response data will not be present here and be provided separately.
+    pub fn arguments<T>(&self) -> Result<T, SdkError>
+    where
+        T: Deserialize<'a>,
+    {
+        minicbor_serde::from_slice(&self.0.arguments).map_err(Into::into)
+    }
+}
+
+impl<'a> From<&'a wit::ScalarDirectiveSite> for ScalarDirectiveSite<'a> {
+    fn from(value: &'a wit::ScalarDirectiveSite) -> Self {
+        Self(value)
+    }
+}
+
+/// A directive site for enums
+pub struct EnumDirectiveSite<'a>(&'a wit::EnumDirectiveSite);
+
+impl<'a> EnumDirectiveSite<'a> {
+    /// The name of the interface type
+    #[inline]
+    pub fn interface_name(&self) -> &str {
+        &self.0.enum_name
+    }
+
+    /// Arguments of the directive with any query data injected. Any argument that depends on
+    /// response data will not be present here and be provided separately.
+    pub fn arguments<T>(&self) -> Result<T, SdkError>
+    where
+        T: Deserialize<'a>,
+    {
+        minicbor_serde::from_slice(&self.0.arguments).map_err(Into::into)
+    }
+}
+
+impl<'a> From<&'a wit::EnumDirectiveSite> for EnumDirectiveSite<'a> {
+    fn from(value: &'a wit::EnumDirectiveSite) -> Self {
         Self(value)
     }
 }

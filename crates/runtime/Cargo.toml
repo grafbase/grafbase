@@ -19,6 +19,7 @@ bytes.workspace = true
 engine-schema.workspace = true
 extension.workspace = true
 extension-catalog.workspace = true
+fixedbitset.workspace = true
 futures-util.workspace = true
 grafbase-telemetry.workspace = true
 grafbase-workspace-hack.workspace = true
