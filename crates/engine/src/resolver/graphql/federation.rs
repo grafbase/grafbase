@@ -203,6 +203,8 @@ pub(super) async fn fetch_entities_without_cache<R: Runtime>(
         serde_json::to_string_pretty(&variables).unwrap_or_default()
     );
 
+    // We use RawValue underneath, so can't use sonic_rs. RwaValue doesn't do any copies
+    // compared to sonic_rs::LazyValue
     let body = serde_json::to_vec(&SubgraphGraphqlRequest {
         query: &subgraph_operation.query,
         variables,
@@ -256,6 +258,8 @@ pub(super) async fn fetch_entities_with_cache<R: Runtime>(
         serde_json::to_string_pretty(&variables).unwrap_or_default()
     );
 
+    // We use RawValue underneath, so can't use sonic_rs. RwaValue doesn't do any copies
+    // compared to sonic_rs::LazyValue
     let body = serde_json::to_vec(&SubgraphGraphqlRequest {
         query: &subgraph_operation.query,
         variables,

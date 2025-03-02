@@ -283,9 +283,7 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
         E: Error,
     {
         match self.ty {
-            ScalarType::String | ScalarType::Unknown => Ok(ResponseValue::String {
-                value: v.into_boxed_str(),
-            }),
+            ScalarType::String | ScalarType::Unknown => Ok(ResponseValue::String { value: v }),
             _ => Ok(self.unexpected_type(Unexpected::Str(&v))),
         }
     }

@@ -112,17 +112,17 @@ where
 }
 
 pub trait MessageConvert {
-    fn to_axum_message(self) -> Result<ws::Message, serde_json::Error>;
+    fn to_axum_message(self) -> Result<ws::Message, sonic_rs::Error>;
 }
 
 impl<R: engine::Runtime> MessageConvert for Message<R> {
-    fn to_axum_message(self) -> Result<ws::Message, serde_json::Error> {
+    fn to_axum_message(self) -> Result<ws::Message, sonic_rs::Error> {
         match self {
             Message::Close { code, reason } => Ok(ws::Message::Close(Some(ws::CloseFrame {
                 code,
                 reason: reason.into(),
             }))),
-            message => Ok(ws::Message::Text(serde_json::to_string(&message)?.into())),
+            message => Ok(ws::Message::Text(sonic_rs::to_string(&message)?.into())),
         }
     }
 }

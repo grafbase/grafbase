@@ -29,6 +29,7 @@ hyper = { workspace = true, optional = true }
 lambda_http = { workspace = true, optional = true }
 runtime.workspace = true
 serde_json.workspace = true
+sonic-rs.workspace = true
 tokio.workspace = true
 tower.workspace = true
 tower-service.workspace = true

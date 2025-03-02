@@ -154,7 +154,7 @@ impl<R: Runtime> Engine<R> {
 
             self.runtime.metrics().record_request_body_size(body.len());
 
-            serde_json::from_slice(&body).map_err(|err| {
+            sonic_rs::from_slice(&body).map_err(|err| {
                 errors::not_well_formed_graphql_over_http_request(format_args!("JSON deserialization failure: {err}",))
             })
         } else {
