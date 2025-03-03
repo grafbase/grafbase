@@ -196,18 +196,23 @@ impl ExtensionRuntime for ExtensionsWasiRuntime {
                 return Some((data, (instance, tail)));
             }
 
-            let item = match instance.resolve_next_subscription_item().await {
-                Ok(Some(item)) => {
-                    tracing::debug!("subscription item resolved");
-                    item
-                }
-                Ok(None) => {
-                    tracing::debug!("subscription completed");
-                    return None;
-                }
-                Err(e) => {
-                    tracing::error!("Error resolving subscription item: {e}");
-                    return Some((Err(PartialGraphqlError::internal_extension_error()), (instance, tail)));
+            let item = loop {
+                match instance.resolve_next_subscription_item().await {
+                    Ok(Some(item)) if item.outputs.is_empty() => {
+                        continue;
+                    }
+                    Ok(Some(item)) => {
+                        tracing::debug!("subscription item resolved");
+                        break item;
+                    }
+                    Ok(None) => {
+                        tracing::debug!("subscription completed");
+                        return None;
+                    }
+                    Err(e) => {
+                        tracing::error!("Error resolving subscription item: {e}");
+                        return Some((Err(PartialGraphqlError::internal_extension_error()), (instance, tail)));
+                    }
                 }
             };
 
