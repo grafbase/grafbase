@@ -16,11 +16,22 @@ concurrency:
 
 env:
   REGISTRY_REPOSITORY: ghcr.io/grafbase/helm-charts
+  REGISTRY_USERNAME: grafbase
   CHART_PATH: gateway/helm
 
 jobs:
+  clone-repo:
+    name: Clone Repository
+    runs-on: ubicloud-standard-2
+    outputs:
+      build: ${{ steps.filter.outputs.build }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
   detect-change-type:
     runs-on: ubicloud-standard-2
+    needs: [clone-repo]
     outputs:
       build: ${{ steps.filter.outputs.build }}
     steps:
@@ -51,8 +62,8 @@ jobs:
       - name: Login to ghcr.io
         shell: bash
         run: |
-          echo "Login to ghcr.io"
-          echo ${{ secrets.GITHUB_TOKEN }} | helm registry login ghcr.io --username grafbase --password-stdin
+          echo "Login to ghcr.io with user ${{ env.REGISTRY_USERNAME }}"
+          echo ${{ secrets.GITHUB_TOKEN }} | helm registry login ghcr.io --username ${{ env.REGISTRY_USERNAME }} --password-stdin
 
       - name: Publish gateway helm chart
         shell: bash
