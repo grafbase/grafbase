@@ -1934,7 +1934,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "anyhow",
  "async-tungstenite",
@@ -2135,6 +2135,7 @@ dependencies = [
  "uuid",
  "wasmparser 0.224.1",
  "winapi",
+ "windows-sys 0.48.0",
  "windows-sys 0.52.0",
  "windows-sys 0.59.0",
  "zeroize",

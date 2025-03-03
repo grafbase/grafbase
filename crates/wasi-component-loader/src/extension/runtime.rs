@@ -108,7 +108,7 @@ impl ExtensionRuntime for ExtensionsWasiRuntime {
 
             let mut instance = pool.get().await;
 
-            let arguments = minicbor_serde::to_vec(arguments).unwrap();
+            let arguments = crate::cbor::to_vec(arguments).unwrap();
             let directive = wit::FieldDefinitionDirective {
                 name,
                 site: wit::FieldDefinitionDirectiveSite {
@@ -223,7 +223,7 @@ impl ExtensionRuntime for ExtensionsWasiRuntime {
         };
 
         let mut instance = pool.get().await;
-        let arguments = minicbor_serde::to_vec(arguments).unwrap();
+        let arguments = crate::cbor::to_vec(arguments).unwrap();
         let directive = wit::FieldDefinitionDirective {
             name,
             site: wit::FieldDefinitionDirectiveSite {

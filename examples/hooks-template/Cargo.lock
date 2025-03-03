@@ -163,9 +163,9 @@ dependencies = [
 
 [[package]]
 name = "grafbase-hooks"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "62bc1abd164fa776d5b280c1789c6444ae5d03d218127ad9c7b25649250adb9e"
+checksum = "98072d4a82f4f7bda0ebe05eed18aa611dfc36d0a0ac07d3feabbad41e9c9b35"
 dependencies = [
  "grafbase-hooks-derive",
  "serde",
