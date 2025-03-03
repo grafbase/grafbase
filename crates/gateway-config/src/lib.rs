@@ -2300,10 +2300,18 @@ mod tests {
                             ],
                         },
                         path: None,
-                        networking: false,
-                        stdout: false,
-                        stderr: false,
-                        environment_variables: false,
+                        networking: Some(
+                            false,
+                        ),
+                        stdout: Some(
+                            false,
+                        ),
+                        stderr: Some(
+                            false,
+                        ),
+                        environment_variables: Some(
+                            false,
+                        ),
                         max_pool_size: Some(
                             1000,
                         ),
@@ -2353,10 +2361,10 @@ mod tests {
                             ],
                         },
                         path: None,
-                        networking: false,
-                        stdout: false,
-                        stderr: false,
-                        environment_variables: false,
+                        networking: None,
+                        stdout: None,
+                        stderr: None,
+                        environment_variables: None,
                         max_pool_size: None,
                         config: Some(
                             Table(
