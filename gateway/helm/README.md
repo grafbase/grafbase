@@ -3,11 +3,6 @@
 The README file provides instructions for using and releasing the Grafbase Gateway Helm Chart.
 The repository is hosted on [GitHub's Container Registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry) (ghcr.io).
 
-## What is ghcr.io?
-
-ghcr.io allows you to store and manage Docker container images and Helm charts within your GitHub account.
-It provides a secure and scalable way to distribute your containerized applications and Helm charts.
-
 ## Usage
 
 It is recommended to not use this chart as-is due to it pointing to the latest unstable version.
@@ -20,6 +15,26 @@ image:
 ```
 
 ## Releasing
+
+The repository is configured with a GitHub Actions workflow triggered when a new tag is pushed, that automatically packages and pushes the Helm chart to the GitHub Container Registry.
+
+### New Release
+
+1. Update the version in the `Chart.yaml` file:
+
+    ```yaml
+    version: 0.X.Y
+    ```
+
+    Replace `0.X.Y` with the new version number.
+
+2. Commit the changes
+
+3. Create a new tag with the version number: "gateway-helm-v0.X.Y"
+
+    Replace `0.X.Y` with the new version number.
+
+4. The GitHub Actions workflow will automatically package and push the Helm chart to the GitHub Container Registry.
 
 ### Manual
 
@@ -56,7 +71,3 @@ You should use this method only in emergencies or if the GitHub Actions workflow
     ```bash
     helm push gateway-0.X.Y.tgz oci://ghcr.io/grafbase/helm-charts
     ```
-
-### GitHub Actions
-
-The repository is configured with a GitHub Actions workflow triggered when a new tag is pushed, that automatically packages and pushes the Helm chart to the GitHub Container Registry.
