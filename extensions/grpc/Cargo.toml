@@ -10,6 +10,7 @@ async-graphql-parser = "6.0.6"
 async-graphql-value = "6.0.6"
 async-stream = "0.3.5"
 async-trait = "0.1.73"
+byteorder = "1.5.0"
 futures = "0.3.28"
 grafbase_sdk = "0.1.1"
 http = "0.2.9"
@@ -21,16 +22,6 @@ tokio = { version = "1.32.0", features = ["full"] }
 tower = "0.4.13"
 tracing = "0.1.37"
 url = "2.4.1"
-
-# gRPC-specific dependencies
-tonic = "0.10.2"
-prost = "0.12.1"
-prost-types = "0.12.1"
-tokio-stream = "0.1.14"
-tonic-reflection = "0.10.2"
-tonic-types = "0.10.2"
-prost-build = "0.12.1"
-tower-http = { version = "0.4.4", features = ["trace"] }
 
 [dev-dependencies]
 pretty_assertions = "1.4.0"
