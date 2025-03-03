@@ -1,6 +1,6 @@
 [extension]
 name = "nats"
-version = "0.2.0"
+version = "0.2.1"
 kind = "resolver"
 description = "A new extension"
 # homepage_url = "https://example.com/my-extension"
@@ -9,7 +9,7 @@ description = "A new extension"
 
 [directives]
 definitions = "definitions.graphql"
-field_resolvers = ["natsPublish"]
+field_resolvers = ["natsPublish", "natsSubscription", "natsRequest", "natsKeyValue"]
 
 [permissions]
 network = true
