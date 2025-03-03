@@ -51,9 +51,6 @@ jobs:
     runs-on: ubicloud-standard-2
     needs: [detect-change-type]
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
       - name: Setup helm
         uses: azure/setup-helm@v4.3.0
         with:
