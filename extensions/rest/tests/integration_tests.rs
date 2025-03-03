@@ -443,7 +443,7 @@ async fn internal_server_error() {
         {
           "message": "HTTP request failed with status: 500 Internal Server Error",
           "extensions": {
-            "code": "INTERNAL_SERVER_ERROR"
+            "code": "EXTENSION_ERROR"
           }
         }
       ]
@@ -533,7 +533,7 @@ async fn with_bad_jq() {
         {
           "message": "Error selecting result value: The selection is not valid jq syntax: `\\||\\`",
           "extensions": {
-            "code": "INTERNAL_SERVER_ERROR"
+            "code": "EXTENSION_ERROR"
           }
         }
       ]

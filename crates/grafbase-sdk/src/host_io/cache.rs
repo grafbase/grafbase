@@ -2,6 +2,8 @@
 
 use std::time::Duration;
 
+use crate::cbor;
+
 /// Retrieves a value from the cache by key, initializing it if not present.
 ///
 /// If the value exists in the cache, the function deserializes and returns it.
@@ -23,10 +25,10 @@ where
     let value = crate::wit::Cache::get(key);
 
     if let Some(value) = value {
-        Ok(minicbor_serde::from_slice(&value)?)
+        Ok(cbor::from_slice(&value)?)
     } else {
         let value = init()?;
-        let serialized = crate::cbor::to_vec(&value.value)?;
+        let serialized = cbor::to_vec(&value.value)?;
 
         crate::wit::Cache::set(key, &serialized, value.duration.map(|d| d.as_millis() as u64));
 

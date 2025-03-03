@@ -18,7 +18,7 @@ pub use http::StatusCode;
 pub use serde::Deserialize;
 use serde::Serialize;
 
-use crate::wit;
+use crate::{cbor, wit};
 
 /// Output responses from the field resolver.
 pub struct FieldOutput(wit::FieldOutput);
@@ -83,7 +83,7 @@ impl FieldInputs {
     {
         self.0
             .iter()
-            .map(|input| minicbor_serde::from_slice(input).map_err(|e| Box::new(e) as Box<dyn std::error::Error>))
+            .map(|input| cbor::from_slice(input).map_err(|e| Box::new(e) as Box<dyn std::error::Error>))
             .collect()
     }
 }
@@ -106,7 +106,7 @@ impl Configuration {
     where
         T: Deserialize<'de>,
     {
-        minicbor_serde::from_slice(&self.0).map_err(|e| Box::new(e) as Box<dyn std::error::Error>)
+        cbor::from_slice(&self.0).map_err(|e| Box::new(e) as Box<dyn std::error::Error>)
     }
 }
 
@@ -133,7 +133,7 @@ impl Token {
         T: serde::Serialize,
     {
         Self {
-            claims: crate::cbor::to_vec(&claims).expect("serialization error is Infallible, so it should never happen"),
+            claims: cbor::to_vec(&claims).expect("serialization error is Infallible, so it should never happen"),
         }
     }
 }

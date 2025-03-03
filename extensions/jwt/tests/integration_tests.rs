@@ -3,7 +3,7 @@ mod hydra;
 use std::collections::HashMap;
 
 use grafbase_sdk::test::{DynamicSchema, DynamicSubgraph, TestConfig, TestRunner};
-use hydra::{CoreClientExt, OryHydraOpenIDProvider, AUDIENCE, JWKS_URI};
+use hydra::{AUDIENCE, CoreClientExt, JWKS_URI, OryHydraOpenIDProvider};
 use indoc::formatdoc;
 
 const CLI_PATH: &str = "../../target/debug/grafbase";
@@ -30,7 +30,7 @@ fn subgraph() -> DynamicSubgraph {
 
 #[allow(clippy::panic)]
 fn tamper_jwt(token: String) -> String {
-    use base64::{engine::general_purpose, Engine as _};
+    use base64::{Engine as _, engine::general_purpose};
     #[allow(clippy::panic)]
     let [header, payload, signature] = token.split('.').collect::<Vec<_>>()[..] else {
         panic!("Invalid JWT");
@@ -68,7 +68,7 @@ async fn without_token() {
         {
           "message": "Unauthorized",
           "extensions": {
-            "code": "UNAUTHORIZED"
+            "code": "UNAUTHENTICATED"
           }
         }
       ]
@@ -101,7 +101,7 @@ async fn with_invalid_token() {
         {
           "message": "Unauthorized",
           "extensions": {
-            "code": "UNAUTHORIZED"
+            "code": "UNAUTHENTICATED"
           }
         }
       ]
@@ -222,7 +222,7 @@ async fn test_tampered_jwt() {
         {
           "message": "Unauthorized",
           "extensions": {
-            "code": "UNAUTHORIZED"
+            "code": "UNAUTHENTICATED"
           }
         }
       ]
@@ -261,7 +261,7 @@ async fn test_wrong_provider() {
         {
           "message": "Unauthorized",
           "extensions": {
-            "code": "UNAUTHORIZED"
+            "code": "UNAUTHENTICATED"
           }
         }
       ]
@@ -332,7 +332,7 @@ async fn test_audience() {
         {
           "message": "Unauthorized",
           "extensions": {
-            "code": "UNAUTHORIZED"
+            "code": "UNAUTHENTICATED"
           }
         }
       ]
