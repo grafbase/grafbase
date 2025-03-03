@@ -5,7 +5,7 @@ replicaCount: 1
 image:
   # Kubernetes image pull policy. Options: Always, IfNotPresent, Never.
   # https://kubernetes.io/docs/concepts/containers/images/#image-pull-policy
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
 
   # Docker repository for the Grafbase gateway image.
   repository: ghcr.io/grafbase/gateway
