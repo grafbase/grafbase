@@ -22,9 +22,10 @@ exclude = [
     "crates/wasi-component-loader/examples",
     "examples/hooks-template",
     "examples/query_plan",
-    "extensions/rest",
     "extensions/jwt",
+    "extensions/grpc",
     "extensions/nats",
+    "extensions/rest",
 ]
 
 [patch.crates-io]
