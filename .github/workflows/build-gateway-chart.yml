@@ -3,7 +3,7 @@ name: Gateway Helm Chart
 on:
   push:
     tags:
-      - 'gateway-*'
+      - 'gateway-helm-*'
   workflow_dispatch: {}
 
 permissions:
