@@ -62,3 +62,7 @@ lambda_http = { workspace = true, optional = true }
 minicbor-serde = { workspace = true, features = ["alloc"] }
 serde_json.workspace = true
 tower = { workspace = true, optional = true }
+
+[dev-dependencies]
+insta.workspace = true
+tempfile.workspace = true
