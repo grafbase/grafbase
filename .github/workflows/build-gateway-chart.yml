@@ -20,18 +20,8 @@ env:
   CHART_PATH: gateway/helm
 
 jobs:
-  clone-repo:
-    name: Clone Repository
-    runs-on: ubicloud-standard-2
-    outputs:
-      build: ${{ steps.filter.outputs.build }}
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
   detect-change-type:
     runs-on: ubicloud-standard-2
-    needs: [clone-repo]
     outputs:
       build: ${{ steps.filter.outputs.build }}
     steps:
@@ -51,6 +41,9 @@ jobs:
     runs-on: ubicloud-standard-2
     needs: [detect-change-type]
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
       - name: Setup helm
         uses: azure/setup-helm@v4.3.0
         with:
