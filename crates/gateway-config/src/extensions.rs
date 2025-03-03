@@ -14,10 +14,10 @@ pub enum ExtensionsConfig {
 pub struct StructuredExtensionsConfig {
     pub version: VersionReq,
     pub path: Option<PathBuf>,
-    pub networking: bool,
-    pub stdout: bool,
-    pub stderr: bool,
-    pub environment_variables: bool,
+    pub networking: Option<bool>,
+    pub stdout: Option<bool>,
+    pub stderr: Option<bool>,
+    pub environment_variables: Option<bool>,
     pub max_pool_size: Option<usize>,
     pub config: Option<toml::Value>,
 }
@@ -27,10 +27,10 @@ impl Default for StructuredExtensionsConfig {
         Self {
             version: VersionReq::parse("*").unwrap(),
             path: None,
-            networking: false,
-            stdout: false,
-            stderr: false,
-            environment_variables: false,
+            networking: None,
+            stdout: None,
+            stderr: None,
+            environment_variables: None,
             max_pool_size: None,
             config: None,
         }
@@ -57,28 +57,28 @@ impl ExtensionsConfig {
     pub fn networking(&self) -> Option<bool> {
         match self {
             ExtensionsConfig::Version(_) => None,
-            ExtensionsConfig::Structured(config) => Some(config.networking),
+            ExtensionsConfig::Structured(config) => config.networking,
         }
     }
 
     pub fn stdout(&self) -> Option<bool> {
         match self {
             ExtensionsConfig::Version(_) => None,
-            ExtensionsConfig::Structured(config) => Some(config.stdout),
+            ExtensionsConfig::Structured(config) => config.stdout,
         }
     }
 
     pub fn stderr(&self) -> Option<bool> {
         match self {
             ExtensionsConfig::Version(_) => None,
-            ExtensionsConfig::Structured(config) => Some(config.stderr),
+            ExtensionsConfig::Structured(config) => config.stderr,
         }
     }
 
     pub fn environment_variables(&self) -> Option<bool> {
         match self {
             ExtensionsConfig::Version(_) => None,
-            ExtensionsConfig::Structured(config) => Some(config.environment_variables),
+            ExtensionsConfig::Structured(config) => config.environment_variables,
         }
     }
 
