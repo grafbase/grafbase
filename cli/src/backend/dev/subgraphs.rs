@@ -43,7 +43,7 @@ pub async fn get_subgraph_sdls(
     subgraphs: &mut composition::Subgraphs,
     graph_overrides_path: Option<&PathBuf>,
 ) -> Result<Arc<SubgraphCache>, BackendError> {
-    let mut remote_urls: HashMap<&str, &str> = HashMap::new();
+    let mut remote_urls: HashMap<&str, Option<&str>> = HashMap::new();
     let remote_subgraphs: Vec<Subgraph>;
     let mut subgraph_cache = SubgraphCache {
         remote: BTreeMap::new(),
@@ -67,19 +67,19 @@ pub async fn get_subgraph_sdls(
             .collect::<Vec<_>>();
 
         for subgraph in remote_subgraphs {
-            remote_urls.insert(&subgraph.name, &subgraph.url);
+            remote_urls.insert(&subgraph.name, subgraph.url.as_deref());
             let url = if let Some(url) = merged_configuration
                 .subgraphs
                 .get(&subgraph.name)
                 .and_then(|subgraph| subgraph.url.as_ref())
             {
-                url.as_str()
+                Some(url.as_str())
             } else {
-                subgraph.url.as_str()
+                subgraph.url.as_deref()
             };
 
             let parsed_sdl = cynic_parser::parse_type_system_document(&subgraph.schema)?;
-            subgraphs.ingest(&parsed_sdl, &subgraph.name, Some(url));
+            subgraphs.ingest(&parsed_sdl, &subgraph.name, url);
         }
     }
 
@@ -136,7 +136,7 @@ struct OverriddenSubgraph {
 
 async fn handle_overridden_subgraph(
     subgraph_cache: Arc<SubgraphCache>,
-    remote_urls: &HashMap<&str, &str>,
+    remote_urls: &HashMap<&str, Option<&str>>,
     name: &str,
     subgraph: &SubgraphConfig,
 ) -> Result<OverriddenSubgraph, BackendError> {
@@ -144,7 +144,7 @@ async fn handle_overridden_subgraph(
         .url
         .as_ref()
         .map(|url| url.as_str())
-        .or_else(|| remote_urls.get(name).copied())
+        .or_else(|| remote_urls.get(name).copied().flatten())
         .or(subgraph.introspection_url.as_ref().map(|url| url.as_str()))
         .map(String::from);
 

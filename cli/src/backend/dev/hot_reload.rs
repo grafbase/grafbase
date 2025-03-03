@@ -411,7 +411,7 @@ async fn reload_subgraphs(
         .filter(|(name, _)| !overridden_subgraphs.contains(**name))
     {
         let sdl = cynic_parser::parse_type_system_document(&remote_subgraph.schema)?;
-        subgraphs.ingest(&sdl, name, Some(&remote_subgraph.url));
+        subgraphs.ingest(&sdl, name, remote_subgraph.url.as_deref());
     }
 
     // we're not passing in the graph ref to avoid fetching the remote subgraphs again

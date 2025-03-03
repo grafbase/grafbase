@@ -216,7 +216,7 @@ pub struct PublishInput<'a> {
     pub graph_slug: Option<&'a str>,
     pub schema: &'a str,
     pub subgraph: &'a str,
-    pub url: &'a str,
+    pub url: Option<&'a str>,
 }
 
 #[derive(cynic::QueryFragment, Debug)]

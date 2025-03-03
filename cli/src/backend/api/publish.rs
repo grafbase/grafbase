@@ -20,7 +20,7 @@ pub async fn publish(
     graph_slug: &str,
     branch: Option<&str>,
     subgraph_name: &str,
-    url: &str,
+    url: Option<&str>,
     schema: &str,
     message: Option<&str>,
 ) -> Result<PublishOutcome, ApiError> {
