@@ -1,0 +1,215 @@
+"""
+Define a gRPC service.
+"""
+directive @grpcService(
+  """
+  The name of the gRPC service.
+  """
+  name: String!
+
+  """
+  The address of the gRPC server.
+  """
+  address: String!
+
+  """
+  Optional channel options for the gRPC connection.
+  """
+  options: GrpcChannelOptions
+
+  """
+  Custom timeout in milliseconds for all methods of this service.
+  """
+  timeout: Int
+
+  """
+  Whether to use TLS for secure connection.
+  """
+  useTls: Boolean = false
+
+  """
+  Optional CA certificate for TLS connections.
+  """
+  caCert: String
+) on OBJECT
+
+"""
+Channel options for gRPC connections.
+"""
+input GrpcChannelOptions {
+  """
+  Maximum message size in bytes.
+  """
+  maxMessageSize: Int
+
+  """
+  Enable or disable keepalive.
+  """
+  keepalive: Boolean
+
+  """
+  Keepalive timeout in milliseconds.
+  """
+  keepaliveTimeout: Int
+
+  """
+  Keepalive interval in milliseconds.
+  """
+  keepaliveInterval: Int
+
+  """
+  Compression algorithm to use: "gzip", "deflate", or "none".
+  """
+  compression: String
+
+  """
+  User agent string.
+  """
+  userAgent: String
+}
+
+"""
+Define a gRPC method on a service.
+"""
+directive @grpcMethod(
+  """
+  The name of the gRPC method to call.
+  """
+  name: String!
+
+  """
+  The type of the gRPC method: UNARY, SERVER_STREAMING, CLIENT_STREAMING, or BIDI_STREAMING.
+  """
+  type: GrpcMethodType = UNARY
+
+  """
+  Custom timeout in milliseconds for this specific method.
+  """
+  timeout: Int
+
+  """
+  Input message field mapping rules.
+  """
+  requestMapping: [GrpcFieldMapping!]
+
+  """
+  Output message field mapping rules.
+  """
+  responseMapping: [GrpcFieldMapping!]
+
+  """
+  Whether to retry on failure.
+  """
+  retry: Boolean = false
+
+  """
+  Maximum number of retry attempts.
+  """
+  maxRetries: Int = 3
+
+  """
+  Custom headers to include with the gRPC request.
+  """
+  headers: [GrpcHeader!]
+) on FIELD_DEFINITION
+
+"""
+The type of gRPC method.
+"""
+enum GrpcMethodType {
+  """
+  Standard request-response method.
+  """
+  UNARY
+
+  """
+  Server streams multiple responses.
+  """
+  SERVER_STREAMING
+
+  """
+  Client streams multiple requests.
+  """
+  CLIENT_STREAMING
+
+  """
+  Both client and server stream data.
+  """
+  BIDI_STREAMING
+}
+
+"""
+Define how GraphQL fields map to gRPC message fields.
+"""
+input GrpcFieldMapping {
+  """
+  Source field path in the GraphQL input/output.
+  """
+  from: String!
+
+  """
+  Target field path in the gRPC message.
+  """
+  to: String!
+
+  """
+  Optional transformation to apply to the field value.
+  """
+  transform: String
+}
+
+"""
+Define custom headers for gRPC requests.
+"""
+input GrpcHeader {
+  """
+  Header name.
+  """
+  name: String!
+
+  """
+  Header value.
+  """
+  value: String!
+}
+
+"""
+Define a message type for a gRPC service.
+"""
+directive @grpcMessage(
+  """
+  Proto message type name.
+  """
+  type: String!
+  
+  """
+  Proto package name.
+  """
+  package: String
+) on INPUT_OBJECT | OBJECT
+
+"""
+Define a field as an enum in protobuf.
+"""
+directive @grpcEnum(
+  """
+  The protobuf enum type name.
+  """
+  type: String!
+) on ENUM
+
+"""
+Define a field as a oneof in protobuf.
+"""
+directive @grpcOneOf on UNION
+
+"""
+Mark a field as being represented by a special type in protobuf.
+"""
+directive @grpcType(
+  """
+  The protobuf type to use.
+  """
+  type: String!
+) on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+

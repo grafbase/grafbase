@@ -1,0 +1,16 @@
+name = "grpc"
+version = "0.1.0"
+description = "Invoke gRPC services from GraphQL queries"
+
+[permissions]
+network = ["outbound"]
+
+# gRPC specific configurations
+[config]
+# Default timeout for gRPC requests in seconds
+default_timeout_seconds = 30
+# Maximum message size in bytes (default 4MB)
+max_message_size_bytes = 4194304
+# Enable TLS by default
+enable_tls = true
+
