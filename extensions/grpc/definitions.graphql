@@ -1,0 +1,39 @@
+"""
+Directive for making gRPC calls using HTTP/2 transport.
+"""
+directive @grpc(
+  """
+  The gRPC service endpoint URL.
+  """
+  endpoint: String!
+
+  """
+  The gRPC service name.
+  """
+  service: String!
+
+  """
+  The gRPC method name.
+  """
+  method: String!
+
+  """
+  Optional headers to include in the request.
+  """
+  headers: JSON
+
+  """
+  Request message template. Variables can be interpolated using {{ variable }} syntax.
+  """
+  request: JSON
+
+  """
+  Optional response path using dot notation to extract specific fields from the response.
+  """
+  responsePath: String
+
+  """
+  Optional timeout in milliseconds.
+  """
+  timeout: Int
+) on FIELD_DEFINITION 
