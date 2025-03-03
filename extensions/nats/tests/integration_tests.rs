@@ -313,6 +313,54 @@ async fn test_subscribe_with_filter() {
         }
     "#};
 
+    {
+        let subscription = runner
+            .graphql_subscription::<serde_json::Value>(query)
+            .unwrap()
+            .subscribe()
+            .await
+            .unwrap();
+
+        let nats = nats_client().await;
+
+        tokio::spawn(async move {
+            for i in 1000..=1002 {
+                let event = json!({ "id": 1, "account": "User One", "money": i });
+                let event = serde_json::to_vec(&event).unwrap();
+
+                nats.publish("subscription.bank", event.into()).await.unwrap();
+                tokio::time::sleep(Duration::from_millis(100)).await;
+            }
+        });
+
+        let events = tokio::time::timeout(Duration::from_secs(15), subscription.take(2).collect::<Vec<_>>())
+            .await
+            .unwrap();
+
+        insta::assert_json_snapshot!(&events, @r#"
+        [
+          {
+            "data": {
+              "highPriorityBankEvents": {
+                "id": 1,
+                "account": "User One",
+                "money": 1001
+              }
+            }
+          },
+          {
+            "data": {
+              "highPriorityBankEvents": {
+                "id": 1,
+                "account": "User One",
+                "money": 1002
+              }
+            }
+          }
+        ]
+        "#);
+    }
+
     let subscription = runner
         .graphql_subscription::<serde_json::Value>(query)
         .unwrap()
