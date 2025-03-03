@@ -19,7 +19,7 @@ impl<S: serde::Serialize> FromIterator<S> for InputList {
     fn from_iter<T: IntoIterator<Item = S>>(iter: T) -> Self {
         Self(
             iter.into_iter()
-                .map(|input| minicbor_serde::to_vec(&input).unwrap())
+                .map(|input| crate::cbor::to_vec(&input).unwrap())
                 .collect(),
         )
     }

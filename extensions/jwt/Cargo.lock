@@ -789,6 +789,9 @@ name = "bumpalo"
 version = "3.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1628fb46dfa0b37568d12e5edd512553eccf6a22a78e8bde00bb4aed84d5bdbf"
+dependencies = [
+ "allocator-api2",
+]
 
 [[package]]
 name = "byteorder"
@@ -1931,7 +1934,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "anyhow",
  "async-tungstenite",
@@ -2002,6 +2005,7 @@ dependencies = [
  "axum-core",
  "base16ct",
  "bitflags 2.8.0",
+ "bumpalo",
  "byteorder",
  "bytes",
  "cc",
@@ -2131,6 +2135,7 @@ dependencies = [
  "uuid",
  "wasmparser 0.224.1",
  "winapi",
+ "windows-sys 0.48.0",
  "windows-sys 0.52.0",
  "windows-sys 0.59.0",
  "zeroize",
@@ -2794,9 +2799,9 @@ checksum = "64e9829a50b42bb782c1df523f78d332fe371b10c661e78b7a3c34b0198e9fac"
 
 [[package]]
 name = "insta"
-version = "1.42.1"
+version = "1.42.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "71c1b125e30d93896b365e156c33dadfffab45ee8400afcbba4752f59de08a86"
+checksum = "50259abbaa67d11d2bcafc7ba1d094ed7a0c70e3ce893f0d0997f73558cb3084"
 dependencies = [
  "console",
  "globset",
@@ -3145,9 +3150,9 @@ dependencies = [
 
 [[package]]
 name = "minicbor"
-version = "0.26.0"
+version = "0.26.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e661deac75bd438730c7335469ea8aee72a607e2bc93282386ef765b4ea7cdc0"
+checksum = "dedac5a67c5a5ddd9d3216db985a091b0503484725ce5e106551e0459bcbf61f"
 dependencies = [
  "minicbor-derive",
 ]
@@ -3165,9 +3170,9 @@ dependencies = [
 
 [[package]]
 name = "minicbor-serde"
-version = "0.4.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae86a5e4fbf0e17acce8debc61552b3f620d388470fd3d77af36270177168e56"
+checksum = "54e45e8beeefea1b8b6f52fa188a5b6ea3746c2885606af8d4d8bf31cee633fb"
 dependencies = [
  "minicbor",
  "serde",
