@@ -1,0 +1,36 @@
+[package]
+name = "grpc"
+version = "0.1.0"
+edition = "2024"
+license = "MPL-2"
+homepage = "https://grafbase.com"
+keywords = ["graphql", "grpc"]
+repository = "https://github.com/grafbase/grafbase"
+
+[dependencies]
+grafbase-sdk = { path = "../../crates/grafbase-sdk" }
+http = "1"
+serde = "1"
+serde_json = "1"
+base64 = "0.21"
+prost = "0.12"
+
+[lib]
+crate-type = ["cdylib"]
+
+[profile.release]
+opt-level = "z"
+strip = true
+lto = true
+codegen-units = 1
+
+[dev-dependencies]
+grafbase-sdk = { path = "../../crates/grafbase-sdk", features = ["test-utils"] }
+indoc = "2.0.5"
+insta = { version = "1.42.2", features = ["json"] }
+tokio = { version = "1.43.0", features = [
+    "rt-multi-thread",
+    "macros",
+    "test-util",
+] }
+wiremock = "0.6.3" 

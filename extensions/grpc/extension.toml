@@ -1,0 +1,12 @@
+[extension]
+name = "grpc"
+version = "0.1.0"
+kind = "resolver"
+description = "Declarative gRPC resolver extension using HTTP client."
+
+[directives]
+definitions = "definitions.graphql"
+field_resolvers = ["grpc"]
+
+[permissions]
+network = true 
