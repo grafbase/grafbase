@@ -68,12 +68,19 @@ impl Manifest {
 pub enum Kind {
     FieldResolver(FieldResolver),
     Authenticator(Empty),
+    Authorization(AuthorizationKind),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct FieldResolver {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub resolver_directives: Option<Vec<String>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct AuthorizationKind {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub directives: Option<Vec<String>>,
 }
 
 // Allows us to add fields later, as adding a value to an enum that doesn't have one would be

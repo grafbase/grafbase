@@ -47,10 +47,10 @@ impl TestExtensionBuilder for GreetExt {
 
 #[async_trait::async_trait]
 impl TestExtension for GreetExt {
-    async fn resolve<'a>(
+    async fn resolve_field(
         &self,
         _headers: http::HeaderMap,
-        _directive: ExtensionFieldDirective<'a, serde_json::Value>,
+        _directive: ExtensionFieldDirective<'_, serde_json::Value>,
         inputs: Vec<serde_json::Value>,
     ) -> Result<Vec<Result<serde_json::Value, PartialGraphqlError>>, PartialGraphqlError> {
         Ok(vec![Ok(serde_json::json!("Hi!")); inputs.len()])

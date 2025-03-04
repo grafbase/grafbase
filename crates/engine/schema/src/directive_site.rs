@@ -3,6 +3,20 @@ use crate::{
     EntityDefinitionId,
 };
 
+impl std::fmt::Display for DirectiveSite<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            DirectiveSite::Scalar(scalar) => f.write_str(scalar.name()),
+            DirectiveSite::Object(object) => f.write_str(object.name()),
+            DirectiveSite::Interface(interface) => f.write_str(interface.name()),
+            DirectiveSite::Union(union) => f.write_str(union.name()),
+            DirectiveSite::Enum(enm) => f.write_str(enm.name()),
+            DirectiveSite::InputObject(input_object) => f.write_str(input_object.name()),
+            DirectiveSite::Field(field) => write!(f, "{}.{}", field.parent_entity().name(), field.name()),
+        }
+    }
+}
+
 impl From<DefinitionId> for DirectiveSiteId {
     fn from(definition: DefinitionId) -> Self {
         match definition {

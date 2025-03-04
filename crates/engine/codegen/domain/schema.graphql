@@ -26,8 +26,6 @@ union DirectiveSite @id @meta(module: "directive_site") @variants(remove_suffix:
   | InputObjectDefinition
   | ScalarDefinition
   | FieldDefinition
-  | InputValueDefinition
-  | EnumValue
 
 union Definition @id @meta(module: "definition") @variants(remove_suffix: true) =
   | ObjectDefinition
