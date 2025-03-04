@@ -42,18 +42,6 @@ spec:
         {{- end }}
         {{- end }}
       containers:
-        - name: curl-main-health
-          securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "alpine/curl"
-          command: ["sh", "-c", "while ((1)); do curl -m 0.5 localhost:5000/health; echo;sleep 0.2;done"]
-          resources:
-            requests:
-              cpu: 100m
-              memory: 128Mi
-            limits:
-              cpu: 100m
-              memory: 128Mi
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
