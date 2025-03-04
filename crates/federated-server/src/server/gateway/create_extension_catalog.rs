@@ -1,4 +1,4 @@
-use extension_catalog::{Extension, ExtensionCatalog, VersionedManifest};
+use extension_catalog::{Extension, ExtensionCatalog, PUBLIC_EXTENSION_REGISTRY_URL, VersionedManifest};
 use gateway_config::Config;
 use std::{env, fs::File, io, path::Path};
 
@@ -85,11 +85,17 @@ async fn create_extension_catalog_impl(gateway_config: &Config, cwd: &Path) -> R
             continue;
         };
 
+        let base_registry_url = std::env::var("EXTENSION_REGISTRY_URL")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or_else(|| PUBLIC_EXTENSION_REGISTRY_URL.parse().unwrap());
+
         extension_catalog::download_extension_from_registry(
             &http_client,
             &grafbase_extensions_dir_path,
             extension_name.clone(),
             extension_in_lockfile.version.clone(),
+            &base_registry_url,
         )
         .await
         .map_err(Error::Download)?;

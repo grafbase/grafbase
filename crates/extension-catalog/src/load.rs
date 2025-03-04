@@ -5,6 +5,7 @@ use tokio::{fs, io::AsyncWriteExt as _};
 use url::Url;
 
 pub const EXTENSION_DIR_NAME: &str = "grafbase_extensions";
+pub const PUBLIC_EXTENSION_REGISTRY_URL: &str = "https://extensions.grafbase.com";
 
 pub async fn load_manifest(mut url: Url) -> Result<Manifest, String> {
     if url
@@ -36,8 +37,17 @@ pub async fn download_extension_from_registry_if_needed(
     extensions_dir: &Path,
     extension_name: String,
     version: semver::Version,
+    registry_base_url: &Url,
 ) -> Result<(), Report> {
-    download_extension_from_registry_impl(http_client, extensions_dir, extension_name, version, true).await
+    download_extension_from_registry_impl(
+        http_client,
+        extensions_dir,
+        extension_name,
+        version,
+        true,
+        registry_base_url,
+    )
+    .await
 }
 
 pub async fn download_extension_from_registry(
@@ -45,8 +55,17 @@ pub async fn download_extension_from_registry(
     extensions_dir: &Path,
     extension_name: String,
     version: semver::Version,
+    registry_base_url: &Url,
 ) -> Result<(), Report> {
-    download_extension_from_registry_impl(http_client, extensions_dir, extension_name, version, false).await
+    download_extension_from_registry_impl(
+        http_client,
+        extensions_dir,
+        extension_name,
+        version,
+        false,
+        registry_base_url,
+    )
+    .await
 }
 
 async fn download_extension_from_registry_impl(
@@ -55,15 +74,12 @@ async fn download_extension_from_registry_impl(
     extension_name: String,
     version: semver::Version,
     lazy: bool,
+    registry_base_url: &Url,
 ) -> Result<(), Report> {
-    const PUBLIC_EXTENSION_REGISTRY_URL: &str = "https://extensions.grafbase.com";
-
-    let url: Url = PUBLIC_EXTENSION_REGISTRY_URL.parse().unwrap();
-
-    let mut manifest_json_url = url.clone();
+    let mut manifest_json_url = registry_base_url.clone();
     manifest_json_url.set_path(&format!("/extensions/{extension_name}/{version}/manifest.json"));
 
-    let mut extension_wasm_url = url.clone();
+    let mut extension_wasm_url = registry_base_url.clone();
     extension_wasm_url.set_path(&format!("/extensions/{extension_name}/{version}/extension.wasm",));
 
     let url_to_path = async |url: Url| -> Result<(), Report> {
@@ -75,10 +91,14 @@ async fn download_extension_from_registry_impl(
             return Ok(());
         }
 
-        let response = http_client.get(url).send().await.map_err(Report::http)?;
+        let response = http_client
+            .get(url.clone())
+            .send()
+            .await
+            .map_err(|err| Report::http(err, &url))?;
 
         if !response.status().is_success() {
-            return Err(Report::http_status(response.status()));
+            return Err(Report::http_status(response.status(), &url));
         }
 
         fs::create_dir_all(&dir_path)
@@ -128,12 +148,16 @@ impl Report {
         Report(Cow::Owned(format!("Failed to read response body: {err}")))
     }
 
-    fn http(err: reqwest::Error) -> Self {
-        Report(Cow::Owned(format!("HTTP error downloading extension: {err}")))
+    fn http(err: reqwest::Error, url: &Url) -> Self {
+        Report(Cow::Owned(format!(
+            "HTTP error downloading extension from {url}: {err}",
+        )))
     }
 
-    fn http_status(status: reqwest::StatusCode) -> Self {
-        Report(Cow::Owned(format!("HTTP error downloading extension: {status}")))
+    fn http_status(status: reqwest::StatusCode, url: &Url) -> Self {
+        Report(Cow::Owned(format!(
+            "HTTP error downloading extension from {url}: {status}",
+        )))
     }
 }
 

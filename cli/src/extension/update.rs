@@ -124,12 +124,12 @@ pub(super) async fn execute(cmd: ExtensionUpdateCommand) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn handle_extension_does_not_exist(name: &str) {
+pub(super) fn handle_extension_does_not_exist(name: &str) {
     report::extension_update_extension_does_not_exist(name);
     std::process::exit(1);
 }
 
-fn handle_extension_version_does_not_exist(name: &str, version: &semver::VersionReq) {
+pub(super) fn handle_extension_version_does_not_exist(name: &str, version: &semver::VersionReq) {
     report::extension_update_extension_version_does_not_exist(name, version);
     std::process::exit(1);
 }

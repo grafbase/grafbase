@@ -23,7 +23,7 @@ pub enum ExtensionSubCommand {
     /// Update the lockfile (grafbase-extensions.locks)
     Update(ExtensionUpdateCommand),
     /// Download the extensions captured in the lockfile.
-    Install,
+    Install(ExtensionInstallCommand),
 }
 
 #[derive(Debug, Parser)]
@@ -72,6 +72,13 @@ pub(crate) struct ExtensionUpdateCommand {
     /// The name of the extension(s) to update. This argument can be passed multiple times. If no --name is passed, all extensions are updated.
     #[arg(short, long)]
     pub name: Option<Vec<String>>,
+    /// The location of the gateway configuration file that contains the version requirements. Default: `./grafbase.toml`.
+    #[arg(short, long, default_value = DEFAULT_GATEWAY_CONFIG_FILE_PATH)]
+    pub config: PathBuf,
+}
+
+#[derive(Debug, Parser)]
+pub(crate) struct ExtensionInstallCommand {
     /// The location of the gateway configuration file that contains the version requirements. Default: `./grafbase.toml`.
     #[arg(short, long, default_value = DEFAULT_GATEWAY_CONFIG_FILE_PATH)]
     pub config: PathBuf,
