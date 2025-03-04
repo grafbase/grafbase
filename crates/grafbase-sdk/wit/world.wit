@@ -224,6 +224,8 @@ interface types {
         // Retrieves the value of a header by name.
         // Returns None if the header does not exist.
         get: func(name: string) -> option<string>;
+        // Return all headers as a list of tuples.
+        entries: func() -> list<tuple<string, string>>;
     }
 
     // A token represents an authenticated user identity.
@@ -346,7 +348,7 @@ interface extension {
     // for each input and each edges inside we return a result<list<u8>, error>,
     // serialized data with an error.
     resolve-field: func(
-       context: shared-context,
+       headers: headers,
        subgraph-name: string,
        directive: field-definition-directive,
        inputs: list<list<u8>>
@@ -354,7 +356,7 @@ interface extension {
 
     // initializes a new subscription stream
     resolve-subscription: func(
-        context: shared-context,
+        headers: headers,
         subgraph-name: string,
         directive: field-definition-directive,
     ) -> result<_, error>;

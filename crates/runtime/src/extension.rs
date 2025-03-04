@@ -47,7 +47,7 @@ pub trait ExtensionRuntime: Send + Sync + 'static {
     /// shared, without lock, so it's only temporarily available.
     fn resolve_field<'ctx, 'resp, 'f>(
         &'ctx self,
-        context: &'ctx Self::SharedContext,
+        headers: http::HeaderMap,
         directive: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
         inputs: impl Iterator<Item: Anything<'resp>> + Send,
     ) -> impl Future<Output = Result<Vec<Result<Data, PartialGraphqlError>>, PartialGraphqlError>> + Send + 'f
@@ -56,7 +56,7 @@ pub trait ExtensionRuntime: Send + Sync + 'static {
 
     fn resolve_subscription<'ctx, 'f>(
         &'ctx self,
-        context: &'ctx Self::SharedContext,
+        headers: http::HeaderMap,
         directive: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
     ) -> impl Future<Output = Result<BoxStream<'f, Result<Data, PartialGraphqlError>>, PartialGraphqlError>> + Send + 'f
     where
@@ -91,7 +91,7 @@ impl ExtensionRuntime for () {
     #[allow(clippy::manual_async_fn)]
     fn resolve_field<'ctx, 'resp, 'f>(
         &'ctx self,
-        _context: &'ctx Self::SharedContext,
+        _headers: http::HeaderMap,
         _directive_context: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
         _inputs: impl Iterator<Item: Anything<'resp>> + Send,
     ) -> impl Future<Output = Result<Vec<Result<Data, PartialGraphqlError>>, PartialGraphqlError>> + Send + 'f
@@ -115,7 +115,7 @@ impl ExtensionRuntime for () {
 
     async fn resolve_subscription<'ctx, 'f>(
         &'ctx self,
-        _: &'ctx Self::SharedContext,
+        _: http::HeaderMap,
         _: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
     ) -> Result<BoxStream<'f, Result<Data, PartialGraphqlError>>, PartialGraphqlError>
     where

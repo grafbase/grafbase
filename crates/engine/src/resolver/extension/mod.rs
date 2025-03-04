@@ -35,6 +35,7 @@ impl FieldResolverExtension {
         plan: Plan<'ctx>,
     ) -> SubscriptionResolverExtensionRequest<'ctx> {
         let directive = self.directive_id.walk(ctx.schema());
+        let headers = ctx.subgraph_headers_with_rules(directive.subgraph().header_rules());
 
         let field = plan
             .selection_set()
@@ -59,7 +60,7 @@ impl FieldResolverExtension {
             .engine
             .runtime
             .extensions()
-            .resolve_subscription(ctx.hooks_context, extension_directive)
+            .resolve_subscription(headers, extension_directive)
             .boxed();
 
         SubscriptionResolverExtensionRequest { field, future }
@@ -73,6 +74,8 @@ impl FieldResolverExtension {
         subgraph_response: SubgraphResponse,
     ) -> FieldResolverExtensionRequest<'ctx> {
         let directive = self.directive_id.walk(ctx.schema());
+        let headers = ctx.subgraph_headers_with_rules(directive.subgraph().header_rules());
+
         let field = plan
             .selection_set()
             .fields()
@@ -99,7 +102,7 @@ impl FieldResolverExtension {
             .engine
             .runtime
             .extensions()
-            .resolve_field(ctx.hooks_context, extension_directive, response_view.iter())
+            .resolve_field(headers, extension_directive, response_view.iter())
             .boxed();
 
         let input_object_refs = root_response_objects.into_input_object_refs();

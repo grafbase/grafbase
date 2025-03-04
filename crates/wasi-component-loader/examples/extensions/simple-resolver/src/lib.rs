@@ -1,5 +1,5 @@
 use grafbase_sdk::{
-    Error, Extension, Resolver, ResolverExtension, SharedContext, Subscription,
+    Error, Extension, Headers, Resolver, ResolverExtension, Subscription,
     types::{Configuration, FieldDefinitionDirective, FieldInputs, FieldOutput, SchemaDirective},
 };
 
@@ -40,7 +40,7 @@ impl Extension for SimpleResolver {
 impl Resolver for SimpleResolver {
     fn resolve_field(
         &mut self,
-        _: SharedContext,
+        _: Headers,
         _: &str,
         directive: FieldDefinitionDirective,
         _: FieldInputs,
@@ -59,7 +59,7 @@ impl Resolver for SimpleResolver {
 
     fn resolve_subscription(
         &mut self,
-        _: SharedContext,
+        _: Headers,
         _: &str,
         _: FieldDefinitionDirective,
     ) -> Result<Box<dyn Subscription>, Error> {

@@ -1,7 +1,7 @@
-use std::{collections::HashMap, path::PathBuf, sync::Arc};
+use std::path::PathBuf;
 
 use crate::{
-    SharedContext, cbor,
+    cbor,
     extension::{ExtensionGuestConfig, ExtensionLoader, SchemaDirective, wit},
     tests::create_shared_resources,
 };
@@ -10,7 +10,6 @@ use futures::{
     stream::{FuturesOrdered, FuturesUnordered},
 };
 use gateway_config::WasiExtensionsConfig;
-use grafbase_telemetry::otel::opentelemetry::trace::TraceId;
 use http::{HeaderMap, HeaderValue};
 use serde_json::json;
 
@@ -49,8 +48,6 @@ async fn simple_resolver() {
     )
     .unwrap();
 
-    let context = SharedContext::new(Arc::new(HashMap::new()), TraceId::INVALID);
-
     let field_directive = wit::FieldDefinitionDirective {
         name: "myDirective",
         site: wit::FieldDefinitionDirectiveSite {
@@ -64,7 +61,12 @@ async fn simple_resolver() {
         .instantiate()
         .await
         .unwrap()
-        .resolve_field(context, "mySubgraph", field_directive, Default::default())
+        .resolve_field(
+            http::HeaderMap::new(),
+            "mySubgraph",
+            field_directive,
+            Default::default(),
+        )
         .await
         .unwrap();
 

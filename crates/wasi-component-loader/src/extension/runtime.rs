@@ -97,7 +97,7 @@ impl ExtensionRuntime for ExtensionsWasiRuntime {
     #[allow(clippy::manual_async_fn)]
     fn resolve_field<'ctx, 'resp, 'f>(
         &'ctx self,
-        context: &'ctx Self::SharedContext,
+        headers: http::HeaderMap,
         ExtensionFieldDirective {
             extension_id,
             subgraph,
@@ -124,7 +124,7 @@ impl ExtensionRuntime for ExtensionsWasiRuntime {
             };
 
             let output = instance
-                .resolve_field(context.clone(), subgraph.name(), directive, inputs)
+                .resolve_field(headers, subgraph.name(), directive, inputs)
                 .await
                 .map_err(|err| err.into_graphql_error(PartialErrorCode::ExtensionError))?;
 
@@ -162,7 +162,7 @@ impl ExtensionRuntime for ExtensionsWasiRuntime {
 
     async fn resolve_subscription<'ctx, 'f>(
         &'ctx self,
-        context: &'ctx Self::SharedContext,
+        headers: http::HeaderMap,
         directive: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
     ) -> Result<BoxStream<'f, Result<Data, PartialGraphqlError>>, PartialGraphqlError>
     where
@@ -187,7 +187,7 @@ impl ExtensionRuntime for ExtensionsWasiRuntime {
         };
 
         instance
-            .resolve_subscription(context.clone(), subgraph.name(), directive)
+            .resolve_subscription(headers, subgraph.name(), directive)
             .await
             .map_err(|err| err.into_graphql_error(PartialErrorCode::ExtensionError))?;
 

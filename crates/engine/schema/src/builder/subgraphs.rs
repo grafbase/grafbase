@@ -101,6 +101,7 @@ impl Context<'_> {
                 subgraphs.virtual_subgraphs.push(VirtualSubgraphRecord {
                     subgraph_name_id,
                     schema_directive_ids: Vec::new(),
+                    header_rule_ids: self.ingest_header_rules(&headers),
                 });
                 SubgraphId::Virtual((subgraphs.virtual_subgraphs.len() - 1).into())
             };

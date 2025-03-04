@@ -137,6 +137,12 @@ grafbase publish --name countries -m init my-org/my-federated-graph
 
 You can omit the `--url` parameter from a subgraph that only acts as a virtual graph for an extension.
 
+### Headers
+
+The REST extension sends headers to the REST endpoint. The resolver filters the request headers and uses the resulting subgraph headers.
+
+When you compose the REST subgraph to your federated graph, and you give it a name, you can define the [header rules](https://grafbase.com/docs/reference/gateway/configuration/subgraph-configuration#header-rules) in your gateway configuration.
+
 ## Request Body
 
 Use the `body` argument to send data to the REST endpoint. The `body` argument accepts a JSON object or a selection that maps data from the input arguments.

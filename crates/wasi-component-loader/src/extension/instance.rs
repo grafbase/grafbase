@@ -28,20 +28,20 @@ impl<S: serde::Serialize> FromIterator<S> for InputList {
 impl ExtensionInstance {
     pub async fn resolve_field(
         &mut self,
-        context: wit::SharedContext,
+        headers: http::HeaderMap,
         subgraph_name: &str,
         directive: wit::FieldDefinitionDirective<'_>,
         inputs: InputList,
     ) -> crate::Result<FieldOutput> {
         self.poisoned = true;
 
-        let context = self.store.data_mut().push_resource(context)?;
+        let headers = self.store.data_mut().push_resource(wit::Headers::borrow(headers))?;
         let inputs = inputs.0.iter().map(Vec::as_slice).collect::<Vec<_>>();
 
         let output = self
             .inner
             .grafbase_sdk_extension()
-            .call_resolve_field(&mut self.store, context, subgraph_name, directive, &inputs)
+            .call_resolve_field(&mut self.store, headers, subgraph_name, directive, &inputs)
             .await??;
 
         self.poisoned = false;
@@ -51,17 +51,17 @@ impl ExtensionInstance {
 
     pub async fn resolve_subscription(
         &mut self,
-        context: wit::SharedContext,
+        headers: http::HeaderMap,
         subgraph_name: &str,
         directive: wit::FieldDefinitionDirective<'_>,
     ) -> Result<(), crate::Error> {
         self.poisoned = true;
 
-        let context = self.store.data_mut().push_resource(context)?;
+        let headers = self.store.data_mut().push_resource(wit::Headers::borrow(headers))?;
 
         self.inner
             .grafbase_sdk_extension()
-            .call_resolve_subscription(&mut self.store, context, subgraph_name, directive)
+            .call_resolve_subscription(&mut self.store, headers, subgraph_name, directive)
             .await??;
 
         self.poisoned = false;

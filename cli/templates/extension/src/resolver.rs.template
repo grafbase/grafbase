@@ -1,6 +1,6 @@
 use grafbase_sdk::{
     types::{Configuration, SchemaDirective, FieldDefinitionDirective, FieldInputs, FieldOutput},
-    Error, Extension, Resolver, ResolverExtension, SharedContext, Subscription
+    Error, Extension, Headers, Resolver, ResolverExtension, Subscription
 };
 
 #[derive(ResolverExtension)]
@@ -15,7 +15,7 @@ impl Extension for {{name}} {
 impl Resolver for {{name}} {
     fn resolve_field(
         &mut self,
-        context: SharedContext,
+        headers: Headers,
         subgraph_name: &str,
         directive: FieldDefinitionDirective<'_>,
         inputs: FieldInputs,
@@ -25,7 +25,7 @@ impl Resolver for {{name}} {
 
     fn resolve_subscription(
         &mut self,
-        context: SharedContext,
+        headers: Headers,
         subgraph_name: &str,
         directive: FieldDefinitionDirective<'_>,
     ) -> Result<Box<dyn Subscription>, Error> {

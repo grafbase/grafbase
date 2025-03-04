@@ -127,7 +127,7 @@ pub trait TestExtensionBuilder: Send + Sync + 'static {
 pub trait TestExtension: Send + Sync + 'static {
     async fn resolve<'a>(
         &self,
-        context: &DynHookContext,
+        headers: http::HeaderMap,
         directive: ExtensionFieldDirective<'a, serde_json::Value>,
         inputs: Vec<serde_json::Value>,
     ) -> Result<Vec<Result<serde_json::Value, PartialGraphqlError>>, PartialGraphqlError> {
@@ -140,7 +140,7 @@ impl runtime::extension::ExtensionRuntime for TestExtensions {
 
     fn resolve_field<'ctx, 'resp, 'f>(
         &'ctx self,
-        context: &'ctx Self::SharedContext,
+        headers: http::HeaderMap,
         ExtensionFieldDirective {
             extension_id,
             subgraph,
@@ -162,7 +162,7 @@ impl runtime::extension::ExtensionRuntime for TestExtensions {
             let instance = self.get_subgraph_isntance(extension_id, subgraph).await;
             instance
                 .resolve(
-                    context,
+                    headers,
                     ExtensionFieldDirective {
                         extension_id,
                         subgraph,
@@ -197,7 +197,7 @@ impl runtime::extension::ExtensionRuntime for TestExtensions {
 
     async fn resolve_subscription<'ctx, 'f>(
         &'ctx self,
-        _: &'ctx Self::SharedContext,
+        _: http::HeaderMap,
         _: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
     ) -> Result<BoxStream<'f, Result<Data, PartialGraphqlError>>, PartialGraphqlError>
     where
@@ -208,7 +208,7 @@ impl runtime::extension::ExtensionRuntime for TestExtensions {
 
     async fn authorize_query<'ctx>(
         &'ctx self,
-        _context: &'ctx Self::SharedContext,
+        _: &'ctx Self::SharedContext,
         extension_id: ExtensionId,
         // (directive name, (definition, arguments))
         _elements: impl IntoIterator<
