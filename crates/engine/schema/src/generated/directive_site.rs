@@ -5,10 +5,9 @@
 //! Source file: <engine-codegen dir>/domain/schema.graphql
 use crate::{
     generated::{
-        EnumDefinition, EnumDefinitionId, EnumValue, EnumValueId, FieldDefinition, FieldDefinitionId,
-        InputObjectDefinition, InputObjectDefinitionId, InputValueDefinition, InputValueDefinitionId,
-        InterfaceDefinition, InterfaceDefinitionId, ObjectDefinition, ObjectDefinitionId, ScalarDefinition,
-        ScalarDefinitionId, UnionDefinition, UnionDefinitionId,
+        EnumDefinition, EnumDefinitionId, FieldDefinition, FieldDefinitionId, InputObjectDefinition,
+        InputObjectDefinitionId, InterfaceDefinition, InterfaceDefinitionId, ObjectDefinition, ObjectDefinitionId,
+        ScalarDefinition, ScalarDefinitionId, UnionDefinition, UnionDefinitionId,
     },
     prelude::*,
 };
@@ -26,16 +25,12 @@ use walker::{Iter, Walk};
 ///   | InputObjectDefinition
 ///   | ScalarDefinition
 ///   | FieldDefinition
-///   | InputValueDefinition
-///   | EnumValue
 /// ```
 #[derive(serde::Serialize, serde::Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum DirectiveSiteId {
     Enum(EnumDefinitionId),
-    EnumValue(EnumValueId),
     Field(FieldDefinitionId),
     InputObject(InputObjectDefinitionId),
-    InputValue(InputValueDefinitionId),
     Interface(InterfaceDefinitionId),
     Object(ObjectDefinitionId),
     Scalar(ScalarDefinitionId),
@@ -46,10 +41,8 @@ impl std::fmt::Debug for DirectiveSiteId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             DirectiveSiteId::Enum(variant) => variant.fmt(f),
-            DirectiveSiteId::EnumValue(variant) => variant.fmt(f),
             DirectiveSiteId::Field(variant) => variant.fmt(f),
             DirectiveSiteId::InputObject(variant) => variant.fmt(f),
-            DirectiveSiteId::InputValue(variant) => variant.fmt(f),
             DirectiveSiteId::Interface(variant) => variant.fmt(f),
             DirectiveSiteId::Object(variant) => variant.fmt(f),
             DirectiveSiteId::Scalar(variant) => variant.fmt(f),
@@ -63,11 +56,6 @@ impl From<EnumDefinitionId> for DirectiveSiteId {
         DirectiveSiteId::Enum(value)
     }
 }
-impl From<EnumValueId> for DirectiveSiteId {
-    fn from(value: EnumValueId) -> Self {
-        DirectiveSiteId::EnumValue(value)
-    }
-}
 impl From<FieldDefinitionId> for DirectiveSiteId {
     fn from(value: FieldDefinitionId) -> Self {
         DirectiveSiteId::Field(value)
@@ -76,11 +64,6 @@ impl From<FieldDefinitionId> for DirectiveSiteId {
 impl From<InputObjectDefinitionId> for DirectiveSiteId {
     fn from(value: InputObjectDefinitionId) -> Self {
         DirectiveSiteId::InputObject(value)
-    }
-}
-impl From<InputValueDefinitionId> for DirectiveSiteId {
-    fn from(value: InputValueDefinitionId) -> Self {
-        DirectiveSiteId::InputValue(value)
     }
 }
 impl From<InterfaceDefinitionId> for DirectiveSiteId {
@@ -114,15 +97,6 @@ impl DirectiveSiteId {
             _ => None,
         }
     }
-    pub fn is_enum_value(&self) -> bool {
-        matches!(self, DirectiveSiteId::EnumValue(_))
-    }
-    pub fn as_enum_value(&self) -> Option<EnumValueId> {
-        match self {
-            DirectiveSiteId::EnumValue(id) => Some(*id),
-            _ => None,
-        }
-    }
     pub fn is_field(&self) -> bool {
         matches!(self, DirectiveSiteId::Field(_))
     }
@@ -138,15 +112,6 @@ impl DirectiveSiteId {
     pub fn as_input_object(&self) -> Option<InputObjectDefinitionId> {
         match self {
             DirectiveSiteId::InputObject(id) => Some(*id),
-            _ => None,
-        }
-    }
-    pub fn is_input_value(&self) -> bool {
-        matches!(self, DirectiveSiteId::InputValue(_))
-    }
-    pub fn as_input_value(&self) -> Option<InputValueDefinitionId> {
-        match self {
-            DirectiveSiteId::InputValue(id) => Some(*id),
             _ => None,
         }
     }
@@ -191,10 +156,8 @@ impl DirectiveSiteId {
 #[derive(Clone, Copy)]
 pub enum DirectiveSite<'a> {
     Enum(EnumDefinition<'a>),
-    EnumValue(EnumValue<'a>),
     Field(FieldDefinition<'a>),
     InputObject(InputObjectDefinition<'a>),
-    InputValue(InputValueDefinition<'a>),
     Interface(InterfaceDefinition<'a>),
     Object(ObjectDefinition<'a>),
     Scalar(ScalarDefinition<'a>),
@@ -205,10 +168,8 @@ impl std::fmt::Debug for DirectiveSite<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             DirectiveSite::Enum(variant) => variant.fmt(f),
-            DirectiveSite::EnumValue(variant) => variant.fmt(f),
             DirectiveSite::Field(variant) => variant.fmt(f),
             DirectiveSite::InputObject(variant) => variant.fmt(f),
-            DirectiveSite::InputValue(variant) => variant.fmt(f),
             DirectiveSite::Interface(variant) => variant.fmt(f),
             DirectiveSite::Object(variant) => variant.fmt(f),
             DirectiveSite::Scalar(variant) => variant.fmt(f),
@@ -222,11 +183,6 @@ impl<'a> From<EnumDefinition<'a>> for DirectiveSite<'a> {
         DirectiveSite::Enum(item)
     }
 }
-impl<'a> From<EnumValue<'a>> for DirectiveSite<'a> {
-    fn from(item: EnumValue<'a>) -> Self {
-        DirectiveSite::EnumValue(item)
-    }
-}
 impl<'a> From<FieldDefinition<'a>> for DirectiveSite<'a> {
     fn from(item: FieldDefinition<'a>) -> Self {
         DirectiveSite::Field(item)
@@ -235,11 +191,6 @@ impl<'a> From<FieldDefinition<'a>> for DirectiveSite<'a> {
 impl<'a> From<InputObjectDefinition<'a>> for DirectiveSite<'a> {
     fn from(item: InputObjectDefinition<'a>) -> Self {
         DirectiveSite::InputObject(item)
-    }
-}
-impl<'a> From<InputValueDefinition<'a>> for DirectiveSite<'a> {
-    fn from(item: InputValueDefinition<'a>) -> Self {
-        DirectiveSite::InputValue(item)
     }
 }
 impl<'a> From<InterfaceDefinition<'a>> for DirectiveSite<'a> {
@@ -276,10 +227,8 @@ impl<'a> Walk<&'a Schema> for DirectiveSiteId {
         let schema: &'a Schema = schema.into();
         match self {
             DirectiveSiteId::Enum(id) => DirectiveSite::Enum(id.walk(schema)),
-            DirectiveSiteId::EnumValue(id) => DirectiveSite::EnumValue(id.walk(schema)),
             DirectiveSiteId::Field(id) => DirectiveSite::Field(id.walk(schema)),
             DirectiveSiteId::InputObject(id) => DirectiveSite::InputObject(id.walk(schema)),
-            DirectiveSiteId::InputValue(id) => DirectiveSite::InputValue(id.walk(schema)),
             DirectiveSiteId::Interface(id) => DirectiveSite::Interface(id.walk(schema)),
             DirectiveSiteId::Object(id) => DirectiveSite::Object(id.walk(schema)),
             DirectiveSiteId::Scalar(id) => DirectiveSite::Scalar(id.walk(schema)),
@@ -292,10 +241,8 @@ impl<'a> DirectiveSite<'a> {
     pub fn id(&self) -> DirectiveSiteId {
         match self {
             DirectiveSite::Enum(walker) => DirectiveSiteId::Enum(walker.id),
-            DirectiveSite::EnumValue(walker) => DirectiveSiteId::EnumValue(walker.id),
             DirectiveSite::Field(walker) => DirectiveSiteId::Field(walker.id),
             DirectiveSite::InputObject(walker) => DirectiveSiteId::InputObject(walker.id),
-            DirectiveSite::InputValue(walker) => DirectiveSiteId::InputValue(walker.id),
             DirectiveSite::Interface(walker) => DirectiveSiteId::Interface(walker.id),
             DirectiveSite::Object(walker) => DirectiveSiteId::Object(walker.id),
             DirectiveSite::Scalar(walker) => DirectiveSiteId::Scalar(walker.id),
@@ -308,15 +255,6 @@ impl<'a> DirectiveSite<'a> {
     pub fn as_enum(&self) -> Option<EnumDefinition<'a>> {
         match self {
             DirectiveSite::Enum(item) => Some(*item),
-            _ => None,
-        }
-    }
-    pub fn is_enum_value(&self) -> bool {
-        matches!(self, DirectiveSite::EnumValue(_))
-    }
-    pub fn as_enum_value(&self) -> Option<EnumValue<'a>> {
-        match self {
-            DirectiveSite::EnumValue(item) => Some(*item),
             _ => None,
         }
     }
@@ -335,15 +273,6 @@ impl<'a> DirectiveSite<'a> {
     pub fn as_input_object(&self) -> Option<InputObjectDefinition<'a>> {
         match self {
             DirectiveSite::InputObject(item) => Some(*item),
-            _ => None,
-        }
-    }
-    pub fn is_input_value(&self) -> bool {
-        matches!(self, DirectiveSite::InputValue(_))
-    }
-    pub fn as_input_value(&self) -> Option<InputValueDefinition<'a>> {
-        match self {
-            DirectiveSite::InputValue(item) => Some(*item),
             _ => None,
         }
     }

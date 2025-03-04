@@ -8,7 +8,7 @@ use query_solver::{
     Edge, Node,
     petgraph::{Direction, graph::NodeIndex, visit::EdgeRef},
 };
-use schema::{InjectionStage, Schema, StringId, TypeSystemDirective};
+use schema::{CompositeTypeId, DefinitionId, InjectionStage, Schema, StringId, TypeSystemDirective};
 use walker::Walk;
 
 impl Solver<'_> {
@@ -50,19 +50,17 @@ impl Solver<'_> {
                                 if self.output.query_plan[field_id].output_id.is_none() {
                                     let output_id = Some(self.create_new_response_object_set_definition(node_ix));
                                     self.output.query_plan[field_id].output_id = output_id;
-                                    for id in self.output.query_plan[field_id]
-                                        .selection_set_record
-                                        .data_field_ids_ordered_by_type_conditions_then_position
-                                    {
-                                        self.output.query_plan[id].parent_field_output_id = output_id;
-                                    }
                                 }
                                 Rule::Resp(ResponseModifierRule::AuthorizedEdgeChild {
                                     directive_id: dir.id,
                                     definition_id: definition.id,
                                 })
                             } else if dir.fields_record.is_some() {
-                                if self.output.query_plan[field_id].parent_field_output_id.is_none() {
+                                if self.output.query_plan[field_id]
+                                    .parent_field_id
+                                    .map(|id| self.output.query_plan[id].output_id.is_none())
+                                    .unwrap_or_default()
+                                {
                                     let parent_ix = self
                                         .solution
                                         .graph
@@ -78,12 +76,6 @@ impl Solver<'_> {
                                     };
                                     let output_id = Some(self.create_new_response_object_set_definition(parent_ix));
                                     self.output.query_plan[parent_field_id].output_id = output_id;
-                                    for id in self.output.query_plan[parent_field_id]
-                                        .selection_set_record
-                                        .data_field_ids_ordered_by_type_conditions_then_position
-                                    {
-                                        self.output.query_plan[id].parent_field_output_id = output_id;
-                                    }
                                 }
                                 Rule::Resp(ResponseModifierRule::AuthorizedParentEdge {
                                     directive_id: dir.id,
@@ -151,6 +143,67 @@ impl Solver<'_> {
                                 response_modifier_definitions.len() - 1
                             });
                             response_modifier_definitions[*ix].impacted_field_ids.push(field_id);
+                        }
+                    }
+                }
+
+                if self.output.query_plan[field_id]
+                    .parent_field_id
+                    .map(|id| {
+                        let parent_output_id = self.output.query_plan[id]
+                            .definition_id
+                            .walk(self.schema)
+                            .ty()
+                            .definition_id;
+                        CompositeTypeId::maybe_from(parent_output_id).expect("Could not have children fields otherwise")
+                            != definition.parent_entity_id.into()
+                    })
+                    .unwrap_or_default()
+                {
+                    let definition_id = DefinitionId::from(definition.parent_entity_id);
+                    for directive in definition.parent_entity().directives() {
+                        let rule = match directive {
+                            TypeSystemDirective::Authenticated(_) => Rule::Query(QueryModifierRule::Authenticated),
+                            TypeSystemDirective::RequiresScopes(dir) => {
+                                Rule::Query(QueryModifierRule::RequiresScopes(dir.id))
+                            }
+                            TypeSystemDirective::Extension(directive) => {
+                                if !directive.kind.is_authorization() {
+                                    continue;
+                                }
+                                match directive.max_arguments_stage() {
+                                    InjectionStage::Static => Rule::Query(QueryModifierRule::Extension {
+                                        directive_id: directive.id,
+                                        target: ModifierTarget::Definition(definition_id),
+                                    }),
+                                    InjectionStage::Query => {
+                                        unreachable!("Cannot depend on query arguments, it's not a field.")
+                                    }
+                                    InjectionStage::Response => unimplemented!("Not handled yet, GB-8610"),
+                                }
+                            }
+                            TypeSystemDirective::Cost(_)
+                            | TypeSystemDirective::Deprecated(_)
+                            | TypeSystemDirective::ListSize(_)
+                            | TypeSystemDirective::Authorized(_) => continue,
+                        };
+                        match rule {
+                            Rule::Query(rule) => {
+                                let ix = deduplicated_query_modifier_rules
+                                    .entry(rule.clone())
+                                    .or_insert_with(|| {
+                                        query_modifiers.push(QueryModifierRecord {
+                                            rule,
+                                            impacts_root_object: false,
+                                            impacted_field_ids: Vec::new(),
+                                        });
+                                        query_modifiers.len() - 1
+                                    });
+                                query_modifiers[*ix].impacted_field_ids.push(field_id.into());
+                            }
+                            Rule::Resp(_) => {
+                                unimplemented!("Not handled yet, GB-8610")
+                            }
                         }
                     }
                 }

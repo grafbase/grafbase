@@ -184,6 +184,7 @@ fn create_wasi_extension_configs(
                     });
                 }
             }
+            KindDiscriminants::Authorization => todo!(),
         }
     }
 

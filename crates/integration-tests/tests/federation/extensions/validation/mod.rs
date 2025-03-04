@@ -61,10 +61,10 @@ struct EchoInstance {
 
 #[async_trait::async_trait]
 impl TestExtension for EchoInstance {
-    async fn resolve<'a>(
+    async fn resolve_field(
         &self,
         _: http::HeaderMap,
-        directive: ExtensionFieldDirective<'a, serde_json::Value>,
+        directive: ExtensionFieldDirective<'_, serde_json::Value>,
         inputs: Vec<serde_json::Value>,
     ) -> Result<Vec<Result<serde_json::Value, PartialGraphqlError>>, PartialGraphqlError> {
         Ok(inputs
