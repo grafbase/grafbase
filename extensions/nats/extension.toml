@@ -1,8 +1,8 @@
 [extension]
 name = "nats"
-version = "0.2.1"
+version = "0.2.2"
 kind = "resolver"
-description = "A new extension"
+description = "Map NATS endpoints to GraphQL fields. Supports regular and JetStream subscriptions, as well as request/reply messaging and the key/value store."
 # homepage_url = "https://example.com/my-extension"
 # repository_url = "https://github.com/my-username/my-extension"
 # license = "MIT"
