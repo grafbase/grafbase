@@ -1,7 +1,10 @@
-use std::path::Path;
+mod install;
+mod publish;
+mod update;
 
 use duct::cmd;
 use extension::Manifest;
+use std::path::Path;
 use tempfile::tempdir;
 
 use crate::cargo_bin;
@@ -37,12 +40,12 @@ fn init_resolver() {
     codegen-units = 1
 
     [dependencies]
-    grafbase-sdk = "0.5.2"
+    grafbase-sdk = "0.6.1"
 
     [dev-dependencies]
     indoc = "2"
     insta = { version = "1.42.1", features = ["json"] }
-    grafbase-sdk = { version = "0.5.2", features = ["test-utils"] }
+    grafbase-sdk = { version = "0.6.1", features = ["test-utils"] }
     tokio = { version = "1", features = ["rt-multi-thread", "macros", "test-util"] }
     serde_json = "1"
     "#);
@@ -70,6 +73,15 @@ fn init_resolver() {
     # repository_url = "https://github.com/my-username/my-extension"
     # license = "MIT"
 
+    # These are the default permissions for the extension.
+    # The user can enable or disable them as needed in the gateway
+    # configuration file.
+    [permissions]
+    network = false
+    stdout = false
+    stderr = false
+    environment_variables = false
+
     [directives]
     definitions = "definitions.graphql"
     field_resolvers = ["testProjectDirective"]
@@ -79,7 +91,7 @@ fn init_resolver() {
 
     insta::assert_snapshot!(&lib_rs, @r##"
     use grafbase_sdk::{
-        types::{Configuration, Directive, FieldDefinition, FieldInputs, FieldOutput},
+        types::{Configuration, SchemaDirective, FieldDefinitionDirective, FieldInputs, FieldOutput},
         Error, Extension, Resolver, ResolverExtension, SharedContext, Subscription
     };
 
@@ -87,7 +99,7 @@ fn init_resolver() {
     struct TestProject;
 
     impl Extension for TestProject {
-        fn new(schema_directives: Vec<Directive>, config: Configuration) -> Result<Self, Box<dyn std::error::Error>> {
+        fn new(schema_directives: Vec<SchemaDirective>, config: Configuration) -> Result<Self, Box<dyn std::error::Error>> {
             Ok(Self)
         }
     }
@@ -96,8 +108,8 @@ fn init_resolver() {
         fn resolve_field(
             &mut self,
             context: SharedContext,
-            directive: Directive,
-            field_definition: FieldDefinition,
+            subgraph_name: &str,
+            directive: FieldDefinitionDirective<'_>,
             inputs: FieldInputs,
         ) -> Result<FieldOutput, Error> {
             todo!()
@@ -106,8 +118,8 @@ fn init_resolver() {
         fn resolve_subscription(
             &mut self,
             context: SharedContext,
-            directive: Directive,
-            field_definition: FieldDefinition,
+            subgraph_name: &str,
+            directive: FieldDefinitionDirective<'_>,
         ) -> Result<Box<dyn Subscription>, Error> {
             todo!()
         }
@@ -219,7 +231,7 @@ fn build_resolver() {
     assert!(std::fs::exists(build_path.join("manifest.json")).unwrap());
 
     let manifest = std::fs::read_to_string(build_path.join("manifest.json")).unwrap();
-    let manifest: Manifest = serde_json::from_str(&manifest).unwrap();
+    let manifest: Manifest = serde_json::from_str(dbg!(&manifest)).unwrap();
 
     let manifest = serde_json::to_value(&manifest).unwrap();
     insta::assert_json_snapshot!(
@@ -244,7 +256,8 @@ fn build_resolver() {
       "sdk_version": "<sdk_version>",
       "minimum_gateway_version": "<minimum_gateway_version>",
       "description": "A new extension",
-      "sdl": "\"\"\"\nFill in here the directives and types that the extension needs.\nRemove this file and the definition in extension.toml if the extension does not need any directives.\n\"\"\"\ndirective @testProjectConfiguration(arg1: String) repeatable on SCHEMA\ndirective @testProjectDirective on FIELD_DEFINITION"
+      "sdl": "\"\"\"\nFill in here the directives and types that the extension needs.\nRemove this file and the definition in extension.toml if the extension does not need any directives.\n\"\"\"\ndirective @testProjectConfiguration(arg1: String) repeatable on SCHEMA\ndirective @testProjectDirective on FIELD_DEFINITION",
+      "permissions": []
     }
     "#
     );
@@ -281,12 +294,12 @@ fn init_auth() {
     codegen-units = 1
 
     [dependencies]
-    grafbase-sdk = "0.5.2"
+    grafbase-sdk = "0.6.1"
 
     [dev-dependencies]
     indoc = "2"
     insta = { version = "1.42.1", features = ["json"] }
-    grafbase-sdk = { version = "0.5.2", features = ["test-utils"] }
+    grafbase-sdk = { version = "0.6.1", features = ["test-utils"] }
     tokio = { version = "1", features = ["rt-multi-thread", "macros", "test-util"] }
     serde_json = "1"
     "#);
@@ -302,13 +315,22 @@ fn init_auth() {
     # homepage_url = "https://example.com/my-extension"
     # repository_url = "https://github.com/my-username/my-extension"
     # license = "MIT"
+
+    # These are the default permissions for the extension.
+    # The user can enable or disable them as needed in the gateway
+    # configuration file.
+    [permissions]
+    network = false
+    stdout = false
+    stderr = false
+    environment_variables = false
     "##);
 
     let lib_rs = std::fs::read_to_string(project_path.join("src/lib.rs")).unwrap();
 
     insta::assert_snapshot!(&lib_rs, @r##"
     use grafbase_sdk::{
-        types::{Configuration, Directive, ErrorResponse, Token},
+        types::{Configuration, SchemaDirective, ErrorResponse, Token},
         AuthenticationExtension, Authenticator, Extension, Headers,
     };
 
@@ -316,7 +338,7 @@ fn init_auth() {
     struct TestProject;
 
     impl Extension for TestProject {
-        fn new(schema_directives: Vec<Directive>, config: Configuration) -> Result<Self, Box<dyn std::error::Error>>
+        fn new(schema_directives: Vec<SchemaDirective>, config: Configuration) -> Result<Self, Box<dyn std::error::Error>>
         where
             Self: Sized,
         {
@@ -456,7 +478,8 @@ fn build_auth() {
       },
       "sdk_version": "<sdk_version>",
       "minimum_gateway_version": "<minimum_gateway_version>",
-      "description": "A new extension"
+      "description": "A new extension",
+      "permissions": []
     }
     "#
     );

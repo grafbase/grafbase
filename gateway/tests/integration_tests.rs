@@ -576,7 +576,7 @@ fn trace_log_level() {
               "data": null,
               "errors": [
                 {
-                  "message": "Request to subgraph 'accounts' failed with: error sending request",
+                  "message": "Request to subgraph 'accounts' failed.",
                   "path": [
                     "me"
                   ],
@@ -606,12 +606,12 @@ fn no_config() {
         let result: serde_json::Value = client.gql(query).send().await;
         let result = serde_json::to_string_pretty(&result).unwrap();
 
-        insta::assert_snapshot!(&result, @r###"
+        insta::assert_snapshot!(&result, @r#"
         {
           "data": null,
           "errors": [
             {
-              "message": "Request to subgraph 'accounts' failed with: error sending request",
+              "message": "Request to subgraph 'accounts' failed.",
               "path": [
                 "me"
               ],
@@ -621,7 +621,7 @@ fn no_config() {
             }
           ]
         }
-        "###);
+        "#);
     })
 }
 
@@ -641,12 +641,12 @@ fn static_schema() {
         let result: serde_json::Value = client.gql(query).send().await;
         let result = serde_json::to_string_pretty(&result).unwrap();
 
-        insta::assert_snapshot!(&result, @r###"
+        insta::assert_snapshot!(&result, @r#"
         {
           "data": null,
           "errors": [
             {
-              "message": "Request to subgraph 'accounts' failed with: error sending request",
+              "message": "Request to subgraph 'accounts' failed.",
               "path": [
                 "me"
               ],
@@ -656,7 +656,7 @@ fn static_schema() {
             }
           ]
         }
-        "###);
+        "#);
     })
 }
 
@@ -768,12 +768,12 @@ fn custom_path() {
         let result: serde_json::Value = client.gql(query).send().await;
         let result = serde_json::to_string_pretty(&result).unwrap();
 
-        insta::assert_snapshot!(&result, @r###"
+        insta::assert_snapshot!(&result, @r#"
         {
           "data": null,
           "errors": [
             {
-              "message": "Request to subgraph 'accounts' failed with: error sending request",
+              "message": "Request to subgraph 'accounts' failed.",
               "path": [
                 "me"
               ],
@@ -783,7 +783,7 @@ fn custom_path() {
             }
           ]
         }
-        "###);
+        "#);
     })
 }
 
@@ -833,12 +833,12 @@ fn csrf_with_header() {
         let result: serde_json::Value = client.gql(query).send().await;
         let result = serde_json::to_string_pretty(&result).unwrap();
 
-        insta::assert_snapshot!(&result, @r###"
+        insta::assert_snapshot!(&result, @r#"
         {
           "data": null,
           "errors": [
             {
-              "message": "Request to subgraph 'accounts' failed with: error sending request",
+              "message": "Request to subgraph 'accounts' failed.",
               "path": [
                 "me"
               ],
@@ -848,7 +848,7 @@ fn csrf_with_header() {
             }
           ]
         }
-        "###);
+        "#);
     })
 }
 
@@ -868,12 +868,12 @@ fn hybrid_graph() {
         let result: serde_json::Value = client.gql(query).send().await;
         let result = serde_json::to_string_pretty(&result).unwrap();
 
-        insta::assert_snapshot!(&result, @r###"
+        insta::assert_snapshot!(&result, @r#"
         {
           "data": null,
           "errors": [
             {
-              "message": "Request to subgraph 'accounts' failed with: error sending request",
+              "message": "Request to subgraph 'accounts' failed.",
               "path": [
                 "me"
               ],
@@ -883,7 +883,7 @@ fn hybrid_graph() {
             }
           ]
         }
-        "###);
+        "#);
     });
 }
 

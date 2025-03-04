@@ -2,21 +2,22 @@
 
 use crate::{
     extension::resolver::Subscription,
-    types::{Configuration, Directive},
-    Error,
+    types::{Configuration, SchemaDirective},
+    wit::Error,
 };
 
 use super::extension::AnyExtension;
 
-type InitFn = Box<dyn Fn(Vec<Directive>, Configuration) -> Result<Box<dyn AnyExtension>, Box<dyn std::error::Error>>>;
+type InitFn =
+    Box<dyn Fn(Vec<SchemaDirective>, Configuration) -> Result<Box<dyn AnyExtension>, Box<dyn std::error::Error>>>;
 
-static mut EXTENSION: Option<Box<dyn AnyExtension>> = None;
-static mut SUBSCRIBTION: Option<Box<dyn Subscription>> = None;
 static mut INIT_FN: Option<InitFn> = None;
+static mut EXTENSION: Option<Box<dyn AnyExtension>> = None;
+static mut SUBSCRIPTION: Option<Box<dyn Subscription>> = None;
 
 /// Initializes the resolver extension with the provided directives using the closure
 /// function created with the `register_extension!` macro.
-pub(super) fn init(directives: Vec<Directive>, config: Configuration) -> Result<(), Box<dyn std::error::Error>> {
+pub(super) fn init(directives: Vec<SchemaDirective>, config: Configuration) -> Result<(), Box<dyn std::error::Error>> {
     // Safety: This function is only called from the SDK macro, so we can assume that there is only one caller at a time.
     unsafe {
         let init = INIT_FN.as_ref().expect("Resolver extension not initialized correctly.");
@@ -50,13 +51,13 @@ pub(super) fn extension() -> Result<&'static mut dyn AnyExtension, Error> {
 
 pub(super) fn set_subscription(subscription: Box<dyn Subscription>) {
     unsafe {
-        SUBSCRIBTION = Some(subscription);
+        SUBSCRIPTION = Some(subscription);
     }
 }
 
 pub(super) fn subscription() -> Result<&'static mut dyn Subscription, Error> {
     unsafe {
-        SUBSCRIBTION.as_deref_mut().ok_or_else(|| Error {
+        SUBSCRIPTION.as_deref_mut().ok_or_else(|| Error {
             message: "No active subscription.".to_string(),
             extensions: Vec::new(),
         })

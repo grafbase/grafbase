@@ -1,6 +1,4 @@
-use std::future::Future;
-
-use engine_schema::{FieldDefinition, Subgraph};
+use engine_schema::{Definition, FieldDefinition, Subgraph};
 use extension_catalog::ExtensionId;
 use futures_util::stream::BoxStream;
 
@@ -24,6 +22,20 @@ pub struct ExtensionFieldDirective<'a, Args> {
     pub field: FieldDefinition<'a>,
     pub name: &'a str,
     pub arguments: Args,
+}
+
+pub struct DirectiveSite<'a, A> {
+    pub definition: Definition<'a>,
+    pub arguments: A,
+}
+
+pub enum AuthorizationDecisions {
+    GrantAll,
+    DenyAll(PartialGraphqlError),
+    DenySome {
+        element_to_error: Vec<(u32, u32)>,
+        errors: Vec<PartialGraphqlError>,
+    },
 }
 
 #[allow(async_fn_in_trait)]
@@ -56,8 +68,23 @@ pub trait ExtensionRuntime: Send + Sync + 'static {
         _authorizer_id: AuthorizerId,
         _headers: http::HeaderMap,
     ) -> impl Future<Output = Result<(http::HeaderMap, Vec<u8>), ErrorResponse>> + Send;
+
+    fn authorize_query<'ctx>(
+        &'ctx self,
+        context: &'ctx Self::SharedContext,
+        extension_id: ExtensionId,
+        // (directive name, (definition, arguments))
+        elements: impl IntoIterator<
+            Item = (
+                &'ctx str,
+                impl IntoIterator<Item = DirectiveSite<'ctx, impl Anything<'ctx>>> + Send + 'ctx,
+            ),
+        > + Send
+        + 'ctx,
+    ) -> impl Future<Output = Result<AuthorizationDecisions, ErrorResponse>> + Send;
 }
 
+#[allow(refining_impl_trait)]
 impl ExtensionRuntime for () {
     type SharedContext = ();
 
@@ -95,5 +122,23 @@ impl ExtensionRuntime for () {
         'ctx: 'f,
     {
         Err(PartialGraphqlError::internal_extension_error())
+    }
+
+    async fn authorize_query<'ctx>(
+        &'ctx self,
+        _context: &'ctx Self::SharedContext,
+        _extension_id: ExtensionId,
+        _elements: impl IntoIterator<
+            Item = (
+                &'ctx str,
+                impl IntoIterator<Item = DirectiveSite<'ctx, impl Anything<'ctx>>> + Send + 'ctx,
+            ),
+        > + Send
+        + 'ctx,
+    ) -> Result<AuthorizationDecisions, ErrorResponse> {
+        Err(ErrorResponse {
+            status: http::StatusCode::INTERNAL_SERVER_ERROR,
+            errors: vec![PartialGraphqlError::internal_extension_error()],
+        })
     }
 }

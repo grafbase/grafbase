@@ -1,3 +1,8 @@
+mod permissions;
+
+pub use enumflags2::BitFlags;
+pub use permissions::ExtensionPermission;
+
 use crate::Id;
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -17,6 +22,8 @@ pub struct Manifest {
     pub repository_url: Option<url::Url>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub license: Option<String>,
+    #[serde(default, with = "permissions::serializing")]
+    pub permissions: BitFlags<ExtensionPermission>,
 }
 
 impl Manifest {
@@ -38,6 +45,22 @@ impl Manifest {
 
     pub fn is_authenticator(&self) -> bool {
         matches!(self.kind, Kind::Authenticator(_))
+    }
+
+    pub fn network_enabled(&self) -> bool {
+        self.permissions.contains(ExtensionPermission::Network)
+    }
+
+    pub fn stdout_enabled(&self) -> bool {
+        self.permissions.contains(ExtensionPermission::Stdout)
+    }
+
+    pub fn stderr_enabled(&self) -> bool {
+        self.permissions.contains(ExtensionPermission::Stderr)
+    }
+
+    pub fn environment_variables_enabled(&self) -> bool {
+        self.permissions.contains(ExtensionPermission::EnvironmentVariables)
     }
 }
 
@@ -63,6 +86,47 @@ mod tests {
     use serde_json::json;
 
     #[test]
+    fn permissions() {
+        let json = json!({
+            "id": {"name": "test", "version": "1.0.0"},
+            "kind": {
+                "FieldResolver": {
+                    "resolver_directives": ["custom"]
+                }
+            },
+            "sdl": "directive @custom on FIELD_DEFINITION",
+            "sdk_version": "0.1.0",
+            "minimum_gateway_version": "0.1.0",
+            "description": "Mandatory description",
+            "homepage_url": "http://example.com/my-extension",
+            "permissions": ["stdout", "stderr", "environment_variables", "network"]
+        });
+
+        let manifest: Manifest = serde_json::from_value(json).unwrap();
+
+        let expected = Manifest {
+            id: Id {
+                name: "test".to_string(),
+                version: semver::Version::new(1, 0, 0),
+            },
+            kind: Kind::FieldResolver(FieldResolver {
+                resolver_directives: vec!["custom".to_string()],
+            }),
+            sdk_version: semver::Version::new(0, 1, 0),
+            minimum_gateway_version: semver::Version::new(0, 1, 0),
+            sdl: Some("directive @custom on FIELD_DEFINITION".to_string()),
+            description: "Mandatory description".to_owned(),
+            readme: None,
+            homepage_url: Some("http://example.com/my-extension".parse().unwrap()),
+            repository_url: None,
+            license: None,
+            permissions: BitFlags::all(),
+        };
+
+        assert_eq!(manifest, expected,);
+    }
+
+    #[test]
     fn v1_field_resolver_with_serde_rename() {
         // Test compatibility with previous snake_case/camelCase variations
         let json = json!({
@@ -80,26 +144,27 @@ mod tests {
         });
 
         let manifest: Manifest = serde_json::from_value(json).unwrap();
-        assert_eq!(
-            manifest,
-            Manifest {
-                id: Id {
-                    name: "test".to_string(),
-                    version: semver::Version::new(1, 0, 0)
-                },
-                kind: Kind::FieldResolver(FieldResolver {
-                    resolver_directives: vec!["custom".to_string()]
-                }),
-                sdk_version: semver::Version::new(0, 1, 0),
-                minimum_gateway_version: semver::Version::new(0, 1, 0),
-                sdl: Some("directive @custom on FIELD_DEFINITION".to_string()),
-                description: "Mandatory description".to_owned(),
-                readme: None,
-                homepage_url: Some("http://example.com/my-extension".parse().unwrap()),
-                repository_url: None,
-                license: None
-            }
-        );
+
+        let expected = Manifest {
+            id: Id {
+                name: "test".to_string(),
+                version: semver::Version::new(1, 0, 0),
+            },
+            kind: Kind::FieldResolver(FieldResolver {
+                resolver_directives: vec!["custom".to_string()],
+            }),
+            sdk_version: semver::Version::new(0, 1, 0),
+            minimum_gateway_version: semver::Version::new(0, 1, 0),
+            sdl: Some("directive @custom on FIELD_DEFINITION".to_string()),
+            description: "Mandatory description".to_owned(),
+            readme: None,
+            homepage_url: Some("http://example.com/my-extension".parse().unwrap()),
+            repository_url: None,
+            license: None,
+            permissions: BitFlags::empty(),
+        };
+
+        assert_eq!(manifest, expected,);
     }
 
     #[test]
@@ -117,24 +182,25 @@ mod tests {
         });
 
         let manifest: Manifest = serde_json::from_value(json).unwrap();
-        assert_eq!(
-            manifest,
-            Manifest {
-                id: Id {
-                    name: "auth".to_string(),
-                    version: semver::Version::new(2, 0, 0)
-                },
-                kind: Kind::Authenticator(Empty {}),
-                sdk_version: semver::Version::new(0, 1, 0),
-                minimum_gateway_version: semver::Version::new(0, 1, 0),
-                sdl: None,
-                description: "An extension in a test".to_owned(),
-                readme: None,
-                homepage_url: Some("http://example.com/my-extension".parse().unwrap()),
-                repository_url: None,
-                license: None
-            }
-        )
+
+        let expected = Manifest {
+            id: Id {
+                name: "auth".to_string(),
+                version: semver::Version::new(2, 0, 0),
+            },
+            kind: Kind::Authenticator(Empty {}),
+            sdk_version: semver::Version::new(0, 1, 0),
+            minimum_gateway_version: semver::Version::new(0, 1, 0),
+            sdl: None,
+            description: "An extension in a test".to_owned(),
+            readme: None,
+            homepage_url: Some("http://example.com/my-extension".parse().unwrap()),
+            repository_url: None,
+            license: None,
+            permissions: BitFlags::empty(),
+        };
+
+        assert_eq!(manifest, expected,)
     }
 
     #[test]

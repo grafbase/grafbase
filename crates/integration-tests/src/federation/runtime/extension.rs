@@ -1,11 +1,11 @@
 use std::{collections::HashMap, future::Future, sync::Arc};
 
-use engine_schema::SubgraphId;
+use engine_schema::{Subgraph, SubgraphId};
 use extension_catalog::{Extension, ExtensionCatalog, ExtensionId, Id, Manifest};
 use futures::stream::BoxStream;
 use runtime::{
     error::{ErrorResponse, PartialGraphqlError},
-    extension::{Data, ExtensionFieldDirective},
+    extension::{AuthorizationDecisions, Data, DirectiveSite, ExtensionFieldDirective},
     hooks::{Anything, DynHookContext},
 };
 use tokio::sync::Mutex;
@@ -47,7 +47,9 @@ impl TestExtensions {
             license: None,
             readme: None,
             repository_url: None,
+            permissions: Default::default(),
         };
+
         let dir = self.tmpdir.path().join(manifest.id.to_string());
         std::fs::create_dir(&dir).unwrap();
         std::fs::write(
@@ -73,6 +75,32 @@ impl TestExtensions {
                 &ext.manifest,
             )
         })
+    }
+
+    async fn get_subgraph_isntance(&self, extension_id: ExtensionId, subgraph: Subgraph<'_>) -> Arc<dyn TestExtension> {
+        self.subgraph_instances
+            .lock()
+            .await
+            .entry((extension_id, subgraph.id()))
+            .or_insert_with(|| {
+                self.builders.get(&extension_id).unwrap().build(
+                    subgraph
+                        .extension_schema_directives()
+                        .filter(|dir| dir.extension_id == extension_id)
+                        .map(|dir| (dir.name(), serde_json::to_value(dir.static_arguments()).unwrap()))
+                        .collect(),
+                )
+            })
+            .clone()
+    }
+
+    async fn get_global_instance(&self, extension_id: ExtensionId) -> Arc<dyn TestExtension> {
+        self.global_instances
+            .lock()
+            .await
+            .entry(extension_id)
+            .or_insert_with(|| self.builders.get(&extension_id).unwrap().build(Vec::new()))
+            .clone()
     }
 }
 
@@ -131,22 +159,7 @@ impl runtime::extension::ExtensionRuntime for TestExtensions {
             .collect::<Result<Vec<_>, _>>()
             .unwrap();
         async move {
-            let instance = self
-                .subgraph_instances
-                .lock()
-                .await
-                .entry((extension_id, subgraph.id()))
-                .or_insert_with(|| {
-                    self.builders.get(&extension_id).unwrap().build(
-                        subgraph
-                            .extension_schema_directives()
-                            .filter(|dir| dir.extension_id == extension_id)
-                            .map(|dir| (dir.name(), serde_json::to_value(dir.static_arguments()).unwrap()))
-                            .collect(),
-                    )
-                })
-                .clone();
-
+            let instance = self.get_subgraph_isntance(extension_id, subgraph).await;
             instance
                 .resolve(
                     context,
@@ -175,13 +188,7 @@ impl runtime::extension::ExtensionRuntime for TestExtensions {
         _authorizer_id: runtime::extension::AuthorizerId,
         _headers: http::HeaderMap,
     ) -> Result<(http::HeaderMap, Vec<u8>), ErrorResponse> {
-        let _instance = self
-            .global_instances
-            .lock()
-            .await
-            .entry(extension_id)
-            .or_insert_with(|| self.builders.get(&extension_id).unwrap().build(Vec::new()))
-            .clone();
+        let _instance = self.get_global_instance(extension_id).await;
         Err(ErrorResponse {
             status: http::StatusCode::INTERNAL_SERVER_ERROR,
             errors: Vec::new(),
@@ -196,6 +203,29 @@ impl runtime::extension::ExtensionRuntime for TestExtensions {
     where
         'ctx: 'f,
     {
-        todo!()
+        Err(PartialGraphqlError::internal_extension_error())
+    }
+
+    async fn authorize_query<'ctx>(
+        &'ctx self,
+        _context: &'ctx Self::SharedContext,
+        extension_id: ExtensionId,
+        // (directive name, (definition, arguments))
+        _elements: impl IntoIterator<
+            Item = (
+                &'ctx str,
+                impl IntoIterator<Item = DirectiveSite<'ctx, impl Anything<'ctx>>> + Send + 'ctx,
+            ),
+        > + Send
+        + 'ctx,
+    ) -> Result<AuthorizationDecisions, ErrorResponse> {
+        let _instance = self
+            .global_instances
+            .lock()
+            .await
+            .entry(extension_id)
+            .or_insert_with(|| self.builders.get(&extension_id).unwrap().build(Vec::new()))
+            .clone();
+        Err(ErrorResponse::internal_server_error())
     }
 }

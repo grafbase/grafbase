@@ -36,6 +36,7 @@ http.workspace = true
 httpsig.workspace = true
 httpsig-hyper.workspace = true
 mini-moka.workspace = true
+minicbor-serde.workspace = true
 p256 = { workspace = true, features = ["jwk"] }
 p384 = { workspace = true, features = ["jwk"] }
 postcard.workspace = true
@@ -49,7 +50,7 @@ tracing.workspace = true
 tungstenite = { workspace = true, features = ["url", "handshake"] }
 url = { workspace = true, optional = true }
 
-reqwest = { workspace = true, features = ["json", "rustls-tls", "gzip", "brotli", "deflate", "zstd"] }
+reqwest = { workspace = true, features = ["json", "rustls-tls", "gzip", "brotli", "deflate", "hickory-dns"] }
 
 anyhow.workspace = true
 deadpool = { workspace = true, optional = true }

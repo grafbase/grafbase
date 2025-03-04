@@ -2,8 +2,8 @@ use grafbase_sdk::test::{DynamicSchema, ExtensionOnlySubgraph, TestConfig, TestR
 use indoc::{formatdoc, indoc};
 use serde_json::json;
 use wiremock::{
-    matchers::{body_json, header, method, path},
     Mock, MockServer, ResponseTemplate,
+    matchers::{body_json, header, method, path},
 };
 
 const CLI_PATH: &str = "../../target/debug/grafbase";
@@ -26,19 +26,15 @@ fn subgraph(rest_endpoint: &str) -> ExtensionOnlySubgraph {
         type Query {{
           users: [User!]! @rest(
             endpoint: "endpoint",
-            http: {{
-              method: GET,
-              path: "/users"
-            }},
+            method: GET,
+            path: "/users"
             selection: "[.[] | {{ id, name, age }}]"
           )
 
           user(id: Int!): User @rest(
             endpoint: "endpoint",
-            http: {{
-              method: GET,
-              path: "/users/{{{{ args.id }}}}"
-            }},
+            method: GET,
+            path: "/users/{{{{ args.id }}}}"
             selection: "{{ id, name, age }}"
           )
         }}
@@ -46,38 +42,30 @@ fn subgraph(rest_endpoint: &str) -> ExtensionOnlySubgraph {
         type Mutation {{
           createUser(input: UserInput!): User! @rest(
             endpoint: "endpoint",
-            http: {{
-              method: POST,
-              path: "/users"
-            }},
+            method: POST,
+            path: "/users"
             selection: "{{ id, name, age }}"
           )
 
           createStaticUser: User! @rest(
             endpoint: "endpoint",
-            http: {{
-              method: POST,
-              path: "/users"
-            }},
+            method: POST,
+            path: "/users"
             body: {{ static: {{ name: "John Doe", age: 30 }} }}
             selection: "{{ id, name, age }}"
           )
 
           updateUser(id: Int!, input: UserInput!): User! @rest(
             endpoint: "endpoint",
-            http: {{
-              method: PUT,
-              path: "/users/{{{{ args.id }}}}"
-            }},
+            method: PUT,
+            path: "/users/{{{{ args.id }}}}"
             selection: "{{ id, name, age }}"
           )
 
           deleteUser(id: Int!): User! @rest(
             endpoint: "endpoint",
-            http: {{
-              method: DELETE,
-              path: "/users/{{{{ args.id }}}}"
-            }},
+            method: DELETE,
+            path: "/users/{{{{ args.id }}}}"
             selection: "{{ id, name, age }}"
           )
         }}
@@ -85,7 +73,7 @@ fn subgraph(rest_endpoint: &str) -> ExtensionOnlySubgraph {
         type User {{
           id: ID!
           name: String!
-          age: Int!
+          age: Int
         }}
 
         input UserInput {{
@@ -215,6 +203,92 @@ async fn get_one() {
           "id": "1",
           "name": "John Doe",
           "age": 30
+        }
+      }
+    }
+    "#);
+}
+
+#[tokio::test]
+async fn get_one_missing() {
+    let response_body = json!(null);
+
+    let template = ResponseTemplate::new(200).set_body_json(response_body);
+    let mock_server = mock_server("/users/1", template).await;
+    let subgraph = subgraph(&mock_server.uri());
+
+    let config = TestConfig::builder()
+        .with_cli(CLI_PATH)
+        .with_gateway(GATEWAY_PATH)
+        .with_subgraph(subgraph)
+        .enable_networking()
+        .build("")
+        .unwrap();
+
+    let runner = TestRunner::new(config).await.unwrap();
+
+    let query = indoc! {r#"
+        query {
+          user(id: 1) {
+            id
+            name
+            age
+          }
+        }
+    "#};
+
+    let result: serde_json::Value = runner.graphql_query(query).send().await.unwrap();
+
+    insta::assert_json_snapshot!(result, @r#"
+    {
+      "data": {
+        "user": null
+      }
+    }
+    "#);
+}
+
+#[tokio::test]
+async fn get_one_nested_null() {
+    let response_body = json!({
+        "id": "1",
+        "name": "John Doe",
+        "age": null,
+    });
+
+    let template = ResponseTemplate::new(200).set_body_json(response_body);
+    let mock_server = mock_server("/users/1", template).await;
+    let subgraph = subgraph(&mock_server.uri());
+
+    let config = TestConfig::builder()
+        .with_cli(CLI_PATH)
+        .with_gateway(GATEWAY_PATH)
+        .with_subgraph(subgraph)
+        .enable_networking()
+        .build("")
+        .unwrap();
+
+    let runner = TestRunner::new(config).await.unwrap();
+
+    let query = indoc! {r#"
+        query {
+          user(id: 1) {
+            id
+            name
+            age
+          }
+        }
+    "#};
+
+    let result: serde_json::Value = runner.graphql_query(query).send().await.unwrap();
+
+    insta::assert_json_snapshot!(result, @r#"
+    {
+      "data": {
+        "user": {
+          "id": "1",
+          "name": "John Doe",
+          "age": null
         }
       }
     }
@@ -369,7 +443,7 @@ async fn internal_server_error() {
         {
           "message": "HTTP request failed with status: 500 Internal Server Error",
           "extensions": {
-            "code": "INTERNAL_SERVER_ERROR"
+            "code": "EXTENSION_ERROR"
           }
         }
       ]
@@ -413,10 +487,8 @@ async fn with_bad_jq() {
         type Query {{
           users: [User!]! @rest(
             endpoint: "endpoint",
-            http: {{
-              method: GET,
-              path: "/users"
-            }}
+            method: GET,
+            path: "/users"
             selection: "\\||\\"
           )
         }}
@@ -461,7 +533,7 @@ async fn with_bad_jq() {
         {
           "message": "Error selecting result value: The selection is not valid jq syntax: `\\||\\`",
           "extensions": {
-            "code": "INTERNAL_SERVER_ERROR"
+            "code": "EXTENSION_ERROR"
           }
         }
       ]
@@ -505,10 +577,8 @@ async fn with_path_in_the_endpoint() {
         type Query {{
           users: [User!]! @rest(
             endpoint: "endpoint",
-            http: {{
-              method: GET,
-              path: "/users"
-            }}
+            method: GET,
+            path: "/users"
             selection: "[.[] | {{ id, name, age }}]"
           )
         }}

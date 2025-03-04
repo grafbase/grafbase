@@ -26,7 +26,7 @@ where
 
                     Ok(multipart_stream::Part {
                         headers,
-                        body: Bytes::from(serde_json::to_vec(&payload).map_err(|e| e.to_string())?),
+                        body: Bytes::from(sonic_rs::to_vec(&payload).map_err(|e| e.to_string())?),
                     })
                 }),
                 // The boundary we put in the header in execute_sreaming_request
@@ -81,7 +81,7 @@ where
         pin_mut!(payload_stream);
 
         while let Some(payload) = payload_stream.next().await {
-            let payload_json = match serde_json::to_string(&payload) {
+            let payload_json = match sonic_rs::to_string(&payload) {
                 Ok(json) => json,
                 Err(error) => {
                     tracing::error!("Could not encode StreamingPayload as JSON: {error:?}");

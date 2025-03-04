@@ -75,12 +75,12 @@ fn subgraph_timeout() {
 
         let response = engine.post("query { serverVersion verySlow: delay(ms: 1500) }").await;
 
-        insta::assert_json_snapshot!(response, @r###"
+        insta::assert_json_snapshot!(response, @r#"
         {
           "data": null,
           "errors": [
             {
-              "message": "Request to subgraph 'slow' failed with: Timeout",
+              "message": "Request to subgraph 'slow' failed.",
               "path": [
                 "verySlow"
               ],
@@ -90,13 +90,13 @@ fn subgraph_timeout() {
             }
           ]
         }
-        "###);
+        "#);
 
         let response = engine
             .post("query { serverVersion verySlow: nullableDelay(ms: 1500) }")
             .await;
 
-        insta::assert_json_snapshot!(response, @r###"
+        insta::assert_json_snapshot!(response, @r#"
         {
           "data": {
             "serverVersion": "1",
@@ -104,7 +104,7 @@ fn subgraph_timeout() {
           },
           "errors": [
             {
-              "message": "Request to subgraph 'slow' failed with: Timeout",
+              "message": "Request to subgraph 'slow' failed.",
               "path": [
                 "verySlow"
               ],
@@ -114,6 +114,6 @@ fn subgraph_timeout() {
             }
           ]
         }
-        "###);
+        "#);
     })
 }

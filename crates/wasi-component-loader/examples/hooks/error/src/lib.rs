@@ -14,7 +14,7 @@ impl Hooks for Component {
     fn on_gateway_request(&mut self, _: Context, _: String, _: Headers) -> Result<(), ErrorResponse> {
         let error = Error {
             message: String::from("not found"),
-            extensions: vec![(String::from("my"), String::from("extension"))],
+            extensions: vec![(String::from("my"), String::from("extension").into_bytes())],
         };
 
         Err(ErrorResponse {

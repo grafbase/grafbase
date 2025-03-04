@@ -29,7 +29,7 @@ pub(super) fn ingest_hits(
         for hit in hits {
             subgraph_response
                 .seed(&ctx, hit.id)
-                .deserialize(&mut serde_json::Deserializer::from_slice(&hit.data))
+                .deserialize(&mut sonic_rs::Deserializer::from_slice(&hit.data))
                 .map_err(|err| {
                     tracing::error!("Failed to deserialize subgraph response: {}", err);
                     GraphqlError::invalid_subgraph_response()
@@ -70,7 +70,7 @@ where
             for hit in hits {
                 subgraph_response
                     .seed(&ctx, hit.id)
-                    .deserialize(&mut serde_json::Deserializer::from_slice(&hit.data))
+                    .deserialize(&mut sonic_rs::Deserializer::from_slice(&hit.data))
                     .map_err(|err| {
                         tracing::error!("Failed to deserialize subgraph response: {}", err);
                         GraphqlError::invalid_subgraph_response()
@@ -95,6 +95,8 @@ where
                     EntityErrorPathConverter::new(subgraph_response, |index| index_to_id.get(index).copied()),
                 ),
             )
+            // We use RawValue underneath, so can't use sonic_rs. RwaValue doesn't do any copies
+            // compared to sonic_rs::LazyValue
             .deserialize(&mut serde_json::Deserializer::from_slice(http_response.body()))
             .map_err(|err| {
                 tracing::error!("Failed to deserialize subgraph response: {}", err);

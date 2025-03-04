@@ -6,12 +6,12 @@ toolchain go1.24.0
 
 require (
 	github.com/99designs/gqlgen v0.17.66
-	github.com/99designs/gqlgen/_examples v0.0.0-20250225220458-e3fd580a8247
-	github.com/vektah/gqlparser/v2 v2.5.22
+	github.com/99designs/gqlgen/_examples v0.0.0-20250303140753-4cccceb44da2
+	github.com/vektah/gqlparser/v2 v2.5.23
 )
 
 require (
-	github.com/agnivade/levenshtein v1.2.0 // indirect
+	github.com/agnivade/levenshtein v1.2.1 // indirect
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.1 // indirect

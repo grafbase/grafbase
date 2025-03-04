@@ -34,6 +34,9 @@ pub(crate) struct WasiState {
 
     /// A cache to be used for storing data between calls to different instances of the same extension.
     cache: Arc<Cache>,
+
+    /// If false, network operations are disabled.
+    network_enabled: bool,
 }
 
 // Allows to define method for a resource that is either owned or an attribute from another one.
@@ -112,7 +115,7 @@ impl WasiState {
     ///
     /// A new `WasiState` instance initialized with the provided context and default
     /// HTTP and resource table contexts.
-    pub fn new(ctx: WasiCtx, access_log: AccessLogSender, cache: Arc<Cache>) -> Self {
+    pub fn new(ctx: WasiCtx, access_log: AccessLogSender, cache: Arc<Cache>, network_enabled: bool) -> Self {
         let meter = meter_from_global_provider();
         let request_durations = meter.u64_histogram("grafbase.hook.http_request.duration").build();
         let http_client = reqwest::Client::new();
@@ -125,6 +128,7 @@ impl WasiState {
             http_client,
             access_log,
             cache,
+            network_enabled,
         }
     }
 
@@ -203,6 +207,13 @@ impl WasiState {
     /// Returns a reference to the cache.
     pub fn cache(&self) -> &Cache {
         &self.cache
+    }
+
+    /// Returns whether network operations are enabled for this WASI instance.
+    ///
+    /// When `false`, any network operations attempted by the guest will fail.
+    pub fn network_enabled(&self) -> bool {
+        self.network_enabled
     }
 }
 

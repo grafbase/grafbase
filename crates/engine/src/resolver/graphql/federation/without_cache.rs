@@ -51,7 +51,7 @@ where
                     }),
                 ),
             )
-            .deserialize(&mut serde_json::Deserializer::from_slice(http_response.body()))
+            .deserialize(&mut sonic_rs::Deserializer::from_slice(http_response.body()))
             .map_err(|err| {
                 tracing::error!("Failed to deserialize subgraph response: {}", err);
                 GraphqlError::invalid_subgraph_response()

@@ -3,7 +3,7 @@ pub struct IntrospectCommand {
     /// GraphQL URL to introspect
     pub(crate) url: String,
     /// Add a header to the introspection request
-    #[clap(short = 'H', long, value_parser, num_args = 0..)]
+    #[clap(short = 'H', long, value_parser)]
     header: Vec<String>,
     /// Disable syntax highlighting of the introspected GraphQL
     #[clap(long)]

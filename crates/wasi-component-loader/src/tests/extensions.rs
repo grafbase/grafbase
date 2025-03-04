@@ -1,11 +1,8 @@
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
 use crate::{
-    SharedContext,
-    extension::{
-        ExtensionGuestConfig, ExtensionLoader, SchemaDirective,
-        wit::{Directive, FieldDefinition},
-    },
+    SharedContext, cbor,
+    extension::{ExtensionGuestConfig, ExtensionLoader, SchemaDirective, wit},
     tests::create_shared_resources,
 };
 use futures::{
@@ -54,22 +51,20 @@ async fn simple_resolver() {
 
     let context = SharedContext::new(Arc::new(HashMap::new()), TraceId::INVALID);
 
-    let field_directive = Directive {
+    let field_directive = wit::FieldDefinitionDirective {
         name: "myDirective",
-        subgraph_name: "mySubgraph",
-        arguments: &minicbor_serde::to_vec(&FieldArgs { name: "cat" }).unwrap(),
-    };
-
-    let definition = FieldDefinition {
-        type_name: "Query",
-        name: "cats",
+        site: wit::FieldDefinitionDirectiveSite {
+            parent_type_name: "Query",
+            field_name: "cats",
+            arguments: crate::cbor::to_vec(&FieldArgs { name: "cat" }).unwrap(),
+        },
     };
 
     let output = loader
         .instantiate()
         .await
         .unwrap()
-        .resolve_field(context, field_directive, definition, Default::default())
+        .resolve_field(context, "mySubgraph", field_directive, Default::default())
         .await
         .unwrap();
 
@@ -126,7 +121,7 @@ async fn single_call_caching_auth() {
     assert!(headers.len() == 1);
     assert_eq!(Some(&HeaderValue::from_static("valid")), headers.get("Authorization"));
 
-    let output: serde_json::Value = minicbor_serde::from_slice(&token.raw).unwrap();
+    let output: serde_json::Value = cbor::from_slice(&token.raw).unwrap();
     insta::assert_json_snapshot!(output, @r#"
     {
       "key": "default"
@@ -226,7 +221,7 @@ async fn multiple_cache_calls() {
 
             let (_, token) = extension.authenticate(headers).await.unwrap();
             println!("{}", String::from_utf8_lossy(&token.raw));
-            let claims: serde_json::Value = minicbor_serde::from_slice(&token.raw).unwrap();
+            let claims: serde_json::Value = cbor::from_slice(&token.raw).unwrap();
 
             // only the first key comes from the cache.
 
@@ -247,7 +242,7 @@ async fn multiple_cache_calls() {
     let mut headers = HeaderMap::new();
     headers.insert("Authorization", HeaderValue::from_static("nonvalid"));
     let (_, token) = loader.instantiate().await.unwrap().authenticate(headers).await.unwrap();
-    let output: serde_json::Value = minicbor_serde::from_slice(&token.raw).unwrap();
+    let output: serde_json::Value = cbor::from_slice(&token.raw).unwrap();
 
     insta::allow_duplicates! {
         insta::assert_json_snapshot!(output, @r#"

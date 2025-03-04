@@ -11,7 +11,7 @@ pub mod middleware;
 pub mod websocket;
 
 pub fn internal_server_error(message: impl ToString) -> axum::response::Response {
-    let body = Json(serde_json::json!({
+    let body = Json(sonic_rs::json!({
         "errors": [
             {
                 "message": message.to_string(),

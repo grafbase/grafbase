@@ -5,11 +5,13 @@ use std::{
 };
 
 use anyhow::Context;
-use extension::{FieldResolver, Kind, Manifest};
+use extension::{BitFlags, ExtensionPermission, FieldResolver, Kind, Manifest};
 use semver::Version;
 use serde_valid::Validate;
 
 use crate::{cli_input::ExtensionBuildCommand, output::report};
+
+use super::EXTENSION_WASM_MODULE_FILE_NAME;
 
 const RUST_TARGET: &str = "wasm32-wasip2";
 
@@ -33,7 +35,7 @@ pub(crate) fn execute(cmd: ExtensionBuildCommand) -> anyhow::Result<()> {
     let wasm_path = compile_extension(debug_mode, &scratch_dir, &source_dir, &output_dir)?;
     let manifest = parse_manifest(&source_dir, &wasm_path)?;
 
-    std::fs::rename(wasm_path, output_dir.join("extension.wasm")).context("failed to move wasm file")?;
+    std::fs::rename(wasm_path, output_dir.join(EXTENSION_WASM_MODULE_FILE_NAME)).context("failed to move wasm file")?;
     std::fs::write(
         output_dir.join("manifest.json"),
         serde_json::to_vec(&manifest.clone().into_versioned()).unwrap(),
@@ -60,6 +62,8 @@ struct ExtensionToml {
     extension: ExtensionTomlExtension,
     #[serde(default)]
     directives: ExtensionTomlDirectives,
+    #[serde(default)]
+    permissions: ExtensionTomlPermissions,
 }
 
 #[derive(serde::Deserialize, Validate)]
@@ -85,6 +89,18 @@ enum ExtensionKind {
 struct ExtensionTomlDirectives {
     definitions: Option<String>,
     field_resolvers: Option<Vec<String>>,
+}
+
+#[derive(Default, serde::Deserialize)]
+struct ExtensionTomlPermissions {
+    #[serde(default)]
+    network: bool,
+    #[serde(default)]
+    stdout: bool,
+    #[serde(default)]
+    stderr: bool,
+    #[serde(default)]
+    environment_variables: bool,
 }
 
 struct Versions {
@@ -248,6 +264,24 @@ fn parse_manifest(source_dir: &Path, wasm_path: &Path) -> anyhow::Result<Manifes
         None => None,
     };
 
+    let mut permissions = BitFlags::default();
+
+    if extension_toml.permissions.network {
+        permissions |= ExtensionPermission::Network;
+    }
+
+    if extension_toml.permissions.stdout {
+        permissions |= ExtensionPermission::Stdout;
+    }
+
+    if extension_toml.permissions.stderr {
+        permissions |= ExtensionPermission::Stderr;
+    }
+
+    if extension_toml.permissions.environment_variables {
+        permissions |= ExtensionPermission::EnvironmentVariables;
+    }
+
     let manifest = Manifest {
         id: extension::Id {
             name: extension_toml.extension.name,
@@ -262,6 +296,7 @@ fn parse_manifest(source_dir: &Path, wasm_path: &Path) -> anyhow::Result<Manifes
         homepage_url: extension_toml.extension.homepage_url,
         repository_url: extension_toml.extension.repository_url,
         license: extension_toml.extension.license,
+        permissions,
     };
 
     Ok(manifest)

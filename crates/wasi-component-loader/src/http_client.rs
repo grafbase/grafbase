@@ -2,6 +2,7 @@ use crate::{
     names::{HTTP_CLIENT_EXECUTE_FUNCTION, HTTP_CLIENT_EXECUTE_MANY_FUNCTION, HTTP_CLIENT_RESOURCE},
     state::WasiState,
 };
+use anyhow::bail;
 use futures::FutureExt;
 use grafbase_telemetry::otel::opentelemetry::{KeyValue, metrics::Histogram};
 use http::{HeaderName, HeaderValue};
@@ -34,11 +35,21 @@ fn execute(ctx: StoreContextMut<'_, WasiState>, (request,): (HttpRequest,)) -> H
     let request_durations = ctx.data().request_durations().clone();
     let http_client = ctx.data().http_client().clone();
 
-    Box::new(async move { Ok((send_request(http_client, request_durations, request).await,)) })
+    Box::new(async move {
+        if !ctx.data().network_enabled() {
+            bail!("Network operations are disabled");
+        }
+
+        Ok((send_request(http_client, request_durations, request).await,))
+    })
 }
 
 fn execute_many(ctx: StoreContextMut<'_, WasiState>, (requests,): (Vec<HttpRequest>,)) -> HttpManyResult<'_> {
     Box::new(async move {
+        if !ctx.data().network_enabled() {
+            bail!("Network operations are disabled");
+        }
+
         let request_durations = ctx.data().request_durations();
         let http_client = ctx.data().http_client();
 

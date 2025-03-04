@@ -1,3 +1,5 @@
+pub(crate) mod extension_publish;
+pub(crate) mod extension_versions_by_version_requirement;
 pub(crate) mod submit_trusted_documents;
 
 use super::schema;
@@ -214,7 +216,7 @@ pub struct PublishInput<'a> {
     pub graph_slug: Option<&'a str>,
     pub schema: &'a str,
     pub subgraph: &'a str,
-    pub url: &'a str,
+    pub url: Option<&'a str>,
 }
 
 #[derive(cynic::QueryFragment, Debug)]

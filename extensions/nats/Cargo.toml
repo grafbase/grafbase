@@ -21,7 +21,7 @@ serde_json = "1"
 
 [dev-dependencies]
 indoc = "2"
-insta = { version = "1.42.1", features = ["json"] }
+insta = { version = "1.42.2", features = ["json"] }
 grafbase-sdk = { path = "../../crates/grafbase-sdk", features = ["test-utils"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "test-util"] }
 serde_json = "1"

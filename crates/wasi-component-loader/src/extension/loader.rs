@@ -15,7 +15,7 @@ pub struct ExtensionLoader {
     #[allow(unused)] // MUST be unused, or at least immutable, we self-reference to it
     schema_directives: Vec<SchemaDirective>,
     // Self-reference to schema_directives
-    wit_schema_directives: Vec<wit::Directive<'static>>,
+    wit_schema_directives: Vec<wit::SchemaDirective<'static>>,
     pre: wit::SdkPre<WasiState>,
     cache: Arc<Cache>,
     shared: crate::resources::SharedResources,
@@ -38,7 +38,7 @@ impl SchemaDirective {
         Self {
             name: name.into(),
             subgraph_name: subgraph_name.into(),
-            arguments: minicbor_serde::to_vec(args).unwrap(),
+            arguments: crate::cbor::to_vec(args).unwrap(),
         }
     }
 }
@@ -53,6 +53,7 @@ impl ExtensionLoader {
         T: serde::Serialize,
     {
         let component_config: WasiExtensionsConfig = component_config.into();
+
         let mut engine_config = wasmtime::Config::new();
 
         engine_config.wasm_component_model(true);
@@ -84,14 +85,14 @@ impl ExtensionLoader {
         let wit_schema_directives = schema_directives
             .iter()
             .map(|dir| {
-                let dir = wit::Directive {
+                let dir = wit::SchemaDirective {
                     name: &dir.name,
                     subgraph_name: &dir.subgraph_name,
                     arguments: &dir.arguments,
                 };
                 // SAFETY: Self-reference to schema_directives which is kept alive and never
                 // changed.
-                let dir: wit::Directive<'static> = unsafe { std::mem::transmute(dir) };
+                let dir: wit::SchemaDirective<'static> = unsafe { std::mem::transmute(dir) };
                 dir
             })
             .collect();
@@ -99,7 +100,7 @@ impl ExtensionLoader {
         Ok(Self {
             shared,
             component_config,
-            guest_config: minicbor_serde::to_vec(&guest_config.configuration)
+            guest_config: crate::cbor::to_vec(&guest_config.configuration)
                 .context("Could not serialize configuration")?,
             schema_directives,
             wit_schema_directives,
@@ -113,14 +114,19 @@ impl ExtensionLoader {
             build_extensions_context(&self.component_config),
             self.shared.access_log.clone(),
             self.cache.clone(),
+            self.component_config.networking,
         );
+
         let mut store = Store::new(self.pre.engine(), state);
+
         let inner = self.pre.instantiate_async(&mut store).await?;
         inner.call_register_extension(&mut store).await?;
+
         inner
             .grafbase_sdk_extension()
             .call_init_gateway_extension(&mut store, &self.wit_schema_directives, &self.guest_config)
             .await??;
+
         Ok(ExtensionInstance {
             store,
             inner,

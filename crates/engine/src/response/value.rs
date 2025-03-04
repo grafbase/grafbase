@@ -82,7 +82,7 @@ pub(crate) enum ResponseValue {
         value: f64,
     },
     String {
-        value: Box<str>,
+        value: String,
     },
     StringId {
         id: StringId,
@@ -147,9 +147,7 @@ impl From<f64> for ResponseValue {
 
 impl From<String> for ResponseValue {
     fn from(value: String) -> Self {
-        Self::String {
-            value: value.into_boxed_str(),
-        }
+        Self::String { value }
     }
 }
 
@@ -163,4 +161,11 @@ impl From<ResponseObjectId> for ResponseValue {
     fn from(id: ResponseObjectId) -> Self {
         Self::Object { id }
     }
+}
+
+#[cfg(test)]
+#[test]
+fn check_response_value_size() {
+    assert_eq!(std::mem::size_of::<ResponseValue>(), 24);
+    assert_eq!(std::mem::align_of::<ResponseValue>(), 8);
 }

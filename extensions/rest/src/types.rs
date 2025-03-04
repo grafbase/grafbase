@@ -16,7 +16,8 @@ pub struct RestEndpointArgs {
 #[serde(rename_all = "camelCase")]
 pub struct Rest<'a> {
     pub endpoint: &'a str,
-    pub http: HttpCall<'a>,
+    pub method: HttpMethod,
+    pub path: &'a str,
     pub selection: &'a str,
     body: Option<Body>,
 }
@@ -42,13 +43,6 @@ pub struct Body {
 #[serde(rename_all = "camelCase")]
 pub struct RestInput {
     input: Option<serde_json::Value>,
-}
-
-#[derive(Debug, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct HttpCall<'a> {
-    pub method: HttpMethod,
-    pub path: &'a str,
 }
 
 #[derive(Debug, Clone, Copy, serde::Deserialize)]

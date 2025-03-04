@@ -19,7 +19,15 @@ fn initialize_hooks_store(
     loader: &ComponentLoader,
     access_log: AccessLogSender,
 ) -> crate::Result<Store<WasiState>> {
-    let state = WasiState::new(build_hooks_context(config), access_log, loader.cache().clone());
+    let network_enabled = config.networking;
+
+    let state = WasiState::new(
+        build_hooks_context(config),
+        access_log,
+        loader.cache().clone(),
+        network_enabled,
+    );
+
     let store = Store::new(loader.engine(), state);
 
     Ok(store)
@@ -30,7 +38,15 @@ fn initialize_extensions_store(
     loader: &ComponentLoader,
     access_log: AccessLogSender,
 ) -> crate::Result<Store<WasiState>> {
-    let state = WasiState::new(build_extensions_context(config), access_log, loader.cache().clone());
+    let network_enabled = config.networking;
+
+    let state = WasiState::new(
+        build_extensions_context(config),
+        access_log,
+        loader.cache().clone(),
+        network_enabled,
+    );
+
     let store = Store::new(loader.engine(), state);
 
     Ok(store)
@@ -81,13 +97,13 @@ impl ComponentInstance {
 
         match self.instance.get_typed_func(&mut self.store, function_name) {
             Ok(function) => {
-                tracing::debug!("instantized the {function_name} hook Wasm function");
+                tracing::debug!("instantiating the {function_name} hook Wasm function");
                 self.function_cache.push((function_name, Some(Box::new(function))));
                 Some(function)
             }
             Err(e) => {
                 // Shouldn't happen, so we keep spamming errors to be sure it's seen.
-                tracing::error!("error instantizing the {function_name} hook Wasm function: {e}");
+                tracing::error!("error instantiating the {function_name} hook Wasm function: {e}");
                 None
             }
         }

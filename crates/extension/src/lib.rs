@@ -1,3 +1,5 @@
+pub mod lockfile;
+
 mod id;
 mod manifest;
 

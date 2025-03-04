@@ -2,6 +2,7 @@
 #![deny(missing_docs)]
 #![expect(unsafe_op_in_unsafe_fn)]
 
+mod cbor;
 mod component;
 #[doc(hidden)]
 pub mod extension;
@@ -12,9 +13,11 @@ pub mod jq_selection;
 pub mod test;
 pub mod types;
 
+pub use component::SdkError;
 pub use extension::{resolver::Subscription, Authenticator, Extension, Resolver};
 pub use grafbase_sdk_derive::{AuthenticationExtension, ResolverExtension};
-pub use wit::{Error, Headers, NatsAuth, NatsStreamDeliverPolicy, SharedContext};
+pub use types::{Error, ErrorResponse};
+pub use wit::{Headers, NatsAuth, NatsStreamDeliverPolicy, SharedContext};
 
 use component::Component;
 
@@ -40,6 +43,10 @@ mod wit {
     });
 
     pub use exports::grafbase::sdk::extension::Guest;
+    pub use grafbase::sdk::directive::{
+        EnumDirectiveSite, FieldDefinitionDirective, FieldDefinitionDirectiveSite, InterfaceDirectiveSite,
+        ObjectDirectiveSite, ScalarDirectiveSite, SchemaDirective, UnionDirectiveSite,
+    };
     pub use grafbase::sdk::types::*;
 }
 

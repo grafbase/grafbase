@@ -119,6 +119,7 @@ mod tests {
             repository_url: None,
             license: None,
             readme: None,
+            permissions: Default::default(),
         }
         .into_versioned();
 

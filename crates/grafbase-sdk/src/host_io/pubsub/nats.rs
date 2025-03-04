@@ -5,7 +5,11 @@
 //! This module provides a high-level client for connecting to and interacting with NATS servers.
 //! It supports both authenticated and unauthenticated connections to one or more NATS servers.
 
-use crate::{extension::resolver::Subscription, types, wit, Error};
+use crate::{
+    extension::resolver::Subscription,
+    types::{self},
+    wit, Error, SdkError,
+};
 use std::time::Duration;
 
 pub use time::OffsetDateTime;
@@ -26,11 +30,13 @@ impl NatsClient {
     /// # Returns
     ///
     /// Result indicating success or an error if the publish fails
-    pub fn publish<S>(&self, subject: &str, payload: &S) -> Result<(), Box<dyn std::error::Error>>
+    pub fn publish<S>(&self, subject: &str, payload: &S) -> Result<(), SdkError>
     where
         S: serde::Serialize,
     {
-        Ok(self.inner.publish(subject, &serde_json::to_vec(payload).unwrap())?)
+        self.inner
+            .publish(subject, &serde_json::to_vec(payload)?)
+            .map_err(Into::into)
     }
 
     /// Sends a request to the specified NATS subject and waits for a response
@@ -44,12 +50,7 @@ impl NatsClient {
     /// # Returns
     ///
     /// Result containing the deserialized response or an error if the request fails
-    pub fn request<S, T>(
-        &self,
-        subject: &str,
-        payload: &S,
-        timeout: Option<Duration>,
-    ) -> Result<T, Box<dyn std::error::Error>>
+    pub fn request<S, T>(&self, subject: &str, payload: &S, timeout: Option<Duration>) -> Result<T, SdkError>
     where
         S: serde::Serialize,
         T: for<'de> serde::Deserialize<'de>,
@@ -70,11 +71,7 @@ impl NatsClient {
     /// # Returns
     ///
     /// Result containing the subscription or an error if subscription fails
-    pub fn subscribe(
-        &self,
-        subject: &str,
-        config: Option<NatsStreamConfig>,
-    ) -> Result<NatsSubscription, Box<dyn std::error::Error>> {
+    pub fn subscribe(&self, subject: &str, config: Option<NatsStreamConfig>) -> Result<NatsSubscription, SdkError> {
         let subscription = self
             .inner
             .subscribe(subject, config.map(Into::into).as_ref())
@@ -92,7 +89,7 @@ impl NatsClient {
     /// # Returns
     ///
     /// Result containing the key-value store interface or an error if retrieval fails
-    pub fn key_value(&self, bucket: &str) -> Result<NatsKeyValue, Box<dyn std::error::Error>> {
+    pub fn key_value(&self, bucket: &str) -> Result<NatsKeyValue, SdkError> {
         let store = self.inner.key_value(bucket)?;
         Ok(store.into())
     }
@@ -119,7 +116,7 @@ impl NatsKeyValue {
     /// # Returns
     ///
     /// Result containing the deserialized value if found, or None if the key doesn't exist
-    pub fn get<S>(&self, key: &str) -> Result<Option<S>, Box<dyn std::error::Error>>
+    pub fn get<S>(&self, key: &str) -> Result<Option<S>, SdkError>
     where
         S: for<'a> serde::Deserialize<'a>,
     {
@@ -139,7 +136,7 @@ impl NatsKeyValue {
     /// # Returns
     ///
     /// Result containing the revision number of the stored value
-    pub fn put<S>(&self, key: &str, value: &S) -> Result<u64, Box<dyn std::error::Error>>
+    pub fn put<S>(&self, key: &str, value: &S) -> Result<u64, SdkError>
     where
         S: serde::Serialize,
     {
@@ -158,7 +155,7 @@ impl NatsKeyValue {
     /// # Returns
     ///
     /// Result containing the revision number of the created value
-    pub fn create<S>(&self, key: &str, value: &S) -> Result<u64, Box<dyn std::error::Error>>
+    pub fn create<S>(&self, key: &str, value: &S) -> Result<u64, SdkError>
     where
         S: serde::Serialize,
     {
@@ -175,7 +172,7 @@ impl NatsKeyValue {
     /// # Returns
     ///
     /// Result indicating success or an error if deletion fails
-    pub fn delete(&self, key: &str) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn delete(&self, key: &str) -> Result<(), SdkError> {
         Ok(self.inner.delete(key)?)
     }
 }
@@ -197,8 +194,8 @@ impl NatsSubscription {
     /// # Returns
     ///
     /// Result containing the next message or an error if retrieval fails
-    pub fn next(&self) -> Result<Option<NatsMessage>, Box<dyn std::error::Error>> {
-        Ok(self.inner.next()?.map(Into::into))
+    pub fn next(&self) -> Result<Option<NatsMessage>, SdkError> {
+        self.inner.next().map_err(Into::into).map(|msg| msg.map(Into::into))
     }
 }
 
@@ -245,7 +242,7 @@ impl NatsMessage {
 /// # Returns
 ///
 /// Result containing the connected NATS client or an error if connection fails
-pub fn connect(servers: impl IntoIterator<Item = impl ToString>) -> Result<NatsClient, Box<dyn std::error::Error>> {
+pub fn connect(servers: impl IntoIterator<Item = impl ToString>) -> Result<NatsClient, SdkError> {
     let servers: Vec<_> = servers.into_iter().map(|s| s.to_string()).collect();
     let inner = crate::wit::NatsClient::connect(&servers, None)?;
 
@@ -265,7 +262,7 @@ pub fn connect(servers: impl IntoIterator<Item = impl ToString>) -> Result<NatsC
 pub fn connect_with_auth(
     servers: impl IntoIterator<Item = impl ToString>,
     auth: &crate::NatsAuth,
-) -> Result<NatsClient, Box<dyn std::error::Error>> {
+) -> Result<NatsClient, SdkError> {
     let servers: Vec<_> = servers.into_iter().map(|s| s.to_string()).collect();
     let inner = crate::wit::NatsClient::connect(&servers, Some(auth))?;
 
@@ -277,20 +274,14 @@ impl Subscription for NatsSubscription {
         let item = match NatsSubscription::next(self) {
             Ok(Some(item)) => item,
             Ok(None) => return Ok(None),
-            Err(e) => {
-                return Err(Error {
-                    extensions: Vec::new(),
-                    message: format!("Error receiving NATS message: {e}"),
-                })
-            }
+            Err(e) => return Err(format!("Error receiving NATS message: {e}").into()),
         };
 
         let mut field_output = types::FieldOutput::default();
 
-        let payload: serde_json::Value = item.payload().map_err(|e| Error {
-            extensions: Vec::new(),
-            message: format!("Error parsing NATS value as JSON: {e}"),
-        })?;
+        let payload: serde_json::Value = item
+            .payload()
+            .map_err(|e| format!("Error parsing NATS value as JSON: {e}"))?;
 
         field_output.push_value(payload);
 

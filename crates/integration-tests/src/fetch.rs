@@ -56,7 +56,7 @@ impl DynFetcher for MockFetch {
             .get(host)
             .and_then(|responses| responses.pop())
             .map(|bytes| http::Response::builder().body(bytes.into()).unwrap())
-            .ok_or(FetchError::any("No more responses"));
+            .ok_or(FetchError::from("No more responses"));
 
         (result, None)
     }

@@ -1,9 +1,9 @@
 use std::time::Duration;
 
 use grafbase_sdk::{
-    host_io::cache::{self, CachedItem},
-    types::{Configuration, Directive, ErrorResponse, StatusCode, Token},
     AuthenticationExtension, Authenticator, Extension, Headers,
+    host_io::cache::{self, CachedItem},
+    types::{Configuration, ErrorResponse, SchemaDirective, StatusCode, Token},
 };
 
 #[derive(AuthenticationExtension)]
@@ -22,7 +22,7 @@ struct Jwks {
 }
 
 impl Extension for CachingProvider {
-    fn new(_: Vec<Directive>, config: Configuration) -> Result<Self, Box<dyn std::error::Error>>
+    fn new(_: Vec<SchemaDirective>, config: Configuration) -> Result<Self, Box<dyn std::error::Error>>
     where
         Self: Sized,
     {

@@ -33,10 +33,95 @@ fn subgraph() -> ExtensionOnlySubgraph {
               "@natsSubscription",
               "@natsRequest",
               "@natsKeyValue",
-              "NatsPublishResult",
-              "NatsStreamDeliverPolicy"
+              "NatsStreamDeliverPolicy",
             ]
           )
+
+        type Query {{
+          hello: String!
+
+          requestReply(input: RequestReplyInput!): RequestReplyResult! @natsRequest(
+            subject: "help.please",
+            timeoutMs: 500,
+          )
+
+          timeoutReply(input: RequestReplyInput!): RequestReplyResult! @natsRequest(
+            subject: "timeout.please",
+            timeoutMs: 500,
+          )
+
+          getUser(id: Int!): User @natsKeyValue(
+            bucket: "users",
+            key: "user.{{{{ args.id }}}}",
+            action: GET,
+            selection: "{{ id, email, name }}",
+          )
+
+          getOtherUser(id: Int!): User @natsKeyValue(
+            bucket: "otherUsers",
+            key: "user.{{{{ args.id }}}}",
+            action: GET,
+            selection: "{{ id, email, name }}",
+          )
+        }}
+
+        type Mutation {{
+          publishUserEvent(id: Int!, input: UserEventInput!): Boolean! @natsPublish(
+            subject: "publish.user.{{{{args.id}}}}.events"
+          )
+
+          kvPutUser(id: Int!, input: UserEventInput!): String! @natsKeyValue(
+            bucket: "putUsers",
+            key: "user.{{{{ args.id }}}}",
+            action: PUT,
+          )
+
+          kvCreateUser(id: Int!, input: UserEventInput!): String! @natsKeyValue(
+            bucket: "createUsers",
+            key: "user.{{{{ args.id }}}}",
+            action: CREATE,
+          )
+
+          kvDeleteUser(id: Int!): Boolean! @natsKeyValue(
+            bucket: "deleteUsers",
+            key: "user.{{{{ args.id }}}}",
+            action: DELETE,
+          )
+        }}
+
+        type Subscription {{
+          userEvents(id: Int!): UserEvent! @natsSubscription(
+            subject: "subscription.user.{{{{args.id}}}}.events",
+            selection: "{{ email, name, number }}",
+          )
+
+          highPriorityBankEvents(limit: Int!): BankEvent! @natsSubscription(
+            subject: "subscription.bank",
+            selection: "select(.money > {{{{args.limit}}}}) | {{ id, account, money }}",
+          )
+
+          persistenceEvents(id: Int!): UserEvent! @natsSubscription(
+            subject: "persistence.user.{{{{args.id}}}}.events",
+            selection: "{{ email, name, number }}",
+            streamConfig: {{
+              streamName: "testStream",
+              consumerName: "testConsumer",
+              durableName: "testConsumer",
+              description: "Test Description",
+            }},
+          )
+
+          nonexistingEvents(id: Int!): UserEvent! @natsSubscription(
+            subject: "persistence.user.{{{{args.id}}}}.events",
+            selection: "{{ email, name, number }}",
+            streamConfig: {{
+              streamName: "nonExistingStream",
+              consumerName: "testConsumer",
+              durableName: "testConsumer",
+              description: "Test Description",
+            }},
+          )
+        }}
 
         input RequestReplyInput {{
           message: String!
@@ -44,95 +129,6 @@ fn subgraph() -> ExtensionOnlySubgraph {
 
         type RequestReplyResult {{
           message: String!
-        }}
-
-        type Query {{
-          hello: String!
-
-          requestReply(input: RequestReplyInput!): RequestReplyResult! @natsRequest(
-            subject: "help.please"
-            timeoutMs: 500
-          )
-
-          timeoutReply(input: RequestReplyInput!): RequestReplyResult! @natsRequest(
-            subject: "timeout.please"
-            timeoutMs: 500
-          )
-
-          getUser(id: Int!): User @natsKeyValue(
-            bucket: "users"
-            key: "user.{{{{ args.id }}}}"
-            action: GET
-            selection: "{{ id, email, name }}"
-          )
-
-          getOtherUser(id: Int!): User @natsKeyValue(
-            bucket: "otherUsers"
-            key: "user.{{{{ args.id }}}}"
-            action: GET
-            selection: "{{ id, email, name }}"
-          )
-        }}
-
-        type Mutation {{
-          publishUserEvent(id: Int!, input: UserEventInput!): NatsPublishResult! @natsPublish(
-            subject: "publish.user.{{{{args.id}}}}.events"
-          )
-
-          kvPutUser(id: Int!, input: UserEventInput!): NatsKeyValueResult! @natsKeyValue(
-            bucket: "putUsers"
-            key: "user.{{{{ args.id }}}}"
-            action: PUT
-          )
-
-          kvCreateUser(id: Int!, input: UserEventInput!): NatsKeyValueResult! @natsKeyValue(
-            bucket: "createUsers"
-            key: "user.{{{{ args.id }}}}"
-            action: CREATE
-          )
-
-          kvDeleteUser(id: Int!): NatsPublishResult! @natsKeyValue(
-            bucket: "deleteUsers"
-            key: "user.{{{{ args.id }}}}"
-            action: DELETE
-          )
-        }}
-
-        type Subscription {{
-          userEvents(id: Int!): UserEvent! @natsSubscription(
-            subject: "subscription.user.{{{{args.id}}}}.events"
-            selection: "{{ email, name, number }}"
-          )
-
-          persistenceEvents(id: Int!): UserEvent! @natsSubscription(
-            subject: "persistence.user.{{{{args.id}}}}.events"
-            selection: "{{ email, name, number }}"
-            streamConfig: {{
-              streamName: "testStream"
-              consumerName: "testConsumer"
-              durableName: "testConsumer"
-              description: "Test Description"
-            }}
-          )
-
-          nonexistingEvents(id: Int!): UserEvent! @natsSubscription(
-            subject: "persistence.user.{{{{args.id}}}}.events"
-            selection: "{{ email, name, number }}"
-            streamConfig: {{
-              streamName: "nonExistingStream"
-              consumerName: "testConsumer"
-              durableName: "testConsumer"
-              description: "Test Description"
-            }}
-          )
-        }}
-
-        type NatsPublishResult {{
-          success: Boolean!
-        }}
-
-        type NatsKeyValueResult {{
-          sequence: Int!
         }}
 
         input UserEventInput {{
@@ -150,6 +146,12 @@ fn subgraph() -> ExtensionOnlySubgraph {
           id: Int!
           email: String!
           name: String!
+        }}
+
+        type BankEvent {{
+          id: Int!
+          account: String!
+          money: Int!
         }}
     "#};
 
@@ -288,6 +290,123 @@ async fn test_subscribe() {
 }
 
 #[tokio::test]
+async fn test_subscribe_with_filter() {
+    let nats = nats_client().await;
+
+    let config = TestConfig::builder()
+        .with_cli(CLI_PATH)
+        .with_gateway(GATEWAY_PATH)
+        .with_subgraph(subgraph())
+        .enable_networking()
+        .build(config())
+        .unwrap();
+
+    let runner = TestRunner::new(config).await.unwrap();
+
+    let query = indoc! {r#"
+        subscription {
+          highPriorityBankEvents(limit: 1000) {
+            id
+            account
+            money
+          }
+        }
+    "#};
+
+    {
+        let subscription = runner
+            .graphql_subscription::<serde_json::Value>(query)
+            .unwrap()
+            .subscribe()
+            .await
+            .unwrap();
+
+        let nats = nats_client().await;
+
+        tokio::spawn(async move {
+            for i in 1000..=1002 {
+                let event = json!({ "id": 1, "account": "User One", "money": i });
+                let event = serde_json::to_vec(&event).unwrap();
+
+                nats.publish("subscription.bank", event.into()).await.unwrap();
+                tokio::time::sleep(Duration::from_millis(100)).await;
+            }
+        });
+
+        let events = tokio::time::timeout(Duration::from_secs(15), subscription.take(2).collect::<Vec<_>>())
+            .await
+            .unwrap();
+
+        insta::assert_json_snapshot!(&events, @r#"
+        [
+          {
+            "data": {
+              "highPriorityBankEvents": {
+                "id": 1,
+                "account": "User One",
+                "money": 1001
+              }
+            }
+          },
+          {
+            "data": {
+              "highPriorityBankEvents": {
+                "id": 1,
+                "account": "User One",
+                "money": 1002
+              }
+            }
+          }
+        ]
+        "#);
+    }
+
+    let subscription = runner
+        .graphql_subscription::<serde_json::Value>(query)
+        .unwrap()
+        .subscribe()
+        .await
+        .unwrap();
+
+    tokio::spawn(async move {
+        for i in 1000..=1002 {
+            let event = json!({ "id": 1, "account": "User One", "money": i });
+            let event = serde_json::to_vec(&event).unwrap();
+
+            nats.publish("subscription.bank", event.into()).await.unwrap();
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+    });
+
+    let events = tokio::time::timeout(Duration::from_secs(15), subscription.take(2).collect::<Vec<_>>())
+        .await
+        .unwrap();
+
+    insta::assert_json_snapshot!(&events, @r#"
+    [
+      {
+        "data": {
+          "highPriorityBankEvents": {
+            "id": 1,
+            "account": "User One",
+            "money": 1001
+          }
+        }
+      },
+      {
+        "data": {
+          "highPriorityBankEvents": {
+            "id": 1,
+            "account": "User One",
+            "money": 1002
+          }
+        }
+      }
+    ]
+    "#);
+}
+
+#[tokio::test]
 async fn test_publish() {
     let nats = nats_client().await;
     let mut subscriber = nats.subscribe("publish.user.>").await.unwrap();
@@ -304,9 +423,7 @@ async fn test_publish() {
 
     let query = indoc! {r#"
         mutation {
-          publishUserEvent(id: 1, input: { email: "alice@example.com", name: "Alice" }) {
-            success
-          }
+          publishUserEvent(id: 1, input: { email: "alice@example.com", name: "Alice" })
         }
     "#};
 
@@ -314,9 +431,7 @@ async fn test_publish() {
     insta::assert_json_snapshot!(result, @r#"
     {
       "data": {
-        "publishUserEvent": {
-          "success": true
-        }
+        "publishUserEvent": true
       }
     }
     "#);
@@ -459,7 +574,7 @@ async fn test_non_existing_stream() {
           {
             "message": "Failed to subscribe to subject 'persistence.user.1.events': jetstream error: stream not found (code 404, error code 10059)",
             "extensions": {
-              "code": "INTERNAL_SERVER_ERROR"
+              "code": "EXTENSION_ERROR"
             }
           }
         ]
@@ -554,7 +669,7 @@ async fn request_reply_timeout() {
         {
           "message": "Failed to request message: deadline has elapsed",
           "extensions": {
-            "code": "INTERNAL_SERVER_ERROR"
+            "code": "EXTENSION_ERROR"
           }
         }
       ]
@@ -690,9 +805,7 @@ async fn kv_put() {
 
     let query = indoc! {r#"
         mutation {
-          kvPutUser(id: 1,input: { email: "user1@example.com", name: "User One" }) {
-            sequence
-          }
+          kvPutUser(id: 1,input: { email: "user1@example.com", name: "User One" })
         }
     "#};
 
@@ -700,9 +813,7 @@ async fn kv_put() {
     insta::assert_json_snapshot!(result, @r#"
     {
       "data": {
-        "kvPutUser": {
-          "sequence": 1
-        }
+        "kvPutUser": "1"
       }
     }
     "#);
@@ -744,9 +855,7 @@ async fn kv_create() {
 
     let query = indoc! {r#"
         mutation {
-          kvCreateUser(id: 1,input: { email: "user1@example.com", name: "User One" }) {
-            sequence
-          }
+          kvCreateUser(id: 1,input: { email: "user1@example.com", name: "User One" })
         }
     "#};
 
@@ -754,9 +863,7 @@ async fn kv_create() {
     insta::assert_json_snapshot!(result, @r#"
     {
       "data": {
-        "kvCreateUser": {
-          "sequence": 1
-        }
+        "kvCreateUser": "1"
       }
     }
     "#);
@@ -808,9 +915,7 @@ async fn kv_delete() {
 
     let query = indoc! {r#"
         mutation {
-          kvDeleteUser(id: 1) {
-            success
-          }
+          kvDeleteUser(id: 1)
         }
     "#};
 
@@ -818,9 +923,7 @@ async fn kv_delete() {
     insta::assert_json_snapshot!(result, @r#"
     {
       "data": {
-        "kvDeleteUser": {
-          "success": true
-        }
+        "kvDeleteUser": true
       }
     }
     "#);

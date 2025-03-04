@@ -114,24 +114,6 @@ pub struct RestInput {
     input: Option<serde_json::Value>,
 }
 
-#[derive(Debug, serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct NatsPublishResult {
-    pub success: bool,
-}
-
-#[derive(Debug, serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct NatsKvCreateResult {
-    pub sequence: u64,
-}
-
-#[derive(Debug, serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct NatsKvDeleteResult {
-    pub success: bool,
-}
-
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SubscribeArguments<'a> {

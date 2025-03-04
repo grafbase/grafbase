@@ -13,12 +13,6 @@ pub(super) struct ExtensionGuard {
     inner: managed::Object<ExtensionLoader>,
 }
 
-impl ExtensionGuard {
-    pub(crate) fn into_inner(self) -> managed::Object<ExtensionLoader> {
-        self.inner
-    }
-}
-
 impl Deref for ExtensionGuard {
     type Target = ExtensionInstance;
 

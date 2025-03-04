@@ -147,7 +147,7 @@ impl GraphqlResolver {
         let endpoint = ctx.endpoint();
 
         let request = {
-            let body = serde_json::to_vec(&SubgraphGraphqlRequest {
+            let body = sonic_rs::to_vec(&SubgraphGraphqlRequest {
                 query: &self.subgraph_operation.query,
                 variables: SubgraphVariables::<()> {
                     ctx: ctx.input_value_context(),

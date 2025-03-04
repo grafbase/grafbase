@@ -8,6 +8,7 @@ fn guest_error_as_gql(error: GuestError, code: PartialErrorCode) -> PartialGraph
         .extensions
         .into_iter()
         .map(|(key, value)| {
+            let value = String::from_utf8_lossy(&value).into_owned();
             let value = serde_json::from_str(&value).unwrap_or(serde_json::Value::String(value));
 
             (key.into(), value)

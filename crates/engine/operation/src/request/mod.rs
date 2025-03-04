@@ -140,13 +140,13 @@ impl<'de> serde::Deserialize<'de> for QueryParamsRequest {
             doc_id,
             variables: variables
                 .as_deref()
-                .map(serde_json::from_str)
+                .map(sonic_rs::from_str)
                 .transpose()
                 .map_err(serde::de::Error::custom)?
                 .unwrap_or_default(),
             extensions: extensions
                 .as_deref()
-                .map(serde_json::from_str)
+                .map(sonic_rs::from_str)
                 .transpose()
                 .map_err(serde::de::Error::custom)?
                 .unwrap_or_default(),

@@ -6,16 +6,13 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc, str::FromStr, time::Durat
 
 use config::AuthConfig;
 use grafbase_sdk::{
+    Error, Extension, NatsAuth, Resolver, ResolverExtension, SharedContext, Subscription,
     host_io::pubsub::nats::{self, NatsClient, NatsStreamConfig},
     jq_selection::JqSelection,
-    types::{Configuration, Directive, FieldDefinition, FieldInputs, FieldOutput},
-    Error, Extension, NatsAuth, Resolver, ResolverExtension, SharedContext, Subscription,
+    types::{Configuration, FieldDefinitionDirective, FieldInputs, FieldOutput, SchemaDirective},
 };
 use subscription::FilteredSubscription;
-use types::{
-    DirectiveKind, KeyValueAction, KeyValueArguments, NatsKvCreateResult, NatsKvDeleteResult, NatsPublishResult,
-    PublishArguments, RequestArguments, SubscribeArguments,
-};
+use types::{DirectiveKind, KeyValueAction, KeyValueArguments, PublishArguments, RequestArguments, SubscribeArguments};
 
 #[derive(ResolverExtension)]
 struct Nats {
@@ -24,7 +21,7 @@ struct Nats {
 }
 
 impl Extension for Nats {
-    fn new(_: Vec<Directive>, config: Configuration) -> Result<Self, Box<dyn std::error::Error>> {
+    fn new(_: Vec<SchemaDirective>, config: Configuration) -> Result<Self, Box<dyn std::error::Error>> {
         let mut clients = HashMap::new();
         let config: config::NatsConfig = config.deserialize()?;
 
@@ -57,39 +54,33 @@ impl Resolver for Nats {
     fn resolve_field(
         &mut self,
         _: SharedContext,
-        directive: Directive,
-        _: FieldDefinition,
+        _: &str,
+        directive: FieldDefinitionDirective,
         _: FieldInputs,
     ) -> Result<FieldOutput, Error> {
         let Ok(directive_kind) = DirectiveKind::from_str(directive.name()) else {
-            return Err(Error {
-                extensions: Vec::new(),
-                message: format!("Invalid directive: {}", directive.name()),
-            });
+            return Err(format!("Invalid directive: {}", directive.name()).into());
         };
 
         match directive_kind {
             DirectiveKind::Publish => {
-                let args: PublishArguments<'_> = directive.arguments().map_err(|e| Error {
-                    extensions: Vec::new(),
-                    message: format!("Error deserializing directive arguments: {e}"),
-                })?;
+                let args: PublishArguments<'_> = directive
+                    .arguments()
+                    .map_err(|e| format!("Error deserializing directive arguments: {e}"))?;
 
                 self.publish(args)
             }
             DirectiveKind::Request => {
-                let args: RequestArguments<'_> = directive.arguments().map_err(|e| Error {
-                    extensions: Vec::new(),
-                    message: format!("Error deserializing directive arguments: {e}"),
-                })?;
+                let args: RequestArguments<'_> = directive
+                    .arguments()
+                    .map_err(|e| format!("Error deserializing directive arguments: {e}"))?;
 
                 self.request(args)
             }
             DirectiveKind::KeyValue => {
-                let args: KeyValueArguments<'_> = directive.arguments().map_err(|e| Error {
-                    extensions: Vec::new(),
-                    message: format!("Error deserializing directive arguments: {e}"),
-                })?;
+                let args: KeyValueArguments<'_> = directive
+                    .arguments()
+                    .map_err(|e| format!("Error deserializing directive arguments: {e}"))?;
 
                 self.key_value(args)
             }
@@ -99,19 +90,15 @@ impl Resolver for Nats {
     fn resolve_subscription(
         &mut self,
         _: SharedContext,
-        directive: Directive,
-        _: FieldDefinition,
+        _: &str,
+        directive: FieldDefinitionDirective,
     ) -> Result<Box<dyn Subscription>, Error> {
-        let args: SubscribeArguments<'_> = directive.arguments().map_err(|e| Error {
-            extensions: Vec::new(),
-            message: format!("Error deserializing directive arguments: {e}"),
-        })?;
+        let args: SubscribeArguments<'_> = directive
+            .arguments()
+            .map_err(|e| format!("Error deserializing directive arguments: {e}"))?;
 
         let Some(client) = self.clients.get(args.provider) else {
-            return Err(Error {
-                extensions: Vec::new(),
-                message: format!("NATS provider not found: {}", args.provider),
-            });
+            return Err(format!("NATS provider not found: {}", args.provider).into());
         };
 
         let stream_config = args.stream_config.map(|config| {
@@ -133,10 +120,9 @@ impl Resolver for Nats {
             stream_config
         });
 
-        let subscriber = client.subscribe(args.subject, stream_config).map_err(|e| Error {
-            extensions: Vec::new(),
-            message: format!("Failed to subscribe to subject '{}': {e}", args.subject),
-        })?;
+        let subscriber = client
+            .subscribe(args.subject, stream_config)
+            .map_err(|e| format!("Failed to subscribe to subject '{}': {e}", args.subject))?;
 
         Ok(Box::new(FilteredSubscription::new(
             subscriber,
@@ -149,44 +135,29 @@ impl Resolver for Nats {
 impl Nats {
     fn publish(&self, request: PublishArguments<'_>) -> Result<FieldOutput, Error> {
         let Some(client) = self.clients.get(request.provider) else {
-            return Err(Error {
-                extensions: Vec::new(),
-                message: format!("NATS provider not found: {}", request.provider),
-            });
+            return Err(format!("NATS provider not found: {}", request.provider).into());
         };
 
         let body = request.body().unwrap_or(&serde_json::Value::Null);
 
-        let result = client.publish(request.subject, body).map_err(|e| Error {
-            extensions: Vec::new(),
-            message: format!("Failed to publish message: {}", e),
-        });
+        let result = client.publish(request.subject, body);
 
         let mut output = FieldOutput::new();
-
-        output.push_value(NatsPublishResult {
-            success: result.is_ok(),
-        });
+        output.push_value(result.is_ok());
 
         Ok(output)
     }
 
     fn request(&self, request: RequestArguments<'_>) -> Result<FieldOutput, Error> {
         let Some(client) = self.clients.get(request.provider) else {
-            return Err(Error {
-                extensions: Vec::new(),
-                message: format!("NATS provider not found: {}", request.provider),
-            });
+            return Err(format!("NATS provider not found: {}", request.provider).into());
         };
 
         let body = request.body().unwrap_or(&serde_json::Value::Null);
 
         let message = client
             .request::<_, serde_json::Value>(request.subject, body, Some(request.timeout))
-            .map_err(|e| Error {
-                extensions: Vec::new(),
-                message: format!("Failed to request message: {}", e),
-            })?;
+            .map_err(|e| format!("Failed to request message: {}", e))?;
 
         let mut output = FieldOutput::new();
 
@@ -200,18 +171,14 @@ impl Nats {
 
         let mut jq = self.jq_selection.borrow_mut();
 
-        let filtered = jq.select(selection, message).map_err(|e| Error {
-            extensions: Vec::new(),
-            message: format!("Failed to filter with selection: {}", e),
-        })?;
+        let filtered = jq
+            .select(selection, message)
+            .map_err(|e| format!("Failed to filter with selection: {}", e))?;
 
         for payload in filtered {
             match payload {
                 Ok(payload) => output.push_value(payload),
-                Err(error) => output.push_error(Error {
-                    extensions: Vec::new(),
-                    message: format!("Failed to filter with selection: {}", error),
-                }),
+                Err(error) => output.push_error(format!("Failed to filter with selection: {}", error)),
             }
         }
 
@@ -220,16 +187,12 @@ impl Nats {
 
     fn key_value(&self, args: KeyValueArguments<'_>) -> Result<FieldOutput, Error> {
         let Some(client) = self.clients.get(args.provider) else {
-            return Err(Error {
-                extensions: Vec::new(),
-                message: format!("NATS provider not found: {}", args.provider),
-            });
+            return Err(format!("NATS provider not found: {}", args.provider).into());
         };
 
-        let store = client.key_value(args.bucket).map_err(|e| Error {
-            extensions: Vec::new(),
-            message: format!("Failed to get key-value store: {e}"),
-        })?;
+        let store = client
+            .key_value(args.bucket)
+            .map_err(|e| format!("Failed to get key-value store: {e}"))?;
 
         let mut output = FieldOutput::new();
 
@@ -238,12 +201,9 @@ impl Nats {
                 let body = args.body().unwrap_or(&serde_json::Value::Null);
 
                 match store.create(args.key, body) {
-                    Ok(sequence) => output.push_value(NatsKvCreateResult { sequence }),
+                    Ok(sequence) => output.push_value(sequence.to_string()),
                     Err(error) => {
-                        return Err(Error {
-                            extensions: Vec::new(),
-                            message: format!("Failed to create key-value pair: {error}"),
-                        });
+                        return Err(format!("Failed to create key-value pair: {error}").into());
                     }
                 }
             }
@@ -251,12 +211,9 @@ impl Nats {
                 let body = args.body().unwrap_or(&serde_json::Value::Null);
 
                 match store.put(args.key, body) {
-                    Ok(sequence) => output.push_value(NatsKvCreateResult { sequence }),
+                    Ok(sequence) => output.push_value(sequence.to_string()),
                     Err(error) => {
-                        return Err(Error {
-                            extensions: Vec::new(),
-                            message: format!("Failed to put key-value pair: {error}"),
-                        });
+                        return Err(format!("Failed to put key-value pair: {error}").into());
                     }
                 }
             }
@@ -264,14 +221,11 @@ impl Nats {
                 let value = match store.get::<serde_json::Value>(args.key) {
                     Ok(Some(value)) => value,
                     Ok(None) => {
-                        output.push_value(Option::<serde_json::Value>::None);
+                        output.push_value(serde_json::Value::Null);
                         return Ok(output);
                     }
                     Err(error) => {
-                        return Err(Error {
-                            extensions: Vec::new(),
-                            message: format!("Failed to get key-value pair: {error}"),
-                        });
+                        return Err(format!("Failed to get key-value pair: {error}").into());
                     }
                 };
 
@@ -285,29 +239,20 @@ impl Nats {
 
                 let mut jq = self.jq_selection.borrow_mut();
 
-                let selected = jq.select(selection, value).map_err(|e| Error {
-                    extensions: Vec::new(),
-                    message: format!("Failed to filter with selection: {}", e),
-                })?;
+                let selected = jq
+                    .select(selection, value)
+                    .map_err(|e| format!("Failed to filter with selection: {}", e))?;
 
                 for payload in selected {
                     match payload {
                         Ok(payload) => output.push_value(payload),
-                        Err(error) => output.push_error(Error {
-                            extensions: Vec::new(),
-                            message: format!("Failed to filter with selection: {}", error),
-                        }),
+                        Err(error) => output.push_error(format!("Failed to filter with selection: {}", error)),
                     }
                 }
             }
             KeyValueAction::Delete => match store.delete(args.key) {
-                Ok(()) => output.push_value(NatsKvDeleteResult { success: true }),
-                Err(error) => {
-                    return Err(Error {
-                        extensions: Vec::new(),
-                        message: format!("Failed to delete key-value pair: {error}"),
-                    })
-                }
+                Ok(()) => output.push_value(true),
+                Err(error) => return Err(format!("Failed to delete key-value pair: {error}").into()),
             },
         }
 

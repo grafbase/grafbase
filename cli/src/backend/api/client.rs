@@ -10,8 +10,7 @@ const CLIENT_VERSION_HEADER: &str = "x-grafbase-client-version";
 /// # Errors
 ///
 /// See [`ApiError`]
-#[allow(clippy::module_name_repetitions)]
-pub async fn create_client() -> Result<reqwest::Client, ApiError> {
+pub(crate) async fn create_client() -> Result<reqwest::Client, ApiError> {
     let token = get_access_token().await?;
     let mut headers = header::HeaderMap::new();
 

@@ -19,7 +19,7 @@ impl<S: serde::Serialize> FromIterator<S> for InputList {
     fn from_iter<T: IntoIterator<Item = S>>(iter: T) -> Self {
         Self(
             iter.into_iter()
-                .map(|input| minicbor_serde::to_vec(&input).unwrap())
+                .map(|input| crate::cbor::to_vec(&input).unwrap())
                 .collect(),
         )
     }
@@ -29,79 +29,74 @@ impl ExtensionInstance {
     pub async fn resolve_field(
         &mut self,
         context: wit::SharedContext,
-        directive: wit::Directive<'_>,
-        definition: wit::FieldDefinition<'_>,
+        subgraph_name: &str,
+        directive: wit::FieldDefinitionDirective<'_>,
         inputs: InputList,
     ) -> crate::Result<FieldOutput> {
+        self.poisoned = true;
+
         let context = self.store.data_mut().push_resource(context)?;
         let inputs = inputs.0.iter().map(Vec::as_slice).collect::<Vec<_>>();
 
-        let result = self
+        let output = self
             .inner
             .grafbase_sdk_extension()
-            .call_resolve_field(&mut self.store, context, directive, definition, &inputs)
-            .await;
+            .call_resolve_field(&mut self.store, context, subgraph_name, directive, &inputs)
+            .await??;
 
-        match result {
-            Ok(output) => output.map_err(|e| e.into()),
-            Err(e) => {
-                self.poisoned = true;
-                Err(e.into())
-            }
-        }
+        self.poisoned = false;
+
+        Ok(output)
     }
 
     pub async fn resolve_subscription(
         &mut self,
         context: wit::SharedContext,
-        directive: wit::Directive<'_>,
-        definition: wit::FieldDefinition<'_>,
+        subgraph_name: &str,
+        directive: wit::FieldDefinitionDirective<'_>,
     ) -> Result<(), crate::Error> {
+        self.poisoned = true;
+
         let context = self.store.data_mut().push_resource(context)?;
 
-        let result = self
-            .inner
+        self.inner
             .grafbase_sdk_extension()
-            .call_resolve_subscription(&mut self.store, context, directive, definition)
-            .await;
+            .call_resolve_subscription(&mut self.store, context, subgraph_name, directive)
+            .await??;
 
-        match result {
-            Ok(output) => output.map_err(Into::into),
-            Err(e) => {
-                self.poisoned = true;
-                Err(e.into())
-            }
-        }
+        self.poisoned = false;
+
+        Ok(())
     }
 
     pub async fn resolve_next_subscription_item(&mut self) -> Result<Option<FieldOutput>, crate::Error> {
-        let result = self
+        self.poisoned = true;
+
+        let output = self
             .inner
             .grafbase_sdk_extension()
             .call_resolve_next_subscription_item(&mut self.store)
-            .await;
+            .await??;
 
-        match result {
-            Ok(output) => output.map_err(Into::into),
-            Err(e) => {
-                self.poisoned = true;
-                Err(e.into())
-            }
-        }
+        self.poisoned = false;
+
+        Ok(output)
     }
 
     pub async fn authenticate(
         &mut self,
         headers: http::HeaderMap,
     ) -> crate::GatewayResult<(http::HeaderMap, wit::Token)> {
+        self.poisoned = true;
+
         let headers = self.store.data_mut().push_resource(wit::Headers::borrow(headers))?;
         let headers_rep = headers.rep();
 
-        let result = self
+        let token = self
             .inner
             .grafbase_sdk_extension()
             .call_authenticate(&mut self.store, headers)
-            .await;
+            .await??;
 
         let headers = self
             .store
@@ -109,13 +104,31 @@ impl ExtensionInstance {
             .take_resource::<wit::Headers>(headers_rep)?
             .into_owned()
             .unwrap();
-        match result {
-            Ok(result) => result.map(|token| (headers, token)).map_err(Into::into),
-            Err(e) => {
-                self.poisoned = true;
-                Err(e.into())
-            }
-        }
+
+        self.poisoned = false;
+
+        Ok((headers, token))
+    }
+
+    pub async fn authorize_query(
+        &mut self,
+        context: wit::SharedContext,
+        elements: wit::QueryElements<'_>,
+    ) -> Result<wit::AuthorizationDecisions, crate::ErrorResponse> {
+        // Futures may be canceled, so we pro-actively mark the instance as poisoned until proven
+        // otherwise.
+        self.poisoned = true;
+
+        let context = self.store.data_mut().push_resource(context)?;
+
+        let result = self
+            .inner
+            .grafbase_sdk_extension()
+            .call_authorize_query(&mut self.store, context, elements)
+            .await?;
+
+        self.poisoned = false;
+        result.map_err(Into::into)
     }
 
     pub fn recycle(&mut self) -> crate::Result<()> {

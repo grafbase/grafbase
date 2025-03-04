@@ -78,10 +78,10 @@ impl GraphqlResolver {
             "Executing request to subgraph named '{}' with query and variables:\n{}\n{}",
             ctx.endpoint().subgraph_name(),
             self.subgraph_operation.query,
-            serde_json::to_string_pretty(&variables).unwrap_or_default()
+            sonic_rs::to_string_pretty(&variables).unwrap_or_default()
         );
 
-        let body = serde_json::to_vec(&SubgraphGraphqlRequest {
+        let body = sonic_rs::to_vec(&SubgraphGraphqlRequest {
             query: &self.subgraph_operation.query,
             variables,
         })
@@ -122,7 +122,7 @@ async fn fetch_response_without_cache<R: Runtime>(
                     response.seed(&execution_ctx, input_object_id),
                     GraphqlErrorsSeed::new(response, convert_root_error_path),
                 )
-                .deserialize(&mut serde_json::Deserializer::from_slice(http_response.body()))
+                .deserialize(&mut sonic_rs::Deserializer::from_slice(http_response.body()))
                 .map_err(|err| {
                     tracing::error!("Failed to deserialize subgraph response: {}", err);
                     GraphqlError::invalid_subgraph_response()
@@ -151,7 +151,7 @@ async fn fetch_response_with_cache<R: Runtime>(
                 response.seed(ctx, input_object_id),
                 GraphqlErrorsSeed::new(response, convert_root_error_path),
             )
-            .deserialize(&mut serde_json::Deserializer::from_slice(&data))
+            .deserialize(&mut sonic_rs::Deserializer::from_slice(&data))
             .map_err(|err| {
                 tracing::error!("Failed to deserialize subgraph response: {}", err);
                 GraphqlError::invalid_subgraph_response()
@@ -204,7 +204,7 @@ where
                 response.seed(&ctx, input_object_id),
                 GraphqlErrorsSeed::new(response, convert_root_error_path),
             )
-            .deserialize(&mut serde_json::Deserializer::from_slice(http_response.body()))
+            .deserialize(&mut sonic_rs::Deserializer::from_slice(http_response.body()))
             .map_err(|err| {
                 tracing::error!("Failed to deserialize subscription response: {}", err);
                 GraphqlError::invalid_subgraph_response()

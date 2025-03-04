@@ -125,7 +125,7 @@ fn used_fields_should_be_unique() {
           "data": null,
           "errors": [
             {
-              "message": "Request to subgraph 'accounts' failed with: error sending request",
+              "message": "Request to subgraph 'accounts' failed.",
               "path": [
                 "me"
               ],
@@ -288,12 +288,12 @@ fn field_error() {
             .send()
             .await;
 
-        insta::assert_json_snapshot!(resp, @r###"
+        insta::assert_json_snapshot!(resp, @r#"
         {
           "data": null,
           "errors": [
             {
-              "message": "Request to subgraph 'accounts' failed with: error sending request",
+              "message": "Request to subgraph 'accounts' failed.",
               "path": [
                 "me"
               ],
@@ -303,7 +303,7 @@ fn field_error() {
             }
           ]
         }
-        "###);
+        "#);
 
         tokio::time::sleep(METRICS_DELAY).await;
 
@@ -344,12 +344,12 @@ fn field_error_data_null() {
             .send()
             .await;
 
-        insta::assert_json_snapshot!(resp, @r###"
+        insta::assert_json_snapshot!(resp, @r#"
         {
           "data": null,
           "errors": [
             {
-              "message": "Request to subgraph 'accounts' failed with: error sending request",
+              "message": "Request to subgraph 'accounts' failed.",
               "path": [
                 "me"
               ],
@@ -359,7 +359,7 @@ fn field_error_data_null() {
             }
           ]
         }
-        "###);
+        "#);
 
         tokio::time::sleep(METRICS_DELAY).await;
 
@@ -744,12 +744,12 @@ fn graphql_errors() {
             .send()
             .await;
 
-        insta::assert_json_snapshot!(resp, @r###"
+        insta::assert_json_snapshot!(resp, @r#"
         {
           "data": null,
           "errors": [
             {
-              "message": "Request to subgraph 'accounts' failed with: error sending request",
+              "message": "Request to subgraph 'accounts' failed.",
               "path": [
                 "me"
               ],
@@ -759,7 +759,7 @@ fn graphql_errors() {
             }
           ]
         }
-        "###);
+        "#);
 
         tokio::time::sleep(METRICS_DELAY).await;
 

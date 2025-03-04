@@ -1,5 +1,5 @@
 use grafbase_sdk::{
-    types::{Configuration, Directive, FieldDefinition, FieldInputs, FieldOutput},
+    types::{Configuration, SchemaDirective, FieldDefinitionDirective, FieldInputs, FieldOutput},
     Error, Extension, Resolver, ResolverExtension, SharedContext, Subscription
 };
 
@@ -7,7 +7,7 @@ use grafbase_sdk::{
 struct {{name}};
 
 impl Extension for {{name}} {
-    fn new(schema_directives: Vec<Directive>, config: Configuration) -> Result<Self, Box<dyn std::error::Error>> {
+    fn new(schema_directives: Vec<SchemaDirective>, config: Configuration) -> Result<Self, Box<dyn std::error::Error>> {
         Ok(Self)
     }
 }
@@ -16,8 +16,8 @@ impl Resolver for {{name}} {
     fn resolve_field(
         &mut self,
         context: SharedContext,
-        directive: Directive,
-        field_definition: FieldDefinition,
+        subgraph_name: &str,
+        directive: FieldDefinitionDirective<'_>,
         inputs: FieldInputs,
     ) -> Result<FieldOutput, Error> {
         todo!()
@@ -26,8 +26,8 @@ impl Resolver for {{name}} {
     fn resolve_subscription(
         &mut self,
         context: SharedContext,
-        directive: Directive,
-        field_definition: FieldDefinition,
+        subgraph_name: &str,
+        directive: FieldDefinitionDirective<'_>,
     ) -> Result<Box<dyn Subscription>, Error> {
         todo!()
     }

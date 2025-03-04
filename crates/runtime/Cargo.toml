@@ -19,11 +19,13 @@ bytes.workspace = true
 engine-schema.workspace = true
 extension.workspace = true
 extension-catalog.workspace = true
+fixedbitset.workspace = true
 futures-util.workspace = true
 grafbase-telemetry.workspace = true
 grafbase-workspace-hack.workspace = true
 http.workspace = true
 id-derives = { path = "../engine/id-derives", package = "engine-id-derives" }
+reqwest.workspace = true
 semver.workspace = true
 serde.workspace = true
 serde_json.workspace = true

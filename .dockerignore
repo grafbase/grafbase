@@ -2,7 +2,9 @@
 .gitignore
 .github
 .git
-examples
+.aider*
+/examples
+/extensions
 /target
 .direnv
 /gateway/target
@@ -12,3 +14,7 @@ examples
 /crates/**/tests/**/graphql
 /crates/**/tests/**/json
 /**/changelog
+node_modules
+/cli/tests/integration/data/target
+/cli/tests/integration/data/echo_extension/target/
+/crates/wasi-component-loader/examples/target
