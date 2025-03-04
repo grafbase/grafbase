@@ -84,9 +84,7 @@ impl DynamicSchemaBuilder {
                     }
                     builder = builder.register(ty);
                 }
-                parser::Definition::TypeExtension(_) => {
-                    unimplemented!("this is just for tests, extensions aren't supported")
-                }
+                parser::Definition::TypeExtension(_) => {}
                 _ => {}
             }
         }

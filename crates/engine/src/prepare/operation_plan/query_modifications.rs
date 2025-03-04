@@ -195,6 +195,7 @@ where
                 let offset = self.modifications.errors.len();
                 self.modifications.errors.extend(errors.into_iter().map(Into::into));
                 for (element_ix, error_ix) in element_to_error {
+                    println!("{} {}", modifier_ids.len(), element_ix);
                     let modifier = &modifiers[modifier_ids.get(element_ix as usize).unwrap()];
                     self.deny_field(modifier, (offset + error_ix as usize).into());
                 }

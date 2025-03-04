@@ -52,6 +52,7 @@ pub(crate) struct QueryPlan {
     pub query_modifiers: QueryModifiers,
     pub response_modifier_definitions: Vec<ResponseModifierDefinitionRecord>,
 
+    pub root_response_object_set_id: ResponseObjectSetDefinitionId,
     #[indexed_by(ResponseObjectSetDefinitionId)]
     pub response_object_set_definitions: Vec<ResponseObjectSetDefinitionRecord>,
 
@@ -60,6 +61,9 @@ pub(crate) struct QueryPlan {
     #[indexed_by(FieldShapeRefId)]
     pub field_shape_refs: Vec<FieldShapeId>,
 }
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
+pub(crate) struct FieldShapeRefId(u32);
 
 #[derive(Default, id_derives::IndexedFields, serde::Serialize, serde::Deserialize)]
 pub(crate) struct QueryModifiers {
@@ -76,9 +80,6 @@ pub(crate) struct QueryModifiers {
     #[indexed_by(QueryModifierId)]
     pub records: Vec<QueryModifierRecord>,
 }
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-pub(crate) struct FieldShapeRefId(u32);
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
 pub(crate) struct QueryModifierByDirectiveGroupId(u32);
