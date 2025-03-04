@@ -1,3 +1,4 @@
+mod install;
 mod publish;
 mod update;
 
