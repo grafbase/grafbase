@@ -1,10 +1,14 @@
 use crate::{backend::api, cli_input::ExtensionInstallCommand, output::report};
 use extension::lockfile;
-use extension_catalog::PUBLIC_EXTENSION_REGISTRY_URL;
 use futures::stream::FuturesUnordered;
-use std::path::Path;
-use tokio::fs;
+use std::{borrow::Cow, io, path::Path};
+use tokio::{fs, io::AsyncWriteExt as _};
 use tokio_stream::StreamExt as _;
+use url::Url;
+
+use super::EXTENSION_WASM_MODULE_FILE_NAME;
+
+pub const PUBLIC_EXTENSION_REGISTRY_URL: &str = "https://extensions.grafbase.com";
 
 #[tokio::main]
 pub(super) async fn execute(cmd: ExtensionInstallCommand) -> anyhow::Result<()> {
@@ -35,7 +39,7 @@ async fn download_extensions(new_lockfile: lockfile::Lockfile) -> anyhow::Result
     let progress_bar = indicatif::ProgressBar::new(new_lockfile.extensions.len() as u64);
 
     for extension in new_lockfile.extensions {
-        futures.push(extension_catalog::download_extension_from_registry(
+        futures.push(download_extension_from_registry(
             &http_client,
             extensions_directory,
             extension.name,
@@ -144,4 +148,95 @@ async fn handle_lockfile(config_path: &Path) -> anyhow::Result<lockfile::Lockfil
     }
 
     Ok(new_lockfile)
+}
+
+async fn download_extension_from_registry(
+    http_client: &reqwest::Client,
+    extensions_dir: &Path,
+    extension_name: String,
+    version: semver::Version,
+    registry_base_url: &Url,
+) -> Result<(), Report> {
+    let files = ["manifest.json", EXTENSION_WASM_MODULE_FILE_NAME];
+
+    let [manifest_fut, wasm_fut] = files.map(|file_name| {
+        let mut url = registry_base_url.clone();
+        url.set_path(&format!("/extensions/{extension_name}/{version}/{file_name}"));
+        let dir_path = extensions_dir.join(&extension_name).join(version.to_string());
+        let file_path = dir_path.join(file_name);
+
+        async move {
+            if let Ok(true) = fs::try_exists(&file_path).await {
+                return Ok(());
+            }
+
+            let response = http_client
+                .get(url.clone())
+                .send()
+                .await
+                .map_err(|err| Report::http(err, &url))?;
+
+            if !response.status().is_success() {
+                return Err(Report::http_status(response.status(), &url));
+            }
+
+            fs::create_dir_all(&dir_path)
+                .await
+                .map_err(|_| Report::create_dir(&dir_path))?;
+
+            // Create the output file
+            let mut file = fs::File::create(&file_path)
+                .await
+                .map_err(|err| Report::create_file(&file_path, err))?;
+
+            // Stream the body bytes to the file
+            let mut stream = response.bytes_stream();
+
+            while let Some(chunk) = stream.try_next().await.map_err(Report::body_stream)? {
+                file.write_all(&chunk).await.map_err(Report::write)?;
+            }
+
+            Ok(())
+        }
+    });
+
+    tokio::try_join!(manifest_fut, wasm_fut).map(|_| ())
+}
+
+#[derive(Debug, thiserror::Error)]
+#[error("{0}")]
+struct Report(Cow<'static, str>);
+
+impl Report {
+    fn create_dir(path: &Path) -> Self {
+        Report(Cow::Owned(format!("Failed to create directory: {}", path.display())))
+    }
+
+    fn create_file(path: &Path, err: io::Error) -> Self {
+        Report(Cow::Owned(format!(
+            "Failed to create file: {} ({})",
+            path.display(),
+            err
+        )))
+    }
+
+    fn write(err: io::Error) -> Self {
+        Report(err.to_string().into())
+    }
+
+    fn body_stream(err: reqwest::Error) -> Self {
+        Report(Cow::Owned(format!("Failed to read response body: {err}")))
+    }
+
+    fn http(err: reqwest::Error, url: &Url) -> Self {
+        Report(Cow::Owned(format!(
+            "HTTP error downloading extension from {url}: {err}",
+        )))
+    }
+
+    fn http_status(status: reqwest::StatusCode, url: &Url) -> Self {
+        Report(Cow::Owned(format!(
+            "HTTP error downloading extension from {url}: {status}",
+        )))
+    }
 }
