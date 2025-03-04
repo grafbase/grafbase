@@ -5,7 +5,7 @@
 //! Source file: <engine-codegen dir>/domain/schema.graphql
 use crate::{
     StringId,
-    generated::{ExtensionDirective, ExtensionDirectiveId},
+    generated::{ExtensionDirective, ExtensionDirectiveId, HeaderRule, HeaderRuleId},
     prelude::*,
 };
 #[allow(unused_imports)]
@@ -21,6 +21,7 @@ use walker::{Iter, Walk};
 ///   subgraph_name: String!
 ///   "Schema directives applied by the given subgraph"
 ///   schema_directives: [ExtensionDirective!]! @vec
+///   header_rules: [HeaderRule!]!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -28,6 +29,7 @@ pub struct VirtualSubgraphRecord {
     pub subgraph_name_id: StringId,
     /// Schema directives applied by the given subgraph
     pub schema_directive_ids: Vec<ExtensionDirectiveId>,
+    pub header_rule_ids: IdRange<HeaderRuleId>,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
@@ -60,6 +62,9 @@ impl<'a> VirtualSubgraph<'a> {
     pub fn schema_directives(&self) -> impl Iter<Item = ExtensionDirective<'a>> + 'a {
         self.as_ref().schema_directive_ids.walk(self.schema)
     }
+    pub fn header_rules(&self) -> impl Iter<Item = HeaderRule<'a>> + 'a {
+        self.as_ref().header_rule_ids.walk(self.schema)
+    }
 }
 
 impl<'a> Walk<&'a Schema> for VirtualSubgraphId {
@@ -84,6 +89,7 @@ impl std::fmt::Debug for VirtualSubgraph<'_> {
         f.debug_struct("VirtualSubgraph")
             .field("subgraph_name", &self.subgraph_name())
             .field("schema_directives", &self.schema_directives())
+            .field("header_rules", &self.header_rules())
             .finish()
     }
 }

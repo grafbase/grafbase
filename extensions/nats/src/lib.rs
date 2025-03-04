@@ -6,10 +6,10 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc, str::FromStr, time::Durat
 
 use config::AuthConfig;
 use grafbase_sdk::{
-    Error, Extension, NatsAuth, Resolver, ResolverExtension, SharedContext, Subscription,
     host_io::pubsub::nats::{self, NatsClient, NatsStreamConfig},
     jq_selection::JqSelection,
     types::{Configuration, FieldDefinitionDirective, FieldInputs, FieldOutput, SchemaDirective},
+    Error, Extension, Headers, NatsAuth, Resolver, ResolverExtension, Subscription,
 };
 use subscription::FilteredSubscription;
 use types::{DirectiveKind, KeyValueAction, KeyValueArguments, PublishArguments, RequestArguments, SubscribeArguments};
@@ -53,7 +53,7 @@ impl Extension for Nats {
 impl Resolver for Nats {
     fn resolve_field(
         &mut self,
-        _: SharedContext,
+        _: Headers,
         _: &str,
         directive: FieldDefinitionDirective,
         _: FieldInputs,
@@ -89,7 +89,7 @@ impl Resolver for Nats {
 
     fn resolve_subscription(
         &mut self,
-        _: SharedContext,
+        _: Headers,
         _: &str,
         directive: FieldDefinitionDirective,
     ) -> Result<Box<dyn Subscription>, Error> {

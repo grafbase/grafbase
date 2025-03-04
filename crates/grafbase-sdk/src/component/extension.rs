@@ -4,7 +4,8 @@ use crate::{
         AuthorizationDecisions, Error, ErrorResponse, FieldDefinitionDirective, FieldInputs, FieldOutput,
         QueryElements, Token,
     },
-    wit::{Headers, SharedContext},
+    wit::Headers,
+    SharedContext,
 };
 
 #[allow(unused_variables)]
@@ -17,7 +18,7 @@ pub(crate) trait AnyExtension {
 
     fn resolve_field(
         &mut self,
-        context: SharedContext,
+        headers: Headers,
         subgraph_name: &str,
         directive: FieldDefinitionDirective<'_>,
         inputs: FieldInputs,
@@ -27,7 +28,7 @@ pub(crate) trait AnyExtension {
 
     fn resolve_subscription(
         &mut self,
-        context: SharedContext,
+        headers: Headers,
         subgraph_name: &str,
         directive: FieldDefinitionDirective<'_>,
     ) -> Result<Box<dyn Subscription>, Error> {

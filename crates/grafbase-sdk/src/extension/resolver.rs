@@ -1,7 +1,7 @@
 use crate::{
     component::AnyExtension,
     types::{Error, FieldDefinitionDirective, FieldInputs, FieldOutput},
-    wit::SharedContext,
+    Headers,
 };
 
 use super::Extension;
@@ -17,7 +17,8 @@ pub trait Resolver: Extension {
     ///
     /// # Arguments
     ///
-    /// * `context` - The shared context containing runtime information
+    /// * `headers` - The subgraph headers associated with this field resolution
+    /// * `subgraph_name` - The name of the subgraph associated with this field resolution
     /// * `directive` - The directive associated with this field resolution
     /// * `definition` - The field definition containing metadata
     /// * `inputs` - The input values provided for this field
@@ -27,7 +28,7 @@ pub trait Resolver: Extension {
     /// Returns a `Result` containing either the resolved `FieldOutput` value or an `Error`
     fn resolve_field(
         &mut self,
-        context: SharedContext,
+        headers: Headers,
         subgraph_name: &str,
         directive: FieldDefinitionDirective<'_>,
         inputs: FieldInputs,
@@ -37,7 +38,7 @@ pub trait Resolver: Extension {
     ///
     /// # Arguments
     ///
-    /// * `context` - The shared context containing runtime information
+    /// * `headers` - The subgraph headers associated with this field resolution
     /// * `directive` - The directive associated with this subscription field
     /// * `definition` - The field definition containing metadata about the subscription
     ///
@@ -46,7 +47,7 @@ pub trait Resolver: Extension {
     /// Returns a `Result` containing either a boxed `Subscriber` implementation or an `Error`
     fn resolve_subscription(
         &mut self,
-        context: SharedContext,
+        headers: Headers,
         subgraph_name: &str,
         directive: FieldDefinitionDirective<'_>,
     ) -> Result<Box<dyn Subscription>, Error>;
@@ -75,20 +76,20 @@ pub fn register<T: Resolver>() {
     impl<T: Resolver> AnyExtension for Proxy<T> {
         fn resolve_field(
             &mut self,
-            context: SharedContext,
+            headers: Headers,
             subgraph_name: &str,
             directive: FieldDefinitionDirective<'_>,
             inputs: FieldInputs,
         ) -> Result<FieldOutput, Error> {
-            Resolver::resolve_field(&mut self.0, context, subgraph_name, directive, inputs)
+            Resolver::resolve_field(&mut self.0, headers, subgraph_name, directive, inputs)
         }
         fn resolve_subscription(
             &mut self,
-            context: SharedContext,
+            headers: Headers,
             subgraph_name: &str,
             directive: FieldDefinitionDirective<'_>,
         ) -> Result<Box<dyn Subscription>, Error> {
-            Resolver::resolve_subscription(&mut self.0, context, subgraph_name, directive)
+            Resolver::resolve_subscription(&mut self.0, headers, subgraph_name, directive)
         }
     }
     crate::component::register_extension(Box::new(|schema_directives, config| {

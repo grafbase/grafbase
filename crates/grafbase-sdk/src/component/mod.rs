@@ -6,8 +6,9 @@ use crate::{
     types::{Configuration, FieldInputs},
     wit::{
         AuthorizationDecisions, Error, ErrorResponse, FieldDefinitionDirective, FieldOutput, Guest, Headers,
-        QueryElements, SchemaDirective, SharedContext, Token,
+        QueryElements, SchemaDirective, Token,
     },
+    SharedContext,
 };
 
 pub use error::SdkError;
@@ -24,23 +25,23 @@ impl Guest for Component {
     }
 
     fn resolve_field(
-        context: SharedContext,
+        headers: Headers,
         subgraph_name: String,
         directive: FieldDefinitionDirective,
         inputs: Vec<Vec<u8>>,
     ) -> Result<FieldOutput, Error> {
         let result =
-            state::extension()?.resolve_field(context, &subgraph_name, (&directive).into(), FieldInputs::new(inputs));
+            state::extension()?.resolve_field(headers, &subgraph_name, (&directive).into(), FieldInputs::new(inputs));
 
         result.map(Into::into).map_err(Into::into)
     }
 
     fn resolve_subscription(
-        context: SharedContext,
+        headers: Headers,
         subgraph_name: String,
         directive: FieldDefinitionDirective,
     ) -> Result<(), Error> {
-        let subscription = state::extension()?.resolve_subscription(context, &subgraph_name, (&directive).into())?;
+        let subscription = state::extension()?.resolve_subscription(headers, &subgraph_name, (&directive).into())?;
 
         state::set_subscription(subscription);
 

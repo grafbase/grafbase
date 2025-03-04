@@ -2,7 +2,7 @@ mod selection_filter;
 mod types;
 
 use grafbase_sdk::{
-    Error, Extension, Resolver, ResolverExtension, SharedContext, Subscription,
+    Error, Extension, Headers, Resolver, ResolverExtension, Subscription,
     host_io::http::{self, HttpRequest, Url},
     jq_selection::JqSelection,
     types::{Configuration, FieldDefinitionDirective, FieldInputs, FieldOutput, SchemaDirective},
@@ -58,7 +58,7 @@ impl RestExtension {
 impl Resolver for RestExtension {
     fn resolve_field(
         &mut self,
-        _: SharedContext,
+        headers: Headers,
         subgraph_name: &str,
         directive: FieldDefinitionDirective<'_>,
         _: FieldInputs,
@@ -83,7 +83,11 @@ impl Resolver for RestExtension {
 
         let url = url.join(path).map_err(|e| format!("Could not parse URL path: {e}"))?;
 
-        let builder = HttpRequest::builder(url, rest.method.into());
+        let mut builder = HttpRequest::builder(url, rest.method.into());
+
+        for (key, value) in headers.entries() {
+            builder.push_header(key, value);
+        }
 
         let request = match rest.body() {
             Some(ref body) => builder.json(body),
@@ -124,7 +128,7 @@ impl Resolver for RestExtension {
 
     fn resolve_subscription(
         &mut self,
-        _: SharedContext,
+        _: Headers,
         _: &str,
         _: FieldDefinitionDirective<'_>,
     ) -> Result<Box<dyn Subscription>, Error> {
