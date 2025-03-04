@@ -73,14 +73,13 @@ impl<R: Runtime> PrepareContext<'_, R> {
         };
 
         if matches!(operation.cached.ty(), OperationType::Subscription) {
-            let response = Response::request_error(
-                Some(operation.attributes()),
-                [GraphqlError::new(
-                    "Subscriptions are only suported on streaming transports. Try making a request with SSE or WebSockets",
-                    ErrorCode::BadRequest,
-                )],
+            let error = GraphqlError::new(
+                "Subscriptions are only suported on streaming transports. Try making a request with SSE or WebSockets",
+                ErrorCode::BadRequest,
             );
-            return response.with_grafbase_extension(self.grafbase_response_extension(None));
+            return Response::request_error([error])
+                .with_operation_attributes(operation.attributes())
+                .with_grafbase_extension(self.grafbase_response_extension(Some(&operation)));
         }
 
         let response_ext = self.grafbase_response_extension(Some(&operation));

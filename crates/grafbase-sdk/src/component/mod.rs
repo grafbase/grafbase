@@ -8,7 +8,6 @@ use crate::{
         AuthorizationDecisions, Error, ErrorResponse, FieldDefinitionDirective, FieldOutput, Guest, Headers,
         QueryElements, SchemaDirective, Token,
     },
-    SharedContext,
 };
 
 pub use error::SdkError;
@@ -63,12 +62,9 @@ impl Guest for Component {
         result.map(Into::into).map_err(Into::into)
     }
 
-    fn authorize_query(
-        context: SharedContext,
-        elements: QueryElements,
-    ) -> Result<AuthorizationDecisions, ErrorResponse> {
+    fn authorize_query(elements: QueryElements) -> Result<AuthorizationDecisions, ErrorResponse> {
         state::extension()?
-            .authorize_query(context, (&elements).into())
+            .authorize_query((&elements).into())
             .map(Into::into)
             .map_err(Into::into)
     }

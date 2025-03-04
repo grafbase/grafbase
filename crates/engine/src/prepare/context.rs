@@ -71,6 +71,10 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
         self.engine.runtime.operation_cache()
     }
 
+    pub fn extensions(&self) -> &'ctx R::Extensions {
+        self.engine.runtime.extensions()
+    }
+
     pub fn grafbase_response_extension(
         &self,
         operation: Option<&PreparedOperation>,

@@ -46,7 +46,7 @@ mod tests {
                 version: "1.0.0".parse().unwrap(),
             },
             kind: Kind::FieldResolver(FieldResolver {
-                resolver_directives: vec!["resolver".to_string()],
+                resolver_directives: Some(vec!["resolver".to_string()]),
             }),
             sdk_version: "0.3.0".parse().unwrap(),
             minimum_gateway_version: "0.90.0".parse().unwrap(),

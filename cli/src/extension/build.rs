@@ -241,11 +241,9 @@ fn parse_manifest(source_dir: &Path, wasm_path: &Path) -> anyhow::Result<Manifes
     let versions = parse_versions(&wasm_bytes)?;
 
     let kind = match extension_toml.extension.kind {
-        ExtensionKind::Resolver => {
-            let resolver_directives = extension_toml.directives.field_resolvers.unwrap_or_default();
-
-            Kind::FieldResolver(FieldResolver { resolver_directives })
-        }
+        ExtensionKind::Resolver => Kind::FieldResolver(FieldResolver {
+            resolver_directives: extension_toml.directives.field_resolvers,
+        }),
         ExtensionKind::Auth => Kind::Authenticator(Default::default()),
     };
 

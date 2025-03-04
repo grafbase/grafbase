@@ -39,7 +39,7 @@ impl GraphqlResolver {
         let subgraph_operation =
             PreparedGraphqlOperation::build(operation_type, plan_query_partition).map_err(|err| {
                 tracing::error!("Failed to build query: {err}");
-                PlanError::InternalError
+                PlanError::Internal
             })?;
 
         Ok(Resolver::Graphql(Self {

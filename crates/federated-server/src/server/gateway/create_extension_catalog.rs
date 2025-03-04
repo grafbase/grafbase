@@ -185,7 +185,7 @@ mod tests {
                 version: version.parse().unwrap(),
             },
             kind: extension_catalog::Kind::FieldResolver(extension_catalog::FieldResolver {
-                resolver_directives: Vec::new(),
+                resolver_directives: None,
             }),
             sdk_version: "0.1.0".parse().unwrap(),
             minimum_gateway_version: "0.1.0".parse().unwrap(),

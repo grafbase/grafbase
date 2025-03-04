@@ -4,7 +4,7 @@
 //! Generated with: `cargo run -p engine-codegen`
 //! Source file: <engine-codegen dir>/domain/schema.graphql
 use crate::{
-    ExtensionDirectiveArgumentId, StringId,
+    ExtensionDirectiveArgumentId, FieldSet, FieldSetRecord, StringId,
     generated::{Subgraph, SubgraphId},
     prelude::*,
 };
@@ -17,16 +17,20 @@ use walker::{Iter, Walk};
 /// type ExtensionDirective @meta(module: "directive/extension") @indexed(id_size: "u32") {
 ///   subgraph: Subgraph!
 ///   extension_id: ExtensionId!
+///   kind: ExtensionDirectiveKind!
 ///   name: String!
 ///   argument_ids: [ExtensionDirectiveArgumentId!]!
+///   requirements: FieldSet!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct ExtensionDirectiveRecord {
     pub subgraph_id: SubgraphId,
     pub extension_id: ExtensionId,
+    pub kind: ExtensionDirectiveKind,
     pub name_id: StringId,
     pub argument_ids: IdRange<ExtensionDirectiveArgumentId>,
+    pub requirements_record: FieldSetRecord,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
@@ -57,6 +61,9 @@ impl<'a> ExtensionDirective<'a> {
     pub fn name(&self) -> &'a str {
         self.name_id.walk(self.schema)
     }
+    pub fn requirements(&self) -> FieldSet<'a> {
+        self.as_ref().requirements_record.walk(self.schema)
+    }
 }
 
 impl<'a> Walk<&'a Schema> for ExtensionDirectiveId {
@@ -81,8 +88,10 @@ impl std::fmt::Debug for ExtensionDirective<'_> {
         f.debug_struct("ExtensionDirective")
             .field("subgraph", &self.subgraph())
             .field("extension_id", &self.extension_id)
+            .field("kind", &self.kind)
             .field("name", &self.name())
             .field("argument_ids", &self.argument_ids)
+            .field("requirements", &self.requirements())
             .finish()
     }
 }

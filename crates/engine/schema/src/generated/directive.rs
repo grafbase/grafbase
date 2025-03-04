@@ -28,6 +28,7 @@ use walker::{Iter, Walk};
 ///   | AuthorizedDirective
 ///   | CostDirective
 ///   | ListSizeDirective
+///   | ExtensionDirective
 /// ```
 #[derive(serde::Serialize, serde::Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum TypeSystemDirectiveId {
@@ -35,6 +36,7 @@ pub enum TypeSystemDirectiveId {
     Authorized(AuthorizedDirectiveId),
     Cost(CostDirectiveId),
     Deprecated(DeprecatedDirectiveRecord),
+    Extension(ExtensionDirectiveId),
     ListSize(ListSizeDirectiveId),
     RequiresScopes(RequiresScopesDirectiveId),
 }
@@ -46,6 +48,7 @@ impl std::fmt::Debug for TypeSystemDirectiveId {
             TypeSystemDirectiveId::Authorized(variant) => variant.fmt(f),
             TypeSystemDirectiveId::Cost(variant) => variant.fmt(f),
             TypeSystemDirectiveId::Deprecated(variant) => variant.fmt(f),
+            TypeSystemDirectiveId::Extension(variant) => variant.fmt(f),
             TypeSystemDirectiveId::ListSize(variant) => variant.fmt(f),
             TypeSystemDirectiveId::RequiresScopes(variant) => variant.fmt(f),
         }
@@ -65,6 +68,11 @@ impl From<CostDirectiveId> for TypeSystemDirectiveId {
 impl From<DeprecatedDirectiveRecord> for TypeSystemDirectiveId {
     fn from(value: DeprecatedDirectiveRecord) -> Self {
         TypeSystemDirectiveId::Deprecated(value)
+    }
+}
+impl From<ExtensionDirectiveId> for TypeSystemDirectiveId {
+    fn from(value: ExtensionDirectiveId) -> Self {
+        TypeSystemDirectiveId::Extension(value)
     }
 }
 impl From<ListSizeDirectiveId> for TypeSystemDirectiveId {
@@ -109,6 +117,15 @@ impl TypeSystemDirectiveId {
             _ => None,
         }
     }
+    pub fn is_extension(&self) -> bool {
+        matches!(self, TypeSystemDirectiveId::Extension(_))
+    }
+    pub fn as_extension(&self) -> Option<ExtensionDirectiveId> {
+        match self {
+            TypeSystemDirectiveId::Extension(id) => Some(*id),
+            _ => None,
+        }
+    }
     pub fn is_list_size(&self) -> bool {
         matches!(self, TypeSystemDirectiveId::ListSize(_))
     }
@@ -135,6 +152,7 @@ pub enum TypeSystemDirective<'a> {
     Authorized(AuthorizedDirective<'a>),
     Cost(CostDirective<'a>),
     Deprecated(DeprecatedDirective<'a>),
+    Extension(ExtensionDirective<'a>),
     ListSize(ListSizeDirective<'a>),
     RequiresScopes(RequiresScopesDirective<'a>),
 }
@@ -146,6 +164,7 @@ impl std::fmt::Debug for TypeSystemDirective<'_> {
             TypeSystemDirective::Authorized(variant) => variant.fmt(f),
             TypeSystemDirective::Cost(variant) => variant.fmt(f),
             TypeSystemDirective::Deprecated(variant) => variant.fmt(f),
+            TypeSystemDirective::Extension(variant) => variant.fmt(f),
             TypeSystemDirective::ListSize(variant) => variant.fmt(f),
             TypeSystemDirective::RequiresScopes(variant) => variant.fmt(f),
         }
@@ -165,6 +184,11 @@ impl<'a> From<CostDirective<'a>> for TypeSystemDirective<'a> {
 impl<'a> From<DeprecatedDirective<'a>> for TypeSystemDirective<'a> {
     fn from(item: DeprecatedDirective<'a>) -> Self {
         TypeSystemDirective::Deprecated(item)
+    }
+}
+impl<'a> From<ExtensionDirective<'a>> for TypeSystemDirective<'a> {
+    fn from(item: ExtensionDirective<'a>) -> Self {
+        TypeSystemDirective::Extension(item)
     }
 }
 impl<'a> From<ListSizeDirective<'a>> for TypeSystemDirective<'a> {
@@ -189,6 +213,7 @@ impl<'a> Walk<&'a Schema> for TypeSystemDirectiveId {
             TypeSystemDirectiveId::Authorized(id) => TypeSystemDirective::Authorized(id.walk(schema)),
             TypeSystemDirectiveId::Cost(id) => TypeSystemDirective::Cost(id.walk(schema)),
             TypeSystemDirectiveId::Deprecated(item) => TypeSystemDirective::Deprecated(item.walk(schema)),
+            TypeSystemDirectiveId::Extension(id) => TypeSystemDirective::Extension(id.walk(schema)),
             TypeSystemDirectiveId::ListSize(id) => TypeSystemDirective::ListSize(id.walk(schema)),
             TypeSystemDirectiveId::RequiresScopes(id) => TypeSystemDirective::RequiresScopes(id.walk(schema)),
         }
@@ -202,6 +227,7 @@ impl<'a> TypeSystemDirective<'a> {
             TypeSystemDirective::Authorized(walker) => TypeSystemDirectiveId::Authorized(walker.id),
             TypeSystemDirective::Cost(walker) => TypeSystemDirectiveId::Cost(walker.id),
             TypeSystemDirective::Deprecated(walker) => TypeSystemDirectiveId::Deprecated(walker.item),
+            TypeSystemDirective::Extension(walker) => TypeSystemDirectiveId::Extension(walker.id),
             TypeSystemDirective::ListSize(walker) => TypeSystemDirectiveId::ListSize(walker.id),
             TypeSystemDirective::RequiresScopes(walker) => TypeSystemDirectiveId::RequiresScopes(walker.id),
         }
@@ -230,6 +256,15 @@ impl<'a> TypeSystemDirective<'a> {
     pub fn as_deprecated(&self) -> Option<DeprecatedDirective<'a>> {
         match self {
             TypeSystemDirective::Deprecated(item) => Some(*item),
+            _ => None,
+        }
+    }
+    pub fn is_extension(&self) -> bool {
+        matches!(self, TypeSystemDirective::Extension(_))
+    }
+    pub fn as_extension(&self) -> Option<ExtensionDirective<'a>> {
+        match self {
+            TypeSystemDirective::Extension(item) => Some(*item),
             _ => None,
         }
     }

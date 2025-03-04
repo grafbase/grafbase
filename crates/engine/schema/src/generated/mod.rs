@@ -6,6 +6,7 @@
 mod composite_type;
 mod definition;
 mod directive;
+mod directive_site;
 mod entity;
 mod enum_def;
 mod enum_value;
@@ -28,6 +29,7 @@ mod union;
 pub use composite_type::*;
 pub use definition::*;
 pub use directive::*;
+pub use directive_site::*;
 pub use entity::*;
 pub use enum_def::*;
 pub use enum_value::*;

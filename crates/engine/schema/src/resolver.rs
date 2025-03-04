@@ -26,7 +26,7 @@ impl<'a> ResolverDefinition<'a> {
     pub fn required_field_set(&self) -> Option<FieldSet<'a>> {
         match self.variant() {
             ResolverDefinitionVariant::GraphqlFederationEntity(resolver) => Some(resolver.key_fields()),
-            ResolverDefinitionVariant::FieldResolverExtension(resolver) => Some(resolver.requirements()),
+            ResolverDefinitionVariant::FieldResolverExtension(resolver) => Some(resolver.directive().requirements()),
             _ => None,
         }
     }

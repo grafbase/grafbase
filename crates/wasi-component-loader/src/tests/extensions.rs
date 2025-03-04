@@ -53,8 +53,8 @@ async fn simple_resolver() {
         site: wit::FieldDefinitionDirectiveSite {
             parent_type_name: "Query",
             field_name: "cats",
-            arguments: crate::cbor::to_vec(&FieldArgs { name: "cat" }).unwrap(),
         },
+        arguments: cbor::to_vec(&FieldArgs { name: "cat" }).unwrap(),
     };
 
     let output = loader

@@ -1,6 +1,4 @@
-use serde::Deserialize;
-
-use crate::{cbor, wit, SdkError};
+use crate::wit;
 
 /// The site where a directive is applied in the GraphQL schema.
 pub enum DirectiveSite<'a> {
@@ -31,42 +29,14 @@ impl<'a> From<&'a wit::DirectiveSite> for DirectiveSite<'a> {
     }
 }
 
-impl<'a> DirectiveSite<'a> {
-    /// Arguments of the directive with any query data injected. Any argument that depends on
-    /// response data will not be present here and be provided separately.
-    pub fn arguments<T>(&self) -> Result<T, SdkError>
-    where
-        T: Deserialize<'a>,
-    {
-        cbor::from_slice(match self {
-            DirectiveSite::Object(site) => &site.0.arguments,
-            DirectiveSite::FieldDefinition(site) => &site.0.arguments,
-            DirectiveSite::Interface(site) => &site.0.arguments,
-            DirectiveSite::Union(site) => &site.0.arguments,
-            DirectiveSite::Enum(site) => &site.0.arguments,
-            DirectiveSite::Scalar(site) => &site.0.arguments,
-        })
-        .map_err(Into::into)
-    }
-}
-
 /// A directive site for object types
 pub struct ObjectDirectiveSite<'a>(&'a wit::ObjectDirectiveSite);
 
 impl<'a> ObjectDirectiveSite<'a> {
     /// The name of the object type
     #[inline]
-    pub fn object_name(&self) -> &str {
+    pub fn object_name(&self) -> &'a str {
         &self.0.object_name
-    }
-
-    /// Arguments of the directive with any query data injected. Any argument that depends on
-    /// response data will not be present here and be provided separately.
-    pub fn arguments<T>(&self) -> Result<T, SdkError>
-    where
-        T: Deserialize<'a>,
-    {
-        cbor::from_slice(&self.0.arguments).map_err(Into::into)
     }
 }
 
@@ -82,23 +52,14 @@ pub struct FieldDefinitionDirectiveSite<'a>(&'a wit::FieldDefinitionDirectiveSit
 impl<'a> FieldDefinitionDirectiveSite<'a> {
     /// The name of the parent type containing this field
     #[inline]
-    pub fn parent_type_name(&self) -> &str {
+    pub fn parent_type_name(&self) -> &'a str {
         &self.0.parent_type_name
     }
 
     /// The name of the field
     #[inline]
-    pub fn field_name(&self) -> &str {
+    pub fn field_name(&self) -> &'a str {
         &self.0.field_name
-    }
-
-    /// Arguments of the directive with any query data injected. Any argument that depends on
-    /// response data will not be present here and be provided separately.
-    pub fn arguments<T>(&self) -> Result<T, SdkError>
-    where
-        T: Deserialize<'a>,
-    {
-        cbor::from_slice(&self.0.arguments).map_err(Into::into)
     }
 }
 
@@ -114,17 +75,8 @@ pub struct UnionDirectiveSite<'a>(&'a wit::UnionDirectiveSite);
 impl<'a> UnionDirectiveSite<'a> {
     /// The name of the union type
     #[inline]
-    pub fn union_name(&self) -> &str {
+    pub fn union_name(&self) -> &'a str {
         &self.0.union_name
-    }
-
-    /// Arguments of the directive with any query data injected. Any argument that depends on
-    /// response data will not be present here and be provided separately.
-    pub fn arguments<T>(&self) -> Result<T, SdkError>
-    where
-        T: Deserialize<'a>,
-    {
-        cbor::from_slice(&self.0.arguments).map_err(Into::into)
     }
 }
 
@@ -140,17 +92,8 @@ pub struct InterfaceDirectiveSite<'a>(&'a wit::InterfaceDirectiveSite);
 impl<'a> InterfaceDirectiveSite<'a> {
     /// The name of the interface type
     #[inline]
-    pub fn interface_name(&self) -> &str {
+    pub fn interface_name(&self) -> &'a str {
         &self.0.interface_name
-    }
-
-    /// Arguments of the directive with any query data injected. Any argument that depends on
-    /// response data will not be present here and be provided separately.
-    pub fn arguments<T>(&self) -> Result<T, SdkError>
-    where
-        T: Deserialize<'a>,
-    {
-        cbor::from_slice(&self.0.arguments).map_err(Into::into)
     }
 }
 
@@ -164,19 +107,10 @@ impl<'a> From<&'a wit::InterfaceDirectiveSite> for InterfaceDirectiveSite<'a> {
 pub struct ScalarDirectiveSite<'a>(&'a wit::ScalarDirectiveSite);
 
 impl<'a> ScalarDirectiveSite<'a> {
-    /// The name of the interface type
+    /// The name of the scalar type
     #[inline]
-    pub fn interface_name(&self) -> &str {
+    pub fn scalar_name(&self) -> &'a str {
         &self.0.scalar_name
-    }
-
-    /// Arguments of the directive with any query data injected. Any argument that depends on
-    /// response data will not be present here and be provided separately.
-    pub fn arguments<T>(&self) -> Result<T, SdkError>
-    where
-        T: Deserialize<'a>,
-    {
-        cbor::from_slice(&self.0.arguments).map_err(Into::into)
     }
 }
 
@@ -190,19 +124,10 @@ impl<'a> From<&'a wit::ScalarDirectiveSite> for ScalarDirectiveSite<'a> {
 pub struct EnumDirectiveSite<'a>(&'a wit::EnumDirectiveSite);
 
 impl<'a> EnumDirectiveSite<'a> {
-    /// The name of the interface type
+    /// The name of the enum type
     #[inline]
-    pub fn interface_name(&self) -> &str {
+    pub fn enum_name(&self) -> &'a str {
         &self.0.enum_name
-    }
-
-    /// Arguments of the directive with any query data injected. Any argument that depends on
-    /// response data will not be present here and be provided separately.
-    pub fn arguments<T>(&self) -> Result<T, SdkError>
-    where
-        T: Deserialize<'a>,
-    {
-        cbor::from_slice(&self.0.arguments).map_err(Into::into)
     }
 }
 

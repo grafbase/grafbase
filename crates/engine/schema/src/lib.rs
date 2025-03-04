@@ -9,6 +9,7 @@ mod composite_type;
 mod config;
 mod definition;
 mod directive;
+mod directive_site;
 mod entity;
 mod enum_def;
 mod enum_value;

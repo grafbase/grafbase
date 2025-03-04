@@ -5,7 +5,7 @@ use extension_catalog::{Extension, ExtensionCatalog, ExtensionId, Id, Manifest};
 use futures::stream::BoxStream;
 use runtime::{
     error::{ErrorResponse, PartialGraphqlError},
-    extension::{AuthorizationDecisions, Data, DirectiveSite, ExtensionFieldDirective},
+    extension::{AuthorizationDecisions, Data, ExtensionFieldDirective, QueryElement},
     hooks::{Anything, DynHookContext},
 };
 use tokio::sync::Mutex;
@@ -189,10 +189,7 @@ impl runtime::extension::ExtensionRuntime for TestExtensions {
         _headers: http::HeaderMap,
     ) -> Result<(http::HeaderMap, Vec<u8>), ErrorResponse> {
         let _instance = self.get_global_instance(extension_id).await;
-        Err(ErrorResponse {
-            status: http::StatusCode::INTERNAL_SERVER_ERROR,
-            errors: Vec::new(),
-        })
+        unimplemented!()
     }
 
     async fn resolve_subscription<'ctx, 'f>(
@@ -203,29 +200,21 @@ impl runtime::extension::ExtensionRuntime for TestExtensions {
     where
         'ctx: 'f,
     {
-        Err(PartialGraphqlError::internal_extension_error())
+        unimplemented!()
     }
 
-    async fn authorize_query<'ctx>(
+    #[allow(clippy::manual_async_fn)]
+    fn authorize_query<'ctx, 'fut, Groups, QueryElements, Arguments>(
         &'ctx self,
-        _: &'ctx Self::SharedContext,
-        extension_id: ExtensionId,
-        // (directive name, (definition, arguments))
-        _elements: impl IntoIterator<
-            Item = (
-                &'ctx str,
-                impl IntoIterator<Item = DirectiveSite<'ctx, impl Anything<'ctx>>> + Send + 'ctx,
-            ),
-        > + Send
-        + 'ctx,
-    ) -> Result<AuthorizationDecisions, ErrorResponse> {
-        let _instance = self
-            .global_instances
-            .lock()
-            .await
-            .entry(extension_id)
-            .or_insert_with(|| self.builders.get(&extension_id).unwrap().build(Vec::new()))
-            .clone();
-        Err(ErrorResponse::internal_server_error())
+        _extension_id: ExtensionId,
+        _elements_grouped_by_directive_name: Groups,
+    ) -> impl Future<Output = Result<AuthorizationDecisions, ErrorResponse>> + Send + 'fut
+    where
+        'ctx: 'fut,
+        Groups: ExactSizeIterator<Item = (&'ctx str, QueryElements)>,
+        QueryElements: ExactSizeIterator<Item = QueryElement<'ctx, Arguments>>,
+        Arguments: Anything<'ctx>,
+    {
+        async { unimplemented!() }
     }
 }

@@ -37,7 +37,8 @@ impl<'a> FieldDefinition<'a> {
                 | TypeSystemDirective::Deprecated(_)
                 | TypeSystemDirective::RequiresScopes(_)
                 | TypeSystemDirective::Cost(_)
-                | TypeSystemDirective::ListSize(_) => false,
+                | TypeSystemDirective::ListSize(_)
+                | TypeSystemDirective::Extension(_) => false,
                 TypeSystemDirective::Authorized(directive) => directive.fields().is_some(),
             })
     }
