@@ -26,6 +26,7 @@ mod execute;
 mod retry_budget;
 mod runtime;
 
+pub use execute::RequestContext;
 pub use runtime::Runtime;
 
 pub struct Engine<R: Runtime> {

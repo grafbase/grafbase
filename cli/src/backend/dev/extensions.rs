@@ -108,7 +108,7 @@ mod tests {
                 name: "test-extension".to_owned(),
                 version: "1.0.0".parse().unwrap(),
             },
-            kind: extension::Kind::FieldResolver(extension::FieldResolver {
+            kind: extension::Kind::Resolver(extension::ResolverKind {
                 resolver_directives: Some(vec!["@test".to_owned()]),
             }),
             sdk_version: "1.0.0".parse().unwrap(),

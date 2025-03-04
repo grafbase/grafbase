@@ -3,7 +3,7 @@ mod publish;
 mod update;
 
 use duct::cmd;
-use extension::Manifest;
+use extension::VersionedManifest;
 use std::path::Path;
 use tempfile::tempdir;
 
@@ -17,9 +17,18 @@ fn init_resolver() {
 
     let args = vec!["extension", "init", "--type", "resolver", &*project_path_str];
 
-    let command = cmd(cargo_bin("grafbase"), &args).stdout_null().stderr_null();
-
-    command.run().unwrap();
+    let result = cmd(cargo_bin("grafbase"), &args)
+        .unchecked()
+        .stdout_capture()
+        .stderr_capture()
+        .run()
+        .unwrap();
+    assert!(
+        result.status.success(),
+        "{}\n{}",
+        String::from_utf8_lossy(&result.stdout),
+        String::from_utf8_lossy(&result.stderr)
+    );
 
     let cargo_toml = std::fs::read_to_string(project_path.join("Cargo.toml")).unwrap();
 
@@ -81,10 +90,6 @@ fn init_resolver() {
     stdout = false
     stderr = false
     environment_variables = false
-
-    [directives]
-    definitions = "definitions.graphql"
-    field_resolvers = ["testProjectDirective"]
     "##);
 
     let lib_rs = std::fs::read_to_string(project_path.join("src/lib.rs")).unwrap();
@@ -92,7 +97,7 @@ fn init_resolver() {
     insta::assert_snapshot!(&lib_rs, @r##"
     use grafbase_sdk::{
         types::{Configuration, SchemaDirective, FieldDefinitionDirective, FieldInputs, FieldOutput},
-        Error, Extension, Headers, Resolver, ResolverExtension, Subscription
+        Error, Extension, Headers, ResolverExtension, Subscription
     };
 
     #[derive(ResolverExtension)]
@@ -104,7 +109,7 @@ fn init_resolver() {
         }
     }
 
-    impl Resolver for TestProject {
+    impl ResolverExtension for TestProject {
         fn resolve_field(
             &mut self,
             headers: Headers,
@@ -202,12 +207,11 @@ fn build_resolver() {
     let result = cmd("cargo", &["check", "--tests"])
         .env("RUSTFLAGS", "")
         .dir(&project_path)
-        .stdout_null()
-        .stderr_null()
         .unchecked()
+        .stdout_capture()
+        .stderr_capture()
         .run()
         .unwrap();
-
     assert!(
         result.status.success(),
         "{}\n{}",
@@ -217,21 +221,28 @@ fn build_resolver() {
 
     let args = vec!["extension", "build"];
 
-    let command = cmd(cargo_bin("grafbase"), &args)
+    let result = cmd(cargo_bin("grafbase"), &args)
         // we do -D warnings in CI, the template has unused variable warnings...
         .env("RUSTFLAGS", "")
         .dir(&project_path)
-        .stderr_null()
-        .stdout_null();
-
-    command.run().unwrap();
+        .unchecked()
+        .stdout_capture()
+        .stderr_capture()
+        .run()
+        .unwrap();
+    assert!(
+        result.status.success(),
+        "{}\n{}",
+        String::from_utf8_lossy(&result.stdout),
+        String::from_utf8_lossy(&result.stderr)
+    );
 
     let build_path = project_path.join("build");
     assert!(std::fs::exists(build_path.join("extension.wasm")).unwrap());
     assert!(std::fs::exists(build_path.join("manifest.json")).unwrap());
 
     let manifest = std::fs::read_to_string(build_path.join("manifest.json")).unwrap();
-    let manifest: Manifest = serde_json::from_str(dbg!(&manifest)).unwrap();
+    let manifest: VersionedManifest = serde_json::from_str(dbg!(&manifest)).unwrap();
 
     let manifest = serde_json::to_value(&manifest).unwrap();
     insta::assert_json_snapshot!(
@@ -242,16 +253,13 @@ fn build_resolver() {
         },
         @r#"
     {
+      "manifest": "v1",
       "id": {
         "name": "test-project",
         "version": "0.1.0"
       },
       "kind": {
-        "FieldResolver": {
-          "resolver_directives": [
-            "testProjectDirective"
-          ]
-        }
+        "FieldResolver": {}
       },
       "sdk_version": "<sdk_version>",
       "minimum_gateway_version": "<minimum_gateway_version>",
@@ -269,11 +277,20 @@ fn init_auth() {
     let project_path = temp_dir.path().join("test_project");
     let project_path_str = project_path.to_string_lossy();
 
-    let args = vec!["extension", "init", "--type", "auth", &*project_path_str];
+    let args = vec!["extension", "init", "--type", "authentication", &*project_path_str];
 
-    let command = cmd(cargo_bin("grafbase"), &args).stdout_null().stderr_null();
-
-    command.run().unwrap();
+    let result = cmd(cargo_bin("grafbase"), &args)
+        .unchecked()
+        .stdout_capture()
+        .stderr_capture()
+        .run()
+        .unwrap();
+    assert!(
+        result.status.success(),
+        "{}\n{}",
+        String::from_utf8_lossy(&result.stdout),
+        String::from_utf8_lossy(&result.stderr)
+    );
 
     let cargo_toml = std::fs::read_to_string(project_path.join("Cargo.toml")).unwrap();
 
@@ -310,7 +327,7 @@ fn init_auth() {
     [extension]
     name = "test-project"
     version = "0.1.0"
-    kind = "auth"
+    kind = "authentication"
     description = "A new extension"
     # homepage_url = "https://example.com/my-extension"
     # repository_url = "https://github.com/my-username/my-extension"
@@ -331,7 +348,7 @@ fn init_auth() {
     insta::assert_snapshot!(&lib_rs, @r##"
     use grafbase_sdk::{
         types::{Configuration, SchemaDirective, ErrorResponse, Token},
-        AuthenticationExtension, Authenticator, Extension, Headers,
+        AuthenticationExtension, Extension, Headers,
     };
 
     #[derive(AuthenticationExtension)]
@@ -346,7 +363,7 @@ fn init_auth() {
         }
     }
 
-    impl Authenticator for TestProject {
+    impl AuthenticationExtension for TestProject {
         fn authenticate(&mut self, headers: Headers) -> Result<Token, ErrorResponse> {
             todo!()
         }
@@ -420,7 +437,7 @@ fn build_auth() {
     let project_path = temp_dir.path().join("test_project");
     let project_path_str = project_path.to_string_lossy();
 
-    let args = vec!["extension", "init", "--type", "auth", &*project_path_str];
+    let args = vec!["extension", "init", "--type", "authentication", &*project_path_str];
     let command = cmd(cargo_bin("grafbase"), &args).stdout_null().stderr_null();
     command.run().unwrap();
 
@@ -429,9 +446,9 @@ fn build_auth() {
     let result = cmd("cargo", &["check", "--tests"])
         .env("RUSTFLAGS", "")
         .dir(&project_path)
-        .stdout_null()
-        .stderr_null()
         .unchecked()
+        .stdout_capture()
+        .stderr_capture()
         .run()
         .unwrap();
 
@@ -444,21 +461,27 @@ fn build_auth() {
 
     let args = vec!["extension", "build"];
 
-    let command = cmd(cargo_bin("grafbase"), &args)
+    let result = cmd(cargo_bin("grafbase"), &args)
         // we do -D warnings in CI, the template has unused variable warnings...
         .env("RUSTFLAGS", "")
         .dir(&project_path)
-        .stderr_null()
-        .stdout_null();
+        .unchecked()
+        .run()
+        .unwrap();
 
-    command.run().unwrap();
+    assert!(
+        result.status.success(),
+        "{}\n{}",
+        String::from_utf8_lossy(&result.stdout),
+        String::from_utf8_lossy(&result.stderr)
+    );
 
     let build_path = project_path.join("build");
     assert!(std::fs::exists(build_path.join("extension.wasm")).unwrap());
     assert!(std::fs::exists(build_path.join("manifest.json")).unwrap());
 
     let manifest = std::fs::read_to_string(build_path.join("manifest.json")).unwrap();
-    let manifest: Manifest = serde_json::from_str(&manifest).unwrap();
+    let manifest: VersionedManifest = serde_json::from_str(&manifest).unwrap();
 
     let manifest = serde_json::to_value(&manifest).unwrap();
     insta::assert_json_snapshot!(
@@ -469,6 +492,7 @@ fn build_auth() {
         },
         @r#"
     {
+      "manifest": "v1",
       "id": {
         "name": "test-project",
         "version": "0.1.0"

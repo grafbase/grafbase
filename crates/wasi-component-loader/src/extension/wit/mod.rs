@@ -6,6 +6,7 @@ wasmtime::component::bindgen!({
     async: true,
     with: {
         "grafbase:sdk/types/headers": crate::resources::Headers,
+        "grafbase:sdk/types/authorization-context": crate::resources::AuthorizationContext,
         "grafbase:sdk/types/shared-context": crate::resources::SharedContext,
         "grafbase:sdk/types/access-log": crate::resources::AccessLogSender,
         "grafbase:sdk/types/nats-client": crate::resources::NatsClient,

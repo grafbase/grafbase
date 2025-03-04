@@ -6,7 +6,7 @@ use std::{
 };
 
 use anyhow::Context;
-use extension::{BitFlags, ExtensionPermission, FieldResolver, Kind, Manifest};
+use extension::{BitFlags, ExtensionPermission, Kind, Manifest, ResolverKind};
 use semver::Version;
 use serde_valid::Validate;
 
@@ -83,13 +83,15 @@ struct ExtensionTomlExtension {
 #[serde(rename_all = "snake_case")]
 enum ExtensionKind {
     Resolver,
-    Auth,
+    Authentication,
+    Authorization,
 }
 
 #[derive(Default, serde::Deserialize)]
 struct ExtensionTomlDirectives {
     definitions: Option<String>,
     field_resolvers: Option<Vec<String>>,
+    authorization: Option<Vec<String>>,
 }
 
 #[derive(Default, serde::Deserialize)]
@@ -241,13 +243,24 @@ fn parse_manifest(source_dir: &Path, wasm_path: &Path) -> anyhow::Result<Manifes
     let versions = parse_versions(&wasm_bytes)?;
 
     let kind = match extension_toml.extension.kind {
-        ExtensionKind::Resolver => Kind::FieldResolver(FieldResolver {
+        ExtensionKind::Resolver => Kind::Resolver(ResolverKind {
             resolver_directives: extension_toml.directives.field_resolvers,
         }),
-        ExtensionKind::Auth => Kind::Authenticator(Default::default()),
+        ExtensionKind::Authentication => Kind::Authentication(Default::default()),
+        ExtensionKind::Authorization => Kind::Authorization(extension::AuthorizationKind {
+            authorization_directives: extension_toml.directives.authorization,
+        }),
     };
 
-    let sdl = match extension_toml.directives.definitions.map(|path| source_dir.join(&path)) {
+    let sdl_path = extension_toml
+        .directives
+        .definitions
+        .map(|path| source_dir.join(&path))
+        .or_else(|| {
+            let path = source_dir.join("definitions.graphql");
+            path.exists().then_some(path)
+        });
+    let sdl = match sdl_path {
         Some(ref path) => {
             let Ok(sdl) = std::fs::read_to_string(path) else {
                 anyhow::bail!("failed to read directive definitions in {}", path.display())

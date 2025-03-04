@@ -55,7 +55,7 @@ impl ExtensionCatalog {
 
     pub fn get_directive_kind(&self, id: ExtensionId, name: &str) -> ExtensionDirectiveKind {
         match &self[id].manifest.kind {
-            extension::Kind::FieldResolver(FieldResolver { resolver_directives }) => {
+            extension::Kind::Resolver(ResolverKind { resolver_directives }) => {
                 if let Some(directives) = resolver_directives {
                     directives
                         .iter()
@@ -66,7 +66,9 @@ impl ExtensionCatalog {
                     ExtensionDirectiveKind::FieldResolver
                 }
             }
-            extension::Kind::Authorization(AuthorizationKind { directives }) => {
+            extension::Kind::Authorization(AuthorizationKind {
+                authorization_directives: directives,
+            }) => {
                 if let Some(directives) = directives {
                     directives
                         .iter()
@@ -77,7 +79,7 @@ impl ExtensionCatalog {
                     ExtensionDirectiveKind::Authorization
                 }
             }
-            extension::Kind::Authenticator(_) => Default::default(),
+            extension::Kind::Authentication(_) => Default::default(),
         }
     }
 

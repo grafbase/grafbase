@@ -1,6 +1,6 @@
 use duration_str::deserialize_duration;
 use jwt_compact::jwk::JsonWebKey;
-use std::{borrow::Cow, collections::HashMap, time::Duration};
+use std::{borrow::Cow, time::Duration};
 use url::Url;
 
 #[derive(Debug, serde::Deserialize)]
@@ -45,8 +45,6 @@ pub(super) struct CustomClaims {
     #[serde_as(deserialize_as = "Option<serde_with::OneOrMany<_>>")]
     #[serde(default, rename = "aud")]
     pub audience: Option<Vec<String>>,
-    #[serde(flatten)]
-    pub other: HashMap<String, serde_json::Value>,
 }
 
 impl<'a> std::ops::Deref for Jwk<'a> {

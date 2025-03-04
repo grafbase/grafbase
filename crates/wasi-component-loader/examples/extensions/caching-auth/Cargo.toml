@@ -10,6 +10,7 @@ repository.workspace = true
 [dependencies]
 grafbase-sdk.workspace = true
 serde.workspace = true
+serde_json.workspace = true
 
 [lib]
 crate-type = ["cdylib"]

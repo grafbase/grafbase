@@ -1,5 +1,5 @@
 use grafbase_sdk::{
-    Error, Extension, Headers, Resolver, ResolverExtension, Subscription,
+    Error, Extension, Headers, ResolverExtension, Subscription,
     types::{Configuration, FieldDefinitionDirective, FieldInputs, FieldOutput, SchemaDirective},
 };
 
@@ -20,7 +20,7 @@ struct HelloArguments {
     to: String,
 }
 
-impl Resolver for EchoExtension {
+impl ResolverExtension for EchoExtension {
     fn resolve_field(
         &mut self,
         _headers: Headers,

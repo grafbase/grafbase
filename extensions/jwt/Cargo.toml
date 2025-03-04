@@ -5,6 +5,7 @@ edition = "2024"
 license = "Apache-2.0"
 
 [dependencies]
+base64 = "0.22.1"
 duration-str = "0.13.0"
 grafbase-sdk = { path = "../../crates/grafbase-sdk" }
 jwt-compact = { version = "0.8.0", features = [
@@ -29,7 +30,6 @@ lto = true
 codegen-units = 1
 
 [dev-dependencies]
-base64 = "0.22.1"
 grafbase-sdk = { path = "../../crates/grafbase-sdk", features = ["test-utils"] }
 indoc = "2.0.6"
 insta = { version = "1.42.2", features = ["json"] }

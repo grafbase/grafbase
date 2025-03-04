@@ -141,16 +141,18 @@ impl ExtensionInstance {
 
     pub async fn authorize_query(
         &mut self,
+        ctx: wit::AuthorizationContext,
         elements: wit::QueryElements<'_>,
     ) -> Result<wit::AuthorizationDecisions, crate::ErrorResponse> {
         // Futures may be canceled, so we pro-actively mark the instance as poisoned until proven
         // otherwise.
         self.poisoned = true;
+        let ctx = self.store.data_mut().push_resource(ctx)?;
 
         let result = self
             .inner
             .grafbase_sdk_extension()
-            .call_authorize_query(&mut self.store, elements)
+            .call_authorize_query(&mut self.store, ctx, elements)
             .await?;
 
         self.poisoned = false;

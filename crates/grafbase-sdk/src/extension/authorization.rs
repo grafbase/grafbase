@@ -1,12 +1,13 @@
 use crate::{
     component::AnyExtension,
+    host::AuthorizationContext,
     types::{AuthorizationDecisions, ErrorResponse, QueryElements},
 };
 
 use super::Extension;
 
 /// A trait that extends `Extension` and provides authorization functionality.
-pub trait Authorizer: Extension {
+pub trait AuthorizationExtension: Extension {
     /// Authorize query elements before sending any subgraph requests.
     /// The query elements will contain every element in the operation with a definition annotated
     /// with one of the extension's authorization directive. This naturally includes fields, but
@@ -17,20 +18,22 @@ pub trait Authorizer: Extension {
     /// only interface fields are used.
     fn authorize_query<'a>(
         &'a mut self,
+        ctx: AuthorizationContext,
         elements: QueryElements<'a>,
     ) -> Result<impl Into<AuthorizationDecisions>, ErrorResponse>;
 }
 
 #[doc(hidden)]
-pub fn register<T: Authorizer>() {
-    pub(super) struct Proxy<T: Authorizer>(T);
+pub fn register<T: AuthorizationExtension>() {
+    pub(super) struct Proxy<T: AuthorizationExtension>(T);
 
-    impl<T: Authorizer> AnyExtension for Proxy<T> {
+    impl<T: AuthorizationExtension> AnyExtension for Proxy<T> {
         fn authorize_query<'a>(
             &'a mut self,
+            ctx: AuthorizationContext,
             elements: QueryElements<'a>,
         ) -> Result<AuthorizationDecisions, ErrorResponse> {
-            Authorizer::authorize_query(&mut self.0, elements).map(Into::into)
+            AuthorizationExtension::authorize_query(&mut self.0, ctx, elements).map(Into::into)
         }
     }
 

@@ -9,7 +9,7 @@ use grafbase_sdk::{
     host_io::pubsub::nats::{self, NatsClient, NatsStreamConfig},
     jq_selection::JqSelection,
     types::{Configuration, FieldDefinitionDirective, FieldInputs, FieldOutput, SchemaDirective},
-    Error, Extension, Headers, NatsAuth, Resolver, ResolverExtension, Subscription,
+    Error, Extension, Headers, NatsAuth, ResolverExtension, Subscription,
 };
 use subscription::FilteredSubscription;
 use types::{DirectiveKind, KeyValueAction, KeyValueArguments, PublishArguments, RequestArguments, SubscribeArguments};
@@ -50,7 +50,7 @@ impl Extension for Nats {
     }
 }
 
-impl Resolver for Nats {
+impl ResolverExtension for Nats {
     fn resolve_field(
         &mut self,
         _: Headers,
@@ -89,7 +89,7 @@ impl Resolver for Nats {
 
     fn subscription_key(
         &mut self,
-        _: &Headers,
+        _: Headers,
         subgraph_name: &str,
         directive: FieldDefinitionDirective<'_>,
     ) -> Option<Vec<u8>> {

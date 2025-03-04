@@ -1,3 +1,6 @@
+use std::sync::Arc;
+
+use engine::RequestContext;
 use futures::StreamExt;
 
 pub use crate::access_log::AccessLogSender;
@@ -30,3 +33,5 @@ impl NatsSubscriber {
         }
     }
 }
+
+pub struct AuthorizationContext(pub(crate) Arc<RequestContext>);

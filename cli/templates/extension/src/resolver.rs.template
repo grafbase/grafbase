@@ -1,6 +1,6 @@
 use grafbase_sdk::{
     types::{Configuration, SchemaDirective, FieldDefinitionDirective, FieldInputs, FieldOutput},
-    Error, Extension, Headers, Resolver, ResolverExtension, Subscription
+    Error, Extension, Headers, ResolverExtension, Subscription
 };
 
 #[derive(ResolverExtension)]
@@ -12,7 +12,7 @@ impl Extension for {{name}} {
     }
 }
 
-impl Resolver for {{name}} {
+impl ResolverExtension for {{name}} {
     fn resolve_field(
         &mut self,
         headers: Headers,

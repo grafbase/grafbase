@@ -6,7 +6,7 @@ use runtime::{auth::JwtToken, kv::KvStore};
 use schema::JwtConfig;
 use serde::de::DeserializeOwned;
 
-use super::{AccessToken, Authorizer};
+use super::{Authorizer, LegacyToken};
 
 /// Same validation as Apollo's "JWT authentication".
 pub struct JwtProvider {
@@ -118,13 +118,13 @@ impl JwtProvider {
 }
 
 impl Authorizer for JwtProvider {
-    fn get_access_token<'a>(&'a self, headers: &'a http::HeaderMap) -> BoxFuture<'a, Option<AccessToken>> {
+    fn get_access_token<'a>(&'a self, headers: &'a http::HeaderMap) -> BoxFuture<'a, Option<LegacyToken>> {
         Box::pin(self.get_access_token(headers))
     }
 }
 
 impl JwtProvider {
-    async fn get_access_token(&self, headers: &http::HeaderMap) -> Option<AccessToken> {
+    async fn get_access_token(&self, headers: &http::HeaderMap) -> Option<LegacyToken> {
         let token_str = headers
             .get(&self.config.header_name)
             .and_then(|value| value.to_str().ok())
@@ -165,7 +165,7 @@ impl JwtProvider {
         // but 'iss' is the only one that I can think of that might be useful.
         claims.insert("iss".to_string(), issuer.into());
 
-        Some(AccessToken::Jwt(JwtToken { claims }))
+        Some(LegacyToken::Jwt(JwtToken { claims }))
     }
 }
 

@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use grafbase_sdk::{
-    AuthenticationExtension, Authenticator, Extension, Headers,
+    AuthenticationExtension, Extension, Headers,
     host_io::cache::{self, CachedItem},
     types::{Configuration, ErrorResponse, SchemaDirective, StatusCode, Token},
 };
@@ -32,7 +32,7 @@ impl Extension for CachingProvider {
     }
 }
 
-impl Authenticator for CachingProvider {
+impl AuthenticationExtension for CachingProvider {
     fn authenticate(&mut self, headers: Headers) -> Result<Token, ErrorResponse> {
         let header = headers
             .get("Authorization")
@@ -52,6 +52,6 @@ impl Authenticator for CachingProvider {
         })
         .unwrap();
 
-        Ok(Token::new(jwks))
+        Ok(Token::from_bytes(serde_json::to_vec(&jwks).unwrap()))
     }
 }
