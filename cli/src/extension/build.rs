@@ -1,5 +1,6 @@
 use std::{
     ffi::OsStr,
+    fs,
     path::{Path, PathBuf},
     process::Stdio,
 };
@@ -228,11 +229,11 @@ fn compile_extension(
 }
 
 fn parse_manifest(source_dir: &Path, wasm_path: &Path) -> anyhow::Result<Manifest> {
-    let extension_toml = std::fs::read_to_string(source_dir.join("extension.toml"))
+    let extension_toml_path = std::fs::read_to_string(source_dir.join("extension.toml"))
         .context("could not find extension.toml file from the extension project")?;
 
-    let extension_toml: ExtensionToml =
-        toml::from_str(&extension_toml).map_err(|e| anyhow::anyhow!("extension.toml contains invalid data\n{e}"))?;
+    let extension_toml: ExtensionToml = toml::from_str(&extension_toml_path)
+        .map_err(|e| anyhow::anyhow!("extension.toml contains invalid data\n{e}"))?;
 
     let wasm_bytes =
         std::fs::read(wasm_path).with_context(|| format!("failed to read extension `{}`", wasm_path.display()))?;
@@ -292,7 +293,7 @@ fn parse_manifest(source_dir: &Path, wasm_path: &Path) -> anyhow::Result<Manifes
         minimum_gateway_version: versions.minimum_gateway_version,
         sdl,
         description: extension_toml.extension.description,
-        readme: None,
+        readme: try_get_readme(source_dir),
         homepage_url: extension_toml.extension.homepage_url,
         repository_url: extension_toml.extension.repository_url,
         license: extension_toml.extension.license,
@@ -300,6 +301,34 @@ fn parse_manifest(source_dir: &Path, wasm_path: &Path) -> anyhow::Result<Manifes
     };
 
     Ok(manifest)
+}
+
+fn try_get_readme(source_dir: &Path) -> Option<String> {
+    let entries = fs::read_dir(source_dir).ok()?;
+
+    for entry in entries.filter_map(|entry| entry.ok()) {
+        let Some(file_type) = entry.file_type().ok() else {
+            continue;
+        };
+
+        if !file_type.is_file() {
+            continue;
+        };
+
+        let file_name = entry.file_name();
+
+        let Some(file_name) = file_name.to_str() else {
+            continue;
+        };
+
+        if file_name.eq_ignore_ascii_case("readme.md") {
+            if let Ok(readme) = fs::read_to_string(entry.path()) {
+                return Some(readme);
+            }
+        }
+    }
+
+    None
 }
 
 fn parse_versions(wasm_bytes: &[u8]) -> anyhow::Result<Versions> {
