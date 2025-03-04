@@ -3063,7 +3063,7 @@ dependencies = [
  "runtime",
  "runtime-local",
  "runtime-noop",
- "semver 1.0.25",
+ "semver 1.0.26",
  "serde",
  "serde_json",
  "tempfile",
