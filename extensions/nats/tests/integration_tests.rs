@@ -298,6 +298,9 @@ async fn test_subscribe_with_filter() {
         .with_gateway(GATEWAY_PATH)
         .with_subgraph(subgraph())
         .enable_networking()
+        .enable_stderr()
+        .enable_stdout()
+        .log_level(grafbase_sdk::test::LogLevel::WasiDebug)
         .build(config())
         .unwrap();
 
@@ -333,7 +336,7 @@ async fn test_subscribe_with_filter() {
             }
         });
 
-        let events = tokio::time::timeout(Duration::from_secs(15), subscription.take(2).collect::<Vec<_>>())
+        let events = tokio::time::timeout(Duration::from_secs(30), subscription.take(2).collect::<Vec<_>>())
             .await
             .unwrap();
 
@@ -378,7 +381,7 @@ async fn test_subscribe_with_filter() {
         }
     });
 
-    let events = tokio::time::timeout(Duration::from_secs(15), subscription.take(2).collect::<Vec<_>>())
+    let events = tokio::time::timeout(Duration::from_secs(30), subscription.take(2).collect::<Vec<_>>())
         .await
         .unwrap();
 

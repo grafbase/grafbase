@@ -99,6 +99,16 @@ impl PartialGraphqlError {
             extensions: Vec::new(),
         }
     }
+
+    pub fn stream_lag() -> Self {
+        PartialGraphqlError {
+            message: Cow::Borrowed(
+                "The stream is lagging behind due to not being able to keep up with the data. Events are being dropped.",
+            ),
+            code: PartialErrorCode::ExtensionError,
+            extensions: Vec::new(),
+        }
+    }
 }
 
 impl fmt::Display for PartialGraphqlError {

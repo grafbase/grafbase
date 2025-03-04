@@ -11,14 +11,6 @@ pub struct SchemaDirective<'a> {
 
 #[derive(Debug, ComponentType, Lower)]
 #[component(record)]
-pub struct FieldDefinitionDirective<'a> {
-    pub name: &'a str,
-    pub site: FieldDefinitionDirectiveSite<'a>,
-    pub arguments: Vec<u8>,
-}
-
-#[derive(Debug, ComponentType, Lower)]
-#[component(record)]
 pub struct QueryElements<'a> {
     #[component(name = "directive-names")]
     pub directive_names: Vec<(&'a str, u32, u32)>,
@@ -39,13 +31,21 @@ pub struct ObjectDirectiveSite<'a> {
     pub object_name: &'a str,
 }
 
-#[derive(Debug, ComponentType, Lower)]
+#[derive(Clone, Debug, ComponentType, Lower)]
 #[component(record)]
 pub struct FieldDefinitionDirectiveSite<'a> {
     #[component(name = "parent-type-name")]
     pub parent_type_name: &'a str,
     #[component(name = "field-name")]
     pub field_name: &'a str,
+}
+
+#[derive(Clone, Debug, ComponentType, Lower)]
+#[component(record)]
+pub struct FieldDefinitionDirective<'a> {
+    pub name: &'a str,
+    pub site: FieldDefinitionDirectiveSite<'a>,
+    pub arguments: Vec<u8>,
 }
 
 #[derive(Debug, ComponentType, Lower)]

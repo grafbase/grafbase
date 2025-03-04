@@ -51,6 +51,32 @@ pub trait Resolver: Extension {
         subgraph_name: &str,
         directive: FieldDefinitionDirective<'_>,
     ) -> Result<Box<dyn Subscription>, Error>;
+
+    /// Returns an identifier for a subscription field.
+    ///
+    /// This method is used to identify unique subscription channels or connections
+    /// when managing multiple active subscriptions. The returned identifier can be
+    /// used to track, manage, or deduplicate subscriptions.
+    ///
+    /// # Arguments
+    ///
+    /// * `headers` - The subgraph headers associated with this subscription
+    /// * `subgraph_name` - The name of the subgraph associated with this subscription
+    /// * `directive` - The directive associated with this subscription field
+    ///
+    /// # Returns
+    ///
+    /// Returns an `Option<String>` containing either a unique identifier for this
+    /// subscription or `None` if no deduplication is desired.
+    #[allow(unused)]
+    fn subscription_identifier(
+        &mut self,
+        headers: &Headers,
+        subgraph_name: &str,
+        directive: FieldDefinitionDirective<'_>,
+    ) -> Option<Vec<u8>> {
+        None
+    }
 }
 
 /// A trait for consuming field outputs from streams.
@@ -91,7 +117,22 @@ pub fn register<T: Resolver>() {
         ) -> Result<Box<dyn Subscription>, Error> {
             Resolver::resolve_subscription(&mut self.0, headers, subgraph_name, directive)
         }
+
+        fn subscription_identifier(
+            &mut self,
+            headers: &Headers,
+            subgraph_name: &str,
+            directive: FieldDefinitionDirective<'_>,
+        ) -> Result<Option<Vec<u8>>, Error> {
+            Ok(Resolver::subscription_identifier(
+                &mut self.0,
+                headers,
+                subgraph_name,
+                directive,
+            ))
+        }
     }
+
     crate::component::register_extension(Box::new(|schema_directives, config| {
         <T as Extension>::new(schema_directives, config)
             .map(|extension| Box::new(Proxy(extension)) as Box<dyn AnyExtension>)

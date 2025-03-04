@@ -36,3 +36,7 @@ runs:
       if: ${{ inputs.target }}
       shell: bash
       run: rustup target add ${{ inputs.target }}
+
+    - name: Install toolchain
+      shell: bash
+      run: rustup show active-toolchain || rustup toolchain install

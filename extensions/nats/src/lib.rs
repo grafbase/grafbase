@@ -87,6 +87,23 @@ impl Resolver for Nats {
         }
     }
 
+    fn subscription_identifier(
+        &mut self,
+        _: &Headers,
+        subgraph_name: &str,
+        directive: FieldDefinitionDirective<'_>,
+    ) -> Option<Vec<u8>> {
+        let mut identifier = Vec::new();
+
+        identifier.extend(subgraph_name.as_bytes());
+        identifier.extend(directive.name().as_bytes());
+        identifier.extend(directive.site().parent_type_name().as_bytes());
+        identifier.extend(directive.site().field_name().as_bytes());
+        identifier.extend(directive.raw_arguments());
+
+        Some(identifier)
+    }
+
     fn resolve_subscription(
         &mut self,
         _: Headers,
