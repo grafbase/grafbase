@@ -5,23 +5,37 @@ use futures_util::{Stream, StreamExt, TryFutureExt, stream::BoxStream};
 
 use crate::{bytes::OwnedOrSharedBytes, hooks::ResponseInfo};
 
-#[derive(Clone, Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error)]
 pub enum FetchError {
     #[error("{0}")]
-    AnyError(String),
-    #[error("Timeout")]
-    Timeout,
+    Message(String),
     #[error("Invalid status code: {0:?}")]
     InvalidStatusCode(http::StatusCode),
     #[error("Could not sign subgraph request: {0}")]
     MessageSigningFailed(String),
+    #[error("Request error: {0:?}")]
+    Reqwest(reqwest::Error),
+}
+
+impl From<reqwest::Error> for FetchError {
+    fn from(error: reqwest::Error) -> Self {
+        FetchError::Reqwest(error.without_url())
+    }
+}
+
+impl From<String> for FetchError {
+    fn from(error: String) -> Self {
+        FetchError::Message(error)
+    }
+}
+
+impl From<&str> for FetchError {
+    fn from(error: &str) -> Self {
+        FetchError::Message(error.to_string())
+    }
 }
 
 impl FetchError {
-    pub fn any(error: impl ToString) -> Self {
-        FetchError::AnyError(error.to_string())
-    }
-
     pub fn as_invalid_status_code(&self) -> Option<http::StatusCode> {
         match self {
             FetchError::InvalidStatusCode(status) => Some(*status),

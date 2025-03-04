@@ -321,12 +321,12 @@ fn with_broken_subgraph() {
             .send()
             .await;
 
-        insta::assert_json_snapshot!(resp, @r###"
+        insta::assert_json_snapshot!(resp, @r#"
         {
           "data": null,
           "errors": [
             {
-              "message": "Request to subgraph 'accounts' failed with: error sending request",
+              "message": "Request to subgraph 'accounts' failed.",
               "path": [
                 "me"
               ],
@@ -336,7 +336,7 @@ fn with_broken_subgraph() {
             }
           ]
         }
-        "###);
+        "#);
     });
 
     let result = std::fs::read_to_string(tmpdir.path().join("access.log")).unwrap();
@@ -407,12 +407,12 @@ fn with_broken_subgraph_retried() {
             .send()
             .await;
 
-        insta::assert_json_snapshot!(resp, @r###"
+        insta::assert_json_snapshot!(resp, @r#"
         {
           "data": null,
           "errors": [
             {
-              "message": "Request to subgraph 'accounts' failed with: error sending request",
+              "message": "Request to subgraph 'accounts' failed.",
               "path": [
                 "me"
               ],
@@ -422,7 +422,7 @@ fn with_broken_subgraph_retried() {
             }
           ]
         }
-        "###);
+        "#);
     });
 
     let result = std::fs::read_to_string(tmpdir.path().join("access.log")).unwrap();
@@ -596,12 +596,12 @@ fn with_subgraph_status_500() {
             .send()
             .await;
 
-        insta::assert_json_snapshot!(resp, @r###"
+        insta::assert_json_snapshot!(resp, @r#"
         {
           "data": null,
           "errors": [
             {
-              "message": "Request to subgraph 'accounts' failed with: Invalid status code: 500",
+              "message": "Request to subgraph 'accounts' failed.",
               "path": [
                 "me"
               ],
@@ -611,7 +611,7 @@ fn with_subgraph_status_500() {
             }
           ]
         }
-        "###);
+        "#);
     });
 
     let result = std::fs::read_to_string(tmpdir.path().join("access.log")).unwrap();
@@ -682,12 +682,12 @@ fn with_subgraph_status_500_retried() {
             .send()
             .await;
 
-        insta::assert_json_snapshot!(resp, @r###"
+        insta::assert_json_snapshot!(resp, @r#"
         {
           "data": null,
           "errors": [
             {
-              "message": "Request to subgraph 'accounts' failed with: Invalid status code: 500",
+              "message": "Request to subgraph 'accounts' failed.",
               "path": [
                 "me"
               ],
@@ -697,7 +697,7 @@ fn with_subgraph_status_500_retried() {
             }
           ]
         }
-        "###);
+        "#);
     });
 
     let result = std::fs::read_to_string(tmpdir.path().join("access.log")).unwrap();

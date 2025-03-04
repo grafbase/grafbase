@@ -8,7 +8,7 @@ use crate::response::{ErrorCode, GraphqlError};
 pub enum ExecutionError {
     #[error("Internal error: {0}")]
     Internal(Cow<'static, str>),
-    #[error("Request to subgraph '{subgraph_name}' failed with: {error}")]
+    #[error("Request to subgraph '{subgraph_name}' failed.")]
     Fetch { subgraph_name: String, error: FetchError },
     #[error(transparent)]
     RateLimit(#[from] runtime::rate_limiting::Error),

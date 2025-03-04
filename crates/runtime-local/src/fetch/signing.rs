@@ -16,7 +16,7 @@ use httpsig_hyper::MessageSignatureReq;
 use runtime::fetch::FetchError;
 use tracing::Instrument;
 
-use super::{NativeFetcher, reqwest_error_to_fetch_error};
+use super::NativeFetcher;
 
 impl NativeFetcher {
     pub async fn sign_request(
@@ -37,11 +37,11 @@ impl NativeFetcher {
 
         let span = tracing::info_span!(target: grafbase_telemetry::span::GRAFBASE_TARGET, "http-signature");
 
-        let mut http_request = http::Request::try_from(request).map_err(FetchError::any)?;
+        let mut http_request = http::Request::try_from(request)?;
 
         let signature_parameters = signature_params
             .httpsig_params(http_request.headers())
-            .map_err(FetchError::any)?;
+            .map_err(|err| err.to_string())?;
 
         let sign_result = http_request
             .set_message_signature(&signature_parameters, &signature_params.key, None)
@@ -53,7 +53,7 @@ impl NativeFetcher {
             return Err(FetchError::MessageSigningFailed(error.to_string()));
         }
 
-        reqwest::Request::try_from(http_request).map_err(reqwest_error_to_fetch_error)
+        reqwest::Request::try_from(http_request).map_err(Into::into)
     }
 }
 
