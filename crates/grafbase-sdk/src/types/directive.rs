@@ -45,7 +45,7 @@ pub struct FieldDefinitionDirective<'a>(&'a wit::FieldDefinitionDirective);
 impl<'a> FieldDefinitionDirective<'a> {
     /// The name of the directive
     #[inline]
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> &'a str {
         &self.0.name
     }
 
@@ -55,7 +55,7 @@ impl<'a> FieldDefinitionDirective<'a> {
     where
         T: Deserialize<'a>,
     {
-        self.site().arguments()
+        minicbor_serde::from_slice(&self.0.arguments).map_err(Into::into)
     }
 
     /// The site information for this directive

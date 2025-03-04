@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 use extension_catalog::Id;
 use integration_tests::federation::{TestExtension, TestExtensionBuilder, TestExtensionConfig};
-use runtime::{error::PartialGraphqlError, extension::ExtensionFieldDirective, hooks::DynHookContext};
+use runtime::{error::PartialGraphqlError, extension::ExtensionFieldDirective};
 
 #[derive(Default)]
 pub struct DoubleEchoExt;
@@ -25,7 +25,7 @@ impl TestExtensionBuilder for DoubleEchoExt {
     fn config(&self) -> TestExtensionConfig {
         TestExtensionConfig {
             kind: extension_catalog::Kind::FieldResolver(extension_catalog::FieldResolver {
-                resolver_directives: vec!["echo".to_string(), "echoArgs".to_string()],
+                resolver_directives: Some(vec!["echo".to_string(), "echoArgs".to_string()]),
             }),
             sdl: Some(
                 r#"
@@ -49,7 +49,7 @@ struct DoubleEchoInstance;
 impl TestExtension for DoubleEchoInstance {
     async fn resolve<'a>(
         &self,
-        _context: &DynHookContext,
+        _headers: http::HeaderMap,
         directive: ExtensionFieldDirective<'a, serde_json::Value>,
         inputs: Vec<serde_json::Value>,
     ) -> Result<Vec<Result<serde_json::Value, PartialGraphqlError>>, PartialGraphqlError> {

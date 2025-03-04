@@ -400,39 +400,28 @@ fn ingest_field_directive(
     }
     ctx.graphql_federated_entity_resolvers = graphql_federated_entity_resolvers;
 
-    for directive in &ctx.federated_graph[federated_id].directives {
-        let federated_graph::Directive::ExtensionDirective(federated_graph::ExtensionDirective {
-            subgraph_id: federated_subgraph_id,
-            extension_id,
-            name,
-            arguments,
-        }) = directive
-        else {
+    let directive_ids = take(&mut ctx.graph[id].directive_ids);
+    for id in &directive_ids {
+        let &TypeSystemDirectiveId::Extension(id) = id else {
             continue;
         };
-        let subgraph_id = ctx.subgraphs.id_mapping[federated_subgraph_id];
-        if !exists_in_subgraph_ids.contains(&subgraph_id) {
-            exists_in_subgraph_ids.push(subgraph_id);
+        let directive = &ctx.graph.extension_directives[usize::from(id)];
+        if directive.kind.is_resolver() {
+            let subgraph_id = directive.subgraph_id;
+            if !exists_in_subgraph_ids.contains(&subgraph_id) {
+                exists_in_subgraph_ids.push(subgraph_id);
+            }
+            ctx.graph
+                .resolver_definitions
+                .push(ResolverDefinitionRecord::FieldResolverExtension(
+                    FieldResolverExtensionDefinitionRecord { directive_id: id },
+                ));
+            resolver_ids.push(ResolverDefinitionId::from(ctx.graph.resolver_definitions.len() - 1))
         }
-        let (directive_id, requirements_record) = ctx.ingest_extension_directive(
-            SchemaLocation::FieldDefinition(id, federated_id),
-            *federated_subgraph_id,
-            *extension_id,
-            *name,
-            arguments,
-        )?;
-        ctx.graph
-            .resolver_definitions
-            .push(ResolverDefinitionRecord::FieldResolverExtension(
-                FieldResolverExtensionDefinitionRecord {
-                    directive_id,
-                    requirements_record,
-                },
-            ));
-        resolver_ids.push(ResolverDefinitionId::from(ctx.graph.resolver_definitions.len() - 1))
     }
 
     let field = &mut ctx.graph[id];
+    field.directive_ids = directive_ids;
     field.subgraph_type_records = subgraph_type_records;
     field.exists_in_subgraph_ids = exists_in_subgraph_ids;
     field.resolver_ids = resolver_ids;
@@ -562,6 +551,16 @@ impl GraphContext<'_> {
                     });
                     TypeSystemDirectiveId::ListSize(list_size_id)
                 }
+                federated_graph::Directive::ExtensionDirective(federated_graph::ExtensionDirective {
+                    subgraph_id,
+                    extension_id,
+                    name,
+                    arguments,
+                }) => {
+                    let id =
+                        self.ingest_extension_directive(location, *subgraph_id, *extension_id, *name, arguments)?;
+                    TypeSystemDirectiveId::Extension(id)
+                }
                 federated_graph::Directive::Other { .. }
                 | federated_graph::Directive::Inaccessible
                 | federated_graph::Directive::Policy(_)
@@ -569,8 +568,7 @@ impl GraphContext<'_> {
                 | federated_graph::Directive::JoinGraph(_)
                 | federated_graph::Directive::JoinType(_)
                 | federated_graph::Directive::JoinUnionMember(_)
-                | federated_graph::Directive::JoinImplements(_)
-                | federated_graph::Directive::ExtensionDirective(_) => continue,
+                | federated_graph::Directive::JoinImplements(_) => continue,
             };
 
             directive_ids.push(id);

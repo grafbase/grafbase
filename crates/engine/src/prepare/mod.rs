@@ -67,7 +67,9 @@ impl<R: Runtime> PrepareContext<'_, R> {
                 Ok(doc) => doc,
                 // If we have an error a this stage, it means we couldn't determine what document
                 // to load, so we don't consider it a well-formed GraphQL-over-HTTP request.
-                Err(err) => return Err(Response::refuse_request_with(http::StatusCode::BAD_REQUEST, vec![err])),
+                Err(err) => {
+                    return Err(Response::refuse_request_with(http::StatusCode::BAD_REQUEST, [err]));
+                }
             };
 
             let cache_key = CacheKey::document(self.schema(), &extracted.key);
@@ -80,7 +82,7 @@ impl<R: Runtime> PrepareContext<'_, R> {
                 self.metrics().record_operation_cache_miss();
                 match extracted.into_operation_document().await {
                     Ok(document) => OpCache::Miss { cache_key, document },
-                    Err(err) => return Err(Response::request_error(None, [err])),
+                    Err(err) => return Err(Response::request_error([err])),
                 }
             }
         };
@@ -135,7 +137,7 @@ impl PreparedOperation {
 fn mutation_not_allowed_with_safe_method<OnOperationResponseHookOutput>() -> Response<OnOperationResponseHookOutput> {
     Response::refuse_request_with(
         http::StatusCode::METHOD_NOT_ALLOWED,
-        vec![GraphqlError::new(
+        [GraphqlError::new(
             "Mutation is not allowed with a safe method like GET",
             ErrorCode::BadRequest,
         )],

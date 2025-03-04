@@ -7,6 +7,17 @@ This is a REST extension for the Grafbase Gateway. It allows you to define REST 
 
 ## Installing
 
+Add the following to your gateway configuration ("grafbase.toml"):
+
+```toml
+[extensions.rest]
+version = "0.2"
+```
+
+Then run `grafbase extension install`. The extension will be installed in the `grafbase_extensions` directory. That directory must be present when the gateway is started.
+
+## Building from source
+
 Build this extension manually and copy the artifacts to a location where the gateway can find them until we complete the Grafbase Extension Registry.
 
 ```bash
@@ -61,13 +72,12 @@ type Country {
 
 type Query {
   listAllCountries: [Country!]! @rest(
-    endpoint: "restCountries",
-    http: {
-      method: GET,
+      method: GET
+      endpoint: "restCountries"
       path: "/all"
-    },
-    selection: "[.[] | { name: .name.official }]"
-  )
+      selection: "[.[] | { name: .name.official }]"
+    )
+
 }
 ```
 
@@ -137,6 +147,12 @@ grafbase publish --name countries -m init my-org/my-federated-graph
 
 You can omit the `--url` parameter from a subgraph that only acts as a virtual graph for an extension.
 
+### Headers
+
+The REST extension sends headers to the REST endpoint. The resolver filters the request headers and uses the resulting subgraph headers.
+
+When you compose the REST subgraph to your federated graph, and you give it a name, you can define the [header rules](https://grafbase.com/docs/reference/gateway/configuration/subgraph-configuration#header-rules) in your gateway configuration.
+
 ## Request Body
 
 Use the `body` argument to send data to the REST endpoint. The `body` argument accepts a JSON object or a selection that maps data from the input arguments.
@@ -162,10 +178,8 @@ You can also use static data in the body:
 type Mutation {
   createCountry: Country! @rest(
     endpoint: "restCountries",
-    http: {
-      method: POST,
-      path: "/create"
-    },
+    method: POST,
+    path: "/create"
     body: { static: { name: "Georgia" } },
     selection: "{ name: .name.official }"
   )
@@ -182,10 +196,8 @@ The path argument is used to specify the path to the REST endpoint. You can use 
 type Mutation {
   getCountry(id: Int!): Country @rest(
     endpoint: "restCountries",
-    http: {
-      method: GET,
-      path: "/fetch/{{ args.id }}"
-    },
+    method: GET,
+    path: "/fetch/{{ args.id }}"
     selection: "{ name: .name.official }"
   )
 }

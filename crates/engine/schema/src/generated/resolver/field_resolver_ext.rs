@@ -4,7 +4,6 @@
 //! Generated with: `cargo run -p engine-codegen`
 //! Source file: <engine-codegen dir>/domain/schema.graphql
 use crate::{
-    FieldSet, FieldSetRecord,
     generated::{ExtensionDirective, ExtensionDirectiveId},
     prelude::*,
 };
@@ -16,13 +15,11 @@ use walker::{Iter, Walk};
 /// ```custom,{.language-graphql}
 /// type FieldResolverExtensionDefinition @meta(module: "resolver/field_resolver_ext") {
 ///   directive: ExtensionDirective!
-///   requirements: FieldSet!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct FieldResolverExtensionDefinitionRecord {
     pub directive_id: ExtensionDirectiveId,
-    pub requirements_record: FieldSetRecord,
 }
 
 #[derive(Clone, Copy)]
@@ -45,9 +42,6 @@ impl<'a> FieldResolverExtensionDefinition<'a> {
     }
     pub fn directive(&self) -> ExtensionDirective<'a> {
         self.directive_id.walk(self.schema)
-    }
-    pub fn requirements(&self) -> FieldSet<'a> {
-        self.as_ref().requirements_record.walk(self.schema)
     }
 }
 
@@ -73,7 +67,6 @@ impl std::fmt::Debug for FieldResolverExtensionDefinition<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("FieldResolverExtensionDefinition")
             .field("directive", &self.directive())
-            .field("requirements", &self.requirements())
             .finish()
     }
 }

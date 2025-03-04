@@ -11,7 +11,7 @@ use walker::Walk;
 use crate::{
     Runtime,
     execution::ExecutionContext,
-    prepare::{Plan, create_extension_directive_arguments_view, create_extension_directive_response_view},
+    prepare::{Plan, create_extension_directive_query_view, create_extension_directive_response_view},
     response::{ResponseObjectsView, SubgraphResponse},
 };
 
@@ -35,6 +35,7 @@ impl FieldResolverExtension {
         plan: Plan<'ctx>,
     ) -> SubscriptionResolverExtensionRequest<'ctx> {
         let directive = self.directive_id.walk(ctx.schema());
+        let headers = ctx.subgraph_headers_with_rules(directive.subgraph().header_rules());
 
         let field = plan
             .selection_set()
@@ -45,7 +46,7 @@ impl FieldResolverExtension {
         let field_definition = field.definition();
 
         let query_view =
-            create_extension_directive_arguments_view(ctx.schema(), directive, field.arguments(), ctx.variables());
+            create_extension_directive_query_view(ctx.schema(), directive, field.arguments(), ctx.variables());
 
         let extension_directive = ExtensionFieldDirective {
             extension_id: directive.extension_id,
@@ -59,7 +60,7 @@ impl FieldResolverExtension {
             .engine
             .runtime
             .extensions()
-            .resolve_subscription(ctx.hooks_context, extension_directive)
+            .resolve_subscription(headers, extension_directive)
             .boxed();
 
         SubscriptionResolverExtensionRequest { field, future }
@@ -73,6 +74,8 @@ impl FieldResolverExtension {
         subgraph_response: SubgraphResponse,
     ) -> FieldResolverExtensionRequest<'ctx> {
         let directive = self.directive_id.walk(ctx.schema());
+        let headers = ctx.subgraph_headers_with_rules(directive.subgraph().header_rules());
+
         let field = plan
             .selection_set()
             .fields()
@@ -82,7 +85,7 @@ impl FieldResolverExtension {
         let field_definition = field.definition();
 
         let query_view =
-            create_extension_directive_arguments_view(ctx.schema(), directive, field.arguments(), ctx.variables());
+            create_extension_directive_query_view(ctx.schema(), directive, field.arguments(), ctx.variables());
 
         let response_view =
             create_extension_directive_response_view(query_view.ctx, directive, root_response_objects.clone());
@@ -99,7 +102,7 @@ impl FieldResolverExtension {
             .engine
             .runtime
             .extensions()
-            .resolve_field(ctx.hooks_context, extension_directive, response_view.iter())
+            .resolve_field(headers, extension_directive, response_view.iter())
             .boxed();
 
         let input_object_refs = root_response_objects.into_input_object_refs();

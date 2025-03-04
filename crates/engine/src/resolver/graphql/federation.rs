@@ -36,7 +36,7 @@ impl FederationEntityResolver {
     ) -> PlanResult<Resolver> {
         let subgraph_operation = PreparedFederationEntityOperation::build(plan_query_partition).map_err(|err| {
             tracing::error!("Failed to build query: {err}");
-            PlanError::InternalError
+            PlanError::Internal
         })?;
 
         Ok(Resolver::FederationEntity(Self {

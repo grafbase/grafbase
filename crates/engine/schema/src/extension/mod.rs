@@ -21,6 +21,14 @@ impl<'a> ExtensionDirective<'a> {
             .map(|arg| (self.schema[arg.name_id].as_str(), &arg.value))
     }
 
+    pub fn max_arguments_stage(&self) -> InjectionStage {
+        self.argument_records()
+            .iter()
+            .map(|arg| arg.injection_stage)
+            .max()
+            .unwrap_or_default()
+    }
+
     pub fn argument_records(&self) -> &'a [ExtensionDirectiveArgumentRecord] {
         &self.schema[self.as_ref().argument_ids]
     }

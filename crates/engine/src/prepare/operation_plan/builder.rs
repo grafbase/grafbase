@@ -71,7 +71,7 @@ impl<'op, R: Runtime> Builder<'op, '_, R> {
         for (query_partition_id, modifier_id) in self.partition_modifiers.iter().copied() {
             let Some(dependency_id) = self.partition_to_plan[usize::from(query_partition_id)] else {
                 tracing::error!("Executable depends on an unknown plan");
-                return Err(PlanError::InternalError);
+                return Err(PlanError::Internal);
             };
             self.operation_plan[dependency_id].children_ids.push(modifier_id.into());
             self.operation_plan[modifier_id].parent_count += 1;
@@ -82,7 +82,7 @@ impl<'op, R: Runtime> Builder<'op, '_, R> {
         for (id, query_partition_id) in std::mem::take(&mut self.dependencies) {
             let Some(dependency_id) = self.partition_to_plan[usize::from(query_partition_id)] else {
                 tracing::error!("Executable depends on an unknown plan");
-                return Err(PlanError::InternalError);
+                return Err(PlanError::Internal);
             };
             self.operation_plan[dependency_id].children_ids.push(id);
             match id {
@@ -109,11 +109,11 @@ impl<'op, R: Runtime> Builder<'op, '_, R> {
         {
             let Some(prev_id) = self.partition_to_plan[usize::from(prev)] else {
                 tracing::error!("Executable depends on an unknown plan");
-                return Err(PlanError::InternalError);
+                return Err(PlanError::Internal);
             };
             let Some(next_id) = self.partition_to_plan[usize::from(next)] else {
                 tracing::error!("Executable depends on an unknown plan");
-                return Err(PlanError::InternalError);
+                return Err(PlanError::Internal);
             };
             self.operation_plan[prev_id].children_ids.push(next_id.into());
             self.operation_plan[next_id].parent_count += 1;
@@ -125,21 +125,21 @@ impl<'op, R: Runtime> Builder<'op, '_, R> {
     fn generate_response_modifier(&mut self, definition: ResponseModifierDefinition<'op>) -> PlanResult<()> {
         let mut impacted_fields = Vec::new();
         for field in definition.impacted_fields() {
-            if !self.operation_plan.query_modifications.response_data_fields[field.id] {
+            if !self.operation_plan.query_modifications.included_response_data_fields[field.id] {
                 continue;
             }
             let (set_id, composite_type_id) = match definition.rule {
                 ResponseModifierRule::AuthorizedParentEdge { .. } => (
                     field.parent_field_output_id.ok_or_else(|| {
                         tracing::error!("Missing response object set id.");
-                        PlanError::InternalError
+                        PlanError::Internal
                     })?,
                     field.definition().parent_entity_id.into(),
                 ),
                 ResponseModifierRule::AuthorizedEdgeChild { .. } => (
                     field.output_id.ok_or_else(|| {
                         tracing::error!("Missing response object set id.");
-                        PlanError::InternalError
+                        PlanError::Internal
                     })?,
                     CompositeTypeId::maybe_from(field.definition().ty().definition_id).unwrap(),
                 ),

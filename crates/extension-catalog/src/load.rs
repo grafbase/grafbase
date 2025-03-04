@@ -1,9 +1,7 @@
 use extension::*;
-use futures_util::TryStreamExt as _;
-use std::{borrow::Cow, io, path::Path};
-use tokio::{fs, io::AsyncWriteExt as _};
 use url::Url;
 
+/// The name of the directory where extensions are downloaded by `grafbase extension install` and loaded by the gateway.
 pub const EXTENSION_DIR_NAME: &str = "grafbase_extensions";
 
 pub async fn load_manifest(mut url: Url) -> Result<Manifest, String> {
@@ -31,112 +29,6 @@ pub async fn load_manifest(mut url: Url) -> Result<Manifest, String> {
     Ok(manifest.into_latest())
 }
 
-pub async fn download_extension_from_registry_if_needed(
-    http_client: &reqwest::Client,
-    extensions_dir: &Path,
-    extension_name: String,
-    version: semver::Version,
-) -> Result<(), Report> {
-    download_extension_from_registry_impl(http_client, extensions_dir, extension_name, version, true).await
-}
-
-pub async fn download_extension_from_registry(
-    http_client: &reqwest::Client,
-    extensions_dir: &Path,
-    extension_name: String,
-    version: semver::Version,
-) -> Result<(), Report> {
-    download_extension_from_registry_impl(http_client, extensions_dir, extension_name, version, false).await
-}
-
-async fn download_extension_from_registry_impl(
-    http_client: &reqwest::Client,
-    extensions_dir: &Path,
-    extension_name: String,
-    version: semver::Version,
-    lazy: bool,
-) -> Result<(), Report> {
-    const PUBLIC_EXTENSION_REGISTRY_URL: &str = "https://extensions.grafbase.com";
-
-    let url: Url = PUBLIC_EXTENSION_REGISTRY_URL.parse().unwrap();
-
-    let mut manifest_json_url = url.clone();
-    manifest_json_url.set_path(&format!("/extensions/{extension_name}/{version}/manifest.json"));
-
-    let mut extension_wasm_url = url.clone();
-    extension_wasm_url.set_path(&format!("/extensions/{extension_name}/{version}/extension.wasm",));
-
-    let url_to_path = async |url: Url| -> Result<(), Report> {
-        let last_url_segment = url.path_segments().unwrap().last().unwrap();
-        let dir_path = extensions_dir.join(&extension_name).join(version.to_string());
-        let file_path = dir_path.join(last_url_segment);
-
-        if lazy && file_path.exists() {
-            return Ok(());
-        }
-
-        let response = http_client.get(url).send().await.map_err(Report::http)?;
-
-        if !response.status().is_success() {
-            return Err(Report::http_status(response.status()));
-        }
-
-        fs::create_dir_all(&dir_path)
-            .await
-            .map_err(|_| Report::create_dir(&dir_path))?;
-
-        // Create the output file
-        let mut file = fs::File::create(&file_path)
-            .await
-            .map_err(|err| Report::create_file(&file_path, err))?;
-
-        // Stream the body bytes to the file
-        let mut stream = response.bytes_stream();
-
-        while let Some(chunk) = stream.try_next().await.map_err(Report::body_stream)? {
-            file.write_all(&chunk).await.map_err(Report::write)?;
-        }
-
-        Ok(())
-    };
-
-    tokio::try_join!(url_to_path(manifest_json_url), url_to_path(extension_wasm_url)).map(|_| ())
-}
-
-#[derive(Debug, thiserror::Error)]
-#[error("{0}")]
-pub struct Report(Cow<'static, str>);
-
-impl Report {
-    fn create_dir(path: &Path) -> Self {
-        Report(Cow::Owned(format!("Failed to create directory: {}", path.display())))
-    }
-
-    fn create_file(path: &Path, err: io::Error) -> Self {
-        Report(Cow::Owned(format!(
-            "Failed to create file: {} ({})",
-            path.display(),
-            err
-        )))
-    }
-
-    fn write(err: io::Error) -> Self {
-        Report(err.to_string().into())
-    }
-
-    fn body_stream(err: reqwest::Error) -> Self {
-        Report(Cow::Owned(format!("Failed to read response body: {err}")))
-    }
-
-    fn http(err: reqwest::Error) -> Self {
-        Report(Cow::Owned(format!("HTTP error downloading extension: {err}")))
-    }
-
-    fn http_status(status: reqwest::StatusCode) -> Self {
-        Report(Cow::Owned(format!("HTTP error downloading extension: {status}")))
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use tempfile::tempdir;
@@ -154,7 +46,7 @@ mod tests {
                 version: "1.0.0".parse().unwrap(),
             },
             kind: Kind::FieldResolver(FieldResolver {
-                resolver_directives: vec!["resolver".to_string()],
+                resolver_directives: Some(vec!["resolver".to_string()]),
             }),
             sdk_version: "0.3.0".parse().unwrap(),
             minimum_gateway_version: "0.90.0".parse().unwrap(),

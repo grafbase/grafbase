@@ -4,7 +4,18 @@ This is a proof of concept authentication extension for the Grafbase Gateway tha
 
 ## Installing
 
-Until we complete the Grafbase Extension Registry, build this extension manually and copy the artifacts to a location where the gateway can find them.
+Add the following to your gateway configuration ("grafbase.toml"):
+
+```toml
+[extensions.jwt]
+version = "0.1"
+```
+
+Then run `grafbase extension install`. The extension will be installed in the `grafbase_extensions` directory. That directory must be present when the gateway is started.
+
+## Building from source
+
+Build this extension manually and copy the artifacts to a location where the gateway can find them.
 
 ```bash
 grafbase extension build

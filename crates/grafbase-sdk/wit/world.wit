@@ -224,6 +224,8 @@ interface types {
         // Retrieves the value of a header by name.
         // Returns None if the header does not exist.
         get: func(name: string) -> option<string>;
+        // Return all headers as a list of tuples.
+        entries: func() -> list<tuple<string, string>>;
     }
 
     // A token represents an authenticated user identity.
@@ -243,13 +245,6 @@ interface types {
         set: static func(key: string, value: list<u8>, ttl-ms: option<u64>) -> ();
     }
 
-    record query-elements {
-        // Tuple of directive name and a range over the `elements` list it's associated with.
-        directive-names: list<tuple<string, u32, u32>>,
-        // Represents an element of the query associated with the directive
-        elements: list<directive-site>
-    }
-
     variant authorization-decisions {
         grant-all,
         deny-all(error),
@@ -264,16 +259,30 @@ interface types {
 }
 
 interface directive {
+    record query-elements {
+        // Tuple of directive name and a range over the `elements` list it's associated with.
+        directive-names: list<tuple<string, u32, u32>>,
+        // Represents an element of the query associated with the directive
+        elements: list<query-element>
+    }
+
+    record query-element {
+        site: directive-site,
+        // encoded in CBOR.
+        arguments: list<u8>
+    }
+
     record schema-directive {
         subgraph-name: string,
         name: string,
-        // encoded in CBOR.
         arguments: list<u8>
     }
 
     record field-definition-directive {
         name: string,
-        site: field-definition-directive-site
+        site: field-definition-directive-site,
+        // serialized in CBOR
+        arguments: list<u8>
     }
 
     // Where and how the directive is applied
@@ -290,50 +299,38 @@ interface directive {
     // Site for a directive applied on a OBJECT location
     record object-directive-site {
         object-name: string,
-        // serialized in CBOR
-        arguments: list<u8>
     }
 
     // Site for a directive applied on a FIELD_DEFINITION location
     record field-definition-directive-site {
         parent-type-name: string,
         field-name: string,
-        // serialized in CBOR
-        arguments: list<u8>
     }
 
     // Site for a directive applied on a UNION location
     record union-directive-site {
         union-name: string,
-        // serialized in CBOR
-        arguments: list<u8>
     }
 
     // Site for a directive applied on a INTERFACE location
     record interface-directive-site {
         interface-name: string,
-        // serialized in CBOR
-        arguments: list<u8>
     }
 
     // Site for a directive applied on a ENUM location
     record enum-directive-site {
         enum-name: string,
-        // serialized in CBOR
-        arguments: list<u8>
     }
 
     // Site for a directive applied on a SCALAR location
     record scalar-directive-site {
         scalar-name: string,
-        // serialized in CBOR
-        arguments: list<u8>
     }
 }
 
 interface extension {
-    use directive.{schema-directive, field-definition-directive};
-    use types.{shared-context, error-response, error, field-output, access-log, log-error, nats-auth, nats-client, http-client, http-request, http-response, http-method, http-version, http-error, headers, token, cache, query-elements, authorization-decisions};
+    use directive.{schema-directive, field-definition-directive, query-elements};
+    use types.{shared-context, error-response, error, field-output, access-log, log-error, nats-auth, nats-client, http-client, http-request, http-response, http-method, http-version, http-error, headers, token, cache, authorization-decisions};
 
     // initialization function called to set up the wasm extension
     // if an error happens here, the gateway will refuse to continue.
@@ -346,7 +343,7 @@ interface extension {
     // for each input and each edges inside we return a result<list<u8>, error>,
     // serialized data with an error.
     resolve-field: func(
-       context: shared-context,
+       headers: headers,
        subgraph-name: string,
        directive: field-definition-directive,
        inputs: list<list<u8>>
@@ -354,7 +351,7 @@ interface extension {
 
     // initializes a new subscription stream
     resolve-subscription: func(
-        context: shared-context,
+        headers: headers,
         subgraph-name: string,
         directive: field-definition-directive,
     ) -> result<_, error>;
@@ -367,7 +364,6 @@ interface extension {
     ) -> result<token, error-response>;
 
     authorize-query: func(
-        context: shared-context,
         elements: query-elements
     ) -> result<authorization-decisions, error-response>;
 }

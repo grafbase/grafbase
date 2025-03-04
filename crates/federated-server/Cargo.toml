@@ -36,6 +36,7 @@ rolling-logger.workspace = true
 runtime.workspace = true
 runtime-local = { workspace = true, features = ["wasi", "redis"] }
 runtime-noop.workspace = true
+semver.workspace = true
 serde.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["signal", "time", "net"] }

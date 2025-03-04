@@ -70,7 +70,7 @@ impl Context<'_> {
         for (ix, extension) in ctx.federated_graph.extensions.iter().enumerate() {
             let extension_id = federated_graph::ExtensionId::from(ix);
             for directive in &extension.schema_directives {
-                let (id, _) = ctx.ingest_extension_directive(
+                let id = ctx.ingest_extension_directive(
                     SchemaLocation::SchemaDirective(directive.subgraph_id),
                     directive.subgraph_id,
                     extension_id,

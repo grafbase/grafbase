@@ -60,14 +60,10 @@ fn invalid_location() {
             .try_build()
             .await;
 
-        // insta::assert_debug_snapshot!(result.err(), @r#"
-        // Some(
-        //     "At Query for the extension 'echo-1.0.0' directive @echo: InputValueSet can only be used in directive applied on FIELD_DEFINITION, but found on OBJECT",
-        // )
-        // "#);
-        // FIXME: Today we only read extension directives on fields...
         insta::assert_debug_snapshot!(result.err(), @r#"
-        None
+        Some(
+            "At Query for the extension 'echo-1.0.0' directive @echo: InputValueSet can only be used in directive applied on FIELD_DEFINITION, but found on OBJECT",
+        )
         "#);
     });
 }

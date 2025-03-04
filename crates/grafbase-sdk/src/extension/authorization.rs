@@ -1,7 +1,6 @@
 use crate::{
     component::AnyExtension,
     types::{AuthorizationDecisions, ErrorResponse, QueryElements},
-    SharedContext,
 };
 
 use super::Extension;
@@ -18,7 +17,6 @@ pub trait Authorizer: Extension {
     /// only interface fields are used.
     fn authorize_query<'a>(
         &'a mut self,
-        context: SharedContext,
         elements: QueryElements<'a>,
     ) -> Result<impl Into<AuthorizationDecisions>, ErrorResponse>;
 }
@@ -30,10 +28,9 @@ pub fn register<T: Authorizer>() {
     impl<T: Authorizer> AnyExtension for Proxy<T> {
         fn authorize_query<'a>(
             &'a mut self,
-            context: SharedContext,
             elements: QueryElements<'a>,
         ) -> Result<AuthorizationDecisions, ErrorResponse> {
-            Authorizer::authorize_query(&mut self.0, context, elements).map(Into::into)
+            Authorizer::authorize_query(&mut self.0, elements).map(Into::into)
         }
     }
 

@@ -6,7 +6,7 @@ use federated_graph::link::LinkDirective;
 
 use super::{
     BuildError, Context, ExtensionDirectiveArgumentsError, ExtensionDirectiveId, ExtensionDirectiveLocationError,
-    ExtensionDirectiveRecord, FieldSetRecord, GraphContext, SchemaLocation,
+    ExtensionDirectiveRecord, GraphContext, SchemaLocation,
 };
 
 const GRAFBASE_SPEC_URL: &str = "https://specs.grafbase.com/grafbase";
@@ -124,7 +124,7 @@ impl GraphContext<'_> {
         extension_id: federated_graph::ExtensionId,
         name: federated_graph::StringId,
         arguments: &Option<Vec<(federated_graph::StringId, federated_graph::Value)>>,
-    ) -> Result<(ExtensionDirectiveId, FieldSetRecord), BuildError> {
+    ) -> Result<ExtensionDirectiveId, BuildError> {
         let directive_name_id = self.get_or_insert_str(name);
         let directive_name = &self.ctx.federated_graph[name];
 
@@ -145,6 +145,11 @@ impl GraphContext<'_> {
             });
         };
 
+        let kind = self
+            .ctx
+            .extension_catalog
+            .get_directive_kind(self[extension_id].catalog_id, directive_name);
+
         let cynic_location = location.to_cynic_location();
         if definition
             .locations()
@@ -159,7 +164,7 @@ impl GraphContext<'_> {
                 },
             )));
         }
-        let (argument_ids, requirements) = self
+        let (argument_ids, requirements_record) = self
             .coerce_extension_directive_arguments(location, &sdl, definition, arguments)
             .map_err(|err| {
                 BuildError::ExtensionDirectiveArgumentsError(Box::new(ExtensionDirectiveArgumentsError {
@@ -176,10 +181,12 @@ impl GraphContext<'_> {
             subgraph_id: self.subgraphs[subgraph_id],
             extension_id: self[extension_id].catalog_id,
             name_id: directive_name_id,
+            kind,
             argument_ids,
+            requirements_record,
         };
         self.graph.extension_directives.push(record);
         let id = (self.graph.extension_directives.len() - 1).into();
-        Ok((id, requirements))
+        Ok(id)
     }
 }

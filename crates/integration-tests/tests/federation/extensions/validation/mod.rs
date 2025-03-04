@@ -15,7 +15,7 @@ use integration_tests::{
     federation::{EngineExt, TestExtension, TestExtensionBuilder, TestExtensionConfig},
     runtime,
 };
-use runtime::{error::PartialGraphqlError, extension::ExtensionFieldDirective, hooks::DynHookContext};
+use runtime::{error::PartialGraphqlError, extension::ExtensionFieldDirective};
 
 #[derive(Default)]
 pub struct EchoExt {
@@ -39,7 +39,7 @@ impl TestExtensionBuilder for EchoExt {
     fn config(&self) -> TestExtensionConfig {
         TestExtensionConfig {
             kind: extension_catalog::Kind::FieldResolver(extension_catalog::FieldResolver {
-                resolver_directives: vec!["echo".to_string()],
+                resolver_directives: Some(vec!["echo".to_string()]),
             }),
             sdl: Some(self.sdl),
         }
@@ -63,7 +63,7 @@ struct EchoInstance {
 impl TestExtension for EchoInstance {
     async fn resolve<'a>(
         &self,
-        _context: &DynHookContext,
+        _: http::HeaderMap,
         directive: ExtensionFieldDirective<'a, serde_json::Value>,
         inputs: Vec<serde_json::Value>,
     ) -> Result<Vec<Result<serde_json::Value, PartialGraphqlError>>, PartialGraphqlError> {

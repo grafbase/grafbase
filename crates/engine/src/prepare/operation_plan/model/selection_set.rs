@@ -22,7 +22,7 @@ impl<'a> SubgraphSelectionSet<'a> {
         self.item
             .data_field_ids_ordered_by_type_conditions_then_position
             .into_iter()
-            .filter(|id| self.ctx.plan.query_modifications.subgraph_request_data_fields[*id])
+            .filter(|id| self.ctx.plan.query_modifications.included_subgraph_request_data_fields[*id])
             .map(move |id| SubgraphField { ctx, id })
     }
 

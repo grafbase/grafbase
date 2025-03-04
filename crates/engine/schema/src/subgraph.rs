@@ -1,8 +1,8 @@
 use std::time::Duration;
 
-use walker::Walk;
+use walker::{Iter, Walk};
 
-use crate::{ExtensionDirective, ExtensionDirectiveId, RetryConfig, Subgraph};
+use crate::{ExtensionDirective, ExtensionDirectiveId, HeaderRule, RetryConfig, Subgraph};
 
 impl<'a> Subgraph<'a> {
     pub fn name(&self) -> &'a str {
@@ -20,6 +20,16 @@ impl<'a> Subgraph<'a> {
             Subgraph::GraphqlEndpoint(endpoint) => (endpoint.schema, endpoint.as_ref().schema_directive_ids.as_slice()),
             Subgraph::Introspection(schema) => (*schema, EMPTY_DIRECTIVES),
             Subgraph::Virtual(virt) => (virt.schema, virt.as_ref().schema_directive_ids.as_slice()),
+        };
+
+        ids.walk(schema)
+    }
+
+    pub fn header_rules(&self) -> impl Iter<Item = HeaderRule<'a>> + 'a {
+        let (schema, ids) = match self {
+            Subgraph::GraphqlEndpoint(endpoint) => (endpoint.schema, endpoint.header_rule_ids),
+            Subgraph::Virtual(virtual_subgraph) => (virtual_subgraph.schema, virtual_subgraph.header_rule_ids),
+            Subgraph::Introspection(_) => unreachable!(),
         };
 
         ids.walk(schema)

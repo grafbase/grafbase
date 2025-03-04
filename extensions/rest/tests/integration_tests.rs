@@ -87,14 +87,16 @@ fn subgraph(rest_endpoint: &str) -> ExtensionOnlySubgraph {
         .unwrap()
 }
 
-async fn mock_server(listen_path: &str, template: ResponseTemplate) -> MockServer {
+async fn mock_server(listen_path: &str, template: ResponseTemplate, headers: &[(&str, &str)]) -> MockServer {
     let mock_server = MockServer::builder().start().await;
 
-    Mock::given(method("GET"))
-        .and(path(listen_path))
-        .respond_with(template)
-        .mount(&mock_server)
-        .await;
+    let mut mock = Mock::given(method("GET")).and(path(listen_path));
+
+    for (key, value) in headers {
+        mock = mock.and(header(*key, *value));
+    }
+
+    mock.respond_with(template).mount(&mock_server).await;
 
     mock_server
 }
@@ -117,7 +119,7 @@ async fn get_many() {
     ]);
 
     let template = ResponseTemplate::new(200).set_body_json(response_body);
-    let mock_server = mock_server("/users", template).await;
+    let mock_server = mock_server("/users", template, &[]).await;
     let subgraph = subgraph(&mock_server.uri());
 
     let config = TestConfig::builder()
@@ -163,6 +165,80 @@ async fn get_many() {
 }
 
 #[tokio::test]
+async fn with_required_headers() {
+    let response_body = json!([
+        {
+            "id": "1",
+            "name": "John Doe",
+            "age": 30,
+            "nonimportant": 2,
+        },
+        {
+            "id": "2",
+            "name": "Jane Doe",
+            "age": 25,
+            "nonimportant": 3,
+        }
+    ]);
+
+    let template = ResponseTemplate::new(200).set_body_json(response_body);
+    let mock_server = mock_server("/users", template, &[("Authorization", "Bearer token")]).await;
+    let subgraph = subgraph(&mock_server.uri());
+
+    let config = indoc! {r#"
+        [[subgraphs.test.headers]]
+        rule = "forward"
+        name = "Authorization"
+    "#};
+
+    let config = TestConfig::builder()
+        .with_cli(CLI_PATH)
+        .with_gateway(GATEWAY_PATH)
+        .with_subgraph(subgraph)
+        .enable_networking()
+        .build(config)
+        .unwrap();
+
+    let runner = TestRunner::new(config).await.unwrap();
+
+    let query = indoc! {r#"
+        query {
+          users {
+            id
+            name
+            age
+          }
+        }
+    "#};
+
+    let result: serde_json::Value = runner
+        .graphql_query(query)
+        .with_header("Authorization", "Bearer token")
+        .send()
+        .await
+        .unwrap();
+
+    insta::assert_json_snapshot!(result, @r#"
+    {
+      "data": {
+        "users": [
+          {
+            "id": "1",
+            "name": "John Doe",
+            "age": 30
+          },
+          {
+            "id": "2",
+            "name": "Jane Doe",
+            "age": 25
+          }
+        ]
+      }
+    }
+    "#);
+}
+
+#[tokio::test]
 async fn get_one() {
     let response_body = json!({
         "id": "1",
@@ -171,7 +247,7 @@ async fn get_one() {
     });
 
     let template = ResponseTemplate::new(200).set_body_json(response_body);
-    let mock_server = mock_server("/users/1", template).await;
+    let mock_server = mock_server("/users/1", template, &[]).await;
     let subgraph = subgraph(&mock_server.uri());
 
     let config = TestConfig::builder()
@@ -214,7 +290,7 @@ async fn get_one_missing() {
     let response_body = json!(null);
 
     let template = ResponseTemplate::new(200).set_body_json(response_body);
-    let mock_server = mock_server("/users/1", template).await;
+    let mock_server = mock_server("/users/1", template, &[]).await;
     let subgraph = subgraph(&mock_server.uri());
 
     let config = TestConfig::builder()
@@ -257,7 +333,7 @@ async fn get_one_nested_null() {
     });
 
     let template = ResponseTemplate::new(200).set_body_json(response_body);
-    let mock_server = mock_server("/users/1", template).await;
+    let mock_server = mock_server("/users/1", template, &[]).await;
     let subgraph = subgraph(&mock_server.uri());
 
     let config = TestConfig::builder()
@@ -311,7 +387,7 @@ async fn get_some_fields() {
     ]);
 
     let template = ResponseTemplate::new(200).set_body_json(response_body);
-    let mock_server = mock_server("/users", template).await;
+    let mock_server = mock_server("/users", template, &[]).await;
     let subgraph = subgraph(&mock_server.uri());
 
     let config = TestConfig::builder()
@@ -361,7 +437,7 @@ async fn faulty_response() {
     ]);
 
     let template = ResponseTemplate::new(200).set_body_json(response_body);
-    let mock_server = mock_server("/users", template).await;
+    let mock_server = mock_server("/users", template, &[]).await;
     let subgraph = subgraph(&mock_server.uri());
 
     let config = TestConfig::builder()
@@ -413,7 +489,7 @@ async fn faulty_response() {
 #[tokio::test]
 async fn internal_server_error() {
     let template = ResponseTemplate::new(500);
-    let mock_server = mock_server("/users", template).await;
+    let mock_server = mock_server("/users", template, &[]).await;
     let subgraph = subgraph(&mock_server.uri());
 
     let config = TestConfig::builder()
@@ -469,7 +545,7 @@ async fn with_bad_jq() {
     ]);
 
     let template = ResponseTemplate::new(200).set_body_json(response_body);
-    let mock_server = mock_server("/users", template).await;
+    let mock_server = mock_server("/users", template, &[]).await;
     let extension_path = std::env::current_dir().unwrap().join("build");
     let path_str = format!("file://{}", extension_path.display());
     let rest_endpoint = mock_server.uri();
@@ -559,7 +635,7 @@ async fn with_path_in_the_endpoint() {
     ]);
 
     let template = ResponseTemplate::new(200).set_body_json(response_body);
-    let mock_server = mock_server("/admin/users", template).await;
+    let mock_server = mock_server("/admin/users", template, &[]).await;
     let extension_path = std::env::current_dir().unwrap().join("build");
     let path_str = format!("file://{}", extension_path.display());
     let rest_endpoint = mock_server.uri();

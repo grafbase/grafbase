@@ -6,7 +6,7 @@ use integration_tests::{
     federation::{EngineExt, TestExtension, TestExtensionBuilder, TestExtensionConfig},
     runtime,
 };
-use runtime::{error::PartialGraphqlError, extension::ExtensionFieldDirective, hooks::DynHookContext};
+use runtime::{error::PartialGraphqlError, extension::ExtensionFieldDirective};
 
 #[derive(Default, Clone)]
 pub struct GreetExt {
@@ -30,7 +30,7 @@ impl TestExtensionBuilder for GreetExt {
     fn config(&self) -> TestExtensionConfig {
         TestExtensionConfig {
             kind: extension_catalog::Kind::FieldResolver(extension_catalog::FieldResolver {
-                resolver_directives: vec!["rest".to_string()],
+                resolver_directives: None,
             }),
             sdl: self.sdl.or(Some(
                 r#"
@@ -49,7 +49,7 @@ impl TestExtensionBuilder for GreetExt {
 impl TestExtension for GreetExt {
     async fn resolve<'a>(
         &self,
-        _context: &DynHookContext,
+        _headers: http::HeaderMap,
         _directive: ExtensionFieldDirective<'a, serde_json::Value>,
         inputs: Vec<serde_json::Value>,
     ) -> Result<Vec<Result<serde_json::Value, PartialGraphqlError>>, PartialGraphqlError> {

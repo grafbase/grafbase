@@ -77,6 +77,7 @@ pub(crate) struct RequestErrorResponse {
 
 pub(crate) struct RefusedRequestResponse {
     status: http::StatusCode,
+    operation_attributes: Option<GraphqlOperationAttributes>,
     errors: Vec<GraphqlError>,
     error_code_counter: ErrorCodeCounter,
     extensions: Option<ResponseExtensions>,
@@ -98,7 +99,7 @@ impl<OnOperationResponseHookOutput> Response<OnOperationResponseHookOutput> {
         let errors = errors
             .into_iter()
             .map(|error| {
-                let error = error.into();
+                let error: GraphqlError = error.into();
                 error_code_counter.increment(error.code);
                 error
             })
@@ -106,16 +107,14 @@ impl<OnOperationResponseHookOutput> Response<OnOperationResponseHookOutput> {
 
         Self::RefusedRequest(RefusedRequestResponse {
             status,
+            operation_attributes: None,
             errors,
             error_code_counter,
             extensions: None,
         })
     }
 
-    pub(crate) fn request_error<E>(
-        operation_attributes: Option<GraphqlOperationAttributes>,
-        errors: impl IntoIterator<Item = E>,
-    ) -> Self
+    pub(crate) fn request_error<E>(errors: impl IntoIterator<Item = E>) -> Self
     where
         E: Into<GraphqlError>,
     {
@@ -123,7 +122,7 @@ impl<OnOperationResponseHookOutput> Response<OnOperationResponseHookOutput> {
         let error_code_counter = ErrorCodeCounter::from_errors(&errors);
 
         Self::RequestError(RequestErrorResponse {
-            operation_attributes,
+            operation_attributes: None,
             errors,
             error_code_counter,
             extensions: None,
@@ -185,10 +184,25 @@ impl<OnOperationResponseHookOutput> Response<OnOperationResponseHookOutput> {
 
     pub(crate) fn operation_attributes(&self) -> Option<&GraphqlOperationAttributes> {
         match self {
-            Self::RefusedRequest(_) => None,
+            Self::RefusedRequest(resp) => resp.operation_attributes.as_ref(),
             Self::RequestError(resp) => resp.operation_attributes.as_ref(),
             Self::Executed(resp) => Some(&resp.operation_attributes),
         }
+    }
+
+    pub(crate) fn with_operation_attributes(mut self, operation_attributes: GraphqlOperationAttributes) -> Self {
+        match &mut self {
+            Self::RefusedRequest(resp) => {
+                resp.operation_attributes = Some(operation_attributes);
+            }
+            Self::RequestError(resp) => {
+                resp.operation_attributes = Some(operation_attributes);
+            }
+            Self::Executed(resp) => {
+                resp.operation_attributes = operation_attributes;
+            }
+        }
+        self
     }
 
     pub(crate) fn graphql_status(&self) -> GraphqlResponseStatus {

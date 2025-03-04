@@ -109,7 +109,7 @@ mod tests {
                 version: "1.0.0".parse().unwrap(),
             },
             kind: extension::Kind::FieldResolver(extension::FieldResolver {
-                resolver_directives: vec!["@test".to_owned()],
+                resolver_directives: Some(vec!["@test".to_owned()]),
             }),
             sdk_version: "1.0.0".parse().unwrap(),
             minimum_gateway_version: "1.0.0".parse().unwrap(),

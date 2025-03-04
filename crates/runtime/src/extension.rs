@@ -1,4 +1,6 @@
-use engine_schema::{Definition, FieldDefinition, Subgraph};
+use std::future::Future;
+
+use engine_schema::{DirectiveSite, FieldDefinition, Subgraph};
 use extension_catalog::ExtensionId;
 use futures_util::stream::BoxStream;
 
@@ -24,8 +26,8 @@ pub struct ExtensionFieldDirective<'a, Args> {
     pub arguments: Args,
 }
 
-pub struct DirectiveSite<'a, A> {
-    pub definition: Definition<'a>,
+pub struct QueryElement<'a, A> {
+    pub site: DirectiveSite<'a>,
     pub arguments: A,
 }
 
@@ -47,7 +49,7 @@ pub trait ExtensionRuntime: Send + Sync + 'static {
     /// shared, without lock, so it's only temporarily available.
     fn resolve_field<'ctx, 'resp, 'f>(
         &'ctx self,
-        context: &'ctx Self::SharedContext,
+        headers: http::HeaderMap,
         directive: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
         inputs: impl Iterator<Item: Anything<'resp>> + Send,
     ) -> impl Future<Output = Result<Vec<Result<Data, PartialGraphqlError>>, PartialGraphqlError>> + Send + 'f
@@ -56,7 +58,7 @@ pub trait ExtensionRuntime: Send + Sync + 'static {
 
     fn resolve_subscription<'ctx, 'f>(
         &'ctx self,
-        context: &'ctx Self::SharedContext,
+        headers: http::HeaderMap,
         directive: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
     ) -> impl Future<Output = Result<BoxStream<'f, Result<Data, PartialGraphqlError>>, PartialGraphqlError>> + Send + 'f
     where
@@ -69,19 +71,16 @@ pub trait ExtensionRuntime: Send + Sync + 'static {
         _headers: http::HeaderMap,
     ) -> impl Future<Output = Result<(http::HeaderMap, Vec<u8>), ErrorResponse>> + Send;
 
-    fn authorize_query<'ctx>(
+    fn authorize_query<'ctx, 'fut, Groups, QueryElements, Arguments>(
         &'ctx self,
-        context: &'ctx Self::SharedContext,
         extension_id: ExtensionId,
-        // (directive name, (definition, arguments))
-        elements: impl IntoIterator<
-            Item = (
-                &'ctx str,
-                impl IntoIterator<Item = DirectiveSite<'ctx, impl Anything<'ctx>>> + Send + 'ctx,
-            ),
-        > + Send
-        + 'ctx,
-    ) -> impl Future<Output = Result<AuthorizationDecisions, ErrorResponse>> + Send;
+        elements_grouped_by_directive_name: Groups,
+    ) -> impl Future<Output = Result<AuthorizationDecisions, ErrorResponse>> + Send + 'fut
+    where
+        'ctx: 'fut,
+        Groups: ExactSizeIterator<Item = (&'ctx str, QueryElements)>,
+        QueryElements: ExactSizeIterator<Item = QueryElement<'ctx, Arguments>>,
+        Arguments: Anything<'ctx>;
 }
 
 #[allow(refining_impl_trait)]
@@ -91,7 +90,7 @@ impl ExtensionRuntime for () {
     #[allow(clippy::manual_async_fn)]
     fn resolve_field<'ctx, 'resp, 'f>(
         &'ctx self,
-        _context: &'ctx Self::SharedContext,
+        _headers: http::HeaderMap,
         _directive_context: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
         _inputs: impl Iterator<Item: Anything<'resp>> + Send,
     ) -> impl Future<Output = Result<Vec<Result<Data, PartialGraphqlError>>, PartialGraphqlError>> + Send + 'f
@@ -115,7 +114,7 @@ impl ExtensionRuntime for () {
 
     async fn resolve_subscription<'ctx, 'f>(
         &'ctx self,
-        _: &'ctx Self::SharedContext,
+        _: http::HeaderMap,
         _: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
     ) -> Result<BoxStream<'f, Result<Data, PartialGraphqlError>>, PartialGraphqlError>
     where
@@ -124,21 +123,23 @@ impl ExtensionRuntime for () {
         Err(PartialGraphqlError::internal_extension_error())
     }
 
-    async fn authorize_query<'ctx>(
+    #[allow(clippy::manual_async_fn)]
+    fn authorize_query<'ctx, 'fut, Groups, QueryElements, Arguments>(
         &'ctx self,
-        _context: &'ctx Self::SharedContext,
-        _extension_id: ExtensionId,
-        _elements: impl IntoIterator<
-            Item = (
-                &'ctx str,
-                impl IntoIterator<Item = DirectiveSite<'ctx, impl Anything<'ctx>>> + Send + 'ctx,
-            ),
-        > + Send
-        + 'ctx,
-    ) -> Result<AuthorizationDecisions, ErrorResponse> {
-        Err(ErrorResponse {
-            status: http::StatusCode::INTERNAL_SERVER_ERROR,
-            errors: vec![PartialGraphqlError::internal_extension_error()],
-        })
+        _: ExtensionId,
+        _: Groups,
+    ) -> impl Future<Output = Result<AuthorizationDecisions, ErrorResponse>> + Send + 'fut
+    where
+        'ctx: 'fut,
+        Groups: ExactSizeIterator<Item = (&'ctx str, QueryElements)>,
+        QueryElements: ExactSizeIterator<Item = QueryElement<'ctx, Arguments>>,
+        Arguments: Anything<'ctx>,
+    {
+        async {
+            Err(ErrorResponse {
+                status: http::StatusCode::INTERNAL_SERVER_ERROR,
+                errors: vec![PartialGraphqlError::internal_extension_error()],
+            })
+        }
     }
 }

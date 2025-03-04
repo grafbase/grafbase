@@ -3,6 +3,7 @@ pub mod authorization;
 pub mod resolver;
 
 pub use authentication::Authenticator;
+pub use authorization::Authorizer;
 pub use resolver::Resolver;
 
 use crate::types::Configuration;

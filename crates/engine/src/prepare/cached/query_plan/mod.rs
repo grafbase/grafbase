@@ -5,13 +5,14 @@ mod prelude;
 mod required_field_set;
 mod selection_set;
 
+use extension_catalog::ExtensionId;
 pub(crate) use field::*;
 pub(crate) use generated::*;
-use id_newtypes::BitSet;
+use id_newtypes::{BitSet, IdRange};
 pub(crate) use modifier::*;
 use query_solver::TypeConditionSharedVecId;
 pub(crate) use required_field_set::*;
-use schema::CompositeTypeId;
+use schema::{CompositeTypeId, StringId};
 
 use super::FieldShapeId;
 
@@ -48,8 +49,7 @@ pub(crate) struct QueryPlan {
     #[indexed_by(TypeConditionSharedVecId)]
     pub shared_type_conditions: Vec<CompositeTypeId>,
 
-    // deduplicated by rule
-    pub query_modifiers: Vec<QueryModifierRecord>,
+    pub query_modifiers: QueryModifiers,
     pub response_modifier_definitions: Vec<ResponseModifierDefinitionRecord>,
 
     #[indexed_by(ResponseObjectSetDefinitionId)]
@@ -61,5 +61,27 @@ pub(crate) struct QueryPlan {
     pub field_shape_refs: Vec<FieldShapeId>,
 }
 
+#[derive(Default, id_derives::IndexedFields, serde::Serialize, serde::Deserialize)]
+pub(crate) struct QueryModifiers {
+    pub native_ids: IdRange<QueryModifierId>,
+    pub by_extension: Vec<(
+        ExtensionId,
+        IdRange<QueryModifierByDirectiveGroupId>,
+        IdRange<QueryModifierId>,
+    )>,
+    #[indexed_by(QueryModifierByDirectiveGroupId)]
+    pub by_directive: Vec<(StringId, IdRange<QueryModifierId>)>,
+    // deduplicated by rule
+    // sorted by ExtensionId, directive name
+    #[indexed_by(QueryModifierId)]
+    pub records: Vec<QueryModifierRecord>,
+}
+
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-pub struct FieldShapeRefId(u32);
+pub(crate) struct FieldShapeRefId(u32);
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
+pub(crate) struct QueryModifierByDirectiveGroupId(u32);
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
+pub(crate) struct QueryModifierId(u32);

@@ -1,6 +1,6 @@
 use std::{borrow::Cow, time::Duration};
 
-use futures_util::{FutureExt, future::BoxFuture};
+use futures_util::{future::BoxFuture, FutureExt};
 
 /// A simplified cache trait with just enough features to handle entity caching
 pub trait EntityCache: Send + Sync {

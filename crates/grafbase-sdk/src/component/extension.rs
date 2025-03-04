@@ -4,7 +4,7 @@ use crate::{
         AuthorizationDecisions, Error, ErrorResponse, FieldDefinitionDirective, FieldInputs, FieldOutput,
         QueryElements, Token,
     },
-    wit::{Headers, SharedContext},
+    wit::Headers,
 };
 
 #[allow(unused_variables)]
@@ -17,7 +17,7 @@ pub(crate) trait AnyExtension {
 
     fn resolve_field(
         &mut self,
-        context: SharedContext,
+        headers: Headers,
         subgraph_name: &str,
         directive: FieldDefinitionDirective<'_>,
         inputs: FieldInputs,
@@ -27,18 +27,14 @@ pub(crate) trait AnyExtension {
 
     fn resolve_subscription(
         &mut self,
-        context: SharedContext,
+        headers: Headers,
         subgraph_name: &str,
         directive: FieldDefinitionDirective<'_>,
     ) -> Result<Box<dyn Subscription>, Error> {
         Err("Resolver extension not initialized correctly.".into())
     }
 
-    fn authorize_query<'a>(
-        &'a mut self,
-        context: SharedContext,
-        elements: QueryElements<'a>,
-    ) -> Result<AuthorizationDecisions, ErrorResponse> {
+    fn authorize_query<'a>(&'a mut self, elements: QueryElements<'a>) -> Result<AuthorizationDecisions, ErrorResponse> {
         Err(ErrorResponse::internal_server_error(
             "Authorization extension not initialized correctly.",
         ))
