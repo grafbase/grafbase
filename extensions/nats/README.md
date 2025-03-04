@@ -8,6 +8,17 @@ This extension expects JSON payloads. If you use a different format, fork the ex
 
 ## Installing
 
+Add the following to your gateway configuration ("grafbase.toml"):
+
+```toml
+[extensions.nats]
+version = "0.2"
+```
+
+Then run `grafbase extension install`. The extension will be installed in the `grafbase_extensions` directory. That directory must be present when the gateway is started.
+
+## Building from source
+
 Build this extension manually and copy the artifacts to a location where the gateway can find them until we complete the Grafbase Extension Registry.
 
 ```bash
