@@ -1,19 +1,10 @@
 use grafbase_sdk::{
-    Error, Extension, Headers, ResolverExtension, Subscription,
+    Error, Headers, ResolverExtension, Subscription,
     types::{Configuration, FieldDefinitionDirective, FieldInputs, FieldOutput, SchemaDirective},
 };
 
 #[derive(ResolverExtension)]
 struct EchoExtension;
-
-impl Extension for EchoExtension {
-    fn new(
-        _schema_directives: Vec<SchemaDirective>,
-        _config: Configuration,
-    ) -> Result<Self, Box<dyn std::error::Error>> {
-        Ok(Self)
-    }
-}
 
 #[derive(serde::Deserialize)]
 struct HelloArguments {
@@ -21,6 +12,10 @@ struct HelloArguments {
 }
 
 impl ResolverExtension for EchoExtension {
+    fn new(_schema_directives: Vec<SchemaDirective>, _config: Configuration) -> Result<Self, Error> {
+        Ok(Self)
+    }
+
     fn resolve_field(
         &mut self,
         _headers: Headers,

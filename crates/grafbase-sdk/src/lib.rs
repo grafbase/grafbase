@@ -15,7 +15,7 @@ pub mod test;
 pub mod types;
 
 pub use component::SdkError;
-pub use extension::{resolver::Subscription, AuthenticationExtension, Extension, ResolverExtension};
+pub use extension::{resolver::Subscription, AuthenticationExtension, ResolverExtension};
 pub use grafbase_sdk_derive::{AuthenticationExtension, ResolverExtension};
 pub use host::{AuthorizationContext, Headers};
 pub use types::{Error, ErrorResponse, Token};

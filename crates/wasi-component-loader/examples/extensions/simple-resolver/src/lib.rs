@@ -1,5 +1,5 @@
 use grafbase_sdk::{
-    Error, Extension, Headers, ResolverExtension, Subscription,
+    Error, Headers, ResolverExtension, Subscription,
     types::{Configuration, FieldDefinitionDirective, FieldInputs, FieldOutput, SchemaDirective},
 };
 
@@ -24,8 +24,8 @@ struct ResponseOutput<'a> {
     name: &'a str,
 }
 
-impl Extension for SimpleResolver {
-    fn new(schema_directives: Vec<SchemaDirective>, _: Configuration) -> Result<Self, Box<dyn std::error::Error>> {
+impl ResolverExtension for SimpleResolver {
+    fn new(schema_directives: Vec<SchemaDirective>, _: Configuration) -> Result<Self, Error> {
         let schema_args = schema_directives
             .into_iter()
             .filter(|d| d.name() == "schemaArgs")
@@ -35,9 +35,7 @@ impl Extension for SimpleResolver {
 
         Ok(Self { schema_args })
     }
-}
 
-impl ResolverExtension for SimpleResolver {
     fn resolve_field(
         &mut self,
         _: Headers,

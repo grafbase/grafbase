@@ -1,10 +1,8 @@
 use crate::{
     component::AnyExtension,
     host::Headers,
-    types::{Error, FieldDefinitionDirective, FieldInputs, FieldOutput},
+    types::{Configuration, Error, FieldDefinitionDirective, FieldInputs, FieldOutput, SchemaDirective},
 };
-
-use super::Extension;
 
 /// A trait that extends `Extension` and provides functionality for resolving fields.
 ///
@@ -12,7 +10,21 @@ use super::Extension;
 /// the given context, directive, and inputs. This is typically used in scenarios where field
 /// resolution logic needs to be encapsulated within a resolver object, allowing for modular
 /// and reusable code design.
-pub trait ResolverExtension: Extension {
+pub trait ResolverExtension: Sized + 'static {
+    /// Creates a new instance of the extension.
+    ///
+    /// # Arguments
+    ///
+    /// * `schema_directives` - List of all schema directives for all subgraphs defined in this
+    ///                         extension.
+    /// * `config` - The configuration for this extension, from the gateway TOML.
+    ///
+    /// # Returns
+    ///
+    /// Returns an instance of this resolver. Upon failure, every call to this extension will fail.
+    /// Similar to how every request to a subgraph would fail if it went down.
+    fn new(schema_directives: Vec<SchemaDirective>, config: Configuration) -> Result<Self, Error>;
+
     /// Resolves a field value based on the given context, directive, definition, and inputs.
     ///
     /// # Arguments
@@ -134,7 +146,7 @@ pub fn register<T: ResolverExtension>() {
     }
 
     crate::component::register_extension(Box::new(|schema_directives, config| {
-        <T as Extension>::new(schema_directives, config)
+        <T as ResolverExtension>::new(schema_directives, config)
             .map(|extension| Box::new(Proxy(extension)) as Box<dyn AnyExtension>)
     }))
 }

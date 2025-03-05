@@ -1,9 +1,9 @@
 use std::time::Duration;
 
 use grafbase_sdk::{
-    AuthenticationExtension, Extension, Headers,
+    AuthenticationExtension, Error, Headers,
     host_io::cache::{self, CachedItem},
-    types::{Configuration, ErrorResponse, SchemaDirective, StatusCode, Token},
+    types::{Configuration, ErrorResponse, StatusCode, Token},
 };
 
 #[derive(AuthenticationExtension)]
@@ -21,18 +21,13 @@ struct Jwks {
     key: String,
 }
 
-impl Extension for CachingProvider {
-    fn new(_: Vec<SchemaDirective>, config: Configuration) -> Result<Self, Box<dyn std::error::Error>>
-    where
-        Self: Sized,
-    {
+impl AuthenticationExtension for CachingProvider {
+    fn new(config: Configuration) -> Result<Self, Error> {
         let config: ProviderConfig = config.deserialize()?;
 
         Ok(Self { config })
     }
-}
 
-impl AuthenticationExtension for CachingProvider {
     fn authenticate(&mut self, headers: Headers) -> Result<Token, ErrorResponse> {
         let header = headers
             .get("Authorization")

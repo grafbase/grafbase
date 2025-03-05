@@ -1,18 +1,16 @@
 use grafbase_sdk::{
     types::{Configuration, SchemaDirective, FieldDefinitionDirective, FieldInputs, FieldOutput},
-    Error, Extension, Headers, ResolverExtension, Subscription
+    Error, Headers, ResolverExtension, Subscription
 };
 
 #[derive(ResolverExtension)]
 struct {{name}};
 
-impl Extension for {{name}} {
-    fn new(schema_directives: Vec<SchemaDirective>, config: Configuration) -> Result<Self, Box<dyn std::error::Error>> {
+impl ResolverExtension for {{name}} {
+    fn new(schema_directives: Vec<SchemaDirective>, config: Configuration) -> Result<Self, Error> {
         Ok(Self)
     }
-}
 
-impl ResolverExtension for {{name}} {
     fn resolve_field(
         &mut self,
         headers: Headers,

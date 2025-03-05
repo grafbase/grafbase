@@ -20,7 +20,7 @@ pub use http::StatusCode;
 pub use serde::Deserialize;
 use serde::Serialize;
 
-use crate::{cbor, wit};
+use crate::{cbor, wit, SdkError};
 
 /// Output responses from the field resolver.
 pub struct FieldOutput(wit::FieldOutput);
@@ -79,13 +79,13 @@ impl FieldInputs {
     }
 
     /// Deserializes each byte slice in the `FieldInputs` to a collection of items.
-    pub fn deserialize<'de, T>(&'de self) -> Result<Vec<T>, Box<dyn std::error::Error>>
+    pub fn deserialize<'de, T>(&'de self) -> Result<Vec<T>, SdkError>
     where
         T: Deserialize<'de>,
     {
         self.0
             .iter()
-            .map(|input| cbor::from_slice(input).map_err(|e| Box::new(e) as Box<dyn std::error::Error>))
+            .map(|input| cbor::from_slice(input).map_err(Into::into))
             .collect()
     }
 }
@@ -104,11 +104,11 @@ impl Configuration {
     /// # Errors
     ///
     /// Returns an error if deserialization fails.
-    pub fn deserialize<'de, T>(&'de self) -> Result<T, Box<dyn std::error::Error>>
+    pub fn deserialize<'de, T>(&'de self) -> Result<T, SdkError>
     where
         T: Deserialize<'de>,
     {
-        cbor::from_slice(&self.0).map_err(|e| Box::new(e) as Box<dyn std::error::Error>)
+        cbor::from_slice(&self.0).map_err(Into::into)
     }
 }
 
