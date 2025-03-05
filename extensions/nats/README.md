@@ -10,7 +10,7 @@ Keep in mind that if using the JetStream API, the messages are acknowledged auto
 
 ## Installing
 
-Add the following to your gateway configuration ("grafbase.toml"):
+Add the following to your Grafbase Gateway configuration file:
 
 ```toml
 [extensions.nats]
@@ -47,9 +47,6 @@ path = "/path/to/build"
 Configure the extension through the Grafbase Gateway configuration file:
 
 ```toml
-[extensions.nats]
-path = "/path/to/build"
-
 [[extensions.nats.config.endpoint]]
 name = "default"
 servers = ["nats://localhost:4222"]

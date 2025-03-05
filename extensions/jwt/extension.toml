@@ -2,7 +2,7 @@
 name = "jwt"
 version = "0.2.0"
 kind = "auth"
-description = "JWT authenticator extension."
+description = "JWT authentication extension."
 
 [permissions]
 network = true
