@@ -47,10 +47,10 @@ struct DoubleEchoInstance;
 
 #[async_trait::async_trait]
 impl TestExtension for DoubleEchoInstance {
-    async fn resolve<'a>(
+    async fn resolve_field(
         &self,
         _headers: http::HeaderMap,
-        directive: ExtensionFieldDirective<'a, serde_json::Value>,
+        directive: ExtensionFieldDirective<'_, serde_json::Value>,
         inputs: Vec<serde_json::Value>,
     ) -> Result<Vec<Result<serde_json::Value, PartialGraphqlError>>, PartialGraphqlError> {
         match directive.name {

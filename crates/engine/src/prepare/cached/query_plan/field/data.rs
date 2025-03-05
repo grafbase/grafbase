@@ -29,7 +29,7 @@ pub(crate) struct PartitionDataFieldRecord {
     pub required_fields_record_by_supergraph: RequiredFieldSetRecord,
     /// All field shape ids generated for this field
     pub shape_ids: IdRange<FieldShapeRefId>,
-    pub parent_field_output_id: Option<ResponseObjectSetDefinitionId>,
+    pub parent_field_id: Option<PartitionDataFieldId>,
     pub output_id: Option<ResponseObjectSetDefinitionId>,
     pub selection_set_record: PartitionSelectionSetRecord,
     /// Whether __typename should be requested from the subgraph for this selection set
@@ -75,6 +75,9 @@ impl<'a> PartitionDataField<'a> {
     }
     pub(crate) fn required_fields_by_supergraph(&self) -> RequiredFieldSet<'a> {
         self.as_ref().required_fields_record_by_supergraph.walk(self.ctx)
+    }
+    pub(crate) fn parent_field(&self) -> Option<PartitionDataField<'a>> {
+        self.as_ref().parent_field_id.walk(self.ctx)
     }
 }
 

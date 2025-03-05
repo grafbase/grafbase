@@ -33,7 +33,7 @@ impl Default for TestExtensions {
 
 impl TestExtensions {
     #[track_caller]
-    pub fn push_extension<Builder: TestExtensionBuilder + Sized + Default>(&mut self, builder: Builder) {
+    pub fn push_extension<Builder: TestExtensionBuilder + Sized>(&mut self, builder: Builder) {
         let config = builder.config();
 
         let manifest = extension_catalog::Manifest {
@@ -61,7 +61,7 @@ impl TestExtensions {
             manifest,
             wasm_path: Default::default(),
         });
-        self.builders.insert(id, Box::new(Builder::default()));
+        self.builders.insert(id, Box::new(builder));
     }
 
     pub fn catalog(&self) -> &ExtensionCatalog {
@@ -125,13 +125,21 @@ pub trait TestExtensionBuilder: Send + Sync + 'static {
 #[allow(unused_variables)] // makes it easier to copy-paste relevant functions
 #[async_trait::async_trait]
 pub trait TestExtension: Send + Sync + 'static {
-    async fn resolve<'a>(
+    async fn resolve_field(
         &self,
         headers: http::HeaderMap,
-        directive: ExtensionFieldDirective<'a, serde_json::Value>,
+        directive: ExtensionFieldDirective<'_, serde_json::Value>,
         inputs: Vec<serde_json::Value>,
     ) -> Result<Vec<Result<serde_json::Value, PartialGraphqlError>>, PartialGraphqlError> {
         Err(PartialGraphqlError::internal_extension_error())
+    }
+
+    #[allow(clippy::manual_async_fn)]
+    async fn authorize_query<'a>(
+        &self,
+        elements_grouped_by_directive_name: Vec<(&str, Vec<QueryElement<'_, serde_json::Value>>)>,
+    ) -> Result<AuthorizationDecisions, ErrorResponse> {
+        Err(PartialGraphqlError::internal_extension_error().into())
     }
 }
 
@@ -161,7 +169,7 @@ impl runtime::extension::ExtensionRuntime for TestExtensions {
         async move {
             let instance = self.get_subgraph_isntance(extension_id, subgraph).await;
             instance
-                .resolve(
+                .resolve_field(
                     headers,
                     ExtensionFieldDirective {
                         extension_id,
@@ -206,8 +214,8 @@ impl runtime::extension::ExtensionRuntime for TestExtensions {
     #[allow(clippy::manual_async_fn)]
     fn authorize_query<'ctx, 'fut, Groups, QueryElements, Arguments>(
         &'ctx self,
-        _extension_id: ExtensionId,
-        _elements_grouped_by_directive_name: Groups,
+        extension_id: ExtensionId,
+        elements_grouped_by_directive_name: Groups,
     ) -> impl Future<Output = Result<AuthorizationDecisions, ErrorResponse>> + Send + 'fut
     where
         'ctx: 'fut,
@@ -215,6 +223,24 @@ impl runtime::extension::ExtensionRuntime for TestExtensions {
         QueryElements: ExactSizeIterator<Item = QueryElement<'ctx, Arguments>>,
         Arguments: Anything<'ctx>,
     {
-        async { unimplemented!() }
+        let elements_grouped_by_directive_name = elements_grouped_by_directive_name
+            .into_iter()
+            .map(|(name, elements)| {
+                (
+                    name,
+                    elements
+                        .into_iter()
+                        .map(|element| QueryElement {
+                            site: element.site,
+                            arguments: serde_json::to_value(element.arguments).unwrap(),
+                        })
+                        .collect(),
+                )
+            })
+            .collect();
+        async move {
+            let instance = self.get_global_instance(extension_id).await;
+            instance.authorize_query(elements_grouped_by_directive_name).await
+        }
     }
 }

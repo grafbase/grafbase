@@ -22,6 +22,7 @@ pub enum ExtensionDirectiveKind {
     #[default]
     Unknown,
     FieldResolver,
+    Authorization,
 }
 
 impl ExtensionDirectiveKind {
@@ -30,7 +31,7 @@ impl ExtensionDirectiveKind {
     }
 
     pub fn is_authorization(&self) -> bool {
-        false
+        matches!(self, Self::Authorization)
     }
 }
 
@@ -63,6 +64,17 @@ impl ExtensionCatalog {
                         .unwrap_or_default()
                 } else {
                     ExtensionDirectiveKind::FieldResolver
+                }
+            }
+            extension::Kind::Authorization(AuthorizationKind { directives }) => {
+                if let Some(directives) = directives {
+                    directives
+                        .iter()
+                        .any(|dir| dir == name)
+                        .then_some(ExtensionDirectiveKind::Authorization)
+                        .unwrap_or_default()
+                } else {
+                    ExtensionDirectiveKind::Authorization
                 }
             }
             extension::Kind::Authenticator(_) => Default::default(),

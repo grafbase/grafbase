@@ -64,7 +64,10 @@ impl<'a> Solver<'a> {
                     field_shape_refs: Vec::new(),
                     data_fields: Vec::with_capacity(solution.fields.len()),
                     typename_fields: Vec::new(),
-                    response_object_set_definitions: Vec::new(),
+                    root_response_object_set_id: ResponseObjectSetDefinitionId::from(0usize),
+                    response_object_set_definitions: vec![ResponseObjectSetDefinitionRecord {
+                        ty_id: operation.root_object_id.into(),
+                    }],
                     response_data_fields: Default::default(),
                     response_typename_fields: Default::default(),
                     query_modifiers: Default::default(),
@@ -83,13 +86,7 @@ impl<'a> Solver<'a> {
     }
 
     pub(super) fn solve(mut self) -> SolveResult<CachedOperation> {
-        self.output
-            .query_plan
-            .response_object_set_definitions
-            .push(super::ResponseObjectSetDefinitionRecord {
-                ty_id: self.output.operation.root_object_id.into(),
-            });
-        let root_input_id = ResponseObjectSetDefinitionId::from(0usize);
+        let root_input_id = self.output.query_plan.root_response_object_set_id;
         self.query_field_node_to_response_object_set
             .insert(self.solution.root_node_ix, root_input_id);
 
@@ -243,10 +240,15 @@ impl<'a> Solver<'a> {
 
         for field in fields_buffer.drain(..) {
             match field {
-                NestedField::Data { mut record, node_ix } => {
-                    record.parent_field_output_id = response_object_set_id;
-                    self.node_to_field[node_ix.index()] =
-                        Some(PartitionFieldId::Data(self.output.query_plan.data_fields.len().into()));
+                NestedField::Data { record, node_ix } => {
+                    let field_id = self.output.query_plan.data_fields.len().into();
+                    self.node_to_field[node_ix.index()] = Some(PartitionFieldId::Data(field_id));
+                    for nested in &mut self.output.query_plan[record
+                        .selection_set_record
+                        .data_field_ids_ordered_by_type_conditions_then_position]
+                    {
+                        nested.parent_field_id = Some(field_id);
+                    }
                     self.output.query_plan.data_fields.push(record);
                 }
                 NestedField::Typename { record, node_ix } => {
@@ -380,7 +382,7 @@ fn to_data_field_or_typename_field(
             required_fields_record: RequiredFieldSetRecord::default(),
             required_fields_record_by_supergraph: Default::default(),
             output_id: None,
-            parent_field_output_id: None,
+            parent_field_id: None,
             selection_set_requires_typename: match definition_id.walk(schema).ty().definition() {
                 // If we may encounter an inaccessible object, we have to detect it
                 Definition::Union(union) => union.has_inaccessible_member(),
