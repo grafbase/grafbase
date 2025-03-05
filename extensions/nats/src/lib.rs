@@ -87,7 +87,7 @@ impl Resolver for Nats {
         }
     }
 
-    fn subscription_identifier(
+    fn subscription_key(
         &mut self,
         _: &Headers,
         subgraph_name: &str,
@@ -99,7 +99,7 @@ impl Resolver for Nats {
         identifier.extend(directive.name().as_bytes());
         identifier.extend(directive.site().parent_type_name().as_bytes());
         identifier.extend(directive.site().field_name().as_bytes());
-        identifier.extend(directive.raw_arguments());
+        identifier.extend(directive.arguments_bytes());
 
         Some(identifier)
     }

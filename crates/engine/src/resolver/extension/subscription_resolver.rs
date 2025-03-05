@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use futures::{TryStreamExt, future::BoxFuture, stream::BoxStream};
 use futures_lite::StreamExt;
 use runtime::{error::PartialGraphqlError, extension::Data};
@@ -9,9 +11,12 @@ use crate::{
     response::GraphqlError,
 };
 
+type ExtensionSubscriptionFuture<'ctx> =
+    BoxFuture<'ctx, Result<BoxStream<'ctx, Result<Arc<Data>, PartialGraphqlError>>, PartialGraphqlError>>;
+
 pub(in crate::resolver) struct SubscriptionResolverExtensionRequest<'ctx> {
     pub(super) field: SubgraphField<'ctx>,
-    pub(super) future: BoxFuture<'ctx, Result<BoxStream<'ctx, Result<Data, PartialGraphqlError>>, PartialGraphqlError>>,
+    pub(super) future: ExtensionSubscriptionFuture<'ctx>,
 }
 
 impl<'ctx> SubscriptionResolverExtensionRequest<'ctx> {
@@ -36,15 +41,15 @@ impl<'ctx> SubscriptionResolverExtensionRequest<'ctx> {
                 let input_id = subscription_response.input_id();
                 let response = subscription_response.as_mut();
 
-                match data {
+                match &*data {
                     Data::JsonBytes(bytes) => {
-                        tracing::debug!("Received:\n{}", String::from_utf8_lossy(&bytes));
+                        tracing::debug!("Received:\n{}", String::from_utf8_lossy(bytes));
 
                         response
                             .seed(&ctx, input_id)
                             .deserialize_field_as_entity(
                                 field.subgraph_response_key_str(),
-                                &mut sonic_rs::Deserializer::from_slice(&bytes),
+                                &mut sonic_rs::Deserializer::from_slice(bytes),
                             )
                             .map_err(|err| {
                                 tracing::error!("Failed to deserialize subgraph response: {}", err);
@@ -54,7 +59,7 @@ impl<'ctx> SubscriptionResolverExtensionRequest<'ctx> {
                     Data::CborBytes(bytes) => {
                         tracing::debug!(
                             "Received:\n{}",
-                            minicbor_serde::from_slice(&bytes)
+                            minicbor_serde::from_slice(bytes)
                                 .ok()
                                 .and_then(|v: sonic_rs::Value| sonic_rs::to_string_pretty(&v).ok())
                                 .unwrap_or_else(|| "<error>".to_string())
@@ -64,7 +69,7 @@ impl<'ctx> SubscriptionResolverExtensionRequest<'ctx> {
                             .seed(&ctx, input_id)
                             .deserialize_field_as_entity(
                                 field.subgraph_response_key_str(),
-                                &mut minicbor_serde::Deserializer::new(&bytes),
+                                &mut minicbor_serde::Deserializer::new(bytes),
                             )
                             .map_err(|err| {
                                 tracing::error!("Failed to deserialize subgraph response: {}", err);

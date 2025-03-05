@@ -52,10 +52,10 @@ pub trait Resolver: Extension {
         directive: FieldDefinitionDirective<'_>,
     ) -> Result<Box<dyn Subscription>, Error>;
 
-    /// Returns an identifier for a subscription field.
+    /// Returns a key for a subscription field.
     ///
     /// This method is used to identify unique subscription channels or connections
-    /// when managing multiple active subscriptions. The returned identifier can be
+    /// when managing multiple active subscriptions. The returned key can be
     /// used to track, manage, or deduplicate subscriptions.
     ///
     /// # Arguments
@@ -66,10 +66,10 @@ pub trait Resolver: Extension {
     ///
     /// # Returns
     ///
-    /// Returns an `Option<String>` containing either a unique identifier for this
+    /// Returns an `Option<Vec<u8>>` containing either a unique key for this
     /// subscription or `None` if no deduplication is desired.
     #[allow(unused)]
-    fn subscription_identifier(
+    fn subscription_key(
         &mut self,
         headers: &Headers,
         subgraph_name: &str,
@@ -118,13 +118,13 @@ pub fn register<T: Resolver>() {
             Resolver::resolve_subscription(&mut self.0, headers, subgraph_name, directive)
         }
 
-        fn subscription_identifier(
+        fn subscription_key(
             &mut self,
             headers: &Headers,
             subgraph_name: &str,
             directive: FieldDefinitionDirective<'_>,
         ) -> Result<Option<Vec<u8>>, Error> {
-            Ok(Resolver::subscription_identifier(
+            Ok(Resolver::subscription_key(
                 &mut self.0,
                 headers,
                 subgraph_name,

@@ -1,4 +1,4 @@
-use std::future::Future;
+use std::{future::Future, sync::Arc};
 
 use engine_schema::{DirectiveSite, FieldDefinition, Subgraph};
 use extension_catalog::ExtensionId;
@@ -60,7 +60,7 @@ pub trait ExtensionRuntime: Send + Sync + 'static {
         &'ctx self,
         headers: http::HeaderMap,
         directive: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
-    ) -> impl Future<Output = Result<BoxStream<'f, Result<Data, PartialGraphqlError>>, PartialGraphqlError>> + Send + 'f
+    ) -> impl Future<Output = Result<BoxStream<'f, Result<Arc<Data>, PartialGraphqlError>>, PartialGraphqlError>> + Send + 'f
     where
         'ctx: 'f;
 
@@ -116,7 +116,7 @@ impl ExtensionRuntime for () {
         &'ctx self,
         _: http::HeaderMap,
         _: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
-    ) -> Result<BoxStream<'f, Result<Data, PartialGraphqlError>>, PartialGraphqlError>
+    ) -> Result<BoxStream<'f, Result<Arc<Data>, PartialGraphqlError>>, PartialGraphqlError>
     where
         'ctx: 'f,
     {

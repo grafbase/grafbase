@@ -34,7 +34,7 @@ pub(crate) trait AnyExtension {
         Err("Resolver extension not initialized correctly.".into())
     }
 
-    fn subscription_identifier(
+    fn subscription_key(
         &mut self,
         headers: &Headers,
         subgraph_name: &str,

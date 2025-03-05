@@ -349,12 +349,12 @@ interface extension {
        inputs: list<list<u8>>
     ) -> result<field-output, error>;
 
-    // This function generates a unique identifier for a GraphQL subscription.
+    // This function generates a unique key for a GraphQL subscription.
     //
-    // The identifier is used to share the same subscription between multiple clients.
+    // The key is used to share the same subscription between multiple clients.
     // The extension decides what makes a subscription unique. If the value is none,
     // then it is considered not unique and every subscriber gets their own subscription.
-    subscription-identifier: func(
+    subscription-key: func(
         headers: headers,
         subgraph-name: string,
         directive: field-definition-directive,

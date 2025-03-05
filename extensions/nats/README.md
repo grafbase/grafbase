@@ -1,10 +1,12 @@
 # NATS Extension
 
-This is a NATS extension for the Grafbase Gateway. It allows you to define NATS endpoints and map them to GraphQL fields.
+This is a NATS extension for the Grafbase Gateway. It allows you to publish and subscribe, use the NATS key-value store and use the NATS request-response system.
 
 This serves as an example of how to build extensions dealing with pub/sub services, but it also functions as a fully operational extension you can use right now, or use as a starting point for your own extensions.
 
 This extension expects JSON payloads. If you use a different format, fork the extension and modify it to fit your needs. For static formats such as Protobuf, we recommend customizing the extension.
+
+Keep in mind that if using the JetStream API, the messages are acknowledged automatically and it might not be what you want in all cases.
 
 ## Installing
 
@@ -12,12 +14,12 @@ Add the following to your gateway configuration ("grafbase.toml"):
 
 ```toml
 [extensions.nats]
-version = "0.2"
+version = "0.3"
 ```
 
 Then run `grafbase extension install`. The extension will be installed in the `grafbase_extensions` directory. That directory must be present when the gateway is started.
 
-## Building from source
+## Building From Source
 
 Build this extension manually and copy the artifacts to a location where the gateway can find them until we complete the Grafbase Extension Registry.
 

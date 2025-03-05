@@ -58,11 +58,8 @@ impl<'a> FieldDefinitionDirective<'a> {
         minicbor_serde::from_slice(&self.0.arguments).map_err(Into::into)
     }
 
-    /// Returns the raw arguments byte array from the directive.
-    ///
-    /// This provides access to the underlying CBOR-encoded argument data
-    /// for cases where direct access to the bytes is needed.
-    pub fn raw_arguments(&self) -> &[u8] {
+    ///Serialized arguments as sent by the host. There is no guarantee on the bytes.
+    pub fn arguments_bytes(&self) -> &[u8] {
         &self.0.arguments
     }
 

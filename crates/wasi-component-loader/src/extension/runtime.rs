@@ -29,7 +29,7 @@ use tokio_stream::wrappers::BroadcastStream;
 #[derive(Clone, Default)]
 pub struct ExtensionsWasiRuntime(Option<Arc<WasiExtensionsInner>>);
 
-type Subscriptions = Arc<DashMap<Vec<u8>, Option<broadcast::Sender<Result<Data, PartialGraphqlError>>>>>;
+type Subscriptions = Arc<DashMap<Vec<u8>, broadcast::Sender<Result<Arc<Data>, PartialGraphqlError>>>>;
 
 struct WasiExtensionsInner {
     instance_pools: HashMap<ExtensionPoolId, Pool>,
@@ -73,7 +73,7 @@ impl ExtensionsWasiRuntime {
         headers: http::HeaderMap,
         subgraph: Subgraph<'ctx>,
         directive: wit::FieldDefinitionDirective<'ctx>,
-    ) -> Result<BoxStream<'f, Result<Data, PartialGraphqlError>>, PartialGraphqlError>
+    ) -> Result<BoxStream<'f, Result<Arc<Data>, PartialGraphqlError>>, PartialGraphqlError>
     where
         'ctx: 'f,
     {
@@ -110,7 +110,7 @@ impl ExtensionsWasiRuntime {
             for item in item.outputs {
                 match item {
                     Ok(item) => {
-                        tail.push_back(Ok(Data::CborBytes(item)));
+                        tail.push_back(Ok(Arc::new(Data::CborBytes(item))));
                     }
                     Err(error) => {
                         let error = error.into_graphql_error(PartialErrorCode::InternalServerError);
@@ -134,21 +134,20 @@ impl ExtensionsWasiRuntime {
         identifier: Vec<u8>,
         subgraph: Subgraph<'ctx>,
         directive: wit::FieldDefinitionDirective<'ctx>,
-    ) -> Result<BoxStream<'f, Result<Data, PartialGraphqlError>>, PartialGraphqlError>
+    ) -> Result<BoxStream<'f, Result<Arc<Data>, PartialGraphqlError>>, PartialGraphqlError>
     where
         'ctx: 'f,
     {
-        let channels = self
+        let subscriptions = self
             .0
             .as_ref()
             .ok_or_else(PartialGraphqlError::internal_extension_error)?
             .subscriptions
             .clone();
 
-        let receiver = channels
+        let receiver = subscriptions
             .get(&identifier)
             .as_ref()
-            .and_then(|channel| channel.as_ref())
             .map(|channel| channel.subscribe());
 
         let (sender, receiver) = match receiver {
@@ -168,7 +167,7 @@ impl ExtensionsWasiRuntime {
             }
         };
 
-        channels.insert(identifier.clone(), Some(sender.clone()));
+        let sender = subscriptions.entry(identifier.clone()).or_insert(sender).to_owned();
 
         instance
             .resolve_subscription(headers, subgraph.name(), directive)
@@ -176,11 +175,11 @@ impl ExtensionsWasiRuntime {
             .map_err(|err| err.into_graphql_error(PartialErrorCode::ExtensionError))?;
 
         tokio::spawn(async move {
-            let mut deadge = false;
+            let mut registerations_closed = false;
 
             loop {
                 let item = loop {
-                    if deadge && sender.receiver_count() == 0 {
+                    if registerations_closed && sender.receiver_count() == 0 {
                         return;
                     }
 
@@ -195,12 +194,13 @@ impl ExtensionsWasiRuntime {
                         }
                         Ok(None) => {
                             tracing::debug!("subscription ended");
-                            channels.remove(&identifier);
+                            subscriptions.remove(&identifier);
 
                             return;
                         }
                         Err(err) => {
-                            tracing::error!("subscription item error: {}", err);
+                            tracing::error!("subscription item error: {err}");
+                            subscriptions.remove(&identifier);
 
                             return;
                         }
@@ -209,15 +209,19 @@ impl ExtensionsWasiRuntime {
 
                 for item in item.outputs {
                     let data = match item {
-                        Ok(item) => Ok(Data::CborBytes(item)),
+                        Ok(item) => Ok(Arc::new(Data::CborBytes(item))),
                         Err(err) => Err(err.into_graphql_error(PartialErrorCode::InternalServerError)),
                     };
 
                     if sender.send(data).is_err() {
                         tracing::debug!("all subscribers are gone");
-                        channels.remove(&identifier);
+                        subscriptions.remove(&identifier);
 
-                        deadge = true;
+                        if registerations_closed {
+                            return;
+                        }
+
+                        registerations_closed = true;
 
                         break;
                     }
@@ -343,7 +347,7 @@ impl ExtensionRuntime for ExtensionsWasiRuntime {
         &'ctx self,
         headers: http::HeaderMap,
         directive: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
-    ) -> Result<BoxStream<'f, Result<Data, PartialGraphqlError>>, PartialGraphqlError>
+    ) -> Result<BoxStream<'f, Result<Arc<Data>, PartialGraphqlError>>, PartialGraphqlError>
     where
         'ctx: 'f,
     {
@@ -365,14 +369,14 @@ impl ExtensionRuntime for ExtensionsWasiRuntime {
 
         let directive = wit::FieldDefinitionDirective { name, site, arguments };
 
-        let (headers, identifier) = instance
-            .subscription_identifier(headers, subgraph.name(), directive.clone())
+        let (headers, key) = instance
+            .subscription_key(headers, subgraph.name(), directive.clone())
             .await
             .map_err(|err| err.into_graphql_error(PartialErrorCode::ExtensionError))?;
 
-        match identifier {
-            Some(identifier) => {
-                self.resolve_deduplicated_subscription(instance, headers, identifier, subgraph, directive)
+        match key {
+            Some(key) => {
+                self.resolve_deduplicated_subscription(instance, headers, key, subgraph, directive)
                     .await
             }
             None => {
