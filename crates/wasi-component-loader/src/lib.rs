@@ -6,6 +6,10 @@
 //! It is important the compiled WebAssembly code implements at least the minimal required types and interfaces.
 //! More on those on the crate README.
 
+/// The minimum required SDK version for the WebAssembly component. The engine must
+/// refuse to load the component if the SDK version is lower than this.
+pub static MINIMUM_SDK_VERSION: semver::Version = semver::Version::new(0, 8, 0);
+
 mod access_log;
 mod cache;
 mod cbor;

@@ -53,6 +53,7 @@ fn main() -> anyhow::Result<()> {
             config_path: args.config_path().map(|p| p.to_owned()),
             config_hot_reload: args.hot_reload(),
             fetch_method: args.fetch_method()?,
+            gateway_version: std::env!("CARGO_PKG_VERSION").parse().unwrap(),
         };
 
         let server_runtime = server_runtime::build(telemetry.clone());

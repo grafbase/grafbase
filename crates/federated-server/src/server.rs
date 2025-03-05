@@ -12,6 +12,7 @@ mod trusted_documents_client;
 pub(crate) use gateway::CreateExtensionCatalogError;
 use gateway::EngineWatcher;
 pub use graph_fetch_method::GraphFetchMethod;
+use semver::Version;
 pub use state::ServerState;
 
 use runtime_local::wasi::hooks::{self, ComponentLoader, HooksWasi};
@@ -41,6 +42,8 @@ pub struct ServeConfig {
     pub config_hot_reload: bool,
     /// The way of loading the graph for the gateway.
     pub fetch_method: GraphFetchMethod,
+    /// The version is compared against the minimum version in an extension manifest.
+    pub gateway_version: Version,
 }
 
 /// Trait for server runtime.
@@ -83,6 +86,7 @@ pub async fn serve(
         config_path,
         config_hot_reload,
         fetch_method,
+        gateway_version,
     }: ServeConfig,
     server_runtime: impl ServerRuntime,
 ) -> crate::Result<()> {
@@ -96,7 +100,9 @@ pub async fn serve(
 
     let (access_log_sender, access_log_receiver) =
         hooks::create_access_log_channel(config.gateway.access_logs.lossy_log(), pending_logs_counter.clone());
+
     let is_access_log_enabled = config.gateway.access_logs.enabled;
+
     if is_access_log_enabled {
         access_logs::start(&config.gateway.access_logs, access_log_receiver, pending_logs_counter)?;
     }
@@ -120,6 +126,7 @@ pub async fn serve(
         config_hot_reload.then_some(config_path).flatten(),
         hooks.clone(),
         access_log_sender.clone(),
+        gateway_version,
     )
     .await?;
 

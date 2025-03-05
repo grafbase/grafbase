@@ -15,6 +15,7 @@ use runtime::{
     trusted_documents_client::{Client, TrustedDocumentsEnforcementMode},
 };
 use runtime_local::wasi::hooks::{AccessLogSender, HooksWasi};
+use semver::Version;
 use std::{ops::Not, path::PathBuf, sync::Arc};
 use tokio::sync::watch;
 use ulid::Ulid;
@@ -63,6 +64,7 @@ pub(super) async fn generate(
     hot_reload_config_path: Option<PathBuf>,
     hooks: HooksWasi,
     access_log: AccessLogSender,
+    gateway_version: Version,
 ) -> crate::Result<Engine<GatewayRuntime>> {
     let Graph {
         federated_sdl,
@@ -74,7 +76,7 @@ pub(super) async fn generate(
         GraphDefinition::Sdl(federated_sdl) => sdl_graph(federated_sdl),
     };
 
-    let extension_catalog = create_extension_catalog(gateway_config).await?;
+    let extension_catalog = create_extension_catalog(gateway_config, &gateway_version).await?;
 
     let federated_graph =
         FederatedGraph::from_sdl(&federated_sdl).map_err(|e| crate::Error::SchemaValidationError(e.to_string()))?;

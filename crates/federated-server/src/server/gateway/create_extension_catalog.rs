@@ -1,5 +1,6 @@
 use extension_catalog::{EXTENSION_DIR_NAME, Extension, ExtensionCatalog, VersionedManifest};
 use gateway_config::Config;
+use semver::Version;
 use std::{
     env,
     fs::File,
@@ -16,16 +17,23 @@ pub enum Error {
     Io { context: String, err: io::Error },
 }
 
-pub(super) async fn create_extension_catalog(gateway_config: &Config) -> Result<ExtensionCatalog, Error> {
+pub(super) async fn create_extension_catalog(
+    gateway_config: &Config,
+    gateway_version: &Version,
+) -> Result<ExtensionCatalog, Error> {
     let cwd = env::current_dir().map_err(|e| Error::Io {
         context: "Failed to get current directory".to_string(),
         err: e,
     })?;
 
-    create_extension_catalog_impl(gateway_config, &cwd).await
+    create_extension_catalog_impl(gateway_config, &cwd, gateway_version).await
 }
 
-async fn create_extension_catalog_impl(gateway_config: &Config, cwd: &Path) -> Result<ExtensionCatalog, Error> {
+async fn create_extension_catalog_impl(
+    gateway_config: &Config,
+    cwd: &Path,
+    gateway_version: &Version,
+) -> Result<ExtensionCatalog, Error> {
     let mut catalog = ExtensionCatalog::default();
     let extension_configs = gateway_config.extensions.clone().unwrap_or_default();
 
@@ -37,7 +45,7 @@ async fn create_extension_catalog_impl(gateway_config: &Config, cwd: &Path) -> R
 
     for (extension_name, config) in extension_configs.iter() {
         let extension = match config.path() {
-            Some(path) => load_extension_from_path(&cwd.join(path), extension_name)?,
+            Some(path) => load_extension_from_path(&cwd.join(path), extension_name, gateway_version)?,
             None => {
                 let extension_name_path = grafbase_extensions_dir_path.join(extension_name);
                 let mut entries = fs::read_dir(&extension_name_path)
@@ -88,7 +96,7 @@ async fn create_extension_catalog_impl(gateway_config: &Config, cwd: &Path) -> R
                     });
                 };
 
-                load_extension_from_path(&relevant_entry, extension_name)?
+                load_extension_from_path(&relevant_entry, extension_name, gateway_version)?
             }
         };
 
@@ -98,7 +106,11 @@ async fn create_extension_catalog_impl(gateway_config: &Config, cwd: &Path) -> R
     Ok(catalog)
 }
 
-fn load_extension_from_path(path: &std::path::Path, expected_extension_name: &str) -> Result<Extension, Error> {
+fn load_extension_from_path(
+    path: &std::path::Path,
+    expected_extension_name: &str,
+    gateway_version: &Version,
+) -> Result<Extension, Error> {
     let extension_dir = path.read_dir().map_err(|err| Error::LoadExtension {
         path: path.display().to_string(),
         err: format!("Could not read directory: {err}"),
@@ -128,6 +140,29 @@ fn load_extension_from_path(path: &std::path::Path, expected_extension_name: &st
                         path: path.display().to_string(),
                         err: format!("Could not parse manifest json: {err}"),
                     })?;
+
+                if versioned_manifest.minimum_gateway_version() > gateway_version {
+                    return Err(Error::LoadExtension {
+                        path: path.display().to_string(),
+                        err: format!(
+                            "Extension requires gateway version of at least {}. You are running version {}",
+                            versioned_manifest.minimum_gateway_version(),
+                            gateway_version
+                        ),
+                    });
+                }
+
+                if versioned_manifest.sdk_version() < &wasi_component_loader::MINIMUM_SDK_VERSION {
+                    return Err(Error::LoadExtension {
+                        path: path.display().to_string(),
+                        err: format!(
+                            "The gateway requires SDK version of at least {}. The extension is compiled with SDK version {}",
+                            wasi_component_loader::MINIMUM_SDK_VERSION,
+                            versioned_manifest.sdk_version()
+                        ),
+                    });
+                }
+
                 manifest = Some(versioned_manifest);
             }
             other => {
@@ -171,11 +206,11 @@ mod tests {
     use super::*;
     use extension_catalog::{ExtensionCatalog, Manifest};
 
-    fn run_test(cwd: &Path, config: &str) -> Result<ExtensionCatalog, Error> {
+    fn run_test(cwd: &Path, config: &str, gateway_version: &Version) -> Result<ExtensionCatalog, Error> {
         let rt = tokio::runtime::Builder::new_multi_thread().build().unwrap();
         let config = toml::from_str(config).unwrap();
 
-        rt.block_on(create_extension_catalog_impl(&config, cwd))
+        rt.block_on(create_extension_catalog_impl(&config, cwd, gateway_version))
     }
 
     fn make_manifest(name: &str, version: &str) -> VersionedManifest {
@@ -187,7 +222,28 @@ mod tests {
             kind: extension_catalog::Kind::FieldResolver(extension_catalog::FieldResolver {
                 resolver_directives: None,
             }),
-            sdk_version: "0.1.0".parse().unwrap(),
+            sdk_version: "0.8.0".parse().unwrap(),
+            minimum_gateway_version: "0.1.0".parse().unwrap(),
+            description: "my extension".to_owned(),
+            sdl: None,
+            readme: None,
+            homepage_url: None,
+            repository_url: None,
+            license: None,
+            permissions: Default::default(),
+        })
+    }
+
+    fn make_manifest_with_sdk_version(name: &str, version: &str, sdk_version: &str) -> VersionedManifest {
+        VersionedManifest::V1(Manifest {
+            id: extension_catalog::Id {
+                name: name.to_string(),
+                version: version.parse().unwrap(),
+            },
+            kind: extension_catalog::Kind::FieldResolver(extension_catalog::FieldResolver {
+                resolver_directives: None,
+            }),
+            sdk_version: sdk_version.parse().unwrap(),
             minimum_gateway_version: "0.1.0".parse().unwrap(),
             description: "my extension".to_owned(),
             sdl: None,
@@ -208,7 +264,7 @@ mod tests {
 
         let dir = tempfile::tempdir().expect("Failed to create temporary directory");
 
-        let catalog = run_test(dir.path(), config).unwrap();
+        let catalog = run_test(dir.path(), config, &Version::new(0, 0, 0)).unwrap();
 
         assert!(catalog.iter().next().is_none());
     }
@@ -227,7 +283,7 @@ mod tests {
 
         let dir = tempfile::tempdir().expect("Failed to create temporary directory");
 
-        let err = run_test(dir.path(), config).unwrap_err();
+        let err = run_test(dir.path(), config, &Version::new(0, 0, 0)).unwrap_err();
 
         if cfg!(windows) {
             return; // different error message
@@ -279,7 +335,7 @@ mod tests {
         // Create empty extension.wasm file
         std::fs::write(test2_dir.join("extension.wasm"), []).expect("Failed to write extension.wasm");
 
-        let catalog = run_test(dir.path(), config).unwrap();
+        let catalog = run_test(dir.path(), config, &Version::new(0, 1, 0)).unwrap();
 
         let extensions = catalog.iter().map(|ext| &ext.manifest.id).collect::<Vec<_>>();
 
@@ -340,7 +396,7 @@ mod tests {
         // Create empty extension.wasm file
         std::fs::write(test2_dir.join("extension.wasm"), []).expect("Failed to write extension.wasm");
 
-        let catalog = run_test(dir.path(), config).unwrap();
+        let catalog = run_test(dir.path(), config, &Version::new(0, 1, 0)).unwrap();
 
         let extensions = catalog.iter().map(|ext| &ext.manifest.id).collect::<Vec<_>>();
 
@@ -401,7 +457,7 @@ mod tests {
         // Create empty extension.wasm file
         std::fs::write(test2_dir.join("extension.wasm"), []).expect("Failed to write extension.wasm");
 
-        let err = run_test(dir.path(), config).unwrap_err();
+        let err = run_test(dir.path(), config, &Version::new(0, 1, 0)).unwrap_err();
 
         if cfg!(windows) {
             return; // different error message
@@ -412,5 +468,101 @@ mod tests {
             .replace(&dir.path().display().to_string(), "<tmp-dir-path>");
 
         insta::assert_debug_snapshot!(err, @r#""could not load extension at <tmp-dir-path>/grafbase_extensions/test_two: No matching version of the extension found.""#);
+    }
+
+    #[test]
+    fn with_too_old_gateway() {
+        let config = r#"
+           [extensions.test_one]
+           version = "0.1.0"
+
+           [extensions.test_two]
+           version = "0.20.0"
+        "#;
+
+        let dir = tempfile::tempdir().expect("Failed to create temporary directory");
+
+        // Create test1 directory and necessary files
+        let test1_dir = dir.path().join("grafbase_extensions/test_one/0.1.2");
+        std::fs::create_dir_all(&test1_dir).expect("Failed to create test1 directory");
+
+        // Create manifest.json
+        let manifest = make_manifest("test_one", "0.1.0");
+        let manifest_json = serde_json::to_string_pretty(&manifest).expect("Failed to serialize manifest");
+        std::fs::write(test1_dir.join("manifest.json"), manifest_json).expect("Failed to write manifest.json");
+
+        // Create empty extension.wasm file
+        std::fs::write(test1_dir.join("extension.wasm"), []).expect("Failed to write extension.wasm");
+
+        let test2_dir = dir.path().join("grafbase_extensions/test_two/0.20.0");
+        std::fs::create_dir_all(&test2_dir).expect("Failed to create test1 directory");
+
+        // Create manifest.json
+        let manifest = make_manifest("test_two", "0.1.0");
+        let manifest_json = serde_json::to_string_pretty(&manifest).expect("Failed to serialize manifest");
+        std::fs::write(test2_dir.join("manifest.json"), manifest_json).expect("Failed to write manifest.json");
+
+        // Create empty extension.wasm file
+        std::fs::write(test2_dir.join("extension.wasm"), []).expect("Failed to write extension.wasm");
+
+        let err = run_test(dir.path(), config, &Version::new(0, 0, 1)).unwrap_err();
+
+        if cfg!(windows) {
+            return; // different error message
+        }
+
+        let err = err
+            .to_string()
+            .replace(&dir.path().display().to_string(), "<tmp-dir-path>");
+
+        insta::assert_debug_snapshot!(err, @r#""could not load extension at <tmp-dir-path>/grafbase_extensions/test_one/0.1.2: Extension requires gateway version of at least 0.1.0. You are running version 0.0.1""#);
+    }
+
+    #[test]
+    fn with_too_old_sdk() {
+        let config = r#"
+           [extensions.test_one]
+           version = "0.1.0"
+
+           [extensions.test_two]
+           version = "0.20.0"
+        "#;
+
+        let dir = tempfile::tempdir().expect("Failed to create temporary directory");
+
+        // Create test1 directory and necessary files
+        let test1_dir = dir.path().join("grafbase_extensions/test_one/0.1.2");
+        std::fs::create_dir_all(&test1_dir).expect("Failed to create test1 directory");
+
+        // Create manifest.json
+        let manifest = make_manifest_with_sdk_version("test_one", "0.1.0", "0.7.0");
+        let manifest_json = serde_json::to_string_pretty(&manifest).expect("Failed to serialize manifest");
+        std::fs::write(test1_dir.join("manifest.json"), manifest_json).expect("Failed to write manifest.json");
+
+        // Create empty extension.wasm file
+        std::fs::write(test1_dir.join("extension.wasm"), []).expect("Failed to write extension.wasm");
+
+        let test2_dir = dir.path().join("grafbase_extensions/test_two/0.20.0");
+        std::fs::create_dir_all(&test2_dir).expect("Failed to create test1 directory");
+
+        // Create manifest.json
+        let manifest = make_manifest_with_sdk_version("test_two", "0.1.0", "0.7.0");
+        let manifest_json = serde_json::to_string_pretty(&manifest).expect("Failed to serialize manifest");
+        std::fs::write(test2_dir.join("manifest.json"), manifest_json).expect("Failed to write manifest.json");
+
+        // Create empty extension.wasm file
+        std::fs::write(test2_dir.join("extension.wasm"), []).expect("Failed to write extension.wasm");
+
+        let err = run_test(dir.path(), config, &Version::new(0, 1, 0)).unwrap_err();
+
+        if cfg!(windows) {
+            return; // different error message
+        }
+
+        let err = err
+            .to_string()
+            .replace(&dir.path().display().to_string(), "<tmp-dir-path>");
+
+        insta::assert_debug_snapshot!(err, @r#""could not load extension at <tmp-dir-path>/grafbase_extensions/test_one/0.1.2: The gateway requires SDK version of at least 0.8.0. The extension is compiled with SDK version 0.7.0""#);
     }
 }

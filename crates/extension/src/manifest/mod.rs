@@ -1,5 +1,6 @@
 mod v1;
 
+use semver::Version;
 // importing latest version of the manifest.
 pub use v1::*;
 
@@ -8,6 +9,20 @@ pub use v1::*;
 #[serde(tag = "manifest", rename_all = "lowercase")]
 pub enum VersionedManifest {
     V1(v1::Manifest),
+}
+
+impl VersionedManifest {
+    pub fn minimum_gateway_version(&self) -> &Version {
+        match self {
+            VersionedManifest::V1(v1) => &v1.minimum_gateway_version,
+        }
+    }
+
+    pub fn sdk_version(&self) -> &Version {
+        match self {
+            VersionedManifest::V1(v1) => &v1.sdk_version,
+        }
+    }
 }
 
 impl VersionedManifest {

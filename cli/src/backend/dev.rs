@@ -128,6 +128,8 @@ pub async fn start(
         config_hot_reload: false,
         config_receiver,
         fetch_method: GraphFetchMethod::FromSchemaReloadable { sdl_receiver },
+        // TODO: no idea how to do this, we should RFC it but not today.
+        gateway_version: semver::Version::new(9, 9, 9),
     };
 
     let hot_reload_ready_receiver = ready_sender.subscribe();

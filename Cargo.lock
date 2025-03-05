@@ -9774,6 +9774,7 @@ dependencies = [
  "minicbor-serde",
  "reqwest 0.12.12",
  "runtime",
+ "semver 1.0.26",
  "serde",
  "serde_json",
  "strum 0.27.1",

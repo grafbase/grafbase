@@ -3,6 +3,7 @@ use std::{path::PathBuf, sync::Arc};
 use engine::{CachedOperation, Engine};
 use futures_lite::{StreamExt, pin};
 use runtime_local::wasi::hooks::{AccessLogSender, HooksWasi};
+use semver::Version;
 use tokio::{
     sync::{mpsc, watch},
     task::JoinHandle,
@@ -40,6 +41,7 @@ impl GatewayEngineReloader {
         hot_reload_config_path: Option<PathBuf>,
         hooks: HooksWasi,
         access_log: AccessLogSender,
+        gateway_version: Version,
     ) -> crate::Result<Self> {
         let context = Context {
             hot_reload_config_path,
@@ -61,6 +63,7 @@ impl GatewayEngineReloader {
             graph_definition.clone(),
             context.clone(),
             vec![],
+            gateway_version.clone(),
         )
         .await?;
 
@@ -72,7 +75,15 @@ impl GatewayEngineReloader {
             let updates = graph_stream.race(config_stream);
             let current_config = gateway_config.borrow().clone();
 
-            update_loop(updates, current_config, graph_definition, context, engine_sender).await
+            update_loop(
+                updates,
+                current_config,
+                graph_definition,
+                context,
+                engine_sender,
+                gateway_version,
+            )
+            .await
         });
 
         Ok(GatewayEngineReloader { engine_watcher })
@@ -96,6 +107,7 @@ async fn update_loop(
     mut graph_definition: GraphDefinition,
     context: Context,
     engine_sender: EngineSender,
+    gateway_version: Version,
 ) {
     let mut in_progress_reload: Option<JoinHandle<()>> = None;
 
@@ -116,11 +128,20 @@ async fn update_loop(
             let current_config = current_config.clone();
             let graph_definition = graph_definition.clone();
             let engine_sender = engine_sender.clone();
+            let gateway_version = gateway_version.clone();
 
             async move {
                 let operations_to_warm = extract_operations_to_warm(&current_config, &engine_sender);
 
-                match build_new_engine(current_config, graph_definition, context, operations_to_warm).await {
+                match build_new_engine(
+                    current_config,
+                    graph_definition,
+                    context,
+                    operations_to_warm,
+                    gateway_version,
+                )
+                .await
+                {
                     Ok(engine) => {
                         if let Err(err) = engine_sender.send(engine) {
                             tracing::error!("Could not send engine: {err:?}");
@@ -140,6 +161,7 @@ async fn build_new_engine(
     graph_definition: GraphDefinition,
     context: Context,
     operations_to_warm: Vec<Arc<CachedOperation>>,
+    gateway_version: Version,
 ) -> crate::Result<Arc<Engine<GatewayRuntime>>> {
     let engine = gateway::generate(
         graph_definition,
@@ -147,6 +169,7 @@ async fn build_new_engine(
         context.hot_reload_config_path,
         context.hooks,
         context.access_log,
+        gateway_version,
     )
     .await?;
 
