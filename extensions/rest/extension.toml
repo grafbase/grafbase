@@ -1,8 +1,9 @@
 [extension]
 name = "rest"
-version = "0.3.2"
+version = "0.3.3"
 kind = "resolver"
 description = "Declarative REST resolver extension."
+license = "Apache-2.0"
 
 [directives]
 definitions = "definitions.graphql"

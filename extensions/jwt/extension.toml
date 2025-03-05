@@ -1,8 +1,9 @@
 [extension]
 name = "jwt"
-version = "0.2.0"
+version = "0.2.1"
 kind = "auth"
 description = "JWT authentication extension."
+license = "Apache-2.0"
 
 [permissions]
 network = true
