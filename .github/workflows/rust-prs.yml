@@ -163,6 +163,19 @@ jobs:
       - name: Fetch CLI assets
         uses: ./.github/actions/fetch-assets
 
+      # TO BE REMOVED — this is for testing
+      - name: Install aws cli
+        shell: bash
+        run: |
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          sudo ./aws/install --update
+
+      - name: Print aws cli version
+        shell: bash
+        run: |
+          aws --version
+
       - name: Dump inputs for debugging
         shell: bash
         run: |
