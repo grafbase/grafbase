@@ -58,6 +58,11 @@ impl<'a> FieldDefinitionDirective<'a> {
         minicbor_serde::from_slice(&self.0.arguments).map_err(Into::into)
     }
 
+    ///Serialized arguments as sent by the host. There is no guarantee on the bytes.
+    pub fn arguments_bytes(&self) -> &[u8] {
+        &self.0.arguments
+    }
+
     /// The site information for this directive
     #[inline]
     pub fn site(&self) -> FieldDefinitionDirectiveSite<'a> {

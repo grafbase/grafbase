@@ -47,6 +47,16 @@ impl Guest for Component {
         Ok(())
     }
 
+    fn subscription_key(
+        headers: Headers,
+        subgraph_name: String,
+        directive: FieldDefinitionDirective,
+    ) -> Result<Option<Vec<u8>>, Error> {
+        let result = state::extension()?.subscription_key(&headers, &subgraph_name, (&directive).into())?;
+
+        Ok(result)
+    }
+
     fn resolve_next_subscription_item() -> Result<Option<FieldOutput>, Error> {
         Ok(state::subscription()?.next()?.map(Into::into))
     }

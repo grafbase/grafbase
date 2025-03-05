@@ -49,6 +49,35 @@ impl ExtensionInstance {
         Ok(output)
     }
 
+    pub async fn subscription_key(
+        &mut self,
+        headers: http::HeaderMap,
+        subgraph_name: &str,
+        directive: wit::FieldDefinitionDirective<'_>,
+    ) -> Result<(http::HeaderMap, Option<Vec<u8>>), crate::Error> {
+        self.poisoned = true;
+
+        let headers = self.store.data_mut().push_resource(wit::Headers::borrow(headers))?;
+        let headers_rep = headers.rep();
+
+        let key = self
+            .inner
+            .grafbase_sdk_extension()
+            .call_subscription_key(&mut self.store, headers, subgraph_name, directive)
+            .await??;
+
+        let headers = self
+            .store
+            .data_mut()
+            .take_resource::<wit::Headers>(headers_rep)?
+            .into_owned()
+            .unwrap();
+
+        self.poisoned = false;
+
+        Ok((headers, key))
+    }
+
     pub async fn resolve_subscription(
         &mut self,
         headers: http::HeaderMap,

@@ -11,7 +11,7 @@ Add the following to your gateway configuration ("grafbase.toml"):
 
 ```toml
 [extensions.rest]
-version = "0.2"
+version = "0.3"
 ```
 
 Then run `grafbase extension install`. The extension will be installed in the `grafbase_extensions` directory. That directory must be present when the gateway is started.

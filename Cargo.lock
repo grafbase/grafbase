@@ -9781,6 +9781,7 @@ dependencies = [
  "thiserror 2.0.12",
  "time 0.3.37",
  "tokio",
+ "tokio-stream",
  "toml",
  "tracing",
  "ulid",

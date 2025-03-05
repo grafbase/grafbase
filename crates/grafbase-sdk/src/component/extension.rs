@@ -34,6 +34,15 @@ pub(crate) trait AnyExtension {
         Err("Resolver extension not initialized correctly.".into())
     }
 
+    fn subscription_key(
+        &mut self,
+        headers: &Headers,
+        subgraph_name: &str,
+        directive: FieldDefinitionDirective<'_>,
+    ) -> Result<Option<Vec<u8>>, Error> {
+        Err("Resolver extension not initialized correctly.".into())
+    }
+
     fn authorize_query<'a>(&'a mut self, elements: QueryElements<'a>) -> Result<AuthorizationDecisions, ErrorResponse> {
         Err(ErrorResponse::internal_server_error(
             "Authorization extension not initialized correctly.",

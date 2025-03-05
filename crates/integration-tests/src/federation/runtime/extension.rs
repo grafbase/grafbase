@@ -204,7 +204,7 @@ impl runtime::extension::ExtensionRuntime for TestExtensions {
         &'ctx self,
         _: http::HeaderMap,
         _: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
-    ) -> Result<BoxStream<'f, Result<Data, PartialGraphqlError>>, PartialGraphqlError>
+    ) -> Result<BoxStream<'f, Result<Arc<Data>, PartialGraphqlError>>, PartialGraphqlError>
     where
         'ctx: 'f,
     {
