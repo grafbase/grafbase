@@ -100,7 +100,7 @@ To publish messages to a NATS topic, use the `@natsPublish` directive:
 directive @natsPublish(
   provider: String! = "default"
   subject: UrlTemplate!
-  body: Body! = { selection: "*" }
+  body: Body! = { selection: "." }
 ) on FIELD_DEFINITION
 ```
 
