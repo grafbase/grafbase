@@ -158,6 +158,10 @@ jobs:
           CLOUDFLARE_ASSETS_R2_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_ASSETS_R2_SECRET_ACCESS_KEY }}
         run: |
           if [[ $INPUT_PRERELEASE == "false" ]]; then
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip awscliv2.zip
+            sudo ./aws/install --update
+
             cd cli/install
             sed -i 's/{{LATEST_VERSION}}/${{ env.VERSION_BUMP }}/g' gateway
             ./upload.sh gateway
