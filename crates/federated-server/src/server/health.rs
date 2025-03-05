@@ -29,6 +29,7 @@ pub(crate) enum HealthState {
 pub(crate) async fn health<R: engine::Runtime, SR>(
     State(_state): State<ServerState<R, SR>>,
 ) -> (StatusCode, Json<HealthState>) {
+    tracing::debug!("Health check.");
     (StatusCode::OK, Json(HealthState::Healthy))
 }
 
