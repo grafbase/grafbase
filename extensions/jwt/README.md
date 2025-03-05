@@ -4,7 +4,7 @@ This is a proof of concept authentication extension for the Grafbase Gateway tha
 
 ## Installing
 
-Add the following to your gateway configuration ("grafbase.toml"):
+Add the following to your Grafbase Gateway configuration file:
 
 ```toml
 [extensions.jwt]

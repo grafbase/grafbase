@@ -3,9 +3,6 @@ name = "nats"
 version = "0.3.0"
 kind = "resolver"
 description = "Map NATS endpoints to GraphQL fields. Supports regular and JetStream subscriptions, as well as request/reply messaging and the key/value store."
-# homepage_url = "https://example.com/my-extension"
-# repository_url = "https://github.com/my-username/my-extension"
-# license = "MIT"
 
 [directives]
 definitions = "definitions.graphql"
