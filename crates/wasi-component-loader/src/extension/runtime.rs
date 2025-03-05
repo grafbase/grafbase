@@ -72,7 +72,7 @@ impl ExtensionsWasiRuntime {
         mut instance: ExtensionGuard,
         headers: http::HeaderMap,
         subgraph: Subgraph<'ctx>,
-        directive: wit::FieldDefinitionDirective<'ctx>,
+        directive: wit::FieldDefinitionDirective<'_>,
     ) -> Result<BoxStream<'f, Result<Arc<Data>, PartialGraphqlError>>, PartialGraphqlError>
     where
         'ctx: 'f,
@@ -133,7 +133,7 @@ impl ExtensionsWasiRuntime {
         headers: http::HeaderMap,
         identifier: Vec<u8>,
         subgraph: Subgraph<'ctx>,
-        directive: wit::FieldDefinitionDirective<'ctx>,
+        directive: wit::FieldDefinitionDirective<'_>,
     ) -> Result<BoxStream<'f, Result<Arc<Data>, PartialGraphqlError>>, PartialGraphqlError>
     where
         'ctx: 'f,
@@ -303,7 +303,7 @@ impl ExtensionRuntime for ExtensionsWasiRuntime {
                     parent_type_name: field.parent_entity().name(),
                     field_name: field.name(),
                 },
-                arguments: cbor::to_vec(arguments).unwrap(),
+                arguments: &cbor::to_vec(arguments).unwrap(),
             };
 
             let output = instance
@@ -360,7 +360,7 @@ impl ExtensionRuntime for ExtensionsWasiRuntime {
         } = directive;
 
         let mut instance = self.get(ExtensionPoolId::Resolver(extension_id)).await?;
-        let arguments = cbor::to_vec(arguments).unwrap();
+        let arguments = &cbor::to_vec(arguments).unwrap();
 
         let site = wit::FieldDefinitionDirectiveSite {
             parent_type_name: field.parent_entity().name(),

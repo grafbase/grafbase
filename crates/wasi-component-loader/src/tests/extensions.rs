@@ -54,7 +54,7 @@ async fn simple_resolver() {
             parent_type_name: "Query",
             field_name: "cats",
         },
-        arguments: cbor::to_vec(&FieldArgs { name: "cat" }).unwrap(),
+        arguments: &cbor::to_vec(&FieldArgs { name: "cat" }).unwrap(),
     };
 
     let output = loader

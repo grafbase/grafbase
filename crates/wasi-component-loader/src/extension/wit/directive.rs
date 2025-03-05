@@ -45,7 +45,7 @@ pub struct FieldDefinitionDirectiveSite<'a> {
 pub struct FieldDefinitionDirective<'a> {
     pub name: &'a str,
     pub site: FieldDefinitionDirectiveSite<'a>,
-    pub arguments: Vec<u8>,
+    pub arguments: &'a [u8],
 }
 
 #[derive(Debug, ComponentType, Lower)]
