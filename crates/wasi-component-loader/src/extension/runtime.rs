@@ -1,4 +1,5 @@
 mod authorization;
+mod subscription;
 
 use crate::{cbor, extension::ExtensionLoader, resources::SharedResources};
 
@@ -8,7 +9,6 @@ use super::{
     wit,
 };
 use dashmap::DashMap;
-use engine_schema::Subgraph;
 use extension_catalog::ExtensionId;
 use futures::stream::BoxStream;
 use futures_util::{StreamExt, stream};
@@ -18,13 +18,9 @@ use runtime::{
     extension::{AuthorizationDecisions, AuthorizerId, Data, ExtensionFieldDirective, ExtensionRuntime, QueryElement},
     hooks::Anything,
 };
-use std::{
-    collections::{HashMap, VecDeque},
-    future::Future,
-    sync::Arc,
-};
+use std::{collections::HashMap, future::Future, sync::Arc};
+use subscription::{DeduplicatedSubscription, UniqueSubscription};
 use tokio::{sync::broadcast, task::JoinHandle};
-use tokio_stream::wrappers::BroadcastStream;
 
 #[derive(Clone, Default)]
 pub struct ExtensionsWasiRuntime(Option<Arc<WasiExtensionsInner>>);
@@ -65,79 +61,7 @@ impl ExtensionsWasiRuntime {
         Ok(pool.get().await)
     }
 
-    /// Resolves a unique subscription that creates a new subscription stream for each caller.
-    /// This is used when the extension does not provide a way to deduplicate subscription calls.
-    async fn resolve_unique_subscription<'f, 'ctx>(
-        &self,
-        mut instance: ExtensionGuard,
-        headers: http::HeaderMap,
-        subgraph: Subgraph<'ctx>,
-        directive: wit::FieldDefinitionDirective<'_>,
-    ) -> Result<BoxStream<'f, Result<Arc<Data>, PartialGraphqlError>>, PartialGraphqlError>
-    where
-        'ctx: 'f,
-    {
-        instance
-            .resolve_subscription(headers, subgraph.name(), directive)
-            .await
-            .map_err(|err| err.into_graphql_error(PartialErrorCode::ExtensionError))?;
-
-        let stream = stream::unfold((instance, VecDeque::new()), async move |(mut instance, mut tail)| {
-            if let Some(data) = tail.pop_front() {
-                return Some((data, (instance, tail)));
-            }
-
-            let item = loop {
-                match instance.resolve_next_subscription_item().await {
-                    Ok(Some(item)) if item.outputs.is_empty() => {
-                        continue;
-                    }
-                    Ok(Some(item)) => {
-                        tracing::debug!("subscription item resolved");
-                        break item;
-                    }
-                    Ok(None) => {
-                        tracing::debug!("subscription completed");
-                        return None;
-                    }
-                    Err(e) => {
-                        tracing::error!("Error resolving subscription item: {e}");
-                        return Some((Err(PartialGraphqlError::internal_extension_error()), (instance, tail)));
-                    }
-                }
-            };
-
-            for item in item.outputs {
-                match item {
-                    Ok(item) => {
-                        tail.push_back(Ok(Arc::new(Data::CborBytes(item))));
-                    }
-                    Err(error) => {
-                        let error = error.into_graphql_error(PartialErrorCode::InternalServerError);
-                        tail.push_back(Err(error));
-                    }
-                }
-            }
-
-            tail.pop_front().map(|item| (item, (instance, tail)))
-        });
-
-        Ok(Box::pin(stream))
-    }
-
-    /// Resolves a deduplicated subscription that reuses the same subscription stream for multiple callers
-    /// when they use the same identifier. This is more efficient for subscriptions that can be shared.
-    async fn resolve_deduplicated_subscription<'f, 'ctx>(
-        &self,
-        mut instance: ExtensionGuard,
-        headers: http::HeaderMap,
-        identifier: Vec<u8>,
-        subgraph: Subgraph<'ctx>,
-        directive: wit::FieldDefinitionDirective<'_>,
-    ) -> Result<BoxStream<'f, Result<Arc<Data>, PartialGraphqlError>>, PartialGraphqlError>
-    where
-        'ctx: 'f,
-    {
+    fn subscriptions(&self) -> Result<Subscriptions, PartialGraphqlError> {
         let subscriptions = self
             .0
             .as_ref()
@@ -145,96 +69,7 @@ impl ExtensionsWasiRuntime {
             .subscriptions
             .clone();
 
-        let receiver = subscriptions
-            .get(&identifier)
-            .as_ref()
-            .map(|channel| channel.subscribe());
-
-        let (sender, receiver) = match receiver {
-            Some(receiver) => {
-                tracing::debug!("reuse existing channel");
-
-                let stream = BroadcastStream::new(receiver).map(|result| match result {
-                    Ok(data) => data,
-                    Err(_) => Err(PartialGraphqlError::stream_lag()),
-                });
-
-                return Ok(Box::pin(stream));
-            }
-            None => {
-                tracing::debug!("create new channel");
-                broadcast::channel(1000)
-            }
-        };
-
-        let sender = subscriptions.entry(identifier.clone()).or_insert(sender).to_owned();
-
-        instance
-            .resolve_subscription(headers, subgraph.name(), directive)
-            .await
-            .map_err(|err| err.into_graphql_error(PartialErrorCode::ExtensionError))?;
-
-        tokio::spawn(async move {
-            let mut registerations_closed = false;
-
-            loop {
-                let item = loop {
-                    if registerations_closed && sender.receiver_count() == 0 {
-                        return;
-                    }
-
-                    match instance.resolve_next_subscription_item().await {
-                        Ok(Some(item)) if item.outputs.is_empty() => {
-                            continue;
-                        }
-                        Ok(Some(item)) => {
-                            tracing::debug!("subscription item resolved");
-
-                            break item;
-                        }
-                        Ok(None) => {
-                            tracing::debug!("subscription ended");
-                            subscriptions.remove(&identifier);
-
-                            return;
-                        }
-                        Err(err) => {
-                            tracing::error!("subscription item error: {err}");
-                            subscriptions.remove(&identifier);
-
-                            return;
-                        }
-                    }
-                };
-
-                for item in item.outputs {
-                    let data = match item {
-                        Ok(item) => Ok(Arc::new(Data::CborBytes(item))),
-                        Err(err) => Err(err.into_graphql_error(PartialErrorCode::InternalServerError)),
-                    };
-
-                    if sender.send(data).is_err() {
-                        tracing::debug!("all subscribers are gone");
-                        subscriptions.remove(&identifier);
-
-                        if registerations_closed {
-                            return;
-                        }
-
-                        registerations_closed = true;
-
-                        break;
-                    }
-                }
-            }
-        });
-
-        let stream = BroadcastStream::new(receiver).map(|result| match result {
-            Ok(data) => data,
-            Err(_) => Err(PartialGraphqlError::stream_lag()),
-        });
-
-        Ok(Box::pin(stream))
+        Ok(subscriptions)
     }
 }
 
@@ -376,12 +211,26 @@ impl ExtensionRuntime for ExtensionsWasiRuntime {
 
         match key {
             Some(key) => {
-                self.resolve_deduplicated_subscription(instance, headers, key, subgraph, directive)
-                    .await
+                let subscription = DeduplicatedSubscription {
+                    subscriptions: self.subscriptions()?,
+                    instance,
+                    headers,
+                    key,
+                    subgraph,
+                    directive,
+                };
+
+                subscription.resolve().await
             }
             None => {
-                self.resolve_unique_subscription(instance, headers, subgraph, directive)
-                    .await
+                let subscription = UniqueSubscription {
+                    instance,
+                    headers,
+                    subgraph,
+                    directive,
+                };
+
+                subscription.resolve().await
             }
         }
     }
