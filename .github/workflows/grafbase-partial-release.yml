@@ -122,25 +122,6 @@ jobs:
           cargo about generate -c cli/about.toml -o "licenses.html" cli/about.hbs
           find cli/npm -maxdepth 1 -type d -exec cp cli/licenses.html {} \;
 
-      - name: Publish npm
-        shell: bash
-        env:
-          INPUT_PRERELEASE: ${{ inputs.prerelease && 'true' || 'false' }}
-        run: |
-          npm set "//registry.npmjs.org/:_authToken" ${{ secrets.NPM_ACCESS_TOKEN }}
-          cd cli/npm
-          PUBLISH_ARGUMENTS=()
-          if [[ $INPUT_PRERELEASE != "false" ]]; then
-              echo "Running prerelease: $INPUT_PRERELEASE"
-              PUBLISH_ARGUMENTS+=(--tag next)
-          fi
-          (cd aarch64-apple-darwin && npm publish "${PUBLISH_ARGUMENTS[@]}")
-          (cd x86_64-apple-darwin && npm publish "${PUBLISH_ARGUMENTS[@]}")
-          (cd x86_64-pc-windows-msvc && npm publish "${PUBLISH_ARGUMENTS[@]}")
-          (cd x86_64-unknown-linux-musl && npm publish "${PUBLISH_ARGUMENTS[@]}")
-          (cd aarch64-unknown-linux-musl && npm publish "${PUBLISH_ARGUMENTS[@]}")
-          (cd cli && npm publish "${PUBLISH_ARGUMENTS[@]}")
-
       - name: Github release
         id: gh-release-grafbase
         uses: softprops/action-gh-release@v2
@@ -169,3 +150,22 @@ jobs:
             sed -i 's/{{LATEST_VERSION}}/${{ env.VERSION_BUMP }}/g' cli
             ./upload.sh cli
           fi
+
+      - name: Publish npm
+        shell: bash
+        env:
+          INPUT_PRERELEASE: ${{ inputs.prerelease && 'true' || 'false' }}
+        run: |
+          npm set "//registry.npmjs.org/:_authToken" ${{ secrets.NPM_ACCESS_TOKEN }}
+          cd cli/npm
+          PUBLISH_ARGUMENTS=()
+          if [[ $INPUT_PRERELEASE != "false" ]]; then
+              echo "Running prerelease: $INPUT_PRERELEASE"
+              PUBLISH_ARGUMENTS+=(--tag next)
+          fi
+          (cd aarch64-apple-darwin && npm publish "${PUBLISH_ARGUMENTS[@]}")
+          (cd x86_64-apple-darwin && npm publish "${PUBLISH_ARGUMENTS[@]}")
+          (cd x86_64-pc-windows-msvc && npm publish "${PUBLISH_ARGUMENTS[@]}")
+          (cd x86_64-unknown-linux-musl && npm publish "${PUBLISH_ARGUMENTS[@]}")
+          (cd aarch64-unknown-linux-musl && npm publish "${PUBLISH_ARGUMENTS[@]}")
+          (cd cli && npm publish "${PUBLISH_ARGUMENTS[@]}")
