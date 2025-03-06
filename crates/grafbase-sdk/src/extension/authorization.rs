@@ -26,10 +26,10 @@ pub trait AuthorizationExtension: Sized + 'static {
     /// Only elements explicitly mentioned in the query will be taken into account. Authorization
     /// on a object behind an interface won't be called if it's not explicitly mentioned, so if
     /// only interface fields are used.
-    fn authorize_query<'a>(
-        &'a mut self,
+    fn authorize_query(
+        &mut self,
         ctx: AuthorizationContext,
-        elements: QueryElements<'a>,
+        elements: QueryElements<'_>,
     ) -> Result<impl Into<AuthorizationDecisions>, ErrorResponse>;
 }
 
@@ -38,10 +38,10 @@ pub fn register<T: AuthorizationExtension>() {
     pub(super) struct Proxy<T: AuthorizationExtension>(T);
 
     impl<T: AuthorizationExtension> AnyExtension for Proxy<T> {
-        fn authorize_query<'a>(
-            &'a mut self,
+        fn authorize_query(
+            &mut self,
             ctx: AuthorizationContext,
-            elements: QueryElements<'a>,
+            elements: QueryElements<'_>,
         ) -> Result<AuthorizationDecisions, ErrorResponse> {
             AuthorizationExtension::authorize_query(&mut self.0, ctx, elements).map(Into::into)
         }

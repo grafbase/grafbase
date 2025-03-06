@@ -22,6 +22,16 @@ pub fn authentication_extension(input: TokenStream) -> TokenStream {
     expand(authentication_init(ast))
 }
 
+/// A proc macro for generating initialization code for an authentication extension.
+///
+/// Add it on top of the type which implements `Extension` and `Authenticator` traits to
+/// register it as a resolver extension.
+#[proc_macro_derive(AuthorizationExtension)]
+pub fn authorization_extension(input: TokenStream) -> TokenStream {
+    let ast = syn::parse_macro_input!(input as DeriveInput);
+    expand(authorization_init(ast))
+}
+
 fn expand(init: proc_macro2::TokenStream) -> TokenStream {
     let token_stream = quote! {
         #[doc(hidden)]
@@ -51,5 +61,15 @@ fn authentication_init(ast: DeriveInput) -> proc_macro2::TokenStream {
 
     quote! {
         grafbase_sdk::extension::authentication::register::<#name #ty_generics>();
+    }
+}
+
+fn authorization_init(ast: DeriveInput) -> proc_macro2::TokenStream {
+    let name = &ast.ident;
+
+    let (_, ty_generics, _) = ast.generics.split_for_impl();
+
+    quote! {
+        grafbase_sdk::extension::authorization::register::<#name #ty_generics>();
     }
 }

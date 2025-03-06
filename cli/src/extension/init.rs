@@ -12,8 +12,14 @@ struct ResolverTemplate<'a> {
 }
 
 #[derive(askama::Template)]
-#[template(path = "extension/src/auth.rs.template", escape = "none")]
-struct AuthTemplate<'a> {
+#[template(path = "extension/src/authentication.rs.template", escape = "none")]
+struct AuthenticationTemplate<'a> {
+    name: &'a str,
+}
+
+#[derive(askama::Template)]
+#[template(path = "extension/src/authorization.rs.template", escape = "none")]
+struct AuthorizationTemplate<'a> {
     name: &'a str,
 }
 
@@ -95,7 +101,8 @@ fn init_rust_files(path: &Path, extension_type: ExtensionType, extension_name: &
 
     match extension_type {
         ExtensionType::Resolver => ResolverTemplate { name: &struct_name }.write_into(&mut writer)?,
-        ExtensionType::Authentication => AuthTemplate { name: &struct_name }.write_into(&mut writer)?,
+        ExtensionType::Authentication => AuthenticationTemplate { name: &struct_name }.write_into(&mut writer)?,
+        ExtensionType::Authorization => AuthorizationTemplate { name: &struct_name }.write_into(&mut writer)?,
     }
 
     let tests_path = path.join("tests");

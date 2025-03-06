@@ -1,3 +1,4 @@
+mod authorization;
 mod install;
 mod publish;
 mod update;
@@ -460,6 +461,8 @@ fn build_auth() {
         .env("RUSTFLAGS", "")
         .dir(&project_path)
         .unchecked()
+        .stdout_capture()
+        .stderr_capture()
         .run()
         .unwrap();
 
