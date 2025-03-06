@@ -36,7 +36,7 @@ impl TestExtension for Failure {
 
 #[test]
 fn can_return_error_response() {
-    let response = runtime().block_on(async move {
+    runtime().block_on(async move {
         let engine = Engine::builder()
             .with_subgraph(
                 DynamicSchema::builder(
@@ -57,20 +57,22 @@ fn can_return_error_response() {
             .build()
             .await;
 
-        engine.post("query { greeting forbidden }").await
-    });
-
-    insta::assert_json_snapshot!(response, @r#"
-    {
-      "errors": [
+        let response = engine.post("query { greeting forbidden }").await;
+        insta::assert_json_snapshot!(response, @r#"
         {
-          "message": "Not authorized",
-          "extensions": {
-            "code": "UNAUTHORIZED"
-          }
+          "errors": [
+            {
+              "message": "Not authorized",
+              "extensions": {
+                "code": "UNAUTHORIZED"
+              }
+            }
+          ]
         }
-      ]
-    }
-    "#);
-    assert_eq!(response.status, 401);
+        "#);
+        assert_eq!(response.status, 401);
+
+        let sent = engine.drain_graphql_requests_sent_to_by_name("x");
+        insta::assert_json_snapshot!(sent, @"[]")
+    });
 }

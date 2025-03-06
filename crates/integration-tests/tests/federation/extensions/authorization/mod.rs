@@ -42,7 +42,7 @@ impl<T: TestExtension> TestExtensionBuilder for SimpleAuthExt<T> {
                 r#"
                 scalar JSON
 
-                directive @auth(input: JSON) on FIELD_DEFINITION | OBJECT | INTERFACE
+                directive @auth(input: JSON) on FIELD_DEFINITION | OBJECT | INTERFACE | SCALAR | ENUM
                 "#,
             ),
         }

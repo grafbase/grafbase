@@ -255,10 +255,10 @@ interface types {
     variant authorization-decisions {
         grant-all,
         deny-all(error),
-        sparse-deny(sparse-deny-authorization-decisions)
+        deny-some(authorization-decisions-deny-some)
     }
 
-    record sparse-deny-authorization-decisions {
+    record authorization-decisions-deny-some {
         // For elements
         element-to-error: list<tuple<u32, u32>>,
         errors: list<error>

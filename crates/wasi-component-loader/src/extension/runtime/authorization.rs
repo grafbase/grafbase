@@ -9,7 +9,7 @@ impl From<wit::AuthorizationDecisions> for runtime::extension::AuthorizationDeci
             wit::AuthorizationDecisions::DenyAll(error) => runtime::extension::AuthorizationDecisions::DenyAll(
                 error.into_graphql_error(PartialErrorCode::Unauthorized),
             ),
-            wit::AuthorizationDecisions::SparseDeny(wit::SparseDenyAuthorizationDecisions {
+            wit::AuthorizationDecisions::DenySome(wit::AuthorizationDecisionsDenySome {
                 element_to_error,
                 errors,
             }) => {

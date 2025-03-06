@@ -174,6 +174,18 @@ fn anonymous() {
           ]
         }
         "#);
+
+        let sent = engine.drain_graphql_requests_sent_to_by_name("x");
+        insta::assert_json_snapshot!(sent, @r#"
+        [
+          {
+            "query": "query { greeting }",
+            "operationName": null,
+            "variables": {},
+            "extensions": {}
+          }
+        ]
+        "#)
     });
 }
 
@@ -235,6 +247,18 @@ fn missing_claim() {
           ]
         }
         "#);
+
+        let sent = engine.drain_graphql_requests_sent_to_by_name("x");
+        insta::assert_json_snapshot!(sent, @r#"
+        [
+          {
+            "query": "query { greeting }",
+            "operationName": null,
+            "variables": {},
+            "extensions": {}
+          }
+        ]
+        "#)
     });
 }
 
@@ -308,6 +332,24 @@ fn missing_scope() {
           ]
         }
         "#);
+
+        let sent = engine.drain_graphql_requests_sent_to_by_name("x");
+        insta::assert_json_snapshot!(sent, @r#"
+        [
+          {
+            "query": "query { greeting }",
+            "operationName": null,
+            "variables": {},
+            "extensions": {}
+          },
+          {
+            "query": "query { __typename @skip(if: true) }",
+            "operationName": null,
+            "variables": {},
+            "extensions": {}
+          }
+        ]
+        "#)
     });
 }
 
@@ -364,5 +406,23 @@ fn valid_scope() {
           }
         }
         "#);
+
+        let sent = engine.drain_graphql_requests_sent_to_by_name("x");
+        insta::assert_json_snapshot!(sent, @r#"
+        [
+          {
+            "query": "query { greeting }",
+            "operationName": null,
+            "variables": {},
+            "extensions": {}
+          },
+          {
+            "query": "query { requiresUser }",
+            "operationName": null,
+            "variables": {},
+            "extensions": {}
+          }
+        ]
+        "#)
     });
 }

@@ -26,6 +26,13 @@ impl Subgraphs {
         })
     }
 
+    pub fn get_mock_by_name(&self, name: &str) -> Option<&MockSubgraph> {
+        self.0.iter().find_map(|subgraph| match subgraph {
+            Subgraph::Mock { server, .. } if server.name == name => Some(server),
+            _ => None,
+        })
+    }
+
     pub async fn load(
         mock_subgraphs: Vec<(TypeId, String, BoxFuture<'static, MockGraphQlServer>)>,
         docker_subgraphs: HashSet<DockerSubgraph>,
