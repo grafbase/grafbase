@@ -1,0 +1,17 @@
+[extension]
+name = "snowflake"
+version = "0.1.0"
+kind = "resolver"
+description = "Resolve GraphQL fields with snowflake queries"
+repository_url = "https://github.com/grafbase/grafbase"
+license = "Apache-2.0"
+
+[permissions]
+network = true
+stdout = false
+stderr = true
+environment_variables = true
+
+[directives]
+definitions = "definitions.graphql"
+field_resolvers = ["snowflakeQuery"]
