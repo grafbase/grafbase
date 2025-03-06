@@ -42,6 +42,8 @@ pub(crate) enum ExtensionType {
     Resolver,
     /// An extension that provides an authentication provider
     Authentication,
+    /// An extension for authorization
+    Authorization,
 }
 
 #[derive(Debug, Parser)]

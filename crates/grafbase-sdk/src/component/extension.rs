@@ -43,10 +43,10 @@ pub(crate) trait AnyExtension {
         Err("Resolver extension not initialized correctly.".into())
     }
 
-    fn authorize_query<'a>(
-        &'a mut self,
+    fn authorize_query(
+        &mut self,
         ctx: AuthorizationContext,
-        elements: QueryElements<'a>,
+        elements: QueryElements<'_>,
     ) -> Result<AuthorizationDecisions, ErrorResponse> {
         Err(ErrorResponse::internal_server_error(
             "Authorization extension not initialized correctly.",
