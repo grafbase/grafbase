@@ -236,7 +236,7 @@ interface types {
         // Sets a value in the cache with the specified key.
         // Optional ttl-ms parameter sets the time-to-live in milliseconds after which the value expires.
         // If ttl-ms is None, the value will not expire automatically.
-        set: static func(key: string, value: list<u8>, ttl-ms: option<u64>) -> ();
+        set: static func(key: string, value: list<u8>, ttl-ms: option<u64>);
     }
 
     resource authorization-context {
