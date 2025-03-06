@@ -2,7 +2,7 @@ mod selection_filter;
 mod types;
 
 use grafbase_sdk::{
-    Error, Extension, Headers, ResolverExtension, Subscription,
+    Error, Headers, ResolverExtension, Subscription,
     host_io::http::{self, HttpRequest, Url},
     jq_selection::JqSelection,
     types::{Configuration, FieldDefinitionDirective, FieldInputs, FieldOutput, SchemaDirective},
@@ -15,8 +15,8 @@ struct RestExtension {
     jq_selection: JqSelection,
 }
 
-impl Extension for RestExtension {
-    fn new(schema_directives: Vec<SchemaDirective>, _: Configuration) -> Result<Self, Box<dyn std::error::Error>> {
+impl ResolverExtension for RestExtension {
+    fn new(schema_directives: Vec<SchemaDirective>, _: Configuration) -> Result<Self, Error> {
         let mut endpoints = Vec::<RestEndpoint>::new();
 
         for directive in schema_directives {
@@ -39,23 +39,7 @@ impl Extension for RestExtension {
             jq_selection: JqSelection::default(),
         })
     }
-}
 
-impl RestExtension {
-    pub fn get_endpoint(&self, name: &str, subgraph_name: &str) -> Option<&RestEndpoint> {
-        self.endpoints
-            .binary_search_by(|e| {
-                let by_name = e.args.name.as_str().cmp(name);
-                let by_subgraph = e.subgraph_name.as_str().cmp(subgraph_name);
-
-                by_name.then(by_subgraph)
-            })
-            .map(|i| &self.endpoints[i])
-            .ok()
-    }
-}
-
-impl ResolverExtension for RestExtension {
     fn resolve_field(
         &mut self,
         headers: Headers,
@@ -133,5 +117,19 @@ impl ResolverExtension for RestExtension {
         _: FieldDefinitionDirective<'_>,
     ) -> Result<Box<dyn Subscription>, Error> {
         unreachable!()
+    }
+}
+
+impl RestExtension {
+    pub fn get_endpoint(&self, name: &str, subgraph_name: &str) -> Option<&RestEndpoint> {
+        self.endpoints
+            .binary_search_by(|e| {
+                let by_name = e.args.name.as_str().cmp(name);
+                let by_subgraph = e.subgraph_name.as_str().cmp(subgraph_name);
+
+                by_name.then(by_subgraph)
+            })
+            .map(|i| &self.endpoints[i])
+            .ok()
     }
 }

@@ -2,12 +2,12 @@ mod types;
 
 use base64::Engine as _;
 use grafbase_sdk::{
-    AuthenticationExtension, Extension, Headers,
+    AuthenticationExtension, Error, Headers,
     host_io::{
         cache::{self, CachedItem},
         http::{self, HttpRequest},
     },
-    types::{Configuration, ErrorResponse, SchemaDirective, StatusCode, Token},
+    types::{Configuration, ErrorResponse, StatusCode, Token},
 };
 use jwt_compact::{Algorithm, AlgorithmExt, TimeOptions, UntrustedToken, jwk::JsonWebKey};
 use serde::de::DeserializeOwned;
@@ -18,18 +18,13 @@ struct Jwt {
     pub config: JwtConfig,
 }
 
-impl Extension for Jwt {
-    fn new(_: Vec<SchemaDirective>, config: Configuration) -> Result<Self, Box<dyn std::error::Error>>
-    where
-        Self: Sized,
-    {
+impl AuthenticationExtension for Jwt {
+    fn new(config: Configuration) -> Result<Self, Error> {
         let config = config.deserialize()?;
 
         Ok(Self { config })
     }
-}
 
-impl AuthenticationExtension for Jwt {
     fn authenticate(&mut self, headers: Headers) -> Result<Token, ErrorResponse> {
         let Some(token_str) = headers.get(self.config.header_name()).and_then(|value| {
             let stripped = value.strip_prefix(self.config.header_value_prefix());

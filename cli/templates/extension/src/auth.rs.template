@@ -1,21 +1,17 @@
 use grafbase_sdk::{
     types::{Configuration, SchemaDirective, ErrorResponse, Token},
-    AuthenticationExtension, Extension, Headers,
+    AuthenticationExtension, Headers, Error
 };
 
 #[derive(AuthenticationExtension)]
 struct {{name}};
 
-impl Extension for {{name}} {
-    fn new(schema_directives: Vec<SchemaDirective>, config: Configuration) -> Result<Self, Box<dyn std::error::Error>>
-    where
-        Self: Sized,
+impl AuthenticationExtension for {{name}} {
+    fn new(config: Configuration) -> Result<Self, Error>
     {
         todo!()
     }
-}
 
-impl AuthenticationExtension for {{name}} {
     fn authenticate(&mut self, headers: Headers) -> Result<Token, ErrorResponse> {
         todo!()
     }

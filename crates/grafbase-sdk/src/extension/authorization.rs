@@ -1,13 +1,23 @@
 use crate::{
     component::AnyExtension,
     host::AuthorizationContext,
-    types::{AuthorizationDecisions, ErrorResponse, QueryElements},
+    types::{AuthorizationDecisions, Configuration, ErrorResponse, QueryElements},
+    Error,
 };
 
-use super::Extension;
-
 /// A trait that extends `Extension` and provides authorization functionality.
-pub trait AuthorizationExtension: Extension {
+pub trait AuthorizationExtension: Sized + 'static {
+    /// Creates a new instance of the extension.
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - The configuration for this extension, from the gateway TOML.
+    ///
+    /// # Returns
+    ///
+    /// Returns an instance of this resolver. Upon failure, every call to this extension will fail.
+    fn new(config: Configuration) -> Result<Self, Error>;
+
     /// Authorize query elements before sending any subgraph requests.
     /// The query elements will contain every element in the operation with a definition annotated
     /// with one of the extension's authorization directive. This naturally includes fields, but
@@ -37,8 +47,7 @@ pub fn register<T: AuthorizationExtension>() {
         }
     }
 
-    crate::component::register_extension(Box::new(|schema_directives, config| {
-        <T as Extension>::new(schema_directives, config)
-            .map(|extension| Box::new(Proxy(extension)) as Box<dyn AnyExtension>)
+    crate::component::register_extension(Box::new(|_, config| {
+        <T as AuthorizationExtension>::new(config).map(|extension| Box::new(Proxy(extension)) as Box<dyn AnyExtension>)
     }))
 }

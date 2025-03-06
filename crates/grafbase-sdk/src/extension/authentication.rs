@@ -1,13 +1,23 @@
 use crate::{
     component::AnyExtension,
     host::Headers,
-    types::{ErrorResponse, Token},
+    types::{Configuration, ErrorResponse, Token},
+    Error,
 };
 
-use super::Extension;
-
 /// A trait that extends `Extension` and provides authentication functionality.
-pub trait AuthenticationExtension: Extension {
+pub trait AuthenticationExtension: Sized + 'static {
+    /// Creates a new instance of the extension.
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - The configuration for this extension, from the gateway TOML.
+    ///
+    /// # Returns
+    ///
+    /// Returns an instance of this resolver. Upon failure, every call to this extension will fail.
+    fn new(config: Configuration) -> Result<Self, Error>;
+
     /// Authenticates the request using the provided headers.
     ///
     /// # Arguments
@@ -29,8 +39,7 @@ pub fn register<T: AuthenticationExtension>() {
         }
     }
 
-    crate::component::register_extension(Box::new(|schema_directives, config| {
-        <T as Extension>::new(schema_directives, config)
-            .map(|extension| Box::new(Proxy(extension)) as Box<dyn AnyExtension>)
+    crate::component::register_extension(Box::new(|_, config| {
+        <T as AuthenticationExtension>::new(config).map(|extension| Box::new(Proxy(extension)) as Box<dyn AnyExtension>)
     }))
 }

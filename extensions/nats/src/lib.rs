@@ -9,7 +9,7 @@ use grafbase_sdk::{
     host_io::pubsub::nats::{self, NatsClient, NatsStreamConfig},
     jq_selection::JqSelection,
     types::{Configuration, FieldDefinitionDirective, FieldInputs, FieldOutput, SchemaDirective},
-    Error, Extension, Headers, NatsAuth, ResolverExtension, Subscription,
+    Error, Headers, NatsAuth, ResolverExtension, Subscription,
 };
 use subscription::FilteredSubscription;
 use types::{DirectiveKind, KeyValueAction, KeyValueArguments, PublishArguments, RequestArguments, SubscribeArguments};
@@ -20,8 +20,8 @@ struct Nats {
     jq_selection: Rc<RefCell<JqSelection>>,
 }
 
-impl Extension for Nats {
-    fn new(_: Vec<SchemaDirective>, config: Configuration) -> Result<Self, Box<dyn std::error::Error>> {
+impl ResolverExtension for Nats {
+    fn new(_: Vec<SchemaDirective>, config: Configuration) -> Result<Self, Error> {
         let mut clients = HashMap::new();
         let config: config::NatsConfig = config.deserialize()?;
 
@@ -48,9 +48,7 @@ impl Extension for Nats {
             jq_selection: Rc::new(RefCell::new(JqSelection::default())),
         })
     }
-}
 
-impl ResolverExtension for Nats {
     fn resolve_field(
         &mut self,
         _: Headers,

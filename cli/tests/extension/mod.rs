@@ -97,19 +97,17 @@ fn init_resolver() {
     insta::assert_snapshot!(&lib_rs, @r##"
     use grafbase_sdk::{
         types::{Configuration, SchemaDirective, FieldDefinitionDirective, FieldInputs, FieldOutput},
-        Error, Extension, Headers, ResolverExtension, Subscription
+        Error, Headers, ResolverExtension, Subscription
     };
 
     #[derive(ResolverExtension)]
     struct TestProject;
 
-    impl Extension for TestProject {
-        fn new(schema_directives: Vec<SchemaDirective>, config: Configuration) -> Result<Self, Box<dyn std::error::Error>> {
+    impl ResolverExtension for TestProject {
+        fn new(schema_directives: Vec<SchemaDirective>, config: Configuration) -> Result<Self, Error> {
             Ok(Self)
         }
-    }
 
-    impl ResolverExtension for TestProject {
         fn resolve_field(
             &mut self,
             headers: Headers,
@@ -348,22 +346,18 @@ fn init_auth() {
     insta::assert_snapshot!(&lib_rs, @r##"
     use grafbase_sdk::{
         types::{Configuration, SchemaDirective, ErrorResponse, Token},
-        AuthenticationExtension, Extension, Headers,
+        AuthenticationExtension, Headers, Error
     };
 
     #[derive(AuthenticationExtension)]
     struct TestProject;
 
-    impl Extension for TestProject {
-        fn new(schema_directives: Vec<SchemaDirective>, config: Configuration) -> Result<Self, Box<dyn std::error::Error>>
-        where
-            Self: Sized,
+    impl AuthenticationExtension for TestProject {
+        fn new(config: Configuration) -> Result<Self, Error>
         {
             todo!()
         }
-    }
 
-    impl AuthenticationExtension for TestProject {
         fn authenticate(&mut self, headers: Headers) -> Result<Token, ErrorResponse> {
             todo!()
         }
