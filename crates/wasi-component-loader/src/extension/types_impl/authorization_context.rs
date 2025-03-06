@@ -27,6 +27,6 @@ impl HostAuthorizationContext for WasiState {
 
     async fn drop(&mut self, rep: Resource<AuthorizationContext>) -> Result<()> {
         self.table.delete(rep)?;
-        todo!()
+        Ok(())
     }
 }

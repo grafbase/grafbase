@@ -25,6 +25,8 @@ exclude = [
     "extensions/rest",
     "extensions/jwt",
     "extensions/nats",
+    "extensions/authenticated",
+    "extensions/requires-scopes",
 ]
 
 [patch.crates-io]

@@ -16,7 +16,7 @@ impl AuthorizationExtension for {{name}} {
         &mut self,
         ctx: AuthorizationContext,
         elements: QueryElements<'_>,
-    ) -> Result<impl Into<AuthorizationDecisions>, ErrorResponse> {
+    ) -> Result<AuthorizationDecisions, ErrorResponse> {
         Ok(AuthorizationDecisions::deny_all("Not authorized"))
     }
 }

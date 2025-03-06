@@ -43,6 +43,7 @@ struct ExtensionDefinition {
     name: String,
 }
 
+#[allow(clippy::panic)]
 impl TestRunner {
     /// Creates a new [`TestRunner`] with the given [`TestConfig`].
     pub async fn new(mut config: TestConfig) -> anyhow::Result<Self> {
@@ -143,24 +144,36 @@ impl TestRunner {
         let mut expr = duct::cmd(&self.config.gateway_path, args);
 
         if !self.config.enable_stderr {
-            expr = expr.stderr_null();
+            expr = expr.stderr_capture();
         }
 
         if !self.config.enable_stdout {
-            expr = expr.stdout_null();
+            expr = expr.stdout_capture();
         }
 
-        self.gateway_handle = Some(expr.start()?);
+        let gateway_handle = expr.unchecked().start()?;
 
         let mut i = 0;
         while !self.check_gateway_health().await? {
             // printing every second only
             if i % 10 == 0 {
+                match gateway_handle.try_wait() {
+                    Ok(Some(output)) => panic!(
+                        "Gateway process exited unexpectedly: {:?}\n{}\n{}",
+                        output.status,
+                        String::from_utf8_lossy(&output.stdout),
+                        String::from_utf8_lossy(&output.stderr)
+                    ),
+                    Ok(None) => (),
+                    Err(err) => panic!("Error waiting for gateway process: {}", err),
+                }
                 println!("Waiting for gateway to be ready...");
             }
             i += 1;
             std::thread::sleep(Duration::from_millis(100));
         }
+
+        self.gateway_handle = Some(gateway_handle);
 
         Ok(())
     }
@@ -189,14 +202,23 @@ impl TestRunner {
         let mut expr = duct::cmd(&self.config.cli_path, args);
 
         if !self.config.enable_stdout {
-            expr = expr.stdout_null();
+            expr = expr.stdout_capture();
         }
 
         if !self.config.enable_stderr {
-            expr = expr.stderr_null();
+            expr = expr.stderr_capture();
         }
 
-        expr.run()?;
+        let output = expr.unchecked().run()?;
+        if !output.status.success() {
+            panic!(
+                "Failed to build extension: {}\n{}\n{}",
+                output.status,
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr)
+            );
+        }
+
         lock_file.unlock()?;
 
         Ok(())

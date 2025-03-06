@@ -184,7 +184,21 @@ fn create_wasi_extension_configs(
                     });
                 }
             }
-            KindDiscriminants::Authorization => todo!(),
+            KindDiscriminants::Authorization => {
+                let id = ExtensionPoolId::Authorization(id);
+
+                wasi_extensions.push(ExtensionConfig {
+                    id,
+                    manifest_id: extension.manifest.id.clone(),
+                    max_pool_size,
+                    wasi_config,
+                    guest_config: ExtensionGuestConfig {
+                        r#type,
+                        schema_directives: Vec::new(),
+                        configuration: extension_config.config().cloned(),
+                    },
+                });
+            }
         }
     }
 

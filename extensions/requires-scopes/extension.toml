@@ -1,0 +1,7 @@
+[extension]
+name = "requires-scopes"
+version = "1.0.0"
+kind = "authorization"
+description = "@requiresScopes directive"
+license = "Apache-2.0"
+

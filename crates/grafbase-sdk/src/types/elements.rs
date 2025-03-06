@@ -1,3 +1,5 @@
+use std::iter::Enumerate;
+
 use crate::{types::DirectiveSite, wit, SdkError};
 use serde::Deserialize;
 
@@ -47,6 +49,31 @@ impl<'a> QueryElements<'a> {
                     }),
             )
         })
+    }
+}
+
+impl<'a> IntoIterator for QueryElements<'a> {
+    type Item = QueryElement<'a>;
+    type IntoIter = QueryElementsIterator<'a>;
+    fn into_iter(self) -> Self::IntoIter {
+        QueryElementsIterator(self.0.elements.iter().enumerate())
+    }
+}
+
+/// Iterator over the elements of the query on which a directive was applied.
+pub struct QueryElementsIterator<'a>(Enumerate<std::slice::Iter<'a, wit::QueryElement>>);
+
+impl ExactSizeIterator for QueryElementsIterator<'_> {}
+
+impl<'a> Iterator for QueryElementsIterator<'a> {
+    type Item = QueryElement<'a>;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0
+            .next()
+            .map(move |(ix, element)| QueryElement { element, ix: ix as u32 })
+    }
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.0.size_hint()
     }
 }
 
