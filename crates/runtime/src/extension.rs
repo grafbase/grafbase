@@ -40,8 +40,23 @@ pub enum AuthorizationDecisions {
     },
 }
 
+#[derive(Clone, Debug)]
+pub enum Token {
+    Anonymous,
+    Bytes(Vec<u8>),
+}
+
+impl Token {
+    pub fn as_bytes(&self) -> Option<&[u8]> {
+        match self {
+            Token::Anonymous => None,
+            Token::Bytes(bytes) => Some(bytes),
+        }
+    }
+}
+
 #[allow(async_fn_in_trait)]
-pub trait ExtensionRuntime: Send + Sync + 'static {
+pub trait ExtensionRuntime<Ctx>: Send + Sync + 'static {
     type SharedContext: Send + Sync + 'static;
 
     /// Resolve a field through an extension. Lifetime 'ctx will be available for as long as the
@@ -69,11 +84,12 @@ pub trait ExtensionRuntime: Send + Sync + 'static {
         _extension_id: ExtensionId,
         _authorizer_id: AuthorizerId,
         _headers: http::HeaderMap,
-    ) -> impl Future<Output = Result<(http::HeaderMap, Vec<u8>), ErrorResponse>> + Send;
+    ) -> impl Future<Output = Result<(http::HeaderMap, Token), ErrorResponse>> + Send;
 
     fn authorize_query<'ctx, 'fut, Groups, QueryElements, Arguments>(
         &'ctx self,
         extension_id: ExtensionId,
+        ctx: Ctx,
         elements_grouped_by_directive_name: Groups,
     ) -> impl Future<Output = Result<AuthorizationDecisions, ErrorResponse>> + Send + 'fut
     where
@@ -84,7 +100,7 @@ pub trait ExtensionRuntime: Send + Sync + 'static {
 }
 
 #[allow(refining_impl_trait)]
-impl ExtensionRuntime for () {
+impl<Ctx: Send + Sync + 'static> ExtensionRuntime<Ctx> for () {
     type SharedContext = ();
 
     #[allow(clippy::manual_async_fn)]
@@ -105,7 +121,7 @@ impl ExtensionRuntime for () {
         _extension_id: ExtensionId,
         _authorizer_id: AuthorizerId,
         _headers: http::HeaderMap,
-    ) -> Result<(http::HeaderMap, Vec<u8>), ErrorResponse> {
+    ) -> Result<(http::HeaderMap, Token), ErrorResponse> {
         Err(ErrorResponse {
             status: http::StatusCode::INTERNAL_SERVER_ERROR,
             errors: vec![PartialGraphqlError::internal_extension_error()],
@@ -127,6 +143,7 @@ impl ExtensionRuntime for () {
     fn authorize_query<'ctx, 'fut, Groups, QueryElements, Arguments>(
         &'ctx self,
         _: ExtensionId,
+        _: Ctx,
         _: Groups,
     ) -> impl Future<Output = Result<AuthorizationDecisions, ErrorResponse>> + Send + 'fut
     where

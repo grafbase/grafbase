@@ -140,7 +140,7 @@ fn create_wasi_extension_configs(
 
         let r#type = KindDiscriminants::from(&extension.manifest.kind);
         match r#type {
-            KindDiscriminants::FieldResolver => {
+            KindDiscriminants::Resolver => {
                 let id = ExtensionPoolId::Resolver(id);
 
                 wasi_extensions.push(ExtensionConfig {
@@ -155,7 +155,7 @@ fn create_wasi_extension_configs(
                     },
                 });
             }
-            KindDiscriminants::Authenticator => {
+            KindDiscriminants::Authentication => {
                 let Some(auth_config) = gateway_config.authentication.as_ref() else {
                     continue;
                 };

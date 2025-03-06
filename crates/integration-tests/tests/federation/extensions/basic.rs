@@ -29,7 +29,7 @@ impl TestExtensionBuilder for GreetExt {
 
     fn config(&self) -> TestExtensionConfig {
         TestExtensionConfig {
-            kind: extension_catalog::Kind::FieldResolver(extension_catalog::FieldResolver {
+            kind: extension_catalog::Kind::Resolver(extension_catalog::ResolverKind {
                 resolver_directives: None,
             }),
             sdl: self.sdl.or(Some(

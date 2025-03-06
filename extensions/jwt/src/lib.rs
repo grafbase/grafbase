@@ -1,7 +1,8 @@
 mod types;
 
+use base64::Engine as _;
 use grafbase_sdk::{
-    AuthenticationExtension, Authenticator, Extension, Headers,
+    AuthenticationExtension, Extension, Headers,
     host_io::{
         cache::{self, CachedItem},
         http::{self, HttpRequest},
@@ -28,7 +29,7 @@ impl Extension for Jwt {
     }
 }
 
-impl Authenticator for Jwt {
+impl AuthenticationExtension for Jwt {
     fn authenticate(&mut self, headers: Headers) -> Result<Token, ErrorResponse> {
         let Some(token_str) = headers.get(self.config.header_name()).and_then(|value| {
             let stripped = value.strip_prefix(self.config.header_value_prefix());
@@ -63,19 +64,17 @@ impl Authenticator for Jwt {
             }
         }
 
-        let (_header, jwt_compact::Claims { custom, .. }) = token.into_parts();
+        // We just validated the JWT token. Instead of de-serializing and re-serializing the
+        // payload, we re-use the original token payload.
+        let [_headers, payload, _signature] = token_str.split('.').collect::<Vec<_>>()[..] else {
+            unreachable!("Token was successfully valdiated");
+        };
 
-        let CustomClaims {
-            issuer,
-            other: mut claims,
-            ..
-        } = custom;
-
-        // We might want to add the rest later if asked for,
-        // but 'iss' is the only one that I can think of that might be useful.
-        claims.insert("iss".to_string(), issuer.into());
-
-        Ok(Token::new(claims))
+        Ok(Token::from_bytes(
+            base64::engine::general_purpose::URL_SAFE_NO_PAD
+                .decode(payload)
+                .expect("Token was successfully validated"),
+        ))
     }
 }
 

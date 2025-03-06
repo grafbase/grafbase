@@ -3,7 +3,7 @@ use std::{future::Future, sync::Arc};
 use grafbase_telemetry::metrics::EngineMetrics;
 use runtime::{entity_cache::EntityCache, kv::KvStore, rate_limiting::RateLimiter};
 
-use super::CachedOperation;
+use super::{CachedOperation, RequestContext};
 
 pub type HooksContext<R> = <<R as Runtime>::Hooks as runtime::hooks::Hooks>::Context;
 
@@ -11,7 +11,10 @@ pub trait Runtime: Send + Sync + 'static {
     type Hooks: runtime::hooks::Hooks;
     type Fetcher: runtime::fetch::Fetcher;
     type OperationCache: runtime::operation_cache::OperationCache<Arc<CachedOperation>>;
-    type Extensions: runtime::extension::ExtensionRuntime<SharedContext = <Self::Hooks as runtime::hooks::Hooks>::Context>;
+    type Extensions: runtime::extension::ExtensionRuntime<
+            Arc<RequestContext>,
+            SharedContext = <Self::Hooks as runtime::hooks::Hooks>::Context,
+        >;
 
     fn fetcher(&self) -> &Self::Fetcher;
     fn kv(&self) -> &KvStore;

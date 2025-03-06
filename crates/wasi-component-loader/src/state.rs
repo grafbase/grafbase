@@ -54,7 +54,6 @@ pub enum WasmOwnedOrBorrowed<T> {
     /// The caller will remove it himself from the store.
     HostBorrowed(T),
     /// Fully owned by the guest
-    #[allow(unused)]
     Owned(T),
 }
 

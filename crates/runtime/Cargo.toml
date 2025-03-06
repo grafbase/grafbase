@@ -27,6 +27,7 @@ grafbase-telemetry.workspace = true
 grafbase-workspace-hack.workspace = true
 http.workspace = true
 id-derives = { path = "../engine/id-derives", package = "engine-id-derives" }
+minicbor-serde.workspace = true
 reqwest.workspace = true
 semver.workspace = true
 serde.workspace = true

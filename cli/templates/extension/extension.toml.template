@@ -16,8 +16,3 @@ stdout = false
 stderr = false
 environment_variables = false
 
-{% if needs_field_resolvers -%}
-[directives]
-definitions = "definitions.graphql"
-field_resolvers = ["{{name_camel}}Directive"]
-{%- endif %}

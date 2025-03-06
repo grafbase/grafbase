@@ -44,9 +44,7 @@ struct GraphQLDefinitionsTemplate<'a> {
 #[template(path = "extension/extension.toml.template", escape = "none")]
 struct ExtensionTomlTemplate<'a> {
     name: &'a str,
-    name_camel: &'a str,
     kind: ExtensionType,
-    needs_field_resolvers: bool,
 }
 
 #[derive(askama::Template)]
@@ -97,7 +95,7 @@ fn init_rust_files(path: &Path, extension_type: ExtensionType, extension_name: &
 
     match extension_type {
         ExtensionType::Resolver => ResolverTemplate { name: &struct_name }.write_into(&mut writer)?,
-        ExtensionType::Auth => AuthTemplate { name: &struct_name }.write_into(&mut writer)?,
+        ExtensionType::Authentication => AuthTemplate { name: &struct_name }.write_into(&mut writer)?,
     }
 
     let tests_path = path.join("tests");
@@ -143,15 +141,12 @@ fn init_cargo_toml(project_path: &Path) -> anyhow::Result<String> {
 
 fn init_extension_toml(project_path: &Path, kind: ExtensionType, extension_name: &str) -> anyhow::Result<()> {
     let extension_toml_path = project_path.join("extension.toml");
-    let camel_case_extension = extension_name.to_case(Case::Camel);
 
     let mut writer = std::fs::File::create(&extension_toml_path)?;
 
     let template = ExtensionTomlTemplate {
         name: extension_name,
-        name_camel: &camel_case_extension,
         kind,
-        needs_field_resolvers: matches!(kind, ExtensionType::Resolver),
     };
 
     template.write_into(&mut writer)?;

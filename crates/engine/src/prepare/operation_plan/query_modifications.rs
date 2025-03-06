@@ -168,7 +168,11 @@ where
             (directive_name, elements)
         });
         ctx.extensions()
-            .authorize_query(extension_id, elements_grouped_by_directive_name)
+            .authorize_query(
+                extension_id,
+                ctx.request_context.clone(),
+                elements_grouped_by_directive_name,
+            )
             .boxed()
             .await
             .map_err(Into::into)
@@ -220,7 +224,7 @@ where
                         self.ctx
                             .access_token()
                             .get_claim("scope")
-                            .as_str()
+                            .and_then(|value| value.as_str())
                             .map(|scope| scope.split(' ').collect::<Vec<_>>())
                             .unwrap_or_default()
                     });

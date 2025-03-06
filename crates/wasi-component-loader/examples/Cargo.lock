@@ -62,6 +62,7 @@ version = "0.1.0"
 dependencies = [
  "grafbase-sdk",
  "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -286,7 +287,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "anyhow",
  "grafbase-sdk-derive",

@@ -3,6 +3,7 @@ mod deny_some;
 mod error_propagation;
 mod error_response;
 mod grant_all;
+mod requires_scopes;
 mod types;
 
 use std::sync::Arc;
@@ -34,10 +35,14 @@ impl<T: TestExtension> TestExtensionBuilder for SimpleAuthExt<T> {
 
     fn config(&self) -> TestExtensionConfig {
         TestExtensionConfig {
-            kind: extension_catalog::Kind::Authorization(extension_catalog::AuthorizationKind { directives: None }),
+            kind: extension_catalog::Kind::Authorization(extension_catalog::AuthorizationKind {
+                authorization_directives: None,
+            }),
             sdl: Some(
                 r#"
-                directive @auth on FIELD_DEFINITION | OBJECT | INTERFACE
+                scalar JSON
+
+                directive @auth(input: JSON) on FIELD_DEFINITION | OBJECT | INTERFACE
                 "#,
             ),
         }

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use grafbase_telemetry::metrics::EngineMetrics;
 use operation::{InputValueContext, Variables};
-use runtime::auth::AccessToken;
+use runtime::auth::LegacyToken;
 use schema::{HeaderRule, Schema};
 
 use crate::{
@@ -31,7 +31,7 @@ impl<R: Runtime> std::marker::Copy for ExecutionContext<'_, R> {}
 
 impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
     #[allow(unused)]
-    pub fn access_token(&self) -> &'ctx AccessToken {
+    pub fn access_token(&self) -> &'ctx LegacyToken {
         &self.request_context.access_token
     }
 

@@ -1,13 +1,13 @@
 use crate::{
     component::AnyExtension,
+    host::Headers,
     types::{ErrorResponse, Token},
-    wit::Headers,
 };
 
 use super::Extension;
 
 /// A trait that extends `Extension` and provides authentication functionality.
-pub trait Authenticator: Extension {
+pub trait AuthenticationExtension: Extension {
     /// Authenticates the request using the provided headers.
     ///
     /// # Arguments
@@ -20,12 +20,12 @@ pub trait Authenticator: Extension {
 }
 
 #[doc(hidden)]
-pub fn register<T: Authenticator>() {
-    pub(super) struct Proxy<T: Authenticator>(T);
+pub fn register<T: AuthenticationExtension>() {
+    pub(super) struct Proxy<T: AuthenticationExtension>(T);
 
-    impl<T: Authenticator> AnyExtension for Proxy<T> {
+    impl<T: AuthenticationExtension> AnyExtension for Proxy<T> {
         fn authenticate(&mut self, headers: Headers) -> Result<Token, ErrorResponse> {
-            Authenticator::authenticate(&mut self.0, headers)
+            AuthenticationExtension::authenticate(&mut self.0, headers)
         }
     }
 

@@ -9,13 +9,16 @@ use super::{
     wit,
 };
 use dashmap::DashMap;
+use engine::RequestContext;
 use extension_catalog::ExtensionId;
 use futures::stream::BoxStream;
 use futures_util::{StreamExt, stream};
 use gateway_config::WasiExtensionsConfig;
 use runtime::{
     error::{ErrorResponse, PartialErrorCode, PartialGraphqlError},
-    extension::{AuthorizationDecisions, AuthorizerId, Data, ExtensionFieldDirective, ExtensionRuntime, QueryElement},
+    extension::{
+        AuthorizationDecisions, AuthorizerId, Data, ExtensionFieldDirective, ExtensionRuntime, QueryElement, Token,
+    },
     hooks::Anything,
 };
 use std::{collections::HashMap, future::Future, sync::Arc};
@@ -108,7 +111,7 @@ async fn create_pools<T: serde::Serialize + Send + 'static>(
     Ok(pools)
 }
 
-impl ExtensionRuntime for ExtensionsWasiRuntime {
+impl ExtensionRuntime<Arc<RequestContext>> for ExtensionsWasiRuntime {
     type SharedContext = wit::SharedContext;
 
     #[allow(clippy::manual_async_fn)]
@@ -167,13 +170,13 @@ impl ExtensionRuntime for ExtensionsWasiRuntime {
         extension_id: ExtensionId,
         authorizer_id: AuthorizerId,
         headers: http::HeaderMap,
-    ) -> Result<(http::HeaderMap, Vec<u8>), ErrorResponse> {
+    ) -> Result<(http::HeaderMap, Token), ErrorResponse> {
         let mut instance = self
             .get(ExtensionPoolId::Authorizer(extension_id, authorizer_id))
             .await?;
 
         match instance.authenticate(headers).await {
-            Ok((headers, token)) => Ok((headers, token.raw)),
+            Ok((headers, token)) => Ok((headers, token.into())),
             Err(err) => Err(err.into_graphql_error_response(PartialErrorCode::Unauthenticated)),
         }
     }
@@ -238,6 +241,7 @@ impl ExtensionRuntime for ExtensionsWasiRuntime {
     fn authorize_query<'ctx, 'fut, Groups, QueryElements, Arguments>(
         &'ctx self,
         extension_id: ExtensionId,
+        ctx: Arc<RequestContext>,
         elements_grouped_by_directive_name: Groups,
     ) -> impl Future<Output = Result<AuthorizationDecisions, ErrorResponse>> + Send + 'fut
     where
@@ -267,10 +271,13 @@ impl ExtensionRuntime for ExtensionsWasiRuntime {
         async move {
             let mut instance = self.get(ExtensionPoolId::Authorization(extension_id)).await?;
             instance
-                .authorize_query(wit::QueryElements {
-                    directive_names,
-                    elements: query_elements,
-                })
+                .authorize_query(
+                    wit::AuthorizationContext(ctx),
+                    wit::QueryElements {
+                        directive_names,
+                        elements: query_elements,
+                    },
+                )
                 .await
                 .map(Into::into)
                 .map_err(|err| err.into_graphql_error_response(PartialErrorCode::Unauthorized))

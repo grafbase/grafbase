@@ -5,7 +5,7 @@ use extension_catalog::{Extension, ExtensionCatalog, ExtensionId, Id, Manifest};
 use futures::stream::BoxStream;
 use runtime::{
     error::{ErrorResponse, PartialGraphqlError},
-    extension::{AuthorizationDecisions, Data, ExtensionFieldDirective, QueryElement},
+    extension::{AuthorizationDecisions, Data, ExtensionFieldDirective, QueryElement, Token},
     hooks::{Anything, DynHookContext},
 };
 use tokio::sync::Mutex;
@@ -125,6 +125,10 @@ pub trait TestExtensionBuilder: Send + Sync + 'static {
 #[allow(unused_variables)] // makes it easier to copy-paste relevant functions
 #[async_trait::async_trait]
 pub trait TestExtension: Send + Sync + 'static {
+    async fn authenticate(&self, headers: &http::HeaderMap) -> Result<Token, ErrorResponse> {
+        Err(PartialGraphqlError::internal_extension_error().into())
+    }
+
     async fn resolve_field(
         &self,
         headers: http::HeaderMap,
@@ -137,13 +141,14 @@ pub trait TestExtension: Send + Sync + 'static {
     #[allow(clippy::manual_async_fn)]
     async fn authorize_query<'a>(
         &self,
+        ctx: Arc<engine::RequestContext>,
         elements_grouped_by_directive_name: Vec<(&str, Vec<QueryElement<'_, serde_json::Value>>)>,
     ) -> Result<AuthorizationDecisions, ErrorResponse> {
         Err(PartialGraphqlError::internal_extension_error().into())
     }
 }
 
-impl runtime::extension::ExtensionRuntime for TestExtensions {
+impl runtime::extension::ExtensionRuntime<Arc<engine::RequestContext>> for TestExtensions {
     type SharedContext = DynHookContext;
 
     fn resolve_field<'ctx, 'resp, 'f>(
@@ -194,10 +199,11 @@ impl runtime::extension::ExtensionRuntime for TestExtensions {
         &self,
         extension_id: ExtensionId,
         _authorizer_id: runtime::extension::AuthorizerId,
-        _headers: http::HeaderMap,
-    ) -> Result<(http::HeaderMap, Vec<u8>), ErrorResponse> {
-        let _instance = self.get_global_instance(extension_id).await;
-        unimplemented!()
+        headers: http::HeaderMap,
+    ) -> Result<(http::HeaderMap, Token), ErrorResponse> {
+        let instance = self.get_global_instance(extension_id).await;
+        let token = instance.authenticate(&headers).await?;
+        Ok((headers, token))
     }
 
     async fn resolve_subscription<'ctx, 'f>(
@@ -215,6 +221,7 @@ impl runtime::extension::ExtensionRuntime for TestExtensions {
     fn authorize_query<'ctx, 'fut, Groups, QueryElements, Arguments>(
         &'ctx self,
         extension_id: ExtensionId,
+        ctx: Arc<engine::RequestContext>,
         elements_grouped_by_directive_name: Groups,
     ) -> impl Future<Output = Result<AuthorizationDecisions, ErrorResponse>> + Send + 'fut
     where
@@ -240,7 +247,7 @@ impl runtime::extension::ExtensionRuntime for TestExtensions {
             .collect();
         async move {
             let instance = self.get_global_instance(extension_id).await;
-            instance.authorize_query(elements_grouped_by_directive_name).await
+            instance.authorize_query(ctx, elements_grouped_by_directive_name).await
         }
     }
 }

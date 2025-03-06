@@ -40,11 +40,11 @@ impl Manifest {
     }
 
     pub fn is_resolver(&self) -> bool {
-        matches!(self.kind, Kind::FieldResolver(_))
+        matches!(self.kind, Kind::Resolver(_))
     }
 
     pub fn is_authenticator(&self) -> bool {
-        matches!(self.kind, Kind::Authenticator(_))
+        matches!(self.kind, Kind::Authentication(_))
     }
 
     pub fn network_enabled(&self) -> bool {
@@ -66,13 +66,15 @@ impl Manifest {
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, strum::EnumDiscriminants)]
 pub enum Kind {
-    FieldResolver(FieldResolver),
-    Authenticator(Empty),
+    #[serde(rename = "FieldResolver")]
+    Resolver(ResolverKind),
+    #[serde(rename = "Authenticator")]
+    Authentication(Empty),
     Authorization(AuthorizationKind),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct FieldResolver {
+pub struct ResolverKind {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub resolver_directives: Option<Vec<String>>,
 }
@@ -80,7 +82,7 @@ pub struct FieldResolver {
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct AuthorizationKind {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub directives: Option<Vec<String>>,
+    pub authorization_directives: Option<Vec<String>>,
 }
 
 // Allows us to add fields later, as adding a value to an enum that doesn't have one would be
@@ -117,7 +119,7 @@ mod tests {
                 name: "test".to_string(),
                 version: semver::Version::new(1, 0, 0),
             },
-            kind: Kind::FieldResolver(FieldResolver {
+            kind: Kind::Resolver(ResolverKind {
                 resolver_directives: Some(vec!["custom".to_string()]),
             }),
             sdk_version: semver::Version::new(0, 1, 0),
@@ -158,7 +160,7 @@ mod tests {
                 name: "test".to_string(),
                 version: semver::Version::new(1, 0, 0),
             },
-            kind: Kind::FieldResolver(FieldResolver {
+            kind: Kind::Resolver(ResolverKind {
                 resolver_directives: Some(vec!["custom".to_string()]),
             }),
             sdk_version: semver::Version::new(0, 1, 0),
@@ -197,7 +199,7 @@ mod tests {
                 name: "test".to_string(),
                 version: semver::Version::new(1, 0, 0),
             },
-            kind: Kind::FieldResolver(FieldResolver {
+            kind: Kind::Resolver(ResolverKind {
                 resolver_directives: None,
             }),
             sdk_version: semver::Version::new(0, 1, 0),
@@ -235,7 +237,7 @@ mod tests {
                 name: "auth".to_string(),
                 version: semver::Version::new(2, 0, 0),
             },
-            kind: Kind::Authenticator(Empty {}),
+            kind: Kind::Authentication(Empty {}),
             sdk_version: semver::Version::new(0, 1, 0),
             minimum_gateway_version: semver::Version::new(0, 1, 0),
             sdl: None,
@@ -248,6 +250,82 @@ mod tests {
         };
 
         assert_eq!(manifest, expected,)
+    }
+
+    #[test]
+    fn authorization_compatibility() {
+        let json = json!({
+            "id": {"name": "authz", "version": "1.0.0"},
+            "kind": {
+                "Authorization": {
+                    "authorization_directives": ["authorized", "authenticated"]
+                }
+            },
+            "sdk_version": "0.1.0",
+            "minimum_gateway_version": "0.1.0",
+            "description": "An authorization extension test",
+            "homepage_url": "http://example.com/my-extension"
+        });
+
+        let manifest: Manifest = serde_json::from_value(json).unwrap();
+
+        let expected = Manifest {
+            id: Id {
+                name: "authz".to_string(),
+                version: semver::Version::new(1, 0, 0),
+            },
+            kind: Kind::Authorization(AuthorizationKind {
+                authorization_directives: Some(vec!["authorized".to_string(), "authenticated".to_string()]),
+            }),
+            sdk_version: semver::Version::new(0, 1, 0),
+            minimum_gateway_version: semver::Version::new(0, 1, 0),
+            sdl: None,
+            description: "An authorization extension test".to_owned(),
+            readme: None,
+            homepage_url: Some("http://example.com/my-extension".parse().unwrap()),
+            repository_url: None,
+            license: None,
+            permissions: BitFlags::empty(),
+        };
+
+        assert_eq!(manifest, expected);
+    }
+
+    #[test]
+    fn authorization_compatibility_without_directives() {
+        let json = json!({
+            "id": {"name": "authz", "version": "1.0.0"},
+            "kind": {
+                "Authorization": {}
+            },
+            "sdk_version": "0.1.0",
+            "minimum_gateway_version": "0.1.0",
+            "description": "An authorization extension test",
+            "homepage_url": "http://example.com/my-extension"
+        });
+
+        let manifest: Manifest = serde_json::from_value(json).unwrap();
+
+        let expected = Manifest {
+            id: Id {
+                name: "authz".to_string(),
+                version: semver::Version::new(1, 0, 0),
+            },
+            kind: Kind::Authorization(AuthorizationKind {
+                authorization_directives: None,
+            }),
+            sdk_version: semver::Version::new(0, 1, 0),
+            minimum_gateway_version: semver::Version::new(0, 1, 0),
+            sdl: None,
+            description: "An authorization extension test".to_owned(),
+            readme: None,
+            homepage_url: Some("http://example.com/my-extension".parse().unwrap()),
+            repository_url: None,
+            license: None,
+            permissions: BitFlags::empty(),
+        };
+
+        assert_eq!(manifest, expected);
     }
 
     #[test]

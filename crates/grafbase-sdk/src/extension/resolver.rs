@@ -1,7 +1,7 @@
 use crate::{
     component::AnyExtension,
+    host::Headers,
     types::{Error, FieldDefinitionDirective, FieldInputs, FieldOutput},
-    Headers,
 };
 
 use super::Extension;
@@ -12,7 +12,7 @@ use super::Extension;
 /// the given context, directive, and inputs. This is typically used in scenarios where field
 /// resolution logic needs to be encapsulated within a resolver object, allowing for modular
 /// and reusable code design.
-pub trait Resolver: Extension {
+pub trait ResolverExtension: Extension {
     /// Resolves a field value based on the given context, directive, definition, and inputs.
     ///
     /// # Arguments
@@ -71,7 +71,7 @@ pub trait Resolver: Extension {
     #[allow(unused)]
     fn subscription_key(
         &mut self,
-        headers: &Headers,
+        headers: Headers,
         subgraph_name: &str,
         directive: FieldDefinitionDirective<'_>,
     ) -> Option<Vec<u8>> {
@@ -96,10 +96,10 @@ pub trait Subscription {
 }
 
 #[doc(hidden)]
-pub fn register<T: Resolver>() {
-    pub(super) struct Proxy<T: Resolver>(T);
+pub fn register<T: ResolverExtension>() {
+    pub(super) struct Proxy<T: ResolverExtension>(T);
 
-    impl<T: Resolver> AnyExtension for Proxy<T> {
+    impl<T: ResolverExtension> AnyExtension for Proxy<T> {
         fn resolve_field(
             &mut self,
             headers: Headers,
@@ -107,7 +107,7 @@ pub fn register<T: Resolver>() {
             directive: FieldDefinitionDirective<'_>,
             inputs: FieldInputs,
         ) -> Result<FieldOutput, Error> {
-            Resolver::resolve_field(&mut self.0, headers, subgraph_name, directive, inputs)
+            ResolverExtension::resolve_field(&mut self.0, headers, subgraph_name, directive, inputs)
         }
         fn resolve_subscription(
             &mut self,
@@ -115,16 +115,16 @@ pub fn register<T: Resolver>() {
             subgraph_name: &str,
             directive: FieldDefinitionDirective<'_>,
         ) -> Result<Box<dyn Subscription>, Error> {
-            Resolver::resolve_subscription(&mut self.0, headers, subgraph_name, directive)
+            ResolverExtension::resolve_subscription(&mut self.0, headers, subgraph_name, directive)
         }
 
         fn subscription_key(
             &mut self,
-            headers: &Headers,
+            headers: Headers,
             subgraph_name: &str,
             directive: FieldDefinitionDirective<'_>,
         ) -> Result<Option<Vec<u8>>, Error> {
-            Ok(Resolver::subscription_key(
+            Ok(ResolverExtension::subscription_key(
                 &mut self.0,
                 headers,
                 subgraph_name,

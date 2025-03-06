@@ -5,8 +5,8 @@ mod state;
 use crate::{
     types::{Configuration, FieldInputs},
     wit::{
-        AuthorizationDecisions, Error, ErrorResponse, FieldDefinitionDirective, FieldOutput, Guest, Headers,
-        QueryElements, SchemaDirective, Token,
+        AuthorizationContext, AuthorizationDecisions, Error, ErrorResponse, FieldDefinitionDirective, FieldOutput,
+        Guest, Headers, QueryElements, SchemaDirective, Token,
     },
 };
 
@@ -29,8 +29,12 @@ impl Guest for Component {
         directive: FieldDefinitionDirective,
         inputs: Vec<Vec<u8>>,
     ) -> Result<FieldOutput, Error> {
-        let result =
-            state::extension()?.resolve_field(headers, &subgraph_name, (&directive).into(), FieldInputs::new(inputs));
+        let result = state::extension()?.resolve_field(
+            headers.into(),
+            &subgraph_name,
+            (&directive).into(),
+            FieldInputs::new(inputs),
+        );
 
         result.map(Into::into).map_err(Into::into)
     }
@@ -40,7 +44,8 @@ impl Guest for Component {
         subgraph_name: String,
         directive: FieldDefinitionDirective,
     ) -> Result<(), Error> {
-        let subscription = state::extension()?.resolve_subscription(headers, &subgraph_name, (&directive).into())?;
+        let subscription =
+            state::extension()?.resolve_subscription(headers.into(), &subgraph_name, (&directive).into())?;
 
         state::set_subscription(subscription);
 
@@ -52,7 +57,7 @@ impl Guest for Component {
         subgraph_name: String,
         directive: FieldDefinitionDirective,
     ) -> Result<Option<Vec<u8>>, Error> {
-        let result = state::extension()?.subscription_key(&headers, &subgraph_name, (&directive).into())?;
+        let result = state::extension()?.subscription_key(headers.into(), &subgraph_name, (&directive).into())?;
 
         Ok(result)
     }
@@ -67,14 +72,17 @@ impl Guest for Component {
                 status_code: 500,
                 errors: vec![err],
             })?
-            .authenticate(headers);
+            .authenticate(headers.into());
 
         result.map(Into::into).map_err(Into::into)
     }
 
-    fn authorize_query(elements: QueryElements) -> Result<AuthorizationDecisions, ErrorResponse> {
+    fn authorize_query(
+        ctx: AuthorizationContext,
+        elements: QueryElements,
+    ) -> Result<AuthorizationDecisions, ErrorResponse> {
         state::extension()?
-            .authorize_query((&elements).into())
+            .authorize_query(ctx.into(), (&elements).into())
             .map(Into::into)
             .map_err(Into::into)
     }

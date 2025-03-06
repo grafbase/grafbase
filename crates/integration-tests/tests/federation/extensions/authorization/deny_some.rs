@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use engine::Engine;
 use graphql_mocks::dynamic::DynamicSchema;
 use integration_tests::{
@@ -19,6 +21,7 @@ impl TestExtension for DenySites {
     #[allow(clippy::manual_async_fn)]
     async fn authorize_query<'a>(
         &self,
+        _ctx: Arc<engine::RequestContext>,
         elements_grouped_by_directive_name: Vec<(&str, Vec<QueryElement<'_, serde_json::Value>>)>,
     ) -> Result<AuthorizationDecisions, ErrorResponse> {
         let mut element_to_error = Vec::new();

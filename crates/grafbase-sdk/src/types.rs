@@ -6,6 +6,7 @@ mod directive_site;
 mod elements;
 mod error;
 mod error_response;
+mod token;
 
 pub use authorization::*;
 pub use directive::*;
@@ -13,6 +14,7 @@ pub use directive_site::*;
 pub use elements::*;
 pub use error::*;
 pub use error_response::*;
+pub use token::*;
 
 pub use http::StatusCode;
 pub use serde::Deserialize;
@@ -112,28 +114,3 @@ impl Configuration {
 
 /// A cache implementation for storing data between requests.
 pub struct Cache;
-
-/// A structure representing an authentication token claims.
-pub struct Token {
-    claims: Vec<u8>,
-}
-
-impl From<Token> for wit::Token {
-    fn from(token: Token) -> wit::Token {
-        wit::Token { raw: token.claims }
-    }
-}
-
-impl Token {
-    /// Creates a new `Token` with the given claims. The claims can be defined by the extension,
-    /// but to use the [`@requiredScopes`](https://grafbase.com/docs/reference/graphql-directives#requiresscopes)
-    /// directive, the claims must contain a `scopes` field with an array of strings.
-    pub fn new<T>(claims: T) -> Self
-    where
-        T: serde::Serialize,
-    {
-        Self {
-            claims: cbor::to_vec(&claims).expect("serialization error is Infallible, so it should never happen"),
-        }
-    }
-}

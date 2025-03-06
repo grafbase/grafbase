@@ -23,9 +23,12 @@ async fn publish_basic() {
 
     let init_output = init_command.output().unwrap();
 
-    if !init_output.status.success() {
-        panic!("Init failed\n{init_output:?}");
-    }
+    assert!(
+        init_output.status.success(),
+        "{}\n{}",
+        String::from_utf8_lossy(&init_output.stdout),
+        String::from_utf8_lossy(&init_output.stderr)
+    );
 
     use_latest_grafbase_sdk_in_cargo_toml(&project_path);
 
@@ -39,7 +42,12 @@ async fn publish_basic() {
 
         let build_output = publish_command.output().unwrap();
 
-        assert!(!build_output.status.success());
+        assert!(
+            !build_output.status.success(),
+            "{}\n{}",
+            String::from_utf8_lossy(&build_output.stdout),
+            String::from_utf8_lossy(&build_output.stderr)
+        );
 
         insta::assert_snapshot!(String::from_utf8(build_output.stdout).unwrap(), @"");
         insta::assert_snapshot!(String::from_utf8(build_output.stderr).unwrap(), @"Error: Failed to open extension manifest at `./build/manifest.json`: No such file or directory (os error 2)");
@@ -55,9 +63,12 @@ async fn publish_basic() {
 
     let build_output = build_command.output().unwrap();
 
-    if !build_output.status.success() {
-        panic!("Build failed\n{build_output:?}");
-    }
+    assert!(
+        build_output.status.success(),
+        "{}\n{}",
+        String::from_utf8_lossy(&build_output.stdout),
+        String::from_utf8_lossy(&build_output.stderr)
+    );
 
     let build_path = project_path.join("build");
     assert!(std::fs::exists(build_path.join("extension.wasm")).unwrap());
@@ -95,7 +106,10 @@ async fn publish_basic() {
 
     let publish_output = publish_command.output().unwrap();
 
-    if !publish_output.status.success() {
-        panic!("Publish failed\n{publish_output:#?}");
-    }
+    assert!(
+        publish_output.status.success(),
+        "{}\n{}",
+        String::from_utf8_lossy(&publish_output.stdout),
+        String::from_utf8_lossy(&publish_output.stderr)
+    );
 }

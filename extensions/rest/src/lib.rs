@@ -2,7 +2,7 @@ mod selection_filter;
 mod types;
 
 use grafbase_sdk::{
-    Error, Extension, Headers, Resolver, ResolverExtension, Subscription,
+    Error, Extension, Headers, ResolverExtension, Subscription,
     host_io::http::{self, HttpRequest, Url},
     jq_selection::JqSelection,
     types::{Configuration, FieldDefinitionDirective, FieldInputs, FieldOutput, SchemaDirective},
@@ -55,7 +55,7 @@ impl RestExtension {
     }
 }
 
-impl Resolver for RestExtension {
+impl ResolverExtension for RestExtension {
     fn resolve_field(
         &mut self,
         headers: Headers,

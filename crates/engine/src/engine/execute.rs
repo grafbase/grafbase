@@ -7,7 +7,7 @@ use bytes::Bytes;
 use futures::StreamExt;
 use grafbase_telemetry::grafbase_client::Client;
 use operation::{BatchRequest, QueryParamsRequest, Request};
-use runtime::{auth::AccessToken, error::ErrorResponse};
+use runtime::{auth::LegacyToken, error::ErrorResponse};
 use std::{future::Future, sync::Arc};
 
 use crate::{
@@ -22,15 +22,25 @@ use super::{Engine, Runtime, RuntimeExt, errors, runtime::HooksContext};
 
 pub(crate) use stream::StreamResponse;
 
-pub(crate) struct RequestContext {
-    pub mutations_allowed: bool,
-    pub headers: http::HeaderMap,
-    pub websocket_init_payload: Option<serde_json::Map<String, serde_json::Value>>,
-    pub response_format: ResponseFormat,
-    pub client: Option<Client>,
-    pub access_token: AccessToken,
-    pub subgraph_default_headers: http::HeaderMap,
-    pub include_grafbase_response_extension: bool,
+pub struct RequestContext {
+    pub(crate) mutations_allowed: bool,
+    pub(crate) headers: http::HeaderMap,
+    pub(crate) websocket_init_payload: Option<serde_json::Map<String, serde_json::Value>>,
+    pub(crate) response_format: ResponseFormat,
+    pub(crate) client: Option<Client>,
+    pub(crate) access_token: LegacyToken,
+    pub(crate) subgraph_default_headers: http::HeaderMap,
+    pub(crate) include_grafbase_response_extension: bool,
+}
+
+impl RequestContext {
+    pub fn headers(&self) -> &http::HeaderMap {
+        &self.headers
+    }
+
+    pub fn token(&self) -> &LegacyToken {
+        &self.access_token
+    }
 }
 
 /// Context only used early in the request processing before generating the RequestContext used

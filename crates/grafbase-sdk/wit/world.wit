@@ -228,12 +228,6 @@ interface types {
         entries: func() -> list<tuple<string, string>>;
     }
 
-    // A token represents an authenticated user identity.
-    record token {
-        // The raw binary token data
-        raw: list<u8>,
-    }
-
     // A resource for caching data with optional expiration.
     resource cache {
         // Retrieves a value from the cache by key.
@@ -243,6 +237,19 @@ interface types {
         // Optional ttl-ms parameter sets the time-to-live in milliseconds after which the value expires.
         // If ttl-ms is None, the value will not expire automatically.
         set: static func(key: string, value: list<u8>, ttl-ms: option<u64>) -> ();
+    }
+
+    resource authorization-context {
+        headers: func() -> headers;
+        token: func() -> token;
+    }
+
+    // A token represents an authenticated user identity.
+    variant token {
+        // Anonymous user without any metadata.
+        anonymous,
+        // The raw binary token data.
+        bytes(list<u8>),
     }
 
     variant authorization-decisions {
@@ -330,7 +337,7 @@ interface directive {
 
 interface extension {
     use directive.{schema-directive, field-definition-directive, query-elements};
-    use types.{shared-context, error-response, error, field-output, access-log, log-error, nats-auth, nats-client, http-client, http-request, http-response, http-method, http-version, http-error, headers, token, cache, authorization-decisions};
+    use types.{shared-context, error-response, error, field-output, access-log, log-error, nats-auth, nats-client, http-client, http-request, http-response, http-method, http-version, http-error, headers, cache, token, authorization-decisions, authorization-context};
 
     // initialization function called to set up the wasm extension
     // if an error happens here, the gateway will refuse to continue.
@@ -375,6 +382,7 @@ interface extension {
     ) -> result<token, error-response>;
 
     authorize-query: func(
+        ctx: authorization-context,
         elements: query-elements
     ) -> result<authorization-decisions, error-response>;
 }

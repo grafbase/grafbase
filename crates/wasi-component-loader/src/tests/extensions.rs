@@ -2,7 +2,10 @@ use std::path::PathBuf;
 
 use crate::{
     cbor,
-    extension::{ExtensionGuestConfig, ExtensionLoader, SchemaDirective, wit},
+    extension::{
+        ExtensionGuestConfig, ExtensionLoader, SchemaDirective,
+        wit::{self, Token},
+    },
     tests::create_shared_resources,
 };
 use futures::{
@@ -41,7 +44,7 @@ async fn simple_resolver() {
         shared,
         config,
         ExtensionGuestConfig {
-            r#type: extension_catalog::KindDiscriminants::FieldResolver,
+            r#type: extension_catalog::KindDiscriminants::Resolver,
             schema_directives: vec![SchemaDirective::new("schemaArgs", "mySubgraph", SchemaArgs { id: 10 })],
             configuration: (),
         },
@@ -106,7 +109,7 @@ async fn single_call_caching_auth() {
         shared,
         config,
         ExtensionGuestConfig {
-            r#type: extension_catalog::KindDiscriminants::Authenticator,
+            r#type: extension_catalog::KindDiscriminants::Authentication,
             schema_directives: Vec::new(),
             configuration: json!({
                 "cache_config": "test"
@@ -119,12 +122,14 @@ async fn single_call_caching_auth() {
     headers.insert("Authorization", HeaderValue::from_static("valid"));
 
     let (headers, token) = loader.instantiate().await.unwrap().authenticate(headers).await.unwrap();
-
     assert!(headers.len() == 1);
     assert_eq!(Some(&HeaderValue::from_static("valid")), headers.get("Authorization"));
+    let claims = match token {
+        Token::Anonymous => serde_json::Value::Null,
+        Token::Bytes(bytes) => serde_json::from_slice(&bytes).unwrap(),
+    };
 
-    let output: serde_json::Value = cbor::from_slice(&token.raw).unwrap();
-    insta::assert_json_snapshot!(output, @r#"
+    insta::assert_json_snapshot!(claims, @r#"
     {
       "key": "default"
     }
@@ -148,7 +153,7 @@ async fn single_call_caching_auth_invalid() {
         shared,
         config,
         ExtensionGuestConfig {
-            r#type: extension_catalog::KindDiscriminants::Authenticator,
+            r#type: extension_catalog::KindDiscriminants::Authentication,
             schema_directives: Vec::new(),
             configuration: json!({
                 "cache_config": "test"
@@ -197,7 +202,7 @@ async fn multiple_cache_calls() {
         shared,
         config,
         ExtensionGuestConfig {
-            r#type: extension_catalog::KindDiscriminants::Authenticator,
+            r#type: extension_catalog::KindDiscriminants::Authentication,
             schema_directives: Vec::new(),
             configuration: json!({
                 "cache_config": "test"
@@ -222,8 +227,10 @@ async fn multiple_cache_calls() {
             headers.insert("value", HeaderValue::from_str(&format!("value_{i}")).unwrap());
 
             let (_, token) = extension.authenticate(headers).await.unwrap();
-            println!("{}", String::from_utf8_lossy(&token.raw));
-            let claims: serde_json::Value = cbor::from_slice(&token.raw).unwrap();
+            let claims = match token {
+                Token::Anonymous => serde_json::Value::Null,
+                Token::Bytes(bytes) => serde_json::from_slice(&bytes).unwrap(),
+            };
 
             // only the first key comes from the cache.
 
@@ -244,10 +251,13 @@ async fn multiple_cache_calls() {
     let mut headers = HeaderMap::new();
     headers.insert("Authorization", HeaderValue::from_static("nonvalid"));
     let (_, token) = loader.instantiate().await.unwrap().authenticate(headers).await.unwrap();
-    let output: serde_json::Value = cbor::from_slice(&token.raw).unwrap();
+    let claims = match token {
+        Token::Anonymous => serde_json::Value::Null,
+        Token::Bytes(bytes) => serde_json::from_slice(&bytes).unwrap(),
+    };
 
     insta::allow_duplicates! {
-        insta::assert_json_snapshot!(output, @r#"
+        insta::assert_json_snapshot!(claims, @r#"
         {
           "key": "default"
         }

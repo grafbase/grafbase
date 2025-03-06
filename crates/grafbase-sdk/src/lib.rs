@@ -6,6 +6,7 @@ mod cbor;
 mod component;
 #[doc(hidden)]
 pub mod extension;
+pub mod host;
 pub mod host_io;
 #[cfg(feature = "jq-selection")]
 pub mod jq_selection;
@@ -14,10 +15,11 @@ pub mod test;
 pub mod types;
 
 pub use component::SdkError;
-pub use extension::{resolver::Subscription, Authenticator, Extension, Resolver};
+pub use extension::{resolver::Subscription, AuthenticationExtension, Extension, ResolverExtension};
 pub use grafbase_sdk_derive::{AuthenticationExtension, ResolverExtension};
-pub use types::{Error, ErrorResponse};
-pub use wit::{Headers, NatsAuth, NatsStreamDeliverPolicy, SharedContext};
+pub use host::{AuthorizationContext, Headers};
+pub use types::{Error, ErrorResponse, Token};
+pub use wit::{NatsAuth, NatsStreamDeliverPolicy, SharedContext};
 
 use component::Component;
 

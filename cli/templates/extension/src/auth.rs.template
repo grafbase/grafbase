@@ -1,6 +1,6 @@
 use grafbase_sdk::{
     types::{Configuration, SchemaDirective, ErrorResponse, Token},
-    AuthenticationExtension, Authenticator, Extension, Headers,
+    AuthenticationExtension, Extension, Headers,
 };
 
 #[derive(AuthenticationExtension)]
@@ -15,7 +15,7 @@ impl Extension for {{name}} {
     }
 }
 
-impl Authenticator for {{name}} {
+impl AuthenticationExtension for {{name}} {
     fn authenticate(&mut self, headers: Headers) -> Result<Token, ErrorResponse> {
         todo!()
     }
