@@ -18,6 +18,8 @@ key="install/$1"
 
 echo "Collecting the files to be uploaded…"
 
+export PATH=/usr/local/bin:$PATH
+
 aws configure set default.s3.max_concurrent_requests 8
 aws configure set default.s3.multipart_threshold 512MB
 aws configure set default.s3.multipart_chunksize 128MB
