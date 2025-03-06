@@ -55,7 +55,7 @@ ecdsa = { version = "0.16", default-features = false, features = ["pem", "signin
 ed25519 = { version = "2", default-features = false, features = ["pem", "std"] }
 ed25519-compact = { version = "2" }
 ed25519-dalek = { version = "2", features = ["digest", "pem"] }
-either = { version = "1" }
+either = { version = "1", features = ["use_std"] }
 elliptic-curve = { version = "0.13", features = ["ecdh", "hazmat", "jwk", "pem", "std"] }
 fastrand = { version = "2" }
 ff = { version = "0.13", default-features = false, features = ["alloc"] }
@@ -188,7 +188,7 @@ ecdsa = { version = "0.16", default-features = false, features = ["pem", "signin
 ed25519 = { version = "2", default-features = false, features = ["pem", "std"] }
 ed25519-compact = { version = "2" }
 ed25519-dalek = { version = "2", features = ["digest", "pem"] }
-either = { version = "1" }
+either = { version = "1", features = ["use_std"] }
 elliptic-curve = { version = "0.13", features = ["ecdh", "hazmat", "jwk", "pem", "std"] }
 fastrand = { version = "2" }
 ff = { version = "0.13", default-features = false, features = ["alloc"] }
