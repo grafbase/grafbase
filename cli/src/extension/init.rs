@@ -67,7 +67,7 @@ pub(super) fn execute(cmd: ExtensionInitCommand) -> anyhow::Result<()> {
     let extension_name = init_cargo_toml(&cmd.path)?;
     init_extension_toml(&cmd.path, cmd.r#type, &extension_name)?;
 
-    if cmd.r#type == ExtensionType::Resolver {
+    if matches!(cmd.r#type, ExtensionType::Resolver | ExtensionType::Authorization) {
         init_definitions_graphql(&cmd.path, &extension_name)?;
     }
 

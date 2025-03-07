@@ -97,11 +97,22 @@ fn init() {
             &mut self,
             ctx: AuthorizationContext,
             elements: QueryElements<'_>,
-        ) -> Result<impl Into<AuthorizationDecisions>, ErrorResponse> {
+        ) -> Result<AuthorizationDecisions, ErrorResponse> {
             Ok(AuthorizationDecisions::deny_all("Not authorized"))
         }
     }
     "##);
+
+    let definitions = std::fs::read_to_string(project_path.join("definitions.graphql")).unwrap();
+
+    insta::assert_snapshot!(&definitions, @r#"
+    """
+    Fill in here the directives and types that the extension needs.
+    Remove this file and the definition in extension.toml if the extension does not need any directives.
+    """
+    directive @testProjectConfiguration(arg1: String) repeatable on SCHEMA
+    directive @testProjectDirective on FIELD_DEFINITION
+    "#);
 
     let tests_rs = std::fs::read_to_string(project_path.join("tests/integration_tests.rs")).unwrap();
 
@@ -238,6 +249,7 @@ fn build() {
       "sdk_version": "<sdk_version>",
       "minimum_gateway_version": "<minimum_gateway_version>",
       "description": "A new extension",
+      "sdl": "\"\"\"\nFill in here the directives and types that the extension needs.\nRemove this file and the definition in extension.toml if the extension does not need any directives.\n\"\"\"\ndirective @testProjectConfiguration(arg1: String) repeatable on SCHEMA\ndirective @testProjectDirective on FIELD_DEFINITION",
       "permissions": []
     }
     "#

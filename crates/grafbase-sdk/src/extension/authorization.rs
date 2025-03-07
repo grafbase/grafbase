@@ -30,7 +30,7 @@ pub trait AuthorizationExtension: Sized + 'static {
         &mut self,
         ctx: AuthorizationContext,
         elements: QueryElements<'_>,
-    ) -> Result<impl Into<AuthorizationDecisions>, ErrorResponse>;
+    ) -> Result<AuthorizationDecisions, ErrorResponse>;
 }
 
 #[doc(hidden)]
@@ -43,7 +43,7 @@ pub fn register<T: AuthorizationExtension>() {
             ctx: AuthorizationContext,
             elements: QueryElements<'_>,
         ) -> Result<AuthorizationDecisions, ErrorResponse> {
-            AuthorizationExtension::authorize_query(&mut self.0, ctx, elements).map(Into::into)
+            AuthorizationExtension::authorize_query(&mut self.0, ctx, elements)
         }
     }
 
