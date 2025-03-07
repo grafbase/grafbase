@@ -5,9 +5,7 @@ metadata:
   labels:
     {{- include "app.labels" . | nindent 4 }}
 spec:
-  {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
-  {{- end }}
   selector:
     matchLabels:
       {{- include "app.selectorLabels" . | nindent 6 }}
@@ -89,6 +87,12 @@ spec:
             - {{- . | toYaml | trim | nindent 14 }}
             {{- end }}
             {{- end }}
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - sleep
+                  - 15
           {{- if and .Values.configmap.enabled .Values.secrets.enabled }}
           envFrom:
           - configMapRef:
