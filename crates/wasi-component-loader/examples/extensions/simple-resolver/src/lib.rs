@@ -41,18 +41,17 @@ impl ResolverExtension for SimpleResolver {
         _: Headers,
         _: &str,
         directive: FieldDefinitionDirective,
-        _: FieldInputs,
+        inputs: FieldInputs,
     ) -> Result<FieldOutput, Error> {
         let args: FieldArgs = directive.arguments().unwrap();
 
-        let mut output = FieldOutput::new();
-
-        output.push_value(ResponseOutput {
-            id: self.schema_args.id,
-            name: args.name,
-        });
-
-        Ok(output)
+        Ok(FieldOutput::new(
+            inputs,
+            ResponseOutput {
+                id: self.schema_args.id,
+                name: args.name,
+            },
+        )?)
     }
 
     fn resolve_subscription(

@@ -20,7 +20,7 @@ pub(crate) trait AnyExtension {
         headers: Headers,
         subgraph_name: &str,
         directive: FieldDefinitionDirective<'_>,
-        inputs: FieldInputs,
+        inputs: FieldInputs<'_>,
     ) -> Result<FieldOutput, Error> {
         Err("Resolver extension not initialized correctly.".into())
     }

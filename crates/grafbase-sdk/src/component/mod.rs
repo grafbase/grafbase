@@ -3,7 +3,7 @@ mod extension;
 mod state;
 
 use crate::{
-    types::{Configuration, FieldInputs},
+    types::Configuration,
     wit::{
         AuthorizationContext, AuthorizationDecisions, Error, ErrorResponse, FieldDefinitionDirective, FieldOutput,
         Guest, Headers, QueryElements, SchemaDirective, Token,
@@ -29,12 +29,8 @@ impl Guest for Component {
         directive: FieldDefinitionDirective,
         inputs: Vec<Vec<u8>>,
     ) -> Result<FieldOutput, Error> {
-        let result = state::extension()?.resolve_field(
-            headers.into(),
-            &subgraph_name,
-            (&directive).into(),
-            FieldInputs::new(inputs),
-        );
+        let result =
+            state::extension()?.resolve_field(headers.into(), &subgraph_name, (&directive).into(), (&inputs).into());
 
         result.map(Into::into).map_err(Into::into)
     }

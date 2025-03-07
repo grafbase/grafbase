@@ -1,7 +1,9 @@
 use crate::{
     component::AnyExtension,
     host::Headers,
-    types::{Configuration, Error, FieldDefinitionDirective, FieldInputs, FieldOutput, SchemaDirective},
+    types::{
+        Configuration, Error, FieldDefinitionDirective, FieldInputs, FieldOutput, SchemaDirective, SubscriptionOutput,
+    },
 };
 
 /// A trait that extends `Extension` and provides functionality for resolving fields.
@@ -25,7 +27,42 @@ pub trait ResolverExtension: Sized + 'static {
     /// Similar to how every request to a subgraph would fail if it went down.
     fn new(schema_directives: Vec<SchemaDirective>, config: Configuration) -> Result<Self, Error>;
 
-    /// Resolves a field value based on the given context, directive, definition, and inputs.
+    /// Resolves a GraphQL field, called at most once per occurrence in the query. If contained
+    /// inside lists, this resolver may receive multiple inputs to resolve. So for a schema like:
+    ///
+    /// ```ignore,graphql
+    /// type Query {
+    ///     users: [User]
+    /// }
+    ///
+    /// type User {
+    ///     id: ID!
+    ///     field: JSON # <- field resolver by this extension
+    /// }
+    /// ```
+    ///
+    /// and a query like:
+    ///
+    /// ```ignore,graphql
+    /// query {
+    ///    users {
+    ///       field
+    ///    }
+    /// }
+    /// ```
+    ///
+    /// This function will called at most once, independently of the number of users.
+    /// `FieldInputs` will have an entry for every occurrence of said field within the response.
+    /// So if there are 10 users, `FieldInputs` will contain 10 `ResolverInput`.
+    ///
+    /// Any requested response data such as the user id will be included in the `FieldInput`,
+    /// but every other directive argument that is either static or depends solely on the field arguments
+    /// will be provided in the `FieldDefinitionDirective`.
+    ///
+    /// The output of this function is fairly flexible, you can return individual elements/errors or
+    /// everything batched together. The data may contain additional fields, they'll be ignored.
+    /// But it MUST have the proper shape and the appropriate names. The gateway will validate the
+    /// every element.
     ///
     /// # Arguments
     ///
@@ -43,7 +80,7 @@ pub trait ResolverExtension: Sized + 'static {
         headers: Headers,
         subgraph_name: &str,
         directive: FieldDefinitionDirective<'_>,
-        inputs: FieldInputs,
+        inputs: FieldInputs<'_>,
     ) -> Result<FieldOutput, Error>;
 
     /// Resolves a subscription field by setting up a subscription handler.
@@ -104,7 +141,7 @@ pub trait Subscription {
     /// - `Ok(Some(FieldOutput))` if a field output was available
     /// - `Ok(None)` if the subscription has ended normally
     /// - `Err(Error)` if an error occurred while retrieving the next field output
-    fn next(&mut self) -> Result<Option<FieldOutput>, Error>;
+    fn next(&mut self) -> Result<Option<SubscriptionOutput>, Error>;
 }
 
 #[doc(hidden)]
@@ -117,7 +154,7 @@ pub fn register<T: ResolverExtension>() {
             headers: Headers,
             subgraph_name: &str,
             directive: FieldDefinitionDirective<'_>,
-            inputs: FieldInputs,
+            inputs: FieldInputs<'_>,
         ) -> Result<FieldOutput, Error> {
             ResolverExtension::resolve_field(&mut self.0, headers, subgraph_name, directive, inputs)
         }

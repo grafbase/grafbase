@@ -21,7 +21,7 @@ impl ResolverExtension for EchoExtension {
         _headers: Headers,
         _: &str,
         directive: FieldDefinitionDirective<'_>,
-        _inputs: FieldInputs,
+        inputs: FieldInputs,
     ) -> Result<FieldOutput, Error> {
         let value = match directive.name() {
             "hello" => {
@@ -31,11 +31,7 @@ impl ResolverExtension for EchoExtension {
             other => format!("unknown directive `{other}`"),
         };
 
-        let mut output = FieldOutput::new();
-
-        output.push_value(serde_json::json!(value));
-
-        Ok(output)
+        Ok(FieldOutput::new(inputs, serde_json::json!(value))?)
     }
 
     fn resolve_subscription(

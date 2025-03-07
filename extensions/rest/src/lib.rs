@@ -45,7 +45,7 @@ impl ResolverExtension for RestExtension {
         headers: Headers,
         subgraph_name: &str,
         directive: FieldDefinitionDirective<'_>,
-        _: FieldInputs,
+        inputs: FieldInputs,
     ) -> Result<FieldOutput, Error> {
         let rest: Rest<'_> = directive
             .arguments()
@@ -88,26 +88,28 @@ impl ResolverExtension for RestExtension {
             .json()
             .map_err(|e| format!("Error deserializing response: {e}"))?;
 
-        let mut results = FieldOutput::new();
-
         if !(data.is_object() || data.is_array()) {
-            results.push_value(data);
-            return Ok(results);
+            return Ok(FieldOutput::new(inputs, data)?);
         }
 
         let filtered = self
             .jq_selection
             .select(rest.selection, data)
-            .map_err(|e| format!("Error selecting result value: {e}"))?;
+            .map_err(|e| format!("Error selecting result value: {e}"))?
+            .collect::<Result<Vec<_>, _>>();
 
-        for result in filtered {
-            match result {
-                Ok(result) => results.push_value(result),
-                Err(e) => results.push_error(format!("Error parsing result value: {e}")),
+        Ok(match filtered {
+            Ok(filtered) => {
+                // TODO: We don't whether a list of a single item is expected here... Need engine
+                // to help
+                if filtered.len() == 1 {
+                    FieldOutput::new(inputs, filtered.into_iter().next().unwrap())?
+                } else {
+                    FieldOutput::new(inputs, filtered)?
+                }
             }
-        }
-
-        Ok(results)
+            Err(error) => FieldOutput::error(inputs, format!("Failed to filter with selection: {}", error)),
+        })
     }
 
     fn resolve_subscription(
