@@ -1,5 +1,5 @@
 [[extensions]]
-url = "https://extensions.grafbase.com/extensions/kafka/v1.0.0"
+url = "https://grafbase.com/extensions/kafka/v1.0.0"
 name = "kafka-connector"
 
 [[extensions]]
@@ -7,7 +7,7 @@ url = "file:///home/lellison/src/oracle-grafbase-extension/dist"
 name = "oracle-connector"
 
 [[extensions]]
-url = "https://extensions.grafbase.com/extensions/rest"
+url = "https://grafbase.com/extensions/rest"
 name = "rest-connector"
 
 [[extensions]]
