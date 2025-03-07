@@ -5,7 +5,7 @@ use wasmtime::{
 };
 
 use crate::{
-    extension::wit::HttpMethod,
+    extension::wit::since_0_8_0::http_client::HttpMethod,
     headers::Headers,
     names::{
         SUBGRAPH_REQUEST_GET_HEADERS_METHOD, SUBGRAPH_REQUEST_GET_METHOD_METHOD, SUBGRAPH_REQUEST_GET_URL_METHOD,

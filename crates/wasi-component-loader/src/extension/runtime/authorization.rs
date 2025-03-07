@@ -1,6 +1,6 @@
 use runtime::error::PartialErrorCode;
 
-use crate::extension::wit;
+use crate::extension::wit::authorization as wit;
 
 impl From<wit::AuthorizationDecisions> for runtime::extension::AuthorizationDecisions {
     fn from(decisions: wit::AuthorizationDecisions) -> Self {

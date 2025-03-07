@@ -1,24 +1,7 @@
-pub mod directive;
+pub mod since_0_8_0;
+pub mod since_0_9_0;
 
-wasmtime::component::bindgen!({
-    path: "../grafbase-sdk/wit",
-    world: "sdk",
-    async: true,
-    with: {
-        "grafbase:sdk/types/headers": crate::resources::Headers,
-        "grafbase:sdk/types/authorization-context": crate::resources::AuthorizationContext,
-        "grafbase:sdk/types/shared-context": crate::resources::SharedContext,
-        "grafbase:sdk/types/access-log": crate::resources::AccessLogSender,
-        "grafbase:sdk/types/nats-client": crate::resources::NatsClient,
-        "grafbase:sdk/types/nats-subscriber": crate::resources::NatsSubscriber,
-        "grafbase:sdk/types/nats-key-value": crate::resources::NatsKeyValue,
-        "grafbase:sdk/directive": crate::wit::directive,
-    },
-    trappable_imports: true,
-    ownership: Borrowing {
-        duplicate_if_necessary: true
-    },
-});
+pub mod directive;
 
 // Having arguments as &[u8] is a massive pain to deal with and bindgen doesn't allow a lot of
 // flexibility. Either everything is borrowed or nothing is. So wrote those manually.
@@ -26,4 +9,19 @@ pub use directive::{
     EnumDirectiveSite, FieldDefinitionDirective, FieldDefinitionDirectiveSite, InterfaceDirectiveSite,
     ObjectDirectiveSite, QueryElement, QueryElements, ScalarDirectiveSite, SchemaDirective, UnionDirectiveSite,
 };
-pub use grafbase::sdk::types::*;
+
+use crate::WasiState;
+
+pub enum Extension {
+    Since0_8_0(since_0_8_0::Extension),
+    Since0_9_0(since_0_9_0::Extension),
+}
+
+impl Extension {
+    pub(crate) fn add_to_linker(&self, linker: &mut wasmtime::component::Linker<WasiState>) -> wasmtime::Result<()> {
+        match self {
+            Extension::Since0_8_0(extension) => extension.add_to_linker(linker),
+            Extension::Since0_9_0(extension) => extension.add_to_linker(linker),
+        }
+    }
+}

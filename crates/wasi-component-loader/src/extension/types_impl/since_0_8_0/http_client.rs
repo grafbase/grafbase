@@ -3,7 +3,7 @@ use wasmtime::component::Resource;
 
 use crate::{
     WasiState,
-    extension::wit::{HostHttpClient, HttpClient, HttpMethod, HttpVersion},
+    extension::wit::since_0_8_0::http_client::{HostHttpClient, HttpClient, HttpMethod, HttpVersion},
     http_client::{HttpError, HttpRequest, HttpResponse},
 };
 

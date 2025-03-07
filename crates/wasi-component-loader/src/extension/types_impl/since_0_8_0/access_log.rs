@@ -1,6 +1,9 @@
 use wasmtime::component::Resource;
 
-use crate::{AccessLogMessage, AccessLogSender, WasiState, access_log::LogError, extension::wit::HostAccessLog};
+use crate::{
+    AccessLogMessage, AccessLogSender, WasiState, access_log::LogError,
+    extension::wit::since_0_8_0::access_log::HostAccessLog,
+};
 
 impl HostAccessLog for WasiState {
     async fn send(&mut self, data: Vec<u8>) -> wasmtime::Result<Result<(), LogError>> {

@@ -5,8 +5,8 @@ use wasmtime::component::Resource;
 
 use crate::{
     WasiState,
-    extension::wit::{
-        self, HostNatsClient, HostNatsKeyValue, HostNatsSubscriber, NatsAuth, NatsKeyValue, NatsMessage,
+    extension::wit::since_0_8_0::nats_client::{
+        self as wit, HostNatsClient, HostNatsKeyValue, HostNatsSubscriber, NatsAuth, NatsKeyValue, NatsMessage,
         NatsStreamConfig,
     },
     resources::{NatsClient, NatsSubscriber},

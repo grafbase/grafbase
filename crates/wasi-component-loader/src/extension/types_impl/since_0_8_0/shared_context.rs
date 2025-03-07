@@ -1,6 +1,6 @@
 use wasmtime::component::Resource;
 
-use crate::{SharedContext, WasiState, extension::wit::HostSharedContext};
+use crate::{SharedContext, WasiState, extension::wit::since_0_8_0::context::HostSharedContext};
 
 impl HostSharedContext for WasiState {
     async fn get(&mut self, self_: Resource<SharedContext>, name: String) -> wasmtime::Result<Option<String>> {

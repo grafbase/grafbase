@@ -10,14 +10,14 @@ pub enum ErrorResponse {
     Internal(#[from] anyhow::Error),
     /// Error defined by the guest.
     #[error("{0}")]
-    Guest(#[from] wit::ErrorResponse),
+    Guest(#[from] wit::since_0_8_0::error::ErrorResponse),
 }
 
 impl From<Error> for ErrorResponse {
     fn from(value: Error) -> Self {
         match value {
             Error::Internal(error) => ErrorResponse::Internal(error),
-            Error::Guest(error) => ErrorResponse::Guest(wit::ErrorResponse {
+            Error::Guest(error) => ErrorResponse::Guest(wit::since_0_8_0::error::ErrorResponse {
                 status_code: 500,
                 errors: vec![error],
             }),
@@ -56,7 +56,16 @@ pub enum Error {
     Internal(#[from] anyhow::Error),
     /// User-thrown error of the WASI guest.
     #[error("{0}")]
-    Guest(#[from] wit::Error),
+    Guest(#[from] wit::since_0_8_0::error::Error),
+}
+
+impl From<wit::since_0_9_0::error::Error> for Error {
+    fn from(value: wit::since_0_9_0::error::Error) -> Self {
+        Self::Guest(wit::since_0_8_0::error::Error {
+            extensions: value.extensions,
+            message: value.message,
+        })
+    }
 }
 
 impl Error {
@@ -80,7 +89,7 @@ impl From<reqwest::Error> for Error {
     }
 }
 
-impl wit::Error {
+impl wit::since_0_8_0::error::Error {
     pub(crate) fn into_graphql_error(self, code: PartialErrorCode) -> PartialGraphqlError {
         let extensions = self
             .extensions
