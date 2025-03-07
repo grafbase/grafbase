@@ -241,7 +241,7 @@ fn build_resolver() {
     assert!(std::fs::exists(build_path.join("manifest.json")).unwrap());
 
     let manifest = std::fs::read_to_string(build_path.join("manifest.json")).unwrap();
-    let manifest: VersionedManifest = serde_json::from_str(dbg!(&manifest)).unwrap();
+    let manifest: VersionedManifest = serde_json::from_str(&manifest).unwrap();
 
     let manifest = serde_json::to_value(&manifest).unwrap();
     insta::assert_json_snapshot!(

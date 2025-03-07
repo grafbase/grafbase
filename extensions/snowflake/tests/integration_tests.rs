@@ -59,7 +59,6 @@ async fn test_basic_responses() {
         .with_gateway(GATEWAY_PATH)
         .with_subgraph(subgraph)
         .enable_networking()
-        .enable_environment_variables()
         .build(config)
         .unwrap();
 
@@ -178,6 +177,12 @@ async fn test_basic_responses() {
       "errors": [
         {
           "message": "No data returned from Snowflake query. SQL State: 2201W, Code: 002010. Message: SQL compilation error:\nInvalid row count '?' in limit clause",
+          "locations": [
+            {
+              "line": 1,
+              "column": 9
+            }
+          ],
           "extensions": {
             "code": "EXTENSION_ERROR"
           }
