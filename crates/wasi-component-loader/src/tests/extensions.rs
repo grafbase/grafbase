@@ -4,7 +4,7 @@ use crate::{
     cbor,
     extension::{
         ExtensionGuestConfig, ExtensionLoader, SchemaDirective,
-        wit::{self, Token},
+        api::wit::{self, token::Token},
     },
     tests::create_shared_resources,
 };
@@ -14,6 +14,7 @@ use futures::{
 };
 use gateway_config::WasiExtensionsConfig;
 use http::{HeaderMap, HeaderValue};
+use semver::Version;
 use serde_json::json;
 
 #[tokio::test]
@@ -48,12 +49,13 @@ async fn simple_resolver() {
             schema_directives: vec![SchemaDirective::new("schemaArgs", "mySubgraph", SchemaArgs { id: 10 })],
             configuration: (),
         },
+        Version::new(0, 9, 0),
     )
     .unwrap();
 
-    let field_directive = wit::FieldDefinitionDirective {
+    let field_directive = wit::directive::FieldDefinitionDirective {
         name: "myDirective",
-        site: wit::FieldDefinitionDirectiveSite {
+        site: wit::directive::FieldDefinitionDirectiveSite {
             parent_type_name: "Query",
             field_name: "cats",
         },
@@ -115,6 +117,7 @@ async fn single_call_caching_auth() {
                 "cache_config": "test"
             }),
         },
+        Version::new(0, 9, 0),
     )
     .unwrap();
 
@@ -159,6 +162,7 @@ async fn single_call_caching_auth_invalid() {
                 "cache_config": "test"
             }),
         },
+        Version::new(0, 9, 0),
     )
     .unwrap();
 
@@ -208,6 +212,7 @@ async fn multiple_cache_calls() {
                 "cache_config": "test"
             }),
         },
+        Version::new(0, 9, 0),
     )
     .unwrap();
 

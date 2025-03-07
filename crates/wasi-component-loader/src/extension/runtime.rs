@@ -4,10 +4,11 @@ mod subscription;
 use crate::{cbor, extension::ExtensionLoader, resources::SharedResources};
 
 use super::{
-    ExtensionGuestConfig, InputList,
+    ExtensionGuestConfig,
+    api::{instance::InputList, wit},
     pool::{ExtensionGuard, Pool},
-    wit,
 };
+
 use dashmap::DashMap;
 use engine::RequestContext;
 use extension_catalog::ExtensionId;
@@ -21,6 +22,7 @@ use runtime::{
     },
     hooks::Anything,
 };
+use semver::Version;
 use std::{collections::HashMap, future::Future, sync::Arc};
 use subscription::{DeduplicatedSubscription, UniqueSubscription};
 use tokio::{sync::broadcast, task::JoinHandle};
@@ -89,7 +91,9 @@ async fn create_pools<T: serde::Serialize + Send + 'static>(
 
         creating_pools.push(tokio::task::spawn_blocking(move || {
             tracing::info!("Loading extension {}", config.manifest_id);
-            let loader = ExtensionLoader::new(shared, config.wasi_config, config.guest_config)?;
+
+            let loader = ExtensionLoader::new(shared, config.wasi_config, config.guest_config, config.sdk_version)?;
+
             Ok((config.id, Pool::new(loader, config.max_pool_size)))
         }));
     }
@@ -112,7 +116,7 @@ async fn create_pools<T: serde::Serialize + Send + 'static>(
 }
 
 impl ExtensionRuntime<Arc<RequestContext>> for ExtensionsWasiRuntime {
-    type SharedContext = wit::SharedContext;
+    type SharedContext = wit::context::SharedContext;
 
     #[allow(clippy::manual_async_fn)]
     fn resolve_field<'ctx, 'resp, 'f>(
@@ -135,9 +139,9 @@ impl ExtensionRuntime<Arc<RequestContext>> for ExtensionsWasiRuntime {
         async move {
             let mut instance = self.get(ExtensionPoolId::Resolver(extension_id)).await?;
 
-            let directive = wit::FieldDefinitionDirective {
+            let directive = wit::directive::FieldDefinitionDirective {
                 name,
-                site: wit::FieldDefinitionDirectiveSite {
+                site: wit::directive::FieldDefinitionDirectiveSite {
                     parent_type_name: field.parent_entity().name(),
                     field_name: field.name(),
                 },
@@ -200,12 +204,12 @@ impl ExtensionRuntime<Arc<RequestContext>> for ExtensionsWasiRuntime {
         let mut instance = self.get(ExtensionPoolId::Resolver(extension_id)).await?;
         let arguments = &cbor::to_vec(arguments).unwrap();
 
-        let site = wit::FieldDefinitionDirectiveSite {
+        let site = wit::directive::FieldDefinitionDirectiveSite {
             parent_type_name: field.parent_entity().name(),
             field_name: field.name(),
         };
 
-        let directive = wit::FieldDefinitionDirective { name, site, arguments };
+        let directive = wit::directive::FieldDefinitionDirective { name, site, arguments };
 
         let (headers, key) = instance
             .subscription_key(headers, subgraph.name(), directive.clone())
@@ -259,7 +263,7 @@ impl ExtensionRuntime<Arc<RequestContext>> for ExtensionsWasiRuntime {
                 let element: QueryElement<'_, _> = element;
                 let arguments = cbor::to_vec(element.arguments).unwrap();
 
-                query_elements.push(wit::QueryElement {
+                query_elements.push(wit::directive::QueryElement {
                     id: 0,
                     site: element.site.into(),
                     arguments,
@@ -273,8 +277,8 @@ impl ExtensionRuntime<Arc<RequestContext>> for ExtensionsWasiRuntime {
             let mut instance = self.get(ExtensionPoolId::Authorization(extension_id)).await?;
             instance
                 .authorize_query(
-                    wit::AuthorizationContext(ctx),
-                    wit::QueryElements {
+                    wit::context::AuthorizationContext(ctx),
+                    wit::directive::QueryElements {
                         directive_names,
                         elements: query_elements,
                     },
@@ -311,4 +315,5 @@ pub struct ExtensionConfig<T> {
     pub max_pool_size: Option<usize>,
     pub wasi_config: WasiExtensionsConfig,
     pub guest_config: ExtensionGuestConfig<T>,
+    pub sdk_version: Version,
 }

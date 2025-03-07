@@ -6,11 +6,10 @@ use wasmtime::{
 };
 
 use crate::{
+    extension::api::wit::grafbase::sdk::access_log::LogError,
     names::{ACCESS_LOG_RESOURCE, ACCESS_LOG_SEND_FUNCTION},
     state::WasiState,
 };
-
-pub use crate::extension::wit::LogError;
 
 /// Sender for a wasi hook to send logs to the writer.
 #[derive(Clone)]

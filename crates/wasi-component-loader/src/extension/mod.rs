@@ -1,9 +1,8 @@
+pub mod api;
 mod instance;
 mod loader;
 mod pool;
 mod runtime;
-mod types_impl;
-pub mod wit;
 
 pub(crate) use instance::*;
 pub(crate) use loader::*;

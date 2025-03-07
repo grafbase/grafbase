@@ -11,24 +11,6 @@ pub struct SchemaDirective<'a> {
 
 #[derive(Debug, ComponentType, Lower)]
 #[component(record)]
-pub struct ResponseElements<'a> {
-    #[component(name = "directive-names")]
-    pub directive_names: Vec<(&'a str, u32, u32)>,
-    pub elements: Vec<ResponseElement>,
-    pub items: Vec<Vec<u8>>,
-}
-
-#[derive(Debug, ComponentType, Lower)]
-#[component(record)]
-pub struct ResponseElement {
-    #[component(name = "query-element-id")]
-    pub query_element_id: u32,
-    #[component(name = "items-range")]
-    pub items_range: (u32, u32),
-}
-
-#[derive(Debug, ComponentType, Lower)]
-#[component(record)]
 pub struct QueryElements<'a> {
     #[component(name = "directive-names")]
     pub directive_names: Vec<(&'a str, u32, u32)>,
@@ -38,7 +20,6 @@ pub struct QueryElements<'a> {
 #[derive(Debug, ComponentType, Lower)]
 #[component(record)]
 pub struct QueryElement<'a> {
-    pub id: u32,
     pub site: DirectiveSite<'a>,
     pub arguments: Vec<u8>,
 }

@@ -153,6 +153,7 @@ fn create_wasi_extension_configs(
                         schema_directives: Vec::new(),
                         configuration: extension_config.config().cloned(),
                     },
+                    sdk_version: extension.manifest.sdk_version.clone(),
                 });
             }
             KindDiscriminants::Authentication => {
@@ -181,6 +182,7 @@ fn create_wasi_extension_configs(
                             schema_directives: Vec::new(),
                             configuration: extension_provider.config.clone(),
                         },
+                        sdk_version: extension.manifest.sdk_version.clone(),
                     });
                 }
             }
@@ -197,6 +199,7 @@ fn create_wasi_extension_configs(
                         schema_directives: Vec::new(),
                         configuration: extension_config.config().cloned(),
                     },
+                    sdk_version: extension.manifest.sdk_version.clone(),
                 });
             }
         }

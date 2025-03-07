@@ -7,7 +7,8 @@ use runtime::hooks::SubgraphRequest;
 use wasmtime::component::{ComponentNamedList, Lift, Lower, Resource, TypedFunc};
 
 use crate::AccessLogSender;
-use crate::extension::wit;
+use crate::extension::api::wit;
+use crate::extension::api::wit::grafbase::sdk::error::Error;
 use crate::headers::Headers;
 use crate::names::{
     AUTHORIZE_EDGE_NODE_POST_EXECUTION_HOOK_FUNCTION, AUTHORIZE_EDGE_POST_EXECUTION_HOOK_FUNCTION,
@@ -157,8 +158,9 @@ impl HooksComponentInstance {
         url: &str,
         headers: HeaderMap,
     ) -> crate::GatewayResult<(ContextMap, HeaderMap)> {
-        let Some(hook) = self.get_hook::<_, (Result<(), wit::ErrorResponse>,)>(HookImplementation::OnGatewayRequest)
-        else {
+        let Some(hook) = self.get_hook::<_, (Result<(), wit::grafbase::sdk::error::ErrorResponse>,)>(
+            HookImplementation::OnGatewayRequest,
+        ) else {
             return Ok((context, headers));
         };
 
@@ -347,7 +349,7 @@ impl HooksComponentInstance {
         definition: EdgeDefinition,
         parents: Vec<String>,
         metadata: String,
-    ) -> crate::Result<Vec<Result<(), wit::Error>>> {
+    ) -> crate::Result<Vec<Result<(), Error>>> {
         self.call3_one_output(
             HookImplementation::AuthorizeParentEdgePostExecution,
             context,
@@ -386,7 +388,7 @@ impl HooksComponentInstance {
         definition: EdgeDefinition,
         nodes: Vec<String>,
         metadata: String,
-    ) -> crate::Result<Vec<Result<(), wit::Error>>> {
+    ) -> crate::Result<Vec<Result<(), Error>>> {
         self.call3_one_output(
             HookImplementation::AuthorizeEdgeNodePostExecution,
             context,
@@ -425,7 +427,7 @@ impl HooksComponentInstance {
         definition: EdgeDefinition,
         edges: Vec<(String, Vec<String>)>,
         metadata: String,
-    ) -> crate::Result<Vec<Result<(), wit::Error>>> {
+    ) -> crate::Result<Vec<Result<(), Error>>> {
         self.call3_one_output(
             HookImplementation::AuthorizeEdgePostExecution,
             context,

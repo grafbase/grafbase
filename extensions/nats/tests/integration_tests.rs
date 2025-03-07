@@ -298,8 +298,6 @@ async fn test_subscribe_with_filter() {
         .with_gateway(GATEWAY_PATH)
         .with_subgraph(subgraph())
         .enable_networking()
-        .enable_stderr()
-        .enable_stdout()
         .log_level(grafbase_sdk::test::LogLevel::WasiDebug)
         .build(config())
         .unwrap();

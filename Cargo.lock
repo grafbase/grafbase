@@ -3697,7 +3697,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "anyhow",
  "async-tungstenite",
@@ -9798,6 +9798,7 @@ dependencies = [
  "minicbor-serde",
  "reqwest 0.12.12",
  "runtime",
+ "semver 1.0.26",
  "serde",
  "serde_json",
  "strum 0.27.1",

@@ -5,19 +5,17 @@ use wasmtime::component::Resource;
 
 use crate::{
     WasiState,
-    extension::wit::{
-        self, HostNatsClient, HostNatsKeyValue, HostNatsSubscriber, NatsAuth, NatsKeyValue, NatsMessage,
-        NatsStreamConfig,
-    },
     resources::{NatsClient, NatsSubscriber},
 };
 
-impl HostNatsClient for WasiState {
+use super::super::wit::nats_client;
+
+impl nats_client::HostNatsClient for WasiState {
     async fn connect(
         &mut self,
         servers: Vec<String>,
-        auth: Option<NatsAuth>,
-    ) -> wasmtime::Result<Result<Resource<NatsClient>, String>> {
+        auth: Option<nats_client::NatsAuth>,
+    ) -> wasmtime::Result<Result<Resource<nats_client::NatsClient>, String>> {
         if !self.network_enabled() {
             return Ok(Err("Network operations are disabled".to_string()));
         }
@@ -33,9 +31,11 @@ impl HostNatsClient for WasiState {
         let opts = async_nats::ConnectOptions::new();
 
         let opts = match auth {
-            Some(NatsAuth::UsernamePassword((username, password))) => opts.user_and_password(username, password),
-            Some(NatsAuth::Token(token)) => opts.token(token),
-            Some(NatsAuth::Credentials(ref credentials)) => match opts.credentials(credentials) {
+            Some(nats_client::NatsAuth::UsernamePassword((username, password))) => {
+                opts.user_and_password(username, password)
+            }
+            Some(nats_client::NatsAuth::Token(token)) => opts.token(token),
+            Some(nats_client::NatsAuth::Credentials(ref credentials)) => match opts.credentials(credentials) {
                 Ok(opts) => opts,
                 Err(err) => return Ok(Err(err.to_string())),
             },
@@ -70,9 +70,9 @@ impl HostNatsClient for WasiState {
 
     async fn subscribe(
         &mut self,
-        self_: Resource<NatsClient>,
+        self_: Resource<nats_client::NatsClient>,
         subject: String,
-        config: Option<NatsStreamConfig>,
+        config: Option<nats_client::NatsStreamConfig>,
     ) -> wasmtime::Result<Result<Resource<NatsSubscriber>, String>> {
         let client = self.get_mut(&self_)?;
 
@@ -91,7 +91,7 @@ impl HostNatsClient for WasiState {
         let client = client.clone();
         let context = jetstream::new(client);
 
-        let NatsStreamConfig {
+        let nats_client::NatsStreamConfig {
             consumer_name,
             durable_name,
             deliver_policy,
@@ -134,7 +134,7 @@ impl HostNatsClient for WasiState {
         subject: String,
         message: Vec<u8>,
         timeout_ms: Option<u64>,
-    ) -> wasmtime::Result<Result<NatsMessage, String>> {
+    ) -> wasmtime::Result<Result<nats_client::NatsMessage, String>> {
         let client = self.get_mut(&self_)?;
         let request = client.request(subject, message.into());
 
@@ -153,7 +153,7 @@ impl HostNatsClient for WasiState {
         };
 
         match result {
-            Ok(message) => Ok(Ok(NatsMessage {
+            Ok(message) => Ok(Ok(nats_client::NatsMessage {
                 subject: message.subject.to_string(),
                 payload: message.payload.into(),
             })),
@@ -165,7 +165,7 @@ impl HostNatsClient for WasiState {
         &mut self,
         self_: Resource<NatsClient>,
         bucket: String,
-    ) -> wasmtime::Result<Result<Resource<NatsKeyValue>, String>> {
+    ) -> wasmtime::Result<Result<Resource<nats_client::NatsKeyValue>, String>> {
         let client = self.get_mut(&self_)?;
         let stream = async_nats::jetstream::new(client.clone());
 
@@ -178,18 +178,21 @@ impl HostNatsClient for WasiState {
         }
     }
 
-    async fn drop(&mut self, rep: Resource<NatsClient>) -> wasmtime::Result<()> {
+    async fn drop(&mut self, rep: Resource<nats_client::NatsClient>) -> wasmtime::Result<()> {
         self.table.delete(rep)?;
         Ok(())
     }
 }
 
-impl HostNatsSubscriber for WasiState {
-    async fn next(&mut self, self_: Resource<NatsSubscriber>) -> wasmtime::Result<Result<Option<NatsMessage>, String>> {
+impl nats_client::HostNatsSubscriber for WasiState {
+    async fn next(
+        &mut self,
+        self_: Resource<NatsSubscriber>,
+    ) -> wasmtime::Result<Result<Option<nats_client::NatsMessage>, String>> {
         let subscriber = self.get_mut(&self_)?;
 
         match subscriber.next().await {
-            Ok(Some(message)) => Ok(Ok(Some(NatsMessage {
+            Ok(Some(message)) => Ok(Ok(Some(nats_client::NatsMessage {
                 subject: message.subject.to_string(),
                 payload: message.payload.into(),
             }))),
@@ -198,16 +201,16 @@ impl HostNatsSubscriber for WasiState {
         }
     }
 
-    async fn drop(&mut self, rep: Resource<NatsSubscriber>) -> wasmtime::Result<()> {
+    async fn drop(&mut self, rep: Resource<nats_client::NatsSubscriber>) -> wasmtime::Result<()> {
         self.table.delete(rep)?;
         Ok(())
     }
 }
 
-impl HostNatsKeyValue for WasiState {
+impl nats_client::HostNatsKeyValue for WasiState {
     async fn create(
         &mut self,
-        self_: Resource<NatsKeyValue>,
+        self_: Resource<nats_client::NatsKeyValue>,
         key: String,
         value: Vec<u8>,
     ) -> wasmtime::Result<Result<u64, String>> {
@@ -221,7 +224,7 @@ impl HostNatsKeyValue for WasiState {
 
     async fn put(
         &mut self,
-        self_: Resource<NatsKeyValue>,
+        self_: Resource<nats_client::NatsKeyValue>,
         key: String,
         value: Vec<u8>,
     ) -> wasmtime::Result<Result<u64, String>> {
@@ -235,7 +238,7 @@ impl HostNatsKeyValue for WasiState {
 
     async fn get(
         &mut self,
-        self_: Resource<NatsKeyValue>,
+        self_: Resource<nats_client::NatsKeyValue>,
         key: String,
     ) -> wasmtime::Result<Result<Option<Vec<u8>>, String>> {
         let store = self.get_mut(&self_)?;
@@ -246,7 +249,11 @@ impl HostNatsKeyValue for WasiState {
         }
     }
 
-    async fn delete(&mut self, self_: Resource<NatsKeyValue>, key: String) -> wasmtime::Result<Result<(), String>> {
+    async fn delete(
+        &mut self,
+        self_: Resource<nats_client::NatsKeyValue>,
+        key: String,
+    ) -> wasmtime::Result<Result<(), String>> {
         let store = self.get_mut(&self_)?;
 
         match store.delete(&key).await {
@@ -255,24 +262,24 @@ impl HostNatsKeyValue for WasiState {
         }
     }
 
-    async fn drop(&mut self, rep: Resource<NatsKeyValue>) -> wasmtime::Result<()> {
+    async fn drop(&mut self, rep: Resource<nats_client::NatsKeyValue>) -> wasmtime::Result<()> {
         self.table.delete(rep)?;
 
         Ok(())
     }
 }
 
-impl From<wit::NatsStreamDeliverPolicy> for jetstream::consumer::DeliverPolicy {
-    fn from(policy: wit::NatsStreamDeliverPolicy) -> Self {
+impl From<nats_client::NatsStreamDeliverPolicy> for jetstream::consumer::DeliverPolicy {
+    fn from(policy: nats_client::NatsStreamDeliverPolicy) -> Self {
         match policy {
-            wit::NatsStreamDeliverPolicy::All => jetstream::consumer::DeliverPolicy::All,
-            wit::NatsStreamDeliverPolicy::Last => jetstream::consumer::DeliverPolicy::Last,
-            wit::NatsStreamDeliverPolicy::New => jetstream::consumer::DeliverPolicy::New,
-            wit::NatsStreamDeliverPolicy::LastPerSubject => jetstream::consumer::DeliverPolicy::LastPerSubject,
-            wit::NatsStreamDeliverPolicy::ByStartSequence(start_sequence) => {
+            nats_client::NatsStreamDeliverPolicy::All => jetstream::consumer::DeliverPolicy::All,
+            nats_client::NatsStreamDeliverPolicy::Last => jetstream::consumer::DeliverPolicy::Last,
+            nats_client::NatsStreamDeliverPolicy::New => jetstream::consumer::DeliverPolicy::New,
+            nats_client::NatsStreamDeliverPolicy::LastPerSubject => jetstream::consumer::DeliverPolicy::LastPerSubject,
+            nats_client::NatsStreamDeliverPolicy::ByStartSequence(start_sequence) => {
                 jetstream::consumer::DeliverPolicy::ByStartSequence { start_sequence }
             }
-            wit::NatsStreamDeliverPolicy::ByStartTimeMs(ms) => {
+            nats_client::NatsStreamDeliverPolicy::ByStartTimeMs(ms) => {
                 let start_time = time::OffsetDateTime::from_unix_timestamp_nanos((ms * 1_000_000) as i128)
                     .map_err(|e| e.to_string())
                     .unwrap();
