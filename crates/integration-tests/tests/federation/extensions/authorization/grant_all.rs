@@ -30,7 +30,7 @@ impl TestExtension for GrantAll {
 
 #[test]
 fn can_grant_all() {
-    let response = runtime().block_on(async move {
+    runtime().block_on(async move {
         let engine = Engine::builder()
             .with_subgraph(
                 DynamicSchema::builder(
@@ -51,15 +51,26 @@ fn can_grant_all() {
             .build()
             .await;
 
-        engine.post("query { greeting forbidden }").await
-    });
+        let response = engine.post("query { greeting forbidden }").await;
+        insta::assert_json_snapshot!(response, @r#"
+        {
+          "data": {
+            "greeting": "Hi!",
+            "forbidden": "Oh no!"
+          }
+        }
+        "#);
 
-    insta::assert_json_snapshot!(response, @r#"
-    {
-      "data": {
-        "greeting": "Hi!",
-        "forbidden": "Oh no!"
-      }
-    }
-    "#);
+        let sent = engine.drain_graphql_requests_sent_to_by_name("x");
+        insta::assert_json_snapshot!(sent, @r#"
+        [
+          {
+            "query": "query { greeting forbidden }",
+            "operationName": null,
+            "variables": {},
+            "extensions": {}
+          }
+        ]
+        "#)
+    });
 }

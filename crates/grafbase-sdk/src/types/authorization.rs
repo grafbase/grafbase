@@ -27,10 +27,10 @@ impl AuthorizationDecisions {
         Self(wit::AuthorizationDecisions::DenyAll(Into::<Error>::into(error).into()))
     }
 
-    /// Create a `SparseDenyAuthorizationDecisionsBuilder` best suited to deny some elements. By
+    /// Create a `DenySomeBuilder` best suited to deny some elements. By
     /// default, all elements are granted access.
-    pub fn sparse_deny_builder() -> SparseDenyAuthorizationDecisionsBuilder {
-        SparseDenyAuthorizationDecisionsBuilder(wit::SparseDenyAuthorizationDecisions {
+    pub fn deny_some_builder() -> DenySomeBuilder {
+        DenySomeBuilder(wit::AuthorizationDecisionsDenySome {
             element_to_error: Vec::new(),
             errors: Vec::new(),
         })
@@ -38,9 +38,9 @@ impl AuthorizationDecisions {
 }
 
 /// To be used when denying some of the elements. By default everything is granted.
-pub struct SparseDenyAuthorizationDecisionsBuilder(wit::SparseDenyAuthorizationDecisions);
+pub struct DenySomeBuilder(wit::AuthorizationDecisionsDenySome);
 
-impl SparseDenyAuthorizationDecisionsBuilder {
+impl DenySomeBuilder {
     /// Deny access to the specified element in the query with the specified error.
     pub fn deny(&mut self, element: QueryElement<'_>, error: impl Into<Error>) {
         let error_id = self.push_error(error);
@@ -61,6 +61,6 @@ impl SparseDenyAuthorizationDecisionsBuilder {
 
     /// Build the final AuthorizationDecisions
     pub fn build(self) -> AuthorizationDecisions {
-        AuthorizationDecisions(wit::AuthorizationDecisions::SparseDeny(self.0))
+        AuthorizationDecisions(wit::AuthorizationDecisions::DenySome(self.0))
     }
 }

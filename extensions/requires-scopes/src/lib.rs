@@ -50,7 +50,7 @@ impl AuthorizationExtension for RequiresScopes {
         };
         let token_scopes = scope.split(' ').collect::<Vec<_>>();
 
-        let mut builder = AuthorizationDecisions::sparse_deny_builder();
+        let mut builder = AuthorizationDecisions::deny_some_builder();
         let mut lazy_error_id = None;
 
         for element in elements {

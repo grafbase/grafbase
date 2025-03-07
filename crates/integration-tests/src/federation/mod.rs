@@ -124,4 +124,13 @@ impl TestGateway {
             .map(|req| req.body)
             .collect()
     }
+
+    pub fn drain_graphql_requests_sent_to_by_name(&self, name: &str) -> Vec<async_graphql::Request> {
+        self.subgraphs
+            .get_mock_by_name(name)
+            .unwrap()
+            .drain_received_requests()
+            .map(|req| req.body)
+            .collect()
+    }
 }

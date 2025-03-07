@@ -54,6 +54,18 @@ fn object_type() {
           ]
         }
         "#);
+
+        let sent = engine.drain_graphql_requests_sent_to_by_name("x");
+        insta::assert_json_snapshot!(sent, @r#"
+        [
+          {
+            "query": "query { __typename @skip(if: true) }",
+            "operationName": null,
+            "variables": {},
+            "extensions": {}
+          }
+        ]
+        "#)
     });
 }
 
@@ -107,6 +119,18 @@ fn object_within_list() {
           ]
         }
         "#);
+
+        let sent = engine.drain_graphql_requests_sent_to_by_name("x");
+        insta::assert_json_snapshot!(sent, @r#"
+        [
+          {
+            "query": "query { __typename @skip(if: true) }",
+            "operationName": null,
+            "variables": {},
+            "extensions": {}
+          }
+        ]
+        "#)
     });
 }
 
@@ -134,14 +158,20 @@ fn object_within_union() {
                 }
                 "#,
                 )
-                .with_resolver("Query", "pets", serde_json::json!([{"__typename": "Dog", "name": "Max"}, {"__typename": "Cat", "name": "Whiskers"}]))
+                .with_resolver(
+                    "Query",
+                    "pets",
+                    serde_json::json!([{"__typename": "Dog"}, {"__typename": "Cat", "name": "Whiskers"}]),
+                )
                 .into_subgraph("x"),
             )
             .with_extension(SimpleAuthExt::new(DenyAll))
             .build()
             .await;
 
-        let response = engine.post("query { pets { ... on Dog { name } ... on Cat { name } } }").await;
+        let response = engine
+            .post("query { pets { ... on Dog { name } ... on Cat { name } } }")
+            .await;
         insta::assert_json_snapshot!(response, @r#"
         {
           "data": {
@@ -173,6 +203,18 @@ fn object_within_union() {
           ]
         }
         "#);
+
+        let sent = engine.drain_graphql_requests_sent_to_by_name("x");
+        insta::assert_json_snapshot!(sent, @r#"
+        [
+          {
+            "query": "query { pets { __typename ... on Cat { name } } }",
+            "operationName": null,
+            "variables": {},
+            "extensions": {}
+          }
+        ]
+        "#)
     });
 }
 
@@ -198,11 +240,7 @@ fn explicit_object_behind_interface() {
                 }
                 "#,
                 )
-                .with_resolver(
-                    "Query",
-                    "node",
-                    serde_json::json!({"__typename": "User", "name": "Alice"}),
-                )
+                .with_resolver("Query", "node", serde_json::json!({"__typename": "User"}))
                 .into_subgraph("x"),
             )
             .with_extension(SimpleAuthExt::new(DenyAll))
@@ -235,5 +273,17 @@ fn explicit_object_behind_interface() {
           ]
         }
         "#);
+
+        let sent = engine.drain_graphql_requests_sent_to_by_name("x");
+        insta::assert_json_snapshot!(sent, @r#"
+        [
+          {
+            "query": "query { node { __typename @skip(if: true) } }",
+            "operationName": null,
+            "variables": {},
+            "extensions": {}
+          }
+        ]
+        "#)
     });
 }

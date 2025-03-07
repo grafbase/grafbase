@@ -92,6 +92,24 @@ fn required_item_required_parent() {
           ]
         }
         "#);
+
+        let sent = engine.drain_graphql_requests_sent_to_by_name("x");
+        insta::assert_json_snapshot!(sent, @r#"
+        [
+          {
+            "query": "query { user { pets { __typename ... on Dog { id } } } }",
+            "operationName": null,
+            "variables": {},
+            "extensions": {}
+          },
+          {
+            "query": "query { user { pets { __typename ... on Dog { id } } } }",
+            "operationName": null,
+            "variables": {},
+            "extensions": {}
+          }
+        ]
+        "#)
     });
 }
 
@@ -185,6 +203,24 @@ fn required_item_nullable_parent() {
           ]
         }
         "#);
+
+        let sent = engine.drain_graphql_requests_sent_to_by_name("x");
+        insta::assert_json_snapshot!(sent, @r#"
+        [
+          {
+            "query": "query { user { pets { __typename ... on Dog { id } } } }",
+            "operationName": null,
+            "variables": {},
+            "extensions": {}
+          },
+          {
+            "query": "query { user { pets { __typename ... on Dog { id } } } }",
+            "operationName": null,
+            "variables": {},
+            "extensions": {}
+          }
+        ]
+        "#)
     });
 }
 
@@ -283,5 +319,23 @@ fn nullable_item() {
           ]
         }
         "#);
+
+        let sent = engine.drain_graphql_requests_sent_to_by_name("x");
+        insta::assert_json_snapshot!(sent, @r#"
+        [
+          {
+            "query": "query { user { pets { __typename ... on Dog { id } } } }",
+            "operationName": null,
+            "variables": {},
+            "extensions": {}
+          },
+          {
+            "query": "query { user { pets { __typename ... on Dog { id } } } }",
+            "operationName": null,
+            "variables": {},
+            "extensions": {}
+          }
+        ]
+        "#)
     });
 }

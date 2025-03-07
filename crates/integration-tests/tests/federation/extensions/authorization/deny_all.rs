@@ -33,7 +33,7 @@ impl TestExtension for DenyAll {
 
 #[test]
 fn can_deny_all() {
-    let response = runtime().block_on(async move {
+    runtime().block_on(async move {
         let engine = Engine::builder()
             .with_subgraph(
                 DynamicSchema::builder(
@@ -54,47 +54,58 @@ fn can_deny_all() {
             .build()
             .await;
 
-        engine.post("query { greeting forbidden }").await
-    });
-
-    insta::assert_json_snapshot!(response, @r#"
-    {
-      "data": {
-        "greeting": null,
-        "forbidden": null
-      },
-      "errors": [
+        let response = engine.post("query { greeting forbidden }").await;
+        insta::assert_json_snapshot!(response, @r#"
         {
-          "message": "Not authorized",
-          "locations": [
+          "data": {
+            "greeting": null,
+            "forbidden": null
+          },
+          "errors": [
             {
-              "line": 1,
-              "column": 18
-            }
-          ],
-          "path": [
-            "forbidden"
-          ],
-          "extensions": {
-            "code": "UNAUTHORIZED"
-          }
-        },
-        {
-          "message": "Not authorized",
-          "locations": [
+              "message": "Not authorized",
+              "locations": [
+                {
+                  "line": 1,
+                  "column": 18
+                }
+              ],
+              "path": [
+                "forbidden"
+              ],
+              "extensions": {
+                "code": "UNAUTHORIZED"
+              }
+            },
             {
-              "line": 1,
-              "column": 9
+              "message": "Not authorized",
+              "locations": [
+                {
+                  "line": 1,
+                  "column": 9
+                }
+              ],
+              "path": [
+                "greeting"
+              ],
+              "extensions": {
+                "code": "UNAUTHORIZED"
+              }
             }
-          ],
-          "path": [
-            "greeting"
-          ],
-          "extensions": {
-            "code": "UNAUTHORIZED"
-          }
+          ]
         }
-      ]
-    }
-    "#);
+        "#);
+
+        let sent = engine.drain_graphql_requests_sent_to_by_name("x");
+        insta::assert_json_snapshot!(sent, @r#"
+        [
+          {
+            "query": "query { __typename @skip(if: true) }",
+            "operationName": null,
+            "variables": {},
+            "extensions": {}
+          }
+        ]
+        "#)
+    });
 }
