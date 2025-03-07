@@ -1,36 +1,49 @@
-use std::sync::Arc;
-
-use futures::{TryStreamExt, future::BoxFuture, stream::BoxStream};
-use futures_lite::StreamExt;
-use runtime::{error::PartialGraphqlError, extension::Data};
+use futures::{TryStreamExt, stream::BoxStream};
+use futures_lite::{FutureExt, StreamExt};
+use runtime::extension::{Data, ExtensionFieldDirective, ExtensionRuntime};
+use walker::Walk;
 
 use crate::{
     Runtime,
     execution::{ExecutionContext, ExecutionError, ExecutionResult, SubscriptionResponse},
-    prepare::SubgraphField,
+    prepare::{Plan, create_extension_directive_query_view},
     response::GraphqlError,
 };
 
-type ExtensionSubscriptionFuture<'ctx> =
-    BoxFuture<'ctx, Result<BoxStream<'ctx, Result<Arc<Data>, PartialGraphqlError>>, PartialGraphqlError>>;
+use super::FieldResolverExtension;
 
-pub(in crate::resolver) struct SubscriptionResolverExtensionRequest<'ctx> {
-    pub(super) field: SubgraphField<'ctx>,
-    pub(super) future: ExtensionSubscriptionFuture<'ctx>,
-}
-
-impl<'ctx> SubscriptionResolverExtensionRequest<'ctx> {
-    pub async fn execute_subscription<R: Runtime>(
-        self,
+impl FieldResolverExtension {
+    pub(in crate::resolver) async fn execute_subscription<'ctx, R: Runtime>(
+        &'ctx self,
         ctx: ExecutionContext<'ctx, R>,
+        plan: Plan<'ctx>,
         new_response: impl Fn() -> SubscriptionResponse + Send + 'ctx,
     ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<SubscriptionResponse>>> {
-        let Self { field, future } = self;
+        let directive = self.directive_id.walk(ctx.schema());
+        let headers = ctx.subgraph_headers_with_rules(directive.subgraph().header_rules());
 
-        let stream = match future.await {
-            Ok(stream) => stream,
-            Err(err) => return Err(ExecutionError::Graphql(err.into())),
+        let field = plan.get_field(self.field_id);
+        let field_definition = field.definition();
+
+        let query_view =
+            create_extension_directive_query_view(ctx.schema(), directive, field.arguments(), ctx.variables());
+
+        let extension_directive = ExtensionFieldDirective {
+            extension_id: directive.extension_id,
+            subgraph: directive.subgraph(),
+            field: field_definition,
+            name: directive.name(),
+            arguments: query_view,
         };
+
+        let stream = ctx
+            .engine
+            .runtime
+            .extensions()
+            .resolve_subscription(headers, extension_directive)
+            .boxed()
+            .await
+            .map_err(|err| GraphqlError::from(err).with_location(field.location()))?;
 
         let stream = stream
             .map_err(move |error| ExecutionError::from(error.to_string()))
@@ -53,7 +66,7 @@ impl<'ctx> SubscriptionResolverExtensionRequest<'ctx> {
                             )
                             .map_err(|err| {
                                 tracing::error!("Failed to deserialize subgraph response: {}", err);
-                                GraphqlError::invalid_subgraph_response()
+                                GraphqlError::invalid_subgraph_response().with_location(field.location())
                             })?;
                     }
                     Data::CborBytes(bytes) => {
@@ -73,7 +86,7 @@ impl<'ctx> SubscriptionResolverExtensionRequest<'ctx> {
                             )
                             .map_err(|err| {
                                 tracing::error!("Failed to deserialize subgraph response: {}", err);
-                                GraphqlError::invalid_subgraph_response()
+                                GraphqlError::invalid_subgraph_response().with_location(field.location())
                             })?;
                     }
                 }

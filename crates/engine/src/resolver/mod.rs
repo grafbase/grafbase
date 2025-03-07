@@ -41,7 +41,7 @@ impl Resolver {
                 FederationEntityResolver::prepare(definition, plan_query_partition)
             }
             ResolverDefinitionVariant::FieldResolverExtension(definition) => {
-                Ok(FieldResolverExtension::prepare(definition))
+                Ok(FieldResolverExtension::prepare(definition, plan_query_partition))
             }
         }
     }
@@ -135,10 +135,7 @@ impl Resolver {
             Resolver::FederationEntity(_) => Err(ExecutionError::Internal(
                 "Subscriptions can only be at the root of a query so can't contain federated entitites".into(),
             )),
-            Resolver::FieldResolverExtension(prepared) => {
-                let request = prepared.prepare_subscription(ctx, plan);
-                request.execute_subscription(ctx, new_response).await
-            }
+            Resolver::FieldResolverExtension(prepared) => prepared.execute_subscription(ctx, plan, new_response).await,
         }
     }
 }

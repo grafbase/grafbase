@@ -576,6 +576,12 @@ async fn test_non_existing_stream() {
         "errors": [
           {
             "message": "Failed to subscribe to subject 'persistence.user.1.events': jetstream error: stream not found (code 404, error code 10059)",
+            "locations": [
+              {
+                "line": 2,
+                "column": 3
+              }
+            ],
             "extensions": {
               "code": "EXTENSION_ERROR"
             }
@@ -671,6 +677,12 @@ async fn request_reply_timeout() {
       "errors": [
         {
           "message": "Failed to request message: deadline has elapsed",
+          "locations": [
+            {
+              "line": 2,
+              "column": 3
+            }
+          ],
           "extensions": {
             "code": "EXTENSION_ERROR"
           }

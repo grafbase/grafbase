@@ -3,10 +3,13 @@ use std::sync::Arc;
 use engine::Engine;
 use extension_catalog::Id;
 use integration_tests::{
-    federation::{EngineExt, TestExtension, TestExtensionBuilder, TestExtensionConfig},
+    federation::{EngineExt, TestExtension, TestExtensionBuilder, TestExtensionConfig, json_data},
     runtime,
 };
-use runtime::{error::PartialGraphqlError, extension::ExtensionFieldDirective};
+use runtime::{
+    error::PartialGraphqlError,
+    extension::{Data, ExtensionFieldDirective},
+};
 
 #[derive(Default, Clone)]
 pub struct GreetExt {
@@ -52,8 +55,8 @@ impl TestExtension for GreetExt {
         _headers: http::HeaderMap,
         _directive: ExtensionFieldDirective<'_, serde_json::Value>,
         inputs: Vec<serde_json::Value>,
-    ) -> Result<Vec<Result<serde_json::Value, PartialGraphqlError>>, PartialGraphqlError> {
-        Ok(vec![Ok(serde_json::json!("Hi!")); inputs.len()])
+    ) -> Result<Vec<Result<Data, PartialGraphqlError>>, PartialGraphqlError> {
+        Ok(vec![Ok(json_data("Hi!")); inputs.len()])
     }
 }
 

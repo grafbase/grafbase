@@ -1,4 +1,4 @@
-use operation::ResponseKey;
+use operation::PositionedResponseKey;
 
 use super::{DataPartId, ErrorPathSegment, ResponseListId, ResponseObjectId};
 
@@ -8,7 +8,7 @@ use super::{DataPartId, ErrorPathSegment, ResponseListId, ResponseObjectId};
 pub(crate) enum ResponseValueId {
     Field {
         object_id: ResponseObjectId,
-        key: ResponseKey,
+        key: PositionedResponseKey,
         nullable: bool,
     },
     Index {
@@ -37,8 +37,15 @@ impl ResponseValueId {
 impl From<&ResponseValueId> for ErrorPathSegment {
     fn from(segment: &ResponseValueId) -> Self {
         match segment {
-            ResponseValueId::Field { key, .. } => ErrorPathSegment::Field(*key),
+            ResponseValueId::Field { key, .. } => ErrorPathSegment::Field(key.response_key),
             ResponseValueId::Index { index, .. } => ErrorPathSegment::Index(*index as usize),
         }
     }
+}
+
+#[cfg(test)]
+#[test]
+fn response_value_id_size() {
+    assert_eq!(std::mem::size_of::<ResponseValueId>(), 16);
+    assert_eq!(std::mem::align_of::<ResponseValueId>(), 4);
 }

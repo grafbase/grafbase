@@ -565,7 +565,7 @@ impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_> {
 
         self.ctx.path().push(ResponseValueId::Field {
             object_id: self.object_id,
-            key: field.key.response_key,
+            key: field.key,
             nullable: field.wrapping.is_nullable(),
         });
         let result = map.next_value_seed(FieldSeed {

@@ -1,5 +1,5 @@
 use id_newtypes::IdRange;
-use operation::{Location, QueryPosition, ResponseKey};
+use operation::{Location, PositionedResponseKey, QueryPosition, ResponseKey};
 use query_solver::TypeConditionSharedVecId;
 use schema::{CompositeType, FieldDefinition, FieldDefinitionId};
 use walker::{Iter, Walk};
@@ -78,6 +78,12 @@ impl<'a> PartitionDataField<'a> {
     }
     pub(crate) fn parent_field(&self) -> Option<PartitionDataField<'a>> {
         self.as_ref().parent_field_id.walk(self.ctx)
+    }
+    pub(crate) fn key(&self) -> PositionedResponseKey {
+        PositionedResponseKey {
+            query_position: self.query_position,
+            response_key: self.response_key,
+        }
     }
 }
 

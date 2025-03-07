@@ -6,7 +6,10 @@ use integration_tests::{
     federation::{EngineExt, TestExtension, TestExtensionBuilder, TestExtensionConfig},
     runtime,
 };
-use runtime::{error::PartialGraphqlError, extension::ExtensionFieldDirective};
+use runtime::{
+    error::PartialGraphqlError,
+    extension::{Data, ExtensionFieldDirective},
+};
 
 #[derive(Default)]
 pub struct EchoJsonDataExt;
@@ -46,11 +49,9 @@ impl TestExtension for EchoJsonDataExt {
         _: http::HeaderMap,
         directive: ExtensionFieldDirective<'_, serde_json::Value>,
         inputs: Vec<serde_json::Value>,
-    ) -> Result<Vec<Result<serde_json::Value, PartialGraphqlError>>, PartialGraphqlError> {
+    ) -> Result<Vec<Result<Data, PartialGraphqlError>>, PartialGraphqlError> {
         let data = directive.arguments["data"].as_str().unwrap_or_default();
-        let data: serde_json::Value =
-            serde_json::from_str(data).unwrap_or_else(|_| serde_json::Value::String(data.to_string()));
-        Ok(vec![Ok(data.clone()); inputs.len()])
+        Ok(vec![Ok(Data::JsonBytes(data.as_bytes().to_vec())); inputs.len()])
     }
 }
 

@@ -202,7 +202,7 @@ impl ResponseBuilder {
                     }
                 }
                 (ErrorPathSegment::Field(field), ResponseValueId::Field { key, .. }) => {
-                    if field != key {
+                    if field != &key.response_key {
                         return false;
                     }
                 }
