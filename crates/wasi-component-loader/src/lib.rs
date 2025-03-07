@@ -35,7 +35,7 @@ pub use crossbeam::sync::WaitGroup;
 use either::Either;
 pub use error::{Error, ErrorResponse};
 use extension::wit;
-pub use extension::wit::Error as GuestError;
+pub use extension::wit::since_0_8_0::error::Error as GuestError;
 use gateway_config::WasiExtensionsConfig;
 pub use instance::hooks::{
     HookImplementation, HooksComponentInstance,
@@ -49,7 +49,7 @@ pub use instance::hooks::{
 /// The crate result type
 pub type Result<T> = std::result::Result<T, Error>;
 /// The guest result type
-pub type GuestResult<T> = std::result::Result<T, wit::Error>;
+pub type GuestResult<T> = std::result::Result<T, GuestError>;
 /// The gateway result type
 pub type GatewayResult<T> = std::result::Result<T, ErrorResponse>;
 

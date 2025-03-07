@@ -2,7 +2,7 @@ use wasmtime::component::Resource;
 
 use crate::{
     WasiState,
-    extension::wit::{Cache, HostCache},
+    extension::wit::since_0_8_0::cache::{Cache, HostCache},
 };
 
 impl HostCache for WasiState {

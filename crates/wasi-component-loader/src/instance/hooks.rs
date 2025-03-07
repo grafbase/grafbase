@@ -157,7 +157,8 @@ impl HooksComponentInstance {
         url: &str,
         headers: HeaderMap,
     ) -> crate::GatewayResult<(ContextMap, HeaderMap)> {
-        let Some(hook) = self.get_hook::<_, (Result<(), wit::ErrorResponse>,)>(HookImplementation::OnGatewayRequest)
+        let Some(hook) =
+            self.get_hook::<_, (Result<(), wit::error::ErrorResponse>,)>(HookImplementation::OnGatewayRequest)
         else {
             return Ok((context, headers));
         };
@@ -347,7 +348,7 @@ impl HooksComponentInstance {
         definition: EdgeDefinition,
         parents: Vec<String>,
         metadata: String,
-    ) -> crate::Result<Vec<Result<(), wit::Error>>> {
+    ) -> crate::Result<Vec<Result<(), wit::error::Error>>> {
         self.call3_one_output(
             HookImplementation::AuthorizeParentEdgePostExecution,
             context,
@@ -386,7 +387,7 @@ impl HooksComponentInstance {
         definition: EdgeDefinition,
         nodes: Vec<String>,
         metadata: String,
-    ) -> crate::Result<Vec<Result<(), wit::Error>>> {
+    ) -> crate::Result<Vec<Result<(), wit::error::Error>>> {
         self.call3_one_output(
             HookImplementation::AuthorizeEdgeNodePostExecution,
             context,
@@ -425,7 +426,7 @@ impl HooksComponentInstance {
         definition: EdgeDefinition,
         edges: Vec<(String, Vec<String>)>,
         metadata: String,
-    ) -> crate::Result<Vec<Result<(), wit::Error>>> {
+    ) -> crate::Result<Vec<Result<(), wit::error::Error>>> {
         self.call3_one_output(
             HookImplementation::AuthorizeEdgePostExecution,
             context,

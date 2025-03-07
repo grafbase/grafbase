@@ -112,7 +112,7 @@ async fn create_pools<T: serde::Serialize + Send + 'static>(
 }
 
 impl ExtensionRuntime<Arc<RequestContext>> for ExtensionsWasiRuntime {
-    type SharedContext = wit::SharedContext;
+    type SharedContext = wit::context::SharedContext;
 
     #[allow(clippy::manual_async_fn)]
     fn resolve_field<'ctx, 'resp, 'f>(

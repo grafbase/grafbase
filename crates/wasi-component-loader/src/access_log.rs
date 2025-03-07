@@ -10,7 +10,7 @@ use crate::{
     state::WasiState,
 };
 
-pub use crate::extension::wit::LogError;
+pub use crate::extension::wit::since_0_8_0::access_log::LogError;
 
 /// Sender for a wasi hook to send logs to the writer.
 #[derive(Clone)]

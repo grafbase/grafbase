@@ -1,0 +1,22 @@
+interface authorization {
+    use directive.{query-elements};
+    use error.{error, error-response};
+    use context.{authorization-context};
+
+    variant authorization-decisions {
+        grant-all,
+        deny-all(error),
+        deny-some(authorization-decisions-deny-some)
+    }
+
+    record authorization-decisions-deny-some {
+        // For elements
+        element-to-error: list<tuple<u32, u32>>,
+        errors: list<error>
+    }
+
+    authorize-query: func(
+        ctx: authorization-context,
+        elements: query-elements
+    ) -> result<authorization-decisions, error-response>;
+}

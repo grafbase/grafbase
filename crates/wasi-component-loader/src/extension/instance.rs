@@ -1,169 +1,45 @@
-use wasmtime::Store;
+use since_0_9_0::InputList;
 
-use super::wit::{self, FieldOutput};
-use crate::state::WasiState;
+use super::wit::{self, since_0_9_0::resolver::FieldOutput};
 
-pub struct ExtensionInstance {
-    pub(super) store: Store<WasiState>,
-    pub(super) inner: wit::Sdk,
-    pub(super) poisoned: bool,
-}
+pub mod since_0_8_0;
+pub mod since_0_9_0;
 
-/// List of inputs to be provided to the extension.
-/// The data itself is fully custom and thus will be serialized with serde to cross the Wasm
-/// boundary.
-#[derive(Default)]
-pub struct InputList(Vec<Vec<u8>>);
+pub(crate) trait ExtensionInstance {
+    fn recycle(&mut self) -> crate::Result<()>;
 
-impl<S: serde::Serialize> FromIterator<S> for InputList {
-    fn from_iter<T: IntoIterator<Item = S>>(iter: T) -> Self {
-        Self(
-            iter.into_iter()
-                .map(|input| crate::cbor::to_vec(&input).unwrap())
-                .collect(),
-        )
-    }
-}
-
-impl ExtensionInstance {
-    pub async fn resolve_field(
+    async fn resolve_field(
         &mut self,
         headers: http::HeaderMap,
         subgraph_name: &str,
         directive: wit::FieldDefinitionDirective<'_>,
         inputs: InputList,
-    ) -> crate::Result<FieldOutput> {
-        self.poisoned = true;
+    ) -> crate::Result<FieldOutput>;
 
-        let headers = self.store.data_mut().push_resource(wit::Headers::borrow(headers))?;
-        let inputs = inputs.0.iter().map(Vec::as_slice).collect::<Vec<_>>();
-
-        let output = self
-            .inner
-            .grafbase_sdk_extension()
-            .call_resolve_field(&mut self.store, headers, subgraph_name, directive, &inputs)
-            .await??;
-
-        self.poisoned = false;
-
-        Ok(output)
-    }
-
-    pub async fn subscription_key(
+    async fn subscription_key(
         &mut self,
         headers: http::HeaderMap,
         subgraph_name: &str,
         directive: wit::FieldDefinitionDirective<'_>,
-    ) -> Result<(http::HeaderMap, Option<Vec<u8>>), crate::Error> {
-        self.poisoned = true;
+    ) -> Result<(http::HeaderMap, Option<Vec<u8>>), crate::Error>;
 
-        let headers = self.store.data_mut().push_resource(wit::Headers::borrow(headers))?;
-        let headers_rep = headers.rep();
-
-        let key = self
-            .inner
-            .grafbase_sdk_extension()
-            .call_subscription_key(&mut self.store, headers, subgraph_name, directive)
-            .await??;
-
-        let headers = self
-            .store
-            .data_mut()
-            .take_resource::<wit::Headers>(headers_rep)?
-            .into_owned()
-            .unwrap();
-
-        self.poisoned = false;
-
-        Ok((headers, key))
-    }
-
-    pub async fn resolve_subscription(
+    async fn resolve_subscription(
         &mut self,
         headers: http::HeaderMap,
         subgraph_name: &str,
         directive: wit::FieldDefinitionDirective<'_>,
-    ) -> Result<(), crate::Error> {
-        self.poisoned = true;
+    ) -> Result<(), crate::Error>;
 
-        let headers = self.store.data_mut().push_resource(wit::Headers::borrow(headers))?;
+    async fn resolve_next_subscription_item(&mut self) -> Result<Option<FieldOutput>, crate::Error>;
 
-        self.inner
-            .grafbase_sdk_extension()
-            .call_resolve_subscription(&mut self.store, headers, subgraph_name, directive)
-            .await??;
-
-        self.poisoned = false;
-
-        Ok(())
-    }
-
-    pub async fn resolve_next_subscription_item(&mut self) -> Result<Option<FieldOutput>, crate::Error> {
-        self.poisoned = true;
-
-        let output = self
-            .inner
-            .grafbase_sdk_extension()
-            .call_resolve_next_subscription_item(&mut self.store)
-            .await??;
-
-        self.poisoned = false;
-
-        Ok(output)
-    }
-
-    pub async fn authenticate(
+    async fn authenticate(
         &mut self,
         headers: http::HeaderMap,
-    ) -> crate::GatewayResult<(http::HeaderMap, wit::Token)> {
-        self.poisoned = true;
+    ) -> crate::GatewayResult<(http::HeaderMap, wit::since_0_9_0::token::Token)>;
 
-        let headers = self.store.data_mut().push_resource(wit::Headers::borrow(headers))?;
-        let headers_rep = headers.rep();
-
-        let token = self
-            .inner
-            .grafbase_sdk_extension()
-            .call_authenticate(&mut self.store, headers)
-            .await??;
-
-        let headers = self
-            .store
-            .data_mut()
-            .take_resource::<wit::Headers>(headers_rep)?
-            .into_owned()
-            .unwrap();
-
-        self.poisoned = false;
-
-        Ok((headers, token))
-    }
-
-    pub async fn authorize_query(
+    async fn authorize_query<'a>(
         &mut self,
-        ctx: wit::AuthorizationContext,
-        elements: wit::QueryElements<'_>,
-    ) -> Result<wit::AuthorizationDecisions, crate::ErrorResponse> {
-        // Futures may be canceled, so we pro-actively mark the instance as poisoned until proven
-        // otherwise.
-        self.poisoned = true;
-        let ctx = self.store.data_mut().push_resource(ctx)?;
-
-        let result = self
-            .inner
-            .grafbase_sdk_extension()
-            .call_authorize_query(&mut self.store, ctx, elements)
-            .await?;
-
-        self.poisoned = false;
-        result.map_err(Into::into)
-    }
-
-    pub fn recycle(&mut self) -> crate::Result<()> {
-        if self.poisoned {
-            return Err(anyhow::anyhow!("this instance is poisoned").into());
-        }
-
-        Ok(())
-    }
+        ctx: wit::since_0_9_0::AuthorizationContext<'a>,
+        elements: wit::QueryElements<'a>,
+    ) -> Result<wit::since_0_9_0::AuthorizationDecisions, crate::ErrorResponse>;
 }

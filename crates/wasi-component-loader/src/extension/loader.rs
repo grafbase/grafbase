@@ -77,7 +77,10 @@ impl ExtensionLoader {
             wasmtime_wasi_http::add_only_http_to_linker_async(&mut linker)?;
         }
 
-        wit::add_to_linker(&mut linker, |state| state)?;
+        // TODO: we need to get the SDK version as a parameter and initialize the right version
+        let extension = wit::Extension::Since0_8_0(wit::since_0_8_0::Extension);
+
+        extension.add_to_linker(&mut linker)?;
 
         let instnace_pre = linker.instantiate_pre(&component)?;
         let pre = wit::SdkPre::<WasiState>::new(instnace_pre)?;
@@ -123,7 +126,7 @@ impl ExtensionLoader {
         inner.call_register_extension(&mut store).await?;
 
         inner
-            .grafbase_sdk_extension()
+            .grafbase_sdk_init()
             .call_init_gateway_extension(&mut store, &self.wit_schema_directives, &self.guest_config)
             .await??;
 

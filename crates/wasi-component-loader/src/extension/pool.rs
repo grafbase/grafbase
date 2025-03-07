@@ -3,7 +3,7 @@ use std::ops::{Deref, DerefMut};
 use deadpool::managed::{self, Manager};
 use tracing::{Instrument, info_span};
 
-use super::{ExtensionInstance, ExtensionLoader};
+use super::ExtensionLoader;
 
 pub(super) struct Pool {
     inner: managed::Pool<ExtensionLoader>,

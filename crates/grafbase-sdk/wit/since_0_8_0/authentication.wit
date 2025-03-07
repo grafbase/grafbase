@@ -1,0 +1,14 @@
+interface authentication {
+    use headers.{headers};
+    use error.{error-response};
+
+    // A token represents an authenticated user identity.
+    record token {
+        // The raw binary token data
+        raw: list<u8>,
+    }
+
+    authenticate: func(
+        headers: headers,
+    ) -> result<token, error-response>;
+}
