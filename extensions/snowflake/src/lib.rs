@@ -5,7 +5,7 @@ mod statements;
 
 use self::config::{Authentication, SnowflakeConfig};
 use grafbase_sdk::{
-    Error, Extension, Headers, Resolver, ResolverExtension, Subscription,
+    Error, Headers, ResolverExtension, Subscription,
     types::{Configuration, FieldDefinitionDirective, FieldInputs, FieldOutput, SchemaDirective},
 };
 
@@ -15,11 +15,8 @@ struct Snowflake {
     config: SnowflakeConfig,
 }
 
-impl Extension for Snowflake {
-    fn new(
-        _schema_directives: Vec<SchemaDirective>,
-        config: Configuration,
-    ) -> Result<Self, Box<dyn std::error::Error>> {
+impl ResolverExtension for Snowflake {
+    fn new(_schema_directives: Vec<SchemaDirective>, config: Configuration) -> Result<Self, Error> {
         let config: SnowflakeConfig = config.deserialize()?;
 
         Ok(Self {
@@ -27,18 +24,14 @@ impl Extension for Snowflake {
             config,
         })
     }
-}
 
-impl Resolver for Snowflake {
     fn resolve_field(
         &mut self,
         _headers: Headers,
         _subgraph_name: &str,
         directive: FieldDefinitionDirective<'_>,
-        _field_inputs: FieldInputs,
+        field_inputs: FieldInputs<'_>,
     ) -> Result<FieldOutput, Error> {
-        let mut output = FieldOutput::new();
-
         match directive.name() {
             "snowflakeQuery" => {
                 let directives::SnowflakeQueryDirective { sql, bindings } = directive.arguments()?;
@@ -59,9 +52,7 @@ impl Resolver for Snowflake {
                     )));
                 };
 
-                output.push_value(data);
-
-                Ok(output)
+                Ok(FieldOutput::new(field_inputs, data)?)
             }
             other => Err(Error::new(format!("Unsupported directive \"{other}\""))),
         }

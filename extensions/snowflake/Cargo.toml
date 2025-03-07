@@ -16,7 +16,7 @@ codegen-units = 1
 [dependencies]
 base64 = "0.22.1"
 chrono = "0.4.40"
-grafbase-sdk = "0.8.0"
+grafbase-sdk = { path = "../../crates/grafbase-sdk" }
 jwt-compact = { features = ["rsa"], version = "0.8.0" }
 pem = "3.0.5"
 pkcs1 = "0.7.5"
@@ -28,7 +28,7 @@ sha2 = "0.10.8"
 [dev-dependencies]
 indoc = "2"
 insta = { version = "1.42.1", features = ["json"] }
-grafbase-sdk = { version = "0.8.0", features = ["test-utils"] }
+grafbase-sdk = { path = "../../crates/grafbase-sdk", features = ["test-utils"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "test-util"] }
 serde_json = "1"
 wiremock = "0.6.3"
