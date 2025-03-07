@@ -1,8 +1,8 @@
 extend schema
   @link(url: "https://specs.apollo.dev/federation/v2.0", import: ["@key", "@shareable"])
   @link(url: "file:///home/lellison/src/oracle-grafbase-extension/dist", as: "oracle")
-  @link(url: "https://extensions.grafbase.com/extensions/rest")
-  @link(url: "https://extensions.grafbase.com/extensions/kafka/v1.0.0")
+  @link(url: "https://grafbase.com/extensions/rest")
+  @link(url: "https://grafbase.com/extensions/kafka/v1.0.0")
 
 type Query {
   doctors: [Doctor!]!

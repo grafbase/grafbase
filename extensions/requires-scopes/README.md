@@ -13,7 +13,7 @@ version = "1.0"
 
 ```graphql
 extend schema
-  @link(url: "https://extensions.grafbase.com/extensions/requires-scopes/1.0.0", import: ["@requiresScopes"])
+  @link(url: "https://grafbase.com/extensions/requires-scopes/1.0.0", import: ["@requiresScopes"])
 
 type Query {
   public: String!

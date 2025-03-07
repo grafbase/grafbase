@@ -1,7 +1,7 @@
 extend schema
   @link(url: "https://specs.apollo.dev/federation/v2.6", import: ["@key", "@shareable"])
   @link(url: "https://facebook.com/grafbase-extensions/groups")
-  @link(url: "https://extensions.grafbase.com/extensions/kafka/v1.0.0", as: "queue")
+  @link(url: "https://grafbase.com/extensions/kafka/v1.0.0", as: "queue")
 
 type Query {
   patients: [Patient!]!
