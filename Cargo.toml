@@ -27,6 +27,7 @@ exclude = [
     "extensions/nats",
     "extensions/authenticated",
     "extensions/requires-scopes",
+    "extensions/snowflake",
 ]
 
 [patch.crates-io]

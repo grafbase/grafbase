@@ -1,0 +1,35 @@
+[package]
+name = "snowflake"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+
+[lib]
+crate-type = ["cdylib"]
+
+[profile.release]
+opt-level = "z"
+strip = true
+lto = true
+codegen-units = 1
+
+[dependencies]
+base64 = "0.22.1"
+chrono = "0.4.40"
+grafbase-sdk = { path = "../../crates/grafbase-sdk" }
+jwt-compact = { features = ["rsa"], version = "0.8.0" }
+pem = "3.0.5"
+pkcs1 = "0.7.5"
+pkcs8 = "0.10.2"
+serde = "1.0.218"
+serde_json = "1"
+sha2 = "0.10.8"
+
+[dev-dependencies]
+indoc = "2"
+insta = { version = "1.42.1", features = ["json"] }
+grafbase-sdk = { path = "../../crates/grafbase-sdk", features = ["test-utils"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "test-util"] }
+serde_json = "1"
+wiremock = "0.6.3"
+toml = "0.8"

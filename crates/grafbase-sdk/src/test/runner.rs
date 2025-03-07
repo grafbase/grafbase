@@ -49,6 +49,7 @@ impl TestRunner {
     pub async fn new(mut config: TestConfig) -> anyhow::Result<Self> {
         let test_specific_temp_dir = tempfile::Builder::new().prefix("sdk-tests").tempdir()?;
         let gateway_listen_address = listen_address()?;
+
         let gateway_endpoint = Url::parse(&format!("http://{}/graphql", gateway_listen_address))?;
 
         let extension_toml_path = std::env::current_dir()?.join("extension.toml");

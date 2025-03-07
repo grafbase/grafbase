@@ -78,6 +78,11 @@ impl FieldInputs {
         Self(inputs)
     }
 
+    /// How many inputs are expecting outputs.
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
     /// Deserializes each byte slice in the `FieldInputs` to a collection of items.
     pub fn deserialize<'de, T>(&'de self) -> Result<Vec<T>, SdkError>
     where

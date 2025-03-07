@@ -1,0 +1,8 @@
+extend schema @link(url: "https://specs.grafbase.com/grafbase", import: ["JsonTemplate"])
+
+"""
+Run a statement against Snowflake. The bindings are optional. They can take values from the field arguments.
+
+On success, the resolver returns an array of rows. Each row is an array of values (one for each column in the result set). In practice, [[JSON!]!] is a practical type for resolvers using this directive.
+"""
+directive @snowflakeQuery(sql: String!, bindings: JsonTemplate) on FIELD_DEFINITION

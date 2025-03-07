@@ -22,7 +22,7 @@ pub(crate) enum SdkErrorInner {
     Message(String),
     #[error("Serialization failed with: {0}")]
     EncodeError(#[from] minicbor_serde::error::EncodeError<std::convert::Infallible>),
-    #[error("Deerialization failed with: {0}")]
+    #[error("Deserialization failed with: {0}")]
     DecodeError(#[from] minicbor_serde::error::DecodeError),
     #[error("JSON serialization error: {0}")]
     Json(#[from] serde_json::Error),
