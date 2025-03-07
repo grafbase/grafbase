@@ -1,6 +1,10 @@
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    str::FromStr as _,
+};
 
 use semver::VersionReq;
+use serde::Deserialize as _;
 
 #[derive(PartialEq, serde::Deserialize, Debug, Clone)]
 #[serde(untagged)]
@@ -19,7 +23,47 @@ pub struct StructuredExtensionsConfig {
     pub stderr: Option<bool>,
     pub environment_variables: Option<bool>,
     pub max_pool_size: Option<usize>,
+    #[serde(deserialize_with = "deserialize_extension_custom_config")]
     pub config: Option<toml::Value>,
+}
+
+fn deserialize_extension_custom_config<'de, D>(deserializer: D) -> Result<Option<toml::Value>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let mut value = Option::<toml::Value>::deserialize(deserializer)?;
+
+    fn expand_dynamic_strings(value: &mut toml::Value) -> Result<(), String> {
+        match value {
+            toml::Value::String(s) => {
+                let substituted = serde_dynamic_string::DynamicString::<String>::from_str(s)?;
+                *s = substituted.into_inner();
+            }
+            toml::Value::Array(values) => {
+                for value in values {
+                    expand_dynamic_strings(value)?;
+                }
+            }
+            toml::Value::Table(map) => {
+                for (_, value) in map {
+                    expand_dynamic_strings(value)?;
+                }
+            }
+            toml::Value::Integer(_) | toml::Value::Float(_) | toml::Value::Boolean(_) | toml::Value::Datetime(_) => (),
+        }
+
+        Ok(())
+    }
+
+    if let Some(value) = &mut value {
+        expand_dynamic_strings(value).map_err(|err| {
+            serde::de::Error::custom(format!(
+                "Error expanding dynamic strings in extension configuration: {err}"
+            ))
+        })?;
+    }
+
+    Ok(value)
 }
 
 impl Default for StructuredExtensionsConfig {
@@ -101,5 +145,46 @@ impl ExtensionsConfig {
             ExtensionsConfig::Version(_) => None,
             ExtensionsConfig::Structured(config) => config.config.as_ref(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn dynamic_string_expansion_in_extension_config_missing_env_var() {
+        let toml = r#"
+            version = "1.0"
+
+            [config.test]
+            key = "value"
+            key_from_env = "{{ env.test }}"
+        "#;
+
+        let err = toml::from_str::<StructuredExtensionsConfig>(toml)
+            .unwrap_err()
+            .to_string();
+
+        insta::assert_snapshot!(err, @r#"
+        TOML parse error at line 4, column 14
+          |
+        4 |             [config.test]
+          |              ^^^^^^
+        Error expanding dynamic strings in extension configuration: environment variable not found: `test`
+        "#);
+    }
+
+    #[test]
+    fn dynamic_string_expansion_in_extension_config_no_env_var() {
+        let toml = r#"
+            version = "1.0"
+
+            [config.test]
+            key = "value"
+            other_key = "abcd"
+        "#;
+
+        toml::from_str::<StructuredExtensionsConfig>(toml).unwrap();
     }
 }

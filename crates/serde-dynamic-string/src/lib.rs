@@ -27,6 +27,10 @@ where
     pub fn from_const_value(value: impl Into<T>) -> Self {
         Self(value.into())
     }
+
+    pub fn into_inner(self) -> T {
+        self.0
+    }
 }
 
 impl<T> FromStr for DynamicString<T>
