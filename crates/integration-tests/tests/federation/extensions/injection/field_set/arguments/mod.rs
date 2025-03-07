@@ -8,8 +8,11 @@ mod scalar;
 use std::sync::Arc;
 
 use extension_catalog::Id;
-use integration_tests::federation::{TestExtension, TestExtensionBuilder, TestExtensionConfig};
-use runtime::{error::PartialGraphqlError, extension::ExtensionFieldDirective};
+use integration_tests::federation::{TestExtension, TestExtensionBuilder, TestExtensionConfig, json_data};
+use runtime::{
+    error::PartialGraphqlError,
+    extension::{Data, ExtensionFieldDirective},
+};
 
 #[derive(Default)]
 pub struct DoubleEchoExt;
@@ -52,12 +55,15 @@ impl TestExtension for DoubleEchoInstance {
         _headers: http::HeaderMap,
         directive: ExtensionFieldDirective<'_, serde_json::Value>,
         inputs: Vec<serde_json::Value>,
-    ) -> Result<Vec<Result<serde_json::Value, PartialGraphqlError>>, PartialGraphqlError> {
+    ) -> Result<Vec<Result<Data, PartialGraphqlError>>, PartialGraphqlError> {
         match directive.name {
-            "echo" => Ok(inputs.into_iter().map(|input| Ok(input["fields"].clone())).collect()),
+            "echo" => Ok(inputs
+                .into_iter()
+                .map(|input| Ok(json_data(&input["fields"])))
+                .collect()),
             "echoArgs" => Ok(inputs
                 .into_iter()
-                .map(|_| Ok(directive.arguments["args"].clone()))
+                .map(|_| Ok(json_data(&directive.arguments["args"])))
                 .collect()),
             _ => unreachable!(),
         }

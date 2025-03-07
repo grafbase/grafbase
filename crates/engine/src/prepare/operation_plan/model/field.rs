@@ -9,7 +9,7 @@ use crate::prepare::{
 #[derive(Clone, Copy)]
 pub(crate) struct SubgraphField<'a> {
     pub(in crate::prepare::operation_plan) ctx: OperationPlanContext<'a>,
-    pub(in crate::prepare::operation_plan) id: PartitionDataFieldId,
+    pub(crate) id: PartitionDataFieldId,
 }
 
 #[allow(unused)]

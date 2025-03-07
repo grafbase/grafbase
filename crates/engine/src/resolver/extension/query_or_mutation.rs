@@ -1,14 +1,67 @@
 use std::sync::Arc;
 
 use futures::future::BoxFuture;
-use runtime::{error::PartialGraphqlError, extension::Data};
+use futures_lite::FutureExt;
+use runtime::{
+    error::PartialGraphqlError,
+    extension::{Data, ExtensionFieldDirective, ExtensionRuntime},
+};
+use walker::Walk;
 
 use crate::{
     Runtime,
     execution::{ExecutionContext, ExecutionResult},
-    prepare::SubgraphField,
-    response::{GraphqlError, InputResponseObjectSet, SubgraphResponse},
+    prepare::{Plan, SubgraphField, create_extension_directive_query_view, create_extension_directive_response_view},
+    response::{GraphqlError, InputResponseObjectSet, ResponseObjectsView, SubgraphResponse},
 };
+
+use super::FieldResolverExtension;
+
+impl FieldResolverExtension {
+    pub(in crate::resolver) fn prepare_request<'ctx, R: Runtime>(
+        &'ctx self,
+        ctx: ExecutionContext<'ctx, R>,
+        plan: Plan<'ctx>,
+        root_response_objects: ResponseObjectsView<'_>,
+        subgraph_response: SubgraphResponse,
+    ) -> FieldResolverExtensionRequest<'ctx> {
+        let directive = self.directive_id.walk(ctx.schema());
+        let headers = ctx.subgraph_headers_with_rules(directive.subgraph().header_rules());
+
+        let field = plan.get_field(self.field_id);
+        let field_definition = field.definition();
+
+        let query_view =
+            create_extension_directive_query_view(ctx.schema(), directive, field.arguments(), ctx.variables());
+
+        let response_view =
+            create_extension_directive_response_view(query_view.ctx, directive, root_response_objects.clone());
+
+        let extension_directive = ExtensionFieldDirective {
+            extension_id: directive.extension_id,
+            subgraph: directive.subgraph(),
+            field: field_definition,
+            name: directive.name(),
+            arguments: query_view,
+        };
+
+        let future = ctx
+            .engine
+            .runtime
+            .extensions()
+            .resolve_field(headers, extension_directive, response_view.iter())
+            .boxed();
+
+        let input_object_refs = root_response_objects.into_input_object_refs();
+
+        FieldResolverExtensionRequest {
+            field,
+            subgraph_response,
+            input_object_refs,
+            future,
+        }
+    }
+}
 
 pub(in crate::resolver) struct FieldResolverExtensionRequest<'ctx> {
     pub(super) field: SubgraphField<'ctx>,
@@ -29,7 +82,7 @@ impl<'ctx> FieldResolverExtensionRequest<'ctx> {
         let result = match future.await {
             Ok(result) => result,
             Err(err) => {
-                subgraph_response.set_subgraph_errors(vec![err.into()]);
+                subgraph_response.set_subgraph_errors(vec![GraphqlError::from(err).with_location(field.location())]);
                 return Ok(subgraph_response);
             }
         };
@@ -40,7 +93,12 @@ impl<'ctx> FieldResolverExtensionRequest<'ctx> {
             let data = match result {
                 Ok(data) => data,
                 Err(err) => {
-                    response.borrow_mut().insert_errors(err, [id]);
+                    response.borrow_mut().insert_errors(
+                        GraphqlError::from(err)
+                            .with_location(field.location())
+                            .with_path(&input_object_refs[id].path),
+                        [id],
+                    );
                     continue;
                 }
             };
@@ -58,6 +116,8 @@ impl<'ctx> FieldResolverExtensionRequest<'ctx> {
                         .map_err(|err| {
                             tracing::error!("Failed to deserialize subgraph response: {}", err);
                             GraphqlError::invalid_subgraph_response()
+                                .with_location(field.location())
+                                .with_path(&input_object_refs[id].path)
                         })?;
                 }
                 Data::CborBytes(bytes) => {
@@ -78,6 +138,8 @@ impl<'ctx> FieldResolverExtensionRequest<'ctx> {
                         .map_err(|err| {
                             tracing::error!("Failed to deserialize subgraph response: {}", err);
                             GraphqlError::invalid_subgraph_response()
+                                .with_location(field.location())
+                                .with_path(&input_object_refs[id].path)
                         })?;
                 }
             }

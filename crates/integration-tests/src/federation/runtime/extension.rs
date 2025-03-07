@@ -8,6 +8,7 @@ use runtime::{
     extension::{AuthorizationDecisions, Data, ExtensionFieldDirective, QueryElement, Token},
     hooks::{Anything, DynHookContext},
 };
+use serde::Serialize;
 use tokio::sync::Mutex;
 use url::Url;
 
@@ -134,7 +135,7 @@ pub trait TestExtension: Send + Sync + 'static {
         headers: http::HeaderMap,
         directive: ExtensionFieldDirective<'_, serde_json::Value>,
         inputs: Vec<serde_json::Value>,
-    ) -> Result<Vec<Result<serde_json::Value, PartialGraphqlError>>, PartialGraphqlError> {
+    ) -> Result<Vec<Result<Data, PartialGraphqlError>>, PartialGraphqlError> {
         Err(PartialGraphqlError::internal_extension_error())
     }
 
@@ -186,12 +187,6 @@ impl runtime::extension::ExtensionRuntime<Arc<engine::RequestContext>> for TestE
                     inputs,
                 )
                 .await
-                .map(|items| {
-                    items
-                        .into_iter()
-                        .map(|res| res.map(|value| Data::JsonBytes(serde_json::to_vec(&value).unwrap())))
-                        .collect()
-                })
         }
     }
 
@@ -250,4 +245,8 @@ impl runtime::extension::ExtensionRuntime<Arc<engine::RequestContext>> for TestE
             instance.authorize_query(ctx, elements_grouped_by_directive_name).await
         }
     }
+}
+
+pub fn json_data(value: impl Serialize) -> Data {
+    Data::JsonBytes(serde_json::to_vec(&value).unwrap())
 }

@@ -91,7 +91,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                                 // available for requirements to be sent to subgraphs.
                                 response.make_inacessible(ResponseValueId::Field {
                                     object_id: obj_ref.id,
-                                    key: target_field.response_key,
+                                    key: target_field.key(),
                                     nullable: true,
                                 });
                             }

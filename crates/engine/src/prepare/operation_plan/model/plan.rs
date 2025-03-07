@@ -1,9 +1,11 @@
 use schema::{EntityDefinition, ResolverDefinition};
 use walker::Walk;
 
-use crate::prepare::{ConcreteShape, ConcreteShapeId, QueryPartition, ResponseObjectSetDefinitionId};
+use crate::prepare::{
+    ConcreteShape, ConcreteShapeId, PartitionDataFieldId, QueryPartition, ResponseObjectSetDefinitionId,
+};
 
-use super::{Plan, SubgraphSelectionSet};
+use super::{Plan, SubgraphField, SubgraphSelectionSet};
 
 impl<'a> Plan<'a> {
     // Not providing too easy access to the query partition as it exposes the unfiltered fields
@@ -22,6 +24,7 @@ impl<'a> Plan<'a> {
     pub(crate) fn resolver_definition(&self) -> ResolverDefinition<'a> {
         self.query_partition().resolver_definition()
     }
+    #[allow(unused)]
     pub(crate) fn selection_set(&self) -> SubgraphSelectionSet<'a> {
         self.ctx.view(self.query_partition_id).selection_set()
     }
@@ -30,5 +33,8 @@ impl<'a> Plan<'a> {
     }
     pub(crate) fn shape(&self) -> ConcreteShape<'a> {
         self.query_partition().shape_id.walk(self.ctx)
+    }
+    pub(crate) fn get_field(&self, id: PartitionDataFieldId) -> SubgraphField<'a> {
+        SubgraphField { ctx: self.ctx, id }
     }
 }

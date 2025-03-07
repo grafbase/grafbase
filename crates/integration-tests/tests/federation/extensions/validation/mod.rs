@@ -12,10 +12,13 @@ use std::{collections::HashMap, sync::Arc};
 use engine::Engine;
 use extension_catalog::Id;
 use integration_tests::{
-    federation::{EngineExt, TestExtension, TestExtensionBuilder, TestExtensionConfig},
+    federation::{EngineExt, TestExtension, TestExtensionBuilder, TestExtensionConfig, json_data},
     runtime,
 };
-use runtime::{error::PartialGraphqlError, extension::ExtensionFieldDirective};
+use runtime::{
+    error::PartialGraphqlError,
+    extension::{Data, ExtensionFieldDirective},
+};
 
 #[derive(Default)]
 pub struct EchoExt {
@@ -66,15 +69,15 @@ impl TestExtension for EchoInstance {
         _: http::HeaderMap,
         directive: ExtensionFieldDirective<'_, serde_json::Value>,
         inputs: Vec<serde_json::Value>,
-    ) -> Result<Vec<Result<serde_json::Value, PartialGraphqlError>>, PartialGraphqlError> {
+    ) -> Result<Vec<Result<Data, PartialGraphqlError>>, PartialGraphqlError> {
         Ok(inputs
             .into_iter()
             .map(|input| {
-                Ok(serde_json::json!({
+                Ok(json_data(serde_json::json!({
                     "schema": self.schema_directives,
                     "directive": directive.arguments,
                     "input": input
-                }))
+                })))
             })
             .collect())
     }

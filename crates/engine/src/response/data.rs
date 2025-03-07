@@ -1,3 +1,5 @@
+use crate::response::ResponseObjectField;
+
 use super::{ResponseObject, ResponseValue, ResponseValueId};
 
 /// Final representation of the response data after request execution.
@@ -179,12 +181,6 @@ impl DataPart {
     /// This happens when the supergraph needs to propagate a null for an `@inaccessible` field we detect at runtime,
     /// which can occur for enum values or inaccessible objects we may encounter behind an interface/union.
     pub fn make_inaccessible(&mut self, value_id: ResponseValueId) {
-        let mut inaccessible_value = ResponseValue::Inaccessible {
-            id: ResponseInaccessibleValueId {
-                part_id: self.id,
-                value_id: PartInaccesibleValueId::from(self.inaccessible_values.len()),
-            },
-        };
         match value_id {
             ResponseValueId::Field {
                 object_id: ResponseObjectId { part_id, object_id },
@@ -192,12 +188,35 @@ impl DataPart {
                 nullable,
             } => {
                 debug_assert!(part_id == self.id && nullable, "{part_id} == {} && {nullable}", self.id);
-                let field = self[object_id]
+                match self[object_id]
                     .fields_sorted_by_key
-                    .iter_mut()
-                    .find(|field| field.key.response_key == key)
-                    .expect("How could we have an id to id otherwise?");
-                std::mem::swap(&mut field.value, &mut inaccessible_value);
+                    .binary_search_by(|probe| probe.key.cmp(&key))
+                {
+                    Ok(index) => {
+                        let mut inaccessible_value = ResponseValue::Inaccessible {
+                            id: ResponseInaccessibleValueId {
+                                part_id: self.id,
+                                value_id: PartInaccesibleValueId::from(self.inaccessible_values.len()),
+                            },
+                        };
+                        std::mem::swap(
+                            &mut self[object_id].fields_sorted_by_key[index].value,
+                            &mut inaccessible_value,
+                        );
+                        self.inaccessible_values.push(inaccessible_value);
+                    }
+                    // May not be present for extension field resolver as they add fields directly,
+                    // rather than entities.
+                    Err(index) => {
+                        self[object_id].fields_sorted_by_key.insert(
+                            index,
+                            ResponseObjectField {
+                                key,
+                                value: ResponseValue::Null,
+                            },
+                        );
+                    }
+                }
             }
             ResponseValueId::Index {
                 list_id: ResponseListId { part_id, list_id },
@@ -205,10 +224,16 @@ impl DataPart {
                 nullable,
             } => {
                 debug_assert!(part_id == self.id && nullable, "{part_id} == {} && {nullable}", self.id);
+                let mut inaccessible_value = ResponseValue::Inaccessible {
+                    id: ResponseInaccessibleValueId {
+                        part_id: self.id,
+                        value_id: PartInaccesibleValueId::from(self.inaccessible_values.len()),
+                    },
+                };
                 std::mem::swap(&mut self[list_id][index as usize], &mut inaccessible_value);
+                self.inaccessible_values.push(inaccessible_value);
             }
         }
-        self.inaccessible_values.push(inaccessible_value);
     }
 
     pub fn push_inaccessible_value(&mut self, value: ResponseValue) -> ResponseInaccessibleValueId {
