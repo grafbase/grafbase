@@ -111,6 +111,21 @@ async fn anonymous_token() {
           "message": "Not authorized",
           "locations": [
             {
+              "line": 4,
+              "column": 5
+            }
+          ],
+          "path": [
+            "hasReadScope"
+          ],
+          "extensions": {
+            "code": "UNAUTHORIZED"
+          }
+        },
+        {
+          "message": "Not authorized",
+          "locations": [
+            {
               "line": 5,
               "column": 5
             }
@@ -132,21 +147,6 @@ async fn anonymous_token() {
           ],
           "path": [
             "hasReadOrWriteScope"
-          ],
-          "extensions": {
-            "code": "UNAUTHORIZED"
-          }
-        },
-        {
-          "message": "Not authorized",
-          "locations": [
-            {
-              "line": 4,
-              "column": 5
-            }
-          ],
-          "path": [
-            "hasReadScope"
           ],
           "extensions": {
             "code": "UNAUTHORIZED"
@@ -182,6 +182,21 @@ async fn token_without_scopes() {
           "message": "Not authorized: insufficient scopes",
           "locations": [
             {
+              "line": 4,
+              "column": 5
+            }
+          ],
+          "path": [
+            "hasReadScope"
+          ],
+          "extensions": {
+            "code": "UNAUTHORIZED"
+          }
+        },
+        {
+          "message": "Not authorized: insufficient scopes",
+          "locations": [
+            {
               "line": 5,
               "column": 5
             }
@@ -203,21 +218,6 @@ async fn token_without_scopes() {
           ],
           "path": [
             "hasReadOrWriteScope"
-          ],
-          "extensions": {
-            "code": "UNAUTHORIZED"
-          }
-        },
-        {
-          "message": "Not authorized: insufficient scopes",
-          "locations": [
-            {
-              "line": 4,
-              "column": 5
-            }
-          ],
-          "path": [
-            "hasReadScope"
           ],
           "extensions": {
             "code": "UNAUTHORIZED"
@@ -253,6 +253,21 @@ async fn token_with_insufficient_scopes() {
           "message": "Not authorized: insufficient scopes",
           "locations": [
             {
+              "line": 4,
+              "column": 5
+            }
+          ],
+          "path": [
+            "hasReadScope"
+          ],
+          "extensions": {
+            "code": "UNAUTHORIZED"
+          }
+        },
+        {
+          "message": "Not authorized: insufficient scopes",
+          "locations": [
+            {
               "line": 5,
               "column": 5
             }
@@ -274,21 +289,6 @@ async fn token_with_insufficient_scopes() {
           ],
           "path": [
             "hasReadOrWriteScope"
-          ],
-          "extensions": {
-            "code": "UNAUTHORIZED"
-          }
-        },
-        {
-          "message": "Not authorized: insufficient scopes",
-          "locations": [
-            {
-              "line": 4,
-              "column": 5
-            }
-          ],
-          "path": [
-            "hasReadScope"
           ],
           "extensions": {
             "code": "UNAUTHORIZED"
@@ -365,12 +365,12 @@ async fn token_with_write_scope() {
           "message": "Not authorized: insufficient scopes",
           "locations": [
             {
-              "line": 5,
+              "line": 4,
               "column": 5
             }
           ],
           "path": [
-            "hasReadAndWriteScope"
+            "hasReadScope"
           ],
           "extensions": {
             "code": "UNAUTHORIZED"
@@ -380,12 +380,12 @@ async fn token_with_write_scope() {
           "message": "Not authorized: insufficient scopes",
           "locations": [
             {
-              "line": 4,
+              "line": 5,
               "column": 5
             }
           ],
           "path": [
-            "hasReadScope"
+            "hasReadAndWriteScope"
           ],
           "extensions": {
             "code": "UNAUTHORIZED"

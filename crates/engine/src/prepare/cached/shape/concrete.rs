@@ -16,7 +16,8 @@ pub(crate) struct ConcreteShapeRecord {
     pub set_id: Option<ResponseObjectSetDefinitionId>,
     pub identifier: ObjectIdentifier,
     pub typename_response_keys: Vec<PositionedResponseKey>,
-    // Sorted by expected_key
+    // Ordered by PartitionDataFieldId which should more or less match the ordering of fields
+    // coming in from resolvers.
     pub field_shape_ids: IdRange<FieldShapeId>,
 }
 

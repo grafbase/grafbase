@@ -79,6 +79,9 @@ impl<'a> PartitionDataField<'a> {
     pub(crate) fn parent_field(&self) -> Option<PartitionDataField<'a>> {
         self.as_ref().parent_field_id.walk(self.ctx)
     }
+}
+
+impl PartitionDataFieldRecord {
     pub(crate) fn key(&self) -> PositionedResponseKey {
         PositionedResponseKey {
             query_position: self.query_position,
