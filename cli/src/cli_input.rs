@@ -2,6 +2,7 @@ mod branch;
 mod branch_ref;
 mod check;
 mod completions;
+mod compose;
 mod create;
 mod dev;
 mod extension;
@@ -17,7 +18,7 @@ mod sub_command;
 mod subgraphs;
 mod trust;
 
-pub(crate) use self::{check::CheckCommand, extension::*, trust::TrustCommand};
+pub(crate) use self::{check::CheckCommand, compose::*, extension::*, trust::TrustCommand};
 pub(crate) use branch::BranchSubCommand;
 pub(crate) use branch_ref::BranchRef;
 pub(crate) use completions::CompletionsCommand;

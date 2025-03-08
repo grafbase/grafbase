@@ -4,12 +4,12 @@ use futures::{TryFutureExt as _, future::join_all};
 use url::Url;
 
 #[derive(Debug)]
-pub(super) struct DetectedExtension {
-    pub(super) url: String,
-    pub(super) name: String,
+pub(crate) struct DetectedExtension {
+    pub(crate) url: String,
+    pub(crate) name: String,
 }
 
-pub(super) async fn detect_extensions(parsed_schema: &TypeSystemDocument) -> Vec<DetectedExtension> {
+pub(crate) async fn detect_extensions(parsed_schema: &TypeSystemDocument) -> Vec<DetectedExtension> {
     let link_directives = parsed_schema
         .definitions()
         .filter_map(|definition| match definition {

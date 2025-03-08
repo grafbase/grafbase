@@ -203,17 +203,17 @@ async fn handle_overridden_subgraph(
     }
 }
 
-async fn fetch_remote_subgraphs(graph_ref: &FullGraphRef) -> Result<Vec<Subgraph>, BackendError> {
+pub(crate) async fn fetch_remote_subgraphs(graph_ref: &FullGraphRef) -> Result<Vec<Subgraph>, BackendError> {
     let platform_data = PlatformData::get();
 
     let client = create_client().await.map_err(BackendError::ApiError)?;
 
-    let branch = graph_ref.branch.as_deref().unwrap_or(DEFAULT_BRANCH);
+    let branch = graph_ref.branch().unwrap_or(DEFAULT_BRANCH);
 
     let query = SubgraphSchemasByBranch::build(SubgraphSchemasByBranchVariables {
-        account_slug: &graph_ref.account,
+        account_slug: graph_ref.account(),
         name: branch,
-        graph_slug: &graph_ref.graph,
+        graph_slug: graph_ref.graph(),
     });
 
     let response = client

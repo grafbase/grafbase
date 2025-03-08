@@ -4,7 +4,8 @@ use crate::{cli_input::ExtensionSubCommand, is_not_direct_install};
 
 use super::{
     CheckCommand, CompletionsCommand, CreateCommand, DevCommand, ExtensionCommand, IntrospectCommand, LintCommand,
-    LoginCommand, PublishCommand, SchemaCommand, SubgraphsCommand, branch::BranchCommand, trust::TrustCommand,
+    LoginCommand, PublishCommand, SchemaCommand, SubgraphsCommand, branch::BranchCommand, compose::ComposeCommand,
+    trust::TrustCommand,
 };
 
 #[derive(Debug, Parser, strum::AsRefStr, strum::Display)]
@@ -21,6 +22,9 @@ pub enum SubCommand {
     Logout,
     /// Set up and deploy a new graph
     Create(CreateCommand),
+    /// Compose a federated graph from subgraph schemas
+    #[clap(hide = true)]
+    Compose(ComposeCommand),
     /// Introspect a graph and print its schema
     Introspect(IntrospectCommand),
     /// List subgraphs
@@ -59,6 +63,7 @@ impl RequiresLogin for SubCommand {
                 | SubCommand::Check(_)
                 | SubCommand::Branch(_)
                 | SubCommand::Schema(_)
+                | SubCommand::Compose(ComposeCommand { graph_ref: Some(_), .. })
                 | SubCommand::Dev(DevCommand { graph_ref: Some(_), .. })
                 | SubCommand::Extension(ExtensionCommand {
                     command: ExtensionSubCommand::Publish(_)

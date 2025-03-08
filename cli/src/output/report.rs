@@ -29,6 +29,18 @@ pub fn error(error: &CliError) {
     }
 }
 
+pub(crate) fn composition_diagnostics(diagnostics: &graphql_composition::Diagnostics) {
+    for diagnostic in diagnostics.iter_warnings() {
+        watercolor::output!("- ⚠️ Warning: {}", diagnostic, @BrightYellow);
+        println!();
+    }
+
+    for diagnostic in diagnostics.iter_errors() {
+        watercolor::output!("- ❌ Error: {}", diagnostic, @BrightRed);
+        println!();
+    }
+}
+
 pub fn warnings(warnings: &[Warning]) {
     for warning in warnings {
         let msg = warning.message();

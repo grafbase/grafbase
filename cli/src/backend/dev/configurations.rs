@@ -11,7 +11,7 @@ pub struct DevConfiguration {
     pub merged_configuration: Config,
 }
 
-pub async fn get_and_merge_configurations(
+pub(crate) async fn get_and_merge_configurations(
     gateway_config_path: Option<&PathBuf>,
     graph_overrides_path: Option<&PathBuf>,
 ) -> Result<DevConfiguration, BackendError> {

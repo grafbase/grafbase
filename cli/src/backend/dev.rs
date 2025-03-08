@@ -4,8 +4,12 @@ mod hot_reload;
 mod pathfinder;
 mod subgraphs;
 
+pub(crate) use self::{
+    configurations::get_and_merge_configurations, extensions::detect_extensions, subgraphs::fetch_remote_subgraphs,
+};
+
 use super::errors::BackendError;
-use configurations::get_and_merge_configurations;
+use crate::cli_input::FullGraphRef;
 use federated_server::{GraphFetchMethod, ServeConfig, ServerRuntime};
 use hot_reload::hot_reload;
 use pathfinder::{export_assets, get_pathfinder_router};
@@ -18,13 +22,6 @@ use tokio::{
     sync::{broadcast, mpsc, watch},
     task::spawn_blocking,
 };
-
-#[derive(Clone, Debug)]
-pub struct FullGraphRef {
-    pub account: String,
-    pub graph: String,
-    pub branch: Option<String>,
-}
 
 const DEFAULT_PORT: u16 = 5000;
 
