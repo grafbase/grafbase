@@ -54,7 +54,7 @@ impl ResolverExtension for Nats {
         _: Headers,
         _: &str,
         directive: FieldDefinitionDirective,
-        _: FieldInputs,
+        inputs: FieldInputs<'_>,
     ) -> Result<FieldOutput, Error> {
         let Ok(directive_kind) = DirectiveKind::from_str(directive.name()) else {
             return Err(format!("Invalid directive: {}", directive.name()).into());
@@ -66,21 +66,21 @@ impl ResolverExtension for Nats {
                     .arguments()
                     .map_err(|e| format!("Error deserializing directive arguments: {e}"))?;
 
-                self.publish(args)
+                self.publish(args, inputs)
             }
             DirectiveKind::Request => {
                 let args: RequestArguments<'_> = directive
                     .arguments()
                     .map_err(|e| format!("Error deserializing directive arguments: {e}"))?;
 
-                self.request(args)
+                self.request(args, inputs)
             }
             DirectiveKind::KeyValue => {
                 let args: KeyValueArguments<'_> = directive
                     .arguments()
                     .map_err(|e| format!("Error deserializing directive arguments: {e}"))?;
 
-                self.key_value(args)
+                self.key_value(args, inputs)
             }
         }
     }
@@ -148,7 +148,7 @@ impl ResolverExtension for Nats {
 }
 
 impl Nats {
-    fn publish(&self, request: PublishArguments<'_>) -> Result<FieldOutput, Error> {
+    fn publish(&self, request: PublishArguments<'_>, inputs: FieldInputs<'_>) -> Result<FieldOutput, Error> {
         let Some(client) = self.clients.get(request.provider) else {
             return Err(format!("NATS provider not found: {}", request.provider).into());
         };
@@ -157,13 +157,10 @@ impl Nats {
 
         let result = client.publish(request.subject, body);
 
-        let mut output = FieldOutput::new();
-        output.push_value(result.is_ok());
-
-        Ok(output)
+        Ok(FieldOutput::new(inputs, result.is_ok())?)
     }
 
-    fn request(&self, request: RequestArguments<'_>) -> Result<FieldOutput, Error> {
+    fn request(&self, request: RequestArguments<'_>, inputs: FieldInputs<'_>) -> Result<FieldOutput, Error> {
         let Some(client) = self.clients.get(request.provider) else {
             return Err(format!("NATS provider not found: {}", request.provider).into());
         };
@@ -174,33 +171,33 @@ impl Nats {
             .request::<_, serde_json::Value>(request.subject, body, Some(request.timeout))
             .map_err(|e| format!("Failed to request message: {}", e))?;
 
-        let mut output = FieldOutput::new();
-
         let selection = match request.selection {
             Some(selection) => selection,
-            None => {
-                output.push_value(message);
-                return Ok(output);
-            }
+            None => return Ok(FieldOutput::new(inputs, message)?),
         };
 
         let mut jq = self.jq_selection.borrow_mut();
 
         let filtered = jq
             .select(selection, message)
-            .map_err(|e| format!("Failed to filter with selection: {}", e))?;
+            .map_err(|e| format!("Failed to filter with selection: {}", e))?
+            .collect::<Result<Vec<_>, _>>();
 
-        for payload in filtered {
-            match payload {
-                Ok(payload) => output.push_value(payload),
-                Err(error) => output.push_error(format!("Failed to filter with selection: {}", error)),
+        Ok(match filtered {
+            Ok(filtered) => {
+                // TODO: We don't whether a list of a single item is expected here... Need engine
+                // to help
+                if filtered.len() == 1 {
+                    FieldOutput::new(inputs, filtered.into_iter().next().unwrap())?
+                } else {
+                    FieldOutput::new(inputs, filtered)?
+                }
             }
-        }
-
-        Ok(output)
+            Err(error) => FieldOutput::error(inputs, format!("Failed to filter with selection: {}", error)),
+        })
     }
 
-    fn key_value(&self, args: KeyValueArguments<'_>) -> Result<FieldOutput, Error> {
+    fn key_value(&self, args: KeyValueArguments<'_>, inputs: FieldInputs<'_>) -> Result<FieldOutput, Error> {
         let Some(client) = self.clients.get(args.provider) else {
             return Err(format!("NATS provider not found: {}", args.provider).into());
         };
@@ -209,36 +206,27 @@ impl Nats {
             .key_value(args.bucket)
             .map_err(|e| format!("Failed to get key-value store: {e}"))?;
 
-        let mut output = FieldOutput::new();
-
         match args.action {
             KeyValueAction::Create => {
                 let body = args.body().unwrap_or(&serde_json::Value::Null);
 
                 match store.create(args.key, body) {
-                    Ok(sequence) => output.push_value(sequence.to_string()),
-                    Err(error) => {
-                        return Err(format!("Failed to create key-value pair: {error}").into());
-                    }
+                    Ok(sequence) => Ok(FieldOutput::new(inputs, sequence.to_string())?),
+                    Err(error) => Err(format!("Failed to create key-value pair: {error}").into()),
                 }
             }
             KeyValueAction::Put => {
                 let body = args.body().unwrap_or(&serde_json::Value::Null);
 
                 match store.put(args.key, body) {
-                    Ok(sequence) => output.push_value(sequence.to_string()),
-                    Err(error) => {
-                        return Err(format!("Failed to put key-value pair: {error}").into());
-                    }
+                    Ok(sequence) => Ok(FieldOutput::new(inputs, sequence.to_string())?),
+                    Err(error) => Err(format!("Failed to put key-value pair: {error}").into()),
                 }
             }
             KeyValueAction::Get => {
                 let value = match store.get::<serde_json::Value>(args.key) {
                     Ok(Some(value)) => value,
-                    Ok(None) => {
-                        output.push_value(serde_json::Value::Null);
-                        return Ok(output);
-                    }
+                    Ok(None) => return Ok(FieldOutput::new(inputs, serde_json::Value::Null)?),
                     Err(error) => {
                         return Err(format!("Failed to get key-value pair: {error}").into());
                     }
@@ -246,31 +234,33 @@ impl Nats {
 
                 let selection = match args.selection {
                     Some(selection) => selection,
-                    None => {
-                        output.push_value(value);
-                        return Ok(output);
-                    }
+                    None => return Ok(FieldOutput::new(inputs, value)?),
                 };
 
                 let mut jq = self.jq_selection.borrow_mut();
 
                 let selected = jq
                     .select(selection, value)
-                    .map_err(|e| format!("Failed to filter with selection: {}", e))?;
+                    .map_err(|e| format!("Failed to filter with selection: {}", e))?
+                    .collect::<Result<Vec<_>, _>>();
 
-                for payload in selected {
-                    match payload {
-                        Ok(payload) => output.push_value(payload),
-                        Err(error) => output.push_error(format!("Failed to filter with selection: {}", error)),
+                Ok(match selected {
+                    Ok(selected) => {
+                        // TODO: We don't whether a list of a single item is expected here... Need engine
+                        // to help
+                        if selected.len() == 1 {
+                            FieldOutput::new(inputs, selected.into_iter().next().unwrap())?
+                        } else {
+                            FieldOutput::new(inputs, selected)?
+                        }
                     }
-                }
+                    Err(error) => FieldOutput::error(inputs, format!("Failed to filter with selection: {}", error)),
+                })
             }
             KeyValueAction::Delete => match store.delete(args.key) {
-                Ok(()) => output.push_value(true),
-                Err(error) => return Err(format!("Failed to delete key-value pair: {error}").into()),
+                Ok(()) => Ok(FieldOutput::new(inputs, true)?),
+                Err(error) => Err(format!("Failed to delete key-value pair: {error}").into()),
             },
         }
-
-        Ok(output)
     }
 }

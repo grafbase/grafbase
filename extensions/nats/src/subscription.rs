@@ -3,7 +3,7 @@ use std::{cell::RefCell, rc::Rc};
 use grafbase_sdk::{
     host_io::pubsub::nats::{self, NatsSubscription},
     jq_selection::JqSelection,
-    types::FieldOutput,
+    types::SubscriptionOutput,
     Error, Subscription,
 };
 
@@ -24,14 +24,14 @@ impl FilteredSubscription {
 }
 
 impl Subscription for FilteredSubscription {
-    fn next(&mut self) -> Result<Option<FieldOutput>, Error> {
+    fn next(&mut self) -> Result<Option<SubscriptionOutput>, Error> {
         let item = match self.nats.next() {
             Ok(Some(item)) => item,
             Ok(None) => return Ok(None),
             Err(e) => return Err(format!("Failed to receive message from NATS: {e}").into()),
         };
 
-        let mut field_output = FieldOutput::default();
+        let mut builder = SubscriptionOutput::builder();
 
         let payload: serde_json::Value = item
             .payload()
@@ -47,16 +47,16 @@ impl Subscription for FilteredSubscription {
 
                 for payload in filtered {
                     match payload {
-                        Ok(payload) => field_output.push_value(payload),
-                        Err(error) => field_output.push_error(format!("Error parsing result value: {error}")),
+                        Ok(payload) => builder.push(payload)?,
+                        Err(error) => builder.push_error(format!("Error parsing result value: {error}")),
                     }
                 }
             }
             None => {
-                field_output.push_value(payload);
+                builder.push(payload)?;
             }
         };
 
-        Ok(Some(field_output))
+        Ok(Some(builder.build()))
     }
 }

@@ -5,11 +5,7 @@
 //! This module provides a high-level client for connecting to and interacting with NATS servers.
 //! It supports both authenticated and unauthenticated connections to one or more NATS servers.
 
-use crate::{
-    extension::resolver::Subscription,
-    types::{self},
-    wit, Error, SdkError,
-};
+use crate::{extension::resolver::Subscription, types::SubscriptionOutput, wit, Error, SdkError};
 use std::time::Duration;
 
 pub use time::OffsetDateTime;
@@ -270,22 +266,22 @@ pub fn connect_with_auth(
 }
 
 impl Subscription for NatsSubscription {
-    fn next(&mut self) -> Result<Option<types::FieldOutput>, Error> {
+    fn next(&mut self) -> Result<Option<SubscriptionOutput>, Error> {
         let item = match NatsSubscription::next(self) {
             Ok(Some(item)) => item,
             Ok(None) => return Ok(None),
             Err(e) => return Err(format!("Error receiving NATS message: {e}").into()),
         };
 
-        let mut field_output = types::FieldOutput::default();
+        let mut builder = SubscriptionOutput::builder();
 
         let payload: serde_json::Value = item
             .payload()
             .map_err(|e| format!("Error parsing NATS value as JSON: {e}"))?;
 
-        field_output.push_value(payload);
+        builder.push(payload)?;
 
-        Ok(Some(field_output))
+        Ok(Some(builder.build()))
     }
 }
 
