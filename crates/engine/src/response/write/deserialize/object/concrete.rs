@@ -498,18 +498,24 @@ impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_> {
         let schema = self.ctx.schema;
         let keys = self.ctx.response_keys();
         let fields = &self.ctx.prepared_operation.cached.shapes[self.field_shape_ids];
+        let mut offset = 0;
         let mut maybe_object_definition_id: Option<ObjectDefinitionId> = None;
         while let Some(key) = map.next_key::<Key<'_>>()? {
             let key = key.as_ref();
-            let start = fields.partition_point(|field| &keys[field.expected_key] < key);
-            let fields = &fields[start..];
-
-            if fields
-                .first()
-                .map(|field| &keys[field.expected_key] == key)
-                .unwrap_or_default()
+            // Improves significantly (a few %) the performance to use the unchecked version.
+            // SAFETY: offset is initialized 0 which always work. Later on it's only incremented by
+            //         at most 1 if we find an element within [offset..]. So offset + 1 is still equal or
+            //         lower than the fields length.
+            if let Some(pos) = unsafe { fields.get_unchecked(offset..) }
+                .iter()
+                .position(|field| &keys[field.expected_key] == key)
             {
-                self.visit_field(map, fields, response_fields)?;
+                self.visit_field(map, &fields[offset + pos], response_fields)?;
+                // Each key in the JSON is unique, it's an object. So if we found it once, we won't
+                // re-find it. This means that if the found field is the first one, we can increase
+                // the offset to ignore for the next key.
+                // Worst-case scenario if the field re-appears, we'll ignore the data.
+                offset += (pos == 0) as usize;
             // This supposes that the discriminant is never part of the schema.
             } else if maybe_object_definition_id.is_none() && key == "__typename" {
                 let value = map.next_value::<Key<'_>>()?;
@@ -535,17 +541,23 @@ impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_> {
     ) -> Result<(), A::Error> {
         let keys = self.ctx.response_keys();
         let fields = &self.ctx.prepared_operation.cached.shapes[self.field_shape_ids];
+        let mut offset = 0;
         while let Some(key) = map.next_key::<Key<'_>>()? {
             let key = key.as_ref();
-            let start = fields.partition_point(|field| &keys[field.expected_key] < key);
-            let fields = &fields[start..];
-
-            if fields
-                .first()
-                .map(|field| &keys[field.expected_key] == key)
-                .unwrap_or_default()
+            // Improves significantly (a few %) the performance to use the unchecked version.
+            // SAFETY: offset is initialized 0 which always work. Later on it's only incremented by
+            //         at most 1 if we find an element within [offset..]. So offset + 1 is still equal or
+            //         lower than the fields length.
+            if let Some(pos) = unsafe { fields.get_unchecked(offset..) }
+                .iter()
+                .position(|field| &keys[field.expected_key] == key)
             {
-                self.visit_field(map, fields, response_fields)?;
+                self.visit_field(map, &fields[offset + pos], response_fields)?;
+                // Each key in the JSON is unique, it's an object. So if we found it once, we won't
+                // re-find it. This means that if the found field is the first one, we can increase
+                // the offset to ignore for the next key.
+                // Worst-case scenario if the field re-appears, we'll ignore the data.
+                offset += (pos == 0) as usize;
             } else {
                 // Try discarding the next value, we might be able to use other parts of
                 // the response.
@@ -558,11 +570,9 @@ impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_> {
     fn visit_field<'de, A: MapAccess<'de>>(
         &self,
         map: &mut A,
-        field_shapes: &'ctx [FieldShapeRecord],
+        field: &'ctx FieldShapeRecord,
         response_fields: &mut Vec<ResponseObjectField>,
     ) -> Result<(), A::Error> {
-        let field = &field_shapes[0];
-
         self.ctx.path().push(ResponseValueId::Field {
             object_id: self.object_id,
             key: field.key,
@@ -575,17 +585,6 @@ impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_> {
         });
         self.ctx.path().pop();
         let value = result?;
-
-        // All fields with the same expected_key (when aliases aren't supported by upsteam)
-        for other_field in field_shapes[1..]
-            .iter()
-            .take_while(|other_field| other_field.expected_key == field.expected_key)
-        {
-            response_fields.push(ResponseObjectField {
-                key: other_field.key,
-                value: value.clone(),
-            });
-        }
 
         response_fields.push(ResponseObjectField { key: field.key, value });
 
