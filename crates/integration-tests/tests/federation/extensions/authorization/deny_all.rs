@@ -67,11 +67,11 @@ fn can_deny_all() {
               "locations": [
                 {
                   "line": 1,
-                  "column": 18
+                  "column": 9
                 }
               ],
               "path": [
-                "forbidden"
+                "greeting"
               ],
               "extensions": {
                 "code": "UNAUTHORIZED"
@@ -82,11 +82,11 @@ fn can_deny_all() {
               "locations": [
                 {
                   "line": 1,
-                  "column": 9
+                  "column": 18
                 }
               ],
               "path": [
-                "greeting"
+                "forbidden"
               ],
               "extensions": {
                 "code": "UNAUTHORIZED"

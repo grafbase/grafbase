@@ -4,8 +4,9 @@ use std::borrow::Cow;
 
 use fixedbitset::FixedBitSet;
 use id_newtypes::IdRange;
+use im::HashSet;
 use itertools::Itertools;
-use operation::PositionedResponseKey;
+use operation::{PositionedResponseKey, ResponseKey};
 use schema::{CompositeType, CompositeTypeId, Definition, ObjectDefinitionId, Schema};
 use walker::Walk;
 
@@ -166,7 +167,6 @@ impl<'ctx> ShapesBuilder<'ctx> {
         let mut distinct_typename_response_keys: Vec<PositionedResponseKey> = Vec::new();
         let mut included = included_typename_then_data_fields.into_ones();
 
-        let mut all_expected_keys_equal_response_keys = true;
         while let Some(i) = included.next() {
             if let Some(field) = typename_fields_sorted_by_response_key_str_then_position_extra_last.get(i) {
                 if distinct_typename_response_keys
@@ -195,7 +195,6 @@ impl<'ctx> ShapesBuilder<'ctx> {
                         group.push(field);
                     } else {
                         let field_shape = self.create_data_field_shape(&mut group, first);
-                        all_expected_keys_equal_response_keys &= field_shape.expected_key == first.response_key;
                         field_shapes_buffer.push(field_shape);
                         first = field;
                         group.clear();
@@ -204,7 +203,6 @@ impl<'ctx> ShapesBuilder<'ctx> {
                 }
 
                 let field_shape = self.create_data_field_shape(&mut group, first);
-                all_expected_keys_equal_response_keys &= field_shape.expected_key == first.response_key;
                 field_shapes_buffer.push(field_shape);
 
                 self.data_fields_buffer_pool.push(group);
@@ -218,13 +216,15 @@ impl<'ctx> ShapesBuilder<'ctx> {
             typename_response_keys: distinct_typename_response_keys,
             field_shape_ids: {
                 let start = self.shapes.fields.len();
-                let keys = &self.ctx.cached.operation.response_keys;
-                // If the expected key matches the response key, we don't need to sort
-                // again.
-                if !all_expected_keys_equal_response_keys {
-                    field_shapes_buffer.sort_unstable_by(|a, b| keys[a.expected_key].cmp(&keys[b.expected_key]));
-                }
-                debug_assert!(field_shapes_buffer.is_sorted_by(|a, b| keys[a.expected_key] < keys[b.expected_key]));
+                field_shapes_buffer.sort_unstable_by(|a, b| a.id.cmp(&b.id));
+                debug_assert!(
+                    field_shapes_buffer
+                        .iter()
+                        .map(|f| f.expected_key)
+                        .collect::<HashSet<ResponseKey>>()
+                        .len()
+                        == field_shapes_buffer.len()
+                );
                 self.shapes.fields.append(&mut field_shapes_buffer);
                 self.field_shapes_buffer_pool.push(field_shapes_buffer);
                 IdRange::from(start..self.shapes.fields.len())

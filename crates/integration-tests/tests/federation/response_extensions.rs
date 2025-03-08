@@ -520,7 +520,7 @@ fn complex_query_plan() {
                     "__typename": "GraphqlResolver",
                     "subgraphName": "products",
                     "request": {
-                      "query": "query($var0: [_Any!]!) { _entities(representations: $var0) { ... on Product { upc weight(unit: KILOGRAM) price } } }"
+                      "query": "query($var0: [_Any!]!) { _entities(representations: $var0) { ... on Product { weight(unit: KILOGRAM) upc price } } }"
                     }
                   },
                   {

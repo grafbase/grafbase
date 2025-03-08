@@ -196,7 +196,7 @@ impl QueryBuilderContext {
 
         let ParentType::CompositeType(parent_type) = parent_type else {
             let entity_fields = selection_set
-                .fields_ordered_by_type_condition_then_position()
+                .fields_ordered_by_type_condition_then_key()
                 .chunk_by(|field| field.definition().parent_entity());
 
             // Parent is Any or any other type that will accept anything.
@@ -215,7 +215,7 @@ impl QueryBuilderContext {
         }
 
         let entity_fields = selection_set
-            .fields_ordered_by_type_condition_then_position()
+            .fields_ordered_by_type_condition_then_key()
             .chunk_by(|field| field.definition().parent_entity());
 
         let maybe_parent_interface_id = parent_type.as_interface().map(|interface| interface.id);
