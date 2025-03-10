@@ -27,22 +27,6 @@ impl<'a> FieldDefinition<'a> {
         })
     }
 
-    pub fn has_required_fields_for_subgraph(&self, subgraph_id: SubgraphId) -> bool {
-        self.as_ref()
-            .requires_records
-            .iter()
-            .any(|requires| requires.subgraph_id == subgraph_id)
-            || self.directives().any(|directive| match directive {
-                TypeSystemDirective::Authenticated(_)
-                | TypeSystemDirective::Deprecated(_)
-                | TypeSystemDirective::RequiresScopes(_)
-                | TypeSystemDirective::Cost(_)
-                | TypeSystemDirective::ListSize(_)
-                | TypeSystemDirective::Extension(_) => false,
-                TypeSystemDirective::Authorized(directive) => directive.fields().is_some(),
-            })
-    }
-
     pub fn is_inaccessible(&self) -> bool {
         self.schema.graph.inaccessible_field_definitions[self.id]
     }

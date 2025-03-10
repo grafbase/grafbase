@@ -1,33 +1,60 @@
 use std::sync::Arc;
 
-use engine::{Engine, ErrorResponse, GraphqlError};
+use engine::{Engine, ErrorCode, ErrorResponse, GraphqlError};
+use engine_schema::DirectiveSite;
 use graphql_mocks::dynamic::DynamicSchema;
 use integration_tests::{
     federation::{EngineExt, TestExtension},
     runtime,
 };
-use runtime::extension::{AuthorizationDecisions, QueryElement};
+use runtime::{
+    extension::{AuthorizationDecisions, QueryElement},
+    hooks::DynHookContext,
+};
 
-use crate::federation::extensions::authorization::SimpleAuthExt;
+use crate::federation::extensions::authorization::AuthorizationExt;
 
 #[derive(Default)]
-pub(super) struct DenySites(pub Vec<&'static str>);
+pub(super) struct DenySites {
+    pub query: Vec<&'static str>,
+    pub response: Vec<&'static str>,
+}
+
+impl DenySites {
+    pub fn query(query: impl IntoIterator<Item = &'static str>) -> Self {
+        Self {
+            query: query.into_iter().collect(),
+            response: Vec::new(),
+        }
+    }
+
+    pub fn response(response: impl IntoIterator<Item = &'static str>) -> Self {
+        Self {
+            query: Vec::new(),
+            response: response.into_iter().collect(),
+        }
+    }
+}
 
 #[async_trait::async_trait]
 impl TestExtension for DenySites {
     #[allow(clippy::manual_async_fn)]
-    async fn authorize_query<'a>(
+    async fn authorize_query(
         &self,
         _ctx: Arc<engine::RequestContext>,
+        _: &DynHookContext,
         elements_grouped_by_directive_name: Vec<(&str, Vec<QueryElement<'_, serde_json::Value>>)>,
     ) -> Result<AuthorizationDecisions, ErrorResponse> {
         let mut element_to_error = Vec::new();
-        let errors = vec![GraphqlError::unauthorized()];
+        let errors = vec![GraphqlError::new(
+            "Unauthorized at query stage",
+            ErrorCode::Unauthorized,
+        )];
 
         let mut i = 0;
         for (_, elements) in elements_grouped_by_directive_name {
             for element in elements {
-                if self.0.contains(&element.site.to_string().as_str()) {
+                if self.query.contains(&element.site.to_string().as_str()) {
                     element_to_error.push((i, 0));
                 }
                 i += 1;
@@ -39,6 +66,24 @@ impl TestExtension for DenySites {
             errors,
         })
     }
+
+    async fn authorize_response(
+        &self,
+        _ctx: Arc<engine::RequestContext>,
+        _wasm_context: &DynHookContext,
+        _directive_name: &str,
+        directive_site: DirectiveSite<'_>,
+        _items: Vec<serde_json::Value>,
+    ) -> Result<AuthorizationDecisions, GraphqlError> {
+        if self.response.contains(&directive_site.to_string().as_str()) {
+            Ok(AuthorizationDecisions::DenyAll(GraphqlError::new(
+                "Unauthorized at response stage",
+                ErrorCode::Unauthorized,
+            )))
+        } else {
+            Ok(AuthorizationDecisions::GrantAll)
+        }
+    }
 }
 
 #[test]
@@ -48,7 +93,7 @@ fn can_deny_some() {
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
-                extend schema @link(url: "simple-auth-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
 
                 type Query {
                     greeting: String @auth
@@ -60,7 +105,7 @@ fn can_deny_some() {
                 .with_resolver("Query", "greeting", serde_json::Value::String("Hi!".to_owned()))
                 .into_subgraph("x"),
             )
-            .with_extension(SimpleAuthExt::new(DenySites(vec!["Query.forbidden"])))
+            .with_extension(AuthorizationExt::new(DenySites::query(vec!["Query.forbidden"])))
             .build()
             .await;
 
@@ -73,7 +118,7 @@ fn can_deny_some() {
           },
           "errors": [
             {
-              "message": "Not authorized",
+              "message": "Unauthorized at query stage",
               "locations": [
                 {
                   "line": 1,

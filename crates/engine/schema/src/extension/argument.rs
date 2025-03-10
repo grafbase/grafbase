@@ -26,6 +26,20 @@ pub enum InjectionStage {
     Response,
 }
 
+impl InjectionStage {
+    pub fn is_static(self) -> bool {
+        matches!(self, Self::Static)
+    }
+
+    pub fn is_query(self) -> bool {
+        matches!(self, Self::Query)
+    }
+
+    pub fn is_response(self) -> bool {
+        matches!(self, Self::Response)
+    }
+}
+
 impl PartialOrd for InjectionStage {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))

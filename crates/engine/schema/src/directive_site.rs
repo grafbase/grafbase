@@ -80,3 +80,18 @@ impl<'a> From<EntityDefinition<'a>> for DirectiveSite<'a> {
         }
     }
 }
+
+impl From<DirectiveSiteId> for u32 {
+    fn from(id: DirectiveSiteId) -> Self {
+        const SHIFT: u32 = 3;
+        match id {
+            DirectiveSiteId::Scalar(id) => u32::from(id) << SHIFT,
+            DirectiveSiteId::Object(id) => 0x1 | (u32::from(id) << SHIFT),
+            DirectiveSiteId::Interface(id) => 0x2 | (u32::from(id) << SHIFT),
+            DirectiveSiteId::Union(id) => 0x3 | (u32::from(id) << SHIFT),
+            DirectiveSiteId::Enum(id) => 0x4 | (u32::from(id) << SHIFT),
+            DirectiveSiteId::InputObject(id) => 0x5 | (u32::from(id) << SHIFT),
+            DirectiveSiteId::Field(id) => 0x6 | (u32::from(id) << SHIFT),
+        }
+    }
+}

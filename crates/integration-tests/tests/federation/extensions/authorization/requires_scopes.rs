@@ -10,10 +10,11 @@ use integration_tests::{
 use runtime::{
     auth::LegacyToken,
     extension::{AuthorizationDecisions, QueryElement, Token},
+    hooks::DynHookContext,
 };
 use serde::Deserialize;
 
-use crate::federation::extensions::authorization::SimpleAuthExt;
+use crate::federation::extensions::authorization::AuthorizationExt;
 
 #[derive(Default, Clone)]
 struct AuthExt {
@@ -75,9 +76,10 @@ struct Arguments {
 #[async_trait::async_trait]
 impl TestExtension for RequiresScopes {
     #[allow(clippy::manual_async_fn)]
-    async fn authorize_query<'a>(
+    async fn authorize_query(
         &self,
         ctx: Arc<engine::RequestContext>,
+        _: &DynHookContext,
         elements_grouped_by_directive_name: Vec<(&str, Vec<QueryElement<'_, serde_json::Value>>)>,
     ) -> Result<AuthorizationDecisions, ErrorResponse> {
         let LegacyToken::Extension(Token::Bytes(bytes)) = ctx.token() else {
@@ -117,7 +119,7 @@ fn anonymous() {
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
-                extend schema @link(url: "simple-auth-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
 
                 type Query {
                     requiresUser: String @auth(input: "user")
@@ -133,7 +135,7 @@ fn anonymous() {
                 .with_resolver("Query", "greeting", serde_json::Value::String("Hi!".to_owned()))
                 .into_subgraph("x"),
             )
-            .with_extension(SimpleAuthExt::new(RequiresScopes))
+            .with_extension(AuthorizationExt::new(RequiresScopes))
             .with_extension(AuthExt::anonymous())
             .with_toml_config(
                 r#"
@@ -190,7 +192,7 @@ fn missing_claim() {
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
-                extend schema @link(url: "simple-auth-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
 
                 type Query {
                     requiresUser: String @auth(input: "user")
@@ -206,7 +208,7 @@ fn missing_claim() {
                 .with_resolver("Query", "greeting", serde_json::Value::String("Hi!".to_owned()))
                 .into_subgraph("x"),
             )
-            .with_extension(SimpleAuthExt::new(RequiresScopes))
+            .with_extension(AuthorizationExt::new(RequiresScopes))
             .with_extension(AuthExt::claims(&[("dummy", "claim")]))
             .with_toml_config(
                 r#"
@@ -263,7 +265,7 @@ fn missing_scope() {
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
-                extend schema @link(url: "simple-auth-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
 
                 type Query {
                     requiresUser: String @auth(input: "user")
@@ -279,7 +281,7 @@ fn missing_scope() {
                 .with_resolver("Query", "greeting", serde_json::Value::String("Hi!".to_owned()))
                 .into_subgraph("x"),
             )
-            .with_extension(SimpleAuthExt::new(RequiresScopes))
+            .with_extension(AuthorizationExt::new(RequiresScopes))
             .with_extension(AuthExt::claims(&[("scopes", "group")]))
             .with_toml_config(
                 r#"
@@ -354,7 +356,7 @@ fn valid_scope() {
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
-                extend schema @link(url: "simple-auth-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
 
                 type Query {
                     requiresUser: String @auth(input: "user")
@@ -370,7 +372,7 @@ fn valid_scope() {
                 .with_resolver("Query", "greeting", serde_json::Value::String("Hi!".to_owned()))
                 .into_subgraph("x"),
             )
-            .with_extension(SimpleAuthExt::new(RequiresScopes))
+            .with_extension(AuthorizationExt::new(RequiresScopes))
             .with_extension(AuthExt::claims(&[("scopes", "user")]))
             .with_toml_config(
                 r#"

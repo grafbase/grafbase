@@ -2,7 +2,7 @@ use engine::Engine;
 use graphql_mocks::dynamic::DynamicSchema;
 use integration_tests::{federation::EngineExt, runtime};
 
-use crate::federation::extensions::authorization::{SimpleAuthExt, deny_all::DenyAll, user};
+use crate::federation::extensions::authorization::{AuthorizationExt, deny_all::DenyAll, user};
 
 #[test]
 fn required_item_required_parent() {
@@ -11,7 +11,7 @@ fn required_item_required_parent() {
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
-                extend schema @link(url: "simple-auth-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
 
                 type Query {
                     user: User
@@ -37,7 +37,7 @@ fn required_item_required_parent() {
                 .with_resolver("Query", "user", user())
                 .into_subgraph("x"),
             )
-            .with_extension(SimpleAuthExt::new(DenyAll))
+            .with_extension(AuthorizationExt::new(DenyAll))
             .build()
             .await;
 
@@ -120,7 +120,7 @@ fn required_item_nullable_parent() {
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
-                extend schema @link(url: "simple-auth-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
 
                 type Query {
                     user: User
@@ -146,7 +146,7 @@ fn required_item_nullable_parent() {
                 .with_resolver("Query", "user", user())
                 .into_subgraph("x"),
             )
-            .with_extension(SimpleAuthExt::new(DenyAll))
+            .with_extension(AuthorizationExt::new(DenyAll))
             .build()
             .await;
 
@@ -231,7 +231,7 @@ fn nullable_item() {
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
-                extend schema @link(url: "simple-auth-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
 
                 type Query {
                     user: User
@@ -257,7 +257,7 @@ fn nullable_item() {
                 .with_resolver("Query", "user", user())
                 .into_subgraph("x"),
             )
-            .with_extension(SimpleAuthExt::new(DenyAll))
+            .with_extension(AuthorizationExt::new(DenyAll))
             .build()
             .await;
 

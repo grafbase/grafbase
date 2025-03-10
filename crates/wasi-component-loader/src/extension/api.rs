@@ -1,6 +1,8 @@
 mod since_0_8_0;
 mod since_0_9_0;
 
+use since_0_8_0::instance::ExtensionInstanceSince080;
+use since_0_9_0::instance::ExtensionInstanceSince090;
 pub use since_0_9_0::*;
 
 use super::ExtensionInstance;
@@ -74,7 +76,7 @@ pub(crate) async fn instantiate(
                 .call_init_gateway_extension(&mut store, schema_directives, guest_config)
                 .await??;
 
-            let instance = since_0_8_0::instance::ExtensionInstance {
+            let instance = ExtensionInstanceSince080 {
                 store,
                 inner,
                 poisoned: false,
@@ -93,7 +95,7 @@ pub(crate) async fn instantiate(
                 .call_init_gateway_extension(&mut store, schema_directives, guest_config)
                 .await??;
 
-            let instance = since_0_9_0::instance::ExtensionInstance {
+            let instance = ExtensionInstanceSince090 {
                 store,
                 inner,
                 poisoned: false,

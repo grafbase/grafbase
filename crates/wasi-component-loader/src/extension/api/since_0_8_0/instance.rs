@@ -1,35 +1,40 @@
+use anyhow::anyhow;
 use futures::future::BoxFuture;
 use wasmtime::Store;
 
 use crate::{
-    extension::api::{
-        instance::InputList,
-        wit::{
-            authorization::{AuthorizationContext, AuthorizationDecisions},
-            directive::QueryElements,
-            resolver::{FieldDefinitionDirective, FieldOutput},
-            token::Token,
+    Error, ErrorResponse,
+    extension::{
+        api::{
+            instance::InputList,
+            wit::{
+                authorization::{AuthorizationContext, AuthorizationDecisions},
+                directive::{QueryElements, ResponseElements},
+                resolver::{FieldDefinitionDirective, FieldOutput},
+                token::Token,
+            },
         },
+        instance::ExtensionInstance,
     },
     state::WasiState,
 };
 
 use crate::extension::api::since_0_8_0::wit::grafbase::sdk::types;
 
-pub struct ExtensionInstance {
+pub struct ExtensionInstanceSince080 {
     pub(crate) store: Store<WasiState>,
     pub(crate) inner: super::wit::Sdk,
     pub(crate) poisoned: bool,
 }
 
-impl crate::extension::instance::ExtensionInstance for ExtensionInstance {
+impl ExtensionInstance for ExtensionInstanceSince080 {
     fn resolve_field<'a>(
         &'a mut self,
         headers: http::HeaderMap,
         subgraph_name: &'a str,
         directive: FieldDefinitionDirective<'a>,
         inputs: InputList,
-    ) -> BoxFuture<'a, crate::Result<FieldOutput>> {
+    ) -> BoxFuture<'a, Result<FieldOutput, Error>> {
         Box::pin(async move {
             self.poisoned = true;
 
@@ -53,7 +58,7 @@ impl crate::extension::instance::ExtensionInstance for ExtensionInstance {
         headers: http::HeaderMap,
         subgraph_name: &'a str,
         directive: FieldDefinitionDirective<'a>,
-    ) -> BoxFuture<'a, Result<(http::HeaderMap, Option<Vec<u8>>), crate::Error>> {
+    ) -> BoxFuture<'a, Result<(http::HeaderMap, Option<Vec<u8>>), Error>> {
         Box::pin(async move {
             self.poisoned = true;
 
@@ -85,7 +90,7 @@ impl crate::extension::instance::ExtensionInstance for ExtensionInstance {
         headers: http::HeaderMap,
         subgraph_name: &'a str,
         directive: FieldDefinitionDirective<'a>,
-    ) -> BoxFuture<'a, Result<(), crate::Error>> {
+    ) -> BoxFuture<'a, Result<(), Error>> {
         Box::pin(async move {
             self.poisoned = true;
 
@@ -102,7 +107,7 @@ impl crate::extension::instance::ExtensionInstance for ExtensionInstance {
         })
     }
 
-    fn resolve_next_subscription_item(&mut self) -> BoxFuture<'_, Result<Option<FieldOutput>, crate::Error>> {
+    fn resolve_next_subscription_item(&mut self) -> BoxFuture<'_, Result<Option<FieldOutput>, Error>> {
         Box::pin(async move {
             self.poisoned = true;
 
@@ -121,7 +126,7 @@ impl crate::extension::instance::ExtensionInstance for ExtensionInstance {
     fn authenticate(
         &mut self,
         headers: http::HeaderMap,
-    ) -> BoxFuture<'_, crate::GatewayResult<(http::HeaderMap, Token)>> {
+    ) -> BoxFuture<'_, Result<(http::HeaderMap, Token), ErrorResponse>> {
         Box::pin(async move {
             self.poisoned = true;
 
@@ -152,7 +157,7 @@ impl crate::extension::instance::ExtensionInstance for ExtensionInstance {
         &'a mut self,
         _: AuthorizationContext,
         elements: QueryElements<'a>,
-    ) -> BoxFuture<'a, Result<AuthorizationDecisions, crate::ErrorResponse>> {
+    ) -> BoxFuture<'a, Result<(AuthorizationDecisions, Vec<u8>), ErrorResponse>> {
         Box::pin(async move {
             // Futures may be canceled, so we pro-actively mark the instance as poisoned until proven
             // otherwise.
@@ -166,8 +171,19 @@ impl crate::extension::instance::ExtensionInstance for ExtensionInstance {
 
             self.poisoned = false;
 
-            result.map(Into::into).map_err(Into::into)
+            result
+                .map(|decisions| (decisions.into(), Vec::new()))
+                .map_err(Into::into)
         })
+    }
+
+    fn authorize_response<'a>(
+        &'a mut self,
+        _ctx: AuthorizationContext,
+        _state: &'a [u8],
+        _elements: ResponseElements<'a>,
+    ) -> BoxFuture<'a, Result<AuthorizationDecisions, Error>> {
+        Box::pin(async move { Err(anyhow!("authorize_response is not supported by sdk 0.8.*").into()) })
     }
 
     fn recycle(&mut self) -> crate::Result<()> {

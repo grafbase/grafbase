@@ -3,32 +3,42 @@ mod deny_some;
 mod error_propagation;
 mod error_response;
 mod grant_all;
+mod injection;
+mod query;
 mod requires_scopes;
-mod types;
+mod response;
 
 use std::sync::Arc;
 
 use extension_catalog::Id;
 use integration_tests::federation::{TestExtension, TestExtensionBuilder, TestExtensionConfig};
 
-struct SimpleAuthExt<T> {
+struct AuthorizationExt<T> {
     instance: Arc<dyn TestExtension>,
+    sdl: Option<&'static str>,
     phantom: std::marker::PhantomData<T>,
 }
 
-impl<T: TestExtension> SimpleAuthExt<T> {
+impl<T: TestExtension> AuthorizationExt<T> {
     pub fn new(instance: T) -> Self {
         Self {
             instance: Arc::new(instance),
+            sdl: None,
             phantom: std::marker::PhantomData,
         }
     }
+
+    #[allow(unused)]
+    pub fn with_sdl(mut self, sdl: &'static str) -> Self {
+        self.sdl = Some(sdl);
+        self
+    }
 }
 
-impl<T: TestExtension> TestExtensionBuilder for SimpleAuthExt<T> {
+impl<T: TestExtension> TestExtensionBuilder for AuthorizationExt<T> {
     fn id(&self) -> Id {
         Id {
-            name: "simple-auth".to_string(),
+            name: "authorization".to_string(),
             version: "1.0.0".parse().unwrap(),
         }
     }
@@ -38,13 +48,15 @@ impl<T: TestExtension> TestExtensionBuilder for SimpleAuthExt<T> {
             kind: extension_catalog::Kind::Authorization(extension_catalog::AuthorizationKind {
                 authorization_directives: None,
             }),
-            sdl: Some(
+            sdl: self.sdl.or(Some(
                 r#"
+                extend schema @link(url: "https://specs.grafbase.com/grafbase", import: ["FieldSet", "InputValueSet"])
+
                 scalar JSON
 
-                directive @auth(input: JSON) on FIELD_DEFINITION | OBJECT | INTERFACE | SCALAR | ENUM
+                directive @auth(input: JSON, fields: FieldSet, args: InputValueSet) on FIELD_DEFINITION | OBJECT | INTERFACE | SCALAR | ENUM
                 "#,
-            ),
+            )),
         }
     }
 

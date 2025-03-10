@@ -1,5 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
+use extension_catalog::ExtensionId;
 use grafbase_telemetry::otel::opentelemetry::trace::TraceId;
 use wasmtime::{
     StoreContextMut,
@@ -17,11 +18,14 @@ use crate::{
 /// The internal per-request context storage. Accessible from all hooks throughout a single request
 pub type ContextMap = HashMap<String, String>;
 
+type AuthorizationState = Arc<tokio::sync::RwLock<Vec<(ExtensionId, Vec<u8>)>>>;
+
 /// The internal per-request context storage, read-only.
 #[derive(Clone)]
 pub struct SharedContext {
     /// Key-value storage.
     pub(crate) kv: Arc<HashMap<String, String>>,
+    pub(crate) authorization_state: AuthorizationState,
     /// A log channel for access logs.
     pub(crate) trace_id: TraceId,
 }
@@ -31,6 +35,7 @@ impl Default for SharedContext {
     fn default() -> Self {
         Self {
             kv: Arc::new(HashMap::new()),
+            authorization_state: Default::default(),
             trace_id: TraceId::INVALID,
         }
     }
@@ -39,7 +44,11 @@ impl Default for SharedContext {
 impl SharedContext {
     /// Creates a new shared context.
     pub fn new(kv: Arc<HashMap<String, String>>, trace_id: TraceId) -> Self {
-        Self { kv, trace_id }
+        Self {
+            kv,
+            authorization_state: Default::default(),
+            trace_id,
+        }
     }
 }
 
