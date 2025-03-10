@@ -19,7 +19,7 @@ grafbase-sdk = { path = "../../crates/grafbase-sdk" }
 
 [dev-dependencies]
 grafbase-sdk = { path = "../../crates/grafbase-sdk", features = ["test-utils"] }
-insta = { version = "1.42.1", features = ["json"] }
+insta = { version = "1.42.2", features = ["json"] }
 openidconnect = "4.0.0"
 ory-client = "=1.9.0"
 reqwest = "0.12.12"
