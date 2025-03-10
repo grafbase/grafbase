@@ -228,14 +228,8 @@ impl<'a> Solver<'a> {
         let typename_fields_start = self.output.query_plan.typename_fields.len();
 
         fields_buffer.sort_unstable_by_key(|field| match field {
-            NestedField::Data { record, .. } => (
-                &self.output.query_plan[record.type_condition_ids],
-                record.query_position,
-            ),
-            NestedField::Typename { record, .. } => (
-                &self.output.query_plan[record.type_condition_ids],
-                record.query_position,
-            ),
+            NestedField::Data { record, .. } => (&self.output.query_plan[record.type_condition_ids], record.key()),
+            NestedField::Typename { record, .. } => (&self.output.query_plan[record.type_condition_ids], record.key()),
         });
 
         for field in fields_buffer.drain(..) {
@@ -245,7 +239,7 @@ impl<'a> Solver<'a> {
                     self.node_to_field[node_ix.index()] = Some(PartitionFieldId::Data(field_id));
                     for nested in &mut self.output.query_plan[record
                         .selection_set_record
-                        .data_field_ids_ordered_by_type_conditions_then_position]
+                        .data_field_ids_ordered_by_type_conditions_then_key]
                     {
                         nested.parent_field_id = Some(field_id);
                     }
@@ -262,10 +256,10 @@ impl<'a> Solver<'a> {
         self.nested_fields_buffer_pool.push(fields_buffer);
 
         let selection_set = PartitionSelectionSetRecord {
-            data_field_ids_ordered_by_type_conditions_then_position: IdRange::from(
+            data_field_ids_ordered_by_type_conditions_then_key: IdRange::from(
                 data_fields_start..self.output.query_plan.data_fields.len(),
             ),
-            typename_field_ids_ordered_by_type_conditions_then_position: IdRange::from(
+            typename_field_ids_ordered_by_type_conditions_then_key: IdRange::from(
                 typename_fields_start..self.output.query_plan.typename_fields.len(),
             ),
         };
@@ -376,8 +370,8 @@ fn to_data_field_or_typename_field(
             argument_ids: field.argument_ids,
             // All set later
             selection_set_record: PartitionSelectionSetRecord {
-                data_field_ids_ordered_by_type_conditions_then_position: IdRange::empty(),
-                typename_field_ids_ordered_by_type_conditions_then_position: IdRange::empty(),
+                data_field_ids_ordered_by_type_conditions_then_key: IdRange::empty(),
+                typename_field_ids_ordered_by_type_conditions_then_key: IdRange::empty(),
             },
             required_fields_record: RequiredFieldSetRecord::default(),
             required_fields_record_by_supergraph: Default::default(),
