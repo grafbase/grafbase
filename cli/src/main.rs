@@ -5,6 +5,7 @@ mod branch;
 mod check;
 mod cli_input;
 mod common;
+mod compose;
 mod create;
 mod dev;
 mod errors;
@@ -115,6 +116,7 @@ fn try_main(args: Args) -> Result<(), CliError> {
         }
         SubCommand::Logout => logout(),
         SubCommand::Create(cmd) => create(&cmd.create_arguments()),
+        SubCommand::Compose(cmd) => Ok(compose::compose(cmd)?),
         SubCommand::Subgraphs(cmd) => subgraphs::subgraphs(cmd),
         SubCommand::Schema(cmd) => schema::schema(cmd),
         SubCommand::Publish(cmd) => publish::publish(cmd),

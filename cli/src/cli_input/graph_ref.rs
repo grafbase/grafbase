@@ -3,7 +3,7 @@ use std::{borrow::Cow, fmt, str};
 use graph_ref::GraphRef;
 /// Parsed graph reference. A graph reference is a string of the form `account/graph@branch`.
 #[derive(Clone, Debug)]
-pub struct FullGraphRef {
+pub(crate) struct FullGraphRef {
     account: String,
     graph: String,
     branch: Option<String>,
