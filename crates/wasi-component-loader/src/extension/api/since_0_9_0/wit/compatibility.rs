@@ -1,4 +1,4 @@
-use runtime::error::PartialErrorCode;
+use engine::ErrorCode;
 
 use crate::extension::api::since_0_8_0::wit::grafbase::sdk::types;
 
@@ -207,16 +207,16 @@ impl From<types::AuthorizationDecisions> for runtime::extension::AuthorizationDe
     fn from(decisions: types::AuthorizationDecisions) -> Self {
         match decisions {
             types::AuthorizationDecisions::GrantAll => runtime::extension::AuthorizationDecisions::GrantAll,
-            types::AuthorizationDecisions::DenyAll(error) => runtime::extension::AuthorizationDecisions::DenyAll(
-                error.into_graphql_error(PartialErrorCode::Unauthorized),
-            ),
+            types::AuthorizationDecisions::DenyAll(error) => {
+                runtime::extension::AuthorizationDecisions::DenyAll(error.into_graphql_error(ErrorCode::Unauthorized))
+            }
             types::AuthorizationDecisions::SparseDeny(types::SparseDenyAuthorizationDecisions {
                 element_to_error,
                 errors,
             }) => {
                 let errors = errors
                     .into_iter()
-                    .map(|err| err.into_graphql_error(PartialErrorCode::Unauthorized))
+                    .map(|err| err.into_graphql_error(ErrorCode::Unauthorized))
                     .collect();
 
                 runtime::extension::AuthorizationDecisions::DenySome {

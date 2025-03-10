@@ -4,6 +4,7 @@ mod responses;
 
 use std::{collections::HashMap, sync::Arc, time::SystemTime};
 
+use engine::{ErrorCode, ErrorResponse, GraphqlError};
 use enumflags2::BitFlags;
 use futures_util::Future;
 use grafbase_telemetry::otel::{
@@ -15,10 +16,7 @@ use grafbase_telemetry::otel::{
     tracing_opentelemetry::OpenTelemetrySpanExt,
 };
 use pool::Pool;
-use runtime::{
-    error::{ErrorResponse, PartialErrorCode, PartialGraphqlError},
-    hooks::{AuthorizedHooks, HeaderMap, Hooks, SubgraphRequest},
-};
+use runtime::hooks::{AuthorizedHooks, HeaderMap, Hooks, SubgraphRequest};
 use tracing::{Instrument, Span, info_span};
 use wasi_component_loader::HookImplementation;
 pub use wasi_component_loader::{
@@ -208,7 +206,7 @@ impl Hooks for HooksWasi {
 
                         let response = ErrorResponse {
                             status: http::StatusCode::INTERNAL_SERVER_ERROR,
-                            errors: vec![PartialGraphqlError::internal_hook_error()],
+                            errors: vec![GraphqlError::internal_hook_error()],
                         };
 
                         (context, response)
@@ -220,7 +218,7 @@ impl Hooks for HooksWasi {
                         let errors = error
                             .errors
                             .into_iter()
-                            .map(|error| guest_error_as_gql(error, PartialErrorCode::BadRequest))
+                            .map(|error| guest_error_as_gql(error, ErrorCode::BadRequest))
                             .collect();
 
                         let response = ErrorResponse { status, errors };
@@ -236,7 +234,7 @@ impl Hooks for HooksWasi {
         context: &Self::Context,
         subgraph_name: &str,
         request: SubgraphRequest,
-    ) -> Result<SubgraphRequest, PartialGraphqlError> {
+    ) -> Result<SubgraphRequest, GraphqlError> {
         let Some(ref inner) = self.0 else {
             return Ok(request);
         };
@@ -258,9 +256,9 @@ impl Hooks for HooksWasi {
             .map_err(|err| match err {
                 wasi_component_loader::Error::Internal(err) => {
                     tracing::error!("on_gateway_request error: {err}");
-                    PartialGraphqlError::internal_hook_error()
+                    GraphqlError::internal_hook_error()
                 }
-                wasi_component_loader::Error::Guest(err) => guest_error_as_gql(err, PartialErrorCode::HookError),
+                wasi_component_loader::Error::Guest(err) => guest_error_as_gql(err, ErrorCode::HookError),
             })
     }
 
@@ -272,7 +270,7 @@ impl Hooks for HooksWasi {
         &self,
         context: &Self::Context,
         request: runtime::hooks::ExecutedSubgraphRequest<'_>,
-    ) -> impl Future<Output = Result<Self::OnSubgraphResponseOutput, PartialGraphqlError>> + Send {
+    ) -> impl Future<Output = Result<Self::OnSubgraphResponseOutput, GraphqlError>> + Send {
         HooksWasi::on_subgraph_response(self, context, request)
     }
 
@@ -280,7 +278,7 @@ impl Hooks for HooksWasi {
         &self,
         context: &Self::Context,
         operation: runtime::hooks::ExecutedOperation<'_, Self::OnSubgraphResponseOutput>,
-    ) -> impl Future<Output = Result<Self::OnOperationResponseOutput, PartialGraphqlError>> + Send {
+    ) -> impl Future<Output = Result<Self::OnOperationResponseOutput, GraphqlError>> + Send {
         HooksWasi::on_operation_response(self, context, operation)
     }
 
@@ -288,7 +286,7 @@ impl Hooks for HooksWasi {
         &self,
         context: &Self::Context,
         request: runtime::hooks::ExecutedHttpRequest<Self::OnOperationResponseOutput>,
-    ) -> impl Future<Output = Result<(), PartialGraphqlError>> + Send {
+    ) -> impl Future<Output = Result<(), GraphqlError>> + Send {
         HooksWasi::on_http_response(self, context, request)
     }
 }

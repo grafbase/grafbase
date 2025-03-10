@@ -1,15 +1,12 @@
 use std::sync::Arc;
 
-use engine::Engine;
+use engine::{Engine, ErrorResponse, GraphqlError};
 use graphql_mocks::dynamic::DynamicSchema;
 use integration_tests::{
     federation::{EngineExt, TestExtension},
     runtime,
 };
-use runtime::{
-    error::{ErrorResponse, PartialGraphqlError},
-    extension::{AuthorizationDecisions, QueryElement},
-};
+use runtime::extension::{AuthorizationDecisions, QueryElement};
 
 use crate::federation::extensions::authorization::SimpleAuthExt;
 
@@ -26,10 +23,7 @@ impl TestExtension for Failure {
     ) -> Result<AuthorizationDecisions, ErrorResponse> {
         Err(ErrorResponse {
             status: http::StatusCode::UNAUTHORIZED,
-            errors: vec![PartialGraphqlError::new(
-                "Not authorized",
-                runtime::error::PartialErrorCode::Unauthorized,
-            )],
+            errors: vec![GraphqlError::unauthorized()],
         })
     }
 }

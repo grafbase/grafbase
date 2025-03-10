@@ -2,10 +2,7 @@ use std::sync::Arc;
 
 use futures::future::BoxFuture;
 use futures_lite::FutureExt;
-use runtime::{
-    error::PartialGraphqlError,
-    extension::{Data, ExtensionFieldDirective, ExtensionRuntime},
-};
+use runtime::extension::{Data, ExtensionFieldDirective, ExtensionRuntime};
 use walker::Walk;
 
 use crate::{
@@ -67,7 +64,7 @@ pub(in crate::resolver) struct FieldResolverExtensionRequest<'ctx> {
     pub(super) field: SubgraphField<'ctx>,
     pub(super) subgraph_response: SubgraphResponse,
     pub(super) input_object_refs: Arc<InputResponseObjectSet>,
-    pub(super) future: BoxFuture<'ctx, Result<Vec<Result<Data, PartialGraphqlError>>, PartialGraphqlError>>,
+    pub(super) future: BoxFuture<'ctx, Result<Vec<Result<Data, GraphqlError>>, GraphqlError>>,
 }
 
 impl<'ctx> FieldResolverExtensionRequest<'ctx> {
@@ -82,7 +79,7 @@ impl<'ctx> FieldResolverExtensionRequest<'ctx> {
         let result = match future.await {
             Ok(result) => result,
             Err(err) => {
-                subgraph_response.set_subgraph_errors(vec![GraphqlError::from(err).with_location(field.location())]);
+                subgraph_response.set_subgraph_errors(vec![err.with_location(field.location())]);
                 return Ok(subgraph_response);
             }
         };
@@ -94,8 +91,7 @@ impl<'ctx> FieldResolverExtensionRequest<'ctx> {
                 Ok(data) => data,
                 Err(err) => {
                     response.borrow_mut().insert_errors(
-                        GraphqlError::from(err)
-                            .with_location(field.location())
+                        err.with_location(field.location())
                             .with_path(&input_object_refs[id].path),
                         [id],
                     );

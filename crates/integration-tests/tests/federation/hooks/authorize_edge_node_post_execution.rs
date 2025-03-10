@@ -1,14 +1,11 @@
 use std::sync::{Arc, atomic::AtomicBool};
 
 use super::with_engine_for_auth;
-use engine::Engine;
+use engine::{Engine, ErrorCode, ErrorResponse, GraphqlError};
 use graphql_mocks::dynamic::{DynamicSchema, EntityResolverContext};
 use http::HeaderMap;
 use integration_tests::{federation::EngineExt, runtime};
-use runtime::{
-    error::{ErrorResponse, PartialErrorCode, PartialGraphqlError},
-    hooks::{DynHookContext, DynHooks, EdgeDefinition},
-};
+use runtime::hooks::{DynHookContext, DynHooks, EdgeDefinition};
 
 #[test]
 fn single_decision_applies_to_all() {
@@ -25,14 +22,11 @@ fn single_decision_applies_to_all() {
             _definition: EdgeDefinition<'_>,
             _nodes: Vec<serde_json::Value>,
             _metadata: Option<serde_json::Value>,
-        ) -> Result<Vec<Result<(), PartialGraphqlError>>, PartialGraphqlError> {
+        ) -> Result<Vec<Result<(), GraphqlError>>, GraphqlError> {
             if self.is_authorized.as_ref().load(std::sync::atomic::Ordering::Relaxed) {
                 Ok(vec![Ok(())])
             } else {
-                Ok(vec![Err(PartialGraphqlError::new(
-                    "Unauthorized",
-                    PartialErrorCode::Unauthorized,
-                ))])
+                Ok(vec![Err(GraphqlError::new("Unauthorized", ErrorCode::Unauthorized))])
             }
         }
     }
@@ -146,17 +140,14 @@ fn continue_execution() {
             _definition: EdgeDefinition<'_>,
             nodes: Vec<serde_json::Value>,
             _metadata: Option<serde_json::Value>,
-        ) -> Result<Vec<Result<(), PartialGraphqlError>>, PartialGraphqlError> {
+        ) -> Result<Vec<Result<(), GraphqlError>>, GraphqlError> {
             Ok(nodes
                 .into_iter()
                 .map(|value| {
                     if value["id"] == "1" {
                         Ok(())
                     } else {
-                        Err(PartialGraphqlError::new(
-                            "Unauthorized id",
-                            PartialErrorCode::Unauthorized,
-                        ))
+                        Err(GraphqlError::new("Unauthorized id", ErrorCode::Unauthorized))
                     }
                 })
                 .collect())
@@ -245,17 +236,14 @@ fn nodes_are_provided() {
             _definition: EdgeDefinition<'_>,
             nodes: Vec<serde_json::Value>,
             _metadata: Option<serde_json::Value>,
-        ) -> Result<Vec<Result<(), PartialGraphqlError>>, PartialGraphqlError> {
+        ) -> Result<Vec<Result<(), GraphqlError>>, GraphqlError> {
             Ok(nodes
                 .into_iter()
                 .map(|value| {
                     if value["id"] == "1" {
                         Ok(())
                     } else {
-                        Err(PartialGraphqlError::new(
-                            "Unauthorized id",
-                            PartialErrorCode::Unauthorized,
-                        ))
+                        Err(GraphqlError::new("Unauthorized id", ErrorCode::Unauthorized))
                     }
                 })
                 .collect())
@@ -335,12 +323,9 @@ fn metadata_is_provided() {
             _definition: EdgeDefinition<'_>,
             nodes: Vec<serde_json::Value>,
             metadata: Option<serde_json::Value>,
-        ) -> Result<Vec<Result<(), PartialGraphqlError>>, PartialGraphqlError> {
+        ) -> Result<Vec<Result<(), GraphqlError>>, GraphqlError> {
             let Some(role) = extract_role(metadata.as_ref()) else {
-                return Err(PartialGraphqlError::new(
-                    "Unauthorized role",
-                    PartialErrorCode::Unauthorized,
-                ));
+                return Err(GraphqlError::new("Unauthorized role", ErrorCode::Unauthorized));
             };
             Ok(nodes
                 .into_iter()
@@ -348,10 +333,7 @@ fn metadata_is_provided() {
                     if value["id"].as_str().unwrap().starts_with(role) {
                         Ok(())
                     } else {
-                        Err(PartialGraphqlError::new(
-                            "Unauthorized role",
-                            PartialErrorCode::Unauthorized,
-                        ))
+                        Err(GraphqlError::new("Unauthorized role", ErrorCode::Unauthorized))
                     }
                 })
                 .collect())
@@ -436,14 +418,11 @@ fn definition_is_provided() {
             definition: EdgeDefinition<'_>,
             nodes: Vec<serde_json::Value>,
             _metadata: Option<serde_json::Value>,
-        ) -> Result<Vec<Result<(), PartialGraphqlError>>, PartialGraphqlError> {
+        ) -> Result<Vec<Result<(), GraphqlError>>, GraphqlError> {
             if definition.parent_type_name == "AuthorizedEdgeWithNode" && definition.field_name == "withId" {
                 Ok(vec![Ok(()); nodes.len()])
             } else {
-                Err(PartialGraphqlError::new(
-                    "Wrong definition",
-                    PartialErrorCode::Unauthorized,
-                ))
+                Err(GraphqlError::new("Wrong definition", ErrorCode::Unauthorized))
             }
         }
     }
@@ -525,14 +504,11 @@ fn context_is_propagated() {
             _definition: EdgeDefinition<'_>,
             nodes: Vec<serde_json::Value>,
             _metadata: Option<serde_json::Value>,
-        ) -> Result<Vec<Result<(), PartialGraphqlError>>, PartialGraphqlError> {
+        ) -> Result<Vec<Result<(), GraphqlError>>, GraphqlError> {
             if context.get("client").is_some() {
                 Ok(vec![Ok(()); nodes.len()])
             } else {
-                Err(PartialGraphqlError::new(
-                    "Missing client",
-                    PartialErrorCode::Unauthorized,
-                ))
+                Err(GraphqlError::new("Missing client", ErrorCode::Unauthorized))
             }
         }
     }
@@ -592,8 +568,8 @@ fn error_propagation() {
             _definition: EdgeDefinition<'_>,
             _nodes: Vec<serde_json::Value>,
             _metadata: Option<serde_json::Value>,
-        ) -> Result<Vec<Result<(), PartialGraphqlError>>, PartialGraphqlError> {
-            Err(PartialGraphqlError::new("Broken", PartialErrorCode::HookError))
+        ) -> Result<Vec<Result<(), GraphqlError>>, GraphqlError> {
+            Err(GraphqlError::new("Broken", ErrorCode::HookError))
         }
     }
 
@@ -678,14 +654,14 @@ fn lists() {
             _definition: EdgeDefinition<'_>,
             nodes: Vec<serde_json::Value>,
             _metadata: Option<serde_json::Value>,
-        ) -> Result<Vec<Result<(), PartialGraphqlError>>, PartialGraphqlError> {
+        ) -> Result<Vec<Result<(), GraphqlError>>, GraphqlError> {
             Ok(nodes
                 .into_iter()
                 .map(|value| {
                     if value["id"].as_str().unwrap().len() <= 1 {
                         Ok(())
                     } else {
-                        Err(PartialGraphqlError::new("Id too long!", PartialErrorCode::Unauthorized))
+                        Err(GraphqlError::new("Id too long!", ErrorCode::Unauthorized))
                     }
                 })
                 .collect())

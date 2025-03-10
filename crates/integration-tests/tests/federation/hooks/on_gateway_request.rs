@@ -1,11 +1,9 @@
 use engine::Engine;
+use engine::{ErrorCode, ErrorResponse, GraphqlError};
 use graphql_mocks::{EchoSchema, FakeGithubSchema};
 use http::HeaderMap;
 use integration_tests::{federation::EngineExt, runtime};
-use runtime::{
-    error::{ErrorResponse, PartialErrorCode, PartialGraphqlError},
-    hooks::{DynHookContext, DynHooks},
-};
+use runtime::hooks::{DynHookContext, DynHooks};
 
 #[test]
 fn can_modify_headers() {
@@ -83,8 +81,7 @@ fn error_is_propagated_back_to_the_user() {
             _url: &str,
             _headers: HeaderMap,
         ) -> Result<HeaderMap, ErrorResponse> {
-            let error =
-                PartialGraphqlError::new("impossible error", PartialErrorCode::BadRequest).with_extension("foo", "bar");
+            let error = GraphqlError::new("impossible error", ErrorCode::BadRequest).with_extension("foo", "bar");
 
             Err(ErrorResponse {
                 status: http::StatusCode::BAD_REQUEST,
@@ -130,8 +127,8 @@ fn error_code_is_propagated_back_to_the_user() {
             _url: &str,
             _headers: HeaderMap,
         ) -> Result<HeaderMap, ErrorResponse> {
-            let error = PartialGraphqlError::new("impossible error", PartialErrorCode::BadRequest)
-                .with_extension("code", "IMPOSSIBLE");
+            let error =
+                GraphqlError::new("impossible error", ErrorCode::BadRequest).with_extension("code", "IMPOSSIBLE");
 
             Err(ErrorResponse {
                 status: http::StatusCode::BAD_REQUEST,

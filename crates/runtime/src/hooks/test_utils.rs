@@ -32,9 +32,9 @@ pub trait DynHooks: Send + Sync + 'static {
         arguments: serde_json::Value,
         metadata: Option<serde_json::Value>,
     ) -> AuthorizationVerdict {
-        Err(PartialGraphqlError::new(
+        Err(GraphqlError::new(
             "authorize_edge_pre_execution is not implemented",
-            PartialErrorCode::Unauthorized,
+            ErrorCode::Unauthorized,
         ))
     }
 
@@ -44,9 +44,9 @@ pub trait DynHooks: Send + Sync + 'static {
         definition: NodeDefinition<'_>,
         metadata: Option<serde_json::Value>,
     ) -> AuthorizationVerdict {
-        Err(PartialGraphqlError::new(
+        Err(GraphqlError::new(
             "authorize_node_pre_execution is not implemented",
-            PartialErrorCode::Unauthorized,
+            ErrorCode::Unauthorized,
         ))
     }
 
@@ -57,9 +57,9 @@ pub trait DynHooks: Send + Sync + 'static {
         nodes: Vec<serde_json::Value>,
         metadata: Option<serde_json::Value>,
     ) -> AuthorizationVerdicts {
-        Err(PartialGraphqlError::new(
+        Err(GraphqlError::new(
             "authorize_node_post_execution is not implemented",
-            PartialErrorCode::Unauthorized,
+            ErrorCode::Unauthorized,
         ))
     }
 
@@ -70,9 +70,9 @@ pub trait DynHooks: Send + Sync + 'static {
         parents: Vec<serde_json::Value>,
         metadata: Option<serde_json::Value>,
     ) -> AuthorizationVerdicts {
-        Err(PartialGraphqlError::new(
+        Err(GraphqlError::new(
             "authorize_parent_edge_post_execution is not implemented",
-            PartialErrorCode::Unauthorized,
+            ErrorCode::Unauthorized,
         ))
     }
 
@@ -83,9 +83,9 @@ pub trait DynHooks: Send + Sync + 'static {
         nodes: Vec<serde_json::Value>,
         metadata: Option<serde_json::Value>,
     ) -> AuthorizationVerdicts {
-        Err(PartialGraphqlError::new(
+        Err(GraphqlError::new(
             "authorize_edge_node_post_execution is not implemented",
-            PartialErrorCode::Unauthorized,
+            ErrorCode::Unauthorized,
         ))
     }
 
@@ -96,9 +96,9 @@ pub trait DynHooks: Send + Sync + 'static {
         edges: Vec<(serde_json::Value, Vec<serde_json::Value>)>,
         metadata: Option<serde_json::Value>,
     ) -> AuthorizationVerdicts {
-        Err(PartialGraphqlError::new(
+        Err(GraphqlError::new(
             "authorize_edge_post_execution is not implemented",
-            PartialErrorCode::Unauthorized,
+            ErrorCode::Unauthorized,
         ))
     }
 
@@ -107,7 +107,7 @@ pub trait DynHooks: Send + Sync + 'static {
         context: &DynHookContext,
         subgraph_name: &str,
         request: SubgraphRequest,
-    ) -> Result<SubgraphRequest, PartialGraphqlError> {
+    ) -> Result<SubgraphRequest, GraphqlError> {
         Ok(request)
     }
 
@@ -115,7 +115,7 @@ pub trait DynHooks: Send + Sync + 'static {
         &self,
         context: &DynHookContext,
         request: ExecutedSubgraphRequest<'_>,
-    ) -> Result<Vec<u8>, PartialGraphqlError> {
+    ) -> Result<Vec<u8>, GraphqlError> {
         Ok(Vec::new())
     }
 
@@ -123,7 +123,7 @@ pub trait DynHooks: Send + Sync + 'static {
         &self,
         context: &DynHookContext,
         request: ExecutedOperation<'_, Vec<u8>>,
-    ) -> Result<Vec<u8>, PartialGraphqlError> {
+    ) -> Result<Vec<u8>, GraphqlError> {
         Ok(Vec::new())
     }
 
@@ -131,7 +131,7 @@ pub trait DynHooks: Send + Sync + 'static {
         &self,
         context: &DynHookContext,
         request: ExecutedHttpRequest<Vec<u8>>,
-    ) -> Result<(), PartialGraphqlError> {
+    ) -> Result<(), GraphqlError> {
         Ok(())
     }
 }
@@ -219,7 +219,7 @@ impl Hooks for DynamicHooks {
         context: &DynHookContext,
         subgraph_name: &str,
         request: SubgraphRequest,
-    ) -> Result<SubgraphRequest, PartialGraphqlError> {
+    ) -> Result<SubgraphRequest, GraphqlError> {
         self.0.on_subgraph_request(context, subgraph_name, request).await
     }
 
@@ -227,7 +227,7 @@ impl Hooks for DynamicHooks {
         &self,
         context: &DynHookContext,
         request: ExecutedSubgraphRequest<'_>,
-    ) -> Result<Vec<u8>, PartialGraphqlError> {
+    ) -> Result<Vec<u8>, GraphqlError> {
         self.0.on_subgraph_response(context, request).await
     }
 
@@ -235,7 +235,7 @@ impl Hooks for DynamicHooks {
         &self,
         context: &DynHookContext,
         operation: ExecutedOperation<'_, Self::OnSubgraphResponseOutput>,
-    ) -> Result<Vec<u8>, PartialGraphqlError> {
+    ) -> Result<Vec<u8>, GraphqlError> {
         self.0.on_gateway_response(context, operation).await
     }
 
@@ -243,7 +243,7 @@ impl Hooks for DynamicHooks {
         &self,
         context: &DynHookContext,
         request: ExecutedHttpRequest<Self::OnOperationResponseOutput>,
-    ) -> Result<(), PartialGraphqlError> {
+    ) -> Result<(), GraphqlError> {
         self.0.on_http_response(context, request).await
     }
 
@@ -507,7 +507,7 @@ impl<H: Hooks> DynHooks for DynWrapper<H> {
         context: &'b DynHookContext,
         subgraph_name: &'c str,
         request: SubgraphRequest,
-    ) -> BoxFuture<'fut, Result<SubgraphRequest, PartialGraphqlError>>
+    ) -> BoxFuture<'fut, Result<SubgraphRequest, GraphqlError>>
     where
         'a: 'fut,
         'b: 'fut,

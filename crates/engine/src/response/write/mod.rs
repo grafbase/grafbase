@@ -197,7 +197,7 @@ impl ResponseBuilder {
                     }
                 }
                 (ErrorPathSegment::UnknownField(name), ResponseValueId::Field { key, .. }) => {
-                    if name != &self.operation.operation.response_keys[*key] {
+                    if **name != self.operation.operation.response_keys[*key] {
                         return false;
                     }
                 }

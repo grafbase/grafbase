@@ -1,0 +1,25 @@
+[package]
+authors = ["Grafbase"]
+description = ""
+edition = "2024"
+homepage = "https://grafbase.com"
+keywords = ["graphql", "engine", "grafbase"]
+license = "MPL-2.0"
+name = "engine-error"
+repository = "https://github.com/grafbase/grafbase"
+publish = false
+
+[lib]
+doctest = false
+
+[lints]
+workspace = true
+
+[dependencies]
+grafbase-workspace-hack.workspace = true
+http.workspace = true
+operation = { path = "../operation", package = "engine-operation" }
+serde.workspace = true
+serde_json.workspace = true
+strum.workspace = true
+strum_macros.workspace = true

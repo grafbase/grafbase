@@ -1,15 +1,12 @@
 use std::sync::Arc;
 
-use engine::Engine;
+use engine::{Engine, ErrorResponse, GraphqlError};
 use graphql_mocks::dynamic::DynamicSchema;
 use integration_tests::{
     federation::{EngineExt, TestExtension},
     runtime,
 };
-use runtime::{
-    error::{ErrorResponse, PartialGraphqlError},
-    extension::{AuthorizationDecisions, QueryElement},
-};
+use runtime::extension::{AuthorizationDecisions, QueryElement};
 
 use crate::federation::extensions::authorization::SimpleAuthExt;
 
@@ -24,10 +21,7 @@ impl TestExtension for DenyAll {
         _ctx: Arc<engine::RequestContext>,
         _elements_grouped_by_directive_name: Vec<(&str, Vec<QueryElement<'_, serde_json::Value>>)>,
     ) -> Result<AuthorizationDecisions, ErrorResponse> {
-        Ok(AuthorizationDecisions::DenyAll(PartialGraphqlError::new(
-            "Not authorized",
-            runtime::error::PartialErrorCode::Unauthorized,
-        )))
+        Ok(AuthorizationDecisions::DenyAll(GraphqlError::unauthorized()))
     }
 }
 

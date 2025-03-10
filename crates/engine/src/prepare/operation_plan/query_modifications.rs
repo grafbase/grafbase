@@ -187,17 +187,17 @@ where
         match decisions {
             AuthorizationDecisions::GrantAll => (),
             AuthorizationDecisions::DenyAll(error) => {
-                let error_id = self.push_error(error.into());
+                let error_id = self.push_error(error);
                 for modifier in &modifiers[modifier_ids] {
                     self.deny_field(modifier, error_id);
                 }
             }
             AuthorizationDecisions::DenySome {
                 element_to_error,
-                errors,
+                mut errors,
             } => {
                 let offset = self.modifications.errors.len();
-                self.modifications.errors.extend(errors.into_iter().map(Into::into));
+                self.modifications.errors.append(&mut errors);
                 for (element_ix, error_ix) in element_to_error {
                     let modifier = &modifiers[modifier_ids.get(element_ix as usize).unwrap()];
                     self.deny_field(modifier, (offset + error_ix as usize).into());

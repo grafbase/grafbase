@@ -15,15 +15,20 @@ doctest = false
 workspace = true
 
 [dependencies]
+async-sse.workspace = true
 base64.workspace = true
 blake3.workspace = true
 bytes.workspace = true
 crossbeam-queue.workspace = true
+engine-auth = { path = "./auth" }
+error = { path = "./error", package = "engine-error" }
+extension-catalog.workspace = true
 fixedbitset.workspace = true
 futures.workspace = true
 futures-lite.workspace = true
 futures-util.workspace = true
 grafbase-telemetry.workspace = true
+grafbase-workspace-hack.workspace = true
 headers.workspace = true
 hex.workspace = true
 http.workspace = true
@@ -32,33 +37,26 @@ id-newtypes = { path = "./id-newtypes", package = "engine-id-newtypes" }
 im.workspace = true
 itertools.workspace = true
 mediatype.workspace = true
+mime.workspace = true
+minicbor-serde = { workspace = true, features = ["alloc"] }
+multipart-stream.workspace = true
+operation = { path = "./operation", package = "engine-operation" }
 percent-encoding.workspace = true
+query-solver = { path = "./query-solver", package = "engine-query-solver" }
 ramhorns.workspace = true
+rand.workspace = true
+runtime.workspace = true
+schema = { path = "./schema", package = "engine-schema" }
 serde = { workspace = true, features = ["rc"] }
 serde-value.workspace = true
 serde_json = { workspace = true, features = ["raw_value"] }
 serde_urlencoded.workspace = true
 sha2.workspace = true
 sonic-rs.workspace = true
-strum.workspace = true
-strum_macros.workspace = true
 thiserror.workspace = true
 tower = { workspace = true, features = ["retry"] }
 tracing.workspace = true
 url.workspace = true
-
-async-sse.workspace = true
-engine-auth = { path = "./auth" }
-extension-catalog.workspace = true
-grafbase-workspace-hack.workspace = true
-mime.workspace = true
-minicbor-serde = { workspace = true, features = ["alloc"] }
-multipart-stream.workspace = true
-operation = { path = "./operation", package = "engine-operation" }
-query-solver = { path = "./query-solver", package = "engine-query-solver" }
-rand.workspace = true
-runtime.workspace = true
-schema = { path = "./schema", package = "engine-schema" }
 walker = { path = "./walker", package = "engine-walker" }
 
 [dev-dependencies]

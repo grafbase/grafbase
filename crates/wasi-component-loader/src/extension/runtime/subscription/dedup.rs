@@ -1,10 +1,8 @@
 use std::sync::Arc;
 
+use engine::{ErrorCode, GraphqlError};
 use engine_schema::Subgraph;
-use runtime::{
-    error::{PartialErrorCode, PartialGraphqlError},
-    extension::Data,
-};
+use runtime::extension::Data;
 use tokio::sync::broadcast;
 use tokio_stream::{StreamExt, wrappers::BroadcastStream};
 
@@ -28,7 +26,7 @@ pub struct DeduplicatedSubscription<'ctx, 'wit> {
 }
 
 impl<'ctx> DeduplicatedSubscription<'ctx, '_> {
-    pub async fn resolve<'f>(self) -> Result<SubscriptionStream<'f>, PartialGraphqlError>
+    pub async fn resolve<'f>(self) -> Result<SubscriptionStream<'f>, GraphqlError>
     where
         'ctx: 'f,
     {
@@ -49,7 +47,7 @@ impl<'ctx> DeduplicatedSubscription<'ctx, '_> {
 
                 let stream = BroadcastStream::new(receiver).map(|result| match result {
                     Ok(data) => data,
-                    Err(_) => Err(PartialGraphqlError::stream_lag()),
+                    Err(_) => Err(stream_lag_error()),
                 });
 
                 return Ok(Box::pin(stream));
@@ -65,7 +63,7 @@ impl<'ctx> DeduplicatedSubscription<'ctx, '_> {
         instance
             .resolve_subscription(headers, subgraph.name(), directive)
             .await
-            .map_err(|err| err.into_graphql_error(PartialErrorCode::ExtensionError))?;
+            .map_err(|err| err.into_graphql_error(ErrorCode::ExtensionError))?;
 
         tokio::spawn(async move {
             let mut registerations_closed = false;
@@ -103,7 +101,7 @@ impl<'ctx> DeduplicatedSubscription<'ctx, '_> {
                 for item in item.outputs {
                     let data = match item {
                         Ok(item) => Ok(Arc::new(Data::CborBytes(item))),
-                        Err(err) => Err(err.into_graphql_error(PartialErrorCode::InternalServerError)),
+                        Err(err) => Err(err.into_graphql_error(ErrorCode::InternalServerError)),
                     };
 
                     if sender.send(data).is_err() {
@@ -124,9 +122,16 @@ impl<'ctx> DeduplicatedSubscription<'ctx, '_> {
 
         let stream = BroadcastStream::new(receiver).map(|result| match result {
             Ok(data) => data,
-            Err(_) => Err(PartialGraphqlError::stream_lag()),
+            Err(_) => Err(stream_lag_error()),
         });
 
         Ok(Box::pin(stream))
     }
+}
+
+fn stream_lag_error() -> GraphqlError {
+    GraphqlError::new(
+        "The stream is lagging behind due to not being able to keep up with the data. Events are being dropped.",
+        ErrorCode::ExtensionError,
+    )
 }

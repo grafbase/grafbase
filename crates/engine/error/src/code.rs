@@ -1,4 +1,3 @@
-use runtime::error::PartialErrorCode;
 use strum::EnumCount;
 
 #[derive(
@@ -47,8 +46,14 @@ pub enum ErrorCode {
     GatewayTimeout,
 }
 
+impl From<ErrorCode> for http::StatusCode {
+    fn from(code: ErrorCode) -> http::StatusCode {
+        code.into_http_status_code_with_priority().0
+    }
+}
+
 impl ErrorCode {
-    pub(crate) fn into_http_status_code_with_priority(self) -> (http::StatusCode, usize) {
+    pub fn into_http_status_code_with_priority(self) -> (http::StatusCode, usize) {
         match self {
             ErrorCode::OperationParsingError
             | ErrorCode::OperationValidationError
@@ -73,24 +78,11 @@ impl ErrorCode {
     }
 }
 
-impl From<PartialErrorCode> for ErrorCode {
-    fn from(code: PartialErrorCode) -> Self {
-        match code {
-            PartialErrorCode::HookError => Self::HookError,
-            PartialErrorCode::Unauthorized => Self::Unauthorized,
-            PartialErrorCode::BadRequest => Self::BadRequest,
-            PartialErrorCode::InternalServerError => Self::InternalServerError,
-            PartialErrorCode::Unauthenticated => Self::Unauthenticated,
-            PartialErrorCode::ExtensionError => Self::ExtensionError,
-        }
-    }
-}
-
 #[derive(Debug, Default)]
-pub(crate) struct ErrorCodeCounter([u16; ErrorCode::COUNT]);
+pub struct ErrorCodeCounter([u16; ErrorCode::COUNT]);
 
 impl ErrorCodeCounter {
-    pub(crate) fn from_errors(errors: &[super::GraphqlError]) -> Self {
+    pub fn from_errors(errors: &[super::GraphqlError]) -> Self {
         let mut counter = Self::default();
         for error in errors {
             counter.increment(error.code);
@@ -98,17 +90,17 @@ impl ErrorCodeCounter {
         counter
     }
 
-    pub(crate) fn increment(&mut self, code: ErrorCode) {
+    pub fn increment(&mut self, code: ErrorCode) {
         self.0[code as usize] += 1;
     }
 
-    pub(crate) fn add(&mut self, other: &Self) {
+    pub fn add(&mut self, other: &Self) {
         for (index, count) in other.0.iter().enumerate() {
             self.0[index] += count;
         }
     }
 
-    pub(crate) fn iter(&self) -> impl Iterator<Item = (ErrorCode, u16)> + '_ {
+    pub fn iter(&self) -> impl Iterator<Item = (ErrorCode, u16)> + '_ {
         self.0.iter().copied().enumerate().filter_map(|(index, count)| {
             if count > 0 {
                 Some((ErrorCode::from_repr(index).unwrap(), count))
@@ -118,7 +110,7 @@ impl ErrorCodeCounter {
         })
     }
 
-    pub(crate) fn to_vec(&self) -> Vec<(ErrorCode, u16)> {
+    pub fn to_vec(&self) -> Vec<(ErrorCode, u16)> {
         self.iter().collect()
     }
 }

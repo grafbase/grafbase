@@ -1,4 +1,4 @@
-use runtime::error::ErrorResponse;
+use error::ErrorResponse;
 
 use crate::response::GraphqlError;
 

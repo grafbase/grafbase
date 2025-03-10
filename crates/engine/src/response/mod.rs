@@ -9,7 +9,7 @@ mod write;
 use std::sync::Arc;
 
 pub(crate) use data::*;
-pub(crate) use error::*;
+pub(crate) use error::{ErrorCode, ErrorCodeCounter, ErrorPath, ErrorPathSegment, GraphqlError};
 use extensions::ResponseExtensions;
 pub(crate) use extensions::*;
 use grafbase_telemetry::graphql::{GraphqlExecutionTelemetry, GraphqlOperationAttributes, GraphqlResponseStatus};
@@ -21,8 +21,6 @@ pub(crate) use value::*;
 pub(crate) use write::*;
 
 use crate::prepare::{CachedOperation, PreparedOperation};
-
-pub(crate) mod error;
 
 pub(crate) enum Response<OnOperationResponseHookOutput> {
     /// Before or while validating we have a well-formed GraphQL-over-HTTP request, we may

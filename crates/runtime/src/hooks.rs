@@ -11,7 +11,7 @@ use std::future::Future;
 
 pub use http::HeaderMap;
 
-use crate::error::{ErrorResponse, PartialErrorCode, PartialGraphqlError};
+use error::{ErrorCode, ErrorResponse, GraphqlError};
 
 pub struct NodeDefinition<'a> {
     pub type_name: &'a str,
@@ -39,8 +39,8 @@ impl std::fmt::Display for EdgeDefinition<'_> {
 pub trait Anything<'a>: serde::Serialize + Send + 'a {}
 impl<'a, T> Anything<'a> for T where T: serde::Serialize + Send + 'a {}
 
-pub type AuthorizationVerdict = Result<(), PartialGraphqlError>;
-pub type AuthorizationVerdicts = Result<Vec<AuthorizationVerdict>, PartialGraphqlError>;
+pub type AuthorizationVerdict = Result<(), GraphqlError>;
+pub type AuthorizationVerdicts = Result<Vec<AuthorizationVerdict>, GraphqlError>;
 
 #[derive(Debug)]
 pub struct SubgraphRequest {
@@ -68,7 +68,7 @@ pub trait Hooks: Send + Sync + 'static {
         context: &Self::Context,
         subgraph_name: &str,
         request: SubgraphRequest,
-    ) -> impl Future<Output = Result<SubgraphRequest, PartialGraphqlError>> + Send {
+    ) -> impl Future<Output = Result<SubgraphRequest, GraphqlError>> + Send {
         async { Ok(request) }
     }
 
@@ -76,19 +76,19 @@ pub trait Hooks: Send + Sync + 'static {
         &self,
         context: &Self::Context,
         request: ExecutedSubgraphRequest<'_>,
-    ) -> impl Future<Output = Result<Self::OnSubgraphResponseOutput, PartialGraphqlError>> + Send;
+    ) -> impl Future<Output = Result<Self::OnSubgraphResponseOutput, GraphqlError>> + Send;
 
     fn on_operation_response(
         &self,
         context: &Self::Context,
         operation: ExecutedOperation<'_, Self::OnSubgraphResponseOutput>,
-    ) -> impl Future<Output = Result<Self::OnOperationResponseOutput, PartialGraphqlError>> + Send;
+    ) -> impl Future<Output = Result<Self::OnOperationResponseOutput, GraphqlError>> + Send;
 
     fn on_http_response(
         &self,
         context: &Self::Context,
         request: ExecutedHttpRequest<Self::OnOperationResponseOutput>,
-    ) -> impl Future<Output = Result<(), PartialGraphqlError>> + Send;
+    ) -> impl Future<Output = Result<(), GraphqlError>> + Send;
 
     fn authorized(&self) -> &impl AuthorizedHooks<Self::Context> {
         &()
@@ -173,7 +173,7 @@ impl Hooks for () {
         &self,
         _context: &Self::Context,
         _request: ExecutedSubgraphRequest<'_>,
-    ) -> Result<Self::OnSubgraphResponseOutput, PartialGraphqlError> {
+    ) -> Result<Self::OnSubgraphResponseOutput, GraphqlError> {
         Ok(())
     }
 
@@ -181,7 +181,7 @@ impl Hooks for () {
         &self,
         _context: &Self::Context,
         _operation: ExecutedOperation<'_, ()>,
-    ) -> Result<Self::OnOperationResponseOutput, PartialGraphqlError> {
+    ) -> Result<Self::OnOperationResponseOutput, GraphqlError> {
         Ok(())
     }
 
@@ -189,7 +189,7 @@ impl Hooks for () {
         &self,
         _context: &Self::Context,
         _request: ExecutedHttpRequest<()>,
-    ) -> Result<(), PartialGraphqlError> {
+    ) -> Result<(), GraphqlError> {
         Ok(())
     }
 }
@@ -202,9 +202,9 @@ impl<C: Send + Sync> AuthorizedHooks<C> for () {
         _: impl Anything<'a>,
         _: Option<impl Anything<'a>>,
     ) -> AuthorizationVerdict {
-        Err(PartialGraphqlError::new(
+        Err(GraphqlError::new(
             "@authorized directive cannot be used, so access was denied",
-            PartialErrorCode::Unauthorized,
+            ErrorCode::Unauthorized,
         ))
     }
 
@@ -214,9 +214,9 @@ impl<C: Send + Sync> AuthorizedHooks<C> for () {
         _: NodeDefinition<'a>,
         _: Option<impl Anything<'a>>,
     ) -> AuthorizationVerdict {
-        Err(PartialGraphqlError::new(
+        Err(GraphqlError::new(
             "@authorized directive cannot be used, so access was denied",
-            PartialErrorCode::Unauthorized,
+            ErrorCode::Unauthorized,
         ))
     }
 
@@ -227,9 +227,9 @@ impl<C: Send + Sync> AuthorizedHooks<C> for () {
         _: impl IntoIterator<Item: Anything<'a>> + Send,
         _: Option<impl Anything<'a>>,
     ) -> AuthorizationVerdicts {
-        Err(PartialGraphqlError::new(
+        Err(GraphqlError::new(
             "@authorized directive cannot be used, so access was denied",
-            PartialErrorCode::Unauthorized,
+            ErrorCode::Unauthorized,
         ))
     }
 
@@ -240,9 +240,9 @@ impl<C: Send + Sync> AuthorizedHooks<C> for () {
         _: impl IntoIterator<Item: Anything<'a>> + Send,
         _: Option<impl Anything<'a>>,
     ) -> AuthorizationVerdicts {
-        Err(PartialGraphqlError::new(
+        Err(GraphqlError::new(
             "@authorized directive cannot be used, so access was denied",
-            PartialErrorCode::Unauthorized,
+            ErrorCode::Unauthorized,
         ))
     }
 
@@ -253,9 +253,9 @@ impl<C: Send + Sync> AuthorizedHooks<C> for () {
         _: impl IntoIterator<Item: Anything<'a>> + Send,
         _: Option<impl Anything<'a>>,
     ) -> AuthorizationVerdicts {
-        Err(PartialGraphqlError::new(
+        Err(GraphqlError::new(
             "@authorized directive cannot be used, so access was denied",
-            PartialErrorCode::Unauthorized,
+            ErrorCode::Unauthorized,
         ))
     }
 
@@ -270,9 +270,9 @@ impl<C: Send + Sync> AuthorizedHooks<C> for () {
         Parent: Anything<'a>,
         Nodes: IntoIterator<Item: Anything<'a>> + Send,
     {
-        Err(PartialGraphqlError::new(
+        Err(GraphqlError::new(
             "@authorized directive cannot be used, so access was denied",
-            PartialErrorCode::Unauthorized,
+            ErrorCode::Unauthorized,
         ))
     }
 }

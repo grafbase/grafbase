@@ -117,7 +117,7 @@ where
         for segment in path {
             match segment {
                 serde_json::Value::String(field) => {
-                    out.push(ErrorPathSegment::UnknownField(field));
+                    out.push(ErrorPathSegment::UnknownField(field.into_boxed_str()));
                 }
                 serde_json::Value::Number(index) => {
                     out.push(ErrorPathSegment::Index(index.as_u64()? as usize));

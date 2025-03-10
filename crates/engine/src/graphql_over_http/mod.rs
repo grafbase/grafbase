@@ -5,13 +5,12 @@
 mod format;
 mod response;
 
+use error::ErrorCode;
 pub(crate) use format::*;
 use futures_util::stream::BoxStream;
 use grafbase_telemetry::graphql::GraphqlExecutionTelemetry;
 pub(crate) use response::*;
 use runtime::bytes::OwnedOrSharedBytes;
-
-pub use crate::response::error::code::ErrorCode;
 
 pub enum Body {
     Bytes(OwnedOrSharedBytes),

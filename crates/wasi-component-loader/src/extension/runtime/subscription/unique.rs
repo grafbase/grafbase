@@ -2,12 +2,10 @@ use std::{collections::VecDeque, sync::Arc};
 
 use super::SubscriptionStream;
 use crate::extension::{api::wit, pool::ExtensionGuard};
+use engine::{ErrorCode, GraphqlError};
 use engine_schema::Subgraph;
 use futures::stream;
-use runtime::{
-    error::{PartialErrorCode, PartialGraphqlError},
-    extension::Data,
-};
+use runtime::extension::Data;
 
 /// A subscription without deduplication, reserving one extension instance for each subscription.
 ///
@@ -20,7 +18,7 @@ pub struct UniqueSubscription<'ctx, 'wit> {
 }
 
 impl<'ctx> UniqueSubscription<'ctx, '_> {
-    pub async fn resolve<'f>(self) -> Result<SubscriptionStream<'f>, PartialGraphqlError>
+    pub async fn resolve<'f>(self) -> Result<SubscriptionStream<'f>, GraphqlError>
     where
         'ctx: 'f,
     {
@@ -34,7 +32,7 @@ impl<'ctx> UniqueSubscription<'ctx, '_> {
         instance
             .resolve_subscription(headers, subgraph.name(), directive)
             .await
-            .map_err(|err| err.into_graphql_error(PartialErrorCode::ExtensionError))?;
+            .map_err(|err| err.into_graphql_error(ErrorCode::ExtensionError))?;
 
         let stream = stream::unfold((instance, VecDeque::new()), async move |(mut instance, mut tail)| {
             if let Some(data) = tail.pop_front() {
@@ -56,7 +54,7 @@ impl<'ctx> UniqueSubscription<'ctx, '_> {
                     }
                     Err(e) => {
                         tracing::error!("Error resolving subscription item: {e}");
-                        return Some((Err(PartialGraphqlError::internal_extension_error()), (instance, tail)));
+                        return Some((Err(GraphqlError::internal_extension_error()), (instance, tail)));
                     }
                 }
             };
@@ -67,7 +65,7 @@ impl<'ctx> UniqueSubscription<'ctx, '_> {
                         tail.push_back(Ok(Arc::new(Data::CborBytes(item))));
                     }
                     Err(error) => {
-                        let error = error.into_graphql_error(PartialErrorCode::InternalServerError);
+                        let error = error.into_graphql_error(ErrorCode::InternalServerError);
                         tail.push_back(Err(error));
                     }
                 }

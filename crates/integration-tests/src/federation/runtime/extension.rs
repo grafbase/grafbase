@@ -1,10 +1,10 @@
 use std::{collections::HashMap, future::Future, sync::Arc};
 
+use engine::{ErrorResponse, GraphqlError};
 use engine_schema::{Subgraph, SubgraphId};
 use extension_catalog::{Extension, ExtensionCatalog, ExtensionId, Id, Manifest};
 use futures::stream::BoxStream;
 use runtime::{
-    error::{ErrorResponse, PartialGraphqlError},
     extension::{AuthorizationDecisions, Data, ExtensionFieldDirective, QueryElement, Token},
     hooks::{Anything, DynHookContext},
 };
@@ -127,7 +127,7 @@ pub trait TestExtensionBuilder: Send + Sync + 'static {
 #[async_trait::async_trait]
 pub trait TestExtension: Send + Sync + 'static {
     async fn authenticate(&self, headers: &http::HeaderMap) -> Result<Token, ErrorResponse> {
-        Err(PartialGraphqlError::internal_extension_error().into())
+        Err(GraphqlError::internal_extension_error().into())
     }
 
     async fn resolve_field(
@@ -135,8 +135,8 @@ pub trait TestExtension: Send + Sync + 'static {
         headers: http::HeaderMap,
         directive: ExtensionFieldDirective<'_, serde_json::Value>,
         inputs: Vec<serde_json::Value>,
-    ) -> Result<Vec<Result<Data, PartialGraphqlError>>, PartialGraphqlError> {
-        Err(PartialGraphqlError::internal_extension_error())
+    ) -> Result<Vec<Result<Data, GraphqlError>>, GraphqlError> {
+        Err(GraphqlError::internal_extension_error())
     }
 
     #[allow(clippy::manual_async_fn)]
@@ -145,7 +145,7 @@ pub trait TestExtension: Send + Sync + 'static {
         ctx: Arc<engine::RequestContext>,
         elements_grouped_by_directive_name: Vec<(&str, Vec<QueryElement<'_, serde_json::Value>>)>,
     ) -> Result<AuthorizationDecisions, ErrorResponse> {
-        Err(PartialGraphqlError::internal_extension_error().into())
+        Err(GraphqlError::internal_extension_error().into())
     }
 }
 
@@ -163,7 +163,7 @@ impl runtime::extension::ExtensionRuntime<Arc<engine::RequestContext>> for TestE
             arguments,
         }: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
         inputs: impl IntoIterator<Item: Anything<'resp>> + Send,
-    ) -> impl Future<Output = Result<Vec<Result<Data, PartialGraphqlError>>, PartialGraphqlError>> + Send + 'f
+    ) -> impl Future<Output = Result<Vec<Result<Data, GraphqlError>>, GraphqlError>> + Send + 'f
     where
         'ctx: 'f,
     {
@@ -205,7 +205,7 @@ impl runtime::extension::ExtensionRuntime<Arc<engine::RequestContext>> for TestE
         &'ctx self,
         _: http::HeaderMap,
         _: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
-    ) -> Result<BoxStream<'f, Result<Arc<Data>, PartialGraphqlError>>, PartialGraphqlError>
+    ) -> Result<BoxStream<'f, Result<Arc<Data>, GraphqlError>>, GraphqlError>
     where
         'ctx: 'f,
     {

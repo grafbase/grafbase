@@ -1,15 +1,12 @@
 use std::sync::Arc;
 
-use engine::Engine;
+use engine::{Engine, ErrorResponse};
 use graphql_mocks::dynamic::DynamicSchema;
 use integration_tests::{
     federation::{EngineExt, TestExtension},
     runtime,
 };
-use runtime::{
-    error::ErrorResponse,
-    extension::{AuthorizationDecisions, QueryElement},
-};
+use runtime::extension::{AuthorizationDecisions, QueryElement};
 
 use crate::federation::extensions::authorization::SimpleAuthExt;
 

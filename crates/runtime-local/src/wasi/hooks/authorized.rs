@@ -1,6 +1,6 @@
-use runtime::{
-    error::{PartialErrorCode, PartialGraphqlError},
-    hooks::{Anything, AuthorizationVerdict, AuthorizationVerdicts, AuthorizedHooks, EdgeDefinition, NodeDefinition},
+use engine::{ErrorCode, GraphqlError};
+use runtime::hooks::{
+    Anything, AuthorizationVerdict, AuthorizationVerdicts, AuthorizedHooks, EdgeDefinition, NodeDefinition,
 };
 use tracing::Instrument;
 use wasi_component_loader::{HookImplementation, SharedContext};
@@ -10,16 +10,16 @@ use super::{HooksWasi, guest_error_as_gql};
 macro_rules! prepare_authorized {
     ($span_name: expr; $impl:path; $self:ident named $func_name:literal at $definition:expr; [$(($name:literal, $input:expr),)+]) => {{
         let Some(ref inner) = $self.0 else {
-            return Err(PartialGraphqlError::new(
+            return Err(GraphqlError::new(
                 "@authorized directive cannot be used, so access was denied",
-                PartialErrorCode::Unauthorized,
+                ErrorCode::Unauthorized,
             ));
         };
 
         if !inner.implemented_hooks.contains($impl) {
-            return Err(PartialGraphqlError::new(
+            return Err(GraphqlError::new(
                 "@authorized directive cannot be used, so access was denied",
-                PartialErrorCode::Unauthorized,
+                ErrorCode::Unauthorized,
             ));
         }
 
@@ -39,13 +39,13 @@ fn encode<'a>(
     definition: impl std::fmt::Display,
     name: &str,
     values: impl IntoIterator<Item: Anything<'a>>,
-) -> Result<Vec<String>, PartialGraphqlError> {
+) -> Result<Vec<String>, GraphqlError> {
     values
         .into_iter()
         .map(|value| {
             serde_json::to_string(&value).map_err(|_| {
                 tracing::error!("{func_name} error at {definition}: failed to serialize {name}");
-                PartialGraphqlError::internal_server_error()
+                GraphqlError::internal_server_error()
             })
         })
         .collect()
@@ -83,9 +83,9 @@ impl AuthorizedHooks<SharedContext> for HooksWasi {
             .map_err(|err| match err {
                 wasi_component_loader::Error::Internal(error) => {
                     tracing::error!("authorize_edge_pre_execution error at: {error}");
-                    PartialGraphqlError::internal_hook_error()
+                    GraphqlError::internal_hook_error()
                 }
-                wasi_component_loader::Error::Guest(error) => guest_error_as_gql(error, PartialErrorCode::Unauthorized),
+                wasi_component_loader::Error::Guest(error) => guest_error_as_gql(error, ErrorCode::Unauthorized),
             })?;
 
         Ok(())
@@ -118,9 +118,9 @@ impl AuthorizedHooks<SharedContext> for HooksWasi {
             .map_err(|err| match err {
                 wasi_component_loader::Error::Internal(error) => {
                     tracing::error!("authorize_node_pre_execution error at: {error}");
-                    PartialGraphqlError::internal_hook_error()
+                    GraphqlError::internal_hook_error()
                 }
-                wasi_component_loader::Error::Guest(error) => guest_error_as_gql(error, PartialErrorCode::Unauthorized),
+                wasi_component_loader::Error::Guest(error) => guest_error_as_gql(error, ErrorCode::Unauthorized),
             })?;
 
         Ok(())
@@ -176,14 +176,14 @@ impl AuthorizedHooks<SharedContext> for HooksWasi {
             .map_err(|err| match err {
                 wasi_component_loader::Error::Internal(error) => {
                     tracing::error!("authorize_parent_edge_post_execution error at: {error}");
-                    PartialGraphqlError::internal_server_error()
+                    GraphqlError::internal_server_error()
                 }
-                wasi_component_loader::Error::Guest(error) => guest_error_as_gql(error, PartialErrorCode::Unauthorized),
+                wasi_component_loader::Error::Guest(error) => guest_error_as_gql(error, ErrorCode::Unauthorized),
             })?
             .into_iter()
             .map(|result| match result {
                 Ok(()) => Ok(()),
-                Err(error) => Err(guest_error_as_gql(error, PartialErrorCode::Unauthorized)),
+                Err(error) => Err(guest_error_as_gql(error, ErrorCode::Unauthorized)),
             })
             .collect();
 
@@ -219,14 +219,14 @@ impl AuthorizedHooks<SharedContext> for HooksWasi {
             .map_err(|err| match err {
                 wasi_component_loader::Error::Internal(error) => {
                     tracing::error!("authorize_edge_node_post_execution error at: {error}");
-                    PartialGraphqlError::internal_server_error()
+                    GraphqlError::internal_server_error()
                 }
-                wasi_component_loader::Error::Guest(error) => guest_error_as_gql(error, PartialErrorCode::Unauthorized),
+                wasi_component_loader::Error::Guest(error) => guest_error_as_gql(error, ErrorCode::Unauthorized),
             })?
             .into_iter()
             .map(|result| match result {
                 Ok(()) => Ok(()),
-                Err(error) => Err(guest_error_as_gql(error, PartialErrorCode::Unauthorized)),
+                Err(error) => Err(guest_error_as_gql(error, ErrorCode::Unauthorized)),
             })
             .collect();
 
@@ -258,7 +258,7 @@ impl AuthorizedHooks<SharedContext> for HooksWasi {
             .map(|(parent, nodes): (Parent, Nodes)| {
                 let parent = serde_json::to_string(&parent).map_err(|_| {
                     tracing::error!("authorize_edge_post_execution error at {definition}: failed to serialize edge");
-                    PartialGraphqlError::internal_server_error()
+                    GraphqlError::internal_server_error()
                 })?;
                 let nodes = nodes
                     .into_iter()
@@ -267,14 +267,14 @@ impl AuthorizedHooks<SharedContext> for HooksWasi {
                             tracing::error!(
                                 "authorize_edge_post_execution error at {definition}: failed to serialize edge"
                             );
-                            PartialGraphqlError::internal_server_error()
+                            GraphqlError::internal_server_error()
                         })
                     })
                     .collect::<Result<Vec<_>, _>>()?;
 
                 Ok((parent, nodes))
             })
-            .collect::<Result<Vec<_>, _>>()?;
+            .collect::<Result<Vec<_>, GraphqlError>>()?;
 
         let definition = wasi_component_loader::EdgeDefinition {
             parent_type_name: definition.parent_type_name.to_string(),
@@ -291,14 +291,14 @@ impl AuthorizedHooks<SharedContext> for HooksWasi {
             .map_err(|err| match err {
                 wasi_component_loader::Error::Internal(error) => {
                     tracing::error!("authorize_edge_post_execution error at: {error}");
-                    PartialGraphqlError::internal_server_error()
+                    GraphqlError::internal_server_error()
                 }
-                wasi_component_loader::Error::Guest(error) => guest_error_as_gql(error, PartialErrorCode::Unauthorized),
+                wasi_component_loader::Error::Guest(error) => guest_error_as_gql(error, ErrorCode::Unauthorized),
             })?
             .into_iter()
             .map(|result| match result {
                 Ok(()) => Ok(()),
-                Err(error) => Err(guest_error_as_gql(error, PartialErrorCode::Unauthorized)),
+                Err(error) => Err(guest_error_as_gql(error, ErrorCode::Unauthorized)),
             })
             .collect();
 

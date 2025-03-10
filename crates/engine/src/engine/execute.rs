@@ -4,10 +4,11 @@ mod stream;
 
 use ::runtime::{hooks::Hooks, rate_limiting::RateLimitKey};
 use bytes::Bytes;
+use error::ErrorResponse;
 use futures::StreamExt;
 use grafbase_telemetry::grafbase_client::Client;
 use operation::{BatchRequest, QueryParamsRequest, Request};
-use runtime::{auth::LegacyToken, error::ErrorResponse};
+use runtime::auth::LegacyToken;
 use std::{future::Future, sync::Arc};
 
 use crate::{
