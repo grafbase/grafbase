@@ -156,7 +156,10 @@ impl ExtensionInstance {
             .await?;
 
         self.poisoned = false;
-        result.map_err(Into::into)
+        match result {
+            Ok((decisions, _)) => Ok(decisions),
+            Err(err) => Err(err.into()),
+        }
     }
 
     pub fn recycle(&mut self) -> crate::Result<()> {

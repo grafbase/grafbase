@@ -24,11 +24,7 @@ impl<'a> QueryElements<'a> {
     /// Iterate over all elements, regardless of the directive they're associated with. Useful if
     /// expect only one directive to be used.
     pub fn iter(&self) -> impl ExactSizeIterator<Item = QueryElement<'a>> + 'a {
-        self.0
-            .elements
-            .iter()
-            .enumerate()
-            .map(move |(ix, element)| QueryElement { element, ix: ix as u32 })
+        (*self).into_iter()
     }
 
     /// Iterate over all elements grouped by the directive name.
@@ -77,14 +73,44 @@ impl<'a> Iterator for QueryElementsIterator<'a> {
     }
 }
 
+impl crate::sealed::Sealed for QueryElement<'_> {}
+impl crate::types::authorization::QueryElementOrResponseItem for QueryElement<'_> {
+    fn ix(&self) -> u32 {
+        self.ix
+    }
+}
+
 /// An element of the query on which a directive was applied.
 #[derive(Clone, Copy)]
 pub struct QueryElement<'a> {
     element: &'a wit::QueryElement,
-    pub(super) ix: u32,
+    ix: u32,
+}
+
+/// An identifier for a query element. Only relevant for response authorization as data provided in
+/// `authorize_query` won't be re-sent in `authorize_response`. So this ID allows finding the
+/// relevant data in the custom state.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
+pub struct QueryElementId(pub(super) u32);
+
+impl From<QueryElementId> for u32 {
+    fn from(value: QueryElementId) -> u32 {
+        value.0
+    }
+}
+
+impl std::fmt::Display for QueryElementId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
 }
 
 impl<'a> QueryElement<'a> {
+    /// ID of the query element, only relevant for response authorization.
+    pub fn id(&self) -> QueryElementId {
+        QueryElementId(self.element.id)
+    }
+
     /// Site, where and with which arguments, of the directive associated with this element.
     /// The provided arguments will exclude anything that depend on response data such as
     /// `FieldSet`.

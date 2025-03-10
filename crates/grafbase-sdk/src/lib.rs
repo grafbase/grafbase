@@ -15,7 +15,10 @@ pub mod test;
 pub mod types;
 
 pub use component::SdkError;
-pub use extension::{resolver::Subscription, AuthenticationExtension, AuthorizationExtension, ResolverExtension};
+pub use extension::{
+    authorization::IntoQueryAuthorization, resolver::Subscription, AuthenticationExtension, AuthorizationExtension,
+    ResolverExtension,
+};
 pub use grafbase_sdk_derive::{AuthenticationExtension, AuthorizationExtension, ResolverExtension};
 pub use host::{AuthorizationContext, Headers};
 pub use types::{Error, ErrorResponse, Token};
@@ -47,10 +50,14 @@ mod wit {
     pub use exports::grafbase::sdk::extension::Guest;
     pub use grafbase::sdk::directive::{
         DirectiveSite, EnumDirectiveSite, FieldDefinitionDirective, FieldDefinitionDirectiveSite,
-        InterfaceDirectiveSite, ObjectDirectiveSite, QueryElement, QueryElements, ScalarDirectiveSite, SchemaDirective,
-        UnionDirectiveSite,
+        InterfaceDirectiveSite, ObjectDirectiveSite, QueryElement, QueryElements, ResponseElement, ResponseElements,
+        ScalarDirectiveSite, SchemaDirective, UnionDirectiveSite,
     };
     pub use grafbase::sdk::types::*;
 }
 
 wit::export!(Component with_types_in wit);
+
+mod sealed {
+    pub trait Sealed {}
+}

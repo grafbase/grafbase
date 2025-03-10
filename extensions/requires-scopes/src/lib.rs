@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use grafbase_sdk::{
-    AuthorizationExtension, Error,
+    AuthorizationExtension, Error, IntoQueryAuthorization,
     host::AuthorizationContext,
     types::{AuthorizationDecisions, Configuration, ErrorResponse, QueryElements},
 };
@@ -39,7 +39,7 @@ impl AuthorizationExtension for RequiresScopes {
         &mut self,
         ctx: AuthorizationContext,
         elements: QueryElements<'_>,
-    ) -> Result<AuthorizationDecisions, ErrorResponse> {
+    ) -> Result<impl IntoQueryAuthorization, ErrorResponse> {
         let Some(bytes) = ctx.token().into_bytes() else {
             // Anonymous user.
             return Ok(AuthorizationDecisions::deny_all("Not authorized"));

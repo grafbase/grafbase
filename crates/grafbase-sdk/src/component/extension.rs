@@ -3,7 +3,7 @@ use crate::{
     host::{AuthorizationContext, Headers},
     types::{
         AuthorizationDecisions, Error, ErrorResponse, FieldDefinitionDirective, FieldInputs, FieldOutput,
-        QueryElements, Token,
+        QueryElements, ResponseElements, Token,
     },
 };
 
@@ -47,9 +47,18 @@ pub(crate) trait AnyExtension {
         &mut self,
         ctx: AuthorizationContext,
         elements: QueryElements<'_>,
-    ) -> Result<AuthorizationDecisions, ErrorResponse> {
+    ) -> Result<(AuthorizationDecisions, Vec<u8>), ErrorResponse> {
         Err(ErrorResponse::internal_server_error(
             "Authorization extension not initialized correctly.",
         ))
+    }
+
+    fn authorize_response(
+        &mut self,
+        ctx: AuthorizationContext,
+        state: Vec<u8>,
+        elements: ResponseElements<'_>,
+    ) -> Result<AuthorizationDecisions, Error> {
+        Err("Authorization extension not initialized correctly.".into())
     }
 }
