@@ -26,7 +26,7 @@ serde.workspace = true
 serde-dynamic-string.workspace = true
 strum.workspace = true
 thiserror.workspace = true
-tonic = { workspace = true, optional = true, features = ["tls-roots"] }
+tonic = { workspace = true, features = ["tls-roots"] }
 url = { workspace = true, features = ["serde"] }
 
 # tracing
@@ -38,15 +38,16 @@ opentelemetry = { workspace = true, features = ["trace"] }
 opentelemetry-appender-tracing = { workspace = true, features = [
     "experimental_metadata_attributes",
 ] }
-opentelemetry-otlp = { workspace = true, features = [
+opentelemetry-otlp = { workspace = true, default-features = false, features = [
     "grpc-tonic",
     "http-proto",
     "logs",
     "reqwest-client",
     "tls",
     "tonic",
+    "trace",
     "metrics",
-], optional = true }
+] }
 opentelemetry-stdout = { workspace = true, features = [
     "trace",
     "metrics",
@@ -64,7 +65,6 @@ tracing-subscriber = { workspace = true, features = ["env-filter"] }
 
 [features]
 default = []
-otlp = ["dep:opentelemetry-otlp", "dep:tonic", "gateway-config/otlp"]
 lambda = []
 
 [dev-dependencies]

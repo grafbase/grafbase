@@ -9,10 +9,6 @@ repository.workspace = true
 [lints]
 workspace = true
 
-[features]
-# historic feature flag used for telemetry config, maybe should be removed?
-otlp = ["dep:tonic"]
-
 [dependencies]
 ascii = { workspace = true, features = ["serde"] }
 cfg-if.workspace = true
@@ -27,7 +23,7 @@ serde-dynamic-string.workspace = true
 serde_regex.workspace = true
 size.workspace = true
 toml.workspace = true
-tonic = { workspace = true, optional = true, features = ["tls-roots"] }
+tonic = { workspace = true, features = ["tls-roots"] }
 tower-http = { workspace = true, features = ["cors", "timeout"] }
 url = { workspace = true, features = ["serde"] }
 

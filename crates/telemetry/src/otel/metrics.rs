@@ -62,12 +62,10 @@ pub(super) fn build_meter_provider(
         provider = provider.with_reader(reader);
     }
 
-    #[cfg(feature = "otlp")]
     if let Some(config) = config.metrics_otlp_config() {
         provider = attach_reader(config, provider)?;
     }
 
-    #[cfg(feature = "otlp")]
     if let Some(config) = config.grafbase_otlp_config() {
         provider = attach_reader(config, provider)?;
     }
@@ -75,7 +73,6 @@ pub(super) fn build_meter_provider(
     Ok(provider.build())
 }
 
-#[cfg(feature = "otlp")]
 fn attach_reader(
     config: &crate::config::OtlpExporterConfig,
     provider: opentelemetry_sdk::metrics::MeterProviderBuilder,

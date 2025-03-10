@@ -87,7 +87,6 @@ pub struct OtlpExporterTlsConfig {
     pub ca: Option<PathBuf>,
 }
 
-#[cfg(feature = "otlp")]
 impl TryFrom<OtlpExporterTlsConfig> for tonic::transport::ClientTlsConfig {
     type Error = std::io::Error;
 
