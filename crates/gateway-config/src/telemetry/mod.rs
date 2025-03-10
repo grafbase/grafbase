@@ -3,7 +3,6 @@ pub mod exporters;
 use std::collections::HashMap;
 
 use exporters::GlobalExporterConfig;
-// #[cfg(feature = "otlp")]
 pub use exporters::{
     Headers, OtlpExporterConfig, OtlpExporterGrpcConfig, OtlpExporterHttpConfig, OtlpExporterProtocol,
     OtlpExporterTlsConfig,
@@ -58,7 +57,6 @@ impl TelemetryConfig {
         }
     }
 
-    #[cfg(feature = "otlp")]
     pub fn tracing_otlp_config(&self) -> Option<&OtlpExporterConfig> {
         match self.tracing.exporters.otlp.as_ref() {
             Some(config) if config.enabled => Some(config),
@@ -68,15 +66,9 @@ impl TelemetryConfig {
     }
 
     pub fn tracing_exporters_enabled(&self) -> bool {
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "otlp")] {
-                self.tracing_otlp_config().is_some()
-                    || self.tracing_stdout_config().is_some()
-                    || self.grafbase_otlp_config().is_some()
-            } else {
-                self.tracing_stdout_config().is_some()
-            }
-        }
+        self.tracing_otlp_config().is_some()
+            || self.tracing_stdout_config().is_some()
+            || self.grafbase_otlp_config().is_some()
     }
 
     pub fn metrics_stdout_config(&self) -> Option<&StdoutExporterConfig> {
@@ -87,7 +79,6 @@ impl TelemetryConfig {
         }
     }
 
-    #[cfg(feature = "otlp")]
     pub fn metrics_otlp_config(&self) -> Option<&OtlpExporterConfig> {
         match self.metrics.as_ref().and_then(|c| c.exporters.otlp.as_ref()) {
             Some(config) if config.enabled => Some(config),
@@ -104,7 +95,6 @@ impl TelemetryConfig {
         }
     }
 
-    #[cfg(feature = "otlp")]
     pub fn logs_otlp_config(&self) -> Option<&OtlpExporterConfig> {
         match self.logs.as_ref().and_then(|c| c.exporters.otlp.as_ref()) {
             Some(config) if config.enabled => Some(config),
@@ -114,16 +104,9 @@ impl TelemetryConfig {
     }
 
     pub fn logs_exporters_enabled(&self) -> bool {
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "otlp")] {
-                self.logs_otlp_config().is_some() || self.logs_stdout_config().is_some()
-            } else {
-                self.logs_stdout_config().is_some()
-            }
-        }
+        self.logs_otlp_config().is_some() || self.logs_stdout_config().is_some()
     }
 
-    #[cfg(feature = "otlp")]
     pub fn grafbase_otlp_config(&self) -> Option<&OtlpExporterConfig> {
         self.grafbase.as_ref()
     }
@@ -133,16 +116,11 @@ impl TelemetryConfig {
 mod tests {
     use super::*;
 
-    #[cfg(feature = "otlp")]
     use ascii::AsciiString;
-    #[cfg(feature = "otlp")]
     use chrono::Duration;
     use indoc::indoc;
-    #[cfg(feature = "otlp")]
     use std::path::PathBuf;
-    #[cfg(feature = "otlp")]
     use std::str::FromStr;
-    #[cfg(feature = "otlp")]
     use url::Url;
 
     #[test]
@@ -234,7 +212,6 @@ mod tests {
         );
     }
 
-    #[cfg(feature = "otlp")]
     #[test]
     fn no_exporters() {
         // prepare
@@ -250,7 +227,6 @@ mod tests {
         assert!(config.exporters.stdout.is_none());
     }
 
-    #[cfg(feature = "otlp")]
     #[test]
     fn default_otlp_exporter() {
         // prepare
@@ -277,7 +253,6 @@ mod tests {
         );
     }
 
-    #[cfg(feature = "otlp")]
     #[test]
     fn otlp_exporter_custom_partial_batch_config() {
         // prepare
@@ -308,7 +283,6 @@ mod tests {
         );
     }
 
-    #[cfg(feature = "otlp")]
     #[test]
     fn otlp_exporter_kitchen_sink() {
         let input = indoc! {r#"
@@ -465,7 +439,6 @@ mod tests {
         assert!(expected.is_some());
     }
 
-    #[cfg(feature = "otlp")]
     #[test]
     fn tracing_otlp_default_config() {
         let input = indoc! {r#"
@@ -503,7 +476,6 @@ mod tests {
         assert!(expected.is_some());
     }
 
-    #[cfg(feature = "otlp")]
     #[test]
     fn tracing_otlp_alternative_config_not_enabled() {
         let input = indoc! {r#"
@@ -563,7 +535,6 @@ mod tests {
         assert_eq!(None, config.tracing_otlp_config());
     }
 
-    #[cfg(feature = "otlp")]
     #[test]
     fn tracing_otlp_alternative_config_enabled() {
         let input = indoc! {r#"
@@ -711,7 +682,6 @@ mod tests {
         assert!(expected.is_some());
     }
 
-    #[cfg(feature = "otlp")]
     #[test]
     fn metrics_otlp_default_config() {
         let input = indoc! {r#"
@@ -749,7 +719,6 @@ mod tests {
         assert!(expected.is_some());
     }
 
-    #[cfg(feature = "otlp")]
     #[test]
     fn metrics_otlp_alternative_config_not_enabled() {
         let input = indoc! {r#"
@@ -809,7 +778,6 @@ mod tests {
         assert_eq!(None, config.metrics_otlp_config());
     }
 
-    #[cfg(feature = "otlp")]
     #[test]
     fn metrics_otlp_alternative_config_enabled() {
         let input = indoc! {r#"
@@ -958,7 +926,6 @@ mod tests {
         assert!(expected.is_some());
     }
 
-    #[cfg(feature = "otlp")]
     #[test]
     fn logs_otlp_default_config() {
         let input = indoc! {r#"
@@ -996,7 +963,6 @@ mod tests {
         assert!(expected.is_some());
     }
 
-    #[cfg(feature = "otlp")]
     #[test]
     fn logs_otlp_alternative_config_not_enabled() {
         let input = indoc! {r#"
@@ -1055,7 +1021,6 @@ mod tests {
         assert_eq!(None, config.logs_otlp_config());
     }
 
-    #[cfg(feature = "otlp")]
     #[test]
     fn logs_otlp_alternative_config_enabled() {
         let input = indoc! {r#"
@@ -1151,7 +1116,6 @@ mod tests {
         );
     }
 
-    #[cfg(feature = "otlp")]
     #[test]
     fn tls_config() {
         use tonic::transport::ClientTlsConfig;

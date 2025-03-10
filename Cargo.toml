@@ -153,7 +153,7 @@ openidconnect = "4.0.0"
 opentelemetry = "0.28"
 opentelemetry-appender-tracing = "0.28"
 opentelemetry-aws = "0.16"
-opentelemetry-otlp = "0.28"
+opentelemetry-otlp = { version = "0.28", default-features = false }
 opentelemetry-stdout = "0.28"
 opentelemetry_sdk = "0.28"
 ory-client = "=1.9.0"

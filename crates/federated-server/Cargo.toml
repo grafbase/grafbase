@@ -25,7 +25,7 @@ engine-axum.workspace = true
 futures-lite.workspace = true
 futures-util.workspace = true
 gateway-config.workspace = true
-grafbase-telemetry = { workspace = true, features = ["otlp"] }
+grafbase-telemetry = { workspace = true }
 grafbase-workspace-hack.workspace = true
 graph-ref.workspace = true
 graphql-composition.workspace = true

@@ -22,7 +22,7 @@ chrono.workspace = true
 clap = { workspace = true, features = ["cargo", "wrap_help", "derive", "env"] }
 federated-server.workspace = true
 gateway-config.workspace = true
-grafbase-telemetry = { workspace = true, features = ["otlp"] }
+grafbase-telemetry = { workspace = true }
 grafbase-workspace-hack.workspace = true
 graph-ref.workspace = true
 itertools.workspace = true
