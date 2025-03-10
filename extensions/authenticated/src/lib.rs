@@ -1,5 +1,5 @@
 use grafbase_sdk::{
-    AuthorizationExtension, Error,
+    AuthorizationExtension, Error, IntoQueryAuthorization,
     host::AuthorizationContext,
     types::{AuthorizationDecisions, Configuration, ErrorResponse, QueryElements},
 };
@@ -16,7 +16,7 @@ impl AuthorizationExtension for Authenticated {
         &mut self,
         ctx: AuthorizationContext,
         _elements: QueryElements<'_>,
-    ) -> Result<AuthorizationDecisions, ErrorResponse> {
+    ) -> Result<impl IntoQueryAuthorization, ErrorResponse> {
         Ok(if ctx.token().is_anonymous() {
             AuthorizationDecisions::deny_all("Not authenticated")
         } else {

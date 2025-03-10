@@ -274,9 +274,23 @@ interface directive {
     }
 
     record query-element {
+        // Unique id.
+        id: u32,
         site: directive-site,
         // encoded in CBOR.
         arguments: list<u8>
+    }
+
+    record response-elements {
+        directive-names: list<tuple<string, u32, u32>>,
+        elements: list<response-element>,
+        // encoded in CBOR.
+        items: list<list<u8>>
+    }
+
+    record response-element {
+        query-element-id: u32,
+        items-range: tuple<u32, u32>
     }
 
     record schema-directive {
@@ -336,7 +350,7 @@ interface directive {
 }
 
 interface extension {
-    use directive.{schema-directive, field-definition-directive, query-elements};
+    use directive.{schema-directive, field-definition-directive, query-elements, response-elements};
     use types.{shared-context, error-response, error, field-output, access-log, log-error, nats-auth, nats-client, http-client, http-request, http-response, http-method, http-version, http-error, headers, cache, token, authorization-decisions, authorization-context};
 
     // initialization function called to set up the wasm extension
@@ -384,7 +398,13 @@ interface extension {
     authorize-query: func(
         ctx: authorization-context,
         elements: query-elements
-    ) -> result<authorization-decisions, error-response>;
+    ) -> result<tuple<authorization-decisions, list<u8>>, error-response>;
+
+    authorize-response: func(
+        ctx: authorization-context,
+        state: list<u8>,
+        elements: response-elements
+    ) -> result<authorization-decisions, error>;
 }
 
 world sdk {

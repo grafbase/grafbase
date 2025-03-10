@@ -260,6 +260,7 @@ impl ExtensionRuntime<Arc<RequestContext>> for ExtensionsWasiRuntime {
                 let arguments = cbor::to_vec(element.arguments).unwrap();
 
                 query_elements.push(wit::QueryElement {
+                    id: 0,
                     site: element.site.into(),
                     arguments,
                 });

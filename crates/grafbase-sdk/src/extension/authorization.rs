@@ -1,11 +1,12 @@
 use crate::{
     component::AnyExtension,
     host::AuthorizationContext,
-    types::{AuthorizationDecisions, Configuration, ErrorResponse, QueryElements},
+    types::{AuthorizationDecisions, Configuration, ErrorResponse, QueryElements, ResponseElements},
     Error,
 };
 
 /// A trait that extends `Extension` and provides authorization functionality.
+#[allow(unused_variables)]
 pub trait AuthorizationExtension: Sized + 'static {
     /// Creates a new instance of the extension.
     ///
@@ -30,7 +31,32 @@ pub trait AuthorizationExtension: Sized + 'static {
         &mut self,
         ctx: AuthorizationContext,
         elements: QueryElements<'_>,
-    ) -> Result<AuthorizationDecisions, ErrorResponse>;
+    ) -> Result<impl IntoQueryAuthorization, ErrorResponse>;
+
+    fn authorize_response(
+        &mut self,
+        ctx: AuthorizationContext,
+        state: Vec<u8>,
+        elements: ResponseElements<'_>,
+    ) -> Result<AuthorizationDecisions, Error> {
+        Err("Response authorization not implemented".into())
+    }
+}
+
+pub trait IntoQueryAuthorization {
+    fn into_query_authorization(self) -> (AuthorizationDecisions, Vec<u8>);
+}
+
+impl IntoQueryAuthorization for AuthorizationDecisions {
+    fn into_query_authorization(self) -> (AuthorizationDecisions, Vec<u8>) {
+        (self, Vec::new())
+    }
+}
+
+impl IntoQueryAuthorization for (AuthorizationDecisions, Vec<u8>) {
+    fn into_query_authorization(self) -> (AuthorizationDecisions, Vec<u8>) {
+        self
+    }
 }
 
 #[doc(hidden)]
@@ -42,8 +68,9 @@ pub fn register<T: AuthorizationExtension>() {
             &mut self,
             ctx: AuthorizationContext,
             elements: QueryElements<'_>,
-        ) -> Result<AuthorizationDecisions, ErrorResponse> {
+        ) -> Result<(AuthorizationDecisions, Vec<u8>), ErrorResponse> {
             AuthorizationExtension::authorize_query(&mut self.0, ctx, elements)
+                .map(IntoQueryAuthorization::into_query_authorization)
         }
     }
 
