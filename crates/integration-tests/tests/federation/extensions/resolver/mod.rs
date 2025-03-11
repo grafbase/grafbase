@@ -2,12 +2,10 @@ mod errors;
 
 use std::sync::Arc;
 
+use engine::GraphqlError;
 use extension_catalog::Id;
 use integration_tests::federation::{TestExtension, TestExtensionBuilder, TestExtensionConfig};
-use runtime::{
-    error::PartialGraphqlError,
-    extension::{Data, ExtensionFieldDirective},
-};
+use runtime::extension::{Data, ExtensionFieldDirective};
 
 #[derive(Clone)]
 pub struct StaticResolverExt {
@@ -51,7 +49,7 @@ impl TestExtension for StaticResolverExt {
         _: http::HeaderMap,
         _: ExtensionFieldDirective<'_, serde_json::Value>,
         inputs: Vec<serde_json::Value>,
-    ) -> Result<Vec<Result<Data, PartialGraphqlError>>, PartialGraphqlError> {
+    ) -> Result<Vec<Result<Data, GraphqlError>>, GraphqlError> {
         Ok(inputs.into_iter().map(|_| Ok(self.data.clone())).collect())
     }
 }

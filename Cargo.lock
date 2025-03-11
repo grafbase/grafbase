@@ -2579,6 +2579,7 @@ dependencies = [
  "bytes",
  "crossbeam-queue",
  "engine-auth",
+ "engine-error",
  "engine-id-derives",
  "engine-id-newtypes",
  "engine-operation",
@@ -2612,8 +2613,6 @@ dependencies = [
  "serde_urlencoded",
  "sha2 0.10.8",
  "sonic-rs",
- "strum 0.27.1",
- "strum_macros 0.27.1",
  "thiserror 2.0.12",
  "tower 0.5.2",
  "tracing",
@@ -2681,6 +2680,19 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "xshell",
+]
+
+[[package]]
+name = "engine-error"
+version = "0.0.0"
+dependencies = [
+ "engine-operation",
+ "grafbase-workspace-hack",
+ "http 1.2.0",
+ "serde",
+ "serde_json",
+ "strum 0.27.1",
+ "strum_macros 0.27.1",
 ]
 
 [[package]]
@@ -3801,7 +3813,6 @@ name = "grafbase-workspace-hack"
 version = "0.1.0"
 dependencies = [
  "addr2line",
- "ahash",
  "aho-corasick",
  "anyhow",
  "arrayvec 0.7.6",
@@ -3820,7 +3831,6 @@ dependencies = [
  "clap",
  "clap_builder",
  "combine",
- "concurrent-queue",
  "console",
  "cranelift-bitset",
  "crc32fast",
@@ -3855,7 +3865,6 @@ dependencies = [
  "getrandom 0.3.1",
  "gimli",
  "group",
- "hashbrown 0.14.5",
  "hashbrown 0.15.2",
  "hex",
  "http-types",
@@ -7676,6 +7685,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "bytes",
+ "engine-error",
  "engine-id-derives",
  "engine-schema",
  "extension",
@@ -7707,6 +7717,7 @@ dependencies = [
  "deadpool 0.12.2",
  "ed25519-compact",
  "elliptic-curve",
+ "engine",
  "engine-schema",
  "enumflags2",
  "extension-catalog",

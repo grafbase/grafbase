@@ -26,6 +26,7 @@ base64.workspace = true
 bytes.workspace = true
 ed25519-compact.workspace = true
 elliptic-curve = { workspace = true, features = ["jwk"] }
+engine.workspace = true
 engine-schema.workspace = true
 extension-catalog.workspace = true
 futures-util.workspace = true

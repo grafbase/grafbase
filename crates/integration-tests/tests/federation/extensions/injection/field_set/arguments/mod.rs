@@ -7,12 +7,10 @@ mod scalar;
 
 use std::sync::Arc;
 
+use engine::GraphqlError;
 use extension_catalog::Id;
 use integration_tests::federation::{TestExtension, TestExtensionBuilder, TestExtensionConfig, json_data};
-use runtime::{
-    error::PartialGraphqlError,
-    extension::{Data, ExtensionFieldDirective},
-};
+use runtime::extension::{Data, ExtensionFieldDirective};
 
 #[derive(Default)]
 pub struct DoubleEchoExt;
@@ -55,7 +53,7 @@ impl TestExtension for DoubleEchoInstance {
         _headers: http::HeaderMap,
         directive: ExtensionFieldDirective<'_, serde_json::Value>,
         inputs: Vec<serde_json::Value>,
-    ) -> Result<Vec<Result<Data, PartialGraphqlError>>, PartialGraphqlError> {
+    ) -> Result<Vec<Result<Data, GraphqlError>>, GraphqlError> {
         match directive.name {
             "echo" => Ok(inputs
                 .into_iter()

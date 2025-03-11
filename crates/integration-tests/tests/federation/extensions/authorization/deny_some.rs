@@ -1,15 +1,12 @@
 use std::sync::Arc;
 
-use engine::Engine;
+use engine::{Engine, ErrorResponse, GraphqlError};
 use graphql_mocks::dynamic::DynamicSchema;
 use integration_tests::{
     federation::{EngineExt, TestExtension},
     runtime,
 };
-use runtime::{
-    error::{ErrorResponse, PartialGraphqlError},
-    extension::{AuthorizationDecisions, QueryElement},
-};
+use runtime::extension::{AuthorizationDecisions, QueryElement};
 
 use crate::federation::extensions::authorization::SimpleAuthExt;
 
@@ -25,10 +22,7 @@ impl TestExtension for DenySites {
         elements_grouped_by_directive_name: Vec<(&str, Vec<QueryElement<'_, serde_json::Value>>)>,
     ) -> Result<AuthorizationDecisions, ErrorResponse> {
         let mut element_to_error = Vec::new();
-        let errors = vec![PartialGraphqlError::new(
-            "Not authorized",
-            runtime::error::PartialErrorCode::Unauthorized,
-        )];
+        let errors = vec![GraphqlError::unauthorized()];
 
         let mut i = 0;
         for (_, elements) in elements_grouped_by_directive_name {

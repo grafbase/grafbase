@@ -11,6 +11,5 @@ impl<H: Hooks> super::RequestHooks<'_, H> {
         self.hooks
             .on_subgraph_request(self.context, subgraph_name, request)
             .await
-            .map_err(Into::into)
     }
 }

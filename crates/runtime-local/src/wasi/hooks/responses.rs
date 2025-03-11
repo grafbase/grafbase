@@ -1,4 +1,4 @@
-use runtime::error::PartialGraphqlError;
+use engine::GraphqlError;
 use tracing::{Instrument, info_span};
 use wasi_component_loader::{
     CacheStatus, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, FieldError, GraphqlResponseStatus,
@@ -12,7 +12,7 @@ impl HooksWasi {
         &self,
         context: &SharedContext,
         request: runtime::hooks::ExecutedSubgraphRequest<'_>,
-    ) -> Result<Vec<u8>, PartialGraphqlError> {
+    ) -> Result<Vec<u8>, GraphqlError> {
         let Some(ref inner) = self.0 else {
             return Ok(Vec::new());
         };
@@ -78,7 +78,7 @@ impl HooksWasi {
             .await
             .map_err(|err| {
                 tracing::error!("on_subgraph_response error: {err}");
-                PartialGraphqlError::internal_hook_error()
+                GraphqlError::internal_hook_error()
             })
     }
 
@@ -86,7 +86,7 @@ impl HooksWasi {
         &self,
         context: &SharedContext,
         operation: runtime::hooks::ExecutedOperation<'_, Vec<u8>>,
-    ) -> Result<Vec<u8>, PartialGraphqlError> {
+    ) -> Result<Vec<u8>, GraphqlError> {
         let Some(ref inner) = self.0 else {
             return Ok(Vec::new());
         };
@@ -141,7 +141,7 @@ impl HooksWasi {
             .await
             .map_err(|err| {
                 tracing::error!("on_gateway_response error: {err}");
-                PartialGraphqlError::internal_hook_error()
+                GraphqlError::internal_hook_error()
             })
     }
 
@@ -149,7 +149,7 @@ impl HooksWasi {
         &self,
         context: &SharedContext,
         request: runtime::hooks::ExecutedHttpRequest<Vec<u8>>,
-    ) -> Result<(), PartialGraphqlError> {
+    ) -> Result<(), GraphqlError> {
         let Some(ref inner) = self.0 else {
             return Ok(());
         };
@@ -181,7 +181,7 @@ impl HooksWasi {
             .await
             .map_err(|err| {
                 tracing::error!("on_http_response error: {err}");
-                PartialGraphqlError::internal_hook_error()
+                GraphqlError::internal_hook_error()
             })
     }
 }

@@ -10,13 +10,12 @@ use super::{
 };
 
 use dashmap::DashMap;
-use engine::RequestContext;
+use engine::{ErrorCode, ErrorResponse, GraphqlError, RequestContext};
 use extension_catalog::ExtensionId;
 use futures::stream::BoxStream;
 use futures_util::{StreamExt, stream};
 use gateway_config::WasiExtensionsConfig;
 use runtime::{
-    error::{ErrorResponse, PartialErrorCode, PartialGraphqlError},
     extension::{
         AuthorizationDecisions, AuthorizerId, Data, ExtensionFieldDirective, ExtensionRuntime, QueryElement, Token,
     },
@@ -30,7 +29,7 @@ use tokio::{sync::broadcast, task::JoinHandle};
 #[derive(Clone, Default)]
 pub struct ExtensionsWasiRuntime(Option<Arc<WasiExtensionsInner>>);
 
-type Subscriptions = Arc<DashMap<Vec<u8>, broadcast::Sender<Result<Arc<Data>, PartialGraphqlError>>>>;
+type Subscriptions = Arc<DashMap<Vec<u8>, broadcast::Sender<Result<Arc<Data>, GraphqlError>>>>;
 
 struct WasiExtensionsInner {
     instance_pools: HashMap<ExtensionPoolId, Pool>,
@@ -57,20 +56,20 @@ impl ExtensionsWasiRuntime {
         Ok(Self(Some(Arc::new(inner))))
     }
 
-    async fn get(&self, id: ExtensionPoolId) -> Result<ExtensionGuard, PartialGraphqlError> {
+    async fn get(&self, id: ExtensionPoolId) -> Result<ExtensionGuard, GraphqlError> {
         let pool = self
             .0
             .as_ref()
             .and_then(|inner| inner.instance_pools.get(&id))
-            .ok_or_else(PartialGraphqlError::internal_extension_error)?;
+            .ok_or_else(GraphqlError::internal_extension_error)?;
         Ok(pool.get().await)
     }
 
-    fn subscriptions(&self) -> Result<Subscriptions, PartialGraphqlError> {
+    fn subscriptions(&self) -> Result<Subscriptions, GraphqlError> {
         let subscriptions = self
             .0
             .as_ref()
-            .ok_or_else(PartialGraphqlError::internal_extension_error)?
+            .ok_or_else(GraphqlError::internal_extension_error)?
             .subscriptions
             .clone();
 
@@ -130,7 +129,7 @@ impl ExtensionRuntime<Arc<RequestContext>> for ExtensionsWasiRuntime {
             arguments,
         }: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
         inputs: impl IntoIterator<Item: Anything<'resp>> + Send,
-    ) -> impl Future<Output = Result<Vec<Result<Data, PartialGraphqlError>>, PartialGraphqlError>> + Send + 'f
+    ) -> impl Future<Output = Result<Vec<Result<Data, GraphqlError>>, GraphqlError>> + Send + 'f
     where
         'ctx: 'f,
     {
@@ -151,7 +150,7 @@ impl ExtensionRuntime<Arc<RequestContext>> for ExtensionsWasiRuntime {
             let output = instance
                 .resolve_field(headers, subgraph.name(), directive, inputs)
                 .await
-                .map_err(|err| err.into_graphql_error(PartialErrorCode::ExtensionError))?;
+                .map_err(|err| err.into_graphql_error(ErrorCode::ExtensionError))?;
 
             let mut results = Vec::new();
 
@@ -159,7 +158,7 @@ impl ExtensionRuntime<Arc<RequestContext>> for ExtensionsWasiRuntime {
                 match result {
                     Ok(data) => results.push(Ok(Data::CborBytes(data))),
                     Err(error) => {
-                        let error = error.into_graphql_error(PartialErrorCode::InternalServerError);
+                        let error = error.into_graphql_error(ErrorCode::InternalServerError);
                         results.push(Err(error))
                     }
                 }
@@ -181,7 +180,7 @@ impl ExtensionRuntime<Arc<RequestContext>> for ExtensionsWasiRuntime {
 
         match instance.authenticate(headers).await {
             Ok((headers, token)) => Ok((headers, token.into())),
-            Err(err) => Err(err.into_graphql_error_response(PartialErrorCode::Unauthenticated)),
+            Err(err) => Err(err.into_graphql_error_response(ErrorCode::Unauthenticated)),
         }
     }
 
@@ -189,7 +188,7 @@ impl ExtensionRuntime<Arc<RequestContext>> for ExtensionsWasiRuntime {
         &'ctx self,
         headers: http::HeaderMap,
         directive: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
-    ) -> Result<BoxStream<'f, Result<Arc<Data>, PartialGraphqlError>>, PartialGraphqlError>
+    ) -> Result<BoxStream<'f, Result<Arc<Data>, GraphqlError>>, GraphqlError>
     where
         'ctx: 'f,
     {
@@ -214,7 +213,7 @@ impl ExtensionRuntime<Arc<RequestContext>> for ExtensionsWasiRuntime {
         let (headers, key) = instance
             .subscription_key(headers, subgraph.name(), directive.clone())
             .await
-            .map_err(|err| err.into_graphql_error(PartialErrorCode::ExtensionError))?;
+            .map_err(|err| err.into_graphql_error(ErrorCode::ExtensionError))?;
 
         match key {
             Some(key) => {
@@ -285,12 +284,12 @@ impl ExtensionRuntime<Arc<RequestContext>> for ExtensionsWasiRuntime {
                 )
                 .await
                 .map(Into::into)
-                .map_err(|err| err.into_graphql_error_response(PartialErrorCode::Unauthorized))
+                .map_err(|err| err.into_graphql_error_response(ErrorCode::Unauthorized))
         }
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Hash, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ExtensionPoolId {
     Resolver(ExtensionId),
     Authorizer(ExtensionId, AuthorizerId),

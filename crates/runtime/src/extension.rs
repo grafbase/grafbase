@@ -7,10 +7,8 @@ use futures_util::stream::BoxStream;
 #[derive(Clone, Copy, PartialEq, Hash, Eq, PartialOrd, Ord, id_derives::Id)]
 pub struct AuthorizerId(u16);
 
-use crate::{
-    error::{ErrorResponse, PartialGraphqlError},
-    hooks::Anything,
-};
+use crate::hooks::Anything;
+use error::{ErrorResponse, GraphqlError};
 
 #[derive(Clone, Debug)]
 pub enum Data {
@@ -33,10 +31,10 @@ pub struct QueryElement<'a, A> {
 
 pub enum AuthorizationDecisions {
     GrantAll,
-    DenyAll(PartialGraphqlError),
+    DenyAll(GraphqlError),
     DenySome {
         element_to_error: Vec<(u32, u32)>,
-        errors: Vec<PartialGraphqlError>,
+        errors: Vec<GraphqlError>,
     },
 }
 
@@ -67,7 +65,7 @@ pub trait ExtensionRuntime<Ctx>: Send + Sync + 'static {
         headers: http::HeaderMap,
         directive: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
         inputs: impl Iterator<Item: Anything<'resp>> + Send,
-    ) -> impl Future<Output = Result<Vec<Result<Data, PartialGraphqlError>>, PartialGraphqlError>> + Send + 'f
+    ) -> impl Future<Output = Result<Vec<Result<Data, GraphqlError>>, GraphqlError>> + Send + 'f
     where
         'ctx: 'f;
 
@@ -75,7 +73,7 @@ pub trait ExtensionRuntime<Ctx>: Send + Sync + 'static {
         &'ctx self,
         headers: http::HeaderMap,
         directive: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
-    ) -> impl Future<Output = Result<BoxStream<'f, Result<Arc<Data>, PartialGraphqlError>>, PartialGraphqlError>> + Send + 'f
+    ) -> impl Future<Output = Result<BoxStream<'f, Result<Arc<Data>, GraphqlError>>, GraphqlError>> + Send + 'f
     where
         'ctx: 'f;
 
@@ -109,11 +107,11 @@ impl<Ctx: Send + Sync + 'static> ExtensionRuntime<Ctx> for () {
         _headers: http::HeaderMap,
         _directive_context: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
         _inputs: impl Iterator<Item: Anything<'resp>> + Send,
-    ) -> impl Future<Output = Result<Vec<Result<Data, PartialGraphqlError>>, PartialGraphqlError>> + Send + 'f
+    ) -> impl Future<Output = Result<Vec<Result<Data, GraphqlError>>, GraphqlError>> + Send + 'f
     where
         'ctx: 'f,
     {
-        async { Err(PartialGraphqlError::internal_extension_error()) }
+        async { Err(GraphqlError::internal_extension_error()) }
     }
 
     async fn authenticate(
@@ -124,7 +122,7 @@ impl<Ctx: Send + Sync + 'static> ExtensionRuntime<Ctx> for () {
     ) -> Result<(http::HeaderMap, Token), ErrorResponse> {
         Err(ErrorResponse {
             status: http::StatusCode::INTERNAL_SERVER_ERROR,
-            errors: vec![PartialGraphqlError::internal_extension_error()],
+            errors: vec![GraphqlError::internal_extension_error()],
         })
     }
 
@@ -132,11 +130,11 @@ impl<Ctx: Send + Sync + 'static> ExtensionRuntime<Ctx> for () {
         &'ctx self,
         _: http::HeaderMap,
         _: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
-    ) -> Result<BoxStream<'f, Result<Arc<Data>, PartialGraphqlError>>, PartialGraphqlError>
+    ) -> Result<BoxStream<'f, Result<Arc<Data>, GraphqlError>>, GraphqlError>
     where
         'ctx: 'f,
     {
-        Err(PartialGraphqlError::internal_extension_error())
+        Err(GraphqlError::internal_extension_error())
     }
 
     #[allow(clippy::manual_async_fn)]
@@ -155,7 +153,7 @@ impl<Ctx: Send + Sync + 'static> ExtensionRuntime<Ctx> for () {
         async {
             Err(ErrorResponse {
                 status: http::StatusCode::INTERNAL_SERVER_ERROR,
-                errors: vec![PartialGraphqlError::internal_extension_error()],
+                errors: vec![GraphqlError::internal_extension_error()],
             })
         }
     }

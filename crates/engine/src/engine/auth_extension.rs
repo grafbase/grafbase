@@ -1,7 +1,7 @@
+use error::ErrorResponse;
 use extension_catalog::ExtensionId;
 use runtime::{
     auth::LegacyToken,
-    error::ErrorResponse,
     extension::{AuthorizerId, ExtensionRuntime},
 };
 use schema::{AuthConfig, AuthProviderConfig};

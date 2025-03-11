@@ -1,10 +1,8 @@
 use engine::Engine;
+use engine::{ErrorCode, GraphqlError};
 use graphql_mocks::{EchoSchema, FakeGithubSchema, Stateful, Subgraph};
 use integration_tests::{federation::EngineExt, runtime};
-use runtime::{
-    error::{PartialErrorCode, PartialGraphqlError},
-    hooks::{DynHookContext, DynHooks, SubgraphRequest},
-};
+use runtime::hooks::{DynHookContext, DynHooks, SubgraphRequest};
 use url::Url;
 
 #[test]
@@ -18,7 +16,7 @@ fn can_modify_headers() {
             _context: &DynHookContext,
             _subgraph_name: &str,
             mut request: SubgraphRequest,
-        ) -> Result<SubgraphRequest, PartialGraphqlError> {
+        ) -> Result<SubgraphRequest, GraphqlError> {
             request.headers.insert("b", "22".parse().unwrap());
             request.headers.remove("c");
             Ok(request)
@@ -92,7 +90,7 @@ fn can_modify_url() {
                 _context: &DynHookContext,
                 _subgraph_name: &str,
                 mut request: SubgraphRequest,
-            ) -> Result<SubgraphRequest, PartialGraphqlError> {
+            ) -> Result<SubgraphRequest, GraphqlError> {
                 if request.headers.contains_key("redirect") {
                     request.url = self.url.clone();
                 }
@@ -161,8 +159,8 @@ fn error_is_propagated_back_to_the_user() {
             _context: &DynHookContext,
             _subgraph_name: &str,
             _request: SubgraphRequest,
-        ) -> Result<SubgraphRequest, PartialGraphqlError> {
-            Err(PartialGraphqlError::new("impossible error", PartialErrorCode::HookError).with_extension("foo", "bar"))
+        ) -> Result<SubgraphRequest, GraphqlError> {
+            Err(GraphqlError::new("impossible error", ErrorCode::HookError).with_extension("foo", "bar"))
         }
     }
 
@@ -206,11 +204,8 @@ fn error_code_is_propagated_back_to_the_user() {
             _context: &DynHookContext,
             _subgraph_name: &str,
             _request: SubgraphRequest,
-        ) -> Result<SubgraphRequest, PartialGraphqlError> {
-            Err(
-                PartialGraphqlError::new("impossible error", PartialErrorCode::HookError)
-                    .with_extension("code", "IMPOSSIBLE"),
-            )
+        ) -> Result<SubgraphRequest, GraphqlError> {
+            Err(GraphqlError::new("impossible error", ErrorCode::HookError).with_extension("code", "IMPOSSIBLE"))
         }
     }
 

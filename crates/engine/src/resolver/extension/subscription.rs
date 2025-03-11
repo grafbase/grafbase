@@ -43,7 +43,7 @@ impl FieldResolverExtension {
             .resolve_subscription(headers, extension_directive)
             .boxed()
             .await
-            .map_err(|err| GraphqlError::from(err).with_location(field.location()))?;
+            .map_err(|err| err.with_location(field.location()))?;
 
         let stream = stream
             .map_err(move |error| ExecutionError::from(error.to_string()))

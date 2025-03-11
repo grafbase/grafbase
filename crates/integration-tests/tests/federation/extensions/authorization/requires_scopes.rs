@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
-use engine::Engine;
+use engine::{Engine, ErrorCode, ErrorResponse, GraphqlError};
 use extension_catalog::Id;
 use graphql_mocks::dynamic::DynamicSchema;
 use integration_tests::{
@@ -9,7 +9,6 @@ use integration_tests::{
 };
 use runtime::{
     auth::LegacyToken,
-    error::{ErrorResponse, PartialErrorCode, PartialGraphqlError},
     extension::{AuthorizationDecisions, QueryElement, Token},
 };
 use serde::Deserialize;
@@ -61,7 +60,7 @@ impl TestExtension for AuthExt {
     async fn authenticate(&self, _headers: &http::HeaderMap) -> Result<Token, ErrorResponse> {
         self.token
             .clone()
-            .ok_or_else(|| PartialGraphqlError::new("No token found", PartialErrorCode::Unauthorized).into())
+            .ok_or_else(|| GraphqlError::new("No token found", ErrorCode::Unauthorized).into())
     }
 }
 
@@ -82,21 +81,16 @@ impl TestExtension for RequiresScopes {
         elements_grouped_by_directive_name: Vec<(&str, Vec<QueryElement<'_, serde_json::Value>>)>,
     ) -> Result<AuthorizationDecisions, ErrorResponse> {
         let LegacyToken::Extension(Token::Bytes(bytes)) = ctx.token() else {
-            return Err(PartialGraphqlError::new("No token found", PartialErrorCode::Unauthorized).into());
+            return Err(GraphqlError::new("No token found", ErrorCode::Unauthorized).into());
         };
         let token: serde_json::Value = serde_json::from_slice(bytes).unwrap();
 
         let Some(scopes) = token.get("scopes").and_then(|value| value.as_str()) else {
-            return Err(
-                PartialGraphqlError::new("No scopes claim found in token", PartialErrorCode::Unauthorized).into(),
-            );
+            return Err(GraphqlError::new("No scopes claim found in token", ErrorCode::Unauthorized).into());
         };
 
         let mut element_to_error = Vec::new();
-        let errors = vec![PartialGraphqlError::new(
-            "Not authorized",
-            PartialErrorCode::Unauthorized,
-        )];
+        let errors = vec![GraphqlError::unauthorized()];
 
         let mut i = 0;
         for (_, elements) in elements_grouped_by_directive_name {

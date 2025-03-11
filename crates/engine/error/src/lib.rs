@@ -1,13 +1,28 @@
-pub(crate) mod code;
+mod code;
 mod path;
 
-pub(crate) use code::*;
+pub use code::*;
 use operation::Location;
-pub(crate) use path::*;
+pub use path::*;
 use std::borrow::Cow;
 
+#[derive(Debug)]
+pub struct ErrorResponse {
+    pub status: http::StatusCode,
+    pub errors: Vec<GraphqlError>,
+}
+
+impl From<GraphqlError> for ErrorResponse {
+    fn from(error: GraphqlError) -> Self {
+        ErrorResponse {
+            status: error.code.into(),
+            errors: vec![error],
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
-pub(crate) struct GraphqlError {
+pub struct GraphqlError {
     pub message: Cow<'static, str>,
     pub code: ErrorCode,
     pub locations: Vec<Location>,
@@ -17,13 +32,6 @@ pub(crate) struct GraphqlError {
 }
 
 impl GraphqlError {
-    pub fn invalid_subgraph_response() -> Self {
-        GraphqlError::new(
-            "Invalid response from subgraph",
-            ErrorCode::SubgraphInvalidResponseError,
-        )
-    }
-
     pub fn new(message: impl Into<Cow<'static, str>>, code: ErrorCode) -> Self {
         GraphqlError {
             message: message.into(),
@@ -55,21 +63,46 @@ impl GraphqlError {
     #[must_use]
     pub fn with_extension(mut self, key: impl Into<Cow<'static, str>>, value: impl Into<serde_json::Value>) -> Self {
         let key = key.into();
-        debug_assert!(key != "code");
         self.extensions.push((key, value.into()));
         self
     }
-}
 
-impl From<runtime::error::PartialGraphqlError> for GraphqlError {
-    fn from(err: runtime::error::PartialGraphqlError) -> Self {
-        GraphqlError {
-            message: err.message,
-            code: err.code.into(),
-            extensions: err.extensions,
-            locations: Vec::new(),
-            path: None,
+    #[must_use]
+    pub fn with_extensions(
+        mut self,
+        extensions: impl IntoIterator<Item = (impl Into<Cow<'static, str>>, impl Into<serde_json::Value>)>,
+    ) -> Self {
+        for (key, value) in extensions {
+            self.extensions.push((key.into(), value.into()));
         }
+        self
+    }
+
+    // ------------- //
+    // Common errors //
+    // ------------- //
+
+    pub fn invalid_subgraph_response() -> Self {
+        GraphqlError::new(
+            "Invalid response from subgraph",
+            ErrorCode::SubgraphInvalidResponseError,
+        )
+    }
+
+    pub fn unauthorized() -> Self {
+        GraphqlError::new("Not authorized", ErrorCode::Unauthorized)
+    }
+
+    pub fn internal_server_error() -> Self {
+        GraphqlError::new("Internal server error", ErrorCode::InternalServerError)
+    }
+
+    pub fn internal_hook_error() -> Self {
+        GraphqlError::new("Internal hook error", ErrorCode::HookError)
+    }
+
+    pub fn internal_extension_error() -> Self {
+        GraphqlError::new("Internal extension error", ErrorCode::ExtensionError)
     }
 }
 

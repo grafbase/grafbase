@@ -1,9 +1,7 @@
+use engine::{ErrorCode, ErrorResponse, GraphqlError};
 use graphql_mocks::SecureSchema;
 use http::HeaderMap;
-use runtime::{
-    error::{ErrorResponse, PartialErrorCode, PartialGraphqlError},
-    hooks::{DynHookContext, DynHooks, EdgeDefinition},
-};
+use runtime::hooks::{DynHookContext, DynHooks, EdgeDefinition};
 
 use super::with_engine_for_auth;
 
@@ -19,16 +17,16 @@ fn arguments_are_provided() {
             _definition: EdgeDefinition<'_>,
             arguments: serde_json::Value,
             _metadata: Option<serde_json::Value>,
-        ) -> Result<(), PartialGraphqlError> {
+        ) -> Result<(), GraphqlError> {
             #[derive(serde::Deserialize)]
             struct Arguments {
                 id: i64,
             }
             let Arguments { id } = serde_json::from_value(arguments).unwrap();
             if id < 100 {
-                Err(PartialGraphqlError::new(
+                Err(GraphqlError::new(
                     format!("Unauthorized ID: {id}"),
-                    PartialErrorCode::Unauthorized,
+                    ErrorCode::Unauthorized,
                 ))
             } else {
                 Ok(())
@@ -123,14 +121,11 @@ fn metadata_is_provided() {
             _definition: EdgeDefinition<'_>,
             _arguments: serde_json::Value,
             metadata: Option<serde_json::Value>,
-        ) -> Result<(), PartialGraphqlError> {
+        ) -> Result<(), GraphqlError> {
             if extract_role(metadata.as_ref()) == Some("admin") {
                 Ok(())
             } else {
-                Err(PartialGraphqlError::new(
-                    "Unauthorized role",
-                    PartialErrorCode::Unauthorized,
-                ))
+                Err(GraphqlError::new("Unauthorized role", ErrorCode::Unauthorized))
             }
         }
     }
@@ -193,14 +188,11 @@ fn definition_is_provided() {
             definition: EdgeDefinition<'_>,
             _arguments: serde_json::Value,
             _metadata: Option<serde_json::Value>,
-        ) -> Result<(), PartialGraphqlError> {
+        ) -> Result<(), GraphqlError> {
             if definition.parent_type_name == "Check" && definition.field_name == "authorized" {
                 Ok(())
             } else {
-                Err(PartialGraphqlError::new(
-                    "Wrong definition",
-                    PartialErrorCode::Unauthorized,
-                ))
+                Err(GraphqlError::new("Wrong definition", ErrorCode::Unauthorized))
             }
         }
     }
@@ -298,14 +290,11 @@ fn context_is_propagated() {
             _definition: EdgeDefinition<'_>,
             _arguments: serde_json::Value,
             _metadata: Option<serde_json::Value>,
-        ) -> Result<(), PartialGraphqlError> {
+        ) -> Result<(), GraphqlError> {
             if context.get("client").is_some() {
                 Ok(())
             } else {
-                Err(PartialGraphqlError::new(
-                    "Missing client",
-                    PartialErrorCode::Unauthorized,
-                ))
+                Err(GraphqlError::new("Missing client", ErrorCode::Unauthorized))
             }
         }
     }
@@ -361,8 +350,8 @@ fn error_propagation() {
             _definition: EdgeDefinition<'_>,
             _arguments: serde_json::Value,
             _metadata: Option<serde_json::Value>,
-        ) -> Result<(), PartialGraphqlError> {
-            Err(PartialGraphqlError::new("Broken", PartialErrorCode::HookError))
+        ) -> Result<(), GraphqlError> {
+            Err(GraphqlError::new("Broken", ErrorCode::HookError))
         }
     }
 

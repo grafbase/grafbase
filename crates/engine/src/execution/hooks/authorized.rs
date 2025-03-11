@@ -1,8 +1,5 @@
 use futures::FutureExt;
-use runtime::{
-    error::PartialGraphqlError,
-    hooks::{AuthorizedHooks, EdgeDefinition, Hooks, NodeDefinition},
-};
+use runtime::hooks::{AuthorizedHooks, EdgeDefinition, Hooks, NodeDefinition};
 use schema::{Definition, FieldDefinition, SchemaInputValue};
 
 use crate::{
@@ -33,7 +30,6 @@ impl<H: Hooks> super::RequestHooks<'_, H> {
             //        Otherwise is not correctly evaluated to be Send due to the impl IntoIterator
             .boxed()
             .await
-            .map_err(Into::into)
     }
 
     pub async fn authorize_parent_edge_post_execution(
@@ -41,7 +37,7 @@ impl<H: Hooks> super::RequestHooks<'_, H> {
         definition: FieldDefinition<'_>,
         parents: ResponseObjectsView<'_>,
         metadata: Option<SchemaInputValue<'_>>,
-    ) -> Result<Vec<Result<(), PartialGraphqlError>>, GraphqlError> {
+    ) -> Result<Vec<Result<(), GraphqlError>>, GraphqlError> {
         self.hooks
             .authorized()
             .authorize_parent_edge_post_execution(
@@ -58,7 +54,6 @@ impl<H: Hooks> super::RequestHooks<'_, H> {
             //        Otherwise is not correctly evaluated to be Send due to the impl IntoIterator
             .boxed()
             .await
-            .map_err(Into::into)
     }
 
     pub async fn authorize_edge_node_post_execution(
@@ -66,7 +61,7 @@ impl<H: Hooks> super::RequestHooks<'_, H> {
         definition: FieldDefinition<'_>,
         nodes: ResponseObjectsView<'_>,
         metadata: Option<SchemaInputValue<'_>>,
-    ) -> Result<Vec<Result<(), PartialGraphqlError>>, GraphqlError> {
+    ) -> Result<Vec<Result<(), GraphqlError>>, GraphqlError> {
         self.hooks
             .authorized()
             .authorize_edge_node_post_execution(
@@ -83,7 +78,6 @@ impl<H: Hooks> super::RequestHooks<'_, H> {
             //        Otherwise is not correctly evaluated to be Send due to the impl IntoIterator
             .boxed()
             .await
-            .map_err(Into::into)
     }
 
     pub async fn authorize_node_pre_execution(
@@ -105,6 +99,5 @@ impl<H: Hooks> super::RequestHooks<'_, H> {
             //        Otherwise is not correctly evaluated to be Send due to the impl IntoIterator
             .boxed()
             .await
-            .map_err(Into::into)
     }
 }

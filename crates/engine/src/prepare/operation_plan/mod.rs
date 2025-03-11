@@ -3,11 +3,11 @@ mod error;
 mod model;
 mod query_modifications;
 
+use ::error::ErrorResponse;
 pub(crate) use error::*;
 pub(crate) use model::*;
 use operation::Variables;
 pub(crate) use query_modifications::*;
-use runtime::error::ErrorResponse;
 
 use crate::{
     ErrorCode, Runtime,
