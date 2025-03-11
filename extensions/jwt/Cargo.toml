@@ -6,7 +6,7 @@ license = "Apache-2.0"
 
 [dependencies]
 base64 = "0.22.1"
-duration-str = "0.13.0"
+duration-str = "0.14.0"
 grafbase-sdk = { path = "../../crates/grafbase-sdk" }
 jwt-compact = { version = "0.8.0", features = [
     "clock",

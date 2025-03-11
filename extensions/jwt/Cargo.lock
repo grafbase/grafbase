@@ -1442,16 +1442,16 @@ checksum = "92773504d58c093f6de2459af4af33faa518c13451eb8f2b5698ed3d36e7c813"
 
 [[package]]
 name = "duration-str"
-version = "0.13.0"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "99b55e40ba8fc1ef074c9f9031b4cb88bb1f30c946f80a9305df44973c0b9a2d"
+checksum = "6eb2bdbe6601297ff00d72e3f461a21e72df2c78ff64b176759f0326388569a4"
 dependencies = [
  "chrono",
  "rust_decimal",
  "serde",
  "thiserror 2.0.12",
  "time 0.3.39",
- "winnow 0.6.8",
+ "winnow",
 ]
 
 [[package]]
@@ -2076,7 +2076,6 @@ dependencies = [
  "insta",
  "lazy_static",
  "libc",
- "linux-raw-sys 0.4.15",
  "log",
  "memchr",
  "miette",
@@ -2110,6 +2109,7 @@ dependencies = [
  "reqwest 0.12.12",
  "rsa",
  "rustix 0.38.44",
+ "rustix 1.0.1",
  "rustls",
  "rustls-webpki",
  "sec1",
@@ -5485,7 +5485,7 @@ dependencies = [
  "serde",
  "serde_spanned",
  "toml_datetime",
- "winnow 0.7.3",
+ "winnow",
 ]
 
 [[package]]
@@ -6316,15 +6316,6 @@ name = "windows_x86_64_msvc"
 version = "0.52.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
-
-[[package]]
-name = "winnow"
-version = "0.6.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c3c52e9c97a68071b23e836c9380edae937f17b9c4667bd021973efc689f618d"
-dependencies = [
- "memchr",
-]
 
 [[package]]
 name = "winnow"
