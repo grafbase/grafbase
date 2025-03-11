@@ -93,7 +93,9 @@ fn object_field() {
                     "directive_site": "User.pets",
                     "items": [
                       {
-                        "name": "Peter"
+                        "fields": {
+                          "name": "Peter"
+                        }
                       }
                     ]
                   }
@@ -156,7 +158,9 @@ fn interface_field() {
                     "directive_site": "Node.weight",
                     "items": [
                       {
-                        "name": "Bob"
+                        "fields": {
+                          "name": "Bob"
+                        }
                       }
                     ]
                   }

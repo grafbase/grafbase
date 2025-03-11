@@ -150,7 +150,7 @@ impl<'op, R: Runtime> Builder<'op, '_, R> {
                     CompositeTypeId::maybe_from(field.definition().ty().definition_id).unwrap(),
                 ),
                 ResponseModifierRule::Extension { target, .. } => match target {
-                    ResponseModifierRuleTarget::Field(_) | ResponseModifierRuleTarget::FieldParentEntity(_) => {
+                    ResponseModifierRuleTarget::Field(_, _) | ResponseModifierRuleTarget::FieldParentEntity(_) => {
                         let output_id = if let Some(parent_field) = field.parent_field() {
                             parent_field.output_id.ok_or_else(|| {
                                 tracing::error!("Missing response object set id.");

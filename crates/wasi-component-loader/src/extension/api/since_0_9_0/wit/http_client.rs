@@ -1,4 +1,3 @@
-use anyhow::bail;
 use wasmtime::component::Resource;
 
 pub use super::grafbase::sdk::http_client::*;
@@ -9,7 +8,7 @@ impl Host for WasiState {}
 impl HostHttpClient for WasiState {
     async fn execute(&mut self, request: HttpRequest) -> wasmtime::Result<Result<HttpResponse, HttpError>> {
         if !self.network_enabled() {
-            bail!("Network operations are disabled");
+            return Ok(Err(HttpError::Connect("Network is disabled".into())));
         }
 
         let request_durations = self.request_durations().clone();
@@ -25,7 +24,10 @@ impl HostHttpClient for WasiState {
         requests: Vec<HttpRequest>,
     ) -> wasmtime::Result<Vec<Result<HttpResponse, HttpError>>> {
         if !self.network_enabled() {
-            bail!("Network operations are disabled");
+            return Ok(vec![
+                Err(HttpError::Connect("Network is disabled".into()));
+                requests.len()
+            ]);
         }
 
         let request_durations = self.request_durations().clone();

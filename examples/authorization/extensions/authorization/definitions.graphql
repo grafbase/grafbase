@@ -1,0 +1,8 @@
+extend schema @link(url: "https://specs.grafbase.com/grafbase", import: ["FieldSet", "InputValueSet"])
+
+# Define which scopes should be retrieve from auth server for the subraph token.
+directive @jwtScope(scopes: [String!]) on FIELD_DEFINITION | OBJECT | INTERFACE | SCALAR | ENUM
+
+# Used to identify sensitive objects and prevent them from being requested to the subgraph when used on a field definition
+# or from being sent back to the client we need to retrieve the id from the response.
+directive @accessControl(arguments: InputValueSet, fields: FieldSet) on OBJECT | FIELD_DEFINITION

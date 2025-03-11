@@ -1,6 +1,6 @@
 [package]
 name = "grafbase-gateway"
-version = "0.31.1"
+version = "0.31.2"
 edition.workspace = true
 license = "MPL-2.0"
 homepage.workspace = true
@@ -8,6 +8,7 @@ keywords.workspace = true
 repository.workspace = true
 
 [features]
+default = []
 lambda = [
     "federated-server/lambda",
     "tracing-subscriber/json",

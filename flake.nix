@@ -61,6 +61,7 @@
             hey
             k6
             go
+            hurl
 
             # binary bloat inspector
             cargo-bloat

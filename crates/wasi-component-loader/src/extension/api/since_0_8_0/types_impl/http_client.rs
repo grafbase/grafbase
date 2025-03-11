@@ -1,5 +1,4 @@
 use super::super::wit::grafbase::sdk::types;
-use anyhow::bail;
 use futures::TryFutureExt;
 use wasmtime::component::Resource;
 
@@ -11,7 +10,7 @@ impl types::HostHttpClient for WasiState {
         request: types::HttpRequest,
     ) -> wasmtime::Result<Result<types::HttpResponse, types::HttpError>> {
         if !self.network_enabled() {
-            bail!("Network operations are disabled");
+            return Ok(Err(types::HttpError::Connect("Network is disabled".into())));
         }
 
         let request_durations = self.request_durations().clone();
@@ -27,7 +26,10 @@ impl types::HostHttpClient for WasiState {
         requests: Vec<types::HttpRequest>,
     ) -> wasmtime::Result<Vec<Result<types::HttpResponse, types::HttpError>>> {
         if !self.network_enabled() {
-            bail!("Network operations are disabled");
+            return Ok(vec![
+                Err(types::HttpError::Connect("Network is disabled".into()));
+                requests.len()
+            ]);
         }
 
         let request_durations = self.request_durations().clone();

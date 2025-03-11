@@ -1,0 +1,3 @@
+[subgraphs.users]
+url = "http://localhost:4000/graphql"
+schema_path = "subgraphs/users/schema.graphql"

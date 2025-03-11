@@ -1,0 +1,28 @@
+FROM rust:1.85.1-alpine3.20 AS builder
+
+WORKDIR /var/lib/grafbase
+RUN apk --no-cache add curl bash musl-dev && curl -fsSL https://grafbase.com/downloads/cli | bash -s 0.88.0 && mv ~/.grafbase/bin/grafbase /usr/bin/grafbase
+COPY extensions ./extensions
+
+RUN cd extensions/authentication \
+    && /usr/bin/grafbase extension build \
+    && cd ../authorization \
+    && /usr/bin/grafbase extension build
+
+COPY subgraphs/users/schema.graphql ./subgraphs/users/schema.graphql
+COPY overrides.toml ./
+RUN /usr/bin/grafbase compose -o overrides.toml > federated-schema.graphql
+
+FROM ghcr.io/grafbase/gateway:latest
+
+COPY --from=builder /var/lib/grafbase/extensions/authorization/build /var/lib/grafbase/extensions/authorization/build
+COPY --from=builder /var/lib/grafbase/extensions/authentication/build /var/lib/grafbase/extensions/authentication/build
+COPY --from=builder /var/lib/grafbase/federated-schema.graphql /var/lib/grafbase/federated-schema.graphql
+COPY grafbase.toml /var/lib/grafbase/grafbase.toml
+
+
+ENTRYPOINT ["/bin/grafbase-gateway"]
+CMD ["--config", "/var/lib/grafbase/grafbase.toml", "--schema", "/var/lib/grafbase/federated-schema.graphql", "--listen-address", "0.0.0.0:5000"]
+
+EXPOSE 5000
+

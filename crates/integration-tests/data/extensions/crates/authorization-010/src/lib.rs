@@ -27,15 +27,14 @@ struct DeniedIds {
 
 #[serde_with::serde_as]
 #[derive(serde::Deserialize)]
-struct Object<'a> {
-    #[serde(borrow, flatten)]
+struct ResponseArguments<'a> {
+    #[serde(borrow)]
     #[serde_as(as = "serde_with::Map<_, _>")]
     fields: Vec<(&'a str, serde_json::Value)>,
 }
 
-impl Object<'_> {
+impl ResponseArguments<'_> {
     fn id_as_u32(&self) -> u32 {
-        println!("{:#?}", self.fields);
         self.fields.first().and_then(|(_, value)| value.as_u64()).unwrap() as u32
     }
 }
@@ -56,7 +55,6 @@ impl AuthorizationExtension for CustomAuthorization {
         let error_id = builder.push_error(Error::new("Not authorized, query auth SDK010"));
 
         for (name, elements) in elements.iter_grouped_by_directive_name() {
-            println!("{name}");
             match name {
                 "deniedIds" => {
                     for element in elements {
@@ -101,7 +99,7 @@ impl AuthorizationExtension for CustomAuthorization {
                 .find(|denied| denied.query_element_id == u32::from(element.query_element_id()))
             {
                 for item in element.items() {
-                    let object: Object<'_> = item.deserialize()?;
+                    let object: ResponseArguments<'_> = item.deserialize()?;
                     if denied.denied_ids.contains(&(object.id_as_u32().into())) {
                         builder.deny_with_error_id(item, error_id);
                     }

@@ -31,8 +31,13 @@ impl FieldResolverExtension {
         let query_view =
             create_extension_directive_query_view(ctx.schema(), directive, field.arguments(), ctx.variables());
 
-        let response_view =
-            create_extension_directive_response_view(query_view.ctx, directive, root_response_objects.clone());
+        let response_view = create_extension_directive_response_view(
+            ctx.schema(),
+            directive,
+            field.arguments(),
+            ctx.variables(),
+            root_response_objects.clone(),
+        );
 
         let extension_directive = ExtensionFieldDirective {
             extension_id: directive.extension_id,

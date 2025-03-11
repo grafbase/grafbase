@@ -75,7 +75,9 @@ fn object_field() {
                     "directive_site": "Node",
                     "items": [
                       {
-                        "name": "Bob"
+                        "fields": {
+                          "name": "Bob"
+                        }
                       }
                     ]
                   }

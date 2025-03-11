@@ -112,7 +112,9 @@ fn object() {
                     "directive_site": "User",
                     "items": [
                       {
-                        "name": "Peter"
+                        "fields": {
+                          "name": "Peter"
+                        }
                       }
                     ]
                   }
@@ -173,10 +175,14 @@ fn object_within_list() {
                     "directive_site": "User",
                     "items": [
                       {
-                        "name": "Peter"
+                        "fields": {
+                          "name": "Peter"
+                        }
                       },
                       {
-                        "name": "Alice"
+                        "fields": {
+                          "name": "Alice"
+                        }
                       }
                     ]
                   }
@@ -212,10 +218,14 @@ fn object_within_list() {
                     "directive_site": "User",
                     "items": [
                       {
-                        "name": "Peter"
+                        "fields": {
+                          "name": "Peter"
+                        }
                       },
                       {
-                        "name": "Alice"
+                        "fields": {
+                          "name": "Alice"
+                        }
                       }
                     ]
                   }
@@ -281,7 +291,9 @@ fn object_within_union() {
                     "directive_site": "Dog",
                     "items": [
                       {
-                        "name": "Max"
+                        "fields": {
+                          "name": "Max"
+                        }
                       }
                     ]
                   }
@@ -339,7 +351,9 @@ fn object_behind_interface() {
                     "directive_site": "User",
                     "items": [
                       {
-                        "name": "Bob"
+                        "fields": {
+                          "name": "Bob"
+                        }
                       }
                     ]
                   }
