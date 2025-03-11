@@ -1,0 +1,81 @@
+interface http-client {
+    // A HTTP client.
+    resource http-client {
+        // Executes a request and returns the response, yielding the current future until finished.
+        execute: static func(request: http-request) -> result<http-response, http-error>;
+        // Executes multiple requests in parallel, yielding the current future until all requests are done.
+        execute-many: static func(requests: list<http-request>) -> list<result<http-response, http-error>>;
+    }
+
+    // A HTTP request.
+    record http-request {
+        // The HTTP method.
+        method: http-method,
+        // The URL to send the request to.
+        url: string,
+        // The headers to send with the request. Keys and values must be ASCII strings.
+        headers: list<tuple<string, string>>,
+        // The body of the request. If the body is set, the Content-Type header must be set.
+        body: list<u8>,
+        // The timeout in milliseconds for the request. If not set, no timeout is used.
+        timeout-ms: option<u64>,
+    }
+
+    // The HTTP method.
+    enum http-method {
+        // The GET method requests a representation of the specified resource. Requests using GET should only retrieve data.
+        get,
+        // The POST method is used to submit an entity to the specified resource, often causing a change in state or side effects on the server.
+        post,
+        // The PUT method replaces all current representations of the target resource with the request payload.
+        put,
+        // The DELETE method deletes the specified resource.
+        delete,
+        // The PATCH method is used to apply partial modifications to a resource.
+        patch,
+        // The HEAD method asks for a response identical to that of a GET request, but without the response body.
+        head,
+        // The OPTIONS method is used to describe the communication options for the target resource.
+        options,
+        // The CONNECT method establishes a tunnel to the server identified by the target resource.
+        connect,
+        // The TRACE method performs a message loop-back test along the path to the target resource.
+        trace,
+    }
+
+    // An HTTP response.
+    record http-response {
+        // The HTTP status code.
+        status: u16,
+        // The HTTP version.
+        version: http-version,
+        // The headers of the response.
+        headers: list<tuple<string, string>>,
+        // The body of the response.
+        body: list<u8>,
+    }
+
+    // The HTTP version.
+    enum http-version {
+        // The HTTP/0.9 version.
+        http09,
+        // The HTTP/1.0 version.
+        http10,
+        // The HTTP/1.1 version.
+        http11,
+        // The HTTP/2.0 version.
+        http20,
+        // The HTTP/3.0 version.
+        http30,
+    }
+
+    // An HTTP error.
+    variant http-error {
+        // The request timed out.
+        timeout,
+        // The request failed due to an error (invalid user data).
+        request(string),
+        // The request failed due to an error (server connection failed).
+        connect(string),
+    }
+}

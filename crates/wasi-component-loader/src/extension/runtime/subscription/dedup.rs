@@ -8,7 +8,7 @@ use runtime::{
 use tokio::sync::broadcast;
 use tokio_stream::{StreamExt, wrappers::BroadcastStream};
 
-use crate::extension::{pool::ExtensionGuard, runtime::Subscriptions, wit};
+use crate::extension::{api::wit, pool::ExtensionGuard, runtime::Subscriptions};
 
 use super::SubscriptionStream;
 
@@ -24,7 +24,7 @@ pub struct DeduplicatedSubscription<'ctx, 'wit> {
     pub headers: http::HeaderMap,
     pub key: Vec<u8>,
     pub subgraph: Subgraph<'ctx>,
-    pub directive: wit::FieldDefinitionDirective<'wit>,
+    pub directive: wit::directive::FieldDefinitionDirective<'wit>,
 }
 
 impl<'ctx> DeduplicatedSubscription<'ctx, '_> {

@@ -1,22 +1,26 @@
 use std::sync::Arc;
 
-use super::{instance::ExtensionInstance, wit};
+use super::{
+    api::{self, SdkPre, wit::directive},
+    instance::ExtensionInstance,
+};
+use crate::{cache::Cache, config::build_extensions_context, state::WasiState};
 use anyhow::Context;
 use gateway_config::WasiExtensionsConfig;
+use semver::Version;
 use wasmtime::{
-    Engine, Store,
+    Engine,
     component::{Component, Linker},
 };
 
-use crate::{cache::Cache, config::build_extensions_context, state::WasiState};
 pub struct ExtensionLoader {
     component_config: WasiExtensionsConfig,
     guest_config: Vec<u8>,
     #[allow(unused)] // MUST be unused, or at least immutable, we self-reference to it
     schema_directives: Vec<SchemaDirective>,
     // Self-reference to schema_directives
-    wit_schema_directives: Vec<wit::SchemaDirective<'static>>,
-    pre: wit::SdkPre<WasiState>,
+    wit_schema_directives: Vec<directive::SchemaDirective<'static>>,
+    pre: SdkPre,
     cache: Arc<Cache>,
     shared: crate::resources::SharedResources,
 }
@@ -48,6 +52,7 @@ impl ExtensionLoader {
         shared: crate::resources::SharedResources,
         component_config: impl Into<WasiExtensionsConfig>,
         guest_config: ExtensionGuestConfig<T>,
+        sdk_version: Version,
     ) -> crate::Result<Self>
     where
         T: serde::Serialize,
@@ -77,22 +82,22 @@ impl ExtensionLoader {
             wasmtime_wasi_http::add_only_http_to_linker_async(&mut linker)?;
         }
 
-        wit::add_to_linker(&mut linker, |state| state)?;
+        api::add_to_linker(&sdk_version, &mut linker)?;
 
-        let instnace_pre = linker.instantiate_pre(&component)?;
-        let pre = wit::SdkPre::<WasiState>::new(instnace_pre)?;
+        let pre = api::intialize_sdk_pre(&sdk_version, &component, &linker)?;
         let schema_directives = guest_config.schema_directives;
+
         let wit_schema_directives = schema_directives
             .iter()
             .map(|dir| {
-                let dir = wit::SchemaDirective {
+                let dir = directive::SchemaDirective {
                     name: &dir.name,
                     subgraph_name: &dir.subgraph_name,
                     arguments: &dir.arguments,
                 };
                 // SAFETY: Self-reference to schema_directives which is kept alive and never
                 // changed.
-                let dir: wit::SchemaDirective<'static> = unsafe { std::mem::transmute(dir) };
+                let dir: directive::SchemaDirective<'static> = unsafe { std::mem::transmute(dir) };
                 dir
             })
             .collect();
@@ -109,7 +114,7 @@ impl ExtensionLoader {
         })
     }
 
-    pub async fn instantiate(&self) -> crate::Result<ExtensionInstance> {
+    pub async fn instantiate(&self) -> crate::Result<Box<dyn ExtensionInstance + Send + 'static>> {
         let state = WasiState::new(
             build_extensions_context(&self.component_config),
             self.shared.access_log.clone(),
@@ -117,20 +122,6 @@ impl ExtensionLoader {
             self.component_config.networking,
         );
 
-        let mut store = Store::new(self.pre.engine(), state);
-
-        let inner = self.pre.instantiate_async(&mut store).await?;
-        inner.call_register_extension(&mut store).await?;
-
-        inner
-            .grafbase_sdk_extension()
-            .call_init_gateway_extension(&mut store, &self.wit_schema_directives, &self.guest_config)
-            .await??;
-
-        Ok(ExtensionInstance {
-            store,
-            inner,
-            poisoned: false,
-        })
+        api::instantiate(&self.pre, state, &self.wit_schema_directives, &self.guest_config).await
     }
 }

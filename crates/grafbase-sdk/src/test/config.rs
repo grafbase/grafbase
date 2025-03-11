@@ -103,7 +103,7 @@ impl TestConfigBuilder {
 
     /// Specifies a path to a pre-built extension. If not defined, the extension will be built.
     pub fn with_extension(mut self, extension_path: impl Into<PathBuf>) -> Self {
-        self.extension_path = Some(extension_path.into());
+        self.extension_path = Some(extension_path.into().canonicalize().unwrap());
         self
     }
 

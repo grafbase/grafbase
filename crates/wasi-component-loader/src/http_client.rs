@@ -1,4 +1,5 @@
 use crate::{
+    extension::api::wit::grafbase::sdk::http_client::{HttpError, HttpRequest, HttpResponse},
     names::{HTTP_CLIENT_EXECUTE_FUNCTION, HTTP_CLIENT_EXECUTE_MANY_FUNCTION, HTTP_CLIENT_RESOURCE},
     state::WasiState,
 };
@@ -16,8 +17,6 @@ use wasmtime::{
     StoreContextMut,
     component::{LinkerInstance, ResourceType},
 };
-
-pub use crate::extension::wit::{HttpError, HttpRequest, HttpResponse};
 
 pub(crate) fn inject_mapping(types: &mut LinkerInstance<'_, WasiState>) -> crate::Result<()> {
     types.resource(HTTP_CLIENT_RESOURCE, ResourceType::host::<()>(), |_, _| Ok(()))?;

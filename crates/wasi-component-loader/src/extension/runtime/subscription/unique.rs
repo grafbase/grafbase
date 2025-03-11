@@ -1,7 +1,7 @@
 use std::{collections::VecDeque, sync::Arc};
 
 use super::SubscriptionStream;
-use crate::extension::{pool::ExtensionGuard, wit};
+use crate::extension::{api::wit, pool::ExtensionGuard};
 use engine_schema::Subgraph;
 use futures::stream;
 use runtime::{
@@ -16,7 +16,7 @@ pub struct UniqueSubscription<'ctx, 'wit> {
     pub instance: ExtensionGuard,
     pub headers: http::HeaderMap,
     pub subgraph: Subgraph<'ctx>,
-    pub directive: wit::FieldDefinitionDirective<'wit>,
+    pub directive: wit::directive::FieldDefinitionDirective<'wit>,
 }
 
 impl<'ctx> UniqueSubscription<'ctx, '_> {

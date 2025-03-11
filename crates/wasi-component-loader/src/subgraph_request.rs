@@ -5,7 +5,7 @@ use wasmtime::{
 };
 
 use crate::{
-    extension::wit::HttpMethod,
+    extension::api::wit::grafbase::sdk::http_client::HttpMethod,
     headers::Headers,
     names::{
         SUBGRAPH_REQUEST_GET_HEADERS_METHOD, SUBGRAPH_REQUEST_GET_METHOD_METHOD, SUBGRAPH_REQUEST_GET_URL_METHOD,

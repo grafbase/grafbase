@@ -1935,7 +1935,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "anyhow",
  "async-tungstenite",
@@ -2066,7 +2066,6 @@ dependencies = [
  "insta",
  "lazy_static",
  "libc",
- "linux-raw-sys 0.4.15",
  "log",
  "memchr",
  "miette",
@@ -2100,6 +2099,7 @@ dependencies = [
  "reqwest",
  "rsa",
  "rustix 0.38.44",
+ "rustix 1.0.1",
  "rustls",
  "rustls-webpki",
  "sec1",

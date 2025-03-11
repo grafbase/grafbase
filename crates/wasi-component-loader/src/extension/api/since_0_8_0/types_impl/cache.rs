@@ -1,11 +1,10 @@
 use wasmtime::component::Resource;
 
-use crate::{
-    WasiState,
-    extension::wit::{Cache, HostCache},
-};
+use crate::WasiState;
 
-impl HostCache for WasiState {
+use super::super::wit::grafbase::sdk::types;
+
+impl types::HostCache for WasiState {
     async fn get(&mut self, key: String) -> wasmtime::Result<Option<Vec<u8>>> {
         Ok(self.cache().get(&key).await)
     }
@@ -15,7 +14,7 @@ impl HostCache for WasiState {
         Ok(())
     }
 
-    async fn drop(&mut self, _: Resource<Cache>) -> wasmtime::Result<()> {
+    async fn drop(&mut self, _: Resource<types::Cache>) -> wasmtime::Result<()> {
         // Singleton that is never allocated
         Ok(())
     }

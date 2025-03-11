@@ -1,0 +1,10 @@
+interface headers {
+    // A resource for accessing HTTP headers.
+    resource headers {
+        // Retrieves the value of a header by name.
+        // Returns None if the header does not exist.
+        get: func(name: string) -> option<string>;
+        // Return all headers as a list of tuples.
+        entries: func() -> list<tuple<string, string>>;
+    }
+}

@@ -96,7 +96,10 @@ impl TestRunner {
             federated_graph,
         };
 
-        this.build_extension(&extension_path)?;
+        if this.config.extension_path.is_none() {
+            this.build_extension(&extension_path)?;
+        }
+
         this.start_servers(&extension_name, &extension_path).await?;
 
         Ok(this)

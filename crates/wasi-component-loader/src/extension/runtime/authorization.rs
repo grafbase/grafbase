@@ -1,15 +1,15 @@
 use runtime::error::PartialErrorCode;
 
-use crate::extension::wit;
+use crate::extension::api::wit::authorization as wit_latest;
 
-impl From<wit::AuthorizationDecisions> for runtime::extension::AuthorizationDecisions {
-    fn from(decisions: wit::AuthorizationDecisions) -> Self {
+impl From<wit_latest::AuthorizationDecisions> for runtime::extension::AuthorizationDecisions {
+    fn from(decisions: wit_latest::AuthorizationDecisions) -> Self {
         match decisions {
-            wit::AuthorizationDecisions::GrantAll => runtime::extension::AuthorizationDecisions::GrantAll,
-            wit::AuthorizationDecisions::DenyAll(error) => runtime::extension::AuthorizationDecisions::DenyAll(
+            wit_latest::AuthorizationDecisions::GrantAll => runtime::extension::AuthorizationDecisions::GrantAll,
+            wit_latest::AuthorizationDecisions::DenyAll(error) => runtime::extension::AuthorizationDecisions::DenyAll(
                 error.into_graphql_error(PartialErrorCode::Unauthorized),
             ),
-            wit::AuthorizationDecisions::DenySome(wit::AuthorizationDecisionsDenySome {
+            wit_latest::AuthorizationDecisions::DenySome(wit_latest::AuthorizationDecisionsDenySome {
                 element_to_error,
                 errors,
             }) => {
@@ -17,6 +17,7 @@ impl From<wit::AuthorizationDecisions> for runtime::extension::AuthorizationDeci
                     .into_iter()
                     .map(|err| err.into_graphql_error(PartialErrorCode::Unauthorized))
                     .collect();
+
                 runtime::extension::AuthorizationDecisions::DenySome {
                     element_to_error,
                     errors,
