@@ -1,0 +1,27 @@
+services:
+  users:
+    restart: unless-stopped
+    network_mode: 'host'
+    build:
+      context: ./subgraphs/users
+      args:
+        BINARY_NAME: users-subgraph
+      dockerfile: ../../Dockerfile.rust
+    container_name: users
+  auth-service:
+    restart: unless-stopped
+    network_mode: 'host'
+    build:
+      context: ./auth-service
+      args:
+        BINARY_NAME: auth-service
+      dockerfile: ../Dockerfile.rust
+    container_name: auth-service
+  gateway:
+    restart: unless-stopped
+    network_mode: 'host'
+    build:
+      dockerfile: ./Dockerfile.gateway
+    container_name: gateway
+    environment:
+      AUTH_SERVICE_URL: 'http://localhost:4001'
