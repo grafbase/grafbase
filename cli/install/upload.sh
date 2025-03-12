@@ -34,7 +34,7 @@ env -i \
     AWS_REGION=auto \
     AWS_ACCESS_KEY_ID="$CLOUDFLARE_ASSETS_R2_ACCESS_KEY_ID" \
     AWS_SECRET_ACCESS_KEY="$CLOUDFLARE_ASSETS_R2_SECRET_ACCESS_KEY" \
-    aws --endpoint-url "$endpoint_url" s3 cp --no-progress "$1" "$s3_path"
+    aws --endpoint-url "$endpoint_url" s3 cp --no-progress "$1" "$s3_path" --checksum-algorithm=CRC32
 
 env -i \
     PATH="$PATH" \
