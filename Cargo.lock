@@ -3552,7 +3552,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase"
-version = "0.87.1"
+version = "0.87.2"
 dependencies = [
  "anyhow",
  "askama",
@@ -3632,7 +3632,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-gateway"
-version = "0.30.1"
+version = "0.30.2"
 dependencies = [
  "anyhow",
  "ascii",
