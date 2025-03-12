@@ -1,7 +1,7 @@
 use std::{
     any::{Any, TypeId},
     collections::HashMap,
-    sync::Arc,
+    sync::{Arc, Mutex},
 };
 
 use futures_util::{future::BoxFuture, FutureExt};
@@ -139,7 +139,7 @@ pub trait DynHooks: Send + Sync + 'static {
 #[derive(Default, Clone)]
 pub struct DynHookContext {
     by_type: HashMap<TypeId, Arc<dyn Any + Sync + Send>>,
-    by_name: HashMap<String, String>,
+    by_name: Arc<Mutex<HashMap<String, serde_json::Value>>>,
 }
 
 impl DynHookContext {
@@ -159,12 +159,12 @@ impl DynHookContext {
         self.by_type.insert(TypeId::of::<T>(), Arc::new(value));
     }
 
-    pub fn get(&self, name: &str) -> Option<&String> {
-        self.by_name.get(name)
+    pub fn get(&self, name: &str) -> Option<serde_json::Value> {
+        self.by_name.lock().unwrap().get(name).cloned()
     }
 
-    pub fn insert(&mut self, name: impl Into<String>, value: impl Into<String>) {
-        self.by_name.insert(name.into(), value.into());
+    pub fn insert(&self, name: impl Into<String>, value: impl Into<serde_json::Value>) {
+        self.by_name.lock().unwrap().insert(name.into(), value.into());
     }
 }
 

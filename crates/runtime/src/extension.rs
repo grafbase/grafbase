@@ -29,6 +29,7 @@ pub struct QueryElement<'a, A> {
     pub arguments: A,
 }
 
+#[derive(Debug)]
 pub enum AuthorizationDecisions {
     GrantAll,
     DenyAll(GraphqlError),
@@ -87,7 +88,8 @@ pub trait ExtensionRuntime<Ctx>: Send + Sync + 'static {
     fn authorize_query<'ctx, 'fut, Groups, QueryElements, Arguments>(
         &'ctx self,
         extension_id: ExtensionId,
-        ctx: Ctx,
+        ctx: &'ctx Ctx,
+        wasm_context: &'ctx Self::SharedContext,
         elements_grouped_by_directive_name: Groups,
     ) -> impl Future<Output = Result<AuthorizationDecisions, ErrorResponse>> + Send + 'fut
     where
@@ -95,6 +97,18 @@ pub trait ExtensionRuntime<Ctx>: Send + Sync + 'static {
         Groups: ExactSizeIterator<Item = (&'ctx str, QueryElements)>,
         QueryElements: ExactSizeIterator<Item = QueryElement<'ctx, Arguments>>,
         Arguments: Anything<'ctx>;
+
+    fn authorize_response<'ctx, 'fut>(
+        &'ctx self,
+        extension_id: ExtensionId,
+        ctx: &'ctx Ctx,
+        wasm_context: &'ctx Self::SharedContext,
+        directive_name: &'ctx str,
+        directive_site: DirectiveSite<'ctx>,
+        items: impl IntoIterator<Item: Anything<'ctx>>,
+    ) -> impl Future<Output = Result<AuthorizationDecisions, GraphqlError>> + Send + 'fut
+    where
+        'ctx: 'fut;
 }
 
 #[allow(refining_impl_trait)]
@@ -141,7 +155,8 @@ impl<Ctx: Send + Sync + 'static> ExtensionRuntime<Ctx> for () {
     fn authorize_query<'ctx, 'fut, Groups, QueryElements, Arguments>(
         &'ctx self,
         _: ExtensionId,
-        _: Ctx,
+        _: &'ctx Ctx,
+        _: &'ctx Self::SharedContext,
         _: Groups,
     ) -> impl Future<Output = Result<AuthorizationDecisions, ErrorResponse>> + Send + 'fut
     where
@@ -156,5 +171,21 @@ impl<Ctx: Send + Sync + 'static> ExtensionRuntime<Ctx> for () {
                 errors: vec![GraphqlError::internal_extension_error()],
             })
         }
+    }
+
+    #[allow(clippy::manual_async_fn)]
+    fn authorize_response<'ctx, 'fut>(
+        &'ctx self,
+        _: ExtensionId,
+        _: &'ctx Ctx,
+        _: &'ctx Self::SharedContext,
+        _: &'ctx str,
+        _: DirectiveSite<'_>,
+        _: impl IntoIterator<Item: Anything<'ctx>>,
+    ) -> impl Future<Output = Result<AuthorizationDecisions, GraphqlError>> + Send + 'fut
+    where
+        'ctx: 'fut,
+    {
+        async { Err(GraphqlError::internal_extension_error()) }
     }
 }

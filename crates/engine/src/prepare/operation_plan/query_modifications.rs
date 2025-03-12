@@ -14,8 +14,8 @@ use crate::{
     Runtime,
     prepare::{
         CachedOperation, CachedOperationContext, ConcreteShapeId, ErrorCode, FieldShapeId, GraphqlError,
-        ModifierTarget, PartitionDataFieldId, PartitionField, PartitionTypenameFieldId, PrepareContext,
-        QueryModifierByDirectiveGroupId, QueryModifierId, QueryModifierRecord, QueryModifierRule,
+        PartitionDataFieldId, PartitionField, PartitionTypenameFieldId, PrepareContext,
+        QueryModifierByDirectiveGroupId, QueryModifierId, QueryModifierRecord, QueryModifierRule, QueryModifierTarget,
         QueryOrStaticExtensionDirectiveArugmentsView, RequiredFieldSetRecord, create_extension_directive_query_view,
     },
 };
@@ -138,13 +138,7 @@ where
                 .map(move |(directive_id, target)| {
                     let directive = directive_id.walk(operation_ctx);
                     let element = match target {
-                        ModifierTarget::Field(definition) => QueryElement {
-                            site: DirectiveSiteId::from(*definition).walk(operation_ctx),
-                            arguments: QueryOrStaticExtensionDirectiveArugmentsView::Static(
-                                directive.static_arguments(),
-                            ),
-                        },
-                        ModifierTarget::FieldWithArguments(definition, argument_ids) => QueryElement {
+                        QueryModifierTarget::FieldWithArguments(definition, argument_ids) => QueryElement {
                             site: DirectiveSiteId::from(*definition).walk(operation_ctx),
                             arguments: QueryOrStaticExtensionDirectiveArugmentsView::Query(
                                 create_extension_directive_query_view(
@@ -155,8 +149,8 @@ where
                                 ),
                             ),
                         },
-                        ModifierTarget::Definition(definition) => QueryElement {
-                            site: DirectiveSiteId::from(*definition).walk(operation_ctx),
+                        QueryModifierTarget::Site(id) => QueryElement {
+                            site: id.walk(operation_ctx),
                             arguments: QueryOrStaticExtensionDirectiveArugmentsView::Static(
                                 directive.static_arguments(),
                             ),
@@ -170,7 +164,8 @@ where
         ctx.extensions()
             .authorize_query(
                 extension_id,
-                ctx.request_context.clone(),
+                ctx.request_context,
+                &ctx.hooks_context,
                 elements_grouped_by_directive_name,
             )
             .boxed()
@@ -354,9 +349,6 @@ where
                 let field = item.data_field_id.walk(operation_ctx);
                 if !field.required_fields_record.is_empty() {
                     requires_stack.push(&field.as_ref().required_fields_record);
-                }
-                if !field.required_fields_record_by_supergraph.is_empty() {
-                    requires_stack.push(&field.as_ref().required_fields_record_by_supergraph);
                 }
             }
         }

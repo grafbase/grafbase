@@ -1,14 +1,18 @@
 use std::sync::Arc;
 
-use engine::{Engine, ErrorResponse};
+use engine::{Engine, ErrorResponse, GraphqlError};
+use engine_schema::DirectiveSite;
 use graphql_mocks::dynamic::DynamicSchema;
 use integration_tests::{
     federation::{EngineExt, TestExtension},
     runtime,
 };
-use runtime::extension::{AuthorizationDecisions, QueryElement};
+use runtime::{
+    extension::{AuthorizationDecisions, QueryElement},
+    hooks::DynHookContext,
+};
 
-use crate::federation::extensions::authorization::SimpleAuthExt;
+use crate::federation::extensions::authorization::AuthorizationExt;
 
 #[derive(Default)]
 pub(super) struct GrantAll;
@@ -16,11 +20,23 @@ pub(super) struct GrantAll;
 #[async_trait::async_trait]
 impl TestExtension for GrantAll {
     #[allow(clippy::manual_async_fn)]
-    async fn authorize_query<'a>(
+    async fn authorize_query(
         &self,
         _ctx: Arc<engine::RequestContext>,
+        _: &DynHookContext,
         _elements_grouped_by_directive_name: Vec<(&str, Vec<QueryElement<'_, serde_json::Value>>)>,
     ) -> Result<AuthorizationDecisions, ErrorResponse> {
+        Ok(AuthorizationDecisions::GrantAll)
+    }
+
+    async fn authorize_response(
+        &self,
+        _ctx: Arc<engine::RequestContext>,
+        _wasm_context: &DynHookContext,
+        _directive_name: &str,
+        _directive_site: DirectiveSite<'_>,
+        _items: Vec<serde_json::Value>,
+    ) -> Result<AuthorizationDecisions, GraphqlError> {
         Ok(AuthorizationDecisions::GrantAll)
     }
 }
@@ -32,7 +48,7 @@ fn can_grant_all() {
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
-                extend schema @link(url: "simple-auth-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
 
                 type Query {
                     greeting: String @auth
@@ -44,7 +60,7 @@ fn can_grant_all() {
                 .with_resolver("Query", "greeting", serde_json::Value::String("Hi!".to_owned()))
                 .into_subgraph("x"),
             )
-            .with_extension(SimpleAuthExt::new(GrantAll))
+            .with_extension(AuthorizationExt::new(GrantAll))
             .build()
             .await;
 

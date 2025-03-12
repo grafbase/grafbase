@@ -1,16 +1,27 @@
 mod authorization;
 mod subscription;
 
-use crate::{cbor, extension::ExtensionLoader, resources::SharedResources};
+use crate::{
+    SharedContext, cbor,
+    extension::ExtensionLoader,
+    resources::{AuthorizationContext, SharedResources},
+};
 
 use super::{
     ExtensionGuestConfig,
-    api::{instance::InputList, wit},
+    api::{
+        instance::InputList,
+        wit::{
+            self,
+            directive::{ResponseElement, ResponseElements},
+        },
+    },
     pool::{ExtensionGuard, Pool},
 };
 
 use dashmap::DashMap;
 use engine::{ErrorCode, ErrorResponse, GraphqlError, RequestContext};
+use engine_schema::DirectiveSite;
 use extension_catalog::ExtensionId;
 use futures::stream::BoxStream;
 use futures_util::{StreamExt, stream};
@@ -244,7 +255,8 @@ impl ExtensionRuntime<Arc<RequestContext>> for ExtensionsWasiRuntime {
     fn authorize_query<'ctx, 'fut, Groups, QueryElements, Arguments>(
         &'ctx self,
         extension_id: ExtensionId,
-        ctx: Arc<RequestContext>,
+        ctx: &'ctx Arc<RequestContext>,
+        wasm_context: &'ctx SharedContext,
         elements_grouped_by_directive_name: Groups,
     ) -> impl Future<Output = Result<AuthorizationDecisions, ErrorResponse>> + Send + 'fut
     where
@@ -263,7 +275,7 @@ impl ExtensionRuntime<Arc<RequestContext>> for ExtensionsWasiRuntime {
                 let arguments = cbor::to_vec(element.arguments).unwrap();
 
                 query_elements.push(wit::directive::QueryElement {
-                    id: 0,
+                    id: element.site.id().into(),
                     site: element.site.into(),
                     arguments,
                 });
@@ -272,19 +284,80 @@ impl ExtensionRuntime<Arc<RequestContext>> for ExtensionsWasiRuntime {
             directive_names.push((directive_name, start as u32, end as u32));
         }
 
+        let ctx = AuthorizationContext(ctx.clone());
         async move {
             let mut instance = self.get(ExtensionPoolId::Authorization(extension_id)).await?;
-            instance
+            match instance
                 .authorize_query(
-                    wit::context::AuthorizationContext(ctx),
+                    ctx,
                     wit::directive::QueryElements {
                         directive_names,
                         elements: query_elements,
                     },
                 )
                 .await
+            {
+                Ok((decisions, state)) => {
+                    if !state.is_empty() {
+                        wasm_context
+                            .authorization_state
+                            .write()
+                            .await
+                            .push((extension_id, state));
+                    }
+                    Ok(decisions.into())
+                }
+                Err(err) => Err(err.into_graphql_error_response(ErrorCode::Unauthorized)),
+            }
+        }
+    }
+
+    fn authorize_response<'ctx, 'fut>(
+        &'ctx self,
+        extension_id: ExtensionId,
+        ctx: &'ctx Arc<RequestContext>,
+        wasm_context: &'ctx SharedContext,
+        directive_name: &'ctx str,
+        directive_site: DirectiveSite<'ctx>,
+        items: impl IntoIterator<Item: Anything<'ctx>>,
+    ) -> impl Future<Output = Result<AuthorizationDecisions, GraphqlError>> + Send + 'fut
+    where
+        'ctx: 'fut,
+    {
+        let items = items
+            .into_iter()
+            .map(|item| cbor::to_vec(item).unwrap())
+            .collect::<Vec<_>>();
+        let ctx = AuthorizationContext(ctx.clone());
+        async move {
+            let guard = wasm_context.authorization_state.read().await;
+            let state = guard
+                .iter()
+                .find_map(|(id, state)| {
+                    if *id == extension_id {
+                        Some(state.as_slice())
+                    } else {
+                        None
+                    }
+                })
+                .unwrap_or(&[]);
+            let mut instance = self.get(ExtensionPoolId::Authorization(extension_id)).await?;
+            instance
+                .authorize_response(
+                    ctx,
+                    state,
+                    ResponseElements {
+                        directive_names: vec![(directive_name, 0, 1)],
+                        elements: vec![ResponseElement {
+                            query_element_id: directive_site.id().into(),
+                            items_range: (0, items.len() as u32),
+                        }],
+                        items,
+                    },
+                )
+                .await
                 .map(Into::into)
-                .map_err(|err| err.into_graphql_error_response(ErrorCode::Unauthorized))
+                .map_err(|err| err.into_graphql_error(ErrorCode::Unauthorized))
         }
     }
 }

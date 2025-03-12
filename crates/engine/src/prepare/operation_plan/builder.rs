@@ -8,6 +8,7 @@ use crate::{
     prepare::{
         CachedOperation, CachedOperationContext, PlanError, PrepareContext, QueryPartition, QueryPartitionId,
         RequiredFieldSet, RequiredFieldSetRecord, ResponseModifierDefinition, ResponseModifierRule,
+        ResponseModifierRuleTarget,
     },
     resolver::Resolver,
 };
@@ -148,6 +149,26 @@ impl<'op, R: Runtime> Builder<'op, '_, R> {
                     })?,
                     CompositeTypeId::maybe_from(field.definition().ty().definition_id).unwrap(),
                 ),
+                ResponseModifierRule::Extension { target, .. } => match target {
+                    ResponseModifierRuleTarget::Field(_) | ResponseModifierRuleTarget::FieldParentEntity(_) => {
+                        let output_id = if let Some(parent_field) = field.parent_field() {
+                            parent_field.output_id.ok_or_else(|| {
+                                tracing::error!("Missing response object set id.");
+                                PlanError::Internal
+                            })?
+                        } else {
+                            self.cached_ctx.cached.query_plan.root_response_object_set_id
+                        };
+                        (output_id, field.definition().parent_entity_id.into())
+                    }
+                    ResponseModifierRuleTarget::FieldOutput(_) => (
+                        field.output_id.ok_or_else(|| {
+                            tracing::error!("Missing response object set id.");
+                            PlanError::Internal
+                        })?,
+                        CompositeTypeId::maybe_from(field.definition().ty().definition_id).unwrap(),
+                    ),
+                },
             };
             impacted_fields.push((field.query_partition_id, set_id, composite_type_id, field.id));
         }

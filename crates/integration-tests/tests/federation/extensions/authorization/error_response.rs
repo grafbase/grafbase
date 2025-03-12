@@ -6,9 +6,12 @@ use integration_tests::{
     federation::{EngineExt, TestExtension},
     runtime,
 };
-use runtime::extension::{AuthorizationDecisions, QueryElement};
+use runtime::{
+    extension::{AuthorizationDecisions, QueryElement},
+    hooks::DynHookContext,
+};
 
-use crate::federation::extensions::authorization::SimpleAuthExt;
+use crate::federation::extensions::authorization::AuthorizationExt;
 
 #[derive(Default)]
 struct Failure;
@@ -16,9 +19,10 @@ struct Failure;
 #[async_trait::async_trait]
 impl TestExtension for Failure {
     #[allow(clippy::manual_async_fn)]
-    async fn authorize_query<'a>(
+    async fn authorize_query(
         &self,
         _ctx: Arc<engine::RequestContext>,
+        _: &DynHookContext,
         _elements_grouped_by_directive_name: Vec<(&str, Vec<QueryElement<'_, serde_json::Value>>)>,
     ) -> Result<AuthorizationDecisions, ErrorResponse> {
         Err(ErrorResponse {
@@ -35,7 +39,7 @@ fn can_return_error_response() {
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
-                extend schema @link(url: "simple-auth-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
 
                 type Query {
                     greeting: String @auth
@@ -47,7 +51,7 @@ fn can_return_error_response() {
                 .with_resolver("Query", "greeting", serde_json::Value::String("Hi!".to_owned()))
                 .into_subgraph("x"),
             )
-            .with_extension(SimpleAuthExt::new(Failure))
+            .with_extension(AuthorizationExt::new(Failure))
             .build()
             .await;
 

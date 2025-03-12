@@ -44,6 +44,10 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
         self.into()
     }
 
+    pub fn extensions(&self) -> &'ctx R::Extensions {
+        self.engine.runtime.extensions()
+    }
+
     pub fn schema(&self) -> &'ctx Schema {
         &self.engine.schema
     }

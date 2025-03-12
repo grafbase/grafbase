@@ -1,11 +1,14 @@
 use std::sync::Arc;
 
+use futures::FutureExt as _;
 use itertools::Itertools;
+use runtime::extension::{AuthorizationDecisions, ExtensionRuntime};
+use schema::DirectiveSiteId;
 use walker::Walk;
 
 use crate::{
     Runtime,
-    prepare::{ResponseModifier, ResponseModifierRule},
+    prepare::{ResponseModifier, ResponseModifierRule, ResponseModifierRuleTarget},
     response::{ErrorCode, GraphqlError, InputResponseObjectSet, ResponseBuilder, ResponseValueId},
 };
 
@@ -135,6 +138,163 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                         if let Err(err) = result {
                             response.propagate_null(&obj_ref.path);
                             response.push_error(err.clone().with_path(&obj_ref.path));
+                        }
+                    }
+                }
+                ResponseModifierRule::Extension {
+                    directive_id,
+                    target:
+                        rule_target @ (ResponseModifierRuleTarget::Field(_)
+                        | ResponseModifierRuleTarget::FieldParentEntity(_)),
+                } => {
+                    let input = Arc::new(input);
+                    let parents = response.read(
+                        input.clone(),
+                        // FIXME: Total hack, assumes there is only one authorized directive on the field. Need
+                        target_field.required_fields_by_supergraph(),
+                    );
+
+                    let directive = directive_id.walk(self);
+                    let result = self
+                        .extensions()
+                        .authorize_response(
+                            directive.extension_id,
+                            self.request_context,
+                            self.hooks_context,
+                            directive.name(),
+                            DirectiveSiteId::from(rule_target).walk(self),
+                            parents.iter(),
+                        )
+                        // FIXME: Unfortunately, boxing seems to be the only solution for the bug explained here:
+                        //        https://github.com/rust-lang/rust/issues/110338#issuecomment-1513761297
+                        .boxed()
+                        .await;
+
+                    match result {
+                        Ok(AuthorizationDecisions::GrantAll) => (),
+                        Ok(AuthorizationDecisions::DenySome {
+                            element_to_error,
+                            errors,
+                        }) => {
+                            // If the current field is required, the error must be propagated upwards,
+                            // so the parent object path is enough.
+                            if target_field.definition().ty().wrapping.is_required() {
+                                for (element_ix, error_ix) in element_to_error {
+                                    let obj_ref = &input[element_ix as usize];
+                                    let err = errors[error_ix as usize].clone();
+                                    response.propagate_null(&obj_ref.path);
+                                    response.push_error(
+                                        err.clone()
+                                            .with_path((&obj_ref.path, target_field.response_key))
+                                            .with_location(target_field.location),
+                                    );
+                                }
+                            } else {
+                                // Otherwise we don't need to propagate anything and just need to mark
+                                // the current value as inaccessible. So null for the client, but
+                                // available for requirements to be sent to subgraphs.
+                                for (element_ix, error_ix) in element_to_error {
+                                    let obj_ref = &input[element_ix as usize];
+                                    let err = errors[error_ix as usize].clone();
+                                    response.make_inacessible(ResponseValueId::Field {
+                                        object_id: obj_ref.id,
+                                        key: target_field.key(),
+                                        nullable: true,
+                                    });
+                                    response.push_error(
+                                        err.clone()
+                                            .with_path((&obj_ref.path, target_field.response_key))
+                                            .with_location(target_field.location),
+                                    );
+                                }
+                            }
+                        }
+                        Ok(AuthorizationDecisions::DenyAll(err)) | Err(err) => {
+                            // If the current field is required, the error must be propagated upwards,
+                            // so the parent object path is enough.
+                            if target_field.definition().ty().wrapping.is_required() {
+                                for obj_ref in input.iter() {
+                                    response.propagate_null(&obj_ref.path);
+                                    response.push_error(
+                                        err.clone()
+                                            .with_path((&obj_ref.path, target_field.response_key))
+                                            .with_location(target_field.location),
+                                    );
+                                }
+                            } else {
+                                // Otherwise we don't need to propagate anything and just need to mark
+                                // the current value as inaccessible. So null for the client, but
+                                // available for requirements to be sent to subgraphs.
+                                for obj_ref in input.iter() {
+                                    response.make_inacessible(ResponseValueId::Field {
+                                        object_id: obj_ref.id,
+                                        key: target_field.key(),
+                                        nullable: true,
+                                    });
+                                    response.push_error(
+                                        err.clone()
+                                            .with_path((&obj_ref.path, target_field.response_key))
+                                            .with_location(target_field.location),
+                                    );
+                                }
+                            }
+                        }
+                    }
+                }
+                ResponseModifierRule::Extension {
+                    directive_id,
+                    target: ResponseModifierRuleTarget::FieldOutput(rule_target),
+                } => {
+                    let input = Arc::new(input);
+                    let nodes = response.read(
+                        input.clone(),
+                        // FIXME: Total hack, assumes there is only one authorized directive on the field. Need
+                        target_field.required_fields_by_supergraph(),
+                    );
+
+                    let directive = directive_id.walk(self);
+                    let result = self
+                        .extensions()
+                        .authorize_response(
+                            directive.extension_id,
+                            self.request_context,
+                            self.hooks_context,
+                            directive.name(),
+                            DirectiveSiteId::from(rule_target).walk(self),
+                            nodes.iter(),
+                        )
+                        // FIXME: Unfortunately, boxing seems to be the only solution for the bug explained here:
+                        //        https://github.com/rust-lang/rust/issues/110338#issuecomment-1513761297
+                        .boxed()
+                        .await;
+                    tracing::debug!("Response authorization: {result:?}");
+
+                    match result {
+                        Ok(AuthorizationDecisions::GrantAll) => (),
+                        Ok(AuthorizationDecisions::DenySome {
+                            element_to_error,
+                            errors,
+                        }) => {
+                            for (element_ix, error_ix) in element_to_error {
+                                let obj_ref = &input[element_ix as usize];
+                                let err = errors[error_ix as usize].clone();
+                                response.propagate_null(&obj_ref.path);
+                                response.push_error(
+                                    err.clone()
+                                        .with_path(&obj_ref.path)
+                                        .with_location(target_field.location),
+                                );
+                            }
+                        }
+                        Ok(AuthorizationDecisions::DenyAll(err)) | Err(err) => {
+                            for obj_ref in input.iter() {
+                                response.propagate_null(&obj_ref.path);
+                                response.push_error(
+                                    err.clone()
+                                        .with_path(&obj_ref.path)
+                                        .with_location(target_field.location),
+                                );
+                            }
                         }
                     }
                 }

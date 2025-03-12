@@ -1,7 +1,7 @@
 use std::{collections::HashMap, future::Future, sync::Arc};
 
 use engine::{ErrorResponse, GraphqlError};
-use engine_schema::{Subgraph, SubgraphId};
+use engine_schema::{DirectiveSite, Subgraph, SubgraphId};
 use extension_catalog::{Extension, ExtensionCatalog, ExtensionId, Id, Manifest};
 use futures::stream::BoxStream;
 use runtime::{
@@ -140,12 +140,25 @@ pub trait TestExtension: Send + Sync + 'static {
     }
 
     #[allow(clippy::manual_async_fn)]
-    async fn authorize_query<'a>(
+    async fn authorize_query(
         &self,
         ctx: Arc<engine::RequestContext>,
+        wasm_context: &DynHookContext,
         elements_grouped_by_directive_name: Vec<(&str, Vec<QueryElement<'_, serde_json::Value>>)>,
     ) -> Result<AuthorizationDecisions, ErrorResponse> {
         Err(GraphqlError::internal_extension_error().into())
+    }
+
+    #[allow(clippy::manual_async_fn)]
+    async fn authorize_response(
+        &self,
+        ctx: Arc<engine::RequestContext>,
+        wasm_context: &DynHookContext,
+        directive_name: &str,
+        directive_site: DirectiveSite<'_>,
+        items: Vec<serde_json::Value>,
+    ) -> Result<AuthorizationDecisions, GraphqlError> {
+        Err(GraphqlError::internal_extension_error())
     }
 }
 
@@ -216,7 +229,8 @@ impl runtime::extension::ExtensionRuntime<Arc<engine::RequestContext>> for TestE
     fn authorize_query<'ctx, 'fut, Groups, QueryElements, Arguments>(
         &'ctx self,
         extension_id: ExtensionId,
-        ctx: Arc<engine::RequestContext>,
+        ctx: &'ctx Arc<engine::RequestContext>,
+        wasm_context: &'ctx Self::SharedContext,
         elements_grouped_by_directive_name: Groups,
     ) -> impl Future<Output = Result<AuthorizationDecisions, ErrorResponse>> + Send + 'fut
     where
@@ -242,7 +256,34 @@ impl runtime::extension::ExtensionRuntime<Arc<engine::RequestContext>> for TestE
             .collect();
         async move {
             let instance = self.get_global_instance(extension_id).await;
-            instance.authorize_query(ctx, elements_grouped_by_directive_name).await
+            instance
+                .authorize_query(ctx.clone(), wasm_context, elements_grouped_by_directive_name)
+                .await
+        }
+    }
+
+    fn authorize_response<'ctx, 'fut>(
+        &'ctx self,
+        extension_id: ExtensionId,
+        ctx: &'ctx Arc<engine::RequestContext>,
+        wasm_context: &'ctx Self::SharedContext,
+        directive_name: &'ctx str,
+        directive_site: DirectiveSite<'ctx>,
+        items: impl IntoIterator<Item: Anything<'ctx>>,
+    ) -> impl Future<Output = Result<AuthorizationDecisions, GraphqlError>> + Send + 'fut
+    where
+        'ctx: 'fut,
+    {
+        let items = items
+            .into_iter()
+            .map(serde_json::to_value)
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+        async move {
+            let instance = self.get_global_instance(extension_id).await;
+            instance
+                .authorize_response(ctx.clone(), wasm_context, directive_name, directive_site, items)
+                .await
         }
     }
 }
