@@ -82,11 +82,11 @@ pub(crate) trait Args {
         };
 
         let config = OtlpExporterConfig {
-            endpoint,
-            enabled: true,
-            protocol: OtlpExporterProtocol::Grpc,
+            endpoint: Some(endpoint),
+            enabled: Some(true),
+            protocol: Some(OtlpExporterProtocol::Grpc),
             grpc: Some(grpc),
-            batch_export,
+            batch_export: Some(batch_export),
             ..Default::default()
         };
 

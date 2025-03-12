@@ -8,7 +8,8 @@ services:
     volumes:
       - ./data/otel/otel-collector-config.yml:/etc/otel-collector-config.yml:Z
     ports:
-      - '4318:4317'
+      - '4327:4317'
+      - '4328:4318'
     depends_on:
       - clickhouse
     networks:

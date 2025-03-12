@@ -7,10 +7,7 @@ pub mod tracing;
 
 pub use logs::LogsConfig;
 pub use metrics::MetricsConfig;
-pub use otlp::{
-    Headers, OtlpExporterConfig, OtlpExporterGrpcConfig, OtlpExporterHttpConfig, OtlpExporterProtocol,
-    OtlpExporterTlsConfig,
-};
+pub use otlp::*;
 pub use response_extension::*;
 pub use tracing::{DEFAULT_SAMPLING, PropagationConfig, TracingCollectConfig, TracingConfig};
 
@@ -101,4 +98,13 @@ where
     let input = i64::deserialize(deserializer)?;
 
     Ok(chrono::Duration::try_seconds(input).expect("must be fine"))
+}
+
+fn deserialize_duration_opt<'de, D>(deserializer: D) -> Result<Option<chrono::Duration>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let input = Option::<i64>::deserialize(deserializer)?;
+
+    Ok(input.map(|input| chrono::Duration::try_seconds(input).expect("must be fine")))
 }

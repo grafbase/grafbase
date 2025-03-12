@@ -2,16 +2,7 @@ pub mod exporters;
 
 use std::collections::HashMap;
 
-use exporters::GlobalExporterConfig;
-pub use exporters::{
-    Headers, OtlpExporterConfig, OtlpExporterGrpcConfig, OtlpExporterHttpConfig, OtlpExporterProtocol,
-    OtlpExporterTlsConfig,
-};
-pub use exporters::{
-    LogsConfig, MetricsConfig, PropagationConfig, {DEFAULT_SAMPLING, TracingCollectConfig, TracingConfig},
-};
-
-pub use exporters::{BatchExportConfig, OpenTelemetryExportersConfig, StdoutExporterConfig};
+pub use exporters::*;
 
 /// Holds telemetry configuration
 #[derive(Debug, Clone, PartialEq, serde::Deserialize)]
@@ -57,12 +48,12 @@ impl TelemetryConfig {
         }
     }
 
-    pub fn tracing_otlp_config(&self) -> Option<&OtlpExporterConfig> {
-        match self.tracing.exporters.otlp.as_ref() {
-            Some(config) if config.enabled => Some(config),
-            Some(_) => None,
-            None => self.exporters.otlp.as_ref().filter(|c| c.enabled),
-        }
+    pub fn tracing_otlp_config(&self) -> Option<LayeredOtlExporterConfig> {
+        let cfg = LayeredOtlExporterConfig {
+            global: self.exporters.otlp.clone().unwrap_or_default(),
+            local: self.tracing.exporters.otlp.clone().unwrap_or_default(),
+        };
+        if cfg.is_enabled() { Some(cfg) } else { None }
     }
 
     pub fn tracing_exporters_enabled(&self) -> bool {
@@ -79,12 +70,16 @@ impl TelemetryConfig {
         }
     }
 
-    pub fn metrics_otlp_config(&self) -> Option<&OtlpExporterConfig> {
-        match self.metrics.as_ref().and_then(|c| c.exporters.otlp.as_ref()) {
-            Some(config) if config.enabled => Some(config),
-            Some(_) => None,
-            None => self.exporters.otlp.as_ref().filter(|c| c.enabled),
-        }
+    pub fn metrics_otlp_config(&self) -> Option<LayeredOtlExporterConfig> {
+        let cfg = LayeredOtlExporterConfig {
+            global: self.exporters.otlp.clone().unwrap_or_default(),
+            local: self
+                .metrics
+                .as_ref()
+                .and_then(|cfg| cfg.exporters.otlp.clone())
+                .unwrap_or_default(),
+        };
+        if cfg.is_enabled() { Some(cfg) } else { None }
     }
 
     pub fn logs_stdout_config(&self) -> Option<&StdoutExporterConfig> {
@@ -95,20 +90,24 @@ impl TelemetryConfig {
         }
     }
 
-    pub fn logs_otlp_config(&self) -> Option<&OtlpExporterConfig> {
-        match self.logs.as_ref().and_then(|c| c.exporters.otlp.as_ref()) {
-            Some(config) if config.enabled => Some(config),
-            Some(_) => None,
-            None => self.exporters.otlp.as_ref().filter(|c| c.enabled),
-        }
+    pub fn logs_otlp_config(&self) -> Option<LayeredOtlExporterConfig> {
+        let cfg = LayeredOtlExporterConfig {
+            global: self.exporters.otlp.clone().unwrap_or_default(),
+            local: self
+                .logs
+                .as_ref()
+                .and_then(|cfg| cfg.exporters.otlp.clone())
+                .unwrap_or_default(),
+        };
+        if cfg.is_enabled() { Some(cfg) } else { None }
     }
 
     pub fn logs_exporters_enabled(&self) -> bool {
         self.logs_otlp_config().is_some() || self.logs_stdout_config().is_some()
     }
 
-    pub fn grafbase_otlp_config(&self) -> Option<&OtlpExporterConfig> {
-        self.grafbase.as_ref()
+    pub fn grafbase_otlp_config(&self) -> Option<OtlpExporterConfig> {
+        self.grafbase.clone()
     }
 }
 
@@ -117,7 +116,6 @@ mod tests {
     use super::*;
 
     use ascii::AsciiString;
-    use chrono::Duration;
     use indoc::indoc;
     use std::path::PathBuf;
     use std::str::FromStr;
@@ -241,13 +239,13 @@ mod tests {
         // assert
         assert_eq!(
             Some(OtlpExporterConfig {
-                endpoint: Url::parse("http://localhost:1234").unwrap(),
-                enabled: false,
+                endpoint: Some(Url::parse("http://localhost:1234").unwrap()),
+                enabled: None,
                 batch_export: Default::default(),
                 protocol: Default::default(),
                 grpc: None,
                 http: None,
-                timeout: Duration::try_seconds(60).unwrap(),
+                timeout: None
             }),
             config.exporters.otlp
         );
@@ -271,12 +269,12 @@ mod tests {
         // assert
         assert_eq!(
             Some(OtlpExporterConfig {
-                endpoint: Url::parse("http://localhost:1234").unwrap(),
-                enabled: true,
-                batch_export: BatchExportConfig {
+                endpoint: Some(Url::parse("http://localhost:1234").unwrap()),
+                enabled: Some(true),
+                batch_export: Some(BatchExportConfig {
                     scheduled_delay: chrono::Duration::try_seconds(10).expect("must be fine"),
                     ..Default::default()
-                },
+                }),
                 ..Default::default()
             }),
             config.exporters.otlp
@@ -319,15 +317,15 @@ mod tests {
         // assert
         assert_eq!(
             Some(OtlpExporterConfig {
-                endpoint: Url::parse("http://localhost:1234").unwrap(),
-                enabled: true,
-                batch_export: BatchExportConfig {
+                endpoint: Some(Url::parse("http://localhost:1234").unwrap()),
+                enabled: Some(true),
+                batch_export: Some(BatchExportConfig {
                     scheduled_delay: chrono::Duration::try_seconds(10).expect("must be fine"),
                     max_queue_size: 10,
                     max_export_batch_size: 10,
                     max_concurrent_exports: 10,
-                },
-                protocol: OtlpExporterProtocol::Grpc,
+                }),
+                protocol: Some(OtlpExporterProtocol::Grpc),
                 grpc: Some(OtlpExporterGrpcConfig {
                     tls: Some(OtlpExporterTlsConfig {
                         domain_name: Some("my_domain".to_string()),
@@ -346,7 +344,7 @@ mod tests {
                         AsciiString::from_ascii("header1").unwrap()
                     )]),
                 }),
-                timeout: chrono::Duration::try_seconds(120).expect("must be fine"),
+                timeout: Some(chrono::Duration::try_seconds(120).expect("must be fine")),
             }),
             config.exporters.otlp
         );
@@ -470,10 +468,110 @@ mod tests {
         "#};
 
         let config: TelemetryConfig = toml::from_str(input).unwrap();
-        let expected = config.exporters.otlp.as_ref();
 
-        assert_eq!(expected, config.tracing_otlp_config());
-        assert!(expected.is_some());
+        insta::assert_debug_snapshot!(config.tracing_otlp_config(), @r#"
+        Some(
+            LayeredOtlExporterConfig {
+                global: OtlpExporterConfig {
+                    enabled: Some(
+                        true,
+                    ),
+                    endpoint: Some(
+                        Url {
+                            scheme: "http",
+                            cannot_be_a_base: false,
+                            username: "",
+                            password: None,
+                            host: Some(
+                                Domain(
+                                    "localhost",
+                                ),
+                            ),
+                            port: Some(
+                                1234,
+                            ),
+                            path: "/",
+                            query: None,
+                            fragment: None,
+                        },
+                    ),
+                    batch_export: Some(
+                        BatchExportConfig {
+                            scheduled_delay: TimeDelta {
+                                secs: 10,
+                                nanos: 0,
+                            },
+                            max_queue_size: 10,
+                            max_export_batch_size: 10,
+                            max_concurrent_exports: 10,
+                        },
+                    ),
+                    protocol: Some(
+                        Grpc,
+                    ),
+                    grpc: Some(
+                        OtlpExporterGrpcConfig {
+                            tls: Some(
+                                OtlpExporterTlsConfig {
+                                    domain_name: Some(
+                                        "my_domain",
+                                    ),
+                                    key: Some(
+                                        "/certs/grafbase.key",
+                                    ),
+                                    cert: Some(
+                                        "/certs/grafbase.crt",
+                                    ),
+                                    ca: Some(
+                                        "/certs/ca.crt",
+                                    ),
+                                },
+                            ),
+                            headers: Headers(
+                                [
+                                    (
+                                        "header1",
+                                        DynamicString(
+                                            "header1",
+                                        ),
+                                    ),
+                                ],
+                            ),
+                        },
+                    ),
+                    http: Some(
+                        OtlpExporterHttpConfig {
+                            headers: Headers(
+                                [
+                                    (
+                                        "header1",
+                                        DynamicString(
+                                            "header1",
+                                        ),
+                                    ),
+                                ],
+                            ),
+                        },
+                    ),
+                    timeout: Some(
+                        TimeDelta {
+                            secs: 120,
+                            nanos: 0,
+                        },
+                    ),
+                },
+                local: OtlpExporterConfig {
+                    enabled: None,
+                    endpoint: None,
+                    batch_export: None,
+                    protocol: None,
+                    grpc: None,
+                    http: None,
+                    timeout: None,
+                },
+            },
+        )
+        "#);
     }
 
     #[test]
@@ -532,7 +630,7 @@ mod tests {
 
         let config: TelemetryConfig = toml::from_str(input).unwrap();
 
-        assert_eq!(None, config.tracing_otlp_config());
+        insta::assert_debug_snapshot!(config.tracing_otlp_config(), @"None");
     }
 
     #[test]
@@ -590,10 +688,189 @@ mod tests {
         "#};
 
         let config: TelemetryConfig = toml::from_str(input).unwrap();
-        let expected = config.tracing.exporters.otlp.as_ref();
 
-        assert_eq!(expected, config.tracing_otlp_config());
-        assert!(expected.is_some());
+        insta::assert_debug_snapshot!(config.tracing_otlp_config(), @r#"
+        Some(
+            LayeredOtlExporterConfig {
+                global: OtlpExporterConfig {
+                    enabled: Some(
+                        true,
+                    ),
+                    endpoint: Some(
+                        Url {
+                            scheme: "http",
+                            cannot_be_a_base: false,
+                            username: "",
+                            password: None,
+                            host: Some(
+                                Domain(
+                                    "localhost",
+                                ),
+                            ),
+                            port: Some(
+                                1234,
+                            ),
+                            path: "/",
+                            query: None,
+                            fragment: None,
+                        },
+                    ),
+                    batch_export: Some(
+                        BatchExportConfig {
+                            scheduled_delay: TimeDelta {
+                                secs: 10,
+                                nanos: 0,
+                            },
+                            max_queue_size: 10,
+                            max_export_batch_size: 10,
+                            max_concurrent_exports: 10,
+                        },
+                    ),
+                    protocol: Some(
+                        Grpc,
+                    ),
+                    grpc: Some(
+                        OtlpExporterGrpcConfig {
+                            tls: Some(
+                                OtlpExporterTlsConfig {
+                                    domain_name: Some(
+                                        "my_domain",
+                                    ),
+                                    key: Some(
+                                        "/certs/grafbase.key",
+                                    ),
+                                    cert: Some(
+                                        "/certs/grafbase.crt",
+                                    ),
+                                    ca: Some(
+                                        "/certs/ca.crt",
+                                    ),
+                                },
+                            ),
+                            headers: Headers(
+                                [
+                                    (
+                                        "header1",
+                                        DynamicString(
+                                            "header1",
+                                        ),
+                                    ),
+                                ],
+                            ),
+                        },
+                    ),
+                    http: Some(
+                        OtlpExporterHttpConfig {
+                            headers: Headers(
+                                [
+                                    (
+                                        "header1",
+                                        DynamicString(
+                                            "header1",
+                                        ),
+                                    ),
+                                ],
+                            ),
+                        },
+                    ),
+                    timeout: Some(
+                        TimeDelta {
+                            secs: 120,
+                            nanos: 0,
+                        },
+                    ),
+                },
+                local: OtlpExporterConfig {
+                    enabled: Some(
+                        true,
+                    ),
+                    endpoint: Some(
+                        Url {
+                            scheme: "http",
+                            cannot_be_a_base: false,
+                            username: "",
+                            password: None,
+                            host: Some(
+                                Domain(
+                                    "localhost",
+                                ),
+                            ),
+                            port: Some(
+                                1234,
+                            ),
+                            path: "/",
+                            query: None,
+                            fragment: None,
+                        },
+                    ),
+                    batch_export: Some(
+                        BatchExportConfig {
+                            scheduled_delay: TimeDelta {
+                                secs: 10,
+                                nanos: 0,
+                            },
+                            max_queue_size: 10,
+                            max_export_batch_size: 10,
+                            max_concurrent_exports: 10,
+                        },
+                    ),
+                    protocol: Some(
+                        Grpc,
+                    ),
+                    grpc: Some(
+                        OtlpExporterGrpcConfig {
+                            tls: Some(
+                                OtlpExporterTlsConfig {
+                                    domain_name: Some(
+                                        "my_domain",
+                                    ),
+                                    key: Some(
+                                        "/certs/grafbase.key",
+                                    ),
+                                    cert: Some(
+                                        "/certs/grafbase.crt",
+                                    ),
+                                    ca: Some(
+                                        "/certs/ca.crt",
+                                    ),
+                                },
+                            ),
+                            headers: Headers(
+                                [
+                                    (
+                                        "header1",
+                                        DynamicString(
+                                            "header1",
+                                        ),
+                                    ),
+                                ],
+                            ),
+                        },
+                    ),
+                    http: Some(
+                        OtlpExporterHttpConfig {
+                            headers: Headers(
+                                [
+                                    (
+                                        "header1",
+                                        DynamicString(
+                                            "header1",
+                                        ),
+                                    ),
+                                ],
+                            ),
+                        },
+                    ),
+                    timeout: Some(
+                        TimeDelta {
+                            secs: 120,
+                            nanos: 0,
+                        },
+                    ),
+                },
+            },
+        )
+        "#);
     }
 
     #[test]
@@ -713,10 +990,109 @@ mod tests {
         "#};
 
         let config: TelemetryConfig = toml::from_str(input).unwrap();
-        let expected = config.exporters.otlp.as_ref();
-
-        assert_eq!(expected, config.metrics_otlp_config());
-        assert!(expected.is_some());
+        insta::assert_debug_snapshot!(config.metrics_otlp_config(), @r#"
+        Some(
+            LayeredOtlExporterConfig {
+                global: OtlpExporterConfig {
+                    enabled: Some(
+                        true,
+                    ),
+                    endpoint: Some(
+                        Url {
+                            scheme: "http",
+                            cannot_be_a_base: false,
+                            username: "",
+                            password: None,
+                            host: Some(
+                                Domain(
+                                    "localhost",
+                                ),
+                            ),
+                            port: Some(
+                                1234,
+                            ),
+                            path: "/",
+                            query: None,
+                            fragment: None,
+                        },
+                    ),
+                    batch_export: Some(
+                        BatchExportConfig {
+                            scheduled_delay: TimeDelta {
+                                secs: 10,
+                                nanos: 0,
+                            },
+                            max_queue_size: 10,
+                            max_export_batch_size: 10,
+                            max_concurrent_exports: 10,
+                        },
+                    ),
+                    protocol: Some(
+                        Grpc,
+                    ),
+                    grpc: Some(
+                        OtlpExporterGrpcConfig {
+                            tls: Some(
+                                OtlpExporterTlsConfig {
+                                    domain_name: Some(
+                                        "my_domain",
+                                    ),
+                                    key: Some(
+                                        "/certs/grafbase.key",
+                                    ),
+                                    cert: Some(
+                                        "/certs/grafbase.crt",
+                                    ),
+                                    ca: Some(
+                                        "/certs/ca.crt",
+                                    ),
+                                },
+                            ),
+                            headers: Headers(
+                                [
+                                    (
+                                        "header1",
+                                        DynamicString(
+                                            "header1",
+                                        ),
+                                    ),
+                                ],
+                            ),
+                        },
+                    ),
+                    http: Some(
+                        OtlpExporterHttpConfig {
+                            headers: Headers(
+                                [
+                                    (
+                                        "header1",
+                                        DynamicString(
+                                            "header1",
+                                        ),
+                                    ),
+                                ],
+                            ),
+                        },
+                    ),
+                    timeout: Some(
+                        TimeDelta {
+                            secs: 120,
+                            nanos: 0,
+                        },
+                    ),
+                },
+                local: OtlpExporterConfig {
+                    enabled: None,
+                    endpoint: None,
+                    batch_export: None,
+                    protocol: None,
+                    grpc: None,
+                    http: None,
+                    timeout: None,
+                },
+            },
+        )
+        "#);
     }
 
     #[test]
@@ -774,8 +1150,7 @@ mod tests {
         "#};
 
         let config: TelemetryConfig = toml::from_str(input).unwrap();
-
-        assert_eq!(None, config.metrics_otlp_config());
+        insta::assert_debug_snapshot!(config.metrics_otlp_config(), @"None");
     }
 
     #[test]
@@ -833,10 +1208,188 @@ mod tests {
         "#};
 
         let config: TelemetryConfig = toml::from_str(input).unwrap();
-        let expected = config.metrics.as_ref().and_then(|c| c.exporters.otlp.as_ref());
-
-        assert_eq!(expected, config.metrics_otlp_config());
-        assert!(expected.is_some());
+        insta::assert_debug_snapshot!(config.metrics_otlp_config(), @r#"
+        Some(
+            LayeredOtlExporterConfig {
+                global: OtlpExporterConfig {
+                    enabled: Some(
+                        true,
+                    ),
+                    endpoint: Some(
+                        Url {
+                            scheme: "http",
+                            cannot_be_a_base: false,
+                            username: "",
+                            password: None,
+                            host: Some(
+                                Domain(
+                                    "localhost",
+                                ),
+                            ),
+                            port: Some(
+                                1234,
+                            ),
+                            path: "/",
+                            query: None,
+                            fragment: None,
+                        },
+                    ),
+                    batch_export: Some(
+                        BatchExportConfig {
+                            scheduled_delay: TimeDelta {
+                                secs: 10,
+                                nanos: 0,
+                            },
+                            max_queue_size: 10,
+                            max_export_batch_size: 10,
+                            max_concurrent_exports: 10,
+                        },
+                    ),
+                    protocol: Some(
+                        Grpc,
+                    ),
+                    grpc: Some(
+                        OtlpExporterGrpcConfig {
+                            tls: Some(
+                                OtlpExporterTlsConfig {
+                                    domain_name: Some(
+                                        "my_domain",
+                                    ),
+                                    key: Some(
+                                        "/certs/grafbase.key",
+                                    ),
+                                    cert: Some(
+                                        "/certs/grafbase.crt",
+                                    ),
+                                    ca: Some(
+                                        "/certs/ca.crt",
+                                    ),
+                                },
+                            ),
+                            headers: Headers(
+                                [
+                                    (
+                                        "header1",
+                                        DynamicString(
+                                            "header1",
+                                        ),
+                                    ),
+                                ],
+                            ),
+                        },
+                    ),
+                    http: Some(
+                        OtlpExporterHttpConfig {
+                            headers: Headers(
+                                [
+                                    (
+                                        "header1",
+                                        DynamicString(
+                                            "header1",
+                                        ),
+                                    ),
+                                ],
+                            ),
+                        },
+                    ),
+                    timeout: Some(
+                        TimeDelta {
+                            secs: 120,
+                            nanos: 0,
+                        },
+                    ),
+                },
+                local: OtlpExporterConfig {
+                    enabled: Some(
+                        true,
+                    ),
+                    endpoint: Some(
+                        Url {
+                            scheme: "http",
+                            cannot_be_a_base: false,
+                            username: "",
+                            password: None,
+                            host: Some(
+                                Domain(
+                                    "localhost",
+                                ),
+                            ),
+                            port: Some(
+                                1234,
+                            ),
+                            path: "/",
+                            query: None,
+                            fragment: None,
+                        },
+                    ),
+                    batch_export: Some(
+                        BatchExportConfig {
+                            scheduled_delay: TimeDelta {
+                                secs: 10,
+                                nanos: 0,
+                            },
+                            max_queue_size: 10,
+                            max_export_batch_size: 10,
+                            max_concurrent_exports: 10,
+                        },
+                    ),
+                    protocol: Some(
+                        Grpc,
+                    ),
+                    grpc: Some(
+                        OtlpExporterGrpcConfig {
+                            tls: Some(
+                                OtlpExporterTlsConfig {
+                                    domain_name: Some(
+                                        "my_domain",
+                                    ),
+                                    key: Some(
+                                        "/certs/grafbase.key",
+                                    ),
+                                    cert: Some(
+                                        "/certs/grafbase.crt",
+                                    ),
+                                    ca: Some(
+                                        "/certs/ca.crt",
+                                    ),
+                                },
+                            ),
+                            headers: Headers(
+                                [
+                                    (
+                                        "header1",
+                                        DynamicString(
+                                            "header1",
+                                        ),
+                                    ),
+                                ],
+                            ),
+                        },
+                    ),
+                    http: Some(
+                        OtlpExporterHttpConfig {
+                            headers: Headers(
+                                [
+                                    (
+                                        "header1",
+                                        DynamicString(
+                                            "header1",
+                                        ),
+                                    ),
+                                ],
+                            ),
+                        },
+                    ),
+                    timeout: Some(
+                        TimeDelta {
+                            secs: 120,
+                            nanos: 0,
+                        },
+                    ),
+                },
+            },
+        )
+        "#);
     }
 
     #[test]
@@ -957,10 +1510,109 @@ mod tests {
         "#};
 
         let config: TelemetryConfig = toml::from_str(input).unwrap();
-        let expected = config.exporters.otlp.as_ref();
-
-        assert_eq!(expected, config.logs_otlp_config());
-        assert!(expected.is_some());
+        insta::assert_debug_snapshot!(config.logs_otlp_config(), @r#"
+        Some(
+            LayeredOtlExporterConfig {
+                global: OtlpExporterConfig {
+                    enabled: Some(
+                        true,
+                    ),
+                    endpoint: Some(
+                        Url {
+                            scheme: "http",
+                            cannot_be_a_base: false,
+                            username: "",
+                            password: None,
+                            host: Some(
+                                Domain(
+                                    "localhost",
+                                ),
+                            ),
+                            port: Some(
+                                1234,
+                            ),
+                            path: "/",
+                            query: None,
+                            fragment: None,
+                        },
+                    ),
+                    batch_export: Some(
+                        BatchExportConfig {
+                            scheduled_delay: TimeDelta {
+                                secs: 10,
+                                nanos: 0,
+                            },
+                            max_queue_size: 10,
+                            max_export_batch_size: 10,
+                            max_concurrent_exports: 10,
+                        },
+                    ),
+                    protocol: Some(
+                        Grpc,
+                    ),
+                    grpc: Some(
+                        OtlpExporterGrpcConfig {
+                            tls: Some(
+                                OtlpExporterTlsConfig {
+                                    domain_name: Some(
+                                        "my_domain",
+                                    ),
+                                    key: Some(
+                                        "/certs/grafbase.key",
+                                    ),
+                                    cert: Some(
+                                        "/certs/grafbase.crt",
+                                    ),
+                                    ca: Some(
+                                        "/certs/ca.crt",
+                                    ),
+                                },
+                            ),
+                            headers: Headers(
+                                [
+                                    (
+                                        "header1",
+                                        DynamicString(
+                                            "header1",
+                                        ),
+                                    ),
+                                ],
+                            ),
+                        },
+                    ),
+                    http: Some(
+                        OtlpExporterHttpConfig {
+                            headers: Headers(
+                                [
+                                    (
+                                        "header1",
+                                        DynamicString(
+                                            "header1",
+                                        ),
+                                    ),
+                                ],
+                            ),
+                        },
+                    ),
+                    timeout: Some(
+                        TimeDelta {
+                            secs: 120,
+                            nanos: 0,
+                        },
+                    ),
+                },
+                local: OtlpExporterConfig {
+                    enabled: None,
+                    endpoint: None,
+                    batch_export: None,
+                    protocol: None,
+                    grpc: None,
+                    http: None,
+                    timeout: None,
+                },
+            },
+        )
+        "#);
     }
 
     #[test]
@@ -1018,7 +1670,7 @@ mod tests {
         "#};
 
         let config: TelemetryConfig = toml::from_str(input).unwrap();
-        assert_eq!(None, config.logs_otlp_config());
+        insta::assert_debug_snapshot!(config.logs_otlp_config(), @"None");
     }
 
     #[test]
@@ -1076,10 +1728,188 @@ mod tests {
         "#};
 
         let config: TelemetryConfig = toml::from_str(input).unwrap();
-        let expected = config.logs.as_ref().and_then(|c| c.exporters.otlp.as_ref());
-
-        assert_eq!(expected, config.logs_otlp_config());
-        assert!(expected.is_some());
+        insta::assert_debug_snapshot!(config.logs_otlp_config(), @r#"
+        Some(
+            LayeredOtlExporterConfig {
+                global: OtlpExporterConfig {
+                    enabled: Some(
+                        true,
+                    ),
+                    endpoint: Some(
+                        Url {
+                            scheme: "http",
+                            cannot_be_a_base: false,
+                            username: "",
+                            password: None,
+                            host: Some(
+                                Domain(
+                                    "localhost",
+                                ),
+                            ),
+                            port: Some(
+                                1234,
+                            ),
+                            path: "/",
+                            query: None,
+                            fragment: None,
+                        },
+                    ),
+                    batch_export: Some(
+                        BatchExportConfig {
+                            scheduled_delay: TimeDelta {
+                                secs: 10,
+                                nanos: 0,
+                            },
+                            max_queue_size: 10,
+                            max_export_batch_size: 10,
+                            max_concurrent_exports: 10,
+                        },
+                    ),
+                    protocol: Some(
+                        Grpc,
+                    ),
+                    grpc: Some(
+                        OtlpExporterGrpcConfig {
+                            tls: Some(
+                                OtlpExporterTlsConfig {
+                                    domain_name: Some(
+                                        "my_domain",
+                                    ),
+                                    key: Some(
+                                        "/certs/grafbase.key",
+                                    ),
+                                    cert: Some(
+                                        "/certs/grafbase.crt",
+                                    ),
+                                    ca: Some(
+                                        "/certs/ca.crt",
+                                    ),
+                                },
+                            ),
+                            headers: Headers(
+                                [
+                                    (
+                                        "header1",
+                                        DynamicString(
+                                            "header1",
+                                        ),
+                                    ),
+                                ],
+                            ),
+                        },
+                    ),
+                    http: Some(
+                        OtlpExporterHttpConfig {
+                            headers: Headers(
+                                [
+                                    (
+                                        "header1",
+                                        DynamicString(
+                                            "header1",
+                                        ),
+                                    ),
+                                ],
+                            ),
+                        },
+                    ),
+                    timeout: Some(
+                        TimeDelta {
+                            secs: 120,
+                            nanos: 0,
+                        },
+                    ),
+                },
+                local: OtlpExporterConfig {
+                    enabled: Some(
+                        true,
+                    ),
+                    endpoint: Some(
+                        Url {
+                            scheme: "http",
+                            cannot_be_a_base: false,
+                            username: "",
+                            password: None,
+                            host: Some(
+                                Domain(
+                                    "localhost",
+                                ),
+                            ),
+                            port: Some(
+                                1234,
+                            ),
+                            path: "/",
+                            query: None,
+                            fragment: None,
+                        },
+                    ),
+                    batch_export: Some(
+                        BatchExportConfig {
+                            scheduled_delay: TimeDelta {
+                                secs: 10,
+                                nanos: 0,
+                            },
+                            max_queue_size: 10,
+                            max_export_batch_size: 10,
+                            max_concurrent_exports: 10,
+                        },
+                    ),
+                    protocol: Some(
+                        Grpc,
+                    ),
+                    grpc: Some(
+                        OtlpExporterGrpcConfig {
+                            tls: Some(
+                                OtlpExporterTlsConfig {
+                                    domain_name: Some(
+                                        "my_domain",
+                                    ),
+                                    key: Some(
+                                        "/certs/grafbase.key",
+                                    ),
+                                    cert: Some(
+                                        "/certs/grafbase.crt",
+                                    ),
+                                    ca: Some(
+                                        "/certs/ca.crt",
+                                    ),
+                                },
+                            ),
+                            headers: Headers(
+                                [
+                                    (
+                                        "header1",
+                                        DynamicString(
+                                            "header1",
+                                        ),
+                                    ),
+                                ],
+                            ),
+                        },
+                    ),
+                    http: Some(
+                        OtlpExporterHttpConfig {
+                            headers: Headers(
+                                [
+                                    (
+                                        "header1",
+                                        DynamicString(
+                                            "header1",
+                                        ),
+                                    ),
+                                ],
+                            ),
+                        },
+                    ),
+                    timeout: Some(
+                        TimeDelta {
+                            secs: 120,
+                            nanos: 0,
+                        },
+                    ),
+                },
+            },
+        )
+        "#);
     }
 
     #[test]

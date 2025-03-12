@@ -1,5 +1,7 @@
 use std::time::Duration;
 
+use gateway_config::{LayeredOtlExporterConfig, OtlpExporterProtocolConfig};
+use opentelemetry_otlp::Protocol;
 use opentelemetry_sdk::{
     Resource,
     trace::{
@@ -54,31 +56,48 @@ fn setup_exporters(
     }
 
     use super::exporter::{build_metadata, build_tls_config};
-    use gateway_config::OtlpExporterConfig;
     use opentelemetry_otlp::{SpanExporter, WithExportConfig, WithHttpConfig, WithTonicConfig};
 
-    let build_otlp_exporter = |config: &OtlpExporterConfig| {
-        let exporter_timeout = Duration::from_secs(config.timeout.num_seconds() as u64);
+    let build_otlp_exporter = |config: &LayeredOtlExporterConfig| {
+        let exporter_timeout = Duration::from_secs(config.timeout().num_seconds() as u64);
 
-        let exporter = match config.protocol {
-            gateway_config::OtlpExporterProtocol::Grpc => {
-                let grpc_config = config.grpc.clone().unwrap_or_default();
-
-                SpanExporter::builder()
-                    .with_tonic()
-                    .with_endpoint(config.endpoint.to_string())
-                    .with_timeout(exporter_timeout)
-                    .with_metadata(build_metadata(grpc_config.headers))
-                    .with_tls_config(build_tls_config(grpc_config.tls)?)
-                    .build()
-                    .map_err(|e| TracingError::SpanExporterSetup(e.to_string()))?
-            }
-            gateway_config::OtlpExporterProtocol::Http => {
-                let http_config = config.http.clone().unwrap_or_default();
-
+        let exporter = match config.protocol() {
+            OtlpExporterProtocolConfig::Grpc(grpc_config) => SpanExporter::builder()
+                .with_tonic()
+                .with_endpoint(
+                    config
+                        .local
+                        .endpoint
+                        .as_ref()
+                        .or(config.global.endpoint.as_ref())
+                        .map(|url| url.as_str())
+                        .unwrap_or("http://127.0.0.1:4317"),
+                )
+                .with_timeout(exporter_timeout)
+                .with_metadata(build_metadata(grpc_config.headers))
+                .with_tls_config(build_tls_config(grpc_config.tls)?)
+                .build()
+                .map_err(|e| TracingError::SpanExporterSetup(e.to_string()))?,
+            OtlpExporterProtocolConfig::Http(http_config) => {
                 SpanExporter::builder()
                     .with_http()
-                    .with_endpoint(config.endpoint.to_string())
+                    .with_endpoint(
+                        // Imitate Opentelemetry default behavior
+                        config
+                            .local
+                            .endpoint
+                            .as_ref()
+                            .map(|url| url.to_string())
+                            .or(config.global.endpoint.as_ref().map(|url| {
+                                let mut url = url.clone();
+                                if url.path() == "/" || url.path().is_empty() {
+                                    url.set_path("/v1/traces");
+                                }
+                                url.to_string()
+                            }))
+                            .unwrap_or("http://127.0.0.1:4318/v1/traces".to_string()),
+                    )
+                    .with_protocol(Protocol::HttpBinary)
                     .with_headers(http_config.headers.into_map())
                     .with_timeout(exporter_timeout)
                     .build()
@@ -91,25 +110,25 @@ fn setup_exporters(
 
     // otlp
     if let Some(otlp_exporter_config) = config.tracing_otlp_config() {
-        let span_exporter = build_otlp_exporter(otlp_exporter_config)?;
+        let span_exporter = build_otlp_exporter(&otlp_exporter_config)?;
 
         let span_processor = build_batched_span_processor(
-            otlp_exporter_config.timeout,
-            &otlp_exporter_config.batch_export,
+            otlp_exporter_config.timeout(),
+            &otlp_exporter_config.batch_export(),
             span_exporter,
         );
 
         tracer_provider_builder = tracer_provider_builder.with_span_processor(span_processor);
     }
 
-    if let Some(otlp_exporter_config) = config.grafbase_otlp_config() {
-        let span_exporter = build_otlp_exporter(otlp_exporter_config)?;
+    if let Some(config) = config.grafbase_otlp_config() {
+        let config = LayeredOtlExporterConfig {
+            global: config.clone(),
+            local: config.clone(),
+        };
+        let span_exporter = build_otlp_exporter(&config)?;
 
-        let span_processor = build_batched_span_processor(
-            otlp_exporter_config.timeout,
-            &otlp_exporter_config.batch_export,
-            span_exporter,
-        );
+        let span_processor = build_batched_span_processor(config.timeout(), &config.batch_export(), span_exporter);
 
         tracer_provider_builder = tracer_provider_builder.with_span_processor(span_processor);
     }

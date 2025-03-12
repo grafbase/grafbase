@@ -412,7 +412,7 @@ impl<'a> GatewayBuilder<'a> {
             args.push(level);
         }
 
-        let command = cmd(cargo_bin("grafbase-gateway"), &args).stdout_null().stderr_null();
+        let command = cmd(cargo_bin("grafbase-gateway"), &args);
 
         let endpoint = match self.client_url_path {
             Some(path) => format!("http://{addr}/{path}"),

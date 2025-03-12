@@ -4,15 +4,18 @@ use std::{
 };
 
 use futures_util::Future;
-use indoc::formatdoc;
+use indoc::{formatdoc, indoc};
 
 use crate::{Client, clickhouse_client, runtime};
+
+use super::Protocol;
 
 const TRACE_INGESTION_DELAY: std::time::Duration = std::time::Duration::from_secs(4);
 
 #[test]
 fn no_traceparent_no_propagation() {
     with_mock_subgraph(
+        Protocol::Grpc,
         "
             [telemetry.tracing.propagation]
             trace_context = false
@@ -44,6 +47,7 @@ fn no_traceparent_no_propagation() {
 #[test]
 fn grafbase_response_extension_has_the_right_trace_id() {
     with_mock_subgraph(
+        Protocol::Grpc,
         "
             [telemetry.tracing.propagation]
             trace_context = true
@@ -90,6 +94,79 @@ fn grafbase_response_extension_has_the_right_trace_id() {
 #[test]
 fn tracecontext_traceparent_propagation() {
     with_mock_subgraph(
+        Protocol::Grpc,
+        "
+            [telemetry.tracing.propagation]
+            trace_context = true
+        ",
+        graphql_mocks::EchoSchema,
+        |service_name, start_time_unix, gateway, clickhouse| async move {
+            let request = r#"
+                query {
+                    headers {
+                        name
+                        value
+                    }
+                }
+            "#;
+
+            let response: HeadersResponse = gateway
+                .gql(request)
+                .header("traceparent", "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01")
+                .header("baggage", "userId=Am%C3%A9lie,serverNode=DF%2028,isProduction=false") // should not be included
+                .header("x-amzn-trace-id", "Root=1-5759e988-bd862e3fe1be46a994272793;Sampled=1") // should not be included
+                .send()
+                .await;
+
+            response.assert_header_names(&[
+                "accept",
+                "accept-encoding",
+                "content-length",
+                "content-type",
+                "traceparent",
+                "tracestate",
+            ]);
+            response.assert_header_content("tracestate", "");
+
+            let trace_parent = response.assert_header("traceparent");
+
+            assert_eq!(
+                traceparent_deterministic_part(trace_parent),
+                "00-0af7651916cd43dd8448eb211c80319c-xxxxxxxxxxxxxxxx-01"
+            );
+
+            tokio::time::sleep(TRACE_INGESTION_DELAY).await;
+
+            let row = clickhouse
+                .query(
+                    r#"
+                SELECT count()
+                FROM otel_traces
+                WHERE ServiceName = ?
+                    AND Timestamp >= ?
+                    AND SpanAttributes['grafbase.kind'] = 'http-request'
+                    AND TraceId = '0af7651916cd43dd8448eb211c80319c'
+                "#,
+                )
+                .bind(&service_name)
+                .bind(start_time_unix)
+                .fetch_one::<TracesRow>()
+                .await
+                .unwrap();
+
+            insta::assert_json_snapshot!(row, @r###"
+            {
+              "count": 1
+            }
+            "###);
+        },
+    );
+}
+
+#[test]
+fn tracecontext_traceparent_propagation_with_http_protocol() {
+    with_mock_subgraph(
+        Protocol::Http,
         "
             [telemetry.tracing.propagation]
             trace_context = true
@@ -161,6 +238,7 @@ fn tracecontext_traceparent_propagation() {
 #[test]
 fn tracecontext_and_baggage_propagation() {
     with_mock_subgraph(
+        Protocol::Grpc,
         "
             [telemetry.tracing.propagation]
             trace_context = true
@@ -262,6 +340,7 @@ fn tracecontext_and_baggage_propagation() {
 #[test]
 fn baggage_propagation() {
     with_mock_subgraph(
+        Protocol::Grpc,
         "
             [telemetry.tracing.propagation]
             baggage = true
@@ -300,6 +379,7 @@ fn baggage_propagation() {
 #[test]
 fn aws_xray_propagation() {
     with_mock_subgraph(
+        Protocol::Grpc,
         "
             [telemetry.tracing.propagation]
             trace_context = true
@@ -410,12 +490,30 @@ struct TracesRow {
     count: u64,
 }
 
-fn with_mock_subgraph<T, F>(config: &str, subgraph_schema: impl graphql_mocks::Schema + 'static, test: T)
-where
+fn with_mock_subgraph<T, F>(
+    protocol: Protocol,
+    config: &str,
+    subgraph_schema: impl graphql_mocks::Schema + 'static,
+    test: T,
+) where
     T: FnOnce(String, u64, Arc<Client>, &'static clickhouse::Client) -> F,
     F: Future<Output = ()>,
 {
     let service_name = format!("service_{}", ulid::Ulid::new());
+    let exporter_config = match protocol {
+        Protocol::Grpc => indoc! {
+            r#"
+            endpoint = "http://localhost:4327"
+            protocol = "grpc"
+            "#
+        },
+        Protocol::Http => indoc! {
+            r#"
+            endpoint = "http://localhost:4328"
+            protocol = "http"
+            "#
+        },
+    };
     let config = &formatdoc! {r#"
         [graph]
         introspection = true
@@ -428,10 +526,9 @@ where
 
         [telemetry.exporters.otlp]
         enabled = true
-        endpoint = "http://localhost:4318"
-        protocol = "grpc"
+        {exporter_config}
 
-        [telemetry.exporters.otlp.batch_export]
+        [telemetry.tracing.exporters.otlp.batch_export]
         scheduled_delay = 1
         max_export_batch_size = 1
 
