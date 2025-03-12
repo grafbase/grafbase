@@ -35,5 +35,5 @@ indoc = "2.0.6"
 insta = { version = "1.42.2", features = ["json"] }
 openidconnect = "4.0.0"
 ory-client = "=1.9.0"
-reqwest = "0.12.12"
+reqwest = "0.12.13"
 tokio = { version = "1.44.0", features = ["rt-multi-thread", "macros", "test-util"] }
