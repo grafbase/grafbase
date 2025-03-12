@@ -224,8 +224,7 @@ jobs:
         if: needs.what-changed.outputs.cargo-bin-specs
         shell: bash
         run: |
-          # grafbase and grafbase-gateway are required for extension integration tests, so they can't be skipped
-          cargo build --target ${{ matrix.platform.target }} ${{ needs.what-changed.outputs.cargo-bin-specs }} --bin grafbase --bin grafbase-gateway
+          cargo build --target ${{ matrix.platform.target }} ${{ needs.what-changed.outputs.cargo-bin-specs }}
 
       - name: Clippy
         if: needs.what-changed.outputs.cargo-build-specs
@@ -351,6 +350,8 @@ jobs:
     runs-on: ${{ matrix.platform.runner }}
     if: |
       needs.what-changed.outputs.changed-packages != '[]'
+            && contains(needs.what-changed.outputs.changed-packages, 'grafbase')
+            && contains(needs.what-changed.outputs.changed-packages, 'grafbase-gateway')
             && !(cancelled())
             && !(contains(needs.*.result, 'failure'))
     steps:
@@ -379,7 +380,6 @@ jobs:
           tool: nextest
 
       - name: Build CLI and Gateway
-        # if: needs.what-chaged.outputs.cargo-bin-specs
         shell: bash
         run: |
           cargo build -p grafbase -p grafbase-gateway
