@@ -149,6 +149,12 @@ jobs:
             gateway/release/github/grafbase-gateway-lambda-aarch64-unknown-linux-musl
             gateway/release/github/grafbase-gateway-lambda-x86_64-unknown-linux-musl
 
+      - id: install-aws-cli
+        uses: unfor19/install-aws-cli-action@v1
+        with:
+          version: 2
+          verbose: true
+
       - name: Publish gateway install script
         shell: bash
         env:
@@ -158,10 +164,6 @@ jobs:
           CLOUDFLARE_ASSETS_R2_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_ASSETS_R2_SECRET_ACCESS_KEY }}
         run: |
           if [[ $INPUT_PRERELEASE == "false" ]]; then
-            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-            unzip awscliv2.zip
-            sudo ./aws/install --update
-
             cd cli/install
             sed -i 's/{{LATEST_VERSION}}/${{ env.VERSION_BUMP }}/g' gateway
             ./upload.sh gateway
