@@ -38,7 +38,7 @@ jq-selection = [
 
 [dependencies]
 anyhow.workspace = true
-grafbase-sdk-derive = { version = "0.2.0", path = "derive" }
+grafbase-sdk-derive = { version = "0.3.0", path = "derive" }
 http.workspace = true
 minicbor.workspace = true
 minicbor-serde = { workspace = true, features = ["alloc"] }
