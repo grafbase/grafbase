@@ -10,14 +10,14 @@ pub enum ErrorResponse {
     Internal(#[from] anyhow::Error),
     /// Error defined by the guest.
     #[error("{0}")]
-    Guest(#[from] wit::error::ErrorResponse),
+    Guest(#[from] wit::ErrorResponse),
 }
 
 impl From<Error> for ErrorResponse {
     fn from(value: Error) -> Self {
         match value {
             Error::Internal(error) => ErrorResponse::Internal(error),
-            Error::Guest(error) => ErrorResponse::Guest(wit::error::ErrorResponse {
+            Error::Guest(error) => ErrorResponse::Guest(wit::ErrorResponse {
                 status_code: 500,
                 errors: vec![error],
             }),
@@ -53,7 +53,7 @@ pub enum Error {
     Internal(#[from] anyhow::Error),
     /// User-thrown error of the WASI guest.
     #[error("{0}")]
-    Guest(#[from] wit::error::Error),
+    Guest(#[from] wit::Error),
 }
 
 impl Error {

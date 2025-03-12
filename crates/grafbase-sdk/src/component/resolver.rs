@@ -20,7 +20,7 @@ impl ResolverGuest for Component {
         subgraph_name: String,
         directive: FieldDefinitionDirective,
     ) -> Result<Option<Vec<u8>>, Error> {
-        let result = state::extension()?.subscription_key(headers.into(), &subgraph_name, (&directive).into())?;
+        let result = state::extension()?.subscription_key(&headers.into(), &subgraph_name, (&directive).into())?;
 
         Ok(result)
     }

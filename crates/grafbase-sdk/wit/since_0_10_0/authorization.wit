@@ -1,0 +1,29 @@
+interface authorization {
+    use directive.{query-elements, response-elements};
+    use error.{error, error-response};
+    use headers.{headers};
+    use token.{token};
+
+    variant authorization-decisions {
+        grant-all,
+        deny-all(error),
+        deny-some(authorization-decisions-deny-some)
+    }
+
+    record authorization-decisions-deny-some {
+        // For elements
+        element-to-error: list<tuple<u32, u32>>,
+        errors: list<error>
+    }
+
+    authorize-query: func(
+        headers: headers,
+        token: token,
+        elements: query-elements
+    ) -> result<tuple<authorization-decisions, list<u8>>, error-response>;
+
+    authorize-response: func(
+        state: list<u8>,
+        elements: response-elements
+    ) -> result<authorization-decisions, error>;
+}

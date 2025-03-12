@@ -1,6 +1,10 @@
 use wasmtime::component::Resource;
 
-use crate::{WasiState, extension::api::since_0_9_0::wit::headers::HostHeaders, headers::Headers};
+use crate::WasiState;
+
+pub use super::grafbase::sdk::headers::*;
+
+impl Host for WasiState {}
 
 impl HostHeaders for WasiState {
     async fn get(&mut self, self_: Resource<Headers>, name: String) -> wasmtime::Result<Option<String>> {

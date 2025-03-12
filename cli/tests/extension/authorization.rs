@@ -81,7 +81,7 @@ fn init() {
     insta::assert_snapshot!(&lib_rs, @r##"
     use grafbase_sdk::{
         types::{Configuration, ErrorResponse, QueryElements, AuthorizationDecisions},
-        host::AuthorizationContext,
+        host::SubgraphHeaders,
         AuthorizationExtension, Error
     };
 
@@ -95,7 +95,8 @@ fn init() {
 
         fn authorize_query(
             &mut self,
-            ctx: AuthorizationContext,
+            headers: &mut SubgraphHeaders,
+            token: Token,
             elements: QueryElements<'_>,
         ) -> Result<AuthorizationDecisions, ErrorResponse> {
             Ok(AuthorizationDecisions::deny_all("Not authorized"))

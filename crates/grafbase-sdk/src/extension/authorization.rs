@@ -1,8 +1,8 @@
 use crate::{
     component::AnyExtension,
-    host::AuthorizationContext,
+    host::SubgraphHeaders,
     types::{AuthorizationDecisions, Configuration, ErrorResponse, QueryElements, ResponseElements},
-    Error,
+    Error, Token,
 };
 
 /// A trait that extends `Extension` and provides authorization functionality.
@@ -29,13 +29,13 @@ pub trait AuthorizationExtension: Sized + 'static {
     /// only interface fields are used.
     fn authorize_query(
         &mut self,
-        ctx: AuthorizationContext,
+        headers: &mut SubgraphHeaders,
+        token: Token,
         elements: QueryElements<'_>,
     ) -> Result<impl IntoQueryAuthorization, ErrorResponse>;
 
     fn authorize_response(
         &mut self,
-        ctx: AuthorizationContext,
         state: Vec<u8>,
         elements: ResponseElements<'_>,
     ) -> Result<AuthorizationDecisions, Error> {
@@ -66,11 +66,20 @@ pub fn register<T: AuthorizationExtension>() {
     impl<T: AuthorizationExtension> AnyExtension for Proxy<T> {
         fn authorize_query(
             &mut self,
-            ctx: AuthorizationContext,
+            headers: &mut SubgraphHeaders,
+            token: Token,
             elements: QueryElements<'_>,
         ) -> Result<(AuthorizationDecisions, Vec<u8>), ErrorResponse> {
-            AuthorizationExtension::authorize_query(&mut self.0, ctx, elements)
+            AuthorizationExtension::authorize_query(&mut self.0, headers, token, elements)
                 .map(IntoQueryAuthorization::into_query_authorization)
+        }
+
+        fn authorize_response(
+            &mut self,
+            state: Vec<u8>,
+            elements: ResponseElements<'_>,
+        ) -> Result<AuthorizationDecisions, Error> {
+            AuthorizationExtension::authorize_response(&mut self.0, state, elements)
         }
     }
 
