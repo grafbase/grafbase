@@ -1,5 +1,15 @@
+pub mod access_log;
+pub mod authorization;
+pub mod cache;
 mod compatibility;
+pub mod context;
 pub mod directive;
+pub mod error;
+pub mod headers;
+pub mod http_client;
+pub mod nats_client;
+pub mod resolver;
+pub mod token;
 
 wasmtime::component::bindgen!({
     path: "../grafbase-sdk/wit/since_0_9_0/",
@@ -20,16 +30,3 @@ wasmtime::component::bindgen!({
         duplicate_if_necessary: true
     },
 });
-
-pub use exports::grafbase::sdk::authentication;
-pub use exports::grafbase::sdk::authorization;
-pub use exports::grafbase::sdk::init;
-pub use exports::grafbase::sdk::resolver;
-pub use grafbase::sdk::access_log;
-pub use grafbase::sdk::cache;
-pub use grafbase::sdk::context;
-pub use grafbase::sdk::error;
-pub use grafbase::sdk::headers;
-pub use grafbase::sdk::http_client;
-pub use grafbase::sdk::nats_client;
-pub use grafbase::sdk::token;

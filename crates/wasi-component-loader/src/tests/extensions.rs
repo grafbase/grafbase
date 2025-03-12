@@ -2,10 +2,7 @@ use std::path::PathBuf;
 
 use crate::{
     cbor,
-    extension::{
-        ExtensionGuestConfig, ExtensionLoader, SchemaDirective,
-        api::wit::{self, token::Token},
-    },
+    extension::{ExtensionGuestConfig, ExtensionLoader, SchemaDirective, api::wit},
     tests::create_shared_resources,
 };
 use futures::{
@@ -14,8 +11,12 @@ use futures::{
 };
 use gateway_config::WasiExtensionsConfig;
 use http::{HeaderMap, HeaderValue};
-use semver::Version;
+use runtime::extension::{Data, Token};
 use serde_json::json;
+
+const SDK_080: semver::Version = semver::Version::new(0, 8, 0);
+const SDK_090: semver::Version = semver::Version::new(0, 9, 0);
+const LATEST_SDK: semver::Version = semver::Version::new(0, 10, 0);
 
 #[tokio::test]
 async fn resolver_08() {
@@ -49,13 +50,13 @@ async fn resolver_08() {
             schema_directives: vec![SchemaDirective::new("schemaArgs", "mySubgraph", SchemaArgs { id: 10 })],
             configuration: (),
         },
-        Version::new(0, 8, 0),
+        SDK_080,
     )
     .unwrap();
 
-    let field_directive = wit::directive::FieldDefinitionDirective {
+    let field_directive = wit::FieldDefinitionDirective {
         name: "myDirective",
-        site: wit::directive::FieldDefinitionDirectiveSite {
+        site: wit::FieldDefinitionDirectiveSite {
             parent_type_name: "Query",
             field_name: "cats",
         },
@@ -76,11 +77,10 @@ async fn resolver_08() {
         .unwrap();
 
     let result: serde_json::Value = output
-        .outputs
         .into_iter()
         .flat_map(|result| {
             let data = result.ok()?;
-            minicbor_serde::from_slice(&data).ok()
+            minicbor_serde::from_slice(data.as_cbor().unwrap()).ok()
         })
         .next()
         .unwrap();
@@ -125,13 +125,13 @@ async fn resolver_09() {
             schema_directives: vec![SchemaDirective::new("schemaArgs", "mySubgraph", SchemaArgs { id: 10 })],
             configuration: (),
         },
-        Version::new(0, 9, 0),
+        SDK_090,
     )
     .unwrap();
 
-    let field_directive = wit::directive::FieldDefinitionDirective {
+    let field_directive = wit::FieldDefinitionDirective {
         name: "myDirective",
-        site: wit::directive::FieldDefinitionDirectiveSite {
+        site: wit::FieldDefinitionDirectiveSite {
             parent_type_name: "Query",
             field_name: "cats",
         },
@@ -152,11 +152,10 @@ async fn resolver_09() {
         .unwrap();
 
     let result: serde_json::Value = output
-        .outputs
         .into_iter()
         .flat_map(|result| {
             let data = result.ok()?;
-            minicbor_serde::from_slice(&data).ok()
+            minicbor_serde::from_slice(data.as_cbor().unwrap()).ok()
         })
         .next()
         .unwrap();
@@ -201,13 +200,13 @@ async fn simple_resolver() {
             schema_directives: vec![SchemaDirective::new("schemaArgs", "mySubgraph", SchemaArgs { id: 10 })],
             configuration: (),
         },
-        Version::new(0, 9, 0),
+        LATEST_SDK,
     )
     .unwrap();
 
-    let field_directive = wit::directive::FieldDefinitionDirective {
+    let field_directive = wit::FieldDefinitionDirective {
         name: "myDirective",
-        site: wit::directive::FieldDefinitionDirectiveSite {
+        site: wit::FieldDefinitionDirectiveSite {
             parent_type_name: "Query",
             field_name: "cats",
         },
@@ -228,11 +227,10 @@ async fn simple_resolver() {
         .unwrap();
 
     let result: serde_json::Value = output
-        .outputs
         .into_iter()
-        .flat_map(|result| {
-            let data = result.ok()?;
-            minicbor_serde::from_slice(&data).ok()
+        .flat_map(|result| match result.ok()? {
+            Data::CborBytes(bytes) => minicbor_serde::from_slice(&bytes).ok(),
+            _ => None,
         })
         .next()
         .unwrap();
@@ -269,7 +267,7 @@ async fn auth_08() {
                 "cache_config": "test"
             }),
         },
-        Version::new(0, 8, 0),
+        SDK_080,
     )
     .unwrap();
 
@@ -317,7 +315,7 @@ async fn auth_09() {
                 "cache_config": "test"
             }),
         },
-        Version::new(0, 9, 0),
+        SDK_090,
     )
     .unwrap();
 
@@ -363,7 +361,7 @@ async fn single_call_caching_auth() {
                 "cache_config": "test"
             }),
         },
-        Version::new(0, 9, 0),
+        LATEST_SDK,
     )
     .unwrap();
 
@@ -408,7 +406,7 @@ async fn single_call_caching_auth_invalid() {
                 "cache_config": "test"
             }),
         },
-        Version::new(0, 9, 0),
+        LATEST_SDK,
     )
     .unwrap();
 
@@ -458,7 +456,7 @@ async fn multiple_cache_calls() {
                 "cache_config": "test"
             }),
         },
-        Version::new(0, 9, 0),
+        LATEST_SDK,
     )
     .unwrap();
 

@@ -5,7 +5,6 @@ use crate::extension::{api::wit, pool::ExtensionGuard};
 use engine::{ErrorCode, GraphqlError};
 use engine_schema::Subgraph;
 use futures::stream;
-use runtime::extension::Data;
 
 /// A subscription without deduplication, reserving one extension instance for each subscription.
 ///
@@ -14,7 +13,7 @@ pub struct UniqueSubscription<'ctx, 'wit> {
     pub instance: ExtensionGuard,
     pub headers: http::HeaderMap,
     pub subgraph: Subgraph<'ctx>,
-    pub directive: wit::directive::FieldDefinitionDirective<'wit>,
+    pub directive: wit::FieldDefinitionDirective<'wit>,
 }
 
 impl<'ctx> UniqueSubscription<'ctx, '_> {
@@ -39,14 +38,14 @@ impl<'ctx> UniqueSubscription<'ctx, '_> {
                 return Some((data, (instance, tail)));
             }
 
-            let item = loop {
+            let items = loop {
                 match instance.resolve_next_subscription_item().await {
-                    Ok(Some(item)) if item.outputs.is_empty() => {
+                    Ok(Some(items)) if items.is_empty() => {
                         continue;
                     }
-                    Ok(Some(item)) => {
+                    Ok(Some(items)) => {
                         tracing::debug!("subscription item resolved");
-                        break item;
+                        break items;
                     }
                     Ok(None) => {
                         tracing::debug!("subscription completed");
@@ -59,13 +58,12 @@ impl<'ctx> UniqueSubscription<'ctx, '_> {
                 }
             };
 
-            for item in item.outputs {
+            for item in items {
                 match item {
-                    Ok(item) => {
-                        tail.push_back(Ok(Arc::new(Data::CborBytes(item))));
+                    Ok(data) => {
+                        tail.push_back(Ok(Arc::new(data)));
                     }
                     Err(error) => {
-                        let error = error.into_graphql_error(ErrorCode::InternalServerError);
                         tail.push_back(Err(error));
                     }
                 }

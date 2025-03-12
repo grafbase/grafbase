@@ -16,6 +16,15 @@ pub enum Data {
     CborBytes(Vec<u8>),
 }
 
+impl Data {
+    pub fn as_cbor(&self) -> Option<&[u8]> {
+        match self {
+            Data::JsonBytes(_) => None,
+            Data::CborBytes(bytes) => Some(bytes),
+        }
+    }
+}
+
 pub struct ExtensionFieldDirective<'a, Args> {
     pub extension_id: ExtensionId,
     pub subgraph: Subgraph<'a>,

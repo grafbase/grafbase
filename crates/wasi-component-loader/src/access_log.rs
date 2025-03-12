@@ -6,7 +6,7 @@ use wasmtime::{
 };
 
 use crate::{
-    extension::api::wit::grafbase::sdk::access_log::LogError,
+    extension::api::wit::LogError,
     names::{ACCESS_LOG_RESOURCE, ACCESS_LOG_SEND_FUNCTION},
     state::WasiState,
 };
