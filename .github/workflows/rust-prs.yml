@@ -383,6 +383,7 @@ jobs:
         shell: bash
         run: |
           cargo build -p grafbase -p grafbase-gateway
+          echo "$(pwd)/target/debug" >> $GITHUB_PATH
 
       - name: Login to Docker Hub
         env:
@@ -393,6 +394,12 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Checkout Extensions
+        uses: actions/checkout@v4
+        with:
+          repository: 'grafbase/extensions'
+          path: extensions
+
       - name: Start extensions docker compose
         shell: bash
         working-directory: extensions
@@ -402,11 +409,7 @@ jobs:
         shell: bash
         working-directory: extensions
         run: |
-          find . -type f -name 'Cargo.toml' | while read manifest; do
-            dir=$(dirname "$manifest")
-            echo "Testing extension in $dir"
-            (cd "$dir" && cargo nextest run --no-tests=pass)
-          done
+          cargo run -p test-matrix
 
   after-build-rust:
     # This job is responsible for reacting to build success or failure. It must

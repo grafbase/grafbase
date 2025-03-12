@@ -1,8 +1,0 @@
-[extension]
-name = "authenticated"
-version = "1.0.0"
-kind = "authorization"
-description = "@authenticated directive"
-license = "Apache-2.0"
-
-
