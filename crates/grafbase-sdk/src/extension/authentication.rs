@@ -1,6 +1,6 @@
 use crate::{
     component::AnyExtension,
-    host::Headers,
+    host::GatewayHeaders,
     types::{Configuration, ErrorResponse, Token},
     Error,
 };
@@ -26,7 +26,7 @@ pub trait AuthenticationExtension: Sized + 'static {
     /// # Returns
     /// * `Ok(Token)` - A valid authentication token if successful.
     /// * `Err(ErrorResponse)` - An error response if authentication fails.
-    fn authenticate(&mut self, headers: Headers) -> Result<Token, ErrorResponse>;
+    fn authenticate(&mut self, headers: &GatewayHeaders) -> Result<Token, ErrorResponse>;
 }
 
 #[doc(hidden)]
@@ -34,7 +34,7 @@ pub fn register<T: AuthenticationExtension>() {
     pub(super) struct Proxy<T: AuthenticationExtension>(T);
 
     impl<T: AuthenticationExtension> AnyExtension for Proxy<T> {
-        fn authenticate(&mut self, headers: Headers) -> Result<Token, ErrorResponse> {
+        fn authenticate(&mut self, headers: &GatewayHeaders) -> Result<Token, ErrorResponse> {
             AuthenticationExtension::authenticate(&mut self.0, headers)
         }
     }

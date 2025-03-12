@@ -1,6 +1,6 @@
 use crate::{
     component::AnyExtension,
-    host::Headers,
+    host::SubgraphHeaders,
     types::{
         Configuration, Error, FieldDefinitionDirective, FieldInputs, FieldOutput, SchemaDirective, SubscriptionOutput,
     },
@@ -77,7 +77,7 @@ pub trait ResolverExtension: Sized + 'static {
     /// Returns a `Result` containing either the resolved `FieldOutput` value or an `Error`
     fn resolve_field(
         &mut self,
-        headers: Headers,
+        headers: SubgraphHeaders,
         subgraph_name: &str,
         directive: FieldDefinitionDirective<'_>,
         inputs: FieldInputs<'_>,
@@ -96,7 +96,7 @@ pub trait ResolverExtension: Sized + 'static {
     /// Returns a `Result` containing either a boxed `Subscriber` implementation or an `Error`
     fn resolve_subscription(
         &mut self,
-        headers: Headers,
+        headers: SubgraphHeaders,
         subgraph_name: &str,
         directive: FieldDefinitionDirective<'_>,
     ) -> Result<Box<dyn Subscription>, Error>;
@@ -120,7 +120,7 @@ pub trait ResolverExtension: Sized + 'static {
     #[allow(unused)]
     fn subscription_key(
         &mut self,
-        headers: Headers,
+        headers: &SubgraphHeaders,
         subgraph_name: &str,
         directive: FieldDefinitionDirective<'_>,
     ) -> Option<Vec<u8>> {
@@ -151,7 +151,7 @@ pub fn register<T: ResolverExtension>() {
     impl<T: ResolverExtension> AnyExtension for Proxy<T> {
         fn resolve_field(
             &mut self,
-            headers: Headers,
+            headers: SubgraphHeaders,
             subgraph_name: &str,
             directive: FieldDefinitionDirective<'_>,
             inputs: FieldInputs<'_>,
@@ -160,7 +160,7 @@ pub fn register<T: ResolverExtension>() {
         }
         fn resolve_subscription(
             &mut self,
-            headers: Headers,
+            headers: SubgraphHeaders,
             subgraph_name: &str,
             directive: FieldDefinitionDirective<'_>,
         ) -> Result<Box<dyn Subscription>, Error> {
@@ -169,7 +169,7 @@ pub fn register<T: ResolverExtension>() {
 
         fn subscription_key(
             &mut self,
-            headers: Headers,
+            headers: &SubgraphHeaders,
             subgraph_name: &str,
             directive: FieldDefinitionDirective<'_>,
         ) -> Result<Option<Vec<u8>>, Error> {

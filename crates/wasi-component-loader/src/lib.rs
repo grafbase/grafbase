@@ -34,7 +34,7 @@ pub use crossbeam::channel::Sender;
 pub use crossbeam::sync::WaitGroup;
 use either::Either;
 pub use error::{Error, ErrorResponse};
-pub use extension::api::wit::error::Error as GuestError;
+pub use extension::api::wit::Error as GuestError;
 use gateway_config::WasiExtensionsConfig;
 pub use instance::hooks::{
     HookImplementation, HooksComponentInstance,

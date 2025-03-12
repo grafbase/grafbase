@@ -1,19 +1,16 @@
+use std::sync::Arc;
+
 use anyhow::anyhow;
+use engine::GraphqlError;
 use futures::future::BoxFuture;
+use runtime::extension::{AuthorizationDecisions, Data, Token};
 use wasmtime::Store;
 
 use crate::{
     Error, ErrorResponse,
     extension::{
-        api::{
-            instance::InputList,
-            wit::{
-                authorization::{AuthorizationContext, AuthorizationDecisions},
-                directive::{QueryElements, ResponseElements},
-                resolver::{FieldDefinitionDirective, FieldOutput},
-                token::Token,
-            },
-        },
+        InputList,
+        api::wit::{FieldDefinitionDirective, QueryElements, ResponseElements},
         instance::ExtensionInstance,
     },
     state::WasiState,
@@ -34,7 +31,7 @@ impl ExtensionInstance for ExtensionInstanceSince080 {
         subgraph_name: &'a str,
         directive: FieldDefinitionDirective<'a>,
         inputs: InputList,
-    ) -> BoxFuture<'a, Result<FieldOutput, Error>> {
+    ) -> BoxFuture<'a, Result<Vec<Result<Data, GraphqlError>>, Error>> {
         Box::pin(async move {
             self.poisoned = true;
 
@@ -107,7 +104,9 @@ impl ExtensionInstance for ExtensionInstanceSince080 {
         })
     }
 
-    fn resolve_next_subscription_item(&mut self) -> BoxFuture<'_, Result<Option<FieldOutput>, Error>> {
+    fn resolve_next_subscription_item(
+        &mut self,
+    ) -> BoxFuture<'_, Result<Option<Vec<Result<Data, GraphqlError>>>, Error>> {
         Box::pin(async move {
             self.poisoned = true;
 
@@ -155,7 +154,7 @@ impl ExtensionInstance for ExtensionInstanceSince080 {
 
     fn authorize_query<'a>(
         &'a mut self,
-        _: AuthorizationContext,
+        _: &'a Arc<engine::RequestContext>,
         elements: QueryElements<'a>,
     ) -> BoxFuture<'a, Result<(AuthorizationDecisions, Vec<u8>), ErrorResponse>> {
         Box::pin(async move {
@@ -179,7 +178,6 @@ impl ExtensionInstance for ExtensionInstanceSince080 {
 
     fn authorize_response<'a>(
         &'a mut self,
-        _ctx: AuthorizationContext,
         _state: &'a [u8],
         _elements: ResponseElements<'a>,
     ) -> BoxFuture<'a, Result<AuthorizationDecisions, Error>> {

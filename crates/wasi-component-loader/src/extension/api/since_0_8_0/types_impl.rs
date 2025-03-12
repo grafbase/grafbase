@@ -3,6 +3,7 @@ use crate::WasiState;
 mod access_log;
 mod cache;
 mod error;
+mod field_output;
 mod headers;
 mod http_client;
 mod nats;

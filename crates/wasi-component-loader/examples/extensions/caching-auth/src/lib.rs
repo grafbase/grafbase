@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use grafbase_sdk::{
-    AuthenticationExtension, Error, Headers,
+    AuthenticationExtension, Error, GatewayHeaders,
     host_io::cache::{self, CachedItem},
     types::{Configuration, ErrorResponse, StatusCode, Token},
 };
@@ -28,12 +28,18 @@ impl AuthenticationExtension for CachingProvider {
         Ok(Self { config })
     }
 
-    fn authenticate(&mut self, headers: Headers) -> Result<Token, ErrorResponse> {
+    fn authenticate(&mut self, headers: &GatewayHeaders) -> Result<Token, ErrorResponse> {
         let header = headers
             .get("Authorization")
-            .ok_or_else(|| ErrorResponse::new(StatusCode::UNAUTHORIZED))?;
+            .ok_or_else(|| ErrorResponse::new(StatusCode::UNAUTHORIZED))?
+            .to_str()
+            .map(str::to_string)
+            .unwrap_or_default();
 
-        let value = headers.get("value").unwrap_or_else(|| String::from("default"));
+        let value = headers
+            .get("value")
+            .and_then(|v| v.to_str().ok().map(str::to_string))
+            .unwrap_or_else(|| String::from("default"));
 
         let cache_key = format!("auth:{}:{header}", self.config.cache_config);
 

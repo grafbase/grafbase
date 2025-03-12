@@ -1,21 +1,10 @@
-mod authorization;
 mod subscription;
 
-use crate::{
-    SharedContext, cbor,
-    extension::ExtensionLoader,
-    resources::{AuthorizationContext, SharedResources},
-};
+use crate::{SharedContext, cbor, extension::ExtensionLoader, resources::SharedResources};
 
 use super::{
-    ExtensionGuestConfig,
-    api::{
-        instance::InputList,
-        wit::{
-            self,
-            directive::{ResponseElement, ResponseElements},
-        },
-    },
+    ExtensionGuestConfig, InputList,
+    api::wit::{self, ResponseElement, ResponseElements},
     pool::{ExtensionGuard, Pool},
 };
 
@@ -126,7 +115,7 @@ async fn create_pools<T: serde::Serialize + Send + 'static>(
 }
 
 impl ExtensionRuntime<Arc<RequestContext>> for ExtensionsWasiRuntime {
-    type SharedContext = wit::context::SharedContext;
+    type SharedContext = crate::resources::SharedContext;
 
     #[allow(clippy::manual_async_fn)]
     fn resolve_field<'ctx, 'resp, 'f>(
@@ -149,33 +138,19 @@ impl ExtensionRuntime<Arc<RequestContext>> for ExtensionsWasiRuntime {
         async move {
             let mut instance = self.get(ExtensionPoolId::Resolver(extension_id)).await?;
 
-            let directive = wit::directive::FieldDefinitionDirective {
+            let directive = wit::FieldDefinitionDirective {
                 name,
-                site: wit::directive::FieldDefinitionDirectiveSite {
+                site: wit::FieldDefinitionDirectiveSite {
                     parent_type_name: field.parent_entity().name(),
                     field_name: field.name(),
                 },
                 arguments: &cbor::to_vec(arguments).unwrap(),
             };
 
-            let output = instance
+            instance
                 .resolve_field(headers, subgraph.name(), directive, inputs)
                 .await
-                .map_err(|err| err.into_graphql_error(ErrorCode::ExtensionError))?;
-
-            let mut results = Vec::new();
-
-            for result in output.outputs {
-                match result {
-                    Ok(data) => results.push(Ok(Data::CborBytes(data))),
-                    Err(error) => {
-                        let error = error.into_graphql_error(ErrorCode::InternalServerError);
-                        results.push(Err(error))
-                    }
-                }
-            }
-
-            Ok(results)
+                .map_err(|err| err.into_graphql_error(ErrorCode::ExtensionError))
         }
     }
 
@@ -189,10 +164,10 @@ impl ExtensionRuntime<Arc<RequestContext>> for ExtensionsWasiRuntime {
             .get(ExtensionPoolId::Authorizer(extension_id, authorizer_id))
             .await?;
 
-        match instance.authenticate(headers).await {
-            Ok((headers, token)) => Ok((headers, token.into())),
-            Err(err) => Err(err.into_graphql_error_response(ErrorCode::Unauthenticated)),
-        }
+        instance
+            .authenticate(headers)
+            .await
+            .map_err(|err| err.into_graphql_error_response(ErrorCode::Unauthenticated))
     }
 
     async fn resolve_subscription<'ctx, 'f>(
@@ -214,12 +189,12 @@ impl ExtensionRuntime<Arc<RequestContext>> for ExtensionsWasiRuntime {
         let mut instance = self.get(ExtensionPoolId::Resolver(extension_id)).await?;
         let arguments = &cbor::to_vec(arguments).unwrap();
 
-        let site = wit::directive::FieldDefinitionDirectiveSite {
+        let site = wit::FieldDefinitionDirectiveSite {
             parent_type_name: field.parent_entity().name(),
             field_name: field.name(),
         };
 
-        let directive = wit::directive::FieldDefinitionDirective { name, site, arguments };
+        let directive = wit::FieldDefinitionDirective { name, site, arguments };
 
         let (headers, key) = instance
             .subscription_key(headers, subgraph.name(), directive.clone())
@@ -274,7 +249,7 @@ impl ExtensionRuntime<Arc<RequestContext>> for ExtensionsWasiRuntime {
                 let element: QueryElement<'_, _> = element;
                 let arguments = cbor::to_vec(element.arguments).unwrap();
 
-                query_elements.push(wit::directive::QueryElement {
+                query_elements.push(wit::QueryElement {
                     id: element.site.id().into(),
                     site: element.site.into(),
                     arguments,
@@ -284,13 +259,12 @@ impl ExtensionRuntime<Arc<RequestContext>> for ExtensionsWasiRuntime {
             directive_names.push((directive_name, start as u32, end as u32));
         }
 
-        let ctx = AuthorizationContext(ctx.clone());
         async move {
             let mut instance = self.get(ExtensionPoolId::Authorization(extension_id)).await?;
             match instance
                 .authorize_query(
                     ctx,
-                    wit::directive::QueryElements {
+                    wit::QueryElements {
                         directive_names,
                         elements: query_elements,
                     },
@@ -305,7 +279,7 @@ impl ExtensionRuntime<Arc<RequestContext>> for ExtensionsWasiRuntime {
                             .await
                             .push((extension_id, state));
                     }
-                    Ok(decisions.into())
+                    Ok(decisions)
                 }
                 Err(err) => Err(err.into_graphql_error_response(ErrorCode::Unauthorized)),
             }
@@ -315,7 +289,7 @@ impl ExtensionRuntime<Arc<RequestContext>> for ExtensionsWasiRuntime {
     fn authorize_response<'ctx, 'fut>(
         &'ctx self,
         extension_id: ExtensionId,
-        ctx: &'ctx Arc<RequestContext>,
+        _ctx: &'ctx Arc<RequestContext>,
         wasm_context: &'ctx SharedContext,
         directive_name: &'ctx str,
         directive_site: DirectiveSite<'ctx>,
@@ -328,7 +302,6 @@ impl ExtensionRuntime<Arc<RequestContext>> for ExtensionsWasiRuntime {
             .into_iter()
             .map(|item| cbor::to_vec(item).unwrap())
             .collect::<Vec<_>>();
-        let ctx = AuthorizationContext(ctx.clone());
         async move {
             let guard = wasm_context.authorization_state.read().await;
             let state = guard
@@ -344,7 +317,6 @@ impl ExtensionRuntime<Arc<RequestContext>> for ExtensionsWasiRuntime {
             let mut instance = self.get(ExtensionPoolId::Authorization(extension_id)).await?;
             instance
                 .authorize_response(
-                    ctx,
                     state,
                     ResponseElements {
                         directive_names: vec![(directive_name, 0, 1)],
@@ -356,7 +328,6 @@ impl ExtensionRuntime<Arc<RequestContext>> for ExtensionsWasiRuntime {
                     },
                 )
                 .await
-                .map(Into::into)
                 .map_err(|err| err.into_graphql_error(ErrorCode::Unauthorized))
         }
     }

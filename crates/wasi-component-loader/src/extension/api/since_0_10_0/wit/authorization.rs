@@ -1,15 +1,15 @@
 use engine::ErrorCode;
 
-use crate::extension::api::wit::authorization as wit_latest;
+pub use super::exports::grafbase::sdk::authorization::*;
 
-impl From<wit_latest::AuthorizationDecisions> for runtime::extension::AuthorizationDecisions {
-    fn from(decisions: wit_latest::AuthorizationDecisions) -> Self {
+impl From<AuthorizationDecisions> for runtime::extension::AuthorizationDecisions {
+    fn from(decisions: AuthorizationDecisions) -> Self {
         match decisions {
-            wit_latest::AuthorizationDecisions::GrantAll => runtime::extension::AuthorizationDecisions::GrantAll,
-            wit_latest::AuthorizationDecisions::DenyAll(error) => {
+            AuthorizationDecisions::GrantAll => runtime::extension::AuthorizationDecisions::GrantAll,
+            AuthorizationDecisions::DenyAll(error) => {
                 runtime::extension::AuthorizationDecisions::DenyAll(error.into_graphql_error(ErrorCode::Unauthorized))
             }
-            wit_latest::AuthorizationDecisions::DenySome(wit_latest::AuthorizationDecisionsDenySome {
+            AuthorizationDecisions::DenySome(AuthorizationDecisionsDenySome {
                 element_to_error,
                 errors,
             }) => {

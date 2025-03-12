@@ -19,9 +19,9 @@ pub use extension::{
     ResolverExtension,
 };
 pub use grafbase_sdk_derive::{AuthenticationExtension, AuthorizationExtension, ResolverExtension};
-pub use host::{AuthorizationContext, Headers};
+pub use host::{GatewayHeaders, SubgraphHeaders};
 pub use types::{Error, ErrorResponse, Token};
-pub use wit::{NatsAuth, NatsStreamDeliverPolicy, SharedContext};
+pub use wit::{NatsAuth, NatsStreamDeliverPolicy};
 
 use component::Component;
 
@@ -42,7 +42,7 @@ mod wit {
 
     wit_bindgen::generate!({
         skip: ["register-extension"],
-        path: "./wit/since_0_9_0/",
+        path: "./wit/since_0_10_0/",
         world: "sdk",
     });
 
@@ -55,12 +55,7 @@ mod wit {
 
     pub use grafbase::sdk::access_log::*;
     pub use grafbase::sdk::cache::*;
-    pub use grafbase::sdk::context::{AuthorizationContext, SharedContext};
-    pub use grafbase::sdk::directive::{
-        DirectiveSite, EnumDirectiveSite, FieldDefinitionDirective, FieldDefinitionDirectiveSite,
-        InterfaceDirectiveSite, ObjectDirectiveSite, QueryElement, QueryElements, ResponseElement, ResponseElements,
-        ScalarDirectiveSite, SchemaDirective, UnionDirectiveSite,
-    };
+    pub use grafbase::sdk::directive::*;
     pub use grafbase::sdk::error::*;
     pub use grafbase::sdk::headers::*;
     pub use grafbase::sdk::http_client::*;
