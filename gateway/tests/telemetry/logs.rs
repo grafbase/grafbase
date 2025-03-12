@@ -25,7 +25,7 @@ fn with_otel() {
 
         [telemetry.exporters.otlp]
         enabled = true
-        endpoint = "http://localhost:4318"
+        endpoint = "http://localhost:4327"
         protocol = "grpc"
 
         [telemetry.exporters.otlp.batch_export]
@@ -71,7 +71,7 @@ fn with_otel_reload() {
 
         [telemetry.exporters.otlp]
         enabled = true
-        endpoint = "http://localhost:4318"
+        endpoint = "http://localhost:4327"
         protocol = "grpc"
 
         [telemetry.exporters.otlp.batch_export]
@@ -126,7 +126,7 @@ fn with_otel_with_different_endpoint() {
 
         [telemetry.logs.exporters.otlp]
         enabled = true
-        endpoint = "http://localhost:4318"
+        endpoint = "http://localhost:4327"
         protocol = "grpc"
 
         [telemetry.logs.exporters.otlp.batch_export]

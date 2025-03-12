@@ -2,48 +2,74 @@ mod headers;
 
 pub use headers::Headers;
 
-use super::{BatchExportConfig, default_export_timeout, deserialize_duration};
-use std::{path::PathBuf, str::FromStr};
+use super::{BatchExportConfig, default_export_timeout, deserialize_duration_opt};
+use std::path::PathBuf;
 use url::Url;
 
+// FIXME: Please make me disappear me, so horrible.
+#[derive(Debug)]
+pub struct LayeredOtlExporterConfig {
+    pub global: OtlpExporterConfig,
+    pub local: OtlpExporterConfig,
+}
+
+impl LayeredOtlExporterConfig {
+    pub fn is_enabled(&self) -> bool {
+        self.local.enabled.or(self.global.enabled).unwrap_or_default()
+    }
+
+    pub fn timeout(&self) -> chrono::Duration {
+        self.local
+            .timeout
+            .or(self.global.timeout)
+            .unwrap_or_else(default_export_timeout)
+    }
+
+    pub fn batch_export(&self) -> BatchExportConfig {
+        self.local.batch_export.or(self.global.batch_export).unwrap_or_default()
+    }
+
+    pub fn protocol(&self) -> OtlpExporterProtocolConfig {
+        match self.local.protocol.or(self.global.protocol).unwrap_or_default() {
+            OtlpExporterProtocol::Grpc => OtlpExporterProtocolConfig::Grpc(
+                self.local.grpc.clone().or(self.global.grpc.clone()).unwrap_or_default(),
+            ),
+            OtlpExporterProtocol::Http => OtlpExporterProtocolConfig::Http(
+                self.local.http.clone().or(self.global.http.clone()).unwrap_or_default(),
+            ),
+        }
+    }
+}
+
+pub enum OtlpExporterProtocolConfig {
+    Grpc(OtlpExporterGrpcConfig),
+    Http(OtlpExporterHttpConfig),
+}
+
 /// Otlp exporter configuration
-#[derive(Debug, Clone, PartialEq, serde::Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, serde::Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct OtlpExporterConfig {
     /// Enable or disable the exporter
-    pub enabled: bool,
+    pub enabled: Option<bool>,
     /// Endpoint of the otlp collector
-    pub endpoint: Url,
+    pub endpoint: Option<Url>,
     /// Batch export configuration
-    pub batch_export: BatchExportConfig,
+    pub batch_export: Option<BatchExportConfig>,
     /// Protocol to use when exporting
-    pub protocol: OtlpExporterProtocol,
+    pub protocol: Option<OtlpExporterProtocol>,
     /// GRPC exporting configuration
     pub grpc: Option<OtlpExporterGrpcConfig>,
     /// HTTP exporting configuration
     pub http: Option<OtlpExporterHttpConfig>,
     /// The maximum duration to export data.
     /// The default value is 60 seconds.
-    #[serde(deserialize_with = "deserialize_duration")]
-    pub timeout: chrono::Duration,
-}
-
-impl Default for OtlpExporterConfig {
-    fn default() -> Self {
-        Self {
-            endpoint: Url::from_str("http://127.0.0.1:4317").unwrap(),
-            enabled: false,
-            batch_export: Default::default(),
-            protocol: Default::default(),
-            grpc: None,
-            http: None,
-            timeout: default_export_timeout(),
-        }
-    }
+    #[serde(deserialize_with = "deserialize_duration_opt")]
+    pub timeout: Option<chrono::Duration>,
 }
 
 /// OTLP Exporter protocol
-#[derive(Debug, Clone, PartialEq, Default, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Default, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum OtlpExporterProtocol {
     /// GRPC protocol

@@ -9,6 +9,11 @@ mod logs;
 mod metrics;
 mod tracing;
 
+enum Protocol {
+    Grpc,
+    Http,
+}
+
 #[test]
 fn with_stdout_telemetry() {
     let config = indoc! {r#"
@@ -55,7 +60,7 @@ fn with_otel() {
 
         [telemetry.exporters.otlp]
         enabled = true
-        endpoint = "http://localhost:4318"
+        endpoint = "http://localhost:4327"
         protocol = "grpc"
 
         [telemetry.exporters.otlp.batch_export]
@@ -116,7 +121,7 @@ fn extra_resource_attributes() {
 
         [telemetry.exporters.otlp]
         enabled = true
-        endpoint = "http://localhost:4318"
+        endpoint = "http://localhost:4327"
         protocol = "grpc"
 
         [telemetry.exporters.otlp.batch_export]
