@@ -159,7 +159,6 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                         .extensions()
                         .authorize_response(
                             directive.extension_id,
-                            self.request_context,
                             self.hooks_context,
                             directive.name(),
                             DirectiveSiteId::from(rule_target).walk(self),
@@ -257,7 +256,6 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                         .extensions()
                         .authorize_response(
                             directive.extension_id,
-                            self.request_context,
                             self.hooks_context,
                             directive.name(),
                             DirectiveSiteId::from(rule_target).walk(self),

@@ -63,19 +63,61 @@ impl Token {
     }
 }
 
-pub enum Resource<T> {
+/// It's not possible to provide a reference to wasmtime, it must be static and there are too many
+/// layers to have good control over what's happening to use a transmute to get a &'static.
+/// So this struct represents a lease that the engine grants on some value T that we expect to have
+/// back. Depending on circumstances it may be one of the three possibilities.
+pub enum Lease<T> {
     Owned(T),
     Shared(Arc<T>),
     SharedMut(Arc<tokio::sync::RwLock<T>>),
 }
 
-impl<T> Resource<T> {
+impl<T> From<T> for Lease<T> {
+    fn from(t: T) -> Self {
+        Lease::Owned(t)
+    }
+}
+
+impl<T> Lease<T> {
     pub fn into_inner(self) -> Option<T> {
         match self {
-            Resource::Owned(t) => Some(t),
-            Resource::Shared(t) => Arc::into_inner(t),
-            Resource::SharedMut(t) => Arc::into_inner(t).map(|t| t.into_inner()),
+            Lease::Owned(t) => Some(t),
+            Lease::Shared(t) => Arc::into_inner(t),
+            Lease::SharedMut(t) => Arc::into_inner(t).map(|t| t.into_inner()),
         }
+    }
+
+    pub async fn with_ref<R>(&self, f: impl AsyncFnOnce(&T) -> R) -> R
+    where
+        T: Send + Sync + 'static,
+    {
+        let mut _guard = None;
+        let v = match self {
+            Lease::Shared(v) => v,
+            Lease::SharedMut(v) => {
+                _guard = Some(v.read().await);
+                _guard.as_deref().unwrap()
+            }
+            Lease::Owned(v) => v,
+        };
+        f(v).await
+    }
+
+    pub async fn with_ref_mut<R>(&mut self, f: impl AsyncFnOnce(Option<&mut T>) -> R) -> R
+    where
+        T: Send + Sync + 'static,
+    {
+        let mut _guard = None;
+        let v = match self {
+            Lease::Shared(_) => None,
+            Lease::SharedMut(v) => {
+                _guard = Some(v.write().await);
+                _guard.as_deref_mut()
+            }
+            Lease::Owned(v) => Some(v),
+        };
+        f(v).await
     }
 }
 
@@ -107,17 +149,19 @@ pub trait ExtensionRuntime: Send + Sync + 'static {
         &self,
         extension_id: ExtensionId,
         authorizer_id: AuthorizerId,
-        headers: Resource<http::HeaderMap>,
-    ) -> impl Future<Output = Result<(Resource<http::HeaderMap>, Token), ErrorResponse>> + Send;
+        headers: Lease<http::HeaderMap>,
+    ) -> impl Future<Output = Result<(Lease<http::HeaderMap>, Token), ErrorResponse>> + Send;
 
     fn authorize_query<'ctx, 'fut, Groups, QueryElements, Arguments>(
         &'ctx self,
         extension_id: ExtensionId,
         wasm_context: &'ctx Self::SharedContext,
-        headers: Resource<http::HeaderMap>,
-        token: Resource<LegacyToken>,
+        headers: Lease<http::HeaderMap>,
+        token: Lease<LegacyToken>,
         elements_grouped_by_directive_name: Groups,
-    ) -> impl Future<Output = Result<AuthorizationDecisions, ErrorResponse>> + Send + 'fut
+    ) -> impl Future<Output = Result<(Lease<http::HeaderMap>, Lease<LegacyToken>, AuthorizationDecisions), ErrorResponse>>
+           + Send
+           + 'fut
     where
         'ctx: 'fut,
         Groups: ExactSizeIterator<Item = (&'ctx str, QueryElements)>,

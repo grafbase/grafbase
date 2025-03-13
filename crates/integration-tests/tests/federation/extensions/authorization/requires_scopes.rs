@@ -78,11 +78,12 @@ impl TestExtension for RequiresScopes {
     #[allow(clippy::manual_async_fn)]
     async fn authorize_query(
         &self,
-        ctx: Arc<engine::RequestContext>,
-        _: &DynHookContext,
+        _wasm_context: &DynHookContext,
+        _headers: &mut http::HeaderMap,
+        token: &LegacyToken,
         elements_grouped_by_directive_name: Vec<(&str, Vec<QueryElement<'_, serde_json::Value>>)>,
     ) -> Result<AuthorizationDecisions, ErrorResponse> {
-        let LegacyToken::Extension(Token::Bytes(bytes)) = ctx.token() else {
+        let LegacyToken::Extension(Token::Bytes(bytes)) = token else {
             return Err(GraphqlError::new("No token found", ErrorCode::Unauthorized).into());
         };
         let token: serde_json::Value = serde_json::from_slice(bytes).unwrap();

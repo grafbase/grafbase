@@ -5,7 +5,7 @@ use futures::{TryStreamExt as _, future::FutureExt, stream::FuturesUnordered};
 use id_newtypes::{BitSet, IdRange, IdToMany};
 use operation::{InputValueContext, Variables};
 use query_solver::QueryOrSchemaFieldArgumentIds;
-use runtime::extension::{AuthorizationDecisions, ExtensionRuntime, QueryElement};
+use runtime::extension::{AuthorizationDecisions, ExtensionRuntime, Lease, QueryElement};
 use schema::DirectiveSiteId;
 use serde::Deserialize;
 use walker::Walk;
@@ -164,12 +164,14 @@ where
         ctx.extensions()
             .authorize_query(
                 extension_id,
-                ctx.request_context,
                 &ctx.hooks_context,
+                Lease::Owned(ctx.request_context.subgraph_default_headers.clone()),
+                Lease::Owned(ctx.request_context.access_token.clone()),
                 elements_grouped_by_directive_name,
             )
             .boxed()
             .await
+            .map(|(_, _, decisions)| decisions)
             .map_err(Into::into)
     }
 

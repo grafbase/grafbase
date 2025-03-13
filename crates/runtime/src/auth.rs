@@ -4,7 +4,7 @@ use serde_json::Value;
 
 use crate::extension::Token;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum LegacyToken {
     Anonymous,
     Jwt(JwtToken),
@@ -13,7 +13,7 @@ pub enum LegacyToken {
 
 /// Represents an *arbitrary* JWT token. It's only guaranteed to have been validated
 /// according to auth config, but there is no guarantee on the claims content.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct JwtToken {
     /// Claims can be empty.
     pub claims: HashMap<String, Value>,

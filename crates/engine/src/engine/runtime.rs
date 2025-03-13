@@ -3,7 +3,7 @@ use std::{future::Future, sync::Arc};
 use grafbase_telemetry::metrics::EngineMetrics;
 use runtime::{entity_cache::EntityCache, kv::KvStore, rate_limiting::RateLimiter};
 
-use super::{CachedOperation, RequestContext};
+use super::CachedOperation;
 
 pub type HooksContext<R> = <<R as Runtime>::Hooks as runtime::hooks::Hooks>::Context;
 

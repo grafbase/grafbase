@@ -1,8 +1,9 @@
-use std::sync::Arc;
-
-use engine::{GraphqlError, RequestContext};
+use engine::GraphqlError;
 use futures::future::BoxFuture;
-use runtime::extension::{AuthorizationDecisions, Data, Token};
+use runtime::{
+    auth::LegacyToken,
+    extension::{AuthorizationDecisions, Data, Lease, Token},
+};
 
 use crate::{Error, ErrorResponse};
 
@@ -25,6 +26,15 @@ impl<S: serde::Serialize> FromIterator<S> for InputList {
 }
 
 pub type SubscriptionItem = Vec<Result<Data, GraphqlError>>;
+pub type QueryAuthorizationResult = Result<
+    (
+        Lease<http::HeaderMap>,
+        Lease<LegacyToken>,
+        AuthorizationDecisions,
+        Vec<u8>,
+    ),
+    ErrorResponse,
+>;
 
 pub trait ExtensionInstance: Send + 'static {
     fn recycle(&mut self) -> Result<(), Error>;
@@ -40,10 +50,10 @@ pub trait ExtensionInstance: Send + 'static {
     #[allow(clippy::type_complexity)]
     fn subscription_key<'a>(
         &'a mut self,
-        headers: http::HeaderMap,
+        headers: Lease<http::HeaderMap>,
         subgraph_name: &'a str,
         directive: FieldDefinitionDirective<'a>,
-    ) -> BoxFuture<'a, Result<(http::HeaderMap, Option<Vec<u8>>), Error>>;
+    ) -> BoxFuture<'a, Result<(Lease<http::HeaderMap>, Option<Vec<u8>>), Error>>;
 
     fn resolve_subscription<'a>(
         &'a mut self,
@@ -56,14 +66,15 @@ pub trait ExtensionInstance: Send + 'static {
 
     fn authenticate(
         &mut self,
-        headers: http::HeaderMap,
-    ) -> BoxFuture<'_, Result<(http::HeaderMap, Token), ErrorResponse>>;
+        headers: Lease<http::HeaderMap>,
+    ) -> BoxFuture<'_, Result<(Lease<http::HeaderMap>, Token), ErrorResponse>>;
 
     fn authorize_query<'a>(
         &'a mut self,
-        ctx: &'a Arc<RequestContext>,
+        headers: Lease<http::HeaderMap>,
+        token: Lease<LegacyToken>,
         elements: QueryElements<'a>,
-    ) -> BoxFuture<'a, Result<(AuthorizationDecisions, Vec<u8>), ErrorResponse>>;
+    ) -> BoxFuture<'a, QueryAuthorizationResult>;
 
     fn authorize_response<'a>(
         &'a mut self,

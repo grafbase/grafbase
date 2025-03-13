@@ -3,12 +3,11 @@ mod field;
 mod interface;
 mod object;
 
-use std::sync::Arc;
-
 use engine::{ErrorResponse, GraphqlError};
 use engine_schema::DirectiveSite;
 use integration_tests::federation::TestExtension;
 use runtime::{
+    auth::LegacyToken,
     extension::{AuthorizationDecisions, QueryElement},
     hooks::DynHookContext,
 };
@@ -21,11 +20,12 @@ impl TestExtension for EchoInjections {
     #[allow(clippy::manual_async_fn)]
     async fn authorize_query(
         &self,
-        _: Arc<engine::RequestContext>,
-        ctx: &DynHookContext,
+        wasm_context: &DynHookContext,
+        _headers: &mut http::HeaderMap,
+        _token: &LegacyToken,
         elements_grouped_by_directive_name: Vec<(&str, Vec<QueryElement<'_, serde_json::Value>>)>,
     ) -> Result<AuthorizationDecisions, ErrorResponse> {
-        ctx.insert(
+        wasm_context.insert(
             "query",
             elements_grouped_by_directive_name
                 .into_iter()
@@ -44,7 +44,6 @@ impl TestExtension for EchoInjections {
 
     async fn authorize_response(
         &self,
-        _: Arc<engine::RequestContext>,
         ctx: &DynHookContext,
         directive_name: &str,
         directive_site: DirectiveSite<'_>,
