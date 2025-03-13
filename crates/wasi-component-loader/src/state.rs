@@ -54,6 +54,7 @@ pub enum WasmOwnedOrBorrowed<T> {
     /// The caller will remove it himself from the store.
     HostBorrowed(T),
     /// Fully owned by the guest
+    #[allow(unused)]
     Owned(T),
 }
 
@@ -64,10 +65,6 @@ impl<T> WasmOwnedOrBorrowed<T> {
 
     pub fn is_guest_borrowed(&self) -> bool {
         matches!(self, Self::GuestBorrowed { .. })
-    }
-
-    pub fn is_host_borrowed(&self) -> bool {
-        matches!(self, Self::HostBorrowed(_))
     }
 
     pub fn into_owned(self) -> Option<T> {

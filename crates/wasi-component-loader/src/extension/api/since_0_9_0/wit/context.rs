@@ -2,7 +2,6 @@ use runtime::auth::LegacyToken;
 use wasmtime::component::Resource;
 
 use crate::{
-    WasmOwnedOrBorrowed,
     resources::{AuthorizationContext, Headers},
     state::WasiState,
 };
@@ -33,7 +32,7 @@ impl HostAuthorizationContext for WasiState {
         let AuthorizationContext(ctx) = WasiState::get(self, &self_)?;
         // TODO: /facepalm Headers are already complicated enough with the hooks resources, so I'm
         // just cloning them here...
-        let rep = self.table.push(WasmOwnedOrBorrowed::Owned(ctx.headers().clone()))?;
+        let rep = self.table.push(Headers::Owned(ctx.headers().clone()))?;
         Ok(rep)
     }
 

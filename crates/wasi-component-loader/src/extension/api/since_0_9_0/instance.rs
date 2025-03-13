@@ -42,7 +42,7 @@ impl ExtensionInstance for ExtensionInstanceSince090 {
         Box::pin(async move {
             self.poisoned = true;
 
-            let headers = self.store.data_mut().push_resource(Headers::borrow(headers))?;
+            let headers = self.store.data_mut().push_resource(Headers::Owned(headers))?;
             let inputs = inputs.0.iter().map(Vec::as_slice).collect::<Vec<_>>();
 
             let output = self
@@ -66,7 +66,7 @@ impl ExtensionInstance for ExtensionInstanceSince090 {
         Box::pin(async move {
             self.poisoned = true;
 
-            let headers = self.store.data_mut().push_resource(Headers::borrow(headers))?;
+            let headers = self.store.data_mut().push_resource(Headers::Borrow(headers))?;
             let headers_rep = headers.rep();
 
             let key = self
@@ -79,7 +79,7 @@ impl ExtensionInstance for ExtensionInstanceSince090 {
                 .store
                 .data_mut()
                 .take_resource::<Headers>(headers_rep)?
-                .into_owned()
+                .unborrow()
                 .unwrap();
 
             self.poisoned = false;
@@ -97,7 +97,7 @@ impl ExtensionInstance for ExtensionInstanceSince090 {
         Box::pin(async move {
             self.poisoned = true;
 
-            let headers = self.store.data_mut().push_resource(Headers::borrow(headers))?;
+            let headers = self.store.data_mut().push_resource(Headers::Owned(headers))?;
 
             self.inner
                 .grafbase_sdk_resolver()
@@ -135,7 +135,7 @@ impl ExtensionInstance for ExtensionInstanceSince090 {
         Box::pin(async move {
             self.poisoned = true;
 
-            let headers = self.store.data_mut().push_resource(Headers::borrow(headers))?;
+            let headers = self.store.data_mut().push_resource(Headers::Borrow(headers))?;
             let headers_rep = headers.rep();
 
             let token = self
@@ -148,7 +148,7 @@ impl ExtensionInstance for ExtensionInstanceSince090 {
                 .store
                 .data_mut()
                 .take_resource::<Headers>(headers_rep)?
-                .into_owned()
+                .unborrow()
                 .unwrap();
 
             self.poisoned = false;

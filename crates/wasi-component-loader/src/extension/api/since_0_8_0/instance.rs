@@ -13,10 +13,9 @@ use crate::{
         api::wit::{FieldDefinitionDirective, QueryElements, ResponseElements},
         instance::ExtensionInstance,
     },
+    resources::Headers,
     state::WasiState,
 };
-
-use crate::extension::api::since_0_8_0::wit::grafbase::sdk::types;
 
 pub struct ExtensionInstanceSince080 {
     pub(crate) store: Store<WasiState>,
@@ -35,7 +34,7 @@ impl ExtensionInstance for ExtensionInstanceSince080 {
         Box::pin(async move {
             self.poisoned = true;
 
-            let headers = self.store.data_mut().push_resource(types::Headers::borrow(headers))?;
+            let headers = self.store.data_mut().push_resource(Headers::Owned(headers))?;
             let inputs = inputs.0.iter().map(Vec::as_slice).collect::<Vec<_>>();
 
             let output = self
@@ -59,7 +58,7 @@ impl ExtensionInstance for ExtensionInstanceSince080 {
         Box::pin(async move {
             self.poisoned = true;
 
-            let headers = self.store.data_mut().push_resource(types::Headers::borrow(headers))?;
+            let headers = self.store.data_mut().push_resource(Headers::Borrow(headers))?;
 
             let headers_rep = headers.rep();
 
@@ -72,8 +71,8 @@ impl ExtensionInstance for ExtensionInstanceSince080 {
             let headers = self
                 .store
                 .data_mut()
-                .take_resource::<types::Headers>(headers_rep)?
-                .into_owned()
+                .take_resource::<Headers>(headers_rep)?
+                .unborrow()
                 .unwrap();
 
             self.poisoned = false;
@@ -91,7 +90,7 @@ impl ExtensionInstance for ExtensionInstanceSince080 {
         Box::pin(async move {
             self.poisoned = true;
 
-            let headers = self.store.data_mut().push_resource(types::Headers::borrow(headers))?;
+            let headers = self.store.data_mut().push_resource(Headers::Owned(headers))?;
 
             self.inner
                 .grafbase_sdk_extension()
@@ -129,7 +128,7 @@ impl ExtensionInstance for ExtensionInstanceSince080 {
         Box::pin(async move {
             self.poisoned = true;
 
-            let headers = self.store.data_mut().push_resource(types::Headers::borrow(headers))?;
+            let headers = self.store.data_mut().push_resource(Headers::Borrow(headers))?;
 
             let headers_rep = headers.rep();
 
@@ -142,8 +141,8 @@ impl ExtensionInstance for ExtensionInstanceSince080 {
             let headers = self
                 .store
                 .data_mut()
-                .take_resource::<types::Headers>(headers_rep)?
-                .into_owned()
+                .take_resource::<Headers>(headers_rep)?
+                .unborrow()
                 .unwrap();
 
             self.poisoned = false;

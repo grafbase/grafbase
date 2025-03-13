@@ -1,3 +1,5 @@
+mod headers;
+
 use std::sync::Arc;
 
 use engine::RequestContext;
@@ -5,8 +7,7 @@ use futures::StreamExt;
 
 pub use crate::access_log::AccessLogSender;
 pub use crate::context::SharedContext;
-
-pub type Headers = crate::WasmOwnedOrBorrowed<http::HeaderMap>;
+pub use headers::*;
 
 #[derive(Clone)]
 pub struct SharedResources {
