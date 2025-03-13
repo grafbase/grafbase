@@ -7,7 +7,7 @@ use futures_util::stream::BoxStream;
 #[derive(Clone, Copy, PartialEq, Hash, Eq, PartialOrd, Ord, id_derives::Id)]
 pub struct AuthorizerId(u16);
 
-use crate::hooks::Anything;
+use crate::{auth::LegacyToken, hooks::Anything};
 use error::{ErrorResponse, GraphqlError};
 
 #[derive(Clone, Debug)]
@@ -63,8 +63,66 @@ impl Token {
     }
 }
 
+/// It's not possible to provide a reference to wasmtime, it must be static and there are too many
+/// layers to have good control over what's happening to use a transmute to get a &'static.
+/// So this struct represents a lease that the engine grants on some value T that we expect to have
+/// back. Depending on circumstances it may be one of the three possibilities.
+pub enum Lease<T> {
+    Owned(T),
+    Shared(Arc<T>),
+    SharedMut(Arc<tokio::sync::RwLock<T>>),
+}
+
+impl<T> From<T> for Lease<T> {
+    fn from(t: T) -> Self {
+        Lease::Owned(t)
+    }
+}
+
+impl<T> Lease<T> {
+    pub fn into_inner(self) -> Option<T> {
+        match self {
+            Lease::Owned(t) => Some(t),
+            Lease::Shared(t) => Arc::into_inner(t),
+            Lease::SharedMut(t) => Arc::into_inner(t).map(|t| t.into_inner()),
+        }
+    }
+
+    pub async fn with_ref<R>(&self, f: impl AsyncFnOnce(&T) -> R) -> R
+    where
+        T: Send + Sync + 'static,
+    {
+        let mut _guard = None;
+        let v = match self {
+            Lease::Shared(v) => v,
+            Lease::SharedMut(v) => {
+                _guard = Some(v.read().await);
+                _guard.as_deref().unwrap()
+            }
+            Lease::Owned(v) => v,
+        };
+        f(v).await
+    }
+
+    pub async fn with_ref_mut<R>(&mut self, f: impl AsyncFnOnce(Option<&mut T>) -> R) -> R
+    where
+        T: Send + Sync + 'static,
+    {
+        let mut _guard = None;
+        let v = match self {
+            Lease::Shared(_) => None,
+            Lease::SharedMut(v) => {
+                _guard = Some(v.write().await);
+                _guard.as_deref_mut()
+            }
+            Lease::Owned(v) => Some(v),
+        };
+        f(v).await
+    }
+}
+
 #[allow(async_fn_in_trait)]
-pub trait ExtensionRuntime<Ctx>: Send + Sync + 'static {
+pub trait ExtensionRuntime: Send + Sync + 'static {
     type SharedContext: Send + Sync + 'static;
 
     /// Resolve a field through an extension. Lifetime 'ctx will be available for as long as the
@@ -89,18 +147,21 @@ pub trait ExtensionRuntime<Ctx>: Send + Sync + 'static {
 
     fn authenticate(
         &self,
-        _extension_id: ExtensionId,
-        _authorizer_id: AuthorizerId,
-        _headers: http::HeaderMap,
-    ) -> impl Future<Output = Result<(http::HeaderMap, Token), ErrorResponse>> + Send;
+        extension_id: ExtensionId,
+        authorizer_id: AuthorizerId,
+        headers: Lease<http::HeaderMap>,
+    ) -> impl Future<Output = Result<(Lease<http::HeaderMap>, Token), ErrorResponse>> + Send;
 
     fn authorize_query<'ctx, 'fut, Groups, QueryElements, Arguments>(
         &'ctx self,
         extension_id: ExtensionId,
-        ctx: &'ctx Ctx,
         wasm_context: &'ctx Self::SharedContext,
+        headers: Lease<http::HeaderMap>,
+        token: Lease<LegacyToken>,
         elements_grouped_by_directive_name: Groups,
-    ) -> impl Future<Output = Result<AuthorizationDecisions, ErrorResponse>> + Send + 'fut
+    ) -> impl Future<Output = Result<(Lease<http::HeaderMap>, Lease<LegacyToken>, AuthorizationDecisions), ErrorResponse>>
+           + Send
+           + 'fut
     where
         'ctx: 'fut,
         Groups: ExactSizeIterator<Item = (&'ctx str, QueryElements)>,
@@ -110,7 +171,6 @@ pub trait ExtensionRuntime<Ctx>: Send + Sync + 'static {
     fn authorize_response<'ctx, 'fut>(
         &'ctx self,
         extension_id: ExtensionId,
-        ctx: &'ctx Ctx,
         wasm_context: &'ctx Self::SharedContext,
         directive_name: &'ctx str,
         directive_site: DirectiveSite<'ctx>,
@@ -118,83 +178,4 @@ pub trait ExtensionRuntime<Ctx>: Send + Sync + 'static {
     ) -> impl Future<Output = Result<AuthorizationDecisions, GraphqlError>> + Send + 'fut
     where
         'ctx: 'fut;
-}
-
-#[allow(refining_impl_trait)]
-impl<Ctx: Send + Sync + 'static> ExtensionRuntime<Ctx> for () {
-    type SharedContext = ();
-
-    #[allow(clippy::manual_async_fn)]
-    fn resolve_field<'ctx, 'resp, 'f>(
-        &'ctx self,
-        _headers: http::HeaderMap,
-        _directive_context: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
-        _inputs: impl Iterator<Item: Anything<'resp>> + Send,
-    ) -> impl Future<Output = Result<Vec<Result<Data, GraphqlError>>, GraphqlError>> + Send + 'f
-    where
-        'ctx: 'f,
-    {
-        async { Err(GraphqlError::internal_extension_error()) }
-    }
-
-    async fn authenticate(
-        &self,
-        _extension_id: ExtensionId,
-        _authorizer_id: AuthorizerId,
-        _headers: http::HeaderMap,
-    ) -> Result<(http::HeaderMap, Token), ErrorResponse> {
-        Err(ErrorResponse {
-            status: http::StatusCode::INTERNAL_SERVER_ERROR,
-            errors: vec![GraphqlError::internal_extension_error()],
-        })
-    }
-
-    async fn resolve_subscription<'ctx, 'f>(
-        &'ctx self,
-        _: http::HeaderMap,
-        _: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
-    ) -> Result<BoxStream<'f, Result<Arc<Data>, GraphqlError>>, GraphqlError>
-    where
-        'ctx: 'f,
-    {
-        Err(GraphqlError::internal_extension_error())
-    }
-
-    #[allow(clippy::manual_async_fn)]
-    fn authorize_query<'ctx, 'fut, Groups, QueryElements, Arguments>(
-        &'ctx self,
-        _: ExtensionId,
-        _: &'ctx Ctx,
-        _: &'ctx Self::SharedContext,
-        _: Groups,
-    ) -> impl Future<Output = Result<AuthorizationDecisions, ErrorResponse>> + Send + 'fut
-    where
-        'ctx: 'fut,
-        Groups: ExactSizeIterator<Item = (&'ctx str, QueryElements)>,
-        QueryElements: ExactSizeIterator<Item = QueryElement<'ctx, Arguments>>,
-        Arguments: Anything<'ctx>,
-    {
-        async {
-            Err(ErrorResponse {
-                status: http::StatusCode::INTERNAL_SERVER_ERROR,
-                errors: vec![GraphqlError::internal_extension_error()],
-            })
-        }
-    }
-
-    #[allow(clippy::manual_async_fn)]
-    fn authorize_response<'ctx, 'fut>(
-        &'ctx self,
-        _: ExtensionId,
-        _: &'ctx Ctx,
-        _: &'ctx Self::SharedContext,
-        _: &'ctx str,
-        _: DirectiveSite<'_>,
-        _: impl IntoIterator<Item: Anything<'ctx>>,
-    ) -> impl Future<Output = Result<AuthorizationDecisions, GraphqlError>> + Send + 'fut
-    where
-        'ctx: 'fut,
-    {
-        async { Err(GraphqlError::internal_extension_error()) }
-    }
 }

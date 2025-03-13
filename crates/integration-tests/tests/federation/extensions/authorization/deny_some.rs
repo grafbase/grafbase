@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use engine::{Engine, ErrorCode, ErrorResponse, GraphqlError};
 use engine_schema::DirectiveSite;
 use graphql_mocks::dynamic::DynamicSchema;
@@ -8,6 +6,7 @@ use integration_tests::{
     runtime,
 };
 use runtime::{
+    auth::LegacyToken,
     extension::{AuthorizationDecisions, QueryElement},
     hooks::DynHookContext,
 };
@@ -41,8 +40,9 @@ impl TestExtension for DenySites {
     #[allow(clippy::manual_async_fn)]
     async fn authorize_query(
         &self,
-        _ctx: Arc<engine::RequestContext>,
-        _: &DynHookContext,
+        _wasm_context: &DynHookContext,
+        _headers: &mut http::HeaderMap,
+        _token: &LegacyToken,
         elements_grouped_by_directive_name: Vec<(&str, Vec<QueryElement<'_, serde_json::Value>>)>,
     ) -> Result<AuthorizationDecisions, ErrorResponse> {
         let mut element_to_error = Vec::new();
@@ -69,7 +69,6 @@ impl TestExtension for DenySites {
 
     async fn authorize_response(
         &self,
-        _ctx: Arc<engine::RequestContext>,
         _wasm_context: &DynHookContext,
         _directive_name: &str,
         directive_site: DirectiveSite<'_>,

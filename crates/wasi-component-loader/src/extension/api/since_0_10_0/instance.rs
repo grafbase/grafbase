@@ -1,11 +1,15 @@
 use engine::GraphqlError;
 use futures::future::BoxFuture;
-use runtime::extension::{AuthorizationDecisions, Data};
+use runtime::auth::LegacyToken;
+use runtime::extension::{AuthorizationDecisions, Data, Lease};
 use wasmtime::Store;
 
+use crate::extension::QueryAuthorizationResult;
 use crate::{Error, ErrorResponse, WasiState, extension::instance::ExtensionInstance};
 
 use crate::extension::api::wit::{FieldDefinitionDirective, Headers, QueryElements, ResponseElements};
+
+use super::world::TokenParam;
 
 pub struct ExtensionInstanceSince0_10_0 {
     pub(crate) store: Store<WasiState>,
@@ -32,7 +36,7 @@ impl ExtensionInstance for ExtensionInstanceSince0_10_0 {
         Box::pin(async move {
             self.poisoned = true;
 
-            let headers = self.store.data_mut().push_resource(Headers::borrow(headers))?;
+            let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
             let inputs = inputs.0.iter().map(Vec::as_slice).collect::<Vec<_>>();
 
             let output = self
@@ -49,14 +53,14 @@ impl ExtensionInstance for ExtensionInstanceSince0_10_0 {
 
     fn subscription_key<'a>(
         &'a mut self,
-        headers: http::HeaderMap,
+        headers: Lease<http::HeaderMap>,
         subgraph_name: &'a str,
         directive: FieldDefinitionDirective<'a>,
-    ) -> BoxFuture<'a, Result<(http::HeaderMap, Option<Vec<u8>>), Error>> {
+    ) -> BoxFuture<'a, Result<(Lease<http::HeaderMap>, Option<Vec<u8>>), Error>> {
         Box::pin(async move {
             self.poisoned = true;
 
-            let headers = self.store.data_mut().push_resource(Headers::borrow(headers))?;
+            let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
             let headers_rep = headers.rep();
 
             let key = self
@@ -69,7 +73,7 @@ impl ExtensionInstance for ExtensionInstanceSince0_10_0 {
                 .store
                 .data_mut()
                 .take_resource::<Headers>(headers_rep)?
-                .into_owned()
+                .into_lease()
                 .unwrap();
 
             self.poisoned = false;
@@ -87,7 +91,7 @@ impl ExtensionInstance for ExtensionInstanceSince0_10_0 {
         Box::pin(async move {
             self.poisoned = true;
 
-            let headers = self.store.data_mut().push_resource(Headers::borrow(headers))?;
+            let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
 
             self.inner
                 .grafbase_sdk_resolver()
@@ -120,12 +124,12 @@ impl ExtensionInstance for ExtensionInstanceSince0_10_0 {
 
     fn authenticate(
         &mut self,
-        headers: http::HeaderMap,
-    ) -> BoxFuture<'_, Result<(http::HeaderMap, runtime::extension::Token), ErrorResponse>> {
+        headers: Lease<http::HeaderMap>,
+    ) -> BoxFuture<'_, Result<(Lease<http::HeaderMap>, runtime::extension::Token), ErrorResponse>> {
         Box::pin(async move {
             self.poisoned = true;
 
-            let headers = self.store.data_mut().push_resource(Headers::borrow(headers))?;
+            let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
             let headers_rep = headers.rep();
 
             let token = self
@@ -138,7 +142,7 @@ impl ExtensionInstance for ExtensionInstanceSince0_10_0 {
                 .store
                 .data_mut()
                 .take_resource::<Headers>(headers_rep)?
-                .into_owned()
+                .into_lease()
                 .unwrap();
 
             self.poisoned = false;
@@ -149,10 +153,39 @@ impl ExtensionInstance for ExtensionInstanceSince0_10_0 {
 
     fn authorize_query<'a>(
         &'a mut self,
-        _ctx: &'a std::sync::Arc<engine::RequestContext>,
-        _elements: QueryElements<'a>,
-    ) -> BoxFuture<'a, Result<(AuthorizationDecisions, Vec<u8>), ErrorResponse>> {
-        todo!()
+        headers: Lease<http::HeaderMap>,
+        token: Lease<LegacyToken>,
+        elements: QueryElements<'a>,
+    ) -> BoxFuture<'a, QueryAuthorizationResult> {
+        Box::pin(async move {
+            // Futures may be canceled, so we pro-actively mark the instance as poisoned until proven
+            // otherwise.
+            self.poisoned = true;
+
+            let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
+            let headers_rep = headers.rep();
+            let result = token
+                .with_ref(async |token: &LegacyToken| {
+                    let token_param = token.as_bytes().map(TokenParam::Bytes).unwrap_or(TokenParam::Anonymous);
+                    self.inner
+                        .grafbase_sdk_authorization()
+                        .call_authorize_query(&mut self.store, headers, token_param, elements)
+                        .await
+                })
+                .await?;
+
+            let headers = self
+                .store
+                .data_mut()
+                .take_resource::<Headers>(headers_rep)?
+                .into_lease()
+                .unwrap();
+
+            self.poisoned = false;
+            result
+                .map(|(decisions, state)| (headers, token, decisions.into(), state))
+                .map_err(Into::into)
+        })
     }
 
     fn authorize_response<'a>(

@@ -1,5 +1,6 @@
 use std::{borrow::Cow, collections::HashMap};
 
+use base64::Engine as _;
 use futures_util::future::BoxFuture;
 use jwt_compact::{Algorithm, AlgorithmExt, TimeOptions, Token, UntrustedToken, jwk::JsonWebKey};
 use runtime::{auth::JwtToken, kv::KvStore};
@@ -165,7 +166,17 @@ impl JwtProvider {
         // but 'iss' is the only one that I can think of that might be useful.
         claims.insert("iss".to_string(), issuer.into());
 
-        Some(LegacyToken::Jwt(JwtToken { claims }))
+        // We just validated the JWT token. Instead of de-serializing and re-serializing the
+        // payload, we re-use the original token payload.
+        let [_headers, payload, _signature] = token_str.split('.').collect::<Vec<_>>()[..] else {
+            unreachable!("Token was successfully valdiated");
+        };
+
+        let bytes = base64::engine::general_purpose::URL_SAFE_NO_PAD
+            .decode(payload)
+            .expect("Token was successfully validated");
+
+        Some(LegacyToken::Jwt(JwtToken { claims, bytes }))
     }
 }
 

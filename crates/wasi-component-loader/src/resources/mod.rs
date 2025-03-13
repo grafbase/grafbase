@@ -1,12 +1,12 @@
-use std::sync::Arc;
+mod headers;
 
-use engine::RequestContext;
 use futures::StreamExt;
+use runtime::auth::LegacyToken;
+use runtime::extension::Lease;
 
 pub use crate::access_log::AccessLogSender;
 pub use crate::context::SharedContext;
-
-pub type Headers = crate::WasmOwnedOrBorrowed<http::HeaderMap>;
+pub use headers::*;
 
 #[derive(Clone)]
 pub struct SharedResources {
@@ -34,4 +34,71 @@ impl NatsSubscriber {
     }
 }
 
-pub struct AuthorizationContext(pub(crate) Arc<RequestContext>);
+pub struct AuthorizationContext {
+    pub headers: WasmOwnedOrLease<http::HeaderMap>,
+    pub token: WasmOwnedOrLease<LegacyToken>,
+}
+
+pub enum WasmOwnedOrLease<T> {
+    Owned(T),
+    Lease(Lease<T>),
+}
+
+impl<T> WasmOwnedOrLease<T> {
+    pub fn is_owned(&self) -> bool {
+        matches!(self, Self::Owned(_))
+    }
+
+    pub fn into_lease(self) -> Option<Lease<T>> {
+        match self {
+            Self::Lease(v) => Some(v),
+            _ => None,
+        }
+    }
+
+    pub async fn with_ref<R>(&self, f: impl FnOnce(&T) -> R) -> R
+    where
+        T: Send + Sync,
+    {
+        let mut _guard = None;
+        let v = match self {
+            Self::Lease(Lease::Shared(v)) => v.as_ref(),
+            Self::Lease(Lease::SharedMut(v)) => {
+                _guard = Some(v.read().await);
+                _guard.as_deref().unwrap()
+            }
+            Self::Lease(Lease::Owned(v)) => v,
+            Self::Owned(v) => v,
+        };
+        f(v)
+    }
+
+    pub async fn with_ref_mut<R>(&mut self, f: impl FnOnce(Option<&mut T>) -> R) -> R
+    where
+        T: Send + Sync,
+    {
+        let mut _guard = None;
+        let v = match self {
+            Self::Lease(Lease::Shared(_)) => None,
+            Self::Lease(Lease::SharedMut(v)) => {
+                _guard = Some(v.write().await);
+                _guard.as_deref_mut()
+            }
+            Self::Lease(Lease::Owned(v)) => Some(v),
+            Self::Owned(v) => Some(v),
+        };
+        f(v)
+    }
+}
+
+impl<T> From<T> for WasmOwnedOrLease<T> {
+    fn from(v: T) -> Self {
+        Self::Owned(v)
+    }
+}
+
+impl<T> From<Lease<T>> for WasmOwnedOrLease<T> {
+    fn from(v: Lease<T>) -> Self {
+        Self::Lease(v)
+    }
+}

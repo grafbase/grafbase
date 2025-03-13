@@ -2,7 +2,6 @@ use runtime::auth::LegacyToken;
 use wasmtime::component::Resource;
 
 use crate::{
-    WasmOwnedOrBorrowed,
     resources::{AuthorizationContext, Headers},
     state::WasiState,
 };
@@ -30,28 +29,32 @@ impl HostSharedContext for WasiState {
 
 impl HostAuthorizationContext for WasiState {
     async fn headers(&mut self, self_: Resource<AuthorizationContext>) -> wasmtime::Result<Resource<Headers>> {
-        let AuthorizationContext(ctx) = WasiState::get(self, &self_)?;
+        let AuthorizationContext { headers, .. } = WasiState::get(self, &self_)?;
         // TODO: /facepalm Headers are already complicated enough with the hooks resources, so I'm
         // just cloning them here...
-        let rep = self.table.push(WasmOwnedOrBorrowed::Owned(ctx.headers().clone()))?;
+        let rep = self
+            .table
+            .push(headers.with_ref(|headers| Headers::from(headers.clone())).await)?;
         Ok(rep)
     }
 
     async fn token(&mut self, self_: Resource<AuthorizationContext>) -> wasmtime::Result<Token> {
-        let AuthorizationContext(ctx) = WasiState::get(self, &self_)?;
+        let AuthorizationContext { token, .. } = WasiState::get(self, &self_)?;
 
-        let token = match ctx.token() {
-            LegacyToken::Anonymous => Token::Anonymous,
-            LegacyToken::Jwt(jwt) => Token::Bytes(serde_json::to_vec(&jwt.claims).unwrap()),
-            LegacyToken::Extension(token) => token.clone().into(),
-        };
+        token
+            .with_ref(|token| {
+                let token = match token {
+                    LegacyToken::Anonymous => Token::Anonymous,
+                    LegacyToken::Jwt(jwt) => Token::Bytes(serde_json::to_vec(&jwt.claims).unwrap()),
+                    LegacyToken::Extension(token) => token.clone().into(),
+                };
 
-        Ok(token)
+                Ok(token)
+            })
+            .await
     }
 
-    async fn drop(&mut self, rep: Resource<AuthorizationContext>) -> wasmtime::Result<()> {
-        self.table.delete(rep)?;
-
+    async fn drop(&mut self, _rep: Resource<AuthorizationContext>) -> wasmtime::Result<()> {
         Ok(())
     }
 }

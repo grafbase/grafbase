@@ -274,7 +274,14 @@ async fn auth_08() {
     let mut headers = HeaderMap::new();
     headers.insert("Authorization", HeaderValue::from_static("valid"));
 
-    let (headers, token) = loader.instantiate().await.unwrap().authenticate(headers).await.unwrap();
+    let (headers, token) = loader
+        .instantiate()
+        .await
+        .unwrap()
+        .authenticate(headers.into())
+        .await
+        .unwrap();
+    let headers = headers.into_inner().unwrap();
 
     assert!(headers.len() == 1);
     assert_eq!(Some(&HeaderValue::from_static("valid")), headers.get("Authorization"));
@@ -322,7 +329,14 @@ async fn auth_09() {
     let mut headers = HeaderMap::new();
     headers.insert("Authorization", HeaderValue::from_static("valid"));
 
-    let (headers, token) = loader.instantiate().await.unwrap().authenticate(headers).await.unwrap();
+    let (headers, token) = loader
+        .instantiate()
+        .await
+        .unwrap()
+        .authenticate(headers.into())
+        .await
+        .unwrap();
+    let headers = headers.into_inner().unwrap();
     assert!(headers.len() == 1);
     assert_eq!(Some(&HeaderValue::from_static("valid")), headers.get("Authorization"));
     let claims = match token {
@@ -368,7 +382,14 @@ async fn single_call_caching_auth() {
     let mut headers = HeaderMap::new();
     headers.insert("Authorization", HeaderValue::from_static("valid"));
 
-    let (headers, token) = loader.instantiate().await.unwrap().authenticate(headers).await.unwrap();
+    let (headers, token) = loader
+        .instantiate()
+        .await
+        .unwrap()
+        .authenticate(headers.into())
+        .await
+        .unwrap();
+    let headers = headers.into_inner().unwrap();
     assert!(headers.len() == 1);
     assert_eq!(Some(&HeaderValue::from_static("valid")), headers.get("Authorization"));
     let claims = match token {
@@ -417,7 +438,7 @@ async fn single_call_caching_auth_invalid() {
         .instantiate()
         .await
         .unwrap()
-        .authenticate(http::HeaderMap::new())
+        .authenticate(http::HeaderMap::new().into())
         .await
         .err();
 
@@ -475,7 +496,7 @@ async fn multiple_cache_calls() {
             headers.insert("Authorization", HeaderValue::from_static("valid"));
             headers.insert("value", HeaderValue::from_str(&format!("value_{i}")).unwrap());
 
-            let (_, token) = extension.authenticate(headers).await.unwrap();
+            let (_, token) = extension.authenticate(headers.into()).await.unwrap();
             let claims = match token {
                 Token::Anonymous => serde_json::Value::Null,
                 Token::Bytes(bytes) => serde_json::from_slice(&bytes).unwrap(),
@@ -499,7 +520,13 @@ async fn multiple_cache_calls() {
 
     let mut headers = HeaderMap::new();
     headers.insert("Authorization", HeaderValue::from_static("nonvalid"));
-    let (_, token) = loader.instantiate().await.unwrap().authenticate(headers).await.unwrap();
+    let (_, token) = loader
+        .instantiate()
+        .await
+        .unwrap()
+        .authenticate(headers.into())
+        .await
+        .unwrap();
     let claims = match token {
         Token::Anonymous => serde_json::Value::Null,
         Token::Bytes(bytes) => serde_json::from_slice(&bytes).unwrap(),

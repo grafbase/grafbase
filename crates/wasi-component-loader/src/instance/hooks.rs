@@ -9,7 +9,7 @@ use wasmtime::component::{ComponentNamedList, Lift, Lower, Resource, TypedFunc};
 use crate::AccessLogSender;
 use crate::extension::api::wit;
 use crate::extension::api::wit::Error;
-use crate::headers::Headers;
+use crate::headers::HookHeaders;
 use crate::names::{
     AUTHORIZE_EDGE_NODE_POST_EXECUTION_HOOK_FUNCTION, AUTHORIZE_EDGE_POST_EXECUTION_HOOK_FUNCTION,
     AUTHORIZE_EDGE_PRE_EXECUTION_HOOK_FUNCTION, AUTHORIZE_NODE_PRE_EXECUTION_HOOK_FUNCTION,
@@ -169,7 +169,7 @@ impl HooksComponentInstance {
             .component
             .store_mut()
             .data_mut()
-            .push_resource(Headers::borrow(headers))?;
+            .push_resource(HookHeaders::borrow(headers))?;
 
         // we need to take the pointers now, because a resource is not Copy and we need
         // the pointers to get the data back from the shared memory.
@@ -190,7 +190,7 @@ impl HooksComponentInstance {
 
         // take the data back from the shared memory
         let context = self.component.store_mut().data_mut().take_resource(context_rep)?;
-        let headers: Headers = self.component.store_mut().data_mut().take_resource(headers_rep)?;
+        let headers: HookHeaders = self.component.store_mut().data_mut().take_resource(headers_rep)?;
 
         Ok((context, headers.into_owned().unwrap()))
     }
