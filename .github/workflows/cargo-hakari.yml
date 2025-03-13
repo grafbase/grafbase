@@ -10,7 +10,7 @@ concurrency:
 
 jobs:
   what-changed:
-    runs-on: ubicloud-standard-2
+    runs-on: depot-ubuntu-24.04-small
     outputs:
       cargo: ${{ steps.paths-changed.outputs.cargo }}
 
@@ -30,7 +30,7 @@ jobs:
 
   hakari:
     needs: [what-changed]
-    runs-on: ubicloud-standard-2
+    runs-on: depot-ubuntu-24.04-small
     if: needs.what-changed.outputs.cargo == 'true'
     steps:
       - name: Checkout Repository
