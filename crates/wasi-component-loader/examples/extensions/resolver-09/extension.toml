@@ -1,0 +1,9 @@
+[extension]
+name = "resolver-09"
+version = "0.1.0"
+kind = "resolver"
+description = "Example simple resolver"
+
+[directives]
+definitions = "definitions.graphql"
+field_resolvers = ["simpleResolverDirective"]

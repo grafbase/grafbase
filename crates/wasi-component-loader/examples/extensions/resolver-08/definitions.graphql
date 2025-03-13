@@ -1,0 +1,6 @@
+"""
+Fill in here the directives and types that the extension needs.
+Remove this file and the definition in extension.toml if the extension does not need any directives.
+"""
+directive @sdk08Configuration(arg1: String) repeatable on SCHEMA
+directive @sdk08Directive on FIELD_DEFINITION

@@ -60,4 +60,4 @@ yarn-error.log*
 
 .aider*
 
-extensions
+./extensions
