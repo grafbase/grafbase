@@ -1447,9 +1447,9 @@ dependencies = [
 
 [[package]]
 name = "clickhouse"
-version = "0.13.1"
+version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2135bb9638e8c8c1e3d794f242099e57987059ba52e7e3de597e1d99b2c4a5a3"
+checksum = "d9894248c4c5a4402f76a56c273836a0c32547ec8a68166aedee7e01b7b8d102"
 dependencies = [
  "bstr",
  "bytes",
@@ -2042,7 +2042,7 @@ checksum = "c99c59968c8aa7f90d84240ab6ded4d3864125ce36b5b044554542cebc974946"
 dependencies = [
  "cynic-proc-macros",
  "ref-cast",
- "reqwest 0.12.13",
+ "reqwest 0.12.14",
  "serde",
  "serde_json",
  "static_assertions",
@@ -2445,9 +2445,9 @@ checksum = "92773504d58c093f6de2459af4af33faa518c13451eb8f2b5698ed3d36e7c813"
 
 [[package]]
 name = "duration-str"
-version = "0.14.0"
+version = "0.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6eb2bdbe6601297ff00d72e3f461a21e72df2c78ff64b176759f0326388569a4"
+checksum = "eb333721800c025e363e902b293040778f8ac79913db4f013abf1f1d7d382fd7"
 dependencies = [
  "chrono",
  "rust_decimal",
@@ -2629,7 +2629,7 @@ dependencies = [
  "grafbase-workspace-hack",
  "http 1.3.1",
  "jwt-compact",
- "reqwest 0.12.13",
+ "reqwest 0.12.14",
  "runtime",
  "serde",
  "serde_json",
@@ -2975,7 +2975,7 @@ dependencies = [
  "engine-id-newtypes",
  "extension",
  "grafbase-workspace-hack",
- "reqwest 0.12.13",
+ "reqwest 0.12.14",
  "serde",
  "serde_json",
  "tempfile",
@@ -3073,7 +3073,7 @@ dependencies = [
  "lambda_http",
  "minicbor-serde",
  "notify",
- "reqwest 0.12.13",
+ "reqwest 0.12.14",
  "rolling-logger",
  "runtime",
  "runtime-local",
@@ -3104,7 +3104,7 @@ dependencies = [
  "graphql-composition 0.6.2",
  "integration-tests",
  "libtest-mimic",
- "reqwest 0.12.13",
+ "reqwest 0.12.14",
  "serde",
  "serde_json",
  "similar-asserts",
@@ -3600,7 +3600,7 @@ dependencies = [
  "os_type",
  "rand 0.9.0",
  "regex",
- "reqwest 0.12.13",
+ "reqwest 0.12.14",
  "rustls 0.23.23",
  "semver 1.0.26",
  "serde",
@@ -3661,7 +3661,7 @@ dependencies = [
  "mimalloc",
  "opentelemetry-aws",
  "rand 0.9.0",
- "reqwest 0.12.13",
+ "reqwest 0.12.14",
  "rustls 0.23.23",
  "serde",
  "serde_json",
@@ -3684,7 +3684,7 @@ dependencies = [
  "cynic-parser",
  "grafbase-workspace-hack",
  "indoc",
- "reqwest 0.12.13",
+ "reqwest 0.12.14",
  "serde",
 ]
 
@@ -3729,7 +3729,7 @@ dependencies = [
  "jaq-std",
  "minicbor",
  "minicbor-serde",
- "reqwest 0.12.13",
+ "reqwest 0.12.14",
  "semver 1.0.26",
  "serde",
  "serde_json",
@@ -3905,7 +3905,7 @@ dependencies = [
  "regex",
  "regex-automata 0.4.9",
  "regex-syntax 0.8.5",
- "reqwest 0.12.13",
+ "reqwest 0.12.14",
  "rsa",
  "rustix 0.38.44",
  "rustix 1.0.1",
@@ -5107,7 +5107,7 @@ dependencies = [
  "pprof",
  "pretty_assertions",
  "rand 0.8.5",
- "reqwest 0.12.13",
+ "reqwest 0.12.14",
  "rstest",
  "runtime",
  "runtime-local",
@@ -5519,7 +5519,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc2f4eb4bc735547cfed7c0a4922cbd04a4655978c09b54f1f7b228750664c34"
 dependencies = [
  "cfg-if",
- "windows-targets 0.52.6",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
@@ -6148,7 +6148,7 @@ dependencies = [
  "getrandom 0.2.15",
  "http 1.3.1",
  "rand 0.8.5",
- "reqwest 0.12.13",
+ "reqwest 0.12.14",
  "serde",
  "serde_json",
  "serde_path_to_error",
@@ -6319,7 +6319,7 @@ dependencies = [
  "bytes",
  "http 1.3.1",
  "opentelemetry",
- "reqwest 0.12.13",
+ "reqwest 0.12.14",
  "tracing",
 ]
 
@@ -6337,7 +6337,7 @@ dependencies = [
  "opentelemetry-proto",
  "opentelemetry_sdk",
  "prost",
- "reqwest 0.12.13",
+ "reqwest 0.12.14",
  "thiserror 2.0.12",
  "tokio",
  "tonic",
@@ -7484,9 +7484,9 @@ dependencies = [
 
 [[package]]
 name = "reqwest"
-version = "0.12.13"
+version = "0.12.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "389a89e494bbc88bebf30e23da98742c843863a16a352647716116aa71fae80a"
+checksum = "989e327e510263980e231de548a33e63d34962d29ae61b467389a1a09627a254"
 dependencies = [
  "async-compression",
  "base64 0.22.1",
@@ -7544,7 +7544,7 @@ dependencies = [
  "mime",
  "nom",
  "pin-project-lite",
- "reqwest 0.12.13",
+ "reqwest 0.12.14",
  "thiserror 1.0.69",
 ]
 
@@ -7697,7 +7697,7 @@ dependencies = [
  "grafbase-workspace-hack",
  "http 1.3.1",
  "minicbor-serde",
- "reqwest 0.12.13",
+ "reqwest 0.12.14",
  "semver 1.0.26",
  "serde",
  "serde_json",
@@ -7737,7 +7737,7 @@ dependencies = [
  "p384",
  "postcard",
  "redis",
- "reqwest 0.12.13",
+ "reqwest 0.12.14",
  "reqwest-eventsource",
  "runtime",
  "semver 1.0.26",
@@ -9808,7 +9808,7 @@ dependencies = [
  "indoc",
  "insta",
  "minicbor-serde",
- "reqwest 0.12.13",
+ "reqwest 0.12.14",
  "runtime",
  "semver 1.0.26",
  "serde",
@@ -10892,19 +10892,19 @@ dependencies = [
 
 [[package]]
 name = "wit-bindgen"
-version = "0.40.0"
+version = "0.41.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8e7091ed6c9abfa4e0a2ef3b39d0539da992d841fcf32c255f64fb98764ffee5"
+checksum = "10fb6648689b3929d56bbc7eb1acf70c9a42a29eb5358c67c10f54dbd5d695de"
 dependencies = [
- "wit-bindgen-rt 0.40.0",
+ "wit-bindgen-rt 0.41.0",
  "wit-bindgen-rust-macro",
 ]
 
 [[package]]
 name = "wit-bindgen-core"
-version = "0.40.0"
+version = "0.41.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "398c650cec1278cfb72e214ba26ef3440ab726e66401bd39c04f465ee3979e6b"
+checksum = "92fa781d4f2ff6d3f27f3cc9b74a73327b31ca0dc4a3ef25a0ce2983e0e5af9b"
 dependencies = [
  "anyhow",
  "heck 0.5.0",
@@ -10922,9 +10922,9 @@ dependencies = [
 
 [[package]]
 name = "wit-bindgen-rt"
-version = "0.40.0"
+version = "0.41.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "68faed92ae696b93ea9a7b67ba6c37bf09d72c6d9a70fa824a743c3020212f11"
+checksum = "c4db52a11d4dfb0a59f194c064055794ee6564eb1ced88c25da2cf76e50c5621"
 dependencies = [
  "bitflags 2.9.0",
  "futures",
@@ -10933,9 +10933,9 @@ dependencies = [
 
 [[package]]
 name = "wit-bindgen-rust"
-version = "0.40.0"
+version = "0.41.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "83903c8dcd8084a8a67ae08190122cf0e25dc37bdc239070a00f47e22d3f0aae"
+checksum = "9d0809dc5ba19e2e98661bf32fc0addc5a3ca5bf3a6a7083aa6ba484085ff3ce"
 dependencies = [
  "anyhow",
  "heck 0.5.0",
@@ -10949,9 +10949,9 @@ dependencies = [
 
 [[package]]
 name = "wit-bindgen-rust-macro"
-version = "0.40.0"
+version = "0.41.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a7bf7f20495bcc7dc9f24c5fbcac9e919ca5ebdb7a1b1841d74447d3c8dd0c60"
+checksum = "ad19eec017904e04c60719592a803ee5da76cb51c81e3f6fbf9457f59db49799"
 dependencies = [
  "anyhow",
  "prettyplease",
