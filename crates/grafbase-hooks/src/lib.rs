@@ -1,6 +1,5 @@
 #![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/README.md"))]
 #![deny(missing_docs)]
-#![expect(unsafe_op_in_unsafe_fn)]
 
 #[cfg(feature = "derive")]
 pub use grafbase_hooks_derive::grafbase_hooks;
