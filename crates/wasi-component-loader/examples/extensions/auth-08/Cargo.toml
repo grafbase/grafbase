@@ -1,0 +1,16 @@
+[package]
+name = "auth-08"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+repository.workspace = true
+
+[dependencies]
+grafbase-sdk = "0.8.0"
+serde.workspace = true
+serde_json.workspace = true
+
+[lib]
+crate-type = ["cdylib"]

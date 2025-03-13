@@ -18,6 +18,158 @@ use semver::Version;
 use serde_json::json;
 
 #[tokio::test]
+async fn resolver_08() {
+    #[derive(serde::Serialize)]
+    struct SchemaArgs {
+        id: usize,
+    }
+
+    #[derive(serde::Serialize)]
+    struct FieldArgs<'a> {
+        name: &'a str,
+    }
+
+    let config = WasiExtensionsConfig {
+        location: PathBuf::from("examples/target/wasm32-wasip2/debug/resolver_08.wasm"),
+        networking: false,
+        stdout: false,
+        stderr: false,
+        environment_variables: false,
+    };
+
+    assert!(config.location.exists());
+
+    let (shared, _) = create_shared_resources();
+
+    let loader = ExtensionLoader::new(
+        shared,
+        config,
+        ExtensionGuestConfig {
+            r#type: extension_catalog::KindDiscriminants::Resolver,
+            schema_directives: vec![SchemaDirective::new("schemaArgs", "mySubgraph", SchemaArgs { id: 10 })],
+            configuration: (),
+        },
+        Version::new(0, 8, 0),
+    )
+    .unwrap();
+
+    let field_directive = wit::directive::FieldDefinitionDirective {
+        name: "myDirective",
+        site: wit::directive::FieldDefinitionDirectiveSite {
+            parent_type_name: "Query",
+            field_name: "cats",
+        },
+        arguments: &cbor::to_vec(&FieldArgs { name: "cat" }).unwrap(),
+    };
+
+    let output = loader
+        .instantiate()
+        .await
+        .unwrap()
+        .resolve_field(
+            http::HeaderMap::new(),
+            "mySubgraph",
+            field_directive,
+            Default::default(),
+        )
+        .await
+        .unwrap();
+
+    let result: serde_json::Value = output
+        .outputs
+        .into_iter()
+        .flat_map(|result| {
+            let data = result.ok()?;
+            minicbor_serde::from_slice(&data).ok()
+        })
+        .next()
+        .unwrap();
+
+    insta::assert_json_snapshot!(&result, @r#"
+    {
+      "id": 10,
+      "name": "cat"
+    }
+    "#);
+}
+
+#[tokio::test]
+async fn resolver_09() {
+    #[derive(serde::Serialize)]
+    struct SchemaArgs {
+        id: usize,
+    }
+
+    #[derive(serde::Serialize)]
+    struct FieldArgs<'a> {
+        name: &'a str,
+    }
+
+    let config = WasiExtensionsConfig {
+        location: PathBuf::from("examples/target/wasm32-wasip2/debug/resolver_09.wasm"),
+        networking: false,
+        stdout: false,
+        stderr: false,
+        environment_variables: false,
+    };
+
+    assert!(config.location.exists());
+
+    let (shared, _) = create_shared_resources();
+
+    let loader = ExtensionLoader::new(
+        shared,
+        config,
+        ExtensionGuestConfig {
+            r#type: extension_catalog::KindDiscriminants::Resolver,
+            schema_directives: vec![SchemaDirective::new("schemaArgs", "mySubgraph", SchemaArgs { id: 10 })],
+            configuration: (),
+        },
+        Version::new(0, 9, 0),
+    )
+    .unwrap();
+
+    let field_directive = wit::directive::FieldDefinitionDirective {
+        name: "myDirective",
+        site: wit::directive::FieldDefinitionDirectiveSite {
+            parent_type_name: "Query",
+            field_name: "cats",
+        },
+        arguments: &cbor::to_vec(&FieldArgs { name: "cat" }).unwrap(),
+    };
+
+    let output = loader
+        .instantiate()
+        .await
+        .unwrap()
+        .resolve_field(
+            http::HeaderMap::new(),
+            "mySubgraph",
+            field_directive,
+            Default::default(),
+        )
+        .await
+        .unwrap();
+
+    let result: serde_json::Value = output
+        .outputs
+        .into_iter()
+        .flat_map(|result| {
+            let data = result.ok()?;
+            minicbor_serde::from_slice(&data).ok()
+        })
+        .next()
+        .unwrap();
+
+    insta::assert_json_snapshot!(&result, @r#"
+    {
+      "id": 10,
+      "name": "cat"
+    }
+    "#);
+}
+
+#[tokio::test]
 async fn simple_resolver() {
     #[derive(serde::Serialize)]
     struct SchemaArgs {
@@ -89,6 +241,100 @@ async fn simple_resolver() {
     {
       "id": 10,
       "name": "cat"
+    }
+    "#);
+}
+
+#[tokio::test]
+async fn auth_08() {
+    let config = WasiExtensionsConfig {
+        location: PathBuf::from("examples/target/wasm32-wasip2/debug/auth_08.wasm"),
+        networking: false,
+        stdout: false,
+        stderr: false,
+        environment_variables: false,
+    };
+
+    assert!(config.location.exists());
+
+    let (shared, _) = create_shared_resources();
+
+    let loader = ExtensionLoader::new(
+        shared,
+        config,
+        ExtensionGuestConfig {
+            r#type: extension_catalog::KindDiscriminants::Authentication,
+            schema_directives: Vec::new(),
+            configuration: json!({
+                "cache_config": "test"
+            }),
+        },
+        Version::new(0, 8, 0),
+    )
+    .unwrap();
+
+    let mut headers = HeaderMap::new();
+    headers.insert("Authorization", HeaderValue::from_static("valid"));
+
+    let (headers, token) = loader.instantiate().await.unwrap().authenticate(headers).await.unwrap();
+
+    assert!(headers.len() == 1);
+    assert_eq!(Some(&HeaderValue::from_static("valid")), headers.get("Authorization"));
+
+    let claims = match token {
+        Token::Anonymous => serde_json::Value::Null,
+        Token::Bytes(bytes) => minicbor_serde::from_slice(&bytes).unwrap(),
+    };
+
+    insta::assert_json_snapshot!(claims, @r#"
+    {
+      "key": "default"
+    }
+    "#);
+}
+
+#[tokio::test]
+async fn auth_09() {
+    let config = WasiExtensionsConfig {
+        location: PathBuf::from("examples/target/wasm32-wasip2/debug/auth_09.wasm"),
+        networking: false,
+        stdout: false,
+        stderr: false,
+        environment_variables: false,
+    };
+
+    assert!(config.location.exists());
+
+    let (shared, _) = create_shared_resources();
+
+    let loader = ExtensionLoader::new(
+        shared,
+        config,
+        ExtensionGuestConfig {
+            r#type: extension_catalog::KindDiscriminants::Authentication,
+            schema_directives: Vec::new(),
+            configuration: json!({
+                "cache_config": "test"
+            }),
+        },
+        Version::new(0, 9, 0),
+    )
+    .unwrap();
+
+    let mut headers = HeaderMap::new();
+    headers.insert("Authorization", HeaderValue::from_static("valid"));
+
+    let (headers, token) = loader.instantiate().await.unwrap().authenticate(headers).await.unwrap();
+    assert!(headers.len() == 1);
+    assert_eq!(Some(&HeaderValue::from_static("valid")), headers.get("Authorization"));
+    let claims = match token {
+        Token::Anonymous => serde_json::Value::Null,
+        Token::Bytes(bytes) => serde_json::from_slice(&bytes).unwrap(),
+    };
+
+    insta::assert_json_snapshot!(claims, @r#"
+    {
+      "key": "default"
     }
     "#);
 }
