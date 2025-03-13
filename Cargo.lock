@@ -3690,7 +3690,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-hooks"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "grafbase-hooks-derive",
  "serde",
@@ -3709,7 +3709,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.9.0"
+version = "0.9.1"
 dependencies = [
  "anyhow",
  "async-tungstenite",
