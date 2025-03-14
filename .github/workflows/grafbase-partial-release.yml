@@ -64,12 +64,6 @@ jobs:
         with:
           cmd: yq '.env.PROD_ASSETS' './.github/workflows/binaries.yml'
 
-      - name: Download darwin-x86_64 artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ env.VERSION_BUMP }}-x86_64-apple-darwin
-          path: cli/npm/x86_64-apple-darwin
-
       - name: Download darwin-aarch64 artifact
         uses: actions/download-artifact@v4
         with:
@@ -100,13 +94,11 @@ jobs:
           cd cli/npm
           mkdir github
           cp aarch64-apple-darwin/grafbase github/grafbase-aarch64-apple-darwin
-          cp x86_64-apple-darwin/grafbase github/grafbase-x86_64-apple-darwin
           cp x86_64-pc-windows-msvc/grafbase.exe github/grafbase-x86_64-pc-windows-msvc.exe
           cp x86_64-unknown-linux-musl/grafbase github/grafbase-x86_64-unknown-linux-musl
           cp aarch64-unknown-linux-musl/grafbase github/grafbase-aarch64-unknown-linux-musl
 
           chmod +x aarch64-apple-darwin/grafbase
-          chmod +x x86_64-apple-darwin/grafbase
           chmod +x x86_64-unknown-linux-musl/grafbase
           chmod +x aarch64-unknown-linux-musl/grafbase
 
@@ -132,7 +124,6 @@ jobs:
           files: |
             licenses.html
             cli/npm/github/grafbase-aarch64-apple-darwin
-            cli/npm/github/grafbase-x86_64-apple-darwin
             cli/npm/github/grafbase-x86_64-pc-windows-msvc.exe
             cli/npm/github/grafbase-x86_64-unknown-linux-musl
             cli/npm/github/grafbase-aarch64-unknown-linux-musl
@@ -164,7 +155,6 @@ jobs:
               PUBLISH_ARGUMENTS+=(--tag next)
           fi
           (cd aarch64-apple-darwin && npm publish "${PUBLISH_ARGUMENTS[@]}")
-          (cd x86_64-apple-darwin && npm publish "${PUBLISH_ARGUMENTS[@]}")
           (cd x86_64-pc-windows-msvc && npm publish "${PUBLISH_ARGUMENTS[@]}")
           (cd x86_64-unknown-linux-musl && npm publish "${PUBLISH_ARGUMENTS[@]}")
           (cd aarch64-unknown-linux-musl && npm publish "${PUBLISH_ARGUMENTS[@]}")
