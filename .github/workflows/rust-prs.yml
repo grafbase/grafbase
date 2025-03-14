@@ -173,9 +173,6 @@ jobs:
         run: |
           echo ${{ needs.what-changed.outputs.changed-packages }}
 
-      - uses: Swatinem/rust-cache@v2
-        if: ${{ !startsWith(github.head_ref, 'renovate-') }}
-
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.7
 
@@ -322,7 +319,7 @@ jobs:
     if: |
       needs.what-changed.outputs.gateway-docker == 'true'
       || contains(fromJson(needs.what-changed.outputs.changed-packages), 'grafbase-gateway')
-    runs-on: depot-ubuntu-24.04-8
+    runs-on: depot-ubuntu-24.04
     permissions:
       packages: write
       contents: read
@@ -372,6 +369,9 @@ jobs:
       - name: Get sources
         uses: actions/checkout@v4
 
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.7
+
       - name: Fetch CLI assets
         uses: ./.github/actions/fetch-assets
 
@@ -379,9 +379,6 @@ jobs:
         shell: bash
         run: |
           echo ${{ needs.what-changed.outputs.changed-packages }}
-
-      - uses: Swatinem/rust-cache@v2
-        if: ${{ !startsWith(github.head_ref, 'renovate-') }}
 
       - name: Install Rust
         uses: ./.github/actions/install-rust
@@ -392,9 +389,6 @@ jobs:
         uses: taiki-e/install-action@v2
         with:
           tool: nextest
-
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.7
 
       - name: Build CLI and Gateway
         shell: bash
@@ -423,6 +417,14 @@ jobs:
         shell: bash
         working-directory: extensions
         run: docker compose up -d
+
+      - name: Build test matrix
+        shell: bash
+        working-directory: extensions
+        env:
+          RUSTC_WRAPPER: 'sccache'
+        run: |
+          cargo build -p test-matrix
 
       - name: Test all extensions
         shell: bash
