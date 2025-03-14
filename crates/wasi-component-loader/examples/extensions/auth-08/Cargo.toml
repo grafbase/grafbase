@@ -8,7 +8,7 @@ keywords.workspace = true
 repository.workspace = true
 
 [dependencies]
-grafbase-sdk = "0.9.1"
+grafbase-sdk = "0.8.0"
 serde.workspace = true
 serde_json.workspace = true
 
