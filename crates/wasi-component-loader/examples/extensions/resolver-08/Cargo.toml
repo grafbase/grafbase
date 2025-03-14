@@ -8,5 +8,5 @@ license = "Apache-2.0"
 crate-type = ["cdylib"]
 
 [dependencies]
-grafbase-sdk = "0.8.0"
+grafbase-sdk = "0.9.1"
 serde.workspace = true
