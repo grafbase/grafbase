@@ -81,7 +81,7 @@ runs:
         docker compose -f crates/integration-tests/compose.yaml stop -t 3
 
     - name: Build gateway tests
-      id: gateway_tests
+      id: gateway_tests_build
       if: ${{ inputs.with-integration-tests == 'true' }}
       shell: bash
       env:
