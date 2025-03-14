@@ -21,7 +21,7 @@ env:
 
 jobs:
   detect-change-type:
-    runs-on: ubicloud-standard-2
+    runs-on: depot-ubuntu-24.04-small
     outputs:
       build: ${{ steps.filter.outputs.build }}
     steps:
@@ -38,7 +38,7 @@ jobs:
 
   gateway-helm-release:
     name: Build gateway helm chart
-    runs-on: ubicloud-standard-2
+    runs-on: depot-ubuntu-24.04-small
     needs: [detect-change-type]
     steps:
       - name: Checkout Repository
@@ -47,8 +47,8 @@ jobs:
       - name: Setup helm
         uses: azure/setup-helm@v4.3.0
         with:
-          version: "v3.16.2"
-  
+          version: 'v3.16.2'
+
       - name: Login to ghcr.io
         shell: bash
         run: |

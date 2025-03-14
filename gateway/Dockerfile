@@ -4,7 +4,9 @@
 FROM rust:1.85-bookworm AS chef
 
 COPY rust-toolchain.toml rust-toolchain.toml
-RUN cargo install cargo-chef
+RUN cargo install --locked cargo-chef sccache
+ENV RUSTC_WRAPPER=sccache SCCACHE_DIR=/sccache
+
 WORKDIR /grafbase
 
 FROM chef AS planner
@@ -15,7 +17,10 @@ RUN cargo chef prepare --recipe-path recipe.json
 FROM chef AS builder
 ENV CARGO_INCREMENTAL=0
 COPY --from=planner /grafbase/recipe.json recipe.json
-RUN cargo chef cook --release --recipe-path recipe.json
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
+    --mount=type=cache,target=$SCCACHE_DIR,sharing=locked \
+    cargo chef cook --release --recipe-path recipe.json
 
 COPY Cargo.lock Cargo.lock
 COPY Cargo.toml Cargo.toml
@@ -23,7 +28,10 @@ COPY ./crates ./crates
 COPY ./cli ./cli
 COPY ./gateway ./gateway
 
-RUN cargo build --release --bin grafbase-gateway
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
+    --mount=type=cache,target=$SCCACHE_DIR,sharing=locked \
+    cargo build --release --bin grafbase-gateway
 
 #
 # === Final image ===

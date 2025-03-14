@@ -35,7 +35,7 @@ concurrency:
 
 jobs:
   detect-change-type:
-    runs-on: ubicloud-standard-2
+    runs-on: depot-ubuntu-24.04-small
     outputs:
       build: ${{ steps.filter.outputs.build }}
     steps:
@@ -60,7 +60,7 @@ jobs:
     name: 'Lint'
     needs: [detect-change-type]
     if: ${{ needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/') }}
-    runs-on: ubicloud-standard-8
+    runs-on: depot-ubuntu-24.04-8
     steps:
       - name: Get sources
         uses: actions/checkout@v4
@@ -80,7 +80,7 @@ jobs:
     name: 'Test'
     needs: [lint]
     if: ${{ needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/') }}
-    runs-on: ubicloud-standard-8
+    runs-on: depot-ubuntu-24.04-8
     steps:
       - name: Get sources
         uses: actions/checkout@v4
@@ -106,10 +106,13 @@ jobs:
       fail-fast: false
       matrix:
         package: [grafbase, grafbase-gateway, federated-server]
-    runs-on: ubicloud-standard-8
+    runs-on: depot-ubuntu-24.04-8
     steps:
       - name: Get sources
         uses: actions/checkout@v4
+
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.7
 
       - name: Rust job init
         uses: ./.github/actions/init_rust_job
@@ -121,6 +124,8 @@ jobs:
 
       - name: Individual package build
         shell: bash
+        env:
+          RUSTC_WRAPPER: 'sccache'
         run: |
           set -euo pipefail
           # The actual features used for each dependency depends on what is being built simultaneously.
@@ -132,6 +137,8 @@ jobs:
       - name: Individual package without lambda
         if: ${{ matrix.package == 'grafbase-gateway' }}
         shell: bash
+        env:
+          RUSTC_WRAPPER: 'sccache'
         run: |
           set -euo pipefail
           cargo check --package ${{ matrix.package }}
@@ -139,7 +146,7 @@ jobs:
   docker-gateway:
     needs: [test]
     if: ${{ (needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/')) }}
-    runs-on: ubicloud-standard-16
+    runs-on: depot-ubuntu-24.04-8
     permissions:
       packages: write
     env:
@@ -161,30 +168,31 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build docker images
-        run: |
-          # Re-use the latest layers if possible
-          docker pull ghcr.io/grafbase/gateway:latest || true
-          docker build -f gateway/Dockerfile -t ghcr.io/grafbase/gateway:$COMMIT_SHA .
-
-      - name: Push docker image
-        run: |
-          docker push ghcr.io/grafbase/gateway:$COMMIT_SHA
-
-      - name: Push latest version
+      - name: Build and push tagged image
+        uses: depot/build-push-action@v1
         if: ${{ github.ref == 'refs/heads/main' }}
-        run: |
-          docker tag ghcr.io/grafbase/gateway:$COMMIT_SHA ghcr.io/grafbase/gateway:latest
-          docker push ghcr.io/grafbase/gateway:latest
+        with:
+          project: lc6t0h7bhh
+          token: ${{ secrets.DEPOT_TOKEN }}
+          push: true
+          tags: ghcr.io/grafbase/gateway:${{ env.COMMIT_SHA }}, ghcr.io/grafbase/gateway:latest
+          file: ./gateway/Dockerfile
 
-      - name: Push released gateway version
+      - name: Set release version
         if: ${{ startsWith(github.ref, 'refs/tags') && startsWith(github.ref_name, 'gateway-') }}
         run: |
-          RELEASE_VERSION="$(echo "$REF" | sed -e "s/^refs\/tags\/gateway-//")"
-          docker tag ghcr.io/grafbase/gateway:$COMMIT_SHA ghcr.io/grafbase/gateway:$RELEASE_VERSION
-          docker push ghcr.io/grafbase/gateway:$RELEASE_VERSION
-        env:
-          REF: ${{ github.ref }}
+          RELEASE_VERSION="$(echo "${{ github.ref }}" | sed -e "s/^refs\/tags\/gateway-//")"
+          echo "RELEASE_VERSION=$RELEASE_VERSION" >> $GITHUB_ENV
+
+      - name: Build and push versioned image
+        uses: depot/build-push-action@v1
+        if: ${{ startsWith(github.ref, 'refs/tags') && startsWith(github.ref_name, 'gateway-') }}
+        with:
+          project: lc6t0h7bhh
+          token: ${{ secrets.DEPOT_TOKEN }}
+          push: true
+          tags: ghcr.io/grafbase/gateway:${{ env.RELEASE_VERSION }}
+          file: ./gateway/Dockerfile
 
   linux:
     needs: [test]
@@ -193,8 +201,8 @@ jobs:
       matrix:
         archs:
           [
-            { runner: ubicloud-standard-8, target: x86_64-unknown-linux-musl, platform: linux },
-            { runner: ubicloud-standard-8-arm, target: aarch64-unknown-linux-musl, platform: linux-arm },
+            { runner: depot-ubuntu-24.04-8, target: x86_64-unknown-linux-musl, platform: linux },
+            { runner: depot-ubuntu-24.04-arm-8, target: aarch64-unknown-linux-musl, platform: linux-arm },
           ]
     runs-on: ${{ matrix.archs.runner }}
     steps:
@@ -206,6 +214,9 @@ jobs:
         with:
           platform: ${{ matrix.archs.platform }}
 
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.7
+
       - name: Fetch CLI assets
         uses: ./.github/actions/fetch-assets
 
@@ -215,11 +226,15 @@ jobs:
           sudo apt install musl
 
       - name: Build grafbase release
+        env:
+          RUSTC_WRAPPER: 'sccache'
         run: |
           cd cli
           cargo build --release -p grafbase --target ${{ matrix.archs.target }} --timings
 
       - name: Build gateway release
+        env:
+          RUSTC_WRAPPER: 'sccache'
         run: |
           cargo build --release -p grafbase-gateway --target ${{ matrix.archs.target }}
 
@@ -228,7 +243,7 @@ jobs:
           name: ${{ matrix.archs.platform }}-release-timings.html
           path: target/cargo-timings/cargo-timing.html
 
-      - if: ${{ github.event_name == 'pull_request' && matrix.archs.runner != 'ubicloud-standard-8-arm' }}
+      - if: ${{ github.event_name == 'pull_request' && matrix.archs.runner != 'depot-ubuntu-24.04-8-arm' }}
         name: Upload the binaries of the change to R2
         run: |
           aws s3api put-object \
@@ -286,7 +301,7 @@ jobs:
           echo "Building lambda with $BUILD_PROFILE profile"
           cargo build --profile $BUILD_PROFILE -p grafbase-gateway --target ${{ matrix.archs.target }} --features lambda
 
-      - if: ${{ github.event_name == 'pull_request' && matrix.archs.runner != 'ubicloud-standard-8-arm' }}
+      - if: ${{ github.event_name == 'pull_request' && matrix.archs.runner != 'depot-ubuntu-24.04-arm-8' }}
         name: Upload lambda gateway binary to R2
         run: |
           BUILD_PROFILE=release
@@ -309,9 +324,10 @@ jobs:
           name: gateway-lambda-${{ env.VERSION_BUMP }}-${{ matrix.archs.platform }}
           path: |
             target/${{ matrix.archs.target }}/lambda/grafbase-gateway
+
   windows:
     needs: [test]
-    runs-on: windows-latest-8-cores
+    runs-on: depot-windows-2022-8
     steps:
       - name: Get sources
         uses: actions/checkout@v4
@@ -319,6 +335,9 @@ jobs:
         uses: ./.github/actions/init_rust_job
         with:
           platform: windows
+
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.7
 
       - name: Fetch CLI assets
         uses: ./.github/actions/fetch-assets
@@ -335,6 +354,8 @@ jobs:
 
       - name: Build grafbase release
         shell: bash
+        env:
+          RUSTC_WRAPPER: sccache
         run: |
           cd cli
           cargo build --release -p grafbase --target x86_64-pc-windows-msvc --timings
@@ -361,7 +382,7 @@ jobs:
 
   darwin:
     needs: [test]
-    runs-on: macos-latest-xlarge
+    runs-on: depot-macos-latest
     strategy:
       fail-fast: false
       matrix:
@@ -375,6 +396,9 @@ jobs:
         with:
           platform: macos
 
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.7
+
       - name: Fetch CLI assets
         uses: ./.github/actions/fetch-assets
 
@@ -387,10 +411,14 @@ jobs:
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build grafbase ${{ matrix.target }} release
+        env:
+          RUSTC_WRAPPER: sccache
         run: |
           cargo build --release -p grafbase --target ${{ matrix.target }} --timings
 
       - name: Build gateway ${{ matrix.target }} release
+        env:
+          RUSTC_WRAPPER: sccache
         run: |
           cargo build --release -p grafbase-gateway --target ${{ matrix.target }}
 
@@ -413,7 +441,7 @@ jobs:
           VERSION_BUMP=${VERSION_BUMP//gateway-} # remove the gateway prefix from the tag
           echo VERSION_BUMP=${VERSION_BUMP} >> $GITHUB_ENV
 
-      - if: ${{ github.event_name == 'pull_request' && matrix.archs.runner != 'ubicloud-standard-8-arm' }}
+      - if: ${{ github.event_name == 'pull_request' && matrix.archs.runner != 'depot-ubuntu-24.04-arm-8' }}
         name: Upload the binaries of the change to R2
         run: |
           curl "https://awscli.amazonaws.com/AWSCLIV2.pkg" -o "AWSCLIV2.pkg"
@@ -483,7 +511,7 @@ jobs:
     # happen after the builds, hence the `needs`. But it must not be skipped
     # when the builds are cancelled or fail (hence the `if: ${{ always() }}`).
     needs: [linux, darwin]
-    runs-on: ubicloud-standard-2
+    runs-on: depot-ubuntu-24.04-small
     if: ${{ always() }}
     steps:
       - name: Check that the builds succeeded

@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   what-changed:
-    runs-on: ubicloud-standard-2
+    runs-on: depot-ubuntu-24.04-small
     outputs:
       # These 2 are JSON lists
       changed-packages: ${{ steps.rust.outputs.changed-packages }}
@@ -61,7 +61,7 @@ jobs:
   check-licenses:
     needs: [what-changed]
     if: needs.what-changed.outputs.changed-packages != '[]'
-    runs-on: ubicloud-standard-2
+    runs-on: depot-ubuntu-24.04-small
     steps:
       - name: Get sources
         uses: actions/checkout@v4
@@ -84,7 +84,7 @@ jobs:
   check-format:
     needs: [what-changed]
     if: needs.what-changed.outputs.changed-packages != '[]'
-    runs-on: ubicloud-standard-2
+    runs-on: depot-ubuntu-24.04-small
     steps:
       - name: Get sources
         uses: actions/checkout@v4
@@ -113,7 +113,7 @@ jobs:
     if: |
       needs.what-changed.outputs.changed-packages != '[]'
     needs: [what-changed]
-    runs-on: ubicloud-standard-8
+    runs-on: depot-ubuntu-24.04-8
     steps:
       - name: Get sources
         uses: actions/checkout@v4
@@ -121,9 +121,14 @@ jobs:
       - name: Install cargo binstall
         uses: cargo-bins/cargo-binstall@v1.10.21
 
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.7
+
       - name: Build the WASI components for tests
         shell: bash
         working-directory: crates/wasi-component-loader/examples
+        env:
+          RUSTC_WRAPPER: sccache
         run: cargo build --target wasm32-wasip2
 
       - uses: actions/upload-artifact@v4
@@ -147,11 +152,11 @@ jobs:
       matrix:
         platform:
           [
-            { 'target': 'x86_64-unknown-linux-musl', 'runner': 'ubicloud-standard-8' },
-            { 'target': 'aarch64-unknown-linux-musl', 'runner': 'ubicloud-standard-8-arm' },
-            { 'target': 'aarch64-apple-darwin', 'runner': 'macos-latest-xlarge' },
-            { 'target': 'x86_64-apple-darwin', 'runner': 'macos-latest-xlarge' },
-            { 'target': 'x86_64-pc-windows-msvc', 'runner': 'windows-latest-8-cores' },
+            { 'target': 'x86_64-unknown-linux-musl', 'runner': 'depot-ubuntu-24.04-8' },
+            { 'target': 'aarch64-unknown-linux-musl', 'runner': 'depot-ubuntu-24.04-arm-8' },
+            { 'target': 'aarch64-apple-darwin', 'runner': 'depot-macos-latest' },
+            { 'target': 'x86_64-apple-darwin', 'runner': 'depot-macos-latest' },
+            { 'target': 'x86_64-pc-windows-msvc', 'runner': 'depot-windows-2022-8' },
           ]
     runs-on: ${{ matrix.platform.runner }}
     env:
@@ -170,6 +175,9 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
         if: ${{ !startsWith(github.head_ref, 'renovate-') }}
+
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.7
 
       - name: Install Rust
         uses: ./.github/actions/install-rust
@@ -223,6 +231,8 @@ jobs:
       - name: Build debug binaries
         if: needs.what-changed.outputs.cargo-bin-specs
         shell: bash
+        env:
+          RUSTC_WRAPPER: 'sccache'
         run: |
           cargo build --target ${{ matrix.platform.target }} ${{ needs.what-changed.outputs.cargo-bin-specs }}
 
@@ -250,7 +260,8 @@ jobs:
           && matrix.platform.target == 'x86_64-unknown-linux-musl'
         shell: bash
         working-directory: crates/integration-tests
-        run: docker compose up -d
+        run: |
+          docker compose up -d
 
       - name: Start gateway docker compose
         if: |
@@ -258,7 +269,8 @@ jobs:
           && matrix.platform.target == 'x86_64-unknown-linux-musl'
         shell: bash
         working-directory: gateway
-        run: docker compose up -d
+        run: |
+          docker compose up -d
 
       # It's kinda useful to get build vs run timings on tests, so splitting out the build from the run
       # here
@@ -268,6 +280,8 @@ jobs:
           && matrix.platform.target != 'x86_64-unknown-linux-musl'
           && matrix.platform.target != 'x86_64-apple-darwin'
         shell: bash
+        env:
+          RUSTC_WRAPPER: 'sccache'
         run: |
           cargo nextest run --target ${{ matrix.platform.target }} --no-run --profile ci ${{ needs.what-changed.outputs.cargo-test-specs }}
 
@@ -286,6 +300,8 @@ jobs:
           needs.what-changed.outputs.cargo-docker-test-specs
           && matrix.platform.target == 'x86_64-unknown-linux-musl'
         shell: bash
+        env:
+          RUSTC_WRAPPER: 'sccache'
         run: |
           cargo nextest run --target ${{ matrix.platform.target }} --no-run --profile ci ${{ needs.what-changed.outputs.cargo-docker-test-specs }}
 
@@ -306,9 +322,10 @@ jobs:
     if: |
       needs.what-changed.outputs.gateway-docker == 'true'
       || contains(fromJson(needs.what-changed.outputs.changed-packages), 'grafbase-gateway')
-    runs-on: ubicloud-standard-16
+    runs-on: depot-ubuntu-24.04-8
     permissions:
       packages: write
+      contents: read
     steps:
       - name: Get sources
         if: env.dockerhub_username != ''
@@ -329,24 +346,21 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build Docker image
-        if: env.dockerhub_username != ''
-        run: |
-          # Re-use the latest layers if possible
-          docker pull ghcr.io/grafbase/gateway:latest || true
-          docker build -f gateway/Dockerfile -t ghcr.io/grafbase/gateway:$COMMIT_SHA .
-
-      - name: Push Docker image
-        if: env.dockerhub_username != ''
-        run: |
-          docker push ghcr.io/grafbase/gateway:$COMMIT_SHA
+      - name: Build and push
+        uses: depot/build-push-action@v1
+        with:
+          project: lc6t0h7bhh
+          token: ${{ secrets.DEPOT_TOKEN }}
+          push: true
+          tags: ghcr.io/grafbase/gateway:${{ env.COMMIT_SHA }}
+          file: ./gateway/Dockerfile
 
   extensions:
     needs: [what-changed]
     strategy:
       fail-fast: false
       matrix:
-        platform: [{ 'runner': 'ubicloud-standard-8' }]
+        platform: [{ 'runner': 'depot-ubuntu-24.04-8' }]
     runs-on: ${{ matrix.platform.runner }}
     if: |
       needs.what-changed.outputs.changed-packages != '[]'
@@ -379,8 +393,13 @@ jobs:
         with:
           tool: nextest
 
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.7
+
       - name: Build CLI and Gateway
         shell: bash
+        env:
+          RUSTC_WRAPPER: 'sccache'
         run: |
           cargo build -p grafbase -p grafbase-gateway
           echo "$(pwd)/target/debug" >> $GITHUB_PATH
@@ -408,6 +427,8 @@ jobs:
       - name: Test all extensions
         shell: bash
         working-directory: extensions
+        env:
+          RUSTC_WRAPPER: 'sccache'
         run: |
           cargo run -p test-matrix
 
@@ -416,7 +437,7 @@ jobs:
     # happen after the builds, hence the `needs`. But it must not be skipped
     # when the builds are cancelled or fail (hence the `if: ${{ always() }}`).
     needs: [check-format, builds, docker-gateway, extensions]
-    runs-on: ubicloud-standard-2
+    runs-on: depot-ubuntu-24.04-small
     if: ${{ always() }}
     steps:
       - name: Check that the builds succeeded

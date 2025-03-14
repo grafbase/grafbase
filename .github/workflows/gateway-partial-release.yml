@@ -28,7 +28,7 @@ on:
 jobs:
   release:
     name: Release gateway
-    runs-on: ubicloud-standard-2
+    runs-on: depot-ubuntu-24.04-small
     steps:
       - name: Parse version tag
         run: |
