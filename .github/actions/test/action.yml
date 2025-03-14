@@ -99,7 +99,7 @@ runs:
         RUST_BACKTRACE=1 cargo nextest run -p grafbase-gateway --profile ci
 
     - name: Build tests without integration
-      id: tests_no_integration
+      id: tests_no_integration_build
       if: ${{ inputs.with-integration-tests == 'false' }}
       shell: bash
       env:
