@@ -1,19 +1,32 @@
+use std::sync::Arc;
+
+use engine::{GraphqlError, RequestContext};
 use futures::future::BoxFuture;
+use runtime::extension::{AuthorizationDecisions, Data, Token};
 
 use crate::{Error, ErrorResponse};
 
-use super::api::{
-    instance::InputList,
-    wit::{
-        authorization::{AuthorizationDecisions, ResponseElements},
-        context::AuthorizationContext,
-        directive::{FieldDefinitionDirective, QueryElements},
-        resolver::FieldOutput,
-        token::Token,
-    },
-};
+use super::api::wit::{FieldDefinitionDirective, QueryElements, ResponseElements};
 
-pub trait ExtensionInstance {
+/// List of inputs to be provided to the extension.
+/// The data itself is fully custom and thus will be serialized with serde to cross the Wasm
+/// boundary.
+#[derive(Default)]
+pub struct InputList(pub(crate) Vec<Vec<u8>>);
+
+impl<S: serde::Serialize> FromIterator<S> for InputList {
+    fn from_iter<T: IntoIterator<Item = S>>(iter: T) -> Self {
+        Self(
+            iter.into_iter()
+                .map(|input| crate::cbor::to_vec(&input).unwrap())
+                .collect(),
+        )
+    }
+}
+
+pub type SubscriptionItem = Vec<Result<Data, GraphqlError>>;
+
+pub trait ExtensionInstance: Send + 'static {
     fn recycle(&mut self) -> Result<(), Error>;
 
     fn resolve_field<'a>(
@@ -22,7 +35,7 @@ pub trait ExtensionInstance {
         subgraph_name: &'a str,
         directive: FieldDefinitionDirective<'a>,
         inputs: InputList,
-    ) -> BoxFuture<'a, Result<FieldOutput, Error>>;
+    ) -> BoxFuture<'a, Result<Vec<Result<Data, GraphqlError>>, Error>>;
 
     #[allow(clippy::type_complexity)]
     fn subscription_key<'a>(
@@ -39,7 +52,7 @@ pub trait ExtensionInstance {
         directive: FieldDefinitionDirective<'a>,
     ) -> BoxFuture<'a, Result<(), Error>>;
 
-    fn resolve_next_subscription_item(&mut self) -> BoxFuture<'_, Result<Option<FieldOutput>, Error>>;
+    fn resolve_next_subscription_item(&mut self) -> BoxFuture<'_, Result<Option<SubscriptionItem>, Error>>;
 
     fn authenticate(
         &mut self,
@@ -48,13 +61,12 @@ pub trait ExtensionInstance {
 
     fn authorize_query<'a>(
         &'a mut self,
-        ctx: AuthorizationContext,
+        ctx: &'a Arc<RequestContext>,
         elements: QueryElements<'a>,
     ) -> BoxFuture<'a, Result<(AuthorizationDecisions, Vec<u8>), ErrorResponse>>;
 
     fn authorize_response<'a>(
         &'a mut self,
-        ctx: AuthorizationContext,
         state: &'a [u8],
         elements: ResponseElements<'a>,
     ) -> BoxFuture<'a, Result<AuthorizationDecisions, Error>>;

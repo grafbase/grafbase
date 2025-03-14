@@ -1,6 +1,6 @@
 use crate::{
     extension::resolver::Subscription,
-    host::{AuthorizationContext, Headers},
+    host::{GatewayHeaders, SubgraphHeaders},
     types::{
         AuthorizationDecisions, Error, ErrorResponse, FieldDefinitionDirective, FieldInputs, FieldOutput,
         QueryElements, ResponseElements, Token,
@@ -9,7 +9,7 @@ use crate::{
 
 #[allow(unused_variables)]
 pub(crate) trait AnyExtension {
-    fn authenticate(&mut self, headers: Headers) -> Result<Token, ErrorResponse> {
+    fn authenticate(&mut self, headers: &GatewayHeaders) -> Result<Token, ErrorResponse> {
         Err(ErrorResponse::internal_server_error(
             "Authentication extension not initialized correctly.",
         ))
@@ -17,7 +17,7 @@ pub(crate) trait AnyExtension {
 
     fn resolve_field(
         &mut self,
-        headers: Headers,
+        headers: SubgraphHeaders,
         subgraph_name: &str,
         directive: FieldDefinitionDirective<'_>,
         inputs: FieldInputs<'_>,
@@ -27,7 +27,7 @@ pub(crate) trait AnyExtension {
 
     fn resolve_subscription(
         &mut self,
-        headers: Headers,
+        headers: SubgraphHeaders,
         subgraph_name: &str,
         directive: FieldDefinitionDirective<'_>,
     ) -> Result<Box<dyn Subscription>, Error> {
@@ -36,7 +36,7 @@ pub(crate) trait AnyExtension {
 
     fn subscription_key(
         &mut self,
-        headers: Headers,
+        headers: &SubgraphHeaders,
         subgraph_name: &str,
         directive: FieldDefinitionDirective<'_>,
     ) -> Result<Option<Vec<u8>>, Error> {
@@ -45,7 +45,8 @@ pub(crate) trait AnyExtension {
 
     fn authorize_query(
         &mut self,
-        ctx: AuthorizationContext,
+        headers: &mut SubgraphHeaders,
+        token: Token,
         elements: QueryElements<'_>,
     ) -> Result<(AuthorizationDecisions, Vec<u8>), ErrorResponse> {
         Err(ErrorResponse::internal_server_error(
@@ -55,7 +56,6 @@ pub(crate) trait AnyExtension {
 
     fn authorize_response(
         &mut self,
-        ctx: AuthorizationContext,
         state: Vec<u8>,
         elements: ResponseElements<'_>,
     ) -> Result<AuthorizationDecisions, Error> {

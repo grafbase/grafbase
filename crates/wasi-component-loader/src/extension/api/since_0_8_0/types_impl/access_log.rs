@@ -12,10 +12,10 @@ impl types::HostAccessLog for WasiState {
             .access_log()
             .send(data)
             .inspect_err(|err| match err {
-                latest::access_log::LogError::ChannelFull(_) => {
+                latest::LogError::ChannelFull(_) => {
                     tracing::error!("access log channel is over capacity");
                 }
-                latest::access_log::LogError::ChannelClosed => {
+                latest::LogError::ChannelClosed => {
                     tracing::error!("access log channel closed");
                 }
             })

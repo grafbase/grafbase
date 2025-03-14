@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use engine::{ErrorCode, GraphqlError};
 use engine_schema::Subgraph;
-use runtime::extension::Data;
 use tokio::sync::broadcast;
 use tokio_stream::{StreamExt, wrappers::BroadcastStream};
 
@@ -22,7 +21,7 @@ pub struct DeduplicatedSubscription<'ctx, 'wit> {
     pub headers: http::HeaderMap,
     pub key: Vec<u8>,
     pub subgraph: Subgraph<'ctx>,
-    pub directive: wit::directive::FieldDefinitionDirective<'wit>,
+    pub directive: wit::FieldDefinitionDirective<'wit>,
 }
 
 impl<'ctx> DeduplicatedSubscription<'ctx, '_> {
@@ -69,19 +68,19 @@ impl<'ctx> DeduplicatedSubscription<'ctx, '_> {
             let mut registerations_closed = false;
 
             loop {
-                let item = loop {
+                let items = loop {
                     if registerations_closed && sender.receiver_count() == 0 {
                         return;
                     }
 
                     match instance.resolve_next_subscription_item().await {
-                        Ok(Some(item)) if item.outputs.is_empty() => {
+                        Ok(Some(items)) if items.is_empty() => {
                             continue;
                         }
-                        Ok(Some(item)) => {
+                        Ok(Some(items)) => {
                             tracing::debug!("subscription item resolved");
 
-                            break item;
+                            break items;
                         }
                         Ok(None) => {
                             tracing::debug!("subscription ended");
@@ -98,10 +97,10 @@ impl<'ctx> DeduplicatedSubscription<'ctx, '_> {
                     }
                 };
 
-                for item in item.outputs {
+                for item in items {
                     let data = match item {
-                        Ok(item) => Ok(Arc::new(Data::CborBytes(item))),
-                        Err(err) => Err(err.into_graphql_error(ErrorCode::InternalServerError)),
+                        Ok(data) => Ok(Arc::new(data)),
+                        Err(err) => Err(err),
                     };
 
                     if sender.send(data).is_err() {

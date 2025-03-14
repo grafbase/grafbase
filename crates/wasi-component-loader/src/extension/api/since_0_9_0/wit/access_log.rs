@@ -2,17 +2,19 @@ use wasmtime::component::Resource;
 
 use crate::{AccessLogMessage, AccessLogSender, WasiState};
 
-use super::super::wit::access_log;
+pub use super::grafbase::sdk::access_log::*;
 
-impl access_log::HostAccessLog for WasiState {
-    async fn send(&mut self, data: Vec<u8>) -> wasmtime::Result<Result<(), access_log::LogError>> {
+impl Host for WasiState {}
+
+impl HostAccessLog for WasiState {
+    async fn send(&mut self, data: Vec<u8>) -> wasmtime::Result<Result<(), LogError>> {
         let data = AccessLogMessage::Data(data);
 
         Ok(self.access_log().send(data).inspect_err(|err| match err {
-            access_log::LogError::ChannelFull(_) => {
+            LogError::ChannelFull(_) => {
                 tracing::error!("access log channel is over capacity");
             }
-            access_log::LogError::ChannelClosed => {
+            LogError::ChannelClosed => {
                 tracing::error!("access log channel closed");
             }
         }))
