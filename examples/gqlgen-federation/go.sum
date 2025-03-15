@@ -2,6 +2,8 @@ github.com/99designs/gqlgen v0.17.66 h1:2/SRc+h3115fCOZeTtsqrB5R5gTGm+8qCAwcrZa+
 github.com/99designs/gqlgen v0.17.66/go.mod h1:gucrb5jK5pgCKzAGuOMMVU9C8PnReecHEHd2UxLQwCg=
 github.com/99designs/gqlgen v0.17.67 h1:Fuu2s74iqWCslv7oOHjb+xTW5+KwRuMATVHNC6gb6WM=
 github.com/99designs/gqlgen v0.17.67/go.mod h1:VFKZgBh0FrQYKbiGc5iB8AqnUpDiGY5l/Tu/nLhe+Jw=
+github.com/99designs/gqlgen v0.17.68 h1:vH6jTShCv7sgz1ejXEDNqho7KWlA4ZwSWzVsxyhypAM=
+github.com/99designs/gqlgen v0.17.68/go.mod h1:fvCiqQAu2VLhKXez2xFvLmE47QgAPf/KTPN5XQ4rsHQ=
 github.com/99designs/gqlgen/_examples v0.0.0-20250310174910-cd25f3630e69 h1:ORaXjIZ6iP11KuRijqJX9nH4a/kUiLxnNKz7I5wd/Lw=
 github.com/99designs/gqlgen/_examples v0.0.0-20250310174910-cd25f3630e69/go.mod h1:7w+fKnp7t4DfX31v9nQuD+CTt6hLt56+VKPmFZ9OXrw=
 github.com/99designs/gqlgen/_examples v0.0.0-20250312115048-6ac519c5aed2 h1:llsnS2Y7EdauKp+/OhAeWL6XwISPG24V1ovrs8qC32A=
