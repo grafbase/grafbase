@@ -7,7 +7,7 @@
       "matchUpdateTypes": ["patch"]
     },
     {
-      "matchPackageNames": ["async-tungstenite", "ory-client"],
+      "matchPackageNames": ["async-tungstenite", "ory-client", "grafbase-sdk"],
       "enabled": false
     },
     {
