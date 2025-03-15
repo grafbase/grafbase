@@ -3,7 +3,7 @@ module subgraph
 go 1.24
 
 require (
-	github.com/99designs/gqlgen v0.17.67
+	github.com/99designs/gqlgen v0.17.68
 	github.com/gorilla/websocket v1.5.3
 	github.com/vektah/gqlparser/v2 v2.5.23
 )
