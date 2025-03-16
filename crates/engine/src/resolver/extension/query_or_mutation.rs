@@ -43,8 +43,7 @@ impl FieldResolverExtension {
         };
 
         let future = ctx
-            .engine
-            .runtime
+            .runtime()
             .extensions()
             .resolve_field(headers, extension_directive, response_view.iter())
             .boxed();

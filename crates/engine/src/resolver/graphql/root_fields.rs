@@ -217,8 +217,7 @@ where
             if let Some(cache_ttl) = cache_ttl {
                 // We could probably put this call into the background at some point, but for
                 // simplicities sake I am not going to do that just now.
-                ctx.engine
-                    .runtime
+                ctx.runtime()
                     .entity_cache()
                     .put(&cache_key, Cow::Borrowed(http_response.body().as_ref()), cache_ttl)
                     .await

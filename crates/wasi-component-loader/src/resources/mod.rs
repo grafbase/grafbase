@@ -1,8 +1,7 @@
 mod headers;
 
 use futures::StreamExt;
-use runtime::auth::LegacyToken;
-use runtime::extension::Lease;
+use runtime::extension::{Lease, Token};
 
 pub use crate::access_log::AccessLogSender;
 pub use crate::context::SharedContext;
@@ -36,7 +35,7 @@ impl NatsSubscriber {
 
 pub struct AuthorizationContext {
     pub headers: WasmOwnedOrLease<http::HeaderMap>,
-    pub token: WasmOwnedOrLease<LegacyToken>,
+    pub token: Token,
 }
 
 pub enum WasmOwnedOrLease<T> {
@@ -67,7 +66,7 @@ impl<T> WasmOwnedOrLease<T> {
                 _guard = Some(v.read().await);
                 _guard.as_deref().unwrap()
             }
-            Self::Lease(Lease::Owned(v)) => v,
+            Self::Lease(Lease::Singleton(v)) => v,
             Self::Owned(v) => v,
         };
         f(v)
@@ -84,7 +83,7 @@ impl<T> WasmOwnedOrLease<T> {
                 _guard = Some(v.write().await);
                 _guard.as_deref_mut()
             }
-            Self::Lease(Lease::Owned(v)) => Some(v),
+            Self::Lease(Lease::Singleton(v)) => Some(v),
             Self::Owned(v) => Some(v),
         };
         f(v)

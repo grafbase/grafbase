@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use serde_json::Value;
 
-use crate::extension::Token;
+use crate::extension::{Token, TokenRef};
 
 #[derive(Clone, Debug)]
 pub enum LegacyToken {
@@ -30,6 +30,14 @@ impl LegacyToken {
             LegacyToken::Anonymous => None,
             LegacyToken::Jwt(jwt) => Some(&jwt.bytes),
             LegacyToken::Extension(token) => token.as_bytes(),
+        }
+    }
+
+    pub fn as_ref(&self) -> TokenRef<'_> {
+        match self {
+            LegacyToken::Anonymous => TokenRef::Anonymous,
+            LegacyToken::Jwt(jwt) => TokenRef::Bytes(&jwt.bytes),
+            LegacyToken::Extension(token) => token.as_ref(),
         }
     }
 

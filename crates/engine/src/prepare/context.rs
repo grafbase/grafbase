@@ -10,19 +10,20 @@ use schema::Schema;
 
 use crate::{
     Engine, Runtime,
-    engine::{HooksContext, RequestContext},
-    execution::RequestHooks,
+    engine::WasmContext,
+    execution::{GraphqlRequestContext, RequestContext, RequestHooks, default_grafbase_response_extension},
     response::GrafbaseResponseExtension,
 };
 
 use super::PreparedOperation;
 
-/// Context before starting to operation plan execution.
-/// Background futures will be started in parallel to avoid delaying the plan.
+/// Context for preparing a single operation.
+/// Background futures will be started in parallel with the operation execution to avoid delaying the plan,
+/// if and only if operation preparation succeeds.
 pub(crate) struct PrepareContext<'ctx, R: Runtime> {
     pub engine: &'ctx Arc<Engine<R>>,
     pub request_context: &'ctx Arc<RequestContext>,
-    pub hooks_context: HooksContext<R>,
+    pub gql_context: GraphqlRequestContext<R>,
     pub executed_operation_builder: ExecutedOperationBuilder<<R::Hooks as Hooks>::OnSubgraphResponseOutput>,
     // needs to be Send so that futures are Send.
     pub background_futures: crossbeam_queue::SegQueue<BoxFuture<'ctx, ()>>,
@@ -32,12 +33,15 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
     pub fn new(
         engine: &'ctx Arc<Engine<R>>,
         request_context: &'ctx Arc<RequestContext>,
-        hooks_context: HooksContext<R>,
+        wasm_context: WasmContext<R>,
     ) -> Self {
         Self {
             engine,
             request_context,
-            hooks_context,
+            gql_context: GraphqlRequestContext {
+                wasm_context,
+                subgraph_default_headers_override: None,
+            },
             executed_operation_builder: ExecutedOperation::builder(),
             background_futures: Default::default(),
         }
@@ -49,6 +53,10 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
 
     pub fn schema(&self) -> &'ctx Schema {
         &self.engine.schema
+    }
+
+    pub fn runtime(&self) -> &'ctx R {
+        &self.engine.runtime
     }
 
     pub fn access_token(&self) -> &'ctx LegacyToken {
@@ -79,14 +87,12 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
         &self,
         operation: Option<&PreparedOperation>,
     ) -> Option<GrafbaseResponseExtension> {
-        self.engine
-            .default_grafbase_response_extension(self.request_context)
-            .map(|ext| {
-                if let Some(op) = operation.filter(|_| self.schema().settings.response_extension.include_query_plan) {
-                    ext.with_query_plan(self.schema(), op)
-                } else {
-                    ext
-                }
-            })
+        default_grafbase_response_extension(self.schema(), self.request_context).map(|ext| {
+            if let Some(op) = operation.filter(|_| self.schema().settings.response_extension.include_query_plan) {
+                ext.with_query_plan(self.schema(), op)
+            } else {
+                ext
+            }
+        })
     }
 }

@@ -20,7 +20,7 @@ where
     fn from(ctx: &'a PrepareContext<'ctx, R>) -> Self {
         Self {
             hooks: ctx.engine.runtime.hooks(),
-            context: &ctx.hooks_context,
+            context: &ctx.gql_context.wasm_context,
         }
     }
 }
@@ -29,7 +29,7 @@ impl<'ctx, R: Runtime> From<&ExecutionContext<'ctx, R>> for RequestHooks<'ctx, R
     fn from(ctx: &ExecutionContext<'ctx, R>) -> Self {
         Self {
             hooks: ctx.engine.runtime.hooks(),
-            context: ctx.hooks_context,
+            context: &ctx.gql_context.wasm_context,
         }
     }
 }

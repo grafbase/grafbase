@@ -1,10 +1,7 @@
 use anyhow::anyhow;
 use engine::GraphqlError;
 use futures::future::BoxFuture;
-use runtime::{
-    auth::LegacyToken,
-    extension::{AuthorizationDecisions, Data, Lease},
-};
+use runtime::extension::{AuthorizationDecisions, Data, Lease, TokenRef};
 use wasmtime::Store;
 
 use crate::{
@@ -162,7 +159,7 @@ impl ExtensionInstance for ExtensionInstanceSince090 {
     fn authorize_query<'a>(
         &'a mut self,
         headers: Lease<http::HeaderMap>,
-        token: Lease<LegacyToken>,
+        token: TokenRef<'a>,
         elements: QueryElements<'a>,
     ) -> BoxFuture<'a, QueryAuthorizationResult> {
         Box::pin(async move {
@@ -171,7 +168,7 @@ impl ExtensionInstance for ExtensionInstanceSince090 {
             self.poisoned = true;
             let ctx = AuthorizationContext {
                 headers: headers.into(),
-                token: token.into(),
+                token: token.to_owned(),
             };
             let ctx = self.store.data_mut().push_resource(ctx)?;
             let ctx_rep = ctx.rep();
@@ -182,20 +179,13 @@ impl ExtensionInstance for ExtensionInstanceSince090 {
                 .call_authorize_query(&mut self.store, ctx, elements)
                 .await?;
 
-            let AuthorizationContext { headers, token } =
+            let AuthorizationContext { headers, .. } =
                 self.store.data_mut().take_resource::<AuthorizationContext>(ctx_rep)?;
 
             self.poisoned = false;
 
             result
-                .map(|(decisions, state)| {
-                    (
-                        headers.into_lease().unwrap(),
-                        token.into_lease().unwrap(),
-                        decisions.into(),
-                        state,
-                    )
-                })
+                .map(|(decisions, state)| (headers.into_lease().unwrap(), decisions.into(), state))
                 .map_err(Into::into)
         })
     }

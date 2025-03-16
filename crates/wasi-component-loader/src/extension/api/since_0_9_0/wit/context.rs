@@ -1,4 +1,3 @@
-use runtime::auth::LegacyToken;
 use wasmtime::component::Resource;
 
 use crate::{
@@ -41,17 +40,10 @@ impl HostAuthorizationContext for WasiState {
     async fn token(&mut self, self_: Resource<AuthorizationContext>) -> wasmtime::Result<Token> {
         let AuthorizationContext { token, .. } = WasiState::get(self, &self_)?;
 
-        token
-            .with_ref(|token| {
-                let token = match token {
-                    LegacyToken::Anonymous => Token::Anonymous,
-                    LegacyToken::Jwt(jwt) => Token::Bytes(serde_json::to_vec(&jwt.claims).unwrap()),
-                    LegacyToken::Extension(token) => token.clone().into(),
-                };
-
-                Ok(token)
-            })
-            .await
+        Ok(match token {
+            runtime::extension::Token::Anonymous => Token::Anonymous,
+            runtime::extension::Token::Bytes(bytes) => Token::Bytes(bytes.clone()),
+        })
     }
 
     async fn drop(&mut self, _rep: Resource<AuthorizationContext>) -> wasmtime::Result<()> {

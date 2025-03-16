@@ -1,7 +1,6 @@
 use engine::GraphqlError;
 use futures::future::BoxFuture;
-use runtime::auth::LegacyToken;
-use runtime::extension::{AuthorizationDecisions, Data, Lease};
+use runtime::extension::{AuthorizationDecisions, Data, Lease, TokenRef};
 use wasmtime::Store;
 
 use crate::extension::QueryAuthorizationResult;
@@ -154,7 +153,7 @@ impl ExtensionInstance for ExtensionInstanceSince0_10_0 {
     fn authorize_query<'a>(
         &'a mut self,
         headers: Lease<http::HeaderMap>,
-        token: Lease<LegacyToken>,
+        token: TokenRef<'a>,
         elements: QueryElements<'a>,
     ) -> BoxFuture<'a, QueryAuthorizationResult> {
         Box::pin(async move {
@@ -164,14 +163,12 @@ impl ExtensionInstance for ExtensionInstanceSince0_10_0 {
 
             let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
             let headers_rep = headers.rep();
-            let result = token
-                .with_ref(async |token: &LegacyToken| {
-                    let token_param = token.as_bytes().map(TokenParam::Bytes).unwrap_or(TokenParam::Anonymous);
-                    self.inner
-                        .grafbase_sdk_authorization()
-                        .call_authorize_query(&mut self.store, headers, token_param, elements)
-                        .await
-                })
+
+            let token_param = token.as_bytes().map(TokenParam::Bytes).unwrap_or(TokenParam::Anonymous);
+            let result = self
+                .inner
+                .grafbase_sdk_authorization()
+                .call_authorize_query(&mut self.store, headers, token_param, elements)
                 .await?;
 
             let headers = self
@@ -183,7 +180,7 @@ impl ExtensionInstance for ExtensionInstanceSince0_10_0 {
 
             self.poisoned = false;
             result
-                .map(|(decisions, state)| (headers, token, decisions.into(), state))
+                .map(|(decisions, state)| (headers, decisions.into(), state))
                 .map_err(Into::into)
         })
     }

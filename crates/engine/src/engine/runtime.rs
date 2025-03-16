@@ -3,9 +3,9 @@ use std::{future::Future, sync::Arc};
 use grafbase_telemetry::metrics::EngineMetrics;
 use runtime::{entity_cache::EntityCache, kv::KvStore, rate_limiting::RateLimiter};
 
-use super::CachedOperation;
+use crate::CachedOperation;
 
-pub type HooksContext<R> = <<R as Runtime>::Hooks as runtime::hooks::Hooks>::Context;
+pub type WasmContext<R> = <<R as Runtime>::Hooks as runtime::hooks::Hooks>::Context;
 
 pub trait Runtime: Send + Sync + 'static {
     type Hooks: runtime::hooks::Hooks;

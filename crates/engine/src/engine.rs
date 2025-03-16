@@ -1,3 +1,8 @@
+mod auth_extension;
+pub(crate) mod cache;
+mod retry_budget;
+mod runtime;
+
 use ::runtime::{hooks::Hooks as _, operation_cache::OperationCache};
 use auth_extension::AuthExtensionService;
 use bytes::Bytes;
@@ -11,20 +16,13 @@ use std::{borrow::Cow, future::Future, sync::Arc};
 
 use crate::{
     Body, HooksExtension,
+    execution::{EarlyHttpContext, RequestContext, StreamResponse},
     graphql_over_http::{Http, ResponseFormat, StreamingResponseFormat},
-    prepare::{CachedOperation, OperationDocument},
+    prepare::OperationDocument,
     response::Response,
     websocket::{self, InitPayload},
 };
-pub(crate) use execute::*;
 pub(crate) use runtime::*;
-
-mod auth_extension;
-pub(crate) mod cache;
-mod errors;
-mod execute;
-mod retry_budget;
-mod runtime;
 
 pub use runtime::Runtime;
 
@@ -33,10 +31,10 @@ pub struct Engine<R: Runtime> {
     // needs access to the schema strings
     pub(crate) schema: Arc<Schema>,
     pub runtime: R,
-    auth: AuthService,
-    auth_extension: Option<AuthExtensionService>,
-    retry_budgets: RetryBudgets,
-    default_response_format: ResponseFormat,
+    pub(crate) auth: AuthService,
+    pub(crate) auth_extension: Option<AuthExtensionService>,
+    pub(crate) retry_budgets: RetryBudgets,
+    pub(crate) default_response_format: ResponseFormat,
 }
 
 impl<R: Runtime> Engine<R> {
@@ -97,25 +95,26 @@ impl<R: Runtime> Engine<R> {
             Err(response) => return response,
         };
 
-        let request_context_fut = self
-            .create_request_context(&ctx, headers, None)
-            .map_err(|(response, context)| (response, Some(context)));
+        let context_fut = self
+            .create_graphql_context(&ctx, headers, None)
+            .map_err(|(response, wasm_context)| (response, Some(wasm_context)));
 
-        let graphql_request_fut = self
+        let request_fut = self
             .extract_well_formed_graphql_over_http_request(&ctx, body)
             .map_err(|response| (response, None));
 
         // Retrieve the request body while processing the headers
         match self
-            .with_gateway_timeout(async { futures::try_join!(request_context_fut, graphql_request_fut) })
+            .with_gateway_timeout(async { futures::try_join!(context_fut, request_fut) })
             .await
+            .unwrap_or_else(|| Err((crate::execution::errors::response::gateway_timeout(), None)))
         {
-            Some(Ok(((request_context, hooks_context), request))) => {
-                self.execute_well_formed_graphql_request(request_context, hooks_context, request)
+            Ok(((request_context, wasm_context), request)) => {
+                self.execute_well_formed_graphql_request(request_context, wasm_context, request)
                     .await
             }
-            Some(Err((mut response, hooks_context))) => {
-                let context = hooks_context.unwrap_or_else(|| self.runtime.hooks().new_context());
+            Err((mut response, wasm_context)) => {
+                let context = wasm_context.unwrap_or_else(|| self.runtime.hooks().new_context());
                 let on_operation_response_output = response.take_on_operation_response_output();
                 let mut http_response = Http::error(ctx.response_format, response);
 
@@ -126,7 +125,6 @@ impl<R: Runtime> Engine<R> {
 
                 http_response
             }
-            None => Http::error(ctx.response_format, errors::response::gateway_timeout::<()>()),
         }
     }
 
@@ -144,38 +142,41 @@ impl<R: Runtime> Engine<R> {
             include_grafbase_response_extension: false,
         };
 
-        let (request_context, hooks_context) =
-            match self.create_request_context(&ctx, parts.headers, Some(payload)).await {
-                Ok(context) => context,
-                Err((response, _)) => {
-                    return Err(response
-                        .errors()
-                        .first()
-                        .map(|error| error.message.clone())
-                        .unwrap_or("Internal server error".into()));
-                }
-            };
+        let (request_context, wasm_context) = self
+            .create_graphql_context(&ctx, parts.headers, Some(payload))
+            .await
+            .map_err(|(response, _)| {
+                response
+                    .errors()
+                    .first()
+                    .map(|error| error.message.clone())
+                    .unwrap_or("Internal server error".into())
+            })?;
 
         Ok(WebsocketSession {
-            engine: Arc::clone(self),
-            request_context: Arc::new(request_context),
-            hooks_context,
+            engine: self.clone(),
+            request_context,
+            wasm_context,
         })
+    }
+
+    pub(crate) async fn with_gateway_timeout<T>(&self, fut: impl Future<Output = T> + Send) -> Option<T> {
+        self.runtime.with_timeout(self.schema.settings.timeout, fut).await
     }
 }
 
 pub struct WebsocketSession<R: Runtime> {
     engine: Arc<Engine<R>>,
     request_context: Arc<RequestContext>,
-    hooks_context: HooksContext<R>,
+    wasm_context: WasmContext<R>,
 }
 
 impl<R: Runtime> Clone for WebsocketSession<R> {
     fn clone(&self) -> Self {
         Self {
-            engine: Arc::clone(&self.engine),
-            request_context: Arc::clone(&self.request_context),
-            hooks_context: self.hooks_context.clone(),
+            engine: self.engine.clone(),
+            request_context: self.request_context.clone(),
+            wasm_context: self.wasm_context.clone(),
         }
     }
 }
@@ -186,7 +187,7 @@ impl<R: Runtime> WebsocketSession<R> {
         // TODO: Call a websocket hook?
         let StreamResponse { stream, .. } = self.engine.execute_websocket_well_formed_graphql_request(
             self.request_context.clone(),
-            self.hooks_context.clone(),
+            self.wasm_context.clone(),
             payload.0,
         );
 

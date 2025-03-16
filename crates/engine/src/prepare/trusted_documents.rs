@@ -62,11 +62,11 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
         'r: 'f,
     {
         let client_name = self.request_context.client.as_ref().map(|c| c.name.as_ref());
-        let trusted_documents = self.engine.runtime.trusted_documents();
+        let trusted_documents = self.runtime().trusted_documents();
         let persisted_query_extension = request.extensions.persisted_query.as_ref();
         let doc_id = request.doc_id.as_ref();
         let operation_name = request.operation_name.as_deref().map(Cow::Borrowed);
-        let apq_enabled = self.engine.schema.settings.apq_enabled;
+        let apq_enabled = self.schema().settings.apq_enabled;
 
         match (trusted_documents.enforcement_mode(), persisted_query_extension, doc_id) {
             (TrustedDocumentsEnforcementMode::Enforce, None, None) => {
@@ -107,8 +107,7 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
                             handle_trusted_document_query(self.engine, client_name, Cow::Owned(doc_id.clone()))
                                 .map_err({
                                     let log_level = self
-                                        .engine
-                                        .schema
+                                        .schema()
                                         .settings
                                         .trusted_documents
                                         .inline_document_unknown_log_level;
@@ -238,7 +237,7 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
                 },
             );
 
-            let trusted_doc_matches_inline_doc = match self.engine.runtime.operation_cache().get(&cache_key).await {
+            let trusted_doc_matches_inline_doc = match self.operation_cache().get(&cache_key).await {
                 Some(trusted_doc) => trusted_doc.document.content == inline_document,
                 None => handle_trusted_document_query(self.engine, client_name, doc_id.clone())
                     .await

@@ -17,12 +17,14 @@ use tracing::Instrument;
 
 use crate::{
     Engine, Runtime,
-    engine::{HooksContext, RequestContext, errors},
-    execution::ResponseSender,
+    engine::WasmContext,
+    execution::{ResponseSender, errors},
     prepare::PrepareContext,
     response::{ErrorCode, ErrorCodeCounter, GrafbaseResponseExtension, Response},
     utils::StreamJoinExt,
 };
+
+use super::RequestContext;
 
 pub(crate) struct StreamResponse<OnOperationResponseOutput> {
     pub stream: BoxStream<'static, Response<OnOperationResponseOutput>>,
@@ -33,11 +35,12 @@ impl<R: Runtime> Engine<R> {
     pub(super) fn execute_stream(
         self: &Arc<Self>,
         request_context: Arc<RequestContext>,
-        hooks_context: HooksContext<R>,
+        wasm_context: WasmContext<R>,
         request: Request,
     ) -> StreamResponse<<R::Hooks as Hooks>::OnOperationResponseOutput> {
+        let engine = self.clone();
+
         let start = Instant::now();
-        let engine = Arc::clone(self);
         let (response_sender, response_receiver) = mpsc::channel(2);
 
         let graphql_span = GraphqlOperationSpan::default();
@@ -48,7 +51,7 @@ impl<R: Runtime> Engine<R> {
         let stream = response_receiver
             .join(
                 async move {
-                    let ctx = PrepareContext::new(&engine, &request_context, hooks_context);
+                    let ctx = PrepareContext::new(&engine, &request_context, wasm_context);
                     let mut status = GraphqlResponseStatus::Success;
                     let mut error_code_counter = ErrorCodeCounter::default();
 

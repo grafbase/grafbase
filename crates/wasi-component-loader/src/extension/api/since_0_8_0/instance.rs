@@ -1,10 +1,7 @@
 use anyhow::anyhow;
 use engine::GraphqlError;
 use futures::future::BoxFuture;
-use runtime::{
-    auth::LegacyToken,
-    extension::{AuthorizationDecisions, Data, Lease, Token},
-};
+use runtime::extension::{AuthorizationDecisions, Data, Lease, Token, TokenRef};
 use wasmtime::Store;
 
 use crate::{
@@ -154,7 +151,7 @@ impl ExtensionInstance for ExtensionInstanceSince080 {
     fn authorize_query<'a>(
         &'a mut self,
         headers: Lease<http::HeaderMap>,
-        token: Lease<LegacyToken>,
+        _token: TokenRef<'a>,
         elements: QueryElements<'a>,
     ) -> BoxFuture<'a, QueryAuthorizationResult> {
         Box::pin(async move {
@@ -171,7 +168,7 @@ impl ExtensionInstance for ExtensionInstanceSince080 {
             self.poisoned = false;
 
             result
-                .map(|decisions| (headers, token, decisions.into(), Vec::new()))
+                .map(|decisions| (headers, decisions.into(), Vec::new()))
                 .map_err(Into::into)
         })
     }

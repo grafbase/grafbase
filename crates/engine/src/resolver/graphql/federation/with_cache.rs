@@ -106,7 +106,7 @@ where
 
         if status.is_success() {
             if let Some(cache_ttl) = calculate_cache_ttl(status, http_response.headers(), subgraph_default_cache_ttl) {
-                let cache = ctx.engine.runtime.entity_cache();
+                let cache = ctx.runtime().entity_cache();
                 join_all(cache_updates.into_iter().map(|(key, value)| async move {
                     cache
                         .put(&key, Cow::Borrowed(value.get().as_bytes()), cache_ttl)

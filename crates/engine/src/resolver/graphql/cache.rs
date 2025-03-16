@@ -82,7 +82,7 @@ pub(super) async fn fetch_entities<R: Runtime>(
     subgraph_headers: &http::HeaderMap,
     entities_to_fetch: Vec<EntityToFetch>,
 ) -> CacheFetchEntitiesOutcome {
-    let entity_cache = ctx.engine.runtime.entity_cache();
+    let entity_cache = ctx.runtime().entity_cache();
 
     // let additional_scopes = plan
     //     .cache_scopes()

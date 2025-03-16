@@ -1,9 +1,6 @@
 use engine::GraphqlError;
 use futures::future::BoxFuture;
-use runtime::{
-    auth::LegacyToken,
-    extension::{AuthorizationDecisions, Data, Lease, Token},
-};
+use runtime::extension::{AuthorizationDecisions, Data, Lease, Token, TokenRef};
 
 use crate::{Error, ErrorResponse};
 
@@ -26,15 +23,7 @@ impl<S: serde::Serialize> FromIterator<S> for InputList {
 }
 
 pub type SubscriptionItem = Vec<Result<Data, GraphqlError>>;
-pub type QueryAuthorizationResult = Result<
-    (
-        Lease<http::HeaderMap>,
-        Lease<LegacyToken>,
-        AuthorizationDecisions,
-        Vec<u8>,
-    ),
-    ErrorResponse,
->;
+pub type QueryAuthorizationResult = Result<(Lease<http::HeaderMap>, AuthorizationDecisions, Vec<u8>), ErrorResponse>;
 
 pub trait ExtensionInstance: Send + 'static {
     fn recycle(&mut self) -> Result<(), Error>;
@@ -72,7 +61,7 @@ pub trait ExtensionInstance: Send + 'static {
     fn authorize_query<'a>(
         &'a mut self,
         headers: Lease<http::HeaderMap>,
-        token: Lease<LegacyToken>,
+        token: TokenRef<'a>,
         elements: QueryElements<'a>,
     ) -> BoxFuture<'a, QueryAuthorizationResult>;
 

@@ -90,7 +90,7 @@ pub(crate) async fn execute_subgraph_request<R: Runtime>(
 
     ctx.record_request_size(&request);
 
-    let fetcher = ctx.engine.runtime.fetcher();
+    let fetcher = ctx.runtime().fetcher();
     let fetch_result = retrying_fetch(ctx, || async {
         let http_span = SubgraphHttpRequestSpan::new(endpoint.url(), &http::Method::POST);
         let mut request = request.clone();

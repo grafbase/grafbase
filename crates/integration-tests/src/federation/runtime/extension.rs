@@ -5,8 +5,7 @@ use engine_schema::{DirectiveSite, Subgraph, SubgraphId};
 use extension_catalog::{Extension, ExtensionCatalog, ExtensionId, Id, Manifest};
 use futures::stream::BoxStream;
 use runtime::{
-    auth::LegacyToken,
-    extension::{AuthorizationDecisions, Data, ExtensionFieldDirective, Lease, QueryElement, Token},
+    extension::{AuthorizationDecisions, Data, ExtensionFieldDirective, Lease, QueryElement, Token, TokenRef},
     hooks::{Anything, DynHookContext},
 };
 use serde::Serialize;
@@ -145,7 +144,7 @@ pub trait TestExtension: Send + Sync + 'static {
         &self,
         wasm_context: &DynHookContext,
         headers: &mut http::HeaderMap,
-        token: &LegacyToken,
+        token: TokenRef<'_>,
         elements_grouped_by_directive_name: Vec<(&str, Vec<QueryElement<'_, serde_json::Value>>)>,
     ) -> Result<AuthorizationDecisions, ErrorResponse> {
         Err(GraphqlError::internal_extension_error().into())
@@ -234,12 +233,9 @@ impl runtime::extension::ExtensionRuntime for TestExtensions {
         extension_id: ExtensionId,
         wasm_context: &'ctx Self::SharedContext,
         mut headers: Lease<http::HeaderMap>,
-        token: Lease<LegacyToken>,
+        token: TokenRef<'ctx>,
         elements_grouped_by_directive_name: Groups,
-    ) -> impl Future<
-        Output = Result<(Lease<http::HeaderMap>, Lease<LegacyToken>, AuthorizationDecisions), ErrorResponse>,
-    > + Send
-    + 'fut
+    ) -> impl Future<Output = Result<(Lease<http::HeaderMap>, AuthorizationDecisions), ErrorResponse>> + Send + 'fut
     where
         'ctx: 'fut,
         Groups: ExactSizeIterator<Item = (&'ctx str, QueryElements)>,
@@ -266,16 +262,12 @@ impl runtime::extension::ExtensionRuntime for TestExtensions {
             headers
                 .with_ref_mut(async |headers| {
                     let headers = headers.unwrap();
-                    token
-                        .with_ref(async move |token| {
-                            instance
-                                .authorize_query(wasm_context, headers, token, elements_grouped_by_directive_name)
-                                .await
-                        })
+                    instance
+                        .authorize_query(wasm_context, headers, token, elements_grouped_by_directive_name)
                         .await
                 })
                 .await
-                .map(|decisions| (headers, token, decisions))
+                .map(|decisions| (headers, decisions))
         }
     }
 
