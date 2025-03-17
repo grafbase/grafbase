@@ -107,7 +107,7 @@ fxhash = "0.2"
 governor = "0.8"
 graphql-parser = { git = "https://github.com/graphql-rust/graphql-parser", version = "0.4.0" }
 graphql-ws-client = { version = "0.11.1", features = ["tungstenite"] }
-handlebars = "6.3.1"
+handlebars = "6.3.2"
 hashbrown = "0.15"
 headers = "0.4"
 heck = "0.5"
@@ -226,7 +226,7 @@ tracing-mock = "0.1"
 tracing-opentelemetry = "0.29"
 tracing-subscriber = { version = "0.3.19", default-features = false }
 tungstenite = { version = "0.26.2", default-features = false }
-ulid = "1.2.0"
+ulid = "1.2.1"
 url = "2.5.4"
 urlencoding = "2.1"
 uuid = "1.16.0"
