@@ -11,6 +11,7 @@ use walker::Walk;
 
 use crate::{
     Runtime,
+    execution::find_matching_denied_header,
     prepare::{
         CachedOperation, CachedOperationContext, ConcreteShapeId, ErrorCode, FieldShapeId, GraphqlError,
         PartitionDataFieldId, PartitionField, PartitionTypenameFieldId, PrepareContext, QueryModifierId,
@@ -113,7 +114,7 @@ where
                 (extension_id, directive_range.into(), query_elements_range.into())
             })
             .collect::<Vec<_>>();
-        let (subgraph_default_headers_override, decisions) = self
+        let (mut subgraph_default_headers_override, decisions) = self
             .ctx
             .extensions()
             .authorize_query(
@@ -163,6 +164,16 @@ where
             .boxed()
             .await?;
 
+        println!("HEADERS: {}", subgraph_default_headers_override.len());
+
+        // TODO: Use http::HeaderMap.retain if it comes out.
+        let denied_header_names = subgraph_default_headers_override
+            .keys()
+            .filter_map(|name| find_matching_denied_header(name))
+            .collect::<Vec<_>>();
+        for name in denied_header_names {
+            subgraph_default_headers_override.remove(name);
+        }
         self.ctx.gql_context.subgraph_default_headers_override = Some(subgraph_default_headers_override);
         for QueryAuthorizationDecisions {
             query_elements_range,

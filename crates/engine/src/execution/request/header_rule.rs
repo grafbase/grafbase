@@ -155,9 +155,13 @@ fn handle_forward(
 }
 
 fn is_header_denied(name: &HeaderName) -> bool {
-    static DENY_LIST: OnceLock<[&str; 21]> = OnceLock::new();
+    find_matching_denied_header(name).is_some()
+}
+
+pub(crate) fn find_matching_denied_header(name: &HeaderName) -> Option<&'static str> {
+    static DENY_LIST: OnceLock<[&'static str; 21]> = OnceLock::new();
     let blacklist = DENY_LIST.get_or_init(|| {
-        let mut blacklist = [
+        [
             header::ACCEPT.as_str(),
             header::ACCEPT_CHARSET.as_str(),
             header::ACCEPT_ENCODING.as_str(),
@@ -180,9 +184,7 @@ fn is_header_denied(name: &HeaderName) -> bool {
             header::SEC_WEBSOCKET_ACCEPT.as_str(),
             header::SEC_WEBSOCKET_PROTOCOL.as_str(),
             header::SEC_WEBSOCKET_EXTENSIONS.as_str(),
-        ];
-        blacklist.sort_unstable();
-        blacklist
+        ]
     });
-    blacklist.binary_search(&name.as_str()).is_ok()
+    blacklist.iter().find(|denied| **denied == name.as_str()).copied()
 }
