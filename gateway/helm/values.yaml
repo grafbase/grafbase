@@ -39,7 +39,8 @@ podAnnotations: {}
 
 # Security context for the Pod, defining security settings for all containers.
 # https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
-podSecurityContext: {}
+podSecurityContext:
+  runAsNonRoot: true
 
 # Security context for each container, defining privileges and access control.
 # https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
