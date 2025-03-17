@@ -34,8 +34,8 @@ pub use crossbeam::channel::Sender;
 pub use crossbeam::sync::WaitGroup;
 use either::Either;
 pub use error::{Error, ErrorResponse};
+use extension::WasmConfig;
 pub use extension::api::wit::Error as GuestError;
-use gateway_config::WasiExtensionsConfig;
 pub use instance::hooks::{
     HookImplementation, HooksComponentInstance,
     authorization::{EdgeDefinition, NodeDefinition},
@@ -72,7 +72,7 @@ pub struct ComponentLoader {
     /// The WebAssembly component being loaded.
     component: Component,
     /// Configuration settings for the component loader.
-    config: Either<HooksWasiConfig, (String, WasiExtensionsConfig)>,
+    config: Either<HooksWasiConfig, (String, WasmConfig)>,
     /// Shared cache between component instances.
     cache: Arc<Cache>,
 }
@@ -97,7 +97,7 @@ impl ComponentLoader {
         Self::new(Either::Left(config), instantiate)
     }
 
-    fn new<F>(config: Either<HooksWasiConfig, (String, WasiExtensionsConfig)>, instantiate: F) -> Result<Option<Self>>
+    fn new<F>(config: Either<HooksWasiConfig, (String, WasmConfig)>, instantiate: F) -> Result<Option<Self>>
     where
         F: FnOnce(&mut Linker<WasiState>) -> Result<()>,
     {
@@ -157,7 +157,7 @@ impl ComponentLoader {
     ///
     /// This function provides access to the `Config` structure, which contains the
     /// configuration settings that were used to initialize the `ComponentLoader`.
-    pub(crate) fn config(&self) -> &Either<HooksWasiConfig, (String, WasiExtensionsConfig)> {
+    pub(crate) fn config(&self) -> &Either<HooksWasiConfig, (String, WasmConfig)> {
         &self.config
     }
 

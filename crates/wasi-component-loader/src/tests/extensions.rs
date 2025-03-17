@@ -2,14 +2,13 @@ use std::path::PathBuf;
 
 use crate::{
     cbor,
-    extension::{ExtensionGuestConfig, ExtensionLoader, SchemaDirective, api::wit},
+    extension::{ExtensionGuestConfig, ExtensionLoader, SchemaDirective, WasmConfig, api::wit},
     tests::create_shared_resources,
 };
 use futures::{
     StreamExt, TryStreamExt,
     stream::{FuturesOrdered, FuturesUnordered},
 };
-use gateway_config::WasiExtensionsConfig;
 use http::{HeaderMap, HeaderValue};
 use runtime::extension::{Data, Token};
 use serde_json::json;
@@ -30,7 +29,7 @@ async fn resolver_08() {
         name: &'a str,
     }
 
-    let config = WasiExtensionsConfig {
+    let config = WasmConfig {
         location: PathBuf::from("examples/target/wasm32-wasip2/debug/resolver_08.wasm"),
         networking: false,
         stdout: false,
@@ -105,7 +104,7 @@ async fn resolver_09() {
         name: &'a str,
     }
 
-    let config = WasiExtensionsConfig {
+    let config = WasmConfig {
         location: PathBuf::from("examples/target/wasm32-wasip2/debug/resolver_09.wasm"),
         networking: false,
         stdout: false,
@@ -180,7 +179,7 @@ async fn simple_resolver() {
         name: &'a str,
     }
 
-    let config = WasiExtensionsConfig {
+    let config = WasmConfig {
         location: PathBuf::from("examples/target/wasm32-wasip2/debug/simple_resolver.wasm"),
         networking: false,
         stdout: false,
@@ -245,7 +244,7 @@ async fn simple_resolver() {
 
 #[tokio::test]
 async fn auth_08() {
-    let config = WasiExtensionsConfig {
+    let config = WasmConfig {
         location: PathBuf::from("examples/target/wasm32-wasip2/debug/auth_08.wasm"),
         networking: false,
         stdout: false,
@@ -300,7 +299,7 @@ async fn auth_08() {
 
 #[tokio::test]
 async fn auth_09() {
-    let config = WasiExtensionsConfig {
+    let config = WasmConfig {
         location: PathBuf::from("examples/target/wasm32-wasip2/debug/auth_09.wasm"),
         networking: false,
         stdout: false,
@@ -353,7 +352,7 @@ async fn auth_09() {
 
 #[tokio::test]
 async fn single_call_caching_auth() {
-    let config = WasiExtensionsConfig {
+    let config = WasmConfig {
         location: PathBuf::from("examples/target/wasm32-wasip2/debug/caching_auth.wasm"),
         networking: false,
         stdout: false,
@@ -406,7 +405,7 @@ async fn single_call_caching_auth() {
 
 #[tokio::test]
 async fn single_call_caching_auth_invalid() {
-    let config = WasiExtensionsConfig {
+    let config = WasmConfig {
         location: PathBuf::from("examples/target/wasm32-wasip2/debug/caching_auth.wasm"),
         networking: false,
         stdout: false,
@@ -456,7 +455,7 @@ async fn single_call_caching_auth_invalid() {
 
 #[tokio::test]
 async fn multiple_cache_calls() {
-    let config = WasiExtensionsConfig {
+    let config = WasmConfig {
         location: PathBuf::from("examples/target/wasm32-wasip2/debug/caching_auth.wasm"),
         networking: false,
         stdout: false,

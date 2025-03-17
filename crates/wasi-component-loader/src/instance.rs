@@ -1,16 +1,12 @@
 use std::any::Any;
 
-use gateway_config::{HooksWasiConfig, WasiExtensionsConfig};
+use gateway_config::HooksWasiConfig;
 use wasmtime::{
     Store,
     component::{ComponentNamedList, Instance, Lift, Lower, TypedFunc},
 };
 
-use crate::{
-    AccessLogSender, ComponentLoader,
-    config::{build_extensions_context, build_hooks_context},
-    state::WasiState,
-};
+use crate::{AccessLogSender, ComponentLoader, config::build_hooks_context, state::WasiState};
 
 pub mod hooks;
 
@@ -23,25 +19,6 @@ fn initialize_hooks_store(
 
     let state = WasiState::new(
         build_hooks_context(config),
-        access_log,
-        loader.cache().clone(),
-        network_enabled,
-    );
-
-    let store = Store::new(loader.engine(), state);
-
-    Ok(store)
-}
-
-fn initialize_extensions_store(
-    config: &WasiExtensionsConfig,
-    loader: &ComponentLoader,
-    access_log: AccessLogSender,
-) -> crate::Result<Store<WasiState>> {
-    let network_enabled = config.networking;
-
-    let state = WasiState::new(
-        build_extensions_context(config),
         access_log,
         loader.cache().clone(),
         network_enabled,
@@ -66,7 +43,7 @@ impl ComponentInstance {
     pub async fn new(loader: &ComponentLoader, access_log: AccessLogSender) -> crate::Result<Self> {
         let mut store = match loader.config() {
             either::Either::Left(config) => initialize_hooks_store(config, loader, access_log)?,
-            either::Either::Right((_, config)) => initialize_extensions_store(config, loader, access_log)?,
+            either::Either::Right((_, _)) => unreachable!(),
         };
 
         let instance = loader

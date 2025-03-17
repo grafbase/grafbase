@@ -1,8 +1,9 @@
-use gateway_config::WasiExtensionsConfig;
 pub use gateway_config::{extensions::ExtensionsConfig, hooks::HooksWasiConfig};
 use wasmtime_wasi::{DirPerms, FilePerms, WasiCtx, WasiCtxBuilder};
 
-pub(crate) fn build_extensions_context(config: &WasiExtensionsConfig) -> WasiCtx {
+use crate::extension::WasmConfig;
+
+pub(crate) fn build_extensions_context(config: &WasmConfig) -> WasiCtx {
     let mut builder = WasiCtxBuilder::new();
 
     if config.networking {

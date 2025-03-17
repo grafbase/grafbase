@@ -6,7 +6,7 @@ use wasmtime::Store;
 
 use crate::{
     Error, ErrorResponse, WasiState,
-    extension::{InputList, QueryAuthorizationResult, instance::ExtensionInstance},
+    extension::{ExtensionInstance, InputList, QueryAuthorizationResult},
     resources::{AuthorizationContext, Lease},
 };
 

@@ -34,6 +34,7 @@ thiserror.workspace = true
 time.workspace = true
 tokio = { workspace = true, features = ["time", "rt"] }
 tokio-stream.workspace = true
+toml.workspace = true
 tracing.workspace = true
 ulid.workspace = true
 url.workspace = true

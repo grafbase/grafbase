@@ -21,6 +21,7 @@ members = [
 exclude = [
     "cli/tests/integration/data",
     "crates/wasi-component-loader/examples",
+    "crates/integration-tests/data/extensions",
     "examples/hooks-template",
     "examples/query_plan",
     "extensions",

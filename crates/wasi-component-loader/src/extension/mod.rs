@@ -1,10 +1,5 @@
 pub mod api;
-mod instance;
-mod loader;
-mod pool;
+mod manager;
 mod runtime;
 
-pub(crate) use instance::*;
-pub(crate) use loader::*;
-pub use loader::{ExtensionGuestConfig, SchemaDirective};
-pub use runtime::*;
+pub use manager::*;

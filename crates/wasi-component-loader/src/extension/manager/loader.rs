@@ -1,12 +1,14 @@
 use std::sync::Arc;
 
-use super::{
-    api::{SdkPre, wit},
-    instance::ExtensionInstance,
+use super::{ExtensionInstance, WasmConfig};
+use crate::{
+    cache::Cache,
+    config::build_extensions_context,
+    extension::api::{SdkPre, wit},
+    resources::SharedResources,
+    state::WasiState,
 };
-use crate::{cache::Cache, config::build_extensions_context, state::WasiState};
 use anyhow::Context;
-use gateway_config::WasiExtensionsConfig;
 use semver::Version;
 use wasmtime::{
     Engine,
@@ -14,7 +16,7 @@ use wasmtime::{
 };
 
 pub struct ExtensionLoader {
-    component_config: WasiExtensionsConfig,
+    wasm_config: WasmConfig,
     guest_config: Vec<u8>,
     #[allow(unused)] // MUST be unused, or at least immutable, we self-reference to it
     schema_directives: Vec<SchemaDirective>,
@@ -22,7 +24,7 @@ pub struct ExtensionLoader {
     wit_schema_directives: Vec<wit::SchemaDirective<'static>>,
     pre: SdkPre,
     cache: Arc<Cache>,
-    shared: crate::resources::SharedResources,
+    shared: SharedResources,
 }
 
 pub struct ExtensionGuestConfig<T> {
@@ -49,26 +51,24 @@ impl SchemaDirective {
 
 impl ExtensionLoader {
     pub fn new<T>(
-        shared: crate::resources::SharedResources,
-        component_config: impl Into<WasiExtensionsConfig>,
+        shared: SharedResources,
+        wasm_config: WasmConfig,
         guest_config: ExtensionGuestConfig<T>,
         sdk_version: Version,
     ) -> crate::Result<Self>
     where
         T: serde::Serialize,
     {
-        let component_config: WasiExtensionsConfig = component_config.into();
-
         let mut engine_config = wasmtime::Config::new();
 
         engine_config.wasm_component_model(true);
         engine_config.async_support(true);
 
         let engine = Engine::new(&engine_config)?;
-        let component = Component::from_file(&engine, &component_config.location)?;
+        let component = Component::from_file(&engine, &wasm_config.location)?;
 
         tracing::debug!(
-            location = component_config.location.to_str(),
+            location = wasm_config.location.to_str(),
             "loaded the provided web assembly component successfully",
         );
 
@@ -77,7 +77,7 @@ impl ExtensionLoader {
         // adds the wasi interfaces to our component
         wasmtime_wasi::add_to_linker_async(&mut linker)?;
 
-        if component_config.networking {
+        if wasm_config.networking {
             // adds the wasi http interfaces to our component
             wasmtime_wasi_http::add_only_http_to_linker_async(&mut linker)?;
         }
@@ -103,7 +103,7 @@ impl ExtensionLoader {
 
         Ok(Self {
             shared,
-            component_config,
+            wasm_config,
             guest_config: crate::cbor::to_vec(&guest_config.configuration)
                 .context("Could not serialize configuration")?,
             schema_directives,
@@ -115,10 +115,10 @@ impl ExtensionLoader {
 
     pub async fn instantiate(&self) -> crate::Result<Box<dyn ExtensionInstance>> {
         let state = WasiState::new(
-            build_extensions_context(&self.component_config),
+            build_extensions_context(&self.wasm_config),
             self.shared.access_log.clone(),
             self.cache.clone(),
-            self.component_config.networking,
+            self.wasm_config.networking,
         );
 
         self.pre
