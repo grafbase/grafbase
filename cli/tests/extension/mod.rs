@@ -50,12 +50,12 @@ fn init_resolver() {
     codegen-units = 1
 
     [dependencies]
-    grafbase-sdk = "0.9.1"
+    grafbase-sdk = "0.10.0"
 
     [dev-dependencies]
     indoc = "2"
     insta = { version = "1.42.1", features = ["json"] }
-    grafbase-sdk = { version = "0.9.1", features = ["test-utils"] }
+    grafbase-sdk = { version = "0.10.0", features = ["test-utils"] }
     tokio = { version = "1", features = ["rt-multi-thread", "macros", "test-util"] }
     serde_json = "1"
     "#);
@@ -98,7 +98,7 @@ fn init_resolver() {
     insta::assert_snapshot!(&lib_rs, @r##"
     use grafbase_sdk::{
         types::{Configuration, SchemaDirective, FieldDefinitionDirective, FieldInputs, FieldOutput},
-        Error, Headers, ResolverExtension, Subscription
+        Error, host::SubgraphHeaders, ResolverExtension, Subscription
     };
 
     #[derive(ResolverExtension)]
@@ -111,7 +111,7 @@ fn init_resolver() {
 
         fn resolve_field(
             &mut self,
-            headers: Headers,
+            headers: SubgraphHeaders,
             subgraph_name: &str,
             directive: FieldDefinitionDirective<'_>,
             inputs: FieldInputs,
@@ -121,7 +121,7 @@ fn init_resolver() {
 
         fn resolve_subscription(
             &mut self,
-            headers: Headers,
+            headers: SubgraphHeaders,
             subgraph_name: &str,
             directive: FieldDefinitionDirective<'_>,
         ) -> Result<Box<dyn Subscription>, Error> {
@@ -310,12 +310,12 @@ fn init_auth() {
     codegen-units = 1
 
     [dependencies]
-    grafbase-sdk = "0.9.1"
+    grafbase-sdk = "0.10.0"
 
     [dev-dependencies]
     indoc = "2"
     insta = { version = "1.42.1", features = ["json"] }
-    grafbase-sdk = { version = "0.9.1", features = ["test-utils"] }
+    grafbase-sdk = { version = "0.10.0", features = ["test-utils"] }
     tokio = { version = "1", features = ["rt-multi-thread", "macros", "test-util"] }
     serde_json = "1"
     "#);
@@ -347,7 +347,7 @@ fn init_auth() {
     insta::assert_snapshot!(&lib_rs, @r##"
     use grafbase_sdk::{
         types::{Configuration, SchemaDirective, ErrorResponse, Token},
-        AuthenticationExtension, Headers, Error
+        AuthenticationExtension, host::GatewayHeaders, Error
     };
 
     #[derive(AuthenticationExtension)]
@@ -359,7 +359,7 @@ fn init_auth() {
             todo!()
         }
 
-        fn authenticate(&mut self, headers: Headers) -> Result<Token, ErrorResponse> {
+        fn authenticate(&mut self, headers: &GatewayHeaders) -> Result<Token, ErrorResponse> {
             todo!()
         }
     }

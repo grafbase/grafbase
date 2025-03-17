@@ -1,9 +1,10 @@
 use wasmtime::component::Resource;
 
-use crate::{
-    WasiState,
-    extension::api::since_0_9_0::wit::cache::{Cache, HostCache},
-};
+use crate::WasiState;
+
+pub use super::grafbase::sdk::cache::*;
+
+impl Host for WasiState {}
 
 impl HostCache for WasiState {
     async fn get(&mut self, key: String) -> wasmtime::Result<Option<Vec<u8>>> {

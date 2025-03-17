@@ -14,7 +14,7 @@ pub(super) struct ExtensionGuard {
 }
 
 impl Deref for ExtensionGuard {
-    type Target = Box<dyn ExtensionInstance + Send + 'static>;
+    type Target = Box<dyn ExtensionInstance>;
 
     fn deref(&self) -> &Self::Target {
         &self.inner
@@ -49,7 +49,7 @@ impl Pool {
 }
 
 impl Manager for ExtensionLoader {
-    type Type = Box<dyn ExtensionInstance + Send + 'static>;
+    type Type = Box<dyn ExtensionInstance>;
     type Error = crate::Error;
 
     async fn create(&self) -> Result<Self::Type, Self::Error> {

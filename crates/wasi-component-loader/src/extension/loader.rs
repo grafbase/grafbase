@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use super::{
-    api::{self, SdkPre, wit::directive},
+    api::{SdkPre, wit},
     instance::ExtensionInstance,
 };
 use crate::{cache::Cache, config::build_extensions_context, state::WasiState};
@@ -19,7 +19,7 @@ pub struct ExtensionLoader {
     #[allow(unused)] // MUST be unused, or at least immutable, we self-reference to it
     schema_directives: Vec<SchemaDirective>,
     // Self-reference to schema_directives
-    wit_schema_directives: Vec<directive::SchemaDirective<'static>>,
+    wit_schema_directives: Vec<wit::SchemaDirective<'static>>,
     pre: SdkPre,
     cache: Arc<Cache>,
     shared: crate::resources::SharedResources,
@@ -82,22 +82,21 @@ impl ExtensionLoader {
             wasmtime_wasi_http::add_only_http_to_linker_async(&mut linker)?;
         }
 
-        api::add_to_linker(&sdk_version, &mut linker)?;
+        let pre = SdkPre::initialize(&sdk_version, component, linker)?;
 
-        let pre = api::intialize_sdk_pre(&sdk_version, &component, &linker)?;
         let schema_directives = guest_config.schema_directives;
 
         let wit_schema_directives = schema_directives
             .iter()
             .map(|dir| {
-                let dir = directive::SchemaDirective {
+                let dir = wit::SchemaDirective {
                     name: &dir.name,
                     subgraph_name: &dir.subgraph_name,
                     arguments: &dir.arguments,
                 };
                 // SAFETY: Self-reference to schema_directives which is kept alive and never
                 // changed.
-                let dir: directive::SchemaDirective<'static> = unsafe { std::mem::transmute(dir) };
+                let dir: wit::SchemaDirective<'static> = unsafe { std::mem::transmute(dir) };
                 dir
             })
             .collect();
@@ -114,7 +113,7 @@ impl ExtensionLoader {
         })
     }
 
-    pub async fn instantiate(&self) -> crate::Result<Box<dyn ExtensionInstance + Send + 'static>> {
+    pub async fn instantiate(&self) -> crate::Result<Box<dyn ExtensionInstance>> {
         let state = WasiState::new(
             build_extensions_context(&self.component_config),
             self.shared.access_log.clone(),
@@ -122,6 +121,8 @@ impl ExtensionLoader {
             self.component_config.networking,
         );
 
-        api::instantiate(&self.pre, state, &self.wit_schema_directives, &self.guest_config).await
+        self.pre
+            .instantiate(state, &self.wit_schema_directives, &self.guest_config)
+            .await
     }
 }

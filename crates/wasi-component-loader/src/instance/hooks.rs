@@ -8,7 +8,7 @@ use wasmtime::component::{ComponentNamedList, Lift, Lower, Resource, TypedFunc};
 
 use crate::AccessLogSender;
 use crate::extension::api::wit;
-use crate::extension::api::wit::grafbase::sdk::error::Error;
+use crate::extension::api::wit::Error;
 use crate::headers::Headers;
 use crate::names::{
     AUTHORIZE_EDGE_NODE_POST_EXECUTION_HOOK_FUNCTION, AUTHORIZE_EDGE_POST_EXECUTION_HOOK_FUNCTION,
@@ -158,9 +158,8 @@ impl HooksComponentInstance {
         url: &str,
         headers: HeaderMap,
     ) -> crate::GatewayResult<(ContextMap, HeaderMap)> {
-        let Some(hook) = self.get_hook::<_, (Result<(), wit::grafbase::sdk::error::ErrorResponse>,)>(
-            HookImplementation::OnGatewayRequest,
-        ) else {
+        let Some(hook) = self.get_hook::<_, (Result<(), wit::ErrorResponse>,)>(HookImplementation::OnGatewayRequest)
+        else {
             return Ok((context, headers));
         };
 

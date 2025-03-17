@@ -1,5 +1,5 @@
 use grafbase_sdk::{
-    Error, Headers, ResolverExtension, Subscription,
+    Error, ResolverExtension, SubgraphHeaders, Subscription,
     types::{Configuration, FieldDefinitionDirective, FieldInputs, FieldOutput, SchemaDirective},
 };
 
@@ -18,8 +18,8 @@ impl ResolverExtension for EchoExtension {
 
     fn resolve_field(
         &mut self,
-        _headers: Headers,
-        _: &str,
+        _headers: SubgraphHeaders,
+        _subgraph_name: &str,
         directive: FieldDefinitionDirective<'_>,
         inputs: FieldInputs,
     ) -> Result<FieldOutput, Error> {
@@ -36,7 +36,7 @@ impl ResolverExtension for EchoExtension {
 
     fn resolve_subscription(
         &mut self,
-        _: Headers,
+        _: SubgraphHeaders,
         _: &str,
         _: FieldDefinitionDirective<'_>,
     ) -> Result<Box<dyn Subscription>, Error> {

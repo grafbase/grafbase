@@ -1,5 +1,5 @@
 use crate::{
-    extension::api::wit::grafbase::sdk::http_client::{HttpError, HttpRequest, HttpResponse},
+    extension::api::wit::{HttpError, HttpRequest, HttpResponse},
     names::{HTTP_CLIENT_EXECUTE_FUNCTION, HTTP_CLIENT_EXECUTE_MANY_FUNCTION, HTTP_CLIENT_RESOURCE},
     state::WasiState,
 };

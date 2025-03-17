@@ -1,10 +1,13 @@
 use wasmtime::component::{ComponentType, Lower};
 
 pub use crate::extension::api::since_0_8_0::wit::directive::{
-    self as since_0_8_0, DirectiveSite, EnumDirectiveSite, FieldDefinitionDirective, FieldDefinitionDirectiveSite,
-    GetHost, Host, InterfaceDirectiveSite, ObjectDirectiveSite, ScalarDirectiveSite, SchemaDirective,
-    UnionDirectiveSite, add_to_linker, add_to_linker_get_host,
+    DirectiveSite, EnumDirectiveSite, FieldDefinitionDirective, FieldDefinitionDirectiveSite, Host,
+    InterfaceDirectiveSite, ObjectDirectiveSite, ScalarDirectiveSite, SchemaDirective, UnionDirectiveSite,
+    add_to_linker,
 };
+use crate::{extension::api::since_0_8_0::wit::directive as since_0_8_0, state::WasiState};
+
+impl Host for WasiState {}
 
 #[derive(Debug, ComponentType, Lower)]
 #[component(record)]
