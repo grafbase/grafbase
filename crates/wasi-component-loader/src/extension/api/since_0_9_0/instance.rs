@@ -1,13 +1,13 @@
 use anyhow::anyhow;
 use engine::GraphqlError;
 use futures::future::BoxFuture;
-use runtime::extension::{AuthorizationDecisions, Data, Lease, TokenRef};
+use runtime::extension::{AuthorizationDecisions, Data, TokenRef};
 use wasmtime::Store;
 
 use crate::{
     Error, ErrorResponse, WasiState,
     extension::{InputList, QueryAuthorizationResult, instance::ExtensionInstance},
-    resources::AuthorizationContext,
+    resources::{AuthorizationContext, Lease},
 };
 
 use super::wit::{

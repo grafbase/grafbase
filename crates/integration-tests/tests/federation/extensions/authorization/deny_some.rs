@@ -40,7 +40,7 @@ impl TestExtension for DenySites {
     async fn authorize_query(
         &self,
         _wasm_context: &DynHookContext,
-        _headers: &mut http::HeaderMap,
+        _headers: &tokio::sync::RwLock<http::HeaderMap>,
         _token: TokenRef<'_>,
         elements_grouped_by_directive_name: Vec<(&str, Vec<QueryElement<'_, serde_json::Value>>)>,
     ) -> Result<AuthorizationDecisions, ErrorResponse> {

@@ -1,4 +1,4 @@
-use std::{future::Future, sync::Arc};
+use std::{future::Future, ops::Range, sync::Arc};
 
 use engine_schema::{DirectiveSite, FieldDefinition, Subgraph};
 use extension_catalog::ExtensionId;
@@ -33,6 +33,7 @@ pub struct ExtensionFieldDirective<'a, Args> {
     pub arguments: Args,
 }
 
+#[derive(Clone, Debug)]
 pub struct QueryElement<'a, A> {
     pub site: DirectiveSite<'a>,
     pub arguments: A,
@@ -92,62 +93,10 @@ impl TokenRef<'_> {
     }
 }
 
-/// It's not possible to provide a reference to wasmtime, it must be static and there are too many
-/// layers to have good control over what's happening to use a transmute to get a &'static.
-/// So this struct represents a lease that the engine grants on some value T that we expect to have
-/// back. Depending on circumstances it may be one of the three possibilities.
-pub enum Lease<T> {
-    Singleton(T),
-    Shared(Arc<T>),
-    SharedMut(Arc<tokio::sync::RwLock<T>>),
-}
-
-impl<T> From<T> for Lease<T> {
-    fn from(t: T) -> Self {
-        Lease::Singleton(t)
-    }
-}
-
-impl<T> Lease<T> {
-    pub fn into_inner(self) -> Option<T> {
-        match self {
-            Lease::Singleton(t) => Some(t),
-            Lease::Shared(t) => Arc::into_inner(t),
-            Lease::SharedMut(t) => Arc::into_inner(t).map(|t| t.into_inner()),
-        }
-    }
-
-    pub async fn with_ref<R>(&self, f: impl AsyncFnOnce(&T) -> R) -> R
-    where
-        T: Send + Sync + 'static,
-    {
-        let mut _guard = None;
-        let v = match self {
-            Lease::Shared(v) => v,
-            Lease::SharedMut(v) => {
-                _guard = Some(v.read().await);
-                _guard.as_deref().unwrap()
-            }
-            Lease::Singleton(v) => v,
-        };
-        f(v).await
-    }
-
-    pub async fn with_ref_mut<R>(&mut self, f: impl AsyncFnOnce(Option<&mut T>) -> R) -> R
-    where
-        T: Send + Sync + 'static,
-    {
-        let mut _guard = None;
-        let v = match self {
-            Lease::Shared(_) => None,
-            Lease::SharedMut(v) => {
-                _guard = Some(v.write().await);
-                _guard.as_deref_mut()
-            }
-            Lease::Singleton(v) => Some(v),
-        };
-        f(v).await
-    }
+pub struct QueryAuthorizationDecisions {
+    pub extension_id: ExtensionId,
+    pub query_elements_range: Range<usize>,
+    pub decisions: AuthorizationDecisions,
 }
 
 #[allow(async_fn_in_trait)]
@@ -178,21 +127,28 @@ pub trait ExtensionRuntime: Send + Sync + 'static {
         &self,
         extension_id: ExtensionId,
         authorizer_id: AuthorizerId,
-        gateway_headers: Lease<http::HeaderMap>,
-    ) -> impl Future<Output = Result<(Lease<http::HeaderMap>, Token), ErrorResponse>> + Send;
+        gateway_headers: http::HeaderMap,
+    ) -> impl Future<Output = Result<(http::HeaderMap, Token), ErrorResponse>> + Send;
 
-    fn authorize_query<'ctx, 'fut, Groups, QueryElements, Arguments>(
+    fn authorize_query<'ctx, 'fut, Extensions, Arguments>(
         &'ctx self,
-        extension_id: ExtensionId,
         wasm_context: &'ctx Self::SharedContext,
-        subgraph_headers: Lease<http::HeaderMap>,
+        subgraph_headers: http::HeaderMap,
         token: TokenRef<'ctx>,
-        elements_grouped_by_directive_name: Groups,
-    ) -> impl Future<Output = Result<(Lease<http::HeaderMap>, AuthorizationDecisions), ErrorResponse>> + Send + 'fut
+        extensions: Extensions,
+        // (directive name, range within query_elements)
+        directives: impl ExactSizeIterator<Item = (&'ctx str, Range<usize>)>,
+        query_elements: impl ExactSizeIterator<Item = QueryElement<'ctx, Arguments>>,
+    ) -> impl Future<Output = Result<(http::HeaderMap, Vec<QueryAuthorizationDecisions>), ErrorResponse>> + Send + 'fut
     where
         'ctx: 'fut,
-        Groups: ExactSizeIterator<Item = (&'ctx str, QueryElements)>,
-        QueryElements: ExactSizeIterator<Item = QueryElement<'ctx, Arguments>>,
+        // (extension id, range within directives, range within query_elements)
+        Extensions: IntoIterator<
+                Item = (ExtensionId, Range<usize>, Range<usize>),
+                IntoIter: ExactSizeIterator<Item = (ExtensionId, Range<usize>, Range<usize>)>,
+            > + Send
+            + Clone
+            + 'ctx,
         Arguments: Anything<'ctx>;
 
     fn authorize_response<'ctx, 'fut>(

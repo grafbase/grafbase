@@ -1,11 +1,10 @@
-use std::{num::NonZero, ops::Deref, sync::Arc};
+use std::{num::NonZero, ops::Deref};
 
-use extension_catalog::ExtensionId;
-use futures::{TryStreamExt as _, future::FutureExt, stream::FuturesUnordered};
+use futures::future::FutureExt;
 use id_newtypes::{BitSet, IdRange, IdToMany};
 use operation::{InputValueContext, Variables};
 use query_solver::QueryOrSchemaFieldArgumentIds;
-use runtime::extension::{AuthorizationDecisions, ExtensionRuntime, Lease, QueryElement, TokenRef};
+use runtime::extension::{AuthorizationDecisions, ExtensionRuntime, QueryAuthorizationDecisions, QueryElement};
 use schema::DirectiveSiteId;
 use serde::Deserialize;
 use walker::Walk;
@@ -14,9 +13,9 @@ use crate::{
     Runtime,
     prepare::{
         CachedOperation, CachedOperationContext, ConcreteShapeId, ErrorCode, FieldShapeId, GraphqlError,
-        PartitionDataFieldId, PartitionField, PartitionTypenameFieldId, PrepareContext,
-        QueryModifierByDirectiveGroupId, QueryModifierId, QueryModifierRecord, QueryModifierRule, QueryModifierTarget,
-        QueryOrStaticExtensionDirectiveArugmentsView, RequiredFieldSetRecord, create_extension_directive_query_view,
+        PartitionDataFieldId, PartitionField, PartitionTypenameFieldId, PrepareContext, QueryModifierId,
+        QueryModifierRecord, QueryModifierRule, QueryModifierTarget, QueryOrStaticExtensionDirectiveArugmentsView,
+        RequiredFieldSetRecord, create_extension_directive_query_view,
     },
 };
 
@@ -93,118 +92,88 @@ where
         let modifiers = &self.operation_ctx.cached.query_plan.query_modifiers;
         self.handle_native_modifiers(&modifiers[modifiers.native_ids]).await?;
 
-        if modifiers.by_extension.len() > 1 {
-            let token = self.ctx.access_token().as_ref();
-            let subgraph_default_headers_override = self.ctx.request_context.subgraph_default_headers.clone();
-            let ctx = &*self.ctx;
-            let operation_ctx = self.operation_ctx;
-            let variables = &self.input_value_ctx.variables;
-            let lease = Arc::new(tokio::sync::RwLock::new(subgraph_default_headers_override));
-            let decisions = modifiers
-                .by_extension
-                .iter()
-                .copied()
-                .map(async |(extension_id, group, modifier_ids)| {
-                    Self::handle_extension_modifiers(
-                        ctx,
-                        operation_ctx,
-                        variables,
-                        extension_id,
-                        Lease::SharedMut(lease.clone()),
-                        token,
-                        group,
-                    )
-                    .await
-                    .map(|(_, decisions)| (modifier_ids, decisions))
-                })
-                .collect::<FuturesUnordered<_>>()
-                .try_collect::<Vec<_>>()
-                .await?;
-
-            self.ctx.gql_context.subgraph_default_headers_override = Some(Arc::into_inner(lease).unwrap().into_inner());
-            for (modifier_ids, decisions) in decisions {
-                self.handle_extension_decisions(modifier_ids, decisions);
-            }
-        } else if let Some((extension_id, group, modifier_ids)) = modifiers.by_extension.first().copied() {
-            let token = self.ctx.access_token().as_ref();
-            let subgraph_default_headers_override = self.ctx.request_context.subgraph_default_headers.clone();
-            let (subgraph_default_headers_override, decisions) = Self::handle_extension_modifiers(
-                self.ctx,
-                self.operation_ctx,
-                self.input_value_ctx.variables,
-                extension_id,
-                Lease::Singleton(subgraph_default_headers_override),
-                token,
-                group,
-            )
-            .await?;
-
-            self.ctx.gql_context.subgraph_default_headers_override =
-                Some(subgraph_default_headers_override.into_inner().unwrap());
-            self.handle_extension_decisions(modifier_ids, decisions);
+        if !modifiers.by_extension.is_empty() {
+            self.handle_extensions().await?;
         }
 
         Ok(self.finalize())
     }
 
-    async fn handle_extension_modifiers(
-        ctx: &PrepareContext<'ctx, R>,
-        operation_ctx: CachedOperationContext<'op>,
-        variables: &'op Variables,
-        extension_id: ExtensionId,
-        subgraph_headers: Lease<http::HeaderMap>,
-        token: TokenRef<'ctx>,
-        group: IdRange<QueryModifierByDirectiveGroupId>,
-    ) -> PlanResult<(Lease<http::HeaderMap>, AuthorizationDecisions)> {
-        let modifiers = &operation_ctx.cached.query_plan.query_modifiers;
-        let elements_grouped_by_directive_name = modifiers[group].iter().copied().map(|(name_id, ids)| {
-            let directive_name = operation_ctx.schema[name_id].as_str();
-            let elements = modifiers[ids]
-                .iter()
-                .map(|modifier| match modifier {
-                    QueryModifierRecord {
-                        rule: QueryModifierRule::Extension { directive_id, target },
-                        ..
-                    } => (directive_id, target),
-                    _ => unreachable!("Not an extension modifier"),
-                })
-                .map(move |(directive_id, target)| {
-                    let directive = directive_id.walk(operation_ctx);
-                    let element = match target {
-                        QueryModifierTarget::FieldWithArguments(definition, argument_ids) => QueryElement {
-                            site: DirectiveSiteId::from(*definition).walk(operation_ctx),
-                            arguments: QueryOrStaticExtensionDirectiveArugmentsView::Query(
-                                create_extension_directive_query_view(
-                                    operation_ctx.schema,
-                                    directive,
-                                    argument_ids.walk(operation_ctx),
-                                    variables,
-                                ),
-                            ),
-                        },
-                        QueryModifierTarget::Site(id) => QueryElement {
-                            site: id.walk(operation_ctx),
-                            arguments: QueryOrStaticExtensionDirectiveArugmentsView::Static(
-                                directive.static_arguments(),
-                            ),
-                        },
-                    };
-                    element
-                });
-
-            (directive_name, elements)
-        });
-        ctx.extensions()
+    async fn handle_extensions(&mut self) -> PlanResult<()> {
+        let modifiers = &self.operation_ctx.cached.query_plan.query_modifiers;
+        let schema = self.ctx.schema();
+        let operation_ctx = self.operation_ctx;
+        let variables = &self.input_value_ctx.variables;
+        let subgraph_default_headers_override = self.ctx.request_context.subgraph_default_headers.clone();
+        let extensions = modifiers
+            .by_extension
+            .iter()
+            .copied()
+            .map(|(extension_id, directive_range, query_elements_range)| {
+                (extension_id, directive_range.into(), query_elements_range.into())
+            })
+            .collect::<Vec<_>>();
+        let (subgraph_default_headers_override, decisions) = self
+            .ctx
+            .extensions()
             .authorize_query(
-                extension_id,
-                &ctx.gql_context.wasm_context,
-                subgraph_headers,
-                token,
-                elements_grouped_by_directive_name,
+                &self.ctx.gql_context.wasm_context,
+                subgraph_default_headers_override,
+                self.ctx.access_token().as_ref(),
+                extensions,
+                modifiers
+                    .by_directive
+                    .iter()
+                    .copied()
+                    .map(|(name_id, range)| (schema[name_id].as_str(), range.into())),
+                modifiers
+                    .records
+                    .iter()
+                    .map(|modifier| match modifier {
+                        QueryModifierRecord {
+                            rule: QueryModifierRule::Extension { directive_id, target },
+                            ..
+                        } => (directive_id, target),
+                        _ => unreachable!("Not an extension modifier"),
+                    })
+                    .map(move |(directive_id, target)| {
+                        let directive = directive_id.walk(operation_ctx);
+                        let element = match target {
+                            QueryModifierTarget::FieldWithArguments(definition, argument_ids) => QueryElement {
+                                site: DirectiveSiteId::from(*definition).walk(operation_ctx),
+                                arguments: QueryOrStaticExtensionDirectiveArugmentsView::Query(
+                                    create_extension_directive_query_view(
+                                        schema,
+                                        directive,
+                                        argument_ids.walk(operation_ctx),
+                                        variables,
+                                    ),
+                                ),
+                            },
+                            QueryModifierTarget::Site(id) => QueryElement {
+                                site: id.walk(operation_ctx),
+                                arguments: QueryOrStaticExtensionDirectiveArugmentsView::Static(
+                                    directive.static_arguments(),
+                                ),
+                            },
+                        };
+                        element
+                    }),
             )
             .boxed()
-            .await
-            .map_err(Into::into)
+            .await?;
+
+        self.ctx.gql_context.subgraph_default_headers_override = Some(subgraph_default_headers_override);
+        for QueryAuthorizationDecisions {
+            query_elements_range,
+            decisions,
+            ..
+        } in decisions
+        {
+            self.handle_extension_decisions(query_elements_range.into(), decisions);
+        }
+
+        Ok(())
     }
 
     fn handle_extension_decisions(

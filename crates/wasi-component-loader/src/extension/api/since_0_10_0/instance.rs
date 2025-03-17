@@ -1,12 +1,17 @@
 use engine::GraphqlError;
 use futures::future::BoxFuture;
-use runtime::extension::{AuthorizationDecisions, Data, Lease, TokenRef};
+use runtime::extension::{AuthorizationDecisions, Data, TokenRef};
 use wasmtime::Store;
 
-use crate::extension::QueryAuthorizationResult;
-use crate::{Error, ErrorResponse, WasiState, extension::instance::ExtensionInstance};
-
-use crate::extension::api::wit::{FieldDefinitionDirective, Headers, QueryElements, ResponseElements};
+use crate::{
+    Error, ErrorResponse, WasiState,
+    extension::{
+        QueryAuthorizationResult,
+        api::wit::{FieldDefinitionDirective, Headers, QueryElements, ResponseElements},
+        instance::ExtensionInstance,
+    },
+    resources::Lease,
+};
 
 use super::world::TokenParam;
 

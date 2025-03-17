@@ -2,7 +2,7 @@ use error::ErrorResponse;
 use extension_catalog::ExtensionId;
 use runtime::{
     auth::LegacyToken,
-    extension::{AuthorizerId, ExtensionRuntime, Lease},
+    extension::{AuthorizerId, ExtensionRuntime},
 };
 use schema::{AuthConfig, AuthProviderConfig};
 
@@ -34,11 +34,11 @@ impl AuthExtensionService {
     ) -> Result<(http::HeaderMap, LegacyToken), ErrorResponse> {
         let (headers, token) = runtime
             .extensions()
-            .authenticate(self.extension_id, self.authorizer_id, Lease::Singleton(headers))
+            .authenticate(self.extension_id, self.authorizer_id, headers)
             .await?;
 
         let token = LegacyToken::Extension(token);
 
-        Ok((headers.into_inner().unwrap(), token))
+        Ok((headers, token))
     }
 }

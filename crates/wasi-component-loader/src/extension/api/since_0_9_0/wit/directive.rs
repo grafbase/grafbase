@@ -9,7 +9,7 @@ use crate::{extension::api::since_0_8_0::wit::directive as since_0_8_0, state::W
 
 impl Host for WasiState {}
 
-#[derive(Debug, ComponentType, Lower)]
+#[derive(Clone, Debug, ComponentType, Lower)]
 #[component(record)]
 pub struct QueryElement<'a> {
     pub id: u32,
@@ -30,15 +30,15 @@ impl<'a> From<QueryElement<'a>> for since_0_8_0::QueryElement<'a> {
 #[component(record)]
 pub struct QueryElements<'a> {
     #[component(name = "directive-names")]
-    pub directive_names: Vec<(&'a str, u32, u32)>,
-    pub elements: Vec<QueryElement<'a>>,
+    pub directive_names: &'a [(&'a str, u32, u32)],
+    pub elements: &'a [QueryElement<'a>],
 }
 
 impl<'a> From<QueryElements<'a>> for since_0_8_0::QueryElements<'a> {
     fn from(value: QueryElements<'a>) -> Self {
         Self {
-            directive_names: value.directive_names,
-            elements: value.elements.into_iter().map(Into::into).collect(),
+            directive_names: value.directive_names.to_vec(),
+            elements: value.elements.iter().map(|e| e.clone().into()).collect(),
         }
     }
 }

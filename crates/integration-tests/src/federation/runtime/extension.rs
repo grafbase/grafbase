@@ -1,11 +1,17 @@
-use std::{collections::HashMap, future::Future, sync::Arc};
+use std::{collections::HashMap, future::Future, ops::Range, sync::Arc};
 
 use engine::{ErrorResponse, GraphqlError};
 use engine_schema::{DirectiveSite, Subgraph, SubgraphId};
 use extension_catalog::{Extension, ExtensionCatalog, ExtensionId, Id, Manifest};
-use futures::stream::BoxStream;
+use futures::{
+    TryFutureExt as _, TryStreamExt as _,
+    stream::{BoxStream, FuturesUnordered},
+};
 use runtime::{
-    extension::{AuthorizationDecisions, Data, ExtensionFieldDirective, Lease, QueryElement, Token, TokenRef},
+    extension::{
+        AuthorizationDecisions, Data, ExtensionFieldDirective, QueryAuthorizationDecisions, QueryElement, Token,
+        TokenRef,
+    },
     hooks::{Anything, DynHookContext},
 };
 use serde::Serialize;
@@ -143,7 +149,7 @@ pub trait TestExtension: Send + Sync + 'static {
     async fn authorize_query(
         &self,
         wasm_context: &DynHookContext,
-        headers: &mut http::HeaderMap,
+        headers: &tokio::sync::RwLock<http::HeaderMap>,
         token: TokenRef<'_>,
         elements_grouped_by_directive_name: Vec<(&str, Vec<QueryElement<'_, serde_json::Value>>)>,
     ) -> Result<AuthorizationDecisions, ErrorResponse> {
@@ -207,12 +213,10 @@ impl runtime::extension::ExtensionRuntime for TestExtensions {
         &self,
         extension_id: ExtensionId,
         _authorizer_id: runtime::extension::AuthorizerId,
-        headers: Lease<http::HeaderMap>,
-    ) -> Result<(Lease<http::HeaderMap>, Token), ErrorResponse> {
+        headers: http::HeaderMap,
+    ) -> Result<(http::HeaderMap, Token), ErrorResponse> {
         let instance = self.get_global_instance(extension_id).await;
-        let token = headers
-            .with_ref(async move |headers| instance.authenticate(headers).await)
-            .await?;
+        let token = instance.authenticate(&headers).await?;
         Ok((headers, token))
     }
 
@@ -228,46 +232,70 @@ impl runtime::extension::ExtensionRuntime for TestExtensions {
     }
 
     #[allow(clippy::manual_async_fn)]
-    fn authorize_query<'ctx, 'fut, Groups, QueryElements, Arguments>(
+    fn authorize_query<'ctx, 'fut, Extensions, Arguments>(
         &'ctx self,
-        extension_id: ExtensionId,
         wasm_context: &'ctx Self::SharedContext,
-        mut headers: Lease<http::HeaderMap>,
+        headers: http::HeaderMap,
         token: TokenRef<'ctx>,
-        elements_grouped_by_directive_name: Groups,
-    ) -> impl Future<Output = Result<(Lease<http::HeaderMap>, AuthorizationDecisions), ErrorResponse>> + Send + 'fut
+        extensions: Extensions,
+        // (directive name, range within query_elements)
+        directives: impl ExactSizeIterator<Item = (&'ctx str, Range<usize>)>,
+        query_elements: impl ExactSizeIterator<Item = QueryElement<'ctx, Arguments>>,
+    ) -> impl Future<Output = Result<(http::HeaderMap, Vec<QueryAuthorizationDecisions>), ErrorResponse>> + Send + 'fut
     where
         'ctx: 'fut,
-        Groups: ExactSizeIterator<Item = (&'ctx str, QueryElements)>,
-        QueryElements: ExactSizeIterator<Item = QueryElement<'ctx, Arguments>>,
+        // (extension id, range within directives, range within query_elements)
+        Extensions: IntoIterator<
+                Item = (ExtensionId, Range<usize>, Range<usize>),
+                IntoIter: ExactSizeIterator<Item = (ExtensionId, Range<usize>, Range<usize>)>,
+            > + Send
+            + Clone
+            + 'ctx,
         Arguments: Anything<'ctx>,
     {
-        let elements_grouped_by_directive_name = elements_grouped_by_directive_name
-            .into_iter()
-            .map(|(name, elements)| {
-                (
-                    name,
-                    elements
-                        .into_iter()
-                        .map(|element| QueryElement {
-                            site: element.site,
-                            arguments: serde_json::to_value(element.arguments).unwrap(),
-                        })
-                        .collect(),
-                )
+        let directives = directives.collect::<Vec<_>>();
+        let query_elements = query_elements
+            .map(|element| QueryElement {
+                site: element.site,
+                arguments: serde_json::to_value(element.arguments).unwrap(),
             })
-            .collect();
+            .collect::<Vec<_>>();
         async move {
-            let instance = self.get_global_instance(extension_id).await;
-            headers
-                .with_ref_mut(async |headers| {
-                    let headers = headers.unwrap();
-                    instance
-                        .authorize_query(wasm_context, headers, token, elements_grouped_by_directive_name)
-                        .await
-                })
-                .await
-                .map(|decisions| (headers, decisions))
+            let headers = tokio::sync::RwLock::new(headers);
+            let headers_ref = &headers;
+            let directives = &directives;
+            let query_elements = &query_elements;
+            let decisions = extensions
+                .into_iter()
+                .map(
+                    move |(extension_id, directive_range, query_elements_range)| async move {
+                        let instance = self.get_global_instance(extension_id).await;
+
+                        instance
+                            .authorize_query(
+                                wasm_context,
+                                headers_ref,
+                                token,
+                                directives[directive_range]
+                                    .iter()
+                                    .map(|(name, range)| (*name, query_elements[range.clone()].to_vec()))
+                                    .collect(),
+                            )
+                            .and_then(|decisions| async {
+                                Ok(QueryAuthorizationDecisions {
+                                    extension_id,
+                                    query_elements_range,
+                                    decisions,
+                                })
+                            })
+                            .await
+                    },
+                )
+                .collect::<FuturesUnordered<_>>()
+                .try_collect()
+                .await?;
+            let headers = headers.into_inner();
+            Ok((headers, decisions))
         }
     }
 
