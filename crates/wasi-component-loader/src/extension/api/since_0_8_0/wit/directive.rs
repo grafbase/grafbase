@@ -9,7 +9,7 @@ pub struct SchemaDirective<'a> {
     pub arguments: &'a [u8],
 }
 
-#[derive(Debug, ComponentType, Lower)]
+#[derive(Clone, Debug, ComponentType, Lower)]
 #[component(record)]
 pub struct QueryElements<'a> {
     #[component(name = "directive-names")]
@@ -17,14 +17,14 @@ pub struct QueryElements<'a> {
     pub elements: Vec<QueryElement<'a>>,
 }
 
-#[derive(Debug, ComponentType, Lower)]
+#[derive(Clone, Debug, ComponentType, Lower)]
 #[component(record)]
 pub struct QueryElement<'a> {
     pub site: DirectiveSite<'a>,
     pub arguments: Vec<u8>,
 }
 
-#[derive(Debug, ComponentType, Lower)]
+#[derive(Clone, Debug, ComponentType, Lower)]
 #[component(record)]
 pub struct ObjectDirectiveSite<'a> {
     #[component(name = "object-name")]
@@ -48,34 +48,34 @@ pub struct FieldDefinitionDirective<'a> {
     pub arguments: &'a [u8],
 }
 
-#[derive(Debug, ComponentType, Lower)]
+#[derive(Clone, Debug, ComponentType, Lower)]
 #[component(record)]
 pub struct UnionDirectiveSite<'a> {
     #[component(name = "union-name")]
     pub union_name: &'a str,
 }
 
-#[derive(Debug, ComponentType, Lower)]
+#[derive(Clone, Debug, ComponentType, Lower)]
 #[component(record)]
 pub struct InterfaceDirectiveSite<'a> {
     #[component(name = "interface-name")]
     pub interface_name: &'a str,
 }
 
-#[derive(Debug, ComponentType, Lower)]
+#[derive(Clone, Debug, ComponentType, Lower)]
 #[component(record)]
 pub struct EnumDirectiveSite<'a> {
     #[component(name = "enum-name")]
     pub enum_name: &'a str,
 }
-#[derive(Debug, ComponentType, Lower)]
+#[derive(Clone, Debug, ComponentType, Lower)]
 #[component(record)]
 pub struct ScalarDirectiveSite<'a> {
     #[component(name = "scalar-name")]
     pub scalar_name: &'a str,
 }
 
-#[derive(Debug, ComponentType, Lower)]
+#[derive(Clone, Debug, ComponentType, Lower)]
 #[component(variant)]
 pub enum DirectiveSite<'a> {
     #[component(name = "scalar")]

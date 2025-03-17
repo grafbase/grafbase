@@ -1,7 +1,7 @@
 use anyhow::anyhow;
 use engine::GraphqlError;
 use futures::future::BoxFuture;
-use runtime::extension::{AuthorizationDecisions, Data, Lease, Token, TokenRef};
+use runtime::extension::{AuthorizationDecisions, Data, Token, TokenRef};
 use wasmtime::Store;
 
 use crate::{
@@ -11,7 +11,7 @@ use crate::{
         api::wit::{FieldDefinitionDirective, QueryElements, ResponseElements},
         instance::ExtensionInstance,
     },
-    resources::Headers,
+    resources::{Headers, Lease},
     state::WasiState,
 };
 

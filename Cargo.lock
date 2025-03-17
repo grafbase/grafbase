@@ -2610,7 +2610,6 @@ dependencies = [
  "sha2 0.10.8",
  "sonic-rs",
  "thiserror 2.0.12",
- "tokio",
  "tower 0.5.2",
  "tracing",
  "url",
@@ -7697,7 +7696,6 @@ dependencies = [
  "serde_json",
  "strum 0.27.1",
  "thiserror 2.0.12",
- "tokio",
  "url",
 ]
 

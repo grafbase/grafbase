@@ -1,7 +1,9 @@
 mod headers;
 
+use std::sync::Arc;
+
 use futures::StreamExt;
-use runtime::extension::{Lease, Token};
+use runtime::extension::Token;
 
 pub use crate::access_log::AccessLogSender;
 pub use crate::context::SharedContext;
@@ -43,21 +45,47 @@ pub enum WasmOwnedOrLease<T> {
     Lease(Lease<T>),
 }
 
+/// It's not possible to provide a reference to wasmtime, it must be static and there are too many
+/// layers to have good control over what's happening to use a transmute to get a &'static.
+/// So this struct represents a lease that the engine grants on some value T that we expect to have
+/// back. Depending on circumstances it may be one of the three possibilities.
+pub enum Lease<T> {
+    Singleton(T),
+    Shared(Arc<T>),
+    SharedMut(Arc<tokio::sync::RwLock<T>>),
+}
+
+impl<T> From<T> for Lease<T> {
+    fn from(t: T) -> Self {
+        Lease::Singleton(t)
+    }
+}
+
+impl<T> Lease<T> {
+    pub(crate) fn into_inner(self) -> Option<T> {
+        match self {
+            Lease::Singleton(t) => Some(t),
+            Lease::Shared(t) => Arc::into_inner(t),
+            Lease::SharedMut(t) => Arc::into_inner(t).map(|t| t.into_inner()),
+        }
+    }
+}
+
 impl<T> WasmOwnedOrLease<T> {
-    pub fn is_owned(&self) -> bool {
+    pub(crate) fn is_owned(&self) -> bool {
         matches!(self, Self::Owned(_))
     }
 
-    pub fn into_lease(self) -> Option<Lease<T>> {
+    pub(crate) fn into_lease(self) -> Option<Lease<T>> {
         match self {
             Self::Lease(v) => Some(v),
             _ => None,
         }
     }
 
-    pub async fn with_ref<R>(&self, f: impl FnOnce(&T) -> R) -> R
+    pub(crate) async fn with_ref<R>(&self, f: impl FnOnce(&T) -> R) -> R
     where
-        T: Send + Sync,
+        T: Send + Sync + 'static,
     {
         let mut _guard = None;
         let v = match self {
@@ -72,9 +100,9 @@ impl<T> WasmOwnedOrLease<T> {
         f(v)
     }
 
-    pub async fn with_ref_mut<R>(&mut self, f: impl FnOnce(Option<&mut T>) -> R) -> R
+    pub(crate) async fn with_ref_mut<R>(&mut self, f: impl FnOnce(Option<&mut T>) -> R) -> R
     where
-        T: Send + Sync,
+        T: Send + Sync + 'static,
     {
         let mut _guard = None;
         let v = match self {

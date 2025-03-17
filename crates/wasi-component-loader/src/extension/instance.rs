@@ -1,8 +1,8 @@
 use engine::GraphqlError;
 use futures::future::BoxFuture;
-use runtime::extension::{AuthorizationDecisions, Data, Lease, Token, TokenRef};
+use runtime::extension::{AuthorizationDecisions, Data, Token, TokenRef};
 
-use crate::{Error, ErrorResponse};
+use crate::{Error, ErrorResponse, resources::Lease};
 
 use super::api::wit::{FieldDefinitionDirective, QueryElements, ResponseElements};
 
