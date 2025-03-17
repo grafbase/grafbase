@@ -7,8 +7,7 @@ use engine::{ErrorResponse, GraphqlError};
 use engine_schema::DirectiveSite;
 use integration_tests::federation::TestExtension;
 use runtime::{
-    auth::LegacyToken,
-    extension::{AuthorizationDecisions, QueryElement},
+    extension::{AuthorizationDecisions, QueryElement, TokenRef},
     hooks::DynHookContext,
 };
 
@@ -22,7 +21,7 @@ impl TestExtension for EchoInjections {
         &self,
         wasm_context: &DynHookContext,
         _headers: &mut http::HeaderMap,
-        _token: &LegacyToken,
+        _token: TokenRef<'_>,
         elements_grouped_by_directive_name: Vec<(&str, Vec<QueryElement<'_, serde_json::Value>>)>,
     ) -> Result<AuthorizationDecisions, ErrorResponse> {
         wasm_context.insert(

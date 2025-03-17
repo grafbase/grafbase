@@ -4,7 +4,7 @@ use tower::retry::budget::TpsBudget;
 use super::Runtime;
 
 #[derive(id_derives::IndexedFields)]
-pub(super) struct RetryBudgets {
+pub(crate) struct RetryBudgets {
     #[indexed_by(GraphqlEndpointId)]
     by_graphql_endpoints: Vec<Option<TpsBudget>>,
 }

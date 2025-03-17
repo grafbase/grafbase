@@ -37,8 +37,7 @@ impl FieldResolverExtension {
         };
 
         let stream = ctx
-            .engine
-            .runtime
+            .runtime()
             .extensions()
             .resolve_subscription(headers, extension_directive)
             .boxed()

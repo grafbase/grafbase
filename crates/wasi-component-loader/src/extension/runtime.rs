@@ -16,10 +16,9 @@ use futures::stream::BoxStream;
 use futures_util::{StreamExt, stream};
 use gateway_config::WasiExtensionsConfig;
 use runtime::{
-    auth::LegacyToken,
     extension::{
         AuthorizationDecisions, AuthorizerId, Data, ExtensionFieldDirective, ExtensionRuntime, Lease, QueryElement,
-        Token,
+        Token, TokenRef,
     },
     hooks::Anything,
 };
@@ -199,7 +198,7 @@ impl ExtensionRuntime for ExtensionsWasiRuntime {
         let directive = wit::FieldDefinitionDirective { name, site, arguments };
 
         let (headers, key) = instance
-            .subscription_key(Lease::Owned(headers), subgraph.name(), directive.clone())
+            .subscription_key(Lease::Singleton(headers), subgraph.name(), directive.clone())
             .await
             .map_err(|err| err.into_graphql_error(ErrorCode::ExtensionError))?;
         let headers = headers.into_inner().unwrap();
@@ -235,12 +234,9 @@ impl ExtensionRuntime for ExtensionsWasiRuntime {
         extension_id: ExtensionId,
         wasm_context: &'ctx SharedContext,
         headers: Lease<http::HeaderMap>,
-        token: Lease<LegacyToken>,
+        token: TokenRef<'ctx>,
         elements_grouped_by_directive_name: Groups,
-    ) -> impl Future<
-        Output = Result<(Lease<http::HeaderMap>, Lease<LegacyToken>, AuthorizationDecisions), ErrorResponse>,
-    > + Send
-    + 'fut
+    ) -> impl Future<Output = Result<(Lease<http::HeaderMap>, AuthorizationDecisions), ErrorResponse>> + Send + 'fut
     where
         'ctx: 'fut,
         Groups: IntoIterator<Item = (&'ctx str, QueryElements)>,
@@ -279,7 +275,7 @@ impl ExtensionRuntime for ExtensionsWasiRuntime {
                 )
                 .await
             {
-                Ok((headers, token, decisions, state)) => {
+                Ok((headers, decisions, state)) => {
                     if !state.is_empty() {
                         wasm_context
                             .authorization_state
@@ -287,7 +283,7 @@ impl ExtensionRuntime for ExtensionsWasiRuntime {
                             .await
                             .push((extension_id, state));
                     }
-                    Ok((headers, token, decisions))
+                    Ok((headers, decisions))
                 }
                 Err(err) => Err(err.into_graphql_error_response(ErrorCode::Unauthorized)),
             }

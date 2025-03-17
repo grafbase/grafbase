@@ -6,7 +6,7 @@ use headers::HeaderMapExt;
 use runtime::bytes::OwnedOrSharedBytes;
 
 use crate::{
-    engine::StreamResponse,
+    execution::StreamResponse,
     response::{ErrorCode, ErrorCodeCounter, Response},
 };
 
@@ -41,13 +41,13 @@ impl Http {
 
     pub(crate) fn single<C: Send + Sync + 'static, O: Send + Sync + 'static>(
         format: CompleteResponseFormat,
-        hooks_context: C,
+        wasm_context: C,
         mut response: Response<O>,
     ) -> http::Response<Body> {
         let mut http_response = Self::from_complete_response_with_telemetry(format, &response);
 
         http_response.extensions_mut().insert(HooksExtension::Single {
-            context: hooks_context,
+            context: wasm_context,
             on_operation_response_output: response.take_on_operation_response_output(),
         });
 
@@ -56,7 +56,7 @@ impl Http {
 
     pub(crate) fn batch<C: Send + Sync + 'static, O: Send + Sync + 'static>(
         format: CompleteResponseFormat,
-        hooks_context: C,
+        wasm_context: C,
         mut responses: Vec<Response<O>>,
     ) -> http::Response<Body> {
         let bytes = match sonic_rs::to_vec(&responses) {
@@ -95,7 +95,7 @@ impl Http {
         };
 
         let hooks = HooksExtension::Batch {
-            context: hooks_context,
+            context: wasm_context,
             on_operation_response_outputs: responses
                 .iter_mut()
                 .filter_map(|response| response.take_on_operation_response_output())
@@ -123,7 +123,7 @@ impl Http {
 
     pub(crate) async fn stream<C: Send + Sync + 'static, O: Send + Sync + 'static>(
         format: StreamingResponseFormat,
-        hooks_context: C,
+        wasm_context: C,
         stream: StreamResponse<O>,
     ) -> http::Response<Body> {
         let StreamResponse { mut stream, telemetry } = stream;
@@ -141,7 +141,7 @@ impl Http {
         // TODO: Currently we only handle query/mutations which return the complete
         // response at once and errors.
         http_response.extensions_mut().insert(HooksExtension::Single {
-            context: hooks_context,
+            context: wasm_context,
             on_operation_response_output,
         });
         http_response

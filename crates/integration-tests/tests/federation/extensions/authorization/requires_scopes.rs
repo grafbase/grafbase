@@ -8,8 +8,7 @@ use integration_tests::{
     runtime,
 };
 use runtime::{
-    auth::LegacyToken,
-    extension::{AuthorizationDecisions, QueryElement, Token},
+    extension::{AuthorizationDecisions, QueryElement, Token, TokenRef},
     hooks::DynHookContext,
 };
 use serde::Deserialize;
@@ -80,10 +79,10 @@ impl TestExtension for RequiresScopes {
         &self,
         _wasm_context: &DynHookContext,
         _headers: &mut http::HeaderMap,
-        token: &LegacyToken,
+        token: TokenRef<'_>,
         elements_grouped_by_directive_name: Vec<(&str, Vec<QueryElement<'_, serde_json::Value>>)>,
     ) -> Result<AuthorizationDecisions, ErrorResponse> {
-        let LegacyToken::Extension(Token::Bytes(bytes)) = token else {
+        let Some(bytes) = token.as_bytes() else {
             return Err(GraphqlError::new("No token found", ErrorCode::Unauthorized).into());
         };
         let token: serde_json::Value = serde_json::from_slice(bytes).unwrap();

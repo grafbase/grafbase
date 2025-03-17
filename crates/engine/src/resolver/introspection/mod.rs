@@ -27,7 +27,7 @@ impl IntrospectionResolver {
                 ctx,
                 schema: ctx.schema(),
                 shapes: ctx.shapes(),
-                metadata: &ctx.engine.schema.subgraphs.introspection,
+                metadata: &ctx.schema().subgraphs.introspection,
                 plan,
                 input_object_id,
                 response: response.clone(),

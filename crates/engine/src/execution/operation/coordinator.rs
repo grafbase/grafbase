@@ -41,9 +41,9 @@ impl<R: Runtime> PrepareContext<'_, R> {
         let operation = Arc::new(operation);
         let ctx = ExecutionContext {
             engine: self.engine,
-            operation: &operation,
             request_context: self.request_context,
-            hooks_context: &self.hooks_context,
+            operation: &operation,
+            gql_context: &self.gql_context,
         };
 
         tracing::trace!("Starting execution...");
@@ -70,9 +70,9 @@ impl<R: Runtime> PrepareContext<'_, R> {
         let operation = Arc::new(operation);
         let ctx = ExecutionContext {
             engine: self.engine,
-            operation: &operation,
             request_context: self.request_context,
-            hooks_context: &self.hooks_context,
+            operation: &operation,
+            gql_context: &self.gql_context,
         };
 
         tracing::trace!("Starting execution...");
@@ -119,10 +119,9 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
         );
 
         match self
-            .engine
-            .runtime
+            .runtime()
             .hooks()
-            .on_operation_response(self.hooks_context, executed_operation)
+            .on_operation_response(&self.gql_context.wasm_context, executed_operation)
             .await
         {
             Ok(output) => self.execution_error(

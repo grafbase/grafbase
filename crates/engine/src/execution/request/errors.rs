@@ -8,8 +8,6 @@ use crate::{
     response::{ErrorCode, GraphqlError, Response},
 };
 
-use super::{Engine, RequestContext, Runtime};
-
 pub(crate) fn not_acceptable_error(format: ResponseFormat) -> http::Response<Body> {
     let message = format!(
         "Missing or invalid Accept header. You must specify one of: {}.",
@@ -58,29 +56,6 @@ pub(crate) fn refuse_request_with<OnOperationResponseHookOutput>(
         status_code,
         [GraphqlError::new(message, ErrorCode::BadRequest)],
     )
-}
-
-impl<R: Runtime> Engine<R> {
-    pub(crate) fn bad_request_but_well_formed_graphql_over_http_request(
-        &self,
-        ctx: &RequestContext,
-        message: impl std::fmt::Display,
-    ) -> http::Response<Body> {
-        let error = GraphqlError::new(format!("Bad request: {message}"), ErrorCode::BadRequest);
-        Http::error(
-            ctx.response_format,
-            Response::<()>::request_error([error])
-                .with_grafbase_extension(self.default_grafbase_response_extension(ctx)),
-        )
-    }
-
-    pub(crate) fn gateway_timeout_error(&self, ctx: &RequestContext) -> http::Response<Body> {
-        Http::error(
-            ctx.response_format,
-            self::response::gateway_timeout::<()>()
-                .with_grafbase_extension(self.default_grafbase_response_extension(ctx)),
-        )
-    }
 }
 
 pub(crate) mod response {

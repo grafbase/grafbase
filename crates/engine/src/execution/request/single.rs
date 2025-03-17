@@ -11,23 +11,25 @@ use tracing::Instrument;
 
 use crate::{
     Engine, Runtime,
-    engine::{HooksContext, RequestContext},
+    engine::WasmContext,
     prepare::PrepareContext,
     response::{ErrorCode, GraphqlError, Response},
 };
+
+use super::RequestContext;
 
 impl<R: Runtime> Engine<R> {
     pub(super) async fn execute_single(
         self: &Arc<Self>,
         request_context: &Arc<RequestContext>,
-        hooks_context: HooksContext<R>,
+        wasm_context: WasmContext<R>,
         request: Request,
     ) -> Response<<R::Hooks as Hooks>::OnOperationResponseOutput> {
         let start = Instant::now();
         let span = GraphqlOperationSpan::default();
 
         async {
-            let ctx = PrepareContext::new(self, request_context, hooks_context);
+            let ctx = PrepareContext::new(self, request_context, wasm_context);
             let response = ctx.execute_single(request).await;
             let status = response.graphql_status();
             let errors_count_by_code = response.error_code_counter().to_vec();

@@ -7,7 +7,7 @@ use futures_util::stream::BoxStream;
 #[derive(Clone, Copy, PartialEq, Hash, Eq, PartialOrd, Ord, id_derives::Id)]
 pub struct AuthorizerId(u16);
 
-use crate::{auth::LegacyToken, hooks::Anything};
+use crate::hooks::Anything;
 use error::{ErrorResponse, GraphqlError};
 
 #[derive(Clone, Debug)]
@@ -61,6 +61,35 @@ impl Token {
             Token::Bytes(bytes) => Some(bytes),
         }
     }
+
+    pub fn as_ref(&self) -> TokenRef<'_> {
+        match self {
+            Token::Anonymous => TokenRef::Anonymous,
+            Token::Bytes(bytes) => TokenRef::Bytes(bytes),
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub enum TokenRef<'a> {
+    Anonymous,
+    Bytes(&'a [u8]),
+}
+
+impl TokenRef<'_> {
+    pub fn as_bytes(&self) -> Option<&[u8]> {
+        match self {
+            TokenRef::Anonymous => None,
+            TokenRef::Bytes(bytes) => Some(bytes),
+        }
+    }
+
+    pub fn to_owned(&self) -> Token {
+        match self {
+            TokenRef::Anonymous => Token::Anonymous,
+            TokenRef::Bytes(bytes) => Token::Bytes(bytes.to_vec()),
+        }
+    }
 }
 
 /// It's not possible to provide a reference to wasmtime, it must be static and there are too many
@@ -68,21 +97,21 @@ impl Token {
 /// So this struct represents a lease that the engine grants on some value T that we expect to have
 /// back. Depending on circumstances it may be one of the three possibilities.
 pub enum Lease<T> {
-    Owned(T),
+    Singleton(T),
     Shared(Arc<T>),
     SharedMut(Arc<tokio::sync::RwLock<T>>),
 }
 
 impl<T> From<T> for Lease<T> {
     fn from(t: T) -> Self {
-        Lease::Owned(t)
+        Lease::Singleton(t)
     }
 }
 
 impl<T> Lease<T> {
     pub fn into_inner(self) -> Option<T> {
         match self {
-            Lease::Owned(t) => Some(t),
+            Lease::Singleton(t) => Some(t),
             Lease::Shared(t) => Arc::into_inner(t),
             Lease::SharedMut(t) => Arc::into_inner(t).map(|t| t.into_inner()),
         }
@@ -99,7 +128,7 @@ impl<T> Lease<T> {
                 _guard = Some(v.read().await);
                 _guard.as_deref().unwrap()
             }
-            Lease::Owned(v) => v,
+            Lease::Singleton(v) => v,
         };
         f(v).await
     }
@@ -115,7 +144,7 @@ impl<T> Lease<T> {
                 _guard = Some(v.write().await);
                 _guard.as_deref_mut()
             }
-            Lease::Owned(v) => Some(v),
+            Lease::Singleton(v) => Some(v),
         };
         f(v).await
     }
@@ -130,7 +159,7 @@ pub trait ExtensionRuntime: Send + Sync + 'static {
     /// shared, without lock, so it's only temporarily available.
     fn resolve_field<'ctx, 'resp, 'f>(
         &'ctx self,
-        headers: http::HeaderMap,
+        subgraph_headers: http::HeaderMap,
         directive: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
         inputs: impl Iterator<Item: Anything<'resp>> + Send,
     ) -> impl Future<Output = Result<Vec<Result<Data, GraphqlError>>, GraphqlError>> + Send + 'f
@@ -139,7 +168,7 @@ pub trait ExtensionRuntime: Send + Sync + 'static {
 
     fn resolve_subscription<'ctx, 'f>(
         &'ctx self,
-        headers: http::HeaderMap,
+        subgraph_headers: http::HeaderMap,
         directive: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
     ) -> impl Future<Output = Result<BoxStream<'f, Result<Arc<Data>, GraphqlError>>, GraphqlError>> + Send + 'f
     where
@@ -149,19 +178,17 @@ pub trait ExtensionRuntime: Send + Sync + 'static {
         &self,
         extension_id: ExtensionId,
         authorizer_id: AuthorizerId,
-        headers: Lease<http::HeaderMap>,
+        gateway_headers: Lease<http::HeaderMap>,
     ) -> impl Future<Output = Result<(Lease<http::HeaderMap>, Token), ErrorResponse>> + Send;
 
     fn authorize_query<'ctx, 'fut, Groups, QueryElements, Arguments>(
         &'ctx self,
         extension_id: ExtensionId,
         wasm_context: &'ctx Self::SharedContext,
-        headers: Lease<http::HeaderMap>,
-        token: Lease<LegacyToken>,
+        subgraph_headers: Lease<http::HeaderMap>,
+        token: TokenRef<'ctx>,
         elements_grouped_by_directive_name: Groups,
-    ) -> impl Future<Output = Result<(Lease<http::HeaderMap>, Lease<LegacyToken>, AuthorizationDecisions), ErrorResponse>>
-           + Send
-           + 'fut
+    ) -> impl Future<Output = Result<(Lease<http::HeaderMap>, AuthorizationDecisions), ErrorResponse>> + Send + 'fut
     where
         'ctx: 'fut,
         Groups: ExactSizeIterator<Item = (&'ctx str, QueryElements)>,

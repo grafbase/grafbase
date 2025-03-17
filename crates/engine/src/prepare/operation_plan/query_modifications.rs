@@ -1,11 +1,11 @@
-use std::{num::NonZero, ops::Deref};
+use std::{num::NonZero, ops::Deref, sync::Arc};
 
 use extension_catalog::ExtensionId;
 use futures::{TryStreamExt as _, future::FutureExt, stream::FuturesUnordered};
 use id_newtypes::{BitSet, IdRange, IdToMany};
 use operation::{InputValueContext, Variables};
 use query_solver::QueryOrSchemaFieldArgumentIds;
-use runtime::extension::{AuthorizationDecisions, ExtensionRuntime, Lease, QueryElement};
+use runtime::extension::{AuthorizationDecisions, ExtensionRuntime, Lease, QueryElement, TokenRef};
 use schema::DirectiveSiteId;
 use serde::Deserialize;
 use walker::Walk;
@@ -40,12 +40,11 @@ pub struct ErrorId(NonZero<u16>);
 
 impl QueryModifications {
     pub(crate) async fn build(
-        ctx: &PrepareContext<'_, impl Runtime>,
+        ctx: &mut PrepareContext<'_, impl Runtime>,
         cached: &CachedOperation,
         variables: &Variables,
     ) -> PlanResult<Self> {
         Builder {
-            ctx,
             operation_ctx: CachedOperationContext {
                 schema: ctx.schema(),
                 cached,
@@ -55,6 +54,7 @@ impl QueryModifications {
                 query_input_values: &cached.operation.query_input_values,
                 variables,
             },
+            ctx,
             field_shape_id_to_error_ids: Default::default(),
             modifications: QueryModifications {
                 included_response_data_fields: cached.query_plan.response_data_fields.clone(),
@@ -75,7 +75,7 @@ impl QueryModifications {
 }
 
 struct Builder<'ctx, 'op, R: Runtime> {
-    ctx: &'op PrepareContext<'ctx, R>,
+    ctx: &'op mut PrepareContext<'ctx, R>,
     operation_ctx: CachedOperationContext<'op>,
     input_value_ctx: InputValueContext<'op>,
     field_shape_id_to_error_ids: Vec<(FieldShapeId, ErrorId)>,
@@ -93,23 +93,54 @@ where
         let modifiers = &self.operation_ctx.cached.query_plan.query_modifiers;
         self.handle_native_modifiers(&modifiers[modifiers.native_ids]).await?;
 
-        let ctx = self.ctx;
-        let operation_ctx = self.operation_ctx;
-        let variables = &self.input_value_ctx.variables;
-        let decisions = modifiers
-            .by_extension
-            .iter()
-            .copied()
-            .map(async |(extension_id, group, modifier_ids)| {
-                Self::handle_extension_modifiers(ctx, operation_ctx, variables, extension_id, group)
+        if modifiers.by_extension.len() > 1 {
+            let token = self.ctx.access_token().as_ref();
+            let subgraph_default_headers_override = self.ctx.request_context.subgraph_default_headers.clone();
+            let ctx = &*self.ctx;
+            let operation_ctx = self.operation_ctx;
+            let variables = &self.input_value_ctx.variables;
+            let lease = Arc::new(tokio::sync::RwLock::new(subgraph_default_headers_override));
+            let decisions = modifiers
+                .by_extension
+                .iter()
+                .copied()
+                .map(async |(extension_id, group, modifier_ids)| {
+                    Self::handle_extension_modifiers(
+                        ctx,
+                        operation_ctx,
+                        variables,
+                        extension_id,
+                        Lease::SharedMut(lease.clone()),
+                        token,
+                        group,
+                    )
                     .await
-                    .map(|decisions| (modifier_ids, decisions))
-            })
-            .collect::<FuturesUnordered<_>>()
-            .try_collect::<Vec<_>>()
+                    .map(|(_, decisions)| (modifier_ids, decisions))
+                })
+                .collect::<FuturesUnordered<_>>()
+                .try_collect::<Vec<_>>()
+                .await?;
+
+            self.ctx.gql_context.subgraph_default_headers_override = Some(Arc::into_inner(lease).unwrap().into_inner());
+            for (modifier_ids, decisions) in decisions {
+                self.handle_extension_decisions(modifier_ids, decisions);
+            }
+        } else if let Some((extension_id, group, modifier_ids)) = modifiers.by_extension.first().copied() {
+            let token = self.ctx.access_token().as_ref();
+            let subgraph_default_headers_override = self.ctx.request_context.subgraph_default_headers.clone();
+            let (subgraph_default_headers_override, decisions) = Self::handle_extension_modifiers(
+                self.ctx,
+                self.operation_ctx,
+                self.input_value_ctx.variables,
+                extension_id,
+                Lease::Singleton(subgraph_default_headers_override),
+                token,
+                group,
+            )
             .await?;
 
-        for (modifier_ids, decisions) in decisions {
+            self.ctx.gql_context.subgraph_default_headers_override =
+                Some(subgraph_default_headers_override.into_inner().unwrap());
             self.handle_extension_decisions(modifier_ids, decisions);
         }
 
@@ -117,12 +148,14 @@ where
     }
 
     async fn handle_extension_modifiers(
-        ctx: &'op PrepareContext<'ctx, R>,
+        ctx: &PrepareContext<'ctx, R>,
         operation_ctx: CachedOperationContext<'op>,
         variables: &'op Variables,
         extension_id: ExtensionId,
+        subgraph_headers: Lease<http::HeaderMap>,
+        token: TokenRef<'ctx>,
         group: IdRange<QueryModifierByDirectiveGroupId>,
-    ) -> PlanResult<AuthorizationDecisions> {
+    ) -> PlanResult<(Lease<http::HeaderMap>, AuthorizationDecisions)> {
         let modifiers = &operation_ctx.cached.query_plan.query_modifiers;
         let elements_grouped_by_directive_name = modifiers[group].iter().copied().map(|(name_id, ids)| {
             let directive_name = operation_ctx.schema[name_id].as_str();
@@ -164,14 +197,13 @@ where
         ctx.extensions()
             .authorize_query(
                 extension_id,
-                &ctx.hooks_context,
-                Lease::Owned(ctx.request_context.subgraph_default_headers.clone()),
-                Lease::Owned(ctx.request_context.access_token.clone()),
+                &ctx.gql_context.wasm_context,
+                subgraph_headers,
+                token,
                 elements_grouped_by_directive_name,
             )
             .boxed()
             .await
-            .map(|(_, _, decisions)| decisions)
             .map_err(Into::into)
     }
 

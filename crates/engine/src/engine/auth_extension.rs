@@ -34,7 +34,7 @@ impl AuthExtensionService {
     ) -> Result<(http::HeaderMap, LegacyToken), ErrorResponse> {
         let (headers, token) = runtime
             .extensions()
-            .authenticate(self.extension_id, self.authorizer_id, Lease::Owned(headers))
+            .authenticate(self.extension_id, self.authorizer_id, Lease::Singleton(headers))
             .await?;
 
         let token = LegacyToken::Extension(token);

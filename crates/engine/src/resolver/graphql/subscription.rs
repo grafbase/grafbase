@@ -80,7 +80,7 @@ impl GraphqlResolver {
                 .request_context
                 .websocket_init_payload
                 .as_ref()
-                .filter(|_| ctx.engine.schema.settings.websocket_forward_connection_init_payload)
+                .filter(|_| ctx.schema().settings.websocket_forward_connection_init_payload)
                 .cloned(),
             method,
             headers,
@@ -95,7 +95,7 @@ impl GraphqlResolver {
             timeout: endpoint.config.timeout,
         };
 
-        let fetcher = ctx.engine.runtime.fetcher();
+        let fetcher = ctx.runtime().fetcher();
         let http_span = ctx.create_subgraph_request_span(&request);
         let http_span1 = http_span.clone();
 
@@ -185,7 +185,7 @@ impl GraphqlResolver {
         ctx.record_request_size(&request);
 
         let http_span = ctx.create_subgraph_request_span(&request);
-        let fetcher = ctx.engine.runtime.fetcher();
+        let fetcher = ctx.runtime().fetcher();
 
         let http_span1 = http_span.clone();
         let stream = retrying_fetch(ctx, move || {

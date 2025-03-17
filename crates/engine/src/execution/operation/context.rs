@@ -7,18 +7,16 @@ use schema::{HeaderRule, Schema};
 
 use crate::{
     Engine, Runtime,
-    engine::{HooksContext, RequestContext},
+    execution::{GraphqlRequestContext, RequestContext, RequestHooks, apply_header_rules},
     prepare::{CachedOperationContext, OperationPlanContext, PreparedOperation, Shapes},
 };
 
-use super::{RequestHooks, header_rule::create_subgraph_headers_with_rules};
-
-/// Data available during the executor life during its build & execution phases.
+/// Context for a single prepared operation that only needs to be executed.
 pub(crate) struct ExecutionContext<'ctx, R: Runtime> {
     pub engine: &'ctx Arc<Engine<R>>,
-    pub operation: &'ctx Arc<PreparedOperation>,
     pub request_context: &'ctx Arc<RequestContext>,
-    pub hooks_context: &'ctx HooksContext<R>,
+    pub operation: &'ctx Arc<PreparedOperation>,
+    pub gql_context: &'ctx GraphqlRequestContext<R>,
 }
 
 impl<R: Runtime> Clone for ExecutionContext<'_, R> {
@@ -36,7 +34,14 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
     }
 
     pub fn subgraph_headers_with_rules(&self, rules: impl Iterator<Item = HeaderRule<'ctx>>) -> http::HeaderMap {
-        create_subgraph_headers_with_rules(self.request_context, rules)
+        let mut subgraph_headers = self
+            .gql_context
+            .subgraph_default_headers_override
+            .as_ref()
+            .unwrap_or(&self.request_context.subgraph_default_headers)
+            .clone();
+        apply_header_rules(&self.request_context.headers, rules, &mut subgraph_headers);
+        subgraph_headers
     }
 
     #[allow(unused)]
@@ -50,6 +55,10 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
 
     pub fn schema(&self) -> &'ctx Schema {
         &self.engine.schema
+    }
+
+    pub fn runtime(&self) -> &'ctx R {
+        &self.engine.runtime
     }
 
     pub fn variables(&self) -> &'ctx Variables {
