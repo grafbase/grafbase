@@ -48,7 +48,7 @@ LABEL org.opencontainers.image.url='https://grafbase.com' \
 WORKDIR /grafbase
 
 # used curl to run a health check query against the server in a docker-compose file
-RUN apt update && apt install -y curl && rm -rf /var/lib/apt/lists/*
+RUN apt update && apt upgrade -y && apt install -y curl && rm -rf /var/lib/apt/lists/*
 
 RUN adduser --home "/data" grafbase && mkdir -p /data && chown grafbase /data
 USER grafbase
