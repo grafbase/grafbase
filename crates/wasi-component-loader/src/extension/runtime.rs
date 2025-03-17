@@ -9,15 +9,17 @@ use super::{
 };
 
 use dashmap::DashMap;
-use engine::{ErrorCode, ErrorResponse, GraphqlError, RequestContext};
+use engine::{ErrorCode, ErrorResponse, GraphqlError};
 use engine_schema::DirectiveSite;
 use extension_catalog::ExtensionId;
 use futures::stream::BoxStream;
 use futures_util::{StreamExt, stream};
 use gateway_config::WasiExtensionsConfig;
 use runtime::{
+    auth::LegacyToken,
     extension::{
-        AuthorizationDecisions, AuthorizerId, Data, ExtensionFieldDirective, ExtensionRuntime, QueryElement, Token,
+        AuthorizationDecisions, AuthorizerId, Data, ExtensionFieldDirective, ExtensionRuntime, Lease, QueryElement,
+        Token,
     },
     hooks::Anything,
 };
@@ -114,7 +116,7 @@ async fn create_pools<T: serde::Serialize + Send + 'static>(
     Ok(pools)
 }
 
-impl ExtensionRuntime<Arc<RequestContext>> for ExtensionsWasiRuntime {
+impl ExtensionRuntime for ExtensionsWasiRuntime {
     type SharedContext = crate::resources::SharedContext;
 
     #[allow(clippy::manual_async_fn)]
@@ -158,8 +160,8 @@ impl ExtensionRuntime<Arc<RequestContext>> for ExtensionsWasiRuntime {
         &self,
         extension_id: ExtensionId,
         authorizer_id: AuthorizerId,
-        headers: http::HeaderMap,
-    ) -> Result<(http::HeaderMap, Token), ErrorResponse> {
+        headers: Lease<http::HeaderMap>,
+    ) -> Result<(Lease<http::HeaderMap>, Token), ErrorResponse> {
         let mut instance = self
             .get(ExtensionPoolId::Authorizer(extension_id, authorizer_id))
             .await?;
@@ -197,9 +199,10 @@ impl ExtensionRuntime<Arc<RequestContext>> for ExtensionsWasiRuntime {
         let directive = wit::FieldDefinitionDirective { name, site, arguments };
 
         let (headers, key) = instance
-            .subscription_key(headers, subgraph.name(), directive.clone())
+            .subscription_key(Lease::Owned(headers), subgraph.name(), directive.clone())
             .await
             .map_err(|err| err.into_graphql_error(ErrorCode::ExtensionError))?;
+        let headers = headers.into_inner().unwrap();
 
         match key {
             Some(key) => {
@@ -230,10 +233,14 @@ impl ExtensionRuntime<Arc<RequestContext>> for ExtensionsWasiRuntime {
     fn authorize_query<'ctx, 'fut, Groups, QueryElements, Arguments>(
         &'ctx self,
         extension_id: ExtensionId,
-        ctx: &'ctx Arc<RequestContext>,
         wasm_context: &'ctx SharedContext,
+        headers: Lease<http::HeaderMap>,
+        token: Lease<LegacyToken>,
         elements_grouped_by_directive_name: Groups,
-    ) -> impl Future<Output = Result<AuthorizationDecisions, ErrorResponse>> + Send + 'fut
+    ) -> impl Future<
+        Output = Result<(Lease<http::HeaderMap>, Lease<LegacyToken>, AuthorizationDecisions), ErrorResponse>,
+    > + Send
+    + 'fut
     where
         'ctx: 'fut,
         Groups: IntoIterator<Item = (&'ctx str, QueryElements)>,
@@ -263,7 +270,8 @@ impl ExtensionRuntime<Arc<RequestContext>> for ExtensionsWasiRuntime {
             let mut instance = self.get(ExtensionPoolId::Authorization(extension_id)).await?;
             match instance
                 .authorize_query(
-                    ctx,
+                    headers,
+                    token,
                     wit::QueryElements {
                         directive_names,
                         elements: query_elements,
@@ -271,7 +279,7 @@ impl ExtensionRuntime<Arc<RequestContext>> for ExtensionsWasiRuntime {
                 )
                 .await
             {
-                Ok((decisions, state)) => {
+                Ok((headers, token, decisions, state)) => {
                     if !state.is_empty() {
                         wasm_context
                             .authorization_state
@@ -279,7 +287,7 @@ impl ExtensionRuntime<Arc<RequestContext>> for ExtensionsWasiRuntime {
                             .await
                             .push((extension_id, state));
                     }
-                    Ok(decisions)
+                    Ok((headers, token, decisions))
                 }
                 Err(err) => Err(err.into_graphql_error_response(ErrorCode::Unauthorized)),
             }
@@ -289,7 +297,6 @@ impl ExtensionRuntime<Arc<RequestContext>> for ExtensionsWasiRuntime {
     fn authorize_response<'ctx, 'fut>(
         &'ctx self,
         extension_id: ExtensionId,
-        _ctx: &'ctx Arc<RequestContext>,
         wasm_context: &'ctx SharedContext,
         directive_name: &'ctx str,
         directive_site: DirectiveSite<'ctx>,

@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use engine::{Engine, ErrorResponse, GraphqlError};
 use graphql_mocks::dynamic::DynamicSchema;
 use integration_tests::{
@@ -7,6 +5,7 @@ use integration_tests::{
     runtime,
 };
 use runtime::{
+    auth::LegacyToken,
     extension::{AuthorizationDecisions, QueryElement},
     hooks::DynHookContext,
 };
@@ -21,8 +20,9 @@ impl TestExtension for Failure {
     #[allow(clippy::manual_async_fn)]
     async fn authorize_query(
         &self,
-        _ctx: Arc<engine::RequestContext>,
-        _: &DynHookContext,
+        _wasm_context: &DynHookContext,
+        _headers: &mut http::HeaderMap,
+        _token: &LegacyToken,
         _elements_grouped_by_directive_name: Vec<(&str, Vec<QueryElement<'_, serde_json::Value>>)>,
     ) -> Result<AuthorizationDecisions, ErrorResponse> {
         Err(ErrorResponse {

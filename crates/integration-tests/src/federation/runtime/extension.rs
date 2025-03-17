@@ -5,7 +5,8 @@ use engine_schema::{DirectiveSite, Subgraph, SubgraphId};
 use extension_catalog::{Extension, ExtensionCatalog, ExtensionId, Id, Manifest};
 use futures::stream::BoxStream;
 use runtime::{
-    extension::{AuthorizationDecisions, Data, ExtensionFieldDirective, QueryElement, Token},
+    auth::LegacyToken,
+    extension::{AuthorizationDecisions, Data, ExtensionFieldDirective, Lease, QueryElement, Token},
     hooks::{Anything, DynHookContext},
 };
 use serde::Serialize;
@@ -142,8 +143,9 @@ pub trait TestExtension: Send + Sync + 'static {
     #[allow(clippy::manual_async_fn)]
     async fn authorize_query(
         &self,
-        ctx: Arc<engine::RequestContext>,
         wasm_context: &DynHookContext,
+        headers: &mut http::HeaderMap,
+        token: &LegacyToken,
         elements_grouped_by_directive_name: Vec<(&str, Vec<QueryElement<'_, serde_json::Value>>)>,
     ) -> Result<AuthorizationDecisions, ErrorResponse> {
         Err(GraphqlError::internal_extension_error().into())
@@ -152,7 +154,6 @@ pub trait TestExtension: Send + Sync + 'static {
     #[allow(clippy::manual_async_fn)]
     async fn authorize_response(
         &self,
-        ctx: Arc<engine::RequestContext>,
         wasm_context: &DynHookContext,
         directive_name: &str,
         directive_site: DirectiveSite<'_>,
@@ -162,7 +163,7 @@ pub trait TestExtension: Send + Sync + 'static {
     }
 }
 
-impl runtime::extension::ExtensionRuntime<Arc<engine::RequestContext>> for TestExtensions {
+impl runtime::extension::ExtensionRuntime for TestExtensions {
     type SharedContext = DynHookContext;
 
     fn resolve_field<'ctx, 'resp, 'f>(
@@ -207,10 +208,12 @@ impl runtime::extension::ExtensionRuntime<Arc<engine::RequestContext>> for TestE
         &self,
         extension_id: ExtensionId,
         _authorizer_id: runtime::extension::AuthorizerId,
-        headers: http::HeaderMap,
-    ) -> Result<(http::HeaderMap, Token), ErrorResponse> {
+        headers: Lease<http::HeaderMap>,
+    ) -> Result<(Lease<http::HeaderMap>, Token), ErrorResponse> {
         let instance = self.get_global_instance(extension_id).await;
-        let token = instance.authenticate(&headers).await?;
+        let token = headers
+            .with_ref(async move |headers| instance.authenticate(headers).await)
+            .await?;
         Ok((headers, token))
     }
 
@@ -229,10 +232,14 @@ impl runtime::extension::ExtensionRuntime<Arc<engine::RequestContext>> for TestE
     fn authorize_query<'ctx, 'fut, Groups, QueryElements, Arguments>(
         &'ctx self,
         extension_id: ExtensionId,
-        ctx: &'ctx Arc<engine::RequestContext>,
         wasm_context: &'ctx Self::SharedContext,
+        mut headers: Lease<http::HeaderMap>,
+        token: Lease<LegacyToken>,
         elements_grouped_by_directive_name: Groups,
-    ) -> impl Future<Output = Result<AuthorizationDecisions, ErrorResponse>> + Send + 'fut
+    ) -> impl Future<
+        Output = Result<(Lease<http::HeaderMap>, Lease<LegacyToken>, AuthorizationDecisions), ErrorResponse>,
+    > + Send
+    + 'fut
     where
         'ctx: 'fut,
         Groups: ExactSizeIterator<Item = (&'ctx str, QueryElements)>,
@@ -256,16 +263,25 @@ impl runtime::extension::ExtensionRuntime<Arc<engine::RequestContext>> for TestE
             .collect();
         async move {
             let instance = self.get_global_instance(extension_id).await;
-            instance
-                .authorize_query(ctx.clone(), wasm_context, elements_grouped_by_directive_name)
+            headers
+                .with_ref_mut(async |headers| {
+                    let headers = headers.unwrap();
+                    token
+                        .with_ref(async move |token| {
+                            instance
+                                .authorize_query(wasm_context, headers, token, elements_grouped_by_directive_name)
+                                .await
+                        })
+                        .await
+                })
                 .await
+                .map(|decisions| (headers, token, decisions))
         }
     }
 
     fn authorize_response<'ctx, 'fut>(
         &'ctx self,
         extension_id: ExtensionId,
-        ctx: &'ctx Arc<engine::RequestContext>,
         wasm_context: &'ctx Self::SharedContext,
         directive_name: &'ctx str,
         directive_site: DirectiveSite<'ctx>,
@@ -282,7 +298,7 @@ impl runtime::extension::ExtensionRuntime<Arc<engine::RequestContext>> for TestE
         async move {
             let instance = self.get_global_instance(extension_id).await;
             instance
-                .authorize_response(ctx.clone(), wasm_context, directive_name, directive_site, items)
+                .authorize_response(wasm_context, directive_name, directive_site, items)
                 .await
         }
     }
