@@ -3,10 +3,10 @@
   "module": "index.ts",
   "type": "module",
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "^1.2.5"
   },
   "peerDependencies": {
-    "typescript": "^5.4.2"
+    "typescript": "^5.8.2"
   },
   "dependencies": {
     "@apollo/generate-persisted-query-manifest": "^1.2.2",
