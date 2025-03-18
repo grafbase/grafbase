@@ -12,7 +12,7 @@ use std::{collections::HashMap, sync::Arc};
 use engine::{Engine, GraphqlError};
 use extension_catalog::Id;
 use integration_tests::{
-    federation::{EngineExt, TestExtension, TestExtensionBuilder, TestExtensionConfig, json_data},
+    federation::{EngineExt, TestExtension, TestExtensionBuilder, TestManifest, json_data},
     runtime,
 };
 use runtime::extension::{Data, ExtensionFieldDirective};
@@ -29,15 +29,12 @@ impl EchoExt {
 }
 
 impl TestExtensionBuilder for EchoExt {
-    fn id(&self) -> Id {
-        Id {
-            name: "echo".to_string(),
-            version: "1.0.0".parse().unwrap(),
-        }
-    }
-
-    fn config(&self) -> TestExtensionConfig {
-        TestExtensionConfig {
+    fn manifest(&self) -> TestManifest {
+        TestManifest {
+            id: Id {
+                name: "echo".to_string(),
+                version: "1.0.0".parse().unwrap(),
+            },
             kind: extension_catalog::Kind::Resolver(extension_catalog::ResolverKind {
                 resolver_directives: Some(vec!["echo".to_string()]),
             }),

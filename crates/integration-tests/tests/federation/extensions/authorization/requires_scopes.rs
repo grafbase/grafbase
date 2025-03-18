@@ -4,13 +4,10 @@ use engine::{Engine, ErrorCode, ErrorResponse, GraphqlError};
 use extension_catalog::Id;
 use graphql_mocks::dynamic::DynamicSchema;
 use integration_tests::{
-    federation::{EngineExt, TestExtension, TestExtensionBuilder, TestExtensionConfig},
+    federation::{DynHookContext, EngineExt, TestExtension, TestExtensionBuilder, TestManifest},
     runtime,
 };
-use runtime::{
-    extension::{AuthorizationDecisions, QueryElement, Token, TokenRef},
-    hooks::DynHookContext,
-};
+use runtime::extension::{AuthorizationDecisions, QueryElement, Token, TokenRef};
 use serde::Deserialize;
 
 use crate::federation::extensions::authorization::AuthorizationExt;
@@ -21,15 +18,12 @@ struct AuthExt {
 }
 
 impl TestExtensionBuilder for AuthExt {
-    fn id(&self) -> Id {
-        Id {
-            name: "authentication".to_string(),
-            version: "1.0.0".parse().unwrap(),
-        }
-    }
-
-    fn config(&self) -> TestExtensionConfig {
-        TestExtensionConfig {
+    fn manifest(&self) -> TestManifest {
+        TestManifest {
+            id: Id {
+                name: "authentication".to_string(),
+                version: "1.0.0".parse().unwrap(),
+            },
             kind: extension_catalog::Kind::Authentication(Default::default()),
             sdl: None,
         }

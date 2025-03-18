@@ -8,18 +8,15 @@ use super::{ExtensionConfig, ExtensionPoolId, WasmConfig};
 
 pub(super) fn load_extensions_config(
     extension_catalog: &ExtensionCatalog,
-    gateway_config: &Config,
+    config: &Config,
     schema: &engine::Schema,
 ) -> Vec<ExtensionConfig<Option<toml::Value>>> {
     let mut wasm_extensions = Vec::with_capacity(extension_catalog.len());
 
-    let Some(extension_configs) = gateway_config.extensions.as_ref() else {
-        return wasm_extensions;
-    };
-
     for (id, extension) in extension_catalog.iter().enumerate() {
         let manifest = &extension.manifest;
-        let extension_config = extension_configs
+        let extension_config = config
+            .extensions
             .get(manifest.name())
             .expect("we made sure in the create_extension_catalog that this extension is in the config");
 
@@ -55,7 +52,7 @@ pub(super) fn load_extensions_config(
                 });
             }
             KindDiscriminants::Authentication => {
-                let Some(auth_config) = gateway_config.authentication.as_ref() else {
+                let Some(auth_config) = config.authentication.as_ref() else {
                     continue;
                 };
 

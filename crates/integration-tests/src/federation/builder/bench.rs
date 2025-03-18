@@ -10,11 +10,11 @@ use gateway_config::Config;
 use runtime::{
     bytes::OwnedOrSharedBytes,
     fetch::{FetchRequest, FetchResult, dynamic::DynFetcher},
-    hooks::{DynamicHooks, ResponseInfo},
+    hooks::ResponseInfo,
 };
 use runtime_local::InMemoryOperationCache;
 
-use crate::federation::{GraphqlResponse, GraphqlStreamingResponse};
+use crate::federation::{DynamicHooks, GraphqlResponse, GraphqlStreamingResponse};
 
 use super::TestRuntime;
 

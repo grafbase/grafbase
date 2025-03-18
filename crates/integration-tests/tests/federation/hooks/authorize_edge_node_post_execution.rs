@@ -4,8 +4,11 @@ use super::with_engine_for_auth;
 use engine::{Engine, ErrorCode, ErrorResponse, GraphqlError};
 use graphql_mocks::dynamic::{DynamicSchema, EntityResolverContext};
 use http::HeaderMap;
-use integration_tests::{federation::EngineExt, runtime};
-use runtime::hooks::{DynHookContext, DynHooks, EdgeDefinition};
+use integration_tests::{
+    federation::{DynHookContext, DynHooks, EngineExt},
+    runtime,
+};
+use runtime::hooks::EdgeDefinition;
 
 #[test]
 fn single_decision_applies_to_all() {

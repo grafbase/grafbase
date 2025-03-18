@@ -9,22 +9,19 @@ use std::sync::Arc;
 
 use engine::GraphqlError;
 use extension_catalog::Id;
-use integration_tests::federation::{TestExtension, TestExtensionBuilder, TestExtensionConfig, json_data};
+use integration_tests::federation::{TestExtension, TestExtensionBuilder, TestManifest, json_data};
 use runtime::extension::{Data, ExtensionFieldDirective};
 
 #[derive(Default)]
 pub struct DoubleEchoExt;
 
 impl TestExtensionBuilder for DoubleEchoExt {
-    fn id(&self) -> Id {
-        Id {
-            name: "echo".to_string(),
-            version: "1.0.0".parse().unwrap(),
-        }
-    }
-
-    fn config(&self) -> TestExtensionConfig {
-        TestExtensionConfig {
+    fn manifest(&self) -> TestManifest {
+        TestManifest {
+            id: Id {
+                name: "echo".to_string(),
+                version: "1.0.0".parse().unwrap(),
+            },
             kind: extension_catalog::Kind::Resolver(extension_catalog::ResolverKind {
                 resolver_directives: Some(vec!["echo".to_string(), "echoArgs".to_string()]),
             }),

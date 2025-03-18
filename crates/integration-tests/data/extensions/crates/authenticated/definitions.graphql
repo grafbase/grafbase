@@ -1,0 +1,1 @@
+directive @authenticated on FIELD_DEFINITION | OBJECT | INTERFACE | ENUM | SCALAR

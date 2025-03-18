@@ -1,13 +1,13 @@
+mod context;
 mod extension;
+mod hooks;
 
 use std::sync::Arc;
 
 use engine::CachedOperation;
 use gateway_config::Config;
 use grafbase_telemetry::metrics::{self, EngineMetrics};
-use runtime::{
-    entity_cache::EntityCache, fetch::dynamic::DynamicFetcher, hooks::DynamicHooks, trusted_documents_client,
-};
+use runtime::{entity_cache::EntityCache, fetch::dynamic::DynamicFetcher, trusted_documents_client};
 use runtime_local::{
     InMemoryEntityCache, InMemoryKvStore, InMemoryOperationCache, NativeFetcher,
     rate_limiting::in_memory::key_based::InMemoryRateLimiter,
@@ -15,7 +15,9 @@ use runtime_local::{
 use runtime_noop::trusted_documents::NoopTrustedDocuments;
 use tokio::sync::watch;
 
+pub use context::*;
 pub use extension::*;
+pub use hooks::*;
 
 pub struct TestRuntime {
     pub fetcher: DynamicFetcher,
@@ -26,7 +28,7 @@ pub struct TestRuntime {
     pub hooks: DynamicHooks,
     pub rate_limiter: runtime::rate_limiting::RateLimiter,
     pub entity_cache: InMemoryEntityCache,
-    pub extensions: TestExtensions,
+    pub extensions: ExtensionsDispatcher,
 }
 
 impl TestRuntime {
@@ -51,7 +53,7 @@ impl engine::Runtime for TestRuntime {
     type Hooks = DynamicHooks;
     type Fetcher = DynamicFetcher;
     type OperationCache = InMemoryOperationCache<Arc<CachedOperation>>;
-    type Extensions = TestExtensions;
+    type Extensions = ExtensionsDispatcher;
 
     fn fetcher(&self) -> &Self::Fetcher {
         &self.fetcher

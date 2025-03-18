@@ -109,7 +109,7 @@ jobs:
           taplo fmt --check
           taplo check
 
-  example-component:
+  wasm-extensions:
     if: |
       needs.what-changed.outputs.changed-packages != '[]'
     needs: [what-changed]
@@ -118,11 +118,34 @@ jobs:
       - name: Get sources
         uses: actions/checkout@v4
 
+      - name: Fetch CLI assets
+        uses: ./.github/actions/fetch-assets
+
       - name: Install cargo binstall
         uses: cargo-bins/cargo-binstall@v1.10.21
 
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.7
+
+      - name: Build the grafbase cli
+        shell: bash
+        env:
+          RUSTC_WRAPPER: sccache
+        run: cargo build -p grafbase
+
+      - name: Build the integration-tests extensions
+        shell: bash
+        working-directory: crates/integration-tests/data/extensions
+        env:
+          RUSTC_WRAPPER: sccache
+        run: |
+          ./build.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: integration-tests-extensions
+          path: crates/integration-tests/data/extensions/crates/*/build
+          retention-days: 5
 
       - name: Build the WASI components for tests
         shell: bash
@@ -138,7 +161,7 @@ jobs:
           retention-days: 5
 
   builds:
-    needs: [what-changed, example-component]
+    needs: [what-changed, wasm-extensions]
     # We need the cancelled & result checks of this if to make sure that we
     # run even if some of our needs were skipped.
     # In particular we need `cancelled()` because `always()` (the other way of doing this)
@@ -213,11 +236,18 @@ jobs:
           run_install: false
 
       - name: Download pre-built example component
-        if: needs.example-component.result != 'skipped'
+        if: needs.wasm-extensions.result != 'skipped'
         uses: actions/download-artifact@v4
         with:
           name: example-component
           path: crates/wasi-component-loader/examples/target/wasm32-wasip2/debug
+
+      - name: Download pre-built integration-tests extensions
+        if: needs.wasm-extensions.result != 'skipped'
+        uses: actions/download-artifact@v4
+        with:
+          name: integration-tests-extensions
+          path: crates/integration-tests/data/extensions/crates
 
       # TODO: Add timing reports in here somehow...
 

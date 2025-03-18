@@ -2,7 +2,7 @@ pub mod static_token;
 use std::sync::Arc;
 
 use extension_catalog::Id;
-use integration_tests::federation::{TestExtension, TestExtensionBuilder, TestExtensionConfig};
+use integration_tests::federation::{TestExtension, TestExtensionBuilder, TestManifest};
 
 pub struct AuthenticationExt<T> {
     instance: Arc<dyn TestExtension>,
@@ -37,15 +37,12 @@ impl<T: TestExtension> AuthenticationExt<T> {
 }
 
 impl<T: TestExtension> TestExtensionBuilder for AuthenticationExt<T> {
-    fn id(&self) -> Id {
-        Id {
-            name: self.name.to_string(),
-            version: "1.0.0".parse().unwrap(),
-        }
-    }
-
-    fn config(&self) -> TestExtensionConfig {
-        TestExtensionConfig {
+    fn manifest(&self) -> TestManifest {
+        TestManifest {
+            id: Id {
+                name: self.name.to_string(),
+                version: "1.0.0".parse().unwrap(),
+            },
             kind: extension_catalog::Kind::Authentication(Default::default()),
             sdl: None,
         }

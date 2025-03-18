@@ -3,7 +3,7 @@ use std::sync::Arc;
 use engine::{Engine, GraphqlError};
 use extension_catalog::Id;
 use integration_tests::{
-    federation::{EngineExt, TestExtension, TestExtensionBuilder, TestExtensionConfig, json_data},
+    federation::{EngineExt, TestExtension, TestExtensionBuilder, TestManifest, json_data},
     runtime,
 };
 use runtime::extension::{Data, ExtensionFieldDirective};
@@ -20,15 +20,12 @@ impl GreetExt {
 }
 
 impl TestExtensionBuilder for GreetExt {
-    fn id(&self) -> Id {
-        Id {
-            name: "greet".to_string(),
-            version: "1.0.0".parse().unwrap(),
-        }
-    }
-
-    fn config(&self) -> TestExtensionConfig {
-        TestExtensionConfig {
+    fn manifest(&self) -> TestManifest {
+        TestManifest {
+            id: Id {
+                name: "greet".to_string(),
+                version: "1.0.0".parse().unwrap(),
+            },
             kind: extension_catalog::Kind::Resolver(extension_catalog::ResolverKind {
                 resolver_directives: None,
             }),

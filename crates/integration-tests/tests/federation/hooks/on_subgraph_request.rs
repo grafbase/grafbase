@@ -1,8 +1,9 @@
 use engine::Engine;
 use engine::{ErrorCode, GraphqlError};
 use graphql_mocks::{EchoSchema, FakeGithubSchema, Stateful, Subgraph};
+use integration_tests::federation::{DynHookContext, DynHooks};
 use integration_tests::{federation::EngineExt, runtime};
-use runtime::hooks::{DynHookContext, DynHooks, SubgraphRequest};
+use runtime::hooks::SubgraphRequest;
 use url::Url;
 
 #[test]

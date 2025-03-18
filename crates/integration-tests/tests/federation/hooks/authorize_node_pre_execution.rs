@@ -1,8 +1,8 @@
 use engine::{ErrorCode, ErrorResponse, GraphqlError};
 use graphql_mocks::SecureSchema;
 use http::HeaderMap;
-use integration_tests::federation::DeterministicEngine;
-use runtime::hooks::{DynHookContext, DynHooks, NodeDefinition};
+use integration_tests::federation::{DeterministicEngine, DynHookContext, DynHooks};
+use runtime::hooks::NodeDefinition;
 use serde_json::json;
 
 use super::with_engine_for_auth;

@@ -2,8 +2,9 @@ use engine::Engine;
 use engine::{ErrorCode, ErrorResponse, GraphqlError};
 use graphql_mocks::TeaShop;
 use http::HeaderMap;
+use integration_tests::federation::{DynHookContext, DynHooks};
 use integration_tests::{federation::EngineExt, runtime};
-use runtime::hooks::{DynHookContext, DynHooks, EdgeDefinition};
+use runtime::hooks::EdgeDefinition;
 
 use super::with_engine_for_auth;
 

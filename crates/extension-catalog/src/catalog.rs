@@ -11,7 +11,7 @@ pub struct ExtensionCatalog {
     extensions: Vec<Extension>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Extension {
     pub manifest: Manifest,
     pub wasm_path: PathBuf,
@@ -90,6 +90,10 @@ impl ExtensionCatalog {
 
     pub fn iter(&self) -> impl ExactSizeIterator<Item = &Extension> {
         self.extensions.iter()
+    }
+
+    pub fn iter_with_id(&self) -> impl ExactSizeIterator<Item = (ExtensionId, &Extension)> {
+        self.extensions.iter().enumerate().map(|(ix, ext)| (ix.into(), ext))
     }
 
     pub fn len(&self) -> usize {

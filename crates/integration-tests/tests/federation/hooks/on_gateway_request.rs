@@ -2,8 +2,8 @@ use engine::Engine;
 use engine::{ErrorCode, ErrorResponse, GraphqlError};
 use graphql_mocks::{EchoSchema, FakeGithubSchema};
 use http::HeaderMap;
+use integration_tests::federation::{DynHookContext, DynHooks};
 use integration_tests::{federation::EngineExt, runtime};
-use runtime::hooks::{DynHookContext, DynHooks};
 
 #[test]
 fn can_modify_headers() {
