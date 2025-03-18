@@ -11,6 +11,7 @@ repository.workspace = true
 cynic-parser.workspace = true
 grafbase-workspace-hack.workspace = true
 heck.workspace = true
+regex.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
