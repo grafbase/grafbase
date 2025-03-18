@@ -1,7 +1,7 @@
 use std::{collections::VecDeque, sync::Arc};
 
 use super::SubscriptionStream;
-use crate::extension::{api::wit, pool::ExtensionGuard};
+use crate::extension::{ExtensionGuard, api::wit};
 use engine::{ErrorCode, GraphqlError};
 use engine_schema::Subgraph;
 use futures::stream;

@@ -7,9 +7,8 @@ use wasmtime::Store;
 use crate::{
     Error, ErrorResponse,
     extension::{
-        InputList, QueryAuthorizationResult,
+        ExtensionInstance, InputList, QueryAuthorizationResult,
         api::wit::{FieldDefinitionDirective, QueryElements, ResponseElements},
-        instance::ExtensionInstance,
     },
     resources::{Headers, Lease},
     state::WasiState,

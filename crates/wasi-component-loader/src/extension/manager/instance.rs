@@ -2,9 +2,11 @@ use engine::GraphqlError;
 use futures::future::BoxFuture;
 use runtime::extension::{AuthorizationDecisions, Data, Token, TokenRef};
 
-use crate::{Error, ErrorResponse, resources::Lease};
-
-use super::api::wit::{FieldDefinitionDirective, QueryElements, ResponseElements};
+use crate::{
+    Error, ErrorResponse,
+    extension::api::wit::{FieldDefinitionDirective, QueryElements, ResponseElements},
+    resources::Lease,
+};
 
 /// List of inputs to be provided to the extension.
 /// The data itself is fully custom and thus will be serialized with serde to cross the Wasm

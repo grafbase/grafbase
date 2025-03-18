@@ -81,15 +81,6 @@ impl Default for StructuredExtensionsConfig {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct WasiExtensionsConfig {
-    pub location: PathBuf,
-    pub networking: bool,
-    pub stdout: bool,
-    pub stderr: bool,
-    pub environment_variables: bool,
-}
-
 impl ExtensionsConfig {
     pub fn version(&self) -> &VersionReq {
         match self {

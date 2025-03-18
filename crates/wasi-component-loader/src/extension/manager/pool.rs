@@ -5,11 +5,11 @@ use tracing::{Instrument, info_span};
 
 use super::{ExtensionInstance, ExtensionLoader};
 
-pub(super) struct Pool {
+pub(crate) struct Pool {
     inner: managed::Pool<ExtensionLoader>,
 }
 
-pub(super) struct ExtensionGuard {
+pub(crate) struct ExtensionGuard {
     inner: managed::Object<ExtensionLoader>,
 }
 

@@ -6,9 +6,8 @@ use wasmtime::Store;
 use crate::{
     Error, ErrorResponse, WasiState,
     extension::{
-        QueryAuthorizationResult,
+        ExtensionInstance, QueryAuthorizationResult,
         api::wit::{FieldDefinitionDirective, Headers, QueryElements, ResponseElements},
-        instance::ExtensionInstance,
     },
     resources::Lease,
 };

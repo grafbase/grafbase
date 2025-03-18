@@ -1,18 +1,12 @@
 mod subscription;
 
-use crate::{
-    SharedContext, cbor,
-    extension::ExtensionLoader,
-    resources::{Lease, SharedResources},
-};
+use crate::{SharedContext, cbor, resources::Lease};
 
 use super::{
-    ExtensionGuestConfig, InputList,
+    ExtensionPoolId, InputList, WasmExtensions,
     api::wit::{self, ResponseElement, ResponseElements},
-    pool::{ExtensionGuard, Pool},
 };
 
-use dashmap::DashMap;
 use engine::{ErrorCode, ErrorResponse, GraphqlError};
 use engine_schema::DirectiveSite;
 use extension_catalog::ExtensionId;
@@ -20,8 +14,6 @@ use futures::{
     TryStreamExt,
     stream::{BoxStream, FuturesUnordered},
 };
-use futures_util::{StreamExt, stream};
-use gateway_config::WasiExtensionsConfig;
 use runtime::{
     extension::{
         AuthorizationDecisions, AuthorizerId, Data, ExtensionFieldDirective, ExtensionRuntime,
@@ -29,100 +21,10 @@ use runtime::{
     },
     hooks::Anything,
 };
-use semver::Version;
-use std::{collections::HashMap, future::Future, ops::Range, sync::Arc};
+use std::{future::Future, ops::Range, sync::Arc};
 use subscription::{DeduplicatedSubscription, UniqueSubscription};
-use tokio::{sync::broadcast, task::JoinHandle};
 
-#[derive(Clone, Default)]
-pub struct ExtensionsWasiRuntime(Option<Arc<WasiExtensionsInner>>);
-
-type Subscriptions = Arc<DashMap<Vec<u8>, broadcast::Sender<Result<Arc<Data>, GraphqlError>>>>;
-
-struct WasiExtensionsInner {
-    instance_pools: HashMap<ExtensionPoolId, Pool>,
-    subscriptions: Subscriptions,
-}
-
-impl ExtensionsWasiRuntime {
-    pub async fn new<T: serde::Serialize + Send + 'static>(
-        shared_resources: SharedResources,
-        extensions: Vec<ExtensionConfig<T>>,
-    ) -> crate::Result<Self> {
-        if extensions.is_empty() {
-            return Ok(Self(None));
-        }
-
-        let instance_pools = create_pools(shared_resources, extensions).await?;
-        let subscriptions = Arc::new(DashMap::new());
-
-        let inner = WasiExtensionsInner {
-            instance_pools,
-            subscriptions,
-        };
-
-        Ok(Self(Some(Arc::new(inner))))
-    }
-
-    async fn get(&self, id: ExtensionPoolId) -> Result<ExtensionGuard, GraphqlError> {
-        let pool = self
-            .0
-            .as_ref()
-            .and_then(|inner| inner.instance_pools.get(&id))
-            .ok_or_else(GraphqlError::internal_extension_error)?;
-        Ok(pool.get().await)
-    }
-
-    fn subscriptions(&self) -> Result<Subscriptions, GraphqlError> {
-        let subscriptions = self
-            .0
-            .as_ref()
-            .ok_or_else(GraphqlError::internal_extension_error)?
-            .subscriptions
-            .clone();
-
-        Ok(subscriptions)
-    }
-}
-
-async fn create_pools<T: serde::Serialize + Send + 'static>(
-    shared_resources: SharedResources,
-    extensions: Vec<ExtensionConfig<T>>,
-) -> crate::Result<HashMap<ExtensionPoolId, Pool>> {
-    type Handle = JoinHandle<crate::Result<(ExtensionPoolId, Pool)>>;
-
-    let mut creating_pools: Vec<Handle> = Vec::new();
-
-    for config in extensions {
-        let shared = shared_resources.clone();
-
-        creating_pools.push(tokio::task::spawn_blocking(move || {
-            tracing::info!("Loading extension {}", config.manifest_id);
-
-            let loader = ExtensionLoader::new(shared, config.wasi_config, config.guest_config, config.sdk_version)?;
-
-            Ok((config.id, Pool::new(loader, config.max_pool_size)))
-        }));
-    }
-
-    let mut pools = HashMap::new();
-
-    let mut creating_pools = stream::iter(creating_pools)
-        .buffer_unordered(std::thread::available_parallelism().map(|i| i.get()).unwrap_or(1));
-
-    while let Some(result) = creating_pools.next().await {
-        match result.unwrap() {
-            Ok((id, pool)) => {
-                pools.insert(id, pool);
-            }
-            Err(error) => return Err(error),
-        }
-    }
-
-    Ok(pools)
-}
-
-impl ExtensionRuntime for ExtensionsWasiRuntime {
+impl ExtensionRuntime for WasmExtensions {
     type SharedContext = crate::resources::SharedContext;
 
     #[allow(clippy::manual_async_fn)]
@@ -215,7 +117,7 @@ impl ExtensionRuntime for ExtensionsWasiRuntime {
         match key {
             Some(key) => {
                 let subscription = DeduplicatedSubscription {
-                    subscriptions: self.subscriptions()?,
+                    extensions: self.clone(),
                     instance,
                     headers,
                     key,
@@ -394,32 +296,4 @@ impl ExtensionRuntime for ExtensionsWasiRuntime {
                 .map_err(|err| err.into_graphql_error(ErrorCode::Unauthorized))
         }
     }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum ExtensionPoolId {
-    Resolver(ExtensionId),
-    Authorizer(ExtensionId, AuthorizerId),
-    Authorization(ExtensionId),
-}
-
-impl From<ExtensionId> for ExtensionPoolId {
-    fn from(id: ExtensionId) -> Self {
-        Self::Resolver(id)
-    }
-}
-
-impl From<(ExtensionId, AuthorizerId)> for ExtensionPoolId {
-    fn from((id, authorizer_id): (ExtensionId, AuthorizerId)) -> Self {
-        Self::Authorizer(id, authorizer_id)
-    }
-}
-
-pub struct ExtensionConfig<T> {
-    pub id: ExtensionPoolId,
-    pub manifest_id: extension_catalog::Id,
-    pub max_pool_size: Option<usize>,
-    pub wasi_config: WasiExtensionsConfig,
-    pub guest_config: ExtensionGuestConfig<T>,
-    pub sdk_version: Version,
 }

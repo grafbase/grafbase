@@ -5,7 +5,7 @@ use engine_schema::Subgraph;
 use tokio::sync::broadcast;
 use tokio_stream::{StreamExt, wrappers::BroadcastStream};
 
-use crate::extension::{api::wit, pool::ExtensionGuard, runtime::Subscriptions};
+use crate::extension::{ExtensionGuard, WasmExtensions, api::wit};
 
 use super::SubscriptionStream;
 
@@ -16,7 +16,7 @@ use super::SubscriptionStream;
 ///
 /// The extension determines if and how to deduplicate the subscription requests.
 pub struct DeduplicatedSubscription<'ctx, 'wit> {
-    pub subscriptions: Subscriptions,
+    pub extensions: WasmExtensions,
     pub instance: ExtensionGuard,
     pub headers: http::HeaderMap,
     pub key: Vec<u8>,
@@ -30,7 +30,7 @@ impl<'ctx> DeduplicatedSubscription<'ctx, '_> {
         'ctx: 'f,
     {
         let DeduplicatedSubscription {
-            subscriptions,
+            extensions,
             mut instance,
             headers,
             key,
@@ -38,7 +38,11 @@ impl<'ctx> DeduplicatedSubscription<'ctx, '_> {
             directive,
         } = self;
 
-        let receiver = subscriptions.get(&key).as_ref().map(|channel| channel.subscribe());
+        let receiver = extensions
+            .subscriptions()
+            .get(&key)
+            .as_ref()
+            .map(|channel| channel.subscribe());
 
         let (sender, receiver) = match receiver {
             Some(receiver) => {
@@ -57,7 +61,11 @@ impl<'ctx> DeduplicatedSubscription<'ctx, '_> {
             }
         };
 
-        let sender = subscriptions.entry(key.clone()).or_insert(sender).to_owned();
+        let sender = extensions
+            .subscriptions()
+            .entry(key.clone())
+            .or_insert(sender)
+            .to_owned();
 
         instance
             .resolve_subscription(headers, subgraph.name(), directive)
@@ -84,13 +92,13 @@ impl<'ctx> DeduplicatedSubscription<'ctx, '_> {
                         }
                         Ok(None) => {
                             tracing::debug!("subscription ended");
-                            subscriptions.remove(&key);
+                            extensions.subscriptions().remove(&key);
 
                             return;
                         }
                         Err(err) => {
                             tracing::error!("subscription item error: {err}");
-                            subscriptions.remove(&key);
+                            extensions.subscriptions().remove(&key);
 
                             return;
                         }
@@ -105,7 +113,7 @@ impl<'ctx> DeduplicatedSubscription<'ctx, '_> {
 
                     if sender.send(data).is_err() {
                         tracing::debug!("all subscribers are gone");
-                        subscriptions.remove(&key);
+                        extensions.subscriptions().remove(&key);
 
                         if registerations_closed {
                             return;
