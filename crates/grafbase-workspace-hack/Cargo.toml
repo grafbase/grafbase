@@ -46,7 +46,7 @@ curve25519-dalek = { version = "4", default-features = false, features = ["alloc
 cynic = { version = "3", features = ["http-reqwest", "http-surf"] }
 cynic-parser = { version = "0.9", features = ["pretty", "report"] }
 der = { version = "0.7", default-features = false, features = ["oid", "pem", "std"] }
-deranged = { version = "0.3", default-features = false, features = ["powerfmt", "serde", "std"] }
+deranged = { version = "0.4", default-features = false, features = ["powerfmt", "serde", "std"] }
 digest = { version = "0.10", features = ["mac", "oid", "std"] }
 ecdsa = { version = "0.16", default-features = false, features = ["pem", "signing", "std", "verifying"] }
 ed25519 = { version = "2", default-features = false, features = ["pem", "std"] }
@@ -174,7 +174,7 @@ curve25519-dalek = { version = "4", default-features = false, features = ["alloc
 cynic = { version = "3", features = ["http-reqwest", "http-surf"] }
 cynic-parser = { version = "0.9", features = ["pretty", "report"] }
 der = { version = "0.7", default-features = false, features = ["oid", "pem", "std"] }
-deranged = { version = "0.3", default-features = false, features = ["powerfmt", "serde", "std"] }
+deranged = { version = "0.4", default-features = false, features = ["powerfmt", "serde", "std"] }
 digest = { version = "0.10", features = ["mac", "oid", "std"] }
 ecdsa = { version = "0.16", default-features = false, features = ["pem", "signing", "std", "verifying"] }
 ed25519 = { version = "2", default-features = false, features = ["pem", "std"] }
