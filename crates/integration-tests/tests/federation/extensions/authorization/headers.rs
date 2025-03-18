@@ -78,7 +78,7 @@ fn can_inject_token_into_headers() {
           },
           {
             "name": "accept-encoding",
-            "value": "gzip, br, deflate"
+            "value": "gzip, br, zstd, deflate"
           },
           {
             "name": "content-length",
