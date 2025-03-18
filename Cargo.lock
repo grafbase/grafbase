@@ -4049,6 +4049,7 @@ dependencies = [
  "cynic-parser",
  "grafbase-workspace-hack",
  "heck 0.5.0",
+ "regex",
  "thiserror 2.0.12",
 ]
 

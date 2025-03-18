@@ -133,6 +133,15 @@ impl<'a> SchemaLinter {
     }
 
     fn case_check(current: &'a str, case: Case) -> CaseMatch<'a> {
+        use regex::RegexSet;
+        use std::sync::LazyLock;
+
+        static EXCEPTIONS: LazyLock<RegexSet> = LazyLock::new(|| RegexSet::new(["^_", "^[a-zA-Z]+__."]).unwrap());
+
+        if EXCEPTIONS.is_match(current) {
+            return CaseMatch::Correct;
+        }
+
         let fix = match case {
             Case::Pascal => current.to_pascal_case(),
             Case::ShoutySnake => current.to_shouty_snake_case(),
