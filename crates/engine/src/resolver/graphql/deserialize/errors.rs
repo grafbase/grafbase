@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use serde::{Deserializer, de::DeserializeSeed};
 
 use crate::response::{ErrorCode, ErrorPath, GraphqlError, SubgraphResponseRefMut};
@@ -58,8 +60,8 @@ where
                 if let Some(path) = self.path_converter.convert(subgraph_error.path) {
                     error = error.with_path(path);
                 }
-                if !subgraph_error.extensions.is_null() {
-                    error = error.with_extension("upstream_extensions", subgraph_error.extensions);
+                if let Some(mut extensions) = subgraph_error.extensions {
+                    error.extensions.append(&mut extensions);
                 }
                 error
             })
@@ -69,11 +71,13 @@ where
     }
 }
 
+#[serde_with::serde_as]
 #[derive(serde::Deserialize)]
 struct SubgraphGraphqlError {
     message: String,
     #[serde(default)]
     path: serde_json::Value,
     #[serde(default)]
-    extensions: serde_json::Value,
+    #[serde_as(as = "Option<serde_with::Map<_, _>>")]
+    extensions: Option<Vec<(Cow<'static, str>, serde_json::Value)>>,
 }
