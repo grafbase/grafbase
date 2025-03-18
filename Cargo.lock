@@ -2607,6 +2607,7 @@ dependencies = [
  "serde-value",
  "serde_json",
  "serde_urlencoded",
+ "serde_with",
  "sha2 0.10.8",
  "sonic-rs",
  "thiserror 2.0.12",

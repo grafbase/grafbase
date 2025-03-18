@@ -51,6 +51,7 @@ serde = { workspace = true, features = ["rc"] }
 serde-value.workspace = true
 serde_json = { workspace = true, features = ["raw_value"] }
 serde_urlencoded.workspace = true
+serde_with.workspace = true
 sha2.workspace = true
 sonic-rs.workspace = true
 thiserror.workspace = true

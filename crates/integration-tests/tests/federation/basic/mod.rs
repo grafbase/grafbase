@@ -5,6 +5,7 @@
 
 mod empty_config;
 mod enums;
+mod error_extensions;
 mod errors;
 mod fragments;
 mod headers;
