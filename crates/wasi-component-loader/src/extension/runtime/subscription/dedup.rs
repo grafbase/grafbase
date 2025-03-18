@@ -38,15 +38,11 @@ impl<'ctx> DeduplicatedSubscription<'ctx, '_> {
             directive,
         } = self;
 
-        let receiver = extensions
-            .subscriptions()
-            .get(&key)
-            .as_ref()
-            .map(|channel| channel.subscribe());
-
-        let (sender, receiver) = match receiver {
-            Some(receiver) => {
+        let (sender, receiver) = match extensions.subscriptions().entry(key.clone()) {
+            dashmap::Entry::Occupied(occupied_entry) => {
                 tracing::debug!("reuse existing channel");
+
+                let receiver = occupied_entry.get().subscribe();
 
                 let stream = BroadcastStream::new(receiver).map(|result| match result {
                     Ok(data) => data,
@@ -55,17 +51,15 @@ impl<'ctx> DeduplicatedSubscription<'ctx, '_> {
 
                 return Ok(Box::pin(stream));
             }
-            None => {
+            dashmap::Entry::Vacant(vacant_entry) => {
                 tracing::debug!("create new channel");
-                broadcast::channel(1000)
+
+                let (sender, receiver) = broadcast::channel(1000);
+                let sender = vacant_entry.insert(sender).to_owned();
+
+                (sender, receiver)
             }
         };
-
-        let sender = extensions
-            .subscriptions()
-            .entry(key.clone())
-            .or_insert(sender)
-            .to_owned();
 
         instance
             .resolve_subscription(headers, subgraph.name(), directive)
