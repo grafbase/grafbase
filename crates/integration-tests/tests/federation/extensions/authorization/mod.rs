@@ -3,6 +3,7 @@ mod deny_some;
 mod error_propagation;
 mod error_response;
 mod grant_all;
+mod headers;
 mod injection;
 mod query;
 mod requires_scopes;
@@ -15,6 +16,7 @@ use integration_tests::federation::{TestExtension, TestExtensionBuilder, TestExt
 
 struct AuthorizationExt<T> {
     instance: Arc<dyn TestExtension>,
+    name: &'static str,
     sdl: Option<&'static str>,
     phantom: std::marker::PhantomData<T>,
 }
@@ -23,14 +25,23 @@ impl<T: TestExtension> AuthorizationExt<T> {
     pub fn new(instance: T) -> Self {
         Self {
             instance: Arc::new(instance),
+            name: "authorization",
             sdl: None,
             phantom: std::marker::PhantomData,
         }
     }
 
     #[allow(unused)]
+    #[must_use]
     pub fn with_sdl(mut self, sdl: &'static str) -> Self {
         self.sdl = Some(sdl);
+        self
+    }
+
+    #[allow(unused)]
+    #[must_use]
+    pub fn with_name(mut self, name: &'static str) -> Self {
+        self.name = name;
         self
     }
 }
@@ -38,7 +49,7 @@ impl<T: TestExtension> AuthorizationExt<T> {
 impl<T: TestExtension> TestExtensionBuilder for AuthorizationExt<T> {
     fn id(&self) -> Id {
         Id {
-            name: "authorization".to_string(),
+            name: self.name.to_string(),
             version: "1.0.0".parse().unwrap(),
         }
     }

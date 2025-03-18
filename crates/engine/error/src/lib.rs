@@ -6,7 +6,7 @@ use operation::Location;
 pub use path::*;
 use std::borrow::Cow;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ErrorResponse {
     pub status: http::StatusCode,
     pub errors: Vec<GraphqlError>,

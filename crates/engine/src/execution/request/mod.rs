@@ -73,7 +73,6 @@ impl<R: Runtime> Engine<R> {
         (Arc<RequestContext>, WasmContext<R>),
         (Response<<R::Hooks as Hooks>::OnOperationResponseOutput>, WasmContext<R>),
     > {
-        let client = Client::extract_from(&headers);
         let (wasm_context, headers) = self
             .runtime
             .hooks()
@@ -82,6 +81,8 @@ impl<R: Runtime> Engine<R> {
             .map_err(|(context, ErrorResponse { status, errors })| {
                 (Response::refuse_request_with(status, errors), context)
             })?;
+
+        let client = Client::extract_from(&headers);
 
         let Some(access_token) = self.auth.authenticate(&headers).await else {
             return Err((errors::response::unauthenticated(), wasm_context));

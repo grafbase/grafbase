@@ -252,6 +252,16 @@ pub struct SchemaWithSdlOverride {
     pub sdl: String,
 }
 
+impl crate::Subgraph for SchemaWithSdlOverride {
+    fn name(&self) -> String {
+        "subgraph".to_string()
+    }
+
+    async fn start(self) -> crate::MockGraphQlServer {
+        crate::MockGraphQlServer::new(self).await
+    }
+}
+
 #[async_trait::async_trait]
 impl Schema for SchemaWithSdlOverride {
     async fn execute(
