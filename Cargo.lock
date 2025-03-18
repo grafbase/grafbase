@@ -3824,7 +3824,6 @@ dependencies = [
  "anyhow",
  "arrayvec 0.7.6",
  "ascii",
- "async-compression",
  "axum 0.8.1",
  "axum-core 0.5.0",
  "base16ct",
