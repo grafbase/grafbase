@@ -30,11 +30,7 @@ The repository is configured with a GitHub Actions workflow triggered when a new
 
 2. Commit the changes
 
-3. Create a new tag with the version number: "gateway-helm-v0.X.Y"
-
-    Replace `0.X.Y` with the new version number.
-
-4. The GitHub Actions workflow will automatically package and push the Helm chart to the GitHub Container Registry.
+3. Run [this workflow](https://github.com/grafbase/grafbase/actions/workflows/build-gateway-chart.yml) to publish the Helm chart to the GitHub Container Registry.
 
 ### Manual
 
