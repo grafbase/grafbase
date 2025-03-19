@@ -16,7 +16,7 @@ pub struct NatsClient {
 }
 
 impl NatsClient {
-    /// Publishes a message to the specified NATS subject
+    /// Publishes a message in JSON formatto the specified NATS subject
     ///
     /// # Arguments
     ///
@@ -35,7 +35,7 @@ impl NatsClient {
             .map_err(Into::into)
     }
 
-    /// Sends a request to the specified NATS subject and waits for a response
+    /// Sends a request in JSON to the specified NATS subject and waits for a response
     ///
     /// # Arguments
     ///
@@ -51,11 +51,28 @@ impl NatsClient {
         S: serde::Serialize,
         T: for<'de> serde::Deserialize<'de>,
     {
-        let timeout = timeout.map(|t| t.as_millis() as u64);
         let body = serde_json::to_vec(payload).unwrap();
-        let response = self.inner.request(subject, &body, timeout)?;
+        let response = self.request_bytes(subject, &body, timeout)?;
 
-        Ok(serde_json::from_slice(&response.payload)?)
+        Ok(serde_json::from_slice(&response)?)
+    }
+
+    /// Sends a request to the specified NATS subject and waits for a response, returning raw bytes
+    ///
+    /// # Arguments
+    ///
+    /// * `subject` - The NATS subject to send the request to
+    /// * `body` - The raw byte payload to send
+    /// * `timeout` - Optional duration to wait for a response before timing out
+    ///
+    /// # Returns
+    ///
+    /// Result containing the raw byte response or an error if the request fails
+    pub fn request_bytes(&self, subject: &str, body: &[u8], timeout: Option<Duration>) -> Result<Vec<u8>, SdkError> {
+        let timeout = timeout.map(|t| t.as_millis() as u64);
+        let response = self.inner.request(subject, body, timeout)?;
+
+        Ok(response.payload)
     }
 
     /// Subscribes to messages on the specified NATS subject
@@ -103,7 +120,7 @@ impl From<wit::NatsKeyValue> for NatsKeyValue {
 }
 
 impl NatsKeyValue {
-    /// Retrieves a value for the specified key
+    /// Retrieves a value for the specified key in JSON format
     ///
     /// # Arguments
     ///
@@ -116,13 +133,29 @@ impl NatsKeyValue {
     where
         S: for<'a> serde::Deserialize<'a>,
     {
-        match self.inner.get(key)? {
+        match self.get_bytes(key)? {
             Some(ref value) => Ok(Some(serde_json::from_slice(value)?)),
             None => Ok(None),
         }
     }
 
-    /// Stores a value for the specified key
+    /// Retrieves the raw bytes for the specified key
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - The key to retrieve the value for
+    ///
+    /// # Returns
+    ///
+    /// Result containing the raw byte value if found, or None if the key doesn't exist
+    pub fn get_bytes(&self, key: &str) -> Result<Option<Vec<u8>>, SdkError> {
+        match self.inner.get(key)? {
+            Some(value) => Ok(Some(value)),
+            None => Ok(None),
+        }
+    }
+
+    /// Stores a value for the specified key in JSON format
     ///
     /// # Arguments
     ///
@@ -137,11 +170,24 @@ impl NatsKeyValue {
         S: serde::Serialize,
     {
         let value = serde_json::to_vec(value)?;
-
-        Ok(self.inner.put(key, &value)?)
+        self.put_bytes(key, &value)
     }
 
-    /// Creates a new key-value pair, failing if the key already exists
+    /// Stores raw bytes for the specified key
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - The key to store the value under
+    /// * `value` - The raw byte value to store
+    ///
+    /// # Returns
+    ///
+    /// Result containing the revision number of the stored value
+    pub fn put_bytes(&self, key: &str, value: &[u8]) -> Result<u64, SdkError> {
+        Ok(self.inner.put(key, value)?)
+    }
+
+    /// Creates a new key-value pair in JSON format, failing if the key already exists
     ///
     /// # Arguments
     ///
@@ -156,7 +202,21 @@ impl NatsKeyValue {
         S: serde::Serialize,
     {
         let value = serde_json::to_vec(value)?;
-        Ok(self.inner.create(key, &value)?)
+        self.create_bytes(key, &value)
+    }
+
+    /// Creates a new key-value pair with raw bytes, failing if the key already exists
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - The key to create
+    /// * `value` - The raw byte value to store
+    ///
+    /// # Returns
+    ///
+    /// Result containing the revision number of the created value
+    pub fn create_bytes(&self, key: &str, value: &[u8]) -> Result<u64, SdkError> {
+        Ok(self.inner.create(key, value)?)
     }
 
     /// Deletes the specified key and its associated value
@@ -207,7 +267,7 @@ impl From<crate::wit::NatsMessage> for NatsMessage {
 }
 
 impl NatsMessage {
-    /// Gets the payload data of the message
+    /// Gets the payload data of the message in JSON format
     ///
     /// # Returns
     ///
@@ -216,7 +276,16 @@ impl NatsMessage {
     where
         S: for<'de> serde::Deserialize<'de>,
     {
-        Ok(serde_json::from_slice(&self.inner.payload)?)
+        Ok(serde_json::from_slice(self.payload_bytes())?)
+    }
+
+    /// Gets the raw bytes of the message payload
+    ///
+    /// # Returns
+    ///
+    /// A byte slice containing the raw message payload
+    pub fn payload_bytes(&self) -> &[u8] {
+        &self.inner.payload
     }
 
     /// Gets the subject of the message

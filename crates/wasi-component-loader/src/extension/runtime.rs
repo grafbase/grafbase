@@ -112,6 +112,7 @@ impl ExtensionRuntime for WasmExtensions {
             .subscription_key(Lease::Singleton(headers), subgraph.name(), directive.clone())
             .await
             .map_err(|err| err.into_graphql_error(ErrorCode::ExtensionError))?;
+
         let headers = headers.into_inner().unwrap();
 
         match key {
