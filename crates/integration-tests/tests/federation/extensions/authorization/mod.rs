@@ -1,3 +1,4 @@
+mod authenticated;
 mod deny_all;
 mod deny_some;
 mod error_propagation;
@@ -12,7 +13,7 @@ mod response;
 use std::sync::Arc;
 
 use extension_catalog::Id;
-use integration_tests::federation::{TestExtension, TestExtensionBuilder, TestExtensionConfig};
+use integration_tests::federation::{TestExtension, TestExtensionBuilder, TestManifest};
 
 struct AuthorizationExt<T> {
     instance: Arc<dyn TestExtension>,
@@ -47,15 +48,12 @@ impl<T: TestExtension> AuthorizationExt<T> {
 }
 
 impl<T: TestExtension> TestExtensionBuilder for AuthorizationExt<T> {
-    fn id(&self) -> Id {
-        Id {
-            name: self.name.to_string(),
-            version: "1.0.0".parse().unwrap(),
-        }
-    }
-
-    fn config(&self) -> TestExtensionConfig {
-        TestExtensionConfig {
+    fn manifest(&self) -> TestManifest {
+        TestManifest {
+            id: Id {
+                name: self.name.to_string(),
+                version: "1.0.0".parse().unwrap(),
+            },
             kind: extension_catalog::Kind::Authorization(extension_catalog::AuthorizationKind {
                 authorization_directives: None,
             }),

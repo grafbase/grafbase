@@ -1,13 +1,10 @@
 use engine::{Engine, ErrorResponse};
 use graphql_mocks::{EchoSchema, Schema};
 use integration_tests::{
-    federation::{EngineExt, TestExtension},
+    federation::{DynHookContext, EngineExt, TestExtension},
     runtime,
 };
-use runtime::{
-    extension::{AuthorizationDecisions, QueryElement, TokenRef},
-    hooks::DynHookContext,
-};
+use runtime::extension::{AuthorizationDecisions, QueryElement, TokenRef};
 
 use crate::federation::extensions::{
     authentication::{AuthenticationExt, static_token::StaticToken},

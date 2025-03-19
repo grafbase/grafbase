@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use engine::GraphqlError;
 use extension_catalog::Id;
-use integration_tests::federation::{TestExtension, TestExtensionBuilder, TestExtensionConfig};
+use integration_tests::federation::{TestExtension, TestExtensionBuilder, TestManifest};
 use runtime::extension::{Data, ExtensionFieldDirective};
 
 #[derive(Clone)]
@@ -23,15 +23,12 @@ impl StaticResolverExt {
 }
 
 impl TestExtensionBuilder for StaticResolverExt {
-    fn id(&self) -> Id {
-        Id {
-            name: "static".to_string(),
-            version: "1.0.0".parse().unwrap(),
-        }
-    }
-
-    fn config(&self) -> TestExtensionConfig {
-        TestExtensionConfig {
+    fn manifest(&self) -> TestManifest {
+        TestManifest {
+            id: Id {
+                name: "static".to_string(),
+                version: "1.0.0".parse().unwrap(),
+            },
             kind: extension_catalog::Kind::Resolver(extension_catalog::ResolverKind {
                 resolver_directives: None,
             }),

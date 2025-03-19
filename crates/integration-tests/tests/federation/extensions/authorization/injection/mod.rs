@@ -5,11 +5,8 @@ mod object;
 
 use engine::{ErrorResponse, GraphqlError};
 use engine_schema::DirectiveSite;
-use integration_tests::federation::TestExtension;
-use runtime::{
-    extension::{AuthorizationDecisions, QueryElement, TokenRef},
-    hooks::DynHookContext,
-};
+use integration_tests::federation::{DynHookContext, TestExtension};
+use runtime::extension::{AuthorizationDecisions, QueryElement, TokenRef};
 
 #[derive(Default)]
 pub(super) struct EchoInjections;

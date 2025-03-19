@@ -1,13 +1,10 @@
 use engine::{Engine, ErrorResponse, GraphqlError};
 use graphql_mocks::dynamic::DynamicSchema;
 use integration_tests::{
-    federation::{EngineExt, TestExtension},
+    federation::{DynHookContext, EngineExt, TestExtension},
     runtime,
 };
-use runtime::{
-    extension::{AuthorizationDecisions, QueryElement, TokenRef},
-    hooks::DynHookContext,
-};
+use runtime::extension::{AuthorizationDecisions, QueryElement, TokenRef};
 
 use crate::federation::extensions::authorization::AuthorizationExt;
 

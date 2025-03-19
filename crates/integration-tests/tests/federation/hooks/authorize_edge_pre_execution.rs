@@ -1,7 +1,8 @@
 use engine::{ErrorCode, ErrorResponse, GraphqlError};
 use graphql_mocks::SecureSchema;
 use http::HeaderMap;
-use runtime::hooks::{DynHookContext, DynHooks, EdgeDefinition};
+use integration_tests::federation::{DynHookContext, DynHooks};
+use runtime::hooks::EdgeDefinition;
 
 use super::with_engine_for_auth;
 

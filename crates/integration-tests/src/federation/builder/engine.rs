@@ -1,9 +1,8 @@
 use std::{str::FromStr, sync::Arc};
 
-use crate::federation::{TestRuntimeContext, subgraph::Subgraphs};
+use crate::federation::{DynamicHooks, ExtensionsBuilder, TestRuntimeContext, subgraph::Subgraphs};
 use federated_graph::FederatedGraph;
 use grafbase_telemetry::metrics::meter_from_global_provider;
-use runtime::hooks::DynamicHooks;
 use runtime_local::wasi::hooks::{self, AccessLogSender, ComponentLoader, HooksWasi};
 
 use engine::Engine;
@@ -14,6 +13,7 @@ pub(super) async fn build(
     federated_sdl: Option<String>,
     mut config: TestConfig,
     mut runtime: TestRuntime,
+    extensions: ExtensionsBuilder,
     subgraphs: &Subgraphs,
 ) -> Result<(Arc<Engine<TestRuntime>>, TestRuntimeContext), String> {
     let federated_graph = {
@@ -21,7 +21,7 @@ pub(super) async fn build(
             Some(sdl) => federated_graph::FederatedGraph::from_sdl(&sdl).unwrap(),
             None => {
                 if !subgraphs.is_empty() {
-                    let extensions = runtime.extensions.iter().collect::<Vec<_>>();
+                    let extensions = extensions.iter_with_url().collect::<Vec<_>>();
                     let mut subgraphs =
                         subgraphs
                             .iter()
@@ -30,7 +30,7 @@ pub(super) async fn build(
 
                                 // Quite ugly to replace directly, but should work most of time considering we append
                                 // the version number
-                                let sdl = extensions.iter().fold(subgraph.sdl(), |sdl, (url, manifest)| {
+                                let sdl = extensions.iter().fold(subgraph.sdl(), |sdl, (manifest, url)| {
                                     sdl.replace(&manifest.id.to_string(), url.as_str()).into()
                                 });
 
@@ -39,7 +39,7 @@ pub(super) async fn build(
                                     .expect("schema to be well formed");
                                 subgraphs
                             });
-                    subgraphs.ingest_loaded_extensions(extensions.into_iter().map(|(url, manifest)| {
+                    subgraphs.ingest_loaded_extensions(extensions.into_iter().map(|(manifest, url)| {
                         graphql_composition::LoadedExtension::new(url.to_string(), manifest.name().to_string())
                     }));
                     graphql_composition::compose(&subgraphs)
@@ -55,14 +55,7 @@ pub(super) async fn build(
             if url::Url::from_str(&federated_graph.strings[usize::from(extension.url)]).is_ok() {
                 continue;
             }
-            let url = url::Url::from_file_path(
-                runtime
-                    .extensions
-                    .tmpdir
-                    .path()
-                    .join(&federated_graph.strings[usize::from(extension.url)]),
-            )
-            .unwrap();
+            let url = extensions.get_url(&federated_graph.strings[usize::from(extension.url)]);
             extension.url = federated_graph.strings.len().into();
             federated_graph.strings.push(url.to_string());
         }
@@ -98,11 +91,14 @@ pub(super) async fn build(
     let schema = engine::Schema::build(
         &config,
         &federated_graph,
-        runtime.extensions.catalog(),
+        extensions.catalog(),
         engine::SchemaVersion::from(ulid::Ulid::new().to_bytes()),
     )
     .await
     .map_err(|err| err.to_string())?;
+
+    runtime.extensions = extensions.build(config, &schema).await.unwrap();
+
     let engine = engine::Engine::new(Arc::new(schema), runtime).await;
     let ctx = TestRuntimeContext { access_log_receiver };
 

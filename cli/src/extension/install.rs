@@ -87,7 +87,7 @@ async fn handle_lockfile(config_path: &Path) -> anyhow::Result<lockfile::Lockfil
 
     let mut new_version_requirements: Vec<(String, semver::VersionReq)> = Vec::new();
 
-    let mut extensions_from_config = config.extensions.unwrap_or_default();
+    let mut extensions_from_config = config.extensions;
 
     if extensions_from_config.is_empty() {
         report::no_extension_defined_in_config();

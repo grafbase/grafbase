@@ -1,0 +1,16 @@
+[package]
+name = "placeholder"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+repository.workspace = true
+
+[dependencies]
+grafbase-sdk.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[lib]
+crate-type = ["cdylib"]

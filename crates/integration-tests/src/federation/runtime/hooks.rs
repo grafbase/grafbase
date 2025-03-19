@@ -1,12 +1,8 @@
-use std::{
-    any::{Any, TypeId},
-    collections::HashMap,
-    sync::{Arc, Mutex},
-};
+use crate::federation::{DynHookContext, ExtContext};
+use engine::{ErrorCode, ErrorResponse, GraphqlError};
+use futures_util::{FutureExt, future::BoxFuture};
 
-use futures_util::{future::BoxFuture, FutureExt};
-
-use super::*;
+use runtime::hooks::*;
 
 /// Dynamic hooks, for testing purposes to have a default implementation and avoid
 /// re-compiling the whole engine with different hooks types.
@@ -136,38 +132,6 @@ pub trait DynHooks: Send + Sync + 'static {
     }
 }
 
-#[derive(Default, Clone)]
-pub struct DynHookContext {
-    by_type: HashMap<TypeId, Arc<dyn Any + Sync + Send>>,
-    by_name: Arc<Mutex<HashMap<String, serde_json::Value>>>,
-}
-
-impl DynHookContext {
-    pub fn typed_get<T>(&self) -> Option<&T>
-    where
-        T: 'static + Send + Sync,
-    {
-        self.by_type
-            .get(&TypeId::of::<T>())
-            .and_then(|value| value.downcast_ref::<T>())
-    }
-
-    pub fn typed_insert<T>(&mut self, value: T)
-    where
-        T: 'static + Send + Sync,
-    {
-        self.by_type.insert(TypeId::of::<T>(), Arc::new(value));
-    }
-
-    pub fn get(&self, name: &str) -> Option<serde_json::Value> {
-        self.by_name.lock().unwrap().get(name).cloned()
-    }
-
-    pub fn insert(&self, name: impl Into<String>, value: impl Into<serde_json::Value>) {
-        self.by_name.lock().unwrap().insert(name.into(), value.into());
-    }
-}
-
 impl<T: DynHooks> From<T> for DynamicHooks {
     fn from(hooks: T) -> Self {
         Self::new(hooks)
@@ -193,12 +157,12 @@ impl DynamicHooks {
 }
 
 impl Hooks for DynamicHooks {
-    type Context = DynHookContext;
+    type Context = ExtContext;
     type OnSubgraphResponseOutput = Vec<u8>;
     type OnOperationResponseOutput = Vec<u8>;
 
     fn new_context(&self) -> Self::Context {
-        DynHookContext::default()
+        Default::default()
     }
 
     async fn on_gateway_request(
@@ -206,9 +170,9 @@ impl Hooks for DynamicHooks {
         url: &str,
         headers: HeaderMap,
     ) -> Result<(Self::Context, HeaderMap), (Self::Context, ErrorResponse)> {
-        let mut context = DynHookContext::default();
+        let mut context = ExtContext::default();
 
-        match self.0.on_gateway_request(&mut context, url, headers).await {
+        match self.0.on_gateway_request(&mut context.test, url, headers).await {
             Ok(headers) => Ok((context, headers)),
             Err(error) => Err((context, error)),
         }
@@ -216,35 +180,35 @@ impl Hooks for DynamicHooks {
 
     async fn on_subgraph_request(
         &self,
-        context: &DynHookContext,
+        context: &ExtContext,
         subgraph_name: &str,
         request: SubgraphRequest,
     ) -> Result<SubgraphRequest, GraphqlError> {
-        self.0.on_subgraph_request(context, subgraph_name, request).await
+        self.0.on_subgraph_request(&context.test, subgraph_name, request).await
     }
 
     async fn on_subgraph_response(
         &self,
-        context: &DynHookContext,
+        context: &ExtContext,
         request: ExecutedSubgraphRequest<'_>,
     ) -> Result<Vec<u8>, GraphqlError> {
-        self.0.on_subgraph_response(context, request).await
+        self.0.on_subgraph_response(&context.test, request).await
     }
 
     async fn on_operation_response(
         &self,
-        context: &DynHookContext,
+        context: &ExtContext,
         operation: ExecutedOperation<'_, Self::OnSubgraphResponseOutput>,
     ) -> Result<Vec<u8>, GraphqlError> {
-        self.0.on_gateway_response(context, operation).await
+        self.0.on_gateway_response(&context.test, operation).await
     }
 
     async fn on_http_response(
         &self,
-        context: &DynHookContext,
+        context: &ExtContext,
         request: ExecutedHttpRequest<Self::OnOperationResponseOutput>,
     ) -> Result<(), GraphqlError> {
-        self.0.on_http_response(context, request).await
+        self.0.on_http_response(&context.test, request).await
     }
 
     fn authorized(&self) -> &impl AuthorizedHooks<Self::Context> {
@@ -252,17 +216,17 @@ impl Hooks for DynamicHooks {
     }
 }
 
-impl AuthorizedHooks<DynHookContext> for DynamicHooks {
+impl AuthorizedHooks<ExtContext> for DynamicHooks {
     async fn authorize_edge_pre_execution<'a>(
         &self,
-        context: &DynHookContext,
+        context: &ExtContext,
         definition: EdgeDefinition<'a>,
         arguments: impl Anything<'a>,
         metadata: Option<impl Anything<'a>>,
     ) -> AuthorizationVerdict {
         self.0
             .authorize_edge_pre_execution(
-                context,
+                &context.test,
                 definition,
                 serde_json::to_value(&arguments).unwrap(),
                 metadata.map(|m| serde_json::to_value(&m).unwrap()),
@@ -272,14 +236,14 @@ impl AuthorizedHooks<DynHookContext> for DynamicHooks {
 
     async fn authorize_node_post_execution<'a>(
         &self,
-        context: &DynHookContext,
+        context: &ExtContext,
         definition: NodeDefinition<'a>,
         nodes: impl IntoIterator<Item: Anything<'a>> + Send,
         metadata: Option<impl Anything<'a>>,
     ) -> AuthorizationVerdicts {
         self.0
             .authorize_node_post_execution(
-                context,
+                &context.test,
                 definition,
                 nodes
                     .into_iter()
@@ -292,25 +256,29 @@ impl AuthorizedHooks<DynHookContext> for DynamicHooks {
 
     async fn authorize_node_pre_execution<'a>(
         &self,
-        context: &DynHookContext,
+        context: &ExtContext,
         definition: NodeDefinition<'a>,
         metadata: Option<impl Anything<'a>>,
     ) -> AuthorizationVerdict {
         self.0
-            .authorize_node_pre_execution(context, definition, metadata.map(|m| serde_json::to_value(&m).unwrap()))
+            .authorize_node_pre_execution(
+                &context.test,
+                definition,
+                metadata.map(|m| serde_json::to_value(&m).unwrap()),
+            )
             .await
     }
 
     async fn authorize_parent_edge_post_execution<'a>(
         &self,
-        context: &DynHookContext,
+        context: &ExtContext,
         definition: EdgeDefinition<'a>,
         parents: impl IntoIterator<Item: Anything<'a>> + Send,
         metadata: Option<impl Anything<'a>>,
     ) -> AuthorizationVerdicts {
         self.0
             .authorize_parent_edge_post_execution(
-                context,
+                &context.test,
                 definition,
                 parents
                     .into_iter()
@@ -323,14 +291,14 @@ impl AuthorizedHooks<DynHookContext> for DynamicHooks {
 
     async fn authorize_edge_node_post_execution<'a>(
         &self,
-        context: &DynHookContext,
+        context: &ExtContext,
         definition: EdgeDefinition<'a>,
         nodes: impl IntoIterator<Item: Anything<'a>> + Send,
         metadata: Option<impl Anything<'a>>,
     ) -> AuthorizationVerdicts {
         self.0
             .authorize_edge_node_post_execution(
-                context,
+                &context.test,
                 definition,
                 nodes
                     .into_iter()
@@ -343,7 +311,7 @@ impl AuthorizedHooks<DynHookContext> for DynamicHooks {
 
     async fn authorize_edge_post_execution<'a, Parent, Nodes>(
         &self,
-        context: &DynHookContext,
+        context: &ExtContext,
         definition: EdgeDefinition<'a>,
         edges: impl IntoIterator<Item = (Parent, Nodes)> + Send,
         metadata: Option<impl Anything<'a>>,
@@ -354,7 +322,7 @@ impl AuthorizedHooks<DynHookContext> for DynamicHooks {
     {
         self.0
             .authorize_edge_post_execution(
-                context,
+                &context.test,
                 definition,
                 edges
                     .into_iter()

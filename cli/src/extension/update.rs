@@ -17,7 +17,7 @@ pub(super) async fn execute(cmd: ExtensionUpdateCommand) -> anyhow::Result<()> {
     let config_toml: gateway_config::Config = toml::from_str(&config)?;
 
     let names = name.unwrap_or_default();
-    let extensions_from_config = config_toml.extensions.unwrap_or_default();
+    let extensions_from_config = config_toml.extensions;
 
     if extensions_from_config.is_empty() && names.is_empty() {
         println!("No extension to update");

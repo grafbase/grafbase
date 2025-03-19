@@ -15,6 +15,7 @@
 /crates/**/tests/**/json
 /**/changelog
 node_modules
+/crates/integration-tests/data
 /cli/tests/integration/data/target
 /cli/tests/integration/data/echo_extension/target/
 /crates/wasi-component-loader/examples/target

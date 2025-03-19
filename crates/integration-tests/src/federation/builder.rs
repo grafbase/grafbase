@@ -10,12 +10,11 @@ use futures::{FutureExt, future::BoxFuture};
 use graphql_mocks::MockGraphQlServer;
 use runtime::{
     fetch::dynamic::DynamicFetcher,
-    hooks::DynamicHooks,
     trusted_documents_client::{self, TrustedDocumentsEnforcementMode},
 };
 
 use super::{
-    DockerSubgraph, TestExtensionBuilder, TestExtensions, TestGateway, TestRuntime,
+    DockerSubgraph, DynamicHooks, ExtensionsBuilder, TestGateway, TestRuntime, WasmOrTestExtension,
     subgraph::{Subgraph, Subgraphs},
 };
 
@@ -37,7 +36,7 @@ pub struct TestGatewayBuilder {
     trusted_documents: Option<trusted_documents_client::Client>,
     hooks: Option<DynamicHooks>,
     fetcher: Option<DynamicFetcher>,
-    extensions: TestExtensions,
+    extensions: ExtensionsBuilder,
 }
 
 pub trait EngineExt {
@@ -99,13 +98,12 @@ impl TestGatewayBuilder {
         self
     }
 
-    pub fn with_extensions(mut self, f: impl FnOnce(TestExtensions) -> TestExtensions) -> Self {
-        self.extensions = f(self.extensions);
-        self
-    }
-
-    pub fn with_extension<Builder: TestExtensionBuilder + Sized>(mut self, builder: Builder) -> Self {
-        self.extensions.push_extension(builder);
+    pub fn with_extension(mut self, ext: impl Into<WasmOrTestExtension>) -> Self {
+        let ext: WasmOrTestExtension = ext.into();
+        match ext {
+            WasmOrTestExtension::Wasm(ext) => self.extensions.push_wasm_extension(ext),
+            WasmOrTestExtension::Test(ext) => self.extensions.push_test_extension(ext),
+        }
         self
     }
 
@@ -139,7 +137,6 @@ impl TestGatewayBuilder {
 
         let gateway_config = toml::from_str(&config.toml).expect("to be able to parse config");
         let mut runtime = TestRuntime::new(&gateway_config);
-        runtime.extensions = extensions;
 
         if let Some(trusted_documents) = trusted_documents {
             runtime.trusted_documents = trusted_documents;
@@ -163,7 +160,7 @@ impl TestGatewayBuilder {
         )
         .await;
 
-        let (engine, context) = self::engine::build(federated_sdl, config, runtime, &subgraphs).await?;
+        let (engine, context) = self::engine::build(federated_sdl, config, runtime, extensions, &subgraphs).await?;
         let router = self::router::build(engine.clone(), gateway_config).await;
 
         Ok(TestGateway {

@@ -1,8 +1,9 @@
-use std::{collections::HashMap, future::Future, ops::Range, sync::Arc};
+use std::{collections::HashMap, ops::Range, sync::Arc};
 
+use crate::federation::DynHookContext;
 use engine::{ErrorResponse, GraphqlError};
 use engine_schema::{DirectiveSite, Subgraph, SubgraphId};
-use extension_catalog::{Extension, ExtensionCatalog, ExtensionId, Id, Manifest};
+use extension_catalog::{ExtensionId, Id};
 use futures::{
     TryFutureExt as _, TryStreamExt as _,
     stream::{BoxStream, FuturesUnordered},
@@ -12,78 +13,19 @@ use runtime::{
         AuthorizationDecisions, Data, ExtensionFieldDirective, QueryAuthorizationDecisions, QueryElement, Token,
         TokenRef,
     },
-    hooks::{Anything, DynHookContext},
+    hooks::Anything,
 };
 use serde::Serialize;
 use tokio::sync::Mutex;
-use url::Url;
 
+#[derive(Default)]
 pub struct TestExtensions {
-    pub tmpdir: tempfile::TempDir,
-    catalog: ExtensionCatalog,
-    builders: HashMap<ExtensionId, Box<dyn TestExtensionBuilder>>,
-    global_instances: Mutex<HashMap<ExtensionId, Arc<dyn TestExtension>>>,
-    subgraph_instances: Mutex<HashMap<(ExtensionId, SubgraphId), Arc<dyn TestExtension>>>,
-}
-
-impl Default for TestExtensions {
-    fn default() -> Self {
-        Self {
-            tmpdir: tempfile::tempdir().unwrap(),
-            catalog: Default::default(),
-            builders: Default::default(),
-            global_instances: Default::default(),
-            subgraph_instances: Default::default(),
-        }
-    }
+    pub(super) builders: HashMap<ExtensionId, Box<dyn TestExtensionBuilder>>,
+    pub(super) global_instances: Mutex<HashMap<ExtensionId, Arc<dyn TestExtension>>>,
+    pub(super) subgraph_instances: Mutex<HashMap<(ExtensionId, SubgraphId), Arc<dyn TestExtension>>>,
 }
 
 impl TestExtensions {
-    #[track_caller]
-    pub fn push_extension<Builder: TestExtensionBuilder + Sized>(&mut self, builder: Builder) {
-        let config = builder.config();
-
-        let manifest = extension_catalog::Manifest {
-            id: builder.id(),
-            kind: config.kind,
-            sdk_version: "0.0.0".parse().unwrap(),
-            minimum_gateway_version: "0.0.0".parse().unwrap(),
-            sdl: config.sdl.map(str::to_string),
-            description: "Test extension".to_owned(),
-            homepage_url: None,
-            license: None,
-            readme: None,
-            repository_url: None,
-            permissions: Default::default(),
-        };
-
-        let dir = self.tmpdir.path().join(manifest.id.to_string());
-        std::fs::create_dir(&dir).unwrap();
-        std::fs::write(
-            dir.join("manifest.json"),
-            serde_json::to_vec(&manifest.clone().into_versioned()).unwrap(),
-        )
-        .unwrap();
-        let id = self.catalog.push(Extension {
-            manifest,
-            wasm_path: Default::default(),
-        });
-        self.builders.insert(id, Box::new(builder));
-    }
-
-    pub fn catalog(&self) -> &ExtensionCatalog {
-        &self.catalog
-    }
-
-    pub fn iter(&self) -> impl Iterator<Item = (Url, &Manifest)> {
-        self.catalog.iter().map(move |ext| {
-            (
-                Url::from_file_path(self.tmpdir.path().join(ext.manifest.id.to_string())).unwrap(),
-                &ext.manifest,
-            )
-        })
-    }
-
     async fn get_subgraph_isntance(&self, extension_id: ExtensionId, subgraph: Subgraph<'_>) -> Arc<dyn TestExtension> {
         self.subgraph_instances
             .lock()
@@ -111,21 +53,15 @@ impl TestExtensions {
     }
 }
 
-pub struct TestExtensionConfig {
+pub struct TestManifest {
+    pub id: Id,
     pub sdl: Option<&'static str>,
     pub kind: extension_catalog::Kind,
 }
 
 #[allow(unused_variables)] // makes it easier to copy-paste relevant functions
 pub trait TestExtensionBuilder: Send + Sync + 'static {
-    fn id(&self) -> Id
-    where
-        Self: Sized;
-
-    fn config(&self) -> TestExtensionConfig
-    where
-        Self: Sized;
-
+    fn manifest(&self) -> TestManifest;
     fn build(&self, schema_directives: Vec<(&str, serde_json::Value)>) -> Arc<dyn TestExtension>;
 }
 

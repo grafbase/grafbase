@@ -27,15 +27,10 @@ pub(super) async fn create_extension_catalog(gateway_config: &Config) -> Result<
 
 async fn create_extension_catalog_impl(gateway_config: &Config, cwd: &Path) -> Result<ExtensionCatalog, Error> {
     let mut catalog = ExtensionCatalog::default();
-    let extension_configs = gateway_config.extensions.clone().unwrap_or_default();
-
-    if extension_configs.is_empty() {
-        return Ok(catalog);
-    }
 
     let grafbase_extensions_dir_path = cwd.join(EXTENSION_DIR_NAME);
 
-    for (extension_name, config) in extension_configs.iter() {
+    for (extension_name, config) in gateway_config.extensions.iter() {
         let extension = match config.path() {
             Some(path) => load_extension_from_path(&cwd.join(path), extension_name)?,
             None => {

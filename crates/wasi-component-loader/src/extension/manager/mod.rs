@@ -38,18 +38,10 @@ impl WasmExtensions {
         schema: &engine::Schema,
     ) -> crate::Result<Self> {
         let extensions = config::load_extensions_config(extension_catalog, gateway_config, schema);
-        if extensions.is_empty() {
-            return Ok(Default::default());
-        }
-
-        let instance_pools = create_pools(shared_resources, extensions).await?;
-
-        let inner = WasiExtensionsInner {
-            instance_pools,
+        Ok(Self(Arc::new(WasiExtensionsInner {
+            instance_pools: create_pools(shared_resources, extensions).await?,
             subscriptions: Default::default(),
-        };
-
-        Ok(Self(Arc::new(inner)))
+        })))
     }
 
     pub(super) async fn get(&self, id: ExtensionPoolId) -> Result<ExtensionGuard, GraphqlError> {

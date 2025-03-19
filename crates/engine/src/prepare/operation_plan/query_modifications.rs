@@ -164,8 +164,6 @@ where
             .boxed()
             .await?;
 
-        println!("HEADERS: {}", subgraph_default_headers_override.len());
-
         // TODO: Use http::HeaderMap.retain if it comes out.
         let denied_header_names = subgraph_default_headers_override
             .keys()

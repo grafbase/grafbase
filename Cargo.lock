@@ -5078,6 +5078,7 @@ dependencies = [
  "bytes",
  "cfg-if",
  "criterion",
+ "crossbeam",
  "crossbeam-queue",
  "ctor",
  "cynic",
@@ -5120,6 +5121,7 @@ dependencies = [
  "runtime-local",
  "runtime-noop",
  "rustls 0.23.25",
+ "semver 1.0.26",
  "serde",
  "serde_json",
  "serde_urlencoded",
@@ -5135,6 +5137,7 @@ dependencies = [
  "tracing-subscriber",
  "ulid",
  "url",
+ "wasi-component-loader",
  "zstd",
 ]
 

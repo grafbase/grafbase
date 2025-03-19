@@ -82,7 +82,7 @@ pub struct Config {
     /// Hooks configuration
     pub hooks: Option<HooksWasiConfig>,
     /// Extensions configuration
-    pub extensions: Option<BTreeMap<String, ExtensionsConfig>>,
+    pub extensions: BTreeMap<String, ExtensionsConfig>,
     /// Health check endpoint configuration
     pub health: HealthConfig,
     /// Global configuration for entity caching
@@ -2243,25 +2243,23 @@ mod tests {
         let config: Config = toml::from_str(input).unwrap();
 
         insta::assert_debug_snapshot!(&config.extensions, @r#"
-        Some(
-            {
-                "rest": Version(
-                    VersionReq {
-                        comparators: [
-                            Comparator {
-                                op: Caret,
-                                major: 0,
-                                minor: Some(
-                                    1,
-                                ),
-                                patch: None,
-                                pre: Prerelease(""),
-                            },
-                        ],
-                    },
-                ),
-            },
-        )
+        {
+            "rest": Version(
+                VersionReq {
+                    comparators: [
+                        Comparator {
+                            op: Caret,
+                            major: 0,
+                            minor: Some(
+                                1,
+                            ),
+                            patch: None,
+                            pre: Prerelease(""),
+                        },
+                    ],
+                },
+            ),
+        }
         "#);
     }
 
@@ -2280,46 +2278,44 @@ mod tests {
         let config: Config = toml::from_str(input).unwrap();
 
         insta::assert_debug_snapshot!(&config.extensions, @r#"
-        Some(
-            {
-                "rest": Structured(
-                    StructuredExtensionsConfig {
-                        version: VersionReq {
-                            comparators: [
-                                Comparator {
-                                    op: Caret,
-                                    major: 0,
-                                    minor: Some(
-                                        1,
-                                    ),
-                                    patch: Some(
-                                        0,
-                                    ),
-                                    pre: Prerelease(""),
-                                },
-                            ],
-                        },
-                        path: None,
-                        networking: Some(
-                            false,
-                        ),
-                        stdout: Some(
-                            false,
-                        ),
-                        stderr: Some(
-                            false,
-                        ),
-                        environment_variables: Some(
-                            false,
-                        ),
-                        max_pool_size: Some(
-                            1000,
-                        ),
-                        config: None,
+        {
+            "rest": Structured(
+                StructuredExtensionsConfig {
+                    version: VersionReq {
+                        comparators: [
+                            Comparator {
+                                op: Caret,
+                                major: 0,
+                                minor: Some(
+                                    1,
+                                ),
+                                patch: Some(
+                                    0,
+                                ),
+                                pre: Prerelease(""),
+                            },
+                        ],
                     },
-                ),
-            },
-        )
+                    path: None,
+                    networking: Some(
+                        false,
+                    ),
+                    stdout: Some(
+                        false,
+                    ),
+                    stderr: Some(
+                        false,
+                    ),
+                    environment_variables: Some(
+                        false,
+                    ),
+                    max_pool_size: Some(
+                        1000,
+                    ),
+                    config: None,
+                },
+            ),
+        }
         "#);
     }
 
@@ -2341,69 +2337,67 @@ mod tests {
         let config: Config = toml::from_str(input).unwrap();
 
         insta::assert_debug_snapshot!(&config.extensions, @r#"
-        Some(
-            {
-                "nats": Structured(
-                    StructuredExtensionsConfig {
-                        version: VersionReq {
-                            comparators: [
-                                Comparator {
-                                    op: Caret,
-                                    major: 0,
-                                    minor: Some(
-                                        1,
-                                    ),
-                                    patch: Some(
-                                        0,
-                                    ),
-                                    pre: Prerelease(""),
-                                },
-                            ],
-                        },
-                        path: None,
-                        networking: None,
-                        stdout: None,
-                        stderr: None,
-                        environment_variables: None,
-                        max_pool_size: None,
-                        config: Some(
-                            Table(
-                                {
-                                    "endpoint": Array(
-                                        [
-                                            Table(
-                                                {
-                                                    "authentication": Table(
-                                                        {
-                                                            "password": String(
-                                                                "password",
-                                                            ),
-                                                            "username": String(
-                                                                "user",
-                                                            ),
-                                                        },
-                                                    ),
-                                                    "name": String(
-                                                        "default",
-                                                    ),
-                                                    "servers": Array(
-                                                        [
-                                                            String(
-                                                                "demo.nats.io",
-                                                            ),
-                                                        ],
-                                                    ),
-                                                },
-                                            ),
-                                        ],
-                                    ),
-                                },
-                            ),
-                        ),
+        {
+            "nats": Structured(
+                StructuredExtensionsConfig {
+                    version: VersionReq {
+                        comparators: [
+                            Comparator {
+                                op: Caret,
+                                major: 0,
+                                minor: Some(
+                                    1,
+                                ),
+                                patch: Some(
+                                    0,
+                                ),
+                                pre: Prerelease(""),
+                            },
+                        ],
                     },
-                ),
-            },
-        )
+                    path: None,
+                    networking: None,
+                    stdout: None,
+                    stderr: None,
+                    environment_variables: None,
+                    max_pool_size: None,
+                    config: Some(
+                        Table(
+                            {
+                                "endpoint": Array(
+                                    [
+                                        Table(
+                                            {
+                                                "authentication": Table(
+                                                    {
+                                                        "password": String(
+                                                            "password",
+                                                        ),
+                                                        "username": String(
+                                                            "user",
+                                                        ),
+                                                    },
+                                                ),
+                                                "name": String(
+                                                    "default",
+                                                ),
+                                                "servers": Array(
+                                                    [
+                                                        String(
+                                                            "demo.nats.io",
+                                                        ),
+                                                    ],
+                                                ),
+                                            },
+                                        ),
+                                    ],
+                                ),
+                            },
+                        ),
+                    ),
+                },
+            ),
+        }
         "#);
     }
 }
