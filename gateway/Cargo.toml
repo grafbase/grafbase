@@ -58,4 +58,5 @@ serde_json.workspace = true
 serde_with.workspace = true
 tempfile.workspace = true
 ulid.workspace = true
+url.workspace = true
 wiremock.workspace = true
