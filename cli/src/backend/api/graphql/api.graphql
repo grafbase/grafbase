@@ -238,6 +238,24 @@ type CurrentPlanLimitReachedError {
   query: Query!
 }
 
+type CustomCheckWebhook {
+  id: ID!
+  """
+  The url called as part of custom checks.
+  """
+  url: Url!
+  createdAt: DateTime!
+  createdBy: User
+  """
+  The headers sent to the webhook with custom check events.
+  """
+  headers: [HttpHeader!]!
+}
+
+type CustomCheckWebhookNotFoundError {
+  query: Query!
+}
+
 """
 RFC3339 formatted date in the UTC time zone denoted by letter 'Z'
 """
@@ -494,6 +512,13 @@ type ExtensionConnection {
   nodes: [Extension!]!
 }
 
+enum ExtensionDefaultPermission {
+  NETWORK
+  STDOUT
+  STDERR
+  ENVIRONMENT_VARIABLES
+}
+
 type ExtensionDoesNotExistError {
   query: Query!
 }
@@ -518,7 +543,9 @@ input ExtensionFilter {
 
 enum ExtensionKind {
   FIELD_RESOLVER
-  AUTHENTICATOR
+  AUTHENTICATOR @deprecated(reason: "Replaced by AUTHENTICATION")
+  AUTHENTICATION
+  AUTHORIZATION
 }
 
 union ExtensionPublishPayload =
@@ -561,6 +588,10 @@ type ExtensionVersion {
   sdl: String
   extension: Extension!
   publishedBy: User
+  defaultPermissions: [ExtensionDefaultPermission!]
+  definitionsSdl: String
+  sdkVersion: SemverVersion!
+  minimumCompatibleGatewayVersion: SemverVersion
 }
 
 type ExtensionVersionAlreadyExistsError {
@@ -614,6 +645,7 @@ type FieldMetricsTimeSeriesDataPoint {
 
 enum GrafbasePlan {
   TRIAL
+  GROWTH
   ENTERPRISE
 }
 
@@ -621,6 +653,10 @@ type Graph implements Node {
   id: ID!
   slug: String!
   createdAt: DateTime!
+  """
+  Webhooks for custom schema checks.
+  """
+  customCheckWebhooks: [CustomCheckWebhook!]
   owners: [Team!]!
   account: Account!
   branch(name: String): Branch
@@ -906,6 +942,16 @@ type GraphUpdateSuccess {
   query: Query!
 }
 
+type HttpHeader {
+  name: String!
+  value: String!
+}
+
+input HttpHeaderInput {
+  name: String!
+  value: String!
+}
+
 interface InboxMessage {
   id: ID!
   createdAt: DateTime!
@@ -1176,6 +1222,18 @@ type Mutation {
   Run checks against the given schema
   """
   schemaCheckCreate(input: SchemaCheckCreateInput!): SchemaCheckPayload!
+  """
+  Create a SchemaCheckCustomWebhook for a specific graph. Must be issued while logged in as a user.
+  """
+  schemaCheckCustomWebhookCreate(input: SchemaCheckCustomWebhookCreateInput!): SchemaCheckCustomWebhookCreatePayload
+  """
+  Update a [CustomCheckWebhook] by id.
+  """
+  schemaCheckCustomWebhookUpdate(input: SchemaCheckCustomWebhookUpdateInput!): SchemaCheckCustomWebhookUpdatePayload
+  """
+  Delete a [CustomCheckWebhook] by id.
+  """
+  schemaCheckCustomWebhookDelete(id: ID!): SchemaCheckCustomWebhookDeletePayload
   schemaProposalCreate(input: SchemaProposalCreateInput!): SchemaProposalCreatePayload!
   """
   Take a schema proposal back to draft status. This is possible from any state.
@@ -1592,6 +1650,7 @@ type Query {
     id: ID!
   ): Deployment
   extensionByName(name: String!): Extension
+  extensionVersionByNameAndVersion(extensionName: String!, version: SemverVersion!): ExtensionVersion
   extensions(after: String, first: Int, filter: ExtensionFilter): ExtensionConnection!
   """
   Looks for extension versions that match the requirements.
@@ -1903,13 +1962,13 @@ type SchemaCheck {
   id: ID!
   schema: String!
   subgraphName: String
-  publishedSchemaVersion: ID @deprecated(reason: "This was never populated with relevant data")
   errorCount: Int!
-  validationCheckErrors: [ValidationCheckError!]!
-  compositionCheckErrors: [CompositionCheckError!]!
-  operationCheckErrors: [OperationCheckError!]!
-  lintCheckErrors: [LintCheckError!]!
-  proposalCheckErrors: [ProposalCheckError!]!
+  diagnostics: [SchemaCheckDiagnostic!]!
+  validationCheckErrors: [ValidationCheckError!]! @deprecated(reason: "Replaced by SchemaCheck.diagnostics")
+  compositionCheckErrors: [CompositionCheckError!]! @deprecated(reason: "Replaced by SchemaCheck.diagnostics")
+  operationCheckErrors: [OperationCheckError!]! @deprecated(reason: "Replaced by SchemaCheck.diagnostics")
+  lintCheckErrors: [LintCheckError!]! @deprecated(reason: "Replaced by SchemaCheck.diagnostics")
+  proposalCheckErrors: [ProposalCheckError!]! @deprecated(reason: "Replaced by SchemaCheck.diagnostics")
   createdAt: DateTime!
   gitCommit: SchemaCheckGitCommit
 }
@@ -1931,12 +1990,55 @@ type SchemaCheckConnection {
 
 input SchemaCheckCreateInput {
   accountSlug: String!
-  projectSlug: String
-  graphSlug: String
+  graphSlug: String!
   branch: String
-  subgraphName: String
+  subgraphName: String!
   schema: String!
   gitCommit: SchemaCheckGitCommitInput
+}
+
+input SchemaCheckCustomWebhookCreateInput {
+  """
+  The graph the schema checks apply to.
+  """
+  graphId: ID!
+  """
+  The webhook URL that will be called when a schema check is created.
+  """
+  url: Url!
+  """
+  The headers to be sent with the webhook request.
+  """
+  headers: [HttpHeaderInput!]
+}
+
+union SchemaCheckCustomWebhookCreatePayload = SchemaCheckCustomWebhookCreateSuccess
+
+type SchemaCheckCustomWebhookCreateSuccess {
+  query: Query!
+}
+
+union SchemaCheckCustomWebhookDeletePayload = SchemaCheckCustomWebhookDeleteSuccess | CustomCheckWebhookNotFoundError
+
+type SchemaCheckCustomWebhookDeleteSuccess {
+  query: Query!
+}
+
+input SchemaCheckCustomWebhookUpdateInput {
+  webhookId: ID!
+  headers: [HttpHeaderInput!]
+}
+
+union SchemaCheckCustomWebhookUpdatePayload = SchemaCheckCustomWebhookUpdateSuccess
+
+type SchemaCheckCustomWebhookUpdateSuccess {
+  query: Query!
+}
+
+type SchemaCheckDiagnostic {
+  step: SchemaCheckStep!
+  message: String!
+  severity: SchemaCheckErrorSeverity!
 }
 
 """
@@ -1981,6 +2083,15 @@ union SchemaCheckPayload =
   | GraphBranchDoesNotExistError
   | GraphDoesNotExistError
   | SubgraphNameMissingOnFederatedGraphError
+
+enum SchemaCheckStep {
+  VALIDATION
+  COMPOSITION
+  OPERATION
+  LINT
+  PROPOSAL
+  CUSTOM
+}
 
 type SchemaProposal {
   id: ID!

@@ -1,7 +1,10 @@
-use std::path::Path;
+use std::{collections::BTreeMap, path::Path};
 
 use crate::{
-    backend,
+    backend::{
+        self,
+        api::graphql::mutations::{SchemaCheckDiagnostic, SchemaCheckStep},
+    },
     common::{
         environment::{PlatformData, Warning},
         trusted_documents::TrustedDocumentsManifest,
@@ -116,68 +119,42 @@ pub(crate) fn check_success() {
     watercolor::output!("\n✨ Successful check!", @BrightBlue);
 }
 
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn check_errors<'a>(
-    has_errors: bool,
-    validation_errors: impl ExactSizeIterator<Item = &'a str>,
-    composition_errors: impl ExactSizeIterator<Item = &'a str>,
-    operation_errors: impl Iterator<Item = &'a str>,
-    lint_errors: impl Iterator<Item = &'a str>,
-    operation_warnings: impl Iterator<Item = &'a str>,
-    lint_warnings: impl Iterator<Item = &'a str>,
-    proposal_check_errors: impl Iterator<Item = &'a str>,
-) {
+pub(crate) fn check_errors(has_errors: bool, diagnostics: &[SchemaCheckDiagnostic]) {
     if has_errors {
         watercolor::output!("\nErrors were found in your schema check:", @BrightRed);
     } else {
         watercolor::output!("\nWarnings were found in your schema check:", @BrightYellow);
     }
 
-    if validation_errors.len() > 0 {
-        watercolor::output!("\nValidation\n", @BrightBlue);
-        for error in validation_errors {
-            watercolor::output!("❌ [Error] {error}", @BrightRed);
-        }
+    let mut sections: BTreeMap<SchemaCheckStep, Vec<&SchemaCheckDiagnostic>> = BTreeMap::new();
+
+    for diagnostic in diagnostics {
+        sections.entry(diagnostic.step).or_default().push(diagnostic);
     }
 
-    let mut lint_errors = lint_errors.peekable();
-    let mut lint_warnings = lint_warnings.peekable();
-    if lint_errors.peek().is_some() || lint_warnings.peek().is_some() {
-        watercolor::output!("\nLint\n", @BrightBlue);
-        for warning in lint_warnings {
-            watercolor::output!("⚠️ [Warning] {warning}", @BrightYellow);
-        }
-        for error in lint_errors {
-            watercolor::output!("❌ [Error] {error}", @BrightRed);
-        }
-    }
+    for (step, diagnostics) in sections {
+        let step_name = match step {
+            SchemaCheckStep::Validation => "Validation",
+            SchemaCheckStep::Composition => "Composition",
+            SchemaCheckStep::Operation => "Operation",
+            SchemaCheckStep::Lint => "Lint",
+            SchemaCheckStep::Custom => "Custom",
+            SchemaCheckStep::Proposal => "Proposal",
+        };
 
-    if composition_errors.len() > 0 {
-        watercolor::output!("\nComposition\n", @BrightBlue);
-        for error in composition_errors {
-            watercolor::output!("❌ [Error] {error}", @BrightRed);
-        }
-    }
+        watercolor::output!("\n{step_name}\n", @BrightBlue);
 
-    let mut operation_errors = operation_errors.peekable();
-    let mut operation_warnings = operation_warnings.peekable();
-    if operation_errors.peek().is_some() || operation_warnings.peek().is_some() {
-        watercolor::output!("\nOperation\n", @BrightBlue);
-        for warning in operation_warnings {
-            watercolor::output!("⚠️ [Warning] {warning}", @BrightYellow);
-        }
-        for error in operation_errors {
-            watercolor::output!("❌ [Error] {error}", @BrightRed);
-        }
-    }
+        for diagnostic in diagnostics {
+            let error = &diagnostic.message;
 
-    let mut proposal_check_errors = proposal_check_errors.peekable();
-
-    if proposal_check_errors.peek().is_some() {
-        watercolor::output!("\nProposal checks\n", @BrightBlue);
-
-        for error in proposal_check_errors {
-            watercolor::output!("❌ [Error] {error}", @BrightRed);
+            match diagnostic.severity {
+                backend::api::check::SchemaCheckErrorSeverity::Error => {
+                    watercolor::output!("❌ [Error] {error}", @BrightRed);
+                }
+                backend::api::check::SchemaCheckErrorSeverity::Warning => {
+                    watercolor::output!("⚠️ [Warning] {error}", @BrightYellow);
+                }
+            }
         }
     }
 }
