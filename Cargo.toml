@@ -182,14 +182,11 @@ rstest = "0.25"
 rustls = { version = "0.23.25", default-features = false }
 rustls-pemfile = { version = "2.2.0", default-features = false }
 rustls-webpki = { version = "0.103.0", default-features = false }
-secrecy = "0.10"
 semver = "1"
-send_wrapper = "0.6"
 serde = { version = "1.0.219", features = ["derive"] }
 serde-toml-merge = "0.3"
 serde-value = "0.7"
 serde_derive = "1"
-serde_dynamo = "4.2.14"
 serde_json = { version = "1.0.140", features = ["preserve_order"] }
 serde_path_to_error = "0.1"
 serde_regex = "1"
