@@ -40,11 +40,16 @@ impl Pool {
         Pool { inner }
     }
 
-    pub(super) async fn get(&self) -> ExtensionGuard {
+    pub(super) async fn get(&self) -> crate::Result<ExtensionGuard> {
         let span = info_span!("get extension from pool");
-        let inner = self.inner.get().instrument(span).await.expect("no io, should not fail");
+        let inner = self
+            .inner
+            .get()
+            .instrument(span)
+            .await
+            .map_err(|err| crate::Error::Internal(err.into()))?;
 
-        ExtensionGuard { inner }
+        Ok(ExtensionGuard { inner })
     }
 }
 

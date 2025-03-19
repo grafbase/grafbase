@@ -62,7 +62,7 @@ pub(super) async fn build(
 
         // Ensure SDL/JSON serialization work as a expected
         let sdl = federated_graph::render_federated_sdl(&federated_graph).expect("render_federated_sdl()");
-        println!("{sdl}");
+        println!("=== SDL ===\n{sdl}\n");
         FederatedGraph::from_sdl(&sdl).unwrap()
     };
 
@@ -84,9 +84,9 @@ pub(super) async fn build(
         }
     }
 
-    let config = toml::from_str(&config.toml).unwrap();
+    let mut config = toml::from_str(&config.toml).unwrap();
 
-    update_runtime_with_toml_config(&mut runtime, &config, access_log_sender).await;
+    setup_hooks(&mut runtime, &config, access_log_sender.clone()).await;
 
     let schema = engine::Schema::build(
         &config,
@@ -97,7 +97,12 @@ pub(super) async fn build(
     .await
     .map_err(|err| err.to_string())?;
 
-    runtime.extensions = extensions.build(config, &schema).await.unwrap();
+    runtime.extensions = extensions
+        .build_and_ingest_catalog_into_config(&mut config, &schema, access_log_sender)
+        .await
+        .unwrap();
+
+    println!("=== CONFIG ===\n{:#?}\n", config);
 
     let engine = engine::Engine::new(Arc::new(schema), runtime).await;
     let ctx = TestRuntimeContext { access_log_receiver };
@@ -105,11 +110,7 @@ pub(super) async fn build(
     Ok((Arc::new(engine), ctx))
 }
 
-async fn update_runtime_with_toml_config(
-    runtime: &mut TestRuntime,
-    config: &gateway_config::Config,
-    access_log_sender: AccessLogSender,
-) {
+async fn setup_hooks(runtime: &mut TestRuntime, config: &gateway_config::Config, access_log_sender: AccessLogSender) {
     if let Some(hooks_config) = config.hooks.clone() {
         let loader = ComponentLoader::hooks(hooks_config)
             .ok()

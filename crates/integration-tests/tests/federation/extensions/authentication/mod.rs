@@ -1,3 +1,4 @@
+mod backwards_compatibility;
 pub mod static_token;
 use std::sync::Arc;
 

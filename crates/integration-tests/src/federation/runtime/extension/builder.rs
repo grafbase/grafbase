@@ -8,7 +8,7 @@ use engine_schema::SubgraphId;
 use extension_catalog::{Extension, ExtensionCatalog, ExtensionId, Manifest};
 use tokio::sync::Mutex;
 use url::Url;
-use wasi_component_loader::{create_access_log_channel, extension::WasmExtensions, resources::SharedResources};
+use wasi_component_loader::{AccessLogSender, extension::WasmExtensions, resources::SharedResources};
 
 use crate::federation::DispatchRule;
 
@@ -130,15 +130,12 @@ impl ExtensionsBuilder {
             .map(move |(id, ext)| (&ext.manifest, self.url(id)))
     }
 
-    pub async fn build(
+    pub async fn build_and_ingest_catalog_into_config(
         self,
-        mut config: gateway_config::Config,
+        config: &mut gateway_config::Config,
         schema: &engine::Schema,
+        access_log_sender: AccessLogSender,
     ) -> Result<ExtensionsDispatcher, String> {
-        let meter = grafbase_telemetry::metrics::meter_from_global_provider();
-        let counter = meter.i64_up_down_counter("grafbase.gateway.access_log.pending").build();
-        let (access_log_sender, access_log_receiver) = create_access_log_channel(false, counter);
-
         let wasm_extensions = if self.has_wasm_extension {
             for ext in self.catalog.iter() {
                 let version = ext.manifest.id.version.to_string().parse().unwrap();
@@ -173,7 +170,7 @@ impl ExtensionsBuilder {
                     access_log: access_log_sender,
                 },
                 &self.catalog,
-                &config,
+                config,
                 schema,
             )
             .await
@@ -193,7 +190,6 @@ impl ExtensionsBuilder {
                 subgraph_instances: self.subgraph_instances,
             },
             dispatch: self.dispatch,
-            access_log_receiver,
         })
     }
 }

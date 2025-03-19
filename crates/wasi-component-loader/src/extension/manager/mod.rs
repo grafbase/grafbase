@@ -51,7 +51,10 @@ impl WasmExtensions {
             .instance_pools
             .get(&id)
             .ok_or_else(GraphqlError::internal_extension_error)?;
-        Ok(pool.get().await)
+        pool.get().await.map_err(|err| {
+            tracing::error!("Failed to retrieve extension: {err}");
+            GraphqlError::internal_extension_error()
+        })
     }
 
     pub(super) fn subscriptions(&self) -> &Subscriptions {
