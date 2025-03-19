@@ -551,7 +551,7 @@ dependencies = [
  "serde_nanos",
  "serde_repr",
  "thiserror 1.0.69",
- "time 0.3.39",
+ "time 0.3.40",
  "tokio",
  "tokio-rustls 0.26.2",
  "tokio-util",
@@ -1045,9 +1045,9 @@ dependencies = [
 
 [[package]]
 name = "blake3"
-version = "1.6.1"
+version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "675f87afced0413c9bb02843499dbbd3882a237645883f71a2b59644a6d2f753"
+checksum = "b17679a8d69b6d7fd9cd9801a536cec9fa5e5970b69f9d4747f70b39b031f5e7"
 dependencies = [
  "arrayref",
  "arrayvec 0.7.6",
@@ -1433,12 +1433,12 @@ checksum = "f46ad14479a25103f283c0f10005961cf086d8dc42205bb44c46ac563475dca6"
 
 [[package]]
 name = "cli-table"
-version = "0.4.9"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b53f9241f288a7b12c56565f04aaeaeeab6b8923d42d99255d4ca428b4d97f89"
+checksum = "14da8d951cef7cc4f13ccc9b744d736963d57863c7e6fc33c070ea274546082c"
 dependencies = [
  "termcolor",
- "unicode-width 0.1.14",
+ "unicode-width 0.2.0",
 ]
 
 [[package]]
@@ -2038,7 +2038,7 @@ checksum = "c99c59968c8aa7f90d84240ab6ded4d3864125ce36b5b044554542cebc974946"
 dependencies = [
  "cynic-proc-macros",
  "ref-cast",
- "reqwest 0.12.14",
+ "reqwest 0.12.15",
  "serde",
  "serde_json",
  "static_assertions",
@@ -2255,9 +2255,9 @@ dependencies = [
 
 [[package]]
 name = "deranged"
-version = "0.3.11"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b42b6fa04a440b495c8b04d0e71b707c585f83cb9cb28cf8cd0d976c315e31b4"
+checksum = "9c9e6a11ca8224451684bc0d7d5a7adbf8f2fd6887261a1cfc3c0432f9d4068e"
 dependencies = [
  "powerfmt",
  "serde",
@@ -2449,7 +2449,7 @@ dependencies = [
  "rust_decimal",
  "serde",
  "thiserror 2.0.12",
- "time 0.3.39",
+ "time 0.3.40",
  "winnow",
 ]
 
@@ -2626,7 +2626,7 @@ dependencies = [
  "grafbase-workspace-hack",
  "http 1.3.1",
  "jwt-compact",
- "reqwest 0.12.14",
+ "reqwest 0.12.15",
  "runtime",
  "serde",
  "serde_json",
@@ -2972,7 +2972,7 @@ dependencies = [
  "engine-id-newtypes",
  "extension",
  "grafbase-workspace-hack",
- "reqwest 0.12.14",
+ "reqwest 0.12.15",
  "serde",
  "serde_json",
  "tempfile",
@@ -3070,7 +3070,7 @@ dependencies = [
  "lambda_http",
  "minicbor-serde",
  "notify",
- "reqwest 0.12.14",
+ "reqwest 0.12.15",
  "rolling-logger",
  "runtime",
  "runtime-local",
@@ -3101,7 +3101,7 @@ dependencies = [
  "graphql-composition 0.6.2",
  "integration-tests",
  "libtest-mimic",
- "reqwest 0.12.14",
+ "reqwest 0.12.15",
  "serde",
  "serde_json",
  "similar-asserts",
@@ -3607,7 +3607,7 @@ dependencies = [
  "os_type",
  "rand 0.9.0",
  "regex",
- "reqwest 0.12.14",
+ "reqwest 0.12.15",
  "rustls 0.23.25",
  "semver 1.0.26",
  "serde",
@@ -3668,7 +3668,7 @@ dependencies = [
  "mimalloc",
  "opentelemetry-aws",
  "rand 0.9.0",
- "reqwest 0.12.14",
+ "reqwest 0.12.15",
  "rustls 0.23.25",
  "serde",
  "serde_json",
@@ -3691,7 +3691,7 @@ dependencies = [
  "cynic-parser",
  "grafbase-workspace-hack",
  "indoc",
- "reqwest 0.12.14",
+ "reqwest 0.12.15",
  "serde",
 ]
 
@@ -3736,14 +3736,14 @@ dependencies = [
  "jaq-std",
  "minicbor",
  "minicbor-serde",
- "reqwest 0.12.14",
+ "reqwest 0.12.15",
  "semver 1.0.26",
  "serde",
  "serde_json",
  "serde_urlencoded",
  "tempfile",
  "thiserror 2.0.12",
- "time 0.3.39",
+ "time 0.3.40",
  "tokio",
  "toml",
  "tungstenite 0.26.2",
@@ -3911,7 +3911,7 @@ dependencies = [
  "regex",
  "regex-automata 0.4.9",
  "regex-syntax 0.8.5",
- "reqwest 0.12.14",
+ "reqwest 0.12.15",
  "rsa",
  "rustix 0.38.44",
  "rustix 1.0.2",
@@ -3935,7 +3935,7 @@ dependencies = [
  "subtle",
  "syn 2.0.100",
  "sync_wrapper 1.0.2",
- "time 0.3.39",
+ "time 0.3.40",
  "tokio",
  "tokio-rustls 0.26.2",
  "tokio-stream",
@@ -5114,7 +5114,7 @@ dependencies = [
  "pprof",
  "pretty_assertions",
  "rand 0.8.5",
- "reqwest 0.12.14",
+ "reqwest 0.12.15",
  "rstest",
  "runtime",
  "runtime-local",
@@ -5537,9 +5537,9 @@ checksum = "8355be11b20d696c8f18f6cc018c4e372165b1fa8126cef092399c9951984ffa"
 
 [[package]]
 name = "libmimalloc-sys"
-version = "0.1.39"
+version = "0.1.40"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23aa6811d3bd4deb8a84dde645f943476d13b248d818edcf8ce0b2f37f036b44"
+checksum = "07d0e07885d6a754b9c7993f2625187ad694ee985d60f23355ff0e7077261502"
 dependencies = [
  "cc",
  "libc",
@@ -5758,9 +5758,9 @@ dependencies = [
 
 [[package]]
 name = "mimalloc"
-version = "0.1.43"
+version = "0.1.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "68914350ae34959d83f732418d51e2427a794055d0b9529f48259ac07af65633"
+checksum = "99585191385958383e13f6b822e6b6d8d9cf928e7d286ceb092da92b43c87bc1"
 dependencies = [
  "libmimalloc-sys",
 ]
@@ -6149,7 +6149,7 @@ dependencies = [
  "getrandom 0.2.15",
  "http 1.3.1",
  "rand 0.8.5",
- "reqwest 0.12.14",
+ "reqwest 0.12.15",
  "serde",
  "serde_json",
  "serde_path_to_error",
@@ -6320,7 +6320,7 @@ dependencies = [
  "bytes",
  "http 1.3.1",
  "opentelemetry",
- "reqwest 0.12.14",
+ "reqwest 0.12.15",
  "tracing",
 ]
 
@@ -6338,7 +6338,7 @@ dependencies = [
  "opentelemetry-proto",
  "opentelemetry_sdk",
  "prost",
- "reqwest 0.12.14",
+ "reqwest 0.12.15",
  "thiserror 2.0.12",
  "tokio",
  "tonic",
@@ -6711,7 +6711,7 @@ dependencies = [
  "indexmap 2.8.0",
  "quick-xml 0.32.0",
  "serde",
- "time 0.3.39",
+ "time 0.3.40",
 ]
 
 [[package]]
@@ -7479,9 +7479,9 @@ dependencies = [
 
 [[package]]
 name = "reqwest"
-version = "0.12.14"
+version = "0.12.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "989e327e510263980e231de548a33e63d34962d29ae61b467389a1a09627a254"
+checksum = "d19c46a6fdd48bc4dab94b6103fccc55d34c67cc0ad04653aad4ea2a07cd7bbb"
 dependencies = [
  "async-compression",
  "base64 0.22.1",
@@ -7539,7 +7539,7 @@ dependencies = [
  "mime",
  "nom",
  "pin-project-lite",
- "reqwest 0.12.14",
+ "reqwest 0.12.15",
  "thiserror 1.0.69",
 ]
 
@@ -7691,7 +7691,7 @@ dependencies = [
  "grafbase-workspace-hack",
  "http 1.3.1",
  "minicbor-serde",
- "reqwest 0.12.14",
+ "reqwest 0.12.15",
  "semver 1.0.26",
  "serde",
  "serde_json",
@@ -7731,7 +7731,7 @@ dependencies = [
  "p384",
  "postcard",
  "redis",
- "reqwest 0.12.14",
+ "reqwest 0.12.15",
  "reqwest-eventsource",
  "runtime",
  "semver 1.0.26",
@@ -8265,7 +8265,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "serde_with_macros",
- "time 0.3.39",
+ "time 0.3.40",
 ]
 
 [[package]]
@@ -9071,9 +9071,9 @@ dependencies = [
 
 [[package]]
 name = "time"
-version = "0.3.39"
+version = "0.3.40"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dad298b01a40a23aac4580b67e3dbedb7cc8402f3592d7f49469de2ea4aecdd8"
+checksum = "9d9c75b47bdff86fa3334a3db91356b8d7d86a9b839dab7d0bdc5c3d3a077618"
 dependencies = [
  "deranged",
  "itoa",
@@ -9081,14 +9081,14 @@ dependencies = [
  "powerfmt",
  "serde",
  "time-core",
- "time-macros 0.2.20",
+ "time-macros 0.2.21",
 ]
 
 [[package]]
 name = "time-core"
-version = "0.1.3"
+version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "765c97a5b985b7c11d7bc27fa927dc4fe6af3a6dfb021d28deb60d3bf51e76ef"
+checksum = "c9e9a38711f559d9e3ce1cdb06dd7c5b8ea546bc90052da6d06bb76da74bb07c"
 
 [[package]]
 name = "time-macros"
@@ -9102,9 +9102,9 @@ dependencies = [
 
 [[package]]
 name = "time-macros"
-version = "0.2.20"
+version = "0.2.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e8093bc3e81c3bc5f7879de09619d06c9a5a5e45ca44dfeeb7225bae38005c5c"
+checksum = "29aa485584182073ed57fd5004aa09c371f021325014694e432313345865fd04"
 dependencies = [
  "num-conv",
  "time-core",
@@ -9812,7 +9812,7 @@ dependencies = [
  "indoc",
  "insta",
  "minicbor-serde",
- "reqwest 0.12.14",
+ "reqwest 0.12.15",
  "runtime",
  "semver 1.0.26",
  "serde",
@@ -9820,7 +9820,7 @@ dependencies = [
  "strum 0.27.1",
  "tempfile",
  "thiserror 2.0.12",
- "time 0.3.39",
+ "time 0.3.40",
  "tokio",
  "tokio-stream",
  "toml",
