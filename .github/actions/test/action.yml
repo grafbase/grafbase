@@ -57,6 +57,20 @@ runs:
       run: |
         cargo build --target wasm32-wasip2
 
+    - name: Build the grafbase cli
+      shell: bash
+      env:
+        RUSTC_WRAPPER: sccache
+      run: cargo build -p grafbase
+
+    - name: Build the integration-tests extensions
+      shell: bash
+      working-directory: crates/integration-tests/data/extensions
+      env:
+        RUSTC_WRAPPER: sccache
+      run: |
+        ./build.sh
+
     - name: Build all non-gateway tests
       id: all_tests_build
       if: ${{ inputs.with-integration-tests == 'true' }}
