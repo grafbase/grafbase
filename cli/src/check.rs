@@ -49,11 +49,7 @@ pub(crate) async fn check(command: CheckCommand) -> Result<(), CliError> {
 
     let check::SchemaCheck {
         error_count,
-        validation_check_errors,
-        composition_check_errors,
-        operation_check_errors,
-        lint_check_errors,
-        proposal_check_errors,
+        diagnostics,
     } = match result {
         check::SchemaCheckResult::Ok(check) => check,
         check::SchemaCheckResult::SubgraphNameMissingOnFederatedGraphError => {
@@ -62,36 +58,10 @@ pub(crate) async fn check(command: CheckCommand) -> Result<(), CliError> {
         }
     };
 
-    if validation_check_errors.is_empty()
-        && composition_check_errors.is_empty()
-        && operation_check_errors.is_empty()
-        && lint_check_errors.is_empty()
-        && proposal_check_errors.is_empty()
-    {
+    if diagnostics.is_empty() {
         report::check_success();
     } else {
-        report::check_errors(
-            error_count != 0,
-            validation_check_errors.iter().map(|err| err.message.as_str()),
-            composition_check_errors.iter().map(|err| err.message.as_str()),
-            operation_check_errors
-                .iter()
-                .filter(|err| matches!(err.severity, check::SchemaCheckErrorSeverity::Error))
-                .map(|err| err.message.as_str()),
-            lint_check_errors
-                .iter()
-                .filter(|err| matches!(err.severity, check::SchemaCheckErrorSeverity::Error))
-                .map(|err| err.message.as_str()),
-            operation_check_errors
-                .iter()
-                .filter(|err| matches!(err.severity, check::SchemaCheckErrorSeverity::Warning))
-                .map(|err| err.message.as_str()),
-            lint_check_errors
-                .iter()
-                .filter(|err| matches!(err.severity, check::SchemaCheckErrorSeverity::Warning))
-                .map(|err| err.message.as_str()),
-            proposal_check_errors.iter().map(|err| err.message.as_str()),
-        );
+        report::check_errors(error_count != 0, &diagnostics);
 
         if error_count > 0 {
             std::process::exit(FAILED_CHECK_EXIT_STATUS);

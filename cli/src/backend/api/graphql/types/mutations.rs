@@ -229,38 +229,24 @@ pub(crate) struct SubgraphPublish {
 #[derive(cynic::QueryFragment, Debug)]
 pub struct SchemaCheck {
     pub error_count: i32,
-    pub validation_check_errors: Vec<ValidationCheckError>,
-    pub composition_check_errors: Vec<CompositionCheckError>,
-    pub operation_check_errors: Vec<OperationCheckError>,
-    pub lint_check_errors: Vec<LintCheckError>,
-    pub proposal_check_errors: Vec<ProposalCheckError>,
+    pub diagnostics: Vec<SchemaCheckDiagnostic>,
 }
 
 #[derive(cynic::QueryFragment, Debug)]
-pub struct ProposalCheckError {
-    pub message: String,
-}
-
-#[derive(cynic::QueryFragment, Debug)]
-pub struct ValidationCheckError {
-    pub message: String,
-}
-
-#[derive(cynic::QueryFragment, Debug)]
-pub struct CompositionCheckError {
-    pub message: String,
-}
-
-#[derive(cynic::QueryFragment, Debug)]
-pub struct OperationCheckError {
+pub struct SchemaCheckDiagnostic {
+    pub step: SchemaCheckStep,
     pub message: String,
     pub severity: SchemaCheckErrorSeverity,
 }
 
-#[derive(cynic::QueryFragment, Debug)]
-pub struct LintCheckError {
-    pub message: String,
-    pub severity: SchemaCheckErrorSeverity,
+#[derive(Debug, cynic::Enum, PartialEq, PartialOrd, Eq, Ord, Clone, Copy)]
+pub enum SchemaCheckStep {
+    Validation,
+    Composition,
+    Operation,
+    Lint,
+    Custom,
+    Proposal,
 }
 
 #[derive(cynic::Enum, Clone, Copy, Debug)]
@@ -291,9 +277,9 @@ pub enum SchemaCheckPayload {
 #[derive(cynic::InputObject, Debug)]
 pub struct SchemaCheckCreateInput<'a> {
     pub account_slug: &'a str,
-    pub graph_slug: Option<&'a str>,
+    pub graph_slug: &'a str,
     pub branch: Option<&'a str>,
-    pub subgraph_name: Option<&'a str>,
+    pub subgraph_name: &'a str,
     pub schema: &'a str,
     pub git_commit: Option<SchemaCheckGitCommitInput>,
 }
