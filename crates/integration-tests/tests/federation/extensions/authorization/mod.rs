@@ -15,7 +15,9 @@ use std::sync::Arc;
 use extension_catalog::Id;
 use integration_tests::federation::{TestExtension, TestExtensionBuilder, TestManifest};
 
-struct AuthorizationExt<T> {
+pub use headers::*;
+
+pub struct AuthorizationExt<T> {
     instance: Arc<dyn TestExtension>,
     name: &'static str,
     sdl: Option<&'static str>,

@@ -14,7 +14,6 @@ async-tungstenite.workspace = true
 axum.workspace = true
 bytes.workspace = true
 cfg-if.workspace = true
-crossbeam = { workspace = true, features = ["crossbeam-channel"] }
 crossbeam-queue.workspace = true
 ctor.workspace = true
 cynic.workspace = true

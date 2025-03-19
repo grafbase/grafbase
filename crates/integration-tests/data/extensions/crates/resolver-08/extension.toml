@@ -1,0 +1,8 @@
+[extension]
+name = "resolver-08"
+version = "1.0.0"
+kind = "resolver"
+description = ""
+
+[permissions]
+network = true 

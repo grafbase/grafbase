@@ -11,7 +11,7 @@ use runtime::{
     },
     hooks::Anything,
 };
-use wasi_component_loader::{AccessLogReceiver, extension::WasmExtensions};
+use wasi_component_loader::extension::WasmExtensions;
 
 use crate::federation::ExtContext;
 
@@ -22,23 +22,11 @@ pub enum DispatchRule {
     Test,
 }
 
+#[derive(Default)]
 pub struct ExtensionsDispatcher {
     pub(super) dispatch: HashMap<ExtensionId, DispatchRule>,
     pub(super) test: TestExtensions,
     pub(super) wasm: WasmExtensions,
-    pub access_log_receiver: AccessLogReceiver,
-}
-
-impl Default for ExtensionsDispatcher {
-    fn default() -> Self {
-        let (_, receiver) = crossbeam::channel::bounded(1);
-        Self {
-            dispatch: Default::default(),
-            test: Default::default(),
-            wasm: Default::default(),
-            access_log_receiver: receiver,
-        }
-    }
 }
 
 impl ExtensionRuntime for ExtensionsDispatcher {

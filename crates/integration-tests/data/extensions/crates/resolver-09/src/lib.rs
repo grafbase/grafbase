@@ -28,7 +28,6 @@ impl ResolverExtension for SimpleResolver {
     fn new(schema_directives: Vec<SchemaDirective>, _: Configuration) -> Result<Self, Error> {
         let schema_args = schema_directives
             .into_iter()
-            .filter(|d| d.name() == "schemaArgs")
             .map(|d| d.arguments().unwrap())
             .next()
             .unwrap();

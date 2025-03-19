@@ -1,3 +1,4 @@
+mod backwards_compatibility;
 mod errors;
 mod injection;
 mod validation;

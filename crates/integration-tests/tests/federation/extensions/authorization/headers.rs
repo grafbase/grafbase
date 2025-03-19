@@ -12,7 +12,7 @@ use crate::federation::extensions::{
 };
 
 #[derive(Default)]
-pub(super) struct InsertTokenAsHeader;
+pub struct InsertTokenAsHeader;
 
 #[async_trait::async_trait]
 impl TestExtension for InsertTokenAsHeader {
@@ -41,11 +41,7 @@ fn can_inject_token_into_headers() {
                 extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
 
                 type Query {
-                    headers: [Header!]! @auth
-                }
-                type Header {
-                    name: String!
-                    value: String!
+                    header(name: String): String @auth
                 }
                 "#,
             ))
@@ -62,34 +58,13 @@ fn can_inject_token_into_headers() {
             .build()
             .await;
 
-        engine.post("query { headers { name value }}").await
+        engine.post(r#"query { header(name: "token") }"#).await
     });
 
     insta::assert_json_snapshot!(response,  @r#"
     {
       "data": {
-        "headers": [
-          {
-            "name": "accept",
-            "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
-          },
-          {
-            "name": "accept-encoding",
-            "value": "gzip, br, zstd, deflate"
-          },
-          {
-            "name": "content-length",
-            "value": "59"
-          },
-          {
-            "name": "content-type",
-            "value": "application/json"
-          },
-          {
-            "name": "token",
-            "value": "Hello world!"
-          }
-        ]
+        "header": "Hello world!"
       }
     }
     "#);

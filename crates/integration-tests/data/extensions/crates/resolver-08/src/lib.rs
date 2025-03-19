@@ -1,6 +1,6 @@
 use grafbase_sdk::{
     Error, Extension, Headers, Resolver, ResolverExtension, Subscription,
-    types::{Configuration, FieldDefinitionDirective, FieldInputs, FieldOutput},
+    types::{Configuration, FieldDefinitionDirective, FieldInputs, FieldOutput, SchemaDirective},
 };
 
 #[derive(ResolverExtension)]
@@ -25,16 +25,12 @@ struct ResponseOutput<'a> {
 }
 
 impl Extension for SimpleResolver {
-    fn new(
-        schema_directives: Vec<grafbase_sdk::types::SchemaDirective>,
-        _: Configuration,
-    ) -> Result<Self, Box<dyn std::error::Error>>
+    fn new(schema_directives: Vec<SchemaDirective>, _: Configuration) -> Result<Self, Box<dyn std::error::Error>>
     where
         Self: Sized,
     {
         let schema_args = schema_directives
             .into_iter()
-            .filter(|d| d.name() == "schemaArgs")
             .map(|d| d.arguments().unwrap())
             .next()
             .unwrap();

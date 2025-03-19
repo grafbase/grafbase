@@ -1,0 +1,6 @@
+[extension]
+name = "auth-08"
+version = "1.0.0"
+kind = "authentication"
+description = ""
+

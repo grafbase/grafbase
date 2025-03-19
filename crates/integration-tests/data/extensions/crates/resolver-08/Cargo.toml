@@ -1,0 +1,12 @@
+[package]
+name = "resolver-08"
+version = "1.0.0"
+edition = "2024"
+license = "Apache-2.0"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+grafbase-sdk = "0.8.0"
+serde.workspace = true

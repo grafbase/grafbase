@@ -1,4 +1,4 @@
-use grafbase_hooks::{grafbase_hooks, Hooks};
+use grafbase_hooks::{Hooks, grafbase_hooks};
 
 struct Component;
 
