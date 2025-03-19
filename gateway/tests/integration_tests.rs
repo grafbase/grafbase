@@ -2,6 +2,7 @@ mod access_logs;
 mod entity_caching;
 mod mocks;
 mod telemetry;
+mod tls;
 
 use std::{
     borrow::Cow,
@@ -21,8 +22,8 @@ use futures_util::{Future, FutureExt};
 use http::{HeaderMap, StatusCode};
 use indoc::indoc;
 use tempfile::tempdir;
-use tokio::runtime::Runtime;
 use tokio::time::Instant;
+use tokio::{runtime::Runtime, time::sleep};
 use wiremock::{
     Mock, ResponseTemplate,
     matchers::{header, method, path},
@@ -187,7 +188,7 @@ impl Client {
 
             assert!(start.elapsed().unwrap().as_secs() < timeout_secs, "timeout");
 
-            tokio::time::sleep(Duration::from_millis(interval_millis)).await;
+            sleep(Duration::from_millis(interval_millis)).await;
         }
     }
 
@@ -443,6 +444,119 @@ impl<'a> GatewayBuilder<'a> {
 
         if let Err(err) = res {
             std::panic::resume_unwind(err);
+        }
+    }
+}
+
+pub struct GatewayRunner {
+    config: Option<String>,
+    schema: String,
+    log: Option<String>,
+}
+
+impl GatewayRunner {
+    pub fn with_schema(schema: impl AsRef<str>) -> Self {
+        Self {
+            config: None,
+            schema: schema.as_ref().to_string(),
+            log: None,
+        }
+    }
+
+    #[must_use]
+    pub fn with_config(mut self, config: impl AsRef<str>) -> Self {
+        self.config = Some(config.as_ref().to_string());
+        self
+    }
+
+    #[must_use]
+    pub fn with_log_level(mut self, level: impl AsRef<str>) -> Self {
+        self.log = Some(level.as_ref().to_string());
+        self
+    }
+
+    pub fn run<T>(self, test: impl AsyncFnOnce(SocketAddr) -> T) -> T {
+        let temp_dir = tempdir().unwrap();
+        let schema_path = temp_dir.path().join("schema.graphql");
+        fs::write(&schema_path, self.schema).unwrap();
+
+        let addr = listen_address();
+        let mut args = vec![
+            "--listen-address".to_string(),
+            addr.to_string(),
+            "--schema".to_string(),
+            schema_path.to_str().unwrap().to_string(),
+        ];
+
+        if let Some(config) = self.config {
+            let config_path = temp_dir.path().join("grafbase.toml");
+            fs::write(&config_path, config).unwrap();
+            args.push("--config".to_string());
+            args.push(config_path.to_str().unwrap().to_string());
+        }
+
+        if let Some(level) = self.log {
+            args.push("--log".to_string());
+            args.push(level);
+        }
+
+        let command = cmd(cargo_bin("grafbase-gateway"), &args)
+            .unchecked()
+            .stdout_capture()
+            .stderr_capture()
+            .start()
+            .unwrap();
+
+        std::thread::sleep(std::time::Duration::from_millis(1000));
+        let result = catch_unwind(AssertUnwindSafe(|| {
+            #[allow(clippy::panic)]
+            runtime().block_on(async {
+                let wait_for_gateway = async {
+                    let start = std::time::Instant::now();
+                    println!("Waiting for gateway to be available at {addr}...");
+
+                    // On MacOS port mapping takes forever (with colima at least), but on Linux it's sub
+                    // millisecond. CI is however not fast enough for the whole gateway to be fully started
+                    // before the test starts. So ensuring we always give the gateway some time.
+                    sleep(Duration::from_millis(20)).await;
+
+                    while tokio::net::TcpStream::connect(addr).await.is_err() {
+                        sleep(Duration::from_millis(100)).await;
+                    }
+
+                    // Adding an extra 100ms to be safe.
+                    // We can't do a lot more here as we don't know how the gateway was configured
+                    // (tls, path, etc.)
+                    sleep(Duration::from_millis(100)).await;
+
+                    println!("Waited for {} ms", start.elapsed().as_millis());
+                };
+
+                tokio::select! {
+                    () = wait_for_gateway => {},
+                    () = sleep(Duration::from_secs(5)) => {
+                        panic!("Gateway did not start in time");
+                    }
+                }
+
+                test(addr).await
+            })
+        }));
+
+        command.kill().unwrap();
+        let output = command.into_output().unwrap();
+
+        match result {
+            Ok(res) => res,
+            Err(err) => {
+                println!(
+                    "=== Gateway ===\n{}\n{}\n",
+                    String::from_utf8_lossy(&output.stdout),
+                    String::from_utf8_lossy(&output.stderr)
+                );
+
+                std::panic::resume_unwind(err);
+            }
         }
     }
 }
