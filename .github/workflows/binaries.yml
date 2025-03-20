@@ -383,6 +383,10 @@ jobs:
   darwin:
     needs: [test]
     runs-on: depot-macos-latest
+    strategy:
+      matrix:
+        target:
+          - aarch64-apple-darwin
     steps:
       - name: Get sources
         uses: actions/checkout@v4
@@ -437,7 +441,7 @@ jobs:
           VERSION_BUMP=${VERSION_BUMP//gateway-} # remove the gateway prefix from the tag
           echo VERSION_BUMP=${VERSION_BUMP} >> $GITHUB_ENV
 
-      - if: ${{ github.event_name == 'pull_request' && matrix.archs.runner != 'depot-ubuntu-24.04-arm-8' }}
+      - if: ${{ github.event_name == 'pull_request' }}
         name: Upload the binaries of the change to R2
         run: |
           curl "https://awscli.amazonaws.com/AWSCLIV2.pkg" -o "AWSCLIV2.pkg"
