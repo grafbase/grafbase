@@ -40,22 +40,16 @@ impl AuthorizationDecisions {
 /// To be used when denying some of the elements. By default everything is granted.
 pub struct DenySomeBuilder(wit::AuthorizationDecisionsDenySome);
 
-/// Either a `QueryElement` or a `ResponseItem`.
-pub trait QueryElementOrResponseItem: crate::sealed::Sealed {
-    #[doc(hidden)]
-    fn ix(&self) -> u32;
-}
-
 impl DenySomeBuilder {
     /// Deny access to the specified element in the query with the specified error.
-    pub fn deny(&mut self, element: impl QueryElementOrResponseItem, error: impl Into<Error>) {
+    pub fn deny(&mut self, x: impl private::QueryElementOrResponseItem, error: impl Into<Error>) {
         let error_id = self.push_error(error);
-        self.deny_with_error_id(element, error_id)
+        self.deny_with_error_id(x, error_id)
     }
 
     /// Deny access to the specified element in the query, re-using an existing error.
-    pub fn deny_with_error_id(&mut self, element: impl QueryElementOrResponseItem, error_id: ErrorId) {
-        self.0.element_to_error.push((element.ix(), error_id.0));
+    pub fn deny_with_error_id(&mut self, x: impl private::QueryElementOrResponseItem, error_id: ErrorId) {
+        self.0.element_to_error.push((x.ix(), error_id.0));
     }
 
     /// Returns an ErrorId that can be used to reference this error later in `deny_with_error_id`.
@@ -68,5 +62,13 @@ impl DenySomeBuilder {
     /// Build the final AuthorizationDecisions
     pub fn build(self) -> AuthorizationDecisions {
         AuthorizationDecisions(wit::AuthorizationDecisions::DenySome(self.0))
+    }
+}
+
+pub(super) mod private {
+    /// Either a `QueryElement` or a `ResponseItem`.
+    pub trait QueryElementOrResponseItem: crate::sealed::Sealed {
+        #[doc(hidden)]
+        fn ix(&self) -> u32;
     }
 }

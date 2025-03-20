@@ -328,9 +328,9 @@ impl ExtensionDirectiveArgumentsCoercer<'_, '_> {
                 }
                 GrafbaseScalar::FieldSet => {
                     self.current_injection_stage = self.current_injection_stage.max(InjectionStage::Response);
-                    self.coerce_field_set(value)
-                        .map(ExtensionInputValueRecord::FieldSet)
-                        .map_err(Into::into)
+                    let field_set = self.coerce_field_set(value)?;
+                    self.requirements = self.requirements.union(&field_set);
+                    Ok(ExtensionInputValueRecord::FieldSet(field_set))
                 }
                 GrafbaseScalar::UrlTemplate | GrafbaseScalar::JsonTemplate => {
                     self.current_injection_stage = self.current_injection_stage.max(InjectionStage::Query);

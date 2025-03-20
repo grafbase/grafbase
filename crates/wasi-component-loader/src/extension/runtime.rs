@@ -1,6 +1,6 @@
 mod subscription;
 
-use crate::{SharedContext, cbor, resources::Lease};
+use crate::{Error, SharedContext, cbor, resources::Lease};
 
 use super::{
     ExtensionPoolId, InputList, WasmExtensions,
@@ -60,7 +60,13 @@ impl ExtensionRuntime for WasmExtensions {
             instance
                 .resolve_field(headers, subgraph.name(), directive, inputs)
                 .await
-                .map_err(|err| err.into_graphql_error(ErrorCode::ExtensionError))
+                .map_err(|err| match err {
+                    Error::Internal(err) => {
+                        tracing::error!("Wasm error: {err}");
+                        GraphqlError::new("Internal error", ErrorCode::ExtensionError)
+                    }
+                    Error::Guest(err) => err.into_graphql_error(ErrorCode::ExtensionError),
+                })
         }
     }
 
@@ -79,7 +85,13 @@ impl ExtensionRuntime for WasmExtensions {
             .authenticate(headers)
             .await
             .map(|(headers, token)| (headers.into_inner().unwrap(), token))
-            .map_err(|err| err.into_graphql_error_response(ErrorCode::Unauthenticated))
+            .map_err(|err| match err {
+                crate::ErrorResponse::Internal(err) => {
+                    tracing::error!("Wasm error: {err}");
+                    ErrorResponse::from(GraphqlError::new("Internal error", ErrorCode::ExtensionError))
+                }
+                crate::ErrorResponse::Guest(err) => err.into_graphql_error_response(ErrorCode::Unauthenticated),
+            })
     }
 
     async fn resolve_subscription<'ctx, 'f>(
@@ -111,7 +123,13 @@ impl ExtensionRuntime for WasmExtensions {
         let (headers, key) = instance
             .subscription_key(Lease::Singleton(headers), subgraph.name(), directive.clone())
             .await
-            .map_err(|err| err.into_graphql_error(ErrorCode::ExtensionError))?;
+            .map_err(|err| match err {
+                Error::Internal(err) => {
+                    tracing::error!("Wasm error: {err}");
+                    GraphqlError::new("Internal error", ErrorCode::ExtensionError)
+                }
+                Error::Guest(err) => err.into_graphql_error(ErrorCode::ExtensionError),
+            })?;
 
         let headers = headers.into_inner().unwrap();
 
@@ -240,7 +258,15 @@ impl ExtensionRuntime for WasmExtensions {
                                     decisions,
                                 })
                             }
-                            Err(err) => Err(err.into_graphql_error_response(ErrorCode::Unauthorized)),
+                            Err(err) => Err(match err {
+                                crate::ErrorResponse::Internal(err) => {
+                                    tracing::error!("Wasm error: {err}");
+                                    ErrorResponse::from(GraphqlError::new("Internal error", ErrorCode::ExtensionError))
+                                }
+                                crate::ErrorResponse::Guest(err) => {
+                                    err.into_graphql_error_response(ErrorCode::Unauthenticated)
+                                }
+                            }),
                         }
                     },
                 )
@@ -294,7 +320,13 @@ impl ExtensionRuntime for WasmExtensions {
                     },
                 )
                 .await
-                .map_err(|err| err.into_graphql_error(ErrorCode::Unauthorized))
+                .map_err(|err| match err {
+                    Error::Internal(err) => {
+                        tracing::error!("Wasm error: {err}");
+                        GraphqlError::new("Internal error", ErrorCode::ExtensionError)
+                    }
+                    Error::Guest(err) => err.into_graphql_error(ErrorCode::Unauthorized),
+                })
         }
     }
 }

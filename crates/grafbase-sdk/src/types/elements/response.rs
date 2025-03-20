@@ -1,4 +1,4 @@
-use crate::{cbor, wit, SdkError};
+use crate::{cbor, sealed::Sealed, types::authorization::private::QueryElementOrResponseItem, wit, SdkError};
 use serde::Deserialize;
 
 use super::QueryElementId;
@@ -104,10 +104,7 @@ impl<'a> ResponseElement<'a> {
 
     /// Arguments of the directive with any query data injected. Any argument that depends on
     /// response data will not be present here and be provided separately.
-    pub fn items<T>(&self) -> impl ExactSizeIterator<Item = ResponseItem<'a>>
-    where
-        T: Deserialize<'a>,
-    {
+    pub fn items(&self) -> impl ExactSizeIterator<Item = ResponseItem<'a>> {
         let (start, end) = self.items_range;
         self.items[start as usize..end as usize]
             .iter()
@@ -119,8 +116,8 @@ impl<'a> ResponseElement<'a> {
     }
 }
 
-impl crate::sealed::Sealed for ResponseItem<'_> {}
-impl crate::types::authorization::QueryElementOrResponseItem for ResponseItem<'_> {
+impl Sealed for ResponseItem<'_> {}
+impl QueryElementOrResponseItem for ResponseItem<'_> {
     fn ix(&self) -> u32 {
         self.ix
     }

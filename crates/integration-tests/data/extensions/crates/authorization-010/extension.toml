@@ -1,0 +1,6 @@
+[extension]
+name = "authorization-010"
+version = "1.0.0"
+kind = "authorization"
+description = ""
+
