@@ -1,0 +1,5 @@
+extend schema @link(url: "https://specs.grafbase.com/grafbase", import: ["FieldSet"])
+
+directive @deniedIds(ids: [Int!], fields: FieldSet! = "id") on OBJECT
+directive @deny on FIELD_DEFINITION
+

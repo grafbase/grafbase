@@ -1,4 +1,5 @@
 mod authenticated;
+mod backwards_compatibility;
 mod deny_all;
 mod deny_some;
 mod error_propagation;
@@ -6,6 +7,7 @@ mod error_response;
 mod grant_all;
 mod headers;
 mod injection;
+mod multiple;
 mod query;
 mod requires_scopes;
 mod response;

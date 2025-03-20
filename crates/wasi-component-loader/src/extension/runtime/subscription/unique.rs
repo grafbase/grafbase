@@ -1,7 +1,10 @@
 use std::{collections::VecDeque, sync::Arc};
 
 use super::SubscriptionStream;
-use crate::extension::{ExtensionGuard, api::wit};
+use crate::{
+    Error,
+    extension::{ExtensionGuard, api::wit},
+};
 use engine::{ErrorCode, GraphqlError};
 use engine_schema::Subgraph;
 use futures::stream;
@@ -31,7 +34,13 @@ impl<'ctx> UniqueSubscription<'ctx, '_> {
         instance
             .resolve_subscription(headers, subgraph.name(), directive)
             .await
-            .map_err(|err| err.into_graphql_error(ErrorCode::ExtensionError))?;
+            .map_err(|err| match err {
+                Error::Internal(err) => {
+                    tracing::error!("Wasm error: {err}");
+                    GraphqlError::new("Internal error", ErrorCode::ExtensionError)
+                }
+                Error::Guest(err) => err.into_graphql_error(ErrorCode::ExtensionError),
+            })?;
 
         let stream = stream::unfold((instance, VecDeque::new()), async move |(mut instance, mut tail)| {
             if let Some(data) = tail.pop_front() {

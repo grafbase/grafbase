@@ -20,15 +20,15 @@ fn run_with_field_set(subgraph: DynamicSchemaBuilder, field_set: &str) -> Result
                 "b",
                 &format!(
                     r#"
-                extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    extend schema
+                        @link(url: "echo-1.0.0", import: ["@echo"])
 
-                scalar JSON
+                    scalar JSON
 
-                type User {{
-                    echo: JSON @external @echo(fields: "{field_set}")
-                }}
-                "#
+                    type User {{
+                        echo: JSON @echo(fields: "{field_set}")
+                    }}
+                    "#
                 ),
             )
             .with_extension(EchoExt::with_sdl(
@@ -123,4 +123,55 @@ fn basic_field_set() {
       }
     }
     "#);
+}
+
+#[test]
+fn default_value() {
+    runtime().block_on(async move {
+        let response = Engine::builder()
+            .with_subgraph(graphql_subgraph().into_subgraph("a"))
+            .with_subgraph_sdl(
+                "b",
+                r#"
+                    extend schema
+                        @link(url: "echo-1.0.0", import: ["@echo"])
+
+                    scalar JSON
+
+                    type User {
+                        echo: JSON @echo
+                    }
+                    "#,
+            )
+            .with_extension(EchoExt::with_sdl(
+                r#"
+                extend schema @link(url: "https://specs.grafbase.com/grafbase", import: ["FieldSet"])
+
+                directive @echo(fields: FieldSet! = "id") on FIELD_DEFINITION
+                "#,
+            ))
+            .try_build()
+            .await
+            .unwrap()
+            .post(r#"query { user { echo } }"#)
+            .await;
+
+        insta::assert_json_snapshot!(response, @r#"
+        {
+          "data": {
+            "user": {
+              "echo": {
+                "schema": {},
+                "directive": {},
+                "input": {
+                  "fields": {
+                    "id": "1"
+                  }
+                }
+              }
+            }
+          }
+        }
+        "#);
+    })
 }

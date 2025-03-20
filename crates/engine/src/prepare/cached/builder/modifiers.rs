@@ -368,11 +368,8 @@ impl QueryModifiers {
             if let QueryModifierRule::Extension { directive_id, .. } = modifier.rule {
                 let directive = &schema[directive_id];
 
-                let modifier_ix = by_directive
-                    .last()
-                    .map(|(_, range)| range.end)
-                    .unwrap_or(native_end.into());
-                let directive_group_ix = by_directive.len();
+                let modifier_ix: QueryModifierId = native_end.into();
+                let directive_group_ix: usize = 0;
                 let mut extension_group = (
                     directive.extension_id,
                     IdRange::<QueryModifierByDirectiveGroupId>::from(directive_group_ix..directive_group_ix),
@@ -385,11 +382,11 @@ impl QueryModifiers {
                 );
 
                 for (ix, modifier) in iter {
-                    let extension_id = match modifier.rule {
-                        QueryModifierRule::Extension { directive_id, .. } => schema[directive_id].extension_id,
+                    let directive = match modifier.rule {
+                        QueryModifierRule::Extension { directive_id, .. } => &schema[directive_id],
                         _ => unreachable!(),
                     };
-                    if extension_group.0 != extension_id {
+                    if extension_group.0 != directive.extension_id {
                         directive_group.1.end = ix.into();
                         by_directive.push(directive_group);
 
@@ -399,7 +396,7 @@ impl QueryModifiers {
 
                         directive_group = (directive.name_id, (ix..ix).into());
                         let n = by_directive.len();
-                        extension_group = (extension_id, (n..n).into(), (ix..ix).into());
+                        extension_group = (directive.extension_id, (n..n).into(), (ix..ix).into());
                     } else if directive_group.0 != directive.name_id {
                         directive_group.1.end = ix.into();
                         by_directive.push(directive_group);

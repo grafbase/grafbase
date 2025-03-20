@@ -1,6 +1,9 @@
 use std::iter::Enumerate;
 
-use crate::{types::DirectiveSite, wit, SdkError};
+use crate::{
+    types::{authorization::private::QueryElementOrResponseItem, DirectiveSite},
+    wit, SdkError,
+};
 use serde::Deserialize;
 
 /// A list of elements present in the query on which one of the extension's directive was applied on their definition.
@@ -74,7 +77,7 @@ impl<'a> Iterator for QueryElementsIterator<'a> {
 }
 
 impl crate::sealed::Sealed for QueryElement<'_> {}
-impl crate::types::authorization::QueryElementOrResponseItem for QueryElement<'_> {
+impl QueryElementOrResponseItem for QueryElement<'_> {
     fn ix(&self) -> u32 {
         self.ix
     }
