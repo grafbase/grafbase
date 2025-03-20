@@ -414,13 +414,13 @@ jobs:
         env:
           RUSTC_WRAPPER: sccache
         run: |
-          cargo build --release -p grafbase --timings
+          cargo build --release --target=${{ matrix.target }} -p grafbase --timings
 
       - name: Build gateway release
         env:
           RUSTC_WRAPPER: sccache
         run: |
-          cargo build --release -p grafbase-gateway
+          cargo build --release --target=${{ matrix.target }} -p grafbase-gateway
 
       - uses: actions/upload-artifact@v4
         with:
