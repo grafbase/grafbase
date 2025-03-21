@@ -39,7 +39,16 @@ type Query {
 #[test]
 fn subgraph_not_reachable_does_not_leak_subgraph_url() {
     runtime().block_on(async move {
-        let engine = Engine::builder().with_federated_sdl(SDL).build().await;
+        let engine = Engine::builder()
+            .with_federated_sdl(SDL)
+            .with_toml_config(
+                r#"
+                    [subgraphs.fst]
+                    timeout = "1s"
+                    "#,
+            )
+            .build()
+            .await;
 
         let response = engine.post(r#"query { user { name } }"#).await;
 

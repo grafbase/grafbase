@@ -18,30 +18,45 @@ fn subgraph_retries_mutations_disabled() {
             .build()
             .await;
 
-        let response = engine.post("query { incrementAndFailIfLessThan(n: 5) }").await;
+        let response = engine.post("query { incrementAndFailIfLessThan(n: 3) }").await;
 
         insta::assert_json_snapshot!(response, @r###"
         {
           "data": {
-            "incrementAndFailIfLessThan": 5
+            "incrementAndFailIfLessThan": 3
           }
         }
         "###);
 
         // Now mutations: retries are not enabled for mutations.
-        let response = engine.post("mutation { incrementAndFailIfLessThan(n: 7) }").await;
+        let response = engine.post("mutation { incrementAndFailIfLessThan(n: 5) }").await;
 
         insta::assert_json_snapshot!(response, {
             ".errors[0].message" => "REDACTED".to_owned(),
-        });
+        }, @r#"
+        {
+          "data": null,
+          "errors": [
+            {
+              "message": "REDACTED",
+              "path": [
+                "incrementAndFailIfLessThan"
+              ],
+              "extensions": {
+                "code": "SUBGRAPH_REQUEST_ERROR"
+              }
+            }
+          ]
+        }
+        "#);
 
         // Queries can still be retried...
-        let response = engine.post("query { incrementAndFailIfLessThan(n: 10) }").await;
+        let response = engine.post("query { incrementAndFailIfLessThan(n: 7) }").await;
 
         insta::assert_json_snapshot!(response, @r###"
         {
           "data": {
-            "incrementAndFailIfLessThan": 10
+            "incrementAndFailIfLessThan": 7
           }
         }
         "###);
@@ -51,7 +66,22 @@ fn subgraph_retries_mutations_disabled() {
 
         insta::assert_json_snapshot!(response, {
             ".errors[0].message" => "REDACTED".to_owned(),
-        });
+        }, @r#"
+        {
+          "data": null,
+          "errors": [
+            {
+              "message": "REDACTED",
+              "path": [
+                "incrementAndFailIfLessThan"
+              ],
+              "extensions": {
+                "code": "SUBGRAPH_REQUEST_ERROR"
+              }
+            }
+          ]
+        }
+        "#);
     });
 }
 
@@ -70,10 +100,16 @@ fn subgraph_retries_mutations_enabled() {
             .build()
             .await;
 
-        let response = engine.post("mutation { incrementAndFailIfLessThan(n: 5) }").await;
+        let response = engine.post("mutation { incrementAndFailIfLessThan(n: 3) }").await;
 
         insta::assert_json_snapshot!(response, {
             ".errors[0].message" => "REDACTED".to_owned(),
-        });
+        }, @r#"
+        {
+          "data": {
+            "incrementAndFailIfLessThan": 3
+          }
+        }
+        "#);
     });
 }
