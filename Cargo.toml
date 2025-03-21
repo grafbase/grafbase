@@ -283,6 +283,11 @@ debug = true
 # normal optimizations during the compilation stage)
 lto = "thin"
 
+# Boost snapshot diffing performance
+[profile.dev.package]
+insta.opt-level = 2
+similar.opt-level = 2
+
 [profile.lambda]
 inherits = "release"
 opt-level = "s"
