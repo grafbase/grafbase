@@ -89,12 +89,10 @@ spec:
             - {{- . | toYaml | trim | nindent 14 }}
             {{- end }}
             {{- end }}
+          {{ if .Values.lifecycle }}
           lifecycle:
-            preStop:
-              exec:
-                command:
-                  - sleep
-                  - 15
+            {{- toYaml .Values.lifecycle | nindent 10 }}
+          {{- end }}
           {{- if and .Values.configmap.enabled .Values.secrets.enabled }}
           envFrom:
           - configMapRef:
