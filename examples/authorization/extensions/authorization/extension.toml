@@ -1,0 +1,7 @@
+[extension]
+name = "my-authorization"
+version = "1.0.0"
+kind = "resolver"
+description = ""
+license = "Apache-2.0"
+

@@ -32,7 +32,6 @@ struct Object<'a> {
 
 impl Object<'_> {
     fn id_as_u32(&self) -> u32 {
-        println!("{:#?}", self.fields);
         self.fields.first().and_then(|(_, value)| value.as_u64()).unwrap() as u32
     }
 }
@@ -53,7 +52,6 @@ impl AuthorizationExtension for CustomAuthorization {
         let error_id = builder.push_error(Error::new("Not authorized, query auth SDK010"));
 
         for (name, elements) in elements.iter_grouped_by_directive_name() {
-            println!("{name}");
             match name {
                 "deniedIds" => {
                     for element in elements {
