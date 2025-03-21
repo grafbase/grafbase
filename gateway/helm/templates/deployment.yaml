@@ -91,7 +91,7 @@ spec:
             {{- end }}
           {{ if .Values.lifecycle }}
           lifecycle:
-            {{- toYaml .Values.lifecycle | nindent 10 }}
+            {{- toYaml .Values.lifecycle | nindent 12 }}
           {{- end }}
           {{- if and .Values.configmap.enabled .Values.secrets.enabled }}
           envFrom:
