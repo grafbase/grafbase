@@ -25,7 +25,7 @@ pub async fn publish(
     message: Option<&str>,
 ) -> Result<PublishOutcome, ApiError> {
     let platform_data = PlatformData::get();
-    let client = create_client().await?;
+    let client = create_client()?;
 
     let operation = SubgraphPublish::build(SubgraphCreateArguments {
         input: super::graphql::mutations::PublishInput {
@@ -39,7 +39,7 @@ pub async fn publish(
         },
     });
 
-    let cynic::GraphQlResponse { data, errors } = client.post(&platform_data.api_url).run_graphql(operation).await?;
+    let cynic::GraphQlResponse { data, errors } = client.post(platform_data.api_url()).run_graphql(operation).await?;
 
     if let Some(data) = data {
         match data.publish {

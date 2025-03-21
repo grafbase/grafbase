@@ -9,7 +9,13 @@ use super::{
     errors::CommonError,
 };
 
-use std::{borrow::Cow, env, fs::read_to_string, path::PathBuf, sync::OnceLock};
+use std::{
+    borrow::Cow,
+    env,
+    fs::read_to_string,
+    path::PathBuf,
+    sync::{LazyLock, OnceLock},
+};
 
 #[derive(Debug)]
 pub(crate) struct Warning {
@@ -105,17 +111,36 @@ impl Environment {
 }
 
 pub struct PlatformData {
-    pub api_url: String,
     pub dashboard_url: String,
     pub auth_url: String,
     pub login_state: LoginState,
 }
 
+pub(crate) fn api_url() -> &'static str {
+    static API_URL: LazyLock<String> = LazyLock::new(|| {
+        env::var(GRAFBASE_API_URL_ENV_VAR)
+            .ok()
+            .or_else(|| {
+                if let Ok(LoginState::LoggedIn(credentials)) = get_login_state() {
+                    credentials.api_url
+                } else {
+                    None
+                }
+            })
+            .unwrap_or_else(|| DEFAULT_API_URL.to_string())
+    });
+
+    API_URL.as_ref()
+}
+
 impl PlatformData {
+    pub(crate) fn api_url(&self) -> &'static str {
+        api_url()
+    }
+
     /// initializes the static PlatformData instance
     pub fn try_init() -> Result<(), CommonError> {
         let dashboard_url_env_var = env::var(GRAFBASE_DASHBOARD_URL_ENV_VAR).ok();
-        let api_url_env_var = env::var(GRAFBASE_API_URL_ENV_VAR).ok();
 
         let dashboard_url = dashboard_url_env_var.unwrap_or_else(|| DEFAULT_DASHBOARD_URL.to_string());
 
@@ -130,17 +155,9 @@ impl PlatformData {
 
         let login_state = get_login_state()?;
 
-        let api_url = api_url_env_var
-            .or_else(|| match login_state {
-                LoginState::LoggedOut => None,
-                LoginState::LoggedIn(ref credentials) => credentials.api_url.clone(),
-            })
-            .unwrap_or_else(|| DEFAULT_API_URL.to_string());
-
         PLATFORM_DATA
             .set(Self {
                 dashboard_url,
-                api_url,
                 auth_url,
                 login_state,
             })
@@ -153,7 +170,6 @@ impl PlatformData {
     /// initializes the static PlatformData instance without using stored credentials
     pub fn try_init_ignore_credentials(dashboard_url: Option<Url>) -> Result<(), CommonError> {
         let dashboard_url_env_var = env::var(GRAFBASE_DASHBOARD_URL_ENV_VAR).ok();
-        let api_url_env_var = env::var(GRAFBASE_API_URL_ENV_VAR).ok();
 
         let dashboard_url = dashboard_url
             .map(|url| url.to_string())
@@ -169,12 +185,9 @@ impl PlatformData {
 
         let auth_url = auth_url.to_string();
 
-        let api_url = api_url_env_var.unwrap_or_else(|| DEFAULT_API_URL.to_string());
-
         PLATFORM_DATA
             .set(Self {
                 dashboard_url,
-                api_url,
                 auth_url,
                 login_state: LoginState::LoggedOut,
             })

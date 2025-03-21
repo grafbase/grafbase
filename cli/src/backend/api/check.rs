@@ -22,7 +22,7 @@ pub async fn check(
     git_commit: Option<SchemaCheckGitCommitInput>,
 ) -> Result<SchemaCheckResult, ApiError> {
     let platform_data = PlatformData::get();
-    let client = create_client().await?;
+    let client = create_client()?;
 
     let operation = SchemaCheckCreate::build(SchemaCheckCreateArguments {
         input: SchemaCheckCreateInput {
@@ -35,7 +35,7 @@ pub async fn check(
         },
     });
 
-    let result = client.post(&platform_data.api_url).run_graphql(operation).await?;
+    let result = client.post(platform_data.api_url()).run_graphql(operation).await?;
 
     match result {
         cynic::GraphQlResponse {

@@ -15,10 +15,10 @@ pub async fn submit_trusted_documents(
     variables: TrustedDocumentsSubmitVariables<'_>,
 ) -> Result<TrustedDocumentsSubmitPayload, ApiError> {
     let platform_data = PlatformData::get();
-    let client = create_client().await?;
+    let client = create_client()?;
     let operation = TrustedDocumentsSubmit::build(variables);
 
-    let cynic::GraphQlResponse { data, errors } = client.post(&platform_data.api_url).run_graphql(operation).await?;
+    let cynic::GraphQlResponse { data, errors } = client.post(platform_data.api_url()).run_graphql(operation).await?;
 
     if let Some(data) = data {
         Ok(data.trusted_documents_submit)

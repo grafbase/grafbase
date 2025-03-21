@@ -16,9 +16,9 @@ use cynic::{MutationBuilder, QueryBuilder};
 /// See [`ApiError`]
 pub async fn get_viewer_data_for_creation() -> Result<Vec<Account>, ApiError> {
     let platform_data = PlatformData::get();
-    let client = create_client().await?;
+    let client = create_client()?;
     let query = Viewer::build(());
-    let response = client.post(&platform_data.api_url).run_graphql(query).await?;
+    let response = client.post(platform_data.api_url()).run_graphql(query).await?;
     let response = response.data.expect("must exist");
     let viewer_response = response.viewer.ok_or(ApiError::UnauthorizedOrDeletedUser)?;
 
@@ -41,7 +41,7 @@ pub async fn get_viewer_data_for_creation() -> Result<Vec<Account>, ApiError> {
 /// See [`ApiError`]
 pub async fn create(account_id: &str, graph_slug: &str) -> Result<(Vec<String>, String), ApiError> {
     let platform_data = PlatformData::get();
-    let client = create_client().await?;
+    let client = create_client()?;
 
     let operation = GraphCreate::build(GraphCreateArguments {
         input: GraphCreateInput {
@@ -50,7 +50,7 @@ pub async fn create(account_id: &str, graph_slug: &str) -> Result<(Vec<String>, 
         },
     });
 
-    let response = client.post(&platform_data.api_url).run_graphql(operation).await?;
+    let response = client.post(platform_data.api_url()).run_graphql(operation).await?;
     let payload = response.data.ok_or(ApiError::UnauthorizedOrDeletedUser)?.graph_create;
 
     match payload {

@@ -19,7 +19,7 @@ pub(crate) async fn extension_publish(
     manifest: VersionedManifest,
     wasm_blob_path: &Path,
 ) -> anyhow::Result<ExtensionPublishOutcome> {
-    let client = create_client().await?;
+    let client = create_client()?;
 
     let operation = extension_publish::ExtensionPublish::build(extension_publish::ExtensionPublishVariables {
         manifest,

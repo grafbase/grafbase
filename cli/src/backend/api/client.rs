@@ -7,18 +7,31 @@ use reqwest::{Client, header};
 const CLIENT_NAME_HEADER: &str = "x-grafbase-client-name";
 const CLIENT_VERSION_HEADER: &str = "x-grafbase-client-version";
 
+pub(crate) fn create_unauthenticated_client() -> Result<reqwest::Client, ApiError> {
+    create_client_inner(None)
+}
+
 /// # Errors
 ///
 /// See [`ApiError`]
-pub(crate) async fn create_client() -> Result<reqwest::Client, ApiError> {
-    let token = get_access_token().await?;
+pub(crate) fn create_client() -> Result<reqwest::Client, ApiError> {
+    let LoginState::LoggedIn(ref credentials) = PlatformData::get().login_state else {
+        return Err(ApiError::NotLoggedIn);
+    };
+
+    create_client_inner(Some(&credentials.access_token))
+}
+
+fn create_client_inner(access_token: Option<&str>) -> Result<reqwest::Client, ApiError> {
     let mut headers = header::HeaderMap::new();
 
-    let mut bearer_token =
-        HeaderValue::from_str(&format!("Bearer {token}")).map_err(|_| ApiError::CorruptAccessToken)?;
+    if let Some(token) = access_token {
+        let mut bearer_token =
+            HeaderValue::from_str(&format!("Bearer {token}")).map_err(|_| ApiError::CorruptAccessToken)?;
 
-    bearer_token.set_sensitive(true);
-    headers.insert(header::AUTHORIZATION, bearer_token);
+        bearer_token.set_sensitive(true);
+        headers.insert(header::AUTHORIZATION, bearer_token);
+    }
 
     let mut user_agent = HeaderValue::from_str(USER_AGENT).expect("must be visible ascii");
     user_agent.set_sensitive(true);
@@ -35,11 +48,4 @@ pub(crate) async fn create_client() -> Result<reqwest::Client, ApiError> {
         .default_headers(headers)
         .build()
         .expect("TLS is supported in all targets"))
-}
-
-async fn get_access_token<'a>() -> Result<&'a str, ApiError> {
-    let LoginState::LoggedIn(ref credentials) = PlatformData::get().login_state else {
-        return Err(ApiError::NotLoggedIn);
-    };
-    Ok(&credentials.access_token)
 }

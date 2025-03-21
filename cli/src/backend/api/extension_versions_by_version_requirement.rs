@@ -1,17 +1,14 @@
 use cynic::{QueryBuilder as _, http::ReqwestExt};
 
 use crate::{
-    backend::api::{
-        client::create_client,
-        graphql::mutations::extension_versions_by_version_requirement::{
-            ExtensionVersionRequirement, ExtensionVersionsByVersionRequirement,
-            ExtensionVersionsByVersionRequirementVariables,
-        },
+    backend::api::graphql::mutations::extension_versions_by_version_requirement::{
+        ExtensionVersionRequirement, ExtensionVersionsByVersionRequirement,
+        ExtensionVersionsByVersionRequirementVariables,
     },
-    common::environment::PlatformData,
+    common::environment::api_url,
 };
 
-use super::graphql::mutations::extension_versions_by_version_requirement;
+use super::{client::create_unauthenticated_client, graphql::mutations::extension_versions_by_version_requirement};
 
 pub(crate) enum ExtensionVersionMatch {
     Match { name: String, version: semver::Version },
@@ -22,8 +19,7 @@ pub(crate) enum ExtensionVersionMatch {
 pub(crate) async fn extension_versions_by_version_requirement(
     requirements: impl Iterator<Item = (String, semver::VersionReq)>,
 ) -> anyhow::Result<Vec<ExtensionVersionMatch>> {
-    let client = create_client().await?;
-    let platform = PlatformData::get();
+    let client = create_unauthenticated_client()?;
 
     let requirements = requirements
         .map(|(name, version)| ExtensionVersionRequirement {
@@ -35,7 +31,7 @@ pub(crate) async fn extension_versions_by_version_requirement(
     let operation =
         ExtensionVersionsByVersionRequirement::build(ExtensionVersionsByVersionRequirementVariables { requirements });
 
-    let response = client.post(&platform.api_url).run_graphql(operation).await?;
+    let response = client.post(api_url()).run_graphql(operation).await?;
 
     let Some(data) = response
         .data
