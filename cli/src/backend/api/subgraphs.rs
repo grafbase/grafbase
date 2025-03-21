@@ -19,11 +19,11 @@ pub async fn subgraphs(account: &str, graph: &str, branch: Option<&str>) -> Resu
 
 async fn subgraphs_with_branch(account: &str, graph: &str, branch: &str) -> Result<(String, Vec<Subgraph>), ApiError> {
     let platform_data = PlatformData::get();
-    let client = create_client().await?;
+    let client = create_client()?;
 
     let operation = ListSubgraphsQuery::build(ListSubgraphsArguments { account, graph, branch });
 
-    let response = client.post(&platform_data.api_url).run_graphql(operation).await?;
+    let response = client.post(platform_data.api_url()).run_graphql(operation).await?;
     let subgraphs = response
         .data
         .as_ref()
@@ -41,12 +41,12 @@ async fn subgraphs_with_branch(account: &str, graph: &str, branch: &str) -> Resu
 
 async fn subgraphs_production_branch(account: &str, graph: &str) -> Result<(String, Vec<Subgraph>), ApiError> {
     let platform_data = PlatformData::get();
-    let client = create_client().await?;
+    let client = create_client()?;
 
     let operation =
         ListSubgraphsForProductionBranchQuery::build(ListSubgraphsForProductionBranchArguments { account, graph });
 
-    let response = client.post(&platform_data.api_url).run_graphql(operation).await?;
+    let response = client.post(platform_data.api_url()).run_graphql(operation).await?;
     let subgraphs = response
         .data
         .as_ref()

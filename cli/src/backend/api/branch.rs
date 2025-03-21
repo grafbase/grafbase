@@ -14,7 +14,7 @@ use cynic::{MutationBuilder, http::ReqwestExt};
 /// See [`ApiError`]
 pub async fn delete(account_slug: &str, graph_slug: &str, branch_name: &str) -> Result<(), ApiError> {
     let platform_data = PlatformData::get();
-    let client = create_client().await?;
+    let client = create_client()?;
 
     let operation = BranchDelete::build(BranchDeleteArguments {
         account_slug,
@@ -22,7 +22,7 @@ pub async fn delete(account_slug: &str, graph_slug: &str, branch_name: &str) -> 
         branch_name,
     });
 
-    let cynic::GraphQlResponse { data, errors } = client.post(&platform_data.api_url).run_graphql(operation).await?;
+    let cynic::GraphQlResponse { data, errors } = client.post(platform_data.api_url()).run_graphql(operation).await?;
 
     if let Some(data) = data {
         match data.branch_delete {
@@ -43,7 +43,7 @@ pub async fn delete(account_slug: &str, graph_slug: &str, branch_name: &str) -> 
 
 pub async fn create(account_slug: &str, graph_slug: &str, branch_name: &str) -> Result<(), ApiError> {
     let platform_data = PlatformData::get();
-    let client = create_client().await?;
+    let client = create_client()?;
 
     let operation = BranchCreate::build(BranchCreateArguments {
         input: BranchCreateInput {
@@ -53,7 +53,7 @@ pub async fn create(account_slug: &str, graph_slug: &str, branch_name: &str) -> 
         },
     });
 
-    let cynic::GraphQlResponse { data, errors } = client.post(&platform_data.api_url).run_graphql(operation).await?;
+    let cynic::GraphQlResponse { data, errors } = client.post(platform_data.api_url()).run_graphql(operation).await?;
 
     let Some(data) = data else {
         return Err(ApiError::RequestError(format!("{errors:#?}")));

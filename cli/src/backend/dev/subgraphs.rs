@@ -206,7 +206,7 @@ async fn handle_overridden_subgraph(
 pub(crate) async fn fetch_remote_subgraphs(graph_ref: &FullGraphRef) -> Result<Vec<Subgraph>, BackendError> {
     let platform_data = PlatformData::get();
 
-    let client = create_client().await.map_err(BackendError::ApiError)?;
+    let client = create_client().map_err(BackendError::ApiError)?;
 
     let branch = graph_ref.branch().unwrap_or(DEFAULT_BRANCH);
 
@@ -217,7 +217,7 @@ pub(crate) async fn fetch_remote_subgraphs(graph_ref: &FullGraphRef) -> Result<V
     });
 
     let response = client
-        .post(&platform_data.api_url)
+        .post(platform_data.api_url())
         .run_graphql(query)
         .await
         .map_err(|error| BackendError::ApiError(error.into()))?;

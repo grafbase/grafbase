@@ -67,8 +67,6 @@ impl RequiresLogin for SubCommand {
                 | SubCommand::Dev(DevCommand { graph_ref: Some(_), .. })
                 | SubCommand::Extension(ExtensionCommand {
                     command: ExtensionSubCommand::Publish(_)
-                        | ExtensionSubCommand::Update(_)
-                        | ExtensionSubCommand::Install(_)
                 })
         )
     }
