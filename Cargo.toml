@@ -147,12 +147,12 @@ notify = "8"
 notify-debouncer-full = "0.5"
 num-traits = "0.2.19"
 openidconnect = "4.0.0"
-opentelemetry = "0.28"
-opentelemetry-appender-tracing = "0.28"
+opentelemetry = "0.29"
+opentelemetry-appender-tracing = "0.29"
 opentelemetry-aws = "0.16"
-opentelemetry-otlp = "0.28"
-opentelemetry-stdout = "0.28"
-opentelemetry_sdk = "0.28"
+opentelemetry-otlp = "0.29"
+opentelemetry-stdout = "0.29"
+opentelemetry_sdk = "0.29"
 ory-client = "=1.9.0"
 os_type = "2"
 p256 = "0.13"
@@ -170,7 +170,7 @@ ramhorns = { git = "https://github.com/grafbase/ramhorns", branch = "grafbase", 
 ] }
 rand = "0.9"
 rapidhash = "1"
-redis = { version = "0.29.1", features = [
+redis = { version = "0.29.2", features = [
     "tokio-rustls-comp",
     "connection-manager",
 ] }

@@ -98,7 +98,8 @@ proc-macro2 = { version = "1" }
 prost = { version = "0.13" }
 pulley-interpreter = { version = "30", default-features = false, features = ["disas", "interp", "std"] }
 quote = { version = "1" }
-rand = { version = "0.8", features = ["small_rng"] }
+rand-274715c4dabd11b0 = { package = "rand", version = "0.9" }
+rand-c38e5c1d305a1b54 = { package = "rand", version = "0.8", features = ["small_rng"] }
 rand_core = { version = "0.6", default-features = false, features = ["std"] }
 regex = { version = "1" }
 regex-automata = { version = "0.4", default-features = false, features = ["dfa", "hybrid", "meta", "nfa", "perf", "unicode"] }
@@ -226,7 +227,8 @@ proc-macro2 = { version = "1" }
 prost = { version = "0.13" }
 pulley-interpreter = { version = "30", default-features = false, features = ["disas", "interp", "std"] }
 quote = { version = "1" }
-rand = { version = "0.8", features = ["small_rng"] }
+rand-274715c4dabd11b0 = { package = "rand", version = "0.9" }
+rand-c38e5c1d305a1b54 = { package = "rand", version = "0.8", features = ["small_rng"] }
 rand_core = { version = "0.6", default-features = false, features = ["std"] }
 regex = { version = "1" }
 regex-automata = { version = "0.4", default-features = false, features = ["dfa", "hybrid", "meta", "nfa", "perf", "unicode"] }
