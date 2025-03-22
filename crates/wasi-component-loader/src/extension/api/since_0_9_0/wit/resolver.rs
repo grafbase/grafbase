@@ -1,4 +1,4 @@
-use engine::{ErrorCode, GraphqlError};
+use engine_error::{ErrorCode, GraphqlError};
 use runtime::extension::Data;
 
 pub use super::exports::grafbase::sdk::resolver::*;

@@ -3,7 +3,7 @@ mod unique;
 
 use std::sync::Arc;
 
-use engine::GraphqlError;
+use engine_error::GraphqlError;
 use futures::stream::BoxStream;
 use runtime::extension::Data;
 

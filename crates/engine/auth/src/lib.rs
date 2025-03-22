@@ -2,55 +2,75 @@ mod anonymous;
 mod jwt;
 
 use anonymous::AnonymousAuthorizer;
+use error::{ErrorCode, ErrorResponse, GraphqlError};
+use extension_catalog::{ExtensionCatalog, ExtensionId};
 use futures_util::{StreamExt, future::BoxFuture, stream::FuturesOrdered};
-use runtime::{auth::LegacyToken, kv::KvStore};
-use schema::{AuthConfig, AuthProviderConfig};
+use gateway_config::{AuthenticationProvider, DefaultAuthenticationBehavior};
+use runtime::{authentication::LegacyToken, extension::ExtensionRuntime, kv::KvStore};
 use tracing::{Instrument, info_span};
 
-pub trait Authorizer: Send + Sync + 'static {
+trait LegacyAuthorizer: Send + Sync + 'static {
     fn get_access_token<'a>(&'a self, headers: &'a http::HeaderMap) -> BoxFuture<'a, Option<LegacyToken>>;
 }
 
-#[derive(Default)]
-pub struct AuthService {
-    authorizers: Vec<Box<dyn Authorizer>>,
-    only_anonymous: bool,
+pub struct AuthenticationService<Extensions> {
+    extensions: Extensions,
+    authentication_extension_ids: Vec<ExtensionId>,
+    authorizers: Vec<Box<dyn LegacyAuthorizer>>,
+    default_token: Option<LegacyToken>,
 }
 
-impl AuthService {
-    pub fn new(config: AuthConfig, kv: KvStore) -> Self {
-        if config.providers.is_empty() {
-            Self {
-                authorizers: vec![Box::new(AnonymousAuthorizer)],
-                only_anonymous: true,
-            }
-        } else {
-            let authorizers = config
-                .providers
-                .into_iter()
-                .flat_map(|config| {
-                    let authorizer: Option<Box<dyn Authorizer>> = match config {
-                        AuthProviderConfig::Jwt(config) => {
-                            let authorizer = Box::new(jwt::JwtProvider::new(config, kv.clone()));
-                            Some(authorizer)
-                        }
-                        AuthProviderConfig::Anonymous | AuthProviderConfig::Extension(_) => {
-                            let authorizer = Box::new(AnonymousAuthorizer);
-                            Some(authorizer)
-                        }
-                    };
-                    authorizer
-                })
-                .collect();
+impl<Extensions> AuthenticationService<Extensions> {
+    pub fn new(
+        config: &gateway_config::Config,
+        catalog: &ExtensionCatalog,
+        extensions: Extensions,
+        kv: &KvStore,
+    ) -> Self {
+        let authorizers = config
+            .authentication
+            .providers
+            .iter()
+            .map(|provider| {
+                let authorizer: Box<dyn LegacyAuthorizer> = match provider {
+                    AuthenticationProvider::Jwt(config) => Box::new(jwt::JwtProvider::new(config.clone(), kv.clone())),
+                    AuthenticationProvider::Anonymous => Box::new(AnonymousAuthorizer),
+                };
+                authorizer
+            })
+            .collect::<Vec<_>>();
 
-            Self {
-                authorizers,
-                only_anonymous: false,
+        let authentication_extension_ids = catalog
+            .iter_with_id()
+            .filter_map(|(id, extension)| match extension.manifest.kind {
+                extension_catalog::Kind::Authentication(_) => Some(id),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+
+        let default_token = match config.authentication.default {
+            Some(DefaultAuthenticationBehavior::Anonymous) => Some(LegacyToken::Anonymous),
+            Some(DefaultAuthenticationBehavior::Deny) => None,
+            None => {
+                if !authorizers.is_empty() || !authentication_extension_ids.is_empty() {
+                    None
+                } else {
+                    Some(LegacyToken::Anonymous)
+                }
             }
+        };
+        Self {
+            authorizers,
+            extensions,
+            authentication_extension_ids,
+            default_token,
         }
     }
 
-    pub async fn authenticate(&self, headers: &http::HeaderMap) -> Option<LegacyToken> {
+    async fn legacy_authorizers(&self, headers: &http::HeaderMap) -> Option<LegacyToken> {
+        if self.authorizers.is_empty() {
+            return None;
+        }
         let fut = self
             .authorizers
             .iter()
@@ -60,11 +80,41 @@ impl AuthService {
 
         futures_util::pin_mut!(fut);
 
-        if self.only_anonymous {
-            fut.next().await
+        let span = info_span!("authenticate");
+        fut.next().instrument(span).await
+    }
+}
+
+impl<Extensions: ExtensionRuntime> runtime::authentication::Authenticate for AuthenticationService<Extensions> {
+    async fn authenticate(&self, headers: http::HeaderMap) -> Result<(http::HeaderMap, LegacyToken), ErrorResponse> {
+        if !self.authentication_extension_ids.is_empty() {
+            let (headers, result) = self
+                .extensions
+                .authenticate(&self.authentication_extension_ids, headers)
+                .await;
+            match result {
+                Ok(token) => Ok((headers, LegacyToken::Extension(token))),
+                Err(error) => match self.legacy_authorizers(&headers).await {
+                    Some(token) => Ok((headers, token)),
+                    None => match self.default_token.clone() {
+                        Some(token) => Ok((headers, token)),
+                        None => Err(error),
+                    },
+                },
+            }
         } else {
-            let span = info_span!("authenticate");
-            fut.next().instrument(span).await
+            match self.legacy_authorizers(&headers).await {
+                Some(token) => Ok((headers, token)),
+                None => match self.default_token.clone() {
+                    Some(token) => Ok((headers, token)),
+                    None => Err(unauthenticated()),
+                },
+            }
         }
     }
+}
+
+fn unauthenticated() -> ErrorResponse {
+    ErrorResponse::new(http::StatusCode::UNAUTHORIZED)
+        .with_error(GraphqlError::new("Unauthenticated", ErrorCode::Unauthenticated))
 }

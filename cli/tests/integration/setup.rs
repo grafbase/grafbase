@@ -2,11 +2,12 @@ mod test_extensions;
 
 pub(crate) use self::test_extensions::*;
 
-use std::{any::TypeId, borrow::Cow, fs, io::Write as _, process, time::Duration};
+use std::{any::TypeId, borrow::Cow, fs, io::Write as _, net::SocketAddr, process, time::Duration};
 
 use futures::{FutureExt as _, future::BoxFuture};
 use graphql_mocks::MockGraphQlServer;
 use rand::random;
+use tokio::time::sleep;
 
 #[derive(Default)]
 pub(crate) struct GrafbaseDevConfig {
@@ -126,8 +127,34 @@ impl GrafbaseDevConfig {
 
         let http_client = reqwest::Client::new();
 
-        // We have to sleep to allow the process to start up and pick up the configuration.
-        tokio::time::sleep(Duration::from_millis(2800)).await;
+        let addr: SocketAddr = format!("127.0.0.1:{port}").parse().unwrap();
+
+        let start = std::time::Instant::now();
+        println!("Waiting for grafbase dev to be available at {addr}...");
+        // On MacOS port mapping takes forever (with colima at least), but on Linux it's sub
+        // millisecond. CI is however not fast enough for the whole gateway to be fully started
+        // before the test starts. So ensuring we always give the gateway some time.
+        sleep(Duration::from_millis(20)).await;
+
+        while tokio::net::TcpStream::connect(addr).await.is_err() {
+            sleep(Duration::from_millis(100)).await;
+        }
+
+        println!(
+            "Could connect to socket after {} ms, waiting for HTTP server to be fully up and running.",
+            start.elapsed().as_millis()
+        );
+        let url: url::Url = format!("http://{addr}/graphql").parse().unwrap();
+        while !http_client
+            .request(http::Method::OPTIONS, url.clone())
+            .send()
+            .await
+            .is_ok_and(|resp| resp.status().is_success())
+        {
+            sleep(Duration::from_millis(100)).await;
+        }
+
+        println!("Waited for {} ms", start.elapsed().as_millis());
 
         GrafbaseDev {
             _subgraphs: subgraphs,

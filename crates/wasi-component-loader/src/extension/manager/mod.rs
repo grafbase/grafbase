@@ -6,15 +6,17 @@ mod pool;
 use crate::resources::SharedResources;
 
 use dashmap::DashMap;
-use engine::GraphqlError;
+use engine_error::GraphqlError;
+use engine_schema::Schema;
 use extension_catalog::{ExtensionCatalog, ExtensionId};
+use futures::TryStreamExt;
 use futures_util::{StreamExt, stream};
 use gateway_config::Config;
-use runtime::extension::{AuthorizerId, Data};
-use semver::Version;
-use std::{collections::HashMap, path::PathBuf, sync::Arc};
-use tokio::{sync::broadcast, task::JoinHandle};
+use runtime::extension::Data;
+use std::sync::Arc;
+use tokio::sync::broadcast;
 
+pub(crate) use config::*;
 pub(crate) use instance::*;
 pub(crate) use loader::*;
 pub(crate) use pool::*;
@@ -26,7 +28,8 @@ pub(crate) type Subscriptions = DashMap<Vec<u8>, broadcast::Sender<Result<Arc<Da
 
 #[derive(Default)]
 struct WasiExtensionsInner {
-    instance_pools: HashMap<ExtensionPoolId, Pool>,
+    // Indexed by ExtensionId
+    instance_pools: Vec<Pool>,
     subscriptions: Subscriptions,
 }
 
@@ -35,21 +38,21 @@ impl WasmExtensions {
         shared_resources: SharedResources,
         extension_catalog: &ExtensionCatalog,
         gateway_config: &Config,
-        schema: &engine::Schema,
+        schema: &Schema,
     ) -> crate::Result<Self> {
         let extensions = config::load_extensions_config(extension_catalog, gateway_config, schema);
         Ok(Self(Arc::new(WasiExtensionsInner {
-            instance_pools: create_pools(shared_resources, extensions).await?,
+            instance_pools: create_pools(&shared_resources, extensions).await?,
             subscriptions: Default::default(),
         })))
     }
 
-    pub(super) async fn get(&self, id: ExtensionPoolId) -> Result<ExtensionGuard, GraphqlError> {
+    pub(super) async fn get(&self, id: ExtensionId) -> Result<ExtensionGuard, GraphqlError> {
         let pool = self
             .0
             .as_ref()
             .instance_pools
-            .get(&id)
+            .get(usize::from(id))
             .ok_or_else(GraphqlError::internal_extension_error)?;
         pool.get().await.map_err(|err| {
             tracing::error!("Failed to retrieve extension: {err}");
@@ -62,76 +65,30 @@ impl WasmExtensions {
     }
 }
 
-async fn create_pools<T: serde::Serialize + Send + 'static>(
-    shared_resources: SharedResources,
-    extensions: Vec<ExtensionConfig<T>>,
-) -> crate::Result<HashMap<ExtensionPoolId, Pool>> {
-    type Handle = JoinHandle<crate::Result<(ExtensionPoolId, Pool)>>;
+async fn create_pools(
+    shared_resources: &SharedResources,
+    extensions: Vec<ExtensionConfig>,
+) -> crate::Result<Vec<Pool>> {
+    let parallelism = std::thread::available_parallelism()
+        .ok()
+        // Each extensions takes quite a lot of CPU.
+        .map(|num| num.get() / 8)
+        .unwrap_or(1);
 
-    let mut creating_pools: Vec<Handle> = Vec::new();
-
-    for config in extensions {
+    let mut pools = stream::iter(extensions.into_iter().map(|config| async {
         let shared = shared_resources.clone();
+        std::future::ready(()).await;
 
-        creating_pools.push(tokio::task::spawn_blocking(move || {
-            tracing::info!("Loading extension {}", config.manifest_id);
+        tracing::info!("Loading extension {}", config.manifest_id);
 
-            let loader = ExtensionLoader::new(shared, config.wasm_config, config.guest_config, config.sdk_version)?;
+        let id = config.id;
+        let max_pool_size = config.pool.max_size;
+        ExtensionLoader::new(shared, config).map(|loader| (id, Pool::new(loader, max_pool_size)))
+    }))
+    .buffer_unordered(parallelism)
+    .try_collect::<Vec<_>>()
+    .await?;
 
-            Ok((config.id, Pool::new(loader, config.max_pool_size)))
-        }));
-    }
-
-    let mut pools = HashMap::new();
-
-    let mut creating_pools = stream::iter(creating_pools)
-        .buffer_unordered(std::thread::available_parallelism().map(|i| i.get()).unwrap_or(1));
-
-    while let Some(result) = creating_pools.next().await {
-        match result.unwrap() {
-            Ok((id, pool)) => {
-                pools.insert(id, pool);
-            }
-            Err(error) => return Err(error),
-        }
-    }
-
-    Ok(pools)
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum ExtensionPoolId {
-    Resolver(ExtensionId),
-    Authorizer(ExtensionId, AuthorizerId),
-    Authorization(ExtensionId),
-}
-
-impl From<ExtensionId> for ExtensionPoolId {
-    fn from(id: ExtensionId) -> Self {
-        Self::Resolver(id)
-    }
-}
-
-impl From<(ExtensionId, AuthorizerId)> for ExtensionPoolId {
-    fn from((id, authorizer_id): (ExtensionId, AuthorizerId)) -> Self {
-        Self::Authorizer(id, authorizer_id)
-    }
-}
-
-pub struct ExtensionConfig<T> {
-    pub id: ExtensionPoolId,
-    pub manifest_id: extension_catalog::Id,
-    pub max_pool_size: Option<usize>,
-    pub wasm_config: WasmConfig,
-    pub guest_config: ExtensionGuestConfig<T>,
-    pub sdk_version: Version,
-}
-
-#[derive(Debug, Clone)]
-pub struct WasmConfig {
-    pub location: PathBuf,
-    pub networking: bool,
-    pub stdout: bool,
-    pub stderr: bool,
-    pub environment_variables: bool,
+    pools.sort_by_key(|(id, _)| *id);
+    Ok(pools.into_iter().map(|(_, pool)| pool).collect())
 }

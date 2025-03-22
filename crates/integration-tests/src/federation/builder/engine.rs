@@ -1,19 +1,18 @@
 use std::{str::FromStr, sync::Arc};
 
-use crate::federation::{DynamicHooks, ExtensionsBuilder, TestRuntimeContext, subgraph::Subgraphs};
+use crate::federation::{TestRuntimeBuilder, TestRuntimeContext, subgraph::Subgraphs};
 use federated_graph::FederatedGraph;
-use grafbase_telemetry::metrics::meter_from_global_provider;
-use runtime_local::wasi::hooks::{self, AccessLogSender, ComponentLoader, HooksWasi};
+use runtime_local::wasi::hooks;
 
 use engine::Engine;
+use wasi_component_loader::resources::SharedResources;
 
 use super::{TestConfig, TestRuntime};
 
 pub(super) async fn build(
     federated_sdl: Option<String>,
     mut config: TestConfig,
-    mut runtime: TestRuntime,
-    extensions: ExtensionsBuilder,
+    runtime: TestRuntimeBuilder,
     subgraphs: &Subgraphs,
 ) -> Result<(Arc<Engine<TestRuntime>>, TestRuntimeContext), String> {
     let federated_graph = {
@@ -21,7 +20,7 @@ pub(super) async fn build(
             Some(sdl) => federated_graph::FederatedGraph::from_sdl(&sdl).unwrap(),
             None => {
                 if !subgraphs.is_empty() {
-                    let extensions = extensions.iter_with_url().collect::<Vec<_>>();
+                    let extensions = runtime.extensions.iter_with_url().collect::<Vec<_>>();
                     let mut subgraphs =
                         subgraphs
                             .iter()
@@ -55,7 +54,9 @@ pub(super) async fn build(
             if url::Url::from_str(&federated_graph.strings[usize::from(extension.url)]).is_ok() {
                 continue;
             }
-            let url = extensions.get_url(&federated_graph.strings[usize::from(extension.url)]);
+            let url = runtime
+                .extensions
+                .get_url(&federated_graph.strings[usize::from(extension.url)]);
             extension.url = federated_graph.strings.len().into();
             federated_graph.strings.push(url.to_string());
         }
@@ -86,21 +87,24 @@ pub(super) async fn build(
 
     let mut config = toml::from_str(&config.toml).unwrap();
 
-    setup_hooks(&mut runtime, &config, access_log_sender.clone()).await;
-
     let schema = engine::Schema::build(
         &config,
         &federated_graph,
-        extensions.catalog(),
+        runtime.extensions.catalog(),
         engine::SchemaVersion::from(ulid::Ulid::new().to_bytes()),
     )
     .await
     .map_err(|err| err.to_string())?;
 
-    runtime.extensions = extensions
-        .build_and_ingest_catalog_into_config(&mut config, &schema, access_log_sender)
-        .await
-        .unwrap();
+    let runtime = runtime
+        .finalize_runtime_and_config(
+            &mut config,
+            &schema,
+            SharedResources {
+                access_log: access_log_sender,
+            },
+        )
+        .await;
 
     println!("=== CONFIG ===\n{:#?}\n", config);
 
@@ -108,18 +112,4 @@ pub(super) async fn build(
     let ctx = TestRuntimeContext { access_log_receiver };
 
     Ok((Arc::new(engine), ctx))
-}
-
-async fn setup_hooks(runtime: &mut TestRuntime, config: &gateway_config::Config, access_log_sender: AccessLogSender) {
-    if let Some(hooks_config) = config.hooks.clone() {
-        let loader = ComponentLoader::hooks(hooks_config)
-            .ok()
-            .flatten()
-            .expect("Wasm examples weren't built, please run:\ncd crates/wasi-component-loader/examples && cargo build --target wasm32-wasip2");
-
-        let meter = meter_from_global_provider();
-        let hooks = HooksWasi::new(Some(loader), None, &meter, access_log_sender).await;
-
-        runtime.hooks = DynamicHooks::wrap(hooks);
-    }
 }

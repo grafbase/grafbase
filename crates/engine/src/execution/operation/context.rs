@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use grafbase_telemetry::metrics::EngineMetrics;
 use operation::{InputValueContext, Variables};
-use runtime::auth::LegacyToken;
+use runtime::authentication::LegacyToken;
 use schema::{HeaderRule, Schema};
 
 use crate::{
@@ -30,7 +30,7 @@ impl<R: Runtime> std::marker::Copy for ExecutionContext<'_, R> {}
 impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
     #[allow(unused)]
     pub fn access_token(&self) -> &'ctx LegacyToken {
-        &self.request_context.access_token
+        &self.request_context.token
     }
 
     pub fn subgraph_headers_with_rules(&self, rules: impl Iterator<Item = HeaderRule<'ctx>>) -> http::HeaderMap {

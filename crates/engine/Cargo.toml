@@ -20,7 +20,6 @@ base64.workspace = true
 blake3.workspace = true
 bytes.workspace = true
 crossbeam-queue.workspace = true
-engine-auth = { path = "./auth" }
 error = { path = "./error", package = "engine-error" }
 extension-catalog.workspace = true
 fixedbitset.workspace = true

@@ -1,4 +1,4 @@
-use engine::ErrorCode;
+use engine_error::ErrorCode;
 
 use crate::extension::api::since_0_8_0::wit::grafbase::sdk::types;
 

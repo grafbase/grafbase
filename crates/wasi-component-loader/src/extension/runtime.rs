@@ -3,21 +3,21 @@ mod subscription;
 use crate::{Error, SharedContext, cbor, resources::Lease};
 
 use super::{
-    ExtensionPoolId, InputList, WasmExtensions,
+    InputList, WasmExtensions,
     api::wit::{self, ResponseElement, ResponseElements},
 };
 
-use engine::{ErrorCode, ErrorResponse, GraphqlError};
+use engine_error::{ErrorCode, ErrorResponse, GraphqlError};
 use engine_schema::DirectiveSite;
 use extension_catalog::ExtensionId;
 use futures::{
-    TryStreamExt,
+    StreamExt as _, TryStreamExt,
     stream::{BoxStream, FuturesUnordered},
 };
 use runtime::{
     extension::{
-        AuthorizationDecisions, AuthorizerId, Data, ExtensionFieldDirective, ExtensionRuntime,
-        QueryAuthorizationDecisions, QueryElement, Token, TokenRef,
+        AuthorizationDecisions, Data, ExtensionFieldDirective, ExtensionRuntime, QueryAuthorizationDecisions,
+        QueryElement, Token, TokenRef,
     },
     hooks::Anything,
 };
@@ -46,7 +46,7 @@ impl ExtensionRuntime for WasmExtensions {
         let inputs = InputList::from_iter(inputs);
 
         async move {
-            let mut instance = self.get(ExtensionPoolId::Resolver(extension_id)).await?;
+            let mut instance = self.get(extension_id).await?;
 
             let directive = wit::FieldDefinitionDirective {
                 name,
@@ -72,26 +72,60 @@ impl ExtensionRuntime for WasmExtensions {
 
     async fn authenticate(
         &self,
-        extension_id: ExtensionId,
-        authorizer_id: AuthorizerId,
+        extension_ids: &[ExtensionId],
         headers: http::HeaderMap,
-    ) -> Result<(http::HeaderMap, Token), ErrorResponse> {
-        let mut instance = self
-            .get(ExtensionPoolId::Authorizer(extension_id, authorizer_id))
-            .await?;
+    ) -> (http::HeaderMap, Result<Token, ErrorResponse>) {
+        assert!(!extension_ids.is_empty(), "At least one extension must be provided");
 
-        let headers = Lease::Singleton(headers);
-        instance
-            .authenticate(headers)
-            .await
-            .map(|(headers, token)| (headers.into_inner().unwrap(), token))
-            .map_err(|err| match err {
-                crate::ErrorResponse::Internal(err) => {
-                    tracing::error!("Wasm error: {err}");
-                    ErrorResponse::from(GraphqlError::new("Internal error", ErrorCode::ExtensionError))
-                }
-                crate::ErrorResponse::Guest(err) => err.into_graphql_error_response(ErrorCode::Unauthenticated),
+        let headers = Arc::new(headers);
+
+        let mut futures = extension_ids
+            .iter()
+            .map(|id| async {
+                let mut instance = self.get(*id).await?;
+
+                instance
+                    .authenticate(Lease::Shared(headers.clone()))
+                    .await
+                    .map(|(_, token)| token)
+                    .map_err(|err| match err {
+                        crate::ErrorResponse::Internal(err) => {
+                            tracing::error!("Wasm error: {err}");
+                            ErrorResponse::from(GraphqlError::new("Internal error", ErrorCode::ExtensionError))
+                        }
+                        crate::ErrorResponse::Guest(err) => err.into_graphql_error_response(ErrorCode::Unauthenticated),
+                    })
             })
+            .collect::<FuturesUnordered<_>>();
+
+        let mut result = futures.next().await.unwrap();
+
+        // In pure Rust, we would cancel all the remaining futures as soon as we retrieve the first token.
+        // The problem with Wasm is that while we can cancel the futures, this results in poisoned
+        // instances we can't re-use and forces us to re-create new ones.
+        //
+        // This is likely to be worse than letting the extension run to their end. The
+        // authentication logic is already expected to be ran at every request and is written with
+        // that in mind. However, re-creating an instance is costly on the host side but also runs
+        // the initialization logic which no extension developer expects to be ran at every
+        // request, which may lead to unexpected behaviors.
+        //
+        // Once Wasm provides better future support we might reconsider this decision.
+        while let Some(next_result) = futures.next().await {
+            result = match (result, next_result) {
+                // Take the token if there is any.
+                (Ok(token), _) => Ok(token),
+                (_, Ok(token)) => Ok(token),
+                // If there is a client error, we use it. Server error are likely to be logged and
+                // be less useful for clients.
+                (Err(err), _) if err.status.is_client_error() => Err(err),
+                (_, Err(err)) if err.status.is_client_error() => Err(err),
+                (err, _) => err,
+            };
+        }
+        drop(futures);
+
+        (Arc::into_inner(headers).unwrap(), result)
     }
 
     async fn resolve_subscription<'ctx, 'f>(
@@ -110,7 +144,7 @@ impl ExtensionRuntime for WasmExtensions {
             arguments,
         } = directive;
 
-        let mut instance = self.get(ExtensionPoolId::Resolver(extension_id)).await?;
+        let mut instance = self.get(extension_id).await?;
         let arguments = &cbor::to_vec(arguments).unwrap();
 
         let site = wit::FieldDefinitionDirectiveSite {
@@ -232,7 +266,7 @@ impl ExtensionRuntime for WasmExtensions {
                 .into_iter()
                 .map(
                     move |(extension_id, directive_range, query_elements_range)| async move {
-                        let mut instance = self.get(ExtensionPoolId::Authorization(extension_id)).await?;
+                        let mut instance = self.get(extension_id).await?;
                         match instance
                             .authorize_query(
                                 Lease::SharedMut(headers_ref.clone()),
@@ -306,7 +340,7 @@ impl ExtensionRuntime for WasmExtensions {
                     }
                 })
                 .unwrap_or(&[]);
-            let mut instance = self.get(ExtensionPoolId::Authorization(extension_id)).await?;
+            let mut instance = self.get(extension_id).await?;
             instance
                 .authorize_response(
                     state,

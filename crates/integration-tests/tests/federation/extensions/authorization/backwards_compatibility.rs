@@ -43,18 +43,6 @@ fn sdk_0100() {
             )
             .with_extension(AuthenticationExt::new(StaticToken::bytes("Hello world!".into())))
             .with_extension("authorization-010")
-            .with_toml_config(
-                r#"
-                [[authentication.providers]]
-
-                [authentication.providers.extension]
-                extension = "authentication"
-
-                [extensions.authorization-010]
-                stderr = true
-                stdout = true
-                "#,
-            )
             .build()
             .await;
 

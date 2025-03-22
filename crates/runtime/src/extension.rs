@@ -4,9 +4,6 @@ use engine_schema::{DirectiveSite, FieldDefinition, Subgraph};
 use extension_catalog::ExtensionId;
 use futures_util::stream::BoxStream;
 
-#[derive(Clone, Copy, PartialEq, Hash, Eq, PartialOrd, Ord, id_derives::Id)]
-pub struct AuthorizerId(u16);
-
 use crate::hooks::Anything;
 use error::{ErrorResponse, GraphqlError};
 
@@ -125,10 +122,9 @@ pub trait ExtensionRuntime: Send + Sync + 'static {
 
     fn authenticate(
         &self,
-        extension_id: ExtensionId,
-        authorizer_id: AuthorizerId,
+        extension_ids: &[ExtensionId],
         gateway_headers: http::HeaderMap,
-    ) -> impl Future<Output = Result<(http::HeaderMap, Token), ErrorResponse>> + Send;
+    ) -> impl Future<Output = (http::HeaderMap, Result<Token, ErrorResponse>)> + Send;
 
     fn authorize_query<'ctx, 'fut, Extensions, Arguments>(
         &'ctx self,

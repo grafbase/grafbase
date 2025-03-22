@@ -24,6 +24,7 @@ impl TestExtension for InsertTokenAsHeader {
         token: TokenRef<'_>,
         _elements_grouped_by_directive_name: Vec<(&str, Vec<QueryElement<'_, serde_json::Value>>)>,
     ) -> Result<AuthorizationDecisions, ErrorResponse> {
+        println!("{}", String::from_utf8_lossy(token.as_bytes().unwrap_or_default()));
         headers.write().await.insert(
             "token",
             http::HeaderValue::from_bytes(token.as_bytes().unwrap_or_default()).unwrap(),
@@ -47,14 +48,6 @@ fn can_inject_token_into_headers() {
             ))
             .with_extension(AuthenticationExt::new(StaticToken::bytes("Hello world!".into())))
             .with_extension(AuthorizationExt::new(InsertTokenAsHeader))
-            .with_toml_config(
-                r#"
-            [[authentication.providers]]
-
-            [authentication.providers.extension]
-            extension = "authentication"
-            "#,
-            )
             .build()
             .await;
 

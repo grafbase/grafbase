@@ -5,7 +5,7 @@ use integration_tests::{federation::EngineExt, runtime};
 use crate::federation::extensions::authorization::{AuthorizationExt, InsertTokenAsHeader};
 
 #[test]
-fn sdk_080() {
+fn no_extension() {
     runtime().block_on(async move {
         let engine = Engine::builder()
             .with_subgraph(EchoSchema.with_sdl(
@@ -18,54 +18,14 @@ fn sdk_080() {
                 "#,
             ))
             .with_extension(AuthorizationExt::new(InsertTokenAsHeader))
-            .with_extension("auth-08")
-            .with_toml_config(
-                r#"
-                [extensions.auth-08.config]
-                cache_key_prefix = "test"
-                "#,
-            )
             .build()
             .await;
 
         let response = engine.post(r#"query { header(name: "token") }"#).await;
         insta::assert_json_snapshot!(response, @r#"
         {
-          "errors": [
-            {
-              "message": "Not passing through on my watch! SDK-08",
-              "extensions": {
-                "code": "UNAUTHENTICATED"
-              }
-            }
-          ]
-        }
-        "#);
-
-        let sent = engine.drain_graphql_requests_sent_to_by_name("subgraph");
-        insta::assert_json_snapshot!(sent, @"[]");
-
-        let response = engine
-            .post(r#"query { header(name: "token") }"#)
-            .header("Authorization", "valid")
-            .await;
-        insta::assert_json_snapshot!(response, @r#"
-        {
           "data": {
-            "header": "ssdk08:valid:default"
-          }
-        }
-        "#);
-
-        let response = engine
-            .post(r#"query { header(name: "token") }"#)
-            .header("Authorization", "valid")
-            .header("value", "Hi!")
-            .await;
-        insta::assert_json_snapshot!(response, @r#"
-        {
-          "data": {
-            "header": "ssdk08:valid:default"
+            "header": ""
           }
         }
         "#);
@@ -73,7 +33,7 @@ fn sdk_080() {
 }
 
 #[test]
-fn sdk_090() {
+fn no_extension_with_anonymous_default() {
     runtime().block_on(async move {
         let engine = Engine::builder()
             .with_subgraph(EchoSchema.with_sdl(
@@ -86,11 +46,44 @@ fn sdk_090() {
                 "#,
             ))
             .with_extension(AuthorizationExt::new(InsertTokenAsHeader))
-            .with_extension("auth-09")
             .with_toml_config(
                 r#"
-                [extensions.auth-09.config]
-                cache_key_prefix = "test"
+                [authentication]
+                default = "anonymous"
+                "#,
+            )
+            .build()
+            .await;
+
+        let response = engine.post(r#"query { header(name: "token") }"#).await;
+        insta::assert_json_snapshot!(response, @r#"
+        {
+          "data": {
+            "header": ""
+          }
+        }
+        "#);
+    });
+}
+
+#[test]
+fn no_extension_with_deny_default() {
+    runtime().block_on(async move {
+        let engine = Engine::builder()
+            .with_subgraph(EchoSchema.with_sdl(
+                r#"
+                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
+
+                type Query {
+                    header(name: String): String @auth
+                }
+                "#,
+            ))
+            .with_extension(AuthorizationExt::new(InsertTokenAsHeader))
+            .with_toml_config(
+                r#"
+                [authentication]
+                default = "deny"
                 "#,
             )
             .build()
@@ -101,7 +94,7 @@ fn sdk_090() {
         {
           "errors": [
             {
-              "message": "Not passing through on my watch! SDK-09",
+              "message": "Unauthenticated",
               "extensions": {
                 "code": "UNAUTHENTICATED"
               }
@@ -112,30 +105,5 @@ fn sdk_090() {
 
         let sent = engine.drain_graphql_requests_sent_to_by_name("subgraph");
         insta::assert_json_snapshot!(sent, @"[]");
-
-        let response = engine
-            .post(r#"query { header(name: "token") }"#)
-            .header("Authorization", "valid")
-            .await;
-        insta::assert_json_snapshot!(response, @r#"
-        {
-          "data": {
-            "header": "sdk09:valid:default"
-          }
-        }
-        "#);
-
-        let response = engine
-            .post(r#"query { header(name: "token") }"#)
-            .header("Authorization", "valid")
-            .header("value", "Hi!")
-            .await;
-        insta::assert_json_snapshot!(response, @r#"
-        {
-          "data": {
-            "header": "sdk09:valid:default"
-          }
-        }
-        "#);
     });
 }

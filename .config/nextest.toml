@@ -1,6 +1,6 @@
 [profile.ci]
 # grafbase extension build test compile tons of stuff and thus a super slow.
-slow-timeout = { period = "3m", terminate-after = 6 }
+slow-timeout = { period = "1m", terminate-after = 3 }
 retries = 2
 failure-output = "immediate-final"
 fail-fast = false
@@ -21,3 +21,13 @@ retries = 0
 path = "junit.xml"
 store-success-output = true
 store-failure-output = true
+
+[test-groups]
+# Extension build are huge consumers of CPU as they build complete Rust projects.
+# We could be more fine-grained, but in grand scheme of things, it doesn't matter.
+grafbase-extension-tests = { max-threads = 1 }
+
+[[profile.default.overrides]]
+filter = 'package(grafbase) & binary(integration_tests) & test(extension::)'
+test-group = 'grafbase-extension-tests'
+
