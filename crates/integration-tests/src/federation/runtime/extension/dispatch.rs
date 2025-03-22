@@ -6,8 +6,8 @@ use extension_catalog::ExtensionId;
 use futures::{FutureExt as _, stream::BoxStream};
 use runtime::{
     extension::{
-        AuthorizationDecisions, AuthorizerId, Data, ExtensionFieldDirective, ExtensionRuntime,
-        QueryAuthorizationDecisions, QueryElement, Token, TokenRef,
+        AuthorizationDecisions, Data, ExtensionFieldDirective, ExtensionRuntime, QueryAuthorizationDecisions,
+        QueryElement, Token, TokenRef,
     },
     hooks::Anything,
 };
@@ -17,15 +17,16 @@ use crate::federation::ExtContext;
 
 use super::TestExtensions;
 
+#[derive(Clone, Copy)]
 pub enum DispatchRule {
     Wasm,
     Test,
 }
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct ExtensionsDispatcher {
     pub(super) dispatch: HashMap<ExtensionId, DispatchRule>,
-    pub(super) test: TestExtensions,
+    pub(super) test: Arc<TestExtensions>,
     pub(super) wasm: WasmExtensions,
 }
 
@@ -63,21 +64,27 @@ impl ExtensionRuntime for ExtensionsDispatcher {
 
     async fn authenticate(
         &self,
-        extension_id: ExtensionId,
-        authorizer_id: AuthorizerId,
+        extension_ids: &[ExtensionId],
         gateway_headers: http::HeaderMap,
-    ) -> Result<(http::HeaderMap, Token), ErrorResponse> {
-        match self.dispatch[&extension_id] {
-            DispatchRule::Wasm => {
-                self.wasm
-                    .authenticate(extension_id, authorizer_id, gateway_headers)
-                    .await
+    ) -> (http::HeaderMap, Result<Token, ErrorResponse>) {
+        let mut wasm_extensions = Vec::new();
+        let mut test_extensions = Vec::new();
+        for id in extension_ids {
+            match self.dispatch[id] {
+                DispatchRule::Wasm => wasm_extensions.push(*id),
+                DispatchRule::Test => test_extensions.push(*id),
             }
-            DispatchRule::Test => {
-                self.test
-                    .authenticate(extension_id, authorizer_id, gateway_headers)
-                    .await
-            }
+        }
+
+        assert!(
+            wasm_extensions.is_empty() ^ test_extensions.is_empty(),
+            "Cannot mix test & wasm authentication extensions, feel free to implement it if you need it. Shouldn't be that hard."
+        );
+
+        if !wasm_extensions.is_empty() {
+            self.wasm.authenticate(&wasm_extensions, gateway_headers).await
+        } else {
+            self.test.authenticate(&test_extensions, gateway_headers).await
         }
     }
 

@@ -74,7 +74,7 @@ pub struct Config {
     /// Configuration for Trusted Documents.
     pub trusted_documents: TrustedDocumentsConfig,
     /// Authentication configuration
-    pub authentication: Option<AuthenticationConfig>,
+    pub authentication: AuthenticationConfig,
     /// Header bypass configuration
     pub headers: Vec<HeaderRule>,
     /// Subgraph configuration
@@ -955,7 +955,7 @@ mod tests {
 
         let result: Config = toml::from_str(input).unwrap();
 
-        insta::assert_debug_snapshot!(&result.authentication.unwrap(), @r#"
+        insta::assert_debug_snapshot!(&result.authentication, @r#"
         AuthenticationConfig {
             providers: [
                 Jwt(
@@ -1015,7 +1015,7 @@ mod tests {
 
         let result: Config = toml::from_str(input).unwrap();
 
-        insta::assert_debug_snapshot!(&result.authentication.unwrap(), @r#"
+        insta::assert_debug_snapshot!(&result.authentication, @r#"
         AuthenticationConfig {
             providers: [
                 Jwt(

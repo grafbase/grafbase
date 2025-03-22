@@ -21,6 +21,7 @@ axum-server = { workspace = true, features = ["tls-rustls"] }
 blake3.workspace = true
 cfg-if.workspace = true
 engine.workspace = true
+engine-auth.workspace = true
 engine-axum.workspace = true
 futures-lite.workspace = true
 futures-util.workspace = true

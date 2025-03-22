@@ -14,7 +14,7 @@ use runtime::{
 };
 
 use super::{
-    DockerSubgraph, DynamicHooks, ExtensionsBuilder, TestGateway, TestRuntime, WasmOrTestExtension,
+    DockerSubgraph, DynamicHooks, TestGateway, TestRuntime, TestRuntimeBuilder, WasmOrTestExtension,
     subgraph::{Subgraph, Subgraphs},
 };
 
@@ -32,11 +32,7 @@ pub struct TestGatewayBuilder {
     docker_subgraphs: HashSet<DockerSubgraph>,
     virtual_subgraphs: Vec<(String, String)>,
     config: TestConfig,
-
-    trusted_documents: Option<trusted_documents_client::Client>,
-    hooks: Option<DynamicHooks>,
-    fetcher: Option<DynamicFetcher>,
-    extensions: ExtensionsBuilder,
+    runtime: TestRuntimeBuilder,
 }
 
 pub trait EngineExt {
@@ -91,7 +87,7 @@ impl TestGatewayBuilder {
         enforcement_mode: TrustedDocumentsEnforcementMode,
         documents: Vec<TestTrustedDocument>,
     ) -> Self {
-        self.trusted_documents = Some(trusted_documents_client::Client::new(MockTrustedDocumentsClient {
+        self.runtime.trusted_documents = Some(trusted_documents_client::Client::new(MockTrustedDocumentsClient {
             documents,
             enforcement_mode,
         }));
@@ -101,19 +97,19 @@ impl TestGatewayBuilder {
     pub fn with_extension(mut self, ext: impl Into<WasmOrTestExtension>) -> Self {
         let ext: WasmOrTestExtension = ext.into();
         match ext {
-            WasmOrTestExtension::Wasm(ext) => self.extensions.push_wasm_extension(ext),
-            WasmOrTestExtension::Test(ext) => self.extensions.push_test_extension(ext),
+            WasmOrTestExtension::Wasm(ext) => self.runtime.extensions.push_wasm_extension(ext),
+            WasmOrTestExtension::Test(ext) => self.runtime.extensions.push_test_extension(ext),
         }
         self
     }
 
     pub fn with_mock_hooks(mut self, hooks: impl Into<DynamicHooks>) -> Self {
-        self.hooks = Some(hooks.into());
+        self.runtime.hooks = Some(hooks.into());
         self
     }
 
     pub fn with_mock_fetcher(mut self, fetcher: impl Into<DynamicFetcher>) -> Self {
-        self.fetcher = Some(fetcher.into());
+        self.runtime.fetcher = Some(fetcher.into());
         self
     }
     //-- Runtime customization --
@@ -129,26 +125,10 @@ impl TestGatewayBuilder {
             docker_subgraphs,
             virtual_subgraphs,
             config,
-            trusted_documents,
-            hooks,
-            fetcher,
-            extensions,
+            runtime,
         } = self;
 
         let gateway_config = toml::from_str(&config.toml).expect("to be able to parse config");
-        let mut runtime = TestRuntime::new(&gateway_config);
-
-        if let Some(trusted_documents) = trusted_documents {
-            runtime.trusted_documents = trusted_documents;
-        }
-
-        if let Some(hooks) = hooks {
-            runtime.hooks = hooks;
-        }
-
-        if let Some(fetcher) = fetcher {
-            runtime.fetcher = fetcher;
-        }
 
         let subgraphs = Subgraphs::load(
             mock_subgraphs,
@@ -160,7 +140,7 @@ impl TestGatewayBuilder {
         )
         .await;
 
-        let (engine, context) = self::engine::build(federated_sdl, config, runtime, extensions, &subgraphs).await?;
+        let (engine, context) = self::engine::build(federated_sdl, config, runtime, &subgraphs).await?;
         let router = self::router::build(engine.clone(), gateway_config).await;
 
         Ok(TestGateway {

@@ -1,19 +1,44 @@
-use extension_catalog::{ExtensionCatalog, ExtensionId, KindDiscriminants};
-use gateway_config::{AuthenticationProvider, Config};
-use runtime::extension::AuthorizerId;
+use std::path::PathBuf;
 
-use crate::extension::{ExtensionGuestConfig, SchemaDirective};
+use engine_schema::Schema;
+use extension_catalog::{ExtensionCatalog, ExtensionId};
+use gateway_config::Config;
+use semver::Version;
 
-use super::{ExtensionConfig, ExtensionPoolId, WasmConfig};
+use crate::extension::SchemaDirective;
+
+pub struct ExtensionConfig<T = toml::Value> {
+    pub id: ExtensionId,
+    pub manifest_id: extension_catalog::Id,
+    pub sdk_version: Version,
+    pub pool: PoolConfig,
+    pub wasm: WasmConfig,
+    pub schema_directives: Vec<SchemaDirective>,
+    pub guest_config: Option<T>,
+}
+
+#[derive(Default)]
+pub struct PoolConfig {
+    pub max_size: Option<usize>,
+}
+
+#[derive(Debug, Clone)]
+pub struct WasmConfig {
+    pub location: PathBuf,
+    pub networking: bool,
+    pub stdout: bool,
+    pub stderr: bool,
+    pub environment_variables: bool,
+}
 
 pub(super) fn load_extensions_config(
     extension_catalog: &ExtensionCatalog,
     config: &Config,
-    schema: &engine::Schema,
-) -> Vec<ExtensionConfig<Option<toml::Value>>> {
+    schema: &Schema,
+) -> Vec<ExtensionConfig> {
     let mut wasm_extensions = Vec::with_capacity(extension_catalog.len());
 
-    for (id, extension) in extension_catalog.iter().enumerate() {
+    for (id, extension) in extension_catalog.iter_with_id() {
         let manifest = &extension.manifest;
         let extension_config = config
             .extensions
@@ -31,73 +56,17 @@ pub(super) fn load_extensions_config(
         };
 
         let max_pool_size = extension_config.max_pool_size();
-        let id = ExtensionId::from(id);
-
-        let r#type = KindDiscriminants::from(&manifest.kind);
-        match r#type {
-            KindDiscriminants::Resolver => {
-                let id = ExtensionPoolId::Resolver(id);
-
-                wasm_extensions.push(ExtensionConfig {
-                    id,
-                    manifest_id: manifest.id.clone(),
-                    max_pool_size,
-                    wasm_config: wasi_config,
-                    guest_config: ExtensionGuestConfig {
-                        r#type,
-                        schema_directives: Vec::new(),
-                        configuration: extension_config.config().cloned(),
-                    },
-                    sdk_version: manifest.sdk_version.clone(),
-                });
-            }
-            KindDiscriminants::Authentication => {
-                let Some(auth_config) = config.authentication.as_ref() else {
-                    continue;
-                };
-
-                for (auth_id, provider) in auth_config.providers.iter().enumerate() {
-                    let AuthenticationProvider::Extension(extension_provider) = provider else {
-                        continue;
-                    };
-
-                    if extension_provider.extension != manifest.name() {
-                        continue;
-                    }
-
-                    let id = ExtensionPoolId::Authorizer(id, AuthorizerId::from(auth_id));
-
-                    wasm_extensions.push(ExtensionConfig {
-                        id,
-                        manifest_id: manifest.id.clone(),
-                        max_pool_size,
-                        wasm_config: wasi_config.clone(),
-                        guest_config: ExtensionGuestConfig {
-                            r#type,
-                            schema_directives: Vec::new(),
-                            configuration: extension_provider.config.clone(),
-                        },
-                        sdk_version: manifest.sdk_version.clone(),
-                    });
-                }
-            }
-            KindDiscriminants::Authorization => {
-                let id = ExtensionPoolId::Authorization(id);
-
-                wasm_extensions.push(ExtensionConfig {
-                    id,
-                    manifest_id: manifest.id.clone(),
-                    max_pool_size,
-                    wasm_config: wasi_config,
-                    guest_config: ExtensionGuestConfig {
-                        r#type,
-                        schema_directives: Vec::new(),
-                        configuration: extension_config.config().cloned(),
-                    },
-                    sdk_version: manifest.sdk_version.clone(),
-                });
-            }
-        }
+        wasm_extensions.push(ExtensionConfig {
+            id,
+            manifest_id: manifest.id.clone(),
+            pool: PoolConfig {
+                max_size: max_pool_size,
+            },
+            wasm: wasi_config,
+            schema_directives: Vec::new(),
+            guest_config: extension_config.config().cloned(),
+            sdk_version: manifest.sdk_version.clone(),
+        });
     }
 
     for subgraph in schema.subgraphs() {
@@ -106,7 +75,7 @@ pub(super) fn load_extensions_config(
         for schema_directive in directives {
             let config = &mut wasm_extensions[usize::from(schema_directive.extension_id)];
 
-            config.guest_config.schema_directives.push(SchemaDirective::new(
+            config.schema_directives.push(SchemaDirective::new(
                 schema_directive.name(),
                 subgraph.name(),
                 schema_directive.static_arguments(),

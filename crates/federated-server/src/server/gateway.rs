@@ -5,7 +5,6 @@ pub use self::{create_extension_catalog::Error as CreateExtensionCatalogError, g
 
 use self::create_extension_catalog::create_extension_catalog;
 use super::GdnResponse;
-use crate::Error;
 use engine::{Engine, SchemaVersion};
 use gateway_config::Config;
 use graphql_composition::FederatedGraph;
@@ -14,7 +13,6 @@ use runtime_local::wasi::hooks::{AccessLogSender, HooksWasi};
 use std::{path::PathBuf, sync::Arc};
 use tokio::sync::watch;
 use ulid::Ulid;
-use wasi_component_loader::{extension::WasmExtensions, resources::SharedResources};
 
 /// Send half of the gateway watch channel
 pub(crate) type EngineSender = watch::Sender<Arc<Engine<GatewayRuntime>>>;
@@ -78,25 +76,18 @@ pub(super) async fn generate(
 
     let mut runtime = GatewayRuntime::build(
         gateway_config,
+        &extension_catalog,
+        &schema,
         hot_reload_config_path,
         version_id,
         hooks,
-        Default::default(),
+        access_log,
     )
     .await?;
 
     if let Some(trusted_documents) = trusted_documents {
         runtime.trusted_documents = trusted_documents;
     }
-
-    runtime.extensions = WasmExtensions::new(
-        SharedResources { access_log },
-        &extension_catalog,
-        gateway_config,
-        &schema,
-    )
-    .await
-    .map_err(|e| Error::InternalError(e.to_string()))?;
 
     Ok(Engine::new(Arc::new(schema), runtime).await)
 }

@@ -5,7 +5,7 @@ use crate::{
     Error,
     extension::{ExtensionGuard, api::wit},
 };
-use engine::{ErrorCode, GraphqlError};
+use engine_error::{ErrorCode, GraphqlError};
 use engine_schema::Subgraph;
 use futures::stream;
 

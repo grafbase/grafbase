@@ -1,4 +1,4 @@
-use engine::{ErrorCode, GraphqlError};
+use engine_error::{ErrorCode, GraphqlError};
 
 use crate::{cbor, extension::api::since_0_8_0::wit::grafbase::sdk::types};
 

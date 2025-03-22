@@ -1,4 +1,4 @@
-use engine::{ErrorCode, GraphqlError};
+use engine_error::{ErrorCode, GraphqlError};
 
 use crate::{cbor, state::WasiState};
 

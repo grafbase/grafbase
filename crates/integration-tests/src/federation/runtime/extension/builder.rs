@@ -8,7 +8,7 @@ use engine_schema::SubgraphId;
 use extension_catalog::{Extension, ExtensionCatalog, ExtensionId, Manifest};
 use tokio::sync::Mutex;
 use url::Url;
-use wasi_component_loader::{AccessLogSender, extension::WasmExtensions, resources::SharedResources};
+use wasi_component_loader::{extension::WasmExtensions, resources::SharedResources};
 
 use crate::federation::DispatchRule;
 
@@ -134,8 +134,8 @@ impl ExtensionsBuilder {
         self,
         config: &mut gateway_config::Config,
         schema: &engine::Schema,
-        access_log_sender: AccessLogSender,
-    ) -> Result<ExtensionsDispatcher, String> {
+        shared_resources: SharedResources,
+    ) -> Result<(ExtensionsDispatcher, ExtensionCatalog), String> {
         let wasm_extensions = if self.has_wasm_extension {
             for ext in self.catalog.iter() {
                 let version = ext.manifest.id.version.to_string().parse().unwrap();
@@ -165,16 +165,9 @@ impl ExtensionsBuilder {
                 }
             }
 
-            WasmExtensions::new(
-                SharedResources {
-                    access_log: access_log_sender,
-                },
-                &self.catalog,
-                config,
-                schema,
-            )
-            .await
-            .unwrap()
+            WasmExtensions::new(shared_resources, &self.catalog, config, schema)
+                .await
+                .unwrap()
         } else {
             // If no real wasm extensions was used, we skip the initialization as it would compile
             // the placeholder extension for nothing and we have a lot of extension tests, most of
@@ -182,14 +175,16 @@ impl ExtensionsBuilder {
             Default::default()
         };
 
-        Ok(ExtensionsDispatcher {
+        let extensions = ExtensionsDispatcher {
             wasm: wasm_extensions,
-            test: TestExtensions {
+            test: Arc::new(TestExtensions {
                 builders: self.builders,
                 global_instances: self.global_instances,
                 subgraph_instances: self.subgraph_instances,
-            },
+            }),
             dispatch: self.dispatch,
-        })
+        };
+
+        Ok((extensions, self.catalog))
     }
 }
