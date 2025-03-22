@@ -259,6 +259,7 @@ wasi-component-loader = { path = "crates/wasi-component-loader" }
 engine = { path = "crates/engine" }
 engine-auth = { path = "crates/engine/auth" }
 engine-axum = { path = "crates/engine/axum" }
+engine-error = { path = "crates/engine/error" }
 engine-schema = { path = "crates/engine/schema" }
 federated-graph = { path = "crates/graphql-federated-graph", package = "graphql-federated-graph" }
 grafbase-hooks = { path = "crates/grafbase-hooks" }

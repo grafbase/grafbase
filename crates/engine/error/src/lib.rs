@@ -12,6 +12,20 @@ pub struct ErrorResponse {
     pub errors: Vec<GraphqlError>,
 }
 
+impl ErrorResponse {
+    pub fn new(status: http::StatusCode) -> Self {
+        ErrorResponse {
+            status,
+            errors: Vec::new(),
+        }
+    }
+
+    pub fn with_error(mut self, error: GraphqlError) -> Self {
+        self.errors.push(error);
+        self
+    }
+}
+
 impl From<GraphqlError> for ErrorResponse {
     fn from(error: GraphqlError) -> Self {
         ErrorResponse {

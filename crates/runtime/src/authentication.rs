@@ -1,5 +1,6 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, future::Future};
 
+use error::ErrorResponse;
 use serde_json::Value;
 
 use crate::extension::{Token, TokenRef};
@@ -63,4 +64,11 @@ impl LegacyToken {
             }
         })
     }
+}
+
+pub trait Authenticate {
+    fn authenticate(
+        &self,
+        headers: http::HeaderMap,
+    ) -> impl Future<Output = Result<(http::HeaderMap, LegacyToken), ErrorResponse>> + Send;
 }

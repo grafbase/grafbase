@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
 pub struct Id {
     pub name: String,
@@ -7,6 +9,17 @@ pub struct Id {
 impl std::fmt::Display for Id {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}-{}", self.name, self.version)
+    }
+}
+
+impl FromStr for Id {
+    type Err = semver::Error;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let (name, version) = s.rsplit_once('-').unwrap();
+        Ok(Self {
+            name: name.to_string(),
+            version: semver::Version::parse(version)?,
+        })
     }
 }
 

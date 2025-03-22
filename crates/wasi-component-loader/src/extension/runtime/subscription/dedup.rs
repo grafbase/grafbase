@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use engine::{ErrorCode, GraphqlError};
+use engine_error::{ErrorCode, GraphqlError};
 use engine_schema::Subgraph;
 use tokio::sync::broadcast;
 use tokio_stream::{StreamExt, wrappers::BroadcastStream};

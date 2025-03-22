@@ -46,7 +46,6 @@ impl Context<'_> {
                     },
                 regexps,
                 header_rules,
-                extension_catalog,
                 templates,
                 ..
             },
@@ -59,11 +58,6 @@ impl Context<'_> {
             virtual_subgraphs,
             introspection,
         };
-
-        let auth_config = config
-            .authentication
-            .as_ref()
-            .map(|auth| AuthConfig::new(auth, extension_catalog));
 
         let response_extension = config
             .telemetry
@@ -82,7 +76,6 @@ impl Context<'_> {
         let settings = PartialConfig {
             timeout: config.gateway.timeout,
             default_header_rules,
-            auth_config,
             operation_limits: config.operation_limits.unwrap_or_default(),
             disable_introspection: !config.graph.introspection.unwrap_or_default(),
             retry: config.gateway.retry.enabled.then_some(config.gateway.retry.into()),

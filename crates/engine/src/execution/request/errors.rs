@@ -71,13 +71,6 @@ pub(crate) mod response {
         )
     }
 
-    pub(crate) fn unauthenticated<OnOperationResponseHookOutput>() -> Response<OnOperationResponseHookOutput> {
-        Response::refuse_request_with(
-            http::StatusCode::UNAUTHORIZED,
-            [GraphqlError::new("Unauthenticated", ErrorCode::Unauthenticated)],
-        )
-    }
-
     // We assume any invalid request error would be raised before the timeout expires. So if we do
     // end up sending this error it means operation was valid and the query was just slow.
     pub(crate) fn gateway_timeout<OnOperationResponseHookOutput>() -> Response<OnOperationResponseHookOutput> {

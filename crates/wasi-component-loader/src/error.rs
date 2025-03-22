@@ -1,4 +1,4 @@
-use engine::ErrorCode;
+use engine_error::ErrorCode;
 
 use crate::extension::api::wit;
 
@@ -26,8 +26,8 @@ impl From<Error> for ErrorResponse {
 }
 
 impl wit::ErrorResponse {
-    pub(crate) fn into_graphql_error_response(self, code: ErrorCode) -> engine::ErrorResponse {
-        engine::ErrorResponse {
+    pub(crate) fn into_graphql_error_response(self, code: ErrorCode) -> engine_error::ErrorResponse {
+        engine_error::ErrorResponse {
             status: http::StatusCode::from_u16(self.status_code).unwrap_or(http::StatusCode::INTERNAL_SERVER_ERROR),
             errors: self
                 .errors

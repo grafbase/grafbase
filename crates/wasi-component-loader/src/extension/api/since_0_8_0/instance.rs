@@ -1,5 +1,5 @@
 use anyhow::anyhow;
-use engine::GraphqlError;
+use engine_error::GraphqlError;
 use futures::future::BoxFuture;
 use runtime::extension::{AuthorizationDecisions, Data, Token, TokenRef};
 use wasmtime::Store;

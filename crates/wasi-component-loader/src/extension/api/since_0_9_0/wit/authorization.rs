@@ -1,4 +1,4 @@
-use engine::ErrorCode;
+use engine_error::ErrorCode;
 
 pub use super::exports::grafbase::sdk::authorization::*;
 
