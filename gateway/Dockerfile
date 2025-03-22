@@ -63,3 +63,4 @@ ENTRYPOINT ["/bin/grafbase-gateway"]
 CMD ["--config", "/etc/grafbase.toml", "--listen-address", "0.0.0.0:5000"]
 
 EXPOSE 5000
+USER 1000
