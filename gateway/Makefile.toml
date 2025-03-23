@@ -18,7 +18,13 @@ dependencies = ["install-cargo-release"]
 script = '''
 VERSION=${@}
 cargo release version $VERSION --execute --no-confirm -p grafbase-gateway
-touch "changelog/$VERSION.md"
+if [[ ! -f "changelog/$VERSION.md" ]]; then
+    if [[ -f "changelog/unreleased.md" ]]; then
+        mv "changelog/unreleased.md" "changelog/$VERSION.md"
+    else
+        touch "changelog/$VERSION.md"
+    fi
+fi
 '''
 
 [tasks.release]
