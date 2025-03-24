@@ -55,11 +55,14 @@ impl Hooks for MyHooks {
     fn on_gateway_request(
         &mut self,
         context: Context,
+        url: String,
         headers: Headers
     ) -> Result<(), ErrorResponse> {
         if let Some(ref auth_header) = headers.get("authorization") {
            context.set("auth", auth_header);
         }
+
+        context.set("url", &url);
 
         Ok(())
     }

@@ -1,8 +1,8 @@
 mod common;
 use common::*;
 use grafbase_hooks::{
-    grafbase_hooks, Context, EdgeNodePostExecutionArguments, EdgePreExecutionArguments, Error, ErrorResponse, Headers,
-    Hooks, ParentEdgePostExecutionArguments, SharedContext,
+    Context, EdgeNodePostExecutionArguments, EdgePreExecutionArguments, Error, ErrorResponse, Headers, Hooks,
+    ParentEdgePostExecutionArguments, SharedContext, grafbase_hooks,
 };
 
 // Individual interface implementations
@@ -19,7 +19,7 @@ impl Hooks for Component {
         Self
     }
 
-    fn on_gateway_request(&mut self, context: Context, headers: Headers) -> Result<(), ErrorResponse> {
+    fn on_gateway_request(&mut self, context: Context, url: String, headers: Headers) -> Result<(), ErrorResponse> {
         init_logging();
 
         if let Some(id) = headers.get("x-current-user-id") {
@@ -31,6 +31,8 @@ impl Hooks for Component {
             tracing::info!("Current role: {role}");
             context.set("role", &role);
         }
+
+        context.set("url", &url);
 
         Ok(())
     }
