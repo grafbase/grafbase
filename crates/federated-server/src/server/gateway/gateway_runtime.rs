@@ -1,6 +1,7 @@
 use std::{path::PathBuf, sync::Arc};
 
-use engine::CachedOperation;
+use engine::{CachedOperation, Schema};
+use extension_catalog::ExtensionCatalog;
 use gateway_config::{Config, EntityCachingRedisConfig};
 use grafbase_telemetry::metrics::EngineMetrics;
 use runtime::entity_cache::EntityCache;
@@ -12,7 +13,7 @@ use runtime_local::{
     wasi::hooks::HooksWasi,
 };
 use runtime_noop::trusted_documents::NoopTrustedDocuments;
-use wasi_component_loader::extension::WasmExtensions;
+use wasi_component_loader::{AccessLogSender, extension::WasmExtensions, resources::SharedResources};
 
 use crate::hot_reload::ConfigWatcher;
 
@@ -28,15 +29,18 @@ pub struct GatewayRuntime {
     rate_limiter: runtime::rate_limiting::RateLimiter,
     entity_cache: Box<dyn EntityCache>,
     pub(crate) operation_cache: TieredOperationCache<Arc<CachedOperation>>,
+    authentication: engine_auth::AuthenticationService<WasmExtensions>,
 }
 
 impl GatewayRuntime {
     pub(super) async fn build(
         gateway_config: &Config,
+        extension_catalog: &ExtensionCatalog,
+        schema: &Schema,
         hot_reload_config_path: Option<PathBuf>,
         version_id: Option<ulid::Ulid>,
         hooks: HooksWasi,
-        extensions: WasmExtensions,
+        access_log: AccessLogSender,
     ) -> Result<GatewayRuntime, crate::Error> {
         let mut redis_factory = RedisPoolFactory::default();
         let watcher = ConfigWatcher::init(gateway_config.clone(), hot_reload_config_path)?;
@@ -86,9 +90,22 @@ impl GatewayRuntime {
 
         let operation_cache = operation_cache(gateway_config, &mut redis_factory)?;
 
+        let extensions = WasmExtensions::new(
+            SharedResources { access_log },
+            extension_catalog,
+            gateway_config,
+            schema,
+        )
+        .await
+        .map_err(|e| crate::Error::InternalError(e.to_string()))?;
+
+        let kv = InMemoryKvStore::runtime();
+        let authentication =
+            engine_auth::AuthenticationService::new(gateway_config, extension_catalog, extensions.clone(), &kv);
+
         let runtime = GatewayRuntime {
             fetcher: NativeFetcher::new(gateway_config).map_err(|e| crate::Error::FetcherConfigError(e.to_string()))?,
-            kv: InMemoryKvStore::runtime(),
+            kv,
             trusted_documents: runtime::trusted_documents_client::Client::new(NoopTrustedDocuments),
             hooks,
             extensions,
@@ -96,6 +113,7 @@ impl GatewayRuntime {
             rate_limiter,
             entity_cache,
             operation_cache,
+            authentication,
         };
 
         Ok(runtime)
@@ -107,6 +125,7 @@ impl engine::Runtime for GatewayRuntime {
     type Fetcher = NativeFetcher;
     type OperationCache = TieredOperationCache<Arc<CachedOperation>>;
     type Extensions = WasmExtensions;
+    type Authenticate = engine_auth::AuthenticationService<Self::Extensions>;
 
     fn fetcher(&self) -> &Self::Fetcher {
         &self.fetcher
@@ -146,6 +165,10 @@ impl engine::Runtime for GatewayRuntime {
 
     fn extensions(&self) -> &Self::Extensions {
         &self.extensions
+    }
+
+    fn authentication(&self) -> &Self::Authenticate {
+        &self.authentication
     }
 }
 

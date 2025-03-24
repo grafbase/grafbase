@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use super::{ExtensionInstance, WasmConfig};
+use super::{ExtensionConfig, ExtensionInstance, WasmConfig};
 use crate::{
     cache::Cache,
     config::build_extensions_context,
@@ -9,7 +9,6 @@ use crate::{
     state::WasiState,
 };
 use anyhow::Context;
-use semver::Version;
 use wasmtime::{
     Engine,
     component::{Component, Linker},
@@ -25,12 +24,6 @@ pub struct ExtensionLoader {
     pre: SdkPre,
     cache: Arc<Cache>,
     shared: SharedResources,
-}
-
-pub struct ExtensionGuestConfig<T> {
-    pub r#type: extension_catalog::KindDiscriminants,
-    pub schema_directives: Vec<SchemaDirective>,
-    pub configuration: T,
 }
 
 pub struct SchemaDirective {
@@ -50,25 +43,17 @@ impl SchemaDirective {
 }
 
 impl ExtensionLoader {
-    pub fn new<T>(
-        shared: SharedResources,
-        wasm_config: WasmConfig,
-        guest_config: ExtensionGuestConfig<T>,
-        sdk_version: Version,
-    ) -> crate::Result<Self>
-    where
-        T: serde::Serialize,
-    {
+    pub fn new<T: serde::Serialize>(shared: SharedResources, config: ExtensionConfig<T>) -> crate::Result<Self> {
         let mut engine_config = wasmtime::Config::new();
 
         engine_config.wasm_component_model(true);
         engine_config.async_support(true);
 
         let engine = Engine::new(&engine_config)?;
-        let component = Component::from_file(&engine, &wasm_config.location)?;
+        let component = Component::from_file(&engine, &config.wasm.location)?;
 
         tracing::debug!(
-            location = wasm_config.location.to_str(),
+            location = config.wasm.location.to_str(),
             "loaded the provided web assembly component successfully",
         );
 
@@ -77,16 +62,15 @@ impl ExtensionLoader {
         // adds the wasi interfaces to our component
         wasmtime_wasi::add_to_linker_async(&mut linker)?;
 
-        if wasm_config.networking {
+        if config.wasm.networking {
             // adds the wasi http interfaces to our component
             wasmtime_wasi_http::add_only_http_to_linker_async(&mut linker)?;
         }
 
-        let pre = SdkPre::initialize(&sdk_version, component, linker)?;
+        let pre = SdkPre::initialize(&config.sdk_version, component, linker)?;
 
-        let schema_directives = guest_config.schema_directives;
-
-        let wit_schema_directives = schema_directives
+        let wit_schema_directives = config
+            .schema_directives
             .iter()
             .map(|dir| {
                 let dir = wit::SchemaDirective {
@@ -103,10 +87,9 @@ impl ExtensionLoader {
 
         Ok(Self {
             shared,
-            wasm_config,
-            guest_config: crate::cbor::to_vec(&guest_config.configuration)
-                .context("Could not serialize configuration")?,
-            schema_directives,
+            wasm_config: config.wasm,
+            guest_config: crate::cbor::to_vec(&config.guest_config).context("Could not serialize configuration")?,
+            schema_directives: config.schema_directives,
             wit_schema_directives,
             pre,
             cache: Arc::new(Cache::new()),

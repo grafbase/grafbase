@@ -89,14 +89,6 @@ fn can_access_token() {
             )
             .with_extension(AuthenticationExt::new(StaticToken::bytes(Vec::new())))
             .with_extension("authenticated")
-            .with_toml_config(
-                r#"
-                [[authentication.providers]]
-
-                [authentication.providers.extension]
-                extension = "authentication"
-                "#,
-            )
             .build()
             .await;
 

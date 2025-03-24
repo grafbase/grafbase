@@ -12,6 +12,7 @@ pub trait Runtime: Send + Sync + 'static {
     type Fetcher: runtime::fetch::Fetcher;
     type OperationCache: runtime::operation_cache::OperationCache<Arc<CachedOperation>>;
     type Extensions: runtime::extension::ExtensionRuntime<SharedContext = <Self::Hooks as runtime::hooks::Hooks>::Context>;
+    type Authenticate: runtime::authentication::Authenticate;
 
     fn fetcher(&self) -> &Self::Fetcher;
     fn kv(&self) -> &KvStore;
@@ -23,6 +24,7 @@ pub trait Runtime: Send + Sync + 'static {
     fn sleep(&self, duration: std::time::Duration) -> impl Future<Output = ()> + Send;
     fn entity_cache(&self) -> &dyn EntityCache;
     fn extensions(&self) -> &Self::Extensions;
+    fn authentication(&self) -> &Self::Authenticate;
 }
 
 pub(crate) trait RuntimeExt: Runtime {

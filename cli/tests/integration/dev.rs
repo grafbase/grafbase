@@ -2,6 +2,12 @@ use super::setup::*;
 
 #[tokio::test]
 async fn grafbase_dev_basic() {
+    // FIXME: MacOS & Windows have troubles with those tests in the CI. MacOS works just fine though
+    // locally...
+    if !cfg!(target_os = "linux") {
+        return;
+    }
+
     let dev = GrafbaseDevConfig::new()
         .with_subgraph(graphql_mocks::EchoSchema)
         .start()
@@ -14,12 +20,12 @@ async fn grafbase_dev_basic() {
 
 #[tokio::test]
 async fn local_extension() {
-    // FIXME: Make this test work on windows. Running into issues making http requests to localhost in CI.
-    if cfg!(windows) {
+    TestExtensions::Echo.build().await;
+    // FIXME: MacOS & Windows have troubles with those tests in the CI. MacOS works just fine though
+    // locally...
+    if !cfg!(target_os = "linux") {
         return;
     }
-
-    TestExtensions::Echo.build().await;
 
     let extension_path = TestExtensions::Echo.build_dir_path();
     let extension_path = extension_path.display();

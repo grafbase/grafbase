@@ -1,4 +1,4 @@
-use engine::{ErrorCode, GraphqlError};
+use engine_error::{ErrorCode, GraphqlError};
 use runtime::extension::Data;
 
 use super::super::wit::grafbase::sdk::types::FieldOutput;

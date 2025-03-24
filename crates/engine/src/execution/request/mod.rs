@@ -10,6 +10,7 @@ pub(crate) use context::*;
 pub(crate) use header_rule::*;
 use response_extension::should_include_grafbase_response_extension;
 pub(crate) use response_extension::*;
+use runtime::authentication::Authenticate as _;
 pub(crate) use stream::*;
 
 use ::runtime::{hooks::Hooks, rate_limiting::RateLimitKey};
@@ -84,19 +85,12 @@ impl<R: Runtime> Engine<R> {
 
         let client = Client::extract_from(&headers);
 
-        let Some(access_token) = self.auth.authenticate(&headers).await else {
-            return Err((errors::response::unauthenticated(), wasm_context));
-        };
-
-        let (headers, access_token) = match self.auth_extension {
-            Some(ref auth) => match auth.authenticate(&self.runtime, headers).await {
-                Ok((headers, token)) => (headers, token),
-                Err(error) => {
-                    let response = Response::refuse_request_with(error.status, error.errors);
-                    return Err((response, wasm_context));
-                }
-            },
-            None => (headers, access_token),
+        let (headers, token) = match self.runtime.authentication().authenticate(headers).await {
+            Ok((headers, token)) => (headers, token),
+            Err(resp) => {
+                let response = Response::refuse_request_with(resp.status, resp.errors);
+                return Err((response, wasm_context));
+            }
         };
 
         // Currently it doesn't rely on authentication, but likely will at some point.
@@ -116,7 +110,7 @@ impl<R: Runtime> Engine<R> {
             headers,
             response_format: ctx.response_format,
             client,
-            access_token,
+            token,
             subgraph_default_headers,
             include_grafbase_response_extension: ctx.include_grafbase_response_extension,
         };

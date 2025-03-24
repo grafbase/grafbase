@@ -19,6 +19,7 @@ ctor.workspace = true
 cynic.workspace = true
 cynic-introspection.workspace = true
 engine.workspace = true
+engine-auth.workspace = true
 engine-axum.workspace = true
 engine-schema.workspace = true
 extension-catalog.workspace = true

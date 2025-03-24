@@ -13,7 +13,10 @@ workspace = true
 
 [dependencies]
 base64.workspace = true
+error = { path = "../error", package = "engine-error" }
+extension-catalog.workspace = true
 futures-util.workspace = true
+gateway-config.workspace = true
 grafbase-workspace-hack.workspace = true
 http.workspace = true
 jwt-compact = { workspace = true, features = [

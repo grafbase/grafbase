@@ -1,5 +1,5 @@
 use anyhow::anyhow;
-use engine::GraphqlError;
+use engine_error::GraphqlError;
 use futures::future::BoxFuture;
 use runtime::extension::{AuthorizationDecisions, Data, Token, TokenRef};
 use wasmtime::Store;
@@ -29,20 +29,22 @@ impl ExtensionInstance for ExtensionInstanceSince080 {
         inputs: InputList,
     ) -> BoxFuture<'a, Result<Vec<Result<Data, GraphqlError>>, Error>> {
         Box::pin(async move {
+            // Futures may be canceled, so we pro-actively mark the instance as poisoned until proven
+            // otherwise.
             self.poisoned = true;
 
             let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
             let inputs = inputs.0.iter().map(Vec::as_slice).collect::<Vec<_>>();
 
-            let output = self
+            let result = self
                 .inner
                 .grafbase_sdk_extension()
                 .call_resolve_field(&mut self.store, headers, subgraph_name, directive, &inputs)
-                .await??;
+                .await?;
 
             self.poisoned = false;
 
-            Ok(output.into())
+            Ok(result?.into())
         })
     }
 
@@ -53,17 +55,19 @@ impl ExtensionInstance for ExtensionInstanceSince080 {
         directive: FieldDefinitionDirective<'a>,
     ) -> BoxFuture<'a, Result<(Lease<http::HeaderMap>, Option<Vec<u8>>), Error>> {
         Box::pin(async move {
+            // Futures may be canceled, so we pro-actively mark the instance as poisoned until proven
+            // otherwise.
             self.poisoned = true;
 
             let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
 
             let headers_rep = headers.rep();
 
-            let key = self
+            let result = self
                 .inner
                 .grafbase_sdk_extension()
                 .call_subscription_key(&mut self.store, headers, subgraph_name, directive)
-                .await??;
+                .await?;
 
             let headers = self
                 .store
@@ -74,6 +78,7 @@ impl ExtensionInstance for ExtensionInstanceSince080 {
 
             self.poisoned = false;
 
+            let key = result?;
             Ok((headers, key))
         })
     }
@@ -85,18 +90,21 @@ impl ExtensionInstance for ExtensionInstanceSince080 {
         directive: FieldDefinitionDirective<'a>,
     ) -> BoxFuture<'a, Result<(), Error>> {
         Box::pin(async move {
+            // Futures may be canceled, so we pro-actively mark the instance as poisoned until proven
+            // otherwise.
             self.poisoned = true;
 
             let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
 
-            self.inner
+            let result = self
+                .inner
                 .grafbase_sdk_extension()
                 .call_resolve_subscription(&mut self.store, headers, subgraph_name, directive)
-                .await??;
+                .await?;
 
             self.poisoned = false;
 
-            Ok(())
+            result.map_err(Into::into)
         })
     }
 
@@ -104,17 +112,19 @@ impl ExtensionInstance for ExtensionInstanceSince080 {
         &mut self,
     ) -> BoxFuture<'_, Result<Option<Vec<Result<Data, GraphqlError>>>, Error>> {
         Box::pin(async move {
+            // Futures may be canceled, so we pro-actively mark the instance as poisoned until proven
+            // otherwise.
             self.poisoned = true;
 
-            let output = self
+            let result = self
                 .inner
                 .grafbase_sdk_extension()
                 .call_resolve_next_subscription_item(&mut self.store)
-                .await??;
+                .await?;
 
             self.poisoned = false;
 
-            Ok(output.map(Into::into))
+            Ok(result?.map(Into::into))
         })
     }
 
@@ -123,16 +133,18 @@ impl ExtensionInstance for ExtensionInstanceSince080 {
         headers: Lease<http::HeaderMap>,
     ) -> BoxFuture<'_, Result<(Lease<http::HeaderMap>, Token), ErrorResponse>> {
         Box::pin(async move {
+            // Futures may be canceled, so we pro-actively mark the instance as poisoned until proven
+            // otherwise.
             self.poisoned = true;
 
             let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
             let headers_rep = headers.rep();
 
-            let token = self
+            let result = self
                 .inner
                 .grafbase_sdk_extension()
                 .call_authenticate(&mut self.store, headers)
-                .await??;
+                .await?;
 
             let headers = self
                 .store
@@ -143,6 +155,7 @@ impl ExtensionInstance for ExtensionInstanceSince080 {
 
             self.poisoned = false;
 
+            let token = result?;
             Ok((headers, token.into()))
         })
     }

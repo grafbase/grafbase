@@ -131,14 +131,6 @@ fn anonymous() {
             )
             .with_extension(AuthorizationExt::new(RequiresScopes))
             .with_extension(AuthExt::anonymous())
-            .with_toml_config(
-                r#"
-                [[authentication.providers]]
-
-                [authentication.providers.extension]
-                extension = "authentication"
-                "#,
-            )
             .build()
             .await;
 
@@ -204,14 +196,6 @@ fn missing_claim() {
             )
             .with_extension(AuthorizationExt::new(RequiresScopes))
             .with_extension(AuthExt::claims(&[("dummy", "claim")]))
-            .with_toml_config(
-                r#"
-                [[authentication.providers]]
-
-                [authentication.providers.extension]
-                extension = "authentication"
-                "#,
-            )
             .build()
             .await;
 
@@ -277,14 +261,6 @@ fn missing_scope() {
             )
             .with_extension(AuthorizationExt::new(RequiresScopes))
             .with_extension(AuthExt::claims(&[("scopes", "group")]))
-            .with_toml_config(
-                r#"
-                [[authentication.providers]]
-
-                [authentication.providers.extension]
-                extension = "authentication"
-                "#,
-            )
             .build()
             .await;
 
@@ -368,14 +344,6 @@ fn valid_scope() {
             )
             .with_extension(AuthorizationExt::new(RequiresScopes))
             .with_extension(AuthExt::claims(&[("scopes", "user")]))
-            .with_toml_config(
-                r#"
-                [[authentication.providers]]
-
-                [authentication.providers.extension]
-                extension = "authentication"
-                "#,
-            )
             .build()
             .await;
 

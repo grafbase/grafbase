@@ -1,13 +1,10 @@
-mod auth_extension;
 pub(crate) mod cache;
 mod retry_budget;
 mod runtime;
 
 use ::runtime::{hooks::Hooks as _, operation_cache::OperationCache};
-use auth_extension::AuthExtensionService;
 use bytes::Bytes;
 use cache::CacheKey;
-use engine_auth::AuthService;
 use futures::{StreamExt, TryFutureExt};
 use futures_util::Stream;
 use retry_budget::RetryBudgets;
@@ -31,8 +28,6 @@ pub struct Engine<R: Runtime> {
     // needs access to the schema strings
     pub(crate) schema: Arc<Schema>,
     pub runtime: R,
-    pub(crate) auth: AuthService,
-    pub(crate) auth_extension: Option<AuthExtensionService>,
     pub(crate) retry_budgets: RetryBudgets,
     pub(crate) default_response_format: ResponseFormat,
 }
@@ -41,21 +36,12 @@ impl<R: Runtime> Engine<R> {
     /// schema_version is used in operation cache key which ensures we only retrieve cached
     /// operation for the same schema version. If none is provided, a random one is generated.
     pub async fn new(schema: Arc<Schema>, runtime: R) -> Self {
-        let auth = AuthService::new(
-            schema.settings.auth_config.clone().unwrap_or_default(),
-            runtime.kv().clone(),
-        );
-
-        let auth_extension = AuthExtensionService::new(schema.settings.auth_config.clone().unwrap_or_default());
-
         Self {
-            auth,
             retry_budgets: RetryBudgets::build(&schema),
             schema,
             runtime,
             // Could be coming from configuration one day
             default_response_format: ResponseFormat::application_json(),
-            auth_extension,
         }
     }
 

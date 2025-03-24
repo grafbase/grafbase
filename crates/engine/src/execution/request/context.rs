@@ -1,5 +1,5 @@
 use grafbase_telemetry::grafbase_client::Client;
-use runtime::auth::LegacyToken;
+use runtime::authentication::LegacyToken;
 
 use crate::{Runtime, engine::WasmContext, graphql_over_http::ResponseFormat};
 
@@ -20,7 +20,7 @@ pub(crate) struct RequestContext {
     pub websocket_init_payload: Option<serde_json::Map<String, serde_json::Value>>,
     pub response_format: ResponseFormat,
     pub client: Option<Client>,
-    pub access_token: LegacyToken,
+    pub token: LegacyToken,
     pub subgraph_default_headers: http::HeaderMap,
     pub include_grafbase_response_extension: bool,
 }

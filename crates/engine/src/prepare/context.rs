@@ -3,7 +3,7 @@ use std::sync::Arc;
 use futures::future::BoxFuture;
 use grafbase_telemetry::metrics::EngineMetrics;
 use runtime::{
-    auth::LegacyToken,
+    authentication::LegacyToken,
     hooks::{ExecutedOperation, ExecutedOperationBuilder, Hooks},
 };
 use schema::Schema;
@@ -60,7 +60,7 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
     }
 
     pub fn access_token(&self) -> &'ctx LegacyToken {
-        &self.request_context.access_token
+        &self.request_context.token
     }
 
     pub fn headers(&self) -> &'ctx http::HeaderMap {

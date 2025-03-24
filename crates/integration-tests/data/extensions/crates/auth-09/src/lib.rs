@@ -10,8 +10,19 @@ struct CachingProvider {
 }
 
 #[derive(Debug, serde::Deserialize)]
+#[serde(default)]
 struct ProviderConfig {
-    cache_config: String,
+    header_name: String,
+    cache_key_prefix: String,
+}
+
+impl Default for ProviderConfig {
+    fn default() -> Self {
+        Self {
+            header_name: "Authorization".to_owned(),
+            cache_key_prefix: "test".to_owned(),
+        }
+    }
 }
 
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
@@ -21,20 +32,22 @@ struct Jwks {
 
 impl AuthenticationExtension for CachingProvider {
     fn new(config: Configuration) -> Result<Self, Error> {
-        let config: ProviderConfig = config.deserialize()?;
+        let config: Option<ProviderConfig> = config.deserialize()?;
 
-        Ok(Self { config })
+        Ok(Self {
+            config: config.unwrap_or_default(),
+        })
     }
 
     fn authenticate(&mut self, headers: Headers) -> Result<Token, ErrorResponse> {
-        let header = headers.get("Authorization").ok_or_else(|| {
+        let auth = headers.get(&self.config.header_name).ok_or_else(|| {
             ErrorResponse::new(StatusCode::UNAUTHORIZED)
                 .with_error(Error::new("Not passing through on my watch! SDK-09"))
         })?;
 
         let value = headers.get("value").unwrap_or_else(|| String::from("default"));
 
-        let cache_key = format!("auth:{}:{header}", self.config.cache_config);
+        let cache_key = format!("{}:{auth}", self.config.cache_key_prefix);
 
         let jwks: Jwks = cache::get(&cache_key, || {
             let jwks = Jwks { key: value };
@@ -44,6 +57,6 @@ impl AuthenticationExtension for CachingProvider {
         })
         .unwrap();
 
-        Ok(Token::from_bytes(serde_json::to_vec(&jwks).unwrap()))
+        Ok(Token::from_bytes(format!("sdk09:{auth}:{}", jwks.key).into()))
     }
 }

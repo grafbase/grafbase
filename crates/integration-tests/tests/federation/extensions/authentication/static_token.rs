@@ -37,14 +37,6 @@ fn anonymous_token() {
         let engine = Engine::builder()
             .with_subgraph(FakeGithubSchema)
             .with_extension(AuthenticationExt::new(StaticToken::anonymous()))
-            .with_toml_config(
-                r#"
-            [[authentication.providers]]
-
-            [authentication.providers.extension]
-            extension = "authentication"
-            "#,
-            )
             .build()
             .await;
 
@@ -66,14 +58,6 @@ fn bytes_token() {
         let engine = Engine::builder()
             .with_subgraph(FakeGithubSchema)
             .with_extension(AuthenticationExt::new(StaticToken::bytes(Vec::new())))
-            .with_toml_config(
-                r#"
-            [[authentication.providers]]
-
-            [authentication.providers.extension]
-            extension = "authentication"
-            "#,
-            )
             .build()
             .await;
 
@@ -98,14 +82,6 @@ fn error_response() {
                 "My error message",
                 ErrorCode::Unauthenticated,
             ))))
-            .with_toml_config(
-                r#"
-            [[authentication.providers]]
-
-            [authentication.providers.extension]
-            extension = "authentication"
-            "#,
-            )
             .build()
             .await;
 

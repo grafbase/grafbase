@@ -3,15 +3,14 @@ use std::{borrow::Cow, collections::HashMap};
 use base64::Engine as _;
 use futures_util::future::BoxFuture;
 use jwt_compact::{Algorithm, AlgorithmExt, TimeOptions, Token, UntrustedToken, jwk::JsonWebKey};
-use runtime::{auth::JwtToken, kv::KvStore};
-use schema::JwtConfig;
+use runtime::{authentication::JwtToken, kv::KvStore};
 use serde::de::DeserializeOwned;
 
-use super::{Authorizer, LegacyToken};
+use super::{LegacyAuthorizer, LegacyToken};
 
 /// Same validation as Apollo's "JWT authentication".
 pub struct JwtProvider {
-    config: JwtConfig,
+    config: gateway_config::JwtProvider,
     kv: KvStore,
     key: String,
 }
@@ -50,7 +49,7 @@ impl<'a> std::ops::Deref for Jwk<'a> {
 }
 
 impl JwtProvider {
-    pub fn new(config: JwtConfig, kv: KvStore) -> Self {
+    pub fn new(config: gateway_config::JwtProvider, kv: KvStore) -> Self {
         let key: String = {
             use base64::{Engine as _, engine::general_purpose};
             use sha2::{Digest, Sha256};
@@ -118,7 +117,7 @@ impl JwtProvider {
     }
 }
 
-impl Authorizer for JwtProvider {
+impl LegacyAuthorizer for JwtProvider {
     fn get_access_token<'a>(&'a self, headers: &'a http::HeaderMap) -> BoxFuture<'a, Option<LegacyToken>> {
         Box::pin(self.get_access_token(headers))
     }
@@ -127,9 +126,9 @@ impl Authorizer for JwtProvider {
 impl JwtProvider {
     async fn get_access_token(&self, headers: &http::HeaderMap) -> Option<LegacyToken> {
         let token_str = headers
-            .get(&self.config.header_name)
+            .get(self.config.header.name.as_str())
             .and_then(|value| value.to_str().ok())
-            .and_then(|value| value.strip_prefix(&self.config.header_value_prefix))?;
+            .and_then(|value| value.strip_prefix(self.config.header.value_prefix.as_str()))?;
 
         let jwks_bytes = self.load_metadata().await?;
         let jwks: Jwks<'_> = serde_json::from_slice(&jwks_bytes)

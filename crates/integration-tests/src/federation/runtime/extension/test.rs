@@ -5,7 +5,7 @@ use engine::{ErrorResponse, GraphqlError};
 use engine_schema::{DirectiveSite, Subgraph, SubgraphId};
 use extension_catalog::{ExtensionId, Id};
 use futures::{
-    TryFutureExt as _, TryStreamExt as _,
+    StreamExt, TryFutureExt as _, TryStreamExt as _,
     stream::{BoxStream, FuturesUnordered},
 };
 use runtime::{
@@ -147,13 +147,32 @@ impl runtime::extension::ExtensionRuntime for TestExtensions {
 
     async fn authenticate(
         &self,
-        extension_id: ExtensionId,
-        _authorizer_id: runtime::extension::AuthorizerId,
+        extension_ids: &[ExtensionId],
         headers: http::HeaderMap,
-    ) -> Result<(http::HeaderMap, Token), ErrorResponse> {
-        let instance = self.get_global_instance(extension_id).await;
-        let token = instance.authenticate(&headers).await?;
-        Ok((headers, token))
+    ) -> (http::HeaderMap, Result<Token, ErrorResponse>) {
+        let mut futures = extension_ids
+            .iter()
+            .map(|id| async {
+                let instance = self.get_global_instance(*id).await;
+                instance.authenticate(&headers).await
+            })
+            .collect::<FuturesUnordered<_>>();
+
+        let mut last_error = None;
+        while let Some(result) = futures.by_ref().next().await {
+            match result {
+                Ok(token) => {
+                    drop(futures);
+                    return (headers, Ok(token));
+                }
+                Err(err) => {
+                    last_error = Some(err);
+                }
+            }
+        }
+
+        drop(futures);
+        (headers, Err(last_error.unwrap()))
     }
 
     async fn resolve_subscription<'ctx, 'f>(

@@ -5,27 +5,27 @@ use std::time::Duration;
 use url::Url;
 
 /// Configures the GraphQL server JWT authentication
-#[derive(Debug, PartialEq, serde::Deserialize, Clone)]
+#[derive(Default, Debug, PartialEq, serde::Deserialize, Clone)]
+#[serde(default, deny_unknown_fields)]
 pub struct AuthenticationConfig {
+    pub default: Option<DefaultAuthenticationBehavior>,
     /// Enabled authentication providers
     pub providers: Vec<AuthenticationProvider>,
 }
 
+#[derive(Debug, PartialEq, serde::Deserialize, Clone, Copy)]
+#[serde(rename_all = "snake_case")]
+pub enum DefaultAuthenticationBehavior {
+    Anonymous,
+    Deny,
+}
+
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, PartialEq, serde::Deserialize, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum AuthenticationProvider {
-    Jwt(Box<JwtProvider>),
-    Extension(Box<ExtensionProvider>),
+    Jwt(JwtProvider),
     Anonymous,
-}
-
-#[derive(Debug, PartialEq, serde::Deserialize, Clone)]
-#[serde(rename_all = "snake_case")]
-pub struct ExtensionProvider {
-    /// The name of the provider
-    pub name: Option<String>,
-    pub extension: String,
-    pub config: Option<toml::Value>,
 }
 
 #[derive(Debug, PartialEq, serde::Deserialize, Clone)]

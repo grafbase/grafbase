@@ -2,9 +2,10 @@ use std::path::PathBuf;
 
 use crate::{
     cbor,
-    extension::{ExtensionGuestConfig, ExtensionLoader, SchemaDirective, WasmConfig, api::wit},
+    extension::{ExtensionConfig, ExtensionLoader, SchemaDirective, WasmConfig, api::wit},
     tests::create_shared_resources,
 };
+use extension_catalog::ExtensionId;
 use futures::{
     StreamExt, TryStreamExt,
     stream::{FuturesOrdered, FuturesUnordered},
@@ -13,7 +14,7 @@ use http::{HeaderMap, HeaderValue};
 use runtime::extension::{Data, Token};
 use serde_json::json;
 
-const LATEST_SDK: semver::Version = semver::Version::new(0, 10, 0);
+const LATEST_SDK: semver::Version = semver::Version::new(0, 11, 0);
 
 #[tokio::test]
 async fn simple_resolver() {
@@ -41,13 +42,15 @@ async fn simple_resolver() {
 
     let loader = ExtensionLoader::new(
         shared,
-        config,
-        ExtensionGuestConfig {
-            r#type: extension_catalog::KindDiscriminants::Resolver,
+        ExtensionConfig {
+            id: ExtensionId::from(0usize),
+            manifest_id: "caching_auth-1.0.0".parse().unwrap(),
+            sdk_version: LATEST_SDK,
+            pool: Default::default(),
+            wasm: config,
             schema_directives: vec![SchemaDirective::new("schemaArgs", "mySubgraph", SchemaArgs { id: 10 })],
-            configuration: (),
+            guest_config: Some(()),
         },
-        LATEST_SDK,
     )
     .unwrap();
 
@@ -106,15 +109,17 @@ async fn single_call_caching_auth() {
 
     let loader = ExtensionLoader::new(
         shared,
-        config,
-        ExtensionGuestConfig {
-            r#type: extension_catalog::KindDiscriminants::Authentication,
+        ExtensionConfig {
+            id: ExtensionId::from(0usize),
+            manifest_id: "caching_auth-1.0.0".parse().unwrap(),
+            sdk_version: LATEST_SDK,
+            pool: Default::default(),
+            wasm: config,
             schema_directives: Vec::new(),
-            configuration: json!({
+            guest_config: Some(json!({
                 "cache_config": "test"
-            }),
+            })),
         },
-        LATEST_SDK,
     )
     .unwrap();
 
@@ -158,15 +163,17 @@ async fn single_call_caching_auth_invalid() {
 
     let loader = ExtensionLoader::new(
         shared,
-        config,
-        ExtensionGuestConfig {
-            r#type: extension_catalog::KindDiscriminants::Authentication,
+        ExtensionConfig {
+            id: ExtensionId::from(0usize),
+            manifest_id: "caching_auth-1.0.0".parse().unwrap(),
+            sdk_version: LATEST_SDK,
+            pool: Default::default(),
+            wasm: config,
             schema_directives: Vec::new(),
-            configuration: json!({
+            guest_config: Some(json!({
                 "cache_config": "test"
-            }),
+            })),
         },
-        LATEST_SDK,
     )
     .unwrap();
 
@@ -208,15 +215,17 @@ async fn multiple_cache_calls() {
 
     let loader = ExtensionLoader::new(
         shared,
-        config,
-        ExtensionGuestConfig {
-            r#type: extension_catalog::KindDiscriminants::Authentication,
+        ExtensionConfig {
+            id: ExtensionId::from(0usize),
+            manifest_id: "caching_auth-1.0.0".parse().unwrap(),
+            sdk_version: LATEST_SDK,
+            pool: Default::default(),
+            wasm: config,
             schema_directives: Vec::new(),
-            configuration: json!({
+            guest_config: Some(json!({
                 "cache_config": "test"
-            }),
+            })),
         },
-        LATEST_SDK,
     )
     .unwrap();
 

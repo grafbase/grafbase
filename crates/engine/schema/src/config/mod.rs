@@ -1,4 +1,3 @@
-mod auth;
 mod complexity_control;
 mod response_extensions;
 mod retry;
@@ -7,7 +6,6 @@ mod trusted_documents;
 use id_newtypes::IdRange;
 
 use crate::HeaderRuleId;
-pub use auth::*;
 pub use complexity_control::*;
 pub use response_extensions::*;
 pub use retry::*;
@@ -18,7 +16,6 @@ pub struct PartialConfig {
     pub(crate) default_header_rules: IdRange<HeaderRuleId>,
 
     pub timeout: std::time::Duration,
-    pub auth_config: Option<AuthConfig>,
     pub operation_limits: gateway_config::OperationLimitsConfig,
     pub disable_introspection: bool,
     pub retry: Option<RetryConfig>,
