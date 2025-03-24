@@ -20,6 +20,8 @@ github.com/99designs/gqlgen/_examples v0.0.0-20250317112802-ae25f1d44727 h1:45fA
 github.com/99designs/gqlgen/_examples v0.0.0-20250317112802-ae25f1d44727/go.mod h1:noHK+GCvF7Db90EEwHaS9AKDrnHLmhFDYj3BiHeEQnE=
 github.com/99designs/gqlgen/_examples v0.0.0-20250319111814-e91e7f6c785c h1:We27TpNk73b49URSyOXWMVcybve9o7JuGhnOSkFgFmY=
 github.com/99designs/gqlgen/_examples v0.0.0-20250319111814-e91e7f6c785c/go.mod h1:noHK+GCvF7Db90EEwHaS9AKDrnHLmhFDYj3BiHeEQnE=
+github.com/99designs/gqlgen/_examples v0.0.0-20250324182929-7f0d34534e21 h1:xMaRJS3UzBtOsgd6DPZtBkISQXqoW/fyk5iBUBLrQs8=
+github.com/99designs/gqlgen/_examples v0.0.0-20250324182929-7f0d34534e21/go.mod h1:noHK+GCvF7Db90EEwHaS9AKDrnHLmhFDYj3BiHeEQnE=
 github.com/PuerkitoBio/goquery v1.9.3 h1:mpJr/ikUA9/GNJB/DBZcGeFDXUtosHRyRrwh7KGdTG0=
 github.com/PuerkitoBio/goquery v1.9.3/go.mod h1:1ndLHPdTz+DyQPICCWYlYQMPl0oXZj0G6D4LCYA6u4U=
 github.com/agnivade/levenshtein v1.2.1 h1:EHBY3UOn1gwdy/VbFwgo4cxecRznFk7fKWN1KOX7eoM=
