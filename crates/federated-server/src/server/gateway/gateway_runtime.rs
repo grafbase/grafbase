@@ -42,10 +42,13 @@ impl GatewayRuntime {
         hooks: HooksWasi,
         access_log: AccessLogSender,
     ) -> Result<GatewayRuntime, crate::Error> {
+        tracing::debug!("Build engine runtime.");
+
         let mut redis_factory = RedisPoolFactory::default();
         let watcher = ConfigWatcher::init(gateway_config.clone(), hot_reload_config_path)?;
         let meter = grafbase_telemetry::metrics::meter_from_global_provider();
 
+        tracing::debug!("Building rate limiter");
         let rate_limiter = match &gateway_config.gateway.rate_limit {
             Some(config) if config.storage.is_redis() => {
                 let tls = config.redis.tls.as_ref().map(|tls| RedisTlsConfig {
@@ -69,6 +72,7 @@ impl GatewayRuntime {
             _ => InMemoryRateLimiter::runtime_with_watcher(watcher),
         };
 
+        tracing::debug!("Building cache");
         let entity_cache: Box<dyn EntityCache> = match gateway_config.entity_caching.storage {
             gateway_config::EntityCachingStorage::Memory => Box::new(InMemoryEntityCache::default()),
             gateway_config::EntityCachingStorage::Redis => {
@@ -90,6 +94,7 @@ impl GatewayRuntime {
 
         let operation_cache = operation_cache(gateway_config, &mut redis_factory)?;
 
+        tracing::debug!("Building extensions");
         let extensions = WasmExtensions::new(
             SharedResources { access_log },
             extension_catalog,
@@ -100,6 +105,8 @@ impl GatewayRuntime {
         .map_err(|e| crate::Error::InternalError(e.to_string()))?;
 
         let kv = InMemoryKvStore::runtime();
+
+        tracing::debug!("Setting up authentication");
         let authentication =
             engine_auth::AuthenticationService::new(gateway_config, extension_catalog, extensions.clone(), &kv);
 

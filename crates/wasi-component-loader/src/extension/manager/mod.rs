@@ -73,13 +73,16 @@ async fn create_pools(
         .ok()
         // Each extensions takes quite a lot of CPU.
         .map(|num| num.get() / 8)
-        .unwrap_or(1);
+        .unwrap_or_default()
+        // We want at least parallelism of 1, otherwise we'll never move forward even without any
+        // extensions...
+        .max(1);
 
     let mut pools = stream::iter(extensions.into_iter().map(|config| async {
+        tracing::info!("Loading extension {}", config.manifest_id);
+
         let shared = shared_resources.clone();
         std::future::ready(()).await;
-
-        tracing::info!("Loading extension {}", config.manifest_id);
 
         let id = config.id;
         let max_pool_size = config.pool.max_size;
