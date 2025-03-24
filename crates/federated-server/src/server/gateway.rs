@@ -65,11 +65,14 @@ pub(super) async fn generate(
         GraphDefinition::Sdl(federated_sdl) => sdl_graph(federated_sdl),
     };
 
+    tracing::debug!("Creating extension catalog.");
     let extension_catalog = create_extension_catalog(gateway_config).await?;
 
+    tracing::debug!("Parsing federated schema.");
     let federated_graph =
         FederatedGraph::from_sdl(&federated_sdl).map_err(|e| crate::Error::SchemaValidationError(e.to_string()))?;
 
+    tracing::debug!("Building engine Schema.");
     let schema = engine::Schema::build(gateway_config, &federated_graph, &extension_catalog, schema_version)
         .await
         .map_err(|err| crate::Error::SchemaValidationError(err.to_string()))?;
