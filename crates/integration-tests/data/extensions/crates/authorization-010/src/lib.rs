@@ -1,6 +1,9 @@
 use grafbase_sdk::{
-    AuthorizationExtension, Error, IntoQueryAuthorization, SubgraphHeaders, Token,
-    types::{AuthorizationDecisions, Configuration, ErrorResponse, QueryElements, ResponseElements},
+    AuthorizationExtension, IntoQueryAuthorization,
+    types::{
+        AuthorizationDecisions, Configuration, Error, ErrorResponse, QueryElements, ResponseElements, SubgraphHeaders,
+        Token,
+    },
 };
 
 #[derive(AuthorizationExtension)]

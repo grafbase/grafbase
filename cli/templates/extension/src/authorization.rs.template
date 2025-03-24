@@ -1,7 +1,6 @@
 use grafbase_sdk::{
-    types::{Configuration, ErrorResponse, QueryElements, AuthorizationDecisions, Token},
-    host::SubgraphHeaders,
-    AuthorizationExtension, Error
+    types::{Configuration, ErrorResponse, QueryElements, AuthorizationDecisions, Token, SubgraphHeaders, Error},
+    AuthorizationExtension,
 };
 
 #[derive(AuthorizationExtension)]

@@ -7,6 +7,7 @@ mod directive_site;
 mod elements;
 mod error;
 mod error_response;
+mod headers;
 mod resolver;
 mod subscription;
 mod token;
@@ -18,12 +19,10 @@ pub use directive_site::*;
 pub use elements::*;
 pub use error::*;
 pub use error_response::*;
+pub use headers::*;
 pub use resolver::*;
 pub use subscription::*;
 pub use token::*;
-
-pub use http::StatusCode;
-pub use serde::Deserialize;
 
 /// A cache implementation for storing data between requests.
 pub struct Cache;

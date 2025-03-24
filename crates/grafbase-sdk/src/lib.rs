@@ -1,11 +1,12 @@
 #![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/README.md"))]
-#![deny(missing_docs)]
+#![doc = "# Features"]
+#![doc = document_features::document_features!()]
+#![deny(missing_docs, unused_crate_dependencies)]
 
 mod cbor;
 mod component;
 #[doc(hidden)]
 pub mod extension;
-pub mod host;
 pub mod host_io;
 #[cfg(feature = "jq-selection")]
 pub mod jq_selection;
@@ -15,13 +16,9 @@ pub mod types;
 
 pub use component::SdkError;
 pub use extension::{
-    authorization::IntoQueryAuthorization, resolver::Subscription, AuthenticationExtension, AuthorizationExtension,
-    ResolverExtension,
+    AuthenticationExtension, AuthorizationExtension, IntoQueryAuthorization, ResolverExtension, Subscription,
 };
 pub use grafbase_sdk_derive::{AuthenticationExtension, AuthorizationExtension, ResolverExtension};
-pub use host::{GatewayHeaders, SubgraphHeaders};
-pub use types::{Error, ErrorResponse, Token};
-pub use wit::{NatsAuth, NatsStreamDeliverPolicy};
 
 use component::Component;
 

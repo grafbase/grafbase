@@ -28,6 +28,8 @@ use jaq_core::{
 };
 use jaq_json::Val;
 
+use crate::SdkError;
+
 /// A struct that holds JQ filter selections
 ///
 /// Use it to select data from a JSON object using JQ syntax. Caches the previously compiled filters,
@@ -79,7 +81,7 @@ impl JqSelection {
         &mut self,
         selection: &str,
         data: serde_json::Value,
-    ) -> anyhow::Result<impl Iterator<Item = anyhow::Result<serde_json::Value>> + '_> {
+    ) -> Result<impl Iterator<Item = Result<serde_json::Value, SdkError>> + '_, SdkError> {
         let hasher = DefaultHashBuilder::default();
         let hash = hasher.hash_one(selection);
         let hasher = |val: &(String, usize)| hasher.hash_one(&val.0);
@@ -99,7 +101,7 @@ impl JqSelection {
 
                 let modules = loader.load(&self.arena, program).map_err(|e| {
                     let error = e.first().map(|e| e.0.code).unwrap_or_default();
-                    anyhow::anyhow!("The selection is not valid jq syntax: `{error}`")
+                    format!("The selection is not valid jq syntax: `{error}`")
                 })?;
 
                 let filter = Compiler::default()
@@ -107,7 +109,7 @@ impl JqSelection {
                     .compile(modules)
                     .map_err(|e| {
                         let error = e.first().map(|e| e.0.code).unwrap_or_default();
-                        anyhow::anyhow!("The selection is not valid jq syntax: `{error}`")
+                        format!("The selection is not valid jq syntax: `{error}`")
                     })?;
 
                 self.filters.push(filter);
@@ -124,7 +126,7 @@ impl JqSelection {
 
         Ok(filtered.map(|v| match v {
             Ok(val) => Ok(serde_json::Value::from(val)),
-            Err(e) => Err(anyhow::anyhow!("{e}")),
+            Err(e) => Err(format!("{e}").into()),
         }))
     }
 }
