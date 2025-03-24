@@ -56,7 +56,13 @@ sd "@grafbase/cli-x86_64-pc-windows-msvc\": \"\^\d+.\d+.\d+.*\"" "@grafbase/cli-
 sd "@grafbase/cli-x86_64-unknown-linux-musl\": \"\^\d+.\d+.\d+.*\"" "@grafbase/cli-x86_64-unknown-linux-musl\": \"^$VERSION\""  cli/package.json
 sd "@grafbase/cli-aarch64-unknown-linux-musl\": \"\^\d+.\d+.\d+.*\"" "@grafbase/cli-aarch64-unknown-linux-musl\": \"^$VERSION\""  cli/package.json
 cd ../
-touch "changelog/$VERSION.md"
+if [[ ! -f "changelog/$VERSION.md" ]]; then
+    if [[ -f "changelog/unreleased.md" ]]; then
+        mv "changelog/unreleased.md" "changelog/$VERSION.md"
+    else
+        touch "changelog/$VERSION.md"
+    fi
+fi
 '''
 
 [tasks.release]
