@@ -24,12 +24,12 @@ use crate::{
 ///
 /// #[derive(AuthenticationExtension)]
 /// struct MyAuth {
-///   config: Config
+///     config: Config
 /// }
 ///
 /// #[derive(serde::Deserialize)]
 /// struct Config {
-///   my_custom_key: String
+///     my_custom_key: String
 /// }
 ///
 /// impl AuthenticationExtension for MyAuth {
