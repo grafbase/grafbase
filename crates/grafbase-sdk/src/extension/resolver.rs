@@ -140,8 +140,8 @@ pub trait ResolverExtension: Sized + 'static {
     /// # fn dummy(schema_directives: Vec<SchemaDirective>) -> Result<(), Error> {
     /// #[derive(serde::Deserialize)]
     /// struct HttpEndpoint {
-    ///   name: String,
-    ///   url: String
+    ///     name: String,
+    ///     url: String
     /// }
     ///
     /// let config: Vec<HttpEndpoint> = schema_directives
