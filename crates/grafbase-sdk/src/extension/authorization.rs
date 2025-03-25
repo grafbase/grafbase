@@ -145,7 +145,7 @@ pub trait AuthorizationExtension: Sized + 'static {
     /// # fn dummy(config: Configuration) -> Result<(), Error> {
     /// #[derive(serde::Deserialize)]
     /// struct Config {
-    ///   my_custom_key: String
+    ///     my_custom_key: String
     /// }
     ///
     /// let config: Config = config.deserialize()?;
