@@ -1,31 +1,104 @@
 use crate::{
     component::AnyExtension,
-    host::GatewayHeaders,
-    types::{Configuration, ErrorResponse, Token},
-    Error,
+    types::{Configuration, Error, ErrorResponse, GatewayHeaders, Token},
 };
 
-/// A trait that extends `Extension` and provides authentication functionality.
+/// An authentication extension is called before any request processing, authenticating a user with
+/// a token or returning an error response.
+///
+/// # Example
+///
+/// You can initialize a new authentication extension with the Grafbase CLI:
+///
+/// ```bash
+/// grafbase extension init --type authentication my-auth
+/// ```
+///
+/// This will generate the following:
+///
+/// ```rust
+/// use grafbase_sdk::{
+///     AuthenticationExtension,
+///     types::{GatewayHeaders, Configuration, ErrorResponse, Token, Error}
+/// };
+///
+/// #[derive(AuthenticationExtension)]
+/// struct MyAuth {
+///     config: Config
+/// }
+///
+/// #[derive(serde::Deserialize)]
+/// struct Config {
+///     my_custom_key: String
+/// }
+///
+/// impl AuthenticationExtension for MyAuth {
+///     fn new(config: Configuration) -> Result<Self, Error> {
+///         let config: Config = config.deserialize()?;
+///         Ok(Self { config })
+///     }
+///
+///     fn authenticate(&mut self, headers: &GatewayHeaders) -> Result<Token, ErrorResponse> {
+///         todo!()
+///     }
+/// }
+/// ```
+/// ## Configuration
+///
+/// The configuration provided in the `new` method is the one defined in the `grafbase.toml`
+/// file by the extension user:
+///
+/// ```toml
+/// [extensions.my-auth.config]
+/// my_custom_key = "value"
+/// ```
+///
+/// Once your business logic is written down you can compile your extension with:
+///
+/// ```bash
+/// grafbase extension build
+/// ```
+///
+/// It will generate all the necessary files in a `build` directory which you can specify in the
+/// `grafbase.toml` configuration with:
+///
+/// ```toml
+/// [extensions.my-auth]
+/// path = "<project path>/build"
+/// ```
+///
 pub trait AuthenticationExtension: Sized + 'static {
-    /// Creates a new instance of the extension.
+    /// Creates a new instance of the extension. The [Configuration] will contain all the
+    /// configuration defined in the `grafbase.toml` by the extension user in a serialized format.
     ///
-    /// # Arguments
+    /// # Example
     ///
-    /// * `config` - The configuration for this extension, from the gateway TOML.
+    /// The following TOML configuration:
+    /// ```toml
+    /// [extensions.my-auth.config]
+    /// my_custom_key = "value"
+    /// ```
     ///
-    /// # Returns
+    /// can be easily deserialized with:
     ///
-    /// Returns an instance of this resolver. Upon failure, every call to this extension will fail.
+    /// ```rust
+    /// # use grafbase_sdk::types::{Configuration, Error};
+    /// # fn dummy(config: Configuration) -> Result<(), Error> {
+    /// #[derive(serde::Deserialize)]
+    /// struct Config {
+    ///     my_custom_key: String
+    /// }
+    ///
+    /// let config: Config = config.deserialize()?;
+    /// # Ok(())
+    /// # }
+    /// ```
     fn new(config: Configuration) -> Result<Self, Error>;
 
-    /// Authenticates the request using the provided headers.
+    /// Authenticate the user with a [Token] or return an [ErrorResponse]. It is called before any
+    /// GraphQL processing and an error will stop any further actions.
     ///
-    /// # Arguments
-    /// * `headers` - The request headers to authenticate with.
-    ///
-    /// # Returns
-    /// * `Ok(Token)` - A valid authentication token if successful.
-    /// * `Err(ErrorResponse)` - An error response if authentication fails.
+    /// The [GatewayHeaders] are the headers received by the gateway before any header rules.
     fn authenticate(&mut self, headers: &GatewayHeaders) -> Result<Token, ErrorResponse>;
 }
 

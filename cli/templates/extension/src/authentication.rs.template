@@ -1,6 +1,6 @@
 use grafbase_sdk::{
-    types::{Configuration, SchemaDirective, ErrorResponse, Token},
-    AuthenticationExtension, host::GatewayHeaders, Error
+    types::{Configuration, SchemaDirective, ErrorResponse, Token, GatewayHeaders, Error},
+    AuthenticationExtension,
 };
 
 #[derive(AuthenticationExtension)]

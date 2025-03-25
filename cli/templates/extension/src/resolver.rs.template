@@ -1,6 +1,6 @@
 use grafbase_sdk::{
-    types::{Configuration, SchemaDirective, FieldDefinitionDirective, FieldInputs, FieldOutput},
-    Error, host::SubgraphHeaders, ResolverExtension, Subscription
+    types::{Configuration, SchemaDirective, FieldDefinitionDirective, FieldInputs, FieldOutputs, Error, SubgraphHeaders},
+    ResolverExtension, Subscription
 };
 
 #[derive(ResolverExtension)]
@@ -17,7 +17,7 @@ impl ResolverExtension for {{name}} {
         subgraph_name: &str,
         directive: FieldDefinitionDirective<'_>,
         inputs: FieldInputs,
-    ) -> Result<FieldOutput, Error> {
+    ) -> Result<FieldOutputs, Error> {
         todo!()
     }
 

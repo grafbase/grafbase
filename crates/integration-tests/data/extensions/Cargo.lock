@@ -269,7 +269,7 @@ dependencies = [
 name = "authenticated"
 version = "0.1.0"
 dependencies = [
- "grafbase-sdk 0.11.0",
+ "grafbase-sdk 0.12.0",
  "serde",
  "serde_json",
 ]
@@ -278,7 +278,7 @@ dependencies = [
 name = "authorization-010"
 version = "0.1.0"
 dependencies = [
- "grafbase-sdk 0.11.0",
+ "grafbase-sdk 0.12.0",
  "http",
  "rkyv",
  "serde",
@@ -648,6 +648,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "document-features"
+version = "0.2.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "95249b50c6c185bee49034bcb378a49dc2b5dff0be90ff6616d31d64febab05d"
+dependencies = [
+ "litrs",
+]
+
+[[package]]
 name = "duct"
 version = "0.13.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1004,12 +1013,11 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.11.0"
+version = "0.12.0"
 dependencies = [
- "anyhow",
+ "document-features",
  "grafbase-sdk-derive 0.3.0",
  "http",
- "minicbor",
  "minicbor-serde",
  "semver",
  "serde",
@@ -1599,6 +1607,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "23fb14cb19457329c82206317a5663005a4d404783dc74f4252769b0d5f42856"
 
 [[package]]
+name = "litrs"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b4ce301924b7887e9d637144fdade93f9dfff9b60981d4ac161db09720d39aa5"
+
+[[package]]
 name = "log"
 version = "0.4.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1875,7 +1889,7 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 name = "placeholder"
 version = "0.1.0"
 dependencies = [
- "grafbase-sdk 0.11.0",
+ "grafbase-sdk 0.12.0",
  "serde",
  "serde_json",
 ]

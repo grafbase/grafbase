@@ -1,18 +1,15 @@
 use crate::{
     extension::resolver::Subscription,
-    host::{GatewayHeaders, SubgraphHeaders},
     types::{
-        AuthorizationDecisions, Error, ErrorResponse, FieldDefinitionDirective, FieldInputs, FieldOutput,
-        QueryElements, ResponseElements, Token,
+        AuthorizationDecisions, Error, ErrorResponse, FieldDefinitionDirective, FieldInputs, FieldOutputs,
+        GatewayHeaders, QueryElements, ResponseElements, SubgraphHeaders, Token,
     },
 };
 
 #[allow(unused_variables)]
 pub(crate) trait AnyExtension {
     fn authenticate(&mut self, headers: &GatewayHeaders) -> Result<Token, ErrorResponse> {
-        Err(ErrorResponse::internal_server_error(
-            "Authentication extension not initialized correctly.",
-        ))
+        Err(ErrorResponse::internal_server_error().with_error("Authentication extension not initialized correctly."))
     }
 
     fn resolve_field(
@@ -21,7 +18,7 @@ pub(crate) trait AnyExtension {
         subgraph_name: &str,
         directive: FieldDefinitionDirective<'_>,
         inputs: FieldInputs<'_>,
-    ) -> Result<FieldOutput, Error> {
+    ) -> Result<FieldOutputs, Error> {
         Err("Resolver extension not initialized correctly.".into())
     }
 
@@ -49,9 +46,7 @@ pub(crate) trait AnyExtension {
         token: Token,
         elements: QueryElements<'_>,
     ) -> Result<(AuthorizationDecisions, Vec<u8>), ErrorResponse> {
-        Err(ErrorResponse::internal_server_error(
-            "Authorization extension not initialized correctly.",
-        ))
+        Err(ErrorResponse::internal_server_error().with_error("Authorization extension not initialized correctly."))
     }
 
     fn authorize_response(

@@ -1,6 +1,8 @@
 use grafbase_sdk::{
-    Error, ResolverExtension, SubgraphHeaders, Subscription,
-    types::{Configuration, FieldDefinitionDirective, FieldInputs, FieldOutput, SchemaDirective},
+    ResolverExtension, Subscription,
+    types::{
+        Configuration, Error, FieldDefinitionDirective, FieldInputs, FieldOutputs, SchemaDirective, SubgraphHeaders,
+    },
 };
 
 #[derive(ResolverExtension)]
@@ -22,7 +24,7 @@ impl ResolverExtension for EchoExtension {
         _subgraph_name: &str,
         directive: FieldDefinitionDirective<'_>,
         inputs: FieldInputs,
-    ) -> Result<FieldOutput, Error> {
+    ) -> Result<FieldOutputs, Error> {
         let value = match directive.name() {
             "hello" => {
                 let args: HelloArguments = directive.arguments().map_err(|err| err.to_string())?;
@@ -31,7 +33,7 @@ impl ResolverExtension for EchoExtension {
             other => format!("unknown directive `{other}`"),
         };
 
-        Ok(FieldOutput::new(inputs, serde_json::json!(value))?)
+        Ok(FieldOutputs::new(inputs, serde_json::json!(value))?)
     }
 
     fn resolve_subscription(

@@ -85,48 +85,48 @@ impl<'a> FieldInput<'a> {
 }
 
 /// Output for a resolver
-pub struct FieldOutput(wit::FieldOutput);
+pub struct FieldOutputs(wit::FieldOutput);
 
-impl FieldOutput {
+impl FieldOutputs {
     /// If your resolver doesn't depend on response data, this function provides a convenient way
     /// to create a FieldOutput from a single element.
-    pub fn new<T: Serialize>(inputs: FieldInputs<'_>, data: T) -> Result<FieldOutput, SdkError> {
+    pub fn new<T: Serialize>(inputs: FieldInputs<'_>, data: T) -> Result<FieldOutputs, SdkError> {
         let data = cbor::to_vec(data)?;
         let outputs = if inputs.len() > 1 {
             inputs.0.iter().map(|_| Ok(data.clone())).collect()
         } else {
             vec![Ok(data)]
         };
-        Ok(FieldOutput(wit::FieldOutput { outputs }))
+        Ok(FieldOutputs(wit::FieldOutput { outputs }))
     }
 
     /// If your resolver doesn't depend on response data, this function provides a convenient way
     /// to create a FieldOutput from an error.
-    pub fn error(inputs: FieldInputs<'_>, error: impl Into<Error>) -> FieldOutput {
+    pub fn error(inputs: FieldInputs<'_>, error: impl Into<Error>) -> FieldOutputs {
         let error: wit::Error = Into::<Error>::into(error).into();
         let outputs = if inputs.len() > 1 {
             inputs.0.iter().map(|_| Err(error.clone())).collect()
         } else {
             vec![Err(error)]
         };
-        FieldOutput(wit::FieldOutput { outputs })
+        FieldOutputs(wit::FieldOutput { outputs })
     }
 
     /// Construct a new `FieldOutput` through an accumulator which allows setting the
     /// output individually for each `FieldInput`.
-    pub fn builder(inputs: FieldInputs<'_>) -> FieldOutputBuilder {
-        FieldOutputBuilder {
+    pub fn builder(inputs: FieldInputs<'_>) -> FieldOutputsBuilder {
+        FieldOutputsBuilder {
             items: vec![Ok(Vec::new()); inputs.len()],
         }
     }
 }
 
 /// Accumulator for setting the output individually for each `FieldInput`.
-pub struct FieldOutputBuilder {
+pub struct FieldOutputsBuilder {
     items: Vec<Result<Vec<u8>, wit::Error>>,
 }
 
-impl FieldOutputBuilder {
+impl FieldOutputsBuilder {
     /// Push the output for a given `FieldInput`.
     pub fn insert<T: Serialize>(&mut self, input: FieldInput<'_>, data: T) -> Result<(), SdkError> {
         let data = cbor::to_vec(data)?;
@@ -140,13 +140,13 @@ impl FieldOutputBuilder {
     }
 
     /// Build the `FieldOutput`.
-    pub fn build(self) -> FieldOutput {
-        FieldOutput(wit::FieldOutput { outputs: self.items })
+    pub fn build(self) -> FieldOutputs {
+        FieldOutputs(wit::FieldOutput { outputs: self.items })
     }
 }
 
-impl From<FieldOutput> for wit::FieldOutput {
-    fn from(value: FieldOutput) -> Self {
+impl From<FieldOutputs> for wit::FieldOutput {
+    fn from(value: FieldOutputs) -> Self {
         value.0
     }
 }

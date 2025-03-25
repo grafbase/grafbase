@@ -8,7 +8,7 @@ use crate::{
 
 use super::extension::AnyExtension;
 
-type InitFn = Box<dyn Fn(Vec<SchemaDirective>, Configuration) -> Result<Box<dyn AnyExtension>, crate::Error>>;
+type InitFn = Box<dyn Fn(Vec<SchemaDirective>, Configuration) -> Result<Box<dyn AnyExtension>, crate::types::Error>>;
 
 static mut INIT_FN: Option<InitFn> = None;
 static mut EXTENSION: Option<Box<dyn AnyExtension>> = None;

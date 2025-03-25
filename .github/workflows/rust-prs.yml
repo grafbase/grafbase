@@ -109,6 +109,36 @@ jobs:
           taplo fmt --check
           taplo check
 
+  grafbase-sdk-doc:
+    needs: [what-changed]
+    if: contains(fromJson(needs.what-changed.outputs.changed-packages), 'grafbase-sdk')
+    runs-on: depot-ubuntu-24.04-small
+    steps:
+      - name: Get sources
+        uses: actions/checkout@v4
+
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.7
+
+      - name: Install Rust
+        uses: ./.github/actions/install-rust
+        with:
+          components: rust-docs
+
+      - name: cargo doc
+        shell: bash
+        env:
+          RUSTC_WRAPPER: 'sccache'
+        run: |
+          cargo doc -p grafbase-sdk --no-deps
+
+      - name: cargo doc tests
+        shell: bash
+        env:
+          RUSTC_WRAPPER: 'sccache'
+        run: |
+          cargo test --doc -p grafbase-sdk
+
   wasm-extensions:
     if: |
       needs.what-changed.outputs.changed-packages != '[]'

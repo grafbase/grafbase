@@ -1,6 +1,6 @@
 [package]
 name = "grafbase-sdk"
-version = "0.11.0"
+version = "0.12.0"
 description = "An SDK to implement extensions for the Grafbase Gateway"
 edition = "2021"
 license.workspace = true
@@ -9,9 +9,11 @@ keywords.workspace = true
 repository.workspace = true
 
 [package.metadata.docs.rs]
-features = ["test-utils", "jq-selection"]
+all-features = true
 
 [features]
+## Test utilities to write integration tests for your extension. The [Grafbase CLI](https://grafbase.com/docs/reference/grafbase-cli)
+## will automatically generate an example test with the `grafbase extension init` command. You can also check out Grafbase's [extension](https://github.com/grafbase/extensions/tree/main/extensions) repository for examples 
 test-utils = [
     "dep:duct",
     "dep:fslock",
@@ -28,7 +30,9 @@ test-utils = [
     "dep:async-tungstenite",
     "dep:tokio",
     "dep:tungstenite",
+    "dep:anyhow",
 ]
+## Utilities to use `jq`-like selection to process data in your extension like the [rest](https://grafbase.com/extensions/rest) extension.
 jq-selection = [
     "dep:jaq-core",
     "dep:jaq-json",
@@ -37,16 +41,15 @@ jq-selection = [
 ]
 
 [dependencies]
-anyhow.workspace = true
+document-features = { version = "0.2" }
 grafbase-sdk-derive = { version = "0.3.0", path = "derive" }
-http.workspace = true
-minicbor.workspace = true
+http = "1"
 minicbor-serde = { workspace = true, features = ["alloc"] }
-serde.workspace = true
-serde_json.workspace = true
-serde_urlencoded.workspace = true
-thiserror.workspace = true
-url.workspace = true
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_urlencoded = "0.7"
+thiserror = "2"
+url = "2"
 wit-bindgen.workspace = true
 
 # jq selection
@@ -55,6 +58,7 @@ jaq-json = { version = "1.1.1", features = ["serde_json"], optional = true }
 jaq-std = { version = "2.1.0", optional = true }
 
 # test-utils
+anyhow = { workspace = true, optional = true }
 async-tungstenite = { workspace = true, optional = true, features = ["tokio-runtime"] }
 duct = { workspace = true, optional = true }
 fslock = { workspace = true, optional = true }

@@ -50,12 +50,12 @@ fn init_resolver() {
     codegen-units = 1
 
     [dependencies]
-    grafbase-sdk = "0.11.0"
+    grafbase-sdk = "0.12.0"
 
     [dev-dependencies]
     indoc = "2"
     insta = { version = "1.42.1", features = ["json"] }
-    grafbase-sdk = { version = "0.11.0", features = ["test-utils"] }
+    grafbase-sdk = { version = "0.12.0", features = ["test-utils"] }
     tokio = { version = "1", features = ["rt-multi-thread", "macros", "test-util"] }
     serde_json = "1"
     "#);
@@ -97,8 +97,8 @@ fn init_resolver() {
 
     insta::assert_snapshot!(&lib_rs, @r##"
     use grafbase_sdk::{
-        types::{Configuration, SchemaDirective, FieldDefinitionDirective, FieldInputs, FieldOutput},
-        Error, host::SubgraphHeaders, ResolverExtension, Subscription
+        types::{Configuration, SchemaDirective, FieldDefinitionDirective, FieldInputs, FieldOutputs, Error, SubgraphHeaders},
+        ResolverExtension, Subscription
     };
 
     #[derive(ResolverExtension)]
@@ -115,7 +115,7 @@ fn init_resolver() {
             subgraph_name: &str,
             directive: FieldDefinitionDirective<'_>,
             inputs: FieldInputs,
-        ) -> Result<FieldOutput, Error> {
+        ) -> Result<FieldOutputs, Error> {
             todo!()
         }
 
@@ -310,12 +310,12 @@ fn init_auth() {
     codegen-units = 1
 
     [dependencies]
-    grafbase-sdk = "0.11.0"
+    grafbase-sdk = "0.12.0"
 
     [dev-dependencies]
     indoc = "2"
     insta = { version = "1.42.1", features = ["json"] }
-    grafbase-sdk = { version = "0.11.0", features = ["test-utils"] }
+    grafbase-sdk = { version = "0.12.0", features = ["test-utils"] }
     tokio = { version = "1", features = ["rt-multi-thread", "macros", "test-util"] }
     serde_json = "1"
     "#);
@@ -346,8 +346,8 @@ fn init_auth() {
 
     insta::assert_snapshot!(&lib_rs, @r##"
     use grafbase_sdk::{
-        types::{Configuration, SchemaDirective, ErrorResponse, Token},
-        AuthenticationExtension, host::GatewayHeaders, Error
+        types::{Configuration, SchemaDirective, ErrorResponse, Token, GatewayHeaders, Error},
+        AuthenticationExtension,
     };
 
     #[derive(AuthenticationExtension)]

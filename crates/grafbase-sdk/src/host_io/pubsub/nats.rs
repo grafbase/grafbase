@@ -5,10 +5,15 @@
 //! This module provides a high-level client for connecting to and interacting with NATS servers.
 //! It supports both authenticated and unauthenticated connections to one or more NATS servers.
 
-use crate::{extension::resolver::Subscription, types::SubscriptionOutput, wit, Error, SdkError};
+use crate::{
+    extension::resolver::Subscription,
+    types::{Error, SubscriptionOutput},
+    wit, SdkError,
+};
 use std::time::Duration;
 
 pub use time::OffsetDateTime;
+pub use wit::NatsAuth;
 
 /// A client for interacting with NATS servers
 pub struct NatsClient {
@@ -272,7 +277,7 @@ impl NatsMessage {
     /// # Returns
     ///
     /// Result containing the payload data or an error if retrieval fails
-    pub fn payload<S>(&self) -> anyhow::Result<S>
+    pub fn payload<S>(&self) -> Result<S, SdkError>
     where
         S: for<'de> serde::Deserialize<'de>,
     {
@@ -326,7 +331,7 @@ pub fn connect(servers: impl IntoIterator<Item = impl ToString>) -> Result<NatsC
 /// Result containing the connected NATS client or an error if connection fails
 pub fn connect_with_auth(
     servers: impl IntoIterator<Item = impl ToString>,
-    auth: &crate::NatsAuth,
+    auth: &NatsAuth,
 ) -> Result<NatsClient, SdkError> {
     let servers: Vec<_> = servers.into_iter().map(|s| s.to_string()).collect();
     let inner = crate::wit::NatsClient::connect(&servers, Some(auth))?;

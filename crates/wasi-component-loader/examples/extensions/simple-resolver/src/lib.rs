@@ -1,6 +1,8 @@
 use grafbase_sdk::{
-    Error, ResolverExtension, SubgraphHeaders, Subscription,
-    types::{Configuration, FieldDefinitionDirective, FieldInputs, FieldOutput, SchemaDirective},
+    ResolverExtension, Subscription,
+    types::{
+        Configuration, Error, FieldDefinitionDirective, FieldInputs, FieldOutputs, SchemaDirective, SubgraphHeaders,
+    },
 };
 
 #[derive(ResolverExtension)]
@@ -42,10 +44,10 @@ impl ResolverExtension for SimpleResolver {
         _: &str,
         directive: FieldDefinitionDirective,
         inputs: FieldInputs,
-    ) -> Result<FieldOutput, Error> {
+    ) -> Result<FieldOutputs, Error> {
         let args: FieldArgs = directive.arguments().unwrap();
 
-        Ok(FieldOutput::new(
+        Ok(FieldOutputs::new(
             inputs,
             ResponseOutput {
                 id: self.schema_args.id,
