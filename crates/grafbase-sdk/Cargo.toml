@@ -9,7 +9,6 @@ keywords.workspace = true
 repository.workspace = true
 
 [package.metadata.docs.rs]
-features = ["document-features"]
 all-features = true
 
 [features]
