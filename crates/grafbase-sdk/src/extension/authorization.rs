@@ -40,12 +40,12 @@ use crate::{
 ///
 /// #[derive(AuthorizationExtension)]
 /// struct MyAuth {
-///   config: Config
+///     config: Config
 /// }
 ///
 /// #[derive(serde::Deserialize)]
 /// struct Config {
-///   my_custom_key: String
+///     my_custom_key: String
 /// }
 ///
 /// impl AuthorizationExtension for MyAuth {
