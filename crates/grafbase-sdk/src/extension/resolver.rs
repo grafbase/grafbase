@@ -205,8 +205,8 @@ pub trait ResolverExtension: Sized + 'static {
     /// // Static arguments passed on to the directive that do not depend on the response data.
     /// #[derive(serde::Deserialize)]
     /// struct StaticArguments<'a> {
-    ///   #[serde(borrow)]
-    ///   endpoint_name: &'a str,
+    ///     #[serde(borrow)]
+    ///     endpoint_name: &'a str,
     /// }
     /// let StaticArguments { endpoint_name } = directive.arguments()?;
     ///
