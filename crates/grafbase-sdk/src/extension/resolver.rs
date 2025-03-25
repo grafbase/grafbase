@@ -215,9 +215,10 @@ pub trait ResolverExtension: Sized + 'static {
     ///     // Field arguments that depend on response data.
     ///     #[derive(serde::Deserialize)]
     ///     struct ResponseArguments<'a> {
-    ///       #[serde(borrow)]
-    ///       id: &'a str,
+    ///         #[serde(borrow)]
+    ///         id: &'a str,
     ///     }
+    ///
     ///     let ResponseArguments { id } = directive.arguments()?;
     ///     builder.insert(input, "data");
     /// }
