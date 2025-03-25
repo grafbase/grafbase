@@ -38,7 +38,7 @@ pub(crate) enum QueryModifierTarget {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
 pub(crate) enum ResponseModifierRuleTarget {
-    Field(FieldDefinitionId),
+    Field(FieldDefinitionId, query_solver::QueryOrSchemaFieldArgumentIds),
     FieldOutput(DefinitionId),
     FieldParentEntity(EntityDefinitionId),
 }
@@ -46,7 +46,7 @@ pub(crate) enum ResponseModifierRuleTarget {
 impl From<ResponseModifierRuleTarget> for DirectiveSiteId {
     fn from(target: ResponseModifierRuleTarget) -> Self {
         match target {
-            ResponseModifierRuleTarget::Field(field_id) => field_id.into(),
+            ResponseModifierRuleTarget::Field(field_id, _) => field_id.into(),
             ResponseModifierRuleTarget::FieldOutput(output_id) => output_id.into(),
             ResponseModifierRuleTarget::FieldParentEntity(entity_id) => entity_id.into(),
         }

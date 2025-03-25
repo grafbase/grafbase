@@ -1,0 +1,10 @@
+[extensions]
+my-authentication = { path = "/var/lib/grafbase/extensions/authentication/build" }
+
+[extensions.my-authorization]
+path = "/var/lib/grafbase/extensions/authorization/build"
+
+[extensions.my-authorization.config]
+auth_service_url = "{{ env.AUTH_SERVICE_URL }}"
+
+

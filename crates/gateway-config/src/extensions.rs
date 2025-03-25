@@ -4,13 +4,49 @@ use std::{
 };
 
 use semver::VersionReq;
-use serde::Deserialize as _;
+use serde::{Deserialize, Deserializer};
 
-#[derive(PartialEq, serde::Deserialize, Debug, Clone)]
-#[serde(untagged)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum ExtensionsConfig {
     Version(VersionReq),
     Structured(StructuredExtensionsConfig),
+}
+
+// #[serde(untagged)] results is very poor errors as it tries to deserialize the variants one by
+// one, ignoring the errors and ending with: `data did not match any variant of untagged enum ExtensionsConfig`.
+impl<'de> Deserialize<'de> for ExtensionsConfig {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        use serde::de::{Error, MapAccess, Visitor, value::MapAccessDeserializer};
+        struct ExtensionsConfigVisitor;
+
+        impl<'de> Visitor<'de> for ExtensionsConfigVisitor {
+            type Value = ExtensionsConfig;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("a version or a config map")
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+            where
+                E: Error,
+            {
+                value.parse().map(ExtensionsConfig::Version).map_err(Error::custom)
+            }
+
+            fn visit_map<M>(self, mut map: M) -> Result<Self::Value, M::Error>
+            where
+                M: MapAccess<'de>,
+            {
+                StructuredExtensionsConfig::deserialize(MapAccessDeserializer::new(&mut map))
+                    .map(ExtensionsConfig::Structured)
+            }
+        }
+
+        deserializer.deserialize_any(ExtensionsConfigVisitor)
+    }
 }
 
 #[derive(PartialEq, serde::Deserialize, Debug, Clone)]

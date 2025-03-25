@@ -298,7 +298,7 @@ impl ExtensionRuntime for WasmExtensions {
                                     ErrorResponse::from(GraphqlError::new("Internal error", ErrorCode::ExtensionError))
                                 }
                                 crate::ErrorResponse::Guest(err) => {
-                                    err.into_graphql_error_response(ErrorCode::Unauthenticated)
+                                    err.into_graphql_error_response(ErrorCode::Unauthorized)
                                 }
                             }),
                         }

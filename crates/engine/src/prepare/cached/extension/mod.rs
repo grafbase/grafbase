@@ -34,13 +34,21 @@ pub(crate) fn create_extension_directive_query_view<'ctx>(
 }
 
 pub(crate) fn create_extension_directive_response_view<'ctx, 'resp>(
-    ctx: ArgumentsContext<'ctx>,
+    schema: &'ctx Schema,
     directive: ExtensionDirective<'ctx>,
+    field_arguments: PartitionFieldArguments<'ctx>,
+    variables: &'ctx Variables,
     response_objects_view: ResponseObjectsView<'resp>,
 ) -> ExtensionDirectiveArgumentsResponseObjectsView<'resp>
 where
     'ctx: 'resp,
 {
+    let ctx = ArgumentsContext {
+        schema,
+        field_arguments,
+        variables,
+    };
+
     let arguments = directive
         .arguments_with_stage(|stage| matches!(stage, InjectionStage::Response))
         .collect::<Vec<_>>();

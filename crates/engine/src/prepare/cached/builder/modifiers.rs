@@ -120,7 +120,10 @@ impl Solver<'_> {
 
                                 Rule::Resp(ResponseModifierRule::Extension {
                                     directive_id: directive.id,
-                                    target: ResponseModifierRuleTarget::Field(field_definition.id),
+                                    target: ResponseModifierRuleTarget::Field(
+                                        field_definition.id,
+                                        self.output.query_plan[field_id].argument_ids,
+                                    ),
                                 })
                             }
                         }

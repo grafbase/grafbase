@@ -86,25 +86,27 @@ fn complex_field_set() {
                     "directive_site": "User",
                     "items": [
                       {
-                        "id": "1",
-                        "name": "Peter",
-                        "address": {
-                          "street": "123 Main St"
-                        },
-                        "friends": [
-                          {
-                            "name": "Alice"
+                        "fields": {
+                          "id": "1",
+                          "name": "Peter",
+                          "address": {
+                            "street": "123 Main St"
                           },
-                          {
-                            "name": "Bob"
-                          }
-                        ],
-                        "pets": [
-                          {
-                            "name": "Fido"
-                          },
-                          {}
-                        ]
+                          "friends": [
+                            {
+                              "name": "Alice"
+                            },
+                            {
+                              "name": "Bob"
+                            }
+                          ],
+                          "pets": [
+                            {
+                              "name": "Fido"
+                            },
+                            {}
+                          ]
+                        }
                       }
                     ]
                   }

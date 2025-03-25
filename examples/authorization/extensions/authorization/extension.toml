@@ -1,0 +1,9 @@
+[extension]
+name = "my-authorization"
+version = "1.0.0"
+kind = "authorization"
+description = ""
+license = "Apache-2.0"
+
+[permissions]
+network = true

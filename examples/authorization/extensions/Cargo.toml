@@ -1,0 +1,24 @@
+[workspace]
+resolver = "2"
+members = [
+    "authentication",
+    "authorization",
+    "common",
+]
+
+[profile.release]
+opt-level = "z"
+strip = true
+lto = true
+codegen-units = 1
+
+[workspace.dependencies]
+common = { path = "common" }
+grafbase-sdk = "0.12.0"
+http = "1"
+itertools = "0.14"
+postcard = { version = "1", features = ["use-std"] }
+rkyv = "0.8"
+serde = "1"
+serde_json = "1"
+serde_with = "3"

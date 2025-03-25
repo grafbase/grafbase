@@ -1,0 +1,7 @@
+[extension]
+name = "my-authentication"
+version = "1.0.0"
+kind = "authentication"
+description = ""
+license = "Apache-2.0"
+

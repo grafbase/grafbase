@@ -2,13 +2,16 @@ use std::sync::Arc;
 
 use futures::FutureExt as _;
 use itertools::Itertools;
+use query_solver::QueryOrSchemaFieldArgumentIds;
 use runtime::extension::{AuthorizationDecisions, ExtensionRuntime};
 use schema::DirectiveSiteId;
 use walker::Walk;
 
 use crate::{
     Runtime,
-    prepare::{ResponseModifier, ResponseModifierRule, ResponseModifierRuleTarget},
+    prepare::{
+        ResponseModifier, ResponseModifierRule, ResponseModifierRuleTarget, create_extension_directive_response_view,
+    },
     response::{ErrorCode, GraphqlError, InputResponseObjectSet, ResponseBuilder, ResponseValueId},
 };
 
@@ -144,14 +147,22 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                 ResponseModifierRule::Extension {
                     directive_id,
                     target:
-                        rule_target @ (ResponseModifierRuleTarget::Field(_)
+                        rule_target @ (ResponseModifierRuleTarget::Field(_, _)
                         | ResponseModifierRuleTarget::FieldParentEntity(_)),
                 } => {
                     let input = Arc::new(input);
-                    let parents = response.read(
-                        input.clone(),
-                        // FIXME: Total hack, assumes there is only one authorized directive on the field. Need
-                        target_field.required_fields_by_supergraph(),
+                    let field_argument_ids = match rule_target {
+                        ResponseModifierRuleTarget::Field(_, field_argument_ids) => field_argument_ids,
+                        _ => Default::default(),
+                    };
+                    let parents = response.read(input.clone(), target_field.required_fields_by_supergraph());
+
+                    let response_view = create_extension_directive_response_view(
+                        self.schema(),
+                        directive_id.walk(self),
+                        field_argument_ids.walk(self),
+                        self.variables(),
+                        parents,
                     );
 
                     let directive = directive_id.walk(self);
@@ -162,7 +173,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                             &self.gql_context.wasm_context,
                             directive.name(),
                             DirectiveSiteId::from(rule_target).walk(self),
-                            parents.iter(),
+                            response_view.iter(),
                         )
                         // FIXME: Unfortunately, boxing seems to be the only solution for the bug explained here:
                         //        https://github.com/rust-lang/rust/issues/110338#issuecomment-1513761297
@@ -251,6 +262,14 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                         target_field.required_fields_by_supergraph(),
                     );
 
+                    let response_view = create_extension_directive_response_view(
+                        self.schema(),
+                        directive_id.walk(self),
+                        QueryOrSchemaFieldArgumentIds::default().walk(self),
+                        self.variables(),
+                        nodes,
+                    );
+
                     let directive = directive_id.walk(self);
                     let result = self
                         .extensions()
@@ -259,7 +278,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                             &self.gql_context.wasm_context,
                             directive.name(),
                             DirectiveSiteId::from(rule_target).walk(self),
-                            nodes.iter(),
+                            response_view.iter(),
                         )
                         // FIXME: Unfortunately, boxing seems to be the only solution for the bug explained here:
                         //        https://github.com/rust-lang/rust/issues/110338#issuecomment-1513761297
