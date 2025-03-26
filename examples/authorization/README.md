@@ -12,3 +12,5 @@ The structure of the repository is as follows:
 - `auth-service`: A HTTP server acting as a authorization service
 - `subgraphs/user`: the `user` subgraph being federated by the gateway.
 - `extension/*`: the authentication & authorization extension
+
+The `test.hurl` files contains a list of HTTP requests and responses presenting all the functionality.
