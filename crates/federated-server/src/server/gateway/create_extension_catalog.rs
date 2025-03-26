@@ -1,5 +1,5 @@
 use extension_catalog::{EXTENSION_DIR_NAME, Extension, ExtensionCatalog, VersionedManifest};
-use gateway_config::Config;
+use gateway_config::{Config, ExtensionConfig};
 use std::{
     env,
     fs::File,
@@ -10,8 +10,8 @@ use tokio::fs;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("could not load extension at {path}: {err}")]
-    LoadExtension { path: String, err: String },
+    #[error("{0}")]
+    Message(String),
     #[error("{context}: {err}")]
     Io { context: String, err: io::Error },
 }
@@ -22,69 +22,20 @@ pub(super) async fn create_extension_catalog(gateway_config: &Config) -> Result<
         err: e,
     })?;
 
-    create_extension_catalog_impl(gateway_config, &cwd).await
+    let catalog = create_extension_catalog_impl(gateway_config, &cwd).await?;
+
+    Ok(catalog)
 }
 
 async fn create_extension_catalog_impl(gateway_config: &Config, cwd: &Path) -> Result<ExtensionCatalog, Error> {
     let mut catalog = ExtensionCatalog::default();
 
-    let grafbase_extensions_dir_path = cwd.join(EXTENSION_DIR_NAME);
+    let grafbase_extensions_dir = cwd.join(EXTENSION_DIR_NAME);
 
-    for (extension_name, config) in gateway_config.extensions.iter() {
+    for (name, config) in gateway_config.extensions.iter() {
         let extension = match config.path() {
-            Some(path) => load_extension_from_path(&cwd.join(path), extension_name)?,
-            None => {
-                let extension_name_path = grafbase_extensions_dir_path.join(extension_name);
-                let mut entries = fs::read_dir(&extension_name_path)
-                    .await
-                    .map_err(|err| Error::LoadExtension {
-                        path: extension_name_path.display().to_string(),
-                        err: format!("Could not read directory: {err}"),
-                    })?;
-
-                let mut relevant_entry: Option<(semver::Version, PathBuf)> = None;
-
-                while let Some(entry) = entries.next_entry().await.map_err(|err| Error::Io {
-                    context: format!("Reading entries at {}", extension_name_path.display()),
-                    err,
-                })? {
-                    let file_type = entry.file_type().await.map_err(|err| Error::Io {
-                        context: format!("Reading entries at {}", extension_name_path.display()),
-                        err,
-                    })?;
-
-                    if !file_type.is_dir() {
-                        continue;
-                    }
-
-                    let Ok(version) = entry
-                        .file_name()
-                        .to_str()
-                        .unwrap_or_default()
-                        .parse::<semver::Version>()
-                    else {
-                        continue;
-                    };
-
-                    if config.version().matches(&version)
-                        && relevant_entry
-                            .as_ref()
-                            .map(|(existing_version, _)| existing_version < &version)
-                            .unwrap_or(true)
-                    {
-                        relevant_entry = Some((version, entry.path()));
-                    }
-                }
-
-                let Some((_, relevant_entry)) = relevant_entry else {
-                    return Err(Error::LoadExtension {
-                        path: extension_name_path.display().to_string(),
-                        err: "No matching version of the extension found.".to_string(),
-                    });
-                };
-
-                load_extension_from_path(&relevant_entry, extension_name)?
-            }
+            Some(path) => load_extension_from_path(&cwd.join(path), name)?,
+            None => find_matching_extensions_in_dir(config, &grafbase_extensions_dir, name).await?,
         };
 
         catalog.push(extension);
@@ -93,10 +44,68 @@ async fn create_extension_catalog_impl(gateway_config: &Config, cwd: &Path) -> R
     Ok(catalog)
 }
 
-fn load_extension_from_path(path: &std::path::Path, expected_extension_name: &str) -> Result<Extension, Error> {
-    let extension_dir = path.read_dir().map_err(|err| Error::LoadExtension {
-        path: path.display().to_string(),
-        err: format!("Could not read directory: {err}"),
+async fn find_matching_extensions_in_dir(
+    config: &ExtensionConfig,
+    grafbase_extensions_dir: &Path,
+    name: &str,
+) -> Result<Extension, Error> {
+    let all_versions_for_this_extension_dir = grafbase_extensions_dir.join(name);
+    let mut entries = fs::read_dir(&all_versions_for_this_extension_dir)
+        .await
+        .map_err(|err| Error::Message(format!("Could not load extensions directory, did you use `grafbase extensions install`? (Failed to read {}: {err})", all_versions_for_this_extension_dir.display()))
+        )?;
+
+    let mut matching_entry: Option<(semver::Version, PathBuf)> = None;
+
+    while let Some(entry) = entries.next_entry().await.map_err(|err| Error::Io {
+        context: format!("Reading entries at {}", all_versions_for_this_extension_dir.display()),
+        err,
+    })? {
+        let file_type = entry.file_type().await.map_err(|err| Error::Io {
+            context: format!("Reading entries at {}", all_versions_for_this_extension_dir.display()),
+            err,
+        })?;
+
+        if !file_type.is_dir() {
+            continue;
+        }
+
+        let Ok(version) = entry
+            .file_name()
+            .to_str()
+            .unwrap_or_default()
+            .parse::<semver::Version>()
+        else {
+            continue;
+        };
+
+        if config.version().matches(&version)
+            && matching_entry
+                .as_ref()
+                .map(|(existing_version, _)| existing_version < &version)
+                .unwrap_or(true)
+        {
+            matching_entry = Some((version, entry.path()));
+        }
+    }
+
+    let Some((_, matching_entry)) = matching_entry else {
+        return Err(Error::Message(format!(
+            "Did not find any matching extensions in extension directory, did you use `grafbase extension install`? (directory: {})",
+            all_versions_for_this_extension_dir.display()
+        )));
+    };
+
+    load_extension_from_path(&matching_entry, name)
+}
+
+fn load_extension_from_path(path: &Path, expected_name: &str) -> Result<Extension, Error> {
+    let extension_dir = path.read_dir().map_err(|err| Error::Io {
+        context: format!(
+            "Failed to read extension directory '{}', does it exist?",
+            path.display()
+        ),
+        err,
     })?;
 
     let mut manifest = None;
@@ -113,44 +122,44 @@ fn load_extension_from_path(path: &std::path::Path, expected_extension_name: &st
                 wasm_path = Some(path.join("extension.wasm"));
             }
             b"manifest.json" => {
-                let manifest_data = File::open(path.join("manifest.json")).map_err(|err| Error::Io {
-                    context: "Loading manifest.json".to_owned(),
-                    err,
-                })?;
-
-                let versioned_manifest: VersionedManifest =
-                    serde_json::from_reader(manifest_data).map_err(|err| Error::LoadExtension {
-                        path: path.display().to_string(),
-                        err: format!("Could not parse manifest json: {err}"),
+                let path = path.join("manifest.json");
+                let versioned_manifest: VersionedManifest = File::open(&path)
+                    .map_err(|err| Error::Io {
+                        context: format!("Failed to read the manifest.json at {}", path.display()),
+                        err,
+                    })
+                    .and_then(|file| {
+                        serde_json::from_reader(file).map_err(|err| {
+                            Error::Message(format!(
+                                "Could not parse manifest.json at path '{}': {err}",
+                                path.display()
+                            ))
+                        })
                     })?;
-                manifest = Some(versioned_manifest);
+
+                manifest = Some(versioned_manifest.into_latest());
             }
-            other => {
-                return Err(Error::LoadExtension {
-                    path: path.display().to_string(),
-                    err: format!("Found unknown file `{}`", String::from_utf8_lossy(other)),
-                });
-            }
+            _ => {}
+        }
+
+        if manifest.is_some() && wasm_path.is_some() {
+            break;
         }
     }
 
     let Some((manifest, wasm_path)) = manifest.zip(wasm_path) else {
-        return Err(Error::LoadExtension {
-            path: path.display().to_string(),
-            err: "Missing manifest.json or extension.wasm".to_string(),
-        });
+        return Err(Error::Message(format!(
+            "Could not load extension '{}', missing manifest.json or extension.wasm in {}",
+            expected_name,
+            path.display()
+        )));
     };
 
-    let manifest = manifest.into_latest();
-
-    if manifest.id.name != expected_extension_name {
-        return Err(Error::LoadExtension {
-            path: path.display().to_string(),
-            err: format!(
-                "Expected extension `{expected_extension_name}` but found `{found}`",
-                found = manifest.id.name
-            ),
-        });
+    if manifest.id.name != expected_name {
+        return Err(Error::Message(format!(
+            "Extension name mismatch, expected '{expected_name}' but found {}",
+            manifest.id.name
+        )));
     }
 
     Ok(Extension {
@@ -232,7 +241,7 @@ mod tests {
             .to_string()
             .replace(&dir.path().display().to_string(), "<tmp-dir-path>");
 
-        insta::assert_snapshot!(err, @"could not load extension at <tmp-dir-path>/./test1: Could not read directory: No such file or directory (os error 2)");
+        insta::assert_snapshot!(err, @"Failed to read extension directory '<tmp-dir-path>/./test1', does it exist?: No such file or directory (os error 2)");
     }
 
     #[test]
@@ -406,6 +415,6 @@ mod tests {
             .to_string()
             .replace(&dir.path().display().to_string(), "<tmp-dir-path>");
 
-        insta::assert_debug_snapshot!(err, @r#""could not load extension at <tmp-dir-path>/grafbase_extensions/test_two: No matching version of the extension found.""#);
+        insta::assert_debug_snapshot!(err, @r#""Did not find any matching extensions in extension directory, did you use `grafbase extension install`? (directory: <tmp-dir-path>/grafbase_extensions/test_two)""#);
     }
 }

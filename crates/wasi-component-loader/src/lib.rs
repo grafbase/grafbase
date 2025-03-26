@@ -28,7 +28,6 @@ use std::sync::Arc;
 
 pub use access_log::{AccessLogMessage, AccessLogReceiver, AccessLogSender, create_access_log_channel};
 use cache::Cache;
-pub use config::{ExtensionsConfig, HooksWasiConfig};
 pub use context::{ContextMap, SharedContext};
 pub use crossbeam::channel::Sender;
 pub use crossbeam::sync::WaitGroup;
@@ -36,6 +35,7 @@ use either::Either;
 pub use error::{Error, ErrorResponse};
 use extension::WasmConfig;
 pub use extension::api::wit::Error as GuestError;
+use gateway_config::HooksWasiConfig;
 pub use instance::hooks::{
     HookImplementation, HooksComponentInstance,
     authorization::{EdgeDefinition, NodeDefinition},

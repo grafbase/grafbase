@@ -22,7 +22,7 @@ pub(crate) enum SdkPre {
 }
 
 impl SdkPre {
-    pub fn initialize(
+    pub(crate) fn initialize(
         sdk_version: &Version,
         component: Component,
         mut linker: Linker<WasiState>,

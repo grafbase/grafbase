@@ -73,9 +73,11 @@ pub(super) async fn generate(
         FederatedGraph::from_sdl(&federated_sdl).map_err(|e| crate::Error::SchemaValidationError(e.to_string()))?;
 
     tracing::debug!("Building engine Schema.");
-    let schema = engine::Schema::build(gateway_config, &federated_graph, &extension_catalog, schema_version)
-        .await
-        .map_err(|err| crate::Error::SchemaValidationError(err.to_string()))?;
+    let schema = Arc::new(
+        engine::Schema::build(gateway_config, &federated_graph, &extension_catalog, schema_version)
+            .await
+            .map_err(|err| crate::Error::SchemaValidationError(err.to_string()))?,
+    );
 
     let mut runtime = GatewayRuntime::build(
         gateway_config,
@@ -92,7 +94,7 @@ pub(super) async fn generate(
         runtime.trusted_documents = trusted_documents;
     }
 
-    Ok(Engine::new(Arc::new(schema), runtime).await)
+    Ok(Engine::new(schema, runtime).await)
 }
 
 fn sdl_graph(federated_sdl: String) -> Graph {

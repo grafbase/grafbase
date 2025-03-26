@@ -7,7 +7,7 @@ use semver::Version;
 
 use crate::extension::SchemaDirective;
 
-pub struct ExtensionConfig<T = toml::Value> {
+pub(crate) struct ExtensionConfig<T = toml::Value> {
     pub id: ExtensionId,
     pub manifest_id: extension_catalog::Id,
     pub sdk_version: Version,
@@ -18,12 +18,12 @@ pub struct ExtensionConfig<T = toml::Value> {
 }
 
 #[derive(Default)]
-pub struct PoolConfig {
+pub(crate) struct PoolConfig {
     pub max_size: Option<usize>,
 }
 
 #[derive(Debug, Clone)]
-pub struct WasmConfig {
+pub(crate) struct WasmConfig {
     pub location: PathBuf,
     pub networking: bool,
     pub stdout: bool,

@@ -12,7 +12,7 @@ use crate::{
 /// The data itself is fully custom and thus will be serialized with serde to cross the Wasm
 /// boundary.
 #[derive(Default)]
-pub struct InputList(pub(crate) Vec<Vec<u8>>);
+pub(crate) struct InputList(pub(crate) Vec<Vec<u8>>);
 
 impl<S: serde::Serialize> FromIterator<S> for InputList {
     fn from_iter<T: IntoIterator<Item = S>>(iter: T) -> Self {
@@ -24,8 +24,9 @@ impl<S: serde::Serialize> FromIterator<S> for InputList {
     }
 }
 
-pub type SubscriptionItem = Vec<Result<Data, GraphqlError>>;
-pub type QueryAuthorizationResult = Result<(Lease<http::HeaderMap>, AuthorizationDecisions, Vec<u8>), ErrorResponse>;
+pub(crate) type SubscriptionItem = Vec<Result<Data, GraphqlError>>;
+pub(crate) type QueryAuthorizationResult =
+    Result<(Lease<http::HeaderMap>, AuthorizationDecisions, Vec<u8>), ErrorResponse>;
 
 pub trait ExtensionInstance: Send + 'static {
     fn recycle(&mut self) -> Result<(), Error>;

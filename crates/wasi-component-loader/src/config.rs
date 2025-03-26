@@ -1,4 +1,4 @@
-pub use gateway_config::{extensions::ExtensionsConfig, hooks::HooksWasiConfig};
+use gateway_config::hooks::HooksWasiConfig;
 use wasmtime_wasi::{DirPerms, FilePerms, WasiCtx, WasiCtxBuilder};
 
 use crate::extension::WasmConfig;
