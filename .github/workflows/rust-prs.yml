@@ -378,7 +378,7 @@ jobs:
           && matrix.platform.target != 'x86_64-unknown-linux-musl'
         shell: bash
         run: |
-          cargo nextest run --target ${{ matrix.platform.target }} --profile ci ${{ needs.what-changed.outputs.cargo-test-specs }}
+          cargo nextest run --target ${{ matrix.platform.target }} --no-tests=warn --profile ci ${{ needs.what-changed.outputs.cargo-test-specs }}
 
       - name: Build tests (docker platforms)
         if: |
@@ -397,7 +397,7 @@ jobs:
           && matrix.platform.target == 'x86_64-unknown-linux-musl'
         shell: bash
         run: |
-          cargo nextest run --target ${{ matrix.platform.target }} --profile ci ${{ needs.what-changed.outputs.cargo-docker-test-specs }}
+          cargo nextest run --target ${{ matrix.platform.target }} --no-tests=warn --profile ci ${{ needs.what-changed.outputs.cargo-docker-test-specs }}
 
   docker-gateway:
     needs: [what-changed]
