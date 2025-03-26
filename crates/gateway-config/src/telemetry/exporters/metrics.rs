@@ -13,6 +13,7 @@ pub struct MetricsConfig {
 /// Prometheus exporter configuration
 #[derive(Debug, Clone, PartialEq, serde::Deserialize)]
 #[serde(default, deny_unknown_fields)]
+#[derive(Default)]
 pub struct PrometheusConfig {
     /// Enable the Prometheus metrics exporter
     pub enabled: bool,
@@ -20,11 +21,3 @@ pub struct PrometheusConfig {
     pub listen_address: Option<std::net::SocketAddr>,
 }
 
-impl Default for PrometheusConfig {
-    fn default() -> Self {
-        Self {
-            enabled: false,
-            listen_address: None,
-        }
-    }
-}
