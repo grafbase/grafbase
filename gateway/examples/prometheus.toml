@@ -1,0 +1,5 @@
+# Example configuration showing how to enable the Prometheus metrics exporter
+
+[telemetry.metrics.prometheus]
+enabled = true
+listen_address = "0.0.0.0:9090"
