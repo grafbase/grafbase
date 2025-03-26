@@ -1,6 +1,6 @@
 use prometheus::{
-    register_gauge, register_histogram, register_int_counter, register_int_gauge,
-    Encoder, Gauge, Histogram, IntCounter, IntGauge,
+    Encoder, Gauge, Histogram, IntCounter, IntGauge, register_gauge, register_histogram, register_int_counter,
+    register_int_gauge,
 };
 use std::sync::Once;
 
@@ -36,8 +36,11 @@ pub fn init_metrics() {
                 register_int_counter!("grafbase_gateway_http_requests_total", "Total number of HTTP requests").unwrap(),
             );
             HTTP_REQUEST_DURATION_SECONDS = Some(
-                register_histogram!("grafbase_gateway_http_request_duration_seconds", "HTTP request duration in seconds")
-                    .unwrap(),
+                register_histogram!(
+                    "grafbase_gateway_http_request_duration_seconds",
+                    "HTTP request duration in seconds"
+                )
+                .unwrap(),
             );
             ACTIVE_CONNECTIONS = Some(
                 register_int_gauge!("grafbase_gateway_active_connections", "Number of active connections").unwrap(),
@@ -45,12 +48,18 @@ pub fn init_metrics() {
 
             // GraphQL metrics
             GRAPHQL_QUERIES_TOTAL = Some(
-                register_int_counter!("grafbase_gateway_graphql_queries_total", "Total number of GraphQL queries")
-                    .unwrap(),
+                register_int_counter!(
+                    "grafbase_gateway_graphql_queries_total",
+                    "Total number of GraphQL queries"
+                )
+                .unwrap(),
             );
             GRAPHQL_MUTATIONS_TOTAL = Some(
-                register_int_counter!("grafbase_gateway_graphql_mutations_total", "Total number of GraphQL mutations")
-                    .unwrap(),
+                register_int_counter!(
+                    "grafbase_gateway_graphql_mutations_total",
+                    "Total number of GraphQL mutations"
+                )
+                .unwrap(),
             );
             GRAPHQL_QUERY_DURATION_SECONDS = Some(
                 register_histogram!(
@@ -60,15 +69,18 @@ pub fn init_metrics() {
                 .unwrap(),
             );
             GRAPHQL_ERRORS_TOTAL = Some(
-                register_int_counter!("grafbase_gateway_graphql_errors_total", "Total number of GraphQL errors")
-                    .unwrap(),
+                register_int_counter!(
+                    "grafbase_gateway_graphql_errors_total",
+                    "Total number of GraphQL errors"
+                )
+                .unwrap(),
             );
 
             // System metrics
-            MEMORY_USAGE_BYTES = Some(
-                register_gauge!("grafbase_gateway_memory_usage_bytes", "Memory usage in bytes").unwrap(),
-            );
-            CPU_USAGE_PERCENT = Some(register_gauge!("grafbase_gateway_cpu_usage_percent", "CPU usage percentage").unwrap());
+            MEMORY_USAGE_BYTES =
+                Some(register_gauge!("grafbase_gateway_memory_usage_bytes", "Memory usage in bytes").unwrap());
+            CPU_USAGE_PERCENT =
+                Some(register_gauge!("grafbase_gateway_cpu_usage_percent", "CPU usage percentage").unwrap());
 
             // Federation metrics
             FEDERATION_SUBGRAPH_REQUESTS_TOTAL = Some(
@@ -212,10 +224,7 @@ pub fn maybe_start_metrics_server(config: &gateway_config::TelemetryConfig) {
             if prometheus_config.enabled {
                 let addr = prometheus_config.listen_address.unwrap_or_else(|| {
                     // Default to 0.0.0.0:9090 if not specified
-                    std::net::SocketAddr::new(
-                        std::net::IpAddr::V4(std::net::Ipv4Addr::new(0, 0, 0, 0)),
-                        9090,
-                    )
+                    std::net::SocketAddr::new(std::net::IpAddr::V4(std::net::Ipv4Addr::new(0, 0, 0, 0)), 9090)
                 });
                 start_metrics_server(addr);
             }
@@ -227,7 +236,7 @@ fn start_metrics_server(addr: std::net::SocketAddr) {
     std::thread::spawn(move || {
         let metrics_server = std::net::TcpListener::bind(addr).expect("Failed to bind metrics server");
         tracing::info!("Prometheus metrics server listening on {}", addr);
-        
+
         for stream in metrics_server.incoming() {
             match stream {
                 Ok(mut stream) => {
@@ -238,14 +247,14 @@ fn start_metrics_server(addr: std::net::SocketAddr) {
                         tracing::error!("Failed to encode metrics: {}", e);
                         continue;
                     }
-                    
+
                     let response = format!(
                         "HTTP/1.1 200 OK\r\nContent-Type: {}\r\nContent-Length: {}\r\n\r\n{}",
                         encoder.format_type(),
                         buffer.len(),
                         String::from_utf8(buffer).expect("Failed to convert metrics to string")
                     );
-                    
+
                     if let Err(e) = std::io::Write::write_all(&mut stream, response.as_bytes()) {
                         tracing::error!("Error writing metrics response: {}", e);
                     }

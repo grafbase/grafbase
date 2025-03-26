@@ -32,10 +32,10 @@ fn main() -> anyhow::Result<()> {
 
     runtime.block_on(async move {
         let telemetry = telemetry::init(&args, &config.telemetry)?;
-        
+
         // Initialize Prometheus metrics
         metrics::init_metrics();
-        
+
         // Start Prometheus metrics server if enabled in config
         metrics::maybe_start_metrics_server(&config.telemetry);
 
