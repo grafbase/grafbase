@@ -44,12 +44,12 @@ fn init() {
     codegen-units = 1
 
     [dependencies]
-    grafbase-sdk = "0.12.0"
+    grafbase-sdk = "0.13.0"
 
     [dev-dependencies]
     indoc = "2"
     insta = { version = "1.42.1", features = ["json"] }
-    grafbase-sdk = { version = "0.12.0", features = ["test-utils"] }
+    grafbase-sdk = { version = "0.13.0", features = ["test-utils"] }
     tokio = { version = "1", features = ["rt-multi-thread", "macros", "test-util"] }
     serde_json = "1"
     "#);
@@ -80,9 +80,10 @@ fn init() {
 
     insta::assert_snapshot!(&lib_rs, @r##"
     use grafbase_sdk::{
-        types::{Configuration, ErrorResponse, QueryElements, AuthorizationDecisions, Token, SubgraphHeaders, Error},
-        AuthorizationExtension,
+        AuthorizationExtension, IntoQueryAuthorization,
+        types::{AuthorizationDecisions, Configuration, Error, ErrorResponse, QueryElements, SubgraphHeaders, Token},
     };
+
 
     #[derive(AuthorizationExtension)]
     struct TestProject;
@@ -97,7 +98,7 @@ fn init() {
             headers: &mut SubgraphHeaders,
             token: Token,
             elements: QueryElements<'_>,
-        ) -> Result<AuthorizationDecisions, ErrorResponse> {
+        ) -> Result<impl IntoQueryAuthorization, ErrorResponse> {
             Ok(AuthorizationDecisions::deny_all("Not authorized"))
         }
     }

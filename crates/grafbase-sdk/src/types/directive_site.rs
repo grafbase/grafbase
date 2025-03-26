@@ -35,7 +35,7 @@ pub struct ObjectDirectiveSite<'a>(&'a wit::ObjectDirectiveSite);
 impl<'a> ObjectDirectiveSite<'a> {
     /// The name of the object type
     #[inline]
-    pub fn object_name(&self) -> &'a str {
+    pub fn name(&self) -> &'a str {
         &self.0.object_name
     }
 }
@@ -58,7 +58,7 @@ impl<'a> FieldDefinitionDirectiveSite<'a> {
 
     /// The name of the field
     #[inline]
-    pub fn field_name(&self) -> &'a str {
+    pub fn name(&self) -> &'a str {
         &self.0.field_name
     }
 }
@@ -75,7 +75,7 @@ pub struct UnionDirectiveSite<'a>(&'a wit::UnionDirectiveSite);
 impl<'a> UnionDirectiveSite<'a> {
     /// The name of the union type
     #[inline]
-    pub fn union_name(&self) -> &'a str {
+    pub fn name(&self) -> &'a str {
         &self.0.union_name
     }
 }
@@ -92,7 +92,7 @@ pub struct InterfaceDirectiveSite<'a>(&'a wit::InterfaceDirectiveSite);
 impl<'a> InterfaceDirectiveSite<'a> {
     /// The name of the interface type
     #[inline]
-    pub fn interface_name(&self) -> &'a str {
+    pub fn name(&self) -> &'a str {
         &self.0.interface_name
     }
 }
@@ -109,7 +109,7 @@ pub struct ScalarDirectiveSite<'a>(&'a wit::ScalarDirectiveSite);
 impl<'a> ScalarDirectiveSite<'a> {
     /// The name of the scalar type
     #[inline]
-    pub fn scalar_name(&self) -> &'a str {
+    pub fn name(&self) -> &'a str {
         &self.0.scalar_name
     }
 }
@@ -126,7 +126,7 @@ pub struct EnumDirectiveSite<'a>(&'a wit::EnumDirectiveSite);
 impl<'a> EnumDirectiveSite<'a> {
     /// The name of the enum type
     #[inline]
-    pub fn enum_name(&self) -> &'a str {
+    pub fn name(&self) -> &'a str {
         &self.0.enum_name
     }
 }

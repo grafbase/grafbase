@@ -58,7 +58,7 @@ impl AuthorizationExtension for CustomAuthorization {
             match name {
                 "deniedIds" => {
                     for element in elements {
-                        let args: DeniedIdsArgs = element.arguments()?;
+                        let args: DeniedIdsArgs = element.directive_arguments()?;
                         state.denied_ids.push(DeniedIds {
                             query_element_id: element.id().into(),
                             denied_ids: args.ids,
@@ -99,7 +99,7 @@ impl AuthorizationExtension for CustomAuthorization {
                 .find(|denied| denied.query_element_id == u32::from(element.query_element_id()))
             {
                 for item in element.items() {
-                    let object: ResponseArguments<'_> = item.deserialize()?;
+                    let object: ResponseArguments<'_> = item.directive_arguments()?;
                     if denied.denied_ids.contains(&(object.id_as_u32().into())) {
                         builder.deny_with_error_id(item, error_id);
                     }
