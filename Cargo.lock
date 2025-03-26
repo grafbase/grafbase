@@ -3753,6 +3753,7 @@ dependencies = [
  "reqwest 0.12.15",
  "semver 1.0.26",
  "serde",
+ "serde-transcode",
  "serde_json",
  "serde_urlencoded",
  "tempfile",
@@ -8102,6 +8103,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "93b4e415d6bff989e5e48649ca9b8b4d4997cb069a0c90a84bfd38c7df5e3968"
 dependencies = [
  "toml",
+]
+
+[[package]]
+name = "serde-transcode"
+version = "1.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "590c0e25c2a5bb6e85bf5c1bce768ceb86b316e7a01bdf07d2cb4ec2271990e2"
+dependencies = [
+ "serde",
 ]
 
 [[package]]

@@ -22,3 +22,7 @@ pub(crate) fn from_slice<'de, T: serde::Deserialize<'de>>(data: &'de [u8]) -> Re
     let mut deserializer = minicbor_serde::Deserializer::new(data);
     T::deserialize(&mut deserializer)
 }
+
+pub(crate) fn deserializer<'de>(data: &'de [u8]) -> minicbor_serde::Deserializer<'de> {
+    minicbor_serde::Deserializer::new(data)
+}

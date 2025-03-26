@@ -82,6 +82,15 @@ impl<'a> FieldInput<'a> {
     {
         cbor::from_slice(self.data).map_err(Into::into)
     }
+
+    /// Transcode the resolver input into the provided serializer.
+    pub fn transcode<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::ser::Serializer,
+    {
+        let mut deserializer = cbor::deserializer(self.data);
+        serde_transcode::transcode(&mut deserializer, serializer)
+    }
 }
 
 /// Output for a resolver
