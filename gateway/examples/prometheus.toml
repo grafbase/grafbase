@@ -1,4 +1,10 @@
 # Example configuration showing how to enable the Prometheus metrics exporter
+# 
+# To use this configuration with Grafbase Gateway:
+# grafbase-gateway --config prometheus.toml
+#
+# Once running, metrics will be available at:
+# http://localhost:9090/metrics
 
 [telemetry.metrics.prometheus]
 enabled = true

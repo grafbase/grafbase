@@ -31,6 +31,9 @@ fn main() -> anyhow::Result<()> {
         .build()?;
 
     runtime.block_on(async move {
+        let crate_version = crate_version!();
+        tracing::info!("Grafbase Gateway {crate_version}");
+
         let telemetry = telemetry::init(&args, &config.telemetry)?;
 
         // Initialize Prometheus metrics
@@ -38,9 +41,6 @@ fn main() -> anyhow::Result<()> {
 
         // Start Prometheus metrics server if enabled in config
         metrics::maybe_start_metrics_server(&config.telemetry);
-
-        let crate_version = crate_version!();
-        tracing::info!("Grafbase Gateway {crate_version}");
 
         if !args.can_export_telemetry_to_platform() {
             tracing::warn!("To send telemetry to the Grafbase Platform, provide a valid graph-ref and access token");

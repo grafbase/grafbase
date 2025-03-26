@@ -2,6 +2,7 @@ use prometheus::{
     Encoder, Gauge, Histogram, IntCounter, IntGauge, register_gauge, register_histogram, register_int_counter,
     register_int_gauge,
 };
+use std::io::Read;
 use std::sync::Once;
 
 // Define metrics
@@ -235,15 +236,49 @@ pub fn maybe_start_metrics_server(config: &gateway_config::TelemetryConfig) {
 fn start_metrics_server(addr: std::net::SocketAddr) {
     std::thread::spawn(move || {
         let metrics_server = std::net::TcpListener::bind(addr).expect("Failed to bind metrics server");
-        tracing::info!("Prometheus metrics server listening on {}", addr);
+        tracing::info!(
+            "Prometheus metrics available at http://{}:{}/metrics",
+            addr.ip(),
+            addr.port()
+        );
 
         for stream in metrics_server.incoming() {
             match stream {
                 Ok(mut stream) => {
+                    let mut buffer = [0u8; 4096];
+                    let bytes_read = match stream.read(&mut buffer) {
+                        Ok(n) => n,
+                        Err(e) => {
+                            tracing::error!("Error reading from HTTP stream: {}", e);
+                            continue;
+                        }
+                    };
+
+                    if bytes_read == 0 {
+                        continue;
+                    }
+
+                    let request = match std::str::from_utf8(&buffer[0..bytes_read]) {
+                        Ok(s) => s,
+                        Err(e) => {
+                            tracing::error!("Error parsing HTTP request: {}", e);
+                            continue;
+                        }
+                    };
+
+                    // Check if this is a GET request for /metrics
+                    if !request.starts_with("GET /metrics") && !request.starts_with("GET / ") {
+                        let response = "HTTP/1.1 404 Not Found\r\n\r\nNot Found";
+                        if let Err(e) = std::io::Write::write_all(&mut stream, response.as_bytes()) {
+                            tracing::error!("Error writing 404 response: {}", e);
+                        }
+                        continue;
+                    }
+
                     let encoder = prometheus::TextEncoder::new();
                     let metric_families = prometheus::gather();
-                    let mut buffer = Vec::new();
-                    if let Err(e) = encoder.encode(&metric_families, &mut buffer) {
+                    let mut output_buffer = Vec::new();
+                    if let Err(e) = encoder.encode(&metric_families, &mut output_buffer) {
                         tracing::error!("Failed to encode metrics: {}", e);
                         continue;
                     }
@@ -251,8 +286,8 @@ fn start_metrics_server(addr: std::net::SocketAddr) {
                     let response = format!(
                         "HTTP/1.1 200 OK\r\nContent-Type: {}\r\nContent-Length: {}\r\n\r\n{}",
                         encoder.format_type(),
-                        buffer.len(),
-                        String::from_utf8(buffer).expect("Failed to convert metrics to string")
+                        output_buffer.len(),
+                        String::from_utf8(output_buffer).expect("Failed to convert metrics to string")
                     );
 
                     if let Err(e) = std::io::Write::write_all(&mut stream, response.as_bytes()) {
