@@ -162,9 +162,9 @@ percent-encoding = "2"
 petgraph = "0.7"
 postcard = { version = "1", features = ["use-std"] }
 pprof = "0.14"
-prometheus = "0.13"
 pretty_assertions = "1"
 proc-macro2 = "1"
+prometheus = "0.13"
 quote = "1"
 ramhorns = { git = "https://github.com/grafbase/ramhorns", branch = "grafbase", default-features = false, features = [
     "indexes",
