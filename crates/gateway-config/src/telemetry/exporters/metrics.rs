@@ -20,4 +20,3 @@ pub struct PrometheusConfig {
     /// Address for the Prometheus metrics HTTP server
     pub listen_address: Option<std::net::SocketAddr>,
 }
-
