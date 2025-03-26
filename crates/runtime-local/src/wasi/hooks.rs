@@ -7,6 +7,7 @@ use std::{collections::HashMap, sync::Arc, time::SystemTime};
 use engine::{ErrorCode, ErrorResponse, GraphqlError};
 use enumflags2::BitFlags;
 use futures_util::Future;
+pub use gateway_config::HooksWasiConfig as Config;
 use grafbase_telemetry::otel::{
     opentelemetry::{
         KeyValue,
@@ -20,8 +21,7 @@ use runtime::hooks::{AuthorizedHooks, HeaderMap, Hooks, SubgraphRequest};
 use tracing::{Instrument, Span, info_span};
 use wasi_component_loader::HookImplementation;
 pub use wasi_component_loader::{
-    AccessLogMessage, AccessLogReceiver, AccessLogSender, ComponentLoader, HooksWasiConfig as Config, SharedContext,
-    create_access_log_channel,
+    AccessLogMessage, AccessLogReceiver, AccessLogSender, ComponentLoader, SharedContext, create_access_log_channel,
 };
 
 use super::guest_error_as_gql;

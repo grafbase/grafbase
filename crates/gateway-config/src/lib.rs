@@ -82,7 +82,7 @@ pub struct Config {
     /// Hooks configuration
     pub hooks: Option<HooksWasiConfig>,
     /// Extensions configuration
-    pub extensions: BTreeMap<String, ExtensionsConfig>,
+    pub extensions: BTreeMap<String, ExtensionConfig>,
     /// Health check endpoint configuration
     pub health: HealthConfig,
     /// Global configuration for entity caching
@@ -2282,7 +2282,7 @@ mod tests {
         insta::assert_debug_snapshot!(&config.extensions, @r#"
         {
             "rest": Structured(
-                StructuredExtensionsConfig {
+                StructuredExtensionConfig {
                     version: VersionReq {
                         comparators: [
                             Comparator {
@@ -2341,7 +2341,7 @@ mod tests {
         insta::assert_debug_snapshot!(&config.extensions, @r#"
         {
             "nats": Structured(
-                StructuredExtensionsConfig {
+                StructuredExtensionConfig {
                     version: VersionReq {
                         comparators: [
                             Comparator {

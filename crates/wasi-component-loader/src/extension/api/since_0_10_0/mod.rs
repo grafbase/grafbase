@@ -4,6 +4,7 @@ mod wit;
 pub use instance::ExtensionInstanceSince0_10_0;
 pub use wit::{Sdk, SdkPre};
 
+#[allow(unused)]
 pub mod world {
     use super::wit::exports::grafbase::sdk as exports;
     use super::wit::grafbase::sdk;

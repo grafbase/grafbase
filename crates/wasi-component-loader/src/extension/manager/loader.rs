@@ -14,7 +14,7 @@ use wasmtime::{
     component::{Component, Linker},
 };
 
-pub struct ExtensionLoader {
+pub(crate) struct ExtensionLoader {
     wasm_config: WasmConfig,
     guest_config: Vec<u8>,
     #[allow(unused)] // MUST be unused, or at least immutable, we self-reference to it
@@ -26,7 +26,7 @@ pub struct ExtensionLoader {
     shared: SharedResources,
 }
 
-pub struct SchemaDirective {
+pub(crate) struct SchemaDirective {
     name: String,
     subgraph_name: String,
     arguments: Vec<u8>,
@@ -43,7 +43,7 @@ impl SchemaDirective {
 }
 
 impl ExtensionLoader {
-    pub fn new<T: serde::Serialize>(shared: SharedResources, config: ExtensionConfig<T>) -> crate::Result<Self> {
+    pub(crate) fn new<T: serde::Serialize>(shared: SharedResources, config: ExtensionConfig<T>) -> crate::Result<Self> {
         let mut engine_config = wasmtime::Config::new();
 
         engine_config.wasm_component_model(true);

@@ -7,23 +7,23 @@ use semver::VersionReq;
 use serde::{Deserialize, Deserializer};
 
 #[derive(PartialEq, Debug, Clone)]
-pub enum ExtensionsConfig {
+pub enum ExtensionConfig {
     Version(VersionReq),
-    Structured(StructuredExtensionsConfig),
+    Structured(StructuredExtensionConfig),
 }
 
 // #[serde(untagged)] results is very poor errors as it tries to deserialize the variants one by
-// one, ignoring the errors and ending with: `data did not match any variant of untagged enum ExtensionsConfig`.
-impl<'de> Deserialize<'de> for ExtensionsConfig {
+// one, ignoring the errors and ending with: `data did not match any variant of untagged enum ExtensionConfig`.
+impl<'de> Deserialize<'de> for ExtensionConfig {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
         use serde::de::{Error, MapAccess, Visitor, value::MapAccessDeserializer};
-        struct ExtensionsConfigVisitor;
+        struct ExtensionConfigVisitor;
 
-        impl<'de> Visitor<'de> for ExtensionsConfigVisitor {
-            type Value = ExtensionsConfig;
+        impl<'de> Visitor<'de> for ExtensionConfigVisitor {
+            type Value = ExtensionConfig;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 formatter.write_str("a version or a config map")
@@ -33,25 +33,25 @@ impl<'de> Deserialize<'de> for ExtensionsConfig {
             where
                 E: Error,
             {
-                value.parse().map(ExtensionsConfig::Version).map_err(Error::custom)
+                value.parse().map(ExtensionConfig::Version).map_err(Error::custom)
             }
 
             fn visit_map<M>(self, mut map: M) -> Result<Self::Value, M::Error>
             where
                 M: MapAccess<'de>,
             {
-                StructuredExtensionsConfig::deserialize(MapAccessDeserializer::new(&mut map))
-                    .map(ExtensionsConfig::Structured)
+                StructuredExtensionConfig::deserialize(MapAccessDeserializer::new(&mut map))
+                    .map(ExtensionConfig::Structured)
             }
         }
 
-        deserializer.deserialize_any(ExtensionsConfigVisitor)
+        deserializer.deserialize_any(ExtensionConfigVisitor)
     }
 }
 
 #[derive(PartialEq, serde::Deserialize, Debug, Clone)]
 #[serde(default, deny_unknown_fields)]
-pub struct StructuredExtensionsConfig {
+pub struct StructuredExtensionConfig {
     pub version: VersionReq,
     pub path: Option<PathBuf>,
     pub networking: Option<bool>,
@@ -102,7 +102,7 @@ where
     Ok(value)
 }
 
-impl Default for StructuredExtensionsConfig {
+impl Default for StructuredExtensionConfig {
     fn default() -> Self {
         Self {
             version: VersionReq::parse("*").unwrap(),
@@ -117,60 +117,60 @@ impl Default for StructuredExtensionsConfig {
     }
 }
 
-impl ExtensionsConfig {
+impl ExtensionConfig {
     pub fn version(&self) -> &VersionReq {
         match self {
-            ExtensionsConfig::Version(version) => version,
-            ExtensionsConfig::Structured(config) => &config.version,
+            ExtensionConfig::Version(version) => version,
+            ExtensionConfig::Structured(config) => &config.version,
         }
     }
 
     pub fn networking(&self) -> Option<bool> {
         match self {
-            ExtensionsConfig::Version(_) => None,
-            ExtensionsConfig::Structured(config) => config.networking,
+            ExtensionConfig::Version(_) => None,
+            ExtensionConfig::Structured(config) => config.networking,
         }
     }
 
     pub fn stdout(&self) -> Option<bool> {
         match self {
-            ExtensionsConfig::Version(_) => None,
-            ExtensionsConfig::Structured(config) => config.stdout,
+            ExtensionConfig::Version(_) => None,
+            ExtensionConfig::Structured(config) => config.stdout,
         }
     }
 
     pub fn stderr(&self) -> Option<bool> {
         match self {
-            ExtensionsConfig::Version(_) => None,
-            ExtensionsConfig::Structured(config) => config.stderr,
+            ExtensionConfig::Version(_) => None,
+            ExtensionConfig::Structured(config) => config.stderr,
         }
     }
 
     pub fn environment_variables(&self) -> Option<bool> {
         match self {
-            ExtensionsConfig::Version(_) => None,
-            ExtensionsConfig::Structured(config) => config.environment_variables,
+            ExtensionConfig::Version(_) => None,
+            ExtensionConfig::Structured(config) => config.environment_variables,
         }
     }
 
     pub fn max_pool_size(&self) -> Option<usize> {
         match self {
-            ExtensionsConfig::Version(_) => None,
-            ExtensionsConfig::Structured(config) => config.max_pool_size,
+            ExtensionConfig::Version(_) => None,
+            ExtensionConfig::Structured(config) => config.max_pool_size,
         }
     }
 
     pub fn path(&self) -> Option<&Path> {
         match self {
-            ExtensionsConfig::Version(_) => None,
-            ExtensionsConfig::Structured(config) => config.path.as_deref(),
+            ExtensionConfig::Version(_) => None,
+            ExtensionConfig::Structured(config) => config.path.as_deref(),
         }
     }
 
     pub fn config(&self) -> Option<&toml::Value> {
         match self {
-            ExtensionsConfig::Version(_) => None,
-            ExtensionsConfig::Structured(config) => config.config.as_ref(),
+            ExtensionConfig::Version(_) => None,
+            ExtensionConfig::Structured(config) => config.config.as_ref(),
         }
     }
 }
@@ -189,7 +189,7 @@ mod tests {
             key_from_env = "{{ env.test }}"
         "#;
 
-        let err = toml::from_str::<StructuredExtensionsConfig>(toml)
+        let err = toml::from_str::<StructuredExtensionConfig>(toml)
             .unwrap_err()
             .to_string();
 
@@ -212,6 +212,6 @@ mod tests {
             other_key = "abcd"
         "#;
 
-        toml::from_str::<StructuredExtensionsConfig>(toml).unwrap();
+        toml::from_str::<StructuredExtensionConfig>(toml).unwrap();
     }
 }

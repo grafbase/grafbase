@@ -142,8 +142,8 @@ impl ExtensionsBuilder {
                 let path = Some(ext.wasm_path.parent().unwrap().to_path_buf());
                 match config.extensions.entry(ext.manifest.name().to_string()) {
                     Entry::Vacant(entry) => {
-                        entry.insert(gateway_config::ExtensionsConfig::Structured(
-                            gateway_config::StructuredExtensionsConfig {
+                        entry.insert(gateway_config::ExtensionConfig::Structured(
+                            gateway_config::StructuredExtensionConfig {
                                 version,
                                 path,
                                 ..Default::default()
@@ -153,11 +153,11 @@ impl ExtensionsBuilder {
                     Entry::Occupied(mut entry) => {
                         let value = entry.get_mut();
                         match value {
-                            gateway_config::ExtensionsConfig::Structured(config) => {
+                            gateway_config::ExtensionConfig::Structured(config) => {
                                 config.version = version;
                                 config.path = path;
                             }
-                            gateway_config::ExtensionsConfig::Version(_) => {
+                            gateway_config::ExtensionConfig::Version(_) => {
                                 return Err("Extension with the same name already exists".to_owned());
                             }
                         }
