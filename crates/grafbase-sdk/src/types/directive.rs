@@ -58,6 +58,15 @@ impl<'a> FieldDefinitionDirective<'a> {
         minicbor_serde::from_slice(&self.0.arguments).map_err(Into::into)
     }
 
+    /// Deserialize the arguments of the directive using a `DeserializeSeed`.
+    pub fn deserialize_arguments_seed<T>(&self, seed: T) -> Result<T::Value, SdkError>
+    where
+        T: serde::de::DeserializeSeed<'a>,
+    {
+        let mut deserializer = minicbor_serde::Deserializer::new(&self.0.arguments);
+        seed.deserialize(&mut deserializer).map_err(From::from)
+    }
+
     ///Serialized arguments as sent by the host. There is no guarantee on the bytes.
     pub fn arguments_bytes(&self) -> &[u8] {
         &self.0.arguments
