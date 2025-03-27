@@ -58,7 +58,7 @@ impl<T: TestExtension> TestExtensionBuilder for AuthorizationExt<T> {
                 name: self.name.to_string(),
                 version: "1.0.0".parse().unwrap(),
             },
-            kind: extension_catalog::Kind::Authorization(extension_catalog::AuthorizationKind {
+            r#type: extension_catalog::Type::Authorization(extension_catalog::AuthorizationType {
                 authorization_directives: None,
             }),
             sdl: self.sdl.or(Some(

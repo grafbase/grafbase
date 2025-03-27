@@ -89,11 +89,11 @@ impl ExtensionsBuilder {
 
     #[track_caller]
     pub fn push_test_extension(&mut self, builder: Box<dyn TestExtensionBuilder>) {
-        let TestManifest { id, sdl, kind } = builder.manifest();
+        let TestManifest { id, sdl, r#type } = builder.manifest();
 
         let manifest = extension_catalog::Manifest {
             id,
-            kind,
+            r#type,
             sdk_version: placeholder_sdk_version(),
             minimum_gateway_version: "0.0.0".parse().unwrap(),
             sdl: sdl.map(str::to_string),

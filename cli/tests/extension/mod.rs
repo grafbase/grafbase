@@ -77,7 +77,7 @@ fn init_resolver() {
     [extension]
     name = "test-project"
     version = "0.1.0"
-    kind = "resolver"
+    type = "resolver"
     description = "A new extension"
     # homepage_url = "https://example.com/my-extension"
     # repository_url = "https://github.com/my-username/my-extension"
@@ -326,7 +326,7 @@ fn init_auth() {
     [extension]
     name = "test-project"
     version = "0.1.0"
-    kind = "authentication"
+    type = "authentication"
     description = "A new extension"
     # homepage_url = "https://example.com/my-extension"
     # repository_url = "https://github.com/my-username/my-extension"

@@ -42,8 +42,8 @@ impl<Extensions> AuthenticationService<Extensions> {
 
         let authentication_extension_ids = catalog
             .iter_with_id()
-            .filter_map(|(id, extension)| match extension.manifest.kind {
-                extension_catalog::Kind::Authentication(_) => Some(id),
+            .filter_map(|(id, extension)| match extension.manifest.r#type {
+                extension_catalog::Type::Authentication(_) => Some(id),
                 _ => None,
             })
             .collect::<Vec<_>>();

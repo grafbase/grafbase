@@ -26,7 +26,7 @@ impl TestExtensionBuilder for GreetExt {
                 name: "greet".to_string(),
                 version: "1.0.0".parse().unwrap(),
             },
-            kind: extension_catalog::Kind::Resolver(extension_catalog::ResolverKind {
+            r#type: extension_catalog::Type::Resolver(extension_catalog::ResolverType {
                 resolver_directives: None,
             }),
             sdl: self.sdl.or(Some(

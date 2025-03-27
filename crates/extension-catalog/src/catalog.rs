@@ -18,14 +18,14 @@ pub struct Extension {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
-pub enum ExtensionDirectiveKind {
+pub enum ExtensionDirectiveType {
     #[default]
     Unknown,
     FieldResolver,
     Authorization,
 }
 
-impl ExtensionDirectiveKind {
+impl ExtensionDirectiveType {
     pub fn is_resolver(&self) -> bool {
         matches!(self, Self::FieldResolver)
     }
@@ -53,33 +53,33 @@ impl ExtensionCatalog {
             .map(|(ix, _)| ix.into())
     }
 
-    pub fn get_directive_kind(&self, id: ExtensionId, name: &str) -> ExtensionDirectiveKind {
-        match &self[id].manifest.kind {
-            extension::Kind::Resolver(ResolverKind { resolver_directives }) => {
+    pub fn get_directive_type(&self, id: ExtensionId, name: &str) -> ExtensionDirectiveType {
+        match &self[id].manifest.r#type {
+            extension::Type::Resolver(ResolverType { resolver_directives }) => {
                 if let Some(directives) = resolver_directives {
                     directives
                         .iter()
                         .any(|dir| dir == name)
-                        .then_some(ExtensionDirectiveKind::FieldResolver)
+                        .then_some(ExtensionDirectiveType::FieldResolver)
                         .unwrap_or_default()
                 } else {
-                    ExtensionDirectiveKind::FieldResolver
+                    ExtensionDirectiveType::FieldResolver
                 }
             }
-            extension::Kind::Authorization(AuthorizationKind {
+            extension::Type::Authorization(AuthorizationType {
                 authorization_directives: directives,
             }) => {
                 if let Some(directives) = directives {
                     directives
                         .iter()
                         .any(|dir| dir == name)
-                        .then_some(ExtensionDirectiveKind::Authorization)
+                        .then_some(ExtensionDirectiveType::Authorization)
                         .unwrap_or_default()
                 } else {
-                    ExtensionDirectiveKind::Authorization
+                    ExtensionDirectiveType::Authorization
                 }
             }
-            extension::Kind::Authentication(_) => Default::default(),
+            extension::Type::Authentication(_) => Default::default(),
         }
     }
 

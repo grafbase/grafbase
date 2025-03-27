@@ -60,7 +60,7 @@ fn init() {
     [extension]
     name = "test-project"
     version = "0.1.0"
-    kind = "authorization"
+    type = "authorization"
     description = "A new extension"
     # homepage_url = "https://example.com/my-extension"
     # repository_url = "https://github.com/my-username/my-extension"

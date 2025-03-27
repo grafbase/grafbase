@@ -56,7 +56,7 @@ impl TestExtensions {
 pub struct TestManifest {
     pub id: Id,
     pub sdl: Option<&'static str>,
-    pub kind: extension_catalog::Kind,
+    pub r#type: extension_catalog::Type,
 }
 
 #[allow(unused_variables)] // makes it easier to copy-paste relevant functions
