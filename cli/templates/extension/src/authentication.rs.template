@@ -1,7 +1,8 @@
 use grafbase_sdk::{
-    types::{Configuration, SchemaDirective, ErrorResponse, Token, GatewayHeaders, Error},
     AuthenticationExtension,
+    types::{Configuration, Error, ErrorResponse, GatewayHeaders, Token},
 };
+
 
 #[derive(AuthenticationExtension)]
 struct {{name}};

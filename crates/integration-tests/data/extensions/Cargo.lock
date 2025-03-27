@@ -269,7 +269,7 @@ dependencies = [
 name = "authenticated"
 version = "0.1.0"
 dependencies = [
- "grafbase-sdk 0.12.0",
+ "grafbase-sdk 0.13.0",
  "serde",
  "serde_json",
 ]
@@ -278,7 +278,7 @@ dependencies = [
 name = "authorization-010"
 version = "0.1.0"
 dependencies = [
- "grafbase-sdk 0.12.0",
+ "grafbase-sdk 0.13.0",
  "http",
  "rkyv",
  "serde",
@@ -1013,7 +1013,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "document-features",
  "grafbase-sdk-derive 0.3.0",
@@ -1889,7 +1889,7 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 name = "placeholder"
 version = "0.1.0"
 dependencies = [
- "grafbase-sdk 0.12.0",
+ "grafbase-sdk 0.13.0",
  "serde",
  "serde_json",
 ]
