@@ -35,7 +35,7 @@ impl TestExtensionBuilder for EchoExt {
                 name: "echo".to_string(),
                 version: "1.0.0".parse().unwrap(),
             },
-            kind: extension_catalog::Kind::Resolver(extension_catalog::ResolverKind {
+            r#type: extension_catalog::Type::Resolver(extension_catalog::ResolverType {
                 resolver_directives: Some(vec!["echo".to_string()]),
             }),
             sdl: Some(self.sdl),

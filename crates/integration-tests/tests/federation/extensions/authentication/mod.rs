@@ -46,7 +46,7 @@ impl<T: TestExtension> TestExtensionBuilder for AuthenticationExt<T> {
                 name: self.name.to_string(),
                 version: "1.0.0".parse().unwrap(),
             },
-            kind: extension_catalog::Kind::Authentication(Default::default()),
+            r#type: extension_catalog::Type::Authentication(Default::default()),
             sdl: None,
         }
     }
