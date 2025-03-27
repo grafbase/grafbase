@@ -3,17 +3,15 @@ use grafbase_sdk::{
     types::{Configuration, Error, ErrorResponse, GatewayHeaders, Token},
 };
 
-
 #[derive(AuthenticationExtension)]
 struct {{name}};
 
 impl AuthenticationExtension for {{name}} {
-    fn new(config: Configuration) -> Result<Self, Error>
-    {
-        todo!()
+    fn new(config: Configuration) -> Result<Self, Error> {
+        Ok(Self)
     }
 
     fn authenticate(&mut self, headers: &GatewayHeaders) -> Result<Token, ErrorResponse> {
-        todo!()
+        Err(ErrorResponse::unauthorized())
     }
 }

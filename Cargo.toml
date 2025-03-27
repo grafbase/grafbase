@@ -25,9 +25,6 @@ exclude = [
     "examples/authorization",
     "examples/hooks-template",
     "examples/query_plan",
-    "extensions",
-    "test/guard",
-    "test/warden",
 ]
 
 [patch.crates-io]

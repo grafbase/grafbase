@@ -3,13 +3,12 @@ use grafbase_sdk::{
     types::{AuthorizationDecisions, Configuration, Error, ErrorResponse, QueryElements, SubgraphHeaders, Token},
 };
 
-
 #[derive(AuthorizationExtension)]
 struct {{name}};
 
 impl AuthorizationExtension for {{name}} {
     fn new(config: Configuration) -> Result<Self, Error> {
-        todo!()
+        Ok(Self)
     }
 
     fn authorize_query(
