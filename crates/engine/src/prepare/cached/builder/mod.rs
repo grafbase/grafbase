@@ -2,6 +2,8 @@ mod modifiers;
 mod requires;
 mod shapes;
 
+use std::cmp::Ordering;
+
 use id_newtypes::{BitSet, IdRange};
 use im::HashMap;
 use operation::Operation;
@@ -226,10 +228,16 @@ impl<'a> Solver<'a> {
 
         let data_fields_start = self.output.query_plan.data_fields.len();
         let typename_fields_start = self.output.query_plan.typename_fields.len();
-
-        fields_buffer.sort_unstable_by_key(|field| match field {
-            NestedField::Data { record, .. } => (&self.output.query_plan[record.type_condition_ids], record.key()),
-            NestedField::Typename { record, .. } => (&self.output.query_plan[record.type_condition_ids], record.key()),
+        fields_buffer.sort_unstable_by(|left, right| match (left, right) {
+            (NestedField::Data { record: left, .. }, NestedField::Data { record: right, .. }) => self.schema
+                [left.definition_id]
+                .parent_entity_id
+                .cmp(&self.schema[right.definition_id].parent_entity_id)
+                .then(left.key().cmp(&right.key())),
+            // __typename fields don't matter
+            (NestedField::Data { .. }, NestedField::Typename { .. }) => Ordering::Less,
+            (NestedField::Typename { .. }, NestedField::Data { .. }) => Ordering::Greater,
+            (NestedField::Typename { .. }, NestedField::Typename { .. }) => Ordering::Equal,
         });
 
         for field in fields_buffer.drain(..) {
@@ -239,7 +247,7 @@ impl<'a> Solver<'a> {
                     self.node_to_field[node_ix.index()] = Some(PartitionFieldId::Data(field_id));
                     for nested in &mut self.output.query_plan[record
                         .selection_set_record
-                        .data_field_ids_ordered_by_type_conditions_then_key]
+                        .data_field_ids_ordered_by_parent_entity_then_key]
                     {
                         nested.parent_field_id = Some(field_id);
                     }
@@ -256,12 +264,10 @@ impl<'a> Solver<'a> {
         self.nested_fields_buffer_pool.push(fields_buffer);
 
         let selection_set = PartitionSelectionSetRecord {
-            data_field_ids_ordered_by_type_conditions_then_key: IdRange::from(
+            data_field_ids_ordered_by_parent_entity_then_key: IdRange::from(
                 data_fields_start..self.output.query_plan.data_fields.len(),
             ),
-            typename_field_ids_ordered_by_type_conditions_then_key: IdRange::from(
-                typename_fields_start..self.output.query_plan.typename_fields.len(),
-            ),
+            typename_field_ids: IdRange::from(typename_fields_start..self.output.query_plan.typename_fields.len()),
         };
 
         (response_object_set_id, selection_set)
@@ -370,8 +376,8 @@ fn to_data_field_or_typename_field(
             argument_ids: field.argument_ids,
             // All set later
             selection_set_record: PartitionSelectionSetRecord {
-                data_field_ids_ordered_by_type_conditions_then_key: IdRange::empty(),
-                typename_field_ids_ordered_by_type_conditions_then_key: IdRange::empty(),
+                data_field_ids_ordered_by_parent_entity_then_key: IdRange::empty(),
+                typename_field_ids: IdRange::empty(),
             },
             required_fields_record: RequiredFieldSetRecord::default(),
             required_fields_record_by_supergraph: Default::default(),

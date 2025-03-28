@@ -20,7 +20,7 @@ fn invalid_link() {
                 }
                 "#,
             )
-            .with_extension(GreetExt::with_sdl( r#"
+            .with_extension(GreetExt::new().with_sdl( r#"
                     extend schema @link(ur: "http://specs.grafbase.com/grafbase")
                     directive @greet on FIELD_DEFINITION
                 "#,
@@ -53,7 +53,7 @@ fn valid_link() {
                 }
                 "#,
             )
-            .with_extension(GreetExt::with_sdl(
+            .with_extension(GreetExt::new().with_sdl(
                 r#"
                     extend schema @link(url: "http://specs.grafbase.com/grafbase")
                     directive @greet on FIELD_DEFINITION

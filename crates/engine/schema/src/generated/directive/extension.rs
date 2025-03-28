@@ -17,7 +17,7 @@ use walker::{Iter, Walk};
 /// type ExtensionDirective @meta(module: "directive/extension") @indexed(id_size: "u32") {
 ///   subgraph: Subgraph!
 ///   extension_id: ExtensionId!
-///   kind: ExtensionDirectiveKind!
+///   kind: ExtensionDirectiveType!
 ///   name: String!
 ///   argument_ids: [ExtensionDirectiveArgumentId!]!
 ///   requirements: FieldSet!

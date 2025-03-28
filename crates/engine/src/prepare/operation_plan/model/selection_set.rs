@@ -12,13 +12,13 @@ pub(crate) struct SubgraphSelectionSet<'a> {
 #[allow(unused)]
 impl<'a> SubgraphSelectionSet<'a> {
     pub(crate) fn fields(&self) -> impl Iterator<Item = SubgraphField<'a>> + 'a {
-        self.fields_ordered_by_type_condition_then_key()
+        self.fields_ordered_by_parent_entity_then_key()
     }
 
-    pub(crate) fn fields_ordered_by_type_condition_then_key(&self) -> impl Iterator<Item = SubgraphField<'a>> + 'a {
+    pub(crate) fn fields_ordered_by_parent_entity_then_key(&self) -> impl Iterator<Item = SubgraphField<'a>> + 'a {
         let ctx = self.ctx;
         self.item
-            .data_field_ids_ordered_by_type_conditions_then_key
+            .data_field_ids_ordered_by_parent_entity_then_key
             .into_iter()
             .filter(|id| self.ctx.plan.query_modifications.included_subgraph_request_data_fields[*id])
             .map(move |id| SubgraphField { ctx, id })
@@ -35,5 +35,16 @@ impl std::fmt::Debug for SubgraphSelectionSet<'_> {
             .field("fields", &self.fields().collect::<Vec<_>>())
             .field("requiress_typename", &self.requires_typename())
             .finish()
+    }
+}
+
+impl<'a> runtime::extension::SelectionSet<'a> for SubgraphSelectionSet<'a> {
+    type Field = SubgraphField<'a>;
+    fn requires_typename(&self) -> bool {
+        self.requires_typename()
+    }
+
+    fn fields_ordered_by_parent_entity(&self) -> impl Iterator<Item = Self::Field> {
+        self.fields_ordered_by_parent_entity_then_key()
     }
 }

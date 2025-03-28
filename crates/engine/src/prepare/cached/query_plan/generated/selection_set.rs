@@ -13,16 +13,15 @@ use walker::{Iter, Walk};
 ///
 /// ```custom,{.language-graphql}
 /// type PartitionSelectionSet @meta(module: "selection_set", derive: ["Default"]) @copy {
-///   data_fields_ordered_by_type_conditions_then_key: [PartitionDataField!]!
-///     @field(record_field_name: "data_field_ids_ordered_by_type_conditions_then_key")
-///   typename_fields_ordered_by_type_conditions_then_key: [PartitionTypenameField!]!
-///     @field(record_field_name: "typename_field_ids_ordered_by_type_conditions_then_key")
+///   data_fields_ordered_by_parent_entity_then_key: [PartitionDataField!]!
+///     @field(record_field_name: "data_field_ids_ordered_by_parent_entity_then_key")
+///   typename_fields: [PartitionTypenameField!]!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize, Default, Clone, Copy)]
 pub(crate) struct PartitionSelectionSetRecord {
-    pub data_field_ids_ordered_by_type_conditions_then_key: IdRange<PartitionDataFieldId>,
-    pub typename_field_ids_ordered_by_type_conditions_then_key: IdRange<PartitionTypenameFieldId>,
+    pub data_field_ids_ordered_by_parent_entity_then_key: IdRange<PartitionDataFieldId>,
+    pub typename_field_ids: IdRange<PartitionTypenameFieldId>,
 }
 
 #[derive(Clone, Copy)]
@@ -44,19 +43,15 @@ impl<'a> PartitionSelectionSet<'a> {
     pub(crate) fn as_ref(&self) -> &PartitionSelectionSetRecord {
         &self.item
     }
-    pub(crate) fn data_fields_ordered_by_type_conditions_then_key(
+    pub(crate) fn data_fields_ordered_by_parent_entity_then_key(
         &self,
     ) -> impl Iter<Item = PartitionDataField<'a>> + 'a {
         self.as_ref()
-            .data_field_ids_ordered_by_type_conditions_then_key
+            .data_field_ids_ordered_by_parent_entity_then_key
             .walk(self.ctx)
     }
-    pub(crate) fn typename_fields_ordered_by_type_conditions_then_key(
-        &self,
-    ) -> impl Iter<Item = PartitionTypenameField<'a>> + 'a {
-        self.as_ref()
-            .typename_field_ids_ordered_by_type_conditions_then_key
-            .walk(self.ctx)
+    pub(crate) fn typename_fields(&self) -> impl Iter<Item = PartitionTypenameField<'a>> + 'a {
+        self.as_ref().typename_field_ids.walk(self.ctx)
     }
 }
 
@@ -82,13 +77,10 @@ impl std::fmt::Debug for PartitionSelectionSet<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("PartitionSelectionSet")
             .field(
-                "data_fields_ordered_by_type_conditions_then_key",
-                &self.data_fields_ordered_by_type_conditions_then_key(),
+                "data_fields_ordered_by_parent_entity_then_key",
+                &self.data_fields_ordered_by_parent_entity_then_key(),
             )
-            .field(
-                "typename_fields_ordered_by_type_conditions_then_key",
-                &self.typename_fields_ordered_by_type_conditions_then_key(),
-            )
+            .field("typename_fields", &self.typename_fields())
             .finish()
     }
 }

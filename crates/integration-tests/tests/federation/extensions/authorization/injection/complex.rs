@@ -1,8 +1,11 @@
 use engine::Engine;
 use graphql_mocks::dynamic::DynamicSchema;
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{
+    federation::{AuthorizationExt, EngineExt},
+    runtime,
+};
 
-use crate::federation::extensions::authorization::{AuthorizationExt, injection::EchoInjections, user};
+use crate::federation::extensions::authorization::{injection::EchoInjections, user};
 
 #[test]
 fn complex_field_set() {

@@ -1,8 +1,46 @@
-use std::ops::Range;
+use std::{future::Future, ops::Range};
 
 use engine_schema::DirectiveSite;
-use error::GraphqlError;
+use error::{ErrorResponse, GraphqlError};
 use extension_catalog::ExtensionId;
+
+use crate::hooks::Anything;
+
+use super::TokenRef;
+
+pub trait AuthorizationExtension<Context: Send + Sync + 'static>: Send + Sync + 'static {
+    fn authorize_query<'ctx, 'fut, Extensions, Arguments>(
+        &'ctx self,
+        wasm_context: &'ctx Context,
+        subgraph_headers: http::HeaderMap,
+        token: TokenRef<'ctx>,
+        extensions: Extensions,
+        // (directive name, range within query_elements)
+        directives: impl ExactSizeIterator<Item = (&'ctx str, Range<usize>)>,
+        query_elements: impl ExactSizeIterator<Item = QueryElement<'ctx, Arguments>>,
+    ) -> impl Future<Output = Result<(http::HeaderMap, Vec<QueryAuthorizationDecisions>), ErrorResponse>> + Send + 'fut
+    where
+        'ctx: 'fut,
+        // (extension id, range within directives, range within query_elements)
+        Extensions: IntoIterator<
+                Item = (ExtensionId, Range<usize>, Range<usize>),
+                IntoIter: ExactSizeIterator<Item = (ExtensionId, Range<usize>, Range<usize>)>,
+            > + Send
+            + Clone
+            + 'ctx,
+        Arguments: Anything<'ctx>;
+
+    fn authorize_response<'ctx, 'fut>(
+        &'ctx self,
+        extension_id: ExtensionId,
+        wasm_context: &'ctx Context,
+        directive_name: &'ctx str,
+        directive_site: DirectiveSite<'ctx>,
+        items: impl IntoIterator<Item: Anything<'ctx>>,
+    ) -> impl Future<Output = Result<AuthorizationDecisions, GraphqlError>> + Send + 'fut
+    where
+        'ctx: 'fut;
+}
 
 #[derive(Clone, Debug)]
 pub struct QueryElement<'a, A> {

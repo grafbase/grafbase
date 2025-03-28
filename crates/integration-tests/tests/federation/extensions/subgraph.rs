@@ -38,7 +38,7 @@ fn extension_mixed_with_graphql_subgraph_root_fields() {
 
                 "#,
             )
-            .with_extension(GreetExt::with_sdl(
+            .with_extension(GreetExt::new().with_sdl(
                 r#"
                     extend schema @link(url: "http://specs.grafbase.com/grafbase")
                     directive @greet on FIELD_DEFINITION

@@ -4,7 +4,9 @@ use futures::future::FutureExt;
 use id_newtypes::{BitSet, IdRange, IdToMany};
 use operation::{InputValueContext, Variables};
 use query_solver::QueryOrSchemaFieldArgumentIds;
-use runtime::extension::{AuthorizationDecisions, ExtensionRuntime, QueryAuthorizationDecisions, QueryElement};
+use runtime::extension::{
+    AuthorizationDecisions, AuthorizationExtension as _, QueryAuthorizationDecisions, QueryElement,
+};
 use schema::DirectiveSiteId;
 use serde::Deserialize;
 use walker::Walk;

@@ -1,8 +1,11 @@
 use engine::Engine;
 use graphql_mocks::{EchoSchema, Schema as _};
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{
+    federation::{AuthorizationExt, EngineExt},
+    runtime,
+};
 
-use crate::federation::extensions::authorization::{AuthorizationExt, InsertTokenAsHeader};
+use crate::federation::extensions::authorization::InsertTokenAsHeader;
 
 #[test]
 fn sdk_080() {

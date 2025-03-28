@@ -2,7 +2,7 @@ mod query_or_mutation;
 mod subscription;
 
 use futures::FutureExt;
-use runtime::extension::ExtensionRuntime;
+use runtime::extension::FieldResolverExtension as _;
 use schema::{ExtensionDirectiveId, FieldResolverExtensionDefinition};
 
 use crate::{
@@ -34,7 +34,7 @@ impl FieldResolverExtension {
         let prepared_data = ctx
             .runtime()
             .extensions()
-            .prepare_field(
+            .prepare(
                 definition.directive(),
                 field.definition(),
                 definition.directive().static_arguments(),

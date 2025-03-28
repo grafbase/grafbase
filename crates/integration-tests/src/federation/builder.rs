@@ -14,7 +14,7 @@ use runtime::{
 };
 
 use super::{
-    DockerSubgraph, DynamicHooks, TestGateway, TestRuntime, TestRuntimeBuilder, WasmOrTestExtension,
+    AnyExtension, DockerSubgraph, DynamicHooks, TestGateway, TestRuntime, TestRuntimeBuilder,
     subgraph::{Subgraph, Subgraphs},
 };
 
@@ -94,12 +94,8 @@ impl TestGatewayBuilder {
         self
     }
 
-    pub fn with_extension(mut self, ext: impl Into<WasmOrTestExtension>) -> Self {
-        let ext: WasmOrTestExtension = ext.into();
-        match ext {
-            WasmOrTestExtension::Wasm(ext) => self.runtime.extensions.push_wasm_extension(ext),
-            WasmOrTestExtension::Test(ext) => self.runtime.extensions.push_test_extension(ext),
-        }
+    pub fn with_extension(mut self, ext: impl AnyExtension) -> Self {
+        ext.register(&mut self.runtime.extensions);
         self
     }
 

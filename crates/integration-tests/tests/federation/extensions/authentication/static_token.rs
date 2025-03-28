@@ -1,12 +1,12 @@
+use std::collections::HashMap;
+
 use engine::{Engine, ErrorCode, ErrorResponse, GraphqlError};
 use graphql_mocks::FakeGithubSchema;
 use integration_tests::{
-    federation::{EngineExt, TestExtension},
+    federation::{AuthenticationExt, AuthenticationTestExtension, EngineExt},
     runtime,
 };
 use runtime::extension::Token;
-
-use crate::federation::extensions::authentication::AuthenticationExt;
 
 pub struct StaticToken(Result<Token, ErrorResponse>);
 
@@ -22,10 +22,15 @@ impl StaticToken {
     pub fn error_response(resp: impl Into<ErrorResponse>) -> Self {
         Self(Err(resp.into()))
     }
+
+    pub fn claims(claims: &[(&'static str, &'static str)]) -> Self {
+        let claims: HashMap<&str, &str> = claims.iter().copied().collect();
+        Self(Ok(Token::Bytes(serde_json::to_vec(&claims).unwrap())))
+    }
 }
 
 #[async_trait::async_trait]
-impl TestExtension for StaticToken {
+impl AuthenticationTestExtension for StaticToken {
     async fn authenticate(&self, _headers: &http::HeaderMap) -> Result<Token, ErrorResponse> {
         self.0.clone()
     }

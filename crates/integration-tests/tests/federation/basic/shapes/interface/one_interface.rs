@@ -19,7 +19,9 @@ fn superset() {
         b: String!
     }
     "#;
-    let nodes = json!([{"__typename": "A", "id": "a_id", "other": "a_other", "a": "a_a"}]);
+    let nodes = json!([
+        {"__typename": "A", "id": "a_id", "other": "a_other", "a": "a_a"},
+    ]);
 
     with_gateway(schema, nodes, |gateway| async move {
         let response = gateway
@@ -60,6 +62,53 @@ fn superset() {
               {
                 "__typename": "A",
                 "other": "a_other"
+              }
+            ]
+          }
+        }
+        "#
+        );
+
+        // ======================
+        // Double type conditions
+        // ======================
+        let response = gateway
+            .post(
+                r#"query { nodes {
+                    ... on Node { ... on Other { other } }
+                } }"#,
+            )
+            .await;
+        insta::assert_json_snapshot!(
+            response,
+            @r#"
+        {
+          "data": {
+            "nodes": [
+              {
+                "other": "a_other"
+              }
+            ]
+          }
+        }
+        "#
+        );
+
+        let response = gateway
+            .post(
+                r#"query { nodes {
+                    ... on Other { ... on Node { id } }
+                } }"#,
+            )
+            .await;
+        insta::assert_json_snapshot!(
+            response,
+            @r#"
+        {
+          "data": {
+            "nodes": [
+              {
+                "id": "a_id"
               }
             ]
           }
@@ -398,6 +447,55 @@ fn subset() {
               {
                 "__typename": "A",
                 "other": "a_other"
+              },
+              {}
+            ]
+          }
+        }
+        "#
+        );
+
+        // ======================
+        // Double type conditions
+        // ======================
+        let response = gateway
+            .post(
+                r#"query { nodes {
+                    ... on Node { ... on Other { other } }
+                } }"#,
+            )
+            .await;
+        insta::assert_json_snapshot!(
+            response,
+            @r#"
+        {
+          "data": {
+            "nodes": [
+              {
+                "other": "a_other"
+              },
+              {}
+            ]
+          }
+        }
+        "#
+        );
+
+        let response = gateway
+            .post(
+                r#"query { nodes {
+                    ... on Other { ... on Node { id } }
+                } }"#,
+            )
+            .await;
+        insta::assert_json_snapshot!(
+            response,
+            @r#"
+        {
+          "data": {
+            "nodes": [
+              {
+                "id": "a_id"
               },
               {}
             ]
@@ -784,6 +882,59 @@ fn equivalent() {
               {
                 "__typename": "B",
                 "other": "b_other"
+              }
+            ]
+          }
+        }
+        "#
+        );
+
+        // ======================
+        // Double type conditions
+        // ======================
+        let response = gateway
+            .post(
+                r#"query { nodes {
+                    ... on Node { ... on Other { other } }
+                } }"#,
+            )
+            .await;
+        insta::assert_json_snapshot!(
+            response,
+            @r#"
+        {
+          "data": {
+            "nodes": [
+              {
+                "other": "a_other"
+              },
+              {
+                "other": "b_other"
+              }
+            ]
+          }
+        }
+        "#
+        );
+
+        let response = gateway
+            .post(
+                r#"query { nodes {
+                    ... on Other { ... on Node { id } }
+                } }"#,
+            )
+            .await;
+        insta::assert_json_snapshot!(
+            response,
+            @r#"
+        {
+          "data": {
+            "nodes": [
+              {
+                "id": "a_id"
+              },
+              {
+                "id": "b_id"
               }
             ]
           }

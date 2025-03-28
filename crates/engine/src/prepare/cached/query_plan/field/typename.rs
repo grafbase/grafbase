@@ -1,5 +1,5 @@
 use id_newtypes::IdRange;
-use operation::{Location, PositionedResponseKey, QueryPosition, ResponseKey};
+use operation::{Location, QueryPosition, ResponseKey};
 use query_solver::TypeConditionSharedVecId;
 use walker::Walk;
 
@@ -35,15 +35,6 @@ impl<'a> PartitionTypenameField<'a> {
     #[allow(clippy::should_implement_trait)]
     pub(crate) fn as_ref(&self) -> &'a PartitionTypenameFieldRecord {
         &self.ctx.cached.query_plan[self.id]
-    }
-}
-
-impl PartitionTypenameFieldRecord {
-    pub(crate) fn key(&self) -> PositionedResponseKey {
-        PositionedResponseKey {
-            query_position: self.query_position,
-            response_key: self.response_key,
-        }
     }
 }
 

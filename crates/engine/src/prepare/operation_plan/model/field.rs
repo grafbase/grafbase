@@ -53,3 +53,28 @@ impl std::fmt::Debug for SubgraphField<'_> {
             .finish()
     }
 }
+
+impl<'a> runtime::extension::Field<'a> for SubgraphField<'a> {
+    type SelectionSet = SubgraphSelectionSet<'a>;
+
+    fn alias(&self) -> Option<&'a str> {
+        let key_str = self.subgraph_response_key_str();
+        if key_str != self.definition().name() {
+            Some(key_str)
+        } else {
+            None
+        }
+    }
+
+    fn definition(&self) -> FieldDefinition<'a> {
+        self.definition()
+    }
+
+    fn arguments(&self) -> Option<runtime::extension::VariableId> {
+        todo!()
+    }
+
+    fn selection_set(&self) -> Self::SelectionSet {
+        self.selection_set()
+    }
+}

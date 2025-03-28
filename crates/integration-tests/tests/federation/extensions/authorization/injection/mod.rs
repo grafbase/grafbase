@@ -5,14 +5,14 @@ mod object;
 
 use engine::{ErrorResponse, GraphqlError};
 use engine_schema::DirectiveSite;
-use integration_tests::federation::{DynHookContext, TestExtension};
+use integration_tests::federation::{AuthorizationTestExtension, DynHookContext};
 use runtime::extension::{AuthorizationDecisions, QueryElement, TokenRef};
 
 #[derive(Default)]
 pub(super) struct EchoInjections;
 
 #[async_trait::async_trait]
-impl TestExtension for EchoInjections {
+impl AuthorizationTestExtension for EchoInjections {
     #[allow(clippy::manual_async_fn)]
     async fn authorize_query(
         &self,
