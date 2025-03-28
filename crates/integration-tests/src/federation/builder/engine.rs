@@ -1,7 +1,6 @@
 use std::{str::FromStr, sync::Arc};
 
 use crate::federation::{TestRuntimeBuilder, TestRuntimeContext, subgraph::Subgraphs};
-use federated_graph::FederatedGraph;
 use runtime_local::wasi::hooks;
 
 use engine::Engine;
@@ -15,7 +14,7 @@ pub(super) async fn build(
     runtime: TestRuntimeBuilder,
     subgraphs: &Subgraphs,
 ) -> Result<(Arc<Engine<TestRuntime>>, TestRuntimeContext), String> {
-    let federated_graph = {
+    let federated_sdl = {
         let mut federated_graph = match federated_sdl {
             Some(sdl) => federated_graph::FederatedGraph::from_sdl(&sdl).unwrap(),
             None => {
@@ -64,7 +63,7 @@ pub(super) async fn build(
         // Ensure SDL/JSON serialization work as a expected
         let sdl = federated_graph::render_federated_sdl(&federated_graph).expect("render_federated_sdl()");
         println!("=== SDL ===\n{sdl}\n");
-        FederatedGraph::from_sdl(&sdl).unwrap()
+        sdl
     };
 
     let counter = grafbase_telemetry::metrics::meter_from_global_provider()
@@ -87,14 +86,9 @@ pub(super) async fn build(
 
     let mut config = toml::from_str(&config.toml).unwrap();
 
-    let schema = engine::Schema::build(
-        &config,
-        &federated_graph,
-        runtime.extensions.catalog(),
-        engine::SchemaVersion::from(ulid::Ulid::new().to_bytes()),
-    )
-    .await
-    .map_err(|err| err.to_string())?;
+    let schema = engine::Schema::build(&config, &federated_sdl, runtime.extensions.catalog())
+        .await
+        .map_err(|err| err.to_string())?;
 
     let runtime = runtime
         .finalize_runtime_and_config(

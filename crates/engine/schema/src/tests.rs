@@ -1,4 +1,4 @@
-use crate::{Schema, Version};
+use crate::Schema;
 use postcard::ser_flavors::Flavor;
 
 const SCHEMA: &str = r#"
@@ -229,9 +229,6 @@ input BookInput2 {
 #[case(SCHEMA_WITH_INACCESSIBLES)]
 #[tokio::test]
 async fn serde_roundtrip(#[case] sdl: &str) {
-    use federated_graph::FederatedGraph;
-
-    let graph = FederatedGraph::from_sdl(sdl).unwrap();
     let config: gateway_config::Config = toml::from_str(
         r#"
         [[headers]]
@@ -247,9 +244,7 @@ async fn serde_roundtrip(#[case] sdl: &str) {
     )
     .unwrap();
 
-    let schema = Schema::build(&config, &graph, &Default::default(), Version::from("random"))
-        .await
-        .unwrap();
+    let schema = Schema::build(&config, sdl, &Default::default()).await.unwrap();
 
     let mut serializer = postcard::Serializer {
         output: postcard::ser_flavors::AllocVec::new(),
@@ -268,7 +263,29 @@ async fn serde_roundtrip(#[case] sdl: &str) {
     }
 }
 
-#[test]
-fn non_empty_version() {
-    assert!(!Schema::build_identifier().is_empty());
+#[tokio::test]
+async fn consistent_hash() {
+    let config: gateway_config::Config = toml::from_str(
+        r#"
+        [[headers]]
+        rule = "insert"
+        name = "x-foo"
+        value = "BAR"
+
+        [[headers]]
+        rule = "forward"
+        name = "x-source"
+        rename = "x-forwarded"
+        "#,
+    )
+    .unwrap();
+
+    let schema1 = Schema::build(&config, SCHEMA, &Default::default()).await.unwrap();
+    let schema1bis = Schema::build(&config, SCHEMA, &Default::default()).await.unwrap();
+    let schema2 = Schema::build(&config, SCHEMA_WITH_INACCESSIBLES, &Default::default())
+        .await
+        .unwrap();
+
+    assert_eq!(schema1.hash, schema1bis.hash);
+    assert_ne!(schema1.hash, schema2.hash);
 }

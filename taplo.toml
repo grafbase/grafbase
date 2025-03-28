@@ -5,6 +5,7 @@ include = [
     "Cargo.toml",
     "crates/**/Cargo.toml",
     "gateway/**/Cargo.toml",
+    "crates/engine/**/Cargo.toml",
     "cli/**/Cargo.toml",
     "examples/**/Cargo.toml",
 ]
@@ -48,7 +49,7 @@ formatting = { reorder_keys = true }
 # All crates inside `src`, `tests` must use `workspace = true` instead.
 [[rule]]
 schema = { path = ".config/workspace-schema.json" }
-include = ["crates/**/Cargo.toml", "gateway/**/Cargo.toml", "cli/**/Cargo.toml"]
+include = ["crates/**/Cargo.toml", "gateway/**/Cargo.toml", "cli/**/Cargo.toml", "crates/engine/**/Cargo.toml"]
 exclude = [
     "crates/wasi-component-loader/examples/**/Cargo.toml",
     "crates/integration-tests/data/**/Cargo.toml",
