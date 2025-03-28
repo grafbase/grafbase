@@ -18,33 +18,33 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 scalar join__FieldSet
 
 type Person
-    @join__type(graph: EMAILBOOK, key: "id")
-    @join__type(graph: PHONEBOOK, key: "id")
+  @join__type(graph: EMAILBOOK, key: "id")
+  @join__type(graph: PHONEBOOK, key: "id")
 {
-    age: Int!
-    email: String! @join__field(graph: EMAILBOOK)
-    firstName: String!
-    id: ID!
-    lastName: String!
-    phoneNumber: String @join__field(graph: PHONEBOOK)
+  age: Int!
+  email: String! @join__field(graph: EMAILBOOK)
+  firstName: String!
+  id: ID!
+  lastName: String!
+  phoneNumber: String @join__field(graph: PHONEBOOK)
 }
 
 type Query
 {
-    getPersonInfo(input: InputPerson!): Person @join__field(graph: EMAILBOOK)
-    searchPerson(input: InputPerson!): [Person] @join__field(graph: PHONEBOOK)
+  getPersonInfo(input: InputPerson!): Person @join__field(graph: EMAILBOOK)
+  searchPerson(input: InputPerson!): [Person] @join__field(graph: PHONEBOOK)
 }
 
 enum join__Graph
 {
-    EMAILBOOK @join__graph(name: "emailbook", url: "http://example.com/emailbook")
-    PHONEBOOK @join__graph(name: "phonebook", url: "http://example.com/phonebook")
+  EMAILBOOK @join__graph(name: "emailbook", url: "http://example.com/emailbook")
+  PHONEBOOK @join__graph(name: "phonebook", url: "http://example.com/phonebook")
 }
 
 input InputPerson
-    @join__type(graph: EMAILBOOK)
-    @join__type(graph: PHONEBOOK)
+  @join__type(graph: EMAILBOOK)
+  @join__type(graph: PHONEBOOK)
 {
-    firstName: String!
-    lastName: String!
+  firstName: String!
+  lastName: String!
 }

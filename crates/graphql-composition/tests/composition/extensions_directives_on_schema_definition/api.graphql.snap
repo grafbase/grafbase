@@ -4,6 +4,6 @@ expression: actual_api_sdl
 input_file: crates/graphql-composition/tests/composition/extensions_directives_on_schema_definition/test.md
 ---
 type Query {
-    hello: String
-    hi: String
+  hello: String
+  hi: String
 }

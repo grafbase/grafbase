@@ -18,29 +18,29 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 scalar join__FieldSet
 
 type A
-    @join__type(graph: FIRST, key: "b { id } c")
+  @join__type(graph: FIRST, key: "b { id } c")
 {
-    b: B!
-    c: String!
+  b: B!
+  c: String!
 }
 
 type B
-    @join__type(graph: FIRST, key: "id")
-    @join__type(graph: SECOND, key: "id")
+  @join__type(graph: FIRST, key: "id")
+  @join__type(graph: SECOND, key: "id")
 {
-    bar: String @join__field(graph: SECOND)
-    foo: String @join__field(graph: FIRST)
-    id: ID!
+  bar: String @join__field(graph: SECOND)
+  foo: String @join__field(graph: FIRST)
+  id: ID!
 }
 
 type Query
 {
-    as: [A] @join__field(graph: FIRST)
-    bs: [B] @join__field(graph: SECOND)
+  as: [A] @join__field(graph: FIRST)
+  bs: [B] @join__field(graph: SECOND)
 }
 
 enum join__Graph
 {
-    FIRST @join__graph(name: "first", url: "http://example.com/first")
-    SECOND @join__graph(name: "second", url: "http://example.com/second")
+  FIRST @join__graph(name: "first", url: "http://example.com/first")
+  SECOND @join__graph(name: "second", url: "http://example.com/second")
 }

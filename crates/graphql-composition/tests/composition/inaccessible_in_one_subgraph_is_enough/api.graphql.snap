@@ -4,11 +4,11 @@ expression: actual_api_sdl
 input_file: crates/graphql-composition/tests/composition/inaccessible_in_one_subgraph_is_enough/test.md
 ---
 type Color {
-    blue: Int
-    green: Int
-    red: Int
+  blue: Int
+  green: Int
+  red: Int
 }
 
 type Query {
-    colors: [Color]
+  colors: [Color]
 }

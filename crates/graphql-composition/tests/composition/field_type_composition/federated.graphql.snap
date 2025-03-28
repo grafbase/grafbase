@@ -18,48 +18,48 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 scalar join__FieldSet
 
 type FidgetSpinner implements Spinner
-    @join__type(graph: SPINNERS_A)
-    @join__type(graph: SPINNERS_B)
-    @join__implements(graph: SPINNERS_A, interface: "Spinner")
-    @join__implements(graph: SPINNERS_B, interface: "Spinner")
+  @join__type(graph: SPINNERS_A)
+  @join__type(graph: SPINNERS_B)
+  @join__implements(graph: SPINNERS_A, interface: "Spinner")
+  @join__implements(graph: SPINNERS_B, interface: "Spinner")
 {
-    buttonDescriptions: [String!] @join__field(graph: SPINNERS_A, type: "[String!]!") @join__field(graph: SPINNERS_B)
-    id: ID!
-    manufacturer: Manufacturer @join__field(graph: SPINNERS_A, type: "Manufacturer!") @join__field(graph: SPINNERS_B)
-    model: String
+  buttonDescriptions: [String!] @join__field(graph: SPINNERS_A, type: "[String!]!") @join__field(graph: SPINNERS_B)
+  id: ID!
+  manufacturer: Manufacturer @join__field(graph: SPINNERS_A, type: "Manufacturer!") @join__field(graph: SPINNERS_B)
+  model: String
 }
 
 type Manufacturer
-    @join__type(graph: SPINNERS_A)
-    @join__type(graph: SPINNERS_B)
+  @join__type(graph: SPINNERS_A)
+  @join__type(graph: SPINNERS_B)
 {
-    location: String
-    name: String!
+  location: String
+  name: String!
 }
 
 type Query
 {
-    fidgetSpinners(filter: SpinnerFilter!): [FidgetSpinner] @join__field(graph: SPINNERS_A) @join__field(graph: SPINNERS_B)
+  fidgetSpinners(filter: SpinnerFilter!): [FidgetSpinner] @join__field(graph: SPINNERS_A) @join__field(graph: SPINNERS_B)
 }
 
 interface Spinner
-    @join__type(graph: SPINNERS_A)
-    @join__type(graph: SPINNERS_B)
+  @join__type(graph: SPINNERS_A)
+  @join__type(graph: SPINNERS_B)
 {
-    id: ID!
-    model: String @join__field(graph: SPINNERS_A) @join__field(graph: SPINNERS_B, type: "String!")
+  id: ID!
+  model: String @join__field(graph: SPINNERS_A) @join__field(graph: SPINNERS_B, type: "String!")
 }
 
 enum join__Graph
 {
-    SPINNERS_A @join__graph(name: "spinners-a", url: "http://example.com/spinners-a")
-    SPINNERS_B @join__graph(name: "spinners-b", url: "http://example.com/spinners-b")
+  SPINNERS_A @join__graph(name: "spinners-a", url: "http://example.com/spinners-a")
+  SPINNERS_B @join__graph(name: "spinners-b", url: "http://example.com/spinners-b")
 }
 
 input SpinnerFilter
-    @join__type(graph: SPINNERS_A)
-    @join__type(graph: SPINNERS_B)
+  @join__type(graph: SPINNERS_A)
+  @join__type(graph: SPINNERS_B)
 {
-    manufacturer: String
-    maxPrice: Float! @join__field(graph: SPINNERS_A, type: "Float") @join__field(graph: SPINNERS_B)
+  manufacturer: String
+  maxPrice: Float! @join__field(graph: SPINNERS_A, type: "Float") @join__field(graph: SPINNERS_B)
 }

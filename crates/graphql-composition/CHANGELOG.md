@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Changes
+
+- GraphQL SDL is now rendered with two spaces indentation (previously four spaces).
+
 ### Fixes
 
 - Do not warn on `@specifiedBy` directive when it is not imported. It is a GraphQL built-in. (https://github.com/grafbase/grafbase/pull/2673)

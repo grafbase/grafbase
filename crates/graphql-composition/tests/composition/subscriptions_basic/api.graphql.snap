@@ -4,20 +4,20 @@ expression: actual_api_sdl
 input_file: crates/graphql-composition/tests/composition/subscriptions_basic/test.md
 ---
 type Product {
-    id: ID!
-    name: String
-    reviews: [Review]
+  id: ID!
+  name: String
+  reviews: [Review]
 }
 
 type Review {
-    id: ID!
-    text: String!
+  id: ID!
+  text: String!
 }
 
 type Query {
-    foo: String!
+  foo: String!
 }
 
 type Subscription {
-    topProducts: Product
+  topProducts: Product
 }

@@ -18,36 +18,36 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 scalar join__FieldSet
 
 type Book implements Media
-    @join__type(graph: A, key: "id")
-    @join__implements(graph: A, interface: "Media")
+  @join__type(graph: A, key: "id")
+  @join__implements(graph: A, interface: "Media")
 {
-    id: ID!
-    reviews: [Review!]! @join__field
-    title: String!
+  id: ID!
+  reviews: [Review!]! @join__field
+  title: String!
 }
 
 type Review
-    @join__type(graph: B)
+  @join__type(graph: B)
 {
-    score: Int!
+  score: Int!
 }
 
 type Query
 {
-    topRatedMedia: [Media!]! @join__field(graph: B)
+  topRatedMedia: [Media!]! @join__field(graph: B)
 }
 
 interface Media
-    @join__type(graph: A, key: "id")
-    @join__type(graph: B, key: "id", isInterfaceObject: true)
+  @join__type(graph: A, key: "id")
+  @join__type(graph: B, key: "id", isInterfaceObject: true)
 {
-    id: ID!
-    reviews: [Review!]! @join__field(graph: B, requires: "title")
-    title: String! @join__field(graph: A) @join__field(graph: B, external: true)
+  id: ID!
+  reviews: [Review!]! @join__field(graph: B, requires: "title")
+  title: String! @join__field(graph: A) @join__field(graph: B, external: true)
 }
 
 enum join__Graph
 {
-    A @join__graph(name: "a", url: "http://example.com/a")
-    B @join__graph(name: "b", url: "http://example.com/b")
+  A @join__graph(name: "a", url: "http://example.com/a")
+  B @join__graph(name: "b", url: "http://example.com/b")
 }

@@ -1529,52 +1529,52 @@ fn test_join_field_type() {
         scalar link__Import
 
         type Admin
-            @join__type(graph: B)
+          @join__type(graph: B)
         {
-            id: ID
-            name: String
-            similarAccounts: [Account!]!
+          id: ID
+          name: String
+          similarAccounts: [Account!]!
         }
 
         type Query
-            @join__type(graph: A)
-            @join__type(graph: B)
+          @join__type(graph: A)
+          @join__type(graph: B)
         {
-            users: [User!]! @join__field(graph: A)
-            accounts: [Account!]! @join__field(graph: B)
+          users: [User!]! @join__field(graph: A)
+          accounts: [Account!]! @join__field(graph: B)
         }
 
         type User
-            @join__type(graph: A)
-            @join__type(graph: B, key: "id")
+          @join__type(graph: A)
+          @join__type(graph: B, key: "id")
         {
-            id: ID @join__field(graph: A, type: "ID") @join__field(graph: B, type: "ID!")
-            name: String @join__field(graph: B)
-            similarAccounts: [Account!]! @join__field(graph: B)
+          id: ID @join__field(graph: A, type: "ID") @join__field(graph: B, type: "ID!")
+          name: String @join__field(graph: B)
+          similarAccounts: [Account!]! @join__field(graph: B)
         }
 
         enum join__Graph
         {
-            A @join__graph(name: "a", url: "http://localhost:4200/child-type-mismatch/a")
-            B @join__graph(name: "b", url: "http://localhost:4200/child-type-mismatch/b")
+          A @join__graph(name: "a", url: "http://localhost:4200/child-type-mismatch/a")
+          B @join__graph(name: "b", url: "http://localhost:4200/child-type-mismatch/b")
         }
 
         enum link__Purpose
         {
-            """
-            `SECURITY` features provide metadata necessary to securely resolve fields.
-            """
-            SECURITY
-            """
-            `EXECUTION` features provide metadata necessary for operation execution.
-            """
-            EXECUTION
+          """
+          `SECURITY` features provide metadata necessary to securely resolve fields.
+          """
+          SECURITY
+          """
+          `EXECUTION` features provide metadata necessary for operation execution.
+          """
+          EXECUTION
         }
 
         union Account
-            @join__type(graph: B)
-            @join__unionMember(graph: B, member: "User")
-            @join__unionMember(graph: B, member: "Admin")
+          @join__type(graph: B)
+          @join__unionMember(graph: B, member: "User")
+          @join__unionMember(graph: B, member: "Admin")
          = User | Admin
     "#]];
 
@@ -1637,26 +1637,26 @@ async fn load_with_extensions() {
         scalar link__Import
 
         type Query
-            @join__type(graph: A)
+          @join__type(graph: A)
         {
-            users: [User!]! @extension__directive(graph: A, extension: REST, name: "rest", arguments: {method: GET})
+          users: [User!]! @extension__directive(graph: A, extension: REST, name: "rest", arguments: {method: GET})
         }
 
         type User
-            @join__type(graph: A)
+          @join__type(graph: A)
         {
-            id: ID!
+          id: ID!
         }
 
         enum join__Graph
         {
-            A @join__graph(name: "a", url: "http://localhost:4200/child-type-mismatch/a")
-            B @join__graph(name: "b", url: "http://localhost:4200/child-type-mismatch/b")
+          A @join__graph(name: "a", url: "http://localhost:4200/child-type-mismatch/a")
+          B @join__graph(name: "b", url: "http://localhost:4200/child-type-mismatch/b")
         }
 
         enum extension__Link
         {
-            REST @extension__link(url: "file:///dummy", schemaDirectives: [{graph: A, name: "test", arguments: {method: "yes"}}])
+          REST @extension__link(url: "file:///dummy", schemaDirectives: [{graph: A, name: "test", arguments: {method: "yes"}}])
         }
     "#]];
 

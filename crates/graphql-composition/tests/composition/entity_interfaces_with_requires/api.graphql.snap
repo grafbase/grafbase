@@ -4,21 +4,21 @@ expression: actual_api_sdl
 input_file: crates/graphql-composition/tests/composition/entity_interfaces_with_requires/test.md
 ---
 type Book {
-    id: ID!
-    reviews: [Review!]!
-    title: String!
+  id: ID!
+  reviews: [Review!]!
+  title: String!
 }
 
 type Review {
-    score: Int!
+  score: Int!
 }
 
 type Query {
-    topRatedMedia: [Media!]!
+  topRatedMedia: [Media!]!
 }
 
 interface Media {
-    id: ID!
-    reviews: [Review!]!
-    title: String!
+  id: ID!
+  reviews: [Review!]!
+  title: String!
 }

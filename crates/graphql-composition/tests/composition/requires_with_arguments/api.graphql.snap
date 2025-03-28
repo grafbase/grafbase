@@ -4,29 +4,29 @@ expression: actual_api_sdl
 input_file: crates/graphql-composition/tests/composition/requires_with_arguments/test.md
 ---
 enum ProductType {
-    FRESH
-    PASTE
-    POWDER
-    DRIED
+  FRESH
+  PASTE
+  POWDER
+  DRIED
 }
 
 type WasabiPlant {
-    cultivationArea: String
-    harvestTime: String
-    id: ID!
-    name(language: String!): String!
-    variety: String!
+  cultivationArea: String
+  harvestTime: String
+  id: ID!
+  name(language: String!): String!
+  variety: String!
 }
 
 type WasabiProduct {
-    description: String
-    id: ID!
-    name: String!
-    price: Float
-    type: ProductType!
+  description: String
+  id: ID!
+  name: String!
+  price: Float
+  type: ProductType!
 }
 
 type Query {
-    wasabiPlants: [WasabiPlant]
-    wasabiProduct(id: ID!): WasabiProduct
+  wasabiPlants: [WasabiPlant]
+  wasabiProduct(id: ID!): WasabiProduct
 }

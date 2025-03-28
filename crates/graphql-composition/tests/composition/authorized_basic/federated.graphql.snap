@@ -18,79 +18,79 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 scalar join__FieldSet
 
 type User
-    @join__type(graph: BANK_ACCOUNT)
+  @join__type(graph: BANK_ACCOUNT)
 {
-    accounts: [Account!]! @authorized(fields: "userId name", metadata: {stuff: true})
-    email: String!
-    name: String!
-    userId: ID!
+  accounts: [Account!]! @authorized(fields: "userId name", metadata: {stuff: true})
+  email: String!
+  name: String!
+  userId: ID!
 }
 
 type Account
-    @authorized(fields: "user { userId }")
-    @join__type(graph: BANK_ACCOUNT)
+  @authorized(fields: "user { userId }")
+  @join__type(graph: BANK_ACCOUNT)
 {
-    balance: Float! @authorized(fields: "id")
-    id: ID!
-    transactions: [Transaction!]!
-    type: AccountType!
-    user: User!
+  balance: Float! @authorized(fields: "id")
+  id: ID!
+  transactions: [Transaction!]!
+  type: AccountType!
+  user: User!
 }
 
 type Query
 {
-    account(id: ID!): Account @authorized(node: "id") @join__field(graph: BANK_ACCOUNT)
-    accounts: [Account!]! @join__field(graph: BANK_ACCOUNT)
-    transaction(id: ID!): Transaction @join__field(graph: BANK_ACCOUNT)
-    transactions: [Transaction!]! @authorized(node: "account { id }") @join__field(graph: BANK_ACCOUNT)
-    user(id: ID!): User @join__field(graph: BANK_ACCOUNT)
-    users: [User!]! @join__field(graph: BANK_ACCOUNT)
+  account(id: ID!): Account @authorized(node: "id") @join__field(graph: BANK_ACCOUNT)
+  accounts: [Account!]! @join__field(graph: BANK_ACCOUNT)
+  transaction(id: ID!): Transaction @join__field(graph: BANK_ACCOUNT)
+  transactions: [Transaction!]! @authorized(node: "account { id }") @join__field(graph: BANK_ACCOUNT)
+  user(id: ID!): User @join__field(graph: BANK_ACCOUNT)
+  users: [User!]! @join__field(graph: BANK_ACCOUNT)
 }
 
 type Mutation
 {
-    createAccount(userId: ID!, type: AccountType!, initialBalance: Float!, input: CreateAccountInput, included: Boolean, notIncluded: String): Account @authorized(arguments: "input { userId nested { name } } included", metadata: ["a", "b", "c", {d: E}]) @join__field(graph: BANK_ACCOUNT)
-    createTransaction(amount: Float!, description: String, accountId: ID!): Transaction! @join__field(graph: BANK_ACCOUNT)
-    createUser(name: String!, email: String!): User! @join__field(graph: BANK_ACCOUNT)
-    deleteAccount(id: ID!): Account! @join__field(graph: BANK_ACCOUNT)
-    deleteTransaction(id: ID!): Transaction! @join__field(graph: BANK_ACCOUNT)
-    deleteUser(id: ID!, soft: Boolean): User! @authorized(arguments: "id") @join__field(graph: BANK_ACCOUNT)
-    updateUser(id: ID!, name: String, email: String): User! @join__field(graph: BANK_ACCOUNT)
+  createAccount(userId: ID!, type: AccountType!, initialBalance: Float!, input: CreateAccountInput, included: Boolean, notIncluded: String): Account @authorized(arguments: "input { userId nested { name } } included", metadata: ["a", "b", "c", {d: E}]) @join__field(graph: BANK_ACCOUNT)
+  createTransaction(amount: Float!, description: String, accountId: ID!): Transaction! @join__field(graph: BANK_ACCOUNT)
+  createUser(name: String!, email: String!): User! @join__field(graph: BANK_ACCOUNT)
+  deleteAccount(id: ID!): Account! @join__field(graph: BANK_ACCOUNT)
+  deleteTransaction(id: ID!): Transaction! @join__field(graph: BANK_ACCOUNT)
+  deleteUser(id: ID!, soft: Boolean): User! @authorized(arguments: "id") @join__field(graph: BANK_ACCOUNT)
+  updateUser(id: ID!, name: String, email: String): User! @join__field(graph: BANK_ACCOUNT)
 }
 
 interface Transaction
-    @authorized(fields: "id amount date account { id }")
-    @join__type(graph: BANK_ACCOUNT)
+  @authorized(fields: "id amount date account { id }")
+  @join__type(graph: BANK_ACCOUNT)
 {
-    account: Account!
-    amount: Float!
-    date: String!
-    description: String @authorized(fields: "account { id }")
-    id: ID!
+  account: Account!
+  amount: Float!
+  date: String!
+  description: String @authorized(fields: "account { id }")
+  id: ID!
 }
 
 enum AccountType
-    @join__type(graph: BANK_ACCOUNT)
+  @join__type(graph: BANK_ACCOUNT)
 {
-    SAVINGS
-    CHECKING
+  SAVINGS
+  CHECKING
 }
 
 enum join__Graph
 {
-    BANK_ACCOUNT @join__graph(name: "bank-account", url: "http://example.com/bank-account")
+  BANK_ACCOUNT @join__graph(name: "bank-account", url: "http://example.com/bank-account")
 }
 
 input CreateAccountInput
-    @join__type(graph: BANK_ACCOUNT)
+  @join__type(graph: BANK_ACCOUNT)
 {
-    userId: ID!
-    nested: NestedThing
-    accountType: AccountType
+  userId: ID!
+  nested: NestedThing
+  accountType: AccountType
 }
 
 input NestedThing
-    @join__type(graph: BANK_ACCOUNT)
+  @join__type(graph: BANK_ACCOUNT)
 {
-    name: String!
+  name: String!
 }

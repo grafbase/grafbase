@@ -527,7 +527,7 @@ mod tests {
 
             type Query
             {
-                field: String @deprecated(reason: "This is a \"deprecated\" reason") @dummy(test: "a \"test\"")
+              field: String @deprecated(reason: "This is a \"deprecated\" reason") @dummy(test: "a \"test\"")
             }
         "#]];
 
@@ -561,7 +561,7 @@ mod tests {
 
             type Query
             {
-                field: String @deprecated(reason: "This is a \"deprecated\" reason\n\non multiple lines.\n\nyes, way") @dummy(test: "a \"test\"")
+              field: String @deprecated(reason: "This is a \"deprecated\" reason\n\non multiple lines.\n\nyes, way") @dummy(test: "a \"test\"")
             }
         "#]];
 
@@ -588,14 +588,14 @@ mod tests {
 
 
             interface b
-                @join__type(graph: a)
+              @join__type(graph: a)
             {
-                c: String
+              c: String
             }
 
             enum join__Graph
             {
-                a @join__graph(name: "mocksubgraph", url: "https://mock.example.com/todo/graphql")
+              a @join__graph(name: "mocksubgraph", url: "https://mock.example.com/todo/graphql")
             }
         "#]];
 

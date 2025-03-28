@@ -18,47 +18,47 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 scalar join__FieldSet
 
 type Alert
-    @join__type(graph: ALERTS, key: "id")
+  @join__type(graph: ALERTS, key: "id")
 {
-    id: ID!
-    message: String!
-    severity: Severity!
+  id: ID!
+  message: String!
+  severity: Severity!
 }
 
 type Review
-    @join__type(graph: REVIEWS, key: "id")
+  @join__type(graph: REVIEWS, key: "id")
 {
-    author: ID!
-    id: ID!
-    message: String!
+  author: ID!
+  id: ID!
+  message: String!
 }
 
 type Query
 {
-    alert(id: ID!): Alert @join__field(graph: ALERTS)
+  alert(id: ID!): Alert @join__field(graph: ALERTS)
 }
 
 type Mutation
 {
-    createAlert(message: String!, severity: Severity!): Alert @join__field(graph: ALERTS)
-    createReview(message: String!, author: ID!): Alert @join__field(graph: REVIEWS)
+  createAlert(message: String!, severity: Severity!): Alert @join__field(graph: ALERTS)
+  createReview(message: String!, author: ID!): Alert @join__field(graph: REVIEWS)
 }
 
 type Subscription
 {
-    alert(id: ID!): Alert @join__field(graph: ALERTS)
+  alert(id: ID!): Alert @join__field(graph: ALERTS)
 }
 
 enum Severity
-    @join__type(graph: ALERTS)
+  @join__type(graph: ALERTS)
 {
-    FINE
-    OK
-    GOOD
+  FINE
+  OK
+  GOOD
 }
 
 enum join__Graph
 {
-    ALERTS @join__graph(name: "alerts", url: "http://example.com/alerts")
-    REVIEWS @join__graph(name: "reviews", url: "http://example.com/reviews")
+  ALERTS @join__graph(name: "alerts", url: "http://example.com/alerts")
+  REVIEWS @join__graph(name: "reviews", url: "http://example.com/reviews")
 }

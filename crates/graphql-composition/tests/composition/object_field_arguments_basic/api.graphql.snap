@@ -4,19 +4,19 @@ expression: actual_api_sdl
 input_file: crates/graphql-composition/tests/composition/object_field_arguments_basic/test.md
 ---
 type RollerCoaster {
-    height: Float!
-    id: ID!
-    manufacturer: String!
-    name: String!
-    speed: Float!
+  height: Float!
+  id: ID!
+  manufacturer: String!
+  name: String!
+  speed: Float!
 }
 
 type HistoricalData {
-    incidents: Int!
-    visitors: Int!
-    year: Int!
+  incidents: Int!
+  visitors: Int!
+  year: Int!
 }
 
 type Query {
-    getRollerCoaster(id: ID!): RollerCoaster
+  getRollerCoaster(id: ID!): RollerCoaster
 }

@@ -4,21 +4,21 @@ expression: actual_api_sdl
 input_file: crates/graphql-composition/tests/composition/requiresScopes_basic/test.md
 ---
 type B {
-    foo: String
-    id: ID!
+  foo: String
+  id: ID!
 }
 
 type A {
-    id: ID!
-    names: String!
+  id: ID!
+  names: String!
 }
 
 type User {
-    id: ID!
-    name: String @deprecated(reason: "we have no name")
+  id: ID!
+  name: String @deprecated(reason: "we have no name")
 }
 
 type Query {
-    oneA: A
-    oneB: B
+  oneA: A
+  oneB: B
 }

@@ -4,13 +4,13 @@ expression: actual_api_sdl
 input_file: crates/graphql-composition/tests/composition/interfaces_single_subgraph/test.md
 ---
 type Organization {
-    foos(filter: String): String!
+  foos(filter: String): String!
 }
 
 type Query {
-    account: Account!
+  account: Account!
 }
 
 interface Account {
-    foos(filter: String): String!
+  foos(filter: String): String!
 }

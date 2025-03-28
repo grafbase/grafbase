@@ -18,25 +18,25 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 scalar join__FieldSet
 
 type User
-    @join__type(graph: THESCHEMA)
+  @join__type(graph: THESCHEMA)
 {
-    id: ID!
-    name: String!
+  id: ID!
+  name: String!
 }
 
 type Query
 {
-    user: User @join__field(graph: THESCHEMA)
+  user: User @join__field(graph: THESCHEMA)
 }
 
 enum UserType
-    @join__type(graph: THESCHEMA)
+  @join__type(graph: THESCHEMA)
 {
-    ADMIN
-    REGULAR
+  ADMIN
+  REGULAR
 }
 
 enum join__Graph
 {
-    THESCHEMA @join__graph(name: "theschema", url: "http://example.com/theschema")
+  THESCHEMA @join__graph(name: "theschema", url: "http://example.com/theschema")
 }
