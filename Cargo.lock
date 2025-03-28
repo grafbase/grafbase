@@ -3571,7 +3571,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase"
-version = "0.88.1"
+version = "0.88.2"
 dependencies = [
  "anyhow",
  "askama",
@@ -3890,6 +3890,7 @@ dependencies = [
  "hex",
  "http-types",
  "hyper 1.6.0",
+ "hyper-rustls",
  "hyper-util",
  "iana-time-zone",
  "idna",
