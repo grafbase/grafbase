@@ -245,6 +245,7 @@ graph-ref = { path = "crates/graph-ref" }
 graphql-federated-graph = { path = "crates/graphql-federated-graph" }
 graphql-lint = { path = "crates/graphql-lint" }
 graphql-schema-validation = { path = "crates/graphql-schema-validation" }
+id-derives.path = "crates/id-derives"
 
 # Gateway
 extension = { path = "crates/extension" }

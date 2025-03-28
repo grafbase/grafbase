@@ -1,0 +1,58 @@
+---
+source: crates/protoc-gen-grafbase-extension/tests/codegen_tests.rs
+expression: "fs::read_to_string(entry.path()).unwrap()"
+input_file: crates/protoc-gen-grafbase-extension/tests/codegen/routeguide/route_guide.proto
+---
+"Namespace for the routeguide protobuf package"
+type Routeguide {
+  routeGuide: RouteguideRouteGuide
+}
+
+"Namespace for the RouteGuide protobuf service"
+type RouteguideRouteGuide {
+  getFeature(input: Point): Feature @grpcMethod(name: "GetFeature")
+  listFeatures(input: Rectangle): Feature @grpcMethod(name: "ListFeatures")
+  recordRoute(input: Point): RouteSummary @grpcMethod(name: "RecordRoute")
+  routeChat(input: RouteNote): RouteNote @grpcMethod(name: "RouteChat")
+}
+
+type Mutation {
+  routeguide: Routeguide
+}
+
+type Point {
+  latitude: Int @grpcField(number: 1, type: "int32")
+  longitude: Int @grpcField(number: 2, type: "int32")
+}
+
+type Feature {
+  name: String @grpcField(number: 1, type: "string")
+  location: Point @grpcField(number: 2, type: "Point")
+}
+
+type RouteNote {
+  location: Point @grpcField(number: 1, type: "Point")
+  message: String @grpcField(number: 2, type: "string")
+}
+
+type RouteSummary {
+  point_count: Int @grpcField(number: 1, type: "int32")
+  feature_count: Int @grpcField(number: 2, type: "int32")
+  distance: Int @grpcField(number: 3, type: "int32")
+  elapsed_time: Int @grpcField(number: 4, type: "int32")
+}
+
+type Point {
+  latitude: Int @grpcField(number: 1, type: "int32")
+  longitude: Int @grpcField(number: 2, type: "int32")
+}
+
+type Rectangle {
+  lo: Point @grpcField(number: 1, type: "Point")
+  hi: Point @grpcField(number: 2, type: "Point")
+}
+
+type RouteNote {
+  location: Point @grpcField(number: 1, type: "Point")
+  message: String @grpcField(number: 2, type: "string")
+}
