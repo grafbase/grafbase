@@ -10,12 +10,13 @@ mod scalar;
 use std::{collections::HashMap, sync::Arc};
 
 use engine::{Engine, GraphqlError};
+use engine_schema::{ExtensionDirective, FieldDefinition};
 use extension_catalog::Id;
 use integration_tests::{
     federation::{EngineExt, TestExtension, TestExtensionBuilder, TestManifest, json_data},
     runtime,
 };
-use runtime::extension::{Data, ExtensionFieldDirective};
+use runtime::extension::Data;
 
 #[derive(Default)]
 pub struct EchoExt {
@@ -60,8 +61,11 @@ struct EchoInstance {
 impl TestExtension for EchoInstance {
     async fn resolve_field(
         &self,
-        _: http::HeaderMap,
-        directive: ExtensionFieldDirective<'_, serde_json::Value>,
+        _directive: ExtensionDirective<'_>,
+        _field_definition: FieldDefinition<'_>,
+        _prepared_data: &[u8],
+        _subgraph_headers: http::HeaderMap,
+        directive_arguments: serde_json::Value,
         inputs: Vec<serde_json::Value>,
     ) -> Result<Vec<Result<Data, GraphqlError>>, GraphqlError> {
         Ok(inputs
@@ -69,7 +73,7 @@ impl TestExtension for EchoInstance {
             .map(|input| {
                 Ok(json_data(serde_json::json!({
                     "schema": self.schema_directives,
-                    "directive": directive.arguments,
+                    "directive": directive_arguments,
                     "input": input
                 })))
             })

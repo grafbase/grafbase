@@ -2,17 +2,14 @@ use std::{collections::HashMap, ops::Range, sync::Arc};
 
 use crate::federation::DynHookContext;
 use engine::{ErrorResponse, GraphqlError};
-use engine_schema::{DirectiveSite, Subgraph, SubgraphId};
+use engine_schema::{DirectiveSite, ExtensionDirective, FieldDefinition, Subgraph, SubgraphId};
 use extension_catalog::{ExtensionId, Id};
 use futures::{
     StreamExt, TryFutureExt as _, TryStreamExt as _,
     stream::{BoxStream, FuturesUnordered},
 };
 use runtime::{
-    extension::{
-        AuthorizationDecisions, Data, ExtensionFieldDirective, QueryAuthorizationDecisions, QueryElement, Token,
-        TokenRef,
-    },
+    extension::{AuthorizationDecisions, Data, QueryAuthorizationDecisions, QueryElement, Token, TokenRef},
     hooks::Anything,
 };
 use serde::Serialize;
@@ -72,10 +69,22 @@ pub trait TestExtension: Send + Sync + 'static {
         Err(GraphqlError::internal_extension_error().into())
     }
 
+    async fn prepare_field<'ctx>(
+        &self,
+        directive: ExtensionDirective<'ctx>,
+        field_definition: FieldDefinition<'ctx>,
+        directive_arguments: serde_json::Value,
+    ) -> Result<Vec<u8>, GraphqlError> {
+        Ok(Vec::new())
+    }
+
     async fn resolve_field(
         &self,
-        headers: http::HeaderMap,
-        directive: ExtensionFieldDirective<'_, serde_json::Value>,
+        directive: ExtensionDirective<'_>,
+        field_definition: FieldDefinition<'_>,
+        prepared_data: &[u8],
+        subgraph_headers: http::HeaderMap,
+        directive_arguments: serde_json::Value,
         inputs: Vec<serde_json::Value>,
     ) -> Result<Vec<Result<Data, GraphqlError>>, GraphqlError> {
         Err(GraphqlError::internal_extension_error())
@@ -107,17 +116,32 @@ pub trait TestExtension: Send + Sync + 'static {
 impl runtime::extension::ExtensionRuntime for TestExtensions {
     type SharedContext = DynHookContext;
 
+    async fn prepare_field<'ctx>(
+        &'ctx self,
+        directive: ExtensionDirective<'ctx>,
+        field_definition: FieldDefinition<'ctx>,
+        directive_arguments: impl Anything<'ctx>,
+    ) -> Result<Vec<u8>, GraphqlError> {
+        let instance = self
+            .get_subgraph_isntance(directive.extension_id, directive.subgraph())
+            .await;
+        instance
+            .prepare_field(
+                directive,
+                field_definition,
+                serde_json::to_value(directive_arguments).unwrap(),
+            )
+            .await
+    }
+
     fn resolve_field<'ctx, 'resp, 'f>(
         &'ctx self,
-        headers: http::HeaderMap,
-        ExtensionFieldDirective {
-            extension_id,
-            subgraph,
-            field,
-            name,
-            arguments,
-        }: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
-        inputs: impl IntoIterator<Item: Anything<'resp>> + Send,
+        directive: ExtensionDirective<'ctx>,
+        field_definition: FieldDefinition<'ctx>,
+        prepared_data: &'ctx [u8],
+        subgraph_headers: http::HeaderMap,
+        directive_arguments: impl Anything<'ctx>,
+        inputs: impl Iterator<Item: Anything<'resp>> + Send,
     ) -> impl Future<Output = Result<Vec<Result<Data, GraphqlError>>, GraphqlError>> + Send + 'f
     where
         'ctx: 'f,
@@ -127,18 +151,18 @@ impl runtime::extension::ExtensionRuntime for TestExtensions {
             .map(serde_json::to_value)
             .collect::<Result<Vec<_>, _>>()
             .unwrap();
+        let directive_arguments = serde_json::to_value(directive_arguments).unwrap();
         async move {
-            let instance = self.get_subgraph_isntance(extension_id, subgraph).await;
+            let instance = self
+                .get_subgraph_isntance(directive.extension_id, directive.subgraph())
+                .await;
             instance
                 .resolve_field(
-                    headers,
-                    ExtensionFieldDirective {
-                        extension_id,
-                        subgraph,
-                        field,
-                        name,
-                        arguments: serde_json::to_value(arguments).unwrap(),
-                    },
+                    directive,
+                    field_definition,
+                    prepared_data,
+                    subgraph_headers,
+                    directive_arguments,
                     inputs,
                 )
                 .await
@@ -177,8 +201,11 @@ impl runtime::extension::ExtensionRuntime for TestExtensions {
 
     async fn resolve_subscription<'ctx, 'f>(
         &'ctx self,
-        _: http::HeaderMap,
-        _: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
+        _directive: ExtensionDirective<'ctx>,
+        _field_definition: FieldDefinition<'ctx>,
+        _prepared_data: &'ctx [u8],
+        _subgraph_headers: http::HeaderMap,
+        _directive_arguments: impl Anything<'ctx>,
     ) -> Result<BoxStream<'f, Result<Arc<Data>, GraphqlError>>, GraphqlError>
     where
         'ctx: 'f,

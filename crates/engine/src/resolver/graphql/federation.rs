@@ -58,13 +58,13 @@ impl FederationEntityResolver {
         )
     }
 
-    pub fn prepare_request<'ctx, R: Runtime>(
+    pub fn build_executor<'ctx, R: Runtime>(
         &'ctx self,
         ctx: &SubgraphContext<'ctx, R>,
         plan: Plan<'ctx>,
         root_response_objects: ResponseObjectsView<'_>,
         subgraph_response: SubgraphResponse,
-    ) -> ExecutionResult<FederationEntityRequest<'ctx>> {
+    ) -> ExecutionResult<FederationEntityExecutor<'ctx>> {
         ctx.span().in_scope(|| {
             let extra_fields = vec![(
                 "__typename".into(),
@@ -86,7 +86,7 @@ impl FederationEntityResolver {
                 }
             }
 
-            Ok(FederationEntityRequest {
+            Ok(FederationEntityExecutor {
                 resolver: self,
                 subgraph_response,
                 entities_to_fetch,
@@ -106,14 +106,14 @@ struct EntityWithoutExpectedRequirements {
     error: serde_json::Error,
 }
 
-pub(crate) struct FederationEntityRequest<'ctx> {
+pub(crate) struct FederationEntityExecutor<'ctx> {
     resolver: &'ctx FederationEntityResolver,
     subgraph_response: SubgraphResponse,
     entities_to_fetch: Vec<EntityToFetch>,
     entities_without_expected_requirements: Vec<EntityWithoutExpectedRequirements>,
 }
 
-impl<'ctx> FederationEntityRequest<'ctx> {
+impl<'ctx> FederationEntityExecutor<'ctx> {
     pub async fn execute<R: Runtime>(self, ctx: &mut SubgraphContext<'ctx, R>) -> ExecutionResult<SubgraphResponse> {
         let Self {
             resolver: FederationEntityResolver { subgraph_operation, .. },
