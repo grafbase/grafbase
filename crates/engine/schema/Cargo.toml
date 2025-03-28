@@ -14,39 +14,39 @@ anyhow.workspace = true
 rand.workspace = true
 
 [dependencies]
-fxhash.workspace = true
-gateway-config.workspace = true
-hex.workspace = true
-id-derives = { path = "../id-derives", package = "engine-id-derives" }
-id-newtypes = { path = "../id-newtypes", package = "engine-id-newtypes" }
-indexmap.workspace = true
-itertools.workspace = true
-rapidhash.workspace = true
-serde.workspace = true
-serde_with.workspace = true
-strum = { workspace = true, features = ["derive"] }
-strum_macros.workspace = true
-thiserror.workspace = true
-url.workspace = true
-walker = { path = "../walker", package = "engine-walker" }
-
+blake3.workspace = true
 cynic-parser.workspace = true
 cynic-parser-deser.workspace = true
 extension-catalog.workspace = true
 federated-graph.workspace = true
+fxhash.workspace = true
+gateway-config.workspace = true
 grafbase-workspace-hack.workspace = true
+hex.workspace = true
 http.workspace = true
+id-derives = { path = "../id-derives", package = "engine-id-derives" }
+id-newtypes = { path = "../id-newtypes", package = "engine-id-newtypes" }
+indexmap.workspace = true
+itertools.workspace = true
 ramhorns.workspace = true
+rapidhash.workspace = true
 regex.workspace = true
+serde.workspace = true
+serde_json.workspace = true
 serde_regex.workspace = true
+serde_with.workspace = true
+strum = { workspace = true, features = ["derive"] }
+strum_macros.workspace = true
+thiserror.workspace = true
 tracing.workspace = true
+url.workspace = true
+walker = { path = "../walker", package = "engine-walker" }
 wrapping.workspace = true
 
 [dev-dependencies]
 insta.workspace = true
 postcard.workspace = true
 rstest.workspace = true
-serde_json.workspace = true
 serde_path_to_error.workspace = true
 tokio.workspace = true
 toml.workspace = true

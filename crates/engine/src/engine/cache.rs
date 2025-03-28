@@ -73,10 +73,7 @@ impl std::fmt::Display for CacheKey<'_> {
             // backwards-compatibility
             CacheKey::Operation { schema, document } => {
                 let mut hasher = blake3::Hasher::new();
-                hasher.update(&Schema::build_identifier().len().to_ne_bytes());
-                hasher.update(Schema::build_identifier());
-                hasher.update(&schema.version.len().to_ne_bytes());
-                hasher.update(&schema.version);
+                hasher.update(&schema.hash);
 
                 match document {
                     DocumentKey::AutomaticPersistedQuery { operation_name, ext } => {

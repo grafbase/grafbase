@@ -2,8 +2,6 @@
 
 use grafbase_workspace_hack as _;
 
-use std::sync::OnceLock;
-
 mod builder;
 mod composite_type;
 mod config;
@@ -52,42 +50,7 @@ pub use template::*;
 use walker::{Iter, Walk};
 pub use wrapping::*;
 
-mod built_info {
-    // The file has been placed there by the build script.
-    include!(concat!(env!("OUT_DIR"), "/built.rs"));
-}
-
-impl Schema {
-    /// A unique identifier of this build of the engine to version cache keys.
-    /// If built in a git repository, the cache version is taken from the git commit id.
-    /// For builds outside of a git repository, the build time is used.
-    pub fn build_identifier() -> &'static [u8] {
-        static SHA: OnceLock<Vec<u8>> = OnceLock::new();
-
-        SHA.get_or_init(|| match built_info::GIT_COMMIT_HASH {
-            Some(hash) => hex::decode(hash).expect("Expect hex format"),
-            None => built_info::BUILD_TOKEN.as_bytes().to_vec(),
-        })
-    }
-}
-
 pub type Walker<'a, T> = walker::Walker<'a, T, &'a Schema>;
-
-#[derive(serde::Serialize, serde::Deserialize)]
-pub struct Version(Vec<u8>);
-
-impl<T: AsRef<[u8]>> From<T> for Version {
-    fn from(value: T) -> Self {
-        Version(value.as_ref().to_vec())
-    }
-}
-
-impl std::ops::Deref for Version {
-    type Target = [u8];
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
 
 /// /!\ This is *NOT* backwards-compatible. /!\
 /// Only a schema serialized with the exact same version is expected to work. For backwards
@@ -96,7 +59,8 @@ impl std::ops::Deref for Version {
 pub struct Schema {
     pub subgraphs: SubGraphs,
     pub graph: Graph,
-    pub version: Version,
+    // Cryptographic hash of the schema
+    pub hash: [u8; 32],
 
     /// All strings deduplicated.
     #[indexed_by(StringId)]
@@ -117,23 +81,18 @@ pub struct Schema {
 
 impl Schema {
     pub async fn from_sdl_or_panic(sdl: &str) -> Self {
-        let federated_graph = federated_graph::FederatedGraph::from_sdl(sdl).unwrap();
         let mut config: gateway_config::Config = Default::default();
         config.graph.introspection = Some(true);
-        let version = Version::from(Vec::new());
         let extension_catalog = Default::default();
-        Self::build(&config, &federated_graph, &extension_catalog, version)
-            .await
-            .unwrap()
+        Self::build(&config, sdl, &extension_catalog).await.unwrap()
     }
 
     pub async fn build(
         config: &gateway_config::Config,
-        federated_graph: &federated_graph::FederatedGraph,
+        federated_sdl: &str,
         extension_catalog: &ExtensionCatalog,
-        version: Version,
     ) -> Result<Schema, BuildError> {
-        builder::build(config, federated_graph, extension_catalog, version).await
+        builder::build(config, federated_sdl, extension_catalog).await
     }
 }
 

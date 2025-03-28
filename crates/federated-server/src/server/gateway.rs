@@ -5,9 +5,8 @@ pub use self::{create_extension_catalog::Error as CreateExtensionCatalogError, g
 
 use self::create_extension_catalog::create_extension_catalog;
 use super::GdnResponse;
-use engine::{Engine, SchemaVersion};
+use engine::Engine;
 use gateway_config::Config;
-use graphql_composition::FederatedGraph;
 use runtime::trusted_documents_client::{Client, TrustedDocumentsEnforcementMode};
 use runtime_local::wasi::hooks::{AccessLogSender, HooksWasi};
 use std::{path::PathBuf, sync::Arc};
@@ -32,7 +31,6 @@ pub(crate) enum GraphDefinition {
 
 struct Graph {
     federated_sdl: String,
-    schema_version: SchemaVersion,
     version_id: Option<Ulid>,
     trusted_documents: Option<Client>,
 }
@@ -57,7 +55,6 @@ pub(super) async fn generate(
 ) -> crate::Result<Engine<GatewayRuntime>> {
     let Graph {
         federated_sdl,
-        schema_version,
         version_id,
         trusted_documents,
     } = match graph_definition {
@@ -68,13 +65,9 @@ pub(super) async fn generate(
     tracing::debug!("Creating extension catalog.");
     let extension_catalog = create_extension_catalog(gateway_config).await?;
 
-    tracing::debug!("Parsing federated schema.");
-    let federated_graph =
-        FederatedGraph::from_sdl(&federated_sdl).map_err(|e| crate::Error::SchemaValidationError(e.to_string()))?;
-
     tracing::debug!("Building engine Schema.");
     let schema = Arc::new(
-        engine::Schema::build(gateway_config, &federated_graph, &extension_catalog, schema_version)
+        engine::Schema::build(gateway_config, &federated_sdl, &extension_catalog)
             .await
             .map_err(|err| crate::Error::SchemaValidationError(err.to_string()))?,
     );
@@ -98,19 +91,8 @@ pub(super) async fn generate(
 }
 
 fn sdl_graph(federated_sdl: String) -> Graph {
-    let version = engine::SchemaVersion::from(
-        [
-            b"hash:".to_vec(),
-            blake3::hash(federated_sdl.as_bytes()).as_bytes().to_vec(),
-        ]
-        .into_iter()
-        .flatten()
-        .collect::<Vec<u8>>(),
-    );
-
     Graph {
         federated_sdl,
-        schema_version: version,
         version_id: None,
         // TODO: https://linear.app/grafbase/issue/GB-6168/support-trusted-documents-in-air-gapped-mode
         trusted_documents: None,
@@ -126,13 +108,6 @@ fn gdn_graph(
         ..
     }: GdnResponse,
 ) -> Graph {
-    let version = engine::SchemaVersion::from(
-        [b"id:".to_vec(), version_id.to_bytes().to_vec()]
-            .into_iter()
-            .flatten()
-            .collect::<Vec<u8>>(),
-    );
-
     let trusted_documents = if gateway_config.trusted_documents.enabled {
         let enforcement_mode = if gateway_config.trusted_documents.enforced {
             TrustedDocumentsEnforcementMode::Enforce
@@ -166,7 +141,6 @@ fn gdn_graph(
 
     Graph {
         federated_sdl: sdl,
-        schema_version: version,
         version_id: Some(version_id),
         trusted_documents,
     }
