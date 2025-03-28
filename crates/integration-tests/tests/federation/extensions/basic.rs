@@ -1,12 +1,13 @@
 use std::sync::Arc;
 
 use engine::{Engine, GraphqlError};
+use engine_schema::{ExtensionDirective, FieldDefinition};
 use extension_catalog::Id;
 use integration_tests::{
     federation::{EngineExt, TestExtension, TestExtensionBuilder, TestManifest, json_data},
     runtime,
 };
-use runtime::extension::{Data, ExtensionFieldDirective};
+use runtime::extension::Data;
 
 #[derive(Default, Clone)]
 pub struct GreetExt {
@@ -46,8 +47,11 @@ impl TestExtensionBuilder for GreetExt {
 impl TestExtension for GreetExt {
     async fn resolve_field(
         &self,
-        _headers: http::HeaderMap,
-        _directive: ExtensionFieldDirective<'_, serde_json::Value>,
+        _directive: ExtensionDirective<'_>,
+        _field_definition: FieldDefinition<'_>,
+        _prepared_data: &[u8],
+        _subgraph_headers: http::HeaderMap,
+        _directive_arguments: serde_json::Value,
         inputs: Vec<serde_json::Value>,
     ) -> Result<Vec<Result<Data, GraphqlError>>, GraphqlError> {
         Ok(vec![Ok(json_data("Hi!")); inputs.len()])

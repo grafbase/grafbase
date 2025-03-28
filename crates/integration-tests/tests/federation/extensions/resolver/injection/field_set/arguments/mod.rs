@@ -8,9 +8,10 @@ mod scalar;
 use std::sync::Arc;
 
 use engine::GraphqlError;
+use engine_schema::{ExtensionDirective, FieldDefinition};
 use extension_catalog::Id;
 use integration_tests::federation::{TestExtension, TestExtensionBuilder, TestManifest, json_data};
-use runtime::extension::{Data, ExtensionFieldDirective};
+use runtime::extension::Data;
 
 #[derive(Default)]
 pub struct DoubleEchoExt;
@@ -47,18 +48,21 @@ struct DoubleEchoInstance;
 impl TestExtension for DoubleEchoInstance {
     async fn resolve_field(
         &self,
-        _headers: http::HeaderMap,
-        directive: ExtensionFieldDirective<'_, serde_json::Value>,
+        directive: ExtensionDirective<'_>,
+        _field_definition: FieldDefinition<'_>,
+        _prepared_data: &[u8],
+        _subgraph_headers: http::HeaderMap,
+        directive_arguments: serde_json::Value,
         inputs: Vec<serde_json::Value>,
     ) -> Result<Vec<Result<Data, GraphqlError>>, GraphqlError> {
-        match directive.name {
+        match directive.name() {
             "echo" => Ok(inputs
                 .into_iter()
                 .map(|input| Ok(json_data(&input["fields"])))
                 .collect()),
             "echoArgs" => Ok(inputs
                 .into_iter()
-                .map(|_| Ok(json_data(&directive.arguments["args"])))
+                .map(|_| Ok(json_data(&directive_arguments["args"])))
                 .collect()),
             _ => unreachable!(),
         }

@@ -9,7 +9,7 @@ use std::future::Future;
 use crate::{
     Runtime,
     execution::{ExecutionContext, ExecutionError, ExecutionResult, SubscriptionResponse},
-    prepare::{Plan, PlanQueryPartition, PlanResult},
+    prepare::{Plan, PlanQueryPartition, PlanResult, PrepareContext},
     response::{ResponseObjectsView, SubgraphResponse},
 };
 
@@ -31,7 +31,11 @@ pub(crate) enum Resolver {
 }
 
 impl Resolver {
-    pub fn prepare(operation_type: OperationType, plan_query_partition: PlanQueryPartition<'_>) -> PlanResult<Self> {
+    pub async fn prepare(
+        ctx: &PrepareContext<'_, impl Runtime>,
+        operation_type: OperationType,
+        plan_query_partition: PlanQueryPartition<'_>,
+    ) -> PlanResult<Self> {
         match plan_query_partition.resolver_definition().variant() {
             ResolverDefinitionVariant::Introspection(_) => Ok(Resolver::Introspection(IntrospectionResolver)),
             ResolverDefinitionVariant::GraphqlRootField(definition) => {
@@ -41,7 +45,7 @@ impl Resolver {
                 FederationEntityResolver::prepare(definition, plan_query_partition)
             }
             ResolverDefinitionVariant::FieldResolverExtension(definition) => {
-                Ok(FieldResolverExtension::prepare(definition, plan_query_partition))
+                FieldResolverExtension::prepare(ctx, definition, plan_query_partition).await
             }
         }
     }
@@ -79,11 +83,11 @@ impl Resolver {
             .boxed(),
             Resolver::FederationEntity(prepared) => {
                 let mut ctx = prepared.build_subgraph_context(ctx);
-                let request = prepared.prepare_request(&ctx, plan, root_response_objects, subgraph_response);
+                let executor = prepared.build_executor(&ctx, plan, root_response_objects, subgraph_response);
 
                 async move {
-                    let subgraph_result = match request {
-                        Ok(request) => request.execute(&mut ctx).await,
+                    let subgraph_result = match executor {
+                        Ok(executor) => executor.execute(&mut ctx).await,
                         Err(error) => Err(error),
                     };
 
@@ -104,10 +108,10 @@ impl Resolver {
             }
             .boxed(),
             Resolver::FieldResolverExtension(prepared) => {
-                let request = prepared.prepare_request(ctx, plan, root_response_objects, subgraph_response);
+                let executor = prepared.build_executor(ctx, plan, root_response_objects, subgraph_response);
                 async move {
                     ResolverResult {
-                        execution: request.execute(ctx).await,
+                        execution: executor.execute(ctx).await,
                         on_subgraph_response_hook_output: None,
                     }
                 }

@@ -1,13 +1,12 @@
 use std::{collections::HashMap, ops::Range, sync::Arc};
 
 use engine::{ErrorResponse, GraphqlError};
-use engine_schema::DirectiveSite;
+use engine_schema::{DirectiveSite, ExtensionDirective, FieldDefinition};
 use extension_catalog::ExtensionId;
 use futures::{FutureExt as _, stream::BoxStream};
 use runtime::{
     extension::{
-        AuthorizationDecisions, Data, ExtensionFieldDirective, ExtensionRuntime, QueryAuthorizationDecisions,
-        QueryElement, Token, TokenRef,
+        AuthorizationDecisions, Data, ExtensionRuntime, QueryAuthorizationDecisions, QueryElement, Token, TokenRef,
     },
     hooks::Anything,
 };
@@ -33,32 +32,98 @@ pub struct ExtensionsDispatcher {
 impl ExtensionRuntime for ExtensionsDispatcher {
     type SharedContext = ExtContext;
 
+    async fn prepare_field<'ctx>(
+        &'ctx self,
+        directive: ExtensionDirective<'ctx>,
+        field_definition: FieldDefinition<'ctx>,
+        directive_arguments: impl Anything<'ctx>,
+    ) -> Result<Vec<u8>, GraphqlError> {
+        match self.dispatch[&directive.extension_id] {
+            DispatchRule::Wasm => {
+                self.wasm
+                    .prepare_field(directive, field_definition, directive_arguments)
+                    .await
+            }
+            DispatchRule::Test => {
+                self.test
+                    .prepare_field(directive, field_definition, directive_arguments)
+                    .await
+            }
+        }
+    }
+
     fn resolve_field<'ctx, 'resp, 'f>(
         &'ctx self,
+        directive: ExtensionDirective<'ctx>,
+        field_definition: FieldDefinition<'ctx>,
+        prepared_data: &'ctx [u8],
         subgraph_headers: http::HeaderMap,
-        directive: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
+        directive_arguments: impl Anything<'ctx>,
         inputs: impl Iterator<Item: Anything<'resp>> + Send,
     ) -> impl Future<Output = Result<Vec<Result<Data, GraphqlError>>, GraphqlError>> + Send + 'f
     where
         'ctx: 'f,
     {
         match self.dispatch[&directive.extension_id] {
-            DispatchRule::Wasm => self.wasm.resolve_field(subgraph_headers, directive, inputs).boxed(),
-            DispatchRule::Test => self.test.resolve_field(subgraph_headers, directive, inputs).boxed(),
+            DispatchRule::Wasm => self
+                .wasm
+                .resolve_field(
+                    directive,
+                    field_definition,
+                    prepared_data,
+                    subgraph_headers,
+                    directive_arguments,
+                    inputs,
+                )
+                .boxed(),
+            DispatchRule::Test => self
+                .test
+                .resolve_field(
+                    directive,
+                    field_definition,
+                    prepared_data,
+                    subgraph_headers,
+                    directive_arguments,
+                    inputs,
+                )
+                .boxed(),
         }
     }
 
     async fn resolve_subscription<'ctx, 'f>(
         &'ctx self,
+        directive: ExtensionDirective<'ctx>,
+        field_definition: FieldDefinition<'ctx>,
+        prepared_data: &'ctx [u8],
         subgraph_headers: http::HeaderMap,
-        directive: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
+        directive_arguments: impl Anything<'ctx>,
     ) -> Result<BoxStream<'f, Result<Arc<Data>, GraphqlError>>, GraphqlError>
     where
         'ctx: 'f,
     {
         match self.dispatch[&directive.extension_id] {
-            DispatchRule::Wasm => self.wasm.resolve_subscription(subgraph_headers, directive).await,
-            DispatchRule::Test => self.test.resolve_subscription(subgraph_headers, directive).await,
+            DispatchRule::Wasm => {
+                self.wasm
+                    .resolve_subscription(
+                        directive,
+                        field_definition,
+                        prepared_data,
+                        subgraph_headers,
+                        directive_arguments,
+                    )
+                    .await
+            }
+            DispatchRule::Test => {
+                self.test
+                    .resolve_subscription(
+                        directive,
+                        field_definition,
+                        prepared_data,
+                        subgraph_headers,
+                        directive_arguments,
+                    )
+                    .await
+            }
         }
     }
 

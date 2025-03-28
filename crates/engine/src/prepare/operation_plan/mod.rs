@@ -21,15 +21,17 @@ pub async fn plan<OnOperationResponseHookOutput>(
     operation: &CachedOperation,
     variables: &Variables,
 ) -> Result<OperationPlan, Response<OnOperationResponseHookOutput>> {
-    QueryModifications::build(ctx, operation, variables)
-        .await
-        .and_then(|query_modifications| OperationPlan::plan(ctx, operation, query_modifications))
-        .map_err(|error| match error {
-            PlanError::Internal => Response::request_error([GraphqlError::new(
-                "Could not plan operation",
-                ErrorCode::OperationPlanningError,
-            )]),
-            PlanError::GraphqlError(error) => Response::request_error([error]),
-            PlanError::ErrorResponse(ErrorResponse { status, errors }) => Response::refuse_request_with(status, errors),
-        })
+    async move {
+        let query_modifications = QueryModifications::build(ctx, operation, variables).await?;
+        OperationPlan::plan(ctx, operation, query_modifications).await
+    }
+    .await
+    .map_err(|error| match error {
+        PlanError::Internal => Response::request_error([GraphqlError::new(
+            "Could not plan operation",
+            ErrorCode::OperationPlanningError,
+        )]),
+        PlanError::GraphqlError(error) => Response::request_error([error]),
+        PlanError::ErrorResponse(ErrorResponse { status, errors }) => Response::refuse_request_with(status, errors),
+    })
 }
