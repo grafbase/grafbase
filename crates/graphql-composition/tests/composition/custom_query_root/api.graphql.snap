@@ -4,44 +4,44 @@ expression: actual_api_sdl
 input_file: crates/graphql-composition/tests/composition/custom_query_root/test.md
 ---
 type RecyclingCenter {
-    address: String
-    id: ID!
-    materialsAccepted: [String]
-    operatingHours: String
+  address: String
+  id: ID!
+  materialsAccepted: [String]
+  operatingHours: String
 }
 
 type HazardousWasteStats {
-    categoryBreakdown: [HazardousCategoryBreakdown]
-    city: String
-    totalHazardousWaste: Float
+  categoryBreakdown: [HazardousCategoryBreakdown]
+  city: String
+  totalHazardousWaste: Float
 }
 
 type HazardousCategoryBreakdown {
-    amount: Float
-    category: String
+  amount: Float
+  category: String
 }
 
 type CollectionPoint {
-    address: String
-    id: ID!
-    openingHours: String
-    type: String
+  address: String
+  id: ID!
+  openingHours: String
+  type: String
 }
 
 type WasteStats {
-    city: String
-    totalWasteCollected: Float
-    wasteTypeBreakdown: [WasteTypeBreakdown]
+  city: String
+  totalWasteCollected: Float
+  wasteTypeBreakdown: [WasteTypeBreakdown]
 }
 
 type WasteTypeBreakdown {
-    amount: Float
-    type: String
+  amount: Float
+  type: String
 }
 
 type Query {
-    hazardousWasteData(city: String!): HazardousWasteStats
-    recyclingCenters(city: String!): [RecyclingCenter]
-    wasteCollectionPoints(city: String!): [CollectionPoint]
-    wasteStatistics(city: String!): WasteStats
+  hazardousWasteData(city: String!): HazardousWasteStats
+  recyclingCenters(city: String!): [RecyclingCenter]
+  wasteCollectionPoints(city: String!): [CollectionPoint]
+  wasteStatistics(city: String!): WasteStats
 }

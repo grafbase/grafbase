@@ -4,24 +4,24 @@ expression: actual_api_sdl
 input_file: crates/graphql-composition/tests/composition/provides_basic/test.md
 ---
 type Product {
-    id: ID!
-    name: String
-    reviews: [Review]
+  id: ID!
+  name: String
+  reviews: [Review]
 }
 
 type Review {
-    author: User
-    content: String
-    id: ID!
+  author: User
+  content: String
+  id: ID!
 }
 
 type User {
-    email: String
-    id: ID!
-    name: String
+  email: String
+  id: ID!
+  name: String
 }
 
 type Query {
-    product(id: ID!): Product
-    user(id: ID!): User
+  product(id: ID!): Product
+  user(id: ID!): User
 }

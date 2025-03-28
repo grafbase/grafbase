@@ -18,27 +18,27 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 scalar join__FieldSet
 
 type User
-    @join__type(graph: ACCOUNTS)
+  @join__type(graph: ACCOUNTS)
 {
-    id: ID!
-    posts: [Post!]!
+  id: ID!
+  posts: [Post!]!
 }
 
 type Post
-    @join__type(graph: ACCOUNTS, key: "id", resolvable: false)
-    @join__type(graph: PRODUCTS, key: "id")
+  @join__type(graph: ACCOUNTS, key: "id", resolvable: false)
+  @join__type(graph: PRODUCTS, key: "id")
 {
-    id: ID!
-    name: String @join__field(graph: PRODUCTS)
+  id: ID!
+  name: String @join__field(graph: PRODUCTS)
 }
 
 type Query
 {
-    getUser(id: ID!): User @join__field(graph: ACCOUNTS)
+  getUser(id: ID!): User @join__field(graph: ACCOUNTS)
 }
 
 enum join__Graph
 {
-    ACCOUNTS @join__graph(name: "accounts", url: "http://example.com/accounts")
-    PRODUCTS @join__graph(name: "products", url: "http://example.com/products")
+  ACCOUNTS @join__graph(name: "accounts", url: "http://example.com/accounts")
+  PRODUCTS @join__graph(name: "products", url: "http://example.com/products")
 }

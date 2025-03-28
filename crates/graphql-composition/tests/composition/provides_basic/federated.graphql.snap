@@ -18,38 +18,38 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 scalar join__FieldSet
 
 type Product
-    @join__type(graph: PRODUCTS, key: "id")
+  @join__type(graph: PRODUCTS, key: "id")
 {
-    id: ID!
-    name: String
-    reviews: [Review]
+  id: ID!
+  name: String
+  reviews: [Review]
 }
 
 type Review
-    @join__type(graph: PRODUCTS, key: "id")
+  @join__type(graph: PRODUCTS, key: "id")
 {
-    author: User @join__field(graph: PRODUCTS, provides: "name")
-    content: String
-    id: ID!
+  author: User @join__field(graph: PRODUCTS, provides: "name")
+  content: String
+  id: ID!
 }
 
 type User
-    @join__type(graph: PRODUCTS, key: "id")
-    @join__type(graph: USERS, key: "id")
+  @join__type(graph: PRODUCTS, key: "id")
+  @join__type(graph: USERS, key: "id")
 {
-    email: String @join__field(graph: USERS)
-    id: ID!
-    name: String @join__field(graph: PRODUCTS, external: true) @join__field(graph: USERS)
+  email: String @join__field(graph: USERS)
+  id: ID!
+  name: String @join__field(graph: PRODUCTS, external: true) @join__field(graph: USERS)
 }
 
 type Query
 {
-    product(id: ID!): Product @join__field(graph: PRODUCTS)
-    user(id: ID!): User @join__field(graph: USERS)
+  product(id: ID!): Product @join__field(graph: PRODUCTS)
+  user(id: ID!): User @join__field(graph: USERS)
 }
 
 enum join__Graph
 {
-    PRODUCTS @join__graph(name: "products", url: "http://example.com/products")
-    USERS @join__graph(name: "users", url: "http://example.com/users")
+  PRODUCTS @join__graph(name: "products", url: "http://example.com/products")
+  USERS @join__graph(name: "users", url: "http://example.com/users")
 }

@@ -18,41 +18,41 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 scalar join__FieldSet
 
 type WasabiPlant
-    @join__type(graph: WASABI)
+  @join__type(graph: WASABI)
 {
-    cultivationArea: String
-    harvestTime: String @join__field(graph: WASABI, requires: "variety name(language: \"latin\")")
-    id: ID!
-    name(language: String!): String! @join__field(graph: WASABI, external: true)
-    variety: String! @join__field(graph: WASABI, external: true)
+  cultivationArea: String
+  harvestTime: String @join__field(graph: WASABI, requires: "variety name(language: \"latin\")")
+  id: ID!
+  name(language: String!): String! @join__field(graph: WASABI, external: true)
+  variety: String! @join__field(graph: WASABI, external: true)
 }
 
 type WasabiProduct
-    @join__type(graph: WASABI)
+  @join__type(graph: WASABI)
 {
-    description: String
-    id: ID!
-    name: String!
-    price: Float
-    type: ProductType!
+  description: String
+  id: ID!
+  name: String!
+  price: Float
+  type: ProductType!
 }
 
 type Query
 {
-    wasabiPlants: [WasabiPlant] @join__field(graph: WASABI)
-    wasabiProduct(id: ID!): WasabiProduct @join__field(graph: WASABI)
+  wasabiPlants: [WasabiPlant] @join__field(graph: WASABI)
+  wasabiProduct(id: ID!): WasabiProduct @join__field(graph: WASABI)
 }
 
 enum ProductType
-    @join__type(graph: WASABI)
+  @join__type(graph: WASABI)
 {
-    FRESH
-    PASTE
-    POWDER
-    DRIED
+  FRESH
+  PASTE
+  POWDER
+  DRIED
 }
 
 enum join__Graph
 {
-    WASABI @join__graph(name: "wasabi", url: "http://example.com/wasabi")
+  WASABI @join__graph(name: "wasabi", url: "http://example.com/wasabi")
 }

@@ -4,32 +4,32 @@ expression: actual_api_sdl
 input_file: crates/graphql-composition/tests/composition/namespaced_directives_basic/test.md
 ---
 enum Severity {
-    FINE
-    OK
-    GOOD
+  FINE
+  OK
+  GOOD
 }
 
 type Alert {
-    id: ID!
-    message: String!
-    severity: Severity!
+  id: ID!
+  message: String!
+  severity: Severity!
 }
 
 type Review {
-    author: ID!
-    id: ID!
-    message: String!
+  author: ID!
+  id: ID!
+  message: String!
 }
 
 type Query {
-    alert(id: ID!): Alert
+  alert(id: ID!): Alert
 }
 
 type Mutation {
-    createAlert(message: String!, severity: Severity!): Alert
-    createReview(message: String!, author: ID!): Alert
+  createAlert(message: String!, severity: Severity!): Alert
+  createReview(message: String!, author: ID!): Alert
 }
 
 type Subscription {
-    alert(id: ID!): Alert
+  alert(id: ID!): Alert
 }

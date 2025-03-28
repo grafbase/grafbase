@@ -4,41 +4,41 @@ expression: actual_api_sdl
 input_file: crates/graphql-composition/tests/composition/unions_basic/test.md
 ---
 type Pizza {
-    id: ID!
-    nameEn: String
-    nameIt: String!
-    toppings: [Topping!]!
+  id: ID!
+  nameEn: String
+  nameIt: String!
+  toppings: [Topping!]!
 }
 
 type Onion {
-    variety: String
+  variety: String
 }
 
 type Cheese {
-    quantity: Int!
-    type: String!
+  quantity: Int!
+  type: String!
 }
 
 type Pineapple {
-    isAnanas: Boolean!
+  isAnanas: Boolean!
 }
 
 type Sushi {
-    id: ID!
-    topping: Topping
+  id: ID!
+  topping: Topping
 }
 
 type Salmon {
-    id: ID!
-    raw: Boolean
+  id: ID!
+  raw: Boolean
 }
 
 type Omelet {
-    isRectangular: Boolean
+  isRectangular: Boolean
 }
 
 type Query {
-    pizza(id: ID!): Pizza
+  pizza(id: ID!): Pizza
 }
 
 union Topping = Onion | Cheese | Pineapple | Salmon | Omelet

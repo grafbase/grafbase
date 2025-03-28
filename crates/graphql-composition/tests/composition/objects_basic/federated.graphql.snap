@@ -18,22 +18,22 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 scalar join__FieldSet
 
 type User
-    @join__type(graph: A)
-    @join__type(graph: B)
+  @join__type(graph: A)
+  @join__type(graph: B)
 {
-    age: Int @join__field(graph: B)
-    id: ID! @join__field(graph: A)
-    name: String! @join__field(graph: B)
-    score: Float @join__field(graph: A)
+  age: Int @join__field(graph: B)
+  id: ID! @join__field(graph: A)
+  name: String! @join__field(graph: B)
+  score: Float @join__field(graph: A)
 }
 
 type Query
 {
-    user: User @join__field(graph: A)
+  user: User @join__field(graph: A)
 }
 
 enum join__Graph
 {
-    A @join__graph(name: "a", url: "http://example.com/a")
-    B @join__graph(name: "b", url: "http://example.com/b")
+  A @join__graph(name: "a", url: "http://example.com/a")
+  B @join__graph(name: "b", url: "http://example.com/b")
 }

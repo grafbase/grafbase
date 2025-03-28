@@ -18,35 +18,35 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 scalar join__FieldSet
 
 type Book
-    @join__type(graph: SCHEMA)
+  @join__type(graph: SCHEMA)
 {
-    author: String!
-    id: ID!
-    title: String!
-    yearPublished: Int
+  author: String!
+  id: ID!
+  title: String!
+  yearPublished: Int
 }
 
 type Query
 {
-    books(limit: Int = 10): [Book!]! @join__field(graph: OTHER_SCHEMA) @join__field(graph: SCHEMA)
+  books(limit: Int = 10): [Book!]! @join__field(graph: OTHER_SCHEMA) @join__field(graph: SCHEMA)
 }
 
 type Mutation
 {
-    addBook(input: AddBookInput!): Book @join__field(graph: SCHEMA)
+  addBook(input: AddBookInput!): Book @join__field(graph: SCHEMA)
 }
 
 enum join__Graph
 {
-    OTHER_SCHEMA @join__graph(name: "other-schema", url: "http://example.com/other-schema")
-    SCHEMA @join__graph(name: "schema", url: "http://example.com/schema")
+  OTHER_SCHEMA @join__graph(name: "other-schema", url: "http://example.com/other-schema")
+  SCHEMA @join__graph(name: "schema", url: "http://example.com/schema")
 }
 
 input AddBookInput
-    @join__type(graph: OTHER_SCHEMA)
-    @join__type(graph: SCHEMA)
+  @join__type(graph: OTHER_SCHEMA)
+  @join__type(graph: SCHEMA)
 {
-    title: String!
-    author: String!
-    yearPublished: Int = 2023
+  title: String!
+  author: String!
+  yearPublished: Int = 2023
 }

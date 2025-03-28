@@ -4,26 +4,26 @@ expression: actual_api_sdl
 input_file: crates/graphql-composition/tests/composition/authorized_with_composeDirective/test.md
 ---
 type Pet {
-    age: String!
-    id: Int!
-    name: String!
+  age: String!
+  id: Int!
+  name: String!
 }
 
 type User {
-    address: Address
-    id: Int!
-    name: String!
-    pets: [Pet!]!
+  address: Address
+  id: Int!
+  name: String!
+  pets: [Pet!]!
 }
 
 type Address {
-    street: String!
+  street: String!
 }
 
 type Query {
-    pets: [Pet]!
-    user(id: Int!): User
-    users: [User]!
+  pets: [Pet]!
+  user(id: Int!): User
+  users: [User]!
 }
 
 scalar _Any

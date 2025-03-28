@@ -18,41 +18,41 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 scalar join__FieldSet
 
 type User
-    @join__type(graph: MULTI_KEY, key: "id")
-    @join__type(graph: MULTI_KEY, key: "name email")
-    @join__type(graph: SINGLE_KEY, key: "id")
+  @join__type(graph: MULTI_KEY, key: "id")
+  @join__type(graph: MULTI_KEY, key: "name email")
+  @join__type(graph: SINGLE_KEY, key: "id")
 {
-    comments: [Comment!]! @join__field(graph: MULTI_KEY)
-    email: String! @join__field(graph: MULTI_KEY)
-    id: ID!
-    name: String! @join__field(graph: MULTI_KEY)
-    posts: [Post!]! @join__field(graph: SINGLE_KEY)
+  comments: [Comment!]! @join__field(graph: MULTI_KEY)
+  email: String! @join__field(graph: MULTI_KEY)
+  id: ID!
+  name: String! @join__field(graph: MULTI_KEY)
+  posts: [Post!]! @join__field(graph: SINGLE_KEY)
 }
 
 type Comment
-    @join__type(graph: MULTI_KEY)
+  @join__type(graph: MULTI_KEY)
 {
-    id: ID!
-    text: String!
+  id: ID!
+  text: String!
 }
 
 type Post
-    @join__type(graph: SINGLE_KEY)
+  @join__type(graph: SINGLE_KEY)
 {
-    body: String!
-    id: ID!
-    published: Boolean!
-    title: String!
+  body: String!
+  id: ID!
+  published: Boolean!
+  title: String!
 }
 
 type Query
 {
-    getUser(id: ID!): User @join__field(graph: SINGLE_KEY)
-    getUserComments(name: String!, email: String!): User @join__field(graph: MULTI_KEY)
+  getUser(id: ID!): User @join__field(graph: SINGLE_KEY)
+  getUserComments(name: String!, email: String!): User @join__field(graph: MULTI_KEY)
 }
 
 enum join__Graph
 {
-    MULTI_KEY @join__graph(name: "multi-key", url: "http://example.com/multi-key")
-    SINGLE_KEY @join__graph(name: "single-key", url: "http://example.com/single-key")
+  MULTI_KEY @join__graph(name: "multi-key", url: "http://example.com/multi-key")
+  SINGLE_KEY @join__graph(name: "single-key", url: "http://example.com/single-key")
 }

@@ -18,68 +18,68 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 scalar join__FieldSet
 
 type Pizza
-    @join__type(graph: PIZZA)
+  @join__type(graph: PIZZA)
 {
-    id: ID!
-    nameEn: String
-    nameIt: String!
-    toppings: [Topping!]!
+  id: ID!
+  nameEn: String
+  nameIt: String!
+  toppings: [Topping!]!
 }
 
 type Onion
-    @join__type(graph: PIZZA)
+  @join__type(graph: PIZZA)
 {
-    variety: String
+  variety: String
 }
 
 type Cheese
-    @join__type(graph: PIZZA)
+  @join__type(graph: PIZZA)
 {
-    quantity: Int!
-    type: String!
+  quantity: Int!
+  type: String!
 }
 
 type Pineapple
-    @join__type(graph: PIZZA)
+  @join__type(graph: PIZZA)
 {
-    isAnanas: Boolean!
+  isAnanas: Boolean!
 }
 
 type Sushi
-    @join__type(graph: SUSHI)
+  @join__type(graph: SUSHI)
 {
-    id: ID!
-    topping: Topping
+  id: ID!
+  topping: Topping
 }
 
 type Salmon
-    @join__type(graph: SUSHI)
+  @join__type(graph: SUSHI)
 {
-    id: ID!
-    raw: Boolean
+  id: ID!
+  raw: Boolean
 }
 
 type Omelet
-    @join__type(graph: SUSHI)
+  @join__type(graph: SUSHI)
 {
-    isRectangular: Boolean
+  isRectangular: Boolean
 }
 
 type Query
 {
-    pizza(id: ID!): Pizza @join__field(graph: PIZZA)
+  pizza(id: ID!): Pizza @join__field(graph: PIZZA)
 }
 
 enum join__Graph
 {
-    PIZZA @join__graph(name: "pizza", url: "http://example.com/pizza")
-    SUSHI @join__graph(name: "sushi", url: "http://example.com/sushi")
+  PIZZA @join__graph(name: "pizza", url: "http://example.com/pizza")
+  SUSHI @join__graph(name: "sushi", url: "http://example.com/sushi")
 }
 
 union Topping
-    @join__unionMember(graph: PIZZA, member: "Onion")
-    @join__unionMember(graph: PIZZA, member: "Cheese")
-    @join__unionMember(graph: PIZZA, member: "Pineapple")
-    @join__unionMember(graph: SUSHI, member: "Salmon")
-    @join__unionMember(graph: SUSHI, member: "Omelet")
+  @join__unionMember(graph: PIZZA, member: "Onion")
+  @join__unionMember(graph: PIZZA, member: "Cheese")
+  @join__unionMember(graph: PIZZA, member: "Pineapple")
+  @join__unionMember(graph: SUSHI, member: "Salmon")
+  @join__unionMember(graph: SUSHI, member: "Omelet")
  = Onion | Cheese | Pineapple | Salmon | Omelet

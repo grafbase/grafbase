@@ -4,81 +4,81 @@ expression: actual_api_sdl
 input_file: crates/graphql-composition/tests/composition/extensions_basic/test.md
 ---
 enum AppointmentStatus {
-    SCHEDULED
-    COMPLETED
-    CANCELLED
+  SCHEDULED
+  COMPLETED
+  CANCELLED
 }
 
 type Appointment {
-    datetime: String!
-    doctor: Doctor!
-    id: ID!
-    notes: String
-    patient: Patient!
-    status: AppointmentStatus!
+  datetime: String!
+  doctor: Doctor!
+  id: ID!
+  notes: String
+  patient: Patient!
+  status: AppointmentStatus!
 }
 
 type Patient {
-    appointments: [Appointment!]!
-    dateOfBirth: String!
-    email: String!
-    firstName: String!
-    id: ID!
-    lastName: String!
-    phone: String
+  appointments: [Appointment!]!
+  dateOfBirth: String!
+  email: String!
+  firstName: String!
+  id: ID!
+  lastName: String!
+  phone: String
 }
 
 type Doctor {
-    appointments: [Appointment!]!
-    email: String!
-    firstName: String!
-    id: ID!
-    lastName: String!
-    phone: String
-    specialty: String!
+  appointments: [Appointment!]!
+  email: String!
+  firstName: String!
+  id: ID!
+  lastName: String!
+  phone: String
+  specialty: String!
 }
 
 type Query {
-    appointment(id: ID!): Appointment
-    appointments: [Appointment!]!
-    doctor(id: ID!): Doctor
-    doctors: [Doctor!]!
-    patient(id: ID!): Patient
-    patients: [Patient!]!
+  appointment(id: ID!): Appointment
+  appointments: [Appointment!]!
+  doctor(id: ID!): Doctor
+  doctors: [Doctor!]!
+  patient(id: ID!): Patient
+  patients: [Patient!]!
 }
 
 type Mutation {
-    cancelAppointment(id: ID!): Boolean!
-    createDoctor(input: DoctorInput!): Doctor!
-    createPatient(input: PatientInput!): Patient!
-    scheduleAppointment(input: AppointmentInput!): Appointment!
-    updateDoctor(id: ID!, input: DoctorInput!): Doctor!
-    updatePatient(id: ID!, input: PatientInput!): Patient!
+  cancelAppointment(id: ID!): Boolean!
+  createDoctor(input: DoctorInput!): Doctor!
+  createPatient(input: PatientInput!): Patient!
+  scheduleAppointment(input: AppointmentInput!): Appointment!
+  updateDoctor(id: ID!, input: DoctorInput!): Doctor!
+  updatePatient(id: ID!, input: PatientInput!): Patient!
 }
 
 type Subscription {
-    newAppointments(doctorId: ID!): Appointment!
+  newAppointments(doctorId: ID!): Appointment!
 }
 
 input AppointmentInput {
-    doctorId: ID!
-    datetime: String!
-    notes: String
-    patientId: ID!
+  doctorId: ID!
+  datetime: String!
+  notes: String
+  patientId: ID!
 }
 
 input DoctorInput {
-    firstName: String!
-    lastName: String!
-    specialty: String!
-    email: String!
-    phone: String
+  firstName: String!
+  lastName: String!
+  specialty: String!
+  email: String!
+  phone: String
 }
 
 input PatientInput {
-    firstName: String!
-    lastName: String!
-    email: String!
-    phone: String
-    dateOfBirth: String!
+  firstName: String!
+  lastName: String!
+  email: String!
+  phone: String
+  dateOfBirth: String!
 }

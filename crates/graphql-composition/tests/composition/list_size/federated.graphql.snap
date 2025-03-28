@@ -20,19 +20,19 @@ directive @listSize(assumedSize: Int, slicingArguments: [String!], sizedFields: 
 scalar join__FieldSet
 
 type BarCollection
-    @join__type(graph: A)
+  @join__type(graph: A)
 {
-    items: [Int]
+  items: [Int]
 }
 
 type Query
 {
-    bar(slice: Int!): BarCollection  @listSize(slicingArguments: ["slice"], sizedFields: ["items"], requireOneSlicingArgument: false) @join__field(graph: A)
-    baz(slice: Int!): [String]  @listSize(slicingArguments: ["slice"]) @join__field(graph: A)
-    foo: [String!]  @listSize(assumedSize: 10) @join__field(graph: A)
+  bar(slice: Int!): BarCollection  @listSize(slicingArguments: ["slice"], sizedFields: ["items"], requireOneSlicingArgument: false) @join__field(graph: A)
+  baz(slice: Int!): [String]  @listSize(slicingArguments: ["slice"]) @join__field(graph: A)
+  foo: [String!]  @listSize(assumedSize: 10) @join__field(graph: A)
 }
 
 enum join__Graph
 {
-    A @join__graph(name: "a", url: "http://example.com/a")
+  A @join__graph(name: "a", url: "http://example.com/a")
 }

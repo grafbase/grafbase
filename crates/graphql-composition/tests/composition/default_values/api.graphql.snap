@@ -4,22 +4,22 @@ expression: actual_api_sdl
 input_file: crates/graphql-composition/tests/composition/default_values/test.md
 ---
 type Book {
-    author: String!
-    id: ID!
-    title: String!
-    yearPublished: Int
+  author: String!
+  id: ID!
+  title: String!
+  yearPublished: Int
 }
 
 type Query {
-    books(limit: Int = 10): [Book!]!
+  books(limit: Int = 10): [Book!]!
 }
 
 type Mutation {
-    addBook(input: AddBookInput!): Book
+  addBook(input: AddBookInput!): Book
 }
 
 input AddBookInput {
-    title: String!
-    author: String!
-    yearPublished: Int = 2023
+  title: String!
+  author: String!
+  yearPublished: Int = 2023
 }

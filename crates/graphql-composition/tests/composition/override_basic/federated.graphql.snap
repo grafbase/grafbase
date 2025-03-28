@@ -18,20 +18,20 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 scalar join__FieldSet
 
 type Mammoth
-    @join__type(graph: MANGROVE)
-    @join__type(graph: STEPPE)
+  @join__type(graph: MANGROVE)
+  @join__type(graph: STEPPE)
 {
-    tuskLength: Int
-    weightGrams: Int @join__field(graph: MANGROVE, override: "steppe")
+  tuskLength: Int
+  weightGrams: Int @join__field(graph: MANGROVE, override: "steppe")
 }
 
 type Query
 {
-    getMammoth: Mammoth @join__field(graph: MANGROVE, override: "steppe")
+  getMammoth: Mammoth @join__field(graph: MANGROVE, override: "steppe")
 }
 
 enum join__Graph
 {
-    MANGROVE @join__graph(name: "mangrove", url: "http://example.com/mangrove")
-    STEPPE @join__graph(name: "steppe", url: "http://example.com/steppe")
+  MANGROVE @join__graph(name: "mangrove", url: "http://example.com/mangrove")
+  STEPPE @join__graph(name: "steppe", url: "http://example.com/steppe")
 }

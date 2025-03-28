@@ -4,54 +4,54 @@ expression: actual_api_sdl
 input_file: crates/graphql-composition/tests/composition/subgraph_query_fields_service_entities/test.md
 ---
 type Lentil {
-    color: String!
-    id: ID!
-    name: String!
-    nutritionalInfo: NutritionalInfo
-    origin: String
+  color: String!
+  id: ID!
+  name: String!
+  nutritionalInfo: NutritionalInfo
+  origin: String
 }
 
 type NutritionalInfo {
-    calories: Int
-    carbohydrates: Float
-    fat: Float
-    fiber: Float
-    protein: Float
+  calories: Int
+  carbohydrates: Float
+  fat: Float
+  fiber: Float
+  protein: Float
 }
 
 type Rice {
-    id: ID!
-    name: String!
-    nutritionalInfo: NutritionalInfo
-    origin: String
-    variety: String!
+  id: ID!
+  name: String!
+  nutritionalInfo: NutritionalInfo
+  origin: String
+  variety: String!
 }
 
 type Query {
-    lentil(id: ID!): Lentil
-    lentils: [Lentil]
-    rice(id: ID!): Rice
-    rices: [Rice]
+  lentil(id: ID!): Lentil
+  lentils: [Lentil]
+  rice(id: ID!): Rice
+  rices: [Rice]
 }
 
 type Mutation {
-    addLentil(input: AddLentilInput!): Lentil
-    deleteLentil(id: ID!): Lentil
+  addLentil(input: AddLentilInput!): Lentil
+  deleteLentil(id: ID!): Lentil
 }
 
 input AddLentilInput {
-    name: String!
-    color: String!
-    origin: String
-    nutritionalInfo: NutritionalInfoInput
+  name: String!
+  color: String!
+  origin: String
+  nutritionalInfo: NutritionalInfoInput
 }
 
 input NutritionalInfoInput {
-    calories: Int
-    protein: Float
-    carbohydrates: Float
-    fiber: Float
-    fat: Float
+  calories: Int
+  protein: Float
+  carbohydrates: Float
+  fiber: Float
+  fat: Float
 }
 
 scalar _Any

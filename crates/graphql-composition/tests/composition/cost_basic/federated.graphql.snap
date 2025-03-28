@@ -18,39 +18,39 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 directive @cost(weight: Int!) on SCALAR | OBJECT | FIELD_DEFINITION | ARGUMENT_DEFINITION | ENUM | INPUT_FIELD_DEFINITION
 
 scalar Foo
-    @cost(weight: 6)
+  @cost(weight: 6)
 
 scalar join__FieldSet
 
 type Query
-    @cost(weight: 1)
+  @cost(weight: 1)
 {
-    foo(name: String @cost(weight: 100)): String @join__field(graph: A)
-    id: ID! @cost(weight: 2) @join__field(graph: A)
+  foo(name: String @cost(weight: 100)): String @join__field(graph: A)
+  id: ID! @cost(weight: 2) @join__field(graph: A)
 }
 
 interface Account
-    @cost(weight: 3)
-    @join__type(graph: A)
+  @cost(weight: 3)
+  @join__type(graph: A)
 {
-    foo(name: String @cost(weight: 200)): String
-    id: ID! @cost(weight: 4)
+  foo(name: String @cost(weight: 200)): String
+  id: ID! @cost(weight: 4)
 }
 
 enum Blah
-    @cost(weight: 5)
-    @join__type(graph: A)
+  @cost(weight: 5)
+  @join__type(graph: A)
 {
-    BLAH
+  BLAH
 }
 
 enum join__Graph
 {
-    A @join__graph(name: "a", url: "http://example.com/a")
+  A @join__graph(name: "a", url: "http://example.com/a")
 }
 
 input Bar
-    @join__type(graph: A)
+  @join__type(graph: A)
 {
-    x: String @cost(weight: 7)
+  x: String @cost(weight: 7)
 }
