@@ -104,7 +104,7 @@ rand_core = { version = "0.6", default-features = false, features = ["std"] }
 regex = { version = "1" }
 regex-automata = { version = "0.4", default-features = false, features = ["dfa", "hybrid", "meta", "nfa", "perf", "unicode"] }
 regex-syntax = { version = "0.8" }
-reqwest = { version = "0.12", default-features = false, features = ["blocking", "brotli", "deflate", "gzip", "hickory-dns", "http2", "json", "multipart", "rustls-tls", "stream", "zstd"] }
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "brotli", "deflate", "gzip", "hickory-dns", "http2", "json", "multipart", "rustls-tls", "rustls-tls-native-roots", "stream", "zstd"] }
 rsa = { version = "0.9" }
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "aws_lc_rs", "logging", "ring", "std", "tls12"] }
 rustls-webpki = { version = "0.103", default-features = false, features = ["aws-lc-rs", "ring", "std"] }
@@ -233,7 +233,7 @@ rand_core = { version = "0.6", default-features = false, features = ["std"] }
 regex = { version = "1" }
 regex-automata = { version = "0.4", default-features = false, features = ["dfa", "hybrid", "meta", "nfa", "perf", "unicode"] }
 regex-syntax = { version = "0.8" }
-reqwest = { version = "0.12", default-features = false, features = ["blocking", "brotli", "deflate", "gzip", "hickory-dns", "http2", "json", "multipart", "rustls-tls", "stream", "zstd"] }
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "brotli", "deflate", "gzip", "hickory-dns", "http2", "json", "multipart", "rustls-tls", "rustls-tls-native-roots", "stream", "zstd"] }
 rsa = { version = "0.9" }
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "aws_lc_rs", "logging", "ring", "std", "tls12"] }
 rustls-webpki = { version = "0.103", default-features = false, features = ["aws-lc-rs", "ring", "std"] }
@@ -282,6 +282,7 @@ addr2line = { version = "0.24", default-features = false, features = ["std"] }
 axum = { version = "0.8" }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
+hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 idna = { version = "1" }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -299,6 +300,7 @@ addr2line = { version = "0.24", default-features = false, features = ["std"] }
 axum = { version = "0.8" }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
+hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 idna = { version = "1" }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -316,6 +318,7 @@ addr2line = { version = "0.24", default-features = false, features = ["std"] }
 axum = { version = "0.8" }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
+hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 idna = { version = "1" }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -334,6 +337,7 @@ addr2line = { version = "0.24", default-features = false, features = ["std"] }
 axum = { version = "0.8" }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
+hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 idna = { version = "1" }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -350,6 +354,7 @@ tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features 
 [target.x86_64-pc-windows-msvc.dependencies]
 axum = { version = "0.8" }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
+hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
 idna = { version = "1" }
 rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["event", "fs", "net"] }
 spin = { version = "0.9" }
@@ -362,6 +367,7 @@ windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", feat
 [target.x86_64-pc-windows-msvc.build-dependencies]
 axum = { version = "0.8" }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
+hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
 idna = { version = "1" }
 rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["event", "fs", "net"] }
 spin = { version = "0.9" }
@@ -376,6 +382,7 @@ addr2line = { version = "0.24", default-features = false, features = ["std"] }
 axum = { version = "0.8" }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
+hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 idna = { version = "1" }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -394,6 +401,7 @@ addr2line = { version = "0.24", default-features = false, features = ["std"] }
 axum = { version = "0.8" }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
+hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 idna = { version = "1" }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -412,6 +420,7 @@ addr2line = { version = "0.24", default-features = false, features = ["std"] }
 axum = { version = "0.8" }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
+hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 idna = { version = "1" }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -429,6 +438,7 @@ addr2line = { version = "0.24", default-features = false, features = ["std"] }
 axum = { version = "0.8" }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
+hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 idna = { version = "1" }
 libc = { version = "0.2", features = ["extra_traits"] }
