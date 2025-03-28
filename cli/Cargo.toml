@@ -38,6 +38,7 @@ notify-debouncer-full.workspace = true
 os_type.workspace = true
 reqwest = { workspace = true, features = [
     "rustls-tls",
+    "rustls-tls-native-roots",
     "stream",
     "json",
     "multipart",
