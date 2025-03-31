@@ -406,7 +406,7 @@ fn ingest_field_directive(
             continue;
         };
         let directive = &ctx.graph.extension_directives[usize::from(id)];
-        if directive.kind.is_resolver() {
+        if directive.ty.is_field_resolver() {
             let subgraph_id = directive.subgraph_id;
             if !exists_in_subgraph_ids.contains(&subgraph_id) {
                 exists_in_subgraph_ids.push(subgraph_id);

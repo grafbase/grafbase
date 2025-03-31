@@ -124,7 +124,7 @@ impl FieldResolverExtension<DynHookContext> for TestExtensions {
             .await
             .get_field_resolver_ext(directive.extension_id, directive.subgraph());
         instance
-            .prepare_field(
+            .prepare(
                 directive,
                 field_definition,
                 serde_json::to_value(directive_arguments).unwrap(),
@@ -221,7 +221,7 @@ impl AnyExtension for FieldResolverExt {
                 name: self.name.to_string(),
                 version: "1.0.0".parse().unwrap(),
             },
-            r#type: extension_catalog::Type::Resolver(extension_catalog::ResolverType {
+            r#type: extension_catalog::Type::FieldResolver(extension_catalog::FieldResolverType {
                 resolver_directives: None,
             }),
             sdl: self.sdl,
@@ -247,7 +247,7 @@ impl<F: Fn() -> Arc<dyn FieldResolverTestExtension> + Send + Sync + 'static> Fie
 #[allow(unused_variables)] // makes it easier to copy-paste relevant functions
 #[async_trait::async_trait]
 pub trait FieldResolverTestExtension: Send + Sync + 'static {
-    async fn prepare_field<'ctx>(
+    async fn prepare<'ctx>(
         &self,
         directive: ExtensionDirective<'ctx>,
         field_definition: FieldDefinition<'ctx>,

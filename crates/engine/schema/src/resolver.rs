@@ -4,7 +4,8 @@ use walker::Walk;
 
 use crate::{
     FieldResolverExtensionDefinition, FieldSet, GraphqlFederationEntityResolverDefinition,
-    GraphqlRootFieldResolverDefinition, ResolverDefinition, ResolverDefinitionVariant, Subgraph, SubgraphId,
+    GraphqlRootFieldResolverDefinition, ResolverDefinition, ResolverDefinitionVariant,
+    SubQueryResolverExtensionDefinition, Subgraph, SubgraphId,
 };
 
 impl<'a> ResolverDefinition<'a> {
@@ -14,12 +15,11 @@ impl<'a> ResolverDefinition<'a> {
 
     pub fn subgraph_id(&self) -> SubgraphId {
         match self.variant() {
-            ResolverDefinitionVariant::GraphqlFederationEntity(resolver) => {
-                SubgraphId::GraphqlEndpoint(resolver.endpoint_id)
-            }
-            ResolverDefinitionVariant::GraphqlRootField(resolver) => SubgraphId::GraphqlEndpoint(resolver.endpoint_id),
+            ResolverDefinitionVariant::GraphqlFederationEntity(resolver) => resolver.endpoint_id.into(),
+            ResolverDefinitionVariant::GraphqlRootField(resolver) => resolver.endpoint_id.into(),
             ResolverDefinitionVariant::Introspection(_) => SubgraphId::Introspection,
             ResolverDefinitionVariant::FieldResolverExtension(resolver) => resolver.directive().subgraph_id,
+            ResolverDefinitionVariant::SubQueryResolverExtension(resolver) => resolver.subgraph_id.into(),
         }
     }
 
@@ -37,6 +37,7 @@ impl<'a> ResolverDefinition<'a> {
             ResolverDefinitionVariant::GraphqlRootField(resolver) => resolver.name().into(),
             ResolverDefinitionVariant::GraphqlFederationEntity(resolver) => resolver.name().into(),
             ResolverDefinitionVariant::FieldResolverExtension(resolver) => resolver.name().into(),
+            ResolverDefinitionVariant::SubQueryResolverExtension(resolver) => resolver.name().into(),
         }
     }
 }
@@ -56,5 +57,15 @@ impl GraphqlRootFieldResolverDefinition<'_> {
 impl GraphqlFederationEntityResolverDefinition<'_> {
     pub fn name(&self) -> String {
         format!("FedEntity#{}", self.endpoint().subgraph_name())
+    }
+}
+
+impl SubQueryResolverExtensionDefinition<'_> {
+    pub fn name(&self) -> String {
+        format!(
+            "SubQuery#{}#{}",
+            usize::from(self.extension_id),
+            self.subgraph().subgraph_name()
+        )
     }
 }

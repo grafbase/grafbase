@@ -58,7 +58,6 @@ impl<'a> Context<'a> {
             FxHashMap::with_capacity_and_hasher(federated_graph.input_value_definitions.len(), Default::default());
 
         let mut ctx = GraphContext {
-            ctx: self,
             graph,
             scalar_mapping,
             enum_mapping,
@@ -69,6 +68,8 @@ impl<'a> Context<'a> {
             graphql_federated_entity_resolvers: Default::default(),
             value_path: Default::default(),
             input_fields_buffer_pool: Default::default(),
+            virtual_subgraph_to_subquery_resolver: vec![None; self.subgraphs.virtual_subgraphs.len()],
+            ctx: self,
         };
 
         let mut schema_locations = Vec::with_capacity(

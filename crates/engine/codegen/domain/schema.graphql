@@ -247,7 +247,7 @@ scalar ExtensionDirectiveType @copy @prelude
 type ExtensionDirective @meta(module: "directive/extension") @indexed(id_size: "u32") {
   subgraph: Subgraph!
   extension_id: ExtensionId!
-  kind: ExtensionDirectiveType!
+  ty: ExtensionDirectiveType!
   name: String!
   argument_ids: [ExtensionDirectiveArgumentId!]!
   requirements: FieldSet!
@@ -322,11 +322,15 @@ type RenameDuplicateHeaderRule @meta(module: "header_rule/rename_duplicate") @co
 
 union ResolverDefinition
   @meta(module: "resolver")
-  @variants(empty: ["Introspection"], names: ["GraphqlRootField", "GraphqlFederationEntity", "FieldResolverExtension"])
+  @variants(
+    empty: ["Introspection"]
+    names: ["GraphqlRootField", "GraphqlFederationEntity", "FieldResolverExtension", "SubQueryResolverExtension"]
+  )
   @indexed(deduplicated: true, id_size: "u32") =
   | GraphqlRootFieldResolverDefinition
   | GraphqlFederationEntityResolverDefinition
   | FieldResolverExtensionDefinition
+  | SubQueryResolverExtensionDefinition
 
 type GraphqlRootFieldResolverDefinition @meta(module: "resolver/graphql") @copy {
   endpoint: GraphqlEndpoint!
@@ -339,4 +343,10 @@ type GraphqlFederationEntityResolverDefinition @meta(module: "resolver/graphql")
 
 type FieldResolverExtensionDefinition @meta(module: "resolver/field_resolver_ext") {
   directive: ExtensionDirective!
+}
+
+"There will be one per field contrary to GraphqlRootFieldResolverDefinition"
+type SubQueryResolverExtensionDefinition @meta(module: "resolver/subquery_resolver_ext") @copy {
+  subgraph: VirtualSubgraph!
+  extension_id: ExtensionId!
 }

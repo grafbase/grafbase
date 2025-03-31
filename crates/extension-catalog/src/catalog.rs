@@ -22,12 +22,21 @@ pub enum ExtensionDirectiveType {
     #[default]
     Unknown,
     FieldResolver,
+    SubQueryResolver,
     Authorization,
 }
 
 impl ExtensionDirectiveType {
     pub fn is_resolver(&self) -> bool {
+        matches!(self, Self::FieldResolver | Self::SubQueryResolver)
+    }
+
+    pub fn is_field_resolver(&self) -> bool {
         matches!(self, Self::FieldResolver)
+    }
+
+    pub fn is_subquery_resolver(&self) -> bool {
+        matches!(self, Self::SubQueryResolver)
     }
 
     pub fn is_authorization(&self) -> bool {
@@ -55,7 +64,7 @@ impl ExtensionCatalog {
 
     pub fn get_directive_type(&self, id: ExtensionId, name: &str) -> ExtensionDirectiveType {
         match &self[id].manifest.r#type {
-            extension::Type::Resolver(ResolverType { resolver_directives }) => {
+            Type::FieldResolver(FieldResolverType { resolver_directives }) => {
                 if let Some(directives) = resolver_directives {
                     directives
                         .iter()
@@ -66,7 +75,7 @@ impl ExtensionCatalog {
                     ExtensionDirectiveType::FieldResolver
                 }
             }
-            extension::Type::Authorization(AuthorizationType {
+            Type::Authorization(AuthorizationType {
                 authorization_directives: directives,
             }) => {
                 if let Some(directives) = directives {
@@ -79,7 +88,8 @@ impl ExtensionCatalog {
                     ExtensionDirectiveType::Authorization
                 }
             }
-            extension::Type::Authentication(_) => Default::default(),
+            Type::Authentication(_) => Default::default(),
+            Type::SubQueryResolver(_) => ExtensionDirectiveType::SubQueryResolver,
         }
     }
 

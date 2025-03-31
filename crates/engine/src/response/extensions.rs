@@ -63,10 +63,18 @@ impl GrafbaseResponseExtension {
                     },
                 }),
                 Resolver::FieldResolverExtension(resolver) => {
-                    QueryPlanNode::FieldResolverExtension(FieldResolverExtensionNode {
-                        subgraph_name: resolver.directive_id.walk(ctx).subgraph().name().to_string(),
+                    let directive = resolver.directive_id.walk(ctx);
+                    QueryPlanNode::Extension(ExtensionNode {
+                        directive_name: Some(directive.name().to_string()),
+                        id: ctx.schema[directive.extension_id].clone(),
+                        subgraph_name: directive.subgraph().name().to_string(),
                     })
                 }
+                Resolver::SubQueryResolverExtension(resolver) => QueryPlanNode::Extension(ExtensionNode {
+                    directive_name: None,
+                    id: ctx.schema[resolver.definition.extension_id].clone(),
+                    subgraph_name: resolver.definition.subgraph_id.walk(ctx).subgraph_name().to_string(),
+                }),
             });
             for child in plan.children() {
                 if let Executable::Plan(child) = child {
@@ -104,7 +112,7 @@ struct QueryPlan {
 enum QueryPlanNode {
     IntrospectionResolver,
     GraphqlResolver(GraphqlResolverNode),
-    FieldResolverExtension(FieldResolverExtensionNode),
+    Extension(ExtensionNode),
 }
 
 #[derive(Debug, Serialize)]
@@ -116,7 +124,9 @@ struct GraphqlResolverNode {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-struct FieldResolverExtensionNode {
+struct ExtensionNode {
+    id: extension_catalog::Id,
+    directive_name: Option<String>,
     subgraph_name: String,
 }
 

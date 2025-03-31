@@ -6,7 +6,7 @@ use std::{
 };
 
 use anyhow::Context;
-use extension::{BitFlags, ExtensionPermission, Manifest, ResolverType, Type};
+use extension::{BitFlags, ExtensionPermission, FieldResolverType, Manifest, Type};
 use semver::Version;
 use serde_valid::Validate;
 
@@ -245,7 +245,7 @@ fn parse_manifest(source_dir: &Path, wasm_path: &Path) -> anyhow::Result<Manifes
     let versions = parse_versions(&wasm_bytes)?;
 
     let extension_type = match extension_toml.extension.r#type {
-        ExtensionType::Resolver => Type::Resolver(ResolverType {
+        ExtensionType::Resolver => Type::FieldResolver(FieldResolverType {
             resolver_directives: extension_toml.directives.field_resolvers,
         }),
         ExtensionType::Authentication => Type::Authentication(Default::default()),

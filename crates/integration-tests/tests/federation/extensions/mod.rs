@@ -1,5 +1,6 @@
 mod authentication;
 mod authorization;
 mod basic;
-mod resolver;
+mod field_resolver;
 mod subgraph;
+mod subquery_resolver;

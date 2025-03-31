@@ -1,4 +1,4 @@
-use extension::FieldResolverExtension;
+use extension::{FieldResolverExtension, SubQueryResolverExtension};
 use futures::FutureExt;
 use futures_util::stream::BoxStream;
 use grafbase_telemetry::graphql::OperationType;
@@ -28,6 +28,7 @@ pub(crate) enum Resolver {
     FederationEntity(FederationEntityResolver),
     Introspection(IntrospectionResolver),
     FieldResolverExtension(FieldResolverExtension),
+    SubQueryResolverExtension(SubQueryResolverExtension),
 }
 
 impl Resolver {
@@ -46,6 +47,9 @@ impl Resolver {
             }
             ResolverDefinitionVariant::FieldResolverExtension(definition) => {
                 FieldResolverExtension::prepare(ctx, definition, plan_query_partition).await
+            }
+            ResolverDefinitionVariant::SubQueryResolverExtension(definition) => {
+                SubQueryResolverExtension::prepare(ctx, definition, plan_query_partition).await
             }
         }
     }
@@ -73,7 +77,6 @@ impl Resolver {
         match self {
             Resolver::Graphql(prepared) => {
                 let input_object_refs = root_response_objects.into_input_object_refs();
-
                 async move {
                     let mut ctx = prepared.build_subgraph_context(ctx);
                     let subgraph_result = prepared.execute(&mut ctx, input_object_refs, subgraph_response).await;
@@ -117,6 +120,17 @@ impl Resolver {
                 }
                 .boxed()
             }
+            Resolver::SubQueryResolverExtension(prepared) => {
+                let input_object_refs = root_response_objects.into_input_object_refs();
+                async move {
+                    let result = prepared.execute(ctx, plan, input_object_refs, subgraph_response).await;
+                    ResolverResult {
+                        execution: result,
+                        on_subgraph_response_hook_output: None,
+                    }
+                }
+                .boxed()
+            }
         }
     }
 
@@ -140,6 +154,9 @@ impl Resolver {
                 "Subscriptions can only be at the root of a query so can't contain federated entitites".into(),
             )),
             Resolver::FieldResolverExtension(prepared) => prepared.execute_subscription(ctx, plan, new_response).await,
+            Resolver::SubQueryResolverExtension(_) => Err(ExecutionError::Internal(
+                "Subscriptions are not supported by subquery resolvers.".into(),
+            )),
         }
     }
 }

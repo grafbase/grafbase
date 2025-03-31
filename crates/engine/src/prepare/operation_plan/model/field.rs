@@ -1,4 +1,6 @@
 use operation::Location;
+use query_solver::QueryOrSchemaFieldArgumentIds;
+use runtime::extension::SelectionSet;
 use schema::FieldDefinition;
 use walker::Walk;
 
@@ -31,6 +33,9 @@ impl<'a> SubgraphField<'a> {
     }
     pub(crate) fn arguments(&self) -> PartitionFieldArguments<'a> {
         self.as_ref().argument_ids.walk(self.ctx)
+    }
+    pub(crate) fn argument_ids(&self) -> QueryOrSchemaFieldArgumentIds {
+        self.as_ref().argument_ids
     }
     pub(crate) fn selection_set(&self) -> SubgraphSelectionSet<'a> {
         let field = self.as_ref();
@@ -70,11 +75,35 @@ impl<'a> runtime::extension::Field<'a> for SubgraphField<'a> {
         self.definition()
     }
 
-    fn arguments(&self) -> Option<runtime::extension::VariableId> {
-        todo!()
+    fn arguments(&self) -> Option<runtime::extension::ArgumentsId> {
+        if self.as_ref().argument_ids.is_empty() {
+            None
+        } else {
+            Some(runtime::extension::ArgumentsId(self.id.into()))
+        }
     }
 
-    fn selection_set(&self) -> Self::SelectionSet {
-        self.selection_set()
+    fn selection_set(&self) -> Option<Self::SelectionSet> {
+        let selection_set = self.selection_set();
+        if selection_set.is_empty() {
+            None
+        } else {
+            Some(selection_set)
+        }
+    }
+}
+
+impl<'a> runtime::extension::DynField<'a> for SubgraphField<'a> {
+    fn alias(&self) -> Option<&'a str> {
+        runtime::extension::Field::alias(self)
+    }
+    fn definition(&self) -> FieldDefinition<'a> {
+        self.definition()
+    }
+    fn arguments(&self) -> Option<runtime::extension::ArgumentsId> {
+        runtime::extension::Field::arguments(self)
+    }
+    fn selection_set(&self) -> Option<Box<dyn runtime::extension::DynSelectionSet<'a>>> {
+        runtime::extension::Field::selection_set(self).map(|s| s.as_dyn())
     }
 }
