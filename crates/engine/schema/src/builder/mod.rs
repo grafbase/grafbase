@@ -3,6 +3,7 @@ mod context;
 mod error;
 mod extension;
 mod graph;
+mod hash;
 mod interner;
 mod subgraphs;
 
@@ -20,17 +21,17 @@ use crate::*;
 
 pub(crate) async fn build(
     config: &gateway_config::Config,
-    federated_graph: &federated_graph::FederatedGraph,
+    federated_sdl: &str,
     extension_catalog: &ExtensionCatalog,
-    version: Version,
 ) -> Result<Schema, BuildError> {
-    Context::new(config, extension_catalog, federated_graph)
+    let federated_graph = federated_graph::FederatedGraph::from_sdl(federated_sdl).unwrap();
+    Context::new(config, extension_catalog, &federated_graph)
         .await?
-        .build(version)
+        .build(hash::compute(federated_sdl, extension_catalog))
 }
 
 impl Context<'_> {
-    fn build(mut self, version: Version) -> Result<Schema, BuildError> {
+    fn build(mut self, hash: [u8; 32]) -> Result<Schema, BuildError> {
         let default_headers = &self.config.headers;
         let default_header_rules = self.ingest_header_rules(default_headers);
         let (
@@ -99,7 +100,7 @@ impl Context<'_> {
         Ok(Schema {
             subgraphs,
             graph,
-            version,
+            hash,
             strings,
             regexps: regexps.into(),
             urls: urls.into(),

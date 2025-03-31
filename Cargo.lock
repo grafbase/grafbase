@@ -2782,6 +2782,7 @@ name = "engine-schema"
 version = "0.0.0"
 dependencies = [
  "anyhow",
+ "blake3",
  "cynic-parser",
  "cynic-parser-deser",
  "engine-id-derives",

@@ -19,6 +19,8 @@ pub use token::*;
 pub trait ExtensionRuntime: Send + Sync + 'static {
     type SharedContext: Send + Sync + 'static;
 
+    /// The data will be cached as part of the operation plan. Beware that the cache key will be
+    /// depended on the schema & extensions, but not on the configuration.
     fn prepare_field<'ctx>(
         &'ctx self,
         directive: ExtensionDirective<'ctx>,
