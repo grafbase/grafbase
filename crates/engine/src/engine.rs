@@ -149,6 +149,10 @@ impl<R: Runtime> Engine<R> {
     pub(crate) async fn with_gateway_timeout<T>(&self, fut: impl Future<Output = T> + Send) -> Option<T> {
         self.runtime.with_timeout(self.schema.settings.timeout, fut).await
     }
+
+    pub fn schema(&self) -> &Schema {
+        &self.schema
+    }
 }
 
 pub struct WebsocketSession<R: Runtime> {
