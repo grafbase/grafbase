@@ -1,14 +1,13 @@
 mod builder;
 mod dispatch;
+mod impls;
 mod test;
 
-use std::{
-    path::{Path, PathBuf},
-    sync::OnceLock,
-};
+use std::{path::Path, sync::OnceLock};
 
 pub use builder::*;
 pub use dispatch::*;
+pub use impls::*;
 pub use test::*;
 
 const EXTENSIONS_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/data/extensions/crates");
@@ -26,29 +25,4 @@ fn placeholder_sdk_version() -> semver::Version {
             manifest.into_latest().sdk_version
         })
         .clone()
-}
-
-pub enum WasmOrTestExtension {
-    Wasm(WasmExtension),
-    Test(Box<dyn TestExtensionBuilder>),
-}
-
-impl From<&'static str> for WasmOrTestExtension {
-    fn from(name: &'static str) -> Self {
-        WasmOrTestExtension::Wasm(WasmExtension {
-            name: name.to_string(),
-            dir: Path::new(EXTENSIONS_DIR).join(name).join("build"),
-        })
-    }
-}
-
-impl<B: TestExtensionBuilder + Sized> From<B> for WasmOrTestExtension {
-    fn from(builder: B) -> Self {
-        WasmOrTestExtension::Test(Box::new(builder))
-    }
-}
-
-pub struct WasmExtension {
-    pub name: String,
-    pub dir: PathBuf,
 }

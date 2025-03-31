@@ -1,62 +1,13 @@
-use std::{collections::HashMap, sync::Arc};
-
 use engine::{Engine, ErrorCode, ErrorResponse, GraphqlError};
-use extension_catalog::Id;
 use graphql_mocks::dynamic::DynamicSchema;
 use integration_tests::{
-    federation::{DynHookContext, EngineExt, TestExtension, TestExtensionBuilder, TestManifest},
+    federation::{AuthenticationExt, AuthorizationExt, AuthorizationTestExtension, DynHookContext, EngineExt},
     runtime,
 };
-use runtime::extension::{AuthorizationDecisions, QueryElement, Token, TokenRef};
+use runtime::extension::{AuthorizationDecisions, QueryElement, TokenRef};
 use serde::Deserialize;
 
-use crate::federation::extensions::authorization::AuthorizationExt;
-
-#[derive(Default, Clone)]
-struct AuthExt {
-    token: Option<Token>,
-}
-
-impl TestExtensionBuilder for AuthExt {
-    fn manifest(&self) -> TestManifest {
-        TestManifest {
-            id: Id {
-                name: "authentication".to_string(),
-                version: "1.0.0".parse().unwrap(),
-            },
-            r#type: extension_catalog::Type::Authentication(Default::default()),
-            sdl: None,
-        }
-    }
-
-    fn build(&self, _schema_directives: Vec<(&str, serde_json::Value)>) -> std::sync::Arc<dyn TestExtension> {
-        Arc::new(self.clone())
-    }
-}
-
-impl AuthExt {
-    fn anonymous() -> Self {
-        Self {
-            token: Some(Token::Anonymous),
-        }
-    }
-
-    fn claims(claims: &[(&'static str, &'static str)]) -> Self {
-        let claims: HashMap<&str, &str> = claims.iter().copied().collect();
-        Self {
-            token: Some(Token::Bytes(serde_json::to_vec(&claims).unwrap())),
-        }
-    }
-}
-
-#[async_trait::async_trait]
-impl TestExtension for AuthExt {
-    async fn authenticate(&self, _headers: &http::HeaderMap) -> Result<Token, ErrorResponse> {
-        self.token
-            .clone()
-            .ok_or_else(|| GraphqlError::new("No token found", ErrorCode::Unauthorized).into())
-    }
-}
+use crate::federation::extensions::authentication::static_token::StaticToken;
 
 #[derive(Default)]
 struct RequiresScopes;
@@ -67,8 +18,7 @@ struct Arguments {
 }
 
 #[async_trait::async_trait]
-impl TestExtension for RequiresScopes {
-    #[allow(clippy::manual_async_fn)]
+impl AuthorizationTestExtension for RequiresScopes {
     async fn authorize_query(
         &self,
         _wasm_context: &DynHookContext,
@@ -130,7 +80,7 @@ fn anonymous() {
                 .into_subgraph("x"),
             )
             .with_extension(AuthorizationExt::new(RequiresScopes))
-            .with_extension(AuthExt::anonymous())
+            .with_extension(AuthenticationExt::new(StaticToken::anonymous()))
             .build()
             .await;
 
@@ -195,7 +145,7 @@ fn missing_claim() {
                 .into_subgraph("x"),
             )
             .with_extension(AuthorizationExt::new(RequiresScopes))
-            .with_extension(AuthExt::claims(&[("dummy", "claim")]))
+            .with_extension(AuthenticationExt::new(StaticToken::claims(&[("dummy", "claim")])))
             .build()
             .await;
 
@@ -260,7 +210,7 @@ fn missing_scope() {
                 .into_subgraph("x"),
             )
             .with_extension(AuthorizationExt::new(RequiresScopes))
-            .with_extension(AuthExt::claims(&[("scopes", "group")]))
+            .with_extension(AuthenticationExt::new(StaticToken::claims(&[("scopes", "group")])))
             .build()
             .await;
 
@@ -343,7 +293,7 @@ fn valid_scope() {
                 .into_subgraph("x"),
             )
             .with_extension(AuthorizationExt::new(RequiresScopes))
-            .with_extension(AuthExt::claims(&[("scopes", "user")]))
+            .with_extension(AuthenticationExt::new(StaticToken::claims(&[("scopes", "user")])))
             .build()
             .await;
 

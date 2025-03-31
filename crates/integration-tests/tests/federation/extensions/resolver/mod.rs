@@ -8,7 +8,9 @@ use std::sync::Arc;
 use engine::GraphqlError;
 use engine_schema::{ExtensionDirective, FieldDefinition};
 use extension_catalog::Id;
-use integration_tests::federation::{TestExtension, TestExtensionBuilder, TestManifest};
+use integration_tests::federation::{
+    AnyExtension, FieldResolverTestExtension, FieldResolverTestExtensionBuilder, TestManifest,
+};
 use runtime::extension::Data;
 
 #[derive(Clone)]
@@ -24,9 +26,9 @@ impl StaticResolverExt {
     }
 }
 
-impl TestExtensionBuilder for StaticResolverExt {
-    fn manifest(&self) -> TestManifest {
-        TestManifest {
+impl AnyExtension for StaticResolverExt {
+    fn register(self, state: &mut integration_tests::federation::ExtensionsBuilder) {
+        let id = state.push_test_extension(TestManifest {
             id: Id {
                 name: "static".to_string(),
                 version: "1.0.0".parse().unwrap(),
@@ -35,16 +37,19 @@ impl TestExtensionBuilder for StaticResolverExt {
                 resolver_directives: None,
             }),
             sdl: Some(r#"directive @resolve on FIELD_DEFINITION"#),
-        }
+        });
+        state.test.field_resolver_builders.insert(id, Arc::new(self));
     }
+}
 
-    fn build(&self, _: Vec<(&str, serde_json::Value)>) -> std::sync::Arc<dyn TestExtension> {
+impl FieldResolverTestExtensionBuilder for StaticResolverExt {
+    fn build(&self, _: Vec<(&str, serde_json::Value)>) -> std::sync::Arc<dyn FieldResolverTestExtension> {
         Arc::new(self.clone())
     }
 }
 
 #[async_trait::async_trait]
-impl TestExtension for StaticResolverExt {
+impl FieldResolverTestExtension for StaticResolverExt {
     async fn resolve_field(
         &self,
         _directive: ExtensionDirective<'_>,

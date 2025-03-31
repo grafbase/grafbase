@@ -2,18 +2,16 @@ use engine::{Engine, ErrorResponse, GraphqlError};
 use engine_schema::DirectiveSite;
 use graphql_mocks::dynamic::DynamicSchema;
 use integration_tests::{
-    federation::{DynHookContext, EngineExt, TestExtension},
+    federation::{AuthorizationExt, AuthorizationTestExtension, DynHookContext, EngineExt},
     runtime,
 };
 use runtime::extension::{AuthorizationDecisions, QueryElement, TokenRef};
-
-use crate::federation::extensions::authorization::AuthorizationExt;
 
 #[derive(Default)]
 pub(super) struct GrantAll;
 
 #[async_trait::async_trait]
-impl TestExtension for GrantAll {
+impl AuthorizationTestExtension for GrantAll {
     #[allow(clippy::manual_async_fn)]
     async fn authorize_query(
         &self,

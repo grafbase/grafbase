@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use futures::future::BoxFuture;
 use futures_lite::FutureExt;
-use runtime::extension::{Data, ExtensionRuntime};
+use runtime::extension::{Data, FieldResolverExtension as _};
 use walker::Walk;
 
 use crate::{

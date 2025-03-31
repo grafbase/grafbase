@@ -1,50 +1,27 @@
-use std::sync::Arc;
-
 use engine::{Engine, GraphqlError};
 use engine_schema::{ExtensionDirective, FieldDefinition};
-use extension_catalog::Id;
 use integration_tests::{
-    federation::{EngineExt, TestExtension, TestExtensionBuilder, TestManifest, json_data},
+    federation::{EngineExt, FieldResolverExt, FieldResolverTestExtension, json_data},
     runtime,
 };
 use runtime::extension::Data;
 
 #[derive(Default, Clone)]
-pub struct GreetExt {
-    sdl: Option<&'static str>,
-}
+pub struct GreetExt;
 
 impl GreetExt {
-    pub fn with_sdl(sdl: &'static str) -> Self {
-        Self { sdl: Some(sdl) }
-    }
-}
-
-impl TestExtensionBuilder for GreetExt {
-    fn manifest(&self) -> TestManifest {
-        TestManifest {
-            id: Id {
-                name: "greet".to_string(),
-                version: "1.0.0".parse().unwrap(),
-            },
-            r#type: extension_catalog::Type::Resolver(extension_catalog::ResolverType {
-                resolver_directives: None,
-            }),
-            sdl: self.sdl.or(Some(
-                r#"
-                directive @greet on FIELD_DEFINITION
-                "#,
-            )),
-        }
-    }
-
-    fn build(&self, _schema_directives: Vec<(&str, serde_json::Value)>) -> std::sync::Arc<dyn TestExtension> {
-        Arc::new(GreetExt::default())
+    #[allow(clippy::new_ret_no_self)]
+    pub fn new() -> FieldResolverExt {
+        FieldResolverExt::new(Self).with_name("greet").with_sdl(
+            r#"
+            directive @greet on FIELD_DEFINITION
+            "#,
+        )
     }
 }
 
 #[async_trait::async_trait]
-impl TestExtension for GreetExt {
+impl FieldResolverTestExtension for GreetExt {
     async fn resolve_field(
         &self,
         _directive: ExtensionDirective<'_>,
@@ -77,7 +54,7 @@ fn simple_resolver_from_federated_sdl() {
                 }
                 "#,
             )
-            .with_extension(GreetExt::default())
+            .with_extension(GreetExt::new())
             .build()
             .await;
 
@@ -108,7 +85,7 @@ fn simple_resolver_from_subgraph_sdl() {
                 }
                 "#,
             )
-            .with_extension(GreetExt::default())
+            .with_extension(GreetExt::new())
             .build()
             .await;
 

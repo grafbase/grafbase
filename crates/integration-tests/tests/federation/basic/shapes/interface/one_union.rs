@@ -15,7 +15,9 @@ fn superset() {
         b: String!
     }
     "#;
-    let nodes = json!([{"__typename": "A", "id": "a_id", "a": "a_a"}]);
+    let nodes = json!([
+        {"__typename": "A", "id": "a_id", "a": "a_a"},
+    ]);
 
     with_gateway(schema, nodes, |gateway| async move {
         let response = gateway

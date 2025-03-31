@@ -1,18 +1,16 @@
 use engine::{Engine, ErrorCode, ErrorResponse, GraphqlError};
 use graphql_mocks::dynamic::DynamicSchema;
 use integration_tests::{
-    federation::{DynHookContext, EngineExt, TestExtension},
+    federation::{AuthorizationExt, AuthorizationTestExtension, DynHookContext, EngineExt},
     runtime,
 };
 use runtime::extension::{AuthorizationDecisions, QueryElement, TokenRef};
-
-use crate::federation::extensions::authorization::AuthorizationExt;
 
 #[derive(Default)]
 pub struct MultiDirectives;
 
 #[async_trait::async_trait]
-impl TestExtension for MultiDirectives {
+impl AuthorizationTestExtension for MultiDirectives {
     #[allow(clippy::manual_async_fn)]
     async fn authorize_query(
         &self,
@@ -50,7 +48,7 @@ impl TestExtension for MultiDirectives {
 pub struct MultiDirectivesBis;
 
 #[async_trait::async_trait]
-impl TestExtension for MultiDirectivesBis {
+impl AuthorizationTestExtension for MultiDirectivesBis {
     #[allow(clippy::manual_async_fn)]
     async fn authorize_query(
         &self,

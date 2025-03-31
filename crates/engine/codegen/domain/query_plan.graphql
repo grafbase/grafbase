@@ -36,10 +36,9 @@ type ResponseObjectSetDefinition @meta(module: "response_object_set") @indexed(i
 # ----------------
 
 type PartitionSelectionSet @meta(module: "selection_set", derive: ["Default"]) @copy {
-  data_fields_ordered_by_type_conditions_then_key: [PartitionDataField!]!
-    @field(record_field_name: "data_field_ids_ordered_by_type_conditions_then_key")
-  typename_fields_ordered_by_type_conditions_then_key: [PartitionTypenameField!]!
-    @field(record_field_name: "typename_field_ids_ordered_by_type_conditions_then_key")
+  data_fields_ordered_by_parent_entity_then_key: [PartitionDataField!]!
+    @field(record_field_name: "data_field_ids_ordered_by_parent_entity_then_key")
+  typename_fields: [PartitionTypenameField!]!
 }
 
 scalar PartitionDataField @record @indexed

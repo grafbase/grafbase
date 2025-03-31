@@ -10,15 +10,17 @@ use std::sync::Arc;
 use engine::GraphqlError;
 use engine_schema::{ExtensionDirective, FieldDefinition};
 use extension_catalog::Id;
-use integration_tests::federation::{TestExtension, TestExtensionBuilder, TestManifest, json_data};
+use integration_tests::federation::{
+    AnyExtension, ExtensionsBuilder, FieldResolverTestExtension, TestManifest, json_data,
+};
 use runtime::extension::Data;
 
 #[derive(Default)]
 pub struct DoubleEchoExt;
 
-impl TestExtensionBuilder for DoubleEchoExt {
-    fn manifest(&self) -> TestManifest {
-        TestManifest {
+impl AnyExtension for DoubleEchoExt {
+    fn register(self, state: &mut ExtensionsBuilder) {
+        let id = state.push_test_extension(TestManifest {
             id: Id {
                 name: "echo".to_string(),
                 version: "1.0.0".parse().unwrap(),
@@ -34,18 +36,17 @@ impl TestExtensionBuilder for DoubleEchoExt {
                 directive @echo(fields: FieldSet!) on FIELD_DEFINITION
             "#,
             ),
-        }
-    }
+        });
 
-    fn build(&self, _: Vec<(&str, serde_json::Value)>) -> Arc<dyn TestExtension> {
-        Arc::new(DoubleEchoInstance)
+        state.test.field_resolver_builders.insert(
+            id,
+            Arc::new(|| -> Arc<dyn FieldResolverTestExtension> { Arc::new(DoubleEchoExt) }),
+        );
     }
 }
 
-struct DoubleEchoInstance;
-
 #[async_trait::async_trait]
-impl TestExtension for DoubleEchoInstance {
+impl FieldResolverTestExtension for DoubleEchoExt {
     async fn resolve_field(
         &self,
         directive: ExtensionDirective<'_>,

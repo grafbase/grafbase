@@ -13,7 +13,9 @@ use engine::{Engine, GraphqlError};
 use engine_schema::{ExtensionDirective, FieldDefinition};
 use extension_catalog::Id;
 use integration_tests::{
-    federation::{EngineExt, TestExtension, TestExtensionBuilder, TestManifest, json_data},
+    federation::{
+        AnyExtension, EngineExt, FieldResolverTestExtension, FieldResolverTestExtensionBuilder, TestManifest, json_data,
+    },
     runtime,
 };
 use runtime::extension::Data;
@@ -29,9 +31,9 @@ impl EchoExt {
     }
 }
 
-impl TestExtensionBuilder for EchoExt {
-    fn manifest(&self) -> TestManifest {
-        TestManifest {
+impl AnyExtension for EchoExt {
+    fn register(self, state: &mut integration_tests::federation::ExtensionsBuilder) {
+        let id = state.push_test_extension(TestManifest {
             id: Id {
                 name: "echo".to_string(),
                 version: "1.0.0".parse().unwrap(),
@@ -40,10 +42,16 @@ impl TestExtensionBuilder for EchoExt {
                 resolver_directives: Some(vec!["echo".to_string()]),
             }),
             sdl: Some(self.sdl),
-        }
+        });
+        state.test.field_resolver_builders.insert(id, Arc::new(self));
     }
+}
 
-    fn build(&self, schema_directives: Vec<(&str, serde_json::Value)>) -> std::sync::Arc<dyn TestExtension> {
+impl FieldResolverTestExtensionBuilder for EchoExt {
+    fn build(
+        &self,
+        schema_directives: Vec<(&str, serde_json::Value)>,
+    ) -> std::sync::Arc<dyn FieldResolverTestExtension> {
         Arc::new(EchoInstance {
             schema_directives: schema_directives
                 .into_iter()
@@ -58,7 +66,7 @@ struct EchoInstance {
 }
 
 #[async_trait::async_trait]
-impl TestExtension for EchoInstance {
+impl FieldResolverTestExtension for EchoInstance {
     async fn resolve_field(
         &self,
         _directive: ExtensionDirective<'_>,

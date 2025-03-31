@@ -1,21 +1,18 @@
 use engine::{Engine, ErrorResponse};
 use graphql_mocks::{EchoSchema, Schema};
 use integration_tests::{
-    federation::{DynHookContext, EngineExt, TestExtension},
+    federation::{AuthenticationExt, AuthorizationExt, AuthorizationTestExtension, DynHookContext, EngineExt},
     runtime,
 };
 use runtime::extension::{AuthorizationDecisions, QueryElement, TokenRef};
 
-use crate::federation::extensions::{
-    authentication::{AuthenticationExt, static_token::StaticToken},
-    authorization::AuthorizationExt,
-};
+use crate::federation::extensions::authentication::static_token::StaticToken;
 
 #[derive(Default)]
 pub struct InsertTokenAsHeader;
 
 #[async_trait::async_trait]
-impl TestExtension for InsertTokenAsHeader {
+impl AuthorizationTestExtension for InsertTokenAsHeader {
     #[allow(clippy::manual_async_fn)]
     async fn authorize_query(
         &self,

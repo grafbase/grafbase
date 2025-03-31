@@ -3,7 +3,7 @@ use std::sync::Arc;
 use futures::FutureExt as _;
 use itertools::Itertools;
 use query_solver::QueryOrSchemaFieldArgumentIds;
-use runtime::extension::{AuthorizationDecisions, ExtensionRuntime};
+use runtime::extension::{AuthorizationDecisions, AuthorizationExtension as _};
 use schema::DirectiveSiteId;
 use walker::Walk;
 

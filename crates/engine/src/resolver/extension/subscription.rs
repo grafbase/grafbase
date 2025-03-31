@@ -1,6 +1,6 @@
 use futures::{TryStreamExt, stream::BoxStream};
 use futures_lite::{FutureExt, StreamExt};
-use runtime::extension::{Data, ExtensionRuntime};
+use runtime::extension::{Data, FieldResolverExtension as _};
 use walker::Walk;
 
 use crate::{
@@ -31,7 +31,7 @@ impl FieldResolverExtension {
         let stream = ctx
             .runtime()
             .extensions()
-            .resolve_subscription(directive, field_definition, &self.prepared_data, headers, query_view)
+            .resolve_subscription_field(directive, field_definition, &self.prepared_data, headers, query_view)
             .boxed()
             .await
             .map_err(|err| err.with_location(field.location()))?;

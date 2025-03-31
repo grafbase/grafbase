@@ -242,12 +242,12 @@ type ListSizeDirective @meta(module: "directive/complexity_control") @indexed(id
 
 scalar ExtensionId @id @prelude
 scalar ExtensionDirectiveArgumentId @id
-scalar ExtensionDirectiveKind @copy @prelude
+scalar ExtensionDirectiveType @copy @prelude
 
 type ExtensionDirective @meta(module: "directive/extension") @indexed(id_size: "u32") {
   subgraph: Subgraph!
   extension_id: ExtensionId!
-  kind: ExtensionDirectiveKind!
+  kind: ExtensionDirectiveType!
   name: String!
   argument_ids: [ExtensionDirectiveArgumentId!]!
   requirements: FieldSet!

@@ -4,17 +4,16 @@ use engine::{Engine, GraphqlError};
 use engine_schema::{ExtensionDirective, FieldDefinition};
 use extension_catalog::Id;
 use integration_tests::{
-    federation::{EngineExt, TestExtension, TestExtensionBuilder, TestManifest},
+    federation::{AnyExtension, EngineExt, ExtensionsBuilder, FieldResolverTestExtension, TestManifest},
     runtime,
 };
 use runtime::extension::Data;
 
-#[derive(Default)]
 pub struct EchoJsonDataExt;
 
-impl TestExtensionBuilder for EchoJsonDataExt {
-    fn manifest(&self) -> TestManifest {
-        TestManifest {
+impl AnyExtension for EchoJsonDataExt {
+    fn register(self, state: &mut ExtensionsBuilder) {
+        let id = state.push_test_extension(TestManifest {
             id: Id {
                 name: "echo".to_string(),
                 version: "1.0.0".parse().unwrap(),
@@ -29,16 +28,17 @@ impl TestExtensionBuilder for EchoJsonDataExt {
                 directive @echo(data: JsonTemplate!) on FIELD_DEFINITION
                 "#,
             ),
-        }
-    }
+        });
 
-    fn build(&self, _: Vec<(&str, serde_json::Value)>) -> std::sync::Arc<dyn TestExtension> {
-        Arc::new(EchoJsonDataExt)
+        state.test.field_resolver_builders.insert(
+            id,
+            Arc::new(|| -> Arc<dyn FieldResolverTestExtension> { Arc::new(EchoJsonDataExt) }),
+        );
     }
 }
 
 #[async_trait::async_trait]
-impl TestExtension for EchoJsonDataExt {
+impl FieldResolverTestExtension for EchoJsonDataExt {
     async fn resolve_field(
         &self,
         _directive: ExtensionDirective<'_>,

@@ -1,8 +1,11 @@
 use engine::Engine;
 use graphql_mocks::{EchoSchema, dynamic::DynamicSchema};
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{
+    federation::{AuthenticationExt, EngineExt},
+    runtime,
+};
 
-use crate::federation::extensions::authentication::{AuthenticationExt, static_token::StaticToken};
+use crate::federation::extensions::authentication::static_token::StaticToken;
 
 #[test]
 fn sdk_0100() {

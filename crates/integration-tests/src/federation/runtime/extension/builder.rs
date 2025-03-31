@@ -1,20 +1,18 @@
 use std::{
     collections::{HashMap, btree_map::Entry},
-    path::Path,
+    path::{Path, PathBuf},
     sync::Arc,
 };
 
-use engine_schema::SubgraphId;
 use extension_catalog::{Extension, ExtensionCatalog, ExtensionId, Manifest};
-use tokio::sync::Mutex;
 use url::Url;
 use wasi_component_loader::{extension::WasmExtensions, resources::SharedResources};
 
 use crate::federation::DispatchRule;
 
 use super::{
-    ExtensionsDispatcher, PLACEHOLDER_EXTENSION_DIR, TestExtension, TestExtensionBuilder, TestExtensions, TestManifest,
-    WasmExtension, placeholder_sdk_version,
+    EXTENSIONS_DIR, ExtensionsDispatcher, PLACEHOLDER_EXTENSION_DIR, TestExtensions, TestExtensionsState, TestManifest,
+    placeholder_sdk_version,
 };
 
 pub struct ExtensionsBuilder {
@@ -22,9 +20,7 @@ pub struct ExtensionsBuilder {
     catalog: ExtensionCatalog,
     has_wasm_extension: bool,
     dispatch: HashMap<ExtensionId, DispatchRule>,
-    builders: HashMap<ExtensionId, Box<dyn TestExtensionBuilder>>,
-    global_instances: Mutex<HashMap<ExtensionId, Arc<dyn TestExtension>>>,
-    subgraph_instances: Mutex<HashMap<(ExtensionId, SubgraphId), Arc<dyn TestExtension>>>,
+    pub test: TestExtensionsState,
 }
 
 impl Default for ExtensionsBuilder {
@@ -34,10 +30,18 @@ impl Default for ExtensionsBuilder {
             catalog: Default::default(),
             has_wasm_extension: false,
             dispatch: Default::default(),
-            builders: Default::default(),
-            global_instances: Default::default(),
-            subgraph_instances: Default::default(),
+            test: Default::default(),
         }
+    }
+}
+
+pub trait AnyExtension {
+    fn register(self, state: &mut ExtensionsBuilder);
+}
+
+impl AnyExtension for &'static str {
+    fn register(self, state: &mut ExtensionsBuilder) {
+        state.push_wasm_extension(self, Path::new(EXTENSIONS_DIR).join(self).join("build"))
     }
 }
 
@@ -65,12 +69,12 @@ impl ExtensionsBuilder {
     }
 
     #[track_caller]
-    pub fn push_wasm_extension(&mut self, ext: WasmExtension) {
+    pub fn push_wasm_extension(&mut self, name: &'static str, dir: PathBuf) {
         self.has_wasm_extension = true;
-        let manifest_path = ext.dir.join("manifest.json");
-        let wasm_path = ext.dir.join("extension.wasm");
-        if !ext.dir.is_dir() || !manifest_path.is_file() || !wasm_path.is_file() {
-            panic!("Extension '{}' not found in {}", ext.name, ext.dir.display());
+        let manifest_path = dir.join("manifest.json");
+        let wasm_path = dir.join("extension.wasm");
+        if !dir.is_dir() || !manifest_path.is_file() || !wasm_path.is_file() {
+            panic!("Extension '{}' not found in {}", name, dir.display());
         }
         // Yeah it's profoundly ugly but does provide a nicer consistent top-level API for tests.
         let Ok(manifest) = std::fs::read_to_string(manifest_path) else {
@@ -88,8 +92,8 @@ impl ExtensionsBuilder {
     }
 
     #[track_caller]
-    pub fn push_test_extension(&mut self, builder: Box<dyn TestExtensionBuilder>) {
-        let TestManifest { id, sdl, r#type } = builder.manifest();
+    pub fn push_test_extension(&mut self, manifest: TestManifest) -> ExtensionId {
+        let TestManifest { id, sdl, r#type } = manifest;
 
         let manifest = extension_catalog::Manifest {
             id,
@@ -117,7 +121,7 @@ impl ExtensionsBuilder {
             wasm_path: Path::new(PLACEHOLDER_EXTENSION_DIR).join("extension.wasm"),
         });
         self.dispatch.insert(id, DispatchRule::Test);
-        self.builders.insert(id, builder);
+        id
     }
 
     pub fn catalog(&self) -> &ExtensionCatalog {
@@ -177,11 +181,9 @@ impl ExtensionsBuilder {
 
         let extensions = ExtensionsDispatcher {
             wasm: wasm_extensions,
-            test: Arc::new(TestExtensions {
-                builders: self.builders,
-                global_instances: self.global_instances,
-                subgraph_instances: self.subgraph_instances,
-            }),
+            test: TestExtensions {
+                state: Arc::new(tokio::sync::Mutex::new(self.test)),
+            },
             dispatch: self.dispatch,
         };
 
