@@ -6,7 +6,7 @@ use std::{
 };
 
 use anyhow::Context;
-use extension::{BitFlags, ExtensionPermission, Kind, Manifest, ResolverKind};
+use extension::{BitFlags, ExtensionPermission, Manifest, ResolverType, Type};
 use semver::Version;
 use serde_valid::Validate;
 
@@ -72,7 +72,9 @@ struct ExtensionTomlExtension {
     #[validate(pattern = "^[a-z0-9-]+$")]
     name: String,
     version: Version,
-    kind: ExtensionKind,
+    // backwards compatibility for now.
+    #[serde(alias = "kind")]
+    r#type: ExtensionType,
     description: String,
     homepage_url: Option<url::Url>,
     repository_url: Option<url::Url>,
@@ -81,7 +83,7 @@ struct ExtensionTomlExtension {
 
 #[derive(serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
-enum ExtensionKind {
+enum ExtensionType {
     Resolver,
     Authentication,
     Authorization,
@@ -242,12 +244,12 @@ fn parse_manifest(source_dir: &Path, wasm_path: &Path) -> anyhow::Result<Manifes
 
     let versions = parse_versions(&wasm_bytes)?;
 
-    let kind = match extension_toml.extension.kind {
-        ExtensionKind::Resolver => Kind::Resolver(ResolverKind {
+    let extension_type = match extension_toml.extension.r#type {
+        ExtensionType::Resolver => Type::Resolver(ResolverType {
             resolver_directives: extension_toml.directives.field_resolvers,
         }),
-        ExtensionKind::Authentication => Kind::Authentication(Default::default()),
-        ExtensionKind::Authorization => Kind::Authorization(extension::AuthorizationKind {
+        ExtensionType::Authentication => Type::Authentication(Default::default()),
+        ExtensionType::Authorization => Type::Authorization(extension::AuthorizationType {
             authorization_directives: extension_toml.directives.authorization,
         }),
     };
@@ -299,7 +301,7 @@ fn parse_manifest(source_dir: &Path, wasm_path: &Path) -> anyhow::Result<Manifes
             name: extension_toml.extension.name,
             version: extension_toml.extension.version,
         },
-        kind,
+        r#type: extension_type,
         sdk_version: versions.sdk_version,
         minimum_gateway_version: versions.minimum_gateway_version,
         sdl,

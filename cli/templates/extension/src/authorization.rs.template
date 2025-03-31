@@ -1,6 +1,6 @@
 use grafbase_sdk::{
-    types::{Configuration, ErrorResponse, QueryElements, AuthorizationDecisions, Token, SubgraphHeaders, Error},
-    AuthorizationExtension,
+    AuthorizationExtension, IntoQueryAuthorization,
+    types::{AuthorizationDecisions, Configuration, Error, ErrorResponse, QueryElements, SubgraphHeaders, Token},
 };
 
 #[derive(AuthorizationExtension)]
@@ -8,7 +8,7 @@ struct {{name}};
 
 impl AuthorizationExtension for {{name}} {
     fn new(config: Configuration) -> Result<Self, Error> {
-        todo!()
+        Ok(Self)
     }
 
     fn authorize_query(
@@ -16,7 +16,7 @@ impl AuthorizationExtension for {{name}} {
         headers: &mut SubgraphHeaders,
         token: Token,
         elements: QueryElements<'_>,
-    ) -> Result<AuthorizationDecisions, ErrorResponse> {
+    ) -> Result<impl IntoQueryAuthorization, ErrorResponse> {
         Ok(AuthorizationDecisions::deny_all("Not authorized"))
     }
 }

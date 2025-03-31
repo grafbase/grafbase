@@ -4,12 +4,12 @@ expression: actual_api_sdl
 input_file: crates/graphql-composition/tests/composition/enum_only_inputs/test.md
 ---
 enum FilterName {
-    NAME
-    CREATED_AT
+  NAME
+  CREATED_AT
 }
 
 type Query {
-    searchFood(filterName: FilterName, filterValue: String): [String!]
-    searchProduct(filterName: FilterName, filterValue: String): [String!]
-    searchUser(filterName: FilterName, filterValue: String): [String!]
+  searchFood(filterName: FilterName, filterValue: String): [String!]
+  searchProduct(filterName: FilterName, filterValue: String): [String!]
+  searchUser(filterName: FilterName, filterValue: String): [String!]
 }

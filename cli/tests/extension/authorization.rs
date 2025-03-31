@@ -44,12 +44,13 @@ fn init() {
     codegen-units = 1
 
     [dependencies]
-    grafbase-sdk = "0.12.0"
+    grafbase-sdk = "0.13.0"
+    serde = { version = "1", features = ["derive"] }
 
     [dev-dependencies]
     indoc = "2"
-    insta = { version = "1.42.1", features = ["json"] }
-    grafbase-sdk = { version = "0.12.0", features = ["test-utils"] }
+    insta = { version = "1", features = ["json"] }
+    grafbase-sdk = { version = "0.13.0", features = ["test-utils"] }
     tokio = { version = "1", features = ["rt-multi-thread", "macros", "test-util"] }
     serde_json = "1"
     "#);
@@ -60,7 +61,7 @@ fn init() {
     [extension]
     name = "test-project"
     version = "0.1.0"
-    kind = "authorization"
+    type = "authorization"
     description = "A new extension"
     # homepage_url = "https://example.com/my-extension"
     # repository_url = "https://github.com/my-username/my-extension"
@@ -80,8 +81,8 @@ fn init() {
 
     insta::assert_snapshot!(&lib_rs, @r##"
     use grafbase_sdk::{
-        types::{Configuration, ErrorResponse, QueryElements, AuthorizationDecisions, Token, SubgraphHeaders, Error},
-        AuthorizationExtension,
+        AuthorizationExtension, IntoQueryAuthorization,
+        types::{AuthorizationDecisions, Configuration, Error, ErrorResponse, QueryElements, SubgraphHeaders, Token},
     };
 
     #[derive(AuthorizationExtension)]
@@ -89,7 +90,7 @@ fn init() {
 
     impl AuthorizationExtension for TestProject {
         fn new(config: Configuration) -> Result<Self, Error> {
-            todo!()
+            Ok(Self)
         }
 
         fn authorize_query(
@@ -97,7 +98,7 @@ fn init() {
             headers: &mut SubgraphHeaders,
             token: Token,
             elements: QueryElements<'_>,
-        ) -> Result<AuthorizationDecisions, ErrorResponse> {
+        ) -> Result<impl IntoQueryAuthorization, ErrorResponse> {
             Ok(AuthorizationDecisions::deny_all("Not authorized"))
         }
     }
@@ -108,7 +109,6 @@ fn init() {
     insta::assert_snapshot!(&definitions, @r#"
     """
     Fill in here the directives and types that the extension needs.
-    Remove this file and the definition in extension.toml if the extension does not need any directives.
     """
     directive @testProjectConfiguration(arg1: String) repeatable on SCHEMA
     directive @testProjectDirective on FIELD_DEFINITION
@@ -249,7 +249,7 @@ fn build() {
       "sdk_version": "<sdk_version>",
       "minimum_gateway_version": "<minimum_gateway_version>",
       "description": "A new extension",
-      "sdl": "\"\"\"\nFill in here the directives and types that the extension needs.\nRemove this file and the definition in extension.toml if the extension does not need any directives.\n\"\"\"\ndirective @testProjectConfiguration(arg1: String) repeatable on SCHEMA\ndirective @testProjectDirective on FIELD_DEFINITION",
+      "sdl": "\"\"\"\nFill in here the directives and types that the extension needs.\n\"\"\"\ndirective @testProjectConfiguration(arg1: String) repeatable on SCHEMA\ndirective @testProjectDirective on FIELD_DEFINITION",
       "permissions": []
     }
     "#

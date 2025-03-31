@@ -4,26 +4,26 @@ expression: actual_api_sdl
 input_file: crates/graphql-composition/tests/composition/entity_interface_basic/test.md
 ---
 type Squirrel {
-    favouriteFood: String
+  favouriteFood: String
 }
 
 type Cheetah {
-    favouriteFood: String
-    species: String!
-    topSpeed: Int!
-    weightGrams: Int
+  favouriteFood: String
+  species: String!
+  topSpeed: Int!
+  weightGrams: Int
 }
 
 type Mammoth {
-    tuskLength: Int
+  tuskLength: Int
 }
 
 type Query {
-    getMammoth: Mammoth
+  getMammoth: Mammoth
 }
 
 interface Animal {
-    favouriteFood: String
-    species: String
-    weightGrams: Int
+  favouriteFood: String
+  species: String
+  weightGrams: Int
 }

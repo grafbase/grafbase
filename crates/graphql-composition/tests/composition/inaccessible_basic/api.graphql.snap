@@ -4,54 +4,54 @@ expression: actual_api_sdl
 input_file: crates/graphql-composition/tests/composition/inaccessible_basic/test.md
 ---
 type Ungulate {
-    id: ID!
-    name: String!
+  id: ID!
+  name: String!
 }
 
 type Movie {
-    director: String!
-    id: ID!
-    releaseYear: Int
-    title: String!
+  director: String!
+  id: ID!
+  releaseYear: Int
+  title: String!
 }
 
 type Series {
-    id: ID!
-    seasons: Int
-    title: String!
+  id: ID!
+  seasons: Int
+  title: String!
 }
 
 type New {
-    other: String!
+  other: String!
 }
 
 type Book {
-    author: String!
-    genre: String
-    id: ID!
-    publishedYear: Int
-    title: String!
+  author: String!
+  genre: String
+  id: ID!
+  publishedYear: Int
+  title: String!
 }
 
 type Quadratic {
-    coefficients: [Float]
-    degree: Int
-    discriminant: Float
+  coefficients: [Float]
+  degree: Int
+  discriminant: Float
 }
 
 type Cubic {
-    coefficients: [Float]
-    degree: Int
-    inflectionPoint: Float
+  coefficients: [Float]
+  degree: Int
+  inflectionPoint: Float
 }
 
 type Query {
-    getBook(id: ID!): Book
-    getNew(name: String!): New
-    getUngulate(id: ID!): Ungulate
+  getBook(id: ID!): Book
+  getNew(name: String!): New
+  getUngulate(id: ID!): Ungulate
 }
 
 type Mutation {
-    addBook(input: BookInput!): Book
-    updateBook(id: ID!, input: BookInput!): Book
+  addBook(input: BookInput!): Book
+  updateBook(id: ID!, input: BookInput!): Book
 }

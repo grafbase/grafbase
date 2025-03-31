@@ -6,21 +6,21 @@ input_file: crates/graphql-composition/tests/composition/cost_basic/test.md
 directive @cost(weight: Int!) on SCALAR | OBJECT | FIELD_DEFINITION | ARGUMENT_DEFINITION | ENUM | INPUT_FIELD_DEFINITION
 
 enum Blah {
-    BLAH
+  BLAH
 }
 
 type Query {
-    foo(name: String): String
-    id: ID!
+  foo(name: String): String
+  id: ID!
 }
 
 interface Account {
-    foo(name: String): String
-    id: ID!
+  foo(name: String): String
+  id: ID!
 }
 
 input Bar {
-    x: String
+  x: String
 }
 
 scalar Foo

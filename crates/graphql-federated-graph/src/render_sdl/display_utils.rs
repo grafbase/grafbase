@@ -7,7 +7,7 @@ use std::{
 };
 
 pub(super) const BUILTIN_SCALARS: &[&str] = &["ID", "String", "Int", "Float", "Boolean"];
-pub(super) const INDENT: &str = "    ";
+pub(super) const INDENT: &str = "  ";
 
 /// Lets you take a routine that expects a formatter, and use it on a string.
 pub(in crate::render_sdl) fn with_formatter<F>(out: &mut String, action: F) -> fmt::Result

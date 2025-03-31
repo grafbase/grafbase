@@ -18,33 +18,33 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 scalar join__FieldSet
 
 type Product
-    @join__type(graph: PRODUCTS, key: "id")
-    @join__type(graph: REVIEWS, key: "id")
+  @join__type(graph: PRODUCTS, key: "id")
+  @join__type(graph: REVIEWS, key: "id")
 {
-    id: ID!
-    name: String @join__field(graph: PRODUCTS)
-    reviews: [Review] @join__field(graph: REVIEWS)
+  id: ID!
+  name: String @join__field(graph: PRODUCTS)
+  reviews: [Review] @join__field(graph: REVIEWS)
 }
 
 type Review
-    @join__type(graph: REVIEWS)
+  @join__type(graph: REVIEWS)
 {
-    id: ID!
-    text: String!
+  id: ID!
+  text: String!
 }
 
 type Query
 {
-    foo: String! @join__field(graph: REVIEWS)
+  foo: String! @join__field(graph: REVIEWS)
 }
 
 type Subscription
 {
-    topProducts: Product @join__field(graph: PRODUCTS)
+  topProducts: Product @join__field(graph: PRODUCTS)
 }
 
 enum join__Graph
 {
-    PRODUCTS @join__graph(name: "products", url: "http://example.com/products")
-    REVIEWS @join__graph(name: "reviews", url: "http://example.com/reviews")
+  PRODUCTS @join__graph(name: "products", url: "http://example.com/products")
+  REVIEWS @join__graph(name: "reviews", url: "http://example.com/reviews")
 }

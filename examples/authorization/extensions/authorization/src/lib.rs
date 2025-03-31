@@ -67,14 +67,14 @@ impl AuthorizationExtension for MyAuthorization {
             match directive_name {
                 "jwtScope" => {
                     for element in elements {
-                        let JwtScopeArguments { scopes } = element.arguments::<JwtScopeArguments>()?;
+                        let JwtScopeArguments { scopes } = element.directive_arguments::<JwtScopeArguments>()?;
                         required_jwt_scopes_accumulator.extend(scopes);
                     }
                 }
                 "accessControl" => {
                     for element in elements {
-                        match element.site() {
-                            DirectiveSite::Object(site) => match site.object_name() {
+                        match element.directive_site() {
+                            DirectiveSite::Object(object) => match object.name() {
                                 "Account" => state.denied_ids.push(DeniedIds {
                                     query_element_id: element.id().into(),
                                     authorized_ids: if let Some(ids) = authorized_user_ids.as_ref() {
@@ -89,10 +89,10 @@ impl AuthorizationExtension for MyAuthorization {
                                     return Err(unsupported());
                                 }
                             },
-                            DirectiveSite::FieldDefinition(site) => {
-                                match (site.parent_type_name(), site.field_name()) {
+                            DirectiveSite::FieldDefinition(field) => {
+                                match (field.parent_type_name(), field.name()) {
                                     ("Query", "user") => {
-                                        let AccessControlArguments { arguments, .. } = element.arguments()?;
+                                        let AccessControlArguments { arguments, .. } = element.directive_arguments()?;
                                         let arguments = arguments.unwrap();
                                         let ids = if let Some(ids) = authorized_user_ids.as_ref() {
                                             ids
@@ -163,7 +163,7 @@ impl AuthorizationExtension for MyAuthorization {
                 // for `users` field or `User` type, etc. depending on the directive location. But
                 // an item for every occurrence of the user within the response.
                 for item in element.items() {
-                    let AccessControlArguments { fields, .. } = item.deserialize()?;
+                    let AccessControlArguments { fields, .. } = item.directive_arguments()?;
                     let fields = fields.unwrap();
                     if !denied.authorized_ids.contains(&(fields.id_as_u32().into())) {
                         let error_id = *lazy_error_id

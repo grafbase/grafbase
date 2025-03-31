@@ -20,38 +20,38 @@ scalar _Any
 scalar join__FieldSet
 
 type Pet
-    @join__type(graph: PETS, key: "id")
+  @join__type(graph: PETS, key: "id")
 {
-    age: String!
-    id: Int!
-    name: String!
+  age: String!
+  id: Int!
+  name: String!
 }
 
 type User
-    @join__type(graph: PETS, key: "id")
-    @join__type(graph: USERS, key: "id")
+  @join__type(graph: PETS, key: "id")
+  @join__type(graph: USERS, key: "id")
 {
-    address: Address @authorized(fields: "id") @join__field(graph: USERS)
-    id: Int!
-    name: String! @join__field(graph: USERS)
-    pets: [Pet!]! @join__field(graph: PETS)
+  address: Address @authorized(fields: "id") @join__field(graph: USERS)
+  id: Int!
+  name: String! @join__field(graph: USERS)
+  pets: [Pet!]! @join__field(graph: PETS)
 }
 
 type Address
-    @join__type(graph: USERS)
+  @join__type(graph: USERS)
 {
-    street: String!
+  street: String!
 }
 
 type Query
 {
-    pets: [Pet]! @join__field(graph: PETS)
-    user(id: Int!): User @authorized(arguments: "id") @join__field(graph: USERS)
-    users: [User]! @authorized(node: "id", metadata: {role: "admin"}) @join__field(graph: USERS)
+  pets: [Pet]! @join__field(graph: PETS)
+  user(id: Int!): User @authorized(arguments: "id") @join__field(graph: USERS)
+  users: [User]! @authorized(node: "id", metadata: {role: "admin"}) @join__field(graph: USERS)
 }
 
 enum join__Graph
 {
-    PETS @join__graph(name: "pets", url: "http://example.com/pets")
-    USERS @join__graph(name: "users", url: "http://example.com/users")
+  PETS @join__graph(name: "pets", url: "http://example.com/pets")
+  USERS @join__graph(name: "users", url: "http://example.com/users")
 }

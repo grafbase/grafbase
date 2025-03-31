@@ -18,24 +18,24 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 scalar join__FieldSet
 
 type AppleSauce
-    @tag(name: "apple_sauce")
-    @join__type(graph: TAGGED, key: "id")
+  @tag(name: "apple_sauce")
+  @join__type(graph: TAGGED, key: "id")
 {
-    appleVariety: String
-    chunky: Boolean!
-    id: ID!
-    organic: Boolean
-    servingSize: Float
-    sweetness: Int!
+  appleVariety: String
+  chunky: Boolean!
+  id: ID!
+  organic: Boolean
+  servingSize: Float
+  sweetness: Int!
 }
 
 type Query
 {
-    allAppleSauces: [AppleSauce!]! @join__field(graph: TAGGED)
-    getAppleSauce(id: ID!): AppleSauce @join__field(graph: TAGGED)
+  allAppleSauces: [AppleSauce!]! @join__field(graph: TAGGED)
+  getAppleSauce(id: ID!): AppleSauce @join__field(graph: TAGGED)
 }
 
 enum join__Graph
 {
-    TAGGED @join__graph(name: "tagged", url: "http://example.com/tagged")
+  TAGGED @join__graph(name: "tagged", url: "http://example.com/tagged")
 }

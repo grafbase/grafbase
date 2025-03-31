@@ -4,12 +4,12 @@ expression: actual_api_sdl
 input_file: crates/graphql-composition/tests/composition/authenticated_basic/test.md
 ---
 type Car {
-    id: String!
-    km: Int!
-    spareParts: [String!]
-    year: Int!
+  id: String!
+  km: Int!
+  spareParts: [String!]
+  year: Int!
 }
 
 type Query {
-    cars: [Car!]!
+  cars: [Car!]!
 }

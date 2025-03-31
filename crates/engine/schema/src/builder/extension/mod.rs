@@ -148,7 +148,7 @@ impl GraphContext<'_> {
         let kind = self
             .ctx
             .extension_catalog
-            .get_directive_kind(self[extension_id].catalog_id, directive_name);
+            .get_directive_type(self[extension_id].catalog_id, directive_name);
 
         let cynic_location = location.to_cynic_location();
         if definition

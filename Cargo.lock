@@ -3571,7 +3571,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase"
-version = "0.88.0"
+version = "0.88.2"
 dependencies = [
  "anyhow",
  "askama",
@@ -3730,7 +3730,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.12.0"
+version = "0.13.0"
 dependencies = [
  "anyhow",
  "async-tungstenite",
@@ -3890,6 +3890,7 @@ dependencies = [
  "hex",
  "http-types",
  "hyper 1.6.0",
+ "hyper-rustls",
  "hyper-util",
  "iana-time-zone",
  "idna",
@@ -4703,6 +4704,7 @@ dependencies = [
  "hyper 1.6.0",
  "hyper-util",
  "rustls 0.23.25",
+ "rustls-native-certs 0.8.1",
  "rustls-pki-types",
  "tokio",
  "tokio-rustls 0.26.2",
@@ -7532,6 +7534,7 @@ dependencies = [
  "pin-project-lite",
  "quinn",
  "rustls 0.23.25",
+ "rustls-native-certs 0.8.1",
  "rustls-pemfile",
  "rustls-pki-types",
  "serde",

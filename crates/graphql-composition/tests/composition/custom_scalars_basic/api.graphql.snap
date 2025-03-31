@@ -4,12 +4,12 @@ expression: actual_api_sdl
 input_file: crates/graphql-composition/tests/composition/custom_scalars_basic/test.md
 ---
 type Sheep {
-    sheepIdx: Tethera
-    texture: Texture!
+  sheepIdx: Tethera
+  texture: Texture!
 }
 
 type Query {
-    sheep: Sheep
+  sheep: Sheep
 }
 
 scalar Yan

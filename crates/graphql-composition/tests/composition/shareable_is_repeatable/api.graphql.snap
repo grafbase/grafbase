@@ -4,13 +4,13 @@ expression: actual_api_sdl
 input_file: crates/graphql-composition/tests/composition/shareable_is_repeatable/test.md
 ---
 type Color {
-    blue: Int!
-    green: Int!
-    name: String!
-    red: Int!
+  blue: Int!
+  green: Int!
+  name: String!
+  red: Int!
 }
 
 type Query {
-    doubleRainbowAllTheWay: [Color!]!
-    version: String
+  doubleRainbowAllTheWay: [Color!]!
+  version: String
 }

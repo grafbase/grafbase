@@ -18,21 +18,21 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 scalar join__FieldSet
 
 type Color
-    @join__type(graph: THEOONE)
+  @join__type(graph: THEOONE)
 {
-    blue: Int!
-    green: Int!
-    name: String!
-    red: Int!
+  blue: Int!
+  green: Int!
+  name: String!
+  red: Int!
 }
 
 type Query
 {
-    doubleRainbowAllTheWay: [Color!]! @join__field(graph: THEOONE)
-    version: String @join__field(graph: THEOONE)
+  doubleRainbowAllTheWay: [Color!]! @join__field(graph: THEOONE)
+  version: String @join__field(graph: THEOONE)
 }
 
 enum join__Graph
 {
-    THEOONE @join__graph(name: "theoone", url: "http://example.com/theoone")
+  THEOONE @join__graph(name: "theoone", url: "http://example.com/theoone")
 }

@@ -24,7 +24,7 @@ impl TestExtensionBuilder for AuthExt {
                 name: "authentication".to_string(),
                 version: "1.0.0".parse().unwrap(),
             },
-            kind: extension_catalog::Kind::Authentication(Default::default()),
+            r#type: extension_catalog::Type::Authentication(Default::default()),
             sdl: None,
         }
     }

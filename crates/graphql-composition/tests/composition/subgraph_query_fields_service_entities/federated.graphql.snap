@@ -20,71 +20,71 @@ scalar _Any
 scalar join__FieldSet
 
 type Lentil
-    @join__type(graph: LENTILS, key: "id")
+  @join__type(graph: LENTILS, key: "id")
 {
-    color: String!
-    id: ID!
-    name: String!
-    nutritionalInfo: NutritionalInfo
-    origin: String
+  color: String!
+  id: ID!
+  name: String!
+  nutritionalInfo: NutritionalInfo
+  origin: String
 }
 
 type NutritionalInfo
-    @join__type(graph: LENTILS)
-    @join__type(graph: RICE)
+  @join__type(graph: LENTILS)
+  @join__type(graph: RICE)
 {
-    calories: Int
-    carbohydrates: Float
-    fat: Float
-    fiber: Float
-    protein: Float
+  calories: Int
+  carbohydrates: Float
+  fat: Float
+  fiber: Float
+  protein: Float
 }
 
 type Rice
-    @join__type(graph: RICE)
+  @join__type(graph: RICE)
 {
-    id: ID!
-    name: String!
-    nutritionalInfo: NutritionalInfo
-    origin: String
-    variety: String!
+  id: ID!
+  name: String!
+  nutritionalInfo: NutritionalInfo
+  origin: String
+  variety: String!
 }
 
 type Query
 {
-    lentil(id: ID!): Lentil @join__field(graph: LENTILS)
-    lentils: [Lentil] @join__field(graph: LENTILS)
-    rice(id: ID!): Rice @join__field(graph: RICE)
-    rices: [Rice] @join__field(graph: RICE)
+  lentil(id: ID!): Lentil @join__field(graph: LENTILS)
+  lentils: [Lentil] @join__field(graph: LENTILS)
+  rice(id: ID!): Rice @join__field(graph: RICE)
+  rices: [Rice] @join__field(graph: RICE)
 }
 
 type Mutation
 {
-    addLentil(input: AddLentilInput!): Lentil @join__field(graph: LENTILS)
-    deleteLentil(id: ID!): Lentil @join__field(graph: LENTILS)
+  addLentil(input: AddLentilInput!): Lentil @join__field(graph: LENTILS)
+  deleteLentil(id: ID!): Lentil @join__field(graph: LENTILS)
 }
 
 enum join__Graph
 {
-    LENTILS @join__graph(name: "lentils", url: "http://example.com/lentils")
-    RICE @join__graph(name: "rice", url: "http://example.com/rice")
+  LENTILS @join__graph(name: "lentils", url: "http://example.com/lentils")
+  RICE @join__graph(name: "rice", url: "http://example.com/rice")
 }
 
 input AddLentilInput
-    @join__type(graph: LENTILS)
+  @join__type(graph: LENTILS)
 {
-    name: String!
-    color: String!
-    origin: String
-    nutritionalInfo: NutritionalInfoInput
+  name: String!
+  color: String!
+  origin: String
+  nutritionalInfo: NutritionalInfoInput
 }
 
 input NutritionalInfoInput
-    @join__type(graph: LENTILS)
+  @join__type(graph: LENTILS)
 {
-    calories: Int
-    protein: Float
-    carbohydrates: Float
-    fiber: Float
-    fat: Float
+  calories: Int
+  protein: Float
+  carbohydrates: Float
+  fiber: Float
+  fat: Float
 }

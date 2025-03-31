@@ -188,7 +188,7 @@ mod tests {
                 name: name.to_string(),
                 version: version.parse().unwrap(),
             },
-            kind: extension_catalog::Kind::Resolver(extension_catalog::ResolverKind {
+            r#type: extension_catalog::Type::Resolver(extension_catalog::ResolverType {
                 resolver_directives: None,
             }),
             sdk_version: "0.1.0".parse().unwrap(),

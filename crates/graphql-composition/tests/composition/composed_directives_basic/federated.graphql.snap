@@ -20,77 +20,77 @@ scalar DateTime
 scalar join__FieldSet
 
 type Bird
-    @fieldMarks(plumage: "juvenile")
-    @fieldMarks(plumage: "adult")
-    @join__type(graph: BIRDWATCH_BASIC)
-    @join__type(graph: OBSERVATIONS)
-    @join__type(graph: SIGHTINGS)
+  @fieldMarks(plumage: "juvenile")
+  @fieldMarks(plumage: "adult")
+  @join__type(graph: BIRDWATCH_BASIC)
+  @join__type(graph: OBSERVATIONS)
+  @join__type(graph: SIGHTINGS)
 {
-    id: ID!
-    location: String! @tag(name: "locationService") @tag(name: "b") @tag(name: "a")
-    name: String!
-    notes: String @deprecated(reason: "Field is obsolete due to new data model.")
-    observedAt: DateTime! @deprecated(reason: "Use UNIX timestamps instead as customary in bird watching")
-    species: String!
+  id: ID!
+  location: String! @tag(name: "locationService") @tag(name: "b") @tag(name: "a")
+  name: String!
+  notes: String @deprecated(reason: "Field is obsolete due to new data model.")
+  observedAt: DateTime! @deprecated(reason: "Use UNIX timestamps instead as customary in bird watching")
+  species: String!
 }
 
 type BirdObservation
-    @join__type(graph: OBSERVATIONS)
+  @join__type(graph: OBSERVATIONS)
 {
-    bird: Bird!
-    observationID: ID!
-    observerDetails: ObserverDetails!
-    timeOfObservation: DateTime!
+  bird: Bird!
+  observationID: ID!
+  observerDetails: ObserverDetails!
+  timeOfObservation: DateTime!
 }
 
 type ObserverDetails
-    @join__type(graph: OBSERVATIONS)
+  @join__type(graph: OBSERVATIONS)
 {
-    membershipNumber: String
-    name: String!
-    observerType: ObserverType!
+  membershipNumber: String
+  name: String!
+  observerType: ObserverType!
 }
 
 type BirdSighting
-    @deprecated(reason: "we haven't seen any birds in a while :(")
-    @join__type(graph: SIGHTINGS)
+  @deprecated(reason: "we haven't seen any birds in a while :(")
+  @join__type(graph: SIGHTINGS)
 {
-    bird: Bird! @pelagic
-    observer: String!
-    sightingID: ID!
-    weatherConditions: String
+  bird: Bird! @pelagic
+  observer: String!
+  sightingID: ID!
+  weatherConditions: String
 }
 
 type Query
 {
-    bird(id: ID!): Bird @join__field(graph: BIRDWATCH_BASIC)
-    birdObservation(observationID: ID!): BirdObservation @join__field(graph: OBSERVATIONS)
-    birdObservations(filters: BirdObservationFilters): [BirdObservation] @join__field(graph: OBSERVATIONS)
-    birdSighting(sightingID: ID!, private: Boolean @deprecated): BirdSighting @join__field(graph: SIGHTINGS)
-    birdSightings: [BirdSighting] @join__field(graph: SIGHTINGS)
-    birds: [Bird] @join__field(graph: BIRDWATCH_BASIC)
+  bird(id: ID!): Bird @join__field(graph: BIRDWATCH_BASIC)
+  birdObservation(observationID: ID!): BirdObservation @join__field(graph: OBSERVATIONS)
+  birdObservations(filters: BirdObservationFilters): [BirdObservation] @join__field(graph: OBSERVATIONS)
+  birdSighting(sightingID: ID!, private: Boolean @deprecated): BirdSighting @join__field(graph: SIGHTINGS)
+  birdSightings: [BirdSighting] @join__field(graph: SIGHTINGS)
+  birds: [Bird] @join__field(graph: BIRDWATCH_BASIC)
 }
 
 enum ObserverType
-    @join__type(graph: OBSERVATIONS)
+  @join__type(graph: OBSERVATIONS)
 {
-    AMATEUR
-    SEMIPROFESSIONAL @deprecated(reason: "No such thing as semiprofessionals")
-    PROFESSIONAL
+  AMATEUR
+  SEMIPROFESSIONAL @deprecated(reason: "No such thing as semiprofessionals")
+  PROFESSIONAL
 }
 
 enum join__Graph
 {
-    BIRDWATCH_BASIC @join__graph(name: "birdwatch-basic", url: "http://example.com/birdwatch-basic")
-    OBSERVATIONS @join__graph(name: "observations", url: "http://example.com/observations")
-    SIGHTINGS @join__graph(name: "sightings", url: "http://example.com/sightings")
+  BIRDWATCH_BASIC @join__graph(name: "birdwatch-basic", url: "http://example.com/birdwatch-basic")
+  OBSERVATIONS @join__graph(name: "observations", url: "http://example.com/observations")
+  SIGHTINGS @join__graph(name: "sightings", url: "http://example.com/sightings")
 }
 
 input BirdObservationFilters
-    @join__type(graph: OBSERVATIONS)
+  @join__type(graph: OBSERVATIONS)
 {
-    observedAt: DateTime @deprecated(reason: "UNIX timestamps instead, as usual in bird watching")
-    observerType: ObserverType
-    observerName: String
-    first: Int
+  observedAt: DateTime @deprecated(reason: "UNIX timestamps instead, as usual in bird watching")
+  observerType: ObserverType
+  observerName: String
+  first: Int
 }

@@ -45,7 +45,7 @@ mod tests {
                 name: "my-extension".to_string(),
                 version: "1.0.0".parse().unwrap(),
             },
-            kind: Kind::Resolver(ResolverKind {
+            r#type: Type::Resolver(ResolverType {
                 resolver_directives: Some(vec!["resolver".to_string()]),
             }),
             sdk_version: "0.3.0".parse().unwrap(),

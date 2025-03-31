@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use futures::future::BoxFuture;
 use futures_lite::FutureExt;
-use runtime::extension::{Data, ExtensionFieldDirective, ExtensionRuntime};
+use runtime::extension::{Data, ExtensionRuntime};
 use walker::Walk;
 
 use crate::{
@@ -15,13 +15,13 @@ use crate::{
 use super::FieldResolverExtension;
 
 impl FieldResolverExtension {
-    pub(in crate::resolver) fn prepare_request<'ctx, R: Runtime>(
+    pub(in crate::resolver) fn build_executor<'ctx, R: Runtime>(
         &'ctx self,
         ctx: ExecutionContext<'ctx, R>,
         plan: Plan<'ctx>,
         root_response_objects: ResponseObjectsView<'_>,
         subgraph_response: SubgraphResponse,
-    ) -> FieldResolverExtensionRequest<'ctx> {
+    ) -> FieldResolverExtensionExecutor<'ctx> {
         let directive = self.directive_id.walk(ctx.schema());
         let headers = ctx.subgraph_headers_with_rules(directive.subgraph().header_rules());
 
@@ -39,23 +39,22 @@ impl FieldResolverExtension {
             root_response_objects.clone(),
         );
 
-        let extension_directive = ExtensionFieldDirective {
-            extension_id: directive.extension_id,
-            subgraph: directive.subgraph(),
-            field: field_definition,
-            name: directive.name(),
-            arguments: query_view,
-        };
-
         let future = ctx
             .runtime()
             .extensions()
-            .resolve_field(headers, extension_directive, response_view.iter())
+            .resolve_field(
+                directive,
+                field_definition,
+                &self.prepared_data,
+                headers,
+                query_view,
+                response_view.iter(),
+            )
             .boxed();
 
         let input_object_refs = root_response_objects.into_input_object_refs();
 
-        FieldResolverExtensionRequest {
+        FieldResolverExtensionExecutor {
             field,
             subgraph_response,
             input_object_refs,
@@ -64,14 +63,14 @@ impl FieldResolverExtension {
     }
 }
 
-pub(in crate::resolver) struct FieldResolverExtensionRequest<'ctx> {
+pub(in crate::resolver) struct FieldResolverExtensionExecutor<'ctx> {
     pub(super) field: SubgraphField<'ctx>,
     pub(super) subgraph_response: SubgraphResponse,
     pub(super) input_object_refs: Arc<InputResponseObjectSet>,
     pub(super) future: BoxFuture<'ctx, Result<Vec<Result<Data, GraphqlError>>, GraphqlError>>,
 }
 
-impl<'ctx> FieldResolverExtensionRequest<'ctx> {
+impl<'ctx> FieldResolverExtensionExecutor<'ctx> {
     pub async fn execute<R: Runtime>(self, ctx: ExecutionContext<'ctx, R>) -> ExecutionResult<SubgraphResponse> {
         let Self {
             field,

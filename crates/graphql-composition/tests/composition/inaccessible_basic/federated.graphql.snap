@@ -16,138 +16,138 @@ directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boole
 directive @join__owner(graph: join__Graph!) on OBJECT
 
 scalar Time
-    @inaccessible
+  @inaccessible
 
 scalar join__FieldSet
 
 type Ungulate
-    @join__type(graph: FIVE_WITH_ENUM)
+  @join__type(graph: FIVE_WITH_ENUM)
 {
-    id: ID!
-    name: String!
-    type: UngulateType! @inaccessible
+  id: ID!
+  name: String!
+  type: UngulateType! @inaccessible
 }
 
 type Movie
-    @join__type(graph: FOUR_WITH_UNION)
+  @join__type(graph: FOUR_WITH_UNION)
 {
-    director: String!
-    id: ID!
-    releaseYear: Int
-    title: String!
+  director: String!
+  id: ID!
+  releaseYear: Int
+  title: String!
 }
 
 type Series
-    @join__type(graph: FOUR_WITH_UNION)
+  @join__type(graph: FOUR_WITH_UNION)
 {
-    id: ID!
-    seasons: Int
-    title: String!
+  id: ID!
+  seasons: Int
+  title: String!
 }
 
 type New
-    @join__type(graph: ONE)
-    @join__type(graph: TWO)
+  @join__type(graph: ONE)
+  @join__type(graph: TWO)
 {
-    message: String! @inaccessible @join__field(graph: ONE)
-    name: String! @inaccessible
-    old: Old! @inaccessible @join__field(graph: ONE)
-    other: String!
+  message: String! @inaccessible @join__field(graph: ONE)
+  name: String! @inaccessible
+  old: Old! @inaccessible @join__field(graph: ONE)
+  other: String!
 }
 
 type Old
-    @inaccessible
-    @join__type(graph: ONE)
-    @join__type(graph: TWO)
+  @inaccessible
+  @join__type(graph: ONE)
+  @join__type(graph: TWO)
 {
-    name: String! @inaccessible
+  name: String! @inaccessible
 }
 
 type Book
-    @join__type(graph: SIX_WITH_INPUT_OBJECT)
+  @join__type(graph: SIX_WITH_INPUT_OBJECT)
 {
-    author: String!
-    genre: String
-    id: ID!
-    publishedYear: Int
-    title: String!
+  author: String!
+  genre: String
+  id: ID!
+  publishedYear: Int
+  title: String!
 }
 
 type Quadratic implements Polynomial
-    @join__type(graph: THREE_WITH_INTERFACE)
-    @join__implements(graph: THREE_WITH_INTERFACE, interface: "Polynomial")
+  @join__type(graph: THREE_WITH_INTERFACE)
+  @join__implements(graph: THREE_WITH_INTERFACE, interface: "Polynomial")
 {
-    coefficients: [Float]
-    degree: Int
-    discriminant: Float
+  coefficients: [Float]
+  degree: Int
+  discriminant: Float
 }
 
 type Cubic implements Polynomial
-    @join__type(graph: THREE_WITH_INTERFACE)
-    @join__implements(graph: THREE_WITH_INTERFACE, interface: "Polynomial")
+  @join__type(graph: THREE_WITH_INTERFACE)
+  @join__implements(graph: THREE_WITH_INTERFACE, interface: "Polynomial")
 {
-    coefficients: [Float]
-    degree: Int
-    inflectionPoint: Float
+  coefficients: [Float]
+  degree: Int
+  inflectionPoint: Float
 }
 
 type Query
 {
-    currentTime: Time! @inaccessible @join__field(graph: TWO)
-    getBook(id: ID!): Book @join__field(graph: SIX_WITH_INPUT_OBJECT)
-    getNew(name: String!): New @join__field(graph: ONE)
-    getPolynomial(id: ID!): Polynomial @inaccessible @join__field(graph: THREE_WITH_INTERFACE)
-    getTVContent(id: ID!): TVContent @inaccessible @join__field(graph: FOUR_WITH_UNION)
-    getUngulate(id: ID!): Ungulate @join__field(graph: FIVE_WITH_ENUM)
+  currentTime: Time! @inaccessible @join__field(graph: TWO)
+  getBook(id: ID!): Book @join__field(graph: SIX_WITH_INPUT_OBJECT)
+  getNew(name: String!): New @join__field(graph: ONE)
+  getPolynomial(id: ID!): Polynomial @inaccessible @join__field(graph: THREE_WITH_INTERFACE)
+  getTVContent(id: ID!): TVContent @inaccessible @join__field(graph: FOUR_WITH_UNION)
+  getUngulate(id: ID!): Ungulate @join__field(graph: FIVE_WITH_ENUM)
 }
 
 type Mutation
 {
-    addBook(input: BookInput! @inaccessible): Book @join__field(graph: SIX_WITH_INPUT_OBJECT)
-    updateBook(id: ID!, input: BookInput! @inaccessible): Book @join__field(graph: SIX_WITH_INPUT_OBJECT)
+  addBook(input: BookInput! @inaccessible): Book @join__field(graph: SIX_WITH_INPUT_OBJECT)
+  updateBook(id: ID!, input: BookInput! @inaccessible): Book @join__field(graph: SIX_WITH_INPUT_OBJECT)
 }
 
 interface Polynomial
-    @inaccessible
-    @join__type(graph: THREE_WITH_INTERFACE)
+  @inaccessible
+  @join__type(graph: THREE_WITH_INTERFACE)
 {
-    coefficients: [Float]
-    degree: Int
+  coefficients: [Float]
+  degree: Int
 }
 
 enum UngulateType
-    @inaccessible
-    @join__type(graph: FIVE_WITH_ENUM)
+  @inaccessible
+  @join__type(graph: FIVE_WITH_ENUM)
 {
-    DEER
-    HORSE @inaccessible
-    CAMEL
-    RHINOCEROS
-    GIRAFFE
+  DEER
+  HORSE @inaccessible
+  CAMEL
+  RHINOCEROS
+  GIRAFFE
 }
 
 enum join__Graph
 {
-    FIVE_WITH_ENUM @join__graph(name: "five-with-enum", url: "http://example.com/five-with-enum")
-    FOUR_WITH_UNION @join__graph(name: "four-with-union", url: "http://example.com/four-with-union")
-    ONE @join__graph(name: "one", url: "http://example.com/one")
-    SIX_WITH_INPUT_OBJECT @join__graph(name: "six-with-input-object", url: "http://example.com/six-with-input-object")
-    THREE_WITH_INTERFACE @join__graph(name: "three-with-interface", url: "http://example.com/three-with-interface")
-    TWO @join__graph(name: "two", url: "http://example.com/two")
+  FIVE_WITH_ENUM @join__graph(name: "five-with-enum", url: "http://example.com/five-with-enum")
+  FOUR_WITH_UNION @join__graph(name: "four-with-union", url: "http://example.com/four-with-union")
+  ONE @join__graph(name: "one", url: "http://example.com/one")
+  SIX_WITH_INPUT_OBJECT @join__graph(name: "six-with-input-object", url: "http://example.com/six-with-input-object")
+  THREE_WITH_INTERFACE @join__graph(name: "three-with-interface", url: "http://example.com/three-with-interface")
+  TWO @join__graph(name: "two", url: "http://example.com/two")
 }
 
 union TVContent
-    @inaccessible
-    @join__unionMember(graph: FOUR_WITH_UNION, member: "Movie")
-    @join__unionMember(graph: FOUR_WITH_UNION, member: "Series")
+  @inaccessible
+  @join__unionMember(graph: FOUR_WITH_UNION, member: "Movie")
+  @join__unionMember(graph: FOUR_WITH_UNION, member: "Series")
  = Movie | Series
 
 input BookInput
-    @inaccessible
-    @join__type(graph: SIX_WITH_INPUT_OBJECT)
+  @inaccessible
+  @join__type(graph: SIX_WITH_INPUT_OBJECT)
 {
-    title: String!
-    author: String! @inaccessible
-    publishedYear: Int
-    genre: String
+  title: String!
+  author: String! @inaccessible
+  publishedYear: Int
+  genre: String
 }

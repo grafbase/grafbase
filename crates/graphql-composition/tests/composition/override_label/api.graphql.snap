@@ -4,10 +4,10 @@ expression: actual_api_sdl
 input_file: crates/graphql-composition/tests/composition/override_label/test.md
 ---
 type User {
-    id: ID!
-    name: String
+  id: ID!
+  name: String
 }
 
 type Query {
-    me: User
+  me: User
 }

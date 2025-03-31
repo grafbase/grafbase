@@ -4,27 +4,27 @@ expression: actual_api_sdl
 input_file: crates/graphql-composition/tests/composition/field_type_composition/test.md
 ---
 type FidgetSpinner {
-    buttonDescriptions: [String!]
-    id: ID!
-    manufacturer: Manufacturer
-    model: String
+  buttonDescriptions: [String!]
+  id: ID!
+  manufacturer: Manufacturer
+  model: String
 }
 
 type Manufacturer {
-    location: String
-    name: String!
+  location: String
+  name: String!
 }
 
 type Query {
-    fidgetSpinners(filter: SpinnerFilter!): [FidgetSpinner]
+  fidgetSpinners(filter: SpinnerFilter!): [FidgetSpinner]
 }
 
 interface Spinner {
-    id: ID!
-    model: String
+  id: ID!
+  model: String
 }
 
 input SpinnerFilter {
-    manufacturer: String
-    maxPrice: Float!
+  manufacturer: String
+  maxPrice: Float!
 }

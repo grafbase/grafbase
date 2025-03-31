@@ -8,7 +8,8 @@ use crate::Id;
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Manifest {
     pub id: Id,
-    pub kind: Kind,
+    #[serde(rename = "kind")]
+    pub r#type: Type,
     pub sdk_version: semver::Version,
     pub minimum_gateway_version: semver::Version,
     pub description: String,
@@ -40,11 +41,11 @@ impl Manifest {
     }
 
     pub fn is_resolver(&self) -> bool {
-        matches!(self.kind, Kind::Resolver(_))
+        matches!(self.r#type, Type::Resolver(_))
     }
 
     pub fn is_authenticator(&self) -> bool {
-        matches!(self.kind, Kind::Authentication(_))
+        matches!(self.r#type, Type::Authentication(_))
     }
 
     pub fn network_enabled(&self) -> bool {
@@ -65,22 +66,22 @@ impl Manifest {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, strum::EnumDiscriminants)]
-pub enum Kind {
+pub enum Type {
     #[serde(rename = "FieldResolver")]
-    Resolver(ResolverKind),
+    Resolver(ResolverType),
     #[serde(rename = "Authenticator")]
     Authentication(Empty),
-    Authorization(AuthorizationKind),
+    Authorization(AuthorizationType),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct ResolverKind {
+pub struct ResolverType {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub resolver_directives: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct AuthorizationKind {
+pub struct AuthorizationType {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub authorization_directives: Option<Vec<String>>,
 }
@@ -119,7 +120,7 @@ mod tests {
                 name: "test".to_string(),
                 version: semver::Version::new(1, 0, 0),
             },
-            kind: Kind::Resolver(ResolverKind {
+            r#type: Type::Resolver(ResolverType {
                 resolver_directives: Some(vec!["custom".to_string()]),
             }),
             sdk_version: semver::Version::new(0, 1, 0),
@@ -160,7 +161,7 @@ mod tests {
                 name: "test".to_string(),
                 version: semver::Version::new(1, 0, 0),
             },
-            kind: Kind::Resolver(ResolverKind {
+            r#type: Type::Resolver(ResolverType {
                 resolver_directives: Some(vec!["custom".to_string()]),
             }),
             sdk_version: semver::Version::new(0, 1, 0),
@@ -199,7 +200,7 @@ mod tests {
                 name: "test".to_string(),
                 version: semver::Version::new(1, 0, 0),
             },
-            kind: Kind::Resolver(ResolverKind {
+            r#type: Type::Resolver(ResolverType {
                 resolver_directives: None,
             }),
             sdk_version: semver::Version::new(0, 1, 0),
@@ -237,7 +238,7 @@ mod tests {
                 name: "auth".to_string(),
                 version: semver::Version::new(2, 0, 0),
             },
-            kind: Kind::Authentication(Empty {}),
+            r#type: Type::Authentication(Empty {}),
             sdk_version: semver::Version::new(0, 1, 0),
             minimum_gateway_version: semver::Version::new(0, 1, 0),
             sdl: None,
@@ -274,7 +275,7 @@ mod tests {
                 name: "authz".to_string(),
                 version: semver::Version::new(1, 0, 0),
             },
-            kind: Kind::Authorization(AuthorizationKind {
+            r#type: Type::Authorization(AuthorizationType {
                 authorization_directives: Some(vec!["authorized".to_string(), "authenticated".to_string()]),
             }),
             sdk_version: semver::Version::new(0, 1, 0),
@@ -311,7 +312,7 @@ mod tests {
                 name: "authz".to_string(),
                 version: semver::Version::new(1, 0, 0),
             },
-            kind: Kind::Authorization(AuthorizationKind {
+            r#type: Type::Authorization(AuthorizationType {
                 authorization_directives: None,
             }),
             sdk_version: semver::Version::new(0, 1, 0),

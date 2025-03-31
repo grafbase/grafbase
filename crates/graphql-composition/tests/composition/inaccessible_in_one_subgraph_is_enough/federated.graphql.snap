@@ -18,24 +18,24 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 scalar join__FieldSet
 
 type Color
-    @join__type(graph: ONE)
-    @join__type(graph: THREE)
-    @join__type(graph: TWO)
+  @join__type(graph: ONE)
+  @join__type(graph: THREE)
+  @join__type(graph: TWO)
 {
-    alpha: Int @inaccessible @join__field(graph: THREE) @join__field(graph: TWO)
-    blue: Int
-    green: Int
-    red: Int
+  alpha: Int @inaccessible @join__field(graph: THREE) @join__field(graph: TWO)
+  blue: Int
+  green: Int
+  red: Int
 }
 
 type Query
 {
-    colors: [Color] @join__field(graph: ONE)
+  colors: [Color] @join__field(graph: ONE)
 }
 
 enum join__Graph
 {
-    ONE @join__graph(name: "one", url: "http://example.com/one")
-    THREE @join__graph(name: "three", url: "http://example.com/three")
-    TWO @join__graph(name: "two", url: "http://example.com/two")
+  ONE @join__graph(name: "one", url: "http://example.com/one")
+  THREE @join__graph(name: "three", url: "http://example.com/three")
+  TWO @join__graph(name: "two", url: "http://example.com/two")
 }

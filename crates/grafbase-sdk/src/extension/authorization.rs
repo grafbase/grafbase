@@ -182,8 +182,8 @@ pub trait AuthorizationExtension: Sized + 'static {
     /// ```
     ///
     /// Each [QueryElement](crate::types::QueryElement) will provide:
-    /// - [site](crate::types::QueryElement::site()) providing information on where the directive is applied, field name, etc.
-    /// - [arguments](crate::types::QueryElement::arguments()) which similarly to the configuration
+    /// - [directive_site](crate::types::QueryElement::directive_site()) providing information on where the directive is applied, field name, etc.
+    /// - [directive_arguments](crate::types::QueryElement::directive_arguments()) which similarly to the configuration
     ///   can be used to deserialize the directive arguments. The underlying format is unspecified,
     ///   but it'll always be a binary format without string escaping so it's safe to use
     ///   `[serde(borrow)] &'a str`.
@@ -203,13 +203,13 @@ pub trait AuthorizationExtension: Sized + 'static {
     /// }
     ///
     /// for element in elements {
-    ///     match element.site() {
-    ///         DirectiveSite::FieldDefinition(site) => {
-    ///             site.field_name();
+    ///     match element.directive_site() {
+    ///         DirectiveSite::FieldDefinition(field) => {
+    ///             field.name();
     ///         }
     ///         _ => return Err(ErrorResponse::internal_server_error()),
     ///     }
-    ///     let arguments: DirectiveArguments<'_> = element.arguments()?;
+    ///     let arguments: DirectiveArguments<'_> = element.directive_arguments()?;
     /// }
     ///
     /// Ok(builder.build())

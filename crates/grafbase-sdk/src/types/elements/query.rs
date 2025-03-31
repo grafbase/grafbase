@@ -114,16 +114,16 @@ impl<'a> QueryElement<'a> {
         QueryElementId(self.element.id)
     }
 
-    /// Site, where and with which arguments, of the directive associated with this element.
+    /// Directive site, where and with which arguments, of the directive associated with this element.
     /// The provided arguments will exclude anything that depend on response data such as
     /// `FieldSet`.
-    pub fn site(&self) -> DirectiveSite<'a> {
+    pub fn directive_site(&self) -> DirectiveSite<'a> {
         (&self.element.site).into()
     }
 
     /// Arguments of the directive with any query data injected. Any argument that depends on
     /// response data will not be present here and be provided separately.
-    pub fn arguments<T>(&self) -> Result<T, SdkError>
+    pub fn directive_arguments<T>(&self) -> Result<T, SdkError>
     where
         T: Deserialize<'a>,
     {

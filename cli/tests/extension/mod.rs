@@ -50,12 +50,13 @@ fn init_resolver() {
     codegen-units = 1
 
     [dependencies]
-    grafbase-sdk = "0.12.0"
+    grafbase-sdk = "0.13.0"
+    serde = { version = "1", features = ["derive"] }
 
     [dev-dependencies]
     indoc = "2"
-    insta = { version = "1.42.1", features = ["json"] }
-    grafbase-sdk = { version = "0.12.0", features = ["test-utils"] }
+    insta = { version = "1", features = ["json"] }
+    grafbase-sdk = { version = "0.13.0", features = ["test-utils"] }
     tokio = { version = "1", features = ["rt-multi-thread", "macros", "test-util"] }
     serde_json = "1"
     "#);
@@ -65,7 +66,6 @@ fn init_resolver() {
     insta::assert_snapshot!(&definitions, @r#"
     """
     Fill in here the directives and types that the extension needs.
-    Remove this file and the definition in extension.toml if the extension does not need any directives.
     """
     directive @testProjectConfiguration(arg1: String) repeatable on SCHEMA
     directive @testProjectDirective on FIELD_DEFINITION
@@ -77,7 +77,7 @@ fn init_resolver() {
     [extension]
     name = "test-project"
     version = "0.1.0"
-    kind = "resolver"
+    type = "resolver"
     description = "A new extension"
     # homepage_url = "https://example.com/my-extension"
     # repository_url = "https://github.com/my-username/my-extension"
@@ -263,7 +263,7 @@ fn build_resolver() {
       "sdk_version": "<sdk_version>",
       "minimum_gateway_version": "<minimum_gateway_version>",
       "description": "A new extension",
-      "sdl": "\"\"\"\nFill in here the directives and types that the extension needs.\nRemove this file and the definition in extension.toml if the extension does not need any directives.\n\"\"\"\ndirective @testProjectConfiguration(arg1: String) repeatable on SCHEMA\ndirective @testProjectDirective on FIELD_DEFINITION",
+      "sdl": "\"\"\"\nFill in here the directives and types that the extension needs.\n\"\"\"\ndirective @testProjectConfiguration(arg1: String) repeatable on SCHEMA\ndirective @testProjectDirective on FIELD_DEFINITION",
       "permissions": []
     }
     "#
@@ -310,12 +310,13 @@ fn init_auth() {
     codegen-units = 1
 
     [dependencies]
-    grafbase-sdk = "0.12.0"
+    grafbase-sdk = "0.13.0"
+    serde = { version = "1", features = ["derive"] }
 
     [dev-dependencies]
     indoc = "2"
-    insta = { version = "1.42.1", features = ["json"] }
-    grafbase-sdk = { version = "0.12.0", features = ["test-utils"] }
+    insta = { version = "1", features = ["json"] }
+    grafbase-sdk = { version = "0.13.0", features = ["test-utils"] }
     tokio = { version = "1", features = ["rt-multi-thread", "macros", "test-util"] }
     serde_json = "1"
     "#);
@@ -326,7 +327,7 @@ fn init_auth() {
     [extension]
     name = "test-project"
     version = "0.1.0"
-    kind = "authentication"
+    type = "authentication"
     description = "A new extension"
     # homepage_url = "https://example.com/my-extension"
     # repository_url = "https://github.com/my-username/my-extension"
@@ -346,21 +347,20 @@ fn init_auth() {
 
     insta::assert_snapshot!(&lib_rs, @r##"
     use grafbase_sdk::{
-        types::{Configuration, SchemaDirective, ErrorResponse, Token, GatewayHeaders, Error},
         AuthenticationExtension,
+        types::{Configuration, Error, ErrorResponse, GatewayHeaders, Token},
     };
 
     #[derive(AuthenticationExtension)]
     struct TestProject;
 
     impl AuthenticationExtension for TestProject {
-        fn new(config: Configuration) -> Result<Self, Error>
-        {
-            todo!()
+        fn new(config: Configuration) -> Result<Self, Error> {
+            Ok(Self)
         }
 
         fn authenticate(&mut self, headers: &GatewayHeaders) -> Result<Token, ErrorResponse> {
-            todo!()
+            Err(ErrorResponse::unauthorized())
         }
     }
     "##);

@@ -19,17 +19,17 @@ scalar join__FieldSet
 
 type Query
 {
-    hello: String @join__field(graph: DEFINITION)
-    hi: String @join__field(graph: SCHEMA_EXTENSION)
+  hello: String @join__field(graph: DEFINITION)
+  hi: String @join__field(graph: SCHEMA_EXTENSION)
 }
 
 enum join__Graph
 {
-    DEFINITION @join__graph(name: "definition", url: "http://example.com/definition")
-    SCHEMA_EXTENSION @join__graph(name: "schema-extension", url: "http://example.com/schema-extension")
+  DEFINITION @join__graph(name: "definition", url: "http://example.com/definition")
+  SCHEMA_EXTENSION @join__graph(name: "schema-extension", url: "http://example.com/schema-extension")
 }
 
 enum extension__Link
 {
-    REST_CONNECTOR @extension__link(url: "https://extensions.grafbase.com/rest", schemaDirectives: [{graph: DEFINITION, name: "assured", arguments: {}}, {graph: SCHEMA_EXTENSION, name: "assured", arguments: {}}])
+  REST_CONNECTOR @extension__link(url: "https://extensions.grafbase.com/rest", schemaDirectives: [{graph: DEFINITION, name: "assured", arguments: {}}, {graph: SCHEMA_EXTENSION, name: "assured", arguments: {}}])
 }

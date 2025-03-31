@@ -18,18 +18,18 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 scalar join__FieldSet
 
 type User
-    @join__type(graph: FST, key: "id")
+  @join__type(graph: FST, key: "id")
 {
-    id: ID!
-    name: String @join__field(graph: FST, override: "somewhereElse", overrideLabel: "percent(10)")
+  id: ID!
+  name: String @join__field(graph: FST, override: "somewhereElse", overrideLabel: "percent(10)")
 }
 
 type Query
 {
-    me: User @join__field(graph: FST)
+  me: User @join__field(graph: FST)
 }
 
 enum join__Graph
 {
-    FST @join__graph(name: "fst", url: "http://example.com/fst")
+  FST @join__graph(name: "fst", url: "http://example.com/fst")
 }

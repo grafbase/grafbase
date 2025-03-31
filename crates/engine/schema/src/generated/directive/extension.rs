@@ -27,7 +27,7 @@ use walker::{Iter, Walk};
 pub struct ExtensionDirectiveRecord {
     pub subgraph_id: SubgraphId,
     pub extension_id: ExtensionId,
-    pub kind: ExtensionDirectiveKind,
+    pub kind: ExtensionDirectiveType,
     pub name_id: StringId,
     pub argument_ids: IdRange<ExtensionDirectiveArgumentId>,
     pub requirements_record: FieldSetRecord,

@@ -382,9 +382,9 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.12.0"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e410ce9220ae5c9b42f198958713eaf1789a51bb5fa01169b448aa437299a8e2"
+checksum = "6321add94e0ee533a14774bfccb220cb92d3c1227907b343b3e4c0f58f517711"
 dependencies = [
  "document-features",
  "grafbase-sdk-derive",

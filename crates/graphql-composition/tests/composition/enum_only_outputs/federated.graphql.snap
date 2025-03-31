@@ -18,65 +18,65 @@ directive @join__owner(graph: join__Graph!) on OBJECT
 scalar join__FieldSet
 
 type Activity
-    @join__type(graph: ACTIVITIES)
+  @join__type(graph: ACTIVITIES)
 {
-    description: String!
-    name: String!
-    participatingTeletubby: Teletubby!
+  description: String!
+  name: String!
+  participatingTeletubby: Teletubby!
 }
 
 type Teletubby
-    @join__type(graph: ACTIVITIES, key: "name")
-    @join__type(graph: EPISODES, key: "name")
-    @join__type(graph: TELETUBBYREPOSITORY, key: "name")
+  @join__type(graph: ACTIVITIES, key: "name")
+  @join__type(graph: EPISODES, key: "name")
+  @join__type(graph: TELETUBBYREPOSITORY, key: "name")
 {
-    activities: [Activity] @join__field(graph: ACTIVITIES)
-    color: String! @join__field(graph: TELETUBBYREPOSITORY)
-    episodesFeatured: [Episode] @join__field(graph: EPISODES)
-    favoriteToy: FavoriteToy
-    mood: Mood @join__field(graph: TELETUBBYREPOSITORY)
-    name: String!
+  activities: [Activity] @join__field(graph: ACTIVITIES)
+  color: String! @join__field(graph: TELETUBBYREPOSITORY)
+  episodesFeatured: [Episode] @join__field(graph: EPISODES)
+  favoriteToy: FavoriteToy
+  mood: Mood @join__field(graph: TELETUBBYREPOSITORY)
+  name: String!
 }
 
 type Episode
-    @join__type(graph: EPISODES)
+  @join__type(graph: EPISODES)
 {
-    duration: Int!
-    featuredTeletubby: Teletubby!
-    featuredToys: [FavoriteToy!]
-    title: String!
+  duration: Int!
+  featuredTeletubby: Teletubby!
+  featuredToys: [FavoriteToy!]
+  title: String!
 }
 
 type Query
 {
-    getActivity(name: String!): Activity @join__field(graph: ACTIVITIES)
-    getEpisode(title: String!): Episode @join__field(graph: EPISODES)
-    getTeletubby(name: String!): Teletubby @join__field(graph: TELETUBBYREPOSITORY)
+  getActivity(name: String!): Activity @join__field(graph: ACTIVITIES)
+  getEpisode(title: String!): Episode @join__field(graph: EPISODES)
+  getTeletubby(name: String!): Teletubby @join__field(graph: TELETUBBYREPOSITORY)
 }
 
 enum FavoriteToy
-    @join__type(graph: ACTIVITIES)
-    @join__type(graph: EPISODES)
-    @join__type(graph: TELETUBBYREPOSITORY)
+  @join__type(graph: ACTIVITIES)
+  @join__type(graph: EPISODES)
+  @join__type(graph: TELETUBBYREPOSITORY)
 {
-    PLUSHTOY
-    TOBOGGAN
-    SCOOTER
-    BAG
-    HAT
-    BALL
+  PLUSHTOY
+  TOBOGGAN
+  SCOOTER
+  BAG
+  HAT
+  BALL
 }
 
 enum Mood
-    @join__type(graph: TELETUBBYREPOSITORY)
+  @join__type(graph: TELETUBBYREPOSITORY)
 {
-    HAPPY
-    SAD
+  HAPPY
+  SAD
 }
 
 enum join__Graph
 {
-    ACTIVITIES @join__graph(name: "activities", url: "http://example.com/activities")
-    EPISODES @join__graph(name: "episodes", url: "http://example.com/episodes")
-    TELETUBBYREPOSITORY @join__graph(name: "teletubbyRepository", url: "http://example.com/teletubbyRepository")
+  ACTIVITIES @join__graph(name: "activities", url: "http://example.com/activities")
+  EPISODES @join__graph(name: "episodes", url: "http://example.com/episodes")
+  TELETUBBYREPOSITORY @join__graph(name: "teletubbyRepository", url: "http://example.com/teletubbyRepository")
 }

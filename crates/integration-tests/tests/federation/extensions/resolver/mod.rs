@@ -6,9 +6,10 @@ mod validation;
 use std::sync::Arc;
 
 use engine::GraphqlError;
+use engine_schema::{ExtensionDirective, FieldDefinition};
 use extension_catalog::Id;
 use integration_tests::federation::{TestExtension, TestExtensionBuilder, TestManifest};
-use runtime::extension::{Data, ExtensionFieldDirective};
+use runtime::extension::Data;
 
 #[derive(Clone)]
 pub struct StaticResolverExt {
@@ -30,7 +31,7 @@ impl TestExtensionBuilder for StaticResolverExt {
                 name: "static".to_string(),
                 version: "1.0.0".parse().unwrap(),
             },
-            kind: extension_catalog::Kind::Resolver(extension_catalog::ResolverKind {
+            r#type: extension_catalog::Type::Resolver(extension_catalog::ResolverType {
                 resolver_directives: None,
             }),
             sdl: Some(r#"directive @resolve on FIELD_DEFINITION"#),
@@ -46,8 +47,11 @@ impl TestExtensionBuilder for StaticResolverExt {
 impl TestExtension for StaticResolverExt {
     async fn resolve_field(
         &self,
-        _: http::HeaderMap,
-        _: ExtensionFieldDirective<'_, serde_json::Value>,
+        _directive: ExtensionDirective<'_>,
+        _field_definition: FieldDefinition<'_>,
+        _prepared_data: &[u8],
+        _subgraph_headers: http::HeaderMap,
+        _directive_arguments: serde_json::Value,
         inputs: Vec<serde_json::Value>,
     ) -> Result<Vec<Result<Data, GraphqlError>>, GraphqlError> {
         Ok(inputs.into_iter().map(|_| Ok(self.data.clone())).collect())

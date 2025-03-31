@@ -50,7 +50,7 @@ struct GraphQLDefinitionsTemplate<'a> {
 #[template(path = "extension/extension.toml.template", escape = "none")]
 struct ExtensionTomlTemplate<'a> {
     name: &'a str,
-    kind: ExtensionType,
+    r#type: ExtensionType,
 }
 
 #[derive(askama::Template)]
@@ -146,14 +146,14 @@ fn init_cargo_toml(project_path: &Path) -> anyhow::Result<String> {
     Ok(name)
 }
 
-fn init_extension_toml(project_path: &Path, kind: ExtensionType, extension_name: &str) -> anyhow::Result<()> {
+fn init_extension_toml(project_path: &Path, r#type: ExtensionType, extension_name: &str) -> anyhow::Result<()> {
     let extension_toml_path = project_path.join("extension.toml");
 
     let mut writer = std::fs::File::create(&extension_toml_path)?;
 
     let template = ExtensionTomlTemplate {
         name: extension_name,
-        kind,
+        r#type,
     };
 
     template.write_into(&mut writer)?;
