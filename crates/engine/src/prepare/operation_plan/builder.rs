@@ -19,7 +19,7 @@ use super::{
 };
 
 impl OperationPlan {
-    pub(in crate::prepare) fn plan(
+    pub(in crate::prepare) async fn plan(
         ctx: &PrepareContext<'_, impl Runtime>,
         cached: &CachedOperation,
         query_modifications: QueryModifications,
@@ -41,6 +41,7 @@ impl OperationPlan {
             partition_modifiers: Vec::with_capacity(cached.query_plan.response_modifier_definitions.len()),
         }
         .build()
+        .await
     }
 }
 
@@ -55,9 +56,9 @@ struct Builder<'op, 'ctx, R: Runtime> {
 }
 
 impl<'op, R: Runtime> Builder<'op, '_, R> {
-    fn build(mut self) -> PlanResult<OperationPlan> {
+    async fn build(mut self) -> PlanResult<OperationPlan> {
         for query_partition in self.cached_ctx.query_partitions() {
-            self.generate_plan(query_partition)?;
+            self.generate_plan(query_partition).await?;
         }
 
         for definition in self.cached_ctx.response_modifier_definitions() {
@@ -209,7 +210,7 @@ impl<'op, R: Runtime> Builder<'op, '_, R> {
         Ok(())
     }
 
-    fn generate_plan(&mut self, query_partition: QueryPartition<'_>) -> PlanResult<()> {
+    async fn generate_plan(&mut self, query_partition: QueryPartition<'_>) -> PlanResult<()> {
         let plan_id = PlanId::from(self.operation_plan.plans.len());
         self.partition_to_plan[usize::from(query_partition.id)] = Some(plan_id);
         let required_fields_record = self.create_required_field_set_for_query_partition(query_partition);
@@ -218,7 +219,7 @@ impl<'op, R: Runtime> Builder<'op, '_, R> {
         let plan_resolver = PlanRecord {
             query_partition_id: query_partition.id,
             required_fields_record,
-            resolver: self.prepare_resolver(query_partition)?,
+            resolver: self.prepare_resolver(query_partition).await?,
             // Set later
             parent_count: 0,
             children_ids: Vec::new(),
@@ -264,8 +265,13 @@ impl<'op, R: Runtime> Builder<'op, '_, R> {
         }
     }
 
-    fn prepare_resolver(&mut self, query_partition: QueryPartition<'_>) -> PlanResult<Resolver> {
-        Resolver::prepare(self.operation.ty(), self.view_plan_query_partition(query_partition.id))
+    async fn prepare_resolver(&mut self, query_partition: QueryPartition<'_>) -> PlanResult<Resolver> {
+        Resolver::prepare(
+            self.ctx,
+            self.operation.ty(),
+            self.view_plan_query_partition(query_partition.id),
+        )
+        .await
     }
 
     pub(crate) fn view_plan_query_partition(&self, id: QueryPartitionId) -> PlanQueryPartition<'_> {

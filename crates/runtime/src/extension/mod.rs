@@ -1,112 +1,41 @@
+mod authorization;
+mod resolver;
+mod token;
+
 use std::{future::Future, ops::Range, sync::Arc};
 
-use engine_schema::{DirectiveSite, FieldDefinition, Subgraph};
+use engine_schema::{DirectiveSite, ExtensionDirective, FieldDefinition};
 use extension_catalog::ExtensionId;
 use futures_util::stream::BoxStream;
 
 use crate::hooks::Anything;
 use error::{ErrorResponse, GraphqlError};
 
-#[derive(Clone, Debug)]
-pub enum Data {
-    JsonBytes(Vec<u8>),
-    CborBytes(Vec<u8>),
-}
-
-impl Data {
-    pub fn as_cbor(&self) -> Option<&[u8]> {
-        match self {
-            Data::JsonBytes(_) => None,
-            Data::CborBytes(bytes) => Some(bytes),
-        }
-    }
-}
-
-pub struct ExtensionFieldDirective<'a, Args> {
-    pub extension_id: ExtensionId,
-    pub subgraph: Subgraph<'a>,
-    pub field: FieldDefinition<'a>,
-    pub name: &'a str,
-    pub arguments: Args,
-}
-
-#[derive(Clone, Debug)]
-pub struct QueryElement<'a, A> {
-    pub site: DirectiveSite<'a>,
-    pub arguments: A,
-}
-
-#[derive(Debug)]
-pub enum AuthorizationDecisions {
-    GrantAll,
-    DenyAll(GraphqlError),
-    DenySome {
-        element_to_error: Vec<(u32, u32)>,
-        errors: Vec<GraphqlError>,
-    },
-}
-
-#[derive(Clone, Debug)]
-pub enum Token {
-    Anonymous,
-    Bytes(Vec<u8>),
-}
-
-impl Token {
-    pub fn as_bytes(&self) -> Option<&[u8]> {
-        match self {
-            Token::Anonymous => None,
-            Token::Bytes(bytes) => Some(bytes),
-        }
-    }
-
-    pub fn as_ref(&self) -> TokenRef<'_> {
-        match self {
-            Token::Anonymous => TokenRef::Anonymous,
-            Token::Bytes(bytes) => TokenRef::Bytes(bytes),
-        }
-    }
-}
-
-#[derive(Clone, Copy)]
-pub enum TokenRef<'a> {
-    Anonymous,
-    Bytes(&'a [u8]),
-}
-
-impl TokenRef<'_> {
-    pub fn as_bytes(&self) -> Option<&[u8]> {
-        match self {
-            TokenRef::Anonymous => None,
-            TokenRef::Bytes(bytes) => Some(bytes),
-        }
-    }
-
-    pub fn to_owned(&self) -> Token {
-        match self {
-            TokenRef::Anonymous => Token::Anonymous,
-            TokenRef::Bytes(bytes) => Token::Bytes(bytes.to_vec()),
-        }
-    }
-}
-
-pub struct QueryAuthorizationDecisions {
-    pub extension_id: ExtensionId,
-    pub query_elements_range: Range<usize>,
-    pub decisions: AuthorizationDecisions,
-}
+pub use authorization::*;
+pub use resolver::*;
+pub use token::*;
 
 #[allow(async_fn_in_trait)]
 pub trait ExtensionRuntime: Send + Sync + 'static {
     type SharedContext: Send + Sync + 'static;
+
+    fn prepare_field<'ctx>(
+        &'ctx self,
+        directive: ExtensionDirective<'ctx>,
+        field_definition: FieldDefinition<'ctx>,
+        directive_arguments: impl Anything<'ctx>,
+    ) -> impl Future<Output = Result<Vec<u8>, GraphqlError>> + Send;
 
     /// Resolve a field through an extension. Lifetime 'ctx will be available for as long as the
     /// future lives, but 'resp lifetime won't. It provides access to the response data that is
     /// shared, without lock, so it's only temporarily available.
     fn resolve_field<'ctx, 'resp, 'f>(
         &'ctx self,
+        directive: ExtensionDirective<'ctx>,
+        field_definition: FieldDefinition<'ctx>,
+        prepared_data: &'ctx [u8],
         subgraph_headers: http::HeaderMap,
-        directive: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
+        directive_arguments: impl Anything<'ctx>,
         inputs: impl Iterator<Item: Anything<'resp>> + Send,
     ) -> impl Future<Output = Result<Vec<Result<Data, GraphqlError>>, GraphqlError>> + Send + 'f
     where
@@ -114,8 +43,11 @@ pub trait ExtensionRuntime: Send + Sync + 'static {
 
     fn resolve_subscription<'ctx, 'f>(
         &'ctx self,
+        directive: ExtensionDirective<'ctx>,
+        field_definition: FieldDefinition<'ctx>,
+        prepared_data: &'ctx [u8],
         subgraph_headers: http::HeaderMap,
-        directive: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
+        directive_arguments: impl Anything<'ctx>,
     ) -> impl Future<Output = Result<BoxStream<'f, Result<Arc<Data>, GraphqlError>>, GraphqlError>> + Send + 'f
     where
         'ctx: 'f;

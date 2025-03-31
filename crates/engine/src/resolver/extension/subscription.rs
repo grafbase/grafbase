@@ -1,6 +1,6 @@
 use futures::{TryStreamExt, stream::BoxStream};
 use futures_lite::{FutureExt, StreamExt};
-use runtime::extension::{Data, ExtensionFieldDirective, ExtensionRuntime};
+use runtime::extension::{Data, ExtensionRuntime};
 use walker::Walk;
 
 use crate::{
@@ -28,18 +28,10 @@ impl FieldResolverExtension {
         let query_view =
             create_extension_directive_query_view(ctx.schema(), directive, field.arguments(), ctx.variables());
 
-        let extension_directive = ExtensionFieldDirective {
-            extension_id: directive.extension_id,
-            subgraph: directive.subgraph(),
-            field: field_definition,
-            name: directive.name(),
-            arguments: query_view,
-        };
-
         let stream = ctx
             .runtime()
             .extensions()
-            .resolve_subscription(headers, extension_directive)
+            .resolve_subscription(directive, field_definition, &self.prepared_data, headers, query_view)
             .boxed()
             .await
             .map_err(|err| err.with_location(field.location()))?;

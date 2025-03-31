@@ -8,7 +8,7 @@ use super::{
 };
 
 use engine_error::{ErrorCode, ErrorResponse, GraphqlError};
-use engine_schema::DirectiveSite;
+use engine_schema::{DirectiveSite, ExtensionDirective, FieldDefinition};
 use extension_catalog::ExtensionId;
 use futures::{
     StreamExt as _, TryStreamExt,
@@ -16,8 +16,7 @@ use futures::{
 };
 use runtime::{
     extension::{
-        AuthorizationDecisions, Data, ExtensionFieldDirective, ExtensionRuntime, QueryAuthorizationDecisions,
-        QueryElement, Token, TokenRef,
+        AuthorizationDecisions, Data, ExtensionRuntime, QueryAuthorizationDecisions, QueryElement, Token, TokenRef,
     },
     hooks::Anything,
 };
@@ -27,18 +26,24 @@ use subscription::{DeduplicatedSubscription, UniqueSubscription};
 impl ExtensionRuntime for WasmExtensions {
     type SharedContext = crate::resources::SharedContext;
 
+    async fn prepare_field<'ctx>(
+        &'ctx self,
+        _directive: ExtensionDirective<'ctx>,
+        _field_definition: FieldDefinition<'ctx>,
+        _directive_arguments: impl Anything<'ctx>,
+    ) -> Result<Vec<u8>, GraphqlError> {
+        Ok(Vec::new())
+    }
+
     #[allow(clippy::manual_async_fn)]
     fn resolve_field<'ctx, 'resp, 'f>(
         &'ctx self,
-        headers: http::HeaderMap,
-        ExtensionFieldDirective {
-            extension_id,
-            subgraph,
-            field,
-            name,
-            arguments,
-        }: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
-        inputs: impl IntoIterator<Item: Anything<'resp>> + Send,
+        directive: ExtensionDirective<'ctx>,
+        field_definition: FieldDefinition<'ctx>,
+        _prepared_data: &'ctx [u8],
+        subgraph_headers: http::HeaderMap,
+        directive_arguments: impl Anything<'ctx>,
+        inputs: impl Iterator<Item: Anything<'resp>> + Send,
     ) -> impl Future<Output = Result<Vec<Result<Data, GraphqlError>>, GraphqlError>> + Send + 'f
     where
         'ctx: 'f,
@@ -46,19 +51,20 @@ impl ExtensionRuntime for WasmExtensions {
         let inputs = InputList::from_iter(inputs);
 
         async move {
-            let mut instance = self.get(extension_id).await?;
+            let mut instance = self.get(directive.extension_id).await?;
+            let subgraph = directive.subgraph();
 
             let directive = wit::FieldDefinitionDirective {
-                name,
+                name: directive.name(),
                 site: wit::FieldDefinitionDirectiveSite {
-                    parent_type_name: field.parent_entity().name(),
-                    field_name: field.name(),
+                    parent_type_name: field_definition.parent_entity().name(),
+                    field_name: field_definition.name(),
                 },
-                arguments: &cbor::to_vec(arguments).unwrap(),
+                arguments: &cbor::to_vec(directive_arguments).unwrap(),
             };
 
             instance
-                .resolve_field(headers, subgraph.name(), directive, inputs)
+                .resolve_field(subgraph_headers, subgraph.name(), directive, inputs)
                 .await
                 .map_err(|err| match err {
                     Error::Internal(err) => {
@@ -130,32 +136,32 @@ impl ExtensionRuntime for WasmExtensions {
 
     async fn resolve_subscription<'ctx, 'f>(
         &'ctx self,
-        headers: http::HeaderMap,
-        directive: ExtensionFieldDirective<'ctx, impl Anything<'ctx>>,
+        directive: ExtensionDirective<'ctx>,
+        field_definition: FieldDefinition<'ctx>,
+        _prepared_data: &'ctx [u8],
+        subgraph_headers: http::HeaderMap,
+        directive_arguments: impl Anything<'ctx>,
     ) -> Result<BoxStream<'f, Result<Arc<Data>, GraphqlError>>, GraphqlError>
     where
         'ctx: 'f,
     {
-        let ExtensionFieldDirective {
-            extension_id,
-            subgraph,
-            field,
-            name,
-            arguments,
-        } = directive;
-
-        let mut instance = self.get(extension_id).await?;
-        let arguments = &cbor::to_vec(arguments).unwrap();
+        let mut instance = self.get(directive.extension_id).await?;
+        let subgraph = directive.subgraph();
+        let arguments = &cbor::to_vec(directive_arguments).unwrap();
 
         let site = wit::FieldDefinitionDirectiveSite {
-            parent_type_name: field.parent_entity().name(),
-            field_name: field.name(),
+            parent_type_name: field_definition.parent_entity().name(),
+            field_name: field_definition.name(),
         };
 
-        let directive = wit::FieldDefinitionDirective { name, site, arguments };
+        let directive = wit::FieldDefinitionDirective {
+            name: directive.name(),
+            site,
+            arguments,
+        };
 
         let (headers, key) = instance
-            .subscription_key(Lease::Singleton(headers), subgraph.name(), directive.clone())
+            .subscription_key(Lease::Singleton(subgraph_headers), subgraph.name(), directive.clone())
             .await
             .map_err(|err| match err {
                 Error::Internal(err) => {

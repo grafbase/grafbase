@@ -1,12 +1,13 @@
 use std::sync::Arc;
 
 use engine::{Engine, GraphqlError};
+use engine_schema::{ExtensionDirective, FieldDefinition};
 use extension_catalog::Id;
 use integration_tests::{
     federation::{EngineExt, TestExtension, TestExtensionBuilder, TestManifest},
     runtime,
 };
-use runtime::extension::{Data, ExtensionFieldDirective};
+use runtime::extension::Data;
 
 #[derive(Default)]
 pub struct EchoJsonDataExt;
@@ -40,11 +41,14 @@ impl TestExtensionBuilder for EchoJsonDataExt {
 impl TestExtension for EchoJsonDataExt {
     async fn resolve_field(
         &self,
-        _: http::HeaderMap,
-        directive: ExtensionFieldDirective<'_, serde_json::Value>,
+        _directive: ExtensionDirective<'_>,
+        _field_definition: FieldDefinition<'_>,
+        _prepared_data: &[u8],
+        _subgraph_headers: http::HeaderMap,
+        directive_arguments: serde_json::Value,
         inputs: Vec<serde_json::Value>,
     ) -> Result<Vec<Result<Data, GraphqlError>>, GraphqlError> {
-        let data = directive.arguments["data"].as_str().unwrap_or_default();
+        let data = directive_arguments["data"].as_str().unwrap_or_default();
         Ok(vec![Ok(Data::JsonBytes(data.as_bytes().to_vec())); inputs.len()])
     }
 }
