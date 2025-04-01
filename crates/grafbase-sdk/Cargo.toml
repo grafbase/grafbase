@@ -2,7 +2,7 @@
 name = "grafbase-sdk"
 version = "0.14.0"
 description = "An SDK to implement extensions for the Grafbase Gateway"
-edition = "2021"
+edition = "2024"
 license.workspace = true
 homepage.workspace = true
 keywords.workspace = true
@@ -42,9 +42,10 @@ jq-selection = [
 
 [dependencies]
 document-features = { version = "0.2" }
-grafbase-sdk-derive = { version = "0.3.0", path = "derive" }
+grafbase-sdk-derive = { version = "0.4.0", path = "derive" }
 http = "1"
-minicbor-serde = { workspace = true, features = ["alloc"] }
+minicbor-serde = { version = "0.4.1", features = ["alloc"] }
+postcard = { version = "1", features = ["use-std"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_urlencoded = "0.7"

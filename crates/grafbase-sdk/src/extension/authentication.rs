@@ -112,7 +112,7 @@ pub fn register<T: AuthenticationExtension>() {
         }
     }
 
-    crate::component::register_extension(Box::new(|_, config| {
+    crate::component::register_extension(Box::new(|_, _, config| {
         <T as AuthenticationExtension>::new(config).map(|extension| Box::new(Proxy(extension)) as Box<dyn AnyExtension>)
     }))
 }

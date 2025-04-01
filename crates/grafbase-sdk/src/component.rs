@@ -3,11 +3,12 @@ mod authorization;
 mod error;
 mod extension;
 mod field_resolver;
+mod selection_set_resolver;
 mod state;
 
 use crate::{
     types::Configuration,
-    wit::{Error, ErrorResponse, Guest, SchemaDirective},
+    wit::{schema::Schema, Error, ErrorResponse, Guest, SchemaDirective},
 };
 
 pub use error::SdkError;
@@ -17,10 +18,10 @@ pub(crate) use state::register_extension;
 pub(crate) struct Component;
 
 impl Guest for Component {
-    fn init(directives: Vec<SchemaDirective>, configuration: Vec<u8>) -> Result<(), String> {
+    fn init(schema: Schema, directives: Vec<SchemaDirective>, configuration: Vec<u8>) -> Result<(), String> {
         let directives = directives.into_iter().map(Into::into).collect();
         let config = Configuration::new(configuration);
-        state::init(directives, config).map_err(|e| e.to_string())
+        state::init((&schema).into(), directives, config).map_err(|e| e.to_string())
     }
 }
 

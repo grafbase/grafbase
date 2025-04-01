@@ -370,7 +370,7 @@ pub fn register<T: AuthorizationExtension>() {
         }
     }
 
-    crate::component::register_extension(Box::new(|_, config| {
+    crate::component::register_extension(Box::new(|_, _, config| {
         <T as AuthorizationExtension>::new(config).map(|extension| Box::new(Proxy(extension)) as Box<dyn AnyExtension>)
     }))
 }

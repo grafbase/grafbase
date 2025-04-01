@@ -6,10 +6,20 @@ use syn::DeriveInput;
 ///
 /// Add it on top of the type which implements `Extension` and `Resolver` traits to
 /// register it as a resolver extension.
-#[proc_macro_derive(ResolverExtension)]
-pub fn resolver_extension(input: TokenStream) -> TokenStream {
+#[proc_macro_derive(FieldResolverExtension)]
+pub fn field_resolver_extension(input: TokenStream) -> TokenStream {
     let ast = syn::parse_macro_input!(input as DeriveInput);
-    expand(resolver_init(ast))
+    expand(field_resolver_init(ast))
+}
+
+/// A proc macro for generating initialization code for a selection set resolver extension.
+///
+/// Add it on top of the type which implements `Extension` and `Resolver` traits to
+/// register it as a resolver extension.
+#[proc_macro_derive(SelectionSetResolverExtension)]
+pub fn selection_set_resolver_extension(input: TokenStream) -> TokenStream {
+    let ast = syn::parse_macro_input!(input as DeriveInput);
+    expand(selection_set_resolver_init(ast))
 }
 
 /// A proc macro for generating initialization code for an authentication extension.
@@ -44,13 +54,23 @@ fn expand(init: proc_macro2::TokenStream) -> TokenStream {
     TokenStream::from(token_stream)
 }
 
-fn resolver_init(ast: DeriveInput) -> proc_macro2::TokenStream {
+fn selection_set_resolver_init(ast: DeriveInput) -> proc_macro2::TokenStream {
     let name = &ast.ident;
 
     let (_, ty_generics, _) = ast.generics.split_for_impl();
 
     quote! {
-        grafbase_sdk::extension::resolver::register::<#name #ty_generics>();
+        grafbase_sdk::extension::selection_set_resolver::register::<#name #ty_generics>();
+    }
+}
+
+fn field_resolver_init(ast: DeriveInput) -> proc_macro2::TokenStream {
+    let name = &ast.ident;
+
+    let (_, ty_generics, _) = ast.generics.split_for_impl();
+
+    quote! {
+        grafbase_sdk::extension::field_resolver::register::<#name #ty_generics>();
     }
 }
 
