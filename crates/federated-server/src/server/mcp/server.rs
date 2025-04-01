@@ -38,6 +38,8 @@ pub struct IntrospectType {
     #[serde(skip_serializing_if = "Option::is_none")]
     fields: Option<Vec<IntrospectField>>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    input_fields: Option<Vec<IntrospectArgument>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     interfaces: Option<Vec<IntrospectType>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     possible_types: Option<Vec<IntrospectType>>,
@@ -125,6 +127,14 @@ impl<R: Runtime> McpServer<R> {
                 name
                 kind
                 description
+                inputFields {
+                  name
+                  description
+                  defaultValue
+                  type {
+                    ...TypeRef
+                  }
+                }
                 fields {
                   name
                   description
@@ -343,6 +353,9 @@ impl<R: Runtime> ServerHandler for McpServer<R> {
            a selection for a specific query. You first select a query you want to execute, see its return
            type from the description, use this tool to get information about the type and _only then_ you
            call the query tool with the correct selection set and arguments.
+
+           Remember, THIS IS IMPORTANT: you can ONLY select the fields that are returned by this query. There
+           are no other fields that can be selected.
 
            You don't need to use this API for scalar types, input types or enum values, but only when you need
            to build a selection set for a query or mutation. Use the returned value to build a selection set.
