@@ -1,7 +1,7 @@
 mod authentication;
 mod authorization;
 mod field_resolver;
-mod subquery_resolver;
+mod selection_set_resolver;
 mod subscription;
 
 use crate::resources::SharedContext;

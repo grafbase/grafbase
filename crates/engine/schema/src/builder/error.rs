@@ -143,13 +143,13 @@ pub enum BuildError {
         subgraph: String,
     },
     #[error(
-        "SubQuery Resolver extension {} cannot be mixed with other resolvers in subgraph '{}', found {}",
+        "Selection Set Resolver extension {} cannot be mixed with other resolvers in subgraph '{}', found {}",
         .0.id,
         .0.subgraph,
         .0.other_id
     )]
-    SubQueryResolverExtensionCannotBeMixedWithOtherResolvers(
-        Box<SubQueryResolverExtensionCannotBeMixedWithOtherResolversError>,
+    SelectionSetResolverExtensionCannotBeMixedWithOtherResolvers(
+        Box<SelectionSetResolverExtensionCannotBeMixedWithOtherResolversError>,
     ),
 }
 
@@ -170,7 +170,7 @@ pub struct ExtensionDirectiveLocationError {
 }
 
 #[derive(Debug)]
-pub struct SubQueryResolverExtensionCannotBeMixedWithOtherResolversError {
+pub struct SelectionSetResolverExtensionCannotBeMixedWithOtherResolversError {
     pub id: extension_catalog::Id,
     pub subgraph: String,
     pub other_id: extension_catalog::Id,

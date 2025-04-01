@@ -1,4 +1,4 @@
-mod subquery_resolvers;
+mod selection_set_resolvers;
 
 use std::str::FromStr as _;
 use strum::IntoEnumIterator as _;
@@ -9,10 +9,10 @@ use federated_graph::link::LinkDirective;
 use super::{
     BuildError, Context, ExtensionDirectiveArgumentsError, ExtensionDirectiveId, ExtensionDirectiveLocationError,
     ExtensionDirectiveRecord, GraphContext, SchemaLocation,
-    SubQueryResolverExtensionCannotBeMixedWithOtherResolversError,
+    SelectionSetResolverExtensionCannotBeMixedWithOtherResolversError,
 };
 
-pub(crate) use subquery_resolvers::*;
+pub(crate) use selection_set_resolvers::*;
 
 const GRAFBASE_SPEC_URL: &str = "https://specs.grafbase.com/grafbase";
 const GRAFBASE_NAMEPSACE: &str = "grafbase";
@@ -187,19 +187,21 @@ impl GraphContext<'_> {
                 }
             };
 
-            if directive_type.is_subquery_resolver() {
-                if let Some(other_id) = self.virtual_subgraph_to_subquery_resolver[usize::from(id)]
+            if directive_type.is_selection_set_resolver() {
+                if let Some(other_id) = self.virtual_subgraph_to_selection_set_resolver[usize::from(id)]
                     .filter(|id| id != &self[extension_id].catalog_extension_id)
                 {
-                    return Err(BuildError::SubQueryResolverExtensionCannotBeMixedWithOtherResolvers(
-                        Box::new(SubQueryResolverExtensionCannotBeMixedWithOtherResolversError {
-                            id: self.get_catalog_id(extension_id),
-                            subgraph: self.ctx.strings[self.ctx.subgraphs[id].subgraph_name_id].clone(),
-                            other_id: self.extension_catalog[other_id].manifest.id.clone(),
-                        }),
-                    ));
+                    return Err(
+                        BuildError::SelectionSetResolverExtensionCannotBeMixedWithOtherResolvers(Box::new(
+                            SelectionSetResolverExtensionCannotBeMixedWithOtherResolversError {
+                                id: self.get_catalog_id(extension_id),
+                                subgraph: self.ctx.strings[self.ctx.subgraphs[id].subgraph_name_id].clone(),
+                                other_id: self.extension_catalog[other_id].manifest.id.clone(),
+                            },
+                        )),
+                    );
                 }
-                self.virtual_subgraph_to_subquery_resolver[usize::from(id)] =
+                self.virtual_subgraph_to_selection_set_resolver[usize::from(id)] =
                     Some(self[extension_id].catalog_extension_id);
             }
         }

@@ -70,7 +70,7 @@ impl GrafbaseResponseExtension {
                         subgraph_name: directive.subgraph().name().to_string(),
                     })
                 }
-                Resolver::SubQueryResolverExtension(resolver) => QueryPlanNode::Extension(ExtensionNode {
+                Resolver::SelectionSetResolverExtension(resolver) => QueryPlanNode::Extension(ExtensionNode {
                     directive_name: None,
                     id: ctx.schema[resolver.definition.extension_id].clone(),
                     subgraph_name: resolver.definition.subgraph_id.walk(ctx).subgraph_name().to_string(),
