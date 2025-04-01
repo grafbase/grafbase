@@ -1,6 +1,6 @@
 use minicbor_serde::{
-    error::{DecodeError, EncodeError},
     Serializer,
+    error::{DecodeError, EncodeError},
 };
 use serde::Serialize;
 
@@ -21,4 +21,13 @@ pub(crate) fn to_vec<T: Serialize>(val: T) -> Result<Vec<u8>, EncodeError<core::
 pub(crate) fn from_slice<'de, T: serde::Deserialize<'de>>(data: &'de [u8]) -> Result<T, DecodeError> {
     let mut deserializer = minicbor_serde::Deserializer::new(data);
     T::deserialize(&mut deserializer)
+}
+
+// for consistency and convenience.
+pub(crate) fn from_slice_with_seed<'de, Seed: serde::de::DeserializeSeed<'de>>(
+    data: &'de [u8],
+    seed: Seed,
+) -> Result<Seed::Value, DecodeError> {
+    let mut deserializer = minicbor_serde::Deserializer::new(data);
+    seed.deserialize(&mut deserializer)
 }

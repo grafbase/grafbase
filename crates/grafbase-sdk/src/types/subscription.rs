@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use crate::{cbor, wit, SdkError};
+use crate::{SdkError, cbor, wit};
 
 use super::Error;
 

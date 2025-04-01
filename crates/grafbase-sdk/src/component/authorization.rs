@@ -2,7 +2,7 @@ use crate::wit::{
     AuthorizationDecisions, AuthorizationGuest, Error, ErrorResponse, Headers, QueryElements, ResponseElements, Token,
 };
 
-use super::{state, Component};
+use super::{Component, state};
 
 impl AuthorizationGuest for Component {
     fn authorize_query(

@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-use crate::{cbor, SdkError};
+use crate::{SdkError, cbor};
 
 /// Configuration data for the extension, from the gateway toml config.
 pub struct Configuration(Vec<u8>);

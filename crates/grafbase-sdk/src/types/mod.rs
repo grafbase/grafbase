@@ -9,6 +9,10 @@ mod error;
 mod error_response;
 mod headers;
 mod resolver;
+/// GraphQL Schema
+mod schema;
+/// GraphQL Selection Set
+mod selection_set;
 mod subscription;
 mod token;
 
@@ -21,6 +25,8 @@ pub use error::*;
 pub use error_response::*;
 pub use headers::*;
 pub use resolver::*;
+pub use schema::*;
+pub use selection_set::*;
 pub use subscription::*;
 pub use token::*;
 

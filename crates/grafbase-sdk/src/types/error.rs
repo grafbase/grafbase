@@ -1,6 +1,6 @@
 use std::{borrow::Cow, collections::HashMap};
 
-use crate::{cbor, wit, SdkError};
+use crate::{SdkError, cbor, wit};
 
 /// Graphql Error with a message and extensions
 #[derive(Clone)]

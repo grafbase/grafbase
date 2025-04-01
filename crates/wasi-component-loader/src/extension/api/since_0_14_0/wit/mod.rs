@@ -1,6 +1,8 @@
 pub mod authorization_types;
 pub mod field_resolver_types;
+pub mod resolver_types;
 pub mod schema;
+pub mod selection_set_resolver_types;
 
 wasmtime::component::bindgen!({
     path: "../grafbase-sdk/wit/since_0_14_0/",
@@ -15,6 +17,7 @@ wasmtime::component::bindgen!({
         "grafbase:sdk/error": crate::extension::api::since_0_9_0::wit::error,
         "grafbase:sdk/token": crate::extension::api::since_0_10_0::wit::token,
         "grafbase:sdk/headers": crate::extension::api::since_0_10_0::wit::headers,
+        "grafbase:sdk/schema": schema
     },
     trappable_imports: true,
     ownership: Borrowing {

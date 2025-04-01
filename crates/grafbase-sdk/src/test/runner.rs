@@ -8,13 +8,13 @@ use std::{
 
 use super::TestConfig;
 use async_tungstenite::tungstenite::handshake::client::Request;
-use futures_util::{stream::BoxStream, StreamExt};
+use futures_util::{StreamExt, stream::BoxStream};
 use grafbase_sdk_mock::{MockGraphQlServer, MockSubgraph};
 use graphql_composition::{LoadedExtension, Subgraphs};
 use graphql_ws_client::graphql::GraphqlOperation;
 use http::{
-    header::{IntoHeaderName, SEC_WEBSOCKET_PROTOCOL},
     HeaderValue,
+    header::{IntoHeaderName, SEC_WEBSOCKET_PROTOCOL},
 };
 use serde::de::DeserializeOwned;
 use tempfile::TempDir;

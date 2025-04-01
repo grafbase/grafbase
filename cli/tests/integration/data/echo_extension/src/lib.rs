@@ -1,11 +1,11 @@
 use grafbase_sdk::{
-    ResolverExtension, Subscription,
+    FieldResolverExtension, Subscription,
     types::{
         Configuration, Error, FieldDefinitionDirective, FieldInputs, FieldOutputs, SchemaDirective, SubgraphHeaders,
     },
 };
 
-#[derive(ResolverExtension)]
+#[derive(FieldResolverExtension)]
 struct EchoExtension;
 
 #[derive(serde::Deserialize)]
@@ -13,7 +13,7 @@ struct HelloArguments {
     to: String,
 }
 
-impl ResolverExtension for EchoExtension {
+impl FieldResolverExtension for EchoExtension {
     fn new(_schema_directives: Vec<SchemaDirective>, _config: Configuration) -> Result<Self, Error> {
         Ok(Self)
     }

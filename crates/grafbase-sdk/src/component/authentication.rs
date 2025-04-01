@@ -1,6 +1,6 @@
 use crate::wit::{AuthenticationGuest, ErrorResponse, Headers, Token};
 
-use super::{state, Component};
+use super::{Component, state};
 
 impl AuthenticationGuest for Component {
     fn authenticate(headers: Headers) -> Result<Token, ErrorResponse> {

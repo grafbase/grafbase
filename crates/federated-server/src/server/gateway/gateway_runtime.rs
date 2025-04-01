@@ -36,7 +36,7 @@ impl GatewayRuntime {
     pub(super) async fn build(
         gateway_config: &Config,
         extension_catalog: &ExtensionCatalog,
-        schema: &Schema,
+        schema: &Arc<Schema>,
         hot_reload_config_path: Option<PathBuf>,
         version_id: Option<ulid::Ulid>,
         hooks: HooksWasi,

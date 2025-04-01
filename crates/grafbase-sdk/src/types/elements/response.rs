@@ -1,4 +1,4 @@
-use crate::{cbor, sealed::Sealed, types::authorization::private::QueryElementOrResponseItem, wit, SdkError};
+use crate::{SdkError, cbor, sealed::Sealed, types::authorization::private::QueryElementOrResponseItem, wit};
 use serde::Deserialize;
 
 use super::QueryElementId;

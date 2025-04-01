@@ -21,10 +21,10 @@
 use std::iter::Empty;
 
 use core::hash::BuildHasher;
-use hashbrown::{hash_table::Entry, DefaultHashBuilder, HashTable};
+use hashbrown::{DefaultHashBuilder, HashTable, hash_table::Entry};
 use jaq_core::{
-    load::{Arena, File, Loader},
     Compiler, Ctx, Filter, Native, RcIter,
+    load::{Arena, File, Loader},
 };
 use jaq_json::Val;
 

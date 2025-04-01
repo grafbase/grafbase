@@ -1,23 +1,26 @@
 use serde::Deserialize;
 
-use crate::{cbor, wit, SdkError};
+use crate::{SdkError, cbor, wit};
 
 use super::FieldDefinitionDirectiveSite;
 
 /// The directive and its arguments which define the extension in the GraphQL SDK.
-pub struct SchemaDirective(wit::SchemaDirective);
+pub struct SchemaDirective<'a> {
+    pub(crate) subgraph_name: &'a str,
+    pub(crate) directive: &'a wit::Directive,
+}
 
-impl SchemaDirective {
+impl<'a> SchemaDirective<'a> {
     /// The name of the directive.
     #[inline]
-    pub fn name(&self) -> &str {
-        &self.0.name
+    pub fn name(&self) -> &'a str {
+        &self.directive.name
     }
 
     /// The name of the subgraph this directive is part of.
     #[inline]
-    pub fn subgraph_name(&self) -> &str {
-        &self.0.subgraph_name
+    pub fn subgraph_name(&self) -> &'a str {
+        self.subgraph_name
     }
 
     /// The directive arguments. The output is a Serde structure, that must map to
@@ -25,17 +28,11 @@ impl SchemaDirective {
     ///
     /// Error is returned if the directive argument does not match the output structure.
     #[inline]
-    pub fn arguments<'de, T>(&'de self) -> Result<T, SdkError>
+    pub fn arguments<T>(&'a self) -> Result<T, SdkError>
     where
-        T: Deserialize<'de>,
+        T: Deserialize<'a>,
     {
-        cbor::from_slice(&self.0.arguments).map_err(Into::into)
-    }
-}
-
-impl From<wit::SchemaDirective> for SchemaDirective {
-    fn from(value: wit::SchemaDirective) -> Self {
-        Self(value)
+        cbor::from_slice(&self.directive.arguments).map_err(Into::into)
     }
 }
 

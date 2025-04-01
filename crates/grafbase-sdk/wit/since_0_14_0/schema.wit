@@ -2,7 +2,10 @@ interface schema {
     record schema {
         // The IDs and this list have not relationship. They're not indices within this list.
         definitions: list<definition>,
+        directives: list<directive>
     }
+
+    type definition-id = u32;
 
     variant definition {
         scalar(scalar-definition),
@@ -14,51 +17,51 @@ interface schema {
     }
 
     record scalar-definition {
-        id: u32,
+        id: definition-id,
         name: string,
         specified-by-url: option<string>,
         directives: list<directive>
     }
 
     record object-definition {
-        id: u32,
+        id: definition-id,
         name: string,
-        interfaces: list<u32>,
+        interfaces: list<definition-id>,
         fields: list<field-definition>,
         directives: list<directive>
     }
 
     record interface-definition {
-        id: u32,
+        id: definition-id,
         name: string,
-        interfaces: list<u32>,
+        interfaces: list<definition-id>,
         fields: list<field-definition>,
         directives: list<directive>
     }
 
     record union-definition {
-        id: u32,
+        id: definition-id,
         name: string,
-        member-types: list<u32>,
+        member-types: list<definition-id>,
         directives: list<directive>
     }
 
     record enum-definition {
-        id: u32,
+        id: definition-id,
         name: string,
         values: list<enum-value>,
         directives: list<directive>
     }
 
     record input-object-definition {
-        id: u32,
+        id: definition-id,
         name: string,
         input-fields: list<input-value-definition>,
         directives: list<directive>
     }
 
     record field-definition {
-        id: u32,
+        id: definition-id,
         name: string,
         ty: ty,
         arguments: list<input-value-definition>,
@@ -67,7 +70,7 @@ interface schema {
 
     record ty {
         wrapping: list<wrapping-type>,
-        definition-id: u32
+        definition-id: definition-id
     }
 
     enum wrapping-type {
@@ -76,7 +79,7 @@ interface schema {
     }
 
     record input-value-definition {
-        id: u32,
+        id: definition-id,
         name: string,
         ty: ty,
         directives: list<directive>

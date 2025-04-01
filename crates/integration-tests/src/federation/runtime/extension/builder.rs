@@ -137,7 +137,7 @@ impl ExtensionsBuilder {
     pub async fn build_and_ingest_catalog_into_config(
         self,
         config: &mut gateway_config::Config,
-        schema: &engine::Schema,
+        schema: &Arc<engine::Schema>,
         shared_resources: SharedResources,
     ) -> Result<(ExtensionsDispatcher, ExtensionCatalog), String> {
         let wasm_extensions = if self.has_wasm_extension {
