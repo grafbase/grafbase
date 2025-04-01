@@ -2,12 +2,12 @@ mod authentication;
 mod authorization;
 mod error;
 mod extension;
-mod resolver;
+mod field_resolver;
 mod state;
 
 use crate::{
     types::Configuration,
-    wit::{Error, ErrorResponse, InitGuest, SchemaDirective},
+    wit::{Error, ErrorResponse, Guest, SchemaDirective},
 };
 
 pub use error::SdkError;
@@ -16,8 +16,8 @@ pub(crate) use state::register_extension;
 
 pub(crate) struct Component;
 
-impl InitGuest for Component {
-    fn init_gateway_extension(directives: Vec<SchemaDirective>, configuration: Vec<u8>) -> Result<(), String> {
+impl Guest for Component {
+    fn init(directives: Vec<SchemaDirective>, configuration: Vec<u8>) -> Result<(), String> {
         let directives = directives.into_iter().map(Into::into).collect();
         let config = Configuration::new(configuration);
         state::init(directives, config).map_err(|e| e.to_string())

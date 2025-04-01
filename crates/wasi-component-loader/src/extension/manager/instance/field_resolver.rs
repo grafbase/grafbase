@@ -1,12 +1,8 @@
 use engine_error::GraphqlError;
 use futures::future::BoxFuture;
-use runtime::extension::{AuthorizationDecisions, Data, Token, TokenRef};
+use runtime::extension::Data;
 
-use crate::{
-    Error, ErrorResponse,
-    extension::api::wit::{FieldDefinitionDirective, QueryElements, ResponseElements},
-    resources::Lease,
-};
+use crate::{Error, extension::api::wit::FieldDefinitionDirective, resources::Lease};
 
 /// List of inputs to be provided to the extension.
 /// The data itself is fully custom and thus will be serialized with serde to cross the Wasm
@@ -25,12 +21,8 @@ impl<S: serde::Serialize> FromIterator<S> for InputList {
 }
 
 pub(crate) type SubscriptionItem = Vec<Result<Data, GraphqlError>>;
-pub(crate) type QueryAuthorizationResult =
-    Result<(Lease<http::HeaderMap>, AuthorizationDecisions, Vec<u8>), ErrorResponse>;
 
-pub trait ExtensionInstance: Send + 'static {
-    fn recycle(&mut self) -> Result<(), Error>;
-
+pub(crate) trait FieldResolverExtensionInstance {
     fn resolve_field<'a>(
         &'a mut self,
         headers: http::HeaderMap,
@@ -55,22 +47,4 @@ pub trait ExtensionInstance: Send + 'static {
     ) -> BoxFuture<'a, Result<(), Error>>;
 
     fn resolve_next_subscription_item(&mut self) -> BoxFuture<'_, Result<Option<SubscriptionItem>, Error>>;
-
-    fn authenticate(
-        &mut self,
-        headers: Lease<http::HeaderMap>,
-    ) -> BoxFuture<'_, Result<(Lease<http::HeaderMap>, Token), ErrorResponse>>;
-
-    fn authorize_query<'a>(
-        &'a mut self,
-        headers: Lease<http::HeaderMap>,
-        token: TokenRef<'a>,
-        elements: QueryElements<'a>,
-    ) -> BoxFuture<'a, QueryAuthorizationResult>;
-
-    fn authorize_response<'a>(
-        &'a mut self,
-        state: &'a [u8],
-        elements: ResponseElements<'a>,
-    ) -> BoxFuture<'a, Result<AuthorizationDecisions, Error>>;
 }

@@ -1,26 +1,14 @@
-use anyhow::anyhow;
 use engine_error::GraphqlError;
 use futures::future::BoxFuture;
-use runtime::extension::{AuthorizationDecisions, Data, Token, TokenRef};
-use wasmtime::Store;
+use runtime::extension::Data;
 
 use crate::{
-    Error, ErrorResponse,
-    extension::{
-        ExtensionInstance, InputList, QueryAuthorizationResult,
-        api::wit::{FieldDefinitionDirective, QueryElements, ResponseElements},
-    },
+    Error,
+    extension::{FieldResolverExtensionInstance, InputList, api::wit::FieldDefinitionDirective},
     resources::{Headers, Lease},
-    state::WasiState,
 };
 
-pub struct ExtensionInstanceSince080 {
-    pub(crate) store: Store<WasiState>,
-    pub(crate) inner: super::wit::Sdk,
-    pub(crate) poisoned: bool,
-}
-
-impl ExtensionInstance for ExtensionInstanceSince080 {
+impl FieldResolverExtensionInstance for super::ExtensionInstanceSince0_14_0 {
     fn resolve_field<'a>(
         &'a mut self,
         headers: http::HeaderMap,
@@ -38,7 +26,7 @@ impl ExtensionInstance for ExtensionInstanceSince080 {
 
             let result = self
                 .inner
-                .grafbase_sdk_extension()
+                .grafbase_sdk_field_resolver()
                 .call_resolve_field(&mut self.store, headers, subgraph_name, directive, &inputs)
                 .await?;
 
@@ -60,12 +48,11 @@ impl ExtensionInstance for ExtensionInstanceSince080 {
             self.poisoned = true;
 
             let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
-
             let headers_rep = headers.rep();
 
             let result = self
                 .inner
-                .grafbase_sdk_extension()
+                .grafbase_sdk_field_resolver()
                 .call_subscription_key(&mut self.store, headers, subgraph_name, directive)
                 .await?;
 
@@ -98,7 +85,7 @@ impl ExtensionInstance for ExtensionInstanceSince080 {
 
             let result = self
                 .inner
-                .grafbase_sdk_extension()
+                .grafbase_sdk_field_resolver()
                 .call_resolve_subscription(&mut self.store, headers, subgraph_name, directive)
                 .await?;
 
@@ -118,7 +105,7 @@ impl ExtensionInstance for ExtensionInstanceSince080 {
 
             let result = self
                 .inner
-                .grafbase_sdk_extension()
+                .grafbase_sdk_field_resolver()
                 .call_resolve_next_subscription_item(&mut self.store)
                 .await?;
 
@@ -126,78 +113,5 @@ impl ExtensionInstance for ExtensionInstanceSince080 {
 
             Ok(result?.map(Into::into))
         })
-    }
-
-    fn authenticate(
-        &mut self,
-        headers: Lease<http::HeaderMap>,
-    ) -> BoxFuture<'_, Result<(Lease<http::HeaderMap>, Token), ErrorResponse>> {
-        Box::pin(async move {
-            // Futures may be canceled, so we pro-actively mark the instance as poisoned until proven
-            // otherwise.
-            self.poisoned = true;
-
-            let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
-            let headers_rep = headers.rep();
-
-            let result = self
-                .inner
-                .grafbase_sdk_extension()
-                .call_authenticate(&mut self.store, headers)
-                .await?;
-
-            let headers = self
-                .store
-                .data_mut()
-                .take_resource::<Headers>(headers_rep)?
-                .into_lease()
-                .unwrap();
-
-            self.poisoned = false;
-
-            let token = result?;
-            Ok((headers, token.into()))
-        })
-    }
-
-    fn authorize_query<'a>(
-        &'a mut self,
-        headers: Lease<http::HeaderMap>,
-        _token: TokenRef<'a>,
-        elements: QueryElements<'a>,
-    ) -> BoxFuture<'a, QueryAuthorizationResult> {
-        Box::pin(async move {
-            // Futures may be canceled, so we pro-actively mark the instance as poisoned until proven
-            // otherwise.
-            self.poisoned = true;
-
-            let result = self
-                .inner
-                .grafbase_sdk_extension()
-                .call_authorize_query(&mut self.store, elements.into())
-                .await?;
-
-            self.poisoned = false;
-
-            result
-                .map(|decisions| (headers, decisions.into(), Vec::new()))
-                .map_err(Into::into)
-        })
-    }
-
-    fn authorize_response<'a>(
-        &'a mut self,
-        _state: &'a [u8],
-        _elements: ResponseElements<'a>,
-    ) -> BoxFuture<'a, Result<AuthorizationDecisions, Error>> {
-        Box::pin(async move { Err(anyhow!("authorize_response is not supported by sdk 0.8.*").into()) })
-    }
-
-    fn recycle(&mut self) -> crate::Result<()> {
-        if self.poisoned {
-            return Err(anyhow::anyhow!("this instance is poisoned").into());
-        }
-
-        Ok(())
     }
 }

@@ -39,24 +39,24 @@ mod wit {
 
     wit_bindgen::generate!({
         skip: ["register-extension"],
-        path: "./wit/since_0_10_0/",
+        path: "./wit/since_0_14_0/",
         world: "sdk",
     });
 
-    pub use exports::grafbase::sdk::authentication::{Guest as AuthenticationGuest, Token};
-    pub use exports::grafbase::sdk::authorization::{
-        AuthorizationDecisions, AuthorizationDecisionsDenySome, Guest as AuthorizationGuest,
-    };
-    pub use exports::grafbase::sdk::init::Guest as InitGuest;
-    pub use exports::grafbase::sdk::resolver::{FieldOutput, Guest as ResolverGuest};
+    pub use exports::grafbase::sdk::authentication::Guest as AuthenticationGuest;
+    pub use exports::grafbase::sdk::authorization::Guest as AuthorizationGuest;
+    pub use exports::grafbase::sdk::field_resolver::Guest as FieldResolverGuest;
 
     pub use grafbase::sdk::access_log::*;
+    pub use grafbase::sdk::authorization_types::{AuthorizationDecisions, AuthorizationDecisionsDenySome};
     pub use grafbase::sdk::cache::*;
     pub use grafbase::sdk::directive::*;
     pub use grafbase::sdk::error::*;
+    pub use grafbase::sdk::field_resolver_types::FieldOutput;
     pub use grafbase::sdk::headers::*;
     pub use grafbase::sdk::http_client::*;
     pub use grafbase::sdk::nats_client::*;
+    pub use grafbase::sdk::token::*;
 }
 
 wit::export!(Component with_types_in wit);

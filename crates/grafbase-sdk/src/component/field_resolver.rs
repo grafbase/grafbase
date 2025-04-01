@@ -1,8 +1,8 @@
-use crate::wit::{Error, FieldDefinitionDirective, FieldOutput, Headers, ResolverGuest};
+use crate::wit::{Error, FieldDefinitionDirective, FieldOutput, FieldResolverGuest, Headers};
 
 use super::{state, Component};
 
-impl ResolverGuest for Component {
+impl FieldResolverGuest for Component {
     fn resolve_field(
         headers: Headers,
         subgraph_name: String,

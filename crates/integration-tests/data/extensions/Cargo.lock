@@ -269,7 +269,7 @@ dependencies = [
 name = "authenticated"
 version = "0.1.0"
 dependencies = [
- "grafbase-sdk 0.13.0",
+ "grafbase-sdk 0.14.0",
  "serde",
  "serde_json",
 ]
@@ -1014,6 +1014,26 @@ dependencies = [
 [[package]]
 name = "grafbase-sdk"
 version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6321add94e0ee533a14774bfccb220cb92d3c1227907b343b3e4c0f58f517711"
+dependencies = [
+ "document-features",
+ "grafbase-sdk-derive 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "http",
+ "minicbor-serde",
+ "semver",
+ "serde",
+ "serde_json",
+ "serde_urlencoded",
+ "thiserror 2.0.12",
+ "time",
+ "url",
+ "wit-bindgen 0.41.0",
+]
+
+[[package]]
+name = "grafbase-sdk"
+version = "0.14.0"
 dependencies = [
  "document-features",
  "grafbase-sdk-derive 0.3.0",
@@ -1890,7 +1910,7 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 name = "placeholder"
 version = "0.1.0"
 dependencies = [
- "grafbase-sdk 0.13.0",
+ "grafbase-sdk 0.14.0",
  "serde",
  "serde_json",
 ]

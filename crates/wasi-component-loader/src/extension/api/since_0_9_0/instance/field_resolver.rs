@@ -1,36 +1,14 @@
-use anyhow::anyhow;
 use engine_error::GraphqlError;
 use futures::future::BoxFuture;
-use runtime::extension::{AuthorizationDecisions, Data, TokenRef};
-use wasmtime::Store;
+use runtime::extension::Data;
 
 use crate::{
-    Error, ErrorResponse, WasiState,
-    extension::{ExtensionInstance, InputList, QueryAuthorizationResult},
-    resources::{AuthorizationContext, Lease},
+    Error,
+    extension::{FieldResolverExtensionInstance, InputList, api::wit::FieldDefinitionDirective},
+    resources::{Headers, Lease},
 };
 
-use super::wit::{
-    Sdk,
-    directive::{FieldDefinitionDirective, QueryElements, ResponseElements},
-    headers::Headers,
-};
-
-pub struct ExtensionInstanceSince090 {
-    pub(crate) store: Store<WasiState>,
-    pub(crate) inner: Sdk,
-    pub(crate) poisoned: bool,
-}
-
-impl ExtensionInstance for ExtensionInstanceSince090 {
-    fn recycle(&mut self) -> Result<(), Error> {
-        if self.poisoned {
-            return Err(anyhow::anyhow!("this instance is poisoned").into());
-        }
-
-        Ok(())
-    }
-
+impl FieldResolverExtensionInstance for super::ExtensionInstanceSince090 {
     fn resolve_field<'a>(
         &'a mut self,
         headers: http::HeaderMap,
@@ -134,84 +112,6 @@ impl ExtensionInstance for ExtensionInstanceSince090 {
             self.poisoned = false;
 
             Ok(result?.map(Into::into))
-        })
-    }
-
-    fn authenticate(
-        &mut self,
-        headers: Lease<http::HeaderMap>,
-    ) -> BoxFuture<'_, Result<(Lease<http::HeaderMap>, runtime::extension::Token), ErrorResponse>> {
-        Box::pin(async move {
-            // Futures may be canceled, so we pro-actively mark the instance as poisoned until proven
-            // otherwise.
-            self.poisoned = true;
-
-            let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
-            let headers_rep = headers.rep();
-
-            let result = self
-                .inner
-                .grafbase_sdk_authentication()
-                .call_authenticate(&mut self.store, headers)
-                .await?;
-
-            let headers = self
-                .store
-                .data_mut()
-                .take_resource::<Headers>(headers_rep)?
-                .into_lease()
-                .unwrap();
-
-            self.poisoned = false;
-
-            let token = result?;
-            Ok((headers, token.into()))
-        })
-    }
-
-    fn authorize_query<'a>(
-        &'a mut self,
-        headers: Lease<http::HeaderMap>,
-        token: TokenRef<'a>,
-        elements: QueryElements<'a>,
-    ) -> BoxFuture<'a, QueryAuthorizationResult> {
-        Box::pin(async move {
-            // Futures may be canceled, so we pro-actively mark the instance as poisoned until proven
-            // otherwise.
-            self.poisoned = true;
-            let ctx = AuthorizationContext {
-                headers: headers.into(),
-                token: token.to_owned(),
-            };
-            let ctx = self.store.data_mut().push_resource(ctx)?;
-            let ctx_rep = ctx.rep();
-
-            let result = self
-                .inner
-                .grafbase_sdk_authorization()
-                .call_authorize_query(&mut self.store, ctx, elements)
-                .await?;
-
-            let AuthorizationContext { headers, .. } =
-                self.store.data_mut().take_resource::<AuthorizationContext>(ctx_rep)?;
-
-            self.poisoned = false;
-
-            result
-                .map(|(decisions, state)| (headers.into_lease().unwrap(), decisions.into(), state))
-                .map_err(Into::into)
-        })
-    }
-
-    fn authorize_response<'a>(
-        &'a mut self,
-        _: &'a [u8],
-        _: ResponseElements<'a>,
-    ) -> BoxFuture<'a, Result<AuthorizationDecisions, Error>> {
-        Box::pin(async move {
-            Err(Error::Internal(anyhow!(
-                "SDK 0.9.0 had only experimental support for authorize_response."
-            )))
         })
     }
 }

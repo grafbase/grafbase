@@ -1,0 +1,95 @@
+interface schema {
+    record schema {
+        // The IDs and this list have not relationship. They're not indices within this list.
+        definitions: list<definition>,
+    }
+
+    variant definition {
+        scalar(scalar-definition),
+        object(object-definition),
+        %interface(interface-definition),
+        union(union-definition),
+        %enum(enum-definition),
+        input-object(input-object-definition),
+    }
+
+    record scalar-definition {
+        id: u32,
+        name: string,
+        specified-by-url: option<string>,
+        directives: list<directive>
+    }
+
+    record object-definition {
+        id: u32,
+        name: string,
+        interfaces: list<u32>,
+        fields: list<field-definition>,
+        directives: list<directive>
+    }
+
+    record interface-definition {
+        id: u32,
+        name: string,
+        interfaces: list<u32>,
+        fields: list<field-definition>,
+        directives: list<directive>
+    }
+
+    record union-definition {
+        id: u32,
+        name: string,
+        member-types: list<u32>,
+        directives: list<directive>
+    }
+
+    record enum-definition {
+        id: u32,
+        name: string,
+        values: list<enum-value>,
+        directives: list<directive>
+    }
+
+    record input-object-definition {
+        id: u32,
+        name: string,
+        input-fields: list<input-value-definition>,
+        directives: list<directive>
+    }
+
+    record field-definition {
+        id: u32,
+        name: string,
+        ty: ty,
+        arguments: list<input-value-definition>,
+        directives: list<directive>
+    }
+
+    record ty {
+        wrapping: list<wrapping-type>,
+        definition-id: u32
+    }
+
+    enum wrapping-type {
+        non-null,
+        %list
+    }
+
+    record input-value-definition {
+        id: u32,
+        name: string,
+        ty: ty,
+        directives: list<directive>
+    }
+
+    record enum-value {
+        name: string,
+        directives: list<directive>
+    }
+
+    record directive {
+        name: string,
+        // encoded in CBOR
+        arguments: list<u8>,
+    }
+}
