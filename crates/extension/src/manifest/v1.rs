@@ -41,7 +41,7 @@ impl Manifest {
     }
 
     pub fn is_resolver(&self) -> bool {
-        matches!(self.r#type, Type::Resolver(_))
+        matches!(self.r#type, Type::FieldResolver(_))
     }
 
     pub fn is_authenticator(&self) -> bool {
@@ -67,15 +67,15 @@ impl Manifest {
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, strum::EnumDiscriminants)]
 pub enum Type {
-    #[serde(rename = "FieldResolver")]
-    Resolver(ResolverType),
+    FieldResolver(FieldResolverType),
+    SubQueryResolver(Empty),
     #[serde(rename = "Authenticator")]
     Authentication(Empty),
     Authorization(AuthorizationType),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct ResolverType {
+pub struct FieldResolverType {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub resolver_directives: Option<Vec<String>>,
 }
@@ -120,7 +120,7 @@ mod tests {
                 name: "test".to_string(),
                 version: semver::Version::new(1, 0, 0),
             },
-            r#type: Type::Resolver(ResolverType {
+            r#type: Type::FieldResolver(FieldResolverType {
                 resolver_directives: Some(vec!["custom".to_string()]),
             }),
             sdk_version: semver::Version::new(0, 1, 0),
@@ -161,7 +161,7 @@ mod tests {
                 name: "test".to_string(),
                 version: semver::Version::new(1, 0, 0),
             },
-            r#type: Type::Resolver(ResolverType {
+            r#type: Type::FieldResolver(FieldResolverType {
                 resolver_directives: Some(vec!["custom".to_string()]),
             }),
             sdk_version: semver::Version::new(0, 1, 0),
@@ -200,7 +200,7 @@ mod tests {
                 name: "test".to_string(),
                 version: semver::Version::new(1, 0, 0),
             },
-            r#type: Type::Resolver(ResolverType {
+            r#type: Type::FieldResolver(FieldResolverType {
                 resolver_directives: None,
             }),
             sdk_version: semver::Version::new(0, 1, 0),
@@ -326,6 +326,38 @@ mod tests {
             permissions: BitFlags::empty(),
         };
 
+        assert_eq!(manifest, expected);
+    }
+
+    #[test]
+    fn sub_query_resolver_compatbility() {
+        let json = json!({
+            "id": {"name": "subquery", "version": "1.0.0"},
+            "kind": {
+                "SubQueryResolver": {}
+            },
+            "sdk_version": "0.1.0",
+            "minimum_gateway_version": "0.1.0",
+            "description": "A subquery resolver test",
+            "homepage_url": "http://example.com/my-extension"
+        });
+        let manifest: Manifest = serde_json::from_value(json).unwrap();
+        let expected = Manifest {
+            id: Id {
+                name: "subquery".to_string(),
+                version: semver::Version::new(1, 0, 0),
+            },
+            r#type: Type::SubQueryResolver(Empty {}),
+            sdk_version: semver::Version::new(0, 1, 0),
+            minimum_gateway_version: semver::Version::new(0, 1, 0),
+            sdl: None,
+            description: "A subquery resolver test".to_owned(),
+            readme: None,
+            homepage_url: Some("http://example.com/my-extension".parse().unwrap()),
+            repository_url: None,
+            license: None,
+            permissions: BitFlags::empty(),
+        };
         assert_eq!(manifest, expected);
     }
 

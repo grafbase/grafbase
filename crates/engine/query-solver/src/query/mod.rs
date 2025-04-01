@@ -117,6 +117,15 @@ pub enum QueryOrSchemaFieldArgumentIds {
     Schema(IdRange<SchemaFieldArgumentId>),
 }
 
+impl QueryOrSchemaFieldArgumentIds {
+    pub fn is_empty(&self) -> bool {
+        match self {
+            QueryOrSchemaFieldArgumentIds::Query(ids) => ids.is_empty(),
+            QueryOrSchemaFieldArgumentIds::Schema(ids) => ids.is_empty(),
+        }
+    }
+}
+
 impl Default for QueryOrSchemaFieldArgumentIds {
     fn default() -> Self {
         QueryOrSchemaFieldArgumentIds::Query(IdRange::empty())

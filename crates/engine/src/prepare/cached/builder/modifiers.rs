@@ -84,7 +84,7 @@ impl Solver<'_> {
                         }
                     }
                     TypeSystemDirective::Extension(directive) => {
-                        if !directive.kind.is_authorization() {
+                        if !directive.ty.is_authorization() {
                             continue;
                         }
                         match directive.max_arguments_stage() {
@@ -157,7 +157,7 @@ impl Solver<'_> {
                             Rule::Query(QueryModifierRule::RequiresScopes(dir.id))
                         }
                         TypeSystemDirective::Extension(directive) => {
-                            if !directive.kind.is_authorization() {
+                            if !directive.ty.is_authorization() {
                                 continue;
                             }
                             match directive.max_arguments_stage() {
@@ -212,7 +212,7 @@ impl Solver<'_> {
                     }
                     TypeSystemDirective::RequiresScopes(dir) => Rule::Query(QueryModifierRule::RequiresScopes(dir.id)),
                     TypeSystemDirective::Extension(directive) => {
-                        if !directive.kind.is_authorization() {
+                        if !directive.ty.is_authorization() {
                             continue;
                         }
                         match directive.max_arguments_stage() {
@@ -256,7 +256,7 @@ impl Solver<'_> {
                     definition_id: self.output.operation.root_object_id.into(),
                 },
                 TypeSystemDirective::Extension(directive) => {
-                    if !directive.kind.is_authorization() {
+                    if !directive.ty.is_authorization() {
                         continue;
                     }
                     QueryModifierRule::Extension {

@@ -17,7 +17,7 @@ use walker::{Iter, Walk};
 /// type ExtensionDirective @meta(module: "directive/extension") @indexed(id_size: "u32") {
 ///   subgraph: Subgraph!
 ///   extension_id: ExtensionId!
-///   kind: ExtensionDirectiveType!
+///   ty: ExtensionDirectiveType!
 ///   name: String!
 ///   argument_ids: [ExtensionDirectiveArgumentId!]!
 ///   requirements: FieldSet!
@@ -27,7 +27,7 @@ use walker::{Iter, Walk};
 pub struct ExtensionDirectiveRecord {
     pub subgraph_id: SubgraphId,
     pub extension_id: ExtensionId,
-    pub kind: ExtensionDirectiveType,
+    pub ty: ExtensionDirectiveType,
     pub name_id: StringId,
     pub argument_ids: IdRange<ExtensionDirectiveArgumentId>,
     pub requirements_record: FieldSetRecord,
@@ -88,7 +88,7 @@ impl std::fmt::Debug for ExtensionDirective<'_> {
         f.debug_struct("ExtensionDirective")
             .field("subgraph", &self.subgraph())
             .field("extension_id", &self.extension_id)
-            .field("kind", &self.kind)
+            .field("ty", &self.ty)
             .field("name", &self.name())
             .field("argument_ids", &self.argument_ids)
             .field("requirements", &self.requirements())

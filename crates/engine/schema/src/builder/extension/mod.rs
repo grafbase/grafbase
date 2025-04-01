@@ -1,3 +1,5 @@
+mod subquery_resolvers;
+
 use std::str::FromStr as _;
 use strum::IntoEnumIterator as _;
 
@@ -7,13 +9,16 @@ use federated_graph::link::LinkDirective;
 use super::{
     BuildError, Context, ExtensionDirectiveArgumentsError, ExtensionDirectiveId, ExtensionDirectiveLocationError,
     ExtensionDirectiveRecord, GraphContext, SchemaLocation,
+    SubQueryResolverExtensionCannotBeMixedWithOtherResolversError,
 };
+
+pub(crate) use subquery_resolvers::*;
 
 const GRAFBASE_SPEC_URL: &str = "https://specs.grafbase.com/grafbase";
 const GRAFBASE_NAMEPSACE: &str = "grafbase";
 
 pub(crate) struct SchemaExtension {
-    pub catalog_id: extension_catalog::ExtensionId,
+    pub catalog_extension_id: extension_catalog::ExtensionId,
     pub sdl: Option<ExtensionSdl>,
 }
 
@@ -46,7 +51,7 @@ impl Context<'_> {
                         url: url_str.to_string(),
                         err: err.to_string(),
                     })?;
-            let Some(catalog_id) = self.extension_catalog.find_compatible_extension(&manifest.id) else {
+            let Some(catalog_extension_id) = self.extension_catalog.find_compatible_extension(&manifest.id) else {
                 return Err(BuildError::UnsupportedExtension {
                     id: manifest.id.clone(),
                 });
@@ -105,14 +110,20 @@ impl Context<'_> {
                     }))
                 })?;
 
-            self.extensions.push(SchemaExtension { catalog_id, sdl })
+            self.extensions.push(SchemaExtension {
+                catalog_extension_id,
+                sdl,
+            })
         }
 
         Ok(())
     }
 
-    fn get_extension_id(&self, id: federated_graph::ExtensionId) -> extension_catalog::Id {
-        self.extension_catalog[self[id].catalog_id].manifest.id.clone()
+    fn get_catalog_id(&self, id: federated_graph::ExtensionId) -> extension_catalog::Id {
+        self.extension_catalog[self[id].catalog_extension_id]
+            .manifest
+            .id
+            .clone()
     }
 }
 
@@ -130,7 +141,7 @@ impl GraphContext<'_> {
 
         let Some(sdl) = self[extension_id].sdl.take() else {
             return Err(BuildError::MissingGraphQLDefinitions {
-                id: self.get_extension_id(extension_id),
+                id: self.get_catalog_id(extension_id),
                 directive: directive_name.clone(),
             });
         };
@@ -140,37 +151,66 @@ impl GraphContext<'_> {
             _ => None,
         }) else {
             return Err(BuildError::UnknownExtensionDirective {
-                id: self.get_extension_id(extension_id),
+                id: self.get_catalog_id(extension_id),
                 directive: directive_name.to_string(),
             });
         };
 
-        let kind = self
+        let directive_type = self
             .ctx
             .extension_catalog
-            .get_directive_type(self[extension_id].catalog_id, directive_name);
+            .get_directive_type(self[extension_id].catalog_extension_id, directive_name);
 
         let cynic_location = location.to_cynic_location();
-        if definition
-            .locations()
-            .all(|loc| loc.as_str() != cynic_location.as_str())
-        {
+        if definition.locations().all(|loc| loc != cynic_location) {
             return Err(BuildError::ExtensionDirectiveLocationError(Box::new(
                 ExtensionDirectiveLocationError {
-                    id: self.get_extension_id(extension_id),
+                    id: self.get_catalog_id(extension_id),
                     directive: directive_name.to_string(),
                     location: cynic_location.as_str(),
                     expected: definition.locations().map(|loc| loc.as_str()).collect(),
                 },
             )));
         }
+
+        let subgraph_id = self.subgraphs[subgraph_id];
+        if directive_type.is_resolver() {
+            let id = match subgraph_id {
+                super::SubgraphId::Virtual(id) => id,
+                super::SubgraphId::Introspection => unreachable!(),
+                super::SubgraphId::GraphqlEndpoint(id) => {
+                    return Err(BuildError::ResolverExtensionOnNonVirtualGraph {
+                        id: self.get_catalog_id(extension_id),
+                        directive: directive_name.to_string(),
+                        subgraph: self.ctx.strings[self.ctx.subgraphs[id].subgraph_name_id].clone(),
+                    });
+                }
+            };
+
+            if directive_type.is_subquery_resolver() {
+                if let Some(other_id) = self.virtual_subgraph_to_subquery_resolver[usize::from(id)]
+                    .filter(|id| id != &self[extension_id].catalog_extension_id)
+                {
+                    return Err(BuildError::SubQueryResolverExtensionCannotBeMixedWithOtherResolvers(
+                        Box::new(SubQueryResolverExtensionCannotBeMixedWithOtherResolversError {
+                            id: self.get_catalog_id(extension_id),
+                            subgraph: self.ctx.strings[self.ctx.subgraphs[id].subgraph_name_id].clone(),
+                            other_id: self.extension_catalog[other_id].manifest.id.clone(),
+                        }),
+                    ));
+                }
+                self.virtual_subgraph_to_subquery_resolver[usize::from(id)] =
+                    Some(self[extension_id].catalog_extension_id);
+            }
+        }
+
         let (argument_ids, requirements_record) = self
             .coerce_extension_directive_arguments(location, &sdl, definition, arguments)
             .map_err(|err| {
                 BuildError::ExtensionDirectiveArgumentsError(Box::new(ExtensionDirectiveArgumentsError {
                     location: location.to_string(self),
                     directive: directive_name.to_string(),
-                    extension_id: self.get_extension_id(extension_id),
+                    id: self.get_catalog_id(extension_id),
                     err,
                 }))
             })?;
@@ -178,10 +218,10 @@ impl GraphContext<'_> {
         self[extension_id].sdl = Some(sdl);
 
         let record = ExtensionDirectiveRecord {
-            subgraph_id: self.subgraphs[subgraph_id],
-            extension_id: self[extension_id].catalog_id,
+            subgraph_id,
+            extension_id: self[extension_id].catalog_extension_id,
             name_id: directive_name_id,
-            kind,
+            ty: directive_type,
             argument_ids,
             requirements_record,
         };

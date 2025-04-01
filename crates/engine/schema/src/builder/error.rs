@@ -98,7 +98,7 @@ impl SchemaLocation {
 pub enum BuildError {
     #[error("Invalid URL '{url}': {err}")]
     InvalidUrl { url: String, err: String },
-    #[error("At {} for the extension '{}' directive @{}: {}", .0.location, .0.extension_id, .0.directive, .0.err)]
+    #[error("At {} for the extension '{}' directive @{}: {}", .0.location, .0.id, .0.directive, .0.err)]
     ExtensionDirectiveArgumentsError(Box<ExtensionDirectiveArgumentsError>),
     #[error("At {location}, a required field argument is invalid: {err}")]
     RequiredFieldArgumentCoercionError { location: String, err: InputValueError },
@@ -134,13 +134,30 @@ pub enum BuildError {
     ExtensionCouldNotReadLink { id: extension_catalog::Id, err: String },
     #[error("Extension {id} imports an unknown Grafbase definition: '{name}'")]
     ExtensionLinksToUnknownGrafbaseDefinition { id: extension_catalog::Id, name: String },
+    #[error(
+        "Resolver extension {id}' directive '{directive}' can only be used on virtual graphs, '{subgraph}' isn't one."
+    )]
+    ResolverExtensionOnNonVirtualGraph {
+        id: extension_catalog::Id,
+        directive: String,
+        subgraph: String,
+    },
+    #[error(
+        "SubQuery Resolver extension {} cannot be mixed with other resolvers in subgraph '{}', found {}",
+        .0.id,
+        .0.subgraph,
+        .0.other_id
+    )]
+    SubQueryResolverExtensionCannotBeMixedWithOtherResolvers(
+        Box<SubQueryResolverExtensionCannotBeMixedWithOtherResolversError>,
+    ),
 }
 
 #[derive(Debug)]
 pub struct ExtensionDirectiveArgumentsError {
-    pub location: String,
+    pub id: extension_catalog::Id,
     pub directive: String,
-    pub extension_id: extension_catalog::Id,
+    pub location: String,
     pub err: ExtensionInputValueError,
 }
 
@@ -150,4 +167,11 @@ pub struct ExtensionDirectiveLocationError {
     pub directive: String,
     pub location: &'static str,
     pub expected: Vec<&'static str>,
+}
+
+#[derive(Debug)]
+pub struct SubQueryResolverExtensionCannotBeMixedWithOtherResolversError {
+    pub id: extension_catalog::Id,
+    pub subgraph: String,
+    pub other_id: extension_catalog::Id,
 }

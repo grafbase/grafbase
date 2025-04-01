@@ -37,7 +37,7 @@ pub use self::builder::BuildError;
 pub use config::*;
 pub use directive::*;
 pub use extension::*;
-use extension_catalog::ExtensionCatalog;
+use extension_catalog::{ExtensionCatalog, ExtensionId};
 pub use field_set::*;
 pub use gateway_config::SubscriptionProtocol;
 pub use generated::*;
@@ -61,6 +61,10 @@ pub struct Schema {
     pub graph: Graph,
     // Cryptographic hash of the schema
     pub hash: [u8; 32],
+
+    // Kept for messages
+    #[indexed_by(ExtensionId)]
+    extensions: Vec<extension_catalog::Id>,
 
     /// All strings deduplicated.
     #[indexed_by(StringId)]

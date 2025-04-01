@@ -11,6 +11,10 @@ pub(crate) struct SubgraphSelectionSet<'a> {
 
 #[allow(unused)]
 impl<'a> SubgraphSelectionSet<'a> {
+    pub(crate) fn is_empty(&self) -> bool {
+        self.item.data_field_ids_ordered_by_parent_entity_then_key.is_empty() && self.item.typename_field_ids.is_empty()
+    }
+
     pub(crate) fn fields(&self) -> impl Iterator<Item = SubgraphField<'a>> + 'a {
         self.fields_ordered_by_parent_entity_then_key()
     }
@@ -46,5 +50,20 @@ impl<'a> runtime::extension::SelectionSet<'a> for SubgraphSelectionSet<'a> {
 
     fn fields_ordered_by_parent_entity(&self) -> impl Iterator<Item = Self::Field> {
         self.fields_ordered_by_parent_entity_then_key()
+    }
+
+    fn as_dyn(&self) -> Box<dyn runtime::extension::DynSelectionSet<'a>> {
+        Box::new(*self)
+    }
+}
+
+impl<'a> runtime::extension::DynSelectionSet<'a> for SubgraphSelectionSet<'a> {
+    fn requires_typename(&self) -> bool {
+        self.requires_typename()
+    }
+    fn fields_ordered_by_parent_entity(&self) -> Vec<Box<dyn runtime::extension::DynField<'a>>> {
+        self.fields_ordered_by_parent_entity_then_key()
+            .map(|field| -> Box<dyn runtime::extension::DynField<'a>> { Box::new(field) })
+            .collect()
     }
 }

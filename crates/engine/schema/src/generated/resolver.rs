@@ -5,10 +5,12 @@
 //! Source file: <engine-codegen dir>/domain/schema.graphql
 mod field_resolver_ext;
 mod graphql;
+mod subquery_resolver_ext;
 
 use crate::prelude::*;
 pub use field_resolver_ext::*;
 pub use graphql::*;
+pub use subquery_resolver_ext::*;
 #[allow(unused_imports)]
 use walker::{Iter, Walk};
 
@@ -17,11 +19,15 @@ use walker::{Iter, Walk};
 /// ```custom,{.language-graphql}
 /// union ResolverDefinition
 ///   @meta(module: "resolver")
-///   @variants(empty: ["Introspection"], names: ["GraphqlRootField", "GraphqlFederationEntity", "FieldResolverExtension"])
+///   @variants(
+///     empty: ["Introspection"]
+///     names: ["GraphqlRootField", "GraphqlFederationEntity", "FieldResolverExtension", "SubQueryResolverExtension"]
+///   )
 ///   @indexed(deduplicated: true, id_size: "u32") =
 ///   | GraphqlRootFieldResolverDefinition
 ///   | GraphqlFederationEntityResolverDefinition
 ///   | FieldResolverExtensionDefinition
+///   | SubQueryResolverExtensionDefinition
 /// ```
 #[derive(serde::Serialize, serde::Deserialize)]
 pub enum ResolverDefinitionRecord {
@@ -29,6 +35,7 @@ pub enum ResolverDefinitionRecord {
     GraphqlFederationEntity(GraphqlFederationEntityResolverDefinitionRecord),
     GraphqlRootField(GraphqlRootFieldResolverDefinitionRecord),
     Introspection,
+    SubQueryResolverExtension(SubQueryResolverExtensionDefinitionRecord),
 }
 
 impl std::fmt::Debug for ResolverDefinitionRecord {
@@ -38,6 +45,7 @@ impl std::fmt::Debug for ResolverDefinitionRecord {
             ResolverDefinitionRecord::GraphqlFederationEntity(variant) => variant.fmt(f),
             ResolverDefinitionRecord::GraphqlRootField(variant) => variant.fmt(f),
             ResolverDefinitionRecord::Introspection => write!(f, "Introspection"),
+            ResolverDefinitionRecord::SubQueryResolverExtension(variant) => variant.fmt(f),
         }
     }
 }
@@ -73,6 +81,15 @@ impl ResolverDefinitionRecord {
     pub fn is_introspection(&self) -> bool {
         matches!(self, ResolverDefinitionRecord::Introspection)
     }
+    pub fn is_sub_query_resolver_extension(&self) -> bool {
+        matches!(self, ResolverDefinitionRecord::SubQueryResolverExtension(_))
+    }
+    pub fn as_sub_query_resolver_extension(&self) -> Option<SubQueryResolverExtensionDefinitionRecord> {
+        match self {
+            ResolverDefinitionRecord::SubQueryResolverExtension(item) => Some(*item),
+            _ => None,
+        }
+    }
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
@@ -90,6 +107,7 @@ pub enum ResolverDefinitionVariant<'a> {
     GraphqlFederationEntity(GraphqlFederationEntityResolverDefinition<'a>),
     GraphqlRootField(GraphqlRootFieldResolverDefinition<'a>),
     Introspection(&'a Schema),
+    SubQueryResolverExtension(SubQueryResolverExtensionDefinition<'a>),
 }
 
 impl std::fmt::Debug for ResolverDefinitionVariant<'_> {
@@ -99,6 +117,7 @@ impl std::fmt::Debug for ResolverDefinitionVariant<'_> {
             ResolverDefinitionVariant::GraphqlFederationEntity(variant) => variant.fmt(f),
             ResolverDefinitionVariant::GraphqlRootField(variant) => variant.fmt(f),
             ResolverDefinitionVariant::Introspection(_) => write!(f, "Introspection"),
+            ResolverDefinitionVariant::SubQueryResolverExtension(variant) => variant.fmt(f),
         }
     }
 }
@@ -128,6 +147,9 @@ impl<'a> ResolverDefinition<'a> {
                 ResolverDefinitionVariant::GraphqlRootField(item.walk(schema))
             }
             ResolverDefinitionRecord::Introspection => ResolverDefinitionVariant::Introspection(schema),
+            ResolverDefinitionRecord::SubQueryResolverExtension(item) => {
+                ResolverDefinitionVariant::SubQueryResolverExtension(item.walk(schema))
+            }
         }
     }
     pub fn is_field_resolver_extension(&self) -> bool {
@@ -159,6 +181,15 @@ impl<'a> ResolverDefinition<'a> {
     }
     pub fn is_introspection(&self) -> bool {
         matches!(self.variant(), ResolverDefinitionVariant::Introspection(_))
+    }
+    pub fn is_sub_query_resolver_extension(&self) -> bool {
+        matches!(self.variant(), ResolverDefinitionVariant::SubQueryResolverExtension(_))
+    }
+    pub fn as_sub_query_resolver_extension(&self) -> Option<SubQueryResolverExtensionDefinition<'a>> {
+        match self.variant() {
+            ResolverDefinitionVariant::SubQueryResolverExtension(item) => Some(item),
+            _ => None,
+        }
     }
 }
 
