@@ -22,21 +22,21 @@ pub enum ExtensionDirectiveType {
     #[default]
     Unknown,
     FieldResolver,
-    SubQueryResolver,
+    SelectionSetResolver,
     Authorization,
 }
 
 impl ExtensionDirectiveType {
     pub fn is_resolver(&self) -> bool {
-        matches!(self, Self::FieldResolver | Self::SubQueryResolver)
+        matches!(self, Self::FieldResolver | Self::SelectionSetResolver)
     }
 
     pub fn is_field_resolver(&self) -> bool {
         matches!(self, Self::FieldResolver)
     }
 
-    pub fn is_subquery_resolver(&self) -> bool {
-        matches!(self, Self::SubQueryResolver)
+    pub fn is_selection_set_resolver(&self) -> bool {
+        matches!(self, Self::SelectionSetResolver)
     }
 
     pub fn is_authorization(&self) -> bool {
@@ -89,7 +89,7 @@ impl ExtensionCatalog {
                 }
             }
             Type::Authentication(_) => Default::default(),
-            Type::SubQueryResolver(_) => ExtensionDirectiveType::SubQueryResolver,
+            Type::SelectionSetResolver(_) => ExtensionDirectiveType::SelectionSetResolver,
         }
     }
 

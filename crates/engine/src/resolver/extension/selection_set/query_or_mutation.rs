@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use error::GraphqlError;
 use futures::FutureExt as _;
-use runtime::extension::{Data, SubQueryResolverExtension};
+use runtime::extension::{Data, SelectionSetResolverExtension};
 use schema::InputValueSet;
 use walker::Walk;
 
@@ -13,7 +13,7 @@ use crate::{
     response::{InputResponseObjectSet, SubgraphResponse},
 };
 
-impl super::SubQueryResolverExtension {
+impl super::SelectionSetResolverExtension {
     pub(in crate::resolver) async fn execute<'ctx, R: Runtime>(
         &'ctx self,
         ctx: ExecutionContext<'ctx, R>,

@@ -14,7 +14,7 @@ use http::{HeaderMap, HeaderValue};
 use runtime::extension::{Data, Token};
 use serde_json::json;
 
-const LATEST_SDK: semver::Version = semver::Version::new(0, 11, 0);
+const LATEST_SDK: semver::Version = semver::Version::new(0, 14, 0);
 
 #[tokio::test]
 async fn simple_resolver() {

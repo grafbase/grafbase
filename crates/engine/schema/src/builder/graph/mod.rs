@@ -5,7 +5,7 @@ mod post_process;
 
 use std::collections::BTreeMap;
 
-use builder::{SchemaLocation, ValuePathSegment, extension::finalize_subquery_resolvers};
+use builder::{SchemaLocation, ValuePathSegment, extension::finalize_selection_set_resolvers};
 use extension_catalog::ExtensionId;
 use fxhash::FxHashMap;
 use introspection::IntrospectionMetadata;
@@ -29,7 +29,7 @@ pub(crate) struct GraphContext<'a> {
     // -- used for coercion
     pub value_path: Vec<ValuePathSegment>,
     pub input_fields_buffer_pool: Vec<Vec<(InputValueDefinitionId, SchemaInputValueRecord)>>,
-    pub virtual_subgraph_to_subquery_resolver: Vec<Option<ExtensionId>>,
+    pub virtual_subgraph_to_selection_set_resolver: Vec<Option<ExtensionId>>,
 }
 
 impl<'a> std::ops::Deref for GraphContext<'a> {
@@ -85,7 +85,7 @@ impl Context<'_> {
 
         process_directives(&mut ctx, locations)?;
 
-        finalize_subquery_resolvers(&mut ctx)?;
+        finalize_selection_set_resolvers(&mut ctx)?;
 
         let GraphContext {
             ctx,

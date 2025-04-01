@@ -4,17 +4,17 @@ use engine::{Engine, GraphqlError};
 use engine_schema::Subgraph;
 use extension_catalog::{ExtensionId, Id};
 use integration_tests::{
-    federation::{AnyExtension, EngineExt, SubQueryResolverTestExtension, TestManifest},
+    federation::{AnyExtension, EngineExt, SelectionSetResolverTestExtension, TestManifest},
     runtime,
 };
 use runtime::extension::{ArgumentsId, Data};
 
 #[derive(Clone)]
-pub struct StaticSubQueryResolverExt {
+pub struct StaticSelectionSetResolverExt {
     data: Result<Data, GraphqlError>,
 }
 
-impl StaticSubQueryResolverExt {
+impl StaticSelectionSetResolverExt {
     pub fn json(value: impl serde::Serialize) -> Self {
         Self {
             data: Ok(Data::JsonBytes(serde_json::to_vec(&value).unwrap())),
@@ -22,25 +22,25 @@ impl StaticSubQueryResolverExt {
     }
 }
 
-impl AnyExtension for StaticSubQueryResolverExt {
+impl AnyExtension for StaticSelectionSetResolverExt {
     fn register(self, state: &mut integration_tests::federation::ExtensionsBuilder) {
         let id = state.push_test_extension(TestManifest {
             id: Id {
                 name: "static".to_string(),
                 version: "1.0.0".parse().unwrap(),
             },
-            r#type: extension_catalog::Type::SubQueryResolver(Default::default()),
+            r#type: extension_catalog::Type::SelectionSetResolver(Default::default()),
             sdl: Some(r#"directive @init on SCHEMA"#),
         });
-        state.test.subquery_resolver_builders.insert(
+        state.test.selection_set_resolver_builders.insert(
             id,
-            Arc::new(move || -> Arc<dyn SubQueryResolverTestExtension> { Arc::new(self.clone()) }),
+            Arc::new(move || -> Arc<dyn SelectionSetResolverTestExtension> { Arc::new(self.clone()) }),
         );
     }
 }
 
 #[async_trait::async_trait]
-impl SubQueryResolverTestExtension for StaticSubQueryResolverExt {
+impl SelectionSetResolverTestExtension for StaticSelectionSetResolverExt {
     async fn resolve_field(
         &self,
         _extension_id: ExtensionId,
@@ -71,7 +71,7 @@ fn basic() {
                 }
                 "#,
             )
-            .with_extension(StaticSubQueryResolverExt::json(1))
+            .with_extension(StaticSelectionSetResolverExt::json(1))
             .build()
             .await;
 

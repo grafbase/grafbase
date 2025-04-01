@@ -5,12 +5,12 @@
 //! Source file: <engine-codegen dir>/domain/schema.graphql
 mod field_resolver_ext;
 mod graphql;
-mod subquery_resolver_ext;
+mod selection_set_resolver_ext;
 
 use crate::prelude::*;
 pub use field_resolver_ext::*;
 pub use graphql::*;
-pub use subquery_resolver_ext::*;
+pub use selection_set_resolver_ext::*;
 #[allow(unused_imports)]
 use walker::{Iter, Walk};
 
@@ -21,13 +21,13 @@ use walker::{Iter, Walk};
 ///   @meta(module: "resolver")
 ///   @variants(
 ///     empty: ["Introspection"]
-///     names: ["GraphqlRootField", "GraphqlFederationEntity", "FieldResolverExtension", "SubQueryResolverExtension"]
+///     names: ["GraphqlRootField", "GraphqlFederationEntity", "FieldResolverExtension", "SelectionSetResolverExtension"]
 ///   )
 ///   @indexed(deduplicated: true, id_size: "u32") =
 ///   | GraphqlRootFieldResolverDefinition
 ///   | GraphqlFederationEntityResolverDefinition
 ///   | FieldResolverExtensionDefinition
-///   | SubQueryResolverExtensionDefinition
+///   | SelectionSetResolverExtensionDefinition
 /// ```
 #[derive(serde::Serialize, serde::Deserialize)]
 pub enum ResolverDefinitionRecord {
@@ -35,7 +35,7 @@ pub enum ResolverDefinitionRecord {
     GraphqlFederationEntity(GraphqlFederationEntityResolverDefinitionRecord),
     GraphqlRootField(GraphqlRootFieldResolverDefinitionRecord),
     Introspection,
-    SubQueryResolverExtension(SubQueryResolverExtensionDefinitionRecord),
+    SelectionSetResolverExtension(SelectionSetResolverExtensionDefinitionRecord),
 }
 
 impl std::fmt::Debug for ResolverDefinitionRecord {
@@ -45,7 +45,7 @@ impl std::fmt::Debug for ResolverDefinitionRecord {
             ResolverDefinitionRecord::GraphqlFederationEntity(variant) => variant.fmt(f),
             ResolverDefinitionRecord::GraphqlRootField(variant) => variant.fmt(f),
             ResolverDefinitionRecord::Introspection => write!(f, "Introspection"),
-            ResolverDefinitionRecord::SubQueryResolverExtension(variant) => variant.fmt(f),
+            ResolverDefinitionRecord::SelectionSetResolverExtension(variant) => variant.fmt(f),
         }
     }
 }
@@ -81,12 +81,12 @@ impl ResolverDefinitionRecord {
     pub fn is_introspection(&self) -> bool {
         matches!(self, ResolverDefinitionRecord::Introspection)
     }
-    pub fn is_sub_query_resolver_extension(&self) -> bool {
-        matches!(self, ResolverDefinitionRecord::SubQueryResolverExtension(_))
+    pub fn is_selection_set_resolver_extension(&self) -> bool {
+        matches!(self, ResolverDefinitionRecord::SelectionSetResolverExtension(_))
     }
-    pub fn as_sub_query_resolver_extension(&self) -> Option<SubQueryResolverExtensionDefinitionRecord> {
+    pub fn as_selection_set_resolver_extension(&self) -> Option<SelectionSetResolverExtensionDefinitionRecord> {
         match self {
-            ResolverDefinitionRecord::SubQueryResolverExtension(item) => Some(*item),
+            ResolverDefinitionRecord::SelectionSetResolverExtension(item) => Some(*item),
             _ => None,
         }
     }
@@ -107,7 +107,7 @@ pub enum ResolverDefinitionVariant<'a> {
     GraphqlFederationEntity(GraphqlFederationEntityResolverDefinition<'a>),
     GraphqlRootField(GraphqlRootFieldResolverDefinition<'a>),
     Introspection(&'a Schema),
-    SubQueryResolverExtension(SubQueryResolverExtensionDefinition<'a>),
+    SelectionSetResolverExtension(SelectionSetResolverExtensionDefinition<'a>),
 }
 
 impl std::fmt::Debug for ResolverDefinitionVariant<'_> {
@@ -117,7 +117,7 @@ impl std::fmt::Debug for ResolverDefinitionVariant<'_> {
             ResolverDefinitionVariant::GraphqlFederationEntity(variant) => variant.fmt(f),
             ResolverDefinitionVariant::GraphqlRootField(variant) => variant.fmt(f),
             ResolverDefinitionVariant::Introspection(_) => write!(f, "Introspection"),
-            ResolverDefinitionVariant::SubQueryResolverExtension(variant) => variant.fmt(f),
+            ResolverDefinitionVariant::SelectionSetResolverExtension(variant) => variant.fmt(f),
         }
     }
 }
@@ -147,8 +147,8 @@ impl<'a> ResolverDefinition<'a> {
                 ResolverDefinitionVariant::GraphqlRootField(item.walk(schema))
             }
             ResolverDefinitionRecord::Introspection => ResolverDefinitionVariant::Introspection(schema),
-            ResolverDefinitionRecord::SubQueryResolverExtension(item) => {
-                ResolverDefinitionVariant::SubQueryResolverExtension(item.walk(schema))
+            ResolverDefinitionRecord::SelectionSetResolverExtension(item) => {
+                ResolverDefinitionVariant::SelectionSetResolverExtension(item.walk(schema))
             }
         }
     }
@@ -182,12 +182,15 @@ impl<'a> ResolverDefinition<'a> {
     pub fn is_introspection(&self) -> bool {
         matches!(self.variant(), ResolverDefinitionVariant::Introspection(_))
     }
-    pub fn is_sub_query_resolver_extension(&self) -> bool {
-        matches!(self.variant(), ResolverDefinitionVariant::SubQueryResolverExtension(_))
+    pub fn is_selection_set_resolver_extension(&self) -> bool {
+        matches!(
+            self.variant(),
+            ResolverDefinitionVariant::SelectionSetResolverExtension(_)
+        )
     }
-    pub fn as_sub_query_resolver_extension(&self) -> Option<SubQueryResolverExtensionDefinition<'a>> {
+    pub fn as_selection_set_resolver_extension(&self) -> Option<SelectionSetResolverExtensionDefinition<'a>> {
         match self.variant() {
-            ResolverDefinitionVariant::SubQueryResolverExtension(item) => Some(item),
+            ResolverDefinitionVariant::SelectionSetResolverExtension(item) => Some(item),
             _ => None,
         }
     }

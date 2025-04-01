@@ -2,11 +2,11 @@ use std::mem::take;
 
 use crate::{
     BuildError, FieldResolverExtensionDefinitionRecord, ResolverDefinitionRecord,
-    SubQueryResolverExtensionDefinitionRecord, SubgraphId, VirtualSubgraphId,
-    builder::{GraphContext, SubQueryResolverExtensionCannotBeMixedWithOtherResolversError},
+    SelectionSetResolverExtensionDefinitionRecord, SubgraphId, VirtualSubgraphId,
+    builder::{GraphContext, SelectionSetResolverExtensionCannotBeMixedWithOtherResolversError},
 };
 
-pub(crate) fn finalize_subquery_resolvers(ctx: &mut GraphContext<'_>) -> Result<(), BuildError> {
+pub(crate) fn finalize_selection_set_resolvers(ctx: &mut GraphContext<'_>) -> Result<(), BuildError> {
     // Ensure they're not mixed with field resolvers.
     for resolver in &ctx.graph.resolver_definitions {
         if let Some(FieldResolverExtensionDefinitionRecord { directive_id }) = resolver.as_field_resolver_extension() {
@@ -14,17 +14,19 @@ pub(crate) fn finalize_subquery_resolvers(ctx: &mut GraphContext<'_>) -> Result<
                 .subgraph_id
                 .as_virtual()
                 .expect("should have failed at directive creation");
-            if let Some(id) = ctx.virtual_subgraph_to_subquery_resolver[usize::from(subgraph_id)] {
-                return Err(BuildError::SubQueryResolverExtensionCannotBeMixedWithOtherResolvers(
-                    Box::new(SubQueryResolverExtensionCannotBeMixedWithOtherResolversError {
-                        id: ctx.extension_catalog[id].manifest.id.clone(),
-                        subgraph: ctx.strings[ctx.subgraphs[subgraph_id].subgraph_name_id].clone(),
-                        other_id: ctx.extension_catalog[ctx.graph[*directive_id].extension_id]
-                            .manifest
-                            .id
-                            .clone(),
-                    }),
-                ));
+            if let Some(id) = ctx.virtual_subgraph_to_selection_set_resolver[usize::from(subgraph_id)] {
+                return Err(
+                    BuildError::SelectionSetResolverExtensionCannotBeMixedWithOtherResolvers(Box::new(
+                        SelectionSetResolverExtensionCannotBeMixedWithOtherResolversError {
+                            id: ctx.extension_catalog[id].manifest.id.clone(),
+                            subgraph: ctx.strings[ctx.subgraphs[subgraph_id].subgraph_name_id].clone(),
+                            other_id: ctx.extension_catalog[ctx.graph[*directive_id].extension_id]
+                                .manifest
+                                .id
+                                .clone(),
+                        },
+                    )),
+                );
             }
         }
     }
@@ -40,7 +42,7 @@ pub(crate) fn finalize_subquery_resolvers(ctx: &mut GraphContext<'_>) -> Result<
         list
     };
     let mut resolver_definitions = take(&mut ctx.graph.resolver_definitions);
-    for (ix, extension_id) in take(&mut ctx.virtual_subgraph_to_subquery_resolver)
+    for (ix, extension_id) in take(&mut ctx.virtual_subgraph_to_selection_set_resolver)
         .into_iter()
         .enumerate()
     {
@@ -55,8 +57,8 @@ pub(crate) fn finalize_subquery_resolvers(ctx: &mut GraphContext<'_>) -> Result<
                 if field.exists_in_subgraph_ids.contains(&subgraph_id) {
                     // Each field has its dedicated resolvers and they don't support batching
                     // multiple fields for now.
-                    resolver_definitions.push(ResolverDefinitionRecord::SubQueryResolverExtension(
-                        SubQueryResolverExtensionDefinitionRecord {
+                    resolver_definitions.push(ResolverDefinitionRecord::SelectionSetResolverExtension(
+                        SelectionSetResolverExtensionDefinitionRecord {
                             subgraph_id: virtual_subgraph_id,
                             extension_id,
                         },

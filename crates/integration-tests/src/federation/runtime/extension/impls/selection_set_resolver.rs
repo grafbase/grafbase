@@ -5,14 +5,14 @@ use engine_schema::{FieldDefinition, Subgraph};
 use extension_catalog::ExtensionId;
 use futures::FutureExt as _;
 use runtime::{
-    extension::{ArgumentsId, Data, DynSelectionSet, SelectionSet, SubQueryResolverExtension},
+    extension::{ArgumentsId, Data, DynSelectionSet, SelectionSet, SelectionSetResolverExtension},
     hooks::Anything,
 };
 
 use crate::federation::{DispatchRule, DynHookContext, ExtContext, ExtensionsDispatcher, TestExtensions};
 
 #[allow(clippy::manual_async_fn, unused_variables)]
-impl SubQueryResolverExtension<ExtContext> for ExtensionsDispatcher {
+impl SelectionSetResolverExtension<ExtContext> for ExtensionsDispatcher {
     async fn prepare<'ctx>(
         &'ctx self,
         extension_id: ExtensionId,
@@ -59,7 +59,7 @@ impl SubQueryResolverExtension<ExtContext> for ExtensionsDispatcher {
 }
 
 #[allow(clippy::manual_async_fn, unused_variables)]
-impl SubQueryResolverExtension<DynHookContext> for TestExtensions {
+impl SelectionSetResolverExtension<DynHookContext> for TestExtensions {
     async fn prepare<'ctx>(
         &'ctx self,
         extension_id: ExtensionId,
@@ -70,7 +70,7 @@ impl SubQueryResolverExtension<DynHookContext> for TestExtensions {
         self.state
             .lock()
             .await
-            .get_subquery_resolver_ext(extension_id, subgraph)
+            .get_selection_set_resolver_ext(extension_id, subgraph)
             .prepare(extension_id, subgraph, field_definition, selection_set.as_dyn())
             .await
     }
@@ -94,28 +94,28 @@ impl SubQueryResolverExtension<DynHookContext> for TestExtensions {
             self.state
                 .lock()
                 .await
-                .get_subquery_resolver_ext(extension_id, subgraph)
+                .get_selection_set_resolver_ext(extension_id, subgraph)
                 .resolve_field(extension_id, subgraph, prepared_data, subgraph_headers, arguments)
                 .await
         }
     }
 }
 
-pub trait SubQueryResolverTestExtensionBuilder: Send + Sync + 'static {
-    fn build(&self, schema_directives: Vec<(&str, serde_json::Value)>) -> Arc<dyn SubQueryResolverTestExtension>;
+pub trait SelectionSetResolverTestExtensionBuilder: Send + Sync + 'static {
+    fn build(&self, schema_directives: Vec<(&str, serde_json::Value)>) -> Arc<dyn SelectionSetResolverTestExtension>;
 }
 
-impl<F: Fn() -> Arc<dyn SubQueryResolverTestExtension> + Send + Sync + 'static> SubQueryResolverTestExtensionBuilder
-    for F
+impl<F: Fn() -> Arc<dyn SelectionSetResolverTestExtension> + Send + Sync + 'static>
+    SelectionSetResolverTestExtensionBuilder for F
 {
-    fn build(&self, _schema_directives: Vec<(&str, serde_json::Value)>) -> Arc<dyn SubQueryResolverTestExtension> {
+    fn build(&self, _schema_directives: Vec<(&str, serde_json::Value)>) -> Arc<dyn SelectionSetResolverTestExtension> {
         self()
     }
 }
 
 #[allow(unused_variables)] // makes it easier to copy-paste relevant functions
 #[async_trait::async_trait]
-pub trait SubQueryResolverTestExtension: Send + Sync + 'static {
+pub trait SelectionSetResolverTestExtension: Send + Sync + 'static {
     async fn prepare<'ctx>(
         &self,
         extension_id: ExtensionId,
