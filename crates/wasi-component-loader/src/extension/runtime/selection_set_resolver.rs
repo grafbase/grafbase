@@ -2,14 +2,14 @@ use engine_error::GraphqlError;
 use engine_schema::{FieldDefinition, Subgraph};
 use extension_catalog::ExtensionId;
 use runtime::{
-    extension::{ArgumentsId, Data, SelectionSet, SubQueryResolverExtension},
+    extension::{ArgumentsId, Data, SelectionSet, SelectionSetResolverExtension},
     hooks::Anything,
 };
 
 use crate::{SharedContext, extension::WasmExtensions};
 
 #[allow(clippy::manual_async_fn)]
-impl SubQueryResolverExtension<SharedContext> for WasmExtensions {
+impl SelectionSetResolverExtension<SharedContext> for WasmExtensions {
     fn prepare<'ctx>(
         &'ctx self,
         _extension_id: ExtensionId,

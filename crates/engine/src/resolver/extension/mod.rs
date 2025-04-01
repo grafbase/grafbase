@@ -1,5 +1,5 @@
 mod field;
-mod subquery;
+mod selection_set;
 
 pub(crate) use field::*;
-pub(crate) use subquery::*;
+pub(crate) use selection_set::*;

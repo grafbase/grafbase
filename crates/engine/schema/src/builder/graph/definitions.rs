@@ -68,7 +68,7 @@ impl<'a> Context<'a> {
             graphql_federated_entity_resolvers: Default::default(),
             value_path: Default::default(),
             input_fields_buffer_pool: Default::default(),
-            virtual_subgraph_to_subquery_resolver: vec![None; self.subgraphs.virtual_subgraphs.len()],
+            virtual_subgraph_to_selection_set_resolver: vec![None; self.subgraphs.virtual_subgraphs.len()],
             ctx: self,
         };
 

@@ -68,7 +68,7 @@ impl Manifest {
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, strum::EnumDiscriminants)]
 pub enum Type {
     FieldResolver(FieldResolverType),
-    SubQueryResolver(Empty),
+    SelectionSetResolver(Empty),
     #[serde(rename = "Authenticator")]
     Authentication(Empty),
     Authorization(AuthorizationType),
@@ -330,28 +330,28 @@ mod tests {
     }
 
     #[test]
-    fn sub_query_resolver_compatbility() {
+    fn selection_set_resolver_compatbility() {
         let json = json!({
-            "id": {"name": "subquery", "version": "1.0.0"},
+            "id": {"name": "selection-set", "version": "1.0.0"},
             "kind": {
-                "SubQueryResolver": {}
+                "SelectionSetResolver": {}
             },
             "sdk_version": "0.1.0",
             "minimum_gateway_version": "0.1.0",
-            "description": "A subquery resolver test",
+            "description": "A selection-set resolver test",
             "homepage_url": "http://example.com/my-extension"
         });
         let manifest: Manifest = serde_json::from_value(json).unwrap();
         let expected = Manifest {
             id: Id {
-                name: "subquery".to_string(),
+                name: "selection-set".to_string(),
                 version: semver::Version::new(1, 0, 0),
             },
-            r#type: Type::SubQueryResolver(Empty {}),
+            r#type: Type::SelectionSetResolver(Empty {}),
             sdk_version: semver::Version::new(0, 1, 0),
             minimum_gateway_version: semver::Version::new(0, 1, 0),
             sdl: None,
-            description: "A subquery resolver test".to_owned(),
+            description: "A selection-set resolver test".to_owned(),
             readme: None,
             homepage_url: Some("http://example.com/my-extension".parse().unwrap()),
             repository_url: None,

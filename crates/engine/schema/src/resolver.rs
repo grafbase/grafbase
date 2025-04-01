@@ -5,7 +5,7 @@ use walker::Walk;
 use crate::{
     FieldResolverExtensionDefinition, FieldSet, GraphqlFederationEntityResolverDefinition,
     GraphqlRootFieldResolverDefinition, ResolverDefinition, ResolverDefinitionVariant,
-    SubQueryResolverExtensionDefinition, Subgraph, SubgraphId,
+    SelectionSetResolverExtensionDefinition, Subgraph, SubgraphId,
 };
 
 impl<'a> ResolverDefinition<'a> {
@@ -19,7 +19,7 @@ impl<'a> ResolverDefinition<'a> {
             ResolverDefinitionVariant::GraphqlRootField(resolver) => resolver.endpoint_id.into(),
             ResolverDefinitionVariant::Introspection(_) => SubgraphId::Introspection,
             ResolverDefinitionVariant::FieldResolverExtension(resolver) => resolver.directive().subgraph_id,
-            ResolverDefinitionVariant::SubQueryResolverExtension(resolver) => resolver.subgraph_id.into(),
+            ResolverDefinitionVariant::SelectionSetResolverExtension(resolver) => resolver.subgraph_id.into(),
         }
     }
 
@@ -37,7 +37,7 @@ impl<'a> ResolverDefinition<'a> {
             ResolverDefinitionVariant::GraphqlRootField(resolver) => resolver.name().into(),
             ResolverDefinitionVariant::GraphqlFederationEntity(resolver) => resolver.name().into(),
             ResolverDefinitionVariant::FieldResolverExtension(resolver) => resolver.name().into(),
-            ResolverDefinitionVariant::SubQueryResolverExtension(resolver) => resolver.name().into(),
+            ResolverDefinitionVariant::SelectionSetResolverExtension(resolver) => resolver.name().into(),
         }
     }
 }
@@ -60,10 +60,10 @@ impl GraphqlFederationEntityResolverDefinition<'_> {
     }
 }
 
-impl SubQueryResolverExtensionDefinition<'_> {
+impl SelectionSetResolverExtensionDefinition<'_> {
     pub fn name(&self) -> String {
         format!(
-            "SubQuery#{}#{}",
+            "SelectionSetResolver#{}#{}",
             usize::from(self.extension_id),
             self.subgraph().subgraph_name()
         )

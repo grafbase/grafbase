@@ -39,7 +39,7 @@ pub trait DynField<'a>: Send + 'a {
 #[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct ArgumentsId(pub u16);
 
-pub trait SubQueryResolverExtension<Context: Send + Sync + 'static>: Send + Sync + 'static {
+pub trait SelectionSetResolverExtension<Context: Send + Sync + 'static>: Send + Sync + 'static {
     fn prepare<'ctx>(
         &'ctx self,
         extension_id: ExtensionId,

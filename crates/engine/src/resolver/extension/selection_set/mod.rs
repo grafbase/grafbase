@@ -2,8 +2,8 @@ mod query_or_mutation;
 
 use futures::FutureExt;
 use query_solver::QueryOrSchemaFieldArgumentIds;
-use runtime::extension::SubQueryResolverExtension as _;
-use schema::{SubQueryResolverExtensionDefinition, SubQueryResolverExtensionDefinitionRecord};
+use runtime::extension::SelectionSetResolverExtension as _;
+use schema::{SelectionSetResolverExtensionDefinition, SelectionSetResolverExtensionDefinitionRecord};
 
 use crate::{
     Runtime,
@@ -12,17 +12,17 @@ use crate::{
 };
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub(crate) struct SubQueryResolverExtension {
-    pub definition: SubQueryResolverExtensionDefinitionRecord,
+pub(crate) struct SelectionSetResolverExtension {
+    pub definition: SelectionSetResolverExtensionDefinitionRecord,
     pub field_id: PartitionDataFieldId,
     pub prepared_data: Vec<u8>,
     pub arguments: Vec<(runtime::extension::ArgumentsId, QueryOrSchemaFieldArgumentIds)>,
 }
 
-impl SubQueryResolverExtension {
+impl SelectionSetResolverExtension {
     pub(in crate::resolver) async fn prepare(
         ctx: &PrepareContext<'_, impl Runtime>,
-        definition: SubQueryResolverExtensionDefinition<'_>,
+        definition: SelectionSetResolverExtensionDefinition<'_>,
         plan_query_partition: PlanQueryPartition<'_>,
     ) -> PlanResult<Resolver> {
         let field = plan_query_partition
@@ -59,7 +59,7 @@ impl SubQueryResolverExtension {
             }
         }
 
-        Ok(Resolver::SubQueryResolverExtension(Self {
+        Ok(Resolver::SelectionSetResolverExtension(Self {
             definition: *definition,
             field_id: field.id,
             prepared_data,
