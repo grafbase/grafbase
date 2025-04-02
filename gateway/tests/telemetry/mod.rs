@@ -64,7 +64,7 @@ fn with_otel() {
         protocol = "grpc"
 
         [telemetry.exporters.otlp.batch_export]
-        scheduled_delay = 1
+        scheduled_delay = "1s"
         max_export_batch_size = 1
     "#};
 
@@ -125,7 +125,7 @@ fn extra_resource_attributes() {
         protocol = "grpc"
 
         [telemetry.exporters.otlp.batch_export]
-        scheduled_delay = 1
+        scheduled_delay = "1s"
         max_export_batch_size = 1
     "#};
 

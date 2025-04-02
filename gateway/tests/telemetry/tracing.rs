@@ -529,7 +529,7 @@ fn with_mock_subgraph<T, F>(
         {exporter_config}
 
         [telemetry.tracing.exporters.otlp.batch_export]
-        scheduled_delay = 1
+        scheduled_delay = "1s"
         max_export_batch_size = 1
 
         {config}

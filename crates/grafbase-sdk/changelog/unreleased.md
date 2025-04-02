@@ -1,3 +1,3 @@
 ## Features
 
-- Directives now have a `.deserialize_arguments_seed()` method for stateful deserialization of the arguments.
+- Directives now have a `.arguments_seed()` method for stateful deserialization of the arguments.

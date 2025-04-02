@@ -2,7 +2,7 @@ mod lambda;
 mod log;
 mod std;
 
-use ::std::{net::SocketAddr, path::Path, sync::OnceLock};
+use ::std::{net::SocketAddr, path::Path, sync::OnceLock, time::Duration};
 
 use anyhow::Context;
 use ascii::AsciiString;
@@ -74,7 +74,7 @@ pub(crate) trait Args {
             .and_then(|v| v.parse::<usize>().ok())
         {
             BatchExportConfig {
-                scheduled_delay: chrono::Duration::seconds(seconds as i64),
+                scheduled_delay: Duration::from_secs(seconds as u64),
                 ..Default::default()
             }
         } else {

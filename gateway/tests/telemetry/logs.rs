@@ -29,7 +29,7 @@ fn with_otel() {
         protocol = "grpc"
 
         [telemetry.exporters.otlp.batch_export]
-        scheduled_delay = 1
+        scheduled_delay = "1s"
         max_export_batch_size = 1
     "#};
 
@@ -75,7 +75,7 @@ fn with_otel_reload() {
         protocol = "grpc"
 
         [telemetry.exporters.otlp.batch_export]
-        scheduled_delay = 1
+        scheduled_delay = "1s"
         max_export_batch_size = 1
     "#};
 
@@ -121,7 +121,7 @@ fn with_otel_with_different_endpoint() {
         protocol = "grpc"
 
         [telemetry.exporters.otlp.batch_export]
-        scheduled_delay = 1
+        scheduled_delay = "1s"
         max_export_batch_size = 1
 
         [telemetry.logs.exporters.otlp]
@@ -130,7 +130,7 @@ fn with_otel_with_different_endpoint() {
         protocol = "grpc"
 
         [telemetry.logs.exporters.otlp.batch_export]
-        scheduled_delay = 1
+        scheduled_delay = "1s"
         max_export_batch_size = 1
     "#};
 

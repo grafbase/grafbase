@@ -1,4 +1,6 @@
-use super::{BatchExportConfig, default_export_timeout, deserialize_duration};
+use std::time::Duration;
+
+use super::{BatchExportConfig, default_export_timeout};
 
 /// Stdout exporter configuration
 #[derive(Debug, Clone, PartialEq, serde::Deserialize)]
@@ -10,8 +12,8 @@ pub struct StdoutExporterConfig {
     pub batch_export: Option<BatchExportConfig>,
     /// The maximum duration to export data.
     /// The default value is 60 seconds.
-    #[serde(deserialize_with = "deserialize_duration")]
-    pub timeout: chrono::Duration,
+    #[serde(deserialize_with = "duration_str::deserialize_duration")]
+    pub timeout: Duration,
 }
 
 impl Default for StdoutExporterConfig {
