@@ -142,7 +142,9 @@ impl<'a> From<engine_schema::DirectiveSite<'a>> for DirectiveSite<'a> {
             }),
             engine_schema::DirectiveSite::Union(def) => Self::Union(UnionDirectiveSite { union_name: def.name() }),
             engine_schema::DirectiveSite::Enum(def) => Self::Enum(EnumDirectiveSite { enum_name: def.name() }),
-            engine_schema::DirectiveSite::InputObject(_) => unimplemented!("Not used"),
+            engine_schema::DirectiveSite::InputObject(_)
+            | engine_schema::DirectiveSite::EnumValue(_)
+            | engine_schema::DirectiveSite::InputValue(_) => unimplemented!("Not used"),
         }
     }
 }

@@ -17,7 +17,7 @@ impl ObjectDefinitionRecord {
     }
 
     pub fn exists_in_subgraph(&self, subgraph_id: &SubgraphId) -> bool {
-        self.exists_in_subgraph_ids.binary_search(subgraph_id).is_ok()
+        self.exists_in_subgraph_ids.contains(subgraph_id)
     }
 }
 

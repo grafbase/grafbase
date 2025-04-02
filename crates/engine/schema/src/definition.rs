@@ -1,70 +1,70 @@
 use walker::Walk;
 
 use crate::{
-    CompositeType, CompositeTypeId, Definition, DefinitionId, EntityDefinition, EntityDefinitionId,
+    CompositeType, CompositeTypeId, EntityDefinition, EntityDefinitionId, TypeDefinition, TypeDefinitionId,
     TypeSystemDirective, TypeSystemDirectiveId,
 };
 
-impl<'a> Definition<'a> {
+impl<'a> TypeDefinition<'a> {
     pub fn name(&self) -> &'a str {
         match self {
-            Definition::Enum(item) => item.name(),
-            Definition::InputObject(item) => item.name(),
-            Definition::Interface(item) => item.name(),
-            Definition::Object(item) => item.name(),
-            Definition::Scalar(item) => item.name(),
-            Definition::Union(item) => item.name(),
+            TypeDefinition::Enum(item) => item.name(),
+            TypeDefinition::InputObject(item) => item.name(),
+            TypeDefinition::Interface(item) => item.name(),
+            TypeDefinition::Object(item) => item.name(),
+            TypeDefinition::Scalar(item) => item.name(),
+            TypeDefinition::Union(item) => item.name(),
         }
     }
 
     pub fn directive_ids(&self) -> &'a [TypeSystemDirectiveId] {
         match self {
-            Definition::Enum(item) => &item.as_ref().directive_ids,
-            Definition::InputObject(item) => &item.as_ref().directive_ids,
-            Definition::Interface(item) => &item.as_ref().directive_ids,
-            Definition::Object(item) => &item.as_ref().directive_ids,
-            Definition::Scalar(item) => &item.as_ref().directive_ids,
-            Definition::Union(item) => &item.as_ref().directive_ids,
+            TypeDefinition::Enum(item) => &item.as_ref().directive_ids,
+            TypeDefinition::InputObject(item) => &item.as_ref().directive_ids,
+            TypeDefinition::Interface(item) => &item.as_ref().directive_ids,
+            TypeDefinition::Object(item) => &item.as_ref().directive_ids,
+            TypeDefinition::Scalar(item) => &item.as_ref().directive_ids,
+            TypeDefinition::Union(item) => &item.as_ref().directive_ids,
         }
     }
 
     pub fn directives(&self) -> impl Iterator<Item = TypeSystemDirective<'a>> + 'a {
         let (schema, directive_ids) = match self {
-            Definition::Enum(item) => (item.schema, &item.as_ref().directive_ids),
-            Definition::InputObject(item) => (item.schema, &item.as_ref().directive_ids),
-            Definition::Interface(item) => (item.schema, &item.as_ref().directive_ids),
-            Definition::Object(item) => (item.schema, &item.as_ref().directive_ids),
-            Definition::Scalar(item) => (item.schema, &item.as_ref().directive_ids),
-            Definition::Union(item) => (item.schema, &item.as_ref().directive_ids),
+            TypeDefinition::Enum(item) => (item.schema, &item.as_ref().directive_ids),
+            TypeDefinition::InputObject(item) => (item.schema, &item.as_ref().directive_ids),
+            TypeDefinition::Interface(item) => (item.schema, &item.as_ref().directive_ids),
+            TypeDefinition::Object(item) => (item.schema, &item.as_ref().directive_ids),
+            TypeDefinition::Scalar(item) => (item.schema, &item.as_ref().directive_ids),
+            TypeDefinition::Union(item) => (item.schema, &item.as_ref().directive_ids),
         };
         directive_ids.walk(schema)
     }
 
     pub fn as_entity(&self) -> Option<EntityDefinition<'a>> {
         match self {
-            Definition::Object(object) => Some(EntityDefinition::Object(*object)),
-            Definition::Interface(interface) => Some(EntityDefinition::Interface(*interface)),
+            TypeDefinition::Object(object) => Some(EntityDefinition::Object(*object)),
+            TypeDefinition::Interface(interface) => Some(EntityDefinition::Interface(*interface)),
             _ => None,
         }
     }
 
     pub fn as_composite_type(&self) -> Option<CompositeType<'a>> {
         match self {
-            Definition::Object(object) => Some(CompositeType::Object(*object)),
-            Definition::Interface(interface) => Some(CompositeType::Interface(*interface)),
-            Definition::Union(union) => Some(CompositeType::Union(*union)),
+            TypeDefinition::Object(object) => Some(CompositeType::Object(*object)),
+            TypeDefinition::Interface(interface) => Some(CompositeType::Interface(*interface)),
+            TypeDefinition::Union(union) => Some(CompositeType::Union(*union)),
             _ => None,
         }
     }
 
     pub fn is_entity(&self) -> bool {
-        matches!(self, Definition::Object(_) | Definition::Interface(_))
+        matches!(self, TypeDefinition::Object(_) | TypeDefinition::Interface(_))
     }
 
     pub fn is_composite_type(&self) -> bool {
         matches!(
             self,
-            Definition::Object(_) | Definition::Interface(_) | Definition::Union(_)
+            TypeDefinition::Object(_) | TypeDefinition::Interface(_) | TypeDefinition::Union(_)
         )
     }
 
@@ -77,61 +77,61 @@ impl<'a> Definition<'a> {
 
     pub fn is_inaccessible(&self) -> bool {
         match self {
-            Definition::Enum(enm) => enm.is_inaccessible(),
-            Definition::InputObject(input_object) => input_object.is_inaccessible(),
-            Definition::Interface(interface) => interface.is_inaccessible(),
-            Definition::Object(object) => object.is_inaccessible(),
-            Definition::Scalar(scalar) => scalar.is_inaccessible(),
-            Definition::Union(union) => union.is_inaccessible(),
+            TypeDefinition::Enum(enm) => enm.is_inaccessible(),
+            TypeDefinition::InputObject(input_object) => input_object.is_inaccessible(),
+            TypeDefinition::Interface(interface) => interface.is_inaccessible(),
+            TypeDefinition::Object(object) => object.is_inaccessible(),
+            TypeDefinition::Scalar(scalar) => scalar.is_inaccessible(),
+            TypeDefinition::Union(union) => union.is_inaccessible(),
         }
     }
 }
 
-impl DefinitionId {
+impl TypeDefinitionId {
     pub fn as_entity(&self) -> Option<EntityDefinitionId> {
         match self {
-            DefinitionId::Object(object) => Some(EntityDefinitionId::Object(*object)),
-            DefinitionId::Interface(interface) => Some(EntityDefinitionId::Interface(*interface)),
+            TypeDefinitionId::Object(object) => Some(EntityDefinitionId::Object(*object)),
+            TypeDefinitionId::Interface(interface) => Some(EntityDefinitionId::Interface(*interface)),
             _ => None,
         }
     }
 
     pub fn as_composite_type(&self) -> Option<CompositeTypeId> {
         match self {
-            DefinitionId::Object(object) => Some(CompositeTypeId::Object(*object)),
-            DefinitionId::Interface(interface) => Some(CompositeTypeId::Interface(*interface)),
-            DefinitionId::Union(union) => Some(CompositeTypeId::Union(*union)),
+            TypeDefinitionId::Object(object) => Some(CompositeTypeId::Object(*object)),
+            TypeDefinitionId::Interface(interface) => Some(CompositeTypeId::Interface(*interface)),
+            TypeDefinitionId::Union(union) => Some(CompositeTypeId::Union(*union)),
             _ => None,
         }
     }
 
     pub fn is_entity(&self) -> bool {
-        matches!(self, DefinitionId::Object(_) | DefinitionId::Interface(_))
+        matches!(self, TypeDefinitionId::Object(_) | TypeDefinitionId::Interface(_))
     }
 
     pub fn is_composite_type(&self) -> bool {
         matches!(
             self,
-            DefinitionId::Object(_) | DefinitionId::Interface(_) | DefinitionId::Union(_)
+            TypeDefinitionId::Object(_) | TypeDefinitionId::Interface(_) | TypeDefinitionId::Union(_)
         )
     }
 }
 
-impl From<EntityDefinitionId> for DefinitionId {
+impl From<EntityDefinitionId> for TypeDefinitionId {
     fn from(id: EntityDefinitionId) -> Self {
         match id {
-            EntityDefinitionId::Object(id) => DefinitionId::Object(id),
-            EntityDefinitionId::Interface(id) => DefinitionId::Interface(id),
+            EntityDefinitionId::Object(id) => TypeDefinitionId::Object(id),
+            EntityDefinitionId::Interface(id) => TypeDefinitionId::Interface(id),
         }
     }
 }
 
-impl From<CompositeTypeId> for DefinitionId {
+impl From<CompositeTypeId> for TypeDefinitionId {
     fn from(id: CompositeTypeId) -> Self {
         match id {
-            CompositeTypeId::Object(id) => DefinitionId::Object(id),
-            CompositeTypeId::Interface(id) => DefinitionId::Interface(id),
-            CompositeTypeId::Union(id) => DefinitionId::Union(id),
+            CompositeTypeId::Object(id) => TypeDefinitionId::Object(id),
+            CompositeTypeId::Interface(id) => TypeDefinitionId::Interface(id),
+            CompositeTypeId::Union(id) => TypeDefinitionId::Union(id),
         }
     }
 }

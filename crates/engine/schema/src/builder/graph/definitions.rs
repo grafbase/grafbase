@@ -102,6 +102,8 @@ impl<'a> Context<'a> {
                 description_id,
                 specified_by_url_id: None,
                 directive_ids: Default::default(),
+                // Added afterwards
+                exists_in_subgraph_ids: Vec::new(),
             })
         }
 
@@ -121,6 +123,7 @@ impl<'a> Context<'a> {
                 ctx.graph.enum_values.push(EnumValueRecord {
                     name_id,
                     description_id,
+                    parent_enum_id: enum_id,
                     // Added afterwards
                     directive_ids: Default::default(),
                 });
@@ -138,6 +141,7 @@ impl<'a> Context<'a> {
                 value_ids,
                 // Added afterwards
                 directive_ids: Default::default(),
+                exists_in_subgraph_ids: Vec::new(),
             });
         }
 
@@ -179,6 +183,7 @@ impl<'a> Context<'a> {
                 input_field_ids,
                 // Added afterwards
                 directive_ids: Default::default(),
+                exists_in_subgraph_ids: Vec::new(),
             });
         }
 
@@ -221,6 +226,7 @@ impl<'a> Context<'a> {
                 directive_ids: Default::default(),
                 join_member_records: Vec::new(),
                 not_fully_implemented_in_ids: Vec::new(),
+                exists_in_subgraph_ids: Vec::new(),
             });
         }
 
@@ -329,27 +335,31 @@ fn add_extra_vecs_for_definitions_with_different_ordering(GraphContext { ctx, gr
         );
 
         // Adding all definitions for introspection & query binding
-        definitions
-            .extend((0..graph.scalar_definitions.len()).map(|id| DefinitionId::Scalar(ScalarDefinitionId::from(id))));
-        definitions
-            .extend((0..graph.object_definitions.len()).map(|id| DefinitionId::Object(ObjectDefinitionId::from(id))));
         definitions.extend(
-            (0..graph.interface_definitions.len()).map(|id| DefinitionId::Interface(InterfaceDefinitionId::from(id))),
+            (0..graph.scalar_definitions.len()).map(|id| TypeDefinitionId::Scalar(ScalarDefinitionId::from(id))),
+        );
+        definitions.extend(
+            (0..graph.object_definitions.len()).map(|id| TypeDefinitionId::Object(ObjectDefinitionId::from(id))),
+        );
+        definitions.extend(
+            (0..graph.interface_definitions.len())
+                .map(|id| TypeDefinitionId::Interface(InterfaceDefinitionId::from(id))),
         );
         definitions
-            .extend((0..graph.union_definitions.len()).map(|id| DefinitionId::Union(UnionDefinitionId::from(id))));
-        definitions.extend((0..graph.enum_definitions.len()).map(|id| DefinitionId::Enum(EnumDefinitionId::from(id))));
+            .extend((0..graph.union_definitions.len()).map(|id| TypeDefinitionId::Union(UnionDefinitionId::from(id))));
+        definitions
+            .extend((0..graph.enum_definitions.len()).map(|id| TypeDefinitionId::Enum(EnumDefinitionId::from(id))));
         definitions.extend(
             (0..graph.input_object_definitions.len())
-                .map(|id| DefinitionId::InputObject(InputObjectDefinitionId::from(id))),
+                .map(|id| TypeDefinitionId::InputObject(InputObjectDefinitionId::from(id))),
         );
         definitions.sort_unstable_by_key(|definition| match *definition {
-            DefinitionId::Scalar(id) => &ctx.strings[graph[id].name_id],
-            DefinitionId::Object(id) => &ctx.strings[graph[id].name_id],
-            DefinitionId::Interface(id) => &ctx.strings[graph[id].name_id],
-            DefinitionId::Union(id) => &ctx.strings[graph[id].name_id],
-            DefinitionId::Enum(id) => &ctx.strings[graph[id].name_id],
-            DefinitionId::InputObject(id) => &ctx.strings[graph[id].name_id],
+            TypeDefinitionId::Scalar(id) => &ctx.strings[graph[id].name_id],
+            TypeDefinitionId::Object(id) => &ctx.strings[graph[id].name_id],
+            TypeDefinitionId::Interface(id) => &ctx.strings[graph[id].name_id],
+            TypeDefinitionId::Union(id) => &ctx.strings[graph[id].name_id],
+            TypeDefinitionId::Enum(id) => &ctx.strings[graph[id].name_id],
+            TypeDefinitionId::InputObject(id) => &ctx.strings[graph[id].name_id],
         });
         definitions
     };

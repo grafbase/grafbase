@@ -5,7 +5,7 @@
 //! Source file: <engine-codegen dir>/domain/schema.graphql
 use crate::{
     Wrapping,
-    generated::{Definition, DefinitionId},
+    generated::{TypeDefinition, TypeDefinitionId},
     prelude::*,
 };
 #[allow(unused_imports)]
@@ -15,13 +15,13 @@ use walker::{Iter, Walk};
 ///
 /// ```custom,{.language-graphql}
 /// type Type @meta(module: "ty", derive: ["PartialEq", "Eq"]) @copy {
-///   definition: Definition!
+///   definition: TypeDefinition!
 ///   wrapping: Wrapping!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone, Copy)]
 pub struct TypeRecord {
-    pub definition_id: DefinitionId,
+    pub definition_id: TypeDefinitionId,
     pub wrapping: Wrapping,
 }
 
@@ -43,7 +43,7 @@ impl<'a> Type<'a> {
     pub fn as_ref(&self) -> &TypeRecord {
         &self.item
     }
-    pub fn definition(&self) -> Definition<'a> {
+    pub fn definition(&self) -> TypeDefinition<'a> {
         self.definition_id.walk(self.schema)
     }
 }

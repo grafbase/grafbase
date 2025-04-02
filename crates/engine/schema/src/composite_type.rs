@@ -1,8 +1,8 @@
 use walker::Walk;
 
 use crate::{
-    CompositeType, CompositeTypeId, Definition, DefinitionId, EntityDefinition, EntityDefinitionId, ObjectDefinitionId,
-    SubgraphId,
+    CompositeType, CompositeTypeId, EntityDefinition, EntityDefinitionId, ObjectDefinitionId, SubgraphId,
+    TypeDefinition, TypeDefinitionId,
 };
 
 impl From<EntityDefinitionId> for CompositeTypeId {
@@ -24,11 +24,11 @@ impl<'a> From<EntityDefinition<'a>> for CompositeType<'a> {
 }
 
 impl CompositeTypeId {
-    pub fn maybe_from(id: DefinitionId) -> Option<Self> {
+    pub fn maybe_from(id: TypeDefinitionId) -> Option<Self> {
         match id {
-            DefinitionId::Interface(id) => Some(CompositeTypeId::Interface(id)),
-            DefinitionId::Object(id) => Some(CompositeTypeId::Object(id)),
-            DefinitionId::Union(id) => Some(CompositeTypeId::Union(id)),
+            TypeDefinitionId::Interface(id) => Some(CompositeTypeId::Interface(id)),
+            TypeDefinitionId::Object(id) => Some(CompositeTypeId::Object(id)),
+            TypeDefinitionId::Union(id) => Some(CompositeTypeId::Union(id)),
             _ => None,
         }
     }
@@ -51,11 +51,11 @@ impl<'a> CompositeType<'a> {
         }
     }
 
-    pub fn maybe_from(definition: Definition<'a>) -> Option<Self> {
+    pub fn maybe_from(definition: TypeDefinition<'a>) -> Option<Self> {
         match definition {
-            Definition::Interface(def) => Some(CompositeType::Interface(def)),
-            Definition::Object(def) => Some(CompositeType::Object(def)),
-            Definition::Union(def) => Some(CompositeType::Union(def)),
+            TypeDefinition::Interface(def) => Some(CompositeType::Interface(def)),
+            TypeDefinition::Object(def) => Some(CompositeType::Object(def)),
+            TypeDefinition::Union(def) => Some(CompositeType::Union(def)),
             _ => None,
         }
     }

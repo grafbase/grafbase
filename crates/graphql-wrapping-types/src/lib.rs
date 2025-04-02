@@ -58,6 +58,17 @@ impl Wrapping {
         })
     }
 
+    /// From innermost to outermost.
+    pub fn iter(self) -> impl Iterator<Item = WrappingType> {
+        [self.inner_is_required().then_some(WrappingType::NonNull)]
+            .into_iter()
+            .chain(self.list_wrappings().flat_map(|lw| match lw {
+                ListWrapping::NullableList => [Some(WrappingType::List), None],
+                ListWrapping::RequiredList => [Some(WrappingType::List), Some(WrappingType::NonNull)],
+            }))
+            .flatten()
+    }
+
     fn get_list_length(&self) -> u8 {
         ((self.0 & LIST_WRAPPER_LENGTH_MASK) >> LIST_WRAPPER_SHIFT) as u8
     }
@@ -105,6 +116,12 @@ impl Wrapping {
         }
         self
     }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum WrappingType {
+    NonNull,
+    List,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

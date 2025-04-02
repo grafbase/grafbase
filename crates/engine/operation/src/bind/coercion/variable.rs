@@ -1,7 +1,7 @@
 use id_newtypes::IdRange;
 use schema::{
-    Definition, EnumDefinition, InputObjectDefinition, InputValueDefinitionId, ListWrapping, MutableWrapping,
-    ScalarDefinition, ScalarType, Schema, Type, TypeRecord,
+    EnumDefinition, InputObjectDefinition, InputValueDefinitionId, ListWrapping, MutableWrapping, ScalarDefinition,
+    ScalarType, Schema, Type, TypeDefinition, TypeRecord,
 };
 use serde_json::Value;
 use walker::Walk;
@@ -53,7 +53,7 @@ impl<'a> VariableCoercionContext<'a> {
 
     fn coerce_type(
         &mut self,
-        definition: Definition<'a>,
+        definition: TypeDefinition<'a>,
         mut wrapping: MutableWrapping,
         value: Value,
     ) -> Result<VariableInputValueRecord, InputValueError> {
@@ -114,15 +114,15 @@ impl<'a> VariableCoercionContext<'a> {
 
     fn coerce_named_type(
         &mut self,
-        definition: Definition<'a>,
+        definition: TypeDefinition<'a>,
         value: Value,
     ) -> Result<VariableInputValueRecord, InputValueError> {
         // At this point the definition should be accessible, otherwise the input value should have
         // been rejected earlier.
         match definition {
-            Definition::Scalar(scalar) => self.coerce_scalar(scalar, value),
-            Definition::Enum(r#enum) => self.coerce_enum(r#enum, value),
-            Definition::InputObject(input_object) => self.coerce_input_objet(input_object, value),
+            TypeDefinition::Scalar(scalar) => self.coerce_scalar(scalar, value),
+            TypeDefinition::Enum(r#enum) => self.coerce_enum(r#enum, value),
+            TypeDefinition::InputObject(input_object) => self.coerce_input_objet(input_object, value),
             _ => unreachable!("Cannot be an output type."),
         }
     }

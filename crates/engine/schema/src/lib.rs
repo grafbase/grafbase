@@ -15,6 +15,7 @@ mod extension;
 mod field;
 mod field_set;
 mod generated;
+mod guid;
 mod ids;
 mod input_object;
 mod input_value;
@@ -124,7 +125,7 @@ pub struct Graph {
     pub root_operation_types_record: RootOperationTypesRecord,
 
     // All type definitions sorted by their name (actual string)
-    type_definitions_ordered_by_name: Vec<DefinitionId>,
+    type_definitions_ordered_by_name: Vec<TypeDefinitionId>,
     #[indexed_by(ObjectDefinitionId)]
     object_definitions: Vec<ObjectDefinitionRecord>,
     inaccessible_object_definitions: BitSet<ObjectDefinitionId>,
@@ -199,11 +200,11 @@ impl Schema {
         item.walk(self)
     }
 
-    pub fn definitions(&self) -> impl Iter<Item = Definition<'_>> + '_ {
+    pub fn type_definitions(&self) -> impl Iter<Item = TypeDefinition<'_>> + '_ {
         self.graph.type_definitions_ordered_by_name.walk(self)
     }
 
-    pub fn definition_by_name(&self, name: &str) -> Option<Definition<'_>> {
+    pub fn type_definition_by_name(&self, name: &str) -> Option<TypeDefinition<'_>> {
         self.graph
             .type_definitions_ordered_by_name
             .binary_search_by_key(&name, |definition_id| definition_id.walk(self).name())

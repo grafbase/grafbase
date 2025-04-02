@@ -113,25 +113,25 @@ impl GraphContext<'_> {
         }
     }
 
-    fn convert_definition(&self, definition: federated_graph::Definition) -> DefinitionId {
+    fn convert_definition(&self, definition: federated_graph::Definition) -> TypeDefinitionId {
         match definition {
-            federated_graph::Definition::Scalar(id) => DefinitionId::Scalar(self.scalar_mapping[&id]),
-            federated_graph::Definition::Object(id) => DefinitionId::Object(id.into()),
-            federated_graph::Definition::Interface(id) => DefinitionId::Interface(id.into()),
-            federated_graph::Definition::Union(id) => DefinitionId::Union(id.into()),
-            federated_graph::Definition::Enum(id) => DefinitionId::Enum(self.enum_mapping[&id]),
-            federated_graph::Definition::InputObject(id) => DefinitionId::InputObject(id.into()),
+            federated_graph::Definition::Scalar(id) => TypeDefinitionId::Scalar(self.scalar_mapping[&id]),
+            federated_graph::Definition::Object(id) => TypeDefinitionId::Object(id.into()),
+            federated_graph::Definition::Interface(id) => TypeDefinitionId::Interface(id.into()),
+            federated_graph::Definition::Union(id) => TypeDefinitionId::Union(id.into()),
+            federated_graph::Definition::Enum(id) => TypeDefinitionId::Enum(self.enum_mapping[&id]),
+            federated_graph::Definition::InputObject(id) => TypeDefinitionId::InputObject(id.into()),
         }
     }
 
     pub(crate) fn type_name(&self, ty: TypeRecord) -> String {
         let name = match ty.definition_id {
-            DefinitionId::Scalar(id) => &self.ctx.strings[self.graph[id].name_id],
-            DefinitionId::Object(id) => &self.ctx.strings[self.graph[id].name_id],
-            DefinitionId::Interface(id) => &self.ctx.strings[self.graph[id].name_id],
-            DefinitionId::Union(id) => &self.ctx.strings[self.graph[id].name_id],
-            DefinitionId::Enum(id) => &self.ctx.strings[self.graph[id].name_id],
-            DefinitionId::InputObject(id) => &self.ctx.strings[self.graph[id].name_id],
+            TypeDefinitionId::Scalar(id) => &self.ctx.strings[self.graph[id].name_id],
+            TypeDefinitionId::Object(id) => &self.ctx.strings[self.graph[id].name_id],
+            TypeDefinitionId::Interface(id) => &self.ctx.strings[self.graph[id].name_id],
+            TypeDefinitionId::Union(id) => &self.ctx.strings[self.graph[id].name_id],
+            TypeDefinitionId::Enum(id) => &self.ctx.strings[self.graph[id].name_id],
+            TypeDefinitionId::InputObject(id) => &self.ctx.strings[self.graph[id].name_id],
         };
         let mut s = String::new();
         ty.wrapping.write_type_string(name, &mut s).unwrap();

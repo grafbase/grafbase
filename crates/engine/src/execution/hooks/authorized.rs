@@ -1,6 +1,6 @@
 use futures::FutureExt;
 use runtime::hooks::{AuthorizedHooks, EdgeDefinition, Hooks, NodeDefinition};
-use schema::{Definition, FieldDefinition, SchemaInputValue};
+use schema::{FieldDefinition, SchemaInputValue, TypeDefinition};
 
 use crate::{
     prepare::PartitionFieldArgumentsView,
@@ -82,7 +82,7 @@ impl<H: Hooks> super::RequestHooks<'_, H> {
 
     pub async fn authorize_node_pre_execution(
         &self,
-        definition: Definition<'_>,
+        definition: TypeDefinition<'_>,
         metadata: Option<SchemaInputValue<'_>>,
     ) -> Result<(), GraphqlError> {
         self.hooks

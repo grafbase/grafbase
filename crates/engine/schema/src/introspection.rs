@@ -1,8 +1,8 @@
 use crate::{
-    DefinitionId, EntityDefinitionId, EnumDefinitionId, EnumDefinitionRecord, EnumValueId, EnumValueRecord,
-    FieldDefinitionId, FieldDefinitionRecord, IdRange, InputValueDefinitionId, InputValueDefinitionRecord,
-    ObjectDefinitionId, ObjectDefinitionRecord, ResolverDefinitionId, ResolverDefinitionRecord, ScalarDefinitionId,
-    ScalarType, SchemaInputValueId, SchemaInputValueRecord, StringId, SubgraphId, TypeRecord, Wrapping,
+    EntityDefinitionId, EnumDefinitionId, EnumDefinitionRecord, EnumValueId, EnumValueRecord, FieldDefinitionId,
+    FieldDefinitionRecord, IdRange, InputValueDefinitionId, InputValueDefinitionRecord, ObjectDefinitionId,
+    ObjectDefinitionRecord, ResolverDefinitionId, ResolverDefinitionRecord, ScalarDefinitionId, ScalarType,
+    SchemaInputValueId, SchemaInputValueRecord, StringId, SubgraphId, TypeDefinitionId, TypeRecord, Wrapping,
     builder::GraphContext,
 };
 use strum::EnumCount;
@@ -603,6 +603,7 @@ impl GraphContext<'_> {
     }
 
     fn insert_enum(&mut self, name: &str, values: &[&str]) -> EnumDefinitionId {
+        let enum_id = EnumDefinitionId::from(self.graph.enum_definitions.len());
         let values = if values.is_empty() {
             IdRange::empty()
         } else {
@@ -612,6 +613,7 @@ impl GraphContext<'_> {
                 let name_id = self.ctx.strings.get_or_new(*value);
                 self.graph.enum_values.push(EnumValueRecord {
                     name_id,
+                    parent_enum_id: enum_id,
                     directive_ids: Vec::new(),
                     description_id: None,
                 })
@@ -629,6 +631,7 @@ impl GraphContext<'_> {
             description_id: None,
             value_ids: values,
             directive_ids: Vec::new(),
+            exists_in_subgraph_ids: vec![SubgraphId::Introspection],
         });
 
         EnumDefinitionId::from(self.graph.enum_definitions.len() - 1)
@@ -751,11 +754,12 @@ impl GraphContext<'_> {
                     description_id: None,
                     specified_by_url_id: None,
                     directive_ids: Vec::new(),
+                    exists_in_subgraph_ids: vec![SubgraphId::Introspection],
                 });
                 ScalarDefinitionId::from(self.graph.scalar_definitions.len() - 1)
             }
         };
-        let expected_kind = DefinitionId::from(scalar_id);
+        let expected_kind = TypeDefinitionId::from(scalar_id);
 
         TypeRecord {
             definition_id: expected_kind,

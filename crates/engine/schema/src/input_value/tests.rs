@@ -165,16 +165,19 @@ async fn test_input_value() {
                                             values: [
                                                 EnumValue {
                                                     name: "ACTIVE",
+                                                    parent_enum: "State",
                                                     description: None,
                                                     directives: [],
                                                 },
                                                 EnumValue {
                                                     name: "INACTIVE",
+                                                    parent_enum: "State",
                                                     description: None,
                                                     directives: [],
                                                 },
                                             ],
                                             directives: [],
+                                            exists_in_subgraphs: [],
                                         },
                                         wrapping: Wrapping {
                                             inner_is_required: false,
@@ -194,6 +197,7 @@ async fn test_input_value() {
                                             description: None,
                                             specified_by_url: None,
                                             directives: [],
+                                            exists_in_subgraphs: [],
                                         },
                                         wrapping: Wrapping {
                                             inner_is_required: false,
@@ -205,6 +209,7 @@ async fn test_input_value() {
                                 },
                             ],
                             directives: [],
+                            exists_in_subgraphs: [],
                         },
                         wrapping: Wrapping {
                             inner_is_required: false,
@@ -227,16 +232,19 @@ async fn test_input_value() {
                                         values: [
                                             EnumValue {
                                                 name: "ACTIVE",
+                                                parent_enum: "State",
                                                 description: None,
                                                 directives: [],
                                             },
                                             EnumValue {
                                                 name: "INACTIVE",
+                                                parent_enum: "State",
                                                 description: None,
                                                 directives: [],
                                             },
                                         ],
                                         directives: [],
+                                        exists_in_subgraphs: [],
                                     },
                                     wrapping: Wrapping {
                                         inner_is_required: false,
@@ -249,6 +257,7 @@ async fn test_input_value() {
                             EnumValue(
                                 EnumValue {
                                     name: "INACTIVE",
+                                    parent_enum: "State",
                                     description: None,
                                     directives: [],
                                 },
@@ -265,6 +274,7 @@ async fn test_input_value() {
                                         description: None,
                                         specified_by_url: None,
                                         directives: [],
+                                        exists_in_subgraphs: [],
                                     },
                                     wrapping: Wrapping {
                                         inner_is_required: false,
@@ -292,6 +302,7 @@ async fn test_input_value() {
                             description: None,
                             specified_by_url: None,
                             directives: [],
+                            exists_in_subgraphs: [],
                         },
                         wrapping: Wrapping {
                             inner_is_required: false,
@@ -334,6 +345,7 @@ async fn test_input_value() {
                                             description: None,
                                             specified_by_url: None,
                                             directives: [],
+                                            exists_in_subgraphs: [],
                                         },
                                         wrapping: Wrapping {
                                             inner_is_required: false,
@@ -353,6 +365,7 @@ async fn test_input_value() {
                                             description: None,
                                             specified_by_url: None,
                                             directives: [],
+                                            exists_in_subgraphs: [],
                                         },
                                         wrapping: Wrapping {
                                             inner_is_required: false,
@@ -372,16 +385,19 @@ async fn test_input_value() {
                                             values: [
                                                 EnumValue {
                                                     name: "ACTIVE",
+                                                    parent_enum: "State",
                                                     description: None,
                                                     directives: [],
                                                 },
                                                 EnumValue {
                                                     name: "INACTIVE",
+                                                    parent_enum: "State",
                                                     description: None,
                                                     directives: [],
                                                 },
                                             ],
                                             directives: [],
+                                            exists_in_subgraphs: [],
                                         },
                                         wrapping: Wrapping {
                                             inner_is_required: false,
@@ -401,6 +417,7 @@ async fn test_input_value() {
                                             description: None,
                                             specified_by_url: None,
                                             directives: [],
+                                            exists_in_subgraphs: [],
                                         },
                                         wrapping: Wrapping {
                                             inner_is_required: false,
@@ -420,6 +437,7 @@ async fn test_input_value() {
                                             description: None,
                                             specified_by_url: None,
                                             directives: [],
+                                            exists_in_subgraphs: [],
                                         },
                                         wrapping: Wrapping {
                                             inner_is_required: false,
@@ -439,6 +457,7 @@ async fn test_input_value() {
                                             description: None,
                                             specified_by_url: None,
                                             directives: [],
+                                            exists_in_subgraphs: [],
                                         },
                                         wrapping: Wrapping {
                                             inner_is_required: false,
@@ -458,6 +477,7 @@ async fn test_input_value() {
                                             description: None,
                                             specified_by_url: None,
                                             directives: [],
+                                            exists_in_subgraphs: [],
                                         },
                                         wrapping: Wrapping {
                                             inner_is_required: false,
@@ -469,6 +489,7 @@ async fn test_input_value() {
                                 },
                             ],
                             directives: [],
+                            exists_in_subgraphs: [],
                         },
                         wrapping: Wrapping {
                             inner_is_required: false,
@@ -491,6 +512,7 @@ async fn test_input_value() {
                                         description: None,
                                         specified_by_url: None,
                                         directives: [],
+                                        exists_in_subgraphs: [],
                                     },
                                     wrapping: Wrapping {
                                         inner_is_required: false,
@@ -513,6 +535,7 @@ async fn test_input_value() {
                                         description: None,
                                         specified_by_url: None,
                                         directives: [],
+                                        exists_in_subgraphs: [],
                                     },
                                     wrapping: Wrapping {
                                         inner_is_required: false,
@@ -537,16 +560,19 @@ async fn test_input_value() {
                                         values: [
                                             EnumValue {
                                                 name: "ACTIVE",
+                                                parent_enum: "State",
                                                 description: None,
                                                 directives: [],
                                             },
                                             EnumValue {
                                                 name: "INACTIVE",
+                                                parent_enum: "State",
                                                 description: None,
                                                 directives: [],
                                             },
                                         ],
                                         directives: [],
+                                        exists_in_subgraphs: [],
                                     },
                                     wrapping: Wrapping {
                                         inner_is_required: false,
@@ -559,6 +585,7 @@ async fn test_input_value() {
                             EnumValue(
                                 EnumValue {
                                     name: "ACTIVE",
+                                    parent_enum: "State",
                                     description: None,
                                     directives: [],
                                 },
@@ -575,6 +602,7 @@ async fn test_input_value() {
                                         description: None,
                                         specified_by_url: None,
                                         directives: [],
+                                        exists_in_subgraphs: [],
                                     },
                                     wrapping: Wrapping {
                                         inner_is_required: false,
@@ -599,6 +627,7 @@ async fn test_input_value() {
                                         description: None,
                                         specified_by_url: None,
                                         directives: [],
+                                        exists_in_subgraphs: [],
                                     },
                                     wrapping: Wrapping {
                                         inner_is_required: false,
@@ -623,6 +652,7 @@ async fn test_input_value() {
                                         description: None,
                                         specified_by_url: None,
                                         directives: [],
+                                        exists_in_subgraphs: [],
                                     },
                                     wrapping: Wrapping {
                                         inner_is_required: false,
@@ -647,6 +677,7 @@ async fn test_input_value() {
                                         description: None,
                                         specified_by_url: None,
                                         directives: [],
+                                        exists_in_subgraphs: [],
                                     },
                                     wrapping: Wrapping {
                                         inner_is_required: false,

@@ -1,15 +1,15 @@
 use walker::{Iter, Walk};
 
 use crate::{
-    CompositeType, CompositeTypeId, DefinitionId, EntityDefinition, EntityDefinitionId, InterfaceDefinition,
-    InterfaceDefinitionId, ObjectDefinitionId, TypeSystemDirective,
+    CompositeType, CompositeTypeId, EntityDefinition, EntityDefinitionId, InterfaceDefinition, InterfaceDefinitionId,
+    ObjectDefinitionId, TypeDefinitionId, TypeSystemDirective,
 };
 
 impl EntityDefinitionId {
-    pub fn maybe_from(definition: DefinitionId) -> Option<EntityDefinitionId> {
+    pub fn maybe_from(definition: TypeDefinitionId) -> Option<EntityDefinitionId> {
         match definition {
-            DefinitionId::Object(id) => Some(EntityDefinitionId::Object(id)),
-            DefinitionId::Interface(id) => Some(EntityDefinitionId::Interface(id)),
+            TypeDefinitionId::Object(id) => Some(EntityDefinitionId::Object(id)),
+            TypeDefinitionId::Interface(id) => Some(EntityDefinitionId::Interface(id)),
             _ => None,
         }
     }

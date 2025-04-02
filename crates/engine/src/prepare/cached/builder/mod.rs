@@ -11,7 +11,7 @@ use query_solver::{
     Edge, Node, QueryField, SolvedQuery,
     petgraph::{graph::NodeIndex, visit::EdgeRef},
 };
-use schema::{Definition, EntityDefinitionId, ResolverDefinitionId, Schema};
+use schema::{EntityDefinitionId, ResolverDefinitionId, Schema, TypeDefinition};
 use walker::Walk;
 
 use super::*;
@@ -385,8 +385,8 @@ fn to_data_field_or_typename_field(
             parent_field_id: None,
             selection_set_requires_typename: match definition_id.walk(schema).ty().definition() {
                 // If we may encounter an inaccessible object, we have to detect it
-                Definition::Union(union) => union.has_inaccessible_member(),
-                Definition::Interface(interface) => interface.has_inaccessible_implementor(),
+                TypeDefinition::Union(union) => union.has_inaccessible_member(),
+                TypeDefinition::Interface(interface) => interface.has_inaccessible_implementor(),
                 _ => false,
             },
             shape_ids: IdRange::empty(),

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use operation::{Operation, ResponseKey};
 use petgraph::visit::EdgeRef;
-use schema::{CompositeTypeId, DefinitionId, FieldDefinitionId, Schema, StringId, SubgraphId};
+use schema::{CompositeTypeId, FieldDefinitionId, Schema, StringId, SubgraphId, TypeDefinitionId};
 use walker::Walk;
 
 use crate::{
@@ -39,7 +39,7 @@ enum FieldRenameConsistencyKey {
         field_definition_id: FieldDefinitionId,
     },
     FieldNamedTypename {
-        output_definition_id: DefinitionId,
+        output_definition_id: TypeDefinitionId,
     },
 }
 

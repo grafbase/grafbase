@@ -108,6 +108,15 @@ pub struct Ty {
     pub definition_id: DefinitionId,
 }
 
+impl From<engine_schema::Type<'_>> for Ty {
+    fn from(ty: engine_schema::Type<'_>) -> Self {
+        Ty {
+            wrapping: ty.wrapping.iter().map(Into::into).collect(),
+            definition_id: ty.definition_id.as_guid(),
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, ComponentType, Lower)]
 #[component(enum)]
 #[repr(u8)]
@@ -116,6 +125,15 @@ pub enum WrappingType {
     NonNull,
     #[component(name = "list")]
     List,
+}
+
+impl From<engine_schema::WrappingType> for WrappingType {
+    fn from(wrapping: engine_schema::WrappingType) -> Self {
+        match wrapping {
+            engine_schema::WrappingType::NonNull => WrappingType::NonNull,
+            engine_schema::WrappingType::List => WrappingType::List,
+        }
+    }
 }
 
 #[derive(Clone, Debug, ComponentType, Lower)]
