@@ -6,12 +6,14 @@ interface selection-set-resolver {
     use headers.{headers};
 
     prepare: func(
+        subgraph-name: string,
         root-field-id: field-id,
         fields: list<field>
     ) -> result<list<u8>, error>;
 
     resolve-query-or-mutation-field: func(
         headers: headers,
+        subgraph-name: string,
         prepared: list<u8>,
         arguments: list<tuple<arguments-id, list<u8>>>
     ) -> result<data, error>;

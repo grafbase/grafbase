@@ -5,10 +5,11 @@ use crate::{
 
 pub trait SelectionSetResolverExtension: Sized + 'static {
     fn new(subgraph_schemas: Vec<SubgraphSchema<'_>>, config: Configuration) -> Result<Self, Error>;
-    fn prepare(&mut self, field: Field<'_>) -> Result<Vec<u8>, Error>;
+    fn prepare(&mut self, subgraph_name: &str, field: Field<'_>) -> Result<Vec<u8>, Error>;
     fn resolve(
         &mut self,
         headers: SubgraphHeaders,
+        subgraph_name: &str,
         prepared: &[u8],
         arguments: ArgumentValues<'_>,
     ) -> Result<Data, Error>;
@@ -19,16 +20,17 @@ pub fn register<T: SelectionSetResolverExtension>() {
     pub(super) struct Proxy<T: SelectionSetResolverExtension>(T);
 
     impl<T: SelectionSetResolverExtension> AnyExtension for Proxy<T> {
-        fn selection_set_resolver_prepare(&mut self, field: Field<'_>) -> Result<Vec<u8>, Error> {
-            self.0.prepare(field)
+        fn selection_set_resolver_prepare(&mut self, subgraph_name: &str, field: Field<'_>) -> Result<Vec<u8>, Error> {
+            self.0.prepare(subgraph_name, field)
         }
         fn selection_set_resolver_resolve(
             &mut self,
             headers: SubgraphHeaders,
+            subgraph_name: &str,
             prepared: Vec<u8>,
             arguments: ArgumentValues<'_>,
         ) -> Result<Data, Error> {
-            self.0.resolve(headers, &prepared, arguments)
+            self.0.resolve(headers, subgraph_name, &prepared, arguments)
         }
     }
 

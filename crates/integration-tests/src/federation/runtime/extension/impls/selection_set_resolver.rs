@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
 use engine::GraphqlError;
-use engine_schema::{FieldDefinition, Subgraph};
+use engine_schema::Subgraph;
 use extension_catalog::ExtensionId;
 use futures::FutureExt as _;
 use runtime::{
-    extension::{ArgumentsId, Data, DynSelectionSet, SelectionSet, SelectionSetResolverExtension},
+    extension::{ArgumentsId, Data, DynField, Field, SelectionSetResolverExtension},
     hooks::Anything,
 };
 
@@ -13,24 +13,15 @@ use crate::federation::{DispatchRule, DynHookContext, ExtContext, ExtensionsDisp
 
 #[allow(clippy::manual_async_fn, unused_variables)]
 impl SelectionSetResolverExtension<ExtContext> for ExtensionsDispatcher {
-    async fn prepare<'ctx>(
+    async fn prepare<'ctx, F: Field<'ctx>>(
         &'ctx self,
         extension_id: ExtensionId,
         subgraph: Subgraph<'ctx>,
-        field_definition: FieldDefinition<'ctx>,
-        selection_set: impl SelectionSet<'ctx>,
+        field: F,
     ) -> Result<Vec<u8>, GraphqlError> {
         match self.dispatch[&extension_id] {
-            DispatchRule::Wasm => {
-                self.wasm
-                    .prepare(extension_id, subgraph, field_definition, selection_set)
-                    .await
-            }
-            DispatchRule::Test => {
-                self.test
-                    .prepare(extension_id, subgraph, field_definition, selection_set)
-                    .await
-            }
+            DispatchRule::Wasm => self.wasm.prepare(extension_id, subgraph, field).await,
+            DispatchRule::Test => self.test.prepare(extension_id, subgraph, field).await,
         }
     }
 
@@ -60,18 +51,17 @@ impl SelectionSetResolverExtension<ExtContext> for ExtensionsDispatcher {
 
 #[allow(clippy::manual_async_fn, unused_variables)]
 impl SelectionSetResolverExtension<DynHookContext> for TestExtensions {
-    async fn prepare<'ctx>(
+    async fn prepare<'ctx, F: Field<'ctx>>(
         &'ctx self,
         extension_id: ExtensionId,
         subgraph: Subgraph<'ctx>,
-        field_definition: FieldDefinition<'ctx>,
-        selection_set: impl SelectionSet<'ctx>,
+        field: F,
     ) -> Result<Vec<u8>, GraphqlError> {
         self.state
             .lock()
             .await
             .get_selection_set_resolver_ext(extension_id, subgraph)
-            .prepare(extension_id, subgraph, field_definition, selection_set.as_dyn())
+            .prepare(extension_id, subgraph, field.as_dyn())
             .await
     }
 
@@ -120,8 +110,7 @@ pub trait SelectionSetResolverTestExtension: Send + Sync + 'static {
         &self,
         extension_id: ExtensionId,
         subgraph: Subgraph<'ctx>,
-        field_definition: FieldDefinition<'ctx>,
-        selection_set: Box<dyn DynSelectionSet<'ctx>>,
+        field: Box<dyn DynField<'ctx>>,
     ) -> Result<Vec<u8>, GraphqlError> {
         Ok(Vec::new())
     }

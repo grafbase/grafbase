@@ -17,7 +17,7 @@ wasmtime::component::bindgen!({
         "grafbase:sdk/error": crate::extension::api::since_0_9_0::wit::error,
         "grafbase:sdk/token": crate::extension::api::since_0_10_0::wit::token,
         "grafbase:sdk/headers": crate::extension::api::since_0_10_0::wit::headers,
-        "grafbase:sdk/schema": schema
+        "grafbase:sdk/schema": schema,
     },
     trappable_imports: true,
     ownership: Borrowing {

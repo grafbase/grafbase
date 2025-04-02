@@ -1,4 +1,3 @@
-#![allow(unused)]
 use wasmtime::component::{ComponentType, Lower};
 
 use crate::state::WasiState;

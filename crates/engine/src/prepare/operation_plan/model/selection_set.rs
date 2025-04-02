@@ -51,10 +51,6 @@ impl<'a> runtime::extension::SelectionSet<'a> for SubgraphSelectionSet<'a> {
     fn fields_ordered_by_parent_entity(&self) -> impl Iterator<Item = Self::Field> {
         self.fields_ordered_by_parent_entity_then_key()
     }
-
-    fn as_dyn(&self) -> Box<dyn runtime::extension::DynSelectionSet<'a>> {
-        Box::new(*self)
-    }
 }
 
 impl<'a> runtime::extension::DynSelectionSet<'a> for SubgraphSelectionSet<'a> {

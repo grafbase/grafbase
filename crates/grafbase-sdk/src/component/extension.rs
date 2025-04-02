@@ -12,13 +12,14 @@ pub(crate) trait AnyExtension {
         Err(ErrorResponse::internal_server_error().with_error("Authentication extension not initialized correctly."))
     }
 
-    fn selection_set_resolver_prepare(&mut self, field: Field<'_>) -> Result<Vec<u8>, Error> {
+    fn selection_set_resolver_prepare(&mut self, subgraph_name: &str, field: Field<'_>) -> Result<Vec<u8>, Error> {
         Err("Selection set resolver extension not initialized correctly.".into())
     }
 
     fn selection_set_resolver_resolve(
         &mut self,
         headers: SubgraphHeaders,
+        subgraph_name: &str,
         prepared: Vec<u8>,
         arguments: ArgumentValues<'_>,
     ) -> Result<Data, Error> {
