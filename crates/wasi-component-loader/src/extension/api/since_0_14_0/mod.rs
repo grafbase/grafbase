@@ -1,8 +1,7 @@
 mod instance;
 pub mod wit;
 
-pub use instance::ExtensionInstanceSince0_14_0;
-pub use wit::{Sdk, SdkPre};
+pub use instance::SdkPre0_14_0;
 
 #[allow(unused)]
 pub mod world {

@@ -2,11 +2,11 @@ use wasmtime::component::{ComponentType, Lower};
 
 #[derive(Debug, ComponentType, Lower)]
 #[component(record)]
-pub struct SchemaDirective<'a> {
+pub struct SchemaDirective {
     #[component(name = "subgraph-name")]
-    pub subgraph_name: &'a str,
-    pub name: &'a str,
-    pub arguments: &'a [u8],
+    pub subgraph_name: String,
+    pub name: String,
+    pub arguments: Vec<u8>,
 }
 
 #[derive(Clone, Debug, ComponentType, Lower)]

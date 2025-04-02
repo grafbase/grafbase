@@ -40,9 +40,9 @@ impl WasmExtensions {
         gateway_config: &Config,
         schema: &Schema,
     ) -> crate::Result<Self> {
-        let extensions = config::load_extensions_config(extension_catalog, gateway_config, schema);
+        let extensions = config::load_extensions_config(extension_catalog, gateway_config);
         Ok(Self(Arc::new(WasiExtensionsInner {
-            instance_pools: create_pools(&shared_resources, extensions).await?,
+            instance_pools: create_pools(schema, &shared_resources, extensions).await?,
             subscriptions: Default::default(),
         })))
     }
@@ -66,6 +66,7 @@ impl WasmExtensions {
 }
 
 async fn create_pools(
+    schema: &Schema,
     shared_resources: &SharedResources,
     extensions: Vec<ExtensionConfig>,
 ) -> crate::Result<Vec<Pool>> {
@@ -86,7 +87,7 @@ async fn create_pools(
 
         let id = config.id;
         let max_pool_size = config.pool.max_size;
-        ExtensionLoader::new(shared, config).map(|loader| (id, Pool::new(loader, max_pool_size)))
+        ExtensionLoader::new(schema, shared, config).map(|loader| (id, Pool::new(loader, max_pool_size)))
     }))
     .buffer_unordered(parallelism)
     .try_collect::<Vec<_>>()

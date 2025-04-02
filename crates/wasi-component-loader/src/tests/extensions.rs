@@ -1,97 +1,20 @@
 use std::path::PathBuf;
 
 use crate::{
-    cbor,
-    extension::{ExtensionConfig, ExtensionLoader, SchemaDirective, WasmConfig, api::wit},
+    extension::{ExtensionConfig, ExtensionLoader, WasmConfig},
     tests::create_shared_resources,
 };
+use engine_schema::Schema;
 use extension_catalog::ExtensionId;
 use futures::{
     StreamExt, TryStreamExt,
     stream::{FuturesOrdered, FuturesUnordered},
 };
 use http::{HeaderMap, HeaderValue};
-use runtime::extension::{Data, Token};
+use runtime::extension::Token;
 use serde_json::json;
 
 const LATEST_SDK: semver::Version = semver::Version::new(0, 14, 0);
-
-#[tokio::test]
-async fn simple_resolver() {
-    #[derive(serde::Serialize)]
-    struct SchemaArgs {
-        id: usize,
-    }
-
-    #[derive(serde::Serialize)]
-    struct FieldArgs<'a> {
-        name: &'a str,
-    }
-
-    let config = WasmConfig {
-        location: PathBuf::from("examples/target/wasm32-wasip2/debug/simple_resolver.wasm"),
-        networking: false,
-        stdout: false,
-        stderr: false,
-        environment_variables: false,
-    };
-
-    assert!(config.location.exists());
-
-    let (shared, _) = create_shared_resources();
-
-    let loader = ExtensionLoader::new(
-        shared,
-        ExtensionConfig {
-            id: ExtensionId::from(0usize),
-            manifest_id: "caching_auth-1.0.0".parse().unwrap(),
-            sdk_version: LATEST_SDK,
-            pool: Default::default(),
-            wasm: config,
-            schema_directives: vec![SchemaDirective::new("schemaArgs", "mySubgraph", SchemaArgs { id: 10 })],
-            guest_config: Some(()),
-        },
-    )
-    .unwrap();
-
-    let field_directive = wit::FieldDefinitionDirective {
-        name: "myDirective",
-        site: wit::FieldDefinitionDirectiveSite {
-            parent_type_name: "Query",
-            field_name: "cats",
-        },
-        arguments: &cbor::to_vec(&FieldArgs { name: "cat" }).unwrap(),
-    };
-
-    let output = loader
-        .instantiate()
-        .await
-        .unwrap()
-        .resolve_field(
-            http::HeaderMap::new(),
-            "mySubgraph",
-            field_directive,
-            Default::default(),
-        )
-        .await
-        .unwrap();
-
-    let result: serde_json::Value = output
-        .into_iter()
-        .flat_map(|result| match result.ok()? {
-            Data::CborBytes(bytes) => minicbor_serde::from_slice(&bytes).ok(),
-            _ => None,
-        })
-        .next()
-        .unwrap();
-
-    insta::assert_json_snapshot!(&result, @r#"
-    {
-      "id": 10,
-      "name": "cat"
-    }
-    "#);
-}
 
 #[tokio::test]
 async fn single_call_caching_auth() {
@@ -108,6 +31,7 @@ async fn single_call_caching_auth() {
     let (shared, _) = create_shared_resources();
 
     let loader = ExtensionLoader::new(
+        &Schema::from_sdl_or_panic("").await,
         shared,
         ExtensionConfig {
             id: ExtensionId::from(0usize),
@@ -115,7 +39,6 @@ async fn single_call_caching_auth() {
             sdk_version: LATEST_SDK,
             pool: Default::default(),
             wasm: config,
-            schema_directives: Vec::new(),
             guest_config: Some(json!({
                 "cache_config": "test"
             })),
@@ -162,6 +85,7 @@ async fn single_call_caching_auth_invalid() {
     let (shared, _) = create_shared_resources();
 
     let loader = ExtensionLoader::new(
+        &Schema::from_sdl_or_panic("").await,
         shared,
         ExtensionConfig {
             id: ExtensionId::from(0usize),
@@ -169,7 +93,6 @@ async fn single_call_caching_auth_invalid() {
             sdk_version: LATEST_SDK,
             pool: Default::default(),
             wasm: config,
-            schema_directives: Vec::new(),
             guest_config: Some(json!({
                 "cache_config": "test"
             })),
@@ -214,6 +137,7 @@ async fn multiple_cache_calls() {
     let (shared, _) = create_shared_resources();
 
     let loader = ExtensionLoader::new(
+        &Schema::from_sdl_or_panic("").await,
         shared,
         ExtensionConfig {
             id: ExtensionId::from(0usize),
@@ -221,7 +145,6 @@ async fn multiple_cache_calls() {
             sdk_version: LATEST_SDK,
             pool: Default::default(),
             wasm: config,
-            schema_directives: Vec::new(),
             guest_config: Some(json!({
                 "cache_config": "test"
             })),
