@@ -1,3 +1,4 @@
+mod mcp;
 mod stream;
 
 use std::{
@@ -11,6 +12,7 @@ use axum::body::Body;
 use bytes::Bytes;
 use futures::future::BoxFuture;
 use http_body_util::BodyExt;
+pub use mcp::*;
 use serde::{Deserialize, ser::SerializeMap};
 pub use stream::*;
 use tower::ServiceExt;

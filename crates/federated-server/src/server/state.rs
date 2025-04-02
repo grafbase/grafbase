@@ -1,8 +1,5 @@
 use super::gateway::EngineWatcher;
-use dashmap::DashMap;
-use rmcp::model::ClientJsonRpcMessage;
 use std::sync::Arc;
-use tokio::sync::mpsc;
 
 pub struct ServerStateInner<R: engine::Runtime, SR> {
     /// The gateway responsible for handling engine communication.
@@ -14,9 +11,6 @@ pub struct ServerStateInner<R: engine::Runtime, SR> {
     /// The server runtime, defining how to trigger IO depending on the platform.
     #[cfg_attr(not(feature = "lambda"), allow(unused))]
     pub server_runtime: SR,
-
-    /// For MCP connection management.
-    pub sse_txs: Arc<DashMap<Arc<str>, mpsc::Sender<ClientJsonRpcMessage>>>,
 }
 
 pub struct ServerState<R: engine::Runtime, SR> {
@@ -38,7 +32,6 @@ impl<R: engine::Runtime, SR> ServerState<R, SR> {
                 engine,
                 server_runtime,
                 request_body_limit_bytes,
-                sse_txs: Arc::new(DashMap::new()),
             }),
         }
     }

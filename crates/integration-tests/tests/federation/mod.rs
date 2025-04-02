@@ -12,6 +12,7 @@ mod hooks;
 mod inaccessible;
 mod introspection;
 mod issues;
+mod mcp;
 mod message_signing;
 mod response_extensions;
 mod subgraph_retries;

@@ -100,13 +100,15 @@ impl<R: Runtime> McpServer<R> {
         enable_mutations: bool,
     ) -> Self {
         let guide = indoc! {r#"
-            This is a GraphQL server that provides tools to access certain selected queries. The queries are
-            prefixed with query- and followed by the name of the query. The query requires certain arguments,
-            and always a selection. You can construct the correct selection by first looking into the description
-            of the query tool, finding the return type, and then calling the introspect-type tool with the name of the type.
+            This is a GraphQL server that provides tools to access certain selected operations.
+            The operation requires certain arguments, and always a selection. You can construct the
+            correct selection by first looking into the description of the query tool, finding the
+            return type, and then calling the introspect-type tool with the name of the type.
 
             This tool will provide you all the information to construct a correct selection for the query. You always have to
             call the introspect-type tool first, and only after that you can call the correct query tool.
+
+            Queries are prefixed with query/ and mutations with mutation/.
         "#};
 
         let instructions = match instructions {
@@ -269,8 +271,9 @@ impl<R: Runtime> McpServer<R> {
         }
     }
 
-    async fn execute_query(
+    async fn execute_operation(
         &self,
+        op_type: &str,
         query_name: &str,
         selection_set: &str,
         variables: Map<String, Value>,
@@ -281,7 +284,7 @@ impl<R: Runtime> McpServer<R> {
             Cow::Borrowed("")
         };
 
-        let query = format!(r#"query {{ {query_name}{arguments} {selection_set} }}"#);
+        let query = format!(r#"{op_type} {{ {query_name}{arguments} {selection_set} }}"#);
 
         let body = json!({
             "query": query,
@@ -455,7 +458,17 @@ impl<R: Runtime> ServerHandler for McpServer<R> {
                     return Err(ErrorData::invalid_params("Missing '__selection' argument", None));
                 };
 
-                let result = self.execute_query(command, &selection_set, arguments).await?;
+                let (op_type, command) = if command.starts_with("query/") {
+                    ("query", command.strip_prefix("query/").unwrap())
+                } else if command.starts_with("mutation/") {
+                    ("mutation", command.strip_prefix("mutation/").unwrap())
+                } else {
+                    return Err(ErrorData::invalid_params("Invalid command", None));
+                };
+
+                let result = self
+                    .execute_operation(op_type, command, &selection_set, arguments)
+                    .await?;
 
                 Content::json(result)?
             }
@@ -557,10 +570,12 @@ fn add_field_to_tools(tool_type: ToolType, tools: &mut Vec<Tool>, field: engine_
         }),
     );
 
+    required_arguments.push("__selection".to_string());
+
     let parameters = json!({
         "type": "object",
         "properties": properties,
-        "required": ["__selection"]
+        "required": required_arguments,
     });
 
     let field_description = field.description().unwrap_or("");
@@ -578,7 +593,7 @@ fn add_field_to_tools(tool_type: ToolType, tools: &mut Vec<Tool>, field: engine_
     "#};
 
     tools.push(Tool::new(
-        field.name().to_string(),
+        format!("{tool_type}/{}", field.name()),
         description.trim_start().to_string(),
         parameters.as_object().unwrap().clone(),
     ));
@@ -624,7 +639,7 @@ fn add_argument_to_properties(
                 ScalarType::Int => "integer",
                 ScalarType::BigInt => "integer",
                 ScalarType::Boolean => "boolean",
-                ScalarType::Unknown => "string",
+                ScalarType::Unknown => "object",
             };
 
             properties.insert(

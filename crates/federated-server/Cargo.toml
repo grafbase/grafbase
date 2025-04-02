@@ -59,7 +59,6 @@ url = { workspace = true, features = ["serde"] }
 wasi-component-loader.workspace = true
 
 # Lambda dependencies
-dashmap.workspace = true
 either.workspace = true
 extension-catalog.workspace = true
 indoc.workspace = true
