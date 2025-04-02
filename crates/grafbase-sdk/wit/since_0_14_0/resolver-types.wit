@@ -1,0 +1,6 @@
+interface resolver-types {
+    variant data {
+        json(list<u8>),
+        cbor(list<u8>)
+    }
+}

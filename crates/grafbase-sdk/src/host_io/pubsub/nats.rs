@@ -6,9 +6,10 @@
 //! It supports both authenticated and unauthenticated connections to one or more NATS servers.
 
 use crate::{
-    extension::resolver::Subscription,
+    SdkError,
+    extension::field_resolver::Subscription,
     types::{Error, SubscriptionOutput},
-    wit, SdkError,
+    wit,
 };
 use std::time::Duration;
 

@@ -98,13 +98,13 @@ fn init_resolver() {
     insta::assert_snapshot!(&lib_rs, @r##"
     use grafbase_sdk::{
         types::{Configuration, SchemaDirective, FieldDefinitionDirective, FieldInputs, FieldOutputs, Error, SubgraphHeaders},
-        ResolverExtension, Subscription
+        FieldResolverExtension, Subscription
     };
 
-    #[derive(ResolverExtension)]
+    #[derive(FieldResolverExtension)]
     struct TestProject;
 
-    impl ResolverExtension for TestProject {
+    impl FieldResolverExtension for TestProject {
         fn new(schema_directives: Vec<SchemaDirective>, config: Configuration) -> Result<Self, Error> {
             Ok(Self)
         }

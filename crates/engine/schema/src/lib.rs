@@ -246,6 +246,10 @@ impl Schema {
             .chain(virt)
             .chain(std::iter::once(Subgraph::Introspection(self)))
     }
+
+    pub fn resolvers(&self) -> impl Iterator<Item = ResolverDefinition<'_>> + '_ {
+        IdRange::<ResolverDefinitionId>::from(0..self.graph.resolver_definitions.len()).walk(self)
+    }
 }
 
 impl std::fmt::Debug for Schema {

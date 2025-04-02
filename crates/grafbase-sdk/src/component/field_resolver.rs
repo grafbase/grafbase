@@ -1,6 +1,6 @@
 use crate::wit::{Error, FieldDefinitionDirective, FieldOutput, FieldResolverGuest, Headers};
 
-use super::{state, Component};
+use super::{Component, state};
 
 impl FieldResolverGuest for Component {
     fn resolve_field(

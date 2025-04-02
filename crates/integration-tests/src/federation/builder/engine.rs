@@ -86,9 +86,11 @@ pub(super) async fn build(
 
     let mut config = toml::from_str(&config.toml).unwrap();
 
-    let schema = engine::Schema::build(&config, &federated_sdl, runtime.extensions.catalog())
-        .await
-        .map_err(|err| err.to_string())?;
+    let schema = Arc::new(
+        engine::Schema::build(&config, &federated_sdl, runtime.extensions.catalog())
+            .await
+            .map_err(|err| err.to_string())?,
+    );
 
     let runtime = runtime
         .finalize_runtime_and_config(
@@ -102,7 +104,7 @@ pub(super) async fn build(
 
     println!("=== CONFIG ===\n{:#?}\n", config);
 
-    let engine = engine::Engine::new(Arc::new(schema), runtime).await;
+    let engine = engine::Engine::new(schema, runtime).await;
     let ctx = TestRuntimeContext { access_log_receiver };
 
     Ok((Arc::new(engine), ctx))

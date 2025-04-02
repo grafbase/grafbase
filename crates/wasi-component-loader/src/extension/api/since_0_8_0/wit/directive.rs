@@ -6,7 +6,7 @@ pub struct SchemaDirective<'a> {
     #[component(name = "subgraph-name")]
     pub subgraph_name: &'a str,
     pub name: &'a str,
-    pub arguments: &'a [u8],
+    pub arguments: Vec<u8>,
 }
 
 #[derive(Clone, Debug, ComponentType, Lower)]

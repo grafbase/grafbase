@@ -43,6 +43,12 @@ impl From<String> for SdkErrorInner {
     }
 }
 
+impl From<&'static str> for SdkErrorInner {
+    fn from(err: &'static str) -> Self {
+        Self::Message(err.to_string())
+    }
+}
+
 impl From<SdkError> for wit::Error {
     fn from(err: SdkError) -> Self {
         wit::Error::new(err.to_string())

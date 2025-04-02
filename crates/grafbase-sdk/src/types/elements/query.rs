@@ -1,8 +1,9 @@
 use std::iter::Enumerate;
 
 use crate::{
-    types::{authorization::private::QueryElementOrResponseItem, DirectiveSite},
-    wit, SdkError,
+    SdkError,
+    types::{DirectiveSite, authorization::private::QueryElementOrResponseItem},
+    wit,
 };
 use serde::Deserialize;
 

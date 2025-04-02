@@ -1,8 +1,8 @@
 use crate::{
-    extension::resolver::Subscription,
+    extension::field_resolver::Subscription,
     types::{
-        AuthorizationDecisions, Error, ErrorResponse, FieldDefinitionDirective, FieldInputs, FieldOutputs,
-        GatewayHeaders, QueryElements, ResponseElements, SubgraphHeaders, Token,
+        ArgumentValues, AuthorizationDecisions, Data, Error, ErrorResponse, Field, FieldDefinitionDirective,
+        FieldInputs, FieldOutputs, GatewayHeaders, QueryElements, ResponseElements, SubgraphHeaders, Token,
     },
 };
 
@@ -10,6 +10,19 @@ use crate::{
 pub(crate) trait AnyExtension {
     fn authenticate(&mut self, headers: &GatewayHeaders) -> Result<Token, ErrorResponse> {
         Err(ErrorResponse::internal_server_error().with_error("Authentication extension not initialized correctly."))
+    }
+
+    fn selection_set_resolver_prepare(&mut self, field: Field<'_>) -> Result<Vec<u8>, Error> {
+        Err("Selection set resolver extension not initialized correctly.".into())
+    }
+
+    fn selection_set_resolver_resolve(
+        &mut self,
+        headers: SubgraphHeaders,
+        prepared: Vec<u8>,
+        arguments: ArgumentValues<'_>,
+    ) -> Result<Data, Error> {
+        Err("Selection set resolver extension not initialized correctly.".into())
     }
 
     fn resolve_field(

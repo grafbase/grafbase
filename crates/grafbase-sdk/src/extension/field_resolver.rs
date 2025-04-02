@@ -20,11 +20,11 @@ use crate::{
 ///
 /// ```rust
 /// use grafbase_sdk::{
-///     ResolverExtension,
+///     FieldResolverExtension,
 ///     types::{SubgraphHeaders, FieldDefinitionDirective, FieldInputs, FieldOutputs, Configuration, Error, SchemaDirective}
 /// };
 ///
-/// #[derive(ResolverExtension)]
+/// #[derive(FieldResolverExtension)]
 /// struct MyResolver {
 ///   config: Config
 /// }
@@ -34,7 +34,7 @@ use crate::{
 ///   my_custom_key: String
 /// }
 ///
-/// impl ResolverExtension for MyResolver {
+/// impl FieldResolverExtension for MyResolver {
 ///    fn new(schema_directives: Vec<SchemaDirective>, config: Configuration) -> Result<Self, Error> {
 ///        let config: Config = config.deserialize()?;
 ///        Ok(Self { config })
@@ -93,12 +93,12 @@ use crate::{
 /// directive @http(endpoint: String!, path: String!) on FIELD_DEFINITION
 /// ```
 ///
-/// The `@httpEndpoint` directive would be provided during the [new()](ResolverExtension::new())
+/// The `@httpEndpoint` directive would be provided during the [new()](FieldResolverExtension::new())
 /// method as a [SchemaDirective]. While the latter would be provided as a [FieldDefinitionDirective] during
-/// the [resolve_field()](ResolverExtension::resolve_field()) method.
+/// the [resolve_field()](FieldResolverExtension::resolve_field()) method.
 ///
 #[allow(unused_variables)]
-pub trait ResolverExtension: Sized + 'static {
+pub trait FieldResolverExtension: Sized + 'static {
     /// Creates a new instance of the extension. The [Configuration] will contain all the
     /// configuration defined in the `grafbase.toml` by the extension user in a serialized format.
     /// Furthermore all schema directives from all subgraphs will be provided as
@@ -151,7 +151,7 @@ pub trait ResolverExtension: Sized + 'static {
     /// # Ok(())
     /// # }
     /// ```
-    fn new(schema_directives: Vec<SchemaDirective>, config: Configuration) -> Result<Self, Error>;
+    fn new(schema_directives: Vec<SchemaDirective<'_>>, config: Configuration) -> Result<Self, Error>;
 
     /// Resolves a GraphQL field. This function receives a batch of inputs and is called at most once per
     /// query field.
@@ -307,10 +307,10 @@ pub trait Subscription {
 }
 
 #[doc(hidden)]
-pub fn register<T: ResolverExtension>() {
-    pub(super) struct Proxy<T: ResolverExtension>(T);
+pub fn register<T: FieldResolverExtension>() {
+    pub(super) struct Proxy<T: FieldResolverExtension>(T);
 
-    impl<T: ResolverExtension> AnyExtension for Proxy<T> {
+    impl<T: FieldResolverExtension> AnyExtension for Proxy<T> {
         fn resolve_field(
             &mut self,
             headers: SubgraphHeaders,
@@ -318,7 +318,7 @@ pub fn register<T: ResolverExtension>() {
             directive: FieldDefinitionDirective<'_>,
             inputs: FieldInputs<'_>,
         ) -> Result<FieldOutputs, Error> {
-            ResolverExtension::resolve_field(&mut self.0, headers, subgraph_name, directive, inputs)
+            FieldResolverExtension::resolve_field(&mut self.0, headers, subgraph_name, directive, inputs)
         }
         fn resolve_subscription(
             &mut self,
@@ -326,7 +326,7 @@ pub fn register<T: ResolverExtension>() {
             subgraph_name: &str,
             directive: FieldDefinitionDirective<'_>,
         ) -> Result<Box<dyn Subscription>, Error> {
-            ResolverExtension::resolve_subscription(&mut self.0, headers, subgraph_name, directive)
+            FieldResolverExtension::resolve_subscription(&mut self.0, headers, subgraph_name, directive)
         }
 
         fn subscription_key(
@@ -335,7 +335,7 @@ pub fn register<T: ResolverExtension>() {
             subgraph_name: &str,
             directive: FieldDefinitionDirective<'_>,
         ) -> Result<Option<Vec<u8>>, Error> {
-            Ok(ResolverExtension::subscription_key(
+            Ok(FieldResolverExtension::subscription_key(
                 &mut self.0,
                 headers,
                 subgraph_name,
@@ -344,8 +344,17 @@ pub fn register<T: ResolverExtension>() {
         }
     }
 
-    crate::component::register_extension(Box::new(|schema_directives, config| {
-        <T as ResolverExtension>::new(schema_directives, config)
+    crate::component::register_extension(Box::new(|subgraph_schemas, config| {
+        let mut schema_directives = Vec::new();
+        for (subgraph_name, schema) in &subgraph_schemas {
+            for directive in &schema.directives {
+                schema_directives.push(SchemaDirective {
+                    subgraph_name,
+                    directive,
+                });
+            }
+        }
+        <T as FieldResolverExtension>::new(schema_directives, config)
             .map(|extension| Box::new(Proxy(extension)) as Box<dyn AnyExtension>)
     }))
 }

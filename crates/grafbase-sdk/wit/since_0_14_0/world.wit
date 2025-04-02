@@ -11,7 +11,9 @@ world sdk {
     import directive;
     import schema;
     import authorization-types;
+    import resolver-types;
     import field-resolver-types;
+    import selection-set-resolver-types;
 
     export authentication;
     export authorization;
@@ -19,6 +21,7 @@ world sdk {
     export selection-set-resolver;
 
     use directive.{schema-directive};
+    use schema.{schema};
 
     // The extension registration function. Must be called before initialization.
     export register-extension: func();
@@ -27,7 +30,8 @@ world sdk {
     // if an error happens here, the gateway will refuse to continue.
     // Receives a list of schema directives associated with the extension
     export init: func(
-        schema-directives: list<schema-directive>,
+        // Schema for each subgraph, with relevant data for each extension type.
+        schema: list<tuple<string, schema>>,
         configuration: list<u8>,
     ) -> result<_, string>;
 }

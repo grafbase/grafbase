@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use http::StatusCode;
 
-use crate::{wit, SdkError};
+use crate::{SdkError, wit};
 
 use super::Error;
 

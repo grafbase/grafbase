@@ -1,3 +1,18 @@
 interface selection-set-resolver {
+    use error.{error};
+    use schema.{definition-id};
+    use selection-set-resolver-types.{field-id, field, arguments-id};
+    use resolver-types.{data};
+    use headers.{headers};
 
+    prepare: func(
+        root-field-id: field-id,
+        fields: list<field>
+    ) -> result<list<u8>, error>;
+
+    resolve-query-or-mutation-field: func(
+        headers: headers,
+        prepared: list<u8>,
+        arguments: list<tuple<arguments-id, list<u8>>>
+    ) -> result<data, error>;
 }
