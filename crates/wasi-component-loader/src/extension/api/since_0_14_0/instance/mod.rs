@@ -17,13 +17,12 @@ use crate::{
 };
 
 use super::wit;
-use wit::grafbase::sdk::directive::SchemaDirective;
+use wit::schema as ws;
 
 pub struct SdkPre0_14_0 {
     pre: wit::SdkPre<crate::WasiState>,
     guest_config: Vec<u8>,
-    schema: wit::Schema,
-    schema_directives: Vec<SchemaDirective>,
+    subgraph_schemas: Vec<(String, ws::Schema)>,
 }
 
 impl SdkPre0_14_0 {
@@ -33,28 +32,56 @@ impl SdkPre0_14_0 {
         component: Component,
         mut linker: Linker<WasiState>,
     ) -> crate::Result<Self> {
-        let mut schema_directives = Vec::new();
-        let mut wit_schema = wit::Schema {
-            definitions: Vec::new(),
-            directives: Vec::new(),
-        };
-        if matches!(
-            config.r#type,
-            TypeDiscriminants::FieldResolver | TypeDiscriminants::Authorization
-        ) {
-            for subgraph in schema.subgraphs() {
-                let directives = subgraph.extension_schema_directives();
+        let mut subgraph_schemas = Vec::new();
+        match config.r#type {
+            TypeDiscriminants::Authentication | TypeDiscriminants::Authorization => (),
+            TypeDiscriminants::FieldResolver => {
+                for subgraph in schema.subgraphs() {
+                    let mut directives = Vec::new();
 
-                for schema_directive in directives {
-                    if schema_directive.extension_id != config.id {
-                        continue;
+                    for schema_directive in subgraph.extension_schema_directives() {
+                        if schema_directive.extension_id != config.id {
+                            continue;
+                        }
+
+                        directives.push(ws::Directive {
+                            name: schema_directive.name().to_string(),
+                            arguments: cbor::to_vec(schema_directive.static_arguments()).unwrap(),
+                        });
                     }
 
-                    schema_directives.push(SchemaDirective {
-                        name: schema_directive.name().to_string(),
-                        subgraph_name: subgraph.name().to_string(),
-                        arguments: cbor::to_vec(schema_directive.static_arguments()).unwrap(),
-                    });
+                    if !directives.is_empty() {
+                        subgraph_schemas.push((
+                            subgraph.name().to_string(),
+                            ws::Schema {
+                                directives,
+                                definitions: Vec::new(),
+                            },
+                        ));
+                    }
+                }
+            }
+            TypeDiscriminants::SelectionSetResolver => {
+                for subgraph in schema.subgraphs() {
+                    let mut directives = Vec::new();
+                    for schema_directive in subgraph.extension_schema_directives() {
+                        if schema_directive.extension_id != config.id {
+                            continue;
+                        }
+                        directives.push(ws::Directive {
+                            name: schema_directive.name().to_string(),
+                            arguments: cbor::to_vec(schema_directive.static_arguments()).unwrap(),
+                        });
+                    }
+                    if !directives.is_empty() {
+                        subgraph_schemas.push((
+                            subgraph.name().to_string(),
+                            ws::Schema {
+                                directives,
+                                definitions: Vec::new(),
+                            },
+                        ));
+                    }
                 }
             }
         }
@@ -64,7 +91,7 @@ impl SdkPre0_14_0 {
         Ok(Self {
             pre: wit::SdkPre::<WasiState>::new(instance_pre)?,
             guest_config: cbor::to_vec(&config.guest_config).context("Could not serialize configuration")?,
-            schema_directives,
+            subgraph_schemas,
         })
     }
 
@@ -75,7 +102,7 @@ impl SdkPre0_14_0 {
         inner.call_register_extension(&mut store).await?;
 
         inner
-            .call_init(&mut store, &self.schema_directives, &self.guest_config)
+            .call_init(&mut store, &self.subgraph_schemas, &self.guest_config)
             .await??;
 
         let instance = ExtensionInstanceSince0_14_0 {

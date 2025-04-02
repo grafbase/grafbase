@@ -2,14 +2,14 @@
 
 use crate::{
     extension::field_resolver::Subscription,
-    types::{Configuration, Schema, SchemaDirective},
-    wit::Error,
+    types::Configuration,
+    wit::{self, Error},
 };
 
 use super::extension::AnyExtension;
 
 type InitFn =
-    Box<dyn Fn(Schema<'_>, Vec<SchemaDirective>, Configuration) -> Result<Box<dyn AnyExtension>, crate::types::Error>>;
+    Box<dyn Fn(Vec<(String, wit::Schema)>, Configuration) -> Result<Box<dyn AnyExtension>, crate::types::Error>>;
 
 static mut INIT_FN: Option<InitFn> = None;
 static mut EXTENSION: Option<Box<dyn AnyExtension>> = None;
@@ -17,11 +17,11 @@ static mut SUBSCRIPTION: Option<Box<dyn Subscription>> = None;
 
 /// Initializes the resolver extension with the provided directives using the closure
 /// function created with the `register_extension!` macro.
-pub(super) fn init(schema: Schema<'_>, directives: Vec<SchemaDirective>, config: Configuration) -> Result<(), Error> {
+pub(super) fn init(subgraph_schemas: Vec<(String, wit::Schema)>, config: Configuration) -> Result<(), Error> {
     // Safety: This function is only called from the SDK macro, so we can assume that there is only one caller at a time.
     unsafe {
         let init = INIT_FN.as_ref().expect("Resolver extension not initialized correctly.");
-        EXTENSION = Some(init(schema, directives, config)?);
+        EXTENSION = Some(init(subgraph_schemas, config)?);
     }
 
     Ok(())

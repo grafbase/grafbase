@@ -1,24 +1,36 @@
 use serde::Deserialize;
 
-use crate::{SdkError, wit::schema as wit};
+use crate::{SdkError, wit};
 
 /// GraphQL schema
-pub struct Schema<'a>(&'a wit::Schema);
+pub struct SubgraphSchema<'a> {
+    name: &'a str,
+    schema: &'a wit::Schema,
+}
 
-impl<'a> From<&'a wit::Schema> for Schema<'a> {
-    fn from(schema: &'a wit::Schema) -> Self {
-        Self(schema)
+impl<'a> From<&'a (String, wit::Schema)> for SubgraphSchema<'a> {
+    fn from((name, schema): &'a (String, wit::Schema)) -> Self {
+        Self {
+            name,
+            schema
+        }
     }
 }
 
-impl<'a> Schema<'a> {
+impl<'a> SubgraphSchema<'a> {
+    /// Name of the subgraph this schema belongs to
+    pub fn name(&self) -> &'a str {
+        self.name
+    }
+
     /// Iterator over the definitions in this schema
     pub fn definitions(&self) -> impl ExactSizeIterator<Item = Definition<'a>> {
-        self.0.definitions.iter().map(Into::into)
+        self.schema.definitions.iter().map(Into::into)
     }
+
     /// Iterator over the directives applied to this schema
     pub fn directives(&self) -> impl ExactSizeIterator<Item = Directive<'a>> {
-        self.0.directives.iter().map(Into::into)
+        self.schema.directives.iter().map(Into::into)
     }
 }
 

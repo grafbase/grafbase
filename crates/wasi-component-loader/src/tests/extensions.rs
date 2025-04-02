@@ -5,7 +5,7 @@ use crate::{
     tests::create_shared_resources,
 };
 use engine_schema::Schema;
-use extension_catalog::ExtensionId;
+use extension_catalog::{ExtensionId, TypeDiscriminants};
 use futures::{
     StreamExt, TryStreamExt,
     stream::{FuturesOrdered, FuturesUnordered},
@@ -35,6 +35,7 @@ async fn single_call_caching_auth() {
         shared,
         ExtensionConfig {
             id: ExtensionId::from(0usize),
+            r#type: TypeDiscriminants::Authentication,
             manifest_id: "caching_auth-1.0.0".parse().unwrap(),
             sdk_version: LATEST_SDK,
             pool: Default::default(),
@@ -89,6 +90,7 @@ async fn single_call_caching_auth_invalid() {
         shared,
         ExtensionConfig {
             id: ExtensionId::from(0usize),
+            r#type: TypeDiscriminants::Authentication,
             manifest_id: "caching_auth-1.0.0".parse().unwrap(),
             sdk_version: LATEST_SDK,
             pool: Default::default(),
@@ -141,6 +143,7 @@ async fn multiple_cache_calls() {
         shared,
         ExtensionConfig {
             id: ExtensionId::from(0usize),
+            r#type: TypeDiscriminants::Authentication,
             manifest_id: "caching_auth-1.0.0".parse().unwrap(),
             sdk_version: LATEST_SDK,
             pool: Default::default(),

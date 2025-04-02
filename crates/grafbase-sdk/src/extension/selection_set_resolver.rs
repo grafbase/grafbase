@@ -1,10 +1,10 @@
 use crate::{
     component::AnyExtension,
-    types::{ArgumentValues, Configuration, Data, Error, Field, Schema, SubgraphHeaders},
+    types::{ArgumentValues, Configuration, Data, Error, Field, SubgraphHeaders, SubgraphSchema},
 };
 
 pub trait SelectionSetResolverExtension: Sized + 'static {
-    fn new(schema: Schema<'_>, config: Configuration) -> Result<Self, Error>;
+    fn new(subgraph_schemas: Vec<SubgraphSchema<'_>>, config: Configuration) -> Result<Self, Error>;
     fn prepare(&mut self, field: Field<'_>) -> Result<Vec<u8>, Error>;
     fn resolve(
         &mut self,
@@ -32,8 +32,8 @@ pub fn register<T: SelectionSetResolverExtension>() {
         }
     }
 
-    crate::component::register_extension(Box::new(|schema, _, config| {
-        <T as SelectionSetResolverExtension>::new(schema, config)
+    crate::component::register_extension(Box::new(|subgraph_schemas, config| {
+        <T as SelectionSetResolverExtension>::new(subgraph_schemas.iter().map(Into::into).collect(), config)
             .map(|extension| Box::new(Proxy(extension)) as Box<dyn AnyExtension>)
     }))
 }

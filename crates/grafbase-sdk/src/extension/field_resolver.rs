@@ -151,7 +151,7 @@ pub trait FieldResolverExtension: Sized + 'static {
     /// # Ok(())
     /// # }
     /// ```
-    fn new(schema_directives: Vec<SchemaDirective>, config: Configuration) -> Result<Self, Error>;
+    fn new(schema_directives: Vec<SchemaDirective<'_>>, config: Configuration) -> Result<Self, Error>;
 
     /// Resolves a GraphQL field. This function receives a batch of inputs and is called at most once per
     /// query field.
@@ -344,7 +344,16 @@ pub fn register<T: FieldResolverExtension>() {
         }
     }
 
-    crate::component::register_extension(Box::new(|_, schema_directives, config| {
+    crate::component::register_extension(Box::new(|subgraph_schemas, config| {
+        let mut schema_directives = Vec::new();
+        for (subgraph_name, schema) in &subgraph_schemas {
+            for directive in &schema.directives {
+                schema_directives.push(SchemaDirective {
+                    subgraph_name,
+                    directive,
+                });
+            }
+        }
         <T as FieldResolverExtension>::new(schema_directives, config)
             .map(|extension| Box::new(Proxy(extension)) as Box<dyn AnyExtension>)
     }))

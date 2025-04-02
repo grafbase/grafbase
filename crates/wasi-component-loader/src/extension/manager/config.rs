@@ -52,7 +52,7 @@ pub(super) fn load_extensions_config(extension_catalog: &ExtensionCatalog, confi
         wasm_extensions.push(ExtensionConfig {
             id,
             manifest_id: manifest.id.clone(),
-            r#type: manifest.r#type.clone(),
+            r#type: manifest.r#type.clone().into(),
             pool: PoolConfig {
                 max_size: max_pool_size,
             },

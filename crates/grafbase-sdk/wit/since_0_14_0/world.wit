@@ -30,8 +30,8 @@ world sdk {
     // if an error happens here, the gateway will refuse to continue.
     // Receives a list of schema directives associated with the extension
     export init: func(
-        schema: schema,
-        schema-directives: list<schema-directive>,
+        // Schema for each subgraph, with relevant data for each extension type.
+        schema: list<tuple<string, schema>>,
         configuration: list<u8>,
     ) -> result<_, string>;
 }
