@@ -119,6 +119,7 @@ mod tests {
     use indoc::indoc;
     use std::path::PathBuf;
     use std::str::FromStr;
+    use std::time::Duration;
     use url::Url;
 
     #[test]
@@ -260,7 +261,7 @@ mod tests {
             endpoint = "http://localhost:1234"
 
             [exporters.otlp.batch_export]
-            scheduled_delay = 10
+            scheduled_delay = "10s"
         "#};
 
         // act
@@ -272,7 +273,7 @@ mod tests {
                 endpoint: Some(Url::parse("http://localhost:1234").unwrap()),
                 enabled: Some(true),
                 batch_export: Some(BatchExportConfig {
-                    scheduled_delay: chrono::Duration::try_seconds(10).expect("must be fine"),
+                    scheduled_delay: Duration::from_secs(10),
                     ..Default::default()
                 }),
                 ..Default::default()
@@ -290,10 +291,10 @@ mod tests {
             enabled = true
             endpoint = "http://localhost:1234"
             protocol = "grpc"
-            timeout = 120
+            timeout = "120s"
 
             [exporters.otlp.batch_export]
-            scheduled_delay = 10
+            scheduled_delay = "10s"
             max_queue_size = 10
             max_export_batch_size = 10
             max_concurrent_exports = 10
@@ -320,7 +321,7 @@ mod tests {
                 endpoint: Some(Url::parse("http://localhost:1234").unwrap()),
                 enabled: Some(true),
                 batch_export: Some(BatchExportConfig {
-                    scheduled_delay: chrono::Duration::try_seconds(10).expect("must be fine"),
+                    scheduled_delay: Duration::from_secs(10),
                     max_queue_size: 10,
                     max_export_batch_size: 10,
                     max_concurrent_exports: 10,
@@ -344,7 +345,7 @@ mod tests {
                         AsciiString::from_ascii("header1").unwrap()
                     )]),
                 }),
-                timeout: Some(chrono::Duration::try_seconds(120).expect("must be fine")),
+                timeout: Some(Duration::from_secs(120)),
             }),
             config.exporters.otlp
         );
@@ -357,10 +358,10 @@ mod tests {
 
             [exporters.stdout]
             enabled = true
-            timeout = 10
+            timeout = "10s"
 
             [exporters.stdout.batch_export]
-            scheduled_delay = 10
+            scheduled_delay = "10s"
             max_queue_size = 10
             max_export_batch_size = 10
             max_concurrent_exports = 10
@@ -380,20 +381,20 @@ mod tests {
 
             [exporters.stdout]
             enabled = true
-            timeout = 10
+            timeout = "10s"
 
             [exporters.stdout.batch_export]
-            scheduled_delay = 10
+            scheduled_delay = "10s"
             max_queue_size = 10
             max_export_batch_size = 10
             max_concurrent_exports = 10
 
             [tracing.exporters.stdout]
             enabled = false
-            timeout = 9
+            timeout = "9s"
 
             [tracing.exporters.stdout.batch_export]
-            scheduled_delay = 10
+            scheduled_delay = "10s"
             max_queue_size = 10
             max_export_batch_size = 10
             max_concurrent_exports = 10
@@ -411,20 +412,20 @@ mod tests {
 
             [exporters.stdout]
             enabled = true
-            timeout = 10
+            timeout = "10s"
 
             [exporters.stdout.batch_export]
-            scheduled_delay = 10
+            scheduled_delay = "10s"
             max_queue_size = 10
             max_export_batch_size = 10
             max_concurrent_exports = 10
 
             [tracing.exporters.stdout]
             enabled = true
-            timeout = 9
+            timeout = "9s"
 
             [tracing.exporters.stdout.batch_export]
-            scheduled_delay = 9
+            scheduled_delay = "9s"
             max_queue_size = 9
             max_export_batch_size = 9
             max_concurrent_exports = 9
@@ -446,10 +447,10 @@ mod tests {
             enabled = true
             endpoint = "http://localhost:1234"
             protocol = "grpc"
-            timeout = 120
+            timeout = "120s"
 
             [exporters.otlp.batch_export]
-            scheduled_delay = 10
+            scheduled_delay = "10s"
             max_queue_size = 10
             max_export_batch_size = 10
             max_concurrent_exports = 10
@@ -497,10 +498,7 @@ mod tests {
                     ),
                     batch_export: Some(
                         BatchExportConfig {
-                            scheduled_delay: TimeDelta {
-                                secs: 10,
-                                nanos: 0,
-                            },
+                            scheduled_delay: 10s,
                             max_queue_size: 10,
                             max_export_batch_size: 10,
                             max_concurrent_exports: 10,
@@ -554,10 +552,7 @@ mod tests {
                         },
                     ),
                     timeout: Some(
-                        TimeDelta {
-                            secs: 120,
-                            nanos: 0,
-                        },
+                        120s,
                     ),
                 },
                 local: OtlpExporterConfig {
@@ -583,10 +578,10 @@ mod tests {
             enabled = true
             endpoint = "http://localhost:1234"
             protocol = "grpc"
-            timeout = 120
+            timeout = "120s"
 
             [exporters.otlp.batch_export]
-            scheduled_delay = 10
+            scheduled_delay = "10s"
             max_queue_size = 10
             max_export_batch_size = 10
             max_concurrent_exports = 10
@@ -607,10 +602,10 @@ mod tests {
             enabled = false
             endpoint = "http://localhost:1234"
             protocol = "grpc"
-            timeout = 120
+            timeout = "120s"
 
             [tracing.exporters.otlp.batch_export]
-            scheduled_delay = 10
+            scheduled_delay = "10s"
             max_queue_size = 10
             max_export_batch_size = 10
             max_concurrent_exports = 10
@@ -642,10 +637,10 @@ mod tests {
             enabled = true
             endpoint = "http://localhost:1234"
             protocol = "grpc"
-            timeout = 120
+            timeout = "120s"
 
             [exporters.otlp.batch_export]
-            scheduled_delay = 10
+            scheduled_delay = "10s"
             max_queue_size = 10
             max_export_batch_size = 10
             max_concurrent_exports = 10
@@ -666,10 +661,10 @@ mod tests {
             enabled = true
             endpoint = "http://localhost:1234"
             protocol = "grpc"
-            timeout = 120
+            timeout = "120s"
 
             [tracing.exporters.otlp.batch_export]
-            scheduled_delay = 10
+            scheduled_delay = "10s"
             max_queue_size = 10
             max_export_batch_size = 10
             max_concurrent_exports = 10
@@ -717,10 +712,7 @@ mod tests {
                     ),
                     batch_export: Some(
                         BatchExportConfig {
-                            scheduled_delay: TimeDelta {
-                                secs: 10,
-                                nanos: 0,
-                            },
+                            scheduled_delay: 10s,
                             max_queue_size: 10,
                             max_export_batch_size: 10,
                             max_concurrent_exports: 10,
@@ -774,10 +766,7 @@ mod tests {
                         },
                     ),
                     timeout: Some(
-                        TimeDelta {
-                            secs: 120,
-                            nanos: 0,
-                        },
+                        120s,
                     ),
                 },
                 local: OtlpExporterConfig {
@@ -805,10 +794,7 @@ mod tests {
                     ),
                     batch_export: Some(
                         BatchExportConfig {
-                            scheduled_delay: TimeDelta {
-                                secs: 10,
-                                nanos: 0,
-                            },
+                            scheduled_delay: 10s,
                             max_queue_size: 10,
                             max_export_batch_size: 10,
                             max_concurrent_exports: 10,
@@ -862,10 +848,7 @@ mod tests {
                         },
                     ),
                     timeout: Some(
-                        TimeDelta {
-                            secs: 120,
-                            nanos: 0,
-                        },
+                        120s,
                     ),
                 },
             },
@@ -880,10 +863,10 @@ mod tests {
 
             [exporters.stdout]
             enabled = true
-            timeout = 10
+            timeout = "10s"
 
             [exporters.stdout.batch_export]
-            scheduled_delay = 10
+            scheduled_delay = "10s"
             max_queue_size = 10
             max_export_batch_size = 10
             max_concurrent_exports = 10
@@ -903,20 +886,20 @@ mod tests {
 
             [exporters.stdout]
             enabled = true
-            timeout = 10
+            timeout = "10s"
 
             [exporters.stdout.batch_export]
-            scheduled_delay = 10
+            scheduled_delay = "10s"
             max_queue_size = 10
             max_export_batch_size = 10
             max_concurrent_exports = 10
 
             [metrics.exporters.stdout]
             enabled = false
-            timeout = 9
+            timeout = "9s"
 
             [metrics.exporters.stdout.batch_export]
-            scheduled_delay = 10
+            scheduled_delay = "10s"
             max_queue_size = 10
             max_export_batch_size = 10
             max_concurrent_exports = 10
@@ -933,20 +916,20 @@ mod tests {
 
             [exporters.stdout]
             enabled = true
-            timeout = 10
+            timeout = "10s"
 
             [exporters.stdout.batch_export]
-            scheduled_delay = 10
+            scheduled_delay = "10s"
             max_queue_size = 10
             max_export_batch_size = 10
             max_concurrent_exports = 10
 
             [metrics.exporters.stdout]
             enabled = true
-            timeout = 9
+            timeout = "9s"
 
             [metrics.exporters.stdout.batch_export]
-            scheduled_delay = 9
+            scheduled_delay = "9s"
             max_queue_size = 9
             max_export_batch_size = 9
             max_concurrent_exports = 9
@@ -968,10 +951,10 @@ mod tests {
             enabled = true
             endpoint = "http://localhost:1234"
             protocol = "grpc"
-            timeout = 120
+            timeout = "120s"
 
             [exporters.otlp.batch_export]
-            scheduled_delay = 10
+            scheduled_delay = "10s"
             max_queue_size = 10
             max_export_batch_size = 10
             max_concurrent_exports = 10
@@ -1018,10 +1001,7 @@ mod tests {
                     ),
                     batch_export: Some(
                         BatchExportConfig {
-                            scheduled_delay: TimeDelta {
-                                secs: 10,
-                                nanos: 0,
-                            },
+                            scheduled_delay: 10s,
                             max_queue_size: 10,
                             max_export_batch_size: 10,
                             max_concurrent_exports: 10,
@@ -1075,10 +1055,7 @@ mod tests {
                         },
                     ),
                     timeout: Some(
-                        TimeDelta {
-                            secs: 120,
-                            nanos: 0,
-                        },
+                        120s,
                     ),
                 },
                 local: OtlpExporterConfig {
@@ -1104,10 +1081,10 @@ mod tests {
             enabled = true
             endpoint = "http://localhost:1234"
             protocol = "grpc"
-            timeout = 120
+            timeout = "120s"
 
             [exporters.otlp.batch_export]
-            scheduled_delay = 10
+            scheduled_delay = "10s"
             max_queue_size = 10
             max_export_batch_size = 10
             max_concurrent_exports = 10
@@ -1128,10 +1105,10 @@ mod tests {
             enabled = false
             endpoint = "http://localhost:1234"
             protocol = "grpc"
-            timeout = 120
+            timeout = "120s"
 
             [metrics.exporters.otlp.batch_export]
-            scheduled_delay = 10
+            scheduled_delay = "10s"
             max_queue_size = 10
             max_export_batch_size = 10
             max_concurrent_exports = 10
@@ -1162,10 +1139,10 @@ mod tests {
             enabled = true
             endpoint = "http://localhost:1234"
             protocol = "grpc"
-            timeout = 120
+            timeout = "120s"
 
             [exporters.otlp.batch_export]
-            scheduled_delay = 10
+            scheduled_delay = "10s"
             max_queue_size = 10
             max_export_batch_size = 10
             max_concurrent_exports = 10
@@ -1186,10 +1163,10 @@ mod tests {
             enabled = true
             endpoint = "http://localhost:1234"
             protocol = "grpc"
-            timeout = 120
+            timeout = "120s"
 
             [metrics.exporters.otlp.batch_export]
-            scheduled_delay = 10
+            scheduled_delay = "10s"
             max_queue_size = 10
             max_export_batch_size = 10
             max_concurrent_exports = 10
@@ -1236,10 +1213,7 @@ mod tests {
                     ),
                     batch_export: Some(
                         BatchExportConfig {
-                            scheduled_delay: TimeDelta {
-                                secs: 10,
-                                nanos: 0,
-                            },
+                            scheduled_delay: 10s,
                             max_queue_size: 10,
                             max_export_batch_size: 10,
                             max_concurrent_exports: 10,
@@ -1293,10 +1267,7 @@ mod tests {
                         },
                     ),
                     timeout: Some(
-                        TimeDelta {
-                            secs: 120,
-                            nanos: 0,
-                        },
+                        120s,
                     ),
                 },
                 local: OtlpExporterConfig {
@@ -1324,10 +1295,7 @@ mod tests {
                     ),
                     batch_export: Some(
                         BatchExportConfig {
-                            scheduled_delay: TimeDelta {
-                                secs: 10,
-                                nanos: 0,
-                            },
+                            scheduled_delay: 10s,
                             max_queue_size: 10,
                             max_export_batch_size: 10,
                             max_concurrent_exports: 10,
@@ -1381,10 +1349,7 @@ mod tests {
                         },
                     ),
                     timeout: Some(
-                        TimeDelta {
-                            secs: 120,
-                            nanos: 0,
-                        },
+                        120s,
                     ),
                 },
             },
@@ -1399,10 +1364,10 @@ mod tests {
 
             [exporters.stdout]
             enabled = true
-            timeout = 10
+            timeout = "10s"
 
             [exporters.stdout.batch_export]
-            scheduled_delay = 10
+            scheduled_delay = "10s"
             max_queue_size = 10
             max_export_batch_size = 10
             max_concurrent_exports = 10
@@ -1422,20 +1387,20 @@ mod tests {
 
             [exporters.stdout]
             enabled = true
-            timeout = 10
+            timeout = "10s"
 
             [exporters.stdout.batch_export]
-            scheduled_delay = 10
+            scheduled_delay = "10s"
             max_queue_size = 10
             max_export_batch_size = 10
             max_concurrent_exports = 10
 
             [logs.exporters.stdout]
             enabled = false
-            timeout = 9
+            timeout = "9s"
 
             [logs.exporters.stdout.batch_export]
-            scheduled_delay = 10
+            scheduled_delay = "10s"
             max_queue_size = 10
             max_export_batch_size = 10
             max_concurrent_exports = 10
@@ -1453,20 +1418,20 @@ mod tests {
 
             [exporters.stdout]
             enabled = true
-            timeout = 10
+            timeout = "10s"
 
             [exporters.stdout.batch_export]
-            scheduled_delay = 10
+            scheduled_delay = "10s"
             max_queue_size = 10
             max_export_batch_size = 10
             max_concurrent_exports = 10
 
             [logs.exporters.stdout]
             enabled = true
-            timeout = 9
+            timeout = "9s"
 
             [logs.exporters.stdout.batch_export]
-            scheduled_delay = 9
+            scheduled_delay = "9s"
             max_queue_size = 9
             max_export_batch_size = 9
             max_concurrent_exports = 9
@@ -1488,10 +1453,10 @@ mod tests {
             enabled = true
             endpoint = "http://localhost:1234"
             protocol = "grpc"
-            timeout = 120
+            timeout = "120s"
 
             [exporters.otlp.batch_export]
-            scheduled_delay = 10
+            scheduled_delay = "10s"
             max_queue_size = 10
             max_export_batch_size = 10
             max_concurrent_exports = 10
@@ -1538,10 +1503,7 @@ mod tests {
                     ),
                     batch_export: Some(
                         BatchExportConfig {
-                            scheduled_delay: TimeDelta {
-                                secs: 10,
-                                nanos: 0,
-                            },
+                            scheduled_delay: 10s,
                             max_queue_size: 10,
                             max_export_batch_size: 10,
                             max_concurrent_exports: 10,
@@ -1595,10 +1557,7 @@ mod tests {
                         },
                     ),
                     timeout: Some(
-                        TimeDelta {
-                            secs: 120,
-                            nanos: 0,
-                        },
+                        120s,
                     ),
                 },
                 local: OtlpExporterConfig {
@@ -1624,10 +1583,10 @@ mod tests {
             enabled = true
             endpoint = "http://localhost:1234"
             protocol = "grpc"
-            timeout = 120
+            timeout = "120s"
 
             [exporters.otlp.batch_export]
-            scheduled_delay = 10
+            scheduled_delay = "10s"
             max_queue_size = 10
             max_export_batch_size = 10
             max_concurrent_exports = 10
@@ -1648,10 +1607,10 @@ mod tests {
             enabled = false
             endpoint = "http://localhost:1234"
             protocol = "grpc"
-            timeout = 120
+            timeout = "120s"
 
             [logs.exporters.otlp.batch_export]
-            scheduled_delay = 10
+            scheduled_delay = "10s"
             max_queue_size = 10
             max_export_batch_size = 10
             max_concurrent_exports = 10
@@ -1682,10 +1641,10 @@ mod tests {
             enabled = true
             endpoint = "http://localhost:1234"
             protocol = "grpc"
-            timeout = 120
+            timeout = "120s"
 
             [exporters.otlp.batch_export]
-            scheduled_delay = 10
+            scheduled_delay = "10s"
             max_queue_size = 10
             max_export_batch_size = 10
             max_concurrent_exports = 10
@@ -1706,10 +1665,10 @@ mod tests {
             enabled = true
             endpoint = "http://localhost:1234"
             protocol = "grpc"
-            timeout = 120
+            timeout = "120s"
 
             [logs.exporters.otlp.batch_export]
-            scheduled_delay = 10
+            scheduled_delay = "10s"
             max_queue_size = 10
             max_export_batch_size = 10
             max_concurrent_exports = 10
@@ -1756,10 +1715,7 @@ mod tests {
                     ),
                     batch_export: Some(
                         BatchExportConfig {
-                            scheduled_delay: TimeDelta {
-                                secs: 10,
-                                nanos: 0,
-                            },
+                            scheduled_delay: 10s,
                             max_queue_size: 10,
                             max_export_batch_size: 10,
                             max_concurrent_exports: 10,
@@ -1813,10 +1769,7 @@ mod tests {
                         },
                     ),
                     timeout: Some(
-                        TimeDelta {
-                            secs: 120,
-                            nanos: 0,
-                        },
+                        120s,
                     ),
                 },
                 local: OtlpExporterConfig {
@@ -1844,10 +1797,7 @@ mod tests {
                     ),
                     batch_export: Some(
                         BatchExportConfig {
-                            scheduled_delay: TimeDelta {
-                                secs: 10,
-                                nanos: 0,
-                            },
+                            scheduled_delay: 10s,
                             max_queue_size: 10,
                             max_export_batch_size: 10,
                             max_concurrent_exports: 10,
@@ -1901,10 +1851,7 @@ mod tests {
                         },
                     ),
                     timeout: Some(
-                        TimeDelta {
-                            secs: 120,
-                            nanos: 0,
-                        },
+                        120s,
                     ),
                 },
             },
@@ -1918,10 +1865,10 @@ mod tests {
         let input = indoc! {r#"
             [exporters.stdout]
             enabled = true
-            timeout = 10
+            timeout = "10s"
 
             [exporters.stdout.batch_export]
-            scheduled_delay = 10
+            scheduled_delay = "10s"
             max_queue_size = 10
             max_export_batch_size = 10
             max_concurrent_exports = 10
@@ -1935,12 +1882,12 @@ mod tests {
             Some(StdoutExporterConfig {
                 enabled: true,
                 batch_export: Some(BatchExportConfig {
-                    scheduled_delay: chrono::Duration::try_seconds(10).expect("must be fine"),
+                    scheduled_delay: Duration::from_secs(10),
                     max_queue_size: 10,
                     max_export_batch_size: 10,
                     max_concurrent_exports: 10,
                 }),
-                timeout: chrono::Duration::try_seconds(10).expect("must be fine"),
+                timeout: Duration::from_secs(10),
             }),
             config.exporters.stdout
         );

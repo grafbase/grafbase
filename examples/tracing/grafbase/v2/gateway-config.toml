@@ -18,7 +18,7 @@ endpoint = "http://localhost:4317"
 protocol = "grpc"
 
 [telemetry.tracing.exporters.otlp.batch_export]
-scheduled_delay = 10
+scheduled_delay = "10s"
 max_queue_size = 10
 max_export_batch_size = 10
 max_concurrent_exports = 10

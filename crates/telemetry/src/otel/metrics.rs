@@ -4,7 +4,6 @@ use opentelemetry_sdk::Resource;
 use opentelemetry_sdk::metrics::{
     Aggregation, Instrument, InstrumentKind, PeriodicReader, SdkMeterProvider, Stream, Temporality, View,
 };
-use std::time::Duration;
 
 use crate::config::TelemetryConfig;
 use crate::error::TracingError;
@@ -51,14 +50,7 @@ pub(super) fn build_meter_provider(
                 .with_temporality(Temporality::Delta)
                 .build(),
         )
-        .with_interval(
-            config
-                .batch_export
-                .unwrap_or_default()
-                .scheduled_delay
-                .to_std()
-                .unwrap_or(Duration::from_secs(10)),
-        )
+        .with_interval(config.batch_export.unwrap_or_default().scheduled_delay)
         .build();
 
         provider = provider.with_reader(reader);
@@ -89,7 +81,7 @@ fn attach_reader(
 
     use crate::otel::exporter::{build_metadata, build_tls_config};
 
-    let exporter_timeout = Duration::from_secs(config.timeout().num_seconds() as u64);
+    let exporter_timeout = config.timeout();
 
     let exporter = match config.protocol() {
         OtlpExporterProtocolConfig::Grpc(grpc_config) => MetricExporter::builder()
@@ -136,13 +128,7 @@ fn attach_reader(
     };
 
     let reader = PeriodicReader::builder(exporter)
-        .with_interval(
-            config
-                .batch_export()
-                .scheduled_delay
-                .to_std()
-                .unwrap_or(Duration::from_secs(10)),
-        )
+        .with_interval(config.batch_export().scheduled_delay)
         .build();
 
     Ok(provider.with_reader(reader))

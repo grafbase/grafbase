@@ -12,12 +12,11 @@ pub(super) fn build_logs_provider(
     use crate::otel::exporter::{build_metadata, build_tls_config};
     use opentelemetry_otlp::{LogExporter, WithExportConfig, WithHttpConfig, WithTonicConfig};
     use opentelemetry_sdk::logs::{BatchConfigBuilder, BatchLogProcessor};
-    use std::time::Duration;
 
     let mut builder = SdkLoggerProvider::builder().with_resource(resource);
 
     if let Some(config) = config.logs_otlp_config() {
-        let exporter_timeout = Duration::from_secs(config.timeout().num_seconds() as u64);
+        let exporter_timeout = config.timeout();
 
         let exporter = match config.protocol() {
             OtlpExporterProtocolConfig::Grpc(grpc_config) => LogExporter::builder()
@@ -66,7 +65,7 @@ pub(super) fn build_logs_provider(
 
             let config = BatchConfigBuilder::default()
                 .with_max_queue_size(config.max_queue_size)
-                .with_scheduled_delay(Duration::from_secs(config.scheduled_delay.num_seconds() as u64))
+                .with_scheduled_delay(config.scheduled_delay)
                 .with_max_export_batch_size(config.max_export_batch_size)
                 .build();
 

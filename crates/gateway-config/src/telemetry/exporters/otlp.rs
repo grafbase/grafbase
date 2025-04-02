@@ -2,8 +2,8 @@ mod headers;
 
 pub use headers::Headers;
 
-use super::{BatchExportConfig, default_export_timeout, deserialize_duration_opt};
-use std::path::PathBuf;
+use super::{BatchExportConfig, default_export_timeout};
+use std::{path::PathBuf, time::Duration};
 use url::Url;
 
 // FIXME: Please make me disappear me, so horrible.
@@ -18,7 +18,7 @@ impl LayeredOtlExporterConfig {
         self.local.enabled.or(self.global.enabled).unwrap_or_default()
     }
 
-    pub fn timeout(&self) -> chrono::Duration {
+    pub fn timeout(&self) -> Duration {
         self.local
             .timeout
             .or(self.global.timeout)
@@ -64,8 +64,8 @@ pub struct OtlpExporterConfig {
     pub http: Option<OtlpExporterHttpConfig>,
     /// The maximum duration to export data.
     /// The default value is 60 seconds.
-    #[serde(deserialize_with = "deserialize_duration_opt")]
-    pub timeout: Option<chrono::Duration>,
+    #[serde(deserialize_with = "duration_str::deserialize_option_duration")]
+    pub timeout: Option<std::time::Duration>,
 }
 
 /// OTLP Exporter protocol

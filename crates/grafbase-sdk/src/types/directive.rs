@@ -59,7 +59,7 @@ impl<'a> FieldDefinitionDirective<'a> {
     }
 
     /// Deserialize the arguments of the directive using a `DeserializeSeed`.
-    pub fn deserialize_arguments_seed<T>(&self, seed: T) -> Result<T::Value, SdkError>
+    pub fn arguments_seed<T>(&self, seed: T) -> Result<T::Value, SdkError>
     where
         T: serde::de::DeserializeSeed<'a>,
     {

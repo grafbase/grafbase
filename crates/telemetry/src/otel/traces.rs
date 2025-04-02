@@ -59,7 +59,7 @@ fn setup_exporters(
     use opentelemetry_otlp::{SpanExporter, WithExportConfig, WithHttpConfig, WithTonicConfig};
 
     let build_otlp_exporter = |config: &LayeredOtlExporterConfig| {
-        let exporter_timeout = Duration::from_secs(config.timeout().num_seconds() as u64);
+        let exporter_timeout = config.timeout();
 
         let exporter = match config.protocol() {
             OtlpExporterProtocolConfig::Grpc(grpc_config) => SpanExporter::builder()
@@ -137,7 +137,7 @@ fn setup_exporters(
 }
 
 fn build_batched_span_processor(
-    timeout: chrono::Duration,
+    timeout: Duration,
     config: &BatchExportConfig,
     exporter: impl trace::SpanExporter + 'static,
 ) -> BatchSpanProcessor {
@@ -146,9 +146,9 @@ fn build_batched_span_processor(
             BatchConfigBuilder::default()
                 .with_max_concurrent_exports(config.max_concurrent_exports)
                 .with_max_export_batch_size(config.max_export_batch_size)
-                .with_max_export_timeout(Duration::from_secs(timeout.num_seconds() as u64))
+                .with_max_export_timeout(timeout)
                 .with_max_queue_size(config.max_queue_size)
-                .with_scheduled_delay(Duration::from_secs(config.scheduled_delay.num_seconds() as u64))
+                .with_scheduled_delay(config.scheduled_delay)
                 .build(),
         )
         .build()
