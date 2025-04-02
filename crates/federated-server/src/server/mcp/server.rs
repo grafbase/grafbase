@@ -443,7 +443,7 @@ impl<R: Runtime> ServerHandler for McpServer<R> {
 
                 Content::json(result)?
             }
-            command if command.starts_with("query-") => {
+            command => {
                 let Some(mut arguments) = arguments else {
                     return Err(ErrorData::invalid_params("Missing arguments", None));
                 };
@@ -455,18 +455,9 @@ impl<R: Runtime> ServerHandler for McpServer<R> {
                     return Err(ErrorData::invalid_params("Missing '__selection' argument", None));
                 };
 
-                let query_name = command
-                    .strip_prefix("query-")
-                    .ok_or_else(|| ErrorData::invalid_params("Query name must be a string", None))?;
-
-                let result = self.execute_query(query_name, &selection_set, arguments).await?;
+                let result = self.execute_query(command, &selection_set, arguments).await?;
 
                 Content::json(result)?
-            }
-            _ => {
-                // Handle unknown tool names or implement the query execution logic
-                return Err(ErrorData::invalid_request(format!("Unknown tool name: {}", name), None));
-                // TODO: Implement logic for query-* tools based on extracted name parts
             }
         };
 
