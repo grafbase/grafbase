@@ -66,7 +66,7 @@ indoc.workspace = true
 lambda_http = { workspace = true, optional = true }
 minicbor-serde = { workspace = true, features = ["alloc"] }
 rand.workspace = true
-rmcp = { git = "https://github.com/modelcontextprotocol/rust-sdk", features = [
+rmcp = { git = "https://github.com/grafbase/rust-sdk", branch = "reduce-logging", features = [
     "transport-sse",
     "transport-sse-server",
 ] }

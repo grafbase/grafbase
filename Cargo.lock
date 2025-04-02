@@ -7662,7 +7662,7 @@ dependencies = [
 [[package]]
 name = "rmcp"
 version = "0.1.5"
-source = "git+https://github.com/modelcontextprotocol/rust-sdk#6a648b8827f1437bfcc26059d8d9ef00cba30bef"
+source = "git+https://github.com/grafbase/rust-sdk?branch=reduce-logging#b3d972425604ad85503c0e61ed8ad57420b07021"
 dependencies = [
  "axum 0.8.3",
  "base64 0.21.7",
@@ -7688,7 +7688,7 @@ dependencies = [
 [[package]]
 name = "rmcp-macros"
 version = "0.1.5"
-source = "git+https://github.com/modelcontextprotocol/rust-sdk#6a648b8827f1437bfcc26059d8d9ef00cba30bef"
+source = "git+https://github.com/grafbase/rust-sdk?branch=reduce-logging#b3d972425604ad85503c0e61ed8ad57420b07021"
 dependencies = [
  "proc-macro2",
  "quote",
