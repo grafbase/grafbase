@@ -46,7 +46,7 @@ impl TestRuntimeBuilder {
     pub async fn finalize_runtime_and_config(
         self,
         config: &mut Config,
-        schema: &Schema,
+        schema: &Arc<Schema>,
         shared_resources: SharedResources,
     ) -> TestRuntime {
         let TestRuntimeBuilder {

@@ -3,6 +3,8 @@ mod since_0_14_0;
 mod since_0_8_0;
 mod since_0_9_0;
 
+use std::sync::Arc;
+
 use engine_schema::Schema;
 use since_0_8_0::instance::SdkPre080;
 use since_0_9_0::instance::SdkPre090;
@@ -24,7 +26,7 @@ pub(crate) enum SdkPre {
 
 impl SdkPre {
     pub(crate) fn new<T: serde::Serialize>(
-        schema: &Schema,
+        schema: Arc<Schema>,
         config: &ExtensionConfig<T>,
         component: Component,
         linker: Linker<WasiState>,

@@ -6,97 +6,97 @@ impl Host for WasiState {}
 
 #[derive(Clone, Debug, ComponentType, Lower)]
 #[component(record)]
-pub struct Schema {
-    pub definitions: Vec<Definition>,
-    pub directives: Vec<Directive>,
+pub struct Schema<'a> {
+    pub definitions: Vec<Definition<'a>>,
+    pub directives: Vec<Directive<'a>>,
 }
 
 pub type DefinitionId = u32;
 
 #[derive(Clone, Debug, ComponentType, Lower)]
 #[component(variant)]
-pub enum Definition {
+pub enum Definition<'a> {
     #[component(name = "scalar")]
-    Scalar(ScalarDefinition),
+    Scalar(ScalarDefinition<'a>),
     #[component(name = "object")]
-    Object(ObjectDefinition),
+    Object(ObjectDefinition<'a>),
     #[component(name = "interface")]
-    Interface(InterfaceDefinition),
+    Interface(InterfaceDefinition<'a>),
     #[component(name = "union")]
-    Union(UnionDefinition),
+    Union(UnionDefinition<'a>),
     #[component(name = "enum")]
-    Enum(EnumDefinition),
+    Enum(EnumDefinition<'a>),
     #[component(name = "input-object")]
-    InputObject(InputObjectDefinition),
+    InputObject(InputObjectDefinition<'a>),
 }
 
 #[derive(Clone, Debug, ComponentType, Lower)]
 #[component(record)]
-pub struct ScalarDefinition {
+pub struct ScalarDefinition<'a> {
     pub id: DefinitionId,
-    pub name: String,
+    pub name: &'a str,
     #[component(name = "specified-by-url")]
-    pub specified_by_url: Option<String>,
-    pub directives: Vec<Directive>,
+    pub specified_by_url: Option<&'a str>,
+    pub directives: Vec<Directive<'a>>,
 }
 
 #[derive(Clone, Debug, ComponentType, Lower)]
 #[component(record)]
-pub struct ObjectDefinition {
+pub struct ObjectDefinition<'a> {
     pub id: DefinitionId,
-    pub name: String,
+    pub name: &'a str,
     pub interfaces: Vec<DefinitionId>,
-    pub fields: Vec<FieldDefinition>,
-    pub directives: Vec<Directive>,
+    pub fields: Vec<FieldDefinition<'a>>,
+    pub directives: Vec<Directive<'a>>,
 }
 
 #[derive(Clone, Debug, ComponentType, Lower)]
 #[component(record)]
-pub struct InterfaceDefinition {
+pub struct InterfaceDefinition<'a> {
     pub id: DefinitionId,
-    pub name: String,
+    pub name: &'a str,
     pub interfaces: Vec<DefinitionId>,
-    pub fields: Vec<FieldDefinition>,
-    pub directives: Vec<Directive>,
+    pub fields: Vec<FieldDefinition<'a>>,
+    pub directives: Vec<Directive<'a>>,
 }
 
 #[derive(Clone, Debug, ComponentType, Lower)]
 #[component(record)]
-pub struct UnionDefinition {
+pub struct UnionDefinition<'a> {
     pub id: DefinitionId,
-    pub name: String,
+    pub name: &'a str,
     #[component(name = "member-types")]
     pub member_types: Vec<DefinitionId>,
-    pub directives: Vec<Directive>,
+    pub directives: Vec<Directive<'a>>,
 }
 
 #[derive(Clone, Debug, ComponentType, Lower)]
 #[component(record)]
-pub struct EnumDefinition {
+pub struct EnumDefinition<'a> {
     pub id: DefinitionId,
-    pub name: String,
-    pub values: Vec<EnumValue>,
-    pub directives: Vec<Directive>,
+    pub name: &'a str,
+    pub values: Vec<EnumValue<'a>>,
+    pub directives: Vec<Directive<'a>>,
 }
 
 #[derive(Clone, Debug, ComponentType, Lower)]
 #[component(record)]
-pub struct InputObjectDefinition {
+pub struct InputObjectDefinition<'a> {
     pub id: DefinitionId,
-    pub name: String,
+    pub name: &'a str,
     #[component(name = "input-fields")]
-    pub input_fields: Vec<InputValueDefinition>,
-    pub directives: Vec<Directive>,
+    pub input_fields: Vec<InputValueDefinition<'a>>,
+    pub directives: Vec<Directive<'a>>,
 }
 
 #[derive(Clone, Debug, ComponentType, Lower)]
 #[component(record)]
-pub struct FieldDefinition {
+pub struct FieldDefinition<'a> {
     pub id: DefinitionId,
-    pub name: String,
+    pub name: &'a str,
     pub ty: Ty,
-    pub arguments: Vec<InputValueDefinition>,
-    pub directives: Vec<Directive>,
+    pub arguments: Vec<InputValueDefinition<'a>>,
+    pub directives: Vec<Directive<'a>>,
 }
 
 #[derive(Clone, Debug, ComponentType, Lower)]
@@ -119,24 +119,24 @@ pub enum WrappingType {
 
 #[derive(Clone, Debug, ComponentType, Lower)]
 #[component(record)]
-pub struct InputValueDefinition {
+pub struct InputValueDefinition<'a> {
     pub id: DefinitionId,
-    pub name: String,
+    pub name: &'a str,
     pub ty: Ty,
-    pub directives: Vec<Directive>,
+    pub directives: Vec<Directive<'a>>,
 }
 
 #[derive(Clone, Debug, ComponentType, Lower)]
 #[component(record)]
-pub struct EnumValue {
-    pub name: String,
-    pub directives: Vec<Directive>,
+pub struct EnumValue<'a> {
+    pub name: &'a str,
+    pub directives: Vec<Directive<'a>>,
 }
 
 #[derive(Clone, Debug, ComponentType, Lower)]
 #[component(record)]
-pub struct Directive {
-    pub name: String,
+pub struct Directive<'a> {
+    pub name: &'a str,
     pub arguments: Vec<u8>,
 }
 

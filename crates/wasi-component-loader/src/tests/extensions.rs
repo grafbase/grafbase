@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 
 use crate::{
     extension::{ExtensionConfig, ExtensionLoader, WasmConfig},
@@ -31,7 +31,7 @@ async fn single_call_caching_auth() {
     let (shared, _) = create_shared_resources();
 
     let loader = ExtensionLoader::new(
-        &Schema::from_sdl_or_panic("").await,
+        Arc::new(Schema::from_sdl_or_panic("").await),
         shared,
         ExtensionConfig {
             id: ExtensionId::from(0usize),
@@ -86,7 +86,7 @@ async fn single_call_caching_auth_invalid() {
     let (shared, _) = create_shared_resources();
 
     let loader = ExtensionLoader::new(
-        &Schema::from_sdl_or_panic("").await,
+        Arc::new(Schema::from_sdl_or_panic("").await),
         shared,
         ExtensionConfig {
             id: ExtensionId::from(0usize),
@@ -139,7 +139,7 @@ async fn multiple_cache_calls() {
     let (shared, _) = create_shared_resources();
 
     let loader = ExtensionLoader::new(
-        &Schema::from_sdl_or_panic("").await,
+        Arc::new(Schema::from_sdl_or_panic("").await),
         shared,
         ExtensionConfig {
             id: ExtensionId::from(0usize),

@@ -3,6 +3,8 @@ mod authorization;
 mod field_resolver;
 mod selection_set_resolver;
 
+use std::sync::Arc;
+
 use anyhow::Context as _;
 use engine_schema::Schema;
 use extension_catalog::TypeDiscriminants;
@@ -22,12 +24,15 @@ use wit::grafbase::sdk::directive::SchemaDirective;
 pub struct SdkPre090 {
     pre: wit::SdkPre<crate::WasiState>,
     guest_config: Vec<u8>,
-    schema_directives: Vec<SchemaDirective>,
+    #[allow(unused)]
+    schema: Arc<Schema>,
+    // self-reference to schema
+    schema_directives: Vec<SchemaDirective<'static>>,
 }
 
 impl SdkPre090 {
     pub(crate) fn new<T: serde::Serialize>(
-        schema: &Schema,
+        schema: Arc<Schema>,
         config: &ExtensionConfig<T>,
         component: Component,
         mut linker: Linker<WasiState>,
@@ -45,11 +50,17 @@ impl SdkPre090 {
                         continue;
                     }
 
-                    schema_directives.push(SchemaDirective {
-                        name: schema_directive.name().to_string(),
-                        subgraph_name: subgraph.name().to_string(),
+                    let directive: SchemaDirective<'_> = SchemaDirective {
+                        name: schema_directive.name(),
+                        subgraph_name: subgraph.name(),
                         arguments: cbor::to_vec(schema_directive.static_arguments()).unwrap(),
-                    });
+                    };
+                    // SAFETY: We keep an owned Arc<Schema> which is immutable (without inner
+                    //         mutability), so all refs we take are kept. Ideally we wouldn't use such
+                    //         tricks, but wasmtime bindgen requires either every argument or none at all
+                    //         to be references. And we definitely want references for most argumnets...
+                    let directive: SchemaDirective<'static> = unsafe { std::mem::transmute(directive) };
+                    schema_directives.push(directive);
                 }
             }
         }
@@ -59,6 +70,7 @@ impl SdkPre090 {
         Ok(Self {
             pre: wit::SdkPre::<WasiState>::new(instance_pre)?,
             guest_config: cbor::to_vec(&config.guest_config).context("Could not serialize configuration")?,
+            schema,
             schema_directives,
         })
     }

@@ -18,25 +18,9 @@ pub(crate) struct ExtensionLoader {
     shared: SharedResources,
 }
 
-pub(crate) struct SchemaDirective {
-    name: String,
-    subgraph_name: String,
-    arguments: Vec<u8>,
-}
-
-impl SchemaDirective {
-    pub fn new<T: serde::Serialize>(name: impl Into<String>, subgraph_name: impl Into<String>, args: T) -> Self {
-        Self {
-            name: name.into(),
-            subgraph_name: subgraph_name.into(),
-            arguments: crate::cbor::to_vec(args).unwrap(),
-        }
-    }
-}
-
 impl ExtensionLoader {
     pub(crate) fn new<T: serde::Serialize>(
-        schema: &Schema,
+        schema: Arc<Schema>,
         shared: SharedResources,
         config: ExtensionConfig<T>,
     ) -> crate::Result<Self> {

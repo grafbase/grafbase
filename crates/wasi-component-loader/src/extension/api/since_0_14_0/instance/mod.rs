@@ -6,6 +6,7 @@ mod selection_set_resolver;
 use anyhow::Context as _;
 use engine_schema::Schema;
 use extension_catalog::TypeDiscriminants;
+use std::sync::Arc;
 use wasmtime::{
     Store,
     component::{Component, Linker},
@@ -22,12 +23,15 @@ use wit::schema as ws;
 pub struct SdkPre0_14_0 {
     pre: wit::SdkPre<crate::WasiState>,
     guest_config: Vec<u8>,
-    subgraph_schemas: Vec<(String, ws::Schema)>,
+    #[allow(unused)]
+    schema: Arc<Schema>,
+    // self-reference to schema
+    subgraph_schemas: Vec<(&'static str, ws::Schema<'static>)>,
 }
 
 impl SdkPre0_14_0 {
     pub(crate) fn new<T: serde::Serialize>(
-        schema: &Schema,
+        schema: Arc<Schema>,
         config: &ExtensionConfig<T>,
         component: Component,
         mut linker: Linker<WasiState>,
@@ -44,15 +48,23 @@ impl SdkPre0_14_0 {
                             continue;
                         }
 
-                        directives.push(ws::Directive {
-                            name: schema_directive.name().to_string(),
+                        let directive = ws::Directive {
+                            name: schema_directive.name(),
                             arguments: cbor::to_vec(schema_directive.static_arguments()).unwrap(),
-                        });
+                        };
+                        // SAFETY: We keep an owned Arc<Schema> which is immutable (without inner
+                        //         mutability), so all refs we take are kept. Ideally we wouldn't use such
+                        //         tricks, but wasmtime bindgen requires either every argument or none at all
+                        //         to be references. And we definitely want references for most argumnets...
+                        let directive: ws::Directive<'static> = unsafe { std::mem::transmute(directive) };
+                        directives.push(directive);
                     }
 
                     if !directives.is_empty() {
+                        // SAFETY: We keep an owned Arc<Schema> which is immutable
+                        let name: &'static str = unsafe { std::mem::transmute(subgraph.name()) };
                         subgraph_schemas.push((
-                            subgraph.name().to_string(),
+                            name,
                             ws::Schema {
                                 directives,
                                 definitions: Vec::new(),
@@ -61,29 +73,7 @@ impl SdkPre0_14_0 {
                     }
                 }
             }
-            TypeDiscriminants::SelectionSetResolver => {
-                for subgraph in schema.subgraphs() {
-                    let mut directives = Vec::new();
-                    for schema_directive in subgraph.extension_schema_directives() {
-                        if schema_directive.extension_id != config.id {
-                            continue;
-                        }
-                        directives.push(ws::Directive {
-                            name: schema_directive.name().to_string(),
-                            arguments: cbor::to_vec(schema_directive.static_arguments()).unwrap(),
-                        });
-                    }
-                    if !directives.is_empty() {
-                        subgraph_schemas.push((
-                            subgraph.name().to_string(),
-                            ws::Schema {
-                                directives,
-                                definitions: Vec::new(),
-                            },
-                        ));
-                    }
-                }
-            }
+            TypeDiscriminants::SelectionSetResolver => {}
         }
 
         wit::Sdk::add_to_linker(&mut linker, |state| state)?;
@@ -91,6 +81,7 @@ impl SdkPre0_14_0 {
         Ok(Self {
             pre: wit::SdkPre::<WasiState>::new(instance_pre)?,
             guest_config: cbor::to_vec(&config.guest_config).context("Could not serialize configuration")?,
+            schema,
             subgraph_schemas,
         })
     }
