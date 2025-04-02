@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, fmt};
 
 use axum::body::Body;
 use engine::Runtime;
@@ -24,6 +24,7 @@ pub struct McpServer<R: Runtime> {
     info: ServerInfo,
     engine: EngineWatcher<R>,
     auth: Option<String>,
+    mutations_enabled: bool,
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
@@ -92,7 +93,12 @@ pub struct QueryError {
 }
 
 impl<R: Runtime> McpServer<R> {
-    pub fn new(engine: EngineWatcher<R>, instructions: Option<String>, auth: Option<String>) -> Self {
+    pub fn new(
+        engine: EngineWatcher<R>,
+        instructions: Option<String>,
+        auth: Option<String>,
+        enable_mutations: bool,
+    ) -> Self {
         let guide = indoc! {r#"
             This is a GraphQL server that provides tools to access certain selected queries. The queries are
             prefixed with query- and followed by the name of the query. The query requires certain arguments,
@@ -117,6 +123,7 @@ impl<R: Runtime> McpServer<R> {
             },
             engine,
             auth,
+            mutations_enabled: enable_mutations,
         }
     }
 
@@ -229,7 +236,7 @@ impl<R: Runtime> McpServer<R> {
             .header(CONTENT_TYPE, "application/json")
             .header(ACCEPT, "application/json");
 
-        if let Some(token) = dbg!(self.auth.as_ref()) {
+        if let Some(token) = self.auth.as_ref() {
             builder = builder.header(AUTHORIZATION, format!("Bearer {token}"));
         }
 
@@ -394,87 +401,16 @@ impl<R: Runtime> ServerHandler for McpServer<R> {
                 continue;
             }
 
-            // Create root structure
-            let mut properties = Map::new();
+            add_field_to_tools(ToolType::Query, &mut tools, field);
+        }
 
-            let mut required_arguments = Vec::new();
-
-            for argument in field.arguments() {
-                if argument.ty().wrapping.is_required() {
-                    required_arguments.push(argument.name().to_string());
+        match engine.schema().mutation() {
+            Some(mutation) if self.mutations_enabled => {
+                for field in mutation.fields() {
+                    add_field_to_tools(ToolType::Mutation, &mut tools, field);
                 }
-
-                add_argument_to_properties(
-                    &mut properties,
-                    argument.ty().definition(),
-                    argument.name(),
-                    argument.description().unwrap_or_default(),
-                );
             }
-
-            let type_name = field.ty().definition().name();
-            let wrapping = field.ty().wrapping;
-
-            let type_description = if wrapping.is_list() {
-                if wrapping.is_nullable() {
-                    if wrapping.inner_is_required() {
-                        "a nullable array of non-nullable items"
-                    } else {
-                        "a nullable array of nullable items"
-                    }
-                } else if wrapping.inner_is_required() {
-                    "a non-nullable array of non-nullable items"
-                } else {
-                    "a non-nullable array of nullable items"
-                }
-            } else if wrapping.is_nullable() {
-                "a nullable item"
-            } else {
-                "a non-nullable item"
-            };
-
-            let r#type = match field.ty().definition() {
-                Definition::Enum(_) => "enum",
-                Definition::InputObject(_) => "input object",
-                Definition::Interface(_) => "interface",
-                Definition::Object(_) => "object",
-                Definition::Scalar(_) => "scalar",
-                Definition::Union(_) => "union",
-            };
-
-            let description = formatdoc! {r#"
-                This query returns a {type} named {type_name}. It is {type_description}.
-                Provide a GraphQL selection set for the query (e.g., '{{ id name }}').
-
-                You must determine the fields of the type by calling the `introspect-type` tool first in
-                this MCP server. It will return the needed information for you to build the selection set.
-
-                Do NOT call this query before running introspection and knowing exactly what fields you can select.
-
-                You have to select at least one field from the type. Try to avoid selecting too many fields,
-                as this can lead to performance issues.
-            "#};
-
-            // Add simple string selection parameter
-            properties.insert(
-                "__selection".to_string(),
-                json!({
-                    "type": "string",
-                    "description": description,
-                }),
-            );
-
-            let parameters = json!({
-                "type": "object",
-                "properties": properties,
-                "required": ["__selection"]
-            });
-
-            tools.push(Tool::new(
-                format!("query-{}", field.name()),
-                field.description().unwrap_or("").to_string(),
-                parameters.as_object().unwrap().clone(),
-            ));
+            _ => {}
         }
 
         Ok(ListToolsResult {
@@ -539,6 +475,122 @@ impl<R: Runtime> ServerHandler for McpServer<R> {
             is_error: Some(false),
         })
     }
+}
+
+enum ToolType {
+    Query,
+    Mutation,
+}
+
+impl fmt::Display for ToolType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ToolType::Query => f.write_str("query"),
+            ToolType::Mutation => f.write_str("mutation"),
+        }
+    }
+}
+
+fn add_field_to_tools(tool_type: ToolType, tools: &mut Vec<Tool>, field: engine_schema::FieldDefinition<'_>) {
+    // Create root structure
+    let mut properties = Map::new();
+
+    let mut required_arguments = Vec::new();
+
+    for argument in field.arguments() {
+        if argument.ty().wrapping.is_required() {
+            required_arguments.push(argument.name().to_string());
+        }
+
+        add_argument_to_properties(
+            &mut properties,
+            argument.ty().definition(),
+            argument.name(),
+            argument.description().unwrap_or_default(),
+        );
+    }
+
+    let type_name = field.ty().definition().name();
+    let wrapping = field.ty().wrapping;
+
+    let type_description = if wrapping.is_list() {
+        if wrapping.is_nullable() {
+            if wrapping.inner_is_required() {
+                "a nullable array of non-nullable items"
+            } else {
+                "a nullable array of nullable items"
+            }
+        } else if wrapping.inner_is_required() {
+            "a non-nullable array of non-nullable items"
+        } else {
+            "a non-nullable array of nullable items"
+        }
+    } else if wrapping.is_nullable() {
+        "a nullable item"
+    } else {
+        "a non-nullable item"
+    };
+
+    let r#type = match field.ty().definition() {
+        Definition::Enum(_) => "enum",
+        Definition::InputObject(_) => "input object",
+        Definition::Interface(_) => "interface",
+        Definition::Object(_) => "object",
+        Definition::Scalar(_) => "scalar",
+        Definition::Union(_) => "union",
+    };
+
+    let description = formatdoc! {r#"
+        This value is written in the syntax of a GraphQL selection set. Example: '{{ id name }}'.
+
+        Before generating this field, call the `introspect-type` tool with type name: {type_name}
+
+        The `introspect-type` tool returns with a GraphQL introspection response format, and tells you
+        if the return type is an object, a union or an interface.
+
+        If it's an object, you have to select at least one field from the type.
+
+        If it's a union, you can select any fields from any of the possible types. Remember to use fragment spreads,
+        if needed.
+
+        If it's an interface, you can select any fields from any of the possible types, or with fields
+        from the interface itself. Remember to use fragment spreads, if needed.
+    "#};
+
+    // Add simple string selection parameter
+    properties.insert(
+        "__selection".to_string(),
+        json!({
+            "type": "string",
+            "description": description,
+        }),
+    );
+
+    let parameters = json!({
+        "type": "object",
+        "properties": properties,
+        "required": ["__selection"]
+    });
+
+    let field_description = field.description().unwrap_or("");
+
+    let description = formatdoc! {r#"
+        {field_description}
+
+        This {tool_type} returns a {type} named {type_name}. It is {type_description}.
+        Provide a GraphQL selection set for the query (e.g., '{{ id name }}').
+
+        You must determine the fields of the type by calling the `introspect-type` tool first in
+        this MCP server. It will return the needed information for you to build the selection.
+
+        Do NOT call this {tool_type} before running introspection and knowing exactly what fields you can select.
+    "#};
+
+    tools.push(Tool::new(
+        field.name().to_string(),
+        description.trim_start().to_string(),
+        parameters.as_object().unwrap().clone(),
+    ));
 }
 
 #[must_use]

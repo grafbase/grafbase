@@ -29,7 +29,10 @@ pub(super) fn router<S, R: Runtime>(
 
     let instructions = config.instructions.clone();
     let auth = config.authentication.as_ref().map(|a| a.to_string());
-    let ct = sse_server.with_service(move || McpServer::new(engine.clone(), instructions.clone(), auth.clone()));
+    let enable_mutations = config.enable_mutations;
+
+    let ct = sse_server
+        .with_service(move || McpServer::new(engine.clone(), instructions.clone(), auth.clone(), enable_mutations));
 
     let router: Router<S> = router.with_state(());
 
