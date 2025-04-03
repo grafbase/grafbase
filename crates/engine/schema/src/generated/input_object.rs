@@ -5,7 +5,9 @@
 //! Source file: <engine-codegen dir>/domain/schema.graphql
 use crate::{
     StringId,
-    generated::{InputValueDefinition, InputValueDefinitionId, TypeSystemDirective, TypeSystemDirectiveId},
+    generated::{
+        InputValueDefinition, InputValueDefinitionId, Subgraph, SubgraphId, TypeSystemDirective, TypeSystemDirectiveId,
+    },
     prelude::*,
 };
 #[allow(unused_imports)]
@@ -19,6 +21,7 @@ use walker::{Iter, Walk};
 ///   description: String
 ///   input_fields: [InputValueDefinition!]!
 ///   directives: [TypeSystemDirective!]!
+///   exists_in_subgraphs: [Subgraph!]!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -27,6 +30,7 @@ pub struct InputObjectDefinitionRecord {
     pub description_id: Option<StringId>,
     pub input_field_ids: IdRange<InputValueDefinitionId>,
     pub directive_ids: Vec<TypeSystemDirectiveId>,
+    pub exists_in_subgraph_ids: Vec<SubgraphId>,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
@@ -63,6 +67,9 @@ impl<'a> InputObjectDefinition<'a> {
     pub fn directives(&self) -> impl Iter<Item = TypeSystemDirective<'a>> + 'a {
         self.as_ref().directive_ids.walk(self.schema)
     }
+    pub fn exists_in_subgraphs(&self) -> impl Iter<Item = Subgraph<'a>> + 'a {
+        self.as_ref().exists_in_subgraph_ids.walk(self.schema)
+    }
 }
 
 impl<'a> Walk<&'a Schema> for InputObjectDefinitionId {
@@ -89,6 +96,7 @@ impl std::fmt::Debug for InputObjectDefinition<'_> {
             .field("description", &self.description())
             .field("input_fields", &self.input_fields())
             .field("directives", &self.directives())
+            .field("exists_in_subgraphs", &self.exists_in_subgraphs())
             .finish()
     }
 }

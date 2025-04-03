@@ -13,7 +13,7 @@ impl<'a> Subgraph<'a> {
         }
     }
 
-    pub fn extension_schema_directives(&self) -> impl Iterator<Item = ExtensionDirective<'_>> + '_ {
+    pub fn extension_schema_directives(&self) -> impl Iterator<Item = ExtensionDirective<'a>> + 'a {
         static EMPTY_DIRECTIVES: &[ExtensionDirectiveId] = &[];
 
         let (schema, ids) = match self {

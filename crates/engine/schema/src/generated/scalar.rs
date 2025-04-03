@@ -5,7 +5,7 @@
 //! Source file: <engine-codegen dir>/domain/schema.graphql
 use crate::{
     ScalarType, StringId,
-    generated::{TypeSystemDirective, TypeSystemDirectiveId},
+    generated::{Subgraph, SubgraphId, TypeSystemDirective, TypeSystemDirectiveId},
     prelude::*,
 };
 #[allow(unused_imports)]
@@ -20,6 +20,7 @@ use walker::{Iter, Walk};
 ///   description: String
 ///   specified_by_url: String
 ///   directives: [TypeSystemDirective!]!
+///   exists_in_subgraphs: [Subgraph!]!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -29,6 +30,7 @@ pub struct ScalarDefinitionRecord {
     pub description_id: Option<StringId>,
     pub specified_by_url_id: Option<StringId>,
     pub directive_ids: Vec<TypeSystemDirectiveId>,
+    pub exists_in_subgraph_ids: Vec<SubgraphId>,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
@@ -65,6 +67,9 @@ impl<'a> ScalarDefinition<'a> {
     pub fn directives(&self) -> impl Iter<Item = TypeSystemDirective<'a>> + 'a {
         self.as_ref().directive_ids.walk(self.schema)
     }
+    pub fn exists_in_subgraphs(&self) -> impl Iter<Item = Subgraph<'a>> + 'a {
+        self.as_ref().exists_in_subgraph_ids.walk(self.schema)
+    }
 }
 
 impl<'a> Walk<&'a Schema> for ScalarDefinitionId {
@@ -92,6 +97,7 @@ impl std::fmt::Debug for ScalarDefinition<'_> {
             .field("description", &self.description())
             .field("specified_by_url", &self.specified_by_url())
             .field("directives", &self.directives())
+            .field("exists_in_subgraphs", &self.exists_in_subgraphs())
             .finish()
     }
 }

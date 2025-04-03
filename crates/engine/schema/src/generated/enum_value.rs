@@ -5,7 +5,7 @@
 //! Source file: <engine-codegen dir>/domain/schema.graphql
 use crate::{
     StringId,
-    generated::{TypeSystemDirective, TypeSystemDirectiveId},
+    generated::{EnumDefinition, EnumDefinitionId, TypeSystemDirective, TypeSystemDirectiveId},
     prelude::*,
 };
 #[allow(unused_imports)]
@@ -14,9 +14,10 @@ use walker::{Iter, Walk};
 /// Generated from:
 ///
 /// ```custom,{.language-graphql}
-/// type EnumValue @meta(module: "enum_value") @indexed(id_size: "u32") {
+/// type EnumValue @meta(module: "enum_value", debug: false) @indexed(id_size: "u32") {
 ///   name: String!
 ///   description: String
+///   parent_enum: EnumDefinition!
 ///   directives: [TypeSystemDirective!]!
 /// }
 /// ```
@@ -24,6 +25,7 @@ use walker::{Iter, Walk};
 pub struct EnumValueRecord {
     pub name_id: StringId,
     pub description_id: Option<StringId>,
+    pub parent_enum_id: EnumDefinitionId,
     pub directive_ids: Vec<TypeSystemDirectiveId>,
 }
 
@@ -55,6 +57,9 @@ impl<'a> EnumValue<'a> {
     pub fn description(&self) -> Option<&'a str> {
         self.description_id.walk(self.schema)
     }
+    pub fn parent_enum(&self) -> EnumDefinition<'a> {
+        self.parent_enum_id.walk(self.schema)
+    }
     pub fn directives(&self) -> impl Iter<Item = TypeSystemDirective<'a>> + 'a {
         self.as_ref().directive_ids.walk(self.schema)
     }
@@ -74,15 +79,5 @@ impl<'a> Walk<&'a Schema> for EnumValueId {
             schema: schema.into(),
             id: self,
         }
-    }
-}
-
-impl std::fmt::Debug for EnumValue<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("EnumValue")
-            .field("name", &self.name())
-            .field("description", &self.description())
-            .field("directives", &self.directives())
-            .finish()
     }
 }

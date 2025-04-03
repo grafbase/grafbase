@@ -31,6 +31,7 @@ use walker::{Iter, Walk};
 ///   Sorted by SubgraphId
 ///   """
 ///   not_fully_implemented_in: [Subgraph!]!
+///   exists_in_subgraphs: [Subgraph!]!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -46,6 +47,7 @@ pub struct UnionDefinitionRecord {
     /// If this happens, we keep track of those subgraph so we we can generate appropriate queries.
     /// Sorted by SubgraphId
     pub not_fully_implemented_in_ids: Vec<SubgraphId>,
+    pub exists_in_subgraph_ids: Vec<SubgraphId>,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
@@ -94,6 +96,9 @@ impl<'a> UnionDefinition<'a> {
     /// Sorted by SubgraphId
     pub fn not_fully_implemented_in(&self) -> impl Iter<Item = Subgraph<'a>> + 'a {
         self.as_ref().not_fully_implemented_in_ids.walk(self.schema)
+    }
+    pub fn exists_in_subgraphs(&self) -> impl Iter<Item = Subgraph<'a>> + 'a {
+        self.as_ref().exists_in_subgraph_ids.walk(self.schema)
     }
 }
 

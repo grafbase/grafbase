@@ -8,7 +8,7 @@ use std::marker::PhantomData;
 use id_newtypes::BitSet;
 use petgraph::stable_graph::NodeIndex;
 use providable_fields::{CreateProvidableFieldsTask, CreateRequirementTask, UnplannableField};
-use schema::{CompositeTypeId, DefinitionId, Schema};
+use schema::{CompositeTypeId, Schema, TypeDefinitionId};
 use walker::Walk;
 
 use crate::{FieldFlags, QueryFieldId};
@@ -109,10 +109,10 @@ where
     fn push_query_field_node(&mut self, id: QueryFieldId, mut flags: FieldFlags) -> NodeIndex {
         if let Some(field_definition) = self.query[id].definition_id {
             match field_definition.walk(self.schema).ty().definition_id {
-                DefinitionId::Scalar(_) | DefinitionId::Enum(_) => {
+                TypeDefinitionId::Scalar(_) | TypeDefinitionId::Enum(_) => {
                     flags |= FieldFlags::LEAF_NODE;
                 }
-                DefinitionId::Union(_) | DefinitionId::Interface(_) | DefinitionId::Object(_) => {
+                TypeDefinitionId::Union(_) | TypeDefinitionId::Interface(_) | TypeDefinitionId::Object(_) => {
                     flags |= FieldFlags::IS_COMPOSITE_TYPE;
                 }
                 _ => (),

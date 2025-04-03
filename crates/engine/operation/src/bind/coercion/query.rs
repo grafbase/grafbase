@@ -1,8 +1,8 @@
 use cynic_parser::{ConstValue, Value};
 use id_newtypes::IdRange;
 use schema::{
-    Definition, DefinitionId, EnumDefinition, InputObjectDefinition, InputValueDefinitionId, ListWrapping,
-    MutableWrapping, ScalarDefinition, ScalarType, Type, TypeRecord, Wrapping,
+    EnumDefinition, InputObjectDefinition, InputValueDefinitionId, ListWrapping, MutableWrapping, ScalarDefinition,
+    ScalarType, Type, TypeDefinition, TypeDefinitionId, TypeRecord, Wrapping,
 };
 use walker::Walk;
 
@@ -129,7 +129,7 @@ impl<'schema> QueryValueCoercionContext<'_, 'schema, '_> {
 
     fn coerce_type(
         &mut self,
-        definition: Definition<'schema>,
+        definition: TypeDefinition<'schema>,
         mut wrapping: MutableWrapping,
         value: cynic_parser::Value<'_>,
     ) -> Result<QueryInputValueRecord, InputValueError> {
@@ -201,15 +201,15 @@ impl<'schema> QueryValueCoercionContext<'_, 'schema, '_> {
 
     fn coerce_named_type(
         &mut self,
-        definition: Definition<'schema>,
+        definition: TypeDefinition<'schema>,
         value: cynic_parser::Value<'_>,
     ) -> Result<QueryInputValueRecord, InputValueError> {
         // At this point the definition should be accessible, otherwise the input value should have
         // been rejected earlier.
         match definition {
-            Definition::Scalar(scalar) => self.coerce_scalar(scalar, value),
-            Definition::Enum(r#enum) => self.coerce_enum(r#enum, value),
-            Definition::InputObject(input_object) => self.coerce_input_object(input_object, value),
+            TypeDefinition::Scalar(scalar) => self.coerce_scalar(scalar, value),
+            TypeDefinition::Enum(r#enum) => self.coerce_enum(r#enum, value),
+            TypeDefinition::InputObject(input_object) => self.coerce_input_object(input_object, value),
             _ => unreachable!("Cannot be an output type."),
         }
     }
@@ -359,7 +359,7 @@ impl<'schema> QueryValueCoercionContext<'_, 'schema, '_> {
             (Value::Variable(variable), _) => self.variable_ref(
                 variable.name(),
                 TypeRecord {
-                    definition_id: DefinitionId::Scalar(scalar.id),
+                    definition_id: TypeDefinitionId::Scalar(scalar.id),
                     wrapping: Wrapping::nullable(),
                 }
                 .walk(self.schema),

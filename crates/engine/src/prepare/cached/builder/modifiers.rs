@@ -8,7 +8,7 @@ use query_solver::{
     Edge, Node,
     petgraph::{Direction, graph::NodeIndex, visit::EdgeRef},
 };
-use schema::{CompositeTypeId, DefinitionId, InjectionStage, Schema, StringId, TypeSystemDirective};
+use schema::{CompositeTypeId, InjectionStage, Schema, StringId, TypeDefinitionId, TypeSystemDirective};
 use walker::Walk;
 
 impl Solver<'_> {
@@ -149,7 +149,7 @@ impl Solver<'_> {
                 })
                 .unwrap_or_default()
             {
-                let definition_id = DefinitionId::from(field_definition.parent_entity_id);
+                let definition_id = TypeDefinitionId::from(field_definition.parent_entity_id);
                 for directive in field_definition.parent_entity().directives() {
                     let rule = match directive {
                         TypeSystemDirective::Authenticated(_) => Rule::Query(QueryModifierRule::Authenticated),

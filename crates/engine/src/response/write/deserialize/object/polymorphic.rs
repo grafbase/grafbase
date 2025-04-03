@@ -1,6 +1,6 @@
 use std::{collections::VecDeque, fmt};
 
-use schema::Definition;
+use schema::TypeDefinition;
 use serde::{
     Deserializer,
     de::{DeserializeSeed, IgnoredAny, MapAccess, Unexpected, Visitor},
@@ -98,7 +98,7 @@ impl<'de> Visitor<'de> for PolymorphicShapeSeed<'_, '_> {
                 let value = map.next_value::<Key<'_>>()?;
                 let typename = value.as_ref();
 
-                let Some(Definition::Object(object_definition)) = schema.definition_by_name(typename) else {
+                let Some(TypeDefinition::Object(object_definition)) = schema.type_definition_by_name(typename) else {
                     tracing::error!(
                         "Couldn't determine the object type from __typename at path '{}'",
                         self.ctx.display_path()

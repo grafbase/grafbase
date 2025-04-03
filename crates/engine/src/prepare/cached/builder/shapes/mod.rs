@@ -7,7 +7,7 @@ use id_newtypes::IdRange;
 use im::HashSet;
 use itertools::Itertools;
 use operation::{PositionedResponseKey, ResponseKey};
-use schema::{CompositeType, CompositeTypeId, Definition, ObjectDefinitionId, Schema};
+use schema::{CompositeType, CompositeTypeId, ObjectDefinitionId, Schema, TypeDefinition};
 use walker::Walk;
 
 use crate::{
@@ -241,13 +241,15 @@ impl<'ctx> ShapesBuilder<'ctx> {
     ) -> FieldShapeRecord {
         let ty = first.definition().ty();
         let shape = match ty.definition() {
-            Definition::Scalar(scalar) => Shape::Scalar(scalar.ty),
-            Definition::Enum(enm) => Shape::Enum(enm.id),
-            Definition::Interface(interface) => self.create_field_composite_type_output_shape(group, interface.into()),
-            Definition::Object(object) => self.create_field_composite_type_output_shape(group, object.into()),
+            TypeDefinition::Scalar(scalar) => Shape::Scalar(scalar.ty),
+            TypeDefinition::Enum(enm) => Shape::Enum(enm.id),
+            TypeDefinition::Interface(interface) => {
+                self.create_field_composite_type_output_shape(group, interface.into())
+            }
+            TypeDefinition::Object(object) => self.create_field_composite_type_output_shape(group, object.into()),
 
-            Definition::Union(union) => self.create_field_composite_type_output_shape(group, union.into()),
-            Definition::InputObject(_) => unreachable!("Cannot be an output"),
+            TypeDefinition::Union(union) => self.create_field_composite_type_output_shape(group, union.into()),
+            TypeDefinition::InputObject(_) => unreachable!("Cannot be an output"),
         };
 
         FieldShapeRecord {

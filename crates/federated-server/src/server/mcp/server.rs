@@ -2,7 +2,7 @@ use std::{borrow::Cow, fmt};
 
 use axum::body::Body;
 use engine::Runtime;
-use engine_schema::{Definition, InputObjectDefinition, ScalarType};
+use engine_schema::{InputObjectDefinition, ScalarType, TypeDefinition};
 use http::{
     Method, Request,
     header::{ACCEPT, CONTENT_TYPE},
@@ -517,12 +517,12 @@ fn add_field_to_tools(tool_type: ToolType, tools: &mut Vec<Tool>, field: engine_
     };
 
     let r#type = match field.ty().definition() {
-        Definition::Enum(_) => "enum",
-        Definition::InputObject(_) => "input object",
-        Definition::Interface(_) => "interface",
-        Definition::Object(_) => "object",
-        Definition::Scalar(_) => "scalar",
-        Definition::Union(_) => "union",
+        TypeDefinition::Enum(_) => "enum",
+        TypeDefinition::InputObject(_) => "input object",
+        TypeDefinition::Interface(_) => "interface",
+        TypeDefinition::Object(_) => "object",
+        TypeDefinition::Scalar(_) => "scalar",
+        TypeDefinition::Union(_) => "union",
     };
 
     let description = formatdoc! {r#"
@@ -608,12 +608,12 @@ fn create_input_properties(input: InputObjectDefinition<'_>) -> serde_json::Valu
 
 fn add_argument_to_properties(
     properties: &mut Map<String, Value>,
-    definition: Definition<'_>,
+    definition: TypeDefinition<'_>,
     name: &str,
     description: &str,
 ) {
     match definition {
-        Definition::Scalar(scalar) => {
+        TypeDefinition::Scalar(scalar) => {
             let r#type = match scalar.ty {
                 ScalarType::String => "string",
                 ScalarType::Float => "number",
@@ -631,7 +631,7 @@ fn add_argument_to_properties(
                 }),
             );
         }
-        Definition::Enum(r#enum) => {
+        TypeDefinition::Enum(r#enum) => {
             let values = r#enum.values().map(|v| v.name()).collect::<Vec<_>>().join(", ");
             let description = format!("Must be one of: {values}. {description}");
 
@@ -643,11 +643,11 @@ fn add_argument_to_properties(
                 }),
             );
         }
-        Definition::InputObject(input) => {
+        TypeDefinition::InputObject(input) => {
             properties.insert(name.to_string(), create_input_properties(input));
         }
-        Definition::Interface(_) => unreachable!(),
-        Definition::Object(_) => unreachable!(),
-        Definition::Union(_) => unreachable!(),
+        TypeDefinition::Interface(_) => unreachable!(),
+        TypeDefinition::Object(_) => unreachable!(),
+        TypeDefinition::Union(_) => unreachable!(),
     }
 }

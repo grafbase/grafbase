@@ -1,6 +1,6 @@
 use crate::{
-    DefinitionId, EnumDefinitionId, InputObjectDefinitionId, InputValueDefinitionId, ScalarDefinitionId, ScalarType,
-    SchemaInputValueId, SchemaInputValueRecord, TypeRecord, builder::GraphContext,
+    EnumDefinitionId, InputObjectDefinitionId, InputValueDefinitionId, ScalarDefinitionId, ScalarType,
+    SchemaInputValueId, SchemaInputValueRecord, TypeDefinitionId, TypeRecord, builder::GraphContext,
 };
 use cynic_parser::ConstValue;
 use federated_graph::Value;
@@ -66,7 +66,7 @@ impl GraphContext<'_> {
 
     fn coerce_type_cynic_value(
         &mut self,
-        definition_id: DefinitionId,
+        definition_id: TypeDefinitionId,
         mut wrapping: MutableWrapping,
         value: ConstValue,
     ) -> Result<SchemaInputValueRecord, InputValueError> {
@@ -124,7 +124,7 @@ impl GraphContext<'_> {
 
     fn coerce_type_fed_value(
         &mut self,
-        definition_id: DefinitionId,
+        definition_id: TypeDefinitionId,
         mut wrapping: MutableWrapping,
         value: Value,
     ) -> Result<SchemaInputValueRecord, InputValueError> {
@@ -181,26 +181,26 @@ impl GraphContext<'_> {
 
     fn coerce_named_type_cynic_value(
         &mut self,
-        definition_id: DefinitionId,
+        definition_id: TypeDefinitionId,
         value: ConstValue,
     ) -> Result<SchemaInputValueRecord, InputValueError> {
         match definition_id {
-            DefinitionId::Scalar(id) => self.coerce_scalar_cynic_value(id, value),
-            DefinitionId::Enum(id) => self.coerce_enum_cynic_value(id, value),
-            DefinitionId::InputObject(id) => self.coerce_input_object_cynic_value(id, value),
+            TypeDefinitionId::Scalar(id) => self.coerce_scalar_cynic_value(id, value),
+            TypeDefinitionId::Enum(id) => self.coerce_enum_cynic_value(id, value),
+            TypeDefinitionId::InputObject(id) => self.coerce_input_object_cynic_value(id, value),
             _ => unreachable!("Cannot be an output type."),
         }
     }
 
     fn coerce_named_type_fed_value(
         &mut self,
-        definition_id: DefinitionId,
+        definition_id: TypeDefinitionId,
         value: Value,
     ) -> Result<SchemaInputValueRecord, InputValueError> {
         match definition_id {
-            DefinitionId::Scalar(id) => self.coerce_scalar_fed_value(id, value),
-            DefinitionId::Enum(id) => self.coerce_enum_fed_value(id, value),
-            DefinitionId::InputObject(id) => self.coerce_input_object_fed_value(id, value),
+            TypeDefinitionId::Scalar(id) => self.coerce_scalar_fed_value(id, value),
+            TypeDefinitionId::Enum(id) => self.coerce_enum_fed_value(id, value),
+            TypeDefinitionId::InputObject(id) => self.coerce_input_object_fed_value(id, value),
             _ => unreachable!("Cannot be an output type."),
         }
     }

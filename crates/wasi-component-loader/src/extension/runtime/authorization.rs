@@ -43,7 +43,7 @@ impl AuthorizationExtension<SharedContext> for WasmExtensions {
                 let arguments = cbor::to_vec(element.arguments).unwrap();
 
                 out.push(wit::QueryElement {
-                    id: element.site.id().into(),
+                    id: element.site.id().as_guid(),
                     site: element.site.into(),
                     arguments,
                 });
@@ -167,7 +167,7 @@ impl AuthorizationExtension<SharedContext> for WasmExtensions {
                     wit::ResponseElements {
                         directive_names: vec![(directive_name, 0, 1)],
                         elements: vec![wit::ResponseElement {
-                            query_element_id: directive_site.id().into(),
+                            query_element_id: directive_site.id().as_guid(),
                             items_range: (0, items.len() as u32),
                         }],
                         items,

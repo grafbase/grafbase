@@ -4,7 +4,7 @@ use cynic_parser::{
     executable::{Argument, Directive, FieldSelection, Iter, Selection},
 };
 use id_newtypes::IdRange;
-use schema::{CompositeType, Definition, FieldDefinition, ObjectDefinitionId, TypeRecord, Wrapping};
+use schema::{CompositeType, FieldDefinition, ObjectDefinitionId, TypeDefinition, TypeRecord, Wrapping};
 use std::collections::HashSet;
 use walker::Walk;
 
@@ -276,7 +276,7 @@ impl<'schema, 'p> OperationBinder<'schema, 'p> {
     ) -> BindResult<CompositeType<'schema>> {
         let definition = self
             .schema
-            .definition_by_name(name)
+            .type_definition_by_name(name)
             .filter(|def| !def.is_inaccessible())
             .ok_or_else(|| BindError::UnknownType {
                 name: name.to_string(),
@@ -318,7 +318,7 @@ impl<'schema, 'p> OperationBinder<'schema, 'p> {
                     })?;
 
                 let ty = TypeRecord {
-                    definition_id: self.schema.definition_by_name("Boolean").expect("must exist").id(),
+                    definition_id: self.schema.type_definition_by_name("Boolean").expect("must exist").id(),
                     wrapping: schema::Wrapping::required(),
                 }
                 .walk(self.schema);
@@ -411,7 +411,7 @@ impl<'schema, 'p> OperationBinder<'schema, 'p> {
 
         let definition = self
             .schema
-            .definition_by_name(ty.name())
+            .type_definition_by_name(ty.name())
             .ok_or_else(|| BindError::UnknownType {
                 name: ty.name().to_string(),
                 span: location,
@@ -419,7 +419,7 @@ impl<'schema, 'p> OperationBinder<'schema, 'p> {
 
         if !matches!(
             definition,
-            Definition::Enum(_) | Definition::Scalar(_) | Definition::InputObject(_)
+            TypeDefinition::Enum(_) | TypeDefinition::Scalar(_) | TypeDefinition::InputObject(_)
         ) {
             return Err(BindError::InvalidVariableType {
                 name: variable_name.to_string(),

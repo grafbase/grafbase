@@ -5,7 +5,7 @@
 //! Source file: <engine-codegen dir>/domain/schema.graphql
 use crate::{
     StringId,
-    generated::{EnumValue, EnumValueId, TypeSystemDirective, TypeSystemDirectiveId},
+    generated::{EnumValue, EnumValueId, Subgraph, SubgraphId, TypeSystemDirective, TypeSystemDirectiveId},
     prelude::*,
 };
 #[allow(unused_imports)]
@@ -19,6 +19,7 @@ use walker::{Iter, Walk};
 ///   description: String
 ///   values: [EnumValue!]!
 ///   directives: [TypeSystemDirective!]!
+///   exists_in_subgraphs: [Subgraph!]!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -27,6 +28,7 @@ pub struct EnumDefinitionRecord {
     pub description_id: Option<StringId>,
     pub value_ids: IdRange<EnumValueId>,
     pub directive_ids: Vec<TypeSystemDirectiveId>,
+    pub exists_in_subgraph_ids: Vec<SubgraphId>,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
@@ -63,6 +65,9 @@ impl<'a> EnumDefinition<'a> {
     pub fn directives(&self) -> impl Iter<Item = TypeSystemDirective<'a>> + 'a {
         self.as_ref().directive_ids.walk(self.schema)
     }
+    pub fn exists_in_subgraphs(&self) -> impl Iter<Item = Subgraph<'a>> + 'a {
+        self.as_ref().exists_in_subgraph_ids.walk(self.schema)
+    }
 }
 
 impl<'a> Walk<&'a Schema> for EnumDefinitionId {
@@ -89,6 +94,7 @@ impl std::fmt::Debug for EnumDefinition<'_> {
             .field("description", &self.description())
             .field("values", &self.values())
             .field("directives", &self.directives())
+            .field("exists_in_subgraphs", &self.exists_in_subgraphs())
             .finish()
     }
 }

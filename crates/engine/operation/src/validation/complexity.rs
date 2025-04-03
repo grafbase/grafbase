@@ -131,7 +131,7 @@ fn cost_for_argument(argument: FieldArgument<'_>, variables: &Variables) -> usiz
     };
 
     match argument_type {
-        schema::Definition::InputObject(obj) => cost_for_object_value(&value, obj, argument_cost),
+        schema::TypeDefinition::InputObject(obj) => cost_for_object_value(&value, obj, argument_cost),
         _ => cost_for_input_scalar(&value, argument_cost),
     }
 }
@@ -154,7 +154,7 @@ fn cost_for_object_value(
                 };
                 let field_cost = field.cost().unwrap_or(cost_for_type(field.ty().definition())) as usize;
 
-                if let schema::Definition::InputObject(object) = field.ty().definition() {
+                if let schema::TypeDefinition::InputObject(object) = field.ty().definition() {
                     overall_cost += cost_for_object_value(value, object, field_cost);
                 } else {
                     overall_cost += cost_for_input_scalar(value, field_cost);
@@ -257,14 +257,16 @@ fn calculate_child_count<'a>(
     }))
 }
 
-fn cost_for_type(definition: schema::Definition<'_>) -> i32 {
+fn cost_for_type(definition: schema::TypeDefinition<'_>) -> i32 {
     if let Some(cost) = definition.cost() {
         return cost;
     }
 
     match definition {
-        schema::Definition::Enum(_) | schema::Definition::Scalar(_) => 0,
-        schema::Definition::Interface(_) | schema::Definition::Object(_) | schema::Definition::Union(_) => 1,
-        schema::Definition::InputObject(_) => 1,
+        schema::TypeDefinition::Enum(_) | schema::TypeDefinition::Scalar(_) => 0,
+        schema::TypeDefinition::Interface(_) | schema::TypeDefinition::Object(_) | schema::TypeDefinition::Union(_) => {
+            1
+        }
+        schema::TypeDefinition::InputObject(_) => 1,
     }
 }

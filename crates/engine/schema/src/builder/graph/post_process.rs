@@ -78,27 +78,51 @@ pub(super) fn process_directives(ctx: &mut GraphContext<'_>, locations: Vec<Sche
 }
 
 fn ingest_enum_definition_directive(
-    ctx: &mut GraphContext<'_>,
+    GraphContext { ctx, graph, .. }: &mut GraphContext<'_>,
     id: EnumDefinitionId,
     federated_id: federated_graph::EnumDefinitionId,
 ) -> Result<(), BuildError> {
     let directives = &ctx.federated_graph[federated_id].directives;
     if has_inaccessible(directives) {
-        ctx.graph.inaccessible_enum_definitions.set(id, true);
+        graph.inaccessible_enum_definitions.set(id, true);
+    }
+
+    let enum_def = &mut graph[id];
+    enum_def.exists_in_subgraph_ids = directives
+        .iter()
+        .filter_map(|dir| dir.as_join_type())
+        .map(|dir| ctx.subgraphs[dir.subgraph_id])
+        .collect::<Vec<_>>();
+    if enum_def.exists_in_subgraph_ids.is_empty() {
+        enum_def.exists_in_subgraph_ids = ctx.subgraphs.all.clone()
+    } else {
+        enum_def.exists_in_subgraph_ids.sort_unstable();
     }
 
     Ok(())
 }
 
 fn ingest_input_object_definition_directive(
-    ctx: &mut GraphContext<'_>,
+    GraphContext { ctx, graph, .. }: &mut GraphContext<'_>,
     id: InputObjectDefinitionId,
     federated_id: federated_graph::InputObjectId,
 ) -> Result<(), BuildError> {
     let directives = &ctx.federated_graph[federated_id].directives;
     if has_inaccessible(directives) {
-        ctx.graph.inaccessible_input_object_definitions.set(id, true);
+        graph.inaccessible_input_object_definitions.set(id, true);
     }
+    let input_object = &mut graph[id];
+    input_object.exists_in_subgraph_ids = directives
+        .iter()
+        .filter_map(|dir| dir.as_join_type())
+        .map(|dir| ctx.subgraphs[dir.subgraph_id])
+        .collect::<Vec<_>>();
+    if input_object.exists_in_subgraph_ids.is_empty() {
+        input_object.exists_in_subgraph_ids = ctx.subgraphs.all.clone()
+    } else {
+        input_object.exists_in_subgraph_ids.sort_unstable();
+    }
+
     Ok(())
 }
 
@@ -120,6 +144,11 @@ fn ingest_interface_definition_directive(
                 .is_interface_object_in_ids
                 .push(ctx.subgraphs[dir.subgraph_id]);
         }
+    }
+    if interface.exists_in_subgraph_ids.is_empty() {
+        interface.exists_in_subgraph_ids = ctx.subgraphs.all.clone()
+    } else {
+        interface.exists_in_subgraph_ids.sort_unstable();
     }
 
     Ok(())
@@ -175,14 +204,27 @@ fn ingest_object_definition_directive(
 }
 
 fn ingest_scalar_definition_directive(
-    ctx: &mut GraphContext<'_>,
+    GraphContext { ctx, graph, .. }: &mut GraphContext<'_>,
     id: ScalarDefinitionId,
     federated_id: federated_graph::ScalarDefinitionId,
 ) -> Result<(), BuildError> {
     let directives = &ctx.federated_graph[federated_id].directives;
     if has_inaccessible(directives) {
-        ctx.graph.inaccessible_scalar_definitions.set(id, true);
+        graph.inaccessible_scalar_definitions.set(id, true);
     }
+
+    let scalar = &mut graph[id];
+    scalar.exists_in_subgraph_ids = directives
+        .iter()
+        .filter_map(|dir| dir.as_join_type())
+        .map(|dir| ctx.subgraphs[dir.subgraph_id])
+        .collect::<Vec<_>>();
+    if scalar.exists_in_subgraph_ids.is_empty() {
+        scalar.exists_in_subgraph_ids = ctx.subgraphs.all.clone()
+    } else {
+        scalar.exists_in_subgraph_ids.sort_unstable();
+    }
+
     Ok(())
 }
 
@@ -211,6 +253,17 @@ fn ingest_union_definition_directive(
     union
         .join_member_records
         .sort_by_key(|record| (record.subgraph_id, record.member_id));
+
+    union.exists_in_subgraph_ids = directives
+        .iter()
+        .filter_map(|dir| dir.as_join_type())
+        .map(|dir| ctx.subgraphs[dir.subgraph_id])
+        .collect::<Vec<_>>();
+    if union.exists_in_subgraph_ids.is_empty() {
+        union.exists_in_subgraph_ids = ctx.subgraphs.all.clone()
+    } else {
+        union.exists_in_subgraph_ids.sort_unstable();
+    }
 
     Ok(())
 }
@@ -592,14 +645,14 @@ fn finalize_inaccessible(graph: &mut Graph) {
 
     // Any field or input_value having an inaccessible type is marked as inaccessible.
     // Composition should ensure all of this is consistent, but we ensure it.
-    fn is_definition_inaccessible(graph: &Graph, definition_id: DefinitionId) -> bool {
+    fn is_definition_inaccessible(graph: &Graph, definition_id: TypeDefinitionId) -> bool {
         match definition_id {
-            DefinitionId::Scalar(id) => graph.inaccessible_scalar_definitions[id],
-            DefinitionId::Object(id) => graph.inaccessible_object_definitions[id],
-            DefinitionId::Interface(id) => graph.inaccessible_interface_definitions[id],
-            DefinitionId::Union(id) => graph.inaccessible_union_definitions[id],
-            DefinitionId::Enum(id) => graph.inaccessible_enum_definitions[id],
-            DefinitionId::InputObject(id) => graph.inaccessible_input_object_definitions[id],
+            TypeDefinitionId::Scalar(id) => graph.inaccessible_scalar_definitions[id],
+            TypeDefinitionId::Object(id) => graph.inaccessible_object_definitions[id],
+            TypeDefinitionId::Interface(id) => graph.inaccessible_interface_definitions[id],
+            TypeDefinitionId::Union(id) => graph.inaccessible_union_definitions[id],
+            TypeDefinitionId::Enum(id) => graph.inaccessible_enum_definitions[id],
+            TypeDefinitionId::InputObject(id) => graph.inaccessible_input_object_definitions[id],
         }
     }
 

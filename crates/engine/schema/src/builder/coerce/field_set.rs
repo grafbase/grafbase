@@ -1,8 +1,9 @@
 use id_newtypes::IdRange;
 
 use crate::{
-    CompositeTypeId, DefinitionId, FieldDefinitionId, FieldSetItemRecord, FieldSetRecord, InputValueDefinitionRecord,
-    ObjectDefinitionId, SchemaFieldArgumentId, SchemaFieldArgumentRecord, SchemaFieldId, SchemaFieldRecord, TypeRecord,
+    CompositeTypeId, FieldDefinitionId, FieldSetItemRecord, FieldSetRecord, InputValueDefinitionRecord,
+    ObjectDefinitionId, SchemaFieldArgumentId, SchemaFieldArgumentRecord, SchemaFieldId, SchemaFieldRecord,
+    TypeDefinitionId, TypeRecord,
     builder::{GraphContext, SchemaLocation},
 };
 
@@ -116,12 +117,12 @@ fn convert_selection_set<'a>(
                             .type_definitions_ordered_by_name
                             .binary_search_by(|probe| {
                                 match *probe {
-                                    DefinitionId::Scalar(id) => &ctx.strings[ctx.graph[id].name_id],
-                                    DefinitionId::Object(id) => &ctx.strings[ctx.graph[id].name_id],
-                                    DefinitionId::Interface(id) => &ctx.strings[ctx.graph[id].name_id],
-                                    DefinitionId::Union(id) => &ctx.strings[ctx.graph[id].name_id],
-                                    DefinitionId::Enum(id) => &ctx.strings[ctx.graph[id].name_id],
-                                    DefinitionId::InputObject(id) => &ctx.strings[ctx.graph[id].name_id],
+                                    TypeDefinitionId::Scalar(id) => &ctx.strings[ctx.graph[id].name_id],
+                                    TypeDefinitionId::Object(id) => &ctx.strings[ctx.graph[id].name_id],
+                                    TypeDefinitionId::Interface(id) => &ctx.strings[ctx.graph[id].name_id],
+                                    TypeDefinitionId::Union(id) => &ctx.strings[ctx.graph[id].name_id],
+                                    TypeDefinitionId::Enum(id) => &ctx.strings[ctx.graph[id].name_id],
+                                    TypeDefinitionId::InputObject(id) => &ctx.strings[ctx.graph[id].name_id],
                                 }
                                 .as_str()
                                 .cmp(type_condition)
