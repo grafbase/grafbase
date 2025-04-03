@@ -1,11 +1,10 @@
 use crate::federation::extensions::field_resolver::validation::EchoExt;
-use engine::Engine;
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 
 #[test]
 fn multiple_fields() {
     runtime().block_on(async move {
-        let response = Engine::builder()
+        let response = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -67,7 +66,7 @@ fn multiple_fields() {
 #[test]
 fn all() {
     runtime().block_on(async move {
-        let response = Engine::builder()
+        let response = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -131,7 +130,7 @@ fn all() {
 #[test]
 fn nested_all() {
     runtime().block_on(async move {
-        let response = Engine::builder()
+        let response = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -194,7 +193,7 @@ fn nested_all() {
 #[test]
 fn default_values() {
     runtime().block_on(async move {
-        let response = Engine::builder()
+        let response = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -256,7 +255,7 @@ fn default_values() {
 #[test]
 fn default_values_star() {
     runtime().block_on(async move {
-        let response = Engine::builder()
+        let response = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -320,7 +319,7 @@ fn default_values_star() {
 #[test]
 fn extension_directive_default_value() {
     runtime().block_on(async move {
-        let response = Engine::builder()
+        let response = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"

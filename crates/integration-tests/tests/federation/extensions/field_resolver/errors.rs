@@ -1,12 +1,11 @@
-use engine::Engine;
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 
 use crate::federation::extensions::field_resolver::StaticFieldResolverExt;
 
 #[test]
 fn invalid_json() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"

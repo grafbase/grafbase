@@ -1,7 +1,6 @@
-use engine::Engine;
 use graphql_mocks::dynamic::DynamicSchema;
 use integration_tests::{
-    federation::{AuthorizationExt, EngineExt},
+    federation::{AuthorizationExt, Gateway},
     runtime,
 };
 
@@ -10,7 +9,7 @@ use crate::federation::extensions::authorization::{deny_all::DenyAll, user};
 #[test]
 fn object_type() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
@@ -75,7 +74,7 @@ fn object_type() {
 #[test]
 fn object_within_list() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
@@ -140,7 +139,7 @@ fn object_within_list() {
 #[test]
 fn object_within_union() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
@@ -224,7 +223,7 @@ fn object_within_union() {
 #[test]
 fn explicit_object_behind_interface() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"

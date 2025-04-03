@@ -1,10 +1,9 @@
 //! Tests that we handle `@authenticated` & `@requiresScopes` directives on parent fields/types
 //! correctly when doing entity caching
 
-use engine::Engine;
 use graphql_mocks::{FederatedInventorySchema, FederatedProductsSchema, FederatedReviewsSchema, SecureFederatedSchema};
 use integration_tests::{
-    federation::{EngineExt, TestGateway},
+    federation::Gateway,
     openid::{CoreClientExt, JWKS_URI, OryHydraOpenIDProvider},
     runtime,
 };
@@ -165,8 +164,8 @@ async fn jwt_token(scope: &str) -> String {
         .await
 }
 
-async fn engine() -> TestGateway {
-    Engine::builder()
+async fn engine() -> Gateway {
+    Gateway::builder()
         .with_subgraph(FederatedProductsSchema)
         .with_subgraph(FederatedReviewsSchema)
         .with_subgraph(SecureFederatedSchema)

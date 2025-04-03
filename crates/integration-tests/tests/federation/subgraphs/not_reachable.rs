@@ -1,5 +1,4 @@
-use engine::Engine;
-use integration_tests::{federation::EngineExt as _, runtime};
+use integration_tests::{federation::Gateway, runtime};
 
 const SDL: &str = r#"
 directive @core(feature: String!) repeatable on SCHEMA
@@ -39,7 +38,7 @@ type Query {
 #[test]
 fn subgraph_not_reachable_does_not_leak_subgraph_url() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_federated_sdl(SDL)
             .with_toml_config(
                 r#"

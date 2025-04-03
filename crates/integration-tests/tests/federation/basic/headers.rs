@@ -1,13 +1,12 @@
 //! Tests of header forwarding behaviour
 
-use engine::Engine;
 use graphql_mocks::EchoSchema;
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 
 #[test]
 fn test_default_headers() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(EchoSchema)
             .with_toml_config(
                 r#"
@@ -56,7 +55,7 @@ fn test_default_headers() {
 #[test]
 fn test_default_headers_forwarding() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(EchoSchema)
             .with_toml_config(
                 r#"
@@ -117,7 +116,7 @@ fn test_default_headers_forwarding() {
 #[test]
 fn test_subgraph_specific_header_forwarding() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(EchoSchema)
             .with_toml_config(
                 r#"
@@ -183,7 +182,7 @@ fn test_subgraph_specific_header_forwarding() {
 #[test]
 fn should_not_propagate_blacklisted_headers() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(EchoSchema)
             .with_toml_config(
                 r###"
@@ -258,7 +257,7 @@ fn should_not_propagate_blacklisted_headers() {
 #[test]
 fn test_regex_header_forwarding() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(EchoSchema)
             .with_toml_config(
                 r###"
@@ -315,7 +314,7 @@ fn test_regex_header_forwarding() {
 #[test]
 fn test_regex_header_forwarding_should_not_duplicate() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(EchoSchema)
             .with_toml_config(
                 r###"
@@ -377,7 +376,7 @@ fn test_regex_header_forwarding_should_not_duplicate() {
 #[test]
 fn test_header_forwarding_with_rename() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(EchoSchema)
             .with_toml_config(
                 r###"
@@ -429,7 +428,7 @@ fn test_header_forwarding_with_rename() {
 #[test]
 fn test_header_forwarding_with_default() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(EchoSchema)
             .with_toml_config(
                 r###"
@@ -478,7 +477,7 @@ fn test_header_forwarding_with_default() {
 #[test]
 fn test_header_forwarding_with_default_and_existing_header() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(EchoSchema)
             .with_toml_config(
                 r###"
@@ -530,7 +529,7 @@ fn test_header_forwarding_with_default_and_existing_header() {
 #[test]
 fn test_regex_header_forwarding_then_delete() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(EchoSchema)
             .with_toml_config(
                 r###"
@@ -587,7 +586,7 @@ fn test_regex_header_forwarding_then_delete() {
 #[test]
 fn test_regex_header_forwarding_then_delete_with_regex() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(EchoSchema)
             .with_toml_config(
                 r###"
@@ -645,7 +644,7 @@ fn test_regex_header_forwarding_then_delete_with_regex() {
 #[test]
 fn test_rename_duplicate_no_default() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(EchoSchema)
             .with_toml_config(
                 r###"
@@ -701,7 +700,7 @@ fn test_rename_duplicate_no_default() {
 #[test]
 fn test_rename_duplicate_default() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(EchoSchema)
             .with_toml_config(
                 r###"
@@ -758,7 +757,7 @@ fn test_rename_duplicate_default() {
 #[test]
 fn test_rename_duplicate_default_with_missing_value() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(EchoSchema)
             .with_toml_config(
                 r###"
@@ -812,7 +811,7 @@ fn test_rename_duplicate_default_with_missing_value() {
 #[test]
 fn regex_header_regex_forwarding_should_forward_duplicates_too() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(EchoSchema)
             .with_toml_config(
                 r###"
@@ -868,7 +867,7 @@ fn regex_header_regex_forwarding_should_forward_duplicates_too() {
 #[test]
 fn regex_header_forwarding_should_forward_duplicates() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(EchoSchema)
             .with_toml_config(
                 r###"
@@ -924,7 +923,7 @@ fn regex_header_forwarding_should_forward_duplicates() {
 #[test]
 fn regex_header_forwarding_should_forward_duplicates_with_rename() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(EchoSchema)
             .with_toml_config(
                 r###"
@@ -981,7 +980,7 @@ fn regex_header_forwarding_should_forward_duplicates_with_rename() {
 #[test]
 fn header_remove_should_remove_duplicates() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(EchoSchema)
             .with_toml_config(
                 r###"
@@ -1029,7 +1028,7 @@ fn header_remove_should_remove_duplicates() {
 #[test]
 fn header_regex_remove_should_remove_duplicates() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(EchoSchema)
             .with_toml_config(
                 r###"

@@ -1,7 +1,7 @@
-use engine::{Engine, ErrorResponse};
+use engine::ErrorResponse;
 use graphql_mocks::{EchoSchema, Schema};
 use integration_tests::{
-    federation::{AuthenticationExt, AuthorizationExt, AuthorizationTestExtension, DynHookContext, EngineExt},
+    federation::{AuthenticationExt, AuthorizationExt, AuthorizationTestExtension, DynHookContext, Gateway},
     runtime,
 };
 use runtime::extension::{AuthorizationDecisions, QueryElement, TokenRef};
@@ -33,7 +33,7 @@ impl AuthorizationTestExtension for InsertTokenAsHeader {
 #[test]
 fn can_inject_token_into_headers() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(EchoSchema.with_sdl(
                 r#"
                 extend schema @link(url: "authorization-1.0.0", import: ["@auth"])

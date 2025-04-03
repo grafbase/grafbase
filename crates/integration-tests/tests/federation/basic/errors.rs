@@ -1,7 +1,6 @@
-use engine::Engine;
 use indoc::indoc;
 use integration_tests::{
-    federation::{DeterministicEngine, EngineExt as _},
+    federation::{DeterministicEngine, Gateway},
     runtime,
 };
 use serde_json::json;
@@ -478,7 +477,7 @@ fn null_entity_with_error() {
 #[test]
 fn unknown_argument() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder().with_federated_sdl(SCHEMA).build().await;
+        let engine = Gateway::builder().with_federated_sdl(SCHEMA).build().await;
 
         engine.post(r#"query { me(name: "Tom") { id } }"#).await
     });

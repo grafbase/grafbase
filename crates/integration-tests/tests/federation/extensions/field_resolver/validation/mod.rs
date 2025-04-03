@@ -9,12 +9,12 @@ mod scalar;
 
 use std::{collections::HashMap, sync::Arc};
 
-use engine::{Engine, GraphqlError};
+use engine::GraphqlError;
 use engine_schema::{ExtensionDirective, FieldDefinition};
 use extension_catalog::Id;
 use integration_tests::{
     federation::{
-        AnyExtension, EngineExt, FieldResolverTestExtension, FieldResolverTestExtensionBuilder, TestManifest, json_data,
+        AnyExtension, FieldResolverTestExtension, FieldResolverTestExtensionBuilder, Gateway, TestManifest, json_data,
     },
     runtime,
 };
@@ -92,7 +92,7 @@ impl FieldResolverTestExtension for EchoInstance {
 #[test]
 fn simple_echo() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -142,7 +142,7 @@ fn simple_echo() {
 fn too_many_arguments() {
     runtime().block_on(async move {
         // Invalid field directive
-        let result = Engine::builder()
+        let result = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -172,7 +172,7 @@ fn too_many_arguments() {
         "#);
 
         // Invalid schema directive
-        let result = Engine::builder()
+        let result = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"

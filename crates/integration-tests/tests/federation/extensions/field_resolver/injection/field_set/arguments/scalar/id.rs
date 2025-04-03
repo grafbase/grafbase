@@ -1,12 +1,10 @@
-use engine::Engine;
-
 use crate::federation::extensions::field_resolver::injection::field_set::arguments::DoubleEchoExt;
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 
 #[test]
 fn valid_id() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -44,7 +42,7 @@ fn valid_id() {
 #[test]
 fn invalid_id() {
     runtime().block_on(async move {
-        let result = Engine::builder()
+        let result = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"

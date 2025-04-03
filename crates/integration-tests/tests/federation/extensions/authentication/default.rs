@@ -1,7 +1,6 @@
-use engine::Engine;
 use graphql_mocks::{EchoSchema, Schema as _};
 use integration_tests::{
-    federation::{AuthorizationExt, EngineExt},
+    federation::{AuthorizationExt, Gateway},
     runtime,
 };
 
@@ -10,7 +9,7 @@ use crate::federation::extensions::authorization::InsertTokenAsHeader;
 #[test]
 fn no_extension() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(EchoSchema.with_sdl(
                 r#"
                 extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
@@ -38,7 +37,7 @@ fn no_extension() {
 #[test]
 fn no_extension_with_anonymous_default() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(EchoSchema.with_sdl(
                 r#"
                 extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
@@ -72,7 +71,7 @@ fn no_extension_with_anonymous_default() {
 #[test]
 fn no_extension_with_deny_default() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(EchoSchema.with_sdl(
                 r#"
                 extend schema @link(url: "authorization-1.0.0", import: ["@auth"])

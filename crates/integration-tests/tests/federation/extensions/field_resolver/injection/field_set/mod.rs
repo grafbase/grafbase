@@ -4,17 +4,16 @@ mod type_condition;
 mod validation;
 
 use crate::federation::extensions::field_resolver::validation::EchoExt;
-use engine::Engine;
 use graphql_mocks::dynamic::{DynamicSchema, DynamicSchemaBuilder};
 use integration_tests::{
-    federation::{EngineExt, GraphqlResponse},
+    federation::{Gateway, GraphqlResponse},
     runtime,
 };
 use serde_json::json;
 
 fn run_with_field_set(subgraph: DynamicSchemaBuilder, field_set: &str) -> Result<GraphqlResponse, String> {
     runtime().block_on(async move {
-        let response = Engine::builder()
+        let response = Gateway::builder()
             .with_subgraph(subgraph.into_subgraph("a"))
             .with_subgraph_sdl(
                 "b",
@@ -128,7 +127,7 @@ fn basic_field_set() {
 #[test]
 fn default_value() {
     runtime().block_on(async move {
-        let response = Engine::builder()
+        let response = Gateway::builder()
             .with_subgraph(graphql_subgraph().into_subgraph("a"))
             .with_subgraph_sdl(
                 "b",

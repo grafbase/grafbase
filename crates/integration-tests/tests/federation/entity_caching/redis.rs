@@ -1,6 +1,5 @@
-use engine::Engine;
 use graphql_mocks::FederatedProductsSchema;
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 use rand::Rng;
 
 #[test]
@@ -13,7 +12,7 @@ fn entity_caching_via_redis() {
         .collect::<String>();
 
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FederatedProductsSchema)
             .with_toml_config(format!(
                 r#"

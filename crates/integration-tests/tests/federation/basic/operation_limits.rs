@@ -1,6 +1,5 @@
-use engine::Engine;
 use graphql_mocks::FakeGithubSchema;
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 
 #[rstest::rstest]
 #[case( // 1
@@ -169,7 +168,7 @@ fn test_operation_limits(
     #[case] error: Option<&'static str>,
 ) {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_toml_config(operation_limits_config)
             .with_subgraph(FakeGithubSchema)
             .build()

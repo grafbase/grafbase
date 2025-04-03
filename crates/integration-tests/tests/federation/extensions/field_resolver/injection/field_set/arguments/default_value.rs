@@ -1,12 +1,10 @@
-use engine::Engine;
-
 use crate::federation::extensions::field_resolver::injection::field_set::arguments::DoubleEchoExt;
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 
 #[test]
 fn default_values() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -52,7 +50,7 @@ fn default_values() {
 #[test]
 fn default_values_partial_override() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -98,7 +96,7 @@ fn default_values_partial_override() {
 #[test]
 fn default_values_override() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"

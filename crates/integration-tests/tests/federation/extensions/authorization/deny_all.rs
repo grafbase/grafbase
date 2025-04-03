@@ -1,7 +1,7 @@
-use engine::{Engine, ErrorResponse, GraphqlError};
+use engine::{ErrorResponse, GraphqlError};
 use graphql_mocks::dynamic::DynamicSchema;
 use integration_tests::{
-    federation::{AuthorizationExt, AuthorizationTestExtension, DynHookContext, EngineExt},
+    federation::{AuthorizationExt, AuthorizationTestExtension, DynHookContext, Gateway},
     runtime,
 };
 use runtime::extension::{AuthorizationDecisions, QueryElement, TokenRef};
@@ -26,7 +26,7 @@ impl AuthorizationTestExtension for DenyAll {
 #[test]
 fn can_deny_all() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"

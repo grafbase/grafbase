@@ -1,10 +1,9 @@
 use std::io::Write;
 
 use elliptic_curve::pkcs8::{DecodePrivateKey, EncodePrivateKey};
-use engine::Engine;
 use graphql_mocks::FakeGithubSchema;
 use httpsig::prelude::SharedKey;
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 
 const SHARED_KEY_BASE64: &str = "aGVsbG8K";
 
@@ -258,7 +257,7 @@ fn test_message_signing_hmac_sha256_jwt_happy_path() {
 
 fn signature_success_test(schema: SignedGithubSchema, config: String) {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(schema)
             .with_toml_config(config)
             .build()
@@ -287,7 +286,7 @@ fn test_message_signing_with_derived_components() {
     );
 
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(subgraph)
             .with_toml_config(config)
             .build()
@@ -336,7 +335,7 @@ fn test_message_signing_with_nonce_and_expiry() {
     );
 
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(subgraph)
             .with_toml_config(config)
             .build()
@@ -365,7 +364,7 @@ fn test_message_signing_with_nonce_and_expiry() {
 #[test]
 fn test_message_signing_failures() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(SignedGithubSchema {
                 key: shared_key(),
                 kid: None,

@@ -1,7 +1,6 @@
-use engine::Engine;
 use graphql_mocks::dynamic::DynamicSchema;
 use indoc::indoc;
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 use serde_json::json;
 
 static CONFIG: &str = r#"
@@ -48,7 +47,7 @@ fn server_info_no_mutations() {
         .into_subgraph("a");
 
     let server_info = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(subgraph)
             .with_toml_config(CONFIG)
             .build()
@@ -96,7 +95,7 @@ fn server_info_mutations() {
         .into_subgraph("a");
 
     let server_info = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(subgraph)
             .with_toml_config(MUT_CONFIG)
             .build()
@@ -158,7 +157,7 @@ fn list_no_mutations() {
         .into_subgraph("a");
 
     let tools = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(subgraph)
             .with_toml_config(CONFIG)
             .build()
@@ -296,7 +295,7 @@ fn list_with_mutations() {
         .into_subgraph("a");
 
     let tools = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(subgraph)
             .with_toml_config(MUT_CONFIG)
             .build()
@@ -450,7 +449,7 @@ fn introspect_type() {
         .into_subgraph("a");
 
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(subgraph)
             .with_toml_config(CONFIG)
             .build()
@@ -522,7 +521,7 @@ fn run_query_no_params() {
         .into_subgraph("a");
 
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(subgraph)
             .with_toml_config(CONFIG)
             .build()
@@ -568,7 +567,7 @@ fn run_query_with_params() {
         .into_subgraph("a");
 
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(subgraph)
             .with_toml_config(CONFIG)
             .build()
@@ -624,7 +623,7 @@ fn mutation_rejected_when_disabled() {
         .into_subgraph("a");
 
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(subgraph)
             .with_toml_config(CONFIG) // Using the config where mutations are not enabled
             .build()
@@ -683,7 +682,7 @@ fn mutation_allowed_when_enabled() {
         .into_subgraph("a");
 
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(subgraph)
             .with_toml_config(MUT_CONFIG)
             .build()

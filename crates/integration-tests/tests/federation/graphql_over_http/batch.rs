@@ -1,7 +1,6 @@
-use engine::Engine;
 use graphql_mocks::FakeGithubSchema;
 use indoc::indoc;
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 
 #[test]
 fn success() {
@@ -11,7 +10,7 @@ fn success() {
             enabled = true
         "#};
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_toml_config(config)
             .with_subgraph(FakeGithubSchema)
             .build()
@@ -59,7 +58,7 @@ fn success() {
 #[test]
 fn disabled() {
     runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
 
         // Query should work
         let response = engine
@@ -107,7 +106,7 @@ fn limit_reached() {
             limit = 1
         "#};
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_toml_config(config)
             .with_subgraph(FakeGithubSchema)
             .build()
@@ -159,7 +158,7 @@ fn just_in_limit() {
             limit = 2
         "#};
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_toml_config(config)
             .with_subgraph(FakeGithubSchema)
             .build()
@@ -212,7 +211,7 @@ fn invalid_request() {
             enabled = true
         "#};
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_toml_config(config)
             .with_subgraph(FakeGithubSchema)
             .build()
@@ -270,7 +269,7 @@ fn request_error() {
             enabled = true
         "#};
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_toml_config(config)
             .with_subgraph(FakeGithubSchema)
             .build()

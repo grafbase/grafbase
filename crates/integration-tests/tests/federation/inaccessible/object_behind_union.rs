@@ -1,11 +1,7 @@
 use std::future::Future;
 
-use engine::Engine;
 use graphql_mocks::dynamic::DynamicSchema;
-use integration_tests::{
-    federation::{EngineExt, TestGateway},
-    runtime,
-};
+use integration_tests::{federation::Gateway, runtime};
 use serde_json::json;
 
 const SCHEMA: &str = r#"
@@ -27,9 +23,9 @@ type B @inaccessible {
 }
 "#;
 
-fn with_gateway<F: Future>(nodes: serde_json::Value, f: impl FnOnce(TestGateway) -> F) -> F::Output {
+fn with_gateway<F: Future>(nodes: serde_json::Value, f: impl FnOnce(Gateway) -> F) -> F::Output {
     runtime().block_on(async move {
-        let gateway = Engine::builder()
+        let gateway = Gateway::builder()
             .with_subgraph(
                 DynamicSchema::builder(SCHEMA)
                     .with_resolver("Query", "node", nodes[0].clone())
@@ -217,7 +213,7 @@ fn partially_inaccessible() {
 #[test]
 fn inaccessible_extra() {
     runtime().block_on(async move {
-        let gateway = Engine::builder()
+        let gateway = Gateway::builder()
             .with_subgraph(
                 DynamicSchema::builder(SCHEMA)
                     .with_resolver("Query", "node", json!({"__typename": "B", "id": "b"}))

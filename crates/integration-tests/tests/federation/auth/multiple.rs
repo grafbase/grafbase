@@ -1,9 +1,8 @@
-use engine::Engine;
 use graphql_mocks::FakeGithubSchema;
 use integration_tests::federation::GraphqlResponse;
 use integration_tests::openid::{CoreClientExt, OryHydraOpenIDProvider};
 use integration_tests::{
-    federation::EngineExt,
+    federation::Gateway,
     openid::{AUDIENCE, JWKS_URI, JWKS_URI_2},
     runtime,
 };
@@ -29,7 +28,7 @@ fn test_provider() {
             url = "{JWKS_URI_2}"
         "#};
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FakeGithubSchema)
             .with_toml_config(config)
             .build()

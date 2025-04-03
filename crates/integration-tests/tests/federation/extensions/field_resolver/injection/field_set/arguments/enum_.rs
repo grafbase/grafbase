@@ -1,12 +1,10 @@
-use engine::Engine;
-
 use crate::federation::extensions::field_resolver::injection::field_set::arguments::DoubleEchoExt;
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 
 #[test]
 fn valid_enum_value() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -48,7 +46,7 @@ fn valid_enum_value() {
 #[test]
 fn unknown_enum_value() {
     runtime().block_on(async move {
-        let result = Engine::builder()
+        let result = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -82,7 +80,7 @@ fn unknown_enum_value() {
 #[test]
 fn invalid_enum_value() {
     runtime().block_on(async move {
-        let result = Engine::builder()
+        let result = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -111,7 +109,7 @@ fn invalid_enum_value() {
         )
         "#);
 
-        let result = Engine::builder()
+        let result = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"

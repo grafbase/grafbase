@@ -5,22 +5,18 @@ mod two_interfaces;
 
 use std::future::Future;
 
-use engine::Engine;
 use graphql_mocks::dynamic::DynamicSchema;
-use integration_tests::{
-    federation::{EngineExt, TestGateway},
-    runtime,
-};
+use integration_tests::{federation::Gateway, runtime};
 
-fn with_gateway<F: Future>(schema: &str, nodes: serde_json::Value, f: impl FnOnce(TestGateway) -> F) -> F::Output {
+fn with_gateway<F: Future>(schema: &str, nodes: serde_json::Value, f: impl FnOnce(Gateway) -> F) -> F::Output {
     runtime().block_on(async move {
         let gateway = build(schema, nodes).await;
         f(gateway).await
     })
 }
 
-async fn build(schema: &str, nodes: serde_json::Value) -> TestGateway {
-    Engine::builder()
+async fn build(schema: &str, nodes: serde_json::Value) -> Gateway {
+    Gateway::builder()
         .with_subgraph(
             DynamicSchema::builder(
                 [

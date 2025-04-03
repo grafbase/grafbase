@@ -1,7 +1,6 @@
-use engine::Engine;
 use graphql_mocks::dynamic::{DynamicSchema, DynamicSubgraph};
 use integration_tests::{
-    federation::{AuthorizationExt, EngineExt},
+    federation::{AuthorizationExt, Gateway},
     runtime,
 };
 
@@ -38,7 +37,7 @@ fn subgraph() -> DynamicSubgraph {
 #[test]
 fn grant_interface_type() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(subgraph())
             .with_extension(AuthorizationExt::new(GrantAll))
             .build()
@@ -60,7 +59,7 @@ fn grant_interface_type() {
 #[test]
 fn deny_interface_type_at_query_stage() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(subgraph())
             .with_extension(AuthorizationExt::new(DenySites::query(["Node"])))
             .build()
@@ -109,7 +108,7 @@ fn deny_interface_type_at_query_stage() {
 #[test]
 fn deny_interface_type_at_response_stage() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(subgraph())
             .with_extension(AuthorizationExt::new(DenySites::response(["Node"])))
             .build()

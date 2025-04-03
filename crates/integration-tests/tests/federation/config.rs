@@ -1,13 +1,12 @@
-use engine::Engine;
 use graphql_mocks::FederatedAccountsSchema;
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 
 #[test]
 fn subgraph_url_override() {
     runtime().block_on(async {
         let subgraph_server = graphql_mocks::MockGraphQlServer::new(FederatedAccountsSchema).await;
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_federated_sdl(
                 r###"
             enum join__Graph {

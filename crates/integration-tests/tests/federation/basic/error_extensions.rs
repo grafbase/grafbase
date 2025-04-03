@@ -1,12 +1,11 @@
 use async_graphql::ServerError;
-use engine::Engine;
 use graphql_mocks::dynamic::DynamicSchema;
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 
 #[test]
 fn should_keep_original_error_code() {
     runtime().block_on(async move {
-        let gateway = Engine::builder()
+        let gateway = Gateway::builder()
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
@@ -47,7 +46,7 @@ fn should_keep_original_error_code() {
 #[test]
 fn should_keep_original_extensions_but_add_error_code_if_not_present() {
     runtime().block_on(async move {
-        let gateway = Engine::builder()
+        let gateway = Gateway::builder()
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"

@@ -19,7 +19,7 @@ use url::Url;
 use websocket_request::WebsocketRequest;
 
 #[derive(Clone)]
-pub struct TestGateway {
+pub struct Gateway {
     router: axum::Router,
     #[allow(unused)]
     engine: Arc<engine::Engine<TestRuntime>>,
@@ -66,7 +66,11 @@ impl DockerSubgraph {
     }
 }
 
-impl TestGateway {
+impl Gateway {
+    pub fn builder() -> GatewayBuilder {
+        GatewayBuilder::default()
+    }
+
     pub fn get(&self, request: impl Into<GraphQlRequest>) -> TestRequest {
         self.execute(http::Method::GET, "/graphql", request)
     }

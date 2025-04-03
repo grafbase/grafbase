@@ -1,11 +1,10 @@
-use engine::Engine;
 use graphql_mocks::FakeGithubSchema;
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 
 #[test]
 fn skip_include() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
 
         engine
             .post(
@@ -62,7 +61,7 @@ fn skip_include() {
 #[test]
 fn skip_include_propagate_between_spreads() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
 
         engine
             .post(
@@ -100,7 +99,7 @@ fn skip_include_propagate_between_spreads() {
 #[test]
 fn skip_include_multiple_instances_same_field() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
 
         engine
             .post(

@@ -1,6 +1,5 @@
-use engine::Engine;
 use graphql_mocks::{MockGraphQlServer, Subgraph, dynamic::DynamicSchema};
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 
 const LIMIT_CONFIG: &str = r#"
 [complexity_control]
@@ -11,7 +10,7 @@ limit = 100
 #[test]
 fn test_uncomplex_query() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(ComplexitySchema)
             .with_toml_config(LIMIT_CONFIG)
             .build()
@@ -26,7 +25,7 @@ fn test_uncomplex_query() {
 #[test]
 fn test_complex_query_while_off() {
     runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(ComplexitySchema).build().await;
+        let engine = Gateway::builder().with_subgraph(ComplexitySchema).build().await;
 
         let response = engine.post("query { cheapField expensiveField  }").await;
 
@@ -40,7 +39,7 @@ fn test_complex_query_while_off() {
 #[test]
 fn test_complex_query_with_measure() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(ComplexitySchema)
             .with_toml_config(
                 r#"
@@ -64,7 +63,7 @@ fn test_complex_query_with_measure() {
 #[test]
 fn test_complex_query_with_enforce() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(ComplexitySchema)
             .with_toml_config(LIMIT_CONFIG)
             .build()
@@ -101,7 +100,7 @@ fn test_complex_query_with_enforce() {
 #[test]
 fn test_assumed_list_size() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(ComplexitySchema)
             .with_toml_config(LIMIT_CONFIG)
             .build()
@@ -131,7 +130,7 @@ fn test_assumed_list_size() {
 #[test]
 fn test_sliced_list_size() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(ComplexitySchema)
             .with_toml_config(LIMIT_CONFIG)
             .build()
@@ -168,7 +167,7 @@ fn test_sliced_list_size() {
 #[test]
 fn test_require_one_slicing_argument() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(ComplexitySchema)
             .with_toml_config(LIMIT_CONFIG)
             .build()
@@ -228,7 +227,7 @@ fn test_require_one_slicing_argument() {
 #[test]
 fn test_sized_fields() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(ComplexitySchema)
             .with_toml_config(LIMIT_CONFIG)
             .build()
@@ -282,7 +281,7 @@ fn test_sized_fields() {
 #[test]
 fn test_argument_complexity() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(ComplexitySchema)
             .with_toml_config(LIMIT_CONFIG)
             .build()

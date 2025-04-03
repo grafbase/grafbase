@@ -1,11 +1,10 @@
 use std::collections::HashMap;
 
-use engine::Engine;
 use graphql_mocks::FakeGithubSchema;
 use integration_tests::federation::GraphqlResponse;
 use integration_tests::openid::{CoreClientExt, OryHydraOpenIDProvider};
 use integration_tests::{
-    federation::EngineExt,
+    federation::Gateway,
     openid::{AUDIENCE, JWKS_URI, OTHER_AUDIENCE},
     runtime,
 };
@@ -23,7 +22,7 @@ fn test_provider() {
             url = "{JWKS_URI}"
         "#};
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FakeGithubSchema)
             .with_toml_config(config)
             .build()
@@ -66,7 +65,7 @@ fn test_different_header_location() {
             value_prefix = "Bearer2 "
         "#};
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FakeGithubSchema)
             .with_toml_config(config)
             .build()
@@ -105,7 +104,7 @@ fn test_unauthorized() {
             url = "{JWKS_URI}"
         "#};
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FakeGithubSchema)
             .with_toml_config(config)
             .build()
@@ -177,7 +176,7 @@ fn test_tampered_jwt() {
             url = "{JWKS_URI}"
         "#};
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FakeGithubSchema)
             .with_toml_config(config)
             .build()
@@ -243,7 +242,7 @@ fn test_wrong_provider() {
             url = "{JWKS_URI}"
         "#};
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FakeGithubSchema)
             .with_toml_config(config)
             .build()
@@ -288,7 +287,7 @@ fn test_audience() {
             audience = "{AUDIENCE}"
         "#};
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FakeGithubSchema)
             .with_toml_config(config)
             .build()

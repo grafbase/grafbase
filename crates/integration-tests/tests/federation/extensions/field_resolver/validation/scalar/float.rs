@@ -1,12 +1,11 @@
-use engine::Engine;
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 
 use super::EchoExt;
 
 #[test]
 fn valid_float() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -55,7 +54,7 @@ fn valid_float() {
 #[test]
 fn int_to_float_conversion() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -105,7 +104,7 @@ fn int_to_float_conversion() {
 fn invalid_float() {
     runtime().block_on(async move {
         // Invalid field directive
-        let result = Engine::builder()
+        let result = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -133,7 +132,7 @@ fn invalid_float() {
         "#);
 
         // Invalid schema directive
-        let result = Engine::builder()
+        let result = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"

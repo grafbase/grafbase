@@ -1,6 +1,5 @@
-use engine::Engine;
 use graphql_mocks::dynamic::DynamicSchema;
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 use serde_json::json;
 
 use crate::federation::extensions::basic::GreetExt;
@@ -8,7 +7,7 @@ use crate::federation::extensions::basic::GreetExt;
 #[test]
 fn extension_mixed_with_graphql_subgraph_root_fields() {
     runtime().block_on(async move {
-        let response = Engine::builder()
+        let response = Gateway::builder()
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"

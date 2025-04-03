@@ -1,7 +1,6 @@
-use engine::Engine;
 use graphql_mocks::{EchoSchema, dynamic::DynamicSchema};
 use integration_tests::{
-    federation::{AuthenticationExt, EngineExt},
+    federation::{AuthenticationExt, Gateway},
     runtime,
 };
 
@@ -10,7 +9,7 @@ use crate::federation::extensions::authentication::static_token::StaticToken;
 #[test]
 fn sdk_0100() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(EchoSchema)
             .with_subgraph(
                 DynamicSchema::builder(

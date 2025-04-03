@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-use engine::{Engine, ErrorCode, ErrorResponse, GraphqlError};
+use engine::{ErrorCode, ErrorResponse, GraphqlError};
 use graphql_mocks::FakeGithubSchema;
 use integration_tests::{
-    federation::{AuthenticationExt, AuthenticationTestExtension, EngineExt},
+    federation::{AuthenticationExt, AuthenticationTestExtension, Gateway},
     runtime,
 };
 use runtime::extension::Token;
@@ -39,7 +39,7 @@ impl AuthenticationTestExtension for StaticToken {
 #[test]
 fn anonymous_token() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FakeGithubSchema)
             .with_extension(AuthenticationExt::new(StaticToken::anonymous()))
             .build()
@@ -60,7 +60,7 @@ fn anonymous_token() {
 #[test]
 fn bytes_token() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FakeGithubSchema)
             .with_extension(AuthenticationExt::new(StaticToken::bytes(Vec::new())))
             .build()
@@ -81,7 +81,7 @@ fn bytes_token() {
 #[test]
 fn error_response() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FakeGithubSchema)
             .with_extension(AuthenticationExt::new(StaticToken::error_response(GraphqlError::new(
                 "My error message",

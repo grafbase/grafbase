@@ -1,11 +1,10 @@
-use engine::Engine;
 use graphql_mocks::{FakeGithubSchema, SlowSchema};
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 
 #[test]
 fn gateway_timeout() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(SlowSchema)
             .with_toml_config(
                 r###"
@@ -52,7 +51,7 @@ fn subgraph_timeout() {
             timeout = "1s"
         "#};
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(SlowSchema)
             .with_subgraph(FakeGithubSchema)
             .with_toml_config(config)

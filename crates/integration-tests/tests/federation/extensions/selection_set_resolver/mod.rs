@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
-use engine::{Engine, GraphqlError};
+use engine::GraphqlError;
 use engine_schema::Subgraph;
 use extension_catalog::{ExtensionId, Id};
 use integration_tests::{
-    federation::{AnyExtension, EngineExt, SelectionSetResolverTestExtension, TestManifest},
+    federation::{AnyExtension, Gateway, SelectionSetResolverTestExtension, TestManifest},
     runtime,
 };
 use runtime::extension::{ArgumentsId, Data};
@@ -56,7 +56,7 @@ impl SelectionSetResolverTestExtension for StaticSelectionSetResolverExt {
 #[test]
 fn basic() {
     runtime().block_on(async {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"

@@ -1,6 +1,5 @@
-use engine::Engine;
 use graphql_mocks::Stateful;
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 
 #[test]
 fn subgraph_retries_mutations_disabled() {
@@ -12,7 +11,7 @@ fn subgraph_retries_mutations_disabled() {
             retry_percent = 0.01
         "#};
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(Stateful::default())
             .with_toml_config(config)
             .build()
@@ -94,7 +93,7 @@ fn subgraph_retries_mutations_enabled() {
             retry_mutations = true
         "#};
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(Stateful::default())
             .with_toml_config(config)
             .build()

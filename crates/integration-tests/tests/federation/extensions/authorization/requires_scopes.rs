@@ -1,7 +1,7 @@
-use engine::{Engine, ErrorCode, ErrorResponse, GraphqlError};
+use engine::{ErrorCode, ErrorResponse, GraphqlError};
 use graphql_mocks::dynamic::DynamicSchema;
 use integration_tests::{
-    federation::{AuthenticationExt, AuthorizationExt, AuthorizationTestExtension, DynHookContext, EngineExt},
+    federation::{AuthenticationExt, AuthorizationExt, AuthorizationTestExtension, DynHookContext, Gateway},
     runtime,
 };
 use runtime::extension::{AuthorizationDecisions, QueryElement, TokenRef};
@@ -59,7 +59,7 @@ impl AuthorizationTestExtension for RequiresScopes {
 #[test]
 fn anonymous() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
@@ -124,7 +124,7 @@ fn anonymous() {
 #[test]
 fn missing_claim() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
@@ -189,7 +189,7 @@ fn missing_claim() {
 #[test]
 fn missing_scope() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
@@ -272,7 +272,7 @@ fn missing_scope() {
 #[test]
 fn valid_scope() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"

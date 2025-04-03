@@ -3,7 +3,7 @@ use federation_audit_tests::{
     audit_server::{AuditServer, ExpectedResponse, Test},
     cached_tests,
 };
-use integration_tests::federation::TestGatewayBuilder;
+use integration_tests::federation::GatewayBuilder;
 use libtest_mimic::{Arguments, Failed, Trial};
 
 fn main() {
@@ -33,7 +33,7 @@ fn runner_for(test: CachedTest) -> impl FnOnce() -> Result<(), Failed> + Send + 
 }
 
 async fn run_test(supergraph_sdl: String, mut test: Test) {
-    let server = TestGatewayBuilder::default()
+    let server = GatewayBuilder::default()
         .with_federated_sdl(&supergraph_sdl)
         .build()
         .await;

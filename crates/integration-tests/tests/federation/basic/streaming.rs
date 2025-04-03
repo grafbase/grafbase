@@ -2,14 +2,13 @@
 //!
 //! Subscrition specific tests will probably live elsewhere
 
-use engine::Engine;
 use graphql_mocks::Stateful;
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 
 #[test]
 fn can_run_a_query_via_execute_stream() {
     runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(Stateful::default()).build().await;
+        let engine = Gateway::builder().with_subgraph(Stateful::default()).build().await;
 
         let response = engine
             .post("query { value }")
@@ -33,7 +32,7 @@ fn can_run_a_query_via_execute_stream() {
 #[test]
 fn can_run_a_mutation_via_execute_stream() {
     runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(Stateful::default()).build().await;
+        let engine = Gateway::builder().with_subgraph(Stateful::default()).build().await;
 
         let response = engine
             .post(

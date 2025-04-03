@@ -1,7 +1,7 @@
-use engine::{Engine, GraphqlError};
+use engine::GraphqlError;
 use engine_schema::{ExtensionDirective, FieldDefinition};
 use integration_tests::{
-    federation::{EngineExt, FieldResolverExt, FieldResolverTestExtension, json_data},
+    federation::{FieldResolverExt, FieldResolverTestExtension, Gateway, json_data},
     runtime,
 };
 use runtime::extension::Data;
@@ -38,7 +38,7 @@ impl FieldResolverTestExtension for GreetExt {
 #[test]
 fn simple_resolver_from_federated_sdl() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_federated_sdl(
                 r#"
                 enum extension__Link {
@@ -73,7 +73,7 @@ fn simple_resolver_from_federated_sdl() {
 #[test]
 fn simple_resolver_from_subgraph_sdl() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"

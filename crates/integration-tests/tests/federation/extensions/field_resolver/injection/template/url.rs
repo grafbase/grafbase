@@ -1,11 +1,10 @@
 use crate::federation::extensions::field_resolver::validation::EchoExt;
-use engine::Engine;
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 
 #[test]
 fn url_template() {
     runtime().block_on(async move {
-        let response = Engine::builder()
+        let response = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -56,7 +55,7 @@ fn url_template() {
 #[test]
 fn url_template_should_escape_strings() {
     runtime().block_on(async move {
-        let response = Engine::builder()
+        let response = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -100,7 +99,7 @@ fn url_template_should_escape_strings() {
 #[test]
 fn url_template_should_encode_objects_as_json_and_then_escape() {
     runtime().block_on(async move {
-        let response = Engine::builder()
+        let response = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -144,7 +143,7 @@ fn url_template_should_encode_objects_as_json_and_then_escape() {
 #[test]
 fn url_template_should_encode_lists_as_json_and_then_escape() {
     runtime().block_on(async move {
-        let response = Engine::builder()
+        let response = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"

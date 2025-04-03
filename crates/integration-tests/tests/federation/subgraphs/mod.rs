@@ -7,18 +7,17 @@ mod shared_root;
 mod sibling_dependencies;
 mod simple_key;
 
-use engine::Engine;
 use graphql_mocks::{
     FederatedAccountsSchema, FederatedInventorySchema, FederatedProductsSchema, FederatedReviewsSchema,
     FederatedShippingSchema,
 };
 use integration_tests::{
-    federation::{EngineExt, GraphqlResponse},
+    federation::{Gateway, GraphqlResponse},
     runtime,
 };
 
 async fn execute(request: &str) -> GraphqlResponse {
-    let engine = Engine::builder()
+    let engine = Gateway::builder()
         .with_subgraph(FederatedAccountsSchema)
         .with_subgraph(FederatedProductsSchema)
         .with_subgraph(FederatedReviewsSchema)
