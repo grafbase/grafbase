@@ -1,0 +1,6 @@
+[extension]
+name = "selection-set-resolver-014"
+version = "1.0.0"
+kind = "selection_set_resolver"
+description = ""
+

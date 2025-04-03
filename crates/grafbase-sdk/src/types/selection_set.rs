@@ -3,6 +3,8 @@ use std::borrow::Cow;
 use crate::{SdkError, wit::selection_set_resolver_types as wit};
 use serde::{Deserialize, de::DeserializeSeed};
 
+use super::DefinitionId;
+
 /// A field within a GraphQL query
 #[derive(Clone, Copy)]
 pub struct Field<'a> {
@@ -19,6 +21,11 @@ impl<'a> Field<'a> {
     /// Gets the arguments ID of this field, if any
     pub fn arguments_id(&self) -> Option<ArgumentsId> {
         self.field.arguments.map(ArgumentsId)
+    }
+
+    /// Field definition id.
+    pub fn definition_id(&self) -> DefinitionId {
+        DefinitionId(self.field.definition_id)
     }
 
     /// Deserializes the arguments of this field into the specified type
@@ -107,8 +114,16 @@ pub struct SelectionSet<'a> {
 }
 
 impl<'a> SelectionSet<'a> {
-    /// Iterator over the fields in this selection set
-    pub fn fields(&self) -> impl ExactSizeIterator<Item = Field<'a>> + '_ {
+    /// Iterator of the fields of this selection set. For best performance, you should respect the
+    /// field ordering in the resolver data.
+    pub fn fields(&self) -> impl ExactSizeIterator<Item = Field<'a>> + 'a {
+        self.fields_ordered_by_parent_entity()
+    }
+
+    /// Iterator over the fields in this selection set, ordered by their parent entity. However, how parent
+    /// entities are ordered (by id, name, etc.) is undefined. For best performance, you should respect the
+    /// field ordering in the resolver data.
+    pub fn fields_ordered_by_parent_entity(&self) -> impl ExactSizeIterator<Item = Field<'a>> + 'a {
         let (start, end) = self.selection_set.fields_ordered_by_parent_entity;
         let fields = self.fields;
         fields[usize::from(start)..usize::from(end)]
@@ -117,13 +132,15 @@ impl<'a> SelectionSet<'a> {
     }
 
     /// Whether this selection set requires a `__typename` field
+    /// The Gateway doesn't need the typename for objects and for various simple cases. But if
+    /// multiple type conditions are applied, it'll be required.
     pub fn requires_typename(&self) -> bool {
         self.selection_set.requires_typename
     }
 }
 
 /// Identifier for arguments in a GraphQL query
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
 pub struct ArgumentsId(wit::ArgumentsId);
 
 impl From<wit::ArgumentsId> for ArgumentsId {

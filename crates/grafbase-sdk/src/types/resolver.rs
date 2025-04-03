@@ -161,7 +161,7 @@ pub enum Data {
 
 impl Data {
     /// Serialize a type into the most efficient supported serialization
-    pub fn serialize<T: Serialize>(data: T) -> Result<Self, SdkError> {
+    pub fn new<T: Serialize>(data: T) -> Result<Self, SdkError> {
         let bytes = cbor::to_vec(&data)?;
         Ok(Data::Cbor(bytes))
     }
