@@ -1,11 +1,10 @@
-use engine::Engine;
 use graphql_mocks::TeaShop;
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 
 #[test]
 fn enum_values_with_some_inaccessible() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(TeaShop::default()).build().await;
+        let engine = Gateway::builder().with_subgraph(TeaShop::default()).build().await;
 
         engine
             .post("query { recommendedTeas { id name style } teaWithInaccessibleStyle { name style } }")

@@ -1,7 +1,6 @@
-use engine::Engine;
 use graphql_mocks::FakeGithubSchema;
 use indoc::indoc;
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 
 #[test]
 fn when_disabled() {
@@ -11,7 +10,7 @@ fn when_disabled() {
             enabled = false
         "#};
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_toml_config(config)
             .with_subgraph(FakeGithubSchema)
             .build()
@@ -58,7 +57,7 @@ fn when_disabled() {
 #[test]
 fn single_field_from_single_server() {
     runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
 
         let query = "query { serverVersion }";
         let apq_ext = serde_json::json!({

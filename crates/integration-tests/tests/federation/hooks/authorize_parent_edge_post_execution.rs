@@ -1,9 +1,8 @@
-use engine::Engine;
 use engine::{ErrorCode, ErrorResponse, GraphqlError};
 use graphql_mocks::TeaShop;
 use http::HeaderMap;
 use integration_tests::federation::{DynHookContext, DynHooks};
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 use runtime::hooks::EdgeDefinition;
 
 use super::with_engine_for_auth;
@@ -56,7 +55,7 @@ fn after_pre_execution_hook() {
     }
 
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(TeaShop::with_sdl(
                 r###"
                 type Query {

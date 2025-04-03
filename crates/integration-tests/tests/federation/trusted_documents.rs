@@ -1,9 +1,8 @@
-use engine::Engine;
 use futures::Future;
 use graphql_mocks::FakeGithubSchema;
 use integration_tests::{
     TestTrustedDocument,
-    federation::{EngineExt, GraphQlRequest, TestGateway},
+    federation::{Gateway, GraphQlRequest},
     runtime,
 };
 use runtime::trusted_documents_client::TrustedDocumentsEnforcementMode;
@@ -26,11 +25,11 @@ const TRUSTED_DOCUMENTS: &[TestTrustedDocument] = &[
 
 fn test<Fn, Fut>(enforcement_mode: TrustedDocumentsEnforcementMode, test_fn: Fn)
 where
-    Fn: FnOnce(TestGateway) -> Fut,
+    Fn: FnOnce(Gateway) -> Fut,
     Fut: Future<Output = ()>,
 {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FakeGithubSchema)
             .with_mock_trusted_documents(enforcement_mode, TRUSTED_DOCUMENTS.to_owned())
             .build()

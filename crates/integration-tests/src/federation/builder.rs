@@ -14,7 +14,7 @@ use runtime::{
 };
 
 use super::{
-    AnyExtension, DockerSubgraph, DynamicHooks, TestGateway, TestRuntime, TestRuntimeBuilder,
+    AnyExtension, DockerSubgraph, DynamicHooks, Gateway, TestRuntime, TestRuntimeBuilder,
     subgraph::{Subgraph, Subgraphs},
 };
 
@@ -26,7 +26,7 @@ struct TestConfig {
 
 #[must_use]
 #[derive(Default)]
-pub struct TestGatewayBuilder {
+pub struct GatewayBuilder {
     federated_sdl: Option<String>,
     mock_subgraphs: Vec<(TypeId, String, BoxFuture<'static, MockGraphQlServer>)>,
     docker_subgraphs: HashSet<DockerSubgraph>,
@@ -35,15 +35,7 @@ pub struct TestGatewayBuilder {
     runtime: TestRuntimeBuilder,
 }
 
-pub trait EngineExt {
-    fn builder() -> TestGatewayBuilder {
-        TestGatewayBuilder::default()
-    }
-}
-
-impl EngineExt for ::engine::Engine<TestRuntime> {}
-
-impl TestGatewayBuilder {
+impl GatewayBuilder {
     pub fn with_toml_config(mut self, toml: impl Display) -> Self {
         assert!(self.config.toml.is_empty(), "overwriting config!");
         self.config.toml = toml.to_string();
@@ -110,11 +102,11 @@ impl TestGatewayBuilder {
     }
     //-- Runtime customization --
 
-    pub async fn build(self) -> TestGateway {
+    pub async fn build(self) -> Gateway {
         self.try_build().await.unwrap()
     }
 
-    pub async fn try_build(self) -> Result<TestGateway, String> {
+    pub async fn try_build(self) -> Result<Gateway, String> {
         let Self {
             federated_sdl,
             mock_subgraphs,
@@ -139,7 +131,7 @@ impl TestGatewayBuilder {
         let (engine, context) = self::engine::build(federated_sdl, config, runtime, &subgraphs).await?;
         let router = self::router::build(engine.clone(), gateway_config).await;
 
-        Ok(TestGateway {
+        Ok(Gateway {
             router,
             engine,
             context: Arc::new(context),

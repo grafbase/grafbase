@@ -1,5 +1,4 @@
-use engine::Engine;
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 
 use super::EchoExt;
 
@@ -7,7 +6,7 @@ use super::EchoExt;
 fn unknown_type() {
     runtime().block_on(async move {
         // Invalid field directive
-        let result = Engine::builder()
+        let result = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -37,7 +36,7 @@ fn unknown_type() {
         "#);
 
         // Invalid schema directive
-        let result = Engine::builder()
+        let result = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -73,7 +72,7 @@ fn unknown_type() {
 fn not_a_input_type() {
     runtime().block_on(async move {
         // Invalid field directive
-        let result = Engine::builder()
+        let result = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -105,7 +104,7 @@ fn not_a_input_type() {
         "#);
 
         // Invalid schema directive
-        let result = Engine::builder()
+        let result = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"

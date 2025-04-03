@@ -1,11 +1,10 @@
-use engine::Engine;
 use graphql_mocks::Stateful;
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 
 #[test]
 fn mutations_should_be_executed_sequentially() {
     runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(Stateful::default()).build().await;
+        let engine = Gateway::builder().with_subgraph(Stateful::default()).build().await;
 
         // sanity check
         let response = engine.post("query { value }").await;
@@ -56,7 +55,7 @@ fn mutations_should_be_executed_sequentially() {
 #[test]
 fn mutation_failure_should_stop_later_executions_if_required() {
     runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(Stateful::default()).build().await;
+        let engine = Gateway::builder().with_subgraph(Stateful::default()).build().await;
 
         // sanity check
         let response = engine.post("query { value }").await;

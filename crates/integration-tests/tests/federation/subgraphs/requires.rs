@@ -1,7 +1,6 @@
-use engine::Engine;
 use graphql_mocks::dynamic::{DynamicSchema, EntityResolverContext};
 use integration_tests::{
-    federation::{EngineExt, GraphqlResponse},
+    federation::{Gateway, GraphqlResponse},
     runtime,
 };
 use serde_json::json;
@@ -131,7 +130,7 @@ fn requires_with_arguments() {
 #[test]
 fn requires_with_fragments() {
     async fn run_with_user(user: serde_json::Value) -> GraphqlResponse {
-        let gateway = Engine::builder()
+        let gateway = Gateway::builder()
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
@@ -238,7 +237,7 @@ fn requires_with_fragments() {
 #[test]
 fn nested_requires() {
     runtime().block_on(async move {
-        let gateway = Engine::builder()
+        let gateway = Gateway::builder()
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
@@ -326,7 +325,7 @@ fn nested_requires() {
 #[test]
 fn nested_requires_with_intermediate_plan() {
     runtime().block_on(async move {
-        let gateway = Engine::builder()
+        let gateway = Gateway::builder()
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"

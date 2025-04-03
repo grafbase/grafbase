@@ -1,7 +1,6 @@
-use engine::Engine;
 use graphql_mocks::{EchoSchema, Schema as _};
 use integration_tests::{
-    federation::{AuthorizationExt, EngineExt},
+    federation::{AuthorizationExt, Gateway},
     runtime,
 };
 
@@ -10,7 +9,7 @@ use crate::federation::extensions::authorization::InsertTokenAsHeader;
 #[test]
 fn double_authentication() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(EchoSchema.with_sdl(
                 r#"
                 extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
@@ -94,7 +93,7 @@ fn double_authentication() {
 #[test]
 fn double_authentication_with_deny_default() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(EchoSchema.with_sdl(
                 r#"
                 extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
@@ -168,7 +167,7 @@ fn double_authentication_with_deny_default() {
 #[test]
 fn double_authentication_with_anonymous_default() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(EchoSchema.with_sdl(
                 r#"
                 extend schema @link(url: "authorization-1.0.0", import: ["@auth"])

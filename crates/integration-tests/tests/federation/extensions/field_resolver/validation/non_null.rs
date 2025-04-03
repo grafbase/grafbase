@@ -1,5 +1,4 @@
-use engine::Engine;
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 
 use super::EchoExt;
 
@@ -7,7 +6,7 @@ use super::EchoExt;
 fn unexpected_null() {
     runtime().block_on(async move {
         // Invalid field directive
-        let result = Engine::builder()
+        let result = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -35,7 +34,7 @@ fn unexpected_null() {
         "#);
 
         // Invalid schema directive
-        let result = Engine::builder()
+        let result = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -69,7 +68,7 @@ fn unexpected_null() {
 fn missing_required_argument() {
     runtime().block_on(async move {
         // Invalid field directive
-        let result = Engine::builder()
+        let result = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -97,7 +96,7 @@ fn missing_required_argument() {
         "#);
 
         // Invalid schema directive
-        let result = Engine::builder()
+        let result = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -130,7 +129,7 @@ fn missing_required_argument() {
 #[test]
 fn missing_nullable_argument() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -174,7 +173,7 @@ fn missing_nullable_argument() {
 #[test]
 fn distinquish_providing_null_from_not_present_at_all() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"

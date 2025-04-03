@@ -1,12 +1,10 @@
-use engine::Engine;
-
 use crate::federation::extensions::field_resolver::injection::field_set::arguments::DoubleEchoExt;
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 
 #[test]
 fn missing_nullable_field() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -48,7 +46,7 @@ fn missing_nullable_field() {
 #[test]
 fn missing_required_field() {
     runtime().block_on(async move {
-        let result = Engine::builder()
+        let result = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -82,7 +80,7 @@ fn missing_required_field() {
 #[test]
 fn too_many_fields() {
     runtime().block_on(async move {
-        let result = Engine::builder()
+        let result = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -116,7 +114,7 @@ fn too_many_fields() {
 #[test]
 fn not_an_object() {
     runtime().block_on(async move {
-        let result = Engine::builder()
+        let result = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"

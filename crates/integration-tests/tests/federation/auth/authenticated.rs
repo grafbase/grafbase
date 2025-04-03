@@ -1,13 +1,12 @@
-use engine::Engine;
 use futures::Future;
 use graphql_mocks::SecureSchema;
 use integration_tests::{
-    federation::{EngineExt, TestGateway},
+    federation::Gateway,
     openid::{CoreClientExt, JWKS_URI, OryHydraOpenIDProvider},
     runtime,
 };
 
-pub(super) fn with_secure_schema<F, O>(f: impl FnOnce(TestGateway) -> F) -> O
+pub(super) fn with_secure_schema<F, O>(f: impl FnOnce(Gateway) -> F) -> O
 where
     F: Future<Output = O>,
 {
@@ -26,7 +25,7 @@ where
             [authentication.providers.anonymous]
         "#};
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(SecureSchema)
             .with_toml_config(config)
             .build()

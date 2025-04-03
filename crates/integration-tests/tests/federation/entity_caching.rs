@@ -1,8 +1,7 @@
 use std::time::Duration;
 
-use engine::Engine;
 use graphql_mocks::{ErrorSchema, FederatedInventorySchema, FederatedProductsSchema, FederatedReviewsSchema};
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 use serde_json::json;
 
 mod directive_scopes;
@@ -12,7 +11,7 @@ mod subgraph_cache_control;
 #[test]
 fn root_level_entity_caching() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FederatedProductsSchema)
             .with_toml_config(
                 r#"
@@ -74,7 +73,7 @@ fn root_level_entity_caching() {
 #[test]
 fn different_queries_dont_share_cache() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FederatedProductsSchema)
             .with_toml_config(
                 r#"
@@ -100,7 +99,7 @@ fn different_queries_dont_share_cache() {
 #[test]
 fn test_cache_expiry() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FederatedProductsSchema)
             .with_toml_config(
                 r#"
@@ -168,7 +167,7 @@ fn test_cache_expiry() {
 #[test]
 fn cache_skipped_if_subgraph_errors() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(ErrorSchema::default())
             .with_toml_config(
                 r#"
@@ -195,7 +194,7 @@ fn cache_skipped_if_subgraph_errors() {
 #[test]
 fn entity_request_caching() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FederatedProductsSchema)
             .with_subgraph(FederatedReviewsSchema)
             .with_subgraph(FederatedInventorySchema)
@@ -242,7 +241,7 @@ fn entity_request_caching() {
 #[test]
 fn entity_request_cache_partial_hit() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FederatedProductsSchema)
             .with_subgraph(FederatedReviewsSchema)
             .with_subgraph(FederatedInventorySchema)
@@ -316,7 +315,7 @@ fn entity_request_cache_partial_hit() {
 #[test]
 fn test_headers_impact_root_field_caching() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FederatedProductsSchema)
             .with_toml_config(
                 r#"
@@ -360,7 +359,7 @@ fn test_headers_impact_root_field_caching() {
 #[test]
 fn test_headers_impact_entity_field_caching() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FederatedProductsSchema)
             .with_subgraph(FederatedReviewsSchema)
             .with_subgraph(FederatedInventorySchema)

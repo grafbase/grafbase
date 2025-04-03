@@ -1,8 +1,7 @@
-use engine::Engine;
 use engine::{ErrorCode, GraphqlError};
 use graphql_mocks::{EchoSchema, FakeGithubSchema, Stateful, Subgraph};
 use integration_tests::federation::{DynHookContext, DynHooks};
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 use runtime::hooks::SubgraphRequest;
 use url::Url;
 
@@ -39,7 +38,7 @@ fn can_modify_headers() {
             name = "c"
         "#};
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_mock_hooks(TestHooks)
             .with_subgraph(EchoSchema)
             .with_toml_config(config)
@@ -99,7 +98,7 @@ fn can_modify_url() {
             }
         }
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_mock_hooks(TestHooks { url: subgraph.url() })
             .with_subgraph(Stateful::default())
             .with_toml_config(
@@ -166,7 +165,7 @@ fn error_is_propagated_back_to_the_user() {
     }
 
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_mock_hooks(TestHooks)
             .with_subgraph(FakeGithubSchema)
             .build()
@@ -211,7 +210,7 @@ fn error_code_is_propagated_back_to_the_user() {
     }
 
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_mock_hooks(TestHooks)
             .with_subgraph(FakeGithubSchema)
             .build()

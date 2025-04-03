@@ -1,7 +1,6 @@
 use super::APPLICATION_JSON;
-use engine::Engine;
 use graphql_mocks::FakeGithubSchema;
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 
 // If the URL is not used for other purposes, the server SHOULD use a 4xx status code to respond to a request that is not a well-formed GraphQL-over-HTTP request.
 #[rstest::rstest]
@@ -9,7 +8,7 @@ use integration_tests::{federation::EngineExt, runtime};
 #[case::post(http::Method::POST)]
 fn ill_formed_graphql_over_http_request(#[case] method: http::Method) {
     runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
 
         let response = engine
             .raw_execute(
@@ -49,7 +48,7 @@ fn ill_formed_graphql_over_http_request(#[case] method: http::Method) {
 #[case::post(http::Method::POST)]
 fn request_error(#[case] method: http::Method) {
     runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
 
         let response = engine
             .execute(method, "/graphql", "query { unknown }")
@@ -86,7 +85,7 @@ fn request_error(#[case] method: http::Method) {
 #[case::post(http::Method::POST)]
 fn field_error(#[case] method: http::Method) {
     runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
 
         let response = engine
             .execute(method, "/graphql", "query { fail }")

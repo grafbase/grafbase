@@ -1,11 +1,10 @@
 use crate::federation::extensions::field_resolver::injection::field_set::arguments::DoubleEchoExt;
-use engine::Engine;
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 
 #[test]
 fn list_coercion() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -45,7 +44,7 @@ fn list_coercion() {
 #[test]
 fn list_list_coercion() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -87,7 +86,7 @@ fn list_list_coercion() {
 #[test]
 fn incompatible_list_wrapping() {
     runtime().block_on(async move {
-        let result = Engine::builder()
+        let result = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"

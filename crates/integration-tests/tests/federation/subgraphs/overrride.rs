@@ -1,11 +1,10 @@
-use engine::Engine;
 use graphql_mocks::FederatedAccountsSchema;
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 
 #[test]
 fn simple_override() {
     let response = runtime().block_on(async {
-        let engine = Engine::builder().with_subgraph(FederatedAccountsSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FederatedAccountsSchema).build().await;
         engine
             .post(
                 r"

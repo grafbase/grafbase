@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
-use engine::{Engine, GraphqlError};
+use engine::GraphqlError;
 use engine_schema::{ExtensionDirective, FieldDefinition};
 use extension_catalog::Id;
 use integration_tests::{
-    federation::{AnyExtension, EngineExt, ExtensionsBuilder, FieldResolverTestExtension, TestManifest},
+    federation::{AnyExtension, ExtensionsBuilder, FieldResolverTestExtension, Gateway, TestManifest},
     runtime,
 };
 use runtime::extension::Data;
@@ -56,7 +56,7 @@ impl FieldResolverTestExtension for EchoJsonDataExt {
 #[test]
 fn json_template() {
     runtime().block_on(async move {
-        let response = Engine::builder()
+        let response = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -111,7 +111,7 @@ fn json_template() {
 #[test]
 fn json_should_escape_string_content() {
     runtime().block_on(async move {
-        let response = Engine::builder()
+        let response = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -143,7 +143,7 @@ fn json_should_escape_string_content() {
 #[test]
 fn json_should_render_objects_as_json() {
     runtime().block_on(async move {
-        let response = Engine::builder()
+        let response = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -180,7 +180,7 @@ fn json_should_render_objects_as_json() {
 #[test]
 fn json_should_render_lists_as_json() {
     runtime().block_on(async move {
-        let response = Engine::builder()
+        let response = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -217,7 +217,7 @@ fn json_should_render_lists_as_json() {
 #[test]
 fn iterate_object_within_list() {
     runtime().block_on(async move {
-        let response = Engine::builder()
+        let response = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -256,7 +256,7 @@ fn iterate_object_within_list() {
 #[test]
 fn iterate_string_list() {
     runtime().block_on(async move {
-        let response = Engine::builder()
+        let response = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -295,7 +295,7 @@ fn iterate_string_list() {
 #[test]
 fn object_section() {
     runtime().block_on(async move {
-        let response = Engine::builder()
+        let response = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -330,7 +330,7 @@ fn object_section() {
 #[test]
 fn string_section() {
     runtime().block_on(async move {
-        let response = Engine::builder()
+        let response = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -366,7 +366,7 @@ fn string_section() {
 #[test]
 fn null_section() {
     runtime().block_on(async move {
-        let response = Engine::builder()
+        let response = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -402,7 +402,7 @@ fn null_section() {
 #[test]
 fn int_section() {
     runtime().block_on(async move {
-        let response = Engine::builder()
+        let response = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -438,7 +438,7 @@ fn int_section() {
 #[test]
 fn boolean_section() {
     runtime().block_on(async move {
-        let response = Engine::builder()
+        let response = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"

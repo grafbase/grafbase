@@ -1,12 +1,11 @@
-use engine::Engine;
 use futures::StreamExt as _;
 use graphql_mocks::FederatedProductsSchema;
-use integration_tests::{federation::EngineExt as _, runtime};
+use integration_tests::{federation::Gateway, runtime};
 
 #[test]
 fn custom_websocket_path() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FederatedProductsSchema)
             .with_websocket_urls()
             .with_toml_config(
@@ -60,7 +59,7 @@ fn custom_websocket_path() {
 #[test]
 fn websockets_basic_no_init_payload() {
     let (first, second) = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FederatedProductsSchema)
             .with_websocket_urls()
             .build()
@@ -98,7 +97,7 @@ fn websockets_basic_no_init_payload() {
 #[test]
 fn websockets_forward_subgraph_headers() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FederatedProductsSchema)
             .with_websocket_urls()
             .with_toml_config(
@@ -146,7 +145,7 @@ fn websockets_forward_subgraph_headers() {
 #[test]
 fn websocket_connection_init_payload() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FederatedProductsSchema)
             .with_websocket_urls()
             .build()
@@ -198,7 +197,7 @@ fn websocket_connection_init_payload() {
 #[test]
 fn websocket_connection_init_payload_forwarding_disabled() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FederatedProductsSchema)
             .with_toml_config(
                 "

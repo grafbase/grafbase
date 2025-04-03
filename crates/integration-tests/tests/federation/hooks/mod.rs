@@ -5,20 +5,19 @@ mod authorize_parent_edge_post_execution;
 mod on_gateway_request;
 mod on_subgraph_request;
 
-use engine::Engine;
 use futures::Future;
 use graphql_mocks::SecureSchema;
 use integration_tests::{
-    federation::{DynamicHooks, EngineExt, TestGateway},
+    federation::{DynamicHooks, Gateway},
     runtime,
 };
 
-fn with_engine_for_auth<F, O>(hooks: impl Into<DynamicHooks>, f: impl FnOnce(TestGateway) -> F) -> O
+fn with_engine_for_auth<F, O>(hooks: impl Into<DynamicHooks>, f: impl FnOnce(Gateway) -> F) -> O
 where
     F: Future<Output = O>,
 {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(SecureSchema)
             .with_mock_hooks(hooks)
             .build()

@@ -1,12 +1,11 @@
 use cynic::{QueryBuilder, http::ReqwestExt};
 use cynic_introspection::{CapabilitiesQuery, IntrospectionQuery, SpecificationVersion};
-use engine::Engine;
 use graphql_mocks::{
     EchoSchema, FakeGithubSchema, FederatedAccountsSchema, FederatedInventorySchema, FederatedProductsSchema,
     FederatedReviewsSchema,
 };
 use indoc::indoc;
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 
 pub const PATHFINDER_INTROSPECTION_QUERY: &str = include_str!("../../data/introspection.graphql");
 
@@ -18,7 +17,7 @@ pub const CONFIG: &str = indoc! {r#"
 #[test]
 fn can_run_pathfinder_introspection_query() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FakeGithubSchema)
             .with_toml_config(CONFIG)
             .build()
@@ -94,7 +93,7 @@ fn can_run_pathfinder_introspection_query() {
 #[test]
 fn can_run_2018_introspection_query() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FakeGithubSchema)
             .with_toml_config(CONFIG)
             .build()
@@ -174,7 +173,7 @@ fn can_run_2018_introspection_query() {
 #[test]
 fn can_run_2021_introspection_query() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FakeGithubSchema)
             .with_toml_config(CONFIG)
             .build()
@@ -254,7 +253,7 @@ fn can_run_2021_introspection_query() {
 #[test]
 fn echo_subgraph_introspection() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(EchoSchema)
             .with_toml_config(CONFIG)
             .build()
@@ -315,7 +314,7 @@ fn echo_subgraph_introspection() {
 #[test]
 fn can_run_capability_introspection_query() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FakeGithubSchema)
             .with_toml_config(CONFIG)
             .build()
@@ -339,7 +338,7 @@ fn can_run_capability_introspection_query() {
 fn introspection_output_matches_source() {
     use reqwest::Client;
     let (response, _upstream_sdl) = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FakeGithubSchema)
             .with_toml_config(CONFIG)
             .build()
@@ -370,7 +369,7 @@ fn introspection_output_matches_source() {
 #[test]
 fn raw_introspetion_output() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FakeGithubSchema)
             .with_subgraph(EchoSchema)
             .with_toml_config(CONFIG)
@@ -387,7 +386,7 @@ fn raw_introspetion_output() {
 #[test]
 fn can_introsect_when_multiple_subgraphs() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FakeGithubSchema)
             .with_subgraph(EchoSchema)
             .with_toml_config(CONFIG)
@@ -501,7 +500,7 @@ fn can_introsect_when_multiple_subgraphs() {
 #[test]
 fn supports_the_type_field() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FakeGithubSchema)
             .with_toml_config(CONFIG)
             .build()
@@ -583,7 +582,7 @@ fn supports_the_type_field() {
 #[test]
 fn type_field_returns_null_on_missing_type() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_toml_config(CONFIG)
             .with_subgraph(FakeGithubSchema)
             .build()
@@ -615,7 +614,7 @@ fn type_field_returns_null_on_missing_type() {
 #[test]
 fn supports_recursing_through_types() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_toml_config(CONFIG)
             .with_subgraph(FakeGithubSchema)
             .build()
@@ -790,7 +789,7 @@ fn supports_recursing_through_types() {
 #[test]
 fn rejects_bogus_introspection_queries() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_toml_config(CONFIG)
             .with_subgraph(FakeGithubSchema)
             .build()
@@ -834,7 +833,7 @@ fn rejects_bogus_introspection_queries() {
 #[test]
 fn introspection_on_multiple_federation_subgraphs() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_toml_config(CONFIG)
             .with_subgraph(FederatedAccountsSchema)
             .with_subgraph(FederatedProductsSchema)
@@ -955,7 +954,7 @@ fn introspection_on_multiple_federation_subgraphs() {
 #[test]
 fn default_values() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_toml_config(CONFIG)
             .with_subgraph(FakeGithubSchema)
             .build()

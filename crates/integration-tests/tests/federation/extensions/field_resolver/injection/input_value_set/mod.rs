@@ -3,13 +3,12 @@ mod validation;
 mod wrapping;
 
 use crate::federation::extensions::field_resolver::validation::EchoExt;
-use engine::Engine;
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 
 #[test]
 fn basic_input_value_set() {
     runtime().block_on(async move {
-        let response = Engine::builder()
+        let response = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"

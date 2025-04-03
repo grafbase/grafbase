@@ -1,7 +1,6 @@
-use engine::Engine;
 use graphql_mocks::dynamic::DynamicSchema;
 use integration_tests::{
-    federation::{AuthorizationExt, EngineExt},
+    federation::{AuthorizationExt, Gateway},
     runtime,
 };
 
@@ -10,7 +9,7 @@ use crate::federation::extensions::authorization::{deny_all::DenyAll, user};
 #[test]
 fn required_item_required_parent() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
@@ -119,7 +118,7 @@ fn required_item_required_parent() {
 #[test]
 fn required_item_nullable_parent() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
@@ -230,7 +229,7 @@ fn required_item_nullable_parent() {
 #[test]
 fn nullable_item() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"

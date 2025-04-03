@@ -1,10 +1,9 @@
-use engine::Engine;
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 
 #[test]
 fn resolver_080() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -43,7 +42,7 @@ fn resolver_080() {
 #[test]
 fn resolver_090() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"

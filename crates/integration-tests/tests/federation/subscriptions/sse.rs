@@ -1,13 +1,12 @@
-use engine::Engine;
 use graphql_mocks::{
     FederatedAccountsSchema, FederatedInventorySchema, FederatedProductsSchema, FederatedReviewsSchema,
 };
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 
 #[test]
 fn single_subgraph_subscription() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FederatedProductsSchema)
             .with_websocket_urls()
             .build()
@@ -58,7 +57,7 @@ fn single_subgraph_subscription() {
 #[test]
 fn request_error() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FederatedProductsSchema)
             .with_websocket_urls()
             .build()
@@ -104,7 +103,7 @@ fn request_error() {
 #[test]
 fn actual_federated_subscription() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_websocket_urls()
             .with_subgraph(FederatedAccountsSchema)
             .with_subgraph(FederatedProductsSchema)

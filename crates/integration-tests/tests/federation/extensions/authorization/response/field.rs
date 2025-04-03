@@ -1,7 +1,6 @@
-use engine::Engine;
 use graphql_mocks::dynamic::{DynamicSchema, DynamicSubgraph};
 use integration_tests::{
-    federation::{AuthorizationExt, EngineExt},
+    federation::{AuthorizationExt, Gateway},
     runtime,
 };
 
@@ -46,7 +45,7 @@ fn subgraph() -> DynamicSubgraph {
 #[test]
 fn grant_object_field() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(subgraph())
             .with_extension(AuthorizationExt::new(GrantAll))
             .build()
@@ -75,7 +74,7 @@ fn grant_object_field() {
 #[test]
 fn deny_object_field_at_query_stage() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(subgraph())
             .with_extension(AuthorizationExt::new(DenySites::query(vec!["User.pets"])))
             .build()
@@ -125,7 +124,7 @@ fn deny_object_field_at_query_stage() {
 #[test]
 fn deny_object_field_at_response_stage() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(subgraph())
             .with_extension(AuthorizationExt::new(DenySites::response(vec!["User.pets"])))
             .build()
@@ -163,7 +162,7 @@ fn deny_object_field_at_response_stage() {
 #[test]
 fn grant_interface_field() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(subgraph())
             .with_extension(AuthorizationExt::new(GrantAll))
             .build()
@@ -185,7 +184,7 @@ fn grant_interface_field() {
 #[test]
 fn deny_interface_field_at_query_stage() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(subgraph())
             .with_extension(AuthorizationExt::new(DenySites::query(vec!["Node.name"])))
             .build()
@@ -237,7 +236,7 @@ fn deny_interface_field_at_query_stage() {
 #[test]
 fn deny_interface_field_at_response_stage() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(subgraph())
             .with_extension(AuthorizationExt::new(DenySites::response(vec!["Node.name"])))
             .build()

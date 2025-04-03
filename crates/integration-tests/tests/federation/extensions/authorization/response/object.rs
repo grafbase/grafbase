@@ -1,7 +1,6 @@
-use engine::Engine;
 use graphql_mocks::dynamic::{DynamicSchema, DynamicSubgraph};
 use integration_tests::{
-    federation::{AuthorizationExt, EngineExt},
+    federation::{AuthorizationExt, Gateway},
     runtime,
 };
 
@@ -57,7 +56,7 @@ fn subgraph() -> DynamicSubgraph {
 #[test]
 fn grant_object() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(subgraph())
             .with_extension(AuthorizationExt::new(GrantAll))
             .build()
@@ -79,7 +78,7 @@ fn grant_object() {
 #[test]
 fn deny_object_at_query_stage() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(subgraph())
             .with_extension(AuthorizationExt::new(DenySites::query(["User"])))
             .build()
@@ -128,7 +127,7 @@ fn deny_object_at_query_stage() {
 #[test]
 fn deny_object_at_response_stage() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(subgraph())
             .with_extension(AuthorizationExt::new(DenySites::response(["User"])))
             .build()
@@ -165,7 +164,7 @@ fn deny_object_at_response_stage() {
 #[test]
 fn grant_object_within_list() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(subgraph())
             .with_extension(AuthorizationExt::new(GrantAll))
             .build()
@@ -192,7 +191,7 @@ fn grant_object_within_list() {
 #[test]
 fn deny_object_within_list_at_query_stage() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(subgraph())
             .with_extension(AuthorizationExt::new(DenySites::query(["User"])))
             .build()
@@ -241,7 +240,7 @@ fn deny_object_within_list_at_query_stage() {
 #[test]
 fn deny_object_within_list_at_response_stage() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(subgraph())
             .with_extension(AuthorizationExt::new(DenySites::response(["User"])))
             .build()
@@ -298,7 +297,7 @@ fn deny_object_within_list_at_response_stage() {
 #[test]
 fn grant_object_within_union() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(subgraph())
             .with_extension(AuthorizationExt::new(GrantAll))
             .build()
@@ -327,7 +326,7 @@ fn grant_object_within_union() {
 #[test]
 fn deny_object_within_union_at_query_stage() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(subgraph())
             .with_extension(AuthorizationExt::new(DenySites::query(["Dog"])))
             .build()
@@ -385,7 +384,7 @@ fn deny_object_within_union_at_query_stage() {
 #[test]
 fn deny_object_within_union_at_response_stage() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(subgraph())
             .with_extension(AuthorizationExt::new(DenySites::response(["Dog"])))
             .build()
@@ -431,7 +430,7 @@ fn deny_object_within_union_at_response_stage() {
 #[test]
 fn grant_object_behind_interface() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(subgraph())
             .with_extension(AuthorizationExt::new(GrantAll))
             .build()
@@ -453,7 +452,7 @@ fn grant_object_behind_interface() {
 #[test]
 fn deny_object_behind_interface_at_query_stage() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(subgraph())
             .with_extension(AuthorizationExt::new(DenySites::query(["User"])))
             .build()
@@ -503,7 +502,7 @@ fn deny_object_behind_interface_at_query_stage() {
 #[test]
 fn deny_object_behind_interface_at_response_stage() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(subgraph())
             .with_extension(AuthorizationExt::new(DenySites::response(["User"])))
             .build()

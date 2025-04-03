@@ -2,9 +2,8 @@ mod application_graphql_response_json;
 mod application_json;
 mod batch;
 
-use engine::Engine;
 use graphql_mocks::{FakeGithubSchema, Stateful};
-use integration_tests::{federation::EngineExt, openid::JWKS_URI, runtime};
+use integration_tests::{federation::Gateway, openid::JWKS_URI, runtime};
 
 const APPLICATION_JSON: &str = "application/json";
 const APPLICATION_GRAPHQL_RESPONSE_JSON: &str = "application/graphql-response+json";
@@ -28,7 +27,7 @@ fn authentication_returns_401(#[case] method: http::Method, #[case] accept: &'st
             url = "{JWKS_URI}"
         "#};
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FakeGithubSchema)
             .with_toml_config(config)
             .build()
@@ -60,7 +59,7 @@ fn authentication_returns_401(#[case] method: http::Method, #[case] accept: &'st
 #[test]
 fn missing_accept_header() {
     runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
 
         let response = engine
             .raw_execute(
@@ -95,7 +94,7 @@ fn missing_accept_header() {
 #[test]
 fn star_accept_header_should_be_accepted() {
     runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
 
         let response = engine
             .raw_execute(
@@ -164,7 +163,7 @@ fn star_accept_header_should_be_accepted() {
 #[test]
 fn unsupported_accept_header() {
     runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
 
         let response = engine
             .raw_execute(
@@ -198,7 +197,7 @@ fn unsupported_accept_header() {
 #[test]
 fn one_valid_acccept_header() {
     runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
 
         let response = engine
             .raw_execute(
@@ -242,7 +241,7 @@ fn one_valid_acccept_header() {
 #[case::gql_json(APPLICATION_GRAPHQL_RESPONSE_JSON)]
 fn missing_content_type(#[case] accept: &'static str) {
     runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
 
         let response = engine
             .raw_execute(
@@ -278,7 +277,7 @@ fn missing_content_type(#[case] accept: &'static str) {
 #[case::gql_json(APPLICATION_GRAPHQL_RESPONSE_JSON)]
 fn content_type_with_parameters(#[case] accept: &'static str) {
     runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
 
         let response = engine
             .raw_execute(
@@ -323,7 +322,7 @@ fn content_type_with_parameters(#[case] accept: &'static str) {
 #[case::gql_json(APPLICATION_GRAPHQL_RESPONSE_JSON)]
 fn get_must_not_be_used_for_mutations(#[case] accept: &'static str) {
     runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(Stateful::default()).build().await;
+        let engine = Gateway::builder().with_subgraph(Stateful::default()).build().await;
 
         // Query should work
         let response = engine.get("query { value }").header(http::header::ACCEPT, accept).await;
@@ -364,7 +363,7 @@ fn get_must_not_be_used_for_mutations(#[case] accept: &'static str) {
 #[case::gql_json(APPLICATION_GRAPHQL_RESPONSE_JSON)]
 fn get_must_not_be_used_for_mutations_with_sse(#[case] accept: &'static str) {
     runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(Stateful::default()).build().await;
+        let engine = Gateway::builder().with_subgraph(Stateful::default()).build().await;
 
         let accept = format!("text/event-stream,{accept};q=0.9");
 

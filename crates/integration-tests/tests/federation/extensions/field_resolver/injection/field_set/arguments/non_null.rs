@@ -1,12 +1,10 @@
-use engine::Engine;
-
 use crate::federation::extensions::field_resolver::injection::field_set::arguments::DoubleEchoExt;
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 
 #[test]
 fn unexpected_null() {
     runtime().block_on(async move {
-        let result = Engine::builder()
+        let result = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -36,7 +34,7 @@ fn unexpected_null() {
 #[test]
 fn missing_required_argument() {
     runtime().block_on(async move {
-        let result = Engine::builder()
+        let result = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -66,7 +64,7 @@ fn missing_required_argument() {
 #[test]
 fn missing_nullable_argument() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -102,7 +100,7 @@ fn missing_nullable_argument() {
 #[test]
 fn distinguish_providing_null_from_not_present() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"

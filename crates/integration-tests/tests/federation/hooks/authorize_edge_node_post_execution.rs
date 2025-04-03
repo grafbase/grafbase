@@ -1,11 +1,11 @@
 use std::sync::{Arc, atomic::AtomicBool};
 
 use super::with_engine_for_auth;
-use engine::{Engine, ErrorCode, ErrorResponse, GraphqlError};
+use engine::{ErrorCode, ErrorResponse, GraphqlError};
 use graphql_mocks::dynamic::{DynamicSchema, EntityResolverContext};
 use http::HeaderMap;
 use integration_tests::{
-    federation::{DynHookContext, DynHooks, EngineExt},
+    federation::{DynHookContext, DynHooks, Gateway},
     runtime,
 };
 use runtime::hooks::EdgeDefinition;
@@ -37,7 +37,7 @@ fn single_decision_applies_to_all() {
     runtime().block_on(async move {
         let hooks = TestHooks::default();
 
-        let gateway = Engine::builder()
+        let gateway = Gateway::builder()
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
@@ -158,7 +158,7 @@ fn continue_execution() {
     }
 
     runtime().block_on(async move {
-        let gateway = Engine::builder()
+        let gateway = Gateway::builder()
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"

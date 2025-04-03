@@ -1,5 +1,4 @@
-use engine::Engine;
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 
 use super::EchoExt;
 
@@ -7,7 +6,7 @@ use super::EchoExt;
 fn invalid_location() {
     runtime().block_on(async move {
         // Invalid field directive
-        let result = Engine::builder()
+        let result = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -37,7 +36,7 @@ fn invalid_location() {
         "#);
 
         // Invalid schema directive
-        let result = Engine::builder()
+        let result = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"

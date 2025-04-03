@@ -1,7 +1,6 @@
-use engine::Engine;
 use graphql_mocks::dynamic::DynamicSchema;
 use integration_tests::{
-    federation::{AuthorizationExt, EngineExt},
+    federation::{AuthorizationExt, Gateway},
     runtime,
 };
 
@@ -10,7 +9,7 @@ use crate::federation::extensions::authorization::deny_some::DenySites;
 #[test]
 fn scalar() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"

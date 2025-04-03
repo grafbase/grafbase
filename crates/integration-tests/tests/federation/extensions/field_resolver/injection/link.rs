@@ -1,12 +1,11 @@
-use engine::Engine;
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 
 use crate::federation::extensions::basic::GreetExt;
 
 #[test]
 fn invalid_link() {
     runtime().block_on(async move {
-        let result = Engine::builder()
+        let result = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -39,7 +38,7 @@ fn invalid_link() {
 #[test]
 fn valid_link() {
     runtime().block_on(async move {
-        let result = Engine::builder()
+        let result = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"

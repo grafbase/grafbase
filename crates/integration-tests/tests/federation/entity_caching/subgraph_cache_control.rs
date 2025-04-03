@@ -1,9 +1,8 @@
 use std::time::Duration;
 
-use engine::Engine;
 use graphql_mocks::{FederatedInventorySchema, FederatedProductsSchema, FederatedReviewsSchema};
 use headers::{Age, CacheControl};
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 
 struct CacheControlReviewSubgraph {
     header: CacheControl,
@@ -53,7 +52,7 @@ impl graphql_mocks::Subgraph for CacheControlProductSubgraph {
 #[test]
 fn test_private_cache_control_entity_request() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FederatedProductsSchema)
             .with_subgraph(CacheControlReviewSubgraph {
                 header: CacheControl::new().with_private(),
@@ -90,7 +89,7 @@ fn test_private_cache_control_entity_request() {
 #[test]
 fn test_nostore_cache_control_entity_request() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FederatedProductsSchema)
             .with_subgraph(CacheControlReviewSubgraph {
                 header: CacheControl::new().with_no_store(),
@@ -127,7 +126,7 @@ fn test_nostore_cache_control_entity_request() {
 #[test]
 fn test_max_age_without_age_entity_request() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FederatedProductsSchema)
             .with_subgraph(CacheControlReviewSubgraph {
                 header: CacheControl::new().with_max_age(Duration::from_secs(1)),
@@ -168,7 +167,7 @@ fn test_max_age_without_age_entity_request() {
 #[test]
 fn test_max_age_with_age_entity_request() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FederatedProductsSchema)
             .with_subgraph(CacheControlReviewSubgraph {
                 header: CacheControl::new().with_max_age(Duration::from_secs(2)),
@@ -209,7 +208,7 @@ fn test_max_age_with_age_entity_request() {
 #[test]
 fn test_private_cache_control_root_request() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(CacheControlProductSubgraph {
                 header: CacheControl::new().with_private(),
                 age: None,
@@ -246,7 +245,7 @@ fn test_private_cache_control_root_request() {
 #[test]
 fn test_nostore_cache_control_root_request() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(CacheControlProductSubgraph {
                 header: CacheControl::new().with_no_store(),
                 age: None,
@@ -283,7 +282,7 @@ fn test_nostore_cache_control_root_request() {
 #[test]
 fn test_max_age_without_age_root_request() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(CacheControlProductSubgraph {
                 header: CacheControl::new().with_max_age(Duration::from_secs(1)),
                 age: None,
@@ -324,7 +323,7 @@ fn test_max_age_without_age_root_request() {
 #[test]
 fn test_max_age_with_age_root_request() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(CacheControlProductSubgraph {
                 header: CacheControl::new().with_max_age(Duration::from_secs(2)),
                 age: Some(Age::from_secs(1)),

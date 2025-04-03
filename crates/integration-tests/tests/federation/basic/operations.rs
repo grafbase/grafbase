@@ -1,11 +1,10 @@
-use engine::Engine;
 use graphql_mocks::FakeGithubSchema;
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 
 #[test]
 fn multiple_operations_without_providing_operation_name_in_request() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
 
         engine
             .post(
@@ -44,7 +43,7 @@ fn multiple_operations_without_providing_operation_name_in_request() {
 #[test]
 fn multiple_operations() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
 
         engine
             .post(
@@ -86,7 +85,7 @@ fn multiple_operations() {
 #[test]
 fn only_one_named_operation() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
 
         engine
             .post(
@@ -120,7 +119,7 @@ fn only_one_named_operation() {
 #[test]
 fn unknown_operation_name() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
 
         engine
             .post(

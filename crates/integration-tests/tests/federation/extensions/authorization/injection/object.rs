@@ -1,7 +1,6 @@
-use engine::Engine;
 use graphql_mocks::dynamic::{DynamicSchema, DynamicSubgraph};
 use integration_tests::{
-    federation::{AuthorizationExt, EngineExt},
+    federation::{AuthorizationExt, Gateway},
     runtime,
 };
 
@@ -75,7 +74,7 @@ fn subgraph() -> DynamicSubgraph {
 #[test]
 fn object() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(subgraph())
             .with_extension(AuthorizationExt::new(EchoInjections))
             .build()
@@ -134,7 +133,7 @@ fn object() {
 #[test]
 fn object_within_list() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(subgraph())
             .with_extension(AuthorizationExt::new(EchoInjections))
             .build()
@@ -245,7 +244,7 @@ fn object_within_list() {
 #[test]
 fn object_within_union() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(subgraph())
             .with_extension(AuthorizationExt::new(EchoInjections))
             .build()
@@ -313,7 +312,7 @@ fn object_within_union() {
 #[test]
 fn object_behind_interface() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(subgraph())
             .with_extension(AuthorizationExt::new(EchoInjections))
             .build()

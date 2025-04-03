@@ -1,11 +1,10 @@
 use crate::federation::extensions::field_resolver::validation::EchoExt;
-use engine::Engine;
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 
 #[test]
 fn invalid_location_but_not_used() {
     runtime().block_on(async move {
-        let result = Engine::builder()
+        let result = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -36,7 +35,7 @@ fn invalid_location_but_not_used() {
 #[test]
 fn invalid_location() {
     runtime().block_on(async move {
-        let result = Engine::builder()
+        let result = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -71,7 +70,7 @@ fn invalid_location() {
 #[test]
 fn unknown_field() {
     runtime().block_on(async move {
-        let result = Engine::builder()
+        let result = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -116,7 +115,7 @@ fn unknown_field() {
 #[test]
 fn unknown_nested_field() {
     runtime().block_on(async move {
-        let result = Engine::builder()
+        let result = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -161,7 +160,7 @@ fn unknown_nested_field() {
 #[test]
 fn cannot_have_selection_set() {
     runtime().block_on(async move {
-        let result = Engine::builder()
+        let result = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -206,7 +205,7 @@ fn cannot_have_selection_set() {
 #[test]
 fn cannot_have_fragments() {
     runtime().block_on(async move {
-        let result = Engine::builder()
+        let result = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
@@ -251,7 +250,7 @@ fn cannot_have_fragments() {
 #[test]
 fn must_be_valid_selection_set() {
     runtime().block_on(async move {
-        let result = Engine::builder()
+        let result = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"

@@ -1,6 +1,5 @@
-use engine::Engine;
 use graphql_mocks::dynamic::DynamicSchema;
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 use rand::{Rng as _, distributions::Alphanumeric};
 
 #[test]
@@ -12,7 +11,7 @@ fn supports_zstd_compression() {
             .map(char::from)
             .collect();
 
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(
                 DynamicSchema::builder(r#"type Query { str: String! }"#)
                     .with_resolver("Query", "str", serde_json::Value::String(s.clone()))

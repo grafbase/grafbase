@@ -1,7 +1,6 @@
-use engine::Engine;
 use graphql_mocks::dynamic::{DynamicSchema, DynamicSubgraph};
 use integration_tests::{
-    federation::{AuthorizationExt, EngineExt},
+    federation::{AuthorizationExt, Gateway},
     runtime,
 };
 
@@ -50,7 +49,7 @@ fn subgraph() -> DynamicSubgraph {
 #[test]
 fn object_field() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(subgraph())
             .with_extension(AuthorizationExt::new(EchoInjections))
             .build()
@@ -115,7 +114,7 @@ fn object_field() {
 #[test]
 fn interface_field() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(subgraph())
             .with_extension(AuthorizationExt::new(EchoInjections))
             .build()

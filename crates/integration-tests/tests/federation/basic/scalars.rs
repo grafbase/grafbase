@@ -1,12 +1,11 @@
-use engine::Engine;
 use graphql_mocks::{AlmostEmptySchema, FakeGithubSchema, dynamic::DynamicSchema};
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 use serde_json::json;
 
 #[test]
 fn should_not_raise_an_error_on_null_for_required_json() {
     runtime().block_on(async move {
-        let gateway = Engine::builder()
+        let gateway = Gateway::builder()
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
@@ -40,7 +39,7 @@ fn should_not_raise_an_error_on_null_for_required_json() {
 #[test]
 fn supports_custom_scalars() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
 
         engine.post("query { favoriteRepository }").await
     });
@@ -60,7 +59,7 @@ fn supports_custom_scalars() {
 #[test]
 fn supports_unused_builtin_scalars() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(AlmostEmptySchema).build().await;
+        let engine = Gateway::builder().with_subgraph(AlmostEmptySchema).build().await;
 
         engine
             .post("query Blah($id: ID!) { string(input: $id) }")
@@ -94,7 +93,7 @@ fn supports_unused_builtin_scalars() {
 #[test]
 fn coerces_ints_to_floats() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
@@ -124,7 +123,7 @@ fn coerces_ints_to_floats() {
 #[test]
 fn coerces_floats_to_ints_where_possible() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
@@ -154,7 +153,7 @@ fn coerces_floats_to_ints_where_possible() {
 #[test]
 fn refuses_to_lose_precision_when_converting_floats_to_ints() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
@@ -195,7 +194,7 @@ fn refuses_to_lose_precision_when_converting_floats_to_ints() {
 #[test]
 fn coerces_variable_ints_to_floats() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
@@ -228,7 +227,7 @@ fn coerces_variable_ints_to_floats() {
 #[test]
 fn coerces_variable_floats_to_ints_where_possible() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
@@ -261,7 +260,7 @@ fn coerces_variable_floats_to_ints_where_possible() {
 #[test]
 fn refuses_to_lose_precision_when_converting_variable_floats_to_ints() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"

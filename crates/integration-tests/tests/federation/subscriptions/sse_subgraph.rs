@@ -1,9 +1,8 @@
 use std::future::IntoFuture;
 
-use engine::Engine;
 use futures::FutureExt;
 use integration_tests::{
-    federation::{DockerSubgraph, EngineExt},
+    federation::{DockerSubgraph, Gateway},
     runtime,
 };
 use pretty_assertions::assert_eq;
@@ -12,7 +11,7 @@ use serde_json::json;
 #[test]
 fn docker_see_subgraph_is_working() {
     let response = runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_docker_subgraph(DockerSubgraph::Sse)
             .build()
             .await;
@@ -40,7 +39,7 @@ fn docker_see_subgraph_is_working() {
 #[test]
 fn sse_subgraph_subscription() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_docker_subgraph(DockerSubgraph::Sse)
             .build()
             .await;
@@ -110,7 +109,7 @@ fn sse_subgraph_subscription() {
 fn gqlgen_subgraph_sse_subscription_with_initial_data() {
     let user = ulid::Ulid::new().to_string();
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_docker_subgraph(DockerSubgraph::Gqlgen)
             .with_toml_config(
                 r#"
@@ -184,7 +183,7 @@ fn gqlgen_subgraph_sse_subscription_with_initial_data() {
 fn gqlgen_subgraph_sse_subscription_without_initial_data() {
     let user = ulid::Ulid::new().to_string();
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_docker_subgraph(DockerSubgraph::Gqlgen)
             .with_toml_config(
                 r#"

@@ -1,6 +1,5 @@
-use engine::Engine;
 use graphql_mocks::dynamic::DynamicSchema;
-use integration_tests::{federation::EngineExt, fetch::MockFetch, runtime};
+use integration_tests::{federation::Gateway, fetch::MockFetch, runtime};
 use serde_json::json;
 
 #[test]
@@ -41,7 +40,7 @@ fn gb6873_wrong_enum_sent_to_subgraph() {
 
     runtime().block_on(async move {
         let fetcher = MockFetch::default().with_responses("a", vec![json!({"data": {"doStuff": "Hi!"}})]);
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_federated_sdl(SDL)
             .with_mock_fetcher(fetcher.clone())
             .build()
@@ -162,7 +161,7 @@ fn gb7323_join_field_may_not_be_present() {
 
     runtime().block_on(async move {
         let fetcher = MockFetch::default().with_responses("localhost", vec![json!({"data": {"product": {"id": "1"}}})]);
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_federated_sdl(SDL)
             .with_mock_fetcher(fetcher.clone())
             .build()
@@ -191,7 +190,7 @@ fn gb7323_join_field_may_not_be_present() {
 #[test]
 fn gb8273_gateway_reports_missing_fields_present_in_subgraph_response() {
     runtime().block_on(async move {
-        let gateway = Engine::builder()
+        let gateway = Gateway::builder()
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"

@@ -1,15 +1,14 @@
-use engine::Engine;
 use graphql_mocks::{
     FakeGithubSchema, FederatedAccountsSchema, FederatedInventorySchema, FederatedProductsSchema,
     FederatedReviewsSchema, FederatedShippingSchema,
     dynamic::{DynamicSchema, ServerError},
 };
-use integration_tests::{federation::EngineExt, runtime};
+use integration_tests::{federation::Gateway, runtime};
 
 #[test]
 fn grafbase_extension_on_successful_request() {
     runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
 
         let response = engine
             .post("query { serverVersion }")
@@ -49,7 +48,7 @@ fn grafbase_extension_on_successful_request() {
 #[test]
 fn dot_not_include_query_plan() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FakeGithubSchema)
             .with_toml_config(
                 r#"
@@ -86,7 +85,7 @@ fn dot_not_include_query_plan() {
 #[test]
 fn dot_not_include_trace_id() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FakeGithubSchema)
             .with_toml_config(
                 r#"
@@ -134,7 +133,7 @@ fn dot_not_include_trace_id() {
 #[test]
 fn grafbase_extension_on_subgraph_error() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(
                 DynamicSchema::builder(r#"type Query { hi: String }"#)
                     .with_resolver("Query", "hi", ServerError::new("Failed", None))
@@ -186,7 +185,7 @@ fn grafbase_extension_on_subgraph_error() {
 #[test]
 fn grafbase_extension_on_invalid_request() {
     runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
 
         let response = engine.post("query x }").header("x-grafbase-telemetry", "yes").await;
 
@@ -222,7 +221,7 @@ fn grafbase_extension_on_invalid_request() {
 #[test]
 fn grafbase_extension_secret_value() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FakeGithubSchema)
             .with_toml_config(
                 r#"
@@ -303,7 +302,7 @@ fn grafbase_extension_secret_value() {
 #[test]
 fn grafbase_extension_denied() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FakeGithubSchema)
             .with_toml_config(
                 r#"
@@ -336,7 +335,7 @@ fn grafbase_extension_denied() {
 #[test]
 fn grafbase_extension_on_ill_formed_graphql_over_http_request() {
     runtime().block_on(async move {
-        let engine = Engine::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
 
         let response = engine
             .raw_execute(
@@ -379,7 +378,7 @@ fn grafbase_extension_on_ill_formed_graphql_over_http_request() {
 #[test]
 fn complex_query_plan() {
     runtime().block_on(async move {
-        let engine = Engine::builder()
+        let engine = Gateway::builder()
             .with_subgraph(FederatedAccountsSchema)
             .with_subgraph(FederatedProductsSchema)
             .with_subgraph(FederatedReviewsSchema)
