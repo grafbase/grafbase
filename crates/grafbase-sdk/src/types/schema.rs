@@ -21,12 +21,12 @@ impl<'a> SubgraphSchema<'a> {
     }
 
     /// Iterator over the definitions in this schema
-    pub fn definitions(&self) -> impl ExactSizeIterator<Item = Definition<'a>> {
+    pub fn definitions(&self) -> impl ExactSizeIterator<Item = Definition<'a>> + 'a {
         self.schema.definitions.iter().map(Into::into)
     }
 
     /// Iterator over the directives applied to this schema
-    pub fn directives(&self) -> impl ExactSizeIterator<Item = Directive<'a>> {
+    pub fn directives(&self) -> impl ExactSizeIterator<Item = Directive<'a>> + 'a {
         self.schema.directives.iter().map(Into::into)
     }
 }
@@ -35,7 +35,12 @@ impl<'a> SubgraphSchema<'a> {
 ///
 /// Provides a unique reference to different types of schema definitions such as
 /// scalars, objects, interfaces, and other type definitions.
-pub struct DefinitionId(u32);
+///
+/// There is no particular guarantee on the nature of the u32, it could be a `u32::MAX`. It's only
+/// ensured to be unique. It's recommended to use the `fxhash::FxHasher32` with a hashmap for best
+/// performance.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
+pub struct DefinitionId(pub(crate) u32);
 
 impl From<DefinitionId> for u32 {
     fn from(id: DefinitionId) -> u32 {
@@ -88,7 +93,7 @@ impl<'a> ScalarDefinition<'a> {
     }
 
     /// Name of the scalar type
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> &'a str {
         self.0.name.as_str()
     }
 
@@ -96,12 +101,12 @@ impl<'a> ScalarDefinition<'a> {
     ///
     /// The specified by URL is used with custom scalars to point to
     /// a specification for how the scalar should be validated and parsed.
-    pub fn specified_by_url(&self) -> Option<&str> {
+    pub fn specified_by_url(&self) -> Option<&'a str> {
         self.0.specified_by_url.as_deref()
     }
 
     /// Iterator over the directives applied to this scalar
-    pub fn directives(&self) -> impl ExactSizeIterator<Item = Directive<'a>> {
+    pub fn directives(&self) -> impl ExactSizeIterator<Item = Directive<'a>> + 'a {
         self.0.directives.iter().map(Into::into)
     }
 }
@@ -122,22 +127,22 @@ impl<'a> ObjectDefinition<'a> {
     }
 
     /// Name of the object type
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> &'a str {
         self.0.name.as_str()
     }
 
     /// Iterator over the fields defined in this object
-    pub fn fields(&self) -> impl ExactSizeIterator<Item = FieldDefinition<'a>> {
+    pub fn fields(&self) -> impl ExactSizeIterator<Item = FieldDefinition<'a>> + 'a {
         self.0.fields.iter().map(Into::into)
     }
 
     /// Iterator over the interfaces implemented by this object
-    pub fn interfaces(&self) -> impl ExactSizeIterator<Item = DefinitionId> {
+    pub fn interfaces(&self) -> impl ExactSizeIterator<Item = DefinitionId> + 'a {
         self.0.interfaces.iter().map(|&id| DefinitionId(id))
     }
 
     /// Iterator over the directives applied to this object
-    pub fn directives(&self) -> impl ExactSizeIterator<Item = Directive<'a>> {
+    pub fn directives(&self) -> impl ExactSizeIterator<Item = Directive<'a>> + 'a {
         self.0.directives.iter().map(Into::into)
     }
 }
@@ -161,22 +166,22 @@ impl<'a> InterfaceDefinition<'a> {
     }
 
     /// Name of the interface type
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> &'a str {
         self.0.name.as_str()
     }
 
     /// Iterator over the fields defined in this interface
-    pub fn fields(&self) -> impl ExactSizeIterator<Item = FieldDefinition<'a>> {
+    pub fn fields(&self) -> impl ExactSizeIterator<Item = FieldDefinition<'a>> + 'a {
         self.0.fields.iter().map(Into::into)
     }
 
     /// Iterator over the interfaces implemented by this interface
-    pub fn interfaces(&self) -> impl ExactSizeIterator<Item = DefinitionId> {
+    pub fn interfaces(&self) -> impl ExactSizeIterator<Item = DefinitionId> + 'a {
         self.0.interfaces.iter().map(|&id| DefinitionId(id))
     }
 
     /// Iterator over the directives applied to this interface
-    pub fn directives(&self) -> impl ExactSizeIterator<Item = Directive<'a>> {
+    pub fn directives(&self) -> impl ExactSizeIterator<Item = Directive<'a>> + 'a {
         self.0.directives.iter().map(Into::into)
     }
 }
@@ -199,17 +204,17 @@ impl<'a> UnionDefinition<'a> {
     }
 
     /// Name of the union type
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> &'a str {
         self.0.name.as_str()
     }
 
     /// Iterator over the member types that are part of this union
-    pub fn member_types(&self) -> impl ExactSizeIterator<Item = DefinitionId> {
+    pub fn member_types(&self) -> impl ExactSizeIterator<Item = DefinitionId> + 'a {
         self.0.member_types.iter().map(|&id| DefinitionId(id))
     }
 
     /// Iterator over the directives applied to this union
-    pub fn directives(&self) -> impl ExactSizeIterator<Item = Directive<'a>> {
+    pub fn directives(&self) -> impl ExactSizeIterator<Item = Directive<'a>> + 'a {
         self.0.directives.iter().map(Into::into)
     }
 }
@@ -232,17 +237,17 @@ impl<'a> EnumDefinition<'a> {
     }
 
     /// Name of the enum type
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> &'a str {
         self.0.name.as_str()
     }
 
     /// Iterator over the possible values for this enum
-    pub fn values(&self) -> impl ExactSizeIterator<Item = EnumValue<'a>> {
+    pub fn values(&self) -> impl ExactSizeIterator<Item = EnumValue<'a>> + 'a {
         self.0.values.iter().map(Into::into)
     }
 
     /// Iterator over the directives applied to this enum
-    pub fn directives(&self) -> impl ExactSizeIterator<Item = Directive<'a>> {
+    pub fn directives(&self) -> impl ExactSizeIterator<Item = Directive<'a>> + 'a {
         self.0.directives.iter().map(Into::into)
     }
 }
@@ -266,17 +271,17 @@ impl<'a> InputObjectDefinition<'a> {
     }
 
     /// Name of the input object type
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> &'a str {
         self.0.name.as_str()
     }
 
     /// Iterator over the input fields defined in this input object
-    pub fn input_fields(&self) -> impl ExactSizeIterator<Item = InputValueDefinition<'a>> {
+    pub fn input_fields(&self) -> impl ExactSizeIterator<Item = InputValueDefinition<'a>> + 'a {
         self.0.input_fields.iter().map(Into::into)
     }
 
     /// Iterator over the directives applied to this input object
-    pub fn directives(&self) -> impl ExactSizeIterator<Item = Directive<'a>> {
+    pub fn directives(&self) -> impl ExactSizeIterator<Item = Directive<'a>> + 'a {
         self.0.directives.iter().map(Into::into)
     }
 }
@@ -300,7 +305,7 @@ impl<'a> FieldDefinition<'a> {
     }
 
     /// Name of the field
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> &'a str {
         self.0.name.as_str()
     }
 
@@ -310,12 +315,12 @@ impl<'a> FieldDefinition<'a> {
     }
 
     /// Iterator over the arguments that can be passed to this field
-    pub fn arguments(&self) -> impl ExactSizeIterator<Item = InputValueDefinition<'a>> {
+    pub fn arguments(&self) -> impl ExactSizeIterator<Item = InputValueDefinition<'a>> + 'a {
         self.0.arguments.iter().map(Into::into)
     }
 
     /// Iterator over the directives applied to this field
-    pub fn directives(&self) -> impl ExactSizeIterator<Item = Directive<'a>> {
+    pub fn directives(&self) -> impl ExactSizeIterator<Item = Directive<'a>> + 'a {
         self.0.directives.iter().map(Into::into)
     }
 }
@@ -332,10 +337,10 @@ impl<'a> From<&'a wit::Ty> for Type<'a> {
     }
 }
 
-impl Type<'_> {
+impl<'a> Type<'a> {
     /// Iterator over the type wrappers applied to this type
-    /// From the outermost to the innermost wrapper.
-    pub fn wrapping(&self) -> impl ExactSizeIterator<Item = WrappingType> {
+    /// From the innermost to the outermost
+    pub fn wrapping(&self) -> impl ExactSizeIterator<Item = WrappingType> + 'a {
         self.0.wrapping.iter().map(|&w| w.into())
     }
 
@@ -383,7 +388,7 @@ impl<'a> InputValueDefinition<'a> {
     }
 
     /// Name of the input value
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> &'a str {
         self.0.name.as_str()
     }
 
@@ -393,7 +398,7 @@ impl<'a> InputValueDefinition<'a> {
     }
 
     /// Iterator over the directives applied to this input value
-    pub fn directives(&self) -> impl ExactSizeIterator<Item = Directive<'a>> {
+    pub fn directives(&self) -> impl ExactSizeIterator<Item = Directive<'a>> + 'a {
         self.0.directives.iter().map(Into::into)
     }
 }
@@ -409,12 +414,12 @@ impl<'a> From<&'a wit::EnumValue> for EnumValue<'a> {
 
 impl<'a> EnumValue<'a> {
     /// Name of this enum value
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> &'a str {
         self.0.name.as_str()
     }
 
     /// Iterator over the directives applied to this enum value
-    pub fn directives(&self) -> impl ExactSizeIterator<Item = Directive<'a>> {
+    pub fn directives(&self) -> impl ExactSizeIterator<Item = Directive<'a>> + 'a {
         self.0.directives.iter().map(Into::into)
     }
 }
@@ -433,7 +438,7 @@ impl<'a> From<&'a wit::Directive> for Directive<'a> {
 
 impl<'a> Directive<'a> {
     /// Name of the directive
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> &'a str {
         self.0.name.as_str()
     }
 

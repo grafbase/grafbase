@@ -1,3 +1,5 @@
+mod backwards_compatibility;
+
 use std::sync::Arc;
 
 use engine::GraphqlError;

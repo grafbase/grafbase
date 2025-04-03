@@ -1,0 +1,19 @@
+[package]
+name = "selection-set-resolver-014"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+repository.workspace = true
+
+[dependencies]
+grafbase-sdk.workspace = true
+http.workspace = true
+rkyv.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+serde_with.workspace = true
+
+[lib]
+crate-type = ["cdylib"]

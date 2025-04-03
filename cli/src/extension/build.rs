@@ -87,6 +87,7 @@ enum ExtensionType {
     Resolver,
     Authentication,
     Authorization,
+    SelectionSetResolver,
 }
 
 #[derive(Default, serde::Deserialize)]
@@ -252,6 +253,7 @@ fn parse_manifest(source_dir: &Path, wasm_path: &Path) -> anyhow::Result<Manifes
         ExtensionType::Authorization => Type::Authorization(extension::AuthorizationType {
             authorization_directives: extension_toml.directives.authorization,
         }),
+        ExtensionType::SelectionSetResolver => Type::SelectionSetResolver(Default::default()),
     };
 
     let sdl_path = extension_toml
