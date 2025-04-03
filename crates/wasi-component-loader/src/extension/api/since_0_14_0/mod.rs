@@ -21,5 +21,7 @@ pub mod world {
     pub use sdk::headers::{HeaderError, Headers};
     pub use sdk::http_client::{HttpClient, HttpError, HttpMethod, HttpRequest, HttpResponse};
     pub use sdk::nats_client::{NatsAuth, NatsKeyValue, NatsStreamConfig, NatsStreamDeliverPolicy, NatsSubscriber};
+    pub use sdk::resolver_types::Data;
+    pub use sdk::selection_set_resolver_types::{ArgumentsId, Field, FieldId, SelectionSet};
     pub use sdk::token::{TokenParam, TokenResult as Token};
 }

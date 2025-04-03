@@ -34,12 +34,7 @@ impl SelectionSetResolverExtension {
         let prepared_data = ctx
             .runtime()
             .extensions()
-            .prepare(
-                definition.extension_id,
-                definition.subgraph().into(),
-                field.definition(),
-                field.selection_set(),
-            )
+            .prepare(definition.extension_id, definition.subgraph().into(), field)
             // FIXME: Unfortunately, boxing seems to be the only solution for the bug explained here:
             //        https://github.com/rust-lang/rust/issues/110338#issuecomment-1513761297
             .boxed()

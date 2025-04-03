@@ -1,6 +1,5 @@
 use operation::Location;
 use query_solver::QueryOrSchemaFieldArgumentIds;
-use runtime::extension::SelectionSet;
 use schema::FieldDefinition;
 use walker::Walk;
 
@@ -91,6 +90,10 @@ impl<'a> runtime::extension::Field<'a> for SubgraphField<'a> {
             Some(selection_set)
         }
     }
+
+    fn as_dyn(&self) -> Box<dyn runtime::extension::DynField<'a>> {
+        Box::new(*self)
+    }
 }
 
 impl<'a> runtime::extension::DynField<'a> for SubgraphField<'a> {
@@ -104,6 +107,7 @@ impl<'a> runtime::extension::DynField<'a> for SubgraphField<'a> {
         runtime::extension::Field::arguments(self)
     }
     fn selection_set(&self) -> Option<Box<dyn runtime::extension::DynSelectionSet<'a>>> {
-        runtime::extension::Field::selection_set(self).map(|s| s.as_dyn())
+        runtime::extension::Field::selection_set(self)
+            .map(|s| -> Box<dyn runtime::extension::DynSelectionSet<'a>> { Box::new(s) })
     }
 }
