@@ -4,6 +4,7 @@ use std::sync::Arc;
 
 use futures::StreamExt;
 use runtime::extension::Token;
+use sqlx::Postgres;
 
 pub use crate::access_log::AccessLogSender;
 pub use crate::context::SharedContext;
@@ -16,6 +17,11 @@ pub struct SharedResources {
 
 pub type NatsClient = async_nats::Client;
 pub type NatsKeyValue = async_nats::jetstream::kv::Store;
+
+pub type PgPool = sqlx::Pool<Postgres>;
+pub type PgConnection = sqlx::pool::PoolConnection<Postgres>;
+pub type PgTransaction = sqlx::Transaction<'static, Postgres>;
+pub type PgRow = sqlx::postgres::PgRow;
 
 pub enum NatsSubscriber {
     Stream(async_nats::jetstream::consumer::pull::Stream),

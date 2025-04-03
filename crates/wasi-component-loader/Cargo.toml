@@ -29,6 +29,14 @@ runtime.workspace = true
 semver.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+sqlx = { workspace = true, default-features = false, features = [
+    "sqlx-postgres",
+    "json",
+    "runtime-tokio",
+    "tls-rustls-aws-lc-rs",
+    "tls-rustls-ring-native-roots",
+    "postgres",
+] }
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 time.workspace = true
@@ -38,6 +46,7 @@ toml.workspace = true
 tracing.workspace = true
 ulid.workspace = true
 url.workspace = true
+uuid.workspace = true
 wasmtime.workspace = true
 wasmtime-wasi.workspace = true
 wasmtime-wasi-http.workspace = true

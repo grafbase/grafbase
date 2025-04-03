@@ -1,5 +1,6 @@
 pub mod authorization_types;
 pub mod field_resolver_types;
+pub mod postgres;
 pub mod resolver_types;
 pub mod schema;
 pub mod selection_set_resolver_types;
@@ -17,6 +18,10 @@ wasmtime::component::bindgen!({
         "grafbase:sdk/error": crate::extension::api::since_0_9_0::wit::error,
         "grafbase:sdk/token": crate::extension::api::since_0_10_0::wit::token,
         "grafbase:sdk/headers": crate::extension::api::since_0_10_0::wit::headers,
+        "grafbase:sdk/postgres/pg-pool": crate::resources::PgPool,
+        "grafbase:sdk/postgres/pg-connection": crate::resources::PgConnection,
+        "grafbase:sdk/postgres/pg-transaction": crate::resources::PgTransaction,
+        "grafbase:sdk/postgres/pg-row": crate::resources::PgRow,
         "grafbase:sdk/schema": schema,
     },
     trappable_imports: true,
