@@ -83,8 +83,6 @@ miette = { version = "7", features = ["fancy"] }
 mime_guess = { version = "2" }
 minicbor = { version = "0.26", default-features = false, features = ["alloc"] }
 minicbor-serde = { version = "0.4", default-features = false, features = ["alloc"] }
-minimal-lexical = { version = "0.2", default-features = false, features = ["std"] }
-nom = { version = "7" }
 num-bigint-dig = { version = "0.8", default-features = false, features = ["i128", "prime", "u64_digit", "zeroize"] }
 num-integer = { version = "0.1", default-features = false, features = ["i128", "std"] }
 num-traits = { version = "0.2", features = ["i128", "libm"] }
@@ -99,7 +97,8 @@ proc-macro2 = { version = "1" }
 prost = { version = "0.13" }
 pulley-interpreter = { version = "30", default-features = false, features = ["disas", "interp", "std"] }
 quote = { version = "1" }
-rand = { version = "0.8", features = ["small_rng"] }
+rand-274715c4dabd11b0 = { package = "rand", version = "0.9" }
+rand-c38e5c1d305a1b54 = { package = "rand", version = "0.8", features = ["small_rng"] }
 rand_core = { version = "0.6", default-features = false, features = ["std"] }
 regex = { version = "1" }
 regex-automata = { version = "0.4", default-features = false, features = ["dfa", "hybrid", "meta", "nfa", "perf", "unicode"] }
@@ -212,8 +211,6 @@ miette = { version = "7", features = ["fancy"] }
 mime_guess = { version = "2" }
 minicbor = { version = "0.26", default-features = false, features = ["alloc"] }
 minicbor-serde = { version = "0.4", default-features = false, features = ["alloc"] }
-minimal-lexical = { version = "0.2", default-features = false, features = ["std"] }
-nom = { version = "7" }
 num-bigint-dig = { version = "0.8", default-features = false, features = ["i128", "prime", "u64_digit", "zeroize"] }
 num-integer = { version = "0.1", default-features = false, features = ["i128", "std"] }
 num-traits = { version = "0.2", features = ["i128", "libm"] }
@@ -228,7 +225,8 @@ proc-macro2 = { version = "1" }
 prost = { version = "0.13" }
 pulley-interpreter = { version = "30", default-features = false, features = ["disas", "interp", "std"] }
 quote = { version = "1" }
-rand = { version = "0.8", features = ["small_rng"] }
+rand-274715c4dabd11b0 = { package = "rand", version = "0.9" }
+rand-c38e5c1d305a1b54 = { package = "rand", version = "0.8", features = ["small_rng"] }
 rand_core = { version = "0.6", default-features = false, features = ["std"] }
 regex = { version = "1" }
 regex-automata = { version = "0.4", default-features = false, features = ["dfa", "hybrid", "meta", "nfa", "perf", "unicode"] }

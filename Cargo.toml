@@ -214,7 +214,7 @@ tokio-stream = "0.1"
 tokio-tungstenite = { version = "0.26.2", default-features = false }
 tokio-util = "0.7"
 toml = "0.8"
-tonic = "0.13.0"
+tonic = "0.12.0"
 tower = "0.5.2"
 tower-http = "0.6.2"
 tower-service = "0.3.3"
