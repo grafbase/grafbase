@@ -3,7 +3,7 @@ use federation_audit_tests::{
     audit_server::{AuditServer, ExpectedResponse, Test},
     cached_tests,
 };
-use integration_tests::federation::GatewayBuilder;
+use integration_tests::gateway::GatewayBuilder;
 use libtest_mimic::{Arguments, Failed, Trial};
 
 fn main() {
