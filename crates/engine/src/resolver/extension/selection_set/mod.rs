@@ -41,6 +41,9 @@ impl SelectionSetResolverExtension {
             .await?;
 
         let mut arguments = Vec::new();
+        if let Some(id) = runtime::extension::Field::arguments(&field) {
+            arguments.push((id, field.argument_ids()))
+        }
         let mut stack = vec![field.selection_set()];
         while let Some(selection_set) = stack.pop() {
             for field in selection_set.fields() {

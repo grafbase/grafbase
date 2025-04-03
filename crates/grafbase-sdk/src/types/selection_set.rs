@@ -140,7 +140,7 @@ impl<'a> SelectionSet<'a> {
 }
 
 /// Identifier for arguments in a GraphQL query
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct ArgumentsId(wit::ArgumentsId);
 
 impl From<wit::ArgumentsId> for ArgumentsId {
