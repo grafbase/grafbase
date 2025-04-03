@@ -1,0 +1,29 @@
+---
+source: crates/protoc-gen-grafbase-extension/tests/codegen_tests.rs
+expression: "fs::read_to_string(entry.path()).unwrap()"
+input_file: crates/protoc-gen-grafbase-extension/tests/codegen/echo/echo.proto
+---
+"Namespace for the grpc.examples.echo protobuf package"
+type GrpcExamplesEcho {
+  echo: GrpcExamplesEchoEcho
+}
+
+"Namespace for the Echo protobuf service"
+type GrpcExamplesEchoEcho {
+  unaryEcho(input: EchoRequest): EchoResponse @grpcMethod(name: "UnaryEcho")
+  serverStreamingEcho(input: EchoRequest): EchoResponse @grpcMethod(name: "ServerStreamingEcho")
+  clientStreamingEcho(input: EchoRequest): EchoResponse @grpcMethod(name: "ClientStreamingEcho")
+  bidirectionalStreamingEcho(input: EchoRequest): EchoResponse @grpcMethod(name: "BidirectionalStreamingEcho")
+}
+
+type Mutation {
+  grpcExamplesEcho: GrpcExamplesEcho
+}
+
+type EchoResponse {
+  message: String @grpcField(number: 1, type: "string")
+}
+
+type EchoRequest {
+  message: String @grpcField(number: 1, type: "string")
+}
