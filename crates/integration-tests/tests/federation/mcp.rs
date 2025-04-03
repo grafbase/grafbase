@@ -165,7 +165,7 @@ fn list_no_mutations() {
             .await;
 
         let mut stream = engine.mcp("/mcp").await;
-        stream.list_tools().await
+        stream.list_tools().await.unwrap()
     });
 
     insta::assert_json_snapshot!(&tools, @r#"
@@ -303,7 +303,7 @@ fn list_with_mutations() {
             .await;
 
         let mut stream = engine.mcp("/mcp").await;
-        stream.list_tools().await
+        stream.list_tools().await.unwrap()
     });
 
     insta::assert_json_snapshot!(&tools, @r#"
@@ -457,7 +457,11 @@ fn introspect_type() {
             .await;
 
         let mut stream = engine.mcp("/mcp").await;
-        stream.call_tool("introspect-type", json!({"name": "User"})).await
+
+        stream
+            .call_tool("introspect-type", json!({"name": "User"}))
+            .await
+            .unwrap()
     });
 
     insta::assert_json_snapshot!(&response, @r#"
@@ -530,7 +534,7 @@ fn run_query_no_params() {
             "__selection": "{ id name }"
         });
 
-        stream.call_tool("query/user", args).await
+        stream.call_tool("query/user", args).await.unwrap()
     });
 
     insta::assert_json_snapshot!(&response, @r#"
@@ -577,13 +581,130 @@ fn run_query_with_params() {
             "id": "1"
         });
 
-        stream.call_tool("query/user", args).await
+        stream.call_tool("query/user", args).await.unwrap()
     });
 
     insta::assert_json_snapshot!(&response, @r#"
     {
       "id": "1",
       "name": "Alice"
+    }
+    "#);
+}
+
+#[test]
+fn mutation_rejected_when_disabled() {
+    let subgraph = indoc! {r#"
+        type User {
+            id: ID!
+            name: String!
+        }
+
+        input UserCreateInput {
+            name: String!
+        }
+
+        type Query {
+            user: User
+        }
+
+        type Mutation {
+            createUser(input: UserCreateInput!): User!
+        }
+    "#};
+
+    let resolver = json!({
+        "id": "1",
+        "name": "Alice"
+    });
+
+    let subgraph = DynamicSchema::builder(subgraph)
+        .with_resolver("Query", "user", resolver.clone())
+        .with_resolver("Mutation", "createUser", resolver)
+        .into_subgraph("a");
+
+    let response = runtime().block_on(async move {
+        let engine = Engine::builder()
+            .with_subgraph(subgraph)
+            .with_toml_config(CONFIG) // Using the config where mutations are not enabled
+            .build()
+            .await;
+
+        let mut stream = engine.mcp("/mcp").await;
+
+        let args = json!({
+            "__selection": "{ id name }",
+            "input": {
+                "name": "Bob"
+            }
+        });
+
+        // Attempt to call a mutation tool when mutations are disabled
+        stream.call_tool("mutation/createUser", args).await.unwrap_err()
+    });
+
+    insta::assert_debug_snapshot!(&response, @r#"
+    McpError {
+        code: -32602,
+        message: "Invalid command",
+    }
+    "#);
+}
+
+#[test]
+fn mutation_allowed_when_enabled() {
+    let subgraph = indoc! {r#"
+        type User {
+            id: ID!
+            name: String!
+        }
+
+        input UserCreateInput {
+            name: String!
+        }
+
+        type Query {
+            user: User
+        }
+
+        type Mutation {
+            createUser(input: UserCreateInput!): User!
+        }
+    "#};
+
+    let resolver = json!({
+        "id": "1",
+        "name": "Alice"
+    });
+
+    let subgraph = DynamicSchema::builder(subgraph)
+        .with_resolver("Query", "user", resolver.clone())
+        .with_resolver("Mutation", "createUser", resolver)
+        .into_subgraph("a");
+
+    let response = runtime().block_on(async move {
+        let engine = Engine::builder()
+            .with_subgraph(subgraph)
+            .with_toml_config(MUT_CONFIG)
+            .build()
+            .await;
+
+        let mut stream = engine.mcp("/mcp").await;
+
+        let args = json!({
+            "__selection": "{ id name }",
+            "input": {
+                "name": "Bob"
+            }
+        });
+
+        stream.call_tool("mutation/createUser", args).await.unwrap()
+    });
+
+    insta::assert_debug_snapshot!(&response, @r#"
+    Object {
+        "id": String("1"),
+        "name": String("Alice"),
     }
     "#);
 }

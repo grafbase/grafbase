@@ -441,7 +441,7 @@ impl<R: Runtime> ServerHandler for McpServer<R> {
 
                 let (op_type, command) = if command.starts_with("query/") {
                     ("query", command.strip_prefix("query/").unwrap())
-                } else if command.starts_with("mutation/") {
+                } else if command.starts_with("mutation/") && self.mutations_enabled {
                     ("mutation", command.strip_prefix("mutation/").unwrap())
                 } else {
                     return Err(ErrorData::invalid_params("Invalid command", None));

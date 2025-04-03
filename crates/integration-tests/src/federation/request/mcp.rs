@@ -88,7 +88,15 @@ struct ClientInfo {
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct McpResponse<T> {
-    result: T,
+    result: Option<T>,
+    error: Option<McpError>,
+}
+
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct McpError {
+    pub code: i32,
+    pub message: String,
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -142,13 +150,13 @@ impl McpStream {
             server_info: None,
         };
 
-        this.server_info = Some(serde_json::from_value(this.initialize().await).unwrap());
+        this.server_info = Some(serde_json::from_value(this.initialize().await.unwrap()).unwrap());
         this.send_notification("notifications/initialized").await;
 
         this
     }
 
-    async fn initialize(&mut self) -> serde_json::Value {
+    async fn initialize(&mut self) -> Result<serde_json::Value, McpError> {
         let init = Initialize {
             protocol_version: "2024-11-05",
             capabilities: Capabilities {
@@ -166,31 +174,50 @@ impl McpStream {
         let sse = self.fetch_response().await;
         let response: McpResponse<serde_json::Value> = serde_json::from_str(&sse.data.unwrap()).unwrap();
 
-        response.result
+        match (response.result, response.error) {
+            (Some(result), _) => Ok(result),
+            (_, Some(error)) => Err(error),
+            _ => unreachable!(),
+        }
     }
 
     pub fn server_info(&self) -> InitializeResponse {
         self.server_info.clone().unwrap()
     }
 
-    pub async fn list_tools(&mut self) -> serde_json::Value {
+    pub async fn list_tools(&mut self) -> Result<serde_json::Value, McpError> {
         self.send_command("tools/list", EMPTY_PARAMS.clone()).await;
 
         let sse = self.fetch_response().await;
         let response: McpResponse<serde_json::Value> = serde_json::from_str(&sse.data.unwrap()).unwrap();
 
-        response.result
+        match (response.result, response.error) {
+            (Some(result), _) => Ok(result),
+            (_, Some(error)) => Err(error),
+            _ => unreachable!(),
+        }
     }
 
-    pub async fn call_tool(&mut self, name: &'static str, arguments: serde_json::Value) -> serde_json::Value {
+    pub async fn call_tool(
+        &mut self,
+        name: &'static str,
+        arguments: serde_json::Value,
+    ) -> Result<serde_json::Value, McpError> {
         self.send_command("tools/call", ToolsCallParams { name, arguments })
             .await;
 
-        // this dbg! is useful if you get an unexpected response. leave it be.
-        let sse = dbg!(self.fetch_response().await);
-        let mut response: McpResponse<ToolResponse> = serde_json::from_str(&sse.data.unwrap()).unwrap();
+        let sse = self.fetch_response().await;
+        let response: McpResponse<ToolResponse> = serde_json::from_str(&sse.data.unwrap()).unwrap();
 
-        serde_json::from_str(&response.result.content.pop().unwrap().text).unwrap()
+        match (response.result, response.error) {
+            (Some(mut result), _) => {
+                let result = serde_json::from_str(&result.content.pop().unwrap().text).unwrap();
+
+                Ok(result)
+            }
+            (_, Some(error)) => Err(error),
+            _ => unreachable!(),
+        }
     }
 
     pub async fn send_command<S>(&mut self, method: &'static str, msg: S)
