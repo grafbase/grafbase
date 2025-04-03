@@ -14,10 +14,10 @@ use tokio_util::sync::CancellationToken;
 
 use super::gateway::EngineWatcher;
 
-pub(super) fn router<S, R: Runtime>(
+pub(super) fn router<R: Runtime>(
     engine: EngineWatcher<R>,
     config: &ModelControlProtocolConfig,
-) -> (Router<S>, CancellationToken) {
+) -> (Router, CancellationToken) {
     let (sse_server, router) = SseServer::new(SseServerConfig {
         // we never actually bind to a socket, it's just this weird API we need to obey
         bind: SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 8080)),
@@ -28,13 +28,9 @@ pub(super) fn router<S, R: Runtime>(
     });
 
     let instructions = config.instructions.clone();
-    let auth = config.authentication.as_ref().map(|a| a.to_string());
     let enable_mutations = config.enable_mutations;
 
-    let ct = sse_server
-        .with_service(move || McpServer::new(engine.clone(), instructions.clone(), auth.clone(), enable_mutations));
+    let ct = sse_server.with_service(move || McpServer::new(engine.clone(), instructions.clone(), enable_mutations));
 
-    let router: Router<S> = router.with_state(());
-
-    (router, ct)
+    (router.with_state(()), ct)
 }

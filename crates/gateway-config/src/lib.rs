@@ -2342,7 +2342,9 @@ mod tests {
             ModelControlProtocolConfig {
                 enabled: false,
                 name: "My MCP Service",
-                instructions: "Follow the instructions",
+                instructions: Some(
+                    "Follow the instructions",
+                ),
                 path: "/mcp",
                 enable_mutations: false,
             },

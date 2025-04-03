@@ -190,16 +190,6 @@ pub async fn router<R: engine::Runtime, SR: ServerRuntime>(
         .route(path, get(graphql_execute).post(graphql_execute))
         .route_service(websocket_path, WebsocketService::new(websocket_sender));
 
-    let ct = match config.mcp {
-        Some(ref mcp_config) if mcp_config.enabled => {
-            let (mcp_router, ct) = mcp::router(engine, mcp_config);
-            router = router.merge(mcp_router);
-
-            Some(ct)
-        }
-        _ => None,
-    };
-
     router = inject_layers_before_cors(router)
         .layer(CompressionLayer::new())
         .layer(cors);
@@ -222,6 +212,16 @@ pub async fn router<R: engine::Runtime, SR: ServerRuntime>(
     if config.csrf.enabled {
         router = csrf::inject_layer(router);
     }
+
+    let ct = match config.mcp {
+        Some(ref mcp_config) if mcp_config.enabled => {
+            let (mcp_router, ct) = mcp::router(engine, mcp_config);
+            router = router.merge(mcp_router);
+
+            Some(ct)
+        }
+        _ => None,
+    };
 
     Ok((router, ct))
 }

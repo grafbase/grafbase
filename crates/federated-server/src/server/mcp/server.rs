@@ -5,7 +5,7 @@ use engine::Runtime;
 use engine_schema::{Definition, InputObjectDefinition, ScalarType};
 use http::{
     Method, Request,
-    header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE},
+    header::{ACCEPT, CONTENT_TYPE},
 };
 use indoc::{formatdoc, indoc};
 use rmcp::{
@@ -23,7 +23,6 @@ use crate::server::gateway::EngineWatcher;
 pub struct McpServer<R: Runtime> {
     info: ServerInfo,
     engine: EngineWatcher<R>,
-    auth: Option<String>,
     mutations_enabled: bool,
 }
 
@@ -93,12 +92,7 @@ pub struct QueryError {
 }
 
 impl<R: Runtime> McpServer<R> {
-    pub fn new(
-        engine: EngineWatcher<R>,
-        instructions: Option<String>,
-        auth: Option<String>,
-        enable_mutations: bool,
-    ) -> Self {
+    pub fn new(engine: EngineWatcher<R>, instructions: Option<String>, enable_mutations: bool) -> Self {
         let guide = indoc! {r#"
             This is a GraphQL server that provides tools to access certain selected operations.
             The operation requires certain arguments, and always a selection. You can construct the
@@ -124,7 +118,6 @@ impl<R: Runtime> McpServer<R> {
                 instructions: Some(instructions),
             },
             engine,
-            auth,
             mutations_enabled: enable_mutations,
         }
     }
@@ -233,16 +226,10 @@ impl<R: Runtime> McpServer<R> {
             },
         });
 
-        let mut builder = Request::builder()
+        let request = Request::builder()
             .method(Method::POST)
             .header(CONTENT_TYPE, "application/json")
-            .header(ACCEPT, "application/json");
-
-        if let Some(token) = self.auth.as_ref() {
-            builder = builder.header(AUTHORIZATION, format!("Bearer {token}"));
-        }
-
-        let request = builder
+            .header(ACCEPT, "application/json")
             .body(Body::from(serde_json::to_vec(&body).unwrap()))
             .map_err(|err| ErrorData::internal_error(err.to_string(), None))?;
 
@@ -291,16 +278,10 @@ impl<R: Runtime> McpServer<R> {
             "variables": {},
         });
 
-        let mut builder = Request::builder()
+        let request = Request::builder()
             .method(Method::POST)
             .header(CONTENT_TYPE, "application/json")
-            .header(ACCEPT, "application/json");
-
-        if let Some(token) = self.auth.as_ref() {
-            builder = builder.header(AUTHORIZATION, format!("Bearer {}", token));
-        }
-
-        let request = builder
+            .header(ACCEPT, "application/json")
             .body(Body::from(serde_json::to_vec(&body).unwrap()))
             .map_err(|err| ErrorData::internal_error(err.to_string(), None))?;
 
