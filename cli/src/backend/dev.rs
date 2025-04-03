@@ -64,10 +64,6 @@ pub async fn start(
     let dev_configuration = get_and_merge_configurations(gateway_config_path, graph_overrides_path).await?;
     let introspection_forced = dev_configuration.introspection_forced;
 
-    spawn_blocking(move || {
-        let _ = output_handler(output_handler_ready_receiver, warnings_receiver, introspection_forced);
-    });
-
     let port = port
         .or(dev_configuration
             .merged_configuration
@@ -77,6 +73,22 @@ pub async fn start(
         .unwrap_or(DEFAULT_PORT);
 
     let listen_address = SocketAddr::from((Ipv4Addr::LOCALHOST, port));
+
+    let mcp_url = dev_configuration
+        .merged_configuration
+        .mcp
+        .as_ref()
+        .filter(|m| m.enabled)
+        .map(|m| format!("http://{listen_address}{}", m.path));
+
+    spawn_blocking(move || {
+        let _ = output_handler(
+            output_handler_ready_receiver,
+            warnings_receiver,
+            introspection_forced,
+            mcp_url,
+        );
+    });
 
     let mut subgraphs = graphql_composition::Subgraphs::default();
 
@@ -163,6 +175,7 @@ fn output_handler(
     mut url_receiver: broadcast::Receiver<String>,
     mut warnings_receiver: mpsc::Receiver<Vec<String>>,
     introspection_forced: bool,
+    mcp_url: Option<String>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     use crossterm::{
         QueueableCommand,
@@ -188,6 +201,11 @@ fn output_handler(
     );
 
     println!("GraphQL endpoint: {}", url.to_string().bold());
+
+    if let Some(mcp_url) = mcp_url {
+        println!("MCP endpoint:     {}", mcp_url.bold());
+    }
+
     println!("Explorer:         {}\n", explorer_url.bold());
 
     if introspection_forced {
