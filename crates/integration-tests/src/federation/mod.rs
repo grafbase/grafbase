@@ -75,6 +75,10 @@ impl TestGateway {
         self.execute(http::Method::POST, "/graphql", request)
     }
 
+    pub async fn mcp(&self, path: &str) -> McpStream {
+        McpStream::new(self.router.clone(), path).await
+    }
+
     pub fn execute(&self, method: http::Method, path: &str, request: impl Into<GraphQlRequest>) -> TestRequest {
         let (mut parts, _) = http::Request::new(()).into_parts();
         parts.method = method;
@@ -99,13 +103,15 @@ impl TestGateway {
 
     pub async fn raw_execute(&self, request: http::Request<impl Into<axum::body::Body>>) -> http::Response<Bytes> {
         let (parts, body) = request.into_parts();
-        let (parts, body) = self
+
+        let result = self
             .router
             .clone()
             .oneshot(http::Request::from_parts(parts, body.into()))
             .await
-            .unwrap()
-            .into_parts();
+            .unwrap();
+
+        let (parts, body) = result.into_parts();
         let bytes = body.collect().await.unwrap().to_bytes();
         http::Response::from_parts(parts, bytes)
     }

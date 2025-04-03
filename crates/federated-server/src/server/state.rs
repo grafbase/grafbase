@@ -1,6 +1,5 @@
-use std::sync::Arc;
-
 use super::gateway::EngineWatcher;
+use std::sync::Arc;
 
 pub struct ServerStateInner<R: engine::Runtime, SR> {
     /// The gateway responsible for handling engine communication.

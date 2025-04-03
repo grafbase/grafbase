@@ -23,6 +23,7 @@ cfg-if.workspace = true
 engine.workspace = true
 engine-auth.workspace = true
 engine-axum.workspace = true
+engine-schema.workspace = true
 futures-lite.workspace = true
 futures-util.workspace = true
 gateway-config.workspace = true
@@ -60,8 +61,14 @@ wasi-component-loader.workspace = true
 # Lambda dependencies
 either.workspace = true
 extension-catalog.workspace = true
+indoc.workspace = true
 lambda_http = { workspace = true, optional = true }
 minicbor-serde = { workspace = true, features = ["alloc"] }
+rand.workspace = true
+rmcp = { git = "https://github.com/grafbase/rust-sdk", branch = "reduce-logging", features = [
+    "transport-sse",
+    "transport-sse-server",
+] }
 serde_json.workspace = true
 tower = { workspace = true, optional = true }
 
