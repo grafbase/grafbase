@@ -46,8 +46,7 @@ impl GrafbaseDevConfig {
         } = self;
 
         let subgraphs =
-            integration_tests::federation::Subgraphs::load(mock_subgraphs, Default::default(), Default::default())
-                .await;
+            integration_tests::gateway::Subgraphs::load(mock_subgraphs, Default::default(), Default::default()).await;
 
         let working_directory = tempfile::tempdir().unwrap();
 
@@ -182,7 +181,7 @@ impl<'a> From<&'a str> for GraphQlRequest<'a> {
 }
 
 pub(crate) struct GrafbaseDev {
-    _subgraphs: integration_tests::federation::Subgraphs,
+    _subgraphs: integration_tests::gateway::Subgraphs,
     _working_directory: tempfile::TempDir,
     _grafbase_process: process::Child,
     port: u16,

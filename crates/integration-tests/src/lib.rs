@@ -1,7 +1,7 @@
 #![allow(clippy::panic)]
 
-pub mod federation;
 pub mod fetch;
+pub mod gateway;
 pub mod openid;
 pub mod types;
 

@@ -1,10 +1,10 @@
 use mimalloc::MiMalloc;
 
 #[cfg(unix)]
-mod federation;
+mod gateway;
 
 #[cfg(unix)]
-criterion::criterion_main!(federation::federation);
+criterion::criterion_main!(gateway::federation);
 
 #[cfg(not(unix))]
 pub fn main() {}
