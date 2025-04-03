@@ -125,6 +125,12 @@ pub async fn serve(
     )
     .await?;
 
+    let mcp_url = config
+        .mcp
+        .as_ref()
+        .filter(|m| m.enabled)
+        .map(|m| format!("http://{listen_address}{}", m.path));
+
     let (router, ct) = router(
         config,
         update_handler.engine_watcher(),
@@ -142,9 +148,9 @@ pub async fn serve(
 
     cfg_if::cfg_if! {
         if #[cfg(feature = "lambda")] {
-            let result = lambda_bind(&path, router).await;
+            let result = lambda_bind(&path, router, mcp_url).await;
         } else {
-            let result = bind(listen_address, &path, router, tls.as_ref(), server_runtime).await;
+            let result = bind(listen_address, &path, router, tls.as_ref(), server_runtime, mcp_url).await;
         }
     }
     // Once all pending requests have been dealt with, we shutdown everything else left (telemetry, logs)
@@ -233,6 +239,7 @@ async fn bind(
     router: Router<()>,
     tls: Option<&TlsConfig>,
     server_runtime: impl ServerRuntime,
+    mcp_url: Option<String>,
 ) -> crate::Result<()> {
     let app = router.into_make_service();
 
@@ -243,9 +250,15 @@ async fn bind(
 
     let handle_for_listening = handle.clone();
     let url = format!("http://{addr}{path}");
+
     tokio::spawn(async move {
         if handle_for_listening.clone().listening().await.is_some() {
             tracing::info!("GraphQL endpoint exposed at {url}");
+
+            if let Some(mcp_url) = mcp_url {
+                tracing::info!("MCP endpoint exposed at {mcp_url}");
+            }
+
             server_runtime.on_ready(url);
         }
     });
@@ -273,12 +286,17 @@ async fn bind(
 }
 
 #[cfg(feature = "lambda")]
-async fn lambda_bind(path: &str, router: Router<()>) -> crate::Result<()> {
+async fn lambda_bind(path: &str, router: Router<()>, mcp_url: Option<String>) -> crate::Result<()> {
     let app = tower::ServiceBuilder::new()
         .layer(engine_axum::lambda::LambdaLayer::default())
         .service(router);
 
     tracing::info!("GraphQL endpoint exposed at {path}");
+
+    if let Some(mcp_url) = mcp_url {
+        tracing::info!("MCP endpoint exposed at {mcp_url}");
+    }
+
     lambda_http::run(app).await.expect("cannot start lambda http server");
 
     Ok(())
