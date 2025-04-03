@@ -1,4 +1,5 @@
-mod backwards_compatibility;
+mod config;
+mod subgraph_schema;
 
 use std::sync::Arc;
 

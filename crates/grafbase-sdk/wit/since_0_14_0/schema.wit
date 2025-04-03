@@ -1,13 +1,13 @@
 interface schema {
     record schema {
         // The IDs and this list have not relationship. They're not indices within this list.
-        definitions: list<definition>,
+        type-definitions: list<type-definition>,
         directives: list<directive>
     }
 
     type definition-id = u32;
 
-    variant definition {
+    variant type-definition {
         scalar(scalar-definition),
         object(object-definition),
         %interface(interface-definition),

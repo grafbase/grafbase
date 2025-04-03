@@ -562,6 +562,7 @@ impl GraphContext<'_> {
         };
         self.graph[__schema_field_id].ty_record = field_type_id;
         self.graph[__schema_field_id].resolver_ids = vec![resolver_definition_id];
+        self.graph[__schema_field_id].exists_in_subgraph_ids = vec![SubgraphId::Introspection];
 
         /*
         __type(name: String!): __Type
@@ -572,6 +573,7 @@ impl GraphContext<'_> {
         };
         self.graph[__type_field_id].ty_record = field_type_id;
         self.graph[__type_field_id].resolver_ids = vec![resolver_definition_id];
+        self.graph[__type_field_id].exists_in_subgraph_ids = vec![SubgraphId::Introspection];
 
         self.set_field_arguments(
             self.graph.root_operation_types_record.query_id,

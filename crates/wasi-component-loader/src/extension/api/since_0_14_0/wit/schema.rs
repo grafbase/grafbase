@@ -7,7 +7,8 @@ impl Host for WasiState {}
 #[derive(Clone, Debug, ComponentType, Lower)]
 #[component(record)]
 pub struct Schema<'a> {
-    pub definitions: Vec<Definition<'a>>,
+    #[component(name = "type-definitions")]
+    pub type_definitions: Vec<TypeDefinition<'a>>,
     pub directives: Vec<Directive<'a>>,
 }
 
@@ -15,7 +16,7 @@ pub type DefinitionId = u32;
 
 #[derive(Clone, Debug, ComponentType, Lower)]
 #[component(variant)]
-pub enum Definition<'a> {
+pub enum TypeDefinition<'a> {
     #[component(name = "scalar")]
     Scalar(ScalarDefinition<'a>),
     #[component(name = "object")]
