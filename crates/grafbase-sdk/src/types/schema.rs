@@ -1,11 +1,26 @@
 use serde::Deserialize;
+use std::fmt;
 
 use crate::{SdkError, wit};
 
 /// GraphQL schema
+#[derive(Clone, Copy)]
 pub struct SubgraphSchema<'a> {
     name: &'a str,
     schema: &'a wit::Schema,
+}
+
+impl fmt::Debug for SubgraphSchema<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("SubgraphSchema")
+            .field("name", &self.name())
+            .field(
+                "type_definitions",
+                &format!("<{} type definitions>", self.type_definitions().len()),
+            )
+            .field("directives", &self.directives().collect::<Vec<_>>())
+            .finish_non_exhaustive()
+    }
 }
 
 impl<'a> From<&'a (String, wit::Schema)> for SubgraphSchema<'a> {
@@ -21,8 +36,8 @@ impl<'a> SubgraphSchema<'a> {
     }
 
     /// Iterator over the definitions in this schema
-    pub fn definitions(&self) -> impl ExactSizeIterator<Item = Definition<'a>> + 'a {
-        self.schema.definitions.iter().map(Into::into)
+    pub fn type_definitions(&self) -> impl ExactSizeIterator<Item = TypeDefinition<'a>> + 'a {
+        self.schema.type_definitions.iter().map(Into::into)
     }
 
     /// Iterator over the directives applied to this schema
@@ -49,7 +64,8 @@ impl From<DefinitionId> for u32 {
 }
 
 /// Enum representing the different types of GraphQL definitions
-pub enum Definition<'a> {
+#[derive(Clone, Copy)]
+pub enum TypeDefinition<'a> {
     /// A scalar type definition (e.g., String, Int, custom scalars)
     Scalar(ScalarDefinition<'a>),
     /// An object type definition
@@ -64,21 +80,72 @@ pub enum Definition<'a> {
     InputObject(InputObjectDefinition<'a>),
 }
 
-impl<'a> From<&'a wit::Definition> for Definition<'a> {
-    fn from(definition: &'a wit::Definition) -> Self {
+impl fmt::Debug for TypeDefinition<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            TypeDefinition::Scalar(def) => f.debug_tuple("Scalar").field(def).finish(),
+            TypeDefinition::Object(def) => f.debug_tuple("Object").field(def).finish(),
+            TypeDefinition::Interface(def) => f.debug_tuple("Interface").field(def).finish(),
+            TypeDefinition::Union(def) => f.debug_tuple("Union").field(def).finish(),
+            TypeDefinition::Enum(def) => f.debug_tuple("Enum").field(def).finish(),
+            TypeDefinition::InputObject(def) => f.debug_tuple("InputObject").field(def).finish(),
+        }
+    }
+}
+
+impl<'a> TypeDefinition<'a> {
+    /// Unique identifier for this type definition
+    pub fn id(&self) -> DefinitionId {
+        match self {
+            TypeDefinition::Scalar(def) => def.id(),
+            TypeDefinition::Object(def) => def.id(),
+            TypeDefinition::Interface(def) => def.id(),
+            TypeDefinition::Union(def) => def.id(),
+            TypeDefinition::Enum(def) => def.id(),
+            TypeDefinition::InputObject(def) => def.id(),
+        }
+    }
+
+    /// Name of the type definition
+    pub fn name(&self) -> &'a str {
+        match self {
+            TypeDefinition::Scalar(def) => def.name(),
+            TypeDefinition::Object(def) => def.name(),
+            TypeDefinition::Interface(def) => def.name(),
+            TypeDefinition::Union(def) => def.name(),
+            TypeDefinition::Enum(def) => def.name(),
+            TypeDefinition::InputObject(def) => def.name(),
+        }
+    }
+}
+
+impl<'a> From<&'a wit::TypeDefinition> for TypeDefinition<'a> {
+    fn from(definition: &'a wit::TypeDefinition) -> Self {
         match definition {
-            wit::Definition::Scalar(scalar) => Definition::Scalar(scalar.into()),
-            wit::Definition::Object(object) => Definition::Object(object.into()),
-            wit::Definition::Interface(interface) => Definition::Interface(interface.into()),
-            wit::Definition::Union(union) => Definition::Union(union.into()),
-            wit::Definition::Enum(enum_def) => Definition::Enum(enum_def.into()),
-            wit::Definition::InputObject(input_object) => Definition::InputObject(input_object.into()),
+            wit::TypeDefinition::Scalar(scalar) => TypeDefinition::Scalar(scalar.into()),
+            wit::TypeDefinition::Object(object) => TypeDefinition::Object(object.into()),
+            wit::TypeDefinition::Interface(interface) => TypeDefinition::Interface(interface.into()),
+            wit::TypeDefinition::Union(union) => TypeDefinition::Union(union.into()),
+            wit::TypeDefinition::Enum(enum_def) => TypeDefinition::Enum(enum_def.into()),
+            wit::TypeDefinition::InputObject(input_object) => TypeDefinition::InputObject(input_object.into()),
         }
     }
 }
 
 /// GraphQL scalar type definition
+#[derive(Clone, Copy)]
 pub struct ScalarDefinition<'a>(&'a wit::ScalarDefinition);
+
+impl fmt::Debug for ScalarDefinition<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ScalarDefinition")
+            .field("id", &self.id())
+            .field("name", &self.name())
+            .field("specified_by_url", &self.specified_by_url())
+            .field("directives", &self.directives().collect::<Vec<_>>())
+            .finish()
+    }
+}
 
 impl<'a> From<&'a wit::ScalarDefinition> for ScalarDefinition<'a> {
     fn from(scalar: &'a wit::ScalarDefinition) -> Self {
@@ -112,7 +179,20 @@ impl<'a> ScalarDefinition<'a> {
 }
 
 /// GraphQL object type definition
+#[derive(Clone, Copy)]
 pub struct ObjectDefinition<'a>(&'a wit::ObjectDefinition);
+
+impl fmt::Debug for ObjectDefinition<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ObjectDefinition")
+            .field("id", &self.id())
+            .field("name", &self.name())
+            .field("fields", &self.fields().collect::<Vec<_>>())
+            .field("interfaces", &self.interfaces().collect::<Vec<_>>())
+            .field("directives", &self.directives().collect::<Vec<_>>())
+            .finish()
+    }
+}
 
 impl<'a> From<&'a wit::ObjectDefinition> for ObjectDefinition<'a> {
     fn from(object_definition: &'a wit::ObjectDefinition) -> Self {
@@ -151,7 +231,20 @@ impl<'a> ObjectDefinition<'a> {
 ///
 /// Interface types define a set of fields that multiple object types can implement.
 /// Interfaces can also implement other interfaces.
+#[derive(Clone, Copy)]
 pub struct InterfaceDefinition<'a>(&'a wit::InterfaceDefinition);
+
+impl fmt::Debug for InterfaceDefinition<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("InterfaceDefinition")
+            .field("id", &self.id())
+            .field("name", &self.name())
+            .field("fields", &self.fields().collect::<Vec<_>>())
+            .field("interfaces", &self.interfaces().collect::<Vec<_>>())
+            .field("directives", &self.directives().collect::<Vec<_>>())
+            .finish()
+    }
+}
 
 impl<'a> From<&'a wit::InterfaceDefinition> for InterfaceDefinition<'a> {
     fn from(interface: &'a wit::InterfaceDefinition) -> Self {
@@ -189,7 +282,19 @@ impl<'a> InterfaceDefinition<'a> {
 /// Represents a GraphQL union type definition
 ///
 /// Union types define a type that could be one of several object types.
+#[derive(Clone, Copy)]
 pub struct UnionDefinition<'a>(&'a wit::UnionDefinition);
+
+impl fmt::Debug for UnionDefinition<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("UnionDefinition")
+            .field("id", &self.id())
+            .field("name", &self.name())
+            .field("member_types", &self.member_types().collect::<Vec<_>>())
+            .field("directives", &self.directives().collect::<Vec<_>>())
+            .finish()
+    }
+}
 
 impl<'a> From<&'a wit::UnionDefinition> for UnionDefinition<'a> {
     fn from(union: &'a wit::UnionDefinition) -> Self {
@@ -222,7 +327,19 @@ impl<'a> UnionDefinition<'a> {
 /// Represents a GraphQL enum type definition
 ///
 /// Enum types restrict a field to a finite set of values.
+#[derive(Clone, Copy)]
 pub struct EnumDefinition<'a>(&'a wit::EnumDefinition);
+
+impl fmt::Debug for EnumDefinition<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("EnumDefinition")
+            .field("id", &self.id())
+            .field("name", &self.name())
+            .field("values", &self.values().collect::<Vec<_>>())
+            .field("directives", &self.directives().collect::<Vec<_>>())
+            .finish()
+    }
+}
 
 impl<'a> From<&'a wit::EnumDefinition> for EnumDefinition<'a> {
     fn from(enum_def: &'a wit::EnumDefinition) -> Self {
@@ -256,7 +373,19 @@ impl<'a> EnumDefinition<'a> {
 ///
 /// Input objects are complex objects provided as arguments to fields,
 /// consisting of a set of input fields.
+#[derive(Clone, Copy)]
 pub struct InputObjectDefinition<'a>(&'a wit::InputObjectDefinition);
+
+impl fmt::Debug for InputObjectDefinition<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("InputObjectDefinition")
+            .field("id", &self.id())
+            .field("name", &self.name())
+            .field("input_fields", &self.input_fields().collect::<Vec<_>>())
+            .field("directives", &self.directives().collect::<Vec<_>>())
+            .finish()
+    }
+}
 
 impl<'a> From<&'a wit::InputObjectDefinition> for InputObjectDefinition<'a> {
     fn from(input_object: &'a wit::InputObjectDefinition) -> Self {
@@ -290,7 +419,20 @@ impl<'a> InputObjectDefinition<'a> {
 ///
 /// Fields are the basic units of data in GraphQL. They define what data can be
 /// fetched from a particular object or interface.
+#[derive(Clone, Copy)]
 pub struct FieldDefinition<'a>(&'a wit::FieldDefinition);
+
+impl fmt::Debug for FieldDefinition<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("FieldDefinition")
+            .field("id", &self.id())
+            .field("name", &self.name())
+            .field("type", &self.ty())
+            .field("arguments", &self.arguments().collect::<Vec<_>>())
+            .field("directives", &self.directives().collect::<Vec<_>>())
+            .finish()
+    }
+}
 
 impl<'a> From<&'a wit::FieldDefinition> for FieldDefinition<'a> {
     fn from(field: &'a wit::FieldDefinition) -> Self {
@@ -329,7 +471,17 @@ impl<'a> FieldDefinition<'a> {
 ///
 /// This struct contains information about a type's definition and any non-null
 /// or list wrapping that may be applied to it.
+#[derive(Clone, Copy)]
 pub struct Type<'a>(&'a wit::Ty);
+
+impl fmt::Debug for Type<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Type")
+            .field("definition_id", &self.definition_id())
+            .field("wrapping", &self.wrapping().collect::<Vec<_>>())
+            .finish()
+    }
+}
 
 impl<'a> From<&'a wit::Ty> for Type<'a> {
     fn from(ty: &'a wit::Ty) -> Self {
@@ -354,6 +506,7 @@ impl<'a> Type<'a> {
 ///
 /// Types in GraphQL can be wrapped to indicate they are non-null or
 /// represent a list of values.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum WrappingType {
     /// Indicates that the wrapped type cannot be null
     NonNull,
@@ -373,7 +526,19 @@ impl From<wit::WrappingType> for WrappingType {
 /// Represents an input value definition in a GraphQL schema
 ///
 /// Input values are used for arguments on fields and input object fields.
+#[derive(Clone, Copy)]
 pub struct InputValueDefinition<'a>(&'a wit::InputValueDefinition);
+
+impl fmt::Debug for InputValueDefinition<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("InputValueDefinition")
+            .field("id", &self.id())
+            .field("name", &self.name())
+            .field("type", &self.ty())
+            .field("directives", &self.directives().collect::<Vec<_>>())
+            .finish()
+    }
+}
 
 impl<'a> From<&'a wit::InputValueDefinition> for InputValueDefinition<'a> {
     fn from(input_value: &'a wit::InputValueDefinition) -> Self {
@@ -404,7 +569,17 @@ impl<'a> InputValueDefinition<'a> {
 }
 
 /// Represents a single possible value in a GraphQL enum definition
+#[derive(Clone, Copy)]
 pub struct EnumValue<'a>(&'a wit::EnumValue);
+
+impl fmt::Debug for EnumValue<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("EnumValue")
+            .field("name", &self.name())
+            .field("directives", &self.directives().collect::<Vec<_>>())
+            .finish()
+    }
+}
 
 impl<'a> From<&'a wit::EnumValue> for EnumValue<'a> {
     fn from(enum_value: &'a wit::EnumValue) -> Self {
@@ -428,7 +603,17 @@ impl<'a> EnumValue<'a> {
 ///
 /// Directives provide a way to describe alternate runtime execution and type validation
 /// behavior in a GraphQL document.
+#[derive(Clone, Copy)]
 pub struct Directive<'a>(&'a wit::Directive);
+
+impl fmt::Debug for Directive<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Directive")
+            .field("name", &self.name())
+            .field("arguments", &"<binary arguments>")
+            .finish()
+    }
+}
 
 impl<'a> From<&'a wit::Directive> for Directive<'a> {
     fn from(directive: &'a wit::Directive) -> Self {

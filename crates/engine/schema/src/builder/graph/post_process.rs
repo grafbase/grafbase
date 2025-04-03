@@ -82,6 +82,10 @@ fn ingest_enum_definition_directive(
     id: EnumDefinitionId,
     federated_id: federated_graph::EnumDefinitionId,
 ) -> Result<(), BuildError> {
+    if graph[id].exists_in_subgraph_ids.contains(&SubgraphId::Introspection) {
+        return Ok(());
+    }
+
     let directives = &ctx.federated_graph[federated_id].directives;
     if has_inaccessible(directives) {
         graph.inaccessible_enum_definitions.set(id, true);
@@ -159,6 +163,10 @@ fn ingest_object_definition_directive(
     id: ObjectDefinitionId,
     federated_id: federated_graph::ObjectId,
 ) -> Result<(), BuildError> {
+    if graph[id].exists_in_subgraph_ids.contains(&SubgraphId::Introspection) {
+        return Ok(());
+    }
+
     let directives = &ctx.federated_graph[federated_id].directives;
     if has_inaccessible(directives) {
         graph.inaccessible_object_definitions.set(id, true);
@@ -233,6 +241,10 @@ fn ingest_union_definition_directive(
     id: UnionDefinitionId,
     federated_id: federated_graph::UnionId,
 ) -> Result<(), BuildError> {
+    if graph[id].exists_in_subgraph_ids.contains(&SubgraphId::Introspection) {
+        return Ok(());
+    }
+
     let directives = &ctx.federated_graph[federated_id].directives;
     if has_inaccessible(directives) {
         graph.inaccessible_union_definitions.set(id, true);
@@ -274,8 +286,14 @@ fn ingest_field_directive(
     id: FieldDefinitionId,
     federated_id: federated_graph::FieldId,
 ) -> Result<(), BuildError> {
-    let federated_field = &ctx.federated_graph[federated_id];
+    if ctx.graph[id]
+        .exists_in_subgraph_ids
+        .contains(&SubgraphId::Introspection)
+    {
+        return Ok(());
+    }
 
+    let federated_field = &ctx.federated_graph[federated_id];
     if has_inaccessible(&federated_field.directives) {
         ctx.graph.inaccessible_field_definitions.set(id, true);
     }

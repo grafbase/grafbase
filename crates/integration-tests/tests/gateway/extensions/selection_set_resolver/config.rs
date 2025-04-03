@@ -1,11 +1,11 @@
 use integration_tests::{gateway::Gateway, runtime};
 
 #[test]
-fn sdk_014() {
+fn can_read_config() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
             .with_subgraph_sdl(
-                "b",
+                "echo-config",
                 r#"
                 extend schema @link(url: "selection-set-resolver-014-1.0.0", import: ["@init"]) @init
                 scalar JSON
@@ -19,6 +19,7 @@ fn sdk_014() {
                 r#"
                 [extensions.selection-set-resolver-014.config]
                 value = "Hi there!"
+                other = { complex = [2, {test = 3}]}
                 "#,
             )
             .build()
@@ -28,7 +29,17 @@ fn sdk_014() {
         insta::assert_json_snapshot!(response, @r#"
         {
           "data": {
-            "test": "Hi there!"
+            "test": {
+              "other": {
+                "complex": [
+                  2,
+                  {
+                    "test": 3
+                  }
+                ]
+              },
+              "value": "Hi there!"
+            }
           }
         }
         "#);
