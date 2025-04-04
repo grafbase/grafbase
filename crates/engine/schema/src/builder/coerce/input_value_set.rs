@@ -8,7 +8,7 @@ use super::{ExtensionDirectiveArgumentsCoercer, ValuePathSegment, value_path_to_
 pub enum InputValueSetError {
     #[error("Could not parse InputValueSet: {err}")]
     InvalidInputValueSet { err: String },
-    #[error("Uknown input value '{name}'{path}")]
+    #[error("Unknown input value '{name}'{path}")]
     UnknownInputValue { name: String, path: String },
     #[error("Cannot use fragments inside a InputValueSet")]
     CannotUseFragments,
