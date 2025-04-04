@@ -155,6 +155,11 @@ impl HostPgRow for WasiState {
         }
     }
 
+    async fn len(&mut self, self_: Resource<PgRow>) -> wasmtime::Result<u64> {
+        let row = self.get(&self_)?;
+        Ok(row.len() as u64)
+    }
+
     async fn drop(&mut self, rep: Resource<PgRow>) -> wasmtime::Result<()> {
         self.table.delete(rep)?;
         Ok(())
