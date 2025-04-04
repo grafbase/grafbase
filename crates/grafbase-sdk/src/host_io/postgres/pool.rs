@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use crate::wit;
+use crate::{SdkError, wit};
 
 use super::{Connection, Transaction};
 
@@ -85,7 +85,7 @@ impl Pool {
     ///
     /// # Returns
     /// A new connection pool or an error if the connection fails
-    pub fn connect(identifier: &str, url: &str) -> Result<Self, String> {
+    pub fn connect(identifier: &str, url: &str) -> Result<Self, SdkError> {
         Self::connect_with_options(identifier, url, Default::default())
     }
 
@@ -98,10 +98,8 @@ impl Pool {
     ///
     /// # Returns
     /// A new connection pool or an error if the connection fails
-    pub fn connect_with_options(identifier: &str, url: &str, options: PoolOptions) -> Result<Self, String> {
-        let pool = wit::PgPool::connect(identifier, url, options.0)
-            .map_err(|e| format!("Failed to connect to Postgres: {}", e))?;
-
+    pub fn connect_with_options(identifier: &str, url: &str, options: PoolOptions) -> Result<Self, SdkError> {
+        let pool = wit::PgPool::connect(identifier, url, options.0).map_err(SdkError::from)?;
         Ok(Self(pool))
     }
 
@@ -112,11 +110,8 @@ impl Pool {
     ///
     /// # Returns
     /// A database connection or an error if no connection could be acquired
-    pub fn acquire(&self) -> Result<Connection, String> {
-        self.0
-            .acquire()
-            .map(Into::into)
-            .map_err(|e| format!("Failed to acquire connection: {}", e))
+    pub fn acquire(&self) -> Result<Connection, SdkError> {
+        self.0.acquire().map(Into::into).map_err(SdkError::from)
     }
 
     /// Begins a new database transaction.
@@ -126,10 +121,7 @@ impl Pool {
     ///
     /// # Returns
     /// A transaction object or an error if the transaction couldn't be started
-    pub fn begin_transaction(&self) -> Result<Transaction, String> {
-        self.0
-            .begin_transaction()
-            .map(Into::into)
-            .map_err(|e| format!("Failed to begin transaction: {}", e))
+    pub fn begin_transaction(&self) -> Result<Transaction, SdkError> {
+        self.0.begin_transaction().map(Into::into).map_err(SdkError::from)
     }
 }

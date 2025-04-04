@@ -1,7 +1,7 @@
 use serde::de::DeserializeOwned;
 use zerocopy::TryFromBytes;
 
-use crate::wit;
+use crate::{SdkError, wit};
 
 use super::{
     Connection, Transaction,
@@ -31,10 +31,10 @@ impl ConnectionLike<'_> {
         &'a self,
         query: &'a str,
         params: (&[wit::PgBoundValue], &[wit::PgValue]),
-    ) -> Result<Vec<wit::PgRow>, String> {
+    ) -> Result<Vec<wit::PgRow>, SdkError> {
         match self {
-            ConnectionLike::Connection(connection) => connection.0.query(query, params),
-            ConnectionLike::Transaction(transaction) => transaction.inner.query(query, params),
+            ConnectionLike::Connection(connection) => connection.0.query(query, params).map_err(SdkError::from),
+            ConnectionLike::Transaction(transaction) => transaction.inner.query(query, params).map_err(SdkError::from),
         }
     }
 
@@ -42,10 +42,12 @@ impl ConnectionLike<'_> {
         &'a self,
         query: &'a str,
         params: (&[wit::PgBoundValue], &[wit::PgValue]),
-    ) -> Result<u64, String> {
+    ) -> Result<u64, SdkError> {
         match self {
-            ConnectionLike::Connection(connection) => connection.0.execute(query, params),
-            ConnectionLike::Transaction(transaction) => transaction.inner.execute(query, params),
+            ConnectionLike::Connection(connection) => connection.0.execute(query, params).map_err(SdkError::from),
+            ConnectionLike::Transaction(transaction) => {
+                transaction.inner.execute(query, params).map_err(SdkError::from)
+            }
         }
     }
 }
@@ -93,7 +95,7 @@ impl Query<'_> {
     ///
     /// # Returns
     /// The number of rows affected by the query, or an error message if the execution failed
-    pub fn execute(self) -> Result<u64, String> {
+    pub fn execute(self) -> Result<u64, SdkError> {
         self.connection
             .execute(self.query, (self.values.as_slice(), &self.value_tree))
     }
@@ -105,22 +107,18 @@ impl Query<'_> {
     ///
     /// # Returns
     /// A vector containing all rows in the result set, or an error message if the execution failed
-    pub fn fetch(self) -> Result<impl IntoIterator<Item = ColumnIterator>, String> {
-        match self
+    pub fn fetch(self) -> Result<impl IntoIterator<Item = ColumnIterator>, SdkError> {
+        let rows = self
             .connection
-            .query(self.query, (self.values.as_slice(), &self.value_tree))
-        {
-            Ok(rows) => {
-                let rows = rows.into_iter().map(|row| ColumnIterator {
-                    position: 0,
-                    length: row.len() as usize,
-                    row,
-                });
+            .query(self.query, (self.values.as_slice(), &self.value_tree))?;
 
-                Ok(rows)
-            }
-            Err(e) => Err(e.to_string()),
-        }
+        let rows = rows.into_iter().map(|row| ColumnIterator {
+            position: 0,
+            length: row.len() as usize,
+            row,
+        });
+
+        Ok(rows)
     }
 }
 
@@ -135,13 +133,13 @@ pub struct ColumnIterator {
 }
 
 impl Iterator for ColumnIterator {
-    type Item = Result<RowValue, String>;
+    type Item = Result<RowValue, SdkError>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.position < self.length {
             let value = match self.row.as_bytes(self.position as u64) {
                 Ok(value) => value,
-                Err(err) => return Some(Err(err)),
+                Err(err) => return Some(Err(SdkError::from(err))),
             };
 
             self.position += 1;
@@ -177,10 +175,13 @@ impl RowValue {
     /// * `Ok(Some(str))` if the value is not NULL and was successfully converted to a string
     /// * `Ok(None)` if the value is NULL
     /// * `Err` with a message if the value is not valid UTF-8
-    pub fn as_str(&self) -> Result<Option<&str>, String> {
+    pub fn as_str(&self) -> Result<Option<&str>, SdkError> {
         self.value
             .as_deref()
-            .map(|value| std::str::from_utf8(value).map_err(|e| format!("Failed to convert bytes to string: {}", e)))
+            .map(|value| {
+                std::str::from_utf8(value)
+                    .map_err(|e| SdkError::from(format!("Failed to convert bytes to string: {}", e)))
+            })
             .transpose()
     }
 
@@ -196,14 +197,15 @@ impl RowValue {
     /// * `Ok(Some(T))` if the value is not NULL and was successfully converted
     /// * `Ok(None)` if the value is NULL
     /// * `Err` with a message if conversion failed
-    pub fn as_value<T>(&self) -> Result<Option<T>, String>
+    pub fn as_value<T>(&self) -> Result<Option<T>, SdkError>
     where
         T: TryFromBytes,
     {
         self.value
             .as_deref()
             .map(|value| {
-                T::try_read_from_bytes(value).map_err(|e| format!("Failed to convert bytes to primitive: {e:?}"))
+                T::try_read_from_bytes(value)
+                    .map_err(|e| SdkError::from(format!("Failed to convert bytes to primitive: {e:?}")))
             })
             .transpose()
     }
@@ -220,12 +222,12 @@ impl RowValue {
     /// * `Ok(Some(T))` if the value is not NULL and was successfully deserialized
     /// * `Ok(None)` if the value is NULL
     /// * `Err` with a message if deserialization failed
-    pub fn as_json<T>(&self) -> Result<Option<T>, String>
+    pub fn as_json<T>(&self) -> Result<Option<T>, SdkError>
     where
         T: DeserializeOwned,
     {
         match self.value {
-            Some(ref value) => serde_json::from_slice(value).map_err(|e| format!("Failed to deserialize JSON: {}", e)),
+            Some(ref value) => serde_json::from_slice(value).map_err(SdkError::from),
             None => Ok(None),
         }
     }

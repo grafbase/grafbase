@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::wit;
+use crate::{SdkError, wit};
 
 use super::Query;
 
@@ -94,24 +94,20 @@ impl Transaction {
     ///
     /// # Returns
     /// `Ok(())` if the transaction was successfully committed, or an error message
-    pub fn commit(mut self) -> Result<(), String> {
+    pub fn commit(mut self) -> Result<(), SdkError> {
         self.committed_or_rolled_back = true;
 
-        self.inner
-            .commit()
-            .map_err(|e| format!("Failed to commit transaction: {}", e))
+        self.inner.commit().map_err(SdkError::from)
     }
 
     /// Rolls back the transaction, discarding all changes.
     ///
     /// # Returns
     /// `Ok(())` if the transaction was successfully rolled back, or an error message
-    pub fn rollback(mut self) -> Result<(), String> {
+    pub fn rollback(mut self) -> Result<(), SdkError> {
         self.committed_or_rolled_back = true;
 
-        self.inner
-            .rollback()
-            .map_err(|e| format!("Failed to rollback transaction: {}", e))
+        self.inner.rollback().map_err(SdkError::from)
     }
 }
 
