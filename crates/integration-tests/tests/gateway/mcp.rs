@@ -68,7 +68,7 @@ fn server_info_no_mutations() {
     This tool will provide you all the information to construct a correct selection for the query. You always have to
     call the introspect-type tool first, and only after that you can call the correct query tool.
 
-    Queries are prefixed with query/ and mutations with mutation/.
+    Queries are suffixed with Query and mutations with Mutation.
     ");
 }
 
@@ -116,7 +116,7 @@ fn server_info_mutations() {
     This tool will provide you all the information to construct a correct selection for the query. You always have to
     call the introspect-type tool first, and only after that you can call the correct query tool.
 
-    Queries are prefixed with query/ and mutations with mutation/.
+    Queries are suffixed with Query and mutations with Mutation.
     ");
 }
 

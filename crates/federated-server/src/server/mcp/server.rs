@@ -102,7 +102,7 @@ impl<R: Runtime> McpServer<R> {
             This tool will provide you all the information to construct a correct selection for the query. You always have to
             call the introspect-type tool first, and only after that you can call the correct query tool.
 
-            Queries are prefixed with query/ and mutations with mutation/.
+            Queries are suffixed with Query and mutations with Mutation.
         "#};
 
         let instructions = match instructions {
@@ -439,10 +439,10 @@ impl<R: Runtime> ServerHandler for McpServer<R> {
                     return Err(ErrorData::invalid_params("Missing '__selection' argument", None));
                 };
 
-                let (op_type, command) = if command.starts_with("query/") {
-                    ("query", command.strip_prefix("query/").unwrap())
-                } else if command.starts_with("mutation/") && self.mutations_enabled {
-                    ("mutation", command.strip_prefix("mutation/").unwrap())
+                let (op_type, command) = if command.ends_with("Query") {
+                    ("query", command.strip_suffix("Query").unwrap())
+                } else if command.ends_with("Mutation") && self.mutations_enabled {
+                    ("mutation", command.strip_suffix("Mutation").unwrap())
                 } else {
                     return Err(ErrorData::invalid_params("Invalid command", None));
                 };
@@ -470,8 +470,8 @@ enum ToolType {
 impl fmt::Display for ToolType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ToolType::Query => f.write_str("query"),
-            ToolType::Mutation => f.write_str("mutation"),
+            ToolType::Query => f.write_str("Query"),
+            ToolType::Mutation => f.write_str("Mutation"),
         }
     }
 }
@@ -574,7 +574,7 @@ fn add_field_to_tools(tool_type: ToolType, tools: &mut Vec<Tool>, field: engine_
     "#};
 
     tools.push(Tool::new(
-        format!("{tool_type}/{}", field.name()),
+        format!("{}{}", field.name(), tool_type),
         description.trim_start().to_string(),
         parameters.as_object().unwrap().clone(),
     ));
