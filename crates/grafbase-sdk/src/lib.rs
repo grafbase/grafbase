@@ -65,6 +65,7 @@ mod wit {
     pub use grafbase::sdk::headers::*;
     pub use grafbase::sdk::http_client::*;
     pub use grafbase::sdk::nats_client::*;
+    pub use grafbase::sdk::postgres::*;
     pub use grafbase::sdk::resolver_types::*;
     pub use grafbase::sdk::schema::*;
     pub use grafbase::sdk::selection_set_resolver_types;

@@ -79,6 +79,10 @@ tokio = { workspace = true, features = ["net"], optional = true }
 toml = { workspace = true, optional = true }
 tungstenite = { workspace = true, optional = true }
 which = { workspace = true, optional = true }
+zerocopy = { version = "0.8.24", features = ["std"] }
+chrono.workspace = true
+uuid.workspace = true
+rust_decimal = "1.37.1"
 
 [lints]
 workspace = true

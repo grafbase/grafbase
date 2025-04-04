@@ -1,6 +1,4 @@
-//! A module for executing HTTP requests using a client that operates within the host runtime.
-//! Functions are synchronous from the guest's perspective, yet they run asynchronously on the host side.
-//! While waiting for request completion, the host thread can execute other tasks concurrently.
+//! A module for executing HTTP requests.
 
 use std::string::FromUtf8Error;
 

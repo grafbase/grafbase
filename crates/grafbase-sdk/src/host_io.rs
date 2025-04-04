@@ -7,4 +7,5 @@
 pub mod access_log;
 pub mod cache;
 pub mod http;
-pub mod pubsub;
+pub mod nats;
+pub mod postgres;

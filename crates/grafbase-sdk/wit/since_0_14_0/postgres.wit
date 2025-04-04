@@ -88,6 +88,8 @@ interface postgres {
         date(string),
         // A time value in ISO 8601 format.
         time(string),
+        // A datetime value in ISO 8601 format.
+        date-time(s64),
         // An array of PostgreSQL values. The list value represents a point
         // in a pg-value-tree, that should always be sent together with a
         // list of pg-values.
@@ -191,6 +193,12 @@ interface postgres {
         // * Bytes representing the value on success
         // * Error if the index is out of bounds or the value cannot be retrieved
         as-bytes: func(index: u64) -> result<option<list<u8>>, string>;
+
+        // Returns the number of columns in the result row.
+        //
+        // # Returns
+        // * The number of columns in the row
+        len: func() -> u64;
     }
 
     // A transaction within a PostgreSQL database.

@@ -52,6 +52,7 @@ pub fn bind_value<'a>(
         PgValue::Timestamp(value) => query.bind(value),
         PgValue::Date(value) => query.bind(value),
         PgValue::Time(value) => query.bind(value),
+        PgValue::DateTime(value) => query.bind(value),
         PgValue::Array(indices) => {
             // Handle different array types based on the PgType
             match r#type {
