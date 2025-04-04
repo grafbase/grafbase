@@ -60,13 +60,13 @@ fn server_info_no_mutations() {
     insta::assert_snapshot!(&server_info.instructions, @r"
     This is a test MCP server with no mutations.
 
-    This is a GraphQL server that provides tools to access certain selected operations.
-    The operation requires certain arguments, and always a selection. You can construct the
-    correct selection by first looking into the description of the query tool, finding the
-    return type, and then calling the introspect-type tool with the name of the type.
+    This MCP server provides tools to access selected GraphQL operations.
+    Operations have optional arguments, and always a selection. You can construct the
+    selection by first looking into the description of the tool, finding the
+    return type, and then calling the introspection tool with the name of the type.
 
-    This tool will provide you all the information to construct a correct selection for the query. You always have to
-    call the introspect-type tool first, and only after that you can call the correct query tool.
+    The introspection tool will provide you all the information to construct a correct selection for the operation. You always have to
+    call the introspection tool first, and only after that can you call the selected tool.
 
     Queries are suffixed with Query and mutations with Mutation.
     ");
@@ -108,13 +108,13 @@ fn server_info_mutations() {
     insta::assert_snapshot!(&server_info.instructions, @r"
     This is a test MCP server with mutations.
 
-    This is a GraphQL server that provides tools to access certain selected operations.
-    The operation requires certain arguments, and always a selection. You can construct the
-    correct selection by first looking into the description of the query tool, finding the
-    return type, and then calling the introspect-type tool with the name of the type.
+    This MCP server provides tools to access selected GraphQL operations.
+    Operations have optional arguments, and always a selection. You can construct the
+    selection by first looking into the description of the tool, finding the
+    return type, and then calling the introspection tool with the name of the type.
 
-    This tool will provide you all the information to construct a correct selection for the query. You always have to
-    call the introspect-type tool first, and only after that you can call the correct query tool.
+    The introspection tool will provide you all the information to construct a correct selection for the operation. You always have to
+    call the introspection tool first, and only after that can you call the selected tool.
 
     Queries are suffixed with Query and mutations with Mutation.
     ");
@@ -171,7 +171,7 @@ fn list_no_mutations() {
     {
       "tools": [
         {
-          "name": "introspect-type",
+          "name": "introspection",
           "description": "Use this tool before executing any query tools. This tool provides information how to construct\na selection for a specific query. You first select a query you want to execute, see its return\ntype from the description, use this tool to get information about the type and _only then_ you\ncall the query tool with the correct selection set and arguments.\n\nRemember, THIS IS IMPORTANT: you can ONLY select the fields that are returned by this query. There\nare no other fields that can be selected.\n\nYou don't need to use this API for scalar types, input types or enum values, but only when you need\nto build a selection set for a query or mutation. Use the returned value to build a selection set.\nIf a field of a type is either object, interface, or union, you can call this tool repeatedly with\nthe name of the type to introspect its fields.\n\nIf the type is an object, it will have fields defined that you can use as the selection.\nThe fields might have arguments, and if they are required, you need to provide them in the\nselection set.\n\nIf the type is an interface or a union, it will have only the fields that are defined in the\ninterface. You can check the possibleTypes of the interface to see what fields you can use for\neach possible type. Remember to use fragment syntax to select fields from the possible types.\n",
           "inputSchema": {
             "type": "object",
@@ -187,8 +187,8 @@ fn list_no_mutations() {
           }
         },
         {
-          "name": "query/otherUser",
-          "description": "This query returns a object named User. It is a nullable item.\nProvide a GraphQL selection set for the query (e.g., '{ id name }').\n\nYou must determine the fields of the type by calling the `introspect-type` tool first in\nthis MCP server. It will return the needed information for you to build the selection.\n\nDo NOT call this query before running introspection and knowing exactly what fields you can select.\n",
+          "name": "otherUserQuery",
+          "description": "This Query returns a object named User. It is a nullable item.\nProvide a GraphQL selection set for the query (e.g., '{ id name }').\n\nYou must determine the fields of the type by calling the `introspection` tool first in\nthis MCP server. It will return the needed information for you to build the selection.\n\nDo NOT call this Query before running introspection and knowing exactly what fields you can select.\n",
           "inputSchema": {
             "type": "object",
             "properties": {
@@ -207,7 +207,7 @@ fn list_no_mutations() {
               },
               "__selection": {
                 "type": "string",
-                "description": "This value is written in the syntax of a GraphQL selection set. Example: '{ id name }'.\n\nBefore generating this field, call the `introspect-type` tool with type name: User\n\nThe `introspect-type` tool returns with a GraphQL introspection response format, and tells you\nif the return type is an object, a union or an interface.\n\nIf it's an object, you have to select at least one field from the type.\n\nIf it's a union, you can select any fields from any of the possible types. Remember to use fragment spreads,\nif needed.\n\nIf it's an interface, you can select any fields from any of the possible types, or with fields\nfrom the interface itself. Remember to use fragment spreads, if needed.\n"
+                "description": "This value is written in the syntax of a GraphQL selection set. Example: '{ id name }'.\n\nBefore generating this field, call the `introspection` tool with type name: User\n\nThe `introspection` tool returns with a GraphQL introspection response format, and tells you\nif the return type is an object, a union or an interface.\n\nIf it's an object, you have to select at least one field from the type.\n\nIf it's a union, you can select any fields from any of the possible types. Remember to use fragment spreads,\nif needed.\n\nIf it's an interface, you can select any fields from any of the possible types, or with fields\nfrom the interface itself. Remember to use fragment spreads, if needed.\n"
               }
             },
             "required": [
@@ -217,8 +217,8 @@ fn list_no_mutations() {
           }
         },
         {
-          "name": "query/user",
-          "description": "This query returns a object named User. It is a nullable item.\nProvide a GraphQL selection set for the query (e.g., '{ id name }').\n\nYou must determine the fields of the type by calling the `introspect-type` tool first in\nthis MCP server. It will return the needed information for you to build the selection.\n\nDo NOT call this query before running introspection and knowing exactly what fields you can select.\n",
+          "name": "userQuery",
+          "description": "This Query returns a object named User. It is a nullable item.\nProvide a GraphQL selection set for the query (e.g., '{ id name }').\n\nYou must determine the fields of the type by calling the `introspection` tool first in\nthis MCP server. It will return the needed information for you to build the selection.\n\nDo NOT call this Query before running introspection and knowing exactly what fields you can select.\n",
           "inputSchema": {
             "type": "object",
             "properties": {
@@ -228,7 +228,7 @@ fn list_no_mutations() {
               },
               "__selection": {
                 "type": "string",
-                "description": "This value is written in the syntax of a GraphQL selection set. Example: '{ id name }'.\n\nBefore generating this field, call the `introspect-type` tool with type name: User\n\nThe `introspect-type` tool returns with a GraphQL introspection response format, and tells you\nif the return type is an object, a union or an interface.\n\nIf it's an object, you have to select at least one field from the type.\n\nIf it's a union, you can select any fields from any of the possible types. Remember to use fragment spreads,\nif needed.\n\nIf it's an interface, you can select any fields from any of the possible types, or with fields\nfrom the interface itself. Remember to use fragment spreads, if needed.\n"
+                "description": "This value is written in the syntax of a GraphQL selection set. Example: '{ id name }'.\n\nBefore generating this field, call the `introspection` tool with type name: User\n\nThe `introspection` tool returns with a GraphQL introspection response format, and tells you\nif the return type is an object, a union or an interface.\n\nIf it's an object, you have to select at least one field from the type.\n\nIf it's a union, you can select any fields from any of the possible types. Remember to use fragment spreads,\nif needed.\n\nIf it's an interface, you can select any fields from any of the possible types, or with fields\nfrom the interface itself. Remember to use fragment spreads, if needed.\n"
               }
             },
             "required": [
@@ -238,14 +238,14 @@ fn list_no_mutations() {
           }
         },
         {
-          "name": "query/users",
-          "description": "This query returns a object named User. It is a non-nullable array of non-nullable items.\nProvide a GraphQL selection set for the query (e.g., '{ id name }').\n\nYou must determine the fields of the type by calling the `introspect-type` tool first in\nthis MCP server. It will return the needed information for you to build the selection.\n\nDo NOT call this query before running introspection and knowing exactly what fields you can select.\n",
+          "name": "usersQuery",
+          "description": "This Query returns a object named User. It is a non-nullable array of non-nullable items.\nProvide a GraphQL selection set for the query (e.g., '{ id name }').\n\nYou must determine the fields of the type by calling the `introspection` tool first in\nthis MCP server. It will return the needed information for you to build the selection.\n\nDo NOT call this Query before running introspection and knowing exactly what fields you can select.\n",
           "inputSchema": {
             "type": "object",
             "properties": {
               "__selection": {
                 "type": "string",
-                "description": "This value is written in the syntax of a GraphQL selection set. Example: '{ id name }'.\n\nBefore generating this field, call the `introspect-type` tool with type name: User\n\nThe `introspect-type` tool returns with a GraphQL introspection response format, and tells you\nif the return type is an object, a union or an interface.\n\nIf it's an object, you have to select at least one field from the type.\n\nIf it's a union, you can select any fields from any of the possible types. Remember to use fragment spreads,\nif needed.\n\nIf it's an interface, you can select any fields from any of the possible types, or with fields\nfrom the interface itself. Remember to use fragment spreads, if needed.\n"
+                "description": "This value is written in the syntax of a GraphQL selection set. Example: '{ id name }'.\n\nBefore generating this field, call the `introspection` tool with type name: User\n\nThe `introspection` tool returns with a GraphQL introspection response format, and tells you\nif the return type is an object, a union or an interface.\n\nIf it's an object, you have to select at least one field from the type.\n\nIf it's a union, you can select any fields from any of the possible types. Remember to use fragment spreads,\nif needed.\n\nIf it's an interface, you can select any fields from any of the possible types, or with fields\nfrom the interface itself. Remember to use fragment spreads, if needed.\n"
               }
             },
             "required": [
@@ -309,7 +309,7 @@ fn list_with_mutations() {
     {
       "tools": [
         {
-          "name": "introspect-type",
+          "name": "introspection",
           "description": "Use this tool before executing any query tools. This tool provides information how to construct\na selection for a specific query. You first select a query you want to execute, see its return\ntype from the description, use this tool to get information about the type and _only then_ you\ncall the query tool with the correct selection set and arguments.\n\nRemember, THIS IS IMPORTANT: you can ONLY select the fields that are returned by this query. There\nare no other fields that can be selected.\n\nYou don't need to use this API for scalar types, input types or enum values, but only when you need\nto build a selection set for a query or mutation. Use the returned value to build a selection set.\nIf a field of a type is either object, interface, or union, you can call this tool repeatedly with\nthe name of the type to introspect its fields.\n\nIf the type is an object, it will have fields defined that you can use as the selection.\nThe fields might have arguments, and if they are required, you need to provide them in the\nselection set.\n\nIf the type is an interface or a union, it will have only the fields that are defined in the\ninterface. You can check the possibleTypes of the interface to see what fields you can use for\neach possible type. Remember to use fragment syntax to select fields from the possible types.\n",
           "inputSchema": {
             "type": "object",
@@ -325,8 +325,8 @@ fn list_with_mutations() {
           }
         },
         {
-          "name": "query/otherUser",
-          "description": "This query returns a object named User. It is a nullable item.\nProvide a GraphQL selection set for the query (e.g., '{ id name }').\n\nYou must determine the fields of the type by calling the `introspect-type` tool first in\nthis MCP server. It will return the needed information for you to build the selection.\n\nDo NOT call this query before running introspection and knowing exactly what fields you can select.\n",
+          "name": "otherUserQuery",
+          "description": "This Query returns a object named User. It is a nullable item.\nProvide a GraphQL selection set for the query (e.g., '{ id name }').\n\nYou must determine the fields of the type by calling the `introspection` tool first in\nthis MCP server. It will return the needed information for you to build the selection.\n\nDo NOT call this Query before running introspection and knowing exactly what fields you can select.\n",
           "inputSchema": {
             "type": "object",
             "properties": {
@@ -345,7 +345,7 @@ fn list_with_mutations() {
               },
               "__selection": {
                 "type": "string",
-                "description": "This value is written in the syntax of a GraphQL selection set. Example: '{ id name }'.\n\nBefore generating this field, call the `introspect-type` tool with type name: User\n\nThe `introspect-type` tool returns with a GraphQL introspection response format, and tells you\nif the return type is an object, a union or an interface.\n\nIf it's an object, you have to select at least one field from the type.\n\nIf it's a union, you can select any fields from any of the possible types. Remember to use fragment spreads,\nif needed.\n\nIf it's an interface, you can select any fields from any of the possible types, or with fields\nfrom the interface itself. Remember to use fragment spreads, if needed.\n"
+                "description": "This value is written in the syntax of a GraphQL selection set. Example: '{ id name }'.\n\nBefore generating this field, call the `introspection` tool with type name: User\n\nThe `introspection` tool returns with a GraphQL introspection response format, and tells you\nif the return type is an object, a union or an interface.\n\nIf it's an object, you have to select at least one field from the type.\n\nIf it's a union, you can select any fields from any of the possible types. Remember to use fragment spreads,\nif needed.\n\nIf it's an interface, you can select any fields from any of the possible types, or with fields\nfrom the interface itself. Remember to use fragment spreads, if needed.\n"
               }
             },
             "required": [
@@ -355,8 +355,8 @@ fn list_with_mutations() {
           }
         },
         {
-          "name": "query/user",
-          "description": "This query returns a object named User. It is a nullable item.\nProvide a GraphQL selection set for the query (e.g., '{ id name }').\n\nYou must determine the fields of the type by calling the `introspect-type` tool first in\nthis MCP server. It will return the needed information for you to build the selection.\n\nDo NOT call this query before running introspection and knowing exactly what fields you can select.\n",
+          "name": "userQuery",
+          "description": "This Query returns a object named User. It is a nullable item.\nProvide a GraphQL selection set for the query (e.g., '{ id name }').\n\nYou must determine the fields of the type by calling the `introspection` tool first in\nthis MCP server. It will return the needed information for you to build the selection.\n\nDo NOT call this Query before running introspection and knowing exactly what fields you can select.\n",
           "inputSchema": {
             "type": "object",
             "properties": {
@@ -366,7 +366,7 @@ fn list_with_mutations() {
               },
               "__selection": {
                 "type": "string",
-                "description": "This value is written in the syntax of a GraphQL selection set. Example: '{ id name }'.\n\nBefore generating this field, call the `introspect-type` tool with type name: User\n\nThe `introspect-type` tool returns with a GraphQL introspection response format, and tells you\nif the return type is an object, a union or an interface.\n\nIf it's an object, you have to select at least one field from the type.\n\nIf it's a union, you can select any fields from any of the possible types. Remember to use fragment spreads,\nif needed.\n\nIf it's an interface, you can select any fields from any of the possible types, or with fields\nfrom the interface itself. Remember to use fragment spreads, if needed.\n"
+                "description": "This value is written in the syntax of a GraphQL selection set. Example: '{ id name }'.\n\nBefore generating this field, call the `introspection` tool with type name: User\n\nThe `introspection` tool returns with a GraphQL introspection response format, and tells you\nif the return type is an object, a union or an interface.\n\nIf it's an object, you have to select at least one field from the type.\n\nIf it's a union, you can select any fields from any of the possible types. Remember to use fragment spreads,\nif needed.\n\nIf it's an interface, you can select any fields from any of the possible types, or with fields\nfrom the interface itself. Remember to use fragment spreads, if needed.\n"
               }
             },
             "required": [
@@ -376,14 +376,14 @@ fn list_with_mutations() {
           }
         },
         {
-          "name": "query/users",
-          "description": "This query returns a object named User. It is a non-nullable array of non-nullable items.\nProvide a GraphQL selection set for the query (e.g., '{ id name }').\n\nYou must determine the fields of the type by calling the `introspect-type` tool first in\nthis MCP server. It will return the needed information for you to build the selection.\n\nDo NOT call this query before running introspection and knowing exactly what fields you can select.\n",
+          "name": "usersQuery",
+          "description": "This Query returns a object named User. It is a non-nullable array of non-nullable items.\nProvide a GraphQL selection set for the query (e.g., '{ id name }').\n\nYou must determine the fields of the type by calling the `introspection` tool first in\nthis MCP server. It will return the needed information for you to build the selection.\n\nDo NOT call this Query before running introspection and knowing exactly what fields you can select.\n",
           "inputSchema": {
             "type": "object",
             "properties": {
               "__selection": {
                 "type": "string",
-                "description": "This value is written in the syntax of a GraphQL selection set. Example: '{ id name }'.\n\nBefore generating this field, call the `introspect-type` tool with type name: User\n\nThe `introspect-type` tool returns with a GraphQL introspection response format, and tells you\nif the return type is an object, a union or an interface.\n\nIf it's an object, you have to select at least one field from the type.\n\nIf it's a union, you can select any fields from any of the possible types. Remember to use fragment spreads,\nif needed.\n\nIf it's an interface, you can select any fields from any of the possible types, or with fields\nfrom the interface itself. Remember to use fragment spreads, if needed.\n"
+                "description": "This value is written in the syntax of a GraphQL selection set. Example: '{ id name }'.\n\nBefore generating this field, call the `introspection` tool with type name: User\n\nThe `introspection` tool returns with a GraphQL introspection response format, and tells you\nif the return type is an object, a union or an interface.\n\nIf it's an object, you have to select at least one field from the type.\n\nIf it's a union, you can select any fields from any of the possible types. Remember to use fragment spreads,\nif needed.\n\nIf it's an interface, you can select any fields from any of the possible types, or with fields\nfrom the interface itself. Remember to use fragment spreads, if needed.\n"
               }
             },
             "required": [
@@ -392,8 +392,8 @@ fn list_with_mutations() {
           }
         },
         {
-          "name": "mutation/createUser",
-          "description": "This mutation returns a object named User. It is a non-nullable item.\nProvide a GraphQL selection set for the query (e.g., '{ id name }').\n\nYou must determine the fields of the type by calling the `introspect-type` tool first in\nthis MCP server. It will return the needed information for you to build the selection.\n\nDo NOT call this mutation before running introspection and knowing exactly what fields you can select.\n",
+          "name": "createUserMutation",
+          "description": "This Mutation returns a object named User. It is a non-nullable item.\nProvide a GraphQL selection set for the query (e.g., '{ id name }').\n\nYou must determine the fields of the type by calling the `introspection` tool first in\nthis MCP server. It will return the needed information for you to build the selection.\n\nDo NOT call this Mutation before running introspection and knowing exactly what fields you can select.\n",
           "inputSchema": {
             "type": "object",
             "properties": {
@@ -412,7 +412,7 @@ fn list_with_mutations() {
               },
               "__selection": {
                 "type": "string",
-                "description": "This value is written in the syntax of a GraphQL selection set. Example: '{ id name }'.\n\nBefore generating this field, call the `introspect-type` tool with type name: User\n\nThe `introspect-type` tool returns with a GraphQL introspection response format, and tells you\nif the return type is an object, a union or an interface.\n\nIf it's an object, you have to select at least one field from the type.\n\nIf it's a union, you can select any fields from any of the possible types. Remember to use fragment spreads,\nif needed.\n\nIf it's an interface, you can select any fields from any of the possible types, or with fields\nfrom the interface itself. Remember to use fragment spreads, if needed.\n"
+                "description": "This value is written in the syntax of a GraphQL selection set. Example: '{ id name }'.\n\nBefore generating this field, call the `introspection` tool with type name: User\n\nThe `introspection` tool returns with a GraphQL introspection response format, and tells you\nif the return type is an object, a union or an interface.\n\nIf it's an object, you have to select at least one field from the type.\n\nIf it's a union, you can select any fields from any of the possible types. Remember to use fragment spreads,\nif needed.\n\nIf it's an interface, you can select any fields from any of the possible types, or with fields\nfrom the interface itself. Remember to use fragment spreads, if needed.\n"
               }
             },
             "required": [
@@ -427,7 +427,7 @@ fn list_with_mutations() {
 }
 
 #[test]
-fn introspect_type() {
+fn introspection() {
     let subgraph = indoc! {r#"
         type User {
             id: ID!
@@ -458,7 +458,7 @@ fn introspect_type() {
         let mut stream = engine.mcp("/mcp").await;
 
         stream
-            .call_tool("introspect-type", json!({"name": "User"}))
+            .call_tool("introspection", json!({"name": "User"}))
             .await
             .unwrap()
     });
@@ -533,7 +533,7 @@ fn run_query_no_params() {
             "__selection": "{ id name }"
         });
 
-        stream.call_tool("query/user", args).await.unwrap()
+        stream.call_tool("userQuery", args).await.unwrap()
     });
 
     insta::assert_json_snapshot!(&response, @r#"
@@ -580,7 +580,7 @@ fn run_query_with_params() {
             "id": "1"
         });
 
-        stream.call_tool("query/user", args).await.unwrap()
+        stream.call_tool("userQuery", args).await.unwrap()
     });
 
     insta::assert_json_snapshot!(&response, @r#"
@@ -639,7 +639,7 @@ fn mutation_rejected_when_disabled() {
         });
 
         // Attempt to call a mutation tool when mutations are disabled
-        stream.call_tool("mutation/createUser", args).await.unwrap_err()
+        stream.call_tool("createUserMutation", args).await.unwrap_err()
     });
 
     insta::assert_debug_snapshot!(&response, @r#"
@@ -697,7 +697,7 @@ fn mutation_allowed_when_enabled() {
             }
         });
 
-        stream.call_tool("mutation/createUser", args).await.unwrap()
+        stream.call_tool("createUserMutation", args).await.unwrap()
     });
 
     insta::assert_debug_snapshot!(&response, @r#"

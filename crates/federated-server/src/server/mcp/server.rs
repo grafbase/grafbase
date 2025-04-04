@@ -28,7 +28,7 @@ pub struct McpServer<R: Runtime> {
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct IntrospectType {
+pub struct Introspection {
     #[serde(skip_serializing_if = "Option::is_none")]
     name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -40,18 +40,18 @@ pub struct IntrospectType {
     #[serde(skip_serializing_if = "Option::is_none")]
     input_fields: Option<Vec<IntrospectArgument>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    interfaces: Option<Vec<IntrospectType>>,
+    interfaces: Option<Vec<Introspection>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    possible_types: Option<Vec<IntrospectType>>,
+    possible_types: Option<Vec<Introspection>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    of_type: Option<Box<IntrospectType>>,
+    of_type: Option<Box<Introspection>>,
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct IntrospectField {
     name: String,
-    r#type: Box<IntrospectType>,
+    r#type: Box<Introspection>,
     #[serde(skip_serializing_if = "Option::is_none")]
     description: Option<String>,
     is_deprecated: bool,
@@ -67,7 +67,7 @@ pub struct IntrospectArgument {
     name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     description: Option<String>,
-    r#type: Box<IntrospectType>,
+    r#type: Box<Introspection>,
     #[serde(skip_serializing_if = "Option::is_none")]
     default_value: Option<String>,
 }
@@ -75,7 +75,7 @@ pub struct IntrospectArgument {
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub struct IntrospectFieldWrapper {
     #[serde(rename = "__type")]
-    r#type: Option<IntrospectType>,
+    r#type: Option<Introspection>,
 }
 
 #[derive(Clone, Debug, serde::Deserialize)]
@@ -94,13 +94,13 @@ pub struct QueryError {
 impl<R: Runtime> McpServer<R> {
     pub fn new(engine: EngineWatcher<R>, instructions: Option<String>, enable_mutations: bool) -> Self {
         let guide = indoc! {r#"
-            This is a GraphQL server that provides tools to access certain selected operations.
-            The operation requires certain arguments, and always a selection. You can construct the
-            correct selection by first looking into the description of the query tool, finding the
-            return type, and then calling the introspect-type tool with the name of the type.
+            This MCP server provides tools to access selected GraphQL operations.
+            Operations have optional arguments, and always a selection. You can construct the
+            selection by first looking into the description of the tool, finding the
+            return type, and then calling the introspection tool with the name of the type.
 
-            This tool will provide you all the information to construct a correct selection for the query. You always have to
-            call the introspect-type tool first, and only after that you can call the correct query tool.
+            The introspection tool will provide you all the information to construct a correct selection for the operation. You always have to
+            call the introspection tool first, and only after that can you call the selected tool.
 
             Queries are suffixed with Query and mutations with Mutation.
         "#};
@@ -122,9 +122,9 @@ impl<R: Runtime> McpServer<R> {
         }
     }
 
-    async fn introspect_type(&self, type_name: &str) -> Result<IntrospectType, ErrorData> {
+    async fn introspection(&self, type_name: &str) -> Result<Introspection, ErrorData> {
         let query = indoc! {r#"
-            query McpIntrospectType($name: String!) {
+            query McpIntrospection($name: String!) {
               __type(name: $name) {
                 name
                 kind
@@ -363,7 +363,7 @@ impl<R: Runtime> ServerHandler for McpServer<R> {
         "#};
 
         tools.push(Tool::new(
-            "introspect-type",
+            "introspection",
             description,
             json!({
                 "type": "object",
@@ -409,7 +409,7 @@ impl<R: Runtime> ServerHandler for McpServer<R> {
         _: RequestContext<RoleServer>,
     ) -> Result<CallToolResult, ErrorData> {
         let content = match &*name {
-            "introspect-type" => {
+            "introspection" => {
                 let Some(mut arguments) = arguments else {
                     return Err(ErrorData::invalid_params("Missing arguments", None));
                 };
@@ -423,7 +423,7 @@ impl<R: Runtime> ServerHandler for McpServer<R> {
                     .ok_or_else(|| ErrorData::invalid_params("'name' argument must be a string", None))?
                     .to_string();
 
-                let result = self.introspect_type(&name).await?;
+                let result = self.introspection(&name).await?;
 
                 Content::json(result)?
             }
@@ -528,9 +528,9 @@ fn add_field_to_tools(tool_type: ToolType, tools: &mut Vec<Tool>, field: engine_
     let description = formatdoc! {r#"
         This value is written in the syntax of a GraphQL selection set. Example: '{{ id name }}'.
 
-        Before generating this field, call the `introspect-type` tool with type name: {type_name}
+        Before generating this field, call the `introspection` tool with type name: {type_name}
 
-        The `introspect-type` tool returns with a GraphQL introspection response format, and tells you
+        The `introspection` tool returns with a GraphQL introspection response format, and tells you
         if the return type is an object, a union or an interface.
 
         If it's an object, you have to select at least one field from the type.
@@ -567,7 +567,7 @@ fn add_field_to_tools(tool_type: ToolType, tools: &mut Vec<Tool>, field: engine_
         This {tool_type} returns a {type} named {type_name}. It is {type_description}.
         Provide a GraphQL selection set for the query (e.g., '{{ id name }}').
 
-        You must determine the fields of the type by calling the `introspect-type` tool first in
+        You must determine the fields of the type by calling the `introspection` tool first in
         this MCP server. It will return the needed information for you to build the selection.
 
         Do NOT call this {tool_type} before running introspection and knowing exactly what fields you can select.
