@@ -62,6 +62,7 @@ mod wit {
     pub use grafbase::sdk::directive::*;
     pub use grafbase::sdk::error::*;
     pub use grafbase::sdk::field_resolver_types::FieldOutput;
+    pub use grafbase::sdk::grpc::*;
     pub use grafbase::sdk::headers::*;
     pub use grafbase::sdk::http_client::*;
     pub use grafbase::sdk::nats_client::*;
