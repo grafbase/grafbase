@@ -14,14 +14,13 @@ use crate::{
     errors::CliError,
     watercolor::{self, watercolor},
 };
-use colored::Colorize;
+use crossterm::style::Stylize;
 use extension::Manifest;
 
 /// reports to stdout that the server has started
 pub fn cli_header() {
     let version = env!("CARGO_PKG_VERSION");
-    // TODO: integrate this with watercolor
-    println!("{}", format!("Grafbase CLI {version}\n").dimmed());
+    println!("{}", format!("Grafbase CLI {version}\n").bold());
 }
 
 /// reports an error to stderr

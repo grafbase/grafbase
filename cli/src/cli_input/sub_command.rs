@@ -42,7 +42,7 @@ pub enum SubCommand {
     Upgrade,
     /// Lint a GraphQL schema
     Lint(LintCommand),
-    /// Start a development server
+    /// Start the local development server
     Dev(DevCommand),
     /// Develop gateway extensions
     Extension(ExtensionCommand),
