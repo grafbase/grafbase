@@ -8,7 +8,10 @@ use wasmtime::component::Resource;
 use wasmtime_wasi::{IoView, ResourceTable, WasiCtx, WasiView};
 use wasmtime_wasi_http::{WasiHttpCtx, WasiHttpView};
 
-use crate::AccessLogSender;
+use crate::{
+    AccessLogSender,
+    resources::{self, GrpcClient},
+};
 
 /// Represents the state of the WASI environment.
 ///
@@ -42,6 +45,8 @@ pub(crate) struct WasiState {
 
     /// A map of PostgreSQL connection pools per named connection.
     postgres_pools: DashMap<String, sqlx::Pool<Postgres>>,
+
+    grpc_clients: DashMap<String, resources::GrpcClient>,
 }
 
 // Allows to define method for a resource that is either owned or an attribute from another one.
@@ -131,6 +136,7 @@ impl WasiState {
             cache,
             network_enabled,
             postgres_pools: DashMap::new(),
+            grpc_clients: DashMap::new(),
         }
     }
 
@@ -194,6 +200,11 @@ impl WasiState {
     /// Returns a reference to the histogram tracking request durations.
     pub fn request_durations(&self) -> &Histogram<u64> {
         &self.request_durations
+    }
+
+    /// Returns a reference to the map of gRPC clients.
+    pub(crate) fn grpc_clients(&self) -> &DashMap<String, GrpcClient> {
+        &self.grpc_clients
     }
 
     /// Returns a reference to the HTTP client used for making requests from the guest.
