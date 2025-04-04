@@ -13,7 +13,7 @@ all-features = true
 
 [features]
 ## Test utilities to write integration tests for your extension. The [Grafbase CLI](https://grafbase.com/docs/reference/grafbase-cli)
-## will automatically generate an example test with the `grafbase extension init` command. You can also check out Grafbase's [extension](https://github.com/grafbase/extensions/tree/main/extensions) repository for examples 
+## will automatically generate an example test with the `grafbase extension init` command. You can also check out Grafbase's [extension](https://github.com/grafbase/extensions/tree/main/extensions) repository for examples
 test-utils = [
     "dep:duct",
     "dep:fslock",
@@ -61,6 +61,7 @@ jaq-std = { version = "2.1.0", optional = true }
 # test-utils
 anyhow = { workspace = true, optional = true }
 async-tungstenite = { workspace = true, optional = true, features = ["tokio-runtime"] }
+chrono.workspace = true
 duct = { workspace = true, optional = true }
 fslock = { workspace = true, optional = true }
 futures-util = { workspace = true, optional = true }
@@ -73,16 +74,15 @@ graphql-ws-client = { workspace = true, optional = true }
 hashbrown = { workspace = true, optional = true }
 indoc = { workspace = true, optional = true }
 reqwest = { workspace = true, features = ["json"], optional = true }
+rust_decimal.workspace = true
 tempfile = { workspace = true, optional = true }
 time.workspace = true
 tokio = { workspace = true, features = ["net"], optional = true }
 toml = { workspace = true, optional = true }
 tungstenite = { workspace = true, optional = true }
-which = { workspace = true, optional = true }
-zerocopy = { version = "0.8.24", features = ["std"] }
-chrono.workspace = true
 uuid.workspace = true
-rust_decimal = "1.37.1"
+which = { workspace = true, optional = true }
+zerocopy = { workspace = true, features = ["std"] }
 
 [lints]
 workspace = true

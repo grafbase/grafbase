@@ -1,4 +1,4 @@
-use serde::de::DeserializeOwned;
+use serde::Deserialize;
 use zerocopy::TryFromBytes;
 
 use crate::{SdkError, wit};
@@ -224,7 +224,7 @@ impl RowValue {
     /// * `Err` with a message if deserialization failed
     pub fn as_json<T>(&self) -> Result<Option<T>, SdkError>
     where
-        T: DeserializeOwned,
+        T: for<'a> Deserialize<'a>,
     {
         match self.value {
             Some(ref value) => serde_json::from_slice(value).map_err(SdkError::from),
