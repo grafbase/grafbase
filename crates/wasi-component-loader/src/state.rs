@@ -1,7 +1,9 @@
 use std::{any::Any, sync::Arc};
 
 use super::cache::Cache;
+use dashmap::DashMap;
 use grafbase_telemetry::{metrics::meter_from_global_provider, otel::opentelemetry::metrics::Histogram};
+use sqlx::Postgres;
 use wasmtime::component::Resource;
 use wasmtime_wasi::{IoView, ResourceTable, WasiCtx, WasiView};
 use wasmtime_wasi_http::{WasiHttpCtx, WasiHttpView};
@@ -37,6 +39,9 @@ pub(crate) struct WasiState {
 
     /// If false, network operations are disabled.
     network_enabled: bool,
+
+    /// A map of PostgreSQL connection pools per named connection.
+    postgres_pools: DashMap<String, sqlx::Pool<Postgres>>,
 }
 
 // Allows to define method for a resource that is either owned or an attribute from another one.
@@ -125,6 +130,7 @@ impl WasiState {
             access_log,
             cache,
             network_enabled,
+            postgres_pools: DashMap::new(),
         }
     }
 
@@ -193,6 +199,11 @@ impl WasiState {
     /// Returns a reference to the HTTP client used for making requests from the guest.
     pub fn http_client(&self) -> &reqwest::Client {
         &self.http_client
+    }
+
+    /// Returns a reference to the map of PostgreSQL connection pools.
+    pub fn postgres_pools(&self) -> &DashMap<String, sqlx::Pool<Postgres>> {
+        &self.postgres_pools
     }
 
     /// Returns a reference to the access log sender.

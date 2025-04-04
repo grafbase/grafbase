@@ -1,0 +1,240 @@
+interface postgres {
+    // Configuration options for a Postgre connection pool.
+    record pg-pool-options {
+        // Maximum number of connections the pool can have open at once.
+        // Default is 10.
+        max-connections: option<u32>,
+
+        // Minimum number of idle connections to maintain in the pool.
+        // Default is 0.
+        min-connections: option<u32>,
+
+        // Maximum time in milliseconds that a connection can remain idle before being closed.
+        // Default is 10 minutes.
+        idle-timeout-ms: option<u64>,
+
+        // Maximum time in milliseconds to wait to acquire a connection before timing out.
+        // Default is 30 seconds.
+        acquisition-timeout-ms: option<u64>,
+
+        // Maximum lifetime in milliseconds of a connection before it is closed and replaced.
+        // Default is 30 minutes.
+        max-lifetime-ms: option<u64>,
+    }
+
+    // Represents a PostgreSQL value that has been bound to a parameter with explicit type information.
+    // This is used for cases where the type cannot be inferred from the Rust type alone,
+    // or when dealing with null values for specific types, particularly arrays.
+    record pg-bound-value {
+        // The actual data value to be bound
+        value: pg-value,
+        // The PostgreSQL type that this value should be treated as
+        %type: pg-type,
+        // Whether this value should be treated as an array of the specified type
+        is-array: bool,
+    }
+
+    // Postgres data types that can be used in parameters and results.
+    enum pg-type {
+        // Boolean type
+        boolean,
+        // 16-bit signed integer
+        int16,
+        // 32-bit signed integer
+        int32,
+        // 64-bit signed integer
+        int64,
+        // 32-bit floating point number
+        float32,
+        // 64-bit floating point number
+        float64,
+        // Text or character string, or anything that can be bound as string
+        %string,
+        // Binary data (bytea)
+        bytes,
+        // Geometric point on a plane
+        point,
+        // Time interval
+        interval,
+    }
+
+    // Represents a Postgres value that can be used in query parameters.
+    variant pg-value {
+        // A NULL value.
+        null,
+        // A boolean value.
+        boolean(bool),
+        // A 16-bit signed integer.
+        int16(s16),
+        // A 32-bit signed integer.
+        int32(s32),
+        // A 64-bit signed integer.
+        int64(s64),
+        // A 32-bit floating point number.
+        float32(f32),
+        // A 64-bit floating point number.
+        float64(f64),
+        // A string value.
+        %string(string),
+        // Binary data.
+        bytes(list<u8>),
+        // A UUID value.
+        uuid(string),
+        // A JSON value.
+        json(string),
+        // A timestamp value (microseconds since Unix epoch).
+        timestamp(s64),
+        // A date value in ISO 8601 format.
+        date(string),
+        // A time value in ISO 8601 format.
+        time(string),
+        // An array of PostgreSQL values. The list value represents a point
+        // in a pg-value-tree, that should always be sent together with a
+        // list of pg-values.
+        %array(list<u64>),
+        // A numeric value as a string.
+        numeric(string),
+        // A geometric point represented as (x, y).
+        point(tuple<f64, f64>),
+        // A time interval in (months, days, microseconds).
+        interval(tuple<s32, s32, s64>),
+        // An IPv4 or IPv6 network address.
+        inet(list<u8>),
+        // A MAC address.
+        macaddr(list<u8>),
+        // A bit string.
+        bit(list<u8>),
+        // A monetary value (integer cents).
+        money(s64),
+        // An XML value.
+        xml(list<u8>)
+    }
+
+    // Represents a structure of all list values returned with a Postgres query.
+    // This is just due to WIT not supporting recursive types.
+    type pg-value-tree = list<pg-value>;
+
+    // A connection pool for PostgreSQL.
+    resource pg-pool {
+        // Creates a new connection pool with the specified URL and options.
+        //
+        // # Arguments
+        // * `name` - a unique name for the pool
+        // * `url` - The PostgreSQL connection URL
+        // * `options` - Configuration options for the connection pool
+        //
+        // # Returns
+        // * A new connection pool on success
+        // * Error if the pool could not be created
+        connect: static func(name: string, url: string, options: pg-pool-options) -> result<pg-pool, string>;
+
+        // Acquires a connection from the pool.
+        //
+        // # Returns
+        // * A connection from the pool on success
+        // * Error if a connection could not be acquired
+        acquire: func() -> result<pg-connection, string>;
+
+        // Begins a new transaction.
+        //
+        // # Returns
+        // * A new transaction on success
+        // * Error if the transaction could not be started
+        begin-transaction: func() -> result<pg-transaction, string>;
+    }
+
+    // A connection to a PostgreSQL database.
+    resource pg-connection {
+        // Executes a query and returns the resulting rows.
+        //
+        // # Arguments
+        // * `query` - The SQL query to execute
+        // * `params` - Parameters to bind to the query
+        //
+        // # Returns
+        // * List of rows returned by the query on success
+        // * Error if the query failed
+        query: func(
+            query: string,
+            params: tuple<list<pg-bound-value>, pg-value-tree>
+        ) -> result<list<pg-row>, string>;
+
+        // Executes a query and returns the number of rows affected.
+        //
+        // # Arguments
+        // * `query` - The SQL query to execute
+        // * `params` - Parameters to bind to the query
+        //
+        // # Returns
+        // * Number of rows affected on success
+        // * Error if the query failed
+        execute: func(
+            query: string,
+            params: tuple<list<pg-bound-value>, pg-value-tree>
+        ) -> result<u64, string>;
+    }
+
+    // A row from a PostgreSQL query result.
+    resource pg-row {
+        // Returns the column names of the result set.
+        //
+        // # Returns
+        // * List of column names
+        columns: func() -> list<string>;
+
+        // Gets the bytes of a value at the specified column index.
+        //
+        // # Arguments
+        // * `index` - The zero-based index of the column
+        //
+        // # Returns
+        // * Bytes representing the value on success
+        // * Error if the index is out of bounds or the value cannot be retrieved
+        as-bytes: func(index: u64) -> result<option<list<u8>>, string>;
+    }
+
+    // A transaction within a PostgreSQL database.
+    resource pg-transaction {
+        // Executes a query within the transaction and returns the resulting rows.
+        //
+        // # Arguments
+        // * `query` - The SQL query to execute
+        // * `params` - Parameters to bind to the query
+        //
+        // # Returns
+        // * List of rows returned by the query on success
+        // * Error if the query failed
+        query: func(
+            query: string,
+            params: tuple<list<pg-bound-value>, pg-value-tree>
+        ) -> result<list<pg-row>, string>;
+
+        // Executes a query within the transaction and returns the number of rows affected.
+        //
+        // # Arguments
+        // * `query` - The SQL query to execute
+        // * `params` - Parameters to bind to the query
+        //
+        // # Returns
+        // * Number of rows affected on success
+        // * Error if the query failed
+        execute: func(
+            query: string,
+            params: tuple<list<pg-bound-value>, pg-value-tree>
+        ) -> result<u64, string>;
+
+        // Commits the transaction.
+        //
+        // # Returns
+        // * Success if the transaction was committed
+        // * Error if the commit failed
+        commit: func() -> result<_, string>;
+
+        // Rolls back the transaction.
+        //
+        // # Returns
+        // * Success if the transaction was rolled back
+        // * Error if the rollback failed
+        rollback: func() -> result<_, string>;
+    }
+}
