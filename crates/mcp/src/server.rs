@@ -1,5 +1,6 @@
 use std::{borrow::Cow, fmt};
 
+use crate::EngineWatcher;
 use axum::body::Body;
 use engine::Runtime;
 use engine_schema::{InputObjectDefinition, ScalarType, TypeDefinition};
@@ -17,8 +18,6 @@ use rmcp::{
     service::RequestContext,
 };
 use serde_json::{Map, Value, json};
-
-use crate::server::gateway::EngineWatcher;
 
 pub struct McpServer<R: Runtime> {
     info: ServerInfo,

@@ -27,6 +27,7 @@ engine-schema.workspace = true
 futures-lite.workspace = true
 futures-util.workspace = true
 gateway-config.workspace = true
+grafbase-mcp = { path = "../mcp" }
 grafbase-telemetry = { workspace = true }
 grafbase-workspace-hack.workspace = true
 graph-ref.workspace = true
@@ -65,10 +66,6 @@ indoc.workspace = true
 lambda_http = { workspace = true, optional = true }
 minicbor-serde = { workspace = true, features = ["alloc"] }
 rand.workspace = true
-rmcp = { git = "https://github.com/grafbase/rust-sdk", branch = "reduce-logging", features = [
-    "transport-sse",
-    "transport-sse-server",
-] }
 serde_json.workspace = true
 tower = { workspace = true, optional = true }
 
