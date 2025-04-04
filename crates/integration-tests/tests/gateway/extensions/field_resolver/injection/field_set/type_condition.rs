@@ -355,7 +355,7 @@ fn inexsitant_type() {
     let error = run_with_field_set(graphql_subgraph(), "... on Unknown { id }").err();
     insta::assert_debug_snapshot!(error, @r#"
     Some(
-        "At User.echo for the extension 'echo-1.0.0' directive @echo: Uknown type 'Unknown'",
+        "At User.echo for the extension 'echo-1.0.0' directive @echo: Unknown type 'Unknown'",
     )
     "#);
 }

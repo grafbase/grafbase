@@ -106,7 +106,7 @@ fn unknown_field() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At Query.echo for the extension 'echo-1.0.0' directive @echo: Uknown input value 'unknown'",
+            "At Query.echo for the extension 'echo-1.0.0' directive @echo: Unknown input value 'unknown'",
         )
         "#);
     });
@@ -151,7 +151,7 @@ fn unknown_nested_field() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At Query.echo for the extension 'echo-1.0.0' directive @echo: Uknown input value 'unknown' at path '.filters.nested'",
+            "At Query.echo for the extension 'echo-1.0.0' directive @echo: Unknown input value 'unknown' at path '.filters.nested'",
         )
         "#);
     });

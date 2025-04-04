@@ -61,7 +61,7 @@ fn cannot_select_unknown_fields() {
     let err = run_with_field_set(graphql_subgraph(), "unknown").err();
     insta::assert_debug_snapshot!(err, @r#"
     Some(
-        "At User.echo for the extension 'echo-1.0.0' directive @echo: Uknown field 'unknown' on type 'User'",
+        "At User.echo for the extension 'echo-1.0.0' directive @echo: Unknown field 'unknown' on type 'User'",
     )
     "#);
 }
@@ -71,7 +71,7 @@ fn cannot_select_unknown_fields_nested() {
     let err = run_with_field_set(graphql_subgraph(), "friends { friends { address { unknown } } }").err();
     insta::assert_debug_snapshot!(err, @r#"
     Some(
-        "At User.echo for the extension 'echo-1.0.0' directive @echo: Uknown field 'unknown' on type 'Address' at path '.friends.friends.address'",
+        "At User.echo for the extension 'echo-1.0.0' directive @echo: Unknown field 'unknown' on type 'Address' at path '.friends.friends.address'",
     )
     "#);
 }

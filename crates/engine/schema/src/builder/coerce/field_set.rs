@@ -15,9 +15,9 @@ pub enum FieldSetError {
     InputValueError { err: InputValueError, path: String },
     #[error("Could not parse InputValueSet: {err}")]
     InvalidFieldSet { err: String },
-    #[error("Uknown field '{name}' on type '{ty}'{path}")]
+    #[error("Unknown field '{name}' on type '{ty}'{path}")]
     UnknownField { name: String, ty: String, path: String },
-    #[error("Uknown type '{ty}'{path}")]
+    #[error("Unknown type '{ty}'{path}")]
     UnknownType { ty: String, path: String },
     #[error("{ty} is not an object, interface or union{path}")]
     NotAnOutputType { ty: String, path: String },
