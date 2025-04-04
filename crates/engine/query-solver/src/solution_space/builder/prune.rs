@@ -64,11 +64,11 @@ impl QuerySolutionSpaceBuilder<'_, '_> {
                         .graph
                         .edges_directed(node, Direction::Incoming)
                         .filter(|edge| match edge.weight() {
-                            SpaceEdge::CreateChildResolver { .. }
-                            | SpaceEdge::CanProvide { .. }
+                            SpaceEdge::CreateChildResolver
+                            | SpaceEdge::CanProvide
                             | SpaceEdge::TypenameField
                             | SpaceEdge::Provides => true,
-                            SpaceEdge::Field | SpaceEdge::Requires { .. } | SpaceEdge::HasChildResolver { .. } => false,
+                            SpaceEdge::Field | SpaceEdge::Requires | SpaceEdge::HasChildResolver => false,
                         })
                         .map(|edge| edge.source()),
                 );
