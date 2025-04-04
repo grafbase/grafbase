@@ -153,7 +153,7 @@ where
                 .graph
                 .edges_directed(parent.query_field_node_ix, Direction::Outgoing)
                 .find(|edge| match edge.weight() {
-                    SpaceEdge::HasChildResolver { .. } => self.query.graph[edge.target()]
+                    SpaceEdge::HasChildResolver => self.query.graph[edge.target()]
                         .as_resolver()
                         .is_some_and(|res| res.definition_id == resolver_definition.id),
                     _ => false,
