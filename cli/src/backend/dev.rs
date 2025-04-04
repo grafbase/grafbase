@@ -188,21 +188,21 @@ fn output_handler(
     println!("{} your subgraphs...\n", "Fetching".yellow().bold());
 
     let url = url_receiver.blocking_recv()?;
-    let url = url::Url::parse(&url)?;
+    let graphql_url = url::Url::parse(&url)?;
 
     stdout().queue(MoveUp(2))?.queue(Clear(ClearType::CurrentLine))?;
 
     let explorer_url = format!(
         "http://{}:{}",
-        url.host()
+        graphql_url
+            .host()
             .map(|h| h.to_string())
             .unwrap_or_else(|| "127.0.0.1".to_string()),
-        url.port().unwrap()
+        graphql_url.port().unwrap()
     );
 
     println!("- Local:    {}", explorer_url);
-
-    println!("- GraphQL:  {}", url.to_string());
+    println!("- GraphQL:  {}", graphql_url);
 
     if let Some(mcp_url) = mcp_url {
         println!("- MCP:      {}", mcp_url);
