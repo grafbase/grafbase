@@ -176,7 +176,7 @@ fn receive_subgraph_schema() {
             .await;
 
         let response = engine.post(r#"query { test }"#).await;
-        insta::assert_json_snapshot!(response, { ".**.id" => "<id>" }, @r#"
+        insta::assert_json_snapshot!(response, @r#"
         {
           "data": {
             "test": [

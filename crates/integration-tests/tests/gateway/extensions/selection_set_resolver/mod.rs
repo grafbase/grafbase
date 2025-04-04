@@ -1,4 +1,5 @@
 mod config;
+mod selection_set;
 mod subgraph_schema;
 
 use std::sync::Arc;
