@@ -1,0 +1,28 @@
+[package]
+name = "grafbase-mcp"
+edition.workspace = true
+license = "MPL-2.0"
+homepage.workspace = true
+keywords.workspace = true
+repository.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+axum = { workspace = true, features = ["macros", "ws", "query", "json"] }
+engine.workspace = true
+engine-axum.workspace = true
+engine-schema.workspace = true
+gateway-config.workspace = true
+grafbase-workspace-hack.workspace = true
+http.workspace = true
+indoc.workspace = true
+rmcp = { git = "https://github.com/grafbase/rust-sdk", branch = "reduce-logging", features = [
+    "transport-sse",
+    "transport-sse-server",
+] }
+serde.workspace = true
+serde_json.workspace = true
+tokio = { workspace = true, features = ["signal", "time", "net"] }
+tokio-util = { workspace = true, features = ["codec"] }
