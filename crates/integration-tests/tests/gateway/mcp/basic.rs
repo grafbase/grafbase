@@ -167,7 +167,7 @@ fn list_no_mutations() {
         stream.list_tools().await.unwrap()
     });
 
-    insta::assert_json_snapshot!(&tools, @r#"
+    insta::assert_json_snapshot!(&tools, @r##"
     {
       "tools": [
         {
@@ -184,6 +184,26 @@ fn list_no_mutations() {
             "required": [
               "name"
             ]
+          }
+        },
+        {
+          "name": "search",
+          "description": "Case insensisitve search for fields in the GraphQL schema by name or type name. Supports fuzzy matching for longer keywords and returns up to 20 most relevant matches, with results scored based on their depth in the schema. Each match includes its shortest possible query path, from a root type. Each segment includes the field's name, output type, and arguments with their types and default values.",
+          "inputSchema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "title": "SearchParameters",
+            "type": "object",
+            "required": [
+              "keywords"
+            ],
+            "properties": {
+              "keywords": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         {
@@ -255,7 +275,7 @@ fn list_no_mutations() {
         }
       ]
     }
-    "#);
+    "##);
 }
 
 #[test]
@@ -305,7 +325,7 @@ fn list_with_mutations() {
         stream.list_tools().await.unwrap()
     });
 
-    insta::assert_json_snapshot!(&tools, @r#"
+    insta::assert_json_snapshot!(&tools, @r##"
     {
       "tools": [
         {
@@ -322,6 +342,26 @@ fn list_with_mutations() {
             "required": [
               "name"
             ]
+          }
+        },
+        {
+          "name": "search",
+          "description": "Case insensisitve search for fields in the GraphQL schema by name or type name. Supports fuzzy matching for longer keywords and returns up to 20 most relevant matches, with results scored based on their depth in the schema. Each match includes its shortest possible query path, from a root type. Each segment includes the field's name, output type, and arguments with their types and default values.",
+          "inputSchema": {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "title": "SearchParameters",
+            "type": "object",
+            "required": [
+              "keywords"
+            ],
+            "properties": {
+              "keywords": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         {
@@ -423,7 +463,7 @@ fn list_with_mutations() {
         }
       ]
     }
-    "#);
+    "##);
 }
 
 #[test]

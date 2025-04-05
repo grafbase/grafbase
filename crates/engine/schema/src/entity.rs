@@ -1,8 +1,8 @@
 use walker::{Iter, Walk};
 
 use crate::{
-    CompositeType, CompositeTypeId, EntityDefinition, EntityDefinitionId, InterfaceDefinition, InterfaceDefinitionId,
-    ObjectDefinitionId, TypeDefinitionId, TypeSystemDirective,
+    CompositeType, CompositeTypeId, EntityDefinition, EntityDefinitionId, FieldDefinition, InterfaceDefinition,
+    InterfaceDefinitionId, ObjectDefinitionId, TypeDefinitionId, TypeSystemDirective,
 };
 
 impl EntityDefinitionId {
@@ -43,6 +43,14 @@ impl<'a> EntityDefinition<'a> {
             EntityDefinition::Interface(item) => (item.schema, &item.as_ref().directive_ids),
         };
         directive_ids.walk(schema)
+    }
+
+    pub fn fields(&self) -> impl Iter<Item = FieldDefinition<'a>> + 'a {
+        let (schema, field_ids) = match self {
+            EntityDefinition::Object(item) => (item.schema, &item.as_ref().field_ids),
+            EntityDefinition::Interface(item) => (item.schema, &item.as_ref().field_ids),
+        };
+        field_ids.walk(schema)
     }
 
     pub fn interface_ids(&self) -> &'a [InterfaceDefinitionId] {
