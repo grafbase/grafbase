@@ -10,10 +10,13 @@ repository.workspace = true
 workspace = true
 
 [dependencies]
+anyhow.workspace = true
 axum = { workspace = true, features = ["macros", "ws", "query", "json"] }
 engine.workspace = true
 engine-axum.workspace = true
 engine-schema.workspace = true
+fixedbitset.workspace = true
+futures.workspace = true
 gateway-config.workspace = true
 grafbase-workspace-hack.workspace = true
 http.workspace = true
@@ -22,7 +25,10 @@ rmcp = { git = "https://github.com/grafbase/rust-sdk", branch = "reduce-logging"
     "transport-sse",
     "transport-sse-server",
 ] }
+schemars.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+tantivy.workspace = true
 tokio = { workspace = true, features = ["signal", "time", "net"] }
+tokio-stream = { workspace = true, features = ["sync"] }
 tokio-util = { workspace = true, features = ["codec"] }

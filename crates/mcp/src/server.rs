@@ -1,6 +1,9 @@
 use std::{borrow::Cow, fmt};
 
-use crate::EngineWatcher;
+use crate::{
+    EngineWatcher,
+    tools::{RmcpTool, SearchTool},
+};
 use axum::body::Body;
 use engine::Runtime;
 use engine_schema::{InputObjectDefinition, ScalarType, TypeDefinition};
@@ -23,6 +26,7 @@ pub struct McpServer<R: Runtime> {
     info: ServerInfo,
     engine: EngineWatcher<R>,
     mutations_enabled: bool,
+    tools: Vec<Box<dyn RmcpTool>>,
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
@@ -91,7 +95,7 @@ pub struct QueryError {
 }
 
 impl<R: Runtime> McpServer<R> {
-    pub fn new(engine: EngineWatcher<R>, instructions: Option<String>, enable_mutations: bool) -> Self {
+    pub fn new(engine: EngineWatcher<R>, instructions: Option<String>, enable_mutations: bool) -> anyhow::Result<Self> {
         let guide = indoc! {r#"
             This MCP server provides tools to access selected GraphQL operations.
             Operations have optional arguments, and always a selection. You can construct the
@@ -109,16 +113,17 @@ impl<R: Runtime> McpServer<R> {
             None => guide.to_string(),
         };
 
-        Self {
+        Ok(Self {
             info: ServerInfo {
                 protocol_version: ProtocolVersion::V_2024_11_05,
                 capabilities: ServerCapabilities::builder().enable_tools().build(),
                 server_info: Implementation::from_build_env(),
                 instructions: Some(instructions),
             },
+            tools: vec![Box::new(SearchTool::new(&engine)?)],
             engine,
             mutations_enabled: enable_mutations,
-        }
+        })
     }
 
     async fn introspection(&self, type_name: &str) -> Result<Introspection, ErrorData> {
@@ -379,7 +384,9 @@ impl<R: Runtime> ServerHandler for McpServer<R> {
             .clone(),
         ));
 
-        for field in engine.schema().query().fields() {
+        tools.extend(self.tools.iter().map(|tool| tool.to_tool()));
+
+        for field in engine.schema.query().fields() {
             if field.name() == "__type" || field.name() == "__schema" {
                 continue;
             }
@@ -387,7 +394,7 @@ impl<R: Runtime> ServerHandler for McpServer<R> {
             add_field_to_tools(ToolType::Query, &mut tools, field);
         }
 
-        match engine.schema().mutation() {
+        match engine.schema.mutation() {
             Some(mutation) if self.mutations_enabled => {
                 for field in mutation.fields() {
                     add_field_to_tools(ToolType::Mutation, &mut tools, field);
@@ -407,6 +414,10 @@ impl<R: Runtime> ServerHandler for McpServer<R> {
         CallToolRequestParam { name, arguments }: CallToolRequestParam,
         _: RequestContext<RoleServer>,
     ) -> Result<CallToolResult, ErrorData> {
+        if let Some(tool) = self.tools.iter().find(|tool| tool.name() == name) {
+            return tool.call(arguments).await;
+        }
+
         let content = match &*name {
             "introspection" => {
                 let Some(mut arguments) = arguments else {

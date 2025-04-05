@@ -26,7 +26,7 @@ pub use runtime::Runtime;
 pub struct Engine<R: Runtime> {
     // We use an Arc for the schema to have a self-contained response which may still
     // needs access to the schema strings
-    pub(crate) schema: Arc<Schema>,
+    pub schema: Arc<Schema>,
     pub runtime: R,
     pub(crate) retry_budgets: RetryBudgets,
     pub(crate) default_response_format: ResponseFormat,
@@ -148,10 +148,6 @@ impl<R: Runtime> Engine<R> {
 
     pub(crate) async fn with_gateway_timeout<T>(&self, fut: impl Future<Output = T> + Send) -> Option<T> {
         self.runtime.with_timeout(self.schema.settings.timeout, fut).await
-    }
-
-    pub fn schema(&self) -> &Schema {
-        &self.schema
     }
 }
 

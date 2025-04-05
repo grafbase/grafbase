@@ -204,6 +204,18 @@ impl Schema {
         self.graph.type_definitions_ordered_by_name.walk(self)
     }
 
+    pub fn field_definitions(&self) -> impl Iter<Item = FieldDefinition<'_>> + '_ {
+        IdRange::<FieldDefinitionId>::from(0..self.graph.field_definitions.len()).walk(self)
+    }
+
+    pub fn object_definitions(&self) -> impl Iter<Item = ObjectDefinition<'_>> + '_ {
+        IdRange::<ObjectDefinitionId>::from(0..self.graph.object_definitions.len()).walk(self)
+    }
+
+    pub fn interface_definitions(&self) -> impl Iter<Item = InterfaceDefinition<'_>> + '_ {
+        IdRange::<InterfaceDefinitionId>::from(0..self.graph.interface_definitions.len()).walk(self)
+    }
+
     pub fn type_definition_by_name(&self, name: &str) -> Option<TypeDefinition<'_>> {
         self.graph
             .type_definitions_ordered_by_name
