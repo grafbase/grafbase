@@ -2,6 +2,7 @@ mod headers;
 
 use std::sync::Arc;
 
+use crate::tonic;
 use futures::StreamExt;
 use runtime::extension::Token;
 use sqlx::Postgres;
@@ -14,6 +15,8 @@ pub use headers::*;
 pub struct SharedResources {
     pub access_log: AccessLogSender,
 }
+
+pub type GrpcClient = tonic::client::Grpc<tonic::transport::Channel>;
 
 pub type NatsClient = async_nats::Client;
 pub type NatsKeyValue = async_nats::jetstream::kv::Store;
