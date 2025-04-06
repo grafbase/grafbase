@@ -29,21 +29,40 @@ fn simple() {
 
         let mut stream = engine.mcp("/mcp").await;
 
-        let response = stream.call_tool("search", json!({"keywords": ["User"]})).await.unwrap();
+        let response = stream.call_tool("search", json!({"keywords": ["User"]})).await;
 
         insta::assert_json_snapshot!(&response, @r#"
         {
-          "fields": [
-            {
-              "query_path": [
+          "result": {
+            "content": [
+              [
                 {
-                  "field": "user",
-                  "output_type": "User",
-                  "arguments": []
+                  "score": 6.616214,
+                  "field": {
+                    "name": "user",
+                    "type": "User"
+                  },
+                  "type": {
+                    "name": "User",
+                    "kind": "OBJECT",
+                    "fields": [
+                      {
+                        "name": "id",
+                        "type": "ID!"
+                      },
+                      {
+                        "name": "name",
+                        "type": "String!"
+                      }
+                    ]
+                  },
+                  "root_type": "Query",
+                  "ancestors": []
                 }
               ]
-            }
-          ]
+            ],
+            "is_error": false
+          }
         }
         "#);
     });
@@ -78,45 +97,80 @@ fn with_required_arguments() {
 
         let mut stream = engine.mcp("/mcp").await;
 
-        let response = stream.call_tool("search", json!({"keywords": ["user"]})).await.unwrap();
+        let response = stream.call_tool("search", json!({"keywords": ["user"]})).await;
 
         insta::assert_json_snapshot!(&response, @r#"
         {
-          "fields": [
-            {
-              "query_path": [
+          "result": {
+            "content": [
+              [
                 {
-                  "field": "user",
-                  "output_type": "User",
-                  "arguments": [
-                    {
-                      "name": "id",
-                      "type": "ID!"
-                    }
-                  ]
+                  "score": 6.1535835,
+                  "field": {
+                    "name": "user",
+                    "type": "User",
+                    "args": [
+                      {
+                        "name": "id",
+                        "type": "ID!"
+                      }
+                    ]
+                  },
+                  "type": {
+                    "name": "User",
+                    "kind": "OBJECT",
+                    "fields": [
+                      {
+                        "name": "id",
+                        "type": "ID!"
+                      },
+                      {
+                        "name": "name",
+                        "type": "String!"
+                      }
+                    ]
+                  },
+                  "root_type": "Query",
+                  "ancestors": []
+                },
+                {
+                  "score": 2.8213787,
+                  "field": {
+                    "name": "searchUsers",
+                    "type": "[User!]!",
+                    "args": [
+                      {
+                        "name": "query",
+                        "type": "String!"
+                      },
+                      {
+                        "name": "limit",
+                        "type": "Int",
+                        "defaultValue": 10
+                      }
+                    ]
+                  },
+                  "type": {
+                    "name": "User",
+                    "kind": "OBJECT",
+                    "fields": [
+                      {
+                        "name": "id",
+                        "type": "ID!"
+                      },
+                      {
+                        "name": "name",
+                        "type": "String!"
+                      }
+                    ]
+                  },
+                  "root_type": "Query",
+                  "ancestors": []
                 }
               ]
-            },
-            {
-              "query_path": [
-                {
-                  "field": "searchUsers",
-                  "output_type": "[User!]!",
-                  "arguments": [
-                    {
-                      "name": "query",
-                      "type": "String!"
-                    },
-                    {
-                      "name": "limit",
-                      "type": "Int",
-                      "default_value": 10
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
+            ],
+            "is_error": false
+          }
         }
         "#);
     });
@@ -166,68 +220,137 @@ fn with_nested_types() {
 
         let mut stream = engine.mcp("/mcp").await;
 
-        let response = stream.call_tool("search", json!({"keywords": ["post"]})).await.unwrap();
+        let response = stream.call_tool("search", json!({"keywords": ["post"]})).await;
 
         insta::assert_json_snapshot!(&response, @r#"
         {
-          "fields": [
-            {
-              "query_path": [
+          "result": {
+            "content": [
+              [
                 {
-                  "field": "post",
-                  "output_type": "Post",
-                  "arguments": [
-                    {
-                      "name": "id",
-                      "type": "ID!"
-                    }
-                  ]
+                  "score": 7.052721,
+                  "field": {
+                    "name": "post",
+                    "type": "Post",
+                    "args": [
+                      {
+                        "name": "id",
+                        "type": "ID!"
+                      }
+                    ]
+                  },
+                  "type": {
+                    "name": "Post",
+                    "kind": "OBJECT",
+                    "fields": [
+                      {
+                        "name": "author",
+                        "type": "User!"
+                      },
+                      {
+                        "name": "comments",
+                        "type": "[Comment!]",
+                        "args": [
+                          {
+                            "name": "first",
+                            "type": "Int",
+                            "defaultValue": 10
+                          },
+                          {
+                            "name": "after",
+                            "type": "String"
+                          }
+                        ]
+                      },
+                      {
+                        "name": "id",
+                        "type": "ID!"
+                      },
+                      {
+                        "name": "tags",
+                        "type": "[String!]!"
+                      },
+                      {
+                        "name": "title",
+                        "type": "String!"
+                      }
+                    ]
+                  },
+                  "root_type": "Query",
+                  "ancestors": []
                 }
               ]
-            }
-          ]
+            ],
+            "is_error": false
+          }
         }
         "#);
 
         // Search for nested fields
-        let response = stream
-            .call_tool("search", json!({"keywords": ["comments"]}))
-            .await
-            .unwrap();
+        let response = stream.call_tool("search", json!({"keywords": ["comments"]})).await;
 
         insta::assert_json_snapshot!(&response, @r#"
         {
-          "fields": [
-            {
-              "query_path": [
+          "result": {
+            "content": [
+              [
                 {
-                  "field": "post",
-                  "output_type": "Post",
-                  "arguments": [
+                  "score": 3.6447704,
+                  "field": {
+                    "name": "comments",
+                    "type": "[Comment!]",
+                    "args": [
+                      {
+                        "name": "first",
+                        "type": "Int",
+                        "defaultValue": 10
+                      },
+                      {
+                        "name": "after",
+                        "type": "String"
+                      }
+                    ]
+                  },
+                  "type": {
+                    "name": "Comment",
+                    "kind": "OBJECT",
+                    "fields": [
+                      {
+                        "name": "author",
+                        "type": "User!"
+                      },
+                      {
+                        "name": "body",
+                        "type": "String!"
+                      },
+                      {
+                        "name": "createdAt",
+                        "type": "String!"
+                      },
+                      {
+                        "name": "id",
+                        "type": "ID!"
+                      }
+                    ]
+                  },
+                  "root_type": "Query",
+                  "ancestors": [
                     {
-                      "name": "id",
-                      "type": "ID!"
-                    }
-                  ]
-                },
-                {
-                  "field": "comments",
-                  "output_type": "[Comment!]",
-                  "arguments": [
-                    {
-                      "name": "first",
-                      "type": "Int",
-                      "default_value": 10
-                    },
-                    {
-                      "name": "after",
-                      "type": "String"
+                      "name": "post",
+                      "type": "Post",
+                      "args": [
+                        {
+                          "name": "id",
+                          "type": "ID!"
+                        }
+                      ]
                     }
                   ]
                 }
               ]
-            }
-          ]
+            ],
+            "is_error": false
+          }
         }
         "#);
     });
@@ -240,34 +363,34 @@ fn with_input_types() {
             .with_subgraph_sdl(
                 "x",
                 r#"
-            type Query {
-                searchPosts(filter: PostFilter!, pagination: PaginationInput): [Post!]!
-            }
+                type Query {
+                    searchPosts(filter: PostFilter!, pagination: PaginationInput): [Post!]!
+                }
 
-            input PostFilter {
-                title: String
-                authorId: ID
-                tags: [String!]
-                createdAfter: String
-            }
+                input PostFilter {
+                    title: String
+                    authorId: ID
+                    tags: [String!]
+                    createdAfter: String
+                }
 
-            input PaginationInput {
-                first: Int! = 10
-                after: String
-            }
+                input PaginationInput {
+                    first: Int! = 10
+                    after: String
+                }
 
-            type Post {
-                id: ID!
-                title: String!
-                author: User!
-                tags: [String!]!
-                createdAt: String!
-            }
+                type Post {
+                    id: ID!
+                    title: String!
+                    author: User!
+                    tags: [String!]!
+                    createdAt: String!
+                }
 
-            type User {
-                id: ID!
-                name: String!
-            }
+                type User {
+                    id: ID!
+                    name: String!
+                }
             "#,
             )
             .with_toml_config(
@@ -281,33 +404,62 @@ fn with_input_types() {
 
         let mut stream = engine.mcp("/mcp").await;
 
-        let response = stream
-            .call_tool("search", json!({"keywords": ["searchPosts"]}))
-            .await
-            .unwrap();
+        let response = stream.call_tool("search", json!({"keywords": ["searchPosts"]})).await;
 
         insta::assert_json_snapshot!(&response, @r#"
         {
-          "fields": [
-            {
-              "query_path": [
+          "result": {
+            "content": [
+              [
                 {
-                  "field": "searchPosts",
-                  "output_type": "[Post!]!",
-                  "arguments": [
-                    {
-                      "name": "filter",
-                      "type": "PostFilter!"
-                    },
-                    {
-                      "name": "pagination",
-                      "type": "PaginationInput"
-                    }
-                  ]
+                  "score": 6.134764,
+                  "field": {
+                    "name": "searchPosts",
+                    "type": "[Post!]!",
+                    "args": [
+                      {
+                        "name": "filter",
+                        "type": "PostFilter!"
+                      },
+                      {
+                        "name": "pagination",
+                        "type": "PaginationInput"
+                      }
+                    ]
+                  },
+                  "type": {
+                    "name": "Post",
+                    "kind": "OBJECT",
+                    "fields": [
+                      {
+                        "name": "author",
+                        "type": "User!"
+                      },
+                      {
+                        "name": "createdAt",
+                        "type": "String!"
+                      },
+                      {
+                        "name": "id",
+                        "type": "ID!"
+                      },
+                      {
+                        "name": "tags",
+                        "type": "[String!]!"
+                      },
+                      {
+                        "name": "title",
+                        "type": "String!"
+                      }
+                    ]
+                  },
+                  "root_type": "Query",
+                  "ancestors": []
                 }
               ]
-            }
-          ]
+            ],
+            "is_error": false
+          }
         }
         "#);
     });
@@ -320,37 +472,37 @@ fn fuzzy_search() {
             .with_subgraph_sdl(
                 "x",
                 r#"
-            type Query {
-                # 4-7 character words (1 typo allowed)
-                users: [User!]!
-                posts: [Post!]!
-                # 8+ character words (2 typos allowed)
-                comments: [Comment!]!
-                articles: [Article!]!
-                # Words that shouldn't match
-                cat: String
-                dog: String
-            }
+                type Query {
+                    # 4-7 character words (1 typo allowed)
+                    users: [User!]!
+                    posts: [Post!]!
+                    # 8+ character words (2 typos allowed)
+                    comments: [Comment!]!
+                    articles: [Article!]!
+                    # Words that shouldn't match
+                    cat: String
+                    dog: String
+                }
 
-            type User {
-                id: ID!
-                name: String!
-            }
+                type User {
+                    id: ID!
+                    name: String!
+                }
 
-            type Post {
-                id: ID!
-                title: String!
-            }
+                type Post {
+                    id: ID!
+                    title: String!
+                }
 
-            type Comment {
-                id: ID!
-                content: String!
-            }
+                type Comment {
+                    id: ID!
+                    content: String!
+                }
 
-            type Article {
-                id: ID!
-                title: String!
-            }
+                type Article {
+                    id: ID!
+                    title: String!
+                }
             "#,
             )
             .with_toml_config(
@@ -365,91 +517,163 @@ fn fuzzy_search() {
         let mut stream = engine.mcp("/mcp").await;
 
         // Test 4-7 character words with 1 typo
-        let response = stream.call_tool("search", json!({"keywords": ["user"]})).await.unwrap();
+        let response = stream.call_tool("search", json!({"keywords": ["user"]})).await;
         insta::assert_json_snapshot!(&response, @r#"
         {
-          "fields": [
-            {
-              "query_path": [
+          "result": {
+            "content": [
+              [
                 {
-                  "field": "users",
-                  "output_type": "[User!]!",
-                  "arguments": []
+                  "score": 3.5457788,
+                  "field": {
+                    "name": "users",
+                    "type": "[User!]!"
+                  },
+                  "type": {
+                    "name": "User",
+                    "kind": "OBJECT",
+                    "fields": [
+                      {
+                        "name": "id",
+                        "type": "ID!"
+                      },
+                      {
+                        "name": "name",
+                        "type": "String!"
+                      }
+                    ]
+                  },
+                  "root_type": "Query",
+                  "ancestors": []
                 }
               ]
-            }
-          ]
+            ],
+            "is_error": false
+          }
         }
         "#);
 
         // Test 4-7 character words with 1 typo
-        let response = stream.call_tool("search", json!({"keywords": ["post"]})).await.unwrap();
+        let response = stream.call_tool("search", json!({"keywords": ["post"]})).await;
         insta::assert_json_snapshot!(&response, @r#"
         {
-          "fields": [
-            {
-              "query_path": [
+          "result": {
+            "content": [
+              [
                 {
-                  "field": "posts",
-                  "output_type": "[Post!]!",
-                  "arguments": []
+                  "score": 3.5457788,
+                  "field": {
+                    "name": "posts",
+                    "type": "[Post!]!"
+                  },
+                  "type": {
+                    "name": "Post",
+                    "kind": "OBJECT",
+                    "fields": [
+                      {
+                        "name": "id",
+                        "type": "ID!"
+                      },
+                      {
+                        "name": "title",
+                        "type": "String!"
+                      }
+                    ]
+                  },
+                  "root_type": "Query",
+                  "ancestors": []
                 }
               ]
-            }
-          ]
+            ],
+            "is_error": false
+          }
         }
         "#);
 
         // Test 8+ character words with 2 typos
-        let response = stream
-            .call_tool("search", json!({"keywords": ["coment"]}))
-            .await
-            .unwrap();
+        let response = stream.call_tool("search", json!({"keywords": ["coment"]})).await;
         insta::assert_json_snapshot!(&response, @r#"
         {
-          "fields": [
-            {
-              "query_path": [
+          "result": {
+            "content": [
+              [
                 {
-                  "field": "comments",
-                  "output_type": "[Comment!]!",
-                  "arguments": []
+                  "score": 1.0,
+                  "field": {
+                    "name": "comments",
+                    "type": "[Comment!]!"
+                  },
+                  "type": {
+                    "name": "Comment",
+                    "kind": "OBJECT",
+                    "fields": [
+                      {
+                        "name": "content",
+                        "type": "String!"
+                      },
+                      {
+                        "name": "id",
+                        "type": "ID!"
+                      }
+                    ]
+                  },
+                  "root_type": "Query",
+                  "ancestors": []
                 }
               ]
-            }
-          ]
+            ],
+            "is_error": false
+          }
         }
         "#);
 
         // Test 8+ character words with 2 typos
-        let response = stream
-            .call_tool("search", json!({"keywords": ["artcle"]}))
-            .await
-            .unwrap();
+        let response = stream.call_tool("search", json!({"keywords": ["artcle"]})).await;
         insta::assert_json_snapshot!(&response, @r#"
         {
-          "fields": [
-            {
-              "query_path": [
+          "result": {
+            "content": [
+              [
                 {
-                  "field": "articles",
-                  "output_type": "[Article!]!",
-                  "arguments": []
+                  "score": 1.0,
+                  "field": {
+                    "name": "articles",
+                    "type": "[Article!]!"
+                  },
+                  "type": {
+                    "name": "Article",
+                    "kind": "OBJECT",
+                    "fields": [
+                      {
+                        "name": "id",
+                        "type": "ID!"
+                      },
+                      {
+                        "name": "title",
+                        "type": "String!"
+                      }
+                    ]
+                  },
+                  "root_type": "Query",
+                  "ancestors": []
                 }
               ]
-            }
-          ]
+            ],
+            "is_error": false
+          }
         }
         "#);
 
         // Test words that shouldn't match (too short or too many typos)
-        let response = stream
-            .call_tool("search", json!({"keywords": ["ct", "dgo"]}))
-            .await
-            .unwrap();
+        let response = stream.call_tool("search", json!({"keywords": ["ct", "dgo"]})).await;
         insta::assert_json_snapshot!(&response, @r#"
         {
-          "fields": []
+          "result": {
+            "content": [
+              []
+            ],
+            "is_error": false
+          }
         }
         "#);
     });
@@ -462,14 +686,14 @@ fn case_insensitive_search() {
             .with_subgraph_sdl(
                 "x",
                 r#"
-            type Query {
-                user: User
-            }
+                type Query {
+                    user: User
+                }
 
-            type User {
-                id: ID!
-                name: String!
-            }
+                type User {
+                    id: ID!
+                    name: String!
+                }
             "#,
             )
             .with_toml_config(
@@ -484,21 +708,40 @@ fn case_insensitive_search() {
         let mut stream = engine.mcp("/mcp").await;
 
         // Test case insensitive search
-        let response = stream.call_tool("search", json!({"keywords": ["USER"]})).await.unwrap();
+        let response = stream.call_tool("search", json!({"keywords": ["USER"]})).await;
 
         insta::assert_json_snapshot!(&response, @r#"
         {
-          "fields": [
-            {
-              "query_path": [
+          "result": {
+            "content": [
+              [
                 {
-                  "field": "user",
-                  "output_type": "User",
-                  "arguments": []
+                  "score": 6.616214,
+                  "field": {
+                    "name": "user",
+                    "type": "User"
+                  },
+                  "type": {
+                    "name": "User",
+                    "kind": "OBJECT",
+                    "fields": [
+                      {
+                        "name": "id",
+                        "type": "ID!"
+                      },
+                      {
+                        "name": "name",
+                        "type": "String!"
+                      }
+                    ]
+                  },
+                  "root_type": "Query",
+                  "ancestors": []
                 }
               ]
-            }
-          ]
+            ],
+            "is_error": false
+          }
         }
         "#);
     });
@@ -511,26 +754,26 @@ fn multiple_keywords() {
             .with_subgraph_sdl(
                 "x",
                 r#"
-            type Query {
-                user: User
-                post: Post
-                comment: Comment
-            }
+                type Query {
+                    user: User
+                    post: Post
+                    comment: Comment
+                }
 
-            type User {
-                id: ID!
-                name: String!
-            }
+                type User {
+                    id: ID!
+                    name: String!
+                }
 
-            type Post {
-                id: ID!
-                title: String!
-            }
+                type Post {
+                    id: ID!
+                    title: String!
+                }
 
-            type Comment {
-                id: ID!
-                content: String!
-            }
+                type Comment {
+                    id: ID!
+                    content: String!
+                }
             "#,
             )
             .with_toml_config(
@@ -545,33 +788,249 @@ fn multiple_keywords() {
         let mut stream = engine.mcp("/mcp").await;
 
         // Test search with multiple keywords
-        let response = stream
-            .call_tool("search", json!({"keywords": ["user", "post"]}))
-            .await
-            .unwrap();
+        let response = stream.call_tool("search", json!({"keywords": ["user", "post"]})).await;
 
         insta::assert_json_snapshot!(&response, @r#"
         {
-          "fields": [
-            {
-              "query_path": [
+          "result": {
+            "content": [
+              [
                 {
-                  "field": "post",
-                  "output_type": "Post",
-                  "arguments": []
+                  "score": 6.889365,
+                  "field": {
+                    "name": "post",
+                    "type": "Post"
+                  },
+                  "type": {
+                    "name": "Post",
+                    "kind": "OBJECT",
+                    "fields": [
+                      {
+                        "name": "id",
+                        "type": "ID!"
+                      },
+                      {
+                        "name": "title",
+                        "type": "String!"
+                      }
+                    ]
+                  },
+                  "root_type": "Query",
+                  "ancestors": []
+                },
+                {
+                  "score": 6.889365,
+                  "field": {
+                    "name": "user",
+                    "type": "User"
+                  },
+                  "type": {
+                    "name": "User",
+                    "kind": "OBJECT",
+                    "fields": [
+                      {
+                        "name": "id",
+                        "type": "ID!"
+                      },
+                      {
+                        "name": "name",
+                        "type": "String!"
+                      }
+                    ]
+                  },
+                  "root_type": "Query",
+                  "ancestors": []
                 }
               ]
-            },
-            {
-              "query_path": [
+            ],
+            "is_error": false
+          }
+        }
+        "#);
+    });
+}
+
+#[test]
+fn shallow_depth_should_be_first() {
+    runtime().block_on(async move {
+        let engine = Gateway::builder()
+            .with_subgraph_sdl(
+                "x",
+                r#"
+                type Query {
+                    posts: [Post]
+                }
+
+                type User {
+                    id: ID!
+                    name: String!
+                }
+
+                type Post {
+                    id: ID!
+                    title: String!
+                    author: User
+                    comments: [Comment]
+                }
+
+                type Comment {
+                    id: ID!
+                    content: String!
+                    author: User
+                }
+            "#,
+            )
+            .with_toml_config(
+                r#"
+                [mcp]
+                enabled = true
+            "#,
+            )
+            .build()
+            .await;
+
+        let mut stream = engine.mcp("/mcp").await;
+
+        // Test search with multiple keywords
+        let response = stream.call_tool("search", json!({"keywords": ["author"]})).await;
+
+        insta::assert_json_snapshot!(&response, @r#"
+        {
+          "result": {
+            "content": [
+              [
                 {
-                  "field": "user",
-                  "output_type": "User",
-                  "arguments": []
+                  "score": 2.7161825,
+                  "field": {
+                    "name": "author",
+                    "type": "User"
+                  },
+                  "type": {
+                    "name": "User",
+                    "kind": "OBJECT",
+                    "fields": [
+                      {
+                        "name": "id",
+                        "type": "ID!"
+                      },
+                      {
+                        "name": "name",
+                        "type": "String!"
+                      }
+                    ]
+                  },
+                  "root_type": "Query",
+                  "ancestors": [
+                    {
+                      "name": "posts",
+                      "type": "[Post]"
+                    }
+                  ]
+                },
+                {
+                  "score": 1.8107883,
+                  "field": {
+                    "name": "author",
+                    "type": "User"
+                  },
+                  "type": {
+                    "name": "User",
+                    "kind": "OBJECT",
+                    "fields": [
+                      {
+                        "name": "id",
+                        "type": "ID!"
+                      },
+                      {
+                        "name": "name",
+                        "type": "String!"
+                      }
+                    ]
+                  },
+                  "root_type": "Query",
+                  "ancestors": [
+                    {
+                      "name": "posts",
+                      "type": "[Post]"
+                    },
+                    {
+                      "name": "comments",
+                      "type": "[Comment]"
+                    }
+                  ]
                 }
               ]
+            ],
+            "is_error": false
+          }
+        }
+        "#);
+    });
+}
+
+#[test]
+fn recursive_query() {
+    runtime().block_on(async move {
+        let engine = Gateway::builder()
+            .with_subgraph_sdl(
+                "x",
+                r#"
+            type Query {
+                query: Query
+                user: User
             }
-          ]
+
+            type User {
+                id: ID!
+                name: String!
+            }
+            "#,
+            )
+            .with_toml_config(
+                r#"
+                [mcp]
+                enabled = true
+            "#,
+            )
+            .build()
+            .await;
+
+        let mut stream = engine.mcp("/mcp").await;
+
+        let response = stream.call_tool("search", json!({"keywords": ["User"]})).await;
+
+        insta::assert_json_snapshot!(&response, @r#"
+        {
+          "result": {
+            "content": [
+              [
+                {
+                  "score": 6.664409,
+                  "field": {
+                    "name": "user",
+                    "type": "User"
+                  },
+                  "type": {
+                    "name": "User",
+                    "kind": "OBJECT",
+                    "fields": [
+                      {
+                        "name": "id",
+                        "type": "ID!"
+                      },
+                      {
+                        "name": "name",
+                        "type": "String!"
+                      }
+                    ]
+                  },
+                  "root_type": "Query",
+                  "ancestors": []
+                }
+              ]
+            ],
+            "is_error": false
+          }
         }
         "#);
     });

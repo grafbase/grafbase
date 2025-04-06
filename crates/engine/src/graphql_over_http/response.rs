@@ -183,7 +183,7 @@ impl Http {
         let status_code = compute_status_code(ResponseFormat::Complete(format), response);
         let mut headers = http::HeaderMap::new();
 
-        headers.insert(http::header::CONTENT_TYPE, format.to_content_type());
+        headers.insert(http::header::CONTENT_TYPE, format.to_content_type_header_value());
         headers.typed_insert(headers::ContentLength(bytes.len() as u64));
 
         let mut http_response = http::Response::new(Body::Bytes(bytes));

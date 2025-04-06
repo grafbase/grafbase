@@ -1,8 +1,12 @@
-use crate::EnumValue;
+use crate::{DeprecatedDirective, EnumValue};
 
 impl EnumValue<'_> {
     pub fn is_inaccessible(&self) -> bool {
         self.schema.graph.inaccessible_enum_values[self.id]
+    }
+
+    pub fn has_deprecated(&self) -> Option<DeprecatedDirective<'_>> {
+        self.directives().find_map(|directive| directive.as_deprecated())
     }
 }
 

@@ -4,7 +4,7 @@ use itertools::Itertools;
 
 use crate::{
     Body,
-    graphql_over_http::{Http, ResponseFormat},
+    graphql_over_http::{ContentType, Http, ResponseFormat},
     response::{ErrorCode, GraphqlError, Response},
 };
 
@@ -21,12 +21,20 @@ pub(crate) fn not_acceptable_error(format: ResponseFormat) -> http::Response<Bod
     )
 }
 
-pub(crate) fn unsupported_media_type(format: ResponseFormat) -> http::Response<Body> {
+pub(crate) fn unsupported_content_type(format: ResponseFormat) -> http::Response<Body> {
     Http::error(
         format,
         refuse_request_with::<()>(
             http::StatusCode::UNSUPPORTED_MEDIA_TYPE,
-            "Missing or invalid Content-Type header. Only 'application/json' is supported.",
+            format!(
+                "Missing or invalid Content-Type header. You must specify one of: {}",
+                ContentType::supported()
+                    .iter()
+                    .format_with(", ", |media_type, f| f(&format_args!(
+                        "'{}'",
+                        media_type.to_str().unwrap()
+                    ))),
+            ),
         ),
     )
 }

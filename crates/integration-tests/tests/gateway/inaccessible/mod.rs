@@ -194,7 +194,7 @@ fn inaccessible_object() {
         {
           "errors": [
             {
-              "message": "Query does not have a field named 'inaccessibleObject'",
+              "message": "Query does not have a field named 'inaccessibleObject'. It has the following fields: arguments, inaccessibleField, inaccessibleObject, inaccessibleScalar, inaccessibleEnum, partiallyAccessibleUnion, partiallyAccessibleInterface, partiallyAccessibleEnum, __schema, __type",
               "locations": [
                 {
                   "line": 1,
@@ -223,7 +223,7 @@ fn inaccessible_scalar() {
         {
           "errors": [
             {
-              "message": "Query does not have a field named 'inaccessibleScalar'",
+              "message": "Query does not have a field named 'inaccessibleScalar'. It has the following fields: arguments, inaccessibleField, inaccessibleObject, inaccessibleScalar, inaccessibleEnum, partiallyAccessibleUnion, partiallyAccessibleInterface, partiallyAccessibleEnum, __schema, __type",
               "locations": [
                 {
                   "line": 1,
@@ -252,7 +252,7 @@ fn inaccessible_interface() {
         {
           "errors": [
             {
-              "message": "Query does not have a field named 'inaccessibleInterface'",
+              "message": "Query does not have a field named 'inaccessibleInterface'. It has the following fields: arguments, inaccessibleField, inaccessibleObject, inaccessibleScalar, inaccessibleEnum, partiallyAccessibleUnion, partiallyAccessibleInterface, partiallyAccessibleEnum, __schema, __type",
               "locations": [
                 {
                   "line": 1,
@@ -282,7 +282,7 @@ fn inaccessible_union() {
         {
           "errors": [
             {
-              "message": "Query does not have a field named 'inaccessibleUnion'",
+              "message": "Query does not have a field named 'inaccessibleUnion'. It has the following fields: arguments, inaccessibleField, inaccessibleObject, inaccessibleScalar, inaccessibleEnum, partiallyAccessibleUnion, partiallyAccessibleInterface, partiallyAccessibleEnum, __schema, __type",
               "locations": [
                 {
                   "line": 1,
@@ -311,7 +311,7 @@ fn inaccessible_field() {
         {
           "errors": [
             {
-              "message": "Query does not have a field named 'inaccessibleField'",
+              "message": "Query does not have a field named 'inaccessibleField'. It has the following fields: arguments, inaccessibleField, inaccessibleObject, inaccessibleScalar, inaccessibleEnum, partiallyAccessibleUnion, partiallyAccessibleInterface, partiallyAccessibleEnum, __schema, __type",
               "locations": [
                 {
                   "line": 1,

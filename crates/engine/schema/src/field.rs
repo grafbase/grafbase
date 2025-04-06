@@ -1,5 +1,6 @@
 use crate::{
-    CostDirective, FieldDefinition, FieldSet, InputValueDefinition, ListSizeDirective, SubgraphId, TypeSystemDirective,
+    CostDirective, DeprecatedDirective, FieldDefinition, FieldSet, InputValueDefinition, ListSizeDirective, SubgraphId,
+    TypeSystemDirective,
 };
 
 impl<'a> FieldDefinition<'a> {
@@ -43,5 +44,9 @@ impl<'a> FieldDefinition<'a> {
             TypeSystemDirective::ListSize(list_size_directive) => Some(list_size_directive),
             _ => None,
         })
+    }
+
+    pub fn has_deprecated(&self) -> Option<DeprecatedDirective<'_>> {
+        self.directives().find_map(|directive| directive.as_deprecated())
     }
 }

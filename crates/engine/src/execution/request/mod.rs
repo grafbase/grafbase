@@ -21,7 +21,10 @@ use operation::{BatchRequest, QueryParamsRequest};
 use std::{future::Future, sync::Arc};
 
 use crate::{
-    Body, Engine, Runtime, engine::WasmContext, graphql_over_http::ResponseFormat, response::Response,
+    Body, Engine, Runtime,
+    engine::WasmContext,
+    graphql_over_http::{ContentType, ResponseFormat},
+    response::Response,
     websocket::InitPayload,
 };
 
@@ -39,19 +42,20 @@ impl<R: Runtime> Engine<R> {
             return Err(errors::not_acceptable_error(self.default_response_format));
         };
 
-        if parts.method == http::Method::POST {
+        let content_type = if parts.method == http::Method::POST {
             // GraphQL-over-HTTP spec:
             //   If the client does not supply a Content-Type header with a POST request,
             //   the server SHOULD reject the request using the appropriate 4xx status code.
-            if !content_type_is_application_json(&parts.headers) {
-                return Err(errors::unsupported_media_type(response_format));
+            ContentType::extract(&parts.headers).ok_or_else(|| errors::unsupported_content_type(response_format))?
+        } else {
+            if parts.method != http::Method::GET {
+                return Err(errors::method_not_allowed(
+                    response_format,
+                    "Only GET or POST are supported.",
+                ));
             }
-        } else if parts.method != http::Method::GET {
-            return Err(errors::method_not_allowed(
-                response_format,
-                "Only GET or POST are supported.",
-            ));
-        }
+            ContentType::Json
+        };
 
         let include_grafbase_response_extension =
             should_include_grafbase_response_extension(&self.schema, &parts.headers);
@@ -59,6 +63,7 @@ impl<R: Runtime> Engine<R> {
             method: parts.method,
             uri: parts.uri,
             response_format,
+            content_type,
             include_grafbase_response_extension,
         };
 
@@ -133,9 +138,18 @@ impl<R: Runtime> Engine<R> {
 
             self.runtime.metrics().record_request_body_size(body.len());
 
-            sonic_rs::from_slice(&body).map_err(|err| {
-                errors::not_well_formed_graphql_over_http_request(format_args!("JSON deserialization failure: {err}",))
-            })
+            match ctx.content_type {
+                ContentType::Json => sonic_rs::from_slice(&body).map_err(|err| {
+                    errors::not_well_formed_graphql_over_http_request(format_args!(
+                        "JSON deserialization failure: {err}",
+                    ))
+                }),
+                ContentType::Cbor => minicbor_serde::from_slice(&body).map_err(|err| {
+                    errors::not_well_formed_graphql_over_http_request(format_args!(
+                        "CBOR deserialization failure: {err}"
+                    ))
+                }),
+            }
         } else {
             let query = ctx.uri.query().unwrap_or_default();
 
@@ -148,17 +162,4 @@ impl<R: Runtime> Engine<R> {
                 })
         }
     }
-}
-
-fn content_type_is_application_json(headers: &http::HeaderMap) -> bool {
-    const APPLICATION_JSON: http::HeaderValue = http::HeaderValue::from_static("application/json");
-
-    let Some(header) = headers.get(http::header::CONTENT_TYPE) else {
-        return false;
-    };
-
-    let header = header.to_str().unwrap_or_default();
-    let (without_parameters, _) = header.split_once(';').unwrap_or((header, ""));
-
-    without_parameters == APPLICATION_JSON
 }

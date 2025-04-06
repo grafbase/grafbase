@@ -14,7 +14,7 @@ use std::{borrow::Cow, future::Future, sync::Arc};
 use crate::{
     Body, HooksExtension,
     execution::{EarlyHttpContext, RequestContext, StreamResponse},
-    graphql_over_http::{Http, ResponseFormat, StreamingResponseFormat},
+    graphql_over_http::{ContentType, Http, ResponseFormat, StreamingResponseFormat},
     prepare::OperationDocument,
     response::Response,
     websocket::{self, InitPayload},
@@ -119,13 +119,12 @@ impl<R: Runtime> Engine<R> {
         parts: http::request::Parts,
         payload: InitPayload,
     ) -> Result<WebsocketSession<R>, Cow<'static, str>> {
-        let response_format = ResponseFormat::Streaming(StreamingResponseFormat::GraphQLOverWebSocket);
-
         let ctx = EarlyHttpContext {
             method: parts.method,
             uri: parts.uri,
-            response_format,
+            response_format: ResponseFormat::Streaming(StreamingResponseFormat::GraphQLOverWebSocket),
             include_grafbase_response_extension: false,
+            content_type: ContentType::Json,
         };
 
         let (request_context, wasm_context) = self

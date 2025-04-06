@@ -14,10 +14,11 @@ pub(crate) enum BindError {
         argument_name: String,
         span: Span,
     },
-    #[error("{container} does not have a field named '{name}'")]
+    #[error("{container} does not have a field named '{name}'. It has the following fields: {}", .existing.join(", "))]
     UnknownField {
         container: String,
         name: String,
+        existing: Vec<String>,
         span: Span,
     },
     #[error("Unknown fragment named '{name}'")]

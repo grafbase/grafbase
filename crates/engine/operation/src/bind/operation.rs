@@ -93,6 +93,10 @@ impl<'schema, 'p> OperationBinder<'schema, 'p> {
         .ok_or_else(|| BindError::UnknownField {
             container: parent_output_type.name().to_string(),
             name: field.name().to_string(),
+            existing: parent_output_type
+                .as_entity()
+                .map(|entity| entity.fields().map(|field| field.name().to_string()).collect())
+                .unwrap_or_default(),
             span: field.name_span(),
         })?;
 

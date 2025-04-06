@@ -1,23 +1,45 @@
-use std::{borrow::Cow, collections::VecDeque, sync::Arc};
+use std::{borrow::Cow, collections::VecDeque, marker::PhantomData, sync::Arc};
 
 use engine::Schema;
 use engine_schema::FieldDefinitionId;
+use rmcp::model::CallToolResult;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use tantivy::{
     Index, IndexReader, TantivyDocument, Term,
-    query::{Query, TermQuery},
+    query::{BoostQuery, Query, TermQuery},
     schema::{Field, IndexRecordOption},
 };
 use tokio_stream::{StreamExt as _, wrappers::WatchStream};
 
-use super::Tool;
+use super::{IntrospectTool, Tool, introspect};
 use crate::EngineWatcher;
 
-const TOP_DOCS_LIMIT: usize = 20;
+const TOP_DOCS_LIMIT: usize = 5;
 
-pub struct SearchTool {
+pub struct SearchTool<R: engine::Runtime> {
     schema_index: tokio::sync::watch::Receiver<Arc<SchemaIndex>>,
+    _marker: PhantomData<R>,
+}
+
+impl<R: engine::Runtime> Tool for SearchTool<R> {
+    type Parameters = SearchParameters;
+
+    fn name() -> &'static str {
+        "search"
+    }
+
+    fn description(&self) -> Cow<'_, str> {
+        format!("Search for relevant fields to use in a GraphQL query. Each matching GraphQL field will have all of its ancestor fields up to a root type. Ancestors are provided in depth order, so the first one is a field a on the root type. Always use `{}` tool afterwards to get more informations on types if you need additional fields.", IntrospectTool::<R>::name()).into()
+    }
+
+    async fn call(&self, parameters: Self::Parameters) -> anyhow::Result<CallToolResult> {
+        let fields = self.schema_index.borrow().clone().search(&parameters.keywords)?;
+        Ok(CallToolResult {
+            content: vec![rmcp::model::Content::json(fields)?],
+            is_error: Some(false),
+        })
+    }
 }
 
 #[derive(Deserialize, JsonSchema)]
@@ -26,62 +48,36 @@ pub struct SearchParameters {
 }
 
 #[derive(Serialize)]
-pub struct SearchResponse {
-    fields: Vec<FieldMatch>,
-}
-
-#[derive(Serialize)]
 struct FieldMatch {
-    query_path: Vec<ShortestQueryPathSegment>,
+    score: f32,
+    field: introspect::Field,
+    r#type: introspect::Type,
+    root_type: &'static str,
+    ancestors: Vec<introspect::Field>,
 }
 
-#[derive(Serialize)]
-struct ShortestQueryPathSegment {
-    field: String,
-    output_type: String,
-    arguments: Vec<FieldArgument>,
-}
-
-#[derive(Serialize)]
-struct FieldArgument {
-    name: String,
-    r#type: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    default_value: Option<serde_json::Value>,
-}
-
-impl SearchTool {
-    pub fn new(engine: &EngineWatcher<impl engine::Runtime>) -> anyhow::Result<Self> {
-        let schema_index = Arc::new(SchemaIndex::new(engine.borrow().schema.clone())?);
+impl<R: engine::Runtime> SearchTool<R> {
+    pub fn new(engine: &EngineWatcher<R>, enable_mutations: bool) -> anyhow::Result<Self> {
+        let schema_index = Arc::new(SchemaIndex::new(engine.borrow().schema.clone(), enable_mutations)?);
+        let current_hash = schema_index.schema.hash;
         let (tx, rx) = tokio::sync::watch::channel(schema_index.clone());
         let stream = WatchStream::from_changes(engine.clone());
         tokio::spawn(async move {
+            let mut current_hash = current_hash;
             let mut stream = stream;
             while let Some(engine) = stream.next().await {
-                let schema_index = SchemaIndex::new(engine.schema.clone()).unwrap();
+                if engine.schema.hash == current_hash {
+                    continue;
+                }
+                let schema_index = SchemaIndex::new(engine.schema.clone(), enable_mutations).unwrap();
+                current_hash = schema_index.schema.hash;
                 tx.send(Arc::new(schema_index)).unwrap();
             }
         });
-        Ok(Self { schema_index: rx })
-    }
-}
-
-impl Tool for SearchTool {
-    type Parameters = SearchParameters;
-    type Response = SearchResponse;
-    type Error = String;
-
-    fn name(&self) -> &str {
-        "search"
-    }
-
-    fn description(&self) -> Cow<'_, str> {
-        "Case insensisitve search for fields in the GraphQL schema by name or type name. Supports fuzzy matching for longer keywords and returns up to 20 most relevant matches, with results scored based on their depth in the schema. Each match includes its shortest possible query path, from a root type. Each segment includes the field's name, output type, and arguments with their types and default values.".into()
-    }
-
-    async fn call(&self, parameters: Self::Parameters) -> anyhow::Result<Result<Self::Response, Self::Error>> {
-        let fields = self.schema_index.borrow().clone().search(&parameters.keywords)?;
-        Ok(Ok(SearchResponse { fields }))
+        Ok(Self {
+            schema_index: rx,
+            _marker: PhantomData,
+        })
     }
 }
 
@@ -100,19 +96,33 @@ struct Fields {
 }
 
 impl SchemaIndex {
-    fn new(schema: Arc<Schema>) -> anyhow::Result<Self> {
+    fn new(schema: Arc<Schema>, enable_mutations: bool) -> anyhow::Result<Self> {
+        tracing::debug!("Generating MCP schema search index");
+        let start = std::time::Instant::now();
+
         let (shortest_path_parent, shortest_path_depth) = {
             // By default the current shortest path is oneself.
             let mut shortest_path_parent: Vec<FieldDefinitionId> =
                 schema.field_definitions().map(|field| field.id).collect();
-            let mut shortest_path_depth: Vec<u16> = vec![0; schema.field_definitions().len()];
+            let mut shortest_path_depth: Vec<u16> = vec![u16::MAX; schema.field_definitions().len()];
 
             let mut visited_objects = fixedbitset::FixedBitSet::with_capacity(schema.object_definitions().len());
             let mut visited_interfaces = fixedbitset::FixedBitSet::with_capacity(schema.interface_definitions().len());
             let mut queue = VecDeque::new();
-            queue.extend(schema.query().fields());
-            if let Some(mutation) = schema.mutation() {
-                queue.extend(mutation.fields());
+            visited_objects.put(usize::from(schema.query().id));
+            for field in schema.query().fields() {
+                queue.push_back(field);
+                shortest_path_depth[usize::from(field.id)] = 0;
+            }
+            if let Some(mutation) = schema.mutation().filter(|_| enable_mutations) {
+                visited_objects.put(usize::from(mutation.id));
+                for field in mutation.fields() {
+                    queue.push_back(field);
+                    shortest_path_depth[usize::from(field.id)] = 0;
+                }
+            }
+            if let Some(subscription) = schema.subscription().filter(|_| enable_mutations) {
+                visited_objects.put(usize::from(subscription.id));
             }
             while let Some(parent_field) = queue.pop_front() {
                 let Some(entity) = parent_field.ty().definition().as_entity() else {
@@ -155,18 +165,22 @@ impl SchemaIndex {
             // Index all fields from all types
             for def in schema.field_definitions() {
                 let depth = shortest_path_depth[usize::from(def.id)];
-                index_writer.add_document(tantivy::doc!(
-                    fields.name => def.name().to_lowercase(),
-                    fields.type_name => def.ty().definition().name().to_lowercase(),
-                    fields.definition_id => u32::from(def.id) as u64,
-                    fields.depth => depth as u64
-                ))?;
+                // If mutations are disabled, some fields won't be accessible.
+                if depth < u16::MAX {
+                    index_writer.add_document(tantivy::doc!(
+                        fields.name => def.name().to_lowercase(),
+                        fields.type_name => def.ty().definition().name().to_lowercase(),
+                        fields.definition_id => u32::from(def.id) as u64,
+                        fields.depth => depth as u64
+                    ))?;
+                }
             }
 
             index_writer.commit()?;
             anyhow::Result::<_>::Ok((index, fields))
         }?;
 
+        tracing::debug!("Generated search index in {:?}", start.elapsed());
         Ok(Self {
             schema,
             reader: index.reader_builder().try_into()?,
@@ -182,6 +196,7 @@ impl SchemaIndex {
             schema::Value,
         };
 
+        tracing::debug!("Creating query for: {:?}", keywords);
         let searcher = self.reader.searcher();
 
         // Build a compound query that combines fuzzy searches for each keyword
@@ -202,25 +217,34 @@ impl SchemaIndex {
 
             if typos > 0 {
                 // Create fuzzy queries with max distance based on keyword length
-                let name_query = Box::new(FuzzyTermQuery::new(name_term, typos, true));
-                let type_query = Box::new(FuzzyTermQuery::new(type_term, typos, true));
-                // Add both queries as "should" clauses
+                let name_query = Box::new(FuzzyTermQuery::new(name_term.clone(), typos, true));
+                let type_query = Box::new(FuzzyTermQuery::new(type_term.clone(), typos, true));
                 subqueries.push((Occur::Should, name_query as Box<dyn Query>));
                 subqueries.push((Occur::Should, type_query as Box<dyn Query>));
-                continue;
+
+                // Boosting exact matches
+                let name_query = Box::new(BoostQuery::new(
+                    Box::new(TermQuery::new(name_term, IndexRecordOption::Basic)),
+                    1.5,
+                ));
+                let type_query = Box::new(BoostQuery::new(
+                    Box::new(TermQuery::new(type_term, IndexRecordOption::Basic)),
+                    1.5,
+                ));
+                subqueries.push((Occur::Should, name_query as Box<dyn Query>));
+                subqueries.push((Occur::Should, type_query as Box<dyn Query>));
             } else {
                 // If no typos are allowed, create exact match queries
                 let name_query = Box::new(TermQuery::new(name_term, IndexRecordOption::Basic));
                 let type_query = Box::new(TermQuery::new(type_term, IndexRecordOption::Basic));
-                // Add both queries as "should" clauses
                 subqueries.push((Occur::Should, name_query as Box<dyn Query>));
                 subqueries.push((Occur::Should, type_query as Box<dyn Query>));
             }
         }
 
-        // Combine all subqueries with BooleanQuery
         let query = BooleanQuery::new(subqueries);
-        // Create a custom collector that boosts scores based on depth
+
+        tracing::debug!("Searching...");
         let top_docs = searcher.search(
             &query,
             &TopDocs::with_limit(TOP_DOCS_LIMIT).tweak_score(move |segment_reader: &tantivy::SegmentReader| {
@@ -229,45 +253,56 @@ impl SchemaIndex {
                 move |doc: tantivy::DocId, original_score: f32| {
                     let depth = depth_reader.first(doc).unwrap_or(256) as f32;
                     // Boost score based on inverse of depth (shallower = higher score)
-                    original_score * (1.0 / (1.0 + depth))
+                    original_score / (1.0 + depth)
                 }
             }),
         )?;
 
+        tracing::debug!("Generate response");
         let mut matches = Vec::new();
-        for (_score, doc_address) in top_docs {
+        for (score, doc_address) in top_docs {
             let doc: TantivyDocument = searcher.doc(doc_address)?;
-            let mut definition_id = FieldDefinitionId::from(
+            let definition_id = FieldDefinitionId::from(
                 doc.get_first(self.fields.definition_id)
                     .and_then(|value| value.as_u64())
                     .unwrap() as u32,
             );
+            let mut definition = self.schema.walk(definition_id);
+            let field = definition.into();
+            let r#type = definition.ty().definition().into();
+            let mut ancestors = Vec::new();
 
-            let mut query_path = Vec::new();
             loop {
-                let definition = self.schema.walk(definition_id);
-                query_path.push(ShortestQueryPathSegment {
-                    field: definition.name().to_owned(),
-                    output_type: definition.ty().to_string(),
-                    arguments: definition
-                        .arguments()
-                        .map(|arg| FieldArgument {
-                            name: arg.name().to_owned(),
-                            r#type: arg.ty().to_string(),
-                            default_value: arg.default_value().map(|v| serde_json::to_value(v).unwrap()),
-                        })
-                        .collect(),
-                });
-                let parent_definition_id = self.shortest_path_parent[usize::from(definition_id)];
-                if parent_definition_id == definition_id {
+                let parent_definition_id = self.shortest_path_parent[usize::from(definition.id)];
+                if parent_definition_id == definition.id {
                     break;
                 }
-                definition_id = parent_definition_id;
+                definition = self.schema.walk(parent_definition_id);
+                ancestors.push(definition.into());
+                if ancestors.len() > 10 {
+                    tracing::error!("Exceed ancestors limit:\n{ancestors:#?}");
+                    break;
+                }
             }
-            query_path.reverse();
+            ancestors.reverse();
 
-            matches.push(FieldMatch { query_path });
+            matches.push(FieldMatch {
+                score,
+                field,
+                r#type,
+                ancestors,
+                root_type: match definition.parent_entity_id.as_object().unwrap() {
+                    id if id == self.schema.query().id => "Query",
+                    id if self.schema.mutation().filter(|m| m.id == id).is_some() => "Mutation",
+                    id if self.schema.subscription().filter(|s| s.id == id).is_some() => "Subscription",
+                    _ => {
+                        unreachable!()
+                    }
+                },
+            });
         }
+
+        tracing::debug!("generated all matches");
         Ok(matches)
     }
 }
