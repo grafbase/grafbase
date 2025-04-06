@@ -3189,6 +3189,7 @@ dependencies = [
  "futures-lite 2.6.0",
  "futures-util",
  "gateway-config",
+ "grafbase-mcp",
  "grafbase-telemetry",
  "grafbase-workspace-hack",
  "graph-ref",
@@ -3201,7 +3202,6 @@ dependencies = [
  "notify",
  "rand 0.9.0",
  "reqwest 0.12.15",
- "rmcp",
  "rolling-logger",
  "runtime",
  "runtime-local",
@@ -3873,6 +3873,25 @@ dependencies = [
  "enumflags2",
  "quote",
  "syn 2.0.100",
+]
+
+[[package]]
+name = "grafbase-mcp"
+version = "0.0.0"
+dependencies = [
+ "axum 0.8.3",
+ "engine",
+ "engine-axum",
+ "engine-schema",
+ "gateway-config",
+ "grafbase-workspace-hack",
+ "http 1.3.1",
+ "indoc",
+ "rmcp",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-util",
 ]
 
 [[package]]

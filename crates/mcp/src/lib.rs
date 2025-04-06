@@ -1,20 +1,24 @@
+#![deny(unused_crate_dependencies)]
+use grafbase_workspace_hack as _;
+
 mod server;
 
 use std::{
     net::{Ipv4Addr, SocketAddr, SocketAddrV4},
+    sync::Arc,
     time::Duration,
 };
 
 use axum::Router;
-use engine::Runtime;
+use engine::{Engine, Runtime};
 use gateway_config::ModelControlProtocolConfig;
 use rmcp::transport::{SseServer, sse_server::SseServerConfig};
-use server::McpServer;
+use tokio::sync::watch;
 use tokio_util::sync::CancellationToken;
 
-use super::gateway::EngineWatcher;
+type EngineWatcher<R> = watch::Receiver<Arc<Engine<R>>>;
 
-pub(super) fn router<R: Runtime>(
+pub fn router<R: Runtime>(
     engine: EngineWatcher<R>,
     config: &ModelControlProtocolConfig,
 ) -> (Router, CancellationToken) {
@@ -30,7 +34,8 @@ pub(super) fn router<R: Runtime>(
     let instructions = config.instructions.clone();
     let enable_mutations = config.enable_mutations;
 
-    let ct = sse_server.with_service(move || McpServer::new(engine.clone(), instructions.clone(), enable_mutations));
+    let ct =
+        sse_server.with_service(move || server::McpServer::new(engine.clone(), instructions.clone(), enable_mutations));
 
     (router.with_state(()), ct)
 }

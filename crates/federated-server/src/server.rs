@@ -6,7 +6,6 @@ mod gateway;
 mod graph_fetch_method;
 mod graph_updater;
 mod health;
-mod mcp;
 mod state;
 mod trusted_documents_client;
 
@@ -221,7 +220,7 @@ pub async fn router<R: engine::Runtime, SR: ServerRuntime>(
 
     let ct = match config.mcp {
         Some(ref mcp_config) if mcp_config.enabled => {
-            let (mcp_router, ct) = mcp::router(engine, mcp_config);
+            let (mcp_router, ct) = grafbase_mcp::router(engine, mcp_config);
             router = router.merge(mcp_router);
 
             Some(ct)
