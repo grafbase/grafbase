@@ -168,7 +168,7 @@ fn request_error() {
     {
       "errors": [
         {
-          "message": "Query does not have a field named '_typean_'. It has the following fields: name, me, topProducts, __schema, __type",
+          "message": "Query does not have a field named '_typean_'.",
           "locations": [
             {
               "line": 3,

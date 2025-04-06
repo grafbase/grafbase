@@ -27,23 +27,19 @@ impl<R: Runtime> PrepareContext<'_, R> {
 
         let operation = match Operation::parse(self.schema(), document.operation_name(), &document.content) {
             Ok(operation) => operation,
-            Err(err) => {
-                return Err(match err {
-                    operation::Error::Parsing { message, locations } => {
-                        let error =
-                            GraphqlError::new(message, ErrorCode::OperationParsingError).with_locations(locations);
-                        Response::request_error([error])
-                    }
-                    operation::Error::Validation {
-                        message,
-                        locations,
-                        attributes,
-                    } => {
-                        let error =
-                            GraphqlError::new(message, ErrorCode::OperationValidationError).with_locations(locations);
-                        Response::request_error([error])
-                            .with_operation_attributes(attributes.with_complexity_cost(None))
-                    }
+            Err(operation::Errors { items, attributes }) => {
+                let resp = Response::request_error(items.into_iter().map(|err| {
+                    let code = match err.kind {
+                        operation::ErrorKind::Parsing => ErrorCode::OperationParsingError,
+                        operation::ErrorKind::Validation => ErrorCode::OperationValidationError,
+                    };
+                    GraphqlError::new(err.message, code).with_locations(err.locations)
+                }));
+
+                return Err(if let Some(attributes) = attributes {
+                    resp.with_operation_attributes(attributes.with_complexity_cost(None))
+                } else {
+                    resp
                 });
             }
         };

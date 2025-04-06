@@ -57,7 +57,6 @@ impl ServerHandler for McpServer {
         _: PaginatedRequestParam,
         _: RequestContext<RoleServer>,
     ) -> Result<ListToolsResult, ErrorData> {
-        tracing::debug!("Listing tools");
         Ok(ListToolsResult {
             next_cursor: None,
             tools: self.tools.iter().map(|tool| tool.to_tool()).collect(),
@@ -69,7 +68,6 @@ impl ServerHandler for McpServer {
         CallToolRequestParam { name, arguments }: CallToolRequestParam,
         _: RequestContext<RoleServer>,
     ) -> Result<CallToolResult, ErrorData> {
-        tracing::debug!("Calling tool?");
         if let Some(tool) = self.tools.iter().find(|tool| tool.name() == name) {
             return tool.call(arguments).await;
         }

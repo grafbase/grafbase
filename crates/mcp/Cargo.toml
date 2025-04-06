@@ -25,11 +25,15 @@ rmcp = { git = "https://github.com/grafbase/rust-sdk", branch = "reduce-logging"
     "transport-sse",
     "transport-sse-server",
 ] }
+itertools.workspace = true
 schemars.workspace = true
 serde.workspace = true
+fxhash.workspace = true
 serde_json.workspace = true
+convert_case = "0.8"
 tantivy.workspace = true
 tokio = { workspace = true, features = ["signal", "time", "net"] }
 tokio-stream = { workspace = true, features = ["sync"] }
 tokio-util = { workspace = true, features = ["codec"] }
 tracing.workspace = true
+unicode-normalization = "0.1.24"

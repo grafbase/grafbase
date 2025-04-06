@@ -21,12 +21,17 @@ impl ValidationError {
     }
 }
 
-pub(crate) fn validate(schema: &Schema, operation: &Operation) -> Result<(), ValidationError> {
+pub(crate) fn validate(schema: &Schema, operation: &Operation) -> Result<(), Vec<ValidationError>> {
     let ctx = OperationContext { schema, operation };
-    enforce_operation_limits(ctx)?;
-    ensure_introspection_is_accepted(ctx)?;
+    let mut errors = Vec::new();
+    if let Err(err) = enforce_operation_limits(ctx) {
+        errors.push(err);
+    }
+    if let Err(err) = ensure_introspection_is_accepted(ctx) {
+        errors.push(err);
+    }
 
-    Ok(())
+    if errors.is_empty() { Ok(()) } else { Err(errors) }
 }
 
 fn ensure_introspection_is_accepted(ctx: OperationContext<'_>) -> Result<(), ValidationError> {

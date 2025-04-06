@@ -4,8 +4,8 @@ use engine_operation::{Operation, RawVariables, Variables};
 use rmcp::model::CallToolResult;
 use serde::{Deserialize, Serialize};
 
-use super::Tool;
-use crate::EngineWatcher;
+use super::{SdlAndErrors, Tool, sdl::PartialSdl};
+use crate::{EngineWatcher, tools::IntrospectTool};
 
 pub struct VerifyTool<R: engine::Runtime> {
     engine: EngineWatcher<R>,
@@ -20,15 +20,11 @@ impl<R: engine::Runtime> Tool for VerifyTool<R> {
     }
 
     fn description(&self) -> Cow<'_, str> {
-        "Validates a GraphQL request. A list of errors is returned if there are any.".into()
+        format!("Validates a GraphQL request. A list of errors is returned if there are any. Extra context for errors may be provided in the form of GraphQL SDL if any. Consider using `{}` tool again to get more information on nested types.", IntrospectTool::<R>::name()).into()
     }
 
     async fn call(&self, parameters: Self::Parameters) -> anyhow::Result<CallToolResult> {
-        let errors = self.validate_request(parameters);
-        Ok(CallToolResult {
-            content: vec![rmcp::model::Content::json(&errors)?],
-            is_error: Some(!errors.is_empty()),
-        })
+        Ok(self.validate_request(parameters).into())
     }
 }
 
@@ -75,11 +71,6 @@ impl schemars::JsonSchema for Request {
     }
 }
 
-#[derive(Serialize)]
-pub struct VerifyResponse {
-    errors: Vec<String>,
-}
-
 impl<R: engine::Runtime> VerifyTool<R> {
     pub fn new(engine: &EngineWatcher<R>, enable_mutations: bool) -> Self {
         Self {
@@ -88,21 +79,43 @@ impl<R: engine::Runtime> VerifyTool<R> {
         }
     }
 
-    fn validate_request(&self, request: Request) -> Vec<String> {
-        let mut errors = Vec::new();
+    fn validate_request(&self, request: Request) -> SdlAndErrors {
         let schema = self.engine.borrow().schema.clone();
 
         let operation = match Operation::parse(&schema, None, &request.query) {
             Ok(op) => op,
-            Err(err) => {
-                return vec![err.to_string()];
+            Err(engine_operation::Errors { items, .. }) => {
+                let mut errors = Vec::new();
+                let mut site_ids = Vec::new();
+                for err in items {
+                    errors.push(err.message.into_owned());
+                    if let Some(site_id) = err.site_id {
+                        site_ids.push(site_id);
+                    }
+                }
+                site_ids.sort_unstable();
+                site_ids.dedup();
+
+                let sdl = PartialSdl {
+                    max_depth: 1,
+                    search_tokens: Vec::new(),
+                    max_size_for_extra_content: 1024,
+                    site_ids_and_score: site_ids.into_iter().map(|id| (id, 1.0)).collect(),
+                }
+                .generate(&schema);
+
+                return SdlAndErrors { errors, sdl };
             }
         };
 
         if operation.attributes.ty.is_mutation() && !self.enable_mutations {
-            return vec!["Mutaions are not allowed".to_string()];
+            return SdlAndErrors {
+                errors: vec!["Mutaions are not allowed".to_string()],
+                sdl: String::new(),
+            };
         }
 
+        let mut errors = Vec::new();
         match Variables::bind(&schema, &operation, request.variables) {
             Ok(variables) => {
                 if let Err(complexity_err) = operation.compute_and_validate_complexity(&schema, &variables) {
@@ -114,6 +127,9 @@ impl<R: engine::Runtime> VerifyTool<R> {
             }
         }
 
-        errors
+        SdlAndErrors {
+            errors,
+            sdl: String::new(),
+        }
     }
 }

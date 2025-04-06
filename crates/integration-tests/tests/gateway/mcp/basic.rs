@@ -83,7 +83,7 @@ fn list_tools() {
         "tools": [
           {
             "name": "introspect",
-            "description": "Provides detailed information about GraphQL type definition. Always use `search` first to identify relevant fields before if information on a specific type was not explicitly requested. If you're not certain whether a field exist on a type, always use this tool first.",
+            "description": "Provide the complete GraphQL SDL for the requested types. Always use `search` first to identify relevant fields before if information on a specific type was not explicitly requested. Continue using this tool until you have the definition of all nested types you intend to query.",
             "inputSchema": {
               "$schema": "http://json-schema.org/draft-07/schema#",
               "title": "IntrospectionParameters",
@@ -103,7 +103,7 @@ fn list_tools() {
           },
           {
             "name": "search",
-            "description": "Search for relevant fields to use in a GraphQL query. Each matching GraphQL field will have all of its ancestor fields up to a root type. Ancestors are provided in depth order, so the first one is a field a on the root type. Always use `introspect` tool afterwards to get more informations on types if you need additional fields.",
+            "description": "Search for relevant fields to use in a GraphQL query. A list of matching fields with their score is returned with partial GraphQL SDL indicating how to query them. Use `introspect` tool to request additional information on children field types if necessary to refine the selection set.",
             "inputSchema": {
               "$schema": "http://json-schema.org/draft-07/schema#",
               "title": "SearchParameters",
@@ -123,7 +123,7 @@ fn list_tools() {
           },
           {
             "name": "verify",
-            "description": "Validates a GraphQL request. A list of errors is returned if there are any.",
+            "description": "Validates a GraphQL request. A list of errors is returned if there are any. Extra context for errors may be provided in the form of GraphQL SDL if any. Consider using `introspect` tool again to get more information on nested types.",
             "inputSchema": {
               "$schema": "http://json-schema.org/draft-07/schema#",
               "title": "Request",
@@ -145,7 +145,7 @@ fn list_tools() {
           },
           {
             "name": "execute",
-            "description": "Executes a GraphQL request and returns the response. Always validate with `verify` tool before executing a request.",
+            "description": "Executes a GraphQL request and returns the response. You MUST validate a request with the `verify` tool before using this tool.",
             "inputSchema": {
               "$schema": "http://json-schema.org/draft-07/schema#",
               "title": "Request",

@@ -1,4 +1,5 @@
 #![deny(unused_crate_dependencies)]
+use convert_case as _;
 use grafbase_workspace_hack as _;
 
 mod server;

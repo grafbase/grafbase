@@ -1,8 +1,8 @@
 use walker::{Iter, Walk};
 
 use crate::{
-    CompositeType, CompositeTypeId, EntityDefinition, EntityDefinitionId, FieldDefinition, InterfaceDefinition,
-    InterfaceDefinitionId, ObjectDefinitionId, TypeDefinitionId, TypeSystemDirective,
+    CompositeType, CompositeTypeId, DeprecatedDirective, EntityDefinition, EntityDefinitionId, FieldDefinition,
+    InterfaceDefinition, InterfaceDefinitionId, ObjectDefinitionId, TypeDefinitionId, TypeSystemDirective,
 };
 
 impl EntityDefinitionId {
@@ -27,6 +27,20 @@ impl<'a> EntityDefinition<'a> {
         match self {
             EntityDefinition::Object(item) => item.name(),
             EntityDefinition::Interface(item) => item.name(),
+        }
+    }
+
+    pub fn description(&self) -> Option<&'a str> {
+        match self {
+            EntityDefinition::Object(item) => item.description(),
+            EntityDefinition::Interface(item) => item.description(),
+        }
+    }
+
+    pub fn has_deprecated(&self) -> Option<DeprecatedDirective<'a>> {
+        match self {
+            EntityDefinition::Object(item) => item.has_deprecated(),
+            EntityDefinition::Interface(item) => item.has_deprecated(),
         }
     }
 

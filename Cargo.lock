@@ -3918,14 +3918,17 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "axum 0.8.3",
+ "convert_case",
  "engine",
  "engine-operation",
  "engine-schema",
  "fixedbitset",
  "futures",
+ "fxhash",
  "gateway-config",
  "grafbase-workspace-hack",
  "http 1.3.1",
+ "itertools 0.14.0",
  "minicbor-serde",
  "rmcp",
  "schemars",
@@ -3936,6 +3939,7 @@ dependencies = [
  "tokio-stream",
  "tokio-util",
  "tracing",
+ "unicode-normalization",
 ]
 
 [[package]]

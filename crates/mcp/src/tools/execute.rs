@@ -18,7 +18,7 @@ impl<R: engine::Runtime> Tool for RunTool<R> {
     }
 
     fn description(&self) -> Cow<'_, str> {
-        format!("Executes a GraphQL request and returns the response. Always validate with `{}` tool before executing a request.", VerifyTool::<R>::name()).into()
+        format!("Executes a GraphQL request and returns the response. You MUST validate a request with the `{}` tool before using this tool.", VerifyTool::<R>::name()).into()
     }
 
     async fn call(&self, parameters: Self::Parameters) -> anyhow::Result<CallToolResult> {

@@ -31,29 +31,10 @@ fn test_object() {
 
         let response = stream.call_tool("introspect", json!({"types": ["User"]})).await;
 
-        insta::assert_json_snapshot!(&response, @r#"
-        {
-          "result": {
-            "content": [
-              [
-                {
-                  "name": "User",
-                  "kind": "OBJECT",
-                  "fields": [
-                    {
-                      "name": "id",
-                      "type": "ID!"
-                    },
-                    {
-                      "name": "name",
-                      "type": "String!"
-                    }
-                  ]
-                }
-              ]
-            ],
-            "is_error": null
-          }
+        insta::assert_snapshot!(&response, @r#"
+        type User {
+          id: ID!
+          name: String!
         }
         "#);
     });
@@ -96,25 +77,7 @@ fn test_union() {
 
         let response = stream.call_tool("introspect", json!({"types": ["SearchResult"]})).await;
 
-        insta::assert_json_snapshot!(&response, @r#"
-        {
-          "result": {
-            "content": [
-              [
-                {
-                  "name": "SearchResult",
-                  "kind": "UNION",
-                  "possibleTypes": [
-                    "Post",
-                    "Comment"
-                  ]
-                }
-              ]
-            ],
-            "is_error": null
-          }
-        }
-        "#);
+        insta::assert_snapshot!(&response, @"union SearchResult = Comment | Post");
     });
 }
 
@@ -157,29 +120,19 @@ fn test_interface() {
 
         let response = stream.call_tool("introspect", json!({"types": ["Node"]})).await;
 
-        insta::assert_json_snapshot!(&response, @r#"
-        {
-          "result": {
-            "content": [
-              [
-                {
-                  "name": "Node",
-                  "kind": "INTERFACE",
-                  "fields": [
-                    {
-                      "name": "id",
-                      "type": "ID!"
-                    }
-                  ],
-                  "possibleTypes": [
-                    "User",
-                    "Product"
-                  ]
-                }
-              ]
-            ],
-            "is_error": null
-          }
+        insta::assert_snapshot!(&response, @r#"
+        interface Node {
+          id: ID!
+        }
+
+        type User implements Node {
+          id: ID!
+          name: String!
+        }
+
+        type Product implements Node {
+          id: ID!
+          price: Float!
         }
         "#);
     });
@@ -216,30 +169,11 @@ fn test_enum() {
 
         let response = stream.call_tool("introspect", json!({"types": ["Status"]})).await;
 
-        insta::assert_json_snapshot!(&response, @r#"
-        {
-          "result": {
-            "content": [
-              [
-                {
-                  "name": "Status",
-                  "kind": "ENUM",
-                  "enumValues": [
-                    {
-                      "name": "DRAFT"
-                    },
-                    {
-                      "name": "PUBLISHED"
-                    },
-                    {
-                      "name": "ARCHIVED"
-                    }
-                  ]
-                }
-              ]
-            ],
-            "is_error": null
-          }
+        insta::assert_snapshot!(&response, @r#"
+        enum Status {
+          DRAFT
+          PUBLISHED
+          ARCHIVED
         }
         "#);
     });
@@ -272,21 +206,7 @@ fn test_scalar() {
 
         let response = stream.call_tool("introspect", json!({"types": ["DateTime"]})).await;
 
-        insta::assert_json_snapshot!(&response, @r#"
-        {
-          "result": {
-            "content": [
-              [
-                {
-                  "name": "DateTime",
-                  "kind": "SCALAR"
-                }
-              ]
-            ],
-            "is_error": null
-          }
-        }
-        "#);
+        insta::assert_snapshot!(&response, @"scalar DateTime");
     });
 }
 
@@ -321,33 +241,11 @@ fn test_input_object() {
 
         let response = stream.call_tool("introspect", json!({"types": ["SearchFilter"]})).await;
 
-        insta::assert_json_snapshot!(&response, @r#"
-        {
-          "result": {
-            "content": [
-              [
-                {
-                  "name": "SearchFilter",
-                  "kind": "INPUT_OBJECT",
-                  "inputFields": [
-                    {
-                      "name": "term",
-                      "type": "String!"
-                    },
-                    {
-                      "name": "limit",
-                      "type": "Int"
-                    },
-                    {
-                      "name": "sortBy",
-                      "type": "String"
-                    }
-                  ]
-                }
-              ]
-            ],
-            "is_error": null
-          }
+        insta::assert_snapshot!(&response, @r#"
+        input SearchFilter {
+          term: String!
+          limit: Int
+          sortBy: String
         }
         "#);
     });
@@ -397,45 +295,20 @@ fn test_object_with_field_arguments() {
 
         let response = stream.call_tool("introspect", json!({"types": ["User"]})).await;
 
-        insta::assert_json_snapshot!(&response, @r#"
-        {
-          "result": {
-            "content": [
-              [
-                {
-                  "name": "User",
-                  "kind": "OBJECT",
-                  "fields": [
-                    {
-                      "name": "id",
-                      "type": "ID!"
-                    },
-                    {
-                      "name": "posts",
-                      "type": "[Post!]!",
-                      "args": [
-                        {
-                          "name": "first",
-                          "type": "Int",
-                          "defaultValue": 10
-                        },
-                        {
-                          "name": "offset",
-                          "type": "Int!"
-                        },
-                        {
-                          "name": "status",
-                          "type": "PostStatus",
-                          "defaultValue": "PUBLISHED"
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ]
-            ],
-            "is_error": null
-          }
+        insta::assert_snapshot!(&response, @r#"
+        type User {
+          id: ID!
+          posts(first: Int = 10, offset: Int!, status: PostStatus = PUBLISHED): [Post!]!
+        }
+
+        enum PostStatus {
+          DRAFT
+          PUBLISHED
+          ARCHIVED
+        }
+
+        type Post {
+          id: ID!
         }
         "#);
     });
@@ -475,40 +348,12 @@ fn test_input_object_with_defaults() {
             .call_tool("introspect", json!({"types": ["SearchFilterWithDefaults"]}))
             .await;
 
-        insta::assert_json_snapshot!(&response, @r#"
-        {
-          "result": {
-            "content": [
-              [
-                {
-                  "name": "SearchFilterWithDefaults",
-                  "kind": "INPUT_OBJECT",
-                  "inputFields": [
-                    {
-                      "name": "term",
-                      "type": "String!"
-                    },
-                    {
-                      "name": "limit",
-                      "type": "Int",
-                      "defaultValue": 50
-                    },
-                    {
-                      "name": "sortBy",
-                      "type": "String",
-                      "defaultValue": "createdAt"
-                    },
-                    {
-                      "name": "includeArchived",
-                      "type": "Boolean",
-                      "defaultValue": false
-                    }
-                  ]
-                }
-              ]
-            ],
-            "is_error": null
-          }
+        insta::assert_snapshot!(&response, @r#"
+        input SearchFilterWithDefaults {
+          term: String!
+          limit: Int = 50
+          sortBy: String = "createdAt"
+          includeArchived: Boolean = false
         }
         "#);
     });
@@ -549,16 +394,11 @@ fn should_not_show_mutations_if_disabled() {
 
         let response = stream.call_tool("introspect", json!({"types": ["Mutation"]})).await;
 
-        insta::assert_json_snapshot!(&response, @r#"
+        insta::assert_snapshot!(&response, @r#"
         {
-          "result": {
-            "content": [
-              [
-                "Type 'Mutation' not found"
-              ]
-            ],
-            "is_error": null
-          }
+          "errors": [
+            "Type 'Mutation' not found"
+          ]
         }
         "#);
     });
@@ -599,26 +439,209 @@ fn should_show_mutations_if_enabled() {
 
         let response = stream.call_tool("introspect", json!({"types": ["Mutation"]})).await;
 
-        insta::assert_json_snapshot!(&response, @r#"
-        {
-          "result": {
-            "content": [
-              [
-                {
-                  "name": "Mutation",
-                  "kind": "OBJECT",
-                  "fields": [
-                    {
-                      "name": "createUser",
-                      "type": "User"
-                    }
-                  ]
-                }
-              ]
-            ],
-            "is_error": null
-          }
+        insta::assert_snapshot!(&response, @r#"
+        type Mutation {
+          createUser: User
         }
+
+        type User {
+          id: ID!
+          name: String!
+        }
+        "#);
+    });
+}
+
+#[test]
+fn test_descriptions() {
+    runtime().block_on(async move {
+        let engine = Gateway::builder()
+            .with_subgraph_sdl(
+                "x",
+                r#"
+                """
+                A user in the system.
+                """
+                type User implements Node {
+                    """
+                    The unique identifier of the user.
+                    """
+                    id: ID!
+
+                    """
+                    The user's full name.
+                    """
+                    name: String!
+
+                    """
+                    Posts created by the user.
+                    """
+                    posts(
+                        """
+                        Maximum number of posts to return.
+                        """
+                        limit: Int = 10
+                    ): [Post!]!
+                }
+
+                """
+                A blog post written by a user.
+                """
+                type Post implements Node {
+                    """
+                    The unique identifier of the post.
+                    """
+                    id: ID!
+                }
+
+                """
+                A comment on a post or another comment.
+                """
+                type Comment implements Node {
+                    """
+                    The unique identifier of the comment.
+                    """
+                    id: ID!
+
+                    """
+                    The content of the comment.
+                    """
+                    content: String!
+                }
+
+                """
+                Interface for entities that can be uniquely identified.
+                """
+                interface Node {
+                    """
+                    The unique identifier of the node.
+                    """
+                    id: ID!
+                }
+
+                """
+                Represents either a Post or a Comment in search results.
+                """
+                union SearchResult = Post | Comment
+
+                """
+                A custom date-time scalar that handles timestamps.
+                """
+                scalar DateTime
+
+                """
+                Input type for filtering posts.
+                """
+                input PostFilter {
+                    """
+                    Filter by author ID.
+                    """
+                    authorId: ID
+
+                    "Filter by post status."
+                    status: PostStatus = PUBLISHED
+
+                    """
+                    Filter by creation date.
+                    """
+                    createdAfter: DateTime
+                }
+
+                """
+                The status of a post.
+                I'm a multiline comment.
+                """
+                enum PostStatus {
+                    """
+                    Post is in draft state.
+                    """
+                    DRAFT
+
+                    """
+                    Post is published.
+                    """
+                    PUBLISHED
+                }
+
+                type Query {
+                    user: User
+                    node: Node
+                    search: SearchResult
+                    currentTime: DateTime
+                }
+            "#,
+            )
+            .with_toml_config(
+                r#"
+                [mcp]
+                enabled = true
+            "#,
+            )
+            .build()
+            .await;
+
+        let mut stream = engine.mcp("/mcp").await;
+
+        let response = stream.call_tool("introspect", json!({"types": ["User", "Post", "Comment", "Node", "SearchResult", "DateTime", "PostFilter", "PostStatus"]})).await;
+
+        insta::assert_snapshot!(&response, @r#"
+        "A comment on a post or another comment."
+        type Comment implements Node {
+          "The content of the comment."
+          content: String!
+          "The unique identifier of the comment."
+          id: ID!
+        }
+
+        """
+        The status of a post.
+        I'm a multiline comment.
+        """
+        enum PostStatus {
+          DRAFT
+          PUBLISHED
+        }
+
+        "Input type for filtering posts."
+        input PostFilter {
+          "Filter by author ID."
+          authorId: ID
+          "Filter by post status."
+          status: PostStatus = PUBLISHED
+          "Filter by creation date."
+          createdAfter: DateTime
+        }
+
+        "Interface for entities that can be uniquely identified."
+        interface Node {
+          "The unique identifier of the node."
+          id: ID!
+        }
+
+        "A user in the system."
+        type User implements Node {
+          "The unique identifier of the user."
+          id: ID!
+          "The user's full name."
+          name: String!
+          "Posts created by the user."
+          posts(
+            "Maximum number of posts to return."
+            limit: Int = 10
+          ): [Post!]!
+        }
+
+        "A blog post written by a user."
+        type Post implements Node {
+          "The unique identifier of the post."
+          id: ID!
+        }
+
+        "A custom date-time scalar that handles timestamps."
+        scalar DateTime
+
+        "Represents either a Post or a Comment in search results."
+        union SearchResult = Comment | Post
         "#);
     });
 }

@@ -4,6 +4,8 @@ mod offsets;
 use cynic_parser::{ExecutableDocument, executable::OperationDefinition};
 use offsets::LineOffsets;
 
+use crate::Errors;
+
 use self::error::{ParseError, ParseResult};
 use super::Location;
 
@@ -41,8 +43,10 @@ impl ParsedOperation {
 pub(crate) fn parse_operation(operation_name: Option<&str>, document_str: &str) -> crate::Result<ParsedOperation> {
     let line_offsets = LineOffsets::new(document_str);
 
-    let (name, document) =
-        parse_impl(operation_name, document_str).map_err(|err| err.into_graphql_error(&line_offsets))?;
+    let (name, document) = parse_impl(operation_name, document_str).map_err(|err| Errors {
+        items: vec![err.into_graphql_error(&line_offsets)],
+        attributes: None,
+    })?;
 
     Ok(ParsedOperation {
         name,

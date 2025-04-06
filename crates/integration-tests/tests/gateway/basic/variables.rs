@@ -491,11 +491,12 @@ fn variables_are_input_types_validation() {
             "query($one: Query) { string(input: $one)}",
             json!({})
         ),
-        @r###"
+        @r#"
     [
-      "Variable named '$one' does not have a valid input type. Can only be a scalar, enum or input object. Found: 'Query'."
+      "Variable named '$one' does not have a valid input type. Can only be a scalar, enum or input object. Found: 'Query'.",
+      "Unknown variable $one"
     ]
-    "###
+    "#
     );
 }
 

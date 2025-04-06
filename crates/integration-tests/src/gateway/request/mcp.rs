@@ -92,6 +92,15 @@ pub enum McpResponse<T> {
     Error { error: McpError },
 }
 
+impl<T: std::fmt::Display> std::fmt::Display for McpResponse<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            McpResponse::Result { result } => write!(f, "{}", result),
+            McpResponse::Error { error } => write!(f, "{}", serde_json::to_string_pretty(error).unwrap()),
+        }
+    }
+}
+
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct McpError {
@@ -101,8 +110,34 @@ pub struct McpError {
 
 #[derive(Debug, serde::Serialize)]
 pub struct ToolResponse {
-    pub content: Vec<serde_json::Value>,
+    pub content: Vec<Content>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub is_error: Option<bool>,
+}
+
+impl std::fmt::Display for ToolResponse {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.is_error.unwrap_or_default() {
+            writeln!(f, "is_error: true")?;
+        }
+        for (i, content) in self.content.iter().enumerate() {
+            if i > 0 {
+                writeln!(f, "\n{}\n", "=".repeat(80))?;
+            }
+            match content {
+                Content::Text(text) => write!(f, "{}", text)?,
+                Content::Json(json) => write!(f, "{}", serde_json::to_string_pretty(json).unwrap())?,
+            }
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, serde::Serialize)]
+#[serde(untagged)]
+pub enum Content {
+    Text(String),
+    Json(serde_json::Value),
 }
 
 impl<'de> serde::Deserialize<'de> for ToolResponse {
@@ -110,8 +145,6 @@ impl<'de> serde::Deserialize<'de> for ToolResponse {
     where
         D: serde::Deserializer<'de>,
     {
-        use serde::de::Error;
-
         #[derive(serde::Deserialize)]
         #[serde(rename_all = "camelCase")]
         struct Raw {
@@ -130,7 +163,10 @@ impl<'de> serde::Deserialize<'de> for ToolResponse {
             content: raw
                 .content
                 .into_iter()
-                .map(|c| serde_json::from_str(&c.text).map_err(|err| D::Error::custom(err.to_string())))
+                .map(|c| match serde_json::from_str(&c.text) {
+                    Ok(json) => Ok(Content::Json(json)),
+                    Err(_) => Ok(Content::Text(c.text)),
+                })
                 .collect::<Result<_, _>>()?,
             is_error: raw.is_error,
         })

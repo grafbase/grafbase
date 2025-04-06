@@ -33,16 +33,7 @@ fn valid() {
             .call_tool("verify", json!({"query": "query { user { name } }"}))
             .await;
 
-        insta::assert_json_snapshot!(&response, @r#"
-        {
-          "result": {
-            "content": [
-              []
-            ],
-            "is_error": false
-          }
-        }
-        "#);
+        insta::assert_snapshot!(&response, @"");
     });
 }
 
@@ -76,16 +67,11 @@ fn unparseable_query() {
 
         let response = stream.call_tool("verify", json!({"query": "}"})).await;
 
-        insta::assert_json_snapshot!(&response, @r#"
+        insta::assert_snapshot!(&response, @r#"
         {
-          "result": {
-            "content": [
-              [
-                "unexpected closing brace ('}') token (expected one of , \"{\"query, mutation, subscription, fragment)"
-              ]
-            ],
-            "is_error": true
-          }
+          "errors": [
+            "unexpected closing brace ('}') token (expected one of , \"{\"query, mutation, subscription, fragment)"
+          ]
         }
         "#);
     });
@@ -128,16 +114,19 @@ fn unknown_field() {
             )
             .await;
 
-        insta::assert_json_snapshot!(&response, @r#"
+        insta::assert_snapshot!(&response, @r#"
+        type User {
+          id: ID!
+          name: String!
+        }
+
+
+        ================================================================================
+
         {
-          "result": {
-            "content": [
-              [
-                "User does not have a field named 'email'. It has the following fields: id, name"
-              ]
-            ],
-            "is_error": true
-          }
+          "errors": [
+            "User does not have a field named 'email'."
+          ]
         }
         "#);
     });
@@ -180,16 +169,19 @@ fn invalid_query_structure() {
             )
             .await;
 
-        insta::assert_json_snapshot!(&response, @r#"
+        insta::assert_snapshot!(&response, @r#"
+        type User {
+          id: ID!
+          name: String!
+        }
+
+
+        ================================================================================
+
         {
-          "result": {
-            "content": [
-              [
-                "Leaf field 'user' must be a scalar or an enum, but is a User."
-              ]
-            ],
-            "is_error": true
-          }
+          "errors": [
+            "Leaf field 'user' must be a scalar or an enum, but is a User."
+          ]
         }
         "#);
     });
@@ -233,16 +225,11 @@ fn incorrect_variable_type() {
             )
             .await;
 
-        insta::assert_json_snapshot!(&response, @r#"
+        insta::assert_snapshot!(&response, @r#"
         {
-          "result": {
-            "content": [
-              [
-                "Variable $id doesn't have the right type. Declared as 'Int!' but used as 'ID!'"
-              ]
-            ],
-            "is_error": true
-          }
+          "errors": [
+            "Variable $id doesn't have the right type. Declared as 'Int!' but used as 'ID!'"
+          ]
         }
         "#);
     });
@@ -286,16 +273,11 @@ fn unknown_variable() {
             )
             .await;
 
-        insta::assert_json_snapshot!(&response, @r#"
+        insta::assert_snapshot!(&response, @r#"
         {
-          "result": {
-            "content": [
-              [
-                "Unknown variable $userId"
-              ]
-            ],
-            "is_error": true
-          }
+          "errors": [
+            "Unknown variable $userId"
+          ]
         }
         "#);
     });

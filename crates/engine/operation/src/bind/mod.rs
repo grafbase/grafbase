@@ -38,6 +38,8 @@ struct OperationBinder<'schema, 'p> {
     fragments: Vec<FragmentRecord>,
     query_input_values: QueryInputValues,
     shared_selection_ids: Vec<SelectionId>,
+
+    errors: Vec<BindError>,
 }
 
 #[allow(clippy::result_large_err)]
@@ -45,7 +47,7 @@ pub(crate) fn bind_operation(
     schema: &Schema,
     parsed_operation: &ParsedOperation,
     attributes: OperationAttributes,
-) -> Result<Operation, (BindError, OperationAttributes)> {
+) -> Result<Operation, (Vec<BindError>, OperationAttributes)> {
     let mut binder = OperationBinder {
         schema,
         parsed_operation,
@@ -63,10 +65,14 @@ pub(crate) fn bind_operation(
         variable_definition_in_use: Vec::new(),
         fragment_name_to_id: HashMap::with_capacity(parsed_operation.document().fragments().count()),
         selection_buffers: Vec::new(),
+        errors: Vec::new(),
     };
 
     match binder.bind_root() {
         Ok((root_object_id, root_selection_set_record)) => {
+            if !binder.errors.is_empty() {
+                return Err((binder.errors, attributes));
+            }
             let OperationBinder {
                 response_keys,
                 data_fields,
@@ -97,7 +103,10 @@ pub(crate) fn bind_operation(
                 shared_selection_ids,
             })
         }
-        Err(err) => Err((err, attributes)),
+        Err(err) => {
+            binder.errors.push(err);
+            Err((binder.errors, attributes))
+        }
     }
 }
 

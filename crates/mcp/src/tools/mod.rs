@@ -1,6 +1,7 @@
 #![allow(refining_impl_trait)]
 mod execute;
 mod introspect;
+mod sdl;
 mod search;
 mod verify;
 
@@ -11,7 +12,7 @@ pub use search::*;
 use std::borrow::Cow;
 pub use verify::*;
 
-use rmcp::model::{CallToolResult, ErrorCode, ErrorData, JsonObject};
+use rmcp::model::{CallToolResult, Content, ErrorCode, ErrorData, JsonObject};
 
 pub trait Tool: Send + Sync + 'static {
     type Parameters: serde::de::DeserializeOwned + schemars::JsonSchema;
@@ -51,4 +52,30 @@ impl<T: Tool> RmcpTool for T {
             }
         })
     }
+}
+
+struct SdlAndErrors {
+    sdl: String,
+    errors: Vec<String>,
+}
+
+impl From<SdlAndErrors> for CallToolResult {
+    fn from(SdlAndErrors { sdl, errors }: SdlAndErrors) -> Self {
+        let mut content = Vec::new();
+        if !sdl.is_empty() {
+            content.push(Content::text(sdl));
+        }
+        if !errors.is_empty() {
+            content.push(Content::json(ErrorList { errors }).unwrap());
+        }
+        CallToolResult {
+            content,
+            is_error: None,
+        }
+    }
+}
+
+#[derive(serde::Serialize)]
+struct ErrorList<T> {
+    errors: Vec<T>,
 }

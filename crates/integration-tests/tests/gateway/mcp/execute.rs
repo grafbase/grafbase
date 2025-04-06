@@ -48,8 +48,7 @@ fn execute_valid_graphql_query() {
                   }
                 }
               }
-            ],
-            "is_error": null
+            ]
           }
         }
         "#);
