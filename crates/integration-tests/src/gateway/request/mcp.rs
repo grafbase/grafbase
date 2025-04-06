@@ -16,7 +16,7 @@ pub struct McpStream {
     command_uri: String,
     stream: Pin<Box<dyn Stream<Item = Result<Sse, sse_stream::Error>> + Send>>,
     id: usize,
-    server_info: Option<InitializeResponse>,
+    server_info: Option<McpResponse<InitializeResponse>>,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -49,7 +49,7 @@ pub struct InitializeResponse {
     pub protocol_version: String,
     pub capabilities: ServerCapabilities,
     pub server_info: ServerInfo,
-    pub instructions: String,
+    pub instructions: Option<String>,
 }
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
@@ -85,30 +85,92 @@ struct ClientInfo {
     version: &'static str,
 }
 
-#[derive(Debug, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct McpResponse<T> {
-    result: Option<T>,
-    error: Option<McpError>,
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[serde(untagged, rename_all = "camelCase")]
+pub enum McpResponse<T> {
+    Result { result: T },
+    Error { error: McpError },
 }
 
-#[derive(Debug, serde::Deserialize)]
+impl<T: std::fmt::Display> std::fmt::Display for McpResponse<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            McpResponse::Result { result } => write!(f, "{}", result),
+            McpResponse::Error { error } => write!(f, "{}", serde_json::to_string_pretty(error).unwrap()),
+        }
+    }
+}
+
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct McpError {
     pub code: i32,
     pub message: String,
 }
 
-#[derive(Debug, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct ToolResponse {
-    content: Vec<ToolContent>,
+#[derive(Debug, serde::Serialize)]
+pub struct ToolResponse {
+    pub content: Vec<Content>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_error: Option<bool>,
 }
 
-#[derive(Debug, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct ToolContent {
-    text: String,
+impl std::fmt::Display for ToolResponse {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.is_error.unwrap_or_default() {
+            writeln!(f, "is_error: true")?;
+        }
+        for (i, content) in self.content.iter().enumerate() {
+            if i > 0 {
+                writeln!(f, "\n{}\n", "=".repeat(80))?;
+            }
+            match content {
+                Content::Text(text) => write!(f, "{}", text)?,
+                Content::Json(json) => write!(f, "{}", serde_json::to_string_pretty(json).unwrap())?,
+            }
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, serde::Serialize)]
+#[serde(untagged)]
+pub enum Content {
+    Text(String),
+    Json(serde_json::Value),
+}
+
+impl<'de> serde::Deserialize<'de> for ToolResponse {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(serde::Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct Raw {
+            content: Vec<ToolContent>,
+            is_error: Option<bool>,
+        }
+
+        #[derive(serde::Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct ToolContent {
+            text: String,
+        }
+
+        let raw = Raw::deserialize(deserializer)?;
+        Ok(ToolResponse {
+            content: raw
+                .content
+                .into_iter()
+                .map(|c| match serde_json::from_str(&c.text) {
+                    Ok(json) => Ok(Content::Json(json)),
+                    Err(_) => Ok(Content::Text(c.text)),
+                })
+                .collect::<Result<_, _>>()?,
+            is_error: raw.is_error,
+        })
+    }
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -150,13 +212,13 @@ impl McpStream {
             server_info: None,
         };
 
-        this.server_info = Some(serde_json::from_value(this.initialize().await.unwrap()).unwrap());
+        this.server_info = Some(this.initialize().await);
         this.send_notification("notifications/initialized").await;
 
         this
     }
 
-    async fn initialize(&mut self) -> Result<serde_json::Value, McpError> {
+    async fn initialize(&mut self) -> McpResponse<InitializeResponse> {
         let init = Initialize {
             protocol_version: "2024-11-05",
             capabilities: Capabilities {
@@ -172,52 +234,29 @@ impl McpStream {
         self.send_command("initialize", init).await;
 
         let sse = self.fetch_response().await;
-        let response: McpResponse<serde_json::Value> = serde_json::from_str(&sse.data.unwrap()).unwrap();
-
-        match (response.result, response.error) {
-            (Some(result), _) => Ok(result),
-            (_, Some(error)) => Err(error),
-            _ => unreachable!(),
-        }
+        let data = sse.data.unwrap();
+        serde_json::from_str(&data).unwrap_or_else(|_| panic!("Failed to parse tool list response: {data}"))
     }
 
-    pub fn server_info(&self) -> InitializeResponse {
+    pub fn server_info(&self) -> McpResponse<InitializeResponse> {
         self.server_info.clone().unwrap()
     }
 
-    pub async fn list_tools(&mut self) -> Result<serde_json::Value, McpError> {
+    pub async fn list_tools(&mut self) -> McpResponse<serde_json::Value> {
         self.send_command("tools/list", EMPTY_PARAMS.clone()).await;
 
         let sse = self.fetch_response().await;
-        let response: McpResponse<serde_json::Value> = serde_json::from_str(&sse.data.unwrap()).unwrap();
-
-        match (response.result, response.error) {
-            (Some(result), _) => Ok(result),
-            (_, Some(error)) => Err(error),
-            _ => unreachable!(),
-        }
+        let data = sse.data.unwrap();
+        serde_json::from_str(&data).unwrap_or_else(|_| panic!("Failed to parse tool list response: {data}"))
     }
 
-    pub async fn call_tool(
-        &mut self,
-        name: &'static str,
-        arguments: serde_json::Value,
-    ) -> Result<serde_json::Value, McpError> {
+    pub async fn call_tool(&mut self, name: &'static str, arguments: serde_json::Value) -> McpResponse<ToolResponse> {
         self.send_command("tools/call", ToolsCallParams { name, arguments })
             .await;
 
         let sse = self.fetch_response().await;
-        let response: McpResponse<ToolResponse> = serde_json::from_str(&sse.data.unwrap()).unwrap();
-
-        match (response.result, response.error) {
-            (Some(mut result), _) => {
-                let result = serde_json::from_str(&result.content.pop().unwrap().text).unwrap();
-
-                Ok(result)
-            }
-            (_, Some(error)) => Err(error),
-            _ => unreachable!(),
-        }
+        let data = sse.data.unwrap();
+        serde_json::from_str(&data).unwrap_or_else(|_| panic!("Failed to parse tool list response: {data}"))
     }
 
     pub async fn send_command<S>(&mut self, method: &'static str, msg: S)

@@ -12,15 +12,20 @@ workspace = true
 [dependencies]
 anyhow.workspace = true
 axum = { workspace = true, features = ["macros", "ws", "query", "json"] }
+convert_case.workspace = true
 engine.workspace = true
-engine-axum.workspace = true
+engine-operation.workspace = true
 engine-schema.workspace = true
 fixedbitset.workspace = true
 futures.workspace = true
+fxhash.workspace = true
 gateway-config.workspace = true
 grafbase-workspace-hack.workspace = true
 http.workspace = true
-indoc.workspace = true
+itertools.workspace = true
+minicbor-serde.workspace = true
+ordered-float.workspace = true
+priority-queue.workspace = true
 rmcp = { git = "https://github.com/grafbase/rust-sdk", branch = "reduce-logging", features = [
     "transport-sse",
     "transport-sse-server",
@@ -32,3 +37,5 @@ tantivy.workspace = true
 tokio = { workspace = true, features = ["signal", "time", "net"] }
 tokio-stream = { workspace = true, features = ["sync"] }
 tokio-util = { workspace = true, features = ["codec"] }
+tracing.workspace = true
+unicode-normalization.workspace = true

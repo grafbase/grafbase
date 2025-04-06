@@ -153,6 +153,7 @@ opentelemetry-aws = "0.17"
 opentelemetry-otlp = "0.29"
 opentelemetry-stdout = "0.29"
 opentelemetry_sdk = "0.29"
+ordered-float = "5"
 ory-client = "=1.9.0"
 os_type = "2"
 p256 = "0.13"
@@ -162,6 +163,7 @@ petgraph = "0.8"
 postcard = { version = "1", features = ["use-std"] }
 pprof = "0.14"
 pretty_assertions = "1"
+priority-queue = "2"
 proc-macro2 = "1"
 quote = "1"
 ramhorns = { git = "https://github.com/grafbase/ramhorns", branch = "grafbase", default-features = false, features = [
@@ -230,6 +232,7 @@ tracing-opentelemetry = "0.30"
 tracing-subscriber = { version = "0.3.19", default-features = false }
 tungstenite = { version = "0.26.2", default-features = false }
 ulid = "1.2.1"
+unicode-normalization = "0.1.24"
 url = "2.5.4"
 urlencoding = "2.1"
 uuid = "1.16.0"
@@ -245,39 +248,36 @@ xshell = "0.2"
 zerocopy = "0.8.24"
 zstd = "0.13"
 
-# Common
-grafbase-graphql-introspection = { path = "crates/grafbase-graphql-introspection" }
-graph-ref = { path = "crates/graph-ref" }
-graphql-federated-graph = { path = "crates/graphql-federated-graph" }
-graphql-lint = { path = "crates/graphql-lint" }
-graphql-schema-validation = { path = "crates/graphql-schema-validation" }
-
-# Gateway
-extension = { path = "crates/extension" }
-extension-catalog = { path = "crates/extension-catalog" }
-federated-server = { path = "crates/federated-server" }
-gateway-config = { path = "crates/gateway-config" }
-grafbase-sdk = { path = "crates/grafbase-sdk" }
-rolling-logger = { path = "crates/rolling-logger" }
-wasi-component-loader = { path = "crates/wasi-component-loader" }
-
-# Engine
+# Workspace 
 engine = { path = "crates/engine" }
 engine-auth = { path = "crates/engine/auth" }
 engine-axum = { path = "crates/engine/axum" }
 engine-error = { path = "crates/engine/error" }
+engine-operation = { path = "crates/engine/operation" }
 engine-schema = { path = "crates/engine/schema" }
+extension = { path = "crates/extension" }
+extension-catalog = { path = "crates/extension-catalog" }
 federated-graph = { path = "crates/graphql-federated-graph", package = "graphql-federated-graph" }
+federated-server = { path = "crates/federated-server" }
+gateway-config = { path = "crates/gateway-config" }
+grafbase-graphql-introspection = { path = "crates/grafbase-graphql-introspection" }
 grafbase-hooks = { path = "crates/grafbase-hooks" }
+grafbase-sdk = { path = "crates/grafbase-sdk" }
 grafbase-telemetry = { path = "crates/telemetry" }
 grafbase-workspace-hack = { path = "crates/grafbase-workspace-hack", version = "0.1" }
+graph-ref = { path = "crates/graph-ref" }
 graphql-composition = { path = "crates/graphql-composition" }
+graphql-federated-graph = { path = "crates/graphql-federated-graph" }
+graphql-lint = { path = "crates/graphql-lint" }
 graphql-mocks = { path = "crates/graphql-mocks" }
+graphql-schema-validation = { path = "crates/graphql-schema-validation" }
 operation-normalizer = { path = "crates/operation-normalizer" }
+rolling-logger = { path = "crates/rolling-logger" }
 runtime = { path = "crates/runtime" }
 runtime-local = { path = "crates/runtime-local" }
 runtime-noop = { path = "crates/runtime-noop" }
 serde-dynamic-string = { path = "crates/serde-dynamic-string" }
+wasi-component-loader = { path = "crates/wasi-component-loader" }
 wrapping = { path = "crates/graphql-wrapping-types", package = "graphql-wrapping-types" }
 
 [profile.bench]

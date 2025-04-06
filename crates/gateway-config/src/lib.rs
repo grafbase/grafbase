@@ -2333,8 +2333,6 @@ mod tests {
     fn mcp_defaults() {
         let input = indoc! {r#"
             [mcp]
-            name = "My MCP Service"
-            instructions = "Follow the instructions"
             path = "/mcp"
         "#};
 
@@ -2344,12 +2342,8 @@ mod tests {
         Some(
             ModelControlProtocolConfig {
                 enabled: false,
-                name: "My MCP Service",
-                instructions: Some(
-                    "Follow the instructions",
-                ),
                 path: "/mcp",
-                enable_mutations: false,
+                include_mutations: false,
             },
         )
         "#);

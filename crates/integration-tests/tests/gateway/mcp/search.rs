@@ -29,23 +29,143 @@ fn simple() {
 
         let mut stream = engine.mcp("/mcp").await;
 
-        let response = stream.call_tool("search", json!({"keywords": ["User"]})).await.unwrap();
-
-        insta::assert_json_snapshot!(&response, @r#"
-        {
-          "fields": [
-            {
-              "query_path": [
-                {
-                  "field": "user",
-                  "output_type": "User",
-                  "arguments": []
-                }
-              ]
-            }
-          ]
+        let response = stream.call_tool("search", json!({"keywords": ["User"]})).await;
+        insta::assert_snapshot!(&response, @r##"
+        # Incomplete fields
+        type Query {
+          user: User
         }
-        "#);
+
+        type User {
+          id: ID!
+          name: String!
+        }
+        "##);
+    });
+}
+
+#[test]
+fn camel_case_type() {
+    runtime().block_on(async move {
+        let engine = Gateway::builder()
+            .with_subgraph_sdl(
+                "x",
+                r#"
+            type Query {
+                anything: UserWithData
+            }
+
+            type UserWithData {
+                id: ID!
+                name: String!
+            }
+            "#,
+            )
+            .with_toml_config(
+                r#"
+                [mcp]
+                enabled = true
+            "#,
+            )
+            .build()
+            .await;
+
+        let mut stream = engine.mcp("/mcp").await;
+
+        let response = stream.call_tool("search", json!({"keywords": ["User"]})).await;
+        insta::assert_snapshot!(&response, @r##"
+        # Incomplete fields
+        type Query {
+          anything: UserWithData
+        }
+
+        type UserWithData {
+          id: ID!
+          name: String!
+        }
+        "##);
+    });
+}
+
+#[test]
+fn camel_case_field() {
+    runtime().block_on(async move {
+        let engine = Gateway::builder()
+            .with_subgraph_sdl(
+                "x",
+                r#"
+            type Query {
+                userWithData: Anything
+            }
+
+            type Anything {
+                id: ID!
+            }
+            "#,
+            )
+            .with_toml_config(
+                r#"
+                [mcp]
+                enabled = true
+            "#,
+            )
+            .build()
+            .await;
+
+        let mut stream = engine.mcp("/mcp").await;
+
+        let response = stream.call_tool("search", json!({"keywords": ["User"]})).await;
+        insta::assert_snapshot!(&response, @r##"
+        # Incomplete fields
+        type Query {
+          userWithData: Anything
+        }
+
+        type Anything {
+          id: ID!
+        }
+        "##);
+    });
+}
+
+#[test]
+fn acronym_type() {
+    runtime().block_on(async move {
+        let engine = Gateway::builder()
+            .with_subgraph_sdl(
+                "x",
+                r#"
+            type Query {
+                anything: HTTPRequest
+            }
+
+            type HTTPRequest {
+                id: ID!
+            }
+            "#,
+            )
+            .with_toml_config(
+                r#"
+                [mcp]
+                enabled = true
+            "#,
+            )
+            .build()
+            .await;
+
+        let mut stream = engine.mcp("/mcp").await;
+
+        let response = stream.call_tool("search", json!({"keywords": ["http"]})).await;
+        insta::assert_snapshot!(&response, @r##"
+        # Incomplete fields
+        type Query {
+          anything: HTTPRequest
+        }
+
+        type HTTPRequest {
+          id: ID!
+        }
+        "##);
     });
 }
 
@@ -78,47 +198,19 @@ fn with_required_arguments() {
 
         let mut stream = engine.mcp("/mcp").await;
 
-        let response = stream.call_tool("search", json!({"keywords": ["user"]})).await.unwrap();
-
-        insta::assert_json_snapshot!(&response, @r#"
-        {
-          "fields": [
-            {
-              "query_path": [
-                {
-                  "field": "user",
-                  "output_type": "User",
-                  "arguments": [
-                    {
-                      "name": "id",
-                      "type": "ID!"
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "query_path": [
-                {
-                  "field": "searchUsers",
-                  "output_type": "[User!]!",
-                  "arguments": [
-                    {
-                      "name": "query",
-                      "type": "String!"
-                    },
-                    {
-                      "name": "limit",
-                      "type": "Int",
-                      "default_value": 10
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
+        let response = stream.call_tool("search", json!({"keywords": ["user"]})).await;
+        insta::assert_snapshot!(&response, @r##"
+        # Incomplete fields
+        type Query {
+          user(id: ID!): User
+          searchUsers(query: String!, limit: Int = 10): [User!]!
         }
-        "#);
+
+        type User {
+          id: ID!
+          name: String!
+        }
+        "##);
     });
 }
 
@@ -166,70 +258,61 @@ fn with_nested_types() {
 
         let mut stream = engine.mcp("/mcp").await;
 
-        let response = stream.call_tool("search", json!({"keywords": ["post"]})).await.unwrap();
-
-        insta::assert_json_snapshot!(&response, @r#"
-        {
-          "fields": [
-            {
-              "query_path": [
-                {
-                  "field": "post",
-                  "output_type": "Post",
-                  "arguments": [
-                    {
-                      "name": "id",
-                      "type": "ID!"
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
+        let response = stream.call_tool("search", json!({"keywords": ["post"]})).await;
+        insta::assert_snapshot!(&response, @r##"
+        # Incomplete fields
+        type Query {
+          post(id: ID!): Post
         }
-        "#);
+
+        type Post {
+          author: User!
+          comments(first: Int = 10, after: String): [Comment!]
+          id: ID!
+          tags: [String!]!
+          title: String!
+        }
+
+        type User {
+          email: String
+          id: ID!
+          name: String!
+        }
+
+        type Comment {
+          author: User!
+          body: String!
+          createdAt: String!
+          id: ID!
+        }
+        "##);
 
         // Search for nested fields
-        let response = stream
-            .call_tool("search", json!({"keywords": ["comments"]}))
-            .await
-            .unwrap();
-
-        insta::assert_json_snapshot!(&response, @r#"
-        {
-          "fields": [
-            {
-              "query_path": [
-                {
-                  "field": "post",
-                  "output_type": "Post",
-                  "arguments": [
-                    {
-                      "name": "id",
-                      "type": "ID!"
-                    }
-                  ]
-                },
-                {
-                  "field": "comments",
-                  "output_type": "[Comment!]",
-                  "arguments": [
-                    {
-                      "name": "first",
-                      "type": "Int",
-                      "default_value": 10
-                    },
-                    {
-                      "name": "after",
-                      "type": "String"
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
+        let response = stream.call_tool("search", json!({"keywords": ["comments"]})).await;
+        insta::assert_snapshot!(&response, @r##"
+        # Incomplete fields
+        type Query {
+          post(id: ID!): Post
         }
-        "#);
+
+        # Incomplete fields
+        type Post {
+          comments(first: Int = 10, after: String): [Comment!]
+        }
+
+        type User {
+          email: String
+          id: ID!
+          name: String!
+        }
+
+        type Comment {
+          author: User!
+          body: String!
+          createdAt: String!
+          id: ID!
+        }
+        "##);
     });
 }
 
@@ -240,34 +323,34 @@ fn with_input_types() {
             .with_subgraph_sdl(
                 "x",
                 r#"
-            type Query {
-                searchPosts(filter: PostFilter!, pagination: PaginationInput): [Post!]!
-            }
+                type Query {
+                    searchPosts(filter: PostFilter!, pagination: PaginationInput): [Post!]!
+                }
 
-            input PostFilter {
-                title: String
-                authorId: ID
-                tags: [String!]
-                createdAfter: String
-            }
+                input PostFilter {
+                    title: String
+                    authorId: ID
+                    tags: [String!]
+                    createdAfter: String
+                }
 
-            input PaginationInput {
-                first: Int! = 10
-                after: String
-            }
+                input PaginationInput {
+                    first: Int! = 10
+                    after: String
+                }
 
-            type Post {
-                id: ID!
-                title: String!
-                author: User!
-                tags: [String!]!
-                createdAt: String!
-            }
+                type Post {
+                    id: ID!
+                    title: String!
+                    author: User!
+                    tags: [String!]!
+                    createdAt: String!
+                }
 
-            type User {
-                id: ID!
-                name: String!
-            }
+                type User {
+                    id: ID!
+                    name: String!
+                }
             "#,
             )
             .with_toml_config(
@@ -281,35 +364,38 @@ fn with_input_types() {
 
         let mut stream = engine.mcp("/mcp").await;
 
-        let response = stream
-            .call_tool("search", json!({"keywords": ["searchPosts"]}))
-            .await
-            .unwrap();
-
-        insta::assert_json_snapshot!(&response, @r#"
-        {
-          "fields": [
-            {
-              "query_path": [
-                {
-                  "field": "searchPosts",
-                  "output_type": "[Post!]!",
-                  "arguments": [
-                    {
-                      "name": "filter",
-                      "type": "PostFilter!"
-                    },
-                    {
-                      "name": "pagination",
-                      "type": "PaginationInput"
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
+        let response = stream.call_tool("search", json!({"keywords": ["searchPosts"]})).await;
+        insta::assert_snapshot!(&response, @r##"
+        input PaginationInput {
+          first: Int! = 10
+          after: String
         }
-        "#);
+
+        input PostFilter {
+          title: String
+          authorId: ID
+          tags: [String!]
+          createdAfter: String
+        }
+
+        # Incomplete fields
+        type Query {
+          searchPosts(filter: PostFilter!, pagination: PaginationInput): [Post!]!
+        }
+
+        type Post {
+          author: User!
+          createdAt: String!
+          id: ID!
+          tags: [String!]!
+          title: String!
+        }
+
+        type User {
+          id: ID!
+          name: String!
+        }
+        "##);
     });
 }
 
@@ -320,37 +406,37 @@ fn fuzzy_search() {
             .with_subgraph_sdl(
                 "x",
                 r#"
-            type Query {
-                # 4-7 character words (1 typo allowed)
-                users: [User!]!
-                posts: [Post!]!
-                # 8+ character words (2 typos allowed)
-                comments: [Comment!]!
-                articles: [Article!]!
-                # Words that shouldn't match
-                cat: String
-                dog: String
-            }
+                type Query {
+                    # 4-7 character words (1 typo allowed)
+                    users: [User!]!
+                    posts: [Post!]!
+                    # 8+ character words (2 typos allowed)
+                    comments: [Comment!]!
+                    articles: [Article!]!
+                    # Words that shouldn't match
+                    cat: String
+                    dog: String
+                }
 
-            type User {
-                id: ID!
-                name: String!
-            }
+                type User {
+                    id: ID!
+                    name: String!
+                }
 
-            type Post {
-                id: ID!
-                title: String!
-            }
+                type Post {
+                    id: ID!
+                    title: String!
+                }
 
-            type Comment {
-                id: ID!
-                content: String!
-            }
+                type Comment {
+                    id: ID!
+                    content: String!
+                }
 
-            type Article {
-                id: ID!
-                title: String!
-            }
+                type Article {
+                    id: ID!
+                    title: String!
+                }
             "#,
             )
             .with_toml_config(
@@ -365,93 +451,64 @@ fn fuzzy_search() {
         let mut stream = engine.mcp("/mcp").await;
 
         // Test 4-7 character words with 1 typo
-        let response = stream.call_tool("search", json!({"keywords": ["user"]})).await.unwrap();
-        insta::assert_json_snapshot!(&response, @r#"
-        {
-          "fields": [
-            {
-              "query_path": [
-                {
-                  "field": "users",
-                  "output_type": "[User!]!",
-                  "arguments": []
-                }
-              ]
-            }
-          ]
+        let response = stream.call_tool("search", json!({"keywords": ["user"]})).await;
+        insta::assert_snapshot!(&response, @r##"
+        # Incomplete fields
+        type Query {
+          users: [User!]!
         }
-        "#);
+
+        type User {
+          id: ID!
+          name: String!
+        }
+        "##);
 
         // Test 4-7 character words with 1 typo
-        let response = stream.call_tool("search", json!({"keywords": ["post"]})).await.unwrap();
-        insta::assert_json_snapshot!(&response, @r#"
-        {
-          "fields": [
-            {
-              "query_path": [
-                {
-                  "field": "posts",
-                  "output_type": "[Post!]!",
-                  "arguments": []
-                }
-              ]
-            }
-          ]
+        let response = stream.call_tool("search", json!({"keywords": ["post"]})).await;
+        insta::assert_snapshot!(&response, @r##"
+        # Incomplete fields
+        type Query {
+          posts: [Post!]!
         }
-        "#);
+
+        type Post {
+          id: ID!
+          title: String!
+        }
+        "##);
 
         // Test 8+ character words with 2 typos
-        let response = stream
-            .call_tool("search", json!({"keywords": ["coment"]}))
-            .await
-            .unwrap();
-        insta::assert_json_snapshot!(&response, @r#"
-        {
-          "fields": [
-            {
-              "query_path": [
-                {
-                  "field": "comments",
-                  "output_type": "[Comment!]!",
-                  "arguments": []
-                }
-              ]
-            }
-          ]
+        let response = stream.call_tool("search", json!({"keywords": ["coment"]})).await;
+        insta::assert_snapshot!(&response, @r##"
+        # Incomplete fields
+        type Query {
+          comments: [Comment!]!
         }
-        "#);
+
+        type Comment {
+          content: String!
+          id: ID!
+        }
+        "##);
 
         // Test 8+ character words with 2 typos
-        let response = stream
-            .call_tool("search", json!({"keywords": ["artcle"]}))
-            .await
-            .unwrap();
-        insta::assert_json_snapshot!(&response, @r#"
-        {
-          "fields": [
-            {
-              "query_path": [
-                {
-                  "field": "articles",
-                  "output_type": "[Article!]!",
-                  "arguments": []
-                }
-              ]
-            }
-          ]
+        let response = stream.call_tool("search", json!({"keywords": ["artcle"]})).await;
+        insta::assert_snapshot!(&response, @r##"
+        # Incomplete fields
+        type Query {
+          articles: [Article!]!
         }
-        "#);
+
+        type Article {
+          id: ID!
+          title: String!
+        }
+        "##);
 
         // Test words that shouldn't match (too short or too many typos)
-        let response = stream
-            .call_tool("search", json!({"keywords": ["ct", "dgo"]}))
-            .await
-            .unwrap();
-        insta::assert_json_snapshot!(&response, @r#"
-        {
-          "fields": []
-        }
-        "#);
+        let response = stream.call_tool("search", json!({"keywords": ["ct", "dgo"]})).await;
+        insta::assert_snapshot!(&response, @"");
     });
 }
 
@@ -462,14 +519,14 @@ fn case_insensitive_search() {
             .with_subgraph_sdl(
                 "x",
                 r#"
-            type Query {
-                user: User
-            }
+                type Query {
+                    user: User
+                }
 
-            type User {
-                id: ID!
-                name: String!
-            }
+                type User {
+                    id: ID!
+                    name: String!
+                }
             "#,
             )
             .with_toml_config(
@@ -484,23 +541,18 @@ fn case_insensitive_search() {
         let mut stream = engine.mcp("/mcp").await;
 
         // Test case insensitive search
-        let response = stream.call_tool("search", json!({"keywords": ["USER"]})).await.unwrap();
-
-        insta::assert_json_snapshot!(&response, @r#"
-        {
-          "fields": [
-            {
-              "query_path": [
-                {
-                  "field": "user",
-                  "output_type": "User",
-                  "arguments": []
-                }
-              ]
-            }
-          ]
+        let response = stream.call_tool("search", json!({"keywords": ["USER"]})).await;
+        insta::assert_snapshot!(&response, @r##"
+        # Incomplete fields
+        type Query {
+          user: User
         }
-        "#);
+
+        type User {
+          id: ID!
+          name: String!
+        }
+        "##);
     });
 }
 
@@ -511,26 +563,26 @@ fn multiple_keywords() {
             .with_subgraph_sdl(
                 "x",
                 r#"
-            type Query {
-                user: User
-                post: Post
-                comment: Comment
-            }
+                type Query {
+                    user: User
+                    post: Post
+                    comment: Comment
+                }
 
-            type User {
-                id: ID!
-                name: String!
-            }
+                type User {
+                    id: ID!
+                    name: String!
+                }
 
-            type Post {
-                id: ID!
-                title: String!
-            }
+                type Post {
+                    id: ID!
+                    title: String!
+                }
 
-            type Comment {
-                id: ID!
-                content: String!
-            }
+                type Comment {
+                    id: ID!
+                    content: String!
+                }
             "#,
             )
             .with_toml_config(
@@ -545,34 +597,278 @@ fn multiple_keywords() {
         let mut stream = engine.mcp("/mcp").await;
 
         // Test search with multiple keywords
-        let response = stream
-            .call_tool("search", json!({"keywords": ["user", "post"]}))
-            .await
-            .unwrap();
-
-        insta::assert_json_snapshot!(&response, @r#"
-        {
-          "fields": [
-            {
-              "query_path": [
-                {
-                  "field": "post",
-                  "output_type": "Post",
-                  "arguments": []
-                }
-              ]
-            },
-            {
-              "query_path": [
-                {
-                  "field": "user",
-                  "output_type": "User",
-                  "arguments": []
-                }
-              ]
-            }
-          ]
+        let response = stream.call_tool("search", json!({"keywords": ["user", "post"]})).await;
+        insta::assert_snapshot!(&response, @r##"
+        # Incomplete fields
+        type Query {
+          post: Post
+          user: User
         }
-        "#);
+
+        type Post {
+          id: ID!
+          title: String!
+        }
+
+        type User {
+          id: ID!
+          name: String!
+        }
+        "##);
+    });
+}
+
+#[test]
+fn shallow_depth_should_be_first() {
+    runtime().block_on(async move {
+        let engine = Gateway::builder()
+            .with_subgraph_sdl(
+                "x",
+                r#"
+                type Query {
+                    posts: [Post]
+                }
+
+                type User {
+                    id: ID!
+                    name: String!
+                }
+
+                type Post {
+                    id: ID!
+                    title: String!
+                    author: User
+                    comments: [Comment]
+                }
+
+                type Comment {
+                    id: ID!
+                    content: String!
+                    author: User
+                }
+            "#,
+            )
+            .with_toml_config(
+                r#"
+                [mcp]
+                enabled = true
+            "#,
+            )
+            .build()
+            .await;
+
+        let mut stream = engine.mcp("/mcp").await;
+
+        // Test search with multiple keywords
+        let response = stream.call_tool("search", json!({"keywords": ["author"]})).await;
+        insta::assert_snapshot!(&response, @r##"
+        # Incomplete fields
+        type Comment {
+          author: User
+        }
+
+        # Incomplete fields
+        type Post {
+          comments: [Comment]
+          author: User
+        }
+
+        # Incomplete fields
+        type Query {
+          posts: [Post]
+        }
+
+        type User {
+          id: ID!
+          name: String!
+        }
+        "##);
+    });
+}
+
+#[test]
+fn recursive_query() {
+    runtime().block_on(async move {
+        let engine = Gateway::builder()
+            .with_subgraph_sdl(
+                "x",
+                r#"
+            type Query {
+                query: Query
+                user: User
+            }
+
+            type User {
+                id: ID!
+                name: String!
+            }
+            "#,
+            )
+            .with_toml_config(
+                r#"
+                [mcp]
+                enabled = true
+            "#,
+            )
+            .build()
+            .await;
+
+        let mut stream = engine.mcp("/mcp").await;
+
+        let response = stream.call_tool("search", json!({"keywords": ["User"]})).await;
+        insta::assert_snapshot!(&response, @r##"
+        # Incomplete fields
+        type Query {
+          user: User
+        }
+
+        type User {
+          id: ID!
+          name: String!
+        }
+        "##);
+    });
+}
+
+#[test]
+fn search_descriptions() {
+    runtime().block_on(async move {
+        let engine = Gateway::builder()
+            .with_subgraph_sdl(
+                "x",
+                r#"
+                """
+                Root query type for the API
+                """
+                type Query {
+                    """
+                    Search for blog posts using various criteria
+                    """
+                    searchPosts(
+                        """
+                        Filter criteria for blog posts
+                        """
+                        filter: PostFilter!
+                    ): [Post!]!
+                }
+
+                """
+                Input type for filtering blog posts
+                """
+                input PostFilter {
+                    """
+                    Search by post title (case insensitive)
+                    """
+                    title: String
+
+                    """
+                    Filter posts by specific tags
+                    """
+                    tags: [String!]
+
+                    """
+                    Only return posts created after this date
+                    """
+                    createdAfter: String
+                }
+
+                """
+                Represents a blog post in the system
+                """
+                type Post {
+                    id: ID!
+                    title: String!
+                    """
+                    The main content/body of the blog post
+                    """
+                    content: String!
+                    """
+                    List of tags associated with the post
+                    """
+                    tags: [String!]!
+                    createdAt: String!
+                }
+            "#,
+            )
+            .with_toml_config(
+                r#"
+                [mcp]
+                enabled = true
+            "#,
+            )
+            .build()
+            .await;
+
+        let mut stream = engine.mcp("/mcp").await;
+
+        // Search for a term that appears in descriptions
+        let response = stream.call_tool("search", json!({"keywords": ["blog"]})).await;
+        insta::assert_snapshot!(&response, @r##"
+        "Represents a blog post in the system"
+        # Incomplete fields
+        type Post {
+          "The main content/body of the blog post"
+          content: String!
+        }
+
+        "Input type for filtering blog posts"
+        input PostFilter {
+          "Search by post title (case insensitive)"
+          title: String
+          "Filter posts by specific tags"
+          tags: [String!]
+          "Only return posts created after this date"
+          createdAfter: String
+        }
+
+        # Incomplete fields
+        type Query {
+          "Search for blog posts using various criteria"
+          searchPosts(
+            "Filter criteria for blog posts"
+            filter: PostFilter!
+          ): [Post!]!
+        }
+        "##);
+
+        // Search for a term that appears in field descriptions
+        let response = stream
+            .call_tool("search", json!({"keywords": ["case insensitive"]}))
+            .await;
+        insta::assert_snapshot!(&response, @"");
+
+        // Search for a term that appears in argument descriptions
+        let response = stream.call_tool("search", json!({"keywords": ["criteria"]})).await;
+        insta::assert_snapshot!(&response, @r##"
+        # Incomplete fields
+        type Query {
+          "Search for blog posts using various criteria"
+          searchPosts(
+            "Filter criteria for blog posts"
+            filter: PostFilter!
+          ): [Post!]!
+        }
+
+        "Input type for filtering blog posts"
+        input PostFilter {
+          "Search by post title (case insensitive)"
+          title: String
+          "Filter posts by specific tags"
+          tags: [String!]
+          "Only return posts created after this date"
+          createdAfter: String
+        }
+
+        "Represents a blog post in the system"
+        type Post {
+          "The main content/body of the blog post"
+          content: String!
+          createdAt: String!
+          id: ID!
+          "List of tags associated with the post"
+          tags: [String!]!
+          title: String!
+        }
+        "##);
     });
 }
