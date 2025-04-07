@@ -25,6 +25,7 @@ mod subgraph_request;
 mod tests;
 
 use std::sync::Arc;
+use tonic13 as tonic;
 
 pub use access_log::{AccessLogMessage, AccessLogReceiver, AccessLogSender, create_access_log_channel};
 use cache::Cache;

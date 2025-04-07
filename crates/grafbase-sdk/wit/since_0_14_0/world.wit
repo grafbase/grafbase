@@ -4,6 +4,7 @@ world sdk {
     import access-log;
     import cache;
     import error;
+    import grpc;
     import headers;
     import http-client;
     import nats-client;
