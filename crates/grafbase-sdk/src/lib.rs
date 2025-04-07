@@ -48,6 +48,7 @@ mod wit {
         additional_derives: [
             serde::Deserialize,
             serde::Serialize,
+            PartialEq,
         ]
     });
 

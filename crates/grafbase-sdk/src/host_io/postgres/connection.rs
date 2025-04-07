@@ -2,8 +2,6 @@ use std::fmt;
 
 use crate::{SdkError, wit};
 
-use super::Query;
-
 /// A Postgres database connection.
 ///
 /// This represents a single connection to the Postgres database,
@@ -19,27 +17,6 @@ impl fmt::Debug for Connection {
 impl From<wit::PgConnection> for Connection {
     fn from(conn: wit::PgConnection) -> Self {
         Self(conn)
-    }
-}
-
-impl Connection {
-    /// Creates a new query with the given SQL statement.
-    ///
-    /// This method initializes a query builder for the specified SQL statement,
-    /// allowing parameters to be bound and the query to be executed on this connection.
-    ///
-    /// # Parameters
-    /// * `query` - The SQL query string to execute
-    ///
-    /// # Returns
-    /// A query builder that can be used to bind parameters and execute the query
-    pub fn query<'a>(&'a self, query: &'a str) -> Query<'a> {
-        Query {
-            connection: self.into(),
-            query,
-            values: Vec::new(),
-            value_tree: wit::PgValueTree::new(),
-        }
     }
 }
 
@@ -71,25 +48,6 @@ impl fmt::Debug for Transaction {
 }
 
 impl Transaction {
-    /// Creates a new query with the given SQL statement.
-    ///
-    /// This method initializes a query builder for the specified SQL statement,
-    /// allowing parameters to be bound and the query to be executed on this connection.
-    ///
-    /// # Parameters
-    /// * `query` - The SQL query string to execute
-    ///
-    /// # Returns
-    /// A query builder that can be used to bind parameters and execute the query
-    pub fn query<'a>(&'a self, query: &'a str) -> Query<'a> {
-        Query {
-            connection: self.into(),
-            query,
-            values: Vec::new(),
-            value_tree: wit::PgValueTree::new(),
-        }
-    }
-
     /// Commits the transaction, making all changes permanent.
     ///
     /// # Returns
@@ -115,6 +73,58 @@ impl Drop for Transaction {
     fn drop(&mut self) {
         if !self.committed_or_rolled_back {
             self.inner.rollback().unwrap()
+        }
+    }
+}
+
+/// Represents either a [`Connection`] or a [`Transaction`].
+///
+/// This enum is used in functions that can operate on either a regular
+/// connection or within an active transaction, allowing for flexibility
+/// in how database operations are performed.
+#[derive(Clone, Copy, Debug)]
+pub enum ConnectionLike<'a> {
+    /// A regular database connection, not part of an explicit transaction.
+    Connection(&'a Connection),
+    /// An active database transaction. Operations performed using this variant
+    /// will be part of the ongoing transaction.
+    Transaction(&'a Transaction),
+}
+
+impl<'a> From<&'a Connection> for ConnectionLike<'a> {
+    fn from(connection: &'a Connection) -> Self {
+        ConnectionLike::Connection(connection)
+    }
+}
+
+impl<'a> From<&'a Transaction> for ConnectionLike<'a> {
+    fn from(transaction: &'a Transaction) -> Self {
+        ConnectionLike::Transaction(transaction)
+    }
+}
+
+impl ConnectionLike<'_> {
+    pub(crate) fn query<'a>(
+        &'a self,
+        query: &'a str,
+        params: (&[wit::PgBoundValue], &[wit::PgValue]),
+    ) -> Result<Vec<wit::PgRow>, SdkError> {
+        match self {
+            ConnectionLike::Connection(connection) => connection.0.query(query, params).map_err(SdkError::from),
+            ConnectionLike::Transaction(transaction) => transaction.inner.query(query, params).map_err(SdkError::from),
+        }
+    }
+
+    pub(crate) fn execute<'a>(
+        &'a self,
+        query: &'a str,
+        params: (&[wit::PgBoundValue], &[wit::PgValue]),
+    ) -> Result<u64, SdkError> {
+        match self {
+            ConnectionLike::Connection(connection) => connection.0.execute(query, params).map_err(SdkError::from),
+            ConnectionLike::Transaction(transaction) => {
+                transaction.inner.execute(query, params).map_err(SdkError::from)
+            }
         }
     }
 }

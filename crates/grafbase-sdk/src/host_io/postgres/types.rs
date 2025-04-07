@@ -13,7 +13,7 @@ use std::time::SystemTime;
 use chrono::Utc;
 use uuid::Uuid;
 
-use crate::wit;
+use crate::wit::{self, PgBoundValue};
 
 /// A trait for types that can be converted to database values.
 ///
@@ -25,7 +25,7 @@ pub trait DatabaseType {
     ///
     /// This method is used when binding parameters to SQL queries.
     /// It transforms a Rust value into the appropriate database representation.
-    fn into_value(self) -> (wit::PgValue, Option<wit::PgValueTree>);
+    fn into_value(self, base_idx: &mut u64) -> (wit::PgValue, Option<wit::PgValueTree>);
 
     /// Returns the PostgreSQL data type for this value.
     ///
@@ -44,11 +44,11 @@ pub trait DatabaseType {
     /// This method creates a complete database value binding that includes both
     /// the actual value and its associated PostgreSQL type information,
     /// which can be used for parameter binding in SQL queries.
-    fn into_bound_value(self) -> DatabaseValue
+    fn into_bound_value(self, mut base_idx: u64) -> DatabaseValue
     where
         Self: Sized,
     {
-        let (value, array_values) = self.into_value();
+        let (value, array_values) = self.into_value(&mut base_idx);
 
         let value = wit::PgBoundValue {
             value,
@@ -64,9 +64,62 @@ pub trait DatabaseType {
 ///
 /// This holds both the value itself and optional array-related value information
 /// when the value represents an array of values.
+#[derive(Debug, Clone, PartialEq)]
 pub struct DatabaseValue {
     pub(crate) value: wit::PgBoundValue,
     pub(crate) array_values: Option<wit::PgValueTree>,
+}
+
+impl DatabaseValue {
+    /// Creates an iterator over the values in this database value.
+    ///
+    /// If this is an array value, the iterator will yield each element in the array.
+    /// If this is a scalar value, the iterator will yield only that value.
+    ///
+    /// # Returns
+    ///
+    /// A `DatabaseValueIterator` that iterates over the values.
+    pub fn iter(self) -> DatabaseValueIterator {
+        let r#type = self.value.type_;
+
+        DatabaseValueIterator {
+            value: Some(self.value),
+            r#type,
+            tree: self.array_values,
+        }
+    }
+}
+
+/// An iterator over the values in a `DatabaseValue`.
+///
+/// This iterator yields references to `PgValue` instances contained within
+/// a `DatabaseValue`. For array values, it iterates through each element
+/// in the array. For scalar values, it yields just that single value.
+pub struct DatabaseValueIterator {
+    value: Option<wit::PgBoundValue>,
+    r#type: wit::PgType,
+    tree: Option<wit::PgValueTree>,
+}
+
+impl Iterator for DatabaseValueIterator {
+    type Item = DatabaseValue;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let value = match (self.value.take(), self.tree.as_mut()) {
+            (_, Some(array)) => array.pop(),
+            (Some(value), _) => Some(value.value),
+            _ => None,
+        };
+
+        Some(DatabaseValue {
+            value: PgBoundValue {
+                value: value?,
+                type_: self.r#type,
+                is_array: false,
+            },
+            array_values: None,
+        })
+    }
 }
 
 /// A struct representing a 2D point with x and y coordinates.
@@ -100,9 +153,9 @@ impl<T> DatabaseType for Option<T>
 where
     T: DatabaseType,
 {
-    fn into_value(self) -> (wit::PgValue, Option<wit::PgValueTree>) {
+    fn into_value(self, base_idx: &mut u64) -> (wit::PgValue, Option<wit::PgValueTree>) {
         match self {
-            Some(value) => value.into_value(),
+            Some(value) => value.into_value(base_idx),
             None => (wit::PgValue::Null, None),
         }
     }
@@ -120,18 +173,20 @@ impl<T> DatabaseType for Vec<T>
 where
     T: DatabaseType,
 {
-    fn into_value(self) -> (wit::PgValue, Option<wit::PgValueTree>) {
+    fn into_value(self, base_idx: &mut u64) -> (wit::PgValue, Option<wit::PgValueTree>) {
         let mut values = Vec::with_capacity(self.len());
         let mut value_tree = wit::PgValueTree::with_capacity(self.len());
 
         for value in self {
             let index = value_tree.len();
-            values.push(index as u64);
+            values.push(index as u64 + *base_idx);
+
+            *base_idx += 1;
 
             // here we don't really care for nested arrays. they don't really work
             // in postgres, they are very weird. it's all in one dimension even though
             // it looks like you can nest them
-            let (value, _) = value.into_value();
+            let (value, _) = value.into_value(base_idx);
             value_tree.push(value);
         }
 
@@ -148,7 +203,7 @@ where
 }
 
 impl DatabaseType for String {
-    fn into_value(self) -> (wit::PgValue, Option<wit::PgValueTree>) {
+    fn into_value(self, _: &mut u64) -> (wit::PgValue, Option<wit::PgValueTree>) {
         (wit::PgValue::String(self), None)
     }
 
@@ -162,7 +217,7 @@ impl DatabaseType for String {
 }
 
 impl DatabaseType for i16 {
-    fn into_value(self) -> (wit::PgValue, Option<wit::PgValueTree>) {
+    fn into_value(self, _: &mut u64) -> (wit::PgValue, Option<wit::PgValueTree>) {
         (wit::PgValue::Int16(self), None)
     }
 
@@ -176,7 +231,7 @@ impl DatabaseType for i16 {
 }
 
 impl DatabaseType for i32 {
-    fn into_value(self) -> (wit::PgValue, Option<wit::PgValueTree>) {
+    fn into_value(self, _: &mut u64) -> (wit::PgValue, Option<wit::PgValueTree>) {
         (wit::PgValue::Int32(self), None)
     }
 
@@ -189,8 +244,22 @@ impl DatabaseType for i32 {
     }
 }
 
+impl DatabaseType for u32 {
+    fn into_value(self, _: &mut u64) -> (wit::PgValue, Option<wit::PgValueTree>) {
+        (wit::PgValue::Int64(self as i64), None)
+    }
+
+    fn type_hint() -> wit::PgType {
+        wit::PgType::Int64
+    }
+
+    fn is_array() -> bool {
+        false
+    }
+}
+
 impl DatabaseType for i64 {
-    fn into_value(self) -> (wit::PgValue, Option<wit::PgValueTree>) {
+    fn into_value(self, _: &mut u64) -> (wit::PgValue, Option<wit::PgValueTree>) {
         (wit::PgValue::Int64(self), None)
     }
 
@@ -204,7 +273,7 @@ impl DatabaseType for i64 {
 }
 
 impl DatabaseType for f32 {
-    fn into_value(self) -> (wit::PgValue, Option<wit::PgValueTree>) {
+    fn into_value(self, _: &mut u64) -> (wit::PgValue, Option<wit::PgValueTree>) {
         (wit::PgValue::Float32(self), None)
     }
 
@@ -218,7 +287,7 @@ impl DatabaseType for f32 {
 }
 
 impl DatabaseType for f64 {
-    fn into_value(self) -> (wit::PgValue, Option<wit::PgValueTree>) {
+    fn into_value(self, _: &mut u64) -> (wit::PgValue, Option<wit::PgValueTree>) {
         (wit::PgValue::Float64(self), None)
     }
 
@@ -232,7 +301,7 @@ impl DatabaseType for f64 {
 }
 
 impl DatabaseType for bool {
-    fn into_value(self) -> (wit::PgValue, Option<wit::PgValueTree>) {
+    fn into_value(self, _: &mut u64) -> (wit::PgValue, Option<wit::PgValueTree>) {
         (wit::PgValue::Boolean(self), None)
     }
 
@@ -246,7 +315,7 @@ impl DatabaseType for bool {
 }
 
 impl DatabaseType for SystemTime {
-    fn into_value(self) -> (wit::PgValue, Option<wit::PgValueTree>) {
+    fn into_value(self, _: &mut u64) -> (wit::PgValue, Option<wit::PgValueTree>) {
         let ts = self.duration_since(SystemTime::UNIX_EPOCH).unwrap().as_micros() as i64;
 
         (wit::PgValue::Timestamp(ts), None)
@@ -262,7 +331,7 @@ impl DatabaseType for SystemTime {
 }
 
 impl DatabaseType for serde_json::Value {
-    fn into_value(self) -> (wit::PgValue, Option<wit::PgValueTree>) {
+    fn into_value(self, _: &mut u64) -> (wit::PgValue, Option<wit::PgValueTree>) {
         let json_str = serde_json::to_string(&self).unwrap();
 
         (wit::PgValue::Json(json_str), None)
@@ -278,7 +347,7 @@ impl DatabaseType for serde_json::Value {
 }
 
 impl DatabaseType for Uuid {
-    fn into_value(self) -> (wit::PgValue, Option<wit::PgValueTree>) {
+    fn into_value(self, _: &mut u64) -> (wit::PgValue, Option<wit::PgValueTree>) {
         (wit::PgValue::Uuid(self.to_string()), None)
     }
 
@@ -292,7 +361,7 @@ impl DatabaseType for Uuid {
 }
 
 impl DatabaseType for chrono::NaiveDate {
-    fn into_value(self) -> (wit::PgValue, Option<wit::PgValueTree>) {
+    fn into_value(self, _: &mut u64) -> (wit::PgValue, Option<wit::PgValueTree>) {
         (wit::PgValue::Date(self.to_string()), None)
     }
 
@@ -306,7 +375,7 @@ impl DatabaseType for chrono::NaiveDate {
 }
 
 impl DatabaseType for chrono::NaiveTime {
-    fn into_value(self) -> (wit::PgValue, Option<wit::PgValueTree>) {
+    fn into_value(self, _: &mut u64) -> (wit::PgValue, Option<wit::PgValueTree>) {
         (wit::PgValue::Time(self.to_string()), None)
     }
 
@@ -320,7 +389,7 @@ impl DatabaseType for chrono::NaiveTime {
 }
 
 impl DatabaseType for chrono::DateTime<Utc> {
-    fn into_value(self) -> (wit::PgValue, Option<wit::PgValueTree>) {
+    fn into_value(self, _: &mut u64) -> (wit::PgValue, Option<wit::PgValueTree>) {
         (wit::PgValue::Timestamp(self.timestamp_micros()), None)
     }
 
@@ -334,7 +403,7 @@ impl DatabaseType for chrono::DateTime<Utc> {
 }
 
 impl DatabaseType for rust_decimal::Decimal {
-    fn into_value(self) -> (wit::PgValue, Option<wit::PgValueTree>) {
+    fn into_value(self, _: &mut u64) -> (wit::PgValue, Option<wit::PgValueTree>) {
         (wit::PgValue::Numeric(self.to_string()), None)
     }
 
@@ -348,7 +417,7 @@ impl DatabaseType for rust_decimal::Decimal {
 }
 
 impl DatabaseType for Point {
-    fn into_value(self) -> (wit::PgValue, Option<wit::PgValueTree>) {
+    fn into_value(self, _: &mut u64) -> (wit::PgValue, Option<wit::PgValueTree>) {
         (wit::PgValue::Point((self.x, self.y)), None)
     }
 
@@ -362,7 +431,7 @@ impl DatabaseType for Point {
 }
 
 impl DatabaseType for Interval {
-    fn into_value(self) -> (wit::PgValue, Option<wit::PgValueTree>) {
+    fn into_value(self, _: &mut u64) -> (wit::PgValue, Option<wit::PgValueTree>) {
         let value = wit::PgValue::Interval((self.months, self.days, self.microseconds));
 
         (value, None)
@@ -370,6 +439,20 @@ impl DatabaseType for Interval {
 
     fn type_hint() -> wit::PgType {
         wit::PgType::Interval
+    }
+
+    fn is_array() -> bool {
+        false
+    }
+}
+
+impl DatabaseType for Vec<u8> {
+    fn into_value(self, _: &mut u64) -> (wit::PgValue, Option<wit::PgValueTree>) {
+        (wit::PgValue::Bytes(self), None)
+    }
+
+    fn type_hint() -> wit::PgType {
+        wit::PgType::Bytes
     }
 
     fn is_array() -> bool {

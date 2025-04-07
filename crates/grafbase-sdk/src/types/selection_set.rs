@@ -134,6 +134,14 @@ impl<'a> SelectionSet<'a> {
         self.fields_ordered_by_parent_entity()
     }
 
+    /// Returns the field at the given index in this selection set.
+    pub fn field(&self, index: usize) -> Option<Field<'a>> {
+        self.fields.get(index).map(|field| Field {
+            fields: self.fields,
+            field,
+        })
+    }
+
     /// Iterator over the fields in this selection set, ordered by their parent entity. However, how parent
     /// entities are ordered (by id, name, etc.) is undefined. For best performance, you should respect the
     /// field ordering in the resolver data.

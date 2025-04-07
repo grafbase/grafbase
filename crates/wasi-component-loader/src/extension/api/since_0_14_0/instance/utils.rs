@@ -48,10 +48,12 @@ pub fn create_complete_subgraph_schemas(schema: &Schema, extension_id: Extension
                 _ => None,
             })
             .collect::<Vec<_>>();
+
         ids.sort_unstable();
         ids.dedup();
         ids.into_iter().map(SubgraphId::Virtual).collect::<Vec<_>>()
     };
+
     let mut subgraph_schemas = subgraph_ids
         .into_iter()
         .map(|id| {

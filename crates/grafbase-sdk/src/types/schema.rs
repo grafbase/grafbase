@@ -40,6 +40,12 @@ impl<'a> SubgraphSchema<'a> {
         self.schema.type_definitions.iter().map(Into::into)
     }
 
+    /// Retrieves a specific type definition by its unique identifier.
+    pub fn get_type_definition(&self, id: DefinitionId) -> TypeDefinition<'a> {
+        let wit = &self.schema.type_definitions[id.0 as usize];
+        wit.into()
+    }
+
     /// Iterator over the directives applied to this schema
     pub fn directives(&self) -> impl ExactSizeIterator<Item = Directive<'a>> + 'a {
         self.schema.directives.iter().map(Into::into)
@@ -528,6 +534,18 @@ pub enum WrappingType {
     NonNull,
     /// Indicates that the wrapped type is a list of elements
     List,
+}
+
+impl WrappingType {
+    /// Returns true if this wrapping type is a List
+    pub fn is_list(self) -> bool {
+        matches!(self, Self::List)
+    }
+
+    /// Returns true if this wrapping type is NonNull (required)
+    pub fn is_required(self) -> bool {
+        matches!(self, Self::NonNull)
+    }
 }
 
 impl From<wit::WrappingType> for WrappingType {

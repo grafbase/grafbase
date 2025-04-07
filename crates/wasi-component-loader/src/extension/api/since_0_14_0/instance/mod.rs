@@ -43,6 +43,7 @@ impl SdkPre0_14_0 {
             TypeDiscriminants::FieldResolver => create_subgraph_schema_directives(&schema, config.id),
             TypeDiscriminants::SelectionSetResolver => create_complete_subgraph_schemas(&schema, config.id),
         };
+
         // SAFETY: We keep an owned Arc<Schema> which is immutable (without inner
         //         mutability), so all refs we take are kept. Ideally we wouldn't use such
         //         tricks, but wasmtime bindgen requires either every argument or none at all
@@ -52,6 +53,7 @@ impl SdkPre0_14_0 {
 
         wit::Sdk::add_to_linker(&mut linker, |state| state)?;
         let instance_pre = linker.instantiate_pre(&component)?;
+
         Ok(Self {
             pre: wit::SdkPre::<WasiState>::new(instance_pre)?,
             guest_config: cbor::to_vec(&config.guest_config).context("Could not serialize configuration")?,

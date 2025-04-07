@@ -5,6 +5,6 @@ mod pool;
 mod query;
 pub mod types;
 
-pub use connection::{Connection, Transaction};
+pub use connection::{Connection, ConnectionLike, Transaction};
 pub use pool::{Pool, PoolOptions};
-pub use query::{ColumnIterator, Query, RowValue};
+pub use query::{ColumnIterator, Query, QueryBuilder, RowValue};
