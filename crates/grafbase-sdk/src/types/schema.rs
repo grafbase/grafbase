@@ -66,6 +66,12 @@ impl SubgraphSchema<'_> {
         self.0.type_definitions.values().map(move |def| (schema, def).into())
     }
 
+    /// Retrieves a specific type definition by its unique identifier.
+    pub fn type_definition(&self, id: &DefinitionId) -> Option<TypeDefinition<'_>> {
+        let schema = self.0;
+        self.0.type_definitions.get(id).map(move |def| (schema, def).into())
+    }
+
     /// Iterator over the directives applied to this schema
     pub fn directives(&self) -> impl ExactSizeIterator<Item = Directive<'_>> + '_ {
         self.0.directives.iter().map(Into::into)

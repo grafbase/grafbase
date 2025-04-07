@@ -1,6 +1,6 @@
 interface schema {
     record schema {
-        // The IDs and this list have not relationship. They're not indices within this list.
+        // The IDs and this list have no relationship. They're not indices within this list.
         type-definitions: list<type-definition>,
         directives: list<directive>,
         root-types: root-types,

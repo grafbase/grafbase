@@ -1,90 +1,38 @@
+use std::fmt::{self, Write};
+
 use serde::Deserialize;
 use zerocopy::TryFromBytes;
 
 use crate::{SdkError, wit};
 
 use super::{
-    Connection, Transaction,
+    ConnectionLike,
     types::{DatabaseType, DatabaseValue},
 };
-
-#[derive(Clone, Copy, Debug)]
-pub(crate) enum ConnectionLike<'a> {
-    Connection(&'a Connection),
-    Transaction(&'a Transaction),
-}
-
-impl<'a> From<&'a Connection> for ConnectionLike<'a> {
-    fn from(connection: &'a Connection) -> Self {
-        ConnectionLike::Connection(connection)
-    }
-}
-
-impl<'a> From<&'a Transaction> for ConnectionLike<'a> {
-    fn from(transaction: &'a Transaction) -> Self {
-        ConnectionLike::Transaction(transaction)
-    }
-}
-
-impl ConnectionLike<'_> {
-    pub fn query<'a>(
-        &'a self,
-        query: &'a str,
-        params: (&[wit::PgBoundValue], &[wit::PgValue]),
-    ) -> Result<Vec<wit::PgRow>, SdkError> {
-        match self {
-            ConnectionLike::Connection(connection) => connection.0.query(query, params).map_err(SdkError::from),
-            ConnectionLike::Transaction(transaction) => transaction.inner.query(query, params).map_err(SdkError::from),
-        }
-    }
-
-    pub fn execute<'a>(
-        &'a self,
-        query: &'a str,
-        params: (&[wit::PgBoundValue], &[wit::PgValue]),
-    ) -> Result<u64, SdkError> {
-        match self {
-            ConnectionLike::Connection(connection) => connection.0.execute(query, params).map_err(SdkError::from),
-            ConnectionLike::Transaction(transaction) => {
-                transaction.inner.execute(query, params).map_err(SdkError::from)
-            }
-        }
-    }
-}
 
 /// A query builder for constructing and executing SQL queries.
 ///
 /// This struct provides a fluent interface for building SQL queries with
 /// parameter binding, and methods to execute those queries or fetch their results.
 #[derive(Clone, Debug)]
-pub struct Query<'a> {
-    pub(crate) connection: ConnectionLike<'a>,
-    pub(crate) query: &'a str,
+pub struct Query {
+    pub(crate) query: String,
     pub(crate) values: Vec<wit::PgBoundValue>,
     pub(crate) value_tree: wit::PgValueTree,
 }
 
-impl Query<'_> {
-    /// Binds a value to the query as a parameter.
-    ///
-    /// This method adds a value to be used as a parameter in the SQL query.
-    /// The value will be properly escaped and converted to the appropriate PostgreSQL type.
-    ///
-    /// # Parameters
-    /// * `value` - Any value that implements the `DatabaseType` trait
-    ///
-    /// # Returns
-    /// The query builder for method chaining
-    pub fn bind(mut self, value: impl DatabaseType) -> Self {
-        let DatabaseValue { value, array_values } = value.into_bound_value();
+impl fmt::Display for Query {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.query)
+    }
+}
 
-        self.values.push(value);
-
-        if let Some(array_values) = array_values {
-            self.value_tree.extend(array_values);
-        }
-
-        self
+impl Query {
+    /// Creates a new `QueryBuilder` instance.
+    ///
+    /// This is the entry point for constructing a new query using the builder pattern.
+    pub fn builder() -> QueryBuilder {
+        QueryBuilder::default()
     }
 
     /// Executes the SQL query with the bound parameters.
@@ -95,9 +43,10 @@ impl Query<'_> {
     ///
     /// # Returns
     /// The number of rows affected by the query, or an error message if the execution failed
-    pub fn execute(self) -> Result<u64, SdkError> {
-        self.connection
-            .execute(self.query, (self.values.as_slice(), &self.value_tree))
+    pub fn execute<'a>(self, connection: impl Into<ConnectionLike<'a>>) -> Result<u64, SdkError> {
+        connection
+            .into()
+            .execute(&self.query, (self.values.as_slice(), &self.value_tree))
     }
 
     /// Executes the SQL query and fetches all rows from the result.
@@ -107,10 +56,13 @@ impl Query<'_> {
     ///
     /// # Returns
     /// A vector containing all rows in the result set, or an error message if the execution failed
-    pub fn fetch(self) -> Result<impl IntoIterator<Item = ColumnIterator>, SdkError> {
-        let rows = self
-            .connection
-            .query(self.query, (self.values.as_slice(), &self.value_tree))?;
+    pub fn fetch<'a>(
+        self,
+        connection: impl Into<ConnectionLike<'a>>,
+    ) -> Result<impl Iterator<Item = ColumnIterator>, SdkError> {
+        let rows = connection
+            .into()
+            .query(&self.query, (self.values.as_slice(), &self.value_tree))?;
 
         let rows = rows.into_iter().map(|row| ColumnIterator {
             position: 0,
@@ -230,5 +182,93 @@ impl RowValue {
             Some(ref value) => serde_json::from_slice(value).map_err(SdkError::from),
             None => Ok(None),
         }
+    }
+}
+
+/// A builder for constructing SQL queries with bound parameters.
+///
+/// This struct facilitates the creation of `Query` objects by allowing
+/// the gradual binding of parameters before finalizing the query for execution.
+#[derive(Debug, Default)]
+pub struct QueryBuilder {
+    /// The SQL query string being built.
+    query: String,
+    /// A list of bound parameter values for the query.
+    values: Vec<wit::PgBoundValue>,
+    /// A tree structure holding nested values, primarily used for arrays.
+    value_tree: wit::PgValueTree,
+}
+
+impl QueryBuilder {
+    /// Binds a value to the query as a parameter.
+    ///
+    /// This method adds a value to be used as a parameter in the SQL query.
+    /// The value will be properly escaped and converted to the appropriate PostgreSQL type.
+    ///
+    /// # Parameters
+    /// * `value` - Any value that implements the `DatabaseType` trait
+    ///
+    /// # Returns
+    /// The query builder for method chaining
+    pub fn bind(&mut self, value: impl DatabaseType) {
+        let value = value.into_bound_value(self.value_tree.len() as u64);
+        self.bind_value(value);
+    }
+
+    /// Binds a pre-constructed `DatabaseValue` to the query as a parameter.
+    ///
+    /// This method is similar to `bind()` but accepts a `DatabaseValue` that has already been
+    /// created, which can be useful when you need more control over how values are bound.
+    ///
+    /// # Parameters
+    /// * `value` - A `DatabaseValue` instance to bind to the query
+    pub fn bind_value(&mut self, value: DatabaseValue) {
+        let DatabaseValue { value, array_values } = value;
+
+        self.values.push(value);
+
+        if let Some(array_values) = array_values {
+            self.value_tree.extend(array_values);
+        }
+    }
+
+    /// Finalizes the query construction process.
+    ///
+    /// This method takes the built query string and bound parameters from the `QueryBuilder`
+    /// and combines them with a database connection or transaction to create a `Query` object.
+    /// The returned `Query` object is ready for execution.
+    ///
+    /// # Parameters
+    /// * `connection` - A database connection (`&Connection`) or transaction (`&Transaction`)
+    ///   where the query will be executed. This parameter accepts any type that can be converted
+    ///   into a `ConnectionLike` enum, typically a reference to a `Connection` or `Transaction`.
+    ///
+    /// # Returns
+    /// A `Query` instance containing the finalized SQL query, bound parameters, and the connection,
+    /// ready to be executed or fetched.
+    pub fn finalize(self) -> Query {
+        let query = self.query;
+        let values = self.values;
+        let value_tree = self.value_tree;
+
+        Query {
+            query,
+            values,
+            value_tree,
+        }
+    }
+
+    /// Returns the number of values currently bound to the query builder.
+    ///
+    /// This can be useful for generating parameter placeholders (e.g., `$1`, `$2`)
+    /// dynamically while building the query string.
+    pub fn bound_values(&self) -> usize {
+        self.values.len()
+    }
+}
+
+impl Write for QueryBuilder {
+    fn write_str(&mut self, s: &str) -> std::fmt::Result {
+        self.query.write_str(s)
     }
 }

@@ -23,7 +23,6 @@ impl SelectionSetResolverExtension<SharedContext> for WasmExtensions {
         field: F,
     ) -> Result<Vec<u8>, GraphqlError> {
         let mut instance = self.get(extension_id).await?;
-
         let mut fields = Vec::new();
 
         fields.push(Field {
@@ -32,8 +31,10 @@ impl SelectionSetResolverExtension<SharedContext> for WasmExtensions {
             arguments: field.arguments().map(Into::into),
             selection_set: None,
         });
+
         if let Some(selection_set) = field.selection_set() {
             let mut stack: Vec<(usize, F::SelectionSet)> = vec![(0, selection_set)];
+
             while let Some((field_id, selection_set)) = stack.pop() {
                 let start = fields.len();
                 for field in selection_set.fields_ordered_by_parent_entity() {
