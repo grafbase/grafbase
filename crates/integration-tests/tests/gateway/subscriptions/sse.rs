@@ -77,12 +77,12 @@ fn request_error() {
             .await
     });
 
-    insta::assert_json_snapshot!(response.messages, @r###"
+    insta::assert_json_snapshot!(response.messages, @r#"
     [
       {
         "errors": [
           {
-            "message": "Subscription does not have a field named 'unknown'",
+            "message": "Subscription does not have a field named 'unknown'.",
             "locations": [
               {
                 "line": 3,
@@ -96,7 +96,7 @@ fn request_error() {
         ]
       }
     ]
-    "###);
+    "#);
     assert_eq!(response.status, http::StatusCode::OK);
 }
 

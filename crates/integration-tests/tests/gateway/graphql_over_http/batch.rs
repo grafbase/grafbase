@@ -296,7 +296,7 @@ fn request_error() {
 
         let status = response.status();
         let body: serde_json::Value = serde_json::from_slice(&response.into_body()).unwrap();
-        insta::assert_json_snapshot!(body, @r###"
+        insta::assert_json_snapshot!(body, @r#"
         [
           {
             "data": {
@@ -306,7 +306,7 @@ fn request_error() {
           {
             "errors": [
               {
-                "message": "Query does not have a field named 'unknown'",
+                "message": "Query does not have a field named 'unknown'.",
                 "locations": [
                   {
                     "line": 1,
@@ -320,7 +320,7 @@ fn request_error() {
             ]
           }
         ]
-        "###);
+        "#);
         assert_eq!(status, 200);
     })
 }

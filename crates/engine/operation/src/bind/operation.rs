@@ -32,7 +32,12 @@ impl<'schema, 'p> OperationBinder<'schema, 'p> {
             CompositeType::Object(root_object_id.walk(self.schema)),
             operation.selection_set(),
         )?;
-        self.validate_all_variables_used()?;
+
+        // If there are no errors, we can check if all variables are used.
+        if self.errors.is_empty() {
+            self.validate_all_variables_used()?;
+        }
+
         Ok((root_object_id, root_selection_set_record))
     }
 
@@ -45,13 +50,38 @@ impl<'schema, 'p> OperationBinder<'schema, 'p> {
         for selection in selection_set {
             let id = match selection {
                 Selection::Field(field) => if field.name() == "__typename" {
-                    crate::FieldId::from(self.bind_typename_field(field)?)
+                    match self.bind_typename_field(field) {
+                        Ok(field_id) => crate::FieldId::from(field_id),
+                        Err(err) => {
+                            self.errors.push(err);
+                            continue;
+                        }
+                    }
                 } else {
-                    crate::FieldId::from(self.bind_field(parent_output_type, field)?)
+                    match self.bind_field(parent_output_type, field) {
+                        Ok(field_id) => crate::FieldId::from(field_id),
+                        Err(err) => {
+                            // We can continue if there nested errors.
+                            self.errors.push(err);
+                            continue;
+                        }
+                    }
                 }
                 .into(),
-                Selection::FragmentSpread(spread) => self.bind_fragment_spread(parent_output_type, spread)?.into(),
-                Selection::InlineFragment(fragment) => self.bind_inline_fragment(parent_output_type, fragment)?.into(),
+                Selection::FragmentSpread(spread) => match self.bind_fragment_spread(parent_output_type, spread) {
+                    Ok(spread_id) => spread_id.into(),
+                    Err(err) => {
+                        self.errors.push(err);
+                        continue;
+                    }
+                },
+                Selection::InlineFragment(fragment) => match self.bind_inline_fragment(parent_output_type, fragment) {
+                    Ok(fragment_id) => fragment_id.into(),
+                    Err(err) => {
+                        self.errors.push(err);
+                        continue;
+                    }
+                },
             };
             buffer.push(id);
         }
@@ -63,7 +93,7 @@ impl<'schema, 'p> OperationBinder<'schema, 'p> {
     }
 
     fn bind_typename_field(&mut self, field: FieldSelection<'p>) -> BindResult<crate::TypenameFieldId> {
-        let directive_ids = self.bind_executable_directive(field.directives())?;
+        let directive_ids = self.bind_executable_directive(field.directives());
         let response_key = self.response_keys.get_or_intern(field.alias().unwrap_or(field.name()));
         self.typename_fields.push(crate::TypenameFieldRecord {
             response_key,
@@ -86,24 +116,29 @@ impl<'schema, 'p> OperationBinder<'schema, 'p> {
                     name: field.name().to_string(),
                     ty: union.name().to_string(),
                     span: field.name_span(),
+                    site_id: union.id,
                 });
             }
         }
         .filter(|field_definition| !field_definition.is_inaccessible())
         .ok_or_else(|| BindError::UnknownField {
-            container: parent_output_type.name().to_string(),
+            ty: parent_output_type.name().to_string(),
             name: field.name().to_string(),
             span: field.name_span(),
+            site_id: parent_output_type.as_entity().unwrap().id(),
         })?;
 
         let selection_set_record = match definition.ty().definition().as_composite_type() {
             Some(output_type) => {
+                let error_count = self.errors.len();
                 let selection_set_record = self.bind_selection_set(output_type, field.selection_set())?;
-                if selection_set_record.is_empty() {
+                // If empty and we didn't have any errors in this selection set.
+                if selection_set_record.is_empty() && error_count == self.errors.len() {
                     return Err(BindError::LeafMustBeAScalarOrEnum {
                         name: definition.name().to_string(),
                         ty: definition.ty().definition().name().to_string(),
                         span: field.name_span(),
+                        site_id: output_type.id(),
                     });
                 }
                 selection_set_record
@@ -114,14 +149,15 @@ impl<'schema, 'p> OperationBinder<'schema, 'p> {
                         name: definition.name().to_string(),
                         ty: definition.ty().to_string(),
                         span: field.name_span(),
+                        site_id: definition.ty().definition_id,
                     });
                 }
                 crate::SelectionSetRecord::empty()
             }
         };
 
-        let argument_ids = self.bind_field_arguments(definition, field.name_span(), field.arguments())?;
-        let directive_ids = self.bind_executable_directive(field.directives())?;
+        let argument_ids = self.bind_field_arguments(definition, field.name_span(), field.arguments());
+        let directive_ids = self.bind_executable_directive(field.directives());
         let response_key = self.response_keys.get_or_intern(field.alias().unwrap_or(field.name()));
 
         self.data_fields.push(crate::DataFieldRecord {
@@ -141,7 +177,7 @@ impl<'schema, 'p> OperationBinder<'schema, 'p> {
         definition: FieldDefinition<'schema>,
         span: Span,
         arguments: Iter<'p, Argument<'p>>,
-    ) -> BindResult<IdRange<FieldArgumentId>> {
+    ) -> IdRange<FieldArgumentId> {
         let mut arguments = arguments.collect::<Vec<_>>();
 
         let start = self.field_arguments.len();
@@ -155,7 +191,7 @@ impl<'schema, 'p> OperationBinder<'schema, 'p> {
             {
                 let argument = arguments.swap_remove(index);
                 let value = argument.value();
-                let value_id = coerce_query_value(self, argument_def.ty(), value)?;
+                let value_id = coerce_query_value(self, argument_def.ty(), value);
                 self.field_arguments.push(crate::FieldArgumentRecord {
                     definition_id: argument_def.id,
                     value_id,
@@ -168,19 +204,21 @@ impl<'schema, 'p> OperationBinder<'schema, 'p> {
                         .push_value(QueryInputValueRecord::DefaultValue(id)),
                 });
             } else if argument_def.ty().wrapping.is_required() {
-                return Err(BindError::MissingArgument {
+                self.errors.push(BindError::MissingArgument {
                     field: definition.name().to_string(),
                     name: argument_def.name().to_string(),
                     span,
+                    site_id: definition.id,
                 });
             }
         }
 
         if let Some(first_unknown_argument) = arguments.first() {
-            return Err(BindError::UnknownArgument {
+            self.errors.push(BindError::UnknownArgument {
                 field_name: format!("{}.{}", definition.parent_entity().name(), definition.name()),
                 argument_name: first_unknown_argument.name().to_string(),
                 span: first_unknown_argument.name_span(),
+                site_id: definition.id,
             });
         }
 
@@ -188,7 +226,7 @@ impl<'schema, 'p> OperationBinder<'schema, 'p> {
         // We iterate over input fields in order which is a range, so it should be sorted by the
         // id.
         debug_assert!(self.field_arguments[start..end].is_sorted_by_key(|arg| arg.definition_id));
-        Ok((start..end).into())
+        (start..end).into()
     }
 
     fn bind_inline_fragment(
@@ -202,7 +240,7 @@ impl<'schema, 'p> OperationBinder<'schema, 'p> {
             .transpose()?;
         let selection_set_record =
             self.bind_selection_set(type_condition.unwrap_or(parent_output_type), fragment.selection_set())?;
-        let directive_ids = self.bind_executable_directive(fragment.directives())?;
+        let directive_ids = self.bind_executable_directive(fragment.directives());
 
         self.inline_fragments.push(InlineFragmentRecord {
             type_condition_id: type_condition.map(|ty| ty.id()),
@@ -226,6 +264,7 @@ impl<'schema, 'p> OperationBinder<'schema, 'p> {
                         parent: parent_output_type.name().to_string(),
                         name: ty.name().to_string(),
                         span: spread.fragment_name_span(),
+                        site_id: parent_output_type.id(),
                     });
                 }
                 id
@@ -240,7 +279,7 @@ impl<'schema, 'p> OperationBinder<'schema, 'p> {
                 id
             }
         };
-        let directive_ids = self.bind_executable_directive(spread.directives())?;
+        let directive_ids = self.bind_executable_directive(spread.directives());
         self.fragment_spreads.push(crate::FragmentSpreadRecord {
             fragment_id,
             directive_ids,
@@ -288,6 +327,7 @@ impl<'schema, 'p> OperationBinder<'schema, 'p> {
                 .ok_or_else(|| BindError::InvalidTypeConditionTargetType {
                     name: name.to_string(),
                     span,
+                    site_id: definition.id(),
                 })?;
 
         if parent_output_type.has_non_empty_intersection_with(type_condition) {
@@ -298,43 +338,54 @@ impl<'schema, 'p> OperationBinder<'schema, 'p> {
             parent: parent_output_type.name().to_string(),
             name: name.to_string(),
             span,
+            site_id: parent_output_type.id(),
         })
     }
 
-    fn bind_executable_directive(
-        &mut self,
-        directives: Iter<'p, Directive<'p>>,
-    ) -> BindResult<Vec<ExecutableDirectiveId>> {
+    fn bind_executable_directive(&mut self, directives: Iter<'p, Directive<'p>>) -> Vec<ExecutableDirectiveId> {
         let mut out = Vec::new();
         for directive in directives {
             if matches!(directive.name(), "skip" | "include") {
-                let argument = directive
-                    .arguments()
-                    .next()
-                    .ok_or(BindError::MissingDirectiveArgument {
-                        name: "if",
-                        span: directive.name_span(),
-                        directive: directive.name().to_string(),
-                    })?;
-
-                let ty = TypeRecord {
-                    definition_id: self.schema.type_definition_by_name("Boolean").expect("must exist").id(),
-                    wrapping: schema::Wrapping::required(),
+                match self.bind_skip_or_include_executable_directive(directive) {
+                    Ok(directive_id) => out.push(directive_id),
+                    Err(err) => {
+                        self.errors.push(err);
+                        continue;
+                    }
                 }
-                .walk(self.schema);
-
-                let condition = coerce_query_value(self, ty, argument.value())?;
-
-                if directive.name() == "skip" {
-                    out.push(ExecutableDirectiveId::Skip(SkipDirectiveRecord { condition }));
-                } else {
-                    out.push(ExecutableDirectiveId::Include(IncludeDirectiveRecord { condition }));
-                };
             }
         }
         out.sort_unstable();
         out.dedup();
-        Ok(out)
+        out
+    }
+
+    fn bind_skip_or_include_executable_directive(
+        &mut self,
+        directive: Directive<'p>,
+    ) -> BindResult<ExecutableDirectiveId> {
+        let argument = directive
+            .arguments()
+            .next()
+            .ok_or(BindError::MissingDirectiveArgument {
+                name: "if",
+                span: directive.name_span(),
+                directive: directive.name().to_string(),
+            })?;
+
+        let ty = TypeRecord {
+            definition_id: self.schema.type_definition_by_name("Boolean").expect("must exist").id(),
+            wrapping: schema::Wrapping::required(),
+        }
+        .walk(self.schema);
+
+        let condition = coerce_query_value(self, ty, argument.value());
+
+        Ok(if directive.name() == "skip" {
+            ExecutableDirectiveId::Skip(SkipDirectiveRecord { condition })
+        } else {
+            ExecutableDirectiveId::Include(IncludeDirectiveRecord { condition })
+        })
     }
 
     fn bind_variable_definitions(
@@ -355,7 +406,13 @@ impl<'schema, 'p> OperationBinder<'schema, 'p> {
             }
             seen_names.insert(name.clone());
 
-            let mut ty = self.convert_type(&name, variable.ty())?;
+            let mut ty = match self.convert_type(&name, variable.ty()) {
+                Ok(ty) => ty,
+                Err(err) => {
+                    self.errors.push(err);
+                    continue;
+                }
+            };
 
             match variable.default_value() {
                 Some(value) if !value.is_null() => {
@@ -371,8 +428,7 @@ impl<'schema, 'p> OperationBinder<'schema, 'p> {
             let ty = ty.walk(self.schema);
             let default_value_id = variable
                 .default_value()
-                .map(|value| coerce_variable_default_value(self, ty, value))
-                .transpose()?;
+                .map(|value| coerce_variable_default_value(self, ty, value));
 
             self.variable_definition_in_use.push(false);
             self.variable_definitions.push(VariableDefinitionRecord {

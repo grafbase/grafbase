@@ -20,6 +20,20 @@ impl std::fmt::Display for DirectiveSite<'_> {
     }
 }
 
+impl DirectiveSiteId {
+    pub fn as_type_definition(self) -> Option<TypeDefinitionId> {
+        match self {
+            DirectiveSiteId::Scalar(id) => Some(TypeDefinitionId::Scalar(id)),
+            DirectiveSiteId::Object(id) => Some(TypeDefinitionId::Object(id)),
+            DirectiveSiteId::Interface(id) => Some(TypeDefinitionId::Interface(id)),
+            DirectiveSiteId::Union(id) => Some(TypeDefinitionId::Union(id)),
+            DirectiveSiteId::Enum(id) => Some(TypeDefinitionId::Enum(id)),
+            DirectiveSiteId::InputObject(id) => Some(TypeDefinitionId::InputObject(id)),
+            _ => None,
+        }
+    }
+}
+
 impl From<TypeDefinitionId> for DirectiveSiteId {
     fn from(definition: TypeDefinitionId) -> Self {
         match definition {

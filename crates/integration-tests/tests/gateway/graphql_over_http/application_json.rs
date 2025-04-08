@@ -54,11 +54,11 @@ fn request_error(#[case] method: http::Method) {
             .execute(method, "/graphql", "query { unknown }")
             .header(http::header::ACCEPT, APPLICATION_JSON)
             .await;
-        insta::assert_json_snapshot!(response, @r###"
+        insta::assert_json_snapshot!(response, @r#"
         {
           "errors": [
             {
-              "message": "Query does not have a field named 'unknown'",
+              "message": "Query does not have a field named 'unknown'.",
               "locations": [
                 {
                   "line": 1,
@@ -71,7 +71,7 @@ fn request_error(#[case] method: http::Method) {
             }
           ]
         }
-        "###);
+        "#);
         assert_eq!(response.status, 200);
     })
 }

@@ -17,7 +17,7 @@ pub fn coerce_variable_default_value<'schema>(
     binder: &mut OperationBinder<'schema, '_>,
     ty: Type<'schema>,
     value: ConstValue<'_>,
-) -> Result<QueryInputValueId, InputValueError> {
+) -> QueryInputValueId {
     let mut ctx = QueryValueCoercionContext {
         location: binder.parsed_operation.span_to_location(value.span()),
         binder,
@@ -25,15 +25,20 @@ pub fn coerce_variable_default_value<'schema>(
         input_fields_buffer_pool: Vec::new(),
         is_default_value: true,
     };
-    let value = ctx.coerce_input_value(ty, value.into())?;
-    Ok(ctx.query_input_values.push_value(value))
+    match ctx.coerce_input_value(ty, value.into()) {
+        Ok(value) => ctx.query_input_values.push_value(value),
+        Err(err) => {
+            ctx.binder.errors.push(err.into());
+            ctx.query_input_values.push_value(QueryInputValueRecord::Null)
+        }
+    }
 }
 
 pub fn coerce_query_value<'schema>(
     binder: &mut OperationBinder<'schema, '_>,
     ty: Type<'schema>,
     value: cynic_parser::Value<'_>,
-) -> Result<QueryInputValueId, InputValueError> {
+) -> QueryInputValueId {
     let mut ctx = QueryValueCoercionContext {
         location: binder.parsed_operation.span_to_location(value.span()),
         binder,
@@ -41,8 +46,13 @@ pub fn coerce_query_value<'schema>(
         input_fields_buffer_pool: Vec::new(),
         is_default_value: false,
     };
-    let value = ctx.coerce_input_value(ty, value)?;
-    Ok(ctx.query_input_values.push_value(value))
+    match ctx.coerce_input_value(ty, value) {
+        Ok(value) => ctx.query_input_values.push_value(value),
+        Err(err) => {
+            ctx.binder.errors.push(err.into());
+            ctx.query_input_values.push_value(QueryInputValueRecord::Null)
+        }
+    }
 }
 
 struct QueryValueCoercionContext<'binder, 'schema, 'parsed> {

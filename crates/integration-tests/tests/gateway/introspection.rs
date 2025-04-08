@@ -810,11 +810,11 @@ fn rejects_bogus_introspection_queries() {
             .await
     });
 
-    insta::assert_json_snapshot!(response, @r###"
+    insta::assert_json_snapshot!(response, @r#"
     {
       "errors": [
         {
-          "message": "__Type does not have a field named 'blarg'",
+          "message": "__Type does not have a field named 'blarg'.",
           "locations": [
             {
               "line": 5,
@@ -827,7 +827,7 @@ fn rejects_bogus_introspection_queries() {
         }
       ]
     }
-    "###);
+    "#);
 }
 
 #[test]

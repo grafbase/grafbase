@@ -27,7 +27,7 @@ use crate::{
 impl<R: Runtime> Engine<R> {
     pub(crate) fn warm_operation(&self, document: OperationDocument<'_>) -> Result<CachedOperation, String> {
         let operation = Operation::parse(&self.schema, document.operation_name(), &document.content)
-            .map_err(|err| err.to_string())?;
+            .map_err(|errors| errors.items.into_iter().next().unwrap().message)?;
         crate::prepare::solve(&self.schema, document, operation).map_err(|err| err.to_string())
     }
 }
