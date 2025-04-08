@@ -17,7 +17,7 @@ runs:
   using: 'composite'
   steps:
     - name: Run sccache-cache
-      uses: mozilla-actions/sccache-action@v0.0.7
+      uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
 
     # https://github.com/actions/setup-node/issues/899
     - name: Enable Corepack before setting up Node

@@ -112,7 +112,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.7
+        uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
 
       - name: Rust job init
         uses: ./.github/actions/init_rust_job
@@ -215,7 +215,7 @@ jobs:
           platform: ${{ matrix.archs.platform }}
 
       - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.7
+        uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
 
       - name: Fetch CLI assets
         uses: ./.github/actions/fetch-assets
@@ -337,7 +337,7 @@ jobs:
           platform: windows
 
       - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.7
+        uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
 
       - name: Fetch CLI assets
         uses: ./.github/actions/fetch-assets
@@ -397,7 +397,7 @@ jobs:
           platform: macos
 
       - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.7
+        uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
 
       - name: Fetch CLI assets
         uses: ./.github/actions/fetch-assets
