@@ -23,6 +23,11 @@ pub fn create_subgraph_schema_directives(schema: &Schema, extension_id: Extensio
                 ws::Schema {
                     directives,
                     type_definitions: Vec::new(),
+                    root_types: ws::RootTypes {
+                        query_id: None,
+                        mutation_id: None,
+                        subscription_id: None,
+                    },
                 },
             ));
         }
@@ -55,6 +60,21 @@ pub fn create_complete_subgraph_schemas(schema: &Schema, extension_id: Extension
                 ws::Schema {
                     directives: Vec::new(),
                     type_definitions: Vec::new(),
+                    root_types: ws::RootTypes {
+                        query_id: if schema.query().exists_in_subgraph(&id) {
+                            Some(schema.query().id.as_guid())
+                        } else {
+                            None
+                        },
+                        mutation_id: schema
+                            .mutation()
+                            .filter(|m| m.exists_in_subgraph(&id))
+                            .map(|m| m.id.as_guid()),
+                        subscription_id: schema
+                            .subscription()
+                            .filter(|s| s.exists_in_subgraph(&id))
+                            .map(|s| s.id.as_guid()),
+                    },
                 },
             )
         })

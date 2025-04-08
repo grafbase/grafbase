@@ -193,7 +193,10 @@ fn receive_subgraph_schema() {
                     "name": "meta"
                   }
                 ],
+                "mutation": null,
                 "name": "echo-schema",
+                "query": "Query",
+                "subscription": null,
                 "typeDefinitions": [
                   {
                     "Boolean": {

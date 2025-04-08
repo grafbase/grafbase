@@ -10,6 +10,19 @@ pub struct Schema<'a> {
     #[component(name = "type-definitions")]
     pub type_definitions: Vec<TypeDefinition<'a>>,
     pub directives: Vec<Directive<'a>>,
+    #[component(name = "root-types")]
+    pub root_types: RootTypes,
+}
+
+#[derive(Clone, Debug, ComponentType, Lower)]
+#[component(record)]
+pub struct RootTypes {
+    #[component(name = "query-id")]
+    pub query_id: Option<DefinitionId>,
+    #[component(name = "mutation-id")]
+    pub mutation_id: Option<DefinitionId>,
+    #[component(name = "subscription-id")]
+    pub subscription_id: Option<DefinitionId>,
 }
 
 pub type DefinitionId = u32;
