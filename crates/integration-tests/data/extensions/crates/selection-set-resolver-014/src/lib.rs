@@ -231,9 +231,16 @@ impl SelectionSetResolverExtension for Resolver {
                 })
                 .collect::<Vec<_>>();
 
+            let query = subgraph_schema.query_id().and_then(|id| names.get(&id));
+            let mutation = subgraph_schema.mutation_id().and_then(|id| names.get(&id));
+            let subscription = subgraph_schema.subscription_id().and_then(|id| names.get(&id));
+
             // Return a JSON object for this subgraph
             schemas.push(json!({
                 "name": subgraph_name,
+                "query": query,
+                "mutation": mutation,
+                "subscription": subscription,
                 "typeDefinitions": definitions,
                 "directives": subgraph_schema.directives().map(|d| {
                     json!({

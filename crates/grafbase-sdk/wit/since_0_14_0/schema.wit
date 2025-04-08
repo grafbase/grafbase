@@ -2,7 +2,14 @@ interface schema {
     record schema {
         // The IDs and this list have not relationship. They're not indices within this list.
         type-definitions: list<type-definition>,
-        directives: list<directive>
+        directives: list<directive>,
+        root-types: root-types,
+    }
+
+    record root-types {
+        query-id: option<definition-id>,
+        mutation-id: option<definition-id>,
+        subscription-id: option<definition-id>
     }
 
     type definition-id = u32;

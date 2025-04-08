@@ -44,6 +44,22 @@ impl<'a> SubgraphSchema<'a> {
     pub fn directives(&self) -> impl ExactSizeIterator<Item = Directive<'a>> + 'a {
         self.schema.directives.iter().map(Into::into)
     }
+
+    /// Query type id definition if any. Subgraph schema may only contain mutations or add fields
+    /// to external objects.
+    pub fn query_id(&self) -> Option<DefinitionId> {
+        self.schema.root_types.query_id.map(DefinitionId)
+    }
+
+    /// Mutation type definition id if any
+    pub fn mutation_id(&self) -> Option<DefinitionId> {
+        self.schema.root_types.mutation_id.map(DefinitionId)
+    }
+
+    /// Subscription type definition id if any
+    pub fn subscription_id(&self) -> Option<DefinitionId> {
+        self.schema.root_types.subscription_id.map(DefinitionId)
+    }
 }
 
 /// Identifier for a GraphQL definition within a schema
