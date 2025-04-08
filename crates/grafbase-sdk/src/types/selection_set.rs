@@ -50,12 +50,21 @@ impl<'a> Field<'a> {
         }
     }
 
-    /// Gets the selection set of this field, if any
-    pub fn selection_set(&self) -> Option<SelectionSet<'a>> {
-        self.field.selection_set.map(|selection_set| SelectionSet {
-            fields: self.fields,
-            selection_set,
-        })
+    /// Gets the selection set of this field
+    pub fn selection_set(&self) -> SelectionSet<'a> {
+        self.field
+            .selection_set
+            .map(|selection_set| SelectionSet {
+                fields: self.fields,
+                selection_set,
+            })
+            .unwrap_or_else(|| SelectionSet {
+                fields: &[],
+                selection_set: wit::SelectionSet {
+                    fields_ordered_by_parent_entity: (0, 0),
+                    requires_typename: false,
+                },
+            })
     }
 
     /// Serialize the field and its selection set
@@ -114,6 +123,11 @@ pub struct SelectionSet<'a> {
 }
 
 impl<'a> SelectionSet<'a> {
+    /// Whether this selection set is empty. Can only happen for scalars and enums.
+    pub fn is_empty(&self) -> bool {
+        self.fields().len() == 0
+    }
+
     /// Iterator of the fields of this selection set. For best performance, you should respect the
     /// field ordering in the resolver data.
     pub fn fields(&self) -> impl ExactSizeIterator<Item = Field<'a>> + 'a {

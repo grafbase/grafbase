@@ -295,15 +295,16 @@ impl SelectionSetResolverExtension for Resolver {
                 }
 
                 // Process selection set if it exists
-                if let Some(selection_set) = field.selection_set() {
-                    let fields = selection_set
-                        .fields_ordered_by_parent_entity()
-                        .map(|field| self.process_field(field))
-                        .collect::<Vec<_>>();
+                let fields = field
+                    .selection_set()
+                    .fields_ordered_by_parent_entity()
+                    .map(|field| self.process_field(field))
+                    .collect::<Vec<_>>();
 
+                if !fields.is_empty() {
                     field_json["selectionSet"] = json!({
                         "fields": fields,
-                        "requiresTypename": selection_set.requires_typename(),
+                        "requiresTypename": field.selection_set().requires_typename(),
                     });
                 }
 
