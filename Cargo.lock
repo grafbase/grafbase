@@ -5389,6 +5389,7 @@ dependencies = [
  "insta",
  "itertools 0.14.0",
  "mimalloc",
+ "minicbor-serde",
  "multipart-stream",
  "openidconnect",
  "ory-client",
