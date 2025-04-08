@@ -2,7 +2,7 @@ use std::{
     fmt::{self, Write},
     ops::Deref,
     str::FromStr,
-    sync::OnceLock,
+    sync::LazyLock,
 };
 
 use itertools::Itertools;
@@ -33,6 +33,15 @@ where
     }
 }
 
+/// Matches any "{{ something }}"
+static TEMPLATE_VARIABLE_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\{\{\s*([[[:alnum:]-]_.]+)\s*\}\}").expect("must be valid"));
+
+/// Returns all the `[start, end)` index pairs of variables in the string. The `start` index is the first opening curly brace, and end is the index of the last closing curly brace.
+pub fn iter_variables(string: &str) -> impl Iterator<Item = (usize, usize)> {
+    TEMPLATE_VARIABLE_RE.find_iter(string).map(|m| (m.start(), m.end()))
+}
+
 impl<T> FromStr for DynamicString<T>
 where
     T::Err: std::error::Error,
@@ -41,18 +50,13 @@ where
     type Err = String;
 
     fn from_str(string: &str) -> Result<Self, Self::Err> {
-        /// Matches any "{{ something }}"
-        fn re() -> &'static Regex {
-            static RE: OnceLock<Regex> = OnceLock::new();
-            RE.get_or_init(|| Regex::new(r"\{\{\s*([[[:alnum:]]_.]+)\s*\}\}").expect("must be valid"))
-        }
-
         let mut errors = Vec::new();
 
         // result is concatenated to one value of type T
         let mut result = T::default();
+        let re = &TEMPLATE_VARIABLE_RE;
 
-        let last_end = re().captures_iter(string).fold(0, |last_end, captures| {
+        let last_end = re.captures_iter(string).fold(0, |last_end, captures| {
             let overall_match = captures.get(0).unwrap();
             let key = captures.get(1).unwrap().as_str();
             let path = key.split('.');
