@@ -2,6 +2,7 @@
 use grafbase_workspace_hack as _;
 
 mod server;
+mod tools;
 
 use std::{
     net::{Ipv4Addr, SocketAddr, SocketAddrV4},
@@ -34,8 +35,8 @@ pub fn router<R: Runtime>(
     let instructions = config.instructions.clone();
     let enable_mutations = config.enable_mutations;
 
-    let ct =
-        sse_server.with_service(move || server::McpServer::new(engine.clone(), instructions.clone(), enable_mutations));
+    let ct = sse_server
+        .with_service(move || server::McpServer::new(engine.clone(), instructions.clone(), enable_mutations).unwrap());
 
     (router.with_state(()), ct)
 }
