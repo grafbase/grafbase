@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     EngineWatcher,
-    tools::{ExecuteTool, IntrospectTool, RmcpTool, SearchTool, VerifyTool},
+    tools::{ExecuteTool, IntrospectTool, RmcpTool, SearchTool},
 };
 use rmcp::{
     RoleServer, ServerHandler,
@@ -40,7 +40,6 @@ impl McpServer {
             tools: vec![
                 Box::new(IntrospectTool::new(&engine, include_mutations)),
                 Box::new(SearchTool::new(&engine, include_mutations)?),
-                Box::new(VerifyTool::new(&engine, include_mutations)),
                 Box::new(ExecuteTool::new(&engine, include_mutations)),
             ],
         })))
@@ -54,7 +53,7 @@ impl ServerHandler for McpServer {
 
     async fn list_tools(
         &self,
-        _: PaginatedRequestParam,
+        _: Option<PaginatedRequestParam>,
         _: RequestContext<RoleServer>,
     ) -> Result<ListToolsResult, ErrorData> {
         Ok(ListToolsResult {

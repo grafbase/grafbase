@@ -11,11 +11,8 @@ use schema::Schema;
 use crate::{
     Engine, Runtime,
     engine::WasmContext,
-    execution::{GraphqlRequestContext, RequestContext, RequestHooks, default_grafbase_response_extension},
-    response::GrafbaseResponseExtension,
+    execution::{GraphqlRequestContext, RequestContext, RequestHooks},
 };
-
-use super::PreparedOperation;
 
 /// Context for preparing a single operation.
 /// Background futures will be started in parallel with the operation execution to avoid delaying the plan,
@@ -81,18 +78,5 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
 
     pub fn extensions(&self) -> &'ctx R::Extensions {
         self.engine.runtime.extensions()
-    }
-
-    pub fn grafbase_response_extension(
-        &self,
-        operation: Option<&PreparedOperation>,
-    ) -> Option<GrafbaseResponseExtension> {
-        default_grafbase_response_extension(self.schema(), self.request_context).map(|ext| {
-            if let Some(op) = operation.filter(|_| self.schema().settings.response_extension.include_query_plan) {
-                ext.with_query_plan(self.schema(), op)
-            } else {
-                ext
-            }
-        })
     }
 }

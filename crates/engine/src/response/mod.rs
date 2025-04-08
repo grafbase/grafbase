@@ -10,7 +10,6 @@ use std::sync::Arc;
 
 pub(crate) use data::*;
 pub(crate) use error::{ErrorCode, ErrorCodeCounter, ErrorPath, ErrorPathSegment, GraphqlError};
-use extensions::ResponseExtensions;
 pub(crate) use extensions::*;
 use grafbase_telemetry::graphql::{GraphqlExecutionTelemetry, GraphqlOperationAttributes, GraphqlResponseStatus};
 pub(crate) use object_set::*;
@@ -46,7 +45,7 @@ pub(crate) struct ExecutedResponse<OnOperationResponseHookOutput> {
     errors: Vec<GraphqlError>,
     error_code_counter: ErrorCodeCounter,
     on_operation_response_output: Option<OnOperationResponseHookOutput>,
-    extensions: Option<ResponseExtensions>,
+    extensions: ResponseExtensions,
 }
 
 impl<OnOperationResponseHookOutput> ExecutedResponse<OnOperationResponseHookOutput> {
@@ -70,7 +69,7 @@ pub(crate) struct RequestErrorResponse {
     operation_attributes: Option<GraphqlOperationAttributes>,
     errors: Vec<GraphqlError>,
     error_code_counter: ErrorCodeCounter,
-    extensions: Option<ResponseExtensions>,
+    extensions: ResponseExtensions,
 }
 
 pub(crate) struct RefusedRequestResponse {
@@ -78,7 +77,7 @@ pub(crate) struct RefusedRequestResponse {
     operation_attributes: Option<GraphqlOperationAttributes>,
     errors: Vec<GraphqlError>,
     error_code_counter: ErrorCodeCounter,
-    extensions: Option<ResponseExtensions>,
+    extensions: ResponseExtensions,
 }
 
 impl RefusedRequestResponse {
@@ -108,7 +107,7 @@ impl<OnOperationResponseHookOutput> Response<OnOperationResponseHookOutput> {
             operation_attributes: None,
             errors,
             error_code_counter,
-            extensions: None,
+            extensions: Default::default(),
         })
     }
 
@@ -123,7 +122,7 @@ impl<OnOperationResponseHookOutput> Response<OnOperationResponseHookOutput> {
             operation_attributes: None,
             errors,
             error_code_counter,
-            extensions: None,
+            extensions: Default::default(),
         })
     }
 
@@ -144,12 +143,14 @@ impl<OnOperationResponseHookOutput> Response<OnOperationResponseHookOutput> {
             on_operation_response_output,
             errors,
             error_code_counter,
-            extensions: None,
+            extensions: Default::default(),
         })
     }
 
-    pub(crate) fn with_grafbase_extension(mut self, ext: Option<GrafbaseResponseExtension>) -> Self {
-        self.extensions_mut().grafbase = ext;
+    pub(crate) fn with_extensions(mut self, extensions: ResponseExtensions) -> Self {
+        let ext = self.extensions_mut();
+        *ext = std::mem::take(ext).merge(extensions);
+
         self
     }
 
@@ -159,7 +160,6 @@ impl<OnOperationResponseHookOutput> Response<OnOperationResponseHookOutput> {
             Self::RequestError(resp) => &mut resp.extensions,
             Self::Executed(resp) => &mut resp.extensions,
         }
-        .get_or_insert_with(Default::default)
     }
 
     pub(crate) fn take_on_operation_response_output(&mut self) -> Option<OnOperationResponseHookOutput> {

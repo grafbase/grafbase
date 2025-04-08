@@ -24,6 +24,7 @@ use crate::{
     Body, Engine, Runtime,
     engine::WasmContext,
     graphql_over_http::{ContentType, ResponseFormat},
+    mcp::McpRequestContext,
     response::Response,
     websocket::InitPayload,
 };
@@ -59,13 +60,19 @@ impl<R: Runtime> Engine<R> {
 
         let include_grafbase_response_extension =
             should_include_grafbase_response_extension(&self.schema, &parts.headers);
-        let ctx = EarlyHttpContext {
+        let mut ctx = EarlyHttpContext {
+            can_mutate: !parts.method.is_safe(),
             method: parts.method,
             uri: parts.uri,
             response_format,
             content_type,
             include_grafbase_response_extension,
+            include_mcp_response_extension: false,
         };
+        if let Some(mcp) = parts.extensions.get::<McpRequestContext>() {
+            ctx.can_mutate &= mcp.include_mutations;
+            ctx.include_mcp_response_extension = true;
+        }
 
         Ok((ctx, parts.headers, body))
     }
@@ -111,13 +118,14 @@ impl<R: Runtime> Engine<R> {
         );
         let request_context = RequestContext {
             websocket_init_payload: websocket_init_payload.and_then(|payload| payload.0),
-            mutations_allowed: !ctx.method.is_safe(),
+            can_mutate: ctx.can_mutate,
             headers,
             response_format: ctx.response_format,
             client,
             token,
             subgraph_default_headers,
             include_grafbase_response_extension: ctx.include_grafbase_response_extension,
+            include_mcp_response_extension: ctx.include_mcp_response_extension,
         };
 
         Ok((Arc::new(request_context), wasm_context))

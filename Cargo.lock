@@ -1012,7 +1012,7 @@ dependencies = [
  "bitflags 2.9.0",
  "cexpr",
  "clang-sys",
- "itertools 0.12.1",
+ "itertools 0.10.5",
  "lazy_static",
  "lazycell",
  "log",
@@ -8075,7 +8075,7 @@ dependencies = [
 [[package]]
 name = "rmcp"
 version = "0.1.5"
-source = "git+https://github.com/grafbase/rust-sdk?branch=reduce-logging#b3d972425604ad85503c0e61ed8ad57420b07021"
+source = "git+https://github.com/grafbase/rust-sdk?branch=reduce-logging#6874317649aa104991cb600143af3e5ec44c234a"
 dependencies = [
  "axum 0.8.3",
  "base64 0.21.7",
@@ -8101,7 +8101,7 @@ dependencies = [
 [[package]]
 name = "rmcp-macros"
 version = "0.1.5"
-source = "git+https://github.com/grafbase/rust-sdk?branch=reduce-logging#b3d972425604ad85503c0e61ed8ad57420b07021"
+source = "git+https://github.com/grafbase/rust-sdk?branch=reduce-logging#6874317649aa104991cb600143af3e5ec44c234a"
 dependencies = [
  "proc-macro2",
  "quote",

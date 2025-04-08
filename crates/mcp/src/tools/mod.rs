@@ -3,14 +3,12 @@ mod execute;
 mod introspect;
 mod sdl;
 mod search;
-mod verify;
 
 pub use execute::*;
 use futures::future::BoxFuture;
 pub use introspect::*;
 pub use search::*;
 use std::borrow::Cow;
-pub use verify::*;
 
 use rmcp::model::{CallToolResult, Content, ErrorCode, ErrorData, JsonObject};
 

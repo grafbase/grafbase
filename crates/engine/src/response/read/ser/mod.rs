@@ -38,8 +38,8 @@ impl<OnOperationResponseHookOutput> serde::Serialize for Response<OnOperationRes
                     map.serialize_entry("errors", &errors::SerializableErrors { keys, errors })?;
                 }
 
-                if let Some(ext) = extensions.as_ref().filter(|ext| !ext.is_emtpy()) {
-                    map.serialize_entry("extensions", ext)?;
+                if !extensions.is_empty() {
+                    map.serialize_entry("extensions", extensions)?;
                 }
 
                 map.end()
@@ -57,8 +57,8 @@ impl<OnOperationResponseHookOutput> serde::Serialize for Response<OnOperationRes
                         },
                     )?;
                 }
-                if let Some(ext) = extensions.as_ref().filter(|ext| !ext.is_emtpy()) {
-                    map.serialize_entry("extensions", ext)?;
+                if !extensions.is_empty() {
+                    map.serialize_entry("extensions", extensions)?;
                 }
 
                 map.end()
@@ -76,8 +76,8 @@ impl<OnOperationResponseHookOutput> serde::Serialize for Response<OnOperationRes
                     },
                 )?;
 
-                if let Some(ext) = extensions.as_ref().filter(|ext| !ext.is_emtpy()) {
-                    map.serialize_entry("extensions", ext)?;
+                if !extensions.is_empty() {
+                    map.serialize_entry("extensions", extensions)?;
                 }
 
                 map.end()

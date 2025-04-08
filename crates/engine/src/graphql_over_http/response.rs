@@ -44,12 +44,16 @@ impl Http {
         wasm_context: C,
         mut response: Response<O>,
     ) -> http::Response<Body> {
+        let mcp_ext = response.extensions_mut().mcp.take();
         let mut http_response = Self::from_complete_response_with_telemetry(format, &response);
 
         http_response.extensions_mut().insert(HooksExtension::Single {
             context: wasm_context,
             on_operation_response_output: response.take_on_operation_response_output(),
         });
+        if let Some(mcp_ext) = mcp_ext {
+            http_response.extensions_mut().insert(mcp_ext);
+        }
 
         http_response
     }
@@ -131,6 +135,7 @@ impl Http {
             tracing::error!("Empty stream");
             return internal_server_error();
         };
+        let mcp_ext = first_response.extensions_mut().mcp.take();
         let on_operation_response_output = first_response.take_on_operation_response_output();
 
         let mut http_response =
@@ -138,6 +143,9 @@ impl Http {
         http_response
             .extensions_mut()
             .insert(TelemetryExtension::Future(telemetry));
+        if let Some(mcp_ext) = mcp_ext {
+            http_response.extensions_mut().insert(mcp_ext);
+        }
         // TODO: Currently we only handle query/mutations which return the complete
         // response at once and errors.
         http_response.extensions_mut().insert(HooksExtension::Single {

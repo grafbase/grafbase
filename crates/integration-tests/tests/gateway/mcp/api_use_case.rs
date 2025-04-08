@@ -493,7 +493,7 @@ fn verify_analytics() {
         let mut stream = engine.mcp("/mcp").await;
         let response = stream
             .call_tool(
-                "verify",
+                "execute",
                 json!(
                     {
                       "query": "query GetRequestMetrics {\n  graphByAccountSlug(accountSlug: \"grafbase\", graphSlug: \"api\") {\n    analytics(filters: {\n      from: \"2025-04-01T00:00:00Z\"\n      to: \"2025-04-05T23:59:59Z\"\n    }) {\n      requestMetrics {\n        overall {\n          requestCount\n        }\n      }\n    }\n  }\n}",
@@ -503,6 +503,24 @@ fn verify_analytics() {
             )
             .await;
         insta::assert_snapshot!(response, @r#"
+        {
+          "errors": [
+            {
+              "message": "RequestMetricsV2 does not have a field named 'requestCount'.",
+              "locations": [
+                {
+                  "line": 9,
+                  "column": 11
+                }
+              ],
+              "extensions": {
+                "code": "OPERATION_VALIDATION_ERROR"
+              }
+            }
+          ]
+        }
+        ================================================================================
+
         type RequestMetricsV2 {
           cacheHitCount: Int!
           cacheMissCount: Int!
@@ -512,15 +530,6 @@ fn verify_analytics() {
           error5XxCount: Int!
           errorGraphqlCount: Int!
           latencyMsPercentiles: [Int!]!
-        }
-
-
-        ================================================================================
-
-        {
-          "errors": [
-            "RequestMetricsV2 does not have a field named 'requestCount'."
-          ]
         }
         "#);
     });

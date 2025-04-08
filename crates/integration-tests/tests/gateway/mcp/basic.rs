@@ -99,7 +99,8 @@ fn list_tools() {
                   }
                 }
               }
-            }
+            },
+            "annotations": null
           },
           {
             "name": "search",
@@ -119,33 +120,12 @@ fn list_tools() {
                   }
                 }
               }
-            }
-          },
-          {
-            "name": "verify",
-            "description": "Validates a GraphQL request. You MUST call this tool before `execute`",
-            "inputSchema": {
-              "$schema": "http://json-schema.org/draft-07/schema#",
-              "title": "Request",
-              "type": "object",
-              "required": [
-                "query",
-                "variables"
-              ],
-              "properties": {
-                "query": {
-                  "type": "string"
-                },
-                "variables": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
+            },
+            "annotations": null
           },
           {
             "name": "execute",
-            "description": "Executes a GraphQL request and returns the response. You MUST validate a request with the `verify` tool before using this tool.",
+            "description": "Executes a GraphQL request. Additional GraphQL SDL may be provided upon errors.",
             "inputSchema": {
               "$schema": "http://json-schema.org/draft-07/schema#",
               "title": "Request",
@@ -163,7 +143,8 @@ fn list_tools() {
                   "additionalProperties": true
                 }
               }
-            }
+            },
+            "annotations": null
           }
         ]
       }

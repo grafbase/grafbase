@@ -1,7 +1,10 @@
 use grafbase_telemetry::otel::{opentelemetry::trace::TraceContextExt, tracing_opentelemetry::OpenTelemetrySpanExt};
 use schema::{AccessControl, HeaderAccessControl, Schema};
 
-use crate::response::GrafbaseResponseExtension;
+use crate::{
+    prepare::PreparedOperation,
+    response::{GrafbaseResponseExtension, ResponseExtensions},
+};
 
 use super::RequestContext;
 
@@ -29,17 +32,27 @@ pub(crate) fn should_include_grafbase_response_extension(schema: &Schema, header
         })
 }
 
-pub(crate) fn default_grafbase_response_extension(
+pub(crate) fn default_response_extensions(schema: &Schema, ctx: &RequestContext) -> ResponseExtensions {
+    let mut ext = ResponseExtensions::default();
+    if ctx.include_grafbase_response_extension {
+        ext.grafbase = Some(if schema.settings.response_extension.include_trace_id {
+            let trace_id = tracing::Span::current().context().span().span_context().trace_id();
+            GrafbaseResponseExtension::default().with_trace_id(trace_id)
+        } else {
+            GrafbaseResponseExtension::default()
+        });
+    }
+    ext
+}
+
+pub(crate) fn response_extension_for_prepared_operation(
     schema: &Schema,
     ctx: &RequestContext,
-) -> Option<GrafbaseResponseExtension> {
-    if !ctx.include_grafbase_response_extension {
-        return None;
-    }
-    Some(if schema.settings.response_extension.include_trace_id {
-        let trace_id = tracing::Span::current().context().span().span_context().trace_id();
-        GrafbaseResponseExtension::default().with_trace_id(trace_id)
-    } else {
-        GrafbaseResponseExtension::default()
-    })
+    operation: &PreparedOperation,
+) -> ResponseExtensions {
+    let mut ext = default_response_extensions(schema, ctx);
+    if ctx.include_grafbase_response_extension && schema.settings.response_extension.include_query_plan {
+        ext.grafbase = Some(ext.grafbase.unwrap_or_default().with_query_plan(schema, operation))
+    };
+    ext
 }
