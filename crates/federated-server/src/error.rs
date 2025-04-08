@@ -6,6 +6,8 @@ pub enum Error {
     #[error("Error validating federated SDL: {0}")]
     /// The GraphQL schema validation
     SchemaValidationError(String),
+    #[error("Error rendering the schema fetch url: {0}")]
+    RenderSchemaFetchUrlError(String),
     /// Internal error
     #[error("internal error: {0}")]
     InternalError(String),

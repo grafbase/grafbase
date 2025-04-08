@@ -97,7 +97,12 @@ impl GdnGraphUpdater {
     /// # Errors
     ///
     /// Returns an error if the HTTP client cannot be built or if the URL parsing fails.
-    pub fn new(graph_ref: GraphRef, access_token: AsciiString, sender: GraphSender) -> crate::Result<Self> {
+    pub fn new(
+        schema_fetch_url: Option<gateway_config::SchemaFetchUrl>,
+        graph_ref: GraphRef,
+        access_token: AsciiString,
+        sender: GraphSender,
+    ) -> crate::Result<Self> {
         let gdn_client = reqwest::ClientBuilder::new()
             .timeout(GDN_TIMEOUT)
             .connect_timeout(CONNECT_TIMEOUT)
@@ -108,22 +113,31 @@ impl GdnGraphUpdater {
             .build()
             .map_err(|e| crate::Error::InternalError(e.to_string()))?;
 
-        let gdn_host = match std::env::var("GRAFBASE_GDN_URL") {
-            Ok(host) => Cow::Owned(host),
-            Err(_) => Cow::Borrowed(GDN_HOST),
-        };
+        let gdn_url = match schema_fetch_url {
+            Some(schema_fetch_url) => schema_fetch_url
+                .render(graph_ref.slug(), graph_ref.branch())
+                .map_err(crate::Error::RenderSchemaFetchUrlError)?,
+            None => {
+                let gdn_host = match std::env::var("GRAFBASE_GDN_URL") {
+                    Ok(host) => Cow::Owned(host),
+                    Err(_) => Cow::Borrowed(GDN_HOST),
+                };
 
-        let gdn_url = match graph_ref {
-            GraphRef::LatestProductionVersion { graph_slug } => format!("{gdn_host}/graphs/{graph_slug}/current"),
-            GraphRef::LatestVersion {
-                graph_slug,
-                branch_name,
-            } => format!("{gdn_host}/graphs/{graph_slug}/{branch_name}/current"),
-            GraphRef::Id {
-                graph_slug,
-                branch_name,
-                version,
-            } => format!("{gdn_host}/graphs/{graph_slug}/{branch_name}/{version}"),
+                match graph_ref {
+                    GraphRef::LatestProductionVersion { graph_slug } => {
+                        format!("{gdn_host}/graphs/{graph_slug}/current")
+                    }
+                    GraphRef::LatestVersion {
+                        graph_slug,
+                        branch_name,
+                    } => format!("{gdn_host}/graphs/{graph_slug}/{branch_name}/current"),
+                    GraphRef::Id {
+                        graph_slug,
+                        branch_name,
+                        version,
+                    } => format!("{gdn_host}/graphs/{graph_slug}/{branch_name}/{version}"),
+                }
+            }
         };
 
         let gdn_url = gdn_url
