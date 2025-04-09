@@ -7,7 +7,6 @@ mod complexity_control;
 pub mod cors;
 pub mod entity_caching;
 pub mod extensions;
-mod graph;
 pub mod header;
 pub mod health;
 pub mod hooks;
@@ -25,7 +24,7 @@ mod websockets_config;
 use std::{collections::BTreeMap, net::SocketAddr, path::PathBuf, time::Duration};
 
 pub use self::{
-    graph::*, log_level::*, subscription_protocol::SubscriptionProtocol, trusted_documents::*,
+    log_level::*, subscription_protocol::SubscriptionProtocol, trusted_documents::*,
     websockets_config::WebsocketsConfig,
 };
 pub use authentication::*;
@@ -294,7 +293,6 @@ pub struct GraphConfig {
     pub websocket_path: String,
     // We do want to distinguish None from false for grafbase dev
     pub introspection: Option<bool>,
-    pub fetch_schema_url: Option<graph::SchemaFetchUrl>,
 }
 
 impl Default for GraphConfig {
@@ -303,7 +301,6 @@ impl Default for GraphConfig {
             path: "/graphql".to_string(),
             websocket_path: "/ws".to_string(),
             introspection: None,
-            fetch_schema_url: None,
         }
     }
 }

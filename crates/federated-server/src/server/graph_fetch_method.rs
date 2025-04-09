@@ -13,7 +13,6 @@ pub enum GraphFetchMethod {
         /// The access token for accessing the the API.
         access_token: ascii::AsciiString,
         graph_ref: GraphRef,
-        fetch_url: Option<gateway_config::SchemaFetchUrl>,
     },
     /// The schema is loaded from disk. No access to the Grafbase API.
     FromSchema {
@@ -47,16 +46,13 @@ impl GraphFetchMethod {
             GraphFetchMethod::FromGraphRef {
                 access_token,
                 graph_ref,
-                fetch_url,
             } => {
                 let (sender, receiver) = mpsc::channel(4);
 
                 tokio::spawn(async move {
                     use super::graph_updater::GdnGraphUpdater;
 
-                    GdnGraphUpdater::new(fetch_url, graph_ref, access_token, sender)?
-                        .poll()
-                        .await;
+                    GdnGraphUpdater::new(graph_ref, access_token, sender)?.poll().await;
 
                     Ok::<_, crate::Error>(())
                 });
