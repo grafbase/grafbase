@@ -1,0 +1,3479 @@
+directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
+
+directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
+
+directive @join__graph(name: String!, url: String) on ENUM_VALUE
+
+directive @join__field(
+  graph: join__Graph
+  requires: join__FieldSet
+  provides: join__FieldSet
+  type: String
+  external: Boolean
+  override: String
+  overrideLabel: String
+) on FIELD_DEFINITION
+
+directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boolean = true) on OBJECT | INTERFACE
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+"""
+RFC3339 formatted date in the UTC time zone denoted by letter 'Z'
+"""
+scalar DateTime
+
+"""
+Implement the Duration scalar
+
+The input/output is a string in ISO8601 format.
+"""
+scalar Duration
+
+"""
+A scalar that can represent any JSON value.
+"""
+scalar JSON
+
+scalar OperationNormalizedQueryHash
+
+scalar SemverVersion
+
+scalar SemverVersionRequirement
+
+scalar Upload
+
+"""
+URL is a String implementing the [URL Standard](http://url.spec.whatwg.org/)
+"""
+scalar Url
+
+scalar VersionedExtensionManifest
+
+"""
+The `_Any` scalar is used to pass representations of entities from external
+services into the root `_entities` field for execution.
+"""
+scalar _Any
+
+scalar join__FieldSet
+
+type AccessToken implements Node @join__type(graph: API) @join__implements(graph: API, interface: "Node") {
+  accountId: ID
+  createdAt: DateTime!
+  expiresAt: DateTime
+  graphScopes: [Graph!]!
+  id: ID!
+  name: String!
+}
+
+type AccessTokenConnection @join__type(graph: API) {
+  """
+  A list of edges.
+  """
+  edges: [AccessTokenEdge!]!
+  """
+  A list of nodes.
+  """
+  nodes: [AccessToken!]!
+  """
+  Information to aid in pagination.
+  """
+  pageInfo: PageInfo!
+}
+
+type AccessTokenCreateSuccess @join__type(graph: API) {
+  jwt: String!
+  query: Query!
+  token: AccessToken!
+}
+
+type AccessTokenDeleteSuccess @join__type(graph: API) {
+  deletedId: ID!
+  query: Query!
+}
+
+"""
+An edge in a connection.
+"""
+type AccessTokenEdge @join__type(graph: API) {
+  """
+  A cursor for use in pagination
+  """
+  cursor: String!
+  """
+  The item at the end of the edge
+  """
+  node: AccessToken!
+}
+
+type AccountCreationValidatePayload @join__type(graph: API) {
+  slugAvailable: Boolean!
+}
+
+type AccountDoesNotExistError @join__type(graph: API) {
+  query: Query!
+}
+
+type AccountIdMissingForAccountAccessTokenError @join__type(graph: API) {
+  query: Query!
+}
+
+type AccountStatus @join__type(graph: API) {
+  isEnabled: Boolean!
+}
+
+type AccountUsageTimeSeries @join__type(graph: API) {
+  overall: UsageMetrics!
+  points: [UsageMetricsTimeSeriesDataPoint!]!
+}
+
+type AlreadyExistsError @join__type(graph: API) {
+  query: Query!
+}
+
+type AlreadyMemberError @join__type(graph: API) {
+  query: Query!
+}
+
+type BadWasmModuleError @join__type(graph: API) {
+  error: String!
+  query: Query!
+}
+
+type Branch implements Node @join__type(graph: API) @join__implements(graph: API, interface: "Node") {
+  activeDeployment: Deployment
+  analytics(filters: GraphAnalyticsFilters!): GraphAnalytics
+  deployments(after: String, before: String, first: Int, last: Int, filters: DeploymentFilters): DeploymentConnection!
+  domains: [String!]!
+  endpointConfig: EndpointConfig
+  environment: BranchEnvironment!
+  federatedSchema: String
+  graph: Graph!
+  id: ID!
+  latestDeployment: Deployment
+  name: String!
+  operationChecksEnabled: Boolean!
+  schema: String
+  schemaProposals(after: String, first: Int, filter: SchemaProposalFilter!): SchemaProposalConnection!
+  schemaProposalsConfiguration: SchemaProposalsConfiguration!
+  subgraphs: [Subgraph!]!
+}
+
+type BranchAlreadyExistsError @join__type(graph: API) {
+  query: Query!
+}
+
+type BranchConnection @join__type(graph: API) {
+  """
+  A list of edges.
+  """
+  edges: [BranchEdge!]!
+  """
+  A list of nodes.
+  """
+  nodes: [Branch!]!
+  """
+  Information to aid in pagination.
+  """
+  pageInfo: PageInfo!
+}
+
+type BranchDoesNotExistError @join__type(graph: API) {
+  query: Query!
+}
+
+"""
+An edge in a connection.
+"""
+type BranchEdge @join__type(graph: API) {
+  """
+  A cursor for use in pagination
+  """
+  cursor: String!
+  """
+  The item at the end of the edge
+  """
+  node: Branch!
+}
+
+type CannotBeRenamedError @join__type(graph: API) {
+  query: Query!
+}
+
+type CannotDeleteProductionBranchError @join__type(graph: API) {
+  query: Query!
+}
+
+type CannotUseInvitationsWithSSO @join__type(graph: API) {
+  query: Query!
+}
+
+type CompositionCheckError @join__type(graph: API) {
+  message: String!
+  severity: SchemaCheckErrorSeverity!
+  title: String!
+}
+
+type CouldNotFindGraphsError @join__type(graph: API) {
+  unknownGraphIds: [ID!]!
+}
+
+type CouldNotFindProjectsError @join__type(graph: API) {
+  unknownProjectIds: [ID!]!
+}
+
+type CurrentPlanLimitReachedError @join__type(graph: API) {
+  max: Int!
+  query: Query!
+}
+
+type CustomCheckWebhook @join__type(graph: API) {
+  createdAt: DateTime!
+  createdBy: User
+  """
+  The headers sent to the webhook with custom check events.
+  """
+  headers: [HttpHeader!]!
+  id: ID!
+  """
+  The url called as part of custom checks.
+  """
+  url: Url!
+}
+
+type CustomCheckWebhookNotFoundError @join__type(graph: API) {
+  query: Query!
+}
+
+type DeleteSubgraphDeploymentFailure @join__type(graph: API) {
+  deploymentError: String!
+  query: Query!
+}
+
+type DeleteSubgraphSuccess @join__type(graph: API) {
+  query: Query!
+}
+
+"""
+Deployment
+"""
+type Deployment implements Node @join__type(graph: API) @join__implements(graph: API, interface: "Node") {
+  """
+  The schema exposed by the gateway.
+  """
+  apiSchema: String
+  """
+  Diff of the API SDL in this deployment with the last successful deployment. This field only makes sense for successful deployments, so it will be null on failed deployments.
+  """
+  apiSchemaDiff: [DiffSnippet!]
+  branch: Branch!
+  changeCounts: DeploymentChangeCounts
+  compositionInputs: [DeploymentSubgraph!]!
+  createdAt: DateTime!
+  """
+  The duration of the deployment in milliseconds.
+  """
+  duration: Int
+  """
+  The federated SDL used to initialize the gateway.
+  """
+  federatedSdl: String
+  finishedAt: DateTime
+  id: ID!
+  isRedeployable: Boolean!
+  startedAt: DateTime
+  status: DeploymentStatus!
+  steps: [DeploymentStep!]!
+  """
+  The subgraph that was published or removed, triggering the deployment.
+
+  This is nullable in case we introduce back redeployments in the future.
+  """
+  subgraph: DeploymentSubgraph
+}
+
+type DeploymentChangeCounts @join__type(graph: API) {
+  addedFields: Int!
+  addedTypes: Int!
+  changedFields: Int!
+  changedTypes: Int!
+  removedFields: Int!
+  removedTypes: Int!
+}
+
+type DeploymentConnection @join__type(graph: API) {
+  """
+  A list of edges.
+  """
+  edges: [DeploymentEdge!]!
+  """
+  A list of nodes.
+  """
+  nodes: [Deployment!]!
+  """
+  Information to aid in pagination.
+  """
+  pageInfo: PageInfo!
+}
+
+"""
+An edge in a connection.
+"""
+type DeploymentEdge @join__type(graph: API) {
+  """
+  A cursor for use in pagination
+  """
+  cursor: String!
+  """
+  The item at the end of the edge
+  """
+  node: Deployment!
+}
+
+type DeploymentStep @join__type(graph: API) {
+  durationMs: Int!
+  errors: [DeploymentStepError!]!
+  startedAt: DateTime!
+  status: DeploymentStepStatus!
+  title: String!
+}
+
+type DeploymentStepGeneralError @join__type(graph: API) {
+  message: String!
+}
+
+type DeploymentSubgraph @join__type(graph: API) {
+  name: String!
+  url: String
+  versionNumber: Int!
+}
+
+type DiffSnippet @join__type(graph: API) {
+  addedLines: [Int!]!
+  originalSchemaSnippet: String!
+  originalSchemaSnippetFirstLine: Int!
+  proposedSchemaSnippet: String!
+  proposedSchemaSnippetFirstLine: Int!
+  removedLines: [Int!]!
+}
+
+type DisabledAccountError @join__type(graph: API) {
+  query: Query!
+}
+
+type EndpointConfig @join__type(graph: API) {
+  url: String!
+}
+
+type ErrorCountByCode @join__type(graph: API) {
+  code: String!
+  count: Int!
+}
+
+type Extension implements Node @join__type(graph: API) @join__implements(graph: API, interface: "Node") {
+  highestVersion: ExtensionVersion
+  id: ID!
+  name: String!
+  owners: [User!]
+  versions: [ExtensionVersion!]!
+}
+
+type ExtensionAddOwnerSuccess @join__type(graph: API) {
+  query: Query!
+}
+
+type ExtensionConnection @join__type(graph: API) {
+  """
+  A list of edges.
+  """
+  edges: [ExtensionEdge!]!
+  """
+  A list of nodes.
+  """
+  nodes: [Extension!]!
+  """
+  Information to aid in pagination.
+  """
+  pageInfo: PageInfo!
+}
+
+type ExtensionDoesNotExistError @join__type(graph: API) {
+  query: Query!
+}
+
+"""
+An edge in a connection.
+"""
+type ExtensionEdge @join__type(graph: API) {
+  """
+  A cursor for use in pagination
+  """
+  cursor: String!
+  """
+  The item at the end of the edge
+  """
+  node: Extension!
+}
+
+type ExtensionPublishSuccess @join__type(graph: API) {
+  extensionVersion: ExtensionVersion!
+  query: Query!
+}
+
+type ExtensionRemoveOwnerSuccess @join__type(graph: API) {
+  query: Query!
+}
+
+type ExtensionUnauthorized @join__type(graph: API) {
+  message: String!
+  query: Query!
+}
+
+type ExtensionValidationError @join__type(graph: API) {
+  error: String!
+  query: Query!
+}
+
+type ExtensionVersion @join__type(graph: API) {
+  createdAt: DateTime!
+  defaultPermissions: [ExtensionDefaultPermission!]
+  definitionsSdl: String
+  description: String!
+  extension: Extension!
+  homepageUrl: Url
+  kind: ExtensionKind!
+  license: String
+  minimumCompatibleGatewayVersion: SemverVersion
+  publishedBy: User
+  readme: String
+  repositoryUrl: Url
+  sdkVersion: SemverVersion!
+  sdl: String
+  version: SemverVersion!
+}
+
+type ExtensionVersionAlreadyExistsError @join__type(graph: API) {
+  query: Query!
+}
+
+type ExtensionVersionDoesNotExistError @join__type(graph: API) {
+  query: Query!
+}
+
+type FederatedGraphCompositionError @join__type(graph: API) {
+  messages: [String!]!
+  query: Query!
+}
+
+type FieldAnalytics @join__type(graph: API) {
+  metrics: FieldMetricsTimeSeries
+  topClients(
+    "Detaults to 10, Max 100"
+    limit: Int
+    "Search over the client names/versions"
+    searchQuery: String
+  ): TopClientsForField
+}
+
+type FieldMetrics @join__type(graph: API) {
+  count: Int!
+}
+
+type FieldMetricsTimeSeries @join__type(graph: API) {
+  overall: FieldMetrics!
+  points: [FieldMetricsTimeSeriesDataPoint!]!
+  previousPeriod: FieldMetricsTimeSeries
+}
+
+type FieldMetricsTimeSeriesDataPoint @join__type(graph: API) {
+  count: Int!
+  dateTime: DateTime!
+}
+
+type Graph implements Node @join__type(graph: API) @join__implements(graph: API, interface: "Node") {
+  account: Account!
+  analytics(filters: GraphAnalyticsFilters!): GraphAnalytics
+  branch(name: String): Branch
+  branches(after: String, before: String, first: Int, last: Int): BranchConnection!
+  createdAt: DateTime!
+  """
+  Webhooks for custom schema checks.
+  """
+  customCheckWebhooks: [CustomCheckWebhook!]
+  id: ID!
+  operationChecksConfiguration: GraphOperationCheckConfiguration!
+  owners: [Team!]!
+  productionBranch: Branch!
+  request(
+    branchName: String
+    "The approximate timestamp of the request, within a few minutes of the actual request."
+    approximateTimestamp: DateTime!
+    traceId: ID!
+  ): Request
+  requests(after: String, before: String, first: Int, last: Int, filters: RequestFilters!): RequestConnection
+  schemaChecks(after: String, before: String, first: Int, last: Int, branch: String): SchemaCheckConnection!
+  schemaProposals(after: String, first: Int): SchemaProposalConnection!
+  slug: String!
+}
+
+type GraphAddOwnerSuccess @join__type(graph: API) {
+  query: Query!
+}
+
+type GraphAnalytics @join__type(graph: API) {
+  forField("Schema path defined as: '<parent-type-name>.<name>'" schemaPath: String!): FieldAnalytics!
+  requestMetrics(
+    "Latency percentiles to retrieve. Ex: [50, 99, 99.9]"
+    latencyPercentiles: [Float!]
+  ): RequestMetricsTimeSeriesV2
+  topClients(
+    "Detaults to 10, Max 100"
+    limit: Int
+    "Search over the client names/versions"
+    searchQuery: String
+    "If not specified, top clients by latency will be empty. Ex: 95"
+    latencyPercentile: Float
+  ): TopClients
+  topOperations(
+    "Detaults to 10, Max 100"
+    limit: Int
+    "Search over the opeartion names"
+    searchQuery: String
+    "If not specified, top operations by latency will be empty. Ex: 95"
+    latencyPercentile: Float
+  ): TopOperations
+}
+
+type GraphBranchDoesNotExistError @join__type(graph: API) {
+  query: Query!
+}
+
+type GraphConnection @join__type(graph: API) {
+  """
+  A list of edges.
+  """
+  edges: [GraphEdge!]!
+  """
+  A list of nodes.
+  """
+  nodes: [Graph!]!
+  """
+  Information to aid in pagination.
+  """
+  pageInfo: PageInfo!
+}
+
+type GraphCreateSuccess @join__type(graph: API) {
+  graph: Graph!
+  query: Query!
+}
+
+type GraphDeleteSuccess @join__type(graph: API) {
+  query: Query!
+}
+
+type GraphDoesNotExistError @join__type(graph: API) {
+  query: Query!
+}
+
+"""
+An edge in a connection.
+"""
+type GraphEdge @join__type(graph: API) {
+  """
+  A cursor for use in pagination
+  """
+  cursor: String!
+  """
+  The item at the end of the edge
+  """
+  node: Graph!
+}
+
+type GraphNotFederatedError @join__type(graph: API) {
+  query: Query!
+}
+
+type GraphNotSelfHostedError @join__type(graph: API) {
+  query: Query!
+}
+
+type GraphOperationCheckConfiguration @join__type(graph: API) {
+  """
+  The clients to exclude from operation checks.
+  """
+  excludedClients: [String!]!
+  """
+  The operations to exclude from operation checks.
+  """
+  excludedOperations: [String!]!
+  """
+  The request count threshold to consider for operation checks. Operations that have been
+  registered less than the specified number of occurrences are ignored.
+  """
+  requestCountThreshold: Int!
+  """
+  The time range in days to consider for operation checks. Operations older than the specificied
+  number of days are ignored.
+  """
+  timeRangeDays: Int!
+}
+
+type GraphRemoveOwnerSuccess @join__type(graph: API) {
+  query: Query!
+}
+
+type GraphScopeLimitExceededError @join__type(graph: API) {
+  query: Query!
+}
+
+type GraphUpdateSuccess @join__type(graph: API) {
+  graph: Graph!
+  query: Query!
+}
+
+type HttpHeader @join__type(graph: API) {
+  name: String!
+  value: String!
+}
+
+type InvalidAccountError @join__type(graph: API) {
+  query: Query!
+}
+
+type InvalidEmailAddressError @join__type(graph: API) {
+  query: Query!
+}
+
+type Invite implements Node @join__type(graph: API) @join__implements(graph: API, interface: "Node") {
+  createdAt: DateTime!
+  email: String!
+  id: ID!
+  invitedBy: User!
+  lastRenewedAt: DateTime!
+  organization: Organization!
+  role: MemberRole!
+  status: InviteStatus!
+}
+
+type InviteAcceptSuccess @join__type(graph: API) {
+  member: Member!
+  query: Query!
+}
+
+type InviteCancelSuccess @join__type(graph: API) {
+  inviteId: ID!
+  query: Query!
+}
+
+type InviteConnection @join__type(graph: API) {
+  """
+  A list of edges.
+  """
+  edges: [InviteEdge!]!
+  """
+  A list of nodes.
+  """
+  nodes: [Invite!]!
+  """
+  Information to aid in pagination.
+  """
+  pageInfo: PageInfo!
+}
+
+type InviteDeclineSuccess @join__type(graph: API) {
+  inviteId: ID!
+  query: Query!
+}
+
+type InviteDoesNotExistError @join__type(graph: API) {
+  query: Query!
+}
+
+"""
+An edge in a connection.
+"""
+type InviteEdge @join__type(graph: API) {
+  """
+  A cursor for use in pagination
+  """
+  cursor: String!
+  """
+  The item at the end of the edge
+  """
+  node: Invite!
+}
+
+type InviteSendSuccess @join__type(graph: API) {
+  invite: Invite!
+  query: Query!
+}
+
+type LintCheckError @join__type(graph: API) {
+  message: String!
+  severity: SchemaCheckErrorSeverity!
+  title: String!
+}
+
+type ManagedGraphsNoLongerSupportedError @join__type(graph: API) {
+  query: Query!
+}
+
+type Member implements Node @join__type(graph: API) @join__implements(graph: API, interface: "Node") {
+  account: Account!
+  createdAt: DateTime!
+  id: ID!
+  role: MemberRole!
+  user: User!
+}
+
+type MemberConnection @join__type(graph: API) {
+  """
+  A list of edges.
+  """
+  edges: [MemberEdge!]!
+  """
+  A list of nodes.
+  """
+  nodes: [Member!]!
+  """
+  Information to aid in pagination.
+  """
+  pageInfo: PageInfo!
+}
+
+type MemberDeletePayload @join__type(graph: API) {
+  deletedMemberId: ID!
+  query: Query!
+}
+
+"""
+An edge in a connection.
+"""
+type MemberEdge @join__type(graph: API) {
+  """
+  A cursor for use in pagination
+  """
+  cursor: String!
+  """
+  The item at the end of the edge
+  """
+  node: Member!
+}
+
+type MemberUpdatePayload @join__type(graph: API) {
+  member: Member!
+  query: Query!
+}
+
+type NameSizeCheckError @join__type(graph: API) {
+  maxLength: Int!
+  message: String!
+  query: Query!
+}
+
+type NotAllowedError @join__type(graph: API) {
+  query: Query!
+}
+
+type NotAllowedToCancelInvitesError @join__type(graph: API) {
+  query: Query!
+}
+
+type NotAllowedToDeleteOrganizationError @join__type(graph: API) {
+  query: Query!
+}
+
+type NotAllowedToSendInvitesError @join__type(graph: API) {
+  query: Query!
+}
+
+type NotAllowedToSlugUpdateError @join__type(graph: API) {
+  query: Query!
+}
+
+type NotAllowedToUpdateOrganizationError @join__type(graph: API) {
+  query: Query!
+}
+
+type NotificationsInbox @join__type(graph: API) {
+  messages: [InboxMessage!]!
+}
+
+type NotificationsMarkAsReadSuccess @join__type(graph: API) {
+  query: Query!
+  """
+  How many notifications were marked as read.
+  """
+  updated: Int!
+}
+
+type OldAccessTokenError @join__type(graph: API) {
+  query: Query!
+}
+
+type Operation implements Node @join__type(graph: API) @join__implements(graph: API, interface: "Node") {
+  id: ID!
+  name: String
+  normalizedQuery: String!
+  type: OperationType!
+}
+
+type OperationCheckError @join__type(graph: API) {
+  message: String!
+  severity: SchemaCheckErrorSeverity!
+  title: String!
+}
+
+type Organization implements Account & Node
+  @join__type(graph: API)
+  @join__implements(graph: API, interface: "Account")
+  @join__implements(graph: API, interface: "Node") {
+  accessTokens(after: String, before: String, first: Int, last: Int): AccessTokenConnection!
+  """
+  The url for the UI button to install the Grafbase slack app. It is
+  important to use this link and keep it private, since it contains the signed
+  account id of the authenticated user.
+  """
+  addToSlackLink: String!
+  createdAt: DateTime!
+  graphs(after: String, before: String, first: Int, last: Int): GraphConnection!
+  id: ID!
+  invites(after: String, before: String, first: Int, last: Int): InviteConnection!
+  members(after: String, before: String, first: Int, last: Int): MemberConnection!
+  name: String!
+  plan: GrafbasePlan!
+  samlDomain: String
+  slackIntegration: SlackIntegration
+  slug: String!
+  status: AccountStatus!
+  teams(after: String, first: Int): TeamConnection!
+  trialExpiresAt: DateTime
+  usage(filters: UsageFilters!): AccountUsageTimeSeries
+}
+
+type OrganizationConnection @join__type(graph: API) {
+  """
+  A list of edges.
+  """
+  edges: [OrganizationEdge!]!
+  """
+  A list of nodes.
+  """
+  nodes: [Organization!]!
+  """
+  Information to aid in pagination.
+  """
+  pageInfo: PageInfo!
+}
+
+type OrganizationCreateSuccess @join__type(graph: API) {
+  member: Member!
+  organization: Organization!
+  query: Query!
+}
+
+type OrganizationDeleteSuccess @join__type(graph: API) {
+  deletedId: ID!
+  query: Query!
+}
+
+type OrganizationDoesNotExistError @join__type(graph: API) {
+  query: Query!
+}
+
+"""
+An edge in a connection.
+"""
+type OrganizationEdge @join__type(graph: API) {
+  """
+  A cursor for use in pagination
+  """
+  cursor: String!
+  """
+  The item at the end of the edge
+  """
+  node: Organization!
+}
+
+type OrganizationOwnershipNotTransferredError @join__type(graph: API) {
+  query: Query!
+}
+
+type OrganizationSlugUpdateSuccess @join__type(graph: API) {
+  organization: Organization!
+  query: Query!
+}
+
+type OrganizationUpdateSuccess @join__type(graph: API) {
+  organization: Organization!
+  query: Query!
+}
+
+"""
+Information about pagination in a connection
+"""
+type PageInfo @join__type(graph: API) {
+  """
+  When paginating forwards, the cursor to continue.
+  """
+  endCursor: String
+  """
+  When paginating forwards, are there more items?
+  """
+  hasNextPage: Boolean!
+  """
+  When paginating backwards, are there more items?
+  """
+  hasPreviousPage: Boolean!
+  """
+  When paginating backwards, the cursor to continue.
+  """
+  startCursor: String
+}
+
+type PersonalAccountDeleteSuccess @join__type(graph: API) {
+  deletedId: ID!
+  query: Query!
+}
+
+type PersonalAccountUpdateSuccess @join__type(graph: API) {
+  query: Query!
+}
+
+type ProjectBranchDoesNotExistError @join__type(graph: API) {
+  query: Query!
+}
+
+type ProjectDoesNotExistError @join__type(graph: API) {
+  query: Query!
+}
+
+type ProjectNotFederatedError @join__type(graph: API) {
+  query: Query!
+}
+
+type ProjectScopeLimitExceededError @join__type(graph: API) {
+  query: Query!
+}
+
+type ProposalCheckError @join__type(graph: API) {
+  message: String!
+  title: String!
+}
+
+type PublishDeploymentFailure @join__type(graph: API) {
+  deploymentError: String!
+  query: Query!
+}
+
+type PublishForbidden @join__type(graph: API) {
+  query: Query!
+}
+
+"""
+Returned when the client tries to publish the same subgraph schema with the same url as already published. Such a publish does not result in a deployment.
+"""
+type PublishNoChange @join__type(graph: API) {
+  query: Query!
+}
+
+type PublishSuccess @join__type(graph: API) {
+  query: Query!
+}
+
+type Request implements Node @join__type(graph: API) @join__implements(graph: API, interface: "Node") {
+  clientName: String!
+  clientVersion: String!
+  endedAt: DateTime!
+  errorCount: Int!
+  errorCountByCode: [ErrorCountByCode!]!
+  httpRequestMethod: String!
+  httpStatusCode: Int!
+  id: ID!
+  operations: [RequestOperation!]!
+  rootSpanId: ID!
+  startedAt: DateTime!
+  trace: Trace!
+  urlPath: String!
+  userAgent: String!
+}
+
+type RequestConnection @join__type(graph: API) {
+  """
+  A list of edges.
+  """
+  edges: [RequestEdge!]!
+  """
+  A list of nodes.
+  """
+  nodes: [Request!]!
+  """
+  Information to aid in pagination.
+  """
+  pageInfo: PageInfo!
+}
+
+"""
+An edge in a connection.
+"""
+type RequestEdge @join__type(graph: API) {
+  """
+  A cursor for use in pagination
+  """
+  cursor: String!
+  """
+  The item at the end of the edge
+  """
+  node: Request!
+}
+
+type RequestMetricsTimeSeriesDataPointV2 @join__type(graph: API) {
+  cacheHitCount: Int!
+  cacheMissCount: Int!
+  cachePassCount: Int!
+  count: Int!
+  dateTime: DateTime!
+  error4XxCount: Int!
+  error5XxCount: Int!
+  errorGraphqlCount: Int!
+  latencyMsPercentiles: [Int!]!
+}
+
+type RequestMetricsTimeSeriesV2 @join__type(graph: API) {
+  overall: RequestMetricsV2!
+  points: [RequestMetricsTimeSeriesDataPointV2!]!
+  previousPeriod: RequestMetricsTimeSeriesV2
+}
+
+type RequestMetricsV2 @join__type(graph: API) {
+  cacheHitCount: Int!
+  cacheMissCount: Int!
+  cachePassCount: Int!
+  count: Int!
+  error4XxCount: Int!
+  error5XxCount: Int!
+  errorGraphqlCount: Int!
+  latencyMsPercentiles: [Int!]!
+}
+
+type RequestOperation @join__type(graph: API) {
+  name: String!
+  type: OperationType!
+}
+
+type ReservedSlugsCheckError @join__type(graph: API) {
+  message: String!
+  query: Query!
+}
+
+"""
+An occurrence of a trusted document that was submitted again (same id), but with a different document text. This is an error.
+"""
+type ReusedId @join__type(graph: API) {
+  """
+  The document id
+  """
+  documentId: String!
+  """
+  The existing document body
+  """
+  existingDocumentText: String!
+  """
+  The different, newly submitted document body
+  """
+  newDocumentText: String!
+}
+
+"""
+Trusted documents that were uploaded again (same id), but with a different document body. This is an error.
+"""
+type ReusedIds @join__type(graph: API) {
+  reused: [ReusedId!]!
+}
+
+type ReviewerDoesNotExistError @join__type(graph: API) {
+  query: Query!
+}
+
+type SchemaCheck @join__type(graph: API) {
+  compositionCheckErrors: [CompositionCheckError!]! @deprecated(reason: "Replaced by SchemaCheck.diagnostics")
+  createdAt: DateTime!
+  diagnostics: [SchemaCheckDiagnostic!]!
+  errorCount: Int!
+  gitCommit: SchemaCheckGitCommit
+  id: ID!
+  lintCheckErrors: [LintCheckError!]! @deprecated(reason: "Replaced by SchemaCheck.diagnostics")
+  operationCheckErrors: [OperationCheckError!]! @deprecated(reason: "Replaced by SchemaCheck.diagnostics")
+  proposalCheckErrors: [ProposalCheckError!]! @deprecated(reason: "Replaced by SchemaCheck.diagnostics")
+  schema: String!
+  subgraphName: String
+  validationCheckErrors: [ValidationCheckError!]! @deprecated(reason: "Replaced by SchemaCheck.diagnostics")
+}
+
+type SchemaCheckConnection @join__type(graph: API) {
+  """
+  A list of edges.
+  """
+  edges: [SchemaCheckEdge!]!
+  """
+  A list of nodes.
+  """
+  nodes: [SchemaCheck!]!
+  """
+  Information to aid in pagination.
+  """
+  pageInfo: PageInfo!
+}
+
+type SchemaCheckCustomWebhookCreateSuccess @join__type(graph: API) {
+  query: Query!
+}
+
+type SchemaCheckCustomWebhookDeleteSuccess @join__type(graph: API) {
+  query: Query!
+}
+
+type SchemaCheckCustomWebhookUpdateSuccess @join__type(graph: API) {
+  query: Query!
+}
+
+type SchemaCheckDiagnostic @join__type(graph: API) {
+  message: String!
+  severity: SchemaCheckErrorSeverity!
+  step: SchemaCheckStep!
+}
+
+"""
+An edge in a connection.
+"""
+type SchemaCheckEdge @join__type(graph: API) {
+  """
+  A cursor for use in pagination
+  """
+  cursor: String!
+  """
+  The item at the end of the edge
+  """
+  node: SchemaCheck!
+}
+
+type SchemaCheckGitCommit @join__type(graph: API) {
+  authorAvatarUrl: String
+  authorName: String!
+  branch: String!
+  commitSha: String!
+  commitUrl: String
+  message: String!
+}
+
+type SchemaProposal @join__type(graph: API) {
+  """
+  The whole activity feed.
+  """
+  activityFeed: [SchemaProposalActivityFeedItem!]!
+  author: User
+  branch: Branch
+  comments: [SchemaProposalComment!]!
+  createdAt: DateTime!
+  description: String
+  id: ID!
+  """
+  All the reviewers and their status.
+
+  It will return all users that:
+
+  - Have been configured as reviewers for the branch of the proposal.
+  - Have been requested to review the proposal.
+  - Have reviewed the proposal.
+
+  And all the teams that have been configured or requested, but where the review is pending. This does not return teams that have already have a review status, because are returned in SchemaProposalReviewerUser.onBehalfOf.
+  """
+  reviewers: [SchemaProposalReviewer!]!
+  """
+  The revision number of the proposal, i.e. how many times edits were applied to the proposal's subgraphs.
+  """
+  revision: Int!
+  status: SchemaProposalStatus!
+  subgraph(subgraphName: String!): SchemaProposalSubgraph
+  subgraphs: [SchemaProposalSubgraph!]!
+  title: String!
+  """
+  Is the currently logged in user a reviewer of this proposal? That is to say, eitheir they are configured as a reviewer, or
+  """
+  viewerIsReviewer: Boolean!
+}
+
+type SchemaProposalApproval implements SchemaProposalActivityFeedItem & SchemaProposalReview
+  @join__type(graph: API)
+  @join__implements(graph: API, interface: "SchemaProposalActivityFeedItem")
+  @join__implements(graph: API, interface: "SchemaProposalReview") {
+  author: User
+  createdAt: DateTime!
+  id: ID!
+  message: String
+  schemaProposal: SchemaProposal!
+}
+
+type SchemaProposalApproveSuccess @join__type(graph: API) {
+  query: Query!
+}
+
+type SchemaProposalCommentOnLine implements SchemaProposalActivityFeedItem & SchemaProposalComment
+  @join__type(graph: API)
+  @join__implements(graph: API, interface: "SchemaProposalActivityFeedItem")
+  @join__implements(graph: API, interface: "SchemaProposalComment") {
+  """
+  Who wrote the comment. Will be null in case the user was deleted.
+  """
+  author: User
+  """
+  The section of the subgraph SDL where the comment is located.
+  """
+  context(
+    "How many lines around the commented line to include. Fewer lines can be returned if the context reaches the start or the end of the schema."
+    contextLines: Int!
+  ): String
+  createdAt: DateTime!
+  diffSide: DiffSide!
+  id: ID!
+  """
+  Which line the comment applies to in the subgraph SDL. This may be `null` if the comment was on an item that is no longer part of the current subgraph schema.
+
+  The line is 1-indexes
+  """
+  line: Int
+  """
+  The logical path in the schema where the comment is located. This is only exposed for debugging, prefer using the `line` field.
+  """
+  path: String!
+  """
+  All the replies in chronological order, from oldest to newest.
+  """
+  replies: [SchemaProposalReply!]!
+  """
+  Is this comment thread resolved?
+  """
+  resolved: Boolean!
+  """
+  The user who marked the thread as resolved.
+  """
+  resolvedBy: User
+  """
+  Which subgraph the comment applies to.
+  """
+  subgraphName: String!
+  """
+  The content of the comment.
+  """
+  text: String!
+}
+
+type SchemaProposalCommentOnProposal implements SchemaProposalActivityFeedItem & SchemaProposalComment
+  @join__type(graph: API)
+  @join__implements(graph: API, interface: "SchemaProposalActivityFeedItem")
+  @join__implements(graph: API, interface: "SchemaProposalComment") {
+  """
+  Who wrote the comment. Will be null in case the user was deleted.
+  """
+  author: User
+  createdAt: DateTime!
+  id: ID!
+  replies: [SchemaProposalReply!]!
+  text: String!
+}
+
+type SchemaProposalCommentOnSdl implements SchemaProposalActivityFeedItem & SchemaProposalComment
+  @join__type(graph: API)
+  @join__implements(graph: API, interface: "SchemaProposalActivityFeedItem")
+  @join__implements(graph: API, interface: "SchemaProposalComment") {
+  author: User
+  createdAt: DateTime!
+  id: ID!
+  replies: [SchemaProposalReply!]!
+  """
+  Is this comment thread resolved?
+  """
+  resolved: Boolean!
+  """
+  The user who marked the thread as resolved.
+  """
+  resolvedBy: User
+  text: String!
+}
+
+type SchemaProposalCommentReplySuccess @join__type(graph: API) {
+  query: Query!
+}
+
+type SchemaProposalCommentThreadCreateSuccess @join__type(graph: API) {
+  query: Query!
+}
+
+type SchemaProposalCommentThreadResolveSuccess @join__type(graph: API) {
+  affectedRows: Int!
+  query: Query!
+}
+
+type SchemaProposalCommentThreadUnresolveSuccess @join__type(graph: API) {
+  affectedRows: Int!
+  query: Query!
+}
+
+type SchemaProposalConnection @join__type(graph: API) {
+  """
+  A list of edges.
+  """
+  edges: [SchemaProposalEdge!]!
+  """
+  A list of nodes.
+  """
+  nodes: [SchemaProposal!]!
+  """
+  Information to aid in pagination.
+  """
+  pageInfo: PageInfo!
+}
+
+type SchemaProposalCreateSuccess @join__type(graph: API) {
+  query: Query!
+  schemaProposal: SchemaProposal!
+}
+
+type SchemaProposalDeleteSuccess @join__type(graph: API) {
+  query: Query!
+}
+
+type SchemaProposalDoesNotExistError @join__type(graph: API) {
+  query: Query!
+}
+
+"""
+An edge in a connection.
+"""
+type SchemaProposalEdge @join__type(graph: API) {
+  """
+  A cursor for use in pagination
+  """
+  cursor: String!
+  """
+  The item at the end of the edge
+  """
+  node: SchemaProposal!
+}
+
+type SchemaProposalEditParserError @join__type(graph: API) {
+  error: String!
+  spanEnd: Int!
+  spanStart: Int!
+  subgraphName: String!
+}
+
+type SchemaProposalEditParserErrors @join__type(graph: API) {
+  errors: [SchemaProposalEditParserError!]!
+}
+
+type SchemaProposalEditSuccess @join__type(graph: API) {
+  query: Query!
+}
+
+type SchemaProposalRejectSuccess @join__type(graph: API) {
+  query: Query!
+}
+
+type SchemaProposalRejection implements SchemaProposalActivityFeedItem & SchemaProposalReview
+  @join__type(graph: API)
+  @join__implements(graph: API, interface: "SchemaProposalActivityFeedItem")
+  @join__implements(graph: API, interface: "SchemaProposalReview") {
+  author: User
+  createdAt: DateTime!
+  id: ID!
+  message: String
+  schemaProposal: SchemaProposal!
+}
+
+type SchemaProposalReply implements SchemaProposalComment
+  @join__type(graph: API)
+  @join__implements(graph: API, interface: "SchemaProposalComment") {
+  """
+  Who wrote the comment. Will be null in case the user was deleted.
+  """
+  author: User
+  createdAt: DateTime!
+  id: ID!
+  text: String!
+}
+
+type SchemaProposalRequestReviewSuccess @join__type(graph: API) {
+  query: Query!
+}
+
+type SchemaProposalRevertToDraftSuccess @join__type(graph: API) {
+  query: Query!
+}
+
+type SchemaProposalReviewNotification implements InboxMessage
+  @join__type(graph: API)
+  @join__implements(graph: API, interface: "InboxMessage") {
+  createdAt: DateTime!
+  id: ID!
+  readAt: DateTime
+  review: SchemaProposalReview!
+}
+
+type SchemaProposalReviewRequest implements SchemaProposalActivityFeedItem
+  @join__type(graph: API)
+  @join__implements(graph: API, interface: "SchemaProposalActivityFeedItem") {
+  createdAt: DateTime!
+  id: ID!
+  requestFor: UserOrTeam!
+  requestedBy: ID!
+  schemaProposal: SchemaProposal!
+}
+
+type SchemaProposalReviewRequestCreateSuccess @join__type(graph: API) {
+  query: Query!
+}
+
+type SchemaProposalReviewRequestNotification implements InboxMessage
+  @join__type(graph: API)
+  @join__implements(graph: API, interface: "InboxMessage") {
+  createdAt: DateTime!
+  id: ID!
+  readAt: DateTime
+  reviewRequest: SchemaProposalReviewRequest!
+}
+
+type SchemaProposalReviewerTeam @join__type(graph: API) {
+  team: Team!
+}
+
+type SchemaProposalReviewerUser @join__type(graph: API) {
+  """
+  The teams that were requested or configured for review that the user reviewed on behalf of.
+  """
+  onBehalfOf: [Team!]!
+  status: SchemaProposalReviewerStatus!
+  user: User!
+}
+
+type SchemaProposalRevision implements SchemaProposalActivityFeedItem
+  @join__type(graph: API)
+  @join__implements(graph: API, interface: "SchemaProposalActivityFeedItem") {
+  """
+  The author of the revision.
+  """
+  author: User
+  createdAt: DateTime!
+  """
+  The message entered when the author saved changes.
+  """
+  description: String
+}
+
+type SchemaProposalStatusChange implements SchemaProposalActivityFeedItem
+  @join__type(graph: API)
+  @join__implements(graph: API, interface: "SchemaProposalActivityFeedItem") {
+  createdAt: DateTime!
+  fromStatus: SchemaProposalStatus!
+  schemaProposal: SchemaProposal!
+  toStatus: SchemaProposalStatus!
+}
+
+type SchemaProposalStatusChangeNotification implements InboxMessage
+  @join__type(graph: API)
+  @join__implements(graph: API, interface: "InboxMessage") {
+  createdAt: DateTime!
+  id: ID!
+  readAt: DateTime
+}
+
+type SchemaProposalSubgraph @join__type(graph: API) {
+  comments: [SchemaProposalComment!]!
+  diffSnippets: [DiffSnippet!]!
+  name: String!
+  sdl: String
+  status: SchemaProposalSubgraphStatus!
+}
+
+type SchemaProposalsConfiguration @join__type(graph: API) {
+  configuredReviewers: [SchemaProposalsConfiguredReviewers!]!
+  enforceChecks: Boolean!
+  keepApprovalsOnEdit: Boolean!
+  requireApprovalFromSubgraphOwners: Boolean!
+}
+
+type SchemaProposalsConfiguredReviewerAddSuccess @join__type(graph: API) {
+  query: Query!
+  reviewer: SchemaProposalsConfiguredReviewers!
+}
+
+type SchemaProposalsConfiguredReviewerRemoveSuccess @join__type(graph: API) {
+  query: Query!
+}
+
+type SchemaProposalsConfiguredReviewerTeam @join__type(graph: API) {
+  id: ID!
+  team: Team!
+}
+
+type SchemaProposalsConfiguredReviewerUser @join__type(graph: API) {
+  id: ID!
+  user: User!
+}
+
+type SchemaRegistryBranchDoesNotExistError @join__type(graph: API) {
+  query: Query!
+}
+
+type SchemaVersion @join__type(graph: API) {
+  changes(after: String, before: String, first: Int, last: Int): SchemaVersionChangeConnection!
+  createdAt: DateTime!
+  delta: SchemaVersionDelta!
+  id: ID!
+  message: String
+  schema: String!
+  subgraph: Subgraph
+}
+
+type SchemaVersionChange @join__type(graph: API) {
+  message: String!
+  path: String
+  type: SchemaChangeType!
+}
+
+type SchemaVersionChangeConnection @join__type(graph: API) {
+  """
+  A list of edges.
+  """
+  edges: [SchemaVersionChangeEdge!]!
+  """
+  A list of nodes.
+  """
+  nodes: [SchemaVersionChange!]!
+  """
+  Information to aid in pagination.
+  """
+  pageInfo: PageInfo!
+}
+
+"""
+An edge in a connection.
+"""
+type SchemaVersionChangeEdge @join__type(graph: API) {
+  """
+  A cursor for use in pagination
+  """
+  cursor: String!
+  """
+  The item at the end of the edge
+  """
+  node: SchemaVersionChange!
+}
+
+type SchemaVersionConnection @join__type(graph: API) {
+  """
+  A list of edges.
+  """
+  edges: [SchemaVersionEdge!]!
+  """
+  A list of nodes.
+  """
+  nodes: [SchemaVersion!]!
+  """
+  Information to aid in pagination.
+  """
+  pageInfo: PageInfo!
+}
+
+type SchemaVersionDelta @join__type(graph: API) {
+  """
+  Additions.
+  """
+  added: Int!
+  """
+  Modifications.
+  """
+  modified: Int!
+  """
+  Removals.
+  """
+  removed: Int!
+}
+
+"""
+An edge in a connection.
+"""
+type SchemaVersionEdge @join__type(graph: API) {
+  """
+  A cursor for use in pagination
+  """
+  cursor: String!
+  """
+  The item at the end of the edge
+  """
+  node: SchemaVersion!
+}
+
+"""
+A Slack channel returned from the Slack API.
+"""
+type SlackChannel @join__type(graph: API) {
+  id: String!
+  name: String!
+}
+
+type SlackIntegration @join__type(graph: API) {
+  availableChannels: [SlackChannel!]!
+  notifications: [SlackNotification!]!
+}
+
+type SlackNotification @join__type(graph: API) {
+  branchId: String!
+  channelName: String!
+  graphId: String! @deprecated(reason: "Graphs are being removed. Please use SlackNotification.branch_id instead")
+  id: String!
+}
+
+type SlugAlreadyExistsError @join__type(graph: API) {
+  query: Query!
+}
+
+type SlugError @join__type(graph: API) {
+  actual: String!
+  expected: String!
+  message: String!
+  query: Query!
+}
+
+type SlugInvalidError @join__type(graph: API) {
+  query: Query!
+}
+
+type SlugSizeCheckError @join__type(graph: API) {
+  maxLength: Int!
+  message: String!
+  query: Query!
+}
+
+type SlugTooLongError @join__type(graph: API) {
+  maxLength: Int!
+  query: Query!
+}
+
+type StandaloneGraphsNoLongerSupportedError @join__type(graph: API) {
+  query: Query!
+}
+
+type Subgraph @join__type(graph: API) {
+  createdAt: DateTime!
+  name: String!
+  owners: [Team!]!
+  schema: String!
+  updatedAt: DateTime!
+  url: String
+}
+
+type SubgraphAddOwnerSuccess @join__type(graph: API) {
+  query: Query!
+}
+
+type SubgraphNameMissingOnFederatedGraphError @join__type(graph: API) {
+  query: Query!
+}
+
+type SubgraphNotFoundError @join__type(graph: API) {
+  query: Query!
+}
+
+type SubgraphRemoveOwnerSuccess @join__type(graph: API) {
+  query: Query!
+}
+
+type Team implements Node @join__type(graph: API) @join__implements(graph: API, interface: "Node") {
+  id: ID!
+  """
+  The users that are part of the team
+  """
+  members(after: String, first: Int): UserConnection!
+  name: String!
+  """
+  The team this team is member of, if any.
+  """
+  parent: Team
+  parentTeamId: ID
+  query: Query!
+  slug: String!
+  """
+  The teams that are part of the team
+  """
+  subteams(after: String, first: Int): TeamConnection!
+}
+
+type TeamAddMemberSuccess @join__type(graph: API) {
+  query: Query!
+}
+
+type TeamAssignRoleSuccess @join__type(graph: API) {
+  query: Query!
+}
+
+type TeamConnection @join__type(graph: API) {
+  """
+  A list of edges.
+  """
+  edges: [TeamEdge!]!
+  """
+  A list of nodes.
+  """
+  nodes: [Team!]!
+  """
+  Information to aid in pagination.
+  """
+  pageInfo: PageInfo!
+}
+
+type TeamDeleteSuccess @join__type(graph: API) {
+  query: Query!
+}
+
+type TeamDoesNotExistError @join__type(graph: API) {
+  query: Query!
+}
+
+"""
+An edge in a connection.
+"""
+type TeamEdge @join__type(graph: API) {
+  """
+  A cursor for use in pagination
+  """
+  cursor: String!
+  """
+  The item at the end of the edge
+  """
+  node: Team!
+}
+
+type TeamNameAlreadyTakenError @join__type(graph: API) {
+  query: Query!
+}
+
+type TeamRemoveMemberSuccess @join__type(graph: API) {
+  query: Query!
+}
+
+type TokenDoesNotExistError @join__type(graph: API) {
+  query: Query!
+}
+
+type TokenLimitExceededError @join__type(graph: API) {
+  query: Query!
+}
+
+type TopClientByNameAndVersionOrderedByHighestCount @join__type(graph: API) {
+  count: Int!
+  name: String!
+  version: String!
+}
+
+type TopClientByNameAndVersionOrderedByHighestErrorRatio @join__type(graph: API) {
+  count: Int!
+  errorCount: Int!
+  name: String!
+  version: String!
+}
+
+type TopClientByNameAndVersionOrderedByHighestLatency @join__type(graph: API) {
+  latencyMs: Int!
+  name: String!
+  version: String!
+}
+
+type TopClientByNameOrderedByHighestCount @join__type(graph: API) {
+  count: Int!
+  name: String!
+}
+
+type TopClientByNameOrderedByHighestErrorRatio @join__type(graph: API) {
+  count: Int!
+  errorCount: Int!
+  name: String!
+}
+
+type TopClientByNameOrderedByHighestLatency @join__type(graph: API) {
+  latencyMs: Int!
+  name: String!
+}
+
+type TopClients @join__type(graph: API) {
+  byName: TopClientsByName!
+  byNameAndVersion: TopClientsByNameAndVersion!
+}
+
+type TopClientsByName @join__type(graph: API) {
+  orderedByHighestCount: [TopClientByNameOrderedByHighestCount!]!
+  orderedByHighestErrorRatio: [TopClientByNameOrderedByHighestErrorRatio!]!
+  orderedByHighestLatency: [TopClientByNameOrderedByHighestLatency!]!
+}
+
+type TopClientsByNameAndVersion @join__type(graph: API) {
+  orderedByHighestCount: [TopClientByNameAndVersionOrderedByHighestCount!]!
+  orderedByHighestErrorRatio: [TopClientByNameAndVersionOrderedByHighestErrorRatio!]!
+  orderedByHighestLatency: [TopClientByNameAndVersionOrderedByHighestLatency!]!
+}
+
+type TopClientsForField @join__type(graph: API) {
+  byName: TopClientsForFieldByName!
+  byNameAndVersion: TopClientsForFieldByNameAndVersion!
+}
+
+type TopClientsForFieldByName @join__type(graph: API) {
+  orderedByHighestCount: [TopClientByNameOrderedByHighestCount!]!
+}
+
+type TopClientsForFieldByNameAndVersion @join__type(graph: API) {
+  orderedByHighestCount: [TopClientByNameAndVersionOrderedByHighestCount!]!
+}
+
+type TopOperationByNameAndHashOrderedByHighestCount @join__type(graph: API) {
+  count: Int!
+  name: String!
+  normalizedQueryHash: OperationNormalizedQueryHash!
+}
+
+type TopOperationByNameAndHashOrderedByHighestErrorRatio @join__type(graph: API) {
+  count: Int!
+  errorCount: Int!
+  name: String!
+  normalizedQueryHash: OperationNormalizedQueryHash!
+}
+
+type TopOperationByNameAndHashOrderedByHighestLatency @join__type(graph: API) {
+  latencyMs: Int!
+  name: String!
+  normalizedQueryHash: OperationNormalizedQueryHash!
+}
+
+type TopOperationByNameOrderedByHighestCount @join__type(graph: API) {
+  count: Int!
+  name: String!
+}
+
+type TopOperationByNameOrderedByHighestErrorRatio @join__type(graph: API) {
+  count: Int!
+  errorCount: Int!
+  name: String!
+}
+
+type TopOperationByNameOrderedByHighestLatency @join__type(graph: API) {
+  latencyMs: Int!
+  name: String!
+}
+
+type TopOperations @join__type(graph: API) {
+  byName: TopOperationsByName!
+  byNameAndHash: TopOperationsByNameAndHash!
+}
+
+type TopOperationsByName @join__type(graph: API) {
+  orderedByHighestCount: [TopOperationByNameOrderedByHighestCount!]!
+  orderedByHighestErrorRatio: [TopOperationByNameOrderedByHighestErrorRatio!]!
+  orderedByHighestLatency: [TopOperationByNameOrderedByHighestLatency!]!
+}
+
+type TopOperationsByNameAndHash @join__type(graph: API) {
+  orderedByHighestCount: [TopOperationByNameAndHashOrderedByHighestCount!]!
+  orderedByHighestErrorRatio: [TopOperationByNameAndHashOrderedByHighestErrorRatio!]!
+  orderedByHighestLatency: [TopOperationByNameAndHashOrderedByHighestLatency!]!
+}
+
+type Trace @join__type(graph: API) {
+  id: ID!
+  rootSpanId: ID!
+  spans: [TraceSpan!]!
+}
+
+type TraceSpan @join__type(graph: API) {
+  """
+  Attributes are key-value pairs that represent additional information about the span.
+  It's always a map of strings to strings.
+  """
+  attributes: JSON!
+  endedAt: DateTime!
+  id: ID!
+  name: String!
+  parentId: ID
+  startedAt: DateTime!
+  statusCode: TraceSpanStatusCode
+}
+
+type TrialPlanUnavailableError @join__type(graph: API) {
+  query: Query!
+}
+
+type TrustedDocument @join__type(graph: API) {
+  documentId: String!
+  documentText: String!
+}
+
+type TrustedDocumentsSubmitSuccess @join__type(graph: API) {
+  count: Int!
+  documents: [TrustedDocument!]!
+}
+
+type UsageMetrics @join__type(graph: API) {
+  requestsCount: Int!
+  spansCount: Int!
+}
+
+type UsageMetricsTimeSeriesDataPoint @join__type(graph: API) {
+  dateTime: DateTime!
+  requestsCount: Int!
+  spansCount: Int!
+}
+
+type User implements Node @join__type(graph: API) @join__implements(graph: API, interface: "Node") {
+  avatarUrl: String
+  canStartNewTrial: Boolean!
+  createdAt: DateTime!
+  email: String!
+  id: ID!
+  name: String!
+  organizationMemberships: [Member!]!
+  organizations(after: String, before: String, first: Int, last: Int): OrganizationConnection!
+}
+
+type UserAccessTokensCannotBeScopedToAProjectError @join__type(graph: API) {
+  query: Query!
+}
+
+type UserConnection @join__type(graph: API) {
+  """
+  A list of edges.
+  """
+  edges: [UserEdge!]!
+  """
+  A list of nodes.
+  """
+  nodes: [User!]!
+  """
+  Information to aid in pagination.
+  """
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type UserDeleteSuccess @join__type(graph: API) {
+  query: Query!
+}
+
+type UserDoesNotExistError @join__type(graph: API) {
+  query: Query!
+}
+
+"""
+An edge in a connection.
+"""
+type UserEdge @join__type(graph: API) {
+  """
+  A cursor for use in pagination
+  """
+  cursor: String!
+  """
+  The item at the end of the edge
+  """
+  node: User!
+  role: TeamRole!
+}
+
+type UserUpdateSuccess @join__type(graph: API) {
+  query: Query!
+}
+
+type ValidationCheckError @join__type(graph: API) {
+  message: String!
+  title: String!
+}
+
+type Query {
+  accessTokens(after: String, before: String, first: Int, last: Int): AccessTokenConnection! @join__field(graph: API)
+  accountBySlug("slug of the account" slug: String!): Account @join__field(graph: API)
+  accountCreationValidate(input: AccountCreationValidateInput!): AccountCreationValidatePayload!
+    @join__field(graph: API)
+  """
+  Get branch by account slug, graph slug and the name of the branch.
+  """
+  branch(
+    "name of the branch"
+    name: String
+    "slug of the account"
+    accountSlug: String
+    "slug of the graph"
+    graphSlug: String
+    "slug of the project"
+    projectSlug: String
+  ): Branch @join__field(graph: API)
+  """
+  Get deployment by ID.
+  """
+  deployment("ID of the deployment" id: ID!): Deployment @join__field(graph: API)
+  extensionByName(name: String!): Extension @join__field(graph: API)
+  extensionVersionByNameAndVersion(version: SemverVersion!, extensionName: String!): ExtensionVersion
+    @join__field(graph: API)
+  """
+  Looks for extension versions that match the requirements.
+
+  The results are returned in the same order as the requirements.
+  """
+  extensionVersionsByVersionRequirement(requirements: [ExtensionVersionRequirement!]!): [ExtensionVersionMatch!]
+    @join__field(graph: API)
+  extensions(after: String, first: Int, filter: ExtensionFilter): ExtensionConnection! @join__field(graph: API)
+  """
+  Get a graph by account slug and slug of the graph itself.
+  """
+  graphByAccountSlug("slug of the account" accountSlug: String!, "slug of the graph" graphSlug: String!): Graph
+    @join__field(graph: API)
+  invite(id: ID!): Invite @join__field(graph: API)
+  node(id: ID!): Node @join__field(graph: API)
+  """
+  Return the notifications inbox of the currently connected user.
+  """
+  notificationsInbox: NotificationsInbox @join__field(graph: API)
+  schemaCheck(id: ID!): SchemaCheck @join__field(graph: API)
+  schemaProposal(id: ID!): SchemaProposal @join__field(graph: API)
+  schemaVersion(id: ID!): SchemaVersion @join__field(graph: API)
+  schemaVersions(
+    after: String
+    before: String
+    first: Int
+    last: Int
+    "account slug"
+    accountSlug: String!
+    "graph slug"
+    graphSlug: String
+    "name of the branch"
+    branch: String
+    "name of the subgraph"
+    subgraphName: String @deprecated(reason: "Never did anything")
+    "return only versions with changes"
+    populated: Boolean! = true
+  ): SchemaVersionConnection! @join__field(graph: API)
+  """
+  Get subgraph.
+  """
+  subgraph(
+    "account slug"
+    accountSlug: String!
+    "graph slug"
+    graphSlug: String
+    "project slug"
+    projectSlug: String
+    "name of the branch"
+    branch: String
+    "name of the subgraph"
+    subgraphName: String!
+  ): Subgraph @join__field(graph: API)
+  team(id: ID!): Team @join__field(graph: API)
+  teamBySlug(slug: String!, organizationSlug: String!): Team @join__field(graph: API)
+  """
+  Give the actual connected user.
+  """
+  viewer: User @join__field(graph: API)
+}
+
+type Mutation {
+  """
+  Create a new access token.
+  """
+  accessTokenCreate(input: AccessTokenCreateInput!): AccessTokenCreatePayload! @join__field(graph: API)
+  """
+  Delete a given access token.
+  """
+  accessTokenDelete(input: AccessTokenDeleteInput!): AccessTokenDeletePayload! @join__field(graph: API)
+  branchCreate(input: BranchCreateInput!): BranchCreatePayload! @join__field(graph: API)
+  branchDelete(
+    "slug of the account"
+    accountSlug: String!
+    "slug of the graph"
+    graphSlug: String
+    "name of the branch"
+    branchName: String!
+    "slug of the project"
+    projectSlug: String
+  ): BranchDeletePayload! @join__field(graph: API)
+  branchSchemaProposalsConfiguredReviewerAdd(
+    input: SchemaProposalsConfiguredReviewerAddInput!
+  ): SchemaProposalsConfiguredReviewerAddPayload! @join__field(graph: API)
+  branchSchemaProposalsConfiguredReviewerRemove(
+    input: SchemaProposalsConfiguredReviewerRemoveInput!
+  ): SchemaProposalsConfiguredReviewerRemovePayload! @join__field(graph: API)
+  branchUpdate(input: BranchUpdateInput!): BranchUpdatePayload! @join__field(graph: API)
+  """
+  Delete a subgraph
+  """
+  deleteSubgraph(input: DeleteSubgraphInput!): DeleteSubgraphPayload! @join__field(graph: API)
+  endpointConfigUpdate(input: EndpointConfigUpdateInput!): EndpointConfigUpdatePayload! @join__field(graph: API)
+  extensionAddOwner(extensionName: String!, userId: ID!): ExtensionAddOwnerPayload @join__field(graph: API)
+  """
+  Publish a version of an extension to the registry. If the extension does not already exist, it will be created.
+  """
+  extensionPublish(manifest: VersionedExtensionManifest!, wasmModule: Upload!): ExtensionPublishPayload
+    @join__field(graph: API)
+  extensionRemoveOwner(extensionName: String!, userId: ID!): ExtensionRemoveOwnerPayload @join__field(graph: API)
+  graphAddOwner(graphId: ID!, ownerId: ID!): GraphAddOwnerPayload! @join__field(graph: API)
+  """
+  Create a new graph without any source for an initial deployment.
+  """
+  graphCreate(input: GraphCreateInput!): GraphCreatePayload! @join__field(graph: API)
+  graphDelete(input: GraphDeleteInput!): GraphDeletePayload! @join__field(graph: API)
+  graphOperationCheckConfigurationUpdate(
+    input: GraphOperationCheckConfigurationInput!
+  ): GraphOperationCheckConfigurationUpdatePayload! @join__field(graph: API)
+  graphRemoveOwner(graphId: ID!, ownerId: ID!): GraphRemoveOwnerPayload! @join__field(graph: API)
+  graphUpdate(input: GraphUpdateInput!): GraphUpdatePayload! @join__field(graph: API)
+  inviteAccept(input: InviteAcceptInput!): InviteAcceptPayload! @join__field(graph: API)
+  inviteCancel(input: InviteCancelInput!): InviteCancelPayload! @join__field(graph: API)
+  inviteDecline(input: InviteDeclineInput!): InviteDeclinePayload! @join__field(graph: API)
+  inviteSend(input: InviteSendInput!): InviteSendPayload! @join__field(graph: API)
+  """
+  Remove member from an organization
+  """
+  memberDelete(input: MemberDeleteInput!): MemberDeletePayload! @join__field(graph: API)
+  """
+  Update role of an organization member
+  """
+  memberUpdate(input: MemberUpdateInput!): MemberUpdatePayload! @join__field(graph: API)
+  notificationsMarkAsRead(notificationIds: [ID!]!): NotificationsMarkAsReadPayload! @join__field(graph: API)
+  """
+  Create new organization account owned by the current user. Slug must be unique.
+  """
+  organizationCreate(input: OrganizationCreateInput!): OrganizationCreatePayload! @join__field(graph: API)
+  organizationDelete(input: OrganizationDeleteInput!): OrganizationDeletePayload! @join__field(graph: API)
+  organizationSlugUpdate(input: OrganizationSlugUpdateInput!): OrganizationSlugUpdatePayload! @join__field(graph: API)
+  organizationUpdate(input: OrganizationUpdateInput!): OrganizationUpdatePayload! @join__field(graph: API)
+  personalAccountDelete: PersonalAccountDeletePayload! @deprecated(reason: "to be removed") @join__field(graph: API)
+  personalAccountUpdate(input: PersonalAccountUpdateInput!): PersonalAccountUpdatePayload!
+    @deprecated(reason: "to be removed")
+    @join__field(graph: API)
+  """
+  Publish a new subgraph.
+  """
+  publish(input: PublishInput!): PublishPayload! @join__field(graph: API)
+  """
+  Run checks against the given schema
+  """
+  schemaCheckCreate(input: SchemaCheckCreateInput!): SchemaCheckPayload! @join__field(graph: API)
+  """
+  Create a SchemaCheckCustomWebhook for a specific graph. Must be issued while logged in as a user.
+  """
+  schemaCheckCustomWebhookCreate(input: SchemaCheckCustomWebhookCreateInput!): SchemaCheckCustomWebhookCreatePayload
+    @join__field(graph: API)
+  """
+  Delete a [CustomCheckWebhook] by id.
+  """
+  schemaCheckCustomWebhookDelete(id: ID!): SchemaCheckCustomWebhookDeletePayload @join__field(graph: API)
+  """
+  Update a [CustomCheckWebhook] by id.
+  """
+  schemaCheckCustomWebhookUpdate(input: SchemaCheckCustomWebhookUpdateInput!): SchemaCheckCustomWebhookUpdatePayload
+    @join__field(graph: API)
+  schemaProposalApprove(input: SchemaProposalApproveInput!): SchemaProposalApprovePayload! @join__field(graph: API)
+  schemaProposalCommentReply(parentCommentId: ID!, text: String!): SchemaProposalCommentReplyPayload!
+    @join__field(graph: API)
+  schemaProposalCommentThreadCreate(
+    input: SchemaProposalCommentThreadCreateInput!
+  ): SchemaProposalCommentThreadCreatePayload! @join__field(graph: API)
+  """
+  Mark a comment thread as resolved.
+  """
+  schemaProposalCommentThreadResolve(rootCommentId: ID!): SchemaProposalCommentThreadResolvePayload!
+    @join__field(graph: API)
+  """
+  Reverts the resolution of a comment thread.
+  """
+  schemaProposalCommentThreadUnresolve(rootCommentId: ID!): SchemaProposalCommentThreadUnresolvePayload!
+    @join__field(graph: API)
+  schemaProposalCreate(input: SchemaProposalCreateInput!): SchemaProposalCreatePayload! @join__field(graph: API)
+  schemaProposalDelete(id: ID!): SchemaProposalDeletePayload! @join__field(graph: API)
+  """
+  Edit the contents of a proposal.
+
+  The proposed subgraphs can be just a subset of the subgraphs being edited in the proposal. The changes from the previous edit on other subgraphs be carried over.
+  """
+  schemaProposalEdit(input: SchemaProposalEditInput!): SchemaProposalEditPayload! @join__field(graph: API)
+  schemaProposalReject(input: SchemaProposalRejectInput!): SchemaProposalRejectPayload! @join__field(graph: API)
+  schemaProposalRequestReview(input: SchemaProposalRequestReviewInput!): SchemaProposalRequestReviewPayload!
+    @join__field(graph: API)
+  """
+  Take a schema proposal back to draft status. This is possible from any state.
+  """
+  schemaProposalRevertToDraft(schemaProposalId: ID!): SchemaProposalRevertToDraftPayload! @join__field(graph: API)
+  """
+  Request a review for a schema proposal from a user or a team.
+  """
+  schemaProposalReviewRequestCreate(
+    input: SchemaProposalReviewRequestCreateInput!
+  ): SchemaProposalReviewRequestCreatePayload! @join__field(graph: API)
+  slackIntegrationCreate(input: SlackIntegrationCreateInput!): SlackNotificationCreatePayload! @join__field(graph: API)
+  slackNotificationDelete(id: String!): SlackNotificationDeletePayload! @join__field(graph: API)
+  """
+  Assign a team as the owner of a subgraph
+  """
+  subgraphAddOwner(branchId: ID!, subgraphName: String!, owner: ID!): SubgraphAddOwnerPayload! @join__field(graph: API)
+  """
+  Unassign a team's ownership of a subgraph
+  """
+  subgraphRemoveOwner(branchId: ID!, subgraphName: String!): SubgraphRemoveOwnerPayload! @join__field(graph: API)
+  teamAddMember(teamId: ID!, memberId: ID!): TeamAddMemberPayload! @join__field(graph: API)
+  teamAssignRole(role: TeamRole!, teamId: ID!, memberId: ID!): TeamAssignRolePayload! @join__field(graph: API)
+  teamCreate(name: String!, organizationId: ID!): TeamCreatePayload! @join__field(graph: API)
+  teamDelete(teamId: ID!): TeamDeletePayload! @join__field(graph: API)
+  teamRemoveMember(teamId: ID!, memberId: ID!): TeamRemoveMemberPayload! @join__field(graph: API)
+  trustedDocumentsSubmit(
+    accountSlug: String
+    graphSlug: String
+    projectSlug: String
+    branchSlug: String!
+    clientName: String!
+    documents: [TrustedDocumentInput!]!
+  ): TrustedDocumentsSubmitPayload! @join__field(graph: API)
+  """
+  Delete the user.
+  """
+  userDelete: UserDeletePayload! @join__field(graph: API)
+  userUpdate(input: UserUpdateInput!): UserUpdatePayload! @join__field(graph: API)
+}
+
+type Subscription {
+  """
+  Whenever new notifications are available for the current user, return how many.
+  """
+  notificationsInboxMessages: Int! @join__field(graph: API)
+}
+
+interface Account @join__type(graph: API) {
+  accessTokens(after: String, before: String, first: Int, last: Int): AccessTokenConnection!
+  createdAt: DateTime!
+  graphs(after: String, before: String, first: Int, last: Int): GraphConnection!
+  id: ID!
+  name: String!
+  plan: GrafbasePlan!
+  slug: String!
+  status: AccountStatus!
+  usage(filters: UsageFilters!): AccountUsageTimeSeries
+}
+
+interface InboxMessage @join__type(graph: API) {
+  createdAt: DateTime!
+  id: ID!
+  readAt: DateTime
+}
+
+interface Node @join__type(graph: API) {
+  id: ID!
+}
+
+interface SchemaProposalActivityFeedItem @join__type(graph: API) {
+  createdAt: DateTime!
+}
+
+interface SchemaProposalComment @join__type(graph: API) {
+  author: User
+  createdAt: DateTime!
+  id: ID!
+  text: String!
+}
+
+interface SchemaProposalReview @join__type(graph: API) {
+  author: User
+  createdAt: DateTime!
+  id: ID!
+  schemaProposal: SchemaProposal!
+}
+
+enum AccessTokenKind @join__type(graph: API) {
+  USER
+  ACCOUNT
+}
+
+enum BranchEnvironment @join__type(graph: API) {
+  PREVIEW
+  PRODUCTION
+}
+
+enum DeploymentStatus @join__type(graph: API) {
+  QUEUED
+  IN_PROGRESS
+  SUCCEEDED
+  FAILED
+}
+
+enum DeploymentStepStatus @join__type(graph: API) {
+  SUCCESS
+  FAILURE
+}
+
+"""
+One side of a two-sided diff. "Old" and "new" are to be taken in the most general sense.
+"""
+enum DiffSide @join__type(graph: API) {
+  OLD
+  NEW
+}
+
+enum ExtensionDefaultPermission @join__type(graph: API) {
+  NETWORK
+  STDOUT
+  STDERR
+  ENVIRONMENT_VARIABLES
+}
+
+enum ExtensionKind @join__type(graph: API) {
+  FIELD_RESOLVER
+  AUTHENTICATOR @deprecated(reason: "Replaced by AUTHENTICATION")
+  AUTHENTICATION
+  AUTHORIZATION
+}
+
+enum GrafbasePlan @join__type(graph: API) {
+  TRIAL
+  GROWTH
+  ENTERPRISE
+}
+
+enum InviteStatus @join__type(graph: API) {
+  PENDING
+  EXPIRED
+}
+
+enum MemberRole @join__type(graph: API) {
+  OWNER
+  MEMBER
+  ADMIN
+}
+
+enum OperationType @join__type(graph: API) {
+  QUERY
+  MUTATION
+  SUBSCRIPTION
+}
+
+enum SchemaChangeType @join__type(graph: API) {
+  SCHEMA_DEFINITION_ADDED
+  SCHEMA_DEFINITION_REMOVED
+  SCHEMA_EXTENSION_ADDED
+  SCHEMA_EXTENSION_REMOVED
+  FIELD_ARGUMENT_DEFAULT_ADDED
+  FIELD_ARGUMENT_DEFAULT_REMOVED
+  FIELD_ARGUMENT_DESCRIPTION_CHANGED
+  FIELD_ARGUMENT_DEFAULT_CHANGED
+  FIELD_ARGUMENT_TYPE_CHANGED
+  DIRECTIVE_REMOVED
+  DIRECTIVE_ADDED
+  DIRECTIVE_DESCRIPTION_CHANGED
+  DIRECTIVE_LOCATION_ADDED
+  DIRECTIVE_LOCATION_REMOVED
+  DIRECTIVE_ARGUMENT_ADDED
+  DIRECTIVE_ARGUMENT_REMOVED
+  DIRECTIVE_ARGUMENT_DESCRIPTION_CHANGED
+  DIRECTIVE_ARGUMENT_DEFAULT_VALUE_CHANGED
+  DIRECTIVE_ARGUMENT_TYPE_CHANGED
+  ENUM_ADDED
+  ENUM_REMOVED
+  ENUM_VALUE_REMOVED
+  ENUM_VALUE_ADDED
+  ENUM_VALUE_DESCRIPTION_CHANGED
+  ENUM_VALUE_DEPRECATION_REASON_CHANGED
+  ENUM_VALUE_DEPRECATION_REASON_ADDED
+  ENUM_VALUE_DEPRECATION_REASON_REMOVED
+  FIELD_REMOVED
+  FIELD_ADDED
+  FIELD_DESCRIPTION_CHANGED
+  FIELD_DESCRIPTION_ADDED
+  FIELD_DESCRIPTION_REMOVED
+  FIELD_DEPRECATION_ADDED
+  FIELD_DEPRECATION_REMOVED
+  FIELD_DEPRECATION_REASON_CHANGED
+  FIELD_DEPRECATION_REASON_ADDED
+  FIELD_DEPRECATION_REASON_REMOVED
+  FIELD_TYPE_CHANGED
+  FIELD_ARGUMENT_ADDED
+  FIELD_ARGUMENT_REMOVED
+  INPUT_OBJECT_REMOVED
+  INPUT_OBJECT_ADDED
+  INPUT_FIELD_REMOVED
+  INPUT_FIELD_ADDED
+  INPUT_FIELD_DESCRIPTION_ADDED
+  INPUT_FIELD_DESCRIPTION_REMOVED
+  INPUT_FIELD_DESCRIPTION_CHANGED
+  INPUT_FIELD_DEFAULT_VALUE_CHANGED
+  INPUT_FIELD_TYPE_CHANGED
+  OBJECT_TYPE_INTERFACE_ADDED
+  OBJECT_TYPE_INTERFACE_REMOVED
+  SCHEMA_QUERY_TYPE_CHANGED
+  SCHEMA_MUTATION_TYPE_CHANGED
+  SCHEMA_SUBSCRIPTION_TYPE_CHANGED
+  TYPE_REMOVED
+  TYPE_ADDED
+  TYPE_KIND_CHANGED
+  TYPE_DESCRIPTION_CHANGED
+  TYPE_DESCRIPTION_REMOVED
+  TYPE_DESCRIPTION_ADDED
+  UNION_ADDED
+  UNION_REMOVED
+  UNION_MEMBER_REMOVED
+  UNION_MEMBER_ADDED
+  INTERFACE_ADDED
+  INTERFACE_REMOVED
+  INTERFACE_IMPLEMENTATION_ADDED
+  INTERFACE_IMPLEMENTATION_REMOVED
+  SCALAR_ADDED
+  SCALAR_REMOVED
+}
+
+enum SchemaCheckErrorSeverity @join__type(graph: API) {
+  ERROR
+  WARNING
+}
+
+enum SchemaCheckStep @join__type(graph: API) {
+  VALIDATION
+  COMPOSITION
+  OPERATION
+  LINT
+  PROPOSAL
+  CUSTOM
+}
+
+enum SchemaProposalCommentThreadLocation @join__type(graph: API) {
+  PROPOSAL
+  LINE
+  SDL
+}
+
+enum SchemaProposalReviewerStatus @join__type(graph: API) {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum SchemaProposalStatus @join__type(graph: API) {
+  APPROVED
+  REJECTED
+  DRAFT
+  IMPLEMENTED
+  IN_REVIEW
+}
+
+enum SchemaProposalSubgraphStatus @join__type(graph: API) {
+  CREATED
+  EDITED
+  DELETED
+  UNCHANGED
+}
+
+enum TeamRole @join__type(graph: API) {
+  MEMBER
+  ADMIN
+}
+
+enum TraceSpanStatusCode @join__type(graph: API) {
+  ERROR
+  OK
+}
+
+enum join__Graph {
+  API @join__graph(name: "api", url: "https://api.ep.grafbase.com/graphql")
+}
+
+union AccessTokenCreatePayload
+  @join__unionMember(graph: API, member: "AccessTokenCreateSuccess")
+  @join__unionMember(graph: API, member: "AccountIdMissingForAccountAccessTokenError")
+  @join__unionMember(graph: API, member: "CouldNotFindGraphsError")
+  @join__unionMember(graph: API, member: "CouldNotFindProjectsError")
+  @join__unionMember(graph: API, member: "GraphScopeLimitExceededError")
+  @join__unionMember(graph: API, member: "InvalidAccountError")
+  @join__unionMember(graph: API, member: "ProjectScopeLimitExceededError")
+  @join__unionMember(graph: API, member: "TokenLimitExceededError")
+  @join__unionMember(graph: API, member: "UserAccessTokensCannotBeScopedToAProjectError") =
+  | AccessTokenCreateSuccess
+  | AccountIdMissingForAccountAccessTokenError
+  | CouldNotFindGraphsError
+  | CouldNotFindProjectsError
+  | GraphScopeLimitExceededError
+  | InvalidAccountError
+  | ProjectScopeLimitExceededError
+  | TokenLimitExceededError
+  | UserAccessTokensCannotBeScopedToAProjectError
+
+union AccessTokenDeletePayload
+  @join__unionMember(graph: API, member: "AccessTokenDeleteSuccess")
+  @join__unionMember(graph: API, member: "TokenDoesNotExistError") =
+  | AccessTokenDeleteSuccess
+  | TokenDoesNotExistError
+
+union BranchCreatePayload
+  @join__unionMember(graph: API, member: "BranchAlreadyExistsError")
+  @join__unionMember(graph: API, member: "GraphDoesNotExistError")
+  @join__unionMember(graph: API, member: "GraphNotSelfHostedError")
+  @join__unionMember(graph: API, member: "Query") =
+  | BranchAlreadyExistsError
+  | GraphDoesNotExistError
+  | GraphNotSelfHostedError
+  | Query
+
+union BranchDeletePayload
+  @join__unionMember(graph: API, member: "BranchDoesNotExistError")
+  @join__unionMember(graph: API, member: "CannotDeleteProductionBranchError")
+  @join__unionMember(graph: API, member: "Query") =
+  | Query
+  | BranchDoesNotExistError
+  | CannotDeleteProductionBranchError
+
+union BranchUpdatePayload
+  @join__unionMember(graph: API, member: "GraphDoesNotExistError")
+  @join__unionMember(graph: API, member: "ProjectDoesNotExistError")
+  @join__unionMember(graph: API, member: "Query") =
+  | GraphDoesNotExistError
+  | Query
+  | ProjectDoesNotExistError
+
+union DeleteSubgraphPayload
+  @join__unionMember(graph: API, member: "DeleteSubgraphDeploymentFailure")
+  @join__unionMember(graph: API, member: "DeleteSubgraphSuccess")
+  @join__unionMember(graph: API, member: "FederatedGraphCompositionError")
+  @join__unionMember(graph: API, member: "GraphBranchDoesNotExistError")
+  @join__unionMember(graph: API, member: "GraphDoesNotExistError")
+  @join__unionMember(graph: API, member: "GraphNotFederatedError")
+  @join__unionMember(graph: API, member: "ProjectBranchDoesNotExistError")
+  @join__unionMember(graph: API, member: "ProjectDoesNotExistError")
+  @join__unionMember(graph: API, member: "ProjectNotFederatedError")
+  @join__unionMember(graph: API, member: "SubgraphNotFoundError") =
+  | GraphDoesNotExistError
+  | ProjectDoesNotExistError
+  | DeleteSubgraphDeploymentFailure
+  | DeleteSubgraphSuccess
+  | FederatedGraphCompositionError
+  | GraphBranchDoesNotExistError
+  | GraphNotFederatedError
+  | ProjectBranchDoesNotExistError
+  | ProjectNotFederatedError
+  | SubgraphNotFoundError
+
+union DeploymentStepError @join__unionMember(graph: API, member: "DeploymentStepGeneralError") =
+  | DeploymentStepGeneralError
+
+union EndpointConfigUpdatePayload
+  @join__unionMember(graph: API, member: "GraphDoesNotExistError")
+  @join__unionMember(graph: API, member: "Query") =
+  | GraphDoesNotExistError
+  | Query
+
+union ExtensionAddOwnerPayload
+  @join__unionMember(graph: API, member: "ExtensionAddOwnerSuccess")
+  @join__unionMember(graph: API, member: "ExtensionDoesNotExistError")
+  @join__unionMember(graph: API, member: "ExtensionUnauthorized") =
+  | ExtensionAddOwnerSuccess
+  | ExtensionDoesNotExistError
+  | ExtensionUnauthorized
+
+union ExtensionPublishPayload
+  @join__unionMember(graph: API, member: "BadWasmModuleError")
+  @join__unionMember(graph: API, member: "ExtensionPublishSuccess")
+  @join__unionMember(graph: API, member: "ExtensionUnauthorized")
+  @join__unionMember(graph: API, member: "ExtensionValidationError")
+  @join__unionMember(graph: API, member: "ExtensionVersionAlreadyExistsError") =
+  | BadWasmModuleError
+  | ExtensionUnauthorized
+  | ExtensionPublishSuccess
+  | ExtensionValidationError
+  | ExtensionVersionAlreadyExistsError
+
+union ExtensionRemoveOwnerPayload
+  @join__unionMember(graph: API, member: "ExtensionDoesNotExistError")
+  @join__unionMember(graph: API, member: "ExtensionRemoveOwnerSuccess")
+  @join__unionMember(graph: API, member: "ExtensionUnauthorized") =
+  | ExtensionDoesNotExistError
+  | ExtensionUnauthorized
+  | ExtensionRemoveOwnerSuccess
+
+union ExtensionVersionMatch
+  @join__unionMember(graph: API, member: "ExtensionDoesNotExistError")
+  @join__unionMember(graph: API, member: "ExtensionVersion")
+  @join__unionMember(graph: API, member: "ExtensionVersionDoesNotExistError") =
+  | ExtensionDoesNotExistError
+  | ExtensionVersion
+  | ExtensionVersionDoesNotExistError
+
+union GraphAddOwnerPayload
+  @join__unionMember(graph: API, member: "GraphAddOwnerSuccess")
+  @join__unionMember(graph: API, member: "GraphDoesNotExistError")
+  @join__unionMember(graph: API, member: "NotAllowedError") =
+  | GraphDoesNotExistError
+  | GraphAddOwnerSuccess
+  | NotAllowedError
+
+union GraphCreatePayload
+  @join__unionMember(graph: API, member: "AccountDoesNotExistError")
+  @join__unionMember(graph: API, member: "CurrentPlanLimitReachedError")
+  @join__unionMember(graph: API, member: "DisabledAccountError")
+  @join__unionMember(graph: API, member: "GraphCreateSuccess")
+  @join__unionMember(graph: API, member: "ManagedGraphsNoLongerSupportedError")
+  @join__unionMember(graph: API, member: "SlugAlreadyExistsError")
+  @join__unionMember(graph: API, member: "SlugInvalidError")
+  @join__unionMember(graph: API, member: "SlugTooLongError")
+  @join__unionMember(graph: API, member: "StandaloneGraphsNoLongerSupportedError") =
+  | AccountDoesNotExistError
+  | CurrentPlanLimitReachedError
+  | DisabledAccountError
+  | GraphCreateSuccess
+  | ManagedGraphsNoLongerSupportedError
+  | SlugAlreadyExistsError
+  | SlugInvalidError
+  | SlugTooLongError
+  | StandaloneGraphsNoLongerSupportedError
+
+union GraphDeletePayload
+  @join__unionMember(graph: API, member: "GraphDeleteSuccess")
+  @join__unionMember(graph: API, member: "GraphDoesNotExistError") =
+  | GraphDoesNotExistError
+  | GraphDeleteSuccess
+
+union GraphOperationCheckConfigurationUpdatePayload
+  @join__unionMember(graph: API, member: "GraphDoesNotExistError")
+  @join__unionMember(graph: API, member: "GraphOperationCheckConfiguration")
+  @join__unionMember(graph: API, member: "NotAllowedError") =
+  | GraphDoesNotExistError
+  | NotAllowedError
+  | GraphOperationCheckConfiguration
+
+union GraphRemoveOwnerPayload
+  @join__unionMember(graph: API, member: "GraphDoesNotExistError")
+  @join__unionMember(graph: API, member: "GraphRemoveOwnerSuccess")
+  @join__unionMember(graph: API, member: "NotAllowedError") =
+  | GraphDoesNotExistError
+  | NotAllowedError
+  | GraphRemoveOwnerSuccess
+
+union GraphUpdatePayload
+  @join__unionMember(graph: API, member: "CannotBeRenamedError")
+  @join__unionMember(graph: API, member: "GraphDoesNotExistError")
+  @join__unionMember(graph: API, member: "GraphUpdateSuccess")
+  @join__unionMember(graph: API, member: "NotAllowedError")
+  @join__unionMember(graph: API, member: "SlugAlreadyExistsError")
+  @join__unionMember(graph: API, member: "SlugInvalidError")
+  @join__unionMember(graph: API, member: "SlugTooLongError") =
+  | GraphDoesNotExistError
+  | CannotBeRenamedError
+  | NotAllowedError
+  | SlugAlreadyExistsError
+  | SlugInvalidError
+  | SlugTooLongError
+  | GraphUpdateSuccess
+
+union InviteAcceptPayload
+  @join__unionMember(graph: API, member: "AlreadyMemberError")
+  @join__unionMember(graph: API, member: "CannotUseInvitationsWithSSO")
+  @join__unionMember(graph: API, member: "InviteAcceptSuccess")
+  @join__unionMember(graph: API, member: "InviteDoesNotExistError") =
+  | AlreadyMemberError
+  | CannotUseInvitationsWithSSO
+  | InviteAcceptSuccess
+  | InviteDoesNotExistError
+
+union InviteCancelPayload
+  @join__unionMember(graph: API, member: "InviteCancelSuccess")
+  @join__unionMember(graph: API, member: "InviteDoesNotExistError")
+  @join__unionMember(graph: API, member: "NotAllowedToCancelInvitesError") =
+  | InviteDoesNotExistError
+  | InviteCancelSuccess
+  | NotAllowedToCancelInvitesError
+
+union InviteDeclinePayload
+  @join__unionMember(graph: API, member: "InviteDeclineSuccess")
+  @join__unionMember(graph: API, member: "InviteDoesNotExistError") =
+  | InviteDoesNotExistError
+  | InviteDeclineSuccess
+
+union InviteSendPayload
+  @join__unionMember(graph: API, member: "CannotUseInvitationsWithSSO")
+  @join__unionMember(graph: API, member: "InvalidEmailAddressError")
+  @join__unionMember(graph: API, member: "InviteSendSuccess")
+  @join__unionMember(graph: API, member: "NotAllowedToSendInvitesError")
+  @join__unionMember(graph: API, member: "OrganizationDoesNotExistError") =
+  | CannotUseInvitationsWithSSO
+  | InvalidEmailAddressError
+  | InviteSendSuccess
+  | NotAllowedToSendInvitesError
+  | OrganizationDoesNotExistError
+
+union NotificationsMarkAsReadPayload @join__unionMember(graph: API, member: "NotificationsMarkAsReadSuccess") =
+  | NotificationsMarkAsReadSuccess
+
+union OrganizationCreatePayload
+  @join__unionMember(graph: API, member: "NameSizeCheckError")
+  @join__unionMember(graph: API, member: "OrganizationCreateSuccess")
+  @join__unionMember(graph: API, member: "ReservedSlugsCheckError")
+  @join__unionMember(graph: API, member: "SlugAlreadyExistsError")
+  @join__unionMember(graph: API, member: "SlugError")
+  @join__unionMember(graph: API, member: "SlugSizeCheckError")
+  @join__unionMember(graph: API, member: "TrialPlanUnavailableError") =
+  | SlugAlreadyExistsError
+  | NameSizeCheckError
+  | OrganizationCreateSuccess
+  | ReservedSlugsCheckError
+  | SlugError
+  | SlugSizeCheckError
+  | TrialPlanUnavailableError
+
+union OrganizationDeletePayload
+  @join__unionMember(graph: API, member: "NotAllowedToDeleteOrganizationError")
+  @join__unionMember(graph: API, member: "OrganizationDeleteSuccess")
+  @join__unionMember(graph: API, member: "OrganizationDoesNotExistError") =
+  | OrganizationDoesNotExistError
+  | NotAllowedToDeleteOrganizationError
+  | OrganizationDeleteSuccess
+
+union OrganizationSlugUpdatePayload
+  @join__unionMember(graph: API, member: "NotAllowedToSlugUpdateError")
+  @join__unionMember(graph: API, member: "OrganizationDoesNotExistError")
+  @join__unionMember(graph: API, member: "OrganizationSlugUpdateSuccess")
+  @join__unionMember(graph: API, member: "ReservedSlugsCheckError")
+  @join__unionMember(graph: API, member: "SlugAlreadyExistsError")
+  @join__unionMember(graph: API, member: "SlugError")
+  @join__unionMember(graph: API, member: "SlugSizeCheckError") =
+  | SlugAlreadyExistsError
+  | OrganizationDoesNotExistError
+  | NotAllowedToSlugUpdateError
+  | ReservedSlugsCheckError
+  | SlugError
+  | SlugSizeCheckError
+  | OrganizationSlugUpdateSuccess
+
+union OrganizationUpdatePayload
+  @join__unionMember(graph: API, member: "NameSizeCheckError")
+  @join__unionMember(graph: API, member: "NotAllowedToUpdateOrganizationError")
+  @join__unionMember(graph: API, member: "OrganizationDoesNotExistError")
+  @join__unionMember(graph: API, member: "OrganizationUpdateSuccess") =
+  | OrganizationDoesNotExistError
+  | NameSizeCheckError
+  | NotAllowedToUpdateOrganizationError
+  | OrganizationUpdateSuccess
+
+union PersonalAccountDeletePayload
+  @join__unionMember(graph: API, member: "OrganizationOwnershipNotTransferredError")
+  @join__unionMember(graph: API, member: "PersonalAccountDeleteSuccess") =
+  | OrganizationOwnershipNotTransferredError
+  | PersonalAccountDeleteSuccess
+
+union PersonalAccountUpdatePayload
+  @join__unionMember(graph: API, member: "NameSizeCheckError")
+  @join__unionMember(graph: API, member: "PersonalAccountUpdateSuccess") =
+  | NameSizeCheckError
+  | PersonalAccountUpdateSuccess
+
+union PublishPayload
+  @join__unionMember(graph: API, member: "FederatedGraphCompositionError")
+  @join__unionMember(graph: API, member: "GraphDoesNotExistError")
+  @join__unionMember(graph: API, member: "ProjectDoesNotExistError")
+  @join__unionMember(graph: API, member: "PublishDeploymentFailure")
+  @join__unionMember(graph: API, member: "PublishForbidden")
+  @join__unionMember(graph: API, member: "PublishNoChange")
+  @join__unionMember(graph: API, member: "PublishSuccess")
+  @join__unionMember(graph: API, member: "SchemaRegistryBranchDoesNotExistError") =
+  | GraphDoesNotExistError
+  | ProjectDoesNotExistError
+  | FederatedGraphCompositionError
+  | PublishDeploymentFailure
+  | PublishForbidden
+  | PublishNoChange
+  | PublishSuccess
+  | SchemaRegistryBranchDoesNotExistError
+
+union SchemaCheckCustomWebhookCreatePayload
+  @join__unionMember(graph: API, member: "SchemaCheckCustomWebhookCreateSuccess") =
+  | SchemaCheckCustomWebhookCreateSuccess
+
+union SchemaCheckCustomWebhookDeletePayload
+  @join__unionMember(graph: API, member: "CustomCheckWebhookNotFoundError")
+  @join__unionMember(graph: API, member: "SchemaCheckCustomWebhookDeleteSuccess") =
+  | CustomCheckWebhookNotFoundError
+  | SchemaCheckCustomWebhookDeleteSuccess
+
+union SchemaCheckCustomWebhookUpdatePayload
+  @join__unionMember(graph: API, member: "SchemaCheckCustomWebhookUpdateSuccess") =
+  | SchemaCheckCustomWebhookUpdateSuccess
+
+union SchemaCheckPayload
+  @join__unionMember(graph: API, member: "GraphBranchDoesNotExistError")
+  @join__unionMember(graph: API, member: "GraphDoesNotExistError")
+  @join__unionMember(graph: API, member: "SchemaCheck")
+  @join__unionMember(graph: API, member: "SubgraphNameMissingOnFederatedGraphError") =
+  | GraphDoesNotExistError
+  | GraphBranchDoesNotExistError
+  | SchemaCheck
+  | SubgraphNameMissingOnFederatedGraphError
+
+union SchemaProposalApprovePayload
+  @join__unionMember(graph: API, member: "SchemaProposalApproveSuccess")
+  @join__unionMember(graph: API, member: "SchemaProposalDoesNotExistError") =
+  | SchemaProposalApproveSuccess
+  | SchemaProposalDoesNotExistError
+
+union SchemaProposalCommentReplyPayload @join__unionMember(graph: API, member: "SchemaProposalCommentReplySuccess") =
+  | SchemaProposalCommentReplySuccess
+
+union SchemaProposalCommentThreadCreatePayload
+  @join__unionMember(graph: API, member: "SchemaProposalCommentThreadCreateSuccess")
+  @join__unionMember(graph: API, member: "SchemaProposalDoesNotExistError") =
+  | SchemaProposalDoesNotExistError
+  | SchemaProposalCommentThreadCreateSuccess
+
+union SchemaProposalCommentThreadResolvePayload
+  @join__unionMember(graph: API, member: "SchemaProposalCommentThreadResolveSuccess") =
+  | SchemaProposalCommentThreadResolveSuccess
+
+union SchemaProposalCommentThreadUnresolvePayload
+  @join__unionMember(graph: API, member: "SchemaProposalCommentThreadUnresolveSuccess") =
+  | SchemaProposalCommentThreadUnresolveSuccess
+
+union SchemaProposalCreatePayload @join__unionMember(graph: API, member: "SchemaProposalCreateSuccess") =
+  | SchemaProposalCreateSuccess
+
+union SchemaProposalDeletePayload
+  @join__unionMember(graph: API, member: "SchemaProposalDeleteSuccess")
+  @join__unionMember(graph: API, member: "SchemaProposalDoesNotExistError") =
+  | SchemaProposalDoesNotExistError
+  | SchemaProposalDeleteSuccess
+
+union SchemaProposalEditPayload
+  @join__unionMember(graph: API, member: "SchemaProposalDoesNotExistError")
+  @join__unionMember(graph: API, member: "SchemaProposalEditParserErrors")
+  @join__unionMember(graph: API, member: "SchemaProposalEditSuccess") =
+  | SchemaProposalDoesNotExistError
+  | SchemaProposalEditParserErrors
+  | SchemaProposalEditSuccess
+
+union SchemaProposalRejectPayload
+  @join__unionMember(graph: API, member: "SchemaProposalDoesNotExistError")
+  @join__unionMember(graph: API, member: "SchemaProposalRejectSuccess") =
+  | SchemaProposalDoesNotExistError
+  | SchemaProposalRejectSuccess
+
+union SchemaProposalRequestReviewPayload
+  @join__unionMember(graph: API, member: "SchemaProposalDoesNotExistError")
+  @join__unionMember(graph: API, member: "SchemaProposalRequestReviewSuccess") =
+  | SchemaProposalDoesNotExistError
+  | SchemaProposalRequestReviewSuccess
+
+union SchemaProposalRevertToDraftPayload
+  @join__unionMember(graph: API, member: "SchemaProposalDoesNotExistError")
+  @join__unionMember(graph: API, member: "SchemaProposalRevertToDraftSuccess") =
+  | SchemaProposalDoesNotExistError
+  | SchemaProposalRevertToDraftSuccess
+
+union SchemaProposalReviewRequestCreatePayload
+  @join__unionMember(graph: API, member: "SchemaProposalDoesNotExistError")
+  @join__unionMember(graph: API, member: "SchemaProposalReviewRequestCreateSuccess") =
+  | SchemaProposalDoesNotExistError
+  | SchemaProposalReviewRequestCreateSuccess
+
+union SchemaProposalReviewer
+  @join__unionMember(graph: API, member: "SchemaProposalReviewerTeam")
+  @join__unionMember(graph: API, member: "SchemaProposalReviewerUser") =
+  | SchemaProposalReviewerTeam
+  | SchemaProposalReviewerUser
+
+union SchemaProposalsConfiguredReviewerAddPayload
+  @join__unionMember(graph: API, member: "AlreadyExistsError")
+  @join__unionMember(graph: API, member: "BranchDoesNotExistError")
+  @join__unionMember(graph: API, member: "SchemaProposalsConfiguredReviewerAddSuccess")
+  @join__unionMember(graph: API, member: "TeamDoesNotExistError")
+  @join__unionMember(graph: API, member: "UserDoesNotExistError") =
+  | AlreadyExistsError
+  | BranchDoesNotExistError
+  | SchemaProposalsConfiguredReviewerAddSuccess
+  | TeamDoesNotExistError
+  | UserDoesNotExistError
+
+union SchemaProposalsConfiguredReviewerRemovePayload
+  @join__unionMember(graph: API, member: "BranchDoesNotExistError")
+  @join__unionMember(graph: API, member: "ReviewerDoesNotExistError")
+  @join__unionMember(graph: API, member: "SchemaProposalsConfiguredReviewerRemoveSuccess") =
+  | BranchDoesNotExistError
+  | ReviewerDoesNotExistError
+  | SchemaProposalsConfiguredReviewerRemoveSuccess
+
+"""
+A (required) schema proposal reviewer in the branch configuration.
+"""
+union SchemaProposalsConfiguredReviewers
+  @join__unionMember(graph: API, member: "SchemaProposalsConfiguredReviewerTeam")
+  @join__unionMember(graph: API, member: "SchemaProposalsConfiguredReviewerUser") =
+  | SchemaProposalsConfiguredReviewerTeam
+  | SchemaProposalsConfiguredReviewerUser
+
+union SlackNotificationCreatePayload
+  @join__unionMember(graph: API, member: "ProjectDoesNotExistError")
+  @join__unionMember(graph: API, member: "SlackNotification") =
+  | ProjectDoesNotExistError
+  | SlackNotification
+
+union SlackNotificationDeletePayload @join__unionMember(graph: API, member: "Query") = Query
+
+union SubgraphAddOwnerPayload @join__unionMember(graph: API, member: "SubgraphAddOwnerSuccess") =
+  | SubgraphAddOwnerSuccess
+
+union SubgraphRemoveOwnerPayload @join__unionMember(graph: API, member: "SubgraphRemoveOwnerSuccess") =
+  | SubgraphRemoveOwnerSuccess
+
+union TeamAddMemberPayload
+  @join__unionMember(graph: API, member: "TeamAddMemberSuccess")
+  @join__unionMember(graph: API, member: "TeamDoesNotExistError") =
+  | TeamDoesNotExistError
+  | TeamAddMemberSuccess
+
+union TeamAssignRolePayload
+  @join__unionMember(graph: API, member: "TeamAssignRoleSuccess")
+  @join__unionMember(graph: API, member: "TeamDoesNotExistError") =
+  | TeamDoesNotExistError
+  | TeamAssignRoleSuccess
+
+union TeamCreatePayload
+  @join__unionMember(graph: API, member: "OrganizationDoesNotExistError")
+  @join__unionMember(graph: API, member: "Team")
+  @join__unionMember(graph: API, member: "TeamNameAlreadyTakenError") =
+  | OrganizationDoesNotExistError
+  | Team
+  | TeamNameAlreadyTakenError
+
+union TeamDeletePayload
+  @join__unionMember(graph: API, member: "TeamDeleteSuccess")
+  @join__unionMember(graph: API, member: "TeamDoesNotExistError") =
+  | TeamDoesNotExistError
+  | TeamDeleteSuccess
+
+union TeamRemoveMemberPayload
+  @join__unionMember(graph: API, member: "TeamDoesNotExistError")
+  @join__unionMember(graph: API, member: "TeamRemoveMemberSuccess") =
+  | TeamDoesNotExistError
+  | TeamRemoveMemberSuccess
+
+union TrustedDocumentsSubmitPayload
+  @join__unionMember(graph: API, member: "GraphDoesNotExistError")
+  @join__unionMember(graph: API, member: "OldAccessTokenError")
+  @join__unionMember(graph: API, member: "ProjectDoesNotExistError")
+  @join__unionMember(graph: API, member: "ReusedIds")
+  @join__unionMember(graph: API, member: "TrustedDocumentsSubmitSuccess") =
+  | GraphDoesNotExistError
+  | ProjectDoesNotExistError
+  | OldAccessTokenError
+  | ReusedIds
+  | TrustedDocumentsSubmitSuccess
+
+union UserDeletePayload
+  @join__unionMember(graph: API, member: "OrganizationOwnershipNotTransferredError")
+  @join__unionMember(graph: API, member: "UserDeleteSuccess") =
+  | OrganizationOwnershipNotTransferredError
+  | UserDeleteSuccess
+
+union UserOrTeam @join__unionMember(graph: API, member: "Team") @join__unionMember(graph: API, member: "User") =
+  | Team
+  | User
+
+union UserUpdatePayload
+  @join__unionMember(graph: API, member: "NameSizeCheckError")
+  @join__unionMember(graph: API, member: "UserUpdateSuccess") =
+  | NameSizeCheckError
+  | UserUpdateSuccess
+
+input AccessTokenCreateInput @join__type(graph: API) {
+  name: String!
+  accountId: ID
+  graphScopes: [ID!]
+  expiresAt: DateTime
+  kind: AccessTokenKind! = USER
+  projectScopes: [ID!]
+}
+
+input AccessTokenDeleteInput @join__type(graph: API) {
+  id: ID!
+}
+
+input AccountCreationValidateInput @join__type(graph: API) {
+  slug: String!
+}
+
+input BranchCreateInput @join__type(graph: API) {
+  accountSlug: String!
+  graphSlug: String!
+  branchName: String!
+}
+
+input BranchUpdateInput @join__type(graph: API) {
+  operationChecksEnabled: Boolean
+  schemaProposalsConfiguration: SchemaProposalsConfigurationUpdateInput
+  accountSlug: String!
+  graphSlug: String
+  projectSlug: String
+  branchSlug: String!
+  trustedDocumentsEnforce: Boolean
+  trustedDocumentsBypassHeaderName: String
+  trustedDocumentsBypassHeaderValue: String
+}
+
+input DeleteSubgraphInput @join__type(graph: API) {
+  accountSlug: String!
+  graphSlug: String
+  projectSlug: String
+  message: String
+  branch: String!
+  subgraph: String!
+  dryRun: Boolean!
+}
+
+input DeploymentFilters @join__type(graph: API) {
+  finishedAt: DeploymentFinishedAtFilters
+}
+
+input DeploymentFinishedAtFilters @join__type(graph: API) {
+  """
+  Use this if you really care about having a specific duration like 1 hour, 7 days, etc.
+  """
+  range: Duration
+  """
+  Use this if you *at least* the data between `from` and `to` to be provided. You may get
+  more, but never less.
+  """
+  from: DateTime
+  """
+  To be used in conjunction with with either `range` or `from`.
+  """
+  to: DateTime!
+}
+
+input DurationFilter @join__type(graph: API) {
+  lt: Duration
+  lte: Duration
+  gt: Duration
+  gte: Duration
+}
+
+input EndpointConfigInput @join__type(graph: API) {
+  url: String!
+}
+
+input EndpointConfigUpdateInput @join__type(graph: API) {
+  endpointConfig: EndpointConfigInput!
+  accountSlug: String!
+  graphSlug: String!
+  branchSlug: String!
+}
+
+input ExtensionFilter @join__type(graph: API) {
+  namePrefix: String
+}
+
+input ExtensionVersionRequirement @join__type(graph: API) {
+  version: SemverVersionRequirement!
+  extensionName: String!
+}
+
+input GraphAnalyticsFilters @join__type(graph: API) {
+  """
+  Defaults to production branch
+  """
+  branchName: String @deprecated(reason: "Go through graph.branch instead.")
+  """
+  Use this if you really care about having a specific duration like 1 hour, 7 days, etc.
+  """
+  range: Duration
+  """
+  Use this if you *at least* the data between `from` and `to` to be provided. You may get
+  more, but never less.
+  """
+  from: DateTime
+  """
+  To be used in conjunction with with either `range` or `from`.
+  """
+  to: DateTime!
+  """
+  If explicitly to false, specifying both `from` and `to` will be treated as if `range: (to - from)`
+  had been specified instead. Meaning only the duration between `from` and `to` matters, not
+  necessarily having a data point for `from` itself.
+  """
+  isCustomRange: Boolean @deprecated(reason: "Use range instead")
+  """
+  If specified, overrides approximateNumberOfPoints. Must be in whole minutes.
+  At most 150 points can be returned.
+  """
+  aggregationStep: Duration
+  """
+  Defaults to 100, at most 150 points can be returned.
+  """
+  approximateNumberOfDataPoints: Int
+  """
+  Defaults to true
+  Example: for an aggregationStep of 15 min:
+  - if true, only times with 00, 15, 30 and 45 minutes will appear in the time series
+  - if false, times in the time series will be adjusted to start from the periodStart (~from).
+  So if from = 15:32:00, times will end in 02, 17, 32 and 47.
+  I'll always align to the aggregation step used to store the data though, which
+  is currently in minutes. So cannot have 15:10:20, 15:11:20, etc.
+  """
+  alignPeriodWithAggregationStep: Boolean
+  operationName: [String!]
+  """
+  Only used if operation name is specified.
+  """
+  operationNormalizedQueryHash: [OperationNormalizedQueryHash!]
+  clientName: [String!]
+  """
+  Only used if client name is specified.
+  """
+  clientVersion: [String!]
+}
+
+input GraphCreateInput @join__type(graph: API) {
+  accountId: ID!
+  graphSlug: String!
+}
+
+input GraphDeleteInput @join__type(graph: API) {
+  id: ID!
+}
+
+input GraphOperationCheckConfigurationInput @join__type(graph: API) {
+  """
+  The time range in days to consider for operation checks. Operations older than the specificied
+  number of days are ignored.
+  """
+  timeRangeDays: Int
+  """
+  The request count threshold to consider for operation checks. Operations that have been
+  registered less than the specified number of occurrences are ignored.
+  """
+  requestCountThreshold: Int
+  """
+  The clients to exclude from operation checks.
+  """
+  excludedClients: [String!]
+  """
+  The operations to exclude from operation checks.
+  """
+  excludedOperations: [String!]
+  """
+  The graph to update.
+  """
+  graphId: ID!
+  """
+  Whether operation checks are enabled for the graph. This is ignored, since operation checks are now only enabled at the branch level.
+  """
+  enabled: Boolean
+}
+
+input GraphUpdateInput @join__type(graph: API) {
+  id: ID!
+  graphSlug: String
+  productionBranch: String
+}
+
+input HttpHeaderInput @join__type(graph: API) {
+  name: String!
+  value: String!
+}
+
+input InviteAcceptInput @join__type(graph: API) {
+  id: ID!
+}
+
+input InviteCancelInput @join__type(graph: API) {
+  id: ID!
+}
+
+input InviteDeclineInput @join__type(graph: API) {
+  id: ID!
+}
+
+input InviteSendInput @join__type(graph: API) {
+  role: MemberRole!
+  email: String!
+  organizationId: ID!
+}
+
+input MemberDeleteInput @join__type(graph: API) {
+  id: ID!
+}
+
+input MemberUpdateInput @join__type(graph: API) {
+  id: ID!
+  role: MemberRole
+}
+
+input OrganizationCreateInput @join__type(graph: API) {
+  name: String!
+  slug: String!
+  email: String
+}
+
+input OrganizationDeleteInput @join__type(graph: API) {
+  id: ID!
+}
+
+input OrganizationSlugUpdateInput @join__type(graph: API) {
+  id: ID!
+  slug: String!
+}
+
+input OrganizationUpdateInput @join__type(graph: API) {
+  id: ID!
+  name: String
+}
+
+input PersonalAccountUpdateInput @join__type(graph: API) {
+  name: String!
+}
+
+input PublishInput @join__type(graph: API) {
+  schema: String!
+  accountSlug: String!
+  graphSlug: String
+  projectSlug: String
+  message: String
+  url: String
+  branch: String
+  subgraph: String!
+}
+
+input RequestFilters @join__type(graph: API) {
+  """
+  Defaults to production branch
+  """
+  branchName: String
+  duration: DurationFilter
+  """
+  Use this if you really care about having a specific duration like 1 hour, 7 days, etc.
+  """
+  range: Duration
+  """
+  Use this if you *at least* the data between `from` and `to` to be provided. You may get
+  more, but never less.
+  """
+  from: DateTime
+  """
+  To be used in conjunction with with either `range` or `from`.
+  """
+  to: DateTime!
+  traceId: [String!]
+  operationName: [String!]
+  clientName: [String!]
+  """
+  Only used if client name is specified.
+  """
+  clientVersion: [String!]
+  httpStatusCode: [Int!]
+  operationType: [OperationType!]
+  errorCode: [String!]
+}
+
+input SchemaCheckCreateInput @join__type(graph: API) {
+  schema: String!
+  accountSlug: String!
+  graphSlug: String!
+  branch: String
+  subgraphName: String!
+  gitCommit: SchemaCheckGitCommitInput
+}
+
+input SchemaCheckCustomWebhookCreateInput @join__type(graph: API) {
+  """
+  The webhook URL that will be called when a schema check is created.
+  """
+  url: Url!
+  """
+  The headers to be sent with the webhook request.
+  """
+  headers: [HttpHeaderInput!]
+  """
+  The graph the schema checks apply to.
+  """
+  graphId: ID!
+}
+
+input SchemaCheckCustomWebhookUpdateInput @join__type(graph: API) {
+  headers: [HttpHeaderInput!]
+  webhookId: ID!
+}
+
+input SchemaCheckGitCommitInput @join__type(graph: API) {
+  message: String!
+  branch: String!
+  commitSha: String!
+  commitUrl: String
+  authorName: String!
+  authorAvatarUrl: String
+}
+
+input SchemaProposalApproveInput @join__type(graph: API) {
+  id: ID!
+  message: String
+}
+
+input SchemaProposalCommentThreadCreateInput @join__type(graph: API) {
+  """
+  The parent schema proposal.
+  """
+  schemaProposalId: ID!
+  """
+  The content of the comment.
+  """
+  text: String!
+  """
+  Must be provided if and only if location is Line.
+  """
+  subgraphName: String
+  """
+  Must be provided if and only if location is Line.
+  """
+  line: Int
+  """
+  Whether the comment applies to the existing or the proposed schema.
+
+  Must be provided if and only if location is Line.
+  """
+  diffSide: DiffSide
+  """
+  Where the comment is located.
+  """
+  location: SchemaProposalCommentThreadLocation!
+  """
+  The revision / version number of the proposal, obtained from SchemaProposal.revision. Must be provided if and only if location is Line.
+
+  This argument is necessary to avoid cases where the schema has been updated between the time it was retried and the time the comment is posted. In these cases, if we use the latest subgraph schema, the line numbers may have changed and the comment would end up in the wrong place.
+  """
+  proposalRevision: Int
+}
+
+input SchemaProposalCreateInput @join__type(graph: API) {
+  title: String!
+  description: String
+  branchId: ID!
+}
+
+input SchemaProposalEditInput @join__type(graph: API) {
+  subgraphs: [SchemaProposalEditSubgraph!]!
+  description: String
+  schemaProposalId: ID!
+}
+
+input SchemaProposalEditSubgraph @join__type(graph: API) {
+  name: String!
+  schema: String
+}
+
+input SchemaProposalFilter @join__type(graph: API) {
+  status: SchemaProposalStatus
+}
+
+input SchemaProposalRejectInput @join__type(graph: API) {
+  id: ID!
+  message: String
+}
+
+input SchemaProposalRequestReviewInput @join__type(graph: API) {
+  id: ID!
+}
+
+input SchemaProposalReviewRequestCreateInput @join__type(graph: API) {
+  schemaProposalId: ID!
+  """
+  Must be either a team id or a user id.
+  """
+  reviewerId: ID!
+}
+
+input SchemaProposalsConfigurationUpdateInput @join__type(graph: API) {
+  enforceChecks: Boolean
+  requireApprovalFromSubgraphOwners: Boolean
+  keepApprovalsOnEdit: Boolean
+}
+
+input SchemaProposalsConfiguredReviewerAddInput @join__type(graph: API) {
+  branchId: ID!
+  """
+  Either a UserId or a TeamId
+  """
+  reviewerId: ID!
+}
+
+input SchemaProposalsConfiguredReviewerRemoveInput @join__type(graph: API) {
+  branchId: ID!
+  """
+  Either a SchemaProposalUserReviewerId or a SchemaProposalTeamReviewerId
+  """
+  reviewerId: ID!
+}
+
+input SlackIntegrationCreateInput @join__type(graph: API) {
+  """
+  The graph_id field is deprecated. Pass branch_id instead.
+  """
+  graphId: String
+  branchId: ID
+  tokenId: String!
+  channelId: String!
+  channelName: String!
+}
+
+input TrustedDocumentInput @join__type(graph: API) {
+  documentId: String!
+  documentText: String!
+}
+
+input UsageFilters @join__type(graph: API) {
+  graphSlug: String
+  """
+  Use this if you really care about having a specific duration like 1 hour, 7 days, etc.
+  """
+  range: Duration
+  """
+  Use this if you *at least* the data between `from` and `to` to be provided. You may get
+  more, but never less.
+  """
+  from: DateTime
+  """
+  To be used in conjunction with with either `range` or `from`.
+  """
+  to: DateTime!
+  """
+  If explicitly to false, specifying both `from` and `to` will be treated as if `range: (to - from)`
+  had been specified instead. Meaning only the duration between `from` and `to` matters, not
+  necessarily having a data point for `from` itself.
+  """
+  isCustomRange: Boolean
+  """
+  If specified, overrides approximateNumberOfPoints. Must be in whole minutes.
+  At most 150 points can be returned.
+  """
+  aggregationStep: Duration
+  """
+  Defaults to 100, at most 150 points can be returned.
+  """
+  approximateNumberOfDataPoints: Int
+  """
+  Defaults to true
+  Example: for an aggregationStep of 15 min:
+  - if true, only times with 00, 15, 30 and 45 minutes will appear in the time series
+  - if false, times in the time series will be adjusted to start from the periodStart (~from).
+  So if from = 15:32:00, times will end in 02, 17, 32 and 47.
+  I'll always align to the aggregation step used to store the data though, which
+  is currently in minutes. So cannot have 15:10:20, 15:11:20, etc.
+  """
+  alignPeriodWithAggregationStep: Boolean
+}
+
+input UserUpdateInput @join__type(graph: API) {
+  name: String!
+}

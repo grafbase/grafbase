@@ -13,22 +13,37 @@ impl std::ops::Deref for LogLevel<'_> {
     }
 }
 
-// Verbose libraries in debug/trace mode which are rarely actually useful.
-const LIBS: &[&str] = &["h2", "tower", "rustls", "hyper_util", "hyper", "reqwest"];
+// Verbose libraries in info/debug/trace mode which are rarely actually useful.
+const LIBS: &[&str] = &[
+    "h2",
+    "tower",
+    "rustls",
+    "hyper_util",
+    "hyper",
+    "reqwest",
+    "tantivy",
+    "opentelemetry_sdk",
+    "opentelemetry-otlp",
+];
 
 impl<'a> From<LogLevel<'a>> for EnvFilter {
     fn from(level: LogLevel<'a>) -> Self {
         EnvFilter::new(match level.0 {
-            "off" | "error" | "warn" | "info" => level.0.to_string(),
+            "off" | "error" | "warn" => level.0.to_string(),
+            "info" => format!(
+                "info,{}",
+                LIBS.iter()
+                    .format_with(",", |target, f| f(&format_args!("{target}=warn")))
+            ),
             "debug" => format!(
                 "debug,{}",
                 LIBS.iter()
-                    .format_with(",", |target, f| f(&format_args!("{target}=info")))
+                    .format_with(",", |target, f| f(&format_args!("{target}=warn")))
             ),
             "trace" => format!(
                 "trace,{}",
                 LIBS.iter()
-                    .format_with(",", |target, f| f(&format_args!("{target}=info")))
+                    .format_with(",", |target, f| f(&format_args!("{target}=warn")))
             ),
             custom => custom.to_string(),
         })

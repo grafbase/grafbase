@@ -1,4 +1,5 @@
 #![deny(unused_crate_dependencies)]
+use convert_case as _;
 use grafbase_workspace_hack as _;
 
 mod server;
@@ -32,11 +33,10 @@ pub fn router<R: Runtime>(
         sse_keep_alive: Some(Duration::from_secs(5)),
     });
 
-    let instructions = config.instructions.clone();
-    let enable_mutations = config.enable_mutations;
+    let include_mutations = config.include_mutations;
 
-    let ct = sse_server
-        .with_service(move || server::McpServer::new(engine.clone(), instructions.clone(), enable_mutations).unwrap());
+    let mcp_server = server::McpServer::new(engine.clone(), include_mutations).unwrap();
+    let ct = sse_server.with_service(move || mcp_server.clone());
 
-    (router.with_state(()), ct)
+    (router, ct)
 }
