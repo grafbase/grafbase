@@ -168,7 +168,7 @@ pub async fn router<R: engine::Runtime, SR: ServerRuntime>(
     config: gateway_config::Config,
     engine: EngineWatcher<R>,
     server_runtime: SR,
-    inject_layers_before_cors: impl FnOnce(axum::Router<ServerState<R, SR>>) -> axum::Router<ServerState<R, SR>>,
+    inject_layers_before_cors: impl FnOnce(axum::Router<()>) -> axum::Router<()>,
 ) -> crate::Result<(axum::Router, Option<CancellationToken>)> {
     let path = &config.graph.path;
     let websocket_path = &config.graph.websocket_path;
@@ -193,40 +193,33 @@ pub async fn router<R: engine::Runtime, SR: ServerRuntime>(
         .base_router()
         .unwrap_or_default()
         .route(path, get(graphql_execute).post(graphql_execute))
-        .route_service(websocket_path, WebsocketService::new(websocket_sender));
+        .route_service(websocket_path, WebsocketService::new(websocket_sender))
+        .with_state(state);
 
-    router = inject_layers_before_cors(router)
-        .layer(CompressionLayer::new())
-        .layer(cors);
-
-    if config.health.enabled {
-        if let Some(listen) = config.health.listen {
-            tokio::spawn(health::bind_health_endpoint(
-                listen,
-                config.tls.clone(),
-                config.health,
-                state.clone(),
-            ));
-        } else {
-            router = router.route(&config.health.path, get(health::health));
-        }
-    }
-
-    let mut router = router.with_state(state);
-
-    if config.csrf.enabled {
-        router = csrf::inject_layer(router);
-    }
-
-    let ct = match config.mcp {
-        Some(ref mcp_config) if mcp_config.enabled => {
+    let ct = match &config.mcp {
+        Some(mcp_config) if mcp_config.enabled => {
             let (mcp_router, ct) = grafbase_mcp::router(engine, mcp_config);
             router = router.merge(mcp_router);
-
             Some(ct)
         }
         _ => None,
     };
+
+    let mut router = inject_layers_before_cors(router)
+        .layer(CompressionLayer::new())
+        .layer(cors);
+
+    if config.csrf.enabled {
+        router = csrf::inject_layer(router, &config.csrf);
+    }
+
+    if config.health.enabled {
+        if let Some(listen) = config.health.listen {
+            tokio::spawn(health::bind_health_endpoint(listen, config.tls.clone(), config.health));
+        } else {
+            router = router.route(&config.health.path, get(health::health));
+        }
+    }
 
     Ok((router, ct))
 }

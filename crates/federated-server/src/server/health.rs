@@ -2,8 +2,7 @@ use std::net::SocketAddr;
 
 use gateway_config::{HealthConfig, TlsConfig};
 
-use super::{ServerRuntime, state::ServerState};
-use axum::{Json, Router, extract::State, routing::get};
+use axum::{Json, Router, routing::get};
 use http::StatusCode;
 
 #[derive(Debug, serde::Serialize)]
@@ -26,9 +25,7 @@ pub(crate) enum HealthState {
 /// # Returns
 ///
 /// A tuple containing the HTTP status code and a JSON representation of the health status.
-pub(crate) async fn health<R: engine::Runtime, SR>(
-    State(_state): State<ServerState<R, SR>>,
-) -> (StatusCode, Json<HealthState>) {
+pub(crate) async fn health() -> (StatusCode, Json<HealthState>) {
     (StatusCode::OK, Json(HealthState::Healthy))
 }
 
@@ -44,18 +41,14 @@ pub(crate) async fn health<R: engine::Runtime, SR>(
 /// # Returns
 ///
 /// A `Result` indicating success or failure of binding the endpoint.
-pub(super) async fn bind_health_endpoint<R: engine::Runtime, SR: ServerRuntime>(
+pub(super) async fn bind_health_endpoint(
     addr: SocketAddr,
     tls_config: Option<TlsConfig>,
     health_config: HealthConfig,
-    state: ServerState<R, SR>,
 ) -> crate::Result<()> {
     let scheme = if tls_config.is_some() { "https" } else { "http" };
     let path = &health_config.path;
-    let app = Router::new()
-        .route(path, get(health))
-        .with_state(state)
-        .into_make_service();
+    let app = Router::new().route(path, get(health)).into_make_service();
 
     tracing::info!("Health check endpoint exposed at {scheme}://{addr}{path}");
 

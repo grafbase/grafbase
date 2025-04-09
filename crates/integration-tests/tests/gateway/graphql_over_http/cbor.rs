@@ -4,7 +4,11 @@ use integration_tests::{gateway::Gateway, runtime};
 #[test]
 fn content_type() {
     runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder()
+            .with_subgraph(FakeGithubSchema)
+            .with_toml_config(r#""#)
+            .build()
+            .await;
 
         let response = engine
             .raw_execute(
