@@ -13,7 +13,6 @@ pub enum InputValue<'a> {
     String(&'a str),
     EnumValue(EnumValue<'a>),
     Int(i32),
-    BigInt(i64),
     Float(f64),
     Boolean(bool),
     // There is no guarantee on the ordering.
@@ -22,6 +21,7 @@ pub enum InputValue<'a> {
 
     /// for JSON
     Map(Vec<(&'a str, InputValue<'a>)>), // no guarantee on the ordering
+    I64(i64),
     U64(u64),
 
     /// We may encounter unbound enum values within a scalar for which we have no definition. In
@@ -40,8 +40,8 @@ impl serde::Serialize for InputValue<'_> {
             InputValue::String(s) | InputValue::UnboundEnumValue(s) => s.serialize(serializer),
             InputValue::EnumValue(enum_) => enum_.name().serialize(serializer),
             InputValue::Int(n) => n.serialize(serializer),
-            InputValue::BigInt(n) => n.serialize(serializer),
             InputValue::Float(f) => f.serialize(serializer),
+            InputValue::I64(n) => n.serialize(serializer),
             InputValue::U64(n) => n.serialize(serializer),
             InputValue::Boolean(b) => b.serialize(serializer),
             InputValue::InputObject(fields) => serializer.collect_map(
@@ -63,7 +63,6 @@ impl<'a> From<SchemaInputValue<'a>> for InputValue<'a> {
             SchemaInputValueRecord::EnumValue(id) => InputValue::EnumValue(id.walk(schema)),
             SchemaInputValueRecord::UnboundEnumValue(id) => InputValue::UnboundEnumValue(id.walk(schema)),
             SchemaInputValueRecord::Int(n) => InputValue::Int(*n),
-            SchemaInputValueRecord::BigInt(n) => InputValue::BigInt(*n),
             SchemaInputValueRecord::Float(f) => InputValue::Float(*f),
             SchemaInputValueRecord::Boolean(b) => InputValue::Boolean(*b),
             SchemaInputValueRecord::InputObject(ids) => InputValue::InputObject(
@@ -75,6 +74,7 @@ impl<'a> From<SchemaInputValue<'a>> for InputValue<'a> {
             SchemaInputValueRecord::Map(ids) => {
                 InputValue::Map(ids.walk(schema).map(|(key, value)| (key, value.into())).collect())
             }
+            SchemaInputValueRecord::I64(n) => InputValue::I64(*n),
             SchemaInputValueRecord::U64(n) => InputValue::U64(*n),
         }
     }

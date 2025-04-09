@@ -64,7 +64,7 @@ impl<'de> serde::Deserializer<'de> for VariableInputValue<'de> {
             VariableInputValueRecord::String(s) => visitor.visit_borrowed_str(s),
             VariableInputValueRecord::EnumValue(id) => visitor.visit_borrowed_str(id.walk(ctx.schema).name()),
             VariableInputValueRecord::Int(n) => visitor.visit_i32(*n),
-            VariableInputValueRecord::BigInt(n) => visitor.visit_i64(*n),
+            VariableInputValueRecord::I64(n) => visitor.visit_i64(*n),
             VariableInputValueRecord::U64(n) => visitor.visit_u64(*n),
             VariableInputValueRecord::Float(n) => visitor.visit_f64(*n),
             VariableInputValueRecord::Boolean(b) => visitor.visit_bool(*b),

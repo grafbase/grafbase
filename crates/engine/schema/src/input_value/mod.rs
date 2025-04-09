@@ -99,7 +99,6 @@ pub enum SchemaInputValueRecord {
     String(StringId),
     EnumValue(EnumValueId),
     Int(i32),
-    BigInt(i64),
     Float(f64),
     Boolean(bool),
     // sorted by input_value_definition_id
@@ -109,6 +108,7 @@ pub enum SchemaInputValueRecord {
     // for JSON
     // sorted by the key (actual String, not the StringId)
     Map(IdRange<SchemaInputKeyValueId>),
+    I64(i64),
     U64(u64),
 
     /// We may encounter unbound enum values within a scalar for which we have no definition. In
@@ -141,7 +141,7 @@ impl SchemaInputValueRecord {
             SchemaInputValueRecord::String(_) => 1,
             SchemaInputValueRecord::EnumValue(_) => 2,
             SchemaInputValueRecord::Int(_) => 3,
-            SchemaInputValueRecord::BigInt(_) => 4,
+            SchemaInputValueRecord::I64(_) => 4,
             SchemaInputValueRecord::Float(_) => 5,
             SchemaInputValueRecord::Boolean(_) => 6,
             SchemaInputValueRecord::InputObject(_) => 7,

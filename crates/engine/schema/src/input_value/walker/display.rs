@@ -12,7 +12,7 @@ impl Display for SchemaInputValue<'_> {
             SchemaInputValueRecord::Null => f.write_str("null"),
             SchemaInputValueRecord::String(id) => write_quoted(&self.schema[*id], f),
             SchemaInputValueRecord::Int(n) => write!(f, "{}", n),
-            SchemaInputValueRecord::BigInt(n) => write!(f, "{}", n),
+            SchemaInputValueRecord::I64(n) => write!(f, "{}", n),
             SchemaInputValueRecord::Float(n) => write!(f, "{}", n),
             SchemaInputValueRecord::U64(n) => write!(f, "{}", n),
             SchemaInputValueRecord::Boolean(b) => {

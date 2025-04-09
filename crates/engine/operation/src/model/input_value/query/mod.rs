@@ -99,7 +99,6 @@ pub enum QueryInputValueRecord {
     String(String),
     EnumValue(EnumValueId),
     Int(i32),
-    BigInt(i64),
     Float(f64),
     Boolean(bool),
     // Sorted by the input value definition id
@@ -108,6 +107,7 @@ pub enum QueryInputValueRecord {
 
     /// for JSON
     Map(IdRange<QueryInputKeyValueId>),
+    I64(i64),
     U64(u64),
 
     /// We may encounter unbound enum values within a scalar for which we have no definition. In

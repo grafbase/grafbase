@@ -75,9 +75,6 @@ pub(crate) enum ResponseValue {
     Int {
         value: i32,
     },
-    BigInt {
-        value: i64,
-    },
     Float {
         value: f64,
     },
@@ -98,6 +95,9 @@ pub(crate) enum ResponseValue {
     },
     Unexpected,
     // For Any, anything serde_json::Value would support
+    I64 {
+        value: i64,
+    },
     U64 {
         value: u64,
     },
@@ -135,7 +135,7 @@ impl From<i32> for ResponseValue {
 
 impl From<i64> for ResponseValue {
     fn from(value: i64) -> Self {
-        Self::BigInt { value }
+        Self::I64 { value }
     }
 }
 
