@@ -127,14 +127,16 @@ impl SchemaIndex {
                 queue.push_back(field);
                 shortest_path_depth[usize::from(field.id)] = 0;
             }
-            if let Some(mutation) = schema.mutation().filter(|_| include_mutations) {
+            if let Some(mutation) = schema.mutation() {
                 visited_objects.put(usize::from(mutation.id));
-                for field in mutation.fields() {
-                    queue.push_back(field);
-                    shortest_path_depth[usize::from(field.id)] = 0;
+                if include_mutations {
+                    for field in mutation.fields() {
+                        queue.push_back(field);
+                        shortest_path_depth[usize::from(field.id)] = 0;
+                    }
                 }
             }
-            if let Some(subscription) = schema.subscription().filter(|_| include_mutations) {
+            if let Some(subscription) = schema.subscription() {
                 visited_objects.put(usize::from(subscription.id));
             }
             while let Some(parent_field) = queue.pop_front() {
