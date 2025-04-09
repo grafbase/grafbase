@@ -1,14 +1,45 @@
+use fxhash::FxHasher32;
 use serde::Deserialize;
-use std::fmt;
+use std::collections::HashMap;
+use std::{fmt, hash::BuildHasherDefault};
 
 use crate::{SdkError, wit};
 
-/// GraphQL schema
-#[derive(Clone, Copy)]
-pub struct SubgraphSchema<'a> {
-    name: &'a str,
-    schema: &'a wit::Schema,
+#[derive(Clone)]
+pub(crate) struct IndexedSchema {
+    name: String,
+    directives: Vec<wit::Directive>,
+    type_definitions: HashMap<DefinitionId, wit::TypeDefinition, BuildHasherDefault<FxHasher32>>,
+    root_types: wit::RootTypes,
 }
+
+impl From<(String, wit::Schema)> for IndexedSchema {
+    fn from((name, schema): (String, wit::Schema)) -> Self {
+        Self {
+            name,
+            directives: schema.directives,
+            type_definitions: schema
+                .type_definitions
+                .into_iter()
+                .map(|def| {
+                    let id = match &def {
+                        wit::TypeDefinition::Scalar(scalar) => DefinitionId(scalar.id),
+                        wit::TypeDefinition::Object(object) => DefinitionId(object.id),
+                        wit::TypeDefinition::Interface(interface) => DefinitionId(interface.id),
+                        wit::TypeDefinition::Union(union) => DefinitionId(union.id),
+                        wit::TypeDefinition::Enum(enum_def) => DefinitionId(enum_def.id),
+                        wit::TypeDefinition::InputObject(input_object) => DefinitionId(input_object.id),
+                    };
+                    (id, def)
+                })
+                .collect(),
+            root_types: schema.root_types,
+        }
+    }
+}
+
+/// GraphQL schema
+pub struct SubgraphSchema<'a>(pub(crate) &'a IndexedSchema);
 
 impl fmt::Debug for SubgraphSchema<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -23,42 +54,52 @@ impl fmt::Debug for SubgraphSchema<'_> {
     }
 }
 
-impl<'a> From<&'a (String, wit::Schema)> for SubgraphSchema<'a> {
-    fn from((name, schema): &'a (String, wit::Schema)) -> Self {
-        Self { name, schema }
-    }
-}
-
-impl<'a> SubgraphSchema<'a> {
+impl SubgraphSchema<'_> {
     /// Name of the subgraph this schema belongs to
-    pub fn name(&self) -> &'a str {
-        self.name
+    pub fn name(&self) -> &str {
+        &self.0.name
     }
 
     /// Iterator over the definitions in this schema
-    pub fn type_definitions(&self) -> impl ExactSizeIterator<Item = TypeDefinition<'a>> + 'a {
-        self.schema.type_definitions.iter().map(Into::into)
+    pub fn type_definitions(&self) -> impl ExactSizeIterator<Item = TypeDefinition<'_>> + '_ {
+        let schema = self.0;
+        self.0.type_definitions.values().map(move |def| (schema, def).into())
     }
 
     /// Iterator over the directives applied to this schema
-    pub fn directives(&self) -> impl ExactSizeIterator<Item = Directive<'a>> + 'a {
-        self.schema.directives.iter().map(Into::into)
+    pub fn directives(&self) -> impl ExactSizeIterator<Item = Directive<'_>> + '_ {
+        self.0.directives.iter().map(Into::into)
     }
 
     /// Query type id definition if any. Subgraph schema may only contain mutations or add fields
     /// to external objects.
-    pub fn query_id(&self) -> Option<DefinitionId> {
-        self.schema.root_types.query_id.map(DefinitionId)
+    pub fn query(&self) -> Option<ObjectDefinition<'_>> {
+        self.0.root_types.query_id.map(|id| {
+            let Some(wit::TypeDefinition::Object(def)) = self.0.type_definitions.get(&DefinitionId(id)) else {
+                unreachable!("Inconsitent schema");
+            };
+            (self.0, def).into()
+        })
     }
 
     /// Mutation type definition id if any
-    pub fn mutation_id(&self) -> Option<DefinitionId> {
-        self.schema.root_types.mutation_id.map(DefinitionId)
+    pub fn mutation(&self) -> Option<ObjectDefinition<'_>> {
+        self.0.root_types.mutation_id.map(|id| {
+            let Some(wit::TypeDefinition::Object(def)) = self.0.type_definitions.get(&DefinitionId(id)) else {
+                unreachable!("Inconsitent schema");
+            };
+            (self.0, def).into()
+        })
     }
 
     /// Subscription type definition id if any
-    pub fn subscription_id(&self) -> Option<DefinitionId> {
-        self.schema.root_types.subscription_id.map(DefinitionId)
+    pub fn subscription(&self) -> Option<ObjectDefinition<'_>> {
+        self.0.root_types.subscription_id.map(|id| {
+            let Some(wit::TypeDefinition::Object(def)) = self.0.type_definitions.get(&DefinitionId(id)) else {
+                unreachable!("Inconsitent schema");
+            };
+            (self.0, def).into()
+        })
     }
 }
 
@@ -135,22 +176,26 @@ impl<'a> TypeDefinition<'a> {
     }
 }
 
-impl<'a> From<&'a wit::TypeDefinition> for TypeDefinition<'a> {
-    fn from(definition: &'a wit::TypeDefinition) -> Self {
+impl<'a> From<(&'a IndexedSchema, &'a wit::TypeDefinition)> for TypeDefinition<'a> {
+    fn from((schema, definition): (&'a IndexedSchema, &'a wit::TypeDefinition)) -> Self {
         match definition {
-            wit::TypeDefinition::Scalar(scalar) => TypeDefinition::Scalar(scalar.into()),
-            wit::TypeDefinition::Object(object) => TypeDefinition::Object(object.into()),
-            wit::TypeDefinition::Interface(interface) => TypeDefinition::Interface(interface.into()),
-            wit::TypeDefinition::Union(union) => TypeDefinition::Union(union.into()),
-            wit::TypeDefinition::Enum(enum_def) => TypeDefinition::Enum(enum_def.into()),
-            wit::TypeDefinition::InputObject(input_object) => TypeDefinition::InputObject(input_object.into()),
+            wit::TypeDefinition::Scalar(scalar) => TypeDefinition::Scalar((schema, scalar).into()),
+            wit::TypeDefinition::Object(object) => TypeDefinition::Object((schema, object).into()),
+            wit::TypeDefinition::Interface(interface) => TypeDefinition::Interface((schema, interface).into()),
+            wit::TypeDefinition::Union(union) => TypeDefinition::Union((schema, union).into()),
+            wit::TypeDefinition::Enum(enum_def) => TypeDefinition::Enum((schema, enum_def).into()),
+            wit::TypeDefinition::InputObject(input_object) => {
+                TypeDefinition::InputObject((schema, input_object).into())
+            }
         }
     }
 }
 
 /// GraphQL scalar type definition
 #[derive(Clone, Copy)]
-pub struct ScalarDefinition<'a>(&'a wit::ScalarDefinition);
+pub struct ScalarDefinition<'a> {
+    pub(crate) definition: &'a wit::ScalarDefinition,
+}
 
 impl fmt::Debug for ScalarDefinition<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -163,21 +208,21 @@ impl fmt::Debug for ScalarDefinition<'_> {
     }
 }
 
-impl<'a> From<&'a wit::ScalarDefinition> for ScalarDefinition<'a> {
-    fn from(scalar: &'a wit::ScalarDefinition) -> Self {
-        Self(scalar)
+impl<'a> From<(&'a IndexedSchema, &'a wit::ScalarDefinition)> for ScalarDefinition<'a> {
+    fn from((_, definition): (&'a IndexedSchema, &'a wit::ScalarDefinition)) -> Self {
+        Self { definition }
     }
 }
 
 impl<'a> ScalarDefinition<'a> {
     /// Unique identifier for this scalar definition
     pub fn id(&self) -> DefinitionId {
-        DefinitionId(self.0.id)
+        DefinitionId(self.definition.id)
     }
 
     /// Name of the scalar type
     pub fn name(&self) -> &'a str {
-        self.0.name.as_str()
+        self.definition.name.as_str()
     }
 
     /// URL that specifies the behavior of this scalar, if any
@@ -185,18 +230,21 @@ impl<'a> ScalarDefinition<'a> {
     /// The specified by URL is used with custom scalars to point to
     /// a specification for how the scalar should be validated and parsed.
     pub fn specified_by_url(&self) -> Option<&'a str> {
-        self.0.specified_by_url.as_deref()
+        self.definition.specified_by_url.as_deref()
     }
 
     /// Iterator over the directives applied to this scalar
     pub fn directives(&self) -> impl ExactSizeIterator<Item = Directive<'a>> + 'a {
-        self.0.directives.iter().map(Into::into)
+        self.definition.directives.iter().map(Into::into)
     }
 }
 
 /// GraphQL object type definition
 #[derive(Clone, Copy)]
-pub struct ObjectDefinition<'a>(&'a wit::ObjectDefinition);
+pub struct ObjectDefinition<'a> {
+    pub(crate) schema: &'a IndexedSchema,
+    pub(crate) definition: &'a wit::ObjectDefinition,
+}
 
 impl fmt::Debug for ObjectDefinition<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -204,42 +252,54 @@ impl fmt::Debug for ObjectDefinition<'_> {
             .field("id", &self.id())
             .field("name", &self.name())
             .field("fields", &self.fields().collect::<Vec<_>>())
-            .field("interfaces", &self.interfaces().collect::<Vec<_>>())
+            .field(
+                "interfaces",
+                &self.interfaces().map(|inf| inf.name()).collect::<Vec<_>>(),
+            )
             .field("directives", &self.directives().collect::<Vec<_>>())
             .finish()
     }
 }
 
-impl<'a> From<&'a wit::ObjectDefinition> for ObjectDefinition<'a> {
-    fn from(object_definition: &'a wit::ObjectDefinition) -> Self {
-        Self(object_definition)
+impl<'a> From<(&'a IndexedSchema, &'a wit::ObjectDefinition)> for ObjectDefinition<'a> {
+    fn from((schema, definition): (&'a IndexedSchema, &'a wit::ObjectDefinition)) -> Self {
+        Self { schema, definition }
     }
 }
 
 impl<'a> ObjectDefinition<'a> {
     /// Unique identifier for this object definition
     pub fn id(&self) -> DefinitionId {
-        DefinitionId(self.0.id)
+        DefinitionId(self.definition.id)
     }
 
     /// Name of the object type
     pub fn name(&self) -> &'a str {
-        self.0.name.as_str()
+        self.definition.name.as_str()
     }
 
     /// Iterator over the fields defined in this object
     pub fn fields(&self) -> impl ExactSizeIterator<Item = FieldDefinition<'a>> + 'a {
-        self.0.fields.iter().map(Into::into)
+        self.definition.fields.iter().map(|field| FieldDefinition {
+            schema: self.schema,
+            definition: field,
+        })
     }
 
     /// Iterator over the interfaces implemented by this object
-    pub fn interfaces(&self) -> impl ExactSizeIterator<Item = DefinitionId> + 'a {
-        self.0.interfaces.iter().map(|&id| DefinitionId(id))
+    pub fn interfaces(&self) -> impl ExactSizeIterator<Item = InterfaceDefinition<'a>> + 'a {
+        let schema = self.schema;
+        self.definition.interfaces.iter().map(move |&id| {
+            let Some(wit::TypeDefinition::Interface(def)) = &schema.type_definitions.get(&DefinitionId(id)) else {
+                unreachable!("Inconsitent schema");
+            };
+            (schema, def).into()
+        })
     }
 
     /// Iterator over the directives applied to this object
     pub fn directives(&self) -> impl ExactSizeIterator<Item = Directive<'a>> + 'a {
-        self.0.directives.iter().map(Into::into)
+        self.definition.directives.iter().map(Into::into)
     }
 }
 
@@ -248,7 +308,10 @@ impl<'a> ObjectDefinition<'a> {
 /// Interface types define a set of fields that multiple object types can implement.
 /// Interfaces can also implement other interfaces.
 #[derive(Clone, Copy)]
-pub struct InterfaceDefinition<'a>(&'a wit::InterfaceDefinition);
+pub struct InterfaceDefinition<'a> {
+    pub(crate) schema: &'a IndexedSchema,
+    pub(crate) definition: &'a wit::InterfaceDefinition,
+}
 
 impl fmt::Debug for InterfaceDefinition<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -256,42 +319,54 @@ impl fmt::Debug for InterfaceDefinition<'_> {
             .field("id", &self.id())
             .field("name", &self.name())
             .field("fields", &self.fields().collect::<Vec<_>>())
-            .field("interfaces", &self.interfaces().collect::<Vec<_>>())
+            .field(
+                "interfaces",
+                &self.interfaces().map(|inf| inf.name()).collect::<Vec<_>>(),
+            )
             .field("directives", &self.directives().collect::<Vec<_>>())
             .finish()
     }
 }
 
-impl<'a> From<&'a wit::InterfaceDefinition> for InterfaceDefinition<'a> {
-    fn from(interface: &'a wit::InterfaceDefinition) -> Self {
-        Self(interface)
+impl<'a> From<(&'a IndexedSchema, &'a wit::InterfaceDefinition)> for InterfaceDefinition<'a> {
+    fn from((schema, definition): (&'a IndexedSchema, &'a wit::InterfaceDefinition)) -> Self {
+        Self { schema, definition }
     }
 }
 
 impl<'a> InterfaceDefinition<'a> {
     /// Unique identifier for this interface definition
     pub fn id(&self) -> DefinitionId {
-        DefinitionId(self.0.id)
+        DefinitionId(self.definition.id)
     }
 
     /// Name of the interface type
     pub fn name(&self) -> &'a str {
-        self.0.name.as_str()
+        self.definition.name.as_str()
     }
 
     /// Iterator over the fields defined in this interface
     pub fn fields(&self) -> impl ExactSizeIterator<Item = FieldDefinition<'a>> + 'a {
-        self.0.fields.iter().map(Into::into)
+        self.definition.fields.iter().map(|field| FieldDefinition {
+            definition: field,
+            schema: self.schema,
+        })
     }
 
     /// Iterator over the interfaces implemented by this interface
-    pub fn interfaces(&self) -> impl ExactSizeIterator<Item = DefinitionId> + 'a {
-        self.0.interfaces.iter().map(|&id| DefinitionId(id))
+    pub fn interfaces(&self) -> impl ExactSizeIterator<Item = InterfaceDefinition<'a>> + 'a {
+        let schema = self.schema;
+        self.definition.interfaces.iter().map(move |&id| {
+            let Some(wit::TypeDefinition::Interface(def)) = &schema.type_definitions.get(&DefinitionId(id)) else {
+                unreachable!("Inconsitent schema");
+            };
+            (schema, def).into()
+        })
     }
 
     /// Iterator over the directives applied to this interface
     pub fn directives(&self) -> impl ExactSizeIterator<Item = Directive<'a>> + 'a {
-        self.0.directives.iter().map(Into::into)
+        self.definition.directives.iter().map(Into::into)
     }
 }
 
@@ -299,44 +374,56 @@ impl<'a> InterfaceDefinition<'a> {
 ///
 /// Union types define a type that could be one of several object types.
 #[derive(Clone, Copy)]
-pub struct UnionDefinition<'a>(&'a wit::UnionDefinition);
+pub struct UnionDefinition<'a> {
+    pub(crate) schema: &'a IndexedSchema,
+    pub(crate) definition: &'a wit::UnionDefinition,
+}
 
 impl fmt::Debug for UnionDefinition<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("UnionDefinition")
             .field("id", &self.id())
             .field("name", &self.name())
-            .field("member_types", &self.member_types().collect::<Vec<_>>())
+            .field(
+                "member_types",
+                &self.member_types().map(|obj| obj.name()).collect::<Vec<_>>(),
+            )
             .field("directives", &self.directives().collect::<Vec<_>>())
             .finish()
     }
 }
 
-impl<'a> From<&'a wit::UnionDefinition> for UnionDefinition<'a> {
-    fn from(union: &'a wit::UnionDefinition) -> Self {
-        Self(union)
+impl<'a> From<(&'a IndexedSchema, &'a wit::UnionDefinition)> for UnionDefinition<'a> {
+    fn from((schema, definition): (&'a IndexedSchema, &'a wit::UnionDefinition)) -> Self {
+        Self { schema, definition }
     }
 }
 
 impl<'a> UnionDefinition<'a> {
     /// Unique identifier for this union definition
     pub fn id(&self) -> DefinitionId {
-        DefinitionId(self.0.id)
+        DefinitionId(self.definition.id)
     }
 
     /// Name of the union type
     pub fn name(&self) -> &'a str {
-        self.0.name.as_str()
+        self.definition.name.as_str()
     }
 
     /// Iterator over the member types that are part of this union
-    pub fn member_types(&self) -> impl ExactSizeIterator<Item = DefinitionId> + 'a {
-        self.0.member_types.iter().map(|&id| DefinitionId(id))
+    pub fn member_types(&self) -> impl ExactSizeIterator<Item = ObjectDefinition<'a>> + 'a {
+        let schema = self.schema;
+        self.definition.member_types.iter().map(move |&id| {
+            let Some(wit::TypeDefinition::Object(def)) = &schema.type_definitions.get(&DefinitionId(id)) else {
+                unreachable!("Inconsitent schema");
+            };
+            (schema, def).into()
+        })
     }
 
     /// Iterator over the directives applied to this union
     pub fn directives(&self) -> impl ExactSizeIterator<Item = Directive<'a>> + 'a {
-        self.0.directives.iter().map(Into::into)
+        self.definition.directives.iter().map(Into::into)
     }
 }
 
@@ -344,7 +431,9 @@ impl<'a> UnionDefinition<'a> {
 ///
 /// Enum types restrict a field to a finite set of values.
 #[derive(Clone, Copy)]
-pub struct EnumDefinition<'a>(&'a wit::EnumDefinition);
+pub struct EnumDefinition<'a> {
+    pub(crate) definition: &'a wit::EnumDefinition,
+}
 
 impl fmt::Debug for EnumDefinition<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -357,31 +446,31 @@ impl fmt::Debug for EnumDefinition<'_> {
     }
 }
 
-impl<'a> From<&'a wit::EnumDefinition> for EnumDefinition<'a> {
-    fn from(enum_def: &'a wit::EnumDefinition) -> Self {
-        Self(enum_def)
+impl<'a> From<(&'a IndexedSchema, &'a wit::EnumDefinition)> for EnumDefinition<'a> {
+    fn from((_, definition): (&'a IndexedSchema, &'a wit::EnumDefinition)) -> Self {
+        Self { definition }
     }
 }
 
 impl<'a> EnumDefinition<'a> {
     /// Unique identifier for this enum definition
     pub fn id(&self) -> DefinitionId {
-        DefinitionId(self.0.id)
+        DefinitionId(self.definition.id)
     }
 
     /// Name of the enum type
     pub fn name(&self) -> &'a str {
-        self.0.name.as_str()
+        self.definition.name.as_str()
     }
 
     /// Iterator over the possible values for this enum
     pub fn values(&self) -> impl ExactSizeIterator<Item = EnumValue<'a>> + 'a {
-        self.0.values.iter().map(Into::into)
+        self.definition.values.iter().map(Into::into)
     }
 
     /// Iterator over the directives applied to this enum
     pub fn directives(&self) -> impl ExactSizeIterator<Item = Directive<'a>> + 'a {
-        self.0.directives.iter().map(Into::into)
+        self.definition.directives.iter().map(Into::into)
     }
 }
 
@@ -390,7 +479,10 @@ impl<'a> EnumDefinition<'a> {
 /// Input objects are complex objects provided as arguments to fields,
 /// consisting of a set of input fields.
 #[derive(Clone, Copy)]
-pub struct InputObjectDefinition<'a>(&'a wit::InputObjectDefinition);
+pub struct InputObjectDefinition<'a> {
+    pub(crate) schema: &'a IndexedSchema,
+    pub(crate) definition: &'a wit::InputObjectDefinition,
+}
 
 impl fmt::Debug for InputObjectDefinition<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -403,31 +495,34 @@ impl fmt::Debug for InputObjectDefinition<'_> {
     }
 }
 
-impl<'a> From<&'a wit::InputObjectDefinition> for InputObjectDefinition<'a> {
-    fn from(input_object: &'a wit::InputObjectDefinition) -> Self {
-        Self(input_object)
+impl<'a> From<(&'a IndexedSchema, &'a wit::InputObjectDefinition)> for InputObjectDefinition<'a> {
+    fn from((schema, definition): (&'a IndexedSchema, &'a wit::InputObjectDefinition)) -> Self {
+        Self { schema, definition }
     }
 }
 
 impl<'a> InputObjectDefinition<'a> {
     /// Unique identifier for this input object definition
     pub fn id(&self) -> DefinitionId {
-        DefinitionId(self.0.id)
+        DefinitionId(self.definition.id)
     }
 
     /// Name of the input object type
     pub fn name(&self) -> &'a str {
-        self.0.name.as_str()
+        self.definition.name.as_str()
     }
 
     /// Iterator over the input fields defined in this input object
     pub fn input_fields(&self) -> impl ExactSizeIterator<Item = InputValueDefinition<'a>> + 'a {
-        self.0.input_fields.iter().map(Into::into)
+        self.definition.input_fields.iter().map(|field| InputValueDefinition {
+            definition: field,
+            schema: self.schema,
+        })
     }
 
     /// Iterator over the directives applied to this input object
     pub fn directives(&self) -> impl ExactSizeIterator<Item = Directive<'a>> + 'a {
-        self.0.directives.iter().map(Into::into)
+        self.definition.directives.iter().map(Into::into)
     }
 }
 
@@ -436,7 +531,10 @@ impl<'a> InputObjectDefinition<'a> {
 /// Fields are the basic units of data in GraphQL. They define what data can be
 /// fetched from a particular object or interface.
 #[derive(Clone, Copy)]
-pub struct FieldDefinition<'a>(&'a wit::FieldDefinition);
+pub struct FieldDefinition<'a> {
+    pub(crate) schema: &'a IndexedSchema,
+    pub(crate) definition: &'a wit::FieldDefinition,
+}
 
 impl fmt::Debug for FieldDefinition<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -450,36 +548,39 @@ impl fmt::Debug for FieldDefinition<'_> {
     }
 }
 
-impl<'a> From<&'a wit::FieldDefinition> for FieldDefinition<'a> {
-    fn from(field: &'a wit::FieldDefinition) -> Self {
-        Self(field)
+impl<'a> From<(&'a IndexedSchema, &'a wit::FieldDefinition)> for FieldDefinition<'a> {
+    fn from((schema, definition): (&'a IndexedSchema, &'a wit::FieldDefinition)) -> Self {
+        Self { schema, definition }
     }
 }
 
 impl<'a> FieldDefinition<'a> {
     /// Unique identifier for this field definition
     pub fn id(&self) -> DefinitionId {
-        DefinitionId(self.0.id)
+        DefinitionId(self.definition.id)
     }
 
     /// Name of the field
     pub fn name(&self) -> &'a str {
-        self.0.name.as_str()
+        self.definition.name.as_str()
     }
 
     /// Type of value this field returns
     pub fn ty(&self) -> Type<'a> {
-        (&self.0.ty).into()
+        (self.schema, &self.definition.ty).into()
     }
 
     /// Iterator over the arguments that can be passed to this field
     pub fn arguments(&self) -> impl ExactSizeIterator<Item = InputValueDefinition<'a>> + 'a {
-        self.0.arguments.iter().map(Into::into)
+        self.definition.arguments.iter().map(|arg| InputValueDefinition {
+            definition: arg,
+            schema: self.schema,
+        })
     }
 
     /// Iterator over the directives applied to this field
     pub fn directives(&self) -> impl ExactSizeIterator<Item = Directive<'a>> + 'a {
-        self.0.directives.iter().map(Into::into)
+        self.definition.directives.iter().map(Into::into)
     }
 }
 
@@ -488,33 +589,49 @@ impl<'a> FieldDefinition<'a> {
 /// This struct contains information about a type's definition and any non-null
 /// or list wrapping that may be applied to it.
 #[derive(Clone, Copy)]
-pub struct Type<'a>(&'a wit::Ty);
+pub struct Type<'a> {
+    schema: &'a IndexedSchema,
+    ty: &'a wit::Ty,
+}
 
 impl fmt::Debug for Type<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Type")
-            .field("definition_id", &self.definition_id())
+            .field("definition", &self.definition().name())
             .field("wrapping", &self.wrapping().collect::<Vec<_>>())
             .finish()
     }
 }
 
-impl<'a> From<&'a wit::Ty> for Type<'a> {
-    fn from(ty: &'a wit::Ty) -> Self {
-        Self(ty)
+impl<'a> From<(&'a IndexedSchema, &'a wit::Ty)> for Type<'a> {
+    fn from((schema, ty): (&'a IndexedSchema, &'a wit::Ty)) -> Self {
+        Self { schema, ty }
     }
 }
 
 impl<'a> Type<'a> {
+    /// Whether this type is non-null
+    pub fn is_non_null(&self) -> bool {
+        self.wrapping().last() == Some(WrappingType::NonNull)
+    }
+
+    /// Whether this type is a list
+    pub fn is_list(&self) -> bool {
+        self.wrapping().any(|w| matches!(w, WrappingType::List))
+    }
+
     /// Iterator over the type wrappers applied to this type
     /// From the innermost to the outermost
     pub fn wrapping(&self) -> impl ExactSizeIterator<Item = WrappingType> + 'a {
-        self.0.wrapping.iter().map(|&w| w.into())
+        self.ty.wrapping.iter().map(|&w| w.into())
     }
 
     /// Identifier for the base type definition
-    pub fn definition_id(&self) -> DefinitionId {
-        DefinitionId(self.0.definition_id)
+    pub fn definition(&self) -> TypeDefinition<'a> {
+        let Some(def) = self.schema.type_definitions.get(&DefinitionId(self.ty.definition_id)) else {
+            unreachable!("Inconsitent schema");
+        };
+        (self.schema, def).into()
     }
 }
 
@@ -543,7 +660,10 @@ impl From<wit::WrappingType> for WrappingType {
 ///
 /// Input values are used for arguments on fields and input object fields.
 #[derive(Clone, Copy)]
-pub struct InputValueDefinition<'a>(&'a wit::InputValueDefinition);
+pub struct InputValueDefinition<'a> {
+    pub(crate) schema: &'a IndexedSchema,
+    pub(crate) definition: &'a wit::InputValueDefinition,
+}
 
 impl fmt::Debug for InputValueDefinition<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -556,31 +676,31 @@ impl fmt::Debug for InputValueDefinition<'_> {
     }
 }
 
-impl<'a> From<&'a wit::InputValueDefinition> for InputValueDefinition<'a> {
-    fn from(input_value: &'a wit::InputValueDefinition) -> Self {
-        Self(input_value)
+impl<'a> From<(&'a IndexedSchema, &'a wit::InputValueDefinition)> for InputValueDefinition<'a> {
+    fn from((schema, definition): (&'a IndexedSchema, &'a wit::InputValueDefinition)) -> Self {
+        Self { schema, definition }
     }
 }
 
 impl<'a> InputValueDefinition<'a> {
     /// Unique identifier for this input value definition
     pub fn id(&self) -> DefinitionId {
-        DefinitionId(self.0.id)
+        DefinitionId(self.definition.id)
     }
 
     /// Name of the input value
     pub fn name(&self) -> &'a str {
-        self.0.name.as_str()
+        self.definition.name.as_str()
     }
 
     /// Type of this input value
     pub fn ty(&self) -> Type<'a> {
-        (&self.0.ty).into()
+        (self.schema, &self.definition.ty).into()
     }
 
     /// Iterator over the directives applied to this input value
     pub fn directives(&self) -> impl ExactSizeIterator<Item = Directive<'a>> + 'a {
-        self.0.directives.iter().map(Into::into)
+        self.definition.directives.iter().map(Into::into)
     }
 }
 

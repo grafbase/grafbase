@@ -14,7 +14,7 @@ use serde_json::{Value, json};
 struct Resolver {
     config: Value,
     schemas: Value,
-    definitions_by_subgraph_name: Vec<(String, HashMap<DefinitionId, String>)>,
+    field_names_by_subgraph_name: Vec<(String, HashMap<DefinitionId, String>)>,
 }
 
 impl fmt::Debug for Resolver {
@@ -34,13 +34,10 @@ impl SelectionSetResolverExtension for Resolver {
 
         for subgraph_schema in subgraph_schemas {
             let subgraph_name = subgraph_schema.name();
-            let mut names = subgraph_schema
-                .type_definitions()
-                .map(|ty| (ty.id(), ty.name().to_owned()))
-                .collect::<HashMap<_, _>>();
+            let mut field_names = HashMap::new();
 
             // Convert type definitions to JSON objects
-            let definitions = subgraph_schema
+            let mut type_definitions = subgraph_schema
                 .type_definitions()
                 .map(|def| match def {
                     TypeDefinition::Scalar(scalar) => {
@@ -59,7 +56,7 @@ impl SelectionSetResolverExtension for Resolver {
                     }
                     TypeDefinition::Object(obj) => {
                         for field in obj.fields() {
-                            names.insert(field.id(), format!("{}.{}", obj.name(), field.name()));
+                            field_names.insert(field.id(), format!("{}.{}", obj.name(), field.name()));
                         }
                         json!({
                             obj.name(): {
@@ -68,7 +65,7 @@ impl SelectionSetResolverExtension for Resolver {
                                     json!({
                                         "name": f.name(),
                                         "type": {
-                                            "definitionId": names.get(&f.ty().definition_id()),
+                                            "definition": &f.ty().definition().name(),
                                             "wrapping": f.ty().wrapping().map(|w| match w {
                                                 WrappingType::NonNull => "NON_NULL",
                                                 WrappingType::List => "LIST",
@@ -78,7 +75,7 @@ impl SelectionSetResolverExtension for Resolver {
                                                 json!({
                                                     "name": arg.name(),
                                                     "type": {
-                                                        "definitionId": names.get(&arg.ty().definition_id()),
+                                                        "definition": arg.ty().definition().name(),
                                                         "wrapping": arg.ty().wrapping().map(|w| match w {
                                                             WrappingType::NonNull => "NON_NULL",
                                                             WrappingType::List => "LIST",
@@ -100,7 +97,7 @@ impl SelectionSetResolverExtension for Resolver {
                                         }).collect::<Vec<_>>()
                                     })
                                 }).collect::<Vec<_>>(),
-                                "interfaces": obj.interfaces().map(|id| names.get(&id)).collect::<Vec<_>>(),
+                                "interfaces": obj.interfaces().map(|inf| inf.name()).collect::<Vec<_>>(),
                                 "directives": obj.directives().map(|d| {
                                     json!({
                                         "name": d.name(),
@@ -112,7 +109,7 @@ impl SelectionSetResolverExtension for Resolver {
                     }
                     TypeDefinition::Interface(interface) => {
                         for field in interface.fields() {
-                            names.insert(field.id(), format!("{}.{}", interface.name(), field.name()));
+                            field_names.insert(field.id(), format!("{}.{}", interface.name(), field.name()));
                         }
                         json!({
                             interface.name(): {
@@ -121,7 +118,7 @@ impl SelectionSetResolverExtension for Resolver {
                                     json!({
                                         "name": f.name(),
                                         "type": {
-                                            "definitionId": names.get(&f.ty().definition_id()),
+                                            "definition":f.ty().definition().name(),
                                             "wrapping": f.ty().wrapping().map(|w| match w {
                                                 WrappingType::NonNull => "NON_NULL",
                                                 WrappingType::List => "LIST",
@@ -131,7 +128,7 @@ impl SelectionSetResolverExtension for Resolver {
                                                 json!({
                                                     "name": arg.name(),
                                                     "type": {
-                                                        "definitionId": names.get(&arg.ty().definition_id()),
+                                                        "definition": arg.ty().definition().name(),
                                                         "wrapping": arg.ty().wrapping().map(|w| match w {
                                                             WrappingType::NonNull => "NON_NULL",
                                                             WrappingType::List => "LIST",
@@ -148,7 +145,7 @@ impl SelectionSetResolverExtension for Resolver {
                                         }).collect::<Vec<_>>()
                                     })
                                 }).collect::<Vec<_>>(),
-                                "interfaces": interface.interfaces().map(|id| names.get(&id)).collect::<Vec<_>>(),
+                                "interfaces": interface.interfaces().map(|inf| inf.name()).collect::<Vec<_>>(),
                                 "directives": interface.directives().map(|d| {
                                     json!({
                                         "name": d.name(),
@@ -162,7 +159,7 @@ impl SelectionSetResolverExtension for Resolver {
                         json!({
                             union.name(): {
                                 "kind": "UNION",
-                                "memberTypes": union.member_types().map(|id| names.get(&id)).collect::<Vec<_>>(),
+                                "memberTypes": union.member_types().map(|obj| obj.name()).collect::<Vec<_>>(),
                                 "directives": union.directives().map(|d| {
                                     json!({
                                         "name": d.name(),
@@ -205,7 +202,7 @@ impl SelectionSetResolverExtension for Resolver {
                                     json!({
                                         "name": f.name(),
                                         "type": {
-                                            "definitionId": names.get(&f.ty().definition_id()),
+                                            "definition": f.ty().definition().name(),
                                             "wrapping": f.ty().wrapping().map(|w| match w {
                                                 WrappingType::NonNull => "NON_NULL",
                                                 WrappingType::List => "LIST",
@@ -231,9 +228,17 @@ impl SelectionSetResolverExtension for Resolver {
                 })
                 .collect::<Vec<_>>();
 
-            let query = subgraph_schema.query_id().and_then(|id| names.get(&id));
-            let mutation = subgraph_schema.mutation_id().and_then(|id| names.get(&id));
-            let subscription = subgraph_schema.subscription_id().and_then(|id| names.get(&id));
+            type_definitions.sort_by(|a, b| {
+                a.as_object()
+                    .unwrap()
+                    .keys()
+                    .next()
+                    .cmp(&b.as_object().unwrap().keys().next())
+            });
+
+            let query = subgraph_schema.query().map(|obj| obj.name());
+            let mutation = subgraph_schema.mutation().map(|obj| obj.name());
+            let subscription = subgraph_schema.subscription().map(|obj| obj.name());
 
             // Return a JSON object for this subgraph
             schemas.push(json!({
@@ -241,7 +246,7 @@ impl SelectionSetResolverExtension for Resolver {
                 "query": query,
                 "mutation": mutation,
                 "subscription": subscription,
-                "typeDefinitions": definitions,
+                "typeDefinitions": type_definitions,
                 "directives": subgraph_schema.directives().map(|d| {
                     json!({
                         "name": d.name(),
@@ -249,12 +254,12 @@ impl SelectionSetResolverExtension for Resolver {
                     })
                 }).collect::<Vec<_>>()
             }));
-            definitions_by_subgraph_name.push((subgraph_name.to_owned(), names));
+            definitions_by_subgraph_name.push((subgraph_name.to_owned(), field_names));
         }
         Ok(Self {
             config,
             schemas: Value::Array(schemas),
-            definitions_by_subgraph_name,
+            field_names_by_subgraph_name: definitions_by_subgraph_name,
         })
     }
 
@@ -269,21 +274,21 @@ impl SelectionSetResolverExtension for Resolver {
         prepared: &[u8],
         arguments: ArgumentValues<'_>,
     ) -> Result<Data, Error> {
-        let names = self
-            .definitions_by_subgraph_name
+        let field_names = self
+            .field_names_by_subgraph_name
             .iter()
-            .find_map(|(name, names)| if name == subgraph_name { Some(names) } else { None })
+            .find_map(|(name, field_names)| if name == subgraph_name { Some(field_names) } else { None })
             .unwrap();
 
         struct Ctx<'a> {
-            names: &'a HashMap<DefinitionId, String>,
+            field_names: &'a HashMap<DefinitionId, String>,
             arguments: ArgumentValues<'a>,
         }
 
         impl Ctx<'_> {
             fn process_field(&self, field: Field<'_>) -> Value {
                 let mut field_json = json!({
-                    "id": self.names.get(&field.definition_id()),
+                    "id": self.field_names.get(&field.definition_id()),
                 });
 
                 if let Ok(value) = field.arguments::<Value>(self.arguments) {
@@ -315,7 +320,7 @@ impl SelectionSetResolverExtension for Resolver {
         // Create a detailed representation of the selection set
         let selection_set = Field::with_bytes(prepared, |field| {
             // Start processing from the root field
-            Ctx { names, arguments }.process_field(field)
+            Ctx { field_names, arguments }.process_field(field)
         })?;
 
         match subgraph_name {

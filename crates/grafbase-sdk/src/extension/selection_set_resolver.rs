@@ -1,6 +1,6 @@
 use crate::{
     component::AnyExtension,
-    types::{ArgumentValues, Configuration, Data, Error, Field, SubgraphHeaders, SubgraphSchema},
+    types::{ArgumentValues, Configuration, Data, Error, Field, IndexedSchema, SubgraphHeaders, SubgraphSchema},
 };
 
 pub trait SelectionSetResolverExtension: Sized + 'static {
@@ -35,7 +35,11 @@ pub fn register<T: SelectionSetResolverExtension>() {
     }
 
     crate::component::register_extension(Box::new(|subgraph_schemas, config| {
-        <T as SelectionSetResolverExtension>::new(subgraph_schemas.iter().map(Into::into).collect(), config)
+        let schemas = subgraph_schemas
+            .into_iter()
+            .map(IndexedSchema::from)
+            .collect::<Vec<_>>();
+        <T as SelectionSetResolverExtension>::new(schemas.iter().map(SubgraphSchema).collect(), config)
             .map(|extension| Box::new(Proxy(extension)) as Box<dyn AnyExtension>)
     }))
 }
