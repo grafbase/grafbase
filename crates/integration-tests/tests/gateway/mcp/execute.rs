@@ -55,7 +55,6 @@ fn execute_valid_graphql_query() {
     });
 }
 
-#[ignore] // fixed in next PR
 #[test]
 fn execute_mutation_is_rejected() {
     runtime().block_on(async move {

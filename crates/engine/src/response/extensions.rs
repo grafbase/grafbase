@@ -4,6 +4,7 @@ use serde::Serialize;
 use walker::Walk;
 
 use crate::{
+    mcp::McpResponseExtension,
     prepare::{Executable, OperationPlanContext, PlanId, PreparedOperation},
     resolver::Resolver,
 };
@@ -13,11 +14,25 @@ use crate::{
 pub(crate) struct ResponseExtensions {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub grafbase: Option<GrafbaseResponseExtension>,
+    #[serde(skip)]
+    pub mcp: Option<McpResponseExtension>,
 }
 
 impl ResponseExtensions {
-    pub fn is_emtpy(&self) -> bool {
+    pub(crate) fn is_empty(&self) -> bool {
         self.grafbase.is_none()
+    }
+
+    pub(crate) fn merge(self, other: Self) -> Self {
+        let grafbase = match (self.grafbase, other.grafbase) {
+            (None, None) => None,
+            (Some(a), Some(b)) => Some(a.merge(b)),
+            (Some(ext), None) | (None, Some(ext)) => Some(ext),
+        };
+        Self {
+            grafbase,
+            mcp: self.mcp.or(other.mcp),
+        }
     }
 }
 
@@ -28,6 +43,15 @@ pub(crate) struct GrafbaseResponseExtension {
     trace_id: Option<TraceId>,
     #[serde(skip_serializing_if = "Option::is_none")]
     query_plan: Option<QueryPlan>,
+}
+
+impl GrafbaseResponseExtension {
+    pub(crate) fn merge(self, other: Self) -> Self {
+        Self {
+            trace_id: self.trace_id.or(other.trace_id),
+            query_plan: self.query_plan.or(other.query_plan),
+        }
+    }
 }
 
 impl GrafbaseResponseExtension {

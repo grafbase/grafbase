@@ -16,7 +16,7 @@ use crate::{
     response::{ErrorCode, GraphqlError, Response},
 };
 
-use super::RequestContext;
+use super::{RequestContext, default_response_extensions, response_extension_for_prepared_operation};
 
 impl<R: Runtime> Engine<R> {
     pub(super) async fn execute_single(
@@ -50,7 +50,6 @@ impl<R: Runtime> Engine<R> {
                     GraphqlRequestMetricsAttributes {
                         operation,
                         status,
-                        cache_status: None,
                         client: request_context.client.clone(),
                     },
                     start.elapsed(),
@@ -71,8 +70,13 @@ impl<R: Runtime> PrepareContext<'_, R> {
     async fn execute_single(mut self, request: Request) -> Response<<R::Hooks as Hooks>::OnOperationResponseOutput> {
         let operation = match self.prepare_operation(request).await {
             Ok(operation) => operation,
-            Err(response) => return response.with_grafbase_extension(self.grafbase_response_extension(None)),
+            Err(response) => {
+                return response.with_extensions(default_response_extensions(self.schema(), self.request_context));
+            }
         };
+
+        let attributes = operation.attributes();
+        let extensions = response_extension_for_prepared_operation(self.schema(), self.request_context, &operation);
 
         if matches!(operation.cached.ty(), OperationType::Subscription) {
             let error = GraphqlError::new(
@@ -80,13 +84,13 @@ impl<R: Runtime> PrepareContext<'_, R> {
                 ErrorCode::BadRequest,
             );
             return Response::request_error([error])
-                .with_operation_attributes(operation.attributes())
-                .with_grafbase_extension(self.grafbase_response_extension(Some(&operation)));
+                .with_operation_attributes(attributes)
+                .with_extensions(extensions);
         }
 
-        let response_ext = self.grafbase_response_extension(Some(&operation));
         self.execute_query_or_mutation(operation)
             .await
-            .with_grafbase_extension(response_ext)
+            .with_operation_attributes(attributes)
+            .with_extensions(extensions)
     }
 }

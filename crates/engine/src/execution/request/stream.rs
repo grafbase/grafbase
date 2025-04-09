@@ -18,9 +18,9 @@ use tracing::Instrument;
 use crate::{
     Engine, Runtime,
     engine::WasmContext,
-    execution::{ResponseSender, errors},
+    execution::{ResponseSender, default_response_extensions, errors, response_extension_for_prepared_operation},
     prepare::PrepareContext,
-    response::{ErrorCode, ErrorCodeCounter, GrafbaseResponseExtension, Response},
+    response::{ErrorCode, ErrorCodeCounter, Response, ResponseExtensions},
     utils::StreamJoinExt,
 };
 
@@ -104,7 +104,6 @@ impl<R: Runtime> Engine<R> {
                             GraphqlRequestMetricsAttributes {
                                 operation,
                                 status,
-                                cache_status: None,
                                 client: request_context.client.clone(),
                             },
                             start.elapsed(),
@@ -132,7 +131,8 @@ impl<R: Runtime> PrepareContext<'_, R> {
     where
         S: ResponseSender<<R::Hooks as Hooks>::OnOperationResponseOutput, Error = mpsc::SendError>,
     {
-        let mut default_response_extension = self.grafbase_response_extension(None);
+        let schema = self.schema();
+        let request_context = self.request_context;
         // If it's a subscription, we at least have a timeout on the operation preparation.
         let result = self
             .engine
@@ -142,7 +142,10 @@ impl<R: Runtime> PrepareContext<'_, R> {
                     Err(response) => {
                         let attributes = response.operation_attributes().cloned();
                         sender
-                            .send(response.with_grafbase_extension(default_response_extension.take()))
+                            .send(
+                                response
+                                    .with_extensions(default_response_extensions(self.schema(), self.request_context)),
+                            )
                             .await
                             .ok();
                         return Err(attributes);
@@ -150,13 +153,14 @@ impl<R: Runtime> PrepareContext<'_, R> {
                 };
 
                 if matches!(operation.cached.ty(), OperationType::Query | OperationType::Mutation) {
-                    let attributes = operation.attributes();
-                    let response_ext = self.grafbase_response_extension(Some(&operation));
+                    let extensions =
+                        response_extension_for_prepared_operation(self.schema(), self.request_context, &operation);
                     let response = self.execute_query_or_mutation(operation).await;
 
-                    sender.send(response.with_grafbase_extension(response_ext)).await.ok();
+                    let attributes = response.operation_attributes().cloned();
+                    sender.send(response.with_extensions(extensions)).await.ok();
 
-                    Err(Some(attributes))
+                    Err(attributes)
                 } else {
                     Ok((self, operation))
                 }
@@ -167,10 +171,10 @@ impl<R: Runtime> PrepareContext<'_, R> {
             Some(Ok((ctx, operation))) => (ctx, operation),
             Some(Err(attributes)) => return attributes,
             None => {
+                let extensions = default_response_extensions(schema, request_context);
+
                 sender
-                    .send(
-                        errors::response::gateway_timeout().with_grafbase_extension(default_response_extension.take()),
-                    )
+                    .send(errors::response::gateway_timeout().with_extensions(extensions))
                     .await
                     .ok();
                 return None;
@@ -181,21 +185,30 @@ impl<R: Runtime> PrepareContext<'_, R> {
 
         struct AddExtToFirstResponse<Sender> {
             sender: Sender,
-            response_ext: Option<GrafbaseResponseExtension>,
+            extensions: Option<ResponseExtensions>,
         }
 
         impl<O: 'static + Send, S: ResponseSender<O>> ResponseSender<O> for AddExtToFirstResponse<S> {
             type Error = S::Error;
             async fn send(&mut self, response: Response<O>) -> Result<(), Self::Error> {
-                self.sender
-                    .send(response.with_grafbase_extension(self.response_ext.take()))
-                    .await
+                let response = if let Some(extensions) = self.extensions.take() {
+                    response.with_extensions(extensions)
+                } else {
+                    response
+                };
+                self.sender.send(response).await
             }
         }
 
-        let response_ext = ctx.grafbase_response_extension(Some(&operation));
-        ctx.execute_subscription(operation, AddExtToFirstResponse { sender, response_ext })
-            .await;
+        let extensions = response_extension_for_prepared_operation(schema, request_context, &operation);
+        ctx.execute_subscription(
+            operation,
+            AddExtToFirstResponse {
+                sender,
+                extensions: Some(extensions),
+            },
+        )
+        .await;
 
         Some(attributes)
     }

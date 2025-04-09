@@ -31,7 +31,6 @@ pub struct EngineMetrics {
 pub struct GraphqlRequestMetricsAttributes {
     pub operation: GraphqlOperationAttributes,
     pub status: GraphqlResponseStatus,
-    pub cache_status: Option<String>,
     pub client: Option<Client>,
 }
 
@@ -123,10 +122,14 @@ impl EngineMetrics {
             KeyValue::new("graphql.operation.type", operation.ty.as_str()),
         ];
 
-        if let OperationName::Original(name) = operation.name {
-            attributes.push(KeyValue::new("graphql.operation.name", name));
-        } else if let OperationName::Computed(name) = operation.name {
-            attributes.push(KeyValue::new("grafbase.operation.computed_name", name));
+        match operation.name {
+            OperationName::Original(name) => {
+                attributes.push(KeyValue::new("graphql.operation.name", name));
+            }
+            OperationName::Computed(name) => {
+                attributes.push(KeyValue::new("grafbase.operation.computed_name", name));
+            }
+            OperationName::Unknown => (),
         }
 
         attributes
@@ -137,7 +140,6 @@ impl EngineMetrics {
         GraphqlRequestMetricsAttributes {
             operation,
             status,
-            cache_status,
             client,
         }: GraphqlRequestMetricsAttributes,
         latency: std::time::Duration,
@@ -149,11 +151,6 @@ impl EngineMetrics {
 
         if let Some(version) = self.graph_version.clone() {
             attributes.push(KeyValue::new("grafbase.graph.version", version))
-        }
-
-        // Used for v1
-        if let Some(cache_status) = cache_status {
-            attributes.push(KeyValue::new("graphql.response.cache.status", cache_status));
         }
 
         attributes.push(KeyValue::new("graphql.response.status", status.as_str()));

@@ -11,16 +11,18 @@ use crate::{
 /// everywhere else. Contrary to the RequestContext this one never fails to be created.
 pub(crate) struct EarlyHttpContext {
     pub method: http::method::Method,
+    pub can_mutate: bool,
     pub uri: http::Uri,
     pub response_format: ResponseFormat,
     pub content_type: ContentType,
     pub include_grafbase_response_extension: bool,
+    pub include_mcp_response_extension: bool,
 }
 
 /// Context associated with the HTTP request. For batch requests and a websocket session, a single RequestContext is
 /// created and shared.
 pub(crate) struct RequestContext {
-    pub mutations_allowed: bool,
+    pub can_mutate: bool,
     pub headers: http::HeaderMap,
     pub websocket_init_payload: Option<serde_json::Map<String, serde_json::Value>>,
     pub response_format: ResponseFormat,
@@ -28,6 +30,7 @@ pub(crate) struct RequestContext {
     pub token: LegacyToken,
     pub subgraph_default_headers: http::HeaderMap,
     pub include_grafbase_response_extension: bool,
+    pub include_mcp_response_extension: bool,
 }
 
 /// Context associated with a single operation within an HTTP request.

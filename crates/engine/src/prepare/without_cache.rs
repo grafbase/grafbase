@@ -5,8 +5,9 @@ use runtime::hooks::Hooks;
 
 use crate::{
     ErrorCode, Runtime,
+    mcp::McpResponseExtension,
     prepare::{PrepareContext, PreparedOperation},
-    response::{GraphqlError, Response},
+    response::{GraphqlError, Response, ResponseExtensions},
 };
 
 use super::{OperationDocument, mutation_not_allowed_with_safe_method};
@@ -28,13 +29,17 @@ impl<R: Runtime> PrepareContext<'_, R> {
         let operation = match Operation::parse(self.schema(), document.operation_name(), &document.content) {
             Ok(operation) => operation,
             Err(operation::Errors { items, attributes }) => {
-                let resp = Response::request_error(items.into_iter().map(|err| {
-                    let code = match err.kind {
-                        operation::ErrorKind::Parsing => ErrorCode::OperationParsingError,
-                        operation::ErrorKind::Validation => ErrorCode::OperationValidationError,
-                    };
-                    GraphqlError::new(err.message, code).with_locations(err.locations)
-                }));
+                let resp = if self.request_context.include_mcp_response_extension {
+                    let site_ids = items.iter().filter_map(|error| error.site_id).collect::<Vec<_>>();
+                    Response::request_error(items.into_iter().map(operation_error_into_graphql_error)).with_extensions(
+                        ResponseExtensions {
+                            mcp: Some(McpResponseExtension { site_ids }),
+                            ..Default::default()
+                        },
+                    )
+                } else {
+                    Response::request_error(items.into_iter().map(operation_error_into_graphql_error))
+                };
 
                 return Err(if let Some(attributes) = attributes {
                     resp.with_operation_attributes(attributes.with_complexity_cost(None))
@@ -54,7 +59,7 @@ impl<R: Runtime> PrepareContext<'_, R> {
         //
         // This error would be confusing for a websocket connection, but today mutation are always
         // allowed for it.
-        if operation.attributes.ty.is_mutation() && !self.request_context.mutations_allowed {
+        if operation.attributes.ty.is_mutation() && !self.request_context.can_mutate {
             return Err(mutation_not_allowed_with_safe_method());
         }
 
@@ -104,4 +109,12 @@ impl<R: Runtime> PrepareContext<'_, R> {
             complexity_cost,
         })
     }
+}
+
+fn operation_error_into_graphql_error(err: operation::Error) -> GraphqlError {
+    let code = match err.kind {
+        operation::ErrorKind::Parsing => ErrorCode::OperationParsingError,
+        operation::ErrorKind::Validation => ErrorCode::OperationValidationError,
+    };
+    GraphqlError::new(err.message, code).with_locations(err.locations)
 }

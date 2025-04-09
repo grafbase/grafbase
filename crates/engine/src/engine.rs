@@ -1,4 +1,5 @@
 pub(crate) mod cache;
+pub mod mcp;
 mod retry_budget;
 mod runtime;
 
@@ -122,8 +123,10 @@ impl<R: Runtime> Engine<R> {
         let ctx = EarlyHttpContext {
             method: parts.method,
             uri: parts.uri,
+            can_mutate: true,
             response_format: ResponseFormat::Streaming(StreamingResponseFormat::GraphQLOverWebSocket),
             include_grafbase_response_extension: false,
+            include_mcp_response_extension: false,
             content_type: ContentType::Json,
         };
 

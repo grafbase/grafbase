@@ -27,7 +27,7 @@ impl<R: Runtime> PrepareContext<'_, R> {
         //
         // This error would be confusing for a websocket connection, but today mutation are always
         // allowed for it.
-        if cached.operation.attributes.ty.is_mutation() && !self.request_context.mutations_allowed {
+        if cached.operation.attributes.ty.is_mutation() && !self.request_context.can_mutate {
             return Err(mutation_not_allowed_with_safe_method());
         }
 

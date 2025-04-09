@@ -12,7 +12,7 @@ use crate::{
     response::Response,
 };
 
-use super::{RequestContext, Runtime, response_extension::default_grafbase_response_extension, stream::StreamResponse};
+use super::{RequestContext, Runtime, response_extension::default_response_extensions, stream::StreamResponse};
 
 impl<R: Runtime> Engine<R> {
     pub(crate) async fn execute_well_formed_graphql_request(
@@ -102,7 +102,7 @@ impl<R: Runtime> Engine<R> {
         Http::error(
             request_context.response_format,
             Response::<()>::request_error([error])
-                .with_grafbase_extension(default_grafbase_response_extension(&self.schema, request_context)),
+                .with_extensions(default_response_extensions(&self.schema, request_context)),
         )
     }
 
@@ -110,7 +110,7 @@ impl<R: Runtime> Engine<R> {
         Http::error(
             request_context.response_format,
             super::errors::response::gateway_timeout::<()>()
-                .with_grafbase_extension(default_grafbase_response_extension(&self.schema, request_context)),
+                .with_extensions(default_response_extensions(&self.schema, request_context)),
         )
     }
 }
