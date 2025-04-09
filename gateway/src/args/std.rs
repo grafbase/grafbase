@@ -79,7 +79,6 @@ impl super::Args for Args {
                 Ok(GraphFetchMethod::FromGraphRef {
                     access_token: AsciiString::from_ascii(access_token)?,
                     graph_ref,
-                    fetch_url: self.config()?.graph.fetch_schema_url,
                 })
             }
         }
