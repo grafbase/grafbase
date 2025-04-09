@@ -9,15 +9,16 @@
 //! can be an attack vector, so the prevention mechanism here is to require a custom header to be present. A
 //! simple request in the browser cannot change the headers, so this is enough to prevent the attack vector.
 
+use std::sync::Arc;
+
 use axum::{
     Router,
     body::Body,
-    extract::Request,
+    extract::{Request, State},
     middleware::{self, Next},
     response::Response,
 };
-
-const GRAFBASE_CSRF_HEADER: &str = "X-Grafbase-CSRF-Protection";
+use gateway_config::CsrfConfig;
 
 /// Injects a middleware layer into the given router for CSRF protection.
 ///
@@ -25,13 +26,18 @@ const GRAFBASE_CSRF_HEADER: &str = "X-Grafbase-CSRF-Protection";
 /// to prevent Cross-Site Request Forgery (CSRF) attacks. If the header is missing and the
 /// request is not a pre-flight `OPTIONS` request, the middleware responds with a 403 Forbidden
 /// status.
-pub(super) fn inject_layer(mut router: Router) -> Router {
-    router = router.layer(middleware::from_fn(csrf_middleware));
+pub(super) fn inject_layer(mut router: Router, config: &CsrfConfig) -> Router {
+    assert!(config.enabled);
+    router = router.layer(middleware::from_fn_with_state(
+        Arc::new(config.clone()),
+        csrf_middleware,
+    ));
     router
 }
 
-async fn csrf_middleware(request: Request, next: Next) -> Response {
-    if validates_csrf(&request) {
+async fn csrf_middleware(State(config): State<Arc<CsrfConfig>>, request: Request, next: Next) -> Response {
+    let valid_csrf = request.method() == http::Method::OPTIONS || request.headers().contains_key(&config.header_name);
+    if valid_csrf {
         return next.run(request).await;
     }
 
@@ -39,8 +45,4 @@ async fn csrf_middleware(request: Request, next: Next) -> Response {
         .status(http::StatusCode::FORBIDDEN)
         .body(Body::empty())
         .expect("cannot fail")
-}
-
-fn validates_csrf(request: &Request) -> bool {
-    request.method() == http::Method::OPTIONS || request.headers().contains_key(GRAFBASE_CSRF_HEADER)
 }

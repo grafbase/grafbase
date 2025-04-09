@@ -1,5 +1,7 @@
 # Custom authentication & authorization
 
+[Tutorial](https://grafbase.com/blog/custom-authentication-and-authorization-in-graphql-federation)
+
 This example presents how to setup custom authentication and authorization with extensions.
 In this example authentication is fairly simple and will generate a custom token with the user id provided in the `current-user-id` header. If not present, authentication will fail. Authorization is more complex showcasing all the functionalities. The extension will:
 

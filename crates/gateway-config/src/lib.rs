@@ -305,10 +305,20 @@ impl Default for GraphConfig {
     }
 }
 
-#[derive(Clone, Debug, Default, serde::Deserialize)]
+#[derive(Clone, Debug, serde::Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct CsrfConfig {
     pub enabled: bool,
+    pub header_name: String,
+}
+
+impl Default for CsrfConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            header_name: "X-Grafbase-CSRF-Protection".into(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Default, serde::Deserialize)]
