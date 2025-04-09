@@ -72,3 +72,14 @@ pub trait KvStoreInner: Send + Sync {
     /// Put an entry into the TTL store, with an optional expiry.
     async fn put(&self, name: &str, bytes: Cow<'_, [u8]>, expiration_ttl: Option<Duration>) -> KvResult<()>;
 }
+
+#[async_trait::async_trait]
+impl KvStoreInner for () {
+    async fn get(&self, _name: &str, _cache_ttl: Option<Duration>) -> KvResult<Option<Vec<u8>>> {
+        Err(KvError::Kv("Not available".into()))
+    }
+
+    async fn put(&self, _name: &str, _bytes: Cow<'_, [u8]>, _expiration_ttl: Option<Duration>) -> KvResult<()> {
+        Ok(())
+    }
+}

@@ -28,6 +28,7 @@ flate2.workspace = true
 fslock.workspace = true
 futures.workspace = true
 futures-util.workspace = true
+grafbase-mcp = { path = "../crates/mcp" }
 ignore.workspace = true
 indicatif.workspace = true
 indoc.workspace = true
@@ -70,18 +71,24 @@ anyhow.workspace = true
 askama.workspace = true
 convert_case.workspace = true
 cynic-parser = { workspace = true, features = ["report"] }
+engine.workspace = true
+engine-auth.workspace = true
 extension.workspace = true
 extension-catalog.workspace = true
 federated-graph.workspace = true
 federated-server.workspace = true
 gateway-config.workspace = true
 grafbase-graphql-introspection.workspace = true
+grafbase-telemetry.workspace = true
 grafbase-workspace-hack.workspace = true
 graph-ref.workspace = true
 graphql-composition.workspace = true
 graphql-lint.workspace = true
+runtime.workspace = true
+runtime-local.workspace = true
 semver.workspace = true
 serde_valid.workspace = true
+wasi-component-loader.workspace = true
 wasmparser.workspace = true
 
 [dev-dependencies]

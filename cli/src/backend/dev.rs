@@ -23,7 +23,7 @@ use tokio::{
     task::spawn_blocking,
 };
 
-const DEFAULT_PORT: u16 = 5000;
+pub const DEFAULT_PORT: u16 = 5000;
 
 #[derive(Clone)]
 struct CliRuntime {

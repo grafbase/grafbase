@@ -26,7 +26,7 @@ pub use wasi_component_loader::{
 
 use super::guest_error_as_gql;
 
-#[derive(Clone)]
+#[derive(Default, Clone)]
 pub struct HooksWasi(Option<Arc<HooksWasiInner>>);
 
 struct HooksWasiInner {

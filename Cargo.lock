@@ -3264,7 +3264,6 @@ dependencies = [
  "rolling-logger",
  "runtime",
  "runtime-local",
- "runtime-noop",
  "semver 1.0.26",
  "serde",
  "serde_json",
@@ -3807,6 +3806,8 @@ dependencies = [
  "cynic-parser",
  "dirs 6.0.0",
  "duct",
+ "engine",
+ "engine-auth",
  "expect-test",
  "extension",
  "extension-catalog",
@@ -3817,6 +3818,8 @@ dependencies = [
  "futures-util",
  "gateway-config",
  "grafbase-graphql-introspection",
+ "grafbase-mcp",
+ "grafbase-telemetry",
  "grafbase-workspace-hack",
  "graph-ref",
  "graphql-composition 0.6.2",
@@ -3837,6 +3840,8 @@ dependencies = [
  "rand 0.9.0",
  "regex",
  "reqwest 0.12.15",
+ "runtime",
+ "runtime-local",
  "rustls 0.23.25",
  "semver 1.0.26",
  "serde",
@@ -3861,6 +3866,7 @@ dependencies = [
  "url",
  "urlencoding",
  "uuid",
+ "wasi-component-loader",
  "wasmparser 0.228.0",
  "webbrowser",
  "wiremock",
@@ -5408,7 +5414,6 @@ dependencies = [
  "rstest",
  "runtime",
  "runtime-local",
- "runtime-noop",
  "rustls 0.23.25",
  "semver 1.0.26",
  "serde",
@@ -8237,17 +8242,6 @@ dependencies = [
  "tungstenite 0.26.2",
  "url",
  "wasi-component-loader",
-]
-
-[[package]]
-name = "runtime-noop"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "futures",
- "grafbase-workspace-hack",
- "runtime",
- "thiserror 2.0.12",
 ]
 
 [[package]]
