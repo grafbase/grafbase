@@ -5,7 +5,7 @@ go 1.24
 require (
 	github.com/99designs/gqlgen v0.17.70
 	github.com/gorilla/websocket v1.5.3
-	github.com/vektah/gqlparser/v2 v2.5.23
+	github.com/vektah/gqlparser/v2 v2.5.24
 )
 
 require (
