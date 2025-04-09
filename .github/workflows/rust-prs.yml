@@ -153,7 +153,7 @@ jobs:
         uses: ./.github/actions/fetch-assets
 
       - name: Install cargo binstall
-        uses: cargo-bins/cargo-binstall@v1.10.21
+        uses: cargo-bins/cargo-binstall@63aaa5c1932cebabc34eceda9d92a70215dcead6 # v1.12.3
 
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.7
