@@ -70,8 +70,8 @@ struct FieldMatch {
 }
 
 impl<R: engine::Runtime> SearchTool<R> {
-    pub fn new(engine: &EngineWatcher<R>, include_mutations: bool) -> anyhow::Result<Self> {
-        let schema_index = Arc::new(SchemaIndex::new(engine.borrow().schema.clone(), include_mutations)?);
+    pub fn new(engine: &EngineWatcher<R>, expose_mutations: bool) -> anyhow::Result<Self> {
+        let schema_index = Arc::new(SchemaIndex::new(engine.borrow().schema.clone(), expose_mutations)?);
         let current_hash = schema_index.schema.hash;
         let (tx, rx) = tokio::sync::watch::channel(schema_index.clone());
         let stream = WatchStream::from_changes(engine.clone());
@@ -82,7 +82,7 @@ impl<R: engine::Runtime> SearchTool<R> {
                 if engine.schema.hash == current_hash {
                     continue;
                 }
-                let schema_index = SchemaIndex::new(engine.schema.clone(), include_mutations).unwrap();
+                let schema_index = SchemaIndex::new(engine.schema.clone(), expose_mutations).unwrap();
                 current_hash = schema_index.schema.hash;
                 tx.send(Arc::new(schema_index)).unwrap();
             }
@@ -109,7 +109,7 @@ struct Fields {
 }
 
 impl SchemaIndex {
-    fn new(schema: Arc<Schema>, include_mutations: bool) -> anyhow::Result<Self> {
+    fn new(schema: Arc<Schema>, expose_mutations: bool) -> anyhow::Result<Self> {
         tracing::debug!("Generating MCP schema search index");
         let start = std::time::Instant::now();
 
@@ -127,14 +127,16 @@ impl SchemaIndex {
                 queue.push_back(field);
                 shortest_path_depth[usize::from(field.id)] = 0;
             }
-            if let Some(mutation) = schema.mutation().filter(|_| include_mutations) {
+            if let Some(mutation) = schema.mutation() {
                 visited_objects.put(usize::from(mutation.id));
-                for field in mutation.fields() {
-                    queue.push_back(field);
-                    shortest_path_depth[usize::from(field.id)] = 0;
+                if expose_mutations {
+                    for field in mutation.fields() {
+                        queue.push_back(field);
+                        shortest_path_depth[usize::from(field.id)] = 0;
+                    }
                 }
             }
-            if let Some(subscription) = schema.subscription().filter(|_| include_mutations) {
+            if let Some(subscription) = schema.subscription() {
                 visited_objects.put(usize::from(subscription.id));
             }
             while let Some(parent_field) = queue.pop_front() {

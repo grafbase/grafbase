@@ -2,7 +2,7 @@ use schema::DirectiveSiteId;
 
 #[derive(Clone, Debug)]
 pub struct McpRequestContext {
-    pub include_mutations: bool,
+    pub can_mutate: bool,
 }
 
 #[derive(Clone, Debug)]

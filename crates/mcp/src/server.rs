@@ -29,7 +29,7 @@ impl std::ops::Deref for McpServer {
 }
 
 impl McpServer {
-    pub fn new(engine: EngineWatcher<impl engine::Runtime>, include_mutations: bool) -> anyhow::Result<Self> {
+    pub fn new(engine: EngineWatcher<impl engine::Runtime>, expose_mutations: bool) -> anyhow::Result<Self> {
         Ok(Self(Arc::new(McpServerInner {
             info: ServerInfo {
                 protocol_version: ProtocolVersion::V_2024_11_05,
@@ -38,9 +38,9 @@ impl McpServer {
                 instructions: None,
             },
             tools: vec![
-                Box::new(IntrospectTool::new(&engine, include_mutations)),
-                Box::new(SearchTool::new(&engine, include_mutations)?),
-                Box::new(ExecuteTool::new(&engine, include_mutations)),
+                Box::new(IntrospectTool::new(&engine, expose_mutations)),
+                Box::new(SearchTool::new(&engine, expose_mutations)?),
+                Box::new(ExecuteTool::new(&engine, expose_mutations)),
             ],
         })))
     }

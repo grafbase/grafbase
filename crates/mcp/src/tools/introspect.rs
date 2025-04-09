@@ -9,7 +9,7 @@ use crate::EngineWatcher;
 
 pub struct IntrospectTool<R: engine::Runtime> {
     engine: EngineWatcher<R>,
-    include_mutations: bool,
+    expose_mutations: bool,
 }
 
 impl<R: engine::Runtime> Tool for IntrospectTool<R> {
@@ -34,10 +34,10 @@ pub struct IntrospectionParameters {
 }
 
 impl<R: engine::Runtime> IntrospectTool<R> {
-    pub fn new(engine: &EngineWatcher<R>, include_mutations: bool) -> Self {
+    pub fn new(engine: &EngineWatcher<R>, expose_mutations: bool) -> Self {
         Self {
             engine: engine.clone(),
-            include_mutations,
+            expose_mutations,
         }
     }
 
@@ -52,7 +52,7 @@ impl<R: engine::Runtime> IntrospectTool<R> {
                 continue;
             };
 
-            if !self.include_mutations
+            if !self.expose_mutations
                 && schema
                     .mutation()
                     .zip(type_definition.id().as_object())

@@ -6,7 +6,7 @@ pub struct ModelControlProtocolConfig {
     /// The service path in the gateway.
     pub path: String,
     /// Whether mutations are enabled for the MCP service.
-    pub include_mutations: bool,
+    pub expose_mutations: bool,
 }
 
 impl Default for ModelControlProtocolConfig {
@@ -14,7 +14,7 @@ impl Default for ModelControlProtocolConfig {
         Self {
             enabled: false,
             path: "/mcp".to_string(),
-            include_mutations: false,
+            expose_mutations: false,
         }
     }
 }
