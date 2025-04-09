@@ -79,7 +79,7 @@ jobs:
           target: x86_64-unknown-linux-gnu
 
       - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.7
+        uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
 
       - name: Install cargo-nextest
         uses: taiki-e/install-action@v2
