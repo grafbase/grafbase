@@ -36,8 +36,37 @@ pub(crate) enum StreamingResponseFormat {
 
 mod content_types {
     pub const APPLICATION_JSON: http::HeaderValue = http::HeaderValue::from_static("application/json");
+    pub const APPLICATION_CBOR: http::HeaderValue = http::HeaderValue::from_static("application/cbor");
     pub const APPLICATION_GRAPHQL_RESPONSE_JSON: http::HeaderValue =
         http::HeaderValue::from_static("application/graphql-response+json");
+
+    pub static SUPPORTED: [http::HeaderValue; 2] = [APPLICATION_JSON, APPLICATION_CBOR];
+}
+
+pub(crate) enum ContentType {
+    Json,
+    Cbor,
+}
+
+impl ContentType {
+    pub fn extract(headers: &http::HeaderMap) -> Option<Self> {
+        let bytes = headers.get(http::header::CONTENT_TYPE)?.as_bytes();
+        let bytes = match bytes.iter().position(|&b| b == b';') {
+            Some(pos) => &bytes[..pos],
+            None => bytes,
+        };
+        if bytes == content_types::APPLICATION_JSON.as_bytes() {
+            Some(ContentType::Json)
+        } else if bytes == content_types::APPLICATION_CBOR.as_bytes() {
+            Some(ContentType::Cbor)
+        } else {
+            None
+        }
+    }
+
+    pub fn supported() -> &'static [http::HeaderValue] {
+        &content_types::SUPPORTED
+    }
 }
 
 impl ResponseFormat {
@@ -46,12 +75,12 @@ impl ResponseFormat {
     }
 
     pub fn supported_media_types() -> &'static [MediaType<'static>] {
-        mediatypes::SUPPORTED
+        accept::SUPPORTED
     }
 }
 
 impl CompleteResponseFormat {
-    pub fn to_content_type(self) -> http::HeaderValue {
+    pub fn to_content_type_header_value(self) -> http::HeaderValue {
         match self {
             CompleteResponseFormat::Json => content_types::APPLICATION_JSON.clone(),
             CompleteResponseFormat::GraphqlResponseJson => content_types::APPLICATION_GRAPHQL_RESPONSE_JSON.clone(),
@@ -59,7 +88,7 @@ impl CompleteResponseFormat {
     }
 }
 
-mod mediatypes {
+mod accept {
     use mediatype::MediaType;
     use mediatype::names::*;
 
@@ -97,7 +126,7 @@ impl ResponseFormat {
             .filter_map(Result::ok)
             .filter(|mediatype| {
                 // Get the mediatype without parameters
-                mediatypes::SUPPORTED.iter().any(|md| md == &mediatype.essence())
+                accept::SUPPORTED.iter().any(|md| md == &mediatype.essence())
             })
             .map(|mediatype| {
                 let quality_value = mediatype
@@ -112,15 +141,15 @@ impl ResponseFormat {
             .max_by(|(_, lhs), (_, rhs)| lhs.total_cmp(rhs))?;
 
         let essence = mediatype.essence();
-        if essence == mediatypes::STAR_STAR || essence == mediatypes::APPLICATION_STAR {
+        if essence == accept::STAR_STAR || essence == accept::APPLICATION_STAR {
             Some(default)
-        } else if essence == mediatypes::APPLICATION_JSON {
+        } else if essence == accept::APPLICATION_JSON {
             Some(ResponseFormat::Complete(CompleteResponseFormat::Json))
-        } else if essence == mediatypes::APPLICATION_GRAPHQL_RESPONSE_JSON {
+        } else if essence == accept::APPLICATION_GRAPHQL_RESPONSE_JSON {
             Some(ResponseFormat::Complete(CompleteResponseFormat::GraphqlResponseJson))
-        } else if essence == mediatypes::MULTIPART_MIXED {
+        } else if essence == accept::MULTIPART_MIXED {
             Some(ResponseFormat::Streaming(StreamingResponseFormat::IncrementalDelivery))
-        } else if essence == mediatypes::TEXT_EVENT_STREAM {
+        } else if essence == accept::TEXT_EVENT_STREAM {
             Some(ResponseFormat::Streaming(StreamingResponseFormat::GraphQLOverSSE))
         } else {
             None

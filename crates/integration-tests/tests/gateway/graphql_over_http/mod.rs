@@ -1,6 +1,7 @@
 mod application_graphql_response_json;
 mod application_json;
 mod batch;
+mod cbor;
 
 use graphql_mocks::{FakeGithubSchema, Stateful};
 use integration_tests::{gateway::Gateway, openid::JWKS_URI, runtime};
@@ -255,18 +256,18 @@ fn missing_content_type(#[case] accept: &'static str) {
             .await;
         let status = response.status();
         let body: serde_json::Value = serde_json::from_slice(&response.into_body()).unwrap();
-        insta::assert_json_snapshot!(body, @r###"
+        insta::assert_json_snapshot!(body, @r#"
         {
           "errors": [
             {
-              "message": "Missing or invalid Content-Type header. Only 'application/json' is supported.",
+              "message": "Missing or invalid Content-Type header. You must specify one of: 'application/json', 'application/cbor'",
               "extensions": {
                 "code": "BAD_REQUEST"
               }
             }
           ]
         }
-        "###);
+        "#);
         assert_eq!(status, 415);
     })
 }

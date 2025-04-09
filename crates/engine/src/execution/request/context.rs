@@ -1,7 +1,11 @@
 use grafbase_telemetry::grafbase_client::Client;
 use runtime::authentication::LegacyToken;
 
-use crate::{Runtime, engine::WasmContext, graphql_over_http::ResponseFormat};
+use crate::{
+    Runtime,
+    engine::WasmContext,
+    graphql_over_http::{ContentType, ResponseFormat},
+};
 
 /// Context only used early in the request processing before generating the RequestContext used
 /// everywhere else. Contrary to the RequestContext this one never fails to be created.
@@ -9,6 +13,7 @@ pub(crate) struct EarlyHttpContext {
     pub method: http::method::Method,
     pub uri: http::Uri,
     pub response_format: ResponseFormat,
+    pub content_type: ContentType,
     pub include_grafbase_response_extension: bool,
 }
 
