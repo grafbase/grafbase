@@ -275,7 +275,6 @@ operation-normalizer = { path = "crates/operation-normalizer" }
 rolling-logger = { path = "crates/rolling-logger" }
 runtime = { path = "crates/runtime" }
 runtime-local = { path = "crates/runtime-local" }
-runtime-noop = { path = "crates/runtime-noop" }
 serde-dynamic-string = { path = "crates/serde-dynamic-string" }
 wasi-component-loader = { path = "crates/wasi-component-loader" }
 wrapping = { path = "crates/graphql-wrapping-types", package = "graphql-wrapping-types" }

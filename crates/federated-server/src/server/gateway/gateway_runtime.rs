@@ -12,7 +12,6 @@ use runtime_local::{
     redis::{RedisPoolFactory, RedisTlsConfig},
     wasi::hooks::HooksWasi,
 };
-use runtime_noop::trusted_documents::NoopTrustedDocuments;
 use wasi_component_loader::{AccessLogSender, extension::WasmExtensions, resources::SharedResources};
 
 use crate::hot_reload::ConfigWatcher;
@@ -113,7 +112,7 @@ impl GatewayRuntime {
         let runtime = GatewayRuntime {
             fetcher: NativeFetcher::new(gateway_config).map_err(|e| crate::Error::FetcherConfigError(e.to_string()))?,
             kv,
-            trusted_documents: runtime::trusted_documents_client::Client::new(NoopTrustedDocuments),
+            trusted_documents: runtime::trusted_documents_client::Client::new(()),
             hooks,
             extensions,
             metrics: EngineMetrics::build(&meter, version_id.map(|id| id.to_string())),
