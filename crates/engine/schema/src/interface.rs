@@ -1,4 +1,4 @@
-use crate::{FieldDefinition, InterfaceDefinition, ObjectDefinitionId, SubgraphId};
+use crate::{DeprecatedDirective, FieldDefinition, InterfaceDefinition, ObjectDefinitionId, SubgraphId};
 
 impl<'a> InterfaceDefinition<'a> {
     pub fn has_implementor(&self, id: ObjectDefinitionId) -> bool {
@@ -23,6 +23,10 @@ impl<'a> InterfaceDefinition<'a> {
 
     pub fn has_inaccessible_implementor(&self) -> bool {
         self.schema.graph.interface_has_inaccessible_implementor[self.id]
+    }
+
+    pub fn has_deprecated(&self) -> Option<DeprecatedDirective<'a>> {
+        self.directives().find_map(|directive| directive.as_deprecated())
     }
 }
 

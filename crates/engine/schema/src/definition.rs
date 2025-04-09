@@ -1,8 +1,8 @@
 use walker::Walk;
 
 use crate::{
-    CompositeType, CompositeTypeId, EntityDefinition, EntityDefinitionId, TypeDefinition, TypeDefinitionId,
-    TypeSystemDirective, TypeSystemDirectiveId,
+    CompositeType, CompositeTypeId, DeprecatedDirective, EntityDefinition, EntityDefinitionId, TypeDefinition,
+    TypeDefinitionId, TypeSystemDirective, TypeSystemDirectiveId,
 };
 
 impl<'a> TypeDefinition<'a> {
@@ -14,6 +14,17 @@ impl<'a> TypeDefinition<'a> {
             TypeDefinition::Object(item) => item.name(),
             TypeDefinition::Scalar(item) => item.name(),
             TypeDefinition::Union(item) => item.name(),
+        }
+    }
+
+    pub fn description(&self) -> Option<&'a str> {
+        match self {
+            TypeDefinition::Enum(item) => item.description(),
+            TypeDefinition::InputObject(item) => item.description(),
+            TypeDefinition::Interface(item) => item.description(),
+            TypeDefinition::Object(item) => item.description(),
+            TypeDefinition::Scalar(item) => item.description(),
+            TypeDefinition::Union(item) => item.description(),
         }
     }
 
@@ -84,6 +95,10 @@ impl<'a> TypeDefinition<'a> {
             TypeDefinition::Scalar(scalar) => scalar.is_inaccessible(),
             TypeDefinition::Union(union) => union.is_inaccessible(),
         }
+    }
+
+    pub fn has_deprecated(&self) -> Option<DeprecatedDirective<'_>> {
+        self.directives().find_map(|directive| directive.as_deprecated())
     }
 }
 

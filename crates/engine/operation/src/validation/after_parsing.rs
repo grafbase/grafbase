@@ -38,11 +38,11 @@ impl ValidationError {
     }
 }
 
-pub(crate) fn validate(schema: &Schema, operation: &ParsedOperation) -> ValidationResult<()> {
+pub(crate) fn validate(schema: &Schema, operation: &ParsedOperation) -> Result<(), Vec<ValidationError>> {
     let limits = &schema.settings.operation_limits;
     let operation = operation.operation();
 
-    Visitor {
+    let result = Visitor {
         current_fragments_stack: Vec::new(),
         root_fields: 0,
         max_root_fields: limits.root_fields.map(Into::into).unwrap_or(usize::MAX),
@@ -53,7 +53,13 @@ pub(crate) fn validate(schema: &Schema, operation: &ParsedOperation) -> Validati
         complexity: 0,
         max_complexity: limits.complexity.map(Into::into).unwrap_or(usize::MAX),
     }
-    .visit_selection_set(operation.selection_set(), operation.selection_set_span())
+    .visit_selection_set(operation.selection_set(), operation.selection_set_span());
+
+    if let Some(err) = result.err() {
+        Err(vec![err])
+    } else {
+        Ok(())
+    }
 }
 
 struct Visitor<'p> {

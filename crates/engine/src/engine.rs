@@ -119,12 +119,10 @@ impl<R: Runtime> Engine<R> {
         parts: http::request::Parts,
         payload: InitPayload,
     ) -> Result<WebsocketSession<R>, Cow<'static, str>> {
-        let response_format = ResponseFormat::Streaming(StreamingResponseFormat::GraphQLOverWebSocket);
-
         let ctx = EarlyHttpContext {
             method: parts.method,
             uri: parts.uri,
-            response_format,
+            response_format: ResponseFormat::Streaming(StreamingResponseFormat::GraphQLOverWebSocket),
             include_grafbase_response_extension: false,
             content_type: ContentType::Json,
         };

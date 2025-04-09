@@ -164,11 +164,11 @@ fn request_error() {
         .execute()
         .await
     });
-    insta::assert_json_snapshot!(response, @r###"
+    insta::assert_json_snapshot!(response, @r#"
     {
       "errors": [
         {
-          "message": "Query does not have a field named '_typean_'",
+          "message": "Query does not have a field named '_typean_'.",
           "locations": [
             {
               "line": 3,
@@ -181,7 +181,7 @@ fn request_error() {
         }
       ]
     }
-    "###);
+    "#);
 }
 
 #[test]

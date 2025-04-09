@@ -175,11 +175,11 @@ fn generate_operation_name() {
             .send()
             .await;
 
-        insta::assert_json_snapshot!(response, @r###"
+        insta::assert_json_snapshot!(response, @r#"
         {
           "errors": [
             {
-              "message": "Query does not have a field named 'myFavoriteField'",
+              "message": "Query does not have a field named 'myFavoriteField'.",
               "locations": [
                 {
                   "line": 1,
@@ -189,10 +189,22 @@ fn generate_operation_name() {
               "extensions": {
                 "code": "OPERATION_VALIDATION_ERROR"
               }
+            },
+            {
+              "message": "Query does not have a field named 'ignoreMe'.",
+              "locations": [
+                {
+                  "line": 1,
+                  "column": 39
+                }
+              ],
+              "extensions": {
+                "code": "OPERATION_VALIDATION_ERROR"
+              }
             }
           ]
         }
-        "###);
+        "#);
         tokio::time::sleep(METRICS_DELAY).await;
 
         let row = clickhouse
@@ -231,11 +243,11 @@ fn request_error() {
             .gql::<serde_json::Value>("query Faulty { __typ__ename }")
             .send()
             .await;
-        insta::assert_json_snapshot!(resp, @r###"
+        insta::assert_json_snapshot!(resp, @r#"
         {
           "errors": [
             {
-              "message": "Query does not have a field named '__typ__ename'",
+              "message": "Query does not have a field named '__typ__ename'.",
               "locations": [
                 {
                   "line": 1,
@@ -248,7 +260,7 @@ fn request_error() {
             }
           ]
         }
-        "###);
+        "#);
         tokio::time::sleep(METRICS_DELAY).await;
 
         let row = clickhouse
