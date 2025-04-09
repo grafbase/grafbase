@@ -293,7 +293,7 @@ fn receive_subgraph_schema() {
                           "directives": [],
                           "name": "id",
                           "type": {
-                            "definitionId": "ID",
+                            "definition": "ID",
                             "wrapping": [
                               "NON_NULL"
                             ]
@@ -313,7 +313,7 @@ fn receive_subgraph_schema() {
                           "directives": [],
                           "name": "createdAt",
                           "type": {
-                            "definitionId": "DateTime",
+                            "definition": "DateTime",
                             "wrapping": [
                               "NON_NULL"
                             ]
@@ -324,7 +324,7 @@ fn receive_subgraph_schema() {
                           "directives": [],
                           "name": "id",
                           "type": {
-                            "definitionId": "ID",
+                            "definition": "ID",
                             "wrapping": [
                               "NON_NULL"
                             ]
@@ -335,7 +335,7 @@ fn receive_subgraph_schema() {
                           "directives": [],
                           "name": "items",
                           "type": {
-                            "definitionId": "OrderItem",
+                            "definition": "OrderItem",
                             "wrapping": [
                               "NON_NULL",
                               "LIST",
@@ -348,7 +348,7 @@ fn receive_subgraph_schema() {
                           "directives": [],
                           "name": "status",
                           "type": {
-                            "definitionId": "OrderStatus",
+                            "definition": "OrderStatus",
                             "wrapping": [
                               "NON_NULL"
                             ]
@@ -359,7 +359,7 @@ fn receive_subgraph_schema() {
                           "directives": [],
                           "name": "total",
                           "type": {
-                            "definitionId": "Float",
+                            "definition": "Float",
                             "wrapping": [
                               "NON_NULL"
                             ]
@@ -379,7 +379,7 @@ fn receive_subgraph_schema() {
                           "directives": [],
                           "name": "price",
                           "type": {
-                            "definitionId": "Float",
+                            "definition": "Float",
                             "wrapping": [
                               "NON_NULL"
                             ]
@@ -390,7 +390,7 @@ fn receive_subgraph_schema() {
                           "directives": [],
                           "name": "product",
                           "type": {
-                            "definitionId": "Product",
+                            "definition": "Product",
                             "wrapping": [
                               "NON_NULL"
                             ]
@@ -401,7 +401,7 @@ fn receive_subgraph_schema() {
                           "directives": [],
                           "name": "quantity",
                           "type": {
-                            "definitionId": "Int",
+                            "definition": "Int",
                             "wrapping": [
                               "NON_NULL"
                             ]
@@ -457,7 +457,7 @@ fn receive_subgraph_schema() {
                           "directives": [],
                           "name": "attributes",
                           "type": {
-                            "definitionId": "ProductAttributes",
+                            "definition": "ProductAttributes",
                             "wrapping": []
                           }
                         },
@@ -466,7 +466,7 @@ fn receive_subgraph_schema() {
                           "directives": [],
                           "name": "category",
                           "type": {
-                            "definitionId": "Category",
+                            "definition": "Category",
                             "wrapping": [
                               "NON_NULL"
                             ]
@@ -477,7 +477,7 @@ fn receive_subgraph_schema() {
                           "directives": [],
                           "name": "description",
                           "type": {
-                            "definitionId": "String",
+                            "definition": "String",
                             "wrapping": []
                           }
                         },
@@ -486,7 +486,7 @@ fn receive_subgraph_schema() {
                           "directives": [],
                           "name": "id",
                           "type": {
-                            "definitionId": "ID",
+                            "definition": "ID",
                             "wrapping": [
                               "NON_NULL"
                             ]
@@ -497,7 +497,7 @@ fn receive_subgraph_schema() {
                           "directives": [],
                           "name": "inStock",
                           "type": {
-                            "definitionId": "Boolean",
+                            "definition": "Boolean",
                             "wrapping": [
                               "NON_NULL"
                             ]
@@ -508,7 +508,7 @@ fn receive_subgraph_schema() {
                           "directives": [],
                           "name": "name",
                           "type": {
-                            "definitionId": "String",
+                            "definition": "String",
                             "wrapping": [
                               "NON_NULL"
                             ]
@@ -519,7 +519,7 @@ fn receive_subgraph_schema() {
                           "directives": [],
                           "name": "price",
                           "type": {
-                            "definitionId": "Float",
+                            "definition": "Float",
                             "wrapping": [
                               "NON_NULL"
                             ]
@@ -530,7 +530,7 @@ fn receive_subgraph_schema() {
                           "directives": [],
                           "name": "tags",
                           "type": {
-                            "definitionId": "String",
+                            "definition": "String",
                             "wrapping": [
                               "NON_NULL",
                               "LIST"
@@ -553,7 +553,7 @@ fn receive_subgraph_schema() {
                           "directives": [],
                           "name": "color",
                           "type": {
-                            "definitionId": "String",
+                            "definition": "String",
                             "wrapping": []
                           }
                         },
@@ -562,7 +562,7 @@ fn receive_subgraph_schema() {
                           "directives": [],
                           "name": "weight",
                           "type": {
-                            "definitionId": "Float",
+                            "definition": "Float",
                             "wrapping": []
                           }
                         }
@@ -593,7 +593,7 @@ fn receive_subgraph_schema() {
                           ],
                           "name": "name",
                           "type": {
-                            "definitionId": "String",
+                            "definition": "String",
                             "wrapping": []
                           }
                         },
@@ -601,7 +601,7 @@ fn receive_subgraph_schema() {
                           "directives": [],
                           "name": "inStock",
                           "type": {
-                            "definitionId": "Boolean",
+                            "definition": "Boolean",
                             "wrapping": []
                           }
                         },
@@ -609,7 +609,7 @@ fn receive_subgraph_schema() {
                           "directives": [],
                           "name": "minPrice",
                           "type": {
-                            "definitionId": "Float",
+                            "definition": "Float",
                             "wrapping": []
                           }
                         },
@@ -617,7 +617,7 @@ fn receive_subgraph_schema() {
                           "directives": [],
                           "name": "maxPrice",
                           "type": {
-                            "definitionId": "Float",
+                            "definition": "Float",
                             "wrapping": []
                           }
                         },
@@ -625,7 +625,7 @@ fn receive_subgraph_schema() {
                           "directives": [],
                           "name": "categories",
                           "type": {
-                            "definitionId": "Category",
+                            "definition": "Category",
                             "wrapping": [
                               "NON_NULL",
                               "LIST"
@@ -653,7 +653,7 @@ fn receive_subgraph_schema() {
                               "directives": [],
                               "name": "filter",
                               "type": {
-                                "definitionId": "ProductFilter",
+                                "definition": "ProductFilter",
                                 "wrapping": []
                               }
                             }
@@ -661,7 +661,7 @@ fn receive_subgraph_schema() {
                           "directives": [],
                           "name": "products",
                           "type": {
-                            "definitionId": "Product",
+                            "definition": "Product",
                             "wrapping": [
                               "NON_NULL",
                               "LIST"
@@ -674,7 +674,7 @@ fn receive_subgraph_schema() {
                               "directives": [],
                               "name": "term",
                               "type": {
-                                "definitionId": "String",
+                                "definition": "String",
                                 "wrapping": [
                                   "NON_NULL"
                                 ]
@@ -684,7 +684,7 @@ fn receive_subgraph_schema() {
                           "directives": [],
                           "name": "searchItems",
                           "type": {
-                            "definitionId": "SearchResult",
+                            "definition": "SearchResult",
                             "wrapping": [
                               "NON_NULL",
                               "LIST"
@@ -703,7 +703,7 @@ fn receive_subgraph_schema() {
                           ],
                           "name": "test",
                           "type": {
-                            "definitionId": "JSON",
+                            "definition": "JSON",
                             "wrapping": []
                           }
                         },
@@ -720,7 +720,7 @@ fn receive_subgraph_schema() {
                               ],
                               "name": "id",
                               "type": {
-                                "definitionId": "ID",
+                                "definition": "ID",
                                 "wrapping": [
                                   "NON_NULL"
                                 ]
@@ -730,7 +730,7 @@ fn receive_subgraph_schema() {
                           "directives": [],
                           "name": "user",
                           "type": {
-                            "definitionId": "User",
+                            "definition": "User",
                             "wrapping": []
                           }
                         }
@@ -772,7 +772,7 @@ fn receive_subgraph_schema() {
                           "directives": [],
                           "name": "createdAt",
                           "type": {
-                            "definitionId": "DateTime",
+                            "definition": "DateTime",
                             "wrapping": [
                               "NON_NULL"
                             ]
@@ -783,7 +783,7 @@ fn receive_subgraph_schema() {
                           "directives": [],
                           "name": "updatedAt",
                           "type": {
-                            "definitionId": "DateTime",
+                            "definition": "DateTime",
                             "wrapping": []
                           }
                         }
@@ -815,7 +815,7 @@ fn receive_subgraph_schema() {
                           "directives": [],
                           "name": "createdAt",
                           "type": {
-                            "definitionId": "DateTime",
+                            "definition": "DateTime",
                             "wrapping": []
                           }
                         },
@@ -824,7 +824,7 @@ fn receive_subgraph_schema() {
                           "directives": [],
                           "name": "email",
                           "type": {
-                            "definitionId": "String",
+                            "definition": "String",
                             "wrapping": [
                               "NON_NULL"
                             ]
@@ -835,7 +835,7 @@ fn receive_subgraph_schema() {
                           "directives": [],
                           "name": "id",
                           "type": {
-                            "definitionId": "ID",
+                            "definition": "ID",
                             "wrapping": [
                               "NON_NULL"
                             ]
@@ -846,7 +846,7 @@ fn receive_subgraph_schema() {
                           "directives": [],
                           "name": "name",
                           "type": {
-                            "definitionId": "String",
+                            "definition": "String",
                             "wrapping": [
                               "NON_NULL"
                             ]
@@ -857,7 +857,7 @@ fn receive_subgraph_schema() {
                           "directives": [],
                           "name": "orders",
                           "type": {
-                            "definitionId": "Order",
+                            "definition": "Order",
                             "wrapping": [
                               "NON_NULL",
                               "LIST"
@@ -879,7 +879,7 @@ fn receive_subgraph_schema() {
                           "directives": [],
                           "name": "name",
                           "type": {
-                            "definitionId": "String",
+                            "definition": "String",
                             "wrapping": [
                               "NON_NULL"
                             ]
@@ -889,7 +889,7 @@ fn receive_subgraph_schema() {
                           "directives": [],
                           "name": "email",
                           "type": {
-                            "definitionId": "String",
+                            "definition": "String",
                             "wrapping": [
                               "NON_NULL"
                             ]
@@ -899,7 +899,7 @@ fn receive_subgraph_schema() {
                           "directives": [],
                           "name": "profileBio",
                           "type": {
-                            "definitionId": "String",
+                            "definition": "String",
                             "wrapping": []
                           }
                         }

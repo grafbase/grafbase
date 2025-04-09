@@ -3987,6 +3987,7 @@ dependencies = [
  "duct",
  "fslock",
  "futures-util",
+ "fxhash",
  "grafbase-sdk-derive",
  "grafbase-sdk-mock",
  "graphql-composition 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",

@@ -42,6 +42,7 @@ jq-selection = [
 
 [dependencies]
 document-features = { version = "0.2" }
+fxhash = "0.2"
 grafbase-sdk-derive = { version = "0.4.0", path = "derive" }
 http = "1"
 minicbor-serde = { version = "0.4.1", features = ["alloc"] }
