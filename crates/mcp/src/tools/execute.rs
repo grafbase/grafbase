@@ -13,8 +13,7 @@ use crate::EngineWatcher;
 
 pub struct ExecuteTool<R: engine::Runtime> {
     engine: EngineWatcher<R>,
-    #[allow(unused)]
-    include_mutations: bool,
+    execute_mutations: bool,
 }
 
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -103,11 +102,10 @@ struct EngineResponse {
 }
 
 impl<R: engine::Runtime> ExecuteTool<R> {
-    // FIXME: enforce include_mutations
-    pub fn new(engine: &EngineWatcher<R>, include_mutations: bool) -> Self {
+    pub fn new(engine: &EngineWatcher<R>, execute_mutations: bool) -> Self {
         Self {
             engine: engine.clone(),
-            include_mutations,
+            execute_mutations,
         }
     }
 
@@ -125,7 +123,7 @@ impl<R: engine::Runtime> ExecuteTool<R> {
             .header("Accept", "application/json")
             .method(http::Method::POST)
             .extension(McpRequestContext {
-                include_mutations: self.include_mutations,
+                execute_mutations: self.execute_mutations,
             })
             .body(async move { Ok(body.into()) })?;
 
