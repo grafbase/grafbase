@@ -80,14 +80,14 @@ fn test_union() {
         insta::assert_snapshot!(&response, @r#"
         union SearchResult = Comment | Post
 
-        type Post {
-          id: ID!
-          title: String!
-        }
-
         type Comment {
           id: ID!
           text: String!
+        }
+
+        type Post {
+          id: ID!
+          title: String!
         }
         "#);
     });
@@ -313,14 +313,14 @@ fn test_object_with_field_arguments() {
           posts(first: Int = 10, offset: Int!, status: PostStatus = PUBLISHED): [Post!]!
         }
 
+        type Post {
+          id: ID!
+        }
+
         enum PostStatus {
           DRAFT
           PUBLISHED
           ARCHIVED
-        }
-
-        type Post {
-          id: ID!
         }
         "#);
     });
@@ -551,6 +551,12 @@ fn test_descriptions() {
         let response = stream.call_tool("introspect", json!({"types": ["User", "Post", "Comment", "Node", "SearchResult", "DateTime", "PostFilter", "PostStatus"]})).await;
 
         insta::assert_snapshot!(&response, @r#"
+        "Represents either a Post or a Comment in search results."
+        union SearchResult = Comment | Post
+
+        "A custom date-time scalar that handles timestamps."
+        scalar DateTime
+
         "A comment on a post or another comment."
         type Comment implements Node {
           "The content of the comment."
@@ -558,12 +564,6 @@ fn test_descriptions() {
           "The unique identifier of the comment."
           id: ID!
         }
-
-        "Represents either a Post or a Comment in search results."
-        union SearchResult = Comment | Post
-
-        "A custom date-time scalar that handles timestamps."
-        scalar DateTime
 
         "A blog post written by a user."
         type Post implements Node {

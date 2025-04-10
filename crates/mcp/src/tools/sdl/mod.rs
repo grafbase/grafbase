@@ -236,7 +236,7 @@ impl SdlBuilder<'_> {
         for (type_id, opt) in content.iter() {
             tracing::debug!("{} {}|{}", self.schema.walk(type_id).name(), opt.score, opt.depth);
             if opt.depth == 0 {
-                queue.push(*type_id, OrderedFloat(f32::INFINITY));
+                queue.push(*type_id, (OrderedFloat(f32::INFINITY), *type_id));
                 seen.insert(*type_id);
             }
         }
@@ -258,7 +258,7 @@ impl SdlBuilder<'_> {
                             // We always include scalars, the agent cannot guess what they are
                             // without their description.
                             let score = if ty.is_scalar() { f32::INFINITY } else { opt.score };
-                            queue.push(ty, OrderedFloat(score));
+                            queue.push(ty, (OrderedFloat(score), ty));
                         }
                     }
                     for arg in field.arguments() {
@@ -268,7 +268,7 @@ impl SdlBuilder<'_> {
                                 // We always include scalars, the agent cannot guess what they are
                                 // without their description.
                                 let score = if ty.is_scalar() { f32::INFINITY } else { opt.score };
-                                queue.push(ty, OrderedFloat(score));
+                                queue.push(ty, (OrderedFloat(score), ty));
                             }
                         }
                     }
@@ -280,7 +280,7 @@ impl SdlBuilder<'_> {
                     let ty = (*id).into();
                     if let Some(opt) = content.get(&ty) {
                         if seen.insert(ty) {
-                            queue.push(ty, OrderedFloat(opt.score));
+                            queue.push(ty, (OrderedFloat(opt.score), ty));
                         }
                     }
                 }

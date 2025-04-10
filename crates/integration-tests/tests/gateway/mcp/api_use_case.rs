@@ -25,6 +25,53 @@ fn search_org_analytics() {
             )
             .await;
         insta::assert_snapshot!(response, @r##"
+        # Incomplete fields
+        type Mutation {
+          "Request a review for a schema proposal from a user or a team."
+          schemaProposalReviewRequestCreate(input: SchemaProposalReviewRequestCreateInput!): SchemaProposalReviewRequestCreatePayload!
+          "Create new organization account owned by the current user. Slug must be unique."
+          organizationCreate(input: OrganizationCreateInput!): OrganizationCreatePayload!
+        }
+
+        # Incomplete fields
+        type Query {
+          "Get a graph by account slug and slug of the graph itself."
+          graphByAccountSlug(
+            "slug of the account"
+            accountSlug: String!,
+            "slug of the graph"
+            graphSlug: String!
+          ): Graph
+          "Get branch by account slug, graph slug and the name of the branch."
+          branch(
+            "name of the branch"
+            name: String,
+            "slug of the account"
+            accountSlug: String,
+            "slug of the graph"
+            graphSlug: String,
+            "slug of the project"
+            projectSlug: String
+          ): Branch
+        }
+
+        type GraphOperationCheckConfiguration {
+          "The clients to exclude from operation checks."
+          excludedClients: [String!]!
+          "The operations to exclude from operation checks."
+          excludedOperations: [String!]!
+          """
+          The request count threshold to consider for operation checks. Operations that have been
+          registered less than the specified number of occurrences are ignored.
+          """
+          requestCountThreshold: Int!
+          """
+          The time range in days to consider for operation checks. Operations older than the specificied
+          number of days are ignored.
+          """
+          timeRangeDays: Int!
+        }
+
         type Graph {
           account: Account!
           analytics(filters: GraphAnalyticsFilters!): GraphAnalytics
@@ -49,13 +96,8 @@ fn search_org_analytics() {
           slug: String!
         }
 
-        # Incomplete fields
-        type Mutation {
-          "Request a review for a schema proposal from a user or a team."
-          schemaProposalReviewRequestCreate(input: SchemaProposalReviewRequestCreateInput!): SchemaProposalReviewRequestCreatePayload!
-          "Create new organization account owned by the current user. Slug must be unique."
-          organizationCreate(input: OrganizationCreateInput!): OrganizationCreatePayload!
-        }
+        "RFC3339 formatted date in the UTC time zone denoted by letter 'Z'"
+        scalar DateTime
 
         type Branch {
           activeDeployment: Deployment
@@ -74,48 +116,6 @@ fn search_org_analytics() {
           schemaProposals(after: String, first: Int, filter: SchemaProposalFilter!): SchemaProposalConnection!
           schemaProposalsConfiguration: SchemaProposalsConfiguration!
           subgraphs: [Subgraph!]!
-        }
-
-        type GraphOperationCheckConfiguration {
-          "The clients to exclude from operation checks."
-          excludedClients: [String!]!
-          "The operations to exclude from operation checks."
-          excludedOperations: [String!]!
-          """
-          The request count threshold to consider for operation checks. Operations that have been
-          registered less than the specified number of occurrences are ignored.
-          """
-          requestCountThreshold: Int!
-          """
-          The time range in days to consider for operation checks. Operations older than the specificied
-          number of days are ignored.
-          """
-          timeRangeDays: Int!
-        }
-
-        "RFC3339 formatted date in the UTC time zone denoted by letter 'Z'"
-        scalar DateTime
-
-        # Incomplete fields
-        type Query {
-          "Get a graph by account slug and slug of the graph itself."
-          graphByAccountSlug(
-            "slug of the account"
-            accountSlug: String!,
-            "slug of the graph"
-            graphSlug: String!
-          ): Graph
-          "Get branch by account slug, graph slug and the name of the branch."
-          branch(
-            "name of the branch"
-            name: String,
-            "slug of the account"
-            accountSlug: String,
-            "slug of the graph"
-            graphSlug: String,
-            "slug of the project"
-            projectSlug: String
-          ): Branch
         }
 
         type GraphAnalytics {
@@ -194,6 +194,16 @@ fn search_org_analytics() {
           clientVersion: [String!]
         }
 
+        type TopOperations {
+          byName: TopOperationsByName!
+          byNameAndHash: TopOperationsByNameAndHash!
+        }
+
+        type TopClients {
+          byName: TopClientsByName!
+          byNameAndVersion: TopClientsByNameAndVersion!
+        }
+
         type FieldAnalytics {
           metrics: FieldMetricsTimeSeries
           topClients(
@@ -202,16 +212,6 @@ fn search_org_analytics() {
             "Search over the client names/versions"
             searchQuery: String
           ): TopClientsForField
-        }
-
-        type TopClients {
-          byName: TopClientsByName!
-          byNameAndVersion: TopClientsByNameAndVersion!
-        }
-
-        type TopOperations {
-          byName: TopOperationsByName!
-          byNameAndHash: TopOperationsByNameAndHash!
         }
 
         type RequestMetricsV2 {
@@ -237,22 +237,21 @@ fn search_org_analytics() {
           latencyMsPercentiles: [Int!]!
         }
 
+        type TopOperationsByNameAndHash {
+          orderedByHighestCount: [TopOperationByNameAndHashOrderedByHighestCount!]!
+          orderedByHighestErrorRatio: [TopOperationByNameAndHashOrderedByHighestErrorRatio!]!
+          orderedByHighestLatency: [TopOperationByNameAndHashOrderedByHighestLatency!]!
+        }
+
         type TopOperationsByName {
           orderedByHighestCount: [TopOperationByNameOrderedByHighestCount!]!
           orderedByHighestErrorRatio: [TopOperationByNameOrderedByHighestErrorRatio!]!
           orderedByHighestLatency: [TopOperationByNameOrderedByHighestLatency!]!
         }
 
-        type TopClientsByName {
-          orderedByHighestCount: [TopClientByNameOrderedByHighestCount!]!
-          orderedByHighestErrorRatio: [TopClientByNameOrderedByHighestErrorRatio!]!
-          orderedByHighestLatency: [TopClientByNameOrderedByHighestLatency!]!
-        }
-
-        type TopOperationsByNameAndHash {
-          orderedByHighestCount: [TopOperationByNameAndHashOrderedByHighestCount!]!
-          orderedByHighestErrorRatio: [TopOperationByNameAndHashOrderedByHighestErrorRatio!]!
-          orderedByHighestLatency: [TopOperationByNameAndHashOrderedByHighestLatency!]!
+        type TopClientsForField {
+          byName: TopClientsForFieldByName!
+          byNameAndVersion: TopClientsForFieldByNameAndVersion!
         }
 
         type TopClientsByNameAndVersion {
@@ -261,23 +260,24 @@ fn search_org_analytics() {
           orderedByHighestLatency: [TopClientByNameAndVersionOrderedByHighestLatency!]!
         }
 
+        type TopClientsByName {
+          orderedByHighestCount: [TopClientByNameOrderedByHighestCount!]!
+          orderedByHighestErrorRatio: [TopClientByNameOrderedByHighestErrorRatio!]!
+          orderedByHighestLatency: [TopClientByNameOrderedByHighestLatency!]!
+        }
+
         type FieldMetricsTimeSeries {
           overall: FieldMetrics!
           points: [FieldMetricsTimeSeriesDataPoint!]!
           previousPeriod: FieldMetricsTimeSeries
         }
 
-        type TopClientsForField {
-          byName: TopClientsForFieldByName!
-          byNameAndVersion: TopClientsForFieldByNameAndVersion!
-        }
-
         union OrganizationCreatePayload = NameSizeCheckError | OrganizationCreateSuccess | ReservedSlugsCheckError | SlugAlreadyExistsError | SlugError | SlugSizeCheckError | TrialPlanUnavailableError
 
-        input OrganizationCreateInput {
-          name: String!
-          slug: String!
-          email: String
+        type OrganizationCreateSuccess {
+          member: Member!
+          organization: Organization!
+          query: Query!
         }
         "##);
     });
@@ -305,6 +305,45 @@ fn search_analytics() {
             )
             .await;
         insta::assert_snapshot!(response, @r##"
+        # Incomplete fields
+        type Query {
+          "Get a graph by account slug and slug of the graph itself."
+          graphByAccountSlug(
+            "slug of the account"
+            accountSlug: String!,
+            "slug of the graph"
+            graphSlug: String!
+          ): Graph
+          "Get branch by account slug, graph slug and the name of the branch."
+          branch(
+            "name of the branch"
+            name: String,
+            "slug of the account"
+            accountSlug: String,
+            "slug of the graph"
+            graphSlug: String,
+            "slug of the project"
+            projectSlug: String
+          ): Branch
+        }
+
+        type GraphOperationCheckConfiguration {
+          "The clients to exclude from operation checks."
+          excludedClients: [String!]!
+          "The operations to exclude from operation checks."
+          excludedOperations: [String!]!
+          """
+          The request count threshold to consider for operation checks. Operations that have been
+          registered less than the specified number of occurrences are ignored.
+          """
+          requestCountThreshold: Int!
+          """
+          The time range in days to consider for operation checks. Operations older than the specificied
+          number of days are ignored.
+          """
+          timeRangeDays: Int!
+        }
+
         type Graph {
           account: Account!
           analytics(filters: GraphAnalyticsFilters!): GraphAnalytics
@@ -329,22 +368,8 @@ fn search_analytics() {
           slug: String!
         }
 
-        type GraphOperationCheckConfiguration {
-          "The clients to exclude from operation checks."
-          excludedClients: [String!]!
-          "The operations to exclude from operation checks."
-          excludedOperations: [String!]!
-          """
-          The request count threshold to consider for operation checks. Operations that have been
-          registered less than the specified number of occurrences are ignored.
-          """
-          requestCountThreshold: Int!
-          """
-          The time range in days to consider for operation checks. Operations older than the specificied
-          number of days are ignored.
-          """
-          timeRangeDays: Int!
-        }
+        "RFC3339 formatted date in the UTC time zone denoted by letter 'Z'"
+        scalar DateTime
 
         type Branch {
           activeDeployment: Deployment
@@ -363,31 +388,6 @@ fn search_analytics() {
           schemaProposals(after: String, first: Int, filter: SchemaProposalFilter!): SchemaProposalConnection!
           schemaProposalsConfiguration: SchemaProposalsConfiguration!
           subgraphs: [Subgraph!]!
-        }
-
-        "RFC3339 formatted date in the UTC time zone denoted by letter 'Z'"
-        scalar DateTime
-
-        # Incomplete fields
-        type Query {
-          "Get a graph by account slug and slug of the graph itself."
-          graphByAccountSlug(
-            "slug of the account"
-            accountSlug: String!,
-            "slug of the graph"
-            graphSlug: String!
-          ): Graph
-          "Get branch by account slug, graph slug and the name of the branch."
-          branch(
-            "name of the branch"
-            name: String,
-            "slug of the account"
-            accountSlug: String,
-            "slug of the graph"
-            graphSlug: String,
-            "slug of the project"
-            projectSlug: String
-          ): Branch
         }
 
         type GraphAnalytics {
@@ -466,6 +466,16 @@ fn search_analytics() {
           clientVersion: [String!]
         }
 
+        type TopOperations {
+          byName: TopOperationsByName!
+          byNameAndHash: TopOperationsByNameAndHash!
+        }
+
+        type TopClients {
+          byName: TopClientsByName!
+          byNameAndVersion: TopClientsByNameAndVersion!
+        }
+
         type FieldAnalytics {
           metrics: FieldMetricsTimeSeries
           topClients(
@@ -474,16 +484,6 @@ fn search_analytics() {
             "Search over the client names/versions"
             searchQuery: String
           ): TopClientsForField
-        }
-
-        type TopClients {
-          byName: TopClientsByName!
-          byNameAndVersion: TopClientsByNameAndVersion!
-        }
-
-        type TopOperations {
-          byName: TopOperationsByName!
-          byNameAndHash: TopOperationsByNameAndHash!
         }
 
         type Request {

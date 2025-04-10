@@ -31,14 +31,14 @@ fn simple() {
 
         let response = stream.call_tool("search", json!({"keywords": ["User"]})).await;
         insta::assert_snapshot!(&response, @r##"
-        type User {
-          id: ID!
-          name: String!
-        }
-
         # Incomplete fields
         type Query {
           user: User
+        }
+
+        type User {
+          id: ID!
+          name: String!
         }
         "##);
     });
@@ -74,14 +74,14 @@ fn camel_case_type() {
 
         let response = stream.call_tool("search", json!({"keywords": ["User"]})).await;
         insta::assert_snapshot!(&response, @r##"
-        type UserWithData {
-          id: ID!
-          name: String!
-        }
-
         # Incomplete fields
         type Query {
           anything: UserWithData
+        }
+
+        type UserWithData {
+          id: ID!
+          name: String!
         }
         "##);
     });
@@ -200,15 +200,15 @@ fn with_required_arguments() {
 
         let response = stream.call_tool("search", json!({"keywords": ["user"]})).await;
         insta::assert_snapshot!(&response, @r##"
-        type User {
-          id: ID!
-          name: String!
-        }
-
         # Incomplete fields
         type Query {
           user(id: ID!): User
           searchUsers(query: String!, limit: Int = 10): [User!]!
+        }
+
+        type User {
+          id: ID!
+          name: String!
         }
         "##);
     });
@@ -260,17 +260,17 @@ fn with_nested_types() {
 
         let response = stream.call_tool("search", json!({"keywords": ["post"]})).await;
         insta::assert_snapshot!(&response, @r##"
+        # Incomplete fields
+        type Query {
+          post(id: ID!): Post
+        }
+
         type Post {
           author: User!
           comments(first: Int = 10, after: String): [Comment!]
           id: ID!
           tags: [String!]!
           title: String!
-        }
-
-        # Incomplete fields
-        type Query {
-          post(id: ID!): Post
         }
 
         type User {
@@ -290,16 +290,16 @@ fn with_nested_types() {
         // Search for nested fields
         let response = stream.call_tool("search", json!({"keywords": ["comments"]})).await;
         insta::assert_snapshot!(&response, @r##"
+        # Incomplete fields
+        type Query {
+          post(id: ID!): Post
+        }
+
         type Comment {
           author: User!
           body: String!
           createdAt: String!
           id: ID!
-        }
-
-        # Incomplete fields
-        type Query {
-          post(id: ID!): Post
         }
 
         type Post {
@@ -456,56 +456,56 @@ fn fuzzy_search() {
         // Test 4-7 character words with 1 typo
         let response = stream.call_tool("search", json!({"keywords": ["user"]})).await;
         insta::assert_snapshot!(&response, @r##"
-        type User {
-          id: ID!
-          name: String!
-        }
-
         # Incomplete fields
         type Query {
           users: [User!]!
+        }
+
+        type User {
+          id: ID!
+          name: String!
         }
         "##);
 
         // Test 4-7 character words with 1 typo
         let response = stream.call_tool("search", json!({"keywords": ["post"]})).await;
         insta::assert_snapshot!(&response, @r##"
-        type Post {
-          id: ID!
-          title: String!
-        }
-
         # Incomplete fields
         type Query {
           posts: [Post!]!
+        }
+
+        type Post {
+          id: ID!
+          title: String!
         }
         "##);
 
         // Test 8+ character words with 2 typos
         let response = stream.call_tool("search", json!({"keywords": ["coment"]})).await;
         insta::assert_snapshot!(&response, @r##"
-        type Comment {
-          content: String!
-          id: ID!
-        }
-
         # Incomplete fields
         type Query {
           comments: [Comment!]!
+        }
+
+        type Comment {
+          content: String!
+          id: ID!
         }
         "##);
 
         // Test 8+ character words with 2 typos
         let response = stream.call_tool("search", json!({"keywords": ["artcle"]})).await;
         insta::assert_snapshot!(&response, @r##"
-        type Article {
-          id: ID!
-          title: String!
-        }
-
         # Incomplete fields
         type Query {
           articles: [Article!]!
+        }
+
+        type Article {
+          id: ID!
+          title: String!
         }
         "##);
 
@@ -546,14 +546,14 @@ fn case_insensitive_search() {
         // Test case insensitive search
         let response = stream.call_tool("search", json!({"keywords": ["USER"]})).await;
         insta::assert_snapshot!(&response, @r##"
-        type User {
-          id: ID!
-          name: String!
-        }
-
         # Incomplete fields
         type Query {
           user: User
+        }
+
+        type User {
+          id: ID!
+          name: String!
         }
         "##);
     });
@@ -602,11 +602,6 @@ fn multiple_keywords() {
         // Test search with multiple keywords
         let response = stream.call_tool("search", json!({"keywords": ["user", "post"]})).await;
         insta::assert_snapshot!(&response, @r##"
-        type User {
-          id: ID!
-          name: String!
-        }
-
         # Incomplete fields
         type Query {
           user: User
@@ -616,6 +611,11 @@ fn multiple_keywords() {
         type Post {
           id: ID!
           title: String!
+        }
+
+        type User {
+          id: ID!
+          name: String!
         }
         "##);
     });
@@ -665,6 +665,11 @@ fn shallow_depth_should_be_first() {
         // Test search with multiple keywords
         let response = stream.call_tool("search", json!({"keywords": ["author"]})).await;
         insta::assert_snapshot!(&response, @r##"
+        # Incomplete fields
+        type Query {
+          posts: [Post]
+        }
+
         type Comment {
           author: User
           content: String!
@@ -676,11 +681,6 @@ fn shallow_depth_should_be_first() {
           comments: [Comment]
           id: ID!
           title: String!
-        }
-
-        # Incomplete fields
-        type Query {
-          posts: [Post]
         }
 
         type User {
@@ -722,14 +722,14 @@ fn recursive_query() {
 
         let response = stream.call_tool("search", json!({"keywords": ["User"]})).await;
         insta::assert_snapshot!(&response, @r##"
-        type User {
-          id: ID!
-          name: String!
-        }
-
         # Incomplete fields
         type Query {
           user: User
+        }
+
+        type User {
+          id: ID!
+          name: String!
         }
         "##);
     });
@@ -809,6 +809,15 @@ fn search_descriptions() {
         // Search for a term that appears in descriptions
         let response = stream.call_tool("search", json!({"keywords": ["blog"]})).await;
         insta::assert_snapshot!(&response, @r##"
+        # Incomplete fields
+        type Query {
+          "Search for blog posts using various criteria"
+          searchPosts(
+            "Filter criteria for blog posts"
+            filter: PostFilter!
+          ): [Post!]!
+        }
+
         "Represents a blog post in the system"
         type Post {
           "The main content/body of the blog post"
@@ -818,15 +827,6 @@ fn search_descriptions() {
           "List of tags associated with the post"
           tags: [String!]!
           title: String!
-        }
-
-        # Incomplete fields
-        type Query {
-          "Search for blog posts using various criteria"
-          searchPosts(
-            "Filter criteria for blog posts"
-            filter: PostFilter!
-          ): [Post!]!
         }
 
         "Input type for filtering blog posts"
