@@ -145,7 +145,7 @@ fn execute_mutation_is_acepted_if_configured() {
                 r#"
                 [mcp]
                 enabled = true
-                include_mutations = true
+                execute_mutations = true
             "#,
             )
             .build()

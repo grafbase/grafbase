@@ -25,8 +25,131 @@ fn search_org_analytics() {
             )
             .await;
         insta::assert_snapshot!(response, @r##"
+        # Incomplete fields
+        type Mutation {
+          "Request a review for a schema proposal from a user or a team."
+          schemaProposalReviewRequestCreate(input: SchemaProposalReviewRequestCreateInput!): SchemaProposalReviewRequestCreatePayload!
+          "Create new organization account owned by the current user. Slug must be unique."
+          organizationCreate(input: OrganizationCreateInput!): OrganizationCreatePayload!
+        }
+
+        # Incomplete fields
+        type Query {
+          "Get a graph by account slug and slug of the graph itself."
+          graphByAccountSlug(
+            "slug of the account"
+            accountSlug: String!,
+            "slug of the graph"
+            graphSlug: String!
+          ): Graph
+          "Get branch by account slug, graph slug and the name of the branch."
+          branch(
+            "name of the branch"
+            name: String,
+            "slug of the account"
+            accountSlug: String,
+            "slug of the graph"
+            graphSlug: String,
+            "slug of the project"
+            projectSlug: String
+          ): Branch
+        }
+
+        type GraphOperationCheckConfiguration {
+          "The clients to exclude from operation checks."
+          excludedClients: [String!]!
+          "The operations to exclude from operation checks."
+          excludedOperations: [String!]!
+          """
+          The request count threshold to consider for operation checks. Operations that have been
+          registered less than the specified number of occurrences are ignored.
+          """
+          requestCountThreshold: Int!
+          """
+          The time range in days to consider for operation checks. Operations older than the specificied
+          number of days are ignored.
+          """
+          timeRangeDays: Int!
+        }
+
+        type Graph {
+          account: Account!
+          analytics(filters: GraphAnalyticsFilters!): GraphAnalytics
+          branch(name: String): Branch
+          branches(after: String, before: String, first: Int, last: Int): BranchConnection!
+          createdAt: DateTime!
+          "Webhooks for custom schema checks."
+          customCheckWebhooks: [CustomCheckWebhook!]
+          id: ID!
+          operationChecksConfiguration: GraphOperationCheckConfiguration!
+          owners: [Team!]!
+          productionBranch: Branch!
+          request(
+            branchName: String,
+            "The approximate timestamp of the request, within a few minutes of the actual request."
+            approximateTimestamp: DateTime!,
+            traceId: ID!
+          ): Request
+          requests(after: String, before: String, first: Int, last: Int, filters: RequestFilters!): RequestConnection
+          schemaChecks(after: String, before: String, first: Int, last: Int, branch: String): SchemaCheckConnection!
+          schemaProposals(after: String, first: Int): SchemaProposalConnection!
+          slug: String!
+        }
+
         "RFC3339 formatted date in the UTC time zone denoted by letter 'Z'"
         scalar DateTime
+
+        type Branch {
+          activeDeployment: Deployment
+          analytics(filters: GraphAnalyticsFilters!): GraphAnalytics
+          deployments(after: String, before: String, first: Int, last: Int, filters: DeploymentFilters): DeploymentConnection!
+          domains: [String!]!
+          endpointConfig: EndpointConfig
+          environment: BranchEnvironment!
+          federatedSchema: String
+          graph: Graph!
+          id: ID!
+          latestDeployment: Deployment
+          name: String!
+          operationChecksEnabled: Boolean!
+          schema: String
+          schemaProposals(after: String, first: Int, filter: SchemaProposalFilter!): SchemaProposalConnection!
+          schemaProposalsConfiguration: SchemaProposalsConfiguration!
+          subgraphs: [Subgraph!]!
+        }
+
+        type GraphAnalytics {
+          forField(
+            "Schema path defined as: '<parent-type-name>.<name>'"
+            schemaPath: String!
+          ): FieldAnalytics!
+          requestMetrics(
+            "Latency percentiles to retrieve. Ex: [50, 99, 99.9]"
+            latencyPercentiles: [Float!]
+          ): RequestMetricsTimeSeriesV2
+          topClients(
+            "Detaults to 10, Max 100"
+            limit: Int,
+            "Search over the client names/versions"
+            searchQuery: String,
+            "If not specified, top clients by latency will be empty. Ex: 95"
+            latencyPercentile: Float
+          ): TopClients
+          topOperations(
+            "Detaults to 10, Max 100"
+            limit: Int,
+            "Search over the opeartion names"
+            searchQuery: String,
+            "If not specified, top operations by latency will be empty. Ex: 95"
+            latencyPercentile: Float
+          ): TopOperations
+        }
+
+        type RequestMetricsTimeSeriesV2 {
+          overall: RequestMetricsV2!
+          points: [RequestMetricsTimeSeriesDataPointV2!]!
+          previousPeriod: RequestMetricsTimeSeriesV2
+        }
 
         input GraphAnalyticsFilters {
           "Defaults to production branch"
@@ -71,91 +194,24 @@ fn search_org_analytics() {
           clientVersion: [String!]
         }
 
-        # Incomplete fields
-        type Branch {
-          analytics(filters: GraphAnalyticsFilters!): GraphAnalytics
+        type TopOperations {
+          byName: TopOperationsByName!
+          byNameAndHash: TopOperationsByNameAndHash!
         }
 
-        # Incomplete fields
-        type Invite {
-          organization: Organization!
+        type TopClients {
+          byName: TopClientsByName!
+          byNameAndVersion: TopClientsByNameAndVersion!
         }
 
-        # Incomplete fields
-        type Graph {
-          request(
-            branchName: String,
-            "The approximate timestamp of the request, within a few minutes of the actual request."
-            approximateTimestamp: DateTime!,
-            traceId: ID!
-          ): Request
-          analytics(filters: GraphAnalyticsFilters!): GraphAnalytics
-          operationChecksConfiguration: GraphOperationCheckConfiguration!
-        }
-
-        # Incomplete fields
-        type GraphOperationCheckConfiguration {
-          """
-          The request count threshold to consider for operation checks. Operations that have been
-          registered less than the specified number of occurrences are ignored.
-          """
-          requestCountThreshold: Int!
-        }
-
-        # Incomplete fields
-        type Query {
-          invite(id: ID!): Invite
-          "Get a graph by account slug and slug of the graph itself."
-          graphByAccountSlug(
-            "slug of the account"
-            accountSlug: String!,
-            "slug of the graph"
-            graphSlug: String!
-          ): Graph
-          "Get branch by account slug, graph slug and the name of the branch."
-          branch(
-            "name of the branch"
-            name: String,
-            "slug of the account"
-            accountSlug: String,
-            "slug of the graph"
-            graphSlug: String,
-            "slug of the project"
-            projectSlug: String
-          ): Branch
-        }
-
-        type GraphAnalytics {
-          forField(
-            "Schema path defined as: '<parent-type-name>.<name>'"
-            schemaPath: String!
-          ): FieldAnalytics!
-          requestMetrics(
-            "Latency percentiles to retrieve. Ex: [50, 99, 99.9]"
-            latencyPercentiles: [Float!]
-          ): RequestMetricsTimeSeriesV2
+        type FieldAnalytics {
+          metrics: FieldMetricsTimeSeries
           topClients(
             "Detaults to 10, Max 100"
             limit: Int,
             "Search over the client names/versions"
-            searchQuery: String,
-            "If not specified, top clients by latency will be empty. Ex: 95"
-            latencyPercentile: Float
-          ): TopClients
-          topOperations(
-            "Detaults to 10, Max 100"
-            limit: Int,
-            "Search over the opeartion names"
-            searchQuery: String,
-            "If not specified, top operations by latency will be empty. Ex: 95"
-            latencyPercentile: Float
-          ): TopOperations
-        }
-
-        type RequestMetricsTimeSeriesV2 {
-          overall: RequestMetricsV2!
-          points: [RequestMetricsTimeSeriesDataPointV2!]!
-          previousPeriod: RequestMetricsTimeSeriesV2
+            searchQuery: String
+          ): TopClientsForField
         }
 
         type RequestMetricsV2 {
@@ -181,14 +237,10 @@ fn search_org_analytics() {
           latencyMsPercentiles: [Int!]!
         }
 
-        type TopOperations {
-          byName: TopOperationsByName!
-          byNameAndHash: TopOperationsByNameAndHash!
-        }
-
-        type TopClients {
-          byName: TopClientsByName!
-          byNameAndVersion: TopClientsByNameAndVersion!
+        type TopOperationsByNameAndHash {
+          orderedByHighestCount: [TopOperationByNameAndHashOrderedByHighestCount!]!
+          orderedByHighestErrorRatio: [TopOperationByNameAndHashOrderedByHighestErrorRatio!]!
+          orderedByHighestLatency: [TopOperationByNameAndHashOrderedByHighestLatency!]!
         }
 
         type TopOperationsByName {
@@ -197,16 +249,9 @@ fn search_org_analytics() {
           orderedByHighestLatency: [TopOperationByNameOrderedByHighestLatency!]!
         }
 
-        type TopOperationsByNameAndHash {
-          orderedByHighestCount: [TopOperationByNameAndHashOrderedByHighestCount!]!
-          orderedByHighestErrorRatio: [TopOperationByNameAndHashOrderedByHighestErrorRatio!]!
-          orderedByHighestLatency: [TopOperationByNameAndHashOrderedByHighestLatency!]!
-        }
-
-        type TopClientsByName {
-          orderedByHighestCount: [TopClientByNameOrderedByHighestCount!]!
-          orderedByHighestErrorRatio: [TopClientByNameOrderedByHighestErrorRatio!]!
-          orderedByHighestLatency: [TopClientByNameOrderedByHighestLatency!]!
+        type TopClientsForField {
+          byName: TopClientsForFieldByName!
+          byNameAndVersion: TopClientsForFieldByNameAndVersion!
         }
 
         type TopClientsByNameAndVersion {
@@ -215,14 +260,10 @@ fn search_org_analytics() {
           orderedByHighestLatency: [TopClientByNameAndVersionOrderedByHighestLatency!]!
         }
 
-        type FieldAnalytics {
-          metrics: FieldMetricsTimeSeries
-          topClients(
-            "Detaults to 10, Max 100"
-            limit: Int,
-            "Search over the client names/versions"
-            searchQuery: String
-          ): TopClientsForField
+        type TopClientsByName {
+          orderedByHighestCount: [TopClientByNameOrderedByHighestCount!]!
+          orderedByHighestErrorRatio: [TopClientByNameOrderedByHighestErrorRatio!]!
+          orderedByHighestLatency: [TopClientByNameOrderedByHighestLatency!]!
         }
 
         type FieldMetricsTimeSeries {
@@ -231,13 +272,17 @@ fn search_org_analytics() {
           previousPeriod: FieldMetricsTimeSeries
         }
 
-        type TopClientsForField {
-          byName: TopClientsForFieldByName!
-          byNameAndVersion: TopClientsForFieldByNameAndVersion!
+        union OrganizationCreatePayload = NameSizeCheckError | OrganizationCreateSuccess | ReservedSlugsCheckError | SlugAlreadyExistsError | SlugError | SlugSizeCheckError | TrialPlanUnavailableError
+
+        type OrganizationCreateSuccess {
+          member: Member!
+          organization: Organization!
+          query: Query!
         }
         "##);
     });
 }
+
 #[test]
 fn search_analytics() {
     runtime().block_on(async move {
@@ -260,8 +305,123 @@ fn search_analytics() {
             )
             .await;
         insta::assert_snapshot!(response, @r##"
+        # Incomplete fields
+        type Query {
+          "Get a graph by account slug and slug of the graph itself."
+          graphByAccountSlug(
+            "slug of the account"
+            accountSlug: String!,
+            "slug of the graph"
+            graphSlug: String!
+          ): Graph
+          "Get branch by account slug, graph slug and the name of the branch."
+          branch(
+            "name of the branch"
+            name: String,
+            "slug of the account"
+            accountSlug: String,
+            "slug of the graph"
+            graphSlug: String,
+            "slug of the project"
+            projectSlug: String
+          ): Branch
+        }
+
+        type GraphOperationCheckConfiguration {
+          "The clients to exclude from operation checks."
+          excludedClients: [String!]!
+          "The operations to exclude from operation checks."
+          excludedOperations: [String!]!
+          """
+          The request count threshold to consider for operation checks. Operations that have been
+          registered less than the specified number of occurrences are ignored.
+          """
+          requestCountThreshold: Int!
+          """
+          The time range in days to consider for operation checks. Operations older than the specificied
+          number of days are ignored.
+          """
+          timeRangeDays: Int!
+        }
+
+        type Graph {
+          account: Account!
+          analytics(filters: GraphAnalyticsFilters!): GraphAnalytics
+          branch(name: String): Branch
+          branches(after: String, before: String, first: Int, last: Int): BranchConnection!
+          createdAt: DateTime!
+          "Webhooks for custom schema checks."
+          customCheckWebhooks: [CustomCheckWebhook!]
+          id: ID!
+          operationChecksConfiguration: GraphOperationCheckConfiguration!
+          owners: [Team!]!
+          productionBranch: Branch!
+          request(
+            branchName: String,
+            "The approximate timestamp of the request, within a few minutes of the actual request."
+            approximateTimestamp: DateTime!,
+            traceId: ID!
+          ): Request
+          requests(after: String, before: String, first: Int, last: Int, filters: RequestFilters!): RequestConnection
+          schemaChecks(after: String, before: String, first: Int, last: Int, branch: String): SchemaCheckConnection!
+          schemaProposals(after: String, first: Int): SchemaProposalConnection!
+          slug: String!
+        }
+
         "RFC3339 formatted date in the UTC time zone denoted by letter 'Z'"
         scalar DateTime
+
+        type Branch {
+          activeDeployment: Deployment
+          analytics(filters: GraphAnalyticsFilters!): GraphAnalytics
+          deployments(after: String, before: String, first: Int, last: Int, filters: DeploymentFilters): DeploymentConnection!
+          domains: [String!]!
+          endpointConfig: EndpointConfig
+          environment: BranchEnvironment!
+          federatedSchema: String
+          graph: Graph!
+          id: ID!
+          latestDeployment: Deployment
+          name: String!
+          operationChecksEnabled: Boolean!
+          schema: String
+          schemaProposals(after: String, first: Int, filter: SchemaProposalFilter!): SchemaProposalConnection!
+          schemaProposalsConfiguration: SchemaProposalsConfiguration!
+          subgraphs: [Subgraph!]!
+        }
+
+        type GraphAnalytics {
+          forField(
+            "Schema path defined as: '<parent-type-name>.<name>'"
+            schemaPath: String!
+          ): FieldAnalytics!
+          requestMetrics(
+            "Latency percentiles to retrieve. Ex: [50, 99, 99.9]"
+            latencyPercentiles: [Float!]
+          ): RequestMetricsTimeSeriesV2
+          topClients(
+            "Detaults to 10, Max 100"
+            limit: Int,
+            "Search over the client names/versions"
+            searchQuery: String,
+            "If not specified, top clients by latency will be empty. Ex: 95"
+            latencyPercentile: Float
+          ): TopClients
+          topOperations(
+            "Detaults to 10, Max 100"
+            limit: Int,
+            "Search over the opeartion names"
+            searchQuery: String,
+            "If not specified, top operations by latency will be empty. Ex: 95"
+            latencyPercentile: Float
+          ): TopOperations
+        }
+
+        type RequestMetricsTimeSeriesV2 {
+          overall: RequestMetricsV2!
+          points: [RequestMetricsTimeSeriesDataPointV2!]!
+          previousPeriod: RequestMetricsTimeSeriesV2
+        }
 
         input GraphAnalyticsFilters {
           "Defaults to production branch"
@@ -306,86 +466,14 @@ fn search_analytics() {
           clientVersion: [String!]
         }
 
-        # Incomplete fields
-        type Branch {
-          analytics(filters: GraphAnalyticsFilters!): GraphAnalytics
-          graph: Graph!
-        }
-
-        # Incomplete fields
-        type Query {
-          "Get a graph by account slug and slug of the graph itself."
-          graphByAccountSlug(
-            "slug of the account"
-            accountSlug: String!,
-            "slug of the graph"
-            graphSlug: String!
-          ): Graph
-          "Get branch by account slug, graph slug and the name of the branch."
-          branch(
-            "name of the branch"
-            name: String,
-            "slug of the account"
-            accountSlug: String,
-            "slug of the graph"
-            graphSlug: String,
-            "slug of the project"
-            projectSlug: String
-          ): Branch
-        }
-
-        # Incomplete fields
-        type Graph {
-          analytics(filters: GraphAnalyticsFilters!): GraphAnalytics
-          request(
-            branchName: String,
-            "The approximate timestamp of the request, within a few minutes of the actual request."
-            approximateTimestamp: DateTime!,
-            traceId: ID!
-          ): Request
-        }
-
-        type GraphAnalytics {
-          forField(
-            "Schema path defined as: '<parent-type-name>.<name>'"
-            schemaPath: String!
-          ): FieldAnalytics!
-          requestMetrics(
-            "Latency percentiles to retrieve. Ex: [50, 99, 99.9]"
-            latencyPercentiles: [Float!]
-          ): RequestMetricsTimeSeriesV2
-          topClients(
-            "Detaults to 10, Max 100"
-            limit: Int,
-            "Search over the client names/versions"
-            searchQuery: String,
-            "If not specified, top clients by latency will be empty. Ex: 95"
-            latencyPercentile: Float
-          ): TopClients
-          topOperations(
-            "Detaults to 10, Max 100"
-            limit: Int,
-            "Search over the opeartion names"
-            searchQuery: String,
-            "If not specified, top operations by latency will be empty. Ex: 95"
-            latencyPercentile: Float
-          ): TopOperations
-        }
-
-        type RequestMetricsTimeSeriesV2 {
-          overall: RequestMetricsV2!
-          points: [RequestMetricsTimeSeriesDataPointV2!]!
-          previousPeriod: RequestMetricsTimeSeriesV2
+        type TopOperations {
+          byName: TopOperationsByName!
+          byNameAndHash: TopOperationsByNameAndHash!
         }
 
         type TopClients {
           byName: TopClientsByName!
           byNameAndVersion: TopClientsByNameAndVersion!
-        }
-
-        type TopOperations {
-          byName: TopOperationsByName!
-          byNameAndHash: TopOperationsByNameAndHash!
         }
 
         type FieldAnalytics {
@@ -396,6 +484,72 @@ fn search_analytics() {
             "Search over the client names/versions"
             searchQuery: String
           ): TopClientsForField
+        }
+
+        type Request {
+          clientName: String!
+          clientVersion: String!
+          endedAt: DateTime!
+          errorCount: Int!
+          errorCountByCode: [ErrorCountByCode!]!
+          httpRequestMethod: String!
+          httpStatusCode: Int!
+          id: ID!
+          operations: [RequestOperation!]!
+          rootSpanId: ID!
+          startedAt: DateTime!
+          trace: Trace!
+          urlPath: String!
+          userAgent: String!
+        }
+
+        "Deployment"
+        type Deployment {
+          "The schema exposed by the gateway."
+          apiSchema: String
+          "Diff of the API SDL in this deployment with the last successful deployment. This field only makes sense for successful deployments, so it will be null on failed deployments."
+          apiSchemaDiff: [DiffSnippet!]
+          branch: Branch!
+          changeCounts: DeploymentChangeCounts
+          compositionInputs: [DeploymentSubgraph!]!
+          createdAt: DateTime!
+          "The duration of the deployment in milliseconds."
+          duration: Int
+          "The federated SDL used to initialize the gateway."
+          federatedSdl: String
+          finishedAt: DateTime
+          id: ID!
+          isRedeployable: Boolean!
+          startedAt: DateTime
+          status: DeploymentStatus!
+          steps: [DeploymentStep!]!
+          """
+          The subgraph that was published or removed, triggering the deployment.
+          
+          This is nullable in case we introduce back redeployments in the future.
+          """
+          subgraph: DeploymentSubgraph
+        }
+
+        type SchemaProposalConnection {
+          "A list of edges."
+          edges: [SchemaProposalEdge!]!
+          "A list of nodes."
+          nodes: [SchemaProposal!]!
+          "Information to aid in pagination."
+          pageInfo: PageInfo!
+        }
+
+        "Information about pagination in a connection"
+        type PageInfo {
+          "When paginating forwards, the cursor to continue."
+          endCursor: String
+          "When paginating forwards, are there more items?"
+          hasNextPage: Boolean!
+          "When paginating backwards, are there more items?"
+          hasPreviousPage: Boolean!
+          "When paginating backwards, the cursor to continue."
+          startCursor: String
         }
 
         type RequestMetricsV2 {
@@ -421,56 +575,18 @@ fn search_analytics() {
           latencyMsPercentiles: [Int!]!
         }
 
-        type Request {
-          clientName: String!
-          clientVersion: String!
-          endedAt: DateTime!
-          errorCount: Int!
-          errorCountByCode: [ErrorCountByCode!]!
-          httpRequestMethod: String!
-          httpStatusCode: Int!
-          id: ID!
-          operations: [RequestOperation!]!
-          rootSpanId: ID!
-          startedAt: DateTime!
-          trace: Trace!
-          urlPath: String!
-          userAgent: String!
+        type ErrorCountByCode {
+          code: String!
+          count: Int!
         }
 
-        type FieldMetricsTimeSeries {
-          overall: FieldMetrics!
-          points: [FieldMetricsTimeSeriesDataPoint!]!
-          previousPeriod: FieldMetricsTimeSeries
-        }
-
-        type TopClientsByName {
-          orderedByHighestCount: [TopClientByNameOrderedByHighestCount!]!
-          orderedByHighestErrorRatio: [TopClientByNameOrderedByHighestErrorRatio!]!
-          orderedByHighestLatency: [TopClientByNameOrderedByHighestLatency!]!
-        }
-
-        type TopOperationsByName {
-          orderedByHighestCount: [TopOperationByNameOrderedByHighestCount!]!
-          orderedByHighestErrorRatio: [TopOperationByNameOrderedByHighestErrorRatio!]!
-          orderedByHighestLatency: [TopOperationByNameOrderedByHighestLatency!]!
-        }
-
-        type TopClientsForField {
-          byName: TopClientsForFieldByName!
-          byNameAndVersion: TopClientsForFieldByNameAndVersion!
-        }
-
-        type TopOperationsByNameAndHash {
-          orderedByHighestCount: [TopOperationByNameAndHashOrderedByHighestCount!]!
-          orderedByHighestErrorRatio: [TopOperationByNameAndHashOrderedByHighestErrorRatio!]!
-          orderedByHighestLatency: [TopOperationByNameAndHashOrderedByHighestLatency!]!
-        }
-
-        type TopClientsByNameAndVersion {
-          orderedByHighestCount: [TopClientByNameAndVersionOrderedByHighestCount!]!
-          orderedByHighestErrorRatio: [TopClientByNameAndVersionOrderedByHighestErrorRatio!]!
-          orderedByHighestLatency: [TopClientByNameAndVersionOrderedByHighestLatency!]!
+        type Subgraph {
+          createdAt: DateTime!
+          name: String!
+          owners: [Team!]!
+          schema: String!
+          updatedAt: DateTime!
+          url: String
         }
         "##);
     });

@@ -70,8 +70,8 @@ struct FieldMatch {
 }
 
 impl<R: engine::Runtime> SearchTool<R> {
-    pub fn new(engine: &EngineWatcher<R>) -> anyhow::Result<Self> {
-        let schema_index = Arc::new(SchemaIndex::new(engine.borrow().schema.clone())?);
+    pub fn new(engine: &EngineWatcher<R>, execute_mutations: bool) -> anyhow::Result<Self> {
+        let schema_index = Arc::new(SchemaIndex::new(engine.borrow().schema.clone(), execute_mutations)?);
         let current_hash = schema_index.schema.hash;
         let (tx, rx) = tokio::sync::watch::channel(schema_index.clone());
         let stream = WatchStream::from_changes(engine.clone());
@@ -82,7 +82,7 @@ impl<R: engine::Runtime> SearchTool<R> {
                 if engine.schema.hash == current_hash {
                     continue;
                 }
-                let schema_index = SchemaIndex::new(engine.schema.clone()).unwrap();
+                let schema_index = SchemaIndex::new(engine.schema.clone(), execute_mutations).unwrap();
                 current_hash = schema_index.schema.hash;
                 tx.send(Arc::new(schema_index)).unwrap();
             }
@@ -109,7 +109,7 @@ struct Fields {
 }
 
 impl SchemaIndex {
-    fn new(schema: Arc<Schema>) -> anyhow::Result<Self> {
+    fn new(schema: Arc<Schema>, execute_mutations: bool) -> anyhow::Result<Self> {
         tracing::debug!("Generating MCP schema search index");
         let start = std::time::Instant::now();
 
@@ -191,42 +191,68 @@ impl SchemaIndex {
 
             let mut index_writer = index.writer(50_000_000)?;
 
+            let mutation_id = schema.mutation().map(|m| m.id);
+            let subscription_id = schema.subscription().map(|s| s.id);
             let mut token_buffer = Vec::new();
             // Index all fields from all types
-            for def in schema.field_definitions() {
-                let depth = shortest_path_depth[usize::from(def.id)];
-                // If mutations are disabled, some fields won't be accessible.
-                if depth < u16::MAX {
-                    let mut document = TantivyDocument::default();
-
-                    token_buffer.extend(
-                        convert_case::split(&def.name(), BOUNDARIES)
-                            .into_iter()
-                            .map(|token| token.to_lowercase()),
-                    );
-                    token_buffer.extend(
-                        convert_case::split(&def.ty().definition().name(), BOUNDARIES)
-                            .into_iter()
-                            .map(|token| token.to_lowercase()),
-                    );
-                    token_buffer.sort_unstable();
-                    token_buffer.dedup();
-
-                    for token in token_buffer.drain(..) {
-                        document.add_field_value(fields.name, token);
-                    }
-                    if let Some(desc) = def.description() {
-                        document.add_field_value(fields.description, desc);
-                    }
-                    if let Some(desc) = def.ty().definition().description() {
-                        document.add_field_value(fields.description, desc);
-                    }
-
-                    document.add_field_value(fields.definition_id, u32::from(def.id) as u64);
-                    document.add_field_value(fields.depth, depth as u64);
-
-                    index_writer.add_document(document)?;
+            for mut def in schema.field_definitions() {
+                let mut depth = shortest_path_depth[usize::from(def.id)];
+                // Inaccessible fields;
+                if depth == u16::MAX {
+                    continue;
                 }
+                let mut document = TantivyDocument::default();
+
+                if let Some(desc) = def.description() {
+                    document.add_field_value(fields.description, desc);
+                }
+                if let Some(desc) = def.ty().definition().description() {
+                    document.add_field_value(fields.description, desc);
+                }
+                if let Some(desc) = def.parent_entity().description() {
+                    document.add_field_value(fields.description, desc);
+                }
+
+                token_buffer.extend(
+                    convert_case::split(&def.name(), BOUNDARIES)
+                        .into_iter()
+                        .map(|token| token.to_lowercase()),
+                );
+                token_buffer.extend(
+                    convert_case::split(&def.ty().definition().name(), BOUNDARIES)
+                        .into_iter()
+                        .map(|token| token.to_lowercase()),
+                );
+                token_buffer.extend(
+                    convert_case::split(&def.parent_entity().name(), BOUNDARIES)
+                        .into_iter()
+                        .map(|token| token.to_lowercase()),
+                );
+
+                token_buffer.sort_unstable();
+                token_buffer.dedup();
+                for token in token_buffer.drain(..) {
+                    document.add_field_value(fields.name, token);
+                }
+
+                document.add_field_value(fields.definition_id, u32::from(def.id) as u64);
+
+                // De-favour mutations if not executable and subscription as we won't execute them
+                // properly.
+                loop {
+                    let parent_definition_id = shortest_path_parent[usize::from(def.id)];
+
+                    if parent_definition_id == def.id {
+                        break;
+                    }
+                    def = schema.walk(parent_definition_id);
+                }
+                let root_type_id = def.parent_entity_id.as_object();
+                if (root_type_id == mutation_id && !execute_mutations) || (root_type_id == subscription_id) {
+                    depth += 1
+                }
+                document.add_field_value(fields.depth, depth as u64);
+                index_writer.add_document(document)?;
             }
 
             index_writer.commit()?;
@@ -323,7 +349,7 @@ impl SchemaIndex {
                 move |doc: tantivy::DocId, original_score: f32| {
                     let depth = depth_reader.first(doc).unwrap_or(256) as f32;
                     // Boost score based on inverse of depth (shallower = higher score)
-                    original_score / (1.0 + depth)
+                    original_score / (2.0 + depth)
                 }
             }),
         )?;
@@ -338,6 +364,7 @@ impl SchemaIndex {
         let mut site_id_to_score = FxHashMap::default();
         for (mut score, doc_address) in top_docs {
             score += 1.0;
+            score *= score;
 
             let doc: TantivyDocument = searcher.doc(doc_address)?;
             let mut definition_id = FieldDefinitionId::from(
@@ -371,7 +398,7 @@ impl SchemaIndex {
         let sdl = PartialSdl {
             search_tokens,
             max_depth: 3,
-            max_size_for_extra_content: 6144,
+            max_size_for_extra_content: 8192,
             site_ids_and_score: site_id_to_score.into_iter().collect(),
         }
         .generate(&self.schema);
