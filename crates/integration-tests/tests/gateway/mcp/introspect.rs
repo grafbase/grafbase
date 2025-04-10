@@ -372,7 +372,7 @@ fn test_input_object_with_defaults() {
 }
 
 #[test]
-fn should_not_show_mutations_if_disabled() {
+fn should_show_mutations() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
             .with_subgraph_sdl(
@@ -396,52 +396,6 @@ fn should_not_show_mutations_if_disabled() {
                 r#"
                 [mcp]
                 enabled = true
-                include_mutations = false
-            "#,
-            )
-            .build()
-            .await;
-
-        let mut stream = engine.mcp("/mcp").await;
-
-        let response = stream.call_tool("introspect", json!({"types": ["Mutation"]})).await;
-
-        insta::assert_snapshot!(&response, @r#"
-        {
-          "errors": [
-            "Type 'Mutation' not found"
-          ]
-        }
-        "#);
-    });
-}
-
-#[test]
-fn should_show_mutations_if_enabled() {
-    runtime().block_on(async move {
-        let engine = Gateway::builder()
-            .with_subgraph_sdl(
-                "x",
-                r#"
-                type Query {
-                    user: User
-                }
-
-                type Mutation {
-                    createUser: User
-                }
-
-                type User {
-                    id: ID!
-                    name: String!
-                }
-            "#,
-            )
-            .with_toml_config(
-                r#"
-                [mcp]
-                enabled = true
-                include_mutations = true
             "#,
             )
             .build()
