@@ -15,7 +15,7 @@ impl std::fmt::Debug for QueryInputValue<'_> {
             }
             QueryInputValueRecord::UnboundEnumValue(s) => f.debug_tuple("UnboundEnumValue").field(&s).finish(),
             QueryInputValueRecord::Int(n) => f.debug_tuple("Int").field(n).finish(),
-            QueryInputValueRecord::BigInt(n) => f.debug_tuple("BigInt").field(n).finish(),
+            QueryInputValueRecord::I64(n) => f.debug_tuple("I64").field(n).finish(),
             QueryInputValueRecord::U64(n) => f.debug_tuple("U64").field(n).finish(),
             QueryInputValueRecord::Float(n) => f.debug_tuple("Float").field(n).finish(),
             QueryInputValueRecord::Boolean(b) => b.fmt(f),

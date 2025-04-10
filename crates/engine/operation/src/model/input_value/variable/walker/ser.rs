@@ -28,7 +28,7 @@ impl serde::Serialize for VariableInputValue<'_> {
             VariableInputValueRecord::String(s) => s.serialize(serializer),
             VariableInputValueRecord::EnumValue(id) => id.walk(ctx.schema).name().serialize(serializer),
             VariableInputValueRecord::Int(n) => n.serialize(serializer),
-            VariableInputValueRecord::BigInt(n) => n.serialize(serializer),
+            VariableInputValueRecord::I64(n) => n.serialize(serializer),
             VariableInputValueRecord::Float(f) => f.serialize(serializer),
             VariableInputValueRecord::U64(n) => n.serialize(serializer),
             VariableInputValueRecord::Boolean(b) => b.serialize(serializer),

@@ -411,11 +411,6 @@ impl GraphContext<'_> {
                 _ => None,
             }
             .map(SchemaInputValueRecord::Int),
-            ScalarType::BigInt => match value {
-                ConstValue::Int(n) => Some(n.value()),
-                _ => None,
-            }
-            .map(SchemaInputValueRecord::BigInt),
             ScalarType::Boolean => match value {
                 ConstValue::Boolean(b) => Some(b.value()),
                 _ => None,
@@ -462,11 +457,6 @@ impl GraphContext<'_> {
                 _ => None,
             }
             .map(SchemaInputValueRecord::Int),
-            ScalarType::BigInt => match value {
-                Value::Int(n) => Some(n),
-                _ => None,
-            }
-            .map(SchemaInputValueRecord::BigInt),
             ScalarType::Boolean => match value {
                 Value::Boolean(b) => Some(b),
                 _ => None,
@@ -487,7 +477,7 @@ impl GraphContext<'_> {
         match value {
             ConstValue::Null(_) => SchemaInputValueRecord::Null,
             ConstValue::String(s) => SchemaInputValueRecord::String(self.ctx.strings.get_or_new(s.value())),
-            ConstValue::Int(n) => SchemaInputValueRecord::BigInt(n.value()),
+            ConstValue::Int(n) => SchemaInputValueRecord::I64(n.value()),
             ConstValue::Float(f) => SchemaInputValueRecord::Float(f.value()),
             ConstValue::Boolean(b) => SchemaInputValueRecord::Boolean(b.value()),
             ConstValue::Enum(s) => SchemaInputValueRecord::UnboundEnumValue(self.ctx.strings.get_or_new(s.as_str())),

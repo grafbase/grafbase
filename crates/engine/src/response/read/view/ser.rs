@@ -178,7 +178,7 @@ where
             ResponseValue::Float { value, .. } => value.serialize(serializer),
             ResponseValue::String { value, .. } => value.serialize(serializer),
             ResponseValue::StringId { id, .. } => self.ctx.response.schema[*id].serialize(serializer),
-            ResponseValue::BigInt { value, .. } => value.serialize(serializer),
+            ResponseValue::I64 { value, .. } => value.serialize(serializer),
             &ResponseValue::List { id, .. } => {
                 let values = &self.ctx.response.data_parts[id];
                 serializer.collect_seq(values.iter().map(|value| ResponseValueView {

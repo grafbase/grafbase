@@ -10,7 +10,7 @@ impl GraphContext<'_> {
             Value::Null => SchemaInputValueRecord::Null,
             Value::String(id) => SchemaInputValueRecord::String(self.get_or_insert_str(id)),
             Value::UnboundEnumValue(id) => SchemaInputValueRecord::UnboundEnumValue(self.get_or_insert_str(id)),
-            Value::Int(n) => SchemaInputValueRecord::BigInt(n),
+            Value::Int(n) => SchemaInputValueRecord::I64(n),
             Value::Float(f) => SchemaInputValueRecord::Float(f),
             Value::Boolean(b) => SchemaInputValueRecord::Boolean(b),
             Value::EnumValue(id) => {

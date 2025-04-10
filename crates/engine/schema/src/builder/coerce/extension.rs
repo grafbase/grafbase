@@ -246,7 +246,7 @@ impl ExtensionDirectiveArgumentsCoercer<'_, '_> {
         name: &str,
         value: &Value,
     ) -> Result<ExtensionInputValueRecord, ExtensionInputValueError> {
-        if matches!(name, "ID" | "String" | "Int" | "BigInt" | "Float" | "Boolean") {
+        if matches!(name, "ID" | "String" | "Int" | "Float" | "Boolean") {
             return self.coerce_scalar_fed_value(name, value);
         }
         if let Some((_, scalar)) = self.sdl.grafbase_scalars.iter().find(|(s, _)| s == name) {
@@ -307,7 +307,7 @@ impl ExtensionDirectiveArgumentsCoercer<'_, '_> {
         name: &str,
         value: cynic_parser::ConstValue<'_>,
     ) -> Result<ExtensionInputValueRecord, ExtensionInputValueError> {
-        if matches!(name, "ID" | "String" | "Int" | "BigInt" | "Float" | "Boolean") {
+        if matches!(name, "ID" | "String" | "Int" | "Float" | "Boolean") {
             return self.coerce_scalar_cynic_value(name, value);
         }
         if let Some((_, scalar)) = self.sdl.grafbase_scalars.iter().find(|(s, _)| s == name) {
@@ -560,11 +560,6 @@ impl ExtensionDirectiveArgumentsCoercer<'_, '_> {
                 Value::Float(f) if can_coerce_to_int(*f) => Some(ExtensionInputValueRecord::Int(*f as i32)),
                 _ => None,
             },
-            "BigInt" => match value {
-                Value::Int(n) => Some(ExtensionInputValueRecord::BigInt(*n)),
-                Value::Float(f) if can_coerce_to_int(*f) => Some(ExtensionInputValueRecord::BigInt(*f as i64)),
-                _ => None,
-            },
             "Boolean" => match value {
                 Value::Boolean(b) => Some(ExtensionInputValueRecord::Boolean(*b)),
                 _ => None,
@@ -611,13 +606,6 @@ impl ExtensionDirectiveArgumentsCoercer<'_, '_> {
                 }
                 _ => None,
             },
-            "BigInt" => match value {
-                ConstValue::Int(n) => Some(ExtensionInputValueRecord::BigInt(n.value())),
-                ConstValue::Float(f) if can_coerce_to_int(f.value()) => {
-                    Some(ExtensionInputValueRecord::BigInt(f.value() as i64))
-                }
-                _ => None,
-            },
             "Boolean" => match value {
                 ConstValue::Boolean(b) => Some(ExtensionInputValueRecord::Boolean(b.value())),
                 _ => None,
@@ -639,7 +627,7 @@ impl ExtensionDirectiveArgumentsCoercer<'_, '_> {
             Value::Null => ExtensionInputValueRecord::Null,
             Value::String(id) => ExtensionInputValueRecord::String(self.get_or_insert_str(*id)),
             Value::UnboundEnumValue(id) => ExtensionInputValueRecord::EnumValue(self.get_or_insert_str(*id)),
-            Value::Int(n) => ExtensionInputValueRecord::BigInt(*n),
+            Value::Int(n) => ExtensionInputValueRecord::I64(*n),
             Value::Float(f) => ExtensionInputValueRecord::Float(*f),
             Value::Boolean(b) => ExtensionInputValueRecord::Boolean(*b),
             Value::EnumValue(id) => {
@@ -667,7 +655,7 @@ impl ExtensionDirectiveArgumentsCoercer<'_, '_> {
         match value {
             ConstValue::Null(_) => ExtensionInputValueRecord::Null,
             ConstValue::String(s) => ExtensionInputValueRecord::String(self.strings.get_or_new(s.value())),
-            ConstValue::Int(n) => ExtensionInputValueRecord::BigInt(n.value()),
+            ConstValue::Int(n) => ExtensionInputValueRecord::I64(n.value()),
             ConstValue::Float(f) => ExtensionInputValueRecord::Float(f.value()),
             ConstValue::Boolean(b) => ExtensionInputValueRecord::Boolean(b.value()),
             ConstValue::Enum(s) => ExtensionInputValueRecord::EnumValue(self.strings.get_or_new(s.as_str())),

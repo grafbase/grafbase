@@ -320,7 +320,7 @@ async fn test_input_value() {
                         UnboundEnumValue(
                             "ACTIVE",
                         ),
-                        BigInt(
+                        I64(
                             73,
                         ),
                     ],
@@ -433,7 +433,7 @@ async fn test_input_value() {
                                     ty: Type {
                                         definition: ScalarDefinition {
                                             name: "BigInt",
-                                            ty: BigInt,
+                                            ty: Unknown,
                                             description: None,
                                             specified_by_url: None,
                                             directives: [],
@@ -623,7 +623,7 @@ async fn test_input_value() {
                                 ty: Type {
                                     definition: ScalarDefinition {
                                         name: "BigInt",
-                                        ty: BigInt,
+                                        ty: Unknown,
                                         description: None,
                                         specified_by_url: None,
                                         directives: [],
@@ -637,7 +637,7 @@ async fn test_input_value() {
                                 default_value: None,
                                 directives: [],
                             },
-                            BigInt(
+                            I64(
                                 8,
                             ),
                         ),

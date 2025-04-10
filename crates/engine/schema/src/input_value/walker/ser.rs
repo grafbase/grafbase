@@ -16,7 +16,7 @@ impl serde::Serialize for SchemaInputValue<'_> {
             }
             SchemaInputValueRecord::EnumValue(id) => id.walk(self.schema).name().serialize(serializer),
             SchemaInputValueRecord::Int(n) => n.serialize(serializer),
-            SchemaInputValueRecord::BigInt(n) => n.serialize(serializer),
+            SchemaInputValueRecord::I64(n) => n.serialize(serializer),
             SchemaInputValueRecord::Float(f) => f.serialize(serializer),
             SchemaInputValueRecord::U64(n) => n.serialize(serializer),
             SchemaInputValueRecord::Boolean(b) => b.serialize(serializer),

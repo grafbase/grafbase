@@ -46,7 +46,7 @@ impl<'a> QueryInputValue<'a> {
     pub fn as_usize(&self) -> Option<usize> {
         match self.ref_ {
             QueryInputValueRecord::Int(value) => Some(*value as usize),
-            QueryInputValueRecord::BigInt(value) => Some(*value as usize),
+            QueryInputValueRecord::I64(value) => Some(*value as usize),
             QueryInputValueRecord::DefaultValue(id) => self.ctx.schema.walk(*id).as_usize(),
             QueryInputValueRecord::Variable(id) => {
                 <VariableDefinitionId as Walk<InputValueContext<'a>>>::walk(*id, self.ctx).as_usize()

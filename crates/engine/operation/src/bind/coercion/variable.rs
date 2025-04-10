@@ -221,7 +221,7 @@ impl<'a> VariableCoercionContext<'a> {
                     if let Some(n) = n.as_f64() {
                         VariableInputValueRecord::Float(n)
                     } else if let Some(n) = n.as_i64() {
-                        VariableInputValueRecord::BigInt(n)
+                        VariableInputValueRecord::I64(n)
                     } else {
                         VariableInputValueRecord::U64(n.as_u64().unwrap())
                     }
@@ -259,17 +259,6 @@ impl<'a> VariableCoercionContext<'a> {
                     });
                 };
                 Ok(VariableInputValueRecord::Int(value))
-            }
-            (Value::Number(number), ScalarType::BigInt) => {
-                let Some(value) = number.as_i64() else {
-                    return Err(InputValueError::IncorrectScalarValue {
-                        actual: number.to_string(),
-                        expected: scalar.name().to_string(),
-                        path: self.path(),
-                        location: self.location,
-                    });
-                };
-                Ok(VariableInputValueRecord::BigInt(value))
             }
             (Value::Number(number), ScalarType::Float) => {
                 let Some(value) = number.as_f64() else {

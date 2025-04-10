@@ -317,7 +317,7 @@ impl<'schema> QueryValueCoercionContext<'_, 'schema, '_> {
             (value, ScalarType::Unknown) => Ok(match value {
                 Value::Null(_) => QueryInputValueRecord::Null,
                 Value::Float(n) => QueryInputValueRecord::Float(n.value()),
-                Value::Int(i) => QueryInputValueRecord::BigInt(i.as_i64()),
+                Value::Int(i) => QueryInputValueRecord::I64(i.as_i64()),
                 Value::String(s) => QueryInputValueRecord::String(s.as_str().into()),
                 Value::Boolean(b) => QueryInputValueRecord::Boolean(b.value()),
                 Value::List(array) => {
@@ -355,14 +355,10 @@ impl<'schema> QueryValueCoercionContext<'_, 'schema, '_> {
                 };
                 Ok(QueryInputValueRecord::Int(value))
             }
-            (Value::Int(number), ScalarType::BigInt) => Ok(QueryInputValueRecord::BigInt(number.as_i64())),
             (Value::Int(number), ScalarType::Float) => Ok(QueryInputValueRecord::Float(number.value() as f64)),
             (Value::Float(number), ScalarType::Float) => Ok(QueryInputValueRecord::Float(number.as_f64())),
             (Value::Float(number), ScalarType::Int) if can_coerce_to_int(number.as_f64()) => {
                 Ok(QueryInputValueRecord::Int(number.as_f64() as i32))
-            }
-            (Value::Float(number), ScalarType::BigInt) if can_coerce_to_big_int(number.as_f64()) => {
-                Ok(QueryInputValueRecord::BigInt(number.as_f64() as i64))
             }
             (Value::String(value), ScalarType::String) => Ok(QueryInputValueRecord::String(value.as_str().into())),
             (Value::Boolean(value), ScalarType::Boolean) => Ok(QueryInputValueRecord::Boolean(value.value())),
@@ -399,8 +395,4 @@ fn are_type_compatibles(definition: Type<'_>, used_as: Type<'_>) -> bool {
 
 fn can_coerce_to_int(float: f64) -> bool {
     float.floor() == float && float < (i32::MAX as f64)
-}
-
-fn can_coerce_to_big_int(float: f64) -> bool {
-    float.floor() == float && float < (i64::MAX as f64)
 }

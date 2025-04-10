@@ -18,7 +18,7 @@ impl VariableInputValue<'_> {
     fn as_usize(&self) -> Option<usize> {
         match self.ref_ {
             VariableInputValueRecord::Int(value) => Some(*value as usize),
-            VariableInputValueRecord::BigInt(value) => Some(*value as usize),
+            VariableInputValueRecord::I64(value) => Some(*value as usize),
             VariableInputValueRecord::DefaultValue(id) => id.walk(self.ctx.schema).as_usize(),
             _ => None,
         }
