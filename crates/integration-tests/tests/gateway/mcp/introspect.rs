@@ -308,15 +308,15 @@ fn test_object_with_field_arguments() {
         let response = stream.call_tool("introspect", json!({"types": ["User"]})).await;
 
         insta::assert_snapshot!(&response, @r#"
+        type User {
+          id: ID!
+          posts(first: Int = 10, offset: Int!, status: PostStatus = PUBLISHED): [Post!]!
+        }
+
         enum PostStatus {
           DRAFT
           PUBLISHED
           ARCHIVED
-        }
-
-        type User {
-          id: ID!
-          posts(first: Int = 10, offset: Int!, status: PostStatus = PUBLISHED): [Post!]!
         }
 
         type Post {
@@ -372,7 +372,7 @@ fn test_input_object_with_defaults() {
 }
 
 #[test]
-fn should_not_show_mutations_if_disabled() {
+fn should_show_mutations() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
             .with_subgraph_sdl(
@@ -396,52 +396,6 @@ fn should_not_show_mutations_if_disabled() {
                 r#"
                 [mcp]
                 enabled = true
-                include_mutations = false
-            "#,
-            )
-            .build()
-            .await;
-
-        let mut stream = engine.mcp("/mcp").await;
-
-        let response = stream.call_tool("introspect", json!({"types": ["Mutation"]})).await;
-
-        insta::assert_snapshot!(&response, @r#"
-        {
-          "errors": [
-            "Type 'Mutation' not found"
-          ]
-        }
-        "#);
-    });
-}
-
-#[test]
-fn should_show_mutations_if_enabled() {
-    runtime().block_on(async move {
-        let engine = Gateway::builder()
-            .with_subgraph_sdl(
-                "x",
-                r#"
-                type Query {
-                    user: User
-                }
-
-                type Mutation {
-                    createUser: User
-                }
-
-                type User {
-                    id: ID!
-                    name: String!
-                }
-            "#,
-            )
-            .with_toml_config(
-                r#"
-                [mcp]
-                enabled = true
-                include_mutations = true
             "#,
             )
             .build()
@@ -608,25 +562,6 @@ fn test_descriptions() {
         "Represents either a Post or a Comment in search results."
         union SearchResult = Comment | Post
 
-        """
-        The status of a post.
-        I'm a multiline comment.
-        """
-        enum PostStatus {
-          DRAFT
-          PUBLISHED
-        }
-
-        "Input type for filtering posts."
-        input PostFilter {
-          "Filter by author ID."
-          authorId: ID
-          "Filter by post status."
-          status: PostStatus = PUBLISHED
-          "Filter by creation date."
-          createdAfter: DateTime
-        }
-
         "A custom date-time scalar that handles timestamps."
         scalar DateTime
 
@@ -653,6 +588,25 @@ fn test_descriptions() {
         interface Node {
           "The unique identifier of the node."
           id: ID!
+        }
+
+        "Input type for filtering posts."
+        input PostFilter {
+          "Filter by author ID."
+          authorId: ID
+          "Filter by post status."
+          status: PostStatus = PUBLISHED
+          "Filter by creation date."
+          createdAfter: DateTime
+        }
+
+        """
+        The status of a post.
+        I'm a multiline comment.
+        """
+        enum PostStatus {
+          DRAFT
+          PUBLISHED
         }
         "#);
     });

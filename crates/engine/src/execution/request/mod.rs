@@ -70,7 +70,7 @@ impl<R: Runtime> Engine<R> {
             include_mcp_response_extension: false,
         };
         if let Some(mcp) = parts.extensions.get::<McpRequestContext>() {
-            ctx.can_mutate &= mcp.include_mutations;
+            ctx.can_mutate &= mcp.execute_mutations;
             ctx.include_mcp_response_extension = true;
         }
 

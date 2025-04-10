@@ -39,7 +39,7 @@ impl McpServer {
             },
             tools: vec![
                 Box::new(IntrospectTool::new(&engine)),
-                Box::new(SearchTool::new(&engine)?),
+                Box::new(SearchTool::new(&engine, execute_mutations)?),
                 Box::new(ExecuteTool::new(&engine, execute_mutations)),
             ],
         })))
