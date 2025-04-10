@@ -7328,6 +7328,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "prost-types"
+version = "0.13.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "52c2c1bf36ddb1a1c396b3601a3cec27c2462e45f07c386894ec3ccf5332bd16"
+dependencies = [
+ "prost",
+]
+
+[[package]]
+name = "protoc-gen-grafbase-subgraph"
+version = "0.1.0"
+dependencies = [
+ "grafbase-workspace-hack",
+ "indexmap 2.9.0",
+ "insta",
+ "paste",
+ "prost",
+ "prost-types",
+ "tempfile",
+ "walkdir",
+]
+
+[[package]]
 name = "psm"
 version = "0.1.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"

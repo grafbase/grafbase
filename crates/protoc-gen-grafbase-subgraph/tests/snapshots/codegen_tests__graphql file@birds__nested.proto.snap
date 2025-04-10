@@ -1,0 +1,272 @@
+---
+source: crates/protoc-gen-grafbase-subgraph/tests/codegen_tests.rs
+expression: "fs::read_to_string(entry.path()).unwrap()"
+input_file: crates/protoc-gen-grafbase-subgraph/tests/codegen/birds/nested.proto
+---
+extend schema
+  @protoMessages(
+    messages: [
+      {
+        name: ".Bird"
+        fields: [
+          {
+            name: "name"
+            number: "1"
+            repeated: "false"
+            type: "string"
+          }
+          {
+            name: "scientific_name"
+            number: "2"
+            repeated: "false"
+            type: "string"
+          }
+          {
+            name: "weight_in_kg"
+            number: "3"
+            repeated: "false"
+            type: "double"
+          }
+          {
+            name: "is_migratory"
+            number: "4"
+            repeated: "false"
+            type: "bool"
+          }
+          {
+            name: "size"
+            number: "5"
+            repeated: "false"
+            type: ".Bird.Size"
+          }
+          {
+            name: "primary_habitat"
+            number: "6"
+            repeated: "false"
+            type: ".Bird.Habitat"
+          }
+          {
+            name: "secondary_habitats"
+            number: "7"
+            repeated: "true"
+            type: ".Bird.Habitat"
+          }
+          {
+            name: "diet"
+            number: "8"
+            repeated: "false"
+            type: ".Bird.Diet"
+          }
+          {
+            name: "plumage"
+            number: "9"
+            repeated: "false"
+            type: ".Bird.Plumage"
+          }
+          {
+            name: "average_lifespan_years"
+            number: "10"
+            repeated: "false"
+            type: "uint32"
+          }
+          {
+            name: "conservation_status"
+            number: "11"
+            repeated: "true"
+            type: "string"
+          }
+        ]
+      }
+      {
+        name: ".Bird.Diet"
+        fields: [
+          {
+            name: "carnivorous"
+            number: "1"
+            repeated: "false"
+            type: "bool"
+          }
+          {
+            name: "herbivorous"
+            number: "2"
+            repeated: "false"
+            type: "bool"
+          }
+          {
+            name: "omnivorous"
+            number: "3"
+            repeated: "false"
+            type: "bool"
+          }
+          {
+            name: "favorite_foods"
+            number: "4"
+            repeated: "true"
+            type: "string"
+          }
+          {
+            name: "feeding_style"
+            number: "5"
+            repeated: "false"
+            type: ".Bird.Diet.FeedingStyle"
+          }
+        ]
+      }
+      {
+        name: ".Bird.Plumage"
+        fields: [
+          {
+            name: "primary_color"
+            number: "1"
+            repeated: "false"
+            type: "string"
+          }
+          {
+            name: "secondary_colors"
+            number: "2"
+            repeated: "true"
+            type: "string"
+          }
+          {
+            name: "has_distinct_mating_colors"
+            number: "3"
+            repeated: "false"
+            type: "bool"
+          }
+          {
+            name: "pattern"
+            number: "4"
+            repeated: "false"
+            type: ".Bird.Plumage.Pattern"
+          }
+        ]
+      }
+    ]
+  )
+  @protoEnums(
+    enums: [
+      {
+        name: ".Bird.Diet.FeedingStyle"
+        values: [
+          {
+            name: "UNKNOWN_FEEDING_STYLE"
+            number: "0"
+          }
+          {
+            name: "FORAGER"
+            number: "1"
+          }
+          {
+            name: "HUNTER"
+            number: "2"
+          }
+          {
+            name: "SCAVENGER"
+            number: "3"
+          }
+          {
+            name: "FILTER_FEEDER"
+            number: "4"
+          }
+        ]
+      }
+      {
+        name: ".Bird.Plumage.Pattern"
+        values: [
+          {
+            name: "UNKNOWN_PATTERN"
+            number: "0"
+          }
+          {
+            name: "SOLID"
+            number: "1"
+          }
+          {
+            name: "SPOTTED"
+            number: "2"
+          }
+          {
+            name: "STRIPED"
+            number: "3"
+          }
+          {
+            name: "MOTTLED"
+            number: "4"
+          }
+          {
+            name: "BANDED"
+            number: "5"
+          }
+        ]
+      }
+      {
+        name: ".Bird.Size"
+        values: [
+          {
+            name: "UNKNOWN_SIZE"
+            number: "0"
+          }
+          {
+            name: "TINY"
+            number: "1"
+          }
+          {
+            name: "SMALL"
+            number: "2"
+          }
+          {
+            name: "MEDIUM"
+            number: "3"
+          }
+          {
+            name: "LARGE"
+            number: "4"
+          }
+          {
+            name: "EXTRA_LARGE"
+            number: "5"
+          }
+        ]
+      }
+      {
+        name: ".Bird.Habitat"
+        values: [
+          {
+            name: "UNKNOWN_HABITAT"
+            number: "0"
+          }
+          {
+            name: "FOREST"
+            number: "1"
+          }
+          {
+            name: "WETLAND"
+            number: "2"
+          }
+          {
+            name: "COASTAL"
+            number: "3"
+          }
+          {
+            name: "DESERT"
+            number: "4"
+          }
+          {
+            name: "GRASSLAND"
+            number: "5"
+          }
+          {
+            name: "URBAN"
+            number: "6"
+          }
+          {
+            name: "MOUNTAIN"
+            number: "7"
+          }
+        ]
+      }
+    ]
+  )
+
+"64 bit signed integer" scalar I64
+"64 bit unsigned integer" scalar U64
