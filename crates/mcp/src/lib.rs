@@ -33,9 +33,9 @@ pub fn router<R: Runtime>(
         sse_keep_alive: Some(Duration::from_secs(5)),
     });
 
-    let include_mutations = config.include_mutations;
+    let execute_mutations = config.execute_mutations;
 
-    let mcp_server = server::McpServer::new(engine.clone(), include_mutations).unwrap();
+    let mcp_server = server::McpServer::new(engine.clone(), execute_mutations).unwrap();
     let ct = sse_server.with_service(move || mcp_server.clone());
 
     (router, ct)

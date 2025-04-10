@@ -89,7 +89,7 @@ pub(crate) async fn run(args: McpCommand) -> anyhow::Result<()> {
 
     let mcp_config = gateway_config::ModelControlProtocolConfig {
         enabled: true,
-        include_mutations: args.include_mutations,
+        execute_mutations: args.execute_mutations,
         ..Default::default()
     };
 

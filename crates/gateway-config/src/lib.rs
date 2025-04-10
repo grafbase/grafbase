@@ -2350,7 +2350,7 @@ mod tests {
             ModelControlProtocolConfig {
                 enabled: false,
                 path: "/mcp",
-                include_mutations: false,
+                execute_mutations: false,
             },
         )
         "#);

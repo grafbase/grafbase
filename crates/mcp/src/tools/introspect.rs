@@ -9,7 +9,6 @@ use crate::EngineWatcher;
 
 pub struct IntrospectTool<R: engine::Runtime> {
     engine: EngineWatcher<R>,
-    include_mutations: bool,
 }
 
 impl<R: engine::Runtime> Tool for IntrospectTool<R> {
@@ -34,11 +33,8 @@ pub struct IntrospectionParameters {
 }
 
 impl<R: engine::Runtime> IntrospectTool<R> {
-    pub fn new(engine: &EngineWatcher<R>, include_mutations: bool) -> Self {
-        Self {
-            engine: engine.clone(),
-            include_mutations,
-        }
+    pub fn new(engine: &EngineWatcher<R>) -> Self {
+        Self { engine: engine.clone() }
     }
 
     fn introspect(&self, types: Vec<String>) -> SdlAndErrors {
@@ -51,17 +47,6 @@ impl<R: engine::Runtime> IntrospectTool<R> {
                 errors.push(format!("Type '{}' not found", type_name));
                 continue;
             };
-
-            if !self.include_mutations
-                && schema
-                    .mutation()
-                    .zip(type_definition.id().as_object())
-                    .map(|(mutation, id)| mutation.id == id)
-                    .unwrap_or_default()
-            {
-                errors.push(format!("Type '{}' not found", type_name));
-                continue;
-            }
 
             site_ids.push(type_definition.id().into());
         }
