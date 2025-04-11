@@ -25,6 +25,24 @@ impl GrpcUnaryResponse {
     }
 }
 
+/// A response stream from a server streaming gRPC call.
+#[derive(Debug)]
+pub struct GrpcStreamingResponse {
+    inner: wit::GrpcStreamingResponse,
+}
+
+impl GrpcStreamingResponse {
+    /// Get the next message in the stream. `None` means the stream has ended and there will no longer be any messages.
+    pub fn next_message(&self) -> Result<Option<Vec<u8>>, GrpcStatus> {
+        self.inner.get_next_message().map_err(|inner| GrpcStatus { inner })
+    }
+
+    /// The response metadata.
+    pub fn metadata(&self) -> Vec<(String, Vec<u8>)> {
+        self.inner.get_metadata()
+    }
+}
+
 /// An error response from a unary gRPC call.
 #[derive(Debug)]
 pub struct GrpcStatus {
@@ -82,6 +100,27 @@ impl GrpcClient {
                 timeout.map(|duration| duration.as_millis() as u64),
             )
             .map(|response| GrpcUnaryResponse { inner: response })
+            .map_err(|error| GrpcStatus { inner: error })
+    }
+
+    /// Make a server-streaming RPC call. The method can be client streaming, but only the single message provided will be sent.
+    pub fn streaming(
+        &self,
+        message: &[u8],
+        service: &str,
+        method: &str,
+        metadata: &[(String, Vec<u8>)],
+        timeout: Option<std::time::Duration>,
+    ) -> Result<GrpcStreamingResponse, GrpcStatus> {
+        self.inner
+            .streaming(
+                message,
+                service,
+                method,
+                metadata,
+                timeout.map(|duration| duration.as_millis() as u64),
+            )
+            .map(|response| GrpcStreamingResponse { inner: response })
             .map_err(|error| GrpcStatus { inner: error })
     }
 }
