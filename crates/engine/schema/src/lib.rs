@@ -75,11 +75,6 @@ pub struct Schema {
     regexps: Vec<Regex>,
     #[indexed_by(UrlId)]
     urls: Vec<url::Url>,
-    /// Headers we might want to send to a subgraph
-    #[indexed_by(HeaderRuleId)]
-    header_rules: Vec<HeaderRuleRecord>,
-    #[indexed_by(TemplateId)]
-    templates: Vec<TemplateRecord>,
 
     pub settings: PartialConfig,
 }
@@ -111,12 +106,13 @@ where
     }
 }
 
-id_newtypes::forward! {
+id_newtypes::forward_with_range! {
     impl Index<SchemaInputValueId, Output = SchemaInputValueRecord> for Schema.graph.input_values,
     impl Index<SchemaInputObjectFieldValueId, Output = (InputValueDefinitionId, SchemaInputValueRecord)> for Schema.graph.input_values,
     impl Index<SchemaInputKeyValueId, Output = (StringId, SchemaInputValueRecord)> for Schema.graph.input_values,
     impl Index<GraphqlEndpointId, Output = GraphqlEndpointRecord> for Schema.subgraphs,
     impl Index<VirtualSubgraphId, Output = VirtualSubgraphRecord> for Schema.subgraphs,
+    impl Index<HeaderRuleId, Output = HeaderRuleRecord> for Schema.subgraphs,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, id_derives::IndexedFields)]
@@ -184,6 +180,9 @@ pub struct Graph {
     extension_directives: Vec<ExtensionDirectiveRecord>,
     #[indexed_by(ExtensionDirectiveArgumentId)]
     extension_directive_arguments: Vec<ExtensionDirectiveArgumentRecord>,
+
+    #[indexed_by(TemplateId)]
+    templates: Vec<TemplateRecord>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, id_derives::IndexedFields)]
@@ -192,7 +191,12 @@ pub struct SubGraphs {
     graphql_endpoints: Vec<GraphqlEndpointRecord>,
     #[indexed_by(VirtualSubgraphId)]
     virtual_subgraphs: Vec<VirtualSubgraphRecord>,
-    pub introspection: introspection::IntrospectionMetadata,
+    pub introspection: introspection::IntrospectionSubgraph,
+
+    default_header_rules: IdRange<HeaderRuleId>,
+    /// Headers we might want to send to a subgraph
+    #[indexed_by(HeaderRuleId)]
+    header_rules: Vec<HeaderRuleRecord>,
 }
 
 impl Schema {
@@ -226,7 +230,7 @@ impl Schema {
     }
 
     pub fn default_header_rules(&self) -> impl Iter<Item = HeaderRule<'_>> + '_ {
-        self.settings.default_header_rules.walk(self)
+        self.subgraphs.default_header_rules.walk(self)
     }
 
     pub fn query(&self) -> ObjectDefinition<'_> {

@@ -1,171 +1,123 @@
 mod definitions;
-mod field_set;
-mod input_values;
+mod location;
 mod post_process;
 
 use std::collections::BTreeMap;
 
-use builder::{SchemaLocation, ValuePathSegment, extension::finalize_selection_set_resolvers};
+use builder::ValuePathSegment;
 use extension_catalog::ExtensionId;
 use fxhash::FxHashMap;
-use introspection::IntrospectionMetadata;
-use post_process::process_directives;
+use introspection::IntrospectionSubgraph;
+use rapidhash::RapidHashMap;
 
 use crate::*;
 
-use super::{BuildError, Context, interner::Interner};
+use super::{BuildContext, BuildError, interner::Interner, sdl, value_path_to_string};
 
-pub(crate) struct GraphContext<'a> {
-    pub ctx: Context<'a>,
+pub(crate) use definitions::*;
+pub(crate) use location::*;
+pub(crate) use post_process::*;
+
+pub(crate) struct GraphBuilder<'a> {
+    pub ctx: BuildContext<'a>,
     pub graph: Graph,
     pub required_scopes: Interner<RequiresScopesDirectiveRecord, RequiresScopesDirectiveId>,
-    pub scalar_mapping: FxHashMap<federated_graph::ScalarDefinitionId, ScalarDefinitionId>,
-    pub enum_mapping: FxHashMap<federated_graph::EnumDefinitionId, EnumDefinitionId>,
-    pub input_value_mapping: FxHashMap<federated_graph::InputValueDefinitionId, InputValueDefinitionId>,
-    pub graphql_federated_entity_resolvers: FxHashMap<(EntityDefinitionId, GraphqlEndpointId), Vec<EntityResovler>>,
+    pub type_definitions: RapidHashMap<&'a str, TypeDefinitionId>,
+    pub entity_resolvers: FxHashMap<(EntityDefinitionId, SubgraphId), Vec<ResolverDefinitionId>>,
     // -- used for field sets
     pub deduplicated_fields: BTreeMap<SchemaFieldRecord, SchemaFieldId>,
-    pub field_arguments: Vec<SchemaFieldArgumentRecord>,
     // -- used for coercion
     pub value_path: Vec<ValuePathSegment>,
     pub input_fields_buffer_pool: Vec<Vec<(InputValueDefinitionId, SchemaInputValueRecord)>>,
     pub virtual_subgraph_to_selection_set_resolver: Vec<Option<ExtensionId>>,
 }
 
-impl<'a> std::ops::Deref for GraphContext<'a> {
-    type Target = Context<'a>;
+impl<'a> std::ops::Deref for GraphBuilder<'a> {
+    type Target = BuildContext<'a>;
     fn deref(&self) -> &Self::Target {
         &self.ctx
     }
 }
 
-impl std::ops::DerefMut for GraphContext<'_> {
+impl std::ops::DerefMut for GraphBuilder<'_> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.ctx
     }
 }
 
-#[derive(Clone)]
-pub(crate) enum EntityResovler {
-    Root(ResolverDefinitionId),
-    Entity {
-        key: federated_graph::SelectionSet,
-        id: ResolverDefinitionId,
-    },
-}
-
-impl EntityResovler {
-    fn id(&self) -> ResolverDefinitionId {
-        match self {
-            EntityResovler::Root(id) | EntityResovler::Entity { id, .. } => *id,
-        }
+impl GraphBuilder<'_> {
+    pub(crate) fn value_path_string(&self) -> String {
+        value_path_to_string(&self.ctx, &self.value_path)
     }
-}
 
-impl Context<'_> {
-    pub(crate) fn into_ctx_graph_introspection(self) -> Result<(Self, Graph, IntrospectionMetadata), BuildError> {
-        let (mut ctx, locations, introspection) = self.into_graph_context()?;
+    fn get_type_id(&self, name: &str) -> Result<TypeDefinitionId, BuildError> {
+        let Some(id) = self.type_definitions.get(name) else {
+            return Err(BuildError::GraphQLSchemaValidationError(format!(
+                "Type {} not found",
+                name
+            )));
+        };
+        Ok(*id)
+    }
 
-        // From this point on the definitions should have been all added and now we interpret the
-        // directives.
+    fn get_object_id(&self, name: &str) -> Result<ObjectDefinitionId, BuildError> {
+        let id = self.get_type_id(name)?;
+        let TypeDefinitionId::Object(id) = id else {
+            return Err(BuildError::GraphQLSchemaValidationError(format!(
+                "Type {} is not an object",
+                name
+            )));
+        };
+        Ok(id)
+    }
 
-        for (ix, extension) in ctx.federated_graph.extensions.iter().enumerate() {
-            let extension_id = federated_graph::ExtensionId::from(ix);
-            for directive in &extension.schema_directives {
-                let id = ctx.ingest_extension_directive(
-                    SchemaLocation::SchemaDirective(directive.subgraph_id),
-                    directive.subgraph_id,
-                    extension_id,
-                    directive.name,
-                    &directive.arguments,
-                )?;
-                ctx.push_extension_schema_directive(id);
+    fn get_interface_id(&self, name: &str) -> Result<InterfaceDefinitionId, BuildError> {
+        let id = self.get_type_id(name)?;
+        let TypeDefinitionId::Interface(id) = id else {
+            return Err(BuildError::GraphQLSchemaValidationError(format!(
+                "Type {} is not an interface",
+                name
+            )));
+        };
+        Ok(id)
+    }
+
+    fn parse_type(&self, ty: &str) -> Result<TypeRecord, BuildError> {
+        let mut wrappers = Vec::new();
+        let mut chars = ty.chars().rev();
+
+        let mut start = 0;
+        let mut end = ty.len();
+        loop {
+            match chars.next() {
+                Some('!') => {
+                    wrappers.push(cynic_parser::common::WrappingType::NonNull);
+                }
+                Some(']') => {
+                    wrappers.push(cynic_parser::common::WrappingType::List);
+                    start += 1;
+                }
+                _ => break,
             }
+            end -= 1;
         }
-
-        process_directives(&mut ctx, locations)?;
-
-        finalize_selection_set_resolvers(&mut ctx)?;
-
-        let GraphContext {
-            ctx,
-            mut graph,
-            required_scopes,
-            deduplicated_fields,
-            field_arguments,
-            ..
-        } = ctx;
-        graph.required_scopes = required_scopes.into();
-        let mut fields = deduplicated_fields.into_iter().collect::<Vec<_>>();
-        fields.sort_unstable_by_key(|(_, id)| *id);
-        graph.fields = fields.into_iter().map(|(field, _)| field).collect();
-        graph.field_arguments = field_arguments;
-
-        Ok((ctx, graph, introspection))
-    }
-}
-
-impl GraphContext<'_> {
-    fn convert_type(&self, federated_graph::Type { wrapping, definition }: federated_graph::Type) -> TypeRecord {
-        TypeRecord {
-            definition_id: self.convert_definition(definition),
-            wrapping,
-        }
-    }
-
-    fn convert_definition(&self, definition: federated_graph::Definition) -> TypeDefinitionId {
-        match definition {
-            federated_graph::Definition::Scalar(id) => TypeDefinitionId::Scalar(self.scalar_mapping[&id]),
-            federated_graph::Definition::Object(id) => TypeDefinitionId::Object(id.into()),
-            federated_graph::Definition::Interface(id) => TypeDefinitionId::Interface(id.into()),
-            federated_graph::Definition::Union(id) => TypeDefinitionId::Union(id.into()),
-            federated_graph::Definition::Enum(id) => TypeDefinitionId::Enum(self.enum_mapping[&id]),
-            federated_graph::Definition::InputObject(id) => TypeDefinitionId::InputObject(id.into()),
-        }
+        Ok(TypeRecord {
+            definition_id: self.get_type_id(&ty[start..end])?,
+            wrapping: sdl::convert_wrappers(wrappers),
+        })
     }
 
     pub(crate) fn type_name(&self, ty: TypeRecord) -> String {
         let name = match ty.definition_id {
-            TypeDefinitionId::Scalar(id) => &self.ctx.strings[self.graph[id].name_id],
-            TypeDefinitionId::Object(id) => &self.ctx.strings[self.graph[id].name_id],
-            TypeDefinitionId::Interface(id) => &self.ctx.strings[self.graph[id].name_id],
-            TypeDefinitionId::Union(id) => &self.ctx.strings[self.graph[id].name_id],
-            TypeDefinitionId::Enum(id) => &self.ctx.strings[self.graph[id].name_id],
-            TypeDefinitionId::InputObject(id) => &self.ctx.strings[self.graph[id].name_id],
+            TypeDefinitionId::Scalar(id) => &self.ctx[self.graph[id].name_id],
+            TypeDefinitionId::Object(id) => &self.ctx[self.graph[id].name_id],
+            TypeDefinitionId::Interface(id) => &self.ctx[self.graph[id].name_id],
+            TypeDefinitionId::Union(id) => &self.ctx[self.graph[id].name_id],
+            TypeDefinitionId::Enum(id) => &self.ctx[self.graph[id].name_id],
+            TypeDefinitionId::InputObject(id) => &self.ctx[self.graph[id].name_id],
         };
         let mut s = String::new();
         ty.wrapping.write_type_string(name, &mut s).unwrap();
         s
-    }
-}
-
-macro_rules! from_id_newtypes {
-    ($($from:ty => $name:ident,)*) => {
-        $(
-            impl From<$from> for $name {
-                fn from(id: $from) -> Self {
-                    $name::from(usize::from(id))
-                }
-            }
-        )*
-    }
-}
-
-// EnumValueId from federated_graph can't be directly
-// converted, we sort them by their name.
-from_id_newtypes! {
-    federated_graph::InputObjectId => InputObjectDefinitionId,
-    federated_graph::InterfaceId => InterfaceDefinitionId,
-    federated_graph::ObjectId => ObjectDefinitionId,
-    federated_graph::UnionId => UnionDefinitionId,
-    federated_graph::FieldId => FieldDefinitionId,
-}
-
-impl From<federated_graph::EntityDefinitionId> for EntityDefinitionId {
-    fn from(id: federated_graph::EntityDefinitionId) -> Self {
-        match id {
-            federated_graph::EntityDefinitionId::Object(id) => EntityDefinitionId::Object(id.into()),
-            federated_graph::EntityDefinitionId::Interface(id) => EntityDefinitionId::Interface(id.into()),
-        }
     }
 }

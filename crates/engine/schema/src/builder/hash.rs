@@ -1,5 +1,7 @@
 use extension_catalog::ExtensionCatalog;
 
+use super::sdl::Sdl;
+
 mod built_info {
     // The file has been placed there by the build script.
     include!(concat!(env!("OUT_DIR"), "/built.rs"));
@@ -15,13 +17,13 @@ fn build_identifier() -> Vec<u8> {
     }
 }
 
-pub(super) fn compute(federated_sdl: &str, extension_catalog: &ExtensionCatalog) -> [u8; 32] {
+pub(super) fn compute(sdl: &Sdl<'_>, extension_catalog: &ExtensionCatalog) -> [u8; 32] {
     let build_id = build_identifier();
     let mut hasher = blake3::Hasher::new();
     hasher.update(&build_id.len().to_ne_bytes());
     hasher.update(&build_id);
-    hasher.update(&federated_sdl.len().to_ne_bytes());
-    hasher.update(federated_sdl.as_bytes());
+    hasher.update(&sdl.raw.len().to_ne_bytes());
+    hasher.update(sdl.raw.as_bytes());
 
     hasher.update(&extension_catalog.len().to_ne_bytes());
     for extension in extension_catalog.iter() {

@@ -44,7 +44,7 @@ impl Manifest {
         matches!(self.r#type, Type::FieldResolver(_))
     }
 
-    pub fn is_authenticator(&self) -> bool {
+    pub fn is_authentication(&self) -> bool {
         matches!(self.r#type, Type::Authentication(_))
     }
 
@@ -63,6 +63,36 @@ impl Manifest {
     pub fn environment_variables_enabled(&self) -> bool {
         self.permissions.contains(ExtensionPermission::EnvironmentVariables)
     }
+
+    pub fn get_directive_type(&self, name: &str) -> DirectiveType {
+        match &self.r#type {
+            Type::FieldResolver(FieldResolverType { resolver_directives }) => {
+                if let Some(directives) = resolver_directives {
+                    directives
+                        .iter()
+                        .any(|dir| dir == name)
+                        .then_some(DirectiveType::FieldResolver)
+                } else {
+                    Some(DirectiveType::FieldResolver)
+                }
+            }
+            Type::Authorization(AuthorizationType {
+                authorization_directives: directives,
+            }) => {
+                if let Some(directives) = directives {
+                    directives
+                        .iter()
+                        .any(|dir| dir == name)
+                        .then_some(DirectiveType::Authorization)
+                } else {
+                    Some(DirectiveType::Authorization)
+                }
+            }
+            Type::Authentication(_) => Default::default(),
+            Type::SelectionSetResolver(_) => Some(DirectiveType::SelectionSetResolver),
+        }
+        .unwrap_or_default()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, strum::EnumDiscriminants)]
@@ -72,6 +102,33 @@ pub enum Type {
     #[serde(rename = "Authenticator")]
     Authentication(Empty),
     Authorization(AuthorizationType),
+}
+
+#[derive(Debug, Clone, Copy, Default, serde::Serialize, serde::Deserialize)]
+pub enum DirectiveType {
+    #[default]
+    Unknown,
+    FieldResolver,
+    SelectionSetResolver,
+    Authorization,
+}
+
+impl DirectiveType {
+    pub fn is_authorization(&self) -> bool {
+        matches!(self, DirectiveType::Authorization)
+    }
+
+    pub fn is_resolver(&self) -> bool {
+        matches!(self, DirectiveType::FieldResolver | DirectiveType::SelectionSetResolver)
+    }
+
+    pub fn is_field_resolver(&self) -> bool {
+        matches!(self, DirectiveType::FieldResolver)
+    }
+
+    pub fn is_selection_set_resolver(&self) -> bool {
+        matches!(self, DirectiveType::SelectionSetResolver)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]

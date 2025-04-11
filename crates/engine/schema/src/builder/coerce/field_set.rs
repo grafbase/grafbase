@@ -1,10 +1,12 @@
+use std::collections::btree_map::Entry;
+
 use id_newtypes::IdRange;
 
 use crate::{
     CompositeTypeId, FieldDefinitionId, FieldSetItemRecord, FieldSetRecord, InputValueDefinitionRecord,
-    ObjectDefinitionId, SchemaFieldArgumentId, SchemaFieldArgumentRecord, SchemaFieldId, SchemaFieldRecord,
-    TypeDefinitionId, TypeRecord,
-    builder::{GraphContext, SchemaLocation},
+    ObjectDefinitionId, SchemaFieldArgumentId, SchemaFieldArgumentRecord, SchemaFieldRecord, TypeDefinitionId,
+    TypeRecord,
+    builder::{GraphBuilder, SchemaLocation},
 };
 
 use super::{ExtensionDirectiveArgumentsCoercer, InputValueError, ValuePathSegment, value_path_to_string};
@@ -48,19 +50,27 @@ impl ExtensionDirectiveArgumentsCoercer<'_, '_> {
         let composite_type_id: CompositeTypeId = match self.location {
             SchemaLocation::Object(id, _) => id.into(),
             SchemaLocation::Interface(id, _) => id.into(),
-            SchemaLocation::FieldDefinition(id, _) => self.graph[id].parent_entity_id.into(),
+            SchemaLocation::FieldDefinition(id, _, _) => self.graph[id].parent_entity_id.into(),
             SchemaLocation::Union(id, _) => id.into(),
             _ => {
                 return Err(FieldSetError::InvalidFieldSetOnLocation {
-                    location: self.location.to_cynic_location().as_str(),
+                    location: self.location.as_cynic_location().as_str(),
                 });
             }
         };
-        let fields = format!("{{ {selection_set} }}");
+        self.ctx.parse_field_set(composite_type_id, selection_set)
+    }
+}
 
+impl GraphBuilder<'_> {
+    pub(crate) fn parse_field_set(
+        &mut self,
+        parent: CompositeTypeId,
+        selection_set: &str,
+    ) -> Result<FieldSetRecord, FieldSetError> {
+        let fields = format!("{{ {selection_set} }}");
         let doc = cynic_parser::parse_executable_document(&fields)
             .map_err(|err| FieldSetError::InvalidFieldSet { err: err.to_string() })?;
-
         let selection_set = doc
             .operations()
             .next()
@@ -68,13 +78,12 @@ impl ExtensionDirectiveArgumentsCoercer<'_, '_> {
                 err: "Could not find any seletion set".to_string(),
             })?
             .selection_set();
-
-        convert_selection_set(self, composite_type_id, selection_set, &mut Vec::new())
+        convert_selection_set(self, parent, selection_set, &mut Vec::new())
     }
 }
 
 fn convert_selection_set<'a>(
-    ctx: &mut GraphContext<'_>,
+    ctx: &mut GraphBuilder<'_>,
     parent_field_output: CompositeTypeId,
     set: cynic_parser::executable::Iter<'a, cynic_parser::executable::Selection<'a>>,
     value_path: &mut Vec<ValuePathSegment>,
@@ -91,14 +100,14 @@ fn convert_selection_set<'a>(
                         CompositeTypeId::Union(id) => {
                             return Err(FieldSetError::UnionHaveNoFields {
                                 name: field.name().to_string(),
-                                ty: ctx.strings[ctx.graph[id].name_id].to_string(),
+                                ty: ctx[ctx.graph[id].name_id].to_string(),
                                 path: value_path_to_string(ctx, value_path),
                             });
                         }
                     };
                     let definition_id = field_definition_ids
                         .into_iter()
-                        .find(|id| ctx.strings[ctx.graph[*id].name_id] == field.name())
+                        .find(|id| ctx[ctx.graph[*id].name_id] == field.name())
                         .ok_or_else(|| FieldSetError::UnknownField {
                             name: field.name().to_string(),
                             ty: ctx.type_name(TypeRecord {
@@ -117,12 +126,12 @@ fn convert_selection_set<'a>(
                             .type_definitions_ordered_by_name
                             .binary_search_by(|probe| {
                                 match *probe {
-                                    TypeDefinitionId::Scalar(id) => &ctx.strings[ctx.graph[id].name_id],
-                                    TypeDefinitionId::Object(id) => &ctx.strings[ctx.graph[id].name_id],
-                                    TypeDefinitionId::Interface(id) => &ctx.strings[ctx.graph[id].name_id],
-                                    TypeDefinitionId::Union(id) => &ctx.strings[ctx.graph[id].name_id],
-                                    TypeDefinitionId::Enum(id) => &ctx.strings[ctx.graph[id].name_id],
-                                    TypeDefinitionId::InputObject(id) => &ctx.strings[ctx.graph[id].name_id],
+                                    TypeDefinitionId::Scalar(id) => &ctx[ctx.graph[id].name_id],
+                                    TypeDefinitionId::Object(id) => &ctx[ctx.graph[id].name_id],
+                                    TypeDefinitionId::Interface(id) => &ctx[ctx.graph[id].name_id],
+                                    TypeDefinitionId::Union(id) => &ctx[ctx.graph[id].name_id],
+                                    TypeDefinitionId::Enum(id) => &ctx[ctx.graph[id].name_id],
+                                    TypeDefinitionId::InputObject(id) => &ctx[ctx.graph[id].name_id],
                                 }
                                 .as_str()
                                 .cmp(type_condition)
@@ -177,7 +186,7 @@ fn convert_selection_set<'a>(
 }
 
 fn convert_field(
-    ctx: &mut GraphContext<'_>,
+    ctx: &mut GraphBuilder<'_>,
     definition_id: FieldDefinitionId,
     field: cynic_parser::executable::FieldSelection<'_>,
     value_path: &mut Vec<ValuePathSegment>,
@@ -185,7 +194,7 @@ fn convert_field(
     let subselection_record = if let Some(id) = ctx.graph[definition_id].ty_record.definition_id.as_composite_type() {
         if field.selection_set().len() == 0 {
             return Err(FieldSetError::LeafMustBeAScalarOrEnum {
-                name: ctx.strings[ctx.graph[definition_id].name_id].to_string(),
+                name: ctx[ctx.graph[definition_id].name_id].to_string(),
                 ty: ctx.type_name(ctx.graph[definition_id].ty_record),
                 path: value_path_to_string(ctx, value_path),
             });
@@ -196,7 +205,7 @@ fn convert_field(
         subselection
     } else if field.selection_set().len() != 0 {
         return Err(FieldSetError::CannotHaveSelectionSet {
-            name: ctx.strings[ctx.graph[definition_id].name_id].to_string(),
+            name: ctx[ctx.graph[definition_id].name_id].to_string(),
             ty: ctx.type_name(ctx.graph[definition_id].ty_record),
             path: value_path_to_string(ctx, value_path),
         });
@@ -216,12 +225,14 @@ fn convert_field(
     };
     value_path.pop();
 
-    let n = ctx.deduplicated_fields.len();
     // Deduplicating arguments allows us to cheaply merge field sets at runtime
-    let field_id = *ctx
-        .deduplicated_fields
-        .entry(field)
-        .or_insert_with(|| SchemaFieldId::from(n));
+    let field_id = match ctx.deduplicated_fields.entry(field) {
+        Entry::Occupied(entry) => *entry.get(),
+        Entry::Vacant(entry) => {
+            ctx.graph.fields.push(entry.key().clone());
+            *entry.insert((ctx.graph.fields.len() - 1).into())
+        }
+    };
 
     Ok(FieldSetItemRecord {
         field_id,
@@ -230,13 +241,13 @@ fn convert_field(
 }
 
 fn convert_field_arguments(
-    ctx: &mut GraphContext<'_>,
+    ctx: &mut GraphBuilder<'_>,
     definition_id: FieldDefinitionId,
     field: cynic_parser::executable::FieldSelection<'_>,
 ) -> Result<IdRange<SchemaFieldArgumentId>, InputValueError> {
     let mut arguments = field.arguments().collect::<Vec<_>>();
 
-    let start = ctx.field_arguments.len();
+    let start = ctx.graph.field_arguments.len();
     for argument_def_id in ctx.graph[definition_id].argument_ids {
         let InputValueDefinitionRecord {
             name_id,
@@ -244,29 +255,24 @@ fn convert_field_arguments(
             ty_record,
             ..
         } = ctx.graph[argument_def_id];
-        if let Some(index) = arguments
-            .iter()
-            .position(|argument| argument.name() == ctx.strings[name_id])
-        {
+        if let Some(index) = arguments.iter().position(|argument| argument.name() == ctx[name_id]) {
             let argument = arguments.swap_remove(index);
             let value: cynic_parser::ConstValue<'_> = argument
                 .value()
                 .try_into()
                 .map_err(|_| InputValueError::CannotUseVariables)?;
-            let value_id = ctx.coerce_cynic_value(argument_def_id, value)?;
-            ctx.field_arguments.push(SchemaFieldArgumentRecord {
+            let value_id = ctx.coerce_input_value(argument_def_id, value)?;
+            ctx.graph.field_arguments.push(SchemaFieldArgumentRecord {
                 definition_id: argument_def_id,
                 value_id,
             });
         } else if let Some(value_id) = default_value_id {
-            ctx.field_arguments.push(SchemaFieldArgumentRecord {
+            ctx.graph.field_arguments.push(SchemaFieldArgumentRecord {
                 definition_id: argument_def_id,
                 value_id,
             });
         } else if ty_record.wrapping.is_required() {
-            return Err(InputValueError::MissingRequiredArgument(
-                ctx.ctx.strings[name_id].clone(),
-            ));
+            return Err(InputValueError::MissingRequiredArgument(ctx.ctx[name_id].clone()));
         }
     }
 
@@ -276,12 +282,12 @@ fn convert_field_arguments(
         ));
     }
 
-    let end = ctx.field_arguments.len();
-    ctx.field_arguments[start..end].sort_unstable_by_key(|arg| arg.definition_id);
-    Ok(IdRange::from(start..ctx.field_arguments.len()))
+    let end = ctx.graph.field_arguments.len();
+    ctx.graph.field_arguments[start..end].sort_unstable_by_key(|arg| arg.definition_id);
+    Ok(IdRange::from(start..ctx.graph.field_arguments.len()))
 }
 
-fn is_disjoint(ctx: &GraphContext<'_>, left: CompositeTypeId, right: CompositeTypeId) -> bool {
+fn is_disjoint(ctx: &GraphBuilder<'_>, left: CompositeTypeId, right: CompositeTypeId) -> bool {
     let left: &[ObjectDefinitionId] = match &left {
         CompositeTypeId::Object(id) => std::array::from_ref(id),
         CompositeTypeId::Interface(id) => &ctx.graph[*id].possible_type_ids,

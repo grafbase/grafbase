@@ -1,6 +1,4 @@
-use federated_graph::Value;
-
-use super::{field_set::FieldSetError, input_value_set::InputValueSetError};
+pub(crate) use super::{field_set::FieldSetError, input_value_set::InputValueSetError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum ExtensionInputValueError {
@@ -84,27 +82,6 @@ pub enum ValueKind {
     Boolean,
     List,
     Null,
-}
-
-impl From<Value> for ValueKind {
-    fn from(value: Value) -> Self {
-        (&value).into()
-    }
-}
-
-impl From<&Value> for ValueKind {
-    fn from(value: &Value) -> Self {
-        match value {
-            Value::String(_) => ValueKind::String,
-            Value::Int(_) => ValueKind::Integer,
-            Value::Float(_) => ValueKind::Float,
-            Value::Boolean(_) => ValueKind::Boolean,
-            Value::Null => ValueKind::Null,
-            Value::List(_) => ValueKind::List,
-            Value::Object(_) => ValueKind::Object,
-            Value::UnboundEnumValue(_) | Value::EnumValue(_) => ValueKind::Enum,
-        }
-    }
 }
 
 impl From<cynic_parser::ConstValue<'_>> for ValueKind {

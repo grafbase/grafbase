@@ -2,8 +2,8 @@ use schema::{
     EntityDefinition, EnumValue, FieldDefinition, InputValueDefinition, InterfaceDefinition, ListWrapping,
     MutableWrapping, ObjectDefinition, Schema, StringId, Type, TypeDefinition, TypeSystemDirective,
     introspection::{
-        __EnumValue, __InputValue, __Schema, __Type, _Field, IntrospectionField, IntrospectionMetadata,
-        IntrospectionObject,
+        __EnumValue, __InputValue, __Schema, __Type, _Field, IntrospectionField, IntrospectionObject,
+        IntrospectionSubgraph,
     },
 };
 use walker::{Iter, Walk};
@@ -21,7 +21,7 @@ pub(super) struct IntrospectionWriter<'ctx, R: Runtime> {
     pub ctx: ExecutionContext<'ctx, R>,
     pub schema: &'ctx Schema,
     pub shapes: &'ctx Shapes,
-    pub metadata: &'ctx IntrospectionMetadata,
+    pub metadata: &'ctx IntrospectionSubgraph,
     pub plan: Plan<'ctx>,
     pub input_object_id: InputObjectId,
     pub response: SubgraphResponseRefMut<'ctx>,

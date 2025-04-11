@@ -179,7 +179,8 @@ impl SchemaIndex {
                             .set_index_option(IndexRecordOption::WithFreqsAndPositions),
                     ),
                 ),
-                definition_id: tantivy_schema.add_u64_field("definition_id", tantivy::schema::STORED),
+                definition_id: tantivy_schema
+                    .add_u64_field("definition_id", tantivy::schema::STORED | tantivy::schema::FAST),
                 depth: tantivy_schema.add_u64_field("depth", tantivy::schema::FAST),
             };
 
@@ -345,11 +346,14 @@ impl SchemaIndex {
             &query,
             &TopDocs::with_limit(TOP_DOCS_LIMIT).tweak_score(move |segment_reader: &tantivy::SegmentReader| {
                 let depth_reader = segment_reader.fast_fields().u64("depth").unwrap();
+                let id_reader = segment_reader.fast_fields().u64("definition_id").unwrap();
 
                 move |doc: tantivy::DocId, original_score: f32| {
                     let depth = depth_reader.first(doc).unwrap_or(256) as f32;
+                    let id = id_reader.first(doc).unwrap_or(0) as u32;
                     // Boost score based on inverse of depth (shallower = higher score)
-                    original_score / (2.0 + depth)
+                    let score = original_score / (2.0 + depth);
+                    (score, id)
                 }
             }),
         )?;
@@ -362,7 +366,7 @@ impl SchemaIndex {
 
         let mut matches = Vec::new();
         let mut site_id_to_score = FxHashMap::default();
-        for (mut score, doc_address) in top_docs {
+        for ((mut score, _), doc_address) in top_docs {
             score += 1.0;
             score *= score;
 

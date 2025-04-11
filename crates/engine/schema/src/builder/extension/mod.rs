@@ -1,24 +1,34 @@
+mod directive;
 mod selection_set_resolvers;
 
+use extension_catalog::{ExtensionCatalog, ExtensionId, Manifest};
+use federated_graph::link::LinkDirective;
+use rapidhash::RapidHashMap;
 use std::str::FromStr as _;
 use strum::IntoEnumIterator as _;
 
 use cynic_parser_deser::ConstDeserializer;
-use federated_graph::link::LinkDirective;
 
 use super::{
-    BuildError, Context, ExtensionDirectiveArgumentsError, ExtensionDirectiveId, ExtensionDirectiveLocationError,
-    ExtensionDirectiveRecord, GraphContext, SchemaLocation,
-    SelectionSetResolverExtensionCannotBeMixedWithOtherResolversError,
+    BuildError,
+    sdl::{ExtensionName, Sdl},
 };
 
+pub(crate) use directive::*;
 pub(crate) use selection_set_resolvers::*;
+
+#[derive(id_derives::IndexedFields)]
+pub(crate) struct ExtensionsContext<'a> {
+    map: RapidHashMap<ExtensionName<'a>, LoadedExtension<'a>>,
+    pub catalog: &'a ExtensionCatalog,
+}
 
 const GRAFBASE_SPEC_URL: &str = "https://specs.grafbase.com/grafbase";
 const GRAFBASE_NAMEPSACE: &str = "grafbase";
 
-pub(crate) struct SchemaExtension {
-    pub catalog_extension_id: extension_catalog::ExtensionId,
+pub(crate) struct LoadedExtension<'a> {
+    pub id: ExtensionId,
+    pub manifest: &'a Manifest,
     pub sdl: Option<ExtensionSdl>,
 }
 
@@ -31,27 +41,36 @@ pub(crate) enum GrafbaseScalar {
 }
 
 pub(crate) struct ExtensionSdl {
-    pub parsed: cynic_parser::TypeSystemDocument,
+    pub doc: cynic_parser::TypeSystemDocument,
     pub grafbase_scalars: Vec<(String, GrafbaseScalar)>,
 }
 
-impl Context<'_> {
-    pub(super) async fn load_extension_links(&mut self) -> Result<(), BuildError> {
-        for extension in &self.federated_graph.extensions {
-            let url_str = &self.federated_graph[extension.url];
-            let url =
-                url::Url::from_str(&self.federated_graph[extension.url]).map_err(|err| BuildError::InvalidUrl {
-                    url: url_str.to_string(),
-                    err: err.to_string(),
-                })?;
+impl<'a> ExtensionsContext<'a> {
+    pub(super) async fn load<'sdl, 'ext>(
+        sdl: &'sdl Sdl<'sdl>,
+        catalog: &'ext ExtensionCatalog,
+    ) -> Result<Self, BuildError>
+    where
+        'sdl: 'a,
+        'ext: 'a,
+    {
+        let mut extensions = Self {
+            map: RapidHashMap::with_capacity_and_hasher(sdl.extensions.len(), Default::default()),
+            catalog,
+        };
+        for (name, extension) in &sdl.extensions {
+            let url = url::Url::from_str(extension.url).map_err(|err| BuildError::InvalidUrl {
+                url: extension.url.to_string(),
+                err: err.to_string(),
+            })?;
             let manifest =
                 extension_catalog::load_manifest(url)
                     .await
                     .map_err(|err| BuildError::CouldNotLoadExtension {
-                        url: url_str.to_string(),
+                        url: extension.url.to_string(),
                         err: err.to_string(),
                     })?;
-            let Some(catalog_extension_id) = self.extension_catalog.find_compatible_extension(&manifest.id) else {
+            let Some(id) = catalog.find_compatible_extension(&manifest.id) else {
                 return Err(BuildError::UnsupportedExtension {
                     id: manifest.id.clone(),
                 });
@@ -59,6 +78,7 @@ impl Context<'_> {
             let sdl = manifest
                 .sdl
                 .as_ref()
+                .filter(|sdl| !sdl.trim().is_empty())
                 .map(|sdl| cynic_parser::parse_type_system_document(sdl))
                 .transpose()
                 .map_err(|err| BuildError::CouldNotParseExtension {
@@ -105,130 +125,30 @@ impl Context<'_> {
                         }
                     }
                     Ok(Some(ExtensionSdl {
-                        parsed,
+                        doc: parsed,
                         grafbase_scalars,
                     }))
                 })?;
 
-            self.extensions.push(SchemaExtension {
-                catalog_extension_id,
-                sdl,
-            })
-        }
-
-        Ok(())
-    }
-
-    fn get_catalog_id(&self, id: federated_graph::ExtensionId) -> extension_catalog::Id {
-        self.extension_catalog[self[id].catalog_extension_id]
-            .manifest
-            .id
-            .clone()
-    }
-}
-
-impl GraphContext<'_> {
-    pub(crate) fn ingest_extension_directive(
-        &mut self,
-        location: SchemaLocation,
-        subgraph_id: federated_graph::SubgraphId,
-        extension_id: federated_graph::ExtensionId,
-        name: federated_graph::StringId,
-        arguments: &Option<Vec<(federated_graph::StringId, federated_graph::Value)>>,
-    ) -> Result<ExtensionDirectiveId, BuildError> {
-        let directive_name_id = self.get_or_insert_str(name);
-        let directive_name = &self.ctx.federated_graph[name];
-
-        let Some(sdl) = self[extension_id].sdl.take() else {
-            return Err(BuildError::MissingGraphQLDefinitions {
-                id: self.get_catalog_id(extension_id),
-                directive: directive_name.clone(),
-            });
-        };
-
-        let Some(definition) = sdl.parsed.definitions().find_map(|def| match def {
-            cynic_parser::type_system::Definition::Directive(dir) if dir.name() == directive_name => Some(dir),
-            _ => None,
-        }) else {
-            return Err(BuildError::UnknownExtensionDirective {
-                id: self.get_catalog_id(extension_id),
-                directive: directive_name.to_string(),
-            });
-        };
-
-        let directive_type = self
-            .ctx
-            .extension_catalog
-            .get_directive_type(self[extension_id].catalog_extension_id, directive_name);
-
-        let cynic_location = location.to_cynic_location();
-        if definition.locations().all(|loc| loc != cynic_location) {
-            return Err(BuildError::ExtensionDirectiveLocationError(Box::new(
-                ExtensionDirectiveLocationError {
-                    id: self.get_catalog_id(extension_id),
-                    directive: directive_name.to_string(),
-                    location: cynic_location.as_str(),
-                    expected: definition.locations().map(|loc| loc.as_str()).collect(),
+            extensions.map.insert(
+                *name,
+                LoadedExtension {
+                    id,
+                    manifest: &catalog[id].manifest,
+                    sdl,
                 },
-            )));
+            );
         }
 
-        let subgraph_id = self.subgraphs[subgraph_id];
-        if directive_type.is_resolver() {
-            let id = match subgraph_id {
-                super::SubgraphId::Virtual(id) => id,
-                super::SubgraphId::Introspection => unreachable!(),
-                super::SubgraphId::GraphqlEndpoint(id) => {
-                    return Err(BuildError::ResolverExtensionOnNonVirtualGraph {
-                        id: self.get_catalog_id(extension_id),
-                        directive: directive_name.to_string(),
-                        subgraph: self.ctx.strings[self.ctx.subgraphs[id].subgraph_name_id].clone(),
-                    });
-                }
-            };
+        Ok(extensions)
+    }
 
-            if directive_type.is_selection_set_resolver() {
-                if let Some(other_id) = self.virtual_subgraph_to_selection_set_resolver[usize::from(id)]
-                    .filter(|id| id != &self[extension_id].catalog_extension_id)
-                {
-                    return Err(
-                        BuildError::SelectionSetResolverExtensionCannotBeMixedWithOtherResolvers(Box::new(
-                            SelectionSetResolverExtensionCannotBeMixedWithOtherResolversError {
-                                id: self.get_catalog_id(extension_id),
-                                subgraph: self.ctx.strings[self.ctx.subgraphs[id].subgraph_name_id].clone(),
-                                other_id: self.extension_catalog[other_id].manifest.id.clone(),
-                            },
-                        )),
-                    );
-                }
-                self.virtual_subgraph_to_selection_set_resolver[usize::from(id)] =
-                    Some(self[extension_id].catalog_extension_id);
-            }
+    pub(super) fn try_get(&self, name: ExtensionName<'a>) -> Result<&LoadedExtension<'a>, BuildError> {
+        match self.map.get(&name) {
+            Some(extension) => Ok(extension),
+            None => Err(BuildError::GraphQLSchemaValidationError(format!(
+                "Extension named '{name}' does not exist."
+            ))),
         }
-
-        let (argument_ids, requirements_record) = self
-            .coerce_extension_directive_arguments(location, &sdl, definition, arguments)
-            .map_err(|err| {
-                BuildError::ExtensionDirectiveArgumentsError(Box::new(ExtensionDirectiveArgumentsError {
-                    location: location.to_string(self),
-                    directive: directive_name.to_string(),
-                    id: self.get_catalog_id(extension_id),
-                    err,
-                }))
-            })?;
-
-        self[extension_id].sdl = Some(sdl);
-
-        let record = ExtensionDirectiveRecord {
-            subgraph_id,
-            extension_id: self[extension_id].catalog_extension_id,
-            name_id: directive_name_id,
-            ty: directive_type,
-            argument_ids,
-            requirements_record,
-        };
-        self.graph.extension_directives.push(record);
-        let id = (self.graph.extension_directives.len() - 1).into();
-        Ok(id)
     }
 }

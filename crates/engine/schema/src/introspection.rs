@@ -3,7 +3,7 @@ use crate::{
     FieldDefinitionRecord, IdRange, InputValueDefinitionId, InputValueDefinitionRecord, ObjectDefinitionId,
     ObjectDefinitionRecord, ResolverDefinitionId, ResolverDefinitionRecord, ScalarDefinitionId, ScalarType,
     SchemaInputValueId, SchemaInputValueRecord, StringId, SubgraphId, TypeDefinitionId, TypeRecord, Wrapping,
-    builder::GraphContext,
+    builder::GraphBuilder,
 };
 use strum::EnumCount;
 
@@ -137,7 +137,7 @@ pub enum __Directive {
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
-pub struct IntrospectionMetadata {
+pub struct IntrospectionSubgraph {
     pub resolver_definition_id: ResolverDefinitionId,
     pub meta_fields: [FieldDefinitionId; 2],
     pub meta_objects: [ObjectDefinitionId; 6],
@@ -172,7 +172,7 @@ impl<E: Copy, const N: usize> std::ops::Index<FieldDefinitionId> for Introspecti
     }
 }
 
-impl IntrospectionMetadata {
+impl IntrospectionSubgraph {
     pub fn root_field(&self, id: FieldDefinitionId) -> IntrospectionField {
         if id == self.meta_fields[0] {
             IntrospectionField::Type
@@ -219,9 +219,9 @@ pub struct DirectiveLocation {
     pub input_field_definition: StringId,
 }
 
-impl GraphContext<'_> {
+impl GraphBuilder<'_> {
     #[allow(non_snake_case)]
-    pub(crate) fn create_introspection_metadata(&mut self) -> IntrospectionMetadata {
+    pub(crate) fn create_introspection_subgraph(&mut self) -> IntrospectionSubgraph {
         let nullable_string = self.field_type("String", ScalarType::String, Wrapping::nullable());
         let required_string = self.field_type("String", ScalarType::String, Wrapping::required());
         let required_boolean = self.field_type("Boolean", ScalarType::Boolean, Wrapping::required());
@@ -253,14 +253,14 @@ impl GraphContext<'_> {
             ],
         );
         let type_kind = TypeKind {
-            scalar: self.ctx.strings.get_or_new("SCALAR"),
-            object: self.ctx.strings.get_or_new("OBJECT"),
-            interface: self.ctx.strings.get_or_new("INTERFACE"),
-            union: self.ctx.strings.get_or_new("UNION"),
-            r#enum: self.ctx.strings.get_or_new("ENUM"),
-            input_object: self.ctx.strings.get_or_new("INPUT_OBJECT"),
-            list: self.ctx.strings.get_or_new("LIST"),
-            non_null: self.ctx.strings.get_or_new("NON_NULL"),
+            scalar: self.ingest_str("SCALAR"),
+            object: self.ingest_str("OBJECT"),
+            interface: self.ingest_str("INTERFACE"),
+            union: self.ingest_str("UNION"),
+            r#enum: self.ingest_str("ENUM"),
+            input_object: self.ingest_str("INPUT_OBJECT"),
+            list: self.ingest_str("LIST"),
+            non_null: self.ingest_str("NON_NULL"),
         };
 
         /*
@@ -311,25 +311,25 @@ impl GraphContext<'_> {
             ],
         );
         let directive_location = DirectiveLocation {
-            query: self.ctx.strings.get_or_new("QUERY"),
-            mutation: self.ctx.strings.get_or_new("MUTATION"),
-            subscription: self.ctx.strings.get_or_new("SUBSCRIPTION"),
-            field: self.ctx.strings.get_or_new("FIELD"),
-            fragment_definition: self.ctx.strings.get_or_new("FRAGMENT_DEFINITION"),
-            fragment_spread: self.ctx.strings.get_or_new("FRAGMENT_SPREAD"),
-            inline_fragment: self.ctx.strings.get_or_new("INLINE_FRAGMENT"),
-            variable_definition: self.ctx.strings.get_or_new("VARIABLE_DEFINITION"),
-            schema: self.ctx.strings.get_or_new("SCHEMA"),
-            scalar: self.ctx.strings.get_or_new("SCALAR"),
-            object: self.ctx.strings.get_or_new("OBJECT"),
-            field_definition: self.ctx.strings.get_or_new("FIELD_DEFINITION"),
-            argument_definition: self.ctx.strings.get_or_new("ARGUMENT_DEFINITION"),
-            interface: self.ctx.strings.get_or_new("INTERFACE"),
-            union: self.ctx.strings.get_or_new("UNION"),
-            r#enum: self.ctx.strings.get_or_new("ENUM"),
-            enum_value: self.ctx.strings.get_or_new("ENUM_VALUE"),
-            input_object: self.ctx.strings.get_or_new("INPUT_OBJECT"),
-            input_field_definition: self.ctx.strings.get_or_new("INPUT_FIELD_DEFINITION"),
+            query: self.ingest_str("QUERY"),
+            mutation: self.ingest_str("MUTATION"),
+            subscription: self.ingest_str("SUBSCRIPTION"),
+            field: self.ingest_str("FIELD"),
+            fragment_definition: self.ingest_str("FRAGMENT_DEFINITION"),
+            fragment_spread: self.ingest_str("FRAGMENT_SPREAD"),
+            inline_fragment: self.ingest_str("INLINE_FRAGMENT"),
+            variable_definition: self.ingest_str("VARIABLE_DEFINITION"),
+            schema: self.ingest_str("SCHEMA"),
+            scalar: self.ingest_str("SCALAR"),
+            object: self.ingest_str("OBJECT"),
+            field_definition: self.ingest_str("FIELD_DEFINITION"),
+            argument_definition: self.ingest_str("ARGUMENT_DEFINITION"),
+            interface: self.ingest_str("INTERFACE"),
+            union: self.ingest_str("UNION"),
+            r#enum: self.ingest_str("ENUM"),
+            enum_value: self.ingest_str("ENUM_VALUE"),
+            input_object: self.ingest_str("INPUT_OBJECT"),
+            input_field_definition: self.ingest_str("INPUT_FIELD_DEFINITION"),
         };
 
         /*
@@ -556,13 +556,12 @@ impl GraphContext<'_> {
             self.graph[self.graph.root_operation_types_record.query_id]
                 .field_ids
                 .into_iter()
-                .find(|id| self.ctx.strings[self.graph[*id].name_id] == name)
+                .find(|id| self.ctx[self.graph[*id].name_id] == name)
         }) else {
             panic!("Invariant broken: missing Query.__type or Query.__schema");
         };
         self.graph[__schema_field_id].ty_record = field_type_id;
         self.graph[__schema_field_id].resolver_ids = vec![resolver_definition_id];
-        self.graph[__schema_field_id].exists_in_subgraph_ids = vec![SubgraphId::Introspection];
 
         /*
         __type(name: String!): __Type
@@ -573,7 +572,6 @@ impl GraphContext<'_> {
         };
         self.graph[__type_field_id].ty_record = field_type_id;
         self.graph[__type_field_id].resolver_ids = vec![resolver_definition_id];
-        self.graph[__type_field_id].exists_in_subgraph_ids = vec![SubgraphId::Introspection];
 
         self.set_field_arguments(
             self.graph.root_operation_types_record.query_id,
@@ -582,7 +580,7 @@ impl GraphContext<'_> {
         );
 
         // DataSource
-        IntrospectionMetadata {
+        IntrospectionSubgraph {
             resolver_definition_id,
             meta_fields: [__type_field_id, __schema_field_id],
             meta_objects: [
@@ -612,7 +610,7 @@ impl GraphContext<'_> {
             let start_idx = self.graph.enum_values.len();
 
             for value in values {
-                let name_id = self.ctx.strings.get_or_new(*value);
+                let name_id = self.ingest_str(*value);
                 self.graph.enum_values.push(EnumValueRecord {
                     name_id,
                     parent_enum_id: enum_id,
@@ -627,7 +625,7 @@ impl GraphContext<'_> {
             }
         };
 
-        let name_id = self.ctx.strings.get_or_new(name);
+        let name_id = self.ingest_str(name);
         self.graph.enum_definitions.push(EnumDefinitionRecord {
             name_id,
             description_id: None,
@@ -640,7 +638,7 @@ impl GraphContext<'_> {
     }
 
     fn insert_object(&mut self, name: &str) -> ObjectDefinitionId {
-        let name_id = self.ctx.strings.get_or_new(name);
+        let name_id = self.ingest_str(name);
         self.graph.object_definitions.push(ObjectDefinitionRecord {
             name_id,
             description_id: None,
@@ -663,7 +661,7 @@ impl GraphContext<'_> {
 
         for (name, r#type, tag) in fields {
             let id = self.graph.field_definitions.len().into();
-            let name_id = self.ctx.strings.get_or_new(name);
+            let name_id = self.ingest_str(name);
 
             self.graph.field_definitions.push(FieldDefinitionRecord {
                 name_id,
@@ -704,7 +702,7 @@ impl GraphContext<'_> {
             usize::from(fields.start)
                 + self.graph[fields]
                     .iter()
-                    .position(|field| self.ctx.strings[field.name_id] == field_name)
+                    .position(|field| self.ctx[field.name_id] == field_name)
                     .expect("field to exist"),
         );
         let start = self.graph.input_value_definitions.len();
@@ -727,7 +725,7 @@ impl GraphContext<'_> {
         ty: TypeRecord,
         default_value_id: Option<SchemaInputValueId>,
     ) -> InputValueDefinitionId {
-        let name_id = self.ctx.strings.get_or_new(name);
+        let name_id = self.ingest_str(name);
         self.graph.input_value_definitions.push(InputValueDefinitionRecord {
             name_id,
             description_id: None,
@@ -744,12 +742,12 @@ impl GraphContext<'_> {
             .scalar_definitions
             .iter()
             .enumerate()
-            .find(|(_, scalar)| self.ctx.strings[scalar.name_id] == scalar_name)
+            .find(|(_, scalar)| self.ctx[scalar.name_id] == scalar_name)
             .map(|(id, _)| ScalarDefinitionId::from(id))
         {
             Some(id) => id,
             None => {
-                let name_id = self.ctx.strings.get_or_new(scalar_name);
+                let name_id = self.ingest_str(scalar_name);
                 self.graph.scalar_definitions.push(crate::ScalarDefinitionRecord {
                     name_id,
                     ty: scalar_type,

@@ -1,510 +1,272 @@
 use crate::{
     EnumDefinitionId, InputObjectDefinitionId, InputValueDefinitionId, ScalarDefinitionId, ScalarType,
-    SchemaInputValueId, SchemaInputValueRecord, TypeDefinitionId, TypeRecord, builder::GraphContext,
+    SchemaInputValueId, SchemaInputValueRecord, TypeDefinitionId, TypeRecord,
+    builder::{GraphBuilder, sdl::ConstValue},
 };
-use cynic_parser::ConstValue;
-use federated_graph::Value;
 use id_newtypes::IdRange;
 use wrapping::{ListWrapping, MutableWrapping};
 
-use super::{InputValueError, can_coerce_to_int, value_path_to_string};
+use super::{InputValueError, can_coerce_to_int};
 
-impl GraphContext<'_> {
-    pub fn coerce_cynic_value(
+impl GraphBuilder<'_> {
+    pub(crate) fn coerce_input_value(
         &mut self,
         id: InputValueDefinitionId,
         value: ConstValue,
     ) -> Result<SchemaInputValueId, InputValueError> {
         self.value_path.clear();
         self.value_path.push(self.graph[id].name_id.into());
-        let value = self.coerce_input_cynic_value(self.graph[id].ty_record, value)?;
+        let value = coerce_input_value(self, self.graph[id].ty_record, value)?;
         Ok(self.graph.input_values.push_value(value))
     }
+}
 
-    pub fn coerce_fed_value(
-        &mut self,
-        id: InputValueDefinitionId,
-        value: Value,
-    ) -> Result<SchemaInputValueId, InputValueError> {
-        self.value_path.clear();
-        self.value_path.push(self.graph[id].name_id.into());
-        let value = self.coerce_input_fed_value(self.graph[id].ty_record, value)?;
-        Ok(self.graph.input_values.push_value(value))
-    }
-
-    fn coerce_input_cynic_value(
-        &mut self,
-        ty: TypeRecord,
-        value: ConstValue,
-    ) -> Result<SchemaInputValueRecord, InputValueError> {
-        if ty.wrapping.is_list() && !value.is_list() && !value.is_null() {
-            let mut value = self.coerce_named_type_cynic_value(ty.definition_id, value)?;
-            for _ in 0..ty.wrapping.list_wrappings().len() {
-                value = SchemaInputValueRecord::List(IdRange::from_single(self.graph.input_values.push_value(value)));
-            }
-            return Ok(value);
+fn coerce_input_value(
+    builder: &mut GraphBuilder,
+    ty: TypeRecord,
+    value: ConstValue,
+) -> Result<SchemaInputValueRecord, InputValueError> {
+    if ty.wrapping.is_list() && !value.is_list() && !value.is_null() {
+        let mut value = coerce_named_type_value(builder, ty.definition_id, value)?;
+        for _ in 0..ty.wrapping.list_wrappings().len() {
+            value = SchemaInputValueRecord::List(IdRange::from_single(builder.graph.input_values.push_value(value)));
         }
-
-        self.coerce_type_cynic_value(ty.definition_id, ty.wrapping.into(), value)
+        return Ok(value);
     }
 
-    fn coerce_input_fed_value(
-        &mut self,
-        ty: TypeRecord,
-        value: Value,
-    ) -> Result<SchemaInputValueRecord, InputValueError> {
-        if ty.wrapping.is_list() && !value.is_list() && !value.is_null() {
-            let mut value = self.coerce_named_type_fed_value(ty.definition_id, value)?;
-            for _ in 0..ty.wrapping.list_wrappings().len() {
-                value = SchemaInputValueRecord::List(IdRange::from_single(self.graph.input_values.push_value(value)));
-            }
-            return Ok(value);
-        }
+    coerce_type_value(builder, ty.definition_id, ty.wrapping.into(), value)
+}
 
-        self.coerce_type_fed_value(ty.definition_id, ty.wrapping.into(), value)
-    }
-
-    fn coerce_type_cynic_value(
-        &mut self,
-        definition_id: TypeDefinitionId,
-        mut wrapping: MutableWrapping,
-        value: ConstValue,
-    ) -> Result<SchemaInputValueRecord, InputValueError> {
-        let Some(list_wrapping) = wrapping.pop_outermost_list_wrapping() else {
-            if value.is_null() {
-                if wrapping.is_required() {
-                    return Err(InputValueError::UnexpectedNull {
-                        expected: self.type_name(TypeRecord {
-                            definition_id,
-                            wrapping: wrapping.into(),
-                        }),
-                        path: self.path(),
-                    });
-                }
-                return Ok(SchemaInputValueRecord::Null);
-            }
-            return self.coerce_named_type_cynic_value(definition_id, value);
-        };
-
-        match (value, list_wrapping) {
-            (ConstValue::Null(_), ListWrapping::RequiredList) => Err(InputValueError::UnexpectedNull {
-                expected: self.type_name(TypeRecord {
-                    definition_id,
-                    wrapping: {
-                        wrapping.push_outermost_list_wrapping(list_wrapping);
-                        wrapping.into()
-                    },
-                }),
-                path: self.path(),
-            }),
-            (ConstValue::Null(_), ListWrapping::NullableList) => Ok(SchemaInputValueRecord::Null),
-            (ConstValue::List(array), _) => {
-                let ids = self.graph.input_values.reserve_list(array.len());
-                for ((idx, value), id) in array.into_iter().enumerate().zip(ids) {
-                    self.value_path.push(idx.into());
-                    self.graph.input_values[id] =
-                        self.coerce_type_cynic_value(definition_id, wrapping.clone(), value)?;
-                    self.value_path.pop();
-                }
-                Ok(SchemaInputValueRecord::List(ids))
-            }
-            (value, _) => Err(InputValueError::MissingList {
-                actual: value.into(),
-                expected: self.type_name(TypeRecord {
-                    definition_id,
-                    wrapping: {
-                        wrapping.push_outermost_list_wrapping(list_wrapping);
-                        wrapping.into()
-                    },
-                }),
-                path: self.path(),
-            }),
-        }
-    }
-
-    fn coerce_type_fed_value(
-        &mut self,
-        definition_id: TypeDefinitionId,
-        mut wrapping: MutableWrapping,
-        value: Value,
-    ) -> Result<SchemaInputValueRecord, InputValueError> {
-        let Some(list_wrapping) = wrapping.pop_outermost_list_wrapping() else {
-            if value.is_null() {
-                if wrapping.is_required() {
-                    return Err(InputValueError::UnexpectedNull {
-                        expected: self.type_name(TypeRecord {
-                            definition_id,
-                            wrapping: wrapping.into(),
-                        }),
-                        path: self.path(),
-                    });
-                }
-                return Ok(SchemaInputValueRecord::Null);
-            }
-            return self.coerce_named_type_fed_value(definition_id, value);
-        };
-
-        match (value, list_wrapping) {
-            (Value::Null, ListWrapping::RequiredList) => Err(InputValueError::UnexpectedNull {
-                expected: self.type_name(TypeRecord {
-                    definition_id,
-                    wrapping: {
-                        wrapping.push_outermost_list_wrapping(list_wrapping);
-                        wrapping.into()
-                    },
-                }),
-                path: self.path(),
-            }),
-            (Value::Null, ListWrapping::NullableList) => Ok(SchemaInputValueRecord::Null),
-            (Value::List(array), _) => {
-                let ids = self.graph.input_values.reserve_list(array.len());
-                for ((idx, value), id) in array.into_vec().into_iter().enumerate().zip(ids) {
-                    self.value_path.push(idx.into());
-                    self.graph.input_values[id] = self.coerce_type_fed_value(definition_id, wrapping.clone(), value)?;
-                    self.value_path.pop();
-                }
-                Ok(SchemaInputValueRecord::List(ids))
-            }
-            (value, _) => Err(InputValueError::MissingList {
-                actual: value.into(),
-                expected: self.type_name(TypeRecord {
-                    definition_id,
-                    wrapping: {
-                        wrapping.push_outermost_list_wrapping(list_wrapping);
-                        wrapping.into()
-                    },
-                }),
-                path: self.path(),
-            }),
-        }
-    }
-
-    fn coerce_named_type_cynic_value(
-        &mut self,
-        definition_id: TypeDefinitionId,
-        value: ConstValue,
-    ) -> Result<SchemaInputValueRecord, InputValueError> {
-        match definition_id {
-            TypeDefinitionId::Scalar(id) => self.coerce_scalar_cynic_value(id, value),
-            TypeDefinitionId::Enum(id) => self.coerce_enum_cynic_value(id, value),
-            TypeDefinitionId::InputObject(id) => self.coerce_input_object_cynic_value(id, value),
-            _ => unreachable!("Cannot be an output type."),
-        }
-    }
-
-    fn coerce_named_type_fed_value(
-        &mut self,
-        definition_id: TypeDefinitionId,
-        value: Value,
-    ) -> Result<SchemaInputValueRecord, InputValueError> {
-        match definition_id {
-            TypeDefinitionId::Scalar(id) => self.coerce_scalar_fed_value(id, value),
-            TypeDefinitionId::Enum(id) => self.coerce_enum_fed_value(id, value),
-            TypeDefinitionId::InputObject(id) => self.coerce_input_object_fed_value(id, value),
-            _ => unreachable!("Cannot be an output type."),
-        }
-    }
-
-    fn coerce_input_object_cynic_value(
-        &mut self,
-        input_object_id: InputObjectDefinitionId,
-        obj: ConstValue,
-    ) -> Result<SchemaInputValueRecord, InputValueError> {
-        let input_object = &self.graph[input_object_id];
-        let ConstValue::Object(obj) = obj else {
-            return Err(InputValueError::MissingObject {
-                name: self.ctx.strings[input_object.name_id].to_string(),
-                actual: obj.into(),
-                path: self.path(),
-            });
-        };
-
-        let mut fields_buffer = self.input_fields_buffer_pool.pop().unwrap_or_default();
-        let mut fields = obj.fields().collect::<Vec<_>>();
-
-        for input_field_id in input_object.input_field_ids {
-            let input_field = &self.graph[input_field_id];
-            let name_id = input_field.name_id;
-            let ty_record = input_field.ty_record;
-            let default_value_id = input_field.default_value_id;
-
-            if let Some(index) = fields
-                .iter()
-                .position(|field| field.name() == self.ctx.strings[name_id])
-            {
-                let field = fields.swap_remove(index);
-                self.value_path.push(input_field.name_id.into());
-                let value = self.coerce_input_cynic_value(ty_record, field.value())?;
-                fields_buffer.push((input_field_id, value));
-                self.value_path.pop();
-            } else if let Some(default_value_id) = default_value_id {
-                fields_buffer.push((input_field_id, self.graph.input_values[default_value_id]));
-            } else if ty_record.wrapping.is_required() {
-                self.value_path.push(name_id.into());
+fn coerce_type_value(
+    builder: &mut GraphBuilder,
+    definition_id: TypeDefinitionId,
+    mut wrapping: MutableWrapping,
+    value: ConstValue,
+) -> Result<SchemaInputValueRecord, InputValueError> {
+    let Some(list_wrapping) = wrapping.pop_outermost_list_wrapping() else {
+        if value.is_null() {
+            if wrapping.is_required() {
                 return Err(InputValueError::UnexpectedNull {
-                    expected: self.type_name(ty_record),
-                    path: self.path(),
+                    expected: builder.type_name(TypeRecord {
+                        definition_id,
+                        wrapping: wrapping.into(),
+                    }),
+                    path: builder.value_path_string(),
                 });
             }
+            return Ok(SchemaInputValueRecord::Null);
         }
+        return coerce_named_type_value(builder, definition_id, value);
+    };
 
-        if let Some(field) = fields.first() {
-            return Err(InputValueError::UnknownInputField {
-                input_object: self.ctx.strings[self.graph[input_object_id].name_id].to_string(),
-                name: field.name().to_string(),
-                path: self.path(),
+    match (value, list_wrapping) {
+        (ConstValue::Null(_), ListWrapping::RequiredList) => Err(InputValueError::UnexpectedNull {
+            expected: builder.type_name(TypeRecord {
+                definition_id,
+                wrapping: {
+                    wrapping.push_outermost_list_wrapping(list_wrapping);
+                    wrapping.into()
+                },
+            }),
+            path: builder.value_path_string(),
+        }),
+        (ConstValue::Null(_), ListWrapping::NullableList) => Ok(SchemaInputValueRecord::Null),
+        (ConstValue::List(array), _) => {
+            let ids = builder.graph.input_values.reserve_list(array.len());
+            for ((idx, value), id) in array.into_iter().enumerate().zip(ids) {
+                builder.value_path.push(idx.into());
+                builder.graph.input_values[id] = coerce_type_value(builder, definition_id, wrapping.clone(), value)?;
+                builder.value_path.pop();
+            }
+            Ok(SchemaInputValueRecord::List(ids))
+        }
+        (value, _) => Err(InputValueError::MissingList {
+            actual: value.into(),
+            expected: builder.type_name(TypeRecord {
+                definition_id,
+                wrapping: {
+                    wrapping.push_outermost_list_wrapping(list_wrapping);
+                    wrapping.into()
+                },
+            }),
+            path: builder.value_path_string(),
+        }),
+    }
+}
+
+fn coerce_named_type_value(
+    builder: &mut GraphBuilder,
+    definition_id: TypeDefinitionId,
+    value: ConstValue,
+) -> Result<SchemaInputValueRecord, InputValueError> {
+    match definition_id {
+        TypeDefinitionId::Scalar(id) => coerce_scalar_value(builder, id, value),
+        TypeDefinitionId::Enum(id) => coerce_enum_value(builder, id, value),
+        TypeDefinitionId::InputObject(id) => coerce_input_object_value(builder, id, value),
+        _ => unreachable!("Cannot be an output type."),
+    }
+}
+
+fn coerce_input_object_value(
+    builder: &mut GraphBuilder,
+    input_object_id: InputObjectDefinitionId,
+    obj: ConstValue,
+) -> Result<SchemaInputValueRecord, InputValueError> {
+    let input_object = &builder.graph[input_object_id];
+    let ConstValue::Object(obj) = obj else {
+        return Err(InputValueError::MissingObject {
+            name: builder[input_object.name_id].clone(),
+            actual: obj.into(),
+            path: builder.value_path_string(),
+        });
+    };
+
+    let mut fields_buffer = builder.input_fields_buffer_pool.pop().unwrap_or_default();
+    let mut fields = obj.fields().collect::<Vec<_>>();
+
+    for input_field_id in input_object.input_field_ids {
+        let input_field = &builder.graph[input_field_id];
+        let name_id = input_field.name_id;
+        let ty_record = input_field.ty_record;
+        let default_value_id = input_field.default_value_id;
+
+        builder.value_path.push(input_field.name_id.into());
+        let value = if let Some(index) = fields.iter().position(|field| field.name() == builder[name_id]) {
+            let field = fields.swap_remove(index);
+            coerce_input_value(builder, ty_record, field.value())?
+        } else if let Some(default_value_id) = default_value_id {
+            builder.graph.input_values[default_value_id]
+        } else if ty_record.wrapping.is_required() {
+            return Err(InputValueError::UnexpectedNull {
+                expected: builder.type_name(ty_record),
+                path: builder.value_path_string(),
             });
-        }
+        } else {
+            builder.value_path.pop();
+            continue;
+        };
 
-        // We iterate over input fields in order which is a range, so it should be sorted by the
-        // id.
-        debug_assert!(fields_buffer.is_sorted_by_key(|(id, _)| *id));
-        let ids = self.graph.input_values.append_input_object(&mut fields_buffer);
-        self.input_fields_buffer_pool.push(fields_buffer);
-        Ok(SchemaInputValueRecord::InputObject(ids))
+        fields_buffer.push((input_field_id, value));
+        builder.value_path.pop();
     }
 
-    fn coerce_input_object_fed_value(
-        &mut self,
-        input_object_id: InputObjectDefinitionId,
-        value: Value,
-    ) -> Result<SchemaInputValueRecord, InputValueError> {
-        let input_object = &self.graph[input_object_id];
-        let Value::Object(fields) = value else {
-            return Err(InputValueError::MissingObject {
-                name: self.ctx.strings[input_object.name_id].to_string(),
+    if let Some(field) = fields.first() {
+        return Err(InputValueError::UnknownInputField {
+            input_object: builder[builder.graph[input_object_id].name_id].clone(),
+            name: field.name().to_owned(),
+            path: builder.value_path_string(),
+        });
+    }
+
+    // We iterate over input fields in order which is a range, so it should be sorted by the
+    // id.
+    debug_assert!(fields_buffer.is_sorted_by_key(|(id, _)| *id));
+    let ids = builder.graph.input_values.append_input_object(&mut fields_buffer);
+    builder.input_fields_buffer_pool.push(fields_buffer);
+    Ok(SchemaInputValueRecord::InputObject(ids))
+}
+
+fn coerce_enum_value(
+    builder: &mut GraphBuilder,
+    enum_id: EnumDefinitionId,
+    value: ConstValue,
+) -> Result<SchemaInputValueRecord, InputValueError> {
+    let r#enum = &builder.graph[enum_id];
+    let value = match value {
+        ConstValue::Enum(e) => e.as_str(),
+        value => {
+            return Err(InputValueError::IncorrectEnumValueType {
+                r#enum: builder[r#enum.name_id].clone(),
                 actual: value.into(),
-                path: self.path(),
-            });
-        };
-
-        let mut fields_buffer = self.input_fields_buffer_pool.pop().unwrap_or_default();
-        let mut fields = Vec::from(fields);
-        for input_field_id in input_object.input_field_ids {
-            let input_field = &self.graph[input_field_id];
-            let name_id = input_field.name_id;
-            let ty_record = input_field.ty_record;
-            let default_value_id = input_field.default_value_id;
-
-            if let Some(index) = fields
-                .iter()
-                .position(|(id, _)| self.federated_graph[*id] == self.ctx.strings[name_id])
-            {
-                let (_, value) = fields.swap_remove(index);
-                self.value_path.push(input_field.name_id.into());
-                let value = self.coerce_input_fed_value(ty_record, value)?;
-                fields_buffer.push((input_field_id, value));
-                self.value_path.pop();
-            } else if let Some(default_value_id) = default_value_id {
-                fields_buffer.push((input_field_id, self.graph.input_values[default_value_id]));
-            } else if ty_record.wrapping.is_required() {
-                self.value_path.push(name_id.into());
-                return Err(InputValueError::UnexpectedNull {
-                    expected: self.type_name(ty_record),
-                    path: self.path(),
-                });
-            }
-        }
-
-        if let Some((id, _)) = fields.first() {
-            return Err(InputValueError::UnknownInputField {
-                input_object: self.ctx.strings[self.graph[input_object_id].name_id].to_string(),
-                name: self.federated_graph[*id].to_string(),
-                path: self.path(),
+                path: builder.value_path_string(),
             });
         }
+    };
 
-        // We iterate over input fields in order which is a range, so it should be sorted by the
-        // id.
-        debug_assert!(fields_buffer.is_sorted_by_key(|(id, _)| *id));
-        let ids = self.graph.input_values.append_input_object(&mut fields_buffer);
-        self.input_fields_buffer_pool.push(fields_buffer);
-        Ok(SchemaInputValueRecord::InputObject(ids))
-    }
-
-    fn coerce_enum_cynic_value(
-        &mut self,
-        enum_id: EnumDefinitionId,
-        value: ConstValue,
-    ) -> Result<SchemaInputValueRecord, InputValueError> {
-        let r#enum = &self.graph[enum_id];
-        let value = match value {
-            ConstValue::Enum(e) => e.as_str(),
-            value => {
-                return Err(InputValueError::IncorrectEnumValueType {
-                    r#enum: self.ctx.strings[r#enum.name_id].to_string(),
-                    actual: value.into(),
-                    path: self.path(),
-                });
-            }
-        };
-
-        for id in r#enum.value_ids {
-            if self.ctx.strings[self.graph[id].name_id] == value {
-                return Ok(SchemaInputValueRecord::EnumValue(id));
-            }
-        }
-        Err(InputValueError::UnknownEnumValue {
-            r#enum: self.ctx.strings[r#enum.name_id].to_string(),
-            value: value.to_string(),
-            path: self.path(),
-        })
-    }
-
-    fn coerce_enum_fed_value(
-        &mut self,
-        enum_id: EnumDefinitionId,
-        value: Value,
-    ) -> Result<SchemaInputValueRecord, InputValueError> {
-        let r#enum = &self.graph[enum_id];
-        let value_id = match &value {
-            Value::EnumValue(id) => self.federated_graph[*id].value,
-            Value::UnboundEnumValue(id) => *id,
-            value => {
-                return Err(InputValueError::IncorrectEnumValueType {
-                    r#enum: self.ctx.strings[r#enum.name_id].to_string(),
-                    actual: value.into(),
-                    path: self.path(),
-                });
-            }
-        };
-        let string_value = &self.federated_graph[value_id];
-        for id in r#enum.value_ids {
-            if &self.ctx.strings[self.graph[id].name_id] == string_value {
-                return Ok(SchemaInputValueRecord::EnumValue(id));
-            }
-        }
-        Err(InputValueError::UnknownEnumValue {
-            r#enum: self.ctx.strings[r#enum.name_id].to_string(),
-            value: string_value.to_string(),
-            path: self.path(),
-        })
-    }
-
-    fn coerce_scalar_cynic_value(
-        &mut self,
-        scalar_id: ScalarDefinitionId,
-        value: ConstValue,
-    ) -> Result<SchemaInputValueRecord, InputValueError> {
-        match self.graph[scalar_id].ty {
-            ScalarType::String => match value {
-                ConstValue::String(s) => Some(self.ctx.strings.get_or_new(s.value())),
-                _ => None,
-            }
-            .map(SchemaInputValueRecord::String),
-            ScalarType::Float => match value {
-                ConstValue::Int(n) => Some(n.value() as f64),
-                ConstValue::Float(f) => Some(f.value()),
-                _ => None,
-            }
-            .map(SchemaInputValueRecord::Float),
-            ScalarType::Int => match value {
-                ConstValue::Int(n) => {
-                    let n = i32::try_from(n.value()).map_err(|_| InputValueError::IncorrectScalarValue {
-                        actual: n.to_string(),
-                        expected: self.ctx.strings[self.graph[scalar_id].name_id].to_string(),
-                        path: self.path(),
-                    })?;
-                    Some(n)
-                }
-                ConstValue::Float(f) if can_coerce_to_int(f.value()) => Some(f.value() as i32),
-                _ => None,
-            }
-            .map(SchemaInputValueRecord::Int),
-            ScalarType::Boolean => match value {
-                ConstValue::Boolean(b) => Some(b.value()),
-                _ => None,
-            }
-            .map(SchemaInputValueRecord::Boolean),
-            ScalarType::Unknown => {
-                return Ok(self.ingest_arbitrary_cynic_value(value));
-            }
-        }
-        .ok_or_else(|| InputValueError::IncorrectScalarType {
-            actual: value.into(),
-            expected: self.ctx.strings[self.graph[scalar_id].name_id].to_string(),
-            path: self.path(),
-        })
-    }
-
-    fn coerce_scalar_fed_value(
-        &mut self,
-        scalar_id: ScalarDefinitionId,
-        value: Value,
-    ) -> Result<SchemaInputValueRecord, InputValueError> {
-        match self.graph[scalar_id].ty {
-            ScalarType::String => match value {
-                Value::String(id) => Some(self.ctx.strings.get_or_new(&self.federated_graph[id])),
-                _ => None,
-            }
-            .map(SchemaInputValueRecord::String),
-            ScalarType::Float => match value {
-                Value::Int(n) => Some(n as f64),
-                Value::Float(f) => Some(f),
-                _ => None,
-            }
-            .map(SchemaInputValueRecord::Float),
-            ScalarType::Int => match value {
-                Value::Int(n) => {
-                    let n = i32::try_from(n).map_err(|_| InputValueError::IncorrectScalarValue {
-                        actual: n.to_string(),
-                        expected: self.ctx.strings[self.graph[scalar_id].name_id].to_string(),
-                        path: self.path(),
-                    })?;
-                    Some(n)
-                }
-                Value::Float(f) if can_coerce_to_int(f) => Some(f as i32),
-                _ => None,
-            }
-            .map(SchemaInputValueRecord::Int),
-            ScalarType::Boolean => match value {
-                Value::Boolean(b) => Some(b),
-                _ => None,
-            }
-            .map(SchemaInputValueRecord::Boolean),
-            ScalarType::Unknown => {
-                return Ok(self.ingest_arbitrary_value(value));
-            }
-        }
-        .ok_or_else(|| InputValueError::IncorrectScalarType {
-            actual: value.into(),
-            expected: self.ctx.strings[self.graph[scalar_id].name_id].to_string(),
-            path: self.path(),
-        })
-    }
-
-    fn ingest_arbitrary_cynic_value(&mut self, value: ConstValue) -> SchemaInputValueRecord {
-        match value {
-            ConstValue::Null(_) => SchemaInputValueRecord::Null,
-            ConstValue::String(s) => SchemaInputValueRecord::String(self.ctx.strings.get_or_new(s.value())),
-            ConstValue::Int(n) => SchemaInputValueRecord::I64(n.value()),
-            ConstValue::Float(f) => SchemaInputValueRecord::Float(f.value()),
-            ConstValue::Boolean(b) => SchemaInputValueRecord::Boolean(b.value()),
-            ConstValue::Enum(s) => SchemaInputValueRecord::UnboundEnumValue(self.ctx.strings.get_or_new(s.as_str())),
-            ConstValue::List(list) => {
-                let ids = self.graph.input_values.reserve_list(list.len());
-                for (value, id) in list.into_iter().zip(ids) {
-                    self.graph.input_values[id] = self.ingest_arbitrary_cynic_value(value);
-                }
-                SchemaInputValueRecord::List(ids)
-            }
-            ConstValue::Object(fields) => {
-                let ids = self.graph.input_values.reserve_map(fields.len());
-                for (field, id) in fields.into_iter().zip(ids) {
-                    let name = self.ctx.strings.get_or_new(field.name());
-                    let value = self.ingest_arbitrary_cynic_value(field.value());
-                    self.graph.input_values[id] = (name, value);
-                }
-                let ctx = &self.ctx;
-                self.graph.input_values[ids].sort_unstable_by(|(left_key, _), (right_key, _)| {
-                    ctx.strings.get_by_id(*left_key).cmp(&ctx.strings.get_by_id(*right_key))
-                });
-                SchemaInputValueRecord::Map(ids)
-            }
+    for id in r#enum.value_ids {
+        if builder[builder.graph[id].name_id] == value {
+            return Ok(SchemaInputValueRecord::EnumValue(id));
         }
     }
+    Err(InputValueError::UnknownEnumValue {
+        r#enum: builder[r#enum.name_id].clone(),
+        value: value.to_string(),
+        path: builder.value_path_string(),
+    })
+}
 
-    fn path(&self) -> String {
-        value_path_to_string(self, &self.value_path)
+fn coerce_scalar_value(
+    builder: &mut GraphBuilder,
+    scalar_id: ScalarDefinitionId,
+    value: ConstValue,
+) -> Result<SchemaInputValueRecord, InputValueError> {
+    match builder.graph[scalar_id].ty {
+        ScalarType::String => match value {
+            ConstValue::String(s) => Some(builder.ingest_str(s.value())),
+            _ => None,
+        }
+        .map(SchemaInputValueRecord::String),
+        ScalarType::Float => match value {
+            ConstValue::Int(n) => Some(n.value() as f64),
+            ConstValue::Float(f) => Some(f.value()),
+            _ => None,
+        }
+        .map(SchemaInputValueRecord::Float),
+        ScalarType::Int => match value {
+            ConstValue::Int(n) => {
+                let n = i32::try_from(n.value()).map_err(|_| InputValueError::IncorrectScalarValue {
+                    actual: n.to_string(),
+                    expected: builder[builder.graph[scalar_id].name_id].clone(),
+                    path: builder.value_path_string(),
+                })?;
+                Some(n)
+            }
+            ConstValue::Float(f) if can_coerce_to_int(f.value()) => Some(f.value() as i32),
+            _ => None,
+        }
+        .map(SchemaInputValueRecord::Int),
+        ScalarType::Boolean => match value {
+            ConstValue::Boolean(b) => Some(b.value()),
+            _ => None,
+        }
+        .map(SchemaInputValueRecord::Boolean),
+        ScalarType::Unknown => {
+            return Ok(ingest_arbitrary_value(builder, value));
+        }
+    }
+    .ok_or_else(|| InputValueError::IncorrectScalarType {
+        actual: value.into(),
+        expected: builder[builder.graph[scalar_id].name_id].clone(),
+        path: builder.value_path_string(),
+    })
+}
+
+fn ingest_arbitrary_value(builder: &mut GraphBuilder, value: ConstValue) -> SchemaInputValueRecord {
+    match value {
+        ConstValue::Null(_) => SchemaInputValueRecord::Null,
+        ConstValue::String(s) => SchemaInputValueRecord::String(builder.ingest_str(s.value())),
+        ConstValue::Int(n) => SchemaInputValueRecord::I64(n.value()),
+        ConstValue::Float(f) => SchemaInputValueRecord::Float(f.value()),
+        ConstValue::Boolean(b) => SchemaInputValueRecord::Boolean(b.value()),
+        ConstValue::Enum(s) => SchemaInputValueRecord::UnboundEnumValue(builder.ingest_str(s.as_str())),
+        ConstValue::List(list) => {
+            let ids = builder.graph.input_values.reserve_list(list.len());
+            for (value, id) in list.into_iter().zip(ids) {
+                builder.graph.input_values[id] = ingest_arbitrary_value(builder, value);
+            }
+            SchemaInputValueRecord::List(ids)
+        }
+        ConstValue::Object(fields) => {
+            let ids = builder.graph.input_values.reserve_map(fields.len());
+            for (field, id) in fields.into_iter().zip(ids) {
+                let name = builder.ingest_str(field.name());
+                let value = ingest_arbitrary_value(builder, field.value());
+                builder.graph.input_values[id] = (name, value);
+            }
+            let ctx = &builder.ctx;
+            builder.graph.input_values[ids]
+                .sort_unstable_by(|(left_key, _), (right_key, _)| ctx[*left_key].cmp(&ctx[*right_key]));
+            SchemaInputValueRecord::Map(ids)
+        }
     }
 }
