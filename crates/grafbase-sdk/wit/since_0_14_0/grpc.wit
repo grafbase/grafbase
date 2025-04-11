@@ -31,6 +31,7 @@ interface grpc {
         // # Arguments
         //
         // - `message`: the encoded protocol buffers message to send to the endpoint.
+        // - `service`: the name of the service to invoke on the endpoint.
         // - `method`: the name of the method to invoke on the service.
         // - `metadata`: the metadata map of the request. See https://grpc.io/docs/what-is-grpc/core-concepts/#metadata.
         // - `timeout`: the timeout for the request. If none, the default timeout will apply.
@@ -41,7 +42,7 @@ interface grpc {
         // - err: the status code and message
         //
         // In both cases, the metadata map of the response is included.
-        streaming: func(message: list<u8>, method: string, metadata: metadata-map, timeout: option<u64>) -> result<grpc-streaming-response, grpc-status>;
+        streaming: func(message: list<u8>, service: string, method: string, metadata: metadata-map, timeout: option<u64>) -> result<grpc-streaming-response, grpc-status>;
     }
 
     // Metadata associated with requests and responses. This is the gRPC analog of HTTP headers.
@@ -122,6 +123,6 @@ interface grpc {
         get-metadata: func() -> metadata-map;
 
         // The get the next streaming response message.
-        get-next-message: func() -> result<list<u8>, string>;
+        get-next-message: func() -> result<option<list<u8>>, grpc-status>;
     }
 }

@@ -18,6 +18,7 @@ wasmtime::component::bindgen!({
         "grafbase:sdk/cache": crate::extension::api::since_0_9_0::wit::cache,
         "grafbase:sdk/error": crate::extension::api::since_0_9_0::wit::error,
         "grafbase:sdk/grpc/grpc-client": crate::resources::GrpcClient,
+        "grafbase:sdk/grpc/grpc-streaming-response": crate::resources::GrpcStreamingResponse,
         "grafbase:sdk/token": crate::extension::api::since_0_10_0::wit::token,
         "grafbase:sdk/headers": crate::extension::api::since_0_10_0::wit::headers,
         "grafbase:sdk/postgres/pg-pool": crate::resources::PgPool,

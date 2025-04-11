@@ -2,21 +2,29 @@ use wasmtime::component::Resource;
 
 use crate::WasiState;
 
-use super::{GrpcStreamingResponse, HostGrpcStreamingResponse, MetadataMap};
+use super::{GrpcStatus, GrpcStreamingResponse, HostGrpcStreamingResponse, MetadataMap};
 
 impl HostGrpcStreamingResponse for WasiState {
-    async fn get_metadata(&mut self, _self_: Resource<GrpcStreamingResponse>) -> wasmtime::Result<MetadataMap> {
-        todo!()
+    async fn get_metadata(&mut self, self_: Resource<GrpcStreamingResponse>) -> wasmtime::Result<MetadataMap> {
+        let (metadata, _, _) = self.get_mut(&self_)?;
+
+        Ok(super::client::tonic_metadata_to_wasi_metadata(metadata))
     }
 
     async fn get_next_message(
         &mut self,
-        _self_: Resource<GrpcStreamingResponse>,
-    ) -> wasmtime::Result<Result<Vec<u8>, String>> {
-        todo!()
+        self_: Resource<GrpcStreamingResponse>,
+    ) -> wasmtime::Result<Result<Option<Vec<u8>>, GrpcStatus>> {
+        let (_, stream, _) = self.get_mut(&self_)?;
+
+        match stream.message().await {
+            Ok(outcome) => Ok(Ok(outcome)),
+            Err(err) => Ok(Err(super::client::tonic_status_to_grpc_status(err))),
+        }
     }
 
-    async fn drop(&mut self, _rep: Resource<GrpcStreamingResponse>) -> wasmtime::Result<()> {
+    async fn drop(&mut self, rep: Resource<GrpcStreamingResponse>) -> wasmtime::Result<()> {
+        self.table.delete(rep)?;
         Ok(())
     }
 }
