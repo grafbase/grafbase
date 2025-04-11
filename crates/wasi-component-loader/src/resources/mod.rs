@@ -17,6 +17,11 @@ pub struct SharedResources {
 }
 
 pub type GrpcClient = tonic::client::Grpc<tonic::transport::Channel>;
+pub type GrpcStreamingResponse = (
+    tonic::metadata::MetadataMap,
+    tonic::Streaming<Vec<u8>>,
+    tonic::Extensions,
+);
 
 pub type NatsClient = async_nats::Client;
 pub type NatsKeyValue = async_nats::jetstream::kv::Store;
