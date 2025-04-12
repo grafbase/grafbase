@@ -32,6 +32,8 @@ github.com/99designs/gqlgen/_examples v0.0.0-20250407113155-71e6ffba801e h1:rz+k
 github.com/99designs/gqlgen/_examples v0.0.0-20250407113155-71e6ffba801e/go.mod h1:I2WgOi3Woa4rZbEjDVaEAHYPQpAmV6p2pCzGZ9j5HVQ=
 github.com/99designs/gqlgen/_examples v0.0.0-20250410015753-8ffc8850c6ce h1:GCW4uYI/PVDwOyLc6lUgAlIEp/4QseIF57KdMLFuUQs=
 github.com/99designs/gqlgen/_examples v0.0.0-20250410015753-8ffc8850c6ce/go.mod h1:6cWvJ0tA9BixXC90gbJ1G3xFs9ayVHFSvl8jDUIna2o=
+github.com/99designs/gqlgen/_examples v0.0.0-20250412190105-55536f41e9d4 h1:80pLL6m+IPupyFvu9O6RMRollqPPYH4PYf11gZAFr0Y=
+github.com/99designs/gqlgen/_examples v0.0.0-20250412190105-55536f41e9d4/go.mod h1:3gfPwqlC0VcO4WsunMIH0+1IsetuaHR0xq+K9bCtIYc=
 github.com/PuerkitoBio/goquery v1.9.3 h1:mpJr/ikUA9/GNJB/DBZcGeFDXUtosHRyRrwh7KGdTG0=
 github.com/PuerkitoBio/goquery v1.9.3/go.mod h1:1ndLHPdTz+DyQPICCWYlYQMPl0oXZj0G6D4LCYA6u4U=
 github.com/agnivade/levenshtein v1.2.1 h1:EHBY3UOn1gwdy/VbFwgo4cxecRznFk7fKWN1KOX7eoM=
@@ -81,5 +83,7 @@ golang.org/x/sys v0.30.0 h1:QjkSwP/36a20jFYWkSue1YwXzLmsV5Gfq7Eiy72C1uc=
 golang.org/x/sys v0.30.0/go.mod h1:/VUhepiaJMQUp4+oa/7Zr1D23ma6VTLIYjOOTFZPUcA=
 golang.org/x/sys v0.31.0 h1:ioabZlmFYtWhL+TRYpcnNlLwhyxaM9kWTDEmfnprqik=
 golang.org/x/sys v0.31.0/go.mod h1:BJP2sWEmIv4KK5OTEluFJCKSidICx8ciO85XgH3Ak8k=
+golang.org/x/sys v0.32.0 h1:s77OFDvIQeibCmezSnk/q6iAfkdiQaJi4VzroCFrN20=
+golang.org/x/sys v0.32.0/go.mod h1:BJP2sWEmIv4KK5OTEluFJCKSidICx8ciO85XgH3Ak8k=
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
 gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
