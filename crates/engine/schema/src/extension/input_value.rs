@@ -7,7 +7,7 @@ pub enum ExtensionInputValueRecord {
     // I don't think we need to distinguish between EnumValue and a string, but we'll see.
     EnumValue(StringId),
     Int(i32),
-    BigInt(i64),
+    I64(i64),
     U64(u64),
     Float(f64),
     Boolean(bool),

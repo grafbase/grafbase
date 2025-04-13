@@ -22,6 +22,8 @@ fn valid_big_int() {
             )
             .with_extension(EchoExt::with_sdl(
                 r#"
+                scalar BigInt
+
                 directive @meta(value: BigInt!) on SCHEMA
                 directive @echo(value: BigInt!) on FIELD_DEFINITION
             "#,
@@ -71,8 +73,10 @@ fn float_to_big_int_coercion() {
             )
             .with_extension(EchoExt::with_sdl(
                 r#"
-                    directive @meta(value: BigInt!) on SCHEMA
-                    directive @echo(value: BigInt!) on FIELD_DEFINITION
+                scalar BigInt
+
+                directive @meta(value: BigInt!) on SCHEMA
+                directive @echo(value: BigInt!) on FIELD_DEFINITION
                 "#,
             ))
             .build()
@@ -98,66 +102,4 @@ fn float_to_big_int_coercion() {
       }
     }
     "#);
-}
-
-#[test]
-fn invalid_big_int() {
-    runtime().block_on(async move {
-        // Invalid field directive
-        let result = Gateway::builder()
-            .with_subgraph_sdl(
-                "a",
-                r#"
-                extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo", "@meta"])
-
-                scalar JSON
-
-                type Query {
-                    echo: JSON @echo(value: 7.123)
-                }
-                "#,
-            )
-            .with_extension(EchoExt::with_sdl(r#"
-                    directive @meta(value: BigInt!) on SCHEMA
-                    directive @echo(value: BigInt!) on FIELD_DEFINITION
-                "#))
-            .try_build()
-            .await;
-
-        insta::assert_debug_snapshot!(result.err(), @r#"
-        Some(
-            "At Query.echo for the extension 'echo-1.0.0' directive @echo: Found a Float value where we expected a BigInt scalar at path '.value'",
-        )
-        "#);
-
-        // Invalid schema directive
-        let result = Gateway::builder()
-            .with_subgraph_sdl(
-                "a",
-                r#"
-                extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo", "@meta"])
-                    @meta(value: "79.123")
-
-                scalar JSON
-
-                type Query {
-                    echo: JSON
-                }
-                "#,
-            )
-            .with_extension(EchoExt::with_sdl(r#"
-                    directive @meta(value: BigInt!) on SCHEMA
-                    directive @echo(value: BigInt!) on FIELD_DEFINITION
-                "#))
-            .try_build()
-            .await;
-
-        insta::assert_debug_snapshot!(result.err(), @r#"
-        Some(
-            "At subgraph named 'a' for the extension 'echo-1.0.0' directive @meta: Found a String value where we expected a BigInt scalar at path '.value'",
-        )
-        "#);
-    });
 }

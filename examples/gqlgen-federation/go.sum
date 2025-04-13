@@ -30,6 +30,10 @@ github.com/99designs/gqlgen/_examples v0.0.0-20250401210444-4ca0dd69a516 h1:iFE3
 github.com/99designs/gqlgen/_examples v0.0.0-20250401210444-4ca0dd69a516/go.mod h1:noHK+GCvF7Db90EEwHaS9AKDrnHLmhFDYj3BiHeEQnE=
 github.com/99designs/gqlgen/_examples v0.0.0-20250407113155-71e6ffba801e h1:rz+k2rAV0wBfJuLdn563pwVPIn+gfmDyQrKmRdKjzDM=
 github.com/99designs/gqlgen/_examples v0.0.0-20250407113155-71e6ffba801e/go.mod h1:I2WgOi3Woa4rZbEjDVaEAHYPQpAmV6p2pCzGZ9j5HVQ=
+github.com/99designs/gqlgen/_examples v0.0.0-20250410015753-8ffc8850c6ce h1:GCW4uYI/PVDwOyLc6lUgAlIEp/4QseIF57KdMLFuUQs=
+github.com/99designs/gqlgen/_examples v0.0.0-20250410015753-8ffc8850c6ce/go.mod h1:6cWvJ0tA9BixXC90gbJ1G3xFs9ayVHFSvl8jDUIna2o=
+github.com/99designs/gqlgen/_examples v0.0.0-20250412190105-55536f41e9d4 h1:80pLL6m+IPupyFvu9O6RMRollqPPYH4PYf11gZAFr0Y=
+github.com/99designs/gqlgen/_examples v0.0.0-20250412190105-55536f41e9d4/go.mod h1:3gfPwqlC0VcO4WsunMIH0+1IsetuaHR0xq+K9bCtIYc=
 github.com/PuerkitoBio/goquery v1.9.3 h1:mpJr/ikUA9/GNJB/DBZcGeFDXUtosHRyRrwh7KGdTG0=
 github.com/PuerkitoBio/goquery v1.9.3/go.mod h1:1ndLHPdTz+DyQPICCWYlYQMPl0oXZj0G6D4LCYA6u4U=
 github.com/agnivade/levenshtein v1.2.1 h1:EHBY3UOn1gwdy/VbFwgo4cxecRznFk7fKWN1KOX7eoM=
@@ -68,6 +72,8 @@ github.com/stretchr/testify v1.10.0 h1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOf
 github.com/stretchr/testify v1.10.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
 github.com/vektah/gqlparser/v2 v2.5.23 h1:PurJ9wpgEVB7tty1seRUwkIDa/QH5RzkzraiKIjKLfA=
 github.com/vektah/gqlparser/v2 v2.5.23/go.mod h1:D1/VCZtV3LPnQrcPBeR/q5jkSQIPti0uYCP/RI0gIeo=
+github.com/vektah/gqlparser/v2 v2.5.24 h1:Dnip1ilW+nnXmaXL6s6f1w4IaXpAFDLLE1f9SqMegpI=
+github.com/vektah/gqlparser/v2 v2.5.24/go.mod h1:D1/VCZtV3LPnQrcPBeR/q5jkSQIPti0uYCP/RI0gIeo=
 golang.org/x/net v0.36.0 h1:vWF2fRbw4qslQsQzgFqZff+BItCvGFQqKzKIzx1rmoA=
 golang.org/x/net v0.36.0/go.mod h1:bFmbeoIPfrw4sMHNhb4J9f6+tPziuGjq7Jk/38fxi1I=
 golang.org/x/net v0.37.0 h1:1zLorHbz+LYj7MQlSf1+2tPIIgibq2eL5xkrGk6f+2c=
@@ -77,5 +83,7 @@ golang.org/x/sys v0.30.0 h1:QjkSwP/36a20jFYWkSue1YwXzLmsV5Gfq7Eiy72C1uc=
 golang.org/x/sys v0.30.0/go.mod h1:/VUhepiaJMQUp4+oa/7Zr1D23ma6VTLIYjOOTFZPUcA=
 golang.org/x/sys v0.31.0 h1:ioabZlmFYtWhL+TRYpcnNlLwhyxaM9kWTDEmfnprqik=
 golang.org/x/sys v0.31.0/go.mod h1:BJP2sWEmIv4KK5OTEluFJCKSidICx8ciO85XgH3Ak8k=
+golang.org/x/sys v0.32.0 h1:s77OFDvIQeibCmezSnk/q6iAfkdiQaJi4VzroCFrN20=
+golang.org/x/sys v0.32.0/go.mod h1:BJP2sWEmIv4KK5OTEluFJCKSidICx8ciO85XgH3Ak8k=
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
 gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=

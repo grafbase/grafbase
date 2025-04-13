@@ -14,6 +14,7 @@ mod introspect;
 mod lint;
 mod login;
 mod logout;
+mod mcp;
 mod output;
 mod panic_hook;
 mod prompts;
@@ -138,6 +139,7 @@ fn try_main(args: Args) -> Result<(), CliError> {
         },
         SubCommand::Dev(cmd) => dev::dev(cmd),
         SubCommand::Extension(cmd) => Ok(extension::execute(cmd)?),
+        SubCommand::Mcp(cmd) => Ok(mcp::run(cmd)?),
     }
 }
 

@@ -158,6 +158,7 @@ ory-client = "=1.9.0"
 os_type = "2"
 p256 = "0.13"
 p384 = "0.13"
+paste = "1"
 percent-encoding = "2"
 petgraph = "0.8"
 postcard = { version = "1", features = ["use-std"] }
@@ -165,6 +166,8 @@ pprof = "0.14"
 pretty_assertions = "1"
 priority-queue = "2"
 proc-macro2 = "1"
+prost = { version = "0.13.5", default-features = false }
+prost-types = { version = "0.13.5", default-features = false }
 quote = "1"
 ramhorns = { git = "https://github.com/grafbase/ramhorns", branch = "grafbase", default-features = false, features = [
     "indexes",
@@ -236,6 +239,7 @@ unicode-normalization = "0.1.24"
 url = "2.5.4"
 urlencoding = "2.1"
 uuid = "1.16.0"
+walkdir = "2"
 wasmparser = "0.228.0"
 wasmtime = "30"
 wasmtime-wasi = "30"
@@ -248,7 +252,7 @@ xshell = "0.2"
 zerocopy = "0.8.24"
 zstd = "0.13"
 
-# Workspace 
+# Workspace
 engine = { path = "crates/engine" }
 engine-auth = { path = "crates/engine/auth" }
 engine-axum = { path = "crates/engine/axum" }
@@ -275,7 +279,6 @@ operation-normalizer = { path = "crates/operation-normalizer" }
 rolling-logger = { path = "crates/rolling-logger" }
 runtime = { path = "crates/runtime" }
 runtime-local = { path = "crates/runtime-local" }
-runtime-noop = { path = "crates/runtime-noop" }
 serde-dynamic-string = { path = "crates/serde-dynamic-string" }
 wasi-component-loader = { path = "crates/wasi-component-loader" }
 wrapping = { path = "crates/graphql-wrapping-types", package = "graphql-wrapping-types" }

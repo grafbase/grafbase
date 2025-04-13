@@ -46,3 +46,14 @@ pub trait TrustedDocumentsClient: Send + Sync {
 
     async fn fetch(&self, client_name: &str, document_id: &str) -> TrustedDocumentsResult<String>;
 }
+
+#[async_trait::async_trait]
+impl TrustedDocumentsClient for () {
+    fn enforcement_mode(&self) -> TrustedDocumentsEnforcementMode {
+        TrustedDocumentsEnforcementMode::Ignore
+    }
+
+    async fn fetch(&self, _client_name: &str, _document_id: &str) -> TrustedDocumentsResult<String> {
+        Err(TrustedDocumentsError::DocumentNotFound)
+    }
+}

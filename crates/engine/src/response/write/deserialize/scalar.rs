@@ -33,7 +33,6 @@ impl ScalarTypeSeed<'_, '_> {
             ScalarType::String => "a String value",
             ScalarType::Float => "a Float value",
             ScalarType::Int => "an Int value",
-            ScalarType::BigInt => "a BigInt value",
             ScalarType::Unknown => "a JSON value",
             ScalarType::Boolean => "a Boolean value",
         };
@@ -85,7 +84,6 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
     {
         Ok(match self.ty {
             ScalarType::Int | ScalarType::Unknown => ResponseValue::Int { value: v as i32 },
-            ScalarType::BigInt => ResponseValue::BigInt { value: v as i64 },
             ScalarType::Float => ResponseValue::Float { value: v as f64 },
             _ => self.unexpected_type(Unexpected::Signed(v.into())),
         })
@@ -97,7 +95,6 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
     {
         Ok(match self.ty {
             ScalarType::Int | ScalarType::Unknown => ResponseValue::Int { value: v as i32 },
-            ScalarType::BigInt => ResponseValue::BigInt { value: v as i64 },
             ScalarType::Float => ResponseValue::Float { value: v as f64 },
             _ => self.unexpected_type(Unexpected::Signed(v.into())),
         })
@@ -109,7 +106,6 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
     {
         Ok(match self.ty {
             ScalarType::Int | ScalarType::Unknown => ResponseValue::Int { value: v },
-            ScalarType::BigInt => ResponseValue::BigInt { value: v as i64 },
             ScalarType::Float => ResponseValue::Float { value: v as f64 },
             _ => self.unexpected_type(Unexpected::Signed(v.into())),
         })
@@ -127,7 +123,7 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
                     self.unexpected_type(Unexpected::Signed(v))
                 }
             }
-            ScalarType::BigInt | ScalarType::Unknown => ResponseValue::BigInt { value: v },
+            ScalarType::Unknown => ResponseValue::I64 { value: v },
             ScalarType::Float => ResponseValue::Float { value: v as f64 },
             _ => self.unexpected_type(Unexpected::Signed(v)),
         })
@@ -143,9 +139,9 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
                     return Ok(ResponseValue::Int { value });
                 }
             }
-            ScalarType::BigInt | ScalarType::Unknown => {
+            ScalarType::Unknown => {
                 if let Ok(value) = i64::try_from(v) {
-                    return Ok(ResponseValue::BigInt { value });
+                    return Ok(ResponseValue::I64 { value });
                 }
             }
             ScalarType::Float => return Ok(ResponseValue::Float { value: v as f64 }),
@@ -161,7 +157,6 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
     {
         Ok(match self.ty {
             ScalarType::Int | ScalarType::Unknown => ResponseValue::Int { value: v as i32 },
-            ScalarType::BigInt => ResponseValue::BigInt { value: v as i64 },
             ScalarType::Float => ResponseValue::Float { value: v as f64 },
             _ => self.unexpected_type(Unexpected::Unsigned(v.into())),
         })
@@ -173,7 +168,6 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
     {
         Ok(match self.ty {
             ScalarType::Int | ScalarType::Unknown => ResponseValue::Int { value: v as i32 },
-            ScalarType::BigInt => ResponseValue::BigInt { value: v as i64 },
             ScalarType::Float => ResponseValue::Float { value: v as f64 },
             _ => self.unexpected_type(Unexpected::Unsigned(v.into())),
         })
@@ -191,7 +185,7 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
                     self.unexpected_type(Unexpected::Unsigned(v.into()))
                 }
             }
-            ScalarType::BigInt | ScalarType::Unknown => ResponseValue::BigInt { value: v as i64 },
+            ScalarType::Unknown => ResponseValue::I64 { value: v as i64 },
             ScalarType::Float => ResponseValue::Float { value: v as f64 },
             _ => self.unexpected_type(Unexpected::Unsigned(v.into())),
         })
@@ -205,11 +199,6 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
             ScalarType::Int => {
                 if let Ok(value) = i32::try_from(v) {
                     return Ok(ResponseValue::Int { value });
-                }
-            }
-            ScalarType::BigInt => {
-                if let Ok(value) = i64::try_from(v) {
-                    return Ok(ResponseValue::BigInt { value });
                 }
             }
             ScalarType::Float => return Ok(ResponseValue::Float { value: v as f64 }),
@@ -232,9 +221,9 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
                     return Ok(ResponseValue::Int { value });
                 }
             }
-            ScalarType::BigInt | ScalarType::Unknown => {
+            ScalarType::Unknown => {
                 if let Ok(value) = i64::try_from(v) {
-                    return Ok(ResponseValue::BigInt { value });
+                    return Ok(ResponseValue::I64 { value });
                 }
             }
             ScalarType::Float => return Ok(ResponseValue::Float { value: v as f64 }),
@@ -251,7 +240,6 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
         match self.ty {
             ScalarType::Float | ScalarType::Unknown => Ok(ResponseValue::Float { value: v as f64 }),
             ScalarType::Int if can_coerce_f32_to_int(v) => Ok(ResponseValue::Int { value: v as i32 }),
-            ScalarType::BigInt if can_coerce_f32_to_big_int(v) => Ok(ResponseValue::BigInt { value: v as i64 }),
             _ => Ok(self.unexpected_type(Unexpected::Float(v as f64))),
         }
     }
@@ -263,7 +251,6 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
         match self.ty {
             ScalarType::Float | ScalarType::Unknown => Ok(ResponseValue::Float { value: v }),
             ScalarType::Int if can_coerce_f64_to_int(v) => Ok(ResponseValue::Int { value: v as i32 }),
-            ScalarType::BigInt if can_coerce_f64_to_big_int(v) => Ok(ResponseValue::BigInt { value: v as i64 }),
             _ => Ok(self.unexpected_type(Unexpected::Float(v))),
         }
     }
@@ -404,14 +391,6 @@ fn can_coerce_f32_to_int(float: f32) -> bool {
     float.floor() == float && float < (i32::MAX as f32)
 }
 
-fn can_coerce_f32_to_big_int(float: f32) -> bool {
-    float.floor() == float && float < (i64::MAX as f32)
-}
-
 fn can_coerce_f64_to_int(float: f64) -> bool {
     float.floor() == float && float < (i32::MAX as f64)
-}
-
-fn can_coerce_f64_to_big_int(float: f64) -> bool {
-    float.floor() == float && float < (i64::MAX as f64)
 }

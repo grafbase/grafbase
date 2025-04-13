@@ -1012,7 +1012,7 @@ dependencies = [
  "bitflags 2.9.0",
  "cexpr",
  "clang-sys",
- "itertools 0.10.5",
+ "itertools 0.12.1",
  "lazy_static",
  "lazycell",
  "log",
@@ -1970,9 +1970,9 @@ dependencies = [
 
 [[package]]
 name = "crossbeam-channel"
-version = "0.5.14"
+version = "0.5.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "06ba6d68e24814cb8de6bb986db8222d3a027d15872cabc0d18817bc3c0e4471"
+checksum = "82b8f8f868b36967f9606790d1903570de9ceaf870a7bf9fbbd3016d636a2cb2"
 dependencies = [
  "crossbeam-utils",
 ]
@@ -3264,7 +3264,6 @@ dependencies = [
  "rolling-logger",
  "runtime",
  "runtime-local",
- "runtime-noop",
  "semver 1.0.26",
  "serde",
  "serde_json",
@@ -3787,7 +3786,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase"
-version = "0.89.0"
+version = "0.90.0"
 dependencies = [
  "anyhow",
  "askama",
@@ -3807,6 +3806,8 @@ dependencies = [
  "cynic-parser",
  "dirs 6.0.0",
  "duct",
+ "engine",
+ "engine-auth",
  "expect-test",
  "extension",
  "extension-catalog",
@@ -3817,6 +3818,8 @@ dependencies = [
  "futures-util",
  "gateway-config",
  "grafbase-graphql-introspection",
+ "grafbase-mcp",
+ "grafbase-telemetry",
  "grafbase-workspace-hack",
  "graph-ref",
  "graphql-composition 0.6.2",
@@ -3837,6 +3840,8 @@ dependencies = [
  "rand 0.9.0",
  "regex",
  "reqwest 0.12.15",
+ "runtime",
+ "runtime-local",
  "rustls 0.23.25",
  "semver 1.0.26",
  "serde",
@@ -3861,6 +3866,7 @@ dependencies = [
  "url",
  "urlencoding",
  "uuid",
+ "wasi-component-loader",
  "wasmparser 0.228.0",
  "webbrowser",
  "wiremock",
@@ -3868,7 +3874,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-gateway"
-version = "0.33.0"
+version = "0.34.0"
 dependencies = [
  "anyhow",
  "ascii",
@@ -5408,7 +5414,6 @@ dependencies = [
  "rstest",
  "runtime",
  "runtime-local",
- "runtime-noop",
  "rustls 0.23.25",
  "semver 1.0.26",
  "serde",
@@ -7323,6 +7328,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "prost-types"
+version = "0.13.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "52c2c1bf36ddb1a1c396b3601a3cec27c2462e45f07c386894ec3ccf5332bd16"
+dependencies = [
+ "prost",
+]
+
+[[package]]
+name = "protoc-gen-grafbase-subgraph"
+version = "0.1.0"
+dependencies = [
+ "grafbase-workspace-hack",
+ "indexmap 2.9.0",
+ "insta",
+ "paste",
+ "prost",
+ "prost-types",
+ "tempfile",
+ "walkdir",
+]
+
+[[package]]
 name = "psm"
 version = "0.1.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8237,17 +8265,6 @@ dependencies = [
  "tungstenite 0.26.2",
  "url",
  "wasi-component-loader",
-]
-
-[[package]]
-name = "runtime-noop"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "futures",
- "grafbase-workspace-hack",
- "runtime",
- "thiserror 2.0.12",
 ]
 
 [[package]]

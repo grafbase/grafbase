@@ -11,6 +11,8 @@ use itertools::Itertools;
 use ordered_float::OrderedFloat;
 use priority_queue::PriorityQueue;
 
+const DECAY_FACTOR: f32 = 0.8;
+
 pub struct PartialSdl {
     pub max_depth: u8,
     pub search_tokens: Vec<String>,
@@ -66,6 +68,14 @@ impl SdlBuilder<'_> {
 
         self.content.reserve(type_ids.len() + field_ids.len());
 
+        let mut root_type_ids = vec![self.schema.query().id];
+        if let Some(root_type) = self.schema.mutation() {
+            root_type_ids.push(root_type.id);
+        }
+        if let Some(root_type) = self.schema.subscription() {
+            root_type_ids.push(root_type.id);
+        }
+
         // For all the necessary fields, we ignore all other sibling fields. This lets us ignore
         // all irrelevant fields of types like Query.
         field_ids.sort_unstable_by_key(|(field_id, _)| self.schema.walk(field_id).parent_entity_id);
@@ -79,11 +89,22 @@ impl SdlBuilder<'_> {
                 field_ids.push(field_id);
                 self.generate_content_for_field(self.schema.walk(field_id), 0, score);
             }
+
+            // Root types will have way too many irrelevant fields.
+            let fields_subset = if entity_id
+                .as_object()
+                .map(|id| root_type_ids.contains(&id))
+                .unwrap_or_default()
+            {
+                Some(field_ids)
+            } else {
+                None
+            };
             self.content.insert(
                 entity_id.into(),
                 WriteOptions {
                     interfaces: false,
-                    fields_subset: Some(field_ids),
+                    fields_subset,
                     score: 0.0,
                     depth: 0,
                 },
@@ -150,6 +171,7 @@ impl SdlBuilder<'_> {
         // 1 as they're not always necessary.
         if let Some(ty) = ty.as_composite_type() {
             let depth = depth + 1;
+            let score = score * DECAY_FACTOR;
             if !ty.is_object() && depth <= self.params.max_depth && score > f32::EPSILON {
                 let interfaces = ty.is_interface();
                 for id in ty.possible_type_ids() {
@@ -178,21 +200,22 @@ impl SdlBuilder<'_> {
     }
 
     fn generate_content_for_field(&mut self, field: FieldDefinition<'_>, depth: u8, score: f32) {
-        for arg in field.arguments() {
-            self.generate_content_for_type(arg.ty().definition(), depth, score, false);
-        }
-
         let depth = depth + 1;
         if depth > self.params.max_depth || score <= f32::EPSILON {
             return;
         }
+
+        for arg in field.arguments() {
+            self.generate_content_for_type(arg.ty().definition(), depth, score * DECAY_FACTOR, false);
+        }
+
         match field.ty().definition_id {
             TypeDefinitionId::Enum(_) | TypeDefinitionId::InputObject(_) => (),
             TypeDefinitionId::Interface(_)
             | TypeDefinitionId::Object(_)
             | TypeDefinitionId::Scalar(_)
             | TypeDefinitionId::Union(_) => {
-                self.generate_content_for_type(field.ty().definition(), depth, score, false);
+                self.generate_content_for_type(field.ty().definition(), depth, score * DECAY_FACTOR, false);
             }
         }
     }
@@ -213,7 +236,7 @@ impl SdlBuilder<'_> {
         for (type_id, opt) in content.iter() {
             tracing::debug!("{} {}|{}", self.schema.walk(type_id).name(), opt.score, opt.depth);
             if opt.depth == 0 {
-                queue.push(*type_id, OrderedFloat(f32::INFINITY));
+                queue.push(*type_id, (OrderedFloat(f32::INFINITY), *type_id));
                 seen.insert(*type_id);
             }
         }
@@ -222,7 +245,7 @@ impl SdlBuilder<'_> {
         // on their score until we exceeded our size limit.
         while let Some((type_id, _)) = queue.pop() {
             let opt = &content[&type_id];
-            if opt.depth > 0 && buffer.len() >= params.max_size_for_extra_content {
+            if !type_id.is_scalar() && opt.depth > 0 && buffer.len() >= params.max_size_for_extra_content {
                 break;
             }
             buffer.write_type_definition(schema.walk(type_id), opt);
@@ -232,7 +255,21 @@ impl SdlBuilder<'_> {
                     let ty = field.ty().definition_id;
                     if let Some(opt) = content.get(&ty) {
                         if seen.insert(ty) {
-                            queue.push(ty, OrderedFloat(opt.score));
+                            // We always include scalars, the agent cannot guess what they are
+                            // without their description.
+                            let score = if ty.is_scalar() { f32::INFINITY } else { opt.score };
+                            queue.push(ty, (OrderedFloat(score), ty));
+                        }
+                    }
+                    for arg in field.arguments() {
+                        let ty = arg.ty().definition_id;
+                        if let Some(opt) = content.get(&ty) {
+                            if seen.insert(ty) {
+                                // We always include scalars, the agent cannot guess what they are
+                                // without their description.
+                                let score = if ty.is_scalar() { f32::INFINITY } else { opt.score };
+                                queue.push(ty, (OrderedFloat(score), ty));
+                            }
                         }
                     }
                 }
@@ -243,7 +280,7 @@ impl SdlBuilder<'_> {
                     let ty = (*id).into();
                     if let Some(opt) = content.get(&ty) {
                         if seen.insert(ty) {
-                            queue.push(ty, OrderedFloat(opt.score));
+                            queue.push(ty, (OrderedFloat(opt.score), ty));
                         }
                     }
                 }
@@ -259,6 +296,6 @@ impl PartialSdl {
         // We favor any element that contains one of the search tokens in their name.
         let name = name.to_lowercase();
         let extra = (depth > 0) && self.search_tokens.iter().any(|token| name.contains(token));
-        score + (extra as u8) as f32
+        if extra { score / DECAY_FACTOR } else { score }
     }
 }

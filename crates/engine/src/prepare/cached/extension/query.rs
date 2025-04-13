@@ -35,7 +35,7 @@ impl serde::Serialize for ExtensionInputValueQueryView<'_> {
             ExtensionInputValueRecord::String(id) => serializer.serialize_str(&ctx.schema[*id]),
             ExtensionInputValueRecord::EnumValue(id) => serializer.serialize_str(&ctx.schema[*id]),
             ExtensionInputValueRecord::Int(value) => serializer.serialize_i32(*value),
-            ExtensionInputValueRecord::BigInt(value) => serializer.serialize_i64(*value),
+            ExtensionInputValueRecord::I64(value) => serializer.serialize_i64(*value),
             ExtensionInputValueRecord::U64(value) => serializer.serialize_u64(*value),
             ExtensionInputValueRecord::Float(value) => serializer.serialize_f64(*value),
             ExtensionInputValueRecord::Boolean(value) => serializer.serialize_bool(*value),

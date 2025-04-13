@@ -15,7 +15,7 @@ impl serde::Serialize for QueryInputValue<'_> {
             QueryInputValueRecord::String(s) | QueryInputValueRecord::UnboundEnumValue(s) => s.serialize(serializer),
             QueryInputValueRecord::EnumValue(id) => id.walk(ctx.schema).name().serialize(serializer),
             QueryInputValueRecord::Int(n) => n.serialize(serializer),
-            QueryInputValueRecord::BigInt(n) => n.serialize(serializer),
+            QueryInputValueRecord::I64(n) => n.serialize(serializer),
             QueryInputValueRecord::Float(f) => f.serialize(serializer),
             QueryInputValueRecord::U64(n) => n.serialize(serializer),
             QueryInputValueRecord::Boolean(b) => b.serialize(serializer),

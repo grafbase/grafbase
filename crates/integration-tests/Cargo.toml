@@ -47,7 +47,6 @@ ory-client.workspace = true # overridden by patch, pointing to their last releas
 reqwest.workspace = true
 runtime = { workspace = true, features = ["test-utils"] }
 runtime-local = { workspace = true, features = ["wasi", "redis"] }
-runtime-noop.workspace = true
 rustls = { workspace = true, features = ["aws-lc-rs"] }
 semver.workspace = true
 serde.workspace = true

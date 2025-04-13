@@ -147,7 +147,6 @@ impl<'de> serde::Deserializer<'de> for ResponseValueView<'de> {
             .deserialize_any(visitor),
             ResponseValue::Boolean { value, .. } => visitor.visit_bool(*value),
             ResponseValue::Int { value, .. } => visitor.visit_i32(*value),
-            ResponseValue::BigInt { value, .. } => visitor.visit_i64(*value),
             ResponseValue::Float { value, .. } => visitor.visit_f64(*value),
             ResponseValue::String { value, .. } => visitor.visit_borrowed_str(value),
             ResponseValue::StringId { id, .. } => visitor.visit_borrowed_str(&self.ctx.response.schema[*id]),
@@ -168,6 +167,7 @@ impl<'de> serde::Deserializer<'de> for ResponseValueView<'de> {
             }
             .deserialize_any(visitor),
             ResponseValue::Unexpected => Err(InputValueSerdeError::Message("Unexpected value".to_string())),
+            ResponseValue::I64 { value } => visitor.visit_i64(*value),
             ResponseValue::U64 { value } => visitor.visit_u64(*value),
             ResponseValue::Map { id } => {
                 MapDeserializer::new(self.ctx.response.data_parts[*id].iter().map(|(key, value)| {

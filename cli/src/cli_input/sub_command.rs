@@ -5,7 +5,7 @@ use crate::{cli_input::ExtensionSubCommand, is_not_direct_install};
 use super::{
     CheckCommand, CompletionsCommand, CreateCommand, DevCommand, ExtensionCommand, IntrospectCommand, LintCommand,
     LoginCommand, PublishCommand, SchemaCommand, SubgraphsCommand, branch::BranchCommand, compose::ComposeCommand,
-    trust::TrustCommand,
+    mcp::McpCommand, trust::TrustCommand,
 };
 
 #[derive(Debug, Parser, strum::AsRefStr, strum::Display)]
@@ -44,6 +44,7 @@ pub enum SubCommand {
     Lint(LintCommand),
     /// Start the local development server
     Dev(DevCommand),
+    Mcp(McpCommand),
     /// Develop gateway extensions
     Extension(ExtensionCommand),
 }

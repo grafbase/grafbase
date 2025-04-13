@@ -22,7 +22,7 @@ impl std::fmt::Debug for VariableInputValue<'_> {
                 f.debug_tuple("EnumValue").field(&id.walk(ctx.schema).name()).finish()
             }
             VariableInputValueRecord::Int(n) => f.debug_tuple("Int").field(n).finish(),
-            VariableInputValueRecord::BigInt(n) => f.debug_tuple("BigInt").field(n).finish(),
+            VariableInputValueRecord::I64(n) => f.debug_tuple("I64").field(n).finish(),
             VariableInputValueRecord::U64(n) => f.debug_tuple("U64").field(n).finish(),
             VariableInputValueRecord::Float(n) => f.debug_tuple("Float").field(n).finish(),
             VariableInputValueRecord::Boolean(b) => b.fmt(f),

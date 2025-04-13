@@ -13,7 +13,6 @@ use runtime_local::{
     InMemoryEntityCache, InMemoryKvStore, InMemoryOperationCache, NativeFetcher,
     rate_limiting::in_memory::key_based::InMemoryRateLimiter, wasi::hooks::HooksWasi,
 };
-use runtime_noop::trusted_documents::NoopTrustedDocuments;
 use tokio::sync::watch;
 
 pub use context::*;
@@ -82,8 +81,7 @@ impl TestRuntimeBuilder {
             fetcher: fetcher.unwrap_or_else(|| {
                 DynamicFetcher::wrap(NativeFetcher::new(config).expect("couldnt construct NativeFetcher"))
             }),
-            trusted_documents: trusted_documents
-                .unwrap_or_else(|| trusted_documents_client::Client::new(NoopTrustedDocuments)),
+            trusted_documents: trusted_documents.unwrap_or_else(|| trusted_documents_client::Client::new(())),
             kv,
             metrics: EngineMetrics::build(&metrics::meter_from_global_provider(), None),
             hooks,
@@ -111,7 +109,7 @@ impl Default for TestRuntime {
         );
         Self {
             fetcher,
-            trusted_documents: trusted_documents_client::Client::new(NoopTrustedDocuments),
+            trusted_documents: trusted_documents_client::Client::new(()),
             kv,
             operation_cache: InMemoryOperationCache::default(),
             metrics: EngineMetrics::build(&metrics::meter_from_global_provider(), None),

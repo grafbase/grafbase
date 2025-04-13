@@ -6,6 +6,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+#[derive(Default)]
 pub struct InMemoryKvStore {
     inner: Mutex<HashMap<String, CacheValue>>,
 }
@@ -18,14 +19,6 @@ struct CacheValue {
 impl InMemoryKvStore {
     pub fn runtime() -> KvStore {
         KvStore::new(Self::default())
-    }
-}
-
-impl Default for InMemoryKvStore {
-    fn default() -> Self {
-        Self {
-            inner: Mutex::new(HashMap::new()),
-        }
     }
 }
 

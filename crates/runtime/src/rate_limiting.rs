@@ -39,6 +39,12 @@ pub struct RateLimiter {
     inner: Arc<dyn RateLimiterInner>,
 }
 
+impl Default for RateLimiter {
+    fn default() -> Self {
+        RateLimiter { inner: Arc::new(()) }
+    }
+}
+
 impl RateLimiter {
     pub fn new(rate_limiter: impl RateLimiterInner + 'static) -> RateLimiter {
         RateLimiter {

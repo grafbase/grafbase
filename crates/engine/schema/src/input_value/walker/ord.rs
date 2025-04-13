@@ -18,7 +18,7 @@ impl Ord for SchemaInputValue<'_> {
                 (SchemaInputValueRecord::String(l), SchemaInputValueRecord::String(r)) => l.cmp(r),
                 (SchemaInputValueRecord::EnumValue(l), SchemaInputValueRecord::EnumValue(r)) => l.cmp(r),
                 (SchemaInputValueRecord::Int(l), SchemaInputValueRecord::Int(r)) => l.cmp(r),
-                (SchemaInputValueRecord::BigInt(l), SchemaInputValueRecord::BigInt(r)) => l.cmp(r),
+                (SchemaInputValueRecord::I64(l), SchemaInputValueRecord::I64(r)) => l.cmp(r),
                 (SchemaInputValueRecord::U64(l), SchemaInputValueRecord::U64(r)) => l.cmp(r),
                 (SchemaInputValueRecord::Float(l), SchemaInputValueRecord::Float(r)) => l.total_cmp(r),
                 (SchemaInputValueRecord::Boolean(l), SchemaInputValueRecord::Boolean(r)) => l.cmp(r),

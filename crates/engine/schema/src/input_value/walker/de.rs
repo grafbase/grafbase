@@ -25,7 +25,7 @@ impl<'de> serde::Deserializer<'de> for SchemaInputValue<'de> {
             }
             SchemaInputValueRecord::EnumValue(id) => visitor.visit_borrowed_str(id.walk(self.schema).name()),
             SchemaInputValueRecord::Int(n) => visitor.visit_i32(*n),
-            SchemaInputValueRecord::BigInt(n) => visitor.visit_i64(*n),
+            SchemaInputValueRecord::I64(n) => visitor.visit_i64(*n),
             SchemaInputValueRecord::U64(n) => visitor.visit_u64(*n),
             SchemaInputValueRecord::Float(n) => visitor.visit_f64(*n),
             SchemaInputValueRecord::Boolean(b) => visitor.visit_bool(*b),

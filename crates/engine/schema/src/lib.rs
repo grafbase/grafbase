@@ -279,9 +279,9 @@ pub enum ScalarType {
     String,
     Float,
     Int,
-    BigInt,
     Boolean,
     /// Anything is accepted for this scalar.
+    /// Treat this as arbitrary JSON
     Unknown,
 }
 
@@ -291,7 +291,6 @@ impl ScalarType {
             "String" | "ID" => ScalarType::String,
             "Float" => ScalarType::Float,
             "Int" => ScalarType::Int,
-            "BigInt" => ScalarType::BigInt,
             "Boolean" => ScalarType::Boolean,
             _ => ScalarType::Unknown,
         }

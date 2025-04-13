@@ -93,7 +93,6 @@ pub enum VariableInputValueRecord {
     String(String),
     EnumValue(EnumValueId),
     Int(i32),
-    BigInt(i64),
     Float(f64),
     Boolean(bool),
     InputObject(IdRange<VariableInputObjectFieldValueId>),
@@ -101,6 +100,7 @@ pub enum VariableInputValueRecord {
 
     /// for JSON
     Map(IdRange<VariableInputKeyValueId>),
+    I64(i64),
     U64(u64),
 
     /// Used to reference default values for operation input values. It's tricky without as default

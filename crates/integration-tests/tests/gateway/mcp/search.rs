@@ -295,22 +295,25 @@ fn with_nested_types() {
           post(id: ID!): Post
         }
 
-        # Incomplete fields
+        type Comment {
+          author: User!
+          body: String!
+          createdAt: String!
+          id: ID!
+        }
+
         type Post {
+          author: User!
           comments(first: Int = 10, after: String): [Comment!]
+          id: ID!
+          tags: [String!]!
+          title: String!
         }
 
         type User {
           email: String
           id: ID!
           name: String!
-        }
-
-        type Comment {
-          author: User!
-          body: String!
-          createdAt: String!
-          id: ID!
         }
         "##);
     });
@@ -366,18 +369,6 @@ fn with_input_types() {
 
         let response = stream.call_tool("search", json!({"keywords": ["searchPosts"]})).await;
         insta::assert_snapshot!(&response, @r##"
-        input PaginationInput {
-          first: Int! = 10
-          after: String
-        }
-
-        input PostFilter {
-          title: String
-          authorId: ID
-          tags: [String!]
-          createdAfter: String
-        }
-
         # Incomplete fields
         type Query {
           searchPosts(filter: PostFilter!, pagination: PaginationInput): [Post!]!
@@ -394,6 +385,18 @@ fn with_input_types() {
         type User {
           id: ID!
           name: String!
+        }
+
+        input PaginationInput {
+          first: Int! = 10
+          after: String
+        }
+
+        input PostFilter {
+          title: String
+          authorId: ID
+          tags: [String!]
+          createdAfter: String
         }
         "##);
     });
@@ -601,8 +604,8 @@ fn multiple_keywords() {
         insta::assert_snapshot!(&response, @r##"
         # Incomplete fields
         type Query {
-          post: Post
           user: User
+          post: Post
         }
 
         type Post {
@@ -663,19 +666,21 @@ fn shallow_depth_should_be_first() {
         let response = stream.call_tool("search", json!({"keywords": ["author"]})).await;
         insta::assert_snapshot!(&response, @r##"
         # Incomplete fields
-        type Comment {
-          author: User
-        }
-
-        # Incomplete fields
-        type Post {
-          comments: [Comment]
-          author: User
-        }
-
-        # Incomplete fields
         type Query {
           posts: [Post]
+        }
+
+        type Comment {
+          author: User
+          content: String!
+          id: ID!
+        }
+
+        type Post {
+          author: User
+          comments: [Comment]
+          id: ID!
+          title: String!
         }
 
         type User {
@@ -804,11 +809,24 @@ fn search_descriptions() {
         // Search for a term that appears in descriptions
         let response = stream.call_tool("search", json!({"keywords": ["blog"]})).await;
         insta::assert_snapshot!(&response, @r##"
-        "Represents a blog post in the system"
         # Incomplete fields
+        type Query {
+          "Search for blog posts using various criteria"
+          searchPosts(
+            "Filter criteria for blog posts"
+            filter: PostFilter!
+          ): [Post!]!
+        }
+
+        "Represents a blog post in the system"
         type Post {
           "The main content/body of the blog post"
           content: String!
+          createdAt: String!
+          id: ID!
+          "List of tags associated with the post"
+          tags: [String!]!
+          title: String!
         }
 
         "Input type for filtering blog posts"
@@ -819,15 +837,6 @@ fn search_descriptions() {
           tags: [String!]
           "Only return posts created after this date"
           createdAfter: String
-        }
-
-        # Incomplete fields
-        type Query {
-          "Search for blog posts using various criteria"
-          searchPosts(
-            "Filter criteria for blog posts"
-            filter: PostFilter!
-          ): [Post!]!
         }
         "##);
 
@@ -849,16 +858,6 @@ fn search_descriptions() {
           ): [Post!]!
         }
 
-        "Input type for filtering blog posts"
-        input PostFilter {
-          "Search by post title (case insensitive)"
-          title: String
-          "Filter posts by specific tags"
-          tags: [String!]
-          "Only return posts created after this date"
-          createdAfter: String
-        }
-
         "Represents a blog post in the system"
         type Post {
           "The main content/body of the blog post"
@@ -868,6 +867,16 @@ fn search_descriptions() {
           "List of tags associated with the post"
           tags: [String!]!
           title: String!
+        }
+
+        "Input type for filtering blog posts"
+        input PostFilter {
+          "Search by post title (case insensitive)"
+          title: String
+          "Filter posts by specific tags"
+          tags: [String!]
+          "Only return posts created after this date"
+          createdAfter: String
         }
         "##);
     });

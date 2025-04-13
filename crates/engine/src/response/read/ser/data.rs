@@ -92,7 +92,7 @@ impl serde::Serialize for SerializableResponseValue<'_> {
             ResponseValue::Float { value, .. } => value.serialize(serializer),
             ResponseValue::String { value, .. } => value.serialize(serializer),
             ResponseValue::StringId { id, .. } => self.ctx.schema[*id].serialize(serializer),
-            ResponseValue::BigInt { value, .. } => value.serialize(serializer),
+            ResponseValue::I64 { value, .. } => value.serialize(serializer),
             ResponseValue::List { id, .. } => SerializableResponseList {
                 ctx: self.ctx,
                 value: &self.ctx.data[*id],

@@ -175,6 +175,7 @@ jobs:
           project: lc6t0h7bhh
           token: ${{ secrets.DEPOT_TOKEN }}
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: ghcr.io/grafbase/gateway:${{ env.COMMIT_SHA }}, ghcr.io/grafbase/gateway:latest
           file: ./gateway/Dockerfile
 
@@ -191,6 +192,7 @@ jobs:
           project: lc6t0h7bhh
           token: ${{ secrets.DEPOT_TOKEN }}
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: ghcr.io/grafbase/gateway:${{ env.RELEASE_VERSION }}
           file: ./gateway/Dockerfile
 
