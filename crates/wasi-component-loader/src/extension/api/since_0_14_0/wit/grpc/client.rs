@@ -78,23 +78,46 @@ impl HostGrpcClient for WasiState {
                 metadata: tonic_metadata_to_wasi_metadata(response.metadata()),
                 message: response.into_inner(),
             })),
-            Err(err) => Ok(Err(GrpcStatus {
-                code: err.code().into(),
-                message: err.message().to_owned(),
-                metadata: tonic_metadata_to_wasi_metadata(err.metadata()),
-            })),
+            Err(err) => Ok(Err(tonic_status_to_grpc_status(err))),
         }
     }
 
     async fn streaming(
         &mut self,
-        _self_: wasmtime::component::Resource<GrpcClient>,
-        _message: Vec<u8>,
-        _method: String,
-        _metadata: MetadataMap,
-        _timeout: Option<u64>,
+        self_: Resource<GrpcClient>,
+        message: Vec<u8>,
+        service: String,
+        method: String,
+        metadata: MetadataMap,
+        timeout: Option<u64>,
     ) -> wasmtime::Result<Result<wasmtime::component::Resource<GrpcStreamingResponse>, GrpcStatus>> {
-        todo!()
+        let client = self.get_mut(&self_)?;
+
+        client
+            .ready()
+            .await
+            .map_err(|e| tonic::Status::unknown(format!("Service was not ready: {e}")))?;
+
+        let path_and_query: http::uri::PathAndQuery = format!("/{service}/{method}").parse()?;
+        let mut request = tonic::Request::new(message);
+
+        for (key, value) in metadata {
+            request.metadata_mut().insert_bin(
+                MetadataKey::from_bytes(key.as_bytes()).unwrap(),
+                MetadataValue::from_bytes(&value),
+            );
+        }
+
+        if let Some(timeout) = timeout {
+            request.set_timeout(std::time::Duration::from_millis(timeout));
+        }
+
+        tracing::debug!("Sending server streaming request to {path_and_query}");
+
+        match client.server_streaming(request, path_and_query, IdentityCodec).await {
+            Ok(stream) => Ok(Ok(self.push_resource(stream.into_parts())?)),
+            Err(err) => Ok(Err(tonic_status_to_grpc_status(err))),
+        }
     }
 
     async fn drop(&mut self, rep: Resource<GrpcClient>) -> wasmtime::Result<()> {
@@ -168,7 +191,7 @@ impl From<tonic::Code> for super::GrpcStatusCode {
     }
 }
 
-fn tonic_metadata_to_wasi_metadata(metadata: &tonic::metadata::MetadataMap) -> MetadataMap {
+pub(super) fn tonic_metadata_to_wasi_metadata(metadata: &tonic::metadata::MetadataMap) -> MetadataMap {
     metadata
         .iter()
         .map(|kv| match kv {
@@ -180,4 +203,12 @@ fn tonic_metadata_to_wasi_metadata(metadata: &tonic::metadata::MetadataMap) -> M
             }
         })
         .collect()
+}
+
+pub(super) fn tonic_status_to_grpc_status(err: tonic::Status) -> GrpcStatus {
+    GrpcStatus {
+        code: err.code().into(),
+        message: err.message().to_owned(),
+        metadata: tonic_metadata_to_wasi_metadata(err.metadata()),
+    }
 }

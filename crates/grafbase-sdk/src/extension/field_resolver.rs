@@ -255,12 +255,12 @@ pub trait FieldResolverExtension: Sized + 'static {
     /// # Returns
     ///
     /// Returns a `Result` containing either a boxed `Subscriber` implementation or an `Error`
-    fn resolve_subscription(
-        &mut self,
+    fn resolve_subscription<'a>(
+        &'a mut self,
         headers: SubgraphHeaders,
         subgraph_name: &str,
         directive: FieldDefinitionDirective<'_>,
-    ) -> Result<Box<dyn Subscription>, Error> {
+    ) -> Result<Box<dyn Subscription + 'a>, Error> {
         unimplemented!()
     }
 
@@ -320,12 +320,12 @@ pub fn register<T: FieldResolverExtension>() {
         ) -> Result<FieldOutputs, Error> {
             FieldResolverExtension::resolve_field(&mut self.0, headers, subgraph_name, directive, inputs)
         }
-        fn resolve_subscription(
-            &mut self,
+        fn resolve_subscription<'a>(
+            &'a mut self,
             headers: SubgraphHeaders,
             subgraph_name: &str,
             directive: FieldDefinitionDirective<'_>,
-        ) -> Result<Box<dyn Subscription>, Error> {
+        ) -> Result<Box<dyn Subscription + 'a>, Error> {
             FieldResolverExtension::resolve_subscription(&mut self.0, headers, subgraph_name, directive)
         }
 

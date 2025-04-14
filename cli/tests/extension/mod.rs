@@ -119,12 +119,12 @@ fn init_resolver() {
             todo!()
         }
 
-        fn resolve_subscription(
-            &mut self,
+        fn resolve_subscription<'a>(
+            &'a mut self,
             headers: SubgraphHeaders,
             subgraph_name: &str,
             directive: FieldDefinitionDirective<'_>,
-        ) -> Result<Box<dyn Subscription>, Error> {
+        ) -> Result<Box<dyn Subscription + 'a>, Error> {
             todo!()
         }
     }
