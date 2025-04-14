@@ -1,4 +1,4 @@
-use crate::{StringId, builder::Context};
+use crate::{StringId, builder::BuildContext};
 use std::fmt::Write;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -32,7 +32,7 @@ impl From<&str> for ValuePathSegment {
     }
 }
 
-pub(super) fn value_path_to_string(ctx: &Context<'_>, value_path: &[ValuePathSegment]) -> String {
+pub(crate) fn value_path_to_string(ctx: &BuildContext<'_>, value_path: &[ValuePathSegment]) -> String {
     let mut output = String::new();
     if value_path.is_empty() {
         return output;
@@ -42,7 +42,7 @@ pub(super) fn value_path_to_string(ctx: &Context<'_>, value_path: &[ValuePathSeg
         output.push('.');
         match segment {
             ValuePathSegment::Field(id) => {
-                output.push_str(&ctx.strings[*id]);
+                output.push_str(&ctx[*id]);
             }
             ValuePathSegment::Index(idx) => {
                 write!(&mut output, "{}", idx).unwrap();

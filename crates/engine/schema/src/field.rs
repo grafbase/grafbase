@@ -3,6 +3,12 @@ use crate::{
     TypeSystemDirective,
 };
 
+impl std::fmt::Display for FieldDefinition<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}.{}", self.parent_entity().name(), self.name())
+    }
+}
+
 impl<'a> FieldDefinition<'a> {
     pub fn argument_by_name(&self, name: &str) -> Option<InputValueDefinition<'a>> {
         self.arguments().find(|arg| arg.name() == name)

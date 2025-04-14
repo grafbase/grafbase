@@ -14,14 +14,14 @@ use walker::{Iter, Walk};
 ///
 /// ```custom,{.language-graphql}
 /// type SchemaField
-///   @meta(module: "field_set/field", derive: ["PartialEq", "Eq", "PartialOrd", "Ord"], debug: false)
+///   @meta(module: "field_set/field", derive: ["PartialEq", "Eq", "PartialOrd", "Ord", "Clone"], debug: false)
 ///   @indexed(id_size: "u32", deduplicated: true) {
 ///   definition: FieldDefinition!
 ///   "Sorted by input value definition id"
 ///   sorted_arguments: [SchemaFieldArgument!]!
 /// }
 /// ```
-#[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct SchemaFieldRecord {
     pub definition_id: FieldDefinitionId,
     /// Sorted by input value definition id

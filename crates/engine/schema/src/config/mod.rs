@@ -3,9 +3,6 @@ mod response_extensions;
 mod retry;
 mod trusted_documents;
 
-use id_newtypes::IdRange;
-
-use crate::HeaderRuleId;
 pub use complexity_control::*;
 pub use response_extensions::*;
 pub use retry::*;
@@ -13,8 +10,6 @@ pub use trusted_documents::*;
 
 #[derive(Default, serde::Serialize, serde::Deserialize)]
 pub struct PartialConfig {
-    pub(crate) default_header_rules: IdRange<HeaderRuleId>,
-
     pub timeout: std::time::Duration,
     pub operation_limits: gateway_config::OperationLimitsConfig,
     pub disable_introspection: bool,

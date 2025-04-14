@@ -5,11 +5,13 @@ mod extension;
 mod graph;
 mod hash;
 mod interner;
+mod sdl;
 mod subgraphs;
 
-use context::Context;
+use context::{BuildContext, Interners};
+use extension::{ExtensionsContext, finalize_selection_set_resolvers, ingest_extension_schema_directives};
 use extension_catalog::ExtensionCatalog;
-use subgraphs::SubgraphsContext;
+use sdl::Sdl;
 
 use self::error::*;
 pub(crate) use coerce::*;
@@ -21,73 +23,56 @@ use crate::*;
 
 pub(crate) async fn build(
     config: &gateway_config::Config,
-    federated_sdl: &str,
+    sdl: &str,
     extension_catalog: &ExtensionCatalog,
 ) -> Result<Schema, BuildError> {
-    let federated_graph = federated_graph::FederatedGraph::from_sdl(federated_sdl).unwrap();
-    Context::new(config, extension_catalog, &federated_graph)
-        .await?
-        .build(federated_sdl, extension_catalog)
+    if !sdl.trim().is_empty() {
+        let doc = &cynic_parser::parse_type_system_document(sdl)?;
+        let sdl = Sdl::try_from((sdl, doc))?;
+        let extensions = ExtensionsContext::load(&sdl, extension_catalog).await?;
+
+        BuildContext::new(&sdl, &extensions, config)?.build()
+    } else {
+        let sdl = Default::default();
+        let extensions = ExtensionsContext::load(&sdl, extension_catalog).await?;
+
+        BuildContext::new(&sdl, &extensions, config)?.build()
+    }
 }
 
-impl Context<'_> {
-    fn build(mut self, federated_sdl: &str, extension_catalog: &ExtensionCatalog) -> Result<Schema, BuildError> {
-        let default_headers = &self.config.headers;
-        let default_header_rules = self.ingest_header_rules(default_headers);
-        let (
-            Context {
-                strings,
-                urls,
-                config,
-                subgraphs:
-                    SubgraphsContext {
-                        graphql_endpoints,
-                        virtual_subgraphs,
-                        ..
-                    },
-                regexps,
-                header_rules,
-                templates,
-                ..
-            },
-            graph,
-            introspection,
-        ) = self.into_ctx_graph_introspection()?;
+impl BuildContext<'_> {
+    fn build(self) -> Result<Schema, BuildError> {
+        let (mut graph_builder, locations, introspection) = ingest_definitions(self)?;
 
-        let subgraphs = SubGraphs {
-            graphql_endpoints,
-            virtual_subgraphs,
-            introspection,
-        };
+        // From this point on the definitions should have been all added and now we interpret the
+        // directives.
 
-        let response_extension = config
-            .telemetry
-            .exporters
-            .response_extension
-            .clone()
-            .unwrap_or_default()
-            .into();
+        ingest_extension_schema_directives(&mut graph_builder)?;
 
-        let executable_document_limit_bytes = config
-            .executable_document_limit
-            .bytes()
-            .try_into()
-            .expect("executable document limit should not be negative");
+        process_directives(&mut graph_builder, locations)?;
 
-        let settings = PartialConfig {
-            timeout: config.gateway.timeout,
-            default_header_rules,
-            operation_limits: config.operation_limits.unwrap_or_default(),
-            disable_introspection: !config.graph.introspection.unwrap_or_default(),
-            retry: config.gateway.retry.enabled.then_some(config.gateway.retry.into()),
-            batching: config.gateway.batching.clone(),
-            complexity_control: (&config.complexity_control).into(),
-            response_extension,
-            apq_enabled: config.apq.enabled,
-            executable_document_limit_bytes,
-            trusted_documents: config.trusted_documents.clone().into(),
-            websocket_forward_connection_init_payload: config.websockets.forward_connection_init_payload,
-        };
+        finalize_selection_set_resolvers(&mut graph_builder)?;
+
+        let GraphBuilder {
+            ctx:
+                BuildContext {
+                    sdl,
+                    interners,
+                    subgraphs,
+                    config,
+                    extensions: ExtensionsContext { catalog, .. },
+                    ..
+                },
+            mut graph,
+            required_scopes,
+            ..
+        } = graph_builder;
+        graph.required_scopes = required_scopes.into();
+
+        let subgraphs = subgraphs.finalize_with(introspection);
+        let settings = build_settings(config);
+
+        let Interners { strings, regexps, urls } = interners;
 
         let strings = strings
             .into_iter()
@@ -97,8 +82,8 @@ impl Context<'_> {
             })
             .collect();
 
-        let extensions = extension_catalog.iter().map(|ext| ext.manifest.id.clone()).collect();
-        let hash = hash::compute(federated_sdl, extension_catalog);
+        let extensions = catalog.iter().map(|ext| ext.manifest.id.clone()).collect();
+        let hash = hash::compute(sdl, catalog);
 
         Ok(Schema {
             subgraphs,
@@ -108,9 +93,33 @@ impl Context<'_> {
             strings,
             regexps: regexps.into(),
             urls: urls.into(),
-            templates,
-            header_rules,
             settings,
         })
+    }
+}
+
+fn build_settings(config: &gateway_config::Config) -> PartialConfig {
+    PartialConfig {
+        timeout: config.gateway.timeout,
+        operation_limits: config.operation_limits.unwrap_or_default(),
+        disable_introspection: !config.graph.introspection.unwrap_or_default(),
+        retry: config.gateway.retry.enabled.then_some(config.gateway.retry.into()),
+        batching: config.gateway.batching.clone(),
+        complexity_control: (&config.complexity_control).into(),
+        response_extension: config
+            .telemetry
+            .exporters
+            .response_extension
+            .clone()
+            .unwrap_or_default()
+            .into(),
+        apq_enabled: config.apq.enabled,
+        executable_document_limit_bytes: config
+            .executable_document_limit
+            .bytes()
+            .try_into()
+            .expect("executable document limit should not be negative"),
+        trusted_documents: config.trusted_documents.clone().into(),
+        websocket_forward_connection_init_payload: config.websockets.forward_connection_init_payload,
     }
 }

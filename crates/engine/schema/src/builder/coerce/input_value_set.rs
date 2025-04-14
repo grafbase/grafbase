@@ -1,6 +1,6 @@
 use id_newtypes::IdRange;
 
-use crate::{InputValueDefinitionId, InputValueSelection, InputValueSet, TypeDefinitionId, builder::GraphContext};
+use crate::{InputValueDefinitionId, InputValueSelection, InputValueSet, TypeDefinitionId, builder::GraphBuilder};
 
 use super::{ExtensionDirectiveArgumentsCoercer, ValuePathSegment, value_path_to_string};
 
@@ -20,9 +20,9 @@ pub enum InputValueSetError {
 
 impl ExtensionDirectiveArgumentsCoercer<'_, '_> {
     pub(crate) fn coerce_input_value_set(&mut self, selection_set: &str) -> Result<InputValueSet, InputValueSetError> {
-        let crate::builder::SchemaLocation::FieldDefinition(field_definition_id, _) = self.location else {
+        let crate::builder::SchemaLocation::FieldDefinition(field_definition_id, _, _) = self.location else {
             return Err(InputValueSetError::InvalidInputValueSetOnLocation {
-                location: self.location.to_cynic_location().as_str(),
+                location: self.location.as_cynic_location().as_str(),
             });
         };
         if selection_set.trim() == "*" {
@@ -52,7 +52,7 @@ impl ExtensionDirectiveArgumentsCoercer<'_, '_> {
 }
 
 fn convert_selection_set(
-    ctx: &GraphContext<'_>,
+    ctx: &GraphBuilder<'_>,
     possible_ids: IdRange<InputValueDefinitionId>,
     set: cynic_parser::executable::Iter<cynic_parser::executable::Selection>,
     value_path: &mut Vec<ValuePathSegment>,
@@ -64,7 +64,7 @@ fn convert_selection_set(
             };
             let definition_id = possible_ids
                 .into_iter()
-                .find(|id| ctx.strings[ctx.graph[*id].name_id] == field.name())
+                .find(|id| ctx[ctx.graph[*id].name_id] == field.name())
                 .ok_or_else(|| InputValueSetError::UnknownInputValue {
                     name: field.name().to_string(),
                     path: value_path_to_string(ctx, value_path),

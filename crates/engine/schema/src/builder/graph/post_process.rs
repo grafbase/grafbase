@@ -1,92 +1,162 @@
-use std::{
-    collections::{BTreeSet, hash_map::Entry},
-    mem::take,
-};
+use std::{collections::BTreeSet, mem::take};
 
 use builder::SchemaLocation;
-use federated_graph::{JoinFieldDirective, JoinImplementsDirective, JoinTypeDirective, JoinUnionMemberDirective};
+use cynic_parser_deser::ConstDeserializer;
 use itertools::Itertools;
+
+use crate::builder::{
+    error::InvalidFieldSetError,
+    sdl::{self, GraphName},
+};
 
 use super::*;
 
-pub(super) fn process_directives(ctx: &mut GraphContext<'_>, locations: Vec<SchemaLocation>) -> Result<(), BuildError> {
-    let root_entities = [
-        Some(EntityDefinitionId::from(ctx.graph.root_operation_types_record.query_id)),
-        ctx.graph.root_operation_types_record.mutation_id.map(Into::into),
-        ctx.graph.root_operation_types_record.subscription_id.map(Into::into),
-    ]
-    .into_iter()
-    .flatten()
-    .collect::<Vec<_>>();
+pub enum NestedSchemaLocation<'a> {
+    FieldDefinition(FieldDefinitionId, sdl::TypeDefinition<'a>, sdl::FieldDefinition<'a>),
+    InputValueDefinition(InputValueDefinitionId, sdl::InputValueDefinition<'a>),
+    EnumValue(EnumValueId, sdl::EnumValueDefinition<'a>),
+}
 
+pub(crate) fn process_directives<'a>(
+    builder: &mut GraphBuilder<'a>,
+    locations: Vec<SchemaLocation<'a>>,
+) -> Result<(), BuildError> {
+    let mut directives: Vec<sdl::Directive<'a>> = Vec::new();
+    let mut nested_locations = Vec::with_capacity(locations.len());
     for location in locations {
+        directives.clear();
         match location {
-            SchemaLocation::Enum(id, federated_id) => {
-                ctx.graph[id].directive_ids =
-                    ctx.push_directives(location, &ctx.federated_graph[federated_id].directives)?;
-                ingest_enum_definition_directive(ctx, id, federated_id)?
+            SchemaLocation::Enum(id, enm) => {
+                directives.extend(enm.directives());
+                if let Some(ext) = builder.sdl.type_extensions.get(enm.name()) {
+                    directives.extend(ext.iter().flat_map(|ext| ext.directives()));
+                }
+                builder.graph[id].directive_ids = builder.push_common_directives(location, &directives)?;
+                ingest_enum_definition_directive(builder, id, &directives)?
             }
-            SchemaLocation::InputObject(id, federated_id) => {
-                ctx.graph[id].directive_ids =
-                    ctx.push_directives(location, &ctx.federated_graph[federated_id].directives)?;
-                ingest_input_object_definition_directive(ctx, id, federated_id)?
+            SchemaLocation::InputObject(id, input_object) => {
+                directives.extend(input_object.directives());
+                if let Some(ext) = builder.sdl.type_extensions.get(input_object.name()) {
+                    directives.extend(ext.iter().flat_map(|ext| ext.directives()));
+                }
+                builder.graph[id].directive_ids = builder.push_common_directives(location, &directives)?;
+                ingest_input_object_definition_directive(builder, id, &directives)?
             }
-            SchemaLocation::Interface(id, federated_id) => {
-                ctx.graph[id].directive_ids =
-                    ctx.push_directives(location, &ctx.federated_graph[federated_id].directives)?;
-                ingest_interface_definition_directive(ctx, id, federated_id)?
+            SchemaLocation::Interface(id, interface) => {
+                directives.extend(interface.directives());
+                if let Some(ext) = builder.sdl.type_extensions.get(interface.name()) {
+                    directives.extend(ext.iter().flat_map(|ext| ext.directives()));
+                }
+                builder.graph[id].directive_ids = builder.push_common_directives(location, &directives)?;
+                ingest_interface_definition_directive(builder, id, &directives)?
             }
-            SchemaLocation::Object(id, federated_id) => {
-                ctx.graph[id].directive_ids =
-                    ctx.push_directives(location, &ctx.federated_graph[federated_id].directives)?;
-                ingest_object_definition_directive(ctx, id, federated_id)?
+            SchemaLocation::Object(id, object) => {
+                directives.extend(object.directives());
+                if let Some(ext) = builder.sdl.type_extensions.get(object.name()) {
+                    directives.extend(ext.iter().flat_map(|ext| ext.directives()));
+                }
+                builder.graph[id].directive_ids = builder.push_common_directives(location, &directives)?;
+                ingest_object_definition_directive(builder, id, &directives)?
             }
-            SchemaLocation::Scalar(id, federated_id) => {
-                ctx.graph[id].directive_ids =
-                    ctx.push_directives(location, &ctx.federated_graph[federated_id].directives)?;
-                ingest_scalar_definition_directive(ctx, id, federated_id)?
+            SchemaLocation::Scalar(id, scalar) => {
+                directives.extend(scalar.directives());
+                if let Some(ext) = builder.sdl.type_extensions.get(scalar.name()) {
+                    directives.extend(ext.iter().flat_map(|ext| ext.directives()));
+                }
+                builder.graph[id].directive_ids = builder.push_common_directives(location, &directives)?;
+                ingest_scalar_definition_directive(builder, id, &directives)?
             }
-            SchemaLocation::Union(id, federated_id) => {
-                ctx.graph[id].directive_ids =
-                    ctx.push_directives(location, &ctx.federated_graph[federated_id].directives)?;
-                ingest_union_definition_directive(ctx, id, federated_id)?
+            SchemaLocation::Union(id, union) => {
+                directives.extend(union.directives());
+                if let Some(ext) = builder.sdl.type_extensions.get(union.name()) {
+                    directives.extend(ext.iter().flat_map(|ext| ext.directives()));
+                }
+                builder.graph[id].directive_ids = builder.push_common_directives(location, &directives)?;
+                ingest_union_definition_directive(builder, id, &directives)?
             }
-            SchemaLocation::FieldDefinition(id, federated_id) => {
-                ctx.graph[id].directive_ids =
-                    ctx.push_directives(location, &ctx.federated_graph[federated_id].directives)?;
-                ingest_field_directive(ctx, &root_entities, id, federated_id)?
+            SchemaLocation::FieldDefinition(id, parent, field) => {
+                directives.extend(field.directives());
+                builder.graph[id].directive_ids = builder.push_common_directives(location, &directives)?;
+                nested_locations.push(NestedSchemaLocation::FieldDefinition(id, parent, field));
             }
-            SchemaLocation::InputFieldDefinition(_, id, federated_id)
-            | SchemaLocation::ArgumentDefinition(_, id, federated_id) => {
-                ctx.graph[id].directive_ids =
-                    ctx.push_directives(location, &ctx.federated_graph[federated_id].directives)?;
-                ingest_input_value_directive(ctx, id, federated_id)?
+            SchemaLocation::InputFieldDefinition(_, id, input_value) => {
+                directives.extend(input_value.directives());
+                builder.graph[id].directive_ids = builder.push_common_directives(location, &directives)?;
+                nested_locations.push(NestedSchemaLocation::InputValueDefinition(id, input_value));
             }
-            SchemaLocation::EnumValue(_, id, federated_id) => {
-                ctx.graph[id].directive_ids =
-                    ctx.push_directives(location, &ctx.federated_graph[federated_id].directives)?;
-                ingest_enum_value_directive(ctx, id, federated_id)?
+            SchemaLocation::ArgumentDefinition(_, id, input_value) => {
+                directives.extend(input_value.directives());
+                builder.graph[id].directive_ids = builder.push_common_directives(location, &directives)?;
+                nested_locations.push(NestedSchemaLocation::InputValueDefinition(id, input_value));
+            }
+            SchemaLocation::EnumValue(id, enum_value) => {
+                directives.extend(enum_value.directives());
+                builder.graph[id].directive_ids = builder.push_common_directives(location, &directives)?;
+                nested_locations.push(NestedSchemaLocation::EnumValue(id, enum_value));
             }
             SchemaLocation::SchemaDirective(_) => (),
         }
     }
 
-    finalize_inaccessible(&mut ctx.graph);
-    add_not_fully_implemented_in(&mut ctx.graph);
+    for root_object_id in [
+        Some(builder.graph.root_operation_types_record.query_id),
+        builder.graph.root_operation_types_record.mutation_id,
+        builder.graph.root_operation_types_record.subscription_id,
+    ]
+    .into_iter()
+    .flatten()
+    {
+        let endpoint_ids = builder.graph[root_object_id]
+            .exists_in_subgraph_ids
+            .iter()
+            .filter_map(|id| id.as_graphql_endpoint())
+            .collect::<Vec<_>>();
+        for endpoint_id in endpoint_ids {
+            let resolver =
+                ResolverDefinitionRecord::GraphqlRootField(GraphqlRootFieldResolverDefinitionRecord { endpoint_id });
+            let id = builder.graph.resolver_definitions.len().into();
+            builder.graph.resolver_definitions.push(resolver);
+            builder
+                .entity_resolvers
+                .entry((root_object_id.into(), endpoint_id.into()))
+                .or_default()
+                .push(id);
+        }
+    }
+
+    for location in nested_locations {
+        directives.clear();
+        match location {
+            NestedSchemaLocation::FieldDefinition(id, parent, field) => {
+                directives.extend(field.directives());
+                ingest_field_directive(builder, id, parent, field, &directives)?;
+            }
+            NestedSchemaLocation::InputValueDefinition(id, input_value) => {
+                directives.extend(input_value.directives());
+                ingest_input_value_directive(builder, id, &directives)?;
+            }
+            NestedSchemaLocation::EnumValue(id, enum_value) => {
+                directives.extend(enum_value.directives());
+                ingest_enum_value_directive(builder, id, &directives)?;
+            }
+        }
+    }
+
+    finalize_inaccessible(&mut builder.graph);
+    add_not_fully_implemented_in(&mut builder.graph);
 
     Ok(())
 }
 
-fn ingest_enum_definition_directive(
-    GraphContext { ctx, graph, .. }: &mut GraphContext<'_>,
+fn ingest_enum_definition_directive<'a>(
+    GraphBuilder { ctx, graph, .. }: &mut GraphBuilder<'a>,
     id: EnumDefinitionId,
-    federated_id: federated_graph::EnumDefinitionId,
+    directives: &[sdl::Directive<'a>],
 ) -> Result<(), BuildError> {
     if graph[id].exists_in_subgraph_ids.contains(&SubgraphId::Introspection) {
         return Ok(());
     }
 
-    let directives = &ctx.federated_graph[federated_id].directives;
     if has_inaccessible(directives) {
         graph.inaccessible_enum_definitions.set(id, true);
     }
@@ -94,9 +164,13 @@ fn ingest_enum_definition_directive(
     let enum_def = &mut graph[id];
     enum_def.exists_in_subgraph_ids = directives
         .iter()
-        .filter_map(|dir| dir.as_join_type())
-        .map(|dir| ctx.subgraphs[dir.subgraph_id])
-        .collect::<Vec<_>>();
+        .filter_map(sdl::as_join_type)
+        .map(|result| {
+            result
+                .map_err(|err| err.into_build_error(ctx.sdl))
+                .and_then(|dir| ctx.subgraphs.try_get(dir.graph))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
     if enum_def.exists_in_subgraph_ids.is_empty() {
         enum_def.exists_in_subgraph_ids = ctx.subgraphs.all.clone()
     } else {
@@ -106,21 +180,24 @@ fn ingest_enum_definition_directive(
     Ok(())
 }
 
-fn ingest_input_object_definition_directive(
-    GraphContext { ctx, graph, .. }: &mut GraphContext<'_>,
+fn ingest_input_object_definition_directive<'a>(
+    GraphBuilder { ctx, graph, .. }: &mut GraphBuilder<'a>,
     id: InputObjectDefinitionId,
-    federated_id: federated_graph::InputObjectId,
+    directives: &[sdl::Directive<'a>],
 ) -> Result<(), BuildError> {
-    let directives = &ctx.federated_graph[federated_id].directives;
     if has_inaccessible(directives) {
         graph.inaccessible_input_object_definitions.set(id, true);
     }
     let input_object = &mut graph[id];
     input_object.exists_in_subgraph_ids = directives
         .iter()
-        .filter_map(|dir| dir.as_join_type())
-        .map(|dir| ctx.subgraphs[dir.subgraph_id])
-        .collect::<Vec<_>>();
+        .filter_map(sdl::as_join_type)
+        .map(|result| {
+            result
+                .map_err(|err| err.into_build_error(ctx.sdl))
+                .and_then(|dir| ctx.subgraphs.try_get(dir.graph))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
     if input_object.exists_in_subgraph_ids.is_empty() {
         input_object.exists_in_subgraph_ids = ctx.subgraphs.all.clone()
     } else {
@@ -130,93 +207,103 @@ fn ingest_input_object_definition_directive(
     Ok(())
 }
 
-fn ingest_interface_definition_directive(
-    GraphContext { ctx, graph, .. }: &mut GraphContext<'_>,
+fn ingest_interface_definition_directive<'a>(
+    builder: &mut GraphBuilder<'a>,
     id: InterfaceDefinitionId,
-    federated_id: federated_graph::InterfaceId,
+    directives: &[sdl::Directive<'a>],
 ) -> Result<(), BuildError> {
-    let directives = &ctx.federated_graph[federated_id].directives;
     if has_inaccessible(directives) {
-        graph.inaccessible_interface_definitions.set(id, true);
+        builder.graph.inaccessible_interface_definitions.set(id, true);
     }
 
-    let interface = &mut graph[id];
-    for dir in directives.iter().filter_map(|dir| dir.as_join_type()) {
-        interface.exists_in_subgraph_ids.push(ctx.subgraphs[dir.subgraph_id]);
-        if dir.is_interface_object {
-            interface
-                .is_interface_object_in_ids
-                .push(ctx.subgraphs[dir.subgraph_id]);
+    let mut exists_in_subgraph_ids = take(&mut builder.graph[id].exists_in_subgraph_ids);
+    for result in directives.iter().filter_map(sdl::as_join_type) {
+        let join_type = result.map_err(|err| err.into_build_error(builder.ctx.sdl))?;
+        let subgraph_id = builder.subgraphs.try_get(join_type.graph)?;
+        exists_in_subgraph_ids.push(subgraph_id);
+        if join_type.is_interface_object {
+            builder.graph[id].is_interface_object_in_ids.push(subgraph_id);
+        }
+        if let Some(graphql_endpoint_id) = subgraph_id.as_graphql_endpoint() {
+            builder.push_apollo_federation_entity_resolver(id.into(), graphql_endpoint_id, join_type)?;
         }
     }
-    if interface.exists_in_subgraph_ids.is_empty() {
-        interface.exists_in_subgraph_ids = ctx.subgraphs.all.clone()
+    if exists_in_subgraph_ids.is_empty() {
+        exists_in_subgraph_ids = builder.subgraphs.all.clone()
     } else {
-        interface.exists_in_subgraph_ids.sort_unstable();
+        exists_in_subgraph_ids.sort_unstable();
     }
+    builder.graph[id].exists_in_subgraph_ids = exists_in_subgraph_ids;
 
     Ok(())
 }
 
-fn ingest_object_definition_directive(
-    GraphContext { ctx, graph, .. }: &mut GraphContext<'_>,
+fn ingest_object_definition_directive<'a>(
+    builder: &mut GraphBuilder<'a>,
     id: ObjectDefinitionId,
-    federated_id: federated_graph::ObjectId,
+    directives: &[sdl::Directive<'a>],
 ) -> Result<(), BuildError> {
-    if graph[id].exists_in_subgraph_ids.contains(&SubgraphId::Introspection) {
+    if builder.graph[id]
+        .exists_in_subgraph_ids
+        .contains(&SubgraphId::Introspection)
+    {
         return Ok(());
     }
 
-    let directives = &ctx.federated_graph[federated_id].directives;
     if has_inaccessible(directives) {
-        graph.inaccessible_object_definitions.set(id, true);
-        for interface_id in &graph.object_definitions[usize::from(id)].interface_ids {
-            graph.interface_has_inaccessible_implementor.set(*interface_id, true);
+        builder.graph.inaccessible_object_definitions.set(id, true);
+        for interface_id in &builder.graph.object_definitions[usize::from(id)].interface_ids {
+            builder
+                .graph
+                .interface_has_inaccessible_implementor
+                .set(*interface_id, true);
         }
     }
 
-    let object = &mut graph[id];
-
-    object.join_implement_records = directives
+    builder.graph[id].join_implement_records = directives
         .iter()
-        .filter_map(|dir| dir.as_join_implements())
-        .map(
-            |&JoinImplementsDirective {
-                 subgraph_id,
-                 interface_id,
-             }| {
-                JoinImplementsDefinitionRecord {
-                    subgraph_id: ctx.subgraphs[subgraph_id],
-                    interface_id: interface_id.into(),
-                }
-            },
-        )
-        .collect();
+        .filter_map(sdl::as_join_implements)
+        .map(|result| {
+            let dir = result?;
+            let subgraph_id = builder.subgraphs.try_get(dir.graph)?;
+            builder
+                .get_interface_id(dir.interface)
+                .map(|interface_id| JoinImplementsDefinitionRecord {
+                    subgraph_id,
+                    interface_id,
+                })
+        })
+        .collect::<Result<_, _>>()?;
 
-    object
+    builder.graph[id]
         .join_implement_records
         .sort_by_key(|record| (record.subgraph_id, record.interface_id));
 
-    object.exists_in_subgraph_ids = directives
-        .iter()
-        .filter_map(|dir| dir.as_join_type())
-        .map(|dir| ctx.subgraphs[dir.subgraph_id])
-        .collect::<Vec<_>>();
-    if object.exists_in_subgraph_ids.is_empty() {
-        object.exists_in_subgraph_ids = ctx.subgraphs.all.clone()
-    } else {
-        object.exists_in_subgraph_ids.sort_unstable();
+    let mut exists_in_subgraph_ids = take(&mut builder.graph[id].exists_in_subgraph_ids);
+    for result in directives.iter().filter_map(sdl::as_join_type) {
+        let join_type = result.map_err(|err| err.into_build_error(builder.ctx.sdl))?;
+        let subgraph_id = builder.subgraphs.try_get(join_type.graph)?;
+        exists_in_subgraph_ids.push(subgraph_id);
+        if let Some(graphql_endpoint_id) = subgraph_id.as_graphql_endpoint() {
+            builder.push_apollo_federation_entity_resolver(id.into(), graphql_endpoint_id, join_type)?;
+        }
     }
+
+    if exists_in_subgraph_ids.is_empty() {
+        exists_in_subgraph_ids = builder.ctx.subgraphs.all.clone()
+    } else {
+        exists_in_subgraph_ids.sort_unstable();
+    }
+    builder.graph[id].exists_in_subgraph_ids = exists_in_subgraph_ids;
 
     Ok(())
 }
 
-fn ingest_scalar_definition_directive(
-    GraphContext { ctx, graph, .. }: &mut GraphContext<'_>,
+fn ingest_scalar_definition_directive<'a>(
+    GraphBuilder { ctx, graph, .. }: &mut GraphBuilder<'a>,
     id: ScalarDefinitionId,
-    federated_id: federated_graph::ScalarDefinitionId,
+    directives: &[sdl::Directive<'a>],
 ) -> Result<(), BuildError> {
-    let directives = &ctx.federated_graph[federated_id].directives;
     if has_inaccessible(directives) {
         graph.inaccessible_scalar_definitions.set(id, true);
     }
@@ -224,9 +311,13 @@ fn ingest_scalar_definition_directive(
     let scalar = &mut graph[id];
     scalar.exists_in_subgraph_ids = directives
         .iter()
-        .filter_map(|dir| dir.as_join_type())
-        .map(|dir| ctx.subgraphs[dir.subgraph_id])
-        .collect::<Vec<_>>();
+        .filter_map(sdl::as_join_type)
+        .map(|result| {
+            result
+                .map_err(|err| err.into_build_error(ctx.sdl))
+                .and_then(|dir| ctx.subgraphs.try_get(dir.graph))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
     if scalar.exists_in_subgraph_ids.is_empty() {
         scalar.exists_in_subgraph_ids = ctx.subgraphs.all.clone()
     } else {
@@ -236,43 +327,50 @@ fn ingest_scalar_definition_directive(
     Ok(())
 }
 
-fn ingest_union_definition_directive(
-    GraphContext { ctx, graph, .. }: &mut GraphContext<'_>,
+fn ingest_union_definition_directive<'a>(
+    builder: &mut GraphBuilder<'a>,
     id: UnionDefinitionId,
-    federated_id: federated_graph::UnionId,
+    directives: &[sdl::Directive<'a>],
 ) -> Result<(), BuildError> {
-    if graph[id].exists_in_subgraph_ids.contains(&SubgraphId::Introspection) {
+    if builder.graph[id]
+        .exists_in_subgraph_ids
+        .contains(&SubgraphId::Introspection)
+    {
         return Ok(());
     }
 
-    let directives = &ctx.federated_graph[federated_id].directives;
     if has_inaccessible(directives) {
-        graph.inaccessible_union_definitions.set(id, true);
+        builder.graph.inaccessible_union_definitions.set(id, true);
     }
 
-    let union = &mut graph[id];
-    union.join_member_records = directives
+    builder.graph[id].join_member_records = directives
         .iter()
-        .filter_map(|dir| dir.as_join_union_member())
-        .map(
-            |&JoinUnionMemberDirective { subgraph_id, object_id }| JoinMemberDefinitionRecord {
-                subgraph_id: ctx.subgraphs[subgraph_id],
-                member_id: object_id.into(),
-            },
-        )
-        .collect();
+        .filter_map(sdl::as_join_union_member)
+        .map(|result| {
+            let dir = result?;
+            let subgraph_id = builder.subgraphs.try_get(dir.graph)?;
+            builder
+                .get_object_id(dir.member)
+                .map(|member_id| JoinMemberDefinitionRecord { subgraph_id, member_id })
+        })
+        .collect::<Result<_, _>>()?;
 
+    let union = &mut builder.graph[id];
     union
         .join_member_records
         .sort_by_key(|record| (record.subgraph_id, record.member_id));
 
     union.exists_in_subgraph_ids = directives
         .iter()
-        .filter_map(|dir| dir.as_join_type())
-        .map(|dir| ctx.subgraphs[dir.subgraph_id])
-        .collect::<Vec<_>>();
+        .filter_map(sdl::as_join_type)
+        .map(|result| {
+            result
+                .map_err(|err| err.into_build_error(builder.ctx.sdl))
+                .and_then(|dir| builder.ctx.subgraphs.try_get(dir.graph))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
     if union.exists_in_subgraph_ids.is_empty() {
-        union.exists_in_subgraph_ids = ctx.subgraphs.all.clone()
+        union.exists_in_subgraph_ids = builder.ctx.subgraphs.all.clone()
     } else {
         union.exists_in_subgraph_ids.sort_unstable();
     }
@@ -280,25 +378,25 @@ fn ingest_union_definition_directive(
     Ok(())
 }
 
-fn ingest_field_directive(
-    ctx: &mut GraphContext<'_>,
-    root_entities: &[EntityDefinitionId],
+fn ingest_field_directive<'a>(
+    builder: &mut GraphBuilder<'a>,
     id: FieldDefinitionId,
-    federated_id: federated_graph::FieldId,
+    ast_parent: sdl::TypeDefinition<'a>,
+    ast_field: sdl::FieldDefinition<'a>,
+    directives: &[sdl::Directive<'a>],
 ) -> Result<(), BuildError> {
-    if ctx.graph[id]
+    if builder.graph[id]
         .exists_in_subgraph_ids
         .contains(&SubgraphId::Introspection)
     {
         return Ok(());
     }
 
-    let federated_field = &ctx.federated_graph[federated_id];
-    if has_inaccessible(&federated_field.directives) {
-        ctx.graph.inaccessible_field_definitions.set(id, true);
+    if has_inaccessible(directives) {
+        builder.graph.inaccessible_field_definitions.set(id, true);
     }
 
-    let field = &mut ctx.graph[id];
+    let field = &mut builder.graph[id];
     let mut subgraph_type_records = take(&mut field.subgraph_type_records);
     let mut requires_records = take(&mut field.requires_records);
     let mut provides_records = take(&mut field.provides_records);
@@ -307,191 +405,153 @@ fn ingest_field_directive(
     let mut resolvable_in = take(&mut field.exists_in_subgraph_ids)
         .into_iter()
         .collect::<BTreeSet<_>>();
-    let mut has_join_field = false;
+    let parent_entity_id = field.parent_entity_id;
+    let ty_record = field.ty_record;
 
-    for JoinFieldDirective {
-        subgraph_id: federated_subgraph_id,
-        requires,
-        provides,
-        r#type,
-        external,
-        ..
-    } in federated_field.directives.iter().filter_map(|dir| dir.as_join_field())
-    {
+    let mut has_join_field = false;
+    let mut overrides = Vec::new();
+    for result in directives.iter().filter_map(sdl::as_join_field) {
+        let dir = result.map_err(|err| err.into_build_error(builder.ctx.sdl))?;
+        let subgraph_id = dir.graph.map(|name| builder.subgraphs.try_get(name)).transpose()?;
+
         // If there is a @join__field we rely solely on that to define the subgraphs in
         // which this field exists. It may not specify a subgraph at all, in that case it's
         // a interfaceObject field.
         has_join_field = true;
-        if let Some(federated_subgraph_id) = *federated_subgraph_id {
-            let subgraph_id = ctx.subgraphs[federated_subgraph_id];
-            if let Some(r#type) = r#type.filter(|ty| ty != &federated_field.r#type) {
-                subgraph_type_records.push(SubgraphTypeRecord {
-                    subgraph_id,
-                    ty_record: ctx.convert_type(r#type),
-                });
-            }
-            if !external {
-                if let Some(provides) = provides.as_ref().filter(|provides| !provides.is_empty()) {
-                    provides_records.push(FieldProvidesRecord {
+        if let Some(subgraph_id) = subgraph_id {
+            if let Some(ty) = dir.r#type {
+                let ty = builder.parse_type(ty)?;
+                if ty != ty_record {
+                    subgraph_type_records.push(SubgraphTypeRecord {
                         subgraph_id,
-                        field_set_record: ctx.convert_field_set(provides).map_err(|err| {
-                            BuildError::RequiredFieldArgumentCoercionError {
-                                location: ctx.strings[ctx.graph[id].name_id].to_string(),
-                                err,
-                            }
-                        })?,
+                        ty_record: ty,
                     });
                 }
-                if let Some(requires) = requires.as_ref().filter(|requires| !requires.is_empty()) {
+            }
+            if !dir.external {
+                if let Some(provides) = dir.provides.filter(|fields| !fields.is_empty()) {
+                    let Some(parent) = ty_record.definition_id.as_composite_type() else {
+                        return Err(BuildError::GraphQLSchemaValidationError(format!(
+                            "Field {}.{} cannot have @provides",
+                            ast_parent.name(),
+                            ast_field.name()
+                        )));
+                    };
+                    let provides = builder
+                        .parse_field_set(parent, provides)
+                        .map_err(|err| InvalidFieldSetError {
+                            location: SchemaLocation::FieldDefinition(id, ast_parent, ast_field).to_string(builder),
+                            err,
+                        })?;
+                    provides_records.push(FieldProvidesRecord {
+                        subgraph_id,
+                        field_set_record: provides,
+                    });
+                }
+                if let Some(requires) = dir.requires.filter(|fields| !fields.is_empty()) {
+                    let requires = builder
+                        .parse_field_set(parent_entity_id.into(), requires)
+                        .map_err(|err| InvalidFieldSetError {
+                            location: SchemaLocation::FieldDefinition(id, ast_parent, ast_field).to_string(builder),
+                            err,
+                        })?;
                     requires_records.push(FieldRequiresRecord {
                         subgraph_id,
-                        field_set_record: ctx.convert_field_set(requires).map_err(|err| {
-                            BuildError::RequiredFieldArgumentCoercionError {
-                                location: ctx.strings[ctx.graph[id].name_id].to_string(),
-                                err,
-                            }
-                        })?,
+                        field_set_record: requires,
                     });
                 }
                 resolvable_in.insert(subgraph_id);
             }
         }
+
+        if let Some(name) = dir.r#override {
+            if let Ok(graph) = builder.subgraphs.try_get(GraphName(name)) {
+                overrides.push(graph);
+            }
+        }
     }
 
-    let parent_entity = ctx.federated_graph.entity(federated_field.parent_entity_id);
     let mut parent_has_join_type = false;
-    for JoinTypeDirective {
-        subgraph_id,
-        key,
-        resolvable,
-        ..
-    } in parent_entity.directives().filter_map(|dir| dir.as_join_type())
-    {
+    let mut parent_directives = Vec::new();
+    parent_directives.extend(ast_parent.directives());
+    if let Some(ext) = builder.sdl.type_extensions.get(ast_parent.name()) {
+        parent_directives.extend(ext.iter().flat_map(|ext| ext.directives()));
+    }
+    for result in parent_directives.iter().filter_map(sdl::as_join_type) {
+        let dir = result.map_err(|err| err.into_build_error(builder.ctx.sdl))?;
+
         parent_has_join_type = true;
-        // If present in the keys as a subgraph must always be able to provide those at least.
-        if key.as_ref().and_then(|key| key.find_field(federated_id)).is_some() {
-            resolvable_in.insert(ctx.subgraphs[*subgraph_id]);
-        } else if !has_join_field && *resolvable {
+        if !has_join_field && dir.resolvable {
+            let subgraph_id = builder.subgraphs.try_get(dir.graph)?;
             // If there is no @join__field we rely solely @join__type to define the subgraphs
             // in which this field is resolvable in.
-            resolvable_in.insert(ctx.subgraphs[*subgraph_id]);
+            resolvable_in.insert(subgraph_id);
         }
     }
 
     // Remove any overridden subgraphs
-    for directive in federated_field.directives.iter().filter_map(|dir| dir.as_join_field()) {
-        if let Some(r#override) = &directive.r#override {
-            match r#override {
-                federated_graph::OverrideSource::Subgraph(subgraph_id) => {
-                    resolvable_in.remove(&ctx.subgraphs[*subgraph_id]);
-                }
-                federated_graph::OverrideSource::Missing(_) => (),
-            };
-        }
+    for subgraph_id in overrides.iter() {
+        resolvable_in.remove(subgraph_id);
     }
 
     // If there is no @join__field and no @join__type at all, we assume this field to be
     // available everywhere.
     let mut exists_in_subgraph_ids = if !has_join_field && !parent_has_join_type {
-        ctx.subgraphs.all.clone()
+        builder.subgraphs.all.clone()
     } else {
         resolvable_in.into_iter().collect::<Vec<_>>()
     };
 
-    let parent_entity_id = ctx.graph[id].parent_entity_id;
-    let is_root_entity = root_entities.contains(&parent_entity_id);
-    let mut graphql_federated_entity_resolvers = take(&mut ctx.graphql_federated_entity_resolvers);
+    let parent_entity_id = builder.graph[id].parent_entity_id;
     for &subgraph_id in &exists_in_subgraph_ids {
-        match subgraph_id {
-            SubgraphId::GraphqlEndpoint(endpoint_id) if is_root_entity => {
-                resolver_ids.extend(
-                    graphql_federated_entity_resolvers
-                        .entry((parent_entity_id, endpoint_id))
-                        .or_insert_with(|| {
-                            let id = ctx.graph.resolver_definitions.len().into();
-                            ctx.graph
-                                .resolver_definitions
-                                .push(ResolverDefinitionRecord::GraphqlRootField(
-                                    GraphqlRootFieldResolverDefinitionRecord { endpoint_id },
-                                ));
-                            vec![EntityResovler::Root(id)]
-                        })
-                        .iter()
-                        .map(|res| res.id()),
-                );
-            }
-            SubgraphId::GraphqlEndpoint(endpoint_id) => {
-                let endpoint_resolvers = match graphql_federated_entity_resolvers.entry((parent_entity_id, endpoint_id))
-                {
-                    Entry::Occupied(entry) => entry.into_mut(),
-                    Entry::Vacant(entry) => {
-                        let mut result = Vec::new();
-
-                        for dir in parent_entity.directives() {
-                            let Some(join_type) = dir.as_join_type() else {
-                                continue;
-                            };
-                            let Some(key) = join_type.key.as_ref().filter(|key| {
-                                !key.is_empty()
-                                    && ctx.subgraphs[join_type.subgraph_id] == subgraph_id
-                                    && join_type.resolvable
-                            }) else {
-                                continue;
-                            };
-                            let resolver = ResolverDefinitionRecord::GraphqlFederationEntity(
-                                GraphqlFederationEntityResolverDefinitionRecord {
-                                    key_fields_record: ctx.convert_field_set(key).map_err(|err| {
-                                        BuildError::RequiredFieldArgumentCoercionError {
-                                            location: ctx.strings[ctx.graph[id].name_id].to_string(),
-                                            err,
-                                        }
-                                    })?,
-                                    endpoint_id,
-                                },
-                            );
-                            let id = ctx.graph.resolver_definitions.len().into();
-                            ctx.graph.resolver_definitions.push(resolver);
-                            result.push(EntityResovler::Entity { key: key.clone(), id });
-                        }
-                        entry.insert(result)
-                    }
-                };
-                for res in endpoint_resolvers {
-                    let EntityResovler::Entity { id, key } = res else {
-                        continue;
-                    };
+        let Some(entity_resolver_ids) = builder.entity_resolvers.get(&(parent_entity_id, subgraph_id)) else {
+            continue;
+        };
+        for resolver_definition_id in entity_resolver_ids {
+            match &builder.graph[*resolver_definition_id] {
+                ResolverDefinitionRecord::GraphqlFederationEntity(
+                    GraphqlFederationEntityResolverDefinitionRecord { key_fields_record, .. },
+                ) => {
                     // If part of the key we can't be provided by this resolver.
-                    if key.find_field(federated_id).is_none() {
-                        resolver_ids.push(*id);
+                    if key_fields_record
+                        .iter()
+                        .all(|item| builder.graph[item.field_id].definition_id != id)
+                    {
+                        resolver_ids.push(*resolver_definition_id);
                     }
                 }
+                ResolverDefinitionRecord::GraphqlRootField(_) => {
+                    resolver_ids.push(*resolver_definition_id);
+                }
+                ResolverDefinitionRecord::FieldResolverExtension(_)
+                | ResolverDefinitionRecord::Introspection
+                | ResolverDefinitionRecord::SelectionSetResolverExtension(_) => {}
             }
-            SubgraphId::Virtual(_) | SubgraphId::Introspection => (),
         }
     }
-    ctx.graphql_federated_entity_resolvers = graphql_federated_entity_resolvers;
 
-    let directive_ids = take(&mut ctx.graph[id].directive_ids);
+    let directive_ids = take(&mut builder.graph[id].directive_ids);
     for id in &directive_ids {
         let &TypeSystemDirectiveId::Extension(id) = id else {
             continue;
         };
-        let directive = &ctx.graph.extension_directives[usize::from(id)];
+        let directive = &builder.graph.extension_directives[usize::from(id)];
         if directive.ty.is_field_resolver() {
             let subgraph_id = directive.subgraph_id;
             if !exists_in_subgraph_ids.contains(&subgraph_id) {
                 exists_in_subgraph_ids.push(subgraph_id);
             }
-            ctx.graph
+            builder
+                .graph
                 .resolver_definitions
                 .push(ResolverDefinitionRecord::FieldResolverExtension(
                     FieldResolverExtensionDefinitionRecord { directive_id: id },
                 ));
-            resolver_ids.push(ResolverDefinitionId::from(ctx.graph.resolver_definitions.len() - 1))
+            resolver_ids.push(ResolverDefinitionId::from(builder.graph.resolver_definitions.len() - 1))
         }
     }
 
-    let field = &mut ctx.graph[id];
+    let field = &mut builder.graph[id];
     field.directive_ids = directive_ids;
     field.subgraph_type_records = subgraph_type_records;
     field.exists_in_subgraph_ids = exists_in_subgraph_ids;
@@ -502,144 +562,139 @@ fn ingest_field_directive(
     Ok(())
 }
 
-fn ingest_input_value_directive(
-    ctx: &mut GraphContext<'_>,
+fn ingest_input_value_directive<'a>(
+    builder: &mut GraphBuilder<'a>,
     id: InputValueDefinitionId,
-    federated_id: federated_graph::InputValueDefinitionId,
+    directives: &[sdl::Directive<'a>],
 ) -> Result<(), BuildError> {
-    let directives = &ctx.federated_graph[federated_id].directives;
     if has_inaccessible(directives) {
-        ctx.graph.inaccessible_input_value_definitions.set(id, true);
+        builder.graph.inaccessible_input_value_definitions.set(id, true);
     }
     Ok(())
 }
 
-fn ingest_enum_value_directive(
-    ctx: &mut GraphContext<'_>,
+fn ingest_enum_value_directive<'a>(
+    builder: &mut GraphBuilder<'a>,
     id: EnumValueId,
-    federated_id: federated_graph::EnumValueId,
+    directives: &[sdl::Directive<'a>],
 ) -> Result<(), BuildError> {
-    let directives = &ctx.federated_graph[federated_id].directives;
     if has_inaccessible(directives) {
-        ctx.graph.inaccessible_enum_values.set(id, true);
+        builder.graph.inaccessible_enum_values.set(id, true);
     }
     Ok(())
 }
 
-impl GraphContext<'_> {
-    fn push_directives<'d>(
+impl<'a> GraphBuilder<'a> {
+    fn push_common_directives(
         &mut self,
-        location: SchemaLocation,
-        directives: impl IntoIterator<Item = &'d federated_graph::Directive>,
+        location: SchemaLocation<'a>,
+        directives: &[sdl::Directive<'a>],
     ) -> Result<Vec<TypeSystemDirectiveId>, BuildError> {
         let mut directive_ids = Vec::new();
 
-        for directive in directives {
-            let id = match directive {
-                federated_graph::Directive::Authenticated => TypeSystemDirectiveId::Authenticated,
-                federated_graph::Directive::RequiresScopes(federated_scopes) => {
+        for &directive in directives {
+            let id = match directive.name() {
+                "authenticated" => TypeSystemDirectiveId::Authenticated,
+                "requiresScopes" => {
+                    let dir = directive.deserialize::<sdl::RequiresScopesDirective>().map_err(|err| {
+                        BuildError::GraphQLSchemaValidationError(format!("Invalid @requiresScopes directive: {}", err))
+                    })?;
                     let scope = RequiresScopesDirectiveRecord::new(
-                        federated_scopes
-                            .iter()
-                            .map(|scopes| {
-                                scopes
-                                    .iter()
-                                    .copied()
-                                    .map(|scope| self.get_or_insert_str(scope))
-                                    .collect()
-                            })
+                        dir.scopes
+                            .into_iter()
+                            .map(|scopes| scopes.into_iter().map(|scope| self.ingest_str(scope)).collect())
                             .collect(),
                     );
                     let id = self.required_scopes.get_or_insert(scope);
                     TypeSystemDirectiveId::RequiresScopes(id)
                 }
-                federated_graph::Directive::Deprecated { reason } => {
-                    TypeSystemDirectiveId::Deprecated(DeprecatedDirectiveRecord {
-                        reason_id: reason.map(|id| self.get_or_insert_str(id)),
-                    })
+                "deprecated" => {
+                    let dir = directive.deserialize::<sdl::DeprecatedDirective>().map_err(|err| {
+                        BuildError::GraphQLSchemaValidationError(format!("Invalid @deprecated directive: {}", err))
+                    })?;
+                    let reason_id = dir.reason.map(|reason| self.ingest_str(reason));
+                    TypeSystemDirectiveId::Deprecated(DeprecatedDirectiveRecord { reason_id })
                 }
-                federated_graph::Directive::Authorized(authorized) => {
-                    let record = AuthorizedDirectiveRecord {
-                        arguments: authorized
-                            .arguments
-                            .as_ref()
-                            .map(|set| self.convert_federated_input_value_set(set))
-                            .unwrap_or_default(),
-                        fields_record: authorized
-                            .fields
-                            .as_ref()
-                            .map(|field_set| {
-                                self.convert_field_set(field_set).map_err(|err| {
-                                    BuildError::RequiredFieldArgumentCoercionError {
-                                        location: location.to_string(self),
-                                        err,
-                                    }
-                                })
-                            })
-                            .transpose()?,
-                        node_record: authorized
-                            .node
-                            .as_ref()
-                            .map(|field_set| {
-                                self.convert_field_set(field_set).map_err(|err| {
-                                    BuildError::RequiredFieldArgumentCoercionError {
-                                        location: location.to_string(self),
-                                        err,
-                                    }
-                                })
-                            })
-                            .transpose()?,
-                        metadata_id: authorized.metadata.clone().map(|value| {
-                            let value = self.ingest_arbitrary_value(value);
-                            self.graph.input_values.push_value(value)
-                        }),
+                "cost" => {
+                    let dir = directive.deserialize::<sdl::CostDirective>().map_err(|err| {
+                        BuildError::GraphQLSchemaValidationError(format!("Invalid @cost directive: {}", err))
+                    })?;
+                    self.graph
+                        .cost_directives
+                        .push(CostDirectiveRecord { weight: dir.weight });
+                    TypeSystemDirectiveId::Cost((self.graph.cost_directives.len() - 1).into())
+                }
+                "listSize" => {
+                    let dir = directive.deserialize::<sdl::ListSizeDirective>().map_err(|err| {
+                        BuildError::GraphQLSchemaValidationError(format!("Invalid @listSize directive: {}", err))
+                    })?;
+                    let SchemaLocation::FieldDefinition(id, _, _) = location else {
+                        return Err(BuildError::GraphQLSchemaValidationError(format!(
+                            "Invalid @listSize directive location: {}",
+                            location.as_cynic_location()
+                        )));
                     };
-                    self.graph.authorized_directives.push(record);
-
-                    let authorized_id = (self.graph.authorized_directives.len() - 1).into();
-                    TypeSystemDirectiveId::Authorized(authorized_id)
-                }
-                federated_graph::Directive::Cost { weight } => {
-                    let cost_id = self.graph.cost_directives.len().into();
-                    self.graph.cost_directives.push(CostDirectiveRecord { weight: *weight });
-                    TypeSystemDirectiveId::Cost(cost_id)
-                }
-                federated_graph::Directive::ListSize(federated_graph::ListSize {
-                    assumed_size,
-                    slicing_arguments,
-                    sized_fields,
-                    require_one_slicing_argument,
-                }) => {
-                    let list_size_id = self.graph.list_size_directives.len().into();
+                    let slicing_argument_ids = {
+                        let field_argument_ids = self.graph[id].argument_ids;
+                        dir.slicing_arguments
+                            .into_iter()
+                            .map(|name| {
+                                field_argument_ids
+                                    .into_iter()
+                                    .find(|id| self.ctx[self.graph[*id].name_id] == name)
+                                    .ok_or_else(|| {
+                                        BuildError::GraphQLSchemaValidationError(format!(
+                                            "Invalid @listSize directive slicing_argument: {}",
+                                            name
+                                        ))
+                                    })
+                            })
+                            .collect::<Result<Vec<_>, _>>()
+                    }?;
+                    let sized_field_ids = if !dir.sized_fields.is_empty() {
+                        let output_field_ids = match self.graph[id].ty_record.definition_id {
+                            TypeDefinitionId::Interface(id) => self.graph[id].field_ids,
+                            TypeDefinitionId::Object(id) => self.graph[id].field_ids,
+                            _ => {
+                                return Err(BuildError::GraphQLSchemaValidationError(
+                                    "sized_fields can only be used with a interface/object output type".into(),
+                                ));
+                            }
+                        };
+                        dir.sized_fields
+                            .into_iter()
+                            .map(|name| {
+                                output_field_ids
+                                    .into_iter()
+                                    .find(|id| self.ctx[self.graph[*id].name_id] == name)
+                                    .ok_or_else(|| {
+                                        BuildError::GraphQLSchemaValidationError(format!(
+                                            "Invalid @listSize directive sized_field: {}",
+                                            name
+                                        ))
+                                    })
+                            })
+                            .collect::<Result<Vec<_>, _>>()?
+                    } else {
+                        Vec::new()
+                    };
                     self.graph.list_size_directives.push(ListSizeDirectiveRecord {
-                        assumed_size: *assumed_size,
-                        slicing_argument_ids: slicing_arguments
-                            .iter()
-                            .map(|id| self.input_value_mapping[id])
-                            .collect(),
-                        sized_field_ids: sized_fields.iter().copied().map(Into::into).collect(),
-                        require_one_slicing_argument: *require_one_slicing_argument,
+                        assumed_size: dir.assumed_size,
+                        slicing_argument_ids,
+                        sized_field_ids,
+                        require_one_slicing_argument: dir.require_one_slicing_argument,
                     });
-                    TypeSystemDirectiveId::ListSize(list_size_id)
+                    TypeSystemDirectiveId::ListSize((self.graph.list_size_directives.len() - 1).into())
                 }
-                federated_graph::Directive::ExtensionDirective(federated_graph::ExtensionDirective {
-                    subgraph_id,
-                    extension_id,
-                    name,
-                    arguments,
-                }) => {
+                "extension__directive" => {
+                    let dir = sdl::parse_extension_directive(self.sdl, directive)?;
+                    let extension = self.extensions.try_get(dir.extension)?;
+                    let subgraph_id = self.subgraphs.try_get(dir.graph)?;
                     let id =
-                        self.ingest_extension_directive(location, *subgraph_id, *extension_id, *name, arguments)?;
+                        self.ingest_extension_directive(location, subgraph_id, extension, dir.name, dir.arguments)?;
                     TypeSystemDirectiveId::Extension(id)
                 }
-                federated_graph::Directive::Other { .. }
-                | federated_graph::Directive::Inaccessible
-                | federated_graph::Directive::Policy(_)
-                | federated_graph::Directive::JoinField(_)
-                | federated_graph::Directive::JoinGraph(_)
-                | federated_graph::Directive::JoinType(_)
-                | federated_graph::Directive::JoinUnionMember(_)
-                | federated_graph::Directive::JoinImplements(_) => continue,
+                _ => continue,
             };
 
             directive_ids.push(id);
@@ -744,26 +799,56 @@ fn add_not_fully_implemented_in(graph: &mut Graph) {
     }
 }
 
-impl GraphContext<'_> {
-    fn convert_federated_input_value_set(
-        &self,
-        input_value_set: &federated_graph::InputValueDefinitionSet,
-    ) -> InputValueSet {
-        if input_value_set.is_empty() {
-            return InputValueSet::All;
+impl<'a> GraphBuilder<'a> {
+    fn push_apollo_federation_entity_resolver(
+        &mut self,
+        entity_id: EntityDefinitionId,
+        endpoint_id: GraphqlEndpointId,
+        join_type: sdl::JoinTypeDirective<'a>,
+    ) -> Result<(), BuildError> {
+        let subgraph_id = SubgraphId::from(endpoint_id);
+        let Some(key) = join_type.key.filter(|key| !key.is_empty()) else {
+            return Ok(());
+        };
+        let key = self
+            .parse_field_set(entity_id.into(), key)
+            .map_err(|err| InvalidFieldSetError {
+                location: match entity_id {
+                    EntityDefinitionId::Interface(id) => self.ctx[self.graph[id].name_id].clone(),
+                    EntityDefinitionId::Object(id) => self.ctx[self.graph[id].name_id].clone(),
+                },
+                err,
+            })?;
+
+        // Any field that is part of a key has to exist in the subgraph.
+        let mut stack = vec![&key];
+        while let Some(fields) = stack.pop() {
+            for item in fields {
+                let id = self.graph[item.field_id].definition_id;
+                let field = &mut self.graph[id];
+                if !field.exists_in_subgraph_ids.contains(&subgraph_id) {
+                    field.exists_in_subgraph_ids.push(subgraph_id);
+                }
+            }
         }
-        input_value_set
-            .iter()
-            .map(|item| InputValueSelection {
-                definition_id: self.input_value_mapping[&item.input_value_definition],
-                subselection: self.convert_federated_input_value_set(&item.subselection),
-            })
-            .collect()
+
+        if join_type.resolvable {
+            let resolver =
+                ResolverDefinitionRecord::GraphqlFederationEntity(GraphqlFederationEntityResolverDefinitionRecord {
+                    key_fields_record: key,
+                    endpoint_id,
+                });
+            let id = self.graph.resolver_definitions.len().into();
+            self.graph.resolver_definitions.push(resolver);
+            self.entity_resolvers
+                .entry((entity_id, subgraph_id))
+                .or_default()
+                .push(id);
+        }
+        Ok(())
     }
 }
 
-fn has_inaccessible(directives: &[federated_graph::Directive]) -> bool {
-    directives
-        .iter()
-        .any(|dir| matches!(dir, federated_graph::Directive::Inaccessible))
+fn has_inaccessible(directives: &[sdl::Directive<'_>]) -> bool {
+    directives.iter().any(|dir| dir.name() == "inaccessible")
 }

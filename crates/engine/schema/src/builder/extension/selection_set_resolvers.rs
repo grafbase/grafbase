@@ -3,10 +3,10 @@ use std::mem::take;
 use crate::{
     BuildError, FieldResolverExtensionDefinitionRecord, ResolverDefinitionRecord,
     SelectionSetResolverExtensionDefinitionRecord, SubgraphId, VirtualSubgraphId,
-    builder::{GraphContext, SelectionSetResolverExtensionCannotBeMixedWithOtherResolversError},
+    builder::{GraphBuilder, SelectionSetResolverExtensionCannotBeMixedWithOtherResolversError},
 };
 
-pub(crate) fn finalize_selection_set_resolvers(ctx: &mut GraphContext<'_>) -> Result<(), BuildError> {
+pub(crate) fn finalize_selection_set_resolvers(ctx: &mut GraphBuilder<'_>) -> Result<(), BuildError> {
     // Ensure they're not mixed with field resolvers.
     for resolver in &ctx.graph.resolver_definitions {
         if let Some(FieldResolverExtensionDefinitionRecord { directive_id }) = resolver.as_field_resolver_extension() {
@@ -18,12 +18,9 @@ pub(crate) fn finalize_selection_set_resolvers(ctx: &mut GraphContext<'_>) -> Re
                 return Err(
                     BuildError::SelectionSetResolverExtensionCannotBeMixedWithOtherResolvers(Box::new(
                         SelectionSetResolverExtensionCannotBeMixedWithOtherResolversError {
-                            id: ctx.extension_catalog[id].manifest.id.clone(),
-                            subgraph: ctx.strings[ctx.subgraphs[subgraph_id].subgraph_name_id].clone(),
-                            other_id: ctx.extension_catalog[ctx.graph[*directive_id].extension_id]
-                                .manifest
-                                .id
-                                .clone(),
+                            id: ctx[id].manifest.id.clone(),
+                            subgraph: ctx[ctx.subgraphs[subgraph_id].subgraph_name_id].clone(),
+                            other_id: ctx[ctx.graph[*directive_id].extension_id].manifest.id.clone(),
                         },
                     )),
                 );

@@ -382,11 +382,6 @@ fn with_input_types() {
           title: String!
         }
 
-        type User {
-          id: ID!
-          name: String!
-        }
-
         input PaginationInput {
           first: Int! = 10
           after: String
@@ -397,6 +392,11 @@ fn with_input_types() {
           authorId: ID
           tags: [String!]
           createdAfter: String
+        }
+
+        type User {
+          id: ID!
+          name: String!
         }
         "##);
     });

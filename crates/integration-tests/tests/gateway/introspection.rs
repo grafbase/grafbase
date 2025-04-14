@@ -367,7 +367,7 @@ fn introspection_output_matches_source() {
 }
 
 #[test]
-fn raw_introspetion_output() {
+fn raw_introspection_output() {
     let response = runtime().block_on(async move {
         let engine = Gateway::builder()
             .with_subgraph(FakeGithubSchema)

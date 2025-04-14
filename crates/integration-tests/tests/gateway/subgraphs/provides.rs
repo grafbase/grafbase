@@ -14,7 +14,6 @@ fn provides_with_fragment_spread() {
                 seller {
                     ... on BusinessAccount {
                         id
-                        businessName
                         email
                         joinedTimestamp
                     }
@@ -42,7 +41,6 @@ fn provides_with_fragment_spread() {
           },
           "seller": {
             "id": "ba_2",
-            "businessName": "Globex Corporation",
             "email": "email@from-shipping-subgraph.net",
             "joinedTimestamp": 1234567890
           }

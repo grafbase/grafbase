@@ -1,111 +1,21 @@
-use super::{
-    EntityDefinitionId, EnumDefinitionId, EnumValueId, ExtensionInputValueError, FieldDefinitionId,
-    InputObjectDefinitionId, InputValueDefinitionId, InputValueError, InterfaceDefinitionId, ObjectDefinitionId,
-    ScalarDefinitionId, UnionDefinitionId, graph::GraphContext,
-};
-
-#[derive(Debug, Copy, Clone)]
-pub enum SchemaLocation {
-    SchemaDirective(federated_graph::SubgraphId),
-    Scalar(ScalarDefinitionId, federated_graph::ScalarDefinitionId),
-    Object(ObjectDefinitionId, federated_graph::ObjectId),
-    Interface(InterfaceDefinitionId, federated_graph::InterfaceId),
-    Union(UnionDefinitionId, federated_graph::UnionId),
-    Enum(EnumDefinitionId, federated_graph::EnumDefinitionId),
-    InputObject(InputObjectDefinitionId, federated_graph::InputObjectId),
-    FieldDefinition(FieldDefinitionId, federated_graph::FieldId),
-    InputFieldDefinition(
-        InputObjectDefinitionId,
-        InputValueDefinitionId,
-        federated_graph::InputValueDefinitionId,
-    ),
-    ArgumentDefinition(
-        FieldDefinitionId,
-        InputValueDefinitionId,
-        federated_graph::InputValueDefinitionId,
-    ),
-    EnumValue(EnumDefinitionId, EnumValueId, federated_graph::EnumValueId),
-}
-
-impl SchemaLocation {
-    pub fn to_string(self, GraphContext { ctx, graph, .. }: &GraphContext<'_>) -> String {
-        match self {
-            SchemaLocation::Enum(id, _) => ctx.strings[graph[id].name_id].clone(),
-            SchemaLocation::InputObject(id, _) => ctx.strings[graph[id].name_id].clone(),
-            SchemaLocation::Interface(id, _) => ctx.strings[graph[id].name_id].clone(),
-            SchemaLocation::Object(id, _) => ctx.strings[graph[id].name_id].clone(),
-            SchemaLocation::Scalar(id, _) => ctx.strings[graph[id].name_id].clone(),
-            SchemaLocation::Union(id, _) => ctx.strings[graph[id].name_id].clone(),
-            SchemaLocation::FieldDefinition(id, _) => {
-                let field = &graph[id];
-                let parent_name_id = match field.parent_entity_id {
-                    EntityDefinitionId::Interface(id) => graph[id].name_id,
-                    EntityDefinitionId::Object(id) => graph[id].name_id,
-                };
-                format!("{}.{}", ctx.strings[parent_name_id], ctx.strings[field.name_id])
-            }
-            SchemaLocation::InputFieldDefinition(input_object_id, id, _) => {
-                format!(
-                    "{}.{}",
-                    ctx.strings[graph[input_object_id].name_id], ctx.strings[graph[id].name_id]
-                )
-            }
-            SchemaLocation::ArgumentDefinition(field_id, id, _) => {
-                let field = &graph[field_id];
-                let parent_name_id = match field.parent_entity_id {
-                    EntityDefinitionId::Interface(id) => graph[id].name_id,
-                    EntityDefinitionId::Object(id) => graph[id].name_id,
-                };
-                format!(
-                    "{}.{}.{}",
-                    ctx.strings[parent_name_id], ctx.strings[field.name_id], ctx.strings[graph[id].name_id]
-                )
-            }
-            SchemaLocation::EnumValue(enum_id, id, _) => {
-                format!(
-                    "{}.{}",
-                    ctx.strings[graph[enum_id].name_id], ctx.strings[graph[id].name_id]
-                )
-            }
-            SchemaLocation::SchemaDirective(id) => {
-                format!("subgraph named '{}'", ctx.federated_graph[ctx.federated_graph[id].name])
-            }
-        }
-    }
-
-    pub fn to_cynic_location(self) -> cynic_parser::type_system::DirectiveLocation {
-        match self {
-            SchemaLocation::Enum(_, _) => cynic_parser::type_system::DirectiveLocation::Enum,
-            SchemaLocation::InputObject(_, _) => cynic_parser::type_system::DirectiveLocation::InputObject,
-            SchemaLocation::Interface(_, _) => cynic_parser::type_system::DirectiveLocation::Interface,
-            SchemaLocation::Object(_, _) => cynic_parser::type_system::DirectiveLocation::Object,
-            SchemaLocation::Scalar(_, _) => cynic_parser::type_system::DirectiveLocation::Scalar,
-            SchemaLocation::Union(_, _) => cynic_parser::type_system::DirectiveLocation::Union,
-            SchemaLocation::FieldDefinition(_, _) => cynic_parser::type_system::DirectiveLocation::FieldDefinition,
-            SchemaLocation::EnumValue(_, _, _) => cynic_parser::type_system::DirectiveLocation::EnumValue,
-            SchemaLocation::SchemaDirective(_) => cynic_parser::type_system::DirectiveLocation::Schema,
-            SchemaLocation::ArgumentDefinition(_, _, _) => {
-                cynic_parser::type_system::DirectiveLocation::ArgumentDefinition
-            }
-            SchemaLocation::InputFieldDefinition(_, _, _) => {
-                cynic_parser::type_system::DirectiveLocation::InputFieldDefinition
-            }
-        }
-    }
-}
+use super::{ExtensionInputValueError, FieldSetError, InputValueError};
 
 #[derive(thiserror::Error, Debug)]
 pub enum BuildError {
+    #[error("Could not parse GraphQL schema: {0}")]
+    GraphQLSchemaParsingError(#[from] cynic_parser::Error),
+    #[error("Invalid GraphQL schema: {0}")]
+    GraphQLSchemaValidationError(String),
     #[error("Invalid URL '{url}': {err}")]
     InvalidUrl { url: String, err: String },
     #[error("At {} for the extension '{}' directive @{}: {}", .0.location, .0.id, .0.directive, .0.err)]
     ExtensionDirectiveArgumentsError(Box<ExtensionDirectiveArgumentsError>),
     #[error("At {location}, a required field argument is invalid: {err}")]
     RequiredFieldArgumentCoercionError { location: String, err: InputValueError },
+    #[error("At {}, encountered an invalid FieldSet: {}", .0.location, .0.err)]
+    InvalidFieldSet(Box<InvalidFieldSetError>),
     #[error("An input value named '{name}' has an invalid default value: {err}")]
     DefaultValueCoercionError { name: String, err: InputValueError },
-    #[error(transparent)]
-    GraphFromSdlError(#[from] federated_graph::DomainError),
     #[error("Unsupported extension: {id}")]
     UnsupportedExtension { id: extension_catalog::Id },
     #[error("Could not load extension at '{url}': {err}")]
@@ -161,6 +71,12 @@ pub struct ExtensionDirectiveArgumentsError {
     pub err: ExtensionInputValueError,
 }
 
+impl From<ExtensionDirectiveArgumentsError> for BuildError {
+    fn from(err: ExtensionDirectiveArgumentsError) -> Self {
+        BuildError::ExtensionDirectiveArgumentsError(Box::new(err))
+    }
+}
+
 #[derive(Debug)]
 pub struct ExtensionDirectiveLocationError {
     pub id: extension_catalog::Id,
@@ -169,9 +85,33 @@ pub struct ExtensionDirectiveLocationError {
     pub expected: Vec<&'static str>,
 }
 
+impl From<ExtensionDirectiveLocationError> for BuildError {
+    fn from(err: ExtensionDirectiveLocationError) -> Self {
+        BuildError::ExtensionDirectiveLocationError(Box::new(err))
+    }
+}
+
 #[derive(Debug)]
 pub struct SelectionSetResolverExtensionCannotBeMixedWithOtherResolversError {
     pub id: extension_catalog::Id,
     pub subgraph: String,
     pub other_id: extension_catalog::Id,
+}
+
+impl From<SelectionSetResolverExtensionCannotBeMixedWithOtherResolversError> for BuildError {
+    fn from(err: SelectionSetResolverExtensionCannotBeMixedWithOtherResolversError) -> Self {
+        BuildError::SelectionSetResolverExtensionCannotBeMixedWithOtherResolvers(Box::new(err))
+    }
+}
+
+#[derive(Debug)]
+pub struct InvalidFieldSetError {
+    pub location: String,
+    pub err: FieldSetError,
+}
+
+impl From<InvalidFieldSetError> for BuildError {
+    fn from(err: InvalidFieldSetError) -> Self {
+        BuildError::InvalidFieldSet(Box::new(err))
+    }
 }

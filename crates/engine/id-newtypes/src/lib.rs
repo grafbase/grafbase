@@ -7,9 +7,24 @@ pub use range::*;
 
 #[macro_export]
 macro_rules! forward {
-    ($(impl Index<$index:ident, Output = $output:tt> for $ty:ident$(.$field:ident)+,)*) => {
+    ($(impl Index<$index:ident, Output = $output:tt> for $ty:ident $(< $( $ltOrGeneric:tt $( : $bound:tt $(+ $bounds:tt )* )? ),+ >)? $(.$field:ident)+,)*) => {
         $(
-            impl std::ops::Index<$index> for $ty {
+            impl$(< $( $ltOrGeneric $( : $bound $(+ $bounds )* )? ),+ >)? std::ops::Index<$index> for $ty$(< $( $ltOrGeneric  ),+ >)?{
+                type Output = $output;
+
+                fn index(&self, index: $index) -> &Self::Output {
+                    &self$(.$field)+[index]
+                }
+            }
+        )*
+    };
+}
+
+#[macro_export]
+macro_rules! forward_with_range {
+    ($(impl Index<$index:ident, Output = $output:tt> for $ty:ident $(< $( $ltOrGeneric:tt $( : $bound:tt $(+ $bounds:tt )* )? ),+ >)? $(.$field:ident)+,)*) => {
+        $(
+            impl$(< $( $ltOrGeneric $( : $bound $(+ $bounds )* )? ),+ >)? std::ops::Index<$index> for $ty$(< $( $ltOrGeneric  ),+ >)?{
                 type Output = $output;
 
                 fn index(&self, index: $index) -> &Self::Output {
@@ -17,7 +32,7 @@ macro_rules! forward {
                 }
             }
 
-            impl std::ops::Index<$crate::IdRange<$index>> for $ty {
+            impl$(< $( $ltOrGeneric $( : $bound $(+ $bounds )* )? ),+ >)? std::ops::Index<$crate::IdRange<$index>> for $ty$(< $( $ltOrGeneric  ),+ >)? {
                 type Output = [$output];
 
                 fn index(&self, range: $crate::IdRange<$index>) -> &Self::Output {
