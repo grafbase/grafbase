@@ -103,10 +103,10 @@ fn collect_message_id_and_enum_ids_recursively(
             enum_ids.insert(*proto_enum_id);
         }
         FieldType::Message(proto_message_id) => {
-            message_ids.insert(*proto_message_id);
-
-            for field in proto_message_id.fields(schema) {
-                collect_message_id_and_enum_ids_recursively(schema, &field.r#type, message_ids, enum_ids);
+            if message_ids.insert(*proto_message_id) {
+                for field in proto_message_id.fields(schema) {
+                    collect_message_id_and_enum_ids_recursively(schema, &field.r#type, message_ids, enum_ids);
+                }
             }
         }
     }

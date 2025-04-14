@@ -197,11 +197,11 @@ input routeguide_RectangleInput {
 """
 One corner of the rectangle.
 """
-  lo: routeguide_Point
+  lo: routeguide_PointInput
 """
 The other corner of the rectangle.
 """
-  hi: routeguide_Point
+  hi: routeguide_PointInput
 }
 
 """
@@ -211,7 +211,7 @@ input routeguide_RouteNoteInput {
 """
 The location from which the message is sent.
 """
-  location: routeguide_Point
+  location: routeguide_PointInput
 """
 The message to be sent.
 """
