@@ -532,13 +532,13 @@ Order message
 """
 input taqueria_OrderInput {
   customer_id: String
-  items: [taqueria_OrderItem!]
+  items: [taqueria_OrderItemInput!]
   is_takeout: Boolean
 """
 Map of item_id to customization options
 """
-  customizations: [taqueria_Order_CustomizationsEntry!]
-  payment_info: taqueria_PaymentInfo
+  customizations: [taqueria_Order_CustomizationsEntryInput!]
+  payment_info: taqueria_PaymentInfoInput
 }
 
 input taqueria_Order_CustomizationsEntryInput {
