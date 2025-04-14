@@ -78,10 +78,13 @@ pub(super) fn collect_composed_directives<'a>(
                         ));
                         None
                     }
-                    (Some(extension_id), false) => Some(ir::DirectiveProvenance::LinkedFromExtension {
-                        linked_schema_id,
-                        extension_id,
-                    }),
+                    (Some(extension_id), false) => {
+                        ctx.mark_used_extension(extension_id);
+                        Some(ir::DirectiveProvenance::LinkedFromExtension {
+                            linked_schema_id,
+                            extension_id,
+                        })
+                    }
                     (None, true) => Some(ir::DirectiveProvenance::ComposeDirective),
                     (None, false) => None,
                 },

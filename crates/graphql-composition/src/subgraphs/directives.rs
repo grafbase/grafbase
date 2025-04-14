@@ -61,7 +61,7 @@ pub(super) struct Directives {
     composed_directives: HashSet<(SubgraphId, StringId)>,
 
     pub(super) extra_directives: Vec<ExtraDirectiveRecord>,
-    extra_directives_on_schema_definitions_or_extensions: Vec<(SubgraphId, ExtraDirectiveRecord)>,
+    extra_directives_on_schema_definition: Vec<(SubgraphId, ExtraDirectiveRecord)>,
 }
 
 impl Subgraphs {
@@ -124,22 +124,20 @@ impl Subgraphs {
         self.directives.tags.insert((id, tag));
     }
 
-    pub(crate) fn push_extra_directive_on_schema_definition_or_extension(
+    pub(crate) fn push_extra_directive_on_schema_definition(
         &mut self,
         subgraph_id: SubgraphId,
         directive: ExtraDirectiveRecord,
     ) {
         self.directives
-            .extra_directives_on_schema_definitions_or_extensions
+            .extra_directives_on_schema_definition
             .push((subgraph_id, directive));
     }
 
-    pub(crate) fn iter_extra_directives_on_schema_definition_or_extensions(
+    pub(crate) fn iter_extra_directives_on_schema_definition(
         &self,
     ) -> impl Iterator<Item = &(SubgraphId, ExtraDirectiveRecord)> {
-        self.directives
-            .extra_directives_on_schema_definitions_or_extensions
-            .iter()
+        self.directives.extra_directives_on_schema_definition.iter()
     }
 
     pub(crate) fn push_directive_definition(&mut self, definition: DirectiveDefinition) -> DirectiveDefinitionId {

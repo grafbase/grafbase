@@ -3,7 +3,7 @@ use super::*;
 pub(super) fn emit_extensions(ctx: &mut Context<'_>, ir: &CompositionIr) {
     let extensions_from_subgraphs = ctx.subgraphs.iter_extensions();
 
-    if extensions_from_subgraphs.len() == 0 {
+    if extensions_from_subgraphs.len() == 0 || ir.used_extensions.ones().next().is_none() {
         return;
     }
 
@@ -18,6 +18,9 @@ pub(super) fn emit_extensions(ctx: &mut Context<'_>, ir: &CompositionIr) {
     });
 
     for extension in extensions_from_subgraphs {
+        if !ir.used_extensions[usize::from(extension.id)] {
+            continue;
+        }
         let url = ctx.insert_string(ctx.subgraphs.walk(extension.url));
 
         let extension_name_str = ctx.subgraphs.walk(extension.name).as_str();
@@ -70,7 +73,7 @@ fn iter_directives_from_extension<'a>(
     linked_schema_to_extension: &'a [(subgraphs::LinkedSchemaId, subgraphs::ExtensionId)],
 ) -> impl Iterator<Item = &'a (subgraphs::SubgraphId, subgraphs::ExtraDirectiveRecord)> {
     subgraphs
-        .iter_extra_directives_on_schema_definition_or_extensions()
+        .iter_extra_directives_on_schema_definition()
         .filter(move |(_, directive)| {
             let subgraphs::DirectiveProvenance::Linked {
                 linked_schema_id,

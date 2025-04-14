@@ -101,7 +101,6 @@ enum extension__Link
   KAFKA_CONNECTOR @extension__link(url: "https://grafbase.com/extensions/kafka/v1.0.0")
   ORACLE_CONNECTOR @extension__link(url: "file:///home/lellison/src/oracle-grafbase-extension/dist")
   REST_CONNECTOR @extension__link(url: "https://grafbase.com/extensions/rest")
-  UNUSED_EXTENSION @extension__link(url: "https://example.com/unused/unused-extension/v1.0.0")
 }
 
 input AppointmentInput

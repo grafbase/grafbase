@@ -13,6 +13,7 @@ pub(super) struct Context<'a> {
     pub(super) uses_cost_directive: bool,
     pub(super) uses_list_size_directive: bool,
 
+    used_extensions: fixedbitset::FixedBitSet,
     strings_ir: ir::StringsIr,
 }
 
@@ -29,13 +30,19 @@ impl<'a> Context<'a> {
             strings_ir: std::mem::take(&mut ir.strings),
             selection_map: HashMap::with_capacity(ir.fields.len()),
             field_types_map: FieldTypesMap::default(),
+            used_extensions: ir.used_extensions.clone(),
             uses_cost_directive: false,
             uses_list_size_directive: false,
         }
     }
 
     pub(crate) fn convert_extension_id(&self, extension_id: subgraphs::ExtensionId) -> federated::ExtensionId {
-        federated::ExtensionId::from(usize::from(extension_id))
+        assert!(
+            self.used_extensions[usize::from(extension_id)],
+            "Unused extensions used in FederatedGraph?"
+        );
+        let offset = self.used_extensions.count_zeroes(..usize::from(extension_id));
+        federated::ExtensionId::from(usize::from(extension_id) - offset)
     }
 
     /// Subgraphs string -> federated graph string.

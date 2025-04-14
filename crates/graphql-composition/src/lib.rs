@@ -51,6 +51,19 @@ pub fn compose(subgraphs: &Subgraphs) -> CompositionResult {
         };
     }
 
+    for (_, directive) in subgraphs.iter_extra_directives_on_schema_definition() {
+        let subgraphs::DirectiveProvenance::Linked {
+            linked_schema_id,
+            is_composed_directive: _,
+        } = directive.provenance
+        else {
+            continue;
+        };
+
+        if let Some(extension_id) = context.get_extension_for_linked_schema(linked_schema_id) {
+            context.mark_used_extension(extension_id);
+        }
+    }
     compose_subgraphs(&mut context);
 
     if context.diagnostics.any_fatal() {

@@ -1,0 +1,10 @@
+extend schema @link(url: "https://specs.grafbase.com/composite-schema/v1", import: ["@lookup", "@key"])
+
+type Query {
+  userById(id: ID!): User @lookup
+}
+
+type User @key(fields: "id") {
+  id: ID!
+  name: String
+}

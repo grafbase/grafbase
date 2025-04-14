@@ -17,6 +17,7 @@ workspace = true
 [dependencies]
 cynic-parser = { workspace = true, features = ["report"] }
 cynic-parser-deser.workspace = true
+fixedbitset.workspace = true
 graphql-federated-graph = { path = "../graphql-federated-graph" }
 indexmap.workspace = true
 itertools.workspace = true

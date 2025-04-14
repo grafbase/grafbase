@@ -1,0 +1,51 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Federated SDL
+input_file: crates/graphql-composition/tests/composition/composite_schema/test.md
+---
+directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
+
+directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
+
+directive @join__graph(name: String!, url: String) on ENUM_VALUE
+
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, overrideLabel: String) on FIELD_DEFINITION
+
+directive @join__type(graph: join__Graph, key: join__FieldSet, resolvable: Boolean = true) on OBJECT | INTERFACE
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+scalar join__FieldSet
+
+type User
+  @extension__directive(graph: A, extension: _COMPOSITE_SCHEMA, name: "key", arguments: {fields: "id"})
+  @join__type(graph: A)
+{
+  id: ID!
+  name: String
+}
+
+type Account
+  @extension__directive(graph: B, extension: _COMPOSITE_SCHEMA, name: "key", arguments: {fields: "id"})
+  @join__type(graph: B)
+{
+  id: ID!
+  name: String
+}
+
+type Query
+{
+  accountById(id: ID!): Account @extension__directive(graph: B, extension: _COMPOSITE_SCHEMA, name: "lookup", arguments: {}) @join__field(graph: B)
+  userById(id: ID!): User @extension__directive(graph: A, extension: _COMPOSITE_SCHEMA, name: "lookup", arguments: {}) @join__field(graph: A)
+}
+
+enum join__Graph
+{
+  A @join__graph(name: "a", url: "http://example.com/a")
+  B @join__graph(name: "b", url: "http://example.com/b")
+}
+
+enum extension__Link
+{
+  _COMPOSITE_SCHEMA @extension__link(url: "https://specs.grafbase.com/composite-schema/v1")
+}
