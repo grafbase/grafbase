@@ -1,12 +1,12 @@
 module github.com/grafbase/grafbase/examples/gqlgen-federation
 
-go 1.23.0
+go 1.23.8
 
 toolchain go1.24.2
 
 require (
 	github.com/99designs/gqlgen v0.17.70
-	github.com/99designs/gqlgen/_examples v0.0.0-20250412190105-55536f41e9d4
+	github.com/99designs/gqlgen/_examples v0.0.0-20250414014617-a34bd2fc58dd
 	github.com/vektah/gqlparser/v2 v2.5.24
 )
 
