@@ -8,7 +8,7 @@ extend schema
   @protoServices(
     definitions: [
       {
-        name: "RouteGuide"
+        name: "routeguide.RouteGuide"
         methods: [
           {
             name: "GetFeature"
@@ -147,14 +147,14 @@ A simple RPC.
  A feature with an empty name is returned if there's no feature at the given
  position.
 """
-  RouteGuide_GetFeature(input: routeguide_PointInput): routeguide_Feature @grpcMethod(service: "RouteGuide", method: "GetFeature")
+  routeguide_RouteGuide_GetFeature(input: routeguide_PointInput): routeguide_Feature @grpcMethod(service: "routeguide.RouteGuide", method: "GetFeature")
 """
 A client-to-server streaming RPC.
 
  Accepts a stream of Points on a route being traversed, returning a
  RouteSummary when traversal is completed.
 """
-  RouteGuide_RecordRoute(input: routeguide_PointInput): routeguide_RouteSummary @grpcMethod(service: "RouteGuide", method: "RecordRoute")
+  routeguide_RouteGuide_RecordRoute(input: routeguide_PointInput): routeguide_RouteSummary @grpcMethod(service: "routeguide.RouteGuide", method: "RecordRoute")
 }
 
 type Subscription {
@@ -166,14 +166,14 @@ A server-to-client streaming RPC.
  repeated field), as the rectangle may cover a large area and contain a
  huge number of features.
 """
-  RouteGuide_ListFeatures(input: routeguide_RectangleInput): routeguide_Feature @grpcMethod(service: "RouteGuide", method: "ListFeatures")
+  routeguide_RouteGuide_ListFeatures(input: routeguide_RectangleInput): routeguide_Feature @grpcMethod(service: "routeguide.RouteGuide", method: "ListFeatures")
 """
 A Bidirectional streaming RPC.
 
  Accepts a stream of RouteNotes sent while a route is being traversed,
  while receiving other RouteNotes (e.g. from other users).
 """
-  RouteGuide_RouteChat(input: routeguide_RouteNoteInput): routeguide_RouteNote @grpcMethod(service: "RouteGuide", method: "RouteChat")
+  routeguide_RouteGuide_RouteChat(input: routeguide_RouteNoteInput): routeguide_RouteNote @grpcMethod(service: "routeguide.RouteGuide", method: "RouteChat")
 }
 
 "64 bit signed integer" scalar I64

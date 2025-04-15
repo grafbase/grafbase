@@ -8,7 +8,7 @@ extend schema
   @protoServices(
     definitions: [
       {
-        name: "TaqueriaService"
+        name: "taqueria.TaqueriaService"
         methods: [
           {
             name: "GetMenu"
@@ -491,19 +491,19 @@ type Mutation {
 """
 Get menu items with optional filters
 """
-  TaqueriaService_GetMenu(input: taqueria_MenuRequestInput): taqueria_MenuResponse @grpcMethod(service: "TaqueriaService", method: "GetMenu")
+  taqueria_TaqueriaService_GetMenu(input: taqueria_MenuRequestInput): taqueria_MenuResponse @grpcMethod(service: "taqueria.TaqueriaService", method: "GetMenu")
 """
 Place a new order
 """
-  TaqueriaService_PlaceOrder(input: taqueria_OrderInput): taqueria_OrderResponse @grpcMethod(service: "TaqueriaService", method: "PlaceOrder")
+  taqueria_TaqueriaService_PlaceOrder(input: taqueria_OrderInput): taqueria_OrderResponse @grpcMethod(service: "taqueria.TaqueriaService", method: "PlaceOrder")
 """
 Check order status
 """
-  TaqueriaService_CheckOrderStatus(input: taqueria_OrderStatusRequestInput): taqueria_OrderStatusResponse @grpcMethod(service: "TaqueriaService", method: "CheckOrderStatus")
+  taqueria_TaqueriaService_CheckOrderStatus(input: taqueria_OrderStatusRequestInput): taqueria_OrderStatusResponse @grpcMethod(service: "taqueria.TaqueriaService", method: "CheckOrderStatus")
 """
 Get daily sales report
 """
-  TaqueriaService_GetDailySalesReport(input: taqueria_DailySalesRequestInput): taqueria_DailySalesResponse @grpcMethod(service: "TaqueriaService", method: "GetDailySalesReport")
+  taqueria_TaqueriaService_GetDailySalesReport(input: taqueria_DailySalesRequestInput): taqueria_DailySalesResponse @grpcMethod(service: "taqueria.TaqueriaService", method: "GetDailySalesReport")
 }
 
 "64 bit signed integer" scalar I64
