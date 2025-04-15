@@ -6,7 +6,7 @@ input_file: crates/protoc-gen-grafbase-subgraph/tests/codegen/taqueria/tacotruck
 extend schema
   @link(url: "https://grafbase.com/extensions/grpc/0.1.0", import: ["@protoServices", "@protoEnums", "@protoMessages", "@grpcMethod"])
   @protoServices(
-    services: [
+    definitions: [
       {
         name: "TaqueriaService"
         methods: [
@@ -35,7 +35,7 @@ extend schema
     ]
   )
   @protoMessages(
-    messages: [
+    definitions: [
       {
         name: ".taqueria.MenuItem"
         fields: [
@@ -379,7 +379,7 @@ extend schema
     ]
   )
   @protoEnums(
-    enums: [
+    definitions: [
       {
         name: ".taqueria.SpiceLevel"
         values: [

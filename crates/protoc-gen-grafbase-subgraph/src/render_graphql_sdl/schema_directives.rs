@@ -19,7 +19,7 @@ fn render_proto_services(schema: &GrpcSchema, f: &mut fmt::Formatter<'_>) -> fmt
     f.write_str("@protoServices(\n")?;
     f.write_str(INDENT)?;
     f.write_str(INDENT)?;
-    f.write_str("services: [\n")?;
+    f.write_str("definitions: [\n")?;
 
     for service in schema.iter_services() {
         writeln!(f, "{INDENT}{INDENT}{INDENT}{{")?;
@@ -76,7 +76,7 @@ fn render_proto_messages(schema: &GrpcSchema, f: &mut fmt::Formatter<'_>) -> fmt
     f.write_str("@protoMessages(\n")?;
     f.write_str(INDENT)?;
     f.write_str(INDENT)?;
-    f.write_str("messages: [\n")?;
+    f.write_str("definitions: [\n")?;
 
     for message in schema.iter_messages() {
         writeln!(f, "{INDENT}{INDENT}{INDENT}{{")?;
@@ -132,7 +132,7 @@ fn render_proto_enums(schema: &GrpcSchema, f: &mut fmt::Formatter<'_>) -> fmt::R
     f.write_str("@protoEnums(\n")?;
     f.write_str(INDENT)?;
     f.write_str(INDENT)?;
-    f.write_str("enums: [\n")?;
+    f.write_str("definitions: [\n")?;
 
     for enum_ in schema.iter_enums() {
         writeln!(f, "{INDENT}{INDENT}{INDENT}{{")?;

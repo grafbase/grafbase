@@ -6,7 +6,7 @@ input_file: crates/protoc-gen-grafbase-subgraph/tests/codegen/routeguide/route_g
 extend schema
   @link(url: "https://grafbase.com/extensions/grpc/0.1.0", import: ["@protoServices", "@protoEnums", "@protoMessages", "@grpcMethod"])
   @protoServices(
-    services: [
+    definitions: [
       {
         name: "RouteGuide"
         methods: [
@@ -37,7 +37,7 @@ extend schema
     ]
   )
   @protoMessages(
-    messages: [
+    definitions: [
       {
         name: ".routeguide.Point"
         fields: [
