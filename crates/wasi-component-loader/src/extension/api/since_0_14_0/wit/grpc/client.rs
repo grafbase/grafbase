@@ -23,7 +23,12 @@ impl HostGrpcClient for WasiState {
         let client = match self.grpc_clients().entry(configuration.uri.clone()) {
             Entry::Occupied(entry) => entry.get().clone(),
             Entry::Vacant(entry) => {
-                let transport = match tonic::transport::Endpoint::new(configuration.uri)?.connect().await {
+                let endpoint = match tonic::transport::Endpoint::new(configuration.uri) {
+                    Ok(endpoint) => endpoint,
+                    Err(err) => return Ok(Err(err.to_string())),
+                };
+
+                let transport = match endpoint.connect().await {
                     Ok(transport) => transport,
                     Err(err) => return Ok(Err(err.to_string())),
                 };

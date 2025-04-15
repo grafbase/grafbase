@@ -26,14 +26,14 @@ extend schema
         fields: [
           {
             name: "seconds"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: "int64"
           }
           {
             name: "nanos"
-            number: "2"
-            repeated: "false"
+            number: 2
+            repeated: false
             type: "int32"
           }
         ]
@@ -43,14 +43,14 @@ extend schema
         fields: [
           {
             name: "seconds"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: "int64"
           }
           {
             name: "nanos"
-            number: "2"
-            repeated: "false"
+            number: 2
+            repeated: false
             type: "int32"
           }
         ]
@@ -65,14 +65,14 @@ extend schema
         fields: [
           {
             name: "type_url"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: "string"
           }
           {
             name: "value"
-            number: "2"
-            repeated: "false"
+            number: 2
+            repeated: false
             type: "bytes"
           }
         ]
@@ -82,8 +82,8 @@ extend schema
         fields: [
           {
             name: "value"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: "double"
           }
         ]
@@ -93,8 +93,8 @@ extend schema
         fields: [
           {
             name: "value"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: "float"
           }
         ]
@@ -104,8 +104,8 @@ extend schema
         fields: [
           {
             name: "value"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: "int64"
           }
         ]
@@ -115,8 +115,8 @@ extend schema
         fields: [
           {
             name: "value"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: "uint64"
           }
         ]
@@ -126,8 +126,8 @@ extend schema
         fields: [
           {
             name: "value"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: "int32"
           }
         ]
@@ -137,8 +137,8 @@ extend schema
         fields: [
           {
             name: "value"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: "uint32"
           }
         ]
@@ -148,8 +148,8 @@ extend schema
         fields: [
           {
             name: "value"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: "bool"
           }
         ]
@@ -159,8 +159,8 @@ extend schema
         fields: [
           {
             name: "value"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: "string"
           }
         ]
@@ -170,8 +170,8 @@ extend schema
         fields: [
           {
             name: "value"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: "bytes"
           }
         ]
@@ -181,8 +181,8 @@ extend schema
         fields: [
           {
             name: "file_name"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: "string"
           }
         ]
@@ -192,44 +192,44 @@ extend schema
         fields: [
           {
             name: "name"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: "string"
           }
           {
             name: "fields"
-            number: "2"
-            repeated: "true"
+            number: 2
+            repeated: true
             type: ".google.protobuf.Field"
           }
           {
             name: "oneofs"
-            number: "3"
-            repeated: "true"
+            number: 3
+            repeated: true
             type: "string"
           }
           {
             name: "options"
-            number: "4"
-            repeated: "true"
+            number: 4
+            repeated: true
             type: ".google.protobuf.Option"
           }
           {
             name: "source_context"
-            number: "5"
-            repeated: "false"
+            number: 5
+            repeated: false
             type: ".google.protobuf.SourceContext"
           }
           {
             name: "syntax"
-            number: "6"
-            repeated: "false"
+            number: 6
+            repeated: false
             type: ".google.protobuf.Syntax"
           }
           {
             name: "edition"
-            number: "7"
-            repeated: "false"
+            number: 7
+            repeated: false
             type: "string"
           }
         ]
@@ -239,62 +239,62 @@ extend schema
         fields: [
           {
             name: "kind"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: ".google.protobuf.Field.Kind"
           }
           {
             name: "cardinality"
-            number: "2"
-            repeated: "false"
+            number: 2
+            repeated: false
             type: ".google.protobuf.Field.Cardinality"
           }
           {
             name: "number"
-            number: "3"
-            repeated: "false"
+            number: 3
+            repeated: false
             type: "int32"
           }
           {
             name: "name"
-            number: "4"
-            repeated: "false"
+            number: 4
+            repeated: false
             type: "string"
           }
           {
             name: "type_url"
-            number: "6"
-            repeated: "false"
+            number: 6
+            repeated: false
             type: "string"
           }
           {
             name: "oneof_index"
-            number: "7"
-            repeated: "false"
+            number: 7
+            repeated: false
             type: "int32"
           }
           {
             name: "packed"
-            number: "8"
-            repeated: "false"
+            number: 8
+            repeated: false
             type: "bool"
           }
           {
             name: "options"
-            number: "9"
-            repeated: "true"
+            number: 9
+            repeated: true
             type: ".google.protobuf.Option"
           }
           {
             name: "json_name"
-            number: "10"
-            repeated: "false"
+            number: 10
+            repeated: false
             type: "string"
           }
           {
             name: "default_value"
-            number: "11"
-            repeated: "false"
+            number: 11
+            repeated: false
             type: "string"
           }
         ]
@@ -304,38 +304,38 @@ extend schema
         fields: [
           {
             name: "name"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: "string"
           }
           {
             name: "enumvalue"
-            number: "2"
-            repeated: "true"
+            number: 2
+            repeated: true
             type: ".google.protobuf.EnumValue"
           }
           {
             name: "options"
-            number: "3"
-            repeated: "true"
+            number: 3
+            repeated: true
             type: ".google.protobuf.Option"
           }
           {
             name: "source_context"
-            number: "4"
-            repeated: "false"
+            number: 4
+            repeated: false
             type: ".google.protobuf.SourceContext"
           }
           {
             name: "syntax"
-            number: "5"
-            repeated: "false"
+            number: 5
+            repeated: false
             type: ".google.protobuf.Syntax"
           }
           {
             name: "edition"
-            number: "6"
-            repeated: "false"
+            number: 6
+            repeated: false
             type: "string"
           }
         ]
@@ -345,20 +345,20 @@ extend schema
         fields: [
           {
             name: "name"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: "string"
           }
           {
             name: "number"
-            number: "2"
-            repeated: "false"
+            number: 2
+            repeated: false
             type: "int32"
           }
           {
             name: "options"
-            number: "3"
-            repeated: "true"
+            number: 3
+            repeated: true
             type: ".google.protobuf.Option"
           }
         ]
@@ -368,14 +368,14 @@ extend schema
         fields: [
           {
             name: "name"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: "string"
           }
           {
             name: "value"
-            number: "2"
-            repeated: "false"
+            number: 2
+            repeated: false
             type: ".google.protobuf.Any"
           }
         ]
@@ -385,44 +385,44 @@ extend schema
         fields: [
           {
             name: "name"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: "string"
           }
           {
             name: "methods"
-            number: "2"
-            repeated: "true"
+            number: 2
+            repeated: true
             type: ".google.protobuf.Method"
           }
           {
             name: "options"
-            number: "3"
-            repeated: "true"
+            number: 3
+            repeated: true
             type: ".google.protobuf.Option"
           }
           {
             name: "version"
-            number: "4"
-            repeated: "false"
+            number: 4
+            repeated: false
             type: "string"
           }
           {
             name: "source_context"
-            number: "5"
-            repeated: "false"
+            number: 5
+            repeated: false
             type: ".google.protobuf.SourceContext"
           }
           {
             name: "mixins"
-            number: "6"
-            repeated: "true"
+            number: 6
+            repeated: true
             type: ".google.protobuf.Mixin"
           }
           {
             name: "syntax"
-            number: "7"
-            repeated: "false"
+            number: 7
+            repeated: false
             type: ".google.protobuf.Syntax"
           }
         ]
@@ -432,44 +432,44 @@ extend schema
         fields: [
           {
             name: "name"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: "string"
           }
           {
             name: "request_type_url"
-            number: "2"
-            repeated: "false"
+            number: 2
+            repeated: false
             type: "string"
           }
           {
             name: "request_streaming"
-            number: "3"
-            repeated: "false"
+            number: 3
+            repeated: false
             type: "bool"
           }
           {
             name: "response_type_url"
-            number: "4"
-            repeated: "false"
+            number: 4
+            repeated: false
             type: "string"
           }
           {
             name: "response_streaming"
-            number: "5"
-            repeated: "false"
+            number: 5
+            repeated: false
             type: "bool"
           }
           {
             name: "options"
-            number: "6"
-            repeated: "true"
+            number: 6
+            repeated: true
             type: ".google.protobuf.Option"
           }
           {
             name: "syntax"
-            number: "7"
-            repeated: "false"
+            number: 7
+            repeated: false
             type: ".google.protobuf.Syntax"
           }
         ]
@@ -479,14 +479,14 @@ extend schema
         fields: [
           {
             name: "name"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: "string"
           }
           {
             name: "root"
-            number: "2"
-            repeated: "false"
+            number: 2
+            repeated: false
             type: "string"
           }
         ]
@@ -496,8 +496,8 @@ extend schema
         fields: [
           {
             name: "paths"
-            number: "1"
-            repeated: "true"
+            number: 1
+            repeated: true
             type: "string"
           }
         ]
@@ -507,8 +507,8 @@ extend schema
         fields: [
           {
             name: "fields"
-            number: "1"
-            repeated: "true"
+            number: 1
+            repeated: true
             type: ".google.protobuf.Struct.FieldsEntry"
           }
         ]
@@ -518,14 +518,14 @@ extend schema
         fields: [
           {
             name: "key"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: "string"
           }
           {
             name: "value"
-            number: "2"
-            repeated: "false"
+            number: 2
+            repeated: false
             type: ".google.protobuf.Value"
           }
         ]
@@ -535,38 +535,38 @@ extend schema
         fields: [
           {
             name: "null_value"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: ".google.protobuf.NullValue"
           }
           {
             name: "number_value"
-            number: "2"
-            repeated: "false"
+            number: 2
+            repeated: false
             type: "double"
           }
           {
             name: "string_value"
-            number: "3"
-            repeated: "false"
+            number: 3
+            repeated: false
             type: "string"
           }
           {
             name: "bool_value"
-            number: "4"
-            repeated: "false"
+            number: 4
+            repeated: false
             type: "bool"
           }
           {
             name: "struct_value"
-            number: "5"
-            repeated: "false"
+            number: 5
+            repeated: false
             type: ".google.protobuf.Struct"
           }
           {
             name: "list_value"
-            number: "6"
-            repeated: "false"
+            number: 6
+            repeated: false
             type: ".google.protobuf.ListValue"
           }
         ]
@@ -576,8 +576,8 @@ extend schema
         fields: [
           {
             name: "values"
-            number: "1"
-            repeated: "true"
+            number: 1
+            repeated: true
             type: ".google.protobuf.Value"
           }
         ]
@@ -587,164 +587,164 @@ extend schema
         fields: [
           {
             name: "any_valueany"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: ".google.protobuf.Any"
           }
           {
             name: "api_value"
-            number: "2"
-            repeated: "false"
+            number: 2
+            repeated: false
             type: ".google.protobuf.Api"
           }
           {
             name: "bool_value"
-            number: "3"
-            repeated: "false"
+            number: 3
+            repeated: false
             type: ".google.protobuf.BoolValue"
           }
           {
             name: "bytes_value"
-            number: "4"
-            repeated: "false"
+            number: 4
+            repeated: false
             type: ".google.protobuf.BytesValue"
           }
           {
             name: "double_value"
-            number: "5"
-            repeated: "false"
+            number: 5
+            repeated: false
             type: ".google.protobuf.DoubleValue"
           }
           {
             name: "duration_value"
-            number: "6"
-            repeated: "false"
+            number: 6
+            repeated: false
             type: ".google.protobuf.Duration"
           }
           {
             name: "empty_value"
-            number: "7"
-            repeated: "false"
+            number: 7
+            repeated: false
             type: ".google.protobuf.Empty"
           }
           {
             name: "enum_value"
-            number: "8"
-            repeated: "false"
+            number: 8
+            repeated: false
             type: ".google.protobuf.Enum"
           }
           {
             name: "enum_value_value"
-            number: "9"
-            repeated: "false"
+            number: 9
+            repeated: false
             type: ".google.protobuf.EnumValue"
           }
           {
             name: "field_value"
-            number: "10"
-            repeated: "false"
+            number: 10
+            repeated: false
             type: ".google.protobuf.Field"
           }
           {
             name: "field_mask_value"
-            number: "11"
-            repeated: "false"
+            number: 11
+            repeated: false
             type: ".google.protobuf.FieldMask"
           }
           {
             name: "float_value"
-            number: "12"
-            repeated: "false"
+            number: 12
+            repeated: false
             type: ".google.protobuf.FloatValue"
           }
           {
             name: "int32_value"
-            number: "13"
-            repeated: "false"
+            number: 13
+            repeated: false
             type: ".google.protobuf.Int32Value"
           }
           {
             name: "int64_value"
-            number: "14"
-            repeated: "false"
+            number: 14
+            repeated: false
             type: ".google.protobuf.Int64Value"
           }
           {
             name: "list_value"
-            number: "15"
-            repeated: "false"
+            number: 15
+            repeated: false
             type: ".google.protobuf.ListValue"
           }
           {
             name: "method_value"
-            number: "16"
-            repeated: "false"
+            number: 16
+            repeated: false
             type: ".google.protobuf.Method"
           }
           {
             name: "mixin_value"
-            number: "17"
-            repeated: "false"
+            number: 17
+            repeated: false
             type: ".google.protobuf.Mixin"
           }
           {
             name: "null_value"
-            number: "18"
-            repeated: "false"
+            number: 18
+            repeated: false
             type: ".google.protobuf.NullValue"
           }
           {
             name: "option_value"
-            number: "19"
-            repeated: "false"
+            number: 19
+            repeated: false
             type: ".google.protobuf.Option"
           }
           {
             name: "source_context_value"
-            number: "20"
-            repeated: "false"
+            number: 20
+            repeated: false
             type: ".google.protobuf.SourceContext"
           }
           {
             name: "string_value"
-            number: "21"
-            repeated: "false"
+            number: 21
+            repeated: false
             type: ".google.protobuf.StringValue"
           }
           {
             name: "struct_value"
-            number: "22"
-            repeated: "false"
+            number: 22
+            repeated: false
             type: ".google.protobuf.Struct"
           }
           {
             name: "timestamp_value"
-            number: "23"
-            repeated: "false"
+            number: 23
+            repeated: false
             type: ".google.protobuf.Timestamp"
           }
           {
             name: "type_value"
-            number: "24"
-            repeated: "false"
+            number: 24
+            repeated: false
             type: ".google.protobuf.Type"
           }
           {
             name: "uint32_value"
-            number: "25"
-            repeated: "false"
+            number: 25
+            repeated: false
             type: ".google.protobuf.UInt32Value"
           }
           {
             name: "uint64_value"
-            number: "26"
-            repeated: "false"
+            number: 26
+            repeated: false
             type: ".google.protobuf.UInt64Value"
           }
           {
             name: "value"
-            number: "27"
-            repeated: "false"
+            number: 27
+            repeated: false
             type: ".google.protobuf.Value"
           }
         ]
@@ -758,15 +758,15 @@ extend schema
         values: [
           {
             name: "SYNTAX_PROTO2"
-            number: "0"
+            number: 0
           }
           {
             name: "SYNTAX_PROTO3"
-            number: "1"
+            number: 1
           }
           {
             name: "SYNTAX_EDITIONS"
-            number: "2"
+            number: 2
           }
         ]
       }
@@ -775,79 +775,79 @@ extend schema
         values: [
           {
             name: "TYPE_UNKNOWN"
-            number: "0"
+            number: 0
           }
           {
             name: "TYPE_DOUBLE"
-            number: "1"
+            number: 1
           }
           {
             name: "TYPE_FLOAT"
-            number: "2"
+            number: 2
           }
           {
             name: "TYPE_INT64"
-            number: "3"
+            number: 3
           }
           {
             name: "TYPE_UINT64"
-            number: "4"
+            number: 4
           }
           {
             name: "TYPE_INT32"
-            number: "5"
+            number: 5
           }
           {
             name: "TYPE_FIXED64"
-            number: "6"
+            number: 6
           }
           {
             name: "TYPE_FIXED32"
-            number: "7"
+            number: 7
           }
           {
             name: "TYPE_BOOL"
-            number: "8"
+            number: 8
           }
           {
             name: "TYPE_STRING"
-            number: "9"
+            number: 9
           }
           {
             name: "TYPE_GROUP"
-            number: "10"
+            number: 10
           }
           {
             name: "TYPE_MESSAGE"
-            number: "11"
+            number: 11
           }
           {
             name: "TYPE_BYTES"
-            number: "12"
+            number: 12
           }
           {
             name: "TYPE_UINT32"
-            number: "13"
+            number: 13
           }
           {
             name: "TYPE_ENUM"
-            number: "14"
+            number: 14
           }
           {
             name: "TYPE_SFIXED32"
-            number: "15"
+            number: 15
           }
           {
             name: "TYPE_SFIXED64"
-            number: "16"
+            number: 16
           }
           {
             name: "TYPE_SINT32"
-            number: "17"
+            number: 17
           }
           {
             name: "TYPE_SINT64"
-            number: "18"
+            number: 18
           }
         ]
       }
@@ -856,19 +856,19 @@ extend schema
         values: [
           {
             name: "CARDINALITY_UNKNOWN"
-            number: "0"
+            number: 0
           }
           {
             name: "CARDINALITY_OPTIONAL"
-            number: "1"
+            number: 1
           }
           {
             name: "CARDINALITY_REQUIRED"
-            number: "2"
+            number: 2
           }
           {
             name: "CARDINALITY_REPEATED"
-            number: "3"
+            number: 3
           }
         ]
       }
@@ -877,7 +877,7 @@ extend schema
         values: [
           {
             name: "NULL_VALUE"
-            number: "0"
+            number: 0
           }
         ]
       }

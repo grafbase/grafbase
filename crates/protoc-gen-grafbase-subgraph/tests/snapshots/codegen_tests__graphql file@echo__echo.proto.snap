@@ -43,8 +43,8 @@ extend schema
         fields: [
           {
             name: "message"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: "string"
           }
         ]
@@ -54,8 +54,8 @@ extend schema
         fields: [
           {
             name: "message"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: "string"
           }
         ]

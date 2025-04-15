@@ -92,12 +92,12 @@ fn render_proto_messages(schema: &GrpcSchema, f: &mut fmt::Formatter<'_>) -> fmt
             )?;
             writeln!(
                 f,
-                "{INDENT}{INDENT}{INDENT}{INDENT}{INDENT}{INDENT}number: \"{}\"",
+                "{INDENT}{INDENT}{INDENT}{INDENT}{INDENT}{INDENT}number: {}",
                 field.number,
             )?;
             writeln!(
                 f,
-                "{INDENT}{INDENT}{INDENT}{INDENT}{INDENT}{INDENT}repeated: \"{}\"",
+                "{INDENT}{INDENT}{INDENT}{INDENT}{INDENT}{INDENT}repeated: {}",
                 field.repeated,
             )?;
             writeln!(
@@ -148,7 +148,7 @@ fn render_proto_enums(schema: &GrpcSchema, f: &mut fmt::Formatter<'_>) -> fmt::R
             )?;
             writeln!(
                 f,
-                "{INDENT}{INDENT}{INDENT}{INDENT}{INDENT}{INDENT}number: \"{}\"",
+                "{INDENT}{INDENT}{INDENT}{INDENT}{INDENT}{INDENT}number: {}",
                 value.number,
             )?;
 

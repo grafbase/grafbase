@@ -41,56 +41,56 @@ extend schema
         fields: [
           {
             name: "id"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: "string"
           }
           {
             name: "name"
-            number: "2"
-            repeated: "false"
+            number: 2
+            repeated: false
             type: "string"
           }
           {
             name: "price"
-            number: "3"
-            repeated: "false"
+            number: 3
+            repeated: false
             type: "double"
           }
           {
             name: "description"
-            number: "4"
-            repeated: "false"
+            number: 4
+            repeated: false
             type: "string"
           }
           {
             name: "meat"
-            number: "5"
-            repeated: "false"
+            number: 5
+            repeated: false
             type: ".taqueria.MeatType"
           }
           {
             name: "spice_level"
-            number: "6"
-            repeated: "false"
+            number: 6
+            repeated: false
             type: ".taqueria.SpiceLevel"
           }
           {
             name: "toppings"
-            number: "7"
-            repeated: "true"
+            number: 7
+            repeated: true
             type: "string"
           }
           {
             name: "vegetarian"
-            number: "8"
-            repeated: "false"
+            number: 8
+            repeated: false
             type: "bool"
           }
           {
             name: "vegan"
-            number: "9"
-            repeated: "false"
+            number: 9
+            repeated: false
             type: "bool"
           }
         ]
@@ -100,20 +100,20 @@ extend schema
         fields: [
           {
             name: "vegetarian_only"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: "bool"
           }
           {
             name: "meat_filter"
-            number: "2"
-            repeated: "false"
+            number: 2
+            repeated: false
             type: ".taqueria.MeatType"
           }
           {
             name: "max_price"
-            number: "3"
-            repeated: "false"
+            number: 3
+            repeated: false
             type: "double"
           }
         ]
@@ -123,8 +123,8 @@ extend schema
         fields: [
           {
             name: "items"
-            number: "1"
-            repeated: "true"
+            number: 1
+            repeated: true
             type: ".taqueria.MenuItem"
           }
         ]
@@ -134,26 +134,26 @@ extend schema
         fields: [
           {
             name: "menu_item_id"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: "string"
           }
           {
             name: "quantity"
-            number: "2"
-            repeated: "false"
+            number: 2
+            repeated: false
             type: "int32"
           }
           {
             name: "extra_toppings"
-            number: "3"
-            repeated: "true"
+            number: 3
+            repeated: true
             type: "string"
           }
           {
             name: "special_instructions"
-            number: "4"
-            repeated: "false"
+            number: 4
+            repeated: false
             type: "string"
           }
         ]
@@ -163,32 +163,32 @@ extend schema
         fields: [
           {
             name: "customer_id"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: "string"
           }
           {
             name: "items"
-            number: "2"
-            repeated: "true"
+            number: 2
+            repeated: true
             type: ".taqueria.OrderItem"
           }
           {
             name: "is_takeout"
-            number: "3"
-            repeated: "false"
+            number: 3
+            repeated: false
             type: "bool"
           }
           {
             name: "customizations"
-            number: "4"
-            repeated: "true"
+            number: 4
+            repeated: true
             type: ".taqueria.Order.CustomizationsEntry"
           }
           {
             name: "payment_info"
-            number: "5"
-            repeated: "false"
+            number: 5
+            repeated: false
             type: ".taqueria.PaymentInfo"
           }
         ]
@@ -198,14 +198,14 @@ extend schema
         fields: [
           {
             name: "key"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: "string"
           }
           {
             name: "value"
-            number: "2"
-            repeated: "false"
+            number: 2
+            repeated: false
             type: "string"
           }
         ]
@@ -215,20 +215,20 @@ extend schema
         fields: [
           {
             name: "method"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: ".taqueria.PaymentInfo.PaymentMethod"
           }
           {
             name: "transaction_id"
-            number: "2"
-            repeated: "false"
+            number: 2
+            repeated: false
             type: "string"
           }
           {
             name: "tip_amount"
-            number: "3"
-            repeated: "false"
+            number: 3
+            repeated: false
             type: "double"
           }
         ]
@@ -238,20 +238,20 @@ extend schema
         fields: [
           {
             name: "order_id"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: "string"
           }
           {
             name: "estimated_ready_time"
-            number: "2"
-            repeated: "false"
+            number: 2
+            repeated: false
             type: "string"
           }
           {
             name: "total_amount"
-            number: "3"
-            repeated: "false"
+            number: 3
+            repeated: false
             type: "double"
           }
         ]
@@ -261,8 +261,8 @@ extend schema
         fields: [
           {
             name: "order_id"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: "string"
           }
         ]
@@ -272,26 +272,26 @@ extend schema
         fields: [
           {
             name: "order_id"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: "string"
           }
           {
             name: "status"
-            number: "2"
-            repeated: "false"
+            number: 2
+            repeated: false
             type: ".taqueria.OrderStatus"
           }
           {
             name: "status_updated_at"
-            number: "3"
-            repeated: "false"
+            number: 3
+            repeated: false
             type: "string"
           }
           {
             name: "estimated_completion_time"
-            number: "4"
-            repeated: "false"
+            number: 4
+            repeated: false
             type: "string"
           }
         ]
@@ -301,8 +301,8 @@ extend schema
         fields: [
           {
             name: "date"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: "string"
           }
         ]
@@ -312,32 +312,32 @@ extend schema
         fields: [
           {
             name: "date"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: "string"
           }
           {
             name: "total_orders"
-            number: "2"
-            repeated: "false"
+            number: 2
+            repeated: false
             type: "int32"
           }
           {
             name: "total_revenue"
-            number: "3"
-            repeated: "false"
+            number: 3
+            repeated: false
             type: "double"
           }
           {
             name: "items_sold"
-            number: "4"
-            repeated: "true"
+            number: 4
+            repeated: true
             type: ".taqueria.DailySalesResponse.ItemsSoldEntry"
           }
           {
             name: "meat_type_counts"
-            number: "5"
-            repeated: "true"
+            number: 5
+            repeated: true
             type: ".taqueria.DailySalesResponse.MeatTypeCountsEntry"
           }
         ]
@@ -347,14 +347,14 @@ extend schema
         fields: [
           {
             name: "key"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: "string"
           }
           {
             name: "value"
-            number: "2"
-            repeated: "false"
+            number: 2
+            repeated: false
             type: "int32"
           }
         ]
@@ -364,14 +364,14 @@ extend schema
         fields: [
           {
             name: "key"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: "int32"
           }
           {
             name: "value"
-            number: "2"
-            repeated: "false"
+            number: 2
+            repeated: false
             type: "int32"
           }
         ]
@@ -385,19 +385,19 @@ extend schema
         values: [
           {
             name: "MILD"
-            number: "0"
+            number: 0
           }
           {
             name: "MEDIUM"
-            number: "1"
+            number: 1
           }
           {
             name: "HOT"
-            number: "2"
+            number: 2
           }
           {
             name: "EXTRA_HOT"
-            number: "3"
+            number: 3
           }
         ]
       }
@@ -406,35 +406,35 @@ extend schema
         values: [
           {
             name: "NONE"
-            number: "0"
+            number: 0
           }
           {
             name: "CARNE_ASADA"
-            number: "1"
+            number: 1
           }
           {
             name: "CHICKEN"
-            number: "2"
+            number: 2
           }
           {
             name: "CARNITAS"
-            number: "3"
+            number: 3
           }
           {
             name: "AL_PASTOR"
-            number: "4"
+            number: 4
           }
           {
             name: "BARBACOA"
-            number: "5"
+            number: 5
           }
           {
             name: "FISH"
-            number: "6"
+            number: 6
           }
           {
             name: "SHRIMP"
-            number: "7"
+            number: 7
           }
         ]
       }
@@ -443,23 +443,23 @@ extend schema
         values: [
           {
             name: "RECEIVED"
-            number: "0"
+            number: 0
           }
           {
             name: "PREPARING"
-            number: "1"
+            number: 1
           }
           {
             name: "READY"
-            number: "2"
+            number: 2
           }
           {
             name: "DELIVERED"
-            number: "3"
+            number: 3
           }
           {
             name: "CANCELLED"
-            number: "4"
+            number: 4
           }
         ]
       }
@@ -468,19 +468,19 @@ extend schema
         values: [
           {
             name: "CASH"
-            number: "0"
+            number: 0
           }
           {
             name: "CREDIT_CARD"
-            number: "1"
+            number: 1
           }
           {
             name: "DEBIT_CARD"
-            number: "2"
+            number: 2
           }
           {
             name: "MOBILE_PAYMENT"
-            number: "3"
+            number: 3
           }
         ]
       }
