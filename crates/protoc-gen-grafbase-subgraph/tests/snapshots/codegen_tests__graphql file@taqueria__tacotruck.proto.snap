@@ -4,6 +4,7 @@ expression: "fs::read_to_string(entry.path()).unwrap()"
 input_file: crates/protoc-gen-grafbase-subgraph/tests/codegen/taqueria/tacotruck.proto
 ---
 extend schema
+  @link(url: "https://grafbase.com/extensions/grpc/0.1.0", import: ["@protoServices", "@protoEnums", "@protoMessages", "@grpcMethod"])
   @protoServices(
     services: [
       {

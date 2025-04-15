@@ -1,11 +1,7 @@
 use super::*;
 
 pub(super) fn render_schema_directives(schema: &GrpcSchema, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    if schema.messages.is_empty() && schema.services.is_empty() && schema.enums.is_empty() {
-        return Ok(());
-    }
-
-    f.write_str("extend schema\n")?;
+    f.write_str("extend schema\n  @link(url: \"https://grafbase.com/extensions/grpc/0.1.0\", import: [\"@protoServices\", \"@protoEnums\", \"@protoMessages\", \"@grpcMethod\"])\n")?;
 
     render_proto_services(schema, f)?;
     render_proto_messages(schema, f)?;
