@@ -65,6 +65,12 @@ impl Default for Subgraphs {
             strings.intern(scalar);
         });
 
+        let composite_schema_extension = ExtensionRecord {
+            url: strings.intern("https://specs.grafbase.com/composite-schema/v1"),
+            // Marketplace extensions cannot start with `-` or `_`.
+            name: strings.intern("_composite_schema"),
+        };
+
         Self {
             strings,
             subgraphs: Default::default(),
@@ -78,7 +84,7 @@ impl Default for Subgraphs {
             ingestion_diagnostics: Default::default(),
             definition_names: Default::default(),
             linked_schemas: Default::default(),
-            extensions: Vec::new(),
+            extensions: vec![composite_schema_extension],
         }
     }
 }

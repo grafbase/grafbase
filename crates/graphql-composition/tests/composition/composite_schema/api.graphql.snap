@@ -1,0 +1,19 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: actual_api_sdl
+input_file: crates/graphql-composition/tests/composition/composite_schema/test.md
+---
+type User {
+  id: ID!
+  name: String
+}
+
+type Account {
+  id: ID!
+  name: String
+}
+
+type Query {
+  accountById(id: ID!): Account
+  userById(id: ID!): User
+}

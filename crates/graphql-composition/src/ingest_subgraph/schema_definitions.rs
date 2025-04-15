@@ -77,7 +77,7 @@ pub(super) fn ingest_schema_definitions(ctx: &mut Context<'_>) {
                 } => {
                     let arguments = ctx.ingest_extra_directive_arguments(directive.arguments());
 
-                    ctx.subgraphs.push_extra_directive_on_schema_definition_or_extension(
+                    ctx.subgraphs.push_extra_directive_on_schema_definition(
                         ctx.subgraph_id,
                         subgraphs::ExtraDirectiveRecord {
                             directive_site_id: DirectiveSiteId::from(0usize),
@@ -94,7 +94,7 @@ pub(super) fn ingest_schema_definitions(ctx: &mut Context<'_>) {
                     let arguments = ctx.ingest_extra_directive_arguments(directive.arguments());
                     let linked_definition = ctx.subgraphs.at(linked_definition_id);
 
-                    ctx.subgraphs.push_extra_directive_on_schema_definition_or_extension(
+                    ctx.subgraphs.push_extra_directive_on_schema_definition(
                         ctx.subgraph_id,
                         subgraphs::ExtraDirectiveRecord {
                             directive_site_id: DirectiveSiteId::from(0usize),

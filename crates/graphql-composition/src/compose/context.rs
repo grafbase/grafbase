@@ -5,7 +5,7 @@ use crate::{
     composition_ir::{self as ir, CompositionIr},
     subgraphs::{self, StringWalker},
 };
-use graphql_federated_graph as federated;
+use graphql_federated_graph::{self as federated};
 
 /// Context for [`compose`](crate::compose::compose).
 pub(crate) struct Context<'a> {
@@ -40,6 +40,7 @@ impl<'a> Context<'a> {
             ir: CompositionIr::default(),
         };
 
+        context.ir.used_extensions = fixedbitset::FixedBitSet::with_capacity(subgraphs.iter_extensions().len());
         context.ir.linked_schema_to_extension = linked_schema_to_extension;
 
         for builtin_scalar in subgraphs.iter_builtin_scalars() {
@@ -288,5 +289,9 @@ impl<'a> Context<'a> {
 
     pub(crate) fn set_subscription(&mut self, id: federated::ObjectId) {
         self.ir.subscription_type = Some(id);
+    }
+
+    pub(crate) fn mark_used_extension(&mut self, id: subgraphs::ExtensionId) {
+        self.ir.used_extensions.put(usize::from(id));
     }
 }

@@ -58,6 +58,7 @@ elliptic-curve = { version = "0.13", features = ["ecdh", "hazmat", "jwk", "pem",
 event-listener = { version = "5" }
 fastrand = { version = "2" }
 ff = { version = "0.13", default-features = false, features = ["alloc"] }
+fixedbitset = { version = "0.5", features = ["serde"] }
 form_urlencoded = { version = "1" }
 futures = { version = "0.3" }
 futures-channel = { version = "0.3", features = ["sink"] }
@@ -190,6 +191,7 @@ elliptic-curve = { version = "0.13", features = ["ecdh", "hazmat", "jwk", "pem",
 event-listener = { version = "5" }
 fastrand = { version = "2" }
 ff = { version = "0.13", default-features = false, features = ["alloc"] }
+fixedbitset = { version = "0.5", features = ["serde"] }
 form_urlencoded = { version = "1" }
 futures = { version = "0.3" }
 futures-channel = { version = "0.3", features = ["sink"] }
