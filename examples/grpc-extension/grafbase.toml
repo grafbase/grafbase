@@ -1,0 +1,7 @@
+[extensions.grpc]
+# version = "0.1.0"
+path = "/home/tom/src/gh/grafbase/extensions/extensions/grpc/build"
+
+[[extensions.grpc.config.services]]
+name = "routeguide.RouteGuide"
+address = "http://localhost:10000"

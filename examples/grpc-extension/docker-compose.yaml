@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  grpc-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: grpc-extension-server
+    ports:
+      - '10000:10000'
+    networks:
+      - grpc-net
+    volumes:
+      - ./server/db.json:/app/db.json
+    restart: unless-stopped
+
+networks:
+  grpc-net:
+    driver: bridge

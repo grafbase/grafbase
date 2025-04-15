@@ -17,12 +17,14 @@ members = [
     "crates/engine/query-solver",
     "crates/engine/id-derives",
     "crates/engine/id-newtypes",
+    "examples/grpc-extension/server",
 ]
 exclude = [
     "cli/tests/integration/data",
     "crates/wasi-component-loader/examples",
     "crates/integration-tests/data/extensions",
     "examples/authorization",
+    "examples/grpc-extension",
     "examples/hooks-template",
     "examples/query-plan",
 ]
