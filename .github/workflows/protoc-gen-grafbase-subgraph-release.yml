@@ -1,0 +1,102 @@
+name: protoc-gen-grafbase-subgraph-release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'protoc-gen-grafbase-subgraph-*'
+
+permissions:
+  contents: write
+
+env:
+  CARGO_INCREMENTAL: 0
+  CARGO_PROFILE_DEV_DEBUG: 0
+  CARGO_PROFILE_TEST_DEBUG: 0
+  CARGO_TERM_COLOR: 'always'
+
+jobs:
+  build-and-release:
+    name: Build and release binary
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+          - x86_64-apple-darwin
+          - aarch64-apple-darwin
+          - x86_64-pc-windows-msvc
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          target: ${{ matrix.target }}
+
+      - name: Build binary
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release --package protoc-gen-grafbase-subgraph --target ${{ matrix.target }}
+        
+      - name: Prepare binary (Unix)
+        if: matrix.target != 'x86_64-pc-windows-msvc'
+        run: |
+          cd target/${{ matrix.target }}/release
+          tar -czf protoc-gen-grafbase-subgraph-${{ matrix.target }}.tar.gz protoc-gen-grafbase-subgraph
+          
+      - name: Prepare binary (Windows)
+        if: matrix.target == 'x86_64-pc-windows-msvc'
+        run: |
+          cd target/${{ matrix.target }}/release
+          7z a protoc-gen-grafbase-subgraph-${{ matrix.target }}.zip protoc-gen-grafbase-subgraph.exe
+      
+      - name: Upload assets (Unix)
+        if: matrix.target != 'x86_64-pc-windows-msvc'
+        uses: actions/upload-artifact@v3
+        with:
+          name: protoc-gen-grafbase-subgraph-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/protoc-gen-grafbase-subgraph-${{ matrix.target }}.tar.gz
+          
+      - name: Upload assets (Windows)
+        if: matrix.target == 'x86_64-pc-windows-msvc'
+        uses: actions/upload-artifact@v3
+        with:
+          name: protoc-gen-grafbase-subgraph-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/protoc-gen-grafbase-subgraph-${{ matrix.target }}.zip
+
+  create-release:
+    name: Create GitHub release
+    needs: build-and-release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/protoc-gen-grafbase-subgraph-}" >> $GITHUB_OUTPUT
+        
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: artifacts
+          
+      - name: Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref }}
+          name: protoc-gen-grafbase-subgraph ${{ steps.get_version.outputs.VERSION }}
+          draft: false
+          prerelease: false
+          files: |
+            artifacts/protoc-gen-grafbase-subgraph-x86_64-unknown-linux-gnu/protoc-gen-grafbase-subgraph-x86_64-unknown-linux-gnu.tar.gz
+            artifacts/protoc-gen-grafbase-subgraph-x86_64-apple-darwin/protoc-gen-grafbase-subgraph-x86_64-apple-darwin.tar.gz
+            artifacts/protoc-gen-grafbase-subgraph-aarch64-apple-darwin/protoc-gen-grafbase-subgraph-aarch64-apple-darwin.tar.gz
+            artifacts/protoc-gen-grafbase-subgraph-x86_64-pc-windows-msvc/protoc-gen-grafbase-subgraph-x86_64-pc-windows-msvc.zip
