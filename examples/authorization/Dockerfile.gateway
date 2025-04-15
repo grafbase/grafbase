@@ -25,4 +25,3 @@ ENTRYPOINT ["/bin/grafbase-gateway"]
 CMD ["--config", "/var/lib/grafbase/grafbase.toml", "--schema", "/var/lib/grafbase/federated-schema.graphql", "--listen-address", "0.0.0.0:5000"]
 
 EXPOSE 5000
-

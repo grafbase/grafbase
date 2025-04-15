@@ -1,0 +1,8 @@
+version: v2
+managed:
+  enabled: true
+plugins:
+  - local: protoc-gen-grafbase-subgraph
+    out: .
+inputs:
+  - directory: proto

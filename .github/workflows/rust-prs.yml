@@ -470,6 +470,12 @@ jobs:
     env:
       COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
       dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
+    strategy:
+      fail-fast: false
+      matrix:
+        working_directory:
+          - examples/authorization
+          - examples/grpc-extension
     runs-on: depot-ubuntu-24.04-8
     steps:
       - name: Get sources
@@ -493,7 +499,7 @@ jobs:
         uses: gacts/install-hurl@v1
 
       - name: Use current image
-        working-directory: examples/authorization
+        working-directory: ${{ matrix.working_directory }}
         run: |
           sed -i "s/\(FROM ghcr.io\/grafbase\/gateway:\)latest/\1$COMMIT_SHA/" Dockerfile.gateway
 
@@ -506,16 +512,16 @@ jobs:
         with:
           project: ${{ env.DEPOT_PROJECT }}
           token: ${{ secrets.DEPOT_TOKEN }}
-          workdir: examples/authorization
+          workdir: ${{ matrix.working_directory }}
           load: true
           pull: true
 
       - name: docker compose up
-        working-directory: examples/authorization
+        working-directory: ${{ matrix.working_directory }}
         run: docker compose up -d
 
       - name: test
-        working-directory: examples/authorization
+        working-directory: ${{ matrix.working_directory }}
         run: |
           ./healthcheck.sh
           hurl --test test.hurl
@@ -597,6 +603,9 @@ jobs:
       - name: Start extensions docker compose
         working-directory: extensions
         run: docker compose up -d
+
+      - name: Install Protoc for the gRPC extension
+        uses: arduino/setup-protoc@v3
 
       - name: Build test matrix
         working-directory: extensions

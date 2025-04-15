@@ -1,0 +1,6 @@
+[extensions.grpc]
+version = "0.1.0"
+
+[[extensions.grpc.config.services]]
+name = "routeguide.RouteGuide"
+address = "http://localhost:10000"

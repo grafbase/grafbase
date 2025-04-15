@@ -23,6 +23,7 @@ exclude = [
     "crates/wasi-component-loader/examples",
     "crates/integration-tests/data/extensions",
     "examples/authorization",
+    "examples/grpc-extension/server",
     "examples/hooks-template",
     "examples/query-plan",
 ]

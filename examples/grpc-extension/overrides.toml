@@ -1,0 +1,5 @@
+[subgraphs.routeguide]
+schema_path = "./schema.graphql"
+
+[subgraphs.other]
+schema_path = "./other.graphql"
