@@ -1,4 +1,7 @@
+mod definitions;
+mod deserializer;
 mod directives;
+mod span;
 mod wrapping;
 
 pub(crate) use cynic_parser::{
@@ -10,8 +13,12 @@ use cynic_parser_deser::ConstDeserializer as _;
 use rapidhash::RapidHashMap;
 
 pub(crate) use self::wrapping::*;
-use super::BuildError;
+pub(crate) use definitions::*;
+pub(crate) use deserializer::*;
 pub(crate) use directives::*;
+pub(crate) use span::*;
+
+use super::error::Error;
 
 #[derive(Default)]
 pub(crate) struct Sdl<'a> {
@@ -39,13 +46,13 @@ impl std::ops::Index<cynic_parser::Span> for Sdl<'_> {
 }
 
 pub(crate) struct SdlExtension<'a> {
-    pub url: &'a str,
-    pub directives: Vec<ExtensionLinkSchemaDirective<'a>>,
+    pub url: url::Url,
+    pub directives: Vec<(ExtensionLinkSchemaDirective<'a>, Span)>,
 }
 
 pub(crate) struct SdlSubGraph<'a> {
     pub name: Option<&'a str>,
-    pub url: Option<&'a str>,
+    pub url: Option<url::Url>,
 }
 
 #[derive(Default)]
@@ -56,7 +63,7 @@ pub(crate) struct SdlRootTypes<'a> {
 }
 
 impl<'a> TryFrom<(&'a str, &'a TypeSystemDocument)> for Sdl<'a> {
-    type Error = BuildError;
+    type Error = Error;
 
     fn try_from((raw, doc): (&'a str, &'a TypeSystemDocument)) -> Result<Self, Self::Error> {
         let mut sdl = Sdl {
@@ -81,9 +88,7 @@ impl<'a> TryFrom<(&'a str, &'a TypeSystemDocument)> for Sdl<'a> {
             match def {
                 Definition::Schema(def) => {
                     if schema_definition.is_some() {
-                        return Err(BuildError::GraphQLSchemaValidationError(
-                            "A document must include at most one schema definition".into(),
-                        ));
+                        return Err(("A document must include at most one schema definition", def.span()).into());
                     }
                     schema_definition = Some(def);
                     schema_definitions.push(def);
@@ -101,10 +106,11 @@ impl<'a> TryFrom<(&'a str, &'a TypeSystemDocument)> for Sdl<'a> {
                             }
                             "FieldSet" => {}
                             _ => {
-                                return Err(BuildError::GraphQLSchemaValidationError(format!(
-                                    "join__{} is an unknown federation type.",
-                                    name
-                                )));
+                                return Err((
+                                    format!("join__{name} is an unknown federation type."),
+                                    type_definition.span(),
+                                )
+                                    .into());
                             }
                         }
                     } else if let Some(name) = type_definition.name().strip_prefix("extension__") {
@@ -113,10 +119,11 @@ impl<'a> TryFrom<(&'a str, &'a TypeSystemDocument)> for Sdl<'a> {
                                 ingest_extension_link_enum(&mut sdl, type_definition)?;
                             }
                             _ => {
-                                return Err(BuildError::GraphQLSchemaValidationError(format!(
-                                    "extension__{} is an unknown extension type.",
-                                    name
-                                )));
+                                return Err((
+                                    format!("extension__{name} is an unknown extension type.",),
+                                    type_definition.span(),
+                                )
+                                    .into());
                             }
                         }
                     } else {
@@ -165,25 +172,29 @@ impl<'a> TryFrom<(&'a str, &'a TypeSystemDocument)> for Sdl<'a> {
                 match root_type.operation_type() {
                     cynic_parser::common::OperationType::Query => {
                         if sdl.root_types.query.is_some() {
-                            return Err(BuildError::GraphQLSchemaValidationError(
-                                "A document must include at most one query root type".into(),
-                            ));
+                            return Err(
+                                ("A document must include at most one query root type", root_type.span()).into(),
+                            );
                         }
                         sdl.root_types.query = Some(root_type.named_type());
                     }
                     cynic_parser::common::OperationType::Mutation => {
                         if sdl.root_types.mutation.is_some() {
-                            return Err(BuildError::GraphQLSchemaValidationError(
-                                "A document must include at most one mutation root type".into(),
-                            ));
+                            return Err((
+                                "A document must include at most one mutation root type",
+                                root_type.span(),
+                            )
+                                .into());
                         }
                         sdl.root_types.mutation = Some(root_type.named_type());
                     }
                     cynic_parser::common::OperationType::Subscription => {
                         if sdl.root_types.subscription.is_some() {
-                            return Err(BuildError::GraphQLSchemaValidationError(
-                                "A document must include at most one subscription root type".into(),
-                            ));
+                            return Err((
+                                "A document must include at most one subscription root type",
+                                root_type.span(),
+                            )
+                                .into());
                         }
                         sdl.root_types.subscription = Some(root_type.named_type());
                     }
@@ -197,35 +208,44 @@ impl<'a> TryFrom<(&'a str, &'a TypeSystemDocument)> for Sdl<'a> {
     }
 }
 
-fn ingest_join_graph_enum<'a>(sdl: &mut Sdl<'a>, ty: TypeDefinition<'a>) -> Result<(), BuildError> {
+fn ingest_join_graph_enum<'a>(sdl: &mut Sdl<'a>, ty: TypeDefinition<'a>) -> Result<(), Error> {
     let TypeDefinition::Enum(enm) = ty else {
-        return Err(BuildError::GraphQLSchemaValidationError(
-            "join__Graph must be an enum type".into(),
-        ));
+        return Err(("join__Graph must be an enum type", ty.span()).into());
     };
     if !sdl.subgraphs.is_empty() {
-        return Err(BuildError::GraphQLSchemaValidationError(
-            "join__Graph must be defined only once".into(),
-        ));
+        return Err(("join__Graph must be defined only once", enm.span()).into());
     }
     for value in enm.values() {
         let mut directives = value.directives().filter(|dir| dir.name() == "join__graph");
         if let Some(directive) = directives.next() {
             let dir: JoinGraphDirective<'_> = directive.deserialize().map_err(|err| {
-                BuildError::GraphQLSchemaValidationError(format!("Invalid @join__graph directive: {}", err))
+                (
+                    format!("Invalid @join__graph directive on subgraph {}: {err}", value.value()),
+                    directive.arguments_span(),
+                )
             })?;
-            sdl.subgraphs.insert(
-                GraphName(value.value()),
-                SdlSubGraph {
-                    name: dir.name,
-                    url: dir.url,
-                },
-            );
-            if directives.next().is_some() {
-                return Err(BuildError::GraphQLSchemaValidationError(format!(
-                    "@join__graph directive may only be applied once multiple times on: {}",
-                    &sdl[value.span()]
-                )));
+            let url = dir
+                .url
+                .map(|url| {
+                    url::Url::parse(url).map_err(|err| {
+                        (
+                            format!("Invalid url on subgraph {}: {err}", value.value()),
+                            directive.arguments_span(),
+                        )
+                    })
+                })
+                .transpose()?;
+            sdl.subgraphs
+                .insert(GraphName(value.value()), SdlSubGraph { name: dir.name, url });
+            if let Some(directive) = directives.next() {
+                return Err((
+                    format!(
+                        "@join__graph directive used multiple times on subgraph {}",
+                        value.value(),
+                    ),
+                    directive.name_span(),
+                )
+                    .into());
             }
         } else {
             sdl.subgraphs
@@ -235,50 +255,62 @@ fn ingest_join_graph_enum<'a>(sdl: &mut Sdl<'a>, ty: TypeDefinition<'a>) -> Resu
     Ok(())
 }
 
-fn ingest_extension_link_enum<'a>(sdl: &mut Sdl<'a>, ty: TypeDefinition<'a>) -> Result<(), BuildError> {
+fn ingest_extension_link_enum<'a>(sdl: &mut Sdl<'a>, ty: TypeDefinition<'a>) -> Result<(), Error> {
     let TypeDefinition::Enum(enm) = ty else {
-        return Err(BuildError::GraphQLSchemaValidationError(
-            "extension__Link must be an enum type".into(),
-        ));
+        return Err(("extension__Link must be an enum type", ty.span()).into());
     };
     if !sdl.extensions.is_empty() {
-        return Err(BuildError::GraphQLSchemaValidationError(
-            "extension__Link must be defined only once".into(),
-        ));
+        return Err(("extension__Link must be defined only once", enm.span()).into());
     }
     for value in enm.values() {
         let mut directives = value.directives().filter(|dir| dir.name() == "extension__link");
         let Some(directive) = directives.next() else {
-            return Err(BuildError::GraphQLSchemaValidationError(
-                "Missing extension__link directive".into(),
-            ));
+            return Err((
+                format!("Missing extension__link directive on extension {}", value.value()),
+                value.span(),
+            )
+                .into());
         };
-        let dir = directives::parse_extension_link(sdl, directive)?;
+        let dir = directives::parse_extension_link(directive)?;
+        let url = url::Url::parse(dir.url).map_err(|err| {
+            (
+                format!("Invalid url on subgraph {}: {err}", value.value()),
+                directive.arguments_span(),
+            )
+        })?;
         sdl.extensions.insert(
             ExtensionName(value.value()),
             SdlExtension {
-                url: dir.url,
+                url,
                 directives: dir.schema_directives,
             },
         );
-        if directives.next().is_some() {
-            return Err(BuildError::GraphQLSchemaValidationError(format!(
-                "@extension__link directive may only be applied once multiple times on: {}",
-                &sdl[value.span()]
-            )));
+        if let Some(directive) = directives.next() {
+            return Err((
+                format!(
+                    "@extension__link directive used multiple times on extension {}",
+                    value.value(),
+                ),
+                directive.name_span(),
+            )
+                .into());
         }
     }
     Ok(())
 }
 
-fn finalize(sdl: &mut Sdl<'_>) -> Result<(), BuildError> {
-    for ext in sdl.extensions.values() {
-        for directive in &ext.directives {
+fn finalize(sdl: &mut Sdl<'_>) -> Result<(), Error> {
+    for (name, ext) in sdl.extensions.iter() {
+        for (directive, span) in &ext.directives {
             if !sdl.subgraphs.contains_key(&directive.graph) {
-                return Err(BuildError::GraphQLSchemaValidationError(format!(
-                    "Unknown subgraph {} in extension__link directive",
-                    directive.graph
-                )));
+                return Err((
+                    format!(
+                        "Unknown subgraph {} in @extension__link directive for extension {}",
+                        directive.graph, name
+                    ),
+                    *span,
+                )
+                    .into());
             }
         }
     }

@@ -167,7 +167,7 @@ fn too_many_arguments() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At Query.echo for the extension 'echo-1.0.0' directive @echo: Unknown argumant named 'other'",
+            "At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Unknown argumant named 'other'. See schema at 19:35:\n(graph: A, extension: ECHO, name: \"echo\", arguments: {value: \"ste\", other: 1})",
         )
         "#);
 
@@ -198,7 +198,7 @@ fn too_many_arguments() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At subgraph named 'a' for the extension 'echo-1.0.0' directive @meta: Unknown argumant named 'other'",
+            "At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Unknown argumant named 'other'. See schema at 29:86:\n{graph: A, name: \"meta\", arguments: {value: \"str\", other: 1}}",
         )
         "#);
     });

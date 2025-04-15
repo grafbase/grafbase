@@ -1,29 +1,28 @@
+use itertools::Itertools;
+
 use crate::{
-    BuildError, ExtensionDirectiveId, ExtensionDirectiveRecord, SubgraphId,
-    builder::{
-        GraphBuilder, SchemaLocation,
-        error::{
-            ExtensionDirectiveArgumentsError, ExtensionDirectiveLocationError,
-            SelectionSetResolverExtensionCannotBeMixedWithOtherResolversError,
-        },
-        sdl,
-    },
+    ExtensionDirectiveId, ExtensionDirectiveRecord, SubgraphId,
+    builder::{Error, GraphBuilder, sdl},
 };
 
-use super::LoadedExtension;
+use super::{LoadedExtension, LoadedExtensionOrCompositeSchema};
 
-pub(crate) fn ingest_extension_schema_directives(builder: &mut GraphBuilder<'_>) -> Result<(), BuildError> {
+pub(crate) fn ingest_extension_schema_directives(builder: &mut GraphBuilder<'_>) -> Result<(), Error> {
     for (name, ext) in builder.sdl.extensions.iter() {
-        let extension = builder.extensions.try_get(*name)?;
-        for directive in &ext.directives {
-            let subgraph_id = builder.subgraphs.try_get(directive.graph)?;
-            let id = builder.ingest_extension_directive(
-                SchemaLocation::SchemaDirective(subgraph_id),
-                subgraph_id,
-                extension,
-                directive.name,
-                directive.arguments,
-            )?;
+        let LoadedExtensionOrCompositeSchema::Extension(extension) = builder.extensions.get(*name) else {
+            continue;
+        };
+        for (directive, span) in &ext.directives {
+            let subgraph_id = builder.subgraphs.try_get(directive.graph, *span)?;
+            let id = builder
+                .ingest_extension_directive(
+                    sdl::SdlDefinition::SchemaDirective(subgraph_id),
+                    subgraph_id,
+                    extension,
+                    directive.name,
+                    directive.arguments,
+                )
+                .map_err(|txt| (txt, *span))?;
             match subgraph_id {
                 SubgraphId::GraphqlEndpoint(subgraph_id) => {
                     builder.subgraphs[subgraph_id].schema_directive_ids.push(id);
@@ -41,43 +40,44 @@ pub(crate) fn ingest_extension_schema_directives(builder: &mut GraphBuilder<'_>)
 impl<'a> GraphBuilder<'a> {
     pub(crate) fn ingest_extension_directive(
         &mut self,
-        location: SchemaLocation<'a>,
+        current_definition: sdl::SdlDefinition<'a>,
         subgraph_id: SubgraphId,
         extension: &'a LoadedExtension<'a>,
         name: &str,
         arguments: Option<sdl::ConstValue<'a>>,
-    ) -> Result<ExtensionDirectiveId, BuildError> {
+    ) -> Result<ExtensionDirectiveId, String> {
         let directive_name_id = self.ingest_str(name);
 
         let Some(sdl) = &extension.sdl else {
-            return Err(BuildError::MissingGraphQLDefinitions {
-                id: extension.manifest.id.clone(),
-                directive: name.to_string(),
-            });
+            return Err(format!(
+                "At site {}, extension '{}' does not define any GraphQL definitions, but a directive @{name} was found",
+                current_definition.to_site_string(self),
+                extension.manifest.id
+            ));
         };
 
         let Some(definition) = sdl.doc.definitions().find_map(|def| match def {
             cynic_parser::type_system::Definition::Directive(dir) if dir.name() == name => Some(dir),
             _ => None,
         }) else {
-            return Err(BuildError::UnknownExtensionDirective {
-                id: extension.manifest.id.clone(),
-                directive: name.to_string(),
-            });
+            return Err(format!(
+                "At site {}, unknown extension directive @{name} for extension '{}'",
+                current_definition.to_site_string(self),
+                extension.manifest.id
+            ));
         };
 
         let directive_type = extension.manifest.get_directive_type(name);
 
-        let cynic_location = location.as_cynic_location();
-        if definition.locations().all(|loc| loc != cynic_location) {
-            return Err(BuildError::ExtensionDirectiveLocationError(Box::new(
-                ExtensionDirectiveLocationError {
-                    id: extension.manifest.id.clone(),
-                    directive: name.to_string(),
-                    location: cynic_location.as_str(),
-                    expected: definition.locations().map(|loc| loc.as_str()).collect(),
-                },
-            )));
+        let location = current_definition.location();
+        if definition.locations().all(|loc| loc != location) {
+            return Err(format!(
+                "At site {}, extension {} directive @{name} used in the wrong location {}, expected one of: {}",
+                current_definition.to_site_string(self),
+                extension.manifest.id,
+                location.as_str(),
+                definition.locations().map(|loc| loc.as_str()).join(", ")
+            ));
         }
 
         if directive_type.is_selection_set_resolver() {
@@ -85,39 +85,37 @@ impl<'a> GraphBuilder<'a> {
                 SubgraphId::Virtual(id) => id,
                 SubgraphId::Introspection => unreachable!(),
                 SubgraphId::GraphqlEndpoint(id) => {
-                    return Err(BuildError::ResolverExtensionOnNonVirtualGraph {
-                        id: extension.manifest.id.clone(),
-                        directive: name.to_string(),
-                        subgraph: self.ctx[self.ctx[id].subgraph_name_id].clone(),
-                    });
+                    return Err(format!(
+                        "At site {}, resolver extension {}' directive @{name} can only be used on virtual graphs, '{}' isn't one.",
+                        current_definition.to_site_string(self),
+                        extension.manifest.id,
+                        &self.ctx[self.ctx[id].subgraph_name_id]
+                    ));
                 }
             };
 
             if let Some(other_id) =
                 self.virtual_subgraph_to_selection_set_resolver[usize::from(id)].filter(|id| *id != extension.id)
             {
-                return Err(
-                    BuildError::SelectionSetResolverExtensionCannotBeMixedWithOtherResolvers(Box::new(
-                        SelectionSetResolverExtensionCannotBeMixedWithOtherResolversError {
-                            id: extension.manifest.id.clone(),
-                            subgraph: self.ctx[self.ctx[id].subgraph_name_id].clone(),
-                            other_id: self.ctx[other_id].manifest.id.clone(),
-                        },
-                    )),
-                );
+                return Err(format!(
+                    "At site {}, Selection Set Resolver extension {} cannot be mixed with other resolvers in subgraph '{}', found {}",
+                    current_definition.to_site_string(self),
+                    extension.manifest.id,
+                    self.ctx[self.ctx[id].subgraph_name_id].clone(),
+                    self.ctx[other_id].manifest.id.clone(),
+                ));
             }
             self.virtual_subgraph_to_selection_set_resolver[usize::from(id)] = Some(extension.id);
         }
 
         let (argument_ids, requirements_record) = self
-            .coerce_extension_directive_arguments(location, sdl, definition, arguments)
+            .coerce_extension_directive_arguments(current_definition, sdl, definition, arguments)
             .map_err(|err| {
-                BuildError::ExtensionDirectiveArgumentsError(Box::new(ExtensionDirectiveArgumentsError {
-                    location: location.to_string(self),
-                    directive: name.to_string(),
-                    id: extension.manifest.id.clone(),
-                    err,
-                }))
+                format!(
+                    "At site {}, for the extension '{}' directive @{name}: {err}",
+                    current_definition.to_site_string(self),
+                    extension.manifest.id,
+                )
             })?;
 
         let record = ExtensionDirectiveRecord {

@@ -1,6 +1,9 @@
 use id_newtypes::IdRange;
 
-use crate::{InputValueDefinitionId, InputValueSelection, InputValueSet, TypeDefinitionId, builder::GraphBuilder};
+use crate::{
+    InputValueDefinitionId, InputValueSelection, InputValueSet, TypeDefinitionId,
+    builder::{GraphBuilder, sdl},
+};
 
 use super::{ExtensionDirectiveArgumentsCoercer, ValuePathSegment, value_path_to_string};
 
@@ -20,9 +23,9 @@ pub enum InputValueSetError {
 
 impl ExtensionDirectiveArgumentsCoercer<'_, '_> {
     pub(crate) fn coerce_input_value_set(&mut self, selection_set: &str) -> Result<InputValueSet, InputValueSetError> {
-        let crate::builder::SchemaLocation::FieldDefinition(field_definition_id, _, _) = self.location else {
+        let sdl::SdlDefinition::FieldDefinition(field_definition) = self.current_definition else {
             return Err(InputValueSetError::InvalidInputValueSetOnLocation {
-                location: self.location.as_cynic_location().as_str(),
+                location: self.current_definition.location().as_str(),
             });
         };
         if selection_set.trim() == "*" {
@@ -43,7 +46,7 @@ impl ExtensionDirectiveArgumentsCoercer<'_, '_> {
 
         let selection_set = convert_selection_set(
             self,
-            self.graph[field_definition_id].argument_ids,
+            self.graph[field_definition.id].argument_ids,
             selection_set,
             &mut Vec::new(),
         )?;

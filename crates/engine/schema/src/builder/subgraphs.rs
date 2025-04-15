@@ -8,9 +8,10 @@ use crate::{
 };
 
 use super::{
-    BuildError, GraphqlEndpointId, GraphqlEndpointRecord, SubgraphId, VirtualSubgraphId, VirtualSubgraphRecord,
+    GraphqlEndpointId, GraphqlEndpointRecord, SubgraphId, VirtualSubgraphId, VirtualSubgraphRecord,
     context::Interners,
-    sdl::{GraphName, Sdl},
+    error::Error,
+    sdl::{self, GraphName, Sdl},
 };
 
 #[derive(Default, id_derives::IndexedFields)]
@@ -26,11 +27,7 @@ pub(crate) struct SubgraphsBuilder<'sdl> {
 }
 
 impl<'sdl> SubgraphsBuilder<'sdl> {
-    pub(super) fn new(
-        sdl: &'sdl Sdl<'sdl>,
-        config: &gateway_config::Config,
-        interners: &mut Interners,
-    ) -> Result<Self, BuildError> {
+    pub(super) fn new(sdl: &'sdl Sdl<'sdl>, config: &gateway_config::Config, interners: &mut Interners) -> Self {
         let mut subgraphs = SubgraphsBuilder {
             all: Vec::with_capacity(sdl.subgraphs.len()),
             mapping: RapidHashMap::with_capacity_and_hasher(sdl.subgraphs.len(), Default::default()),
@@ -61,18 +58,7 @@ impl<'sdl> SubgraphsBuilder<'sdl> {
                 subscription_protocol,
                 ..
             } = config.subgraphs.get(name).cloned().unwrap_or_default();
-
-            let url = url
-                .map(Ok)
-                .or_else(|| {
-                    subgraph.url.map(|url| {
-                        url::Url::parse(url).map_err(|err| BuildError::InvalidUrl {
-                            url: url.to_string(),
-                            err: err.to_string(),
-                        })
-                    })
-                })
-                .transpose()?;
+            let url = url.or(subgraph.url.clone());
 
             let header_rule_ids = ingest_header_rules(&mut subgraphs.header_rules, &headers, interners);
             let subgraph_id = if let Some(url) = url {
@@ -114,14 +100,14 @@ impl<'sdl> SubgraphsBuilder<'sdl> {
             subgraphs.mapping.insert(graph_enum_name, subgraph_id);
         }
 
-        Ok(subgraphs)
+        subgraphs
     }
 
-    pub(super) fn try_get(&self, name: GraphName<'_>) -> Result<SubgraphId, BuildError> {
+    pub(super) fn try_get(&self, name: GraphName<'_>, span: sdl::Span) -> Result<SubgraphId, Error> {
         self.mapping
             .get(&name)
             .copied()
-            .ok_or_else(|| BuildError::GraphQLSchemaValidationError(format!("Graph named '{name}' does not exist.")))
+            .ok_or_else(|| (format!("Graph named '{name}' does not exist."), span).into())
     }
 
     pub(super) fn finalize_with(self, introspection: IntrospectionSubgraph) -> SubGraphs {

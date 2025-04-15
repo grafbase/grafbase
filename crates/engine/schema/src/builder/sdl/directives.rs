@@ -1,22 +1,7 @@
-use cynic_parser::ConstValue;
-use cynic_parser::type_system as ast;
-use cynic_parser_deser::DeserValue;
-use cynic_parser_deser::value::ValueType;
-use cynic_parser_deser::{ConstDeserializer, ValueDeserialize};
+use cynic_parser::{ConstValue, Span, type_system as ast};
+use cynic_parser_deser::{ConstDeserializer, DeserValue, ValueDeserialize, value::ValueType};
 
-use super::Sdl;
-use crate::BuildError;
-
-pub(crate) struct DirectiveError {
-    pub text: String,
-    pub span: cynic_parser::Span,
-}
-
-impl DirectiveError {
-    pub fn into_build_error(self, sdl: &Sdl<'_>) -> BuildError {
-        BuildError::GraphQLSchemaValidationError(format!("{} at {}", self.text, &sdl[self.span]))
-    }
-}
+use crate::builder::error::Error;
 
 #[derive(ValueDeserialize)]
 pub struct CostDirective {
@@ -59,12 +44,13 @@ pub(crate) struct JoinGraphDirective<'a> {
     pub url: Option<&'a str>,
 }
 
-pub(crate) fn as_join_type<'a>(dir: &ast::Directive<'a>) -> Option<Result<JoinTypeDirective<'a>, DirectiveError>> {
+pub(crate) fn as_join_type<'a>(dir: &ast::Directive<'a>) -> Option<Result<(JoinTypeDirective<'a>, Span), Error>> {
     if dir.name() == "join__type" {
-        Some(dir.deserialize().map_err(|err| DirectiveError {
-            text: err.to_string(),
-            span: dir.arguments_span(),
-        }))
+        Some(
+            dir.deserialize()
+                .map(|d| (d, dir.arguments_span()))
+                .map_err(|err| (err.to_string(), dir.arguments_span()).into()),
+        )
     } else {
         None
     }
@@ -89,12 +75,13 @@ pub(crate) struct JoinTypeDirective<'a> {
     pub is_interface_object: bool,
 }
 
-pub(crate) fn as_join_field<'a>(dir: &ast::Directive<'a>) -> Option<Result<JoinFieldDirective<'a>, DirectiveError>> {
+pub(crate) fn as_join_field<'a>(dir: &ast::Directive<'a>) -> Option<Result<(JoinFieldDirective<'a>, Span), Error>> {
     if dir.name() == "join__field" {
-        Some(dir.deserialize().map_err(|err| DirectiveError {
-            text: err.to_string(),
-            span: dir.arguments_span(),
-        }))
+        Some(
+            dir.deserialize()
+                .map(|d| (d, dir.arguments_span()))
+                .map_err(|err| (err.to_string(), dir.arguments_span()).into()),
+        )
     } else {
         None
     }
@@ -162,11 +149,12 @@ impl std::str::FromStr for OverrideLabel {
 
 pub(crate) fn as_join_implements<'a>(
     dir: &ast::Directive<'a>,
-) -> Option<Result<JoinImplementsDirective<'a>, BuildError>> {
+) -> Option<Result<(JoinImplementsDirective<'a>, Span), Error>> {
     if dir.name() == "join__implements" {
         Some(
             dir.deserialize()
-                .map_err(|err| BuildError::GraphQLSchemaValidationError(err.to_string())),
+                .map(|d| (d, dir.arguments_span()))
+                .map_err(|err| (err.to_string(), dir.arguments_span()).into()),
         )
     } else {
         None
@@ -187,11 +175,12 @@ pub(crate) struct JoinImplementsDirective<'a> {
 
 pub(crate) fn as_join_union_member<'a>(
     dir: &ast::Directive<'a>,
-) -> Option<Result<JoinUnionMemberDirective<'a>, BuildError>> {
+) -> Option<Result<(JoinUnionMemberDirective<'a>, Span), Error>> {
     if dir.name() == "join__unionMember" {
         Some(
             dir.deserialize()
-                .map_err(|err| BuildError::GraphQLSchemaValidationError(err.to_string())),
+                .map(|d| (d, dir.arguments_span()))
+                .map_err(|err| (err.to_string(), dir.arguments_span()).into()),
         )
     } else {
         None
@@ -240,7 +229,7 @@ pub(crate) struct JoinEnumValueDirective<'a> {
 #[derive(Debug)]
 pub(crate) struct ExtensionLinkDirective<'a> {
     pub url: &'a str,
-    pub schema_directives: Vec<ExtensionLinkSchemaDirective<'a>>,
+    pub schema_directives: Vec<(ExtensionLinkSchemaDirective<'a>, Span)>,
 }
 
 /// ```ignore,graphql
@@ -257,19 +246,18 @@ pub(crate) struct ExtensionLinkSchemaDirective<'a> {
     pub arguments: Option<ConstValue<'a>>,
 }
 
-pub(crate) fn parse_extension_link<'a>(
-    sdl: &Sdl<'a>,
-    directive: cynic_parser::type_system::Directive<'a>,
-) -> Result<ExtensionLinkDirective<'a>, BuildError> {
+pub(crate) fn parse_extension_link(
+    directive: cynic_parser::type_system::Directive<'_>,
+) -> Result<ExtensionLinkDirective<'_>, Error> {
     let url = directive
         .arguments()
         .find(|arg| arg.name() == "url")
         .and_then(|arg| arg.value().as_str())
         .ok_or_else(|| {
-            BuildError::GraphQLSchemaValidationError(format!(
-                "Missing or invalid 'url' argument in @extension__link: {}",
-                &sdl[directive.arguments_span()]
-            ))
+            (
+                "Missing or invalid 'url' argument in @extension__link directive",
+                directive.arguments_span(),
+            )
         })?;
 
     let schema_directives = directive
@@ -279,12 +267,14 @@ pub(crate) fn parse_extension_link<'a>(
         .map(|directives| {
             directives
                 .into_iter()
-                .map(|dir| {
-                    dir.as_object()
+                .map(|value| {
+                    value
+                        .as_object()
                         .ok_or_else(|| {
-                            BuildError::GraphQLSchemaValidationError(format!("Expected SchemaDirective object at {}",
-                            &sdl[directive.arguments_span()]
-                                                        ))
+                            (
+                                "Expected a schemaDirective object for @extension__link directive",
+                                value.span(),
+                            )
                         })
                         .and_then(|obj| {
                             let graph = obj
@@ -292,22 +282,25 @@ pub(crate) fn parse_extension_link<'a>(
                                 .and_then(|arg| arg.as_enum_value())
                                 .map(GraphName)
                                 .ok_or_else(|| {
-                                    BuildError::GraphQLSchemaValidationError(
-                                        format!("Missing or invalid 'graph' argument in schema directive for @extension__link at {}", &sdl[directive.arguments_span()])
+                                    (
+                                        "Missing or invalid 'graph' argument in schemaDirective for @extension__link directive",
+                                        obj.span(),
                                     )
                                 })?;
 
                             let name = obj.get("name").and_then(|v| v.as_str()).ok_or_else(|| {
-                                BuildError::GraphQLSchemaValidationError(
-                                    format!("Missing or invalid 'name' in SchemaDirective at {}", &sdl[directive.arguments_span()])
+                                (
+                                    "Missing or invalid 'name' in schemaDirective for @extension__link directive",
+                                    obj.span()
                                 )
                             })?;
 
-                            Ok(ExtensionLinkSchemaDirective {
+                            let dir = ExtensionLinkSchemaDirective {
                                 graph,
                                 name,
                                 arguments: obj.get("arguments"),
-                            })
+                            };
+                            Ok((dir, value.span()))
                         })
                 })
                 .collect::<Result<Vec<_>, _>>()
@@ -341,20 +334,19 @@ pub(crate) struct ExtensionDirective<'a> {
     pub arguments: Option<ConstValue<'a>>,
 }
 
-pub(crate) fn parse_extension_directive<'a>(
-    sdl: &Sdl<'a>,
-    directive: cynic_parser::type_system::Directive<'a>,
-) -> Result<ExtensionDirective<'a>, BuildError> {
+pub(crate) fn parse_extension_directive(
+    directive: cynic_parser::type_system::Directive<'_>,
+) -> Result<ExtensionDirective<'_>, Error> {
     let graph = directive
         .arguments()
         .find(|arg| arg.name() == "graph")
         .and_then(|arg| arg.value().as_enum_value())
         .map(GraphName)
         .ok_or_else(|| {
-            BuildError::GraphQLSchemaValidationError(format!(
-                "Missing or invalid 'graph' argument in @extension__directive at {}",
-                &sdl[directive.arguments_span()]
-            ))
+            (
+                "Missing or invalid 'graph' argument in @extension__directive",
+                directive.arguments_span(),
+            )
         })?;
 
     let extension = directive
@@ -363,10 +355,10 @@ pub(crate) fn parse_extension_directive<'a>(
         .and_then(|arg| arg.value().as_enum_value())
         .map(ExtensionName)
         .ok_or_else(|| {
-            BuildError::GraphQLSchemaValidationError(format!(
-                "Missing or invalid 'extension' argument in @extension__directive at {}",
-                &sdl[directive.arguments_span()]
-            ))
+            (
+                "Missing or invalid 'extension' argument in @extension__directive",
+                directive.arguments_span(),
+            )
         })?;
 
     let name = directive
@@ -374,10 +366,10 @@ pub(crate) fn parse_extension_directive<'a>(
         .find(|arg| arg.name() == "name")
         .and_then(|arg| arg.value().as_str())
         .ok_or_else(|| {
-            BuildError::GraphQLSchemaValidationError(format!(
-                "Missing or invalid 'name' argument in @extension__directive at {}",
-                &sdl[directive.arguments_span()]
-            ))
+            (
+                "Missing or invalid 'name' argument in @extension__directive",
+                directive.arguments_span(),
+            )
         })?;
 
     let arguments = directive

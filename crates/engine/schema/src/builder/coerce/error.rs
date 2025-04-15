@@ -1,7 +1,7 @@
 pub(crate) use super::{field_set::FieldSetError, input_value_set::InputValueSetError};
 
 #[derive(Debug, thiserror::Error)]
-pub enum ExtensionInputValueError {
+pub(crate) enum ExtensionInputValueError {
     #[error(transparent)]
     InputValue(#[from] InputValueError),
     #[error(transparent)]
@@ -17,7 +17,7 @@ pub enum ExtensionInputValueError {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum InputValueError {
+pub(crate) enum InputValueError {
     #[error("Found a null where we expected a {expected}{path}")]
     UnexpectedNull { expected: String, path: String },
     #[error("Found a {actual} value where we expected a {expected}{path}")]
@@ -66,8 +66,6 @@ pub enum InputValueError {
     MissingRequiredArgument(String),
     #[error("Unknown argumant named '{0}'")]
     UnknownArgument(String),
-    #[error("Used an inaccessible enum value{path}")]
-    InaccessibleEnumValue { path: String },
     #[error("Cannot use variables")]
     CannotUseVariables,
 }

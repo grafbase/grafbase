@@ -1,12 +1,11 @@
 use std::mem::take;
 
 use crate::{
-    BuildError, FieldResolverExtensionDefinitionRecord, ResolverDefinitionRecord,
-    SelectionSetResolverExtensionDefinitionRecord, SubgraphId, VirtualSubgraphId,
-    builder::{GraphBuilder, SelectionSetResolverExtensionCannotBeMixedWithOtherResolversError},
+    FieldResolverExtensionDefinitionRecord, ResolverDefinitionRecord, SelectionSetResolverExtensionDefinitionRecord,
+    SubgraphId, VirtualSubgraphId, builder::GraphBuilder,
 };
 
-pub(crate) fn finalize_selection_set_resolvers(ctx: &mut GraphBuilder<'_>) -> Result<(), BuildError> {
+pub(crate) fn finalize_selection_set_resolvers(ctx: &mut GraphBuilder<'_>) -> Result<(), String> {
     // Ensure they're not mixed with field resolvers.
     for resolver in &ctx.graph.resolver_definitions {
         if let Some(FieldResolverExtensionDefinitionRecord { directive_id }) = resolver.as_field_resolver_extension() {
@@ -15,15 +14,12 @@ pub(crate) fn finalize_selection_set_resolvers(ctx: &mut GraphBuilder<'_>) -> Re
                 .as_virtual()
                 .expect("should have failed at directive creation");
             if let Some(id) = ctx.virtual_subgraph_to_selection_set_resolver[usize::from(subgraph_id)] {
-                return Err(
-                    BuildError::SelectionSetResolverExtensionCannotBeMixedWithOtherResolvers(Box::new(
-                        SelectionSetResolverExtensionCannotBeMixedWithOtherResolversError {
-                            id: ctx[id].manifest.id.clone(),
-                            subgraph: ctx[ctx.subgraphs[subgraph_id].subgraph_name_id].clone(),
-                            other_id: ctx[ctx.graph[*directive_id].extension_id].manifest.id.clone(),
-                        },
-                    )),
-                );
+                return Err(format!(
+                    "Selection Set Resolver extension {} cannot be mixed with other resolvers in subgraph '{}', found {}",
+                    ctx[id].manifest.id,
+                    ctx[ctx.subgraphs[subgraph_id].subgraph_name_id],
+                    ctx[ctx.graph[*directive_id].extension_id].manifest.id
+                ));
             }
         }
     }

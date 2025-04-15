@@ -1,7 +1,7 @@
 use crate::{
     ExtensionDirectiveArgumentId, ExtensionDirectiveArgumentRecord, FieldSetRecord, TemplateEscaping, TemplateRecord,
     builder::{
-        GraphBuilder, SchemaLocation,
+        GraphBuilder,
         extension::{ExtensionSdl, GrafbaseScalar},
         sdl,
     },
@@ -14,7 +14,7 @@ use super::{ExtensionInputValueError, InputValueError, can_coerce_to_int, value_
 pub(crate) struct ExtensionDirectiveArgumentsCoercer<'a, 'b> {
     pub(super) ctx: &'a mut GraphBuilder<'b>,
     pub(super) sdl: &'a ExtensionSdl,
-    pub(super) location: SchemaLocation<'b>,
+    pub(super) current_definition: sdl::SdlDefinition<'b>,
     pub(super) current_injection_stage: InjectionStage,
     pub(super) requirements: FieldSetRecord,
 }
@@ -35,7 +35,7 @@ impl std::ops::DerefMut for ExtensionDirectiveArgumentsCoercer<'_, '_> {
 impl<'a> GraphBuilder<'a> {
     pub fn coerce_extension_directive_arguments(
         &mut self,
-        location: SchemaLocation<'a>,
+        current_definition: sdl::SdlDefinition<'a>,
         sdl: &ExtensionSdl,
         directive: sdl::DirectiveDefinition<'_>,
         arguments: Option<sdl::ConstValue<'a>>,
@@ -44,7 +44,7 @@ impl<'a> GraphBuilder<'a> {
         let mut coercer = ExtensionDirectiveArgumentsCoercer {
             ctx: self,
             sdl,
-            location,
+            current_definition,
             current_injection_stage: Default::default(),
             requirements: Default::default(),
         };

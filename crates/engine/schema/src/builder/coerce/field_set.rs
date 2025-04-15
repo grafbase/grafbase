@@ -6,13 +6,13 @@ use crate::{
     CompositeTypeId, FieldDefinitionId, FieldSetItemRecord, FieldSetRecord, InputValueDefinitionRecord,
     ObjectDefinitionId, SchemaFieldArgumentId, SchemaFieldArgumentRecord, SchemaFieldRecord, TypeDefinitionId,
     TypeRecord,
-    builder::{GraphBuilder, SchemaLocation},
+    builder::{GraphBuilder, sdl},
 };
 
 use super::{ExtensionDirectiveArgumentsCoercer, InputValueError, ValuePathSegment, value_path_to_string};
 
 #[derive(thiserror::Error, Debug)]
-pub enum FieldSetError {
+pub(crate) enum FieldSetError {
     #[error("Failed to coerce argument{path}: {err}")]
     InputValueError { err: InputValueError, path: String },
     #[error("Could not parse InputValueSet: {err}")]
@@ -23,14 +23,10 @@ pub enum FieldSetError {
     UnknownType { ty: String, path: String },
     #[error("{ty} is not an object, interface or union{path}")]
     NotAnOutputType { ty: String, path: String },
-    #[error("Type {ty} cannot have a selecction set{path}")]
-    CannotHaveASelectionSet { ty: String, path: String },
     #[error(
         "FieldSet can only be used in directive applied on FIELD_DEFINITION | OBJECT | INTERFACE | UNION, but found on {location}"
     )]
     InvalidFieldSetOnLocation { location: &'static str },
-    #[error("Invalid field argument{path}: {err}")]
-    InvalidFieldArgument { err: InputValueError, path: String },
     #[error(
         "Field '{name}'{path} does not exists on {ty}, it's a union. Only interfaces and objects have fields, consider using a fragment with a type condition."
     )]
@@ -47,14 +43,14 @@ pub enum FieldSetError {
 
 impl ExtensionDirectiveArgumentsCoercer<'_, '_> {
     pub(crate) fn coerce_field_set(&mut self, selection_set: &str) -> Result<FieldSetRecord, FieldSetError> {
-        let composite_type_id: CompositeTypeId = match self.location {
-            SchemaLocation::Object(id, _) => id.into(),
-            SchemaLocation::Interface(id, _) => id.into(),
-            SchemaLocation::FieldDefinition(id, _, _) => self.graph[id].parent_entity_id.into(),
-            SchemaLocation::Union(id, _) => id.into(),
+        let composite_type_id: CompositeTypeId = match self.current_definition {
+            sdl::SdlDefinition::Object(def) => def.id.into(),
+            sdl::SdlDefinition::Interface(def) => def.id.into(),
+            sdl::SdlDefinition::FieldDefinition(def) => self.graph[def.id].parent_entity_id.into(),
+            sdl::SdlDefinition::Union(def) => def.id.into(),
             _ => {
                 return Err(FieldSetError::InvalidFieldSetOnLocation {
-                    location: self.location.as_cynic_location().as_str(),
+                    location: self.current_definition.location().as_str(),
                 });
             }
         };
