@@ -6,7 +6,7 @@ input_file: crates/protoc-gen-grafbase-subgraph/tests/codegen/birds/nested.proto
 extend schema
   @link(url: "https://grafbase.com/extensions/grpc/0.1.0", import: ["@protoServices", "@protoEnums", "@protoMessages", "@grpcMethod"])
   @protoMessages(
-    messages: [
+    definitions: [
       {
         name: ".Bird"
         fields: [
@@ -145,7 +145,7 @@ extend schema
     ]
   )
   @protoEnums(
-    enums: [
+    definitions: [
       {
         name: ".Bird.Diet.FeedingStyle"
         values: [

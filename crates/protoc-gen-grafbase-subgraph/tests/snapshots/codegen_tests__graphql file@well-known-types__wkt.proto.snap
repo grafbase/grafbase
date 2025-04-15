@@ -6,7 +6,7 @@ input_file: crates/protoc-gen-grafbase-subgraph/tests/codegen/well-known-types/w
 extend schema
   @link(url: "https://grafbase.com/extensions/grpc/0.1.0", import: ["@protoServices", "@protoEnums", "@protoMessages", "@grpcMethod"])
   @protoServices(
-    services: [
+    definitions: [
       {
         name: "TestService"
         methods: [
@@ -20,7 +20,7 @@ extend schema
     ]
   )
   @protoMessages(
-    messages: [
+    definitions: [
       {
         name: ".google.protobuf.Timestamp"
         fields: [
@@ -752,7 +752,7 @@ extend schema
     ]
   )
   @protoEnums(
-    enums: [
+    definitions: [
       {
         name: ".google.protobuf.Syntax"
         values: [
