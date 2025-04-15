@@ -43,14 +43,14 @@ extend schema
         fields: [
           {
             name: "latitude"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: "int32"
           }
           {
             name: "longitude"
-            number: "2"
-            repeated: "false"
+            number: 2
+            repeated: false
             type: "int32"
           }
         ]
@@ -60,14 +60,14 @@ extend schema
         fields: [
           {
             name: "lo"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: ".routeguide.Point"
           }
           {
             name: "hi"
-            number: "2"
-            repeated: "false"
+            number: 2
+            repeated: false
             type: ".routeguide.Point"
           }
         ]
@@ -77,14 +77,14 @@ extend schema
         fields: [
           {
             name: "name"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: "string"
           }
           {
             name: "location"
-            number: "2"
-            repeated: "false"
+            number: 2
+            repeated: false
             type: ".routeguide.Point"
           }
         ]
@@ -94,14 +94,14 @@ extend schema
         fields: [
           {
             name: "location"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: ".routeguide.Point"
           }
           {
             name: "message"
-            number: "2"
-            repeated: "false"
+            number: 2
+            repeated: false
             type: "string"
           }
         ]
@@ -111,26 +111,26 @@ extend schema
         fields: [
           {
             name: "point_count"
-            number: "1"
-            repeated: "false"
+            number: 1
+            repeated: false
             type: "int32"
           }
           {
             name: "feature_count"
-            number: "2"
-            repeated: "false"
+            number: 2
+            repeated: false
             type: "int32"
           }
           {
             name: "distance"
-            number: "3"
-            repeated: "false"
+            number: 3
+            repeated: false
             type: "int32"
           }
           {
             name: "elapsed_time"
-            number: "4"
-            repeated: "false"
+            number: 4
+            repeated: false
             type: "int32"
           }
         ]
