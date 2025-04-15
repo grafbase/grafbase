@@ -8,7 +8,7 @@ extend schema
   @protoServices(
     definitions: [
       {
-        name: "Echo"
+        name: "grpc.examples.echo.Echo"
         methods: [
           {
             name: "UnaryEcho"
@@ -67,22 +67,22 @@ type Mutation {
 """
 UnaryEcho is unary echo.
 """
-  Echo_UnaryEcho(input: grpc_examples_echo_EchoRequestInput): grpc_examples_echo_EchoResponse @grpcMethod(service: "Echo", method: "UnaryEcho")
+  grpc_examples_echo_Echo_UnaryEcho(input: grpc_examples_echo_EchoRequestInput): grpc_examples_echo_EchoResponse @grpcMethod(service: "grpc.examples.echo.Echo", method: "UnaryEcho")
 """
 ClientStreamingEcho is client side streaming.
 """
-  Echo_ClientStreamingEcho(input: grpc_examples_echo_EchoRequestInput): grpc_examples_echo_EchoResponse @grpcMethod(service: "Echo", method: "ClientStreamingEcho")
+  grpc_examples_echo_Echo_ClientStreamingEcho(input: grpc_examples_echo_EchoRequestInput): grpc_examples_echo_EchoResponse @grpcMethod(service: "grpc.examples.echo.Echo", method: "ClientStreamingEcho")
 }
 
 type Subscription {
 """
 ServerStreamingEcho is server side streaming.
 """
-  Echo_ServerStreamingEcho(input: grpc_examples_echo_EchoRequestInput): grpc_examples_echo_EchoResponse @grpcMethod(service: "Echo", method: "ServerStreamingEcho")
+  grpc_examples_echo_Echo_ServerStreamingEcho(input: grpc_examples_echo_EchoRequestInput): grpc_examples_echo_EchoResponse @grpcMethod(service: "grpc.examples.echo.Echo", method: "ServerStreamingEcho")
 """
 BidirectionalStreamingEcho is bidi streaming.
 """
-  Echo_BidirectionalStreamingEcho(input: grpc_examples_echo_EchoRequestInput): grpc_examples_echo_EchoResponse @grpcMethod(service: "Echo", method: "BidirectionalStreamingEcho")
+  grpc_examples_echo_Echo_BidirectionalStreamingEcho(input: grpc_examples_echo_EchoRequestInput): grpc_examples_echo_EchoResponse @grpcMethod(service: "grpc.examples.echo.Echo", method: "BidirectionalStreamingEcho")
 }
 
 "64 bit signed integer" scalar I64

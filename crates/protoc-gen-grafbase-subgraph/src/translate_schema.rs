@@ -105,7 +105,14 @@ fn translate_service(
 ) {
     let service_id = schema.push_services(ProtoService {
         parent,
-        name: service.name.clone().unwrap_or_default(),
+        name: if service.name().contains(".") {
+            service.name.clone().unwrap_or_default()
+        } else {
+            match parent {
+                Parent::Message(_) | Parent::Root => service.name.clone().unwrap_or_default(),
+                Parent::Package(proto_package_id) => format!("{}.{}", schema[proto_package_id].name, service.name()),
+            }
+        },
         description: location_to_description(location, source_code_info),
     });
 
