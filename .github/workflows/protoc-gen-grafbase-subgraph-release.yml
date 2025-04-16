@@ -16,63 +16,71 @@ env:
   CARGO_TERM_COLOR: 'always'
 
 jobs:
-  build-and-release:
-    name: Build and release binary
-    runs-on: ubuntu-latest
+  build-and-upload:
+    name: Build and upload artifact
     strategy:
       fail-fast: false
       matrix:
-        target:
-          - x86_64-unknown-linux-gnu
-          - x86_64-apple-darwin
-          - aarch64-apple-darwin
-          - x86_64-pc-windows-msvc
+        platform:
+          [
+            { 'target': 'x86_64-unknown-linux-musl', 'runner': 'depot-ubuntu-24.04-8' },
+            { 'target': 'aarch64-unknown-linux-musl', 'runner': 'depot-ubuntu-24.04-arm-8' },
+            { 'target': 'aarch64-apple-darwin', 'runner': 'depot-macos-latest' },
+            { 'target': 'x86_64-pc-windows-msvc', 'runner': 'depot-windows-2022-8' },
+          ]
+    runs-on: ${{ matrix.platform.runner }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Rust
-        uses: actions-rs/toolchain@v1
+      - name: Install Rust
+        uses: ./.github/actions/install-rust
         with:
-          toolchain: stable
-          override: true
-          target: ${{ matrix.target }}
+          target: ${{ matrix.platform.target }}
 
-      - name: Build binary
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --release --package protoc-gen-grafbase-subgraph --target ${{ matrix.target }}
+      - name: Install musl-tools
+        if: ${{ contains(matrix.platform.target, 'linux') }}
+        shell: bash
+        run: |
+          sudo apt-get install musl musl-tools
+          # This seems like a horrible hack that might come back to bite, but lets see!
+          sudo ln -s /bin/g++ /bin/musl-g++
+          sudo ln -s /bin/g++ /bin/aarch64-linux-musl-g++
+
+      - name: Build binaries
+        shell: bash
+        run: |
+          cargo build -p protoc-gen-grafbase-subgraph --release
 
       - name: Prepare binary (Unix)
-        if: matrix.target != 'x86_64-pc-windows-msvc'
+        if: matrix.platform.target != 'x86_64-pc-windows-msvc'
         run: |
-          cd target/${{ matrix.target }}/release
-          tar -czf protoc-gen-grafbase-subgraph-${{ matrix.target }}.tar.gz protoc-gen-grafbase-subgraph
+          cd target/release
+          tar -czf protoc-gen-grafbase-subgraph-${{ matrix.platform.target }}.tar.gz protoc-gen-grafbase-subgraph
 
       - name: Prepare binary (Windows)
-        if: matrix.target == 'x86_64-pc-windows-msvc'
+        if: matrix.platform.target == 'x86_64-pc-windows-msvc'
         run: |
-          cd target/${{ matrix.target }}/release
-          7z a protoc-gen-grafbase-subgraph-${{ matrix.target }}.zip protoc-gen-grafbase-subgraph.exe
+          cd target/release
+          7z a protoc-gen-grafbase-subgraph-${{ matrix.platform.target }}.zip protoc-gen-grafbase-subgraph.exe
 
       - name: Upload assets (Unix)
-        if: matrix.target != 'x86_64-pc-windows-msvc'
+        if: matrix.platform.target != 'x86_64-pc-windows-msvc'
         uses: actions/upload-artifact@v4
         with:
-          name: protoc-gen-grafbase-subgraph-${{ matrix.target }}
-          path: target/${{ matrix.target }}/release/protoc-gen-grafbase-subgraph-${{ matrix.target }}.tar.gz
+          name: protoc-gen-grafbase-subgraph-${{ matrix.platform.target }}
+          path: target/release/protoc-gen-grafbase-subgraph-${{ matrix.platform.target }}.tar.gz
 
       - name: Upload assets (Windows)
-        if: matrix.target == 'x86_64-pc-windows-msvc'
+        if: matrix.platform.target == 'x86_64-pc-windows-msvc'
         uses: actions/upload-artifact@v4
         with:
-          name: protoc-gen-grafbase-subgraph-${{ matrix.target }}
-          path: target/${{ matrix.target }}/release/protoc-gen-grafbase-subgraph-${{ matrix.target }}.zip
+          name: protoc-gen-grafbase-subgraph-${{ matrix.platform.target }}
+          path: target/release/protoc-gen-grafbase-subgraph-${{ matrix.platform.target }}.zip
 
   create-release:
     name: Create GitHub release
-    needs: build-and-release
+    needs: build-and-upload
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -83,20 +91,18 @@ jobs:
         run: echo "VERSION=${GITHUB_REF#refs/tags/protoc-gen-grafbase-subgraph-}" >> $GITHUB_OUTPUT
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: artifacts
 
       - name: Create GitHub Release
         id: create_release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref }}
-          name: protoc-gen-grafbase-subgraph ${{ steps.get_version.outputs.VERSION }}
-          draft: false
+          draft: true
           prerelease: false
           files: |
-            artifacts/protoc-gen-grafbase-subgraph-x86_64-unknown-linux-gnu/protoc-gen-grafbase-subgraph-x86_64-unknown-linux-gnu.tar.gz
-            artifacts/protoc-gen-grafbase-subgraph-x86_64-apple-darwin/protoc-gen-grafbase-subgraph-x86_64-apple-darwin.tar.gz
+            artifacts/protoc-gen-grafbase-subgraph-x86_64-unknown-linux-musl/protoc-gen-grafbase-subgraph-x86_64-unknown-linux-musl.tar.gz
+            artifacts/protoc-gen-grafbase-subgraph-aarch64-unknown-linux-musl/protoc-gen-grafbase-subgraph-aarch64-unknown-linux-musl.tar.gz
             artifacts/protoc-gen-grafbase-subgraph-aarch64-apple-darwin/protoc-gen-grafbase-subgraph-aarch64-apple-darwin.tar.gz
             artifacts/protoc-gen-grafbase-subgraph-x86_64-pc-windows-msvc/protoc-gen-grafbase-subgraph-x86_64-pc-windows-msvc.zip
