@@ -61,7 +61,7 @@ fn cannot_select_unknown_fields() {
     let err = run_with_field_set(graphql_subgraph(), "unknown").err();
     insta::assert_debug_snapshot!(err, @r#"
     Some(
-        "At User.echo for the extension 'echo-1.0.0' directive @echo: Unknown field 'unknown' on type 'User'",
+        "At site User.echo, for the extension 'echo-1.0.0' directive @echo: Unknown field 'unknown' on type 'User'. See schema at 23:35:\n(graph: B, extension: ECHO, name: \"echo\", arguments: {fields: \"unknown\"})",
     )
     "#);
 }
@@ -71,7 +71,7 @@ fn cannot_select_unknown_fields_nested() {
     let err = run_with_field_set(graphql_subgraph(), "friends { friends { address { unknown } } }").err();
     insta::assert_debug_snapshot!(err, @r#"
     Some(
-        "At User.echo for the extension 'echo-1.0.0' directive @echo: Unknown field 'unknown' on type 'Address' at path '.friends.friends.address'",
+        "At site User.echo, for the extension 'echo-1.0.0' directive @echo: Unknown field 'unknown' on type 'Address' at path '.friends.friends.address'. See schema at 23:35:\n(graph: B, extension: ECHO, name: \"echo\", arguments: {fields: \"friends { friends { address { unknown } } }\"})",
     )
     "#);
 }
@@ -81,7 +81,7 @@ fn composite_type_cannot_be_a_leaf() {
     let err = run_with_field_set(graphql_subgraph(), "id address").err();
     insta::assert_debug_snapshot!(err, @r#"
     Some(
-        "At User.echo for the extension 'echo-1.0.0' directive @echo: Leaf field 'address' must be a scalar or an enum, but is a Address.",
+        "At site User.echo, for the extension 'echo-1.0.0' directive @echo: Leaf field 'address' must be a scalar or an enum, but is a Address.. See schema at 23:35:\n(graph: B, extension: ECHO, name: \"echo\", arguments: {fields: \"id address\"})",
     )
     "#);
 }
@@ -91,7 +91,7 @@ fn composite_type_cannot_be_a_leaf_nested() {
     let err = run_with_field_set(graphql_subgraph(), "id friends { address }").err();
     insta::assert_debug_snapshot!(err, @r#"
     Some(
-        "At User.echo for the extension 'echo-1.0.0' directive @echo: Leaf field 'address' at path '.friends' must be a scalar or an enum, but is a Address.",
+        "At site User.echo, for the extension 'echo-1.0.0' directive @echo: Leaf field 'address' at path '.friends' must be a scalar or an enum, but is a Address.. See schema at 23:35:\n(graph: B, extension: ECHO, name: \"echo\", arguments: {fields: \"id friends { address }\"})",
     )
     "#);
 }
@@ -101,7 +101,7 @@ fn scalars_cannot_have_selection_set() {
     let err = run_with_field_set(graphql_subgraph(), "name { __typename }").err();
     insta::assert_debug_snapshot!(err, @r#"
     Some(
-        "At User.echo for the extension 'echo-1.0.0' directive @echo: Field 'name' cannot have a selection set, it's a String!. Only interfaces, unions and objects can.",
+        "At site User.echo, for the extension 'echo-1.0.0' directive @echo: Field 'name' cannot have a selection set, it's a String!. Only interfaces, unions and objects can.. See schema at 23:35:\n(graph: B, extension: ECHO, name: \"echo\", arguments: {fields: \"name { __typename }\"})",
     )
     "#);
 }
@@ -111,7 +111,7 @@ fn scalars_cannot_have_selection_set_nested() {
     let err = run_with_field_set(graphql_subgraph(), "name friends { name { __typename } }").err();
     insta::assert_debug_snapshot!(err, @r#"
     Some(
-        "At User.echo for the extension 'echo-1.0.0' directive @echo: Field 'name' at path '.friends' cannot have a selection set, it's a String!. Only interfaces, unions and objects can.",
+        "At site User.echo, for the extension 'echo-1.0.0' directive @echo: Field 'name' at path '.friends' cannot have a selection set, it's a String!. Only interfaces, unions and objects can.. See schema at 23:35:\n(graph: B, extension: ECHO, name: \"echo\", arguments: {fields: \"name friends { name { __typename } }\"})",
     )
     "#);
 }

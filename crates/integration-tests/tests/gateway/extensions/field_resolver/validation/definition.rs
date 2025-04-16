@@ -31,7 +31,7 @@ fn unknown_type() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At Query.echo for the extension 'echo-1.0.0' directive @echo: Unknown type 'EchoInput'",
+            "At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Unknown type 'EchoInput'. See schema at 19:35:\n(graph: A, extension: ECHO, name: \"echo\", arguments: {value: {a: 1}})",
         )
         "#);
 
@@ -62,7 +62,7 @@ fn unknown_type() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At subgraph named 'a' for the extension 'echo-1.0.0' directive @meta: Unknown type 'EchoInput'",
+            "At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Unknown type 'EchoInput'. See schema at 29:86:\n{graph: A, name: \"meta\", arguments: {value: {a: 1}}}",
         )
         "#);
     });
@@ -99,7 +99,7 @@ fn not_a_input_type() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At Query.echo for the extension 'echo-1.0.0' directive @echo: Type 'EchoInput' is used for an input value but is not a scalar, input object or enum.",
+            "At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Type 'EchoInput' is used for an input value but is not a scalar, input object or enum.. See schema at 19:35:\n(graph: A, extension: ECHO, name: \"echo\", arguments: {value: {a: 1}})",
         )
         "#);
 
@@ -132,7 +132,7 @@ fn not_a_input_type() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At subgraph named 'a' for the extension 'echo-1.0.0' directive @meta: Type 'EchoInput' is used for an input value but is not a scalar, input object or enum.",
+            "At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Type 'EchoInput' is used for an input value but is not a scalar, input object or enum.. See schema at 29:86:\n{graph: A, name: \"meta\", arguments: {value: {a: 1}}}",
         )
         "#);
     });

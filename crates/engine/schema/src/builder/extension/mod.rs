@@ -9,10 +9,7 @@ use strum::IntoEnumIterator as _;
 
 use cynic_parser_deser::ConstDeserializer;
 
-use super::{
-    BuildError,
-    sdl::{ExtensionName, Sdl},
-};
+use super::sdl::{ExtensionName, Sdl};
 
 pub(crate) use directive::*;
 pub(crate) use selection_set_resolvers::*;
@@ -20,9 +17,11 @@ pub(crate) use selection_set_resolvers::*;
 #[derive(id_derives::IndexedFields)]
 pub(crate) struct ExtensionsContext<'a> {
     map: RapidHashMap<ExtensionName<'a>, LoadedExtension<'a>>,
+    pub composite_schema_extension_name: Option<ExtensionName<'a>>,
     pub catalog: &'a ExtensionCatalog,
 }
 
+const COMPOSITE_SCHEMA_URL: &str = "https://specs.grafbase.com/composite-schema/v1";
 const GRAFBASE_SPEC_URL: &str = "https://specs.grafbase.com/grafbase";
 const GRAFBASE_NAMEPSACE: &str = "grafbase";
 
@@ -46,34 +45,32 @@ pub(crate) struct ExtensionSdl {
 }
 
 impl<'a> ExtensionsContext<'a> {
-    pub(super) async fn load<'sdl, 'ext>(
-        sdl: &'sdl Sdl<'sdl>,
-        catalog: &'ext ExtensionCatalog,
-    ) -> Result<Self, BuildError>
+    pub(super) async fn load<'sdl, 'ext>(sdl: &'sdl Sdl<'sdl>, catalog: &'ext ExtensionCatalog) -> Result<Self, String>
     where
         'sdl: 'a,
         'ext: 'a,
     {
         let mut extensions = Self {
             map: RapidHashMap::with_capacity_and_hasher(sdl.extensions.len(), Default::default()),
+            composite_schema_extension_name: None,
             catalog,
         };
         for (name, extension) in &sdl.extensions {
-            let url = url::Url::from_str(extension.url).map_err(|err| BuildError::InvalidUrl {
-                url: extension.url.to_string(),
-                err: err.to_string(),
-            })?;
-            let manifest =
-                extension_catalog::load_manifest(url)
-                    .await
-                    .map_err(|err| BuildError::CouldNotLoadExtension {
-                        url: extension.url.to_string(),
-                        err: err.to_string(),
-                    })?;
+            if extension.url.as_str() == COMPOSITE_SCHEMA_URL {
+                extensions.composite_schema_extension_name = Some(*name);
+                continue;
+            }
+
+            let manifest = extension_catalog::load_manifest(extension.url.clone())
+                .await
+                .map_err(|err| {
+                    format!(
+                        "Could not fetch extension manifest at '{}' for extensions '{}': {}",
+                        extension.url, name, err
+                    )
+                })?;
             let Some(id) = catalog.find_compatible_extension(&manifest.id) else {
-                return Err(BuildError::UnsupportedExtension {
-                    id: manifest.id.clone(),
-                });
+                return Err(format!("Extension {} was not installed", manifest.id));
             };
             let sdl = manifest
                 .sdl
@@ -81,9 +78,11 @@ impl<'a> ExtensionsContext<'a> {
                 .filter(|sdl| !sdl.trim().is_empty())
                 .map(|sdl| cynic_parser::parse_type_system_document(sdl))
                 .transpose()
-                .map_err(|err| BuildError::CouldNotParseExtension {
-                    id: manifest.id.clone(),
-                    err: err.to_string(),
+                .map_err(|err| {
+                    format!(
+                        "For extension {}, failed to parse GraphQL definitions: {}",
+                        manifest.id, err
+                    )
                 })
                 .and_then(|parsed| {
                     let Some(parsed) = parsed else {
@@ -99,12 +98,12 @@ impl<'a> ExtensionsContext<'a> {
                                 continue;
                             }
                             let link = dir.deserialize::<LinkDirective>().map_err(|err| {
-                                BuildError::ExtensionCouldNotReadLink {
-                                    id: manifest.id.clone(),
-                                    err: err.to_string(),
-                                }
+                                format!(
+                                    "For extension {}, failed to prase @link directive: {}",
+                                    manifest.id, err
+                                )
                             })?;
-                            if link.url != GRAFBASE_SPEC_URL {
+                            if !link.url.starts_with(GRAFBASE_SPEC_URL) {
                                 continue;
                             }
                             let namespace = link.r#as.unwrap_or(GRAFBASE_NAMEPSACE);
@@ -115,10 +114,10 @@ impl<'a> ExtensionsContext<'a> {
                                     federated_graph::link::Import::Qualified(q) => (q.name, q.r#as.unwrap_or(q.name)),
                                 };
                                 let scalar = GrafbaseScalar::from_str(name).map_err(|_| {
-                                    BuildError::ExtensionLinksToUnknownGrafbaseDefinition {
-                                        id: manifest.id.clone(),
-                                        name: name.to_string(),
-                                    }
+                                    format!(
+                                        "For extension {}, unsupported import '{}' from '{}'",
+                                        manifest.id, name, GRAFBASE_SPEC_URL
+                                    )
                                 })?;
                                 grafbase_scalars.push((alias.to_string(), scalar));
                             }
@@ -143,12 +142,21 @@ impl<'a> ExtensionsContext<'a> {
         Ok(extensions)
     }
 
-    pub(super) fn try_get(&self, name: ExtensionName<'a>) -> Result<&LoadedExtension<'a>, BuildError> {
+    pub(super) fn get(&self, name: ExtensionName<'a>) -> LoadedExtensionOrCompositeSchema<'_, 'a> {
         match self.map.get(&name) {
-            Some(extension) => Ok(extension),
-            None => Err(BuildError::GraphQLSchemaValidationError(format!(
-                "Extension named '{name}' does not exist."
-            ))),
+            Some(extension) => LoadedExtensionOrCompositeSchema::Extension(extension),
+            None => {
+                if Some(name) == self.composite_schema_extension_name {
+                    LoadedExtensionOrCompositeSchema::CompositeSchema
+                } else {
+                    unreachable!("Extension {name} not found, should have failed during ExtensionsContext creation.");
+                }
+            }
         }
     }
+}
+
+pub(crate) enum LoadedExtensionOrCompositeSchema<'a, 'sdl> {
+    Extension(&'a LoadedExtension<'sdl>),
+    CompositeSchema,
 }

@@ -1,4 +1,5 @@
 mod coerce;
+mod composite_schema;
 mod context;
 mod error;
 mod extension;
@@ -11,13 +12,11 @@ mod subgraphs;
 use context::{BuildContext, Interners};
 use extension::{ExtensionsContext, finalize_selection_set_resolvers, ingest_extension_schema_directives};
 use extension_catalog::ExtensionCatalog;
-use sdl::Sdl;
+use sdl::{Sdl, SpanTranslator};
 
-use self::error::*;
 pub(crate) use coerce::*;
+pub(crate) use error::*;
 pub(crate) use graph::*;
-
-pub use self::error::BuildError;
 
 use crate::*;
 
@@ -25,33 +24,48 @@ pub(crate) async fn build(
     config: &gateway_config::Config,
     sdl: &str,
     extension_catalog: &ExtensionCatalog,
-) -> Result<Schema, BuildError> {
+) -> Result<Schema, String> {
+    build_inner(config, sdl, extension_catalog).await.map_err(|err| {
+        let translator = SpanTranslator::new(sdl);
+        err.into_string(&translator)
+    })
+}
+
+async fn build_inner(
+    config: &gateway_config::Config,
+    sdl: &str,
+    extension_catalog: &ExtensionCatalog,
+) -> Result<Schema, Error> {
     if !sdl.trim().is_empty() {
-        let doc = &cynic_parser::parse_type_system_document(sdl)?;
+        let doc = &cynic_parser::parse_type_system_document(sdl).map_err(Error::without_span)?;
         let sdl = Sdl::try_from((sdl, doc))?;
-        let extensions = ExtensionsContext::load(&sdl, extension_catalog).await?;
+        let extensions = ExtensionsContext::load(&sdl, extension_catalog)
+            .await
+            .map_err(Error::without_span)?;
 
         BuildContext::new(&sdl, &extensions, config)?.build()
     } else {
         let sdl = Default::default();
-        let extensions = ExtensionsContext::load(&sdl, extension_catalog).await?;
+        let extensions = ExtensionsContext::load(&sdl, extension_catalog)
+            .await
+            .map_err(Error::without_span)?;
 
         BuildContext::new(&sdl, &extensions, config)?.build()
     }
 }
 
 impl BuildContext<'_> {
-    fn build(self) -> Result<Schema, BuildError> {
-        let (mut graph_builder, locations, introspection) = ingest_definitions(self)?;
+    fn build(self) -> Result<Schema, Error> {
+        let (mut graph_builder, sdl_definitions, introspection) = ingest_definitions(self)?;
 
         // From this point on the definitions should have been all added and now we interpret the
         // directives.
 
         ingest_extension_schema_directives(&mut graph_builder)?;
 
-        process_directives(&mut graph_builder, locations)?;
+        process_directives(&mut graph_builder, sdl_definitions)?;
 
-        finalize_selection_set_resolvers(&mut graph_builder)?;
+        finalize_selection_set_resolvers(&mut graph_builder).map_err(Error::without_span)?;
 
         let GraphBuilder {
             ctx:

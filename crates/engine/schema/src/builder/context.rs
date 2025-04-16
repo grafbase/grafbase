@@ -8,7 +8,7 @@ use url::Url;
 
 use crate::*;
 
-use super::{extension::ExtensionsContext, sdl::Sdl};
+use super::{Error, extension::ExtensionsContext, sdl::Sdl};
 
 #[derive(id_derives::IndexedFields)]
 pub(crate) struct BuildContext<'a> {
@@ -36,13 +36,9 @@ id_newtypes::forward! {
 }
 
 impl<'a> BuildContext<'a> {
-    pub fn new(
-        sdl: &'a Sdl<'a>,
-        extensions: &'a ExtensionsContext<'a>,
-        config: &'a Config,
-    ) -> Result<Self, BuildError> {
+    pub fn new(sdl: &'a Sdl<'a>, extensions: &'a ExtensionsContext<'a>, config: &'a Config) -> Result<Self, Error> {
         let mut interners = Interners::default();
-        let subgraphs = SubgraphsBuilder::new(sdl, config, &mut interners)?;
+        let subgraphs = SubgraphsBuilder::new(sdl, config, &mut interners);
         Ok(Self {
             sdl,
             extensions,

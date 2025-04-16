@@ -2,7 +2,10 @@ use std::{collections::HashMap, hash::BuildHasherDefault};
 
 use fxhash::FxHasher32;
 
-use crate::{BuildError, builder::sdl};
+use crate::builder::{
+    Error,
+    sdl::{self, SdlDefinitions},
+};
 
 use super::*;
 
@@ -11,14 +14,31 @@ const BUILTIN_SCALARS: [&str; 5] = ["String", "ID", "Boolean", "Int", "Float"];
 struct Ingester<'a> {
     sdl: &'a sdl::Sdl<'a>,
     builder: GraphBuilder<'a>,
-    schema_locations: Vec<SchemaLocation<'a>>,
-    default_values: HashMap<InputValueDefinitionId, sdl::ConstValue<'a>, BuildHasherDefault<FxHasher32>>,
+    sdl_definitions: sdl::SdlDefinitions<'a>,
+    default_values: HashMap<
+        InputValueDefinitionId,
+        (sdl::InputValueSdlDefinition<'a>, sdl::ConstValue<'a>),
+        BuildHasherDefault<FxHasher32>,
+    >,
     root_query_type_name: &'a str,
+}
+
+impl<'a> std::ops::Deref for Ingester<'a> {
+    type Target = GraphBuilder<'a>;
+    fn deref(&self) -> &Self::Target {
+        &self.builder
+    }
+}
+
+impl std::ops::DerefMut for Ingester<'_> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.builder
+    }
 }
 
 pub(crate) fn ingest_definitions(
     ctx: BuildContext<'_>,
-) -> Result<(GraphBuilder<'_>, Vec<SchemaLocation<'_>>, IntrospectionSubgraph), BuildError> {
+) -> Result<(GraphBuilder<'_>, SdlDefinitions<'_>, IntrospectionSubgraph), Error> {
     let sdl = ctx.sdl;
     let graph = Graph {
         description_id: None,
@@ -70,6 +90,7 @@ pub(crate) fn ingest_definitions(
         deduplicated_fields: Default::default(),
         required_scopes: Default::default(),
         entity_resolvers: Default::default(),
+        composite_entity_keys: Default::default(),
         value_path: Default::default(),
         input_fields_buffer_pool: Default::default(),
         virtual_subgraph_to_selection_set_resolver: vec![None; ctx.subgraphs.virtual_subgraphs.len()],
@@ -92,13 +113,16 @@ pub(crate) fn ingest_definitions(
 
     let mut ingester = Ingester {
         sdl,
-        schema_locations: Vec::with_capacity(sdl.type_definitions.len()),
         root_query_type_name: sdl.root_types.query.unwrap_or("Query"),
         default_values: HashMap::with_capacity_and_hasher(
             builder.graph.input_value_definitions.len() >> 3,
             Default::default(),
         ),
         builder,
+        sdl_definitions: SdlDefinitions {
+            types: Vec::with_capacity(sdl.type_definitions.len()),
+            nested: Vec::with_capacity(sdl.type_definitions.len() << 1),
+        },
     };
 
     for ty in sdl.type_definitions.iter().copied() {
@@ -119,7 +143,7 @@ pub(crate) fn ingest_definitions(
 
     let Ingester {
         mut builder,
-        schema_locations,
+        sdl_definitions,
         ..
     } = ingester;
 
@@ -127,7 +151,7 @@ pub(crate) fn ingest_definitions(
     add_extra_vecs_for_definitions_with_different_ordering(&mut builder);
     create_inaccessible_bitsets(&mut builder.graph);
 
-    Ok((builder, schema_locations, introspection))
+    Ok((builder, sdl_definitions, introspection))
 }
 
 impl<'a> Ingester<'a> {
@@ -136,58 +160,65 @@ impl<'a> Ingester<'a> {
         parent: sdl::TypeDefinition<'a>,
         parent_entity_id: EntityDefinitionId,
         fields: impl Iterator<Item = sdl::FieldDefinition<'a>>,
-    ) -> Result<IdRange<FieldDefinitionId>, BuildError> {
-        let fields_start = self.builder.graph.field_definitions.len();
+    ) -> Result<IdRange<FieldDefinitionId>, Error> {
+        let fields_start = self.graph.field_definitions.len();
         for field in fields {
-            let field_id = FieldDefinitionId::from(self.builder.graph.field_definitions.len());
+            let field_id = FieldDefinitionId::from(self.graph.field_definitions.len());
 
-            let args_start = self.builder.graph.input_value_definitions.len();
+            let args_start = self.graph.input_value_definitions.len();
             for argument in field.arguments() {
-                let id = InputValueDefinitionId::from(self.builder.graph.input_value_definitions.len());
-                self.schema_locations
-                    .push(SchemaLocation::ArgumentDefinition(field_id, id, argument));
+                let id = InputValueDefinitionId::from(self.graph.input_value_definitions.len());
+                let sdl_def = sdl::ArgumentSdlDefinition {
+                    field_id,
+                    id,
+                    definition: argument,
+                };
+                self.sdl_definitions.nested.push(sdl_def.into());
 
                 if let Some(default_value) = argument.default_value() {
-                    self.default_values.insert(id, default_value);
+                    self.default_values.insert(id, (sdl_def.into(), default_value));
                 }
 
                 let name_id = self.ingest_str(argument.name());
                 let description_id = argument.description().map(|desc| self.ingest_str(desc.to_cow()));
-                self.builder
-                    .graph
-                    .input_value_definitions
-                    .push(InputValueDefinitionRecord {
-                        name_id,
-                        description_id,
-                        ty_record: TypeRecord {
-                            wrapping: sdl::convert_wrappers(argument.ty().wrappers()),
-                            // Replaced afterwards
-                            definition_id: TypeDefinitionId::Object((u32::MAX - 1).into()),
-                        },
-                        // Added afterwards
-                        default_value_id: None,
-                        directive_ids: Default::default(),
-                    });
+                self.graph.input_value_definitions.push(InputValueDefinitionRecord {
+                    name_id,
+                    description_id,
+                    ty_record: TypeRecord {
+                        wrapping: sdl::convert_wrappers(argument.ty().wrappers()),
+                        // Replaced afterwards
+                        definition_id: TypeDefinitionId::Object((u32::MAX - 1).into()),
+                    },
+                    // Added afterwards
+                    default_value_id: None,
+                    directive_ids: Default::default(),
+                });
             }
-            let argument_ids = (args_start..self.builder.graph.input_value_definitions.len()).into();
+            let argument_ids = (args_start..self.graph.input_value_definitions.len()).into();
 
-            self.schema_locations
-                .push(SchemaLocation::FieldDefinition(field_id, parent, field));
+            self.sdl_definitions.nested.push(
+                sdl::FieldSdlDefinition {
+                    id: field_id,
+                    parent,
+                    definition: field,
+                }
+                .into(),
+            );
             let name_id = self.ingest_str(field.name());
 
-            if self.builder.graph.field_definitions[fields_start..]
+            if self.graph.field_definitions[fields_start..]
                 .iter()
                 .any(|field| field.name_id == name_id)
             {
-                return Err(BuildError::GraphQLSchemaValidationError(format!(
-                    "Duplicate field {}.{}",
-                    parent.name(),
-                    field.name(),
-                )));
+                return Err((
+                    format!("Duplicate field {}.{}", parent.name(), field.name()),
+                    field.span(),
+                )
+                    .into());
             }
 
             let description_id = field.description().map(|desc| self.ingest_str(desc.to_cow()));
-            self.builder.graph.field_definitions.push(FieldDefinitionRecord {
+            self.graph.field_definitions.push(FieldDefinitionRecord {
                 name_id,
                 description_id,
                 parent_entity_id,
@@ -206,12 +237,8 @@ impl<'a> Ingester<'a> {
                 directive_ids: Default::default(),
             });
         }
-        let end = self.builder.graph.field_definitions.len();
+        let end = self.graph.field_definitions.len();
         Ok((fields_start..end).into())
-    }
-
-    fn ingest_str(&mut self, s: impl AsRef<str>) -> StringId {
-        self.builder.ingest_str(s.as_ref())
     }
 
     fn ingest_scalar(&mut self, scalar: sdl::ScalarDefinition<'a>) -> ScalarDefinitionId {
@@ -225,16 +252,19 @@ impl<'a> Ingester<'a> {
                 .unwrap();
         }
 
-        let id = ScalarDefinitionId::from(self.builder.graph.scalar_definitions.len());
-        self.builder.type_definitions.insert(scalar.name(), id.into());
-        self.schema_locations.push(SchemaLocation::Scalar(id, scalar));
+        let id = ScalarDefinitionId::from(self.graph.scalar_definitions.len());
+        self.type_definitions.insert(scalar.name(), id.into());
+        self.sdl_definitions
+            .types
+            .push(sdl::ScalarSdlDefinition { id, definition: scalar }.into());
 
         let name_id = self.ingest_str(scalar.name());
         let description_id = scalar.description().map(|desc| self.ingest_str(desc.to_cow()));
 
-        self.builder.graph.scalar_definitions.push(ScalarDefinitionRecord {
+        let ty = ScalarType::from_scalar_name(&self[name_id]);
+        self.graph.scalar_definitions.push(ScalarDefinitionRecord {
             name_id,
-            ty: ScalarType::from_scalar_name(&self.builder[name_id]),
+            ty,
             description_id,
             specified_by_url_id: None,
             directive_ids: Default::default(),
@@ -244,30 +274,42 @@ impl<'a> Ingester<'a> {
     }
 
     fn ingest_enum(&mut self, enm: sdl::EnumDefinition<'a>) -> EnumDefinitionId {
-        let enum_id = EnumDefinitionId::from(self.builder.graph.enum_definitions.len());
-        self.builder.type_definitions.insert(enm.name(), enum_id.into());
-        self.schema_locations.push(SchemaLocation::Enum(enum_id, enm));
+        let enum_id = EnumDefinitionId::from(self.graph.enum_definitions.len());
+        self.type_definitions.insert(enm.name(), enum_id.into());
+        self.sdl_definitions.types.push(
+            sdl::EnumSdlDefinition {
+                id: enum_id,
+                definition: enm,
+            }
+            .into(),
+        );
 
-        let start = self.builder.graph.enum_values.len();
+        let start = self.graph.enum_values.len();
 
         for enum_value in enm.values() {
-            let id = EnumValueId::from(self.builder.graph.enum_values.len());
-            self.schema_locations.push(SchemaLocation::EnumValue(id, enum_value));
+            let id = EnumValueId::from(self.graph.enum_values.len());
+            self.sdl_definitions.nested.push(
+                sdl::EnumValueSdlDefinition {
+                    id,
+                    definition: enum_value,
+                }
+                .into(),
+            );
 
             let name_id = self.ingest_str(enum_value.value());
             let description_id = enum_value.description().map(|desc| self.ingest_str(desc.to_cow()));
-            self.builder.graph.enum_values.push(EnumValueRecord {
+            self.graph.enum_values.push(EnumValueRecord {
                 name_id,
                 description_id,
                 parent_enum_id: enum_id,
                 directive_ids: Default::default(),
             });
         }
-        let value_ids = (start..self.builder.graph.enum_values.len()).into();
+        let value_ids = (start..self.graph.enum_values.len()).into();
 
         let name_id = self.ingest_str(enm.name());
         let description_id = enm.description().map(|desc| self.ingest_str(desc.to_cow()));
-        self.builder.graph.enum_definitions.push(EnumDefinitionRecord {
+        self.graph.enum_definitions.push(EnumDefinitionRecord {
             name_id,
             description_id,
             value_ids,
@@ -278,64 +320,67 @@ impl<'a> Ingester<'a> {
     }
 
     fn ingest_input_object(&mut self, input_object: sdl::InputObjectDefinition<'a>) -> InputObjectDefinitionId {
-        let input_object_id = InputObjectDefinitionId::from(self.builder.graph.input_object_definitions.len());
-        self.builder
-            .type_definitions
+        let input_object_id = InputObjectDefinitionId::from(self.graph.input_object_definitions.len());
+        self.type_definitions
             .insert(input_object.name(), input_object_id.into());
 
-        let start = self.builder.graph.input_value_definitions.len();
+        let start = self.graph.input_value_definitions.len();
         for input_value in input_object.fields() {
-            let id = InputValueDefinitionId::from(self.builder.graph.input_value_definitions.len());
-            self.schema_locations
-                .push(SchemaLocation::InputFieldDefinition(input_object_id, id, input_value));
+            let id = InputValueDefinitionId::from(self.graph.input_value_definitions.len());
+            let sdl_def = sdl::InputFieldSdlDefinition {
+                parent_id: input_object_id,
+                id,
+                definition: input_value,
+            };
+            self.sdl_definitions.nested.push(sdl_def.into());
 
             if let Some(default_value) = input_value.default_value() {
-                self.default_values.insert(id, default_value);
+                self.default_values.insert(id, (sdl_def.into(), default_value));
             }
 
             let name_id = self.ingest_str(input_value.name());
             let description_id = input_value.description().map(|desc| self.ingest_str(desc.to_cow()));
-            self.builder
-                .graph
-                .input_value_definitions
-                .push(InputValueDefinitionRecord {
-                    name_id,
-                    description_id,
-                    ty_record: TypeRecord {
-                        wrapping: sdl::convert_wrappers(input_value.ty().wrappers()),
-                        definition_id: TypeDefinitionId::Object((u32::MAX - 1).into()),
-                    },
-                    default_value_id: None,
-                    directive_ids: Default::default(),
-                });
+            self.graph.input_value_definitions.push(InputValueDefinitionRecord {
+                name_id,
+                description_id,
+                ty_record: TypeRecord {
+                    wrapping: sdl::convert_wrappers(input_value.ty().wrappers()),
+                    definition_id: TypeDefinitionId::Object((u32::MAX - 1).into()),
+                },
+                default_value_id: None,
+                directive_ids: Default::default(),
+            });
         }
-        let input_field_ids = (start..self.builder.graph.input_value_definitions.len()).into();
+        let input_field_ids = (start..self.graph.input_value_definitions.len()).into();
 
-        self.schema_locations
-            .push(SchemaLocation::InputObject(input_object_id, input_object));
-        self.builder
-            .type_definitions
+        self.sdl_definitions.types.push(
+            sdl::InputObjectSdlDefinition {
+                id: input_object_id,
+                definition: input_object,
+            }
+            .into(),
+        );
+        self.type_definitions
             .insert(input_object.name(), input_object_id.into());
 
         let name_id = self.ingest_str(input_object.name());
         let description_id = input_object.description().map(|desc| self.ingest_str(desc.to_cow()));
-        self.builder
-            .graph
-            .input_object_definitions
-            .push(InputObjectDefinitionRecord {
-                name_id,
-                description_id,
-                input_field_ids,
-                directive_ids: Default::default(),
-                exists_in_subgraph_ids: Vec::new(),
-            });
+        self.graph.input_object_definitions.push(InputObjectDefinitionRecord {
+            name_id,
+            description_id,
+            input_field_ids,
+            directive_ids: Default::default(),
+            exists_in_subgraph_ids: Vec::new(),
+        });
         input_object_id
     }
 
-    fn ingest_object(&mut self, object: sdl::ObjectDefinition<'a>) -> Result<ObjectDefinitionId, BuildError> {
-        let id = ObjectDefinitionId::from(self.builder.graph.object_definitions.len());
-        self.schema_locations.push(SchemaLocation::Object(id, object));
-        self.builder.type_definitions.insert(object.name(), id.into());
+    fn ingest_object(&mut self, object: sdl::ObjectDefinition<'a>) -> Result<ObjectDefinitionId, Error> {
+        let id = ObjectDefinitionId::from(self.graph.object_definitions.len());
+        self.sdl_definitions
+            .types
+            .push(sdl::ObjectSdlDefinition { id, definition: object }.into());
+        self.type_definitions.insert(object.name(), id.into());
 
         let name_id = self.ingest_str(object.name());
         let description_id = object.description().map(|desc| self.ingest_str(desc.to_cow()));
@@ -343,10 +388,14 @@ impl<'a> Ingester<'a> {
         if let Some(extensions) = self.sdl.type_extensions.get(object.name()) {
             for ext in extensions {
                 let sdl::TypeDefinition::Object(obj) = ext else {
-                    return Err(BuildError::GraphQLSchemaValidationError(format!(
-                        "Cannot extend object named '{}' with anything else but an object",
-                        object.name()
-                    )));
+                    return Err((
+                        format!(
+                            "Cannot extend object named '{}' with anything else but an object",
+                            object.name()
+                        ),
+                        object.span(),
+                    )
+                        .into());
                 };
                 merged_fields.push(obj.fields());
             }
@@ -358,9 +407,9 @@ impl<'a> Ingester<'a> {
         )?;
         if object.name() == self.root_query_type_name {
             self.push_query_introspection_fields(id);
-            field_ids.end = self.builder.graph.field_definitions.len().into();
+            field_ids.end = self.graph.field_definitions.len().into();
         }
-        self.builder.graph.object_definitions.push(ObjectDefinitionRecord {
+        self.graph.object_definitions.push(ObjectDefinitionRecord {
             name_id,
             description_id,
             field_ids,
@@ -374,13 +423,15 @@ impl<'a> Ingester<'a> {
     }
 
     fn ingest_union(&mut self, union: sdl::UnionDefinition<'a>) -> UnionDefinitionId {
-        let id = UnionDefinitionId::from(self.builder.graph.union_definitions.len());
-        self.schema_locations.push(SchemaLocation::Union(id, union));
-        self.builder.type_definitions.insert(union.name(), id.into());
+        let id = UnionDefinitionId::from(self.graph.union_definitions.len());
+        self.sdl_definitions
+            .types
+            .push(sdl::UnionSdlDefinition { id, definition: union }.into());
+        self.type_definitions.insert(union.name(), id.into());
 
         let name_id = self.ingest_str(union.name());
         let description_id = union.description().map(|desc| self.ingest_str(desc.to_cow()));
-        self.builder.graph.union_definitions.push(UnionDefinitionRecord {
+        self.graph.union_definitions.push(UnionDefinitionRecord {
             name_id,
             description_id,
             // Added later
@@ -394,49 +445,49 @@ impl<'a> Ingester<'a> {
         id
     }
 
-    fn ingest_interface(
-        &mut self,
-        interface: sdl::InterfaceDefinition<'a>,
-    ) -> Result<InterfaceDefinitionId, BuildError> {
-        let id = InterfaceDefinitionId::from(self.builder.graph.interface_definitions.len());
-        self.schema_locations.push(SchemaLocation::Interface(id, interface));
-        self.builder.type_definitions.insert(interface.name(), id.into());
+    fn ingest_interface(&mut self, interface: sdl::InterfaceDefinition<'a>) -> Result<InterfaceDefinitionId, Error> {
+        let id = InterfaceDefinitionId::from(self.graph.interface_definitions.len());
+        self.sdl_definitions.types.push(
+            sdl::InterfaceSdlDefinition {
+                id,
+                definition: interface,
+            }
+            .into(),
+        );
+        self.type_definitions.insert(interface.name(), id.into());
 
         let name_id = self.ingest_str(interface.name());
         let description_id = interface.description().map(|desc| self.ingest_str(desc.to_cow()));
         let field_ids = self.ingest_fields(sdl::TypeDefinition::Interface(interface), id.into(), interface.fields())?;
-        self.builder
-            .graph
-            .interface_definitions
-            .push(InterfaceDefinitionRecord {
-                name_id,
-                description_id,
-                field_ids,
-                // Added later
-                interface_ids: Vec::new(),
-                possible_type_ids: Vec::new(),
-                possible_types_ordered_by_typename_ids: Vec::new(),
-                not_fully_implemented_in_ids: Vec::new(),
-                directive_ids: Default::default(),
-                exists_in_subgraph_ids: Default::default(),
-                is_interface_object_in_ids: Default::default(),
-            });
+        self.graph.interface_definitions.push(InterfaceDefinitionRecord {
+            name_id,
+            description_id,
+            field_ids,
+            // Added later
+            interface_ids: Vec::new(),
+            possible_type_ids: Vec::new(),
+            possible_types_ordered_by_typename_ids: Vec::new(),
+            not_fully_implemented_in_ids: Vec::new(),
+            directive_ids: Default::default(),
+            exists_in_subgraph_ids: Default::default(),
+            is_interface_object_in_ids: Default::default(),
+        });
         Ok(id)
     }
 
-    fn add_root_types(&mut self) -> Result<(), BuildError> {
+    fn add_root_types(&mut self) -> Result<(), Error> {
         let query_object_id = self
             .builder
-            .get_object_id(self.root_query_type_name)
+            .get_object_id(self.root_query_type_name, sdl::Span::default())
             .unwrap_or_else(|_| {
-                let id = ObjectDefinitionId::from(self.builder.graph.object_definitions.len());
+                let id = ObjectDefinitionId::from(self.graph.object_definitions.len());
 
-                let start = self.builder.graph.field_definitions.len();
+                let start = self.graph.field_definitions.len();
                 self.push_query_introspection_fields(id);
-                let field_ids = (start..self.builder.graph.field_definitions.len()).into();
+                let field_ids = (start..self.graph.field_definitions.len()).into();
 
-                let name_id = self.ingest_str(self.root_query_type_name);
-                self.builder.graph.object_definitions.push(ObjectDefinitionRecord {
+                let name_id = self.builder.ingest_str(self.root_query_type_name);
+                self.graph.object_definitions.push(ObjectDefinitionRecord {
                     name_id,
                     description_id: None,
                     field_ids,
@@ -449,30 +500,29 @@ impl<'a> Ingester<'a> {
 
                 id
             });
-        let builder = &mut self.builder;
-        builder.graph.root_operation_types_record.query_id = query_object_id;
-        builder.graph.root_operation_types_record.mutation_id = self
+        self.graph.root_operation_types_record.query_id = query_object_id;
+        self.graph.root_operation_types_record.mutation_id = self
             .sdl
             .root_types
             .mutation
-            .map(|name| builder.get_object_id(name))
+            .map(|name| self.get_object_id(name, sdl::Span::default()))
             .transpose()?
-            .or_else(|| builder.get_object_id("Mutation").ok());
-        builder.graph.root_operation_types_record.subscription_id = self
+            .or_else(|| self.get_object_id("Mutation", sdl::Span::default()).ok());
+        self.graph.root_operation_types_record.subscription_id = self
             .sdl
             .root_types
             .subscription
-            .map(|name| builder.get_object_id(name))
+            .map(|name| self.get_object_id(name, sdl::Span::default()))
             .transpose()?
-            .or_else(|| builder.get_object_id("Subscription").ok());
+            .or_else(|| self.get_object_id("Subscription", sdl::Span::default()).ok());
 
         Ok(())
     }
 
     fn push_query_introspection_fields(&mut self, query_object_id: ObjectDefinitionId) {
         for name in ["__type", "__schema"] {
-            let name_id = self.builder.ingest_str(name);
-            self.builder.graph.field_definitions.push(FieldDefinitionRecord {
+            let name_id = self.ingest_str(name);
+            self.graph.field_definitions.push(FieldDefinitionRecord {
                 name_id,
                 description_id: None,
                 parent_entity_id: query_object_id.into(),
@@ -492,44 +542,53 @@ impl<'a> Ingester<'a> {
         }
     }
 
-    fn add_type_references(&mut self) -> Result<(), BuildError> {
+    fn add_type_references(&mut self) -> Result<(), Error> {
         let builder = &mut self.builder;
-        for location in self.schema_locations.iter().copied() {
-            match location {
-                SchemaLocation::FieldDefinition(id, _, field) => {
-                    builder.graph[id].ty_record.definition_id = builder.get_type_id(field.ty().name())?;
+        for def in self.sdl_definitions.nested.iter().copied() {
+            match def {
+                sdl::SdlNestedDefinition::FieldDefinition(def) => {
+                    builder.graph[def.id].ty_record.definition_id =
+                        builder.get_type_id(def.ty().name(), def.ty().span())?;
                 }
-                SchemaLocation::InputFieldDefinition(_, id, input_value) => {
-                    builder.graph[id].ty_record.definition_id = builder.get_type_id(input_value.ty().name())?;
+                sdl::SdlNestedDefinition::InputFieldDefinition(def) => {
+                    builder.graph[def.id].ty_record.definition_id =
+                        builder.get_type_id(def.ty().name(), def.ty().span())?;
                 }
-                SchemaLocation::ArgumentDefinition(_, id, input_value) => {
-                    builder.graph[id].ty_record.definition_id = builder.get_type_id(input_value.ty().name())?;
-                }
-                SchemaLocation::Object(id, obj) => {
-                    let interface_ids = obj
-                        .implements_interfaces()
-                        .map(|inf| builder.get_interface_id(inf))
-                        .collect::<Result<Vec<_>, _>>()?;
-                    for inf_id in &interface_ids {
-                        builder.graph[*inf_id].possible_type_ids.push(id);
-                    }
-                    builder.graph[id].interface_ids = interface_ids;
-                }
-                SchemaLocation::Interface(id, inf) => {
-                    let interface_ids = inf
-                        .implements_interfaces()
-                        .map(|inf| builder.get_interface_id(inf))
-                        .collect::<Result<Vec<_>, _>>()?;
-                    builder.graph[id].interface_ids = interface_ids;
-                }
-                SchemaLocation::Union(id, union) => {
-                    let member_ids = union
-                        .members()
-                        .map(|member| builder.get_object_id(member.name()))
-                        .collect::<Result<Vec<_>, _>>()?;
-                    builder.graph[id].possible_type_ids = member_ids;
+                sdl::SdlNestedDefinition::ArgumentDefinition(def) => {
+                    builder.graph[def.id].ty_record.definition_id =
+                        builder.get_type_id(def.ty().name(), def.ty().span())?;
                 }
 
+                _ => (),
+            }
+        }
+
+        for def in self.sdl_definitions.types.iter().copied() {
+            match def {
+                sdl::SdlTypeDefinition::Object(def) => {
+                    let interface_ids = def
+                        .implements_interfaces()
+                        .map(|inf| builder.get_interface_id(inf, def.span()))
+                        .collect::<Result<Vec<_>, _>>()?;
+                    for inf_id in &interface_ids {
+                        builder.graph[*inf_id].possible_type_ids.push(def.id);
+                    }
+                    builder.graph[def.id].interface_ids = interface_ids;
+                }
+                sdl::SdlTypeDefinition::Interface(def) => {
+                    let interface_ids = def
+                        .implements_interfaces()
+                        .map(|inf| builder.get_interface_id(inf, def.span()))
+                        .collect::<Result<Vec<_>, _>>()?;
+                    builder.graph[def.id].interface_ids = interface_ids;
+                }
+                sdl::SdlTypeDefinition::Union(def) => {
+                    let member_ids = def
+                        .members()
+                        .map(|member| builder.get_object_id(member.name(), member.span()))
+                        .collect::<Result<Vec<_>, _>>()?;
+                    builder.graph[def.id].possible_type_ids = member_ids;
+                }
                 _ => (),
             }
         }
@@ -537,32 +596,31 @@ impl<'a> Ingester<'a> {
         Ok(())
     }
 
-    fn add_default_values(&mut self) -> Result<(), BuildError> {
-        let mut seen = BitSet::with_capacity(self.builder.graph.input_object_definitions.len());
+    fn add_default_values(&mut self) -> Result<(), Error> {
+        let mut seen = BitSet::with_capacity(self.graph.input_object_definitions.len());
         let mut input_values_stack = Vec::new();
 
         while let Some(id) = self.default_values.keys().next().copied() {
             input_values_stack.push(id);
             while let Some(id) = input_values_stack.pop() {
-                if let TypeDefinitionId::InputObject(input_object_id) = self.builder.graph[id].ty_record.definition_id {
+                if let TypeDefinitionId::InputObject(input_object_id) = self.graph[id].ty_record.definition_id {
                     // Nested default values must be treated first.
                     if !seen.put(input_object_id) {
                         // put back our current id.
                         input_values_stack.push(id);
-                        input_values_stack.extend(self.builder.graph[input_object_id].input_field_ids);
+                        input_values_stack.extend(self.graph[input_object_id].input_field_ids);
                         continue;
                     }
                 }
-                let Some(default_value) = self.default_values.remove(&id) else {
+                let Some((def, default_value)) = self.default_values.remove(&id) else {
                     continue;
                 };
-                self.builder.graph[id].default_value_id =
-                    Some(self.builder.coerce_input_value(id, default_value).map_err(|err| {
-                        BuildError::DefaultValueCoercionError {
-                            err,
-                            name: self.builder[self.builder.graph[id].name_id].to_string(),
-                        }
-                    })?);
+                self.graph[id].default_value_id = Some(self.coerce_input_value(id, default_value).map_err(|err| {
+                    (
+                        format!("At {}, found an invalid default value: {err}", def.to_site_string(self)),
+                        default_value.span(),
+                    )
+                })?);
             }
         }
 

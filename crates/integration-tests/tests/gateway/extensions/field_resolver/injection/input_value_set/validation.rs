@@ -61,7 +61,7 @@ fn invalid_location() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At Query for the extension 'echo-1.0.0' directive @echo: InputValueSet can only be used in directive applied on FIELD_DEFINITION, but found on OBJECT",
+            "At site Query, for the extension 'echo-1.0.0' directive @echo: InputValueSet can only be used in directive applied on FIELD_DEFINITION, but found on OBJECT. See schema at 18:24:\n(graph: A, extension: ECHO, name: \"echo\", arguments: {input: \"something\"})",
         )
         "#);
     });
@@ -106,7 +106,7 @@ fn unknown_field() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At Query.echo for the extension 'echo-1.0.0' directive @echo: Unknown input value 'unknown'",
+            "At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Unknown input value 'unknown'. See schema at 19:92:\n(graph: A, extension: ECHO, name: \"echo\", arguments: {input: \"unknown\"})",
         )
         "#);
     });
@@ -151,7 +151,7 @@ fn unknown_nested_field() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At Query.echo for the extension 'echo-1.0.0' directive @echo: Unknown input value 'unknown' at path '.filters.nested'",
+            "At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Unknown input value 'unknown' at path '.filters.nested'. See schema at 19:92:\n(graph: A, extension: ECHO, name: \"echo\", arguments: {input: \"filters { nested { unknown } }\"})",
         )
         "#);
     });
@@ -196,7 +196,7 @@ fn cannot_have_selection_set() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At Query.echo for the extension 'echo-1.0.0' directive @echo: Type String cannot have a selecction set at path '.after'",
+            "At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Type String cannot have a selecction set at path '.after'. See schema at 19:92:\n(graph: A, extension: ECHO, name: \"echo\", arguments: {input: \"after { something }\"})",
         )
         "#);
     });
@@ -241,7 +241,7 @@ fn cannot_have_fragments() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At Query.echo for the extension 'echo-1.0.0' directive @echo: Cannot use fragments inside a InputValueSet",
+            "At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Cannot use fragments inside a InputValueSet. See schema at 19:92:\n(graph: A, extension: ECHO, name: \"echo\", arguments: {input: \"filters { ... {  latest } }\"})",
         )
         "#);
     });
@@ -286,7 +286,7 @@ fn must_be_valid_selection_set() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At Query.echo for the extension 'echo-1.0.0' directive @echo: Could not parse InputValueSet: unexpected closing brace ('}') token (expected one of , \"...\"RawIdent, schema, query, mutation, subscription, ty, input, true, false, null, implements, interface, \"enum\", union, scalar, extend, directive, repeatable, on, fragment)",
+            "At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Could not parse InputValueSet: unexpected closing brace ('}') token (expected one of , \"...\"RawIdent, schema, query, mutation, subscription, ty, input, true, false, null, implements, interface, \"enum\", union, scalar, extend, directive, repeatable, on, fragment). See schema at 19:92:\n(graph: A, extension: ECHO, name: \"echo\", arguments: {input: \"filters {\"})",
         )
         "#);
     });

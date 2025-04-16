@@ -34,7 +34,6 @@ mod union;
 #[cfg(test)]
 mod tests;
 
-pub use self::builder::BuildError;
 pub use config::*;
 pub use directive::*;
 pub use extension::*;
@@ -91,7 +90,7 @@ impl Schema {
         config: &gateway_config::Config,
         federated_sdl: &str,
         extension_catalog: &ExtensionCatalog,
-    ) -> Result<Schema, BuildError> {
+    ) -> Result<Schema, String> {
         builder::build(config, federated_sdl, extension_catalog).await
     }
 }

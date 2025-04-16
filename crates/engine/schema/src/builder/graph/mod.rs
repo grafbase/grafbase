@@ -1,6 +1,5 @@
 mod definitions;
-mod location;
-mod post_process;
+mod directives;
 
 use std::collections::BTreeMap;
 
@@ -12,11 +11,10 @@ use rapidhash::RapidHashMap;
 
 use crate::*;
 
-use super::{BuildContext, BuildError, interner::Interner, sdl, value_path_to_string};
+use super::{BuildContext, Error, interner::Interner, sdl, value_path_to_string};
 
 pub(crate) use definitions::*;
-pub(crate) use location::*;
-pub(crate) use post_process::*;
+pub(crate) use directives::*;
 
 pub(crate) struct GraphBuilder<'a> {
     pub ctx: BuildContext<'a>,
@@ -24,6 +22,8 @@ pub(crate) struct GraphBuilder<'a> {
     pub required_scopes: Interner<RequiresScopesDirectiveRecord, RequiresScopesDirectiveId>,
     pub type_definitions: RapidHashMap<&'a str, TypeDefinitionId>,
     pub entity_resolvers: FxHashMap<(EntityDefinitionId, SubgraphId), Vec<ResolverDefinitionId>>,
+    pub composite_entity_keys: FxHashMap<(EntityDefinitionId, SubgraphId), Vec<FieldSetRecord>>,
+
     // -- used for field sets
     pub deduplicated_fields: BTreeMap<SchemaFieldRecord, SchemaFieldId>,
     // -- used for coercion
@@ -50,39 +50,30 @@ impl GraphBuilder<'_> {
         value_path_to_string(&self.ctx, &self.value_path)
     }
 
-    fn get_type_id(&self, name: &str) -> Result<TypeDefinitionId, BuildError> {
+    fn get_type_id(&self, name: &str, span: sdl::Span) -> Result<TypeDefinitionId, Error> {
         let Some(id) = self.type_definitions.get(name) else {
-            return Err(BuildError::GraphQLSchemaValidationError(format!(
-                "Type {} not found",
-                name
-            )));
+            return Err((format!("Unknown type {name}"), span).into());
         };
         Ok(*id)
     }
 
-    fn get_object_id(&self, name: &str) -> Result<ObjectDefinitionId, BuildError> {
-        let id = self.get_type_id(name)?;
+    fn get_object_id(&self, name: &str, span: sdl::Span) -> Result<ObjectDefinitionId, Error> {
+        let id = self.get_type_id(name, span)?;
         let TypeDefinitionId::Object(id) = id else {
-            return Err(BuildError::GraphQLSchemaValidationError(format!(
-                "Type {} is not an object",
-                name
-            )));
+            return Err((format!("Type {} is not an object", name), span).into());
         };
         Ok(id)
     }
 
-    fn get_interface_id(&self, name: &str) -> Result<InterfaceDefinitionId, BuildError> {
-        let id = self.get_type_id(name)?;
+    fn get_interface_id(&self, name: &str, span: sdl::Span) -> Result<InterfaceDefinitionId, Error> {
+        let id = self.get_type_id(name, span)?;
         let TypeDefinitionId::Interface(id) = id else {
-            return Err(BuildError::GraphQLSchemaValidationError(format!(
-                "Type {} is not an interface",
-                name
-            )));
+            return Err((format!("Type {} is not an interface", name), span).into());
         };
         Ok(id)
     }
 
-    fn parse_type(&self, ty: &str) -> Result<TypeRecord, BuildError> {
+    fn parse_type(&self, ty: &str, span: sdl::Span) -> Result<TypeRecord, Error> {
         let mut wrappers = Vec::new();
         let mut chars = ty.chars().rev();
 
@@ -102,7 +93,7 @@ impl GraphBuilder<'_> {
             end -= 1;
         }
         Ok(TypeRecord {
-            definition_id: self.get_type_id(&ty[start..end])?,
+            definition_id: self.get_type_id(&ty[start..end], span)?,
             wrapping: sdl::convert_wrappers(wrappers),
         })
     }
