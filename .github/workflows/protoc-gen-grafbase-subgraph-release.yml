@@ -99,7 +99,7 @@ jobs:
         id: create_release
         uses: softprops/action-gh-release@v2
         with:
-          draft: true
+          draft: false
           prerelease: false
           files: |
             artifacts/protoc-gen-grafbase-subgraph-x86_64-unknown-linux-musl/protoc-gen-grafbase-subgraph-x86_64-unknown-linux-musl.tar.gz
