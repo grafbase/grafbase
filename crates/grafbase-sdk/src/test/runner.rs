@@ -100,7 +100,9 @@ impl TestRunner {
             this.build_extension(&extension_path)?;
         }
 
-        this.start_servers(&extension_name, &extension_path).await?;
+        this.start_servers(&extension_name, &extension_path)
+            .await
+            .map_err(|err| anyhow::anyhow!("Failed to start servers: {err}"))?;
 
         Ok(this)
     }
@@ -130,8 +132,10 @@ impl TestRunner {
 
         println!("{config}");
 
-        std::fs::write(&config_path, config.as_bytes())?;
-        std::fs::write(&schema_path, self.federated_graph.as_bytes())?;
+        std::fs::write(&config_path, config.as_bytes())
+            .map_err(|err| anyhow::anyhow!("Failed to write config at {:?}", config_path))?;
+        std::fs::write(&schema_path, self.federated_graph.as_bytes())
+            .map_err(|err| anyhow::anyhow!("Failed to write schema at {:?}", schema_path))?;
 
         let args = &[
             "--listen-address",
@@ -154,7 +158,10 @@ impl TestRunner {
             expr = expr.stdout_capture();
         }
 
-        let gateway_handle = expr.unchecked().start()?;
+        let gateway_handle = expr
+            .unchecked()
+            .start()
+            .map_err(|err| anyhow::anyhow!("Failed to start the gateway: {err}"))?;
 
         let mut i = 0;
         while !self.check_gateway_health().await? {
