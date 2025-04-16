@@ -52,7 +52,7 @@ async fn find_matching_extensions_in_dir(
     let all_versions_for_this_extension_dir = grafbase_extensions_dir.join(name);
     let mut entries = fs::read_dir(&all_versions_for_this_extension_dir)
         .await
-        .map_err(|err| Error::Message(format!("Could not load extensions directory, did you use `grafbase extensions install`? (Failed to read {}: {err})", all_versions_for_this_extension_dir.display()))
+        .map_err(|err| Error::Message(format!("Could not load the extensions directory, did you use `grafbase extension install`? (Failed to read {}: {err})", all_versions_for_this_extension_dir.display()))
         )?;
 
     let mut matching_entry: Option<(semver::Version, PathBuf)> = None;
