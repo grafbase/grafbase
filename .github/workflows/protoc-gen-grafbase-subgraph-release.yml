@@ -43,29 +43,29 @@ jobs:
         with:
           command: build
           args: --release --package protoc-gen-grafbase-subgraph --target ${{ matrix.target }}
-        
+
       - name: Prepare binary (Unix)
         if: matrix.target != 'x86_64-pc-windows-msvc'
         run: |
           cd target/${{ matrix.target }}/release
           tar -czf protoc-gen-grafbase-subgraph-${{ matrix.target }}.tar.gz protoc-gen-grafbase-subgraph
-          
+
       - name: Prepare binary (Windows)
         if: matrix.target == 'x86_64-pc-windows-msvc'
         run: |
           cd target/${{ matrix.target }}/release
           7z a protoc-gen-grafbase-subgraph-${{ matrix.target }}.zip protoc-gen-grafbase-subgraph.exe
-      
+
       - name: Upload assets (Unix)
         if: matrix.target != 'x86_64-pc-windows-msvc'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: protoc-gen-grafbase-subgraph-${{ matrix.target }}
           path: target/${{ matrix.target }}/release/protoc-gen-grafbase-subgraph-${{ matrix.target }}.tar.gz
-          
+
       - name: Upload assets (Windows)
         if: matrix.target == 'x86_64-pc-windows-msvc'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: protoc-gen-grafbase-subgraph-${{ matrix.target }}
           path: target/${{ matrix.target }}/release/protoc-gen-grafbase-subgraph-${{ matrix.target }}.zip
@@ -77,16 +77,16 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       - name: Get version from tag
         id: get_version
         run: echo "VERSION=${GITHUB_REF#refs/tags/protoc-gen-grafbase-subgraph-}" >> $GITHUB_OUTPUT
-        
+
       - name: Download all artifacts
         uses: actions/download-artifact@v3
         with:
           path: artifacts
-          
+
       - name: Create GitHub Release
         id: create_release
         uses: softprops/action-gh-release@v1
