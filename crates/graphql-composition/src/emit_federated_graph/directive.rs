@@ -373,7 +373,7 @@ pub(super) fn emit_list_size_directive_definition(ctx: &mut Context<'_>) {
         federated::InputValueDefinition {
             name: slicing_arguments_str,
             r#type: federated::Type {
-                wrapping: Wrapping::required().wrap_list(),
+                wrapping: Wrapping::required().list(),
                 definition: string_definition,
             },
             directives: Vec::new(),
@@ -389,7 +389,7 @@ pub(super) fn emit_list_size_directive_definition(ctx: &mut Context<'_>) {
         federated::InputValueDefinition {
             name: sized_fields_str,
             r#type: federated::Type {
-                wrapping: Wrapping::required().wrap_list(),
+                wrapping: Wrapping::required().list(),
                 definition: string_definition,
             },
             directives: Vec::new(),

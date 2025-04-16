@@ -204,10 +204,10 @@ fn requires_with_fragments() {
           "data": {
             "user": {
               "repr": {
+                "id": "1",
                 "node": {
                   "id": "b"
-                },
-                "id": "1"
+                }
               }
             }
           }
@@ -224,8 +224,8 @@ fn requires_with_fragments() {
           "data": {
             "user": {
               "repr": {
-                "node": {},
-                "id": "1"
+                "id": "1",
+                "node": {}
               }
             }
           }
@@ -402,18 +402,18 @@ fn nested_requires_with_intermediate_plan() {
             "users": [
               {
                 "repr": {
+                  "id": "1",
                   "pet": {
                     "kind": "Rex doggy"
-                  },
-                  "id": "1"
+                  }
                 }
               },
               {
                 "repr": {
+                  "id": "2",
                   "pet": {
                     "kind": "Fido doggy"
-                  },
-                  "id": "2"
+                  }
                 }
               }
             ]

@@ -28,8 +28,8 @@ impl Context<'_> {
 
             for wrapper in field_type.iter_wrappers() {
                 wrapping = match wrapper {
-                    subgraphs::WrapperTypeKind::List => wrapping.wrap_list(),
-                    subgraphs::WrapperTypeKind::NonNullList => wrapping.wrap_list_non_null(),
+                    subgraphs::WrapperTypeKind::List => wrapping.list(),
+                    subgraphs::WrapperTypeKind::NonNullList => wrapping.list_non_null(),
                 };
             }
 

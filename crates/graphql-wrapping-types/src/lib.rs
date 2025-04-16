@@ -11,9 +11,9 @@ const INNER_IS_REQUIRED_FLAG: u16 = 0b1000_0000_0000_0000;
 /// It's structured as follows:
 ///
 ///```text
-///       list wrapper length (4 bits)
-//        |
-///       ↓     ↓ list_wrapping (1 == Required / 0 == Nullable)
+///      list wrapper length (4 bits)
+//       |
+///      ↓     ↓ list_wrapping (1 == Required / 0 == Nullable)
 ///   ┌───┐┌───────────┐
 ///  0000_0000_0000_0000
 ///  ↑
@@ -69,11 +69,11 @@ impl Wrapping {
             .flatten()
     }
 
-    fn get_list_length(&self) -> u8 {
+    const fn get_list_length(&self) -> u8 {
         ((self.0 & LIST_WRAPPER_LENGTH_MASK) >> LIST_WRAPPER_SHIFT) as u8
     }
 
-    fn set_list_length(&mut self, len: u8) {
+    const fn set_list_length(&mut self, len: u8) {
         assert!((len as u32) < MAX_LIST_WRAPINGS, "list wrapper overflow");
         self.0 = (self.0 & !LIST_WRAPPER_LENGTH_MASK) | ((len as u16) << LIST_WRAPPER_SHIFT);
     }
@@ -82,16 +82,16 @@ impl Wrapping {
         self.into()
     }
 
-    pub fn nullable() -> Self {
+    pub const fn nullable() -> Self {
         Wrapping(0)
     }
 
-    pub fn required() -> Self {
+    pub const fn required() -> Self {
         Wrapping(INNER_IS_REQUIRED_FLAG)
     }
 
     #[must_use]
-    pub fn wrap_list(mut self) -> Self {
+    pub const fn list(mut self) -> Self {
         let len = self.get_list_length();
         self.set_list_length(len + 1);
         self.0 &= !(1 << len);
@@ -99,7 +99,7 @@ impl Wrapping {
     }
 
     #[must_use]
-    pub fn wrap_list_non_null(mut self) -> Self {
+    pub const fn list_non_null(mut self) -> Self {
         let len = self.get_list_length();
         self.set_list_length(len + 1);
         self.0 |= 1 << len;
@@ -107,7 +107,7 @@ impl Wrapping {
     }
 
     #[must_use]
-    pub fn wrap_non_null(mut self) -> Self {
+    pub const fn non_null(mut self) -> Self {
         let len = self.get_list_length();
         if len == 0 {
             self.0 |= INNER_IS_REQUIRED_FLAG;
@@ -199,7 +199,7 @@ mod tests {
         assert!(!wrapping.is_list());
         assert_eq!(wrapping.list_wrappings().collect::<Vec<_>>(), vec![]);
 
-        wrapping = wrapping.wrap_list();
+        wrapping = wrapping.list();
         assert!(!wrapping.inner_is_required());
         assert!(wrapping.is_nullable() && !wrapping.is_required());
         assert!(wrapping.is_list());
@@ -208,7 +208,7 @@ mod tests {
             vec![ListWrapping::NullableList]
         );
 
-        wrapping = wrapping.wrap_list_non_null();
+        wrapping = wrapping.list_non_null();
         assert!(!wrapping.inner_is_required());
         assert!(wrapping.is_required() && !wrapping.is_nullable());
         assert!(wrapping.is_list());
@@ -217,7 +217,7 @@ mod tests {
             vec![ListWrapping::NullableList, ListWrapping::RequiredList]
         );
 
-        wrapping = wrapping.wrap_list();
+        wrapping = wrapping.list();
         assert!(!wrapping.inner_is_required());
         assert!(wrapping.is_nullable() && !wrapping.is_required());
         assert!(wrapping.is_list());
@@ -234,10 +234,10 @@ mod tests {
     #[test]
     fn test_mutable_wrapping() {
         let mut wrapping = Wrapping::default()
-            .wrap_non_null()
-            .wrap_list()
-            .wrap_list_non_null()
-            .wrap_list()
+            .non_null()
+            .list()
+            .list_non_null()
+            .list()
             .to_mutable();
 
         assert!(wrapping.is_nullable());
@@ -252,7 +252,7 @@ mod tests {
         assert!(wrapping.is_required());
         assert_eq!(wrapping.pop_outermost_list_wrapping(), None);
 
-        let mut wrapping = Wrapping::default().wrap_list().wrap_list_non_null().to_mutable();
+        let mut wrapping = Wrapping::default().list().list_non_null().to_mutable();
 
         assert!(wrapping.is_required());
         assert_eq!(wrapping.pop_outermost_list_wrapping(), Some(ListWrapping::RequiredList));
@@ -266,12 +266,7 @@ mod tests {
 
     #[test]
     fn test_wrapping_order() {
-        let wrapping = Wrapping::default()
-            .wrap_non_null()
-            .wrap_list()
-            .wrap_list()
-            .wrap_list_non_null()
-            .wrap_list();
+        let wrapping = Wrapping::default().non_null().list().list().list_non_null().list();
         assert!(wrapping.inner_is_required());
         assert_eq!(
             wrapping.list_wrappings().collect::<Vec<_>>(),
@@ -283,12 +278,7 @@ mod tests {
             ]
         );
 
-        let wrapping = Wrapping::required()
-            .wrap_list()
-            .wrap_list()
-            .wrap_list_non_null()
-            .wrap_list()
-            .wrap_non_null();
+        let wrapping = Wrapping::required().list().list().list_non_null().list().non_null();
         assert!(wrapping.inner_is_required());
         assert_eq!(
             wrapping.list_wrappings().collect::<Vec<_>>(),
@@ -300,12 +290,7 @@ mod tests {
             ]
         );
 
-        let mut wrapping = Wrapping::required()
-            .wrap_list()
-            .wrap_list()
-            .wrap_list_non_null()
-            .wrap_list()
-            .to_mutable();
+        let mut wrapping = Wrapping::required().list().list().list_non_null().list().to_mutable();
         assert_eq!(wrapping.pop_outermost_list_wrapping(), Some(ListWrapping::NullableList));
         assert_eq!(wrapping.pop_outermost_list_wrapping(), Some(ListWrapping::RequiredList));
         assert_eq!(wrapping.pop_outermost_list_wrapping(), Some(ListWrapping::NullableList));
@@ -314,13 +299,13 @@ mod tests {
 
     #[test]
     fn back_and_forth() {
-        let original = Wrapping::required().wrap_list_non_null();
+        let original = Wrapping::required().list_non_null();
         let mut wrapping = original.to_mutable();
         let list_wrapping = wrapping.pop_outermost_list_wrapping().unwrap();
         wrapping.push_outermost_list_wrapping(list_wrapping);
         assert_eq!(Wrapping::from(wrapping), original);
 
-        let original = Wrapping::nullable().wrap_list();
+        let original = Wrapping::nullable().list();
         let mut wrapping = original.to_mutable();
         let list_wrapping = wrapping.pop_outermost_list_wrapping().unwrap();
         wrapping.push_outermost_list_wrapping(list_wrapping);

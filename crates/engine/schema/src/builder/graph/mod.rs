@@ -19,10 +19,9 @@ pub(crate) use directives::*;
 pub(crate) struct GraphBuilder<'a> {
     pub ctx: BuildContext<'a>,
     pub graph: Graph,
+    pub root_object_ids: Vec<ObjectDefinitionId>,
     pub required_scopes: Interner<RequiresScopesDirectiveRecord, RequiresScopesDirectiveId>,
     pub type_definitions: RapidHashMap<&'a str, TypeDefinitionId>,
-    pub entity_resolvers: FxHashMap<(EntityDefinitionId, SubgraphId), Vec<ResolverDefinitionId>>,
-    pub composite_entity_keys: FxHashMap<(EntityDefinitionId, SubgraphId), Vec<FieldSetRecord>>,
 
     // -- used for field sets
     pub deduplicated_fields: BTreeMap<SchemaFieldRecord, SchemaFieldId>,

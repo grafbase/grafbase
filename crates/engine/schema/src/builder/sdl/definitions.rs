@@ -1,7 +1,8 @@
 use cynic_parser::type_system::DirectiveLocation;
+use fxhash::FxHashMap;
 
 use crate::{
-    EntityDefinitionId, EnumDefinitionId, EnumValueId, FieldDefinitionId, InputObjectDefinitionId,
+    DirectiveSiteId, EntityDefinitionId, EnumDefinitionId, EnumValueId, FieldDefinitionId, InputObjectDefinitionId,
     InputValueDefinitionId, InterfaceDefinitionId, ObjectDefinitionId, ScalarDefinitionId, SubgraphId,
     UnionDefinitionId, builder::GraphBuilder,
 };
@@ -9,8 +10,20 @@ use crate::{
 use super::*;
 
 pub(crate) struct SdlDefinitions<'a> {
-    pub types: Vec<SdlTypeDefinition<'a>>,
-    pub nested: Vec<SdlNestedDefinition<'a>>,
+    pub sites: FxHashMap<DirectiveSiteId, SdlDefinition<'a>>,
+}
+
+impl<'a> std::ops::Deref for SdlDefinitions<'a> {
+    type Target = FxHashMap<DirectiveSiteId, SdlDefinition<'a>>;
+    fn deref(&self) -> &Self::Target {
+        &self.sites
+    }
+}
+
+impl std::ops::DerefMut for SdlDefinitions<'_> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.sites
+    }
 }
 
 #[derive(Copy, Clone)]
@@ -68,6 +81,18 @@ impl<'a> SdlDefinition<'a> {
         }
     }
 
+    pub fn as_type(self) -> Option<SdlTypeDefinition<'a>> {
+        match self {
+            Self::Scalar(def) => Some(SdlTypeDefinition::Scalar(def)),
+            Self::Object(def) => Some(SdlTypeDefinition::Object(def)),
+            Self::Interface(def) => Some(SdlTypeDefinition::Interface(def)),
+            Self::Union(def) => Some(SdlTypeDefinition::Union(def)),
+            Self::Enum(def) => Some(SdlTypeDefinition::Enum(def)),
+            Self::InputObject(def) => Some(SdlTypeDefinition::InputObject(def)),
+            _ => None,
+        }
+    }
+
     pub fn as_entity(self) -> Option<EntitySdlDefinition<'a>> {
         match self {
             Self::Object(def) => Some(EntitySdlDefinition::Object(def)),
@@ -75,70 +100,44 @@ impl<'a> SdlDefinition<'a> {
             _ => None,
         }
     }
-}
 
-#[derive(Copy, Clone)]
-pub(crate) enum SdlNestedDefinition<'a> {
-    FieldDefinition(FieldSdlDefinition<'a>),
-    InputFieldDefinition(InputFieldSdlDefinition<'a>),
-    ArgumentDefinition(ArgumentSdlDefinition<'a>),
-    EnumValue(EnumValueSdlDefinition<'a>),
-}
-
-impl SdlNestedDefinition<'_> {
-    #[allow(unused)]
-    pub(crate) fn to_site_string(self, builder: &GraphBuilder<'_>) -> String {
+    pub fn as_field(self) -> Option<FieldSdlDefinition<'a>> {
         match self {
-            Self::FieldDefinition(def) => def.to_site_string(builder),
-            Self::InputFieldDefinition(def) => def.to_site_string(builder),
-            Self::ArgumentDefinition(def) => def.to_site_string(builder),
-            Self::EnumValue(def) => def.to_site_string(builder),
+            Self::FieldDefinition(def) => Some(def),
+            _ => None,
         }
     }
 
-    #[allow(unused)]
-    pub(crate) fn location(self) -> DirectiveLocation {
+    pub fn span(self) -> Span {
         match self {
-            Self::FieldDefinition(_) => FieldSdlDefinition::location(),
-            Self::InputFieldDefinition(_) => InputFieldSdlDefinition::location(),
-            Self::ArgumentDefinition(_) => ArgumentSdlDefinition::location(),
-            Self::EnumValue(_) => EnumValueSdlDefinition::location(),
+            Self::Scalar(def) => def.span(),
+            Self::Object(def) => def.span(),
+            Self::Interface(def) => def.span(),
+            Self::Union(def) => def.span(),
+            Self::Enum(def) => def.span(),
+            Self::InputObject(def) => def.span(),
+            Self::FieldDefinition(def) => def.span(),
+            Self::InputFieldDefinition(def) => def.span(),
+            Self::ArgumentDefinition(def) => def.span(),
+            Self::EnumValue(def) => def.span(),
+            Self::SchemaDirective(_) => Span::default(),
         }
     }
-}
 
-impl<'a> From<SdlNestedDefinition<'a>> for SdlDefinition<'a> {
-    fn from(def: SdlNestedDefinition<'a>) -> Self {
-        match def {
-            SdlNestedDefinition::FieldDefinition(def) => SdlDefinition::FieldDefinition(def),
-            SdlNestedDefinition::InputFieldDefinition(def) => SdlDefinition::InputFieldDefinition(def),
-            SdlNestedDefinition::ArgumentDefinition(def) => SdlDefinition::ArgumentDefinition(def),
-            SdlNestedDefinition::EnumValue(def) => SdlDefinition::EnumValue(def),
+    pub fn directives(self) -> Iter<'a, Directive<'a>> {
+        match self {
+            Self::Scalar(def) => def.directives(),
+            Self::Object(def) => def.directives(),
+            Self::Interface(def) => def.directives(),
+            Self::Union(def) => def.directives(),
+            Self::Enum(def) => def.directives(),
+            Self::InputObject(def) => def.directives(),
+            Self::FieldDefinition(def) => def.directives(),
+            Self::InputFieldDefinition(def) => def.directives(),
+            Self::ArgumentDefinition(def) => def.directives(),
+            Self::EnumValue(def) => def.directives(),
+            Self::SchemaDirective(_) => unreachable!(),
         }
-    }
-}
-
-impl<'a> From<FieldSdlDefinition<'a>> for SdlNestedDefinition<'a> {
-    fn from(def: FieldSdlDefinition<'a>) -> Self {
-        SdlNestedDefinition::FieldDefinition(def)
-    }
-}
-
-impl<'a> From<InputFieldSdlDefinition<'a>> for SdlNestedDefinition<'a> {
-    fn from(def: InputFieldSdlDefinition<'a>) -> Self {
-        SdlNestedDefinition::InputFieldDefinition(def)
-    }
-}
-
-impl<'a> From<ArgumentSdlDefinition<'a>> for SdlNestedDefinition<'a> {
-    fn from(def: ArgumentSdlDefinition<'a>) -> Self {
-        SdlNestedDefinition::ArgumentDefinition(def)
-    }
-}
-
-impl<'a> From<EnumValueSdlDefinition<'a>> for SdlNestedDefinition<'a> {
-    fn from(def: EnumValueSdlDefinition<'a>) -> Self {
-        SdlNestedDefinition::EnumValue(def)
     }
 }
 
@@ -152,7 +151,41 @@ pub(crate) enum SdlTypeDefinition<'a> {
     InputObject(InputObjectSdlDefinition<'a>),
 }
 
-impl SdlTypeDefinition<'_> {
+impl<'a> SdlTypeDefinition<'a> {
+    pub(crate) fn name(&self) -> &'a str {
+        match self {
+            Self::Scalar(def) => def.name(),
+            Self::Object(def) => def.name(),
+            Self::Interface(def) => def.name(),
+            Self::Union(def) => def.name(),
+            Self::Enum(def) => def.name(),
+            Self::InputObject(def) => def.name(),
+        }
+    }
+
+    #[allow(unused)]
+    pub(crate) fn directives(self) -> Iter<'a, Directive<'a>> {
+        match self {
+            Self::Scalar(def) => def.directives(),
+            Self::Object(def) => def.directives(),
+            Self::Interface(def) => def.directives(),
+            Self::Union(def) => def.directives(),
+            Self::Enum(def) => def.directives(),
+            Self::InputObject(def) => def.directives(),
+        }
+    }
+
+    pub(crate) fn span(&self) -> Span {
+        match self {
+            Self::Scalar(def) => def.span(),
+            Self::Object(def) => def.span(),
+            Self::Interface(def) => def.span(),
+            Self::Union(def) => def.span(),
+            Self::Enum(def) => def.span(),
+            Self::InputObject(def) => def.span(),
+        }
+    }
+
     #[allow(unused)]
     pub(crate) fn to_site_string(self, builder: &GraphBuilder<'_>) -> String {
         match self {
@@ -233,11 +266,33 @@ pub(crate) enum EntitySdlDefinition<'a> {
     Interface(InterfaceSdlDefinition<'a>),
 }
 
-impl EntitySdlDefinition<'_> {
+impl<'a> EntitySdlDefinition<'a> {
+    pub fn directives(&self) -> Iter<'a, Directive<'a>> {
+        match self {
+            Self::Object(def) => def.directives(),
+            Self::Interface(def) => def.directives(),
+        }
+    }
+
+    pub fn name(&self) -> &'a str {
+        match self {
+            Self::Object(def) => def.name(),
+            Self::Interface(def) => def.name(),
+        }
+    }
+
     pub fn id(&self) -> EntityDefinitionId {
         match self {
             Self::Object(def) => EntityDefinitionId::Object(def.id),
             Self::Interface(def) => EntityDefinitionId::Interface(def.id),
+        }
+    }
+
+    #[allow(unused)]
+    pub fn span(&self) -> Span {
+        match self {
+            Self::Object(def) => def.span(),
+            Self::Interface(def) => def.span(),
         }
     }
 

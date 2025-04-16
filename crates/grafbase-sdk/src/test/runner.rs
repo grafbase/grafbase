@@ -133,9 +133,9 @@ impl TestRunner {
         println!("{config}");
 
         std::fs::write(&config_path, config.as_bytes())
-            .map_err(|err| anyhow::anyhow!("Failed to write config at {:?}", config_path))?;
+            .map_err(|err| anyhow::anyhow!("Failed to write config at {:?}: {err}", config_path))?;
         std::fs::write(&schema_path, self.federated_graph.as_bytes())
-            .map_err(|err| anyhow::anyhow!("Failed to write schema at {:?}", schema_path))?;
+            .map_err(|err| anyhow::anyhow!("Failed to write schema at {:?}: {err}", schema_path))?;
 
         let args = &[
             "--listen-address",

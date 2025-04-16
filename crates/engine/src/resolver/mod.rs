@@ -51,6 +51,9 @@ impl Resolver {
             ResolverDefinitionVariant::SelectionSetResolverExtension(definition) => {
                 SelectionSetResolverExtension::prepare(ctx, definition, plan_query_partition).await
             }
+            ResolverDefinitionVariant::Lookup(_) => {
+                unreachable!("Lookup resolvers are not supported in the engine yet.");
+            }
         }
     }
 }
