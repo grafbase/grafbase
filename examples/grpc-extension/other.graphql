@@ -1,0 +1,3 @@
+type Query {
+  helloWorld(name: String): String!
+}
