@@ -1,3 +1,4 @@
+mod alias;
 mod config;
 mod selection_set;
 mod subgraph_schema;
@@ -21,7 +22,7 @@ pub struct StaticSelectionSetResolverExt {
 impl StaticSelectionSetResolverExt {
     pub fn json(value: impl serde::Serialize) -> Self {
         Self {
-            data: Ok(Data::JsonBytes(serde_json::to_vec(&value).unwrap())),
+            data: Ok(Data::Json(serde_json::to_vec(&value).unwrap().into())),
         }
     }
 }

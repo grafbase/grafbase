@@ -7,8 +7,8 @@ impl Host for WasiState {}
 impl From<Data> for runtime::extension::Data {
     fn from(data: Data) -> Self {
         match data {
-            Data::Json(bytes) => runtime::extension::Data::JsonBytes(bytes),
-            Data::Cbor(bytes) => runtime::extension::Data::CborBytes(bytes),
+            Data::Json(bytes) => runtime::extension::Data::Json(bytes.into()),
+            Data::Cbor(bytes) => runtime::extension::Data::Cbor(bytes.into()),
         }
     }
 }

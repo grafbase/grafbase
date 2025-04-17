@@ -1,4 +1,4 @@
-use std::{future::Future, sync::Arc};
+use std::future::Future;
 
 use engine_schema::{ExtensionDirective, FieldDefinition};
 use error::GraphqlError;
@@ -40,7 +40,7 @@ pub trait FieldResolverExtension<Context: Send + Sync + 'static>: Send + Sync + 
         prepared_data: &'ctx [u8],
         subgraph_headers: http::HeaderMap,
         directive_arguments: impl Anything<'ctx>,
-    ) -> impl Future<Output = Result<BoxStream<'f, Result<Arc<Data>, GraphqlError>>, GraphqlError>> + Send + 'f
+    ) -> impl Future<Output = Result<BoxStream<'f, Result<Data, GraphqlError>>, GraphqlError>> + Send + 'f
     where
         'ctx: 'f;
 }

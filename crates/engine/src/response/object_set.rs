@@ -121,7 +121,7 @@ impl InputResponseObjectSet {
         self
     }
 
-    pub(crate) fn ids(&self) -> impl Iterator<Item = InputObjectId> {
+    pub(crate) fn ids(&self) -> impl DoubleEndedIterator<Item = InputObjectId> {
         (0..self.indices.len()).map(InputObjectId::from)
     }
 

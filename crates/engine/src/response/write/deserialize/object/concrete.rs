@@ -148,7 +148,7 @@ impl<'ctx> ConcreteShapeSeed<'ctx, '_> {
                     ResponseValue::Null
                 }
             }
-            ObjectValue::Unexpected(error) => {
+            ObjectValue::Error(error) => {
                 if self.parent_field.key.query_position.is_some() {
                     let mut resp = self.ctx.subgraph_response.borrow_mut();
                     let path = self.ctx.path();
@@ -165,6 +165,7 @@ impl<'ctx> ConcreteShapeSeed<'ctx, '_> {
                 }
                 ResponseValue::Unexpected
             }
+            ObjectValue::Unexpected => ResponseValue::Unexpected,
         }
     }
 }
@@ -202,7 +203,8 @@ pub(crate) enum ObjectValue {
         definition_id: Option<ObjectDefinitionId>,
         fields: Vec<ResponseObjectField>,
     },
-    Unexpected(GraphqlError),
+    Error(GraphqlError),
+    Unexpected,
 }
 
 impl<'de> DeserializeSeed<'de> for ConcreteShapeFieldsSeed<'_, '_> {
@@ -223,7 +225,7 @@ impl ConcreteShapeFieldsSeed<'_, '_> {
             value,
             self.ctx.display_path()
         );
-        ObjectValue::Unexpected(GraphqlError::invalid_subgraph_response().with_path(self.ctx.path().as_ref()))
+        ObjectValue::Error(GraphqlError::invalid_subgraph_response().with_path(self.ctx.path().as_ref()))
     }
 }
 
@@ -259,7 +261,7 @@ impl<'de> Visitor<'de> for ConcreteShapeFieldsSeed<'_, '_> {
                 )? {
                     maybe_object_definition_id = Some(definition_id);
                 } else {
-                    return Ok(ObjectValue::Unexpected(GraphqlError::invalid_subgraph_response()));
+                    return Ok(ObjectValue::Error(GraphqlError::invalid_subgraph_response()));
                 }
             }
             ObjectIdentifier::InterfaceTypename(id) => {
@@ -270,7 +272,7 @@ impl<'de> Visitor<'de> for ConcreteShapeFieldsSeed<'_, '_> {
                 )? {
                     maybe_object_definition_id = Some(definition_id);
                 } else {
-                    return Ok(ObjectValue::Unexpected(GraphqlError::invalid_subgraph_response()));
+                    return Ok(ObjectValue::Error(GraphqlError::invalid_subgraph_response()));
                 }
             }
         }
@@ -283,7 +285,7 @@ impl<'de> Visitor<'de> for ConcreteShapeFieldsSeed<'_, '_> {
                     "Expected to have the object definition id to generate __typename at path '{}'",
                     self.ctx.display_path()
                 );
-                return Ok(ObjectValue::Unexpected(GraphqlError::invalid_subgraph_response()));
+                return Ok(ObjectValue::Error(GraphqlError::invalid_subgraph_response()));
             };
             let name_id = schema[object_id].name_id;
             for key in self.typename_response_keys {
@@ -384,12 +386,13 @@ impl<'de> Visitor<'de> for ConcreteShapeFieldsSeed<'_, '_> {
         Ok(ObjectValue::Null)
     }
 
-    fn visit_newtype_struct<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    fn visit_newtype_struct<D>(self, _: D) -> Result<Self::Value, D::Error>
     where
         D: Deserializer<'de>,
     {
-        deserializer.deserialize_any(serde::de::IgnoredAny)?;
-        Ok(self.unexpected_type(Unexpected::NewtypeStruct))
+        // newtype_struct are used by custom deserializers to indicate that an error happened, but
+        // was already treated.
+        Ok(ObjectValue::Unexpected)
     }
 
     fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>

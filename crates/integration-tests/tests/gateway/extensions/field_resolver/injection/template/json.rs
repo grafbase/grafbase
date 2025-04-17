@@ -49,7 +49,7 @@ impl FieldResolverTestExtension for EchoJsonDataExt {
         inputs: Vec<serde_json::Value>,
     ) -> Result<Vec<Result<Data, GraphqlError>>, GraphqlError> {
         let data = directive_arguments["data"].as_str().unwrap_or_default();
-        Ok(vec![Ok(Data::JsonBytes(data.as_bytes().to_vec())); inputs.len()])
+        Ok(vec![Ok(Data::Json(data.as_bytes().to_vec().into())); inputs.len()])
     }
 }
 

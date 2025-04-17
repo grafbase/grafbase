@@ -311,11 +311,13 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
         }
     }
 
-    fn visit_newtype_struct<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    fn visit_newtype_struct<D>(self, _: D) -> Result<Self::Value, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
-        deserializer.deserialize_any(self)
+        // newtype_struct are used by custom deserializers to indicate that an error happened, but
+        // was already treated.
+        Ok(ResponseValue::Unexpected)
     }
 
     fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>

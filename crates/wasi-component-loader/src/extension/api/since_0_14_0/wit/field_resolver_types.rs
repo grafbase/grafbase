@@ -13,7 +13,7 @@ impl From<FieldOutput> for Vec<Result<Data, GraphqlError>> {
 
         for result in value.outputs {
             match result {
-                Ok(data) => results.push(Ok(Data::CborBytes(data))),
+                Ok(data) => results.push(Ok(Data::Cbor(data.into()))),
                 Err(error) => {
                     let error = error.into_graphql_error(ErrorCode::InternalServerError);
                     results.push(Err(error))

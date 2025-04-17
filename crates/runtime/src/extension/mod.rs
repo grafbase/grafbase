@@ -5,6 +5,7 @@ mod selection_set_resolver;
 
 pub use authentication::*;
 pub use authorization::*;
+use bytes::Bytes;
 pub use field_resolver::*;
 pub use selection_set_resolver::*;
 
@@ -22,6 +23,6 @@ pub trait ExtensionRuntime:
 
 #[derive(Clone, Debug)]
 pub enum Data {
-    JsonBytes(Vec<u8>),
-    CborBytes(Vec<u8>),
+    Json(Bytes),
+    Cbor(Bytes),
 }

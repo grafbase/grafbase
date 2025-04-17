@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, sync::Arc};
+use std::collections::VecDeque;
 
 use super::SubscriptionStream;
 use crate::{
@@ -70,7 +70,7 @@ impl<'ctx> UniqueSubscription<'ctx, '_> {
             for item in items {
                 match item {
                     Ok(data) => {
-                        tail.push_back(Ok(Arc::new(data)));
+                        tail.push_back(Ok(data));
                     }
                     Err(error) => {
                         tail.push_back(Err(error));

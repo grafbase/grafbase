@@ -1,25 +1,29 @@
-use std::cell::{Cell, Ref, RefCell};
+mod ctx;
+mod entity;
+mod r#enum;
+mod field;
+mod key;
+mod list;
+mod object;
+mod scalar;
 
-use field_to_entity::FieldToEntityDeserializer;
+use std::{
+    cell::{Cell, Ref, RefCell},
+    rc::Rc,
+};
+
+use entity::{DeserError, EntityFields};
 use object::{ConcreteShapeFieldsSeed, ObjectValue};
-use serde::{Deserializer, de::DeserializeSeed};
+use runtime::extension::Data;
+use serde::de::DeserializeSeed;
 use walker::Walk;
 
 use crate::{
     Runtime,
     execution::ExecutionContext,
-    prepare::ConcreteShapeId,
+    prepare::{ConcreteShapeId, SubgraphField},
     response::{GraphqlError, InputObjectId},
 };
-
-mod ctx;
-mod r#enum;
-mod field;
-mod field_to_entity;
-mod key;
-mod list;
-mod object;
-mod scalar;
 
 use self::r#enum::*;
 use ctx::*;
@@ -29,7 +33,7 @@ use scalar::*;
 use super::{ObjectUpdate, SubgraphResponseRefMut};
 
 pub(crate) struct UpdateSeed<'ctx> {
-    ctx: SeedContext<'ctx>,
+    ctx: Rc<SeedContext<'ctx>>,
     shape_id: ConcreteShapeId,
     id: InputObjectId,
 }
@@ -43,27 +47,24 @@ impl<'ctx> UpdateSeed<'ctx> {
     ) -> Self {
         let path = RefCell::new(subgraph_response.borrow().input_object_ref(id).path.clone());
         Self {
-            ctx: SeedContext {
+            ctx: Rc::new(SeedContext {
                 schema: ctx.schema(),
                 prepared_operation: ctx.operation,
                 subgraph_response,
                 bubbling_up_serde_error: Cell::new(false),
                 path,
-            },
+            }),
             shape_id,
             id,
         }
     }
 
-    pub fn deserialize_field_as_entity<'k, 'de, D: Deserializer<'de>>(
+    pub fn deserialize_fields(
         self,
-        key: &'k str,
-        deserializer: D,
-    ) -> Result<(), D::Error>
-    where
-        'k: 'de,
-    {
-        self.deserialize(FieldToEntityDeserializer { key, deserializer })
+        fields: &mut Vec<(SubgraphField<'ctx>, Result<Data, GraphqlError>)>,
+    ) -> Result<(), DeserError> {
+        let ctx = Rc::clone(&self.ctx);
+        self.deserialize(EntityFields { ctx: &ctx, fields })
     }
 }
 
@@ -80,7 +81,7 @@ impl<'de> DeserializeSeed<'de> for UpdateSeed<'_> {
             let root_object_ref = Ref::map(ctx.subgraph_response.borrow(), |resp| resp.input_object_ref(id));
             ConcreteShapeFieldsSeed::new(
                 &ctx,
-                shape_id.walk(&ctx),
+                shape_id.walk(ctx.as_ref()),
                 root_object_ref.id,
                 Some(root_object_ref.definition_id),
             )
@@ -89,7 +90,9 @@ impl<'de> DeserializeSeed<'de> for UpdateSeed<'_> {
         let update = match deserializer.deserialize_any(fields_seed) {
             Ok(ObjectValue::Some { fields, .. }) => ObjectUpdate::Fields(fields),
             Ok(ObjectValue::Null) => ObjectUpdate::Missing,
-            Ok(ObjectValue::Unexpected(error)) => ObjectUpdate::Error(error),
+            // Errors have already been handled.
+            Ok(ObjectValue::Unexpected) => ObjectUpdate::Fields(Vec::new()),
+            Ok(ObjectValue::Error(error)) => ObjectUpdate::Error(error),
             Err(err) => {
                 // if we already handled the GraphQL error and are just bubbling up the serde
                 // error, we'll just treat it as an empty fields Vec, a no-op, from here on.
