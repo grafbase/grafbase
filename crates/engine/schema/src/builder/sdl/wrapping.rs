@@ -14,9 +14,9 @@ pub(crate) fn convert_wrappers(wrappers: impl IntoIterator<Item = WrappingType>)
         debug_assert_eq!(next, WrappingType::List, "double non-null wrapping type not possible");
 
         wrapping = if wrappers.next_if(|w| matches!(w, WrappingType::NonNull)).is_some() {
-            wrapping.wrap_list_non_null()
+            wrapping.list_non_null()
         } else {
-            wrapping.wrap_list()
+            wrapping.list()
         }
     }
 

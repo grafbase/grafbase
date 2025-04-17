@@ -150,6 +150,27 @@ impl std::fmt::Debug for HeaderRuleRecord {
     }
 }
 
+impl From<ForwardHeaderRuleRecord> for HeaderRuleRecord {
+    fn from(value: ForwardHeaderRuleRecord) -> Self {
+        HeaderRuleRecord::Forward(value)
+    }
+}
+impl From<InsertHeaderRuleRecord> for HeaderRuleRecord {
+    fn from(value: InsertHeaderRuleRecord) -> Self {
+        HeaderRuleRecord::Insert(value)
+    }
+}
+impl From<RemoveHeaderRuleRecord> for HeaderRuleRecord {
+    fn from(value: RemoveHeaderRuleRecord) -> Self {
+        HeaderRuleRecord::Remove(value)
+    }
+}
+impl From<RenameDuplicateHeaderRuleRecord> for HeaderRuleRecord {
+    fn from(value: RenameDuplicateHeaderRuleRecord) -> Self {
+        HeaderRuleRecord::RenameDuplicate(value)
+    }
+}
+
 impl HeaderRuleRecord {
     pub fn is_forward(&self) -> bool {
         matches!(self, HeaderRuleRecord::Forward(_))

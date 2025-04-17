@@ -32,7 +32,7 @@
     rust-overlay,
     ...
   }: let
-    inherit (nixpkgs.lib) optional concatStringsSep;
+    inherit (nixpkgs.lib) optional;
     systems = flake-utils.lib.system;
     flake = flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {
@@ -44,8 +44,6 @@
           })
         ];
       };
-
-      aarch64DarwinExternalCargoCrates = concatStringsSep " " ["cargo-instruments@0.4.8" "cargo-about@0.6.1"];
 
       defaultShellConf = {
         nativeBuildInputs = with pkgs;
@@ -62,6 +60,8 @@
             k6
             go
             hurl
+            # for grpc extension generation
+            protobuf
 
             # binary bloat inspector
             cargo-bloat
@@ -105,13 +105,8 @@
 
         shellHook = ''
           project_root="$(git rev-parse --show-toplevel 2>/dev/null || jj workspace root 2>/dev/null)"
-          export POSTGRES_URL=postgresql://postgres:grafbase@localhost:5432
-          export PGBOUNCER_URL=postgresql://postgres:grafbase@localhost:6432
           export CARGO_INSTALL_ROOT="$project_root/cli/.cargo";
           export PATH="$CARGO_INSTALL_ROOT/bin:$project_root/node_modules/.bin:$PATH";
-          if [[ "${system}" == "aarch64-darwin" ]]; then
-            cargo binstall --no-confirm --no-symlinks --quiet ${aarch64DarwinExternalCargoCrates}
-          fi
         '';
       };
     in {

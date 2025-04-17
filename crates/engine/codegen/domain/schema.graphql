@@ -331,13 +331,20 @@ union ResolverDefinition
   @meta(module: "resolver")
   @variants(
     empty: ["Introspection"]
-    names: ["GraphqlRootField", "GraphqlFederationEntity", "FieldResolverExtension", "SelectionSetResolverExtension"]
+    names: [
+      "GraphqlRootField"
+      "GraphqlFederationEntity"
+      "FieldResolverExtension"
+      "SelectionSetResolverExtension"
+      "Lookup"
+    ]
   )
   @indexed(deduplicated: true, id_size: "u32") =
   | GraphqlRootFieldResolverDefinition
   | GraphqlFederationEntityResolverDefinition
   | FieldResolverExtensionDefinition
   | SelectionSetResolverExtensionDefinition
+  | LookupResolverDefinition
 
 type GraphqlRootFieldResolverDefinition @meta(module: "resolver/graphql") @copy {
   endpoint: GraphqlEndpoint!
@@ -356,4 +363,11 @@ type FieldResolverExtensionDefinition @meta(module: "resolver/field_resolver_ext
 type SelectionSetResolverExtensionDefinition @meta(module: "resolver/selection_set_resolver_ext") @copy {
   subgraph: VirtualSubgraph!
   extension_id: ExtensionId!
+}
+
+type LookupResolverDefinition @meta(module: "resolver/lookup") {
+  key: FieldSet!
+  batch_argument: InputValueDefinition
+  field: FieldDefinition!
+  resolver: ResolverDefinition!
 }

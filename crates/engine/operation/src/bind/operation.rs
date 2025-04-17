@@ -417,7 +417,7 @@ impl<'schema, 'p> OperationBinder<'schema, 'p> {
             match variable.default_value() {
                 Some(value) if !value.is_null() => {
                     if ty.wrapping.is_list() {
-                        ty.wrapping = ty.wrapping.wrap_list_non_null();
+                        ty.wrapping = ty.wrapping.list_non_null();
                     } else {
                         ty.wrapping = Wrapping::required()
                     }
@@ -489,8 +489,8 @@ impl<'schema, 'p> OperationBinder<'schema, 'p> {
         // from innermost to outermost
         for wrapper in wrappers.into_iter().rev() {
             wrapping = match wrapper {
-                WrappingType::NonNull => wrapping.wrap_non_null(),
-                WrappingType::List => wrapping.wrap_list(),
+                WrappingType::NonNull => wrapping.non_null(),
+                WrappingType::List => wrapping.list(),
             };
         }
 

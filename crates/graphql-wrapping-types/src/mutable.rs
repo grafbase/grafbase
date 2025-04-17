@@ -35,8 +35,8 @@ impl MutableWrapping {
 
     pub fn push_outermost_list_wrapping(&mut self, list_wrapping: ListWrapping) {
         self.inner = match list_wrapping {
-            ListWrapping::RequiredList => self.inner.wrap_list_non_null(),
-            ListWrapping::NullableList => self.inner.wrap_list(),
+            ListWrapping::RequiredList => self.inner.list_non_null(),
+            ListWrapping::NullableList => self.inner.list(),
         };
     }
 }

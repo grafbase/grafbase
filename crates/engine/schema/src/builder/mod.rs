@@ -1,5 +1,4 @@
 mod coerce;
-mod composite_schema;
 mod context;
 mod error;
 mod extension;
@@ -37,18 +36,14 @@ async fn build_inner(
     extension_catalog: &ExtensionCatalog,
 ) -> Result<Schema, Error> {
     if !sdl.trim().is_empty() {
-        let doc = &cynic_parser::parse_type_system_document(sdl).map_err(Error::without_span)?;
+        let doc = &cynic_parser::parse_type_system_document(sdl).map_err(|err| Error::from(err.to_string()))?;
         let sdl = Sdl::try_from((sdl, doc))?;
-        let extensions = ExtensionsContext::load(&sdl, extension_catalog)
-            .await
-            .map_err(Error::without_span)?;
+        let extensions = ExtensionsContext::load(&sdl, extension_catalog).await?;
 
         BuildContext::new(&sdl, &extensions, config)?.build()
     } else {
         let sdl = Default::default();
-        let extensions = ExtensionsContext::load(&sdl, extension_catalog)
-            .await
-            .map_err(Error::without_span)?;
+        let extensions = ExtensionsContext::load(&sdl, extension_catalog).await?;
 
         BuildContext::new(&sdl, &extensions, config)?.build()
     }
@@ -63,9 +58,9 @@ impl BuildContext<'_> {
 
         ingest_extension_schema_directives(&mut graph_builder)?;
 
-        process_directives(&mut graph_builder, sdl_definitions)?;
+        ingest_directives(&mut graph_builder, &sdl_definitions)?;
 
-        finalize_selection_set_resolvers(&mut graph_builder).map_err(Error::without_span)?;
+        finalize_selection_set_resolvers(&mut graph_builder)?;
 
         let GraphBuilder {
             ctx:

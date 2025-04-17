@@ -71,13 +71,11 @@ pub fn generate_enum(
         }
     });
 
-    if let UnionKind::Id(union) = &union.kind {
-        let from_variants = variants.iter().copied().map(|variant| FromVariant {
-            variant,
-            enum_name: &union.enum_name,
-        });
-        code_sections.push(quote! { #(#from_variants)* });
-    }
+    let from_variants = variants.iter().copied().map(|variant| FromVariant {
+        variant,
+        enum_name: union.enum_name(),
+    });
+    code_sections.push(quote! { #(#from_variants)* });
 
     let as_variants = variants.iter().copied().map(|variant| AsVariant {
         variant,

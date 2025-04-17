@@ -84,32 +84,17 @@ pub(crate) fn ingest_definitions(
         templates: Vec::new(),
     };
 
-    let mut builder = GraphBuilder {
+    let builder = GraphBuilder {
         graph,
         type_definitions: RapidHashMap::with_capacity_and_hasher(sdl.type_definitions.len(), Default::default()),
         deduplicated_fields: Default::default(),
         required_scopes: Default::default(),
-        entity_resolvers: Default::default(),
-        composite_entity_keys: Default::default(),
         value_path: Default::default(),
         input_fields_buffer_pool: Default::default(),
+        root_object_ids: Vec::new(),
         virtual_subgraph_to_selection_set_resolver: vec![None; ctx.subgraphs.virtual_subgraphs.len()],
         ctx,
     };
-
-    for builtin in BUILTIN_SCALARS {
-        let id = ScalarDefinitionId::from(builder.graph.scalar_definitions.len());
-        let def = ScalarDefinitionRecord {
-            name_id: builder.ingest_str(builtin),
-            ty: ScalarType::from_scalar_name(builtin),
-            description_id: None,
-            specified_by_url_id: None,
-            directive_ids: Default::default(),
-            exists_in_subgraph_ids: builder.subgraphs.all.clone(),
-        };
-        builder.type_definitions.insert(builtin, id.into());
-        builder.graph.scalar_definitions.push(def);
-    }
 
     let mut ingester = Ingester {
         sdl,
@@ -120,10 +105,23 @@ pub(crate) fn ingest_definitions(
         ),
         builder,
         sdl_definitions: SdlDefinitions {
-            types: Vec::with_capacity(sdl.type_definitions.len()),
-            nested: Vec::with_capacity(sdl.type_definitions.len() << 1),
+            sites: HashMap::with_capacity_and_hasher(sdl.type_definitions.len() << 1, Default::default()),
         },
     };
+
+    for builtin in BUILTIN_SCALARS {
+        let id = ScalarDefinitionId::from(ingester.graph.scalar_definitions.len());
+        let def = ScalarDefinitionRecord {
+            name_id: ingester.ingest_str(builtin),
+            ty: ScalarType::from_scalar_name(builtin),
+            description_id: None,
+            specified_by_url_id: None,
+            directive_ids: Default::default(),
+            exists_in_subgraph_ids: ingester.subgraphs.all.clone(),
+        };
+        ingester.type_definitions.insert(builtin, id.into());
+        ingester.graph.scalar_definitions.push(def);
+    }
 
     for ty in sdl.type_definitions.iter().copied() {
         let id = match ty {
@@ -134,7 +132,7 @@ pub(crate) fn ingest_definitions(
             sdl::TypeDefinition::Union(union) => ingester.ingest_union(union).into(),
             sdl::TypeDefinition::Interface(interface) => ingester.ingest_interface(interface)?.into(),
         };
-        ingester.builder.type_definitions.insert(ty.name(), id);
+        ingester.type_definitions.insert(ty.name(), id);
     }
 
     ingester.add_root_types()?;
@@ -173,7 +171,7 @@ impl<'a> Ingester<'a> {
                     id,
                     definition: argument,
                 };
-                self.sdl_definitions.nested.push(sdl_def.into());
+                self.sdl_definitions.insert(id.into(), sdl_def.into());
 
                 if let Some(default_value) = argument.default_value() {
                     self.default_values.insert(id, (sdl_def.into(), default_value));
@@ -196,7 +194,8 @@ impl<'a> Ingester<'a> {
             }
             let argument_ids = (args_start..self.graph.input_value_definitions.len()).into();
 
-            self.sdl_definitions.nested.push(
+            self.sdl_definitions.insert(
+                field_id.into(),
                 sdl::FieldSdlDefinition {
                     id: field_id,
                     parent,
@@ -255,8 +254,7 @@ impl<'a> Ingester<'a> {
         let id = ScalarDefinitionId::from(self.graph.scalar_definitions.len());
         self.type_definitions.insert(scalar.name(), id.into());
         self.sdl_definitions
-            .types
-            .push(sdl::ScalarSdlDefinition { id, definition: scalar }.into());
+            .insert(id.into(), sdl::ScalarSdlDefinition { id, definition: scalar }.into());
 
         let name_id = self.ingest_str(scalar.name());
         let description_id = scalar.description().map(|desc| self.ingest_str(desc.to_cow()));
@@ -276,7 +274,8 @@ impl<'a> Ingester<'a> {
     fn ingest_enum(&mut self, enm: sdl::EnumDefinition<'a>) -> EnumDefinitionId {
         let enum_id = EnumDefinitionId::from(self.graph.enum_definitions.len());
         self.type_definitions.insert(enm.name(), enum_id.into());
-        self.sdl_definitions.types.push(
+        self.sdl_definitions.insert(
+            enum_id.into(),
             sdl::EnumSdlDefinition {
                 id: enum_id,
                 definition: enm,
@@ -288,7 +287,8 @@ impl<'a> Ingester<'a> {
 
         for enum_value in enm.values() {
             let id = EnumValueId::from(self.graph.enum_values.len());
-            self.sdl_definitions.nested.push(
+            self.sdl_definitions.insert(
+                id.into(),
                 sdl::EnumValueSdlDefinition {
                     id,
                     definition: enum_value,
@@ -332,7 +332,7 @@ impl<'a> Ingester<'a> {
                 id,
                 definition: input_value,
             };
-            self.sdl_definitions.nested.push(sdl_def.into());
+            self.sdl_definitions.insert(id.into(), sdl_def.into());
 
             if let Some(default_value) = input_value.default_value() {
                 self.default_values.insert(id, (sdl_def.into(), default_value));
@@ -353,7 +353,8 @@ impl<'a> Ingester<'a> {
         }
         let input_field_ids = (start..self.graph.input_value_definitions.len()).into();
 
-        self.sdl_definitions.types.push(
+        self.sdl_definitions.insert(
+            input_object_id.into(),
             sdl::InputObjectSdlDefinition {
                 id: input_object_id,
                 definition: input_object,
@@ -378,8 +379,7 @@ impl<'a> Ingester<'a> {
     fn ingest_object(&mut self, object: sdl::ObjectDefinition<'a>) -> Result<ObjectDefinitionId, Error> {
         let id = ObjectDefinitionId::from(self.graph.object_definitions.len());
         self.sdl_definitions
-            .types
-            .push(sdl::ObjectSdlDefinition { id, definition: object }.into());
+            .insert(id.into(), sdl::ObjectSdlDefinition { id, definition: object }.into());
         self.type_definitions.insert(object.name(), id.into());
 
         let name_id = self.ingest_str(object.name());
@@ -425,8 +425,7 @@ impl<'a> Ingester<'a> {
     fn ingest_union(&mut self, union: sdl::UnionDefinition<'a>) -> UnionDefinitionId {
         let id = UnionDefinitionId::from(self.graph.union_definitions.len());
         self.sdl_definitions
-            .types
-            .push(sdl::UnionSdlDefinition { id, definition: union }.into());
+            .insert(id.into(), sdl::UnionSdlDefinition { id, definition: union }.into());
         self.type_definitions.insert(union.name(), id.into());
 
         let name_id = self.ingest_str(union.name());
@@ -447,7 +446,8 @@ impl<'a> Ingester<'a> {
 
     fn ingest_interface(&mut self, interface: sdl::InterfaceDefinition<'a>) -> Result<InterfaceDefinitionId, Error> {
         let id = InterfaceDefinitionId::from(self.graph.interface_definitions.len());
-        self.sdl_definitions.types.push(
+        self.sdl_definitions.insert(
+            id.into(),
             sdl::InterfaceSdlDefinition {
                 id,
                 definition: interface,
@@ -516,6 +516,15 @@ impl<'a> Ingester<'a> {
             .transpose()?
             .or_else(|| self.get_object_id("Subscription", sdl::Span::default()).ok());
 
+        self.root_object_ids = [
+            Some(self.graph.root_operation_types_record.query_id),
+            self.graph.root_operation_types_record.mutation_id,
+            self.graph.root_operation_types_record.subscription_id,
+        ]
+        .into_iter()
+        .flatten()
+        .collect();
+
         Ok(())
     }
 
@@ -544,28 +553,21 @@ impl<'a> Ingester<'a> {
 
     fn add_type_references(&mut self) -> Result<(), Error> {
         let builder = &mut self.builder;
-        for def in self.sdl_definitions.nested.iter().copied() {
+        for def in self.sdl_definitions.values().copied() {
             match def {
-                sdl::SdlNestedDefinition::FieldDefinition(def) => {
+                sdl::SdlDefinition::FieldDefinition(def) => {
                     builder.graph[def.id].ty_record.definition_id =
                         builder.get_type_id(def.ty().name(), def.ty().span())?;
                 }
-                sdl::SdlNestedDefinition::InputFieldDefinition(def) => {
+                sdl::SdlDefinition::InputFieldDefinition(def) => {
                     builder.graph[def.id].ty_record.definition_id =
                         builder.get_type_id(def.ty().name(), def.ty().span())?;
                 }
-                sdl::SdlNestedDefinition::ArgumentDefinition(def) => {
+                sdl::SdlDefinition::ArgumentDefinition(def) => {
                     builder.graph[def.id].ty_record.definition_id =
                         builder.get_type_id(def.ty().name(), def.ty().span())?;
                 }
-
-                _ => (),
-            }
-        }
-
-        for def in self.sdl_definitions.types.iter().copied() {
-            match def {
-                sdl::SdlTypeDefinition::Object(def) => {
+                sdl::SdlDefinition::Object(def) => {
                     let interface_ids = def
                         .implements_interfaces()
                         .map(|inf| builder.get_interface_id(inf, def.span()))
@@ -575,14 +577,14 @@ impl<'a> Ingester<'a> {
                     }
                     builder.graph[def.id].interface_ids = interface_ids;
                 }
-                sdl::SdlTypeDefinition::Interface(def) => {
+                sdl::SdlDefinition::Interface(def) => {
                     let interface_ids = def
                         .implements_interfaces()
                         .map(|inf| builder.get_interface_id(inf, def.span()))
                         .collect::<Result<Vec<_>, _>>()?;
                     builder.graph[def.id].interface_ids = interface_ids;
                 }
-                sdl::SdlTypeDefinition::Union(def) => {
+                sdl::SdlDefinition::Union(def) => {
                     let member_ids = def
                         .members()
                         .map(|member| builder.get_object_id(member.name(), member.span()))

@@ -20,6 +20,7 @@ impl<'a> ResolverDefinition<'a> {
             ResolverDefinitionVariant::Introspection(_) => SubgraphId::Introspection,
             ResolverDefinitionVariant::FieldResolverExtension(resolver) => resolver.directive().subgraph_id,
             ResolverDefinitionVariant::SelectionSetResolverExtension(resolver) => resolver.subgraph_id.into(),
+            ResolverDefinitionVariant::Lookup(resolver) => resolver.resolver().subgraph_id(),
         }
     }
 
@@ -27,6 +28,7 @@ impl<'a> ResolverDefinition<'a> {
         match self.variant() {
             ResolverDefinitionVariant::GraphqlFederationEntity(resolver) => Some(resolver.key_fields()),
             ResolverDefinitionVariant::FieldResolverExtension(resolver) => Some(resolver.directive().requirements()),
+            ResolverDefinitionVariant::Lookup(resolver) => Some(resolver.key()),
             _ => None,
         }
     }
@@ -38,6 +40,7 @@ impl<'a> ResolverDefinition<'a> {
             ResolverDefinitionVariant::GraphqlFederationEntity(resolver) => resolver.name().into(),
             ResolverDefinitionVariant::FieldResolverExtension(resolver) => resolver.name().into(),
             ResolverDefinitionVariant::SelectionSetResolverExtension(resolver) => resolver.name().into(),
+            ResolverDefinitionVariant::Lookup(resolver) => format!("Lookup@{}", resolver.resolver().name()).into(),
         }
     }
 }
