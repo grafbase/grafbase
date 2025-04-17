@@ -39,7 +39,7 @@ mark-changed = []
 
 [[path-rule]]
 # Ignore various folders
-globs = ["auth-testing/**", "nix/**", "examples/**", "docker/**", ".vscode"]
+globs = ["nix/**", "examples/**", "docker/**", ".vscode"]
 mark-changed = []
 
 [[path-rule]]
