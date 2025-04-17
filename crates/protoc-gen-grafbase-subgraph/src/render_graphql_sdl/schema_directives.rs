@@ -1,7 +1,7 @@
 use super::*;
 
 pub(super) fn render_schema_directives(schema: &GrpcSchema, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    f.write_str("extend schema\n  @link(url: \"https://grafbase.com/extensions/grpc/0.1.0\", import: [\"@protoServices\", \"@protoEnums\", \"@protoMessages\", \"@grpcMethod\"])\n")?;
+    f.write_str("extend schema\n  @link(url: \"https://grafbase.com/extensions/grpc/0.1.2\", import: [\"@protoServices\", \"@protoEnums\", \"@protoMessages\", \"@grpcMethod\"])\n")?;
 
     render_proto_services(schema, f)?;
     render_proto_messages(schema, f)?;

@@ -4,7 +4,7 @@ This binary crate is a protoc plugin that generates a GraphQL subgraph to be use
 
 ## Installation
 
-Download the relevant binary from your platform from the [GitHub releases](https://github.com/grafbase/grafbase/releases).
+Download the relevant binary from your platform from the [GitHub releases](https://github.com/grafbase/grafbase/releases?q=protoc-gen-grafbase-subgraph&expanded=true).
 
 ## Usage with buf
 

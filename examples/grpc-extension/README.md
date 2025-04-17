@@ -16,6 +16,25 @@ This project demonstrates how to use the Grafbase gRPC extension and protoc-gen-
 - Start the development server with `grafbase dev -c grafbase.toml -o overrides.toml`.
 - Play with the GraphQL API with the Explorer at `http://localhost:5000`.
 
+You can then issue queries against the gRPC fields. For example:
+
+```graphql
+mutation {
+  routeguide_RouteGuide_GetFeature(input:  {
+     latitude: 409146138
+     longitude: -746188906
+  }) {
+    location {
+      latitude
+      longitude
+    }
+    name
+  }
+}
+```
+
+**Note**: the `Query.helloWorld` field is only there to satisfy the rules of composition, it does not have an implementation, so calling it will result in an error.
+
 ## Generating the subgraph schema
 
 ### Using protoc
