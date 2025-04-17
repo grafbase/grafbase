@@ -1,4 +1,4 @@
-use operation::Location;
+use operation::{Location, QueryPosition, ResponseKey};
 use query_solver::QueryOrSchemaFieldArgumentIds;
 use schema::FieldDefinition;
 use walker::Walk;
@@ -23,6 +23,12 @@ impl<'a> SubgraphField<'a> {
         let record = self.as_ref();
         let key = record.subgraph_key.unwrap_or(record.response_key);
         &self.ctx.cached.operation.response_keys[key]
+    }
+    pub(crate) fn response_key(&self) -> ResponseKey {
+        self.as_ref().response_key
+    }
+    pub(crate) fn query_position(&self) -> Option<QueryPosition> {
+        self.as_ref().query_position
     }
     pub(crate) fn location(&self) -> Location {
         self.as_ref().location
