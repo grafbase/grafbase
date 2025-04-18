@@ -20,7 +20,6 @@ COPY --from=builder /var/lib/grafbase/extensions/authentication/build /var/lib/g
 COPY --from=builder /var/lib/grafbase/federated-schema.graphql /var/lib/grafbase/federated-schema.graphql
 COPY grafbase.toml /var/lib/grafbase/grafbase.toml
 
-
 ENTRYPOINT ["/bin/grafbase-gateway"]
 CMD ["--config", "/var/lib/grafbase/grafbase.toml", "--schema", "/var/lib/grafbase/federated-schema.graphql", "--listen-address", "0.0.0.0:5000"]
 

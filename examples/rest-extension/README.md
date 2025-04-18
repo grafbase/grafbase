@@ -4,6 +4,5 @@ This example demonstrates how to use the [REST extension](https://grafbase.com/e
 
 ## Quickstart
 
-- Install the REST extension: `npx grafbase extension install`
-- Start the Grafbase development server: `npx grafbase dev -c grafbase.toml -o graph.toml`
+- Start the Grafbase development server: `npx grafbase dev`
 - Explore the GraphQL API: `http://localhost:5000`

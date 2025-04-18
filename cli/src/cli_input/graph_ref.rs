@@ -10,7 +10,7 @@ pub(crate) struct FullGraphRef {
 }
 
 impl FullGraphRef {
-    pub(crate) const ARG_DESCRIPTION: &'static str = r#"Graph reference following the format "account/graph@branch""#;
+    pub(crate) const ARG_DESCRIPTION: &'static str = r#"Graph reference following the format "org/graph@branch""#;
 
     pub(crate) fn account(&self) -> &str {
         self.account.as_ref()
@@ -30,7 +30,7 @@ impl str::FromStr for FullGraphRef {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         const GENERIC_ERR: &str =
-            r#"Invalid graph reference. The graph reference argument must follow the format: "account/graph@branch""#;
+            r#"Invalid graph reference. The graph reference argument must follow the format: "org/graph@branch""#;
 
         let Some((account, rest)) = s.split_once('/') else {
             return Err(GENERIC_ERR);

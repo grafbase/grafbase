@@ -22,4 +22,4 @@ REVIEWS_PID=$!
 
 sleep 1
 
-(npx grafbase@latest dev -o subgraphs.toml)
+npx grafbase@latest dev
