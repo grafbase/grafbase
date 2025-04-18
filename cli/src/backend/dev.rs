@@ -8,6 +8,7 @@ pub(crate) use self::{extensions::detect_extensions, subgraphs::fetch_remote_sub
 use super::errors::BackendError;
 use crate::cli_input::{ExtensionInstallCommand, FullGraphRef};
 use federated_server::{GraphFetchMethod, ServeConfig, ServerRuntime};
+use gateway_config::Config;
 use hot_reload::hot_reload;
 use pathfinder::{export_assets, get_pathfinder_router};
 use std::{
@@ -42,28 +43,19 @@ impl ServerRuntime for CliRuntime {
 #[tokio::main(flavor = "multi_thread")]
 pub async fn start(
     graph_ref: Option<FullGraphRef>,
-    mut gateway_config_path: Option<PathBuf>,
+    config_path: Option<PathBuf>,
     port: Option<u16>,
 ) -> Result<(), BackendError> {
     export_assets().await?;
 
-    // these need to live for the duration of the cli run,
-    // leaking them prevents cloning them around
-    let gateway_config_path = {
-        if gateway_config_path.is_none() {
-            if let Ok(default_path) = std::env::current_dir().map(|path| path.join("grafbase.toml")) {
-                if default_path.exists() {
-                    gateway_config_path = Some(default_path);
-                }
-            }
-        }
-        Box::leak(Box::new(gateway_config_path)).as_ref()
-    };
+    let (config_path, mut config) = Config::loader().load(config_path).map_err(BackendError::Error)?;
 
-    if let Some(path) = gateway_config_path {
-        crate::extension::install::execute(ExtensionInstallCommand { config: path.into() })
-            .await
-            .map_err(|err| BackendError::Error(err.to_string()))?;
+    if !config.extensions.is_empty() {
+        crate::extension::install::execute(ExtensionInstallCommand {
+            config: config_path.clone().unwrap(),
+        })
+        .await
+        .map_err(|err| BackendError::Error(err.to_string()))?;
     }
 
     let (ready_sender, mut _ready_receiver) = broadcast::channel::<String>(1);
@@ -71,7 +63,6 @@ pub async fn start(
 
     let output_handler_ready_receiver = ready_sender.subscribe();
 
-    let mut config = load_config(gateway_config_path).await?;
     let introspection_forced = config.graph.introspection == Some(false);
     config.graph.introspection = Some(true);
 
@@ -143,6 +134,8 @@ pub async fn start(
 
     let hot_reload_ready_receiver = ready_sender.subscribe();
 
+    // FIXME: so many leaks everywhere...
+    let config_path: Option<&'static PathBuf> = Box::leak(Box::new(config_path)).as_ref();
     tokio::spawn(async move {
         hot_reload(
             config_sender,
@@ -150,7 +143,7 @@ pub async fn start(
             hot_reload_ready_receiver,
             composition_warnings_sender,
             subgraph_cache,
-            gateway_config_path,
+            config_path,
             config,
         )
         .await;
@@ -228,26 +221,4 @@ fn output_handler(
     }
 
     Ok(())
-}
-
-pub(crate) async fn load_config(path: Option<&PathBuf>) -> Result<gateway_config::Config, BackendError> {
-    let Some(path) = path else {
-        return Ok(Default::default());
-    };
-    let content = tokio::fs::read_to_string(path)
-        .await
-        .map_err(BackendError::ReadConfig)?;
-    let mut config: gateway_config::Config = toml::from_str(&content).map_err(BackendError::ParseConfig)?;
-
-    for subgraph in config.subgraphs.values_mut() {
-        if let Some(schema_path) = &mut subgraph.schema_path {
-            if schema_path.is_relative() {
-                if let Some(abs_path) = path.parent().map(|parent| parent.join(&schema_path)) {
-                    *schema_path = abs_path;
-                }
-            }
-        }
-    }
-
-    Ok(config)
 }

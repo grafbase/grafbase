@@ -20,15 +20,16 @@ async fn grafbase_dev_basic() {
 
 #[tokio::test]
 async fn local_extension() {
-    TestExtensions::Echo.build().await;
     // FIXME: Windows has troubles with those tests in the CI.
     if cfg!(target_os = "windows") {
         return;
     }
+    TestExtensions::Echo.build().await;
 
     let extension_path = TestExtensions::Echo.build_dir_path();
     let extension_path = extension_path.display();
 
+    println!("{extension_path}");
     let dev = GrafbaseDevConfig::new()
         .with_config(format!(
             r#"
