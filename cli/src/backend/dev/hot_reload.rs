@@ -1,5 +1,5 @@
-use super::configurations::{DevConfiguration, get_and_merge_configurations};
 use super::subgraphs::{SubgraphCache, get_subgraph_sdls};
+use crate::backend::dev::load_config;
 use crate::backend::dev::subgraphs::CachedIntrospectedSubgraph;
 use crate::backend::errors::BackendError;
 use gateway_config::Config;
@@ -46,8 +46,7 @@ impl SubgraphWatcher {
         composition_warnings_sender: mpsc::Sender<Vec<String>>,
         subgraph_cache: Arc<SubgraphCache>,
         overridden_subgraphs: Arc<HashSet<String>>,
-        merged_configuration: Arc<Config>,
-        graph_overrides_path: Option<&'static PathBuf>,
+        config: Arc<Config>,
     ) -> Result<(), BackendError> {
         // skip if there's no local subgraphs
         if overridden_subgraphs.is_empty() {
@@ -61,8 +60,7 @@ impl SubgraphWatcher {
             composition_warnings_sender.clone(),
             subgraph_cache.clone(),
             overridden_subgraphs.clone(),
-            merged_configuration.clone(),
-            graph_overrides_path,
+            config.clone(),
         )?;
 
         self.spawn_schema_file_watcher(
@@ -70,8 +68,7 @@ impl SubgraphWatcher {
             composition_warnings_sender,
             subgraph_cache,
             overridden_subgraphs,
-            merged_configuration,
-            graph_overrides_path,
+            config,
         )
     }
 
@@ -81,10 +78,9 @@ impl SubgraphWatcher {
         composition_warnings_sender: mpsc::Sender<Vec<String>>,
         subgraph_cache: Arc<SubgraphCache>,
         overridden_subgraphs: Arc<HashSet<String>>,
-        merged_configuration: Arc<Config>,
-        graph_overrides_path: Option<&'static PathBuf>,
+        config: Arc<Config>,
     ) -> Result<(), BackendError> {
-        let introspection_urls = merged_configuration
+        let introspection_urls = config
             .subgraphs
             .iter()
             .filter_map(|(name, subgraph)| {
@@ -168,8 +164,7 @@ impl SubgraphWatcher {
                         composition_warnings_sender.clone(),
                         subgraph_cache.clone(),
                         overridden_subgraphs.clone(),
-                        merged_configuration.clone(),
-                        graph_overrides_path,
+                        config.clone(),
                         Some(reload_cancellation_token.child_token()),
                     )
                     .await
@@ -191,10 +186,9 @@ impl SubgraphWatcher {
         composition_warnings_sender: mpsc::Sender<Vec<String>>,
         subgraph_cache: Arc<SubgraphCache>,
         overridden_subgraphs: Arc<HashSet<String>>,
-        merged_configuration: Arc<Config>,
-        graph_overrides_path: Option<&'static PathBuf>,
+        config: Arc<Config>,
     ) -> Result<(), BackendError> {
-        let schema_file_paths = merged_configuration
+        let schema_file_paths = config
             .subgraphs
             .iter()
             .filter_map(|(_name, subgraph)| subgraph.schema_path.as_ref())
@@ -208,7 +202,7 @@ impl SubgraphWatcher {
 
         let watcher_cancellation_token = self.cancellation_token.as_ref().expect("must exist").child_token();
 
-        let watcher_merged_configuration = merged_configuration.clone();
+        let watcher_merged_configuration = config.clone();
         let mut watcher = new_debouncer(WATCHER_DEBOUNCE_DURATION, None, move |result: DebounceEventResult| {
             if result.is_err() {
                 return;
@@ -216,7 +210,7 @@ impl SubgraphWatcher {
             let composition_warnings_sender = composition_warnings_sender.clone();
             let subgraph_cache = subgraph_cache.clone();
             let overridden_subgraphs = overridden_subgraphs.clone();
-            let merged_configuration = watcher_merged_configuration.clone();
+            let config = watcher_merged_configuration.clone();
             let sender = sender.clone();
 
             if watcher_cancellation_token.is_cancelled() {
@@ -231,8 +225,7 @@ impl SubgraphWatcher {
                     composition_warnings_sender,
                     subgraph_cache,
                     overridden_subgraphs,
-                    merged_configuration,
-                    graph_overrides_path,
+                    config,
                     Some(reload_cancellation_token),
                 )
                 .await
@@ -258,10 +251,7 @@ impl SubgraphWatcher {
 
 const WATCHER_DEBOUNCE_DURATION: Duration = Duration::from_secs(2);
 
-fn watch_configuration_files(
-    gateway_config_path: Option<&PathBuf>,
-    graph_overrides_path: Option<&PathBuf>,
-) -> Result<mpsc::Receiver<()>, notify::Error> {
+fn watch_configuration_files(gateway_config_path: Option<&PathBuf>) -> Result<mpsc::Receiver<()>, notify::Error> {
     let (watcher_sender, watcher_receiver) = mpsc::channel::<()>(1);
 
     let runtime = Handle::current();
@@ -281,10 +271,6 @@ fn watch_configuration_files(
         watcher.watch(gateway_config_path, RecursiveMode::NonRecursive)?;
     }
 
-    if let Some(graph_overrides_path) = graph_overrides_path {
-        watcher.watch(graph_overrides_path, RecursiveMode::NonRecursive)?;
-    }
-
     // since the config watcher should live for the remainder of the cli run,
     // leak it instead of needing to make sure it isn't dropped
     Box::leak(Box::new(watcher));
@@ -300,20 +286,19 @@ pub(crate) async fn hot_reload(
     composition_warnings_sender: mpsc::Sender<Vec<String>>,
     subgraph_cache: Arc<SubgraphCache>,
     gateway_config_path: Option<&'static PathBuf>,
-    graph_overrides_path: Option<&'static PathBuf>,
-    dev_configuration: DevConfiguration,
+    config: Config,
 ) {
     // start hot reloading once the server is ready
     if ready_receiver.recv().await.is_err() {
         return;
     }
 
-    if gateway_config_path.is_none() && graph_overrides_path.is_none() {
+    if gateway_config_path.is_none() {
         // return early since we don't hot reload graphs from the API
         return;
     }
 
-    let Ok(watcher_receiver) = watch_configuration_files(gateway_config_path, graph_overrides_path)
+    let Ok(watcher_receiver) = watch_configuration_files(gateway_config_path)
         .map_err(BackendError::SetUpWatcher)
         .inspect_err(|error| tracing::error!("{}", error.to_string().trim()))
     else {
@@ -322,8 +307,20 @@ pub(crate) async fn hot_reload(
 
     let mut subgraph_watcher = SubgraphWatcher::new();
 
-    let overridden_subgraphs = Arc::new(dev_configuration.overridden_subgraphs);
-    let merged_configuration = Arc::new(dev_configuration.merged_configuration);
+    let overridden_subgraphs = Arc::new(
+        config
+            .subgraphs
+            .iter()
+            .filter_map(|(name, subgraph)| {
+                if subgraph.has_schema_override() {
+                    Some(name.clone())
+                } else {
+                    None
+                }
+            })
+            .collect::<HashSet<_>>(),
+    );
+    let config = Arc::new(config);
 
     // don't skip the config reloader if
     // the subgraph watcher encountered an error
@@ -333,8 +330,7 @@ pub(crate) async fn hot_reload(
             composition_warnings_sender.clone(),
             subgraph_cache.clone(),
             overridden_subgraphs,
-            merged_configuration,
-            graph_overrides_path,
+            config,
         )
         .inspect_err(|error| tracing::error!("{}", error.to_string().trim()));
 
@@ -344,8 +340,7 @@ pub(crate) async fn hot_reload(
             let subgraph_cache = subgraph_cache.clone();
             subgraph_watcher.stop();
 
-            let dev_configuration = match get_and_merge_configurations(gateway_config_path, graph_overrides_path).await
-            {
+            let config = match load_config(gateway_config_path).await {
                 Ok(dev_configuration) => dev_configuration,
                 Err(error) => {
                     tracing::error!("{}", error.to_string().trim());
@@ -353,21 +348,32 @@ pub(crate) async fn hot_reload(
                 }
             };
 
-            if let Err(err) = config_sender.send(dev_configuration.merged_configuration.clone()) {
+            if let Err(err) = config_sender.send(config.clone()) {
                 tracing::error!("Could not update config: {err}");
                 continue;
             };
 
-            let merged_configuration = Arc::new(dev_configuration.merged_configuration);
-            let overridden_subgraphs = Arc::new(dev_configuration.overridden_subgraphs);
+            let config = Arc::new(config);
+            let overridden_subgraphs = Arc::new(
+                config
+                    .subgraphs
+                    .iter()
+                    .filter_map(|(name, subgraph)| {
+                        if subgraph.has_schema_override() {
+                            Some(name.clone())
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<HashSet<_>>(),
+            );
 
             if let Err(error) = reload_subgraphs(
                 sdl_sender.clone(),
                 composition_warnings_sender.clone(),
                 subgraph_cache.clone(),
                 overridden_subgraphs.clone(),
-                merged_configuration.clone(),
-                graph_overrides_path,
+                config.clone(),
                 None,
             )
             .await
@@ -384,8 +390,7 @@ pub(crate) async fn hot_reload(
                     composition_warnings_sender.clone(),
                     subgraph_cache,
                     overridden_subgraphs,
-                    merged_configuration,
-                    graph_overrides_path,
+                    config,
                 )
                 .inspect_err(|error| tracing::error!("{}", error.to_string().trim()));
         }
@@ -399,8 +404,7 @@ async fn reload_subgraphs(
     composition_warnings_sender: mpsc::Sender<Vec<String>>,
     subgraph_cache: Arc<SubgraphCache>,
     overridden_subgraphs: Arc<HashSet<String>>,
-    merged_configuration: Arc<Config>,
-    graph_overrides_path: Option<&'static PathBuf>,
+    config: Arc<Config>,
     cancellation_token: Option<CancellationToken>,
 ) -> Result<(), BackendError> {
     let mut subgraphs = graphql_composition::Subgraphs::default();
@@ -416,14 +420,7 @@ async fn reload_subgraphs(
 
     // we're not passing in the graph ref to avoid fetching the remote subgraphs again
     // as we have them cached
-    get_subgraph_sdls(
-        None,
-        &overridden_subgraphs,
-        &merged_configuration,
-        &mut subgraphs,
-        graph_overrides_path,
-    )
-    .await?;
+    get_subgraph_sdls(None, &config, &mut subgraphs).await?;
 
     let composition_result = graphql_composition::compose(&subgraphs);
 

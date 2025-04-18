@@ -50,56 +50,47 @@ impl GrafbaseDevConfig {
 
         let working_directory = tempfile::tempdir().unwrap();
 
-        let config_path = if let Some(config) = config {
-            let path = working_directory.path().join("grafbase.toml");
-            fs::write(&path, config.as_bytes()).unwrap();
-            Some(path)
-        } else {
-            None
+        let config_path = working_directory.path().join("grafbase.toml");
+        let mut config_file = fs::File::create(&config_path).unwrap();
+        if let Some(config) = config {
+            writeln!(config_file, "{}", config.as_ref()).unwrap();
         };
 
-        let _graph_overrides = {
-            let path = working_directory.path().join("graph-overrides.toml");
-            let mut out = fs::File::create(&path).unwrap();
+        for subgraph in subgraphs.iter() {
+            let sdl = subgraph.sdl();
+            // Not necessary right now, but we may want to allow overriding.
+            let schema_path = working_directory.path().join(format!("{}.graphql", subgraph.name()));
+            let subgraph_url = subgraph.url().unwrap();
+            fs::write(&schema_path, sdl.as_bytes()).unwrap();
 
-            for subgraph in subgraphs.iter() {
-                let sdl = subgraph.sdl();
-                // Not necessary right now, but we may want to allow overriding.
-                let schema_path = working_directory.path().join(format!("{}.graphql", subgraph.name()));
-                let subgraph_url = subgraph.url().unwrap();
-                fs::write(&schema_path, sdl.as_bytes()).unwrap();
-
-                writeln!(
-                    out,
-                    r#"
+            writeln!(
+                config_file,
+                r#"
                     [subgraphs.{name}]
                     url = "{subgraph_url}"
                     schema_path = '{schema_path}'
                 "#,
-                    name = subgraph.name(),
-                    schema_path = schema_path.display(),
-                )
-                .unwrap();
-            }
+                name = subgraph.name(),
+                schema_path = schema_path.display(),
+            )
+            .unwrap();
+        }
 
-            for (subgraph_name, sdl) in sdl_only_subgraphs {
-                let schema_path = working_directory.path().join(format!("{}.graphql", subgraph_name));
-                fs::write(&schema_path, sdl.as_bytes()).unwrap();
+        for (subgraph_name, sdl) in sdl_only_subgraphs {
+            let schema_path = working_directory.path().join(format!("{}.graphql", subgraph_name));
+            fs::write(&schema_path, sdl.as_bytes()).unwrap();
 
-                writeln!(
-                    out,
-                    r#"
+            writeln!(
+                config_file,
+                r#"
                     [subgraphs.{name}]
                     schema_path = '{schema_path}'
                 "#,
-                    name = subgraph_name,
-                    schema_path = schema_path.display(),
-                )
-                .unwrap();
-            }
-
-            path
-        };
+                name = subgraph_name,
+                schema_path = schema_path.display(),
+            )
+            .unwrap();
+        }
 
         // Pick a port number in the dynamic range.
         let port = random::<u16>() | 0xc000;
@@ -111,12 +102,8 @@ impl GrafbaseDevConfig {
             .arg("dev")
             .arg("--port")
             .arg(port.to_string())
-            .arg("--graph-overrides")
-            .arg("graph-overrides.toml");
-
-        if let Some(config_path) = config_path {
-            command.arg("--config").arg(config_path);
-        }
+            .arg("-c")
+            .arg(config_path);
 
         let grafbase_process = command
             .stdout(process::Stdio::inherit())

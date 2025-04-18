@@ -32,6 +32,17 @@ fn main() -> anyhow::Result<()> {
     runtime.block_on(async move {
         let telemetry = telemetry::init(&args, &config.telemetry)?;
 
+        for (name, subgraph) in &config.subgraphs {
+            if subgraph.introspection_url.is_some()
+                || subgraph.introspection_headers.is_some()
+                || subgraph.schema_path.is_some()
+            {
+                tracing::warn!(
+                    "Subgraph {name} has introspection_url, introspection_headers or schema_path set. They're ignored in the federated gateway."
+                );
+            }
+        }
+
         let crate_version = crate_version!();
         tracing::info!("Grafbase Gateway {crate_version}");
 

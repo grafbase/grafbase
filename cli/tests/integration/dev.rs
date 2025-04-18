@@ -3,12 +3,12 @@ use super::setup::*;
 #[tokio::test]
 async fn grafbase_dev_basic() {
     let dev = GrafbaseDevConfig::new()
-        .with_config(format!(
+        .with_config(
             r#"
             [graph]
             introspection = true
             "#,
-        ))
+        )
         .with_subgraph(graphql_mocks::EchoSchema)
         .start()
         .await;
@@ -21,9 +21,8 @@ async fn grafbase_dev_basic() {
 #[tokio::test]
 async fn local_extension() {
     TestExtensions::Echo.build().await;
-    // FIXME: MacOS & Windows have troubles with those tests in the CI. MacOS works just fine though
-    // locally...
-    if !cfg!(target_os = "linux") {
+    // FIXME: Windows has troubles with those tests in the CI.
+    if cfg!(target_os = "windows") {
         return;
     }
 

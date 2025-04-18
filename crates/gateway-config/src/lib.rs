@@ -251,6 +251,12 @@ pub struct SubgraphConfig {
     pub subscription_protocol: Option<SubscriptionProtocol>,
 }
 
+impl SubgraphConfig {
+    pub fn has_schema_override(&self) -> bool {
+        self.schema_path.is_some() || self.introspection_url.is_some()
+    }
+}
+
 impl Default for SubgraphConfig {
     fn default() -> Self {
         Self {

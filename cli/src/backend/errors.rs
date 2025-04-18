@@ -10,22 +10,14 @@ pub(crate) enum BackendError {
     // wraps a [`CommonError`]
     #[error(transparent)]
     CommonError(#[from] CommonError),
-    #[error("could not read the configuration file\nCaused by: {0}")]
+    #[error("could not read the configuration\nCaused by: {0}")]
     ReadConfig(std::io::Error),
-    #[error("could not read the graph overrides\nCaused by: {0}")]
-    ReadGraphOverrides(std::io::Error),
-    #[error("could not parse the configuration file\nCaused by: {0}")]
+    #[error("could not parse the configuration\nCaused by: {0}")]
     ParseConfig(toml::de::Error),
-    #[error("could not parse the graph overrides configuration\nCaused by: {0}")]
-    ParseGraphOverrides(toml::de::Error),
-    #[error("could not merge the gateway and graph override configurations")]
-    MergeConfigurations,
     #[error(transparent)]
     ApiError(#[from] ApiError),
     #[error("could not read the SDL from {0}\nCaused by: {1}")]
     ReadSdlFromFile(PathBuf, std::io::Error),
-    #[error("could not set the current directory\nCaused by: {0}")]
-    SetCurrentDirectory(std::io::Error),
     #[error("could not introspect a subgraph URL: {0}")]
     IntrospectSubgraph(String),
     #[error("no url or schema_path were defined for an overridden subgraph: {0}")]
@@ -42,8 +34,6 @@ pub(crate) enum BackendError {
     FetchBranch,
     #[error("the specified branch does not exist")]
     BranchDoesntExist,
-    #[error("the gateway configuration contains a field reserved for the graph overrides configuration: {0}")]
-    DevOptionsInGatewayConfig(&'static str),
     #[error("could not set up a file watcher\nCaused by: {0}")]
     SetUpWatcher(notify::Error),
     #[error("could not determine the path of the home directory")]
