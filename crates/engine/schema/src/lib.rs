@@ -1,5 +1,7 @@
 #![deny(clippy::future_not_send, unused_crate_dependencies)]
 
+use std::path::Path;
+
 use grafbase_workspace_hack as _;
 
 mod builder;
@@ -83,15 +85,16 @@ impl Schema {
         let mut config: gateway_config::Config = Default::default();
         config.graph.introspection = Some(true);
         let extension_catalog = Default::default();
-        Self::build(&config, sdl, &extension_catalog).await.unwrap()
+        Self::build(None, sdl, &config, &extension_catalog).await.unwrap()
     }
 
     pub async fn build(
+        current_dir: Option<&Path>,
+        sdl: &str,
         config: &gateway_config::Config,
-        federated_sdl: &str,
         extension_catalog: &ExtensionCatalog,
     ) -> Result<Schema, String> {
-        builder::build(config, federated_sdl, extension_catalog).await
+        builder::build(current_dir, sdl, config, extension_catalog).await
     }
 }
 

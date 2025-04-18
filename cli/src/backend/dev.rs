@@ -124,12 +124,17 @@ pub async fn start(
         .await
         .expect("this really has to succeed");
 
+    let current_dir = std::env::current_dir()
+        .map_err(|error| BackendError::Error(format!("Failed to get current directory: {error}")))?;
     let server_config = ServeConfig {
         listen_address,
         config_path: None,
         config_hot_reload: false,
         config_receiver,
-        fetch_method: GraphFetchMethod::FromSchemaReloadable { sdl_receiver },
+        fetch_method: GraphFetchMethod::FromSchemaReloadable {
+            current_dir,
+            sdl_receiver,
+        },
     };
 
     let hot_reload_ready_receiver = ready_sender.subscribe();

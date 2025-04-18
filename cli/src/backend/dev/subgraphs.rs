@@ -16,6 +16,7 @@ use graphql_composition as composition;
 use serde_dynamic_string::DynamicString;
 use std::{
     collections::{BTreeMap, HashMap},
+    path::Path,
     sync::Arc,
 };
 use tokio::{fs, sync::Mutex};
@@ -87,6 +88,8 @@ pub async fn get_subgraph_sdls(
 
     let remote_urls = &remote_urls;
 
+    let current_dir = std::env::current_dir()
+        .map_err(|error| BackendError::Error(format!("Failed to get current directory: {error}")))?;
     let subgraph_cache = Arc::new(subgraph_cache);
     let futures = config
         .subgraphs
@@ -94,7 +97,7 @@ pub async fn get_subgraph_sdls(
         .filter(|(_, subgraph)| subgraph.has_schema_override())
         .map(|(name, subgraph)| {
             let subgraph_cache = subgraph_cache.clone();
-            handle_overridden_subgraph(subgraph_cache, remote_urls, name, subgraph)
+            handle_overridden_subgraph(&current_dir, subgraph_cache, remote_urls, name, subgraph)
         });
 
     let results = futures::future::try_join_all(futures).await?;
@@ -125,6 +128,7 @@ struct OverriddenSubgraph {
 }
 
 async fn handle_overridden_subgraph(
+    current_dir: &Path,
     subgraph_cache: Arc<SubgraphCache>,
     remote_urls: &HashMap<&str, Option<&str>>,
     name: &str,
@@ -147,7 +151,7 @@ async fn handle_overridden_subgraph(
 
         let parsed_schema = cynic_parser::parse_type_system_document(&sdl).map_err(BackendError::ParseSubgraphSdl)?;
 
-        let extensions = detect_extensions(&parsed_schema).await;
+        let extensions = detect_extensions(Some(current_dir), &parsed_schema).await;
 
         Ok(OverriddenSubgraph {
             parsed_schema,
@@ -180,7 +184,7 @@ async fn handle_overridden_subgraph(
         );
 
         let parsed_schema = cynic_parser::parse_type_system_document(&sdl)?;
-        let extensions = detect_extensions(&parsed_schema).await;
+        let extensions = detect_extensions(None, &parsed_schema).await;
 
         Ok(OverriddenSubgraph {
             parsed_schema,
