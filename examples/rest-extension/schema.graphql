@@ -1,7 +1,6 @@
 extend schema
   @link(url: "https://grafbase.com/extensions/rest/0.4.1", import: ["@restEndpoint", "@rest"])
-
-@restEndpoint(name: "countries", baseURL: "https://restcountries.com/v3.1")
+  @restEndpoint(name: "countries", baseURL: "https://restcountries.com/v3.1")
 
 type Country {
   name: String!

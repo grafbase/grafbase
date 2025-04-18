@@ -1,2 +1,0 @@
-[subgraphs.pets]
-introspection_url = "http://localhost:4002/graphql"
