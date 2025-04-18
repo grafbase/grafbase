@@ -63,7 +63,7 @@ impl SchemaFileGraphUpdater {
                 tracing::info!("Detected a schema file update");
 
                 self.sender
-                    .send(GraphDefinition::Sdl(schema))
+                    .send(GraphDefinition::Sdl(Some(self.schema_path.clone()), schema))
                     .await
                     .expect("channel must be up");
             } else {

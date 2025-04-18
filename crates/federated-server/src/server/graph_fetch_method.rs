@@ -22,6 +22,7 @@ pub enum GraphFetchMethod {
         schema_path: PathBuf,
     },
     FromSchemaReloadable {
+        current_dir: PathBuf,
         sdl_receiver: mpsc::Receiver<String>,
     },
 }
@@ -66,7 +67,7 @@ impl GraphFetchMethod {
                 let (sender, receiver) = mpsc::channel(4);
 
                 sender
-                    .send(GraphDefinition::Sdl(federated_sdl))
+                    .send(GraphDefinition::Sdl(Some(schema_path.clone()), federated_sdl))
                     .await
                     .expect("channel must be up");
 
@@ -77,12 +78,19 @@ impl GraphFetchMethod {
 
                 Ok(ReceiverStream::new(receiver).boxed())
             }
-            GraphFetchMethod::FromSchemaReloadable { mut sdl_receiver } => {
+            GraphFetchMethod::FromSchemaReloadable {
+                current_dir,
+                mut sdl_receiver,
+            } => {
                 let (sender, receiver) = mpsc::channel(4);
 
                 tokio::spawn(async move {
                     while let Some(sdl) = sdl_receiver.recv().await {
-                        if sender.send(GraphDefinition::Sdl(sdl)).await.is_err() {
+                        if sender
+                            .send(GraphDefinition::Sdl(Some(current_dir.clone()), sdl))
+                            .await
+                            .is_err()
+                        {
                             break;
                         }
                     }

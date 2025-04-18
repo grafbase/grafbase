@@ -1,6 +1,7 @@
-use std::{str::FromStr, sync::Arc};
+use std::{path::Path, str::FromStr, sync::Arc};
 
 use crate::gateway::{TestRuntimeBuilder, TestRuntimeContext, subgraph::Subgraphs};
+use gateway_config::Config;
 use runtime_local::wasi::hooks;
 
 use engine::Engine;
@@ -9,6 +10,7 @@ use wasi_component_loader::resources::SharedResources;
 use super::{TestConfig, TestRuntime};
 
 pub(super) async fn build(
+    tmpdir: &Path,
     federated_sdl: Option<String>,
     mut config: TestConfig,
     runtime: TestRuntimeBuilder,
@@ -84,10 +86,12 @@ pub(super) async fn build(
         }
     }
 
-    let mut config = toml::from_str(&config.toml).unwrap();
+    let config_path = tmpdir.join("grafbase.toml");
+    std::fs::write(tmpdir.join("grafbase.toml"), &config.toml).unwrap();
+    let mut config = Config::load(config_path).unwrap();
 
     let schema = Arc::new(
-        engine::Schema::build(&config, &federated_sdl, runtime.extensions.catalog())
+        engine::Schema::build(Some(tmpdir), &federated_sdl, &config, runtime.extensions.catalog())
             .await
             .map_err(|err| err.to_string())?,
     );

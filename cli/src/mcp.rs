@@ -63,7 +63,8 @@ pub(crate) async fn run(args: McpCommand) -> anyhow::Result<()> {
                 )
             })?;
         let sdl = federated_graph::render_federated_sdl(&federated_graph).expect("render_federated_sdl()");
-        engine::Schema::build(&config, &sdl, &extensions_catalog)
+        let current_dir = std::env::current_dir().ok();
+        engine::Schema::build(current_dir.as_deref(), &sdl, &config, &extensions_catalog)
             .await
             .map_err(|err| anyhow::anyhow!("Internal: failed to build schema: {err}"))?
     };

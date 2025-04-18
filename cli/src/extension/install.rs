@@ -1,6 +1,7 @@
 use crate::{backend::api, cli_input::ExtensionInstallCommand, output::report};
 use extension::lockfile;
 use futures::stream::FuturesUnordered;
+use gateway_config::Config;
 use std::{borrow::Cow, io, path::Path};
 use tokio::{fs, io::AsyncWriteExt as _};
 use tokio_stream::StreamExt as _;
@@ -79,16 +80,14 @@ async fn handle_lockfile(config_path: &Path) -> anyhow::Result<Option<lockfile::
         lockfile::Lockfile::default()
     };
 
-    let config_str = fs::read_to_string(config_path)
-        .await
-        .map_err(|err| anyhow::anyhow!("Failed to read config at {}. Cause: {err}", config_path.display()))?;
-
-    let config: gateway_config::Config = toml::from_str(&config_str)
-        .map_err(|err| anyhow::anyhow!("Failed to parse config at {}. Cause: {err}", config_path.display()))?;
+    let config = Config::load(config_path).map_err(|err| anyhow::anyhow!(err))?;
 
     let mut new_version_requirements: Vec<(String, semver::VersionReq)> = Vec::new();
 
     let mut extensions_from_config = config.extensions;
+
+    // We ignore extensions that have explicitly a path.
+    extensions_from_config.retain(|_, ext| ext.path().is_none());
 
     if extensions_from_config.is_empty() {
         report::no_extension_defined_in_config();
