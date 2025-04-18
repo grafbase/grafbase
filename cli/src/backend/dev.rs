@@ -6,7 +6,7 @@ mod subgraphs;
 pub(crate) use self::{extensions::detect_extensions, subgraphs::fetch_remote_subgraphs};
 
 use super::errors::BackendError;
-use crate::cli_input::FullGraphRef;
+use crate::cli_input::{ExtensionInstallCommand, FullGraphRef};
 use federated_server::{GraphFetchMethod, ServeConfig, ServerRuntime};
 use hot_reload::hot_reload;
 use pathfinder::{export_assets, get_pathfinder_router};
@@ -59,6 +59,12 @@ pub async fn start(
         }
         Box::leak(Box::new(gateway_config_path)).as_ref()
     };
+
+    if let Some(path) = gateway_config_path {
+        crate::extension::install::execute(ExtensionInstallCommand { config: path.into() })
+            .await
+            .map_err(|err| BackendError::Error(err.to_string()))?;
+    }
 
     let (ready_sender, mut _ready_receiver) = broadcast::channel::<String>(1);
     let (composition_warnings_sender, warnings_receiver) = mpsc::channel(12);

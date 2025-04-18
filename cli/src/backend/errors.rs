@@ -48,6 +48,8 @@ pub(crate) enum BackendError {
     CreateDotGrafbaseDirectory(std::io::Error),
     #[error("could not access ~/.grafbase\nCaused by: {0}")]
     AccessDotGrafbaseDirectory(std::io::Error),
+    #[error("{0}")]
+    Error(String),
 }
 
 impl From<cynic_parser::Error> for BackendError {

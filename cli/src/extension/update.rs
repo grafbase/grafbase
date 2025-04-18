@@ -8,7 +8,6 @@ use crate::{
     output::report,
 };
 
-#[tokio::main]
 pub(super) async fn execute(cmd: ExtensionUpdateCommand) -> anyhow::Result<()> {
     let ExtensionUpdateCommand { name, config } = cmd;
 
