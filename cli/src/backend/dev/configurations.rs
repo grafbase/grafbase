@@ -16,21 +16,19 @@ pub(crate) async fn get_and_merge_configurations(
     graph_overrides_path: Option<&PathBuf>,
 ) -> Result<DevConfiguration, BackendError> {
     let config_string = match gateway_config_path {
-        Some(path) => fs::read_to_string(path)
-            .await
-            .map_err(BackendError::ReadGatewayConfig)?,
+        Some(path) => fs::read_to_string(path).await.map_err(BackendError::ReadConfig)?,
         None => String::new(),
     };
 
     let (config, config_value): (Config, toml::Value) = {
         let gateway_config_value = config_string
             .parse::<toml::Value>()
-            .map_err(BackendError::ParseGatewayConfig)?;
+            .map_err(BackendError::ParseConfig)?;
 
         let config = gateway_config_value
             .clone()
             .try_into()
-            .map_err(BackendError::ParseGatewayConfig)?;
+            .map_err(BackendError::ParseConfig)?;
 
         (config, gateway_config_value)
     };
