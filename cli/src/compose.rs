@@ -1,14 +1,16 @@
 use std::collections::HashMap;
 
+use gateway_config::Config;
+
 use crate::{
-    backend::dev::{detect_extensions, fetch_remote_subgraphs, load_config},
+    backend::dev::{detect_extensions, fetch_remote_subgraphs},
     cli_input::ComposeCommand,
     output::report,
 };
 
 #[tokio::main]
 pub(crate) async fn compose(ComposeCommand { graph_ref, config_path }: ComposeCommand) -> anyhow::Result<()> {
-    let config = load_config(Some(&config_path)).await?;
+    let config = Config::load(&config_path).map_err(|err| anyhow::anyhow!(err))?;
 
     if graph_ref.is_none() && config.subgraphs.is_empty() {
         return Err(anyhow::anyhow!("No subgraphs found"));

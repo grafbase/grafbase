@@ -62,7 +62,7 @@ fn invalid_location() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At site subgraph named 'a', extension echo-1.0.0 directive @echo used in the wrong location SCHEMA, expected one of: FIELD_DEFINITION. See schema at 29:86:\n{graph: A, name: \"echo\", arguments: {}}",
+            "At site subgraph named 'a', extension echo-1.0.0 directive @echo used in the wrong location SCHEMA, expected one of: FIELD_DEFINITION. See schema at 29:97:\n{graph: A, name: \"echo\", arguments: {}}",
         )
         "#);
     });

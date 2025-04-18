@@ -21,7 +21,12 @@ pub mod telemetry;
 mod trusted_documents;
 mod websockets_config;
 
-use std::{collections::BTreeMap, net::SocketAddr, path::PathBuf, time::Duration};
+use std::{
+    collections::BTreeMap,
+    net::SocketAddr,
+    path::{Path, PathBuf},
+    time::Duration,
+};
 
 pub use self::{
     log_level::*, subscription_protocol::SubscriptionProtocol, trusted_documents::*,
@@ -45,6 +50,57 @@ use url::Url;
 
 const DEFAULT_GATEWAY_TIMEOUT: Duration = Duration::from_secs(30);
 const DEFAULT_SUBGRAPH_TIMEOUT: Duration = Duration::from_secs(30);
+
+#[derive(Default)]
+pub struct Loader {
+    current_dir: Option<PathBuf>,
+}
+
+impl Loader {
+    pub fn with_current_dir<P: AsRef<Path>>(self, current_dir: P) -> Self {
+        Self {
+            current_dir: Some(current_dir.as_ref().to_path_buf()),
+        }
+    }
+
+    pub fn load<P: AsRef<Path>>(self, path: Option<P>) -> Result<(Option<PathBuf>, Config), String> {
+        let path = match path {
+            Some(path) => path.as_ref().to_path_buf(),
+            None => {
+                let cdir = match self.current_dir.as_ref() {
+                    Some(cdir) => cdir.clone(),
+                    None => {
+                        std::env::current_dir().map_err(|err| format!("Could not detect current directory: {err}"))?
+                    }
+                };
+                let path = cdir.join("grafbase.toml");
+                if path.exists() {
+                    path
+                } else {
+                    return Ok((None, Default::default()));
+                }
+            }
+        };
+
+        let content = std::fs::read_to_string(&path)
+            .map_err(|err| format!("Failed readng config content at path {}: {err}", path.display()))?;
+
+        let config: Config = toml::from_str(&content).map_err(|err| format!("Failed to parse configuration: {err}"))?;
+
+        let parent_path = if path.is_relative() {
+            let cdir = match self.current_dir.as_ref() {
+                Some(cdir) => cdir.clone(),
+                None => std::env::current_dir().map_err(|err| format!("Could not detect current directory: {err}"))?,
+            };
+            cdir.join(&path).parent().map(ToOwned::to_owned)
+        } else {
+            path.parent().map(ToOwned::to_owned)
+        }
+        .ok_or_else(|| "Could not detect parent directory".to_string())?;
+
+        Ok((Some(path), config.with_aboslute_paths(&parent_path)))
+    }
+}
 
 #[derive(Clone, Debug, serde::Deserialize)]
 #[serde(default, deny_unknown_fields)]
@@ -99,6 +155,40 @@ pub struct Config {
     pub websockets: WebsocketsConfig,
     /// Model Control Protocol configuration
     pub mcp: Option<ModelControlProtocolConfig>,
+}
+
+impl Config {
+    pub fn loader() -> Loader {
+        Loader::default()
+    }
+
+    pub fn load<P: AsRef<Path>>(path: P) -> Result<Self, String> {
+        Self::loader().load(Some(path)).map(|(_, config)| config)
+    }
+
+    pub fn with_aboslute_paths(mut self, parent: &Path) -> Self {
+        assert!(parent.is_absolute(), "Parent path must be absolute");
+        for subgraph in self.subgraphs.values_mut() {
+            if let Some(schema_path) = &mut subgraph.schema_path {
+                if schema_path.is_relative() {
+                    *schema_path = parent.join(&schema_path);
+                }
+            }
+        }
+
+        for extension in self.extensions.values_mut() {
+            let ExtensionConfig::Structured(ext) = extension else {
+                continue;
+            };
+            if let Some(path) = &mut ext.path {
+                if path.is_relative() {
+                    *path = parent.join(&path);
+                }
+            }
+        }
+
+        self
+    }
 }
 
 impl Default for Config {

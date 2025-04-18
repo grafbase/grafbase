@@ -58,7 +58,7 @@ fn unexpected_null() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Found a null where we expected a String! at path '.value'. See schema at 29:86:\n{graph: A, name: \"meta\", arguments: {value: null}}",
+            "At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Found a null where we expected a String! at path '.value'. See schema at 29:97:\n{graph: A, name: \"meta\", arguments: {value: null}}",
         )
         "#);
     });
@@ -120,7 +120,7 @@ fn missing_required_argument() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Missing required argument named 'value'. See schema at 29:86:\n{graph: A, name: \"meta\", arguments: {}}",
+            "At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Missing required argument named 'value'. See schema at 29:97:\n{graph: A, name: \"meta\", arguments: {}}",
         )
         "#);
     });

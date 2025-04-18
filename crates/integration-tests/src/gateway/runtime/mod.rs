@@ -33,7 +33,6 @@ pub struct TestRuntime {
     pub authentication: engine_auth::AuthenticationService<ExtensionsDispatcher>,
 }
 
-#[derive(Default)]
 pub(super) struct TestRuntimeBuilder {
     pub trusted_documents: Option<trusted_documents_client::Client>,
     pub hooks: Option<DynamicHooks>,

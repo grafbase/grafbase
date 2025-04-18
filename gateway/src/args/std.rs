@@ -93,13 +93,9 @@ impl super::Args for Args {
     }
 
     fn config(&self) -> anyhow::Result<Config> {
-        let mut config = match self.config.as_ref() {
-            Some(path) => {
-                let config = fs::read_to_string(path).context("could not read config file")?;
-                toml::from_str(&config)?
-            }
-            None => Config::default(),
-        };
+        let (_, mut config) = Config::loader()
+            .load(self.config.as_deref())
+            .map_err(|err| anyhow::anyhow!(err))?;
 
         if let Some(otel_config) = self.grafbase_otel_config()? {
             config.telemetry.grafbase = Some(otel_config);

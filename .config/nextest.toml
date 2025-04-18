@@ -28,6 +28,6 @@ store-failure-output = true
 grafbase-extension-tests = { max-threads = 1 }
 
 [[profile.default.overrides]]
-filter = 'package(grafbase) & binary(integration_tests) & test(extension::)'
+filter = 'package(grafbase) & binary(integration_tests) & (test(extension::) | test(dev::))'
 test-group = 'grafbase-extension-tests'
 

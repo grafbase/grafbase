@@ -62,7 +62,7 @@ fn unknown_type() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Unknown type 'EchoInput'. See schema at 29:86:\n{graph: A, name: \"meta\", arguments: {value: {a: 1}}}",
+            "At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Unknown type 'EchoInput'. See schema at 29:97:\n{graph: A, name: \"meta\", arguments: {value: {a: 1}}}",
         )
         "#);
     });
@@ -132,7 +132,7 @@ fn not_a_input_type() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Type 'EchoInput' is used for an input value but is not a scalar, input object or enum.. See schema at 29:86:\n{graph: A, name: \"meta\", arguments: {value: {a: 1}}}",
+            "At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Type 'EchoInput' is used for an input value but is not a scalar, input object or enum.. See schema at 29:97:\n{graph: A, name: \"meta\", arguments: {value: {a: 1}}}",
         )
         "#);
     });

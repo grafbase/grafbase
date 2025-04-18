@@ -198,7 +198,7 @@ fn too_many_arguments() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Unknown argumant named 'other'. See schema at 29:86:\n{graph: A, name: \"meta\", arguments: {value: \"str\", other: 1}}",
+            "At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Unknown argumant named 'other'. See schema at 29:97:\n{graph: A, name: \"meta\", arguments: {value: \"str\", other: 1}}",
         )
         "#);
     });

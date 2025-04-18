@@ -1,5 +1,4 @@
 use super::subgraphs::{SubgraphCache, get_subgraph_sdls};
-use crate::backend::dev::load_config;
 use crate::backend::dev::subgraphs::CachedIntrospectedSubgraph;
 use crate::backend::errors::BackendError;
 use gateway_config::Config;
@@ -285,7 +284,7 @@ pub(crate) async fn hot_reload(
     mut ready_receiver: Receiver<String>,
     composition_warnings_sender: mpsc::Sender<Vec<String>>,
     subgraph_cache: Arc<SubgraphCache>,
-    gateway_config_path: Option<&'static PathBuf>,
+    config_path: Option<&'static PathBuf>,
     config: Config,
 ) {
     // start hot reloading once the server is ready
@@ -293,12 +292,12 @@ pub(crate) async fn hot_reload(
         return;
     }
 
-    if gateway_config_path.is_none() {
+    let Some(config_path) = config_path else {
         // return early since we don't hot reload graphs from the API
         return;
-    }
+    };
 
-    let Ok(watcher_receiver) = watch_configuration_files(gateway_config_path)
+    let Ok(watcher_receiver) = watch_configuration_files(Some(config_path))
         .map_err(BackendError::SetUpWatcher)
         .inspect_err(|error| tracing::error!("{}", error.to_string().trim()))
     else {
@@ -340,8 +339,8 @@ pub(crate) async fn hot_reload(
             let subgraph_cache = subgraph_cache.clone();
             subgraph_watcher.stop();
 
-            let config = match load_config(gateway_config_path).await {
-                Ok(dev_configuration) => dev_configuration,
+            let config = match Config::load(config_path) {
+                Ok(config) => config,
                 Err(error) => {
                     tracing::error!("{}", error.to_string().trim());
                     continue;
