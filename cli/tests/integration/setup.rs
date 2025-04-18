@@ -13,7 +13,7 @@ use tokio::time::sleep;
 pub(crate) struct GrafbaseDevConfig {
     mock_subgraphs: Vec<(TypeId, String, BoxFuture<'static, MockGraphQlServer>)>,
     sdl_only_subgraphs: Vec<(Cow<'static, str>, String)>,
-    gateway_config: Option<Cow<'static, str>>,
+    config: Option<Cow<'static, str>>,
 }
 
 impl GrafbaseDevConfig {
@@ -21,8 +21,8 @@ impl GrafbaseDevConfig {
         Default::default()
     }
 
-    pub(crate) fn with_gateway_config(mut self, gateway_config: impl Into<Cow<'static, str>>) -> Self {
-        self.gateway_config = Some(gateway_config.into());
+    pub(crate) fn with_config(mut self, config: impl Into<Cow<'static, str>>) -> Self {
+        self.config = Some(config.into());
         self
     }
 
@@ -42,7 +42,7 @@ impl GrafbaseDevConfig {
         let GrafbaseDevConfig {
             mock_subgraphs,
             sdl_only_subgraphs,
-            gateway_config,
+            config,
         } = self;
 
         let subgraphs =
@@ -50,9 +50,9 @@ impl GrafbaseDevConfig {
 
         let working_directory = tempfile::tempdir().unwrap();
 
-        let gateway_config_path = if let Some(gateway_config) = gateway_config {
+        let config_path = if let Some(config) = config {
             let path = working_directory.path().join("grafbase.toml");
-            fs::write(&path, gateway_config.as_bytes()).unwrap();
+            fs::write(&path, config.as_bytes()).unwrap();
             Some(path)
         } else {
             None
@@ -114,8 +114,8 @@ impl GrafbaseDevConfig {
             .arg("--graph-overrides")
             .arg("graph-overrides.toml");
 
-        if let Some(gateway_config_path) = gateway_config_path {
-            command.arg("--gateway-config").arg(gateway_config_path);
+        if let Some(config_path) = config_path {
+            command.arg("--config").arg(config_path);
         }
 
         let grafbase_process = command

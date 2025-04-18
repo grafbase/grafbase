@@ -2,13 +2,13 @@ use super::setup::*;
 
 #[tokio::test]
 async fn grafbase_dev_basic() {
-    // FIXME: MacOS & Windows have troubles with those tests in the CI. MacOS works just fine though
-    // locally...
-    if !cfg!(target_os = "linux") {
-        return;
-    }
-
     let dev = GrafbaseDevConfig::new()
+        .with_config(format!(
+            r#"
+            [graph]
+            introspection = true
+            "#,
+        ))
         .with_subgraph(graphql_mocks::EchoSchema)
         .start()
         .await;
@@ -31,7 +31,7 @@ async fn local_extension() {
     let extension_path = extension_path.display();
 
     let dev = GrafbaseDevConfig::new()
-        .with_gateway_config(format!(
+        .with_config(format!(
             r#"
             [extensions.echo-extension]
             version = "0.1.0"
