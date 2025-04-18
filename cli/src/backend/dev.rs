@@ -1,12 +1,9 @@
-mod configurations;
 mod extensions;
 mod hot_reload;
 mod pathfinder;
 mod subgraphs;
 
-pub(crate) use self::{
-    configurations::get_and_merge_configurations, extensions::detect_extensions, subgraphs::fetch_remote_subgraphs,
-};
+pub(crate) use self::{extensions::detect_extensions, subgraphs::fetch_remote_subgraphs};
 
 use super::errors::BackendError;
 use crate::cli_input::FullGraphRef;
@@ -45,28 +42,35 @@ impl ServerRuntime for CliRuntime {
 #[tokio::main(flavor = "multi_thread")]
 pub async fn start(
     graph_ref: Option<FullGraphRef>,
-    gateway_config_path: Option<PathBuf>,
-    graph_overrides_path: Option<PathBuf>,
+    mut gateway_config_path: Option<PathBuf>,
     port: Option<u16>,
 ) -> Result<(), BackendError> {
     export_assets().await?;
 
     // these need to live for the duration of the cli run,
     // leaking them prevents cloning them around
-    let gateway_config_path = Box::leak(Box::new(gateway_config_path)).as_ref();
-    let graph_overrides_path = Box::leak(Box::new(graph_overrides_path)).as_ref();
+    let gateway_config_path = {
+        if gateway_config_path.is_none() {
+            if let Ok(default_path) = std::env::current_dir().map(|path| path.join("grafbase.toml")) {
+                if default_path.exists() {
+                    gateway_config_path = Some(default_path);
+                }
+            }
+        }
+        Box::leak(Box::new(gateway_config_path)).as_ref()
+    };
 
     let (ready_sender, mut _ready_receiver) = broadcast::channel::<String>(1);
     let (composition_warnings_sender, warnings_receiver) = mpsc::channel(12);
 
     let output_handler_ready_receiver = ready_sender.subscribe();
 
-    let dev_configuration = get_and_merge_configurations(gateway_config_path, graph_overrides_path).await?;
-    let introspection_forced = dev_configuration.introspection_forced;
+    let mut config = load_config(gateway_config_path).await?;
+    let introspection_forced = config.graph.introspection == Some(false);
+    config.graph.introspection = Some(true);
 
     let port = port
-        .or(dev_configuration
-            .merged_configuration
+        .or(config
             .network
             .listen_address
             .map(|listen_address| listen_address.port()))
@@ -74,8 +78,7 @@ pub async fn start(
 
     let listen_address = SocketAddr::from((Ipv4Addr::LOCALHOST, port));
 
-    let mcp_url = dev_configuration
-        .merged_configuration
+    let mcp_url = config
         .mcp
         .as_ref()
         .filter(|m| m.enabled)
@@ -92,14 +95,7 @@ pub async fn start(
 
     let mut subgraphs = graphql_composition::Subgraphs::default();
 
-    let subgraph_cache = get_subgraph_sdls(
-        graph_ref.as_ref(),
-        &dev_configuration.overridden_subgraphs,
-        &dev_configuration.merged_configuration,
-        &mut subgraphs,
-        graph_overrides_path,
-    )
-    .await?;
+    let subgraph_cache = get_subgraph_sdls(graph_ref.as_ref(), &config, &mut subgraphs).await?;
 
     let composition_result = graphql_composition::compose(&subgraphs);
 
@@ -124,7 +120,7 @@ pub async fn start(
     };
 
     let (sdl_sender, sdl_receiver) = mpsc::channel::<String>(2);
-    let (config_sender, config_receiver) = watch::channel(dev_configuration.merged_configuration.clone());
+    let (config_sender, config_receiver) = watch::channel(config.clone());
 
     sdl_sender
         .send(federated_sdl)
@@ -149,8 +145,7 @@ pub async fn start(
             composition_warnings_sender,
             subgraph_cache,
             gateway_config_path,
-            graph_overrides_path,
-            dev_configuration,
+            config,
         )
         .await;
     });
@@ -227,4 +222,26 @@ fn output_handler(
     }
 
     Ok(())
+}
+
+pub(crate) async fn load_config(path: Option<&PathBuf>) -> Result<gateway_config::Config, BackendError> {
+    let Some(path) = path else {
+        return Ok(Default::default());
+    };
+    let content = tokio::fs::read_to_string(path)
+        .await
+        .map_err(BackendError::ReadConfig)?;
+    let mut config: gateway_config::Config = toml::from_str(&content).map_err(BackendError::ParseConfig)?;
+
+    for subgraph in config.subgraphs.values_mut() {
+        if let Some(schema_path) = &mut subgraph.schema_path {
+            if schema_path.is_relative() {
+                if let Some(abs_path) = path.parent().map(|parent| parent.join(&schema_path)) {
+                    *schema_path = abs_path;
+                }
+            }
+        }
+    }
+
+    Ok(config)
 }

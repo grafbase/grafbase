@@ -15,9 +15,7 @@ use grafbase_graphql_introspection::introspect;
 use graphql_composition as composition;
 use serde_dynamic_string::DynamicString;
 use std::{
-    collections::{BTreeMap, HashMap, HashSet},
-    env::set_current_dir,
-    path::PathBuf,
+    collections::{BTreeMap, HashMap},
     sync::Arc,
 };
 use tokio::{fs, sync::Mutex};
@@ -38,10 +36,8 @@ pub struct SubgraphCache {
 
 pub async fn get_subgraph_sdls(
     graph_ref: Option<&FullGraphRef>,
-    overridden_subgraphs: &HashSet<String>,
-    merged_configuration: &Config,
+    config: &Config,
     subgraphs: &mut composition::Subgraphs,
-    graph_overrides_path: Option<&PathBuf>,
 ) -> Result<Arc<SubgraphCache>, BackendError> {
     let mut remote_urls: HashMap<&str, Option<&str>> = HashMap::new();
     let remote_subgraphs: Vec<Subgraph>;
@@ -63,12 +59,18 @@ pub async fn get_subgraph_sdls(
 
         let remote_subgraphs = remote_subgraphs
             .iter()
-            .filter(|subgraph| !overridden_subgraphs.contains(&subgraph.name))
+            .filter(|subgraph| {
+                !config
+                    .subgraphs
+                    .get(&subgraph.name)
+                    .map(|cfg| cfg.has_schema_override())
+                    .unwrap_or_default()
+            })
             .collect::<Vec<_>>();
 
         for subgraph in remote_subgraphs {
             remote_urls.insert(&subgraph.name, subgraph.url.as_deref());
-            let url = if let Some(url) = merged_configuration
+            let url = if let Some(url) = config
                 .subgraphs
                 .get(&subgraph.name)
                 .and_then(|subgraph| subgraph.url.as_ref())
@@ -85,23 +87,11 @@ pub async fn get_subgraph_sdls(
 
     let remote_urls = &remote_urls;
 
-    if let Some(graph_overrides_path) = graph_overrides_path {
-        // switching the current directory to where the overrides config is located
-        // as we want relative paths in `schema_path` to work correctly
-        set_current_dir(
-            fs::canonicalize(graph_overrides_path)
-                .await
-                .expect("must work")
-                .parent()
-                .expect("must exist"),
-        )
-        .map_err(BackendError::SetCurrentDirectory)?;
-    }
-
     let subgraph_cache = Arc::new(subgraph_cache);
-    let futures = overridden_subgraphs
+    let futures = config
+        .subgraphs
         .iter()
-        .map(|subgraph| (subgraph, &merged_configuration.subgraphs[subgraph]))
+        .filter(|(_, subgraph)| subgraph.has_schema_override())
         .map(|(name, subgraph)| {
             let subgraph_cache = subgraph_cache.clone();
             handle_overridden_subgraph(subgraph_cache, remote_urls, name, subgraph)

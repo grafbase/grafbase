@@ -7,13 +7,10 @@ use std::path::PathBuf;
 pub struct DevCommand {
     #[arg(short('g'), long("graph-ref"), help = FullGraphRef::ARG_DESCRIPTION)]
     pub(crate) graph_ref: Option<FullGraphRef>,
-    /// The path of the configuration file
-    #[arg(short('c'), long("config"), default_value("grafbase.toml"))]
-    pub(crate) config: Option<PathBuf>,
-    /// The path of the graph overrides configuration file
-    #[arg(short('o'), long("graph-overrides"))]
-    pub(crate) graph_overrides: Option<PathBuf>,
-    /// The port to listen on
+    /// The path of the gateway configuration file
+    #[arg(short('c'), long("config"))]
+    pub(crate) config_path: Option<PathBuf>,
+    /// The port to listen on for requests
     #[arg(short('p'), long("port"))]
     pub(crate) port: Option<u16>,
 }
