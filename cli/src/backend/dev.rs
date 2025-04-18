@@ -185,7 +185,7 @@ fn output_handler(
     };
     use std::io::stdout;
 
-    println!("{} your subgraphs...\n", "Fetching".yellow().bold());
+    println!("Composing subgraphs...\n");
 
     let url = url_receiver.blocking_recv()?;
     let graphql_url = url::Url::parse(&url)?;

@@ -10,12 +10,12 @@ pub(crate) enum BackendError {
     // wraps a [`CommonError`]
     #[error(transparent)]
     CommonError(#[from] CommonError),
-    #[error("could not read the gateway configuration\nCaused by: {0}")]
-    ReadGatewayConfig(std::io::Error),
+    #[error("could not read the configuration file\nCaused by: {0}")]
+    ReadConfig(std::io::Error),
     #[error("could not read the graph overrides\nCaused by: {0}")]
     ReadGraphOverrides(std::io::Error),
-    #[error("could not parse the gateway configuration\nCaused by: {0}")]
-    ParseGatewayConfig(toml::de::Error),
+    #[error("could not parse the configuration file\nCaused by: {0}")]
+    ParseConfig(toml::de::Error),
     #[error("could not parse the graph overrides configuration\nCaused by: {0}")]
     ParseGraphOverrides(toml::de::Error),
     #[error("could not merge the gateway and graph override configurations")]
