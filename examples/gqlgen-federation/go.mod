@@ -5,7 +5,7 @@ go 1.23.8
 toolchain go1.24.2
 
 require (
-	github.com/99designs/gqlgen v0.17.70
+	github.com/99designs/gqlgen v0.17.72
 	github.com/99designs/gqlgen/_examples v0.0.0-20250418233344-70b2f2657382
 	github.com/vektah/gqlparser/v2 v2.5.25
 )
@@ -20,6 +20,6 @@ require (
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/sosodev/duration v1.3.1 // indirect
-	golang.org/x/net v0.38.0 // indirect
+	golang.org/x/net v0.39.0 // indirect
 	golang.org/x/sys v0.32.0 // indirect
 )
