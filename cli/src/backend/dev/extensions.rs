@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use cynic_parser::{TypeSystemDocument, type_system as ast};
 use extension_catalog::load_manifest;
 use futures::{TryFutureExt as _, future::join_all};
@@ -9,7 +11,10 @@ pub(crate) struct DetectedExtension {
     pub(crate) name: String,
 }
 
-pub(crate) async fn detect_extensions(parsed_schema: &TypeSystemDocument) -> Vec<DetectedExtension> {
+pub(crate) async fn detect_extensions(
+    current_dir: Option<&Path>,
+    parsed_schema: &TypeSystemDocument,
+) -> Vec<DetectedExtension> {
     let link_directives = parsed_schema
         .definitions()
         .filter_map(|definition| match definition {
@@ -32,7 +37,7 @@ pub(crate) async fn detect_extensions(parsed_schema: &TypeSystemDocument) -> Vec
         // These are for sure not grafbase extensions.
         .filter(|url: &Url| url.domain() != Some("specs.apollo.dev"));
 
-    let futures = urls.map(|url| load_manifest(url.clone()).map_ok(move |manifest| (url, manifest)));
+    let futures = urls.map(|url| load_manifest(current_dir, url.clone()).map_ok(move |manifest| (url, manifest)));
 
     let extensions = join_all(futures)
         .await
@@ -73,7 +78,7 @@ mod tests {
 
         let ast = parse_type_system_document(schema).unwrap();
 
-        let extensions = detect_extensions(&ast).await;
+        let extensions = detect_extensions(None, &ast).await;
 
         assert!(extensions.is_empty(), "Expected empty, got {extensions:#?}");
     }
@@ -96,7 +101,7 @@ mod tests {
 
         let ast = parse_type_system_document(schema).unwrap();
 
-        let extensions = detect_extensions(&ast).await;
+        let extensions = detect_extensions(None, &ast).await;
 
         assert!(extensions.is_empty(), "Expected empty, got {extensions:#?}");
     }
@@ -148,7 +153,7 @@ mod tests {
         eprintln!("{schema}");
         let ast = parse_type_system_document(&schema).unwrap();
 
-        let detected_extensions = detect_extensions(&ast).await;
+        let detected_extensions = detect_extensions(None, &ast).await;
 
         assert_eq!(detected_extensions.len(), 1);
         assert_eq!(detected_extensions[0].name, "test-extension");

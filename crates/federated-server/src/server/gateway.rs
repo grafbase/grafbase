@@ -26,7 +26,7 @@ pub(crate) enum GraphDefinition {
     /// Response from GDN.
     Gdn(GdnResponse),
     /// Response from static file.
-    Sdl(String),
+    Sdl(Option<PathBuf>, String),
 }
 
 struct Graph {
@@ -53,13 +53,16 @@ pub(super) async fn generate(
     hooks: HooksWasi,
     access_log: AccessLogSender,
 ) -> crate::Result<Engine<GatewayRuntime>> {
-    let Graph {
-        federated_sdl,
-        version_id,
-        trusted_documents,
-    } = match graph_definition {
-        GraphDefinition::Gdn(gdn_response) => gdn_graph(gateway_config, gdn_response),
-        GraphDefinition::Sdl(federated_sdl) => sdl_graph(federated_sdl),
+    let (
+        current_dir,
+        Graph {
+            federated_sdl,
+            version_id,
+            trusted_documents,
+        },
+    ) = match graph_definition {
+        GraphDefinition::Gdn(gdn_response) => (None, gdn_graph(gateway_config, gdn_response)),
+        GraphDefinition::Sdl(current_dir, federated_sdl) => (current_dir, sdl_graph(federated_sdl)),
     };
 
     tracing::debug!("Creating extension catalog.");
@@ -67,9 +70,14 @@ pub(super) async fn generate(
 
     tracing::debug!("Building engine Schema.");
     let schema = Arc::new(
-        engine::Schema::build(gateway_config, &federated_sdl, &extension_catalog)
-            .await
-            .map_err(|err| crate::Error::SchemaValidationError(err.to_string()))?,
+        engine::Schema::build(
+            current_dir.as_deref(),
+            &federated_sdl,
+            gateway_config,
+            &extension_catalog,
+        )
+        .await
+        .map_err(|err| crate::Error::SchemaValidationError(err.to_string()))?,
     );
 
     let mut runtime = GatewayRuntime::build(
