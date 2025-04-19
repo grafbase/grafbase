@@ -1,6 +1,7 @@
 use std::fs;
 
 use extension::lockfile;
+use gateway_config::Config;
 
 use crate::{
     backend::api::{self, extension_versions_by_version_requirement::ExtensionVersionMatch},
@@ -8,16 +9,19 @@ use crate::{
     output::report,
 };
 
-#[tokio::main]
 pub(super) async fn execute(cmd: ExtensionUpdateCommand) -> anyhow::Result<()> {
     let ExtensionUpdateCommand { name, config } = cmd;
 
-    let config = fs::read_to_string(config).map_err(|err| anyhow::anyhow!("Failed to read config file: {err}"))?;
-
-    let config_toml: gateway_config::Config = toml::from_str(&config)?;
+    let config = Config::load(config).map_err(|err| anyhow::anyhow!(err))?;
 
     let names = name.unwrap_or_default();
-    let extensions_from_config = config_toml.extensions;
+    let extensions_from_config = {
+        let mut extensions = config.extensions;
+
+        // We ignore extensions that have explicitly a path.
+        extensions.retain(|_, ext| ext.path().is_none());
+        extensions
+    };
 
     if extensions_from_config.is_empty() && names.is_empty() {
         println!("No extension to update");

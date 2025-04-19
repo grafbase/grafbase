@@ -1,6 +1,7 @@
 use crate::{backend::api, cli_input::ExtensionInstallCommand, output::report};
 use extension::lockfile;
 use futures::stream::FuturesUnordered;
+use gateway_config::Config;
 use std::{borrow::Cow, io, path::Path};
 use tokio::{fs, io::AsyncWriteExt as _};
 use tokio_stream::StreamExt as _;
@@ -10,10 +11,11 @@ use super::EXTENSION_WASM_MODULE_FILE_NAME;
 
 pub const PUBLIC_EXTENSION_REGISTRY_URL: &str = "https://extensions.grafbase.com";
 
-#[tokio::main]
-pub(super) async fn execute(cmd: ExtensionInstallCommand) -> anyhow::Result<()> {
-    let new_lockfile = handle_lockfile(&cmd.config).await?;
-    download_extensions(new_lockfile).await
+pub(crate) async fn execute(cmd: ExtensionInstallCommand) -> anyhow::Result<()> {
+    if let Some(new_lockfile) = handle_lockfile(&cmd.config).await? {
+        download_extensions(new_lockfile).await?;
+    }
+    Ok(())
 }
 
 async fn download_extensions(new_lockfile: lockfile::Lockfile) -> anyhow::Result<()> {
@@ -58,7 +60,7 @@ async fn download_extensions(new_lockfile: lockfile::Lockfile) -> anyhow::Result
 }
 
 /// Returns the new up to date lockfile.
-async fn handle_lockfile(config_path: &Path) -> anyhow::Result<lockfile::Lockfile> {
+async fn handle_lockfile(config_path: &Path) -> anyhow::Result<Option<lockfile::Lockfile>> {
     let mut has_updated = false;
     let lockfile_path = Path::new(extension::lockfile::EXTENSION_LOCKFILE_NAME);
     let lockfile_str = match fs::read_to_string(lockfile_path).await {
@@ -78,20 +80,18 @@ async fn handle_lockfile(config_path: &Path) -> anyhow::Result<lockfile::Lockfil
         lockfile::Lockfile::default()
     };
 
-    let config_str = fs::read_to_string(config_path)
-        .await
-        .map_err(|err| anyhow::anyhow!("Failed to read config at {}. Cause: {err}", config_path.display()))?;
-
-    let config: gateway_config::Config = toml::from_str(&config_str)
-        .map_err(|err| anyhow::anyhow!("Failed to parse config at {}. Cause: {err}", config_path.display()))?;
+    let config = Config::load(config_path).map_err(|err| anyhow::anyhow!(err))?;
 
     let mut new_version_requirements: Vec<(String, semver::VersionReq)> = Vec::new();
 
     let mut extensions_from_config = config.extensions;
 
+    // We ignore extensions that have explicitly a path.
+    extensions_from_config.retain(|_, ext| ext.path().is_none());
+
     if extensions_from_config.is_empty() {
         report::no_extension_defined_in_config();
-        std::process::exit(0)
+        return Ok(None);
     }
 
     let mut new_lockfile = lockfile::Lockfile::default();
@@ -147,7 +147,7 @@ async fn handle_lockfile(config_path: &Path) -> anyhow::Result<lockfile::Lockfil
         fs::write(lockfile_path, new_lockfile_str.as_bytes()).await?;
     }
 
-    Ok(new_lockfile)
+    Ok(Some(new_lockfile))
 }
 
 async fn download_extension_from_registry(

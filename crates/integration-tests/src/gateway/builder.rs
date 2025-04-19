@@ -12,9 +12,10 @@ use runtime::{
     fetch::dynamic::DynamicFetcher,
     trusted_documents_client::{self, TrustedDocumentsEnforcementMode},
 };
+use tempfile::TempDir;
 
 use super::{
-    AnyExtension, DockerSubgraph, DynamicHooks, Gateway, TestRuntime, TestRuntimeBuilder,
+    AnyExtension, DockerSubgraph, DynamicHooks, ExtensionsBuilder, Gateway, TestRuntime, TestRuntimeBuilder,
     subgraph::{Subgraph, Subgraphs},
 };
 
@@ -25,14 +26,35 @@ struct TestConfig {
 }
 
 #[must_use]
-#[derive(Default)]
 pub struct GatewayBuilder {
+    tmpdir: TempDir,
     federated_sdl: Option<String>,
     mock_subgraphs: Vec<(TypeId, String, BoxFuture<'static, MockGraphQlServer>)>,
     docker_subgraphs: HashSet<DockerSubgraph>,
     virtual_subgraphs: Vec<(String, String)>,
     config: TestConfig,
     runtime: TestRuntimeBuilder,
+}
+
+impl Default for GatewayBuilder {
+    fn default() -> Self {
+        let tmpdir = tempfile::tempdir().unwrap();
+        let extensions_dir = tmpdir.path().join("extensions");
+        Self {
+            federated_sdl: Default::default(),
+            mock_subgraphs: Default::default(),
+            docker_subgraphs: Default::default(),
+            virtual_subgraphs: Default::default(),
+            config: Default::default(),
+            runtime: TestRuntimeBuilder {
+                trusted_documents: Default::default(),
+                hooks: Default::default(),
+                fetcher: Default::default(),
+                extensions: ExtensionsBuilder::new(extensions_dir),
+            },
+            tmpdir,
+        }
+    }
 }
 
 impl GatewayBuilder {
@@ -108,6 +130,7 @@ impl GatewayBuilder {
 
     pub async fn try_build(self) -> Result<Gateway, String> {
         let Self {
+            tmpdir,
             federated_sdl,
             mock_subgraphs,
             docker_subgraphs,
@@ -128,10 +151,11 @@ impl GatewayBuilder {
         )
         .await;
 
-        let (engine, context) = self::engine::build(federated_sdl, config, runtime, &subgraphs).await?;
+        let (engine, context) = self::engine::build(tmpdir.path(), federated_sdl, config, runtime, &subgraphs).await?;
         let router = self::router::build(engine.clone(), gateway_config).await;
 
         Ok(Gateway {
+            tmpdir: Arc::new(tmpdir),
             router,
             engine,
             context: Arc::new(context),

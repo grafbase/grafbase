@@ -10,10 +10,6 @@ pub(crate) enum BackendError {
     // wraps a [`CommonError`]
     #[error(transparent)]
     CommonError(#[from] CommonError),
-    #[error("could not read the configuration\nCaused by: {0}")]
-    ReadConfig(std::io::Error),
-    #[error("could not parse the configuration\nCaused by: {0}")]
-    ParseConfig(toml::de::Error),
     #[error(transparent)]
     ApiError(#[from] ApiError),
     #[error("could not read the SDL from {0}\nCaused by: {1}")]
@@ -48,6 +44,8 @@ pub(crate) enum BackendError {
     CreateDotGrafbaseDirectory(std::io::Error),
     #[error("could not access ~/.grafbase\nCaused by: {0}")]
     AccessDotGrafbaseDirectory(std::io::Error),
+    #[error("{0}")]
+    Error(String),
 }
 
 impl From<cynic_parser::Error> for BackendError {
