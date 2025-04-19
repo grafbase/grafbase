@@ -1,3 +1,4 @@
+mod alias;
 mod backwards_compatibility;
 mod errors;
 mod injection;
@@ -19,7 +20,7 @@ pub struct StaticFieldResolverExt {
 impl StaticFieldResolverExt {
     pub fn json(bytes: Vec<u8>) -> Self {
         Self {
-            data: Data::JsonBytes(bytes),
+            data: Data::Json(bytes.into()),
         }
     }
 }

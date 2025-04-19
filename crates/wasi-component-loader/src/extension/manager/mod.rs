@@ -24,7 +24,7 @@ pub(crate) use pool::*;
 #[derive(Clone, Default)]
 pub struct WasmExtensions(Arc<WasiExtensionsInner>);
 
-pub(crate) type Subscriptions = DashMap<Vec<u8>, broadcast::Sender<Result<Arc<Data>, GraphqlError>>>;
+pub(crate) type Subscriptions = DashMap<Vec<u8>, broadcast::Sender<Result<Data, GraphqlError>>>;
 
 #[derive(Default)]
 struct WasiExtensionsInner {

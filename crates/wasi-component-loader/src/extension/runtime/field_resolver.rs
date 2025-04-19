@@ -16,7 +16,7 @@ use runtime::{
     extension::{Data, FieldResolverExtension},
     hooks::Anything,
 };
-use std::{future::Future, sync::Arc};
+use std::future::Future;
 
 impl FieldResolverExtension<SharedContext> for WasmExtensions {
     async fn prepare<'ctx>(
@@ -76,7 +76,7 @@ impl FieldResolverExtension<SharedContext> for WasmExtensions {
         _prepared_data: &'ctx [u8],
         subgraph_headers: http::HeaderMap,
         directive_arguments: impl Anything<'ctx>,
-    ) -> Result<BoxStream<'f, Result<Arc<Data>, GraphqlError>>, GraphqlError>
+    ) -> Result<BoxStream<'f, Result<Data, GraphqlError>>, GraphqlError>
     where
         'ctx: 'f,
     {

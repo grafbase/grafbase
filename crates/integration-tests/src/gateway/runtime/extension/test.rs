@@ -86,5 +86,5 @@ impl runtime::extension::ExtensionRuntime for TestExtensions {
 }
 
 pub fn json_data(value: impl Serialize) -> Data {
-    Data::JsonBytes(serde_json::to_vec(&value).unwrap())
+    Data::Json(serde_json::to_vec(&value).unwrap().into())
 }

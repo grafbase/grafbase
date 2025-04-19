@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use engine_error::{ErrorCode, GraphqlError};
 use engine_schema::Subgraph;
 use tokio::sync::broadcast;
@@ -108,12 +106,7 @@ impl<'ctx> DeduplicatedSubscription<'ctx, '_> {
                     }
                 };
 
-                for item in items {
-                    let data = match item {
-                        Ok(data) => Ok(Arc::new(data)),
-                        Err(err) => Err(err),
-                    };
-
+                for data in items {
                     if sender.send(data).is_err() {
                         tracing::debug!("all subscribers are gone");
                         extensions.subscriptions().remove(&key);
