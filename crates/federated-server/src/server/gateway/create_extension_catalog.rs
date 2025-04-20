@@ -34,7 +34,13 @@ async fn create_extension_catalog_impl(gateway_config: &Config, cwd: &Path) -> R
 
     for (name, config) in gateway_config.extensions.iter() {
         let extension = match config.path() {
-            Some(path) => load_extension_from_path(&cwd.join(path), name)?,
+            Some(path) => {
+                if path.is_relative() {
+                    load_extension_from_path(&cwd.join(path), name)?
+                } else {
+                    load_extension_from_path(path, name)?
+                }
+            }
             None => find_matching_extensions_in_dir(config, &grafbase_extensions_dir, name).await?,
         };
 
