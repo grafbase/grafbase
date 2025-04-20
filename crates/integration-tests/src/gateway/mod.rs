@@ -20,6 +20,8 @@ use websocket_request::WebsocketRequest;
 
 #[derive(Clone)]
 pub struct Gateway {
+    #[allow(unused)]
+    tmpdir: Arc<tempfile::TempDir>,
     router: axum::Router,
     #[allow(unused)]
     engine: Arc<engine::Engine<TestRuntime>>,

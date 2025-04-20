@@ -16,23 +16,11 @@ use super::{
 };
 
 pub struct ExtensionsBuilder {
-    tmpdir: tempfile::TempDir,
+    tmpdir: PathBuf,
     catalog: ExtensionCatalog,
     has_wasm_extension: bool,
     dispatch: HashMap<ExtensionId, DispatchRule>,
     pub test: TestExtensionsState,
-}
-
-impl Default for ExtensionsBuilder {
-    fn default() -> Self {
-        Self {
-            tmpdir: tempfile::tempdir().unwrap(),
-            catalog: Default::default(),
-            has_wasm_extension: false,
-            dispatch: Default::default(),
-            test: Default::default(),
-        }
-    }
 }
 
 pub trait AnyExtension {
@@ -46,6 +34,16 @@ impl AnyExtension for &'static str {
 }
 
 impl ExtensionsBuilder {
+    pub fn new(tmpdir: PathBuf) -> Self {
+        Self {
+            tmpdir,
+            catalog: ExtensionCatalog::default(),
+            has_wasm_extension: false,
+            dispatch: HashMap::new(),
+            test: TestExtensionsState::default(),
+        }
+    }
+
     pub fn get_url(&self, id: &str) -> url::Url {
         let Some((extension_id, _)) = self
             .catalog
@@ -62,9 +60,7 @@ impl ExtensionsBuilder {
         let extension = &self.catalog[extension_id];
         match self.dispatch[&extension_id] {
             DispatchRule::Wasm => Url::from_file_path(extension.wasm_path.parent().unwrap()).unwrap(),
-            DispatchRule::Test => {
-                Url::from_file_path(self.tmpdir.path().join(extension.manifest.id.to_string())).unwrap()
-            }
+            DispatchRule::Test => Url::from_file_path(self.tmpdir.join(extension.manifest.id.to_string())).unwrap(),
         }
     }
 
@@ -109,8 +105,8 @@ impl ExtensionsBuilder {
             permissions: Default::default(),
         };
 
-        let dir = self.tmpdir.path().join(manifest.id.to_string());
-        std::fs::create_dir(&dir).unwrap();
+        let dir = self.tmpdir.join(manifest.id.to_string());
+        std::fs::create_dir_all(&dir).unwrap();
         std::fs::write(
             dir.join("manifest.json"),
             serde_json::to_vec(&manifest.clone().into_versioned()).unwrap(),

@@ -168,7 +168,7 @@ fn incompatible_list_wrapping() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Found a String value where we expected a [String!] at path '.value.0'. See schema at 29:86:\n{graph: A, name: \"meta\", arguments: {value: [\"meta\"]}}",
+            "At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Found a String value where we expected a [String!] at path '.value.0'. See schema at 29:97:\n{graph: A, name: \"meta\", arguments: {value: [\"meta\"]}}",
         )
         "#);
     });

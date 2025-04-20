@@ -119,7 +119,7 @@ fn unknown_enum_value() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Found an unknown enum value 'UNKNOWN' for the enum EchoEnum at path '.value'. See schema at 29:86:\n{graph: A, name: \"meta\", arguments: {value: UNKNOWN}}",
+            "At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Found an unknown enum value 'UNKNOWN' for the enum EchoEnum at path '.value'. See schema at 29:97:\n{graph: A, name: \"meta\", arguments: {value: UNKNOWN}}",
         )
         "#);
     });
@@ -189,7 +189,7 @@ fn invalid_enum_value() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Found a Integer value where we expected a EchoEnum enum value at path '.value'. See schema at 29:86:\n{graph: A, name: \"meta\", arguments: {value: 1}}",
+            "At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Found a Integer value where we expected a EchoEnum enum value at path '.value'. See schema at 29:97:\n{graph: A, name: \"meta\", arguments: {value: 1}}",
         )
         "#);
     });

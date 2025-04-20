@@ -4,7 +4,6 @@ use std::fs;
 
 use super::EXTENSION_WASM_MODULE_FILE_NAME;
 
-#[tokio::main]
 pub(super) async fn execute(cmd: ExtensionPublishCommand) -> anyhow::Result<()> {
     let manifest_path = cmd.path.join("manifest.json");
     let manifest_reader = fs::File::open(&manifest_path).map_err(|err| {

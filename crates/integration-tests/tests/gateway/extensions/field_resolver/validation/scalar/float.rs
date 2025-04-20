@@ -156,7 +156,7 @@ fn invalid_float() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Found a String value where we expected a Float scalar at path '.value'. See schema at 29:86:\n{graph: A, name: \"meta\", arguments: {value: \"79.123\"}}",
+            "At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Found a String value where we expected a Float scalar at path '.value'. See schema at 29:97:\n{graph: A, name: \"meta\", arguments: {value: \"79.123\"}}",
         )
         "#);
     });
