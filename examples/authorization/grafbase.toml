@@ -1,5 +1,5 @@
 [extensions]
-my-authentication = { path = "/var/lib/grafbase/extensions/authentication/build" }
+my-authentication.path = "/var/lib/grafbase/extensions/authentication/build"
 
 [extensions.my-authorization]
 path = "/var/lib/grafbase/extensions/authorization/build"
@@ -7,6 +7,3 @@ path = "/var/lib/grafbase/extensions/authorization/build"
 [extensions.my-authorization.config]
 auth_service_url = "{{ env.AUTH_SERVICE_URL }}"
 
-[subgraphs.users]
-url = "http://localhost:4000/graphql"
-schema_path = "subgraphs/users/schema.graphql"

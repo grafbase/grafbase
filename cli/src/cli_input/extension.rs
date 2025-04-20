@@ -1,9 +1,9 @@
 use std::path::PathBuf;
 
 use clap::Parser;
+use gateway_config::Config;
 
 const DEFAULT_OUTPUT_DIR: &str = "./build";
-const DEFAULT_GATEWAY_CONFIG_FILE_PATH: &str = "./grafbase.toml";
 
 #[derive(Debug, Parser)]
 pub(crate) struct ExtensionCommand {
@@ -74,14 +74,30 @@ pub(crate) struct ExtensionUpdateCommand {
     /// The name of the extension(s) to update. This argument can be passed multiple times. If no --name is passed, all extensions are updated.
     #[arg(short, long)]
     pub name: Option<Vec<String>>,
-    /// The location of the gateway configuration file that contains the version requirements. Default: `./grafbase.toml`.
-    #[arg(short, long, default_value = DEFAULT_GATEWAY_CONFIG_FILE_PATH)]
-    pub config: PathBuf,
+    /// The location of the gateway configuration file that contains the version requirements. Default: `./grafbase.toml` if it exists.
+    #[arg(short('c'), long("config"))]
+    config_path: Option<PathBuf>,
+}
+
+impl ExtensionUpdateCommand {
+    pub fn config(&self) -> anyhow::Result<Config> {
+        Config::loader()
+            .load_or_default(self.config_path.as_ref())
+            .map_err(|err| anyhow::anyhow!(err))
+    }
 }
 
 #[derive(Debug, Parser)]
 pub(crate) struct ExtensionInstallCommand {
-    /// The location of the gateway configuration file that contains the version requirements. Default: `./grafbase.toml`.
-    #[arg(short, long, default_value = DEFAULT_GATEWAY_CONFIG_FILE_PATH)]
-    pub config: PathBuf,
+    /// The location of the gateway configuration file that contains the version requirements. Default: `./grafbase.toml` if it exists.
+    #[arg(short('c'), long("config"))]
+    config_path: Option<PathBuf>,
+}
+
+impl ExtensionInstallCommand {
+    pub fn config(&self) -> anyhow::Result<Config> {
+        Config::loader()
+            .load_or_default(self.config_path.as_ref())
+            .map_err(|err| anyhow::anyhow!(err))
+    }
 }

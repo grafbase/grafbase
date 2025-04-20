@@ -1,7 +1,6 @@
 use std::fs;
 
 use extension::lockfile;
-use gateway_config::Config;
 
 use crate::{
     backend::api::{self, extension_versions_by_version_requirement::ExtensionVersionMatch},
@@ -10,11 +9,8 @@ use crate::{
 };
 
 pub(super) async fn execute(cmd: ExtensionUpdateCommand) -> anyhow::Result<()> {
-    let ExtensionUpdateCommand { name, config } = cmd;
-
-    let config = Config::load(config).map_err(|err| anyhow::anyhow!(err))?;
-
-    let names = name.unwrap_or_default();
+    let config = cmd.config()?;
+    let names = cmd.name.unwrap_or_default();
     let extensions_from_config = {
         let mut extensions = config.extensions;
 

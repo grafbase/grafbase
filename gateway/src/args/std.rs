@@ -93,8 +93,8 @@ impl super::Args for Args {
     }
 
     fn config(&self) -> anyhow::Result<Config> {
-        let (_, mut config) = Config::loader()
-            .load(self.config.as_deref())
+        let mut config = Config::loader()
+            .load_or_default(self.config.as_deref())
             .map_err(|err| anyhow::anyhow!(err))?;
 
         if let Some(otel_config) = self.grafbase_otel_config()? {

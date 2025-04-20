@@ -6,9 +6,8 @@ mod subgraphs;
 pub(crate) use self::{extensions::detect_extensions, subgraphs::fetch_remote_subgraphs};
 
 use super::errors::BackendError;
-use crate::cli_input::{ExtensionInstallCommand, FullGraphRef};
+use crate::cli_input::{DevCommand, FullGraphRef};
 use federated_server::{GraphFetchMethod, ServeConfig, ServerRuntime};
-use gateway_config::Config;
 use hot_reload::hot_reload;
 use pathfinder::{export_assets, get_pathfinder_router};
 use std::{
@@ -41,21 +40,14 @@ impl ServerRuntime for CliRuntime {
 }
 
 #[tokio::main(flavor = "multi_thread")]
-pub async fn start(
-    graph_ref: Option<FullGraphRef>,
-    config_path: Option<PathBuf>,
-    port: Option<u16>,
-) -> Result<(), BackendError> {
+pub async fn start(args: DevCommand) -> anyhow::Result<()> {
     export_assets().await?;
 
-    let (config_path, mut config) = Config::loader().load(config_path).map_err(BackendError::Error)?;
-
+    let mut config = args.config()?;
     if !config.extensions.is_empty() {
-        crate::extension::install::execute(ExtensionInstallCommand {
-            config: config_path.clone().unwrap(),
-        })
-        .await
-        .map_err(|err| BackendError::Error(err.to_string()))?;
+        crate::extension::install::execute(&config)
+            .await
+            .map_err(|err| BackendError::Error(err.to_string()))?;
     }
 
     let (ready_sender, mut _ready_receiver) = broadcast::channel::<String>(1);
@@ -66,7 +58,8 @@ pub async fn start(
     let introspection_forced = config.graph.introspection == Some(false);
     config.graph.introspection = Some(true);
 
-    let port = port
+    let port = args
+        .port
         .or(config
             .network
             .listen_address
@@ -92,7 +85,7 @@ pub async fn start(
 
     let mut subgraphs = graphql_composition::Subgraphs::default();
 
-    let subgraph_cache = get_subgraph_sdls(graph_ref.as_ref(), &config, &mut subgraphs).await?;
+    let subgraph_cache = get_subgraph_sdls(args.graph_ref.as_ref(), &config, &mut subgraphs).await?;
 
     let composition_result = graphql_composition::compose(&subgraphs);
 
@@ -110,9 +103,7 @@ pub async fn start(
     let federated_sdl = match composition_result.into_result() {
         Ok(result) => federated_graph::render_federated_sdl(&result).map_err(BackendError::ToFederatedSdl)?,
         Err(diagnostics) => {
-            return Err(BackendError::Composition(
-                diagnostics.iter_errors().collect::<Vec<_>>().join("\n"),
-            ));
+            return Err(BackendError::Composition(diagnostics.iter_errors().collect::<Vec<_>>().join("\n")).into());
         }
     };
 
@@ -140,7 +131,7 @@ pub async fn start(
     let hot_reload_ready_receiver = ready_sender.subscribe();
 
     // FIXME: so many leaks everywhere...
-    let config_path: Option<&'static PathBuf> = Box::leak(Box::new(config_path)).as_ref();
+    let config_path: Option<&'static PathBuf> = Box::leak(Box::new(config.path.clone())).as_ref();
     tokio::spawn(async move {
         hot_reload(
             config_sender,

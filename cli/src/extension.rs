@@ -15,6 +15,6 @@ pub(crate) async fn execute(cmd: ExtensionCommand) -> anyhow::Result<()> {
         ExtensionSubCommand::Build(cmd) => build::execute(cmd),
         ExtensionSubCommand::Publish(cmd) => publish::execute(cmd).await,
         ExtensionSubCommand::Update(cmd) => update::execute(cmd).await,
-        ExtensionSubCommand::Install(cmd) => install::execute(cmd).await,
+        ExtensionSubCommand::Install(cmd) => install::execute(&cmd.config()?).await,
     }
 }

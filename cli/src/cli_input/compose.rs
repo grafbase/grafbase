@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use clap::Parser;
+use gateway_config::Config;
 
 use super::FullGraphRef;
 
@@ -11,5 +12,13 @@ pub(crate) struct ComposeCommand {
     pub(crate) graph_ref: Option<FullGraphRef>,
     /// The path of the gateway configuration file
     #[arg(short('c'), long("config"))]
-    pub(crate) config_path: PathBuf,
+    config_path: Option<PathBuf>,
+}
+
+impl ComposeCommand {
+    pub fn config(&self) -> anyhow::Result<Config> {
+        Config::loader()
+            .load_or_default(self.config_path.as_ref())
+            .map_err(|err| anyhow::anyhow!(err))
+    }
 }

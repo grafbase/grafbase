@@ -63,7 +63,7 @@ impl Loader {
         }
     }
 
-    pub fn load<P: AsRef<Path>>(self, path: Option<P>) -> Result<(Option<PathBuf>, Config), String> {
+    pub fn load_or_default<P: AsRef<Path>>(self, path: Option<P>) -> Result<Config, String> {
         let path = match path {
             Some(path) => path.as_ref().to_path_buf(),
             None => {
@@ -77,7 +77,7 @@ impl Loader {
                 if path.exists() {
                     path
                 } else {
-                    return Ok((None, Default::default()));
+                    return Ok(Default::default());
                 }
             }
         };
@@ -85,20 +85,22 @@ impl Loader {
         let content = std::fs::read_to_string(&path)
             .map_err(|err| format!("Failed readng config content at path {}: {err}", path.display()))?;
 
-        let config: Config = toml::from_str(&content).map_err(|err| format!("Failed to parse configuration: {err}"))?;
+        let mut config: Config =
+            toml::from_str(&content).map_err(|err| format!("Failed to parse configuration: {err}"))?;
 
-        let parent_path = if path.is_relative() {
+        config.path = Some(if path.is_relative() {
             let cdir = match self.current_dir.as_ref() {
                 Some(cdir) => cdir.clone(),
                 None => std::env::current_dir().map_err(|err| format!("Could not detect current directory: {err}"))?,
             };
-            cdir.join(&path).parent().map(ToOwned::to_owned)
+            cdir.join(&path)
         } else {
-            path.parent().map(ToOwned::to_owned)
-        }
-        .ok_or_else(|| "Could not detect parent directory".to_string())?;
+            path
+        });
 
-        Ok((Some(path), config.with_aboslute_paths(&parent_path)))
+        Ok(config
+            .with_absolute_paths()
+            .expect("config.parent_path exists and is absolute."))
     }
 }
 
@@ -107,6 +109,9 @@ impl Loader {
 /// Configuration struct to define settings for self-hosted
 /// Grafbase gateway.
 pub struct Config {
+    // Absolute configuration file path if any.
+    #[serde(skip)]
+    pub path: Option<PathBuf>,
     /// Graph location and features, such as introspection
     pub graph: GraphConfig,
     /// Server bind settings
@@ -163,11 +168,16 @@ impl Config {
     }
 
     pub fn load<P: AsRef<Path>>(path: P) -> Result<Self, String> {
-        Self::loader().load(Some(path)).map(|(_, config)| config)
+        Self::loader().load_or_default(Some(path))
     }
 
-    pub fn with_aboslute_paths(mut self, parent: &Path) -> Self {
-        assert!(parent.is_absolute(), "Parent path must be absolute");
+    pub fn with_absolute_paths(mut self) -> Option<Self> {
+        let parent = self
+            .path
+            .as_ref()
+            .and_then(|path| path.parent())
+            .filter(|path| path.is_absolute())?;
+
         for subgraph in self.subgraphs.values_mut() {
             if let Some(schema_path) = &mut subgraph.schema_path {
                 if schema_path.is_relative() {
@@ -187,13 +197,14 @@ impl Config {
             }
         }
 
-        self
+        Some(self)
     }
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
+            path: None,
             graph: Default::default(),
             network: Default::default(),
             gateway: Default::default(),

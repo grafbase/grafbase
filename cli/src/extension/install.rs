@@ -1,4 +1,4 @@
-use crate::{backend::api, cli_input::ExtensionInstallCommand, output::report};
+use crate::{backend::api, output::report};
 use extension::lockfile;
 use futures::stream::FuturesUnordered;
 use gateway_config::Config;
@@ -11,8 +11,8 @@ use super::EXTENSION_WASM_MODULE_FILE_NAME;
 
 pub const PUBLIC_EXTENSION_REGISTRY_URL: &str = "https://extensions.grafbase.com";
 
-pub(crate) async fn execute(cmd: ExtensionInstallCommand) -> anyhow::Result<()> {
-    if let Some(new_lockfile) = handle_lockfile(&cmd.config).await? {
+pub(crate) async fn execute(config: &Config) -> anyhow::Result<()> {
+    if let Some(new_lockfile) = handle_lockfile(config).await? {
         download_extensions(new_lockfile).await?;
     }
     Ok(())
@@ -60,7 +60,7 @@ async fn download_extensions(new_lockfile: lockfile::Lockfile) -> anyhow::Result
 }
 
 /// Returns the new up to date lockfile.
-async fn handle_lockfile(config_path: &Path) -> anyhow::Result<Option<lockfile::Lockfile>> {
+async fn handle_lockfile(config: &Config) -> anyhow::Result<Option<lockfile::Lockfile>> {
     let mut has_updated = false;
     let lockfile_path = Path::new(extension::lockfile::EXTENSION_LOCKFILE_NAME);
     let lockfile_str = match fs::read_to_string(lockfile_path).await {
@@ -80,11 +80,9 @@ async fn handle_lockfile(config_path: &Path) -> anyhow::Result<Option<lockfile::
         lockfile::Lockfile::default()
     };
 
-    let config = Config::load(config_path).map_err(|err| anyhow::anyhow!(err))?;
-
     let mut new_version_requirements: Vec<(String, semver::VersionReq)> = Vec::new();
 
-    let mut extensions_from_config = config.extensions;
+    let mut extensions_from_config = config.extensions.clone();
 
     // We ignore extensions that have explicitly a path.
     extensions_from_config.retain(|_, ext| ext.path().is_none());
