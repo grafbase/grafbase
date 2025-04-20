@@ -244,7 +244,7 @@ async fn serde_roundtrip(#[case] sdl: &str) {
     )
     .unwrap();
 
-    let schema = Schema::build(&config, sdl, &Default::default()).await.unwrap();
+    let schema = Schema::build(None, sdl, &config, &Default::default()).await.unwrap();
 
     let mut serializer = postcard::Serializer {
         output: postcard::ser_flavors::AllocVec::new(),
@@ -280,9 +280,9 @@ async fn consistent_hash() {
     )
     .unwrap();
 
-    let schema1 = Schema::build(&config, SCHEMA, &Default::default()).await.unwrap();
-    let schema1bis = Schema::build(&config, SCHEMA, &Default::default()).await.unwrap();
-    let schema2 = Schema::build(&config, SCHEMA_WITH_INACCESSIBLES, &Default::default())
+    let schema1 = Schema::build(None, SCHEMA, &config, &Default::default()).await.unwrap();
+    let schema1bis = Schema::build(None, SCHEMA, &config, &Default::default()).await.unwrap();
+    let schema2 = Schema::build(None, SCHEMA_WITH_INACCESSIBLES, &config, &Default::default())
         .await
         .unwrap();
 

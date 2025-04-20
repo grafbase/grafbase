@@ -8,9 +8,12 @@ mod interner;
 mod sdl;
 mod subgraphs;
 
+use std::path::Path;
+
 use context::{BuildContext, Interners};
 use extension::{ExtensionsContext, finalize_selection_set_resolvers, ingest_extension_schema_directives};
 use extension_catalog::ExtensionCatalog;
+use gateway_config::Config;
 use sdl::{Sdl, SpanTranslator};
 
 pub(crate) use coerce::*;
@@ -20,30 +23,34 @@ pub(crate) use graph::*;
 use crate::*;
 
 pub(crate) async fn build(
-    config: &gateway_config::Config,
+    current_dir: Option<&Path>,
     sdl: &str,
+    config: &gateway_config::Config,
     extension_catalog: &ExtensionCatalog,
 ) -> Result<Schema, String> {
-    build_inner(config, sdl, extension_catalog).await.map_err(|err| {
-        let translator = SpanTranslator::new(sdl);
-        err.into_string(&translator)
-    })
+    build_inner(current_dir, sdl, config, extension_catalog)
+        .await
+        .map_err(|err| {
+            let translator = SpanTranslator::new(sdl);
+            err.into_string(&translator)
+        })
 }
 
 async fn build_inner(
-    config: &gateway_config::Config,
+    current_dir: Option<&Path>,
     sdl: &str,
+    config: &gateway_config::Config,
     extension_catalog: &ExtensionCatalog,
 ) -> Result<Schema, Error> {
     if !sdl.trim().is_empty() {
         let doc = &cynic_parser::parse_type_system_document(sdl).map_err(|err| Error::from(err.to_string()))?;
         let sdl = Sdl::try_from((sdl, doc))?;
-        let extensions = ExtensionsContext::load(&sdl, extension_catalog).await?;
+        let extensions = ExtensionsContext::load(current_dir, &sdl, extension_catalog).await?;
 
         BuildContext::new(&sdl, &extensions, config)?.build()
     } else {
         let sdl = Default::default();
-        let extensions = ExtensionsContext::load(&sdl, extension_catalog).await?;
+        let extensions = ExtensionsContext::load(current_dir, &sdl, extension_catalog).await?;
 
         BuildContext::new(&sdl, &extensions, config)?.build()
     }
@@ -107,7 +114,7 @@ impl BuildContext<'_> {
     }
 }
 
-fn build_settings(config: &gateway_config::Config) -> PartialConfig {
+fn build_settings(config: &Config) -> PartialConfig {
     PartialConfig {
         timeout: config.gateway.timeout,
         operation_limits: config.operation_limits.unwrap_or_default(),

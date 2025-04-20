@@ -4,3 +4,4 @@
 - Renamed `--gateway-config` to `--config` in `grafbase compose`.
 - Automatic installation of extension in `grafbase dev`.
 - Default to `grafbase.toml` if it exists for `grafbase dev`
+- Support relative paths, to the current directory, for extensions in the `grafbase.toml` and schema files.

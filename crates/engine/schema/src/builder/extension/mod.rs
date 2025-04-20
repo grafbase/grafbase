@@ -4,7 +4,7 @@ mod selection_set_resolvers;
 use extension_catalog::{ExtensionCatalog, ExtensionId, Manifest};
 use federated_graph::link::LinkDirective;
 use rapidhash::RapidHashMap;
-use std::str::FromStr as _;
+use std::{path::Path, str::FromStr as _};
 use strum::IntoEnumIterator as _;
 
 use cynic_parser_deser::ConstDeserializer;
@@ -45,7 +45,11 @@ pub(crate) struct ExtensionSdl {
 }
 
 impl<'a> ExtensionsContext<'a> {
-    pub(super) async fn load<'sdl, 'ext>(sdl: &'sdl Sdl<'sdl>, catalog: &'ext ExtensionCatalog) -> Result<Self, String>
+    pub(super) async fn load<'sdl, 'ext>(
+        current_dir: Option<&Path>,
+        sdl: &'sdl Sdl<'sdl>,
+        catalog: &'ext ExtensionCatalog,
+    ) -> Result<Self, String>
     where
         'sdl: 'a,
         'ext: 'a,
@@ -61,7 +65,7 @@ impl<'a> ExtensionsContext<'a> {
                 continue;
             }
 
-            let manifest = extension_catalog::load_manifest(extension.url.clone())
+            let manifest = extension_catalog::load_manifest(current_dir, extension.url.clone())
                 .await
                 .map_err(|err| {
                     format!(
