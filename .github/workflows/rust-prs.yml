@@ -33,6 +33,7 @@ jobs:
 
       grafbase-docker: ${{ steps.paths-changed.outputs.grafbase-docker }}
       gateway-docker: ${{ steps.paths-changed.outputs.gateway-docker }}
+      examples: ${{ steps.paths-changed.outputs.gateway-examples }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -58,6 +59,8 @@ jobs:
           filters: |
             gateway-docker:
               - gateway/Dockerfile
+            examples:
+              - examples/**
 
   check-licenses:
     needs: [what-changed]
@@ -430,6 +433,7 @@ jobs:
       dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
     if: |
       needs.what-changed.outputs.gateway-docker == 'true'
+      || needs.what-changed.outputs.examples == 'true'
       || contains(fromJson(needs.what-changed.outputs.changed-packages), 'grafbase-gateway')
     runs-on: depot-ubuntu-24.04-8
     permissions:

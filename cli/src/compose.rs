@@ -1,6 +1,5 @@
 use cynic_parser::TypeSystemDocument;
 use futures::{TryStreamExt as _, stream::FuturesUnordered};
-use gateway_config::Config;
 
 use crate::{
     backend::dev::{detect_extensions, fetch_remote_subgraphs},
@@ -9,14 +8,14 @@ use crate::{
 };
 
 #[tokio::main]
-pub(crate) async fn compose(ComposeCommand { graph_ref, config_path }: ComposeCommand) -> anyhow::Result<()> {
-    let config = Config::load(&config_path).map_err(|err| anyhow::anyhow!(err))?;
+pub(crate) async fn compose(args: ComposeCommand) -> anyhow::Result<()> {
+    let config = args.config()?;
 
-    if graph_ref.is_none() && config.subgraphs.is_empty() {
+    if args.graph_ref.is_none() && config.subgraphs.is_empty() {
         return Err(anyhow::anyhow!("No subgraphs found"));
     }
 
-    let remote_subgraphs = if let Some(graph_ref) = &graph_ref {
+    let remote_subgraphs = if let Some(graph_ref) = &args.graph_ref {
         fetch_remote_subgraphs(graph_ref).await?
     } else {
         Vec::new()

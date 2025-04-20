@@ -1,5 +1,4 @@
 use crate::backend::api::errors::{ApiError, CreateError, LoginApiError, PublishError};
-use crate::backend::errors::BackendError;
 use crate::common::errors::CommonError;
 use std::io;
 use std::path::PathBuf;
@@ -60,9 +59,6 @@ pub enum CliError {
     /// returned if an unsupported extension is passed to lint
     #[error("attempted to lint a file with an unsupported extension: '{0}'")]
     LintUnsupportedFileExtension(String),
-    /// wraps an error originating in the local-backend crate
-    #[error(transparent)]
-    BackendError(BackendError),
     #[error(transparent)]
     GenericError(#[from] anyhow::Error),
 }
