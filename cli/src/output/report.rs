@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, path::Path};
+use std::collections::BTreeMap;
 
 use crate::{
     backend::{
@@ -295,10 +295,10 @@ pub(crate) fn extension_published(name: &str, version: &str) {
     println!("🌟 Extension `{name}@{version}` published successfully");
 }
 
-pub(crate) fn extension_install_start(target_path: &Path) {
-    watercolor::output!("🕒 Downloading extensions from the lockfile to \"{}\"...", target_path.display(), @BrightBlue);
+pub(crate) fn extension_install_start() {
+    watercolor::output!("Installing extensions...", @White);
 }
 
 pub(crate) fn no_extension_defined_in_config() {
-    watercolor::output!("✅ No extensions defined in config", @BrightGreen);
+    watercolor::output!("✅ No extensions defined in the configuration", @BrightGreen);
 }

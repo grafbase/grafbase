@@ -191,7 +191,7 @@ fn output_handler(
         graphql_url.port().unwrap()
     );
 
-    println!("- Local:    {}", explorer_url);
+    println!("\n- Local:    {}", explorer_url);
     println!("- GraphQL:  {}", graphql_url);
 
     if let Some(mcp_url) = mcp_url {
