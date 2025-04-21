@@ -20,7 +20,7 @@ use extension::Manifest;
 /// reports to stdout that the server has started
 pub fn cli_header() {
     let version = env!("CARGO_PKG_VERSION");
-    println!("{}", format!("Grafbase CLI {version}\n").bold());
+    println!("{}", format!("Grafbase CLI {version}\n").green().bold());
 }
 
 /// reports an error to stderr
