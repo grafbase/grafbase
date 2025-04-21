@@ -191,11 +191,11 @@ fn output_handler(
         graphql_url.port().unwrap()
     );
 
-    println!("\n➜ Local:   {}", explorer_url);
-    println!("➜ GraphQL: {}", graphql_url);
+    println!("\n{} {}   {}", "➜".green(), "Local:".bold(), explorer_url);
+    println!("{} {}: {}", "➜".green(), "GraphQL".bold(), graphql_url);
 
     if let Some(mcp_url) = mcp_url {
-        println!(" ➜ MCP:      {}", mcp_url);
+        println!("{} {}:     {}", "➜".green(), "MCP".bold(), mcp_url);
     }
 
     println!("\n");
