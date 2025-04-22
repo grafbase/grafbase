@@ -36,7 +36,7 @@ async fn download_extensions(new_lockfile: lockfile::Lockfile) -> anyhow::Result
 
     let mut futures = FuturesUnordered::new();
 
-    report::extension_install_start(extensions_directory);
+    report::extension_install_start();
 
     let progress_bar = indicatif::ProgressBar::new(new_lockfile.extensions.len() as u64);
 
