@@ -11,7 +11,7 @@ mod subgraphs;
 use std::path::Path;
 
 use context::{BuildContext, Interners};
-use extension::{ExtensionsContext, finalize_selection_set_resolvers, ingest_extension_schema_directives};
+use extension::{ExtensionsContext, ingest_extension_schema_directives};
 use extension_catalog::ExtensionCatalog;
 use gateway_config::Config;
 use sdl::{Sdl, SpanTranslator};
@@ -67,8 +67,6 @@ impl BuildContext<'_> {
 
         ingest_directives(&mut graph_builder, &sdl_definitions)?;
 
-        finalize_selection_set_resolvers(&mut graph_builder)?;
-
         let GraphBuilder {
             ctx:
                 BuildContext {
@@ -81,6 +79,7 @@ impl BuildContext<'_> {
                 },
             mut graph,
             required_scopes,
+            selections,
             ..
         } = graph_builder;
         graph.required_scopes = required_scopes.into();
@@ -105,6 +104,7 @@ impl BuildContext<'_> {
             subgraphs,
             graph,
             hash,
+            selections: selections.inner,
             extensions,
             strings,
             regexps: regexps.into(),

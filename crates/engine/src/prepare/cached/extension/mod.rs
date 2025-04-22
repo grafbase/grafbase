@@ -9,19 +9,19 @@ use schema::{ExtensionDirective, ExtensionDirectiveArgumentsStaticView, Injectio
 
 use crate::response::ResponseObjectsView;
 
-use super::PartitionFieldArguments;
+use super::PlanFieldArguments;
 
 #[derive(Clone, Copy)]
 pub(crate) struct ArgumentsContext<'a> {
     schema: &'a Schema,
-    field_arguments: PartitionFieldArguments<'a>,
+    field_arguments: PlanFieldArguments<'a>,
     variables: &'a Variables,
 }
 
 pub(crate) fn create_extension_directive_query_view<'ctx>(
     schema: &'ctx Schema,
     directive: ExtensionDirective<'ctx>,
-    field_arguments: PartitionFieldArguments<'ctx>,
+    field_arguments: PlanFieldArguments<'ctx>,
     variables: &'ctx Variables,
 ) -> ExtensionDirectiveArgumentsQueryView<'ctx> {
     let ctx = ArgumentsContext {
@@ -36,7 +36,7 @@ pub(crate) fn create_extension_directive_query_view<'ctx>(
 pub(crate) fn create_extension_directive_response_view<'ctx, 'resp>(
     schema: &'ctx Schema,
     directive: ExtensionDirective<'ctx>,
-    field_arguments: PartitionFieldArguments<'ctx>,
+    field_arguments: PlanFieldArguments<'ctx>,
     variables: &'ctx Variables,
     response_objects_view: ResponseObjectsView<'resp>,
 ) -> ExtensionDirectiveArgumentsResponseObjectsView<'resp>

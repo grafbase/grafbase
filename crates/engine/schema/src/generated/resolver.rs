@@ -44,7 +44,7 @@ pub enum ResolverDefinitionRecord {
     GraphqlFederationEntity(GraphqlFederationEntityResolverDefinitionRecord),
     GraphqlRootField(GraphqlRootFieldResolverDefinitionRecord),
     Introspection,
-    Lookup(LookupResolverDefinitionRecord),
+    Lookup(LookupResolverDefinitionId),
     SelectionSetResolverExtension(SelectionSetResolverExtensionDefinitionRecord),
 }
 
@@ -76,8 +76,8 @@ impl From<GraphqlRootFieldResolverDefinitionRecord> for ResolverDefinitionRecord
         ResolverDefinitionRecord::GraphqlRootField(value)
     }
 }
-impl From<LookupResolverDefinitionRecord> for ResolverDefinitionRecord {
-    fn from(value: LookupResolverDefinitionRecord) -> Self {
+impl From<LookupResolverDefinitionId> for ResolverDefinitionRecord {
+    fn from(value: LookupResolverDefinitionId) -> Self {
         ResolverDefinitionRecord::Lookup(value)
     }
 }
@@ -121,9 +121,9 @@ impl ResolverDefinitionRecord {
     pub fn is_lookup(&self) -> bool {
         matches!(self, ResolverDefinitionRecord::Lookup(_))
     }
-    pub fn as_lookup(&self) -> Option<&LookupResolverDefinitionRecord> {
+    pub fn as_lookup(&self) -> Option<LookupResolverDefinitionId> {
         match self {
-            ResolverDefinitionRecord::Lookup(item) => Some(item),
+            ResolverDefinitionRecord::Lookup(id) => Some(*id),
             _ => None,
         }
     }
@@ -195,7 +195,7 @@ impl<'a> ResolverDefinition<'a> {
                 ResolverDefinitionVariant::GraphqlRootField(item.walk(schema))
             }
             ResolverDefinitionRecord::Introspection => ResolverDefinitionVariant::Introspection(schema),
-            ResolverDefinitionRecord::Lookup(item) => ResolverDefinitionVariant::Lookup(item.walk(schema)),
+            ResolverDefinitionRecord::Lookup(id) => ResolverDefinitionVariant::Lookup(id.walk(schema)),
             ResolverDefinitionRecord::SelectionSetResolverExtension(item) => {
                 ResolverDefinitionVariant::SelectionSetResolverExtension(item.walk(schema))
             }

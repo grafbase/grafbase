@@ -140,7 +140,7 @@ impl<'ctx> ConcreteShapeSeed<'ctx, '_> {
                         resp.push_error(
                             GraphqlError::invalid_subgraph_response()
                                 .with_path(path)
-                                .with_location(self.parent_field.id.walk(self.ctx).location),
+                                .with_location(self.parent_field.id.walk(self.ctx).location()),
                         );
                     }
                     ResponseValue::Unexpected
@@ -160,7 +160,7 @@ impl<'ctx> ConcreteShapeSeed<'ctx, '_> {
                     resp.push_error(
                         error
                             .with_path(path)
-                            .with_location(self.parent_field.id.walk(self.ctx).location),
+                            .with_location(self.parent_field.id.walk(self.ctx).location()),
                     );
                 }
                 ResponseValue::Unexpected
@@ -425,7 +425,7 @@ impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_> {
                         error
                             .clone()
                             .with_path((self.ctx.path(), field_shape.key))
-                            .with_location(field_shape.as_ref().id.walk(self.ctx).location),
+                            .with_location(field_shape.as_ref().id.walk(self.ctx).location()),
                     );
 
                     if field_shape.wrapping.is_required() {
@@ -476,7 +476,7 @@ impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_> {
                             resp.push_error(
                                 GraphqlError::invalid_subgraph_response()
                                     .with_path((path, field_shape.key))
-                                    .with_location(field_shape.as_ref().id.walk(self.ctx).location),
+                                    .with_location(field_shape.as_ref().id.walk(self.ctx).location()),
                             );
 
                             return;

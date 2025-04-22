@@ -1,9 +1,9 @@
 scalar Schema @domain(destination: "schema/src")
 
 # std / lib
-scalar String @indexed(deduplicated: true)
-scalar Regex @indexed(deduplicated: true)
-scalar Url @indexed(deduplicated: true)
+scalar String @indexed(deduplicated: true) @prelude
+scalar Regex @indexed(deduplicated: true) @prelude
+scalar Url @indexed(deduplicated: true) @prelude
 
 # ---------
 # - Graph -
@@ -185,27 +185,6 @@ type InputValueDefinition @meta(module: "input_value") @indexed(id_size: "u32") 
   directives: [TypeSystemDirective!]!
 }
 
-# ------------
-# - FieldSet -
-# ------------
-
-scalar FieldSet @record
-
-type SchemaField
-  @meta(module: "field_set/field", derive: ["PartialEq", "Eq", "PartialOrd", "Ord", "Clone"], debug: false)
-  @indexed(id_size: "u32", deduplicated: true) {
-  definition: FieldDefinition!
-  "Sorted by input value definition id"
-  sorted_arguments: [SchemaFieldArgument!]!
-}
-
-type SchemaFieldArgument
-  @meta(module: "field_set/argument", derive: ["PartialEq", "Eq", "PartialOrd", "Ord"])
-  @indexed(id_size: "u32") {
-  definition: InputValueDefinition!
-  value: SchemaInputValue!
-}
-
 # --------------
 # - Directives -
 # --------------
@@ -365,9 +344,33 @@ type SelectionSetResolverExtensionDefinition @meta(module: "resolver/selection_s
   extension_id: ExtensionId!
 }
 
-type LookupResolverDefinition @meta(module: "resolver/lookup") {
+scalar InputValueInjection @indexed
+
+type LookupResolverDefinition @meta(module: "resolver/lookup") @indexed(id_size: "u32") {
   key: FieldSet!
-  batch_argument: InputValueDefinition
-  field: FieldDefinition!
+  field_definition: FieldDefinition!
   resolver: ResolverDefinition!
+  batch: Boolean!
+  injections: [InputValueInjection!]!
+}
+
+# --------------
+# - Selections -
+# --------------
+
+scalar FieldSet @record
+
+type SchemaField
+  @meta(module: "field_set/field", derive: ["PartialEq", "Eq", "PartialOrd", "Ord", "Clone"], debug: false)
+  @indexed(id_size: "u32", deduplicated: true) {
+  definition: FieldDefinition!
+  "Sorted by input value definition id"
+  sorted_arguments: [SchemaFieldArgument!]!
+}
+
+type SchemaFieldArgument
+  @meta(module: "field_set/argument", derive: ["PartialEq", "Eq", "PartialOrd", "Ord"])
+  @indexed(id_size: "u32") {
+  definition: InputValueDefinition!
+  value: SchemaInputValue!
 }

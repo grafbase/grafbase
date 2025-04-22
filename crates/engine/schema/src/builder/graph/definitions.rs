@@ -71,23 +71,21 @@ pub(crate) fn ingest_definitions(
         // Initialized in the relevant functions as there is no obvious default.
         resolver_definitions: Vec::new(),
         type_definitions_ordered_by_name: Vec::new(),
-        fields: Vec::new(),
         input_values: Default::default(),
         required_scopes: Vec::new(),
         authorized_directives: Vec::new(),
-        field_sets: Vec::new(),
-        field_arguments: Vec::new(),
         cost_directives: Vec::new(),
         list_size_directives: Vec::new(),
         extension_directives: Vec::new(),
         extension_directive_arguments: Vec::new(),
         templates: Vec::new(),
+        lookup_resolver_definitions: Vec::new(),
     };
 
     let builder = GraphBuilder {
         graph,
         type_definitions: RapidHashMap::with_capacity_and_hasher(sdl.type_definitions.len(), Default::default()),
-        deduplicated_fields: Default::default(),
+        selections: Default::default(),
         required_scopes: Default::default(),
         value_path: Default::default(),
         input_fields_buffer_pool: Default::default(),

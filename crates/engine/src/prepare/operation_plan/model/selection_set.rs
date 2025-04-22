@@ -16,16 +16,22 @@ impl<'a> SubgraphSelectionSet<'a> {
     }
 
     pub(crate) fn fields(&self) -> impl Iterator<Item = SubgraphField<'a>> + 'a {
-        self.fields_ordered_by_parent_entity_then_key()
+        let ctx = self.ctx;
+        self.data_fields_ordered_by_parent_entity_then_key().chain(
+            self.item
+                .lookup_field_ids
+                .into_iter()
+                .map(move |id| SubgraphField { ctx, id: id.into() }),
+        )
     }
 
-    pub(crate) fn fields_ordered_by_parent_entity_then_key(&self) -> impl Iterator<Item = SubgraphField<'a>> + 'a {
+    pub(crate) fn data_fields_ordered_by_parent_entity_then_key(&self) -> impl Iterator<Item = SubgraphField<'a>> + 'a {
         let ctx = self.ctx;
         self.item
             .data_field_ids_ordered_by_parent_entity_then_key
             .into_iter()
             .filter(|id| self.ctx.plan.query_modifications.included_subgraph_request_data_fields[*id])
-            .map(move |id| SubgraphField { ctx, id })
+            .map(move |id| SubgraphField { ctx, id: id.into() })
     }
 
     pub(crate) fn requires_typename(&self) -> bool {
@@ -49,7 +55,7 @@ impl<'a> runtime::extension::SelectionSet<'a> for SubgraphSelectionSet<'a> {
     }
 
     fn fields_ordered_by_parent_entity(&self) -> impl Iterator<Item = Self::Field> {
-        self.fields_ordered_by_parent_entity_then_key()
+        self.data_fields_ordered_by_parent_entity_then_key()
     }
 }
 
@@ -58,7 +64,7 @@ impl<'a> runtime::extension::DynSelectionSet<'a> for SubgraphSelectionSet<'a> {
         self.requires_typename()
     }
     fn fields_ordered_by_parent_entity(&self) -> Vec<Box<dyn runtime::extension::DynField<'a>>> {
-        self.fields_ordered_by_parent_entity_then_key()
+        self.data_fields_ordered_by_parent_entity_then_key()
             .map(|field| -> Box<dyn runtime::extension::DynField<'a>> { Box::new(field) })
             .collect()
     }

@@ -5,7 +5,7 @@ use schema::{EnumDefinitionId, ScalarType, Wrapping};
 use walker::Walk;
 
 use crate::{
-    prepare::{OperationPlanContext, PartitionDataFieldId},
+    prepare::{DataOrLookupFieldId, OperationPlanContext},
     response::GraphqlError,
 };
 
@@ -15,7 +15,7 @@ use super::{ConcreteShapeId, PolymorphicShapeId};
 pub(crate) struct FieldShapeRecord {
     pub expected_key: ResponseKey,
     pub key: PositionedResponseKey,
-    pub id: PartitionDataFieldId,
+    pub id: DataOrLookupFieldId,
     pub shape: Shape,
     pub wrapping: Wrapping,
 }

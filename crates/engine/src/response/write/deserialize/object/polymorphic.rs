@@ -71,7 +71,7 @@ impl PolymorphicShapeSeed<'_, '_> {
             resp.push_error(
                 GraphqlError::invalid_subgraph_response()
                     .with_path(path)
-                    .with_location(self.parent_field.id.walk(self.ctx).location),
+                    .with_location(self.parent_field.id.walk(self.ctx).location()),
             );
         }
 
@@ -199,7 +199,7 @@ impl<'de> Visitor<'de> for PolymorphicShapeSeed<'_, '_> {
             resp.push_error(
                 GraphqlError::invalid_subgraph_response()
                     .with_path(path)
-                    .with_location(self.parent_field.id.walk(self.ctx).location),
+                    .with_location(self.parent_field.id.walk(self.ctx).location()),
             );
         }
 

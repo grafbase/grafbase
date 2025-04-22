@@ -3,7 +3,6 @@ use std::{num::NonZero, ops::Deref};
 use futures::future::FutureExt;
 use id_newtypes::{BitSet, IdRange, IdToMany};
 use operation::{InputValueContext, Variables};
-use query_solver::QueryOrSchemaFieldArgumentIds;
 use runtime::extension::{
     AuthorizationDecisions, AuthorizationExtension as _, QueryAuthorizationDecisions, QueryElement,
 };
@@ -15,10 +14,10 @@ use crate::{
     Runtime,
     execution::find_matching_denied_header,
     prepare::{
-        CachedOperation, CachedOperationContext, ConcreteShapeId, ErrorCode, FieldShapeId, GraphqlError,
-        PartitionDataFieldId, PartitionField, PartitionTypenameFieldId, PrepareContext, QueryModifierId,
-        QueryModifierRecord, QueryModifierRule, QueryModifierTarget, QueryOrStaticExtensionDirectiveArugmentsView,
-        RequiredFieldSetRecord, create_extension_directive_query_view,
+        CachedOperation, CachedOperationContext, ConcreteShapeId, DataFieldId, ErrorCode, FieldShapeId, GraphqlError,
+        PartitionField, PlanFieldArguments, PrepareContext, QueryModifierId, QueryModifierRecord, QueryModifierRule,
+        QueryModifierTarget, QueryOrStaticExtensionDirectiveArugmentsView, RequiredFieldSetRecord, TypenameFieldId,
+        create_extension_directive_query_view,
     },
 };
 
@@ -26,9 +25,9 @@ use super::PlanResult;
 
 #[derive(Default, id_derives::IndexedFields)]
 pub(crate) struct QueryModifications {
-    pub included_response_data_fields: BitSet<PartitionDataFieldId>,
-    pub included_response_typename_fields: BitSet<PartitionTypenameFieldId>,
-    pub included_subgraph_request_data_fields: BitSet<PartitionDataFieldId>,
+    pub included_response_data_fields: BitSet<DataFieldId>,
+    pub included_response_typename_fields: BitSet<TypenameFieldId>,
+    pub included_subgraph_request_data_fields: BitSet<DataFieldId>,
     #[indexed_by(ErrorId)]
     pub errors: Vec<GraphqlError>,
     pub concrete_shape_has_error: BitSet<ConcreteShapeId>,
@@ -255,9 +254,8 @@ where
                         .hooks()
                         .authorize_edge_pre_execution(
                             definition_id.walk(self.ctx.schema()),
-                            QueryOrSchemaFieldArgumentIds::default()
-                                .walk(self.operation_ctx)
-                                .view(&directive.arguments, self.input_value_ctx.variables),
+                            PlanFieldArguments::empty(self.operation_ctx)
+                                .query_view(&directive.arguments, self.input_value_ctx.variables),
                             directive.metadata(),
                         )
                         .await;
@@ -280,7 +278,7 @@ where
                             definition_id.walk(self.ctx.schema()),
                             argument_ids
                                 .walk(self.operation_ctx)
-                                .view(&directive.arguments, self.input_value_ctx.variables),
+                                .query_view(&directive.arguments, self.input_value_ctx.variables),
                             directive.metadata(),
                         )
                         .await;
@@ -424,6 +422,8 @@ where
                         self.field_shape_id_to_error_ids.push((field_shape_id, error_id));
                     }
                 }
+                // Can never be denied directly.
+                PartitionField::Lookup(_) => unreachable!(),
             }
         }
     }
@@ -439,6 +439,8 @@ where
                 PartitionField::Data(field) => {
                     self.modifications.included_response_data_fields.set(field.id, false);
                 }
+                // Can never be skipped, it's always necessary if any partition field is needed.
+                PartitionField::Lookup(_) => unreachable!(),
             }
         }
     }

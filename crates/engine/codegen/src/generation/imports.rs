@@ -37,10 +37,22 @@ pub(super) fn generate_imports<'a>(
                 tokens.push(quote! { #walker_name });
             }
             Definition::Scalar(scalar) => match scalar {
-                Scalar::Value { in_prelude, .. } => {
-                    if !in_prelude {
+                Scalar::Value {
+                    in_prelude,
+                    indexed,
+                    name: struct_name,
+                    ..
+                } => {
+                    let tokens = exernal_imports.unwrap_or(&mut scalar_imports);
+                    if indexed.is_some() {
                         let name = Ident::new(definition.storage_type().name(), Span::call_site());
-                        let tokens = exernal_imports.unwrap_or(&mut scalar_imports);
+                        tokens.push(quote! { #name });
+                        if !in_prelude {
+                            let name = Ident::new(struct_name, Span::call_site());
+                            tokens.push(quote! { #name });
+                        }
+                    } else if !in_prelude {
+                        let name = Ident::new(definition.storage_type().name(), Span::call_site());
                         tokens.push(quote! { #name });
                     }
                 }

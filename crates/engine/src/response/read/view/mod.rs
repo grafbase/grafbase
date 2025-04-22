@@ -2,7 +2,7 @@ mod ser;
 
 use std::{borrow::Cow, sync::Arc};
 
-use schema::FieldSetRecord;
+use schema::{FieldSetRecord, Schema, ValueInjection};
 
 use crate::{
     prepare::RequiredFieldSet,
@@ -14,6 +14,12 @@ use crate::{
 #[derive(Clone, Copy)]
 pub(super) struct ViewContext<'a> {
     pub(super) response: &'a ResponseBuilder,
+}
+
+impl<'a> ViewContext<'a> {
+    fn schema(&self) -> &'a Schema {
+        &self.response.schema
+    }
 }
 
 #[derive(Clone)]
@@ -68,6 +74,17 @@ impl<'a> ResponseObjectsView<'a, RequiredFieldSet<'a>> {
             },
         }
     }
+
+    pub fn for_injection(self, injection: ValueInjection) -> ResponseObjectsView<'a, ForInjection<'a>> {
+        ResponseObjectsView {
+            ctx: self.ctx,
+            response_object_set: self.response_object_set,
+            view: ForInjection {
+                requirements: self.view,
+                injection,
+            },
+        }
+    }
 }
 
 impl<'a> ResponseObjectView<'a, RequiredFieldSet<'a>> {
@@ -85,6 +102,17 @@ impl<'a> ResponseObjectView<'a, RequiredFieldSet<'a>> {
             },
         }
     }
+
+    pub fn for_injection(self, injection: ValueInjection) -> ResponseObjectView<'a, ForInjection<'a>> {
+        ResponseObjectView {
+            ctx: self.ctx,
+            response_object: self.response_object,
+            view: ForInjection {
+                requirements: self.view,
+                injection,
+            },
+        }
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -98,6 +126,12 @@ pub(crate) struct ResponseObjectView<'a, View = RequiredFieldSet<'a>> {
 pub(crate) struct ForFieldSet<'a> {
     requirements: RequiredFieldSet<'a>,
     field_set: &'a FieldSetRecord,
+}
+
+#[derive(Clone, Copy)]
+pub(crate) struct ForInjection<'a> {
+    requirements: RequiredFieldSet<'a>,
+    injection: ValueInjection,
 }
 
 #[derive(Clone, Copy)]

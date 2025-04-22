@@ -5,27 +5,27 @@ use walker::Walk;
 
 use crate::prepare::CachedOperationContext;
 
-use super::{PartitionDataField, PartitionDataFieldId};
+use super::{DataField, DataFieldId};
 
 #[derive(Clone, Default, Debug, serde::Serialize, serde::Deserialize)]
-pub(crate) struct RequiredFieldSetRecord(Vec<RequiredFieldSetItemRecord>);
+pub(crate) struct RequiredFieldSetRecord(Vec<RequredFieldRecord>);
 
 impl std::ops::Deref for RequiredFieldSetRecord {
-    type Target = [RequiredFieldSetItemRecord];
+    type Target = [RequredFieldRecord];
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl From<Vec<RequiredFieldSetItemRecord>> for RequiredFieldSetRecord {
-    fn from(mut items: Vec<RequiredFieldSetItemRecord>) -> Self {
+impl From<Vec<RequredFieldRecord>> for RequiredFieldSetRecord {
+    fn from(mut items: Vec<RequredFieldRecord>) -> Self {
         items.sort_unstable_by(|a, b| a.matching_field_id.cmp(&b.matching_field_id));
         Self(items)
     }
 }
 
-impl FromIterator<RequiredFieldSetItemRecord> for RequiredFieldSetRecord {
-    fn from_iter<T: IntoIterator<Item = RequiredFieldSetItemRecord>>(iter: T) -> Self {
+impl FromIterator<RequredFieldRecord> for RequiredFieldSetRecord {
+    fn from_iter<T: IntoIterator<Item = RequredFieldRecord>>(iter: T) -> Self {
         iter.into_iter().collect::<Vec<_>>().into()
     }
 }
@@ -45,11 +45,11 @@ impl<'a> RequiredFieldSet<'a> {
         self.ref_.0.is_empty()
     }
 
-    pub fn get(&self, index: usize) -> Option<RequiredFieldSetItem<'a>> {
+    pub fn get(&self, index: usize) -> Option<RequiredQueryField<'a>> {
         self.ref_.0.get(index).map(|item| item.walk(self.ctx))
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = RequiredFieldSetItem<'a>> + 'a {
+    pub fn iter(&self) -> impl Iterator<Item = RequiredQueryField<'a>> + 'a {
         let ctx = self.ctx;
         self.ref_.0.iter().map(move |field| field.walk(ctx))
     }
@@ -74,32 +74,32 @@ impl<'a> Walk<CachedOperationContext<'a>> for &RequiredFieldSetRecord {
 }
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
-pub(crate) struct RequiredFieldSetItemRecord {
-    pub data_field_id: PartitionDataFieldId,
+pub(crate) struct RequredFieldRecord {
+    pub data_field_id: DataFieldId,
     pub matching_field_id: SchemaFieldId,
     pub subselection_record: RequiredFieldSetRecord,
 }
 
 #[derive(Clone, Copy)]
-pub(crate) struct RequiredFieldSetItem<'a> {
+pub(crate) struct RequiredQueryField<'a> {
     ctx: CachedOperationContext<'a>,
-    ref_: &'a RequiredFieldSetItemRecord,
+    ref_: &'a RequredFieldRecord,
 }
 
-impl std::ops::Deref for RequiredFieldSetItem<'_> {
-    type Target = RequiredFieldSetItemRecord;
+impl std::ops::Deref for RequiredQueryField<'_> {
+    type Target = RequredFieldRecord;
     fn deref(&self) -> &Self::Target {
         self.as_ref()
     }
 }
 
-impl<'a> RequiredFieldSetItem<'a> {
+impl<'a> RequiredQueryField<'a> {
     /// Prefer using Deref unless you need the 'a lifetime.
     #[allow(clippy::should_implement_trait)]
-    pub(crate) fn as_ref(&self) -> &'a RequiredFieldSetItemRecord {
+    pub(crate) fn as_ref(&self) -> &'a RequredFieldRecord {
         self.ref_
     }
-    pub fn data_field(&self) -> PartitionDataField<'a> {
+    pub fn data_field(&self) -> DataField<'a> {
         self.ref_.data_field_id.walk(self.ctx)
     }
     pub fn subselection(&self) -> RequiredFieldSet<'a> {
@@ -107,9 +107,9 @@ impl<'a> RequiredFieldSetItem<'a> {
     }
 }
 
-impl<'a> Walk<CachedOperationContext<'a>> for &RequiredFieldSetItemRecord {
+impl<'a> Walk<CachedOperationContext<'a>> for &RequredFieldRecord {
     type Walker<'w>
-        = RequiredFieldSetItem<'w>
+        = RequiredQueryField<'w>
     where
         Self: 'w,
         'a: 'w;
@@ -118,14 +118,14 @@ impl<'a> Walk<CachedOperationContext<'a>> for &RequiredFieldSetItemRecord {
         Self: 'w,
         'a: 'w,
     {
-        RequiredFieldSetItem {
+        RequiredQueryField {
             ctx: ctx.into(),
             ref_: self,
         }
     }
 }
 
-impl std::fmt::Debug for RequiredFieldSetItem<'_> {
+impl std::fmt::Debug for RequiredQueryField<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Field")
             .field(
@@ -166,7 +166,7 @@ impl RequiredFieldSetRecord {
                     r += 1;
                 }
                 Ordering::Equal => {
-                    fields.push(RequiredFieldSetItemRecord {
+                    fields.push(RequredFieldRecord {
                         data_field_id: left.data_field_id,
                         matching_field_id: left.matching_field_id,
                         subselection_record: if left.subselection_record.is_empty() {

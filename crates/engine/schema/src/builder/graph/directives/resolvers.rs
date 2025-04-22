@@ -1,9 +1,13 @@
+use std::mem::take;
+
+use cynic_parser_deser::ConstDeserializer;
+
 use crate::{
     EntityDefinitionId, FieldResolverExtensionDefinitionRecord, GraphqlFederationEntityResolverDefinitionRecord,
-    GraphqlRootFieldResolverDefinitionRecord, ResolverDefinitionId, ResolverDefinitionRecord, TypeSystemDirectiveId,
+    GraphqlRootFieldResolverDefinitionRecord, ResolverDefinitionId, ResolverDefinitionRecord,
+    SelectionSetResolverExtensionDefinitionRecord, SubgraphId, TypeSystemDirectiveId, VirtualSubgraphId,
     builder::{
-        Error,
-        extension::LoadedExtensionOrCompositeSchema,
+        Error, GraphBuilder,
         sdl::{self, SdlDefinition},
     },
 };
@@ -14,6 +18,7 @@ pub(super) fn generate(ingester: &mut DirectivesIngester<'_, '_>) -> Result<(), 
     create_root_graphql_resolvers(ingester);
     create_extension_resolvers(ingester);
     create_apollo_federation_entity_resolvers(ingester)?;
+    ingest_selection_set_resolvers(ingester)?;
     ingest_composite_schema_lookup(ingester)?;
     Ok(())
 }
@@ -102,9 +107,6 @@ fn create_apollo_federation_entity_resolvers(ingester: &mut DirectivesIngester<'
         {
             let (join_type, span) = result?;
             let subgraph_id = ingester.subgraphs.try_get(join_type.graph, span)?;
-            let Some(endpoint_id) = subgraph_id.as_graphql_endpoint() else {
-                continue;
-            };
             let Some(key) = join_type.key.filter(|key| !key.is_empty()) else {
                 continue;
             };
@@ -120,7 +122,7 @@ fn create_apollo_federation_entity_resolvers(ingester: &mut DirectivesIngester<'
             let mut stack = vec![&key];
             while let Some(fields) = stack.pop() {
                 for item in fields {
-                    let id = ingester.graph[item.field_id].definition_id;
+                    let id = ingester.selections[item.field_id].definition_id;
                     let field = &mut ingester.graph[id];
                     if !field.exists_in_subgraph_ids.contains(&subgraph_id) {
                         field.exists_in_subgraph_ids.push(subgraph_id);
@@ -129,6 +131,9 @@ fn create_apollo_federation_entity_resolvers(ingester: &mut DirectivesIngester<'
             }
 
             if join_type.resolvable {
+                let Some(endpoint_id) = subgraph_id.as_graphql_endpoint() else {
+                    continue;
+                };
                 let id = ingester.graph.resolver_definitions.len().into();
 
                 for field_id in field_ids {
@@ -136,7 +141,7 @@ fn create_apollo_federation_entity_resolvers(ingester: &mut DirectivesIngester<'
                     if ingester.graph[field_id].exists_in_subgraph_ids.contains(&subgraph_id)
                         && key
                             .iter()
-                            .all(|item| ingester.graph[item.field_id].definition_id != field_id)
+                            .all(|item| ingester.selections[item.field_id].definition_id != field_id)
                     {
                         ingester.graph[field_id].resolver_ids.push(id);
                     }
@@ -149,9 +154,76 @@ fn create_apollo_federation_entity_resolvers(ingester: &mut DirectivesIngester<'
                     },
                 );
                 ingester.graph.resolver_definitions.push(resolver);
+            } else {
+                ingester
+                    .composite_entity_keys
+                    .entry((entity.id(), subgraph_id))
+                    .or_default()
+                    .push(key);
             }
         }
     }
+
+    Ok(())
+}
+
+fn ingest_selection_set_resolvers(ctx: &mut GraphBuilder<'_>) -> Result<(), String> {
+    // Ensure they're not mixed with field resolvers.
+    for resolver in &ctx.graph.resolver_definitions {
+        if let Some(FieldResolverExtensionDefinitionRecord { directive_id }) = resolver.as_field_resolver_extension() {
+            let subgraph_id = ctx.graph[*directive_id]
+                .subgraph_id
+                .as_virtual()
+                .expect("should have failed at directive creation");
+            if let Some(id) = ctx.virtual_subgraph_to_selection_set_resolver[usize::from(subgraph_id)] {
+                return Err(format!(
+                    "Selection Set Resolver extension {} cannot be mixed with other resolvers in subgraph '{}', found {}",
+                    ctx[id].manifest.id,
+                    ctx[ctx.subgraphs[subgraph_id].subgraph_name_id],
+                    ctx[ctx.graph[*directive_id].extension_id].manifest.id
+                ));
+            }
+        }
+    }
+
+    let field_ids_list = {
+        let mut list = vec![ctx.graph[ctx.graph.root_operation_types_record.query_id].field_ids];
+        if let Some(mutation_id) = ctx.graph.root_operation_types_record.mutation_id {
+            list.push(ctx.graph[mutation_id].field_ids);
+        }
+        if let Some(subscription_id) = ctx.graph.root_operation_types_record.subscription_id {
+            list.push(ctx.graph[subscription_id].field_ids);
+        }
+        list
+    };
+    let mut resolver_definitions = take(&mut ctx.graph.resolver_definitions);
+    for (ix, extension_id) in take(&mut ctx.virtual_subgraph_to_selection_set_resolver)
+        .into_iter()
+        .enumerate()
+    {
+        let Some(extension_id) = extension_id else {
+            continue;
+        };
+        let virtual_subgraph_id = VirtualSubgraphId::from(ix);
+        let subgraph_id = SubgraphId::from(virtual_subgraph_id);
+
+        for field_ids in &field_ids_list {
+            for field in &mut ctx.graph[*field_ids] {
+                if field.exists_in_subgraph_ids.contains(&subgraph_id) {
+                    // Each field has its dedicated resolvers and they don't support batching
+                    // multiple fields for now.
+                    resolver_definitions.push(ResolverDefinitionRecord::SelectionSetResolverExtension(
+                        SelectionSetResolverExtensionDefinitionRecord {
+                            subgraph_id: virtual_subgraph_id,
+                            extension_id,
+                        },
+                    ));
+                    field.resolver_ids.push((resolver_definitions.len() - 1).into());
+                }
+            }
+        }
+    }
+    ctx.graph.resolver_definitions = resolver_definitions;
 
     Ok(())
 }
@@ -164,17 +236,21 @@ fn ingest_composite_schema_lookup(ingester: &mut DirectivesIngester<'_, '_>) -> 
             continue;
         };
         for directive in field.directives() {
-            if directive.name() == "extension__directive" {
-                let dir = sdl::parse_extension_directive(directive)?;
-                let LoadedExtensionOrCompositeSchema::CompositeSchema = ingester.extensions.get(dir.extension) else {
-                    continue;
-                };
-                if matches!(dir.name, "lookup") {
-                    let subgraph_id = ingester.subgraphs.try_get(dir.graph, directive.arguments_span())?;
-                    ingester
-                        .ingest_composite_schema_lookup(field, subgraph_id)
-                        .map_err(|err| err.with_span_if_absent(directive.arguments_span()))?
-                }
+            if directive.name() == "composite__lookup" {
+                let sdl::LookupDirective { graph } = directive.deserialize().map_err(|err| {
+                    (
+                        format!(
+                            "At {}, invalid composite__lookup directive: {}",
+                            field.to_site_string(ingester),
+                            err
+                        ),
+                        directive.arguments_span(),
+                    )
+                })?;
+                let subgraph_id = ingester.subgraphs.try_get(graph, directive.arguments_span())?;
+                ingester
+                    .ingest_composite_lookup(field, subgraph_id)
+                    .map_err(|err| err.with_span_if_absent(directive.arguments_span()))?
             }
         }
     }

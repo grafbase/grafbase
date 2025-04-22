@@ -1,53 +1,69 @@
-use operation::{Location, QueryPosition, ResponseKey};
-use query_solver::QueryOrSchemaFieldArgumentIds;
+use id_newtypes::IdRange;
+use operation::{Location, QueryPosition};
 use schema::FieldDefinition;
 use walker::Walk;
 
 use crate::prepare::{
-    OperationPlanContext, PartitionDataFieldId, PartitionDataFieldRecord, PartitionFieldArguments, SubgraphSelectionSet,
+    DataOrLookupField, DataOrLookupFieldId, OperationPlanContext, PartitionFieldArgumentId, PlanFieldArguments,
+    SubgraphSelectionSet,
 };
 
 #[derive(Clone, Copy)]
 pub(crate) struct SubgraphField<'a> {
     pub(in crate::prepare::operation_plan) ctx: OperationPlanContext<'a>,
-    pub(crate) id: PartitionDataFieldId,
+    pub id: DataOrLookupFieldId,
 }
 
 #[allow(unused)]
 impl<'a> SubgraphField<'a> {
     #[allow(clippy::should_implement_trait)]
-    fn as_ref(&self) -> &'a PartitionDataFieldRecord {
-        &self.ctx.cached.query_plan[self.id]
+    fn inner(&self) -> DataOrLookupField<'a> {
+        self.id.walk(self.ctx)
     }
-    pub(crate) fn subgraph_response_key_str(&self) -> &'a str {
-        let record = self.as_ref();
-        let key = record.subgraph_key.unwrap_or(record.response_key);
+    pub fn subgraph_response_key_str(&self) -> &'a str {
+        let field = self.inner();
+        let key = field.subgraph_key();
         &self.ctx.cached.operation.response_keys[key]
     }
-    pub(crate) fn response_key(&self) -> ResponseKey {
-        self.as_ref().response_key
+
+    pub fn query_position(&self) -> Option<QueryPosition> {
+        match self.inner() {
+            DataOrLookupField::Data(field) => field.query_position,
+            DataOrLookupField::Lookup(field) => None,
+        }
     }
-    pub(crate) fn query_position(&self) -> Option<QueryPosition> {
-        self.as_ref().query_position
+
+    pub fn location(&self) -> Location {
+        self.inner().location()
     }
-    pub(crate) fn location(&self) -> Location {
-        self.as_ref().location
+
+    pub fn definition(&self) -> FieldDefinition<'a> {
+        self.inner().definition()
     }
-    pub(crate) fn definition(&self) -> FieldDefinition<'a> {
-        self.as_ref().definition_id.walk(self.ctx.schema)
+
+    pub fn argument_ids(&self) -> IdRange<PartitionFieldArgumentId> {
+        match self.inner() {
+            DataOrLookupField::Data(field) => field.argument_ids,
+            DataOrLookupField::Lookup(field) => field.argument_ids,
+        }
     }
-    pub(crate) fn arguments(&self) -> PartitionFieldArguments<'a> {
-        self.as_ref().argument_ids.walk(self.ctx)
+
+    pub fn arguments(&self) -> PlanFieldArguments<'a> {
+        self.inner().arguments()
     }
-    pub(crate) fn argument_ids(&self) -> QueryOrSchemaFieldArgumentIds {
-        self.as_ref().argument_ids
-    }
-    pub(crate) fn selection_set(&self) -> SubgraphSelectionSet<'a> {
-        let field = self.as_ref();
-        SubgraphSelectionSet {
-            ctx: self.ctx,
-            item: field.selection_set_record,
-            requires_typename: field.selection_set_requires_typename,
+
+    pub fn selection_set(&self) -> SubgraphSelectionSet<'a> {
+        match self.inner() {
+            DataOrLookupField::Data(field) => SubgraphSelectionSet {
+                ctx: self.ctx,
+                item: field.selection_set_record,
+                requires_typename: field.selection_set_requires_typename,
+            },
+            DataOrLookupField::Lookup(field) => SubgraphSelectionSet {
+                ctx: self.ctx,
+                item: field.selection_set_record,
+                requires_typename: false,
+            },
         }
     }
 }
@@ -81,7 +97,7 @@ impl<'a> runtime::extension::Field<'a> for SubgraphField<'a> {
     }
 
     fn arguments(&self) -> Option<runtime::extension::ArgumentsId> {
-        if self.as_ref().argument_ids.is_empty() {
+        if self.inner().arguments().len() == 0 {
             None
         } else {
             Some(runtime::extension::ArgumentsId(self.id.into()))

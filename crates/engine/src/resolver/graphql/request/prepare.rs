@@ -5,10 +5,9 @@ use std::{
 
 use grafbase_telemetry::graphql::OperationType;
 use itertools::Itertools;
-use operation::QueryOrSchemaInputValueId;
-use schema::{CompositeType, EntityDefinition, SubgraphId};
+use schema::{CompositeType, EntityDefinition, GraphqlEndpointId, ObjectDefinition, Schema, SubgraphId};
 
-use crate::prepare::{PartitionFieldArguments, PlanQueryPartition, SubgraphField, SubgraphSelectionSet};
+use crate::prepare::{PlanFieldArguments, PlanQueryPartition, PlanValueRecord, SubgraphField, SubgraphSelectionSet};
 
 const VARIABLE_PREFIX: &str = "var";
 
@@ -21,20 +20,33 @@ pub(crate) struct PreparedGraphqlOperation {
 
 impl PreparedGraphqlOperation {
     pub(crate) fn build(
-        operation_type: OperationType,
-        plan_query_partition: PlanQueryPartition<'_>,
+        schema: &Schema,
+        endpoint_id: GraphqlEndpointId,
+        parent_object: ObjectDefinition<'_>,
+        selection_set: SubgraphSelectionSet<'_>,
     ) -> Result<PreparedGraphqlOperation, Error> {
-        let mut ctx = QueryBuilderContext::new(plan_query_partition.resolver_definition().subgraph_id());
+        let mut ctx = QueryBuilderContext::new(endpoint_id.into());
+        let parent_object_id = Some(parent_object.id);
+        let operation_type = if parent_object_id == Some(schema.query().id) {
+            OperationType::Query
+        } else if parent_object_id == schema.mutation().map(|m| m.id) {
+            OperationType::Mutation
+        } else if parent_object_id == schema.subscription().map(|s| s.id) {
+            OperationType::Subscription
+        } else {
+            tracing::error!("Root GraphQL query on a non-root object?");
+            return Err(Error);
+        };
 
         // Generating the selection set first as this will define all the operation arguments
-        let mut selection_set = String::with_capacity(256);
+        let mut buffer = String::with_capacity(256);
         ctx.write_selection_set(
-            ParentType::CompositeType(plan_query_partition.entity_definition().into()),
-            &mut selection_set,
-            plan_query_partition.selection_set(),
+            ParentType::CompositeType(parent_object.into()),
+            &mut buffer,
+            selection_set,
         )?;
 
-        let mut query = String::with_capacity(selection_set.len() + 14 + ctx.estimated_variable_definitions_string_len);
+        let mut query = String::with_capacity(buffer.len() + 14 + ctx.estimated_variable_definitions_string_len);
         match operation_type {
             OperationType::Query => write!(query, "query")?,
             OperationType::Mutation => write!(query, "mutation")?,
@@ -47,7 +59,7 @@ impl PreparedGraphqlOperation {
             query.push(')');
         }
 
-        query.push_str(&selection_set);
+        query.push_str(&buffer);
 
         Ok(PreparedGraphqlOperation {
             ty: operation_type,
@@ -107,14 +119,14 @@ impl PreparedFederationEntityOperation {
 /// All variables associated with a subgraph query. Each one is associated with the variable name
 /// "{$VARIABLE_PREFIX}{idx}" with `idx` being the position of the input value in the inner vec.
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub(crate) struct QueryVariables(Vec<QueryOrSchemaInputValueId>);
+pub(crate) struct QueryVariables(Vec<PlanValueRecord>);
 
 impl QueryVariables {
-    pub fn iter(&self) -> impl Iterator<Item = (String, QueryOrSchemaInputValueId)> + '_ {
+    pub fn iter(&self) -> impl Iterator<Item = (String, PlanValueRecord)> + '_ {
         self.0
             .iter()
             .enumerate()
-            .map(|(idx, &id)| (format!("{VARIABLE_PREFIX}{}", idx), id))
+            .map(|(idx, &record)| (format!("{VARIABLE_PREFIX}{}", idx), record))
     }
 }
 
@@ -125,7 +137,7 @@ struct QueryVariable {
 
 struct QueryBuilderContext {
     subgraph_id: SubgraphId,
-    variables: HashMap<QueryOrSchemaInputValueId, QueryVariable>,
+    variables: HashMap<PlanValueRecord, QueryVariable>,
     estimated_variable_definitions_string_len: usize,
 }
 
@@ -196,7 +208,7 @@ impl QueryBuilderContext {
 
         let ParentType::CompositeType(parent_type) = parent_type else {
             let entity_fields = selection_set
-                .fields_ordered_by_parent_entity_then_key()
+                .data_fields_ordered_by_parent_entity_then_key()
                 .chunk_by(|field| field.definition().parent_entity());
 
             // Parent is Any or any other type that will accept anything.
@@ -215,7 +227,7 @@ impl QueryBuilderContext {
         }
 
         let entity_fields = selection_set
-            .fields_ordered_by_parent_entity_then_key()
+            .data_fields_ordered_by_parent_entity_then_key()
             .chunk_by(|field| field.definition().parent_entity());
 
         let maybe_parent_interface_id = parent_type.as_interface().map(|interface| interface.id);
@@ -341,7 +353,7 @@ impl QueryBuilderContext {
         Ok(())
     }
 
-    fn write_arguments(&mut self, buffer: &mut String, arguments: PartitionFieldArguments<'_>) -> Result<(), Error> {
+    fn write_arguments(&mut self, buffer: &mut String, arguments: PlanFieldArguments<'_>) -> Result<(), Error> {
         if arguments.len() != 0 {
             write!(
                 buffer,
@@ -353,7 +365,7 @@ impl QueryBuilderContext {
                         f(&format_args!("{}: {}", arg.definition().name(), value))
                     } else {
                         let idx = self.variables.len();
-                        let var = self.variables.entry(arg.value_id).or_insert_with(|| {
+                        let var = self.variables.entry(arg.value_record).or_insert_with(|| {
                             let ty = arg.definition().ty().to_string();
                             // prefix + ': ' + index (2) + ',' + ty.len()
                             self.estimated_variable_definitions_string_len += VARIABLE_PREFIX.len() + 5 + ty.len();

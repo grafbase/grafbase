@@ -1,9 +1,6 @@
 use std::{borrow::Cow, sync::Arc, time::Duration};
 
-use grafbase_telemetry::{
-    graphql::{GraphqlResponseStatus, OperationType},
-    span::subgraph::SubgraphRequestSpanBuilder,
-};
+use grafbase_telemetry::{graphql::GraphqlResponseStatus, span::subgraph::SubgraphRequestSpanBuilder};
 use runtime::bytes::OwnedOrSharedBytes;
 use schema::{GraphqlEndpointId, GraphqlRootFieldResolverDefinition};
 use serde::de::DeserializeSeed;
@@ -19,8 +16,8 @@ use super::{
 use crate::{
     Runtime,
     execution::{ExecutionContext, ExecutionError},
-    prepare::{PlanError, PlanQueryPartition, PlanResult},
-    resolver::{ExecutionResult, Resolver, graphql::request::SubgraphGraphqlRequest},
+    prepare::{PlanError, PlanResult, PrepareContext, SubgraphSelectionSet},
+    resolver::{ExecutionResult, graphql::request::SubgraphGraphqlRequest},
     response::{ErrorPath, ErrorPathSegment, GraphqlError, InputObjectId, InputResponseObjectSet, SubgraphResponse},
 };
 
@@ -32,20 +29,28 @@ pub(crate) struct GraphqlResolver {
 
 impl GraphqlResolver {
     pub fn prepare(
+        ctx: &PrepareContext<'_, impl Runtime>,
         definition: GraphqlRootFieldResolverDefinition<'_>,
-        operation_type: OperationType,
-        plan_query_partition: PlanQueryPartition<'_>,
-    ) -> PlanResult<Resolver> {
-        let subgraph_operation =
-            PreparedGraphqlOperation::build(operation_type, plan_query_partition).map_err(|err| {
-                tracing::error!("Failed to build query: {err}");
-                PlanError::Internal
-            })?;
+        selection_set: SubgraphSelectionSet<'_>,
+    ) -> PlanResult<Self> {
+        let parent_object = selection_set
+            .fields()
+            .next()
+            .and_then(|field| field.definition().parent_entity().as_object())
+            // FIXME: this is a workaround, we likely require a __typename which should even reach
+            // this resolver.
+            .unwrap_or_else(|| ctx.schema().query());
 
-        Ok(Resolver::Graphql(Self {
+        let subgraph_operation =
+            PreparedGraphqlOperation::build(ctx.schema(), definition.endpoint_id, parent_object, selection_set)
+                .map_err(|err| {
+                    tracing::error!("Failed to build query: {err}");
+                    PlanError::Internal
+                })?;
+        Ok(Self {
             endpoint_id: definition.endpoint().id,
             subgraph_operation,
-        }))
+        })
     }
 
     pub fn build_subgraph_context<'ctx, R: Runtime>(&self, ctx: ExecutionContext<'ctx, R>) -> SubgraphContext<'ctx, R> {

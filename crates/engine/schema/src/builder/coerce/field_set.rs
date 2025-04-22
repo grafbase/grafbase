@@ -1,5 +1,3 @@
-use std::collections::btree_map::Entry;
-
 use id_newtypes::IdRange;
 
 use crate::{
@@ -221,15 +219,7 @@ fn convert_field(
     };
     value_path.pop();
 
-    // Deduplicating arguments allows us to cheaply merge field sets at runtime
-    let field_id = match ctx.deduplicated_fields.entry(field) {
-        Entry::Occupied(entry) => *entry.get(),
-        Entry::Vacant(entry) => {
-            ctx.graph.fields.push(entry.key().clone());
-            *entry.insert((ctx.graph.fields.len() - 1).into())
-        }
-    };
-
+    let field_id = ctx.selections.insert_field(field);
     Ok(FieldSetItemRecord {
         field_id,
         subselection_record,
@@ -243,7 +233,7 @@ fn convert_field_arguments(
 ) -> Result<IdRange<SchemaFieldArgumentId>, InputValueError> {
     let mut arguments = field.arguments().collect::<Vec<_>>();
 
-    let start = ctx.graph.field_arguments.len();
+    let start = ctx.selections.arguments.len();
     for argument_def_id in ctx.graph[definition_id].argument_ids {
         let InputValueDefinitionRecord {
             name_id,
@@ -258,12 +248,12 @@ fn convert_field_arguments(
                 .try_into()
                 .map_err(|_| InputValueError::CannotUseVariables)?;
             let value_id = ctx.coerce_input_value(argument_def_id, value)?;
-            ctx.graph.field_arguments.push(SchemaFieldArgumentRecord {
+            ctx.selections.arguments.push(SchemaFieldArgumentRecord {
                 definition_id: argument_def_id,
                 value_id,
             });
         } else if let Some(value_id) = default_value_id {
-            ctx.graph.field_arguments.push(SchemaFieldArgumentRecord {
+            ctx.selections.arguments.push(SchemaFieldArgumentRecord {
                 definition_id: argument_def_id,
                 value_id,
             });
@@ -278,9 +268,9 @@ fn convert_field_arguments(
         ));
     }
 
-    let end = ctx.graph.field_arguments.len();
-    ctx.graph.field_arguments[start..end].sort_unstable_by_key(|arg| arg.definition_id);
-    Ok(IdRange::from(start..ctx.graph.field_arguments.len()))
+    let end = ctx.selections.arguments.len();
+    ctx.selections.arguments[start..end].sort_unstable_by_key(|arg| arg.definition_id);
+    Ok(IdRange::from(start..ctx.selections.arguments.len()))
 }
 
 fn is_disjoint(ctx: &GraphBuilder<'_>, left: CompositeTypeId, right: CompositeTypeId) -> bool {

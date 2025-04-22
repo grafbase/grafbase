@@ -7,7 +7,7 @@ use walker::Walk;
 
 use crate::{InputValueContext, VariableDefinitionId};
 
-use super::{QueryInputValueId, QueryInputValueRecord, QueryInputValueView};
+use super::{QueryInputValueId, QueryInputValueRecord, QueryInputValueView, QueryOrSchemaInputValueView};
 
 #[derive(Clone, Copy)]
 pub struct QueryInputValue<'a> {
@@ -41,18 +41,6 @@ impl<'a> QueryInputValue<'a> {
             },
             _ => return None,
         })
-    }
-
-    pub fn as_usize(&self) -> Option<usize> {
-        match self.ref_ {
-            QueryInputValueRecord::Int(value) => Some(*value as usize),
-            QueryInputValueRecord::I64(value) => Some(*value as usize),
-            QueryInputValueRecord::DefaultValue(id) => self.ctx.schema.walk(*id).as_usize(),
-            QueryInputValueRecord::Variable(id) => {
-                <VariableDefinitionId as Walk<InputValueContext<'a>>>::walk(*id, self.ctx).as_usize()
-            }
-            _ => None,
-        }
     }
 
     pub fn is_undefined(&self) -> bool {
@@ -100,11 +88,26 @@ pub enum QueryOrSchemaInputValue<'a> {
     Schema(SchemaInputValue<'a>),
 }
 
-impl QueryOrSchemaInputValue<'_> {
+impl<'a> QueryOrSchemaInputValue<'a> {
     pub fn is_undefined(&self) -> bool {
         match self {
             QueryOrSchemaInputValue::Query(value) => value.is_undefined(),
             QueryOrSchemaInputValue::Schema(_) => false,
+        }
+    }
+
+    pub fn with_selection_set<'s, 'w>(self, selection_set: &'s InputValueSet) -> QueryOrSchemaInputValueView<'w>
+    where
+        'a: 'w,
+        's: 'w,
+    {
+        match self {
+            QueryOrSchemaInputValue::Query(value) => {
+                QueryOrSchemaInputValueView::Query(value.with_selection_set(selection_set))
+            }
+            QueryOrSchemaInputValue::Schema(value) => {
+                QueryOrSchemaInputValueView::Schema(value.with_selection_set(selection_set))
+            }
         }
     }
 }

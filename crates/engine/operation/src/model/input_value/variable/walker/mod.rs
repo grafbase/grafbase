@@ -14,17 +14,6 @@ pub struct VariableInputValue<'a> {
     pub(super) ref_: &'a VariableInputValueRecord,
 }
 
-impl VariableInputValue<'_> {
-    fn as_usize(&self) -> Option<usize> {
-        match self.ref_ {
-            VariableInputValueRecord::Int(value) => Some(*value as usize),
-            VariableInputValueRecord::I64(value) => Some(*value as usize),
-            VariableInputValueRecord::DefaultValue(id) => id.walk(self.ctx.schema).as_usize(),
-            _ => None,
-        }
-    }
-}
-
 #[derive(Clone, Copy)]
 pub enum VariableValue<'a> {
     Undefined,
@@ -53,13 +42,5 @@ impl<'ctx> Walk<InputValueContext<'ctx>> for VariableDefinitionId {
 impl VariableValue<'_> {
     pub fn is_undefined(&self) -> bool {
         matches!(self, Self::Undefined)
-    }
-
-    pub fn as_usize(&self) -> Option<usize> {
-        match self {
-            VariableValue::Undefined => None,
-            VariableValue::Provided(value) => value.as_usize(),
-            VariableValue::DefaultValue(value) => value.as_usize(),
-        }
     }
 }

@@ -32,7 +32,7 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
         let shape = &self.ctx.shapes()[id];
         let mut fields = Vec::with_capacity(shape.field_shape_ids.len() + shape.typename_response_keys.len());
         for field_shape in &self.shapes[shape.field_shape_ids] {
-            let field = field_shape.id.walk(&self.ctx);
+            let field = field_shape.id.as_data().unwrap().walk(&self.ctx);
             let arguments = field.arguments();
             match self.metadata.root_field(field.definition_id) {
                 IntrospectionField::Type => {
@@ -84,7 +84,7 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
             let field = &self.shapes[id];
             fields.push(ResponseObjectField {
                 key: field.key,
-                value: build(field, object[field.id.walk(&self.ctx).definition_id]),
+                value: build(field, object[field.id.as_data().unwrap().walk(&self.ctx).definition_id]),
             });
         }
         if !shape.typename_response_keys.is_empty() {
@@ -246,6 +246,8 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                         let shape_id = field.shape.as_concrete().unwrap();
                         let include_deprecated = field
                             .id
+                            .as_data()
+                            .unwrap()
                             .walk(&self.ctx)
                             .arguments()
                             .get_arg_value_as::<bool>("includeDeprecated", self.ctx.variables());
@@ -294,6 +296,8 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
         let shape_id = field.shape.as_concrete().unwrap();
         let include_deprecated = field
             .id
+            .as_data()
+            .unwrap()
             .walk(&self.ctx)
             .arguments()
             .get_arg_value_as::<bool>("includeDeprecated", self.ctx.variables());

@@ -1,7 +1,10 @@
+use id_newtypes::IdRange;
 use schema::{
     AuthorizedDirectiveId, DirectiveSiteId, EntityDefinitionId, ExtensionDirectiveId, FieldDefinitionId,
     RequiresScopesDirectiveId, TypeDefinitionId,
 };
+
+use super::PartitionFieldArgumentId;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub(crate) enum QueryModifierRule {
@@ -14,7 +17,7 @@ pub(crate) enum QueryModifierRule {
     AuthorizedFieldWithArguments {
         directive_id: AuthorizedDirectiveId,
         definition_id: FieldDefinitionId,
-        argument_ids: query_solver::QueryOrSchemaFieldArgumentIds,
+        argument_ids: IdRange<PartitionFieldArgumentId>,
     },
     AuthorizedDefinition {
         directive_id: AuthorizedDirectiveId,
@@ -32,13 +35,13 @@ pub(crate) enum QueryModifierRule {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
 pub(crate) enum QueryModifierTarget {
-    FieldWithArguments(FieldDefinitionId, query_solver::QueryOrSchemaFieldArgumentIds),
+    FieldWithArguments(FieldDefinitionId, IdRange<PartitionFieldArgumentId>),
     Site(DirectiveSiteId),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
 pub(crate) enum ResponseModifierRuleTarget {
-    Field(FieldDefinitionId, query_solver::QueryOrSchemaFieldArgumentIds),
+    Field(FieldDefinitionId, IdRange<PartitionFieldArgumentId>),
     FieldOutput(TypeDefinitionId),
     FieldParentEntity(EntityDefinitionId),
 }

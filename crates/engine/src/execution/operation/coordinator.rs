@@ -538,9 +538,11 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
 
         let span = tracing::debug_span!("resolver", "plan_id" = usize::from(plan.id)).entered();
 
-        let subgraph_response = self
-            .response
-            .new_subgraph_response(plan.shape_id(), Arc::clone(&root_response_object_set));
+        let subgraph_response = self.response.new_subgraph_response(
+            // FIXME: Doesn't work with GraphQL resolvers: GB-8942
+            plan.shape_id_without_lookup_fields().unwrap_or(plan.shape_id()),
+            Arc::clone(&root_response_object_set),
+        );
 
         let root_response_objects = self
             .response

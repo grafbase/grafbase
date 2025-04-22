@@ -41,5 +41,5 @@ scalar ResponseKey @copy @prelude
 type ResponseModifierTarget @meta(module: "response_modifier/target") {
   set_id: ResponseObjectSetDefinitionId!
   ty: CompositeType!
-  field: PartitionDataField!
+  field: DataField!
 }

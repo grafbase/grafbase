@@ -1,6 +1,6 @@
 use super::input_value_definition::display_input_value_definition;
 use crate::{Directive, FederatedGraph, federated_graph::*};
-use std::fmt;
+use std::{collections::HashMap, fmt};
 
 pub(crate) fn display_directive_definitions(
     // filter the definitions themselves
@@ -11,7 +11,7 @@ pub(crate) fn display_directive_definitions(
     f: &mut fmt::Formatter<'_>,
 ) -> fmt::Result {
     // (start, end) ranges for each directive definition's arguments
-    let mut argument_ranges = Vec::with_capacity(graph.directive_definitions.len());
+    let mut argument_ranges = HashMap::with_capacity(graph.directive_definitions.len());
     let mut range_start = 0;
 
     for chunk in graph
@@ -20,14 +20,8 @@ pub(crate) fn display_directive_definitions(
     {
         let definition_idx: usize = chunk[0].directive_definition_id.into();
 
-        // Fill the slots for directive definitions that have no arguments.
-        if definition_idx > argument_ranges.len() {
-            argument_ranges.resize(definition_idx, 0..0);
-        }
-
         let range_end = range_start + chunk.len();
-
-        argument_ranges.push(range_start..range_end);
+        argument_ranges.insert(definition_idx, range_start..range_end);
         range_start = range_end;
     }
 
@@ -36,7 +30,10 @@ pub(crate) fn display_directive_definitions(
             continue;
         }
 
-        let arguments = &graph.directive_definition_arguments[argument_ranges[idx].clone()];
+        let arguments = argument_ranges
+            .get(&idx)
+            .map(|range| &graph.directive_definition_arguments[range.clone()])
+            .unwrap_or_default();
 
         display_directive_definition(directive_definition, arguments, directives_filter, graph, f)?;
         f.write_str("\n")?;

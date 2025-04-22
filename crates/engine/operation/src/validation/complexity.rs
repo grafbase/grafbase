@@ -225,11 +225,11 @@ fn calculate_child_count<'a>(
     if slicing_arguments.peek().is_some() {
         let slicing_arguments = slicing_arguments
             .filter_map(|def| {
-                field
+                let value = field
                     .arguments()
                     .find(|arg| arg.definition().id == def.id)?
-                    .value(context.variables)
-                    .as_usize()
+                    .value(context.variables);
+                Option::<usize>::deserialize(value).ok().flatten()
             })
             .collect::<Vec<_>>();
 

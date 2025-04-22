@@ -3,7 +3,7 @@
 //! ===================
 //! Generated with: `cargo run -p engine-codegen`
 //! Source file: <engine-codegen dir>/domain/operation_plan.graphql
-use crate::prepare::cached::{PartitionDataField, PartitionDataFieldId};
+use crate::prepare::cached::{DataField, DataFieldId};
 use crate::prepare::operation_plan::model::prelude::*;
 use schema::{CompositeType, CompositeTypeId};
 #[allow(unused_imports)]
@@ -15,14 +15,14 @@ use walker::{Iter, Walk};
 /// type ResponseModifierTarget @meta(module: "response_modifier/target") {
 ///   set_id: ResponseObjectSetDefinitionId!
 ///   ty: CompositeType!
-///   field: PartitionDataField!
+///   field: DataField!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct ResponseModifierTargetRecord {
     pub set_id: ResponseObjectSetDefinitionId,
     pub ty_id: CompositeTypeId,
-    pub field_id: PartitionDataFieldId,
+    pub field_id: DataFieldId,
 }
 
 #[derive(Clone, Copy)]
@@ -47,7 +47,7 @@ impl<'a> ResponseModifierTarget<'a> {
     pub(crate) fn ty(&self) -> CompositeType<'a> {
         self.ty_id.walk(self.ctx)
     }
-    pub(crate) fn field(&self) -> PartitionDataField<'a> {
+    pub(crate) fn field(&self) -> DataField<'a> {
         self.field_id.walk(self.ctx)
     }
 }

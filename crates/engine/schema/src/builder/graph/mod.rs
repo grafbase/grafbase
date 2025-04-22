@@ -1,13 +1,13 @@
 mod definitions;
 mod directives;
-
-use std::collections::BTreeMap;
+mod selections;
 
 use builder::ValuePathSegment;
 use extension_catalog::ExtensionId;
 use fxhash::FxHashMap;
 use introspection::IntrospectionSubgraph;
 use rapidhash::RapidHashMap;
+use selections::SelectionsBuilder;
 
 use crate::*;
 
@@ -22,9 +22,8 @@ pub(crate) struct GraphBuilder<'a> {
     pub root_object_ids: Vec<ObjectDefinitionId>,
     pub required_scopes: Interner<RequiresScopesDirectiveRecord, RequiresScopesDirectiveId>,
     pub type_definitions: RapidHashMap<&'a str, TypeDefinitionId>,
+    pub selections: SelectionsBuilder,
 
-    // -- used for field sets
-    pub deduplicated_fields: BTreeMap<SchemaFieldRecord, SchemaFieldId>,
     // -- used for coercion
     pub value_path: Vec<ValuePathSegment>,
     pub input_fields_buffer_pool: Vec<Vec<(InputValueDefinitionId, SchemaInputValueRecord)>>,
