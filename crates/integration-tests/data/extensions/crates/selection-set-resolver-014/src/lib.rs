@@ -29,6 +29,10 @@ impl fmt::Debug for Resolver {
 impl SelectionSetResolverExtension for Resolver {
     fn new(subgraph_schemas: Vec<SubgraphSchema<'_>>, config: Configuration) -> Result<Self, Error> {
         let config: Value = config.deserialize()?;
+        if let Some(msg) = config.get("error").and_then(|v| v.as_str()) {
+            return Err(Error::new(msg.to_string()));
+        }
+
         let mut schemas = Vec::new();
         let mut definitions_by_subgraph_name = Vec::new();
 

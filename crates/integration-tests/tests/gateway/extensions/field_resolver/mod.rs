@@ -1,3 +1,4 @@
+mod alias;
 mod backwards_compatibility;
 mod errors;
 mod injection;
@@ -13,13 +14,21 @@ use runtime::extension::Data;
 
 #[derive(Clone)]
 pub struct StaticFieldResolverExt {
-    data: Data,
+    result: Result<Result<Data, GraphqlError>, GraphqlError>,
 }
 
 impl StaticFieldResolverExt {
+    pub fn resolver_error(error: GraphqlError) -> Self {
+        Self { result: Err(error) }
+    }
+
+    pub fn item_error(error: GraphqlError) -> Self {
+        Self { result: Ok(Err(error)) }
+    }
+
     pub fn json(bytes: Vec<u8>) -> Self {
         Self {
-            data: Data::JsonBytes(bytes),
+            result: Ok(Ok(Data::Json(bytes.into()))),
         }
     }
 }
@@ -54,6 +63,7 @@ impl FieldResolverTestExtension for StaticFieldResolverExt {
         _directive_arguments: serde_json::Value,
         inputs: Vec<serde_json::Value>,
     ) -> Result<Vec<Result<Data, GraphqlError>>, GraphqlError> {
-        Ok(inputs.into_iter().map(|_| Ok(self.data.clone())).collect())
+        let result = self.result.clone()?;
+        Ok(inputs.into_iter().map(|_| result.clone()).collect())
     }
 }

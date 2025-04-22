@@ -80,7 +80,7 @@ impl FieldResolverExtension<ExtContext> for ExtensionsDispatcher {
         prepared_data: &'ctx [u8],
         subgraph_headers: http::HeaderMap,
         directive_arguments: impl Anything<'ctx>,
-    ) -> Result<BoxStream<'f, Result<Arc<Data>, GraphqlError>>, GraphqlError>
+    ) -> Result<BoxStream<'f, Result<Data, GraphqlError>>, GraphqlError>
     where
         'ctx: 'f,
     {
@@ -176,7 +176,7 @@ impl FieldResolverExtension<DynHookContext> for TestExtensions {
         _prepared_data: &'ctx [u8],
         _subgraph_headers: http::HeaderMap,
         _directive_arguments: impl Anything<'ctx>,
-    ) -> Result<BoxStream<'f, Result<Arc<Data>, GraphqlError>>, GraphqlError>
+    ) -> Result<BoxStream<'f, Result<Data, GraphqlError>>, GraphqlError>
     where
         'ctx: 'f,
     {
