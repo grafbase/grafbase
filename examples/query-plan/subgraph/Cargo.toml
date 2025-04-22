@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-anyhow = "1.0.97"
+anyhow = "1.0.98"
 async-graphql = "7.0.16"
 async-graphql-axum = "7.0.16"
 axum = "0.8.3"

@@ -233,10 +233,10 @@ impl SchemaIndex {
                 token_buffer.sort_unstable();
                 token_buffer.dedup();
                 for token in token_buffer.drain(..) {
-                    document.add_field_value(fields.name, token);
+                    document.add_field_value(fields.name, token.as_str());
                 }
 
-                document.add_field_value(fields.definition_id, u32::from(def.id) as u64);
+                document.add_field_value(fields.definition_id, &(u32::from(def.id) as u64));
 
                 // De-favour mutations if not executable and subscription as we won't execute them
                 // properly.
@@ -252,7 +252,7 @@ impl SchemaIndex {
                 if (root_type_id == mutation_id && !execute_mutations) || (root_type_id == subscription_id) {
                     depth += 1
                 }
-                document.add_field_value(fields.depth, depth as u64);
+                document.add_field_value(fields.depth, &(depth as u64));
                 index_writer.add_document(document)?;
             }
 
