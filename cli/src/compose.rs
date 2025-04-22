@@ -2,8 +2,8 @@ use cynic_parser::TypeSystemDocument;
 use futures::{TryStreamExt as _, stream::FuturesUnordered};
 
 use crate::{
-    backend::dev::{detect_extensions, fetch_remote_subgraphs},
     cli_input::ComposeCommand,
+    dev::{detect_extensions, fetch_remote_subgraphs},
     output::report,
 };
 

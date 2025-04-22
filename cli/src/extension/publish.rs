@@ -1,4 +1,4 @@
-use crate::{backend::api, cli_input::ExtensionPublishCommand, output::report};
+use crate::{api, cli_input::ExtensionPublishCommand, output::report};
 use extension::VersionedManifest;
 use std::fs;
 

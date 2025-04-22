@@ -1,7 +1,7 @@
 use cynic::{QueryBuilder as _, http::ReqwestExt};
 
 use crate::{
-    backend::api::graphql::mutations::extension_versions_by_version_requirement::{
+    api::graphql::mutations::extension_versions_by_version_requirement::{
         ExtensionVersionRequirement, ExtensionVersionsByVersionRequirement,
         ExtensionVersionsByVersionRequirementVariables,
     },

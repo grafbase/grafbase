@@ -1,4 +1,4 @@
-use crate::{backend::api, output::report};
+use crate::{api, output::report};
 use extension::lockfile;
 use futures::stream::FuturesUnordered;
 use gateway_config::Config;

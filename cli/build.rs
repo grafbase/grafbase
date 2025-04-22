@@ -6,7 +6,7 @@ fn main() {
     println!("cargo:rustc-env=TARGET={}", std::env::var("TARGET").unwrap());
 
     cynic_codegen::register_schema("grafbase")
-        .from_sdl_file("src/backend/api/graphql/api.graphql")
+        .from_sdl_file("src/api/graphql/api.graphql")
         .unwrap()
         .as_default()
         .unwrap();

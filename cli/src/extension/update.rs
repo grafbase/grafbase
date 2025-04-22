@@ -3,7 +3,7 @@ use std::fs;
 use extension::lockfile;
 
 use crate::{
-    backend::api::{self, extension_versions_by_version_requirement::ExtensionVersionMatch},
+    api::{self, extension_versions_by_version_requirement::ExtensionVersionMatch},
     cli_input::ExtensionUpdateCommand,
     output::report,
 };

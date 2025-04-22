@@ -1,4 +1,4 @@
-use crate::backend::api::branch;
+use crate::api::branch;
 
 use crate::{cli_input::BranchRef, errors::CliError, output::report};
 

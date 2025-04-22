@@ -70,7 +70,6 @@ struct LoginApiState {
 /// - returns [`BackendError::ReadUserDotGrafbaseFolder`] if ~/.grafbase could not be read
 ///
 /// - returns [`BackendError::StartLoginServer`] if the login server could not be started
-#[allow(clippy::needless_pass_by_value)] // &Sender is not Sync
 #[tokio::main]
 pub async fn login(message_sender: MspcSender<LoginMessage>) -> Result<(), ApiError> {
     let environment = Environment::get();

@@ -1,4 +1,4 @@
-use crate::backend::api::check;
+use crate::api::check;
 use crate::{cli_input::CheckCommand, errors::CliError, report};
 use std::{
     fs,

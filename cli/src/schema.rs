@@ -1,4 +1,4 @@
-use crate::{backend, cli_input::SchemaCommand, errors::CliError, output::report};
+use crate::{api, cli_input::SchemaCommand, errors::CliError, output::report};
 
 #[tokio::main]
 pub(crate) async fn schema(cmd: SchemaCommand) -> Result<(), CliError> {
@@ -6,7 +6,7 @@ pub(crate) async fn schema(cmd: SchemaCommand) -> Result<(), CliError> {
         graph_ref,
         subgraph_name,
     } = cmd;
-    let schema = backend::api::schema::schema(
+    let schema = api::schema::schema(
         graph_ref.account(),
         graph_ref.graph(),
         graph_ref.branch(),

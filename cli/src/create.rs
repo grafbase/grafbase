@@ -1,4 +1,4 @@
-use crate::backend::api::{create, types::Account};
+use crate::api::{create, types::Account};
 use crate::{errors::CliError, output::report, prompts::handle_inquire_error};
 use inquire::{Confirm, Select, Text, validator::Validation};
 use slugify::slugify;
@@ -13,7 +13,6 @@ impl Display for AccountSelection {
     }
 }
 
-#[allow(clippy::module_name_repetitions)]
 #[derive(Debug)]
 pub struct CreateArguments<'a> {
     pub account_slug: &'a str,

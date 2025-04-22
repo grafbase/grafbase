@@ -1,6 +1,5 @@
 use crate::{
-    backend, cli_input::TrustCommand, common::trusted_documents::TrustedDocumentsManifest, errors::CliError,
-    output::report,
+    api, cli_input::TrustCommand, common::trusted_documents::TrustedDocumentsManifest, errors::CliError, output::report,
 };
 
 pub(crate) fn trust(
@@ -20,8 +19,8 @@ pub(crate) fn trust(
 
     report::trust_start(&manifest);
 
-    match backend::api::submit_trusted_documents::submit_trusted_documents(
-        backend::api::submit_trusted_documents::TrustedDocumentsSubmitVariables {
+    match api::submit_trusted_documents::submit_trusted_documents(
+        api::submit_trusted_documents::TrustedDocumentsSubmitVariables {
             account: graph_ref.account(),
             graph: graph_ref.graph(),
             branch,
@@ -32,7 +31,7 @@ pub(crate) fn trust(
                     |crate::common::trusted_documents::TrustedDocument {
                          document_id,
                          document_text,
-                     }| backend::api::submit_trusted_documents::TrustedDocumentInput {
+                     }| api::submit_trusted_documents::TrustedDocumentInput {
                         document_id,
                         document_text,
                     },
@@ -41,18 +40,14 @@ pub(crate) fn trust(
         },
     ) {
         Ok(payload) => match payload {
-            backend::api::submit_trusted_documents::TrustedDocumentsSubmitPayload::TrustedDocumentsSubmitSuccess(
-                success,
-            ) => {
+            api::submit_trusted_documents::TrustedDocumentsSubmitPayload::TrustedDocumentsSubmitSuccess(success) => {
                 report::trust_success(success.count);
             }
-            backend::api::submit_trusted_documents::TrustedDocumentsSubmitPayload::ReusedIds(reused_ids) => {
+            api::submit_trusted_documents::TrustedDocumentsSubmitPayload::ReusedIds(reused_ids) => {
                 report::trust_reused_ids(&reused_ids)
             }
-            backend::api::submit_trusted_documents::TrustedDocumentsSubmitPayload::OldToken(_) => {
-                report::old_access_token()
-            }
-            backend::api::submit_trusted_documents::TrustedDocumentsSubmitPayload::Unknown => report::trust_failed(),
+            api::submit_trusted_documents::TrustedDocumentsSubmitPayload::OldToken(_) => report::old_access_token(),
+            api::submit_trusted_documents::TrustedDocumentsSubmitPayload::Unknown => report::trust_failed(),
         },
         Err(err) => return Err(CliError::BackendApiError(err)),
     }

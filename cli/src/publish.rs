@@ -1,4 +1,4 @@
-use crate::{backend, cli_input::PublishCommand, errors::CliError, output::report};
+use crate::{api, cli_input::PublishCommand, errors::CliError, output::report};
 use std::{
     fs,
     io::{IsTerminal, Read},
@@ -35,7 +35,7 @@ pub(crate) async fn publish(
 
     report::publishing();
 
-    let outcome = backend::api::publish::publish(
+    let outcome = api::publish::publish(
         graph_ref.account(),
         graph_ref.graph(),
         graph_ref.branch(),
@@ -48,14 +48,14 @@ pub(crate) async fn publish(
     .map_err(CliError::BackendApiError)?;
 
     match &outcome {
-        backend::api::publish::PublishOutcome::Success { composition_errors } if composition_errors.is_empty() => {
+        api::publish::PublishOutcome::Success { composition_errors } if composition_errors.is_empty() => {
             report::publish_command_success(&subgraph_name);
         }
-        backend::api::publish::PublishOutcome::Success { composition_errors } => {
+        api::publish::PublishOutcome::Success { composition_errors } => {
             report::publish_command_composition_failure(composition_errors);
         }
-        backend::api::publish::PublishOutcome::NoChange => report::publish_no_change(),
-        backend::api::publish::PublishOutcome::GraphDoesNotExist {
+        api::publish::PublishOutcome::NoChange => report::publish_no_change(),
+        api::publish::PublishOutcome::GraphDoesNotExist {
             account_slug,
             graph_slug,
         } => {
