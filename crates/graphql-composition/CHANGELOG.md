@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.7.0 - 2025-04-25
+
 ### Changes
 
 - GraphQL SDL is now rendered with two spaces indentation (previously four spaces).
