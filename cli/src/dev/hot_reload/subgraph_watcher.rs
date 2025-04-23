@@ -7,7 +7,7 @@ use gateway_config::Config;
 use grafbase_graphql_introspection::introspect;
 use notify_debouncer_full::{
     DebounceEventResult, Debouncer, RecommendedCache, new_debouncer,
-    notify::{RecommendedWatcher, RecursiveMode},
+    notify::{EventKind, RecommendedWatcher, RecursiveMode},
 };
 use std::{collections::HashSet, sync::Arc};
 use tokio::{runtime::Handle, sync::mpsc, time::MissedTickBehavior};
@@ -191,9 +191,12 @@ impl SubgraphWatcher {
 
         let watcher_merged_configuration = config.clone();
         let mut watcher = new_debouncer(WATCHER_DEBOUNCE_DURATION, None, move |result: DebounceEventResult| {
-            if result.is_err() {
+            let Ok(result) = result else {
                 return;
-            }
+            };
+
+            assert!(!result.is_empty());
+
             let composition_warnings_sender = composition_warnings_sender.clone();
             let subgraph_cache = subgraph_cache.clone();
             let config = watcher_merged_configuration.clone();
@@ -203,7 +206,20 @@ impl SubgraphWatcher {
                 return;
             }
 
+            let should_reload = result.iter().any(|event| {
+                matches!(
+                    event.kind,
+                    EventKind::Modify(_) | EventKind::Create(_) | EventKind::Remove(_)
+                )
+            });
+
+            if !should_reload {
+                return;
+            }
+
             let reload_cancellation_token = watcher_cancellation_token.child_token();
+
+            tracing::info!("Detected a subgraph schema file change, reloading.",);
 
             runtime_handle.block_on(async move {
                 match reload_subgraphs(
@@ -215,8 +231,8 @@ impl SubgraphWatcher {
                 )
                 .await
                 {
-                    Ok(_) => tracing::info!("detected a subgraph change, reloading"),
-                    Err(error) => tracing::error!("{}", error.to_string().trim()),
+                    Ok(()) => tracing::debug!("Subgraphs reload successful"),
+                    Err(error) => tracing::error!("Error reloading subgraphs: {}", error.to_string().trim()),
                 }
             });
         })
