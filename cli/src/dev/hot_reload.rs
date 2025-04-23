@@ -6,37 +6,38 @@ use crate::errors::BackendError;
 use gateway_config::Config;
 use notify_debouncer_full::{
     DebounceEventResult, new_debouncer,
-    notify::{self, RecursiveMode},
+    notify::{self, EventKind, RecursiveMode},
 };
-use std::{collections::HashSet, path::PathBuf, sync::Arc, time::Duration};
-use tokio::{
-    runtime::Handle,
-    sync::{broadcast::Receiver, mpsc, watch},
-};
+use std::{collections::HashSet, path::Path, sync::Arc, time::Duration};
+use tokio::sync::{broadcast::Receiver, mpsc, watch};
 use tokio_stream::{StreamExt, wrappers::ReceiverStream};
 use tokio_util::sync::CancellationToken;
 
 const WATCHER_DEBOUNCE_DURATION: Duration = Duration::from_secs(2);
 
-fn watch_configuration_files(gateway_config_path: Option<&PathBuf>) -> Result<mpsc::Receiver<()>, notify::Error> {
-    let (watcher_sender, watcher_receiver) = mpsc::channel::<()>(1);
-
-    let runtime = Handle::current();
+fn watch_configuration_files(gateway_config_path: &Path) -> Result<mpsc::Receiver<()>, notify::Error> {
+    let (watcher_sender, watcher_receiver) = mpsc::channel::<()>(24);
 
     let mut watcher = new_debouncer(WATCHER_DEBOUNCE_DURATION, None, move |result: DebounceEventResult| {
-        if result.is_err() {
+        let Ok(result) = result else {
+            return;
+        };
+
+        let should_reload = result.iter().any(|event| {
+            matches!(
+                event.kind,
+                EventKind::Modify(_) | EventKind::Create(_) | EventKind::Remove(_)
+            )
+        });
+
+        if !should_reload {
             return;
         }
 
-        let file_sender = watcher_sender.clone();
-        runtime.block_on(async {
-            let _ = file_sender.send(()).await;
-        })
+        watcher_sender.blocking_send(()).ok();
     })?;
 
-    if let Some(gateway_config_path) = gateway_config_path {
-        watcher.watch(gateway_config_path, RecursiveMode::NonRecursive)?;
-    }
+    watcher.watch(gateway_config_path, RecursiveMode::NonRecursive)?;
 
     // since the config watcher should live for the remainder of the cli run,
     // leak it instead of needing to make sure it isn't dropped
@@ -63,7 +64,7 @@ pub(crate) async fn hot_reload(
         return;
     };
 
-    let Ok(watcher_receiver) = watch_configuration_files(Some(&config_path))
+    let Ok(watcher_receiver) = watch_configuration_files(&config_path)
         .map_err(BackendError::SetUpWatcher)
         .inspect_err(|error| tracing::error!("{}", error.to_string().trim()))
     else {
