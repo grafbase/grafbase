@@ -1,8 +1,7 @@
-use std::path::Path;
-
 use cynic_parser::{TypeSystemDocument, type_system as ast};
 use extension_catalog::load_manifest;
 use futures::{TryFutureExt as _, future::join_all};
+use std::path::Path;
 use url::Url;
 
 #[derive(Debug)]

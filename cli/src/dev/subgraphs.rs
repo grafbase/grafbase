@@ -1,5 +1,6 @@
-use super::{FullGraphRef, extensions::*};
+use super::FullGraphRef;
 use crate::common::environment::PlatformData;
+use crate::dev::detect_extensions;
 use crate::{
     api::{
         client::create_client,
@@ -12,11 +13,11 @@ use crate::{
 use cynic::{QueryBuilder, http::ReqwestExt};
 use gateway_config::{Config, SubgraphConfig};
 use grafbase_graphql_introspection::introspect;
-use graphql_composition as composition;
 use serde_dynamic_string::DynamicString;
+use std::collections::HashSet;
+use std::path::PathBuf;
 use std::{
     collections::{BTreeMap, HashMap},
-    path::Path,
     sync::Arc,
 };
 use tokio::{fs, sync::Mutex};
@@ -24,113 +25,179 @@ use tokio::{fs, sync::Mutex};
 const DEFAULT_BRANCH: &str = "main";
 
 #[derive(Clone)]
-pub struct CachedIntrospectedSubgraph {
-    pub introspection_url: String,
-    pub introspection_headers: Vec<(String, DynamicString<String>)>,
-    pub sdl: String,
+pub(crate) struct CachedIntrospectedSubgraph {
+    pub(crate) introspection_url: String,
+    pub(crate) introspection_headers: Vec<(String, DynamicString<String>)>,
+    pub(crate) subgraph: Arc<CachedSubgraph>,
 }
 
-pub struct SubgraphCache {
-    pub remote: BTreeMap<&'static String, &'static Subgraph>,
-    pub local: Mutex<BTreeMap<String, CachedIntrospectedSubgraph>>,
+#[derive(Default)]
+pub(crate) struct CachedSubgraph {
+    pub(crate) name: String,
+    pub(crate) sdl: String,
+    pub(crate) url: Option<String>,
 }
 
-pub async fn get_subgraph_sdls(
-    graph_ref: Option<&FullGraphRef>,
-    config: &Config,
-    subgraphs: &mut composition::Subgraphs,
-) -> Result<Arc<SubgraphCache>, BackendError> {
-    let mut remote_urls: HashMap<&str, Option<&str>> = HashMap::new();
-    let remote_subgraphs: Vec<Subgraph>;
-    let mut subgraph_cache = SubgraphCache {
-        remote: BTreeMap::new(),
-        local: Mutex::new(BTreeMap::new()),
-    };
+pub(crate) struct SubgraphCache {
+    current_dir: PathBuf,
+    /// Urls from remote subgraphs (subgraphs fetched from the API with the graph ref).
+    ///
+    /// subgraph name -> subgraph url
+    remote_urls: HashMap<String, Option<String>>,
+    /// All remote subgraphs defined for the graph with the graph ref passed to the dev command.
+    remote: Box<[CachedSubgraph]>,
+    /// Local subgraphs from introspection.
+    pub(super) local_from_introspection: Mutex<BTreeMap<String, CachedIntrospectedSubgraph>>,
+    /// All local subgraphs defined by path in configuration.
+    local_from_file: Mutex<Box<[CachedSubgraph]>>,
+}
 
-    if let Some(graph_ref) = graph_ref {
-        remote_subgraphs = fetch_remote_subgraphs(graph_ref).await?;
+impl SubgraphCache {
+    /// Construct a SubgraphCache, loading all remote and local subgraphs.
+    pub(crate) async fn new(graph_ref: Option<&FullGraphRef>, config: &Config) -> Result<SubgraphCache, BackendError> {
+        // subgraph name -> subgraph url
+        let mut remote_urls: HashMap<String, Option<String>> = HashMap::new();
 
-        // these will live forever in the cache so no need to clone them
-        // reloads do not supply a graph ref so this will only happen once
-        let remote_subgraphs = Box::leak(Box::new(remote_subgraphs));
+        let current_dir = std::env::current_dir()
+            .map_err(|error| BackendError::Error(format!("Failed to get current directory: {error}")))?;
 
-        for subgraph in remote_subgraphs.iter() {
-            subgraph_cache.remote.insert(&subgraph.name, subgraph);
-        }
+        let remote = if let Some(graph_ref) = graph_ref {
+            let all_remote_subgraphs = fetch_remote_subgraphs(graph_ref).await?;
 
-        let remote_subgraphs = remote_subgraphs
-            .iter()
-            .filter(|subgraph| {
+            let remote_subgraphs = all_remote_subgraphs.iter().filter(|subgraph| {
                 !config
                     .subgraphs
                     .get(&subgraph.name)
                     .map(|cfg| cfg.has_schema_override())
                     .unwrap_or_default()
-            })
-            .collect::<Vec<_>>();
+            });
 
-        for subgraph in remote_subgraphs {
-            remote_urls.insert(&subgraph.name, subgraph.url.as_deref());
-            let url = if let Some(url) = config
-                .subgraphs
-                .get(&subgraph.name)
-                .and_then(|subgraph| subgraph.url.as_ref())
-            {
-                Some(url.as_str())
-            } else {
-                subgraph.url.as_deref()
-            };
+            for subgraph in remote_subgraphs {
+                remote_urls.insert(subgraph.name.clone(), subgraph.url.clone());
+            }
 
-            let parsed_sdl = cynic_parser::parse_type_system_document(&subgraph.schema)?;
-            subgraphs.ingest(&parsed_sdl, &subgraph.name, url);
+            let all_remote_subgraphs = all_remote_subgraphs
+                .into_iter()
+                .map(|subgraph| CachedSubgraph {
+                    name: subgraph.name,
+                    sdl: subgraph.schema,
+                    url: subgraph.url,
+                })
+                .collect::<Vec<_>>();
+
+            all_remote_subgraphs.into_boxed_slice()
+        } else {
+            Default::default()
+        };
+
+        let subgraph_cache = SubgraphCache {
+            current_dir,
+            remote_urls,
+            remote,
+            local_from_introspection: Default::default(),
+            local_from_file: Default::default(),
+        };
+
+        subgraph_cache.reload_local_subgraphs(config).await?;
+
+        Ok(subgraph_cache)
+    }
+
+    /// Compose all cached subgraphs.
+    pub(crate) async fn compose(&self) -> Result<graphql_composition::CompositionResult, BackendError> {
+        let local_from_introspection = self.local_from_introspection.lock().await;
+        let local_from_file = self.local_from_file.lock().await;
+
+        let mut subgraphs_with_local_override: HashSet<&str> =
+            HashSet::with_capacity(local_from_file.len() + local_from_introspection.len());
+        let mut subgraphs = graphql_composition::Subgraphs::default();
+
+        for subgraph in local_from_file.as_ref() {
+            subgraphs_with_local_override.insert(subgraph.name.as_str());
+            self.ingest_cached_subgraph(subgraph, &mut subgraphs).await?;
         }
+
+        for (_, subgraph) in local_from_introspection.iter() {
+            let subgraph = &subgraph.subgraph;
+            subgraphs_with_local_override.insert(subgraph.name.as_str());
+            self.ingest_cached_subgraph(subgraph, &mut subgraphs).await?;
+        }
+
+        for subgraph in self
+            .remote
+            .as_ref()
+            .iter()
+            .filter(|subgraph| !subgraphs_with_local_override.contains(subgraph.name.as_str()))
+        {
+            self.ingest_cached_subgraph(subgraph, &mut subgraphs).await?;
+        }
+
+        Ok(graphql_composition::compose(&subgraphs))
     }
 
-    let remote_urls = &remote_urls;
+    /// Helper for [SubgraphCache::compose()].
+    async fn ingest_cached_subgraph(
+        &self,
+        cached_subgraph: &CachedSubgraph,
+        subgraphs: &mut graphql_composition::Subgraphs,
+    ) -> Result<(), BackendError> {
+        let parsed_schema =
+            cynic_parser::parse_type_system_document(&cached_subgraph.sdl).map_err(BackendError::ParseSubgraphSdl)?;
 
-    let current_dir = std::env::current_dir()
-        .map_err(|error| BackendError::Error(format!("Failed to get current directory: {error}")))?;
-    let subgraph_cache = Arc::new(subgraph_cache);
-    let futures = config
-        .subgraphs
-        .iter()
-        .filter(|(_, subgraph)| subgraph.has_schema_override())
-        .map(|(name, subgraph)| {
-            let subgraph_cache = subgraph_cache.clone();
-            handle_overridden_subgraph(&current_dir, subgraph_cache, remote_urls, name, subgraph)
-        });
+        let extensions = detect_extensions(Some(&self.current_dir), &parsed_schema).await;
 
-    let results = futures::future::try_join_all(futures).await?;
+        subgraphs.ingest_loaded_extensions(
+            extensions
+                .into_iter()
+                .map(|ext| graphql_composition::LoadedExtension::new(ext.url, ext.name)),
+        );
 
-    for OverriddenSubgraph {
-        parsed_schema,
-        url,
-        name,
-        extensions,
-    } in results
-    {
-        subgraphs.ingest(&parsed_schema, &name, url.as_deref());
+        subgraphs.ingest(&parsed_schema, &cached_subgraph.name, cached_subgraph.url.as_deref());
 
-        let extensions = extensions
-            .into_iter()
-            .map(|extension| composition::LoadedExtension::new(extension.url, extension.name));
-        subgraphs.ingest_loaded_extensions(extensions);
+        Ok(())
     }
 
-    Ok(subgraph_cache)
+    /// Reload local subgraphs after a configuration or schema change.
+    pub(super) async fn reload_local_subgraphs(&self, config: &Config) -> Result<(), BackendError> {
+        let futures = config
+            .subgraphs
+            .iter()
+            .filter(|(_, subgraph)| subgraph.has_schema_override())
+            .map(|(name, subgraph)| handle_overridden_subgraph(&self.remote_urls, name, subgraph));
+
+        let results = futures::future::try_join_all(futures).await?;
+
+        let mut local_from_file = Vec::new();
+        let mut local_from_introspection = BTreeMap::new();
+
+        for overridden_subgraph in results {
+            match overridden_subgraph {
+                OverriddenSubgraph::FromFile(cached_subgraph) => {
+                    local_from_file.push(cached_subgraph);
+                }
+                OverriddenSubgraph::FromIntrospection(cached_introspected_subgraph) => {
+                    local_from_introspection.insert(
+                        cached_introspected_subgraph.subgraph.name.clone(),
+                        cached_introspected_subgraph,
+                    );
+                }
+            }
+        }
+
+        *self.local_from_introspection.lock().await = local_from_introspection;
+        *self.local_from_file.lock().await = local_from_file.into_boxed_slice();
+
+        Ok(())
+    }
 }
 
-struct OverriddenSubgraph {
-    parsed_schema: cynic_parser::TypeSystemDocument,
-    url: Option<String>,
-    name: String,
-    extensions: Vec<DetectedExtension>,
+enum OverriddenSubgraph {
+    FromFile(CachedSubgraph),
+    FromIntrospection(CachedIntrospectedSubgraph),
 }
 
 async fn handle_overridden_subgraph(
-    current_dir: &Path,
-    subgraph_cache: Arc<SubgraphCache>,
-    remote_urls: &HashMap<&str, Option<&str>>,
+    remote_urls: &HashMap<String, Option<String>>,
     name: &str,
     subgraph: &SubgraphConfig,
 ) -> Result<OverriddenSubgraph, BackendError> {
@@ -138,7 +205,7 @@ async fn handle_overridden_subgraph(
         .url
         .as_ref()
         .map(|url| url.as_str())
-        .or_else(|| remote_urls.get(name).copied().flatten())
+        .or_else(|| remote_urls.get(name).and_then(|url| url.as_deref()))
         .or(subgraph.introspection_url.as_ref().map(|url| url.as_str()))
         .map(String::from);
 
@@ -149,16 +216,11 @@ async fn handle_overridden_subgraph(
             .await
             .map_err(|error| BackendError::ReadSdlFromFile(schema_path.clone(), error))?;
 
-        let parsed_schema = cynic_parser::parse_type_system_document(&sdl).map_err(BackendError::ParseSubgraphSdl)?;
-
-        let extensions = detect_extensions(Some(current_dir), &parsed_schema).await;
-
-        Ok(OverriddenSubgraph {
-            parsed_schema,
-            url,
+        Ok(OverriddenSubgraph::FromFile(CachedSubgraph {
             name: name.to_owned(),
-            extensions,
-        })
+            sdl,
+            url,
+        }))
     } else if let Some(introspection_url) = subgraph.introspection_url.as_ref().or(parsed_url.as_ref()) {
         let headers: Vec<(&String, &DynamicString<String>)> = subgraph
             .introspection_headers
@@ -166,32 +228,22 @@ async fn handle_overridden_subgraph(
             .map(|intropection_headers| intropection_headers.iter().collect())
             .unwrap_or_default();
 
-        // TODO: this also parses and prettifies, expose internal functionality
         let sdl = introspect(introspection_url.as_str(), &headers)
             .await
             .map_err(|_| BackendError::IntrospectSubgraph(introspection_url.to_string()))?;
 
-        subgraph_cache.local.lock().await.insert(
-            name.to_owned(),
-            CachedIntrospectedSubgraph {
-                introspection_url: introspection_url.to_string(),
-                introspection_headers: headers
-                    .iter()
-                    .map(|(key, value)| ((*key).clone(), (*value).clone()))
-                    .collect(),
-                sdl: sdl.clone(),
-            },
-        );
-
-        let parsed_schema = cynic_parser::parse_type_system_document(&sdl)?;
-        let extensions = detect_extensions(None, &parsed_schema).await;
-
-        Ok(OverriddenSubgraph {
-            parsed_schema,
-            url,
-            name: name.to_owned(),
-            extensions,
-        })
+        Ok(OverriddenSubgraph::FromIntrospection(CachedIntrospectedSubgraph {
+            introspection_url: introspection_url.to_string(),
+            introspection_headers: headers
+                .iter()
+                .map(|(key, value)| ((*key).clone(), (*value).clone()))
+                .collect(),
+            subgraph: Arc::new(CachedSubgraph {
+                name: name.to_owned(),
+                sdl,
+                url: url.clone(),
+            }),
+        }))
     } else {
         Err(BackendError::NoDefinedRouteToSubgraphSdl(name.to_owned()))
     }

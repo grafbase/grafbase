@@ -16,8 +16,9 @@ use pathfinder::{export_assets, get_pathfinder_router};
 use std::{
     net::{Ipv4Addr, SocketAddr},
     path::PathBuf,
+    sync::Arc,
 };
-use subgraphs::get_subgraph_sdls;
+use subgraphs::SubgraphCache;
 use tokio::{
     sync::{broadcast, mpsc, watch},
     task::spawn_blocking,
@@ -90,11 +91,9 @@ async fn start(args: DevCommand) -> anyhow::Result<()> {
         );
     });
 
-    let mut subgraphs = graphql_composition::Subgraphs::default();
+    let subgraph_cache = Arc::new(SubgraphCache::new(args.graph_ref.as_ref(), &config).await?);
 
-    let subgraph_cache = get_subgraph_sdls(args.graph_ref.as_ref(), &config, &mut subgraphs).await?;
-
-    let composition_result = graphql_composition::compose(&subgraphs);
+    let composition_result = subgraph_cache.compose().await?;
 
     {
         let mut warnings = composition_result.diagnostics().iter_warnings().peekable();
@@ -137,8 +136,6 @@ async fn start(args: DevCommand) -> anyhow::Result<()> {
 
     let hot_reload_ready_receiver = ready_sender.subscribe();
 
-    // FIXME: so many leaks everywhere...
-    let config_path: Option<&'static PathBuf> = Box::leak(Box::new(config.path.clone())).as_ref();
     tokio::spawn(async move {
         hot_reload(
             config_sender,
@@ -146,7 +143,6 @@ async fn start(args: DevCommand) -> anyhow::Result<()> {
             hot_reload_ready_receiver,
             composition_warnings_sender,
             subgraph_cache,
-            config_path,
             config,
         )
         .await;
