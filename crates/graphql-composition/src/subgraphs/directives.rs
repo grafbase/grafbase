@@ -146,6 +146,10 @@ impl Subgraphs {
     }
 
     pub(crate) fn push_directive(&mut self, directive: ExtraDirectiveRecord) {
+        if let Some(last) = self.directives.extra_directives.last() {
+            assert!(last.directive_site_id <= directive.directive_site_id);
+        }
+
         self.directives.extra_directives.push(directive);
     }
 
@@ -235,7 +239,7 @@ impl<'a> DirectiveSiteWalker<'a> {
     ///                             ^^^^^^^^^^^^^^^^^^^^^^^^^
     /// }
     /// ```
-    pub fn r#override(self) -> Option<&'a OverrideDirective> {
+    pub(crate) fn r#override(self) -> Option<&'a OverrideDirective> {
         self.subgraphs.directives.r#override.get(&self.id)
     }
 

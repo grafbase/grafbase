@@ -9,6 +9,7 @@
 ### Fixes
 
 - Do not warn on `@specifiedBy` directive when it is not imported. It is a GraphQL built-in. (https://github.com/grafbase/grafbase/pull/2673)
+- Fixed directives from extensions on enum definitions sometimes not being rendered in the federated graph. (https://github.com/grafbase/grafbase/pull/3073)
 
 ## 0.6.1 - 2025-02-13
 

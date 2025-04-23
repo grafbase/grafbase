@@ -64,6 +64,8 @@ fn ingest_top_level_definitions(ctx: &mut Context<'_>) {
                     .map(|description| ctx.subgraphs.strings.intern(description.to_cow()));
 
                 let directives = ctx.subgraphs.new_directive_site();
+                // Order matters: we ingest enum values in the following block. We have to ingest the enum's directives first, so directives are ingested in order of directive site id.
+                directives::ingest_directives(ctx, directives, type_definition.directives(), |_| type_name.to_owned());
 
                 let definition_id = match type_definition {
                     ast::TypeDefinition::Object(_) if type_name == SERVICE_TYPE_NAME => continue,
@@ -138,8 +140,6 @@ fn ingest_top_level_definitions(ctx: &mut Context<'_>) {
                         definition_id
                     }
                 };
-
-                directives::ingest_directives(ctx, directives, type_definition.directives(), |_| type_name.to_owned());
 
                 directives::ingest_keys(definition_id, type_definition.directives(), ctx);
             }
