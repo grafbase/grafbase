@@ -54,6 +54,7 @@ type Doctor
   lastName: String! @join__field(graph: DOCTORS)
   phone: String @extension__directive(graph: DOCTORS, extension: REST_CONNECTOR, name: "call", arguments: {method: GET, url: "https://my-phone_registry/doctors/{id}"}) @join__field(graph: DOCTORS)
   specialty: String! @join__field(graph: DOCTORS)
+  type: DoctorType @join__field(graph: DOCTORS)
 }
 
 type Query
@@ -87,6 +88,15 @@ enum AppointmentStatus
   SCHEDULED
   COMPLETED
   CANCELLED
+}
+
+enum DoctorType
+  @extension__directive(graph: DOCTORS, extension: ORACLE_CONNECTOR, name: "databaseEnum", arguments: {name: "dr_type"})
+  @join__type(graph: DOCTORS)
+{
+  CARDIOLOGIST @extension__directive(graph: DOCTORS, extension: ORACLE_CONNECTOR, name: "databaseEnumValue", arguments: {value: "cardiologist_t"})
+  PEDIATRICIAN @extension__directive(graph: DOCTORS, extension: ORACLE_CONNECTOR, name: "databaseEnumValue", arguments: {value: "pediatrician_t"})
+  SURGEON
 }
 
 enum join__Graph

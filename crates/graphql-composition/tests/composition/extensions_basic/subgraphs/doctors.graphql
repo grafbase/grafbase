@@ -26,6 +26,7 @@ type Doctor @key(fields: "id") {
   specialty: String!
   email: String!
   phone: String @rest__call(method: GET, url: "https://my-phone_registry/doctors/{id}")
+  type: DoctorType
 }
 
 input DoctorInput {
@@ -38,4 +39,10 @@ input DoctorInput {
 
 type Appointment @key(fields: "id") {
   id: ID!
+}
+
+enum DoctorType @oracle__databaseEnum(name: "dr_type") {
+  CARDIOLOGIST @oracle__databaseEnumValue(value: "cardiologist_t")
+  PEDIATRICIAN @oracle__databaseEnumValue(value: "pediatrician_t")
+  SURGEON
 }

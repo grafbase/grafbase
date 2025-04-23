@@ -9,6 +9,12 @@ enum AppointmentStatus {
   CANCELLED
 }
 
+enum DoctorType {
+  CARDIOLOGIST
+  PEDIATRICIAN
+  SURGEON
+}
+
 type Appointment {
   datetime: String!
   doctor: Doctor!
@@ -36,6 +42,7 @@ type Doctor {
   lastName: String!
   phone: String
   specialty: String!
+  type: DoctorType
 }
 
 type Query {
