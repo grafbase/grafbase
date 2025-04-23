@@ -1,6 +1,6 @@
 [package]
 name = "graphql-federated-graph"
-version = "0.6.1"
+version = "0.7.0"
 edition = "2024"
 license = "MPL-2.0"
 description = "A serializable federated GraphQL graph representation"
@@ -15,7 +15,7 @@ bitflags.workspace = true
 indoc.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
-wrapping = { path = "../graphql-wrapping-types", package = "graphql-wrapping-types", version = "0.2.0" }
+wrapping = { path = "../graphql-wrapping-types", package = "graphql-wrapping-types", version = "0.3.0" }
 
 cynic-parser = { workspace = true, optional = true }
 cynic-parser-deser.workspace = true
