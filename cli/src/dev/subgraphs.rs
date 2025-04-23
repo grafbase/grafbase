@@ -1,6 +1,4 @@
-use super::FullGraphRef;
-use crate::common::environment::PlatformData;
-use crate::dev::detect_extensions;
+use super::{FullGraphRef, extensions::detect_extensions};
 use crate::{
     api::{
         client::create_client,
@@ -8,16 +6,16 @@ use crate::{
             Subgraph, SubgraphSchemasByBranch, SubgraphSchemasByBranchVariables,
         },
     },
+    common::environment::PlatformData,
     errors::BackendError,
 };
 use cynic::{QueryBuilder, http::ReqwestExt};
 use gateway_config::{Config, SubgraphConfig};
 use grafbase_graphql_introspection::introspect;
 use serde_dynamic_string::DynamicString;
-use std::collections::HashSet;
-use std::path::PathBuf;
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::{BTreeMap, HashMap, HashSet},
+    path::PathBuf,
     sync::Arc,
 };
 use tokio::{fs, sync::Mutex};
@@ -249,7 +247,7 @@ async fn handle_overridden_subgraph(
     }
 }
 
-pub(crate) async fn fetch_remote_subgraphs(graph_ref: &FullGraphRef) -> Result<Vec<Subgraph>, BackendError> {
+async fn fetch_remote_subgraphs(graph_ref: &FullGraphRef) -> Result<Vec<Subgraph>, BackendError> {
     let platform_data = PlatformData::get();
 
     let client = create_client().map_err(BackendError::ApiError)?;

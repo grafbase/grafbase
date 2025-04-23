@@ -10,7 +10,7 @@ pub(crate) struct DetectedExtension {
     pub(crate) name: String,
 }
 
-pub(crate) async fn detect_extensions(
+pub(super) async fn detect_extensions(
     current_dir: Option<&Path>,
     parsed_schema: &TypeSystemDocument,
 ) -> Vec<DetectedExtension> {

@@ -3,7 +3,7 @@ mod hot_reload;
 mod pathfinder;
 mod subgraphs;
 
-pub(crate) use self::{extensions::detect_extensions, subgraphs::fetch_remote_subgraphs};
+pub(crate) use self::subgraphs::SubgraphCache;
 
 use super::errors::BackendError;
 use crate::{
@@ -18,7 +18,6 @@ use std::{
     path::PathBuf,
     sync::Arc,
 };
-use subgraphs::SubgraphCache;
 use tokio::{
     sync::{broadcast, mpsc, watch},
     task::spawn_blocking,

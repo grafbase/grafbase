@@ -23,7 +23,6 @@ pub enum SubCommand {
     /// Set up and deploy a new graph
     Create(CreateCommand),
     /// Compose a federated graph from subgraph schemas
-    #[clap(hide = true)]
     Compose(ComposeCommand),
     /// Introspect a graph and print its schema
     Introspect(IntrospectCommand),
