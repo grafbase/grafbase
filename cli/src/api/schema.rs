@@ -1,4 +1,4 @@
-use crate::backend::api::graphql::queries::{
+use crate::api::graphql::queries::{
     fetch_federated_graph_schema::{
         FetchFederatedGraphSchemaArguments, FetchFederatedGraphSchemaProductionBranchArguments,
         FetchFederatedGraphSchemaProductionBranchQuery, FetchFederatedGraphSchemaQuery,

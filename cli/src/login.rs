@@ -1,4 +1,4 @@
-use crate::backend::api::{login, types::LoginMessage};
+use crate::api::{login, types::LoginMessage};
 use crate::common::utils::get_thread_panic_message;
 use crate::{errors::CliError, output::report};
 use indicatif::{ProgressBar, ProgressStyle};

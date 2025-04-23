@@ -1,4 +1,4 @@
-use crate::backend::errors::BackendError;
+use crate::errors::BackendError;
 use axum::{
     Router,
     extract::State,
@@ -43,7 +43,7 @@ pub async fn export_assets() -> Result<(), BackendError> {
         }
     }
 
-    let tar = include_bytes!("../../../assets/pathfinder.tar.gz");
+    let tar = include_bytes!("../../assets/pathfinder.tar.gz");
 
     Archive::new(GzDecoder::new(tar.as_slice()))
         .unpack(dot_grafbase_dir.join(PATHFINDER_ASSETS_DIR))
@@ -79,7 +79,6 @@ pub fn get_pathfinder_router<S>(port: u16, home_dir: &Path) -> Router<S> {
         .with_state(PathfinderState { html: Html(html) })
 }
 
-#[allow(clippy::unused_async)]
 async fn root(State(PathfinderState { html }): State<PathfinderState>) -> impl IntoResponse {
     html
 }

@@ -1,5 +1,6 @@
 use super::{FullGraphRef, extensions::*};
-use crate::backend::{
+use crate::common::environment::PlatformData;
+use crate::{
     api::{
         client::create_client,
         graphql::queries::subgraph_schemas_by_branch::{
@@ -8,7 +9,6 @@ use crate::backend::{
     },
     errors::BackendError,
 };
-use crate::common::environment::PlatformData;
 use cynic::{QueryBuilder, http::ReqwestExt};
 use gateway_config::{Config, SubgraphConfig};
 use grafbase_graphql_introspection::introspect;

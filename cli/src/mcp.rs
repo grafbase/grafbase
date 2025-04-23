@@ -20,7 +20,7 @@ use runtime_local::{
 use std::io::stdout;
 use wasi_component_loader::extension::WasmExtensions;
 
-use crate::{backend::dev::DEFAULT_PORT, cli_input::McpCommand};
+use crate::{cli_input::McpCommand, dev::DEFAULT_PORT};
 
 #[tokio::main(flavor = "multi_thread")]
 pub(crate) async fn run(args: McpCommand) -> anyhow::Result<()> {

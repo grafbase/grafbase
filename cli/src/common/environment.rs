@@ -52,7 +52,7 @@ impl Credentials {
     }
 }
 
-#[allow(clippy::to_string_trait_impl)]
+#[expect(clippy::to_string_trait_impl)]
 impl ToString for Credentials {
     fn to_string(&self) -> String {
         serde_json::to_string(&self).expect("must parse")
@@ -104,7 +104,7 @@ impl Environment {
         match ENVIRONMENT.get() {
             Some(environment) => environment,
             // must be initialized in `main`
-            #[allow(clippy::panic)]
+            #[expect(clippy::panic)]
             None => panic!("the environment object is uninitialized"),
         }
     }
@@ -208,7 +208,7 @@ impl PlatformData {
         match PLATFORM_DATA.get() {
             Some(platform_data) => platform_data,
             // must be initialized in `main`
-            #[allow(clippy::panic)]
+            #[expect(clippy::panic)]
             None => panic!("the platform data object is uninitialized"),
         }
     }

@@ -1,6 +1,6 @@
 use super::subgraphs::{SubgraphCache, get_subgraph_sdls};
-use crate::backend::dev::subgraphs::CachedIntrospectedSubgraph;
-use crate::backend::errors::BackendError;
+use crate::dev::subgraphs::CachedIntrospectedSubgraph;
+use crate::errors::BackendError;
 use gateway_config::Config;
 use grafbase_graphql_introspection::introspect;
 use notify_debouncer_full::{
@@ -38,7 +38,6 @@ impl SubgraphWatcher {
         self.cancellation_token = None;
     }
 
-    #[allow(clippy::too_many_arguments)]
     fn start(
         &mut self,
         sender: mpsc::Sender<String>,
@@ -178,7 +177,6 @@ impl SubgraphWatcher {
         Ok(())
     }
 
-    #[allow(clippy::too_many_arguments)]
     fn spawn_schema_file_watcher(
         &mut self,
         sender: mpsc::Sender<String>,
@@ -277,7 +275,6 @@ fn watch_configuration_files(gateway_config_path: Option<&PathBuf>) -> Result<mp
     Ok(watcher_receiver)
 }
 
-#[allow(clippy::too_many_arguments)]
 pub(crate) async fn hot_reload(
     config_sender: watch::Sender<Config>,
     sdl_sender: mpsc::Sender<String>,

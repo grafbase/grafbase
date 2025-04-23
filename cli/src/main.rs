@@ -1,6 +1,6 @@
 #![forbid(unsafe_code)]
 
-mod backend;
+mod api;
 mod branch;
 mod check;
 mod cli_input;

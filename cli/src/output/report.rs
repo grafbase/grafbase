@@ -1,9 +1,9 @@
 use std::collections::BTreeMap;
 
 use crate::{
-    backend::{
+    api::{
         self,
-        api::graphql::mutations::{SchemaCheckDiagnostic, SchemaCheckStep},
+        graphql::mutations::{SchemaCheckDiagnostic, SchemaCheckStep},
     },
     common::{
         environment::{PlatformData, Warning},
@@ -147,10 +147,10 @@ pub(crate) fn check_errors(has_errors: bool, diagnostics: &[SchemaCheckDiagnosti
             let error = &diagnostic.message;
 
             match diagnostic.severity {
-                backend::api::check::SchemaCheckErrorSeverity::Error => {
+                api::check::SchemaCheckErrorSeverity::Error => {
                     watercolor::output!("❌ [Error] {error}", @BrightRed);
                 }
-                backend::api::check::SchemaCheckErrorSeverity::Warning => {
+                api::check::SchemaCheckErrorSeverity::Warning => {
                     watercolor::output!("⚠️ [Warning] {error}", @BrightYellow);
                 }
             }
@@ -237,7 +237,7 @@ pub(crate) fn old_access_token() {
     watercolor::output!("❌ You must pass a graph reference of the form <account>/<graph>@<branch> (missing account)", @BrightRed)
 }
 
-pub(crate) fn trust_reused_ids(reused: &backend::api::submit_trusted_documents::ReusedIds) {
+pub(crate) fn trust_reused_ids(reused: &api::submit_trusted_documents::ReusedIds) {
     watercolor::output!("Error: there already exist trusted documents with the same ids, but a different body:", @BrightRed);
 
     for reused_id in &reused.reused {

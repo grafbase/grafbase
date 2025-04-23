@@ -1,9 +1,9 @@
-pub(crate) use crate::backend::api::graphql::mutations::submit_trusted_documents::{
+pub(crate) use crate::api::graphql::mutations::submit_trusted_documents::{
     ReusedIds, TrustedDocumentInput, TrustedDocumentsSubmitPayload, TrustedDocumentsSubmitVariables,
 };
 
 use crate::{
-    backend::api::{
+    api::{
         client::create_client, errors::ApiError, graphql::mutations::submit_trusted_documents::TrustedDocumentsSubmit,
     },
     common::environment::PlatformData,
