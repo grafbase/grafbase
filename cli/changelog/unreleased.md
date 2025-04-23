@@ -5,3 +5,4 @@
 ## Fixes
 
 - Fixed infinite loops in file watcher causing `grafbase dev` to become unresponsive
+- Fixed schemas from locally running subgraphs not being updated anymore after the first hot reload in `grafbase dev` (https://github.com/grafbase/grafbase/pull/3081).

@@ -50,14 +50,13 @@ pub(crate) async fn hot_reload(
     config_sender: watch::Sender<Config>,
     sdl_sender: mpsc::Sender<String>,
     mut ready_receiver: Receiver<String>,
-    composition_warnings_sender: mpsc::Sender<Vec<String>>,
     subgraph_cache: Arc<SubgraphCache>,
     config: Config,
 ) {
     // start hot reloading once the server is ready
     if ready_receiver.recv().await.is_err() {
         return;
-    }
+    };
 
     let Some(config_path) = config.path.clone() else {
         // return early since we don't hot reload graphs from the API
@@ -94,7 +93,6 @@ pub(crate) async fn hot_reload(
     let _ = subgraph_watcher
         .start(
             sdl_sender.clone(),
-            composition_warnings_sender.clone(),
             subgraph_cache.clone(),
             overridden_subgraphs.clone(),
             config,
@@ -107,7 +105,10 @@ pub(crate) async fn hot_reload(
         subgraph_watcher.stop();
 
         let config = match Config::load(&config_path) {
-            Ok(config) => config,
+            Ok(mut config) => {
+                config.graph.introspection = Some(true);
+                config
+            }
             Err(error) => {
                 tracing::error!("{}", error.to_string().trim());
                 continue;
@@ -121,15 +122,7 @@ pub(crate) async fn hot_reload(
 
         let config = Arc::new(config);
 
-        if let Err(error) = reload_subgraphs(
-            sdl_sender.clone(),
-            composition_warnings_sender.clone(),
-            subgraph_cache.clone(),
-            config.clone(),
-            None,
-        )
-        .await
-        {
+        if let Err(error) = reload_subgraphs(sdl_sender.clone(), subgraph_cache.clone(), config.clone(), None).await {
             tracing::error!("{}", error.to_string().trim());
             continue;
         }
@@ -137,20 +130,13 @@ pub(crate) async fn hot_reload(
         tracing::info!("detected a configuration change, reloading");
 
         let _ = subgraph_watcher
-            .start(
-                sdl_sender.clone(),
-                composition_warnings_sender.clone(),
-                subgraph_cache,
-                overridden_subgraphs.clone(),
-                config,
-            )
+            .start(sdl_sender.clone(), subgraph_cache, overridden_subgraphs.clone(), config)
             .inspect_err(|error| tracing::error!("{}", error.to_string().trim()));
     }
 }
 
 async fn reload_subgraphs(
     sender: mpsc::Sender<String>,
-    composition_warnings_sender: mpsc::Sender<Vec<String>>,
     subgraph_cache: Arc<SubgraphCache>,
     config: Arc<Config>,
     cancellation_token: Option<CancellationToken>,
@@ -158,19 +144,8 @@ async fn reload_subgraphs(
     subgraph_cache.reload_local_subgraphs(&config).await?;
     let composition_result = subgraph_cache.compose().await?;
 
-    {
-        let mut warnings = composition_result.diagnostics().iter_warnings().peekable();
-
-        if warnings.peek().is_some() {
-            composition_warnings_sender
-                .send(warnings.map(ToOwned::to_owned).collect())
-                .await
-                .unwrap();
-        }
-    }
-
-    let federated_sdl = match composition_result.into_result() {
-        Ok(result) => federated_graph::render_federated_sdl(&result).map_err(BackendError::ToFederatedSdl)?,
+    let federated_sdl = match composition_result {
+        Ok(result) => result,
         Err(diagnostics) => {
             return Err(BackendError::Composition(
                 diagnostics.iter_messages().collect::<Vec<_>>().join("\n"),
