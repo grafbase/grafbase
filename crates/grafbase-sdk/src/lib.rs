@@ -43,7 +43,7 @@ mod wit {
 
     wit_bindgen::generate!({
         skip: ["register-extension"],
-        path: "./wit/since_0_14_0/",
+        path: "./wit/since_0_15_0/",
         world: "sdk",
         additional_derives: [
             serde::Deserialize,

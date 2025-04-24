@@ -1,0 +1,39 @@
+package grafbase:sdk;
+
+world sdk {
+    import access-log;
+    import cache;
+    import error;
+    import grpc;
+    import headers;
+    import http-client;
+    import nats-client;
+    import postgres;
+    import token;
+    import directive;
+    import schema;
+    import authorization-types;
+    import resolver-types;
+    import field-resolver-types;
+    import selection-set-resolver-types;
+
+    export authentication;
+    export authorization;
+    export field-resolver;
+    export selection-set-resolver;
+
+    use directive.{schema-directive};
+    use schema.{schema};
+
+    // The extension registration function. Must be called before initialization.
+    export register-extension: func();
+
+    // initialization function called to set up the wasm extension
+    // if an error happens here, the gateway will refuse to continue.
+    // Receives a list of schema directives associated with the extension
+    export init: func(
+        // Schema for each subgraph, with relevant data for each extension type.
+        schema: list<tuple<string, schema>>,
+        configuration: list<u8>,
+    ) -> result<_, string>;
+}

@@ -38,7 +38,7 @@ input AppointmentInput {
   notes: String
 }
 
-enum AppointmentStatus {
+enum AppointmentStatus @kafka__message(topic: "appointments") {
   SCHEDULED
   COMPLETED
   CANCELLED

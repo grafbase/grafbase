@@ -11,7 +11,7 @@ use crate::{
     resources::Headers,
 };
 
-impl SelectionSetResolverExtensionInstance for super::ExtensionInstanceSince0_14_0 {
+impl SelectionSetResolverExtensionInstance for super::ExtensionInstanceSince0_15_0 {
     fn prepare<'a>(
         &'a mut self,
         subgraph_name: &'a str,
@@ -22,7 +22,6 @@ impl SelectionSetResolverExtensionInstance for super::ExtensionInstanceSince0_14
             // Futures may be canceled, so we pro-actively mark the instance as poisoned until proven
             // otherwise.
             self.poisoned = true;
-
             let result = self
                 .inner
                 .grafbase_sdk_selection_set_resolver()
