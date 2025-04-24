@@ -18,6 +18,7 @@ pub(super) fn ingest_directives(
 ) {
     for directive in directives_node {
         let (directive_name_id, match_result) = match_directive_name(ctx, directive.name());
+
         let is_composed_directive = ctx.subgraphs.is_composed_directive(ctx.subgraph_id, directive_name_id);
 
         match match_result {

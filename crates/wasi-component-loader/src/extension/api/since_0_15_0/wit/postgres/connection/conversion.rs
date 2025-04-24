@@ -7,7 +7,7 @@ use sqlx::{
     query::Query,
 };
 
-use crate::extension::api::since_0_14_0::wit::postgres::{PgType, PgValue, PgValueTree};
+use crate::extension::api::since_0_15_0::wit::postgres::{PgType, PgValue, PgValueTree};
 
 pub fn bind_value<'a>(
     query: Query<'a, Postgres, PgArguments>,
@@ -38,6 +38,7 @@ pub fn bind_value<'a>(
             PgType::Bytes => query.bind(Option::<Vec<u8>>::None),
             PgType::Point => query.bind(Option::<PgPoint>::None),
             PgType::Interval => query.bind(Option::<PgInterval>::None),
+            _ => query.bind(Option::<&str>::None),
         },
         PgValue::Boolean(value) => query.bind(value),
         PgValue::Int16(value) => query.bind(value),
@@ -46,18 +47,6 @@ pub fn bind_value<'a>(
         PgValue::Float32(value) => query.bind(value),
         PgValue::Float64(value) => query.bind(value),
         PgValue::String(value) => query.bind(value),
-        PgValue::Uuid(value) => query.bind(value),
-        PgValue::Json(value) => query.bind(value),
-        PgValue::Timestamp(value) => query.bind(value),
-        PgValue::Date(value) => query.bind(value),
-        PgValue::Time(value) => query.bind(value),
-        PgValue::DateTime(value) => query.bind(value),
-        PgValue::Numeric(value) => query.bind(value),
-        PgValue::Inet(value) => query.bind(value),
-        PgValue::Macaddr(value) => query.bind(value),
-        PgValue::Bit(value) => query.bind(value),
-        PgValue::Money(value) => query.bind(value),
-        PgValue::Xml(value) => query.bind(value),
         PgValue::Bytes(value) => query.bind(value),
         PgValue::Array(indices) => {
             // Handle different array types based on the PgType

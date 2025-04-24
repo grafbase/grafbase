@@ -83,6 +83,7 @@ type Subscription
 }
 
 enum AppointmentStatus
+  @extension__directive(graph: APPOINTMENTS, extension: KAFKA_CONNECTOR, name: "message", arguments: {topic: "appointments"})
   @join__type(graph: APPOINTMENTS)
 {
   SCHEDULED

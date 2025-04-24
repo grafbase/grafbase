@@ -15,7 +15,7 @@ use uuid::Uuid;
 
 use crate::{
     SdkError,
-    wit::{self, PgBoundValue},
+    wit::{self, PgBoundValue, PgValue},
 };
 pub use wit::PgType;
 
@@ -135,6 +135,60 @@ impl DatabaseValue {
         }
     }
 
+    /// Returns the PostgreSQL type name for explicit casting, if necessary.
+    ///
+    /// Some PostgreSQL types require explicit type casting in SQL queries (e.g., `::cidr`).
+    /// This method provides the appropriate type name string for such cases based on the
+    /// `DatabaseValue`'s `type_` field.
+    ///
+    /// # Returns
+    ///
+    /// - `Some(&'static str)` containing the type name string (e.g., "cidr", "XML") if casting is needed.
+    /// - `None` if the type does not require explicit casting.
+    pub fn type_cast(&self) -> Option<&'static str> {
+        match self.value.type_ {
+            PgType::Cidr if self.value.is_array => Some("cidr[]"),
+            PgType::Cidr => Some("cidr"),
+            PgType::Xml if self.value.is_array => Some("XML[]"),
+            PgType::Xml => Some("XML"),
+            PgType::Macaddr if self.value.is_array => Some("macaddr[]"),
+            PgType::Macaddr => Some("macaddr"),
+            PgType::Macaddr8 if self.value.is_array => Some("macaddr8[]"),
+            PgType::Macaddr8 => Some("macaddr8"),
+            PgType::Bit | PgType::Varbit if self.value.is_array => Some("bit varying[]"),
+            PgType::Bit | PgType::Varbit => Some("bit varying"),
+            PgType::Int64 if self.value.is_array => Some("bigint[]"),
+            PgType::Int64 => Some("bigint"),
+            PgType::Oid if self.value.is_array => Some("oid[]"),
+            PgType::Oid => Some("oid"),
+            PgType::Json if self.value.is_array => Some("json[]"),
+            PgType::Json => Some("json"),
+            PgType::Jsonb if self.value.is_array => Some("jsonb[]"),
+            PgType::Jsonb => Some("jsonb"),
+            PgType::Money if self.value.is_array => Some("money[]"),
+            PgType::Money => Some("money"),
+            PgType::Numeric if self.value.is_array => Some("numeric[]"),
+            PgType::Numeric => Some("numeric"),
+            PgType::Decimal if self.value.is_array => Some("decimal[]"),
+            PgType::Decimal => Some("decimal"),
+            PgType::Time if self.value.is_array => Some("time[]"),
+            PgType::Time => Some("time"),
+            PgType::Date if self.value.is_array => Some("date[]"),
+            PgType::Date => Some("date"),
+            PgType::Timetz if self.value.is_array => Some("timetz[]"),
+            PgType::Timetz => Some("timetz"),
+            PgType::Inet if self.value.is_array => Some("inet[]"),
+            PgType::Inet => Some("inet"),
+            PgType::Timestamp if self.value.is_array => Some("timestamp[]"),
+            PgType::Timestamp => Some("timestamp"),
+            PgType::Timestamptz if self.value.is_array => Some("timestamptz[]"),
+            PgType::Timestamptz => Some("timestamptz"),
+            PgType::Uuid if self.value.is_array => Some("uuid[]"),
+            PgType::Uuid => Some("uuid"),
+            _ => None,
+        }
+    }
+
     /// Converts a JSON input value to a database value with a specified PostgreSQL type.
     ///
     /// This is meant for converting an input value to a database value matching the underlying
@@ -151,8 +205,36 @@ impl DatabaseValue {
         column_is_array: bool,
     ) -> Result<Self, SdkError> {
         let column_type = column_type.into();
+        let is_json = column_type == PgType::Json || column_type == PgType::Jsonb;
 
         let value = match value {
+            json if is_json && column_is_array => {
+                let mut value = match json {
+                    serde_json::Value::Array(values) => values.into_bound_value(0),
+                    json => json.into_bound_value(0),
+                };
+
+                value.value.type_ = column_type;
+                value.value.is_array = column_is_array;
+
+                value
+            }
+            json if is_json => {
+                let mut value = json.into_bound_value(0);
+                value.value.is_array = column_is_array;
+                value.value.type_ = column_type;
+                value
+            }
+            json @ serde_json::Value::Object(_) => {
+                let mut value = match json {
+                    serde_json::Value::Array(values) => values.into_bound_value(0),
+                    json => json.into_bound_value(0),
+                };
+
+                value.value.type_ = column_type;
+
+                value
+            }
             serde_json::Value::Null => DatabaseValue {
                 value: wit::PgBoundValue {
                     value: wit::PgValue::Null,
@@ -164,16 +246,42 @@ impl DatabaseValue {
             serde_json::Value::Bool(b) => b.into_bound_value(0),
             serde_json::Value::Number(number) => {
                 if let Some(i) = number.as_i64() {
-                    return Ok(i.into_bound_value(0));
+                    match column_type {
+                        PgType::Int16 => return Ok((i as i16).into_bound_value(0)),
+                        PgType::Int32 => return Ok((i as i32).into_bound_value(0)),
+                        PgType::Int64 => return Ok(i.into_bound_value(0)),
+                        _ => {
+                            return Err(SdkError::from("Unsupported type for an int column"));
+                        }
+                    }
                 }
 
                 if let Some(f) = number.as_f64() {
-                    return Ok(f.into_bound_value(0));
+                    match column_type {
+                        PgType::Float32 => return Ok((f as f32).into_bound_value(0)),
+                        PgType::Float64 => return Ok(f.into_bound_value(0)),
+                        _ => {
+                            return Err(SdkError::from("Unsupported type for a float column"));
+                        }
+                    }
                 }
 
                 return Err(SdkError::from(format!("Number out of range: {}", number)));
             }
-            serde_json::Value::String(s) => s.into_bound_value(0),
+            serde_json::Value::String(s) => match column_type {
+                PgType::Bytes => {
+                    let bytes = hex_to_bytes(&s)?;
+                    bytes.into_bound_value(0)
+                }
+                _ => DatabaseValue {
+                    value: PgBoundValue {
+                        value: PgValue::String(s),
+                        type_: column_type,
+                        is_array: false,
+                    },
+                    array_values: None,
+                },
+            },
             serde_json::Value::Array(values) => {
                 let mut array_values = Vec::with_capacity(values.len());
                 let mut indices = Vec::with_capacity(values.len());
@@ -186,17 +294,33 @@ impl DatabaseValue {
                         serde_json::Value::Bool(b) => array_values.push(wit::PgValue::Boolean(b)),
                         serde_json::Value::Number(number) => {
                             if let Some(i) = number.as_i64() {
-                                array_values.push(wit::PgValue::Int64(i));
+                                let value = match column_type {
+                                    PgType::Int16 => wit::PgValue::Int16(i as i16),
+                                    PgType::Int32 => wit::PgValue::Int32(i as i32),
+                                    PgType::Int64 => wit::PgValue::Int64(i),
+                                    _ => return Err(SdkError::from("Unsupported type for an integer array column")),
+                                };
+
+                                array_values.push(value);
                             } else if let Some(f) = number.as_f64() {
-                                array_values.push(wit::PgValue::Float64(f));
+                                let value = match column_type {
+                                    PgType::Float32 => wit::PgValue::Float32(f as f32),
+                                    PgType::Float64 => wit::PgValue::Float64(f),
+                                    _ => return Err(SdkError::from("Unsupported type for a float array column")),
+                                };
+
+                                array_values.push(value);
                             } else {
                                 return Err(SdkError::from(format!("Number out of range: {}", number)));
                             }
                         }
-                        serde_json::Value::String(s) => array_values.push(wit::PgValue::String(s)),
+                        serde_json::Value::String(s) => match column_type {
+                            wit::PgType::Bytes => array_values.push(wit::PgValue::Bytes(hex_to_bytes(&s)?)),
+                            _ => array_values.push(wit::PgValue::String(s)),
+                        },
                         serde_json::Value::Array(_) => return Err(SdkError::from("Nested arrays are not supported")),
                         json @ serde_json::Value::Object(_) => {
-                            array_values.push(wit::PgValue::Json(serde_json::to_string(&json).unwrap()))
+                            array_values.push(wit::PgValue::String(serde_json::to_string(&json).unwrap()))
                         }
                     }
                 }
@@ -210,11 +334,41 @@ impl DatabaseValue {
                     array_values: Some(array_values),
                 }
             }
-            json @ serde_json::Value::Object(_) => json.into_bound_value(0),
         };
 
         Ok(value)
     }
+}
+
+fn hex_to_bytes(s: &str) -> Result<Vec<u8>, SdkError> {
+    if !s.starts_with("\\x") {
+        return Err(SdkError::from("Input string must start with '\\x'"));
+    }
+
+    let hex_part = &s[2..];
+
+    if hex_part.len() % 2 != 0 {
+        return Err(SdkError::from("Hex string part has an odd number of characters"));
+    }
+
+    let mut bytes = Vec::with_capacity(hex_part.len() / 2);
+
+    for i in (0..hex_part.len()).step_by(2) {
+        let hex_pair = &hex_part[i..i + 2];
+
+        // 5. Parse the hex pair into a u8
+        match u8::from_str_radix(hex_pair, 16) {
+            Ok(byte) => bytes.push(byte),
+            Err(e) => {
+                return Err(SdkError::from(format!(
+                    "Failed to parse hex pair '{}': {}",
+                    hex_pair, e
+                )));
+            }
+        }
+    }
+
+    Ok(bytes)
 }
 
 /// An iterator over the values in a `DatabaseValue`.
@@ -305,9 +459,7 @@ where
         let mut value_tree = wit::PgValueTree::with_capacity(self.len());
 
         for value in self {
-            let index = value_tree.len();
-            values.push(index as u64 + *base_idx);
-
+            values.push(*base_idx);
             *base_idx += 1;
 
             // here we don't really care for nested arrays. they don't really work
@@ -445,7 +597,7 @@ impl DatabaseType for SystemTime {
     fn into_value(self, _: &mut u64) -> (wit::PgValue, Option<wit::PgValueTree>) {
         let ts = self.duration_since(SystemTime::UNIX_EPOCH).unwrap().as_micros() as i64;
 
-        (wit::PgValue::Timestamp(ts), None)
+        (wit::PgValue::Int64(ts), None)
     }
 
     fn type_hint() -> wit::PgType {
@@ -461,11 +613,11 @@ impl DatabaseType for serde_json::Value {
     fn into_value(self, _: &mut u64) -> (wit::PgValue, Option<wit::PgValueTree>) {
         let json_str = serde_json::to_string(&self).unwrap();
 
-        (wit::PgValue::Json(json_str), None)
+        (wit::PgValue::String(json_str), None)
     }
 
     fn type_hint() -> wit::PgType {
-        wit::PgType::String
+        wit::PgType::Jsonb
     }
 
     fn is_array() -> bool {
@@ -475,11 +627,11 @@ impl DatabaseType for serde_json::Value {
 
 impl DatabaseType for Uuid {
     fn into_value(self, _: &mut u64) -> (wit::PgValue, Option<wit::PgValueTree>) {
-        (wit::PgValue::Uuid(self.to_string()), None)
+        (wit::PgValue::String(self.to_string()), None)
     }
 
     fn type_hint() -> wit::PgType {
-        wit::PgType::String
+        wit::PgType::Uuid
     }
 
     fn is_array() -> bool {
@@ -489,11 +641,11 @@ impl DatabaseType for Uuid {
 
 impl DatabaseType for chrono::NaiveDate {
     fn into_value(self, _: &mut u64) -> (wit::PgValue, Option<wit::PgValueTree>) {
-        (wit::PgValue::Date(self.to_string()), None)
+        (wit::PgValue::String(self.to_string()), None)
     }
 
     fn type_hint() -> wit::PgType {
-        wit::PgType::String
+        wit::PgType::Date
     }
 
     fn is_array() -> bool {
@@ -503,11 +655,11 @@ impl DatabaseType for chrono::NaiveDate {
 
 impl DatabaseType for chrono::NaiveTime {
     fn into_value(self, _: &mut u64) -> (wit::PgValue, Option<wit::PgValueTree>) {
-        (wit::PgValue::Time(self.to_string()), None)
+        (wit::PgValue::String(self.to_string()), None)
     }
 
     fn type_hint() -> wit::PgType {
-        wit::PgType::String
+        wit::PgType::Time
     }
 
     fn is_array() -> bool {
@@ -517,11 +669,11 @@ impl DatabaseType for chrono::NaiveTime {
 
 impl DatabaseType for chrono::DateTime<Utc> {
     fn into_value(self, _: &mut u64) -> (wit::PgValue, Option<wit::PgValueTree>) {
-        (wit::PgValue::Timestamp(self.timestamp_micros()), None)
+        (wit::PgValue::Int64(self.timestamp_micros()), None)
     }
 
     fn type_hint() -> wit::PgType {
-        wit::PgType::Int64
+        wit::PgType::Timestamp
     }
 
     fn is_array() -> bool {
@@ -531,11 +683,11 @@ impl DatabaseType for chrono::DateTime<Utc> {
 
 impl DatabaseType for rust_decimal::Decimal {
     fn into_value(self, _: &mut u64) -> (wit::PgValue, Option<wit::PgValueTree>) {
-        (wit::PgValue::Numeric(self.to_string()), None)
+        (wit::PgValue::String(self.to_string()), None)
     }
 
     fn type_hint() -> wit::PgType {
-        wit::PgType::String
+        wit::PgType::Decimal
     }
 
     fn is_array() -> bool {

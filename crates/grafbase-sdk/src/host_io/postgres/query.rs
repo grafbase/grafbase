@@ -121,6 +121,17 @@ impl RowValue {
         self.value.as_deref()
     }
 
+    /// Consumes the `RowValue` and returns the underlying raw binary data.
+    ///
+    /// This method transfers ownership of the byte vector. If the value
+    /// is NULL, it returns `None`.
+    ///
+    /// # Returns
+    /// An owned `Vec<u8>` if the value is not NULL, or `None` if the value is NULL.
+    pub fn into_bytes(self) -> Option<Vec<u8>> {
+        self.value
+    }
+
     /// This method attempts to interpret the binary data as a UTF-8 encoded string.
     ///
     /// # Returns
@@ -223,10 +234,27 @@ impl QueryBuilder {
     /// # Parameters
     /// * `value` - A `DatabaseValue` instance to bind to the query
     pub fn bind_value(&mut self, value: DatabaseValue) {
-        let DatabaseValue { value, array_values } = value;
+        let DatabaseValue {
+            value: bound_value,
+            array_values,
+        } = value;
 
-        self.values.push(value);
+        let wit::PgBoundValue {
+            mut value,
+            type_,
+            is_array,
+        } = bound_value;
 
+        // If the value is an array, adjust the indices based on the current size of the value_tree
+        if let wit::PgValue::Array(items) = &mut value {
+            let offset = self.value_tree.len() as u64;
+            items.iter_mut().for_each(|x| *x += offset);
+        }
+
+        // Add the potentially modified value to the list of bound values
+        self.values.push(wit::PgBoundValue { value, type_, is_array });
+
+        // If there are associated array values (nested arrays), extend the value_tree
         if let Some(array_values) = array_values {
             self.value_tree.extend(array_values);
         }
