@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Fixes
+
+- Corrected the definition of `@join__type` in federated SDL to include the `isInterfaceObject` and `extension` arguments, as per the spec.
+
 ## 0.7.0 - 2025-04-25
 
 ### Changes

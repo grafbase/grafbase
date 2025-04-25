@@ -69,6 +69,9 @@ pub(crate) fn as_join_type<'a>(dir: &ast::Directive<'a>) -> Option<Result<(JoinT
 pub(crate) struct JoinTypeDirective<'a> {
     pub graph: GraphName<'a>,
     pub key: Option<&'a str>,
+    #[expect(unused)]
+    #[deser(default = false)]
+    pub extension: bool,
     #[deser(default = true)]
     pub resolvable: bool,
     #[deser(default = false, rename = "isInterfaceObject")]
