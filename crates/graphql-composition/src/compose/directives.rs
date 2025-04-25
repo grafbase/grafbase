@@ -62,6 +62,10 @@ pub(super) fn collect_composed_directives<'a>(
         cost = cost.or(site.cost());
         list_size = list_size.or(site.list_size());
 
+        for directive in site.iter_ir_directives() {
+            extra_directives.push(directive.clone());
+        }
+
         for directive in site.iter_extra_directives() {
             let provenance = match directive.provenance {
                 subgraphs::DirectiveProvenance::ComposedDirective => Some(ir::DirectiveProvenance::ComposeDirective),

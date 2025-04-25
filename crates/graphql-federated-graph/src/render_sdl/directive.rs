@@ -22,6 +22,18 @@ pub(crate) fn write_directive<'a, 'b: 'a>(
         Directive::Inaccessible => {
             DirectiveWriter::new("inaccessible", f, graph)?;
         }
+        Directive::CompositeLookup { graph: subgraph_id } => {
+            DirectiveWriter::new("composite__lookup", f, graph)?
+                .arg("graph", Value::EnumValue(graph.at(*subgraph_id).join_graph_enum_value))?;
+        }
+        Directive::CompositeRequire {
+            graph: subgraph_id,
+            field,
+        } => {
+            DirectiveWriter::new("composite__require", f, graph)?
+                .arg("graph", Value::EnumValue(graph.at(*subgraph_id).join_graph_enum_value))?
+                .arg("field", Value::String(*field))?;
+        }
         Directive::Deprecated { reason } => {
             let directive = DirectiveWriter::new("deprecated", f, graph)?;
 

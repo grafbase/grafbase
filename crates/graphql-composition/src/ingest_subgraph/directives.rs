@@ -218,6 +218,34 @@ pub(super) fn ingest_directives(
                 }
             }
 
+            DirectiveNameMatch::Lookup => {
+                ctx.subgraphs.push_ir_directive(
+                    directive_site_id,
+                    crate::composition_ir::Directive::CompositeLookup(ctx.subgraph_id.idx().into()),
+                );
+            }
+            DirectiveNameMatch::Require => {
+                let directive: graphql_federated_graph::directives::RequireDirective<'_> = match directive.deserialize()
+                {
+                    Ok(directive) => directive,
+                    Err(err) => {
+                        ctx.subgraphs
+                            .push_ingestion_diagnostic(ctx.subgraph_id, err.to_string());
+                        continue;
+                    }
+                };
+
+                let field = ctx.subgraphs.strings.intern(directive.field);
+
+                ctx.subgraphs.push_ir_directive(
+                    directive_site_id,
+                    crate::composition_ir::Directive::CompositeRequire {
+                        subgraph_id: ctx.subgraph_id.idx().into(),
+                        field,
+                    },
+                )
+            }
+
             DirectiveNameMatch::NoMatch => {
                 let location = location(ctx.subgraphs);
                 let directive_name = ctx.subgraphs.at(directive_name_id);
@@ -230,6 +258,7 @@ pub(super) fn ingest_directives(
 
             DirectiveNameMatch::ComposeDirective
             | DirectiveNameMatch::Key
+            | DirectiveNameMatch::KeyFromCompositeSchemas
             | DirectiveNameMatch::Link
             | DirectiveNameMatch::SpecifiedBy => (),
         }
@@ -245,15 +274,19 @@ pub(super) fn ingest_keys(
         let directive_name = directive.name();
         let (_, match_result) = match_directive_name(ctx, directive_name);
 
-        if let DirectiveNameMatch::Key = match_result {
+        if let DirectiveNameMatch::Key | DirectiveNameMatch::KeyFromCompositeSchemas = match_result {
             let fields_arg = directive.argument("fields").and_then(|v| v.value().as_str());
             let Some(fields_arg) = fields_arg else {
                 continue;
             };
-            let is_resolvable = directive
-                .argument("resolvable")
-                .and_then(|v| v.value().as_bool())
-                .unwrap_or(true); // defaults to true
+
+            // `resolvable` must be set to false for keys from the composite schema spec, because there is no _entities root resolver for them, they have `@lookup` fields instead.
+            let is_resolvable = matches!(match_result, DirectiveNameMatch::Key)
+                && directive
+                    .argument("resolvable")
+                    .and_then(|v| v.value().as_bool())
+                    .unwrap_or(true); // defaults to true
+
             ctx.subgraphs.push_key(definition_id, fields_arg, is_resolvable).ok();
         }
     }

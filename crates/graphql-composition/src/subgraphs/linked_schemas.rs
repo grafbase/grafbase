@@ -35,6 +35,11 @@ impl LinkedSchemaRecord {
         let url = subgraphs.strings.resolve(self.url);
         url.contains("dev/federation/v2")
     }
+
+    pub(crate) fn is_composite_schemas(&self, subgraphs: &Subgraphs) -> bool {
+        let url = subgraphs.strings.resolve(self.url);
+        url == "https://specs.grafbase.com/composite-schema/v1"
+    }
 }
 
 /// A definition from a schema imported with `@link`.

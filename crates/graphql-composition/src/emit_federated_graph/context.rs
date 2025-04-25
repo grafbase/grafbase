@@ -1,3 +1,7 @@
+mod used_directives;
+
+pub(super) use self::used_directives::UsedDirectives;
+
 use super::field_types_map::FieldTypesMap;
 use crate::{composition_ir as ir, subgraphs};
 use graphql_federated_graph as federated;
@@ -10,8 +14,7 @@ pub(super) struct Context<'a> {
     pub(super) selection_map: HashMap<(federated::Definition, federated::StringId), federated::FieldId>,
     pub(super) definitions: HashMap<federated::StringId, federated::Definition>,
 
-    pub(super) uses_cost_directive: bool,
-    pub(super) uses_list_size_directive: bool,
+    pub(super) used_directives: UsedDirectives,
 
     used_extensions: fixedbitset::FixedBitSet,
     strings_ir: ir::StringsIr,
@@ -31,8 +34,7 @@ impl<'a> Context<'a> {
             selection_map: HashMap::with_capacity(ir.fields.len()),
             field_types_map: FieldTypesMap::default(),
             used_extensions: ir.used_extensions.clone(),
-            uses_cost_directive: false,
-            uses_list_size_directive: false,
+            used_directives: UsedDirectives::empty(),
         }
     }
 

@@ -10,6 +10,7 @@ mod field_types_map;
 use self::{
     context::Context,
     directive::{
+        emit_composite_spec_directive_definitions, emit_cost_directive_definition, emit_list_size_directive_definition,
         transform_arbitray_type_directives, transform_enum_value_directives, transform_field_directives,
         transform_input_value_directives, transform_type_directives,
     },
@@ -21,7 +22,6 @@ use crate::{
     composition_ir::{CompositionIr, FieldIr, InputValueDefinitionIr},
     subgraphs,
 };
-use directive::{emit_cost_directive_definition, emit_list_size_directive_definition};
 use graphql_federated_graph::{self as federated};
 use itertools::Itertools;
 use std::collections::BTreeSet;
@@ -135,6 +135,7 @@ fn emit_directives_and_implements_interface(ctx: &mut Context<'_>, mut ir: Compo
 
     emit_cost_directive_definition(ctx);
     emit_list_size_directive_definition(ctx);
+    emit_composite_spec_directive_definitions(ctx);
     emit_interface_after_directives(ctx);
 }
 

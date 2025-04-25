@@ -253,6 +253,8 @@ fn public_directives_filter(directive: &Directive, graph: &FederatedGraph) -> bo
         | Directive::Authorized(_)
         | Directive::ListSize(_)
         | Directive::JoinGraph(_)
+        | Directive::CompositeLookup { .. }
+        | Directive::CompositeRequire { .. }
         | Directive::ExtensionDirective { .. } => false,
 
         Directive::Other { name, .. } if graph[*name] == "tag" => false,

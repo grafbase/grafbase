@@ -1,17 +1,21 @@
 pub(super) const AUTHENTICATED: &str = "authenticated";
 pub(super) const AUTHORIZED: &str = "authorized";
 pub(super) const COMPOSE_DIRECTIVE: &str = "composeDirective";
+pub(super) const COST: &str = "cost";
 pub(super) const EXTERNAL: &str = "external";
 pub(super) const INACCESSIBLE: &str = "inaccessible";
 pub(super) const INTERFACE_OBJECT: &str = "interfaceObject";
 pub(super) const KEY: &str = "key";
 pub(super) const LINK: &str = "link";
+pub(super) const LIST_SIZE: &str = "listSize";
+pub(super) const LOOKUP: &str = "lookup";
 pub(super) const OVERRIDE: &str = "override";
 pub(super) const POLICY: &str = "policy";
 pub(super) const PROVIDES: &str = "provides";
+/// The composite schema spec `@require`.
+pub(super) const REQUIRE: &str = "require";
+/// The federation spec `@requires`.
 pub(super) const REQUIRES: &str = "requires";
 pub(super) const REQUIRES_SCOPES: &str = "requiresScopes";
 pub(super) const SHAREABLE: &str = "shareable";
 pub(super) const TAG: &str = "tag";
-pub(super) const COST: &str = "cost";
-pub(super) const LIST_SIZE: &str = "listSize";
