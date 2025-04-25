@@ -84,9 +84,11 @@ fn root_field_aliases() {
                   "selectionSet": {
                     "fields": [
                       {
+                        "arguments": {},
                         "id": "Book.id"
                       },
                       {
+                        "arguments": {},
                         "id": "Book.pages"
                       }
                     ],
@@ -117,9 +119,11 @@ fn root_field_aliases() {
                   "selectionSet": {
                     "fields": [
                       {
+                        "arguments": {},
                         "id": "Book.id"
                       },
                       {
+                        "arguments": {},
                         "id": "Book.title"
                       }
                     ],
