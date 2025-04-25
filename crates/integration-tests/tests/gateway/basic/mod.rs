@@ -10,6 +10,7 @@ mod errors;
 mod fragments;
 mod headers;
 mod mutation;
+mod one_of;
 mod operation_limits;
 mod operations;
 mod scalars;

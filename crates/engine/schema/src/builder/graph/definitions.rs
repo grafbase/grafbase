@@ -125,7 +125,7 @@ pub(crate) fn ingest_definitions(
         let id = match ty {
             sdl::TypeDefinition::Scalar(scalar) => ingester.ingest_scalar(scalar).into(),
             sdl::TypeDefinition::Enum(enm) => ingester.ingest_enum(enm).into(),
-            sdl::TypeDefinition::InputObject(input_object) => ingester.ingest_input_object(input_object).into(),
+            sdl::TypeDefinition::InputObject(input_object) => ingester.ingest_input_object(input_object)?.into(),
             sdl::TypeDefinition::Object(object) => ingester.ingest_object(object)?.into(),
             sdl::TypeDefinition::Union(union) => ingester.ingest_union(union).into(),
             sdl::TypeDefinition::Interface(interface) => ingester.ingest_interface(interface)?.into(),
@@ -317,7 +317,10 @@ impl<'a> Ingester<'a> {
         enum_id
     }
 
-    fn ingest_input_object(&mut self, input_object: sdl::InputObjectDefinition<'a>) -> InputObjectDefinitionId {
+    fn ingest_input_object(
+        &mut self,
+        input_object: sdl::InputObjectDefinition<'a>,
+    ) -> Result<InputObjectDefinitionId, Error> {
         let input_object_id = InputObjectDefinitionId::from(self.graph.input_object_definitions.len());
         self.type_definitions
             .insert(input_object.name(), input_object_id.into());
@@ -349,7 +352,27 @@ impl<'a> Ingester<'a> {
                 directive_ids: Default::default(),
             });
         }
-        let input_field_ids = (start..self.graph.input_value_definitions.len()).into();
+        let input_field_ids: IdRange<InputValueDefinitionId> = (start..self.graph.input_value_definitions.len()).into();
+
+        // Only directive to be processed immediately as rely on it for default values.
+        let is_one_of = if let Some(dir) = input_object.directives().find(|dir| dir.name() == "oneOf") {
+            for input_field in &self.graph[input_field_ids] {
+                if input_field.ty_record.wrapping.is_required() {
+                    return Err((
+                        format!(
+                            "@oneOf requires that all input fields of {} must be nullable, {} isn't.",
+                            input_object.name(),
+                            self[input_field.name_id]
+                        ),
+                        dir.name_span(),
+                    )
+                        .into());
+                }
+            }
+            true
+        } else {
+            false
+        };
 
         self.sdl_definitions.insert(
             input_object_id.into(),
@@ -368,10 +391,12 @@ impl<'a> Ingester<'a> {
             name_id,
             description_id,
             input_field_ids,
+            is_one_of,
             directive_ids: Default::default(),
             exists_in_subgraph_ids: Vec::new(),
         });
-        input_object_id
+
+        Ok(input_object_id)
     }
 
     fn ingest_object(&mut self, object: sdl::ObjectDefinition<'a>) -> Result<ObjectDefinitionId, Error> {

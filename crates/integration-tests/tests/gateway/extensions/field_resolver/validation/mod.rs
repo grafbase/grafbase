@@ -5,6 +5,7 @@ mod fields;
 mod list;
 mod location;
 mod non_null;
+mod one_of;
 mod scalar;
 
 use std::{collections::HashMap, sync::Arc};
@@ -20,7 +21,7 @@ use integration_tests::{
 };
 use runtime::extension::Data;
 
-#[derive(Default)]
+#[derive(Default, Clone, Copy)]
 pub struct EchoExt {
     pub sdl: &'static str,
 }

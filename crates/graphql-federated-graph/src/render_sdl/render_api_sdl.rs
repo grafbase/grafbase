@@ -242,6 +242,7 @@ fn has_inaccessible(directives: &[Directive]) -> bool {
 fn public_directives_filter(directive: &Directive, graph: &FederatedGraph) -> bool {
     match directive {
         Directive::Inaccessible
+        | Directive::OneOf
         | Directive::Policy(_)
         | Directive::RequiresScopes(_)
         | Directive::Authenticated

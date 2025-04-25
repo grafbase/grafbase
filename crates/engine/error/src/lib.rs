@@ -120,12 +120,6 @@ impl GraphqlError {
     }
 }
 
-impl From<operation::VariableError> for GraphqlError {
-    fn from(err: operation::VariableError) -> Self {
-        GraphqlError::new(err.to_string(), ErrorCode::VariableError).with_location(err.location())
-    }
-}
-
 impl std::fmt::Display for GraphqlError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.message.fmt(f)

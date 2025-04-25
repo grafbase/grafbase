@@ -5,15 +5,15 @@ mod operation;
 use std::collections::HashMap;
 
 use coercion::coerce_variable;
-use error::{BindError, ErrorOperationName, VariableError};
+use error::{BindError, ErrorOperationName};
 use id_derives::IndexedFields;
 use schema::Schema;
 
 use crate::{
-    DataFieldRecord, FieldArgumentRecord, FragmentId, FragmentRecord, FragmentSpreadRecord, InlineFragmentRecord,
-    Operation, OperationAttributes, OperationContext, QueryInputValues, RawVariables, ResponseKeys, SelectionId,
-    TypenameFieldRecord, VariableDefinitionRecord, VariableInputValues, VariableValueRecord, Variables,
-    parse::ParsedOperation,
+    DataFieldRecord, Error, FieldArgumentRecord, FragmentId, FragmentRecord, FragmentSpreadRecord,
+    InlineFragmentRecord, Operation, OperationAttributes, OperationContext, QueryInputValues, RawVariables,
+    ResponseKeys, SelectionId, TypenameFieldRecord, VariableDefinitionRecord, VariableInputValues, VariableValueRecord,
+    Variables, parse::ParsedOperation,
 };
 
 type BindResult<T> = Result<T, BindError>;
@@ -114,7 +114,7 @@ pub(crate) fn bind_variables(
     schema: &Schema,
     operation: &Operation,
     mut request_variables: RawVariables,
-) -> Result<Variables, Vec<VariableError>> {
+) -> Result<Variables, Vec<Error>> {
     let ctx = OperationContext { schema, operation };
     let mut errors = Vec::new();
     let mut variables = Variables {
@@ -124,23 +124,44 @@ pub(crate) fn bind_variables(
 
     for definition in ctx.variable_definitions() {
         match request_variables.remove(&definition.name) {
-            Some(value) => match coerce_variable(schema, &mut variables.input_values, definition, value) {
-                Ok(id) => variables[definition.id] = VariableValueRecord::Provided(id),
-                Err(err) => {
-                    errors.push(VariableError::InvalidValue {
-                        name: definition.name.clone(),
-                        err,
-                    });
+            Some(value) => {
+                if let Some(usage) = definition.one_of_input_field_usage().filter(|_| value.is_null()) {
+                    errors.push(
+                        Error::validation(format!(
+                            "Variable ${} is used for the field '{}' of {} with @oneOf and thus must not be null",
+                            definition.name,
+                            usage.field().name(),
+                            usage.object().name(),
+                        ))
+                        .with_location(usage.location),
+                    )
                 }
-            },
+                match coerce_variable(schema, &mut variables.input_values, definition, value) {
+                    Ok(id) => variables[definition.id] = VariableValueRecord::Provided(id),
+                    Err(err) => errors.push(
+                        Error::validation(format!("Variable ${} has an invalid value. {err}", definition.name))
+                            .with_location(err.location()),
+                    ),
+                }
+            }
             None => {
                 if let Some(default_value_id) = definition.default_value_id {
                     variables[definition.id] = VariableValueRecord::DefaultValue(default_value_id);
                 } else if definition.ty_record.wrapping.is_required() {
-                    errors.push(VariableError::MissingVariable {
-                        name: definition.name.clone(),
-                        location: definition.name_location,
-                    });
+                    errors.push(
+                        Error::validation(format!("Variable {} is missing", definition.name))
+                            .with_location(definition.name_location),
+                    )
+                } else if let Some(usage) = definition.one_of_input_field_usage() {
+                    errors.push(
+                        Error::validation(format!(
+                            "Variable ${} is used for the field '{}' of {} with @oneOf and thus must be provided",
+                            definition.name,
+                            usage.field().name(),
+                            usage.object().name(),
+                        ))
+                        .with_location(usage.location),
+                    )
                 }
             }
         }

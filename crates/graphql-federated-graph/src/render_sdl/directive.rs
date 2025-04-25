@@ -22,6 +22,9 @@ pub(crate) fn write_directive<'a, 'b: 'a>(
         Directive::Inaccessible => {
             DirectiveWriter::new("inaccessible", f, graph)?;
         }
+        Directive::OneOf => {
+            DirectiveWriter::new("oneOf", f, graph)?;
+        }
         Directive::CompositeLookup { graph: subgraph_id } => {
             DirectiveWriter::new("composite__lookup", f, graph)?
                 .arg("graph", Value::EnumValue(graph.at(*subgraph_id).join_graph_enum_value))?;
@@ -51,7 +54,6 @@ pub(crate) fn write_directive<'a, 'b: 'a>(
 
             DirectiveWriter::new("policy", f, graph)?.arg("policies", policies)?;
         }
-
         Directive::RequiresScopes(scopes) => {
             let scopes = Value::List(
                 scopes

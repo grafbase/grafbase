@@ -18,6 +18,12 @@ pub(crate) enum ExtensionInputValueError {
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum InputValueError {
+    #[error("Exactly one field must be provided for {name} with @oneOf: {message}{path}")]
+    ExactlyOneFIeldMustBePresentForOneOfInputObjects {
+        name: String,
+        path: String,
+        message: String,
+    },
     #[error("Found a null where we expected a {expected}{path}")]
     UnexpectedNull { expected: String, path: String },
     #[error("Found a {actual} value where we expected a {expected}{path}")]

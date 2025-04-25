@@ -48,6 +48,7 @@ pub(super) struct Directives {
 
     authenticated: HashSet<DirectiveSiteId>,
     inaccessible: HashSet<DirectiveSiteId>,
+    one_of: HashSet<DirectiveSiteId>,
     shareable: HashSet<DirectiveSiteId>,
     external: HashSet<DirectiveSiteId>,
     interface_object: HashSet<DirectiveSiteId>,
@@ -178,6 +179,10 @@ impl Subgraphs {
         self.directives.inaccessible.insert(id);
     }
 
+    pub(crate) fn set_one_of(&mut self, id: DirectiveSiteId) {
+        self.directives.one_of.insert(id);
+    }
+
     pub(crate) fn set_interface_object(&mut self, id: DirectiveSiteId) {
         self.directives.interface_object.insert(id);
     }
@@ -224,6 +229,10 @@ impl<'a> DirectiveSiteWalker<'a> {
 
     pub(crate) fn inaccessible(self) -> bool {
         self.subgraphs.directives.inaccessible.contains(&self.id)
+    }
+
+    pub(crate) fn one_of(self) -> bool {
+        self.subgraphs.directives.one_of.contains(&self.id)
     }
 
     pub(crate) fn interface_object(self) -> bool {

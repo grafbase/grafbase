@@ -8,6 +8,7 @@ use crate::{
     extension::{ExtensionInputValueRecord, InjectionStage},
 };
 use id_newtypes::IdRange;
+use itertools::Itertools as _;
 
 use super::{ExtensionInputValueError, InputValueError, can_coerce_to_int, value_path_to_string};
 
@@ -231,12 +232,12 @@ impl ExtensionDirectiveArgumentsCoercer<'_, '_> {
 
     fn coerce_input_objet_value(
         &mut self,
-        def: sdl::InputObjectDefinition<'_>,
+        input_object: sdl::InputObjectDefinition<'_>,
         obj: sdl::ConstValue<'_>,
     ) -> Result<ExtensionInputValueRecord, ExtensionInputValueError> {
-        let sdl::ConstValue::Object(obj) = obj else {
+        let sdl::ConstValue::Object(object) = obj else {
             return Err(InputValueError::MissingObject {
-                name: def.name().to_string(),
+                name: input_object.name().to_string(),
                 actual: obj.into(),
                 path: self.path(),
             }
@@ -244,35 +245,66 @@ impl ExtensionDirectiveArgumentsCoercer<'_, '_> {
         };
 
         let mut map = Vec::new();
-        let mut fields = obj.fields().collect::<Vec<_>>();
+        let mut fields = object.fields().collect::<Vec<_>>();
 
-        for input_value_def in def.fields() {
-            let name_id = self.ingest_str(input_value_def.name());
-            self.value_path.push(name_id.into());
-
-            let value = if let Some(index) = fields.iter().position(|field| field.name() == input_value_def.name()) {
-                let field = fields.swap_remove(index);
-                self.coerce_input_value(input_value_def.ty(), field.value())?
-            } else if let Some(default_value) = input_value_def.default_value() {
-                self.coerce_input_value(input_value_def.ty(), default_value)?
-            } else if input_value_def.ty().is_non_null() {
-                let error = InputValueError::UnexpectedNull {
-                    expected: self.type_name(input_value_def.ty().name(), input_value_def.ty().wrappers(), None),
+        if input_object.directives().any(|dir| dir.name() == "oneOf") {
+            if fields.len() != 1 {
+                return Err(InputValueError::ExactlyOneFIeldMustBePresentForOneOfInputObjects {
+                    name: input_object.name().to_string(),
+                    message: if fields.is_empty() {
+                        "No field was provided".to_string()
+                    } else {
+                        format!(
+                            "{} fields ({}) were provided",
+                            fields.len(),
+                            fields
+                                .iter()
+                                .format_with(",", |field, f| f(&format_args!("{}", field.name())))
+                        )
+                    },
                     path: self.path(),
-                };
-                return Err(error.into());
-            } else {
+                }
+                .into());
+            }
+            let name = fields[0].name();
+            if let Some(input_field) = input_object.fields().find(|input_field| input_field.name() == name) {
+                let name_id = self.ingest_str(input_field.name());
+                self.value_path.push(name_id.into());
+                let field = fields.pop().unwrap();
+                let value = self.coerce_input_value(input_field.ty(), field.value())?;
+                map.push((name_id, value));
                 self.value_path.pop();
-                continue;
-            };
+            }
+        } else {
+            for input_value_def in input_object.fields() {
+                let name_id = self.ingest_str(input_value_def.name());
+                self.value_path.push(name_id.into());
 
-            map.push((name_id, value));
-            self.value_path.pop();
+                let value = if let Some(index) = fields.iter().position(|field| field.name() == input_value_def.name())
+                {
+                    let field = fields.swap_remove(index);
+                    self.coerce_input_value(input_value_def.ty(), field.value())?
+                } else if let Some(default_value) = input_value_def.default_value() {
+                    self.coerce_input_value(input_value_def.ty(), default_value)?
+                } else if input_value_def.ty().is_non_null() {
+                    let error = InputValueError::UnexpectedNull {
+                        expected: self.type_name(input_value_def.ty().name(), input_value_def.ty().wrappers(), None),
+                        path: self.path(),
+                    };
+                    return Err(error.into());
+                } else {
+                    self.value_path.pop();
+                    continue;
+                };
+
+                map.push((name_id, value));
+                self.value_path.pop();
+            }
         }
 
         if let Some(field) = fields.first() {
             let error = InputValueError::UnknownInputField {
-                input_object: def.name().to_string(),
+                input_object: input_object.name().to_string(),
                 name: field.name().to_string(),
                 path: self.path(),
             };

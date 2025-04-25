@@ -62,6 +62,13 @@ type VariableDefinition @meta(module: "variable") @indexed(id_size: "u16") {
   name_location: Location!
   default_value_id: QueryInputValueId
   ty: Type!
+  one_of_input_field_usage: OneOfInputField
+}
+
+type OneOfInputField @meta(module: "variable") @copy {
+  object: InputObjectDefinition!
+  field: InputValueDefinition!
+  location: Location!
 }
 
 scalar SkipDirective @record

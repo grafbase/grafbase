@@ -125,6 +125,7 @@ fn match_federation_directive_by_original_name(original_name: &str) -> Directive
         REQUIRES_SCOPES => DirectiveNameMatch::RequiresScopes,
         SHAREABLE => DirectiveNameMatch::Shareable,
         TAG => DirectiveNameMatch::Tag,
+        "oneOf" => DirectiveNameMatch::OneOf,
         _ => DirectiveNameMatch::NoMatch,
     }
 }
@@ -157,6 +158,7 @@ pub(in crate::ingest_subgraph) enum DirectiveNameMatch {
     Cost,
     External,
     Inaccessible,
+    OneOf,
     InterfaceObject,
     Key,
     Link,

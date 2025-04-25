@@ -171,6 +171,7 @@ scalar ScalarType @copy
 
 type InputObjectDefinition @meta(module: "input_object", debug: false) @indexed(id_size: "u32") {
   name: String!
+  is_one_of: Boolean!
   description: String
   input_fields: [InputValueDefinition!]!
   directives: [TypeSystemDirective!]!

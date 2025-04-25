@@ -4,6 +4,7 @@ use crate::{
     builder::{GraphBuilder, sdl::ConstValue},
 };
 use id_newtypes::IdRange;
+use itertools::Itertools as _;
 use wrapping::{ListWrapping, MutableWrapping};
 
 use super::{InputValueError, can_coerce_to_int};
@@ -113,7 +114,7 @@ fn coerce_input_object_value(
     obj: ConstValue,
 ) -> Result<SchemaInputValueRecord, InputValueError> {
     let input_object = &builder.graph[input_object_id];
-    let ConstValue::Object(obj) = obj else {
+    let ConstValue::Object(object) = obj else {
         return Err(InputValueError::MissingObject {
             name: builder[input_object.name_id].clone(),
             actual: obj.into(),
@@ -122,32 +123,65 @@ fn coerce_input_object_value(
     };
 
     let mut fields_buffer = builder.input_fields_buffer_pool.pop().unwrap_or_default();
-    let mut fields = obj.fields().collect::<Vec<_>>();
+    let mut fields = object.fields().collect::<Vec<_>>();
 
-    for input_field_id in input_object.input_field_ids {
-        let input_field = &builder.graph[input_field_id];
-        let name_id = input_field.name_id;
-        let ty_record = input_field.ty_record;
-        let default_value_id = input_field.default_value_id;
-
-        builder.value_path.push(input_field.name_id.into());
-        let value = if let Some(index) = fields.iter().position(|field| field.name() == builder[name_id]) {
-            let field = fields.swap_remove(index);
-            coerce_input_value(builder, ty_record, field.value())?
-        } else if let Some(default_value_id) = default_value_id {
-            builder.graph.input_values[default_value_id]
-        } else if ty_record.wrapping.is_required() {
-            return Err(InputValueError::UnexpectedNull {
-                expected: builder.type_name(ty_record),
+    if input_object.is_one_of {
+        if fields.len() != 1 {
+            return Err(InputValueError::ExactlyOneFIeldMustBePresentForOneOfInputObjects {
+                name: builder[builder.graph[input_object_id].name_id].clone(),
+                message: if fields.is_empty() {
+                    "No field was provided".to_string()
+                } else {
+                    format!(
+                        "{} fields ({}) were provided",
+                        fields.len(),
+                        fields
+                            .iter()
+                            .format_with(",", |field, f| f(&format_args!("{}", field.name())))
+                    )
+                },
                 path: builder.value_path_string(),
             });
-        } else {
+        }
+        let name = fields[0].name();
+        if let Some(id) = input_object
+            .input_field_ids
+            .into_iter()
+            .find(|id| builder[builder.graph[*id].name_id] == name)
+        {
+            let input_field = &builder.graph[id];
+            let field = fields.pop().unwrap();
+            builder.value_path.push(input_field.name_id.into());
+            let value = coerce_input_value(builder, input_field.ty_record, field.value())?;
+            fields_buffer.push((id, value));
             builder.value_path.pop();
-            continue;
-        };
+        }
+    } else {
+        for input_field_id in input_object.input_field_ids {
+            let input_field = &builder.graph[input_field_id];
+            let name_id = input_field.name_id;
+            let ty_record = input_field.ty_record;
+            let default_value_id = input_field.default_value_id;
 
-        fields_buffer.push((input_field_id, value));
-        builder.value_path.pop();
+            builder.value_path.push(input_field.name_id.into());
+            let value = if let Some(index) = fields.iter().position(|field| field.name() == builder[name_id]) {
+                let field = fields.swap_remove(index);
+                coerce_input_value(builder, ty_record, field.value())?
+            } else if let Some(default_value_id) = default_value_id {
+                builder.graph.input_values[default_value_id]
+            } else if ty_record.wrapping.is_required() {
+                return Err(InputValueError::UnexpectedNull {
+                    expected: builder.type_name(ty_record),
+                    path: builder.value_path_string(),
+                });
+            } else {
+                builder.value_path.pop();
+                continue;
+            };
+
+            fields_buffer.push((input_field_id, value));
+            builder.value_path.pop();
+        }
     }
 
     if let Some(field) = fields.first() {
