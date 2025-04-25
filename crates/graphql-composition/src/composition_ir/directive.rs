@@ -10,6 +10,13 @@ pub enum Directive {
     Inaccessible,
     Policy(Vec<Vec<federated::StringId>>),
     RequiresScopes(Vec<Vec<federated::StringId>>),
+    /// @composite__require
+    CompositeRequire {
+        subgraph_id: federated::SubgraphId,
+        field: subgraphs::StringId,
+    },
+    /// @composite__lookup
+    CompositeLookup(federated::SubgraphId),
     Cost {
         weight: i32,
     },

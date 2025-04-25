@@ -4256,6 +4256,7 @@ name = "graphql-composition"
 version = "0.7.0"
 dependencies = [
  "anyhow",
+ "bitflags 2.9.0",
  "cynic-parser",
  "cynic-parser-deser",
  "fixedbitset",

@@ -47,10 +47,12 @@ fn match_directive_name_inner(
     directive_name: &str,
 ) -> DirectiveNameMatch {
     if let Some(linked_schema_id) = linked_schema_id {
-        // TODO: first check that the directive hasn't been imported.
-
         if ctx.subgraphs.at(linked_schema_id).is_federation_v2(ctx.subgraphs) {
             return match_federation_directive_by_original_name(directive_name);
+        }
+
+        if ctx.subgraphs.at(linked_schema_id).is_composite_schemas(ctx.subgraphs) {
+            return match_composite_schemas_directive_by_original_name(directive_name);
         }
 
         return DirectiveNameMatch::Qualified {
@@ -66,6 +68,11 @@ fn match_directive_name_inner(
         if linked_schema.is_federation_v2(ctx.subgraphs) {
             let original_name = &ctx.subgraphs.strings.resolve(imported_definition.original_name);
             return match_federation_directive_by_original_name(original_name);
+        }
+
+        if linked_schema.is_composite_schemas(ctx.subgraphs) {
+            let original_name = &ctx.subgraphs.strings.resolve(imported_definition.original_name);
+            return match_composite_schemas_directive_by_original_name(original_name);
         }
 
         return DirectiveNameMatch::Imported {
@@ -90,6 +97,15 @@ fn match_directive_name_inner(
     }
 
     DirectiveNameMatch::NoMatch
+}
+
+fn match_composite_schemas_directive_by_original_name(original_name: &str) -> DirectiveNameMatch {
+    match original_name {
+        LOOKUP => DirectiveNameMatch::Lookup,
+        KEY => DirectiveNameMatch::KeyFromCompositeSchemas,
+        REQUIRE => DirectiveNameMatch::Require,
+        _ => DirectiveNameMatch::NoMatch,
+    }
 }
 
 fn match_federation_directive_by_original_name(original_name: &str) -> DirectiveNameMatch {
@@ -129,6 +145,11 @@ pub(in crate::ingest_subgraph) enum DirectiveNameMatch {
     // GraphQL built-ins
     Deprecated,
     SpecifiedBy,
+
+    // Composite schemas built-ins
+    Lookup,
+    Require,
+    KeyFromCompositeSchemas,
 
     // Federation built-ins
     Authenticated,

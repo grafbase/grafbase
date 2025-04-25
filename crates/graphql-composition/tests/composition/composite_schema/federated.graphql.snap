@@ -15,37 +15,36 @@ directive @join__type(graph: join__Graph, key: join__FieldSet, extension: Boolea
 
 directive @join__owner(graph: join__Graph!) on OBJECT
 
+directive @composite__lookup on FIELD_DEFINITION
+
+directive @composite__require(field: composite__FieldSelectionMap!) on ARGUMENT_DEFINITION
+
 scalar join__FieldSet
 
+scalar composite__FieldSelectionMap
+
 type User
-  @extension__directive(graph: A, extension: _COMPOSITE_SCHEMA, name: "key", arguments: {fields: "id"})
-  @join__type(graph: A)
+  @join__type(graph: A, key: "id", resolvable: false)
 {
   id: ID!
   name: String
 }
 
 type Account
-  @extension__directive(graph: B, extension: _COMPOSITE_SCHEMA, name: "key", arguments: {fields: "id"})
-  @join__type(graph: B)
+  @join__type(graph: B, key: "id", resolvable: false)
 {
   id: ID!
-  name: String
+  name: String @composite__require(graph: B, field: "ploop")
 }
 
 type Query
 {
-  accountById(id: ID!): Account @extension__directive(graph: B, extension: _COMPOSITE_SCHEMA, name: "lookup", arguments: {}) @join__field(graph: B)
-  userById(id: ID!): User @extension__directive(graph: A, extension: _COMPOSITE_SCHEMA, name: "lookup", arguments: {}) @join__field(graph: A)
+  accountById(id: ID!): Account @composite__lookup(graph: B) @join__field(graph: B)
+  userById(id: ID!): User @composite__lookup(graph: A) @join__field(graph: A)
 }
 
 enum join__Graph
 {
   A @join__graph(name: "a", url: "http://example.com/a")
   B @join__graph(name: "b", url: "http://example.com/b")
-}
-
-enum extension__Link
-{
-  _COMPOSITE_SCHEMA @extension__link(url: "https://specs.grafbase.com/composite-schema/v1")
 }

@@ -1,7 +1,11 @@
 use crate::composition_ir as ir;
 use graphql_federated_graph::{self as federated, Definition, EntityDefinitionId, Wrapping};
 
-use super::{attach_argument_selection::attach_argument_selection, attach_selection, context::Context};
+use super::{
+    attach_argument_selection::attach_argument_selection,
+    attach_selection,
+    context::{Context, UsedDirectives},
+};
 
 pub(super) fn transform_arbitray_type_directives(
     ctx: &mut Context<'_>,
@@ -105,10 +109,25 @@ fn transform_common_directive(ctx: &mut Context<'_>, directive: &ir::Directive) 
         ir::Directive::Inaccessible => federated::Directive::Inaccessible,
         ir::Directive::Policy(policies) => federated::Directive::Policy(policies.clone()),
         ir::Directive::RequiresScopes(scopes) => federated::Directive::RequiresScopes(scopes.clone()),
+
         ir::Directive::Cost { weight } => {
-            ctx.uses_cost_directive = true;
+            ctx.used_directives |= UsedDirectives::COST;
             federated::Directive::Cost { weight: *weight }
         }
+
+        ir::Directive::CompositeLookup(subgraph_id) => {
+            ctx.used_directives |= UsedDirectives::COMPOSITE_LOOKUP;
+            federated::Directive::CompositeLookup { graph: *subgraph_id }
+        }
+        ir::Directive::CompositeRequire { subgraph_id, field } => {
+            ctx.used_directives |= UsedDirectives::COMPOSITE_REQUIRE;
+            let field = ctx.insert_string(ctx.subgraphs.walk(*field));
+            federated::Directive::CompositeRequire {
+                graph: *subgraph_id,
+                field,
+            }
+        }
+
         ir::Directive::Other {
             name,
             arguments,
@@ -182,7 +201,7 @@ fn transform_list_size_directive(
         require_one_slicing_argument,
     }: &federated::ListSizeDirective,
 ) -> federated::Directive {
-    ctx.uses_list_size_directive = true;
+    ctx.used_directives |= UsedDirectives::LIST_SIZE;
 
     let field = &ctx.out[field_id];
     let argument_base_id = field.arguments.0;
@@ -327,7 +346,7 @@ fn transform_authorized_field_directive(
 }
 
 pub(super) fn emit_list_size_directive_definition(ctx: &mut Context<'_>) {
-    if !ctx.uses_list_size_directive {
+    if !ctx.used_directives.contains(UsedDirectives::LIST_SIZE) {
         return;
     }
 
@@ -416,7 +435,7 @@ pub(super) fn emit_list_size_directive_definition(ctx: &mut Context<'_>) {
 }
 
 pub(super) fn emit_cost_directive_definition(ctx: &mut Context<'_>) {
-    if !ctx.uses_cost_directive {
+    if !ctx.used_directives.contains(UsedDirectives::COST) {
         return;
     }
 
@@ -457,4 +476,62 @@ pub(super) fn emit_cost_directive_definition(ctx: &mut Context<'_>) {
             default: None,
         },
     );
+}
+
+pub(super) fn emit_composite_spec_directive_definitions(ctx: &mut Context<'_>) {
+    let composite_namespace = Some(ctx.insert_str("composite"));
+    let lookup_str = ctx.insert_str("lookup");
+    let require_str = ctx.insert_str("require");
+    let field_str = ctx.insert_str("field");
+
+    if ctx.used_directives.contains(UsedDirectives::COMPOSITE_LOOKUP) {
+        // directive @lookup on FIELD_DEFINITION
+        //
+        // see https://github.com/graphql/composite-schemas-spec/blob/main/spec/Appendix%20A%20--%20Field%20Selection.md#lookup
+
+        ctx.out.push_directive_definition(federated::DirectiveDefinitionRecord {
+            namespace: composite_namespace,
+            name: lookup_str,
+            locations: federated::DirectiveLocations::FIELD_DEFINITION,
+            repeatable: false,
+        });
+    }
+
+    if ctx.used_directives.contains(UsedDirectives::COMPOSITE_REQUIRE) {
+        // composite__FieldSelectionMap
+        let field_selection_map_scalar = {
+            let name = ctx.insert_str("FieldSelectionMap");
+            ctx.out.push_scalar_definition(federated::ScalarDefinitionRecord {
+                namespace: composite_namespace,
+                name,
+                directives: Vec::new(),
+                description: None,
+            })
+        };
+
+        // directive @require(field: FieldSelectionMap!) on ARGUMENT_DEFINITION
+        //
+        // See https://github.com/graphql/composite-schemas-spec/blob/main/spec/Appendix%20A%20--%20Field%20Selection.md#require
+
+        let directive_definition_id = ctx.out.push_directive_definition(federated::DirectiveDefinitionRecord {
+            namespace: composite_namespace,
+            name: require_str,
+            locations: federated::DirectiveLocations::ARGUMENT_DEFINITION,
+            repeatable: false,
+        });
+
+        ctx.out.push_directive_definition_argument(
+            directive_definition_id,
+            federated::InputValueDefinition {
+                name: field_str,
+                r#type: federated::Type {
+                    wrapping: Wrapping::required(),
+                    definition: federated::Definition::Scalar(field_selection_map_scalar),
+                },
+                directives: vec![],
+                description: None,
+                default: None,
+            },
+        );
+    }
 }

@@ -60,6 +60,8 @@ pub(super) struct Directives {
     directive_definitions: Vec<DirectiveDefinition>,
     composed_directives: HashSet<(SubgraphId, StringId)>,
 
+    /// Directives that can go straight to composition IR.
+    ir_directives: Vec<(DirectiveSiteId, crate::composition_ir::Directive)>,
     pub(super) extra_directives: Vec<ExtraDirectiveRecord>,
     extra_directives_on_schema_definition: Vec<(SubgraphId, ExtraDirectiveRecord)>,
 }
@@ -143,6 +145,15 @@ impl Subgraphs {
     pub(crate) fn push_directive_definition(&mut self, definition: DirectiveDefinition) -> DirectiveDefinitionId {
         let idx = self.directives.directive_definitions.push_return_idx(definition);
         DirectiveDefinitionId(idx)
+    }
+
+    /// Push a directive that can go straight to composition IR.
+    pub(crate) fn push_ir_directive(
+        &mut self,
+        directive_site_id: DirectiveSiteId,
+        directive: crate::composition_ir::Directive,
+    ) {
+        self.directives.ir_directives.push((directive_site_id, directive));
     }
 
     pub(crate) fn push_directive(&mut self, directive: ExtraDirectiveRecord) {
@@ -231,6 +242,16 @@ impl<'a> DirectiveSiteWalker<'a> {
                 id: (partition_point + idx).into(),
                 record,
             })
+    }
+
+    pub(crate) fn iter_ir_directives(&self) -> impl Iterator<Item = &crate::composition_ir::Directive> {
+        let instances = &self.subgraphs.directives.ir_directives;
+        let partition_point = instances.partition_point(|(directive_site_id, _)| *directive_site_id < self.id);
+
+        instances[partition_point..]
+            .iter()
+            .take_while(|(directive_site_id, _)| *directive_site_id == self.id)
+            .map(|(_, record)| record)
     }
 
     /// ```graphql,ignore

@@ -3,12 +3,14 @@ mod complexity_control;
 mod deprecated;
 mod extension;
 mod federation;
+mod require;
 
-use crate::{ListSize, StringId, Value};
+use crate::{ListSize, StringId, SubgraphId, Value};
 
 pub use self::{
     complexity_control::{CostDirective, ListSizeDirective},
     deprecated::DeprecatedDirective,
+    require::RequireDirective,
 };
 pub use authorized::*;
 pub use extension::*;
@@ -17,6 +19,13 @@ pub use federation::*;
 #[derive(PartialEq, PartialOrd, Clone, Debug)]
 pub enum Directive {
     Authenticated,
+    CompositeLookup {
+        graph: SubgraphId,
+    },
+    CompositeRequire {
+        graph: SubgraphId,
+        field: StringId,
+    },
     Deprecated {
         reason: Option<StringId>,
     },
