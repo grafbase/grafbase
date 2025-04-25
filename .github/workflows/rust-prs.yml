@@ -573,8 +573,8 @@ jobs:
         env:
           RUSTC_WRAPPER: 'sccache'
         run: |
-          cargo build -p grafbase -p grafbase-gateway
-          echo "$(pwd)/target/debug" >> $GITHUB_PATH
+          cargo build --release -p grafbase -p grafbase-gateway
+          echo "$(pwd)/target/release" >> $GITHUB_PATH
 
       - name: Login to Docker Hub
         env:

@@ -86,12 +86,15 @@ fn type_conditions() {
                   "selectionSet": {
                     "fields": [
                       {
+                        "arguments": {},
                         "id": "Character.name"
                       },
                       {
+                        "arguments": {},
                         "id": "Human.homePlanet"
                       },
                       {
+                        "arguments": {},
                         "id": "Droid.primaryFunction"
                       }
                     ],
@@ -155,15 +158,19 @@ fn type_conditions() {
                   "selectionSet": {
                     "fields": [
                       {
+                        "arguments": {},
                         "id": "Human.name"
                       },
                       {
+                        "arguments": {},
                         "id": "Human.homePlanet"
                       },
                       {
+                        "arguments": {},
                         "id": "Droid.name"
                       },
                       {
+                        "arguments": {},
                         "id": "Droid.primaryFunction"
                       }
                     ],
@@ -244,16 +251,20 @@ fn type_conditions() {
               ],
               "extensions": {
                 "selectionSet": {
+                  "arguments": {},
                   "id": "Query.humans",
                   "selectionSet": {
                     "fields": [
                       {
+                        "arguments": {},
                         "id": "Human.id"
                       },
                       {
+                        "arguments": {},
                         "id": "Human.name"
                       },
                       {
+                        "arguments": {},
                         "id": "Human.homePlanet"
                       }
                     ],
@@ -276,16 +287,20 @@ fn type_conditions() {
               ],
               "extensions": {
                 "selectionSet": {
+                  "arguments": {},
                   "id": "Query.droids",
                   "selectionSet": {
                     "fields": [
                       {
+                        "arguments": {},
                         "id": "Droid.id"
                       },
                       {
+                        "arguments": {},
                         "id": "Droid.name"
                       },
                       {
+                        "arguments": {},
                         "id": "Droid.primaryFunction"
                       }
                     ],
@@ -315,15 +330,19 @@ fn type_conditions() {
                   "selectionSet": {
                     "fields": [
                       {
+                        "arguments": {},
                         "id": "Character.id"
                       },
                       {
+                        "arguments": {},
                         "id": "Character.name"
                       },
                       {
+                        "arguments": {},
                         "id": "Human.homePlanet"
                       },
                       {
+                        "arguments": {},
                         "id": "Droid.primaryFunction"
                       }
                     ],
@@ -501,22 +520,28 @@ fn complex_arguments() {
                   "selectionSet": {
                     "fields": [
                       {
+                        "arguments": {},
                         "id": "Book.id"
                       },
                       {
+                        "arguments": {},
                         "id": "Book.title"
                       },
                       {
+                        "arguments": {},
                         "id": "Book.pages"
                       },
                       {
+                        "arguments": {},
                         "id": "Book.author",
                         "selectionSet": {
                           "fields": [
                             {
+                              "arguments": {},
                               "id": "Author.name"
                             },
                             {
+                              "arguments": {},
                               "id": "Author.country"
                             }
                           ],
@@ -620,12 +645,15 @@ fn complex_arguments() {
                   "selectionSet": {
                     "fields": [
                       {
+                        "arguments": {},
                         "id": "Book.id"
                       },
                       {
+                        "arguments": {},
                         "id": "Book.title"
                       },
                       {
+                        "arguments": {},
                         "id": "Book.price"
                       }
                     ],
@@ -660,12 +688,15 @@ fn complex_arguments() {
                   "selectionSet": {
                     "fields": [
                       {
+                        "arguments": {},
                         "id": "Book.id"
                       },
                       {
+                        "arguments": {},
                         "id": "Book.title"
                       },
                       {
+                        "arguments": {},
                         "id": "Book.published"
                       }
                     ],
@@ -705,9 +736,11 @@ fn complex_arguments() {
                   "selectionSet": {
                     "fields": [
                       {
+                        "arguments": {},
                         "id": "Author.id"
                       },
                       {
+                        "arguments": {},
                         "id": "Author.name"
                       },
                       {
@@ -728,9 +761,11 @@ fn complex_arguments() {
                         "selectionSet": {
                           "fields": [
                             {
+                              "arguments": {},
                               "id": "Book.title"
                             },
                             {
+                              "arguments": {},
                               "id": "Book.pages"
                             }
                           ],
@@ -1289,28 +1324,36 @@ fn simple_object_selection_set() {
                   "selectionSet": {
                     "fields": [
                       {
+                        "arguments": {},
                         "id": "Book.id"
                       },
                       {
+                        "arguments": {},
                         "id": "Book.title"
                       },
                       {
+                        "arguments": {},
                         "id": "Book.pages"
                       },
                       {
+                        "arguments": {},
                         "id": "Book.published"
                       },
                       {
+                        "arguments": {},
                         "id": "Book.author",
                         "selectionSet": {
                           "fields": [
                             {
+                              "arguments": {},
                               "id": "Author.id"
                             },
                             {
+                              "arguments": {},
                               "id": "Author.name"
                             },
                             {
+                              "arguments": {},
                               "id": "Author.bio"
                             }
                           ],
@@ -1318,6 +1361,7 @@ fn simple_object_selection_set() {
                         }
                       },
                       {
+                        "arguments": {},
                         "id": "Book.genres"
                       }
                     ],
@@ -1372,13 +1416,16 @@ fn simple_object_selection_set() {
               ],
               "extensions": {
                 "selectionSet": {
+                  "arguments": {},
                   "id": "Query.books",
                   "selectionSet": {
                     "fields": [
                       {
+                        "arguments": {},
                         "id": "Book.id"
                       },
                       {
+                        "arguments": {},
                         "id": "Book.title"
                       }
                     ],
@@ -1401,23 +1448,29 @@ fn simple_object_selection_set() {
               ],
               "extensions": {
                 "selectionSet": {
+                  "arguments": {},
                   "id": "Query.authors",
                   "selectionSet": {
                     "fields": [
                       {
+                        "arguments": {},
                         "id": "Author.id"
                       },
                       {
+                        "arguments": {},
                         "id": "Author.name"
                       },
                       {
+                        "arguments": {},
                         "id": "Author.books",
                         "selectionSet": {
                           "fields": [
                             {
+                              "arguments": {},
                               "id": "Book.title"
                             },
                             {
+                              "arguments": {},
                               "id": "Book.pages"
                             }
                           ],
@@ -1487,19 +1540,23 @@ fn simple_object_selection_set() {
                     "fields": [
                       {
                         "alias": "bookId",
+                        "arguments": {},
                         "id": "Book.id"
                       },
                       {
                         "alias": "bookTitle",
+                        "arguments": {},
                         "id": "Book.title"
                       },
                       {
                         "alias": "bookAuthor",
+                        "arguments": {},
                         "id": "Book.author",
                         "selectionSet": {
                           "fields": [
                             {
                               "alias": "authorName",
+                              "arguments": {},
                               "id": "Author.name"
                             }
                           ],
@@ -1535,19 +1592,23 @@ fn simple_object_selection_set() {
                     "fields": [
                       {
                         "alias": "authorId",
+                        "arguments": {},
                         "id": "Author.id"
                       },
                       {
                         "alias": "authorName",
+                        "arguments": {},
                         "id": "Author.name"
                       },
                       {
                         "alias": "authorBooks",
+                        "arguments": {},
                         "id": "Author.books",
                         "selectionSet": {
                           "fields": [
                             {
                               "alias": "bookTitle",
+                              "arguments": {},
                               "id": "Book.title"
                             }
                           ],
@@ -1690,23 +1751,29 @@ fn nested_type_conditions() {
               ],
               "extensions": {
                 "selectionSet": {
+                  "arguments": {},
                   "id": "Query.hero",
                   "selectionSet": {
                     "fields": [
                       {
+                        "arguments": {},
                         "id": "Character.name"
                       },
                       {
+                        "arguments": {},
                         "id": "Human.homePlanet"
                       },
                       {
+                        "arguments": {},
                         "id": "Human.friends",
                         "selectionSet": {
                           "fields": [
                             {
+                              "arguments": {},
                               "id": "Character.name"
                             },
                             {
+                              "arguments": {},
                               "id": "Droid.primaryFunction"
                             }
                           ],
@@ -1714,13 +1781,16 @@ fn nested_type_conditions() {
                         }
                       },
                       {
+                        "arguments": {},
                         "id": "Human.starships",
                         "selectionSet": {
                           "fields": [
                             {
+                              "arguments": {},
                               "id": "Starship.length"
                             },
                             {
+                              "arguments": {},
                               "id": "Starship.name"
                             }
                           ],
@@ -1728,23 +1798,29 @@ fn nested_type_conditions() {
                         }
                       },
                       {
+                        "arguments": {},
                         "id": "Droid.primaryFunction"
                       },
                       {
+                        "arguments": {},
                         "id": "Droid.friends",
                         "selectionSet": {
                           "fields": [
                             {
+                              "arguments": {},
                               "id": "Character.name"
                             },
                             {
+                              "arguments": {},
                               "id": "Human.homePlanet"
                             },
                             {
+                              "arguments": {},
                               "id": "Human.starships",
                               "selectionSet": {
                                 "fields": [
                                   {
+                                    "arguments": {},
                                     "id": "Starship.name"
                                   }
                                 ],
@@ -1824,19 +1900,24 @@ fn nested_type_conditions() {
                   "selectionSet": {
                     "fields": [
                       {
+                        "arguments": {},
                         "id": "Node.id"
                       },
                       {
+                        "arguments": {},
                         "id": "Character.name"
                       },
                       {
+                        "arguments": {},
                         "id": "Character.friends",
                         "selectionSet": {
                           "fields": [
                             {
+                              "arguments": {},
                               "id": "Character.id"
                             },
                             {
+                              "arguments": {},
                               "id": "Character.name"
                             }
                           ],
@@ -1844,16 +1925,20 @@ fn nested_type_conditions() {
                         }
                       },
                       {
+                        "arguments": {},
                         "id": "Human.homePlanet"
                       },
                       {
+                        "arguments": {},
                         "id": "Human.starships",
                         "selectionSet": {
                           "fields": [
                             {
+                              "arguments": {},
                               "id": "Starship.id"
                             },
                             {
+                              "arguments": {},
                               "id": "Starship.name"
                             }
                           ],
@@ -1861,9 +1946,11 @@ fn nested_type_conditions() {
                         }
                       },
                       {
+                        "arguments": {},
                         "id": "Droid.primaryFunction"
                       },
                       {
+                        "arguments": {},
                         "id": "Starship.length"
                       }
                     ],
