@@ -88,15 +88,3 @@ impl<'a> Walk<&'a Schema> for InputObjectDefinitionId {
         }
     }
 }
-
-impl std::fmt::Debug for InputObjectDefinition<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("InputObjectDefinition")
-            .field("name", &self.name())
-            .field("description", &self.description())
-            .field("input_fields", &self.input_fields())
-            .field("directives", &self.directives())
-            .field("exists_in_subgraphs", &self.exists_in_subgraphs())
-            .finish()
-    }
-}

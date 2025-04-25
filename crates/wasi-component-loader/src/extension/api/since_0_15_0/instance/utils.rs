@@ -38,7 +38,7 @@ pub fn create_subgraph_schema_directives(schema: &Schema, extension_id: Extensio
 pub fn create_complete_subgraph_schemas(schema: &Schema, extension_id: ExtensionId) -> Vec<(&str, ws::Schema<'_>)> {
     let subgraph_ids = {
         let mut ids = schema
-            .resolvers()
+            .resolver_definitions()
             .filter_map(|resolver| match resolver.variant() {
                 engine_schema::ResolverDefinitionVariant::SelectionSetResolverExtension(res)
                     if res.extension_id == extension_id =>
