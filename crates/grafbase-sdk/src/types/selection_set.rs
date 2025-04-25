@@ -35,7 +35,7 @@ impl<'a> Field<'a> {
     {
         match self.field.arguments {
             Some(id) => values.get(id.into()),
-            None => Err(SdkError::from("Field has no arguments".to_string())),
+            None => Ok(T::deserialize(serde_json::json!({}))?),
         }
     }
 
