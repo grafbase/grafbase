@@ -7,6 +7,8 @@ pub(super) fn emit_federation_builtins(ctx: &mut Context<'_>, join_graph_enum_id
     let graph_str = ctx.insert_str("graph");
     let name_str = ctx.insert_str("name");
     let url_str = ctx.insert_str("url");
+    let is_interface_object_str = ctx.insert_str("isInterfaceObject");
+    let extension_str = ctx.insert_str("extension");
     let join_namespace = Some(ctx.insert_str("join"));
 
     // join__FieldSet
@@ -258,11 +260,15 @@ pub(super) fn emit_federation_builtins(ctx: &mut Context<'_>, join_graph_enum_id
             .push_directive_definition_argument(directive_definition_id, argument);
     }
 
+    // https://specs.apollo.dev/join/v0.3/#@type
+    //
     // directive @join__type(
-    //     graph: join__Graph
-    //     key: join__FieldSet
-    //     resolvable: Boolean = true
-    // ) on OBJECT | INTERFACE
+    //   graph: join__Graph!,
+    //   key: join__FieldSet,
+    //   extension: Boolean! = false,
+    //   resolvable: Boolean! = true,
+    //   isInterfaceObject: Boolean! = false
+    // ) repeatable on OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT | SCALAR
     {
         let name = ctx.insert_str("type");
         let key_str = ctx.insert_str("key");
@@ -306,6 +312,20 @@ pub(super) fn emit_federation_builtins(ctx: &mut Context<'_>, join_graph_enum_id
         ctx.out.push_directive_definition_argument(
             directive_definition_id,
             federated::InputValueDefinition {
+                name: extension_str,
+                r#type: federated::Type {
+                    wrapping: Wrapping::new(false),
+                    definition: boolean_definition,
+                },
+                directives: Vec::new(),
+                description: None,
+                default: Some(federated::Value::Boolean(false)),
+            },
+        );
+
+        ctx.out.push_directive_definition_argument(
+            directive_definition_id,
+            federated::InputValueDefinition {
                 name: resolvable_str,
                 r#type: federated::Type {
                     wrapping: Wrapping::new(false),
@@ -314,6 +334,20 @@ pub(super) fn emit_federation_builtins(ctx: &mut Context<'_>, join_graph_enum_id
                 directives: Vec::new(),
                 description: None,
                 default: Some(federated::Value::Boolean(true)),
+            },
+        );
+
+        ctx.out.push_directive_definition_argument(
+            directive_definition_id,
+            federated::InputValueDefinition {
+                name: is_interface_object_str,
+                r#type: federated::Type {
+                    wrapping: Wrapping::new(false),
+                    definition: boolean_definition,
+                },
+                directives: Vec::new(),
+                description: None,
+                default: Some(federated::Value::Boolean(false)),
             },
         );
     }
