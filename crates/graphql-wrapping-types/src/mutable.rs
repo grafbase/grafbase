@@ -23,14 +23,15 @@ impl MutableWrapping {
         if end == 0 {
             return None;
         }
-        self.inner.set_list_length(end - 1);
         // end is exclusive
         let bit_mask = 1u16 << (end - 1);
-        if self.inner.0 & bit_mask != 0 {
+        let list_wrapping = if self.inner.0 & bit_mask != 0 {
             Some(ListWrapping::RequiredList)
         } else {
             Some(ListWrapping::NullableList)
-        }
+        };
+        self.inner.set_list_length(end - 1);
+        list_wrapping
     }
 
     pub fn push_outermost_list_wrapping(&mut self, list_wrapping: ListWrapping) {

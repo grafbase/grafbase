@@ -2,7 +2,7 @@ use id_newtypes::IdRange;
 use operation::{
     InputValueContext, QueryInputValueRecord, QueryOrSchemaInputValue, QueryOrSchemaInputValueId, Variables,
 };
-use schema::{SchemaInputValueRecord, ValueInjection};
+use schema::{ArgumentValueInjection, SchemaInputValueRecord};
 use walker::Walk;
 
 use crate::prepare::{CachedOperationContext, PartitionFieldArgument};
@@ -12,7 +12,7 @@ use super::PlanFieldArguments;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
 pub(crate) enum PlanValueRecord {
     Value(QueryOrSchemaInputValueId),
-    Injection(ValueInjection),
+    Injection(ArgumentValueInjection),
 }
 
 impl PlanValueRecord {

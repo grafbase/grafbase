@@ -121,8 +121,10 @@ id_newtypes::forward_with_range! {
     impl Index<HeaderRuleId, Output = HeaderRuleRecord> for Schema.subgraphs,
     impl Index<SchemaFieldId, Output = SchemaFieldRecord> for Schema.selections,
     impl Index<SchemaFieldArgumentId, Output = SchemaFieldArgumentRecord> for Schema.selections,
-    impl Index<InputValueInjectionId, Output = InputValueInjection> for Schema.selections,
+    impl Index<KeyValueInjectionId, Output = KeyValueInjectionRecord> for Schema.selections,
     impl Index<ValueInjectionId, Output = ValueInjection> for Schema.selections,
+    impl Index<ArgumentInjectionId, Output = ArgumentInjectionRecord> for Schema.selections,
+    impl Index<ArgumentValueInjectionId, Output = ArgumentValueInjection> for Schema.selections,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, id_derives::IndexedFields)]

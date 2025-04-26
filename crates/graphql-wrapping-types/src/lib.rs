@@ -75,7 +75,7 @@ impl Wrapping {
 
     const fn set_list_length(&mut self, len: u8) {
         assert!((len as u32) < MAX_LIST_WRAPINGS, "list wrapper overflow");
-        self.0 = (self.0 & !LIST_WRAPPER_LENGTH_MASK) | ((len as u16) << LIST_WRAPPER_SHIFT);
+        self.0 = (self.0 & INNER_IS_REQUIRED_FLAG) | ((len as u16) << LIST_WRAPPER_SHIFT) | (self.0 & ((1 << len) - 1));
     }
 
     pub fn to_mutable(self) -> MutableWrapping {
@@ -177,6 +177,7 @@ impl std::fmt::Debug for Wrapping {
         f.debug_struct("Wrapping")
             .field("inner_is_required", &self.inner_is_required())
             .field("list_wrappings", &self.list_wrappings().collect::<Vec<_>>())
+            .field("binary", &format!("{:016b}", self.0))
             .finish()
     }
 }
@@ -302,12 +303,16 @@ mod tests {
         let original = Wrapping::required().list_non_null();
         let mut wrapping = original.to_mutable();
         let list_wrapping = wrapping.pop_outermost_list_wrapping().unwrap();
+        assert_eq!(Wrapping::from(wrapping.clone()), Wrapping::required());
+
         wrapping.push_outermost_list_wrapping(list_wrapping);
         assert_eq!(Wrapping::from(wrapping), original);
 
         let original = Wrapping::nullable().list();
         let mut wrapping = original.to_mutable();
         let list_wrapping = wrapping.pop_outermost_list_wrapping().unwrap();
+        assert_eq!(Wrapping::from(wrapping.clone()), Wrapping::nullable());
+
         wrapping.push_outermost_list_wrapping(list_wrapping);
         assert_eq!(Wrapping::from(wrapping), original);
     }

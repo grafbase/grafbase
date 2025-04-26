@@ -1,5 +1,5 @@
 use operation::{InputValueContext, QueryOrSchemaInputValue, Variables};
-use schema::InputValueSet;
+use schema::{ArgumentValueInjection, ArgumentValueInjectionId, InputValueSet, Schema, StringId, ValueInjection};
 use serde::ser::SerializeMap as _;
 use walker::Walk as _;
 
@@ -207,12 +207,25 @@ impl serde::Serialize for PlanFieldArgumentsBatchView<'_> {
                         map.serialize_entry(arg.definition().name(), &value)?;
                     }
                 }
-                PlanValueRecord::Injection(injection) => {
-                    map.serialize_entry(
-                        arg.definition().name(),
-                        &self.parent_objects.clone().for_injection(injection),
-                    )?;
-                }
+                PlanValueRecord::Injection(injection) => match injection {
+                    ArgumentValueInjection::Value(injection) => {
+                        map.serialize_entry(
+                            arg.definition().name(),
+                            &self.parent_objects.clone().for_injection(injection),
+                        )?;
+                    }
+                    ArgumentValueInjection::Nested { key, value } => {
+                        map.serialize_entry(
+                            arg.definition().name(),
+                            &NestedInjection {
+                                schema: self.ctx.schema,
+                                key,
+                                value,
+                                callback: &(|injection| self.parent_objects.clone().for_injection(injection)),
+                            },
+                        )?;
+                    }
+                },
             }
         }
         map.end()
@@ -249,9 +262,59 @@ impl serde::Serialize for PlanFieldArgumentsView<'_> {
                         map.serialize_entry(arg.definition().name(), &value)?;
                     }
                 }
-                PlanValueRecord::Injection(injection) => {
-                    map.serialize_entry(arg.definition().name(), &self.parent_object.for_injection(injection))?;
-                }
+                PlanValueRecord::Injection(injection) => match injection {
+                    ArgumentValueInjection::Value(injection) => {
+                        map.serialize_entry(arg.definition().name(), &self.parent_object.for_injection(injection))?;
+                    }
+                    ArgumentValueInjection::Nested { key, value } => {
+                        map.serialize_entry(
+                            arg.definition().name(),
+                            &NestedInjection {
+                                schema: self.ctx.schema,
+                                key,
+                                value,
+                                callback: &(|injection| self.parent_object.for_injection(injection)),
+                            },
+                        )?;
+                    }
+                },
+            }
+        }
+        map.end()
+    }
+}
+
+struct NestedInjection<'a, F> {
+    schema: &'a Schema,
+    key: StringId,
+    value: ArgumentValueInjectionId,
+    callback: &'a F,
+}
+
+impl<F, Value> serde::Serialize for NestedInjection<'_, F>
+where
+    F: Fn(ValueInjection) -> Value,
+    Value: serde::Serialize,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut map = serializer.serialize_map(Some(1))?;
+        match self.schema[self.value] {
+            ArgumentValueInjection::Nested { key, value } => {
+                map.serialize_entry(
+                    &self.schema[self.key],
+                    &NestedInjection {
+                        key,
+                        value,
+                        schema: self.schema,
+                        callback: self.callback,
+                    },
+                )?;
+            }
+            ArgumentValueInjection::Value(injection) => {
+                map.serialize_entry(&self.schema[self.key], &(self.callback)(injection))?;
             }
         }
         map.end()

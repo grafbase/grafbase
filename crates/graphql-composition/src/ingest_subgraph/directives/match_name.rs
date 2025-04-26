@@ -90,6 +90,7 @@ fn match_directive_name_inner(
         LINK => return DirectiveNameMatch::Link,
         "deprecated" => return DirectiveNameMatch::Deprecated,
         "specifiedBy" => return DirectiveNameMatch::SpecifiedBy,
+        "oneOf" => return DirectiveNameMatch::OneOf,
         _ => (),
     }
 
@@ -107,6 +108,7 @@ fn match_composite_schemas_directive_by_original_name(original_name: &str) -> Di
         LOOKUP => DirectiveNameMatch::Lookup,
         KEY => DirectiveNameMatch::KeyFromCompositeSchemas,
         REQUIRE => DirectiveNameMatch::Require,
+        SHAREABLE => DirectiveNameMatch::Shareable,
         _ => DirectiveNameMatch::NoMatch,
     }
 }
@@ -128,7 +130,6 @@ fn match_federation_directive_by_original_name(original_name: &str) -> Directive
         REQUIRES_SCOPES => DirectiveNameMatch::RequiresScopes,
         SHAREABLE => DirectiveNameMatch::Shareable,
         TAG => DirectiveNameMatch::Tag,
-        "oneOf" => DirectiveNameMatch::OneOf,
         _ => DirectiveNameMatch::NoMatch,
     }
 }

@@ -11,9 +11,7 @@ use query_solver::{
     Edge, Node, QueryField, SolvedQuery,
     petgraph::{graph::NodeIndex, visit::EdgeRef},
 };
-use schema::{
-    EntityDefinitionId, InputValueInjection, ResolverDefinitionId, ResolverDefinitionVariant, Schema, TypeDefinition,
-};
+use schema::{EntityDefinitionId, ResolverDefinitionId, ResolverDefinitionVariant, Schema, TypeDefinition};
 use walker::Walk;
 
 use super::*;
@@ -166,17 +164,13 @@ impl<'a> Solver<'a> {
                         .location,
                     argument_ids: {
                         let start = self.output.query_plan.field_arguments.len();
-                        for &InputValueInjection {
-                            definition_id,
-                            injection,
-                        } in resolver.injections()
-                        {
+                        for injection in resolver.injections() {
                             self.output
                                 .query_plan
                                 .field_arguments
                                 .push(PartitionFieldArgumentRecord {
-                                    definition_id,
-                                    value_record: PlanValueRecord::Injection(injection),
+                                    definition_id: injection.definition_id,
+                                    value_record: PlanValueRecord::Injection(injection.value),
                                 });
                         }
                         IdRange::from(start..self.output.query_plan.field_arguments.len())

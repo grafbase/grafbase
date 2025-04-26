@@ -161,6 +161,7 @@ async fn test_input_value() {
                         wrapping: Wrapping {
                             inner_is_required: false,
                             list_wrappings: [],
+                            binary: "0000000000000000",
                         },
                     },
                     default_value: None,
@@ -196,6 +197,7 @@ async fn test_input_value() {
                                     wrapping: Wrapping {
                                         inner_is_required: false,
                                         list_wrappings: [],
+                                        binary: "0000000000000000",
                                     },
                                 },
                                 default_value: None,
@@ -226,6 +228,7 @@ async fn test_input_value() {
                                     wrapping: Wrapping {
                                         inner_is_required: false,
                                         list_wrappings: [],
+                                        binary: "0000000000000000",
                                     },
                                 },
                                 default_value: None,
@@ -256,6 +259,7 @@ async fn test_input_value() {
                             list_wrappings: [
                                 NullableList,
                             ],
+                            binary: "0000100000000000",
                         },
                     },
                     default_value: None,
@@ -288,6 +292,7 @@ async fn test_input_value() {
                         wrapping: Wrapping {
                             inner_is_required: false,
                             list_wrappings: [],
+                            binary: "0000000000000000",
                         },
                     },
                     default_value: None,
@@ -311,6 +316,7 @@ async fn test_input_value() {
                                     wrapping: Wrapping {
                                         inner_is_required: false,
                                         list_wrappings: [],
+                                        binary: "0000000000000000",
                                     },
                                 },
                                 default_value: None,
@@ -334,6 +340,7 @@ async fn test_input_value() {
                                     wrapping: Wrapping {
                                         inner_is_required: false,
                                         list_wrappings: [],
+                                        binary: "0000000000000000",
                                     },
                                 },
                                 default_value: None,
@@ -371,6 +378,7 @@ async fn test_input_value() {
                                     wrapping: Wrapping {
                                         inner_is_required: false,
                                         list_wrappings: [],
+                                        binary: "0000000000000000",
                                     },
                                 },
                                 default_value: None,
@@ -401,6 +409,7 @@ async fn test_input_value() {
                                     wrapping: Wrapping {
                                         inner_is_required: false,
                                         list_wrappings: [],
+                                        binary: "0000000000000000",
                                     },
                                 },
                                 default_value: None,
@@ -426,6 +435,7 @@ async fn test_input_value() {
                                     wrapping: Wrapping {
                                         inner_is_required: false,
                                         list_wrappings: [],
+                                        binary: "0000000000000000",
                                     },
                                 },
                                 default_value: None,
@@ -451,6 +461,7 @@ async fn test_input_value() {
                                     wrapping: Wrapping {
                                         inner_is_required: false,
                                         list_wrappings: [],
+                                        binary: "0000000000000000",
                                     },
                                 },
                                 default_value: None,
@@ -476,6 +487,7 @@ async fn test_input_value() {
                                     wrapping: Wrapping {
                                         inner_is_required: false,
                                         list_wrappings: [],
+                                        binary: "0000000000000000",
                                     },
                                 },
                                 default_value: None,

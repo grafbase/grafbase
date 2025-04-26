@@ -352,7 +352,7 @@ type LookupResolverDefinition @meta(module: "resolver/lookup") @indexed(id_size:
   field_definition: FieldDefinition!
   resolver: ResolverDefinition!
   batch: Boolean!
-  injections: [InputValueInjection!]!
+  injections: [ArgumentInjection!]!
 }
 
 # --------------
@@ -374,4 +374,18 @@ type SchemaFieldArgument
   @indexed(id_size: "u32") {
   definition: InputValueDefinition!
   value: SchemaInputValue!
+}
+
+scalar ValueInjection @copy
+
+type KeyValueInjection @meta(module: "injection") @copy @indexed(id_size: "u32") {
+  key: String!
+  value: ValueInjection!
+}
+
+scalar ArgumentValueInjection @copy
+
+type ArgumentInjection @meta(module: "injection") @copy @indexed(id_size: "u32") {
+  definition: InputValueDefinition!
+  value: ArgumentValueInjection!
 }
