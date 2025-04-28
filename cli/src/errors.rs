@@ -4,11 +4,11 @@ use crate::{
     upgrade::UpgradeError,
 };
 use notify_debouncer_full::notify;
-use std::{fmt, io, path::PathBuf};
+use std::{io, path::PathBuf};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
-pub enum CliError {
+pub(crate) enum CliError {
     /// wraps an error originating in the local-backend crate api module
     #[error(transparent)]
     BackendApiError(ApiError),
@@ -97,6 +97,8 @@ pub(crate) enum BackendError {
     CommonError(#[from] CommonError),
     #[error(transparent)]
     ApiError(#[from] ApiError),
+    #[error(transparent)]
+    Fatal(#[from] anyhow::Error),
     #[error("could not read the SDL from {0}\nCaused by: {1}")]
     ReadSdlFromFile(PathBuf, std::io::Error),
     #[error("could not introspect a subgraph URL: {0}")]
@@ -104,13 +106,11 @@ pub(crate) enum BackendError {
     #[error("no url or schema_path were defined for an overridden subgraph: {0}")]
     NoDefinedRouteToSubgraphSdl(String),
     #[error("could not parse a subgraph:\n{0:#}")]
-    ParseSubgraphSdl(cynic_parser::Error),
+    ParseSubgraphSdl(#[from] cynic_parser::Error),
     #[error("could not start the federated gateway\nCaused by: {0}")]
     Serve(federated_server::Error),
     #[error("could not compose subgraphs\nCaused by: {0}")]
     Composition(String),
-    #[error("could not convert the composed subgraphs to federated SDL\nCaused by: {0}")]
-    ToFederatedSdl(fmt::Error),
     #[error("could not fetch the specified branch")]
     FetchBranch,
     #[error("the specified branch does not exist")]
@@ -119,11 +119,11 @@ pub(crate) enum BackendError {
     SetUpWatcher(notify::Error),
     #[error("could not determine the path of the home directory")]
     HomeDirectory,
-    #[error("could not unpack Pathfinder\nCaused by: {0}")]
-    UnpackPathfinderArchive(std::io::Error),
-    #[error("could not write the current version of the unpacked Pathfinder assets\nCaused by: {0}")]
+    #[error("could not unpack CLI app\nCaused by: {0}")]
+    UnpackCliAppArchive(std::io::Error),
+    #[error("could not write the current version of the unpacked CLI app assets\nCaused by: {0}")]
     WriteAssetVersion(std::io::Error),
-    #[error("could not read the current version of the unpacked Pathfinder assets\nCaused by: {0}")]
+    #[error("could not read the current version of the unpacked CLI app assets\nCaused by: {0}")]
     ReadAssetVersion(std::io::Error),
     #[error("could not create ~/.grafbase\nCaused by: {0}")]
     CreateDotGrafbaseDirectory(std::io::Error),
@@ -131,10 +131,4 @@ pub(crate) enum BackendError {
     AccessDotGrafbaseDirectory(std::io::Error),
     #[error("{0}")]
     Error(String),
-}
-
-impl From<cynic_parser::Error> for BackendError {
-    fn from(v: cynic_parser::Error) -> Self {
-        Self::ParseSubgraphSdl(v)
-    }
 }

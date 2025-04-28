@@ -8,15 +8,15 @@ pub(crate) async fn compose(args: ComposeCommand) -> anyhow::Result<()> {
         return Err(anyhow::anyhow!("No subgraphs found"));
     }
 
-    let subgraph_cache = SubgraphCache::new(args.graph_ref.as_ref(), &config).await?;
+    let (warnings_sender, _warnings_receiver) = tokio::sync::mpsc::channel(1);
 
-    let composed = subgraph_cache.compose().await?.into_result();
+    let subgraph_cache = SubgraphCache::new(args.graph_ref.as_ref(), &config, warnings_sender).await?;
 
-    match composed {
+    let result = subgraph_cache.compose().await?;
+
+    match result {
         Ok(schema) => {
-            let rendered = graphql_composition::render_federated_sdl(&schema).expect("rendering to succeed");
-
-            println!("{rendered}");
+            println!("{schema}");
 
             Ok(())
         }

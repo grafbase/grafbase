@@ -1,6 +1,7 @@
+mod assets;
+mod data_json;
 mod extensions;
 mod hot_reload;
-mod pathfinder;
 mod subgraphs;
 
 pub(crate) use self::subgraphs::SubgraphCache;
@@ -10,12 +11,11 @@ use crate::{
     cli_input::{DevCommand, FullGraphRef},
     errors::CliError,
 };
+use assets::{export_assets, get_base_router};
 use federated_server::{GraphFetchMethod, ServeConfig, ServerRuntime};
 use hot_reload::hot_reload;
-use pathfinder::{export_assets, get_pathfinder_router};
 use std::{
     net::{Ipv4Addr, SocketAddr},
-    path::PathBuf,
     sync::Arc,
 };
 use tokio::{
@@ -28,17 +28,26 @@ pub const DEFAULT_PORT: u16 = 5000;
 #[derive(Clone)]
 struct CliRuntime {
     ready_sender: broadcast::Sender<String>,
-    port: u16,
-    home_dir: PathBuf,
+    graphql_url: Arc<tokio::sync::OnceCell<String>>,
+    mcp_url: Option<String>,
+    subgraph_cache: Arc<SubgraphCache>,
 }
 
 impl ServerRuntime for CliRuntime {
     fn on_ready(&self, url: String) {
+        self.graphql_url
+            .set(url.clone())
+            .expect("set error for url in on_ready()");
+
         self.ready_sender.send(url).expect("must still be open");
     }
 
     fn base_router<S>(&self) -> Option<axum::Router<S>> {
-        Some(get_pathfinder_router(self.port, &self.home_dir))
+        Some(get_base_router(
+            self.graphql_url.clone(),
+            self.mcp_url.clone(),
+            self.subgraph_cache.clone(),
+        ))
     }
 }
 
@@ -57,8 +66,9 @@ async fn start(args: DevCommand) -> anyhow::Result<()> {
             .map_err(|err| BackendError::Error(err.to_string()))?;
     }
 
-    let (ready_sender, mut _ready_receiver) = broadcast::channel::<String>(1);
+    let (ready_sender, ready_receiver) = broadcast::channel::<String>(1);
     let (composition_warnings_sender, warnings_receiver) = mpsc::channel(12);
+    let (sdl_sender, sdl_receiver) = mpsc::channel::<String>(2);
 
     let output_handler_ready_receiver = ready_sender.subscribe();
 
@@ -81,44 +91,44 @@ async fn start(args: DevCommand) -> anyhow::Result<()> {
         .filter(|m| m.enabled)
         .map(|m| format!("http://{listen_address}{}", m.path));
 
-    spawn_blocking(move || {
-        let _ = output_handler(
-            output_handler_ready_receiver,
-            warnings_receiver,
-            introspection_forced,
-            mcp_url,
-        );
+    spawn_blocking({
+        let mcp_url = mcp_url.clone();
+        move || {
+            let _ = output_handler(
+                output_handler_ready_receiver,
+                warnings_receiver,
+                introspection_forced,
+                mcp_url,
+            );
+        }
     });
 
-    let subgraph_cache = Arc::new(SubgraphCache::new(args.graph_ref.as_ref(), &config).await?);
+    let subgraph_cache =
+        Arc::new(SubgraphCache::new(args.graph_ref.as_ref(), &config, composition_warnings_sender).await?);
 
     let composition_result = subgraph_cache.compose().await?;
 
-    {
-        let mut warnings = composition_result.diagnostics().iter_warnings().peekable();
-
-        if warnings.peek().is_some() {
-            composition_warnings_sender
-                .send(warnings.map(ToOwned::to_owned).collect())
-                .await
-                .unwrap();
-        }
-    }
-
-    let federated_sdl = match composition_result.into_result() {
-        Ok(result) => federated_graph::render_federated_sdl(&result).map_err(BackendError::ToFederatedSdl)?,
+    let federated_sdl = match composition_result {
+        Ok(federated_schema) => federated_schema,
         Err(diagnostics) => {
             return Err(BackendError::Composition(diagnostics.iter_errors().collect::<Vec<_>>().join("\n")).into());
         }
     };
 
-    let (sdl_sender, sdl_receiver) = mpsc::channel::<String>(2);
-    let (config_sender, config_receiver) = watch::channel(config.clone());
-
     sdl_sender
         .send(federated_sdl)
         .await
         .expect("this really has to succeed");
+
+    let (config_sender, config_receiver) = watch::channel(config.clone());
+
+    tokio::spawn(hot_reload(
+        config_sender,
+        sdl_sender,
+        ready_receiver,
+        subgraph_cache.clone(),
+        config,
+    ));
 
     let current_dir = std::env::current_dir()
         .map_err(|error| BackendError::Error(format!("Failed to get current directory: {error}")))?;
@@ -133,28 +143,13 @@ async fn start(args: DevCommand) -> anyhow::Result<()> {
         },
     };
 
-    let hot_reload_ready_receiver = ready_sender.subscribe();
-
-    tokio::spawn(async move {
-        hot_reload(
-            config_sender,
-            sdl_sender,
-            hot_reload_ready_receiver,
-            composition_warnings_sender,
-            subgraph_cache,
-            config,
-        )
-        .await;
-    });
-
-    let home_dir = dirs::home_dir().ok_or(BackendError::HomeDirectory)?;
-
     federated_server::serve(
         server_config,
         CliRuntime {
             ready_sender,
-            port,
-            home_dir,
+            graphql_url: Default::default(),
+            mcp_url,
+            subgraph_cache,
         },
     )
     .await

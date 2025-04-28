@@ -37,7 +37,6 @@ impl SubgraphWatcher {
     pub(super) fn start(
         &mut self,
         sender: mpsc::Sender<String>,
-        composition_warnings_sender: mpsc::Sender<Vec<String>>,
         subgraph_cache: Arc<SubgraphCache>,
         overridden_subgraphs: Arc<HashSet<String>>,
         config: Arc<Config>,
@@ -49,20 +48,14 @@ impl SubgraphWatcher {
 
         self.cancellation_token = Some(CancellationToken::new());
 
-        self.spawn_introspection_poller(
-            sender.clone(),
-            composition_warnings_sender.clone(),
-            subgraph_cache.clone(),
-            config.clone(),
-        )?;
+        self.spawn_introspection_poller(sender.clone(), subgraph_cache.clone(), config.clone())?;
 
-        self.spawn_schema_file_watcher(sender, composition_warnings_sender, subgraph_cache, config)
+        self.spawn_schema_file_watcher(sender, subgraph_cache, config)
     }
 
     fn spawn_introspection_poller(
         &mut self,
         sender: mpsc::Sender<String>,
-        composition_warnings_sender: mpsc::Sender<Vec<String>>,
         subgraph_cache: Arc<SubgraphCache>,
         config: Arc<Config>,
     ) -> Result<(), BackendError> {
@@ -151,7 +144,6 @@ impl SubgraphWatcher {
                     // (we'll need to prevent schema file and url reloads running at the same time to prevent stale data)
                     match reload_subgraphs(
                         sender.clone(),
-                        composition_warnings_sender.clone(),
                         subgraph_cache.clone(),
                         config.clone(),
                         Some(reload_cancellation_token.child_token()),
@@ -171,7 +163,6 @@ impl SubgraphWatcher {
     fn spawn_schema_file_watcher(
         &mut self,
         sender: mpsc::Sender<String>,
-        composition_warnings_sender: mpsc::Sender<Vec<String>>,
         subgraph_cache: Arc<SubgraphCache>,
         config: Arc<Config>,
     ) -> Result<(), BackendError> {
@@ -190,6 +181,7 @@ impl SubgraphWatcher {
         let watcher_cancellation_token = self.cancellation_token.as_ref().expect("must exist").child_token();
 
         let watcher_merged_configuration = config.clone();
+
         let mut watcher = new_debouncer(WATCHER_DEBOUNCE_DURATION, None, move |result: DebounceEventResult| {
             let Ok(result) = result else {
                 return;
@@ -197,7 +189,6 @@ impl SubgraphWatcher {
 
             assert!(!result.is_empty());
 
-            let composition_warnings_sender = composition_warnings_sender.clone();
             let subgraph_cache = subgraph_cache.clone();
             let config = watcher_merged_configuration.clone();
             let sender = sender.clone();
@@ -222,15 +213,7 @@ impl SubgraphWatcher {
             tracing::info!("Detected a subgraph schema file change, reloading.",);
 
             runtime_handle.block_on(async move {
-                match reload_subgraphs(
-                    sender.clone(),
-                    composition_warnings_sender,
-                    subgraph_cache,
-                    config,
-                    Some(reload_cancellation_token),
-                )
-                .await
-                {
+                match reload_subgraphs(sender.clone(), subgraph_cache, config, Some(reload_cancellation_token)).await {
                     Ok(()) => tracing::debug!("Subgraphs reload successful"),
                     Err(error) => tracing::error!("Error reloading subgraphs: {}", error.to_string().trim()),
                 }
