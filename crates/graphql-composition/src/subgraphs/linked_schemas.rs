@@ -9,7 +9,7 @@ pub(crate) struct LinkedSchemas {
     namespaces: HashMap<(SubgraphId, StringId), LinkedSchemaId>,
     /// Directives that have been `@import`ed, and can be used with their unqualified, maybe aliased name.
     pub(super) definitions: Vec<LinkedDefinitionRecord>,
-    imported_definitions_by_name: HashMap<StringId, LinkedDefinitionId>,
+    imported_definitions_by_name: HashMap<(SubgraphId, StringId), LinkedDefinitionId>,
     subgraphs_with_federation_v2_link: HashSet<SubgraphId>,
 }
 
@@ -60,8 +60,15 @@ impl Subgraphs {
         self.linked_schemas.namespaces.get(&(subgraph_id, namespace)).copied()
     }
 
-    pub(crate) fn get_imported_definition(&self, name: StringId) -> Option<LinkedDefinitionId> {
-        self.linked_schemas.imported_definitions_by_name.get(&name).copied()
+    pub(crate) fn get_imported_definition(
+        &self,
+        subgraph_id: SubgraphId,
+        name: StringId,
+    ) -> Option<LinkedDefinitionId> {
+        self.linked_schemas
+            .imported_definitions_by_name
+            .get(&(subgraph_id, name))
+            .copied()
     }
 
     pub(crate) fn iter_linked_schemas(&self) -> impl ExactSizeIterator<Item = LinkedSchema<'_>> {
@@ -72,12 +79,16 @@ impl Subgraphs {
             .map(|(idx, record)| View { id: idx.into(), record })
     }
 
-    pub(crate) fn push_linked_definition(&mut self, linked_definition: LinkedDefinitionRecord) -> LinkedDefinitionId {
+    pub(crate) fn push_linked_definition(
+        &mut self,
+        subgraph_id: SubgraphId,
+        linked_definition: LinkedDefinitionRecord,
+    ) -> LinkedDefinitionId {
         let id = LinkedDefinitionId::from(self.linked_schemas.definitions.len());
 
         self.linked_schemas
             .imported_definitions_by_name
-            .insert(linked_definition.final_name(), id);
+            .insert((subgraph_id, linked_definition.final_name()), id);
 
         self.linked_schemas.definitions.push(linked_definition);
 

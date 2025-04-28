@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.7.2 - 2025-04-28
+
+- Corrected a bug that made directive imports with `@link(imports:)` sometimes exceed the scope of their subgraph.
+
 ## 0.7.1 - 2025-04-28
 
 ### Changes

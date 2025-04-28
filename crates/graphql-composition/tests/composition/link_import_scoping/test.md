@@ -1,0 +1,1 @@
+Check that `@link` imports are only valid for the subgraph that define the import. The import for the composite schemas spec `@key` should lead to `resolvable: false` only in the subgraph where it is imported.

@@ -1,0 +1,41 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: huh?
+input_file: crates/graphql-composition/tests/composition/repro/test.md
+---
+directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
+
+directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
+
+directive @join__graph(name: String!, url: String) on ENUM_VALUE
+
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, overrideLabel: String) on FIELD_DEFINITION
+
+directive @join__type(graph: join__Graph, key: join__FieldSet, extension: Boolean = false, resolvable: Boolean = true, isInterfaceObject: Boolean = false) on OBJECT | INTERFACE
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+directive @composite__lookup on FIELD_DEFINITION
+
+scalar join__FieldSet
+
+type Product
+  @join__type(graph: EXT, key: "id", resolvable: false)
+  @join__type(graph: GQL, key: "id ab")
+{
+  ab: String @join__field(graph: GQL)
+  code: String! @join__field(graph: EXT)
+  id: ID!
+}
+
+type Query
+{
+  productBatch(ids: [ID!]!): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)
+  products: [Product!]! @join__field(graph: GQL)
+}
+
+enum join__Graph
+{
+  EXT @join__graph(name: "ext", url: "http://example.com/ext")
+  GQL @join__graph(name: "gql", url: "http://example.com/gql")
+}
