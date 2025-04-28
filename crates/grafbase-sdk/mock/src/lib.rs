@@ -20,7 +20,7 @@ pub use builder::DynamicSchemaBuilder;
 pub use server::MockGraphQlServer;
 
 /// A dynamic GraphQL schema that can be built and executed at runtime.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct DynamicSchema {
     schema: async_graphql::dynamic::Schema,
     sdl: String,
@@ -48,7 +48,7 @@ impl DynamicSchema {
 }
 
 /// A dynamic subgraph implementation that can be started as a mock GraphQL server.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct DynamicSubgraph {
     schema: DynamicSchema,
     name: String,

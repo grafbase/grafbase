@@ -3984,7 +3984,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.15.2"
+version = "0.15.3"
 dependencies = [
  "anyhow",
  "async-tungstenite",
@@ -4037,7 +4037,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk-mock"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "async-graphql",
