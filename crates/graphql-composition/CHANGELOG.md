@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.7.1 - 2025-04-28
+
+### Changes
+
+- Add `@oneOf` support
+- Limited native composite schemas spec support
+
 ### Fixes
 
 - Corrected the definition of `@join__type` in federated SDL to include the `isInterfaceObject` and `extension` arguments, as per the spec.

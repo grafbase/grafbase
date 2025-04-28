@@ -1,6 +1,6 @@
 [package]
 name = "graphql-composition"
-version = "0.7.0"
+version = "0.7.1"
 edition = "2024"
 license = "MPL-2.0"
 description = "An implementation of GraphQL federated schema composition"
@@ -19,7 +19,7 @@ bitflags.workspace = true
 cynic-parser = { workspace = true, features = ["report"] }
 cynic-parser-deser.workspace = true
 fixedbitset.workspace = true
-graphql-federated-graph = { path = "../graphql-federated-graph", version = "0.7.0" }
+graphql-federated-graph = { path = "../graphql-federated-graph", version = "0.7.1" }
 indexmap.workspace = true
 itertools.workspace = true
 url.workspace = true
