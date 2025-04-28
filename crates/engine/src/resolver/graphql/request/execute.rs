@@ -20,34 +20,27 @@ use crate::{
     Runtime,
     execution::{ExecutionError, ExecutionResult},
     resolver::graphql::SubgraphContext,
-    response::{ErrorCode, GraphqlError, SubgraphResponse},
+    response::{ErrorCode, GraphqlError, ResponsePart},
 };
 
 pub trait ResponseIngester: Send {
+    // Because of this https://github.com/rust-lang/rust/issues/110338#issuecomment-1513761297
+    // We can't have ResponseIngester have a lifetime easily, so we pass the response_part as an
+    // argument to circumvent the issue.
     fn ingest(
         self,
-        response: http::Response<OwnedOrSharedBytes>,
-    ) -> impl Future<Output = Result<(GraphqlResponseStatus, SubgraphResponse), ExecutionError>> + Send;
+        http_response: http::Response<OwnedOrSharedBytes>,
+        response_part: ResponsePart<'_>,
+    ) -> impl Future<Output = Result<(GraphqlResponseStatus, ResponsePart<'_>), ExecutionError>> + Send;
 }
 
-impl<F> ResponseIngester for F
-where
-    F: FnOnce(http::Response<OwnedOrSharedBytes>) -> ExecutionResult<(GraphqlResponseStatus, SubgraphResponse)> + Send,
-{
-    async fn ingest(
-        self,
-        response: http::Response<OwnedOrSharedBytes>,
-    ) -> ExecutionResult<(GraphqlResponseStatus, SubgraphResponse)> {
-        self(response)
-    }
-}
-
-pub(crate) async fn execute_subgraph_request<R: Runtime>(
-    ctx: &mut SubgraphContext<'_, R>,
+pub(crate) async fn execute_subgraph_request<'ctx, R: Runtime>(
+    ctx: &mut SubgraphContext<'ctx, R>,
     headers: http::HeaderMap,
     body: impl Into<Bytes> + Send,
+    response_part: ResponsePart<'ctx>,
     ingester: impl ResponseIngester,
-) -> ExecutionResult<SubgraphResponse> {
+) -> ExecutionResult<ResponsePart<'ctx>> {
     let endpoint = ctx.endpoint();
 
     let req = runtime::hooks::SubgraphRequest {
@@ -131,7 +124,7 @@ pub(crate) async fn execute_subgraph_request<R: Runtime>(
     })
     .await;
 
-    let response = match fetch_result {
+    let http_response = match fetch_result {
         Ok(response) => {
             ctx.record_http_response(&response);
             response
@@ -144,20 +137,20 @@ pub(crate) async fn execute_subgraph_request<R: Runtime>(
 
     // If the status code isn't a success as this point it means it's either a client error or
     // we've exhausted our retry budget for server errors.
-    if !response.status().is_success() {
+    if !http_response.status().is_success() {
         tracing::error!(
             "Subgraph request failed with status code: {}\n{}",
-            response.status().as_u16(),
-            String::from_utf8_lossy(response.body())
+            http_response.status().as_u16(),
+            String::from_utf8_lossy(http_response.body())
         );
         return Err(GraphqlError::new(
-            format!("Request failed with status code: {}", response.status().as_u16()),
+            format!("Request failed with status code: {}", http_response.status().as_u16()),
             ErrorCode::SubgraphRequestError,
         )
         .into());
     }
 
-    match ingester.ingest(response).await {
+    match ingester.ingest(http_response, response_part).await {
         Ok((status, response)) => {
             ctx.set_graphql_response_status(status);
             Ok(response)

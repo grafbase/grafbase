@@ -4,10 +4,10 @@ use schema::{EntityDefinition, KeyValueInjectionRecord, ValueInjection};
 use serde::ser::{Error, SerializeMap};
 use walker::Walk as _;
 
-use super::{ForFieldSet, ForInjection, ResponseObjectView, ResponseObjectsView, ResponseValueView, WithExtraFields};
+use super::{ForFieldSet, ForInjection, ParentObjectsView, ResponseObjectView, ResponseValueView, WithExtraFields};
 use crate::{prepare::RequiredFieldSet, response::ResponseValue};
 
-impl<'a, View: Copy> serde::Serialize for ResponseObjectsView<'a, View>
+impl<'a, View: Copy> serde::Serialize for ParentObjectsView<'a, View>
 where
     ResponseObjectView<'a, View>: serde::Serialize,
 {

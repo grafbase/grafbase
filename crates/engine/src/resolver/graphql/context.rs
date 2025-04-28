@@ -28,7 +28,7 @@ use crate::{
     Engine, Runtime,
     execution::{ExecutionContext, ExecutionError, ExecutionResult, RequestHooks},
     resolver::ResolverResult,
-    response::SubgraphResponse,
+    response::ResponsePart,
 };
 
 #[derive(Clone)]
@@ -106,8 +106,8 @@ impl<'ctx, R: Runtime> SubgraphContext<'ctx, R> {
 
     pub async fn finalize(
         self,
-        subgraph_result: ExecutionResult<SubgraphResponse>,
-    ) -> ResolverResult<<R::Hooks as Hooks>::OnSubgraphResponseOutput> {
+        subgraph_result: ExecutionResult<ResponsePart<'ctx>>,
+    ) -> ResolverResult<'ctx, <R::Hooks as Hooks>::OnSubgraphResponseOutput> {
         let duration = self.start.elapsed();
 
         if let Some(status) = self.status {

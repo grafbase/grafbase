@@ -46,7 +46,7 @@ where
         );
 
         if self.parent_field.key.query_position.is_some() {
-            let mut resp = self.ctx.subgraph_response.borrow_mut();
+            let mut resp = self.ctx.response.borrow_mut();
             let path = self.ctx.path();
             // If not required, we don't need to propagate as Unexpected is equivalent to
             // null for users.
@@ -87,7 +87,7 @@ where
         } = self;
 
         let mut index: u32 = 0;
-        let list_id = ctx.subgraph_response.borrow_mut().data.reserve_list_id();
+        let list_id = ctx.response.borrow_mut().data.reserve_list_id();
         let mut list = Vec::new();
         if let Some(size_hint) = seq.size_hint() {
             list.reserve(size_hint);
@@ -116,7 +116,7 @@ where
                             "Deserialization failure of subgraph response at path '{}': {err}",
                             self.ctx.display_path()
                         );
-                        let mut resp = ctx.subgraph_response.borrow_mut();
+                        let mut resp = ctx.response.borrow_mut();
                         resp.propagate_null(&ctx.path());
                         resp.push_error(
                             GraphqlError::invalid_subgraph_response()
@@ -130,7 +130,7 @@ where
             }
         }
 
-        ctx.subgraph_response.borrow_mut().data.put_list(list_id, list);
+        ctx.response.borrow_mut().data.put_list(list_id, list);
         Ok(list_id.into())
     }
 

@@ -7,9 +7,9 @@ use walker::Walk;
 
 use crate::{
     Runtime,
-    execution::{ExecutionContext, ExecutionResult, SubscriptionResponse},
+    execution::{ExecutionContext, ExecutionResult},
     prepare::{Plan, create_extension_directive_query_view},
-    response::GraphqlError,
+    response::{GraphqlError, ResponseBuilder, ResponsePart},
 };
 
 use super::PreparedField;
@@ -19,8 +19,8 @@ impl super::FieldResolverExtension {
         &'ctx self,
         ctx: ExecutionContext<'ctx, R>,
         plan: Plan<'ctx>,
-        new_response: impl Fn() -> SubscriptionResponse + Send + 'ctx,
-    ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<SubscriptionResponse>>> {
+        new_response: impl Fn() -> ResponseBuilder<'ctx> + Send + 'ctx,
+    ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<(ResponseBuilder<'ctx>, ResponsePart<'ctx>)>>> {
         let directive = self.directive_id.walk(ctx.schema());
         let subgraph_headers = ctx.subgraph_headers_with_rules(directive.subgraph().header_rules());
 
@@ -49,9 +49,9 @@ impl super::FieldResolverExtension {
             .map_err(|err| err.with_location(field.location()))?;
 
         let stream = stream.map(move |result| {
-            let mut subscription_response = new_response();
-
-            let input_id = subscription_response.input_id();
+            let mut response = new_response();
+            let (root_object_id, part) = response.create_root_part();
+            let response_part = part.into_shared();
 
             tracing::debug!(
                 "Received:\n{}",
@@ -69,9 +69,8 @@ impl super::FieldResolverExtension {
                     .unwrap_or(Cow::Borrowed("<error>"))
             );
 
-            subscription_response
-                .as_mut()
-                .seed(&ctx, input_id)
+            response_part
+                .seed(plan.shape_id(), root_object_id)
                 .deserialize_from_fields(&mut vec![(field, result)])
                 .map_err(|err| {
                     tracing::error!("Failed to deserialize subgraph response: {}", err);
@@ -81,7 +80,7 @@ impl super::FieldResolverExtension {
                     GraphqlError::invalid_subgraph_response().with_location(field.location())
                 })?;
 
-            Ok(subscription_response)
+            Ok((response, response_part.unshare().unwrap()))
         });
 
         Ok(Box::pin(stream))

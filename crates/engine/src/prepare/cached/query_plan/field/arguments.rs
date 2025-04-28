@@ -5,7 +5,7 @@ use walker::Walk as _;
 
 use crate::{
     prepare::{CachedOperationContext, PartitionFieldArgument, PartitionFieldArgumentRecord},
-    response::{ResponseObjectView, ResponseObjectsView},
+    response::{ParentObjectsView, ResponseObjectView},
 };
 
 use super::PlanValueRecord;
@@ -57,7 +57,7 @@ impl<'ctx> PlanFieldArguments<'ctx> {
     pub(crate) fn batch_view<'v, 'r, 'view>(
         &self,
         variables: &'v Variables,
-        parent_objects: ResponseObjectsView<'r>,
+        parent_objects: ParentObjectsView<'r>,
     ) -> PlanFieldArgumentsBatchView<'view>
     where
         'ctx: 'view,
@@ -180,7 +180,7 @@ impl serde::Serialize for PlanFieldArgumentsQueryView<'_> {
 pub(crate) struct PlanFieldArgumentsBatchView<'a> {
     pub(in crate::prepare::cached::query_plan) ctx: CachedOperationContext<'a>,
     pub(in crate::prepare::cached::query_plan) variables: &'a Variables,
-    parent_objects: ResponseObjectsView<'a>,
+    parent_objects: ParentObjectsView<'a>,
     arguments: &'a [PartitionFieldArgumentRecord],
 }
 

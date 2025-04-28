@@ -3,14 +3,14 @@ use std::borrow::Cow;
 use schema::{ExtensionInputValueRecord, InputValueSet};
 use walker::Walk;
 
-use crate::response::{ResponseObjectView, ResponseObjectsView};
+use crate::response::{ParentObjectsView, ResponseObjectView};
 
 use super::{ArgumentsContext, template::JsonContent};
 
 pub struct ExtensionDirectiveArgumentsResponseObjectsView<'a> {
     pub(super) ctx: ArgumentsContext<'a>,
     pub(super) arguments: Vec<(&'a str, &'a ExtensionInputValueRecord)>,
-    pub(super) response_objects_view: ResponseObjectsView<'a>,
+    pub(super) response_objects_view: ParentObjectsView<'a>,
 }
 
 impl ExtensionDirectiveArgumentsResponseObjectsView<'_> {

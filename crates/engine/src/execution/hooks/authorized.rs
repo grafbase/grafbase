@@ -4,7 +4,7 @@ use schema::{FieldDefinition, SchemaInputValue, TypeDefinition};
 
 use crate::{
     prepare::PlanFieldArgumentsQueryView,
-    response::{GraphqlError, ResponseObjectsView},
+    response::{GraphqlError, ParentObjectsView},
 };
 
 impl<H: Hooks> super::RequestHooks<'_, H> {
@@ -35,7 +35,7 @@ impl<H: Hooks> super::RequestHooks<'_, H> {
     pub async fn authorize_parent_edge_post_execution(
         &self,
         definition: FieldDefinition<'_>,
-        parents: ResponseObjectsView<'_>,
+        parents: ParentObjectsView<'_>,
         metadata: Option<SchemaInputValue<'_>>,
     ) -> Result<Vec<Result<(), GraphqlError>>, GraphqlError> {
         self.hooks
@@ -59,7 +59,7 @@ impl<H: Hooks> super::RequestHooks<'_, H> {
     pub async fn authorize_edge_node_post_execution(
         &self,
         definition: FieldDefinition<'_>,
-        nodes: ResponseObjectsView<'_>,
+        nodes: ParentObjectsView<'_>,
         metadata: Option<SchemaInputValue<'_>>,
     ) -> Result<Vec<Result<(), GraphqlError>>, GraphqlError> {
         self.hooks

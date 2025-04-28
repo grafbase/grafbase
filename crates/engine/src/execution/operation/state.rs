@@ -6,7 +6,7 @@ use walker::Walk;
 use crate::{
     Runtime,
     prepare::{Executable, Plan, PlanId, ResponseModifierId, ResponseObjectSetDefinitionId},
-    response::{InputResponseObjectSet, ResponseBuilder, ResponseObjectSet},
+    response::{ParentObjects, ResponseBuilder, ResponseObjectSet},
 };
 
 use super::ExecutionContext;
@@ -90,7 +90,7 @@ impl<'ctx, R: Runtime> OperationExecutionState<'ctx, R> {
         self[set_id] = Some(Arc::new(response_object_refs));
     }
 
-    pub fn get_input(&mut self, response: &ResponseBuilder, plan: Plan<'_>) -> InputResponseObjectSet {
+    pub fn get_input(&mut self, response: &ResponseBuilder<'ctx>, plan: Plan<'_>) -> ParentObjects {
         // If there is no root, an error propagated up to it and data will be null. So there's
         // nothing to do anymore.
         let Some(root_ref) = response.root_response_object() else {
@@ -100,7 +100,7 @@ impl<'ctx, R: Runtime> OperationExecutionState<'ctx, R> {
         let input_id = plan.input_id();
         tracing::trace!("Get response objects for {input_id}");
 
-        let output = InputResponseObjectSet::default();
+        let output = ParentObjects::default();
         if let Some(refs) = &self[input_id] {
             output.with_filtered_response_objects(
                 self.ctx.schema(),

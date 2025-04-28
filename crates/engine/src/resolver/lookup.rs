@@ -6,7 +6,7 @@ use crate::{
     Runtime,
     execution::ExecutionContext,
     prepare::{Plan, PlanError, PlanQueryPartition, PlanResult, PrepareContext},
-    response::{ResponseObjectsView, SubgraphResponse},
+    response::{ParentObjectsView, ResponsePart},
 };
 
 use super::{ResolverResult, extension::SelectionSetResolverExtension, graphql::GraphqlResolver};
@@ -57,9 +57,9 @@ impl LookupResolver {
         &'ctx self,
         ctx: ExecutionContext<'ctx, R>,
         plan: Plan<'ctx>,
-        root_response_objects: ResponseObjectsView<'_>,
-        subgraph_response: SubgraphResponse,
-    ) -> BoxFuture<'f, ResolverResult<<R::Hooks as Hooks>::OnSubgraphResponseOutput>>
+        root_response_objects: ParentObjectsView<'_>,
+        subgraph_response: ResponsePart<'ctx>,
+    ) -> BoxFuture<'f, ResolverResult<'ctx, <R::Hooks as Hooks>::OnSubgraphResponseOutput>>
     where
         'ctx: 'f,
     {

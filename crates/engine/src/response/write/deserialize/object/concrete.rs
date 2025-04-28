@@ -66,7 +66,7 @@ impl<'de> DeserializeSeed<'de> for ConcreteShapeSeed<'_, '_> {
         D: serde::Deserializer<'de>,
     {
         let shape = self.shape_id.walk(self.ctx);
-        let object_id = self.ctx.subgraph_response.borrow_mut().data.reserve_object_id();
+        let object_id = self.ctx.response.borrow_mut().data.reserve_object_id();
 
         Ok(self.post_process_fields_seed_result(
             shape,
@@ -84,7 +84,7 @@ impl<'ctx> ConcreteShapeSeed<'ctx, '_> {
         A: MapAccess<'de>,
     {
         let shape = self.shape_id.walk(self.ctx);
-        let object_id = self.ctx.subgraph_response.borrow_mut().data.reserve_object_id();
+        let object_id = self.ctx.response.borrow_mut().data.reserve_object_id();
 
         Ok(self.post_process_fields_seed_result(
             shape,
@@ -101,7 +101,7 @@ impl<'ctx> ConcreteShapeSeed<'ctx, '_> {
     ) -> ResponseValue {
         match object {
             ObjectValue::Some { definition_id, fields } => {
-                let mut resp = self.ctx.subgraph_response.borrow_mut();
+                let mut resp = self.ctx.response.borrow_mut();
                 resp.data
                     .put_object(object_id, ResponseObject::new(definition_id, fields));
 
@@ -134,7 +134,7 @@ impl<'ctx> ConcreteShapeSeed<'ctx, '_> {
                         self.ctx.display_path()
                     );
                     if self.parent_field.key.query_position.is_some() {
-                        let mut resp = self.ctx.subgraph_response.borrow_mut();
+                        let mut resp = self.ctx.response.borrow_mut();
                         let path = self.ctx.path();
                         resp.propagate_null(&path);
                         resp.push_error(
@@ -150,7 +150,7 @@ impl<'ctx> ConcreteShapeSeed<'ctx, '_> {
             }
             ObjectValue::Error(error) => {
                 if self.parent_field.key.query_position.is_some() {
-                    let mut resp = self.ctx.subgraph_response.borrow_mut();
+                    let mut resp = self.ctx.response.borrow_mut();
                     let path = self.ctx.path();
                     // If not required, we don't need to propagate as Unexpected is equivalent to
                     // null for users.
@@ -418,7 +418,7 @@ impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_> {
     fn post_process(&self, response_fields: &mut Vec<ResponseObjectField>) {
         if self.has_error {
             let mut must_propagate_null = false;
-            let mut resp = self.ctx.subgraph_response.borrow_mut();
+            let mut resp = self.ctx.response.borrow_mut();
             for field_shape in self.field_shape_ids.walk(self.ctx) {
                 for error in field_shape.errors() {
                     resp.push_error(
@@ -470,7 +470,7 @@ impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_> {
                                     self.ctx.display_path()
                                 )
                             }
-                            let mut resp = self.ctx.subgraph_response.borrow_mut();
+                            let mut resp = self.ctx.response.borrow_mut();
                             let path = self.ctx.path();
                             resp.propagate_null(&path);
                             resp.push_error(

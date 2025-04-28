@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use serde::{Deserializer, de::DeserializeSeed};
 
-use crate::response::{ErrorCode, ErrorPath, GraphqlError, SubgraphResponseRefMut};
+use crate::response::{ErrorCode, ErrorPath, GraphqlError, SharedResponsePart};
 
 pub(in crate::resolver::graphql) trait SubgraphToSupergraphErrorPathConverter {
     fn convert(&self, path: serde_json::Value) -> Option<ErrorPath>;
@@ -19,7 +19,7 @@ where
 
 /// Deserialize the `errors` field of a GraphQL response with the help of a ErrorPathConverter.
 pub(in crate::resolver::graphql) struct GraphqlErrorsSeed<'resp, ErrorPathConverter> {
-    pub response: SubgraphResponseRefMut<'resp>,
+    pub response_part: SharedResponsePart<'resp>,
     pub path_converter: ErrorPathConverter,
 }
 
@@ -27,9 +27,9 @@ impl<'resp, ErrorPathConverter> GraphqlErrorsSeed<'resp, ErrorPathConverter>
 where
     ErrorPathConverter: SubgraphToSupergraphErrorPathConverter,
 {
-    pub fn new(response: SubgraphResponseRefMut<'resp>, path_converter: ErrorPathConverter) -> Self {
+    pub fn new(response_part: SharedResponsePart<'resp>, path_converter: ErrorPathConverter) -> Self {
         Self {
-            response,
+            response_part,
             path_converter,
         }
     }
@@ -66,7 +66,7 @@ where
                 error
             })
             .collect();
-        self.response.borrow_mut().set_subgraph_errors(errors);
+        self.response_part.borrow_mut().set_subgraph_errors(errors);
         Ok(errors_count)
     }
 }

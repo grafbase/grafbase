@@ -12,7 +12,7 @@ use crate::{
         PlanFieldArguments, ResponseModifier, ResponseModifierRule, ResponseModifierRuleTarget,
         create_extension_directive_response_view,
     },
-    response::{ErrorCode, GraphqlError, InputResponseObjectSet, ResponseBuilder, ResponseValueId},
+    response::{ErrorCode, GraphqlError, ParentObjects, ResponseBuilder, ResponseValueId},
 };
 
 use super::{ExecutionContext, state::OperationExecutionState};
@@ -21,7 +21,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
     pub(super) async fn execute_response_modifier(
         &self,
         state: &mut OperationExecutionState<'ctx, R>,
-        response: &mut ResponseBuilder,
+        response: &mut ResponseBuilder<'ctx>,
         response_modifier: ResponseModifier<'ctx>,
     ) {
         for target in response_modifier.sorted_targets() {
@@ -29,13 +29,9 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                 continue;
             };
             let input = if self.operation.cached.query_plan[target.set_id].ty_id == target.ty_id {
-                InputResponseObjectSet::default().with_response_objects(refs.clone())
+                ParentObjects::default().with_response_objects(refs.clone())
             } else {
-                InputResponseObjectSet::default().with_filtered_response_objects(
-                    self.schema(),
-                    target.ty_id,
-                    refs.clone(),
-                )
+                ParentObjects::default().with_filtered_response_objects(self.schema(), target.ty_id, refs.clone())
             };
 
             if input.is_empty() {

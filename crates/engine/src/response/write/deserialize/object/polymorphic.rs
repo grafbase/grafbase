@@ -61,7 +61,7 @@ impl PolymorphicShapeSeed<'_, '_> {
         );
 
         if self.parent_field.key.query_position.is_some() {
-            let mut resp = self.ctx.subgraph_response.borrow_mut();
+            let mut resp = self.ctx.response.borrow_mut();
             let path = self.ctx.path();
             // If not required, we don't need to propagate as Unexpected is equivalent to
             // null for users.
@@ -173,7 +173,7 @@ impl<'de> Visitor<'de> for PolymorphicShapeSeed<'_, '_> {
                     // Adding empty object instead
                     Ok(self
                         .ctx
-                        .subgraph_response
+                        .response
                         .borrow_mut()
                         .data
                         .push_object(ResponseObject::new(Some(object_definition_id), Vec::new()))
@@ -189,7 +189,7 @@ impl<'de> Visitor<'de> for PolymorphicShapeSeed<'_, '_> {
         while map.next_entry::<IgnoredAny, IgnoredAny>()?.is_some() {}
 
         if self.parent_field.key.query_position.is_some() {
-            let mut resp = self.ctx.subgraph_response.borrow_mut();
+            let mut resp = self.ctx.response.borrow_mut();
             let path = self.ctx.path();
             // If not required, we don't need to propagate as Unexpected is equivalent to
             // null for users.
