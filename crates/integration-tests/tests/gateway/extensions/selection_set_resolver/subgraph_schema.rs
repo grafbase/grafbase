@@ -7,7 +7,9 @@ fn receive_subgraph_schema() {
             .with_subgraph_sdl(
                 "echo-schema",
                 r#"
-                extend schema @link(url: "selection-set-resolver-014-1.0.0", import: ["@init", "@meta"]) @init @meta(data: "Schema")
+                extend schema
+                    @link(url: "selection-set-resolver-014-1.0.0", import: ["@init", "@meta"]) @init @meta(data: "Schema")
+                    @link(url: "https://specs.grafbase.com/composite-schema/v1", import: ["@key"])
 
                 # Scalar types
                 scalar JSON
@@ -145,17 +147,17 @@ fn receive_subgraph_schema() {
                 "other",
                 r#"
                 extend schema @link(url: "https://specs.apollo.dev/federation/v2.0", import: ["@key"])
- 
+
                 type Query {
                     metrics: Metrics!
                 }
- 
+
                 type Metrics {
                     visitors: Int!
                     pageViews: Int!
                     conversionRate: Float!
                 }
- 
+
                 extend type Product @key(fields: "id") {
                     id: ID! @external
                     reviews: [Review!]

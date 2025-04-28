@@ -48,7 +48,7 @@ impl Subgraphs {
         name: StringId,
     ) -> impl Iterator<Item = (SubgraphId, DefinitionId)> + '_ {
         self.definition_names
-            .range((name, SubgraphId::MIN)..(name, SubgraphId::MAX))
+            .range((name, SubgraphId::from(usize::MIN))..(name, SubgraphId::from(usize::MAX)))
             .map(|((_, subgraph_id), definition_id)| (*subgraph_id, *definition_id))
     }
 

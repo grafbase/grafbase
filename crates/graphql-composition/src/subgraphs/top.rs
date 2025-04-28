@@ -1,8 +1,8 @@
 use super::*;
 
 impl Subgraphs {
-    pub(super) fn is_root_type(&self, SubgraphId(subgraph_idx): SubgraphId, definition: DefinitionId) -> bool {
-        let subgraph = &self.subgraphs[subgraph_idx];
+    pub(super) fn is_root_type(&self, subgraph_id: SubgraphId, definition: DefinitionId) -> bool {
+        let subgraph = &self.subgraphs[usize::from(subgraph_id)];
         subgraph.query_type == Some(definition)
             || subgraph.mutation_type == Some(definition)
             || subgraph.subscription_type == Some(definition)
@@ -10,7 +10,7 @@ impl Subgraphs {
 
     pub(crate) fn iter_subgraphs(&self) -> impl ExactSizeIterator<Item = SubgraphWalker<'_>> {
         self.subgraphs.iter().enumerate().map(|(idx, subgraph)| SubgraphWalker {
-            id: (SubgraphId(idx), subgraph),
+            id: (SubgraphId::from(idx), subgraph),
             subgraphs: self,
         })
     }
@@ -27,24 +27,24 @@ impl Subgraphs {
             subscription_type: None,
         };
 
-        SubgraphId(self.subgraphs.push_return_idx(subgraph))
+        SubgraphId::from(self.subgraphs.push_return_idx(subgraph))
     }
 
     pub(crate) fn set_query_type(&mut self, subgraph: SubgraphId, query_type: DefinitionId) {
-        self.subgraphs[subgraph.0].query_type = Some(query_type);
+        self.subgraphs[usize::from(subgraph)].query_type = Some(query_type);
     }
 
     pub(crate) fn set_mutation_type(&mut self, subgraph: SubgraphId, mutation_type: DefinitionId) {
-        self.subgraphs[subgraph.0].mutation_type = Some(mutation_type);
+        self.subgraphs[usize::from(subgraph)].mutation_type = Some(mutation_type);
     }
 
     pub(crate) fn set_subscription_type(&mut self, subgraph: SubgraphId, subscription_type: DefinitionId) {
-        self.subgraphs[subgraph.0].subscription_type = Some(subscription_type);
+        self.subgraphs[usize::from(subgraph)].subscription_type = Some(subscription_type);
     }
 
     pub(crate) fn walk_subgraph(&self, subgraph_id: SubgraphId) -> SubgraphWalker<'_> {
         SubgraphWalker {
-            id: (subgraph_id, &self.subgraphs[subgraph_id.0]),
+            id: (subgraph_id, &self.subgraphs[usize::from(subgraph_id)]),
             subgraphs: self,
         }
     }
@@ -61,15 +61,15 @@ pub(crate) struct Subgraph {
     subscription_type: Option<DefinitionId>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub(crate) struct SubgraphId(usize);
+impl Subgraph {
+    pub(crate) fn is_virtual(&self) -> bool {
+        self.url.is_none()
+    }
+}
 
 impl SubgraphId {
-    pub(crate) const MIN: SubgraphId = SubgraphId(usize::MIN);
-    pub(crate) const MAX: SubgraphId = SubgraphId(usize::MAX);
-
     pub(crate) fn idx(self) -> usize {
-        self.0
+        self.into()
     }
 }
 

@@ -34,4 +34,5 @@ make_ids! {
     extensions[ExtensionId] -> ExtensionRecord,
     linked_schemas,definitions[LinkedDefinitionId] -> LinkedDefinitionRecord,
     linked_schemas,schemas[LinkedSchemaId] -> LinkedSchemaRecord,
+    subgraphs[SubgraphId] -> Subgraph,
 }

@@ -95,8 +95,10 @@ fn match_directive_name_inner(
     }
 
     let federation_schema_has_been_linked = ctx.subgraphs.subgraph_links_federation_v2(ctx.subgraph_id);
+    let is_virtual_subgraph = ctx.subgraphs.at(ctx.subgraph_id).is_virtual();
 
-    if !federation_schema_has_been_linked {
+    // We auto-import federation directives only in cases where the federation spec hasn't been `@link`ed, to match federation v1 behaviour, or when the subgraph is virtual, because there is no legacy use case there, these are a new Grafbase feature.
+    if !federation_schema_has_been_linked && !is_virtual_subgraph {
         return match_federation_directive_by_original_name(directive_name);
     }
 
