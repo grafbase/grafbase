@@ -2915,6 +2915,7 @@ dependencies = [
  "engine-operation",
  "engine-schema",
  "engine-walker",
+ "extension-catalog",
  "fixedbitset",
  "fxhash",
  "grafbase-workspace-hack",
@@ -2924,12 +2925,15 @@ dependencies = [
  "itertools 0.14.0",
  "petgraph",
  "serde",
+ "serde_json",
  "similar",
  "strum 0.27.1",
+ "tempfile",
  "thiserror 2.0.12",
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "url",
 ]
 
 [[package]]

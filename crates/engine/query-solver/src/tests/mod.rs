@@ -6,6 +6,7 @@ mod flatten;
 mod inaccessible;
 mod interface;
 mod introspection;
+mod lookup;
 mod mutation;
 mod provides;
 mod shared_root;
@@ -14,6 +15,7 @@ mod tea_shop;
 mod typename;
 
 use itertools::Itertools;
+use schema::Schema;
 
 #[ctor::ctor]
 fn setup_logging() {
@@ -33,7 +35,7 @@ fn setup_logging() {
 #[macro_export]
 macro_rules! assert_solving_snapshots {
     ($name: expr, $schema: expr, $query: expr) => {
-        let schema = ::schema::Schema::from_sdl_or_panic($schema).await;
+        let schema = $crate::tests::IntoSchema::from($schema).into_schema().await;
         let name = $name;
         let query = $query;
         let mut operation = ::operation::Operation::parse(&schema, None, query).unwrap();
@@ -84,6 +86,33 @@ macro_rules! assert_solving_snapshots {
             &solved_query.to_pretty_dot_graph(ctx)
         );
     };
+}
+
+#[allow(clippy::large_enum_variant)]
+pub enum IntoSchema {
+    Sdl(&'static str),
+    Schema(Schema),
+}
+
+impl From<&'static str> for IntoSchema {
+    fn from(sdl: &'static str) -> Self {
+        IntoSchema::Sdl(sdl)
+    }
+}
+
+impl From<Schema> for IntoSchema {
+    fn from(schema: Schema) -> Self {
+        IntoSchema::Schema(schema)
+    }
+}
+
+impl IntoSchema {
+    pub async fn into_schema(self) -> Schema {
+        match self {
+            IntoSchema::Sdl(sdl) => Schema::from_sdl_or_panic(sdl).await,
+            IntoSchema::Schema(schema) => schema,
+        }
+    }
 }
 
 #[allow(unused)]
