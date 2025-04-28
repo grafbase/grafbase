@@ -19,6 +19,7 @@ mod field_set;
 mod generated;
 mod guid;
 mod ids;
+mod injection;
 mod input_object;
 mod input_value;
 mod input_value_def;
@@ -45,6 +46,7 @@ pub use gateway_config::SubscriptionProtocol;
 pub use generated::*;
 use id_newtypes::{BitSet, IdRange};
 pub use ids::*;
+pub use injection::*;
 pub use input_value::*;
 use regex::Regex;
 pub use subgraph::*;
@@ -63,6 +65,8 @@ pub struct Schema {
     pub graph: Graph,
     // Cryptographic hash of the schema
     pub hash: [u8; 32],
+
+    selections: Selections,
 
     // Kept for messages
     #[indexed_by(ExtensionId)]
@@ -115,6 +119,10 @@ id_newtypes::forward_with_range! {
     impl Index<GraphqlEndpointId, Output = GraphqlEndpointRecord> for Schema.subgraphs,
     impl Index<VirtualSubgraphId, Output = VirtualSubgraphRecord> for Schema.subgraphs,
     impl Index<HeaderRuleId, Output = HeaderRuleRecord> for Schema.subgraphs,
+    impl Index<SchemaFieldId, Output = SchemaFieldRecord> for Schema.selections,
+    impl Index<SchemaFieldArgumentId, Output = SchemaFieldArgumentRecord> for Schema.selections,
+    impl Index<InputValueInjectionId, Output = InputValueInjection> for Schema.selections,
+    impl Index<ValueInjectionId, Output = ValueInjection> for Schema.selections,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, id_derives::IndexedFields)]
@@ -156,13 +164,8 @@ pub struct Graph {
 
     #[indexed_by(ResolverDefinitionId)]
     resolver_definitions: Vec<ResolverDefinitionRecord>,
-
-    field_sets: Vec<FieldSetRecord>,
-    // deduplicated
-    #[indexed_by(SchemaFieldId)]
-    fields: Vec<SchemaFieldRecord>,
-    #[indexed_by(SchemaFieldArgumentId)]
-    field_arguments: Vec<SchemaFieldArgumentRecord>,
+    #[indexed_by(LookupResolverDefinitionId)]
+    lookup_resolver_definitions: Vec<LookupResolverDefinitionRecord>,
 
     /// Default input values & directive arguments
     pub input_values: SchemaInputValues,

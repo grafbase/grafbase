@@ -7,8 +7,7 @@ use schema::{ExtensionDirectiveId, FieldResolverExtensionDefinition};
 
 use crate::{
     Runtime,
-    prepare::{PartitionDataFieldId, PlanQueryPartition, PlanResult, PrepareContext},
-    resolver::Resolver,
+    prepare::{DataOrLookupFieldId, PlanResult, PrepareContext, SubgraphSelectionSet},
 };
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -19,7 +18,7 @@ pub(crate) struct FieldResolverExtension {
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 struct PreparedField {
-    field_id: PartitionDataFieldId,
+    field_id: DataOrLookupFieldId,
     extension_data: Vec<u8>,
 }
 
@@ -27,10 +26,9 @@ impl FieldResolverExtension {
     pub(in crate::resolver) async fn prepare(
         ctx: &PrepareContext<'_, impl Runtime>,
         definition: FieldResolverExtensionDefinition<'_>,
-        plan_query_partition: PlanQueryPartition<'_>,
-    ) -> PlanResult<Resolver> {
-        let prepared = plan_query_partition
-            .selection_set()
+        selection_set: SubgraphSelectionSet<'_>,
+    ) -> PlanResult<Self> {
+        let prepared = selection_set
             .fields()
             .map(|field| async move {
                 let prepared_data = ctx
@@ -54,9 +52,9 @@ impl FieldResolverExtension {
             .try_collect::<Vec<_>>()
             .await?;
 
-        Ok(Resolver::FieldResolverExtension(Self {
+        Ok(Self {
             directive_id: definition.directive_id,
             prepared,
-        }))
+        })
     }
 }

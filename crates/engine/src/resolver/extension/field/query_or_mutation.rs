@@ -112,7 +112,7 @@ impl<'ctx> Executor<'ctx> {
 
             response
                 .seed(&ctx, input_object_id)
-                .deserialize_fields(&mut entity_fields)
+                .deserialize_from_fields(&mut entity_fields)
                 .map_err(|err| {
                     tracing::error!("Failed to deserialize subgraph response: {}", err);
 

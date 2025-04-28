@@ -1,14 +1,13 @@
 mod query_or_mutation;
 
 use futures::{FutureExt, TryStreamExt as _, stream::FuturesUnordered};
-use query_solver::QueryOrSchemaFieldArgumentIds;
+use id_newtypes::IdRange;
 use runtime::extension::SelectionSetResolverExtension as _;
 use schema::{SelectionSetResolverExtensionDefinition, SelectionSetResolverExtensionDefinitionRecord};
 
 use crate::{
     Runtime,
-    prepare::{PartitionDataFieldId, PlanQueryPartition, PlanResult, PrepareContext},
-    resolver::Resolver,
+    prepare::{DataOrLookupFieldId, PartitionFieldArgumentId, PlanResult, PrepareContext, SubgraphSelectionSet},
 };
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -19,19 +18,18 @@ pub(crate) struct SelectionSetResolverExtension {
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 struct PreparedField {
-    field_id: PartitionDataFieldId,
+    field_id: DataOrLookupFieldId,
     extension_data: Vec<u8>,
-    arguments: Vec<(runtime::extension::ArgumentsId, QueryOrSchemaFieldArgumentIds)>,
+    arguments: Vec<(runtime::extension::ArgumentsId, IdRange<PartitionFieldArgumentId>)>,
 }
 
 impl SelectionSetResolverExtension {
     pub(in crate::resolver) async fn prepare(
         ctx: &PrepareContext<'_, impl Runtime>,
         definition: SelectionSetResolverExtensionDefinition<'_>,
-        plan_query_partition: PlanQueryPartition<'_>,
-    ) -> PlanResult<Resolver> {
-        let prepared = plan_query_partition
-            .selection_set()
+        selection_set: SubgraphSelectionSet<'_>,
+    ) -> PlanResult<Self> {
+        let prepared = selection_set
             .fields()
             .map(|field| async move {
                 let prepared_data = ctx
@@ -70,9 +68,9 @@ impl SelectionSetResolverExtension {
             .try_collect::<Vec<_>>()
             .await?;
 
-        Ok(Resolver::SelectionSetResolverExtension(Self {
+        Ok(Self {
             definition: *definition,
             prepared,
-        }))
+        })
     }
 }

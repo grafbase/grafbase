@@ -56,7 +56,7 @@ where
             resp.push_error(
                 GraphqlError::invalid_subgraph_response()
                     .with_path(path)
-                    .with_location(self.parent_field.id.walk(self.ctx).location),
+                    .with_location(self.parent_field.id.walk(self.ctx).location()),
             );
         }
 
@@ -121,7 +121,7 @@ where
                         resp.push_error(
                             GraphqlError::invalid_subgraph_response()
                                 .with_path((ctx.path().as_ref(), index))
-                                .with_location(parent_field.id.walk(ctx).location),
+                                .with_location(parent_field.id.walk(ctx).location()),
                         );
                     }
 

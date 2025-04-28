@@ -73,7 +73,7 @@ impl<'de> DeserializeSeed<'de> for FieldSeed<'_, '_> {
                 resp.push_error(
                     GraphqlError::invalid_subgraph_response()
                         .with_path(self.ctx.path().as_ref())
-                        .with_location(self.field.id.walk(self.ctx).location),
+                        .with_location(self.field.id.walk(self.ctx).location()),
                 );
             }
         })

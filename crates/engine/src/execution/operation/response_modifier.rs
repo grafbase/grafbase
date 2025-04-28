@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use futures::FutureExt as _;
 use itertools::Itertools;
-use query_solver::QueryOrSchemaFieldArgumentIds;
 use runtime::extension::{AuthorizationDecisions, AuthorizationExtension as _};
 use schema::DirectiveSiteId;
 use walker::Walk;
@@ -10,7 +9,8 @@ use walker::Walk;
 use crate::{
     Runtime,
     prepare::{
-        ResponseModifier, ResponseModifierRule, ResponseModifierRuleTarget, create_extension_directive_response_view,
+        PlanFieldArguments, ResponseModifier, ResponseModifierRule, ResponseModifierRuleTarget,
+        create_extension_directive_response_view,
     },
     response::{ErrorCode, GraphqlError, InputResponseObjectSet, ResponseBuilder, ResponseValueId},
 };
@@ -265,7 +265,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                     let response_view = create_extension_directive_response_view(
                         self.schema(),
                         directive_id.walk(self),
-                        QueryOrSchemaFieldArgumentIds::default().walk(self),
+                        PlanFieldArguments::empty(self.into()),
                         self.variables(),
                         nodes,
                     );

@@ -295,9 +295,10 @@ impl SelectionSetResolverExtension for Resolver {
                     "id": self.field_names.get(&field.definition_id()),
                 });
 
-                if let Ok(value) = field.arguments::<Value>(self.arguments) {
-                    field_json["arguments"] = value;
-                }
+                field_json["arguments"] = match field.arguments::<Value>(self.arguments) {
+                    Ok(value) => value,
+                    Err(err) => format!("ERROR: {err}").into(),
+                };
 
                 if let Some(alias) = field.alias() {
                     field_json["alias"] = alias.into();

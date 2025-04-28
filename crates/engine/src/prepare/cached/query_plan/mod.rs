@@ -39,12 +39,16 @@ use super::FieldShapeId;
 pub(crate) struct QueryPlan {
     #[indexed_by(QueryPartitionId)]
     pub partitions: Vec<QueryPartitionRecord>,
-    #[indexed_by(PartitionDataFieldId)]
-    pub data_fields: Vec<PartitionDataFieldRecord>,
-    pub response_data_fields: BitSet<PartitionDataFieldId>,
-    #[indexed_by(PartitionTypenameFieldId)]
-    pub typename_fields: Vec<PartitionTypenameFieldRecord>,
-    pub response_typename_fields: BitSet<PartitionTypenameFieldId>,
+    #[indexed_by(LookupFieldId)]
+    pub lookup_fields: Vec<LookupFieldRecord>,
+    #[indexed_by(DataFieldId)]
+    pub data_fields: Vec<DataFieldRecord>,
+    pub response_data_fields: BitSet<DataFieldId>,
+    #[indexed_by(PartitionFieldArgumentId)]
+    pub field_arguments: Vec<PartitionFieldArgumentRecord>,
+    #[indexed_by(TypenameFieldId)]
+    pub typename_fields: Vec<TypenameFieldRecord>,
+    pub response_typename_fields: BitSet<TypenameFieldId>,
     pub mutation_partition_order: Vec<QueryPartitionId>,
     #[indexed_by(TypeConditionSharedVecId)]
     pub shared_type_conditions: Vec<CompositeTypeId>,

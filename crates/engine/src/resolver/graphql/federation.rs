@@ -12,7 +12,7 @@ use crate::{
     execution::ExecutionContext,
     prepare::{Plan, PlanError, PlanQueryPartition, PlanResult},
     resolver::{
-        ExecutionResult, Resolver,
+        ExecutionResult,
         graphql::request::{SubgraphGraphqlRequest, SubgraphVariables},
     },
     response::{InputObjectId, ObjectUpdate, ResponseObjectsView, SubgraphResponse},
@@ -33,16 +33,16 @@ impl FederationEntityResolver {
     pub fn prepare(
         definition: GraphqlFederationEntityResolverDefinition<'_>,
         plan_query_partition: PlanQueryPartition<'_>,
-    ) -> PlanResult<Resolver> {
+    ) -> PlanResult<Self> {
         let subgraph_operation = PreparedFederationEntityOperation::build(plan_query_partition).map_err(|err| {
             tracing::error!("Failed to build query: {err}");
             PlanError::Internal
         })?;
 
-        Ok(Resolver::FederationEntity(Self {
+        Ok(Self {
             endpoint_id: definition.endpoint().id,
             subgraph_operation,
-        }))
+        })
     }
 
     pub fn build_subgraph_context<'ctx, R: Runtime>(&self, ctx: ExecutionContext<'ctx, R>) -> SubgraphContext<'ctx, R> {

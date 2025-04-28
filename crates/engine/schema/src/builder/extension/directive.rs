@@ -5,13 +5,11 @@ use crate::{
     builder::{Error, GraphBuilder, sdl},
 };
 
-use super::{LoadedExtension, LoadedExtensionOrCompositeSchema};
+use super::LoadedExtension;
 
 pub(crate) fn ingest_extension_schema_directives(builder: &mut GraphBuilder<'_>) -> Result<(), Error> {
     for (name, ext) in builder.sdl.extensions.iter() {
-        let LoadedExtensionOrCompositeSchema::Extension(extension) = builder.extensions.get(*name) else {
-            continue;
-        };
+        let extension = builder.extensions.get(*name);
         for (directive, span) in &ext.directives {
             let subgraph_id = builder.subgraphs.try_get(directive.graph, *span)?;
             let id = builder

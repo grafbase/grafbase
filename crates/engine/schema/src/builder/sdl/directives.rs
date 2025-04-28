@@ -35,6 +35,16 @@ pub struct DeprecatedDirective<'a> {
     pub reason: Option<&'a str>,
 }
 
+///```ignore,graphql
+/// directive @composite_lookup(
+///     graph: join__Graph!,
+/// ) repeatable on FIELD_DEFINITION
+///```
+#[derive(Debug, ValueDeserialize)]
+pub(crate) struct LookupDirective<'a> {
+    pub graph: GraphName<'a>,
+}
+
 /// ```ignore,graphql
 /// directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 /// ```

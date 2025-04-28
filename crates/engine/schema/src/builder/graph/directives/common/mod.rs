@@ -5,7 +5,7 @@ mod requires_scopes;
 
 use crate::{
     Graph, TypeDefinitionId, TypeSystemDirectiveId, UnionDefinitionId,
-    builder::{Error, extension::LoadedExtensionOrCompositeSchema, sdl},
+    builder::{Error, sdl},
 };
 
 use super::DirectivesIngester;
@@ -38,21 +38,15 @@ impl<'sdl> DirectivesIngester<'_, 'sdl> {
                 "extension__directive" => {
                     let dir = sdl::parse_extension_directive(directive)?;
                     let subgraph_id = self.subgraphs.try_get(dir.graph, directive.arguments_span())?;
-                    match self.extensions.get(dir.extension) {
-                        LoadedExtensionOrCompositeSchema::Extension(extension) => {
-                            let id = self
-                                .ingest_extension_directive(def, subgraph_id, extension, dir.name, dir.arguments)
-                                .map_err(|txt| (txt, directive.arguments_span()))?;
-                            directive_ids.push(TypeSystemDirectiveId::Extension(id))
-                        }
-                        LoadedExtensionOrCompositeSchema::CompositeSchema => {
-                            if !matches!(dir.name, "lookup") {
-                                self.ingest_composite_schema_directive(def, subgraph_id, dir.name, dir.arguments)
-                                    .map_err(|err| err.with_span_if_absent(directive.arguments_span()))?
-                            }
-                        }
-                    }
+                    let extension = self.extensions.get(dir.extension);
+                    let id = self
+                        .ingest_extension_directive(def, subgraph_id, extension, dir.name, dir.arguments)
+                        .map_err(|txt| (txt, directive.arguments_span()))?;
+                    directive_ids.push(TypeSystemDirectiveId::Extension(id))
                 }
+                name if name.starts_with("composite__") => self
+                    .ingest_composite_directive(def, directive)
+                    .map_err(|err| err.with_span_if_absent(directive.arguments_span()))?,
                 _ => {}
             };
         }

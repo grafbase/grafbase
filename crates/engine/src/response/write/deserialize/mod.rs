@@ -1,3 +1,4 @@
+mod batch;
 mod ctx;
 mod entity;
 mod r#enum;
@@ -26,19 +27,20 @@ use crate::{
 };
 
 use self::r#enum::*;
+pub(crate) use batch::EntitiesSeed;
 use ctx::*;
 use list::ListSeed;
 use scalar::*;
 
 use super::{ObjectUpdate, SubgraphResponseRefMut};
 
-pub(crate) struct UpdateSeed<'ctx> {
+pub(crate) struct EntitySeed<'ctx> {
     ctx: Rc<SeedContext<'ctx>>,
     shape_id: ConcreteShapeId,
     id: InputObjectId,
 }
 
-impl<'ctx> UpdateSeed<'ctx> {
+impl<'ctx> EntitySeed<'ctx> {
     pub(super) fn new<R: Runtime>(
         ctx: ExecutionContext<'ctx, R>,
         subgraph_response: SubgraphResponseRefMut<'ctx>,
@@ -59,7 +61,7 @@ impl<'ctx> UpdateSeed<'ctx> {
         }
     }
 
-    pub fn deserialize_fields(
+    pub fn deserialize_from_fields(
         self,
         fields: &mut Vec<(SubgraphField<'ctx>, Result<Data, GraphqlError>)>,
     ) -> Result<(), DeserError> {
@@ -68,14 +70,14 @@ impl<'ctx> UpdateSeed<'ctx> {
     }
 }
 
-impl<'de> DeserializeSeed<'de> for UpdateSeed<'_> {
+impl<'de> DeserializeSeed<'de> for EntitySeed<'_> {
     type Value = ();
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
-        let UpdateSeed { ctx, shape_id, id } = self;
+        let EntitySeed { ctx, shape_id, id } = self;
 
         let fields_seed = {
             let root_object_ref = Ref::map(ctx.subgraph_response.borrow(), |resp| resp.input_object_ref(id));

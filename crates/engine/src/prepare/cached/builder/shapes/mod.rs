@@ -11,10 +11,13 @@ use schema::{CompositeType, CompositeTypeId, ObjectDefinitionId, Schema, TypeDef
 use walker::Walk;
 
 use crate::{
-    prepare::cached::{
-        CachedOperationContext, ConcreteShapeId, ConcreteShapeRecord, FieldShapeId, FieldShapeRecord, FieldShapeRefId,
-        ObjectIdentifier, PartitionDataField, PartitionDataFieldId, PartitionSelectionSet, PartitionTypenameField,
-        PolymorphicShapeId, PolymorphicShapeRecord, ResponseObjectSetDefinitionId, Shape, Shapes,
+    prepare::{
+        DataOrLookupFieldId, LookupFieldId,
+        cached::{
+            CachedOperationContext, ConcreteShapeId, ConcreteShapeRecord, DataField, DataFieldId, FieldShapeId,
+            FieldShapeRecord, FieldShapeRefId, ObjectIdentifier, PartitionSelectionSet, PolymorphicShapeId,
+            PolymorphicShapeRecord, ResponseObjectSetDefinitionId, Shape, Shapes, TypenameField,
+        },
     },
     utils::BufferPool,
 };
@@ -41,7 +44,23 @@ impl Solver<'_> {
         // Create all shapes for the given QueryPartition
         for query_partition in &mut query_partitions {
             query_partition.shape_id = builder.create_root_shape_for(query_partition.selection_set_record.walk(ctx));
+            let mut shape_id = query_partition.shape_id;
+            query_partition.shape_id_without_lookup_fields = loop {
+                let field_shape_ids = builder.shapes[shape_id].field_shape_ids;
+                if builder.shapes[field_shape_ids].iter().all(|fs| fs.id.is_data()) {
+                    break Some(shape_id);
+                }
+                let field_shape = &builder.shapes[field_shape_ids.start];
+                if field_shape_ids.len() != 1 || !field_shape.id.is_lookup() {
+                    break None;
+                }
+                let Shape::Concrete(id) = field_shape.shape else {
+                    unreachable!();
+                };
+                shape_id = id;
+            }
         }
+
         let ShapesBuilder {
             shapes,
             data_field_ids_with_selection_set_requiring_typename,
@@ -76,7 +95,10 @@ impl Solver<'_> {
         }
         let mut field_shape_refs = vec![FieldShapeId::from(0usize); len];
         for (i, field_shape) in shapes.fields.iter().enumerate() {
-            let end = &mut self.output.query_plan[field_shape.id].shape_ids.end;
+            let DataOrLookupFieldId::Data(field_id) = field_shape.id else {
+                continue;
+            };
+            let end = &mut self.output.query_plan[field_id].shape_ids.end;
             let pos = usize::from(*end);
             field_shape_refs[pos] = FieldShapeId::from(i);
             *end = FieldShapeRefId::from(pos + 1);
@@ -91,16 +113,25 @@ pub(super) struct ShapesBuilder<'ctx> {
     ctx: CachedOperationContext<'ctx>,
     shapes: Shapes,
     data_fields_shape_count: Vec<u32>,
-    data_field_ids_with_selection_set_requiring_typename: Vec<PartitionDataFieldId>,
+    data_field_ids_with_selection_set_requiring_typename: Vec<DataFieldId>,
     field_shapes_buffer_pool: BufferPool<FieldShapeRecord>,
-    data_fields_buffer_pool: BufferPool<PartitionDataField<'ctx>>,
-    typename_fields_buffer_pool: BufferPool<PartitionTypenameField<'ctx>>,
+    data_fields_buffer_pool: BufferPool<DataField<'ctx>>,
+    typename_fields_buffer_pool: BufferPool<TypenameField<'ctx>>,
 }
 
 impl<'ctx> ShapesBuilder<'ctx> {
     fn create_root_shape_for(&mut self, selection_set: PartitionSelectionSet<'ctx>) -> ConcreteShapeId {
-        let keys = &self.ctx.cached.operation.response_keys;
+        if !selection_set.lookup_field_ids.is_empty() {
+            debug_assert!(
+                selection_set
+                    .data_field_ids_ordered_by_parent_entity_then_key
+                    .is_empty()
+                    && selection_set.typename_field_ids.is_empty()
+            );
+            return self.create_lookup_fields_set_shape(selection_set.lookup_field_ids);
+        }
 
+        let keys = &self.ctx.cached.operation.response_keys;
         let data_fields_sorted_by_response_key_str_then_position_extra_last = {
             let mut fields = self.data_fields_buffer_pool.pop();
             fields.extend(selection_set.data_fields());
@@ -153,14 +184,46 @@ impl<'ctx> ShapesBuilder<'ctx> {
         shape_id
     }
 
+    fn create_lookup_fields_set_shape(&mut self, field_ids: IdRange<LookupFieldId>) -> ConcreteShapeId {
+        let shape = ConcreteShapeRecord {
+            set_id: None,
+            identifier: ObjectIdentifier::Anonymous,
+            typename_response_keys: Vec::new(),
+            field_shape_ids: {
+                let start = self.shapes.fields.len();
+                for field_id in field_ids {
+                    let shape = self.create_lookup_field_shape(field_id);
+                    self.shapes.fields.push(shape);
+                }
+                IdRange::from(start..self.shapes.fields.len())
+            },
+        };
+
+        self.push_concrete_shape(shape)
+    }
+
+    fn create_lookup_field_shape(&mut self, field_id: LookupFieldId) -> FieldShapeRecord {
+        let field = field_id.walk(self.ctx);
+        FieldShapeRecord {
+            expected_key: field.subgraph_key,
+            key: PositionedResponseKey {
+                query_position: None,
+                response_key: field.subgraph_key,
+            },
+            id: field.id.into(),
+            shape: Shape::Concrete(self.create_root_shape_for(field.selection_set())),
+            wrapping: field.definition().ty().wrapping,
+        }
+    }
+
     /// Create the expected shape with known expected fields, applying the GraphQL field collection
     /// logic.
     fn create_concrete_shape(
         &mut self,
         identifier: ObjectIdentifier,
         set_id: Option<ResponseObjectSetDefinitionId>,
-        typename_fields_sorted_by_response_key_str_then_position_extra_last: &[PartitionTypenameField<'ctx>],
-        data_fields_sorted_by_response_key_str_then_position_extra_last: &[PartitionDataField<'ctx>],
+        typename_fields_sorted_by_response_key_str_then_position_extra_last: &[TypenameField<'ctx>],
+        data_fields_sorted_by_response_key_str_then_position_extra_last: &[DataField<'ctx>],
         included_typename_then_data_fields: FixedBitSet,
     ) -> ConcreteShapeId {
         let mut field_shapes_buffer = self.field_shapes_buffer_pool.pop();
@@ -234,11 +297,7 @@ impl<'ctx> ShapesBuilder<'ctx> {
         self.push_concrete_shape(shape)
     }
 
-    fn create_data_field_shape(
-        &mut self,
-        group: &mut [PartitionDataField<'ctx>],
-        first: PartitionDataField<'ctx>,
-    ) -> FieldShapeRecord {
+    fn create_data_field_shape(&mut self, group: &mut [DataField<'ctx>], first: DataField<'ctx>) -> FieldShapeRecord {
         let ty = first.definition().ty();
         let shape = match ty.definition() {
             TypeDefinition::Scalar(scalar) => Shape::Scalar(scalar.ty),
@@ -255,7 +314,7 @@ impl<'ctx> ShapesBuilder<'ctx> {
         FieldShapeRecord {
             expected_key: first.subgraph_key.unwrap_or(first.response_key),
             key: first.response_key.with_position(first.query_position),
-            id: first.id,
+            id: first.id.into(),
             shape,
             wrapping: ty.wrapping,
         }
@@ -263,7 +322,7 @@ impl<'ctx> ShapesBuilder<'ctx> {
 
     fn create_field_composite_type_output_shape(
         &mut self,
-        parent_fields: &[PartitionDataField<'ctx>],
+        parent_fields: &[DataField<'ctx>],
         output: CompositeType<'ctx>,
     ) -> Shape {
         //
@@ -436,8 +495,8 @@ impl<'ctx> ShapesBuilder<'ctx> {
     fn compute_object_shape_partitions(
         &self,
         output: CompositeType<'ctx>,
-        typename_fields: &[PartitionTypenameField<'ctx>],
-        data_fields: &[PartitionDataField<'ctx>],
+        typename_fields: &[TypenameField<'ctx>],
+        data_fields: &[DataField<'ctx>],
     ) -> partition::Partitioning<ObjectDefinitionId, FixedBitSet> {
         let mut type_condition_and_field_position_in_bitset =
             Vec::with_capacity(typename_fields.len() + data_fields.len());

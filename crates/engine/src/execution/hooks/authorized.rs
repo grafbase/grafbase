@@ -3,7 +3,7 @@ use runtime::hooks::{AuthorizedHooks, EdgeDefinition, Hooks, NodeDefinition};
 use schema::{FieldDefinition, SchemaInputValue, TypeDefinition};
 
 use crate::{
-    prepare::PartitionFieldArgumentsView,
+    prepare::PlanFieldArgumentsQueryView,
     response::{GraphqlError, ResponseObjectsView},
 };
 
@@ -11,7 +11,7 @@ impl<H: Hooks> super::RequestHooks<'_, H> {
     pub async fn authorize_edge_pre_execution(
         &self,
         definition: FieldDefinition<'_>,
-        arguments: PartitionFieldArgumentsView<'_>,
+        arguments: PlanFieldArgumentsQueryView<'_>,
         metadata: Option<SchemaInputValue<'_>>,
     ) -> Result<(), GraphqlError> {
         self.hooks

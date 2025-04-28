@@ -4,7 +4,7 @@
 //! Generated with: `cargo run -p engine-codegen`
 //! Source file: <engine-codegen dir>/domain/query_plan.graphql
 use crate::prepare::cached::query_plan::{
-    PartitionDataField, PartitionDataFieldId, PartitionTypenameField, PartitionTypenameFieldId, prelude::*,
+    DataField, DataFieldId, LookupField, LookupFieldId, TypenameField, TypenameFieldId, prelude::*,
 };
 #[allow(unused_imports)]
 use walker::{Iter, Walk};
@@ -13,15 +13,17 @@ use walker::{Iter, Walk};
 ///
 /// ```custom,{.language-graphql}
 /// type PartitionSelectionSet @meta(module: "selection_set", derive: ["Default"]) @copy {
-///   data_fields_ordered_by_parent_entity_then_key: [PartitionDataField!]!
+///   data_fields_ordered_by_parent_entity_then_key: [DataField!]!
 ///     @field(record_field_name: "data_field_ids_ordered_by_parent_entity_then_key")
-///   typename_fields: [PartitionTypenameField!]!
+///   typename_fields: [TypenameField!]!
+///   lookup_fields: [LookupField!]!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize, Default, Clone, Copy)]
 pub(crate) struct PartitionSelectionSetRecord {
-    pub data_field_ids_ordered_by_parent_entity_then_key: IdRange<PartitionDataFieldId>,
-    pub typename_field_ids: IdRange<PartitionTypenameFieldId>,
+    pub data_field_ids_ordered_by_parent_entity_then_key: IdRange<DataFieldId>,
+    pub typename_field_ids: IdRange<TypenameFieldId>,
+    pub lookup_field_ids: IdRange<LookupFieldId>,
 }
 
 #[derive(Clone, Copy)]
@@ -43,15 +45,16 @@ impl<'a> PartitionSelectionSet<'a> {
     pub(crate) fn as_ref(&self) -> &PartitionSelectionSetRecord {
         &self.item
     }
-    pub(crate) fn data_fields_ordered_by_parent_entity_then_key(
-        &self,
-    ) -> impl Iter<Item = PartitionDataField<'a>> + 'a {
+    pub(crate) fn data_fields_ordered_by_parent_entity_then_key(&self) -> impl Iter<Item = DataField<'a>> + 'a {
         self.as_ref()
             .data_field_ids_ordered_by_parent_entity_then_key
             .walk(self.ctx)
     }
-    pub(crate) fn typename_fields(&self) -> impl Iter<Item = PartitionTypenameField<'a>> + 'a {
+    pub(crate) fn typename_fields(&self) -> impl Iter<Item = TypenameField<'a>> + 'a {
         self.as_ref().typename_field_ids.walk(self.ctx)
+    }
+    pub(crate) fn lookup_fields(&self) -> impl Iter<Item = LookupField<'a>> + 'a {
+        self.as_ref().lookup_field_ids.walk(self.ctx)
     }
 }
 
@@ -81,6 +84,7 @@ impl std::fmt::Debug for PartitionSelectionSet<'_> {
                 &self.data_fields_ordered_by_parent_entity_then_key(),
             )
             .field("typename_fields", &self.typename_fields())
+            .field("lookup_fields", &self.lookup_fields())
             .finish()
     }
 }

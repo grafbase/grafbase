@@ -39,8 +39,8 @@ where
         S: serde::Serializer,
     {
         let mut map = serializer.serialize_map(None)?;
-        for (name, value_id) in self.variables.iter() {
-            let value = value_id.walk(self.ctx);
+        for (name, value) in self.variables.iter() {
+            let value = value.as_schema_or_query_input_value().unwrap().walk(self.ctx);
             if !value.is_undefined() {
                 map.serialize_entry(&name, &value)?;
             }

@@ -11,7 +11,7 @@ use crate::{
     Runtime,
     execution::{ExecutionContext, ExecutionResult},
     prepare::Plan,
-    response::{InputResponseObjectSet, SubgraphResponse},
+    response::{InputResponseObjectSet, ResponseObjectsView, SubgraphResponse},
 };
 
 impl super::SelectionSetResolverExtension {
@@ -25,31 +25,34 @@ impl super::SelectionSetResolverExtension {
         let definition = self.definition.walk(&ctx);
         let subgraph_headers = ctx.subgraph_headers_with_rules(definition.subgraph().header_rules());
 
-        let mut results =
-            self.prepared
-                .iter()
-                .map(|prepared| async {
-                    let field = plan.get_field(prepared.field_id);
-                    let result =
-                        ctx.runtime()
-                            .extensions()
-                            .resolve_query_or_mutation_field(
-                                definition.extension_id,
-                                definition.subgraph().into(),
-                                &prepared.extension_data,
-                                // TODO: use Arc instead of clone?
-                                subgraph_headers.clone(),
-                                prepared.arguments.iter().map(|(id, args)| {
-                                    (*id, args.walk(&ctx).view(&InputValueSet::All, ctx.variables()))
-                                }),
+        let mut results = self
+            .prepared
+            .iter()
+            .map(|prepared| async {
+                let field = plan.get_field(prepared.field_id);
+                let result = ctx
+                    .runtime()
+                    .extensions()
+                    .resolve_query_or_mutation_field(
+                        definition.extension_id,
+                        definition.subgraph().into(),
+                        &prepared.extension_data,
+                        // TODO: use Arc instead of clone?
+                        subgraph_headers.clone(),
+                        prepared.arguments.iter().map(|(id, argument_ids)| {
+                            (
+                                *id,
+                                argument_ids.walk(&ctx).query_view(&InputValueSet::All, ctx.variables()),
                             )
-                            .boxed()
-                            .await;
-                    (field, result)
-                })
-                .collect::<FuturesUnordered<_>>()
-                .collect::<Vec<_>>()
-                .await;
+                        }),
+                    )
+                    .boxed()
+                    .await;
+                (field, result)
+            })
+            .collect::<FuturesUnordered<_>>()
+            .collect::<Vec<_>>()
+            .await;
 
         let input_object_id = input_object_refs.ids().next().ok_or("No object to update")?;
 
@@ -76,7 +79,7 @@ impl super::SelectionSetResolverExtension {
         subgraph_response
             .as_shared_mut()
             .seed(&ctx, input_object_id)
-            .deserialize_fields(&mut results)
+            .deserialize_from_fields(&mut results)
             .map_err(|err| {
                 tracing::error!("Failed to deserialize subgraph response: {}", err);
                 let field_id = self.prepared.first().unwrap().field_id;
@@ -88,5 +91,79 @@ impl super::SelectionSetResolverExtension {
             })?;
 
         Ok(subgraph_response)
+    }
+
+    pub(in crate::resolver) fn execute_batch_lookup<'ctx, 'f, R: Runtime>(
+        &'ctx self,
+        ctx: ExecutionContext<'ctx, R>,
+        plan: Plan<'ctx>,
+        root_response_objects: ResponseObjectsView<'_>,
+        mut subgraph_response: SubgraphResponse,
+    ) -> impl Future<Output = ExecutionResult<SubgraphResponse>> + Send + 'f
+    where
+        'ctx: 'f,
+    {
+        let definition = self.definition.walk(&ctx);
+        let subgraph_headers = ctx.subgraph_headers_with_rules(definition.subgraph().header_rules());
+
+        let futures = self
+            .prepared
+            .iter()
+            .map(|prepared| {
+                let field = plan.get_field(prepared.field_id);
+                ctx.runtime()
+                    .extensions()
+                    .resolve_query_or_mutation_field(
+                        definition.extension_id,
+                        definition.subgraph().into(),
+                        &prepared.extension_data,
+                        // TODO: use Arc instead of clone?
+                        subgraph_headers.clone(),
+                        prepared.arguments.iter().map(|(id, argument_ids)| {
+                            (
+                                *id,
+                                argument_ids
+                                    .walk(&ctx)
+                                    .batch_view(ctx.variables(), root_response_objects.clone()),
+                            )
+                        }),
+                    )
+                    .boxed()
+                    .map(move |result| (field, result))
+            })
+            .collect::<FuturesUnordered<_>>();
+
+        let parent_objects = root_response_objects.into_input_object_refs();
+        async move {
+            let results = futures.collect::<Vec<_>>().await;
+
+            tracing::debug!(
+                "Received:\n{}",
+                results
+                    .iter()
+                    .flat_map(|(field, result)| [
+                        field.subgraph_response_key_str().into(),
+                        match result {
+                            Ok(Data::Json(bytes)) => String::from_utf8_lossy(bytes),
+                            Ok(Data::Cbor(bytes)) => {
+                                minicbor_serde::from_slice(bytes)
+                                    .ok()
+                                    .and_then(|v: sonic_rs::Value| sonic_rs::to_string_pretty(&v).ok().map(Into::into))
+                                    .unwrap_or_else(|| "<error>".into())
+                            }
+                            Err(_) => Cow::Borrowed("<error>"),
+                        }
+                    ])
+                    .join("\n")
+            );
+
+            let resp_mut = subgraph_response.as_shared_mut();
+
+            for (_, result) in results {
+                resp_mut.batch_seed(&ctx, parent_objects.clone()).ingest(result)
+            }
+
+            Ok(subgraph_response)
+        }
     }
 }

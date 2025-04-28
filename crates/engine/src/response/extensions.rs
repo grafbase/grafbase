@@ -99,6 +99,7 @@ impl GrafbaseResponseExtension {
                     id: ctx.schema[resolver.definition.extension_id].clone(),
                     subgraph_name: resolver.definition.subgraph_id.walk(ctx).subgraph_name().to_string(),
                 }),
+                Resolver::Lookup(_) => todo!("GB-8940"),
             });
             for child in plan.children() {
                 if let Executable::Plan(child) = child {

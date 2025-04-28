@@ -6,8 +6,8 @@ use walker::Walk;
 use crate::{
     Runtime,
     prepare::{
-        CachedOperation, CachedOperationContext, PlanError, PrepareContext, QueryPartition, QueryPartitionId,
-        RequiredFieldSet, RequiredFieldSetRecord, ResponseModifierDefinition, ResponseModifierRule,
+        CachedOperation, CachedOperationContext, DataOrLookupFieldId, PlanError, PrepareContext, QueryPartition,
+        QueryPartitionId, RequiredFieldSet, RequiredFieldSetRecord, ResponseModifierDefinition, ResponseModifierRule,
         ResponseModifierRuleTarget,
     },
     resolver::Resolver,
@@ -133,7 +133,7 @@ impl<'op, R: Runtime> Builder<'op, '_, R> {
             let (set_id, composite_type_id) = match definition.rule {
                 ResponseModifierRule::AuthorizedParentEdge { .. } => {
                     let output_id = if let Some(parent_field) = field.parent_field() {
-                        parent_field.output_id.ok_or_else(|| {
+                        parent_field.output_id().ok_or_else(|| {
                             tracing::error!("Missing response object set id.");
                             PlanError::Internal
                         })?
@@ -153,7 +153,7 @@ impl<'op, R: Runtime> Builder<'op, '_, R> {
                 ResponseModifierRule::Extension { target, .. } => match target {
                     ResponseModifierRuleTarget::Field(_, _) | ResponseModifierRuleTarget::FieldParentEntity(_) => {
                         let output_id = if let Some(parent_field) = field.parent_field() {
-                            parent_field.output_id.ok_or_else(|| {
+                            parent_field.output_id().ok_or_else(|| {
                                 tracing::error!("Missing response object set id.");
                                 PlanError::Internal
                             })?
@@ -239,7 +239,10 @@ impl<'op, R: Runtime> Builder<'op, '_, R> {
             .selection_set()
             .fields()
         {
-            required_fields = required_fields.union(&field.id.walk(self.cached_ctx).required_fields_record);
+            let DataOrLookupFieldId::Data(id) = field.id else {
+                continue;
+            };
+            required_fields = required_fields.union(&id.walk(self.cached_ctx).required_fields_record);
         }
 
         required_fields
@@ -266,12 +269,7 @@ impl<'op, R: Runtime> Builder<'op, '_, R> {
     }
 
     async fn prepare_resolver(&mut self, query_partition: QueryPartition<'_>) -> PlanResult<Resolver> {
-        Resolver::prepare(
-            self.ctx,
-            self.operation.ty(),
-            self.view_plan_query_partition(query_partition.id),
-        )
-        .await
+        Resolver::prepare(self.ctx, self.view_plan_query_partition(query_partition.id)).await
     }
 
     pub(crate) fn view_plan_query_partition(&self, id: QueryPartitionId) -> PlanQueryPartition<'_> {

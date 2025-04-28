@@ -10,7 +10,7 @@ use crate::{
     },
 };
 
-use super::deserialize::UpdateSeed;
+use super::deserialize::{EntitiesSeed, EntitySeed};
 
 pub(crate) struct SubgraphResponse {
     pub data: DataPart,
@@ -113,11 +113,22 @@ impl std::ops::DerefMut for SubgraphResponseRefMut<'_> {
 }
 
 impl<'resp> SubgraphResponseRefMut<'resp> {
-    pub fn seed<'ctx, R: Runtime>(&self, ctx: &ExecutionContext<'ctx, R>, id: InputObjectId) -> UpdateSeed<'resp>
+    pub fn seed<'ctx, R: Runtime>(&self, ctx: &ExecutionContext<'ctx, R>, id: InputObjectId) -> EntitySeed<'resp>
     where
         'ctx: 'resp,
     {
-        UpdateSeed::new(*ctx, self.clone(), self.0.borrow().shape_id, id)
+        EntitySeed::new(*ctx, self.clone(), self.0.borrow().shape_id, id)
+    }
+
+    pub fn batch_seed<'ctx, R: Runtime>(
+        &self,
+        ctx: &ExecutionContext<'ctx, R>,
+        parent_objects: Arc<InputResponseObjectSet>,
+    ) -> EntitiesSeed<'resp>
+    where
+        'ctx: 'resp,
+    {
+        EntitiesSeed::new(*ctx, self.clone(), parent_objects, self.0.borrow().shape_id)
     }
 }
 

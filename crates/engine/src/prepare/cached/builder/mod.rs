@@ -11,7 +11,9 @@ use query_solver::{
     Edge, Node, QueryField, SolvedQuery,
     petgraph::{graph::NodeIndex, visit::EdgeRef},
 };
-use schema::{EntityDefinitionId, ResolverDefinitionId, Schema, TypeDefinition};
+use schema::{
+    EntityDefinitionId, InputValueInjection, ResolverDefinitionId, ResolverDefinitionVariant, Schema, TypeDefinition,
+};
 use walker::Walk;
 
 use super::*;
@@ -39,11 +41,11 @@ struct QueryPartitionToCreate {
 
 enum NestedField {
     Data {
-        record: PartitionDataFieldRecord,
+        record: DataFieldRecord,
         node_ix: NodeIndex,
     },
     Typename {
-        record: PartitionTypenameFieldRecord,
+        record: TypenameFieldRecord,
         node_ix: NodeIndex,
     },
 }
@@ -64,6 +66,7 @@ impl<'a> Solver<'a> {
                     mutation_partition_order: Vec::new(),
                     shared_type_conditions: std::mem::take(&mut solution.shared_type_conditions),
                     field_shape_refs: Vec::new(),
+                    field_arguments: Vec::new(),
                     data_fields: Vec::with_capacity(solution.fields.len()),
                     typename_fields: Vec::new(),
                     root_response_object_set_id: ResponseObjectSetDefinitionId::from(0usize),
@@ -74,6 +77,7 @@ impl<'a> Solver<'a> {
                     response_typename_fields: Default::default(),
                     query_modifiers: Default::default(),
                     response_modifier_definitions: Vec::new(),
+                    lookup_fields: Vec::new(),
                 },
                 operation,
                 shapes: Shapes::default(),
@@ -150,6 +154,55 @@ impl<'a> Solver<'a> {
     ) {
         let query_partition_id = QueryPartitionId::from(self.output.query_plan.partitions.len());
         let (_, selection_set_record) = self.generate_selection_set(query_partition_id, source_ix);
+
+        let selection_set_record =
+            if let ResolverDefinitionVariant::Lookup(resolver) = resolver_definition_id.walk(self.schema).variant() {
+                let definition = resolver.field_definition();
+                let lookup_field = LookupFieldRecord {
+                    subgraph_key: self.output.operation.response_keys.get_or_intern(definition.name()),
+                    location: self.output.query_plan[selection_set_record
+                        .data_field_ids_ordered_by_parent_entity_then_key
+                        .start]
+                        .location,
+                    argument_ids: {
+                        let start = self.output.query_plan.field_arguments.len();
+                        for &InputValueInjection {
+                            definition_id,
+                            injection,
+                        } in resolver.injections()
+                        {
+                            self.output
+                                .query_plan
+                                .field_arguments
+                                .push(PartitionFieldArgumentRecord {
+                                    definition_id,
+                                    value_record: PlanValueRecord::Injection(injection),
+                                });
+                        }
+                        IdRange::from(start..self.output.query_plan.field_arguments.len())
+                    },
+                    definition_id: definition.id,
+                    required_fields_record_by_supergraph: Default::default(),
+                    shape_ids: IdRange::empty(),
+                    output_id: None,
+                    selection_set_record,
+                    query_partition_id,
+                };
+                let lookup_field_id = self.output.query_plan.lookup_fields.len().into();
+
+                // Confirm with authorization tests...
+                self.node_to_field[source_ix.index()] = Some(PartitionFieldId::Lookup(lookup_field_id));
+
+                self.output.query_plan.lookup_fields.push(lookup_field);
+                PartitionSelectionSetRecord {
+                    data_field_ids_ordered_by_parent_entity_then_key: IdRange::empty(),
+                    typename_field_ids: IdRange::empty(),
+                    lookup_field_ids: IdRange::from_single(lookup_field_id),
+                }
+            } else {
+                selection_set_record
+            };
+
         self.output.query_plan.partitions.push(QueryPartitionRecord {
             entity_definition_id,
             resolver_definition_id,
@@ -158,6 +211,7 @@ impl<'a> Solver<'a> {
             // Populated later
             required_fields_record: Default::default(),
             shape_id: ConcreteShapeId::from(0usize),
+            shape_id_without_lookup_fields: None,
         });
         self.query_partition_to_node.push((query_partition_id, source_ix));
     }
@@ -194,7 +248,12 @@ impl<'a> Solver<'a> {
                     let Node::Field { id, .. } = self.solution.graph[target_ix] else {
                         continue;
                     };
-                    match to_data_field_or_typename_field(&self.solution[id], self.schema, query_partition_id) {
+                    match to_data_field_or_typename_field(
+                        &mut self.output,
+                        &self.solution[id],
+                        self.schema,
+                        query_partition_id,
+                    ) {
                         MaybePartitionFieldRecord::None => continue,
                         MaybePartitionFieldRecord::Data(mut record) => {
                             if record
@@ -249,7 +308,7 @@ impl<'a> Solver<'a> {
                         .selection_set_record
                         .data_field_ids_ordered_by_parent_entity_then_key]
                     {
-                        nested.parent_field_id = Some(field_id);
+                        nested.parent_field_id = Some(field_id.into());
                     }
                     self.output.query_plan.data_fields.push(record);
                 }
@@ -268,6 +327,7 @@ impl<'a> Solver<'a> {
                 data_fields_start..self.output.query_plan.data_fields.len(),
             ),
             typename_field_ids: IdRange::from(typename_fields_start..self.output.query_plan.typename_fields.len()),
+            lookup_field_ids: IdRange::empty(),
         };
 
         (response_object_set_id, selection_set)
@@ -352,11 +412,12 @@ impl<'a> Solver<'a> {
 
 enum MaybePartitionFieldRecord {
     None,
-    Data(PartitionDataFieldRecord),
-    Typename(PartitionTypenameFieldRecord),
+    Data(DataFieldRecord),
+    Typename(TypenameFieldRecord),
 }
 
 fn to_data_field_or_typename_field(
+    output: &mut CachedOperation,
     field: &QueryField,
     schema: &Schema,
     query_partition_id: QueryPartitionId,
@@ -365,7 +426,29 @@ fn to_data_field_or_typename_field(
         return MaybePartitionFieldRecord::None;
     };
     if let Some(definition_id) = field.definition_id {
-        MaybePartitionFieldRecord::Data(PartitionDataFieldRecord {
+        let start = output.query_plan.field_arguments.len();
+        match field.argument_ids {
+            query_solver::QueryOrSchemaFieldArgumentIds::Query(ids) => {
+                output
+                    .query_plan
+                    .field_arguments
+                    .extend(output.operation[ids].iter().map(|arg| PartitionFieldArgumentRecord {
+                        definition_id: arg.definition_id,
+                        value_record: PlanValueRecord::Value(arg.value_id.into()),
+                    }))
+            }
+            query_solver::QueryOrSchemaFieldArgumentIds::Schema(ids) => {
+                output
+                    .query_plan
+                    .field_arguments
+                    .extend(schema[ids].iter().map(|arg| PartitionFieldArgumentRecord {
+                        definition_id: arg.definition_id,
+                        value_record: PlanValueRecord::Value(arg.value_id.into()),
+                    }))
+            }
+        };
+        let argument_ids = IdRange::from(start..output.query_plan.field_arguments.len());
+        MaybePartitionFieldRecord::Data(DataFieldRecord {
             type_condition_ids: field.type_conditions,
             query_partition_id,
             definition_id,
@@ -373,11 +456,12 @@ fn to_data_field_or_typename_field(
             response_key,
             subgraph_key: field.subgraph_key,
             location: field.location,
-            argument_ids: field.argument_ids,
+            argument_ids,
             // All set later
             selection_set_record: PartitionSelectionSetRecord {
                 data_field_ids_ordered_by_parent_entity_then_key: IdRange::empty(),
                 typename_field_ids: IdRange::empty(),
+                lookup_field_ids: IdRange::empty(),
             },
             required_fields_record: RequiredFieldSetRecord::default(),
             required_fields_record_by_supergraph: Default::default(),
@@ -392,7 +476,7 @@ fn to_data_field_or_typename_field(
             shape_ids: IdRange::empty(),
         })
     } else {
-        MaybePartitionFieldRecord::Typename(PartitionTypenameFieldRecord {
+        MaybePartitionFieldRecord::Typename(TypenameFieldRecord {
             type_condition_ids: field.type_conditions,
             response_key,
             query_position: field.query_position,

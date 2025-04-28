@@ -6,7 +6,7 @@ use query_solver::{
 
 use crate::prepare::PartitionFieldId;
 
-use super::{PartitionDataFieldId, RequiredFieldSetItemRecord, RequiredFieldSetRecord, SolveResult};
+use super::{DataFieldId, RequiredFieldSetRecord, RequredFieldRecord, SolveResult};
 
 use super::Solver;
 
@@ -22,13 +22,19 @@ impl Solver<'_> {
         self.query_partition_to_node = query_partition_to_node;
 
         for (node_ix, field_id) in self.node_to_field.iter().enumerate() {
-            let Some(PartitionFieldId::Data(field_id)) = *field_id else {
-                continue;
-            };
-            self.output.query_plan[field_id].required_fields_record =
-                self.create_required_field_set(NodeIndex::new(node_ix), Edge::RequiredBySubgraph);
-            self.output.query_plan[field_id].required_fields_record_by_supergraph =
-                self.create_required_field_set(NodeIndex::new(node_ix), Edge::RequiredBySupergraph);
+            match *field_id {
+                Some(PartitionFieldId::Data(field_id)) => {
+                    self.output.query_plan[field_id].required_fields_record =
+                        self.create_required_field_set(NodeIndex::new(node_ix), Edge::RequiredBySubgraph);
+                    self.output.query_plan[field_id].required_fields_record_by_supergraph =
+                        self.create_required_field_set(NodeIndex::new(node_ix), Edge::RequiredBySupergraph);
+                }
+                Some(PartitionFieldId::Lookup(field_id)) => {
+                    self.output.query_plan[field_id].required_fields_record_by_supergraph =
+                        self.create_required_field_set(NodeIndex::new(node_ix), Edge::RequiredBySupergraph);
+                }
+                _ => {}
+            }
         }
 
         Ok(())
@@ -57,7 +63,7 @@ impl Solver<'_> {
                 .expect("We depend on this field, so it must be a QueryField and it must have a SchemaFieldId");
             let data_field_id = self.get_field_id_for(node_ix).unwrap();
 
-            required_fields.push(RequiredFieldSetItemRecord {
+            required_fields.push(RequredFieldRecord {
                 data_field_id,
                 matching_field_id,
                 subselection_record: self.create_subselection(node_ix, &mut dependencies),
@@ -85,7 +91,7 @@ impl Solver<'_> {
                             );
                         let data_field_id = self.get_field_id_for(edge.target()).unwrap();
 
-                        subselection.push(RequiredFieldSetItemRecord {
+                        subselection.push(RequredFieldRecord {
                             data_field_id,
                             matching_field_id,
                             subselection_record: self.create_subselection(edge.target(), dependencies),
@@ -101,7 +107,7 @@ impl Solver<'_> {
         subselection.into()
     }
 
-    fn get_field_id_for(&self, node_ix: NodeIndex) -> Option<PartitionDataFieldId> {
+    fn get_field_id_for(&self, node_ix: NodeIndex) -> Option<DataFieldId> {
         self.node_to_field[node_ix.index()]
             .as_ref()
             .and_then(PartitionFieldId::as_data)

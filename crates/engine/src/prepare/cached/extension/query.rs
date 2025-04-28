@@ -47,7 +47,7 @@ impl serde::Serialize for ExtensionInputValueQueryView<'_> {
             }
             ExtensionInputValueRecord::InputValueSet(selection_set) => ctx
                 .field_arguments
-                .view(selection_set, ctx.variables)
+                .query_view(selection_set, ctx.variables)
                 .serialize(serializer),
             ExtensionInputValueRecord::FieldSet(_) => {
                 unreachable!("Invariant broken, cannot be available from the operation alone.")
@@ -56,7 +56,8 @@ impl serde::Serialize for ExtensionInputValueQueryView<'_> {
                 let template = id.walk(ctx.schema);
                 // FIXME: Should not serialize the whole arguments here. But for now that will
                 // work.
-                let args = serde_json::to_value(ctx.field_arguments.view(&InputValueSet::All, ctx.variables)).unwrap();
+                let args =
+                    serde_json::to_value(ctx.field_arguments.query_view(&InputValueSet::All, ctx.variables)).unwrap();
                 template
                     .inner
                     .render(&JsonContent {

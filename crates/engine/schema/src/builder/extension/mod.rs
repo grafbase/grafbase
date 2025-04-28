@@ -1,5 +1,4 @@
 mod directive;
-mod selection_set_resolvers;
 
 use extension_catalog::{ExtensionCatalog, ExtensionId, Manifest};
 use federated_graph::link::LinkDirective;
@@ -12,16 +11,13 @@ use cynic_parser_deser::ConstDeserializer;
 use super::sdl::{ExtensionName, Sdl};
 
 pub(crate) use directive::*;
-pub(crate) use selection_set_resolvers::*;
 
 #[derive(id_derives::IndexedFields)]
 pub(crate) struct ExtensionsContext<'a> {
     map: RapidHashMap<ExtensionName<'a>, LoadedExtension<'a>>,
-    pub composite_schema_extension_name: Option<ExtensionName<'a>>,
     pub catalog: &'a ExtensionCatalog,
 }
 
-const COMPOSITE_SCHEMA_URL: &str = "https://specs.grafbase.com/composite-schema/v1";
 const GRAFBASE_SPEC_URL: &str = "https://specs.grafbase.com/grafbase";
 const GRAFBASE_NAMEPSACE: &str = "grafbase";
 
@@ -56,15 +52,9 @@ impl<'a> ExtensionsContext<'a> {
     {
         let mut extensions = Self {
             map: RapidHashMap::with_capacity_and_hasher(sdl.extensions.len(), Default::default()),
-            composite_schema_extension_name: None,
             catalog,
         };
         for (name, extension) in &sdl.extensions {
-            if extension.url.as_str() == COMPOSITE_SCHEMA_URL {
-                extensions.composite_schema_extension_name = Some(*name);
-                continue;
-            }
-
             let manifest = extension_catalog::load_manifest(current_dir, extension.url.clone())
                 .await
                 .map_err(|err| {
@@ -146,21 +136,12 @@ impl<'a> ExtensionsContext<'a> {
         Ok(extensions)
     }
 
-    pub(super) fn get(&self, name: ExtensionName<'a>) -> LoadedExtensionOrCompositeSchema<'_, 'a> {
+    pub(super) fn get(&self, name: ExtensionName<'a>) -> &'a LoadedExtension<'_> {
         match self.map.get(&name) {
-            Some(extension) => LoadedExtensionOrCompositeSchema::Extension(extension),
+            Some(extension) => extension,
             None => {
-                if Some(name) == self.composite_schema_extension_name {
-                    LoadedExtensionOrCompositeSchema::CompositeSchema
-                } else {
-                    unreachable!("Extension {name} not found, should have failed during ExtensionsContext creation.");
-                }
+                unreachable!("Extension {name} not found, should have failed during ExtensionsContext creation.");
             }
         }
     }
-}
-
-pub(crate) enum LoadedExtensionOrCompositeSchema<'a, 'sdl> {
-    Extension(&'a LoadedExtension<'sdl>),
-    CompositeSchema,
 }

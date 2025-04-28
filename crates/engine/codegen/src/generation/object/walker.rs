@@ -271,9 +271,14 @@ impl quote::ToTokens for WalkerFieldMethod<'_> {
                         self.as_ref().#field.iter().copied()
                     }
                 },
-                AccessKind::Ref | AccessKind::IdRef => quote! {
+                AccessKind::Ref => quote! {
                     impl Iter<Item = &'a #ty> + 'a {
                         self.as_ref().#field.iter()
+                    }
+                },
+                AccessKind::IdRef => quote! {
+                    impl Iter<Item = &'a #ty> + 'a {
+                        self.as_ref().#field.walk(self.#ctx)
                     }
                 },
                 AccessKind::IdWalker | AccessKind::ItemWalker | AccessKind::RefWalker => {

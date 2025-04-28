@@ -1,5 +1,4 @@
 mod definitions;
-mod deserializer;
 mod directives;
 mod span;
 mod wrapping;
@@ -14,7 +13,6 @@ use rapidhash::RapidHashMap;
 
 pub(crate) use self::wrapping::*;
 pub(crate) use definitions::*;
-pub(crate) use deserializer::*;
 pub(crate) use directives::*;
 pub(crate) use span::*;
 

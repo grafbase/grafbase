@@ -72,7 +72,7 @@ impl super::FieldResolverExtension {
             subscription_response
                 .as_mut()
                 .seed(&ctx, input_id)
-                .deserialize_fields(&mut vec![(field, result)])
+                .deserialize_from_fields(&mut vec![(field, result)])
                 .map_err(|err| {
                     tracing::error!("Failed to deserialize subgraph response: {}", err);
                     let field_id = self.prepared.first().unwrap().field_id;

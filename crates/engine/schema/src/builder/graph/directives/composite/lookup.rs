@@ -1,7 +1,9 @@
+use id_newtypes::IdRange;
+
 use crate::{
-    EntityDefinitionId, FieldDefinitionId, FieldSetRecord, Graph, InputValueDefinitionId, InputValueDefinitionRecord,
-    LookupResolverDefinitionRecord, SubgraphId,
-    builder::{DirectivesIngester, Error, sdl},
+    EntityDefinitionId, FieldDefinitionId, FieldSetRecord, Graph, InputValueDefinitionId, InputValueInjection,
+    InputValueInjectionId, LookupResolverDefinitionId, LookupResolverDefinitionRecord, SubgraphId, ValueInjection,
+    builder::{DirectivesIngester, Error, graph::selections::SelectionsBuilder, sdl},
 };
 
 pub(super) fn ingest<'sdl>(
@@ -9,7 +11,8 @@ pub(super) fn ingest<'sdl>(
     field: sdl::FieldSdlDefinition<'sdl>,
     subgraph_id: SubgraphId,
 ) -> Result<(), Error> {
-    let field_definition = &ingester.graph[field.id];
+    let graph = &ingester.builder.graph;
+    let field_definition = &graph[field.id];
     let Some(entity_id) = field_definition.ty_record.definition_id.as_entity() else {
         return Err(("can only be used to return objects or interfaces.", field.span()).into());
     };
@@ -29,126 +32,167 @@ pub(super) fn ingest<'sdl>(
             .into());
     };
 
+    let selections = &mut ingester.builder.selections;
+    let mut found_lookup_key = None;
     if batch {
-        let mut batch_arg_matches = field_definition
-            .argument_ids
-            .into_iter()
-            .filter_map(|id| {
-                let arg = &ingester.graph[id];
-                if arg.ty_record.wrapping.list_wrappings().len() != 1 {
-                    return None;
+        for argument_id in field_definition.argument_ids {
+            let arg = &graph[argument_id];
+            if arg.ty_record.wrapping.list_wrappings().len() != 1 {
+                continue;
+            }
+            if let Some(input_object_id) = arg.ty_record.definition_id.as_input_object() {
+                for key in keys {
+                    let state = selections.current_injection_state();
+                    let Some(mapping) = try_build_input_value_injections(
+                        graph,
+                        selections,
+                        key,
+                        graph[input_object_id].input_field_ids,
+                    ) else {
+                        selections.reset_injection_state(state);
+                        continue;
+                    };
+                    if found_lookup_key.is_some() {
+                        return Err("multiple matching @key directive found on the output type".into());
+                    }
+                    let injection_ids = selections.push_input_value_injections(&mut vec![InputValueInjection {
+                        definition_id: argument_id,
+                        injection: ValueInjection::Object(mapping),
+                    }]);
+                    found_lookup_key = Some((key, true, injection_ids))
                 }
-                let input_object_id = arg.ty_record.definition_id.as_input_object()?;
-                let matching = find_matching_keys(
-                    &ingester.graph,
-                    keys,
-                    &ingester.graph[ingester.graph[input_object_id].input_field_ids],
-                );
-                if !matching.is_empty() {
-                    Some((id, matching))
-                } else {
-                    None
+            } else {
+                for key in keys {
+                    if key.len() == 1 && key[0].subselection_record.is_empty() {
+                        let def = &graph[selections[key[0].field_id].definition_id];
+                        if arg.ty_record.definition_id == def.ty_record.definition_id
+                            && !def.ty_record.wrapping.is_list()
+                        {
+                            if found_lookup_key.is_some() {
+                                return Err("multiple matching @key directive found on the output type".into());
+                            }
+                            let injection_ids =
+                                selections.push_input_value_injections(&mut vec![InputValueInjection {
+                                    definition_id: argument_id,
+                                    injection: ValueInjection::Select {
+                                        field_id: key[0].field_id,
+                                        next: None,
+                                    },
+                                }]);
+                            found_lookup_key = Some((key, true, injection_ids));
+                        }
+                    }
                 }
-            })
-            .collect::<Vec<_>>();
-        let Some((batch_arg_id, mut key_matches)) = batch_arg_matches.pop() else {
-            return Err("no batch argument matching a @key directive was found on the field".into());
-        };
-
-        if !batch_arg_matches.is_empty() {
-            return Err("multiple batch argument matching a @key directive were found on the field".into());
+            }
         }
-
-        let key = key_matches.pop().unwrap();
-        if !key_matches.is_empty() {
-            return Err(format!(
-                "multiple matching @key directive found for the batch argument {}",
-                ingester[ingester.graph[batch_arg_id].name_id]
-            )
-            .into());
-        }
-
-        add_lookup_entity_resolvers(
-            &mut ingester.builder.graph,
-            field.id,
-            entity_id,
-            key,
-            Some(batch_arg_id),
-        );
     } else {
-        let mut matches = find_matching_keys(&ingester.graph, keys, &ingester.graph[field_definition.argument_ids]);
-        let Some(key) = matches.pop() else {
-            return Err("not matching @key directive was found on the output type".into());
-        };
-
-        if !matches.is_empty() {
-            return Err("multiple matching @key directive found on the output type".into());
+        for key in keys {
+            let state = selections.current_injection_state();
+            let Some(mapping) = try_build_input_value_injections(graph, selections, key, field_definition.argument_ids)
+            else {
+                selections.reset_injection_state(state);
+                continue;
+            };
+            if found_lookup_key.is_some() {
+                return Err("multiple matching @key directive found on the output type".into());
+            }
+            found_lookup_key = Some((key, false, mapping));
         }
-
-        add_lookup_entity_resolvers(&mut ingester.builder.graph, field.id, entity_id, key, None);
     };
+
+    let Some((key, batch, injection_ids)) = found_lookup_key else {
+        return Err("not matching @key directive was found on the output type".into());
+    };
+
+    add_lookup_entity_resolvers(
+        &mut ingester.builder.graph,
+        &ingester.builder.selections,
+        field.id,
+        entity_id,
+        key,
+        batch,
+        injection_ids,
+    );
 
     Ok(())
 }
 
-fn find_matching_keys<'k>(
+fn try_build_input_value_injections(
     graph: &Graph,
-    keys: &'k [FieldSetRecord],
-    inputs: &[InputValueDefinitionRecord],
-) -> Vec<&'k FieldSetRecord> {
-    let required_bitset: u64 = {
-        let mut bitset: u64 = 0;
-        for (i, arg) in inputs.iter().enumerate() {
-            if arg.ty_record.wrapping.is_required() && arg.default_value_id.is_none() {
-                bitset |= 1 << i;
-            }
-        }
-        bitset
-    };
+    selections: &mut SelectionsBuilder,
+    key: &FieldSetRecord,
+    input_ids: IdRange<InputValueDefinitionId>,
+) -> Option<IdRange<InputValueInjectionId>> {
+    assert!(key.len() < 64, "Cannot handle keys with 64 fields or more.");
+    let mut missing: u64 = (1 << key.len()) - 1;
 
-    let mut matching = Vec::new();
-
-    'keys: for key in keys {
-        let mut required_bitset = required_bitset;
-        for item in key {
-            debug_assert!(item.subselection_record.is_empty());
-            let field = &graph[item.field_id];
+    let mut input_values = Vec::new();
+    for input_id in input_ids {
+        let input = &graph[input_id];
+        if let Some(pos) = key.iter().position(|item| {
+            let field = &selections[item.field_id];
             let def = &graph[field.definition_id];
-            let Some(pos) = inputs
-                .iter()
-                .position(|input| input.name_id == def.name_id && input.ty_record == def.ty_record)
-            else {
-                continue 'keys;
-            };
-            required_bitset &= !(1 << pos);
-        }
-        if required_bitset == 0 {
-            matching.push(key);
+            input.name_id == def.name_id && input.ty_record == def.ty_record
+        }) {
+            missing &= !(1 << pos);
+
+            input_values.push(InputValueInjection {
+                definition_id: input_id,
+                injection: ValueInjection::Select {
+                    field_id: key[0].field_id,
+                    next: if key[pos].subselection_record.is_empty() {
+                        None
+                    } else {
+                        let input_object_id = input.ty_record.definition_id.as_input_object()?;
+                        let range = try_build_input_value_injections(
+                            graph,
+                            selections,
+                            &key[pos].subselection_record,
+                            graph[input_object_id].input_field_ids,
+                        )?;
+                        Some(selections.push_value_injection(ValueInjection::Object(range)))
+                    },
+                },
+            });
+        } else if let Some(default_value_id) = input.default_value_id {
+            input_values.push(InputValueInjection {
+                definition_id: input_id,
+                injection: ValueInjection::Const(default_value_id),
+            });
+        } else if input.ty_record.wrapping.is_required() {
+            return None;
         }
     }
 
-    matching
+    if missing != 0 {
+        return None;
+    }
+
+    let range = selections.push_input_value_injections(&mut input_values);
+    Some(range)
 }
 
 fn add_lookup_entity_resolvers(
     graph: &mut Graph,
+    selections: &SelectionsBuilder,
     lookup_field_id: FieldDefinitionId,
     output: EntityDefinitionId,
     key: &FieldSetRecord,
-    batch_argument_id: Option<InputValueDefinitionId>,
+    batch: bool,
+    injection_ids: IdRange<InputValueInjectionId>,
 ) {
     let mut resolvers = Vec::new();
-    for id in &graph.field_definitions[usize::from(lookup_field_id)].resolver_ids {
+    for &resolver_id in &graph.field_definitions[usize::from(lookup_field_id)].resolver_ids {
+        let lookup_resolver_id = LookupResolverDefinitionId::from(graph.lookup_resolver_definitions.len());
+        graph.lookup_resolver_definitions.push(LookupResolverDefinitionRecord {
+            key_record: key.clone(),
+            field_definition_id: lookup_field_id,
+            resolver_id,
+            batch,
+            injection_ids,
+        });
         resolvers.push(graph.resolver_definitions.len().into());
-        graph.resolver_definitions.push(
-            LookupResolverDefinitionRecord {
-                key_record: key.clone(),
-                batch_argument_id,
-                field_id: lookup_field_id,
-                resolver_id: *id,
-            }
-            .into(),
-        );
+        graph.resolver_definitions.push(lookup_resolver_id.into());
     }
 
     let field_ids = match output {
@@ -157,7 +201,10 @@ fn add_lookup_entity_resolvers(
     };
     for field_id in field_ids {
         // If part of the key we can't be provided by this resolver.
-        if key.iter().all(|item| graph[item.field_id].definition_id != field_id) {
+        if key
+            .iter()
+            .all(|item| selections[item.field_id].definition_id != field_id)
+        {
             graph[field_id].resolver_ids.extend_from_slice(&resolvers);
         }
     }

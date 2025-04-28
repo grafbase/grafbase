@@ -139,11 +139,11 @@ impl Solver<'_> {
             if self.output.query_plan[field_id]
                 .parent_field_id
                 .map(|id| {
-                    let parent_output_id = self.output.query_plan[id]
-                        .definition_id
-                        .walk(self.schema)
-                        .ty()
-                        .definition_id;
+                    let definition_id = match id {
+                        DataOrLookupFieldId::Data(id) => self.output.query_plan[id].definition_id,
+                        DataOrLookupFieldId::Lookup(id) => self.output.query_plan[id].definition_id,
+                    };
+                    let parent_output_id = definition_id.walk(self.schema).ty().definition_id;
                     CompositeTypeId::maybe_from(parent_output_id).expect("Could not have children fields otherwise")
                         != field_definition.parent_entity_id.into()
                 })
@@ -293,7 +293,7 @@ struct ModifierAccumulator {
 }
 
 impl ModifierAccumulator {
-    fn insert(&mut self, rule: Rule, field_id: Option<PartitionDataFieldId>) {
+    fn insert(&mut self, rule: Rule, field_id: Option<DataFieldId>) {
         match rule {
             Rule::Query(rule) => {
                 let ix = self
@@ -428,13 +428,16 @@ impl QueryModifiers {
 impl Solver<'_> {
     fn ensure_parent_field_ouput_is_tracked(
         &mut self,
-        field_id: PartitionDataFieldId,
+        field_id: DataFieldId,
         node_ix: NodeIndex,
         node_to_field: &[Option<PartitionFieldId>],
     ) -> SolveResult<()> {
         if self.output.query_plan[field_id]
             .parent_field_id
-            .map(|id| self.output.query_plan[id].output_id.is_none())
+            .map(|id| match id {
+                DataOrLookupFieldId::Data(id) => self.output.query_plan[id].output_id.is_none(),
+                DataOrLookupFieldId::Lookup(id) => self.output.query_plan[id].output_id.is_none(),
+            })
             .unwrap_or_default()
         {
             let parent_ix = self

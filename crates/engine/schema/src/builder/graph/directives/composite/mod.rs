@@ -1,28 +1,25 @@
-mod key;
 mod lookup;
 
-use serde::Deserialize;
-
-use crate::{
-    SubgraphId,
-    builder::sdl::{self, ConstValue, ConstValueArgumentsDeserializer},
-};
+use crate::{SubgraphId, builder::sdl};
 
 use super::{DirectivesIngester, Error};
 
 impl<'sdl> DirectivesIngester<'_, 'sdl> {
-    pub(crate) fn ingest_composite_schema_directive(
+    pub(crate) fn ingest_composite_directive(
         &mut self,
         def: sdl::SdlDefinition<'sdl>,
-        subgraph_id: SubgraphId,
-        name: &str,
-        arguments: Option<ConstValue<'sdl>>,
+        dir: sdl::Directive<'sdl>,
     ) -> Result<(), Error> {
-        dispatch(self, def, subgraph_id, name, arguments)
-            .map_err(|err| err.with_prefix(format!("At site {}, for directive @{name} ", def.to_site_string(self))))
+        dispatch(self, def, dir).map_err(|err| {
+            err.with_prefix(format!(
+                "At site {}, for directive @{} ",
+                def.to_site_string(self),
+                dir.name()
+            ))
+        })
     }
 
-    pub(crate) fn ingest_composite_schema_lookup(
+    pub(crate) fn ingest_composite_lookup(
         &mut self,
         def: sdl::FieldSdlDefinition<'sdl>,
         subgraph_id: SubgraphId,
@@ -35,31 +32,10 @@ impl<'sdl> DirectivesIngester<'_, 'sdl> {
 fn dispatch<'sdl>(
     ingester: &mut DirectivesIngester<'_, 'sdl>,
     def: sdl::SdlDefinition<'sdl>,
-    subgraph_id: SubgraphId,
-    name: &str,
-    arguments: Option<ConstValue<'sdl>>,
+    dir: sdl::Directive<'sdl>,
 ) -> Result<(), Error> {
-    match name {
-        "key" => {
-            let Some(entity) = def.as_entity() else {
-                return Err((
-                    format!(
-                        "invalid location: {}, expected one of: {}",
-                        def.location().as_str(),
-                        [
-                            sdl::DirectiveLocation::Object.as_str(),
-                            sdl::DirectiveLocation::Interface.as_str(),
-                        ]
-                        .join(", ")
-                    ),
-                    def.span(),
-                )
-                    .into());
-            };
-
-            key::ingest(ingester, entity, subgraph_id, deserialize(arguments)?)?;
-        }
-        "lookup" => {
+    match dir.name() {
+        "composite__lookup" => {
             let Some(field) = def.as_field() else {
                 return Err((
                     format!(
@@ -86,12 +62,4 @@ fn dispatch<'sdl>(
     }
 
     Ok(())
-}
-
-fn deserialize<'de, T: Deserialize<'de>>(arguments: Option<ConstValue<'de>>) -> Result<T, String> {
-    serde_path_to_error::deserialize(ConstValueArgumentsDeserializer(arguments)).map_err(|err| {
-        let path = err.path().to_string();
-        let err = err.into_inner().to_string();
-        format!("Invalid directive arguments, at {}: {}", path, err)
-    })
 }

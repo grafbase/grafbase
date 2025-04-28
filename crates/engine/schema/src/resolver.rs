@@ -4,7 +4,7 @@ use walker::Walk;
 
 use crate::{
     FieldResolverExtensionDefinition, FieldSet, GraphqlFederationEntityResolverDefinition,
-    GraphqlRootFieldResolverDefinition, ResolverDefinition, ResolverDefinitionVariant,
+    GraphqlRootFieldResolverDefinition, LookupResolverDefinition, ResolverDefinition, ResolverDefinitionVariant,
     SelectionSetResolverExtensionDefinition, Subgraph, SubgraphId,
 };
 
@@ -40,7 +40,7 @@ impl<'a> ResolverDefinition<'a> {
             ResolverDefinitionVariant::GraphqlFederationEntity(resolver) => resolver.name().into(),
             ResolverDefinitionVariant::FieldResolverExtension(resolver) => resolver.name().into(),
             ResolverDefinitionVariant::SelectionSetResolverExtension(resolver) => resolver.name().into(),
-            ResolverDefinitionVariant::Lookup(resolver) => format!("Lookup@{}", resolver.resolver().name()).into(),
+            ResolverDefinitionVariant::Lookup(resolver) => resolver.name().into(),
         }
     }
 }
@@ -60,6 +60,12 @@ impl GraphqlRootFieldResolverDefinition<'_> {
 impl GraphqlFederationEntityResolverDefinition<'_> {
     pub fn name(&self) -> String {
         format!("FedEntity#{}", self.endpoint().subgraph_name())
+    }
+}
+
+impl LookupResolverDefinition<'_> {
+    pub fn name(&self) -> String {
+        format!("Lookup#{}", self.resolver().name())
     }
 }
 

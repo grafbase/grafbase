@@ -1,199 +1,82 @@
+use id_newtypes::IdRange;
 use operation::{
-    InputValueContext, QueryInputValueRecord, QueryOrSchemaInputValue, QueryOrSchemaInputValueId,
-    QueryOrSchemaInputValueView, Variables,
+    InputValueContext, QueryInputValueRecord, QueryOrSchemaInputValue, QueryOrSchemaInputValueId, Variables,
 };
-use query_solver::QueryOrSchemaFieldArgumentIds;
-use schema::{InputValueDefinition, InputValueDefinitionId, InputValueSet, SchemaInputValueRecord};
+use schema::{SchemaInputValueRecord, ValueInjection};
 use walker::Walk;
 
-use crate::prepare::CachedOperationContext;
+use crate::prepare::{CachedOperationContext, PartitionFieldArgument};
 
-#[derive(Clone, Copy)]
-pub(crate) struct PartitionFieldArguments<'a> {
-    pub(in crate::prepare::cached::query_plan) ctx: CachedOperationContext<'a>,
-    ids: QueryOrSchemaFieldArgumentIds,
+use super::PlanFieldArguments;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
+pub(crate) enum PlanValueRecord {
+    Value(QueryOrSchemaInputValueId),
+    Injection(ValueInjection),
 }
 
-impl<'ctx> PartitionFieldArguments<'ctx> {
-    pub(crate) fn len(&self) -> usize {
-        match self.ids {
-            QueryOrSchemaFieldArgumentIds::Query(ids) => ids.len(),
-            QueryOrSchemaFieldArgumentIds::Schema(ids) => ids.len(),
-        }
-    }
-
-    pub(crate) fn view<'v, 's, 'view>(
-        &self,
-        selection_set: &'s InputValueSet,
-        variables: &'v Variables,
-    ) -> PartitionFieldArgumentsView<'view>
-    where
-        'ctx: 'view,
-        'v: 'view,
-        's: 'view,
-    {
-        PartitionFieldArgumentsView {
-            ctx: self.ctx,
-            variables,
-            ids: self.ids,
-            selection_set,
-        }
-    }
-
-    #[track_caller]
-    pub(crate) fn get_arg_value_as<'v, 't, T: serde::Deserialize<'t>>(&self, name: &str, variables: &'v Variables) -> T
-    where
-        'v: 't,
-        'ctx: 't,
-    {
-        T::deserialize(
-            self.get_arg_value_opt(name, variables)
-                .expect("Argument is not nullable"),
-        )
-        .expect("Invalid argument type.")
-    }
-
-    pub(crate) fn get_arg_value_opt<'t, 'v>(
-        &self,
-        name: &str,
-        variables: &'v Variables,
-    ) -> Option<QueryOrSchemaInputValue<'t>>
-    where
-        'v: 't,
-        'ctx: 't,
-    {
-        let ctx = InputValueContext {
-            schema: self.ctx.schema,
-            query_input_values: &self.ctx.cached.operation.query_input_values,
-            variables,
-        };
-        match self.ids {
-            QueryOrSchemaFieldArgumentIds::Query(ids) => ids.walk(self.ctx).find_map(|arg| {
-                if arg.definition().name() == name {
-                    let value = arg.value_id.walk(ctx);
-                    if value.is_undefined() {
-                        arg.definition().default_value().map(QueryOrSchemaInputValue::Schema)
-                    } else {
-                        Some(QueryOrSchemaInputValue::Query(value))
-                    }
-                } else {
-                    None
-                }
-            }),
-            QueryOrSchemaFieldArgumentIds::Schema(ids) => ids.walk(self.ctx).find_map(|arg| {
-                if arg.definition().name() == name {
-                    Some(QueryOrSchemaInputValue::Schema(arg.value()))
-                } else {
-                    None
-                }
-            }),
+impl PlanValueRecord {
+    pub fn as_schema_or_query_input_value(self) -> Option<QueryOrSchemaInputValueId> {
+        match self {
+            PlanValueRecord::Value(id) => Some(id),
+            PlanValueRecord::Injection(_) => None,
         }
     }
 }
 
-impl<'a> Walk<CachedOperationContext<'a>> for QueryOrSchemaFieldArgumentIds {
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, id_derives::Id, serde::Serialize, serde::Deserialize)]
+pub struct PartitionFieldArgumentId(u16);
+
+impl<'a> Walk<CachedOperationContext<'a>> for IdRange<PartitionFieldArgumentId> {
     type Walker<'w>
-        = PartitionFieldArguments<'w>
+        = PlanFieldArguments<'w>
     where
+        Self: 'w,
         'a: 'w;
+
     fn walk<'w>(self, ctx: impl Into<CachedOperationContext<'a>>) -> Self::Walker<'w>
     where
         Self: 'w,
         'a: 'w,
     {
-        PartitionFieldArguments {
-            ctx: ctx.into(),
-            ids: self,
+        let ctx: CachedOperationContext<'a> = ctx.into();
+        PlanFieldArguments {
+            ctx,
+            records: &ctx.cached.query_plan[self],
         }
     }
 }
 
-impl std::fmt::Debug for PartitionFieldArguments<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_map()
-            .entries(
-                self.into_iter()
-                    .map(|arg| (arg.definition().name(), arg.value_as_sanitized_query_const_value_str())),
-            )
-            .finish()
-    }
-}
-
-impl<'a> IntoIterator for PartitionFieldArguments<'a> {
-    type Item = PartitionFieldArgument<'a>;
-    type IntoIter = PartitionFieldArgumentsIterator<'a>;
-    fn into_iter(self) -> Self::IntoIter {
-        PartitionFieldArgumentsIterator {
-            ctx: self.ctx,
-            args: match self.ids {
-                QueryOrSchemaFieldArgumentIds::Query(ids) => self.ctx.cached.operation[ids]
-                    .iter()
-                    .map(|arg| (arg.definition_id, arg.value_id.into()))
-                    .collect(),
-                QueryOrSchemaFieldArgumentIds::Schema(ids) => self.ctx.schema[ids]
-                    .iter()
-                    .map(|arg| (arg.definition_id, arg.value_id.into()))
-                    .collect(),
-            },
-        }
-    }
-}
-
-pub(crate) struct PartitionFieldArgumentsIterator<'a> {
-    ctx: CachedOperationContext<'a>,
-    args: Vec<(InputValueDefinitionId, QueryOrSchemaInputValueId)>,
-}
-
-impl<'a> Iterator for PartitionFieldArgumentsIterator<'a> {
-    type Item = PartitionFieldArgument<'a>;
-    fn next(&mut self) -> Option<Self::Item> {
-        self.args.pop().map(|(definition_id, value_id)| PartitionFieldArgument {
-            ctx: self.ctx,
-            definition_id,
-            value_id,
-        })
-    }
-}
-
-#[derive(Clone, Copy)]
-pub(crate) struct PartitionFieldArgument<'a> {
-    pub(in crate::prepare::cached::query_plan) ctx: CachedOperationContext<'a>,
-    pub(crate) definition_id: InputValueDefinitionId,
-    pub(crate) value_id: QueryOrSchemaInputValueId,
-}
-
-impl<'a> PartitionFieldArgument<'a> {
-    pub(crate) fn definition(&self) -> InputValueDefinition<'a> {
-        self.definition_id.walk(self.ctx)
-    }
-
+impl<'ctx> PartitionFieldArgument<'ctx> {
     /// Used for GraphQL query generation to only include values in the query string that would be
     /// present after query sanitization.
-    pub(crate) fn value_as_sanitized_query_const_value_str(&self) -> Option<&'a str> {
-        match self.value_id {
-            QueryOrSchemaInputValueId::Query(id) => Some(match &self.ctx.cached.operation.query_input_values[id] {
-                QueryInputValueRecord::EnumValue(id) => self.ctx.schema.walk(*id).name(),
-                QueryInputValueRecord::Boolean(b) => {
-                    if *b {
-                        "true"
-                    } else {
-                        "false"
-                    }
-                }
-                QueryInputValueRecord::DefaultValue(id) => match &self.ctx.schema[*id] {
-                    SchemaInputValueRecord::EnumValue(id) => self.ctx.schema.walk(*id).name(),
-                    SchemaInputValueRecord::Boolean(b) => {
+    pub(crate) fn value_as_sanitized_query_const_value_str(&self) -> Option<&'ctx str> {
+        match self.value_record {
+            PlanValueRecord::Value(QueryOrSchemaInputValueId::Query(id)) => {
+                Some(match &self.ctx.cached.operation.query_input_values[id] {
+                    QueryInputValueRecord::EnumValue(id) => self.ctx.schema.walk(*id).name(),
+                    QueryInputValueRecord::Boolean(b) => {
                         if *b {
                             "true"
                         } else {
                             "false"
                         }
                     }
+                    QueryInputValueRecord::DefaultValue(id) => match &self.ctx.schema[*id] {
+                        SchemaInputValueRecord::EnumValue(id) => self.ctx.schema.walk(*id).name(),
+                        SchemaInputValueRecord::Boolean(b) => {
+                            if *b {
+                                "true"
+                            } else {
+                                "false"
+                            }
+                        }
+                        _ => return None,
+                    },
                     _ => return None,
-                },
-                _ => return None,
-            }),
-            QueryOrSchemaInputValueId::Schema(id) => Some(match &self.ctx.schema[id] {
+                })
+            }
+            PlanValueRecord::Value(QueryOrSchemaInputValueId::Schema(id)) => Some(match &self.ctx.schema[id] {
                 SchemaInputValueRecord::EnumValue(id) => self.ctx.schema.walk(*id).name(),
                 SchemaInputValueRecord::Boolean(b) => {
                     if *b {
@@ -204,103 +87,33 @@ impl<'a> PartitionFieldArgument<'a> {
                 }
                 _ => return None,
             }),
+            PlanValueRecord::Injection(_) => None,
         }
     }
 
-    #[allow(unused)]
-    pub(crate) fn value<'v, 'w>(&self, variables: &'v Variables) -> QueryOrSchemaInputValue<'w>
+    pub(crate) fn value<'v, 'out>(&self, variables: &'v Variables) -> Option<QueryOrSchemaInputValue<'out>>
     where
-        'v: 'w,
-        'a: 'w,
+        'v: 'out,
+        'ctx: 'out,
     {
-        self.value_id.walk(InputValueContext {
-            schema: self.ctx.schema,
-            query_input_values: &self.ctx.cached.operation.query_input_values,
-            variables,
-        })
-    }
-}
-
-pub(crate) struct PartitionFieldArgumentsView<'a> {
-    pub(in crate::prepare::cached::query_plan) ctx: CachedOperationContext<'a>,
-    pub(in crate::prepare::cached::query_plan) variables: &'a Variables,
-    ids: QueryOrSchemaFieldArgumentIds,
-    selection_set: &'a InputValueSet,
-}
-
-impl serde::Serialize for PartitionFieldArgumentsView<'_> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        match self.ids {
-            QueryOrSchemaFieldArgumentIds::Query(ids) => {
+        match self.value_record {
+            PlanValueRecord::Value(QueryOrSchemaInputValueId::Query(id)) => {
                 let ctx = InputValueContext {
                     schema: self.ctx.schema,
                     query_input_values: &self.ctx.cached.operation.query_input_values,
-                    variables: self.variables,
+                    variables,
                 };
-                if let InputValueSet::SelectionSet(selection_set) = self.selection_set {
-                    serializer.collect_map(ids.walk(self.ctx).filter_map(|arg| {
-                        if let Some(item) = selection_set
-                            .iter()
-                            .find(|item| item.definition_id == arg.definition_id)
-                        {
-                            let value = arg.value_id.walk(ctx);
-                            if value.is_undefined() {
-                                arg.definition().default_value().map(|value| {
-                                    (
-                                        arg.definition().name(),
-                                        QueryOrSchemaInputValueView::Schema(
-                                            value.with_selection_set(&item.subselection),
-                                        ),
-                                    )
-                                })
-                            } else {
-                                Some((
-                                    arg.definition().name(),
-                                    QueryOrSchemaInputValueView::Query(value.with_selection_set(&item.subselection)),
-                                ))
-                            }
-                        } else {
-                            None
-                        }
-                    }))
+                let value = id.walk(ctx);
+                if value.is_undefined() {
+                    self.definition().default_value().map(QueryOrSchemaInputValue::Schema)
                 } else {
-                    serializer.collect_map(ids.walk(self.ctx).filter_map(|arg| {
-                        let value = arg.value_id.walk(ctx);
-                        if value.is_undefined() {
-                            arg.definition()
-                                .default_value()
-                                .map(|value| (arg.definition().name(), QueryOrSchemaInputValue::Schema(value)))
-                        } else {
-                            Some((arg.definition().name(), QueryOrSchemaInputValue::Query(value)))
-                        }
-                    }))
+                    Some(QueryOrSchemaInputValue::Query(value))
                 }
             }
-            QueryOrSchemaFieldArgumentIds::Schema(ids) => {
-                if let InputValueSet::SelectionSet(selection_set) = self.selection_set {
-                    serializer.collect_map(ids.walk(self.ctx).filter_map(|arg| {
-                        selection_set
-                            .iter()
-                            .find(|item| item.definition_id == arg.definition_id)
-                            .map(|item| {
-                                (
-                                    arg.definition().name(),
-                                    QueryOrSchemaInputValueView::Schema(
-                                        arg.value().with_selection_set(&item.subselection),
-                                    ),
-                                )
-                            })
-                    }))
-                } else {
-                    serializer.collect_map(
-                        ids.walk(self.ctx)
-                            .map(|arg| (arg.definition().name(), QueryOrSchemaInputValue::Schema(arg.value()))),
-                    )
-                }
+            PlanValueRecord::Value(QueryOrSchemaInputValueId::Schema(id)) => {
+                Some(QueryOrSchemaInputValue::Schema(id.walk(self.ctx.schema)))
             }
+            PlanValueRecord::Injection(_) => None,
         }
     }
 }

@@ -1,10 +1,16 @@
+mod extension;
+mod graphql;
+mod introspection;
+mod lookup;
+
 use extension::{FieldResolverExtension, SelectionSetResolverExtension};
-use futures::FutureExt;
+use futures::{FutureExt, future::BoxFuture};
 use futures_util::stream::BoxStream;
-use grafbase_telemetry::graphql::OperationType;
+use graphql::{FederationEntityResolver, GraphqlResolver};
+use introspection::IntrospectionResolver;
+use lookup::LookupResolver;
 use runtime::hooks::Hooks;
 use schema::ResolverDefinitionVariant;
-use std::future::Future;
 
 use crate::{
     Runtime,
@@ -13,15 +19,6 @@ use crate::{
     response::{ResponseObjectsView, SubgraphResponse},
 };
 
-use self::{
-    graphql::{FederationEntityResolver, GraphqlResolver},
-    introspection::IntrospectionResolver,
-};
-
-mod extension;
-mod graphql;
-mod introspection;
-
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) enum Resolver {
     Graphql(GraphqlResolver),
@@ -29,30 +26,36 @@ pub(crate) enum Resolver {
     Introspection(IntrospectionResolver),
     FieldResolverExtension(FieldResolverExtension),
     SelectionSetResolverExtension(SelectionSetResolverExtension),
+    Lookup(LookupResolver),
 }
 
 impl Resolver {
     pub async fn prepare(
         ctx: &PrepareContext<'_, impl Runtime>,
-        operation_type: OperationType,
         plan_query_partition: PlanQueryPartition<'_>,
     ) -> PlanResult<Self> {
         match plan_query_partition.resolver_definition().variant() {
             ResolverDefinitionVariant::Introspection(_) => Ok(Resolver::Introspection(IntrospectionResolver)),
             ResolverDefinitionVariant::GraphqlRootField(definition) => {
-                GraphqlResolver::prepare(definition, operation_type, plan_query_partition)
+                GraphqlResolver::prepare(ctx, definition, plan_query_partition.selection_set()).map(Self::Graphql)
             }
             ResolverDefinitionVariant::GraphqlFederationEntity(definition) => {
-                FederationEntityResolver::prepare(definition, plan_query_partition)
+                FederationEntityResolver::prepare(definition, plan_query_partition).map(Self::FederationEntity)
             }
             ResolverDefinitionVariant::FieldResolverExtension(definition) => {
-                FieldResolverExtension::prepare(ctx, definition, plan_query_partition).await
+                FieldResolverExtension::prepare(ctx, definition, plan_query_partition.selection_set())
+                    .await
+                    .map(Self::FieldResolverExtension)
             }
             ResolverDefinitionVariant::SelectionSetResolverExtension(definition) => {
-                SelectionSetResolverExtension::prepare(ctx, definition, plan_query_partition).await
+                SelectionSetResolverExtension::prepare(ctx, definition, plan_query_partition.selection_set())
+                    .await
+                    .map(Self::SelectionSetResolverExtension)
             }
-            ResolverDefinitionVariant::Lookup(_) => {
-                unreachable!("Lookup resolvers are not supported in the engine yet.");
+            ResolverDefinitionVariant::Lookup(definition) => {
+                LookupResolver::prepare(ctx, definition, plan_query_partition)
+                    .await
+                    .map(Self::Lookup)
             }
         }
     }
@@ -73,7 +76,7 @@ impl Resolver {
         // awaiting anything.
         root_response_objects: ResponseObjectsView<'_>,
         subgraph_response: SubgraphResponse,
-    ) -> impl Future<Output = ResolverResult<<R::Hooks as Hooks>::OnSubgraphResponseOutput>> + Send + 'fut
+    ) -> BoxFuture<'fut, ResolverResult<<R::Hooks as Hooks>::OnSubgraphResponseOutput>>
     where
         'ctx: 'fut,
     {
@@ -134,6 +137,7 @@ impl Resolver {
                 }
                 .boxed()
             }
+            Resolver::Lookup(resolver) => resolver.execute(ctx, plan, root_response_objects, subgraph_response),
         }
     }
 
@@ -150,15 +154,12 @@ impl Resolver {
                 let mut ctx = prepared.build_subgraph_context(ctx);
                 prepared.execute_subscription(&mut ctx, new_response).await
             }
-            Resolver::Introspection(_) => Err(ExecutionError::Internal(
-                "Subscriptions can't contain introspection".into(),
-            )),
-            Resolver::FederationEntity(_) => Err(ExecutionError::Internal(
-                "Subscriptions can only be at the root of a query so can't contain federated entitites".into(),
-            )),
             Resolver::FieldResolverExtension(prepared) => prepared.execute_subscription(ctx, plan, new_response).await,
-            Resolver::SelectionSetResolverExtension(_) => Err(ExecutionError::Internal(
-                "Subscriptions are not supported by selection set resolvers.".into(),
+            Resolver::Lookup(_)
+            | Resolver::Introspection(_)
+            | Resolver::FederationEntity(_)
+            | Resolver::SelectionSetResolverExtension(_) => Err(ExecutionError::Internal(
+                "Subscriptions are not supported by this resolver".into(),
             )),
         }
     }

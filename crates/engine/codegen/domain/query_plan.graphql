@@ -25,6 +25,7 @@ type QueryPartition @indexed(id_size: "u16") @meta(module: "query_partition") {
   required_fields: RequiredFieldSet!
   input: ResponseObjectSetDefinition!
   shape_id: ConcreteShapeId!
+  shape_id_without_lookup_fields: ConcreteShapeId
 }
 
 type ResponseObjectSetDefinition @meta(module: "response_object_set") @indexed(id_size: "u16", deduplicated: true) {
@@ -36,17 +37,29 @@ type ResponseObjectSetDefinition @meta(module: "response_object_set") @indexed(i
 # ----------------
 
 type PartitionSelectionSet @meta(module: "selection_set", derive: ["Default"]) @copy {
-  data_fields_ordered_by_parent_entity_then_key: [PartitionDataField!]!
+  data_fields_ordered_by_parent_entity_then_key: [DataField!]!
     @field(record_field_name: "data_field_ids_ordered_by_parent_entity_then_key")
-  typename_fields: [PartitionTypenameField!]!
+  typename_fields: [TypenameField!]!
+  lookup_fields: [LookupField!]!
 }
 
-scalar PartitionDataField @record @indexed
-scalar PartitionTypenameField @record @indexed
+scalar DataField @record @indexed
+scalar TypenameField @record @indexed
+scalar LookupField @record @indexed
 
-union PartitionField @id @meta(module: "field") @variants(names: ["Data", "Typename"]) =
-  | PartitionDataField
-  | PartitionTypenameField
+union PartitionField @id @meta(module: "field") @variants(remove_suffix: "Field") =
+  | DataField
+  | TypenameField
+  | LookupField
+
+union DataOrLookupField @id @meta(module: "field") @variants(remove_suffix: "Field") = DataField | LookupField
+
+scalar PlanValueRecord
+
+type PartitionFieldArgument @meta(module: "argument") {
+  definition: InputValueDefinition!
+  value_record: PlanValueRecord!
+}
 
 # ------------
 # - Modifier -
@@ -64,5 +77,5 @@ scalar ResponseModifierRule
 
 type ResponseModifierDefinition @meta(module: "modifier") {
   rule: ResponseModifierRule!
-  impacted_fields: [PartitionDataField!]! @vec
+  impacted_fields: [DataField!]! @vec
 }

@@ -4,7 +4,7 @@
 //! Generated with: `cargo run -p engine-codegen`
 //! Source file: <engine-codegen dir>/domain/query_plan.graphql
 use crate::prepare::cached::query_plan::{
-    PartitionDataField, PartitionDataFieldId, QueryModifierRule, ResponseModifierRule,
+    DataField, DataFieldId, QueryModifierRule, ResponseModifierRule,
     generated::{PartitionField, PartitionFieldId},
     prelude::*,
 };
@@ -84,13 +84,13 @@ impl std::fmt::Debug for QueryModifier<'_> {
 /// ```custom,{.language-graphql}
 /// type ResponseModifierDefinition @meta(module: "modifier") {
 ///   rule: ResponseModifierRule!
-///   impacted_fields: [PartitionDataField!]! @vec
+///   impacted_fields: [DataField!]! @vec
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct ResponseModifierDefinitionRecord {
     pub rule: ResponseModifierRule,
-    pub impacted_field_ids: Vec<PartitionDataFieldId>,
+    pub impacted_field_ids: Vec<DataFieldId>,
 }
 
 #[derive(Clone, Copy)]
@@ -112,7 +112,7 @@ impl<'a> ResponseModifierDefinition<'a> {
     pub(crate) fn as_ref(&self) -> &'a ResponseModifierDefinitionRecord {
         self.ref_
     }
-    pub(crate) fn impacted_fields(&self) -> impl Iter<Item = PartitionDataField<'a>> + 'a {
+    pub(crate) fn impacted_fields(&self) -> impl Iter<Item = DataField<'a>> + 'a {
         self.as_ref().impacted_field_ids.walk(self.ctx)
     }
 }
