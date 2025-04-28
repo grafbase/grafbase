@@ -1,6 +1,6 @@
 [package]
 name = "grafbase-sdk"
-version = "0.15.1"
+version = "0.15.2"
 description = "An SDK to implement extensions for the Grafbase Gateway"
 edition = "2024"
 license.workspace = true
@@ -67,10 +67,10 @@ duct = { workspace = true, optional = true }
 fslock = { workspace = true, optional = true }
 futures-util = { workspace = true, optional = true }
 grafbase-sdk-mock = { version = "0.1.1", path = "mock", optional = true }
-graphql-composition = { version = "0.7.0", features = [
+graphql-composition = { version = "0.7.1", features = [
     "grafbase-extensions",
 ], optional = true, path = "../graphql-composition" }
-graphql-federated-graph = { version = "0.7.0", optional = true, path = "../graphql-federated-graph" }
+graphql-federated-graph = { version = "0.7.1", optional = true, path = "../graphql-federated-graph" }
 graphql-ws-client = { workspace = true, optional = true }
 hashbrown = { workspace = true, optional = true }
 indoc = { workspace = true, optional = true }
