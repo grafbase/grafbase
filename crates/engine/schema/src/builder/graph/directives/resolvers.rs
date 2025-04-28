@@ -107,11 +107,11 @@ fn create_apollo_federation_entity_resolvers(ingester: &mut DirectivesIngester<'
         {
             let (join_type, span) = result?;
             let subgraph_id = ingester.subgraphs.try_get(join_type.graph, span)?;
-            let Some(key) = join_type.key.filter(|key| !key.is_empty()) else {
+            let Some(key_str) = join_type.key.filter(|key| !key.is_empty()) else {
                 continue;
             };
 
-            let key = ingester.parse_field_set(entity.id().into(), key).map_err(|err| {
+            let key = ingester.parse_field_set(entity.id().into(), key_str).map_err(|err| {
                 (
                     format!("At {}, invalid key FieldSet: {}", entity.to_site_string(ingester), err),
                     span,
@@ -156,10 +156,14 @@ fn create_apollo_federation_entity_resolvers(ingester: &mut DirectivesIngester<'
                 ingester.graph.resolver_definitions.push(resolver);
             } else {
                 ingester
-                    .composite_entity_keys
+                    .possible_composite_entity_keys
                     .entry((entity.id(), subgraph_id))
                     .or_default()
-                    .push(key);
+                    .push(super::PossibleCompositeEntityKey {
+                        key,
+                        key_str,
+                        used_by: None,
+                    });
             }
         }
     }

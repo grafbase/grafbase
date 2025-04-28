@@ -4,8 +4,11 @@
 //! Generated with: `cargo run -p engine-codegen`
 //! Source file: <engine-codegen dir>/domain/schema.graphql
 use crate::{
-    FieldSet, FieldSetRecord, InputValueInjection, InputValueInjectionId,
-    generated::{FieldDefinition, FieldDefinitionId, ResolverDefinition, ResolverDefinitionId},
+    FieldSet, FieldSetRecord,
+    generated::{
+        ArgumentInjection, ArgumentInjectionId, FieldDefinition, FieldDefinitionId, ResolverDefinition,
+        ResolverDefinitionId,
+    },
     prelude::*,
 };
 #[allow(unused_imports)]
@@ -19,7 +22,7 @@ use walker::{Iter, Walk};
 ///   field_definition: FieldDefinition!
 ///   resolver: ResolverDefinition!
 ///   batch: Boolean!
-///   injections: [InputValueInjection!]!
+///   injections: [ArgumentInjection!]!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -28,7 +31,7 @@ pub struct LookupResolverDefinitionRecord {
     pub field_definition_id: FieldDefinitionId,
     pub resolver_id: ResolverDefinitionId,
     pub batch: bool,
-    pub injection_ids: IdRange<InputValueInjectionId>,
+    pub injection_ids: IdRange<ArgumentInjectionId>,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
@@ -62,7 +65,7 @@ impl<'a> LookupResolverDefinition<'a> {
     pub fn resolver(&self) -> ResolverDefinition<'a> {
         self.resolver_id.walk(self.schema)
     }
-    pub fn injections(&self) -> impl Iter<Item = &'a InputValueInjection> + 'a {
+    pub fn injections(&self) -> impl Iter<Item = ArgumentInjection<'a>> + 'a {
         self.as_ref().injection_ids.walk(self.schema)
     }
 }

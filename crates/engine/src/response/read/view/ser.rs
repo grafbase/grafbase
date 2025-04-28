@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use schema::{EntityDefinition, InputValueInjection, ValueInjection};
+use schema::{EntityDefinition, KeyValueInjectionRecord, ValueInjection};
 use serde::ser::{Error, SerializeMap};
 use walker::Walk as _;
 
@@ -332,8 +332,8 @@ impl serde::Serialize for ResponseObjectView<'_, ForInjection<'_>> {
                 ResponseValueView {
                     ctx: self.ctx,
                     value: field,
-                    view: next.map(|injection_id| ForInjection {
-                        injection: schema[injection_id],
+                    view: next.map(|id| ForInjection {
+                        injection: schema[id],
                         requirements: selection.subselection(),
                     }),
                 }
@@ -345,16 +345,15 @@ impl serde::Serialize for ResponseObjectView<'_, ForInjection<'_>> {
                 let mut map = serializer.serialize_map(Some(injections.len()))?;
                 let mut r = 0;
 
-                'injections: for &InputValueInjection {
-                    definition_id,
-                    injection,
-                } in injections
-                {
-                    match injection {
+                'injections: for &KeyValueInjectionRecord { key_id, value } in injections {
+                    match value {
                         ValueInjection::Select { field_id, next } => {
                             while let Some(selection) = self.view.requirements.get(r) {
                                 match field_id.cmp(&selection.matching_field_id) {
-                                    Ordering::Less => unreachable!("RequiredFieldSet should contain all requirements."),
+                                    Ordering::Less => unreachable!(
+                                        "RequiredFieldSet should contain all requirements, tried to load {}",
+                                        selection.data_field().definition().name()
+                                    ),
                                     Ordering::Equal => {
                                         let field = selection.data_field();
                                         let value = match self.response_object.find_by_response_key(field.response_key)
@@ -397,7 +396,7 @@ impl serde::Serialize for ResponseObjectView<'_, ForInjection<'_>> {
                                                 requirements: selection.subselection(),
                                             }),
                                         };
-                                        map.serialize_entry(definition_id.walk(schema).name(), &value)?;
+                                        map.serialize_entry(&schema[key_id], &value)?;
 
                                         continue 'injections;
                                     }
@@ -409,7 +408,7 @@ impl serde::Serialize for ResponseObjectView<'_, ForInjection<'_>> {
                         }
                         injection => {
                             map.serialize_entry(
-                                definition_id.walk(schema).name(),
+                                &schema[key_id],
                                 &Self {
                                     ctx: self.ctx,
                                     response_object: self.response_object,
@@ -421,7 +420,6 @@ impl serde::Serialize for ResponseObjectView<'_, ForInjection<'_>> {
                             )?;
                         }
                     }
-                    unreachable!("RequiredFieldSet should contain all requirements.")
                 }
 
                 map.end()

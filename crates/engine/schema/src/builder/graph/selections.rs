@@ -3,7 +3,8 @@ use std::collections::{BTreeMap, btree_map::Entry};
 use id_newtypes::IdRange;
 
 use crate::{
-    InputValueDefinitionId, InputValueInjection, InputValueInjectionId, SchemaFieldId, SchemaFieldRecord, Selections,
+    ArgumentInjectionId, ArgumentInjectionRecord, ArgumentValueInjection, ArgumentValueInjectionId,
+    KeyValueInjectionId, KeyValueInjectionRecord, SchemaFieldId, SchemaFieldRecord, Selections, StringId,
     ValueInjection, ValueInjectionId,
 };
 
@@ -38,36 +39,62 @@ impl SelectionsBuilder {
         }
     }
 
-    pub(crate) fn current_injection_state(&self) -> [usize; 2] {
-        [self.inner.mapping.len(), self.inner.injections.len()]
+    pub(crate) fn current_injection_state(&self) -> [usize; 4] {
+        [
+            self.inner.argument_injections.len(),
+            self.inner.argument_value_injections.len(),
+            self.inner.injections.len(),
+            self.inner.key_value_injections.len(),
+        ]
     }
 
-    pub(crate) fn reset_injection_state(&mut self, state: [usize; 2]) {
-        self.inner.mapping.truncate(state[0]);
-        self.inner.injections.truncate(state[1]);
+    pub(crate) fn reset_injection_state(&mut self, state: [usize; 4]) {
+        self.inner.argument_injections.truncate(state[0]);
+        self.inner.argument_value_injections.truncate(state[1]);
+        self.inner.injections.truncate(state[2]);
+        self.inner.key_value_injections.truncate(state[3]);
     }
 
-    pub(crate) fn push_value_injection(&mut self, field: ValueInjection) -> ValueInjectionId {
-        let id = self.inner.mapping.len().into();
-        self.inner.mapping.push(field);
+    pub(crate) fn push_argument_value_injection(
+        &mut self,
+        injection: ArgumentValueInjection,
+    ) -> ArgumentValueInjectionId {
+        let id = self.inner.argument_value_injections.len().into();
+        self.inner.argument_value_injections.push(injection);
         id
     }
 
-    pub(crate) fn push_input_value_injections(
+    pub(crate) fn push_injection(&mut self, injection: ValueInjection) -> ValueInjectionId {
+        let id = self.inner.injections.len().into();
+        self.inner.injections.push(injection);
+        id
+    }
+
+    pub(crate) fn push_key_value_injections(
         &mut self,
-        input_values: &mut Vec<InputValueInjection>,
-    ) -> IdRange<InputValueInjectionId> {
-        let start = self.inner.injections.len();
-        let end = start + input_values.len();
-        input_values.sort_unstable_by_key(order_key);
-        self.inner.injections.append(input_values);
+        key_values: impl IntoIterator<Item = KeyValueInjectionRecord>,
+    ) -> IdRange<KeyValueInjectionId> {
+        let start = self.inner.key_value_injections.len();
+        self.inner.key_value_injections.extend(key_values);
+        let end = self.inner.key_value_injections.len();
+        self.inner.key_value_injections[start..end].sort_unstable_by_key(order_key);
+        IdRange::from(start..end)
+    }
+
+    pub(crate) fn push_argument_injections(
+        &mut self,
+        arguments: impl IntoIterator<Item = ArgumentInjectionRecord>,
+    ) -> IdRange<ArgumentInjectionId> {
+        let start = self.inner.argument_injections.len();
+        self.inner.argument_injections.extend(arguments);
+        let end = self.inner.argument_injections.len();
         IdRange::from(start..end)
     }
 }
 
-fn order_key(inj: &InputValueInjection) -> (Option<SchemaFieldId>, InputValueDefinitionId) {
-    match inj.injection {
-        ValueInjection::Select { field_id, .. } => (Some(field_id), inj.definition_id),
-        _ => (None, inj.definition_id),
+fn order_key(inj: &KeyValueInjectionRecord) -> (Option<SchemaFieldId>, StringId) {
+    match inj.value {
+        ValueInjection::Select { field_id, .. } => (Some(field_id), inj.key_id),
+        _ => (None, inj.key_id),
     }
 }

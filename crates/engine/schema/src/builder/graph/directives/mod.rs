@@ -10,7 +10,14 @@ use super::*;
 pub(crate) struct DirectivesIngester<'a, 'sdl> {
     pub builder: &'a mut GraphBuilder<'sdl>,
     pub sdl_definitions: &'a sdl::SdlDefinitions<'sdl>,
-    pub composite_entity_keys: FxHashMap<(EntityDefinitionId, SubgraphId), Vec<FieldSetRecord>>,
+    pub possible_composite_entity_keys:
+        FxHashMap<(EntityDefinitionId, SubgraphId), Vec<PossibleCompositeEntityKey<'sdl>>>,
+}
+
+pub(crate) struct PossibleCompositeEntityKey<'sdl> {
+    key: FieldSetRecord,
+    key_str: &'sdl str,
+    used_by: Option<sdl::FieldSdlDefinition<'sdl>>,
 }
 
 impl<'sdl> std::ops::Deref for DirectivesIngester<'_, 'sdl> {
@@ -33,7 +40,7 @@ pub(crate) fn ingest_directives<'a>(
     let mut ingester = DirectivesIngester {
         builder,
         sdl_definitions,
-        composite_entity_keys: Default::default(),
+        possible_composite_entity_keys: Default::default(),
     };
 
     let mut directives = Vec::new();
