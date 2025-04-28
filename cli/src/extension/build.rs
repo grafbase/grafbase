@@ -1,5 +1,4 @@
 use std::{
-    ffi::OsStr,
     fs,
     path::{Path, PathBuf},
     process::Stdio,
@@ -392,7 +391,7 @@ fn parse_version_custom_section(data: &[u8]) -> Option<Version> {
 }
 
 #[cfg(target_os = "windows")]
-fn new_command(program: impl AsRef<OsStr>) -> std::process::Command {
+fn new_command(program: &'static str) -> std::process::Command {
     use std::os::windows::process::CommandExt;
 
     const CREATE_NO_WINDOW: u32 = 0x0800_0000_u32;
@@ -403,6 +402,6 @@ fn new_command(program: impl AsRef<OsStr>) -> std::process::Command {
 }
 
 #[cfg(not(target_os = "windows"))]
-fn new_command(program: impl AsRef<OsStr>) -> std::process::Command {
+fn new_command(program: &'static str) -> std::process::Command {
     std::process::Command::new(program)
 }
