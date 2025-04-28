@@ -35,6 +35,12 @@ impl<'sdl> DirectivesIngester<'_, 'sdl> {
                 "listSize" => {
                     directive_ids.push(self.create_list_size_directive(def, directive)?);
                 }
+                "oneOf" => {
+                    let sdl::SdlDefinition::InputObject(_) = def else {
+                        return Err(("@oneOf can only be used on input objects.", directive.name_span()).into());
+                    };
+                    // Only directive to be processed immediately as rely on it for default values.
+                }
                 "extension__directive" => {
                     let dir = sdl::parse_extension_directive(directive)?;
                     let subgraph_id = self.subgraphs.try_get(dir.graph, directive.arguments_span())?;

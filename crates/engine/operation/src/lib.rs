@@ -12,7 +12,6 @@ mod prelude;
 mod request;
 mod validation;
 
-pub use bind::error::VariableError;
 pub use error::*;
 pub use model::*;
 pub use request::*;
@@ -82,7 +81,7 @@ impl Variables {
         schema: &Schema,
         operation: &Operation,
         variables: RawVariables,
-    ) -> std::result::Result<Self, Vec<VariableError>> {
+    ) -> std::result::Result<Self, Vec<Error>> {
         bind::bind_variables(schema, operation, variables)
     }
 }

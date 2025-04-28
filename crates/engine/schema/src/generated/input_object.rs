@@ -16,8 +16,9 @@ use walker::{Iter, Walk};
 /// Generated from:
 ///
 /// ```custom,{.language-graphql}
-/// type InputObjectDefinition @meta(module: "input_object") @indexed(id_size: "u32") {
+/// type InputObjectDefinition @meta(module: "input_object", debug: false) @indexed(id_size: "u32") {
 ///   name: String!
+///   is_one_of: Boolean!
 ///   description: String
 ///   input_fields: [InputValueDefinition!]!
 ///   directives: [TypeSystemDirective!]!
@@ -27,6 +28,7 @@ use walker::{Iter, Walk};
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct InputObjectDefinitionRecord {
     pub name_id: StringId,
+    pub is_one_of: bool,
     pub description_id: Option<StringId>,
     pub input_field_ids: IdRange<InputValueDefinitionId>,
     pub directive_ids: Vec<TypeSystemDirectiveId>,

@@ -139,6 +139,7 @@ fn transform_common_directive(ctx: &mut Context<'_>, directive: &ir::Directive) 
                 .map(|(name, value)| (*name, ctx.insert_value(value)))
                 .collect(),
         },
+        ir::Directive::OneOf => federated::Directive::OneOf,
         ir::Directive::Other {
             name,
             arguments,

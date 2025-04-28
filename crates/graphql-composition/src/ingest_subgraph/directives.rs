@@ -124,6 +124,9 @@ pub(super) fn ingest_directives(
             DirectiveNameMatch::Inaccessible => {
                 ctx.subgraphs.set_inaccessible(directive_site_id);
             }
+            DirectiveNameMatch::OneOf => {
+                ctx.subgraphs.set_one_of(directive_site_id);
+            }
             DirectiveNameMatch::InterfaceObject => {
                 ctx.subgraphs.set_interface_object(directive_site_id);
             }

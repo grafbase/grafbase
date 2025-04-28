@@ -29,6 +29,7 @@ pub enum Directive {
     Deprecated {
         reason: Option<StringId>,
     },
+    OneOf,
     Inaccessible,
     Policy(Vec<Vec<StringId>>),
     RequiresScopes(Vec<Vec<StringId>>),

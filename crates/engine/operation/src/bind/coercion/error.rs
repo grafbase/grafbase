@@ -2,6 +2,13 @@ use crate::Location;
 
 #[derive(Debug, thiserror::Error)]
 pub enum InputValueError {
+    #[error("Exactly one field must be provided for {name} with @oneOf: {message}{path}")]
+    ExactlyOneFIeldMustBePresentForOneOfInputObjects {
+        name: String,
+        path: String,
+        message: String,
+        location: Location,
+    },
     #[error("Found a null where we expected a {expected}{path}")]
     UnexpectedNull {
         expected: String,
@@ -94,7 +101,8 @@ impl InputValueError {
             | InputValueError::IncorrectVariableType { location, .. }
             | InputValueError::UnknownInputField { location, .. }
             | InputValueError::VariableDefaultValueReliesOnAnotherVariable { location, .. }
-            | InputValueError::UnknownEnumValue { location, .. } => *location,
+            | InputValueError::UnknownEnumValue { location, .. }
+            | InputValueError::ExactlyOneFIeldMustBePresentForOneOfInputObjects { location, .. } => *location,
         }
     }
 }

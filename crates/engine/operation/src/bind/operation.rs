@@ -436,6 +436,7 @@ impl<'schema, 'p> OperationBinder<'schema, 'p> {
                 name_location,
                 default_value_id,
                 ty_record: ty.into(),
+                one_of_input_field_usage_record: None,
             });
         }
 

@@ -4,6 +4,7 @@ use graphql_federated_graph::{self as federated, OverrideLabel, OverrideSource};
 #[derive(Clone, PartialEq)]
 pub enum Directive {
     Authenticated,
+    OneOf,
     Deprecated {
         reason: Option<federated::StringId>,
     },

@@ -5,7 +5,7 @@ use schema::{
 
 use crate::Location;
 
-use super::{ParsedOperation, coercion::InputValueError};
+use super::ParsedOperation;
 
 #[derive(thiserror::Error, Debug)]
 pub(crate) enum BindError {
@@ -138,23 +138,6 @@ impl BindError {
             | BindError::DuplicateVariable { .. }
             | BindError::UnusedVariable { .. }
             | BindError::InvalidInputValue(_) => None,
-        }
-    }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum VariableError {
-    #[error("Variable ${name} is missing")]
-    MissingVariable { name: String, location: Location },
-    #[error("Variable ${name} has an invalid value. {err}")]
-    InvalidValue { name: String, err: InputValueError },
-}
-
-impl VariableError {
-    pub fn location(&self) -> Location {
-        match self {
-            VariableError::MissingVariable { location, .. } => *location,
-            VariableError::InvalidValue { err, .. } => err.location(),
         }
     }
 }

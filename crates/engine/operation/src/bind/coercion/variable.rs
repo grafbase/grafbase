@@ -1,4 +1,5 @@
 use id_newtypes::IdRange;
+use itertools::Itertools;
 use schema::{
     EnumDefinition, InputObjectDefinition, InputValueDefinitionId, ListWrapping, MutableWrapping, ScalarDefinition,
     ScalarType, Schema, Type, TypeDefinition, TypeRecord,
@@ -142,31 +143,66 @@ impl<'a> VariableCoercionContext<'a> {
         };
 
         let mut fields_buffer = self.input_fields_buffer_pool.pop().unwrap_or_default();
-        for input_field in input_object.input_fields() {
-            if input_field.is_inaccessible() {
-                continue;
+
+        if input_object.is_one_of {
+            if fields.len() != 1 {
+                return Err(InputValueError::ExactlyOneFIeldMustBePresentForOneOfInputObjects {
+                    name: input_object.name().to_string(),
+                    path: self.path(),
+                    message: if fields.is_empty() {
+                        "No field was provided".to_string()
+                    } else {
+                        format!(
+                            "{} fields ({}) were provided",
+                            fields.len(),
+                            fields
+                                .iter()
+                                .format_with(",", |(name, _), f| f(&format_args!("{name}")))
+                        )
+                    },
+                    location: self.location,
+                });
             }
-            match fields.swap_remove(input_field.name()) {
-                None => {
-                    if let Some(default_value_id) = input_field.as_ref().default_value_id {
-                        fields_buffer.push((input_field.id, VariableInputValueRecord::DefaultValue(default_value_id)));
-                    } else if input_field.ty().wrapping.is_required() {
-                        self.value_path.push(input_field.as_ref().name_id.into());
-                        return Err(InputValueError::UnexpectedNull {
-                            expected: input_field.ty().to_string(),
-                            path: self.path(),
-                            location: self.location,
-                        });
-                    }
+            let name = fields.keys().next().unwrap();
+            if let Some(input_field) = input_object
+                .input_fields()
+                .find(|input_field| !input_field.is_inaccessible() && input_field.name() == name)
+            {
+                let value = fields.swap_remove(input_field.name()).unwrap();
+                self.value_path.push(input_field.as_ref().name_id.into());
+                let value = self.coerce_input_value(input_field.ty(), value)?;
+                fields_buffer.push((input_field.id, value));
+                self.value_path.pop();
+            }
+        } else {
+            for input_field in input_object.input_fields() {
+                if input_field.is_inaccessible() {
+                    continue;
                 }
-                Some(value) => {
-                    self.value_path.push(input_field.as_ref().name_id.into());
-                    let value = self.coerce_input_value(input_field.ty(), value)?;
-                    fields_buffer.push((input_field.id, value));
-                    self.value_path.pop();
+                match fields.swap_remove(input_field.name()) {
+                    None => {
+                        if let Some(default_value_id) = input_field.as_ref().default_value_id {
+                            fields_buffer
+                                .push((input_field.id, VariableInputValueRecord::DefaultValue(default_value_id)));
+                        } else if input_field.ty().wrapping.is_required() {
+                            self.value_path.push(input_field.as_ref().name_id.into());
+                            return Err(InputValueError::UnexpectedNull {
+                                expected: input_field.ty().to_string(),
+                                path: self.path(),
+                                location: self.location,
+                            });
+                        }
+                    }
+                    Some(value) => {
+                        self.value_path.push(input_field.as_ref().name_id.into());
+                        let value = self.coerce_input_value(input_field.ty(), value)?;
+                        fields_buffer.push((input_field.id, value));
+                        self.value_path.pop();
+                    }
                 }
             }
         }
+
         if let Some(name) = fields.keys().next() {
             return Err(InputValueError::UnknownInputField {
                 input_object: input_object.name().to_string(),
@@ -175,6 +211,7 @@ impl<'a> VariableCoercionContext<'a> {
                 location: self.location,
             });
         }
+
         let ids = self.input_values.append_input_object(&mut fields_buffer);
         self.input_fields_buffer_pool.push(fields_buffer);
         Ok(VariableInputValueRecord::InputObject(ids))

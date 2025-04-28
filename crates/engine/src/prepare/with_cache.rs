@@ -34,8 +34,10 @@ impl<R: Runtime> PrepareContext<'_, R> {
         let variables = match Variables::bind(self.schema(), &cached.operation, variables) {
             Ok(variables) => variables,
             Err(errors) => {
-                return Err(Response::request_error(errors)
-                    .with_operation_attributes(cached.operation.attributes.clone().with_complexity_cost(None)));
+                return Err(Response::request_error(errors.into_iter().map(|err| {
+                    GraphqlError::new(err.message, ErrorCode::VariableError).with_locations(err.locations)
+                }))
+                .with_operation_attributes(cached.operation.attributes.clone().with_complexity_cost(None)));
             }
         };
 

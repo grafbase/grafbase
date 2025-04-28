@@ -52,6 +52,10 @@ pub(super) fn collect_composed_directives<'a>(
         out.push(directive);
     }
 
+    if sites.clone().any(|dirs| dirs.one_of()) {
+        out.push(ir::Directive::OneOf);
+    }
+
     for site in sites.clone() {
         tags.extend(site.tags().map(|t| t.id));
 

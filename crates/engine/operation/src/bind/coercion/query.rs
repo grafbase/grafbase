@@ -1,5 +1,6 @@
 use cynic_parser::{ConstValue, Value};
 use id_newtypes::IdRange;
+use itertools::Itertools as _;
 use schema::{
     EnumDefinition, InputObjectDefinition, InputValueDefinitionId, ListWrapping, MutableWrapping, ScalarDefinition,
     ScalarType, Type, TypeDefinition, TypeDefinitionId, TypeRecord, Wrapping,
@@ -11,7 +12,7 @@ use super::{
     error::InputValueError,
     path::{ValuePathSegment, value_path_to_string},
 };
-use crate::{Location, QueryInputValueId, QueryInputValueRecord, QueryInputValues};
+use crate::{Location, OneOfInputFieldRecord, QueryInputValueId, QueryInputValueRecord, QueryInputValues};
 
 pub fn coerce_variable_default_value<'schema>(
     binder: &mut OperationBinder<'schema, '_>,
@@ -23,7 +24,7 @@ pub fn coerce_variable_default_value<'schema>(
         binder,
         value_path: Vec::new(),
         input_fields_buffer_pool: Vec::new(),
-        is_default_value: true,
+        is_variable_default_value: true,
     };
     match ctx.coerce_input_value(ty, value.into()) {
         Ok(value) => ctx.query_input_values.push_value(value),
@@ -44,7 +45,7 @@ pub fn coerce_query_value<'schema>(
         binder,
         value_path: Vec::new(),
         input_fields_buffer_pool: Vec::new(),
-        is_default_value: false,
+        is_variable_default_value: false,
     };
     match ctx.coerce_input_value(ty, value) {
         Ok(value) => ctx.query_input_values.push_value(value),
@@ -60,7 +61,7 @@ struct QueryValueCoercionContext<'binder, 'schema, 'parsed> {
     location: Location,
     value_path: Vec<ValuePathSegment>,
     input_fields_buffer_pool: Vec<Vec<(InputValueDefinitionId, QueryInputValueRecord)>>,
-    is_default_value: bool,
+    is_variable_default_value: bool,
 }
 
 impl QueryValueCoercionContext<'_, '_, '_> {
@@ -85,7 +86,7 @@ impl std::ops::DerefMut for QueryValueCoercionContext<'_, '_, '_> {
 
 impl<'schema> QueryValueCoercionContext<'_, 'schema, '_> {
     fn variable_ref(&mut self, name: &str, ty: Type<'schema>) -> Result<QueryInputValueRecord, InputValueError> {
-        if self.is_default_value {
+        if self.is_variable_default_value {
             return Err(InputValueError::VariableDefaultValueReliesOnAnotherVariable {
                 name: name.to_string(),
                 location: self.location,
@@ -241,27 +242,74 @@ impl<'schema> QueryValueCoercionContext<'_, 'schema, '_> {
         let mut fields_buffer = self.input_fields_buffer_pool.pop().unwrap_or_default();
         let mut fields = object.fields().collect::<Vec<_>>();
 
-        for input_field in input_object.input_fields() {
-            if input_field.is_inaccessible() {
-                continue;
-            }
-            if let Some(index) = fields.iter().position(|argument| argument.name() == input_field.name()) {
-                let field = fields.swap_remove(index);
-                self.value_path.push(input_field.as_ref().name_id.into());
-                let value = self.coerce_input_value(input_field.ty(), field.value())?;
-                fields_buffer.push((input_field.id, value));
-                self.value_path.pop();
-            } else if let Some(default_value_id) = input_field.as_ref().default_value_id {
-                fields_buffer.push((input_field.id, QueryInputValueRecord::DefaultValue(default_value_id)));
-            } else if input_field.ty().wrapping.is_required() {
-                self.value_path.push(input_field.as_ref().name_id.into());
-                return Err(InputValueError::UnexpectedNull {
-                    expected: input_field.ty().to_string(),
+        if input_object.is_one_of {
+            if fields.len() != 1 {
+                return Err(InputValueError::ExactlyOneFIeldMustBePresentForOneOfInputObjects {
+                    name: input_object.name().to_string(),
                     path: self.path(),
+                    message: if fields.is_empty() {
+                        "No field was provided".to_string()
+                    } else {
+                        format!(
+                            "{} fields ({}) were provided",
+                            fields.len(),
+                            fields
+                                .iter()
+                                .format_with(",", |field, f| f(&format_args!("{}", field.name())))
+                        )
+                    },
                     location: self.location,
                 });
             }
+            let name = fields[0].name();
+            if let Some(input_field) = input_object
+                .input_fields()
+                .find(|input_field| !input_field.is_inaccessible() && input_field.name() == name)
+            {
+                let field = fields.pop().unwrap();
+                self.value_path.push(input_field.as_ref().name_id.into());
+                let value = if let Value::Variable(variable) = field.value() {
+                    let value = self.variable_ref(variable.name(), input_field.ty())?;
+                    let QueryInputValueRecord::Variable(id) = value else {
+                        unreachable!()
+                    };
+                    self.variable_definitions[usize::from(id)].one_of_input_field_usage_record =
+                        Some(OneOfInputFieldRecord {
+                            object_id: input_object.id,
+                            field_id: input_field.id,
+                            location: self.parsed_operation.span_to_location(field.value().span()),
+                        });
+                    value
+                } else {
+                    self.coerce_input_value(input_field.ty(), field.value())?
+                };
+                fields_buffer.push((input_field.id, value));
+                self.value_path.pop();
+            }
+        } else {
+            for input_field in input_object.input_fields() {
+                if input_field.is_inaccessible() {
+                    continue;
+                }
+                if let Some(index) = fields.iter().position(|argument| argument.name() == input_field.name()) {
+                    let field = fields.swap_remove(index);
+                    self.value_path.push(input_field.as_ref().name_id.into());
+                    let value = self.coerce_input_value(input_field.ty(), field.value())?;
+                    fields_buffer.push((input_field.id, value));
+                    self.value_path.pop();
+                } else if let Some(default_value_id) = input_field.as_ref().default_value_id {
+                    fields_buffer.push((input_field.id, QueryInputValueRecord::DefaultValue(default_value_id)));
+                } else if input_field.ty().wrapping.is_required() {
+                    self.value_path.push(input_field.as_ref().name_id.into());
+                    return Err(InputValueError::UnexpectedNull {
+                        expected: input_field.ty().to_string(),
+                        path: self.path(),
+                        location: self.location,
+                    });
+                }
+            }
         }
+
         if let Some(field) = fields.first() {
             return Err(InputValueError::UnknownInputField {
                 input_object: input_object.name().to_string(),
