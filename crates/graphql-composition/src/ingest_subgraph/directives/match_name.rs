@@ -61,7 +61,10 @@ fn match_directive_name_inner(
         };
     }
 
-    if let Some(imported_definition_id) = ctx.subgraphs.get_imported_definition(directive_name_id) {
+    if let Some(imported_definition_id) = ctx
+        .subgraphs
+        .get_imported_definition(ctx.subgraph_id, directive_name_id)
+    {
         let imported_definition = ctx.subgraphs.at(imported_definition_id);
         let linked_schema = ctx.subgraphs.at(imported_definition.linked_schema_id);
 

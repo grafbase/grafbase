@@ -1,0 +1,13 @@
+extend schema
+  @link(url: "static-1.0.0", import: ["@init"])
+  @link(url: "https://specs.grafbase.com/composite-schema/v1", import: ["@lookup", "@key"])
+  @init
+
+type Query {
+  productBatch(ids: [ID!]!): [Product!]! @lookup
+}
+
+type Product @key(fields: "id") {
+  id: ID!
+  code: String!
+}

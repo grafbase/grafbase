@@ -1,0 +1,15 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: actual_api_sdl
+input_file: crates/graphql-composition/tests/composition/repro/test.md
+---
+type Product {
+  ab: String
+  code: String!
+  id: ID!
+}
+
+type Query {
+  productBatch(ids: [ID!]!): [Product!]!
+  products: [Product!]!
+}

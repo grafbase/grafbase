@@ -39,11 +39,14 @@ pub(super) fn ingest_link_directive(directive: ast::Directive<'_>, subgraph_id: 
                 let name = name.trim_start_matches("@");
                 let original_name = subgraphs.strings.intern(name);
 
-                subgraphs.push_linked_definition(subgraphs::LinkedDefinitionRecord {
-                    linked_schema_id,
-                    original_name,
-                    imported_as: None,
-                });
+                subgraphs.push_linked_definition(
+                    subgraph_id,
+                    subgraphs::LinkedDefinitionRecord {
+                        linked_schema_id,
+                        original_name,
+                        imported_as: None,
+                    },
+                );
             }
             graphql_federated_graph::link::Import::Qualified(graphql_federated_graph::link::QualifiedImport {
                 name,
@@ -74,11 +77,14 @@ pub(super) fn ingest_link_directive(directive: ast::Directive<'_>, subgraph_id: 
                     None
                 };
 
-                subgraphs.push_linked_definition(subgraphs::LinkedDefinitionRecord {
-                    linked_schema_id,
-                    original_name,
-                    imported_as,
-                });
+                subgraphs.push_linked_definition(
+                    subgraph_id,
+                    subgraphs::LinkedDefinitionRecord {
+                        linked_schema_id,
+                        original_name,
+                        imported_as,
+                    },
+                );
             }
         }
     }
