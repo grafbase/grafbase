@@ -4253,7 +4253,7 @@ dependencies = [
 
 [[package]]
 name = "graphql-composition"
-version = "0.7.1"
+version = "0.7.2"
 dependencies = [
  "anyhow",
  "bitflags 2.9.0",
