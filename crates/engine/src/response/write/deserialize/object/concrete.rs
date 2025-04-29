@@ -576,7 +576,7 @@ impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_> {
         field: &'ctx FieldShapeRecord,
         response_fields: &mut Vec<ResponseObjectField>,
     ) -> Result<(), A::Error> {
-        self.ctx.path().push(ResponseValueId::Field {
+        self.ctx.path_mut().push(ResponseValueId::Field {
             object_id: self.object_id,
             key: field.key,
             nullable: field.wrapping.is_nullable(),
@@ -586,7 +586,7 @@ impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_> {
             field,
             wrapping: field.wrapping.to_mutable(),
         });
-        self.ctx.path().pop();
+        self.ctx.path_mut().pop();
         let value = result?;
 
         response_fields.push(ResponseObjectField { key: field.key, value });

@@ -98,9 +98,8 @@ impl<'a> DataField<'a> {
 
 impl std::fmt::Debug for DataField<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("DataPlanField")
-            .field("key", &self.response_key)
-            .field("location", &self.location)
+        f.debug_struct("DataField")
+            .field("key", &&self.ctx.cached.operation.response_keys[self.response_key])
             .field("definition", &self.definition())
             .field("selection_set", &self.selection_set())
             .finish()

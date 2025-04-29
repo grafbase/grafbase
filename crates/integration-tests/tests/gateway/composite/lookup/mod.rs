@@ -1,4 +1,5 @@
 mod key;
+mod shape;
 
 use graphql_mocks::dynamic::DynamicSchema;
 use integration_tests::{gateway::Gateway, runtime};

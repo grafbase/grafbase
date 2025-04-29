@@ -182,8 +182,13 @@ impl<'a> Solver<'a> {
                     selection_set_record,
                     query_partition_id,
                 };
-                let lookup_field_id = self.output.query_plan.lookup_fields.len().into();
-
+                let lookup_field_id: LookupFieldId = self.output.query_plan.lookup_fields.len().into();
+                for child_id in lookup_field
+                    .selection_set_record
+                    .data_field_ids_ordered_by_parent_entity_then_key
+                {
+                    self.output.query_plan[child_id].parent_field_id = Some(lookup_field_id.into());
+                }
                 // Confirm with authorization tests...
                 self.node_to_field[source_ix.index()] = Some(PartitionFieldId::Lookup(lookup_field_id));
 

@@ -1,4 +1,4 @@
-use std::{cell::RefMut, ops::Deref};
+use std::cell::{Ref, RefMut};
 
 use operation::{PositionedResponseKey, ResponseKey};
 
@@ -55,34 +55,20 @@ impl From<Vec<ErrorPathSegment>> for ErrorPath {
     }
 }
 
-impl<S1, S2: Into<ErrorPathSegment>> From<(&Vec<S1>, S2)> for ErrorPath
-where
-    for<'a> &'a S1: Into<ErrorPathSegment>,
-{
-    fn from((path, segment): (&Vec<S1>, S2)) -> Self {
-        let mut segments = Vec::with_capacity(path.len() + 1);
-        for segment in path {
-            segments.push(segment.into());
-        }
-        segments.push(segment.into());
-        ErrorPath(segments)
-    }
-}
-
-impl<S1, S2: Into<ErrorPathSegment>> From<(RefMut<'_, Vec<S1>>, S2)> for ErrorPath
-where
-    for<'a> &'a S1: Into<ErrorPathSegment>,
-{
-    fn from((path, segment): (RefMut<'_, Vec<S1>>, S2)) -> Self {
-        (path.deref(), segment).into()
-    }
-}
-
 impl<S> From<RefMut<'_, Vec<S>>> for ErrorPath
 where
     for<'a> &'a S: Into<ErrorPathSegment>,
 {
     fn from(path: RefMut<'_, Vec<S>>) -> Self {
+        ErrorPath(path.iter().map(Into::into).collect())
+    }
+}
+
+impl<S> From<Ref<'_, Vec<S>>> for ErrorPath
+where
+    for<'a> &'a S: Into<ErrorPathSegment>,
+{
+    fn from(path: Ref<'_, Vec<S>>) -> Self {
         ErrorPath(path.iter().map(Into::into).collect())
     }
 }
@@ -93,5 +79,13 @@ where
 {
     fn from(path: &Vec<S>) -> Self {
         ErrorPath(path.iter().map(Into::into).collect())
+    }
+}
+
+impl<S1: Into<ErrorPath>, S2: Into<ErrorPathSegment>> From<(S1, S2)> for ErrorPath {
+    fn from((path, segment): (S1, S2)) -> Self {
+        let mut path: ErrorPath = path.into();
+        path.0.push(segment.into());
+        path
     }
 }
