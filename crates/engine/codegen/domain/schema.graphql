@@ -84,7 +84,7 @@ type InterfaceDefinition @meta(module: "interface", debug: false) @indexed(dedup
   is_interface_object_in: [Subgraph!]!
 }
 
-type FieldDefinition @meta(module: "field") @indexed(id_size: "u32") {
+type FieldDefinition @meta(module: "field", debug: false) @indexed(id_size: "u32") {
   name: String!
   description: String
   parent_entity: EntityDefinition!

@@ -94,13 +94,13 @@ where
         }
 
         loop {
-            ctx.path().push(ResponseValueId::Index {
+            ctx.path_mut().push(ResponseValueId::Index {
                 list_id,
                 index,
                 nullable: element_is_nullable,
             });
             let result = seq.next_element_seed(seed.clone());
-            ctx.path().pop();
+            ctx.path_mut().pop();
             match result {
                 Ok(Some(value)) => {
                     list.push(value);

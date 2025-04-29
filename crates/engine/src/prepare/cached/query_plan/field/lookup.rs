@@ -73,8 +73,7 @@ impl<'a> LookupField<'a> {
 impl std::fmt::Debug for LookupField<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("DataPlanField")
-            .field("key", &self.subgraph_key)
-            .field("location", &self.location)
+            .field("key", &&self.ctx.cached.operation.response_keys[self.subgraph_key])
             .field("definition", &self.definition())
             .field("selection_set", &self.selection_set())
             .finish()

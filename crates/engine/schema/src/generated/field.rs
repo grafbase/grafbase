@@ -24,7 +24,7 @@ use walker::{Iter, Walk};
 /// Generated from:
 ///
 /// ```custom,{.language-graphql}
-/// type FieldDefinition @meta(module: "field") @indexed(id_size: "u32") {
+/// type FieldDefinition @meta(module: "field", debug: false) @indexed(id_size: "u32") {
 ///   name: String!
 ///   description: String
 ///   parent_entity: EntityDefinition!
@@ -130,23 +130,5 @@ impl<'a> Walk<&'a Schema> for FieldDefinitionId {
             schema: schema.into(),
             id: self,
         }
-    }
-}
-
-impl std::fmt::Debug for FieldDefinition<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("FieldDefinition")
-            .field("name", &self.name())
-            .field("description", &self.description())
-            .field("parent_entity", &self.parent_entity())
-            .field("ty", &self.ty())
-            .field("resolvers", &self.resolvers())
-            .field("exists_in_subgraphs", &self.exists_in_subgraphs())
-            .field("subgraph_types", &self.subgraph_types())
-            .field("requires", &self.requires())
-            .field("provides", &self.provides())
-            .field("arguments", &self.arguments())
-            .field("directives", &self.directives())
-            .finish()
     }
 }

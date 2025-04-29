@@ -185,16 +185,28 @@ impl<'ctx> ShapesBuilder<'ctx> {
     }
 
     fn create_lookup_fields_set_shape(&mut self, field_ids: IdRange<LookupFieldId>) -> ConcreteShapeId {
+        let mut buffer = self.field_shapes_buffer_pool.pop();
+        for field_id in field_ids {
+            buffer.push(self.create_lookup_field_shape(field_id));
+        }
+
         let shape = ConcreteShapeRecord {
             set_id: None,
             identifier: ObjectIdentifier::Anonymous,
             typename_response_keys: Vec::new(),
             field_shape_ids: {
                 let start = self.shapes.fields.len();
-                for field_id in field_ids {
-                    let shape = self.create_lookup_field_shape(field_id);
-                    self.shapes.fields.push(shape);
-                }
+                buffer.sort_unstable_by(|a, b| a.id.cmp(&b.id));
+                debug_assert!(
+                    buffer
+                        .iter()
+                        .map(|f| f.expected_key)
+                        .collect::<HashSet<ResponseKey>>()
+                        .len()
+                        == buffer.len()
+                );
+                self.shapes.fields.append(&mut buffer);
+                self.field_shapes_buffer_pool.push(buffer);
                 IdRange::from(start..self.shapes.fields.len())
             },
         };
@@ -268,6 +280,7 @@ impl<'ctx> ShapesBuilder<'ctx> {
                 let field_shape = self.create_data_field_shape(&mut group, first);
                 field_shapes_buffer.push(field_shape);
 
+                group.clear();
                 self.data_fields_buffer_pool.push(group);
             }
         }

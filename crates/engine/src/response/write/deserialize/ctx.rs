@@ -40,8 +40,12 @@ impl<'ctx> SeedContext<'ctx> {
         &self.prepared_operation.cached.operation.response_keys
     }
 
-    pub(super) fn path(&self) -> RefMut<'_, Vec<ResponseValueId>> {
+    pub(super) fn path_mut(&self) -> RefMut<'_, Vec<ResponseValueId>> {
         self.path.borrow_mut()
+    }
+
+    pub(super) fn path(&self) -> Ref<'_, Vec<ResponseValueId>> {
+        self.path.borrow()
     }
 
     pub(super) fn display_path(&self) -> impl std::fmt::Display + '_ {

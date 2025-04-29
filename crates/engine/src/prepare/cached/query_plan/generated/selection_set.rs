@@ -75,16 +75,3 @@ impl<'a> Walk<CachedOperationContext<'a>> for PartitionSelectionSetRecord {
         }
     }
 }
-
-impl std::fmt::Debug for PartitionSelectionSet<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("PartitionSelectionSet")
-            .field(
-                "data_fields_ordered_by_parent_entity_then_key",
-                &self.data_fields_ordered_by_parent_entity_then_key(),
-            )
-            .field("typename_fields", &self.typename_fields())
-            .field("lookup_fields", &self.lookup_fields())
-            .finish()
-    }
-}

@@ -56,3 +56,14 @@ impl<'a> FieldDefinition<'a> {
         self.directives().find_map(|directive| directive.as_deprecated())
     }
 }
+
+impl std::fmt::Debug for FieldDefinition<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("FieldDefinition")
+            .field("name", &self.name())
+            .field("parent_entity", &self.parent_entity().name())
+            .field("ty", &self.ty())
+            .field("arguments", &self.arguments())
+            .finish()
+    }
+}
