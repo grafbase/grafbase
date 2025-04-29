@@ -134,7 +134,7 @@ impl<'ctx> FederationEntityExecutor<'ctx> {
 
             for EntityWithoutExpectedRequirements { id, error } in entities_without_expected_requirements {
                 tracing::error!("Could not retrieve entity because of missing requirements: {error}");
-                response_part.insert_update(
+                response_part.insert(
                     id,
                     // Not really sure if that's really the right logic. In the federation-audit
                     // `null-keys` test no errors are expected here when an entity could not be

@@ -1,6 +1,6 @@
 ## Breaking changes
 
-- The gateway will now try to expand environment variables everywhere in the configuration with the syntax `{{ env>VAR_NAME }}`.
+- The gateway will now try to expand environment variables everywhere in the configuration with the syntax `{{ env.VAR_NAME }}`.
 
 ## Fixes
 

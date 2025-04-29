@@ -94,7 +94,7 @@ impl<'de> Visitor<'de> for EntitiesSeed<'_> {
         for (id, parent_object) in parent_objects.by_ref() {
             let ctx = Rc::new(SeedContext {
                 schema,
-                prepared_operation,
+                operation: prepared_operation,
                 response: response.clone(),
                 bubbling_up_serde_error: Cell::new(false),
                 path: RefCell::new(parent_object.path.clone()),

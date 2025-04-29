@@ -12,7 +12,7 @@ use walker::Walk;
 
 use crate::{
     prepare::{
-        DataOrLookupFieldId, LookupFieldId,
+        DataOrLookupFieldId, LookupFieldId, TypenameShapeRecord,
         cached::{
             CachedOperationContext, ConcreteShapeId, ConcreteShapeRecord, DataField, DataFieldId, FieldShapeId,
             FieldShapeRecord, FieldShapeRefId, ObjectIdentifier, PartitionSelectionSet, PolymorphicShapeId,
@@ -36,6 +36,7 @@ impl Solver<'_> {
             shapes: Shapes::default(),
             data_field_ids_with_selection_set_requiring_typename: Vec::new(),
             field_shapes_buffer_pool: BufferPool::default(),
+            typename_shapes_buffer_pool: BufferPool::default(),
             data_fields_buffer_pool: BufferPool::default(),
             typename_fields_buffer_pool: BufferPool::default(),
             data_fields_shape_count: vec![0; self.output.query_plan.data_fields.len()],
@@ -115,6 +116,7 @@ pub(super) struct ShapesBuilder<'ctx> {
     data_fields_shape_count: Vec<u32>,
     data_field_ids_with_selection_set_requiring_typename: Vec<DataFieldId>,
     field_shapes_buffer_pool: BufferPool<FieldShapeRecord>,
+    typename_shapes_buffer_pool: BufferPool<TypenameShapeRecord>,
     data_fields_buffer_pool: BufferPool<DataField<'ctx>>,
     typename_fields_buffer_pool: BufferPool<TypenameField<'ctx>>,
 }
@@ -193,7 +195,7 @@ impl<'ctx> ShapesBuilder<'ctx> {
         let shape = ConcreteShapeRecord {
             set_id: None,
             identifier: ObjectIdentifier::Anonymous,
-            typename_response_keys: Vec::new(),
+            typename_shape_ids: Default::default(),
             field_shape_ids: {
                 let start = self.shapes.fields.len();
                 buffer.sort_unstable_by(|a, b| a.id.cmp(&b.id));
@@ -239,19 +241,22 @@ impl<'ctx> ShapesBuilder<'ctx> {
         included_typename_then_data_fields: FixedBitSet,
     ) -> ConcreteShapeId {
         let mut field_shapes_buffer = self.field_shapes_buffer_pool.pop();
-        let mut distinct_typename_response_keys: Vec<PositionedResponseKey> = Vec::new();
+        let mut distinct_typename_shapes = self.typename_shapes_buffer_pool.pop();
         let mut included = included_typename_then_data_fields.into_ones();
 
         while let Some(i) = included.next() {
             if let Some(field) = typename_fields_sorted_by_response_key_str_then_position_extra_last.get(i) {
-                if distinct_typename_response_keys
+                if distinct_typename_shapes
                     .last()
                     // fields aren't sorted by the response key but by the string value they point
                     // to. However, response keys are deduplicated so the equality also works here
                     // to ensure we only have distinct values.
-                    .is_none_or(|key| key.response_key != field.response_key)
+                    .is_none_or(|shape| shape.key.response_key != field.response_key)
                 {
-                    distinct_typename_response_keys.push(field.response_key.with_position(field.query_position));
+                    distinct_typename_shapes.push(TypenameShapeRecord {
+                        key: field.response_key.with_position(field.query_position),
+                        location: field.location,
+                    });
                 }
             } else {
                 // We've exhausted the typename fields, so we know we're in the data fields now.
@@ -285,11 +290,16 @@ impl<'ctx> ShapesBuilder<'ctx> {
             }
         }
 
-        debug_assert!(!field_shapes_buffer.is_empty() || !distinct_typename_response_keys.is_empty());
+        debug_assert!(!field_shapes_buffer.is_empty() || !distinct_typename_shapes.is_empty());
         let shape = ConcreteShapeRecord {
             set_id,
             identifier,
-            typename_response_keys: distinct_typename_response_keys,
+            typename_shape_ids: {
+                let start = self.shapes.typename_fields.len();
+                self.shapes.typename_fields.append(&mut distinct_typename_shapes);
+                self.typename_shapes_buffer_pool.push(distinct_typename_shapes);
+                IdRange::from(start..self.shapes.typename_fields.len())
+            },
             field_shape_ids: {
                 let start = self.shapes.fields.len();
                 field_shapes_buffer.sort_unstable_by(|a, b| a.id.cmp(&b.id));
