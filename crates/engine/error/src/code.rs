@@ -94,6 +94,10 @@ impl ErrorCodeCounter {
         self.0[code as usize] += 1;
     }
 
+    pub fn increment_by(&mut self, code: ErrorCode, count: u16) {
+        self.0[code as usize] += count;
+    }
+
     pub fn add(&mut self, other: &Self) {
         for (index, count) in other.0.iter().enumerate() {
             self.0[index] += count;
@@ -108,6 +112,14 @@ impl ErrorCodeCounter {
                 None
             }
         })
+    }
+
+    pub fn count(&self) -> usize {
+        let mut count = 0;
+        for i in self.0 {
+            count += i as usize;
+        }
+        count
     }
 
     pub fn to_vec(&self) -> Vec<(ErrorCode, u16)> {

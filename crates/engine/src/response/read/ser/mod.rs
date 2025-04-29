@@ -22,7 +22,7 @@ impl<OnOperationResponseHookOutput> serde::Serialize for Response<OnOperationRes
             }) => {
                 let mut map = serializer.serialize_map(None)?;
 
-                let keys = &operation.operation.response_keys;
+                let keys = &operation.cached.operation.response_keys;
                 if let Some(data) = data {
                     map.serialize_entry(
                         "data",
@@ -35,7 +35,14 @@ impl<OnOperationResponseHookOutput> serde::Serialize for Response<OnOperationRes
                 }
 
                 if !errors.is_empty() {
-                    map.serialize_entry("errors", &errors::SerializableErrors { keys, errors })?;
+                    map.serialize_entry(
+                        "errors",
+                        &errors::SerializableErrorParts {
+                            query_modifications: &operation.plan.query_modifications,
+                            keys,
+                            errors,
+                        },
+                    )?;
                 }
 
                 if !extensions.is_empty() {

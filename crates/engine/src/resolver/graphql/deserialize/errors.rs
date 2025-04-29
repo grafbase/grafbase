@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use serde::{Deserializer, de::DeserializeSeed};
 
-use crate::response::{ErrorCode, ErrorPath, GraphqlError, SharedResponsePart};
+use crate::response::{ErrorCode, ErrorPath, GraphqlError, SharedResponsePartBuilder};
 
 pub(in crate::resolver::graphql) trait SubgraphToSupergraphErrorPathConverter {
     fn convert(&self, path: serde_json::Value) -> Option<ErrorPath>;
@@ -19,7 +19,7 @@ where
 
 /// Deserialize the `errors` field of a GraphQL response with the help of a ErrorPathConverter.
 pub(in crate::resolver::graphql) struct GraphqlErrorsSeed<'resp, ErrorPathConverter> {
-    pub response_part: SharedResponsePart<'resp>,
+    pub response_part: SharedResponsePartBuilder<'resp>,
     pub path_converter: ErrorPathConverter,
 }
 
@@ -27,7 +27,7 @@ impl<'resp, ErrorPathConverter> GraphqlErrorsSeed<'resp, ErrorPathConverter>
 where
     ErrorPathConverter: SubgraphToSupergraphErrorPathConverter,
 {
-    pub fn new(response_part: SharedResponsePart<'resp>, path_converter: ErrorPathConverter) -> Self {
+    pub fn new(response_part: SharedResponsePartBuilder<'resp>, path_converter: ErrorPathConverter) -> Self {
         Self {
             response_part,
             path_converter,

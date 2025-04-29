@@ -137,7 +137,7 @@ impl<'ctx> ConcreteShapeSeed<'ctx, '_> {
                         let mut resp = self.ctx.response.borrow_mut();
                         let path = self.ctx.path();
                         resp.propagate_null(&path);
-                        resp.push_error(
+                        resp.errors.push(
                             GraphqlError::invalid_subgraph_response()
                                 .with_path(path)
                                 .with_location(self.parent_field.id.walk(self.ctx).location()),
@@ -157,7 +157,7 @@ impl<'ctx> ConcreteShapeSeed<'ctx, '_> {
                     if self.is_required {
                         resp.propagate_null(&path);
                     }
-                    resp.push_error(
+                    resp.errors.push(
                         error
                             .with_path(path)
                             .with_location(self.parent_field.id.walk(self.ctx).location()),
@@ -420,13 +420,10 @@ impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_> {
             let mut must_propagate_null = false;
             let mut resp = self.ctx.response.borrow_mut();
             for field_shape in self.field_shape_ids.walk(self.ctx) {
-                for error in field_shape.errors() {
-                    resp.push_error(
-                        error
-                            .clone()
-                            .with_path((self.ctx.path(), field_shape.key))
-                            .with_location(field_shape.as_ref().id.walk(self.ctx).location()),
-                    );
+                for error_id in field_shape.error_ids() {
+                    let location = field_shape.as_ref().id.walk(self.ctx).location();
+                    let path = (self.ctx.path(), field_shape.key);
+                    resp.errors.push_query_error(error_id, location, path);
 
                     if field_shape.wrapping.is_required() {
                         must_propagate_null = true;
@@ -473,7 +470,7 @@ impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_> {
                             let mut resp = self.ctx.response.borrow_mut();
                             let path = self.ctx.path();
                             resp.propagate_null(&path);
-                            resp.push_error(
+                            resp.errors.push(
                                 GraphqlError::invalid_subgraph_response()
                                     .with_path((path, field_shape.key))
                                     .with_location(field_shape.as_ref().id.walk(self.ctx).location()),

@@ -4,7 +4,7 @@ use crate::{
     Runtime,
     execution::{ExecutionContext, ExecutionResult},
     prepare::Plan,
-    response::{ParentObjects, ResponsePart},
+    response::{ParentObjects, ResponsePartBuilder},
 };
 
 mod writer;
@@ -19,8 +19,8 @@ impl IntrospectionResolver {
         ctx: ExecutionContext<'ctx, R>,
         plan: Plan<'ctx>,
         parent_object_refs: Arc<ParentObjects>,
-        response: ResponsePart<'ctx>,
-    ) -> ExecutionResult<ResponsePart<'ctx>> {
+        response: ResponsePartBuilder<'ctx>,
+    ) -> ExecutionResult<ResponsePartBuilder<'ctx>> {
         let response = response.into_shared();
         for parent_object_id in parent_object_refs.ids() {
             writer::IntrospectionWriter {

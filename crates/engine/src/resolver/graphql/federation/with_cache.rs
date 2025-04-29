@@ -17,14 +17,14 @@ use crate::{
         deserialize::{EntitiesDataSeed, EntityErrorPathConverter, GraphqlErrorsSeed, GraphqlResponseSeed},
         request::ResponseIngester,
     },
-    response::{GraphqlError, ResponsePart, SharedResponsePart},
+    response::{GraphqlError, ResponsePartBuilder, SharedResponsePartBuilder},
 };
 
 pub(super) fn ingest_hits(
     shape_id: ConcreteShapeId,
     hits: Vec<EntityCacheHit>,
-    response_part: ResponsePart<'_>,
-) -> ExecutionResult<ResponsePart<'_>> {
+    response_part: ResponsePartBuilder<'_>,
+) -> ExecutionResult<ResponsePartBuilder<'_>> {
     let response_part = response_part.into_shared();
     for hit in hits {
         response_part
@@ -52,8 +52,8 @@ where
     async fn ingest(
         self,
         http_response: http::Response<OwnedOrSharedBytes>,
-        response_part: ResponsePart<'_>,
-    ) -> Result<(GraphqlResponseStatus, ResponsePart<'_>), ExecutionError> {
+        response_part: ResponsePartBuilder<'_>,
+    ) -> Result<(GraphqlResponseStatus, ResponsePartBuilder<'_>), ExecutionError> {
         let Self {
             ctx,
             cache_fetch_outcome: CacheFetchEntitiesOutcome { hits, misses },
@@ -126,7 +126,7 @@ where
 struct PartiallyCachedEntitiesSeed<'ctx, 'de, 'updates> {
     misses: Vec<EntityCacheMiss>,
     shape_id: ConcreteShapeId,
-    response_part: SharedResponsePart<'ctx>,
+    response_part: SharedResponsePartBuilder<'ctx>,
     cache_updates: &'updates mut Vec<(String, &'de RawValue)>,
 }
 

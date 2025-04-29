@@ -20,7 +20,7 @@ use crate::{
     Runtime,
     execution::{ExecutionError, ExecutionResult},
     resolver::graphql::SubgraphContext,
-    response::{ErrorCode, GraphqlError, ResponsePart},
+    response::{ErrorCode, GraphqlError, ResponsePartBuilder},
 };
 
 pub trait ResponseIngester: Send {
@@ -30,17 +30,17 @@ pub trait ResponseIngester: Send {
     fn ingest(
         self,
         http_response: http::Response<OwnedOrSharedBytes>,
-        response_part: ResponsePart<'_>,
-    ) -> impl Future<Output = Result<(GraphqlResponseStatus, ResponsePart<'_>), ExecutionError>> + Send;
+        response_part: ResponsePartBuilder<'_>,
+    ) -> impl Future<Output = Result<(GraphqlResponseStatus, ResponsePartBuilder<'_>), ExecutionError>> + Send;
 }
 
 pub(crate) async fn execute_subgraph_request<'ctx, R: Runtime>(
     ctx: &mut SubgraphContext<'ctx, R>,
     headers: http::HeaderMap,
     body: impl Into<Bytes> + Send,
-    response_part: ResponsePart<'ctx>,
+    response_part: ResponsePartBuilder<'ctx>,
     ingester: impl ResponseIngester,
-) -> ExecutionResult<ResponsePart<'ctx>> {
+) -> ExecutionResult<ResponsePartBuilder<'ctx>> {
     let endpoint = ctx.endpoint();
 
     let req = runtime::hooks::SubgraphRequest {

@@ -17,7 +17,7 @@ use crate::{
     prepare::{Executable, Plan, PlanId},
     prepare::{PrepareContext, PreparedOperation},
     resolver::ResolverResult,
-    response::{GraphqlError, ParentObjects, Response, ResponseBuilder, ResponsePart},
+    response::{GraphqlError, ParentObjects, Response, ResponseBuilder, ResponsePartBuilder},
 };
 
 use super::{ExecutionError, ExecutionResult, state::OperationExecutionState};
@@ -186,7 +186,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
     async fn build_subscription_stream<'exec>(
         self,
         subscription_plan: Plan<'ctx>,
-    ) -> ExecutionResult<BoxStream<'exec, ExecutionResult<(ResponseBuilder<'ctx>, ResponsePart<'ctx>)>>>
+    ) -> ExecutionResult<BoxStream<'exec, ExecutionResult<(ResponseBuilder<'ctx>, ResponsePartBuilder<'ctx>)>>>
     where
         'ctx: 'exec,
     {
@@ -210,7 +210,7 @@ struct SubscriptionExecution<'ctx, R: Runtime, S> {
 
 impl<'ctx, R: Runtime, S> SubscriptionExecution<'ctx, R, S>
 where
-    S: Stream<Item = ExecutionResult<(ResponseBuilder<'ctx>, ResponsePart<'ctx>)>> + Send,
+    S: Stream<Item = ExecutionResult<(ResponseBuilder<'ctx>, ResponsePartBuilder<'ctx>)>> + Send,
 {
     async fn execute(mut self, mut responses: impl ResponseSender<<R::Hooks as Hooks>::OnOperationResponseOutput>) {
         let subscription_stream = self.stream.fuse();
@@ -511,6 +511,6 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
 
 pub(crate) struct PlanExecutionResult<'ctx, OnSubgraphResponseHookOutput> {
     plan_id: PlanId,
-    result: Result<ResponsePart<'ctx>, (Arc<ParentObjects>, ExecutionError)>,
+    result: Result<ResponsePartBuilder<'ctx>, (Arc<ParentObjects>, ExecutionError)>,
     on_subgraph_response_hook_output: Option<OnSubgraphResponseHookOutput>,
 }

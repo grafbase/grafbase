@@ -20,7 +20,7 @@ use crate::{
     execution::ExecutionError,
     prepare::{ConcreteShapeId, Plan},
     resolver::ExecutionResult,
-    response::{GraphqlError, ResponseBuilder, ResponsePart},
+    response::{GraphqlError, ResponseBuilder, ResponsePartBuilder},
 };
 
 impl GraphqlResolver {
@@ -29,7 +29,7 @@ impl GraphqlResolver {
         ctx: &mut SubgraphContext<'ctx, R>,
         plan: Plan<'ctx>,
         new_response: impl Fn() -> ResponseBuilder<'ctx> + Send + 'ctx,
-    ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<(ResponseBuilder<'ctx>, ResponsePart<'ctx>)>>> {
+    ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<(ResponseBuilder<'ctx>, ResponsePartBuilder<'ctx>)>>> {
         let endpoint = ctx.endpoint();
         let shape_id = plan.shape_id();
         match endpoint.subscription_protocol {
@@ -49,7 +49,7 @@ impl GraphqlResolver {
         shape_id: ConcreteShapeId,
         new_response: impl Fn() -> ResponseBuilder<'ctx> + Send + 'ctx,
         websocket_url: &'ctx Url,
-    ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<(ResponseBuilder<'ctx>, ResponsePart<'ctx>)>>> {
+    ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<(ResponseBuilder<'ctx>, ResponsePartBuilder<'ctx>)>>> {
         let endpoint = ctx.endpoint();
 
         // If the user doesn't provide an explicit websocket URL we use the normal URL,
@@ -147,7 +147,7 @@ impl GraphqlResolver {
         ctx: &mut SubgraphContext<'ctx, R>,
         shape_id: ConcreteShapeId,
         new_response: impl Fn() -> ResponseBuilder<'ctx> + Send + 'ctx,
-    ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<(ResponseBuilder<'ctx>, ResponsePart<'ctx>)>>> {
+    ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<(ResponseBuilder<'ctx>, ResponsePartBuilder<'ctx>)>>> {
         let endpoint = ctx.endpoint();
 
         let request = {

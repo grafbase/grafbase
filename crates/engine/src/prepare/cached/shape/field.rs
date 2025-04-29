@@ -4,10 +4,7 @@ use operation::{PositionedResponseKey, ResponseKey};
 use schema::{EnumDefinitionId, ScalarType, Wrapping};
 use walker::Walk;
 
-use crate::{
-    prepare::{DataOrLookupFieldId, OperationPlanContext},
-    response::GraphqlError,
-};
+use crate::prepare::{DataOrLookupFieldId, OperationPlanContext, QueryErrorId};
 
 use super::{ConcreteShapeId, PolymorphicShapeId};
 
@@ -61,14 +58,13 @@ impl<'a> FieldShape<'a> {
         &self.ctx.cached.shapes[self.id]
     }
 
-    pub(crate) fn errors(&self) -> impl Iterator<Item = &'a GraphqlError> + 'a {
+    pub(crate) fn error_ids(&self) -> impl Iterator<Item = QueryErrorId> + 'a {
         self.ctx
             .plan
             .query_modifications
             .field_shape_id_to_error_ids
             .find_all(self.id)
             .copied()
-            .map(|id| &self.ctx.plan.query_modifications[id])
     }
 
     pub(crate) fn is_skipped(&self) -> bool {
