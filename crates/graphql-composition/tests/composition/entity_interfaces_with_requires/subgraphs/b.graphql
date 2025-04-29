@@ -1,3 +1,6 @@
+extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@key", "@external", "@requires", "@interfaceObject"])
+
 type Media @key(fields: "id") @interfaceObject {
   id: ID!
   title: String! @external

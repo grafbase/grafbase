@@ -1,0 +1,23 @@
+extend schema @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@key"])
+
+type Policy @key(fields: "id claims") {
+  id: ID!
+  policyNumber: String!
+  startDate: String!
+  endDate: String!
+  coverageAmount: Float!
+  deductible: Float
+}
+
+enum PolicyType {
+  AUTO
+  HOME
+  LIFE
+  HEALTH
+  TRAVEL
+}
+
+type Query {
+  policy(id: ID!): Policy
+  policies: [Policy]!
+}

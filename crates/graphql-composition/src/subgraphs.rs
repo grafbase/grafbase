@@ -14,7 +14,7 @@ mod view;
 mod walker;
 
 pub(crate) use self::{
-    definitions::{DefinitionId, DefinitionKind, DefinitionWalker},
+    definitions::{Definition, DefinitionKind, DefinitionWalker},
     directives::*,
     extensions::*,
     field_types::*,

@@ -5,14 +5,18 @@ use std::collections::HashSet;
 /// All the keys (`@key(...)`) in all the subgraphs in one container.
 #[derive(Default)]
 pub(crate) struct Keys {
-    keys: Vec<(DefinitionId, Key)>,
+    pub(super) keys: Vec<Key>,
     nested_key_fields: NestedKeyFields,
 }
 
-#[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
-pub(crate) struct KeyId(usize);
-
 impl Subgraphs {
+    pub(crate) fn iter_keys(&self) -> impl ExactSizeIterator<Item = View<'_, KeyId, Key>> {
+        self.keys.keys.iter().enumerate().map(|(idx, key)| View {
+            id: idx.into(),
+            record: key,
+        })
+    }
+
     pub(crate) fn push_key(
         &mut self,
         object_id: DefinitionId,
@@ -22,10 +26,11 @@ impl Subgraphs {
         let selection_set = self.selection_set_from_str(selection_set_str, "key", "fields")?;
 
         let key = Key {
+            definition_id: object_id,
             selection_set,
             resolvable,
         };
-        self.keys.keys.push((object_id, key));
+        self.keys.keys.push(key);
         Ok(())
     }
 
@@ -152,8 +157,9 @@ impl NestedKeyFields {
 /// Corresponds to an `@key` annotation.
 #[derive(Debug, PartialOrd, PartialEq)]
 pub(crate) struct Key {
-    selection_set: Vec<Selection>,
-    resolvable: bool,
+    pub(crate) definition_id: DefinitionId,
+    pub(crate) selection_set: Vec<Selection>,
+    pub(crate) resolvable: bool,
 }
 
 #[derive(PartialEq, PartialOrd, Debug)]
@@ -172,39 +178,35 @@ pub(crate) struct FieldSelection {
 pub(crate) type KeyWalker<'a> = Walker<'a, KeyId>;
 
 impl<'a> KeyWalker<'a> {
-    fn key(self) -> &'a (DefinitionId, Key) {
-        &self.subgraphs.keys.keys[self.id.0]
-    }
-
     pub(crate) fn fields(self) -> &'a [Selection] {
-        &self.key().1.selection_set
+        self.view().record.selection_set.as_slice()
     }
 
     pub(crate) fn is_resolvable(self) -> bool {
-        self.key().1.resolvable
+        self.view().resolvable
     }
 
     pub(crate) fn parent_definition(self) -> DefinitionWalker<'a> {
-        self.walk(self.key().0)
+        self.walk(self.view().definition_id)
     }
 }
 
 impl<'a> DefinitionWalker<'a> {
-    pub fn is_entity(self) -> bool {
+    pub(crate) fn is_entity(self) -> bool {
         self.entity_keys().next().is_some()
     }
 
-    pub fn entity_keys(self) -> impl Iterator<Item = KeyWalker<'a>> {
+    pub(crate) fn entity_keys(self) -> impl Iterator<Item = KeyWalker<'a>> {
         let start = self
             .subgraphs
             .keys
             .keys
-            .partition_point(|(parent, _)| *parent < self.id);
+            .partition_point(|key| key.definition_id < self.id);
         self.subgraphs.keys.keys[start..]
             .iter()
-            .take_while(move |(parent, _)| *parent == self.id)
+            .take_while(move |key| key.definition_id == self.id)
             .enumerate()
-            .map(move |(idx, _)| self.walk(KeyId(start + idx)))
+            .map(move |(idx, _)| self.walk(KeyId::from(start + idx)))
     }
 }
 
