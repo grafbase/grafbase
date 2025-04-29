@@ -18,7 +18,6 @@ use cynic::{QueryBuilder, http::ReqwestExt};
 use futures::TryStreamExt as _;
 use gateway_config::{Config, SubgraphConfig};
 use grafbase_graphql_introspection::introspect;
-use serde_dynamic_string::DynamicString;
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
     path::PathBuf,
@@ -34,7 +33,7 @@ const DEFAULT_BRANCH: &str = "main";
 #[derive(Clone)]
 pub(crate) struct CachedIntrospectedSubgraph {
     pub(crate) introspection_url: String,
-    pub(crate) introspection_headers: Vec<(String, DynamicString<String>)>,
+    pub(crate) introspection_headers: Vec<(String, String)>,
     pub(crate) subgraph: Arc<CachedSubgraph>,
 }
 
@@ -323,7 +322,7 @@ async fn handle_overridden_subgraph(
             url,
         }))
     } else if let Some(introspection_url) = subgraph.introspection_url.as_ref().or(parsed_url.as_ref()) {
-        let headers: Vec<(&String, &DynamicString<String>)> = subgraph
+        let headers: Vec<(&String, &String)> = subgraph
             .introspection_headers
             .as_ref()
             .map(|intropection_headers| intropection_headers.iter().collect())

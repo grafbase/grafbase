@@ -1,5 +1,4 @@
 use ascii::AsciiString;
-use serde_dynamic_string::DynamicString;
 
 use crate::LogLevel;
 
@@ -41,5 +40,5 @@ pub struct BypassHeader {
     /// Name of the optional header that can be set to bypass trusted documents enforcement, when `enabled = true`. Only meaningful in combination with `bypass_header_value`.
     pub bypass_header_name: Option<AsciiString>,
     /// Value of the optional header that can be set to bypass trusted documents enforcement, when `enabled = true`. Only meaningful in combination with `bypass_header_value`.
-    pub bypass_header_value: Option<DynamicString<String>>,
+    pub bypass_header_value: Option<String>,
 }

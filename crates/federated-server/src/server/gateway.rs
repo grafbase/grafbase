@@ -139,7 +139,7 @@ fn gdn_graph(
                             .bypass_header_value
                             .as_ref(),
                     )
-                    .map(|(name, value)| (name.clone().into(), String::from(value.as_ref()))),
+                    .map(|(name, value)| (name.clone().into(), String::from(value.as_str()))),
                 enforcement_mode,
             ),
         ))

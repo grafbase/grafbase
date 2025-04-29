@@ -1,5 +1,6 @@
 use apq::AutomaticPersistedQueries;
 use operation_caching::OperationCaching;
+use serde::Deserialize;
 
 pub mod apq;
 pub mod authentication;
@@ -25,6 +26,7 @@ use std::{
     collections::BTreeMap,
     net::SocketAddr,
     path::{Path, PathBuf},
+    str::FromStr as _,
     time::Duration,
 };
 
@@ -43,7 +45,6 @@ pub use hooks::*;
 pub use mcp::ModelControlProtocolConfig;
 pub use message_signatures::MessageSignaturesConfig;
 pub use rate_limit::*;
-use serde_dynamic_string::DynamicString;
 use size::Size;
 pub use telemetry::*;
 use url::Url;
@@ -85,8 +86,60 @@ impl Loader {
         let content = std::fs::read_to_string(&path)
             .map_err(|err| format!("Failed readng config content at path {}: {err}", path.display()))?;
 
-        let mut config: Config =
+        let mut raw_config: toml::Value =
             toml::from_str(&content).map_err(|err| format!("Failed to parse configuration: {err}"))?;
+
+        fn expand_dynamic_strings<'a>(
+            path: &mut Vec<Result<&'a str, usize>>,
+            value: &'a mut toml::Value,
+        ) -> Result<(), String> {
+            match value {
+                toml::Value::String(s) => match serde_dynamic_string::DynamicString::<String>::from_str(s) {
+                    Ok(out) => *s = out.into_inner(),
+                    Err(err) => {
+                        use std::fmt::Write;
+                        let mut p = String::new();
+                        for segment in path {
+                            match segment {
+                                Ok(s) => {
+                                    p.push_str(s);
+                                    p.push('.');
+                                }
+                                Err(i) => write!(p, "[{i}]").unwrap(),
+                            }
+                        }
+                        if p.ends_with('.') {
+                            p.pop();
+                        }
+                        return Err(format!("At {p}, failed substituing environment variable: {err}",));
+                    }
+                },
+                toml::Value::Array(values) => {
+                    for (i, value) in values.iter_mut().enumerate() {
+                        path.push(Err(i));
+                        expand_dynamic_strings(path, value)?;
+                        path.pop();
+                    }
+                }
+                toml::Value::Table(map) => {
+                    for (key, value) in map {
+                        path.push(Ok(key.as_str()));
+                        expand_dynamic_strings(path, value)?;
+                        path.pop();
+                    }
+                }
+                toml::Value::Integer(_)
+                | toml::Value::Float(_)
+                | toml::Value::Boolean(_)
+                | toml::Value::Datetime(_) => (),
+            }
+
+            Ok(())
+        }
+        expand_dynamic_strings(&mut Vec::new(), &mut raw_config)?;
+
+        let mut config =
+            Config::deserialize(raw_config).map_err(|err| format!("Failed to parse configuration: {err}"))?;
 
         config.path = Some(if path.is_relative() {
             let cdir = match self.current_dir.as_ref() {
@@ -347,7 +400,7 @@ pub struct SubgraphConfig {
     /// A URL from which to retreive the subgraph SDL (dev only).
     pub introspection_url: Option<Url>,
     /// Header configuration for subgraph introspection (dev only).
-    pub introspection_headers: Option<BTreeMap<String, DynamicString<String>>>,
+    pub introspection_headers: Option<BTreeMap<String, String>>,
     /// The protocol used for subscriptions
     pub subscription_protocol: Option<SubscriptionProtocol>,
 }
@@ -996,15 +1049,12 @@ mod tests {
             bypass_header_value = "secret-{{ env.TEST_HEADER_SECRET }}"
         "###;
 
-        let err = toml::from_str::<Config>(input).unwrap_err().to_string();
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("config.toml");
+        std::fs::write(&path, input).unwrap();
+        let err = Config::load(&path).unwrap_err().to_string();
 
-        insta::assert_snapshot!(err, @r###"
-        TOML parse error at line 2, column 13
-          |
-        2 |             [trusted_documents]
-          |             ^^^^^^^^^^^^^^^^^^^
-        environment variable not found: `TEST_HEADER_SECRET`
-        "###);
+        insta::assert_snapshot!(err, @"At trusted_documents.bypass_header_value, failed substituing environment variable: environment variable not found: `TEST_HEADER_SECRET`");
     }
 
     #[test]
@@ -1031,9 +1081,7 @@ mod tests {
                     "my-header-name",
                 ),
                 bypass_header_value: Some(
-                    DynamicString(
-                        "my-secret-value",
-                    ),
+                    "my-secret-value",
                 ),
             },
             document_id_unknown_log_level: Error,
@@ -1280,25 +1328,19 @@ mod tests {
 
         let result: Config = toml::from_str(input).unwrap();
 
-        insta::assert_debug_snapshot!(&result.headers, @r###"
+        insta::assert_debug_snapshot!(&result.headers, @r#"
         [
             RenameDuplicate(
                 RenameDuplicate {
-                    name: DynamicString(
-                        "content-type",
-                    ),
+                    name: "content-type",
                     default: Some(
-                        DynamicString(
-                            "foo",
-                        ),
+                        "foo",
                     ),
-                    rename: DynamicString(
-                        "something",
-                    ),
+                    rename: "something",
                 },
             ),
         ]
-        "###);
+        "#);
     }
 
     #[test]
@@ -1311,21 +1353,19 @@ mod tests {
 
         let result: Config = toml::from_str(input).unwrap();
 
-        insta::assert_debug_snapshot!(&result.headers, @r###"
+        insta::assert_debug_snapshot!(&result.headers, @r#"
         [
             Forward(
                 HeaderForward {
                     name: Name(
-                        DynamicString(
-                            "content-type",
-                        ),
+                        "content-type",
                     ),
                     default: None,
                     rename: None,
                 },
             ),
         ]
-        "###);
+        "#);
     }
 
     #[test]
@@ -1338,13 +1378,13 @@ mod tests {
 
         let error = toml::from_str::<Config>(input).unwrap_err();
 
-        insta::assert_snapshot!(&error.to_string(), @r###"
+        insta::assert_snapshot!(&error.to_string(), @r#"
         TOML parse error at line 1, column 1
           |
         1 | [[headers]]
           | ^^^^^^^^^^^
-        the byte at index 8 is not ASCII
-        "###);
+        invalid value: string "Authoriz🎠", expected an ascii string
+        "#);
     }
 
     #[test]
@@ -1361,14 +1401,12 @@ mod tests {
 
         let result: Config = toml::from_str(input).unwrap();
 
-        insta::assert_debug_snapshot!(&result.headers, @r###"
+        insta::assert_debug_snapshot!(&result.headers, @r#"
         [
             Forward(
                 HeaderForward {
                     name: Name(
-                        DynamicString(
-                            "content-type",
-                        ),
+                        "content-type",
                     ),
                     default: None,
                     rename: None,
@@ -1377,16 +1415,14 @@ mod tests {
             Forward(
                 HeaderForward {
                     name: Name(
-                        DynamicString(
-                            "accept",
-                        ),
+                        "accept",
                     ),
                     default: None,
                     rename: None,
                 },
             ),
         ]
-        "###);
+        "#);
     }
 
     #[test]
@@ -1449,25 +1485,21 @@ mod tests {
 
         let result: Config = toml::from_str(input).unwrap();
 
-        insta::assert_debug_snapshot!(&result.headers, @r###"
+        insta::assert_debug_snapshot!(&result.headers, @r#"
         [
             Forward(
                 HeaderForward {
                     name: Name(
-                        DynamicString(
-                            "content-type",
-                        ),
+                        "content-type",
                     ),
                     default: Some(
-                        DynamicString(
-                            "application/json",
-                        ),
+                        "application/json",
                     ),
                     rename: None,
                 },
             ),
         ]
-        "###);
+        "#);
     }
 
     #[test]
@@ -1481,13 +1513,13 @@ mod tests {
 
         let error = toml::from_str::<Config>(input).unwrap_err();
 
-        insta::assert_snapshot!(&error.to_string(), @r###"
+        insta::assert_snapshot!(&error.to_string(), @r#"
         TOML parse error at line 1, column 1
           |
         1 | [[headers]]
           | ^^^^^^^^^^^
-        the byte at index 16 is not ASCII
-        "###);
+        invalid value: string "application/json🎠", expected an ascii string
+        "#);
     }
 
     #[test]
@@ -1501,25 +1533,21 @@ mod tests {
 
         let result: Config = toml::from_str(input).unwrap();
 
-        insta::assert_debug_snapshot!(&result.headers, @r###"
+        insta::assert_debug_snapshot!(&result.headers, @r#"
         [
             Forward(
                 HeaderForward {
                     name: Name(
-                        DynamicString(
-                            "content-type",
-                        ),
+                        "content-type",
                     ),
                     default: None,
                     rename: Some(
-                        DynamicString(
-                            "kekw-type",
-                        ),
+                        "kekw-type",
                     ),
                 },
             ),
         ]
-        "###);
+        "#);
     }
 
     #[test]
@@ -1533,13 +1561,13 @@ mod tests {
 
         let error = toml::from_str::<Config>(input).unwrap_err();
 
-        insta::assert_snapshot!(&error.to_string(), @r###"
+        insta::assert_snapshot!(&error.to_string(), @r#"
         TOML parse error at line 1, column 1
           |
         1 | [[headers]]
           | ^^^^^^^^^^^
-        the byte at index 0 is not ASCII
-        "###);
+        invalid value: string "🎠", expected an ascii string
+        "#);
     }
 
     #[test]
@@ -1553,20 +1581,16 @@ mod tests {
 
         let result: Config = toml::from_str(input).unwrap();
 
-        insta::assert_debug_snapshot!(&result.headers, @r###"
+        insta::assert_debug_snapshot!(&result.headers, @r#"
         [
             Insert(
                 HeaderInsert {
-                    name: DynamicString(
-                        "content-type",
-                    ),
-                    value: DynamicString(
-                        "application/json",
-                    ),
+                    name: "content-type",
+                    value: "application/json",
                 },
             ),
         ]
-        "###);
+        "#);
     }
 
     #[test]
@@ -1581,20 +1605,16 @@ mod tests {
 
             let result: Config = toml::from_str(input).unwrap();
 
-            insta::assert_debug_snapshot!(&result.headers, @r###"
+            insta::assert_debug_snapshot!(&result.headers, @r#"
             [
                 Insert(
                     HeaderInsert {
-                        name: DynamicString(
-                            "content-type",
-                        ),
-                        value: DynamicString(
-                            "application/json",
-                        ),
+                        name: "content-type",
+                        value: "{{ env.CONTENT_TYPE }}",
                     },
                 ),
             ]
-            "###);
+            "#);
         })
     }
 
@@ -1609,13 +1629,13 @@ mod tests {
 
         let error = toml::from_str::<Config>(input).unwrap_err();
 
-        insta::assert_snapshot!(&error.to_string(), @r###"
+        insta::assert_snapshot!(&error.to_string(), @r#"
         TOML parse error at line 1, column 1
           |
         1 | [[headers]]
           | ^^^^^^^^^^^
-        the byte at index 12 is not ASCII
-        "###);
+        invalid value: string "content-type🎠", expected an ascii string
+        "#);
     }
 
     #[test]
@@ -1629,13 +1649,13 @@ mod tests {
 
         let error = toml::from_str::<Config>(input).unwrap_err();
 
-        insta::assert_snapshot!(&error.to_string(), @r###"
+        insta::assert_snapshot!(&error.to_string(), @r#"
         TOML parse error at line 1, column 1
           |
         1 | [[headers]]
           | ^^^^^^^^^^^
-        the byte at index 16 is not ASCII
-        "###);
+        invalid value: string "application/json🎠", expected an ascii string
+        "#);
     }
 
     #[test]
@@ -1648,19 +1668,17 @@ mod tests {
 
         let result: Config = toml::from_str(input).unwrap();
 
-        insta::assert_debug_snapshot!(&result.headers, @r###"
+        insta::assert_debug_snapshot!(&result.headers, @r#"
         [
             Remove(
                 HeaderRemove {
                     name: Name(
-                        DynamicString(
-                            "content-type",
-                        ),
+                        "content-type",
                     ),
                 },
             ),
         ]
-        "###);
+        "#);
     }
 
     #[test]
@@ -1673,13 +1691,13 @@ mod tests {
 
         let error = toml::from_str::<Config>(input).unwrap_err();
 
-        insta::assert_snapshot!(&error.to_string(), @r###"
+        insta::assert_snapshot!(&error.to_string(), @r#"
         TOML parse error at line 1, column 1
           |
         1 | [[headers]]
           | ^^^^^^^^^^^
-        the byte at index 12 is not ASCII
-        "###);
+        invalid value: string "content-type🎠", expected an ascii string
+        "#);
     }
 
     #[test]
@@ -1700,9 +1718,7 @@ mod tests {
                     Forward(
                         HeaderForward {
                             name: Name(
-                                DynamicString(
-                                    "content-type",
-                                ),
+                                "content-type",
                             ),
                             default: None,
                             rename: None,

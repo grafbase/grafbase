@@ -2,7 +2,6 @@ use std::str::FromStr;
 
 use ascii::AsciiString;
 use serde::Deserialize;
-use serde_dynamic_string::DynamicString;
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(default, deny_unknown_fields)]
@@ -22,7 +21,7 @@ impl Default for ResponseExtensionExporterConfig {
             trace_id: true,
             query_plan: true,
             access_control: vec![AccessControl::Header(HeaderAccessControl {
-                name: DynamicString::from(AsciiString::from_str("x-grafbase-telemetry").unwrap()),
+                name: AsciiString::from_str("x-grafbase-telemetry").unwrap(),
                 value: None,
             })],
         }
@@ -42,7 +41,7 @@ pub enum AccessControl {
 #[serde(deny_unknown_fields)]
 pub struct HeaderAccessControl {
     /// Name of the header that must be present.
-    pub name: DynamicString<AsciiString>,
+    pub name: AsciiString,
     /// Expected value of the header. If not provided any value will be accepted.
-    pub value: Option<DynamicString<AsciiString>>,
+    pub value: Option<AsciiString>,
 }

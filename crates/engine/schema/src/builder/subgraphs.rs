@@ -142,11 +142,11 @@ fn ingest_header_rules(
                     NameOrPattern::Pattern(regex) => {
                         NameOrPatternId::Pattern(interners.regexps.get_or_insert(regex.clone()))
                     }
-                    NameOrPattern::Name(name) => NameOrPatternId::Name(interners.strings.get_or_new(name.as_ref())),
+                    NameOrPattern::Name(name) => NameOrPatternId::Name(interners.strings.get_or_new(name.as_str())),
                 };
 
-                let default_id = rule.default.as_ref().map(|s| interners.strings.get_or_new(s.as_ref()));
-                let rename_id = rule.rename.as_ref().map(|s| interners.strings.get_or_new(s.as_ref()));
+                let default_id = rule.default.as_ref().map(|s| interners.strings.get_or_new(s.as_str()));
+                let rename_id = rule.rename.as_ref().map(|s| interners.strings.get_or_new(s.as_str()));
 
                 HeaderRuleRecord::Forward(ForwardHeaderRuleRecord {
                     name_id,
@@ -155,8 +155,8 @@ fn ingest_header_rules(
                 })
             }
             HeaderRule::Insert(rule) => {
-                let name_id = interners.strings.get_or_new(rule.name.as_ref());
-                let value_id = interners.strings.get_or_new(rule.value.as_ref());
+                let name_id = interners.strings.get_or_new(rule.name.as_str());
+                let value_id = interners.strings.get_or_new(rule.value.as_str());
 
                 HeaderRuleRecord::Insert(InsertHeaderRuleRecord { name_id, value_id })
             }
@@ -165,18 +165,18 @@ fn ingest_header_rules(
                     NameOrPattern::Pattern(regex) => {
                         NameOrPatternId::Pattern(interners.regexps.get_or_insert(regex.clone()))
                     }
-                    NameOrPattern::Name(name) => NameOrPatternId::Name(interners.strings.get_or_new(name.as_ref())),
+                    NameOrPattern::Name(name) => NameOrPatternId::Name(interners.strings.get_or_new(name.as_str())),
                 };
 
                 HeaderRuleRecord::Remove(RemoveHeaderRuleRecord { name_id })
             }
             HeaderRule::RenameDuplicate(rule) => HeaderRuleRecord::RenameDuplicate(RenameDuplicateHeaderRuleRecord {
-                name_id: interners.strings.get_or_new(rule.name.as_ref()),
+                name_id: interners.strings.get_or_new(rule.name.as_str()),
                 default_id: rule
                     .default
                     .as_ref()
-                    .map(|default| interners.strings.get_or_new(default.as_ref())),
-                rename_id: interners.strings.get_or_new(rule.rename.as_ref()),
+                    .map(|default| interners.strings.get_or_new(default.as_str())),
+                rename_id: interners.strings.get_or_new(rule.rename.as_str()),
             }),
         }
     }));
