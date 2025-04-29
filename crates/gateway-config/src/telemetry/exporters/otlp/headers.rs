@@ -3,21 +3,20 @@ use serde::{
     Deserialize, Deserializer,
     de::{MapAccess, Visitor},
 };
-use serde_dynamic_string::DynamicString;
-use std::{collections::HashMap, fmt::Formatter, str::FromStr};
+use std::{collections::HashMap, fmt::Formatter};
 
 /// List of headers to be sent on export requests
 #[derive(Debug, Clone, PartialEq, Default)]
-pub struct Headers(pub(crate) Vec<(AsciiString, DynamicString<AsciiString>)>);
+pub struct Headers(pub(crate) Vec<(AsciiString, AsciiString)>);
 
 impl Headers {
     /// Consume self and return the inner list
-    pub fn into_inner(self) -> Vec<(AsciiString, DynamicString<AsciiString>)> {
+    pub fn into_inner(self) -> Vec<(AsciiString, AsciiString)> {
         self.0
     }
 
     /// Gets the headers as a referenced slice
-    pub fn inner(&self) -> &[(AsciiString, DynamicString<AsciiString>)] {
+    pub fn inner(&self) -> &[(AsciiString, AsciiString)] {
         &self.0
     }
 
@@ -39,7 +38,7 @@ impl Headers {
 }
 
 impl IntoIterator for Headers {
-    type Item = (AsciiString, DynamicString<AsciiString>);
+    type Item = (AsciiString, AsciiString);
     type IntoIter = std::vec::IntoIter<Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -49,7 +48,7 @@ impl IntoIterator for Headers {
 
 impl From<Vec<(AsciiString, AsciiString)>> for Headers {
     fn from(headers: Vec<(AsciiString, AsciiString)>) -> Self {
-        Self(headers.into_iter().map(|(k, v)| (k, DynamicString::from(v))).collect())
+        Self(headers)
     }
 }
 
@@ -80,7 +79,7 @@ impl<'de> Visitor<'de> for HeaderMapVisitor {
             let header_name = AsciiString::from_ascii(key).map_err(|err| serde::de::Error::custom(err.to_string()))?;
 
             let header_value =
-                DynamicString::from_str(&value).map_err(|err| serde::de::Error::custom(err.to_string()))?;
+                AsciiString::from_ascii(value).map_err(|err| serde::de::Error::custom(err.to_string()))?;
 
             headers.push((header_name, header_value));
         }

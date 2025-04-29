@@ -2,8 +2,6 @@ use ascii::AsciiString;
 use regex::Regex;
 use serde::Deserialize;
 
-use serde_dynamic_string::DynamicString;
-
 /// A header name can be provided either as a regex or as a static name.
 #[derive(Deserialize, Debug, Clone)]
 pub enum NameOrPattern {
@@ -12,7 +10,7 @@ pub enum NameOrPattern {
     Pattern(Regex),
     /// A static single name.
     #[serde(rename = "name")]
-    Name(DynamicString<AsciiString>),
+    Name(AsciiString),
 }
 
 /// Defines a header rule, executed in order before anything else in the engine.
@@ -38,11 +36,11 @@ pub enum HeaderRule {
 #[serde(deny_unknown_fields)]
 pub struct RenameDuplicate {
     /// Name or pattern of the header to be forwarded.
-    pub name: DynamicString<AsciiString>,
+    pub name: AsciiString,
     /// If header is not present, insert this value.
-    pub default: Option<DynamicString<AsciiString>>,
+    pub default: Option<AsciiString>,
     /// Use this name instead of the original when forwarding.
-    pub rename: DynamicString<AsciiString>,
+    pub rename: AsciiString,
 }
 
 /// Header forwarding rules.
@@ -53,9 +51,9 @@ pub struct HeaderForward {
     #[serde(flatten)]
     pub name: NameOrPattern,
     /// If header is not present, insert this value.
-    pub default: Option<DynamicString<AsciiString>>,
+    pub default: Option<AsciiString>,
     /// Use this name instead of the original when forwarding.
-    pub rename: Option<DynamicString<AsciiString>>,
+    pub rename: Option<AsciiString>,
 }
 
 /// Header insertion rules.
@@ -63,9 +61,9 @@ pub struct HeaderForward {
 #[serde(deny_unknown_fields)]
 pub struct HeaderInsert {
     /// The name of the header.
-    pub name: DynamicString<AsciiString>,
+    pub name: AsciiString,
     /// The value of the header.
-    pub value: DynamicString<AsciiString>,
+    pub value: AsciiString,
 }
 
 /// Header removal rules

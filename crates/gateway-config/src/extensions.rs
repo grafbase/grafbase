@@ -1,7 +1,4 @@
-use std::{
-    path::{Path, PathBuf},
-    str::FromStr as _,
-};
+use std::path::{Path, PathBuf};
 
 use semver::VersionReq;
 use serde::{Deserialize, Deserializer};
@@ -59,47 +56,7 @@ pub struct StructuredExtensionConfig {
     pub stderr: Option<bool>,
     pub environment_variables: Option<bool>,
     pub max_pool_size: Option<usize>,
-    #[serde(deserialize_with = "deserialize_extension_custom_config")]
     pub config: Option<toml::Value>,
-}
-
-fn deserialize_extension_custom_config<'de, D>(deserializer: D) -> Result<Option<toml::Value>, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    let mut value = Option::<toml::Value>::deserialize(deserializer)?;
-
-    fn expand_dynamic_strings(value: &mut toml::Value) -> Result<(), String> {
-        match value {
-            toml::Value::String(s) => {
-                let substituted = serde_dynamic_string::DynamicString::<String>::from_str(s)?;
-                *s = substituted.into_inner();
-            }
-            toml::Value::Array(values) => {
-                for value in values {
-                    expand_dynamic_strings(value)?;
-                }
-            }
-            toml::Value::Table(map) => {
-                for (_, value) in map {
-                    expand_dynamic_strings(value)?;
-                }
-            }
-            toml::Value::Integer(_) | toml::Value::Float(_) | toml::Value::Boolean(_) | toml::Value::Datetime(_) => (),
-        }
-
-        Ok(())
-    }
-
-    if let Some(value) = &mut value {
-        expand_dynamic_strings(value).map_err(|err| {
-            serde::de::Error::custom(format!(
-                "Error expanding dynamic strings in extension configuration: {err}"
-            ))
-        })?;
-    }
-
-    Ok(value)
 }
 
 impl Default for StructuredExtensionConfig {
@@ -182,24 +139,20 @@ mod tests {
     #[test]
     fn dynamic_string_expansion_in_extension_config_missing_env_var() {
         let toml = r#"
+            [extensions.dummy]
             version = "1.0"
 
-            [config.test]
+            [extensions.dummy.config.test]
             key = "value"
             key_from_env = "{{ env.test }}"
         "#;
 
-        let err = toml::from_str::<StructuredExtensionConfig>(toml)
-            .unwrap_err()
-            .to_string();
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("config.toml");
+        std::fs::write(&path, toml).unwrap();
+        let err = crate::Config::load(&path).unwrap_err().to_string();
 
-        insta::assert_snapshot!(err, @r#"
-        TOML parse error at line 4, column 14
-          |
-        4 |             [config.test]
-          |              ^^^^^^
-        Error expanding dynamic strings in extension configuration: environment variable not found: `test`
-        "#);
+        insta::assert_snapshot!(err, @"At extensions.dummy.config.test.key_from_env, failed substituing environment variable: environment variable not found: `test`");
     }
 
     #[test]

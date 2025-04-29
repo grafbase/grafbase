@@ -529,9 +529,7 @@ mod tests {
                                 [
                                     (
                                         "header1",
-                                        DynamicString(
-                                            "header1",
-                                        ),
+                                        "header1",
                                     ),
                                 ],
                             ),
@@ -543,9 +541,7 @@ mod tests {
                                 [
                                     (
                                         "header1",
-                                        DynamicString(
-                                            "header1",
-                                        ),
+                                        "header1",
                                     ),
                                 ],
                             ),
@@ -743,9 +739,7 @@ mod tests {
                                 [
                                     (
                                         "header1",
-                                        DynamicString(
-                                            "header1",
-                                        ),
+                                        "header1",
                                     ),
                                 ],
                             ),
@@ -757,9 +751,7 @@ mod tests {
                                 [
                                     (
                                         "header1",
-                                        DynamicString(
-                                            "header1",
-                                        ),
+                                        "header1",
                                     ),
                                 ],
                             ),
@@ -825,9 +817,7 @@ mod tests {
                                 [
                                     (
                                         "header1",
-                                        DynamicString(
-                                            "header1",
-                                        ),
+                                        "header1",
                                     ),
                                 ],
                             ),
@@ -839,9 +829,7 @@ mod tests {
                                 [
                                     (
                                         "header1",
-                                        DynamicString(
-                                            "header1",
-                                        ),
+                                        "header1",
                                     ),
                                 ],
                             ),
@@ -1032,9 +1020,7 @@ mod tests {
                                 [
                                     (
                                         "header1",
-                                        DynamicString(
-                                            "header1",
-                                        ),
+                                        "header1",
                                     ),
                                 ],
                             ),
@@ -1046,9 +1032,7 @@ mod tests {
                                 [
                                     (
                                         "header1",
-                                        DynamicString(
-                                            "header1",
-                                        ),
+                                        "header1",
                                     ),
                                 ],
                             ),
@@ -1244,9 +1228,7 @@ mod tests {
                                 [
                                     (
                                         "header1",
-                                        DynamicString(
-                                            "header1",
-                                        ),
+                                        "header1",
                                     ),
                                 ],
                             ),
@@ -1258,9 +1240,7 @@ mod tests {
                                 [
                                     (
                                         "header1",
-                                        DynamicString(
-                                            "header1",
-                                        ),
+                                        "header1",
                                     ),
                                 ],
                             ),
@@ -1326,9 +1306,7 @@ mod tests {
                                 [
                                     (
                                         "header1",
-                                        DynamicString(
-                                            "header1",
-                                        ),
+                                        "header1",
                                     ),
                                 ],
                             ),
@@ -1340,9 +1318,7 @@ mod tests {
                                 [
                                     (
                                         "header1",
-                                        DynamicString(
-                                            "header1",
-                                        ),
+                                        "header1",
                                     ),
                                 ],
                             ),
@@ -1534,9 +1510,7 @@ mod tests {
                                 [
                                     (
                                         "header1",
-                                        DynamicString(
-                                            "header1",
-                                        ),
+                                        "header1",
                                     ),
                                 ],
                             ),
@@ -1548,9 +1522,7 @@ mod tests {
                                 [
                                     (
                                         "header1",
-                                        DynamicString(
-                                            "header1",
-                                        ),
+                                        "header1",
                                     ),
                                 ],
                             ),
@@ -1746,9 +1718,7 @@ mod tests {
                                 [
                                     (
                                         "header1",
-                                        DynamicString(
-                                            "header1",
-                                        ),
+                                        "header1",
                                     ),
                                 ],
                             ),
@@ -1760,9 +1730,7 @@ mod tests {
                                 [
                                     (
                                         "header1",
-                                        DynamicString(
-                                            "header1",
-                                        ),
+                                        "header1",
                                     ),
                                 ],
                             ),
@@ -1828,9 +1796,7 @@ mod tests {
                                 [
                                     (
                                         "header1",
-                                        DynamicString(
-                                            "header1",
-                                        ),
+                                        "header1",
                                     ),
                                 ],
                             ),
@@ -1842,9 +1808,7 @@ mod tests {
                                 [
                                     (
                                         "header1",
-                                        DynamicString(
-                                            "header1",
-                                        ),
+                                        "header1",
                                     ),
                                 ],
                             ),
