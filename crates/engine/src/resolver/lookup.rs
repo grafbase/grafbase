@@ -57,7 +57,7 @@ impl LookupResolver {
         &'ctx self,
         ctx: ExecutionContext<'ctx, R>,
         plan: Plan<'ctx>,
-        root_response_objects: ParentObjectsView<'_>,
+        parent_objects_view: ParentObjectsView<'_>,
         subgraph_response: ResponsePartBuilder<'ctx>,
     ) -> BoxFuture<'f, ResolverResult<'ctx, <R::Hooks as Hooks>::OnSubgraphResponseOutput>>
     where
@@ -66,11 +66,11 @@ impl LookupResolver {
         match &self.proxied {
             LookupProxiedResolver::Graphql(_) => unimplemented!("GB-8942"),
             LookupProxiedResolver::SelectionSetResolverExtension(resolver) => {
-                let fut = resolver.execute_batch_lookup(ctx, plan, root_response_objects, subgraph_response);
+                let fut = resolver.execute_batch_lookup(ctx, plan, parent_objects_view, subgraph_response);
                 async move {
-                    let result = fut.await;
+                    let response_part = fut.await;
                     ResolverResult {
-                        execution: result,
+                        execution: Ok(response_part),
                         on_subgraph_response_hook_output: None,
                     }
                 }

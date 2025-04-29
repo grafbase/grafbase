@@ -111,74 +111,85 @@ impl<'ctx> ResponseBuilder<'ctx> {
         }
     }
 
-    pub fn ingest(&mut self, plan: Plan<'ctx>, response_part: ResponsePartBuilder<'ctx>) -> OutputResponseObjectSets {
-        self.data_parts.insert(response_part.data);
+    pub fn ingest(&mut self, plan: Plan<'ctx>, part: ResponsePartBuilder<'ctx>) -> OutputResponseObjectSets {
+        self.data_parts.insert(part.data);
 
-        let (any_response_key, default_fields_sorted_by_key) =
-            self.extract_any_response_key_and_default_fields_sorted_by_key(plan);
-        for (update, obj_ref) in response_part
-            .updates
-            .into_iter()
-            .zip(response_part.parent_objects.iter())
-        {
+        if let Some(update) = part.common_update {
             match update {
-                ObjectUpdate::Missing => {
-                    if let Some(any_response_key) = any_response_key {
-                        if !response_part
-                            .subgraph_errors
-                            .iter()
-                            .any(|subgraph_error| self.sugraph_error_matches_current_object(subgraph_error, obj_ref))
-                        {
-                            tracing::error!("Missing data from subgraph.");
-                            self.errors.push(
-                                GraphqlError::invalid_subgraph_response().with_path((&obj_ref.path, any_response_key)),
-                            );
-                        }
-                        if let Some(default_fields_sorted_by_key) = &default_fields_sorted_by_key {
-                            self.recursive_merge_with_default_object(obj_ref.id, default_fields_sorted_by_key);
-                        } else {
-                            self.propagate_null(&obj_ref.path);
-                        }
+                CommonUpdate::PropagateNull => {
+                    for parent_object in part.parent_objects.iter() {
+                        self.propagate_null(&parent_object.path);
                     }
                 }
-                ObjectUpdate::Fields(mut fields) => {
-                    fields.sort_unstable_by(|a, b| a.key.cmp(&b.key));
-                    self.recursive_merge_shared_object(obj_ref.id, fields);
-                }
-                ObjectUpdate::Error(error) => {
-                    if let Some(any_response_key) = any_response_key {
-                        self.errors.push(error.with_path((&obj_ref.path, any_response_key)));
-                        if let Some(default_fields_sorted_by_key) = &default_fields_sorted_by_key {
-                            self.recursive_merge_with_default_object(obj_ref.id, default_fields_sorted_by_key);
-                        } else {
-                            self.propagate_null(&obj_ref.path);
-                        }
+                CommonUpdate::DefaultFields(response_object_fields) => {
+                    for parent_object in part.parent_objects.iter() {
+                        self.recursive_merge_with_default_object(parent_object.id, &response_object_fields);
                     }
                 }
-                ObjectUpdate::PropagateNullWithoutError => {
-                    if any_response_key.is_some() {
-                        if let Some(default_fields_sorted_by_key) = &default_fields_sorted_by_key {
-                            self.recursive_merge_with_default_object(obj_ref.id, default_fields_sorted_by_key);
-                        } else {
-                            self.propagate_null(&obj_ref.path);
+                CommonUpdate::Skip => {}
+            }
+        } else {
+            let (any_response_key, default_fields_sorted_by_key) =
+                self.extract_any_response_key_and_default_fields_sorted_by_key(plan);
+            for (update, obj_ref) in part.updates.into_iter().zip(part.parent_objects.iter()) {
+                match update {
+                    ObjectUpdate::Missing => {
+                        if let Some(any_response_key) = any_response_key {
+                            if !part.subgraph_errors.iter().any(|subgraph_error| {
+                                self.sugraph_error_matches_current_object(subgraph_error, obj_ref)
+                            }) {
+                                tracing::error!("Missing data from subgraph.");
+                                self.errors.push(
+                                    GraphqlError::invalid_subgraph_response()
+                                        .with_path((&obj_ref.path, any_response_key)),
+                                );
+                            }
+                            if let Some(default_fields_sorted_by_key) = &default_fields_sorted_by_key {
+                                self.recursive_merge_with_default_object(obj_ref.id, default_fields_sorted_by_key);
+                            } else {
+                                self.propagate_null(&obj_ref.path);
+                            }
+                        }
+                    }
+                    ObjectUpdate::Fields(mut fields) => {
+                        fields.sort_unstable_by(|a, b| a.key.cmp(&b.key));
+                        self.recursive_merge_shared_object(obj_ref.id, fields);
+                    }
+                    ObjectUpdate::Error(error) => {
+                        if let Some(any_response_key) = any_response_key {
+                            self.errors.push(error.with_path((&obj_ref.path, any_response_key)));
+                            if let Some(default_fields_sorted_by_key) = &default_fields_sorted_by_key {
+                                self.recursive_merge_with_default_object(obj_ref.id, default_fields_sorted_by_key);
+                            } else {
+                                self.propagate_null(&obj_ref.path);
+                            }
+                        }
+                    }
+                    ObjectUpdate::PropagateNullWithoutError => {
+                        if any_response_key.is_some() {
+                            if let Some(default_fields_sorted_by_key) = &default_fields_sorted_by_key {
+                                self.recursive_merge_with_default_object(obj_ref.id, default_fields_sorted_by_key);
+                            } else {
+                                self.propagate_null(&obj_ref.path);
+                            }
                         }
                     }
                 }
             }
         }
-        for err in response_part.subgraph_errors {
+        for err in part.subgraph_errors {
             self.errors.push(err);
         }
-        self.error_parts.push(response_part.errors);
-        if response_part.propagated_null_up_to_root {
+        self.error_parts.push(part.errors);
+        if part.propagated_null_up_to_root {
             self.root = None;
         } else {
-            for path in response_part.propagated_null_up_to_paths {
+            for path in part.propagated_null_up_to_paths {
                 self.propagate_null(&path);
             }
         }
 
-        let (ids, sets) = response_part.object_sets.into_iter().unzip();
+        let (ids, sets) = part.object_sets.into_iter().unzip();
         OutputResponseObjectSets { ids, sets }
     }
 
@@ -226,14 +237,14 @@ impl<'ctx> ResponseBuilder<'ctx> {
             .filter(|field| field.key.query_position.is_some())
             .map(|field| field.key)
             .min()
-            .or_else(|| shape.typename_response_keys.iter().min().copied());
+            .or_else(|| shape.typename_shapes().map(|shape| shape.key).next());
 
         let mut fields = Vec::new();
-        if !shape.typename_response_keys.is_empty() {
+        if !shape.typename_shape_ids.is_empty() {
             if let ObjectIdentifier::Known(object_id) = shape.identifier {
                 let name: ResponseValue = object_id.walk(self.schema.as_ref()).as_ref().name_id.into();
-                fields.extend(shape.typename_response_keys.iter().map(|&key| ResponseObjectField {
-                    key,
+                fields.extend(shape.typename_shapes().map(|shape| ResponseObjectField {
+                    key: shape.key,
                     value: name.clone(),
                 }))
             } else {

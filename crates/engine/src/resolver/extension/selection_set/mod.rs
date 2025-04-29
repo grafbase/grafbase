@@ -13,12 +13,12 @@ use crate::{
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct SelectionSetResolverExtension {
     pub definition: SelectionSetResolverExtensionDefinitionRecord,
-    prepared: Vec<PreparedField>,
+    prepared_fields: Vec<PreparedField>,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 struct PreparedField {
-    field_id: DataOrLookupFieldId,
+    id: DataOrLookupFieldId,
     extension_data: Vec<u8>,
     arguments: Vec<(runtime::extension::ArgumentsId, IdRange<PartitionFieldArgumentId>)>,
 }
@@ -59,7 +59,7 @@ impl SelectionSetResolverExtension {
                 }
 
                 PlanResult::Ok(PreparedField {
-                    field_id: field.id,
+                    id: field.id,
                     extension_data: prepared_data,
                     arguments,
                 })
@@ -70,7 +70,7 @@ impl SelectionSetResolverExtension {
 
         Ok(Self {
             definition: *definition,
-            prepared,
+            prepared_fields: prepared,
         })
     }
 }

@@ -51,7 +51,7 @@ impl<'ctx> EntitySeed<'ctx> {
         Self {
             ctx: Rc::new(SeedContext {
                 schema,
-                prepared_operation,
+                operation: prepared_operation,
                 response,
                 bubbling_up_serde_error: Cell::new(false),
                 path,
@@ -109,7 +109,7 @@ impl<'de> DeserializeSeed<'de> for EntitySeed<'_> {
                 }
             }
         };
-        ctx.response.borrow_mut().insert_update(id, update);
+        ctx.response.borrow_mut().insert(id, update);
 
         Ok(())
     }

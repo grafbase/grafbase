@@ -127,11 +127,11 @@ impl Resolver {
                 .boxed()
             }
             Resolver::SelectionSetResolverExtension(prepared) => {
-                let input_object_refs = parent_objects_view.into_parent_objects();
+                let parent_objects = parent_objects_view.into_parent_objects();
                 async move {
-                    let result = prepared.execute(ctx, plan, input_object_refs, response_part).await;
+                    let response_part = prepared.execute(ctx, plan, parent_objects, response_part).await;
                     ResolverResult {
-                        execution: result,
+                        execution: Ok(response_part),
                         on_subgraph_response_hook_output: None,
                     }
                 }

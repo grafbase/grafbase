@@ -9,7 +9,7 @@ use walker::Walk;
 
 use crate::{
     Runtime,
-    execution::{ExecutionContext, ExecutionResult},
+    execution::ExecutionContext,
     prepare::Plan,
     response::{ParentObjects, ParentObjectsView, ResponsePartBuilder},
 };
@@ -21,15 +21,20 @@ impl super::SelectionSetResolverExtension {
         plan: Plan<'ctx>,
         parent_objects: Arc<ParentObjects>,
         response_part: ResponsePartBuilder<'ctx>,
-    ) -> ExecutionResult<ResponsePartBuilder<'ctx>> {
+    ) -> ResponsePartBuilder<'ctx> {
+        debug_assert!(parent_objects.len() == 1);
+        let Some(root_object_id) = parent_objects.ids().next() else {
+            return response_part;
+        };
+
         let definition = self.definition.walk(&ctx);
         let subgraph_headers = ctx.subgraph_headers_with_rules(definition.subgraph().header_rules());
 
         let mut results = self
-            .prepared
+            .prepared_fields
             .iter()
             .map(|prepared| async {
-                let field = plan.get_field(prepared.field_id);
+                let field = plan.get_field(prepared.id);
                 let result = ctx
                     .runtime()
                     .extensions()
@@ -54,8 +59,6 @@ impl super::SelectionSetResolverExtension {
             .collect::<Vec<_>>()
             .await;
 
-        let root_object_id = parent_objects.ids().next().ok_or("No object to update")?;
-
         tracing::debug!(
             "Received:\n{}",
             results
@@ -77,28 +80,25 @@ impl super::SelectionSetResolverExtension {
         );
 
         let part = response_part.into_shared();
-        part.seed(plan.shape_id(), root_object_id)
+        if let Err(err) = part
+            .seed(plan.shape_id(), root_object_id)
             .deserialize_from_fields(&mut results)
-            .map_err(|err| {
-                tracing::error!("Failed to deserialize subgraph response: {}", err);
-                let field_id = self.prepared.first().unwrap().field_id;
-                let field = plan.get_field(field_id);
+        {
+            tracing::error!("Failed to deserialize subgraph response: {}", err);
+            part.borrow_mut()
+                .insert_subgraph_failure(plan.shape_id(), GraphqlError::invalid_subgraph_response());
+        }
 
-                GraphqlError::invalid_subgraph_response()
-                    .with_location(field.location())
-                    .with_path(&parent_objects[root_object_id].path)
-            })?;
-
-        Ok(part.unshare().unwrap())
+        part.unshare().unwrap()
     }
 
     pub(in crate::resolver) fn execute_batch_lookup<'ctx, 'f, R: Runtime>(
         &'ctx self,
         ctx: ExecutionContext<'ctx, R>,
         plan: Plan<'ctx>,
-        root_response_objects: ParentObjectsView<'_>,
+        parent_objects_view: ParentObjectsView<'_>,
         response_part: ResponsePartBuilder<'ctx>,
-    ) -> impl Future<Output = ExecutionResult<ResponsePartBuilder<'ctx>>> + Send + 'f
+    ) -> impl Future<Output = ResponsePartBuilder<'ctx>> + Send + 'f
     where
         'ctx: 'f,
     {
@@ -106,10 +106,10 @@ impl super::SelectionSetResolverExtension {
         let subgraph_headers = ctx.subgraph_headers_with_rules(definition.subgraph().header_rules());
 
         let futures = self
-            .prepared
+            .prepared_fields
             .iter()
             .map(|prepared| {
-                let field = plan.get_field(prepared.field_id);
+                let field = plan.get_field(prepared.id);
                 ctx.runtime()
                     .extensions()
                     .resolve_query_or_mutation_field(
@@ -123,7 +123,7 @@ impl super::SelectionSetResolverExtension {
                                 *id,
                                 argument_ids
                                     .walk(&ctx)
-                                    .batch_view(ctx.variables(), root_response_objects.clone()),
+                                    .batch_view(ctx.variables(), parent_objects_view.clone()),
                             )
                         }),
                     )
@@ -162,7 +162,7 @@ impl super::SelectionSetResolverExtension {
                 part.batch_seed(shape_id).ingest(result)
             }
 
-            Ok(part.unshare().unwrap())
+            part.unshare().unwrap()
         }
     }
 }

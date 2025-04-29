@@ -11,7 +11,7 @@ use walker::{Iter, Walk};
 use crate::{
     Runtime,
     execution::ExecutionContext,
-    prepare::{ConcreteShapeId, FieldShapeRecord, Plan, Shapes},
+    prepare::{ConcreteShapeId, FieldShapeRecord, Plan, Shapes, TypenameShapeRecord},
     response::{
         ObjectUpdate, ParentObjectId, ResponseObject, ResponseObjectField, ResponseValue, SharedResponsePartBuilder,
     },
@@ -29,8 +29,8 @@ pub(super) struct IntrospectionWriter<'ctx, R: Runtime> {
 
 impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
     pub(super) fn write(self, id: ConcreteShapeId) {
-        let shape = &self.ctx.shapes()[id];
-        let mut fields = Vec::with_capacity(shape.field_shape_ids.len() + shape.typename_response_keys.len());
+        let shape = &self.shapes[id];
+        let mut fields = Vec::with_capacity(shape.field_shape_ids.len() + shape.typename_shape_ids.len());
         for field_shape in &self.shapes[shape.field_shape_ids] {
             let field = field_shape.id.as_data().unwrap().walk(&self.ctx);
             let arguments = field.arguments();
@@ -55,21 +55,21 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                 }
             };
         }
-        if !shape.typename_response_keys.is_empty() {
+        if !shape.typename_shape_ids.is_empty() {
             let name_id = match self.plan.entity_definition() {
                 EntityDefinition::Object(object) => object.name_id,
                 EntityDefinition::Interface(interface) => interface.name_id,
             };
-            for edge in &shape.typename_response_keys {
+            for TypenameShapeRecord { key, .. } in &self.shapes[shape.typename_shape_ids] {
                 fields.push(ResponseObjectField {
-                    key: *edge,
+                    key: *key,
                     value: name_id.into(),
                 });
             }
         }
         self.response
             .borrow_mut()
-            .insert_update(self.parent_object_id, ObjectUpdate::Fields(fields));
+            .insert(self.parent_object_id, ObjectUpdate::Fields(fields));
     }
 
     fn object<E: Copy, const N: usize>(
@@ -79,7 +79,7 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
         build: impl Fn(&'ctx FieldShapeRecord, E) -> ResponseValue,
     ) -> ResponseValue {
         let shape = &self.shapes[shape_id];
-        let mut fields = Vec::with_capacity(shape.field_shape_ids.len() + shape.typename_response_keys.len());
+        let mut fields = Vec::with_capacity(shape.field_shape_ids.len() + shape.typename_shape_ids.len());
         for id in shape.field_shape_ids {
             let field = &self.shapes[id];
             fields.push(ResponseObjectField {
@@ -87,11 +87,11 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                 value: build(field, object[field.id.as_data().unwrap().walk(&self.ctx).definition_id]),
             });
         }
-        if !shape.typename_response_keys.is_empty() {
+        if !shape.typename_shape_ids.is_empty() {
             let name = self.schema.walk(object.id).as_ref().name_id;
-            for edge in &shape.typename_response_keys {
+            for TypenameShapeRecord { key, .. } in &self.shapes[shape.typename_shape_ids] {
                 fields.push(ResponseObjectField {
-                    key: *edge,
+                    key: *key,
                     value: name.into(),
                 });
             }

@@ -16,44 +16,44 @@ pub(crate) struct SubgraphField<'a> {
 
 #[allow(unused)]
 impl<'a> SubgraphField<'a> {
-    #[allow(clippy::should_implement_trait)]
-    fn inner(&self) -> DataOrLookupField<'a> {
+    pub fn as_data_or_lookup_field(&self) -> DataOrLookupField<'a> {
         self.id.walk(self.ctx)
     }
+
     pub fn subgraph_response_key_str(&self) -> &'a str {
-        let field = self.inner();
+        let field = self.as_data_or_lookup_field();
         let key = field.subgraph_key();
         &self.ctx.cached.operation.response_keys[key]
     }
 
     pub fn query_position(&self) -> Option<QueryPosition> {
-        match self.inner() {
+        match self.as_data_or_lookup_field() {
             DataOrLookupField::Data(field) => field.query_position,
             DataOrLookupField::Lookup(field) => None,
         }
     }
 
     pub fn location(&self) -> Location {
-        self.inner().location()
+        self.as_data_or_lookup_field().location()
     }
 
     pub fn definition(&self) -> FieldDefinition<'a> {
-        self.inner().definition()
+        self.as_data_or_lookup_field().definition()
     }
 
     pub fn argument_ids(&self) -> IdRange<PartitionFieldArgumentId> {
-        match self.inner() {
+        match self.as_data_or_lookup_field() {
             DataOrLookupField::Data(field) => field.argument_ids,
             DataOrLookupField::Lookup(field) => field.argument_ids,
         }
     }
 
     pub fn arguments(&self) -> PlanFieldArguments<'a> {
-        self.inner().arguments()
+        self.as_data_or_lookup_field().arguments()
     }
 
     pub fn selection_set(&self) -> SubgraphSelectionSet<'a> {
-        match self.inner() {
+        match self.as_data_or_lookup_field() {
             DataOrLookupField::Data(field) => SubgraphSelectionSet {
                 ctx: self.ctx,
                 item: field.selection_set_record,
@@ -97,7 +97,7 @@ impl<'a> runtime::extension::Field<'a> for SubgraphField<'a> {
     }
 
     fn arguments(&self) -> Option<runtime::extension::ArgumentsId> {
-        if self.inner().arguments().len() == 0 {
+        if self.as_data_or_lookup_field().arguments().len() == 0 {
             None
         } else {
             Some(runtime::extension::ArgumentsId(self.id.into()))
