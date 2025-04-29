@@ -1,7 +1,7 @@
 use super::*;
 
 macro_rules! make_ids {
-    ($($($path:ident),* [ $id_type_name:ident ] -> $out:ident, )*) => {
+    ($($($path:ident).* [ $id_type_name:ident ] -> $out:ident, )*) => {
         $(
         #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
         pub(crate) struct $id_type_name(usize);
@@ -30,9 +30,11 @@ macro_rules! make_ids {
 }
 
 make_ids! {
-    directives,extra_directives[DirectiveId] -> ExtraDirectiveRecord,
+    definitions.definitions[DefinitionId] -> Definition,
+    directives.extra_directives[DirectiveId] -> ExtraDirectiveRecord,
     extensions[ExtensionId] -> ExtensionRecord,
-    linked_schemas,definitions[LinkedDefinitionId] -> LinkedDefinitionRecord,
-    linked_schemas,schemas[LinkedSchemaId] -> LinkedSchemaRecord,
+    keys.keys[KeyId] -> Key,
+    linked_schemas.definitions[LinkedDefinitionId] -> LinkedDefinitionRecord,
+    linked_schemas.schemas[LinkedSchemaId] -> LinkedSchemaRecord,
     subgraphs[SubgraphId] -> Subgraph,
 }

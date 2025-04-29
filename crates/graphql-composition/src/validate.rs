@@ -15,6 +15,7 @@ pub(crate) fn validate(ctx: &mut ValidateContext<'_>) {
     validate_query_nonempty(ctx);
     validate_fields(ctx);
     compose_directive::validate_compose_directive(ctx);
+    selection::validate_keys(ctx);
 }
 
 fn validate_query_nonempty(ctx: &mut ValidateContext<'_>) {

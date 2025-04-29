@@ -1,13 +1,10 @@
 use super::*;
 use std::collections::btree_map;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub(crate) struct DefinitionId(pub(super) usize);
-
 // Invariant: `definitions` is sorted by `Definition::subgraph_id`. We rely on it for binary search.
 #[derive(Default, Debug)]
 pub(crate) struct Definitions {
-    definitions: Vec<Definition>,
+    pub(super) definitions: Vec<Definition>,
     // (Implementee, implementer)
     interface_impls: BTreeSet<(StringId, StringId)>,
     // (Implementee, implementer) -> [subgraph]
@@ -17,7 +14,7 @@ pub(crate) struct Definitions {
 #[derive(Debug)]
 pub(crate) struct Definition {
     subgraph_id: SubgraphId,
-    name: StringId,
+    pub(crate) name: StringId,
     kind: DefinitionKind,
     description: Option<StringId>,
     directives: DirectiveSiteId,
@@ -94,7 +91,7 @@ impl Subgraphs {
             description,
             directives,
         };
-        let id = DefinitionId(self.definitions.definitions.push_return_idx(definition));
+        let id = DefinitionId::from(self.definitions.definitions.push_return_idx(definition));
         self.definition_names.insert((name, subgraph_id), id);
         id
     }
@@ -127,16 +124,12 @@ impl Subgraphs {
 pub(crate) type DefinitionWalker<'a> = Walker<'a, DefinitionId>;
 
 impl<'a> DefinitionWalker<'a> {
-    fn definition(self) -> &'a Definition {
-        &self.subgraphs.definitions.definitions[self.id.0]
-    }
-
     pub fn name(self) -> StringWalker<'a> {
-        self.walk(self.definition().name)
+        self.walk(self.view().name)
     }
 
     pub fn kind(self) -> DefinitionKind {
-        self.definition().kind
+        self.view().kind
     }
 
     /// ```graphql,ignore
@@ -149,11 +142,11 @@ impl<'a> DefinitionWalker<'a> {
     /// }
     /// ```
     pub fn description(self) -> Option<StringWalker<'a>> {
-        self.definition().description.map(|id| self.walk(id))
+        self.view().description.map(|id| self.walk(id))
     }
 
     pub(crate) fn subgraph_id(self) -> SubgraphId {
-        self.definition().subgraph_id
+        self.view().subgraph_id
     }
 
     pub(crate) fn subgraph(self) -> SubgraphWalker<'a> {
@@ -161,7 +154,7 @@ impl<'a> DefinitionWalker<'a> {
     }
 
     pub(crate) fn directives(self) -> DirectiveSiteWalker<'a> {
-        self.walk(self.definition().directives)
+        self.walk(self.view().directives)
     }
 }
 
@@ -175,7 +168,7 @@ impl<'a> SubgraphWalker<'a> {
             .take_while(move |def| def.subgraph_id == subgraph_id);
         subgraph_definitions
             .enumerate()
-            .map(move |(idx, _)| self.walk(DefinitionId(idx + start)))
+            .map(move |(idx, _)| self.walk(DefinitionId::from(idx + start)))
     }
 
     pub(crate) fn interface_implementers(self, interface_name: StringId) -> impl Iterator<Item = DefinitionWalker<'a>> {

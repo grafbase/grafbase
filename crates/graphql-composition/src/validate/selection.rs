@@ -187,3 +187,22 @@ fn argument_type_matches(
         _ => false,
     }
 }
+
+pub(crate) fn validate_keys(ctx: &mut ValidateContext<'_>) {
+    for key in ctx.subgraphs.iter_keys() {
+        let directive_path = || {
+            let definition = &ctx.subgraphs[key.definition_id];
+            ctx.subgraphs[definition.name].to_string()
+        };
+
+        for selection in &key.selection_set {
+            validate_selection(
+                ctx,
+                selection,
+                ctx.subgraphs.walk(key.definition_id),
+                &directive_path,
+                "key",
+            )
+        }
+    }
+}
