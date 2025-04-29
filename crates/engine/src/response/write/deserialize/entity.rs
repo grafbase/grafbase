@@ -143,7 +143,8 @@ impl<'de> MapAccess<'de> for EntityFieldsMapAccess<'de, '_, '_> {
                     let path = self.ctx.path();
                     resp.propagate_null(&path);
                     // FIXME: remove Clone...
-                    resp.push_error(err.clone().with_path(path).with_location(field.location()));
+                    resp.errors
+                        .push(err.clone().with_path(path).with_location(field.location()));
                 }
                 seed.deserialize(ErrorPlaceholder {
                     required: field.definition().ty().wrapping.is_required(),

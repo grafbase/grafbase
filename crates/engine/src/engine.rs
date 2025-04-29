@@ -135,7 +135,7 @@ impl<R: Runtime> Engine<R> {
             .await
             .map_err(|(response, _)| {
                 response
-                    .errors()
+                    .pre_execution_errors()
                     .first()
                     .map(|error| error.message.clone())
                     .unwrap_or("Internal server error".into())

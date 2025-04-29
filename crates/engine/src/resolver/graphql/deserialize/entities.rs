@@ -3,7 +3,7 @@ use serde::{
     de::{DeserializeSeed, IgnoredAny, MapAccess, Visitor},
 };
 
-use crate::response::{ErrorPath, ErrorPathSegment, ParentObjectId, SharedResponsePart};
+use crate::response::{ErrorPath, ErrorPathSegment, ParentObjectId, SharedResponsePartBuilder};
 
 use super::SubgraphToSupergraphErrorPathConverter;
 
@@ -75,7 +75,7 @@ enum EntitiesKey {
 }
 
 pub(in crate::resolver::graphql) struct EntityErrorPathConverter<'ctx, F> {
-    pub response_part: SharedResponsePart<'ctx>,
+    pub response_part: SharedResponsePartBuilder<'ctx>,
     pub index_to_parent_object_id: F,
 }
 
@@ -83,7 +83,7 @@ impl<'ctx, F> EntityErrorPathConverter<'ctx, F>
 where
     F: Fn(usize) -> Option<ParentObjectId>,
 {
-    pub fn new(response_part: SharedResponsePart<'ctx>, index_to_parent_object_id: F) -> Self {
+    pub fn new(response_part: SharedResponsePartBuilder<'ctx>, index_to_parent_object_id: F) -> Self {
         Self {
             response_part,
             index_to_parent_object_id,
@@ -105,7 +105,7 @@ where
         }
 
         let index = path.next()?.as_u64()? as usize;
-        let mut out = self.response_part.borrow()[(self.index_to_parent_object_id)(index)?]
+        let mut out = self.response_part.borrow().parent_objects[(self.index_to_parent_object_id)(index)?]
             .path
             .iter()
             .map(Into::into)

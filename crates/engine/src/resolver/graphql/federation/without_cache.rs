@@ -11,7 +11,7 @@ use crate::{
         deserialize::{EntitiesDataSeed, EntityErrorPathConverter, GraphqlErrorsSeed, GraphqlResponseSeed},
         request::ResponseIngester,
     },
-    response::{GraphqlError, ResponsePart, SharedResponsePart},
+    response::{GraphqlError, ResponsePartBuilder, SharedResponsePartBuilder},
 };
 
 use super::EntityToFetch;
@@ -25,8 +25,8 @@ impl ResponseIngester for EntityIngester {
     async fn ingest(
         self,
         http_response: http::Response<OwnedOrSharedBytes>,
-        response_part: ResponsePart<'_>,
-    ) -> Result<(GraphqlResponseStatus, ResponsePart<'_>), ExecutionError> {
+        response_part: ResponsePartBuilder<'_>,
+    ) -> Result<(GraphqlResponseStatus, ResponsePartBuilder<'_>), ExecutionError> {
         let Self {
             shape_id,
             fetched_entities,
@@ -58,7 +58,7 @@ impl ResponseIngester for EntityIngester {
 
 struct EntitiesSeed<'resp, 'parent> {
     shape_id: ConcreteShapeId,
-    response_part: SharedResponsePart<'resp>,
+    response_part: SharedResponsePartBuilder<'resp>,
     fetched_entities: &'parent [EntityToFetch],
 }
 

@@ -11,7 +11,7 @@ use crate::{
     Runtime,
     execution::{ExecutionContext, ExecutionResult},
     prepare::Plan,
-    response::{ParentObjects, ParentObjectsView, ResponsePart},
+    response::{ParentObjects, ParentObjectsView, ResponsePartBuilder},
 };
 
 impl super::SelectionSetResolverExtension {
@@ -20,8 +20,8 @@ impl super::SelectionSetResolverExtension {
         ctx: ExecutionContext<'ctx, R>,
         plan: Plan<'ctx>,
         parent_objects: Arc<ParentObjects>,
-        response_part: ResponsePart<'ctx>,
-    ) -> ExecutionResult<ResponsePart<'ctx>> {
+        response_part: ResponsePartBuilder<'ctx>,
+    ) -> ExecutionResult<ResponsePartBuilder<'ctx>> {
         let definition = self.definition.walk(&ctx);
         let subgraph_headers = ctx.subgraph_headers_with_rules(definition.subgraph().header_rules());
 
@@ -97,8 +97,8 @@ impl super::SelectionSetResolverExtension {
         ctx: ExecutionContext<'ctx, R>,
         plan: Plan<'ctx>,
         root_response_objects: ParentObjectsView<'_>,
-        response_part: ResponsePart<'ctx>,
-    ) -> impl Future<Output = ExecutionResult<ResponsePart<'ctx>>> + Send + 'f
+        response_part: ResponsePartBuilder<'ctx>,
+    ) -> impl Future<Output = ExecutionResult<ResponsePartBuilder<'ctx>>> + Send + 'f
     where
         'ctx: 'f,
     {

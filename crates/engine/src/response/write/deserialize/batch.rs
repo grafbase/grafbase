@@ -13,7 +13,7 @@ use serde::{
 
 use crate::{
     prepare::{ConcreteShapeId, PreparedOperation},
-    response::SharedResponsePart,
+    response::SharedResponsePartBuilder,
 };
 
 use super::{EntitySeed, SeedContext, entity::DeserError};
@@ -21,11 +21,11 @@ use super::{EntitySeed, SeedContext, entity::DeserError};
 pub(crate) struct EntitiesSeed<'ctx> {
     schema: &'ctx Schema,
     prepared_operation: &'ctx PreparedOperation,
-    response: SharedResponsePart<'ctx>,
+    response: SharedResponsePartBuilder<'ctx>,
     shape_id: ConcreteShapeId,
 }
 impl<'ctx> EntitiesSeed<'ctx> {
-    pub fn new(response: SharedResponsePart<'ctx>, shape_id: ConcreteShapeId) -> Self {
+    pub fn new(response: SharedResponsePartBuilder<'ctx>, shape_id: ConcreteShapeId) -> Self {
         let schema: &'ctx Schema = response.borrow().schema;
         let prepared_operation: &'ctx PreparedOperation = response.borrow().operation;
         Self {

@@ -68,21 +68,6 @@ fn can_deny_all() {
               "extensions": {
                 "code": "UNAUTHORIZED"
               }
-            },
-            {
-              "message": "Not authorized",
-              "locations": [
-                {
-                  "line": 1,
-                  "column": 18
-                }
-              ],
-              "path": [
-                "forbidden"
-              ],
-              "extensions": {
-                "code": "UNAUTHORIZED"
-              }
             }
           ]
         }

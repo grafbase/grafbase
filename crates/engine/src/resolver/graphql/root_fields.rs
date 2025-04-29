@@ -18,7 +18,7 @@ use crate::{
     execution::{ExecutionContext, ExecutionError},
     prepare::{ConcreteShapeId, Plan, PlanError, PlanResult, PrepareContext, SubgraphSelectionSet},
     resolver::{ExecutionResult, graphql::request::SubgraphGraphqlRequest},
-    response::{ErrorPath, ErrorPathSegment, GraphqlError, ParentObjectId, ParentObjects, ResponsePart},
+    response::{ErrorPath, ErrorPathSegment, GraphqlError, ParentObjectId, ParentObjects, ResponsePartBuilder},
 };
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -71,8 +71,8 @@ impl GraphqlResolver {
         ctx: &mut SubgraphContext<'ctx, R>,
         plan: Plan<'ctx>,
         parent_objects: Arc<ParentObjects>,
-        response_part: ResponsePart<'ctx>,
-    ) -> ExecutionResult<ResponsePart<'ctx>> {
+        response_part: ResponsePartBuilder<'ctx>,
+    ) -> ExecutionResult<ResponsePartBuilder<'ctx>> {
         let span = ctx.span().entered();
         let variables = SubgraphVariables::<()> {
             ctx: ctx.input_value_context(),
@@ -117,8 +117,8 @@ async fn fetch_response_without_cache<'ctx, R: Runtime>(
     body: Vec<u8>,
     parent_object_id: ParentObjectId,
     shape_id: ConcreteShapeId,
-    response_part: ResponsePart<'ctx>,
-) -> ExecutionResult<ResponsePart<'ctx>> {
+    response_part: ResponsePartBuilder<'ctx>,
+) -> ExecutionResult<ResponsePartBuilder<'ctx>> {
     struct Ingester {
         parent_object_id: ParentObjectId,
         shape_id: ConcreteShapeId,
@@ -128,8 +128,8 @@ async fn fetch_response_without_cache<'ctx, R: Runtime>(
         async fn ingest(
             self,
             http_response: http::Response<OwnedOrSharedBytes>,
-            response_part: ResponsePart<'_>,
-        ) -> Result<(GraphqlResponseStatus, ResponsePart<'_>), ExecutionError> {
+            response_part: ResponsePartBuilder<'_>,
+        ) -> Result<(GraphqlResponseStatus, ResponsePartBuilder<'_>), ExecutionError> {
             let response_part = response_part.into_shared();
             let status = {
                 GraphqlResponseSeed::new(
@@ -166,8 +166,8 @@ async fn fetch_response_with_cache<'ctx, R: Runtime>(
     body: Vec<u8>,
     parent_object_id: ParentObjectId,
     shape_id: ConcreteShapeId,
-    response_part: ResponsePart<'ctx>,
-) -> ExecutionResult<ResponsePart<'ctx>> {
+    response_part: ResponsePartBuilder<'ctx>,
+) -> ExecutionResult<ResponsePartBuilder<'ctx>> {
     match super::cache::fetch_response(ctx, &subgraph_headers, &body).await {
         Ok(ResponseCacheHit { data }) => {
             ctx.record_cache_hit();
@@ -215,8 +215,8 @@ where
     async fn ingest(
         self,
         http_response: http::Response<OwnedOrSharedBytes>,
-        response_part: ResponsePart<'_>,
-    ) -> Result<(GraphqlResponseStatus, ResponsePart<'_>), ExecutionError> {
+        response_part: ResponsePartBuilder<'_>,
+    ) -> Result<(GraphqlResponseStatus, ResponsePartBuilder<'_>), ExecutionError> {
         let Self {
             ctx,
             shape_id,

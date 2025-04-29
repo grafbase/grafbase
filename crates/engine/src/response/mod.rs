@@ -1,4 +1,5 @@
 mod data;
+mod error;
 mod extensions;
 mod object_set;
 mod path;
@@ -9,7 +10,7 @@ mod write;
 use std::sync::Arc;
 
 pub(crate) use data::*;
-pub(crate) use error::{ErrorCode, ErrorCodeCounter, ErrorPath, ErrorPathSegment, GraphqlError};
+pub(crate) use error::*;
 pub(crate) use extensions::*;
 use grafbase_telemetry::graphql::{GraphqlExecutionTelemetry, GraphqlOperationAttributes, GraphqlResponseStatus};
 pub(crate) use object_set::*;
@@ -19,7 +20,7 @@ use schema::Schema;
 pub(crate) use value::*;
 pub(crate) use write::*;
 
-use crate::prepare::{CachedOperation, PreparedOperation};
+use crate::prepare::PreparedOperation;
 
 pub(crate) enum Response<OnOperationResponseHookOutput> {
     /// Before or while validating we have a well-formed GraphQL-over-HTTP request, we may
@@ -39,11 +40,10 @@ pub(crate) enum Response<OnOperationResponseHookOutput> {
 
 pub(crate) struct ExecutedResponse<OnOperationResponseHookOutput> {
     schema: Arc<Schema>,
-    operation: Arc<CachedOperation>,
+    operation: Arc<PreparedOperation>,
     operation_attributes: GraphqlOperationAttributes,
     data: Option<ResponseData>,
-    errors: Vec<GraphqlError>,
-    error_code_counter: ErrorCodeCounter,
+    errors: ErrorParts,
     on_operation_response_output: Option<OnOperationResponseHookOutput>,
     extensions: ResponseExtensions,
 }
@@ -128,21 +128,19 @@ impl<OnOperationResponseHookOutput> Response<OnOperationResponseHookOutput> {
 
     pub(crate) fn execution_error(
         schema: &Arc<Schema>,
-        operation: &PreparedOperation,
+        operation: &Arc<PreparedOperation>,
         on_operation_response_output: Option<OnOperationResponseHookOutput>,
         errors: impl IntoIterator<Item: Into<GraphqlError>>,
     ) -> Self {
-        let errors = errors.into_iter().map(Into::into).collect::<Vec<_>>();
-        let error_code_counter = ErrorCodeCounter::from_errors(&errors);
+        let errors = ErrorParts::from_errors(errors);
 
         Self::Executed(ExecutedResponse {
             schema: schema.clone(),
-            operation: operation.cached.clone(),
+            operation: operation.clone(),
             operation_attributes: operation.attributes(),
             data: None,
             on_operation_response_output,
             errors,
-            error_code_counter,
             extensions: Default::default(),
         })
     }
@@ -213,11 +211,11 @@ impl<OnOperationResponseHookOutput> Response<OnOperationResponseHookOutput> {
         }
     }
 
-    pub(crate) fn errors(&self) -> &[GraphqlError] {
+    pub(crate) fn pre_execution_errors(&self) -> &[GraphqlError] {
         match self {
             Response::RefusedRequest(resp) => &resp.errors,
             Response::RequestError(resp) => &resp.errors,
-            Response::Executed(resp) => &resp.errors,
+            Response::Executed(_) => unreachable!(),
         }
     }
 
@@ -225,7 +223,7 @@ impl<OnOperationResponseHookOutput> Response<OnOperationResponseHookOutput> {
         match self {
             Response::RefusedRequest(resp) => &resp.error_code_counter,
             Response::RequestError(resp) => &resp.error_code_counter,
-            Response::Executed(resp) => &resp.error_code_counter,
+            Response::Executed(resp) => resp.errors.code_counter(),
         }
     }
 }

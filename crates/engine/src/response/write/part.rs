@@ -5,49 +5,43 @@ use schema::Schema;
 use crate::{
     prepare::{ConcreteShapeId, PreparedOperation, ResponseObjectSetDefinitionId},
     response::{
-        DataPart, GraphqlError, ParentObjectId, ParentObjects, ResponseObjectField, ResponseObjectRef,
-        ResponseObjectSet, ResponseValueId,
+        DataPart, ErrorPartBuilder, GraphqlError, ParentObjectId, ParentObjects, ResponseObjectField,
+        ResponseObjectRef, ResponseObjectSet, ResponseValueId,
     },
 };
 
 use super::deserialize::{EntitiesSeed, EntitySeed};
 
-pub(crate) struct ResponsePart<'ctx> {
+pub(crate) struct ResponsePartBuilder<'ctx> {
     pub(super) schema: &'ctx Schema,
     pub(super) operation: &'ctx PreparedOperation,
     pub data: DataPart,
+    pub errors: ErrorPartBuilder<'ctx>,
     pub parent_objects: Arc<ParentObjects>,
     pub(super) propagated_null_up_to_root: bool,
     pub(super) propagated_null_up_to_paths: Vec<Vec<ResponseValueId>>,
-    pub(super) errors: Vec<GraphqlError>,
     pub(super) subgraph_errors: Vec<GraphqlError>,
     pub(super) updates: Vec<ObjectUpdate>,
     pub(super) object_sets: Vec<(ResponseObjectSetDefinitionId, ResponseObjectSet)>,
 }
 
-impl std::ops::Index<ParentObjectId> for ResponsePart<'_> {
-    type Output = ResponseObjectRef;
-    fn index(&self, id: ParentObjectId) -> &Self::Output {
-        &self.parent_objects[id]
-    }
-}
-
-impl<'ctx> ResponsePart<'ctx> {
+impl<'ctx> ResponsePartBuilder<'ctx> {
     pub(super) fn new(
         schema: &'ctx Schema,
         operation: &'ctx PreparedOperation,
         data: DataPart,
         parent_objects: Arc<ParentObjects>,
     ) -> Self {
+        let errors = ErrorPartBuilder::new(operation);
         Self {
             schema,
             operation,
             data,
+            errors,
             updates: vec![ObjectUpdate::Missing; parent_objects.len()],
             parent_objects,
             propagated_null_up_to_root: false,
             propagated_null_up_to_paths: Vec::new(),
-            errors: Vec::new(),
             subgraph_errors: Vec::new(),
             object_sets: Vec::new(),
         }
@@ -55,8 +49,8 @@ impl<'ctx> ResponsePart<'ctx> {
 
     /// Executors manipulate the response within a Send future, so we can't use a Rc/RefCell
     /// directly. Only once the executor is ready to write should it use this method.
-    pub fn into_shared(self) -> SharedResponsePart<'ctx> {
-        SharedResponsePart(Rc::new(RefCell::new(self)))
+    pub fn into_shared(self) -> SharedResponsePartBuilder<'ctx> {
+        SharedResponsePartBuilder(Rc::new(RefCell::new(self)))
     }
 
     pub fn propagate_null(&mut self, path: &[ResponseValueId]) {
@@ -89,10 +83,6 @@ impl<'ctx> ResponsePart<'ctx> {
         }
     }
 
-    pub fn push_error(&mut self, error: impl Into<GraphqlError>) {
-        self.errors.push(error.into());
-    }
-
     pub fn set_subgraph_errors(&mut self, errors: Vec<GraphqlError>) {
         self.subgraph_errors = errors;
     }
@@ -103,23 +93,23 @@ impl<'ctx> ResponsePart<'ctx> {
 /// not expected to parallelize their work.
 /// The Rc makes it possible to write errors at one place and the data in another.
 #[derive(Clone)]
-pub(crate) struct SharedResponsePart<'ctx>(Rc<RefCell<ResponsePart<'ctx>>>);
+pub(crate) struct SharedResponsePartBuilder<'ctx>(Rc<RefCell<ResponsePartBuilder<'ctx>>>);
 
-impl<'ctx> std::ops::Deref for SharedResponsePart<'ctx> {
-    type Target = Rc<RefCell<ResponsePart<'ctx>>>;
+impl<'ctx> std::ops::Deref for SharedResponsePartBuilder<'ctx> {
+    type Target = Rc<RefCell<ResponsePartBuilder<'ctx>>>;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl std::ops::DerefMut for SharedResponsePart<'_> {
+impl std::ops::DerefMut for SharedResponsePartBuilder<'_> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
 
-impl<'ctx> SharedResponsePart<'ctx> {
-    pub fn unshare(self) -> Option<ResponsePart<'ctx>> {
+impl<'ctx> SharedResponsePartBuilder<'ctx> {
+    pub fn unshare(self) -> Option<ResponsePartBuilder<'ctx>> {
         Rc::try_unwrap(self.0).map(|part| part.into_inner()).ok()
     }
 

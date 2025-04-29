@@ -10,9 +10,9 @@ use schema::{ObjectDefinitionId, Schema};
 use walker::Walk;
 
 use super::{
-    DataParts, ErrorCodeCounter, ErrorPathSegment, ExecutedResponse, GraphqlError, OutputResponseObjectSets,
-    ParentObjectId, ParentObjects, Response, ResponseData, ResponseObject, ResponseObjectField, ResponseObjectId,
-    ResponseObjectRef, ResponseValue, ResponseValueId,
+    DataParts, ErrorPartBuilder, ErrorParts, ErrorPathSegment, ExecutedResponse, GraphqlError,
+    OutputResponseObjectSets, ParentObjectId, ParentObjects, Response, ResponseData, ResponseObject,
+    ResponseObjectField, ResponseObjectId, ResponseObjectRef, ResponseValue, ResponseValueId,
 };
 use crate::{
     execution::ExecutionError,
@@ -23,26 +23,28 @@ pub(crate) use part::*;
 pub(crate) struct ResponseBuilder<'ctx> {
     // will be None if an error propagated up to the root.
     pub(in crate::response) schema: &'ctx Arc<Schema>,
-    operation: &'ctx PreparedOperation,
+    operation: &'ctx Arc<PreparedOperation>,
     pub(super) root: Option<(ResponseObjectId, ObjectDefinitionId)>,
     pub(super) data_parts: DataParts,
-    errors: Vec<GraphqlError>,
+    pub(super) error_parts: ErrorParts,
+    errors: ErrorPartBuilder<'ctx>,
 }
 
 impl<'ctx> ResponseBuilder<'ctx> {
-    pub fn new(schema: &'ctx Arc<Schema>, operation: &'ctx PreparedOperation) -> Self {
+    pub fn new(schema: &'ctx Arc<Schema>, operation: &'ctx Arc<PreparedOperation>) -> Self {
         let root_object_definition_id = operation.cached.operation.root_object_id;
-        let mut parts = DataParts::default();
-        let mut initial_part = parts.new_part();
+        let mut data_parts = DataParts::default();
+        let mut initial_part = data_parts.new_part();
         let root_id = initial_part.push_object(ResponseObject::new(Some(root_object_definition_id), Vec::new()));
-        parts.insert(initial_part);
+        data_parts.insert(initial_part);
 
         Self {
             schema,
             operation,
             root: Some((root_id, root_object_definition_id)),
-            data_parts: parts,
-            errors: Vec::new(),
+            data_parts,
+            error_parts: ErrorParts::default(),
+            errors: ErrorPartBuilder::new(operation),
         }
     }
 
@@ -62,7 +64,7 @@ impl<'ctx> ResponseBuilder<'ctx> {
         self.data_parts[value_id.part_id()].make_inaccessible(value_id);
     }
 
-    pub fn create_root_part(&mut self) -> (ParentObjectId, ResponsePart<'ctx>) {
+    pub fn create_root_part(&mut self) -> (ParentObjectId, ResponsePartBuilder<'ctx>) {
         let root_parent_objects = Arc::new(
             ParentObjects::default().with_response_objects(Arc::new(self.root_response_object().into_iter().collect())),
         );
@@ -71,8 +73,8 @@ impl<'ctx> ResponseBuilder<'ctx> {
         (root_id, resp)
     }
 
-    pub fn create_part_for(&mut self, parent_objects: Arc<ParentObjects>) -> ResponsePart<'ctx> {
-        ResponsePart::new(self.schema, self.operation, self.data_parts.new_part(), parent_objects)
+    pub fn create_part_for(&mut self, parent_objects: Arc<ParentObjects>) -> ResponsePartBuilder<'ctx> {
+        ResponsePartBuilder::new(self.schema, self.operation, self.data_parts.new_part(), parent_objects)
     }
 
     pub fn root_response_object(&self) -> Option<ResponseObjectRef> {
@@ -86,43 +88,43 @@ impl<'ctx> ResponseBuilder<'ctx> {
     pub fn propagate_execution_error(
         &mut self,
         plan: Plan<'_>,
-        root_response_object_set: Arc<ParentObjects>,
+        parent_objects: Arc<ParentObjects>,
         error: ExecutionError,
     ) {
         let (any_response_key, default_fields_sorted_by_key) =
             self.extract_any_response_key_and_default_fields_sorted_by_key(plan);
-        let error = GraphqlError::from(error);
         if let Some(any_response_key) = any_response_key {
+            let error = GraphqlError::from(error);
+            if let Some(parent_object) = parent_objects.iter().next() {
+                self.errors
+                    .push(error.with_path((&parent_object.path, any_response_key)));
+            }
             if let Some(default_fields_sorted_by_key) = &default_fields_sorted_by_key {
-                for obj_ref in root_response_object_set.iter() {
-                    self.errors
-                        .push(error.clone().with_path((&obj_ref.path, any_response_key)));
-                    self.recursive_merge_with_default_object(obj_ref.id, default_fields_sorted_by_key);
+                for parent_object in parent_objects.iter() {
+                    self.recursive_merge_with_default_object(parent_object.id, default_fields_sorted_by_key);
                 }
             } else {
-                for obj_ref in root_response_object_set.iter() {
-                    self.propagate_null(&obj_ref.path);
-                    self.errors
-                        .push(error.clone().with_path((&obj_ref.path, any_response_key)));
+                for parent_object in parent_objects.iter() {
+                    self.propagate_null(&parent_object.path);
                 }
             }
         }
     }
 
-    pub fn ingest(&mut self, plan: Plan<'ctx>, mut subgraph_response: ResponsePart<'ctx>) -> OutputResponseObjectSets {
-        self.data_parts.insert(subgraph_response.data);
+    pub fn ingest(&mut self, plan: Plan<'ctx>, response_part: ResponsePartBuilder<'ctx>) -> OutputResponseObjectSets {
+        self.data_parts.insert(response_part.data);
 
         let (any_response_key, default_fields_sorted_by_key) =
             self.extract_any_response_key_and_default_fields_sorted_by_key(plan);
-        for (update, obj_ref) in subgraph_response
+        for (update, obj_ref) in response_part
             .updates
             .into_iter()
-            .zip(subgraph_response.parent_objects.iter())
+            .zip(response_part.parent_objects.iter())
         {
             match update {
                 ObjectUpdate::Missing => {
                     if let Some(any_response_key) = any_response_key {
-                        if !subgraph_response
+                        if !response_part
                             .subgraph_errors
                             .iter()
                             .any(|subgraph_error| self.sugraph_error_matches_current_object(subgraph_error, obj_ref))
@@ -164,17 +166,19 @@ impl<'ctx> ResponseBuilder<'ctx> {
                 }
             }
         }
-        self.errors.append(&mut subgraph_response.subgraph_errors);
-        self.errors.append(&mut subgraph_response.errors);
-        if subgraph_response.propagated_null_up_to_root {
+        for err in response_part.subgraph_errors {
+            self.errors.push(err);
+        }
+        self.error_parts.push(response_part.errors);
+        if response_part.propagated_null_up_to_root {
             self.root = None;
         } else {
-            for path in subgraph_response.propagated_null_up_to_paths {
+            for path in response_part.propagated_null_up_to_paths {
                 self.propagate_null(&path);
             }
         }
 
-        let (ids, sets) = subgraph_response.object_sets.into_iter().unzip();
+        let (ids, sets) = response_part.object_sets.into_iter().unzip();
         OutputResponseObjectSets { ids, sets }
     }
 
@@ -254,32 +258,31 @@ impl<'ctx> ResponseBuilder<'ctx> {
     }
 
     pub fn graphql_status(&self) -> GraphqlResponseStatus {
-        if self.errors.is_empty() {
+        if self.errors.is_empty() && self.error_parts.is_empty() {
             GraphqlResponseStatus::Success
         } else {
             GraphqlResponseStatus::FieldError {
-                count: self.errors.len() as u64,
+                count: (self.errors.len() + self.error_parts.len()) as u64,
                 data_is_null: self.root.is_none(),
             }
         }
     }
 
     pub fn build<OnOperationResponseHookOutput>(
-        self,
+        mut self,
         operation_attributes: GraphqlOperationAttributes,
         on_operation_response_output: OnOperationResponseHookOutput,
     ) -> Response<OnOperationResponseHookOutput> {
-        let error_code_counter = ErrorCodeCounter::from_errors(&self.errors);
+        self.error_parts.push(self.errors);
         Response::Executed(ExecutedResponse {
             schema: self.schema.clone(),
-            operation: self.operation.cached.clone(),
+            operation: self.operation.clone(),
             operation_attributes,
             data: self.root.map(|(root, _)| ResponseData {
                 root,
                 parts: self.data_parts,
             }),
-            errors: self.errors,
-            error_code_counter,
+            errors: self.error_parts,
             on_operation_response_output: Some(on_operation_response_output),
             extensions: Default::default(),
         })

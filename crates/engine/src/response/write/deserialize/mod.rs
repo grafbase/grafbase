@@ -31,7 +31,7 @@ use ctx::*;
 use list::ListSeed;
 use scalar::*;
 
-use super::{ObjectUpdate, SharedResponsePart};
+use super::{ObjectUpdate, SharedResponsePartBuilder};
 
 pub(crate) struct EntitySeed<'ctx> {
     ctx: Rc<SeedContext<'ctx>>,
@@ -40,8 +40,12 @@ pub(crate) struct EntitySeed<'ctx> {
 }
 
 impl<'ctx> EntitySeed<'ctx> {
-    pub(super) fn new(response: SharedResponsePart<'ctx>, shape_id: ConcreteShapeId, id: ParentObjectId) -> Self {
-        let path = RefCell::new(response.borrow()[id].path.clone());
+    pub(super) fn new(
+        response: SharedResponsePartBuilder<'ctx>,
+        shape_id: ConcreteShapeId,
+        id: ParentObjectId,
+    ) -> Self {
+        let path = RefCell::new(response.borrow().parent_objects[id].path.clone());
         let schema: &'ctx Schema = response.borrow().schema;
         let prepared_operation: &'ctx PreparedOperation = response.borrow().operation;
         Self {
@@ -76,7 +80,7 @@ impl<'de> DeserializeSeed<'de> for EntitySeed<'_> {
         let EntitySeed { ctx, shape_id, id } = self;
 
         let fields_seed = {
-            let parent_object = Ref::map(ctx.response.borrow(), |resp| &resp[id]);
+            let parent_object = Ref::map(ctx.response.borrow(), |resp| &resp.parent_objects[id]);
             ConcreteShapeFieldsSeed::new(
                 &ctx,
                 shape_id.walk(ctx.as_ref()),

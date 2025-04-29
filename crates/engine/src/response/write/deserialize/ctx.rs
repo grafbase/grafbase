@@ -2,7 +2,7 @@ use std::cell::{Cell, Ref, RefCell, RefMut};
 
 use crate::{
     prepare::{CachedOperationContext, OperationPlanContext, PreparedOperation},
-    response::{ResponseValueId, SharedResponsePart},
+    response::{ResponseValueId, SharedResponsePartBuilder},
 };
 use itertools::Itertools;
 use operation::ResponseKeys;
@@ -11,7 +11,7 @@ use schema::Schema;
 pub(super) struct SeedContext<'ctx> {
     pub schema: &'ctx Schema,
     pub prepared_operation: &'ctx PreparedOperation,
-    pub response: SharedResponsePart<'ctx>,
+    pub response: SharedResponsePartBuilder<'ctx>,
     pub bubbling_up_serde_error: Cell<bool>,
     pub path: RefCell<Vec<ResponseValueId>>,
 }

@@ -226,36 +226,6 @@ fn multiple_extensions_and_directives() {
           "extensions": {
             "code": "UNAUTHORIZED"
           }
-        },
-        {
-          "message": "Unauthorized",
-          "locations": [
-            {
-              "line": 1,
-              "column": 41
-            }
-          ],
-          "path": [
-            "denied1"
-          ],
-          "extensions": {
-            "code": "UNAUTHORIZED"
-          }
-        },
-        {
-          "message": "Unauthorized by bis",
-          "locations": [
-            {
-              "line": 1,
-              "column": 49
-            }
-          ],
-          "path": [
-            "denied2"
-          ],
-          "extensions": {
-            "code": "UNAUTHORIZED"
-          }
         }
       ]
     }

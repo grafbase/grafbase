@@ -12,7 +12,9 @@ use crate::{
     Runtime,
     execution::ExecutionContext,
     prepare::{ConcreteShapeId, FieldShapeRecord, Plan, Shapes},
-    response::{ObjectUpdate, ParentObjectId, ResponseObject, ResponseObjectField, ResponseValue, SharedResponsePart},
+    response::{
+        ObjectUpdate, ParentObjectId, ResponseObject, ResponseObjectField, ResponseValue, SharedResponsePartBuilder,
+    },
 };
 
 pub(super) struct IntrospectionWriter<'ctx, R: Runtime> {
@@ -22,7 +24,7 @@ pub(super) struct IntrospectionWriter<'ctx, R: Runtime> {
     pub metadata: &'ctx IntrospectionSubgraph,
     pub plan: Plan<'ctx>,
     pub parent_object_id: ParentObjectId,
-    pub response: SharedResponsePart<'ctx>,
+    pub response: SharedResponsePartBuilder<'ctx>,
 }
 
 impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {

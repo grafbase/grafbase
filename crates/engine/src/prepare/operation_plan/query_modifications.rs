@@ -28,16 +28,16 @@ pub(crate) struct QueryModifications {
     pub included_response_data_fields: BitSet<DataFieldId>,
     pub included_response_typename_fields: BitSet<TypenameFieldId>,
     pub included_subgraph_request_data_fields: BitSet<DataFieldId>,
-    #[indexed_by(ErrorId)]
+    #[indexed_by(QueryErrorId)]
     pub errors: Vec<GraphqlError>,
     pub concrete_shape_has_error: BitSet<ConcreteShapeId>,
-    pub field_shape_id_to_error_ids: IdToMany<FieldShapeId, ErrorId>,
+    pub field_shape_id_to_error_ids: IdToMany<FieldShapeId, QueryErrorId>,
     pub skipped_field_shapes: BitSet<FieldShapeId>,
-    pub root_error_ids: Vec<ErrorId>,
+    pub root_error_ids: Vec<QueryErrorId>,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-pub struct ErrorId(NonZero<u16>);
+pub struct QueryErrorId(NonZero<u16>);
 
 impl QueryModifications {
     pub(crate) async fn build(
@@ -79,7 +79,7 @@ struct Builder<'ctx, 'op, R: Runtime> {
     ctx: &'op mut PrepareContext<'ctx, R>,
     operation_ctx: CachedOperationContext<'op>,
     input_value_ctx: InputValueContext<'op>,
-    field_shape_id_to_error_ids: Vec<(FieldShapeId, ErrorId)>,
+    field_shape_id_to_error_ids: Vec<(FieldShapeId, QueryErrorId)>,
     modifications: QueryModifications,
 }
 
@@ -405,7 +405,7 @@ where
         modifications
     }
 
-    fn deny_field(&mut self, modifier: &'op QueryModifierRecord, error_id: ErrorId) {
+    fn deny_field(&mut self, modifier: &'op QueryModifierRecord, error_id: QueryErrorId) {
         if modifier.impacts_root_object {
             self.modifications.root_error_ids.push(error_id);
         }
@@ -445,8 +445,8 @@ where
         }
     }
 
-    fn push_error(&mut self, error: GraphqlError) -> ErrorId {
-        let id = ErrorId::from(self.modifications.errors.len());
+    fn push_error(&mut self, error: GraphqlError) -> QueryErrorId {
+        let id = QueryErrorId::from(self.modifications.errors.len());
         self.modifications.errors.push(error);
         id
     }
