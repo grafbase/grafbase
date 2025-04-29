@@ -65,7 +65,7 @@ type Product
     price: Int! @join__field(graph: PRODUCTS)
     reviews: [Review!]! @join__field(graph: REVIEWS)
     shippingEstimate: Int! @join__field(graph: INVENTORY, requires: "weight(unit: KILOGRAM)")
-    upc: String!
+    upc: String! @join__field(graph: PRODUCTS) @join__field(graph: INVENTORY) @join__field(graph: REVIEWS)
     weight(unit: WeightUnit!): Float! @join__field(graph: PRODUCTS)
 }
 

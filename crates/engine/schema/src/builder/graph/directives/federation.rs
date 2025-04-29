@@ -293,7 +293,7 @@ impl<'sdl> DirectivesIngester<'_, 'sdl> {
             let (dir, span) = result?;
 
             parent_has_join_type = true;
-            if !has_join_field && dir.resolvable {
+            if !has_join_field {
                 let subgraph_id = self.subgraphs.try_get(dir.graph, span)?;
                 // If there is no @join__field we rely solely @join__type to define the subgraphs
                 // in which this field is resolvable in.

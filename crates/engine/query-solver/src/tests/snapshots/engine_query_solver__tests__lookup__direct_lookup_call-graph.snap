@@ -1,0 +1,25 @@
+---
+source: crates/engine/query-solver/src/tests/lookup.rs
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Query.userLookup\" ]\n    2 [ label = \"User.id\" ]\n    3 [ label = \"User.name\" ]\n    4 [ label = \"SelectionSetResolver#0#pg\", shape=parallelogram, color=dodgerblue ]\n    5 [ label = \"userLookup#pg\", shape=box, color=dodgerblue ]\n    6 [ label = \"id#pg\", shape=box, color=dodgerblue ]\n    7 [ label = \"name#pg\", shape=box, color=dodgerblue ]\n    0 -> 1 [ label = \"\" ]\n    1 -> 2 [ label = \"\" ]\n    1 -> 3 [ label = \"\" ]\n    0 -> 4 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    0 -> 4 [ label = \"\", style=dashed,arrowhead=none ]\n    4 -> 5 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    5 -> 1 [ label = \"\", color=violet,arrowhead=none ]\n    5 -> 6 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    6 -> 2 [ label = \"\", color=violet,arrowhead=none ]\n    5 -> 7 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    7 -> 3 [ label = \"\", color=violet,arrowhead=none ]\n}\n"
+---
+digraph {
+    0 [ root]
+    1 [ Query.userLookup]
+    2 [ User.id]
+    3 [ User.name]
+    4 [ SelectionSetResolver#0#pg]
+    5 [ userLookup#pg]
+    6 [ id#pg]
+    7 [ name#pg]
+    0 -> 1 [ label = "Field" ]
+    1 -> 2 [ label = "Field" ]
+    1 -> 3 [ label = "Field" ]
+    0 -> 4 [ label = "CreateChildResolver" ]
+    0 -> 4 [ label = "HasChildResolver" ]
+    4 -> 5 [ label = "CanProvide" ]
+    5 -> 1 [ label = "Provides" ]
+    5 -> 6 [ label = "CanProvide" ]
+    6 -> 2 [ label = "Provides" ]
+    5 -> 7 [ label = "CanProvide" ]
+    7 -> 3 [ label = "Provides" ]
+}
