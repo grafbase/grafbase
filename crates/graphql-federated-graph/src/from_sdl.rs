@@ -17,7 +17,6 @@ use directive_definition::ingest_directive_definition;
 use indexmap::IndexSet;
 use input_value_definition::ingest_input_value_definition;
 use std::{collections::HashMap, error::Error as StdError, fmt, ops::Range};
-use wrapping::Wrapping;
 
 const JOIN_GRAPH_DIRECTIVE_NAME: &str = "join__graph";
 pub(crate) const JOIN_GRAPH_ENUM_NAME: &str = "join__Graph";
@@ -186,8 +185,7 @@ impl<'a> State<'a> {
         let mutation_type_name = self.mutation_type_name.as_deref().unwrap_or("Mutation");
         let subscription_type_name = self.subscription_type_name.as_deref().unwrap_or("Subscription");
         Ok(RootOperationTypes {
-            query: get_object_id(self, query_type_name)
-                .ok_or_else(|| DomainError(format!("The `{query_type_name}` type is not defined")))?,
+            query: get_object_id(self, query_type_name),
             mutation: get_object_id(self, mutation_type_name),
             subscription: get_object_id(self, subscription_type_name),
         })
@@ -217,33 +215,6 @@ pub(crate) fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
 
     ingest_definitions(&parsed, &mut state)?;
     ingest_schema_and_directive_definitions(&parsed, &mut state)?;
-
-    // Ensure that the root query type is defined
-    let query_type = state
-        .definition_names
-        .get(state.query_type_name.as_deref().unwrap_or("Query"));
-
-    if query_type.is_none() {
-        let query_type_name = "Query";
-        state.query_type_name = Some(String::from(query_type_name));
-
-        let object_id = ObjectId::from(state.graph.objects.len());
-        let query_string_id = state.insert_string(query_type_name);
-
-        state
-            .definition_names
-            .insert(query_type_name, Definition::Object(object_id));
-
-        state.graph.objects.push(Object {
-            name: query_string_id,
-            description: None,
-            directives: Vec::new(),
-            implements_interfaces: Vec::new(),
-            fields: NO_FIELDS,
-        });
-
-        ingest_object_fields(object_id, std::iter::empty(), &mut state)?;
-    }
 
     ingest_fields(&parsed, &mut state)?;
 
@@ -699,29 +670,6 @@ fn ingest_object_fields<'a>(
         ingest_field(EntityDefinitionId::Object(object_id), field, state)?;
     }
 
-    // When we encounter the root query type, we need to make space at the end of the fields for __type and __schema.
-    if object_id
-        == state
-            .root_operation_types()
-            .expect("root operation types to be defined at this point")
-            .query
-    {
-        for name in ["__schema", "__type"].map(|name| state.insert_string(name)) {
-            state.graph.fields.push(Field {
-                name,
-                r#type: Type {
-                    wrapping: Wrapping::new(false),
-                    definition: Definition::Object(object_id),
-                },
-                parent_entity_id: EntityDefinitionId::Object(object_id),
-                arguments: NO_INPUT_VALUE_DEFINITION,
-                description: None,
-                // Added later
-                directives: Vec::new(),
-            });
-        }
-    }
-
     state.graph[object_id].fields = Range {
         start: FieldId::from(start),
         end: FieldId::from(state.graph.fields.len()),
@@ -1093,7 +1041,7 @@ impl<T> VecExt<T> for Vec<T> {
 #[test]
 fn test_from_sdl() {
     // https://github.com/the-guild-org/gateways-benchmark/blob/main/federation-v1/gateways/apollo-router/supergraph.graphql
-    let schema = FederatedGraph::from_sdl(r#"
+    FederatedGraph::from_sdl(r#"
         schema
           @link(url: "https://specs.apollo.dev/link/v1.0")
           @link(url: "https://specs.apollo.dev/join/v0.3", for: EXECUTION)
@@ -1184,24 +1132,13 @@ fn test_from_sdl() {
           reviews: [Review] @join__field(graph: REVIEWS)
         }
     "#).unwrap();
-
-    let query_object = &schema[schema.root_operation_types.query];
-
-    for field_name in ["__type", "__schema"] {
-        let field_name = schema.strings.iter().position(|s| s == field_name).unwrap();
-        assert!(
-            schema[query_object.fields.clone()]
-                .iter()
-                .any(|f| usize::from(f.name) == field_name)
-        );
-    }
 }
 
 #[cfg(test)]
 #[test]
 fn test_from_sdl_with_empty_query_root() {
     // https://github.com/the-guild-org/gateways-benchmark/blob/main/federation-v1/gateways/apollo-router/supergraph.graphql
-    let schema = FederatedGraph::from_sdl(
+    FederatedGraph::from_sdl(
         r#"
         schema
           @link(url: "https://specs.apollo.dev/link/v1.0")
@@ -1269,24 +1206,13 @@ fn test_from_sdl_with_empty_query_root() {
         }
     "#,
     ).unwrap();
-
-    let query_object = &schema[schema.root_operation_types.query];
-
-    for field_name in ["__type", "__schema"] {
-        let field_name = schema.strings.iter().position(|s| s == field_name).unwrap();
-        assert!(
-            schema[query_object.fields.clone()]
-                .iter()
-                .any(|f| usize::from(f.name) == field_name)
-        );
-    }
 }
 
 #[cfg(test)]
 #[test]
 fn test_from_sdl_with_missing_query_root() {
     // https://github.com/the-guild-org/gateways-benchmark/blob/main/federation-v1/gateways/apollo-router/supergraph.graphql
-    let schema = FederatedGraph::from_sdl(
+    FederatedGraph::from_sdl(
         r#"
         schema
           @link(url: "https://specs.apollo.dev/link/v1.0")
@@ -1352,17 +1278,6 @@ fn test_from_sdl_with_missing_query_root() {
         }
     "#,
     ).unwrap();
-
-    let query_object = &schema[schema.root_operation_types.query];
-
-    for field_name in ["__type", "__schema"] {
-        let field_name = schema.strings.iter().position(|s| s == field_name).unwrap();
-        assert!(
-            schema[query_object.fields.clone()]
-                .iter()
-                .any(|f| usize::from(f.name) == field_name)
-        );
-    }
 }
 
 pub(crate) fn split_namespace_name(original_name: &str, state: &mut State<'_>) -> (Option<StringId>, StringId) {

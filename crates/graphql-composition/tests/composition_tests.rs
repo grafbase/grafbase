@@ -75,24 +75,26 @@ fn run_test(test_path: &Path) -> anyhow::Result<()> {
         insta::assert_snapshot!("api.graphql", actual_api_sdl);
     }
 
-    test_sdl_roundtrip(&federated_sdl)
+    test_sdl_roundtrip(&federated_sdl, test_path)
 }
 
-fn test_sdl_roundtrip(sdl: &str) -> anyhow::Result<()> {
+fn test_sdl_roundtrip(sdl: &str, path: &Path) -> anyhow::Result<()> {
     // Exclude tests with an empty schema. This is the case for composition error tests.
     if sdl.lines().all(|line| line.is_empty() || line.starts_with('#')) {
         return Ok(());
     }
 
-    let roundtripped = graphql_federated_graph::render_federated_sdl(
-        &FederatedGraph::from_sdl(sdl).map_err(|err| anyhow::anyhow!("Error ingesting SDL: {err}\n\nSDL:\n{sdl}"))?,
-    )?;
+    let rendered =
+        FederatedGraph::from_sdl(sdl).map_err(|err| anyhow::anyhow!("Error ingesting SDL: {err}\n\nSDL:\n{sdl}"))?;
+    let roundtripped = graphql_federated_graph::render_federated_sdl(&rendered)?;
 
-    if roundtripped == sdl {
-        return Ok(());
-    }
+    pretty_assertions::assert_eq!(
+        sdl,
+        roundtripped,
+        "Federated SDL roundtrip failed for {}",
+        path.display()
+    );
 
-    pretty_assertions::assert_eq!(sdl, roundtripped, "SDL roundtrip failed");
     Ok(())
 }
 

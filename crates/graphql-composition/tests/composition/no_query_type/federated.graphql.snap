@@ -1,7 +1,7 @@
 ---
 source: crates/graphql-composition/tests/composition_tests.rs
 expression: Federated SDL
-input_file: crates/graphql-composition/tests/composition/null_value/test.md
+input_file: crates/graphql-composition/tests/composition/no_query_type/test.md
 ---
 directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
 
@@ -15,31 +15,27 @@ directive @join__type(graph: join__Graph, key: join__FieldSet, extension: Boolea
 
 directive @join__owner(graph: join__Graph!) on OBJECT
 
-scalar DateTime
-
 scalar join__FieldSet
 
-type Query
+type un
+  @join__type(graph: ONE)
 {
-  request_analytics(filter: GraphRequestAnalyticsFilter): String @join__field(graph: FILTER)
+  id: ID!
 }
 
-enum GraphRequestAnalyticsPeriod
-  @join__type(graph: FILTER)
+type deux
+  @join__type(graph: TWO)
 {
-  LATELY
-  BEFORE
+  id: ID!
+}
+
+type Mutation
+{
+  two: deux @join__field(graph: TWO)
 }
 
 enum join__Graph
 {
-  FILTER @join__graph(name: "filter", url: "http://example.com/filter")
-}
-
-input GraphRequestAnalyticsFilter
-  @join__type(graph: FILTER)
-{
-  branch: String = null
-  period: GraphRequestAnalyticsPeriod
-  now: DateTime
+  ONE @join__graph(name: "one", url: "http://example.com/one")
+  TWO @join__graph(name: "two", url: "http://example.com/two")
 }

@@ -37,7 +37,7 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
         unions: ir.unions.iter().map(|u| u.federated.clone()).collect(),
         input_objects: ir.input_objects.iter().map(|io| io.federated.clone()).collect(),
         root_operation_types: federated::RootOperationTypes {
-            query: ir.query_type.unwrap(),
+            query: ir.query_type,
             mutation: ir.mutation_type,
             subscription: ir.subscription_type,
         },

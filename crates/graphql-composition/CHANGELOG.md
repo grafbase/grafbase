@@ -2,9 +2,13 @@
 
 ## Unreleased
 
+### Improvements
+
+- Composition now allows federated graphs without a query root. That happens if none of the subgraphs define a query root type. The new, relaxed requirement is that at least one root field (query, mutation or subscription) is defined, so the federated schema is not empty. (https://github.com/grafbase/grafbase/pull/3111)
+
 ### Fixes
 
-The selection sets of `@key` directives are now validated, instead of leading to a runtime panic when they reference fields that do not exist.
+- The selection sets of `@key` directives are now validated, instead of leading to a runtime panic when they reference fields that do not exist.
 
 ## 0.7.2 - 2025-04-28
 

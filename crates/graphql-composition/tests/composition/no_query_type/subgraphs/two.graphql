@@ -1,0 +1,7 @@
+type deux {
+  id: ID!
+}
+
+type Mutation {
+  two: deux
+}

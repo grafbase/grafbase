@@ -3,3 +3,14 @@ input GraphRequestAnalyticsFilter {
   period: GraphRequestAnalyticsPeriod
   now: DateTime
 }
+
+scalar DateTime
+
+enum GraphRequestAnalyticsPeriod {
+  LATELY
+  BEFORE
+}
+
+type Query {
+  request_analytics(filter: GraphRequestAnalyticsFilter): String
+}
