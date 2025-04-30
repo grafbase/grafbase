@@ -19,13 +19,9 @@ pub(super) fn merge_root_fields(ctx: &mut Context<'_>) {
         }
     }
 
-    let Some(query_id) = merge_fields("Query", &query_types, ctx) else {
-        ctx.diagnostics
-            .push_fatal("The root `Query` object is not defined in any subgraph.".to_owned());
-        return;
+    if let Some(query_id) = merge_fields("Query", &query_types, ctx) {
+        ctx.set_query(query_id);
     };
-
-    ctx.set_query(query_id);
 
     if let Some(mutation_id) = merge_fields("Mutation", &mutation_types, ctx) {
         ctx.set_mutation(mutation_id);

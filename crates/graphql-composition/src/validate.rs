@@ -12,21 +12,19 @@ type ValidateContext<'a> = crate::ComposeContext<'a>;
 pub(crate) fn validate(ctx: &mut ValidateContext<'_>) {
     extension_names::validate_extension_names(ctx);
     subgraph_names::validate_subgraph_names(ctx);
-    validate_query_nonempty(ctx);
+    validate_root_nonempty(ctx);
     validate_fields(ctx);
     compose_directive::validate_compose_directive(ctx);
     selection::validate_keys(ctx);
 }
 
-fn validate_query_nonempty(ctx: &mut ValidateContext<'_>) {
-    if ctx
-        .subgraphs
-        .iter_subgraphs()
-        .filter_map(|subgraph| subgraph.query_type())
-        .all(|query_type| query_type.fields().next().is_none())
-    {
-        ctx.diagnostics
-            .push_fatal(String::from("None of the subgraphs defines root query fields."));
+fn validate_root_nonempty(ctx: &mut ValidateContext<'_>) {
+    if ctx.subgraphs.iter_subgraphs().all(|subgraph| {
+        subgraph.query_type().is_none() && subgraph.mutation_type().is_none() && subgraph.subscription_type().is_none()
+    }) {
+        ctx.diagnostics.push_fatal(String::from(
+            "None of the subgraphs define any root (Query, Mutation, Subscription) type. The federated graph cannot be empty.",
+        ));
     }
 }
 

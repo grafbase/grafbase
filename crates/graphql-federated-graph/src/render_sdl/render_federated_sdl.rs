@@ -49,7 +49,6 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
             .peekable();
 
         if fields.peek().is_none() {
-            sdl.push_str("\n\n");
             continue;
         }
 
@@ -584,9 +583,9 @@ mod tests {
         let parsed = FederatedGraph::from_sdl(schema).unwrap();
         let rendered = render_federated_sdl(&parsed).unwrap();
 
-        let expected = expect_test::expect![[r#"
-
-
+        insta::assert_snapshot!(
+            &rendered,
+            @r#"
             interface b
               @join__type(graph: a)
             {
@@ -597,9 +596,8 @@ mod tests {
             {
               a @join__graph(name: "mocksubgraph", url: "https://mock.example.com/todo/graphql")
             }
-        "#]];
-
-        expected.assert_eq(&rendered);
+        "#
+        );
 
         // Check that from_sdl accepts the rendered sdl
         {

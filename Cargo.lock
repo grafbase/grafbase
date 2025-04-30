@@ -4287,6 +4287,7 @@ dependencies = [
  "graphql-wrapping-types",
  "indexmap 2.9.0",
  "indoc",
+ "insta",
  "itertools 0.14.0",
  "pretty_assertions",
  "serde",

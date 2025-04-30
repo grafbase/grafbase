@@ -1,0 +1,16 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: actual_api_sdl
+input_file: crates/graphql-composition/tests/composition/no_query_type/test.md
+---
+type un {
+  id: ID!
+}
+
+type deux {
+  id: ID!
+}
+
+type Mutation {
+  two: deux
+}

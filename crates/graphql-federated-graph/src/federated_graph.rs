@@ -303,7 +303,7 @@ impl Default for FederatedGraph {
                 directives: Vec::new(),
             }],
             root_operation_types: RootOperationTypes {
-                query: ObjectId::from(0),
+                query: Some(ObjectId::from(0)),
                 mutation: None,
                 subscription: None,
             },

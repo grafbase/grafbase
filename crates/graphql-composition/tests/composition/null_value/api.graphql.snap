@@ -1,0 +1,21 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: actual_api_sdl
+input_file: crates/graphql-composition/tests/composition/null_value/test.md
+---
+enum GraphRequestAnalyticsPeriod {
+  LATELY
+  BEFORE
+}
+
+type Query {
+  request_analytics(filter: GraphRequestAnalyticsFilter): String
+}
+
+input GraphRequestAnalyticsFilter {
+  branch: String = null
+  period: GraphRequestAnalyticsPeriod
+  now: DateTime
+}
+
+scalar DateTime
