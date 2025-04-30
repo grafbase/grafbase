@@ -3,12 +3,12 @@ mod graphql;
 mod introspection;
 mod lookup;
 
-use extension::{FieldResolverExtension, SelectionSetResolverExtension};
+pub(crate) use extension::{FieldResolverExtension, SelectionSetResolverExtension};
 use futures::{FutureExt, future::BoxFuture};
 use futures_util::stream::BoxStream;
-use graphql::{FederationEntityResolver, GraphqlResolver};
+pub(crate) use graphql::{FederationEntityResolver, GraphqlResolver};
 use introspection::IntrospectionResolver;
-use lookup::LookupResolver;
+pub(crate) use lookup::{LookupProxiedResolver, LookupResolver};
 use runtime::hooks::Hooks;
 use schema::ResolverDefinitionVariant;
 
