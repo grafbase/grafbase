@@ -1,5 +1,5 @@
 [package]
-version = "0.93.3"
+version = "0.93.4"
 name = "grafbase"
 description = "The Grafbase command line interface"
 categories = ["command-line-utilities"]
