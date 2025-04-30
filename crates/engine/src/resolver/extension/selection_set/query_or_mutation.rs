@@ -11,7 +11,7 @@ use crate::{
     Runtime,
     execution::{ExecutionContext, ExecutionResult},
     prepare::Plan,
-    response::{InputResponseObjectSet, ResponseObjectsView, SubgraphResponse},
+    response::{ParentObjects, ParentObjectsView, ResponsePart},
 };
 
 impl super::SelectionSetResolverExtension {
@@ -19,9 +19,9 @@ impl super::SelectionSetResolverExtension {
         &'ctx self,
         ctx: ExecutionContext<'ctx, R>,
         plan: Plan<'ctx>,
-        input_object_refs: Arc<InputResponseObjectSet>,
-        mut subgraph_response: SubgraphResponse,
-    ) -> ExecutionResult<SubgraphResponse> {
+        parent_objects: Arc<ParentObjects>,
+        response_part: ResponsePart<'ctx>,
+    ) -> ExecutionResult<ResponsePart<'ctx>> {
         let definition = self.definition.walk(&ctx);
         let subgraph_headers = ctx.subgraph_headers_with_rules(definition.subgraph().header_rules());
 
@@ -54,7 +54,7 @@ impl super::SelectionSetResolverExtension {
             .collect::<Vec<_>>()
             .await;
 
-        let input_object_id = input_object_refs.ids().next().ok_or("No object to update")?;
+        let root_object_id = parent_objects.ids().next().ok_or("No object to update")?;
 
         tracing::debug!(
             "Received:\n{}",
@@ -76,9 +76,8 @@ impl super::SelectionSetResolverExtension {
                 .join("\n")
         );
 
-        subgraph_response
-            .as_shared_mut()
-            .seed(&ctx, input_object_id)
+        let part = response_part.into_shared();
+        part.seed(plan.shape_id(), root_object_id)
             .deserialize_from_fields(&mut results)
             .map_err(|err| {
                 tracing::error!("Failed to deserialize subgraph response: {}", err);
@@ -87,19 +86,19 @@ impl super::SelectionSetResolverExtension {
 
                 GraphqlError::invalid_subgraph_response()
                     .with_location(field.location())
-                    .with_path(&input_object_refs[input_object_id].path)
+                    .with_path(&parent_objects[root_object_id].path)
             })?;
 
-        Ok(subgraph_response)
+        Ok(part.unshare().unwrap())
     }
 
     pub(in crate::resolver) fn execute_batch_lookup<'ctx, 'f, R: Runtime>(
         &'ctx self,
         ctx: ExecutionContext<'ctx, R>,
         plan: Plan<'ctx>,
-        root_response_objects: ResponseObjectsView<'_>,
-        mut subgraph_response: SubgraphResponse,
-    ) -> impl Future<Output = ExecutionResult<SubgraphResponse>> + Send + 'f
+        root_response_objects: ParentObjectsView<'_>,
+        response_part: ResponsePart<'ctx>,
+    ) -> impl Future<Output = ExecutionResult<ResponsePart<'ctx>>> + Send + 'f
     where
         'ctx: 'f,
     {
@@ -133,7 +132,6 @@ impl super::SelectionSetResolverExtension {
             })
             .collect::<FuturesUnordered<_>>();
 
-        let parent_objects = root_response_objects.into_input_object_refs();
         async move {
             let results = futures.collect::<Vec<_>>().await;
 
@@ -157,13 +155,14 @@ impl super::SelectionSetResolverExtension {
                     .join("\n")
             );
 
-            let resp_mut = subgraph_response.as_shared_mut();
+            let part = response_part.into_shared();
 
+            let shape_id = plan.shape_id_without_lookup_fields().unwrap();
             for (_, result) in results {
-                resp_mut.batch_seed(&ctx, parent_objects.clone()).ingest(result)
+                part.batch_seed(shape_id).ingest(result)
             }
 
-            Ok(subgraph_response)
+            Ok(part.unshare().unwrap())
         }
     }
 }

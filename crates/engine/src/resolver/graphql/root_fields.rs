@@ -16,9 +16,9 @@ use super::{
 use crate::{
     Runtime,
     execution::{ExecutionContext, ExecutionError},
-    prepare::{PlanError, PlanResult, PrepareContext, SubgraphSelectionSet},
+    prepare::{ConcreteShapeId, Plan, PlanError, PlanResult, PrepareContext, SubgraphSelectionSet},
     resolver::{ExecutionResult, graphql::request::SubgraphGraphqlRequest},
-    response::{ErrorPath, ErrorPathSegment, GraphqlError, InputObjectId, InputResponseObjectSet, SubgraphResponse},
+    response::{ErrorPath, ErrorPathSegment, GraphqlError, ParentObjectId, ParentObjects, ResponsePart},
 };
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -69,9 +69,10 @@ impl GraphqlResolver {
     pub async fn execute<'ctx, R: Runtime>(
         &'ctx self,
         ctx: &mut SubgraphContext<'ctx, R>,
-        input_object_refs: Arc<InputResponseObjectSet>,
-        subgraph_response: SubgraphResponse,
-    ) -> ExecutionResult<SubgraphResponse> {
+        plan: Plan<'ctx>,
+        parent_objects: Arc<ParentObjects>,
+        response_part: ResponsePart<'ctx>,
+    ) -> ExecutionResult<ResponsePart<'ctx>> {
         let span = ctx.span().entered();
         let variables = SubgraphVariables::<()> {
             ctx: ctx.input_value_context(),
@@ -93,14 +94,16 @@ impl GraphqlResolver {
         .map_err(|err| format!("Failed to serialize query: {err}"))?;
 
         let span = span.exit();
-        let input_object_id = input_object_refs.ids().next().ok_or("No object to update")?;
+        let shape_id = plan.shape_id();
+        let parent_object_id = parent_objects.ids().next().ok_or("No object to update")?;
         async {
             let subgraph_headers = ctx.subgraph_headers_with_rules(ctx.endpoint().header_rules());
 
             if ctx.endpoint().config.cache_ttl.is_some() {
-                fetch_response_with_cache(ctx, subgraph_headers, body, input_object_id, subgraph_response).await
+                fetch_response_with_cache(ctx, subgraph_headers, body, parent_object_id, shape_id, response_part).await
             } else {
-                fetch_response_without_cache(ctx, subgraph_headers, body, input_object_id, subgraph_response).await
+                fetch_response_without_cache(ctx, subgraph_headers, body, parent_object_id, shape_id, response_part)
+                    .await
             }
         }
         .instrument(span)
@@ -108,24 +111,30 @@ impl GraphqlResolver {
     }
 }
 
-async fn fetch_response_without_cache<R: Runtime>(
-    ctx: &mut SubgraphContext<'_, R>,
+async fn fetch_response_without_cache<'ctx, R: Runtime>(
+    ctx: &mut SubgraphContext<'ctx, R>,
     subgraph_headers: http::HeaderMap,
     body: Vec<u8>,
-    input_object_id: InputObjectId,
-    mut subgraph_response: SubgraphResponse,
-) -> ExecutionResult<SubgraphResponse> {
-    let execution_ctx = ctx.execution_context();
-    execute_subgraph_request(
-        ctx,
-        subgraph_headers,
-        body,
-        move |http_response: http::Response<OwnedOrSharedBytes>| {
+    parent_object_id: ParentObjectId,
+    shape_id: ConcreteShapeId,
+    response_part: ResponsePart<'ctx>,
+) -> ExecutionResult<ResponsePart<'ctx>> {
+    struct Ingester {
+        parent_object_id: ParentObjectId,
+        shape_id: ConcreteShapeId,
+    }
+
+    impl ResponseIngester for Ingester {
+        async fn ingest(
+            self,
+            http_response: http::Response<OwnedOrSharedBytes>,
+            response_part: ResponsePart<'_>,
+        ) -> Result<(GraphqlResponseStatus, ResponsePart<'_>), ExecutionError> {
+            let response_part = response_part.into_shared();
             let status = {
-                let response = subgraph_response.as_shared_mut();
                 GraphqlResponseSeed::new(
-                    response.seed(&execution_ctx, input_object_id),
-                    GraphqlErrorsSeed::new(response, convert_root_error_path),
+                    response_part.seed(self.shape_id, self.parent_object_id),
+                    GraphqlErrorsSeed::new(response_part.clone(), convert_root_error_path),
                 )
                 .deserialize(&mut sonic_rs::Deserializer::from_slice(http_response.body()))
                 .map_err(|err| {
@@ -134,27 +143,39 @@ async fn fetch_response_without_cache<R: Runtime>(
                 })?
             };
 
-            Ok((status, subgraph_response))
+            Ok((status, response_part.unshare().unwrap()))
+        }
+    }
+
+    execute_subgraph_request(
+        ctx,
+        subgraph_headers,
+        body,
+        response_part,
+        Ingester {
+            parent_object_id,
+            shape_id,
         },
     )
     .await
 }
 
-async fn fetch_response_with_cache<R: Runtime>(
-    ctx: &mut SubgraphContext<'_, R>,
+async fn fetch_response_with_cache<'ctx, R: Runtime>(
+    ctx: &mut SubgraphContext<'ctx, R>,
     subgraph_headers: http::HeaderMap,
     body: Vec<u8>,
-    input_object_id: InputObjectId,
-    mut subgraph_response: SubgraphResponse,
-) -> ExecutionResult<SubgraphResponse> {
+    parent_object_id: ParentObjectId,
+    shape_id: ConcreteShapeId,
+    response_part: ResponsePart<'ctx>,
+) -> ExecutionResult<ResponsePart<'ctx>> {
     match super::cache::fetch_response(ctx, &subgraph_headers, &body).await {
         Ok(ResponseCacheHit { data }) => {
             ctx.record_cache_hit();
 
-            let response = subgraph_response.as_shared_mut();
+            let response_part = response_part.into_shared();
             GraphqlResponseSeed::new(
-                response.seed(ctx, input_object_id),
-                GraphqlErrorsSeed::new(response, convert_root_error_path),
+                response_part.seed(shape_id, parent_object_id),
+                GraphqlErrorsSeed::new(response_part.clone(), convert_root_error_path),
             )
             .deserialize(&mut sonic_rs::Deserializer::from_slice(&data))
             .map_err(|err| {
@@ -162,27 +183,27 @@ async fn fetch_response_with_cache<R: Runtime>(
                 GraphqlError::invalid_subgraph_response()
             })?;
 
-            Ok(subgraph_response)
+            Ok(response_part.unshare().unwrap())
         }
         Err(ResponseCacheMiss { key }) => {
             ctx.record_cache_miss();
             let ingester = GraphqlWithCachePutIngester {
                 ctx: ctx.execution_context(),
-                input_object_id,
+                parent_object_id,
                 subgraph_default_cache_ttl: ctx.endpoint().config.cache_ttl,
                 cache_key: key,
-                subgraph_response,
+                shape_id,
             };
 
-            execute_subgraph_request(ctx, subgraph_headers, body, ingester).await
+            execute_subgraph_request(ctx, subgraph_headers, body, response_part, ingester).await
         }
     }
 }
 
 struct GraphqlWithCachePutIngester<'ctx, R: Runtime> {
     ctx: ExecutionContext<'ctx, R>,
-    input_object_id: InputObjectId,
-    subgraph_response: SubgraphResponse,
+    parent_object_id: ParentObjectId,
+    shape_id: ConcreteShapeId,
     subgraph_default_cache_ttl: Option<Duration>,
     cache_key: String,
 }
@@ -194,26 +215,28 @@ where
     async fn ingest(
         self,
         http_response: http::Response<OwnedOrSharedBytes>,
-    ) -> Result<(GraphqlResponseStatus, SubgraphResponse), ExecutionError> {
+        response_part: ResponsePart<'_>,
+    ) -> Result<(GraphqlResponseStatus, ResponsePart<'_>), ExecutionError> {
         let Self {
             ctx,
-            mut subgraph_response,
-            input_object_id,
+            shape_id,
+            parent_object_id,
             subgraph_default_cache_ttl,
             cache_key,
         } = self;
 
-        let status = {
-            let response = subgraph_response.as_shared_mut();
-            GraphqlResponseSeed::new(
-                response.seed(&ctx, input_object_id),
-                GraphqlErrorsSeed::new(response, convert_root_error_path),
+        let (status, response_part) = {
+            let response_part = response_part.into_shared();
+            let status = GraphqlResponseSeed::new(
+                response_part.seed(shape_id, parent_object_id),
+                GraphqlErrorsSeed::new(response_part.clone(), convert_root_error_path),
             )
             .deserialize(&mut sonic_rs::Deserializer::from_slice(http_response.body()))
             .map_err(|err| {
                 tracing::error!("Failed to deserialize subscription response: {}", err);
                 GraphqlError::invalid_subgraph_response()
-            })?
+            })?;
+            (status, response_part.unshare().unwrap())
         };
 
         if status.is_success() {
@@ -231,7 +254,7 @@ where
             }
         }
 
-        Ok((status, subgraph_response))
+        Ok((status, response_part))
     }
 }
 

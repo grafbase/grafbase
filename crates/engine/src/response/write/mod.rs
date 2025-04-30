@@ -1,6 +1,6 @@
 mod deserialize;
 mod merge;
-mod subgraph_response;
+mod part;
 
 use std::sync::Arc;
 
@@ -10,37 +10,31 @@ use schema::{ObjectDefinitionId, Schema};
 use walker::Walk;
 
 use super::{
-    DataParts, ErrorCodeCounter, ErrorPathSegment, ExecutedResponse, GraphqlError, InputResponseObjectSet,
-    OutputResponseObjectSets, Response, ResponseData, ResponseObject, ResponseObjectField, ResponseObjectId,
+    DataParts, ErrorCodeCounter, ErrorPathSegment, ExecutedResponse, GraphqlError, OutputResponseObjectSets,
+    ParentObjectId, ParentObjects, Response, ResponseData, ResponseObject, ResponseObjectField, ResponseObjectId,
     ResponseObjectRef, ResponseValue, ResponseValueId,
 };
 use crate::{
     execution::ExecutionError,
-    prepare::{CachedOperation, ConcreteShapeId, ObjectIdentifier, Plan},
+    prepare::{ObjectIdentifier, Plan, PreparedOperation},
 };
-pub(crate) use subgraph_response::*;
+pub(crate) use part::*;
 
-pub(crate) struct ResponseBuilder {
+pub(crate) struct ResponseBuilder<'ctx> {
     // will be None if an error propagated up to the root.
-    pub(in crate::response) schema: Arc<Schema>,
-    operation: Arc<CachedOperation>,
+    pub(in crate::response) schema: &'ctx Arc<Schema>,
+    operation: &'ctx PreparedOperation,
     pub(super) root: Option<(ResponseObjectId, ObjectDefinitionId)>,
     pub(super) data_parts: DataParts,
     errors: Vec<GraphqlError>,
 }
 
-impl ResponseBuilder {
-    pub fn new(
-        schema: Arc<Schema>,
-        operation: Arc<CachedOperation>,
-        root_object_definition_id: ObjectDefinitionId,
-    ) -> Self {
+impl<'ctx> ResponseBuilder<'ctx> {
+    pub fn new(schema: &'ctx Arc<Schema>, operation: &'ctx PreparedOperation) -> Self {
+        let root_object_definition_id = operation.cached.operation.root_object_id;
         let mut parts = DataParts::default();
         let mut initial_part = parts.new_part();
-        let root_id = initial_part.push_object(ResponseObject::new(
-            Some(operation.operation.root_object_id),
-            Vec::new(),
-        ));
+        let root_id = initial_part.push_object(ResponseObject::new(Some(root_object_definition_id), Vec::new()));
         parts.insert(initial_part);
 
         Self {
@@ -68,12 +62,17 @@ impl ResponseBuilder {
         self.data_parts[value_id.part_id()].make_inaccessible(value_id);
     }
 
-    pub fn new_subgraph_response(
-        &mut self,
-        shape_id: ConcreteShapeId,
-        root_response_object_set: Arc<InputResponseObjectSet>,
-    ) -> SubgraphResponse {
-        SubgraphResponse::new(self.data_parts.new_part(), shape_id, root_response_object_set)
+    pub fn create_root_part(&mut self) -> (ParentObjectId, ResponsePart<'ctx>) {
+        let root_parent_objects = Arc::new(
+            ParentObjects::default().with_response_objects(Arc::new(self.root_response_object().into_iter().collect())),
+        );
+        let root_id = root_parent_objects.ids().next().expect("We just added the root object");
+        let resp = self.create_part_for(root_parent_objects);
+        (root_id, resp)
+    }
+
+    pub fn create_part_for(&mut self, parent_objects: Arc<ParentObjects>) -> ResponsePart<'ctx> {
+        ResponsePart::new(self.schema, self.operation, self.data_parts.new_part(), parent_objects)
     }
 
     pub fn root_response_object(&self) -> Option<ResponseObjectRef> {
@@ -87,7 +86,7 @@ impl ResponseBuilder {
     pub fn propagate_execution_error(
         &mut self,
         plan: Plan<'_>,
-        root_response_object_set: Arc<InputResponseObjectSet>,
+        root_response_object_set: Arc<ParentObjects>,
         error: ExecutionError,
     ) {
         let (any_response_key, default_fields_sorted_by_key) =
@@ -110,7 +109,7 @@ impl ResponseBuilder {
         }
     }
 
-    pub fn ingest(&mut self, plan: Plan<'_>, mut subgraph_response: SubgraphResponse) -> OutputResponseObjectSets {
+    pub fn ingest(&mut self, plan: Plan<'ctx>, mut subgraph_response: ResponsePart<'ctx>) -> OutputResponseObjectSets {
         self.data_parts.insert(subgraph_response.data);
 
         let (any_response_key, default_fields_sorted_by_key) =
@@ -118,7 +117,7 @@ impl ResponseBuilder {
         for (update, obj_ref) in subgraph_response
             .updates
             .into_iter()
-            .zip(subgraph_response.input_response_object_set.iter())
+            .zip(subgraph_response.parent_objects.iter())
         {
             match update {
                 ObjectUpdate::Missing => {
@@ -175,7 +174,7 @@ impl ResponseBuilder {
             }
         }
 
-        let (ids, sets) = subgraph_response.response_object_sets.into_iter().unzip();
+        let (ids, sets) = subgraph_response.object_sets.into_iter().unzip();
         OutputResponseObjectSets { ids, sets }
     }
 
@@ -197,7 +196,7 @@ impl ResponseBuilder {
                     }
                 }
                 (ErrorPathSegment::UnknownField(name), ResponseValueId::Field { key, .. }) => {
-                    if **name != self.operation.operation.response_keys[*key] {
+                    if **name != self.operation.cached.operation.response_keys[*key] {
                         return false;
                     }
                 }
@@ -272,8 +271,8 @@ impl ResponseBuilder {
     ) -> Response<OnOperationResponseHookOutput> {
         let error_code_counter = ErrorCodeCounter::from_errors(&self.errors);
         Response::Executed(ExecutedResponse {
-            schema: self.schema,
-            operation: self.operation,
+            schema: self.schema.clone(),
+            operation: self.operation.cached.clone(),
             operation_attributes,
             data: self.root.map(|(root, _)| ResponseData {
                 root,

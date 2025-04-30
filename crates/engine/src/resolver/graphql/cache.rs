@@ -7,7 +7,7 @@ use runtime::entity_cache::EntityCache;
 use serde_json::value::RawValue;
 use std::time::Duration;
 
-use crate::{Runtime, response::InputObjectId};
+use crate::{Runtime, response::ParentObjectId};
 
 use super::{EntityToFetch, SubgraphContext};
 
@@ -125,19 +125,19 @@ pub(super) struct CacheFetchEntitiesOutcome {
 }
 
 pub(super) struct EntityCacheHit {
-    pub id: InputObjectId,
+    pub id: ParentObjectId,
     pub data: Vec<u8>,
 }
 
 pub(super) struct EntityCacheMiss {
-    pub id: InputObjectId,
+    pub id: ParentObjectId,
     pub key: String,
     pub representation: Box<RawValue>,
 }
 
 async fn fetch_entity(
     entity_cache: &dyn EntityCache,
-    id: InputObjectId,
+    id: ParentObjectId,
     key: String,
     representation: Box<RawValue>,
 ) -> Result<EntityCacheHit, EntityCacheMiss> {

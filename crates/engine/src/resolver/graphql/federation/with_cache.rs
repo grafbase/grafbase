@@ -11,38 +11,37 @@ use serde_json::value::RawValue;
 use crate::{
     Runtime,
     execution::{ExecutionContext, ExecutionError, ExecutionResult},
+    prepare::ConcreteShapeId,
     resolver::graphql::{
         cache::{CacheFetchEntitiesOutcome, EntityCacheHit, EntityCacheMiss, calculate_cache_ttl},
         deserialize::{EntitiesDataSeed, EntityErrorPathConverter, GraphqlErrorsSeed, GraphqlResponseSeed},
         request::ResponseIngester,
     },
-    response::{GraphqlError, SubgraphResponse, SubgraphResponseRefMut},
+    response::{GraphqlError, ResponsePart, SharedResponsePart},
 };
 
 pub(super) fn ingest_hits(
-    ctx: ExecutionContext<'_, impl Runtime>,
+    shape_id: ConcreteShapeId,
     hits: Vec<EntityCacheHit>,
-    mut subgraph_response: SubgraphResponse,
-) -> ExecutionResult<SubgraphResponse> {
-    {
-        let subgraph_response = subgraph_response.as_shared_mut();
-        for hit in hits {
-            subgraph_response
-                .seed(&ctx, hit.id)
-                .deserialize(&mut sonic_rs::Deserializer::from_slice(&hit.data))
-                .map_err(|err| {
-                    tracing::error!("Failed to deserialize subgraph response: {}", err);
-                    GraphqlError::invalid_subgraph_response()
-                })?;
-        }
+    response_part: ResponsePart<'_>,
+) -> ExecutionResult<ResponsePart<'_>> {
+    let response_part = response_part.into_shared();
+    for hit in hits {
+        response_part
+            .seed(shape_id, hit.id)
+            .deserialize(&mut sonic_rs::Deserializer::from_slice(&hit.data))
+            .map_err(|err| {
+                tracing::error!("Failed to deserialize subgraph response: {}", err);
+                GraphqlError::invalid_subgraph_response()
+            })?;
     }
-    Ok(subgraph_response)
+    Ok(response_part.unshare().unwrap())
 }
 
 pub(super) struct PartiallyCachedEntitiesIngester<'ctx, R: Runtime> {
     pub ctx: ExecutionContext<'ctx, R>,
     pub cache_fetch_outcome: CacheFetchEntitiesOutcome,
-    pub subgraph_response: SubgraphResponse,
+    pub shape_id: ConcreteShapeId,
     pub subgraph_default_cache_ttl: Option<Duration>,
 }
 
@@ -53,23 +52,24 @@ where
     async fn ingest(
         self,
         http_response: http::Response<OwnedOrSharedBytes>,
-    ) -> Result<(GraphqlResponseStatus, SubgraphResponse), ExecutionError> {
+        response_part: ResponsePart<'_>,
+    ) -> Result<(GraphqlResponseStatus, ResponsePart<'_>), ExecutionError> {
         let Self {
             ctx,
             cache_fetch_outcome: CacheFetchEntitiesOutcome { hits, misses },
-            mut subgraph_response,
+            shape_id,
             subgraph_default_cache_ttl,
         } = self;
 
         // New cache values we should update the cache with if everything went fine. Populated
         // while deserializing.
         let mut cache_updates = Vec::with_capacity(misses.len());
-        let status = {
-            let subgraph_response = subgraph_response.as_shared_mut();
+        let (status, response_part) = {
+            let response_part = response_part.into_shared();
 
             for hit in hits {
-                subgraph_response
-                    .seed(&ctx, hit.id)
+                response_part
+                    .seed(shape_id, hit.id)
                     .deserialize(&mut sonic_rs::Deserializer::from_slice(&hit.data))
                     .map_err(|err| {
                         tracing::error!("Failed to deserialize subgraph response: {}", err);
@@ -83,16 +83,16 @@ where
             // position to the InputObjectId which will allow us to generate the full error path on
             // our side.
             let index_to_id = misses.iter().map(|miss| miss.id).collect::<Vec<_>>();
-            GraphqlResponseSeed::new(
+            let status = GraphqlResponseSeed::new(
                 EntitiesDataSeed::new(PartiallyCachedEntitiesSeed {
-                    ctx,
                     misses,
-                    subgraph_response: subgraph_response.clone(),
+                    shape_id,
+                    response_part: response_part.clone(),
                     cache_updates: &mut cache_updates,
                 }),
                 GraphqlErrorsSeed::new(
-                    subgraph_response.clone(),
-                    EntityErrorPathConverter::new(subgraph_response, |index| index_to_id.get(index).copied()),
+                    response_part.clone(),
+                    EntityErrorPathConverter::new(response_part.clone(), |index| index_to_id.get(index).copied()),
                 ),
             )
             // We use RawValue underneath, so can't use sonic_rs. RwaValue doesn't do any copies
@@ -101,7 +101,8 @@ where
             .map_err(|err| {
                 tracing::error!("Failed to deserialize subgraph response: {}", err);
                 GraphqlError::invalid_subgraph_response()
-            })?
+            })?;
+            (status, response_part.unshare().unwrap())
         };
 
         if status.is_success() {
@@ -118,21 +119,20 @@ where
             }
         }
 
-        Ok((status, subgraph_response))
+        Ok((status, response_part))
     }
 }
 
-struct PartiallyCachedEntitiesSeed<'ctx, 'resp, 'de, 'updates, R: Runtime> {
-    ctx: ExecutionContext<'ctx, R>,
+struct PartiallyCachedEntitiesSeed<'ctx, 'de, 'updates> {
     misses: Vec<EntityCacheMiss>,
-    subgraph_response: SubgraphResponseRefMut<'resp>,
+    shape_id: ConcreteShapeId,
+    response_part: SharedResponsePart<'ctx>,
     cache_updates: &'updates mut Vec<(String, &'de RawValue)>,
 }
 
-impl<'ctx, 'resp, 'de, R: Runtime> DeserializeSeed<'de> for PartiallyCachedEntitiesSeed<'ctx, 'resp, 'de, '_, R>
+impl<'ctx, 'de> DeserializeSeed<'de> for PartiallyCachedEntitiesSeed<'ctx, 'de, '_>
 where
-    'ctx: 'resp,
-    'resp: 'de,
+    'ctx: 'de,
 {
     type Value = ();
 
@@ -144,10 +144,9 @@ where
     }
 }
 
-impl<'ctx, 'resp, 'de, R: Runtime> Visitor<'de> for PartiallyCachedEntitiesSeed<'ctx, 'resp, 'de, '_, R>
+impl<'ctx, 'de> Visitor<'de> for PartiallyCachedEntitiesSeed<'ctx, 'de, '_>
 where
-    'ctx: 'resp,
-    'resp: 'de,
+    'ctx: 'de,
 {
     type Value = ();
 
@@ -160,9 +159,9 @@ where
         A: SeqAccess<'de>,
     {
         let Self {
-            ctx,
             misses,
-            subgraph_response,
+            shape_id,
+            response_part,
             cache_updates,
         } = self;
 
@@ -173,7 +172,7 @@ where
                 Ok(Some(value)) => value,
                 Ok(None) => {
                     tracing::error!("Received less entities than expected");
-                    subgraph_response.borrow_mut().insert_errors(
+                    response_part.borrow_mut().insert_errors(
                         GraphqlError::invalid_subgraph_response(),
                         cache_misses.by_ref().map(|miss| miss.id),
                     );
@@ -182,7 +181,7 @@ where
                 }
                 Err(err) => {
                     tracing::error!("Subgraph deserialization failed with: {err}");
-                    subgraph_response.borrow_mut().insert_errors(
+                    response_part.borrow_mut().insert_errors(
                         GraphqlError::invalid_subgraph_response(),
                         cache_misses.by_ref().map(|miss| miss.id),
                     );
@@ -194,8 +193,8 @@ where
                     return Ok(());
                 }
             };
-            subgraph_response
-                .seed(&ctx, id)
+            response_part
+                .seed(shape_id, id)
                 .deserialize(raw_value)
                 .map_err(|err| A::Error::custom(err.to_string()))?;
             cache_updates.push((key, raw_value));

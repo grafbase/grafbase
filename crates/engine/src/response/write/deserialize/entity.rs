@@ -139,7 +139,7 @@ impl<'de> MapAccess<'de> for EntityFieldsMapAccess<'de, '_, '_> {
             },
             Err(err) => {
                 if field.query_position().is_some() {
-                    let mut resp = self.ctx.subgraph_response.borrow_mut();
+                    let mut resp = self.ctx.response.borrow_mut();
                     let path = self.ctx.path();
                     resp.propagate_null(&path);
                     // FIXME: remove Clone...

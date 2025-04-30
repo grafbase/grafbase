@@ -12,9 +12,7 @@ use crate::{
     Runtime,
     execution::ExecutionContext,
     prepare::{ConcreteShapeId, FieldShapeRecord, Plan, Shapes},
-    response::{
-        InputObjectId, ObjectUpdate, ResponseObject, ResponseObjectField, ResponseValue, SubgraphResponseRefMut,
-    },
+    response::{ObjectUpdate, ParentObjectId, ResponseObject, ResponseObjectField, ResponseValue, SharedResponsePart},
 };
 
 pub(super) struct IntrospectionWriter<'ctx, R: Runtime> {
@@ -23,8 +21,8 @@ pub(super) struct IntrospectionWriter<'ctx, R: Runtime> {
     pub shapes: &'ctx Shapes,
     pub metadata: &'ctx IntrospectionSubgraph,
     pub plan: Plan<'ctx>,
-    pub input_object_id: InputObjectId,
-    pub response: SubgraphResponseRefMut<'ctx>,
+    pub parent_object_id: ParentObjectId,
+    pub response: SharedResponsePart<'ctx>,
 }
 
 impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
@@ -69,7 +67,7 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
         }
         self.response
             .borrow_mut()
-            .insert_update(self.input_object_id, ObjectUpdate::Fields(fields));
+            .insert_update(self.parent_object_id, ObjectUpdate::Fields(fields));
     }
 
     fn object<E: Copy, const N: usize>(

@@ -14,9 +14,9 @@ use schema::ResolverDefinitionVariant;
 
 use crate::{
     Runtime,
-    execution::{ExecutionContext, ExecutionError, ExecutionResult, SubscriptionResponse},
+    execution::{ExecutionContext, ExecutionError, ExecutionResult},
     prepare::{Plan, PlanQueryPartition, PlanResult, PrepareContext},
-    response::{ResponseObjectsView, SubgraphResponse},
+    response::{ParentObjectsView, ResponseBuilder, ResponsePart},
 };
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -61,8 +61,8 @@ impl Resolver {
     }
 }
 
-pub struct ResolverResult<OnSubgraphResponseHookOutput> {
-    pub execution: ExecutionResult<SubgraphResponse>,
+pub struct ResolverResult<'ctx, OnSubgraphResponseHookOutput> {
+    pub execution: ExecutionResult<ResponsePart<'ctx>>,
     pub on_subgraph_response_hook_output: Option<OnSubgraphResponseHookOutput>,
 }
 
@@ -74,25 +74,25 @@ impl Resolver {
         // This cannot be kept in the future, it locks the whole the response to have this view.
         // So an executor is expected to prepare whatever it required from the response before
         // awaiting anything.
-        root_response_objects: ResponseObjectsView<'_>,
-        subgraph_response: SubgraphResponse,
-    ) -> BoxFuture<'fut, ResolverResult<<R::Hooks as Hooks>::OnSubgraphResponseOutput>>
+        parent_objects_view: ParentObjectsView<'_>,
+        response_part: ResponsePart<'ctx>,
+    ) -> BoxFuture<'fut, ResolverResult<'ctx, <R::Hooks as Hooks>::OnSubgraphResponseOutput>>
     where
         'ctx: 'fut,
     {
         match self {
             Resolver::Graphql(prepared) => {
-                let input_object_refs = root_response_objects.into_input_object_refs();
+                let parent_objects = parent_objects_view.into_parent_objects();
                 async move {
                     let mut ctx = prepared.build_subgraph_context(ctx);
-                    let subgraph_result = prepared.execute(&mut ctx, input_object_refs, subgraph_response).await;
+                    let subgraph_result = prepared.execute(&mut ctx, plan, parent_objects, response_part).await;
                     ctx.finalize(subgraph_result).await
                 }
             }
             .boxed(),
             Resolver::FederationEntity(prepared) => {
                 let mut ctx = prepared.build_subgraph_context(ctx);
-                let executor = prepared.build_executor(&ctx, plan, root_response_objects, subgraph_response);
+                let executor = prepared.build_executor(&ctx, plan, parent_objects_view, response_part);
 
                 async move {
                     let subgraph_result = match executor {
@@ -105,9 +105,9 @@ impl Resolver {
                 .boxed()
             }
             Resolver::Introspection(prepared) => {
-                let input_object_refs = root_response_objects.into_input_object_refs();
+                let input_object_refs = parent_objects_view.into_parent_objects();
                 async move {
-                    let result = prepared.execute(ctx, plan, input_object_refs, subgraph_response);
+                    let result = prepared.execute(ctx, plan, input_object_refs, response_part);
 
                     ResolverResult {
                         execution: result,
@@ -117,19 +117,19 @@ impl Resolver {
             }
             .boxed(),
             Resolver::FieldResolverExtension(prepared) => {
-                let executor = prepared.build_executor(ctx, plan, root_response_objects, subgraph_response);
+                let executor = prepared.build_executor(ctx, plan, parent_objects_view, response_part);
                 async move {
                     ResolverResult {
-                        execution: executor.execute(ctx).await,
+                        execution: executor.execute().await,
                         on_subgraph_response_hook_output: None,
                     }
                 }
                 .boxed()
             }
             Resolver::SelectionSetResolverExtension(prepared) => {
-                let input_object_refs = root_response_objects.into_input_object_refs();
+                let input_object_refs = parent_objects_view.into_parent_objects();
                 async move {
-                    let result = prepared.execute(ctx, plan, input_object_refs, subgraph_response).await;
+                    let result = prepared.execute(ctx, plan, input_object_refs, response_part).await;
                     ResolverResult {
                         execution: result,
                         on_subgraph_response_hook_output: None,
@@ -137,7 +137,7 @@ impl Resolver {
                 }
                 .boxed()
             }
-            Resolver::Lookup(resolver) => resolver.execute(ctx, plan, root_response_objects, subgraph_response),
+            Resolver::Lookup(resolver) => resolver.execute(ctx, plan, parent_objects_view, response_part),
         }
     }
 
@@ -145,14 +145,14 @@ impl Resolver {
         &'ctx self,
         ctx: ExecutionContext<'ctx, R>,
         plan: Plan<'ctx>,
-        new_response: impl Fn() -> SubscriptionResponse + Send + 'ctx,
-    ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<SubscriptionResponse>>> {
+        new_response: impl Fn() -> ResponseBuilder<'ctx> + Send + 'ctx,
+    ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<(ResponseBuilder<'ctx>, ResponsePart<'ctx>)>>> {
         match self {
             Resolver::Graphql(prepared) => {
                 // TODO: for now we do not finalize this, e.g. we do not call the subgraph response hook. We should figure
                 // out later what kind of data that hook would contain.
                 let mut ctx = prepared.build_subgraph_context(ctx);
-                prepared.execute_subscription(&mut ctx, new_response).await
+                prepared.execute_subscription(&mut ctx, plan, new_response).await
             }
             Resolver::FieldResolverExtension(prepared) => prepared.execute_subscription(ctx, plan, new_response).await,
             Resolver::Lookup(_)

@@ -45,19 +45,19 @@ const OBJECT_INDEX_MASK: u32 = (1 << SET_INDEX_SHIFT) - 1;
 /// condition). Moreover a ResponseModifier may be applied at different selection sets (containing
 /// the same field/object).
 ///
-/// So the `InputResponseObjectSet` abstracts all of this by providing an Iterator over all the
+/// So the `ParentObjects` abstracts all of this by providing an Iterator over all the
 /// relevant the references for a given ResponseModifier/Plan. We eagerly compute the indices of
 /// all the relevant references mostly out of simplicity. Typically for a federation entity
 /// response, any errors will include the index in the response path, so we need an easy way to
 /// find its respective path on our side.
 #[derive(Default, Clone)]
-pub(crate) struct InputResponseObjectSet {
+pub(crate) struct ParentObjects {
     sets: Vec<Arc<ResponseObjectSet>>,
     // Upper 8 bits in the set index, the 24 lower is the object index.
     indices: Vec<u32>,
 }
 
-impl InputResponseObjectSet {
+impl ParentObjects {
     pub(crate) fn with_response_objects(mut self, refs: Arc<ResponseObjectSet>) -> Self {
         let n = self.indices.len();
         self.indices.reserve_exact(refs.len());
@@ -121,8 +121,8 @@ impl InputResponseObjectSet {
         self
     }
 
-    pub(crate) fn ids(&self) -> impl DoubleEndedIterator<Item = InputObjectId> {
-        (0..self.indices.len()).map(InputObjectId::from)
+    pub(crate) fn ids(&self) -> impl DoubleEndedIterator<Item = ParentObjectId> {
+        (0..self.indices.len()).map(ParentObjectId::from)
     }
 
     pub(crate) fn iter(&self) -> impl Iterator<Item = &ResponseObjectRef> {
@@ -133,11 +133,11 @@ impl InputResponseObjectSet {
         })
     }
 
-    pub(crate) fn iter_with_id(&self) -> impl Iterator<Item = (InputObjectId, &ResponseObjectRef)> {
+    pub(crate) fn iter_with_id(&self) -> impl Iterator<Item = (ParentObjectId, &ResponseObjectRef)> {
         self.indices.iter().enumerate().map(move |(id, index)| {
             let set_idex = (index >> SET_INDEX_SHIFT) as usize;
             let object_index = (index & OBJECT_INDEX_MASK) as usize;
-            (InputObjectId(id as u32), &self.sets[set_idex][object_index])
+            (ParentObjectId(id as u32), &self.sets[set_idex][object_index])
         })
     }
 
@@ -157,16 +157,16 @@ impl InputResponseObjectSet {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, id_derives::Id)]
-pub(crate) struct InputObjectId(u32);
+pub(crate) struct ParentObjectId(u32);
 
-impl std::ops::Index<InputObjectId> for InputResponseObjectSet {
+impl std::ops::Index<ParentObjectId> for ParentObjects {
     type Output = ResponseObjectRef;
-    fn index(&self, index: InputObjectId) -> &Self::Output {
+    fn index(&self, index: ParentObjectId) -> &Self::Output {
         self.get(usize::from(index)).expect("Out of bounds")
     }
 }
 
-impl std::ops::Index<usize> for InputResponseObjectSet {
+impl std::ops::Index<usize> for ParentObjects {
     type Output = ResponseObjectRef;
     fn index(&self, index: usize) -> &Self::Output {
         self.get(index).expect("Out of bounds")

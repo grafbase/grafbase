@@ -44,7 +44,7 @@ impl ScalarTypeSeed<'_, '_> {
         );
 
         if self.parent_field.key.query_position.is_some() {
-            let mut resp = self.ctx.subgraph_response.borrow_mut();
+            let mut resp = self.ctx.response.borrow_mut();
             let path = self.ctx.path();
             // If not required, we don't need to propagate as Unexpected is equivalent to
             // null for users.
@@ -339,7 +339,7 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
                     list.push(value);
                 }
                 Ok(ResponseValue::List {
-                    id: self.ctx.subgraph_response.borrow_mut().data.push_list(list),
+                    id: self.ctx.response.borrow_mut().data.push_list(list),
                 })
             }
             _ => {
@@ -368,7 +368,7 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
                     key_values.push((key, value));
                 }
                 Ok(ResponseValue::Map {
-                    id: self.ctx.subgraph_response.borrow_mut().data.push_map(key_values),
+                    id: self.ctx.response.borrow_mut().data.push_map(key_values),
                 })
             }
             _ => {

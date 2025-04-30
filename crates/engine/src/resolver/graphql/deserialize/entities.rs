@@ -3,7 +3,7 @@ use serde::{
     de::{DeserializeSeed, IgnoredAny, MapAccess, Visitor},
 };
 
-use crate::response::{ErrorPath, ErrorPathSegment, InputObjectId, SubgraphResponseRefMut};
+use crate::response::{ErrorPath, ErrorPathSegment, ParentObjectId, SharedResponsePart};
 
 use super::SubgraphToSupergraphErrorPathConverter;
 
@@ -74,26 +74,26 @@ enum EntitiesKey {
     Unknown,
 }
 
-pub(in crate::resolver::graphql) struct EntityErrorPathConverter<'resp, F> {
-    pub response: SubgraphResponseRefMut<'resp>,
-    pub index_to_input_id: F,
+pub(in crate::resolver::graphql) struct EntityErrorPathConverter<'ctx, F> {
+    pub response_part: SharedResponsePart<'ctx>,
+    pub index_to_parent_object_id: F,
 }
 
-impl<'resp, F> EntityErrorPathConverter<'resp, F>
+impl<'ctx, F> EntityErrorPathConverter<'ctx, F>
 where
-    F: Fn(usize) -> Option<InputObjectId>,
+    F: Fn(usize) -> Option<ParentObjectId>,
 {
-    pub fn new(response: SubgraphResponseRefMut<'resp>, index_to_input_id: F) -> Self {
+    pub fn new(response_part: SharedResponsePart<'ctx>, index_to_parent_object_id: F) -> Self {
         Self {
-            response,
-            index_to_input_id,
+            response_part,
+            index_to_parent_object_id,
         }
     }
 }
 
 impl<F> SubgraphToSupergraphErrorPathConverter for EntityErrorPathConverter<'_, F>
 where
-    F: Fn(usize) -> Option<InputObjectId>,
+    F: Fn(usize) -> Option<ParentObjectId>,
 {
     fn convert(&self, path: serde_json::Value) -> Option<ErrorPath> {
         let serde_json::Value::Array(path) = path else {
@@ -105,10 +105,7 @@ where
         }
 
         let index = path.next()?.as_u64()? as usize;
-        let mut out = self
-            .response
-            .borrow()
-            .input_object_ref((self.index_to_input_id)(index)?)
+        let mut out = self.response_part.borrow()[(self.index_to_parent_object_id)(index)?]
             .path
             .iter()
             .map(Into::into)

@@ -17,24 +17,27 @@ use super::{
 };
 use crate::{
     Runtime,
-    execution::{ExecutionError, SubscriptionResponse},
+    execution::ExecutionError,
+    prepare::{ConcreteShapeId, Plan},
     resolver::ExecutionResult,
-    response::GraphqlError,
+    response::{GraphqlError, ResponseBuilder, ResponsePart},
 };
 
 impl GraphqlResolver {
     pub async fn execute_subscription<'ctx, R: Runtime>(
         &'ctx self,
         ctx: &mut SubgraphContext<'ctx, R>,
-        new_response: impl Fn() -> SubscriptionResponse + Send + 'ctx,
-    ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<SubscriptionResponse>>> {
+        plan: Plan<'ctx>,
+        new_response: impl Fn() -> ResponseBuilder<'ctx> + Send + 'ctx,
+    ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<(ResponseBuilder<'ctx>, ResponsePart<'ctx>)>>> {
         let endpoint = ctx.endpoint();
+        let shape_id = plan.shape_id();
         match endpoint.subscription_protocol {
-            SubscriptionProtocol::ServerSentEvents => self.execute_sse_subscription(ctx, new_response).await,
+            SubscriptionProtocol::ServerSentEvents => self.execute_sse_subscription(ctx, shape_id, new_response).await,
             SubscriptionProtocol::Websocket => {
                 let websocket_url = endpoint.websocket_url().unwrap_or_else(|| endpoint.url());
 
-                self.execute_websocket_subscription(ctx, new_response, websocket_url)
+                self.execute_websocket_subscription(ctx, shape_id, new_response, websocket_url)
                     .await
             }
         }
@@ -43,9 +46,10 @@ impl GraphqlResolver {
     async fn execute_websocket_subscription<'ctx, R: Runtime>(
         &'ctx self,
         ctx: &mut SubgraphContext<'ctx, R>,
-        new_response: impl Fn() -> SubscriptionResponse + Send + 'ctx,
+        shape_id: ConcreteShapeId,
+        new_response: impl Fn() -> ResponseBuilder<'ctx> + Send + 'ctx,
         websocket_url: &'ctx Url,
-    ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<SubscriptionResponse>>> {
+    ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<(ResponseBuilder<'ctx>, ResponsePart<'ctx>)>>> {
         let endpoint = ctx.endpoint();
 
         // If the user doesn't provide an explicit websocket URL we use the normal URL,
@@ -112,7 +116,6 @@ impl GraphqlResolver {
             ctx.set_as_http_error(None);
         })?;
 
-        let ctx = ctx.execution_context();
         let stream = stream
             .map_err(move |error| ExecutionError::Fetch {
                 subgraph_name: endpoint.subgraph_name().to_string(),
@@ -120,12 +123,12 @@ impl GraphqlResolver {
             })
             .map(move |subgraph_response| {
                 let mut subscription_response = new_response();
+                let (input_id, part) = subscription_response.create_root_part();
+                let part = part.into_shared();
 
-                let input_id = subscription_response.input_id();
-                let response = subscription_response.as_mut();
                 GraphqlResponseSeed::new(
-                    response.seed(&ctx, input_id),
-                    GraphqlErrorsSeed::new(response, convert_root_error_path),
+                    part.seed(shape_id, input_id),
+                    GraphqlErrorsSeed::new(part.clone(), convert_root_error_path),
                 )
                 .deserialize(subgraph_response?)
                 .map_err(|err| {
@@ -133,7 +136,7 @@ impl GraphqlResolver {
                     GraphqlError::invalid_subgraph_response()
                 })?;
 
-                Ok(subscription_response)
+                Ok((subscription_response, part.unshare().unwrap()))
             });
 
         Ok(Box::pin(stream))
@@ -142,8 +145,9 @@ impl GraphqlResolver {
     async fn execute_sse_subscription<'ctx, R: Runtime>(
         &'ctx self,
         ctx: &mut SubgraphContext<'ctx, R>,
-        new_response: impl Fn() -> SubscriptionResponse + Send + 'ctx,
-    ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<SubscriptionResponse>>> {
+        shape_id: ConcreteShapeId,
+        new_response: impl Fn() -> ResponseBuilder<'ctx> + Send + 'ctx,
+    ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<(ResponseBuilder<'ctx>, ResponsePart<'ctx>)>>> {
         let endpoint = ctx.endpoint();
 
         let request = {
@@ -201,20 +205,19 @@ impl GraphqlResolver {
             ctx.set_as_http_error(err.as_fetch_invalid_status_code());
         })?;
 
-        let ctx = ctx.execution_context();
         let stream = stream
             .map_err(move |error| ExecutionError::Fetch {
                 subgraph_name: endpoint.subgraph_name().to_string(),
                 error,
             })
             .map(move |subgraph_response| {
-                let mut subscription_response = new_response();
+                let mut response = new_response();
+                let (root_object_id, part) = response.create_root_part();
+                let part = part.into_shared();
 
-                let input_id = subscription_response.input_id();
-                let response = subscription_response.as_mut();
                 GraphqlResponseSeed::new(
-                    response.seed(&ctx, input_id),
-                    GraphqlErrorsSeed::new(response, convert_root_error_path),
+                    part.seed(shape_id, root_object_id),
+                    GraphqlErrorsSeed::new(part.clone(), convert_root_error_path),
                 )
                 .deserialize(&mut serde_json::Deserializer::from_slice(&subgraph_response?))
                 .map_err(|err| {
@@ -222,7 +225,7 @@ impl GraphqlResolver {
                     GraphqlError::invalid_subgraph_response()
                 })?;
 
-                Ok(subscription_response)
+                Ok((response, part.unshare().unwrap()))
             });
 
         Ok(Box::pin(stream))

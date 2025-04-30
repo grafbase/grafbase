@@ -1,7 +1,6 @@
 use std::{
     cell::{Cell, RefCell},
     rc::Rc,
-    sync::Arc,
 };
 
 use error::GraphqlError;
@@ -13,10 +12,8 @@ use serde::{
 };
 
 use crate::{
-    Runtime,
-    execution::ExecutionContext,
     prepare::{ConcreteShapeId, PreparedOperation},
-    response::{InputResponseObjectSet, SubgraphResponseRefMut},
+    response::SharedResponsePart,
 };
 
 use super::{EntitySeed, SeedContext, entity::DeserError};
@@ -24,22 +21,17 @@ use super::{EntitySeed, SeedContext, entity::DeserError};
 pub(crate) struct EntitiesSeed<'ctx> {
     schema: &'ctx Schema,
     prepared_operation: &'ctx PreparedOperation,
-    subgraph_response: SubgraphResponseRefMut<'ctx>,
-    parent_objects: Arc<InputResponseObjectSet>,
+    response: SharedResponsePart<'ctx>,
     shape_id: ConcreteShapeId,
 }
 impl<'ctx> EntitiesSeed<'ctx> {
-    pub fn new<R: Runtime>(
-        ctx: ExecutionContext<'ctx, R>,
-        subgraph_response: SubgraphResponseRefMut<'ctx>,
-        parent_objects: Arc<InputResponseObjectSet>,
-        shape_id: ConcreteShapeId,
-    ) -> Self {
+    pub fn new(response: SharedResponsePart<'ctx>, shape_id: ConcreteShapeId) -> Self {
+        let schema: &'ctx Schema = response.borrow().schema;
+        let prepared_operation: &'ctx PreparedOperation = response.borrow().operation;
         Self {
-            schema: ctx.schema(),
-            prepared_operation: ctx.operation,
-            subgraph_response,
-            parent_objects,
+            schema,
+            prepared_operation,
+            response,
             shape_id,
         }
     }
@@ -94,16 +86,16 @@ impl<'de> Visitor<'de> for EntitiesSeed<'_> {
         let Self {
             schema,
             prepared_operation,
-            subgraph_response,
-            parent_objects,
+            response,
             shape_id,
         } = self;
+        let parent_objects = response.borrow().parent_objects.clone();
         let mut parent_objects = parent_objects.iter_with_id();
         for (id, parent_object) in parent_objects.by_ref() {
             let ctx = Rc::new(SeedContext {
                 schema,
                 prepared_operation,
-                subgraph_response: subgraph_response.clone(),
+                response: response.clone(),
                 bubbling_up_serde_error: Cell::new(false),
                 path: RefCell::new(parent_object.path.clone()),
             });
@@ -116,7 +108,7 @@ impl<'de> Visitor<'de> for EntitiesSeed<'_> {
                 Ok(Some(())) => continue,
                 Ok(None) => {
                     tracing::error!("Received less entities than expected");
-                    subgraph_response.borrow_mut().insert_errors(
+                    response.borrow_mut().insert_errors(
                         GraphqlError::invalid_subgraph_response(),
                         parent_objects.by_ref().map(|(id, _)| id),
                     );
@@ -125,7 +117,7 @@ impl<'de> Visitor<'de> for EntitiesSeed<'_> {
                 }
                 Err(err) => {
                     tracing::error!("Subgraph deserialization failed with: {err}");
-                    subgraph_response.borrow_mut().insert_errors(
+                    response.borrow_mut().insert_errors(
                         GraphqlError::invalid_subgraph_response(),
                         parent_objects.by_ref().map(|(id, _)| id),
                     );

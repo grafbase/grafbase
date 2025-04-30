@@ -17,10 +17,7 @@ use crate::{
     prepare::{Executable, Plan, PlanId},
     prepare::{PrepareContext, PreparedOperation},
     resolver::ResolverResult,
-    response::{
-        GraphqlError, InputObjectId, InputResponseObjectSet, Response, ResponseBuilder, SubgraphResponse,
-        SubgraphResponseRefMut,
-    },
+    response::{GraphqlError, ParentObjects, Response, ResponseBuilder, ResponsePart},
 };
 
 use super::{ExecutionError, ExecutionResult, state::OperationExecutionState};
@@ -150,11 +147,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
         OperationExecution {
             state: self.new_execution_state(),
             executed_operation_builder,
-            response: ResponseBuilder::new(
-                self.engine.schema.clone(),
-                self.operation.cached.clone(),
-                self.operation.cached.operation.root_object_id,
-            ),
+            response: ResponseBuilder::new(&self.engine.schema, self.operation),
             ctx: self,
         }
         .run(VecDeque::new())
@@ -193,7 +186,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
     async fn build_subscription_stream<'exec>(
         self,
         subscription_plan: Plan<'ctx>,
-    ) -> ExecutionResult<BoxStream<'exec, ExecutionResult<SubscriptionResponse>>>
+    ) -> ExecutionResult<BoxStream<'exec, ExecutionResult<(ResponseBuilder<'ctx>, ResponsePart<'ctx>)>>>
     where
         'ctx: 'exec,
     {
@@ -201,35 +194,9 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
             .as_ref()
             .resolver
             .execute_subscription(self, subscription_plan, move || {
-                self.new_subscription_response(subscription_plan)
+                ResponseBuilder::new(&self.engine.schema, self.operation)
             })
             .await
-    }
-
-    fn new_subscription_response(&self, subscription_plan: Plan<'ctx>) -> SubscriptionResponse {
-        let mut response = ResponseBuilder::new(
-            self.engine.schema.clone(),
-            self.operation.cached.clone(),
-            self.operation.cached.operation.root_object_id,
-        );
-
-        let root_response_object_set = Arc::new(
-            InputResponseObjectSet::default()
-                .with_response_objects(Arc::new(response.root_response_object().into_iter().collect())),
-        );
-        let input_id = root_response_object_set
-            .ids()
-            .next()
-            .expect("We just added the root object");
-
-        let root_subgraph_response =
-            response.new_subgraph_response(subscription_plan.shape_id(), root_response_object_set);
-
-        SubscriptionResponse {
-            response,
-            input_id,
-            root_subgraph_response,
-        }
     }
 }
 
@@ -241,9 +208,9 @@ struct SubscriptionExecution<'ctx, R: Runtime, S> {
     stream: S,
 }
 
-impl<R: Runtime, S> SubscriptionExecution<'_, R, S>
+impl<'ctx, R: Runtime, S> SubscriptionExecution<'ctx, R, S>
 where
-    S: Stream<Item = ExecutionResult<SubscriptionResponse>> + Send,
+    S: Stream<Item = ExecutionResult<(ResponseBuilder<'ctx>, ResponsePart<'ctx>)>> + Send,
 {
     async fn execute(mut self, mut responses: impl ResponseSender<<R::Hooks as Hooks>::OnOperationResponseOutput>) {
         let subscription_stream = self.stream.fuse();
@@ -292,15 +259,11 @@ where
                                 on_subgraph_response_outputs: Vec::new(),
                             });
                     match execution {
-                        Ok(SubscriptionResponse {
-                            response,
-                            root_subgraph_response,
-                            ..
-                        }) => {
+                        Ok((response, part)) => {
                             let mut results = VecDeque::new();
                             results.push_back(PlanExecutionResult {
                                 plan_id: self.subscription_plan.id,
-                                result: Ok(root_subgraph_response),
+                                result: Ok(part),
                                 on_subgraph_response_hook_output: None,
                             });
 
@@ -346,27 +309,11 @@ where
     }
 }
 
-pub(crate) struct SubscriptionResponse {
-    response: ResponseBuilder,
-    input_id: InputObjectId,
-    root_subgraph_response: SubgraphResponse,
-}
-
-impl SubscriptionResponse {
-    pub fn input_id(&self) -> InputObjectId {
-        self.input_id
-    }
-
-    pub fn as_mut(&mut self) -> SubgraphResponseRefMut<'_> {
-        self.root_subgraph_response.as_shared_mut()
-    }
-}
-
 struct OperationExecution<'ctx, R: Runtime> {
     ctx: ExecutionContext<'ctx, R>,
     executed_operation_builder: ExecutedOperationBuilder<<R::Hooks as Hooks>::OnSubgraphResponseOutput>,
     state: OperationExecutionState<'ctx, R>,
-    response: ResponseBuilder,
+    response: ResponseBuilder<'ctx>,
 }
 
 impl<'ctx, R: Runtime> std::ops::Deref for OperationExecution<'ctx, R> {
@@ -390,7 +337,7 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
     /// Runs a single execution to completion, returning its response
     async fn run(
         mut self,
-        mut results: VecDeque<PlanExecutionResult<<R::Hooks as Hooks>::OnSubgraphResponseOutput>>,
+        mut results: VecDeque<PlanExecutionResult<'ctx, <R::Hooks as Hooks>::OnSubgraphResponseOutput>>,
     ) -> Response<<R::Hooks as Hooks>::OnOperationResponseOutput> {
         let futures = FuturesUnordered::new();
         let initial_plans = self.state.get_executable_plans().collect::<Vec<_>>();
@@ -462,10 +409,10 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
             plan_id,
             result,
             on_subgraph_response_hook_output,
-        }: PlanExecutionResult<<R::Hooks as Hooks>::OnSubgraphResponseOutput>,
+        }: PlanExecutionResult<'ctx, <R::Hooks as Hooks>::OnSubgraphResponseOutput>,
     ) -> (
         Self,
-        Vec<BoxFuture<'exec, PlanExecutionResult<<R::Hooks as Hooks>::OnSubgraphResponseOutput>>>,
+        Vec<BoxFuture<'exec, PlanExecutionResult<'ctx, <R::Hooks as Hooks>::OnSubgraphResponseOutput>>>,
     )
     where
         'ctx: 'exec,
@@ -520,45 +467,39 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
     fn create_plan_execution_future<'exec>(
         &mut self,
         plan: Plan<'ctx>,
-    ) -> Option<BoxFuture<'exec, PlanExecutionResult<<R::Hooks as Hooks>::OnSubgraphResponseOutput>>>
+    ) -> Option<BoxFuture<'exec, PlanExecutionResult<'ctx, <R::Hooks as Hooks>::OnSubgraphResponseOutput>>>
     where
         'ctx: 'exec,
     {
         tracing::trace!(plan_id = %plan.id, "Starting plan");
-        let root_response_object_set = Arc::new(self.state.get_input(&self.response, plan));
+        let parent_objects = Arc::new(self.state.get_input(&self.response, plan));
 
         tracing::trace!(
             plan_id = %plan.id,
             "Found {} root response objects",
-            root_response_object_set.len()
+            parent_objects.len()
         );
-        if root_response_object_set.is_empty() {
+        if parent_objects.is_empty() {
             return None;
         }
 
         let span = tracing::debug_span!("resolver", "plan_id" = usize::from(plan.id)).entered();
 
-        let subgraph_response = self.response.new_subgraph_response(
-            // FIXME: Doesn't work with GraphQL resolvers: GB-8942
-            plan.shape_id_without_lookup_fields().unwrap_or(plan.shape_id()),
-            Arc::clone(&root_response_object_set),
-        );
+        let response = self.response.create_part_for(Arc::clone(&parent_objects));
 
-        let root_response_objects = self
-            .response
-            .read(Arc::clone(&root_response_object_set), plan.required_fields());
+        let parent_objects_view = self.response.read(Arc::clone(&parent_objects), plan.required_fields());
 
         let fut = plan
             .as_ref()
             .resolver
-            .execute(self.ctx, plan, root_response_objects, subgraph_response)
+            .execute(self.ctx, plan, parent_objects_view, response)
             .map(
                 move |ResolverResult {
                           execution,
                           on_subgraph_response_hook_output,
                       }| PlanExecutionResult {
                     plan_id: plan.id,
-                    result: execution.map_err(|err| (root_response_object_set, err)),
+                    result: execution.map_err(|err| (parent_objects, err)),
                     on_subgraph_response_hook_output,
                 },
             );
@@ -568,8 +509,8 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
     }
 }
 
-pub(crate) struct PlanExecutionResult<OnSubgraphResponseHookOutput> {
+pub(crate) struct PlanExecutionResult<'ctx, OnSubgraphResponseHookOutput> {
     plan_id: PlanId,
-    result: Result<SubgraphResponse, (Arc<InputResponseObjectSet>, ExecutionError)>,
+    result: Result<ResponsePart<'ctx>, (Arc<ParentObjects>, ExecutionError)>,
     on_subgraph_response_hook_output: Option<OnSubgraphResponseHookOutput>,
 }

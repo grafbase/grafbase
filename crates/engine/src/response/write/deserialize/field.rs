@@ -68,7 +68,7 @@ impl<'de> DeserializeSeed<'de> for FieldSeed<'_, '_> {
                     "Deserialization failure of subgraph response at path '{}': {err}",
                     self.ctx.display_path()
                 );
-                let mut resp = self.ctx.subgraph_response.borrow_mut();
+                let mut resp = self.ctx.response.borrow_mut();
                 resp.propagate_null(&self.ctx.path());
                 resp.push_error(
                     GraphqlError::invalid_subgraph_response()

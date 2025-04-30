@@ -38,7 +38,7 @@ impl<'de> DeserializeSeed<'de> for EnumValueSeed<'_, '_> {
         } = self;
         match deserializer.deserialize_any(self)? {
             Ok(string_value) => {
-                let mut resp = ctx.subgraph_response.borrow_mut();
+                let mut resp = ctx.response.borrow_mut();
                 let path = ctx.path();
                 match definition_id.walk(ctx.schema).find_value_by_name(string_value.as_ref()) {
                     // If inaccessible propagating an error without any message.
@@ -88,7 +88,7 @@ impl EnumValueSeed<'_, '_> {
         );
 
         if self.parent_field.key.query_position.is_some() {
-            let mut resp = self.ctx.subgraph_response.borrow_mut();
+            let mut resp = self.ctx.response.borrow_mut();
             let path = self.ctx.path();
             // If not required, we don't need to propagate as Unexpected is equivalent to
             // null for users.

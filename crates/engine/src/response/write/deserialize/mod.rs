@@ -16,14 +16,13 @@ use std::{
 use entity::{DeserError, EntityFields};
 use object::{ConcreteShapeFieldsSeed, ObjectValue};
 use runtime::extension::Data;
+use schema::Schema;
 use serde::de::DeserializeSeed;
 use walker::Walk;
 
 use crate::{
-    Runtime,
-    execution::ExecutionContext,
-    prepare::{ConcreteShapeId, SubgraphField},
-    response::{GraphqlError, InputObjectId},
+    prepare::{ConcreteShapeId, PreparedOperation, SubgraphField},
+    response::{GraphqlError, ParentObjectId},
 };
 
 use self::r#enum::*;
@@ -32,27 +31,24 @@ use ctx::*;
 use list::ListSeed;
 use scalar::*;
 
-use super::{ObjectUpdate, SubgraphResponseRefMut};
+use super::{ObjectUpdate, SharedResponsePart};
 
 pub(crate) struct EntitySeed<'ctx> {
     ctx: Rc<SeedContext<'ctx>>,
     shape_id: ConcreteShapeId,
-    id: InputObjectId,
+    id: ParentObjectId,
 }
 
 impl<'ctx> EntitySeed<'ctx> {
-    pub(super) fn new<R: Runtime>(
-        ctx: ExecutionContext<'ctx, R>,
-        subgraph_response: SubgraphResponseRefMut<'ctx>,
-        shape_id: ConcreteShapeId,
-        id: InputObjectId,
-    ) -> Self {
-        let path = RefCell::new(subgraph_response.borrow().input_object_ref(id).path.clone());
+    pub(super) fn new(response: SharedResponsePart<'ctx>, shape_id: ConcreteShapeId, id: ParentObjectId) -> Self {
+        let path = RefCell::new(response.borrow()[id].path.clone());
+        let schema: &'ctx Schema = response.borrow().schema;
+        let prepared_operation: &'ctx PreparedOperation = response.borrow().operation;
         Self {
             ctx: Rc::new(SeedContext {
-                schema: ctx.schema(),
-                prepared_operation: ctx.operation,
-                subgraph_response,
+                schema,
+                prepared_operation,
+                response,
                 bubbling_up_serde_error: Cell::new(false),
                 path,
             }),
@@ -80,12 +76,12 @@ impl<'de> DeserializeSeed<'de> for EntitySeed<'_> {
         let EntitySeed { ctx, shape_id, id } = self;
 
         let fields_seed = {
-            let root_object_ref = Ref::map(ctx.subgraph_response.borrow(), |resp| resp.input_object_ref(id));
+            let parent_object = Ref::map(ctx.response.borrow(), |resp| &resp[id]);
             ConcreteShapeFieldsSeed::new(
                 &ctx,
                 shape_id.walk(ctx.as_ref()),
-                root_object_ref.id,
-                Some(root_object_ref.definition_id),
+                parent_object.id,
+                Some(parent_object.definition_id),
             )
         };
 
@@ -109,7 +105,7 @@ impl<'de> DeserializeSeed<'de> for EntitySeed<'_> {
                 }
             }
         };
-        ctx.subgraph_response.borrow_mut().insert_update(id, update);
+        ctx.response.borrow_mut().insert_update(id, update);
 
         Ok(())
     }

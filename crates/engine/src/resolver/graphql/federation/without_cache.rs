@@ -5,70 +5,64 @@ use serde::{
 };
 
 use crate::{
-    Runtime,
-    execution::{ExecutionContext, ExecutionError},
+    execution::ExecutionError,
+    prepare::ConcreteShapeId,
     resolver::graphql::{
         deserialize::{EntitiesDataSeed, EntityErrorPathConverter, GraphqlErrorsSeed, GraphqlResponseSeed},
         request::ResponseIngester,
     },
-    response::{GraphqlError, SubgraphResponse, SubgraphResponseRefMut},
+    response::{GraphqlError, ResponsePart, SharedResponsePart},
 };
 
 use super::EntityToFetch;
 
-pub(super) struct EntityIngester<'ctx, R: Runtime> {
-    pub ctx: ExecutionContext<'ctx, R>,
-    pub subgraph_response: SubgraphResponse,
+pub(super) struct EntityIngester {
+    pub shape_id: ConcreteShapeId,
     pub fetched_entities: Vec<EntityToFetch>,
 }
 
-impl<R> ResponseIngester for EntityIngester<'_, R>
-where
-    R: Runtime,
-{
+impl ResponseIngester for EntityIngester {
     async fn ingest(
         self,
         http_response: http::Response<OwnedOrSharedBytes>,
-    ) -> Result<(GraphqlResponseStatus, SubgraphResponse), ExecutionError> {
+        response_part: ResponsePart<'_>,
+    ) -> Result<(GraphqlResponseStatus, ResponsePart<'_>), ExecutionError> {
         let Self {
-            ctx,
-            mut subgraph_response,
+            shape_id,
             fetched_entities,
         } = self;
 
-        let status = {
-            let subgraph_response = subgraph_response.as_shared_mut();
-            GraphqlResponseSeed::new(
-                EntitiesDataSeed::new(EntitiesSeed {
-                    ctx,
-                    subgraph_response: subgraph_response.clone(),
-                    fetched_entities: &fetched_entities,
+        let part = response_part.into_shared();
+        let status = GraphqlResponseSeed::new(
+            EntitiesDataSeed::new(EntitiesSeed {
+                shape_id,
+                response_part: part.clone(),
+                fetched_entities: &fetched_entities,
+            }),
+            GraphqlErrorsSeed::new(
+                part.clone(),
+                EntityErrorPathConverter::new(part.clone(), |index| {
+                    fetched_entities.get(index).map(|entity| entity.id)
                 }),
-                GraphqlErrorsSeed::new(
-                    subgraph_response.clone(),
-                    EntityErrorPathConverter::new(subgraph_response, |index| {
-                        fetched_entities.get(index).map(|entity| entity.id)
-                    }),
-                ),
-            )
-            .deserialize(&mut sonic_rs::Deserializer::from_slice(http_response.body()))
-            .map_err(|err| {
-                tracing::error!("Failed to deserialize subgraph response: {}", err);
-                GraphqlError::invalid_subgraph_response()
-            })?
-        };
+            ),
+        )
+        .deserialize(&mut sonic_rs::Deserializer::from_slice(http_response.body()))
+        .map_err(|err| {
+            tracing::error!("Failed to deserialize subgraph response: {}", err);
+            GraphqlError::invalid_subgraph_response()
+        })?;
 
-        Ok((status, subgraph_response))
+        Ok((status, part.unshare().unwrap()))
     }
 }
 
-struct EntitiesSeed<'resp, 'parent, R: Runtime> {
-    ctx: ExecutionContext<'resp, R>,
-    subgraph_response: SubgraphResponseRefMut<'resp>,
+struct EntitiesSeed<'resp, 'parent> {
+    shape_id: ConcreteShapeId,
+    response_part: SharedResponsePart<'resp>,
     fetched_entities: &'parent [EntityToFetch],
 }
 
-impl<'resp, 'de, R: Runtime> DeserializeSeed<'de> for EntitiesSeed<'resp, '_, R>
+impl<'resp, 'de> DeserializeSeed<'de> for EntitiesSeed<'resp, '_>
 where
     'resp: 'de,
 {
@@ -82,7 +76,7 @@ where
     }
 }
 
-impl<'resp, 'de, R: Runtime> Visitor<'de> for EntitiesSeed<'resp, '_, R>
+impl<'resp, 'de> Visitor<'de> for EntitiesSeed<'resp, '_>
 where
     'resp: 'de,
 {
@@ -97,17 +91,17 @@ where
         A: SeqAccess<'de>,
     {
         let Self {
-            ctx,
-            subgraph_response,
+            shape_id,
+            response_part,
             fetched_entities,
         } = self;
         let mut fetched_entities = fetched_entities.iter();
         for EntityToFetch { id, .. } in fetched_entities.by_ref() {
-            match seq.next_element_seed(subgraph_response.seed(&ctx, *id)) {
+            match seq.next_element_seed(response_part.seed(shape_id, *id)) {
                 Ok(Some(())) => continue,
                 Ok(None) => {
                     tracing::error!("Received less entities than expected");
-                    subgraph_response.borrow_mut().insert_errors(
+                    response_part.borrow_mut().insert_errors(
                         GraphqlError::invalid_subgraph_response(),
                         fetched_entities.by_ref().map(|entity| entity.id),
                     );
@@ -116,7 +110,7 @@ where
                 }
                 Err(err) => {
                     tracing::error!("Subgraph deserialization failed with: {err}");
-                    subgraph_response.borrow_mut().insert_errors(
+                    response_part.borrow_mut().insert_errors(
                         GraphqlError::invalid_subgraph_response(),
                         fetched_entities.by_ref().map(|miss| miss.id),
                     );

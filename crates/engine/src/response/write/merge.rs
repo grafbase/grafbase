@@ -4,7 +4,7 @@ use crate::response::{ResponseListId, ResponseObjectField, ResponseObjectId, Res
 
 use super::ResponseBuilder;
 
-impl ResponseBuilder {
+impl ResponseBuilder<'_> {
     pub(super) fn recursive_merge_with_default_object(
         &mut self,
         object_id: ResponseObjectId,

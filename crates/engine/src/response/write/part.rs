@@ -1,52 +1,62 @@
 use std::{cell::RefCell, rc::Rc, sync::Arc};
 
+use schema::Schema;
+
 use crate::{
-    Runtime,
-    execution::ExecutionContext,
-    prepare::{ConcreteShapeId, ResponseObjectSetDefinitionId},
+    prepare::{ConcreteShapeId, PreparedOperation, ResponseObjectSetDefinitionId},
     response::{
-        DataPart, GraphqlError, InputObjectId, InputResponseObjectSet, ResponseObjectField, ResponseObjectRef,
+        DataPart, GraphqlError, ParentObjectId, ParentObjects, ResponseObjectField, ResponseObjectRef,
         ResponseObjectSet, ResponseValueId,
     },
 };
 
 use super::deserialize::{EntitiesSeed, EntitySeed};
 
-pub(crate) struct SubgraphResponse {
+pub(crate) struct ResponsePart<'ctx> {
+    pub(super) schema: &'ctx Schema,
+    pub(super) operation: &'ctx PreparedOperation,
     pub data: DataPart,
-    shape_id: ConcreteShapeId,
-    pub(super) input_response_object_set: Arc<InputResponseObjectSet>,
+    pub parent_objects: Arc<ParentObjects>,
     pub(super) propagated_null_up_to_root: bool,
     pub(super) propagated_null_up_to_paths: Vec<Vec<ResponseValueId>>,
     pub(super) errors: Vec<GraphqlError>,
     pub(super) subgraph_errors: Vec<GraphqlError>,
     pub(super) updates: Vec<ObjectUpdate>,
-    pub(super) response_object_sets: Vec<(ResponseObjectSetDefinitionId, ResponseObjectSet)>,
+    pub(super) object_sets: Vec<(ResponseObjectSetDefinitionId, ResponseObjectSet)>,
 }
 
-impl SubgraphResponse {
+impl std::ops::Index<ParentObjectId> for ResponsePart<'_> {
+    type Output = ResponseObjectRef;
+    fn index(&self, id: ParentObjectId) -> &Self::Output {
+        &self.parent_objects[id]
+    }
+}
+
+impl<'ctx> ResponsePart<'ctx> {
     pub(super) fn new(
+        schema: &'ctx Schema,
+        operation: &'ctx PreparedOperation,
         data: DataPart,
-        shape_id: ConcreteShapeId,
-        input_response_object_set: Arc<InputResponseObjectSet>,
+        parent_objects: Arc<ParentObjects>,
     ) -> Self {
         Self {
+            schema,
+            operation,
             data,
-            shape_id,
-            updates: vec![ObjectUpdate::Missing; input_response_object_set.len()],
-            input_response_object_set,
+            updates: vec![ObjectUpdate::Missing; parent_objects.len()],
+            parent_objects,
             propagated_null_up_to_root: false,
             propagated_null_up_to_paths: Vec::new(),
             errors: Vec::new(),
             subgraph_errors: Vec::new(),
-            response_object_sets: Vec::new(),
+            object_sets: Vec::new(),
         }
     }
 
     /// Executors manipulate the response within a Send future, so we can't use a Rc/RefCell
     /// directly. Only once the executor is ready to write should it use this method.
-    pub fn as_shared_mut(&mut self) -> SubgraphResponseRefMut<'_> {
-        SubgraphResponseRefMut(Rc::new(RefCell::new(self)))
+    pub fn into_shared(self) -> SharedResponsePart<'ctx> {
+        SharedResponsePart(Rc::new(RefCell::new(self)))
     }
 
     pub fn propagate_null(&mut self, path: &[ResponseValueId]) {
@@ -60,15 +70,11 @@ impl SubgraphResponse {
         self.propagated_null_up_to_paths.push(path[..(i + 1)].to_vec());
     }
 
-    pub fn input_object_ref(&self, id: InputObjectId) -> &ResponseObjectRef {
-        &self.input_response_object_set[id]
-    }
-
-    pub fn insert_update(&mut self, id: InputObjectId, update: ObjectUpdate) {
+    pub fn insert_update(&mut self, id: ParentObjectId, update: ObjectUpdate) {
         self.updates[usize::from(id)] = update;
     }
 
-    pub fn insert_errors(&mut self, error: impl Into<GraphqlError>, ids: impl IntoIterator<Item = InputObjectId>) {
+    pub fn insert_errors(&mut self, error: impl Into<GraphqlError>, ids: impl IntoIterator<Item = ParentObjectId>) {
         let error: GraphqlError = error.into();
         for id in ids {
             self.insert_update(id, ObjectUpdate::Error(error.clone()));
@@ -76,10 +82,10 @@ impl SubgraphResponse {
     }
 
     pub fn push_object_ref(&mut self, set_id: ResponseObjectSetDefinitionId, obj: ResponseObjectRef) {
-        if let Some((_, set)) = self.response_object_sets.iter_mut().find(|(id, _)| set_id == *id) {
+        if let Some((_, set)) = self.object_sets.iter_mut().find(|(id, _)| set_id == *id) {
             set.push(obj);
         } else {
-            self.response_object_sets.push((set_id, vec![obj]));
+            self.object_sets.push((set_id, vec![obj]));
         }
     }
 
@@ -97,38 +103,32 @@ impl SubgraphResponse {
 /// not expected to parallelize their work.
 /// The Rc makes it possible to write errors at one place and the data in another.
 #[derive(Clone)]
-pub(crate) struct SubgraphResponseRefMut<'resp>(Rc<RefCell<&'resp mut SubgraphResponse>>);
+pub(crate) struct SharedResponsePart<'ctx>(Rc<RefCell<ResponsePart<'ctx>>>);
 
-impl<'resp> std::ops::Deref for SubgraphResponseRefMut<'resp> {
-    type Target = Rc<RefCell<&'resp mut SubgraphResponse>>;
+impl<'ctx> std::ops::Deref for SharedResponsePart<'ctx> {
+    type Target = Rc<RefCell<ResponsePart<'ctx>>>;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl std::ops::DerefMut for SubgraphResponseRefMut<'_> {
+impl std::ops::DerefMut for SharedResponsePart<'_> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
 
-impl<'resp> SubgraphResponseRefMut<'resp> {
-    pub fn seed<'ctx, R: Runtime>(&self, ctx: &ExecutionContext<'ctx, R>, id: InputObjectId) -> EntitySeed<'resp>
-    where
-        'ctx: 'resp,
-    {
-        EntitySeed::new(*ctx, self.clone(), self.0.borrow().shape_id, id)
+impl<'ctx> SharedResponsePart<'ctx> {
+    pub fn unshare(self) -> Option<ResponsePart<'ctx>> {
+        Rc::try_unwrap(self.0).map(|part| part.into_inner()).ok()
     }
 
-    pub fn batch_seed<'ctx, R: Runtime>(
-        &self,
-        ctx: &ExecutionContext<'ctx, R>,
-        parent_objects: Arc<InputResponseObjectSet>,
-    ) -> EntitiesSeed<'resp>
-    where
-        'ctx: 'resp,
-    {
-        EntitiesSeed::new(*ctx, self.clone(), parent_objects, self.0.borrow().shape_id)
+    pub fn seed(&self, shape_id: ConcreteShapeId, id: ParentObjectId) -> EntitySeed<'ctx> {
+        EntitySeed::new(self.clone(), shape_id, id)
+    }
+
+    pub fn batch_seed(&self, shape_id: ConcreteShapeId) -> EntitiesSeed<'ctx> {
+        EntitiesSeed::new(self.clone(), shape_id)
     }
 }
 

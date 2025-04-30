@@ -2,19 +2,19 @@ use std::sync::Arc;
 
 use crate::prepare::RequiredFieldSet;
 
-use super::{InputResponseObjectSet, ResponseBuilder};
+use super::{ParentObjects, ResponseBuilder};
 mod ser;
 mod view;
 
 pub(crate) use view::*;
 
-impl ResponseBuilder {
+impl ResponseBuilder<'_> {
     pub fn read<'a>(
         &'a self,
-        response_object_set: Arc<InputResponseObjectSet>,
+        response_object_set: Arc<ParentObjects>,
         selection_set: RequiredFieldSet<'a>,
-    ) -> ResponseObjectsView<'a> {
-        ResponseObjectsView {
+    ) -> ParentObjectsView<'a> {
+        ParentObjectsView {
             ctx: ViewContext { response: self },
             response_object_set,
             view: selection_set,
