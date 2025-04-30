@@ -1,0 +1,7 @@
+[[extensions]]
+url = "https://extensions.grafbase.com/rest"
+name = "rest-connector"
+
+[[extensions]]
+url = "https://extensions.grafbase.com/rest"
+name = "REST-CONNECTOR"

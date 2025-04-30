@@ -12,7 +12,7 @@ pub(crate) async fn compose(args: ComposeCommand) -> anyhow::Result<()> {
 
     let subgraph_cache = SubgraphCache::new(args.graph_ref.as_ref(), &config, warnings_sender).await?;
 
-    let result = subgraph_cache.compose().await?;
+    let result = subgraph_cache.compose(&config).await?;
 
     match result {
         Ok(schema) => {

@@ -125,6 +125,8 @@ impl Subgraphs {
     }
 
     /// Add Grafbase extension schemas to compose. The extensions are referenced in subgraphs through their `url` in an `@link` directive.
+    ///
+    /// It is safe to add the same extension (same name) multiple times. It will only be an error if the urls are not compatible. Different remote versions are compatible between each other, but different paths are not compatible, and local paths are not compatible with remote urls.
     #[cfg(feature = "grafbase-extensions")]
     pub fn ingest_loaded_extensions(&mut self, extensions: impl IntoIterator<Item = crate::LoadedExtension>) {
         self.extensions

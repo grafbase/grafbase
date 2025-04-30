@@ -142,7 +142,7 @@ async fn reload_subgraphs(
     cancellation_token: Option<CancellationToken>,
 ) -> Result<(), BackendError> {
     subgraph_cache.reload_local_subgraphs(&config).await?;
-    let composition_result = subgraph_cache.compose().await?;
+    let composition_result = subgraph_cache.compose(&config).await?;
 
     let federated_sdl = match composition_result {
         Ok(result) => result,

@@ -159,7 +159,10 @@ impl SubgraphCache {
     }
 
     /// Compose all cached subgraphs.
-    pub(crate) async fn compose(&self) -> anyhow::Result<Result<String, graphql_composition::Diagnostics>> {
+    pub(crate) async fn compose(
+        &self,
+        config: &Config,
+    ) -> anyhow::Result<Result<String, graphql_composition::Diagnostics>> {
         let mut futs = futures::stream::FuturesOrdered::new();
         let mut all_subgraphs = Vec::with_capacity(self.remote.len());
 
@@ -186,6 +189,20 @@ impl SubgraphCache {
 
         let mut stream = futs.into_stream();
         let mut subgraphs = graphql_composition::Subgraphs::default();
+
+        subgraphs.ingest_loaded_extensions(config.extensions.iter().map(|(extension_name, extension)| {
+            if let Some(path_url) = extension.path().and_then(|path| url::Url::from_file_path(path).ok()) {
+                return graphql_composition::LoadedExtension::new(path_url.to_string(), extension_name.clone());
+            }
+
+            graphql_composition::LoadedExtension::new(
+                format!(
+                    "https://extensions.grafbase.com/{extension_name}/{}",
+                    extension.version()
+                ),
+                extension_name.clone(),
+            )
+        }));
 
         while let Some((subgraph, parsed_schema, extensions)) = stream.try_next().await? {
             subgraphs.ingest_loaded_extensions(
