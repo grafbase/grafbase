@@ -84,6 +84,7 @@ grafbase-workspace-hack.workspace = true
 graph-ref.workspace = true
 graphql-composition.workspace = true
 graphql-lint.workspace = true
+graphql-schema-validation.workspace = true
 runtime.workspace = true
 runtime-local.workspace = true
 semver.workspace = true

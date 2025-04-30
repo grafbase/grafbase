@@ -175,6 +175,22 @@ impl SubgraphCache {
                 async move {
                     let current_dir = current_dir;
 
+                    {
+                        let diagnostics = graphql_schema_validation::validate(&subgraph.sdl);
+
+                        if diagnostics.has_errors() {
+                            return Err(anyhow::anyhow!(
+                                "The schema of subgraph `{}` is invalid: {}",
+                                subgraph.name,
+                                diagnostics
+                                    .iter()
+                                    .map(|diagnostic| diagnostic.to_string())
+                                    .collect::<Vec<_>>()
+                                    .join("\n\n")
+                            ));
+                        }
+                    }
+
                     let parsed_schema = cynic_parser::parse_type_system_document(&subgraph.sdl).map_err(|err| {
                         anyhow::anyhow!("Failed to parse subgraph SDL for `{}`: {err}", subgraph.name)
                     })?;
