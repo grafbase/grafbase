@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.7.3 - 2025-04-30
+
 ### Improvements
 
 - Composition now allows federated graphs without a query root. That happens if none of the subgraphs define a query root type. The new, relaxed requirement is that at least one root field (query, mutation or subscription) is defined, so the federated schema is not empty. (https://github.com/grafbase/grafbase/pull/3111)
