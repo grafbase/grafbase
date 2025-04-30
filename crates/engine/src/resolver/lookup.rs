@@ -14,11 +14,11 @@ use super::{ResolverResult, extension::SelectionSetResolverExtension, graphql::G
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct LookupResolver {
     batch: bool,
-    prepared: IndirectResolver,
+    pub proxied: LookupProxiedResolver,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-enum IndirectResolver {
+pub(crate) enum LookupProxiedResolver {
     Graphql(GraphqlResolver),
     SelectionSetResolverExtension(SelectionSetResolverExtension),
 }
@@ -29,15 +29,15 @@ impl LookupResolver {
         definition: LookupResolverDefinition<'_>,
         plan_query_partition: PlanQueryPartition<'_>,
     ) -> PlanResult<Self> {
-        let prepared = match definition.resolver().variant() {
+        let proxied = match definition.resolver().variant() {
             ResolverDefinitionVariant::GraphqlRootField(definition) => {
                 GraphqlResolver::prepare(ctx, definition, plan_query_partition.selection_set())
-                    .map(IndirectResolver::Graphql)
+                    .map(LookupProxiedResolver::Graphql)
             }
             ResolverDefinitionVariant::SelectionSetResolverExtension(definition) => {
                 SelectionSetResolverExtension::prepare(ctx, definition, plan_query_partition.selection_set())
                     .await
-                    .map(IndirectResolver::SelectionSetResolverExtension)
+                    .map(LookupProxiedResolver::SelectionSetResolverExtension)
             }
             ResolverDefinitionVariant::Lookup(_)
             | ResolverDefinitionVariant::Introspection(_)
@@ -49,7 +49,7 @@ impl LookupResolver {
         }?;
         Ok(LookupResolver {
             batch: definition.batch,
-            prepared,
+            proxied,
         })
     }
 
@@ -63,9 +63,9 @@ impl LookupResolver {
     where
         'ctx: 'f,
     {
-        match &self.prepared {
-            IndirectResolver::Graphql(_) => unimplemented!("GB-8942"),
-            IndirectResolver::SelectionSetResolverExtension(resolver) => {
+        match &self.proxied {
+            LookupProxiedResolver::Graphql(_) => unimplemented!("GB-8942"),
+            LookupProxiedResolver::SelectionSetResolverExtension(resolver) => {
                 let fut = resolver.execute_batch_lookup(ctx, plan, root_response_objects, subgraph_response);
                 async move {
                     let result = fut.await;

@@ -6,7 +6,10 @@ use walker::Walk;
 use crate::{
     mcp::McpResponseExtension,
     prepare::{Executable, OperationPlanContext, PlanId, PreparedOperation},
-    resolver::Resolver,
+    resolver::{
+        FederationEntityResolver, FieldResolverExtension, GraphqlResolver, LookupProxiedResolver, Resolver,
+        SelectionSetResolverExtension,
+    },
 };
 
 #[derive(Debug, Serialize, Default)]
@@ -72,35 +75,7 @@ impl GrafbaseResponseExtension {
         };
 
         for plan in ctx.plans() {
-            nodes.push(match &plan.resolver {
-                Resolver::Introspection(_) => QueryPlanNode::IntrospectionResolver,
-                Resolver::Graphql(resolver) => QueryPlanNode::GraphqlResolver(GraphqlResolverNode {
-                    subgraph_name: resolver.endpoint_id.walk(ctx).subgraph_name().to_string(),
-                    request: GraphqlRequest {
-                        query: resolver.subgraph_operation.query.clone(),
-                    },
-                }),
-                Resolver::FederationEntity(resolver) => QueryPlanNode::GraphqlResolver(GraphqlResolverNode {
-                    subgraph_name: resolver.endpoint_id.walk(ctx).subgraph_name().to_string(),
-                    request: GraphqlRequest {
-                        query: resolver.subgraph_operation.query.clone(),
-                    },
-                }),
-                Resolver::FieldResolverExtension(resolver) => {
-                    let directive = resolver.directive_id.walk(ctx);
-                    QueryPlanNode::Extension(ExtensionNode {
-                        directive_name: Some(directive.name().to_string()),
-                        id: ctx.schema[directive.extension_id].clone(),
-                        subgraph_name: directive.subgraph().name().to_string(),
-                    })
-                }
-                Resolver::SelectionSetResolverExtension(resolver) => QueryPlanNode::Extension(ExtensionNode {
-                    directive_name: None,
-                    id: ctx.schema[resolver.definition.extension_id].clone(),
-                    subgraph_name: resolver.definition.subgraph_id.walk(ctx).subgraph_name().to_string(),
-                }),
-                Resolver::Lookup(_) => todo!("GB-8940"),
-            });
+            nodes.push((ctx, &plan.resolver).into());
             for child in plan.children() {
                 if let Executable::Plan(child) = child {
                     edges.push((usize::from(plan.id), usize::from(child.id)))
@@ -138,6 +113,7 @@ enum QueryPlanNode {
     IntrospectionResolver,
     GraphqlResolver(GraphqlResolverNode),
     Extension(ExtensionNode),
+    Lookup(LookupNode),
 }
 
 #[derive(Debug, Serialize)]
@@ -159,4 +135,71 @@ struct ExtensionNode {
 #[serde(rename_all = "camelCase")]
 struct GraphqlRequest {
     query: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct LookupNode {
+    node: Box<QueryPlanNode>,
+}
+
+impl From<(OperationPlanContext<'_>, &Resolver)> for QueryPlanNode {
+    fn from((ctx, resolver): (OperationPlanContext<'_>, &Resolver)) -> Self {
+        match resolver {
+            Resolver::Introspection(_) => QueryPlanNode::IntrospectionResolver,
+            Resolver::Graphql(resolver) => (ctx, resolver).into(),
+            Resolver::FederationEntity(resolver) => (ctx, resolver).into(),
+            Resolver::FieldResolverExtension(resolver) => (ctx, resolver).into(),
+            Resolver::SelectionSetResolverExtension(resolver) => (ctx, resolver).into(),
+            Resolver::Lookup(resolver) => QueryPlanNode::Lookup(LookupNode {
+                node: Box::new(match &resolver.proxied {
+                    LookupProxiedResolver::Graphql(resolver) => (ctx, resolver).into(),
+                    LookupProxiedResolver::SelectionSetResolverExtension(resolver) => (ctx, resolver).into(),
+                }),
+            }),
+        }
+    }
+}
+
+impl From<(OperationPlanContext<'_>, &GraphqlResolver)> for QueryPlanNode {
+    fn from((ctx, resolver): (OperationPlanContext<'_>, &GraphqlResolver)) -> Self {
+        QueryPlanNode::GraphqlResolver(GraphqlResolverNode {
+            subgraph_name: resolver.endpoint_id.walk(ctx).subgraph_name().to_string(),
+            request: GraphqlRequest {
+                query: resolver.subgraph_operation.query.clone(),
+            },
+        })
+    }
+}
+
+impl From<(OperationPlanContext<'_>, &FederationEntityResolver)> for QueryPlanNode {
+    fn from((ctx, resolver): (OperationPlanContext<'_>, &FederationEntityResolver)) -> Self {
+        QueryPlanNode::GraphqlResolver(GraphqlResolverNode {
+            subgraph_name: resolver.endpoint_id.walk(ctx).subgraph_name().to_string(),
+            request: GraphqlRequest {
+                query: resolver.subgraph_operation.query.clone(),
+            },
+        })
+    }
+}
+
+impl From<(OperationPlanContext<'_>, &FieldResolverExtension)> for QueryPlanNode {
+    fn from((ctx, resolver): (OperationPlanContext<'_>, &FieldResolverExtension)) -> Self {
+        let directive = resolver.directive_id.walk(ctx);
+        QueryPlanNode::Extension(ExtensionNode {
+            directive_name: Some(directive.name().to_string()),
+            id: ctx.schema[directive.extension_id].clone(),
+            subgraph_name: directive.subgraph().name().to_string(),
+        })
+    }
+}
+
+impl From<(OperationPlanContext<'_>, &SelectionSetResolverExtension)> for QueryPlanNode {
+    fn from((ctx, resolver): (OperationPlanContext<'_>, &SelectionSetResolverExtension)) -> Self {
+        QueryPlanNode::Extension(ExtensionNode {
+            directive_name: None,
+            id: ctx.schema[resolver.definition.extension_id].clone(),
+            subgraph_name: resolver.definition.subgraph_id.walk(ctx).subgraph_name().to_string(),
+        })
+    }
 }
