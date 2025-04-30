@@ -8,7 +8,7 @@ interface Timestamped implements Node {
   updatedAt: String!
 }
 
-type User implements Timestamped {
+type User implements Timestamped & Node {
   id: ID!
   createdAt: String!
   updatedAt: String!

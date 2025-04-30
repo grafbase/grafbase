@@ -10,7 +10,7 @@ type User {
 
 type Account {
   id: ID!
-  name: String
+  name(case: String): String
 }
 
 type Query {

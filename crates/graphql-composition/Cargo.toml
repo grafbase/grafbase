@@ -27,6 +27,7 @@ url.workspace = true
 [dev-dependencies]
 anyhow.workspace = true
 grafbase-workspace-hack.workspace = true
+graphql-schema-validation.workspace = true
 insta.workspace = true
 pretty_assertions.workspace = true
 serde.workspace = true

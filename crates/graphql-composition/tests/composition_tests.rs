@@ -75,24 +75,43 @@ fn run_test(test_path: &Path) -> anyhow::Result<()> {
         insta::assert_snapshot!("api.graphql", actual_api_sdl);
     }
 
-    test_sdl_roundtrip(&federated_sdl, test_path)
+    check_federated_sdl(&federated_sdl, test_path)
 }
 
-fn test_sdl_roundtrip(sdl: &str, path: &Path) -> anyhow::Result<()> {
+fn check_federated_sdl(federated_sdl: &str, test_path: &Path) -> anyhow::Result<()> {
     // Exclude tests with an empty schema. This is the case for composition error tests.
-    if sdl.lines().all(|line| line.is_empty() || line.starts_with('#')) {
+    if federated_sdl
+        .lines()
+        .all(|line| line.is_empty() || line.starts_with('#'))
+    {
         return Ok(());
     }
 
-    let rendered =
-        FederatedGraph::from_sdl(sdl).map_err(|err| anyhow::anyhow!("Error ingesting SDL: {err}\n\nSDL:\n{sdl}"))?;
+    {
+        let diagnostics = graphql_schema_validation::validate(&federated_sdl);
+
+        if diagnostics.has_errors() {
+            panic!(
+                "Validation errors on federated SDL for {}.\n{}",
+                test_path.display(),
+                diagnostics
+                    .iter()
+                    .map(|msg| msg.to_string())
+                    .collect::<Vec<_>>()
+                    .join("\n"),
+            )
+        }
+    }
+
+    let rendered = FederatedGraph::from_sdl(federated_sdl)
+        .map_err(|err| anyhow::anyhow!("Error ingesting SDL: {err}\n\nSDL:\n{federated_sdl}"))?;
     let roundtripped = graphql_federated_graph::render_federated_sdl(&rendered)?;
 
     pretty_assertions::assert_eq!(
-        sdl,
+        federated_sdl,
         roundtripped,
         "Federated SDL roundtrip failed for {}",
-        path.display()
+        test_path.display()
     );
 
     Ok(())

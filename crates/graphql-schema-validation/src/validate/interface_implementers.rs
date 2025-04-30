@@ -246,7 +246,7 @@ fn validate_implements_interface_transitively<'a>(
         {
             let implements = iface_implements.node.as_str();
             ctx.push_error(miette::miette!(
-                "`Type {parent_name}` must implement `{implements}` because it is implemented by `{iface_name}`"
+                "Type `{parent_name}` must implement `{implements}` because it is implemented by `{iface_name}`"
             ));
         }
     }

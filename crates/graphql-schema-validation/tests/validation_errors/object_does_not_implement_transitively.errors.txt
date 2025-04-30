@@ -1,7 +1,7 @@
-  × `Type Siamese` must implement `HasId` because it is implemented by `Cat`
+  × Type `Siamese` must implement `HasId` because it is implemented by `Cat`
 
 
-  × `Type MeowingCat` must implement `HasId` because it is implemented by `Cat`
+  × Type `MeowingCat` must implement `HasId` because it is implemented by `Cat`
 
 
   × Missing `id` field in `MeowingCat` (required by the `Cat` interface)

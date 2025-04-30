@@ -4,7 +4,7 @@ type Query @cost(weight: 1) {
   foo(name: String @cost(weight: 100)): String
 }
 
-interface Account @cost(weight: 3) {
+type Account @cost(weight: 3) {
   id: ID! @cost(weight: 4)
 
   foo(name: String @cost(weight: 200)): String

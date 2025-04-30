@@ -152,7 +152,7 @@ pub(super) fn emit_federation_builtins(ctx: &mut Context<'_>, join_graph_enum_id
     //     external: Boolean,
     //     override: String,
     //     overrideLabel: String
-    // ) on FIELD_DEFINITION
+    // ) on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
     {
         let directive_name = ctx.insert_str("field");
         let requires_str = ctx.insert_str("requires");
@@ -161,7 +161,8 @@ pub(super) fn emit_federation_builtins(ctx: &mut Context<'_>, join_graph_enum_id
         let directive_definition_id = ctx.out.push_directive_definition(federated::DirectiveDefinitionRecord {
             namespace: join_namespace,
             name: directive_name,
-            locations: federated::DirectiveLocations::FIELD_DEFINITION,
+            locations: federated::DirectiveLocations::FIELD_DEFINITION
+                | federated::DirectiveLocations::INPUT_FIELD_DEFINITION,
             repeatable: false,
         });
 
@@ -277,7 +278,12 @@ pub(super) fn emit_federation_builtins(ctx: &mut Context<'_>, join_graph_enum_id
         let directive_definition_id = ctx.out.push_directive_definition(federated::DirectiveDefinitionRecord {
             namespace: join_namespace,
             name,
-            locations: federated::DirectiveLocations::OBJECT | federated::DirectiveLocations::INTERFACE,
+            locations: federated::DirectiveLocations::OBJECT
+                | federated::DirectiveLocations::INTERFACE
+                | federated::DirectiveLocations::UNION
+                | federated::DirectiveLocations::ENUM
+                | federated::DirectiveLocations::INPUT_OBJECT
+                | federated::DirectiveLocations::SCALAR,
             repeatable: false,
         });
 

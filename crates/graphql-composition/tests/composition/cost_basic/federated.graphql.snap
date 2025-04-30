@@ -9,9 +9,9 @@ directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT |
 
 directive @join__graph(name: String!, url: String) on ENUM_VALUE
 
-directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, overrideLabel: String) on FIELD_DEFINITION
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, overrideLabel: String) on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
 
-directive @join__type(graph: join__Graph, key: join__FieldSet, extension: Boolean = false, resolvable: Boolean = true, isInterfaceObject: Boolean = false) on OBJECT | INTERFACE
+directive @join__type(graph: join__Graph, key: join__FieldSet, extension: Boolean = false, resolvable: Boolean = true, isInterfaceObject: Boolean = false) on SCALAR | OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT
 
 directive @join__owner(graph: join__Graph!) on OBJECT
 
@@ -22,19 +22,19 @@ scalar Foo
 
 scalar join__FieldSet
 
-type Query
-  @cost(weight: 1)
-{
-  foo(name: String @cost(weight: 100)): String @join__field(graph: A)
-  id: ID! @cost(weight: 2) @join__field(graph: A)
-}
-
-interface Account
+type Account
   @cost(weight: 3)
   @join__type(graph: A)
 {
   foo(name: String @cost(weight: 200)): String
   id: ID! @cost(weight: 4)
+}
+
+type Query
+  @cost(weight: 1)
+{
+  foo(name: String @cost(weight: 100)): String @join__field(graph: A)
+  id: ID! @cost(weight: 2) @join__field(graph: A)
 }
 
 enum Blah
