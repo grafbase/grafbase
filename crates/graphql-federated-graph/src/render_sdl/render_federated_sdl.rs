@@ -507,8 +507,6 @@ mod tests {
 
     #[test]
     fn escape_strings() {
-        use expect_test::expect;
-
         let empty = FederatedGraph::from_sdl(
             r###"
             directive @dummy(test: String!) on FIELD
@@ -521,22 +519,18 @@ mod tests {
         .unwrap();
 
         let actual = render_federated_sdl(&empty).expect("valid");
-        let expected = expect![[r#"
+        insta::assert_snapshot!(actual, @r#"
             directive @dummy(test: String!) on FIELD
 
             type Query
             {
               field: String @deprecated(reason: "This is a \"deprecated\" reason") @dummy(test: "a \"test\"")
             }
-        "#]];
-
-        expected.assert_eq(&actual);
+        "#);
     }
 
     #[test]
     fn multiline_strings() {
-        use expect_test::expect;
-
         let empty = FederatedGraph::from_sdl(
             r###"
             directive @dummy(test: String!) on FIELD
@@ -555,16 +549,14 @@ mod tests {
         .unwrap();
 
         let actual = render_federated_sdl(&empty).expect("valid");
-        let expected = expect![[r#"
+        insta::assert_snapshot!(actual, @r#"
             directive @dummy(test: String!) on FIELD
 
             type Query
             {
               field: String @deprecated(reason: "This is a \"deprecated\" reason\n\non multiple lines.\n\nyes, way") @dummy(test: "a \"test\"")
             }
-        "#]];
-
-        expected.assert_eq(&actual);
+        "#);
     }
 
     #[test]

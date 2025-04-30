@@ -34,7 +34,7 @@ use enum_definitions::EnumDefinition;
 use scalar_definitions::ScalarDefinition;
 use std::ops::Range;
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct FederatedGraph {
     pub subgraphs: Vec<Subgraph>,
     pub extensions: Vec<Extension>,
@@ -280,70 +280,6 @@ pub struct Key {
     pub is_interface_object: bool,
 
     pub resolvable: bool,
-}
-
-impl Default for FederatedGraph {
-    fn default() -> Self {
-        FederatedGraph {
-            directive_definitions: Vec::new(),
-            directive_definition_arguments: Vec::new(),
-            enum_definitions: Vec::new(),
-            subgraphs: Vec::new(),
-            extensions: Vec::new(),
-            interfaces: Vec::new(),
-            unions: Vec::new(),
-            input_objects: Vec::new(),
-            enum_values: Vec::new(),
-            input_value_definitions: Vec::new(),
-
-            scalar_definitions: vec![ScalarDefinitionRecord {
-                namespace: None,
-                name: StringId::from(3),
-                description: None,
-                directives: Vec::new(),
-            }],
-            root_operation_types: RootOperationTypes {
-                query: Some(ObjectId::from(0)),
-                mutation: None,
-                subscription: None,
-            },
-            objects: vec![Object {
-                name: StringId::from(0),
-                description: None,
-                directives: Vec::new(),
-                implements_interfaces: Vec::new(),
-                fields: FieldId::from(0)..FieldId::from(2),
-            }],
-            fields: vec![
-                Field {
-                    name: StringId::from(1),
-                    r#type: Type {
-                        wrapping: Default::default(),
-                        definition: Definition::Scalar(0usize.into()),
-                    },
-                    parent_entity_id: EntityDefinitionId::Object(ObjectId::from(0)),
-                    arguments: NO_INPUT_VALUE_DEFINITION,
-                    description: None,
-                    directives: Vec::new(),
-                },
-                Field {
-                    name: StringId::from(2),
-                    r#type: Type {
-                        wrapping: Default::default(),
-                        definition: Definition::Scalar(0usize.into()),
-                    },
-                    parent_entity_id: EntityDefinitionId::Object(ObjectId::from(0)),
-                    arguments: NO_INPUT_VALUE_DEFINITION,
-                    description: None,
-                    directives: Vec::new(),
-                },
-            ],
-            strings: ["Query", "__type", "__schema", "String"]
-                .into_iter()
-                .map(|string| string.to_owned())
-                .collect(),
-        }
-    }
 }
 
 impl std::ops::Index<InputValueDefinitions> for FederatedGraph {

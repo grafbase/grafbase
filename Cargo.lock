@@ -4283,7 +4283,6 @@ dependencies = [
  "bitflags 2.9.0",
  "cynic-parser",
  "cynic-parser-deser",
- "expect-test",
  "grafbase-workspace-hack",
  "graphql-wrapping-types",
  "indexmap 2.9.0",

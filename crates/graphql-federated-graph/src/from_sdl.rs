@@ -1330,8 +1330,6 @@ fn test_missing_type() {
 #[cfg(test)]
 #[test]
 fn test_join_field_type() {
-    use expect_test::expect;
-
     let sdl = r###"
     schema
       @link(url: "https://specs.apollo.dev/link/v1.0")
@@ -1424,7 +1422,11 @@ fn test_join_field_type() {
     }
     "###;
 
-    let expected = expect![[r#"
+    let actual = crate::render_sdl::render_federated_sdl(&FederatedGraph::from_sdl(sdl).unwrap()).unwrap();
+
+    insta::assert_snapshot!(
+        &actual,
+        @r#"
         directive @join__enumValue(graph: join__Graph!) on ENUM_VALUE
 
         directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, usedOverridden: Boolean) on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
@@ -1491,18 +1493,12 @@ fn test_join_field_type() {
           @join__unionMember(graph: B, member: "User")
           @join__unionMember(graph: B, member: "Admin")
          = User | Admin
-    "#]];
-
-    let actual = crate::render_sdl::render_federated_sdl(&FederatedGraph::from_sdl(sdl).unwrap()).unwrap();
-
-    expected.assert_eq(&actual);
+    "#);
 }
 
 #[cfg(test)]
 #[tokio::test]
 async fn load_with_extensions() {
-    use expect_test::expect;
-
     let sdl = r###"
         directive @join__type(
             graph: join__Graph!
@@ -1540,7 +1536,9 @@ async fn load_with_extensions() {
         }
         "###;
 
-    let expected = expect![[r#"
+    let rendered_sdl = crate::render_sdl::render_federated_sdl(&FederatedGraph::from_sdl(sdl).unwrap()).unwrap();
+
+    insta::assert_snapshot!(rendered_sdl, @r#"
         directive @join__type(graph: join__Graph!, key: join__FieldSet, resolvable: Boolean = true) on OBJECT | INTERFACE
 
         directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet) on FIELD_DEFINITION
@@ -1573,8 +1571,5 @@ async fn load_with_extensions() {
         {
           REST @extension__link(url: "file:///dummy", schemaDirectives: [{graph: A, name: "test", arguments: {method: "yes"}}])
         }
-    "#]];
-
-    let rendered_sdl = crate::render_sdl::render_federated_sdl(&FederatedGraph::from_sdl(sdl).unwrap()).unwrap();
-    expected.assert_eq(&rendered_sdl);
+    "#);
 }
