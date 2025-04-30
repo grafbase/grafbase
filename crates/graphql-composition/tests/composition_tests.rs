@@ -78,6 +78,7 @@ fn run_test(test_path: &Path) -> anyhow::Result<()> {
     check_federated_sdl(&federated_sdl, test_path)
 }
 
+#[allow(clippy::panic)]
 fn check_federated_sdl(federated_sdl: &str, test_path: &Path) -> anyhow::Result<()> {
     // Exclude tests with an empty schema. This is the case for composition error tests.
     if federated_sdl

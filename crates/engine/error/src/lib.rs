@@ -35,6 +35,8 @@ impl From<GraphqlError> for ErrorResponse {
     }
 }
 
+pub type GraphqlResult<T> = Result<T, GraphqlError>;
+
 #[derive(Debug, Clone)]
 pub struct GraphqlError {
     pub message: Cow<'static, str>,

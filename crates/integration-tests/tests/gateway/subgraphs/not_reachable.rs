@@ -59,6 +59,12 @@ fn subgraph_not_reachable_does_not_leak_subgraph_url() {
           "errors": [
             {
               "message": "Request to subgraph 'fst' failed.",
+              "locations": [
+                {
+                  "line": 1,
+                  "column": 9
+                }
+              ],
               "path": [
                 "user"
               ],

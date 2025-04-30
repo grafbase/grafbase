@@ -1,14 +1,13 @@
 use std::{borrow::Cow, time::Duration};
 
 use bytes::Bytes;
-use futures::Future;
+use futures::{Future, TryFutureExt as _};
 use grafbase_telemetry::{
     graphql::GraphqlResponseStatus, otel::tracing_opentelemetry::OpenTelemetrySpanExt as _,
     span::subgraph::SubgraphHttpRequestSpan,
 };
 use headers::HeaderMapExt;
 use runtime::{
-    bytes::OwnedOrSharedBytes,
     fetch::{FetchError, FetchRequest, FetchResult, Fetcher},
     hooks::{ResponseInfo, SubgraphRequestExecutionKind},
     rate_limiting::RateLimitKey,
@@ -29,9 +28,9 @@ pub trait ResponseIngester: Send {
     // argument to circumvent the issue.
     fn ingest(
         self,
-        http_response: http::Response<OwnedOrSharedBytes>,
+        result: Result<http::Response<Bytes>, GraphqlError>,
         response_part: ResponsePartBuilder<'_>,
-    ) -> impl Future<Output = Result<(GraphqlResponseStatus, ResponsePartBuilder<'_>), ExecutionError>> + Send;
+    ) -> impl Future<Output = (Option<GraphqlResponseStatus>, ResponsePartBuilder<'_>)> + Send;
 }
 
 pub(crate) async fn execute_subgraph_request<'ctx, R: Runtime>(
@@ -40,126 +39,143 @@ pub(crate) async fn execute_subgraph_request<'ctx, R: Runtime>(
     body: impl Into<Bytes> + Send,
     response_part: ResponsePartBuilder<'ctx>,
     ingester: impl ResponseIngester,
-) -> ExecutionResult<ResponsePartBuilder<'ctx>> {
+) -> ResponsePartBuilder<'ctx> {
     let endpoint = ctx.endpoint();
 
-    let req = runtime::hooks::SubgraphRequest {
-        method: http::Method::POST,
-        url: endpoint.url().clone(),
-        headers,
-    };
-    let runtime::hooks::SubgraphRequest {
-        method,
-        url,
-        mut headers,
-    } = ctx
-        .hooks()
-        .on_subgraph_request(endpoint.subgraph_name(), req)
-        .await
-        .inspect_err(|_| {
-            ctx.set_as_hook_error();
-            ctx.push_request_execution(SubgraphRequestExecutionKind::HookError);
-        })?;
-
-    let body: Bytes = body.into();
-    headers.typed_insert(headers::ContentType::json());
-    headers.typed_insert(headers::ContentLength(body.len() as u64));
-    headers.insert(
-        http::header::ACCEPT,
-        http::HeaderValue::from_static(
-            "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8",
-        ),
-    );
-
-    let request = FetchRequest {
-        websocket_init_payload: None,
-        subgraph_name: endpoint.subgraph_name(),
-        url: Cow::Owned(url),
-        headers,
-        method,
-        body,
-        timeout: endpoint.config.timeout,
-    };
-
-    ctx.record_request_size(&request);
-
-    let fetcher = ctx.runtime().fetcher();
-    let fetch_result = retrying_fetch(ctx, || async {
-        let http_span = SubgraphHttpRequestSpan::new(endpoint.url(), &http::Method::POST);
-        let mut request = request.clone();
-
-        grafbase_telemetry::otel::opentelemetry::global::get_text_map_propagator(|propagator| {
-            let context = http_span.context();
-            propagator.inject_context(
-                &context,
-                &mut grafbase_telemetry::http::HeaderInjector(&mut request.headers),
+    let result = async {
+        match ctx
+            .hooks()
+            .on_subgraph_request(
+                endpoint.subgraph_name(),
+                runtime::hooks::SubgraphRequest {
+                    method: http::Method::POST,
+                    url: ctx.endpoint().url().clone(),
+                    headers,
+                },
+            )
+            .await
+        {
+            Ok(request) => Ok((request, ctx)),
+            Err(err) => {
+                ctx.set_as_hook_error();
+                ctx.push_request_execution(SubgraphRequestExecutionKind::HookError);
+                Err((err, ctx))
+            }
+        }
+    }
+    .and_then(
+        async |(
+            runtime::hooks::SubgraphRequest {
+                method,
+                url,
+                mut headers,
+            },
+            ctx,
+        )| {
+            let body: Bytes = body.into();
+            headers.typed_insert(headers::ContentType::json());
+            headers.typed_insert(headers::ContentLength(body.len() as u64));
+            headers.insert(
+                http::header::ACCEPT,
+                http::HeaderValue::from_static(
+                    "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8",
+                ),
             );
-        });
 
-        let (fetch_result, info) = fetcher.fetch(request).instrument(http_span.span()).await;
+            let request = FetchRequest {
+                websocket_init_payload: None,
+                subgraph_name: endpoint.subgraph_name(),
+                url: Cow::Owned(url),
+                headers,
+                method,
+                body,
+                timeout: endpoint.config.timeout,
+            };
 
-        let fetch_result = fetch_result.and_then(|response| {
-            tracing::debug!("Received response:\n{}", String::from_utf8_lossy(response.body()));
-            // For those status codes we want to retry the request, so marking the request as
-            // failed.
-            let status = response.status();
-            if status.is_server_error() || status == http::StatusCode::TOO_MANY_REQUESTS {
-                Err(FetchError::InvalidStatusCode(status))
-            } else {
-                Ok(response)
+            ctx.record_request_size(&request);
+
+            let fetcher = ctx.runtime().fetcher();
+            let fetch_result = retrying_fetch(ctx, || async {
+                let http_span = SubgraphHttpRequestSpan::new(endpoint.url(), &http::Method::POST);
+                let mut request = request.clone();
+
+                grafbase_telemetry::otel::opentelemetry::global::get_text_map_propagator(|propagator| {
+                    let context = http_span.context();
+                    propagator.inject_context(
+                        &context,
+                        &mut grafbase_telemetry::http::HeaderInjector(&mut request.headers),
+                    );
+                });
+
+                let (fetch_result, info) = fetcher.fetch(request).instrument(http_span.span()).await;
+
+                let fetch_result = fetch_result.and_then(|response| {
+                    tracing::debug!("Received response:\n{}", String::from_utf8_lossy(response.body()));
+                    // For those status codes we want to retry the request, so marking the request as
+                    // failed.
+                    let status = response.status();
+                    if status.is_server_error() || status == http::StatusCode::TOO_MANY_REQUESTS {
+                        Err(FetchError::InvalidStatusCode(status))
+                    } else {
+                        Ok(response)
+                    }
+                });
+
+                match fetch_result {
+                    Ok(ref response) => {
+                        http_span.record_http_status_code(response.status());
+                    }
+                    Err(ref err) => {
+                        tracing::error!("Request to subgraph {} failed with: {err}", endpoint.subgraph_name());
+                        http_span.set_as_http_error(err.as_invalid_status_code());
+                    }
+                };
+
+                (fetch_result, info)
+            })
+            .await;
+            match fetch_result {
+                Ok(http_response) => {
+                    ctx.record_http_response(&http_response);
+                    // If the status code isn't a success as this point it means it's either a client error or
+                    // we've exhausted our retry budget for server errors.
+                    if http_response.status().is_success() {
+                        Ok((http_response, ctx))
+                    } else {
+                        tracing::error!(
+                            "Subgraph request failed with status code: {}\n{}",
+                            http_response.status().as_u16(),
+                            String::from_utf8_lossy(http_response.body())
+                        );
+                        Err((
+                            GraphqlError::new(
+                                format!("Request failed with status code: {}", http_response.status().as_u16()),
+                                ErrorCode::SubgraphRequestError,
+                            ),
+                            ctx,
+                        ))
+                    }
+                }
+                Err(err) => {
+                    ctx.set_as_http_error(err.as_fetch_invalid_status_code());
+                    Err((err.into(), ctx))
+                }
             }
-        });
-
-        match fetch_result {
-            Ok(ref response) => {
-                http_span.record_http_status_code(response.status());
-            }
-            Err(ref err) => {
-                tracing::error!("Request to subgraph {} failed with: {err}", endpoint.subgraph_name());
-                http_span.set_as_http_error(err.as_invalid_status_code());
-            }
-        };
-
-        (fetch_result, info)
-    })
+        },
+    )
     .await;
 
-    let http_response = match fetch_result {
-        Ok(response) => {
-            ctx.record_http_response(&response);
-            response
-        }
-        Err(err) => {
-            ctx.set_as_http_error(err.as_fetch_invalid_status_code());
-            return Err(err);
-        }
+    let ((status, response_part), ctx) = match result {
+        Ok((response, ctx)) => (ingester.ingest(Ok(response), response_part).await, ctx),
+        Err((err, ctx)) => (ingester.ingest(Err(err), response_part).await, ctx),
     };
-
-    // If the status code isn't a success as this point it means it's either a client error or
-    // we've exhausted our retry budget for server errors.
-    if !http_response.status().is_success() {
-        tracing::error!(
-            "Subgraph request failed with status code: {}\n{}",
-            http_response.status().as_u16(),
-            String::from_utf8_lossy(http_response.body())
-        );
-        return Err(GraphqlError::new(
-            format!("Request failed with status code: {}", http_response.status().as_u16()),
-            ErrorCode::SubgraphRequestError,
-        )
-        .into());
+    if let Some(status) = status {
+        ctx.set_graphql_response_status(status);
+    } else {
+        ctx.set_as_invalid_response();
     }
 
-    match ingester.ingest(http_response, response_part).await {
-        Ok((status, response)) => {
-            ctx.set_graphql_response_status(status);
-            Ok(response)
-        }
-        Err(err) => {
-            ctx.set_as_invalid_response();
-            Err(err)
-        }
-    }
+    response_part
 }
 
 pub(crate) async fn retrying_fetch<R: Runtime, F, T>(

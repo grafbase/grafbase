@@ -1,6 +1,6 @@
 mod ser;
 
-use std::{borrow::Cow, sync::Arc};
+use std::borrow::Cow;
 
 use schema::{FieldSetRecord, Schema, ValueInjection};
 
@@ -25,17 +25,17 @@ impl<'a> ViewContext<'a> {
 #[derive(Clone)]
 pub(crate) struct ParentObjectsView<'a, View = RequiredFieldSet<'a>> {
     pub(super) ctx: ViewContext<'a>,
-    pub(super) response_object_set: Arc<ParentObjects>,
+    pub(super) parent_objects: ParentObjects,
     pub(super) view: View,
 }
 
 impl<'a, View: Copy> ParentObjectsView<'a, View> {
     pub fn len(&self) -> usize {
-        self.response_object_set.len()
+        self.parent_objects.len()
     }
 
     pub fn iter_with_id(&self) -> impl Iterator<Item = (ParentObjectId, ResponseObjectView<'a, View>)> + '_ {
-        self.response_object_set.iter_with_id().map(|(id, obj_ref)| {
+        self.parent_objects.iter_with_id().map(|(id, obj_ref)| {
             (
                 id,
                 ResponseObjectView {
@@ -47,8 +47,8 @@ impl<'a, View: Copy> ParentObjectsView<'a, View> {
         })
     }
 
-    pub fn into_parent_objects(self) -> Arc<ParentObjects> {
-        self.response_object_set
+    pub fn into_object_set(self) -> ParentObjects {
+        self.parent_objects
     }
 
     pub fn iter(&self) -> impl Iterator<Item = ResponseObjectView<'a, View>> + '_ {
@@ -67,7 +67,7 @@ impl<'a> ParentObjectsView<'a, RequiredFieldSet<'a>> {
     {
         ParentObjectsView {
             ctx: self.ctx,
-            response_object_set: self.response_object_set,
+            parent_objects: self.parent_objects,
             view: WithExtraFields {
                 requirements: self.view,
                 extra_constant_fields,
@@ -78,7 +78,7 @@ impl<'a> ParentObjectsView<'a, RequiredFieldSet<'a>> {
     pub fn for_injection(self, injection: ValueInjection) -> ParentObjectsView<'a, ForInjection<'a>> {
         ParentObjectsView {
             ctx: self.ctx,
-            response_object_set: self.response_object_set,
+            parent_objects: self.parent_objects,
             view: ForInjection {
                 requirements: self.view,
                 injection,

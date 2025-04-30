@@ -3,7 +3,7 @@ use serde::{
     de::{DeserializeSeed, IgnoredAny, MapAccess, Visitor},
 };
 
-use crate::response::{ErrorPath, ErrorPathSegment, ParentObjectId, SharedResponsePartBuilder};
+use crate::response::{ErrorPath, ErrorPathSegment};
 
 use super::SubgraphToSupergraphErrorPathConverter;
 
@@ -62,6 +62,11 @@ where
             }
         }
 
+        if let Some(seed) = entities_seed {
+            seed.deserialize(serde_json::Value::Array(Vec::new()))
+                .expect("Deserializer never fails");
+        }
+
         Ok(())
     }
 }
@@ -74,26 +79,11 @@ enum EntitiesKey {
     Unknown,
 }
 
-pub(in crate::resolver::graphql) struct EntityErrorPathConverter<'ctx, F> {
-    pub response_part: SharedResponsePartBuilder<'ctx>,
-    pub index_to_parent_object_id: F,
-}
+pub struct EntityErrorPathConverter<F>(pub F);
 
-impl<'ctx, F> EntityErrorPathConverter<'ctx, F>
+impl<F> SubgraphToSupergraphErrorPathConverter for EntityErrorPathConverter<F>
 where
-    F: Fn(usize) -> Option<ParentObjectId>,
-{
-    pub fn new(response_part: SharedResponsePartBuilder<'ctx>, index_to_parent_object_id: F) -> Self {
-        Self {
-            response_part,
-            index_to_parent_object_id,
-        }
-    }
-}
-
-impl<F> SubgraphToSupergraphErrorPathConverter for EntityErrorPathConverter<'_, F>
-where
-    F: Fn(usize) -> Option<ParentObjectId>,
+    F: Fn(usize) -> Option<Vec<ErrorPathSegment>>,
 {
     fn convert(&self, path: serde_json::Value) -> Option<ErrorPath> {
         let serde_json::Value::Array(path) = path else {
@@ -105,11 +95,7 @@ where
         }
 
         let index = path.next()?.as_u64()? as usize;
-        let mut out = self.response_part.borrow().parent_objects[(self.index_to_parent_object_id)(index)?]
-            .path
-            .iter()
-            .map(Into::into)
-            .collect::<Vec<_>>();
+        let mut out = (self.0)(index)?;
 
         for segment in path {
             match segment {

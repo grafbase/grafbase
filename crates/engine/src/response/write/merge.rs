@@ -1,33 +1,69 @@
 use std::{cmp::Ordering, collections::VecDeque};
 
-use crate::response::{ResponseListId, ResponseObjectField, ResponseObjectId, ResponseValue};
+use crate::{
+    prepare::DefaultFieldShape,
+    response::{ResponseListId, ResponseObjectField, ResponseObjectId, ResponseValue},
+};
 
 use super::ResponseBuilder;
 
 impl ResponseBuilder<'_> {
-    pub(super) fn recursive_merge_with_default_object(
+    pub(super) fn merge_with_default_object(
         &mut self,
         object_id: ResponseObjectId,
-        default_fields_sorted_by_key: &[ResponseObjectField],
+        default_fields_sorted_key: &[DefaultFieldShape],
     ) {
-        // When ingesting default fields, which we set to Null, we may encounter an actual
-        // value in the case of shared roots. In this case we keep the old value.
-        self.recursive_merge_object(object_id, default_fields_sorted_by_key.to_vec(), true);
+        let mut default_fields = default_fields_sorted_key.iter();
+        let Some(mut new_field) = default_fields.next() else {
+            return;
+        };
+
+        let mut existing_fields = std::mem::take(&mut self.data_parts[object_id].fields_sorted_by_key);
+        let n = existing_fields.len();
+        let mut i = 0;
+        loop {
+            if i >= n {
+                existing_fields.push(new_field.into());
+                break;
+            }
+            let existing_field = &existing_fields[i];
+            match existing_field.key.cmp(&new_field.key) {
+                Ordering::Less => {
+                    i += 1;
+                }
+                Ordering::Greater => {
+                    // Adding at the end and will be sorted later.
+                    existing_fields.push(new_field.into());
+                    if let Some(next) = default_fields.next() {
+                        new_field = next;
+                    } else {
+                        break;
+                    }
+                }
+                // When ingesting default fields, which we set to Null, we may encounter an actual
+                // value in the case of shared roots. In this case we keep the old value.
+                Ordering::Equal => {
+                    i += 1;
+                    if let Some(next) = default_fields.next() {
+                        new_field = next;
+                    } else {
+                        break;
+                    }
+                }
+            }
+        }
+        for field in default_fields {
+            existing_fields.push(field.into());
+        }
+        existing_fields.sort_unstable_by(|a, b| a.key.cmp(&b.key));
+
+        self.data_parts[object_id].fields_sorted_by_key = existing_fields;
     }
 
-    pub(super) fn recursive_merge_shared_object(
+    pub(super) fn recursive_merge_object(
         &mut self,
         object_id: ResponseObjectId,
         new_fields_sorted_by_key: Vec<ResponseObjectField>,
-    ) {
-        self.recursive_merge_object(object_id, new_fields_sorted_by_key, false);
-    }
-
-    fn recursive_merge_object(
-        &mut self,
-        object_id: ResponseObjectId,
-        new_fields_sorted_by_key: Vec<ResponseObjectField>,
-        skip_new_field_if_exists_already: bool,
     ) {
         let mut new_fields_sorted_by_key = VecDeque::from(new_fields_sorted_by_key);
         let Some(mut new_field) = new_fields_sorted_by_key.pop_front() else {
@@ -57,9 +93,7 @@ impl ResponseBuilder<'_> {
                     }
                 }
                 Ordering::Equal => {
-                    if !skip_new_field_if_exists_already {
-                        self.recursive_merge_value(existing_field.value.clone(), new_field.value);
-                    }
+                    self.recursive_merge_value(existing_field.value.clone(), new_field.value);
                     i += 1;
                     if let Some(next) = new_fields_sorted_by_key.pop_front() {
                         new_field = next;
@@ -79,7 +113,7 @@ impl ResponseBuilder<'_> {
         match (existing, new) {
             (ResponseValue::Object { id: existing_id, .. }, ResponseValue::Object { id: new_id, .. }) => {
                 let new_fields_sorted_by_key = std::mem::take(&mut self.data_parts[new_id].fields_sorted_by_key);
-                self.recursive_merge_object(existing_id, new_fields_sorted_by_key, false);
+                self.recursive_merge_object(existing_id, new_fields_sorted_by_key);
             }
             (ResponseValue::List { id: existing_id, .. }, ResponseValue::List { id: new_id, .. }) => {
                 self.recursive_merge_list(existing_id, new_id)

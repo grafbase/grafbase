@@ -5,19 +5,14 @@ mod part;
 use std::sync::Arc;
 
 use grafbase_telemetry::graphql::{GraphqlOperationAttributes, GraphqlResponseStatus};
-use operation::PositionedResponseKey;
 use schema::{ObjectDefinitionId, Schema};
-use walker::Walk;
 
 use super::{
-    DataParts, ErrorPartBuilder, ErrorParts, ErrorPathSegment, ExecutedResponse, GraphqlError,
-    OutputResponseObjectSets, ParentObjectId, ParentObjects, Response, ResponseData, ResponseObject,
-    ResponseObjectField, ResponseObjectId, ResponseObjectRef, ResponseValue, ResponseValueId,
+    DataParts, ErrorPartBuilder, ErrorParts, ExecutedResponse, GraphqlError, Response, ResponseData, ResponseObject,
+    ResponseObjectId, ResponseObjectRef, ResponseObjectSet, ResponseValueId,
 };
-use crate::{
-    execution::ExecutionError,
-    prepare::{ObjectIdentifier, Plan, PreparedOperation},
-};
+use crate::prepare::{PreparedOperation, ResponseObjectSetDefinitionId};
+pub(crate) use deserialize::*;
 pub(crate) use part::*;
 
 pub(crate) struct ResponseBuilder<'ctx> {
@@ -64,17 +59,16 @@ impl<'ctx> ResponseBuilder<'ctx> {
         self.data_parts[value_id.part_id()].make_inaccessible(value_id);
     }
 
-    pub fn create_root_part(&mut self) -> (ParentObjectId, ResponsePartBuilder<'ctx>) {
-        let root_parent_objects = Arc::new(
-            ParentObjects::default().with_response_objects(Arc::new(self.root_response_object().into_iter().collect())),
-        );
-        let root_id = root_parent_objects.ids().next().expect("We just added the root object");
-        let resp = self.create_part_for(root_parent_objects);
-        (root_id, resp)
+    pub fn create_root_part(&mut self) -> (ResponseObjectRef, ResponsePartBuilder<'ctx>) {
+        let Some(root_parent_object) = self.root_response_object() else {
+            unreachable!("I think?")
+        };
+        let part = self.create_part();
+        (root_parent_object, part)
     }
 
-    pub fn create_part_for(&mut self, parent_objects: Arc<ParentObjects>) -> ResponsePartBuilder<'ctx> {
-        ResponsePartBuilder::new(self.schema, self.operation, self.data_parts.new_part(), parent_objects)
+    pub fn create_part(&mut self) -> ResponsePartBuilder<'ctx> {
+        ResponsePartBuilder::new(self.schema, self.operation, self.data_parts.new_part())
     }
 
     pub fn root_response_object(&self) -> Option<ResponseObjectRef> {
@@ -85,187 +79,42 @@ impl<'ctx> ResponseBuilder<'ctx> {
         })
     }
 
-    pub fn propagate_execution_error(
-        &mut self,
-        plan: Plan<'_>,
-        parent_objects: Arc<ParentObjects>,
-        error: ExecutionError,
-    ) {
-        let (any_response_key, default_fields_sorted_by_key) =
-            self.extract_any_response_key_and_default_fields_sorted_by_key(plan);
-        if let Some(any_response_key) = any_response_key {
-            let error = GraphqlError::from(error);
-            if let Some(parent_object) = parent_objects.iter().next() {
-                self.errors
-                    .push(error.with_path((&parent_object.path, any_response_key)));
-            }
-            if let Some(default_fields_sorted_by_key) = &default_fields_sorted_by_key {
-                for parent_object in parent_objects.iter() {
-                    self.recursive_merge_with_default_object(parent_object.id, default_fields_sorted_by_key);
-                }
-            } else {
-                for parent_object in parent_objects.iter() {
-                    self.propagate_null(&parent_object.path);
-                }
-            }
-        }
-    }
-
-    pub fn ingest(&mut self, plan: Plan<'ctx>, part: ResponsePartBuilder<'ctx>) -> OutputResponseObjectSets {
+    pub fn ingest(&mut self, part: ResponsePartBuilder<'ctx>) -> PartIngestionResult {
         self.data_parts.insert(part.data);
-
-        if let Some(update) = part.common_update {
-            match update {
-                CommonUpdate::PropagateNull => {
-                    for parent_object in part.parent_objects.iter() {
-                        self.propagate_null(&parent_object.path);
-                    }
-                }
-                CommonUpdate::DefaultFields(response_object_fields) => {
-                    for parent_object in part.parent_objects.iter() {
-                        self.recursive_merge_with_default_object(parent_object.id, &response_object_fields);
-                    }
-                }
-                CommonUpdate::Skip => {}
-            }
-        } else {
-            let (any_response_key, default_fields_sorted_by_key) =
-                self.extract_any_response_key_and_default_fields_sorted_by_key(plan);
-            for (update, obj_ref) in part.updates.into_iter().zip(part.parent_objects.iter()) {
-                match update {
-                    ObjectUpdate::Missing => {
-                        if let Some(any_response_key) = any_response_key {
-                            if !part.subgraph_errors.iter().any(|subgraph_error| {
-                                self.sugraph_error_matches_current_object(subgraph_error, obj_ref)
-                            }) {
-                                tracing::error!("Missing data from subgraph.");
-                                self.errors.push(
-                                    GraphqlError::invalid_subgraph_response()
-                                        .with_path((&obj_ref.path, any_response_key)),
-                                );
-                            }
-                            if let Some(default_fields_sorted_by_key) = &default_fields_sorted_by_key {
-                                self.recursive_merge_with_default_object(obj_ref.id, default_fields_sorted_by_key);
-                            } else {
-                                self.propagate_null(&obj_ref.path);
-                            }
-                        }
-                    }
-                    ObjectUpdate::Fields(mut fields) => {
-                        fields.sort_unstable_by(|a, b| a.key.cmp(&b.key));
-                        self.recursive_merge_shared_object(obj_ref.id, fields);
-                    }
-                    ObjectUpdate::Error(error) => {
-                        if let Some(any_response_key) = any_response_key {
-                            self.errors.push(error.with_path((&obj_ref.path, any_response_key)));
-                            if let Some(default_fields_sorted_by_key) = &default_fields_sorted_by_key {
-                                self.recursive_merge_with_default_object(obj_ref.id, default_fields_sorted_by_key);
-                            } else {
-                                self.propagate_null(&obj_ref.path);
-                            }
-                        }
-                    }
-                    ObjectUpdate::PropagateNullWithoutError => {
-                        if any_response_key.is_some() {
-                            if let Some(default_fields_sorted_by_key) = &default_fields_sorted_by_key {
-                                self.recursive_merge_with_default_object(obj_ref.id, default_fields_sorted_by_key);
-                            } else {
-                                self.propagate_null(&obj_ref.path);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        for err in part.subgraph_errors {
-            self.errors.push(err);
-        }
         self.error_parts.push(part.errors);
+
         if part.propagated_null_up_to_root {
             self.root = None;
+            return PartIngestionResult::SubgraphFailure;
+        }
+
+        for value_id in part.propagated_null_at {
+            self.data_parts[value_id.part_id()].make_inaccessible(value_id);
+        }
+
+        let mut has_ingested_data = false;
+        let shapes = &self.operation.cached.shapes;
+        for update in part.object_updates {
+            match update {
+                ObjectUpdate::Fields(id, mut fields) => {
+                    has_ingested_data = true;
+                    fields.sort_unstable_by(|a, b| a.key.cmp(&b.key));
+                    self.recursive_merge_object(id, fields);
+                }
+                ObjectUpdate::Default(id, default_field_ids) => {
+                    self.merge_with_default_object(id, &shapes[default_field_ids]);
+                }
+            }
+        }
+
+        if has_ingested_data {
+            PartIngestionResult::Data {
+                response_object_sets: part.object_sets,
+            }
         } else {
-            for path in part.propagated_null_up_to_paths {
-                self.propagate_null(&path);
-            }
+            debug_assert!(part.object_sets.is_empty());
+            PartIngestionResult::SubgraphFailure
         }
-
-        let (ids, sets) = part.object_sets.into_iter().unzip();
-        OutputResponseObjectSets { ids, sets }
-    }
-
-    fn sugraph_error_matches_current_object(&self, error: &GraphqlError, obj_ref: &ResponseObjectRef) -> bool {
-        let Some(parent_path) = &error.path else {
-            return true;
-        };
-        if obj_ref.path.len() > parent_path.len() {
-            return false;
-        }
-
-        let mut parent_path = parent_path.iter();
-        let mut path = obj_ref.path.iter();
-        while let Some((parent_segment, child_segment)) = parent_path.next().zip(path.next()) {
-            match (parent_segment, child_segment) {
-                (ErrorPathSegment::Index(i), ResponseValueId::Index { index, .. }) => {
-                    if *i != (*index as usize) {
-                        return false;
-                    }
-                }
-                (ErrorPathSegment::UnknownField(name), ResponseValueId::Field { key, .. }) => {
-                    if **name != self.operation.cached.operation.response_keys[*key] {
-                        return false;
-                    }
-                }
-                (ErrorPathSegment::Field(field), ResponseValueId::Field { key, .. }) => {
-                    if field != &key.response_key {
-                        return false;
-                    }
-                }
-                _ => return false,
-            }
-        }
-
-        true
-    }
-
-    fn extract_any_response_key_and_default_fields_sorted_by_key(
-        &self,
-        plan: Plan<'_>,
-    ) -> (Option<PositionedResponseKey>, Option<Vec<ResponseObjectField>>) {
-        let shape = plan.shape();
-        let any_response_key = shape
-            .fields()
-            .filter(|field| field.key.query_position.is_some())
-            .map(|field| field.key)
-            .min()
-            .or_else(|| shape.typename_shapes().map(|shape| shape.key).next());
-
-        let mut fields = Vec::new();
-        if !shape.typename_shape_ids.is_empty() {
-            if let ObjectIdentifier::Known(object_id) = shape.identifier {
-                let name: ResponseValue = object_id.walk(self.schema.as_ref()).as_ref().name_id.into();
-                fields.extend(shape.typename_shapes().map(|shape| ResponseObjectField {
-                    key: shape.key,
-                    value: name.clone(),
-                }))
-            } else {
-                return (any_response_key, None);
-            }
-        }
-        for field_shape in shape.fields() {
-            if field_shape.key.query_position.is_none() {
-                continue;
-            }
-            if field_shape.wrapping.is_required() {
-                return (any_response_key, None);
-            }
-            fields.push(ResponseObjectField {
-                key: field_shape.key,
-                value: ResponseValue::Null,
-            })
-        }
-
-        fields.sort_unstable_by(|a, b| a.key.cmp(&b.key));
-        (any_response_key, Some(fields))
     }
 
     pub fn graphql_status(&self) -> GraphqlResponseStatus {
@@ -298,4 +147,11 @@ impl<'ctx> ResponseBuilder<'ctx> {
             extensions: Default::default(),
         })
     }
+}
+
+pub(crate) enum PartIngestionResult {
+    Data {
+        response_object_sets: Vec<(ResponseObjectSetDefinitionId, ResponseObjectSet)>,
+    },
+    SubgraphFailure,
 }

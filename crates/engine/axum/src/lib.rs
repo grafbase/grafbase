@@ -3,7 +3,6 @@ use std::sync::Arc;
 use axum::{Json, response::IntoResponse};
 use engine::{Body, Engine, ErrorCode, Runtime};
 use futures_util::TryFutureExt;
-use runtime::bytes::OwnedOrSharedBytes;
 
 #[cfg(feature = "lambda")]
 pub mod lambda;
@@ -47,10 +46,7 @@ pub async fn execute<R: Runtime>(
 
     let (parts, body) = response.into_parts();
     match body {
-        Body::Bytes(bytes) => match bytes {
-            OwnedOrSharedBytes::Owned(bytes) => (parts.status, parts.headers, parts.extensions, bytes).into_response(),
-            OwnedOrSharedBytes::Shared(bytes) => (parts.status, parts.headers, parts.extensions, bytes).into_response(),
-        },
+        Body::Bytes(bytes) => (parts.status, parts.headers, parts.extensions, bytes).into_response(),
         Body::Stream(stream) => (
             parts.status,
             parts.headers,

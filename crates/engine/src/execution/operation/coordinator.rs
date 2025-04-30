@@ -1,11 +1,7 @@
 use std::{collections::VecDeque, sync::Arc, time::Instant};
 
 use futures::{Future, FutureExt, Stream, stream::FuturesOrdered};
-use futures_util::{
-    StreamExt,
-    future::BoxFuture,
-    stream::{BoxStream, FuturesUnordered},
-};
+use futures_util::{StreamExt, future::BoxFuture, stream::FuturesUnordered};
 use grafbase_telemetry::graphql::{GraphqlResponseStatus, OperationType};
 use runtime::hooks::{ExecutedOperationBuilder, Hooks};
 use tracing::Instrument;
@@ -14,13 +10,12 @@ use walker::Walk;
 use crate::{
     Runtime,
     execution::ExecutionContext,
-    prepare::{Executable, Plan, PlanId},
-    prepare::{PrepareContext, PreparedOperation},
+    prepare::{Executable, Plan, PlanId, PrepareContext, PreparedOperation},
     resolver::ResolverResult,
-    response::{GraphqlError, ParentObjects, Response, ResponseBuilder, ResponsePartBuilder},
+    response::{GraphqlError, PartIngestionResult, Response, ResponseBuilder, ResponsePartBuilder},
 };
 
-use super::{ExecutionError, ExecutionResult, state::OperationExecutionState};
+use super::state::OperationExecutionState;
 
 pub(crate) trait ResponseSender<O>: Send {
     type Error;
@@ -167,10 +162,13 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
             (state, id)
         };
 
-        let stream = match self.build_subscription_stream(subscription_plan).await {
-            Ok(stream) => stream,
-            Err(error) => Box::pin(futures_util::stream::iter(std::iter::once(Err(error)))),
-        };
+        let stream = subscription_plan
+            .as_ref()
+            .resolver
+            .execute_subscription(self, subscription_plan, move || {
+                ResponseBuilder::new(&self.engine.schema, self.operation)
+            })
+            .await;
 
         SubscriptionExecution {
             ctx: self,
@@ -181,22 +179,6 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
         }
         .execute(responses)
         .await
-    }
-
-    async fn build_subscription_stream<'exec>(
-        self,
-        subscription_plan: Plan<'ctx>,
-    ) -> ExecutionResult<BoxStream<'exec, ExecutionResult<(ResponseBuilder<'ctx>, ResponsePartBuilder<'ctx>)>>>
-    where
-        'ctx: 'exec,
-    {
-        subscription_plan
-            .as_ref()
-            .resolver
-            .execute_subscription(self, subscription_plan, move || {
-                ResponseBuilder::new(&self.engine.schema, self.operation)
-            })
-            .await
     }
 }
 
@@ -210,7 +192,7 @@ struct SubscriptionExecution<'ctx, R: Runtime, S> {
 
 impl<'ctx, R: Runtime, S> SubscriptionExecution<'ctx, R, S>
 where
-    S: Stream<Item = ExecutionResult<(ResponseBuilder<'ctx>, ResponsePartBuilder<'ctx>)>> + Send,
+    S: Stream<Item = (ResponseBuilder<'ctx>, ResponsePartBuilder<'ctx>)> + Send,
 {
     async fn execute(mut self, mut responses: impl ResponseSender<<R::Hooks as Hooks>::OnOperationResponseOutput>) {
         let subscription_stream = self.stream.fuse();
@@ -246,7 +228,7 @@ where
                     }
                 }
                 Err(execution) => {
-                    let Some(execution) = execution else {
+                    let Some((response, response_part)) = execution else {
                         break;
                     };
                     let executed_operation_builder =
@@ -258,45 +240,22 @@ where
                                 cached_plan: true,
                                 on_subgraph_response_outputs: Vec::new(),
                             });
-                    match execution {
-                        Ok((response, part)) => {
-                            let mut results = VecDeque::new();
-                            results.push_back(PlanExecutionResult {
-                                plan_id: self.subscription_plan.id,
-                                result: Ok(part),
-                                on_subgraph_response_hook_output: None,
-                            });
 
-                            let operation_execution = OperationExecution {
-                                ctx: self.ctx,
-                                executed_operation_builder,
-                                state: self.initial_state.clone(),
-                                response,
-                            };
+                    let mut results = VecDeque::new();
+                    results.push_back(PlanExecutionResult {
+                        plan_id: self.subscription_plan.id,
+                        response_part,
+                        on_subgraph_response_hook_output: None,
+                    });
 
-                            response_futures.push_back(operation_execution.run(results));
-                        }
-                        Err(err) => {
-                            let cached = self.ctx.operation.cached.clone();
-                            let executed_operation = executed_operation_builder.build(
-                                cached.operation.attributes.name.original(),
-                                &cached.operation.attributes.sanitized_query,
-                                GraphqlResponseStatus::FieldError {
-                                    count: 1,
-                                    data_is_null: true,
-                                },
-                            );
-
-                            let response = self.ctx.execution_error(
-                                self.ctx.hooks().on_operation_response(executed_operation).await.ok(),
-                                [err],
-                            );
-
-                            if responses.send(response).await.is_err() {
-                                return;
-                            }
-                        }
+                    let operation_execution = OperationExecution {
+                        ctx: self.ctx,
+                        executed_operation_builder,
+                        state: self.initial_state.clone(),
+                        response,
                     };
+
+                    response_futures.push_back(operation_execution.run(results));
                 }
             }
         }
@@ -407,7 +366,7 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
         mut self,
         PlanExecutionResult {
             plan_id,
-            result,
+            response_part,
             on_subgraph_response_hook_output,
         }: PlanExecutionResult<'ctx, <R::Hooks as Hooks>::OnSubgraphResponseOutput>,
     ) -> (
@@ -417,43 +376,33 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
     where
         'ctx: 'exec,
     {
-        let mut next_futures = Vec::new();
+        let PartIngestionResult::Data { response_object_sets } = self.response.ingest(response_part) else {
+            tracing::trace!(%plan_id, "Failed");
+            return (self, Vec::new());
+        };
+        tracing::trace!(%plan_id, "Succeeded");
+
+        for (set_id, response_object_refs) in response_object_sets {
+            self.state.push_response_objects(set_id, response_object_refs);
+        }
+
         let plan = plan_id.walk(&self.ctx);
-
-        // Retrieving the first edge (response key) appearing in the query to provide a better
-        // error path if necessary.
-        match result {
-            Ok(subgraph_response) => {
-                tracing::trace!(%plan_id, "Succeeded");
-
-                let tracked_response_object_sets = self.response.ingest(plan, subgraph_response);
-
-                for (set_id, response_object_refs) in tracked_response_object_sets.into_iter() {
-                    self.state.push_response_objects(set_id, response_object_refs);
-                }
-
-                let mut stack = self.state.get_next_executables(plan);
-                while let Some(executable) = stack.pop() {
-                    tracing::trace!("Running {:?}", executable.id());
-                    match executable {
-                        Executable::Plan(plan) => {
-                            if let Some(fut) = self.create_plan_execution_future(plan) {
-                                next_futures.push(fut);
-                            }
-                        }
-                        Executable::ResponseModifier(response_modifier) => {
-                            self.ctx
-                                .execute_response_modifier(&mut self.state, &mut self.response, response_modifier)
-                                .await;
-                            stack.append(&mut self.state.get_next_executables(response_modifier));
-                        }
+        let mut stack = self.state.get_next_executables(plan);
+        let mut next_futures = Vec::new();
+        while let Some(executable) = stack.pop() {
+            tracing::trace!("Running {:?}", executable.id());
+            match executable {
+                Executable::Plan(plan) => {
+                    if let Some(fut) = self.create_plan_execution_future(plan) {
+                        next_futures.push(fut);
                     }
                 }
-            }
-            Err((root_response_object_set, error)) => {
-                tracing::trace!(%plan_id, "Failed");
-                self.response
-                    .propagate_execution_error(plan, root_response_object_set, error);
+                Executable::ResponseModifier(response_modifier) => {
+                    self.ctx
+                        .execute_response_modifier(&mut self.state, &mut self.response, response_modifier)
+                        .await;
+                    stack.append(&mut self.state.get_next_executables(response_modifier));
+                }
             }
         }
 
@@ -472,7 +421,7 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
         'ctx: 'exec,
     {
         tracing::trace!(plan_id = %plan.id, "Starting plan");
-        let parent_objects = Arc::new(self.state.get_input(&self.response, plan));
+        let parent_objects = self.state.get_input(&self.response, plan);
 
         tracing::trace!(
             plan_id = %plan.id,
@@ -485,21 +434,20 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
 
         let span = tracing::debug_span!("resolver", "plan_id" = usize::from(plan.id)).entered();
 
-        let response = self.response.create_part_for(Arc::clone(&parent_objects));
-
-        let parent_objects_view = self.response.read(Arc::clone(&parent_objects), plan.required_fields());
+        let response_part = self.response.create_part();
+        let parent_objects_view = self.response.read(parent_objects, plan.required_fields());
 
         let fut = plan
             .as_ref()
             .resolver
-            .execute(self.ctx, plan, parent_objects_view, response)
+            .execute(self.ctx, plan, parent_objects_view, response_part)
             .map(
                 move |ResolverResult {
-                          execution,
+                          response_part,
                           on_subgraph_response_hook_output,
                       }| PlanExecutionResult {
                     plan_id: plan.id,
-                    result: execution.map_err(|err| (parent_objects, err)),
+                    response_part,
                     on_subgraph_response_hook_output,
                 },
             );
@@ -511,6 +459,6 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
 
 pub(crate) struct PlanExecutionResult<'ctx, OnSubgraphResponseHookOutput> {
     plan_id: PlanId,
-    result: Result<ResponsePartBuilder<'ctx>, (Arc<ParentObjects>, ExecutionError)>,
+    response_part: ResponsePartBuilder<'ctx>,
     on_subgraph_response_hook_output: Option<OnSubgraphResponseHookOutput>,
 }

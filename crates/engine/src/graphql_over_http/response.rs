@@ -1,9 +1,8 @@
 use bytes::Bytes;
-use futures::{StreamExt, TryStreamExt};
+use futures::StreamExt;
 use futures_util::Stream;
 use grafbase_telemetry::graphql::GraphqlExecutionTelemetry;
 use headers::HeaderMapExt;
-use runtime::bytes::OwnedOrSharedBytes;
 
 use crate::{
     execution::StreamResponse,
@@ -64,7 +63,7 @@ impl Http {
         mut responses: Vec<Response<O>>,
     ) -> http::Response<Body> {
         let bytes = match sonic_rs::to_vec(&responses) {
-            Ok(bytes) => OwnedOrSharedBytes::Owned(bytes),
+            Ok(bytes) => Bytes::from(bytes),
             Err(err) => {
                 tracing::error!("Failed to serialize response: {err}");
                 return internal_server_error();
@@ -167,7 +166,7 @@ impl Http {
             format,
         );
 
-        let body = Body::Stream(stream.map_ok(|bytes| bytes.into()).boxed());
+        let body = Body::Stream(stream.boxed());
         let mut http_response = http::Response::new(body);
         *http_response.status_mut() = status;
         *http_response.headers_mut() = headers;
@@ -181,7 +180,7 @@ impl Http {
     ) -> http::Response<Body> {
         let telemetry = TelemetryExtension::Ready(response.execution_telemetry());
         let bytes = match sonic_rs::to_vec(response) {
-            Ok(bytes) => OwnedOrSharedBytes::Owned(bytes),
+            Ok(bytes) => Bytes::from(bytes),
             Err(err) => {
                 tracing::error!("Failed to serialize response: {err}");
                 return internal_server_error();
@@ -268,7 +267,7 @@ fn internal_server_error() -> http::Response<Body> {
     let mut headers = http::HeaderMap::new();
     headers.insert(http::header::CONTENT_TYPE, APPLICATION_JSON.clone());
     headers.typed_insert(headers::ContentLength(body.len() as u64));
-    let mut response = http::Response::new(Body::Bytes(OwnedOrSharedBytes::Shared(body)));
+    let mut response = http::Response::new(Body::Bytes(body));
     *response.status_mut() = http::StatusCode::INTERNAL_SERVER_ERROR;
     *response.headers_mut() = headers;
     response

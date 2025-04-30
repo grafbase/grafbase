@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use futures::FutureExt as _;
 use itertools::Itertools;
 use runtime::extension::{AuthorizationDecisions, AuthorizationExtension as _};
@@ -28,13 +26,13 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
             let Some(refs) = state[target.set_id].as_ref() else {
                 continue;
             };
-            let input = if self.operation.cached.query_plan[target.set_id].ty_id == target.ty_id {
+            let parent_objects = if self.operation.cached.query_plan[target.set_id].ty_id == target.ty_id {
                 ParentObjects::default().with_response_objects(refs.clone())
             } else {
                 ParentObjects::default().with_filtered_response_objects(self.schema(), target.ty_id, refs.clone())
             };
 
-            if input.is_empty() {
+            if parent_objects.is_empty() {
                 continue;
             }
 
@@ -49,36 +47,36 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                 } => {
                     let definition = definition_id.walk(self);
                     let directive = directive_id.walk(self);
-                    let input = Arc::new(input);
                     let parents = response.read(
-                        input.clone(),
+                        parent_objects,
                         // FIXME: Total hack, assumes there is only one authorized directive on the field. Need
                         target_field.required_fields_by_supergraph(),
                     );
                     let result = self
                         .hooks()
-                        .authorize_parent_edge_post_execution(definition, parents, directive.metadata())
+                        .authorize_parent_edge_post_execution(definition, &parents, directive.metadata())
                         .await;
+                    let parent_objects = parents.into_object_set();
                     tracing::debug!("Authorized result: {result:#?}");
                     // FIXME: make this efficient
                     let result = match result {
                         Ok(result) => {
-                            if result.len() == input.len() {
+                            if result.len() == parent_objects.len() {
                                 result
                             } else if result.len() == 1 {
                                 let res = result.into_iter().next().unwrap();
-                                (0..input.len()).map(|_| res.clone()).collect()
+                                (0..parent_objects.len()).map(|_| res.clone()).collect()
                             } else {
                                 tracing::error!("Incorrect number of authorization replies");
-                                (0..input.len())
+                                (0..parent_objects.len())
                                     .map(|_| Err(GraphqlError::new("Authorization failure", ErrorCode::HookError)))
                                     .collect()
                             }
                         }
-                        Err(err) => (0..input.len()).map(|_| Err(err.clone())).collect(),
+                        Err(err) => (0..parent_objects.len()).map(|_| Err(err.clone())).collect(),
                     };
 
-                    for (obj_ref, result) in input.iter().zip_eq(result) {
+                    for (obj_ref, result) in parent_objects.iter().zip_eq(result) {
                         if let Err(err) = result {
                             // If the current field is required, the error must be propagated upwards,
                             // so the parent object path is enough.
@@ -104,36 +102,36 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                 } => {
                     let definition = self.schema().walk(definition_id);
                     let directive = self.schema().walk(directive_id);
-                    let input = Arc::new(input);
                     let nodes = response.read(
-                        input.clone(),
+                        parent_objects,
                         // FIXME: Total hack, assumes there is only one authorized directive on the field. Need
                         target_field.required_fields_by_supergraph(),
                     );
                     let result = self
                         .hooks()
-                        .authorize_edge_node_post_execution(definition, nodes, directive.metadata())
+                        .authorize_edge_node_post_execution(definition, &nodes, directive.metadata())
                         .await;
+                    let parent_objects = nodes.into_object_set();
                     tracing::debug!("Authorized result: {result:#?}");
                     // FIXME: make this efficient
                     let result = match result {
                         Ok(result) => {
-                            if result.len() == input.len() {
+                            if result.len() == parent_objects.len() {
                                 result
                             } else if result.len() == 1 {
                                 let res = result.into_iter().next().unwrap();
-                                (0..input.len()).map(|_| res.clone()).collect()
+                                (0..parent_objects.len()).map(|_| res.clone()).collect()
                             } else {
                                 tracing::error!("Incorrect number of authorization replies");
-                                (0..input.len())
+                                (0..parent_objects.len())
                                     .map(|_| Err(GraphqlError::new("Authorization failure", ErrorCode::HookError)))
                                     .collect()
                             }
                         }
-                        Err(err) => (0..input.len()).map(|_| Err(err.clone())).collect(),
+                        Err(err) => (0..parent_objects.len()).map(|_| Err(err.clone())).collect(),
                     };
 
-                    for (obj_ref, result) in input.iter().zip_eq(result) {
+                    for (obj_ref, result) in parent_objects.iter().zip_eq(result) {
                         if let Err(err) = result {
                             response.propagate_null(&obj_ref.path);
                             response.push_error(err.clone().with_path(&obj_ref.path));
@@ -146,19 +144,18 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                         rule_target @ (ResponseModifierRuleTarget::Field(_, _)
                         | ResponseModifierRuleTarget::FieldParentEntity(_)),
                 } => {
-                    let input = Arc::new(input);
                     let field_argument_ids = match rule_target {
                         ResponseModifierRuleTarget::Field(_, field_argument_ids) => field_argument_ids,
                         _ => Default::default(),
                     };
-                    let parents = response.read(input.clone(), target_field.required_fields_by_supergraph());
+                    let parents = response.read(parent_objects, target_field.required_fields_by_supergraph());
 
                     let response_view = create_extension_directive_response_view(
                         self.schema(),
                         directive_id.walk(self),
                         field_argument_ids.walk(self),
                         self.variables(),
-                        parents,
+                        &parents,
                     );
 
                     let directive = directive_id.walk(self);
@@ -176,6 +173,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                         .boxed()
                         .await;
 
+                    let parent_objects = parents.into_object_set();
                     match result {
                         Ok(AuthorizationDecisions::GrantAll) => (),
                         Ok(AuthorizationDecisions::DenySome {
@@ -186,7 +184,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                             // so the parent object path is enough.
                             if target_field.definition().ty().wrapping.is_required() {
                                 for (element_ix, error_ix) in element_to_error {
-                                    let obj_ref = &input[element_ix as usize];
+                                    let obj_ref = &parent_objects[element_ix as usize];
                                     let err = errors[error_ix as usize].clone();
                                     response.propagate_null(&obj_ref.path);
                                     response.push_error(
@@ -200,7 +198,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                                 // the current value as inaccessible. So null for the client, but
                                 // available for requirements to be sent to subgraphs.
                                 for (element_ix, error_ix) in element_to_error {
-                                    let obj_ref = &input[element_ix as usize];
+                                    let obj_ref = &parent_objects[element_ix as usize];
                                     let err = errors[error_ix as usize].clone();
                                     response.make_inacessible(ResponseValueId::Field {
                                         object_id: obj_ref.id,
@@ -219,7 +217,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                             // If the current field is required, the error must be propagated upwards,
                             // so the parent object path is enough.
                             if target_field.definition().ty().wrapping.is_required() {
-                                for obj_ref in input.iter() {
+                                for obj_ref in parent_objects.iter() {
                                     response.propagate_null(&obj_ref.path);
                                     response.push_error(
                                         err.clone()
@@ -231,7 +229,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                                 // Otherwise we don't need to propagate anything and just need to mark
                                 // the current value as inaccessible. So null for the client, but
                                 // available for requirements to be sent to subgraphs.
-                                for obj_ref in input.iter() {
+                                for obj_ref in parent_objects.iter() {
                                     response.make_inacessible(ResponseValueId::Field {
                                         object_id: obj_ref.id,
                                         key: target_field.key(),
@@ -251,9 +249,8 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                     directive_id,
                     target: ResponseModifierRuleTarget::FieldOutput(rule_target),
                 } => {
-                    let input = Arc::new(input);
                     let nodes = response.read(
-                        input.clone(),
+                        parent_objects,
                         // FIXME: Total hack, assumes there is only one authorized directive on the field. Need
                         target_field.required_fields_by_supergraph(),
                     );
@@ -263,7 +260,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                         directive_id.walk(self),
                         PlanFieldArguments::empty(self.into()),
                         self.variables(),
-                        nodes,
+                        &nodes,
                     );
 
                     let directive = directive_id.walk(self);
@@ -282,6 +279,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                         .await;
                     tracing::debug!("Response authorization: {result:?}");
 
+                    let parent_objects = nodes.into_object_set();
                     match result {
                         Ok(AuthorizationDecisions::GrantAll) => (),
                         Ok(AuthorizationDecisions::DenySome {
@@ -289,7 +287,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                             errors,
                         }) => {
                             for (element_ix, error_ix) in element_to_error {
-                                let obj_ref = &input[element_ix as usize];
+                                let obj_ref = &parent_objects[element_ix as usize];
                                 let err = errors[error_ix as usize].clone();
                                 response.propagate_null(&obj_ref.path);
                                 response.push_error(
@@ -300,7 +298,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                             }
                         }
                         Ok(AuthorizationDecisions::DenyAll(err)) | Err(err) => {
-                            for obj_ref in input.iter() {
+                            for obj_ref in parent_objects.iter() {
                                 response.propagate_null(&obj_ref.path);
                                 response.push_error(
                                     err.clone()

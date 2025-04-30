@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use futures::{StreamExt as _, future::BoxFuture, stream::FuturesUnordered};
 use futures_lite::FutureExt;
 use runtime::extension::{Data, FieldResolverExtension as _};
@@ -7,9 +5,9 @@ use walker::Walk;
 
 use crate::{
     Runtime,
-    execution::{ExecutionContext, ExecutionResult},
+    execution::ExecutionContext,
     prepare::{
-        ConcreteShapeId, Plan, SubgraphField, create_extension_directive_query_view,
+        Plan, RootFieldsShapeId, SubgraphField, create_extension_directive_query_view,
         create_extension_directive_response_view,
     },
     response::{GraphqlError, ParentObjects, ParentObjectsView, ResponsePartBuilder},
@@ -20,7 +18,7 @@ impl super::FieldResolverExtension {
         &'ctx self,
         ctx: ExecutionContext<'ctx, R>,
         plan: Plan<'ctx>,
-        root_response_objects: ParentObjectsView<'_>,
+        parent_objects_view: ParentObjectsView<'_>,
         subgraph_response: ResponsePartBuilder<'ctx>,
     ) -> Executor<'ctx> {
         let directive = self.directive_id.walk(ctx.schema());
@@ -41,7 +39,7 @@ impl super::FieldResolverExtension {
                     directive,
                     field.arguments(),
                     ctx.variables(),
-                    root_response_objects.clone(),
+                    &parent_objects_view,
                 );
 
                 let future = ctx
@@ -62,11 +60,11 @@ impl super::FieldResolverExtension {
             })
             .unzip();
 
-        let parent_objects = root_response_objects.into_parent_objects();
+        let parent_objects = parent_objects_view.into_object_set();
 
         Executor {
+            shape_id: plan.shape().id,
             response_part: subgraph_response,
-            shape_id: plan.shape_id(),
             parent_objects,
             fields,
             futures,
@@ -75,16 +73,16 @@ impl super::FieldResolverExtension {
 }
 
 pub(in crate::resolver) struct Executor<'ctx> {
-    shape_id: ConcreteShapeId,
+    shape_id: RootFieldsShapeId,
     response_part: ResponsePartBuilder<'ctx>,
-    parent_objects: Arc<ParentObjects>,
+    parent_objects: ParentObjects,
     fields: Vec<SubgraphField<'ctx>>,
     #[allow(clippy::type_complexity)] // should be better with resolver rework... hopefully.
     futures: Vec<BoxFuture<'ctx, Result<Vec<Result<Data, GraphqlError>>, GraphqlError>>>,
 }
 
 impl<'ctx> Executor<'ctx> {
-    pub async fn execute(self) -> ExecutionResult<ResponsePartBuilder<'ctx>> {
+    pub async fn execute(self) -> ResponsePartBuilder<'ctx> {
         let Self {
             shape_id,
             response_part,
@@ -109,25 +107,16 @@ impl<'ctx> Executor<'ctx> {
             .collect::<Vec<_>>();
 
         let mut entity_fields = Vec::with_capacity(field_results.len());
-        let response_part = response_part.into_shared();
-        for parent_object_id in parent_objects.ids() {
-            entity_fields.clear();
-            for (field, results) in &mut field_results {
-                entity_fields.push((*field, results.next().unwrap()));
-            }
-
-            response_part
-                .seed(shape_id, parent_object_id)
-                .deserialize_from_fields(&mut entity_fields)
-                .map_err(|err| {
-                    tracing::error!("Failed to deserialize subgraph response: {}", err);
-
-                    GraphqlError::invalid_subgraph_response()
-                        .with_location(fields[0].location())
-                        .with_path(&parent_objects[parent_object_id].path)
-                })?;
+        let state = response_part.into_seed_state(shape_id);
+        entity_fields.clear();
+        for (field, results) in &mut field_results {
+            entity_fields.push((*field, results.next().unwrap()));
         }
 
-        Ok(response_part.unshare().unwrap())
+        state.ingest_fields(
+            parent_objects.iter().next().expect("Have at least one parent object"),
+            &mut entity_fields,
+        );
+        state.into_response_part()
     }
 }

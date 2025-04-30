@@ -12,7 +12,8 @@ use walker::Walk;
 
 use crate::{
     prepare::{
-        DataOrLookupFieldId, LookupFieldId, TypenameShapeRecord,
+        DataOrLookupFieldId, DefaultFieldShape, LookupFieldId, OnRootFieldsError, RootFieldsShapeId,
+        RootFieldsShapeRecord, TypenameShapeRecord,
         cached::{
             CachedOperationContext, ConcreteShapeId, ConcreteShapeRecord, DataField, DataFieldId, FieldShapeId,
             FieldShapeRecord, FieldShapeRefId, ObjectIdentifier, PartitionSelectionSet, PolymorphicShapeId,
@@ -44,22 +45,22 @@ impl Solver<'_> {
 
         // Create all shapes for the given QueryPartition
         for query_partition in &mut query_partitions {
-            query_partition.shape_id = builder.create_root_shape_for(query_partition.selection_set_record.walk(ctx));
-            let mut shape_id = query_partition.shape_id;
-            query_partition.shape_id_without_lookup_fields = loop {
+            let mut shape_id = builder.create_root_shape_for(query_partition.selection_set_record.walk(ctx));
+            let shape_id = loop {
                 let field_shape_ids = builder.shapes[shape_id].field_shape_ids;
                 if builder.shapes[field_shape_ids].iter().all(|fs| fs.id.is_data()) {
-                    break Some(shape_id);
+                    break shape_id;
                 }
                 let field_shape = &builder.shapes[field_shape_ids.start];
                 if field_shape_ids.len() != 1 || !field_shape.id.is_lookup() {
-                    break None;
+                    break shape_id;
                 }
                 let Shape::Concrete(id) = field_shape.shape else {
                     unreachable!();
                 };
                 shape_id = id;
-            }
+            };
+            query_partition.shape_id = builder.build_root_fields_shape(shape_id);
         }
 
         let ShapesBuilder {
@@ -122,6 +123,78 @@ pub(super) struct ShapesBuilder<'ctx> {
 }
 
 impl<'ctx> ShapesBuilder<'ctx> {
+    fn build_root_fields_shape(&mut self, shape_id: ConcreteShapeId) -> RootFieldsShapeId {
+        let shape = &self.shapes[shape_id];
+        let mut propagate_null = false;
+        let mut default_fields = Vec::new();
+        let mut location_and_key = None;
+
+        for field_shape in &self.shapes[shape.field_shape_ids] {
+            if field_shape.key.query_position.is_none() {
+                continue;
+            };
+            let field = field_shape
+                .id
+                .as_data()
+                .walk(self.ctx)
+                .expect("We shouldn't generate errors for lookup fields");
+            location_and_key.get_or_insert_with(|| (field.location, field.response_key));
+            if propagate_null | field_shape.wrapping.is_required() {
+                propagate_null = true;
+                continue;
+            }
+            default_fields.push(DefaultFieldShape {
+                key: field_shape.key,
+                value: None,
+            })
+        }
+
+        let typename_field_shapes = &self.shapes[shape.typename_shape_ids];
+        if let Some(first_typename_shape) = typename_field_shapes.first() {
+            if let ObjectIdentifier::Known(object_id) = shape.identifier {
+                let name_id = object_id.walk(self.ctx).name_id;
+                default_fields.extend(typename_field_shapes.iter().map(|shape| DefaultFieldShape {
+                    key: shape.key,
+                    value: Some(name_id),
+                }))
+            } else {
+                propagate_null = true;
+                if location_and_key.is_none() {
+                    location_and_key = Some((first_typename_shape.location, first_typename_shape.key.response_key));
+                }
+            }
+        }
+
+        let shape = if let Some(error_location_and_key) = location_and_key {
+            if propagate_null {
+                RootFieldsShapeRecord {
+                    concrete_shape_id: shape_id,
+                    on_error: OnRootFieldsError::PropagateNull { error_location_and_key },
+                }
+            } else {
+                default_fields.sort_unstable_by(|a, b| a.key.cmp(&b.key));
+                let start = self.shapes.default_fields.len();
+                self.shapes.default_fields.append(&mut default_fields);
+                RootFieldsShapeRecord {
+                    concrete_shape_id: shape_id,
+                    on_error: OnRootFieldsError::Default {
+                        fields_sorted_by_key: (start..self.shapes.default_fields.len()).into(),
+                        error_location_and_key,
+                    },
+                }
+            }
+        } else {
+            RootFieldsShapeRecord {
+                concrete_shape_id: shape_id,
+                on_error: OnRootFieldsError::Skip,
+            }
+        };
+
+        let id = self.shapes.root_fields.len().into();
+        self.shapes.root_fields.push(shape);
+        id
+    }
+
     fn create_root_shape_for(&mut self, selection_set: PartitionSelectionSet<'ctx>) -> ConcreteShapeId {
         if !selection_set.lookup_field_ids.is_empty() {
             debug_assert!(

@@ -2,7 +2,7 @@ use std::cell::{Ref, RefMut};
 
 use operation::{PositionedResponseKey, ResponseKey};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct ErrorPath(Vec<ErrorPathSegment>);
 
 impl std::ops::Deref for ErrorPath {
@@ -12,7 +12,7 @@ impl std::ops::Deref for ErrorPath {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum ErrorPathSegment {
     Field(ResponseKey),
     Index(usize),
@@ -70,6 +70,18 @@ where
 {
     fn from(path: Ref<'_, Vec<S>>) -> Self {
         ErrorPath(path.iter().map(Into::into).collect())
+    }
+}
+
+impl<S1, S2> From<(&[S1], Ref<'_, Vec<S2>>)> for ErrorPath
+where
+    for<'a> &'a S1: Into<ErrorPathSegment>,
+    for<'a> &'a S2: Into<ErrorPathSegment>,
+{
+    fn from((p1, p2): (&[S1], Ref<'_, Vec<S2>>)) -> Self {
+        let mut path: Vec<ErrorPathSegment> = p1.iter().map(Into::into).collect();
+        path.extend(p2.iter().map(Into::into));
+        ErrorPath(path)
     }
 }
 

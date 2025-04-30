@@ -1,147 +1,222 @@
-use std::{cell::RefCell, rc::Rc, sync::Arc};
+use std::cell::Ref;
 
+use id_newtypes::IdRange;
 use schema::Schema;
 use walker::Walk as _;
 
 use crate::{
     prepare::{
-        ConcreteShapeId, ObjectIdentifier, OperationPlanContext, PreparedOperation, ResponseObjectSetDefinitionId,
+        DefaultFieldShapeId, OnRootFieldsError, PreparedOperation, ResponseObjectSetDefinitionId, RootFieldsShapeId,
     },
     response::{
-        DataPart, ErrorPartBuilder, GraphqlError, ParentObjectId, ParentObjects, ResponseObjectField,
-        ResponseObjectRef, ResponseObjectSet, ResponseValue, ResponseValueId,
+        DataPart, ErrorPartBuilder, GraphqlError, ResponseObjectField, ResponseObjectId, ResponseObjectRef,
+        ResponseObjectSet, ResponseValueId,
     },
 };
 
-use super::deserialize::{EntitiesSeed, EntitySeed};
+use super::SeedState;
 
+#[derive(id_derives::IndexedFields)]
 pub(crate) struct ResponsePartBuilder<'ctx> {
     pub(super) schema: &'ctx Schema,
     pub(super) operation: &'ctx PreparedOperation,
     pub data: DataPart,
     pub errors: ErrorPartBuilder<'ctx>,
-    pub parent_objects: Arc<ParentObjects>,
     pub(super) propagated_null_up_to_root: bool,
-    pub(super) propagated_null_up_to_paths: Vec<Vec<ResponseValueId>>,
-    pub(super) subgraph_errors: Vec<GraphqlError>,
-    pub(super) updates: Vec<ObjectUpdate>,
-    pub(super) common_update: Option<CommonUpdate>,
+    pub(super) propagated_null_at: Vec<ResponseValueId>,
+    pub(super) object_updates: Vec<ObjectUpdate>,
     pub(super) object_sets: Vec<(ResponseObjectSetDefinitionId, ResponseObjectSet)>,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Hash, id_derives::Id)]
+pub struct FieldsUpdateId(u32);
+
 impl<'ctx> ResponsePartBuilder<'ctx> {
-    pub(super) fn new(
-        schema: &'ctx Schema,
-        operation: &'ctx PreparedOperation,
-        data: DataPart,
-        parent_objects: Arc<ParentObjects>,
-    ) -> Self {
+    pub(super) fn new(schema: &'ctx Schema, operation: &'ctx PreparedOperation, data: DataPart) -> Self {
         let errors = ErrorPartBuilder::new(operation);
         Self {
             schema,
             operation,
             data,
             errors,
-            updates: vec![ObjectUpdate::Missing; parent_objects.len()],
-            common_update: None,
-            parent_objects,
+            object_updates: Vec::new(),
             propagated_null_up_to_root: false,
-            propagated_null_up_to_paths: Vec::new(),
-            subgraph_errors: Vec::new(),
+            propagated_null_at: Vec::new(),
             object_sets: Vec::new(),
         }
     }
 
-    /// Executors manipulate the response within a Send future, so we can't use a Rc/RefCell
-    /// directly. Only once the executor is ready to write should it use this method.
-    pub fn into_shared(self) -> SharedResponsePartBuilder<'ctx> {
-        SharedResponsePartBuilder(Rc::new(RefCell::new(self)))
+    pub fn into_seed_state<'parent>(self, shape_id: RootFieldsShapeId) -> SeedState<'ctx, 'parent> {
+        SeedState::new(self, shape_id)
     }
 
-    pub fn propagate_null(&mut self, path: &[ResponseValueId]) {
-        let Some(i) = path.iter().rev().position(|value| value.is_nullable()) else {
+    pub fn propagate_null(&mut self, (parent_path, local_path): &(&[ResponseValueId], Ref<'_, Vec<ResponseValueId>>)) {
+        if let Some(value_id) = local_path.iter().rev().find(|value| value.is_nullable()) {
+            // We can't immediately mark the value as inaccessible. Error propagation depends on
+            // what the user requested directly, but we also retrieve extra fields as requirements
+            // for further plans. If we were to propagate immediately while de-serializing, we
+            // would skip those extra fields leading to parent field failures. Furthermore, at the
+            // time we call this function, we haven't inserted the data yet into the response. It's
+            // in a temporary buffer. So adding null immediately would force us to deal with
+            // merges.
+            self.propagated_null_at.push(*value_id)
+        } else {
+            self.propagate_null_parent_path(parent_path);
+        }
+    }
+
+    pub fn propagate_null_parent_path(&mut self, path: &[ResponseValueId]) {
+        let Some(value_id) = path.iter().rev().find(|value| value.is_nullable()) else {
             self.propagated_null_up_to_root = true;
             return;
         };
-        // we inverted the path.
-        let i = path.len() - i - 1;
 
-        self.propagated_null_up_to_paths.push(path[..(i + 1)].to_vec());
+        self.propagated_null_at.push(*value_id)
     }
 
-    pub fn insert(&mut self, id: ParentObjectId, update: ObjectUpdate) {
-        self.updates[usize::from(id)] = update;
+    pub fn insert_fields_update(&mut self, parent_object: &ResponseObjectRef, fields: Vec<ResponseObjectField>) {
+        tracing::trace!("Updating fields");
+        self.object_updates.push(ObjectUpdate::Fields(parent_object.id, fields));
     }
 
-    pub fn insert_subgraph_failure(&mut self, shape_id: ConcreteShapeId, error: GraphqlError) {
-        let ctx = OperationPlanContext {
-            schema: self.schema,
-            cached: &self.operation.cached,
-            plan: &self.operation.plan,
-        };
-        let shape = shape_id.walk(ctx);
-
-        let mut propagate_null = false;
-        let mut location_and_key = None;
-        let mut fields = Vec::new();
-        for field_shape in shape.fields() {
-            if field_shape.key.query_position.is_none() {
-                continue;
-            };
-            let field = field_shape
-                .partition_field()
-                .as_data()
-                .expect("We shouldn't generate errors for lookup fields");
-            location_and_key.get_or_insert_with(|| (field.location, field.response_key));
-            if propagate_null | field_shape.wrapping.is_required() {
-                propagate_null = true;
-                continue;
+    pub fn insert_empty_update(&mut self, parent_object: &ResponseObjectRef, shape_id: RootFieldsShapeId) {
+        tracing::trace!("Inserting empty update");
+        let shape = shape_id.walk((self.schema, self.operation));
+        match shape.on_error {
+            OnRootFieldsError::PropagateNull { .. } => {
+                self.propagate_null_parent_path(&parent_object.path);
             }
-            fields.push(ResponseObjectField {
-                key: field_shape.key,
-                value: ResponseValue::Null,
-            })
+            OnRootFieldsError::Default {
+                fields_sorted_by_key, ..
+            } => {
+                self.object_updates
+                    .push(ObjectUpdate::Default(parent_object.id, fields_sorted_by_key));
+            }
+            OnRootFieldsError::Skip => {}
         }
-        if let Some(first_typename_shape) = shape.typename_shapes().next() {
-            if let ObjectIdentifier::Known(object_id) = shape.identifier {
-                let name_id = object_id.walk(self.schema).name_id;
-                fields.extend(shape.typename_shapes().map(|shape| ResponseObjectField {
-                    key: shape.key,
-                    value: name_id.into(),
-                }))
-            } else {
-                propagate_null = true;
-                if location_and_key.is_none() {
-                    location_and_key = Some((first_typename_shape.location, first_typename_shape.key.response_key));
+    }
+
+    pub fn insert_empty_updates<'a>(
+        &mut self,
+        parent_objects: impl IntoIterator<
+            IntoIter: ExactSizeIterator<Item = &'a ResponseObjectRef>,
+            Item = &'a ResponseObjectRef,
+        >,
+        shape_id: RootFieldsShapeId,
+    ) {
+        tracing::trace!("Inserting empty update");
+        let shape = shape_id.walk((self.schema, self.operation));
+        let parent_objects = parent_objects.into_iter();
+        match shape.on_error {
+            OnRootFieldsError::PropagateNull { .. } => {
+                self.propagated_null_at.reserve(parent_objects.len());
+                for parent_object in parent_objects {
+                    self.propagate_null_parent_path(&parent_object.path);
                 }
             }
-        }
-
-        self.common_update = Some(
-            if let Some(((location, key), first_parent_object)) =
-                location_and_key.zip(self.parent_objects.iter().next())
-            {
-                self.errors.push(
-                    error
-                        .with_location(location)
-                        .with_path((&first_parent_object.path, key)),
-                );
-                if propagate_null {
-                    CommonUpdate::PropagateNull
-                } else {
-                    fields.sort_unstable_by(|a, b| a.key.cmp(&b.key));
-                    CommonUpdate::DefaultFields(fields.clone())
+            OnRootFieldsError::Default {
+                fields_sorted_by_key, ..
+            } => {
+                self.object_updates.reserve(parent_objects.len());
+                for parent_object in parent_objects {
+                    self.object_updates
+                        .push(ObjectUpdate::Default(parent_object.id, fields_sorted_by_key));
                 }
-            } else {
-                CommonUpdate::Skip
-            },
-        )
+            }
+            OnRootFieldsError::Skip => {}
+        }
     }
 
-    pub fn insert_errors(&mut self, error: impl Into<GraphqlError>, ids: impl IntoIterator<Item = ParentObjectId>) {
-        let error: GraphqlError = error.into();
-        for id in ids {
-            self.insert(id, ObjectUpdate::Error(error.clone()));
+    pub fn insert_propagated_empty_update(&mut self, parent_object: &ResponseObjectRef, shape_id: RootFieldsShapeId) {
+        tracing::trace!("Inserting propagated empty update");
+        let shape = shape_id.walk((self.schema, self.operation));
+        match shape.on_error {
+            OnRootFieldsError::Default {
+                fields_sorted_by_key, ..
+            } => {
+                self.object_updates
+                    .push(ObjectUpdate::Default(parent_object.id, fields_sorted_by_key));
+            }
+            OnRootFieldsError::Skip | OnRootFieldsError::PropagateNull { .. } => {}
+        }
+    }
+
+    pub fn insert_error_update(
+        &mut self,
+        parent_object: &ResponseObjectRef,
+        shape_id: RootFieldsShapeId,
+        error: GraphqlError,
+    ) {
+        tracing::trace!("Inserting error update");
+        let shape = shape_id.walk((self.schema, self.operation));
+        match shape.on_error {
+            OnRootFieldsError::PropagateNull {
+                error_location_and_key: (location, key),
+            } => {
+                self.errors
+                    .push(error.with_location(location).with_path((&parent_object.path, key)));
+                self.propagate_null_parent_path(&parent_object.path);
+            }
+            OnRootFieldsError::Default {
+                error_location_and_key: (location, key),
+                fields_sorted_by_key,
+            } => {
+                self.errors
+                    .push(error.with_location(location).with_path((&parent_object.path, key)));
+                self.object_updates
+                    .push(ObjectUpdate::Default(parent_object.id, fields_sorted_by_key));
+            }
+            OnRootFieldsError::Skip => {}
+        }
+    }
+
+    pub fn insert_error_updates<'a>(
+        &mut self,
+        parent_objects: impl IntoIterator<
+            IntoIter: ExactSizeIterator<Item = &'a ResponseObjectRef>,
+            Item = &'a ResponseObjectRef,
+        >,
+        shape_id: RootFieldsShapeId,
+        error: GraphqlError,
+    ) {
+        tracing::trace!("Inserting subgraph failure");
+        let shape = shape_id.walk((self.schema, self.operation));
+        let mut parent_objects = parent_objects.into_iter();
+        if let Some(first_parent_object) = parent_objects.next() {
+            match shape.on_error {
+                OnRootFieldsError::PropagateNull {
+                    error_location_and_key: (location, key),
+                } => {
+                    self.errors.push(
+                        error
+                            .with_location(location)
+                            .with_path((&first_parent_object.path, key)),
+                    );
+                    self.propagated_null_at.reserve(parent_objects.len() + 1);
+                    self.propagate_null_parent_path(&first_parent_object.path);
+                    for parent_object in parent_objects {
+                        self.propagate_null_parent_path(&parent_object.path);
+                    }
+                }
+                OnRootFieldsError::Default {
+                    fields_sorted_by_key,
+                    error_location_and_key: (location, key),
+                } => {
+                    self.errors.push(
+                        error
+                            .with_location(location)
+                            .with_path((&first_parent_object.path, key)),
+                    );
+                    self.object_updates.reserve(parent_objects.len() + 1);
+                    self.object_updates
+                        .push(ObjectUpdate::Default(first_parent_object.id, fields_sorted_by_key));
+                    for parent_object in parent_objects {
+                        self.object_updates
+                            .push(ObjectUpdate::Default(parent_object.id, fields_sorted_by_key));
+                    }
+                }
+                OnRootFieldsError::Skip => {}
+            }
         }
     }
 
@@ -152,56 +227,10 @@ impl<'ctx> ResponsePartBuilder<'ctx> {
             self.object_sets.push((set_id, vec![obj]));
         }
     }
-
-    pub fn set_subgraph_errors(&mut self, errors: Vec<GraphqlError>) {
-        self.subgraph_errors = errors;
-    }
-}
-
-/// We end up writing objects or lists at various step of the de-serialization / query
-/// traversal, so having a RefCell is by far the easiest. We don't need a lock as executor are
-/// not expected to parallelize their work.
-/// The Rc makes it possible to write errors at one place and the data in another.
-#[derive(Clone)]
-pub(crate) struct SharedResponsePartBuilder<'ctx>(Rc<RefCell<ResponsePartBuilder<'ctx>>>);
-
-impl<'ctx> std::ops::Deref for SharedResponsePartBuilder<'ctx> {
-    type Target = Rc<RefCell<ResponsePartBuilder<'ctx>>>;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl std::ops::DerefMut for SharedResponsePartBuilder<'_> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-impl<'ctx> SharedResponsePartBuilder<'ctx> {
-    pub fn unshare(self) -> Option<ResponsePartBuilder<'ctx>> {
-        Rc::try_unwrap(self.0).map(|part| part.into_inner()).ok()
-    }
-
-    pub fn seed(&self, shape_id: ConcreteShapeId, id: ParentObjectId) -> EntitySeed<'ctx> {
-        EntitySeed::new(self.clone(), shape_id, id)
-    }
-
-    pub fn batch_seed(&self, shape_id: ConcreteShapeId) -> EntitiesSeed<'ctx> {
-        EntitiesSeed::new(self.clone(), shape_id)
-    }
 }
 
 #[derive(Clone)]
 pub(crate) enum ObjectUpdate {
-    Missing,
-    Fields(Vec<ResponseObjectField>),
-    Error(GraphqlError),
-    PropagateNullWithoutError,
-}
-
-pub(crate) enum CommonUpdate {
-    PropagateNull,
-    DefaultFields(Vec<ResponseObjectField>),
-    Skip,
+    Fields(ResponseObjectId, Vec<ResponseObjectField>),
+    Default(ResponseObjectId, IdRange<DefaultFieldShapeId>),
 }

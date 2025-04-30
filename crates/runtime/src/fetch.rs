@@ -3,7 +3,7 @@ use std::{borrow::Cow, future::Future, time::Duration};
 use bytes::Bytes;
 use futures_util::{stream::BoxStream, Stream, StreamExt, TryFutureExt};
 
-use crate::{bytes::OwnedOrSharedBytes, hooks::ResponseInfo};
+use crate::hooks::ResponseInfo;
 
 #[derive(Debug, thiserror::Error)]
 pub enum FetchError {
@@ -63,12 +63,12 @@ pub trait Fetcher: Send + Sync + 'static {
     fn fetch(
         &self,
         request: FetchRequest<'_, Bytes>,
-    ) -> impl Future<Output = (FetchResult<http::Response<OwnedOrSharedBytes>>, Option<ResponseInfo>)> + Send;
+    ) -> impl Future<Output = (FetchResult<http::Response<Bytes>>, Option<ResponseInfo>)> + Send;
 
     fn graphql_over_sse_stream(
         &self,
         request: FetchRequest<'_, Bytes>,
-    ) -> impl Future<Output = FetchResult<impl Stream<Item = FetchResult<OwnedOrSharedBytes>> + Send + 'static>> + Send;
+    ) -> impl Future<Output = FetchResult<impl Stream<Item = FetchResult<Bytes>> + Send + 'static>> + Send;
 
     // graphql_ws_client requires a serde::Serialize
     fn graphql_over_websocket_stream<T>(
@@ -88,12 +88,12 @@ pub mod dynamic {
         async fn fetch(
             &self,
             request: FetchRequest<'_, Bytes>,
-        ) -> (FetchResult<http::Response<OwnedOrSharedBytes>>, Option<ResponseInfo>);
+        ) -> (FetchResult<http::Response<Bytes>>, Option<ResponseInfo>);
 
         async fn graphql_over_sse_stream(
             &self,
             request: FetchRequest<'_, Bytes>,
-        ) -> FetchResult<BoxStream<'static, FetchResult<OwnedOrSharedBytes>>> {
+        ) -> FetchResult<BoxStream<'static, FetchResult<Bytes>>> {
             unreachable!()
         }
 
@@ -127,14 +127,14 @@ pub mod dynamic {
         async fn fetch(
             &self,
             request: FetchRequest<'_, Bytes>,
-        ) -> (FetchResult<http::Response<OwnedOrSharedBytes>>, Option<ResponseInfo>) {
+        ) -> (FetchResult<http::Response<Bytes>>, Option<ResponseInfo>) {
             self.0.fetch(request).await
         }
 
         async fn graphql_over_sse_stream(
             &self,
             request: FetchRequest<'_, Bytes>,
-        ) -> FetchResult<impl Stream<Item = FetchResult<OwnedOrSharedBytes>> + Send + 'static> {
+        ) -> FetchResult<impl Stream<Item = FetchResult<Bytes>> + Send + 'static> {
             self.0.graphql_over_sse_stream(request).await
         }
 
@@ -166,14 +166,14 @@ pub mod dynamic {
         async fn fetch(
             &self,
             request: FetchRequest<'_, Bytes>,
-        ) -> (FetchResult<http::Response<OwnedOrSharedBytes>>, Option<ResponseInfo>) {
+        ) -> (FetchResult<http::Response<Bytes>>, Option<ResponseInfo>) {
             self.0.fetch(request).await
         }
 
         async fn graphql_over_sse_stream(
             &self,
             request: FetchRequest<'_, Bytes>,
-        ) -> FetchResult<BoxStream<'static, FetchResult<OwnedOrSharedBytes>>> {
+        ) -> FetchResult<BoxStream<'static, FetchResult<Bytes>>> {
             self.0
                 .graphql_over_sse_stream(request)
                 .map_ok(|stream| stream.boxed())

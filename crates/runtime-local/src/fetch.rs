@@ -9,7 +9,6 @@ use futures_util::{StreamExt, TryStreamExt};
 use gateway_config::Config;
 use reqwest::RequestBuilder;
 use reqwest_eventsource::RequestBuilderExt;
-use runtime::bytes::OwnedOrSharedBytes;
 use runtime::fetch::{FetchError, FetchRequest, FetchResult, Fetcher};
 use runtime::hooks::ResponseInfo;
 use signing::SigningParameters;
@@ -59,7 +58,7 @@ impl Fetcher for NativeFetcher {
     async fn fetch(
         &self,
         request: FetchRequest<'_, Bytes>,
-    ) -> (FetchResult<http::Response<OwnedOrSharedBytes>>, Option<ResponseInfo>) {
+    ) -> (FetchResult<http::Response<Bytes>>, Option<ResponseInfo>) {
         let mut info = ResponseInfo::builder();
         let subgraph_name = request.subgraph_name;
 
@@ -95,7 +94,7 @@ impl Fetcher for NativeFetcher {
         };
 
         // reqwest transforms the body into a stream with Into
-        let mut response = http::Response::new(OwnedOrSharedBytes::Shared(bytes));
+        let mut response = http::Response::new(bytes);
         *response.status_mut() = status;
         *response.version_mut() = version;
         *response.extensions_mut() = extensions;
@@ -107,7 +106,7 @@ impl Fetcher for NativeFetcher {
     async fn graphql_over_sse_stream(
         &self,
         request: FetchRequest<'_, Bytes>,
-    ) -> FetchResult<impl Stream<Item = FetchResult<OwnedOrSharedBytes>> + Send + 'static> {
+    ) -> FetchResult<impl Stream<Item = FetchResult<Bytes>> + Send + 'static> {
         let mut request = into_reqwest(request);
         // We're doing a streaming request, for subscriptions, so we don't want to timeout
         *request.timeout_mut() = None;
@@ -134,7 +133,7 @@ impl Fetcher for NativeFetcher {
                     return Ok(None);
                 };
                 if message.event == "next" {
-                    Ok(Some(OwnedOrSharedBytes::Owned(message.data.into())))
+                    Ok(Some(message.data.into()))
                 } else {
                     Err(FetchError::Message(format!("Unexpected event: {}", message.event)))
                 }

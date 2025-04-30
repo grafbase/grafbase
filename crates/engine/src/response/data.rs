@@ -136,12 +136,10 @@ impl DataPart {
         }
     }
 
-    pub(super) fn is_empty(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         self.objects.is_empty() && self.lists.is_empty()
     }
-}
 
-impl DataPart {
     /// In a non-federated GraphQL server, values are simply set to null when propagating nulls for
     /// errors. It's not as simple in a federated context because the supergraph may need
     /// fields for subgraph requests or custom directives like `@authorized`. Let's take an example

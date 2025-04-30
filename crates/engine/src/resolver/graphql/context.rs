@@ -4,7 +4,6 @@ use grafbase_telemetry::{
     span::subgraph::{SubgraphGraphqlRequestSpan, SubgraphHttpRequestSpan, SubgraphRequestSpanBuilder},
 };
 use runtime::{
-    bytes::OwnedOrSharedBytes,
     fetch::FetchRequest,
     hooks::{
         CacheStatus, ExecutedSubgraphRequest, ExecutedSubgraphRequestBuilder, Hooks, SubgraphRequestExecutionKind,
@@ -26,7 +25,7 @@ use grafbase_telemetry::{
 
 use crate::{
     Engine, Runtime,
-    execution::{ExecutionContext, ExecutionError, ExecutionResult, RequestHooks},
+    execution::{ExecutionContext, RequestHooks},
     resolver::ResolverResult,
     response::ResponsePartBuilder,
 };
@@ -106,7 +105,7 @@ impl<'ctx, R: Runtime> SubgraphContext<'ctx, R> {
 
     pub async fn finalize(
         self,
-        subgraph_result: ExecutionResult<ResponsePartBuilder<'ctx>>,
+        response_part: ResponsePartBuilder<'ctx>,
     ) -> ResolverResult<'ctx, <R::Hooks as Hooks>::OnSubgraphResponseOutput> {
         let duration = self.start.elapsed();
 
@@ -122,26 +121,20 @@ impl<'ctx, R: Runtime> SubgraphContext<'ctx, R> {
             );
         }
 
-        let hook_result = self
+        let on_subgraph_response_hook_output = self
             .ctx
             .hooks()
             .on_subgraph_response(self.executed_request_builder.build(duration))
             .instrument(self.span.span.clone())
             .await
-            .map_err(|e| {
+            .inspect_err(|e| {
                 tracing::error!("error in on-subgraph-response hook: {e}");
-                ExecutionError::Internal("internal error".into())
-            });
+            })
+            .ok();
 
-        match hook_result {
-            Ok(hook_result) => ResolverResult {
-                execution: subgraph_result,
-                on_subgraph_response_hook_output: Some(hook_result),
-            },
-            Err(e) => ResolverResult {
-                execution: Err(e),
-                on_subgraph_response_hook_output: None,
-            },
+        ResolverResult {
+            response_part,
+            on_subgraph_response_hook_output,
         }
     }
 
@@ -211,7 +204,7 @@ impl<'ctx, R: Runtime> SubgraphContext<'ctx, R> {
         self.executed_request_builder.push_execution(kind)
     }
 
-    pub(super) fn record_http_response(&mut self, response: &http::Response<OwnedOrSharedBytes>) {
+    pub(super) fn record_http_response(&mut self, response: &http::Response<Bytes>) {
         self.http_status_code = Some(response.status());
         self.metrics().record_subgraph_response_size(
             SubgraphResponseBodySizeAttributes {

@@ -23,8 +23,7 @@ use walker::{Iter, Walk};
 ///   selection_set: PartitionSelectionSet!
 ///   required_fields: RequiredFieldSet!
 ///   input: ResponseObjectSetDefinition!
-///   shape_id: ConcreteShapeId!
-///   shape_id_without_lookup_fields: ConcreteShapeId
+///   shape_id: RootFieldsShapeId!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -34,8 +33,7 @@ pub(crate) struct QueryPartitionRecord {
     pub selection_set_record: PartitionSelectionSetRecord,
     pub required_fields_record: RequiredFieldSetRecord,
     pub input_id: ResponseObjectSetDefinitionId,
-    pub shape_id: ConcreteShapeId,
-    pub shape_id_without_lookup_fields: Option<ConcreteShapeId>,
+    pub shape_id: RootFieldsShapeId,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
@@ -104,7 +102,6 @@ impl std::fmt::Debug for QueryPartition<'_> {
             .field("required_fields", &self.required_fields())
             .field("input", &self.input())
             .field("shape_id", &self.shape_id)
-            .field("shape_id_without_lookup_fields", &self.shape_id_without_lookup_fields)
             .finish()
     }
 }

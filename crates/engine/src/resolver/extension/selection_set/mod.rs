@@ -1,3 +1,4 @@
+mod lookup;
 mod query_or_mutation;
 
 use futures::{FutureExt, TryStreamExt as _, stream::FuturesUnordered};
@@ -29,7 +30,7 @@ impl SelectionSetResolverExtension {
         definition: SelectionSetResolverExtensionDefinition<'_>,
         selection_set: SubgraphSelectionSet<'_>,
     ) -> PlanResult<Self> {
-        let prepared = selection_set
+        let prepared_fields = selection_set
             .fields()
             .map(|field| async move {
                 let prepared_data = ctx
@@ -70,7 +71,7 @@ impl SelectionSetResolverExtension {
 
         Ok(Self {
             definition: *definition,
-            prepared_fields: prepared,
+            prepared_fields,
         })
     }
 }

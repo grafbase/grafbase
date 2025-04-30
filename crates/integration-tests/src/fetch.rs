@@ -6,7 +6,6 @@ use std::{
 use bytes::Bytes;
 use graphql_mocks::ReceivedRequest;
 use runtime::{
-    bytes::OwnedOrSharedBytes,
     fetch::{FetchError, FetchRequest, FetchResult, dynamic::DynFetcher},
     hooks::ResponseInfo,
 };
@@ -39,7 +38,7 @@ impl DynFetcher for MockFetch {
     async fn fetch(
         &self,
         request: FetchRequest<'_, Bytes>,
-    ) -> (FetchResult<http::Response<OwnedOrSharedBytes>>, Option<ResponseInfo>) {
+    ) -> (FetchResult<http::Response<Bytes>>, Option<ResponseInfo>) {
         let host = request.url.host_str().unwrap();
         self.requests.push((
             host.to_string(),

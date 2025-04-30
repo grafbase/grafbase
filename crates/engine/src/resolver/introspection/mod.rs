@@ -1,8 +1,8 @@
-use std::sync::Arc;
+use std::cell::RefCell;
 
 use crate::{
     Runtime,
-    execution::{ExecutionContext, ExecutionResult},
+    execution::ExecutionContext,
     prepare::Plan,
     response::{ParentObjects, ResponsePartBuilder},
 };
@@ -18,22 +18,21 @@ impl IntrospectionResolver {
         &'ctx self,
         ctx: ExecutionContext<'ctx, R>,
         plan: Plan<'ctx>,
-        parent_object_refs: Arc<ParentObjects>,
+        parent_objects: ParentObjects,
         response: ResponsePartBuilder<'ctx>,
-    ) -> ExecutionResult<ResponsePartBuilder<'ctx>> {
-        let response = response.into_shared();
-        for parent_object_id in parent_object_refs.ids() {
-            writer::IntrospectionWriter {
-                ctx,
-                schema: ctx.schema(),
-                shapes: ctx.shapes(),
-                metadata: &ctx.schema().subgraphs.introspection,
-                plan,
-                parent_object_id,
-                response: response.clone(),
-            }
-            .write(plan.shape_id());
+    ) -> ResponsePartBuilder<'ctx> {
+        let response = RefCell::new(response);
+        let writer = writer::IntrospectionWriter {
+            ctx,
+            schema: ctx.schema(),
+            shapes: ctx.shapes(),
+            metadata: &ctx.schema().subgraphs.introspection,
+            plan,
+            response,
+        };
+        for parent_object in parent_objects.iter() {
+            writer.write(parent_object, plan.shape());
         }
-        Ok(response.unshare().unwrap())
+        writer.response.into_inner()
     }
 }

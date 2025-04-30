@@ -11,22 +11,22 @@ use crate::{
     prepare::{FieldShapeRecord, ObjectIdentifier, PolymorphicShapeId, PolymorphicShapeRecord},
     response::{
         GraphqlError, ResponseObject, ResponseValue,
-        write::deserialize::{SeedContext, key::Key},
+        write::deserialize::{SeedState, key::Key},
     },
 };
 
 use super::concrete::ConcreteShapeSeed;
 
-pub(crate) struct PolymorphicShapeSeed<'ctx, 'seed> {
-    ctx: &'seed SeedContext<'ctx>,
+pub(crate) struct PolymorphicShapeSeed<'ctx, 'parent, 'state> {
+    ctx: &'state SeedState<'ctx, 'parent>,
     parent_field: &'ctx FieldShapeRecord,
     is_required: bool,
     shape: &'ctx PolymorphicShapeRecord,
 }
 
-impl<'ctx, 'seed> PolymorphicShapeSeed<'ctx, 'seed> {
+impl<'ctx, 'parent, 'state> PolymorphicShapeSeed<'ctx, 'parent, 'state> {
     pub fn new(
-        ctx: &'seed SeedContext<'ctx>,
+        ctx: &'state SeedState<'ctx, 'parent>,
         parent_field: &'ctx FieldShapeRecord,
         is_required: bool,
         shape_id: PolymorphicShapeId,
@@ -41,7 +41,7 @@ impl<'ctx, 'seed> PolymorphicShapeSeed<'ctx, 'seed> {
     }
 }
 
-impl<'de> DeserializeSeed<'de> for PolymorphicShapeSeed<'_, '_> {
+impl<'de> DeserializeSeed<'de> for PolymorphicShapeSeed<'_, '_, '_> {
     type Value = ResponseValue;
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
@@ -52,7 +52,7 @@ impl<'de> DeserializeSeed<'de> for PolymorphicShapeSeed<'_, '_> {
     }
 }
 
-impl PolymorphicShapeSeed<'_, '_> {
+impl PolymorphicShapeSeed<'_, '_, '_> {
     fn unexpected_type(&self, value: Unexpected<'_>) -> <Self as Visitor<'_>>::Value {
         tracing::error!(
             "invalid type: {}, expected an object at path '{}'",
@@ -79,7 +79,7 @@ impl PolymorphicShapeSeed<'_, '_> {
     }
 }
 
-impl<'de> Visitor<'de> for PolymorphicShapeSeed<'_, '_> {
+impl<'de> Visitor<'de> for PolymorphicShapeSeed<'_, '_, '_> {
     type Value = ResponseValue;
 
     fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -92,11 +92,11 @@ impl<'de> Visitor<'de> for PolymorphicShapeSeed<'_, '_> {
         A: MapAccess<'de>,
     {
         let schema = self.ctx.schema;
-        let mut content = VecDeque::<(Key<'_>, serde_value::Value)>::new();
+        let mut content = VecDeque::<(Key<'de>, serde_value::Value)>::new();
         while let Some(key) = map.next_key::<Key<'de>>()? {
             if key.as_ref() == "__typename" {
-                let value = map.next_value::<Key<'_>>()?;
-                let typename = value.as_ref();
+                let typename = map.next_value::<Key<'_>>()?;
+                let typename = typename.as_ref();
 
                 let Some(TypeDefinition::Object(object_definition)) = schema.type_definition_by_name(typename) else {
                     tracing::error!(
@@ -354,10 +354,7 @@ where
     {
         if let Some((key, value)) = self.before.pop_front() {
             self.next_value = Some(value);
-            seed.deserialize(serde_value::ValueDeserializer::new(serde_value::Value::String(
-                key.into_string(),
-            )))
-            .map(Some)
+            seed.deserialize(key.into_deserializer()).map(Some)
         } else {
             self.after.next_key_seed(seed)
         }

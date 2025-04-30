@@ -10,11 +10,11 @@ use serde::{
 
 use crate::prepare::SubgraphField;
 
-use super::SeedContext;
+use super::SeedState;
 
-pub(super) struct EntityFields<'de, 'ctx, 'seed> {
-    pub ctx: &'seed SeedContext<'ctx>,
-    pub fields: &'de [(SubgraphField<'ctx>, Result<Data, GraphqlError>)],
+pub(super) struct EntityFields<'ctx, 'parent, 'seed, 'de> {
+    pub state: &'seed SeedState<'ctx, 'parent>,
+    pub fields: &'de [(SubgraphField<'de>, Result<Data, GraphqlError>)],
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -52,7 +52,7 @@ impl serde::de::Error for DeserError {
     }
 }
 
-impl<'de> Deserializer<'de> for EntityFields<'de, '_, '_> {
+impl<'de> Deserializer<'de> for EntityFields<'_, '_, '_, 'de> {
     type Error = DeserError;
 
     fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
@@ -67,7 +67,7 @@ impl<'de> Deserializer<'de> for EntityFields<'de, '_, '_> {
         V: Visitor<'de>,
     {
         visitor.visit_map(EntityFieldsMapAccess {
-            ctx: self.ctx,
+            ctx: self.state,
             fields: self.fields,
             index: 0,
         })
@@ -94,13 +94,13 @@ impl<'de> Deserializer<'de> for EntityFields<'de, '_, '_> {
     }
 }
 
-struct EntityFieldsMapAccess<'de, 'ctx, 'seed> {
-    ctx: &'seed SeedContext<'ctx>,
-    fields: &'de [(SubgraphField<'ctx>, Result<Data, GraphqlError>)],
+struct EntityFieldsMapAccess<'ctx, 'seed, 'parent, 'de> {
+    ctx: &'seed SeedState<'ctx, 'parent>,
+    fields: &'de [(SubgraphField<'de>, Result<Data, GraphqlError>)],
     index: usize,
 }
 
-impl<'de> MapAccess<'de> for EntityFieldsMapAccess<'de, '_, '_> {
+impl<'de> MapAccess<'de> for EntityFieldsMapAccess<'_, '_, '_, 'de> {
     type Error = DeserError;
 
     fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>, Self::Error>
@@ -109,12 +109,7 @@ impl<'de> MapAccess<'de> for EntityFieldsMapAccess<'de, '_, '_> {
     {
         self.fields
             .get(self.index)
-            .map(|(field, _)| {
-                seed.deserialize(Key {
-                    key: field.subgraph_response_key_str(),
-                    _phantom: PhantomData::<Self::Error>,
-                })
-            })
+            .map(|(field, _)| seed.deserialize(KeyStrDeserializer::new(field.subgraph_response_key_str())))
             .transpose()
     }
 
@@ -155,12 +150,21 @@ impl<'de> MapAccess<'de> for EntityFieldsMapAccess<'de, '_, '_> {
     }
 }
 
-struct Key<'k, Error> {
+struct KeyStrDeserializer<'k, Error> {
     key: &'k str,
     _phantom: PhantomData<Error>,
 }
 
-impl<'de, Error: serde::de::Error> Deserializer<'de> for Key<'de, Error> {
+impl<'a, Error> KeyStrDeserializer<'a, Error> {
+    pub fn new(key: &'a str) -> Self {
+        Self {
+            key,
+            _phantom: PhantomData,
+        }
+    }
+}
+
+impl<'de, Error: serde::de::Error> Deserializer<'de> for KeyStrDeserializer<'de, Error> {
     type Error = Error;
 
     fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
