@@ -1,0 +1,8 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: actual_api_sdl
+input_file: crates/graphql-composition/tests/composition/extensions_same_extension_ingested_twice/test.md
+---
+type Query {
+  hiMark: String
+}

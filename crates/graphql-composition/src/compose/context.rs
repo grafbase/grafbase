@@ -295,3 +295,11 @@ impl<'a> Context<'a> {
         self.ir.used_extensions.put(usize::from(id));
     }
 }
+
+impl std::ops::Index<subgraphs::StringId> for Context<'_> {
+    type Output = str;
+
+    fn index(&self, index: subgraphs::StringId) -> &Self::Output {
+        &self.subgraphs[index]
+    }
+}
