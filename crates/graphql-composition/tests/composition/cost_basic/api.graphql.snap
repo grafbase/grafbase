@@ -9,12 +9,12 @@ enum Blah {
   BLAH
 }
 
-type Query {
+type Account {
   foo(name: String): String
   id: ID!
 }
 
-interface Account {
+type Query {
   foo(name: String): String
   id: ID!
 }

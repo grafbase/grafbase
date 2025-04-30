@@ -16,11 +16,7 @@ pub(crate) fn validate_enum_members<'a>(
         });
 
         for value in values {
-            validate_directives(
-                &value.node.directives,
-                ast::DirectiveLocation::InputFieldDefinition,
-                ctx,
-            );
+            validate_directives(&value.node.directives, ast::DirectiveLocation::EnumValue, ctx);
         }
     });
 }

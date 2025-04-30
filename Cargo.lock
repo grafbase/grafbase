@@ -4267,6 +4267,7 @@ dependencies = [
  "fixedbitset",
  "grafbase-workspace-hack",
  "graphql-federated-graph",
+ "graphql-schema-validation",
  "indexmap 2.9.0",
  "insta",
  "itertools 0.14.0",
