@@ -60,7 +60,7 @@ jobs:
       # YAML
       - name: Get PROD_ASSETS from binaries workflow
         id: lookup-prod-assets
-        uses: mikefarah/yq@master
+        uses: mikefarah/yq@de2f77b49cbd40fd67031ee602245d0acc4ac482 # master
         with:
           cmd: yq '.env.PROD_ASSETS' './.github/workflows/binaries.yml'
 
@@ -116,7 +116,7 @@ jobs:
 
       - name: Github release
         id: gh-release-grafbase
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2
         with:
           body_path: cli/changelog/${{ env.VERSION_BUMP }}.md
           draft: ${{ inputs.draft }}
