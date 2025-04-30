@@ -88,8 +88,9 @@ fn check_federated_sdl(federated_sdl: &str, test_path: &Path) -> anyhow::Result<
     }
 
     {
-        let diagnostics = graphql_schema_validation::validate(&federated_sdl);
+        let diagnostics = graphql_schema_validation::validate(federated_sdl);
 
+        #[allow(clippy::panic)]
         if diagnostics.has_errors() {
             panic!(
                 "Validation errors on federated SDL for {}.\n{}",
