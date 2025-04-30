@@ -3989,7 +3989,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.15.3"
+version = "0.15.4"
 dependencies = [
  "anyhow",
  "async-tungstenite",
@@ -4258,7 +4258,7 @@ dependencies = [
 
 [[package]]
 name = "graphql-composition"
-version = "0.7.2"
+version = "0.7.3"
 dependencies = [
  "anyhow",
  "bitflags 2.9.0",
@@ -4279,7 +4279,7 @@ dependencies = [
 
 [[package]]
 name = "graphql-federated-graph"
-version = "0.7.1"
+version = "0.7.2"
 dependencies = [
  "bitflags 2.9.0",
  "cynic-parser",
