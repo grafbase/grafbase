@@ -1,6 +1,6 @@
 # gRPC extension example
 
-This project demonstrates how to use the Grafbase gRPC extension and protoc-gen-grafbase-subgraph to set up a virtual subgraph exposing a gRPC service. Note that arbitrarily many services can be exposed by an arbitrary number of subgraphs, but we will stick to a single service and a single subgraph in this example.
+This example demonstrates how to use the Grafbase gRPC extension and protoc-gen-grafbase-subgraph to set up a virtual subgraph exposing a gRPC service. Note that arbitrarily many services can be exposed by an arbitrary number of subgraphs, but we will stick to a single service and a single subgraph in this example.
 
 ## Structure
 
@@ -11,12 +11,11 @@ This project demonstrates how to use the Grafbase gRPC extension and protoc-gen-
 ## Running the example
 
 - [Install](https://grafbase.com/docs/reference/grafbase-cli#installation) the Grafbase CLI.
-- Start the server with `docker compose up grpc-server`.
-- Install the extensions with `grafbase extension install`
-- Start the development server with `grafbase dev -c grafbase.toml -o overrides.toml`.
-- Play with the GraphQL API with the Explorer at `http://localhost:5000`.
+- Start the gRPC server: `docker compose up grpc-server`.
+- Start the Grafbase development server: `grafbase dev`.
+- Query the GraphQL API: `http://localhost:5000`.
 
-You can then issue queries against the gRPC fields. For example:
+Execute a mutation with the gRPC fields:
 
 ```graphql
 mutation {
@@ -32,8 +31,6 @@ mutation {
   }
 }
 ```
-
-**Note**: the `Query.helloWorld` field is only there to satisfy the rules of composition, it does not have an implementation, so calling it will result in an error.
 
 ## Generating the subgraph schema
 

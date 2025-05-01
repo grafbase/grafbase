@@ -1,11 +1,8 @@
 [subgraphs.routeguide]
 schema_path = "./schema.graphql"
 
-[subgraphs.other]
-schema_path = "./other.graphql"
-
 [extensions.grpc]
-version = "0.1.0"
+version = "0.1.2"
 
 [[extensions.grpc.config.services]]
 name = "routeguide.RouteGuide"

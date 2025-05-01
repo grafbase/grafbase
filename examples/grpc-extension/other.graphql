@@ -1,8 +1,0 @@
-# This is a second subgraph that defines a Query root type with a single field. It is only there to satisfy the rules of composition, it does not have an implementation, so calling it will result in an error.
-
-type Query {
-  """
-  This field is required to satisfy the rules of composition (there must be at least one Query field). It does not have an implementation, so calling it will result in an error.
-  """
-  helloWorld(name: String): String!
-}
