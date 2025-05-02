@@ -103,7 +103,7 @@ jobs:
         run: |
           cargo fmt --check
 
-      - uses: uncenter/setup-taplo@b3f7bd5cc4183178d1516d94c1d3596af772c259 # v1
+      - uses: uncenter/setup-taplo@4f203fdb4f3b1e289c8382cf90d8397d2338df2e # v1.0.8
         with:
           version: '0.9.3'
 
