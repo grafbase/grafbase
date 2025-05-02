@@ -109,7 +109,7 @@ jobs:
           cargo nextest run --profile ci -p federation-audit-tests --test checkout || true
 
       - name: Start audit test server
-        uses: JarvusInnovations/background-action@71980f1d52a75d4219cab8a819e29c36c596bbf5 # v1
+        uses: JarvusInnovations/background-action@2428e7b970a846423095c79d43f759abf979a635 # v1.0.7
         with:
           working-directory: crates/federation-audit-tests/gateway-audit-repo
           run: |
