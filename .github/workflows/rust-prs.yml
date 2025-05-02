@@ -53,7 +53,7 @@ jobs:
           base: ${{ github.event.pull_request.base.ref || 'main' }}
 
       - name: Check paths changed
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
         id: paths-changed
         with:
           filters: |
@@ -103,7 +103,7 @@ jobs:
         run: |
           cargo fmt --check
 
-      - uses: uncenter/setup-taplo@v1
+      - uses: uncenter/setup-taplo@b3f7bd5cc4183178d1516d94c1d3596af772c259 # v1
         with:
           version: '0.9.3'
 
@@ -248,7 +248,7 @@ jobs:
           sudo ln -s /bin/g++ /bin/aarch64-linux-musl-g++
 
       - name: Install cargo-nextest
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@ab3728c7ba6948b9b429627f4d55a68842b27f18 # v2
         with:
           tool: nextest
 
@@ -286,7 +286,7 @@ jobs:
       # TODO: Add timing reports in here somehow...
 
       - if: runner.os == 'Windows'
-        uses: ilammy/setup-nasm@v1
+        uses: ilammy/setup-nasm@72793074d3c8cdda771dba85f6deafe00623038b # v1
 
       - name: Build debug binaries
         if: needs.what-changed.outputs.cargo-bin-specs
@@ -314,7 +314,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - uses: depot/setup-action@v1
+      - uses: depot/setup-action@b0b1ea4f69e92ebf5dea3f8713a1b0c37b2126a5 # v1
 
       - name: Install protoc
         # Will fail if there is nothing to build.
@@ -346,7 +346,7 @@ jobs:
         if: |
           contains(fromJson(needs.what-changed.outputs.changed-packages), 'grafbase-gateway')
           && matrix.platform.target == 'x86_64-unknown-linux-musl'
-        uses: depot/bake-action@v1
+        uses: depot/bake-action@6f9796efa5235be338972e30e7b93977a7f18855 # v1
         with:
           project: ${{ env.DEPOT_PROJECT }}
           token: ${{ secrets.DEPOT_TOKEN }}
@@ -461,7 +461,7 @@ jobs:
 
       - name: Build and push
         if: env.dockerhub_username != ''
-        uses: depot/build-push-action@v1
+        uses: depot/build-push-action@636daae76684e38c301daa0c5eca1c095b24e780 # v1
         with:
           project: ${{ env.DEPOT_PROJECT }}
           token: ${{ secrets.DEPOT_TOKEN }}
@@ -500,7 +500,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Download Hurl
-        uses: gacts/install-hurl@v1
+        uses: gacts/install-hurl@a6765f7f715286f58a69d3be6061243578781a79 # v1
 
       - name: Use current image
         working-directory: ${{ matrix.working_directory }}
@@ -609,7 +609,7 @@ jobs:
         run: docker compose up -d
 
       - name: Install Protoc for the gRPC extension
-        uses: arduino/setup-protoc@v3
+        uses: arduino/setup-protoc@f4d5893b897028ff5739576ea0409746887fa536 # v3
 
       - name: Build test matrix
         working-directory: extensions
