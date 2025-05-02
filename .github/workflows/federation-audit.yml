@@ -40,7 +40,7 @@ jobs:
           base: ${{ github.event.pull_request.base.ref || 'main' }}
 
       - name: Check paths changed
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
         id: paths-changed
         with:
           filters: |
@@ -82,7 +82,7 @@ jobs:
         uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
 
       - name: Install cargo-nextest
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@ab3728c7ba6948b9b429627f4d55a68842b27f18 # v2
         with:
           tool: nextest
 
@@ -109,7 +109,7 @@ jobs:
           cargo nextest run --profile ci -p federation-audit-tests --test checkout || true
 
       - name: Start audit test server
-        uses: JarvusInnovations/background-action@v1
+        uses: JarvusInnovations/background-action@2428e7b970a846423095c79d43f759abf979a635 # v1.0.7
         with:
           working-directory: crates/federation-audit-tests/gateway-audit-repo
           run: |
@@ -128,7 +128,7 @@ jobs:
           cargo nextest run --profile ci -p federation-audit-tests --test audit_tests
 
       - name: Publish Test Report
-        uses: mikepenz/action-junit-report@v5.0.0-a03
+        uses: mikepenz/action-junit-report@34f4f0daa6b03aee5efc77b9c2cbc51a75781341 # v5.0.0-a03
         if: success() || failure()
         with:
           report_paths: 'target/nextest/ci/junit.xml'
