@@ -1,0 +1,16 @@
+[extensions.postgres]
+version = "0.2"
+
+[[extensions.postgres.config.databases]]
+name = "products"
+url = "postgres://localhost/products"
+
+[[extensions.postgres.config.databases]]
+name = "inventory"
+url = "postgres://localhost/inventory"
+
+[subgraphs.products]
+schema_path = "./products.graphql"
+
+[subgraphs.inventory]
+schema_path = "./inventory.graphql"
