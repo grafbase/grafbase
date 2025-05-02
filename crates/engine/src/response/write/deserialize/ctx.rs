@@ -2,7 +2,7 @@ use std::cell::{Cell, Ref, RefCell, RefMut};
 
 use crate::{
     prepare::{CachedOperationContext, OperationPlanContext, PreparedOperation},
-    response::{ResponseValueId, SharedResponsePart},
+    response::{ResponseValueId, SharedResponsePartBuilder},
 };
 use itertools::Itertools;
 use operation::ResponseKeys;
@@ -10,8 +10,8 @@ use schema::Schema;
 
 pub(super) struct SeedContext<'ctx> {
     pub schema: &'ctx Schema,
-    pub prepared_operation: &'ctx PreparedOperation,
-    pub response: SharedResponsePart<'ctx>,
+    pub operation: &'ctx PreparedOperation,
+    pub response: SharedResponsePartBuilder<'ctx>,
     pub bubbling_up_serde_error: Cell<bool>,
     pub path: RefCell<Vec<ResponseValueId>>,
 }
@@ -20,7 +20,7 @@ impl<'ctx> From<&SeedContext<'ctx>> for CachedOperationContext<'ctx> {
     fn from(ctx: &SeedContext<'ctx>) -> Self {
         CachedOperationContext {
             schema: ctx.schema,
-            cached: &ctx.prepared_operation.cached,
+            cached: &ctx.operation.cached,
         }
     }
 }
@@ -29,15 +29,15 @@ impl<'ctx> From<&SeedContext<'ctx>> for OperationPlanContext<'ctx> {
     fn from(ctx: &SeedContext<'ctx>) -> Self {
         OperationPlanContext {
             schema: ctx.schema,
-            cached: &ctx.prepared_operation.cached,
-            plan: &ctx.prepared_operation.plan,
+            cached: &ctx.operation.cached,
+            plan: &ctx.operation.plan,
         }
     }
 }
 
 impl<'ctx> SeedContext<'ctx> {
     pub(super) fn response_keys(&self) -> &'ctx ResponseKeys {
-        &self.prepared_operation.cached.operation.response_keys
+        &self.operation.cached.operation.response_keys
     }
 
     pub(super) fn path_mut(&self) -> RefMut<'_, Vec<ResponseValueId>> {
@@ -49,7 +49,7 @@ impl<'ctx> SeedContext<'ctx> {
     }
 
     pub(super) fn display_path(&self) -> impl std::fmt::Display + '_ {
-        let keys = &self.prepared_operation.cached.operation.response_keys;
+        let keys = &self.operation.cached.operation.response_keys;
         let path = self.path.borrow();
         DisplayPath { keys, path }
     }

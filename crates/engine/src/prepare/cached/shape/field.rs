@@ -1,13 +1,8 @@
-use std::num::NonZero;
-
 use operation::{PositionedResponseKey, ResponseKey};
 use schema::{EnumDefinitionId, ScalarType, Wrapping};
 use walker::Walk;
 
-use crate::{
-    prepare::{DataOrLookupFieldId, OperationPlanContext},
-    response::GraphqlError,
-};
+use crate::prepare::{DataOrLookupField, DataOrLookupFieldId, OperationPlanContext, QueryErrorId};
 
 use super::{ConcreteShapeId, PolymorphicShapeId};
 
@@ -21,7 +16,7 @@ pub(crate) struct FieldShapeRecord {
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-pub(crate) struct FieldShapeId(NonZero<u32>);
+pub(crate) struct FieldShapeId(u32);
 
 impl<'ctx> Walk<OperationPlanContext<'ctx>> for FieldShapeId {
     type Walker<'w>
@@ -54,6 +49,7 @@ pub(crate) struct FieldShape<'a> {
     pub(super) id: FieldShapeId,
 }
 
+#[allow(unused)]
 impl<'a> FieldShape<'a> {
     /// Prefer using Deref unless you need the 'a lifetime.
     #[allow(clippy::should_implement_trait)]
@@ -61,14 +57,17 @@ impl<'a> FieldShape<'a> {
         &self.ctx.cached.shapes[self.id]
     }
 
-    pub(crate) fn errors(&self) -> impl Iterator<Item = &'a GraphqlError> + 'a {
+    pub(crate) fn partition_field(&self) -> DataOrLookupField<'a> {
+        self.as_ref().id.walk(self.ctx)
+    }
+
+    pub(crate) fn error_ids(&self) -> impl Iterator<Item = QueryErrorId> + 'a {
         self.ctx
             .plan
             .query_modifications
             .field_shape_id_to_error_ids
             .find_all(self.id)
             .copied()
-            .map(|id| &self.ctx.plan.query_modifications[id])
     }
 
     pub(crate) fn is_skipped(&self) -> bool {

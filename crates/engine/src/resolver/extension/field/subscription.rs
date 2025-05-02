@@ -9,7 +9,7 @@ use crate::{
     Runtime,
     execution::{ExecutionContext, ExecutionResult},
     prepare::{Plan, create_extension_directive_query_view},
-    response::{GraphqlError, ResponseBuilder, ResponsePart},
+    response::{GraphqlError, ResponseBuilder, ResponsePartBuilder},
 };
 
 use super::PreparedField;
@@ -20,7 +20,7 @@ impl super::FieldResolverExtension {
         ctx: ExecutionContext<'ctx, R>,
         plan: Plan<'ctx>,
         new_response: impl Fn() -> ResponseBuilder<'ctx> + Send + 'ctx,
-    ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<(ResponseBuilder<'ctx>, ResponsePart<'ctx>)>>> {
+    ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<(ResponseBuilder<'ctx>, ResponsePartBuilder<'ctx>)>>> {
         let directive = self.directive_id.walk(ctx.schema());
         let subgraph_headers = ctx.subgraph_headers_with_rules(directive.subgraph().header_rules());
 

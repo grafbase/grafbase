@@ -70,7 +70,7 @@ impl<'de> DeserializeSeed<'de> for FieldSeed<'_, '_> {
                 );
                 let mut resp = self.ctx.response.borrow_mut();
                 resp.propagate_null(&self.ctx.path());
-                resp.push_error(
+                resp.errors.push(
                     GraphqlError::invalid_subgraph_response()
                         .with_path(self.ctx.path().as_ref())
                         .with_location(self.field.id.walk(self.ctx).location()),

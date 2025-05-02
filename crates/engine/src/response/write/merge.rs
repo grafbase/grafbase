@@ -10,6 +10,8 @@ impl ResponseBuilder<'_> {
         object_id: ResponseObjectId,
         default_fields_sorted_by_key: &[ResponseObjectField],
     ) {
+        // When ingesting default fields, which we set to Null, we may encounter an actual
+        // value in the case of shared roots. In this case we keep the old value.
         self.recursive_merge_object(object_id, default_fields_sorted_by_key.to_vec(), true);
     }
 
@@ -91,7 +93,7 @@ impl ResponseBuilder<'_> {
             (existing, ResponseValue::Inaccessible { id }) => {
                 self.recursive_merge_value(existing, self.data_parts[id].clone());
             }
-            (ResponseValue::Null, ResponseValue::Null) => (),
+            (ResponseValue::Null, ResponseValue::Null) => {}
             (l, r) => {
                 // FIXME: Unlikely, but we should generate an error here.
                 tracing::error!(

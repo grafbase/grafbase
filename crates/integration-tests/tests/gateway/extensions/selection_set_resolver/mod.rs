@@ -1,5 +1,6 @@
 mod alias;
 mod config;
+mod errors;
 mod selection_set;
 mod subgraph_schema;
 
@@ -16,14 +17,24 @@ use runtime::extension::{ArgumentsId, Data};
 
 #[derive(Clone)]
 pub struct StaticSelectionSetResolverExt {
-    data: Result<Data, GraphqlError>,
+    result: Result<Data, GraphqlError>,
 }
 
 impl StaticSelectionSetResolverExt {
     pub fn json(value: impl serde::Serialize) -> Self {
         Self {
-            data: Ok(Data::Json(serde_json::to_vec(&value).unwrap().into())),
+            result: Ok(Data::Json(serde_json::to_vec(&value).unwrap().into())),
         }
+    }
+
+    pub fn json_bytes(bytes: &[u8]) -> Self {
+        Self {
+            result: Ok(Data::Json(bytes.to_vec().into())),
+        }
+    }
+
+    pub fn error(error: GraphqlError) -> Self {
+        Self { result: Err(error) }
     }
 }
 
@@ -54,7 +65,7 @@ impl SelectionSetResolverTestExtension for StaticSelectionSetResolverExt {
         _subgraph_headers: http::HeaderMap,
         _arguments: Vec<(ArgumentsId, serde_json::Value)>,
     ) -> Result<Data, GraphqlError> {
-        self.data.clone()
+        self.result.clone()
     }
 }
 

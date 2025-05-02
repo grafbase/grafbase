@@ -53,7 +53,7 @@ where
             if self.is_required {
                 resp.propagate_null(&path);
             }
-            resp.push_error(
+            resp.errors.push(
                 GraphqlError::invalid_subgraph_response()
                     .with_path(path)
                     .with_location(self.parent_field.id.walk(self.ctx).location()),
@@ -118,7 +118,7 @@ where
                         );
                         let mut resp = ctx.response.borrow_mut();
                         resp.propagate_null(&ctx.path());
-                        resp.push_error(
+                        resp.errors.push(
                             GraphqlError::invalid_subgraph_response()
                                 .with_path((ctx.path().as_ref(), index))
                                 .with_location(parent_field.id.walk(ctx).location()),

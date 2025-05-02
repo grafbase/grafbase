@@ -1,5 +1,4 @@
 use id_newtypes::IdRange;
-use operation::PositionedResponseKey;
 use schema::ObjectDefinitionId;
 use serde::{
     Deserializer,
@@ -9,7 +8,7 @@ use std::fmt;
 use walker::Walk;
 
 use crate::{
-    prepare::{ConcreteShape, ConcreteShapeId, FieldShapeId, FieldShapeRecord, ObjectIdentifier},
+    prepare::{ConcreteShape, ConcreteShapeId, FieldShapeId, FieldShapeRecord, ObjectIdentifier, TypenameShapeRecord},
     response::{
         GraphqlError, ResponseObject, ResponseObjectId, ResponseObjectRef, ResponseValue, ResponseValueId,
         value::ResponseObjectField,
@@ -137,7 +136,7 @@ impl<'ctx> ConcreteShapeSeed<'ctx, '_> {
                         let mut resp = self.ctx.response.borrow_mut();
                         let path = self.ctx.path();
                         resp.propagate_null(&path);
-                        resp.push_error(
+                        resp.errors.push(
                             GraphqlError::invalid_subgraph_response()
                                 .with_path(path)
                                 .with_location(self.parent_field.id.walk(self.ctx).location()),
@@ -157,7 +156,7 @@ impl<'ctx> ConcreteShapeSeed<'ctx, '_> {
                     if self.is_required {
                         resp.propagate_null(&path);
                     }
-                    resp.push_error(
+                    resp.errors.push(
                         error
                             .with_path(path)
                             .with_location(self.parent_field.id.walk(self.ctx).location()),
@@ -176,7 +175,7 @@ pub(crate) struct ConcreteShapeFieldsSeed<'ctx, 'seed> {
     has_error: bool,
     object_identifier: ObjectIdentifier,
     field_shape_ids: IdRange<FieldShapeId>,
-    typename_response_keys: &'ctx [PositionedResponseKey],
+    typename_shapes: &'ctx [TypenameShapeRecord],
 }
 
 impl<'ctx, 'seed> ConcreteShapeFieldsSeed<'ctx, 'seed> {
@@ -192,7 +191,7 @@ impl<'ctx, 'seed> ConcreteShapeFieldsSeed<'ctx, 'seed> {
             has_error: shape.has_errors(),
             object_identifier: definition_id.map(ObjectIdentifier::Known).unwrap_or(shape.identifier),
             field_shape_ids: shape.field_shape_ids,
-            typename_response_keys: &shape.as_ref().typename_response_keys,
+            typename_shapes: shape.typename_shapes_slice(),
         }
     }
 }
@@ -242,7 +241,7 @@ impl<'de> Visitor<'de> for ConcreteShapeFieldsSeed<'_, '_> {
         A: MapAccess<'de>,
     {
         let schema = self.ctx.schema;
-        let mut response_fields = Vec::with_capacity(self.field_shape_ids.len() + self.typename_response_keys.len());
+        let mut response_fields = Vec::with_capacity(self.field_shape_ids.len() + self.typename_shapes.len());
         let mut maybe_object_definition_id = None;
 
         match self.object_identifier {
@@ -279,7 +278,7 @@ impl<'de> Visitor<'de> for ConcreteShapeFieldsSeed<'_, '_> {
 
         self.post_process(&mut response_fields);
 
-        if !self.typename_response_keys.is_empty() {
+        if !self.typename_shapes.is_empty() {
             let Some(object_id) = maybe_object_definition_id else {
                 tracing::error!(
                     "Expected to have the object definition id to generate __typename at path '{}'",
@@ -288,9 +287,9 @@ impl<'de> Visitor<'de> for ConcreteShapeFieldsSeed<'_, '_> {
                 return Ok(ObjectValue::Error(GraphqlError::invalid_subgraph_response()));
             };
             let name_id = schema[object_id].name_id;
-            for key in self.typename_response_keys {
+            for shape in self.typename_shapes {
                 response_fields.push(ResponseObjectField {
-                    key: *key,
+                    key: shape.key,
                     value: name_id.into(),
                 });
             }
@@ -420,13 +419,10 @@ impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_> {
             let mut must_propagate_null = false;
             let mut resp = self.ctx.response.borrow_mut();
             for field_shape in self.field_shape_ids.walk(self.ctx) {
-                for error in field_shape.errors() {
-                    resp.push_error(
-                        error
-                            .clone()
-                            .with_path((self.ctx.path(), field_shape.key))
-                            .with_location(field_shape.as_ref().id.walk(self.ctx).location()),
-                    );
+                for error_id in field_shape.error_ids() {
+                    let location = field_shape.as_ref().id.walk(self.ctx).location();
+                    let path = (self.ctx.path(), field_shape.key);
+                    resp.errors.push_query_error(error_id, location, path);
 
                     if field_shape.wrapping.is_required() {
                         must_propagate_null = true;
@@ -473,7 +469,7 @@ impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_> {
                             let mut resp = self.ctx.response.borrow_mut();
                             let path = self.ctx.path();
                             resp.propagate_null(&path);
-                            resp.push_error(
+                            resp.errors.push(
                                 GraphqlError::invalid_subgraph_response()
                                     .with_path((path, field_shape.key))
                                     .with_location(field_shape.as_ref().id.walk(self.ctx).location()),
@@ -500,7 +496,7 @@ impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_> {
     ) -> Result<Option<ObjectDefinitionId>, A::Error> {
         let schema = self.ctx.schema;
         let keys = self.ctx.response_keys();
-        let fields = &self.ctx.prepared_operation.cached.shapes[self.field_shape_ids];
+        let fields = &self.ctx.operation.cached.shapes[self.field_shape_ids];
         let mut offset = 0;
         let mut maybe_object_definition_id: Option<ObjectDefinitionId> = None;
         while let Some(key) = map.next_key::<Key<'_>>()? {
@@ -543,7 +539,7 @@ impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_> {
         response_fields: &mut Vec<ResponseObjectField>,
     ) -> Result<(), A::Error> {
         let keys = self.ctx.response_keys();
-        let fields = &self.ctx.prepared_operation.cached.shapes[self.field_shape_ids];
+        let fields = &self.ctx.operation.cached.shapes[self.field_shape_ids];
         let mut offset = 0;
         while let Some(key) = map.next_key::<Key<'_>>()? {
             let key = key.as_ref();

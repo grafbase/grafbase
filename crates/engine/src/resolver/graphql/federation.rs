@@ -15,7 +15,7 @@ use crate::{
         ExecutionResult,
         graphql::request::{SubgraphGraphqlRequest, SubgraphVariables},
     },
-    response::{ObjectUpdate, ParentObjectId, ParentObjectsView, ResponsePart},
+    response::{ObjectUpdate, ParentObjectId, ParentObjectsView, ResponsePartBuilder},
 };
 
 use super::{
@@ -63,7 +63,7 @@ impl FederationEntityResolver {
         ctx: &SubgraphContext<'ctx, R>,
         plan: Plan<'ctx>,
         parent_objects_view: ParentObjectsView<'_>,
-        response_part: ResponsePart<'ctx>,
+        response_part: ResponsePartBuilder<'ctx>,
     ) -> ExecutionResult<FederationEntityExecutor<'ctx>> {
         ctx.span().in_scope(|| {
             let extra_fields = vec![(
@@ -110,13 +110,16 @@ struct EntityWithoutExpectedRequirements {
 pub(crate) struct FederationEntityExecutor<'ctx> {
     resolver: &'ctx FederationEntityResolver,
     shape_id: ConcreteShapeId,
-    response_part: ResponsePart<'ctx>,
+    response_part: ResponsePartBuilder<'ctx>,
     entities_to_fetch: Vec<EntityToFetch>,
     entities_without_expected_requirements: Vec<EntityWithoutExpectedRequirements>,
 }
 
 impl<'ctx> FederationEntityExecutor<'ctx> {
-    pub async fn execute<R: Runtime>(self, ctx: &mut SubgraphContext<'ctx, R>) -> ExecutionResult<ResponsePart<'ctx>> {
+    pub async fn execute<R: Runtime>(
+        self,
+        ctx: &mut SubgraphContext<'ctx, R>,
+    ) -> ExecutionResult<ResponsePartBuilder<'ctx>> {
         let Self {
             resolver: FederationEntityResolver { subgraph_operation, .. },
             shape_id,
@@ -131,7 +134,7 @@ impl<'ctx> FederationEntityExecutor<'ctx> {
 
             for EntityWithoutExpectedRequirements { id, error } in entities_without_expected_requirements {
                 tracing::error!("Could not retrieve entity because of missing requirements: {error}");
-                response_part.insert_update(
+                response_part.insert(
                     id,
                     // Not really sure if that's really the right logic. In the federation-audit
                     // `null-keys` test no errors are expected here when an entity could not be
@@ -191,8 +194,8 @@ pub(super) async fn fetch_entities_without_cache<'ctx, R: Runtime>(
     subgraph_operation: &PreparedFederationEntityOperation,
     entities_to_fetch: Vec<EntityToFetch>,
     shape_id: ConcreteShapeId,
-    response_part: ResponsePart<'ctx>,
-) -> ExecutionResult<ResponsePart<'ctx>> {
+    response_part: ResponsePartBuilder<'ctx>,
+) -> ExecutionResult<ResponsePartBuilder<'ctx>> {
     let variables = SubgraphVariables {
         ctx: ctx.input_value_context(),
         variables: &subgraph_operation.variables,
@@ -231,8 +234,8 @@ pub(super) async fn fetch_entities_with_cache<'ctx, R: Runtime>(
     subgraph_operation: &PreparedFederationEntityOperation,
     entities_to_fetch: Vec<EntityToFetch>,
     shape_id: ConcreteShapeId,
-    response_part: ResponsePart<'ctx>,
-) -> ExecutionResult<ResponsePart<'ctx>> {
+    response_part: ResponsePartBuilder<'ctx>,
+) -> ExecutionResult<ResponsePartBuilder<'ctx>> {
     let cache_fetch_outcome = super::cache::fetch_entities(ctx, &subgraph_headers, entities_to_fetch).await;
     if cache_fetch_outcome.misses.is_empty() {
         ctx.record_cache_hit();

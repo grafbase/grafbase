@@ -1,13 +1,10 @@
-use std::num::NonZero;
-
 use id_newtypes::IdRange;
-use operation::PositionedResponseKey;
 use schema::{InterfaceDefinitionId, ObjectDefinitionId, UnionDefinitionId};
 use walker::{Iter, Walk};
 
 use crate::prepare::{OperationPlanContext, ResponseObjectSetDefinitionId};
 
-use super::{FieldShape, FieldShapeId};
+use super::{FieldShape, FieldShapeId, TypenameShapeId, TypenameShapeRecord};
 
 /// Being concrete does not mean it's only associated with a single object definition id
 /// only that we know exactly which fields must be present.
@@ -15,14 +12,14 @@ use super::{FieldShape, FieldShapeId};
 pub(crate) struct ConcreteShapeRecord {
     pub set_id: Option<ResponseObjectSetDefinitionId>,
     pub identifier: ObjectIdentifier,
-    pub typename_response_keys: Vec<PositionedResponseKey>,
+    pub typename_shape_ids: IdRange<TypenameShapeId>,
     // Ordered by PartitionDataFieldId which should more or less match the ordering of fields
     // coming in from resolvers.
     pub field_shape_ids: IdRange<FieldShapeId>,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-pub(crate) struct ConcreteShapeId(NonZero<u32>);
+pub(crate) struct ConcreteShapeId(u32);
 
 impl std::ops::Deref for ConcreteShape<'_> {
     type Target = ConcreteShapeRecord;
@@ -66,6 +63,12 @@ impl<'a> ConcreteShape<'a> {
     }
     pub(crate) fn fields(&self) -> impl Iter<Item = FieldShape<'a>> + 'a {
         self.as_ref().field_shape_ids.walk(self.ctx)
+    }
+    pub(crate) fn typename_shapes(&self) -> std::slice::Iter<'a, TypenameShapeRecord> {
+        self.ctx.cached.shapes[self.as_ref().typename_shape_ids].iter()
+    }
+    pub(crate) fn typename_shapes_slice(&self) -> &'a [TypenameShapeRecord] {
+        &self.ctx.cached.shapes[self.as_ref().typename_shape_ids]
     }
 }
 

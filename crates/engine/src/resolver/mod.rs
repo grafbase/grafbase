@@ -16,7 +16,7 @@ use crate::{
     Runtime,
     execution::{ExecutionContext, ExecutionError, ExecutionResult},
     prepare::{Plan, PlanQueryPartition, PlanResult, PrepareContext},
-    response::{ParentObjectsView, ResponseBuilder, ResponsePart},
+    response::{ParentObjectsView, ResponseBuilder, ResponsePartBuilder},
 };
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -62,7 +62,7 @@ impl Resolver {
 }
 
 pub struct ResolverResult<'ctx, OnSubgraphResponseHookOutput> {
-    pub execution: ExecutionResult<ResponsePart<'ctx>>,
+    pub execution: ExecutionResult<ResponsePartBuilder<'ctx>>,
     pub on_subgraph_response_hook_output: Option<OnSubgraphResponseHookOutput>,
 }
 
@@ -75,7 +75,7 @@ impl Resolver {
         // So an executor is expected to prepare whatever it required from the response before
         // awaiting anything.
         parent_objects_view: ParentObjectsView<'_>,
-        response_part: ResponsePart<'ctx>,
+        response_part: ResponsePartBuilder<'ctx>,
     ) -> BoxFuture<'fut, ResolverResult<'ctx, <R::Hooks as Hooks>::OnSubgraphResponseOutput>>
     where
         'ctx: 'fut,
@@ -127,11 +127,11 @@ impl Resolver {
                 .boxed()
             }
             Resolver::SelectionSetResolverExtension(prepared) => {
-                let input_object_refs = parent_objects_view.into_parent_objects();
+                let parent_objects = parent_objects_view.into_parent_objects();
                 async move {
-                    let result = prepared.execute(ctx, plan, input_object_refs, response_part).await;
+                    let response_part = prepared.execute(ctx, plan, parent_objects, response_part).await;
                     ResolverResult {
-                        execution: result,
+                        execution: Ok(response_part),
                         on_subgraph_response_hook_output: None,
                     }
                 }
@@ -146,7 +146,7 @@ impl Resolver {
         ctx: ExecutionContext<'ctx, R>,
         plan: Plan<'ctx>,
         new_response: impl Fn() -> ResponseBuilder<'ctx> + Send + 'ctx,
-    ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<(ResponseBuilder<'ctx>, ResponsePart<'ctx>)>>> {
+    ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<(ResponseBuilder<'ctx>, ResponsePartBuilder<'ctx>)>>> {
         match self {
             Resolver::Graphql(prepared) => {
                 // TODO: for now we do not finalize this, e.g. we do not call the subgraph response hook. We should figure

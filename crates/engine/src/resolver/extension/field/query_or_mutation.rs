@@ -12,7 +12,7 @@ use crate::{
         ConcreteShapeId, Plan, SubgraphField, create_extension_directive_query_view,
         create_extension_directive_response_view,
     },
-    response::{GraphqlError, ParentObjects, ParentObjectsView, ResponsePart},
+    response::{GraphqlError, ParentObjects, ParentObjectsView, ResponsePartBuilder},
 };
 
 impl super::FieldResolverExtension {
@@ -21,7 +21,7 @@ impl super::FieldResolverExtension {
         ctx: ExecutionContext<'ctx, R>,
         plan: Plan<'ctx>,
         root_response_objects: ParentObjectsView<'_>,
-        subgraph_response: ResponsePart<'ctx>,
+        subgraph_response: ResponsePartBuilder<'ctx>,
     ) -> Executor<'ctx> {
         let directive = self.directive_id.walk(ctx.schema());
         let subgraph_headers = ctx.subgraph_headers_with_rules(directive.subgraph().header_rules());
@@ -76,7 +76,7 @@ impl super::FieldResolverExtension {
 
 pub(in crate::resolver) struct Executor<'ctx> {
     shape_id: ConcreteShapeId,
-    response_part: ResponsePart<'ctx>,
+    response_part: ResponsePartBuilder<'ctx>,
     parent_objects: Arc<ParentObjects>,
     fields: Vec<SubgraphField<'ctx>>,
     #[allow(clippy::type_complexity)] // should be better with resolver rework... hopefully.
@@ -84,7 +84,7 @@ pub(in crate::resolver) struct Executor<'ctx> {
 }
 
 impl<'ctx> Executor<'ctx> {
-    pub async fn execute(self) -> ExecutionResult<ResponsePart<'ctx>> {
+    pub async fn execute(self) -> ExecutionResult<ResponsePartBuilder<'ctx>> {
         let Self {
             shape_id,
             response_part,
