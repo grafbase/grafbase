@@ -39,6 +39,12 @@ async fn download_extensions(new_lockfile: lockfile::Lockfile) -> anyhow::Result
     report::extension_install_start();
 
     let progress_bar = indicatif::ProgressBar::new(new_lockfile.extensions.len() as u64);
+    progress_bar.set_style(
+        indicatif::ProgressStyle::default_bar()
+            .template("{bar:24.green/red}")
+            .unwrap()
+            .progress_chars("++-"),
+    );
 
     for extension in new_lockfile.extensions {
         futures.push(download_extension_from_registry(
@@ -54,7 +60,7 @@ async fn download_extensions(new_lockfile: lockfile::Lockfile) -> anyhow::Result
         progress_bar.inc(1);
     }
 
-    progress_bar.finish_with_message("All extensions downloaded in ....");
+    progress_bar.finish();
 
     Ok(())
 }

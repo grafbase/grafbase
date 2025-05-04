@@ -296,9 +296,9 @@ pub(crate) fn extension_published(name: &str, version: &str) {
 }
 
 pub(crate) fn extension_install_start() {
-    watercolor::output!("Installing extensions...", @White);
+    watercolor::output!("Installing extensions...", @BrightWhite);
 }
 
 pub(crate) fn no_extension_defined_in_config() {
-    watercolor::output!("✅ No extensions defined in the configuration", @BrightGreen);
+    watercolor::output!("No extensions defined in the configuration", @BrightGreen);
 }
