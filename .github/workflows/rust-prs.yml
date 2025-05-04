@@ -512,7 +512,7 @@ jobs:
       - name: Build docker compose
         # Will fail if there is nothing to build.
         continue-on-error: true
-        uses: depot/bake-action@v1
+        uses: depot/bake-action@6f9796efa5235be338972e30e7b93977a7f18855 # v1
         with:
           project: ${{ env.DEPOT_PROJECT }}
           token: ${{ secrets.DEPOT_TOKEN }}
@@ -591,7 +591,7 @@ jobs:
           repository: 'grafbase/extensions'
           path: extensions
 
-      - uses: depot/setup-action@v1
+      - uses: depot/setup-action@b0b1ea4f69e92ebf5dea3f8713a1b0c37b2126a5 # v1
 
       - name: Build docker compose
         # Will fail if there is nothing to build.
