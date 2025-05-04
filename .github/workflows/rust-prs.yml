@@ -360,7 +360,7 @@ jobs:
         if: |
           contains(fromJson(needs.what-changed.outputs.changed-packages), 'grafbase-gateway')
           && matrix.platform.target == 'x86_64-unknown-linux-musl'
-        uses: depot/bake-action@v1
+        uses: depot/bake-action@6f9796efa5235be338972e30e7b93977a7f18855 # v1
         with:
           project: ${{ env.DEPOT_PROJECT }}
           token: ${{ secrets.DEPOT_TOKEN }}
@@ -507,7 +507,7 @@ jobs:
         run: |
           sed -i "s/\(FROM ghcr.io\/grafbase\/gateway:\)latest/\1$COMMIT_SHA/" Dockerfile.gateway
 
-      - uses: depot/setup-action@v1
+      - uses: depot/setup-action@b0b1ea4f69e92ebf5dea3f8713a1b0c37b2126a5 # v1
 
       - name: Build docker compose
         # Will fail if there is nothing to build.
@@ -564,7 +564,7 @@ jobs:
           components: clippy, rustfmt
 
       - name: Install cargo-nextest
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@86c23eed46c17b80677df6d8151545ce3e236c61 # v2
         with:
           tool: nextest
 

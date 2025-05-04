@@ -37,7 +37,7 @@ jobs:
           echo VERSION_BUMP=${VERSION_BUMP} >> $GITHUB_ENV
 
       - name: Announce release attempt on Slack
-        uses: ravsamhq/notify-slack-action@v2
+        uses: ravsamhq/notify-slack-action@be814b201e233b2dc673608aa46e5447c8ab13f2 # v2
         with:
           notification_title: '({workflow}) grafbase release for ${{ env.VERSION_BUMP }} started'
           footer: '<{run_url}|View Run>'
