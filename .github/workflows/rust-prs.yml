@@ -36,7 +36,7 @@ jobs:
       examples: ${{ steps.paths-changed.outputs.gateway-examples }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           # TODO: Figure out how to not make this zero
           # Seems like if it's not zero you dont get branches
@@ -47,7 +47,7 @@ jobs:
 
       - name: Run what-rust-changed
         id: rust
-        uses: grafbase/what-rust-changed@v0.2.1
+        uses: grafbase/what-rust-changed@3827ff3c909f05702f95dcb36721cb67a1e116e8 # v0.2.1
         with:
           config: .github/what-rust-changed.toml
           base: ${{ github.event.pull_request.base.ref || 'main' }}
@@ -175,7 +175,7 @@ jobs:
         run: |
           ./build.sh
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: integration-tests-extensions
           path: crates/integration-tests/data/extensions/crates/*/build
@@ -271,7 +271,7 @@ jobs:
 
       - name: Download pre-built example component
         if: needs.wasm-extensions.result != 'skipped'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: example-component
           path: crates/wasi-component-loader/examples/target/wasm32-wasip2/debug
@@ -309,7 +309,7 @@ jobs:
         env:
           dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
         if: env.dockerhub_username != '' && runner.os == 'Linux'
-        uses: docker/login-action@v3
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -596,7 +596,7 @@ jobs:
       - name: Build docker compose
         # Will fail if there is nothing to build.
         continue-on-error: true
-        uses: depot/bake-action@v1
+        uses: depot/bake-action@6f9796efa5235be338972e30e7b93977a7f18855 # v1
         with:
           project: ${{ env.DEPOT_PROJECT }}
           token: ${{ secrets.DEPOT_TOKEN }}
