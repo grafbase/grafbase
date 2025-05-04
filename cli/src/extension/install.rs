@@ -62,8 +62,6 @@ async fn download_extensions(new_lockfile: lockfile::Lockfile) -> anyhow::Result
 
     progress_bar.finish();
 
-    // progress_bar.finish_with_message("All extensions downloaded in ...");
-
     Ok(())
 }
 
