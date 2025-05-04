@@ -37,7 +37,7 @@ jobs:
           echo VERSION_BUMP=${VERSION_BUMP} >> $GITHUB_ENV
 
       - name: Announce release attempt on Slack
-        uses: ravsamhq/notify-slack-action@v2
+        uses: ravsamhq/notify-slack-action@be814b201e233b2dc673608aa46e5447c8ab13f2 # v2
         with:
           notification_title: '({workflow}) grafbase-gateway release for ${{ env.VERSION_BUMP }} started'
           footer: '<{run_url}|View Run>'
@@ -126,7 +126,7 @@ jobs:
 
       - name: Github gateway Release
         id: gh-release-gateway
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2
         with:
           body_path: gateway/changelog/${{ env.VERSION_BUMP }}.md
           draft: ${{ inputs.draft }}
