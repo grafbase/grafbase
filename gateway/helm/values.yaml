@@ -45,7 +45,12 @@ podSecurityContext:
 
 # Security context for each container, defining privileges and access control.
 # https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
-securityContext: {}
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - NET_RAW
 
 # https://kubernetes.io/docs/concepts/services-networking/service/
 service:
