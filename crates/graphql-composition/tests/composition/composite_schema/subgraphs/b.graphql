@@ -1,4 +1,5 @@
-extend schema @link(url: "https://specs.grafbase.com/composite-schema/v1", import: ["@lookup", "@key", "@require"])
+extend schema
+  @link(url: "https://specs.grafbase.com/composite-schema/v1", import: ["@lookup", "@key", "@require", "@is"])
 
 type Query {
   accountById(id: ID!): Account @lookup
@@ -7,4 +8,5 @@ type Query {
 type Account @key(fields: "id") {
   id: ID!
   name(case: String @require(field: "ploop")): String
+  id2: ID! @is(field: "id")
 }

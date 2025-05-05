@@ -26,6 +26,10 @@ pub enum Directive {
         graph: SubgraphId,
         field: StringId,
     },
+    CompositeIs {
+        graph: SubgraphId,
+        field: StringId,
+    },
     Deprecated {
         reason: Option<StringId>,
     },

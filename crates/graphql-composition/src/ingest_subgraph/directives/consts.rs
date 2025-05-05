@@ -14,6 +14,7 @@ pub(super) const POLICY: &str = "policy";
 pub(super) const PROVIDES: &str = "provides";
 /// The composite schema spec `@require`.
 pub(super) const REQUIRE: &str = "require";
+pub(super) const IS: &str = "is";
 /// The federation spec `@requires`.
 pub(super) const REQUIRES: &str = "requires";
 pub(super) const REQUIRES_SCOPES: &str = "requiresScopes";

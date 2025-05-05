@@ -248,6 +248,27 @@ pub(super) fn ingest_directives(
                     },
                 )
             }
+            DirectiveNameMatch::Is => {
+                let directive: graphql_federated_graph::directives::RequireDirective<'_> = match directive.deserialize()
+                {
+                    Ok(directive) => directive,
+                    Err(err) => {
+                        ctx.subgraphs
+                            .push_ingestion_diagnostic(ctx.subgraph_id, err.to_string());
+                        continue;
+                    }
+                };
+
+                let field = ctx.subgraphs.strings.intern(directive.field);
+
+                ctx.subgraphs.push_ir_directive(
+                    directive_site_id,
+                    crate::composition_ir::Directive::CompositeIs {
+                        subgraph_id: ctx.subgraph_id.idx().into(),
+                        field,
+                    },
+                )
+            }
 
             DirectiveNameMatch::NoMatch => {
                 let location = location(ctx.subgraphs);

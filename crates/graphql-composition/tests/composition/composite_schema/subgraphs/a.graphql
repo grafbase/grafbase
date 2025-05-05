@@ -1,7 +1,7 @@
-extend schema @link(url: "https://specs.grafbase.com/composite-schema/v1", import: ["@lookup", "@key"])
+extend schema @link(url: "https://specs.grafbase.com/composite-schema/v1", import: ["@lookup", "@key", "@is"])
 
 type Query {
-  userById(id: ID!): User @lookup
+  userById(id: ID! @is(field: "id")): User @lookup
 }
 
 type User @key(fields: "id") {

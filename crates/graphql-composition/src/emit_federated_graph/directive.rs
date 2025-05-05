@@ -127,7 +127,14 @@ fn transform_common_directive(ctx: &mut Context<'_>, directive: &ir::Directive) 
                 field,
             }
         }
-
+        ir::Directive::CompositeIs { subgraph_id, field } => {
+            ctx.used_directives |= UsedDirectives::COMPOSITE_IS;
+            let field = ctx.insert_string(ctx.subgraphs.walk(*field));
+            federated::Directive::CompositeIs {
+                graph: *subgraph_id,
+                field,
+            }
+        }
         ir::Directive::Other {
             name,
             arguments,
@@ -483,6 +490,7 @@ pub(super) fn emit_composite_spec_directive_definitions(ctx: &mut Context<'_>) {
     let composite_namespace = Some(ctx.insert_str("composite"));
     let lookup_str = ctx.insert_str("lookup");
     let require_str = ctx.insert_str("require");
+    let is_str = ctx.insert_str("is");
     let field_str = ctx.insert_str("field");
 
     if ctx.used_directives.contains(UsedDirectives::COMPOSITE_LOOKUP) {
@@ -498,18 +506,22 @@ pub(super) fn emit_composite_spec_directive_definitions(ctx: &mut Context<'_>) {
         });
     }
 
-    if ctx.used_directives.contains(UsedDirectives::COMPOSITE_REQUIRE) {
+    let field_selection_map_id = if ctx.used_directives.contains(UsedDirectives::COMPOSITE_REQUIRE)
+        || ctx.used_directives.contains(UsedDirectives::COMPOSITE_IS)
+    {
         // composite__FieldSelectionMap
-        let field_selection_map_scalar = {
-            let name = ctx.insert_str("FieldSelectionMap");
-            ctx.out.push_scalar_definition(federated::ScalarDefinitionRecord {
-                namespace: composite_namespace,
-                name,
-                directives: Vec::new(),
-                description: None,
-            })
-        };
+        let name = ctx.insert_str("FieldSelectionMap");
+        Some(ctx.out.push_scalar_definition(federated::ScalarDefinitionRecord {
+            namespace: composite_namespace,
+            name,
+            directives: Vec::new(),
+            description: None,
+        }))
+    } else {
+        None
+    };
 
+    if ctx.used_directives.contains(UsedDirectives::COMPOSITE_REQUIRE) {
         // directive @require(field: FieldSelectionMap!) on ARGUMENT_DEFINITION
         //
         // See https://github.com/graphql/composite-schemas-spec/blob/main/spec/Appendix%20A%20--%20Field%20Selection.md#require
@@ -527,7 +539,36 @@ pub(super) fn emit_composite_spec_directive_definitions(ctx: &mut Context<'_>) {
                 name: field_str,
                 r#type: federated::Type {
                     wrapping: Wrapping::required(),
-                    definition: federated::Definition::Scalar(field_selection_map_scalar),
+                    definition: federated::Definition::Scalar(field_selection_map_id.unwrap()),
+                },
+                directives: vec![],
+                description: None,
+                default: None,
+            },
+        );
+    }
+
+    if ctx.used_directives.contains(UsedDirectives::COMPOSITE_IS) {
+        // directive @is(field: FieldSelectionMap!) on ARGUMENT_DEFINITION | FIELD_DEFINITION
+        //
+        // field is specific to Grafbase for computed fields.
+        // See https://github.com/graphql/composite-schemas-spec/blob/main/spec/Section%202%20--%20Source%20Schema.md#is
+
+        let directive_definition_id = ctx.out.push_directive_definition(federated::DirectiveDefinitionRecord {
+            namespace: composite_namespace,
+            name: is_str,
+            locations: federated::DirectiveLocations::ARGUMENT_DEFINITION
+                | federated::DirectiveLocations::FIELD_DEFINITION,
+            repeatable: false,
+        });
+
+        ctx.out.push_directive_definition_argument(
+            directive_definition_id,
+            federated::InputValueDefinition {
+                name: field_str,
+                r#type: federated::Type {
+                    wrapping: Wrapping::required(),
+                    definition: federated::Definition::Scalar(field_selection_map_id.unwrap()),
                 },
                 directives: vec![],
                 description: None,

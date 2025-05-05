@@ -19,6 +19,8 @@ directive @composite__lookup on FIELD_DEFINITION
 
 directive @composite__require(field: composite__FieldSelectionMap!) on ARGUMENT_DEFINITION
 
+directive @composite__is(field: composite__FieldSelectionMap!) on FIELD_DEFINITION | ARGUMENT_DEFINITION
+
 scalar join__FieldSet
 
 scalar composite__FieldSelectionMap
@@ -34,13 +36,14 @@ type Account
   @join__type(graph: B, key: "id", resolvable: false)
 {
   id: ID!
+  id2: ID! @composite__is(graph: B, field: "id")
   name(case: String @composite__require(graph: B, field: "ploop")): String
 }
 
 type Query
 {
   accountById(id: ID!): Account @composite__lookup(graph: B) @join__field(graph: B)
-  userById(id: ID!): User @composite__lookup(graph: A) @join__field(graph: A)
+  userById(id: ID! @composite__is(graph: A, field: "id")): User @composite__lookup(graph: A) @join__field(graph: A)
 }
 
 enum join__Graph

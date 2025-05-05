@@ -37,6 +37,14 @@ pub(crate) fn write_directive<'a, 'b: 'a>(
                 .arg("graph", Value::EnumValue(graph.at(*subgraph_id).join_graph_enum_value))?
                 .arg("field", Value::String(*field))?;
         }
+        Directive::CompositeIs {
+            graph: subgraph_id,
+            field,
+        } => {
+            DirectiveWriter::new("composite__is", f, graph)?
+                .arg("graph", Value::EnumValue(graph.at(*subgraph_id).join_graph_enum_value))?
+                .arg("field", Value::String(*field))?;
+        }
         Directive::Deprecated { reason } => {
             let directive = DirectiveWriter::new("deprecated", f, graph)?;
 
