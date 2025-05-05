@@ -31,7 +31,7 @@ fn basic() {
                 r#"
                 extend schema
                     @link(url: "static-1.0.0", import: ["@init"])
-                    @link(url: "https://specs.grafbase.com/composite-schema/v1", import: ["@lookup", "@key"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
                     @init
 
                 type Query {

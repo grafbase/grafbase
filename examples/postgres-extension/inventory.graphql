@@ -25,7 +25,7 @@ extend schema
       "PgColumnType"
     ]
   )
-  @link(url: "https://specs.grafbase.com/composite-schema/v1", import: ["@lookup", "@key"])
+  @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
   @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@shareable", "@inaccessible"])
   @pgDatabase(name: "inventory")
 

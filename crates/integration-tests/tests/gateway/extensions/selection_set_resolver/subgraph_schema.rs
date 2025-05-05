@@ -9,7 +9,7 @@ fn receive_subgraph_schema() {
                 r#"
                 extend schema
                     @link(url: "selection-set-resolver-014-1.0.0", import: ["@init", "@meta"]) @init @meta(data: "Schema")
-                    @link(url: "https://specs.grafbase.com/composite-schema/v1", import: ["@key"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@key"])
 
                 # Scalar types
                 scalar JSON

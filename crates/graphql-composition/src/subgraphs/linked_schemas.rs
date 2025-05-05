@@ -38,7 +38,7 @@ impl LinkedSchemaRecord {
 
     pub(crate) fn is_composite_schemas(&self, subgraphs: &Subgraphs) -> bool {
         let url = subgraphs.strings.resolve(self.url);
-        url == "https://specs.grafbase.com/composite-schema/v1"
+        url == "https://specs.grafbase.com/composite-schemas/v1"
     }
 }
 
