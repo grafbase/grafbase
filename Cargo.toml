@@ -17,6 +17,7 @@ members = [
     "crates/engine/query-solver",
     "crates/engine/id-derives",
     "crates/engine/id-newtypes",
+    "crates/engine/field-selection-map",
 ]
 exclude = [
     "cli/tests/integration/data",
@@ -247,6 +248,7 @@ wasmtime-wasi = "30"
 wasmtime-wasi-http = "30"
 webbrowser = "1"
 which = "7.0.2"
+winnow = "0.7"
 wiremock = "0.6.3"
 wit-bindgen = "0.41.0"
 xshell = "0.2"

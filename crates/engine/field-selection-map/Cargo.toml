@@ -1,0 +1,16 @@
+[package]
+name = "engine-field-selection-map"
+version = "0.1.0"
+edition = "2021"
+description = "Field selection map implementation from the Composite Schema specification."
+publish = false
+
+[dependencies]
+grafbase-workspace-hack.workspace = true
+itertools.workspace = true
+winnow.workspace = true
+
+[dev-dependencies]
+insta.workspace = true
+# Not sure how to make it work with Hakari, it'll add debug feature everywhere with this...
+# winnow = { workspace = true, features = ["debug"] }

@@ -2860,6 +2860,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "engine-field-selection-map"
+version = "0.1.0"
+dependencies = [
+ "grafbase-workspace-hack",
+ "insta",
+ "itertools 0.14.0",
+ "winnow",
+]
+
+[[package]]
 name = "engine-id-derives"
 version = "0.0.0"
 dependencies = [
@@ -11886,9 +11896,9 @@ checksum = "271414315aff87387382ec3d271b52d7ae78726f5d44ac98b4f4030c91880486"
 
 [[package]]
 name = "winnow"
-version = "0.7.6"
+version = "0.7.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "63d3fcd9bba44b03821e7d699eeee959f3126dcc4aa8e4ae18ec617c2a5cea10"
+checksum = "d9fb597c990f03753e08d3c29efbfcf2019a003b4bf4ba19225c158e1549f0f3"
 dependencies = [
  "memchr",
 ]
