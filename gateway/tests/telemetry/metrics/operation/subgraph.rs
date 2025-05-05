@@ -16,6 +16,12 @@ fn request_duration() {
           "errors": [
             {
               "message": "Request to subgraph 'accounts' failed.",
+              "locations": [
+                {
+                  "line": 1,
+                  "column": 16
+                }
+              ],
               "path": [
                 "me"
               ],
@@ -149,6 +155,12 @@ fn retries() {
           "errors": [
             {
               "message": "Request to subgraph 'accounts' failed.",
+              "locations": [
+                {
+                  "line": 1,
+                  "column": 16
+                }
+              ],
               "path": [
                 "me"
               ],
@@ -214,6 +226,12 @@ fn inflight() {
           "errors": [
             {
               "message": "Request to subgraph 'accounts' failed.",
+              "locations": [
+                {
+                  "line": 1,
+                  "column": 16
+                }
+              ],
               "path": [
                 "me"
               ],

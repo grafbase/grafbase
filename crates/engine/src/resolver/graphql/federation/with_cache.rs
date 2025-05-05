@@ -1,4 +1,4 @@
-use std::{borrow::Cow, collections::VecDeque, time::Duration};
+use std::{borrow::Cow, time::Duration};
 
 use bytes::Bytes;
 use error::ErrorPathSegment;
@@ -85,7 +85,7 @@ where
             // position to the InputObjectId which will allow us to generate the full error path on
             // our side.
             let index_to_id = misses.iter().map(|miss| miss.id).collect::<Vec<_>>();
-            let mut cache_misses = VecDeque::from(misses);
+            let mut cache_misses = misses.into_iter();
             let seed = GraphqlResponseSeed::new(
                 EntitiesDataSeed::new(PartiallyCachedEntitiesSeed {
                     state: &state,
@@ -116,8 +116,7 @@ where
                 Ok(status) => Some(status),
                 Err(err) => {
                     if let Some(error) = err {
-                        state
-                            .insert_error_updates(cache_misses.into_iter().map(|miss| &parent_objects[miss.id]), error);
+                        state.insert_error_updates(cache_misses.map(|miss| &parent_objects[miss.id]), error);
                     }
                     None
                 }
@@ -146,7 +145,7 @@ where
 struct PartiallyCachedEntitiesSeed<'ctx, 'parent, 'state, 'de> {
     state: &'state SeedState<'ctx, 'parent>,
     parent_objects: &'parent ParentObjects,
-    cache_misses: &'state mut VecDeque<EntityCacheMiss>,
+    cache_misses: &'state mut std::vec::IntoIter<EntityCacheMiss>,
     cache_updates: &'state mut Vec<(String, &'de RawValue)>,
 }
 
@@ -181,7 +180,7 @@ impl<'de> Visitor<'de> for PartiallyCachedEntitiesSeed<'_, '_, '_, 'de> {
 
         let mut result = Ok(());
 
-        while let Some(EntityCacheMiss { id, key, .. }) = cache_misses.pop_front() {
+        for EntityCacheMiss { id, key, .. } in cache_misses.by_ref() {
             let parent_object = &parent_objects[id];
             let raw_value = match seq.next_element::<&RawValue>() {
                 Ok(Some(value)) => value,
@@ -228,11 +227,9 @@ impl<'de> Visitor<'de> for PartiallyCachedEntitiesSeed<'_, '_, '_, 'de> {
             cache_updates.push((key, raw_value));
         }
 
-        state.insert_empty_updates(
-            cache_misses
-                .drain(..)
-                .map(|EntityCacheMiss { id, .. }| &parent_objects[id]),
-        );
+        if cache_misses.len() > 0 {
+            state.insert_empty_updates(cache_misses.map(|EntityCacheMiss { id, .. }| &parent_objects[id]));
+        }
 
         // If de-serialization didn't fail, we finish consuming the sequence if there is anything
         // left.

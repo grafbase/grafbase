@@ -75,7 +75,9 @@ where
             }
         }
 
-        state.insert_empty_updates(parent_objects);
+        if parent_objects.len() > 0 {
+            state.insert_empty_updates(parent_objects);
+        }
 
         // If de-serialization didn't fail, we finish consuming the sequence if there is anything
         // left.

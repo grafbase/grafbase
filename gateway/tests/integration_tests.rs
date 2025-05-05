@@ -685,12 +685,18 @@ fn trace_log_level() {
             let result: serde_json::Value = client.gql(query).send().await;
             let result = serde_json::to_string_pretty(&result).unwrap();
 
-            insta::assert_snapshot!(&result, @r###"
+            insta::assert_snapshot!(&result, @r#"
             {
               "data": null,
               "errors": [
                 {
                   "message": "Request to subgraph 'accounts' failed.",
+                  "locations": [
+                    {
+                      "line": 2,
+                      "column": 3
+                    }
+                  ],
                   "path": [
                     "me"
                   ],
@@ -700,7 +706,7 @@ fn trace_log_level() {
                 }
               ]
             }
-            "###);
+            "#);
         })
 }
 
@@ -726,6 +732,12 @@ fn no_config() {
           "errors": [
             {
               "message": "Request to subgraph 'accounts' failed.",
+              "locations": [
+                {
+                  "line": 2,
+                  "column": 3
+                }
+              ],
               "path": [
                 "me"
               ],
@@ -761,6 +773,12 @@ fn static_schema() {
           "errors": [
             {
               "message": "Request to subgraph 'accounts' failed.",
+              "locations": [
+                {
+                  "line": 2,
+                  "column": 3
+                }
+              ],
               "path": [
                 "me"
               ],
@@ -888,6 +906,12 @@ fn custom_path() {
           "errors": [
             {
               "message": "Request to subgraph 'accounts' failed.",
+              "locations": [
+                {
+                  "line": 2,
+                  "column": 3
+                }
+              ],
               "path": [
                 "me"
               ],
@@ -923,6 +947,12 @@ fn hybrid_graph() {
           "errors": [
             {
               "message": "Request to subgraph 'accounts' failed.",
+              "locations": [
+                {
+                  "line": 2,
+                  "column": 3
+                }
+              ],
               "path": [
                 "me"
               ],

@@ -88,10 +88,6 @@ impl<'ctx> ResponseBuilder<'ctx> {
             return PartIngestionResult::SubgraphFailure;
         }
 
-        for value_id in part.propagated_null_at {
-            self.data_parts[value_id.part_id()].make_inaccessible(value_id);
-        }
-
         let mut has_ingested_data = false;
         let shapes = &self.operation.cached.shapes;
         for update in part.object_updates {
@@ -105,6 +101,13 @@ impl<'ctx> ResponseBuilder<'ctx> {
                     self.merge_with_default_object(id, &shapes[default_field_ids]);
                 }
             }
+        }
+
+        // Must be done after object updates, as it'll add nulls if the field doesn't exist yet.
+        // And we don't merge null with something else than null, as we treat it as an indicator
+        // that something went wrong.
+        for value_id in part.propagated_null_at {
+            self.data_parts[value_id.part_id()].make_inaccessible(value_id);
         }
 
         if has_ingested_data {

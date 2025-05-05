@@ -59,7 +59,7 @@ pub(crate) async fn execute_subgraph_request<'ctx, R: Runtime>(
             Err(err) => {
                 ctx.set_as_hook_error();
                 ctx.push_request_execution(SubgraphRequestExecutionKind::HookError);
-                Err((err, ctx))
+                Err(err)
             }
         }
     }
@@ -147,35 +147,36 @@ pub(crate) async fn execute_subgraph_request<'ctx, R: Runtime>(
                             http_response.status().as_u16(),
                             String::from_utf8_lossy(http_response.body())
                         );
-                        Err((
-                            GraphqlError::new(
-                                format!("Request failed with status code: {}", http_response.status().as_u16()),
-                                ErrorCode::SubgraphRequestError,
-                            ),
-                            ctx,
+                        Err(GraphqlError::new(
+                            format!("Request failed with status code: {}", http_response.status().as_u16()),
+                            ErrorCode::SubgraphRequestError,
                         ))
                     }
                 }
                 Err(err) => {
                     ctx.set_as_http_error(err.as_fetch_invalid_status_code());
-                    Err((err.into(), ctx))
+                    Err(err.into())
                 }
             }
         },
     )
     .await;
 
-    let ((status, response_part), ctx) = match result {
-        Ok((response, ctx)) => (ingester.ingest(Ok(response), response_part).await, ctx),
-        Err((err, ctx)) => (ingester.ingest(Err(err), response_part).await, ctx),
-    };
-    if let Some(status) = status {
-        ctx.set_graphql_response_status(status);
-    } else {
-        ctx.set_as_invalid_response();
+    match result {
+        Ok((response, ctx)) => {
+            let (status, response_part) = ingester.ingest(Ok(response), response_part).await;
+            if let Some(status) = status {
+                ctx.set_graphql_response_status(status);
+            } else {
+                ctx.set_as_invalid_response();
+            }
+            response_part
+        }
+        Err(err) => {
+            let (_, response_part) = ingester.ingest(Err(err), response_part).await;
+            response_part
+        }
     }
-
-    response_part
 }
 
 pub(crate) async fn retrying_fetch<R: Runtime, F, T>(

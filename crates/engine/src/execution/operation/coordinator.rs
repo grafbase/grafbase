@@ -376,6 +376,10 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
     where
         'ctx: 'exec,
     {
+        if let Some(output) = on_subgraph_response_hook_output {
+            self.executed_operation_builder.push_on_subgraph_response_output(output);
+        }
+
         let PartIngestionResult::Data { response_object_sets } = self.response.ingest(response_part) else {
             tracing::trace!(%plan_id, "Failed");
             return (self, Vec::new());
@@ -404,10 +408,6 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
                     stack.append(&mut self.state.get_next_executables(response_modifier));
                 }
             }
-        }
-
-        if let Some(output) = on_subgraph_response_hook_output {
-            self.executed_operation_builder.push_on_subgraph_response_output(output);
         }
 
         (self, next_futures)

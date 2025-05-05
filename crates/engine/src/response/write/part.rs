@@ -75,12 +75,10 @@ impl<'ctx> ResponsePartBuilder<'ctx> {
     }
 
     pub fn insert_fields_update(&mut self, parent_object: &ResponseObjectRef, fields: Vec<ResponseObjectField>) {
-        tracing::trace!("Updating fields");
         self.object_updates.push(ObjectUpdate::Fields(parent_object.id, fields));
     }
 
     pub fn insert_empty_update(&mut self, parent_object: &ResponseObjectRef, shape_id: RootFieldsShapeId) {
-        tracing::trace!("Inserting empty update");
         let shape = shape_id.walk((self.schema, self.operation));
         match shape.on_error {
             OnRootFieldsError::PropagateNull { .. } => {
@@ -104,9 +102,8 @@ impl<'ctx> ResponsePartBuilder<'ctx> {
         >,
         shape_id: RootFieldsShapeId,
     ) {
-        tracing::trace!("Inserting empty update");
-        let shape = shape_id.walk((self.schema, self.operation));
         let parent_objects = parent_objects.into_iter();
+        let shape = shape_id.walk((self.schema, self.operation));
         match shape.on_error {
             OnRootFieldsError::PropagateNull { .. } => {
                 self.propagated_null_at.reserve(parent_objects.len());
@@ -128,7 +125,6 @@ impl<'ctx> ResponsePartBuilder<'ctx> {
     }
 
     pub fn insert_propagated_empty_update(&mut self, parent_object: &ResponseObjectRef, shape_id: RootFieldsShapeId) {
-        tracing::trace!("Inserting propagated empty update");
         let shape = shape_id.walk((self.schema, self.operation));
         match shape.on_error {
             OnRootFieldsError::Default {
@@ -147,7 +143,6 @@ impl<'ctx> ResponsePartBuilder<'ctx> {
         shape_id: RootFieldsShapeId,
         error: GraphqlError,
     ) {
-        tracing::trace!("Inserting error update");
         let shape = shape_id.walk((self.schema, self.operation));
         match shape.on_error {
             OnRootFieldsError::PropagateNull {
@@ -179,9 +174,8 @@ impl<'ctx> ResponsePartBuilder<'ctx> {
         shape_id: RootFieldsShapeId,
         error: GraphqlError,
     ) {
-        tracing::trace!("Inserting subgraph failure");
-        let shape = shape_id.walk((self.schema, self.operation));
         let mut parent_objects = parent_objects.into_iter();
+        let shape = shape_id.walk((self.schema, self.operation));
         if let Some(first_parent_object) = parent_objects.next() {
             match shape.on_error {
                 OnRootFieldsError::PropagateNull {

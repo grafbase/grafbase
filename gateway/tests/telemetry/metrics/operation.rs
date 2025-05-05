@@ -120,12 +120,18 @@ fn used_fields_should_be_unique() {
             .send()
             .await;
 
-        insta::assert_json_snapshot!(resp, @r###"
+        insta::assert_json_snapshot!(resp, @r#"
         {
           "data": null,
           "errors": [
             {
               "message": "Request to subgraph 'accounts' failed.",
+              "locations": [
+                {
+                  "line": 3,
+                  "column": 21
+                }
+              ],
               "path": [
                 "me"
               ],
@@ -135,7 +141,7 @@ fn used_fields_should_be_unique() {
             }
           ]
         }
-        "###);
+        "#);
 
         tokio::time::sleep(METRICS_DELAY).await;
 
@@ -306,6 +312,12 @@ fn field_error() {
           "errors": [
             {
               "message": "Request to subgraph 'accounts' failed.",
+              "locations": [
+                {
+                  "line": 1,
+                  "column": 27
+                }
+              ],
               "path": [
                 "me"
               ],
@@ -362,6 +374,12 @@ fn field_error_data_null() {
           "errors": [
             {
               "message": "Request to subgraph 'accounts' failed.",
+              "locations": [
+                {
+                  "line": 1,
+                  "column": 16
+                }
+              ],
               "path": [
                 "me"
               ],
@@ -762,6 +780,12 @@ fn graphql_errors() {
           "errors": [
             {
               "message": "Request to subgraph 'accounts' failed.",
+              "locations": [
+                {
+                  "line": 3,
+                  "column": 21
+                }
+              ],
               "path": [
                 "me"
               ],
