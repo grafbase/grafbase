@@ -111,6 +111,7 @@ fn match_composite_schemas_directive_by_original_name(original_name: &str) -> Di
         KEY => DirectiveNameMatch::KeyFromCompositeSchemas,
         REQUIRE => DirectiveNameMatch::Require,
         SHAREABLE => DirectiveNameMatch::Shareable,
+        IS => DirectiveNameMatch::Is,
         _ => DirectiveNameMatch::NoMatch,
     }
 }
@@ -156,6 +157,7 @@ pub(in crate::ingest_subgraph) enum DirectiveNameMatch {
     // Composite schemas built-ins
     Lookup,
     Require,
+    Is,
     KeyFromCompositeSchemas,
 
     // Federation built-ins
