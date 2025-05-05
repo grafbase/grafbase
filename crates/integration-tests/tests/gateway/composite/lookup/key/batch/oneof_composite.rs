@@ -12,7 +12,7 @@ fn arg_with_same_name() {
                 r#"
                 extend schema
                     @link(url: "static-1.0.0", import: ["@init"])
-                    @link(url: "https://specs.grafbase.com/composite-schema/v1", import: ["@lookup", "@key"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
                     @init
 
                 type Query {
@@ -75,7 +75,7 @@ fn nullable_lookup() {
                 r#"
                 extend schema
                     @link(url: "static-1.0.0", import: ["@init"])
-                    @link(url: "https://specs.grafbase.com/composite-schema/v1", import: ["@lookup", "@key"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
                     @init
 
                 type Query {
@@ -138,7 +138,7 @@ fn arg_type_compatibility_inner_nullable() {
                 r#"
                 extend schema
                     @link(url: "static-1.0.0", import: ["@init"])
-                    @link(url: "https://specs.grafbase.com/composite-schema/v1", import: ["@lookup", "@key"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
                     @init
 
                 type Query {
@@ -201,7 +201,7 @@ fn arg_with_same_name_and_extra_input_field() {
                 r#"
                 extend schema
                     @link(url: "static-1.0.0", import: ["@init"])
-                    @link(url: "https://specs.grafbase.com/composite-schema/v1", import: ["@lookup", "@key"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
                     @init
 
                 type Query {
@@ -265,7 +265,7 @@ fn arg_with_different_name() {
                 r#"
                 extend schema
                     @link(url: "static-1.0.0", import: ["@init"])
-                    @link(url: "https://specs.grafbase.com/composite-schema/v1", import: ["@lookup", "@key"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
                     @init
 
                 type Query {
@@ -328,7 +328,7 @@ fn arg_with_different_name_and_extra_optional_arg_with_matching_name() {
                 r#"
                 extend schema
                     @link(url: "static-1.0.0", import: ["@init"])
-                    @link(url: "https://specs.grafbase.com/composite-schema/v1", import: ["@lookup", "@key"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
                     @init
 
                 type Query {
@@ -393,7 +393,7 @@ fn not_a_list() {
                 r#"
                 extend schema
                     @link(url: "static-1.0.0", import: ["@init"])
-                    @link(url: "https://specs.grafbase.com/composite-schema/v1", import: ["@lookup", "@key"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
                     @init
 
                 type Query {
@@ -440,7 +440,7 @@ fn ambiguous_multiple_arg_matches() {
                 r#"
                 extend schema
                     @link(url: "static-1.0.0", import: ["@init"])
-                    @link(url: "https://specs.grafbase.com/composite-schema/v1", import: ["@lookup", "@key"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
                     @init
 
                 type Query {
@@ -487,7 +487,7 @@ fn ambiguous_multiple_oneof_input_field_matches() {
                 r#"
                 extend schema
                     @link(url: "static-1.0.0", import: ["@init"])
-                    @link(url: "https://specs.grafbase.com/composite-schema/v1", import: ["@lookup", "@key"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
                     @init
 
                 type Query {
@@ -535,7 +535,7 @@ fn ambiguous_multiple_input_field_matches() {
                 r#"
                 extend schema
                     @link(url: "static-1.0.0", import: ["@init"])
-                    @link(url: "https://specs.grafbase.com/composite-schema/v1", import: ["@lookup", "@key"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
                     @init
 
                 type Query {
@@ -583,7 +583,7 @@ fn extra_required_argument() {
                 r#"
                 extend schema
                     @link(url: "static-1.0.0", import: ["@init"])
-                    @link(url: "https://specs.grafbase.com/composite-schema/v1", import: ["@lookup", "@key"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
                     @init
 
                 type Query {
@@ -630,7 +630,7 @@ fn extra_required_field() {
                 r#"
                 extend schema
                     @link(url: "static-1.0.0", import: ["@init"])
-                    @link(url: "https://specs.grafbase.com/composite-schema/v1", import: ["@lookup", "@key"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
                     @init
 
                 type Query {
