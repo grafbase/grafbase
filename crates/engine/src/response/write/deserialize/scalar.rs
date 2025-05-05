@@ -7,16 +7,16 @@ use crate::{
     response::{GraphqlError, ResponseValue},
 };
 
-use super::SeedContext;
+use super::SeedState;
 
-pub(crate) struct ScalarTypeSeed<'ctx, 'seed> {
-    pub ctx: &'seed SeedContext<'ctx>,
+pub(crate) struct ScalarTypeSeed<'ctx, 'parent, 'state> {
+    pub state: &'state SeedState<'ctx, 'parent>,
     pub parent_field: &'ctx FieldShapeRecord,
     pub is_required: bool,
     pub ty: ScalarType,
 }
 
-impl<'de> DeserializeSeed<'de> for ScalarTypeSeed<'_, '_> {
+impl<'de> DeserializeSeed<'de> for ScalarTypeSeed<'_, '_, '_> {
     type Value = ResponseValue;
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
@@ -27,7 +27,7 @@ impl<'de> DeserializeSeed<'de> for ScalarTypeSeed<'_, '_> {
     }
 }
 
-impl ScalarTypeSeed<'_, '_> {
+impl ScalarTypeSeed<'_, '_, '_> {
     fn unexpected_type(&self, value: Unexpected<'_>) -> <Self as Visitor<'_>>::Value {
         let expected = match &self.ty {
             ScalarType::String => "a String value",
@@ -40,12 +40,12 @@ impl ScalarTypeSeed<'_, '_> {
             "invalid type: {}, expected {} at '{}'",
             value,
             expected,
-            self.ctx.display_path()
+            self.state.display_path()
         );
 
         if self.parent_field.key.query_position.is_some() {
-            let mut resp = self.ctx.response.borrow_mut();
-            let path = self.ctx.path();
+            let mut resp = self.state.response.borrow_mut();
+            let path = self.state.path();
             // If not required, we don't need to propagate as Unexpected is equivalent to
             // null for users.
             if self.is_required {
@@ -54,7 +54,7 @@ impl ScalarTypeSeed<'_, '_> {
             resp.errors.push(
                 GraphqlError::invalid_subgraph_response()
                     .with_path(path)
-                    .with_location(self.parent_field.id.walk(self.ctx).location()),
+                    .with_location(self.parent_field.id.walk(self.state).location()),
             );
         }
 
@@ -62,7 +62,7 @@ impl ScalarTypeSeed<'_, '_> {
     }
 }
 
-impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
+impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_, '_> {
     type Value = ResponseValue;
     fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         formatter.write_str("any value?")
@@ -331,7 +331,7 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
                     list.reserve(size_hist);
                 }
                 while let Some(value) = seq.next_element_seed(ScalarTypeSeed {
-                    ctx: self.ctx,
+                    state: self.state,
                     parent_field: self.parent_field,
                     is_required: false,
                     ty: ScalarType::Unknown,
@@ -339,7 +339,7 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
                     list.push(value);
                 }
                 Ok(ResponseValue::List {
-                    id: self.ctx.response.borrow_mut().data.push_list(list),
+                    id: self.state.response.borrow_mut().data.push_list(list),
                 })
             }
             _ => {
@@ -360,7 +360,7 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
                 let mut key_values = Vec::new();
                 while let Some(key) = map.next_key::<String>()? {
                     let value = map.next_value_seed(ScalarTypeSeed {
-                        ctx: self.ctx,
+                        state: self.state,
                         parent_field: self.parent_field,
                         is_required: false,
                         ty: ScalarType::Unknown,
@@ -368,7 +368,7 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_> {
                     key_values.push((key, value));
                 }
                 Ok(ResponseValue::Map {
-                    id: self.ctx.response.borrow_mut().data.push_map(key_values),
+                    id: self.state.response.borrow_mut().data.push_map(key_values),
                 })
             }
             _ => {

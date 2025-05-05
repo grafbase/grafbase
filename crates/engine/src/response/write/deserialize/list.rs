@@ -6,21 +6,21 @@ use serde::{
 };
 use walker::Walk;
 
-use super::SeedContext;
+use super::SeedState;
 use crate::{
     prepare::FieldShapeRecord,
     response::{GraphqlError, ResponseValue, ResponseValueId},
 };
 
-pub(super) struct ListSeed<'ctx, 'parent, Seed> {
-    pub ctx: &'parent SeedContext<'ctx>,
+pub(super) struct ListSeed<'ctx, 'parent, 'state, Seed> {
     pub parent_field: &'ctx FieldShapeRecord,
-    pub seed: &'parent Seed,
+    pub state: &'state SeedState<'ctx, 'parent>,
+    pub seed: &'state Seed,
     pub is_required: bool,
     pub element_is_nullable: bool,
 }
 
-impl<'de, Seed> DeserializeSeed<'de> for ListSeed<'_, '_, Seed>
+impl<'de, Seed> DeserializeSeed<'de> for ListSeed<'_, '_, '_, Seed>
 where
     Seed: Clone + DeserializeSeed<'de, Value = ResponseValue>,
 {
@@ -34,7 +34,7 @@ where
     }
 }
 
-impl<'de, Seed> ListSeed<'_, '_, Seed>
+impl<'de, Seed> ListSeed<'_, '_, '_, Seed>
 where
     Seed: Clone + DeserializeSeed<'de, Value = ResponseValue>,
 {
@@ -42,12 +42,12 @@ where
         tracing::error!(
             "invalid type: {}, expected a list at path '{}'",
             value,
-            self.ctx.display_path()
+            self.state.display_path()
         );
 
         if self.parent_field.key.query_position.is_some() {
-            let mut resp = self.ctx.response.borrow_mut();
-            let path = self.ctx.path();
+            let mut resp = self.state.response.borrow_mut();
+            let path = self.state.path();
             // If not required, we don't need to propagate as Unexpected is equivalent to
             // null for users.
             if self.is_required {
@@ -56,7 +56,7 @@ where
             resp.errors.push(
                 GraphqlError::invalid_subgraph_response()
                     .with_path(path)
-                    .with_location(self.parent_field.id.walk(self.ctx).location()),
+                    .with_location(self.parent_field.id.walk(self.state).location()),
             );
         }
 
@@ -64,7 +64,7 @@ where
     }
 }
 
-impl<'de, Seed> Visitor<'de> for ListSeed<'_, '_, Seed>
+impl<'de, Seed> Visitor<'de> for ListSeed<'_, '_, '_, Seed>
 where
     Seed: Clone + DeserializeSeed<'de, Value = ResponseValue>,
 {
@@ -79,28 +79,28 @@ where
         A: SeqAccess<'de>,
     {
         let ListSeed {
-            ctx,
             parent_field,
+            state,
             seed,
             element_is_nullable,
             ..
         } = self;
 
         let mut index: u32 = 0;
-        let list_id = ctx.response.borrow_mut().data.reserve_list_id();
+        let list_id = state.response.borrow_mut().data.reserve_list_id();
         let mut list = Vec::new();
         if let Some(size_hint) = seq.size_hint() {
             list.reserve(size_hint);
         }
 
         loop {
-            ctx.path_mut().push(ResponseValueId::Index {
+            state.local_path_mut().push(ResponseValueId::Index {
                 list_id,
                 index,
                 nullable: element_is_nullable,
             });
             let result = seq.next_element_seed(seed.clone());
-            ctx.path_mut().pop();
+            state.local_path_mut().pop();
             match result {
                 Ok(Some(value)) => {
                     list.push(value);
@@ -110,18 +110,18 @@ where
                     break;
                 }
                 Err(err) => {
-                    if !ctx.bubbling_up_serde_error.get() && parent_field.key.query_position.is_some() {
-                        ctx.bubbling_up_serde_error.set(true);
+                    if !state.bubbling_up_deser_error.replace(true) && parent_field.key.query_position.is_some() {
                         tracing::error!(
                             "Deserialization failure of subgraph response at path '{}': {err}",
-                            self.ctx.display_path()
+                            self.state.display_path()
                         );
-                        let mut resp = ctx.response.borrow_mut();
-                        resp.propagate_null(&ctx.path());
+                        let mut resp = state.response.borrow_mut();
+                        let path = state.path();
+                        resp.propagate_null(&path);
                         resp.errors.push(
                             GraphqlError::invalid_subgraph_response()
-                                .with_path((ctx.path().as_ref(), index))
-                                .with_location(parent_field.id.walk(ctx).location()),
+                                .with_path((path, index))
+                                .with_location(parent_field.id.walk(state).location()),
                         );
                     }
 
@@ -130,7 +130,7 @@ where
             }
         }
 
-        ctx.response.borrow_mut().data.put_list(list_id, list);
+        state.response.borrow_mut().data.put_list(list_id, list);
         Ok(list_id.into())
     }
 

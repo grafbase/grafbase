@@ -375,12 +375,18 @@ fn test_message_signing_failures() {
         engine.post("query { serverVersion }").await
     });
 
-    insta::assert_json_snapshot!(response, @r###"
+    insta::assert_json_snapshot!(response, @r#"
     {
       "data": null,
       "errors": [
         {
           "message": "Request failed with status code: 403",
+          "locations": [
+            {
+              "line": 1,
+              "column": 9
+            }
+          ],
           "path": [
             "serverVersion"
           ],
@@ -390,7 +396,7 @@ fn test_message_signing_failures() {
         }
       ]
     }
-    "###);
+    "#);
 }
 
 struct SignedGithubSchema {

@@ -174,12 +174,18 @@ fn error_is_propagated_back_to_the_user() {
         engine.post("query { serverVersion }").await
     });
 
-    insta::assert_json_snapshot!(response, @r###"
+    insta::assert_json_snapshot!(response, @r#"
     {
       "data": null,
       "errors": [
         {
           "message": "impossible error",
+          "locations": [
+            {
+              "line": 1,
+              "column": 9
+            }
+          ],
           "path": [
             "serverVersion"
           ],
@@ -190,7 +196,7 @@ fn error_is_propagated_back_to_the_user() {
         }
       ]
     }
-    "###);
+    "#);
 }
 
 #[test]
@@ -219,12 +225,18 @@ fn error_code_is_propagated_back_to_the_user() {
         engine.post("query { serverVersion }").await
     });
 
-    insta::assert_json_snapshot!(response, @r###"
+    insta::assert_json_snapshot!(response, @r#"
     {
       "data": null,
       "errors": [
         {
           "message": "impossible error",
+          "locations": [
+            {
+              "line": 1,
+              "column": 9
+            }
+          ],
           "path": [
             "serverVersion"
           ],
@@ -234,5 +246,5 @@ fn error_code_is_propagated_back_to_the_user() {
         }
       ]
     }
-    "###);
+    "#);
 }

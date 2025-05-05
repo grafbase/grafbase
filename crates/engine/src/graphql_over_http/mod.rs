@@ -5,27 +5,27 @@
 mod format;
 mod response;
 
+use bytes::Bytes;
 use error::ErrorCode;
 pub(crate) use format::*;
 use futures_util::stream::BoxStream;
 use grafbase_telemetry::graphql::GraphqlExecutionTelemetry;
 pub(crate) use response::*;
-use runtime::bytes::OwnedOrSharedBytes;
 
 pub enum Body {
-    Bytes(OwnedOrSharedBytes),
-    Stream(BoxStream<'static, Result<OwnedOrSharedBytes, String>>),
+    Bytes(Bytes),
+    Stream(BoxStream<'static, Result<Bytes, String>>),
 }
 
 impl Body {
-    pub fn into_stream(self) -> BoxStream<'static, Result<OwnedOrSharedBytes, String>> {
+    pub fn into_stream(self) -> BoxStream<'static, Result<Bytes, String>> {
         match self {
             Body::Bytes(bytes) => Box::pin(futures_util::stream::once(async move { Ok(bytes) })),
             Body::Stream(stream) => stream,
         }
     }
 
-    pub fn into_bytes(self) -> Option<OwnedOrSharedBytes> {
+    pub fn into_bytes(self) -> Option<Bytes> {
         match self {
             Body::Bytes(bytes) => Some(bytes),
             Body::Stream(_) => None,
@@ -35,7 +35,7 @@ impl Body {
 
 impl<T> From<T> for Body
 where
-    OwnedOrSharedBytes: From<T>,
+    Bytes: From<T>,
 {
     fn from(bytes: T) -> Self {
         Body::Bytes(bytes.into())

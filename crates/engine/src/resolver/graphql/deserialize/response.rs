@@ -10,8 +10,8 @@ use serde::{
 /// - DataSeed will deserialize the `data` field and doesn't need to return anything.
 /// - ErrorsSeed will deserialize the `errors` field and must return the number of errors.
 pub(in crate::resolver::graphql) struct GraphqlResponseSeed<DataSeed, ErrorsSeed> {
-    data_seed: DataSeed,
-    errors_seed: ErrorsSeed,
+    pub data_seed: DataSeed,
+    pub errors_seed: ErrorsSeed,
 }
 
 impl<DataSeed, ErrorsSeed> GraphqlResponseSeed<DataSeed, ErrorsSeed> {
@@ -50,18 +50,27 @@ where
     where
         A: MapAccess<'de>,
     {
-        let Self { data_seed, errors_seed } = self;
+        let Self {
+            data_seed, errors_seed, ..
+        } = self;
         let mut data_seed = Some(data_seed);
         let mut errors_seed = Some(errors_seed);
 
-        let mut data_is_null_result = Ok(true);
+        let mut data_is_null: Option<bool> = None;
         let mut errors_count = 0;
 
         while let Some(key) = map.next_key::<ResponseKey>()? {
             match key {
                 ResponseKey::Data => {
                     if let Some(seed) = data_seed.take() {
-                        data_is_null_result = map.next_value_seed(NullableDataSeed { seed });
+                        match map.next_value_seed(NullableDataSeed { seed })? {
+                            Some(()) => {
+                                data_is_null = Some(false);
+                            }
+                            None => {
+                                data_is_null = Some(true);
+                            }
+                        }
                     }
                 }
                 ResponseKey::Errors => {
@@ -75,13 +84,17 @@ where
             };
         }
 
-        let data_is_present = data_seed.is_none();
-        let status = if errors_count == 0 {
+        if let Some(seed) = data_seed {
+            seed.deserialize(serde_json::Value::Null)
+                .expect("Deserializer never fails");
+        }
+
+        let status = if data_is_null.is_some() && errors_count == 0 {
             GraphqlResponseStatus::Success
-        } else if data_is_present {
+        } else if let Some(data_is_null) = data_is_null {
             GraphqlResponseStatus::FieldError {
                 count: errors_count as u64,
-                data_is_null: data_is_null_result?,
+                data_is_null,
             }
         } else {
             GraphqlResponseStatus::RequestError {
@@ -101,7 +114,7 @@ impl<'de, Seed> DeserializeSeed<'de> for NullableDataSeed<Seed>
 where
     Seed: DeserializeSeed<'de, Value = ()>,
 {
-    type Value = bool;
+    type Value = Option<()>;
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
     where
@@ -115,7 +128,7 @@ impl<'de, Seed> Visitor<'de> for NullableDataSeed<Seed>
 where
     Seed: DeserializeSeed<'de, Value = ()>,
 {
-    type Value = bool;
+    type Value = Option<()>;
 
     fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str("a nullable value")
@@ -132,15 +145,17 @@ where
     where
         E: serde::de::Error,
     {
-        Ok(true)
+        self.seed
+            .deserialize(serde_json::Value::Null)
+            .expect("Deserializer never fails");
+        Ok(None)
     }
 
     fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
     where
         D: Deserializer<'de>,
     {
-        self.seed.deserialize(deserializer)?;
-        Ok(false)
+        self.seed.deserialize(deserializer).map(Some)
     }
 }
 

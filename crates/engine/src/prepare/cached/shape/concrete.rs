@@ -49,9 +49,10 @@ impl<'ctx> Walk<OperationPlanContext<'ctx>> for ConcreteShapeId {
 #[derive(Clone, Copy)]
 pub(crate) struct ConcreteShape<'a> {
     pub(super) ctx: OperationPlanContext<'a>,
-    pub(super) id: ConcreteShapeId,
+    pub id: ConcreteShapeId,
 }
 
+#[allow(unused)]
 impl<'a> ConcreteShape<'a> {
     /// Prefer using Deref unless you need the 'a lifetime.
     #[allow(clippy::should_implement_trait)]

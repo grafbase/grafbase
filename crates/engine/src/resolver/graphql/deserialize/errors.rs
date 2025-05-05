@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use serde::{Deserializer, de::DeserializeSeed};
 
-use crate::response::{ErrorCode, ErrorPath, GraphqlError, SharedResponsePartBuilder};
+use crate::response::{ErrorCode, ErrorPath, GraphqlError, SeedState};
 
 pub(in crate::resolver::graphql) trait SubgraphToSupergraphErrorPathConverter {
     fn convert(&self, path: serde_json::Value) -> Option<ErrorPath>;
@@ -18,26 +18,22 @@ where
 }
 
 /// Deserialize the `errors` field of a GraphQL response with the help of a ErrorPathConverter.
-pub(in crate::resolver::graphql) struct GraphqlErrorsSeed<'resp, ErrorPathConverter> {
-    pub response_part: SharedResponsePartBuilder<'resp>,
+pub(in crate::resolver::graphql) struct GraphqlErrorsSeed<'ctx, 'parent, 'state, ErrorPathConverter> {
+    pub state: &'state SeedState<'ctx, 'parent>,
     pub path_converter: ErrorPathConverter,
 }
 
-impl<'resp, ErrorPathConverter> GraphqlErrorsSeed<'resp, ErrorPathConverter>
-where
-    ErrorPathConverter: SubgraphToSupergraphErrorPathConverter,
-{
-    pub fn new(response_part: SharedResponsePartBuilder<'resp>, path_converter: ErrorPathConverter) -> Self {
-        Self {
-            response_part,
-            path_converter,
-        }
+impl<'ctx, 'parent, 'state, ErrorPathConverter> GraphqlErrorsSeed<'ctx, 'parent, 'state, ErrorPathConverter> {
+    pub fn new(state: &'state SeedState<'ctx, 'parent>, path_converter: ErrorPathConverter) -> Self
+    where
+        ErrorPathConverter: SubgraphToSupergraphErrorPathConverter,
+    {
+        Self { state, path_converter }
     }
 }
 
-impl<'resp, 'de, ErrorPathConverter> DeserializeSeed<'de> for GraphqlErrorsSeed<'resp, ErrorPathConverter>
+impl<'de, ErrorPathConverter> DeserializeSeed<'de> for GraphqlErrorsSeed<'_, '_, '_, ErrorPathConverter>
 where
-    'resp: 'de,
     ErrorPathConverter: SubgraphToSupergraphErrorPathConverter,
 {
     type Value = usize;
@@ -53,20 +49,17 @@ where
         };
 
         let errors_count = errors.len();
-        let errors = errors
-            .into_iter()
-            .map(|subgraph_error| {
-                let mut error = GraphqlError::new(subgraph_error.message, ErrorCode::SubgraphError);
-                if let Some(path) = self.path_converter.convert(subgraph_error.path) {
-                    error = error.with_path(path);
-                }
-                if let Some(mut extensions) = subgraph_error.extensions {
-                    error.extensions.append(&mut extensions);
-                }
-                error
-            })
-            .collect();
-        self.response_part.borrow_mut().set_subgraph_errors(errors);
+        let mut part = self.state.response.borrow_mut();
+        for subgraph_error in errors {
+            let mut error = GraphqlError::new(subgraph_error.message, ErrorCode::SubgraphError);
+            if let Some(path) = self.path_converter.convert(subgraph_error.path) {
+                error = error.with_path(path);
+            }
+            if let Some(mut extensions) = subgraph_error.extensions {
+                error.extensions.append(&mut extensions);
+            }
+            part.errors.push(error);
+        }
         Ok(errors_count)
     }
 }

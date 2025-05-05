@@ -38,6 +38,12 @@ fn subgraph_retries_mutations_disabled() {
           "errors": [
             {
               "message": "REDACTED",
+              "locations": [
+                {
+                  "line": 1,
+                  "column": 12
+                }
+              ],
               "path": [
                 "incrementAndFailIfLessThan"
               ],
@@ -71,6 +77,12 @@ fn subgraph_retries_mutations_disabled() {
           "errors": [
             {
               "message": "REDACTED",
+              "locations": [
+                {
+                  "line": 1,
+                  "column": 9
+                }
+              ],
               "path": [
                 "incrementAndFailIfLessThan"
               ],

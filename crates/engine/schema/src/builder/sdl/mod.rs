@@ -157,7 +157,8 @@ impl<'a> TryFrom<(&'a str, &'a TypeSystemDocument)> for Sdl<'a> {
                 Definition::Directive(directive_definition) => {
                     // Ignoring federation directives which are often included in the document
                     // directly.
-                    if !directive_definition.name().starts_with("join__") {
+                    let name = directive_definition.name();
+                    if !name.starts_with("join__") && name != "core" && !name.starts_with("composite__") {
                         tracing::warn!("Directive definitions are ignored.")
                     }
                 }

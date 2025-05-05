@@ -70,7 +70,7 @@ impl LookupResolver {
                 async move {
                     let response_part = fut.await;
                     ResolverResult {
-                        execution: Ok(response_part),
+                        response_part,
                         on_subgraph_response_hook_output: None,
                     }
                 }

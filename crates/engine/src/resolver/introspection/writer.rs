@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+
 use schema::{
     EntityDefinition, EnumValue, FieldDefinition, InputValueDefinition, InterfaceDefinition, ListWrapping,
     MutableWrapping, ObjectDefinition, Schema, StringId, Type, TypeDefinition, TypeSystemDirective,
@@ -11,10 +13,8 @@ use walker::{Iter, Walk};
 use crate::{
     Runtime,
     execution::ExecutionContext,
-    prepare::{ConcreteShapeId, FieldShapeRecord, Plan, Shapes, TypenameShapeRecord},
-    response::{
-        ObjectUpdate, ParentObjectId, ResponseObject, ResponseObjectField, ResponseValue, SharedResponsePartBuilder,
-    },
+    prepare::{ConcreteShapeId, FieldShapeRecord, Plan, RootFieldsShape, Shapes, TypenameShapeRecord},
+    response::{ResponseObject, ResponseObjectField, ResponseObjectRef, ResponsePartBuilder, ResponseValue},
 };
 
 pub(super) struct IntrospectionWriter<'ctx, R: Runtime> {
@@ -23,13 +23,12 @@ pub(super) struct IntrospectionWriter<'ctx, R: Runtime> {
     pub shapes: &'ctx Shapes,
     pub metadata: &'ctx IntrospectionSubgraph,
     pub plan: Plan<'ctx>,
-    pub parent_object_id: ParentObjectId,
-    pub response: SharedResponsePartBuilder<'ctx>,
+    pub response: RefCell<ResponsePartBuilder<'ctx>>,
 }
 
 impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
-    pub(super) fn write(self, id: ConcreteShapeId) {
-        let shape = &self.shapes[id];
+    pub(super) fn write(&self, parent_object: &ResponseObjectRef, shape: RootFieldsShape<'ctx>) {
+        let shape = shape.concrete_shape();
         let mut fields = Vec::with_capacity(shape.field_shape_ids.len() + shape.typename_shape_ids.len());
         for field_shape in &self.shapes[shape.field_shape_ids] {
             let field = field_shape.id.as_data().unwrap().walk(&self.ctx);
@@ -67,9 +66,7 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                 });
             }
         }
-        self.response
-            .borrow_mut()
-            .insert(self.parent_object_id, ObjectUpdate::Fields(fields));
+        self.response.borrow_mut().insert_fields_update(parent_object, fields);
     }
 
     fn object<E: Copy, const N: usize>(

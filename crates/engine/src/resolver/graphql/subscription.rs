@@ -4,9 +4,11 @@ use bytes::Bytes;
 use futures::{FutureExt, TryStreamExt};
 use futures_util::{StreamExt, stream::BoxStream};
 use headers::HeaderMapExt;
-use runtime::fetch::{FetchRequest, Fetcher};
+use runtime::{
+    extension::Data,
+    fetch::{FetchRequest, Fetcher},
+};
 use schema::SubscriptionProtocol;
-use serde::de::DeserializeSeed;
 use tracing::Instrument;
 use url::Url;
 
@@ -18,8 +20,7 @@ use super::{
 use crate::{
     Runtime,
     execution::ExecutionError,
-    prepare::{ConcreteShapeId, Plan},
-    resolver::ExecutionResult,
+    prepare::{Plan, RootFieldsShapeId},
     response::{GraphqlError, ResponseBuilder, ResponsePartBuilder},
 };
 
@@ -28,17 +29,26 @@ impl GraphqlResolver {
         &'ctx self,
         ctx: &mut SubgraphContext<'ctx, R>,
         plan: Plan<'ctx>,
-        new_response: impl Fn() -> ResponseBuilder<'ctx> + Send + 'ctx,
-    ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<(ResponseBuilder<'ctx>, ResponsePartBuilder<'ctx>)>>> {
+        new_response: impl Fn() -> ResponseBuilder<'ctx> + Send + Copy + 'ctx,
+    ) -> BoxStream<'ctx, (ResponseBuilder<'ctx>, ResponsePartBuilder<'ctx>)> {
         let endpoint = ctx.endpoint();
-        let shape_id = plan.shape_id();
-        match endpoint.subscription_protocol {
-            SubscriptionProtocol::ServerSentEvents => self.execute_sse_subscription(ctx, shape_id, new_response).await,
+        let shape_id = plan.shape().id;
+        let result = match endpoint.subscription_protocol {
+            SubscriptionProtocol::ServerSentEvents => self.execute_sse_subscription(ctx, new_response, shape_id).await,
             SubscriptionProtocol::Websocket => {
                 let websocket_url = endpoint.websocket_url().unwrap_or_else(|| endpoint.url());
 
-                self.execute_websocket_subscription(ctx, shape_id, new_response, websocket_url)
+                self.execute_websocket_subscription(ctx, new_response, shape_id, websocket_url)
                     .await
+            }
+        };
+        match result {
+            Ok(stream) => stream,
+            Err(err) => {
+                let mut response = new_response();
+                let (_, mut part) = response.create_root_part();
+                part.errors.push(err);
+                Box::pin(futures_util::stream::once(std::future::ready((response, part))))
             }
         }
     }
@@ -46,10 +56,10 @@ impl GraphqlResolver {
     async fn execute_websocket_subscription<'ctx, R: Runtime>(
         &'ctx self,
         ctx: &mut SubgraphContext<'ctx, R>,
-        shape_id: ConcreteShapeId,
         new_response: impl Fn() -> ResponseBuilder<'ctx> + Send + 'ctx,
+        shape_id: RootFieldsShapeId,
         websocket_url: &'ctx Url,
-    ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<(ResponseBuilder<'ctx>, ResponsePartBuilder<'ctx>)>>> {
+    ) -> Result<BoxStream<'ctx, (ResponseBuilder<'ctx>, ResponsePartBuilder<'ctx>)>, GraphqlError> {
         let endpoint = ctx.endpoint();
 
         // If the user doesn't provide an explicit websocket URL we use the normal URL,
@@ -117,26 +127,31 @@ impl GraphqlResolver {
         })?;
 
         let stream = stream
-            .map_err(move |error| ExecutionError::Fetch {
-                subgraph_name: endpoint.subgraph_name().to_string(),
-                error,
+            .map_err(move |error| {
+                GraphqlError::from(ExecutionError::Fetch {
+                    subgraph_name: endpoint.subgraph_name().to_string(),
+                    error,
+                })
             })
-            .map(move |subgraph_response| {
-                let mut subscription_response = new_response();
-                let (input_id, part) = subscription_response.create_root_part();
-                let part = part.into_shared();
+            .map(move |result| {
+                let mut response = new_response();
+                let (parent_object, part) = response.create_root_part();
+                let state = part.into_seed_state(shape_id);
 
-                GraphqlResponseSeed::new(
-                    part.seed(shape_id, input_id),
-                    GraphqlErrorsSeed::new(part.clone(), convert_root_error_path),
-                )
-                .deserialize(subgraph_response?)
-                .map_err(|err| {
-                    tracing::error!("Failed to deserialize subscription response: {}", err);
-                    GraphqlError::invalid_subgraph_response()
-                })?;
+                match result {
+                    Ok(data) => {
+                        let seed = GraphqlResponseSeed::new(
+                            state.parent_seed(&parent_object),
+                            GraphqlErrorsSeed::new(&state, convert_root_error_path),
+                        );
+                        if let Err(Some(error)) = state.deserialize_data_with(data, seed) {
+                            state.insert_error_update(&parent_object, error);
+                        }
+                    }
+                    Err(error) => state.insert_error_update(&parent_object, error),
+                }
 
-                Ok((subscription_response, part.unshare().unwrap()))
+                (response, state.into_response_part())
             });
 
         Ok(Box::pin(stream))
@@ -145,9 +160,9 @@ impl GraphqlResolver {
     async fn execute_sse_subscription<'ctx, R: Runtime>(
         &'ctx self,
         ctx: &mut SubgraphContext<'ctx, R>,
-        shape_id: ConcreteShapeId,
         new_response: impl Fn() -> ResponseBuilder<'ctx> + Send + 'ctx,
-    ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<(ResponseBuilder<'ctx>, ResponsePartBuilder<'ctx>)>>> {
+        shape_id: RootFieldsShapeId,
+    ) -> Result<BoxStream<'ctx, (ResponseBuilder<'ctx>, ResponsePartBuilder<'ctx>)>, GraphqlError> {
         let endpoint = ctx.endpoint();
 
         let request = {
@@ -159,7 +174,10 @@ impl GraphqlResolver {
                     extra_variables: Vec::new(),
                 },
             })
-            .map_err(|err| format!("Failed to serialize query: {err}"))?;
+            .map_err(|err| {
+                tracing::error!("Failed to serialize query: {err}");
+                GraphqlError::internal_server_error()
+            })?;
 
             let headers = ctx.subgraph_headers_with_rules(endpoint.header_rules());
             let req = runtime::hooks::SubgraphRequest {
@@ -206,26 +224,31 @@ impl GraphqlResolver {
         })?;
 
         let stream = stream
-            .map_err(move |error| ExecutionError::Fetch {
-                subgraph_name: endpoint.subgraph_name().to_string(),
-                error,
+            .map_err(move |error| {
+                GraphqlError::from(ExecutionError::Fetch {
+                    subgraph_name: endpoint.subgraph_name().to_string(),
+                    error,
+                })
             })
-            .map(move |subgraph_response| {
+            .map(move |result| {
                 let mut response = new_response();
-                let (root_object_id, part) = response.create_root_part();
-                let part = part.into_shared();
+                let (parent_object, part) = response.create_root_part();
+                let state = part.into_seed_state(shape_id);
 
-                GraphqlResponseSeed::new(
-                    part.seed(shape_id, root_object_id),
-                    GraphqlErrorsSeed::new(part.clone(), convert_root_error_path),
-                )
-                .deserialize(&mut serde_json::Deserializer::from_slice(&subgraph_response?))
-                .map_err(|err| {
-                    tracing::error!("Failed to deserialize subscription response: {}", err);
-                    GraphqlError::invalid_subgraph_response()
-                })?;
+                match result {
+                    Ok(bytes) => {
+                        let seed = GraphqlResponseSeed::new(
+                            state.parent_seed(&parent_object),
+                            GraphqlErrorsSeed::new(&state, convert_root_error_path),
+                        );
+                        if let Err(Some(error)) = state.deserialize_data_with(&Data::Json(bytes), seed) {
+                            state.insert_error_update(&parent_object, error);
+                        }
+                    }
+                    Err(error) => state.insert_error_update(&parent_object, error),
+                }
 
-                Ok((response, part.unshare().unwrap()))
+                (response, state.into_response_part())
             });
 
         Ok(Box::pin(stream))

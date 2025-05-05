@@ -209,8 +209,7 @@ impl<'a> Solver<'a> {
             input_id,
             // Populated later
             required_fields_record: Default::default(),
-            shape_id: ConcreteShapeId::from(0usize),
-            shape_id_without_lookup_fields: None,
+            shape_id: RootFieldsShapeId::from(0usize),
         });
         self.query_partition_to_node.push((query_partition_id, source_ix));
     }

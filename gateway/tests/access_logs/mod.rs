@@ -212,12 +212,18 @@ fn with_working_subgraph_rate_limited() {
             .send()
             .await;
 
-        insta::assert_json_snapshot!(resp, @r###"
+        insta::assert_json_snapshot!(resp, @r#"
         {
           "data": null,
           "errors": [
             {
               "message": "Too many requests",
+              "locations": [
+                {
+                  "line": 1,
+                  "column": 16
+                }
+              ],
               "path": [
                 "me"
               ],
@@ -227,7 +233,7 @@ fn with_working_subgraph_rate_limited() {
             }
           ]
         }
-        "###);
+        "#);
     });
 
     let result: Vec<_> = std::fs::read_to_string(tmpdir.path().join("access.log"))
@@ -327,6 +333,12 @@ fn with_broken_subgraph() {
           "errors": [
             {
               "message": "Request to subgraph 'accounts' failed.",
+              "locations": [
+                {
+                  "line": 1,
+                  "column": 16
+                }
+              ],
               "path": [
                 "me"
               ],
@@ -413,6 +425,12 @@ fn with_broken_subgraph_retried() {
           "errors": [
             {
               "message": "Request to subgraph 'accounts' failed.",
+              "locations": [
+                {
+                  "line": 1,
+                  "column": 16
+                }
+              ],
               "path": [
                 "me"
               ],
@@ -602,6 +620,12 @@ fn with_subgraph_status_500() {
           "errors": [
             {
               "message": "Request to subgraph 'accounts' failed.",
+              "locations": [
+                {
+                  "line": 1,
+                  "column": 16
+                }
+              ],
               "path": [
                 "me"
               ],
@@ -688,6 +712,12 @@ fn with_subgraph_status_500_retried() {
           "errors": [
             {
               "message": "Request to subgraph 'accounts' failed.",
+              "locations": [
+                {
+                  "line": 1,
+                  "column": 16
+                }
+              ],
               "path": [
                 "me"
               ],

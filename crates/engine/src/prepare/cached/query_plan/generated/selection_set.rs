@@ -12,7 +12,7 @@ use walker::{Iter, Walk};
 /// Generated from:
 ///
 /// ```custom,{.language-graphql}
-/// type PartitionSelectionSet @meta(module: "selection_set", derive: ["Default"]) @copy {
+/// type PartitionSelectionSet @meta(module: "selection_set", derive: ["Default"], debug: false) @copy {
 ///   data_fields_ordered_by_parent_entity_then_key: [DataField!]!
 ///     @field(record_field_name: "data_field_ids_ordered_by_parent_entity_then_key")
 ///   typename_fields: [TypenameField!]!

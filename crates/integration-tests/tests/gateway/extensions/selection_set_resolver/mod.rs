@@ -1,6 +1,7 @@
 mod alias;
 mod config;
 mod errors;
+mod lookup;
 mod selection_set;
 mod subgraph_schema;
 

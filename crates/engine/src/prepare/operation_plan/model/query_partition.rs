@@ -1,7 +1,7 @@
 use schema::ResolverDefinition;
 use walker::Walk;
 
-use crate::prepare::{QueryPartitionId, QueryPartitionRecord};
+use crate::prepare::{QueryPartitionId, QueryPartitionRecord, RootFieldsShapeId};
 
 use super::{OperationPlanContext, SubgraphSelectionSet};
 
@@ -17,6 +17,10 @@ impl<'a> PlanQueryPartition<'a> {
     // before query modifications. It's likely not what you want.
     fn as_ref(&self) -> &'a QueryPartitionRecord {
         &self.ctx.cached.query_plan[self.id]
+    }
+
+    pub(crate) fn shape_id(&self) -> RootFieldsShapeId {
+        self.as_ref().shape_id
     }
 
     pub(crate) fn resolver_definition(&self) -> ResolverDefinition<'a> {

@@ -15,7 +15,7 @@ scalar String @prelude
 # - QueryPartition -
 # ------------------
 
-scalar ConcreteShapeId @prelude @id
+scalar RootFieldsShapeId @prelude @id
 scalar RequiredFieldSet @record
 
 type QueryPartition @indexed(id_size: "u16") @meta(module: "query_partition") {
@@ -24,8 +24,7 @@ type QueryPartition @indexed(id_size: "u16") @meta(module: "query_partition") {
   selection_set: PartitionSelectionSet!
   required_fields: RequiredFieldSet!
   input: ResponseObjectSetDefinition!
-  shape_id: ConcreteShapeId!
-  shape_id_without_lookup_fields: ConcreteShapeId
+  shape_id: RootFieldsShapeId!
 }
 
 type ResponseObjectSetDefinition @meta(module: "response_object_set") @indexed(id_size: "u16", deduplicated: true) {

@@ -2,8 +2,6 @@ use std::sync::Arc;
 
 use schema::{CompositeTypeId, ObjectDefinitionId, Schema};
 
-use crate::prepare::ResponseObjectSetDefinitionId;
-
 use super::{ResponseObjectId, ResponseValueId};
 
 /// A "fat" reference to a response object. We keep track of its path for further execution and its
@@ -18,22 +16,6 @@ pub(crate) struct ResponseObjectRef {
 /// A ResponseObjectSet hols all the response object references for a given selection sets,
 /// eventually with some filtering.
 pub(crate) type ResponseObjectSet = Vec<ResponseObjectRef>;
-
-/// A Plan can be summarized to adding fields to an existing response object. Root plan obviously update the
-/// root object (Query, etc..). All other plan root response objects are produced by a parent
-/// plan. So a parent plan will keep track of all the response objects that will be used by later
-/// plans or response modifiers. `OutputResponseObjectSets` contains all of those and is created
-/// after plan execution.
-pub(crate) struct OutputResponseObjectSets {
-    pub(super) ids: Vec<ResponseObjectSetDefinitionId>,
-    pub(super) sets: Vec<ResponseObjectSet>,
-}
-
-impl OutputResponseObjectSets {
-    pub fn into_iter(self) -> impl Iterator<Item = (ResponseObjectSetDefinitionId, ResponseObjectSet)> {
-        self.ids.into_iter().zip(self.sets).filter(|(_, set)| !set.is_empty())
-    }
-}
 
 const SET_INDEX_SHIFT: u32 = 24;
 const MAX_SET_INDEX: usize = (1 << (u32::BITS - SET_INDEX_SHIFT)) as usize;
@@ -58,7 +40,7 @@ pub(crate) struct ParentObjects {
 }
 
 impl ParentObjects {
-    pub(crate) fn with_response_objects(mut self, refs: Arc<ResponseObjectSet>) -> Self {
+    pub fn with_response_objects(mut self, refs: Arc<ResponseObjectSet>) -> Self {
         let n = self.indices.len();
         self.indices.reserve_exact(refs.len());
         self.sets.push(refs);
@@ -75,7 +57,7 @@ impl ParentObjects {
         self
     }
 
-    pub(crate) fn with_filtered_response_objects(
+    pub fn with_filtered_response_objects(
         mut self,
         schema: &Schema,
         ty_id: CompositeTypeId,
@@ -121,19 +103,11 @@ impl ParentObjects {
         self
     }
 
-    pub(crate) fn ids(&self) -> impl DoubleEndedIterator<Item = ParentObjectId> {
-        (0..self.indices.len()).map(ParentObjectId::from)
+    pub fn iter(&self) -> impl ExactSizeIterator<Item = &ResponseObjectRef> {
+        self.into_iter()
     }
 
-    pub(crate) fn iter(&self) -> impl Iterator<Item = &ResponseObjectRef> {
-        self.indices.iter().map(|&index| {
-            let set_idex = (index >> SET_INDEX_SHIFT) as usize;
-            let object_index = (index & OBJECT_INDEX_MASK) as usize;
-            &self.sets[set_idex][object_index]
-        })
-    }
-
-    pub(crate) fn iter_with_id(&self) -> impl Iterator<Item = (ParentObjectId, &ResponseObjectRef)> {
+    pub fn iter_with_id(&self) -> impl Iterator<Item = (ParentObjectId, &ResponseObjectRef)> {
         self.indices.iter().enumerate().map(move |(id, index)| {
             let set_idex = (index >> SET_INDEX_SHIFT) as usize;
             let object_index = (index & OBJECT_INDEX_MASK) as usize;
@@ -141,15 +115,15 @@ impl ParentObjects {
         })
     }
 
-    pub(crate) fn len(&self) -> usize {
+    pub fn len(&self) -> usize {
         self.indices.len()
     }
 
-    pub(crate) fn is_empty(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         self.indices.is_empty()
     }
 
-    pub(crate) fn get(&self, i: usize) -> Option<&ResponseObjectRef> {
+    pub fn get(&self, i: usize) -> Option<&ResponseObjectRef> {
         self.indices
             .get(i)
             .map(|index| &self.sets[(index >> SET_INDEX_SHIFT) as usize][(index & OBJECT_INDEX_MASK) as usize])
@@ -170,5 +144,38 @@ impl std::ops::Index<usize> for ParentObjects {
     type Output = ResponseObjectRef;
     fn index(&self, index: usize) -> &Self::Output {
         self.get(index).expect("Out of bounds")
+    }
+}
+
+impl<'a> IntoIterator for &'a ParentObjects {
+    type Item = &'a ResponseObjectRef;
+    type IntoIter = ParentObjectIter<'a>;
+    fn into_iter(self) -> Self::IntoIter {
+        ParentObjectIter {
+            parent_objects: self,
+            indices_iter: self.indices.iter(),
+        }
+    }
+}
+
+pub(crate) struct ParentObjectIter<'a> {
+    parent_objects: &'a ParentObjects,
+    indices_iter: std::slice::Iter<'a, u32>,
+}
+
+impl ExactSizeIterator for ParentObjectIter<'_> {
+    fn len(&self) -> usize {
+        self.indices_iter.len()
+    }
+}
+
+impl<'a> Iterator for ParentObjectIter<'a> {
+    type Item = &'a ResponseObjectRef;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.indices_iter.next().map(|index| {
+            let set_idex = (index >> SET_INDEX_SHIFT) as usize;
+            let object_index = (index & OBJECT_INDEX_MASK) as usize;
+            &self.parent_objects.sets[set_idex][object_index]
+        })
     }
 }

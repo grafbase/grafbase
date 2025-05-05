@@ -1,6 +1,8 @@
 use operation::{PositionedResponseKey, ResponseKey};
 use schema::{ObjectDefinitionId, StringId};
 
+use crate::prepare::DefaultFieldShape;
+
 use super::{ResponseInaccessibleValueId, ResponseListId, ResponseMapId, ResponseObjectId};
 
 #[derive(Debug)]
@@ -41,17 +43,12 @@ impl ResponseObject {
     }
 }
 
-impl std::ops::Index<usize> for ResponseObject {
-    type Output = ResponseValue;
-
-    fn index(&self, index: usize) -> &Self::Output {
-        &self.fields_sorted_by_key[index].value
-    }
-}
-
-impl std::ops::IndexMut<usize> for ResponseObject {
-    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        &mut self.fields_sorted_by_key[index].value
+impl From<&DefaultFieldShape> for ResponseObjectField {
+    fn from(field: &DefaultFieldShape) -> Self {
+        Self {
+            key: field.key,
+            value: field.value.into(),
+        }
     }
 }
 

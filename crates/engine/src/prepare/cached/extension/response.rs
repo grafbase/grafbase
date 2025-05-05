@@ -10,7 +10,7 @@ use super::{ArgumentsContext, template::JsonContent};
 pub struct ExtensionDirectiveArgumentsResponseObjectsView<'a> {
     pub(super) ctx: ArgumentsContext<'a>,
     pub(super) arguments: Vec<(&'a str, &'a ExtensionInputValueRecord)>,
-    pub(super) response_objects_view: ParentObjectsView<'a>,
+    pub(super) response_objects_view: &'a ParentObjectsView<'a>,
 }
 
 impl ExtensionDirectiveArgumentsResponseObjectsView<'_> {

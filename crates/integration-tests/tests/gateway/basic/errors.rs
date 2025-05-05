@@ -31,6 +31,12 @@ fn subgraph_no_response() {
       "errors": [
         {
           "message": "Invalid response from subgraph",
+          "locations": [
+            {
+              "line": 3,
+              "column": 13
+            }
+          ],
           "path": [
             "me"
           ],
@@ -60,18 +66,7 @@ fn subgraph_no_response() {
     });
     insta::assert_json_snapshot!(response, @r#"
     {
-      "data": null,
-      "errors": [
-        {
-          "message": "Invalid response from subgraph",
-          "path": [
-            "me"
-          ],
-          "extensions": {
-            "code": "SUBGRAPH_INVALID_RESPONSE_ERROR"
-          }
-        }
-      ]
+      "data": null
     }
     "#);
 }
@@ -260,7 +255,7 @@ fn sugraph_successful_response_with_errors_null() {
 }
 
 #[test]
-fn invalid_response_for_nullable_field() {
+fn missing_data_for_nullable_field() {
     let response = integration_tests::runtime().block_on(async {
         DeterministicEngine::new(
             SCHEMA,
@@ -279,18 +274,32 @@ fn invalid_response_for_nullable_field() {
     {
       "data": {
         "name": null
-      },
-      "errors": [
-        {
-          "message": "Invalid response from subgraph",
-          "path": [
-            "name"
-          ],
-          "extensions": {
-            "code": "SUBGRAPH_INVALID_RESPONSE_ERROR"
-          }
+      }
+    }
+    "#);
+}
+
+#[test]
+fn missing_data_for_required_field() {
+    let response = integration_tests::runtime().block_on(async {
+        DeterministicEngine::new(
+            SCHEMA,
+            r#"
+        query ExampleQuery {
+           me {
+               id
+           }
         }
-      ]
+        "#,
+            &[json!({})],
+        )
+        .await
+        .execute()
+        .await
+    });
+    insta::assert_json_snapshot!(response, @r#"
+    {
+      "data": null
     }
     "#);
 }
@@ -333,7 +342,7 @@ fn subgraph_field_error() {
 }
 
 #[test]
-fn simple_error() {
+fn missing_entity_requirements() {
     let response = integration_tests::runtime().block_on(async { DeterministicEngine::new(
         SCHEMA,
         indoc::indoc! {"

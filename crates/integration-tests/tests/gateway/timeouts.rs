@@ -80,6 +80,12 @@ fn subgraph_timeout() {
           "errors": [
             {
               "message": "Request to subgraph 'slow' failed.",
+              "locations": [
+                {
+                  "line": 1,
+                  "column": 23
+                }
+              ],
               "path": [
                 "verySlow"
               ],
@@ -104,6 +110,12 @@ fn subgraph_timeout() {
           "errors": [
             {
               "message": "Request to subgraph 'slow' failed.",
+              "locations": [
+                {
+                  "line": 1,
+                  "column": 23
+                }
+              ],
               "path": [
                 "verySlow"
               ],

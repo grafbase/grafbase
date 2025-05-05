@@ -7,7 +7,6 @@ use bytes::Bytes;
 use engine::Body;
 use futures::{StreamExt, TryStreamExt};
 use runtime::{
-    bytes::OwnedOrSharedBytes,
     fetch::{FetchRequest, FetchResult, dynamic::DynFetcher},
     hooks::ResponseInfo,
 };
@@ -123,7 +122,7 @@ impl DeterministicEngine {
 
     pub async fn execute(&self) -> GraphqlResponse {
         let (parts, body) = self.raw_execute().await.into_parts();
-        let bytes = Bytes::from(body.into_bytes().unwrap());
+        let bytes = body.into_bytes().unwrap();
         http::Response::from_parts(parts, bytes).try_into().unwrap()
     }
 
@@ -150,12 +149,12 @@ impl DeterministicEngine {
 }
 
 struct DummyFetcher {
-    responses: Arc<Vec<http::Response<OwnedOrSharedBytes>>>,
+    responses: Arc<Vec<http::Response<Bytes>>>,
     index: Arc<AtomicUsize>,
 }
 
 impl DummyFetcher {
-    fn new(responses: Vec<http::Response<OwnedOrSharedBytes>>, index: Arc<AtomicUsize>) -> Self {
+    fn new(responses: Vec<http::Response<Bytes>>, index: Arc<AtomicUsize>) -> Self {
         Self {
             responses: Arc::new(responses),
             index,
@@ -168,7 +167,7 @@ impl DynFetcher for DummyFetcher {
     async fn fetch(
         &self,
         _request: FetchRequest<'_, Bytes>,
-    ) -> (FetchResult<http::Response<OwnedOrSharedBytes>>, Option<ResponseInfo>) {
+    ) -> (FetchResult<http::Response<Bytes>>, Option<ResponseInfo>) {
         let result = Ok(self
             .responses
             .get(self.index.fetch_add(1, Ordering::Relaxed))

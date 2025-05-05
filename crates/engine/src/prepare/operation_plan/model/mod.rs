@@ -10,7 +10,7 @@ use id_newtypes::IdRange;
 use schema::Schema;
 use walker::{Iter, Walk};
 
-use crate::prepare::{CachedOperation, CachedOperationContext, Shapes};
+use crate::prepare::{CachedOperation, CachedOperationContext, PreparedOperation, Shapes};
 
 use super::QueryModifications;
 
@@ -24,6 +24,16 @@ pub(crate) struct OperationPlanContext<'a> {
     pub schema: &'a Schema,
     pub cached: &'a CachedOperation,
     pub plan: &'a OperationPlan,
+}
+
+impl<'ctx> From<(&'ctx Schema, &'ctx PreparedOperation)> for OperationPlanContext<'ctx> {
+    fn from((schema, operation): (&'ctx Schema, &'ctx PreparedOperation)) -> Self {
+        OperationPlanContext {
+            schema,
+            cached: &operation.cached,
+            plan: &operation.plan,
+        }
+    }
 }
 
 impl<'ctx> From<OperationPlanContext<'ctx>> for CachedOperationContext<'ctx> {

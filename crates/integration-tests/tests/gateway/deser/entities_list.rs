@@ -241,6 +241,12 @@ fn expected_required_object_got_too_few_entities() {
       "errors": [
         {
           "message": "Invalid response from subgraph",
+          "locations": [
+            {
+              "line": 5,
+              "column": 13
+            }
+          ],
           "path": [
             "users",
             1,
@@ -292,6 +298,12 @@ fn expected_nullable_object_got_too_few_entities() {
       "errors": [
         {
           "message": "Invalid response from subgraph",
+          "locations": [
+            {
+              "line": 5,
+              "column": 13
+            }
+          ],
           "path": [
             "users",
             1,

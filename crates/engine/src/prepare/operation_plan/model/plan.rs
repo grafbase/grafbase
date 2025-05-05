@@ -1,9 +1,7 @@
 use schema::{EntityDefinition, ResolverDefinition};
 use walker::Walk;
 
-use crate::prepare::{
-    ConcreteShape, ConcreteShapeId, DataOrLookupFieldId, QueryPartition, ResponseObjectSetDefinitionId,
-};
+use crate::prepare::{DataOrLookupFieldId, QueryPartition, ResponseObjectSetDefinitionId, RootFieldsShape};
 
 use super::{Plan, SubgraphField, SubgraphSelectionSet};
 
@@ -28,13 +26,7 @@ impl<'a> Plan<'a> {
     pub(crate) fn selection_set(&self) -> SubgraphSelectionSet<'a> {
         self.ctx.view(self.query_partition_id).selection_set()
     }
-    pub(crate) fn shape_id(&self) -> ConcreteShapeId {
-        self.query_partition().shape_id
-    }
-    pub(crate) fn shape_id_without_lookup_fields(&self) -> Option<ConcreteShapeId> {
-        self.query_partition().shape_id_without_lookup_fields
-    }
-    pub(crate) fn shape(&self) -> ConcreteShape<'a> {
+    pub(crate) fn shape(&self) -> RootFieldsShape<'a> {
         self.query_partition().shape_id.walk(self.ctx)
     }
     pub(crate) fn get_field(&self, id: DataOrLookupFieldId) -> SubgraphField<'a> {

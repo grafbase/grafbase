@@ -1,7 +1,6 @@
 #![deny(clippy::future_not_send)]
 
 pub mod authentication;
-pub mod bytes;
 pub mod cursor;
 pub mod entity_cache;
 pub mod extension;

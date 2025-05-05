@@ -7,9 +7,9 @@ use walker::Walk;
 
 use crate::{
     Runtime,
-    execution::{ExecutionContext, ExecutionResult},
+    execution::ExecutionContext,
     prepare::{Plan, create_extension_directive_query_view},
-    response::{GraphqlError, ResponseBuilder, ResponsePartBuilder},
+    response::{ResponseBuilder, ResponsePartBuilder},
 };
 
 use super::PreparedField;
@@ -20,7 +20,7 @@ impl super::FieldResolverExtension {
         ctx: ExecutionContext<'ctx, R>,
         plan: Plan<'ctx>,
         new_response: impl Fn() -> ResponseBuilder<'ctx> + Send + 'ctx,
-    ) -> ExecutionResult<BoxStream<'ctx, ExecutionResult<(ResponseBuilder<'ctx>, ResponsePartBuilder<'ctx>)>>> {
+    ) -> BoxStream<'ctx, (ResponseBuilder<'ctx>, ResponsePartBuilder<'ctx>)> {
         let directive = self.directive_id.walk(ctx.schema());
         let subgraph_headers = ctx.subgraph_headers_with_rules(directive.subgraph().header_rules());
 
@@ -34,7 +34,7 @@ impl super::FieldResolverExtension {
         let query_view =
             create_extension_directive_query_view(ctx.schema(), directive, field.arguments(), ctx.variables());
 
-        let stream = ctx
+        let stream = match ctx
             .runtime()
             .extensions()
             .resolve_subscription_field(
@@ -46,13 +46,17 @@ impl super::FieldResolverExtension {
             )
             .boxed()
             .await
-            .map_err(|err| err.with_location(field.location()))?;
+        {
+            Ok(stream) => stream,
+            Err(err) => {
+                let mut response = new_response();
+                let (_, mut part) = response.create_root_part();
+                part.errors.push(err.with_location(field.location()));
+                return Box::pin(futures_util::stream::once(std::future::ready((response, part))));
+            }
+        };
 
         let stream = stream.map(move |result| {
-            let mut response = new_response();
-            let (root_object_id, part) = response.create_root_part();
-            let response_part = part.into_shared();
-
             tracing::debug!(
                 "Received:\n{}",
                 result
@@ -69,20 +73,13 @@ impl super::FieldResolverExtension {
                     .unwrap_or(Cow::Borrowed("<error>"))
             );
 
-            response_part
-                .seed(plan.shape_id(), root_object_id)
-                .deserialize_from_fields(&mut vec![(field, result)])
-                .map_err(|err| {
-                    tracing::error!("Failed to deserialize subgraph response: {}", err);
-                    let field_id = self.prepared.first().unwrap().field_id;
-                    let field = plan.get_field(field_id);
-
-                    GraphqlError::invalid_subgraph_response().with_location(field.location())
-                })?;
-
-            Ok((response, response_part.unshare().unwrap()))
+            let mut response = new_response();
+            let (parent_object, part) = response.create_root_part();
+            let state = part.into_seed_state(plan.shape().id);
+            state.ingest_fields(&parent_object, &mut vec![(field, result)]);
+            (response, state.into_response_part())
         });
 
-        Ok(Box::pin(stream))
+        Box::pin(stream)
     }
 }
