@@ -17,6 +17,7 @@ mod logout;
 mod mcp;
 mod output;
 mod panic_hook;
+mod plugins;
 mod prompts;
 mod publish;
 mod schema;
@@ -90,7 +91,9 @@ fn try_main(args: Args) -> Result<(), CliError> {
         .with(fmt::layer().with_filter(filter))
         .init();
 
-    trace!("subcommand: {}", args.command);
+    let command = args.command;
+
+    trace!("subcommand: {}", command);
 
     // do not display header if we're in a pipe
     if std::io::stdout().is_terminal() {
@@ -99,13 +102,13 @@ fn try_main(args: Args) -> Result<(), CliError> {
 
     Environment::try_init(args.home).map_err(CliError::CommonError)?;
 
-    if args.command.requires_login() {
+    if command.requires_login() {
         PlatformData::try_init().map_err(CliError::CommonError)?;
     }
 
     report::warnings(&Environment::get().warnings);
 
-    match args.command {
+    match command {
         SubCommand::Completions(cmd) => {
             cmd.shell.completions();
 
@@ -133,6 +136,7 @@ fn try_main(args: Args) -> Result<(), CliError> {
             upgrade::install_grafbase().map_err(Into::into)
         }
         SubCommand::Lint(cmd) => lint::lint(cmd.schema),
+        SubCommand::ListPlugins => Ok(plugins::list()?),
         SubCommand::Branch(cmd) => match cmd.command {
             BranchSubCommand::Delete(cmd) => branch::delete(cmd.branch_ref),
             BranchSubCommand::Create(cmd) => branch::create(cmd.branch_ref),
@@ -140,6 +144,8 @@ fn try_main(args: Args) -> Result<(), CliError> {
         SubCommand::Dev(cmd) => dev::dev(cmd),
         SubCommand::Extension(cmd) => Ok(extension::execute(cmd)?),
         SubCommand::Mcp(cmd) => Ok(mcp::run(cmd)?),
+
+        SubCommand::Plugin(args) => Ok(plugins::execute(&args)?),
     }
 }
 

@@ -10,12 +10,14 @@ use super::{
 
 #[derive(Debug, Parser, strum::AsRefStr, strum::Display)]
 #[strum(serialize_all = "lowercase")]
-pub enum SubCommand {
+pub(crate) enum SubCommand {
     /// Graph branch management
     Branch(BranchCommand),
     /// Output completions for the chosen shell to use, write the output to the
     /// appropriate location for your shell
     Completions(CompletionsCommand),
+    /// List all plugin subcommands. To list first-party subcommands, run `grafbase help`.
+    ListPlugins,
     /// Logs into your Grafbase account
     Login(LoginCommand),
     /// Logs out of your Grafbase account
@@ -46,6 +48,8 @@ pub enum SubCommand {
     Mcp(McpCommand),
     /// Develop gateway extensions
     Extension(ExtensionCommand),
+    #[clap(external_subcommand)]
+    Plugin(Vec<String>),
 }
 
 pub trait RequiresLogin {
