@@ -14,10 +14,6 @@ impl MutableWrapping {
         self.inner.is_required()
     }
 
-    pub fn write_type_string(&self, name: &str, formatter: &mut dyn std::fmt::Write) -> Result<(), std::fmt::Error> {
-        self.inner.write_type_string(name, formatter)
-    }
-
     pub fn pop_outermost_list_wrapping(&mut self) -> Option<ListWrapping> {
         let end = self.inner.get_list_length();
         if end == 0 {

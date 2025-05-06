@@ -76,14 +76,20 @@ impl fmt::Display for PathSegment<'_> {
 
 /// Represents a path to a field, possibly nested.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Path<'a>(pub Vec<PathSegment<'a>>);
+pub struct Path<'a> {
+    pub ty: Option<&'a str>,
+    pub segments: Vec<PathSegment<'a>>,
+}
 
 impl fmt::Display for Path<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(ty) = &self.ty {
+            write!(f, "<{}>.", ty)?
+        };
         write!(
             f,
             "{}",
-            self.0
+            self.segments
                 .iter()
                 .format_with(".", |segment, f| f(&format_args!("{}", segment)))
         )

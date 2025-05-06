@@ -2866,6 +2866,7 @@ dependencies = [
  "grafbase-workspace-hack",
  "insta",
  "itertools 0.14.0",
+ "pretty_assertions",
  "winnow",
 ]
 
@@ -2954,6 +2955,7 @@ dependencies = [
  "blake3",
  "cynic-parser",
  "cynic-parser-deser",
+ "engine-field-selection-map",
  "engine-id-derives",
  "engine-id-newtypes",
  "engine-walker",

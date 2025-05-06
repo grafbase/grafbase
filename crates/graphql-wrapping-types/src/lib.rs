@@ -116,6 +116,41 @@ impl Wrapping {
         }
         self
     }
+
+    /// Whether a type wrapped with Self could receive a type wrapping with other.
+    pub fn is_equal_or_more_lenient_than(self, other: Wrapping) -> bool {
+        if self.inner_is_required() && !other.inner_is_required() {
+            return false;
+        }
+        if self.get_list_length() != other.get_list_length() {
+            return false;
+        }
+        for (s, o) in self.list_wrappings().zip(other.list_wrappings()) {
+            if s == ListWrapping::RequiredList && o == ListWrapping::NullableList {
+                return false;
+            }
+        }
+        true
+    }
+
+    pub fn without_list(self) -> Option<Wrapping> {
+        let mut wrapping = self.to_mutable();
+        wrapping.pop_outermost_list_wrapping().map(|_| wrapping.into())
+    }
+
+    pub fn without_non_null(mut self) -> Wrapping {
+        if self.is_nullable() {
+            self
+        } else if self.is_list() {
+            let mut wrapping = self.to_mutable();
+            wrapping.pop_outermost_list_wrapping();
+            wrapping.push_outermost_list_wrapping(ListWrapping::NullableList);
+            wrapping.into()
+        } else {
+            self.0 &= !INNER_IS_REQUIRED_FLAG;
+            self
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -150,21 +185,32 @@ impl Wrapping {
         self.list_wrappings().next().is_some()
     }
 
-    pub fn write_type_string(self, name: &str, mut formatter: &mut dyn std::fmt::Write) -> Result<(), std::fmt::Error> {
-        for _ in 0..self.list_wrappings().len() {
-            write!(formatter, "[")?;
+    pub fn type_display(self, name: &str) -> impl std::fmt::Display {
+        WrappingDisplay { name, wrapping: self }
+    }
+}
+
+struct WrappingDisplay<'a> {
+    name: &'a str,
+    wrapping: Wrapping,
+}
+
+impl std::fmt::Display for WrappingDisplay<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for _ in 0..self.wrapping.get_list_length() {
+            write!(f, "[")?;
         }
 
-        write!(formatter, "{name}")?;
+        write!(f, "{}", self.name)?;
 
-        if self.inner_is_required() {
-            write!(formatter, "!")?;
+        if self.wrapping.inner_is_required() {
+            write!(f, "!")?;
         }
 
-        for wrapping in self.list_wrappings() {
+        for wrapping in self.wrapping.list_wrappings() {
             match wrapping {
-                ListWrapping::RequiredList => write!(&mut formatter, "]!")?,
-                ListWrapping::NullableList => write!(&mut formatter, "]")?,
+                ListWrapping::RequiredList => write!(f, "]!")?,
+                ListWrapping::NullableList => write!(f, "]")?,
             };
         }
 
@@ -315,5 +361,21 @@ mod tests {
 
         wrapping.push_outermost_list_wrapping(list_wrapping);
         assert_eq!(Wrapping::from(wrapping), original);
+    }
+
+    #[test]
+    fn test_is_compatible_with() {
+        let non_null_list = Wrapping::required().list();
+        let non_null_list_non_null = Wrapping::required().list_non_null();
+        assert!(non_null_list.is_equal_or_more_lenient_than(non_null_list_non_null));
+        assert!(!non_null_list_non_null.is_equal_or_more_lenient_than(non_null_list));
+
+        let list = Wrapping::nullable().list();
+        assert!(list.is_equal_or_more_lenient_than(non_null_list));
+        assert!(!non_null_list.is_equal_or_more_lenient_than(list));
+
+        let list_non_null = Wrapping::nullable().list_non_null();
+        assert!(!non_null_list.is_equal_or_more_lenient_than(list_non_null));
+        assert!(!list_non_null.is_equal_or_more_lenient_than(non_null_list));
     }
 }

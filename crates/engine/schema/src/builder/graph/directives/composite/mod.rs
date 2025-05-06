@@ -1,5 +1,7 @@
 mod lookup;
 
+use cynic_parser_deser::ConstDeserializer as _;
+
 use crate::{SubgraphId, builder::sdl};
 
 use super::{DirectivesIngester, Error};
@@ -57,6 +59,76 @@ fn dispatch<'sdl>(
             }
 
             // Nothing is ingested during this step, it's done when adding resolvers.
+        }
+        "composite__is" => match def {
+            sdl::SdlDefinition::FieldDefinition(def) => {
+                let sdl::IsDirective {
+                    graph,
+                    field_selection_map,
+                } = dir.deserialize().map_err(|err| {
+                    (
+                        format!(
+                            "At {}, invalid composite__lookup directive: {}",
+                            def.to_site_string(ingester),
+                            err
+                        ),
+                        dir.arguments_span(),
+                    )
+                })?;
+                let _subgraph_id = ingester.subgraphs.try_get(graph, dir.arguments_span())?;
+                let output = ingester.graph[def.id].parent_entity_id;
+                ingester.parse_field_selection_map_for_field(output, def.id, field_selection_map)?;
+            }
+            sdl::SdlDefinition::ArgumentDefinition(def) => {
+                let sdl::IsDirective {
+                    graph,
+                    field_selection_map,
+                } = dir.deserialize().map_err(|err| {
+                    (
+                        format!(
+                            "At {}, invalid composite__lookup directive: {}",
+                            def.to_site_string(ingester),
+                            err
+                        ),
+                        dir.arguments_span(),
+                    )
+                })?;
+                let _subgraph_id = ingester.subgraphs.try_get(graph, dir.arguments_span())?;
+                let output = ingester.graph[def.field_id]
+                    .ty_record
+                    .definition_id
+                    .as_entity()
+                    .unwrap();
+                ingester.parse_field_selection_map_for_argument(output, def.field_id, def.id, field_selection_map)?;
+            }
+            _ => {
+                return Err((
+                    format!(
+                        "invalid location: {}, expected one of: {}",
+                        def.location().as_str(),
+                        [
+                            sdl::DirectiveLocation::Field.as_str(),
+                            sdl::DirectiveLocation::ArgumentDefinition.as_str()
+                        ]
+                        .join(", ")
+                    ),
+                    def.span(),
+                )
+                    .into());
+            }
+        },
+        "composite__require" => {
+            if !matches!(def, sdl::SdlDefinition::ArgumentDefinition(_),) {
+                return Err((
+                    format!(
+                        "invalid location: {}, expected one of: {}",
+                        def.location().as_str(),
+                        [sdl::DirectiveLocation::ArgumentDefinition.as_str()].join(", ")
+                    ),
+                    def.span(),
+                )
+                    .into());
+            }
         }
         _ => return Err("unknown or unsupported directive".into()),
     }

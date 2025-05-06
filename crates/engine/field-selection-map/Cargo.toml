@@ -12,5 +12,6 @@ winnow.workspace = true
 
 [dev-dependencies]
 insta.workspace = true
+pretty_assertions.workspace = true
 # Not sure how to make it work with Hakari, it'll add debug feature everywhere with this...
 # winnow = { workspace = true, features = ["debug"] }
