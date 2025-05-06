@@ -72,6 +72,7 @@ clap = "4"
 clap_complete = "4.5"
 cli-table = { version = "0.5", default-features = false }
 clickhouse = "0.13"
+color-print = "0.3"
 colored = "3"
 const_format = "0.2"
 convert_case = "0.8"

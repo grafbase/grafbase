@@ -49,8 +49,25 @@ fn split_header(header: &str) -> Option<(&str, &str)> {
     })
 }
 
+// We have to override the default help template to include a custom section for third party subcommands.
+const HELP_TEMPLATE: &str = color_print::cstr!(
+    "\
+{before-help}{about-with-newline}
+{usage-heading} {usage}
+
+<bold><underline>Commands:</underline></bold>
+{subcommands}
+{tab}<bold>...</bold>               Run `grafbase list-plugins` for a list of available plugins.
+
+<bold><underline>Options:</underline></bold>
+{options}
+
+{after-help}\
+"
+);
+
 #[derive(Debug, Parser)]
-#[command(name = "Grafbase CLI", version)]
+#[command(name = "Grafbase CLI", version, allow_external_subcommands = true, help_template = HELP_TEMPLATE)]
 /// The Grafbase command line interface
 pub struct Args {
     /// Set the tracing level
