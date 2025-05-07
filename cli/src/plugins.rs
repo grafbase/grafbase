@@ -64,9 +64,20 @@ pub(crate) fn list() -> anyhow::Result<()> {
         }
     }
 
-    if external_commands.is_empty() {
+    print_plugin_list(&mut external_commands);
+
+    Ok(())
+}
+
+fn print_plugin_list(plugins: &mut Vec<String>) {
+    if plugins.is_empty() {
         eprintln!("Found no plugin");
+        return;
     }
+
+    // Deduplicate plugins, since they can be in several directories that are in $PATH
+    plugins.sort();
+    plugins.dedup();
 
     color_print::cprintln!("<bold><underline>Plugins:</underline></bold>");
     let base_command_name = env::args()
@@ -79,11 +90,9 @@ pub(crate) fn list() -> anyhow::Result<()> {
         })
         .unwrap_or_default();
 
-    for command in external_commands {
+    for command in plugins {
         println!("  {base_command_name} {command}")
     }
-
-    Ok(())
 }
 
 fn path() -> String {
