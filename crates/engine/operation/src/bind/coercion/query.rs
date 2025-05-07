@@ -433,12 +433,19 @@ impl<'schema> QueryValueCoercionContext<'_, 'schema, '_> {
 }
 
 /// Determines whether a variable is compatible with the expected type
-fn are_type_compatibles(definition: Type<'_>, used_as: Type<'_>) -> bool {
-    (definition.definition_id == used_as.definition_id || definition.definition().as_composite_type().zip(used_as.definition().as_composite_type()).map(|(def, used)| def.is_subset_of(used)).unwrap_or_default())
-            // if not a list, the current type can be coerced into the proper list wrapping.
-            && (!definition.wrapping.is_list()
-                || definition.wrapping.list_wrappings().len() == used_as.wrapping.list_wrappings().len())
-            && (used_as.wrapping.is_nullable() || definition.wrapping.is_required())
+fn are_type_compatibles(ty: Type<'_>, used_as: Type<'_>) -> bool {
+    (ty.definition_id == used_as.definition_id
+        || ty
+            .definition()
+            .as_composite_type()
+            .zip(used_as.definition().as_composite_type())
+            .map(|(def, used)| def.is_subset_of(used))
+            .unwrap_or_default())
+        && (used_as.wrapping.is_equal_or_more_lenient_than(ty.wrapping)
+                // if not a list, the current type can be coerced into the proper list wrapping.
+            || (
+                !ty.wrapping.is_list() && (used_as.wrapping.is_nullable() || ty.wrapping.is_required())
+            ))
 }
 
 fn can_coerce_to_int(float: f64) -> bool {

@@ -88,9 +88,11 @@ fn selected_list_value<'a>(input: &mut &'a str) -> Result<SelectedListValue<'a>>
 
 /// Parses a Path: segment1.segment2.segmentN
 fn path<'a>(input: &mut &'a str) -> Result<Path<'a>> {
-    separated(1.., path_segment, ws('.'))
-        .map(Path)
-        .context(StrContext::Label("path"))
+    (
+        opt(delimited('<', ws(name), ('>', multispace0, '.')).context(StrContext::Label("type name"))),
+        separated(1.., path_segment, ws('.')),
+    )
+        .map(|(ty, segments)| Path { ty, segments })
         .parse_next(input)
 }
 
@@ -132,6 +134,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use pretty_assertions::assert_eq;
 
     #[test]
     fn parse_name() {
@@ -172,20 +175,23 @@ mod tests {
         let result = path.parse_next(&mut input).unwrap();
         assert_eq!(
             result,
-            Path(vec![
-                PathSegment {
-                    field: "field1",
-                    ty: None,
-                },
-                PathSegment {
-                    field: "field2",
-                    ty: Some("SomeType"),
-                },
-                PathSegment {
-                    field: "field3",
-                    ty: None,
-                },
-            ])
+            Path {
+                ty: None,
+                segments: vec![
+                    PathSegment {
+                        field: "field1",
+                        ty: None,
+                    },
+                    PathSegment {
+                        field: "field2",
+                        ty: Some("SomeType"),
+                    },
+                    PathSegment {
+                        field: "field3",
+                        ty: None,
+                    },
+                ],
+            }
         );
         assert_eq!(input, "");
     }
@@ -194,10 +200,13 @@ mod tests {
     fn test_simple_path() {
         let input = " simple_field ";
         let expected = SelectedValue {
-            alternatives: vec![SelectedValueEntry::Path(Path(vec![PathSegment {
-                field: "simple_field",
+            alternatives: vec![SelectedValueEntry::Path(Path {
                 ty: None,
-            }]))],
+                segments: vec![PathSegment {
+                    field: "simple_field",
+                    ty: None,
+                }],
+            })],
         };
         match parse(input) {
             Ok(result) => assert_eq!(result, expected),
@@ -209,16 +218,19 @@ mod tests {
     fn test_nested_path() {
         let input = "object.nested_field";
         let expected = SelectedValue {
-            alternatives: vec![SelectedValueEntry::Path(Path(vec![
-                PathSegment {
-                    field: "object",
-                    ty: None,
-                },
-                PathSegment {
-                    field: "nested_field",
-                    ty: None,
-                },
-            ]))],
+            alternatives: vec![SelectedValueEntry::Path(Path {
+                ty: None,
+                segments: vec![
+                    PathSegment {
+                        field: "object",
+                        ty: None,
+                    },
+                    PathSegment {
+                        field: "nested_field",
+                        ty: None,
+                    },
+                ],
+            })],
         };
         match parse(input) {
             Ok(result) => assert_eq!(result, expected),
@@ -230,10 +242,13 @@ mod tests {
     fn test_path_with_type() {
         let input = "field< MyType >";
         let expected = SelectedValue {
-            alternatives: vec![SelectedValueEntry::Path(Path(vec![PathSegment {
-                field: "field",
-                ty: Some("MyType"),
-            }]))],
+            alternatives: vec![SelectedValueEntry::Path(Path {
+                ty: None,
+                segments: vec![PathSegment {
+                    field: "field",
+                    ty: Some("MyType"),
+                }],
+            })],
         };
         match parse(input) {
             Ok(result) => assert_eq!(result, expected),
@@ -245,20 +260,58 @@ mod tests {
     fn test_nested_path_with_type() {
         let input = "obj<User>.address<Addr >. street";
         let expected = SelectedValue {
-            alternatives: vec![SelectedValueEntry::Path(Path(vec![
-                PathSegment {
-                    field: "obj",
-                    ty: Some("User"),
-                },
-                PathSegment {
-                    field: "address",
-                    ty: Some("Addr"),
-                },
-                PathSegment {
-                    field: "street",
-                    ty: None,
-                },
-            ]))],
+            alternatives: vec![SelectedValueEntry::Path(Path {
+                ty: None,
+                segments: vec![
+                    PathSegment {
+                        field: "obj",
+                        ty: Some("User"),
+                    },
+                    PathSegment {
+                        field: "address",
+                        ty: Some("Addr"),
+                    },
+                    PathSegment {
+                        field: "street",
+                        ty: None,
+                    },
+                ],
+            })],
+        };
+        match parse(input) {
+            Ok(result) => assert_eq!(result, expected),
+            Err(e) => panic!("{}", e),
+        }
+    }
+
+    #[test]
+    fn test_alternative_type_conditions() {
+        let input = "{ bookId: <Book>.id } | { movieId: <Movie>.id }";
+        let expected = SelectedValue {
+            alternatives: vec![
+                SelectedValueEntry::Object(SelectedObjectValue {
+                    fields: vec![SelectedObjectField {
+                        key: "bookId",
+                        value: Some(SelectedValue {
+                            alternatives: vec![SelectedValueEntry::Path(Path {
+                                ty: Some("Book"),
+                                segments: vec![PathSegment { field: "id", ty: None }],
+                            })],
+                        }),
+                    }],
+                }),
+                SelectedValueEntry::Object(SelectedObjectValue {
+                    fields: vec![SelectedObjectField {
+                        key: "movieId",
+                        value: Some(SelectedValue {
+                            alternatives: vec![SelectedValueEntry::Path(Path {
+                                ty: Some("Movie"),
+                                segments: vec![PathSegment { field: "id", ty: None }],
+                            })],
+                        }),
+                    }],
+                }),
+            ],
         };
         match parse(input) {
             Ok(result) => assert_eq!(result, expected),
@@ -298,25 +351,31 @@ mod tests {
                     SelectedObjectField {
                         key: "key1",
                         value: Some(SelectedValue {
-                            alternatives: vec![SelectedValueEntry::Path(Path(vec![PathSegment {
-                                field: "value1",
+                            alternatives: vec![SelectedValueEntry::Path(Path {
                                 ty: None,
-                            }]))],
+                                segments: vec![PathSegment {
+                                    field: "value1",
+                                    ty: None,
+                                }],
+                            })],
                         }),
                     },
                     SelectedObjectField {
                         key: "key2",
                         value: Some(SelectedValue {
-                            alternatives: vec![SelectedValueEntry::Path(Path(vec![
-                                PathSegment {
-                                    field: "nested",
-                                    ty: None,
-                                },
-                                PathSegment {
-                                    field: "path",
-                                    ty: None,
-                                },
-                            ]))],
+                            alternatives: vec![SelectedValueEntry::Path(Path {
+                                ty: None,
+                                segments: vec![
+                                    PathSegment {
+                                        field: "nested",
+                                        ty: None,
+                                    },
+                                    PathSegment {
+                                        field: "path",
+                                        ty: None,
+                                    },
+                                ],
+                            })],
                         }),
                     },
                 ],
@@ -333,10 +392,13 @@ mod tests {
         let input = " data.{ field1 field2 : sub.value } ";
         let expected = SelectedValue {
             alternatives: vec![SelectedValueEntry::ObjectWithPath {
-                path: Path(vec![PathSegment {
-                    field: "data",
+                path: Path {
                     ty: None,
-                }]),
+                    segments: vec![PathSegment {
+                        field: "data",
+                        ty: None,
+                    }],
+                },
                 object: SelectedObjectValue {
                     fields: vec![
                         SelectedObjectField {
@@ -346,13 +408,16 @@ mod tests {
                         SelectedObjectField {
                             key: "field2",
                             value: Some(SelectedValue {
-                                alternatives: vec![SelectedValueEntry::Path(Path(vec![
-                                    PathSegment { field: "sub", ty: None },
-                                    PathSegment {
-                                        field: "value",
-                                        ty: None,
-                                    },
-                                ]))],
+                                alternatives: vec![SelectedValueEntry::Path(Path {
+                                    ty: None,
+                                    segments: vec![
+                                        PathSegment { field: "sub", ty: None },
+                                        PathSegment {
+                                            field: "value",
+                                            ty: None,
+                                        },
+                                    ],
+                                })],
                             }),
                         },
                     ],
@@ -370,17 +435,26 @@ mod tests {
         let input = " items [ name | id ] ";
         let expected = SelectedValue {
             alternatives: vec![SelectedValueEntry::ListWithPath {
-                path: Path(vec![PathSegment {
-                    field: "items",
+                path: Path {
                     ty: None,
-                }]),
+                    segments: vec![PathSegment {
+                        field: "items",
+                        ty: None,
+                    }],
+                },
                 list: SelectedListValue(SelectedValue {
                     alternatives: vec![
-                        SelectedValueEntry::Path(Path(vec![PathSegment {
-                            field: "name",
+                        SelectedValueEntry::Path(Path {
                             ty: None,
-                        }])),
-                        SelectedValueEntry::Path(Path(vec![PathSegment { field: "id", ty: None }])),
+                            segments: vec![PathSegment {
+                                field: "name",
+                                ty: None,
+                            }],
+                        }),
+                        SelectedValueEntry::Path(Path {
+                            ty: None,
+                            segments: vec![PathSegment { field: "id", ty: None }],
+                        }),
                     ],
                 }),
             }],
@@ -396,38 +470,50 @@ mod tests {
         let input = " path1 | path2 < Type > . sub | { key : val } | path3 [ item ]";
         let expected = SelectedValue {
             alternatives: vec![
-                SelectedValueEntry::Path(Path(vec![PathSegment {
-                    field: "path1",
+                SelectedValueEntry::Path(Path {
                     ty: None,
-                }])),
-                SelectedValueEntry::Path(Path(vec![
-                    PathSegment {
-                        field: "path2",
-                        ty: Some("Type"),
-                    },
-                    PathSegment { field: "sub", ty: None },
-                ])),
+                    segments: vec![PathSegment {
+                        field: "path1",
+                        ty: None,
+                    }],
+                }),
+                SelectedValueEntry::Path(Path {
+                    ty: None,
+                    segments: vec![
+                        PathSegment {
+                            field: "path2",
+                            ty: Some("Type"),
+                        },
+                        PathSegment { field: "sub", ty: None },
+                    ],
+                }),
                 SelectedValueEntry::Object(SelectedObjectValue {
                     fields: vec![SelectedObjectField {
                         key: "key",
                         value: Some(SelectedValue {
-                            alternatives: vec![SelectedValueEntry::Path(Path(vec![PathSegment {
-                                field: "val",
+                            alternatives: vec![SelectedValueEntry::Path(Path {
                                 ty: None,
-                            }]))],
+                                segments: vec![PathSegment { field: "val", ty: None }],
+                            })],
                         }),
                     }],
                 }),
                 SelectedValueEntry::ListWithPath {
-                    path: Path(vec![PathSegment {
-                        field: "path3",
+                    path: Path {
                         ty: None,
-                    }]),
-                    list: SelectedListValue(SelectedValue {
-                        alternatives: vec![SelectedValueEntry::Path(Path(vec![PathSegment {
-                            field: "item",
+                        segments: vec![PathSegment {
+                            field: "path3",
                             ty: None,
-                        }]))],
+                        }],
+                    },
+                    list: SelectedListValue(SelectedValue {
+                        alternatives: vec![SelectedValueEntry::Path(Path {
+                            ty: None,
+                            segments: vec![PathSegment {
+                                field: "item",
+                                ty: None,
+                            }],
+                        })],
                     }),
                 },
             ],
@@ -445,27 +531,36 @@ mod tests {
         let expected = SelectedValue {
             alternatives: vec![
                 SelectedValueEntry::ListWithPath {
-                    path: Path(vec![
-                        PathSegment {
-                            field: "path1",
-                            ty: Some("T1"),
-                        },
-                        PathSegment {
-                            field: "field2",
-                            ty: None,
-                        },
-                    ]),
+                    path: Path {
+                        ty: None,
+                        segments: vec![
+                            PathSegment {
+                                field: "path1",
+                                ty: Some("T1"),
+                            },
+                            PathSegment {
+                                field: "field2",
+                                ty: None,
+                            },
+                        ],
+                    },
                     list: SelectedListValue(SelectedValue {
                         alternatives: vec![
-                            SelectedValueEntry::Path(Path(vec![PathSegment {
-                                field: "item1",
+                            SelectedValueEntry::Path(Path {
                                 ty: None,
-                            }])),
-                            SelectedValueEntry::ObjectWithPath {
-                                path: Path(vec![PathSegment {
-                                    field: "item2",
+                                segments: vec![PathSegment {
+                                    field: "item1",
                                     ty: None,
-                                }]),
+                                }],
+                            }),
+                            SelectedValueEntry::ObjectWithPath {
+                                path: Path {
+                                    ty: None,
+                                    segments: vec![PathSegment {
+                                        field: "item2",
+                                        ty: None,
+                                    }],
+                                },
                                 object: SelectedObjectValue {
                                     fields: vec![SelectedObjectField {
                                         key: "subkey",
@@ -481,10 +576,13 @@ mod tests {
                         SelectedObjectField {
                             key: "key1",
                             value: Some(SelectedValue {
-                                alternatives: vec![SelectedValueEntry::Path(Path(vec![PathSegment {
-                                    field: "val1",
+                                alternatives: vec![SelectedValueEntry::Path(Path {
                                     ty: None,
-                                }]))],
+                                    segments: vec![PathSegment {
+                                        field: "val1",
+                                        ty: None,
+                                    }],
+                                })],
                             }),
                         },
                         SelectedObjectField {
@@ -517,10 +615,13 @@ mod tests {
         let input = "path.{}";
         let expected = SelectedValue {
             alternatives: vec![SelectedValueEntry::ObjectWithPath {
-                path: Path(vec![PathSegment {
-                    field: "path",
+                path: Path {
                     ty: None,
-                }]),
+                    segments: vec![PathSegment {
+                        field: "path",
+                        ty: None,
+                    }],
+                },
                 object: SelectedObjectValue { fields: vec![] },
             }],
         };
@@ -536,29 +637,44 @@ mod tests {
         let input = " a | b.{ c: d [ e | { f : g.h<T> } ] } ";
         let expected = SelectedValue {
             alternatives: vec![
-                SelectedValueEntry::Path(Path(vec![PathSegment { field: "a", ty: None }])),
+                SelectedValueEntry::Path(Path {
+                    ty: None,
+                    segments: vec![PathSegment { field: "a", ty: None }],
+                }),
                 SelectedValueEntry::ObjectWithPath {
-                    path: Path(vec![PathSegment { field: "b", ty: None }]),
+                    path: Path {
+                        ty: None,
+                        segments: vec![PathSegment { field: "b", ty: None }],
+                    },
                     object: SelectedObjectValue {
                         fields: vec![SelectedObjectField {
                             key: "c",
                             value: Some(SelectedValue {
                                 alternatives: vec![SelectedValueEntry::ListWithPath {
-                                    path: Path(vec![PathSegment { field: "d", ty: None }]),
+                                    path: Path {
+                                        ty: None,
+                                        segments: vec![PathSegment { field: "d", ty: None }],
+                                    },
                                     list: SelectedListValue(SelectedValue {
                                         alternatives: vec![
-                                            SelectedValueEntry::Path(Path(vec![PathSegment { field: "e", ty: None }])),
+                                            SelectedValueEntry::Path(Path {
+                                                ty: None,
+                                                segments: vec![PathSegment { field: "e", ty: None }],
+                                            }),
                                             SelectedValueEntry::Object(SelectedObjectValue {
                                                 fields: vec![SelectedObjectField {
                                                     key: "f",
                                                     value: Some(SelectedValue {
-                                                        alternatives: vec![SelectedValueEntry::Path(Path(vec![
-                                                            PathSegment { field: "g", ty: None },
-                                                            PathSegment {
-                                                                field: "h",
-                                                                ty: Some("T"),
-                                                            },
-                                                        ]))],
+                                                        alternatives: vec![SelectedValueEntry::Path(Path {
+                                                            ty: None,
+                                                            segments: vec![
+                                                                PathSegment { field: "g", ty: None },
+                                                                PathSegment {
+                                                                    field: "h",
+                                                                    ty: Some("T"),
+                                                                },
+                                                            ],
+                                                        })],
                                                     }),
                                                 }],
                                             }),
@@ -586,25 +702,31 @@ mod tests {
                     SelectedObjectField {
                         key: "key1",
                         value: Some(SelectedValue {
-                            alternatives: vec![SelectedValueEntry::Path(Path(vec![PathSegment {
-                                field: "value1",
+                            alternatives: vec![SelectedValueEntry::Path(Path {
                                 ty: None,
-                            }]))],
+                                segments: vec![PathSegment {
+                                    field: "value1",
+                                    ty: None,
+                                }],
+                            })],
                         }),
                     },
                     SelectedObjectField {
                         key: "key2",
                         value: Some(SelectedValue {
-                            alternatives: vec![SelectedValueEntry::Path(Path(vec![
-                                PathSegment {
-                                    field: "nested",
-                                    ty: None,
-                                },
-                                PathSegment {
-                                    field: "path",
-                                    ty: None,
-                                },
-                            ]))],
+                            alternatives: vec![SelectedValueEntry::Path(Path {
+                                ty: None,
+                                segments: vec![
+                                    PathSegment {
+                                        field: "nested",
+                                        ty: None,
+                                    },
+                                    PathSegment {
+                                        field: "path",
+                                        ty: None,
+                                    },
+                                ],
+                            })],
                         }),
                     },
                 ],
@@ -620,20 +742,23 @@ mod tests {
     fn test_underscore_names() {
         let input = "_leading._deep_._member";
         let expected = SelectedValue {
-            alternatives: vec![SelectedValueEntry::Path(Path(vec![
-                PathSegment {
-                    field: "_leading",
-                    ty: None,
-                },
-                PathSegment {
-                    field: "_deep_",
-                    ty: None,
-                },
-                PathSegment {
-                    field: "_member",
-                    ty: None,
-                },
-            ]))],
+            alternatives: vec![SelectedValueEntry::Path(Path {
+                ty: None,
+                segments: vec![
+                    PathSegment {
+                        field: "_leading",
+                        ty: None,
+                    },
+                    PathSegment {
+                        field: "_deep_",
+                        ty: None,
+                    },
+                    PathSegment {
+                        field: "_member",
+                        ty: None,
+                    },
+                ],
+            })],
         };
         match parse(input) {
             Ok(result) => assert_eq!(result, expected),
@@ -642,10 +767,10 @@ mod tests {
 
         let input = "_"; // Single underscore
         let expected = SelectedValue {
-            alternatives: vec![SelectedValueEntry::Path(Path(vec![PathSegment {
-                field: "_",
+            alternatives: vec![SelectedValueEntry::Path(Path {
                 ty: None,
-            }]))],
+                segments: vec![PathSegment { field: "_", ty: None }],
+            })],
         };
         match parse(input) {
             Ok(result) => assert_eq!(result, expected),
@@ -668,10 +793,13 @@ mod tests {
                     SelectedObjectField {
                         key: "key",
                         value: Some(SelectedValue {
-                            alternatives: vec![SelectedValueEntry::Path(Path(vec![PathSegment {
-                                field: "value",
+                            alternatives: vec![SelectedValueEntry::Path(Path {
                                 ty: None,
-                            }]))],
+                                segments: vec![PathSegment {
+                                    field: "value",
+                                    ty: None,
+                                }],
+                            })],
                         }),
                     },
                 ],
@@ -931,6 +1059,54 @@ mod tests {
                 }
                 Err(e) => panic!("{}", e),
             }
+        }
+    }
+
+    #[test]
+    fn test_path_with_start_type() {
+        let input = "<Type>.field1.field2";
+        let expected = SelectedValue {
+            alternatives: vec![SelectedValueEntry::Path(Path {
+                ty: Some("Type"),
+                segments: vec![
+                    PathSegment {
+                        field: "field1",
+                        ty: None,
+                    },
+                    PathSegment {
+                        field: "field2",
+                        ty: None,
+                    },
+                ],
+            })],
+        };
+        match parse(input) {
+            Ok(result) => assert_eq!(result, expected),
+            Err(e) => panic!("{}", e),
+        }
+    }
+
+    #[test]
+    fn test_path_with_start_type_and_segment_type() {
+        let input = "<Type>.field1<InnerType>.field2";
+        let expected = SelectedValue {
+            alternatives: vec![SelectedValueEntry::Path(Path {
+                ty: Some("Type"),
+                segments: vec![
+                    PathSegment {
+                        field: "field1",
+                        ty: Some("InnerType"),
+                    },
+                    PathSegment {
+                        field: "field2",
+                        ty: None,
+                    },
+                ],
+            })],
+        };
+        match parse(input) {
+            Ok(result) => assert_eq!(result, expected),
+            Err(e) => panic!("{}", e),
         }
     }
 }

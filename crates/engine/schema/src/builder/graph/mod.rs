@@ -96,17 +96,19 @@ impl GraphBuilder<'_> {
         })
     }
 
+    pub(crate) fn definition_name_id(&self, ty: TypeDefinitionId) -> StringId {
+        match ty {
+            TypeDefinitionId::Scalar(id) => self.graph[id].name_id,
+            TypeDefinitionId::Object(id) => self.graph[id].name_id,
+            TypeDefinitionId::Interface(id) => self.graph[id].name_id,
+            TypeDefinitionId::Union(id) => self.graph[id].name_id,
+            TypeDefinitionId::Enum(id) => self.graph[id].name_id,
+            TypeDefinitionId::InputObject(id) => self.graph[id].name_id,
+        }
+    }
+
     pub(crate) fn type_name(&self, ty: TypeRecord) -> String {
-        let name = match ty.definition_id {
-            TypeDefinitionId::Scalar(id) => &self.ctx[self.graph[id].name_id],
-            TypeDefinitionId::Object(id) => &self.ctx[self.graph[id].name_id],
-            TypeDefinitionId::Interface(id) => &self.ctx[self.graph[id].name_id],
-            TypeDefinitionId::Union(id) => &self.ctx[self.graph[id].name_id],
-            TypeDefinitionId::Enum(id) => &self.ctx[self.graph[id].name_id],
-            TypeDefinitionId::InputObject(id) => &self.ctx[self.graph[id].name_id],
-        };
-        let mut s = String::new();
-        ty.wrapping.write_type_string(name, &mut s).unwrap();
-        s
+        let name = &self.ctx[self.definition_name_id(ty.definition_id)];
+        ty.wrapping.type_display(name).to_string()
     }
 }

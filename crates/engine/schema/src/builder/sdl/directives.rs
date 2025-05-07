@@ -3,6 +3,19 @@ use cynic_parser_deser::{ConstDeserializer, DeserValue, ValueDeserialize, value:
 
 use crate::builder::error::Error;
 
+///```ignore,graphql
+/// directive @composite__is(
+///     graph: join__Graph!,
+///     field: String!
+/// ) repeatable on FIELD_DEFINITION | ARGUMENT_DEFINITION
+///```
+#[derive(Debug, ValueDeserialize)]
+pub(crate) struct IsDirective<'a> {
+    pub graph: GraphName<'a>,
+    #[deser(rename = "field")]
+    pub field_selection_map: &'a str,
+}
+
 #[derive(ValueDeserialize)]
 pub struct CostDirective {
     pub weight: i32,

@@ -273,7 +273,7 @@ fn convert_field_arguments(
     Ok(IdRange::from(start..ctx.selections.arguments.len()))
 }
 
-fn is_disjoint(ctx: &GraphBuilder<'_>, left: CompositeTypeId, right: CompositeTypeId) -> bool {
+pub(super) fn is_disjoint(ctx: &GraphBuilder<'_>, left: CompositeTypeId, right: CompositeTypeId) -> bool {
     let left: &[ObjectDefinitionId] = match &left {
         CompositeTypeId::Object(id) => std::array::from_ref(id),
         CompositeTypeId::Interface(id) => &ctx.graph[*id].possible_type_ids,
