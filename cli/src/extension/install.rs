@@ -12,13 +12,13 @@ use super::EXTENSION_WASM_MODULE_FILE_NAME;
 pub const PUBLIC_EXTENSION_REGISTRY_URL: &str = "https://extensions.grafbase.com";
 
 pub(crate) async fn execute(config: &Config) -> anyhow::Result<()> {
-    if let Some(new_lockfile) = handle_lockfile(config).await? {
-        download_extensions(new_lockfile).await?;
+    if let Some(lockfile) = handle_lockfile(config).await? {
+        download_extensions(lockfile).await?;
     }
     Ok(())
 }
 
-async fn download_extensions(new_lockfile: lockfile::Lockfile) -> anyhow::Result<()> {
+async fn download_extensions(lockfile: lockfile::Lockfile) -> anyhow::Result<()> {
     let extensions_directory = Path::new(extension_catalog::EXTENSION_DIR_NAME);
     let http_client = reqwest::Client::new();
 
@@ -38,7 +38,7 @@ async fn download_extensions(new_lockfile: lockfile::Lockfile) -> anyhow::Result
 
     report::extension_install_start();
 
-    let progress_bar = indicatif::ProgressBar::new(new_lockfile.extensions.len() as u64);
+    let progress_bar = indicatif::ProgressBar::new(lockfile.extensions.len() as u64);
     progress_bar.set_style(
         indicatif::ProgressStyle::default_bar()
             .template("{bar:24.green/red}")
@@ -46,7 +46,7 @@ async fn download_extensions(new_lockfile: lockfile::Lockfile) -> anyhow::Result
             .progress_chars("++-"),
     );
 
-    for extension in new_lockfile.extensions {
+    for extension in lockfile.extensions {
         futures.push(download_extension_from_registry(
             &http_client,
             extensions_directory,
@@ -162,11 +162,24 @@ async fn download_extension_from_registry(
     registry_base_url: &Url,
 ) -> Result<(), Report> {
     let files = ["manifest.json", EXTENSION_WASM_MODULE_FILE_NAME];
+    let dir_path = extensions_dir.join(&extension_name).join(version.to_string());
+
+    if dir_path.exists()
+        && std::fs::read_dir(&dir_path)
+            .map(|mut dir| dir.next().is_some())
+            .unwrap_or_default()
+    {
+        tracing::debug!(extension_name, "Skipping extension, as it is already installed.");
+        return Ok(());
+    }
+
+    fs::create_dir_all(&dir_path)
+        .await
+        .map_err(|_| Report::create_dir(&dir_path))?;
 
     let [manifest_fut, wasm_fut] = files.map(|file_name| {
         let mut url = registry_base_url.clone();
         url.set_path(&format!("/extensions/{extension_name}/{version}/{file_name}"));
-        let dir_path = extensions_dir.join(&extension_name).join(version.to_string());
         let file_path = dir_path.join(file_name);
 
         async move {
@@ -183,10 +196,6 @@ async fn download_extension_from_registry(
             if !response.status().is_success() {
                 return Err(Report::http_status(response.status(), &url));
             }
-
-            fs::create_dir_all(&dir_path)
-                .await
-                .map_err(|_| Report::create_dir(&dir_path))?;
 
             // Create the output file
             let mut file = fs::File::create(&file_path)
