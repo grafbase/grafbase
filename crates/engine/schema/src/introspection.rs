@@ -675,6 +675,7 @@ impl GraphBuilder<'_> {
                 resolver_ids: Vec::new(),
                 argument_ids: IdRange::empty(),
                 subgraph_type_records: Vec::new(),
+                computed_records: Default::default(),
             });
 
             out_fields.push((id, tag));

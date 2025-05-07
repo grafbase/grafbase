@@ -9,11 +9,69 @@ use crate::builder::error::Error;
 ///     field: String!
 /// ) repeatable on FIELD_DEFINITION | ARGUMENT_DEFINITION
 ///```
-#[derive(Debug, ValueDeserialize)]
+#[derive(Debug)]
 pub(crate) struct IsDirective<'a> {
     pub graph: GraphName<'a>,
-    #[deser(rename = "field")]
-    pub field_selection_map: &'a str,
+    pub field: &'a str,
+}
+
+// Cynic doesn't generate a good ValueDeserialize because of the `field` name which it relies upon
+// in the generated code and it doesn't respect rename for errors.
+impl<'a> ValueDeserialize<'a> for IsDirective<'a> {
+    fn deserialize(input: cynic_parser_deser::DeserValue<'a>) -> Result<Self, cynic_parser_deser::Error> {
+        let cynic_parser_deser::DeserValue::Object(obj) = input else {
+            return Err(cynic_parser_deser::Error::unexpected_type(
+                cynic_parser_deser::value::ValueType::Object,
+                input,
+            ));
+        };
+        let mut graph = None;
+        let mut graph_span = None;
+        let mut field = None;
+        let mut field_span = None;
+        for obj_field in obj.fields() {
+            match obj_field.name() {
+                "graph" => {
+                    if graph.is_some() {
+                        return Err(cynic_parser_deser::Error::DuplicateField {
+                            name: "graph".to_string(),
+                            original_field_span: graph_span,
+                            duplicate_field_span: obj_field.name_span(),
+                        });
+                    }
+                    graph_span = obj_field.name_span();
+                    graph = Some(obj_field.value().deserialize()?);
+                }
+                "field" => {
+                    if field.is_some() {
+                        return Err(cynic_parser_deser::Error::DuplicateField {
+                            name: "field".to_string(),
+                            original_field_span: field_span,
+                            duplicate_field_span: obj_field.name_span(),
+                        });
+                    }
+                    field_span = obj_field.name_span();
+                    field = Some(obj_field.value().deserialize()?);
+                }
+                other => {
+                    return Err(cynic_parser_deser::Error::UnknownField {
+                        name: other.to_string(),
+                        field_type: obj_field.value().into(),
+                        field_span: obj_field.name_span(),
+                    });
+                }
+            }
+        }
+        let graph = graph.ok_or_else(|| cynic_parser_deser::Error::MissingField {
+            name: "graph".to_string(),
+            object_span: input.span(),
+        })?;
+        let field = field.ok_or_else(|| cynic_parser_deser::Error::MissingField {
+            name: "field".to_string(),
+            object_span: input.span(),
+        })?;
+        Ok(IsDirective { graph, field })
+    }
 }
 
 #[derive(ValueDeserialize)]

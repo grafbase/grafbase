@@ -15,7 +15,7 @@ impl Error {
         };
         let location = translator.span_to_location(span).unwrap();
         let sdl = &translator.sdl[span.start..span.end];
-        format!("{text}. See schema at {location}:\n{sdl}")
+        format!("{text}\nSee schema at {location}:\n{sdl}")
     }
 
     pub fn with_prefix(self, mut prefix: String) -> Self {

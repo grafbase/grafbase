@@ -8,6 +8,7 @@ mod schema;
 
 pub(crate) use error::*;
 pub(crate) use extension::*;
+pub(crate) use field_selection_map::*;
 pub(crate) use path::*;
 
 fn can_coerce_to_int(float: f64) -> bool {

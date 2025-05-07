@@ -485,7 +485,7 @@ fn no_arguments() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At site Query.productBatch, for directive @lookup no matching @key directive was found. See schema at 29:3:\nproductBatch: [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)",
+            "At site Query.productBatch, for directive @lookup no matching @key directive was found\nSee schema at 29:3:\nproductBatch: [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)",
         )
         "#);
     })
@@ -522,7 +522,7 @@ fn no_matching_argument() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At site Query.productBatch, for directive @lookup no matching @key directive was found. See schema at 29:3:\nproductBatch(somethign: Int): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)",
+            "At site Query.productBatch, for directive @lookup no matching @key directive was found\nSee schema at 29:3:\nproductBatch(somethign: Int): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)",
         )
         "#);
     })
@@ -559,7 +559,7 @@ fn cannot_inject_nullable_into_required() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At site Query.productBatch, for directive @lookup no matching @key directive was found. See schema at 29:3:\nproductBatch(id: [ID!]): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)",
+            "At site Query.productBatch, for directive @lookup no matching @key directive was found\nSee schema at 29:3:\nproductBatch(id: [ID!]): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)",
         )
         "#);
     })
@@ -596,7 +596,7 @@ fn good_name_bad_type() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At site Query.productBatch, for directive @lookup no matching @key directive was found. See schema at 29:3:\nproductBatch(id: [Int]): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)",
+            "At site Query.productBatch, for directive @lookup no matching @key directive was found\nSee schema at 29:3:\nproductBatch(id: [Int]): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)",
         )
         "#);
     })
@@ -633,7 +633,7 @@ fn good_name_not_a_list() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At site Query.productBatch, for directive @lookup no matching @key directive was found. See schema at 29:3:\nproductBatch(id: ID!): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)",
+            "At site Query.productBatch, for directive @lookup no matching @key directive was found\nSee schema at 29:3:\nproductBatch(id: ID!): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)",
         )
         "#);
     })
@@ -670,7 +670,7 @@ fn ambiguous_multiple_matches() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At site Query.productBatch, for directive @lookup no matching @key directive was found. See schema at 29:3:\nproductBatch(a: [ID!], b: [ID!]): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)",
+            "At site Query.productBatch, for directive @lookup no matching @key directive was found\nSee schema at 29:3:\nproductBatch(a: [ID!], b: [ID!]): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)",
         )
         "#);
     })
@@ -707,7 +707,7 @@ fn extra_required_argument() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At site Query.productBatch, for directive @lookup no matching @key directive was found. See schema at 29:3:\nproductBatch(ids: [ID!], required: Boolean!): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)",
+            "At site Query.productBatch, for directive @lookup no matching @key directive was found\nSee schema at 29:3:\nproductBatch(ids: [ID!], required: Boolean!): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)",
         )
         "#);
     })

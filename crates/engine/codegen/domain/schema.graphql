@@ -98,6 +98,7 @@ type FieldDefinition @meta(module: "field", debug: false) @indexed(id_size: "u32
   "The arguments referenced by this range are sorted by their name (string)"
   arguments: [InputValueDefinition!]!
   directives: [TypeSystemDirective!]!
+  computed: [ComputedObject!]!
 }
 
 type SubgraphType @meta(module: "field/subgraph_type") @copy {
@@ -113,6 +114,16 @@ type FieldProvides @meta(module: "field/provides") {
 type FieldRequires @meta(module: "field/requires") {
   subgraph: Subgraph!
   field_set: FieldSet!
+}
+
+type ComputedObject @meta(module: "field/computed") {
+  subgraph: Subgraph!
+  fields: [ComputedField!]!
+}
+
+type ComputedField @meta(module: "field/computed") {
+  from: FieldDefinition!
+  target: FieldDefinition!
 }
 
 type Type @meta(module: "ty", derive: ["PartialEq", "Eq"]) @copy {

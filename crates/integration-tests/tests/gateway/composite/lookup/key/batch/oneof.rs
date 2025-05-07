@@ -369,7 +369,7 @@ fn good_name_not_a_list() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At site Query.productBatch, for directive @lookup no matching @key directive was found. See schema at 29:3:\nproductBatch(id: Lookup!): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)",
+            "At site Query.productBatch, for directive @lookup no matching @key directive was found\nSee schema at 29:3:\nproductBatch(id: Lookup!): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)",
         )
         "#);
     })
@@ -410,7 +410,7 @@ fn ambiguous_multiple_arg_matches() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At site Query.productBatch, for directive @lookup no matching @key directive was found. See schema at 29:3:\nproductBatch(a: Lookup!, b: Lookup!): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)",
+            "At site Query.productBatch, for directive @lookup no matching @key directive was found\nSee schema at 29:3:\nproductBatch(a: Lookup!, b: Lookup!): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)",
         )
         "#);
     })
@@ -451,7 +451,7 @@ fn lookup_arg_in_a_list() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At site Query.productBatch, for directive @lookup no matching @key directive was found. See schema at 29:3:\nproductBatch(lookup: [Lookup!]): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)",
+            "At site Query.productBatch, for directive @lookup no matching @key directive was found\nSee schema at 29:3:\nproductBatch(lookup: [Lookup!]): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)",
         )
         "#);
     })
@@ -493,7 +493,7 @@ fn ambiguous_multiple_oneof_field_matches() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At site Query.productBatch, for directive @lookup no matching @key directive was found. See schema at 29:3:\nproductBatch(lookup: Lookup!): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)",
+            "At site Query.productBatch, for directive @lookup no matching @key directive was found\nSee schema at 29:3:\nproductBatch(lookup: Lookup!): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)",
         )
         "#);
     })
@@ -534,7 +534,7 @@ fn extra_required_argument() {
 
         insta::assert_debug_snapshot!(result.err(), @r#"
         Some(
-            "At site Query.productBatch, for directive @lookup no matching @key directive was found. See schema at 29:3:\nproductBatch(lookup: Lookup!, required: Boolean!): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)",
+            "At site Query.productBatch, for directive @lookup no matching @key directive was found\nSee schema at 29:3:\nproductBatch(lookup: Lookup!, required: Boolean!): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)",
         )
         "#);
     })

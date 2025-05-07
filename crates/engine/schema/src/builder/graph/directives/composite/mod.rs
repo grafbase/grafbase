@@ -1,20 +1,33 @@
+mod is;
 mod lookup;
-
-use cynic_parser_deser::ConstDeserializer as _;
 
 use crate::{SubgraphId, builder::sdl};
 
 use super::{DirectivesIngester, Error};
 
 impl<'sdl> DirectivesIngester<'_, 'sdl> {
-    pub(crate) fn ingest_composite_directive(
+    pub(crate) fn ingest_composite_directive_before_federation(
         &mut self,
         def: sdl::SdlDefinition<'sdl>,
         dir: sdl::Directive<'sdl>,
     ) -> Result<(), Error> {
-        dispatch(self, def, dir).map_err(|err| {
+        ingest_before_federation_directives(self, def, dir).map_err(|err| {
             err.with_prefix(format!(
-                "At site {}, for directive @{} ",
+                "At site {}, for directive @{}:",
+                def.to_site_string(self),
+                dir.name(),
+            ))
+        })
+    }
+
+    pub(crate) fn ingest_composite_directive_after_federation(
+        &mut self,
+        def: sdl::SdlDefinition<'sdl>,
+        dir: sdl::Directive<'sdl>,
+    ) -> Result<(), Error> {
+        ingest_after_federation_directives(self, def, dir).map_err(|err| {
+            err.with_prefix(format!(
+                "At site {}, for directive @{}: ",
                 def.to_site_string(self),
                 dir.name()
             ))
@@ -31,7 +44,7 @@ impl<'sdl> DirectivesIngester<'_, 'sdl> {
     }
 }
 
-fn dispatch<'sdl>(
+fn ingest_before_federation_directives<'sdl>(
     ingester: &mut DirectivesIngester<'_, 'sdl>,
     def: sdl::SdlDefinition<'sdl>,
     dir: sdl::Directive<'sdl>,
@@ -60,48 +73,11 @@ fn dispatch<'sdl>(
 
             // Nothing is ingested during this step, it's done when adding resolvers.
         }
-        "composite__is" => match def {
-            sdl::SdlDefinition::FieldDefinition(def) => {
-                let sdl::IsDirective {
-                    graph,
-                    field_selection_map,
-                } = dir.deserialize().map_err(|err| {
-                    (
-                        format!(
-                            "At {}, invalid composite__lookup directive: {}",
-                            def.to_site_string(ingester),
-                            err
-                        ),
-                        dir.arguments_span(),
-                    )
-                })?;
-                let _subgraph_id = ingester.subgraphs.try_get(graph, dir.arguments_span())?;
-                let output = ingester.graph[def.id].parent_entity_id;
-                ingester.parse_field_selection_map_for_field(output, def.id, field_selection_map)?;
-            }
-            sdl::SdlDefinition::ArgumentDefinition(def) => {
-                let sdl::IsDirective {
-                    graph,
-                    field_selection_map,
-                } = dir.deserialize().map_err(|err| {
-                    (
-                        format!(
-                            "At {}, invalid composite__lookup directive: {}",
-                            def.to_site_string(ingester),
-                            err
-                        ),
-                        dir.arguments_span(),
-                    )
-                })?;
-                let _subgraph_id = ingester.subgraphs.try_get(graph, dir.arguments_span())?;
-                let output = ingester.graph[def.field_id]
-                    .ty_record
-                    .definition_id
-                    .as_entity()
-                    .unwrap();
-                ingester.parse_field_selection_map_for_argument(output, def.field_id, def.id, field_selection_map)?;
-            }
-            _ => {
+        "composite__is" => {
+            if !matches!(
+                def,
+                sdl::SdlDefinition::FieldDefinition(_) | sdl::SdlDefinition::ArgumentDefinition(_)
+            ) {
                 return Err((
                     format!(
                         "invalid location: {}, expected one of: {}",
@@ -116,7 +92,7 @@ fn dispatch<'sdl>(
                 )
                     .into());
             }
-        },
+        }
         "composite__require" => {
             if !matches!(def, sdl::SdlDefinition::ArgumentDefinition(_),) {
                 return Err((
@@ -132,6 +108,16 @@ fn dispatch<'sdl>(
         }
         _ => return Err("unknown or unsupported directive".into()),
     }
-
     Ok(())
+}
+
+fn ingest_after_federation_directives<'sdl>(
+    ingester: &mut DirectivesIngester<'_, 'sdl>,
+    def: sdl::SdlDefinition<'sdl>,
+    dir: sdl::Directive<'sdl>,
+) -> Result<(), Error> {
+    match (dir.name(), def) {
+        ("composite__is", sdl::SdlDefinition::FieldDefinition(def)) => is::ingest_field(ingester, def, dir),
+        _ => Ok(()),
+    }
 }
