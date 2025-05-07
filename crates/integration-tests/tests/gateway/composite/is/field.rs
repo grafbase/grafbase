@@ -405,7 +405,7 @@ fn cannot_map_an_object_into_a_field() {
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Product.user, for directive @composite__is: Computed object fields can only be mapped to parent fields
+        At site Product.user, for directive @composite__is: Computed object fields can only be mapped to parent scalar/enum fields
         See schema at 26:29:
         (graph: EXT, field: "{ id: author_id category: category.{ id name } }")
         "#);

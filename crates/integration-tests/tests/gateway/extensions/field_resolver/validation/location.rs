@@ -29,10 +29,10 @@ fn invalid_location() {
             .try_build()
             .await;
 
-        insta::assert_debug_snapshot!(result.err(), @r#"
-        Some(
-            "At site Query.echo, extension echo-1.0.0 directive @meta used in the wrong location FIELD_DEFINITION, expected one of: SCHEMA. See schema at 19:35:\n(graph: A, extension: ECHO, name: \"meta\", arguments: {})",
-        )
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site Query.echo, extension echo-1.0.0 directive @meta used in the wrong location FIELD_DEFINITION, expected one of: SCHEMA
+        See schema at 19:35:
+        (graph: A, extension: ECHO, name: "meta", arguments: {})
         "#);
 
         // Invalid schema directive
@@ -60,10 +60,10 @@ fn invalid_location() {
             .try_build()
             .await;
 
-        insta::assert_debug_snapshot!(result.err(), @r#"
-        Some(
-            "At site subgraph named 'a', extension echo-1.0.0 directive @echo used in the wrong location SCHEMA, expected one of: FIELD_DEFINITION. See schema at 29:97:\n{graph: A, name: \"echo\", arguments: {}}",
-        )
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site subgraph named 'a', extension echo-1.0.0 directive @echo used in the wrong location SCHEMA, expected one of: FIELD_DEFINITION
+        See schema at 29:97:
+        {graph: A, name: "echo", arguments: {}}
         "#);
     });
 }

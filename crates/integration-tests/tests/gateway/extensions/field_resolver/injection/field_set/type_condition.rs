@@ -52,11 +52,11 @@ fn can_have_inline_fragments_without_type_condition() {
 
 #[test]
 fn cannot_have_name_fragments() {
-    let error = run_with_field_set(graphql_subgraph(), "id ...NamedFragment").err();
-    insta::assert_debug_snapshot!(error, @r#"
-    Some(
-        "At site User.echo, for the extension 'echo-1.0.0' directive @echo: Cannot use named fragments inside a FieldSet. See schema at 23:35:\n(graph: B, extension: ECHO, name: \"echo\", arguments: {fields: \"id ...NamedFragment\"})",
-    )
+    let err = run_with_field_set(graphql_subgraph(), "id ...NamedFragment").unwrap_err();
+    insta::assert_snapshot!(err, @r#"
+    At site User.echo, for the extension 'echo-1.0.0' directive @echo: Cannot use named fragments inside a FieldSet
+    See schema at 23:35:
+    (graph: B, extension: ECHO, name: "echo", arguments: {fields: "id ...NamedFragment"})
     "#);
 }
 
@@ -140,11 +140,11 @@ fn type_condiiton_must_have_at_least_one_common_type_union() {
         ),
         "... on OtherUnion { ... on Other { id } }",
     )
-    .err();
-    insta::assert_debug_snapshot!(err, @r#"
-    Some(
-        "At site User.echo, for the extension 'echo-1.0.0' directive @echo: Type condition on 'OtherUnion' cannot be used in a 'User' selection_set. See schema at 27:35:\n(graph: B, extension: ECHO, name: \"echo\", arguments: {fields: \"... on OtherUnion { ... on Other { id } }\"})",
-    )
+    .unwrap_err();
+    insta::assert_snapshot!(err, @r#"
+    At site User.echo, for the extension 'echo-1.0.0' directive @echo: Type condition on 'OtherUnion' cannot be used in a 'User' selection_set
+    See schema at 27:35:
+    (graph: B, extension: ECHO, name: "echo", arguments: {fields: "... on OtherUnion { ... on Other { id } }"})
     "#);
 }
 
@@ -177,11 +177,11 @@ fn type_condiiton_must_have_at_least_one_common_type_interface() {
         ),
         "... on Node { id }",
     )
-    .err();
-    insta::assert_debug_snapshot!(err, @r#"
-    Some(
-        "At site User.echo, for the extension 'echo-1.0.0' directive @echo: Type condition on 'Node' cannot be used in a 'User' selection_set. See schema at 21:35:\n(graph: B, extension: ECHO, name: \"echo\", arguments: {fields: \"... on Node { id }\"})",
-    )
+    .unwrap_err();
+    insta::assert_snapshot!(err, @r#"
+    At site User.echo, for the extension 'echo-1.0.0' directive @echo: Type condition on 'Node' cannot be used in a 'User' selection_set
+    See schema at 21:35:
+    (graph: B, extension: ECHO, name: "echo", arguments: {fields: "... on Node { id }"})
     "#);
 }
 
@@ -342,21 +342,21 @@ fn can_select_fields_from_union() {
 
 #[test]
 fn unions_have_no_fields() {
-    let error = run_with_field_set(graphql_subgraph(), "pets { id }").err();
-    insta::assert_debug_snapshot!(error, @r#"
-    Some(
-        "At site User.echo, for the extension 'echo-1.0.0' directive @echo: Field 'id' at path '.pets' does not exists on Pet, it's a union. Only interfaces and objects have fields, consider using a fragment with a type condition.. See schema at 23:35:\n(graph: B, extension: ECHO, name: \"echo\", arguments: {fields: \"pets { id }\"})",
-    )
+    let error = run_with_field_set(graphql_subgraph(), "pets { id }").unwrap_err();
+    insta::assert_snapshot!(error, @r#"
+    At site User.echo, for the extension 'echo-1.0.0' directive @echo: Field 'id' at path '.pets' does not exists on Pet, it's a union. Only interfaces and objects have fields, consider using a fragment with a type condition.
+    See schema at 23:35:
+    (graph: B, extension: ECHO, name: "echo", arguments: {fields: "pets { id }"})
     "#);
 }
 
 #[test]
 fn inexsitant_type() {
-    let error = run_with_field_set(graphql_subgraph(), "... on Unknown { id }").err();
-    insta::assert_debug_snapshot!(error, @r#"
-    Some(
-        "At site User.echo, for the extension 'echo-1.0.0' directive @echo: Unknown type 'Unknown'. See schema at 23:35:\n(graph: B, extension: ECHO, name: \"echo\", arguments: {fields: \"... on Unknown { id }\"})",
-    )
+    let error = run_with_field_set(graphql_subgraph(), "... on Unknown { id }").unwrap_err();
+    insta::assert_snapshot!(error, @r#"
+    At site User.echo, for the extension 'echo-1.0.0' directive @echo: Unknown type 'Unknown'
+    See schema at 23:35:
+    (graph: B, extension: ECHO, name: "echo", arguments: {fields: "... on Unknown { id }"})
     "#);
 }
 
@@ -380,10 +380,10 @@ fn must_be_output_type() {
         ),
         "... on UserInput { id }",
     )
-    .err();
-    insta::assert_debug_snapshot!(error, @r#"
-    Some(
-        "At site User.echo, for the extension 'echo-1.0.0' directive @echo: UserInput is not an object, interface or union. See schema at 21:35:\n(graph: B, extension: ECHO, name: \"echo\", arguments: {fields: \"... on UserInput { id }\"})",
-    )
+    .unwrap_err();
+    insta::assert_snapshot!(error, @r#"
+    At site User.echo, for the extension 'echo-1.0.0' directive @echo: UserInput is not an object, interface or union
+    See schema at 21:35:
+    (graph: B, extension: ECHO, name: "echo", arguments: {fields: "... on UserInput { id }"})
     "#);
 }

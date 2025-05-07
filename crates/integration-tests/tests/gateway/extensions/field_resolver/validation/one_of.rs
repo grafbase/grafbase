@@ -34,7 +34,9 @@ fn validate() {
             .with_extension(ext)
             .try_build()
             .await;
-        insta::assert_debug_snapshot!(result.err(), @"None");
+        if let Err(err) = result {
+            panic!("{err}")
+        }
 
         let result = Gateway::builder()
             .with_subgraph_sdl(
@@ -52,7 +54,9 @@ fn validate() {
             .with_extension(ext)
             .try_build()
             .await;
-        insta::assert_debug_snapshot!(result.err(), @"None");
+        if let Err(err) = result {
+            panic!("{err}")
+        }
 
         //
         // { b: "1" }
@@ -73,7 +77,9 @@ fn validate() {
             .with_extension(ext)
             .try_build()
             .await;
-        insta::assert_debug_snapshot!(result.err(), @"None");
+        if let Err(err) = result {
+            panic!("{err}")
+        }
 
         let result = Gateway::builder()
             .with_subgraph_sdl(
@@ -91,7 +97,9 @@ fn validate() {
             .with_extension(ext)
             .try_build()
             .await;
-        insta::assert_debug_snapshot!(result.err(), @"None");
+        if let Err(err) = result {
+            panic!("{err}")
+        }
 
         //
         // {}
@@ -112,10 +120,10 @@ fn validate() {
             .with_extension(ext)
             .try_build()
             .await;
-        insta::assert_debug_snapshot!(result.err(), @r#"
-        Some(
-            "At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Exactly one field must be provided for Test with @oneOf: No field was provided at path '.value'. See schema at 17:34:\n(graph: A, extension: ECHO, name: \"echo\", arguments: {value: {}})",
-        )
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Exactly one field must be provided for Test with @oneOf: No field was provided at path '.value'
+        See schema at 17:34:
+        (graph: A, extension: ECHO, name: "echo", arguments: {value: {}})
         "#);
 
         let result = Gateway::builder()
@@ -134,10 +142,10 @@ fn validate() {
             .with_extension(ext)
             .try_build()
             .await;
-        insta::assert_debug_snapshot!(result.err(), @r#"
-        Some(
-            "At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Exactly one field must be provided for Test with @oneOf: No field was provided at path '.value'. See schema at 27:97:\n{graph: A, name: \"meta\", arguments: {value: {}}}",
-        )
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Exactly one field must be provided for Test with @oneOf: No field was provided at path '.value'
+        See schema at 27:97:
+        {graph: A, name: "meta", arguments: {value: {}}}
         "#);
 
         //
@@ -160,10 +168,10 @@ fn validate() {
             .try_build()
             .await;
 
-        insta::assert_debug_snapshot!(result.err(), @r#"
-        Some(
-            "At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Exactly one field must be provided for Test with @oneOf: 2 fields (a,b) were provided at path '.value'. See schema at 17:34:\n(graph: A, extension: ECHO, name: \"echo\", arguments: {value: {a: 1, b: \"1\"}})",
-        )
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Exactly one field must be provided for Test with @oneOf: 2 fields (a,b) were provided at path '.value'
+        See schema at 17:34:
+        (graph: A, extension: ECHO, name: "echo", arguments: {value: {a: 1, b: "1"}})
         "#);
         let result = Gateway::builder()
             .with_subgraph_sdl(
@@ -182,10 +190,10 @@ fn validate() {
             .try_build()
             .await;
 
-        insta::assert_debug_snapshot!(result.err(), @r#"
-        Some(
-            "At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Exactly one field must be provided for Test with @oneOf: 2 fields (a,b) were provided at path '.value'. See schema at 27:97:\n{graph: A, name: \"meta\", arguments: {value: {a: 1, b: \"1\"}}}",
-        )
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Exactly one field must be provided for Test with @oneOf: 2 fields (a,b) were provided at path '.value'
+        See schema at 27:97:
+        {graph: A, name: "meta", arguments: {value: {a: 1, b: "1"}}}
         "#);
     });
 }

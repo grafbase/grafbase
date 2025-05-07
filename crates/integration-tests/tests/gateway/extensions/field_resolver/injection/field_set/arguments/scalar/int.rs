@@ -99,10 +99,10 @@ fn invalid_int() {
             .try_build()
             .await;
 
-        insta::assert_debug_snapshot!(result.err(), @r#"
-        Some(
-            "At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Failed to coerce argument at path '.field': Found value 9223372036854775807 which cannot be coerced into a Int scalar at path '.value'. See schema at 19:35:\n(graph: A, extension: ECHO, name: \"echo\", arguments: {fields: \"field(value: 9223372036854775807)\"})",
-        )
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Failed to coerce argument at path '.field': Found value 9223372036854775807 which cannot be coerced into a Int scalar at path '.value'
+        See schema at 19:35:
+        (graph: A, extension: ECHO, name: "echo", arguments: {fields: "field(value: 9223372036854775807)"})
         "#);
 
         let result = Gateway::builder()
@@ -124,10 +124,10 @@ fn invalid_int() {
             .try_build()
             .await;
 
-        insta::assert_debug_snapshot!(result.err(), @r#"
-        Some(
-            "At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Failed to coerce argument at path '.field': Found a Float value where we expected a Int scalar at path '.value'. See schema at 19:35:\n(graph: A, extension: ECHO, name: \"echo\", arguments: {fields: \"field(value: 79.123)\"})",
-        )
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Failed to coerce argument at path '.field': Found a Float value where we expected a Int scalar at path '.value'
+        See schema at 19:35:
+        (graph: A, extension: ECHO, name: "echo", arguments: {fields: "field(value: 79.123)"})
         "#);
     });
 }

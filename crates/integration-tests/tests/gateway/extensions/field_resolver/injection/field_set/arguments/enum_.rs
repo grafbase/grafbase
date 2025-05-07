@@ -69,10 +69,10 @@ fn unknown_enum_value() {
             .try_build()
             .await;
 
-        insta::assert_debug_snapshot!(result.err(), @r#"
-        Some(
-            "At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Failed to coerce argument at path '.field': Found an unknown enum value 'UNKNOWN' for the enum EchoEnum at path '.value'. See schema at 19:35:\n(graph: A, extension: ECHO, name: \"echo\", arguments: {fields: \"field(value: UNKNOWN)\"})",
-        )
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Failed to coerce argument at path '.field': Found an unknown enum value 'UNKNOWN' for the enum EchoEnum at path '.value'
+        See schema at 19:35:
+        (graph: A, extension: ECHO, name: "echo", arguments: {fields: "field(value: UNKNOWN)"})
         "#);
     });
 }
@@ -103,10 +103,10 @@ fn invalid_enum_value() {
             .try_build()
             .await;
 
-        insta::assert_debug_snapshot!(result.err(), @r#"
-        Some(
-            "At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Failed to coerce argument at path '.field': Found a String value where we expected a EchoEnum enum value at path '.value'. See schema at 19:35:\n(graph: A, extension: ECHO, name: \"echo\", arguments: {fields: \"field(value: \\\"VALUE\\\")\"})",
-        )
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Failed to coerce argument at path '.field': Found a String value where we expected a EchoEnum enum value at path '.value'
+        See schema at 19:35:
+        (graph: A, extension: ECHO, name: "echo", arguments: {fields: "field(value: \"VALUE\")"})
         "#);
 
         let result = Gateway::builder()
@@ -132,10 +132,10 @@ fn invalid_enum_value() {
             .try_build()
             .await;
 
-        insta::assert_debug_snapshot!(result.err(), @r#"
-        Some(
-            "At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Failed to coerce argument at path '.field': Found a Integer value where we expected a EchoEnum enum value at path '.value'. See schema at 19:35:\n(graph: A, extension: ECHO, name: \"echo\", arguments: {fields: \"field(value: 1)\"})",
-        )
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Failed to coerce argument at path '.field': Found a Integer value where we expected a EchoEnum enum value at path '.value'
+        See schema at 19:35:
+        (graph: A, extension: ECHO, name: "echo", arguments: {fields: "field(value: 1)"})
         "#);
     });
 }

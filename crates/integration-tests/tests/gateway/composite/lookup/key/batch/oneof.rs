@@ -367,10 +367,10 @@ fn good_name_not_a_list() {
             .try_build()
             .await;
 
-        insta::assert_debug_snapshot!(result.err(), @r#"
-        Some(
-            "At site Query.productBatch, for directive @lookup no matching @key directive was found\nSee schema at 29:3:\nproductBatch(id: Lookup!): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)",
-        )
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        See schema at 29:3:
+        productBatch(id: Lookup!): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)
         "#);
     })
 }
@@ -408,10 +408,10 @@ fn ambiguous_multiple_arg_matches() {
             .try_build()
             .await;
 
-        insta::assert_debug_snapshot!(result.err(), @r#"
-        Some(
-            "At site Query.productBatch, for directive @lookup no matching @key directive was found\nSee schema at 29:3:\nproductBatch(a: Lookup!, b: Lookup!): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)",
-        )
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        See schema at 29:3:
+        productBatch(a: Lookup!, b: Lookup!): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)
         "#);
     })
 }
@@ -449,10 +449,10 @@ fn lookup_arg_in_a_list() {
             .try_build()
             .await;
 
-        insta::assert_debug_snapshot!(result.err(), @r#"
-        Some(
-            "At site Query.productBatch, for directive @lookup no matching @key directive was found\nSee schema at 29:3:\nproductBatch(lookup: [Lookup!]): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)",
-        )
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        See schema at 29:3:
+        productBatch(lookup: [Lookup!]): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)
         "#);
     })
 }
@@ -491,10 +491,10 @@ fn ambiguous_multiple_oneof_field_matches() {
             .try_build()
             .await;
 
-        insta::assert_debug_snapshot!(result.err(), @r#"
-        Some(
-            "At site Query.productBatch, for directive @lookup no matching @key directive was found\nSee schema at 29:3:\nproductBatch(lookup: Lookup!): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)",
-        )
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        See schema at 29:3:
+        productBatch(lookup: Lookup!): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)
         "#);
     })
 }
@@ -532,10 +532,10 @@ fn extra_required_argument() {
             .try_build()
             .await;
 
-        insta::assert_debug_snapshot!(result.err(), @r#"
-        Some(
-            "At site Query.productBatch, for directive @lookup no matching @key directive was found\nSee schema at 29:3:\nproductBatch(lookup: Lookup!, required: Boolean!): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)",
-        )
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        See schema at 29:3:
+        productBatch(lookup: Lookup!, required: Boolean!): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)
         "#);
     })
 }

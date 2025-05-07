@@ -28,11 +28,7 @@ fn invalid_link() {
             .try_build()
             .await;
 
-        insta::assert_debug_snapshot!(result.err(), @r#"
-        Some(
-            "For extension greet-1.0.0, failed to prase @link directive: Unknown argument `ur` in `@link` directive",
-        )
-        "#);
+        insta::assert_snapshot!(result.unwrap_err(), @"For extension greet-1.0.0, failed to prase @link directive: Unknown argument `ur` in `@link` directive");
     });
 }
 
@@ -62,6 +58,8 @@ fn valid_link() {
             .try_build()
             .await;
 
-        insta::assert_debug_snapshot!(result.err(), @"None");
+        if let Err(err) = result {
+            panic!("{err}")
+        }
     });
 }

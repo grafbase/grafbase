@@ -137,10 +137,10 @@ fn incompatible_list_wrapping() {
             .try_build()
             .await;
 
-        insta::assert_debug_snapshot!(result.err(), @r#"
-        Some(
-            "At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Found a String value where we expected a [String!] at path '.value.0'. See schema at 19:35:\n(graph: A, extension: ECHO, name: \"echo\", arguments: {value: [\"something\"]})",
-        )
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Found a String value where we expected a [String!] at path '.value.0'
+        See schema at 19:35:
+        (graph: A, extension: ECHO, name: "echo", arguments: {value: ["something"]})
         "#);
 
         // Invalid schema directive
@@ -166,10 +166,10 @@ fn incompatible_list_wrapping() {
             .try_build()
             .await;
 
-        insta::assert_debug_snapshot!(result.err(), @r#"
-        Some(
-            "At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Found a String value where we expected a [String!] at path '.value.0'. See schema at 29:97:\n{graph: A, name: \"meta\", arguments: {value: [\"meta\"]}}",
-        )
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Found a String value where we expected a [String!] at path '.value.0'
+        See schema at 29:97:
+        {graph: A, name: "meta", arguments: {value: ["meta"]}}
         "#);
     });
 }
