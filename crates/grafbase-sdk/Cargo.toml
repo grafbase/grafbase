@@ -1,6 +1,6 @@
 [package]
 name = "grafbase-sdk"
-version = "0.15.4"
+version = "0.15.5"
 description = "An SDK to implement extensions for the Grafbase Gateway"
 edition = "2024"
 license.workspace = true
@@ -49,6 +49,7 @@ minicbor-serde = { version = "0.4.1", features = ["alloc"] }
 postcard = { version = "1", features = ["use-std"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+serde_path_to_error = "0.1"
 serde_urlencoded = "0.7"
 thiserror = "2"
 url = "2"
@@ -84,6 +85,9 @@ tungstenite = { workspace = true, optional = true }
 uuid.workspace = true
 which = { workspace = true, optional = true }
 zerocopy = { workspace = true, features = ["std"] }
+
+[dev-dependencies]
+insta.workspace = true
 
 [lints]
 workspace = true
