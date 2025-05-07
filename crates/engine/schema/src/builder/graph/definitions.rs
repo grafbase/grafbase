@@ -232,6 +232,7 @@ impl<'a> Ingester<'a> {
                 provides_records: Default::default(),
                 requires_records: Default::default(),
                 directive_ids: Default::default(),
+                computed_records: Default::default(),
             });
         }
         let end = self.graph.field_definitions.len();
@@ -570,6 +571,7 @@ impl<'a> Ingester<'a> {
                 provides_records: Default::default(),
                 requires_records: Default::default(),
                 directive_ids: Default::default(),
+                computed_records: Default::default(),
             });
         }
     }

@@ -2,6 +2,7 @@ mod common;
 mod composite;
 mod federation;
 mod resolvers;
+mod supergraph;
 
 use crate::builder::{Error, sdl};
 
@@ -59,6 +60,19 @@ pub(crate) fn ingest_directives<'a>(
 
         // Interpret Federation directives
         ingester.ingest_federation_directives(def, &directives)?;
+    }
+
+    for def in ingester.sdl_definitions.values().copied() {
+        directives.clear();
+        directives.extend(def.directives());
+        if let Some(ext) = def
+            .as_type()
+            .and_then(|ty| ingester.builder.sdl.type_extensions.get(ty.name()))
+        {
+            directives.extend(ext.iter().flat_map(|ext| ext.directives()));
+        }
+
+        ingester.ingest_federation_aware_directives(def, &directives)?;
     }
 
     common::finalize_inaccessible(&mut ingester.graph);

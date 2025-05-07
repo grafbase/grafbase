@@ -29,10 +29,10 @@ fn unknown_type() {
             .try_build()
             .await;
 
-        insta::assert_debug_snapshot!(result.err(), @r#"
-        Some(
-            "At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Unknown type 'EchoInput'. See schema at 19:35:\n(graph: A, extension: ECHO, name: \"echo\", arguments: {value: {a: 1}})",
-        )
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Unknown type 'EchoInput'
+        See schema at 19:35:
+        (graph: A, extension: ECHO, name: "echo", arguments: {value: {a: 1}})
         "#);
 
         // Invalid schema directive
@@ -60,10 +60,10 @@ fn unknown_type() {
             .try_build()
             .await;
 
-        insta::assert_debug_snapshot!(result.err(), @r#"
-        Some(
-            "At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Unknown type 'EchoInput'. See schema at 29:97:\n{graph: A, name: \"meta\", arguments: {value: {a: 1}}}",
-        )
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Unknown type 'EchoInput'
+        See schema at 29:97:
+        {graph: A, name: "meta", arguments: {value: {a: 1}}}
         "#);
     });
 }
@@ -97,10 +97,10 @@ fn not_a_input_type() {
             .try_build()
             .await;
 
-        insta::assert_debug_snapshot!(result.err(), @r#"
-        Some(
-            "At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Type 'EchoInput' is used for an input value but is not a scalar, input object or enum.. See schema at 19:35:\n(graph: A, extension: ECHO, name: \"echo\", arguments: {value: {a: 1}})",
-        )
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Type 'EchoInput' is used for an input value but is not a scalar, input object or enum.
+        See schema at 19:35:
+        (graph: A, extension: ECHO, name: "echo", arguments: {value: {a: 1}})
         "#);
 
         // Invalid schema directive
@@ -130,10 +130,10 @@ fn not_a_input_type() {
             .try_build()
             .await;
 
-        insta::assert_debug_snapshot!(result.err(), @r#"
-        Some(
-            "At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Type 'EchoInput' is used for an input value but is not a scalar, input object or enum.. See schema at 29:97:\n{graph: A, name: \"meta\", arguments: {value: {a: 1}}}",
-        )
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Type 'EchoInput' is used for an input value but is not a scalar, input object or enum.
+        See schema at 29:97:
+        {graph: A, name: "meta", arguments: {value: {a: 1}}}
         "#);
     });
 }

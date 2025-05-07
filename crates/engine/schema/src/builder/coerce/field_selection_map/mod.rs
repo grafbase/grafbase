@@ -1,7 +1,7 @@
-mod bind;
+mod model;
 mod target;
 
-pub(crate) use bind::*;
+pub(crate) use model::*;
 use std::collections::VecDeque;
 use target::*;
 
@@ -9,13 +9,14 @@ use ::field_selection_map::*;
 use wrapping::Wrapping;
 
 use crate::{
-    CompositeTypeId, EntityDefinitionId, FieldDefinitionId, InputValueDefinitionId, TypeDefinitionId, TypeRecord,
-    builder::GraphBuilder,
+    CompositeTypeId, EntityDefinitionId, FieldDefinitionId, InputValueDefinitionId, StringId, SubgraphId,
+    TypeDefinitionId, TypeRecord, builder::GraphBuilder,
 };
 
 use super::field_set::is_disjoint;
 
 impl GraphBuilder<'_> {
+    #[allow(unused)]
     pub(crate) fn parse_field_selection_map_for_argument(
         &mut self,
         output: EntityDefinitionId,
@@ -23,7 +24,7 @@ impl GraphBuilder<'_> {
         argument_id: InputValueDefinitionId,
         field_selection_map: &str,
     ) -> Result<BoundSelectedValue<InputValueDefinitionId>, String> {
-        let selected_value = SelectedValue::try_from(field_selection_map)?;
+        let selected_value = SelectedValue::try_from(field_selection_map).map_err(|err| format!("\n{err}\n"))?;
         let wrapping = self.graph[argument_id].ty_record.wrapping;
         bind_selected_value(
             self,
@@ -36,15 +37,16 @@ impl GraphBuilder<'_> {
     pub(crate) fn parse_field_selection_map_for_field(
         &mut self,
         output: EntityDefinitionId,
+        subgraph_id: SubgraphId,
         target: FieldDefinitionId,
         field_selection_map: &str,
     ) -> Result<BoundSelectedValue<FieldDefinitionId>, String> {
-        let selected_value = SelectedValue::try_from(field_selection_map)?;
+        let selected_value = SelectedValue::try_from(field_selection_map).map_err(|err| format!("\n{err}\n"))?;
         let wrapping = self.graph[target].ty_record.wrapping;
         bind_selected_value(
             self,
             (output.into(), Wrapping::required()),
-            (target, wrapping),
+            ((subgraph_id, target), wrapping),
             selected_value,
         )
     }
@@ -220,11 +222,27 @@ fn bind_selected_object_value<T: Target>(
             target.display(ctx),
         ));
     }
+    let mut target_fields = target.fields(ctx);
+    if target_fields.is_empty() {
+        return Err(format!(
+            "Cannot map object into {}, it's not an object nor an interface",
+            target.display(ctx)
+        ));
+    }
     let fields = object
         .fields
         .into_iter()
-        .map(|field| bind_selected_object_field(ctx, output, target, field))
+        .map(|field| bind_selected_object_field(ctx, output, target, &mut target_fields, field))
         .collect::<Result<Vec<_>, _>>()?;
+    for (name_id, (_, wrapping)) in target_fields {
+        if wrapping.is_required() {
+            return Err(format!(
+                "For {}, field '{}' is required but doesn't have any mapping",
+                target.display(ctx),
+                ctx[name_id]
+            ));
+        }
+    }
     Ok(BoundSelectedObjectValue { fields })
 }
 
@@ -232,15 +250,18 @@ fn bind_selected_object_field<T: Target>(
     ctx: &mut GraphBuilder<'_>,
     output: CompositeTypeId,
     parent_target: T,
+    target_fields: &mut Vec<(StringId, (T, Wrapping))>,
     field: SelectedObjectField<'_>,
 ) -> Result<BoundSelectedObjectField<T::Id>, String> {
-    let Some(target) = parent_target.field(ctx, field.key) else {
+    let Some(ix) = target_fields.iter().position(|(name_id, _)| ctx[*name_id] == field.key) else {
         return Err(format!(
             "Field '{}' does not exist on {}",
             field.key,
             parent_target.display(ctx)
         ));
     };
+    let (_, target) = target_fields.swap_remove(ix);
+
     let value = if let Some(value) = field.value {
         // The parent wrapping doesn't matter anymore, it was already handled.
         Some(bind_selected_value(ctx, (output, Wrapping::required()), target, value)?)
@@ -332,6 +353,14 @@ fn ensure_type_compatibility<T: Target>(
     ) {
         (TypeDefinitionId::Scalar(a), TypeDefinitionId::Scalar(b)) => a == b,
         (TypeDefinitionId::Enum(a), TypeDefinitionId::Enum(b)) => a == b,
+        (_, TypeDefinitionId::Object(_) | TypeDefinitionId::Interface(_)) => {
+            return Err(format!(
+                "Fields must be explictely selected on {}.{} ({}), it's not a scalar or enum",
+                ctx[ctx.definition_name_id(ctx.graph[field_id].parent_entity_id.into())],
+                ctx[ctx.graph[field_id].name_id],
+                ctx.type_name(ctx.graph[field_id].ty_record),
+            ));
+        }
         _ => false,
     };
 

@@ -69,10 +69,10 @@ fn missing_required_field() {
             .try_build()
             .await;
 
-        insta::assert_debug_snapshot!(result.err(), @r#"
-        Some(
-            "At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Failed to coerce argument at path '.field': Found a null where we expected a String! at path '.input.value'. See schema at 19:35:\n(graph: A, extension: ECHO, name: \"echo\", arguments: {fields: \"field(input: {})\"})",
-        )
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Failed to coerce argument at path '.field': Found a null where we expected a String! at path '.input.value'
+        See schema at 19:35:
+        (graph: A, extension: ECHO, name: "echo", arguments: {fields: "field(input: {})"})
         "#);
     });
 }
@@ -103,10 +103,10 @@ fn too_many_fields() {
             .try_build()
             .await;
 
-        insta::assert_debug_snapshot!(result.err(), @r#"
-        Some(
-            "At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Failed to coerce argument at path '.field': Input object EchoInput does not have a field named 'other' at path '.input'. See schema at 19:35:\n(graph: A, extension: ECHO, name: \"echo\", arguments: {fields: \"field(input: { value: \\\"test\\\", other: 1 })\"})",
-        )
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Failed to coerce argument at path '.field': Input object EchoInput does not have a field named 'other' at path '.input'
+        See schema at 19:35:
+        (graph: A, extension: ECHO, name: "echo", arguments: {fields: "field(input: { value: \"test\", other: 1 })"})
         "#);
     });
 }
@@ -137,10 +137,10 @@ fn not_an_object() {
             .try_build()
             .await;
 
-        insta::assert_debug_snapshot!(result.err(), @r#"
-        Some(
-            "At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Failed to coerce argument at path '.field': Found a List value where we expected a 'EchoInput' input object at path '.input'. See schema at 19:35:\n(graph: A, extension: ECHO, name: \"echo\", arguments: {fields: \"field(input: [])\"})",
-        )
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Failed to coerce argument at path '.field': Found a List value where we expected a 'EchoInput' input object at path '.input'
+        See schema at 19:35:
+        (graph: A, extension: ECHO, name: "echo", arguments: {fields: "field(input: [])"})
         "#);
     });
 }

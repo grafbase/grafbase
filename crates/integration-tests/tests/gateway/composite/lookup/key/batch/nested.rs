@@ -635,10 +635,10 @@ fn no_arguments() {
             .try_build()
             .await;
 
-        insta::assert_debug_snapshot!(result.err(), @r#"
-        Some(
-            "At site Query.productBatch, for directive @lookup no matching @key directive was found. See schema at 36:3:\nproductBatch: [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)",
-        )
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        See schema at 36:3:
+        productBatch: [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)
         "#);
     })
 }
@@ -680,10 +680,10 @@ fn no_matching_argument() {
             .try_build()
             .await;
 
-        insta::assert_debug_snapshot!(result.err(), @r#"
-        Some(
-            "At site Query.productBatch, for directive @lookup no matching @key directive was found. See schema at 36:3:\nproductBatch(somethign: Int): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)",
-        )
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        See schema at 36:3:
+        productBatch(somethign: Int): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)
         "#);
     })
 }
@@ -725,10 +725,10 @@ fn no_matching_nested_field() {
             .try_build()
             .await;
 
-        insta::assert_debug_snapshot!(result.err(), @r#"
-        Some(
-            "At site Query.productBatch, for directive @lookup no matching @key directive was found. See schema at 36:3:\nproductBatch(nested: [NestedInput!]): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)",
-        )
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        See schema at 36:3:
+        productBatch(nested: [NestedInput!]): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)
         "#);
     })
 }
@@ -770,10 +770,10 @@ fn arg_good_name_bad_type() {
             .try_build()
             .await;
 
-        insta::assert_debug_snapshot!(result.err(), @r#"
-        Some(
-            "At site Query.productBatch, for directive @lookup no matching @key directive was found. See schema at 36:3:\nproductBatch(nested: [Int]): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)",
-        )
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        See schema at 36:3:
+        productBatch(nested: [Int]): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)
         "#);
     })
 }
@@ -815,10 +815,10 @@ fn field_good_name_bad_type() {
             .try_build()
             .await;
 
-        insta::assert_debug_snapshot!(result.err(), @r#"
-        Some(
-            "At site Query.productBatch, for directive @lookup no matching @key directive was found. See schema at 36:3:\nproductBatch(nested: [NestedInput!]): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)",
-        )
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        See schema at 36:3:
+        productBatch(nested: [NestedInput!]): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)
         "#);
     })
 }
@@ -860,10 +860,10 @@ fn good_name_not_a_list() {
             .try_build()
             .await;
 
-        insta::assert_debug_snapshot!(result.err(), @r#"
-        Some(
-            "At site Query.productBatch, for directive @lookup no matching @key directive was found. See schema at 36:3:\nproductBatch(nested: NestedInput!): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)",
-        )
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        See schema at 36:3:
+        productBatch(nested: NestedInput!): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)
         "#);
     })
 }
@@ -905,10 +905,10 @@ fn ambiguous_multiple_arg_matches() {
             .try_build()
             .await;
 
-        insta::assert_debug_snapshot!(result.err(), @r#"
-        Some(
-            "At site Query.productBatch, for directive @lookup no matching @key directive was found. See schema at 36:3:\nproductBatch(a: [NestedInput!], b: [NestedInput!]): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)",
-        )
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        See schema at 36:3:
+        productBatch(a: [NestedInput!], b: [NestedInput!]): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)
         "#);
     })
 }
@@ -951,10 +951,10 @@ fn ambiguous_multiple_field_matches() {
             .try_build()
             .await;
 
-        insta::assert_debug_snapshot!(result.err(), @r#"
-        Some(
-            "At site Query.productBatch, for directive @lookup no matching @key directive was found. See schema at 36:3:\nproductBatch(a: [NestedInput!]): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)",
-        )
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        See schema at 36:3:
+        productBatch(a: [NestedInput!]): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)
         "#);
     })
 }
@@ -996,10 +996,10 @@ fn extra_required_argument() {
             .try_build()
             .await;
 
-        insta::assert_debug_snapshot!(result.err(), @r#"
-        Some(
-            "At site Query.productBatch, for directive @lookup no matching @key directive was found. See schema at 36:3:\nproductBatch(nested: [NestedInput!], required: Boolean!): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)",
-        )
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        See schema at 36:3:
+        productBatch(nested: [NestedInput!], required: Boolean!): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)
         "#);
     })
 }
@@ -1042,10 +1042,10 @@ fn extra_required_field() {
             .try_build()
             .await;
 
-        insta::assert_debug_snapshot!(result.err(), @r#"
-        Some(
-            "At site Query.productBatch, for directive @lookup no matching @key directive was found. See schema at 36:3:\nproductBatch(nested: [NestedInput!]): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)",
-        )
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        See schema at 36:3:
+        productBatch(nested: [NestedInput!]): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)
         "#);
     })
 }

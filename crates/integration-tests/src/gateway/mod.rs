@@ -30,6 +30,12 @@ pub struct Gateway {
     subgraphs: subgraph::Subgraphs,
 }
 
+impl std::fmt::Debug for Gateway {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Gateway").finish_non_exhaustive()
+    }
+}
+
 pub struct TestRuntimeContext {
     pub access_log_receiver: AccessLogReceiver,
 }

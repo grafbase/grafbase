@@ -125,10 +125,10 @@ fn invalid_float() {
             .try_build()
             .await;
 
-        insta::assert_debug_snapshot!(result.err(), @r#"
-        Some(
-            "At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Found a Object value where we expected a Float scalar at path '.value'. See schema at 19:35:\n(graph: A, extension: ECHO, name: \"echo\", arguments: {value: {}})",
-        )
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Found a Object value where we expected a Float scalar at path '.value'
+        See schema at 19:35:
+        (graph: A, extension: ECHO, name: "echo", arguments: {value: {}})
         "#);
 
         // Invalid schema directive
@@ -154,10 +154,10 @@ fn invalid_float() {
             .try_build()
             .await;
 
-        insta::assert_debug_snapshot!(result.err(), @r#"
-        Some(
-            "At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Found a String value where we expected a Float scalar at path '.value'. See schema at 29:97:\n{graph: A, name: \"meta\", arguments: {value: \"79.123\"}}",
-        )
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Found a String value where we expected a Float scalar at path '.value'
+        See schema at 29:97:
+        {graph: A, name: "meta", arguments: {value: "79.123"}}
         "#);
     });
 }

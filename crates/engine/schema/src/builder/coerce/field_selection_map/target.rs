@@ -1,8 +1,8 @@
 use wrapping::Wrapping;
 
 use crate::{
-    EntityDefinitionId, FieldDefinitionId, Graph, InputObjectDefinitionId, InputValueDefinitionId, TypeDefinitionId,
-    builder::GraphBuilder,
+    EntityDefinitionId, FieldDefinitionId, Graph, InputObjectDefinitionId, InputValueDefinitionId, StringId,
+    SubgraphId, TypeDefinitionId, builder::GraphBuilder,
 };
 
 pub(super) trait Target: Copy {
@@ -10,7 +10,7 @@ pub(super) trait Target: Copy {
     fn id(self) -> Self::Id;
     fn display(self, ctx: &GraphBuilder<'_>) -> String;
     fn type_definition(self, graph: &Graph) -> TypeDefinitionId;
-    fn field(self, ctx: &GraphBuilder<'_>, name: &str) -> Option<(Self, Wrapping)>;
+    fn fields(self, ctx: &GraphBuilder<'_>) -> Vec<(StringId, (Self, Wrapping))>;
 }
 
 #[derive(Clone, Copy)]
@@ -62,38 +62,42 @@ impl Target for Input {
         graph[self.id()].ty_record.definition_id
     }
 
-    fn field(self, ctx: &GraphBuilder<'_>, name: &str) -> Option<(Self, Wrapping)> {
+    fn fields(self, ctx: &GraphBuilder<'_>) -> Vec<(StringId, (Self, Wrapping))> {
         ctx.graph[self.id()]
             .ty_record
             .definition_id
             .as_input_object()
-            .and_then(|input_object_id| {
+            .map(|input_object_id| {
                 ctx.graph[input_object_id]
                     .input_field_ids
                     .into_iter()
-                    .find(|id| ctx[ctx.graph[*id].name_id] == name)
                     .map(|id| {
                         (
-                            Input::InputField {
-                                input_object_id,
-                                input_field_id: id,
-                            },
-                            ctx.graph[id].ty_record.wrapping,
+                            ctx.graph[id].name_id,
+                            (
+                                Input::InputField {
+                                    input_object_id,
+                                    input_field_id: id,
+                                },
+                                ctx.graph[id].ty_record.wrapping,
+                            ),
                         )
                     })
+                    .collect::<Vec<_>>()
             })
+            .unwrap_or_default()
     }
 }
 
-impl Target for FieldDefinitionId {
+impl Target for (SubgraphId, FieldDefinitionId) {
     type Id = FieldDefinitionId;
 
     fn id(self) -> Self::Id {
-        self
+        self.1
     }
 
     fn display(self, ctx: &GraphBuilder<'_>) -> String {
-        let field = &ctx.graph[self];
+        let field = &ctx.graph[self.id()];
         format!(
             "{}.{}",
             ctx[ctx.definition_name_id(field.parent_entity_id.into())],
@@ -102,23 +106,34 @@ impl Target for FieldDefinitionId {
     }
 
     fn type_definition(self, graph: &Graph) -> TypeDefinitionId {
-        graph[self].ty_record.definition_id
+        graph[self.id()].ty_record.definition_id
     }
 
-    fn field(self, ctx: &GraphBuilder<'_>, name: &str) -> Option<(Self, Wrapping)> {
-        ctx.graph[self]
+    fn fields(self, ctx: &GraphBuilder<'_>) -> Vec<(StringId, (Self, Wrapping))> {
+        let (subgraph_id, field_id) = self;
+        ctx.graph[field_id]
             .ty_record
             .definition_id
             .as_entity()
-            .and_then(|entity_id| {
+            .map(|entity_id| {
                 let field_ids = match entity_id {
                     EntityDefinitionId::Interface(id) => ctx.graph[id].field_ids,
                     EntityDefinitionId::Object(id) => ctx.graph[id].field_ids,
                 };
                 field_ids
                     .into_iter()
-                    .find(|id| ctx[ctx.graph[*id].name_id] == name)
-                    .map(|id| (id, ctx.graph[id].ty_record.wrapping))
+                    .filter(|id| {
+                        println!("{:#?} <- {:#?}", ctx.graph[*id].exists_in_subgraph_ids, subgraph_id);
+                        ctx.graph[*id].exists_in_subgraph_ids.contains(&subgraph_id)
+                    })
+                    .map(|id| {
+                        (
+                            ctx.graph[id].name_id,
+                            ((subgraph_id, id), ctx.graph[id].ty_record.wrapping),
+                        )
+                    })
+                    .collect::<Vec<_>>()
             })
+            .unwrap_or_default()
     }
 }

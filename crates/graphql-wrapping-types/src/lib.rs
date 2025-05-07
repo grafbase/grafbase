@@ -364,7 +364,7 @@ mod tests {
     }
 
     #[test]
-    fn test_is_compatible_with() {
+    fn test_is_equal_or_more_lenient_than() {
         let non_null_list = Wrapping::required().list();
         let non_null_list_non_null = Wrapping::required().list_non_null();
         assert!(non_null_list.is_equal_or_more_lenient_than(non_null_list_non_null));
