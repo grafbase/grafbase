@@ -12,6 +12,7 @@ mod query;
 mod requires_scopes;
 mod response;
 
+pub use deny_some::DenySites;
 pub use headers::*;
 
 fn user() -> serde_json::Value {

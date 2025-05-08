@@ -1,10 +1,10 @@
 use id_newtypes::IdRange;
 use schema::{InterfaceDefinitionId, ObjectDefinitionId, UnionDefinitionId};
-use walker::{Iter, Walk};
+use walker::Walk;
 
 use crate::prepare::{OperationPlanContext, ResponseObjectSetDefinitionId};
 
-use super::{FieldShape, FieldShapeId, TypenameShapeId, TypenameShapeRecord};
+use super::{FieldShapeId, TypenameShapeId, TypenameShapeRecord};
 
 /// Being concrete does not mean it's only associated with a single object definition id
 /// only that we know exactly which fields must be present.
@@ -13,9 +13,11 @@ pub(crate) struct ConcreteShapeRecord {
     pub set_id: Option<ResponseObjectSetDefinitionId>,
     pub identifier: ObjectIdentifier,
     pub typename_shape_ids: IdRange<TypenameShapeId>,
-    // Ordered by PartitionDataFieldId which should more or less match the ordering of fields
+    // Ordered by (non-derived first / derived last).then(PartitionDataFieldId) which should more or less match the ordering of fields
     // coming in from resolvers.
     pub field_shape_ids: IdRange<FieldShapeId>,
+    // If there isn't any derived fields, this will be equal to field_shape_ids.end
+    pub derived_field_shape_ids_start: FieldShapeId,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
@@ -52,7 +54,6 @@ pub(crate) struct ConcreteShape<'a> {
     pub id: ConcreteShapeId,
 }
 
-#[allow(unused)]
 impl<'a> ConcreteShape<'a> {
     /// Prefer using Deref unless you need the 'a lifetime.
     #[allow(clippy::should_implement_trait)]
@@ -61,12 +62,6 @@ impl<'a> ConcreteShape<'a> {
     }
     pub(crate) fn has_errors(&self) -> bool {
         self.ctx.plan.query_modifications.concrete_shape_has_error[self.id]
-    }
-    pub(crate) fn fields(&self) -> impl Iter<Item = FieldShape<'a>> + 'a {
-        self.as_ref().field_shape_ids.walk(self.ctx)
-    }
-    pub(crate) fn typename_shapes(&self) -> std::slice::Iter<'a, TypenameShapeRecord> {
-        self.ctx.cached.shapes[self.as_ref().typename_shape_ids].iter()
     }
     pub(crate) fn typename_shapes_slice(&self) -> &'a [TypenameShapeRecord] {
         &self.ctx.cached.shapes[self.as_ref().typename_shape_ids]

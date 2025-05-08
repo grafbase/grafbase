@@ -8,7 +8,7 @@ use integration_tests::{
 use runtime::extension::{AuthorizationDecisions, QueryElement, TokenRef};
 
 #[derive(Default)]
-pub(super) struct DenySites {
+pub struct DenySites {
     pub query: Vec<&'static str>,
     pub response: Vec<&'static str>,
 }
