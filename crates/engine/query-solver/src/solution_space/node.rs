@@ -1,7 +1,9 @@
 use std::borrow::Cow;
 
 use operation::OperationContext;
-use schema::{EntityDefinitionId, FieldSetRecord, ResolverDefinitionId, SubgraphId};
+use schema::{
+    DerivedFieldId, DerivedFieldMappingRecord, EntityDefinitionId, FieldSetRecord, ResolverDefinitionId, SubgraphId,
+};
 use walker::Walk as _;
 
 use crate::{FieldFlags, QueryFieldId, dot_graph::Attrs};
@@ -35,21 +37,22 @@ impl SpaceNode<'_> {
                 crate::query::dot_graph::field_label(ctx, &query[node.id])
             )
             .into(),
-            SpaceNode::ProvidableField(node) => match node {
-                ProvidableField::InSubgraph {
-                    subgraph_id, field_id, ..
-                } => format!(
-                    "{}#{}",
-                    crate::query::dot_graph::short_field_label(ctx, &query[*field_id]),
-                    subgraph_id.walk(ctx).name()
-                ),
-                ProvidableField::OnlyProvidable {
-                    subgraph_id, field_id, ..
-                } => format!(
-                    "{}#{}@provides",
-                    crate::query::dot_graph::short_field_label(ctx, &query[*field_id]),
-                    subgraph_id.walk(ctx).name()
-                ),
+            SpaceNode::ProvidableField(ProvidableField {
+                subgraph_id,
+                query_field_id,
+                only_providable,
+                derived: dervied_from_id,
+                ..
+            }) => {
+                let subgraph = subgraph_id.walk(ctx).name();
+                let label = crate::query::dot_graph::short_field_label(ctx, &query[*query_field_id]);
+
+                match (only_providable, dervied_from_id) {
+                    (true, None) => format!("{label}#{subgraph}@provides"),
+                    (true, Some(_)) => format!("{label}#{subgraph}@provides@derived"),
+                    (false, None) => format!("{label}#{subgraph}"),
+                    (false, Some(_)) => format!("{label}#{subgraph}@derived"),
+                }
             }
             .into(),
             SpaceNode::Resolver(resolver) => resolver.definition_id.walk(ctx).name(),
@@ -94,33 +97,18 @@ pub(crate) struct Resolver {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) enum ProvidableField<'ctx> {
-    InSubgraph {
-        subgraph_id: SubgraphId,
-        field_id: QueryFieldId,
-        provides: Cow<'ctx, FieldSetRecord>,
-    },
-    OnlyProvidable {
-        subgraph_id: SubgraphId,
-        field_id: QueryFieldId,
-        provides: Cow<'ctx, FieldSetRecord>,
-    },
+pub(crate) struct ProvidableField<'ctx> {
+    pub subgraph_id: SubgraphId,
+    pub query_field_id: QueryFieldId,
+    pub provides: Cow<'ctx, FieldSetRecord>,
+    pub only_providable: bool,
+    pub derived: Option<Derived>,
 }
 
-impl ProvidableField<'_> {
-    pub(crate) fn query_field_id(&self) -> QueryFieldId {
-        match self {
-            ProvidableField::InSubgraph { field_id, .. } => *field_id,
-            ProvidableField::OnlyProvidable { field_id, .. } => *field_id,
-        }
-    }
-
-    pub(crate) fn subgraph_id(&self) -> SubgraphId {
-        match self {
-            ProvidableField::InSubgraph { subgraph_id, .. } => *subgraph_id,
-            ProvidableField::OnlyProvidable { subgraph_id, .. } => *subgraph_id,
-        }
-    }
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum Derived {
+    Root { id: DerivedFieldId },
+    Field { mapping: DerivedFieldMappingRecord },
 }
 
 impl<'ctx> SpaceNode<'ctx> {

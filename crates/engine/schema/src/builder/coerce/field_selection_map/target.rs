@@ -122,10 +122,7 @@ impl Target for (SubgraphId, FieldDefinitionId) {
                 };
                 field_ids
                     .into_iter()
-                    .filter(|id| {
-                        println!("{:#?} <- {:#?}", ctx.graph[*id].exists_in_subgraph_ids, subgraph_id);
-                        ctx.graph[*id].exists_in_subgraph_ids.contains(&subgraph_id)
-                    })
+                    .filter(|id| ctx.graph[*id].exists_in_subgraph_ids.contains(&subgraph_id))
                     .map(|id| {
                         (
                             ctx.graph[id].name_id,

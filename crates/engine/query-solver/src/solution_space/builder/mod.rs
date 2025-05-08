@@ -112,9 +112,6 @@ where
                 TypeDefinitionId::Scalar(_) | TypeDefinitionId::Enum(_) => {
                     flags |= FieldFlags::LEAF_NODE;
                 }
-                TypeDefinitionId::Union(_) | TypeDefinitionId::Interface(_) | TypeDefinitionId::Object(_) => {
-                    flags |= FieldFlags::IS_COMPOSITE_TYPE;
-                }
                 _ => (),
             }
         }
