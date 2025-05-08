@@ -35,6 +35,72 @@ fn invalid_location_but_not_used() {
 }
 
 #[test]
+fn invalid_location_but_not_used_nullable_with_default_value() {
+    runtime().block_on(async move {
+        let result = Gateway::builder()
+            .with_subgraph_sdl(
+                "a",
+                r#"
+                extend schema
+                    @link(url: "echo-1.0.0", import: ["@echo"])
+
+                scalar JSON
+
+                type Query @echo {
+                    echo: JSON
+                }
+                "#,
+            )
+            .with_extension(EchoExt::with_sdl(
+                r#"
+                extend schema @link(url: "https://specs.grafbase.com/grafbase", import: ["InputValueSet"])
+
+                directive @echo(input: InputValueSet = "*") on FIELD_DEFINITION | OBJECT
+                "#,
+            ))
+            .try_build()
+            .await;
+
+        if let Err(err) = result {
+            panic!("{err}")
+        }
+    });
+}
+
+#[test]
+fn invalid_location_but_not_used_required_with_default_value() {
+    runtime().block_on(async move {
+        let result = Gateway::builder()
+            .with_subgraph_sdl(
+                "a",
+                r#"
+                extend schema
+                    @link(url: "echo-1.0.0", import: ["@echo"])
+
+                scalar JSON
+
+                type Query @echo {
+                    echo: JSON
+                }
+                "#,
+            )
+            .with_extension(EchoExt::with_sdl(
+                r#"
+                extend schema @link(url: "https://specs.grafbase.com/grafbase", import: ["InputValueSet"])
+
+                directive @echo(input: InputValueSet! = "*") on FIELD_DEFINITION | OBJECT
+                "#,
+            ))
+            .try_build()
+            .await;
+
+        if let Err(err) = result {
+            panic!("{err}")
+        }
+    });
+}
+
+#[test]
 fn invalid_location() {
     runtime().block_on(async move {
         let result = Gateway::builder()

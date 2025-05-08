@@ -47,9 +47,13 @@ impl ExtensionDirectiveArgumentsCoercer<'_, '_> {
             sdl::SdlDefinition::FieldDefinition(def) => self.graph[def.id].parent_entity_id.into(),
             sdl::SdlDefinition::Union(def) => def.id.into(),
             _ => {
-                return Err(FieldSetError::InvalidFieldSetOnLocation {
-                    location: self.current_definition.location().as_str(),
-                });
+                return if self.is_default_value {
+                    Ok(FieldSetRecord::default())
+                } else {
+                    Err(FieldSetError::InvalidFieldSetOnLocation {
+                        location: self.current_definition.location().as_str(),
+                    })
+                };
             }
         };
         self.ctx.parse_field_set(composite_type_id, selection_set)

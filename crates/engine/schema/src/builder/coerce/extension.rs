@@ -17,6 +17,7 @@ pub(crate) struct ExtensionDirectiveArgumentsCoercer<'a, 'b> {
     pub(super) sdl: &'a ExtensionSdl,
     pub(super) current_definition: sdl::SdlDefinition<'b>,
     pub(super) current_injection_stage: InjectionStage,
+    pub(super) is_default_value: bool,
     pub(super) requirements: FieldSetRecord,
 }
 
@@ -48,6 +49,7 @@ impl<'a> GraphBuilder<'a> {
             current_definition,
             current_injection_stage: Default::default(),
             requirements: Default::default(),
+            is_default_value: false,
         };
         if let Some(arguments) = arguments.and_then(|arg| arg.as_fields()) {
             let mut arguments = arguments.collect::<Vec<_>>();
@@ -96,8 +98,10 @@ impl ExtensionDirectiveArgumentsCoercer<'_, '_> {
         self.value_path.push(def.name().into());
         self.current_injection_stage = Default::default();
         let value = if let Some(value) = value {
+            self.is_default_value = false;
             self.coerce_input_value(def.ty(), value)?
         } else if let Some(value) = def.default_value() {
+            self.is_default_value = true;
             self.coerce_input_value(def.ty(), value)?
         } else if def.ty().is_non_null() {
             return Err(InputValueError::MissingRequiredArgument(def.name().to_string()).into());

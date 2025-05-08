@@ -24,9 +24,13 @@ pub enum InputValueSetError {
 impl ExtensionDirectiveArgumentsCoercer<'_, '_> {
     pub(crate) fn coerce_input_value_set(&mut self, selection_set: &str) -> Result<InputValueSet, InputValueSetError> {
         let sdl::SdlDefinition::FieldDefinition(field_definition) = self.current_definition else {
-            return Err(InputValueSetError::InvalidInputValueSetOnLocation {
-                location: self.current_definition.location().as_str(),
-            });
+            return if self.is_default_value {
+                Ok(Default::default())
+            } else {
+                Err(InputValueSetError::InvalidInputValueSetOnLocation {
+                    location: self.current_definition.location().as_str(),
+                })
+            };
         };
         if selection_set.trim() == "*" {
             return Ok(InputValueSet::All);
