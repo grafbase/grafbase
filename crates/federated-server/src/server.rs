@@ -28,7 +28,10 @@ use gateway_config::{Config, TlsConfig};
 use std::{net::SocketAddr, path::PathBuf};
 use tokio::sync::mpsc;
 use tokio::{signal, sync::watch};
-use tower_http::{compression::CompressionLayer, cors::CorsLayer};
+use tower_http::{
+    compression::{CompressionLayer, DefaultPredicate, Predicate as _, predicate::NotForContentType},
+    cors::CorsLayer,
+};
 
 /// Start parameter for the gateway.
 pub struct ServeConfig {
@@ -206,7 +209,17 @@ pub async fn router<R: engine::Runtime, SR: ServerRuntime>(
     };
 
     let mut router = inject_layers_before_cors(router)
-        .layer(CompressionLayer::new())
+        // Streaming and compression doesn't really work well today. Had a panic deep inside stream
+        // unfold. Furthermore there seem to be issues with it as pointed out by Apollo's router
+        // team:
+        // https://github.com/tower-rs/tower-http/issues/292
+        // They have copied the compression code and adjusted it, see PRs for:
+        // https://github.com/apollographql/router/issues/1572
+        // We'll need to see what we do. For now I'm disabling it as it's not important enough
+        // right now.
+        .layer(CompressionLayer::new().compress_when(DefaultPredicate::new().and(
+            NotForContentType::const_new("multipart/mixed").and(NotForContentType::const_new("text/event-stream")),
+        )))
         .layer(cors);
 
     if config.csrf.enabled {
