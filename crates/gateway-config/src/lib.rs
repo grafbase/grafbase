@@ -727,7 +727,8 @@ mod tests {
 
         let config: Config = toml::from_str(input).unwrap();
         let cors = config.cors.unwrap();
-        let expected = AnyOrUrlArray::Explicit(vec!["https://app.grafbase.com".parse().unwrap()]);
+
+        let expected = AnyOrUrlArray::Origins(vec!["https://app.grafbase.com".to_string()]);
 
         assert_eq!(Some(expected), cors.allow_origins)
     }
@@ -736,13 +737,13 @@ mod tests {
     fn cors_allow_origins_wildcard() {
         let input = indoc! {r#"
             [cors]
-            allow_origins = { wildcard = ["*.example.com", "*.api.org"] }
+            allow_origins = ["*.example.com", "*.api.org"]
         "#};
 
         let config: Config = toml::from_str(input).unwrap();
         let cors = config.cors.unwrap();
 
-        if let Some(AnyOrUrlArray::Wildcard(patterns)) = cors.allow_origins {
+        if let Some(AnyOrUrlArray::Origins(patterns)) = cors.allow_origins {
             assert_eq!(patterns.len(), 2);
             assert_eq!(patterns[0], "*.example.com");
             assert_eq!(patterns[1], "*.api.org");
@@ -752,21 +753,37 @@ mod tests {
     }
 
     #[test]
-    fn cors_allow_origins_invalid_url() {
+    fn cors_allow_origins_mixed() {
         let input = indoc! {r#"
             [cors]
-            allow_origins = ["foo"]
+            allow_origins = ["https://example.com", "*.api.example.com"]
+        "#};
+
+        let config: Config = toml::from_str(input).unwrap();
+        let cors = config.cors.unwrap();
+
+        if let Some(AnyOrUrlArray::Origins(origins)) = cors.allow_origins {
+            assert_eq!(origins.len(), 2);
+            assert_eq!(origins[0], "https://example.com");
+            assert_eq!(origins[1], "*.api.example.com");
+        } else {
+            panic!("Expected mixed origins in allow_origins");
+        }
+    }
+
+    #[test]
+    fn cors_allow_origins_invalid_url() {
+        // With the new implementation, simple strings like "foo" are valid
+        // as they could be domain names without protocol.
+        // Test with an obviously invalid URL pattern
+        let input = indoc! {r#"
+            [cors]
+            allow_origins = [123]
         "#};
 
         let error = toml::from_str::<Config>(input).unwrap_err();
 
-        insta::assert_snapshot!(&error.to_string(), @r#"
-        TOML parse error at line 2, column 17
-          |
-        2 | allow_origins = ["foo"]
-          |                 ^^^^^^^
-        expecting string "any", an array of urls, or wildcard patterns like "*.example.com"
-        "#);
+        insta::assert_snapshot!(&error.to_string());
     }
 
     #[test]

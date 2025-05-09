@@ -1,0 +1,10 @@
+---
+source: crates/gateway-config/src/lib.rs
+expression: "&error.to_string()"
+snapshot_kind: text
+---
+TOML parse error at line 2, column 17
+  |
+2 | allow_origins = [123]
+  |                 ^^^^^
+expecting string "any", or an array of urls and wildcard patterns like "*.example.com"
