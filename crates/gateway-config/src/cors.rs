@@ -11,12 +11,12 @@ pub struct CorsConfig {
     /// If false (or not defined), credentials are not allowed in requests
     pub allow_credentials: bool,
     /// Origins from which we allow requests.
-    /// 
+    ///
     /// This can be:
     /// - `{ allow_origins = "any" }` - Allows any origin (equivalent to "*")
     /// - `{ allow_origins = ["https://example.com", "*.example.com"] }` - Allows specific origins and wildcard patterns
     ///
-    /// Wildcard patterns like "*.example.com" will match any subdomain such as "api.example.com" or 
+    /// Wildcard patterns like "*.example.com" will match any subdomain such as "api.example.com" or
     /// "user.example.com", but not the apex domain "example.com" itself.
     pub allow_origins: Option<AnyOrUrlArray>,
     /// Maximum time between OPTIONS and the next request
@@ -114,81 +114,82 @@ impl AnyOrUrlArray {
 
 impl From<AnyOrUrlArray> for AllowOrigin {
     fn from(value: AnyOrUrlArray) -> Self {
-            match value {
-                AnyOrUrlArray::Any => AllowOrigin::any(),
-                AnyOrUrlArray::Origins(origins) => {
-                    // Split into exact URLs and wildcard patterns
-                    let mut exact_origins = Vec::new();
-                    let mut wildcard_patterns = Vec::new();
-                    
-                    for origin in &origins {
-                        if origin.starts_with("*.") {
-                            wildcard_patterns.push(origin.clone());
-                        } else {
-                            exact_origins.push(origin.clone());
-                        }
+        match value {
+            AnyOrUrlArray::Any => AllowOrigin::any(),
+            AnyOrUrlArray::Origins(origins) => {
+                // Split into exact URLs and wildcard patterns
+                let mut exact_origins = Vec::new();
+                let mut wildcard_patterns = Vec::new();
+
+                for origin in &origins {
+                    if origin.starts_with("*.") {
+                        wildcard_patterns.push(origin.clone());
+                    } else {
+                        exact_origins.push(origin.clone());
                     }
-                    
-                    // If we only have exact origins and no wildcards, use the simpler list method
-                    if !wildcard_patterns.is_empty() {
-                        // We have wildcards, so we need to use a predicate
-                        let patterns = origins.clone();
-                        
-                        let predicate = move |origin: &HeaderValue, _: &http::request::Parts| {
-                            let origin_str = match origin.to_str() {
-                                Ok(s) => s,
-                                Err(_) => return false,
-                            };
-                            
-                            // Check exact matches first
-                            if patterns.iter().any(|pattern| {
-                                !pattern.starts_with("*.") && pattern == origin_str
-                            }) {
-                                return true;
-                            }
+                }
 
-                            // Parse the origin URL to handle wildcards
-                            let origin_url = match Url::parse(origin_str) {
-                                Ok(url) => url,
-                                Err(_) => return false,
-                            };
+                // If we only have exact origins and no wildcards, use the simpler list method
+                if !wildcard_patterns.is_empty() {
+                    // We have wildcards, so we need to use a predicate
+                    let patterns = origins.clone();
 
-                            // Extract host from origin
-                            let host = match origin_url.host_str() {
-                                Some(h) => h,
-                                None => return false,
-                            };
-
-                            // Check if the host matches any of our wildcard patterns
-                            patterns.iter().any(|pattern| {
-                                if pattern.starts_with("*.") {
-                                    // Handle wildcard subdomain pattern (*.example.com)
-                                    // This will match subdomains like "api.example.com" but NOT "example.com"
-                                    let domain_part = &pattern[2..]; // Skip the "*." prefix
-
-                                    // Check if host ends with the domain part and has a subdomain
-                                    host.ends_with(domain_part) && 
-                                        host.len() > domain_part.len() && 
-                                        host.as_bytes()[host.len() - domain_part.len() - 1] == b'.'
-                                } else {
-                                    false // Exact matches were already checked
-                                }
-                            })
+                    let predicate = move |origin: &HeaderValue, _: &http::request::Parts| {
+                        let origin_str = match origin.to_str() {
+                            Ok(s) => s,
+                            Err(_) => return false,
                         };
 
-                        AllowOrigin::predicate(predicate)
-                    } else {
-                        // No wildcards, just use the list method
-                        let origin_values = exact_origins
+                        // Check exact matches first
+                        if patterns
                             .iter()
-                            .map(|url| url.strip_suffix('/').unwrap_or(url))
-                            .map(|url| HeaderValue::from_str(url).expect("must be ascii"));
+                            .any(|pattern| !pattern.starts_with("*.") && pattern == origin_str)
+                        {
+                            return true;
+                        }
 
-                        AllowOrigin::list(origin_values)
-                    }
+                        // Parse the origin URL to handle wildcards
+                        let origin_url = match Url::parse(origin_str) {
+                            Ok(url) => url,
+                            Err(_) => return false,
+                        };
+
+                        // Extract host from origin
+                        let host = match origin_url.host_str() {
+                            Some(h) => h,
+                            None => return false,
+                        };
+
+                        // Check if the host matches any of our wildcard patterns
+                        patterns.iter().any(|pattern| {
+                            if pattern.starts_with("*.") {
+                                // Handle wildcard subdomain pattern (*.example.com)
+                                // This will match subdomains like "api.example.com" but NOT "example.com"
+                                let domain_part = &pattern[2..]; // Skip the "*." prefix
+
+                                // Check if host ends with the domain part and has a subdomain
+                                host.ends_with(domain_part)
+                                    && host.len() > domain_part.len()
+                                    && host.as_bytes()[host.len() - domain_part.len() - 1] == b'.'
+                            } else {
+                                false // Exact matches were already checked
+                            }
+                        })
+                    };
+
+                    AllowOrigin::predicate(predicate)
+                } else {
+                    // No wildcards, just use the list method
+                    let origin_values = exact_origins
+                        .iter()
+                        .map(|url| url.strip_suffix('/').unwrap_or(url))
+                        .map(|url| HeaderValue::from_str(url).expect("must be ascii"));
+
+                    AllowOrigin::list(origin_values)
                 }
             }
         }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, serde::Deserialize)]
@@ -256,7 +257,6 @@ mod tests {
     use super::*;
     // Helper function to test our predicate directly
     fn test_origin_matches(allow_origins: &AnyOrUrlArray, origin: &str) -> bool {
-        
         match allow_origins {
             AnyOrUrlArray::Any => true,
             AnyOrUrlArray::Origins(origins) => {
@@ -264,7 +264,7 @@ mod tests {
                 if origins.iter().any(|o| !o.starts_with("*.") && o == origin) {
                     return true;
                 }
-                
+
                 // Try to parse as URL to check wildcard patterns
                 if let Ok(origin_url) = Url::parse(origin) {
                     if let Some(host) = origin_url.host_str() {
@@ -272,72 +272,72 @@ mod tests {
                         return origins.iter().any(|pattern| {
                             if pattern.starts_with("*.") {
                                 let domain_part = &pattern[2..]; // Skip the "*." prefix
-                                host.ends_with(domain_part) && 
-                                    host.len() > domain_part.len() && 
-                                    host.as_bytes()[host.len() - domain_part.len() - 1] == b'.'
+                                host.ends_with(domain_part)
+                                    && host.len() > domain_part.len()
+                                    && host.as_bytes()[host.len() - domain_part.len() - 1] == b'.'
                             } else {
                                 false // Exact matches were already checked
                             }
                         });
                     }
                 }
-                
+
                 false
             }
         }
     }
-    
+
     #[test]
     fn test_wildcard_domains() {
         // Create a wildcard domain pattern
         let allow_origins = AnyOrUrlArray::origins(vec!["*.example.com"]);
-        
+
         // Test valid origins
         assert!(test_origin_matches(&allow_origins, "https://test.example.com"));
         assert!(test_origin_matches(&allow_origins, "https://deep.sub.example.com"));
-        
+
         // Test invalid origins
         assert!(!test_origin_matches(&allow_origins, "https://example.com"));
         assert!(!test_origin_matches(&allow_origins, "https://test.different.com"));
-        
+
         // Also test the conversion to AllowOrigin to ensure it compiles
         let _: AllowOrigin = allow_origins.clone().into();
     }
-    
+
     #[test]
     fn test_multiple_wildcard_domains() {
         // Create multiple wildcard domain patterns
         let allow_origins = AnyOrUrlArray::origins(vec!["*.example.com", "*.test.org"]);
-        
+
         // Test valid origins
         assert!(test_origin_matches(&allow_origins, "https://sub.example.com"));
         assert!(test_origin_matches(&allow_origins, "https://sub.test.org"));
-        
+
         // Test invalid origin
         assert!(!test_origin_matches(&allow_origins, "https://sub.other.net"));
-        
+
         // Also test the conversion to AllowOrigin to ensure it compiles
         let _: AllowOrigin = allow_origins.clone().into();
     }
-    
+
     #[test]
     fn test_mixed_origins_and_wildcards() {
         // Create a mix of exact origins and wildcard patterns
         let allow_origins = AnyOrUrlArray::origins(vec![
             "https://example.com",
             "*.api.example.com",
-            "https://dashboard.example.org"
+            "https://dashboard.example.org",
         ]);
-        
+
         // Test valid origins - both exact matches and wildcards
         assert!(test_origin_matches(&allow_origins, "https://example.com"));
         assert!(test_origin_matches(&allow_origins, "https://test.api.example.com"));
         assert!(test_origin_matches(&allow_origins, "https://dashboard.example.org"));
-        
+
         // Test invalid origins
         assert!(!test_origin_matches(&allow_origins, "https://example.org"));
         assert!(!test_origin_matches(&allow_origins, "https://api.example.com")); // This would need "api.example.com" explicitly
-        
+
         // Also test the conversion to AllowOrigin to ensure it compiles
         let _: AllowOrigin = allow_origins.clone().into();
     }
