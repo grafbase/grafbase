@@ -1,4 +1,4 @@
-use graphql_mocks::dynamic::DynamicSchema;
+use graphql_mocks::{FederatedProductsSchema, dynamic::DynamicSchema};
 use integration_tests::{gateway::Gateway, runtime};
 use rand::{Rng as _, distributions::Alphanumeric};
 
@@ -36,4 +36,95 @@ fn supports_zstd_compression() {
         let body: serde_json::Value = serde_json::from_slice(&body).unwrap();
         assert_eq!(body, serde_json::json!({"data": {"str": s}}));
     })
+}
+
+#[test]
+fn does_not_compress_for_stream() {
+    runtime().block_on(async move {
+        let engine = Gateway::builder()
+            .with_subgraph(FederatedProductsSchema)
+            .with_websocket_urls()
+            .build()
+            .await;
+
+        let response = engine
+            .post(
+                r"
+                subscription {
+                    newProducts {
+                        upc
+                        name
+                        price
+                    }
+                }
+                ",
+            )
+            .header(http::header::ACCEPT_ENCODING, "zstd")
+            .into_sse_stream()
+            .await
+            .collect()
+            .await;
+        insta::assert_json_snapshot!(response.messages, @r###"
+        [
+          {
+            "data": {
+              "newProducts": {
+                "upc": "top-4",
+                "name": "Jeans",
+                "price": 44
+              }
+            }
+          },
+          {
+            "data": {
+              "newProducts": {
+                "upc": "top-5",
+                "name": "Pink Jeans",
+                "price": 55
+              }
+            }
+          }
+        ]
+        "###);
+
+        let response = engine
+            .post(
+                r"
+                subscription {
+                    newProducts {
+                        upc
+                        name
+                        price
+                    }
+                }
+                ",
+            )
+            .header(http::header::ACCEPT_ENCODING, "zstd")
+            .into_multipart_stream()
+            .await
+            .collect()
+            .await;
+        insta::assert_json_snapshot!(response.messages, @r###"
+        [
+          {
+            "data": {
+              "newProducts": {
+                "upc": "top-4",
+                "name": "Jeans",
+                "price": 44
+              }
+            }
+          },
+          {
+            "data": {
+              "newProducts": {
+                "upc": "top-5",
+                "name": "Pink Jeans",
+                "price": 55
+              }
+            }
+          }
+        ]
+        "###);
+    });
 }
