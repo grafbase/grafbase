@@ -1,11 +1,12 @@
 use std::marker::PhantomData;
 
 use operation::{Operation, OperationContext};
-use petgraph::{Graph, visit::EdgeRef};
+use petgraph::{Direction, Graph, visit::EdgeRef};
 use schema::Schema;
+use walker::Walk;
 
 use crate::{
-    QueryFieldNode, QuerySolutionSpace,
+    Derived, QueryField, QueryFieldNode, QuerySolutionSpace,
     query::{Edge, Node},
     solution_space::{SpaceEdge, SpaceNode},
 };
@@ -14,7 +15,7 @@ use super::{CrudeSolvedQuery, SteinerTreeSolution};
 
 pub(crate) fn generate_crude_solved_query(
     schema: &Schema,
-    operation: &Operation,
+    operation: &mut Operation,
     mut query: QuerySolutionSpace<'_>,
     solution: SteinerTreeSolution,
 ) -> crate::Result<CrudeSolvedQuery> {
@@ -50,23 +51,23 @@ pub(crate) fn generate_crude_solved_query(
         }
     }
 
-    let mut nodes_with_dependencies = Vec::new();
-    let mut edges_to_remove = Vec::new();
-    let mut field_to_solution_node = vec![root_node_ix; query.fields.len()];
-    while let Some((parent_solution_node_ix, node_ix)) = stack.pop() {
-        let new_solution_node_ix = match &query.graph[node_ix] {
-            SpaceNode::Resolver(resolver) if solution.node_bitset[node_ix.index()] => {
+    let mut node_requires_space_node_tuples = Vec::new();
+    let mut space_edges_to_remove = Vec::new();
+    let mut field_to_node = vec![root_node_ix; query.fields.len()];
+    while let Some((parent_node_ix, space_node_ix)) = stack.pop() {
+        let new_node_ix = match &query.graph[space_node_ix] {
+            SpaceNode::Resolver(resolver) if solution.node_bitset[space_node_ix.index()] => {
                 let ix = graph.add_node(Node::QueryPartition {
                     entity_definition_id: resolver.entity_definition_id,
                     resolver_definition_id: resolver.definition_id,
                 });
-                graph.add_edge(parent_solution_node_ix, ix, Edge::QueryPartition);
+                graph.add_edge(parent_node_ix, ix, Edge::QueryPartition);
                 ix
             }
-            SpaceNode::ProvidableField(_) if solution.node_bitset[node_ix.index()] => {
-                let (field_node_ix, field) = query
+            SpaceNode::ProvidableField(providable_field) if solution.node_bitset[space_node_ix.index()] => {
+                let (field_space_node_ix, &QueryFieldNode { id, flags }) = query
                     .graph
-                    .edges(node_ix)
+                    .edges(space_node_ix)
                     .find_map(|edge| {
                         if matches!(edge.weight(), SpaceEdge::Provides) {
                             if let SpaceNode::QueryField(field) = &query.graph[edge.target()] {
@@ -80,22 +81,70 @@ pub(crate) fn generate_crude_solved_query(
                     })
                     .unwrap();
 
-                let field_solution_node_ix = graph.add_node(Node::Field {
-                    id: field.id,
-                    flags: field.flags,
-                });
-                graph.add_edge(parent_solution_node_ix, field_solution_node_ix, Edge::Field);
-                field_to_solution_node[usize::from(field.id)] = field_solution_node_ix;
+                let field_node_ix = graph.add_node(Node::Field { id, flags });
+                graph.add_edge(parent_node_ix, field_node_ix, Edge::Field);
+                field_to_node[usize::from(id)] = field_node_ix;
 
-                for edge in query.graph.edges(field_node_ix) {
+                if let Some(Derived::Field { mapping }) = providable_field.derived {
+                    let grandparent_node_ix = graph
+                        .edges_directed(parent_node_ix, Direction::Incoming)
+                        .find(|edge| matches!(edge.weight(), Edge::Field))
+                        .map(|edge| edge.source())
+                        .unwrap();
+                    let derived_from_node_ix = graph
+                        .edges_directed(grandparent_node_ix, Direction::Outgoing)
+                        .find_map(|edge| {
+                            if !matches!(edge.weight(), Edge::Field) {
+                                return None;
+                            }
+                            let Node::Field { id, .. } = graph[edge.target()] else {
+                                return None;
+                            };
+                            let field = &query[id];
+                            if field.definition_id == Some(mapping.from_id) {
+                                return Some(edge.target());
+                            }
+                            None
+                        })
+                        .unwrap_or_else(|| {
+                            let parent_id = graph[parent_node_ix]
+                                .as_query_field()
+                                .expect("Could not be derived otherwise.");
+                            let field = QueryField {
+                                type_conditions: query[parent_id].type_conditions,
+                                query_position: query[id].query_position,
+                                response_key: Some(
+                                    operation
+                                        .response_keys
+                                        .get_or_intern(mapping.from_id.walk(schema).name()),
+                                ),
+                                subgraph_key: None,
+                                definition_id: Some(mapping.from_id),
+                                matching_field_id: None,
+                                argument_ids: Default::default(),
+                                location: query[id].location,
+                                flat_directive_id: query[id].flat_directive_id,
+                            };
+                            query.fields.push(field);
+                            let ix = graph.add_node(Node::Field {
+                                id: (query.fields.len() - 1).into(),
+                                flags,
+                            });
+                            graph.add_edge(grandparent_node_ix, ix, Edge::Field);
+                            ix
+                        });
+                    graph.add_edge(derived_from_node_ix, field_node_ix, Edge::Derived);
+                }
+
+                for edge in query.graph.edges(field_space_node_ix) {
                     match edge.weight() {
                         SpaceEdge::Requires => {
-                            nodes_with_dependencies.push((field_solution_node_ix, field_node_ix));
+                            node_requires_space_node_tuples.push((field_node_ix, field_space_node_ix));
                         }
                         // Assigning __typename fields to the first resolver that provides the
                         // parent field. There might be multiple with shared root fields.
                         SpaceEdge::TypenameField => {
-                            edges_to_remove.push(edge.id());
+                            space_edges_to_remove.push(edge.id());
                             if let SpaceNode::QueryField(QueryFieldNode {
                                 id: query_field_id,
                                 flags,
@@ -106,7 +155,7 @@ pub(crate) fn generate_crude_solved_query(
                                         id: query_field_id,
                                         flags,
                                     });
-                                    graph.add_edge(field_solution_node_ix, typename_field_ix, Edge::Field);
+                                    graph.add_edge(field_node_ix, typename_field_ix, Edge::Field);
                                 }
                             }
                         }
@@ -114,11 +163,11 @@ pub(crate) fn generate_crude_solved_query(
                     }
                 }
 
-                for edge in edges_to_remove.drain(..) {
+                for edge in space_edges_to_remove.drain(..) {
                     query.graph.remove_edge(edge);
                 }
 
-                field_solution_node_ix
+                field_node_ix
             }
             SpaceNode::QueryField(QueryFieldNode {
                 id: query_field_id,
@@ -128,7 +177,7 @@ pub(crate) fn generate_crude_solved_query(
                     id: *query_field_id,
                     flags: *flags,
                 });
-                graph.add_edge(parent_solution_node_ix, typename_field_ix, Edge::Field);
+                graph.add_edge(parent_node_ix, typename_field_ix, Edge::Field);
                 typename_field_ix
             }
             _ => continue,
@@ -136,16 +185,16 @@ pub(crate) fn generate_crude_solved_query(
 
         if query
             .graph
-            .edges(node_ix)
+            .edges(space_node_ix)
             .any(|edge| matches!(edge.weight(), SpaceEdge::Requires))
         {
-            nodes_with_dependencies.push((new_solution_node_ix, node_ix));
+            node_requires_space_node_tuples.push((new_node_ix, space_node_ix));
         }
 
         stack.extend(
             query
                 .graph
-                .edges(node_ix)
+                .edges(space_node_ix)
                 .filter(|edge| {
                     matches!(
                         edge.weight(),
@@ -155,16 +204,16 @@ pub(crate) fn generate_crude_solved_query(
                             | SpaceEdge::TypenameField
                     )
                 })
-                .map(|edge| (new_solution_node_ix, edge.target())),
+                .map(|edge| (new_node_ix, edge.target())),
         );
     }
 
-    for (new_solution_node_ix, node_ix) in nodes_with_dependencies {
-        let weight = match &query.graph[node_ix] {
+    for (node_ix, space_node_ix) in node_requires_space_node_tuples {
+        let weight = match &query.graph[space_node_ix] {
             SpaceNode::QueryField(_) => Edge::RequiredBySupergraph,
             _ => Edge::RequiredBySubgraph,
         };
-        for edge in query.graph.edges(node_ix) {
+        for edge in query.graph.edges(space_node_ix) {
             if !matches!(edge.weight(), SpaceEdge::Requires) {
                 continue;
             }
@@ -172,10 +221,10 @@ pub(crate) fn generate_crude_solved_query(
                 continue;
             };
 
-            let dependency = field_to_solution_node[usize::from(field.id)];
-            debug_assert_ne!(dependency, root_node_ix);
+            let required_node_ix = field_to_node[usize::from(field.id)];
+            debug_assert_ne!(required_node_ix, root_node_ix);
 
-            graph.add_edge(new_solution_node_ix, dependency, weight);
+            graph.add_edge(node_ix, required_node_ix, weight);
         }
     }
     let query = CrudeSolvedQuery {

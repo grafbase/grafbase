@@ -1,0 +1,18 @@
+---
+source: crates/engine/query-solver/src/tests/derived.rs
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#ext\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"Query.products\" ]\n    3 [ label = \"Product.user\" ]\n    4 [ label = \"User.id\" ]\n    5 [ label = \"Product.author_id\" ]\n    0 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    5 -> 4 [ label = \"\", color=darkorchid,arrowhead=halfopen,style=dashed ]\n    2 -> 3 [ label = \"\" ]\n    3 -> 4 [ label = \"\" ]\n    2 -> 5 [ label = \"\" ]\n    1 -> 2 [ label = \"\" ]\n}\n"
+---
+digraph {
+    0 [ label = "root" ]
+    1 [ label = "Root#ext" ]
+    2 [ label = "Query.products" ]
+    3 [ label = "Product.user" ]
+    4 [ label = "User.id" ]
+    5 [ label = "Product.author_id" ]
+    0 -> 1 [ label = "QueryPartition" ]
+    5 -> 4 [ label = "Derived" ]
+    2 -> 3 [ label = "Field" ]
+    3 -> 4 [ label = "Field" ]
+    2 -> 5 [ label = "Field" ]
+    1 -> 2 [ label = "Field" ]
+}

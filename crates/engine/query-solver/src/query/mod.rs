@@ -46,13 +46,11 @@ bitflags! {
         const LEAF_NODE = 1 << 2;
         /// Whether the field is a __typename field.
         const TYPENAME = 1 << 3;
-        /// Whether the field output is a composite type
-        const IS_COMPOSITE_TYPE = 1 << 4;
         /// If a field ended up being not reachable from a parent type/subgraph we mark it as
         /// unreachable. It might still be possible for it to be resolved from another path though.
         /// It just means that if we couldn't find any resolver for it, we can safely skip it.
-        const UNREACHABLE = 1 << 5;
-        const PROVIDABLE = 1 << 6;
+        const UNREACHABLE = 1 << 4;
+        const PROVIDABLE = 1 << 5;
     }
 }
 
@@ -60,6 +58,7 @@ bitflags! {
 pub enum Edge {
     QueryPartition,
     Field,
+    Derived,
     RequiredBySubgraph,
     RequiredBySupergraph,
     MutationExecutedAfter,

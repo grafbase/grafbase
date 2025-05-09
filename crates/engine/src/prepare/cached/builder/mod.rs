@@ -279,7 +279,8 @@ impl<'a> Solver<'a> {
                         }
                     }
                 }
-                Edge::RequiredBySubgraph | Edge::RequiredBySupergraph | Edge::MutationExecutedAfter => (),
+                Edge::RequiredBySubgraph | Edge::RequiredBySupergraph | Edge::MutationExecutedAfter | Edge::Derived => {
+                }
             }
         }
 

@@ -1,6 +1,7 @@
 mod abstract_types;
 mod basic;
 mod cycle;
+mod derived;
 mod entities;
 mod flatten;
 mod inaccessible;
@@ -68,7 +69,12 @@ macro_rules! assert_solving_snapshots {
 
         let solution = solver.into_solution();
         let crude_solved_query =
-            $crate::solve::generate_crude_solved_query(&schema, &operation, query_solution_space, solution).unwrap();
+            $crate::solve::generate_crude_solved_query(&schema, &mut operation, query_solution_space, solution)
+                .unwrap();
+        let ctx = ::operation::OperationContext {
+            schema: &schema,
+            operation: &operation,
+        };
         insta::assert_snapshot!(
             format!("{name}-partial-solution"),
             crude_solved_query.to_dot_graph(ctx),

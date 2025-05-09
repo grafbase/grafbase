@@ -8,7 +8,7 @@ use schema::{
 };
 use walker::Walk;
 
-use crate::{FieldFlags, QueryField, QueryOrSchemaFieldArgumentIds};
+use crate::{Derived, FieldFlags, QueryField, QueryOrSchemaFieldArgumentIds};
 
 use super::{ProvidableField, QueryFieldId, QuerySolutionSpaceBuilder, Resolver, SpaceEdge, SpaceNode};
 
@@ -87,6 +87,7 @@ where
             .as_providable_field()
             .map(|parent_providable_field| {
                 self.provide_field_from_parent(
+                    parent.providable_field_or_root_ix,
                     parent_providable_field,
                     parent.output_type,
                     query_field_id,
@@ -135,7 +136,7 @@ where
 
         let parent_subgraph_id = self.query.graph[parent.providable_field_or_root_ix]
             .as_providable_field()
-            .map(|field| field.subgraph_id());
+            .map(|field| field.subgraph_id);
 
         // --
         // Try to plan this field with alternative resolvers if any exist.
@@ -187,7 +188,7 @@ where
                     .any(|edge| match edge.weight() {
                         SpaceEdge::CanProvide => {
                             if let SpaceNode::ProvidableField(field) = &self.query.graph[edge.target()] {
-                                field.query_field_id() == query_field_id
+                                field.query_field_id == query_field_id
                             } else {
                                 false
                             }
@@ -226,13 +227,15 @@ where
                 resolver_ix
             };
 
-            let providable_field = ProvidableField::InSubgraph {
+            let providable_field = ProvidableField {
                 subgraph_id: resolver_definition.subgraph_id(),
-                field_id: query_field_id,
+                query_field_id,
                 provides: field_definition
                     .provides_for_subgraph(resolver_definition.subgraph_id())
                     .map(|field_set| Cow::Borrowed(field_set.as_ref()))
                     .unwrap_or(Cow::Borrowed(FieldSetRecord::empty())),
+                only_providable: false,
+                derived: None,
             };
             let providable_field_ix = self.query.graph.add_node(SpaceNode::ProvidableField(providable_field));
 
@@ -282,67 +285,118 @@ where
 
     fn provide_field_from_parent(
         &self,
+        parent_ix: NodeIndex,
         parent: &ProvidableField<'schema>,
         parent_output: CompositeTypeId,
         id: QueryFieldId,
         field_definition: FieldDefinition<'schema>,
     ) -> ParentProvideResult<'schema> {
-        match parent {
-            ProvidableField::InSubgraph {
-                subgraph_id, provides, ..
-            } => {
-                let subgraph_id = *subgraph_id;
-                let is_reachable = self.is_field_parent_object_reachable_in_subgraph_from_parent_output(
-                    subgraph_id,
-                    parent_output,
-                    field_definition,
-                );
-                if is_reachable
-                    && self.is_field_providable_in_subgraph(subgraph_id, field_definition)
-                    && field_definition.requires_for_subgraph(subgraph_id).is_none()
-                {
-                    ParentProvideResult::Providable(ProvidableField::InSubgraph {
-                        subgraph_id,
-                        field_id: id,
-                        provides: self
-                            .find_in_provides(subgraph_id, provides, id, field_definition)
-                            .unwrap_or_else(|| {
-                                field_definition
-                                    .provides_for_subgraph(subgraph_id)
-                                    .map(|field_set| Cow::Borrowed(field_set.as_ref()))
-                                    .unwrap_or(Cow::Borrowed(FieldSetRecord::empty()))
-                            }),
+        if let Some(derived) = parent.derived {
+            let Derived::Root { id: derived_id } = derived else {
+                todo!("Nested @derived fields aren't supported yet.");
+            };
+            if let Some(mapping) = derived_id
+                .walk(self.schema)
+                .mapping()
+                .find(|map| map.to_id == field_definition.id)
+            {
+                let (parent_ix, parent) = self
+                    .query
+                    .graph
+                    .edges_directed(parent_ix, Direction::Incoming)
+                    .find_map(|edge| {
+                        if matches!(edge.weight(), SpaceEdge::CanProvide) {
+                            Some((
+                                edge.source(),
+                                self.query.graph[edge.source()].as_providable_field().unwrap(),
+                            ))
+                        } else {
+                            None
+                        }
                     })
-                } else {
-                    self.find_in_provides(subgraph_id, provides, id, field_definition)
-                        .map(|provides| {
-                            ParentProvideResult::Providable(ProvidableField::OnlyProvidable {
-                                subgraph_id,
-                                field_id: id,
-                                provides,
-                            })
-                        })
-                        .unwrap_or_else(|| {
-                            if is_reachable {
-                                ParentProvideResult::NotProvidable
-                            } else {
-                                ParentProvideResult::UnreachableObject
-                            }
-                        })
-                }
+                    .unwrap();
+                let parent_output = self.query[parent.query_field_id]
+                    .definition_id
+                    .walk(self.schema)
+                    .and_then(|def| def.ty_record.definition_id.as_composite_type())
+                    .unwrap();
+                self.provide_field_from_parent(parent_ix, parent, parent_output, id, mapping.from())
+                    .map(|mut field| {
+                        field.derived = Some(Derived::Field {
+                            mapping: *mapping.as_ref(),
+                        });
+                        field
+                    })
+            } else {
+                ParentProvideResult::NotProvidable
             }
-            ProvidableField::OnlyProvidable {
-                subgraph_id, provides, ..
-            } => self
-                .find_in_provides(*subgraph_id, provides, id, field_definition)
+        } else if let Some(dervied) = field_definition
+            .derived()
+            .find(|derived| derived.subgraph_id == parent.subgraph_id)
+        {
+            ParentProvideResult::Providable(ProvidableField {
+                subgraph_id: parent.subgraph_id,
+                query_field_id: id,
+                provides: parent.provides.clone(),
+                only_providable: false,
+                derived: Some(Derived::Root { id: dervied.id }),
+            })
+        } else if parent.only_providable {
+            self.find_in_provides(parent.subgraph_id, &parent.provides, id, field_definition)
                 .map(|provides| {
-                    ParentProvideResult::Providable(ProvidableField::OnlyProvidable {
-                        subgraph_id: *subgraph_id,
-                        field_id: id,
+                    ParentProvideResult::Providable(ProvidableField {
+                        subgraph_id: parent.subgraph_id,
+                        query_field_id: id,
                         provides,
+                        only_providable: true,
+                        derived: None,
                     })
                 })
-                .unwrap_or_default(),
+                .unwrap_or_default()
+        } else {
+            let subgraph_id = parent.subgraph_id;
+            let is_reachable = self.is_field_parent_object_reachable_in_subgraph_from_parent_output(
+                subgraph_id,
+                parent_output,
+                field_definition,
+            );
+            if is_reachable
+                && self.is_field_providable_in_subgraph(subgraph_id, field_definition)
+                && field_definition.requires_for_subgraph(subgraph_id).is_none()
+            {
+                ParentProvideResult::Providable(ProvidableField {
+                    subgraph_id,
+                    query_field_id: id,
+                    provides: self
+                        .find_in_provides(subgraph_id, &parent.provides, id, field_definition)
+                        .unwrap_or_else(|| {
+                            field_definition
+                                .provides_for_subgraph(subgraph_id)
+                                .map(|field_set| Cow::Borrowed(field_set.as_ref()))
+                                .unwrap_or(Cow::Borrowed(FieldSetRecord::empty()))
+                        }),
+                    only_providable: false,
+                    derived: None,
+                })
+            } else {
+                self.find_in_provides(subgraph_id, &parent.provides, id, field_definition)
+                    .map(|provides| {
+                        ParentProvideResult::Providable(ProvidableField {
+                            subgraph_id,
+                            query_field_id: id,
+                            provides,
+                            only_providable: true,
+                            derived: None,
+                        })
+                    })
+                    .unwrap_or_else(|| {
+                        if is_reachable {
+                            ParentProvideResult::NotProvidable
+                        } else {
+                            ParentProvideResult::UnreachableObject
+                        }
+                    })
+            }
         }
     }
 
@@ -641,4 +695,16 @@ enum ParentProvideResult<'schema> {
     UnreachableObject,
     #[default]
     NotProvidable,
+}
+
+impl<'s> ParentProvideResult<'s> {
+    fn map<F>(self, f: F) -> ParentProvideResult<'s>
+    where
+        F: FnOnce(ProvidableField<'s>) -> ProvidableField<'s>,
+    {
+        match self {
+            ParentProvideResult::Providable(field) => ParentProvideResult::Providable(f(field)),
+            p => p,
+        }
+    }
 }

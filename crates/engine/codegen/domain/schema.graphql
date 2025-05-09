@@ -98,7 +98,7 @@ type FieldDefinition @meta(module: "field", debug: false) @indexed(id_size: "u32
   "The arguments referenced by this range are sorted by their name (string)"
   arguments: [InputValueDefinition!]!
   directives: [TypeSystemDirective!]!
-  computed: [ComputedObject!]!
+  derived: [DerivedField!]!
 }
 
 type SubgraphType @meta(module: "field/subgraph_type") @copy {
@@ -116,14 +116,16 @@ type FieldRequires @meta(module: "field/requires") {
   field_set: FieldSet!
 }
 
-type ComputedObject @meta(module: "field/computed") {
+type DerivedField @meta(module: "field/derived") @indexed(id_size: "u32") {
   subgraph: Subgraph!
-  fields: [ComputedField!]!
+  "Same as the parent entity of the derived FieldDefinition"
+  parent_entity: EntityDefinition!
+  mapping: [DerivedFieldMapping!]!
 }
 
-type ComputedField @meta(module: "field/computed") {
+type DerivedFieldMapping @meta(module: "field/derived") @copy {
   from: FieldDefinition!
-  target: FieldDefinition!
+  to: FieldDefinition!
 }
 
 type Type @meta(module: "ty", derive: ["PartialEq", "Eq"]) @copy {
