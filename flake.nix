@@ -69,6 +69,7 @@
             # Versioning, automation and releasing
             cargo-make
             cargo-release
+            git-cliff
             nodePackages.npm
             nodePackages.semver
             sd
