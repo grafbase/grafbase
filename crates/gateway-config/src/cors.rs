@@ -1,8 +1,6 @@
 use ascii::AsciiString;
 use duration_str::deserialize_option_duration;
-use http::{HeaderName, HeaderValue};
 use std::time::Duration;
-use tower_http::cors::{AllowHeaders, AllowMethods, AllowOrigin, ExposeHeaders};
 use url::Url;
 
 #[derive(Clone, Default, Debug, serde::Deserialize)]
@@ -25,7 +23,8 @@ pub struct CorsConfig {
     pub allow_private_network: bool,
 }
 
-#[derive(Debug, PartialEq, Clone, Copy, serde::Deserialize)]
+#[derive(Debug, PartialEq, Clone, Copy, serde::Deserialize, strum::EnumString)]
+#[strum(serialize_all = "UPPERCASE")]
 #[serde(rename_all = "UPPERCASE")]
 pub enum HttpMethod {
     Get,
@@ -81,88 +80,65 @@ impl From<HttpMethod> for http::Method {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, serde::Deserialize)]
-#[serde(rename_all = "lowercase")]
-#[serde(expecting = "expecting string \"any\", or an array of urls")]
-pub enum AnyOrUrlArray {
+pub type AnyOrUrlArray = AnyOrArray<Url>;
+
+pub type AnyOrHttpMethodArray = AnyOrArray<HttpMethod>;
+
+pub type AnyOrAsciiStringArray = AnyOrArray<AsciiString>;
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum AnyOrArray<T> {
     Any,
-    #[serde(untagged)]
-    Explicit(Vec<Url>),
+    Explicit(Vec<T>),
 }
 
-impl From<AnyOrUrlArray> for AllowOrigin {
-    fn from(value: AnyOrUrlArray) -> Self {
-        match value {
-            AnyOrUrlArray::Any => AllowOrigin::any(),
-            AnyOrUrlArray::Explicit(ref origins) => {
-                let origins = origins
-                    .iter()
-                    .map(|url| url.as_str())
-                    .map(|url| url.strip_suffix('/').unwrap_or(url))
-                    .map(|url| HeaderValue::from_str(url).expect("must be ascii"));
+impl<'de, T> serde::Deserialize<'de> for AnyOrArray<T>
+where
+    T: serde::Deserialize<'de> + std::str::FromStr<Err: std::fmt::Display>,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct AnyOrArrayVisitor<T> {
+            _marker: std::marker::PhantomData<T>,
+        }
 
-                AllowOrigin::list(origins)
+        impl<'de, T> serde::de::Visitor<'de> for AnyOrArrayVisitor<T>
+        where
+            T: serde::Deserialize<'de> + std::str::FromStr<Err: std::fmt::Display>,
+        {
+            type Value = AnyOrArray<T>;
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("expecting string \"*\", or an array of values")
+            }
+            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                if value == "*" || value == "any" {
+                    Ok(AnyOrArray::Any)
+                } else {
+                    value
+                        .parse::<T>()
+                        .map_err(|err| E::custom(err))
+                        .map(|value| AnyOrArray::Explicit(vec![value]))
+                }
+            }
+            fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+            where
+                A: serde::de::SeqAccess<'de>,
+            {
+                let mut array = Vec::new();
+                while let Some(value) = seq.next_element()? {
+                    array.push(value);
+                }
+                Ok(AnyOrArray::Explicit(array))
             }
         }
-    }
-}
 
-#[derive(Clone, Debug, PartialEq, serde::Deserialize)]
-#[serde(rename_all = "lowercase")]
-#[serde(expecting = "expecting string \"any\", or an array of capitalized HTTP methods")]
-pub enum AnyOrHttpMethodArray {
-    Any,
-    #[serde(untagged)]
-    Explicit(Vec<HttpMethod>),
-}
-
-impl From<AnyOrHttpMethodArray> for AllowMethods {
-    fn from(value: AnyOrHttpMethodArray) -> Self {
-        match value {
-            AnyOrHttpMethodArray::Any => AllowMethods::any(),
-            AnyOrHttpMethodArray::Explicit(methods) => {
-                let methods = methods.iter().map(|method| http::Method::from(*method));
-                AllowMethods::list(methods)
-            }
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, serde::Deserialize)]
-#[serde(rename_all = "lowercase")]
-#[serde(expecting = "expecting string \"any\", or an array of ASCII strings")]
-pub enum AnyOrAsciiStringArray {
-    Any,
-    #[serde(untagged)]
-    Explicit(Vec<AsciiString>),
-}
-
-impl From<AnyOrAsciiStringArray> for AllowHeaders {
-    fn from(value: AnyOrAsciiStringArray) -> Self {
-        match value {
-            AnyOrAsciiStringArray::Any => AllowHeaders::any(),
-            AnyOrAsciiStringArray::Explicit(headers) => {
-                let headers = headers
-                    .iter()
-                    .map(|header| HeaderName::from_bytes(header.as_bytes()).expect("must be ascii"));
-
-                AllowHeaders::list(headers)
-            }
-        }
-    }
-}
-
-impl From<AnyOrAsciiStringArray> for ExposeHeaders {
-    fn from(value: AnyOrAsciiStringArray) -> Self {
-        match value {
-            AnyOrAsciiStringArray::Any => ExposeHeaders::any(),
-            AnyOrAsciiStringArray::Explicit(headers) => {
-                let headers = headers
-                    .iter()
-                    .map(|header| HeaderName::from_bytes(header.as_bytes()).expect("must be ascii"));
-
-                ExposeHeaders::list(headers)
-            }
-        }
+        deserializer.deserialize_any(AnyOrArrayVisitor {
+            _marker: std::marker::PhantomData,
+        })
     }
 }

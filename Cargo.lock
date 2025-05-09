@@ -3214,6 +3214,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "fast-glob"
+version = "0.4.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "39ea3f6bbcf4dbe2076b372186fc7aeecd5f6f84754582e56ee7db262b15a6f0"
+dependencies = [
+ "arrayvec 0.7.6",
+]
+
+[[package]]
 name = "fast_chemail"
 version = "0.9.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3282,6 +3291,7 @@ dependencies = [
  "engine-axum",
  "engine-schema",
  "extension-catalog",
+ "fast-glob",
  "futures-lite 2.6.0",
  "futures-util",
  "gateway-config",
@@ -3678,11 +3688,11 @@ dependencies = [
  "serde-dynamic-string",
  "serde_regex",
  "size",
+ "strum 0.27.1",
  "temp-env",
  "tempfile",
  "toml",
  "tonic 0.12.3",
- "tower-http",
  "url",
 ]
 

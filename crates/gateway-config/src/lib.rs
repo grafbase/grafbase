@@ -741,13 +741,13 @@ mod tests {
 
         let error = toml::from_str::<Config>(input).unwrap_err();
 
-        insta::assert_snapshot!(&error.to_string(), @r###"
-        TOML parse error at line 2, column 17
+        insta::assert_snapshot!(&error.to_string(), @r#"
+        TOML parse error at line 2, column 18
           |
         2 | allow_origins = ["foo"]
-          |                 ^^^^^^^
-        expecting string "any", or an array of urls
-        "###);
+          |                  ^^^^^
+        relative URL without a base: "foo"
+        "#);
     }
 
     #[test]
@@ -798,13 +798,13 @@ mod tests {
 
         let error = toml::from_str::<Config>(input).unwrap_err();
 
-        insta::assert_snapshot!(&error.to_string(), @r###"
-        TOML parse error at line 2, column 17
+        insta::assert_snapshot!(&error.to_string(), @r#"
+        TOML parse error at line 2, column 18
           |
         2 | allow_methods = ["MEOW"]
-          |                 ^^^^^^^^
-        expecting string "any", or an array of capitalized HTTP methods
-        "###);
+          |                  ^^^^^^
+        unknown variant `MEOW`, expected one of `GET`, `POST`, `PUT`, `DELETE`, `HEAD`, `OPTIONS`, `CONNECT`, `PATCH`, `TRACE`
+        "#);
     }
 
     #[test]
@@ -856,13 +856,13 @@ mod tests {
 
         let error = toml::from_str::<Config>(input).unwrap_err();
 
-        insta::assert_snapshot!(&error.to_string(), @r###"
-        TOML parse error at line 2, column 17
+        insta::assert_snapshot!(&error.to_string(), @r#"
+        TOML parse error at line 2, column 18
           |
         2 | allow_headers = ["😂😂😂"]
-          |                 ^^^^^^^^^^^^^^^^
-        expecting string "any", or an array of ASCII strings
-        "###);
+          |                  ^^^^^^^^^^^^^^
+        invalid value: string "😂😂😂", expected an ascii string
+        "#);
     }
 
     #[test]
@@ -914,13 +914,13 @@ mod tests {
 
         let error = toml::from_str::<Config>(input).unwrap_err();
 
-        insta::assert_snapshot!(&error.to_string(), @r###"
-        TOML parse error at line 2, column 18
+        insta::assert_snapshot!(&error.to_string(), @r#"
+        TOML parse error at line 2, column 19
           |
         2 | expose_headers = ["😂😂😂"]
-          |                  ^^^^^^^^^^^^^^^^
-        expecting string "any", or an array of ASCII strings
-        "###);
+          |                   ^^^^^^^^^^^^^^
+        invalid value: string "😂😂😂", expected an ascii string
+        "#);
     }
 
     #[test]
