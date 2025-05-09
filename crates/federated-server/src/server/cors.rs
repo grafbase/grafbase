@@ -1,5 +1,6 @@
-use gateway_config::CorsConfig;
-use tower_http::cors::CorsLayer;
+use gateway_config::{AnyOrAsciiStringArray, AnyOrHttpMethodArray, AnyOrUrlArray, CorsConfig};
+use http::{HeaderName, HeaderValue};
+use tower_http::cors::{AllowHeaders, AllowMethods, AllowOrigin, CorsLayer, ExposeHeaders};
 
 /// Generates a CORS layer based on the provided configuration.
 ///
@@ -33,7 +34,50 @@ pub(super) fn generate(
         .allow_private_network(allow_private_network);
 
     if let Some(allow_origins) = allow_origins {
-        cors_layer = cors_layer.allow_origin(allow_origins);
+        cors_layer = cors_layer.allow_origin(match allow_origins {
+            AnyOrUrlArray::Any => AllowOrigin::any(),
+            AnyOrUrlArray::Explicit(ref origins) => {
+                let mut constants = Vec::new();
+                let mut globs = Vec::new();
+                for origin in origins {
+                    let origin = &origin[..url::Position::BeforePath];
+                    if origin.chars().any(|c| "?*[]{}!\\".contains(c)) {
+                        globs.push(origin.to_owned());
+                    } else {
+                        constants.push(HeaderValue::from_str(origin).expect("must be ascii"));
+                    }
+                }
+                if globs.is_empty() {
+                    AllowOrigin::list(constants)
+                } else if constants.is_empty() {
+                    AllowOrigin::predicate(move |origin, _| -> bool {
+                        for glob in &globs {
+                            if fast_glob::glob_match(glob, origin) {
+                                return true;
+                            }
+                        }
+
+                        false
+                    })
+                } else {
+                    AllowOrigin::predicate(move |origin, _| -> bool {
+                        for constant in &constants {
+                            if origin == constant {
+                                return true;
+                            }
+                        }
+
+                        for glob in &globs {
+                            if fast_glob::glob_match(glob, origin) {
+                                return true;
+                            }
+                        }
+
+                        false
+                    })
+                }
+            }
+        });
     }
 
     if let Some(max_age) = max_age {
@@ -41,15 +85,39 @@ pub(super) fn generate(
     }
 
     if let Some(allow_methods) = allow_methods {
-        cors_layer = cors_layer.allow_methods(allow_methods);
+        cors_layer = cors_layer.allow_methods(match allow_methods {
+            AnyOrHttpMethodArray::Any => AllowMethods::any(),
+            AnyOrHttpMethodArray::Explicit(methods) => {
+                let methods = methods.iter().map(|method| http::Method::from(*method));
+                AllowMethods::list(methods)
+            }
+        });
     }
 
     if let Some(allow_headers) = allow_headers {
-        cors_layer = cors_layer.allow_headers(allow_headers);
+        cors_layer = cors_layer.allow_headers(match allow_headers {
+            AnyOrAsciiStringArray::Any => AllowHeaders::any(),
+            AnyOrAsciiStringArray::Explicit(headers) => {
+                let headers = headers
+                    .iter()
+                    .map(|header| HeaderName::from_bytes(header.as_bytes()).expect("must be ascii"));
+
+                AllowHeaders::list(headers)
+            }
+        });
     }
 
     if let Some(expose_headers) = expose_headers {
-        cors_layer = cors_layer.expose_headers(expose_headers);
+        cors_layer = cors_layer.expose_headers(match expose_headers {
+            AnyOrAsciiStringArray::Any => ExposeHeaders::any(),
+            AnyOrAsciiStringArray::Explicit(headers) => {
+                let headers = headers
+                    .iter()
+                    .map(|header| HeaderName::from_bytes(header.as_bytes()).expect("must be ascii"));
+
+                ExposeHeaders::list(headers)
+            }
+        });
     }
 
     cors_layer
