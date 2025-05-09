@@ -733,6 +733,25 @@ mod tests {
     }
 
     #[test]
+    fn cors_allow_origins_wildcard() {
+        let input = indoc! {r#"
+            [cors]
+            allow_origins = { wildcard = ["*.example.com", "*.api.org"] }
+        "#};
+
+        let config: Config = toml::from_str(input).unwrap();
+        let cors = config.cors.unwrap();
+
+        if let Some(AnyOrUrlArray::Wildcard(patterns)) = cors.allow_origins {
+            assert_eq!(patterns.len(), 2);
+            assert_eq!(patterns[0], "*.example.com");
+            assert_eq!(patterns[1], "*.api.org");
+        } else {
+            panic!("Expected wildcard pattern in allow_origins");
+        }
+    }
+
+    #[test]
     fn cors_allow_origins_invalid_url() {
         let input = indoc! {r#"
             [cors]
@@ -741,13 +760,13 @@ mod tests {
 
         let error = toml::from_str::<Config>(input).unwrap_err();
 
-        insta::assert_snapshot!(&error.to_string(), @r###"
+        insta::assert_snapshot!(&error.to_string(), @r#"
         TOML parse error at line 2, column 17
           |
         2 | allow_origins = ["foo"]
           |                 ^^^^^^^
-        expecting string "any", or an array of urls
-        "###);
+        expecting string "any", an array of urls, or wildcard patterns like "*.example.com"
+        "#);
     }
 
     #[test]
