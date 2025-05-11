@@ -61,6 +61,7 @@ wasi-component-loader.workspace = true
 # Lambda dependencies
 either.workspace = true
 extension-catalog.workspace = true
+fast-glob.workspace = true
 indoc.workspace = true
 lambda_http = { workspace = true, optional = true }
 minicbor-serde = { workspace = true, features = ["alloc"] }
