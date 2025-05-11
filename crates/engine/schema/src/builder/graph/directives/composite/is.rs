@@ -1,7 +1,7 @@
 use cynic_parser_deser::ConstDeserializer as _;
 
 use crate::{
-    ComputedFieldRecord, ComputedObjectRecord, EntityDefinitionId,
+    DerivedFieldMappingRecord, DerivedFieldRecord, EntityDefinitionId,
     builder::{BoundSelectedObjectField, DirectivesIngester, Error, sdl},
 };
 
@@ -43,12 +43,8 @@ pub(super) fn ingest_field<'sdl>(
         .into_object()
         .ok_or_else(|| ("Computed fields must be objects", dir.arguments_span()))?;
 
-    let mut field_records: Vec<ComputedFieldRecord> = Vec::new();
-    for BoundSelectedObjectField {
-        field: target_id,
-        value,
-    } in object.fields
-    {
+    let mut mapping_records = Vec::new();
+    for BoundSelectedObjectField { field: to_id, value } in object.fields {
         let from_id = if let Some(value) = value {
             value
                 .into_single()
@@ -63,22 +59,24 @@ pub(super) fn ingest_field<'sdl>(
         } else {
             target_field_ids
                 .into_iter()
-                .find(|id| ingester.graph[*id].name_id == ingester.graph[target_id].name_id)
+                .find(|id| ingester.graph[*id].name_id == ingester.graph[to_id].name_id)
                 .unwrap()
         };
-        field_records.push(ComputedFieldRecord { from_id, target_id });
+        mapping_records.push(DerivedFieldMappingRecord { from_id, to_id });
     }
-    let computed = &mut ingester.graph[def.id].computed_records;
-    if computed.iter().any(|c| c.subgraph_id == subgraph_id) {
-        return Err((
-            "Multiple @composite__is were used in the same subgraph",
-            dir.name_span(),
-        )
-            .into());
-    }
-    computed.push(ComputedObjectRecord {
+
+    assert!(
+        ingester.graph[def.id].derived_ids.is_empty(),
+        "Suppor derived on multiple subgraphs."
+    );
+    let parent_entity_id = ingester.graph[def.id].parent_entity_id;
+    let start = ingester.graph.derived_fields.len();
+    ingester.graph.derived_fields.push(DerivedFieldRecord {
         subgraph_id,
-        field_records,
+        parent_entity_id,
+        mapping_records: mapping_records.clone(),
     });
+    ingester.graph[def.id].derived_ids = (start..(start + 1)).into();
+
     Ok(())
 }

@@ -80,6 +80,7 @@ pub(crate) fn ingest_definitions(
         extension_directive_arguments: Vec::new(),
         templates: Vec::new(),
         lookup_resolver_definitions: Vec::new(),
+        derived_fields: Vec::new(),
     };
 
     let builder = GraphBuilder {
@@ -232,7 +233,7 @@ impl<'a> Ingester<'a> {
                 provides_records: Default::default(),
                 requires_records: Default::default(),
                 directive_ids: Default::default(),
-                computed_records: Default::default(),
+                derived_ids: Default::default(),
             });
         }
         let end = self.graph.field_definitions.len();
@@ -571,7 +572,7 @@ impl<'a> Ingester<'a> {
                 provides_records: Default::default(),
                 requires_records: Default::default(),
                 directive_ids: Default::default(),
-                computed_records: Default::default(),
+                derived_ids: Default::default(),
             });
         }
     }

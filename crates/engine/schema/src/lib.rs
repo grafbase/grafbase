@@ -144,6 +144,8 @@ pub struct Graph {
     #[indexed_by(FieldDefinitionId)]
     field_definitions: Vec<FieldDefinitionRecord>,
     inaccessible_field_definitions: BitSet<FieldDefinitionId>,
+    #[indexed_by(DerivedFieldId)]
+    derived_fields: Vec<DerivedFieldRecord>,
     #[indexed_by(EnumDefinitionId)]
     enum_definitions: Vec<EnumDefinitionRecord>,
     inaccessible_enum_definitions: BitSet<EnumDefinitionId>,
