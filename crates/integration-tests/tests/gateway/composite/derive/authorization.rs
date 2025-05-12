@@ -16,7 +16,7 @@ fn error_on_derived_field() {
                     r#"
                     extend schema
                         @link(url: "authorization-1.0.0", import: ["@auth"])
-                        @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@is"])
+                        @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@key", "@derive"])
 
                     type Query {
                         post: Post!
@@ -24,16 +24,16 @@ fn error_on_derived_field() {
 
                     type Post {
                         id: ID!
-                        author_id: ID!
-                        author: User! @is(field: "{ id: author_id }")
+                        authorId: ID!
+                        author: User! @derive
                     }
 
-                    type User {
+                    type User @key(fields: "id") {
                         id: ID! @auth
                     }
                 "#,
                 )
-                .with_resolver("Query", "post", json!({"id": "post_1", "author_id": "user_1"}))
+                .with_resolver("Query", "post", json!({"id": "post_1", "authorId": "user_1"}))
                 .into_subgraph("x"),
             )
             .with_extension(AuthorizationExt::new(DenySites::query(vec!["User.id"])))
@@ -77,7 +77,7 @@ fn error_on_derived_entity() {
                     r#"
                     extend schema
                         @link(url: "authorization-1.0.0", import: ["@auth"])
-                        @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@is"])
+                        @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@key", "@derive"])
 
                     type Query {
                         post: Post!
@@ -85,16 +85,16 @@ fn error_on_derived_entity() {
 
                     type Post {
                         id: ID!
-                        author_id: ID!
-                        author: User! @is(field: "{ id: author_id }") @auth
+                        authorId: ID!
+                        author: User! @derive @auth
                     }
 
-                    type User {
+                    type User @key(fields: "id") {
                         id: ID!
                     }
                 "#,
                 )
-                .with_resolver("Query", "post", json!({"id": "post_1", "author_id": "user_1"}))
+                .with_resolver("Query", "post", json!({"id": "post_1", "authorId": "user_1"}))
                 .into_subgraph("x"),
             )
             .with_extension(AuthorizationExt::new(DenySites::query(vec!["Post.author"])))

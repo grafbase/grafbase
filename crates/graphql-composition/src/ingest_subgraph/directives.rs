@@ -227,6 +227,12 @@ pub(super) fn ingest_directives(
                     crate::composition_ir::Directive::CompositeLookup(ctx.subgraph_id.idx().into()),
                 );
             }
+            DirectiveNameMatch::Derive => {
+                ctx.subgraphs.push_ir_directive(
+                    directive_site_id,
+                    crate::composition_ir::Directive::CompositeDerive(ctx.subgraph_id.idx().into()),
+                );
+            }
             DirectiveNameMatch::Require => {
                 let directive: graphql_federated_graph::directives::RequireDirective<'_> = match directive.deserialize()
                 {

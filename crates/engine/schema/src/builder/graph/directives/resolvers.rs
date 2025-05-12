@@ -1,7 +1,5 @@
 use std::mem::take;
 
-use cynic_parser_deser::ConstDeserializer;
-
 use crate::{
     EntityDefinitionId, FieldResolverExtensionDefinitionRecord, GraphqlFederationEntityResolverDefinitionRecord,
     GraphqlRootFieldResolverDefinitionRecord, ResolverDefinitionId, ResolverDefinitionRecord,
@@ -241,19 +239,8 @@ fn ingest_composite_schema_lookup(ingester: &mut DirectivesIngester<'_, '_>) -> 
         };
         for directive in field.directives() {
             if directive.name() == "composite__lookup" {
-                let sdl::LookupDirective { graph } = directive.deserialize().map_err(|err| {
-                    (
-                        format!(
-                            "At {}, invalid composite__lookup directive: {}",
-                            field.to_site_string(ingester),
-                            err
-                        ),
-                        directive.arguments_span(),
-                    )
-                })?;
-                let subgraph_id = ingester.subgraphs.try_get(graph, directive.arguments_span())?;
                 ingester
-                    .ingest_composite_lookup(field, subgraph_id)
+                    .ingest_composite_lookup(field, directive)
                     .map_err(|err| err.with_span_if_absent(directive.arguments_span()))?
             }
         }

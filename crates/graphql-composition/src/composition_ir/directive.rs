@@ -23,6 +23,8 @@ pub enum Directive {
     },
     /// @composite__lookup
     CompositeLookup(federated::SubgraphId),
+    /// @composite__derive
+    CompositeDerive(federated::SubgraphId),
     Cost {
         weight: i32,
     },

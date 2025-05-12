@@ -4,14 +4,14 @@ const SCHEMA: &str = r#"
     type Product
       @join__type(graph: EXT)
     {
-      author_id: ID!
+      authorId: ID!
       code: String!
       id: ID!
-      user: User! @composite__is(graph: EXT, field: "{ id: author_id }")
+      author: User! @composite__derive(graph: EXT)
     }
 
     type User
-      @join__type(graph: EXT)
+        @join__type(graph: EXT, key: "id", resolvable: false)
     {
       id: ID!
     }
@@ -28,14 +28,14 @@ const SCHEMA: &str = r#"
 "#;
 
 #[tokio::test]
-async fn derived_fields() {
+async fn simple_derive_field() {
     assert_solving_snapshots!(
-        "comments_fields_should_be_flattened",
+        "simple_derive_field",
         SCHEMA,
         r#"
         query {
             products {
-                user {
+                author {
                     id
                 }
             }

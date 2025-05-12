@@ -1,6 +1,9 @@
 mod authorization;
+mod is;
+mod join;
 mod null;
 mod skip_include;
+mod validation;
 
 use graphql_mocks::dynamic::{DynamicSchema, DynamicSubgraph};
 use integration_tests::{gateway::Gateway, runtime};
@@ -10,7 +13,7 @@ fn gql_subgraph() -> DynamicSubgraph {
     DynamicSchema::builder(
         r#"
             extend schema
-                @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@is"])
+                @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@derive", "@key"])
 
             type Query {
                 post: Post!
@@ -18,16 +21,16 @@ fn gql_subgraph() -> DynamicSubgraph {
 
             type Post {
                 id: ID!
-                author_id: ID!
-                author: User! @is(field: "{ id: author_id }")
+                authorId: ID!
+                author: User! @derive
             }
 
-            type User {
+            type User @key(fields: "id") {
                 id: ID!
             }
             "#,
     )
-    .with_resolver("Query", "post", json!({"id": "post_1", "author_id": "user_1"}))
+    .with_resolver("Query", "post", json!({"id": "post_1", "authorId": "user_1"}))
     .into_subgraph("x")
 }
 
@@ -53,6 +56,53 @@ fn basic() {
 }
 
 #[test]
+fn underscore_case_insensitive_mapping() {
+    runtime().block_on(async {
+        let engine = Gateway::builder()
+            .with_subgraph(
+                DynamicSchema::builder(
+                    r#"
+            extend schema
+                @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@derive", "@key", "@is"])
+
+            type Query {
+                post: Post!
+            }
+
+            type Post {
+                id: ID!
+                author_i_D: ID!
+                author: User! @derive
+            }
+
+            type User @key(fields: "id") {
+                id: ID!
+            }
+            "#,
+                )
+                .with_resolver("Query", "post", json!({"id": "post_1", "author_i_D": "user_1"}))
+                .into_subgraph("x"),
+            )
+            .build()
+            .await;
+
+        let response = engine.post("query { post { id author { id } } }").await;
+        insta::assert_json_snapshot!(response, @r#"
+        {
+          "data": {
+            "post": {
+              "id": "post_1",
+              "author": {
+                "id": "user_1"
+              }
+            }
+          }
+        }
+        "#);
+    })
+}
+
+#[test]
 fn composite_keys() {
     runtime().block_on(async {
         let engine = Gateway::builder()
@@ -60,7 +110,7 @@ fn composite_keys() {
                 DynamicSchema::builder(
                     r#"
                 extend schema
-                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@is"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@derive", "@key"])
 
                 type Query {
                     post: Post!
@@ -68,12 +118,12 @@ fn composite_keys() {
 
                 type Post {
                     id: ID!
-                    author_id: ID!
-                    author_x: ID!
-                    author: User! @is(field: "{ id: author_id x: author_x}")
+                    authorId: ID!
+                    authorX: ID!
+                    author: User! @derive
                 }
 
-                type User {
+                type User @key(fields: "id x") {
                     id: ID!
                     x: ID!
                 }
@@ -82,7 +132,7 @@ fn composite_keys() {
                 .with_resolver(
                     "Query",
                     "post",
-                    json!({"id": "post_1", "author_id": "user_1", "author_x": "user_x"}),
+                    json!({"id": "post_1", "authorId": "user_1", "authorX": "user_x"}),
                 )
                 .into_subgraph("x"),
             )
@@ -133,13 +183,13 @@ fn both_derived_and_direct_field() {
     runtime().block_on(async {
         let engine = Gateway::builder().with_subgraph(gql_subgraph()).build().await;
 
-        let response = engine.post("query { post { id author_id author { id } } }").await;
+        let response = engine.post("query { post { id authorId author { id } } }").await;
         insta::assert_json_snapshot!(response, @r#"
         {
           "data": {
             "post": {
               "id": "post_1",
-              "author_id": "user_1",
+              "authorId": "user_1",
               "author": {
                 "id": "user_1"
               }

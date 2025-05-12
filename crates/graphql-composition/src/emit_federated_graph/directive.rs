@@ -119,6 +119,10 @@ fn transform_common_directive(ctx: &mut Context<'_>, directive: &ir::Directive) 
             ctx.used_directives |= UsedDirectives::COMPOSITE_LOOKUP;
             federated::Directive::CompositeLookup { graph: *subgraph_id }
         }
+        ir::Directive::CompositeDerive(subgraph_id) => {
+            ctx.used_directives |= UsedDirectives::COMPOSITE_DERIVE;
+            federated::Directive::CompositeDerive { graph: *subgraph_id }
+        }
         ir::Directive::CompositeRequire { subgraph_id, field } => {
             ctx.used_directives |= UsedDirectives::COMPOSITE_REQUIRE;
             let field = ctx.insert_string(ctx.subgraphs.walk(*field));

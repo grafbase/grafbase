@@ -92,12 +92,12 @@ impl std::fmt::Debug for DerivedField<'_> {
 /// Generated from:
 ///
 /// ```custom,{.language-graphql}
-/// type DerivedFieldMapping @meta(module: "field/derived") @copy {
+/// type DerivedFieldMapping @meta(module: "field/derived", derive: ["PartialEq", "Eq", "PartialOrd", "Ord"]) @copy {
 ///   from: FieldDefinition!
 ///   to: FieldDefinition!
 /// }
 /// ```
-#[derive(Debug, serde::Serialize, serde::Deserialize, Clone, Copy)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub struct DerivedFieldMappingRecord {
     pub from_id: FieldDefinitionId,
     pub to_id: FieldDefinitionId,

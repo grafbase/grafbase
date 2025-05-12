@@ -1,7 +1,7 @@
-mod is;
+mod derive;
 mod lookup;
 
-use crate::{SubgraphId, builder::sdl};
+use crate::{DirectiveSiteId, builder::sdl};
 
 use super::{DirectivesIngester, Error};
 
@@ -37,9 +37,9 @@ impl<'sdl> DirectivesIngester<'_, 'sdl> {
     pub(crate) fn ingest_composite_lookup(
         &mut self,
         def: sdl::FieldSdlDefinition<'sdl>,
-        subgraph_id: SubgraphId,
+        directive: sdl::Directive<'sdl>,
     ) -> Result<(), Error> {
-        lookup::ingest(self, def, subgraph_id)
+        lookup::ingest(self, def, directive)
             .map_err(|err| err.with_prefix(format!("At site {}, for directive @lookup ", def.to_site_string(self))))
     }
 }
@@ -49,6 +49,7 @@ fn ingest_before_federation_directives<'sdl>(
     def: sdl::SdlDefinition<'sdl>,
     dir: sdl::Directive<'sdl>,
 ) -> Result<(), Error> {
+    // Nothing is ingested during this step, it's done when adding resolvers.
     match dir.name() {
         "composite__lookup" => {
             let Some(field) = def.as_field() else {
@@ -70,14 +71,46 @@ fn ingest_before_federation_directives<'sdl>(
                 )
                     .into());
             }
-
-            // Nothing is ingested during this step, it's done when adding resolvers.
         }
-        "composite__is" => {
-            if !matches!(
-                def,
-                sdl::SdlDefinition::FieldDefinition(_) | sdl::SdlDefinition::ArgumentDefinition(_)
-            ) {
+        "composite__derive" => {
+            if !matches!(def, sdl::SdlDefinition::FieldDefinition(_)) {
+                return Err((
+                    format!(
+                        "invalid location: {}, expected one of: {}",
+                        def.location().as_str(),
+                        [sdl::DirectiveLocation::Field.as_str(),].join(", ")
+                    ),
+                    def.span(),
+                )
+                    .into());
+            };
+        }
+        "composite__is" => match def {
+            sdl::SdlDefinition::FieldDefinition(def) => {
+                if ingester.sdl_definitions[&DirectiveSiteId::Field(def.id)]
+                    .directives()
+                    .all(|dir| dir.name() != "composite__derive")
+                {
+                    return Err((
+                        "@is can only be used on a field in conjonction with @derive directive",
+                        def.span(),
+                    )
+                        .into());
+                }
+            }
+            sdl::SdlDefinition::ArgumentDefinition(def) => {
+                if ingester.sdl_definitions[&DirectiveSiteId::Field(def.field_id)]
+                    .directives()
+                    .all(|dir| dir.name() != "composite__lookup")
+                {
+                    return Err((
+                        "@is can only be used on a argument in conjonction with @lookup directive on the field",
+                        def.span(),
+                    )
+                        .into());
+                }
+            }
+            _ => {
                 return Err((
                     format!(
                         "invalid location: {}, expected one of: {}",
@@ -92,7 +125,7 @@ fn ingest_before_federation_directives<'sdl>(
                 )
                     .into());
             }
-        }
+        },
         "composite__require" => {
             if !matches!(def, sdl::SdlDefinition::ArgumentDefinition(_),) {
                 return Err((
@@ -117,7 +150,7 @@ fn ingest_after_federation_directives<'sdl>(
     dir: sdl::Directive<'sdl>,
 ) -> Result<(), Error> {
     match (dir.name(), def) {
-        ("composite__is", sdl::SdlDefinition::FieldDefinition(def)) => is::ingest_field(ingester, def, dir),
+        ("composite__derive", sdl::SdlDefinition::FieldDefinition(def)) => derive::ingest(ingester, def, dir),
         _ => Ok(()),
     }
 }

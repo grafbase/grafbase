@@ -62,6 +62,14 @@ pub(crate) fn ingest_directives<'a>(
         ingester.ingest_federation_directives(def, &directives)?;
     }
 
+    common::finalize_inaccessible(&mut ingester.graph);
+
+    // Apollo federation entities, Composite Schema @lookup, extension, etc.
+    resolvers::generate(&mut ingester)?;
+
+    // Resolvers may change federation data, so we do this last.
+    federation::add_not_fully_implemented_in(&mut ingester.graph);
+
     for def in ingester.sdl_definitions.values().copied() {
         directives.clear();
         directives.extend(def.directives());
@@ -74,14 +82,6 @@ pub(crate) fn ingest_directives<'a>(
 
         ingester.ingest_federation_aware_directives(def, &directives)?;
     }
-
-    common::finalize_inaccessible(&mut ingester.graph);
-
-    // Apollo federation entities, Composite Schema @lookup, extension, etc.
-    resolvers::generate(&mut ingester)?;
-
-    // Resolvers may change federation data, so we do this last.
-    federation::add_not_fully_implemented_in(&mut ingester.graph);
 
     Ok(())
 }

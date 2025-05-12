@@ -117,7 +117,7 @@ fn include_original_field() {
         query($include: Boolean!) {
             post {
                 id
-                author_id  @include(if: $include)
+                authorId  @include(if: $include)
                 author {
                     id
                 }
@@ -135,7 +135,7 @@ fn include_original_field() {
           "data": {
             "post": {
               "id": "post_1",
-              "author_id": "user_1",
+              "authorId": "user_1",
               "author": {
                 "id": "user_1"
               }

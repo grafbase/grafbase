@@ -1,7 +1,7 @@
 mod abstract_types;
 mod basic;
 mod cycle;
-mod derived;
+mod derive;
 mod entities;
 mod flatten;
 mod inaccessible;

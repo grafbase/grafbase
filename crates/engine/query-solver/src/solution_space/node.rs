@@ -49,9 +49,9 @@ impl SpaceNode<'_> {
 
                 match (only_providable, dervied_from_id) {
                     (true, None) => format!("{label}#{subgraph}@provides"),
-                    (true, Some(_)) => format!("{label}#{subgraph}@provides@derived"),
+                    (true, Some(_)) => format!("{label}#{subgraph}@provides@derive"),
                     (false, None) => format!("{label}#{subgraph}"),
-                    (false, Some(_)) => format!("{label}#{subgraph}@derived"),
+                    (false, Some(_)) => format!("{label}#{subgraph}@derive"),
                 }
             }
             .into(),
