@@ -46,7 +46,9 @@ pub(crate) async fn export_assets() -> Result<(), BackendError> {
         let version = fs::read_to_string(version_file)
             .await
             .map_err(BackendError::ReadAssetVersion)?;
-        if version == CARGO_PKG_VERSION {
+
+        // Skip unpacking the assets if they are already at the right version, and this is not a debug build of the CLI.
+        if version == CARGO_PKG_VERSION && env!("DEBUG") != "true" {
             tracing::info!("CLI assets already exist in the latest version. Skipping.");
 
             return Ok(());
