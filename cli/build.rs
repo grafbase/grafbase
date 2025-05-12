@@ -4,6 +4,7 @@ use std::fs::exists;
 
 fn main() {
     println!("cargo:rustc-env=TARGET={}", std::env::var("TARGET").unwrap());
+    println!("cargo:rustc-env=DEBUG={}", std::env::var("DEBUG").unwrap());
 
     cynic_codegen::register_schema("grafbase")
         .from_sdl_file("src/api/graphql/api.graphql")
