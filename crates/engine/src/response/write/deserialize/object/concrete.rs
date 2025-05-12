@@ -8,7 +8,10 @@ use std::fmt;
 use walker::Walk;
 
 use crate::{
-    prepare::{ConcreteShape, ConcreteShapeId, FieldShapeId, FieldShapeRecord, ObjectIdentifier, TypenameShapeRecord},
+    prepare::{
+        ConcreteShape, ConcreteShapeId, DataOrLookupFieldId, DerivedEntityShape, FieldShape, FieldShapeId,
+        FieldShapeRecord, ObjectIdentifier, Shape, TypenameShapeRecord,
+    },
     response::{
         GraphqlError, ResponseObject, ResponseObjectId, ResponseObjectRef, ResponseValue, ResponseValueId,
         value::ResponseObjectField,
@@ -179,7 +182,8 @@ pub(crate) struct ConcreteShapeFieldsSeed<'ctx, 'parent, 'state> {
     object_id: ResponseObjectId,
     has_error: bool,
     object_identifier: ObjectIdentifier,
-    field_shape_ids: IdRange<FieldShapeId>,
+    non_derived_field_shape_ids: IdRange<FieldShapeId>,
+    derived_field_shape_ids: IdRange<FieldShapeId>,
     typename_shapes: &'ctx [TypenameShapeRecord],
 }
 
@@ -195,7 +199,14 @@ impl<'ctx, 'parent, 'state> ConcreteShapeFieldsSeed<'ctx, 'parent, 'state> {
             object_id,
             has_error: shape.has_errors(),
             object_identifier: definition_id.map(ObjectIdentifier::Known).unwrap_or(shape.identifier),
-            field_shape_ids: shape.field_shape_ids,
+            non_derived_field_shape_ids: IdRange {
+                start: shape.field_shape_ids.start,
+                end: shape.derived_field_shape_ids_start,
+            },
+            derived_field_shape_ids: IdRange {
+                start: shape.derived_field_shape_ids_start,
+                end: shape.field_shape_ids.end,
+            },
             typename_shapes: shape.typename_shapes_slice(),
         }
     }
@@ -246,7 +257,8 @@ impl<'de> Visitor<'de> for ConcreteShapeFieldsSeed<'_, '_, '_> {
         A: MapAccess<'de>,
     {
         let schema = self.state.schema;
-        let mut response_fields = Vec::with_capacity(self.field_shape_ids.len() + self.typename_shapes.len());
+        let mut response_fields =
+            Vec::with_capacity(self.non_derived_field_shape_ids.len() + self.typename_shapes.len());
         let mut maybe_object_definition_id = None;
 
         match self.object_identifier {
@@ -421,34 +433,36 @@ impl<'de> Visitor<'de> for ConcreteShapeFieldsSeed<'_, '_, '_> {
 impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_, '_> {
     fn post_process(&self, response_fields: &mut Vec<ResponseObjectField>) {
         if self.has_error {
-            let mut must_propagate_null = false;
             let mut resp = self.state.response.borrow_mut();
-            for field_shape in self.field_shape_ids.walk(self.state) {
+            let all_fields: IdRange<FieldShapeId> =
+                IdRange::from_start_and_end(self.non_derived_field_shape_ids.start, self.derived_field_shape_ids.end);
+            for field_shape in all_fields.walk(self.state) {
+                let mut has_errors = false;
                 for error_id in field_shape.error_ids() {
+                    has_errors = true;
                     let location = field_shape.as_ref().id.walk(self.state).location();
-                    let path = (self.state.path(), field_shape.key);
-                    resp.errors.push_query_error(error_id, location, path);
+                    let path = self.state.path();
+                    resp.errors
+                        .push_query_error(error_id, location, (&path, field_shape.key));
 
                     if field_shape.wrapping.is_required() {
-                        must_propagate_null = true;
-                    } else {
-                        response_fields.push(ResponseObjectField {
-                            key: field_shape.key,
-                            value: ResponseValue::Null,
-                        });
+                        resp.propagate_null(&path);
+                        return;
                     }
                 }
-            }
-            if must_propagate_null {
-                resp.propagate_null(&self.state.path());
-                return;
+                if has_errors {
+                    response_fields.push(ResponseObjectField {
+                        key: field_shape.key,
+                        value: ResponseValue::Null,
+                    });
+                }
             }
         }
 
-        if response_fields.len() < self.field_shape_ids.len() {
+        if response_fields.len() < self.non_derived_field_shape_ids.len() {
             let n = response_fields.len();
             let keys = self.state.response_keys();
-            for field_shape in self.field_shape_ids.walk(self.state) {
+            for field_shape in self.non_derived_field_shape_ids.walk(self.state) {
                 if field_shape.is_skipped() {
                     continue;
                 }
@@ -491,6 +505,159 @@ impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_, '_> {
                 }
             }
         }
+
+        for field in self.derived_field_shape_ids.walk(self.state) {
+            if field.is_skipped() {
+                continue;
+            }
+            let Shape::DerivedEntity(shape_id) = field.shape else {
+                unreachable!();
+            };
+            let shape = shape_id.walk(self.state);
+            self.state.local_path_mut().push(ResponseValueId::Field {
+                object_id: self.object_id,
+                key: field.key,
+                nullable: field.wrapping.is_nullable(),
+            });
+            self.handle_derived_field(response_fields, field, shape);
+            self.state.local_path_mut().pop();
+        }
+    }
+
+    fn handle_derived_field(
+        &self,
+        response_fields: &mut Vec<ResponseObjectField>,
+        root_field: FieldShape<'_>,
+        shape: DerivedEntityShape<'_>,
+    ) {
+        let mut derived_response_fields = Vec::new();
+        let mut is_null_entity = true;
+        let first_id = shape.field_shape_ids.start;
+        let derived_field_shape_id_to_error_ids = self
+            .state
+            .operation
+            .plan
+            .query_modifications
+            .field_shape_id_to_error_ids
+            .as_ref();
+        let mut error_ix = derived_field_shape_id_to_error_ids.partition_point(|(id, _)| *id < first_id);
+        let mut resp = self.state.response.borrow_mut();
+        for derived_field in shape.fields() {
+            // Move forward until we find the right part of the sorted array for this field.
+            while derived_field_shape_id_to_error_ids
+                .get(error_ix)
+                .map(|(id, _)| *id < derived_field.id)
+                .unwrap_or_default()
+            {
+                error_ix += 1;
+            }
+
+            // Handle any errors if there is any for this field.
+            let mut has_errors = false;
+            while let Some(&(_, error_id)) = derived_field_shape_id_to_error_ids
+                .get(error_ix)
+                .filter(|(id, _)| *id == derived_field.id)
+            {
+                has_errors = true;
+                let location = derived_field.partition_field().location();
+                let path = self.state.path();
+                resp.errors
+                    .push_query_error(error_id, location, (&path, derived_field.key));
+
+                if derived_field.wrapping.is_required() {
+                    resp.propagate_null(&path);
+                    return;
+                }
+            }
+            if has_errors {
+                response_fields.push(ResponseObjectField {
+                    key: derived_field.key,
+                    value: ResponseValue::Null,
+                });
+                continue;
+            }
+
+            // Search for the real field.
+            if let Some(ResponseObjectField { value, .. }) = response_fields
+                .iter()
+                .find(|field| field.key.response_key == derived_field.expected_key)
+            {
+                match value {
+                    ResponseValue::Null => derived_response_fields.push(ResponseObjectField {
+                        key: derived_field.key,
+                        value: ResponseValue::Null,
+                    }),
+                    // If a failure happened during de-serialization and we didn't report it yet
+                    // because it's an extra field, but this one isn't.
+                    ResponseValue::Unexpected
+                        if derived_field.shape.as_derived_from_query_position().is_none()
+                            && derived_field.key.query_position.is_some() =>
+                    {
+                        let path = self.state.path();
+                        resp.errors.push(
+                            GraphqlError::invalid_subgraph_response()
+                                .with_path((&path, derived_field.key))
+                                .with_location(derived_field.partition_field().location()),
+                        );
+                        // If not required, we don't need to propagate as Unexpected is equivalent to
+                        // null for users.
+                        if derived_field.wrapping.is_required() {
+                            resp.propagate_null(&path);
+                            return;
+                        } else {
+                            derived_response_fields.push(ResponseObjectField {
+                                key: derived_field.key,
+                                value: ResponseValue::Unexpected,
+                            })
+                        }
+                    }
+                    value => {
+                        is_null_entity = false;
+                        derived_response_fields.push(ResponseObjectField {
+                            key: derived_field.key,
+                            value: value.clone(),
+                        })
+                    }
+                };
+            } else if derived_field.key.query_position.is_some() && !derived_field.is_skipped() {
+                // If we reached this point after handling missing values, it means the field
+                // was required and an extra field. So we're not an extra field we raise an
+                // error immediately. If a key field is required, the derived root field will
+                // always be required.
+                let path = self.state.path();
+                resp.propagate_null(&path);
+                resp.errors.push(
+                    GraphqlError::invalid_subgraph_response()
+                        .with_path((path, derived_field.key))
+                        .with_location(derived_field.partition_field().location()),
+                );
+                return;
+            }
+        }
+
+        if is_null_entity && root_field.wrapping.is_nullable() {
+            response_fields.push(ResponseObjectField {
+                key: root_field.key,
+                value: ResponseValue::Null,
+            });
+        } else {
+            if !shape.typename_shapes_slice().is_empty() {
+                let name_id = shape.object_definition_id.unwrap().walk(self.state).name_id;
+                for typename in shape.typename_shapes_slice() {
+                    derived_response_fields.push(ResponseObjectField {
+                        key: typename.key,
+                        value: name_id.into(),
+                    });
+                }
+            }
+            let id = resp
+                .data
+                .push_object(ResponseObject::new(shape.object_definition_id, derived_response_fields));
+            response_fields.push(ResponseObjectField {
+                key: root_field.key,
+                value: id.into(),
+            });
+        }
     }
 
     fn visit_fields_with_typename_detection<'de, A: MapAccess<'de>>(
@@ -501,7 +668,7 @@ impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_, '_> {
     ) -> Result<Option<ObjectDefinitionId>, A::Error> {
         let schema = self.state.schema;
         let keys = self.state.response_keys();
-        let fields = &self.state.operation.cached.shapes[self.field_shape_ids];
+        let fields = &self.state.operation.cached.shapes[self.non_derived_field_shape_ids];
         let mut offset = 0;
         let mut maybe_object_definition_id: Option<ObjectDefinitionId> = None;
         while let Some(key) = map.next_key::<Key<'_>>()? {
@@ -543,7 +710,7 @@ impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_, '_> {
         response_fields: &mut Vec<ResponseObjectField>,
     ) -> Result<(), A::Error> {
         let keys = self.state.response_keys();
-        let fields = &self.state.operation.cached.shapes[self.field_shape_ids];
+        let fields = &self.state.operation.cached.shapes[self.non_derived_field_shape_ids];
         let mut offset = 0;
         while let Some(key) = map.next_key::<Key<'_>>()? {
             let key = key.as_ref();
@@ -589,7 +756,24 @@ impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_, '_> {
         self.state.local_path_mut().pop();
         let value = result?;
 
-        response_fields.push(ResponseObjectField { key: field.key, value });
+        // FIXME: This should be prepared in the seed initialization.
+        // Sometimes we may include a field because it was a requirements for others despite it
+        // being skipped. We have to double check it now.
+        let included = match field.id {
+            DataOrLookupFieldId::Data(id) => {
+                self.state
+                    .operation
+                    .plan
+                    .query_modifications
+                    .included_response_data_fields[id]
+            }
+            _ => true,
+        };
+        let mut key = field.key;
+        if !included {
+            key.query_position = None;
+        }
+        response_fields.push(ResponseObjectField { key, value });
 
         Ok(())
     }

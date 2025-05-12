@@ -1,10 +1,10 @@
-use operation::{PositionedResponseKey, ResponseKey};
+use operation::{PositionedResponseKey, QueryPosition, ResponseKey};
 use schema::{EnumDefinitionId, ScalarType, Wrapping};
 use walker::Walk;
 
 use crate::prepare::{DataOrLookupField, DataOrLookupFieldId, OperationPlanContext, QueryErrorId};
 
-use super::{ConcreteShapeId, PolymorphicShapeId};
+use super::{ConcreteShapeId, DerivedEntityShapeId, PolymorphicShapeId};
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct FieldShapeRecord {
@@ -46,7 +46,7 @@ impl std::ops::Deref for FieldShape<'_> {
 #[derive(Clone, Copy)]
 pub(crate) struct FieldShape<'a> {
     pub(super) ctx: OperationPlanContext<'a>,
-    pub(super) id: FieldShapeId,
+    pub id: FieldShapeId,
 }
 
 #[allow(unused)]
@@ -87,12 +87,25 @@ pub(crate) enum Shape {
     Enum(EnumDefinitionId),
     Concrete(ConcreteShapeId),
     Polymorphic(PolymorphicShapeId),
+    DerivedEntity(DerivedEntityShapeId),
+    DerivedFrom(Option<QueryPosition>),
 }
 
 impl Shape {
-    pub(crate) fn as_concrete(&self) -> Option<ConcreteShapeId> {
+    pub fn as_concrete(&self) -> Option<ConcreteShapeId> {
         match self {
             Shape::Concrete(id) => Some(*id),
+            _ => None,
+        }
+    }
+
+    pub fn is_derived(&self) -> bool {
+        matches!(self, Shape::DerivedEntity(_))
+    }
+
+    pub fn as_derived_from_query_position(self) -> Option<QueryPosition> {
+        match self {
+            Shape::DerivedFrom(pos) => pos,
             _ => None,
         }
     }

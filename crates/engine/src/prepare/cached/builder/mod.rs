@@ -9,9 +9,9 @@ use im::HashMap;
 use operation::Operation;
 use query_solver::{
     Edge, Node, QueryField, SolvedQuery,
-    petgraph::{graph::NodeIndex, visit::EdgeRef},
+    petgraph::{Direction, graph::NodeIndex, visit::EdgeRef},
 };
-use schema::{EntityDefinitionId, ResolverDefinitionId, ResolverDefinitionVariant, Schema, TypeDefinition};
+use schema::{EntityDefinitionId, ResolverDefinitionId, ResolverDefinitionVariant, Schema, SubgraphId, TypeDefinition};
 use walker::Walk;
 
 use super::*;
@@ -26,6 +26,7 @@ pub(super) struct Solver<'a> {
     query_field_node_to_response_object_set: HashMap<NodeIndex, ResponseObjectSetDefinitionId>,
     // one to one
     node_to_field: Vec<Option<PartitionFieldId>>,
+    derived_entities_roots: Vec<NodeIndex>,
     // Populated during plan generation
     query_partition_to_node: Vec<(QueryPartitionId, NodeIndex)>,
 }
@@ -81,6 +82,7 @@ impl<'a> Solver<'a> {
                 shapes: Shapes::default(),
             },
             node_to_field: vec![None; solution.graph.node_count()],
+            derived_entities_roots: Vec::new(),
             solution,
             nested_fields_buffer_pool: BufferPool::default(),
             query_partitions_to_create_stack: Vec::new(),
@@ -115,8 +117,13 @@ impl<'a> Solver<'a> {
             self.generate_query_partition(partition_to_create);
         }
 
+        self.populate_derived_from()?;
+
         let mut response_data_fields = BitSet::with_capacity(self.output.query_plan.data_fields.len());
         for (i, field) in self.output.query_plan.data_fields.iter().enumerate() {
+            // If not explicitly required in the query, we're added later on as a requirement if
+            // necessary.
+            // If derived, we never need to be part of the query partition as seen by the subgraph.
             if field.query_position.is_some() {
                 response_data_fields.set(i.into(), true);
             }
@@ -151,7 +158,8 @@ impl<'a> Solver<'a> {
         }: QueryPartitionToCreate,
     ) {
         let query_partition_id = QueryPartitionId::from(self.output.query_plan.partitions.len());
-        let (_, selection_set_record) = self.generate_selection_set(query_partition_id, source_ix);
+        let subgraph_id = resolver_definition_id.walk(self.schema).subgraph_id();
+        let (_, selection_set_record) = self.generate_selection_set(subgraph_id, query_partition_id, source_ix);
 
         let selection_set_record =
             if let ResolverDefinitionVariant::Lookup(resolver) = resolver_definition_id.walk(self.schema).variant() {
@@ -216,6 +224,7 @@ impl<'a> Solver<'a> {
 
     fn generate_selection_set(
         &mut self,
+        subgraph_id: SubgraphId,
         query_partition_id: QueryPartitionId,
         source_ix: NodeIndex,
     ) -> (Option<ResponseObjectSetDefinitionId>, PartitionSelectionSetRecord) {
@@ -247,13 +256,13 @@ impl<'a> Solver<'a> {
                         continue;
                     };
                     match to_data_field_or_typename_field(
+                        self.schema,
                         &mut self.output,
                         &self.solution[id],
-                        self.schema,
                         query_partition_id,
                     ) {
-                        MaybePartitionFieldRecord::None => continue,
-                        MaybePartitionFieldRecord::Data(mut record) => {
+                        None => continue,
+                        Some(PartitionFieldRecord::Data(mut record)) => {
                             if record
                                 .definition_id
                                 .walk(self.schema)
@@ -262,7 +271,7 @@ impl<'a> Solver<'a> {
                                 .is_composite_type()
                             {
                                 let (nested_response_object_set_id, selection_set) =
-                                    self.generate_selection_set(query_partition_id, target_ix);
+                                    self.generate_selection_set(subgraph_id, query_partition_id, target_ix);
                                 record.output_id = nested_response_object_set_id;
                                 record.selection_set_record = selection_set;
                             }
@@ -271,7 +280,7 @@ impl<'a> Solver<'a> {
                                 node_ix: target_ix,
                             });
                         }
-                        MaybePartitionFieldRecord::Typename(record) => {
+                        Some(PartitionFieldRecord::Typename(record)) => {
                             fields_buffer.push(NestedField::Typename {
                                 record,
                                 node_ix: target_ix,
@@ -300,7 +309,7 @@ impl<'a> Solver<'a> {
 
         for field in fields_buffer.drain(..) {
             match field {
-                NestedField::Data { record, node_ix } => {
+                NestedField::Data { mut record, node_ix } => {
                     let field_id = self.output.query_plan.data_fields.len().into();
                     self.node_to_field[node_ix.index()] = Some(PartitionFieldId::Data(field_id));
                     for nested in &mut self.output.query_plan[record
@@ -308,6 +317,15 @@ impl<'a> Solver<'a> {
                         .data_field_ids_ordered_by_parent_entity_then_key]
                     {
                         nested.parent_field_id = Some(field_id.into());
+                    }
+                    if record
+                        .definition_id
+                        .walk(self.schema)
+                        .derived()
+                        .any(|d| d.subgraph_id == subgraph_id)
+                    {
+                        self.derived_entities_roots.push(node_ix);
+                        record.derived = Some(Derived::Root);
                     }
                     self.output.query_plan.data_fields.push(record);
                 }
@@ -351,6 +369,39 @@ impl<'a> Solver<'a> {
                     });
                 ResponseObjectSetDefinitionId::from(self.output.query_plan.response_object_set_definitions.len() - 1)
             })
+    }
+
+    fn populate_derived_from(&mut self) -> SolveResult<()> {
+        for node_ix in self.derived_entities_roots.iter().copied() {
+            for nested_field_edge in self
+                .solution
+                .graph
+                .edges_directed(node_ix, Direction::Outgoing)
+                .filter(|edge| matches!(edge.weight(), Edge::Field))
+            {
+                let Node::Field { id, .. } = self.solution.graph[nested_field_edge.target()] else {
+                    unreachable!();
+                };
+                if self.solution[id].definition_id.is_none() {
+                    continue;
+                }
+                let Some(PartitionFieldId::Data(from_id)) = self
+                    .solution
+                    .graph
+                    .edges_directed(nested_field_edge.target(), Direction::Incoming)
+                    .find(|edge| matches!(edge.weight(), Edge::Derived))
+                    .and_then(|edge| self.node_to_field[edge.source().index()])
+                else {
+                    unreachable!("Derived field must have a derived edge");
+                };
+                let Some(PartitionFieldId::Data(field_id)) = self.node_to_field[nested_field_edge.target().index()]
+                else {
+                    unreachable!("Derived field must be data field");
+                };
+                self.output.query_plan[field_id].derived = Some(Derived::From(from_id));
+            }
+        }
+        Ok(())
     }
 
     fn generate_mutation_partition_order_after_partition_generation(&mut self) -> SolveResult<()> {
@@ -409,21 +460,18 @@ impl<'a> Solver<'a> {
     }
 }
 
-enum MaybePartitionFieldRecord {
-    None,
+enum PartitionFieldRecord {
     Data(DataFieldRecord),
     Typename(TypenameFieldRecord),
 }
 
 fn to_data_field_or_typename_field(
+    schema: &Schema,
     output: &mut CachedOperation,
     field: &QueryField,
-    schema: &Schema,
     query_partition_id: QueryPartitionId,
-) -> MaybePartitionFieldRecord {
-    let Some(response_key) = field.response_key else {
-        return MaybePartitionFieldRecord::None;
-    };
+) -> Option<PartitionFieldRecord> {
+    let response_key = field.response_key?;
     if let Some(definition_id) = field.definition_id {
         let start = output.query_plan.field_arguments.len();
         match field.argument_ids {
@@ -447,7 +495,7 @@ fn to_data_field_or_typename_field(
             }
         };
         let argument_ids = IdRange::from(start..output.query_plan.field_arguments.len());
-        MaybePartitionFieldRecord::Data(DataFieldRecord {
+        Some(PartitionFieldRecord::Data(DataFieldRecord {
             type_condition_ids: field.type_conditions,
             query_partition_id,
             definition_id,
@@ -472,14 +520,15 @@ fn to_data_field_or_typename_field(
                 TypeDefinition::Interface(interface) => interface.has_inaccessible_implementor(),
                 _ => false,
             },
-            shape_ids: IdRange::empty(),
-        })
+            shape_ids_ref: IdRange::empty(),
+            derived: None,
+        }))
     } else {
-        MaybePartitionFieldRecord::Typename(TypenameFieldRecord {
+        Some(PartitionFieldRecord::Typename(TypenameFieldRecord {
             type_condition_ids: field.type_conditions,
             response_key,
             query_position: field.query_position,
             location: field.location,
-        })
+        }))
     }
 }

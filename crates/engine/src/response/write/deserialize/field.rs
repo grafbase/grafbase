@@ -58,6 +58,9 @@ impl<'de> DeserializeSeed<'de> for FieldSeed<'_, '_, '_> {
                     PolymorphicShapeSeed::new(self.state, self.field, self.wrapping.is_required(), shape_id)
                         .deserialize(deserializer)
                 }
+                Shape::DerivedEntity(_) | Shape::DerivedFrom(_) => {
+                    unreachable!("Should be handled by the ConcreteSeed")
+                }
             }
         };
 

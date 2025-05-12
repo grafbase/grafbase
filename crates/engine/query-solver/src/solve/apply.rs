@@ -112,7 +112,7 @@ pub(crate) fn generate_crude_solved_query(
                                 .expect("Could not be derived otherwise.");
                             let field = QueryField {
                                 type_conditions: query[parent_id].type_conditions,
-                                query_position: query[id].query_position,
+                                query_position: None,
                                 response_key: Some(
                                     operation
                                         .response_keys
@@ -123,7 +123,7 @@ pub(crate) fn generate_crude_solved_query(
                                 matching_field_id: None,
                                 argument_ids: Default::default(),
                                 location: query[id].location,
-                                flat_directive_id: query[id].flat_directive_id,
+                                flat_directive_id: None,
                             };
                             query.fields.push(field);
                             let ix = graph.add_node(Node::Field {

@@ -1,3 +1,5 @@
+use walker::Walk as _;
+
 use crate::prepare::PartitionSelectionSetRecord;
 
 use super::{OperationPlanContext, SubgraphField};
@@ -30,7 +32,10 @@ impl<'a> SubgraphSelectionSet<'a> {
         self.item
             .data_field_ids_ordered_by_parent_entity_then_key
             .into_iter()
-            .filter(|id| self.ctx.plan.query_modifications.included_subgraph_request_data_fields[*id])
+            .filter(move |id| {
+                ctx.plan.query_modifications.included_subgraph_request_data_fields[*id]
+                    && id.walk(ctx).derived.is_none()
+            })
             .map(move |id| SubgraphField { ctx, id: id.into() })
     }
 

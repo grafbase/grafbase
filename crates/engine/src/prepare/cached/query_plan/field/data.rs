@@ -23,12 +23,13 @@ pub(crate) struct DataFieldRecord {
     pub location: Location,
     pub argument_ids: IdRange<PartitionFieldArgumentId>,
     pub definition_id: FieldDefinitionId,
+    pub derived: Option<Derived>,
 
     pub required_fields_record: RequiredFieldSetRecord,
     /// Requirement of @authorized, etc.
     pub required_fields_record_by_supergraph: RequiredFieldSetRecord,
     /// All field shape ids generated for this field
-    pub shape_ids: IdRange<FieldShapeRefId>,
+    pub shape_ids_ref: IdRange<FieldShapeRefId>,
     pub parent_field_id: Option<DataOrLookupFieldId>,
     pub output_id: Option<ResponseObjectSetDefinitionId>,
     pub selection_set_record: PartitionSelectionSetRecord,
@@ -44,6 +45,12 @@ impl DataFieldRecord {
             response_key: self.response_key,
         }
     }
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub(crate) enum Derived {
+    Root,
+    From(DataFieldId),
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
@@ -91,8 +98,8 @@ impl<'a> DataField<'a> {
     pub(crate) fn parent_field(&self) -> Option<DataOrLookupField<'a>> {
         self.as_ref().parent_field_id.walk(self.ctx)
     }
-    pub(crate) fn shapes(&self) -> impl Iter<Item = FieldShapeId> + 'a {
-        self.ctx.cached.query_plan[self.as_ref().shape_ids].iter().copied()
+    pub(crate) fn shape_ids(&self) -> impl Iter<Item = FieldShapeId> + 'a {
+        self.ctx.cached.query_plan[self.as_ref().shape_ids_ref].iter().copied()
     }
 }
 

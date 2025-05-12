@@ -14,10 +14,10 @@ use crate::{
     Runtime,
     execution::find_matching_denied_header,
     prepare::{
-        CachedOperation, CachedOperationContext, ConcreteShapeId, DataFieldId, ErrorCode, FieldShapeId, GraphqlError,
-        PartitionField, PlanFieldArguments, PrepareContext, QueryModifierId, QueryModifierRecord, QueryModifierRule,
-        QueryModifierTarget, QueryOrStaticExtensionDirectiveArugmentsView, RequiredFieldSetRecord, TypenameFieldId,
-        create_extension_directive_query_view,
+        CachedOperation, CachedOperationContext, ConcreteShapeId, DataFieldId, Derived, ErrorCode, FieldShapeId,
+        GraphqlError, PartitionField, PlanFieldArguments, PrepareContext, QueryModifierId, QueryModifierRecord,
+        QueryModifierRule, QueryModifierTarget, QueryOrStaticExtensionDirectiveArugmentsView, RequiredFieldSetRecord,
+        TypenameFieldId, create_extension_directive_query_view,
     },
 };
 
@@ -345,6 +345,9 @@ where
                 if !field.required_fields_record_by_supergraph.is_empty() {
                     requires_stack.push(&field.as_ref().required_fields_record_by_supergraph);
                 }
+                if let Some(Derived::From(id)) = field.derived {
+                    modifications.included_subgraph_request_data_fields.set(id, true);
+                }
             }
         }
         // TODO: Don't include partitions without included subgraph fields.
@@ -366,8 +369,8 @@ where
         }
 
         for id in modifications.included_subgraph_request_data_fields.zeroes() {
-            for field_shape_id in id.walk(operation_ctx).shapes() {
-                modifications.skipped_field_shapes.set(field_shape_id, true);
+            for id in id.walk(operation_ctx).shape_ids() {
+                modifications.skipped_field_shapes.set(id, true);
             }
         }
 
@@ -418,8 +421,8 @@ where
                 }
                 PartitionField::Data(field) => {
                     self.modifications.included_response_data_fields.set(field.id, false);
-                    for field_shape_id in field.shapes() {
-                        self.field_shape_id_to_error_ids.push((field_shape_id, error_id));
+                    for id in field.shape_ids() {
+                        self.field_shape_id_to_error_ids.push((id, error_id));
                     }
                 }
                 // Can never be denied directly.

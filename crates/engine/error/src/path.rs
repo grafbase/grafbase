@@ -85,6 +85,18 @@ where
     }
 }
 
+impl<S1, S2> From<&(&[S1], Ref<'_, Vec<S2>>)> for ErrorPath
+where
+    for<'a> &'a S1: Into<ErrorPathSegment>,
+    for<'a> &'a S2: Into<ErrorPathSegment>,
+{
+    fn from((p1, p2): &(&[S1], Ref<'_, Vec<S2>>)) -> Self {
+        let mut path: Vec<ErrorPathSegment> = p1.iter().map(Into::into).collect();
+        path.extend(p2.iter().map(Into::into));
+        ErrorPath(path)
+    }
+}
+
 impl<S> From<&Vec<S>> for ErrorPath
 where
     for<'a> &'a S: Into<ErrorPathSegment>,

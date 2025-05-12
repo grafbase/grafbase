@@ -15,6 +15,21 @@ pub struct PositionedResponseKey {
     pub response_key: ResponseKey,
 }
 
+impl From<PositionedResponseKey> for ResponseKey {
+    fn from(key: PositionedResponseKey) -> Self {
+        key.response_key
+    }
+}
+
+impl PositionedResponseKey {
+    pub fn without_position(self) -> PositionedResponseKey {
+        PositionedResponseKey {
+            query_position: None,
+            ..self
+        }
+    }
+}
+
 impl ResponseKey {
     pub fn with_position(self, query_position: Option<QueryPosition>) -> PositionedResponseKey {
         PositionedResponseKey {
