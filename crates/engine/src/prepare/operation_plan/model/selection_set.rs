@@ -33,8 +33,7 @@ impl<'a> SubgraphSelectionSet<'a> {
             .data_field_ids_ordered_by_parent_entity_then_key
             .into_iter()
             .filter(move |id| {
-                ctx.plan.query_modifications.included_subgraph_request_data_fields[*id]
-                    && id.walk(ctx).derived.is_none()
+                ctx.plan.query_modifications.included_subgraph_request_data_fields[*id] && id.walk(ctx).derive.is_none()
             })
             .map(move |id| SubgraphField { ctx, id: id.into() })
     }

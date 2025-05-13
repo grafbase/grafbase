@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use operation::OperationContext;
 use schema::{
-    DerivedFieldId, DerivedFieldMappingRecord, EntityDefinitionId, FieldSetRecord, ResolverDefinitionId, SubgraphId,
+    DeriveDefinitionId, EntityDefinitionId, FieldDefinitionId, FieldSetRecord, ResolverDefinitionId, SubgraphId,
 };
 use walker::Walk as _;
 
@@ -41,7 +41,7 @@ impl SpaceNode<'_> {
                 subgraph_id,
                 query_field_id,
                 only_providable,
-                derived: dervied_from_id,
+                derive: dervied_from_id,
                 ..
             }) => {
                 let subgraph = subgraph_id.walk(ctx).name();
@@ -102,13 +102,23 @@ pub(crate) struct ProvidableField<'ctx> {
     pub query_field_id: QueryFieldId,
     pub provides: Cow<'ctx, FieldSetRecord>,
     pub only_providable: bool,
-    pub derived: Option<Derived>,
+    pub derive: Option<Derive>,
 }
 
 #[derive(Debug, Clone, Copy)]
-pub(crate) enum Derived {
-    Root { id: DerivedFieldId },
-    Field { mapping: DerivedFieldMappingRecord },
+pub(crate) enum Derive {
+    Root { id: DeriveDefinitionId },
+    Field { from_id: FieldDefinitionId },
+    ScalarAsField,
+}
+
+impl Derive {
+    pub fn into_root(self) -> Option<DeriveDefinitionId> {
+        match self {
+            Derive::Root { id } => Some(id),
+            _ => None,
+        }
+    }
 }
 
 impl<'ctx> SpaceNode<'ctx> {

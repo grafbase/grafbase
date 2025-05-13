@@ -5,7 +5,6 @@ pub struct QueryPosition(std::num::NonZero<u16>);
 
 impl QueryPosition {
     pub const MAX: QueryPosition = QueryPosition(std::num::NonZero::new(u16::MAX - 1).unwrap());
-    pub const EXTRA: usize = u16::MAX as usize;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
@@ -15,18 +14,21 @@ pub struct PositionedResponseKey {
     pub response_key: ResponseKey,
 }
 
-impl From<PositionedResponseKey> for ResponseKey {
-    fn from(key: PositionedResponseKey) -> Self {
-        key.response_key
+impl PositionedResponseKey {
+    pub fn with_query_position_if(self, included: bool) -> PositionedResponseKey {
+        let mut qp: u16 = zerocopy::transmute!(self.query_position.map(|qp| qp.0));
+        qp &= (!(included as u16)).wrapping_add(1);
+        let qp: Option<std::num::NonZero<u16>> = zerocopy::transmute!(qp);
+        Self {
+            query_position: qp.map(QueryPosition),
+            response_key: self.response_key,
+        }
     }
 }
 
-impl PositionedResponseKey {
-    pub fn without_position(self) -> PositionedResponseKey {
-        PositionedResponseKey {
-            query_position: None,
-            ..self
-        }
+impl From<PositionedResponseKey> for ResponseKey {
+    fn from(key: PositionedResponseKey) -> Self {
+        key.response_key
     }
 }
 

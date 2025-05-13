@@ -1,5 +1,4 @@
 use bytes::Bytes;
-use error::ErrorPathSegment;
 use runtime::hooks::GraphqlResponseStatus;
 
 use crate::{
@@ -48,13 +47,7 @@ impl ResponseIngester for EntityIngester {
                 &state,
                 EntityErrorPathConverter(|index: usize| {
                     let id = fetched_entities.get(index).map(|entity| entity.id)?;
-                    Some(
-                        parent_objects[id]
-                            .path
-                            .iter()
-                            .map(ErrorPathSegment::from)
-                            .collect::<Vec<_>>(),
-                    )
+                    Some((&parent_objects[id].path).into())
                 }),
             ),
         );

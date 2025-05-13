@@ -98,7 +98,7 @@ type FieldDefinition @meta(module: "field", debug: false) @indexed(id_size: "u32
   "The arguments referenced by this range are sorted by their name (string)"
   arguments: [InputValueDefinition!]!
   directives: [TypeSystemDirective!]!
-  derived: [DerivedField!]!
+  derives: [DeriveDefinition!]!
 }
 
 type SubgraphType @meta(module: "field/subgraph_type") @copy {
@@ -116,14 +116,25 @@ type FieldRequires @meta(module: "field/requires") {
   field_set: FieldSet!
 }
 
-type DerivedField @meta(module: "field/derived") @indexed(id_size: "u32") {
+type DeriveDefinition @meta(module: "field/derive") @indexed(id_size: "u32") {
   subgraph: Subgraph!
-  "Same as the parent entity of the derived FieldDefinition"
-  parent_entity: EntityDefinition!
-  mapping: [DerivedFieldMapping!]!
+  batch_field: FieldDefinition
+  mapping: DeriveMapping!
 }
 
-type DerivedFieldMapping @meta(module: "field/derived", derive: ["PartialEq", "Eq", "PartialOrd", "Ord"]) @copy {
+# Pretty much the following, but we don't generate good walkers for those yet...
+# union DeriveMapping @meta(module: "field/derive") = DeriveObject | DeriveScalarAsField
+scalar DeriveMapping @record
+
+type DeriveScalarAsField @meta(module: "field/derive") @copy {
+  field: FieldDefinition!
+}
+
+type DeriveObject @meta(module: "field/derive") {
+  fields: [DeriveObjectField!]!
+}
+
+type DeriveObjectField @meta(module: "field/derive", derive: ["PartialEq", "Eq", "PartialOrd", "Ord"]) @copy {
   from: FieldDefinition!
   to: FieldDefinition!
 }

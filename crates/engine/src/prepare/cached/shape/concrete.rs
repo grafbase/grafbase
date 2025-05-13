@@ -4,7 +4,7 @@ use walker::Walk;
 
 use crate::prepare::{OperationPlanContext, ResponseObjectSetDefinitionId};
 
-use super::{FieldShapeId, TypenameShapeId, TypenameShapeRecord};
+use super::{FieldShapeId, TypenameShapeId};
 
 /// Being concrete does not mean it's only associated with a single object definition id
 /// only that we know exactly which fields must be present.
@@ -62,9 +62,6 @@ impl<'a> ConcreteShape<'a> {
     }
     pub(crate) fn has_errors(&self) -> bool {
         self.ctx.plan.query_modifications.concrete_shape_has_error[self.id]
-    }
-    pub(crate) fn typename_shapes_slice(&self) -> &'a [TypenameShapeRecord] {
-        &self.ctx.cached.shapes[self.as_ref().typename_shape_ids]
     }
 }
 

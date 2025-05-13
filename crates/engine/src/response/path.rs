@@ -1,6 +1,9 @@
+use std::cell::Ref;
+
+use error::{ErrorPath, InsertIntoErrorPath};
 use operation::PositionedResponseKey;
 
-use super::{DataPartId, ErrorPathSegment, ResponseListId, ResponseObjectId};
+use super::{DataPartId, ResponseListId, ResponseObjectId};
 
 /// Unique identifier of a value within the response. Used to propagate null at the right place
 /// and to generate the appropriate error path for GraphQL errors.
@@ -34,12 +37,40 @@ impl ResponseValueId {
     }
 }
 
-impl From<&ResponseValueId> for ErrorPathSegment {
-    fn from(segment: &ResponseValueId) -> Self {
-        match segment {
-            ResponseValueId::Field { key, .. } => ErrorPathSegment::Field(key.response_key),
-            ResponseValueId::Index { index, .. } => ErrorPathSegment::Index(*index as usize),
+impl InsertIntoErrorPath for &ResponseValueId {
+    fn insert_into(self, path: &mut ErrorPath) {
+        match self {
+            ResponseValueId::Field { key, .. } => key.insert_into(path),
+            ResponseValueId::Index { index, .. } => index.insert_into(path),
         }
+    }
+}
+
+pub(crate) trait ResponsePath {
+    fn iter(&self) -> impl DoubleEndedIterator<Item = &ResponseValueId>;
+}
+
+impl ResponsePath for [ResponseValueId] {
+    fn iter(&self) -> impl DoubleEndedIterator<Item = &ResponseValueId> {
+        self.iter()
+    }
+}
+
+impl ResponsePath for &[ResponseValueId] {
+    fn iter(&self) -> impl DoubleEndedIterator<Item = &ResponseValueId> {
+        (*self).iter()
+    }
+}
+
+impl ResponsePath for Vec<ResponseValueId> {
+    fn iter(&self) -> impl DoubleEndedIterator<Item = &ResponseValueId> {
+        self.as_slice().iter()
+    }
+}
+
+impl ResponsePath for Ref<'_, Vec<ResponseValueId>> {
+    fn iter(&self) -> impl DoubleEndedIterator<Item = &ResponseValueId> {
+        self.as_slice().iter()
     }
 }
 

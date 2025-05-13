@@ -30,13 +30,6 @@ pub(crate) enum BoundSelectedValueEntry<Id> {
 }
 
 impl<Id> BoundSelectedValueEntry<Id> {
-    pub fn into_object_without_path(self) -> Option<BoundSelectedObjectValue<Id>> {
-        match self {
-            BoundSelectedValueEntry::Object { path: None, object } => Some(object),
-            _ => None,
-        }
-    }
-
     pub fn into_path(self) -> Option<BoundPath> {
         match self {
             BoundSelectedValueEntry::Path(path) => Some(path),
@@ -65,8 +58,24 @@ pub(crate) struct BoundSelectedObjectValue<Id> {
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct BoundSelectedObjectField<Id> {
-    pub field: Id,
-    pub value: Option<BoundSelectedValue<Id>>,
+    pub field_id: Id,
+    pub value: SelectedValueOrField<Id>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) enum SelectedValueOrField<Id> {
+    Value(BoundSelectedValue<Id>),
+    Field(FieldDefinitionId),
+}
+
+impl<Id> SelectedValueOrField<Id> {
+    pub fn into_value(self) -> Option<BoundSelectedValue<Id>> {
+        if let SelectedValueOrField::Value(value) = self {
+            Some(value)
+        } else {
+            None
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]

@@ -300,7 +300,7 @@ pub(super) fn ingest_graphql_data<'ctx, 'de>(
 }
 
 pub(super) fn convert_root_error_path(path: serde_json::Value) -> Option<ErrorPath> {
-    let mut out = Vec::new();
+    let mut out = ErrorPath::default();
     let serde_json::Value::Array(path) = path else {
         return None;
     };
@@ -317,5 +317,5 @@ pub(super) fn convert_root_error_path(path: serde_json::Value) -> Option<ErrorPa
             }
         }
     }
-    Some(out.into())
+    Some(out)
 }

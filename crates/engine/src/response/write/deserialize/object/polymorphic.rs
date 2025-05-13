@@ -18,7 +18,7 @@ use crate::{
 use super::concrete::ConcreteShapeSeed;
 
 pub(crate) struct PolymorphicShapeSeed<'ctx, 'parent, 'state> {
-    ctx: &'state SeedState<'ctx, 'parent>,
+    state: &'state SeedState<'ctx, 'parent>,
     parent_field: &'ctx FieldShapeRecord,
     is_required: bool,
     shape: &'ctx PolymorphicShapeRecord,
@@ -26,14 +26,14 @@ pub(crate) struct PolymorphicShapeSeed<'ctx, 'parent, 'state> {
 
 impl<'ctx, 'parent, 'state> PolymorphicShapeSeed<'ctx, 'parent, 'state> {
     pub fn new(
-        ctx: &'state SeedState<'ctx, 'parent>,
+        state: &'state SeedState<'ctx, 'parent>,
         parent_field: &'ctx FieldShapeRecord,
         is_required: bool,
         shape_id: PolymorphicShapeId,
     ) -> Self {
-        let polymorphic = shape_id.walk(ctx);
+        let polymorphic = shape_id.walk(state);
         Self {
-            ctx,
+            state,
             parent_field,
             is_required,
             shape: polymorphic.as_ref(),
@@ -57,12 +57,12 @@ impl PolymorphicShapeSeed<'_, '_, '_> {
         tracing::error!(
             "invalid type: {}, expected an object at path '{}'",
             value,
-            self.ctx.display_path()
+            self.state.display_path()
         );
 
-        if self.parent_field.key.query_position.is_some() {
-            let mut resp = self.ctx.response.borrow_mut();
-            let path = self.ctx.path();
+        if self.state.should_report_error_for(self.parent_field) {
+            let mut resp = self.state.response.borrow_mut();
+            let path = self.state.path();
             // If not required, we don't need to propagate as Unexpected is equivalent to
             // null for users.
             if self.is_required {
@@ -71,7 +71,7 @@ impl PolymorphicShapeSeed<'_, '_, '_> {
             resp.errors.push(
                 GraphqlError::invalid_subgraph_response()
                     .with_path(path)
-                    .with_location(self.parent_field.id.walk(self.ctx).location()),
+                    .with_location(self.parent_field.id.walk(self.state).location()),
             );
         }
 
@@ -91,7 +91,7 @@ impl<'de> Visitor<'de> for PolymorphicShapeSeed<'_, '_, '_> {
     where
         A: MapAccess<'de>,
     {
-        let schema = self.ctx.schema;
+        let schema = self.state.schema;
         let mut content = VecDeque::<(Key<'de>, serde_value::Value)>::new();
         while let Some(key) = map.next_key::<Key<'de>>()? {
             if key.as_ref() == "__typename" {
@@ -101,7 +101,7 @@ impl<'de> Visitor<'de> for PolymorphicShapeSeed<'_, '_, '_> {
                 let Some(TypeDefinition::Object(object_definition)) = schema.type_definition_by_name(typename) else {
                     tracing::error!(
                         "Couldn't determine the object type from __typename at path '{}'",
-                        self.ctx.display_path()
+                        self.state.display_path()
                     );
                     break;
                 };
@@ -115,7 +115,7 @@ impl<'de> Visitor<'de> for PolymorphicShapeSeed<'_, '_, '_> {
                 {
                     let (_, shape_id) = self.shape.possibilities[i];
                     ConcreteShapeSeed::new_with_known_object_definition_id(
-                        self.ctx,
+                        self.state,
                         self.parent_field,
                         self.is_required,
                         shape_id,
@@ -128,26 +128,26 @@ impl<'de> Visitor<'de> for PolymorphicShapeSeed<'_, '_, '_> {
                     // like we do to detect the object definition id, but we've already
                     // deserialized it. So we have to provide the object definition id to the
                     // concrete shape seed if needed, as it won't be able to do it.
-                    match shape_id.walk(self.ctx).identifier {
+                    match shape_id.walk(self.state).identifier {
                         ObjectIdentifier::UnionTypename(id)
-                            if !id.walk(self.ctx.schema).has_member(object_definition_id) =>
+                            if !id.walk(self.state.schema).has_member(object_definition_id) =>
                         {
                             tracing::error!(
                                 "Unexpected object '{}' for union '{}' at path '{}'",
                                 object_definition.name(),
-                                id.walk(self.ctx.schema).name(),
-                                self.ctx.display_path()
+                                id.walk(self.state.schema).name(),
+                                self.state.display_path()
                             );
                             break;
                         }
                         ObjectIdentifier::InterfaceTypename(id)
-                            if !id.walk(self.ctx.schema).has_implementor(object_definition_id) =>
+                            if !id.walk(self.state.schema).has_implementor(object_definition_id) =>
                         {
                             tracing::error!(
                                 "Unexpected object '{}' for interface '{}' at path '{}'",
                                 object_definition.name(),
-                                id.walk(self.ctx.schema).name(),
-                                self.ctx.display_path()
+                                id.walk(self.state.schema).name(),
+                                self.state.display_path()
                             );
                             break;
                         }
@@ -155,7 +155,7 @@ impl<'de> Visitor<'de> for PolymorphicShapeSeed<'_, '_, '_> {
                     };
 
                     ConcreteShapeSeed::new_with_known_object_definition_id(
-                        self.ctx,
+                        self.state,
                         self.parent_field,
                         self.is_required,
                         shape_id,
@@ -172,7 +172,7 @@ impl<'de> Visitor<'de> for PolymorphicShapeSeed<'_, '_, '_> {
 
                     // Adding empty object instead
                     Ok(self
-                        .ctx
+                        .state
                         .response
                         .borrow_mut()
                         .data
@@ -188,9 +188,9 @@ impl<'de> Visitor<'de> for PolymorphicShapeSeed<'_, '_, '_> {
         // the response.
         while map.next_entry::<IgnoredAny, IgnoredAny>()?.is_some() {}
 
-        if self.parent_field.key.query_position.is_some() {
-            let mut resp = self.ctx.response.borrow_mut();
-            let path = self.ctx.path();
+        if self.state.should_report_error_for(self.parent_field) {
+            let mut resp = self.state.response.borrow_mut();
+            let path = self.state.path();
             // If not required, we don't need to propagate as Unexpected is equivalent to
             // null for users.
             if self.is_required {
@@ -199,7 +199,7 @@ impl<'de> Visitor<'de> for PolymorphicShapeSeed<'_, '_, '_> {
             resp.errors.push(
                 GraphqlError::invalid_subgraph_response()
                     .with_path(path)
-                    .with_location(self.parent_field.id.walk(self.ctx).location()),
+                    .with_location(self.parent_field.id.walk(self.state).location()),
             );
         }
 

@@ -183,7 +183,7 @@ fn requires_with_fragments() {
                     let mut repr = ctx.representation.clone();
                     repr.remove("__typename");
 
-                    Some(json!({ "__typename": "User", "repr": repr }))
+                    Some(json!({ "repr": repr }))
                 })
                 .into_subgraph("y"),
             )
@@ -297,7 +297,7 @@ fn nested_requires() {
                 )
                 .with_entity_resolver("User", |mut ctx: EntityResolverContext<'_>| {
                     ctx.representation.remove("__typename");
-                    Some(serde_json::json!({"__typename": "User", "repr": serde_json::to_string(&ctx.representation).unwrap().replace('"', "'")}))
+                    Some(serde_json::json!({"repr": serde_json::to_string(&ctx.representation).unwrap().replace('"', "'")}))
                 })
                 .into_subgraph("y"),
             )
@@ -380,7 +380,7 @@ fn nested_requires_with_intermediate_plan() {
                 )
                 .with_entity_resolver("User", |mut ctx: EntityResolverContext<'_>| {
                     ctx.representation.remove("__typename");
-                    Some(serde_json::json!({"__typename": "User", "repr": ctx.representation}))
+                    Some(serde_json::json!({"repr": ctx.representation}))
                 })
                 .with_entity_resolver("Pet", |ctx: EntityResolverContext<'_>| {
                     let kind = match ctx.representation["id"].as_str().unwrap() {
@@ -388,7 +388,7 @@ fn nested_requires_with_intermediate_plan() {
                         "22" => "Fido doggy",
                         _ => unreachable!(),
                     };
-                    Some(serde_json::json!({"__typename": "Pet", "kind": kind}))
+                    Some(serde_json::json!({"kind": kind}))
                 })
                 .into_subgraph("y"),
             )

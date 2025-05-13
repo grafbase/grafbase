@@ -1,7 +1,6 @@
 use std::{borrow::Cow, time::Duration};
 
 use bytes::Bytes;
-use error::ErrorPathSegment;
 use futures::future::join_all;
 use runtime::hooks::GraphqlResponseStatus;
 use serde::{
@@ -97,13 +96,7 @@ where
                     &state,
                     EntityErrorPathConverter(|index: usize| {
                         let id = index_to_id.get(index).copied()?;
-                        Some(
-                            parent_objects[id]
-                                .path
-                                .iter()
-                                .map(ErrorPathSegment::from)
-                                .collect::<Vec<_>>(),
-                        )
+                        Some((&parent_objects[id].path).into())
                     }),
                 ),
             );

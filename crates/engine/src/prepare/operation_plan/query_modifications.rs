@@ -14,7 +14,7 @@ use crate::{
     Runtime,
     execution::find_matching_denied_header,
     prepare::{
-        CachedOperation, CachedOperationContext, ConcreteShapeId, DataFieldId, Derived, ErrorCode, FieldShapeId,
+        CachedOperation, CachedOperationContext, ConcreteShapeId, DataFieldId, Derive, ErrorCode, FieldShapeId,
         GraphqlError, PartitionField, PlanFieldArguments, PrepareContext, QueryModifierId, QueryModifierRecord,
         QueryModifierRule, QueryModifierTarget, QueryOrStaticExtensionDirectiveArugmentsView, RequiredFieldSetRecord,
         TypenameFieldId, create_extension_directive_query_view,
@@ -32,7 +32,6 @@ pub(crate) struct QueryModifications {
     pub errors: Vec<GraphqlError>,
     pub concrete_shape_has_error: BitSet<ConcreteShapeId>,
     pub field_shape_id_to_error_ids: IdToMany<FieldShapeId, QueryErrorId>,
-    pub skipped_field_shapes: BitSet<FieldShapeId>,
     pub root_error_ids: Vec<QueryErrorId>,
 }
 
@@ -56,7 +55,7 @@ impl QueryModifications {
                 variables,
             },
             ctx,
-            field_shape_id_to_error_ids: Default::default(),
+            field_id_to_error_ids: Default::default(),
             modifications: QueryModifications {
                 included_response_data_fields: cached.query_plan.response_data_fields.clone(),
                 included_response_typename_fields: cached.query_plan.response_typename_fields.clone(),
@@ -67,7 +66,6 @@ impl QueryModifications {
                 errors: Vec::new(),
                 field_shape_id_to_error_ids: Default::default(),
                 root_error_ids: Vec::new(),
-                skipped_field_shapes: BitSet::with_capacity(cached.shapes.fields.len()),
             },
         }
         .build()
@@ -79,7 +77,7 @@ struct Builder<'ctx, 'op, R: Runtime> {
     ctx: &'op mut PrepareContext<'ctx, R>,
     operation_ctx: CachedOperationContext<'op>,
     input_value_ctx: InputValueContext<'op>,
-    field_shape_id_to_error_ids: Vec<(FieldShapeId, QueryErrorId)>,
+    field_id_to_error_ids: Vec<(DataFieldId, QueryErrorId)>,
     modifications: QueryModifications,
 }
 
@@ -269,7 +267,6 @@ where
                     definition_id,
                     argument_ids,
                 } => {
-                    tracing::warn!("with args");
                     let directive = directive_id.walk(self.ctx.schema());
                     let verdict = self
                         .ctx
@@ -331,51 +328,81 @@ where
         let Self {
             mut modifications,
             operation_ctx,
+            field_id_to_error_ids,
             ..
         } = self;
         modifications.included_subgraph_request_data_fields = modifications.included_response_data_fields.clone();
-        let mut requires_stack: Vec<&'op RequiredFieldSetRecord> =
-            Vec::with_capacity(operation_ctx.query_partitions().len() * 2);
 
-        for field in operation_ctx.data_fields() {
-            if modifications.included_response_data_fields[field.id] {
-                if !field.required_fields_record.is_empty() {
-                    requires_stack.push(&field.as_ref().required_fields_record);
-                }
-                if !field.required_fields_record_by_supergraph.is_empty() {
-                    requires_stack.push(&field.as_ref().required_fields_record_by_supergraph);
-                }
-                if let Some(Derived::From(id)) = field.derived {
-                    modifications.included_subgraph_request_data_fields.set(id, true);
-                }
+        // Unless required for other fields, they're not needed anymore.
+        let mut field_shape_id_to_error_id = Vec::with_capacity(field_id_to_error_ids.len());
+        for (id, error_id) in field_id_to_error_ids {
+            modifications.included_subgraph_request_data_fields.set(id, false);
+            for id in id.walk(operation_ctx).shape_ids() {
+                field_shape_id_to_error_id.push((id, error_id));
             }
         }
+        modifications.field_shape_id_to_error_ids = field_shape_id_to_error_id.into();
+
+        let mut requires_stack: Vec<&'op RequiredFieldSetRecord> =
+            Vec::with_capacity(operation_ctx.query_partitions().len() * 2);
+        let mut derive_stack: Vec<DataFieldId> = Vec::new();
+
+        for id in modifications.included_response_data_fields.ones() {
+            let field = id.walk(operation_ctx);
+            if !field.required_fields_record.is_empty() {
+                requires_stack.push(&field.as_ref().required_fields_record);
+            }
+            if !field.required_fields_record_by_supergraph.is_empty() {
+                requires_stack.push(&field.as_ref().required_fields_record_by_supergraph);
+            }
+            if let Some(Derive::From(id))
+            | Some(Derive::Root {
+                batch_field_id: Some(id),
+            }) = field.derive
+            {
+                derive_stack.push(id);
+            }
+        }
+
         // TODO: Don't include partitions without included subgraph fields.
         for query_partition in operation_ctx.query_partitions() {
             requires_stack.push(&query_partition.as_ref().required_fields_record);
         }
 
-        while let Some(required_fields) = requires_stack.pop() {
-            for item in required_fields.deref() {
-                modifications
-                    .included_subgraph_request_data_fields
-                    .set(item.data_field_id, true);
-                requires_stack.push(&item.subselection_record);
-                let field = item.data_field_id.walk(operation_ctx);
-                if !field.required_fields_record.is_empty() {
-                    requires_stack.push(&field.as_ref().required_fields_record);
+        while !requires_stack.is_empty() || !derive_stack.is_empty() {
+            for id in derive_stack.drain(..) {
+                if !modifications.included_subgraph_request_data_fields.put(id) {
+                    let field = id.walk(operation_ctx);
+                    // if it wasn't already processed
+                    if !modifications.included_response_data_fields[field.id]
+                        && !field.required_fields_record.is_empty()
+                    {
+                        requires_stack.push(&field.as_ref().required_fields_record);
+                    }
+                }
+            }
+            while let Some(required_fields) = requires_stack.pop() {
+                for item in required_fields.deref() {
+                    modifications
+                        .included_subgraph_request_data_fields
+                        .set(item.data_field_id, true);
+                    requires_stack.push(&item.subselection_record);
+                    let field = item.data_field_id.walk(operation_ctx);
+                    if !field.required_fields_record.is_empty() {
+                        requires_stack.push(&field.as_ref().required_fields_record);
+                    }
+                    if let Some(Derive::From(id))
+                    | Some(Derive::Root {
+                        batch_field_id: Some(id),
+                    }) = field.derive
+                    {
+                        derive_stack.push(id);
+                    }
                 }
             }
         }
 
-        for id in modifications.included_subgraph_request_data_fields.zeroes() {
-            for id in id.walk(operation_ctx).shape_ids() {
-                modifications.skipped_field_shapes.set(id, true);
-            }
-        }
-
         // Identify all concrete shapes with errors.
-        modifications.field_shape_id_to_error_ids = self.field_shape_id_to_error_ids.into();
         let mut field_shape_ids_with_errors = modifications.field_shape_id_to_error_ids.ids();
         if let Some(mut current) = field_shape_ids_with_errors.next() {
             'outer: for (concrete_shape_id, shape) in operation_ctx.cached.shapes.concrete.iter().enumerate() {
@@ -413,21 +440,10 @@ where
             self.modifications.root_error_ids.push(error_id);
         }
         for field in modifier.impacted_field_ids.walk(self.operation_ctx) {
-            match field {
-                PartitionField::Typename(field) => {
-                    self.modifications
-                        .included_response_typename_fields
-                        .set(field.id, false);
-                }
-                PartitionField::Data(field) => {
-                    self.modifications.included_response_data_fields.set(field.id, false);
-                    for id in field.shape_ids() {
-                        self.field_shape_id_to_error_ids.push((id, error_id));
-                    }
-                }
-                // Can never be denied directly.
-                PartitionField::Lookup(_) => unreachable!(),
-            }
+            let PartitionField::Data(field) = field else {
+                unreachable!()
+            };
+            self.field_id_to_error_ids.push((field.id, error_id));
         }
     }
 

@@ -72,7 +72,11 @@ impl DynamicSchemaBuilder {
             builder = builder.register(entity_type(&entities));
         }
 
-        let mut entity_resolvers = Some(entity_resolvers);
+        let mut entity_resolvers = if !entity_resolvers.is_empty() {
+            Some(entity_resolvers)
+        } else {
+            None
+        };
         for definition in schema.definitions() {
             match definition {
                 parser::Definition::Type(def) => {
@@ -413,14 +417,14 @@ fn add_federation_fields(
             let entities = reprs.into_iter().map(|repr| {
                 let context = EntityResolverContext::new(&context, repr);
 
+                let typename = context.typename.clone();
                 let Some(resolver) = resolvers.get_mut(&context.typename) else {
                     context.add_error(ServerError::new(format!("{} has no resolver", context.typename), None));
-                    return FieldValue::value(async_graphql::Value::Null);
+                    return FieldValue::NULL;
                 };
 
-                let json_value = resolver.resolve(context).unwrap_or_default();
-
-                transform_into_field_value(async_graphql::Value::deserialize(json_value).unwrap())
+                let value = resolver.resolve(context).unwrap_or_default();
+                transform_into_field_value(async_graphql::Value::deserialize(value).unwrap()).with_type(typename)
             });
 
             FieldFuture::Value(Some(FieldValue::list(entities)))

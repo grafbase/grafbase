@@ -10,7 +10,7 @@ digraph {
     4 [ label = "User.id" ]
     5 [ label = "Product.authorId" ]
     0 -> 1 [ label = "QueryPartition" ]
-    5 -> 4 [ label = "Derived" ]
+    5 -> 4 [ label = "Derive" ]
     2 -> 3 [ label = "Field" ]
     3 -> 4 [ label = "Field" ]
     2 -> 5 [ label = "Field" ]

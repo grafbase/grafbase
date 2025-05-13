@@ -41,6 +41,7 @@ pub use config::*;
 pub use directive::*;
 pub use extension::*;
 use extension_catalog::{ExtensionCatalog, ExtensionId};
+pub use field::*;
 pub use field_set::*;
 pub use gateway_config::SubscriptionProtocol;
 pub use generated::*;
@@ -144,8 +145,8 @@ pub struct Graph {
     #[indexed_by(FieldDefinitionId)]
     field_definitions: Vec<FieldDefinitionRecord>,
     inaccessible_field_definitions: BitSet<FieldDefinitionId>,
-    #[indexed_by(DerivedFieldId)]
-    derived_fields: Vec<DerivedFieldRecord>,
+    #[indexed_by(DeriveDefinitionId)]
+    derive_definitions: Vec<DeriveDefinitionRecord>,
     #[indexed_by(EnumDefinitionId)]
     enum_definitions: Vec<EnumDefinitionRecord>,
     inaccessible_enum_definitions: BitSet<EnumDefinitionId>,

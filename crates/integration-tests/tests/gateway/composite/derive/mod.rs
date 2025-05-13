@@ -1,8 +1,9 @@
-mod authorization;
+mod composite_key;
+mod composite_list;
 mod is;
-mod join;
 mod null;
-mod skip_include;
+mod scalar_key;
+mod scalar_list;
 mod validation;
 
 use graphql_mocks::dynamic::{DynamicSchema, DynamicSubgraph};

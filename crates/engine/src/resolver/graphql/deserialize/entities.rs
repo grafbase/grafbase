@@ -83,7 +83,7 @@ pub struct EntityErrorPathConverter<F>(pub F);
 
 impl<F> SubgraphToSupergraphErrorPathConverter for EntityErrorPathConverter<F>
 where
-    F: Fn(usize) -> Option<Vec<ErrorPathSegment>>,
+    F: Fn(usize) -> Option<ErrorPath>,
 {
     fn convert(&self, path: serde_json::Value) -> Option<ErrorPath> {
         let serde_json::Value::Array(path) = path else {
@@ -110,6 +110,6 @@ where
                 }
             }
         }
-        Some(out.into())
+        Some(out)
     }
 }

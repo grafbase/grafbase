@@ -17,9 +17,8 @@ use super::SeedState;
 pub(crate) struct EnumValueSeed<'ctx, 'parent, 'state> {
     pub state: &'state SeedState<'ctx, 'parent>,
     pub definition_id: EnumDefinitionId,
-    pub parent_field: &'ctx FieldShapeRecord,
+    pub field: &'ctx FieldShapeRecord,
     pub is_required: bool,
-    pub is_extra: bool,
 }
 
 impl<'de> DeserializeSeed<'de> for EnumValueSeed<'_, '_, '_> {
@@ -32,9 +31,8 @@ impl<'de> DeserializeSeed<'de> for EnumValueSeed<'_, '_, '_> {
         let Self {
             state,
             definition_id,
-            parent_field,
+            field,
             is_required,
-            is_extra,
         } = self;
         match deserializer.deserialize_any(self)? {
             Ok(string_value) => {
@@ -46,7 +44,7 @@ impl<'de> DeserializeSeed<'de> for EnumValueSeed<'_, '_, '_> {
                     // If inaccessible propagating an error without any message.
                     Some(enum_value) => {
                         let value = ResponseValue::StringId { id: enum_value.name_id };
-                        if !is_extra && enum_value.is_inaccessible() {
+                        if state.should_report_error_for(field) && enum_value.is_inaccessible() {
                             if is_required {
                                 resp.propagate_null(&state.path());
                                 Ok(value)
@@ -60,7 +58,7 @@ impl<'de> DeserializeSeed<'de> for EnumValueSeed<'_, '_, '_> {
                     }
                     None => {
                         tracing::error!("Unknown enum value: {string_value} at path '{}'", state.display_path());
-                        if parent_field.key.query_position.is_some() {
+                        if state.should_report_error_for(field) {
                             let path = state.path();
                             // If not required, we don't need to propagate as Unexpected is equivalent to
                             // null for users.
@@ -70,7 +68,7 @@ impl<'de> DeserializeSeed<'de> for EnumValueSeed<'_, '_, '_> {
                             resp.errors.push(
                                 GraphqlError::invalid_subgraph_response()
                                     .with_path(path)
-                                    .with_location(parent_field.id.walk(state).location()),
+                                    .with_location(field.id.walk(state).location()),
                             );
                         }
                         Ok(ResponseValue::Unexpected)
@@ -90,7 +88,7 @@ impl EnumValueSeed<'_, '_, '_> {
             self.state.display_path()
         );
 
-        if self.parent_field.key.query_position.is_some() {
+        if self.state.should_report_error_for(self.field) {
             let mut resp = self.state.response.borrow_mut();
             let path = self.state.path();
             // If not required, we don't need to propagate as Unexpected is equivalent to
@@ -101,7 +99,7 @@ impl EnumValueSeed<'_, '_, '_> {
             resp.errors.push(
                 GraphqlError::invalid_subgraph_response()
                     .with_path(path)
-                    .with_location(self.parent_field.id.walk(self.state).location()),
+                    .with_location(self.field.id.walk(self.state).location()),
             );
         }
 

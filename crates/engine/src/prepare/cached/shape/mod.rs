@@ -1,12 +1,12 @@
 mod concrete;
-mod derived;
+mod derive;
 mod field;
 mod polymorphic;
 mod root;
 mod typename;
 
 pub(crate) use concrete::*;
-pub(crate) use derived::*;
+pub(crate) use derive::*;
 pub(crate) use field::*;
 pub(crate) use polymorphic::*;
 pub(crate) use root::*;
@@ -27,5 +27,5 @@ pub(crate) struct Shapes {
     #[indexed_by(RootFieldsShapeId)]
     pub root_fields: Vec<RootFieldsShapeRecord>,
     #[indexed_by(DefaultFieldShapeId)]
-    pub default_fields: Vec<DefaultFieldShape>,
+    pub default_fields: Vec<DefaultFieldShapeRecord>,
 }

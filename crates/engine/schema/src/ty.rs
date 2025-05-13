@@ -41,4 +41,10 @@ impl TypeRecord {
             ..self
         }
     }
+
+    pub fn without_list(self) -> Option<Self> {
+        self.wrapping
+            .without_list()
+            .map(|wrapping| TypeRecord { wrapping, ..self })
+    }
 }

@@ -73,7 +73,7 @@ impl Edge {
         match self {
             Self::QueryPartition => Attrs::default().with("color=royalblue,fontcolor=royalblue"),
             Self::Field => Attrs::default(),
-            Self::Derived => Attrs::default().with("color=darkorchid,arrowhead=halfopen,style=dashed"),
+            Self::Derive => Attrs::default().with("color=darkorchid,arrowhead=halfopen,style=dashed"),
             Self::RequiredBySubgraph => Attrs::default().with("color=orangered,arrowhead=inv"),
             Self::RequiredBySupergraph => Attrs::default().with("color=orangered,arrowhead=inv,style=dashed"),
             Self::MutationExecutedAfter => Attrs::default().with("color=red,arrowhead=inv,style=dashed"),
