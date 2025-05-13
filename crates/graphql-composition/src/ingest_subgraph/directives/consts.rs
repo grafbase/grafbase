@@ -9,6 +9,7 @@ pub(super) const KEY: &str = "key";
 pub(super) const LINK: &str = "link";
 pub(super) const LIST_SIZE: &str = "listSize";
 pub(super) const LOOKUP: &str = "lookup";
+pub(super) const DERIVE: &str = "derive";
 pub(super) const OVERRIDE: &str = "override";
 pub(super) const POLICY: &str = "policy";
 pub(super) const PROVIDES: &str = "provides";

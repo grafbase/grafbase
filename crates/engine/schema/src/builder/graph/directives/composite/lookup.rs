@@ -1,10 +1,11 @@
+use cynic_parser_deser::ConstDeserializer as _;
 use id_newtypes::IdRange;
 
 use crate::{
     ArgumentInjectionId, ArgumentInjectionRecord, ArgumentValueInjection, EntityDefinitionId, FieldDefinitionId,
     FieldDefinitionRecord, FieldSetItemRecord, FieldSetRecord, Graph, InputValueDefinitionId,
     InputValueDefinitionRecord, KeyValueInjectionRecord, LookupResolverDefinitionId, LookupResolverDefinitionRecord,
-    SubgraphId, TypeDefinitionId, ValueInjection,
+    TypeDefinitionId, ValueInjection,
     builder::{
         DirectivesIngester, Error,
         context::BuildContext,
@@ -17,8 +18,20 @@ use crate::{
 pub(super) fn ingest<'sdl>(
     ingester: &mut DirectivesIngester<'_, 'sdl>,
     field: sdl::FieldSdlDefinition<'sdl>,
-    subgraph_id: SubgraphId,
+    directive: sdl::Directive<'sdl>,
 ) -> Result<(), Error> {
+    let sdl::LookupDirective { graph } = directive.deserialize().map_err(|err| {
+        (
+            format!(
+                "At {}, invalid composite__lookup directive: {}",
+                field.to_site_string(ingester),
+                err
+            ),
+            directive.arguments_span(),
+        )
+    })?;
+    let subgraph_id = ingester.subgraphs.try_get(graph, directive.arguments_span())?;
+
     let graph = &ingester.builder.graph;
     let field_definition = &graph[field.id];
     let Some(entity_id) = field_definition.ty_record.definition_id.as_entity() else {
@@ -37,7 +50,10 @@ pub(super) fn ingest<'sdl>(
     else {
         let ty = ingester.sdl_definitions[&entity_id.into()].as_type().unwrap();
         return Err((
-            format!("output type {} doesn't define any keys with @key directive", ty.name()),
+            format!(
+                "Type {} doesn't define any keys with @key directive that may be used for @lookup",
+                ty.name()
+            ),
             ty.span(),
         )
             .into());

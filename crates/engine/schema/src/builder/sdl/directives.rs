@@ -106,6 +106,8 @@ pub struct DeprecatedDirective<'a> {
     pub reason: Option<&'a str>,
 }
 
+pub type DerivedDirective<'a> = LookupDirective<'a>;
+
 ///```ignore,graphql
 /// directive @composite_lookup(
 ///     graph: join__Graph!,

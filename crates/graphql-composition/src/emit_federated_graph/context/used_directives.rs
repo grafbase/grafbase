@@ -7,5 +7,6 @@ bitflags! {
         const COMPOSITE_LOOKUP = 1 << 2;
         const COMPOSITE_REQUIRE = 1 << 3;
         const COMPOSITE_IS = 1 << 4;
+        const COMPOSITE_DERIVE = 1 << 5;
     }
 }

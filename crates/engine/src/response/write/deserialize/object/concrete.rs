@@ -519,17 +519,19 @@ impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_, '_> {
                 key: field.key,
                 nullable: field.wrapping.is_nullable(),
             });
-            self.handle_derived_field(response_fields, field, shape);
+            if let Some(value) = self.handle_derived_field(response_fields, field, shape) {
+                response_fields.push(ResponseObjectField { key: field.key, value });
+            }
             self.state.local_path_mut().pop();
         }
     }
 
     fn handle_derived_field(
         &self,
-        response_fields: &mut Vec<ResponseObjectField>,
+        response_fields: &[ResponseObjectField],
         root_field: FieldShape<'_>,
         shape: DerivedEntityShape<'_>,
-    ) {
+    ) -> Option<ResponseValue> {
         let mut derived_response_fields = Vec::new();
         let mut is_null_entity = true;
         let first_id = shape.field_shape_ids.start;
@@ -566,11 +568,11 @@ impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_, '_> {
 
                 if derived_field.wrapping.is_required() {
                     resp.propagate_null(&path);
-                    return;
+                    return None;
                 }
             }
             if has_errors {
-                response_fields.push(ResponseObjectField {
+                derived_response_fields.push(ResponseObjectField {
                     key: derived_field.key,
                     value: ResponseValue::Null,
                 });
@@ -603,7 +605,7 @@ impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_, '_> {
                         // null for users.
                         if derived_field.wrapping.is_required() {
                             resp.propagate_null(&path);
-                            return;
+                            return None;
                         } else {
                             derived_response_fields.push(ResponseObjectField {
                                 key: derived_field.key,
@@ -631,15 +633,12 @@ impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_, '_> {
                         .with_path((path, derived_field.key))
                         .with_location(derived_field.partition_field().location()),
                 );
-                return;
+                return None;
             }
         }
 
-        if is_null_entity && root_field.wrapping.is_nullable() {
-            response_fields.push(ResponseObjectField {
-                key: root_field.key,
-                value: ResponseValue::Null,
-            });
+        Some(if is_null_entity && root_field.wrapping.is_nullable() {
+            ResponseValue::Null
         } else {
             if !shape.typename_shapes_slice().is_empty() {
                 let name_id = shape.object_definition_id.unwrap().walk(self.state).name_id;
@@ -653,11 +652,22 @@ impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_, '_> {
             let id = resp
                 .data
                 .push_object(ResponseObject::new(shape.object_definition_id, derived_response_fields));
-            response_fields.push(ResponseObjectField {
-                key: root_field.key,
-                value: id.into(),
-            });
-        }
+            if let Some(set_id) = shape.set_id {
+                let (parent_path, local_path) = self.state.path();
+                let mut path = Vec::with_capacity(parent_path.len() + local_path.len());
+                path.extend_from_slice(parent_path);
+                path.extend_from_slice(local_path.as_ref());
+                resp.push_object_ref(
+                    set_id,
+                    ResponseObjectRef {
+                        id,
+                        path,
+                        definition_id: shape.object_definition_id.unwrap(),
+                    },
+                );
+            }
+            id.into()
+        })
     }
 
     fn visit_fields_with_typename_detection<'de, A: MapAccess<'de>>(

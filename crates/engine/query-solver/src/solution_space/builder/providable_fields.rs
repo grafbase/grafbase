@@ -293,7 +293,7 @@ where
     ) -> ParentProvideResult<'schema> {
         if let Some(derived) = parent.derived {
             let Derived::Root { id: derived_id } = derived else {
-                todo!("Nested @derived fields aren't supported yet.");
+                todo!("Nested @derive fields aren't supported yet.");
             };
             if let Some(mapping) = derived_id
                 .walk(self.schema)

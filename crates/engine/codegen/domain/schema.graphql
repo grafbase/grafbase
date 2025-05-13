@@ -123,7 +123,7 @@ type DerivedField @meta(module: "field/derived") @indexed(id_size: "u32") {
   mapping: [DerivedFieldMapping!]!
 }
 
-type DerivedFieldMapping @meta(module: "field/derived") @copy {
+type DerivedFieldMapping @meta(module: "field/derived", derive: ["PartialEq", "Eq", "PartialOrd", "Ord"]) @copy {
   from: FieldDefinition!
   to: FieldDefinition!
 }

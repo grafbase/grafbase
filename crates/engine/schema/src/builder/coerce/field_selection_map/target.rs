@@ -14,7 +14,7 @@ pub(super) trait Target: Copy {
 }
 
 #[derive(Clone, Copy)]
-pub(super) enum Input {
+pub(super) enum InputTarget {
     InputField {
         input_object_id: InputObjectDefinitionId,
         input_field_id: InputValueDefinitionId,
@@ -25,19 +25,19 @@ pub(super) enum Input {
     },
 }
 
-impl Target for Input {
+impl Target for InputTarget {
     type Id = InputValueDefinitionId;
 
     fn id(self) -> Self::Id {
         match self {
-            Input::InputField { input_field_id, .. } => input_field_id,
-            Input::Argument { argument_id, .. } => argument_id,
+            InputTarget::InputField { input_field_id, .. } => input_field_id,
+            InputTarget::Argument { argument_id, .. } => argument_id,
         }
     }
 
     fn display(self, ctx: &GraphBuilder<'_>) -> String {
         match self {
-            Input::InputField {
+            InputTarget::InputField {
                 input_object_id,
                 input_field_id,
             } => {
@@ -45,7 +45,7 @@ impl Target for Input {
                 let field = &ctx.graph[input_field_id];
                 format!("{}.{}", &ctx[input_object.name_id], &ctx[field.name_id])
             }
-            Input::Argument { field_id, argument_id } => {
+            InputTarget::Argument { field_id, argument_id } => {
                 let field = &ctx.graph[field_id];
                 let argument = &ctx.graph[argument_id];
                 format!(
@@ -75,7 +75,7 @@ impl Target for Input {
                         (
                             ctx.graph[id].name_id,
                             (
-                                Input::InputField {
+                                InputTarget::InputField {
                                     input_object_id,
                                     input_field_id: id,
                                 },

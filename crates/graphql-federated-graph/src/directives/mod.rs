@@ -22,6 +22,9 @@ pub enum Directive {
     CompositeLookup {
         graph: SubgraphId,
     },
+    CompositeDerive {
+        graph: SubgraphId,
+    },
     CompositeRequire {
         graph: SubgraphId,
         field: StringId,

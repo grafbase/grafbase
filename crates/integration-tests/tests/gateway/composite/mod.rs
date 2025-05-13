@@ -1,3 +1,3 @@
-mod derived;
+mod derive;
 mod is;
 mod lookup;

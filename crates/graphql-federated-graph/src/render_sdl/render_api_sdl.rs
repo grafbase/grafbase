@@ -255,6 +255,7 @@ fn public_directives_filter(directive: &Directive, graph: &FederatedGraph) -> bo
         | Directive::ListSize(_)
         | Directive::JoinGraph(_)
         | Directive::CompositeLookup { .. }
+        | Directive::CompositeDerive { .. }
         | Directive::CompositeRequire { .. }
         | Directive::CompositeIs { .. }
         | Directive::ExtensionDirective { .. } => false,

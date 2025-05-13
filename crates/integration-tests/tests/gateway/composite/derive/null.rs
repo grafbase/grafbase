@@ -15,7 +15,7 @@ fn null_entity() {
                 DynamicSchema::builder(
                     r#"
                     extend schema
-                        @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@is"])
+                        @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@derive", "@key"])
 
                     type Query {
                         post: Post!
@@ -23,11 +23,11 @@ fn null_entity() {
 
                     type Post {
                         id: ID!
-                        author_id: ID
-                        author: User @is(field: "{ id: author_id }")
+                        authorId: ID
+                        author: User @derive
                     }
 
-                    type User {
+                    type User @key(fields: "id") {
                         id: ID
                     }
                 "#,
