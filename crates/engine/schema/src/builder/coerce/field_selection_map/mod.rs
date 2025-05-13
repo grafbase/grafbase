@@ -28,7 +28,10 @@ impl GraphBuilder<'_> {
         let wrapping = self.graph[target_argument_id].ty_record.wrapping;
         bind_selected_value(
             self,
-            (source_id.into(), Wrapping::required()),
+            TypeRecord {
+                definition_id: source_id.into(),
+                wrapping: Wrapping::required(),
+            },
             (
                 InputTarget::Argument {
                     field_id: target_field_id,
@@ -51,7 +54,10 @@ impl GraphBuilder<'_> {
         let wrapping = self.graph[target_field_id].ty_record.wrapping;
         bind_selected_value(
             self,
-            (source_id.into(), Wrapping::required()),
+            TypeRecord {
+                definition_id: source_id.into(),
+                wrapping: Wrapping::required(),
+            },
             ((subgraph_id, target_field_id), wrapping),
             selected_value,
         )
@@ -60,7 +66,7 @@ impl GraphBuilder<'_> {
 
 fn bind_selected_value<T: Target>(
     ctx: &mut GraphBuilder<'_>,
-    source: (CompositeTypeId, Wrapping),
+    source: TypeRecord,
     target: (T, Wrapping),
     selected_value: SelectedValue<'_>,
 ) -> Result<BoundSelectedValue<T::Id>, String> {
@@ -74,7 +80,7 @@ fn bind_selected_value<T: Target>(
 
 fn bind_selected_value_entry<T: Target>(
     ctx: &mut GraphBuilder<'_>,
-    source: (CompositeTypeId, Wrapping),
+    source: TypeRecord,
     target: (T, Wrapping),
     selected_value: SelectedValueEntry<'_>,
 ) -> Result<BoundSelectedValueEntry<T::Id>, String> {
@@ -82,62 +88,76 @@ fn bind_selected_value_entry<T: Target>(
         SelectedValueEntry::Path(path) => {
             let (path, _) = bind_path(ctx, source, path)?;
             let last = *path.0.last().unwrap();
-            ensure_type_compatibility(ctx, target, last)?;
+            ensure_type_compatibility(
+                ctx,
+                FieldDisplay { ctx, field_id: last },
+                ctx.graph[last].ty_record,
+                target,
+            )?;
             Ok(BoundSelectedValueEntry::Path(path))
         }
-        SelectedValueEntry::ObjectWithPath { path, object } => {
-            let (path, (source, source_wrapping)) = bind_path(ctx, source, path)?;
-            let source = source
-                .as_composite_type()
-                .ok_or_else(|| format!("Type {} does not have any fields", ctx[ctx.definition_name_id(source)]))?;
-            let object = bind_selected_object_value(ctx, (source, source_wrapping), target, object)?;
-            Ok(BoundSelectedValueEntry::ObjectWithPath { path, object })
+        SelectedValueEntry::Object { path, object } => {
+            if let Some(path) = path {
+                let (path, source) = bind_path(ctx, source, path)?;
+                let object = bind_selected_object_value(ctx, source, target, object)?;
+                Ok(BoundSelectedValueEntry::Object {
+                    path: Some(path),
+                    object,
+                })
+            } else {
+                let object = bind_selected_object_value(ctx, source, target, object)?;
+                Ok(BoundSelectedValueEntry::Object { path: None, object })
+            }
         }
-        SelectedValueEntry::ListWithPath { path, list } => {
-            let (path, (source, source_wrapping)) = bind_path(ctx, source, path)?;
-            let source = source
-                .as_composite_type()
-                .ok_or_else(|| format!("Type {} does not have any fields", ctx[ctx.definition_name_id(source)]))?;
-            let list = bind_selected_list_value(ctx, (source, source_wrapping), target, list)?;
-            Ok(BoundSelectedValueEntry::ListWithPath { path, list })
+        SelectedValueEntry::List { path, list } => {
+            if let Some(path) = path {
+                let (path, source) = bind_path(ctx, source, path)?;
+                let list = bind_selected_list_value(ctx, source, target, list)?;
+                Ok(BoundSelectedValueEntry::List { path: Some(path), list })
+            } else {
+                let list = bind_selected_list_value(ctx, source, target, list)?;
+                Ok(BoundSelectedValueEntry::List { path: None, list })
+            }
         }
-        SelectedValueEntry::Object(object) => {
-            let object = bind_selected_object_value(ctx, source, target, object)?;
-            Ok(BoundSelectedValueEntry::Object(object))
+        SelectedValueEntry::Identity => {
+            ensure_type_compatibility(ctx, ctx.type_name(source), source, target)?;
+            Ok(BoundSelectedValueEntry::Identity)
         }
     }
 }
 
 fn bind_path(
     ctx: &mut GraphBuilder<'_>,
-    (source, mut source_wrapping): (CompositeTypeId, Wrapping),
+    source: TypeRecord,
     path: Path<'_>,
-) -> Result<(BoundPath, (TypeDefinitionId, Wrapping)), String> {
-    if source_wrapping.is_list() {
+) -> Result<(BoundPath, TypeRecord), String> {
+    if source.wrapping.is_list() {
         return Err(format!(
             "Cannot select a field from {}, it's a list",
-            ctx.type_name(TypeRecord {
-                definition_id: source.into(),
-                wrapping: source_wrapping
-            })
+            ctx.type_name(source)
         ));
     }
-    let mut source: TypeDefinitionId = if let Some(ty) = path.ty {
-        bind_type_condition(ctx, source, ty)?.into()
+    let mut wrapping = source.wrapping;
+
+    let Some(definition_id) = source.definition_id.as_composite_type() else {
+        return Err(format!("Type {} does not have any fields", ctx.type_name(source)));
+    };
+    let mut definition_id: TypeDefinitionId = if let Some(ty) = path.ty {
+        bind_type_condition(ctx, definition_id, ty)?.into()
     } else {
-        source.into()
+        definition_id.into()
     };
 
     let mut out = Vec::new();
     let mut segments = VecDeque::from(path.segments);
     while let Some(segment) = segments.pop_front() {
-        let field_ids = match source {
+        let field_ids = match definition_id {
             TypeDefinitionId::Interface(id) => ctx.graph[id].field_ids,
             TypeDefinitionId::Object(id) => ctx.graph[id].field_ids,
             _ => {
                 return Err(format!(
                     "Type {} does not have any fields",
-                    ctx[ctx.definition_name_id(source)]
+                    ctx[ctx.definition_name_id(definition_id)]
                 ));
             }
         };
@@ -147,21 +167,21 @@ fn bind_path(
             .ok_or_else(|| {
                 format!(
                     "Type {} does not have a field named '{}'",
-                    ctx[ctx.definition_name_id(source)],
+                    ctx[ctx.definition_name_id(definition_id)],
                     segment.field
                 )
             })?;
         out.push(field_id);
-        source = ctx.graph[field_id].ty_record.definition_id;
-        let parent_source_is_nullable = source_wrapping.is_nullable();
-        source_wrapping = ctx.graph[field_id].ty_record.wrapping;
+        definition_id = ctx.graph[field_id].ty_record.definition_id;
+        let parent_source_is_nullable = wrapping.is_nullable();
+        wrapping = ctx.graph[field_id].ty_record.wrapping;
         if parent_source_is_nullable {
-            source_wrapping = source_wrapping.without_non_null();
+            wrapping = wrapping.without_non_null();
         }
 
         if let Some(ty) = segment.ty {
-            if let Some(id) = source.as_composite_type() {
-                source = bind_type_condition(ctx, id, ty)?.into();
+            if let Some(id) = definition_id.as_composite_type() {
+                definition_id = bind_type_condition(ctx, id, ty)?.into();
             } else {
                 return Err(format!(
                     "Field '{}' doesn't return an object, interface or union and thus cannot have type condition '{}'",
@@ -171,7 +191,13 @@ fn bind_path(
         }
     }
 
-    Ok((BoundPath(out), (source, source_wrapping)))
+    Ok((
+        BoundPath(out),
+        TypeRecord {
+            definition_id,
+            wrapping,
+        },
+    ))
 }
 
 fn bind_type_condition(
@@ -202,29 +228,23 @@ fn bind_type_condition(
 
 fn bind_selected_object_value<T: Target>(
     ctx: &mut GraphBuilder<'_>,
-    (source, source_wrapping): (CompositeTypeId, Wrapping),
+    source: TypeRecord,
     (target, target_wrapping): (T, Wrapping),
     object: SelectedObjectValue<'_>,
 ) -> Result<BoundSelectedObjectValue<T::Id>, String> {
-    if source_wrapping.is_list() {
+    if source.wrapping.is_list() {
         return Err(format!(
             "Cannot select object fomr {}, it's a list",
-            ctx.type_name(TypeRecord {
-                definition_id: source.into(),
-                wrapping: source_wrapping
-            })
+            ctx.type_name(source)
         ));
     }
     if target_wrapping.is_list() {
         return Err(format!("Cannot map object into {}, it's a list", target.display(ctx)));
     }
-    if target_wrapping.is_required() && source_wrapping.is_nullable() {
+    if target_wrapping.is_required() && source.wrapping.is_nullable() {
         return Err(format!(
             "Cannot map nullable object {} into required one {}",
-            ctx.type_name(TypeRecord {
-                definition_id: source.into(),
-                wrapping: source_wrapping
-            }),
+            ctx.type_name(source),
             target.display(ctx),
         ));
     }
@@ -238,7 +258,7 @@ fn bind_selected_object_value<T: Target>(
     let fields = object
         .fields
         .into_iter()
-        .map(|field| bind_selected_object_field(ctx, source, target, &mut target_fields, field))
+        .map(|field| bind_selected_object_field(ctx, source.definition_id, target, &mut target_fields, field))
         .collect::<Result<Vec<_>, _>>()?;
     for (name_id, (_, wrapping)) in target_fields {
         if wrapping.is_required() {
@@ -254,7 +274,7 @@ fn bind_selected_object_value<T: Target>(
 
 fn bind_selected_object_field<T: Target>(
     ctx: &mut GraphBuilder<'_>,
-    source: CompositeTypeId,
+    source: TypeDefinitionId,
     parent_target: T,
     target_fields: &mut Vec<(StringId, (T, Wrapping))>,
     field: SelectedObjectField<'_>,
@@ -270,15 +290,29 @@ fn bind_selected_object_field<T: Target>(
 
     let value = if let Some(value) = field.value {
         // The parent wrapping doesn't matter anymore, it was already handled.
-        Some(bind_selected_value(ctx, (source, Wrapping::required()), target, value)?)
+        Some(bind_selected_value(
+            ctx,
+            TypeRecord {
+                definition_id: source,
+                wrapping: Wrapping::required(),
+            },
+            target,
+            value,
+        )?)
     } else {
-        let field_ids = match source {
-            CompositeTypeId::Interface(id) => ctx.graph[id].field_ids,
-            CompositeTypeId::Object(id) => ctx.graph[id].field_ids,
-            CompositeTypeId::Union(id) => {
+        let field_ids = match source.as_composite_type() {
+            Some(CompositeTypeId::Interface(id)) => ctx.graph[id].field_ids,
+            Some(CompositeTypeId::Object(id)) => ctx.graph[id].field_ids,
+            Some(CompositeTypeId::Union(id)) => {
                 return Err(format!(
                     "Union {} does not have a field {}",
                     ctx[ctx.graph[id].name_id], field.key,
+                ));
+            }
+            None => {
+                return Err(format!(
+                    "Type {} does not have any fields",
+                    ctx[ctx.definition_name_id(source)]
                 ));
             }
         };
@@ -288,11 +322,16 @@ fn bind_selected_object_field<T: Target>(
             .ok_or_else(|| {
                 format!(
                     "Type {} does not have a field named '{}'",
-                    ctx[ctx.definition_name_id(source.into())],
+                    ctx[ctx.definition_name_id(source)],
                     field.key
                 )
             })?;
-        ensure_type_compatibility(ctx, target, field_id)?;
+        ensure_type_compatibility(
+            ctx,
+            FieldDisplay { ctx, field_id },
+            ctx.graph[field_id].ty_record,
+            target,
+        )?;
         None
     };
 
@@ -304,48 +343,45 @@ fn bind_selected_object_field<T: Target>(
 
 fn bind_selected_list_value<T: Target>(
     ctx: &mut GraphBuilder<'_>,
-    (source, source_wrapping): (CompositeTypeId, Wrapping),
+    source: TypeRecord,
     (target, target_wrapping): (T, Wrapping),
     list: SelectedListValue<'_>,
 ) -> Result<BoundSelectedListValue<T::Id>, String> {
-    if target_wrapping.is_required() && source_wrapping.is_nullable() {
+    if target_wrapping.is_required() && source.wrapping.is_nullable() {
         return Err(format!(
             "Cannot map nullable list {} into required one {}",
-            ctx.type_name(TypeRecord {
-                definition_id: source.into(),
-                wrapping: source_wrapping
-            }),
+            ctx.type_name(source),
             target.display(ctx),
         ));
     }
     let Some(target_wrapping) = target_wrapping.without_list() else {
         return Err(format!("Cannot map a list into {}", target.display(ctx)));
     };
-    let Some(source_wrapping) = source_wrapping.without_list() else {
-        return Err(format!(
-            "Cannot select a list in {}",
-            ctx.type_name(TypeRecord {
-                definition_id: source.into(),
-                wrapping: source_wrapping
-            })
-        ));
+    let Some(wrapping) = source.wrapping.without_list() else {
+        return Err(format!("Cannot select a list in {}", ctx.type_name(source)));
     };
-    let value = bind_selected_value(ctx, (source, source_wrapping), (target, target_wrapping), list.0)?;
+    let value = bind_selected_value(
+        ctx,
+        TypeRecord {
+            definition_id: source.definition_id,
+            wrapping,
+        },
+        (target, target_wrapping),
+        list.0,
+    )?;
     Ok(BoundSelectedListValue(value))
 }
 
 fn ensure_type_compatibility<T: Target>(
     ctx: &GraphBuilder<'_>,
+    source_display: impl std::fmt::Display,
+    source: TypeRecord,
     (target, wrapping): (T, Wrapping),
-    field_id: FieldDefinitionId,
 ) -> Result<(), String> {
-    let field = &ctx.graph[field_id];
-    if !wrapping.is_equal_or_more_lenient_than(field.ty_record.wrapping) {
+    if !wrapping.is_equal_or_more_lenient_than(source.wrapping) {
         return Err(format!(
-            "Incompatible wrapping, cannot map {}.{} ({}) into {} ({})",
-            ctx[ctx.definition_name_id(ctx.graph[field_id].parent_entity_id.into())],
-            ctx[ctx.graph[field_id].name_id],
-            ctx.type_name(ctx.graph[field_id].ty_record),
+            "Incompatible wrapping, cannot map {} into {} ({})",
+            source_display,
             target.display(ctx),
             ctx.type_name(TypeRecord {
                 definition_id: target.type_definition(&ctx.graph),
@@ -353,18 +389,13 @@ fn ensure_type_compatibility<T: Target>(
             })
         ));
     }
-    let is_compatible = match (
-        target.type_definition(&ctx.graph),
-        ctx.graph[field_id].ty_record.definition_id,
-    ) {
+    let is_compatible = match (target.type_definition(&ctx.graph), source.definition_id) {
         (TypeDefinitionId::Scalar(a), TypeDefinitionId::Scalar(b)) => a == b,
         (TypeDefinitionId::Enum(a), TypeDefinitionId::Enum(b)) => a == b,
         (_, TypeDefinitionId::Object(_) | TypeDefinitionId::Interface(_)) => {
             return Err(format!(
-                "Fields must be explictely selected on {}.{} ({}), it's not a scalar or enum",
-                ctx[ctx.definition_name_id(ctx.graph[field_id].parent_entity_id.into())],
-                ctx[ctx.graph[field_id].name_id],
-                ctx.type_name(ctx.graph[field_id].ty_record),
+                "Fields must be explictely selected on {}, it's not a scalar or enum",
+                source_display,
             ));
         }
         _ => false,
@@ -372,10 +403,8 @@ fn ensure_type_compatibility<T: Target>(
 
     if !is_compatible {
         return Err(format!(
-            "Cannot map {}.{} ({}) into {} ({})",
-            ctx[ctx.definition_name_id(ctx.graph[field_id].parent_entity_id.into())],
-            ctx[ctx.graph[field_id].name_id],
-            ctx.type_name(ctx.graph[field_id].ty_record),
+            "Cannot map {} into {} ({})",
+            source_display,
             target.display(ctx),
             ctx.type_name(TypeRecord {
                 definition_id: target.type_definition(&ctx.graph),
@@ -385,4 +414,24 @@ fn ensure_type_compatibility<T: Target>(
     }
 
     Ok(())
+}
+
+#[derive(Clone, Copy)]
+struct FieldDisplay<'a> {
+    ctx: &'a GraphBuilder<'a>,
+    field_id: FieldDefinitionId,
+}
+
+impl std::fmt::Display for FieldDisplay<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let Self { ctx, field_id } = *self;
+        let field = &ctx.graph[field_id];
+        write!(
+            f,
+            "{}.{} ({})",
+            ctx[ctx.definition_name_id(field.parent_entity_id.into())],
+            ctx[field.name_id],
+            ctx.type_name(field.ty_record),
+        )
+    }
 }
