@@ -57,7 +57,7 @@ const HELP_TEMPLATE: &str = color_print::cstr!(
 
 <bold><underline>Commands:</underline></bold>
 {subcommands}
-{tab}<bold>...</bold>               Run `grafbase list-plugins` for a list of available plugins.
+{tab}<bold>...</bold>               Run `grafbase plugins` for a list of available plugins.
 
 <bold><underline>Options:</underline></bold>
 {options}

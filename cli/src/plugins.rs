@@ -22,7 +22,7 @@ pub(crate) fn execute(args: &[String]) -> anyhow::Result<()> {
     match which::which(&binary_name) {
         Err(err) => {
             anyhow::bail!(
-                "The binary '{binary_name}' is not installed ({err})\nRun `grafbase help` to list built-in commands or `grafbase list-plugins` to list available plugin commands."
+                "The binary '{binary_name}' is not installed ({err})\nRun `grafbase help` to list built-in commands or `grafbase plugins` to list available plugin commands."
             )
         }
         #[cfg(unix)]
@@ -71,7 +71,7 @@ pub(crate) fn list() -> anyhow::Result<()> {
 
 fn print_plugin_list(plugins: &mut Vec<String>) {
     if plugins.is_empty() {
-        eprintln!("Found no plugin");
+        eprintln!("No plugins found.");
         return;
     }
 
