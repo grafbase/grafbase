@@ -17,7 +17,7 @@ pub(crate) enum SubCommand {
     /// appropriate location for your shell
     Completions(CompletionsCommand),
     /// List all plugin subcommands. To list first-party subcommands, run `grafbase help`.
-    ListPlugins,
+    Plugins,
     /// Logs into your Grafbase account
     Login(LoginCommand),
     /// Logs out of your Grafbase account

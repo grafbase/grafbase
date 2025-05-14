@@ -136,7 +136,7 @@ fn try_main(args: Args) -> Result<(), CliError> {
             upgrade::install_grafbase().map_err(Into::into)
         }
         SubCommand::Lint(cmd) => lint::lint(cmd.schema),
-        SubCommand::ListPlugins => Ok(plugins::list()?),
+        SubCommand::Plugins => Ok(plugins::list()?),
         SubCommand::Branch(cmd) => match cmd.command {
             BranchSubCommand::Delete(cmd) => branch::delete(cmd.branch_ref),
             BranchSubCommand::Create(cmd) => branch::create(cmd.branch_ref),
