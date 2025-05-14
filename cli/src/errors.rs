@@ -92,7 +92,6 @@ impl CliError {
 
 #[derive(Error, Debug)]
 pub(crate) enum BackendError {
-    // wraps a [`CommonError`]
     #[error(transparent)]
     CommonError(#[from] CommonError),
     #[error(transparent)]

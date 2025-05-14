@@ -59,8 +59,20 @@ pub(crate) async fn export_assets() -> Result<(), BackendError> {
 
     let tar = include_bytes!("../../assets/cli-app.tar.gz");
 
+    let cli_app_path = dot_grafbase_dir.join(ASSETS_DIR_NAME);
+
+    if cli_app_path.exists() {
+        fs::remove_dir_all(&cli_app_path).await.map_err(|err| {
+            anyhow::anyhow!(
+                "Failed to clean up assets directory at {}: {}",
+                cli_app_path.display(),
+                err
+            )
+        })?;
+    }
+
     Archive::new(GzDecoder::new(tar.as_slice()))
-        .unpack(dot_grafbase_dir.join(ASSETS_DIR_NAME))
+        .unpack(cli_app_path)
         .map_err(BackendError::UnpackCliAppArchive)?;
 
     fs::write(dot_grafbase_dir.join(VERSION_FILE_NAME), CARGO_PKG_VERSION)
