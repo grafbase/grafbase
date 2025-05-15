@@ -23,7 +23,7 @@ pub(crate) struct DataFieldRecord {
     pub location: Location,
     pub argument_ids: IdRange<PartitionFieldArgumentId>,
     pub definition_id: FieldDefinitionId,
-    pub derived: Option<Derived>,
+    pub derive: Option<Derive>,
 
     pub required_fields_record: RequiredFieldSetRecord,
     /// Requirement of @authorized, etc.
@@ -48,9 +48,10 @@ impl DataFieldRecord {
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub(crate) enum Derived {
-    Root,
+pub(crate) enum Derive {
+    Root { batch_field_id: Option<DataFieldId> },
     From(DataFieldId),
+    ScalarAsField,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]

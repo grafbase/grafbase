@@ -1,14 +1,23 @@
-use std::cell::{Ref, RefMut};
+use std::{
+    cell::{Ref, RefMut},
+    ops::Deref,
+};
 
 use operation::{PositionedResponseKey, ResponseKey};
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Default)]
 pub struct ErrorPath(Vec<ErrorPathSegment>);
 
 impl std::ops::Deref for ErrorPath {
-    type Target = [ErrorPathSegment];
+    type Target = Vec<ErrorPathSegment>;
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl std::ops::DerefMut for ErrorPath {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }
 
@@ -19,97 +28,140 @@ pub enum ErrorPathSegment {
     UnknownField(Box<str>),
 }
 
-impl From<ResponseKey> for ErrorPathSegment {
-    fn from(key: ResponseKey) -> Self {
-        ErrorPathSegment::Field(key)
+pub trait InsertIntoErrorPath {
+    fn insert_into(self, path: &mut ErrorPath);
+}
+
+impl InsertIntoErrorPath for ResponseKey {
+    fn insert_into(self, path: &mut ErrorPath) {
+        path.0.push(ErrorPathSegment::Field(self));
     }
 }
 
-impl From<PositionedResponseKey> for ErrorPathSegment {
-    fn from(key: PositionedResponseKey) -> Self {
-        ErrorPathSegment::Field(key.response_key)
+impl InsertIntoErrorPath for PositionedResponseKey {
+    fn insert_into(self, path: &mut ErrorPath) {
+        path.0.push(ErrorPathSegment::Field(self.response_key));
     }
 }
 
-impl From<usize> for ErrorPathSegment {
-    fn from(index: usize) -> Self {
-        ErrorPathSegment::Index(index)
+impl InsertIntoErrorPath for usize {
+    fn insert_into(self, path: &mut ErrorPath) {
+        path.0.push(ErrorPathSegment::Index(self));
     }
 }
 
-impl From<u32> for ErrorPathSegment {
-    fn from(index: u32) -> Self {
-        ErrorPathSegment::Index(index as usize)
+impl InsertIntoErrorPath for u32 {
+    fn insert_into(self, path: &mut ErrorPath) {
+        path.0.push(ErrorPathSegment::Index(self as usize));
     }
 }
 
-impl From<String> for ErrorPathSegment {
-    fn from(name: String) -> Self {
-        ErrorPathSegment::UnknownField(name.into_boxed_str())
+impl InsertIntoErrorPath for String {
+    fn insert_into(self, path: &mut ErrorPath) {
+        path.0.push(ErrorPathSegment::UnknownField(self.into_boxed_str()));
     }
 }
 
-impl From<Vec<ErrorPathSegment>> for ErrorPath {
-    fn from(segments: Vec<ErrorPathSegment>) -> Self {
-        ErrorPath(segments)
+trait InsertAllIntoErrorPath {
+    fn insert_all_into(self, path: &mut ErrorPath);
+}
+
+impl<T: InsertIntoErrorPath> InsertAllIntoErrorPath for T {
+    fn insert_all_into(self, path: &mut ErrorPath) {
+        self.insert_into(path);
     }
 }
 
-impl<S> From<RefMut<'_, Vec<S>>> for ErrorPath
+impl<'a, T> InsertAllIntoErrorPath for &'a [T]
 where
-    for<'a> &'a S: Into<ErrorPathSegment>,
+    &'a T: InsertIntoErrorPath,
 {
-    fn from(path: RefMut<'_, Vec<S>>) -> Self {
-        ErrorPath(path.iter().map(Into::into).collect())
+    fn insert_all_into(self, path: &mut ErrorPath) {
+        for item in self {
+            item.insert_into(path);
+        }
     }
 }
 
-impl<S> From<Ref<'_, Vec<S>>> for ErrorPath
+impl<'a, T> InsertAllIntoErrorPath for &'a Vec<T>
 where
-    for<'a> &'a S: Into<ErrorPathSegment>,
+    &'a T: InsertIntoErrorPath,
 {
-    fn from(path: Ref<'_, Vec<S>>) -> Self {
-        ErrorPath(path.iter().map(Into::into).collect())
+    fn insert_all_into(self, path: &mut ErrorPath) {
+        self.as_slice().insert_all_into(path);
     }
 }
 
-impl<S1, S2> From<(&[S1], Ref<'_, Vec<S2>>)> for ErrorPath
+impl<T> InsertAllIntoErrorPath for Ref<'_, Vec<T>>
 where
-    for<'a> &'a S1: Into<ErrorPathSegment>,
-    for<'a> &'a S2: Into<ErrorPathSegment>,
+    for<'a> &'a T: InsertIntoErrorPath,
 {
-    fn from((p1, p2): (&[S1], Ref<'_, Vec<S2>>)) -> Self {
-        let mut path: Vec<ErrorPathSegment> = p1.iter().map(Into::into).collect();
-        path.extend(p2.iter().map(Into::into));
-        ErrorPath(path)
+    fn insert_all_into(self, path: &mut ErrorPath) {
+        self.deref().insert_all_into(path)
     }
 }
 
-impl<S1, S2> From<&(&[S1], Ref<'_, Vec<S2>>)> for ErrorPath
+impl<T> InsertAllIntoErrorPath for &Ref<'_, Vec<T>>
 where
-    for<'a> &'a S1: Into<ErrorPathSegment>,
-    for<'a> &'a S2: Into<ErrorPathSegment>,
+    for<'a> &'a T: InsertIntoErrorPath,
 {
-    fn from((p1, p2): &(&[S1], Ref<'_, Vec<S2>>)) -> Self {
-        let mut path: Vec<ErrorPathSegment> = p1.iter().map(Into::into).collect();
-        path.extend(p2.iter().map(Into::into));
-        ErrorPath(path)
+    fn insert_all_into(self, path: &mut ErrorPath) {
+        self.deref().insert_all_into(path)
     }
 }
 
-impl<S> From<&Vec<S>> for ErrorPath
+impl<T> InsertAllIntoErrorPath for RefMut<'_, Vec<T>>
 where
-    for<'a> &'a S: Into<ErrorPathSegment>,
+    for<'a> &'a T: InsertIntoErrorPath,
 {
-    fn from(path: &Vec<S>) -> Self {
-        ErrorPath(path.iter().map(Into::into).collect())
+    fn insert_all_into(self, path: &mut ErrorPath) {
+        self.deref().insert_all_into(path)
     }
 }
 
-impl<S1: Into<ErrorPath>, S2: Into<ErrorPathSegment>> From<(S1, S2)> for ErrorPath {
-    fn from((path, segment): (S1, S2)) -> Self {
-        let mut path: ErrorPath = path.into();
-        path.0.push(segment.into());
+impl<'a, T1, T2> InsertAllIntoErrorPath for &'a (&'a [T1], T2)
+where
+    &'a T1: InsertIntoErrorPath,
+    &'a T2: InsertAllIntoErrorPath,
+{
+    fn insert_all_into(self, path: &mut ErrorPath) {
+        self.0.insert_all_into(path);
+        self.1.insert_all_into(path);
+    }
+}
+
+impl<'a, T1, T2> InsertAllIntoErrorPath for &'a (&'a [T1], &'a [T2])
+where
+    &'a T1: InsertIntoErrorPath,
+    &'a T2: InsertIntoErrorPath,
+{
+    fn insert_all_into(self, path: &mut ErrorPath) {
+        self.0.insert_all_into(path);
+        self.1.insert_all_into(path);
+    }
+}
+
+impl<T1: InsertAllIntoErrorPath, T2: InsertAllIntoErrorPath> InsertAllIntoErrorPath for (T1, T2) {
+    fn insert_all_into(self, path: &mut ErrorPath) {
+        self.0.insert_all_into(path);
+        self.1.insert_all_into(path);
+    }
+}
+
+impl<T1: InsertAllIntoErrorPath, T2: InsertAllIntoErrorPath, T3: InsertAllIntoErrorPath> InsertAllIntoErrorPath
+    for (T1, T2, T3)
+{
+    fn insert_all_into(self, path: &mut ErrorPath) {
+        self.0.insert_all_into(path);
+        self.1.insert_all_into(path);
+        self.2.insert_all_into(path);
+    }
+}
+
+impl<T: InsertAllIntoErrorPath> From<T> for ErrorPath {
+    fn from(t: T) -> Self {
+        let mut path = ErrorPath(Vec::new());
+        t.insert_all_into(&mut path);
         path
     }
 }

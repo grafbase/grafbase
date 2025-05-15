@@ -107,11 +107,12 @@ fn deny_object_field_at_query_stage() {
         }
         "#);
 
+        // @auth on pets requires User.id
         let sent = engine.drain_graphql_requests_sent_to_by_name("x");
         insta::assert_json_snapshot!(sent, @r#"
         [
           {
-            "query": "query { user { __typename @skip(if: true) } }",
+            "query": "query { user { id } }",
             "operationName": null,
             "variables": {},
             "extensions": {}
@@ -219,11 +220,12 @@ fn deny_interface_field_at_query_stage() {
         }
         "#);
 
+        // @auth on name requires Node.id
         let sent = engine.drain_graphql_requests_sent_to_by_name("x");
         insta::assert_json_snapshot!(sent, @r#"
         [
           {
-            "query": "query { node { __typename @skip(if: true) } }",
+            "query": "query { node { id } }",
             "operationName": null,
             "variables": {},
             "extensions": {}

@@ -6,7 +6,7 @@ use fixedbitset::FixedBitSet;
 use id_newtypes::IdRange;
 use im::HashSet;
 use itertools::Itertools;
-use operation::{PositionedResponseKey, ResponseKey};
+use operation::ResponseKey;
 use schema::{
     CompositeType, CompositeTypeId, ObjectDefinitionId, Schema, SubgraphId, TypeDefinition, TypeDefinitionId,
 };
@@ -14,8 +14,9 @@ use walker::Walk;
 
 use crate::{
     prepare::{
-        DataOrLookupFieldId, DefaultFieldShape, Derived, DerivedEntityShapeId, DerivedEntityShapeRecord, LookupFieldId,
-        OnRootFieldsError, RootFieldsShapeId, RootFieldsShapeRecord, TypenameShapeRecord,
+        BatchFieldShape, DataOrLookupFieldId, DefaultFieldShapeRecord, Derive, DerivedEntityShapeId,
+        DerivedEntityShapeRecord, LookupFieldId, OnRootFieldsError, RootFieldsShapeId, RootFieldsShapeRecord,
+        TypenameShapeRecord,
         cached::{
             CachedOperationContext, ConcreteShapeId, ConcreteShapeRecord, DataField, DataFieldId, FieldShapeId,
             FieldShapeRecord, FieldShapeRefId, ObjectIdentifier, PartitionSelectionSet, PolymorphicShapeId,
@@ -135,7 +136,7 @@ impl<'ctx> ShapesBuilder<'ctx> {
         let mut location_and_key = None;
 
         for field_shape in &self.shapes[shape.field_shape_ids] {
-            if field_shape.key.query_position.is_none() {
+            let Some(query_position) = field_shape.query_position_before_modifications else {
                 continue;
             };
             let field = field_shape
@@ -148,8 +149,10 @@ impl<'ctx> ShapesBuilder<'ctx> {
                 propagate_null = true;
                 continue;
             }
-            default_fields.push(DefaultFieldShape {
-                key: field_shape.key,
+            default_fields.push(DefaultFieldShapeRecord {
+                query_position_before_modifications: query_position,
+                response_key: field_shape.response_key,
+                id: field.id.into(),
                 value: None,
             })
         }
@@ -158,14 +161,20 @@ impl<'ctx> ShapesBuilder<'ctx> {
         if let Some(first_typename_shape) = typename_field_shapes.first() {
             if let ObjectIdentifier::Known(object_id) = shape.identifier {
                 let name_id = object_id.walk(self.ctx).name_id;
-                default_fields.extend(typename_field_shapes.iter().map(|shape| DefaultFieldShape {
-                    key: shape.key,
-                    value: Some(name_id),
-                }))
+                default_fields.extend(typename_field_shapes.iter().filter_map(|shape| {
+                    shape
+                        .query_position_before_modifications
+                        .map(|qp| DefaultFieldShapeRecord {
+                            query_position_before_modifications: qp,
+                            response_key: shape.response_key,
+                            id: shape.id.into(),
+                            value: Some(name_id),
+                        })
+                }));
             } else {
                 propagate_null = true;
                 if location_and_key.is_none() {
-                    location_and_key = Some((first_typename_shape.location, first_typename_shape.key.response_key));
+                    location_and_key = Some((first_typename_shape.location, first_typename_shape.response_key));
                 }
             }
         }
@@ -177,7 +186,15 @@ impl<'ctx> ShapesBuilder<'ctx> {
                     on_error: OnRootFieldsError::PropagateNull { error_location_and_key },
                 }
             } else {
-                default_fields.sort_unstable_by(|a, b| a.key.cmp(&b.key));
+                default_fields.sort_unstable_by(|a, b| {
+                    let a = a
+                        .response_key
+                        .with_position(Some(a.query_position_before_modifications));
+                    let b = b
+                        .response_key
+                        .with_position(Some(b.query_position_before_modifications));
+                    a.cmp(&b)
+                });
                 let start = self.shapes.default_fields.len();
                 self.shapes.default_fields.append(&mut default_fields);
                 RootFieldsShapeRecord {
@@ -301,10 +318,8 @@ impl<'ctx> ShapesBuilder<'ctx> {
         let field = field_id.walk(self.ctx);
         FieldShapeRecord {
             expected_key: field.subgraph_key,
-            key: PositionedResponseKey {
-                query_position: None,
-                response_key: field.subgraph_key,
-            },
+            query_position_before_modifications: None,
+            response_key: field.subgraph_key,
             id: field.id.into(),
             shape: Shape::Concrete(self.create_root_shape_for(field.selection_set())),
             wrapping: field.definition().ty().wrapping,
@@ -332,10 +347,12 @@ impl<'ctx> ShapesBuilder<'ctx> {
                     // fields aren't sorted by the response key but by the string value they point
                     // to. However, response keys are deduplicated so the equality also works here
                     // to ensure we only have distinct values.
-                    .is_none_or(|shape| shape.key.response_key != field.response_key)
+                    .is_none_or(|shape| shape.response_key != field.response_key)
                 {
                     distinct_typename_shapes.push(TypenameShapeRecord {
-                        key: field.response_key.with_position(field.query_position),
+                        query_position_before_modifications: field.query_position,
+                        response_key: field.response_key,
+                        id: field.id,
                         location: field.location,
                     });
                 }
@@ -374,8 +391,12 @@ impl<'ctx> ShapesBuilder<'ctx> {
         debug_assert!(!field_shapes_buffer.is_empty() || !distinct_typename_shapes.is_empty());
         let field_shape_ids = {
             let start = self.shapes.fields.len();
-            field_shapes_buffer
-                .sort_unstable_by(|a, b| a.shape.is_derived().cmp(&b.shape.is_derived()).then(a.id.cmp(&b.id)));
+            field_shapes_buffer.sort_unstable_by(|a, b| {
+                a.shape
+                    .is_derive_entity()
+                    .cmp(&b.shape.is_derive_entity())
+                    .then(a.id.cmp(&b.id))
+            });
             debug_assert!(
                 field_shapes_buffer
                     .iter()
@@ -401,7 +422,7 @@ impl<'ctx> ShapesBuilder<'ctx> {
             field_shape_ids,
             derived_field_shape_ids_start: self.shapes[field_shape_ids]
                 .iter()
-                .position(|field| field.shape.is_derived())
+                .position(|field| field.shape.is_derive_entity())
                 .map(|offset| (usize::from(field_shape_ids.start) + offset).into())
                 .unwrap_or(field_shape_ids.end),
         };
@@ -411,8 +432,8 @@ impl<'ctx> ShapesBuilder<'ctx> {
 
     fn create_data_field_shape(&mut self, group: &mut [DataField<'ctx>], first: DataField<'ctx>) -> FieldShapeRecord {
         let ty = first.definition().ty();
-        let shape = if first.derived.is_some() {
-            Shape::DerivedEntity(self.create_derived_entity(group, ty.definition_id.as_object()))
+        let shape = if let Some(Derive::Root { batch_field_id }) = first.derive {
+            Shape::DeriveEntity(self.create_derived_entity(batch_field_id, group, ty.definition_id.as_object()))
         } else {
             match ty.definition() {
                 TypeDefinition::Scalar(scalar) => Shape::Scalar(scalar.ty),
@@ -429,7 +450,8 @@ impl<'ctx> ShapesBuilder<'ctx> {
 
         FieldShapeRecord {
             expected_key: first.subgraph_key.unwrap_or(first.response_key),
-            key: first.response_key.with_position(first.query_position),
+            query_position_before_modifications: first.query_position,
+            response_key: first.response_key,
             id: first.id.into(),
             shape,
             wrapping: ty.wrapping,
@@ -438,6 +460,7 @@ impl<'ctx> ShapesBuilder<'ctx> {
 
     fn create_derived_entity(
         &mut self,
+        batch_field_id: Option<DataFieldId>,
         parent_fields: &[DataField<'ctx>],
         object_definition_id: Option<ObjectDefinitionId>,
     ) -> DerivedEntityShapeId {
@@ -481,10 +504,12 @@ impl<'ctx> ShapesBuilder<'ctx> {
                 // fields aren't sorted by the response key but by the string value they point
                 // to. However, response keys are deduplicated so the equality also works here
                 // to ensure we only have distinct values.
-                .is_none_or(|shape| shape.key.response_key != field.response_key)
+                .is_none_or(|shape| shape.response_key != field.response_key)
             {
                 distinct_typename_shapes.push(TypenameShapeRecord {
-                    key: field.response_key.with_position(field.query_position),
+                    query_position_before_modifications: field.query_position,
+                    response_key: field.response_key,
+                    id: field.id,
                     location: field.location,
                 });
             }
@@ -496,26 +521,36 @@ impl<'ctx> ShapesBuilder<'ctx> {
                 // fields aren't sorted by the response key but by the string value they point
                 // to. However, response keys are deduplicated so the equality also works here
                 // to ensure we only have distinct values.
-                .is_none_or(|shape| shape.key.response_key != field.response_key)
+                .is_none_or(|shape| shape.response_key != field.response_key)
             {
-                let Some(Derived::From(id)) = field.derived else {
-                    unreachable!(
-                        "Derived fields should always have a From variant, found: {:?}",
-                        field.derived
-                    );
-                };
-                let derrived_from = id.walk(self.ctx);
                 let ty = field.definition().ty();
-                let shape = match ty.definition_id {
-                    TypeDefinitionId::Scalar(_) | TypeDefinitionId::Enum(_) => {
-                        Shape::DerivedFrom(derrived_from.query_position)
+                let (expected_key, shape) = match field.derive {
+                    Some(Derive::From(id)) => {
+                        let derive_from = id.walk(self.ctx);
+                        let shape = match ty.definition_id {
+                            TypeDefinitionId::Scalar(_) | TypeDefinitionId::Enum(_) => {
+                                Shape::DeriveFrom(derive_from.query_position)
+                            }
+                            _ => unreachable!("Nested object are not supported yet for derived."),
+                        };
+                        (derive_from.response_key, shape)
                     }
-                    _ => unreachable!("Nested object are not supported yet for derived."),
+                    Some(Derive::ScalarAsField) => {
+                        // Expected key doesn't matter here.
+                        (field.response_key, Shape::DeriveFromScalar)
+                    }
+                    _ => {
+                        unreachable!(
+                            "Derived fields should always have a From variant, found: {:?}",
+                            field.derive
+                        );
+                    }
                 };
                 self.data_fields_shape_count[usize::from(field.id)] += 1;
                 field_shapes_buffer.push(FieldShapeRecord {
-                    expected_key: derrived_from.response_key,
-                    key: field.response_key.with_position(field.query_position),
+                    expected_key,
+                    query_position_before_modifications: field.query_position,
+                    response_key: field.response_key,
                     id: field.id.into(),
                     shape,
                     wrapping: ty.wrapping,
@@ -526,6 +561,10 @@ impl<'ctx> ShapesBuilder<'ctx> {
         let shape = DerivedEntityShapeRecord {
             set_id,
             object_definition_id,
+            batch_field_shape: batch_field_id.walk(self.ctx).map(|field| BatchFieldShape {
+                key: field.key(),
+                wrapping: field.definition().ty().wrapping,
+            }),
             typename_shape_ids: {
                 let start = self.shapes.typename_fields.len();
                 self.shapes.typename_fields.append(&mut distinct_typename_shapes);

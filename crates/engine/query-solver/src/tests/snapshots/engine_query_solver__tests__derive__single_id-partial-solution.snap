@@ -14,5 +14,5 @@ digraph {
     2 -> 3 [ label = "Field" ]
     3 -> 4 [ label = "Field" ]
     2 -> 5 [ label = "Field" ]
-    5 -> 4 [ label = "Derived" ]
+    5 -> 4 [ label = "Derive" ]
 }

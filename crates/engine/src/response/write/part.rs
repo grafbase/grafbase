@@ -1,5 +1,3 @@
-use std::cell::Ref;
-
 use id_newtypes::IdRange;
 use schema::Schema;
 use walker::Walk as _;
@@ -10,7 +8,7 @@ use crate::{
     },
     response::{
         DataPart, ErrorPartBuilder, GraphqlError, ResponseObjectField, ResponseObjectId, ResponseObjectRef,
-        ResponseObjectSet, ResponseValueId,
+        ResponseObjectSet, ResponsePath, ResponseValueId,
     },
 };
 
@@ -50,7 +48,7 @@ impl<'ctx> ResponsePartBuilder<'ctx> {
         SeedState::new(self, shape_id)
     }
 
-    pub fn propagate_null(&mut self, (parent_path, local_path): &(&[ResponseValueId], Ref<'_, Vec<ResponseValueId>>)) {
+    pub fn propagate_null(&mut self, (parent_path, local_path): &(impl ResponsePath, impl ResponsePath)) {
         if let Some(value_id) = local_path.iter().rev().find(|value| value.is_nullable()) {
             // We can't immediately mark the value as inaccessible. Error propagation depends on
             // what the user requested directly, but we also retrieve extra fields as requirements
@@ -65,7 +63,7 @@ impl<'ctx> ResponsePartBuilder<'ctx> {
         }
     }
 
-    pub fn propagate_null_parent_path(&mut self, path: &[ResponseValueId]) {
+    pub fn propagate_null_parent_path(&mut self, path: &impl ResponsePath) {
         let Some(value_id) = path.iter().rev().find(|value| value.is_nullable()) else {
             self.propagated_null_up_to_root = true;
             return;

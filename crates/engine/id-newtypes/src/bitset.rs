@@ -59,6 +59,13 @@ where
     {
         self.inner.zeroes().map(|ix| Id::from(ix))
     }
+
+    pub fn ones(&self) -> impl Iterator<Item = Id> + '_
+    where
+        Id: From<usize>,
+    {
+        self.inner.ones().map(|ix| Id::from(ix))
+    }
 }
 
 impl<Id> std::ops::Index<Id> for BitSet<Id>

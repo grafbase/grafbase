@@ -1,3 +1,7 @@
+mod derive;
+
+pub use derive::*;
+
 use crate::{
     CostDirective, DeprecatedDirective, FieldDefinition, FieldSet, InputValueDefinition, ListSizeDirective, SubgraphId,
     TypeSystemDirective,

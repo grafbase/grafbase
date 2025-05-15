@@ -6,12 +6,13 @@ use std::sync::Arc;
 
 use grafbase_telemetry::graphql::{GraphqlOperationAttributes, GraphqlResponseStatus};
 use schema::{ObjectDefinitionId, Schema};
+use walker::Walk;
 
 use super::{
     DataParts, ErrorPartBuilder, ErrorParts, ExecutedResponse, GraphqlError, Response, ResponseData, ResponseObject,
     ResponseObjectId, ResponseObjectRef, ResponseObjectSet, ResponseValueId,
 };
-use crate::prepare::{PreparedOperation, ResponseObjectSetDefinitionId};
+use crate::prepare::{OperationPlanContext, PreparedOperation, ResponseObjectSetDefinitionId};
 pub(crate) use deserialize::*;
 pub(crate) use part::*;
 
@@ -89,7 +90,7 @@ impl<'ctx> ResponseBuilder<'ctx> {
         }
 
         let mut has_ingested_data = false;
-        let shapes = &self.operation.cached.shapes;
+        let ctx = OperationPlanContext::from((self.schema.as_ref(), self.operation.as_ref()));
         for update in part.object_updates {
             match update {
                 ObjectUpdate::Fields(id, mut fields) => {
@@ -98,7 +99,7 @@ impl<'ctx> ResponseBuilder<'ctx> {
                     self.recursive_merge_object(id, fields);
                 }
                 ObjectUpdate::Default(id, default_field_ids) => {
-                    self.merge_with_default_object(id, &shapes[default_field_ids]);
+                    self.merge_with_default_object(id, default_field_ids.walk(ctx));
                 }
             }
         }

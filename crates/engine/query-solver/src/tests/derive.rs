@@ -5,15 +5,40 @@ const SCHEMA: &str = r#"
       @join__type(graph: EXT)
     {
       authorId: ID!
+      commentIds: [ID!]!
+      inventoryCountryId: ID!
+      inventoryWarehouseId: ID!
+      inventoriesKeys: [InventoryKeys!]!
       code: String!
       id: ID!
       author: User! @composite__derive(graph: EXT)
+      comments: [Comment!]! @composite__derive(graph: EXT)
+      inventory: Inventory! @composite__derive(graph: EXT)
+      inventories: [Inventory!]! @composite__derive(graph: EXT)
     }
 
     type User
         @join__type(graph: EXT, key: "id", resolvable: false)
     {
       id: ID!
+    }
+
+    type Comment
+        @join__type(graph: EXT, key: "id", resolvable: false)
+    {
+      id: ID!
+    }
+
+    type InventoryKeys @join__type(graph: EXT) {
+        countryId: ID!
+        warehouseId: ID!
+    }
+
+    type Inventory
+        @join__type(graph: EXT, key: "countryId warehouseId", resolvable: false)
+    {
+        countryId: ID!
+        warehouseId: ID!
     }
 
     type Query
@@ -28,15 +53,68 @@ const SCHEMA: &str = r#"
 "#;
 
 #[tokio::test]
-async fn simple_derive_field() {
+async fn single_id() {
     assert_solving_snapshots!(
-        "simple_derive_field",
+        "single_id",
         SCHEMA,
         r#"
         query {
             products {
                 author {
                     id
+                }
+            }
+        }
+        "#
+    );
+}
+
+#[tokio::test]
+async fn composite_keys() {
+    assert_solving_snapshots!(
+        "composite_keys",
+        SCHEMA,
+        r#"
+        query {
+            products {
+                 inventory {
+                    countryId
+                    warehouseId
+                }
+            }
+        }
+        "#
+    );
+}
+
+#[tokio::test]
+async fn batch_single_id() {
+    assert_solving_snapshots!(
+        "batch_single_id",
+        SCHEMA,
+        r#"
+        query {
+            products {
+                comments {
+                    id
+                }
+            }
+        }
+        "#
+    );
+}
+
+#[tokio::test]
+async fn batch_composite_keys() {
+    assert_solving_snapshots!(
+        "batch_composite_keys",
+        SCHEMA,
+        r#"
+        query {
+            products {
+                inventories {
+                    countryId
+                    warehouseId
                 }
             }
         }

@@ -3,7 +3,7 @@
 //! ===================
 //! Generated with: `cargo run -p engine-codegen`
 //! Source file: <engine-codegen dir>/domain/schema.graphql
-mod derived;
+mod derive;
 mod provides;
 mod requires;
 mod subgraph_type;
@@ -16,7 +16,7 @@ use crate::{
     },
     prelude::*,
 };
-pub use derived::*;
+pub use derive::*;
 pub use provides::*;
 pub use requires::*;
 pub use subgraph_type::*;
@@ -40,7 +40,7 @@ use walker::{Iter, Walk};
 ///   "The arguments referenced by this range are sorted by their name (string)"
 ///   arguments: [InputValueDefinition!]!
 ///   directives: [TypeSystemDirective!]!
-///   derived: [DerivedField!]!
+///   derives: [DeriveDefinition!]!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -58,7 +58,7 @@ pub struct FieldDefinitionRecord {
     /// The arguments referenced by this range are sorted by their name (string)
     pub argument_ids: IdRange<InputValueDefinitionId>,
     pub directive_ids: Vec<TypeSystemDirectiveId>,
-    pub derived_ids: IdRange<DerivedFieldId>,
+    pub derive_ids: IdRange<DeriveDefinitionId>,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
@@ -118,8 +118,8 @@ impl<'a> FieldDefinition<'a> {
     pub fn directives(&self) -> impl Iter<Item = TypeSystemDirective<'a>> + 'a {
         self.as_ref().directive_ids.walk(self.schema)
     }
-    pub fn derived(&self) -> impl Iter<Item = DerivedField<'a>> + 'a {
-        self.as_ref().derived_ids.walk(self.schema)
+    pub fn derives(&self) -> impl Iter<Item = DeriveDefinition<'a>> + 'a {
+        self.as_ref().derive_ids.walk(self.schema)
     }
 }
 

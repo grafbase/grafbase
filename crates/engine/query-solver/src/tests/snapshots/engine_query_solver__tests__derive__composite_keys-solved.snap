@@ -1,0 +1,23 @@
+---
+source: crates/engine/query-solver/src/tests/derive.rs
+expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n    1 [ label = \"Inventory.countryId\", color=forestgreen ]\n    2 [ label = \"Inventory.warehouseId\", color=forestgreen ]\n    3 [ label = \"Root#ext\", shape=parallelogram, color=dodgerblue, color=forestgreen ]\n    4 [ label = \"products#ext\", shape=box, color=dodgerblue, color=forestgreen ]\n    5 [ label = \"inventory#ext@derive\", shape=box, color=dodgerblue, color=forestgreen ]\n    6 [ label = \"countryId#ext@derive\", shape=box, color=dodgerblue, color=forestgreen ]\n    7 [ label = \"warehouseId#ext@derive\", shape=box, color=dodgerblue, color=forestgreen ]\n    8 [ label=\"\", style=dashed]\n    0 -> 3 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    3 -> 4 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    4 -> 5 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    5 -> 6 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    6 -> 1 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    5 -> 7 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    7 -> 2 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    8 -> 0 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n}\n"
+---
+digraph {
+    0 [ label = "root", steiner=1 ]
+    1 [ label = "Inventory.countryId", steiner=1 ]
+    2 [ label = "Inventory.warehouseId", steiner=1 ]
+    3 [ label = "Root#ext", steiner=1 ]
+    4 [ label = "products#ext", steiner=1 ]
+    5 [ label = "inventory#ext@derive", steiner=1 ]
+    6 [ label = "countryId#ext@derive", steiner=1 ]
+    7 [ label = "warehouseId#ext@derive", steiner=1 ]
+    8 [ label="", style=dashed]
+    0 -> 3 [ cost=0, steiner=1]
+    3 -> 4 [ cost=0, steiner=1]
+    4 -> 5 [ cost=0, steiner=1]
+    5 -> 6 [ cost=0, steiner=1]
+    6 -> 1 [ cost=0, steiner=1]
+    5 -> 7 [ cost=0, steiner=1]
+    7 -> 2 [ cost=0, steiner=1]
+    8 -> 0 [ cost=0, steiner=0]
+}

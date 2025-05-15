@@ -64,25 +64,11 @@ impl<'a> CachedOperationContext<'a> {
         IdRange::<QueryPartitionId>::from(0..self.cached.query_plan.partitions.len()).walk(*self)
     }
 
-    pub(in crate::prepare) fn data_fields(&self) -> impl Iter<Item = DataField<'a>> + 'a {
-        IdRange::<DataFieldId>::from(0..self.cached.query_plan.data_fields.len()).walk(*self)
-    }
-
     pub(in crate::prepare) fn response_modifier_definitions(
         &self,
     ) -> impl Iter<Item = ResponseModifierDefinition<'a>> + 'a {
         self.cached.query_plan.response_modifier_definitions.walk(*self)
     }
-
-    // pub(in crate::operation) fn response_modifier_rules(
-    //     &self,
-    // ) -> impl Iter<Item = (ResponseModifierRule, impl Iterator<Item = DataField<'a>> + 'a)> + 'a {
-    //     let ctx = *self;
-    //     self.operation
-    //         .response_modifier_rule_to_impacted_fields
-    //         .iter()
-    //         .map(move |item| (item.rule, item.impacted_field_ids.walk(ctx)))
-    // }
 }
 
 impl CachedOperation {

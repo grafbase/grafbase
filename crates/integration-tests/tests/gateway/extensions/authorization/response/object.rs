@@ -367,11 +367,12 @@ fn deny_object_within_union_at_query_stage() {
         }
         "#);
 
+        // @auth on Dog requires Dog.name
         let sent = engine.drain_graphql_requests_sent_to_by_name("x");
         insta::assert_json_snapshot!(sent, @r#"
         [
           {
-            "query": "query { pets { __typename ... on Cat { name } } }",
+            "query": "query { pets { __typename ... on Dog { name } ... on Cat { name } } }",
             "operationName": null,
             "variables": {},
             "extensions": {}
@@ -489,7 +490,7 @@ fn deny_object_behind_interface_at_query_stage() {
         insta::assert_json_snapshot!(sent, @r#"
         [
           {
-            "query": "query { node { __typename @skip(if: true) } }",
+            "query": "query { node { ... on User { name } } }",
             "operationName": null,
             "variables": {},
             "extensions": {}

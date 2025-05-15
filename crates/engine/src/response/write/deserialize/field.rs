@@ -27,7 +27,7 @@ impl<'de> DeserializeSeed<'de> for FieldSeed<'_, '_, '_> {
         let result = if let Some(list_wrapping) = self.wrapping.pop_outermost_list_wrapping() {
             ListSeed {
                 state: self.state,
-                parent_field: self.field,
+                field: self.field,
                 seed: &self,
                 is_required: matches!(list_wrapping, ListWrapping::RequiredList),
                 element_is_nullable: self.wrapping.is_nullable(),
@@ -37,7 +37,7 @@ impl<'de> DeserializeSeed<'de> for FieldSeed<'_, '_, '_> {
             match self.field.shape {
                 Shape::Scalar(ty) => ScalarTypeSeed {
                     state: self.state,
-                    parent_field: self.field,
+                    field: self.field,
                     is_required: self.wrapping.is_required(),
                     ty,
                 }
@@ -45,8 +45,7 @@ impl<'de> DeserializeSeed<'de> for FieldSeed<'_, '_, '_> {
                 Shape::Enum(id) => EnumValueSeed {
                     state: self.state,
                     definition_id: id,
-                    parent_field: self.field,
-                    is_extra: self.field.key.query_position.is_none(),
+                    field: self.field,
                     is_required: self.wrapping.is_required(),
                 }
                 .deserialize(deserializer),
@@ -58,14 +57,14 @@ impl<'de> DeserializeSeed<'de> for FieldSeed<'_, '_, '_> {
                     PolymorphicShapeSeed::new(self.state, self.field, self.wrapping.is_required(), shape_id)
                         .deserialize(deserializer)
                 }
-                Shape::DerivedEntity(_) | Shape::DerivedFrom(_) => {
+                Shape::DeriveEntity(_) | Shape::DeriveFrom(_) | Shape::DeriveFromScalar => {
                     unreachable!("Should be handled by the ConcreteSeed")
                 }
             }
         };
 
         result.inspect_err(|err| {
-            if !self.state.bubbling_up_deser_error.replace(true) && self.field.key.query_position.is_some() {
+            if !self.state.bubbling_up_deser_error.replace(true) && self.state.should_report_error_for(self.field) {
                 tracing::error!(
                     "Deserialization failure of subgraph response at path '{}': {err}",
                     self.state.display_path()

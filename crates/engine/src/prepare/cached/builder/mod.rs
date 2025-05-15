@@ -26,7 +26,7 @@ pub(super) struct Solver<'a> {
     query_field_node_to_response_object_set: HashMap<NodeIndex, ResponseObjectSetDefinitionId>,
     // one to one
     node_to_field: Vec<Option<PartitionFieldId>>,
-    derived_entities_roots: Vec<NodeIndex>,
+    derived_entities_roots: Vec<(DataFieldId, NodeIndex, Option<NodeIndex>)>,
     // Populated during plan generation
     query_partition_to_node: Vec<(QueryPartitionId, NodeIndex)>,
 }
@@ -117,7 +117,7 @@ impl<'a> Solver<'a> {
             self.generate_query_partition(partition_to_create);
         }
 
-        self.populate_derived_from()?;
+        self.populate_derive_from()?;
 
         let mut response_data_fields = BitSet::with_capacity(self.output.query_plan.data_fields.len());
         for (i, field) in self.output.query_plan.data_fields.iter().enumerate() {
@@ -288,8 +288,7 @@ impl<'a> Solver<'a> {
                         }
                     }
                 }
-                Edge::RequiredBySubgraph | Edge::RequiredBySupergraph | Edge::MutationExecutedAfter | Edge::Derived => {
-                }
+                Edge::RequiredBySubgraph | Edge::RequiredBySupergraph | Edge::MutationExecutedAfter | Edge::Derive => {}
             }
         }
 
@@ -309,7 +308,7 @@ impl<'a> Solver<'a> {
 
         for field in fields_buffer.drain(..) {
             match field {
-                NestedField::Data { mut record, node_ix } => {
+                NestedField::Data { record, node_ix } => {
                     let field_id = self.output.query_plan.data_fields.len().into();
                     self.node_to_field[node_ix.index()] = Some(PartitionFieldId::Data(field_id));
                     for nested in &mut self.output.query_plan[record
@@ -321,11 +320,19 @@ impl<'a> Solver<'a> {
                     if record
                         .definition_id
                         .walk(self.schema)
-                        .derived()
+                        .derives()
                         .any(|d| d.subgraph_id == subgraph_id)
                     {
-                        self.derived_entities_roots.push(node_ix);
-                        record.derived = Some(Derived::Root);
+                        self.derived_entities_roots.push((
+                            field_id,
+                            node_ix,
+                            self.solution
+                                .graph
+                                .edges_directed(node_ix, Direction::Incoming)
+                                .filter(|edge| matches!(edge.weight(), Edge::Derive))
+                                .map(|edge| edge.source())
+                                .next(),
+                        ));
                     }
                     self.output.query_plan.data_fields.push(record);
                 }
@@ -371,8 +378,10 @@ impl<'a> Solver<'a> {
             })
     }
 
-    fn populate_derived_from(&mut self) -> SolveResult<()> {
-        for node_ix in self.derived_entities_roots.iter().copied() {
+    fn populate_derive_from(&mut self) -> SolveResult<()> {
+        for (root_id, node_ix, batch_node_ix) in self.derived_entities_roots.drain(..) {
+            let batch_field_id = batch_node_ix.map(|ix| self.node_to_field[ix.index()].unwrap().as_data().unwrap());
+            self.output.query_plan[root_id].derive = Some(Derive::Root { batch_field_id });
             for nested_field_edge in self
                 .solution
                 .graph
@@ -389,7 +398,7 @@ impl<'a> Solver<'a> {
                     .solution
                     .graph
                     .edges_directed(nested_field_edge.target(), Direction::Incoming)
-                    .find(|edge| matches!(edge.weight(), Edge::Derived))
+                    .find(|edge| matches!(edge.weight(), Edge::Derive))
                     .and_then(|edge| self.node_to_field[edge.source().index()])
                 else {
                     unreachable!("Derived field must have a derived edge");
@@ -398,7 +407,11 @@ impl<'a> Solver<'a> {
                 else {
                     unreachable!("Derived field must be data field");
                 };
-                self.output.query_plan[field_id].derived = Some(Derived::From(from_id));
+                self.output.query_plan[field_id].derive = if batch_field_id == Some(from_id) {
+                    Some(Derive::ScalarAsField)
+                } else {
+                    Some(Derive::From(from_id))
+                };
             }
         }
         Ok(())
@@ -521,7 +534,7 @@ fn to_data_field_or_typename_field(
                 _ => false,
             },
             shape_ids_ref: IdRange::empty(),
-            derived: None,
+            derive: None,
         }))
     } else {
         Some(PartitionFieldRecord::Typename(TypenameFieldRecord {

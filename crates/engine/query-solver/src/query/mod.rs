@@ -58,7 +58,7 @@ bitflags! {
 pub enum Edge {
     QueryPartition,
     Field,
-    Derived,
+    Derive,
     RequiredBySubgraph,
     RequiredBySupergraph,
     MutationExecutedAfter,

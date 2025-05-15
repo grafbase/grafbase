@@ -45,7 +45,7 @@ fn shareable_field() {
                     }
                     "#,
                 )
-                .with_entity_resolver("User", json!({"__typename": "User", "id": "user_1", "category": "cat1"}))
+                .with_entity_resolver("User", json!({"id": "user_1", "category": "cat1"}))
                 .into_subgraph("users"),
             )
             .build()
@@ -111,7 +111,7 @@ fn external_field() {
                     }
                     "#,
                 )
-                .with_entity_resolver("User", json!({"__typename": "User", "id": "user_1", "category": "cat1"}))
+                .with_entity_resolver("User", json!({"id": "user_1", "category": "cat1"}))
                 .into_subgraph("users"),
             )
             .build()

@@ -4,12 +4,13 @@ use walker::Walk;
 
 use crate::prepare::{DataOrLookupField, DataOrLookupFieldId, OperationPlanContext, QueryErrorId};
 
-use super::{ConcreteShapeId, DerivedEntityShapeId, PolymorphicShapeId};
+use super::{ConcreteShapeId, DerivedEntityShape, DerivedEntityShapeId, PolymorphicShapeId};
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct FieldShapeRecord {
     pub expected_key: ResponseKey,
-    pub key: PositionedResponseKey,
+    pub query_position_before_modifications: Option<QueryPosition>,
+    pub response_key: ResponseKey,
     pub id: DataOrLookupFieldId,
     pub shape: Shape,
     pub wrapping: Wrapping,
@@ -53,15 +54,27 @@ pub(crate) struct FieldShape<'a> {
 impl<'a> FieldShape<'a> {
     /// Prefer using Deref unless you need the 'a lifetime.
     #[allow(clippy::should_implement_trait)]
-    pub(crate) fn as_ref(&self) -> &'a FieldShapeRecord {
+    pub fn as_ref(&self) -> &'a FieldShapeRecord {
         &self.ctx.cached.shapes[self.id]
     }
 
-    pub(crate) fn partition_field(&self) -> DataOrLookupField<'a> {
+    pub fn partition_field(&self) -> DataOrLookupField<'a> {
         self.as_ref().id.walk(self.ctx)
     }
 
-    pub(crate) fn error_ids(&self) -> impl Iterator<Item = QueryErrorId> + 'a {
+    pub fn key(&self) -> PositionedResponseKey {
+        let shape = self.as_ref();
+        PositionedResponseKey {
+            query_position: shape.query_position_before_modifications,
+            response_key: shape.response_key,
+        }
+        .with_query_position_if(match shape.id {
+            DataOrLookupFieldId::Data(id) => self.ctx.plan.query_modifications.included_response_data_fields[id],
+            _ => false,
+        })
+    }
+
+    pub fn error_ids(&self) -> impl Iterator<Item = QueryErrorId> + 'a {
         self.ctx
             .plan
             .query_modifications
@@ -70,8 +83,27 @@ impl<'a> FieldShape<'a> {
             .copied()
     }
 
-    pub(crate) fn is_skipped(&self) -> bool {
-        self.ctx.plan.query_modifications.skipped_field_shapes[self.id]
+    pub fn is_absent(&self) -> bool {
+        match self.as_ref().id {
+            DataOrLookupFieldId::Data(id) => {
+                !self.ctx.plan.query_modifications.included_subgraph_request_data_fields[id]
+            }
+            DataOrLookupFieldId::Lookup(_) => false,
+        }
+    }
+
+    pub fn is_included(&self) -> bool {
+        match self.as_ref().id {
+            DataOrLookupFieldId::Data(id) => self.ctx.plan.query_modifications.included_response_data_fields[id],
+            _ => false,
+        }
+    }
+
+    pub fn derive_entity_shape(&self) -> Option<DerivedEntityShape<'a>> {
+        match self.shape {
+            Shape::DeriveEntity(id) => Some(DerivedEntityShape { ctx: self.ctx, id }),
+            _ => None,
+        }
     }
 }
 
@@ -87,8 +119,9 @@ pub(crate) enum Shape {
     Enum(EnumDefinitionId),
     Concrete(ConcreteShapeId),
     Polymorphic(PolymorphicShapeId),
-    DerivedEntity(DerivedEntityShapeId),
-    DerivedFrom(Option<QueryPosition>),
+    DeriveEntity(DerivedEntityShapeId),
+    DeriveFrom(Option<QueryPosition>),
+    DeriveFromScalar,
 }
 
 impl Shape {
@@ -99,13 +132,17 @@ impl Shape {
         }
     }
 
-    pub fn is_derived(&self) -> bool {
-        matches!(self, Shape::DerivedEntity(_))
+    pub fn is_derive_entity(&self) -> bool {
+        matches!(self, Shape::DeriveEntity(_))
     }
 
-    pub fn as_derived_from_query_position(self) -> Option<QueryPosition> {
+    pub fn is_derive_from_scalar(&self) -> bool {
+        matches!(self, Shape::DeriveFromScalar)
+    }
+
+    pub fn as_derive_from_query_position(self) -> Option<QueryPosition> {
         match self {
-            Shape::DerivedFrom(pos) => pos,
+            Shape::DeriveFrom(pos) => pos,
             _ => None,
         }
     }

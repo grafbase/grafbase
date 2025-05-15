@@ -7,35 +7,42 @@ use crate::{
 
 use super::ResponseBuilder;
 
-impl ResponseBuilder<'_> {
+impl<'ctx> ResponseBuilder<'ctx> {
     pub(super) fn merge_with_default_object(
         &mut self,
         object_id: ResponseObjectId,
-        default_fields_sorted_key: &[DefaultFieldShape],
+        mut default_fields_sorted_by_key: impl Iterator<Item = DefaultFieldShape<'ctx>>,
     ) {
-        let mut default_fields = default_fields_sorted_key.iter();
-        let Some(mut new_field) = default_fields.next() else {
+        let Some(mut default_field) = default_fields_sorted_by_key.next() else {
             return;
         };
+        let mut key = default_field.key();
 
         let mut existing_fields = std::mem::take(&mut self.data_parts[object_id].fields_sorted_by_key);
         let n = existing_fields.len();
         let mut i = 0;
         loop {
             if i >= n {
-                existing_fields.push(new_field.into());
+                existing_fields.push(ResponseObjectField {
+                    key,
+                    value: default_field.value.into(),
+                });
                 break;
             }
             let existing_field = &existing_fields[i];
-            match existing_field.key.cmp(&new_field.key) {
+            match existing_field.key.cmp(&key) {
                 Ordering::Less => {
                     i += 1;
                 }
                 Ordering::Greater => {
                     // Adding at the end and will be sorted later.
-                    existing_fields.push(new_field.into());
-                    if let Some(next) = default_fields.next() {
-                        new_field = next;
+                    existing_fields.push(ResponseObjectField {
+                        key,
+                        value: default_field.value.into(),
+                    });
+                    if let Some(next) = default_fields_sorted_by_key.next() {
+                        default_field = next;
+                        key = default_field.key();
                     } else {
                         break;
                     }
@@ -44,16 +51,20 @@ impl ResponseBuilder<'_> {
                 // value in the case of shared roots. In this case we keep the old value.
                 Ordering::Equal => {
                     i += 1;
-                    if let Some(next) = default_fields.next() {
-                        new_field = next;
+                    if let Some(next) = default_fields_sorted_by_key.next() {
+                        default_field = next;
+                        key = default_field.key();
                     } else {
                         break;
                     }
                 }
             }
         }
-        for field in default_fields {
-            existing_fields.push(field.into());
+        for field in default_fields_sorted_by_key {
+            existing_fields.push(ResponseObjectField {
+                key,
+                value: field.value.into(),
+            });
         }
         existing_fields.sort_unstable_by(|a, b| a.key.cmp(&b.key));
 

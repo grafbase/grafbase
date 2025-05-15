@@ -1,7 +1,10 @@
 use std::cell::{Cell, Ref, RefCell, RefMut};
 
 use crate::{
-    prepare::{CachedOperationContext, OperationPlanContext, PreparedOperation, RootFieldsShape, RootFieldsShapeId},
+    prepare::{
+        CachedOperationContext, DataOrLookupFieldId, FieldShapeRecord, OperationPlanContext, PreparedOperation,
+        RootFieldsShape, RootFieldsShapeId,
+    },
     response::{ResponseObjectRef, ResponsePartBuilder, ResponseValueId},
 };
 use itertools::Itertools;
@@ -111,6 +114,16 @@ impl<'ctx, 'parent> SeedState<'ctx, 'parent> {
 
     pub(super) fn path(&self) -> (&[ResponseValueId], Ref<'_, Vec<ResponseValueId>>) {
         (self.parent_path.get(), self.local_path.borrow())
+    }
+
+    pub(super) fn should_report_error_for(&self, field: &FieldShapeRecord) -> bool {
+        field.query_position_before_modifications.is_some()
+            && match field.id {
+                DataOrLookupFieldId::Data(id) => {
+                    self.operation.plan.query_modifications.included_response_data_fields[id]
+                }
+                DataOrLookupFieldId::Lookup(_) => false,
+            }
     }
 }
 

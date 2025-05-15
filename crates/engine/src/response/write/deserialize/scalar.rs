@@ -11,7 +11,7 @@ use super::SeedState;
 
 pub(crate) struct ScalarTypeSeed<'ctx, 'parent, 'state> {
     pub state: &'state SeedState<'ctx, 'parent>,
-    pub parent_field: &'ctx FieldShapeRecord,
+    pub field: &'ctx FieldShapeRecord,
     pub is_required: bool,
     pub ty: ScalarType,
 }
@@ -43,7 +43,7 @@ impl ScalarTypeSeed<'_, '_, '_> {
             self.state.display_path()
         );
 
-        if self.parent_field.key.query_position.is_some() {
+        if self.state.should_report_error_for(self.field) {
             let mut resp = self.state.response.borrow_mut();
             let path = self.state.path();
             // If not required, we don't need to propagate as Unexpected is equivalent to
@@ -54,7 +54,7 @@ impl ScalarTypeSeed<'_, '_, '_> {
             resp.errors.push(
                 GraphqlError::invalid_subgraph_response()
                     .with_path(path)
-                    .with_location(self.parent_field.id.walk(self.state).location()),
+                    .with_location(self.field.id.walk(self.state).location()),
             );
         }
 
@@ -332,7 +332,7 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_, '_> {
                 }
                 while let Some(value) = seq.next_element_seed(ScalarTypeSeed {
                     state: self.state,
-                    parent_field: self.parent_field,
+                    field: self.field,
                     is_required: false,
                     ty: ScalarType::Unknown,
                 })? {
@@ -361,7 +361,7 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_, '_> {
                 while let Some(key) = map.next_key::<String>()? {
                     let value = map.next_value_seed(ScalarTypeSeed {
                         state: self.state,
-                        parent_field: self.parent_field,
+                        field: self.field,
                         is_required: false,
                         ty: ScalarType::Unknown,
                     })?;

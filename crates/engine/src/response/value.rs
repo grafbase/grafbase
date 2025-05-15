@@ -1,11 +1,9 @@
 use operation::{PositionedResponseKey, ResponseKey};
 use schema::{ObjectDefinitionId, StringId};
 
-use crate::prepare::DefaultFieldShape;
-
 use super::{ResponseInaccessibleValueId, ResponseListId, ResponseMapId, ResponseObjectId};
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub(crate) struct ResponseObject {
     pub(super) definition_id: Option<ObjectDefinitionId>,
     /// fields are ordered by the position they appear in the query.
@@ -40,15 +38,6 @@ impl ResponseObject {
             .iter()
             .find(|field| field.key.response_key == key)
             .map(|field| &field.value)
-    }
-}
-
-impl From<&DefaultFieldShape> for ResponseObjectField {
-    fn from(field: &DefaultFieldShape) -> Self {
-        Self {
-            key: field.key,
-            value: field.value.into(),
-        }
     }
 }
 
@@ -157,6 +146,12 @@ impl From<ResponseListId> for ResponseValue {
 impl From<ResponseObjectId> for ResponseValue {
     fn from(id: ResponseObjectId) -> Self {
         Self::Object { id }
+    }
+}
+
+impl From<ResponseInaccessibleValueId> for ResponseValue {
+    fn from(id: ResponseInaccessibleValueId) -> Self {
+        Self::Inaccessible { id }
     }
 }
 

@@ -290,7 +290,7 @@ fn bind_selected_object_field<T: Target>(
 
     let value = if let Some(value) = field.value {
         // The parent wrapping doesn't matter anymore, it was already handled.
-        Some(bind_selected_value(
+        SelectedValueOrField::Value(bind_selected_value(
             ctx,
             TypeRecord {
                 definition_id: source,
@@ -332,11 +332,11 @@ fn bind_selected_object_field<T: Target>(
             ctx.graph[field_id].ty_record,
             target,
         )?;
-        None
+        SelectedValueOrField::Field(field_id)
     };
 
     Ok(BoundSelectedObjectField {
-        field: target.0.id(),
+        field_id: target.0.id(),
         value,
     })
 }

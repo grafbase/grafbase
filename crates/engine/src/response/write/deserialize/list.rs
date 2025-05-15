@@ -13,7 +13,7 @@ use crate::{
 };
 
 pub(super) struct ListSeed<'ctx, 'parent, 'state, Seed> {
-    pub parent_field: &'ctx FieldShapeRecord,
+    pub field: &'ctx FieldShapeRecord,
     pub state: &'state SeedState<'ctx, 'parent>,
     pub seed: &'state Seed,
     pub is_required: bool,
@@ -45,7 +45,7 @@ where
             self.state.display_path()
         );
 
-        if self.parent_field.key.query_position.is_some() {
+        if self.state.should_report_error_for(self.field) {
             let mut resp = self.state.response.borrow_mut();
             let path = self.state.path();
             // If not required, we don't need to propagate as Unexpected is equivalent to
@@ -56,7 +56,7 @@ where
             resp.errors.push(
                 GraphqlError::invalid_subgraph_response()
                     .with_path(path)
-                    .with_location(self.parent_field.id.walk(self.state).location()),
+                    .with_location(self.field.id.walk(self.state).location()),
             );
         }
 
@@ -79,7 +79,7 @@ where
         A: SeqAccess<'de>,
     {
         let ListSeed {
-            parent_field,
+            field,
             state,
             seed,
             element_is_nullable,
@@ -110,7 +110,7 @@ where
                     break;
                 }
                 Err(err) => {
-                    if !state.bubbling_up_deser_error.replace(true) && parent_field.key.query_position.is_some() {
+                    if !state.bubbling_up_deser_error.replace(true) && state.should_report_error_for(field) {
                         tracing::error!(
                             "Deserialization failure of subgraph response at path '{}': {err}",
                             self.state.display_path()
@@ -121,7 +121,7 @@ where
                         resp.errors.push(
                             GraphqlError::invalid_subgraph_response()
                                 .with_path((path, index))
-                                .with_location(parent_field.id.walk(state).location()),
+                                .with_location(field.id.walk(state).location()),
                         );
                     }
 
