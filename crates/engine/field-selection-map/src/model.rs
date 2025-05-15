@@ -31,29 +31,40 @@ impl fmt::Display for SelectedValue<'_> {
 /// Represents one possible entry in a SelectedValue (potentially unioned with |).
 #[derive(Debug, Clone, PartialEq)]
 pub enum SelectedValueEntry<'a> {
+    Identity,
     /// A path to a scalar or enum value. `field` or `object.field`
     Path(Path<'a>),
-    /// A path followed by an object selection. `path.{ field1 field2 }`
-    ObjectWithPath {
-        path: Path<'a>,
+    /// object selection. `{ field1 field2 }`
+    /// or a path followed by an object selection. `path.{ field1 field2 }`
+    Object {
+        path: Option<Path<'a>>,
         object: SelectedObjectValue<'a>,
     },
-    /// A path followed by a list selection. `path[ ... ]`
-    ListWithPath {
-        path: Path<'a>,
+    /// list selection. `[ ... ]`
+    /// or a path followed by a list selection. `path[ ... ]`
+    List {
+        path: Option<Path<'a>>,
         list: SelectedListValue<'a>,
     },
-    /// A standalone object selection. `{ field1 field2 }`
-    Object(SelectedObjectValue<'a>),
 }
 
 impl fmt::Display for SelectedValueEntry<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             SelectedValueEntry::Path(p) => write!(f, "{}", p),
-            SelectedValueEntry::ObjectWithPath { path, object } => write!(f, "{}.{}", path, object),
-            SelectedValueEntry::ListWithPath { path, list } => write!(f, "{}{}", path, list),
-            SelectedValueEntry::Object(o) => write!(f, "{}", o),
+            SelectedValueEntry::Object { path, object } => {
+                if let Some(path) = path {
+                    write!(f, "{}.", path)?
+                };
+                write!(f, "{}", object)
+            }
+            SelectedValueEntry::List { path, list } => {
+                if let Some(path) = path {
+                    write!(f, "{}", path)?
+                };
+                write!(f, "{}", list)
+            }
+            SelectedValueEntry::Identity => write!(f, "."),
         }
     }
 }

@@ -2,7 +2,7 @@ use super::model::*;
 
 use winnow::{
     ascii::{multispace0, multispace1},
-    combinator::{delimited, dispatch, empty, opt, peek, preceded, separated},
+    combinator::{delimited, dispatch, empty, eof, opt, peek, preceded, separated},
     error::{ParserError, StrContext},
     prelude::*,
     token::{any, one_of, take_while},
@@ -10,25 +10,32 @@ use winnow::{
 };
 
 pub fn parse(input: &str) -> std::result::Result<SelectedValue<'_>, String> {
-    ws(selected_value).parse(input).map_err(|e| e.to_string())
+    (ws(selected_value), eof.context(StrContext::Label("end")))
+        .map(|(value, _)| value)
+        .parse(input)
+        .map_err(|e| e.to_string())
 }
 
 fn selected_value<'a>(input: &mut &'a str) -> Result<SelectedValue<'a>> {
-    separated(1.., selected_value_entry, ws('|'))
-        .map(|alternatives| SelectedValue { alternatives })
-        .context(StrContext::Label("selected value"))
-        .parse_next(input)
+    separated(
+        1..,
+        selected_value_entry,
+        ws('|').context(StrContext::Label("value separator")),
+    )
+    .map(|alternatives| SelectedValue { alternatives })
+    .context(StrContext::Label("value"))
+    .parse_next(input)
 }
 
 /// Parses one entry in a selection, handling the different forms.
 fn selected_value_entry<'a>(input: &mut &'a str) -> Result<SelectedValueEntry<'a>> {
     let parser = dispatch! { peek(any);
-        '{' => selected_object_value.map(SelectedValueEntry::Object),
+        '{' => selected_object_value.map(|object| SelectedValueEntry::Object { path: None, object }),
+        '[' => selected_list_value.map(|list| SelectedValueEntry::List { path: None, list }),
+        '.' => '.'.value(SelectedValueEntry::Identity),
         _ => selected_value_entry_with_path
     };
-    parser
-        .context(StrContext::Label("selected value entry"))
-        .parse_next(input)
+    parser.context(StrContext::Label("value entry")).parse_next(input)
 }
 
 fn selected_value_entry_with_path<'a>(input: &mut &'a str) -> Result<SelectedValueEntry<'a>> {
@@ -45,8 +52,8 @@ fn selected_value_entry_with_path<'a>(input: &mut &'a str) -> Result<SelectedVal
     }
     .parse_next(input)?;
     Ok(match suffix {
-        Suffix::Object(object) => SelectedValueEntry::ObjectWithPath { path: p, object },
-        Suffix::List(list) => SelectedValueEntry::ListWithPath { path: p, list },
+        Suffix::Object(object) => SelectedValueEntry::Object { path: Some(p), object },
+        Suffix::List(list) => SelectedValueEntry::List { path: Some(p), list },
         Suffix::None => SelectedValueEntry::Path(p),
     })
 }
@@ -93,6 +100,7 @@ fn path<'a>(input: &mut &'a str) -> Result<Path<'a>> {
         separated(1.., path_segment, ws('.')),
     )
         .map(|(ty, segments)| Path { ty, segments })
+        .context(StrContext::Label("path"))
         .parse_next(input)
 }
 
@@ -289,28 +297,34 @@ mod tests {
         let input = "{ bookId: <Book>.id } | { movieId: <Movie>.id }";
         let expected = SelectedValue {
             alternatives: vec![
-                SelectedValueEntry::Object(SelectedObjectValue {
-                    fields: vec![SelectedObjectField {
-                        key: "bookId",
-                        value: Some(SelectedValue {
-                            alternatives: vec![SelectedValueEntry::Path(Path {
-                                ty: Some("Book"),
-                                segments: vec![PathSegment { field: "id", ty: None }],
-                            })],
-                        }),
-                    }],
-                }),
-                SelectedValueEntry::Object(SelectedObjectValue {
-                    fields: vec![SelectedObjectField {
-                        key: "movieId",
-                        value: Some(SelectedValue {
-                            alternatives: vec![SelectedValueEntry::Path(Path {
-                                ty: Some("Movie"),
-                                segments: vec![PathSegment { field: "id", ty: None }],
-                            })],
-                        }),
-                    }],
-                }),
+                SelectedValueEntry::Object {
+                    path: None,
+                    object: SelectedObjectValue {
+                        fields: vec![SelectedObjectField {
+                            key: "bookId",
+                            value: Some(SelectedValue {
+                                alternatives: vec![SelectedValueEntry::Path(Path {
+                                    ty: Some("Book"),
+                                    segments: vec![PathSegment { field: "id", ty: None }],
+                                })],
+                            }),
+                        }],
+                    },
+                },
+                SelectedValueEntry::Object {
+                    path: None,
+                    object: SelectedObjectValue {
+                        fields: vec![SelectedObjectField {
+                            key: "movieId",
+                            value: Some(SelectedValue {
+                                alternatives: vec![SelectedValueEntry::Path(Path {
+                                    ty: Some("Movie"),
+                                    segments: vec![PathSegment { field: "id", ty: None }],
+                                })],
+                            }),
+                        }],
+                    },
+                },
             ],
         };
         match parse(input) {
@@ -323,18 +337,21 @@ mod tests {
     fn test_simple_object() {
         let input = "{ key1 key2 }";
         let expected = SelectedValue {
-            alternatives: vec![SelectedValueEntry::Object(SelectedObjectValue {
-                fields: vec![
-                    SelectedObjectField {
-                        key: "key1",
-                        value: None,
-                    },
-                    SelectedObjectField {
-                        key: "key2",
-                        value: None,
-                    },
-                ],
-            })],
+            alternatives: vec![SelectedValueEntry::Object {
+                path: None,
+                object: SelectedObjectValue {
+                    fields: vec![
+                        SelectedObjectField {
+                            key: "key1",
+                            value: None,
+                        },
+                        SelectedObjectField {
+                            key: "key2",
+                            value: None,
+                        },
+                    ],
+                },
+            }],
         };
         match parse(input) {
             Ok(result) => assert_eq!(result, expected),
@@ -346,40 +363,65 @@ mod tests {
     fn test_object_with_values() {
         let input = "{ key1 : value1 key2 : nested.path }";
         let expected = SelectedValue {
-            alternatives: vec![SelectedValueEntry::Object(SelectedObjectValue {
-                fields: vec![
-                    SelectedObjectField {
-                        key: "key1",
-                        value: Some(SelectedValue {
-                            alternatives: vec![SelectedValueEntry::Path(Path {
-                                ty: None,
-                                segments: vec![PathSegment {
-                                    field: "value1",
+            alternatives: vec![SelectedValueEntry::Object {
+                path: None,
+                object: SelectedObjectValue {
+                    fields: vec![
+                        SelectedObjectField {
+                            key: "key1",
+                            value: Some(SelectedValue {
+                                alternatives: vec![SelectedValueEntry::Path(Path {
                                     ty: None,
-                                }],
-                            })],
-                        }),
-                    },
-                    SelectedObjectField {
-                        key: "key2",
+                                    segments: vec![PathSegment {
+                                        field: "value1",
+                                        ty: None,
+                                    }],
+                                })],
+                            }),
+                        },
+                        SelectedObjectField {
+                            key: "key2",
+                            value: Some(SelectedValue {
+                                alternatives: vec![SelectedValueEntry::Path(Path {
+                                    ty: None,
+                                    segments: vec![
+                                        PathSegment {
+                                            field: "nested",
+                                            ty: None,
+                                        },
+                                        PathSegment {
+                                            field: "path",
+                                            ty: None,
+                                        },
+                                    ],
+                                })],
+                            }),
+                        },
+                    ],
+                },
+            }],
+        };
+        match parse(input) {
+            Ok(result) => assert_eq!(result, expected),
+            Err(e) => panic!("{}", e),
+        }
+    }
+
+    #[test]
+    fn test_identity() {
+        let input = "{ key: . }";
+        let expected = SelectedValue {
+            alternatives: vec![SelectedValueEntry::Object {
+                path: None,
+                object: SelectedObjectValue {
+                    fields: vec![SelectedObjectField {
+                        key: "key",
                         value: Some(SelectedValue {
-                            alternatives: vec![SelectedValueEntry::Path(Path {
-                                ty: None,
-                                segments: vec![
-                                    PathSegment {
-                                        field: "nested",
-                                        ty: None,
-                                    },
-                                    PathSegment {
-                                        field: "path",
-                                        ty: None,
-                                    },
-                                ],
-                            })],
+                            alternatives: vec![SelectedValueEntry::Identity],
                         }),
-                    },
-                ],
-            })],
+                    }],
+                },
+            }],
         };
         match parse(input) {
             Ok(result) => assert_eq!(result, expected),
@@ -391,14 +433,14 @@ mod tests {
     fn test_path_with_object() {
         let input = " data.{ field1 field2 : sub.value } ";
         let expected = SelectedValue {
-            alternatives: vec![SelectedValueEntry::ObjectWithPath {
-                path: Path {
+            alternatives: vec![SelectedValueEntry::Object {
+                path: Some(Path {
                     ty: None,
                     segments: vec![PathSegment {
                         field: "data",
                         ty: None,
                     }],
-                },
+                }),
                 object: SelectedObjectValue {
                     fields: vec![
                         SelectedObjectField {
@@ -434,14 +476,14 @@ mod tests {
     fn test_path_with_list() {
         let input = " items [ name | id ] ";
         let expected = SelectedValue {
-            alternatives: vec![SelectedValueEntry::ListWithPath {
-                path: Path {
+            alternatives: vec![SelectedValueEntry::List {
+                path: Some(Path {
                     ty: None,
                     segments: vec![PathSegment {
                         field: "items",
                         ty: None,
                     }],
-                },
+                }),
                 list: SelectedListValue(SelectedValue {
                     alternatives: vec![
                         SelectedValueEntry::Path(Path {
@@ -456,6 +498,26 @@ mod tests {
                             segments: vec![PathSegment { field: "id", ty: None }],
                         }),
                     ],
+                }),
+            }],
+        };
+        match parse(input) {
+            Ok(result) => assert_eq!(result, expected),
+            Err(e) => panic!("{}", e),
+        }
+    }
+
+    #[test]
+    fn test_list_without_path() {
+        let input = "[ id ]";
+        let expected = SelectedValue {
+            alternatives: vec![SelectedValueEntry::List {
+                path: None,
+                list: SelectedListValue(SelectedValue {
+                    alternatives: vec![SelectedValueEntry::Path(Path {
+                        ty: None,
+                        segments: vec![PathSegment { field: "id", ty: None }],
+                    })],
                 }),
             }],
         };
@@ -487,25 +549,28 @@ mod tests {
                         PathSegment { field: "sub", ty: None },
                     ],
                 }),
-                SelectedValueEntry::Object(SelectedObjectValue {
-                    fields: vec![SelectedObjectField {
-                        key: "key",
-                        value: Some(SelectedValue {
-                            alternatives: vec![SelectedValueEntry::Path(Path {
-                                ty: None,
-                                segments: vec![PathSegment { field: "val", ty: None }],
-                            })],
-                        }),
-                    }],
-                }),
-                SelectedValueEntry::ListWithPath {
-                    path: Path {
+                SelectedValueEntry::Object {
+                    path: None,
+                    object: SelectedObjectValue {
+                        fields: vec![SelectedObjectField {
+                            key: "key",
+                            value: Some(SelectedValue {
+                                alternatives: vec![SelectedValueEntry::Path(Path {
+                                    ty: None,
+                                    segments: vec![PathSegment { field: "val", ty: None }],
+                                })],
+                            }),
+                        }],
+                    },
+                },
+                SelectedValueEntry::List {
+                    path: Some(Path {
                         ty: None,
                         segments: vec![PathSegment {
                             field: "path3",
                             ty: None,
                         }],
-                    },
+                    }),
                     list: SelectedListValue(SelectedValue {
                         alternatives: vec![SelectedValueEntry::Path(Path {
                             ty: None,
@@ -530,8 +595,8 @@ mod tests {
         let input = " path1 < T1 > \t . \n field2 \r\n [ \t item1 \n | \r\n item2.{ subkey } \t ] \n | \t { key1 \t : \n val1 \n key2 \r\n } ";
         let expected = SelectedValue {
             alternatives: vec![
-                SelectedValueEntry::ListWithPath {
-                    path: Path {
+                SelectedValueEntry::List {
+                    path: Some(Path {
                         ty: None,
                         segments: vec![
                             PathSegment {
@@ -543,7 +608,7 @@ mod tests {
                                 ty: None,
                             },
                         ],
-                    },
+                    }),
                     list: SelectedListValue(SelectedValue {
                         alternatives: vec![
                             SelectedValueEntry::Path(Path {
@@ -553,14 +618,14 @@ mod tests {
                                     ty: None,
                                 }],
                             }),
-                            SelectedValueEntry::ObjectWithPath {
-                                path: Path {
+                            SelectedValueEntry::Object {
+                                path: Some(Path {
                                     ty: None,
                                     segments: vec![PathSegment {
                                         field: "item2",
                                         ty: None,
                                     }],
-                                },
+                                }),
                                 object: SelectedObjectValue {
                                     fields: vec![SelectedObjectField {
                                         key: "subkey",
@@ -571,26 +636,29 @@ mod tests {
                         ],
                     }),
                 },
-                SelectedValueEntry::Object(SelectedObjectValue {
-                    fields: vec![
-                        SelectedObjectField {
-                            key: "key1",
-                            value: Some(SelectedValue {
-                                alternatives: vec![SelectedValueEntry::Path(Path {
-                                    ty: None,
-                                    segments: vec![PathSegment {
-                                        field: "val1",
+                SelectedValueEntry::Object {
+                    path: None,
+                    object: SelectedObjectValue {
+                        fields: vec![
+                            SelectedObjectField {
+                                key: "key1",
+                                value: Some(SelectedValue {
+                                    alternatives: vec![SelectedValueEntry::Path(Path {
                                         ty: None,
-                                    }],
-                                })],
-                            }),
-                        },
-                        SelectedObjectField {
-                            key: "key2",
-                            value: None,
-                        },
-                    ],
-                }),
+                                        segments: vec![PathSegment {
+                                            field: "val1",
+                                            ty: None,
+                                        }],
+                                    })],
+                                }),
+                            },
+                            SelectedObjectField {
+                                key: "key2",
+                                value: None,
+                            },
+                        ],
+                    },
+                },
             ],
         };
         match parse(input) {
@@ -603,9 +671,12 @@ mod tests {
     fn test_empty_object() {
         let input = "{}";
         let expected = SelectedValue {
-            alternatives: vec![SelectedValueEntry::Object(SelectedObjectValue {
-                fields: vec![], // Empty fields
-            })],
+            alternatives: vec![SelectedValueEntry::Object {
+                path: None,
+                object: SelectedObjectValue {
+                    fields: vec![], // Empty fields
+                },
+            }],
         };
         match parse(input) {
             Ok(result) => assert_eq!(result, expected),
@@ -614,14 +685,14 @@ mod tests {
 
         let input = "path.{}";
         let expected = SelectedValue {
-            alternatives: vec![SelectedValueEntry::ObjectWithPath {
-                path: Path {
+            alternatives: vec![SelectedValueEntry::Object {
+                path: Some(Path {
                     ty: None,
                     segments: vec![PathSegment {
                         field: "path",
                         ty: None,
                     }],
-                },
+                }),
                 object: SelectedObjectValue { fields: vec![] },
             }],
         };
@@ -641,43 +712,46 @@ mod tests {
                     ty: None,
                     segments: vec![PathSegment { field: "a", ty: None }],
                 }),
-                SelectedValueEntry::ObjectWithPath {
-                    path: Path {
+                SelectedValueEntry::Object {
+                    path: Some(Path {
                         ty: None,
                         segments: vec![PathSegment { field: "b", ty: None }],
-                    },
+                    }),
                     object: SelectedObjectValue {
                         fields: vec![SelectedObjectField {
                             key: "c",
                             value: Some(SelectedValue {
-                                alternatives: vec![SelectedValueEntry::ListWithPath {
-                                    path: Path {
+                                alternatives: vec![SelectedValueEntry::List {
+                                    path: Some(Path {
                                         ty: None,
                                         segments: vec![PathSegment { field: "d", ty: None }],
-                                    },
+                                    }),
                                     list: SelectedListValue(SelectedValue {
                                         alternatives: vec![
                                             SelectedValueEntry::Path(Path {
                                                 ty: None,
                                                 segments: vec![PathSegment { field: "e", ty: None }],
                                             }),
-                                            SelectedValueEntry::Object(SelectedObjectValue {
-                                                fields: vec![SelectedObjectField {
-                                                    key: "f",
-                                                    value: Some(SelectedValue {
-                                                        alternatives: vec![SelectedValueEntry::Path(Path {
-                                                            ty: None,
-                                                            segments: vec![
-                                                                PathSegment { field: "g", ty: None },
-                                                                PathSegment {
-                                                                    field: "h",
-                                                                    ty: Some("T"),
-                                                                },
-                                                            ],
-                                                        })],
-                                                    }),
-                                                }],
-                                            }),
+                                            SelectedValueEntry::Object {
+                                                path: None,
+                                                object: SelectedObjectValue {
+                                                    fields: vec![SelectedObjectField {
+                                                        key: "f",
+                                                        value: Some(SelectedValue {
+                                                            alternatives: vec![SelectedValueEntry::Path(Path {
+                                                                ty: None,
+                                                                segments: vec![
+                                                                    PathSegment { field: "g", ty: None },
+                                                                    PathSegment {
+                                                                        field: "h",
+                                                                        ty: Some("T"),
+                                                                    },
+                                                                ],
+                                                            })],
+                                                        }),
+                                                    }],
+                                                },
+                                            },
                                         ],
                                     }),
                                 }],
@@ -697,40 +771,43 @@ mod tests {
     fn test_no_space_around_colon() {
         let input = "{key1:value1 key2:nested.path}"; // No spaces around ':'
         let expected = SelectedValue {
-            alternatives: vec![SelectedValueEntry::Object(SelectedObjectValue {
-                fields: vec![
-                    SelectedObjectField {
-                        key: "key1",
-                        value: Some(SelectedValue {
-                            alternatives: vec![SelectedValueEntry::Path(Path {
-                                ty: None,
-                                segments: vec![PathSegment {
-                                    field: "value1",
+            alternatives: vec![SelectedValueEntry::Object {
+                path: None,
+                object: SelectedObjectValue {
+                    fields: vec![
+                        SelectedObjectField {
+                            key: "key1",
+                            value: Some(SelectedValue {
+                                alternatives: vec![SelectedValueEntry::Path(Path {
                                     ty: None,
-                                }],
-                            })],
-                        }),
-                    },
-                    SelectedObjectField {
-                        key: "key2",
-                        value: Some(SelectedValue {
-                            alternatives: vec![SelectedValueEntry::Path(Path {
-                                ty: None,
-                                segments: vec![
-                                    PathSegment {
-                                        field: "nested",
+                                    segments: vec![PathSegment {
+                                        field: "value1",
                                         ty: None,
-                                    },
-                                    PathSegment {
-                                        field: "path",
-                                        ty: None,
-                                    },
-                                ],
-                            })],
-                        }),
-                    },
-                ],
-            })],
+                                    }],
+                                })],
+                            }),
+                        },
+                        SelectedObjectField {
+                            key: "key2",
+                            value: Some(SelectedValue {
+                                alternatives: vec![SelectedValueEntry::Path(Path {
+                                    ty: None,
+                                    segments: vec![
+                                        PathSegment {
+                                            field: "nested",
+                                            ty: None,
+                                        },
+                                        PathSegment {
+                                            field: "path",
+                                            ty: None,
+                                        },
+                                    ],
+                                })],
+                            }),
+                        },
+                    ],
+                },
+            }],
         };
         match parse(input) {
             Ok(result) => assert_eq!(result, expected),
@@ -784,26 +861,29 @@ mod tests {
         // Further semantic checks might disallow duplicates, but the parser itself shouldn't fail.
         let input = "{ key key : value }";
         let expected = SelectedValue {
-            alternatives: vec![SelectedValueEntry::Object(SelectedObjectValue {
-                fields: vec![
-                    SelectedObjectField {
-                        key: "key",
-                        value: None,
-                    },
-                    SelectedObjectField {
-                        key: "key",
-                        value: Some(SelectedValue {
-                            alternatives: vec![SelectedValueEntry::Path(Path {
-                                ty: None,
-                                segments: vec![PathSegment {
-                                    field: "value",
+            alternatives: vec![SelectedValueEntry::Object {
+                path: None,
+                object: SelectedObjectValue {
+                    fields: vec![
+                        SelectedObjectField {
+                            key: "key",
+                            value: None,
+                        },
+                        SelectedObjectField {
+                            key: "key",
+                            value: Some(SelectedValue {
+                                alternatives: vec![SelectedValueEntry::Path(Path {
                                     ty: None,
-                                }],
-                            })],
-                        }),
-                    },
-                ],
-            })],
+                                    segments: vec![PathSegment {
+                                        field: "value",
+                                        ty: None,
+                                    }],
+                                })],
+                            }),
+                        },
+                    ],
+                },
+            }],
         };
         match parse(input) {
             Ok(result) => assert_eq!(result, expected),
@@ -815,7 +895,7 @@ mod tests {
     fn test_empty_input() {
         insta::assert_snapshot!(parse("").unwrap_err(), @r#"
         ^
-        invalid selected value entry
+        invalid value entry
         "#);
     }
 
@@ -826,7 +906,7 @@ mod tests {
           |
         2 |  
           |  ^
-        invalid selected value entry
+        invalid value entry
         "#);
     }
 
@@ -856,26 +936,29 @@ mod tests {
         // Unclosed list
         insta::assert_snapshot!(parse("[ val").unwrap_err(), @r#"
         [ val
-        ^
-        invalid name
+             ^
+        invalid list
         "#);
 
         // Unclosed type constraint
         insta::assert_snapshot!(parse("path<Type").unwrap_err(), @r#"
         path<Type
             ^
+        invalid end
         "#);
 
         // Missing value after colon
         insta::assert_snapshot!(parse("key :").unwrap_err(), @r#"
         key :
             ^
+        invalid end
         "#);
 
         // Empty alternative - separated requires non-empty elements
         insta::assert_snapshot!(parse("a | | b").unwrap_err(), @r#"
         a | | b
           ^
+        invalid end
         "#);
     }
 
@@ -885,11 +968,13 @@ mod tests {
         insta::assert_snapshot!(parse("field extra").unwrap_err(), @r#"
         field extra
               ^
+        invalid end
         "#);
 
         insta::assert_snapshot!(parse("{key} trailing").unwrap_err(), @r#"
         {key} trailing
               ^
+        invalid end
         "#);
     }
 
@@ -898,10 +983,12 @@ mod tests {
         insta::assert_snapshot!(parse("invalid-name").unwrap_err(), @r#"
         invalid-name
                ^
+        invalid end
         "#);
         insta::assert_snapshot!(parse("obj.invalid-segment").unwrap_err(), @r#"
         obj.invalid-segment
                    ^
+        invalid end
         "#);
         insta::assert_snapshot!(parse("{ invalid-key }").unwrap_err(), @r#"
         { invalid-key }
@@ -911,6 +998,7 @@ mod tests {
         insta::assert_snapshot!(parse("path<invalid-type!>").unwrap_err(), @r#"
         path<invalid-type!>
             ^
+        invalid end
         "#);
     }
 
@@ -931,8 +1019,8 @@ mod tests {
         // Dot cannot start input
         insta::assert_snapshot!(parse(".path").unwrap_err(), @r#"
         .path
-        ^
-        invalid name
+         ^
+        invalid end
         "#);
         // Pipe cannot start input
         insta::assert_snapshot!(parse("| path").unwrap_err(), @r#"
@@ -961,18 +1049,21 @@ mod tests {
         insta::assert_snapshot!(parse("{ key }.extra").unwrap_err(), @r#"
         { key }.extra
                ^
+        invalid end
         "#); // Error might point after '}' as it expects EOF
 
         // List after object
         insta::assert_snapshot!(parse("{ key }[extra]").unwrap_err(), @r#"
         { key }[extra]
                ^
+        invalid end
         "#); // Error might point after '}'
 
         // Path segment after list
         insta::assert_snapshot!(parse("path[item].extra").unwrap_err(), @r#"
         path[item].extra
                   ^
+        invalid end
         "#); // Error might point after ']'
 
         // Double dot in path
@@ -986,6 +1077,7 @@ mod tests {
         insta::assert_snapshot!(parse("path || segment").unwrap_err(), @r#"
         path || segment
              ^
+        invalid end
         "#); // Already covered by 'a | | b' but good to have variation
 
         // Empty list contents - selected_value requires at least one entry
@@ -1004,16 +1096,19 @@ mod tests {
         insta::assert_snapshot!(parse("path<>").unwrap_err(), @r#"
         path<>
             ^
+        invalid end
         "#);
         insta::assert_snapshot!(parse("path< >").unwrap_err(), @r#"
         path< >
             ^
+        invalid end
         "#);
 
         // Object suffix directly after path type constraint (needs space/end)
         insta::assert_snapshot!(parse("path<T>{key}").unwrap_err(), @r#"
         path<T>{key}
                ^
+        invalid end
         "#);
     }
 
@@ -1028,6 +1123,7 @@ mod tests {
         insta::assert_snapshot!(parse("path |").unwrap_err(), @r#"
         path |
              ^
+        invalid end
         "#); // Slightly different context
 
         insta::assert_snapshot!(parse("{ key : }").unwrap_err(), @r#"
@@ -1044,12 +1140,14 @@ mod tests {
             (" a . b < T > ", "a.b<T>"), // Note canonical spacing
             ("{ k1 k2: v }", "{ k1 k2: v }"),
             (" p . { f1 f2 : s } ", "p.{ f1 f2: s }"),
+            ("[ i1  ] ", "[i1]"),
             (" l [ i1 | i2 < U > ] ", "l[i1 | i2<U>]"),
             ("a | b.{c} | d[e]", "a | b.{ c } | d[e]"), // Slight format variation for object
             (
                 "complex<T1>.path[ item | { key : val<T2>.sub } ] | another",
                 "complex<T1>.path[item | { key: val<T2>.sub }] | another",
             ),
+            ("{ key : . }", "{ key: . }"),
         ];
 
         for (original, canonical) in inputs {

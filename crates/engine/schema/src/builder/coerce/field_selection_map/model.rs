@@ -17,22 +17,22 @@ impl<Id> BoundSelectedValue<Id> {
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum BoundSelectedValueEntry<Id> {
+    Identity,
     Path(BoundPath),
-    ObjectWithPath {
-        path: BoundPath,
+    Object {
+        path: Option<BoundPath>,
         object: BoundSelectedObjectValue<Id>,
     },
-    ListWithPath {
-        path: BoundPath,
+    List {
+        path: Option<BoundPath>,
         list: BoundSelectedListValue<Id>,
     },
-    Object(BoundSelectedObjectValue<Id>),
 }
 
 impl<Id> BoundSelectedValueEntry<Id> {
-    pub fn into_object(self) -> Option<BoundSelectedObjectValue<Id>> {
+    pub fn into_object_without_path(self) -> Option<BoundSelectedObjectValue<Id>> {
         match self {
-            BoundSelectedValueEntry::Object(obj) => Some(obj),
+            BoundSelectedValueEntry::Object { path: None, object } => Some(object),
             _ => None,
         }
     }

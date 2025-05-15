@@ -89,7 +89,7 @@ pub(super) fn ingest<'sdl>(
                     is_directive.arguments_span(),
                 )
             })?
-            .into_object()
+            .into_object_without_path()
             .ok_or_else(|| {
                 (
                     "for associated @is directive, derived fields must be objects",
