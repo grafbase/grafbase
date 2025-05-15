@@ -1,13 +1,16 @@
+[graph]
+introspection = true
+
 [extensions.postgres]
-version = "0.2"
+version = "0.4.7"
 
 [[extensions.postgres.config.databases]]
 name = "products"
-url = "postgres://localhost/products"
+url = "postgres://postgres:grafbase@localhost/products"
 
 [[extensions.postgres.config.databases]]
 name = "inventory"
-url = "postgres://localhost/inventory"
+url = "postgres://postgres:grafbase@localhost/inventory"
 
 [subgraphs.products]
 schema_path = "./products.graphql"

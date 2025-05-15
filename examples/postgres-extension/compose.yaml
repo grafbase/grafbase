@@ -1,0 +1,24 @@
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: grafbase
+      POSTGRES_MULTIPLE_DATABASES: products,inventory
+    ports:
+      - '5432:5432'
+    command: postgres -c 'max_connections=200'
+    networks: ['postgres']
+    restart: unless-stopped
+    volumes:
+      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+      - ./products.sql:/docker-sql/products.sql
+      - ./inventory.sql:/docker-sql/inventory.sql
+    healthcheck:
+      test: ['CMD-SHELL', 'su - postgres -c pg_isready -U postgres -d postgres']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  postgres:

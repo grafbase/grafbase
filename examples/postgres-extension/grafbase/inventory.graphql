@@ -1,0 +1,748 @@
+extend schema
+  @link(
+    url: "https://grafbase.com/extensions/postgres/0.4.7",
+    import: [
+      "@pgDatabase",
+      "@pgTable",
+      "@pgColumn",
+      "@pgEnum",
+      "@pgEnumVariant",
+      "@pgRelation",
+      "@pgKey",
+      "@pgLookup",
+      "@pgSelectOne",
+      "@pgSelectMany",
+      "@pgInsertOne",
+      "@pgInsertMany",
+      "@pgUpdateOne",
+      "@pgUpdateMany",
+      "@pgDeleteOne",
+      "@pgDeleteMany",
+      "@pgConnection",
+      "@pgMutation",
+      "@pgReturning",
+      "PgKeyType",
+      "PgColumnType",
+      "PgRelationType"
+    ]
+  )
+  @link(
+    url: "https://specs.grafbase.com/composite-schema/v1",
+    import: [
+      "@lookup",
+      "@key"
+    ]
+  )
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.3",
+    import: [
+      "@shareable",
+      "@inaccessible"
+    ]
+  )
+  @pgDatabase(name: "inventory")
+
+"""
+Timestamp data type represented as a string in ISO 8601 format (YYYY-MM-DDTHH:MM:SS.sss)
+"""
+scalar Timestamp
+
+"""
+UUID data type represented as a string in the format xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+"""
+scalar UUID
+
+"""
+Specifies the direction for ordering results.
+"""
+enum OrderDirection {
+  """
+  Specifies an ascending order for a given orderBy argument.
+  """
+  ASC
+  """
+  Specifies a descending order for a given orderBy argument.
+  """
+  DESC
+}
+
+"""
+Search filter input for Int type.
+"""
+input IntFilterInput @oneOf {
+  """
+  The value is exactly the one given
+  """
+  eq: Int
+  """
+  The value is not the one given
+  """
+  ne: Int
+  """
+  The value is greater than the one given
+  """
+  gt: Int
+  """
+  The value is less than the one given
+  """
+  lt: Int
+  """
+  The value is greater than, or equal to the one given
+  """
+  gte: Int
+  """
+  The value is less than, or equal to the one given
+  """
+  lte: Int
+  """
+  The value is in the given array of values
+  """
+  in: [Int!]
+  """
+  The value is not in the given array of values
+  """
+  nin: [Int!]
+  """
+  A negation of the given filter
+  """
+  not: IntFilterInput
+}
+
+"""
+Update input for Int type.
+"""
+input IntUpdateInput @oneOf {
+  """
+  Replaces the value of a field with the specified value.
+  """
+  set: Int
+  """
+  Increments the value of a field by the specified value.
+  """
+  increment: Int
+  """
+  Decrements the value of a field by the specified value.
+  """
+  decrement: Int
+  """
+  Multiplies the value of a field by the specified value.
+  """
+  multiply: Int
+  """
+  Divides the value of a field by the specified value.
+  """
+  divide: Int
+}
+
+"""
+Filter input type for Inventory objects.
+"""
+input InventoryFilterInput @oneOf {
+  """
+  Filter by the given id
+  """
+  id: UUIDFilterInput
+  """
+  Filter by the given sku
+  """
+  sku: StringFilterInput
+  """
+  Filter by the given quantity
+  """
+  quantity: IntFilterInput
+  """
+  Filter by the given warehouseLocation
+  """
+  warehouseLocation: StringFilterInput
+  """
+  Filter by the given updatedAt
+  """
+  updatedAt: TimestampFilterInput
+  """
+  All of the filters must match
+  """
+  ALL: [InventoryFilterInput]
+  """
+  None of the filters must match
+  """
+  NONE: [InventoryFilterInput]
+  """
+  At least one of the filters must match
+  """
+  ANY: [InventoryFilterInput]
+}
+
+"""
+Input for creating a new Inventory
+"""
+input InventoryInventoryCreateInput {
+  """
+  Set field value for id
+  """
+  id: UUID
+  """
+  Set field value for sku
+  """
+  sku: String!
+  """
+  Set field value for quantity
+  """
+  quantity: Int
+  """
+  Set field value for warehouseLocation
+  """
+  warehouseLocation: String
+  """
+  Set field value for updatedAt
+  """
+  updatedAt: Timestamp
+}
+
+"""
+Input for updating an existing Inventory
+"""
+input InventoryInventoryUpdateInput {
+  """
+  Update field value for id
+  """
+  id: UUIDUpdateInput
+  """
+  Update field value for sku
+  """
+  sku: StringUpdateInput
+  """
+  Update field value for quantity
+  """
+  quantity: IntUpdateInput
+  """
+  Update field value for warehouseLocation
+  """
+  warehouseLocation: StringUpdateInput
+  """
+  Update field value for updatedAt
+  """
+  updatedAt: TimestampUpdateInput
+}
+
+"""
+Input type to select a unique Inventory
+"""
+input InventoryLookupInput @oneOf {
+  """
+  Select by the 'id' field
+  """
+  id: UUID
+  """
+  Select by the 'sku' field
+  """
+  sku: String
+}
+
+"""
+Lookup input type for Inventory objects for subgraph joins.
+"""
+input InventoryManyLookupInput @oneOf @inaccessible {
+  """
+  Select by the 'id' field
+  """
+  id: [UUID!] @inaccessible
+  """
+  Select by the 'sku' field
+  """
+  sku: [String!] @inaccessible
+}
+
+"""
+Specifies the ordering for Inventory results.
+"""
+input InventoryOrderByInput @oneOf {
+  """
+  Order inventories by id
+  """
+  id: OrderDirection
+  """
+  Order inventories by sku
+  """
+  sku: OrderDirection
+  """
+  Order inventories by quantity
+  """
+  quantity: OrderDirection
+  """
+  Order inventories by warehouseLocation
+  """
+  warehouseLocation: OrderDirection
+  """
+  Order inventories by updatedAt
+  """
+  updatedAt: OrderDirection
+}
+
+"""
+Search filter input for String type.
+"""
+input StringFilterInput @oneOf {
+  """
+  The value is exactly the one given
+  """
+  eq: String
+  """
+  The value is not the one given
+  """
+  ne: String
+  """
+  The value is greater than the one given
+  """
+  gt: String
+  """
+  The value is less than the one given
+  """
+  lt: String
+  """
+  The value is greater than, or equal to the one given
+  """
+  gte: String
+  """
+  The value is less than, or equal to the one given
+  """
+  lte: String
+  """
+  The given input is part of the column value
+  """
+  like: String
+  """
+  The value is in the given array of values
+  """
+  in: [String!]
+  """
+  The value is not in the given array of values
+  """
+  nin: [String!]
+  """
+  A negation of the given filter
+  """
+  not: StringFilterInput
+}
+
+"""
+Update input for String type.
+"""
+input StringUpdateInput @oneOf {
+  """
+  Replaces the value of a field with the specified value.
+  """
+  set: String
+}
+
+"""
+Search filter input for Timestamp type.
+"""
+input TimestampFilterInput @oneOf {
+  """
+  The value is exactly the one given
+  """
+  eq: Timestamp
+  """
+  The value is not the one given
+  """
+  ne: Timestamp
+  """
+  The value is greater than the one given
+  """
+  gt: Timestamp
+  """
+  The value is less than the one given
+  """
+  lt: Timestamp
+  """
+  The value is greater than, or equal to the one given
+  """
+  gte: Timestamp
+  """
+  The value is less than, or equal to the one given
+  """
+  lte: Timestamp
+  """
+  The value is in the given array of values
+  """
+  in: [Timestamp!]
+  """
+  The value is not in the given array of values
+  """
+  nin: [Timestamp!]
+  """
+  A negation of the given filter
+  """
+  not: TimestampFilterInput
+}
+
+"""
+Update input for Timestamp type.
+"""
+input TimestampUpdateInput @oneOf {
+  """
+  Replaces the value of a field with the specified value.
+  """
+  set: Timestamp
+}
+
+"""
+Search filter input for UUID type.
+"""
+input UUIDFilterInput @oneOf {
+  """
+  The value is exactly the one given
+  """
+  eq: UUID
+  """
+  The value is not the one given
+  """
+  ne: UUID
+  """
+  The value is greater than the one given
+  """
+  gt: UUID
+  """
+  The value is less than the one given
+  """
+  lt: UUID
+  """
+  The value is greater than, or equal to the one given
+  """
+  gte: UUID
+  """
+  The value is less than, or equal to the one given
+  """
+  lte: UUID
+  """
+  The value is in the given array of values
+  """
+  in: [UUID!]
+  """
+  The value is not in the given array of values
+  """
+  nin: [UUID!]
+  """
+  A negation of the given filter
+  """
+  not: UUIDFilterInput
+}
+
+"""
+Update input for UUID type.
+"""
+input UUIDUpdateInput @oneOf {
+  """
+  Replaces the value of a field with the specified value.
+  """
+  set: UUID
+}
+
+type Inventory
+  @key(fields: "id")
+  @key(fields: "sku")
+  @pgTable(name: "inventory")
+  @pgKey(fields: ["id"], type: PRIMARY)
+  @pgKey(fields: ["sku"], type: UNIQUE)
+{
+  id: UUID! @pgColumn(name: "id", type: UUID)
+  sku: String! @pgColumn(name: "sku", type: VARCHAR)
+  quantity: Int! @pgColumn(name: "quantity", type: INT)
+  warehouseLocation: String @pgColumn(name: "warehouse_location", type: VARCHAR)
+  updatedAt: Timestamp! @pgColumn(name: "updated_at", type: TIMESTAMP)
+}
+
+"""
+The connection type for Inventory
+"""
+type InventoryConnection
+  @pgConnection(type: "Inventory")
+{
+  """
+  A list of edges
+  """
+  edges: [InventoryEdge!]! @shareable
+  """
+  Information to aid in pagination
+  """
+  pageInfo: PageInfo! @shareable
+}
+
+"""
+Return type when creating many inventories
+"""
+type InventoryCreateManyPayload
+  @pgMutation(type: "Inventory")
+{
+  """
+  Returned item(s) from the mutation
+  """
+  returning: [InventoryReturning]! @shareable
+  """
+  The number of rows mutated
+  """
+  rowCount: Int! @shareable
+}
+
+"""
+Return type when creating one Inventory
+"""
+type InventoryCreatePayload
+  @pgMutation(type: "Inventory")
+{
+  """
+  Returned item(s) from the mutation
+  """
+  returning: InventoryReturning @shareable
+  """
+  The number of rows mutated
+  """
+  rowCount: Int! @shareable
+}
+
+"""
+Return type when deleting many inventories
+"""
+type InventoryDeleteManyPayload
+  @pgMutation(type: "Inventory")
+{
+  """
+  Returned item(s) from the mutation
+  """
+  returning: [InventoryReturning]! @shareable
+  """
+  The number of rows mutated
+  """
+  rowCount: Int! @shareable
+}
+
+"""
+Return type when deleting one Inventory
+"""
+type InventoryDeletePayload
+  @pgMutation(type: "Inventory")
+{
+  """
+  Returned item(s) from the mutation
+  """
+  returning: InventoryReturning @shareable
+  """
+  The number of rows mutated
+  """
+  rowCount: Int! @shareable
+}
+
+"""
+An edge in a connection. Contains the node and its cursor
+"""
+type InventoryEdge {
+  """
+  The item at the end of the edge
+  """
+  node: Inventory! @shareable
+  """
+  A cursor for use in pagination
+  """
+  cursor: String! @shareable
+}
+
+"""
+Return type containing fields of the mutated or created Inventory object
+"""
+type InventoryReturning
+  @pgReturning(type: "Inventory")
+{
+  """
+  The value of the id field
+  """
+  id: UUID! @shareable
+  """
+  The value of the sku field
+  """
+  sku: String! @shareable
+  """
+  The value of the quantity field
+  """
+  quantity: Int!
+  """
+  The value of the warehouseLocation field
+  """
+  warehouseLocation: String
+  """
+  The value of the updatedAt field
+  """
+  updatedAt: Timestamp!
+}
+
+"""
+Return type when updating many inventories
+"""
+type InventoryUpdateManyPayload
+  @pgMutation(type: "Inventory")
+{
+  """
+  Returned item(s) from the mutation
+  """
+  returning: [InventoryReturning]! @shareable
+  """
+  The number of rows mutated
+  """
+  rowCount: Int! @shareable
+}
+
+"""
+Return type when updating one Inventory
+"""
+type InventoryUpdatePayload
+  @pgMutation(type: "Inventory")
+{
+  """
+  Returned item(s) from the mutation
+  """
+  returning: InventoryReturning @shareable
+  """
+  The number of rows mutated
+  """
+  rowCount: Int! @shareable
+}
+
+"""
+Information about pagination in a collection of objects
+"""
+type PageInfo
+  @shareable
+{
+  """
+  When paginating backwards, are there more items?
+  """
+  hasPreviousPage: Boolean! @shareable
+  """
+  When paginating forwards, are there more items?
+  """
+  hasNextPage: Boolean! @shareable
+  """
+  The cursor of the first item in the page
+  """
+  startCursor: String @shareable
+  """
+  The cursor of the last item in the page
+  """
+  endCursor: String @shareable
+}
+
+type Query {
+  """
+  Query a unique Inventory
+  """
+  inventoryInventory(
+    """
+    Input for unique Inventory lookup
+    """
+    lookup: InventoryLookupInput!,
+  ): Inventory @pgSelectOne
+  """
+  Query and paginate multiple inventories
+  """
+  inventoryInventories(
+    """
+    Filter for Inventory
+    """
+    filter: InventoryFilterInput,
+    """
+    Limit the number of results, from the beginning
+    """
+    first: Int,
+    """
+    Limit the number of results, from the end
+    """
+    last: Int,
+    """
+    Cursor for pagination, select items before the cursor. Use together with `last`.
+    """
+    before: String,
+    """
+    Cursor for pagination, select items after the cursor. Use together with `first`.
+    """
+    after: String,
+    """
+    Order the results by selected fields
+    """
+    orderBy: [InventoryOrderByInput!],
+  ): InventoryConnection! @pgSelectMany
+  """
+  Lookup multiple inventories for subgraph joins
+  """
+  inventoryInventoryLookup(
+    """
+    Filter inventories with an array of keys
+    """
+    lookup: InventoryManyLookupInput @inaccessible,
+  ): [Inventory]! @pgLookup @lookup @inaccessible
+}
+
+type Mutation {
+  """
+  Create a single Inventory
+  """
+  inventoryInventoryCreate(
+    """
+    Input for creating a single Inventory
+    """
+    input: InventoryInventoryCreateInput!,
+  ): InventoryCreatePayload! @pgInsertOne
+  """
+  Create multiple inventories
+  """
+  inventoryInventoryCreateMany(
+    """
+    Input for creating multiple Inventory instances
+    """
+    input: [InventoryInventoryCreateInput!]!,
+  ): InventoryCreateManyPayload! @pgInsertMany
+  """
+  Update a unique Inventory
+  """
+  inventoryInventoryUpdate(
+    """
+    Lookup input for unique Inventory update
+    """
+    lookup: InventoryLookupInput!,
+    """
+    Input for updating a Inventory
+    """
+    input: InventoryInventoryUpdateInput,
+  ): InventoryUpdatePayload! @pgUpdateOne
+  """
+  Update multiple inventories
+  """
+  inventoryInventoryUpdateMany(
+    """
+    Filter for updating multiple Inventory instances
+    """
+    filter: InventoryFilterInput,
+    """
+    Input for updating multiple Inventory instances
+    """
+    input: InventoryInventoryUpdateInput,
+  ): InventoryUpdateManyPayload! @pgUpdateMany
+  """
+  Delete a unique Inventory
+  """
+  inventoryInventoryDelete(
+    """
+    Lookup input for unique Inventory deletion
+    """
+    lookup: InventoryLookupInput!,
+  ): InventoryDeletePayload! @pgDeleteOne
+  """
+  Delete multiple inventories
+  """
+  inventoryInventoryDeleteMany(
+    """
+    Filter for Inventory deletion
+    """
+    filter: InventoryFilterInput,
+  ): InventoryDeleteManyPayload! @pgDeleteMany
+}
+
+

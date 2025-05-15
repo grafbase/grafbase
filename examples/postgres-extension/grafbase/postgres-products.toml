@@ -1,0 +1,19 @@
+# The URL of the extension, which appears at the top of the GraphQL SDL.
+extension_url = "https://grafbase.com/extensions/postgres/0.4.7"
+
+# The default schema, which we'll omit from the SDL output.
+# Defaults to "public" if you don't specify it
+default_schema = "public"
+
+# The name of the database the virtual subgraph should use. This
+# maps to a Postgres database name in your gateway configuration.
+# Defaults to "default" if you don't specify it
+database_name = "products"
+
+# Enable mutations (write operations) globally for the whole database.
+# Defaults to true if you omit this setting.
+enable_mutations = true
+
+# Enable queries (read operations) globally for the whole database.
+# Defaults to true if you omit this setting.
+enable_queries = true
