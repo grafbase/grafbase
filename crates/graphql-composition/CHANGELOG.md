@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.8.0 - 2025-05-16
+
+### Breaking changes
+
+- The import url for the composite schemas spec changed from "https://specs.grafbase.com/composite-schema/v1" to "https://specs.grafbase.com/composite-schemas/v1"
 
 ## 0.7.3 - 2025-04-30
 
