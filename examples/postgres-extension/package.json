@@ -1,0 +1,30 @@
+{
+  "name": "grafbase-pagination-demo",
+  "version": "1.0.0",
+  "description": "A demo of Relay-style pagination with Grafbase Postgres extension",
+  "scripts": {
+    "dev": "parcel index.html",
+    "build": "parcel build index.html",
+    "start": "parcel serve index.html"
+  },
+  "dependencies": {
+    "graphql": "^16.8.1",
+    "graphql-request": "^6.1.0"
+  },
+  "devDependencies": {
+    "parcel": "^2.10.3"
+  },
+  "browserslist": [
+    "last 2 Chrome versions",
+    "last 2 Firefox versions",
+    "last 2 Safari versions"
+  ],
+  "keywords": [
+    "grafbase",
+    "graphql",
+    "pagination",
+    "postgres"
+  ],
+  "author": "",
+  "license": "MIT"
+}

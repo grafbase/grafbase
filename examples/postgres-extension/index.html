@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grafbase Postgres Extension - Relay Pagination Demo</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Grafbase Postgres Extension Demo</h1>
+            <p class="tagline">Showcasing Relay-style pagination with GraphQL</p>
+        </header>
+
+        <main>
+            <section id="products-section">
+                <div class="section-header">
+                    <h2>Products</h2>
+                    <div class="loading-indicator" id="products-loading">Loading...</div>
+                </div>
+                
+                <div class="table-container">
+                    <table id="products-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>SKU</th>
+                                <th>Name</th>
+                                <th>Price</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="products-body">
+                            <!-- Products will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="pagination">
+                    <button id="products-prev" class="pagination-btn" disabled>Previous</button>
+                    <span id="products-page-info">Page 1</span>
+                    <button id="products-next" class="pagination-btn">Next</button>
+                </div>
+            </section>
+
+            <section id="variants-section" class="hidden">
+                <div class="section-header">
+                    <h2>Variants for <span id="product-name"></span></h2>
+                    <div class="loading-indicator" id="variants-loading">Loading...</div>
+                    <button id="back-to-products" class="btn-back">← Back to Products</button>
+                </div>
+                
+                <div class="table-container">
+                    <table id="variants-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>SKU</th>
+                                <th>Name</th>
+                                <th>Price</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="variants-body">
+                            <!-- Variants will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="pagination">
+                    <button id="variants-prev" class="pagination-btn" disabled>Previous</button>
+                    <span id="variants-page-info">Page 1</span>
+                    <button id="variants-next" class="pagination-btn">Next</button>
+                </div>
+            </section>
+
+            <section id="inventory-section" class="hidden">
+                <div class="section-header">
+                    <h2>Inventory for <span id="variant-name"></span></h2>
+                    <div class="loading-indicator" id="inventory-loading">Loading...</div>
+                    <button id="back-to-variants" class="btn-back">← Back to Variants</button>
+                </div>
+                
+                <div class="table-container">
+                    <table id="inventory-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>SKU</th>
+                                <th>Quantity</th>
+                                <th>Warehouse Location</th>
+                                <th>Updated At</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventory-body">
+                            <!-- Inventory will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="pagination">
+                    <button id="inventory-prev" class="pagination-btn" disabled>Previous</button>
+                    <span id="inventory-page-info">Page 1</span>
+                    <button id="inventory-next" class="pagination-btn">Next</button>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>Powered by <a href="https://grafbase.com" target="_blank">Grafbase</a> | <a href="https://github.com/grafbase/grafbase" target="_blank">GitHub</a></p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,1411 @@
+extend schema
+  @link(
+    url: "https://grafbase.com/extensions/postgres/0.4.7",
+    import: [
+      "@pgDatabase",
+      "@pgTable",
+      "@pgColumn",
+      "@pgEnum",
+      "@pgEnumVariant",
+      "@pgRelation",
+      "@pgKey",
+      "@pgLookup",
+      "@pgSelectOne",
+      "@pgSelectMany",
+      "@pgInsertOne",
+      "@pgInsertMany",
+      "@pgUpdateOne",
+      "@pgUpdateMany",
+      "@pgDeleteOne",
+      "@pgDeleteMany",
+      "@pgConnection",
+      "@pgMutation",
+      "@pgReturning",
+      "PgKeyType",
+      "PgColumnType",
+      "PgRelationType"
+    ]
+  )
+  @link(
+    url: "https://specs.grafbase.com/composite-schema/v1",
+    import: [
+      "@lookup",
+      "@key"
+    ]
+  )
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.3",
+    import: [
+      "@shareable",
+      "@inaccessible"
+    ]
+  )
+  @pgDatabase(name: "products")
+
+"""
+Decimal data type with arbitrary precision, represented as a string containing a numeric value
+"""
+scalar Decimal
+
+"""
+Currency amount data type represented as a string with a numeric value and optional currency symbol
+"""
+scalar Money
+
+"""
+Timestamp data type represented as a string in ISO 8601 format (YYYY-MM-DDTHH:MM:SS.sss)
+"""
+scalar Timestamp
+
+"""
+UUID data type represented as a string in the format xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+"""
+scalar UUID
+
+"""
+Specifies the direction for ordering results.
+"""
+enum OrderDirection {
+  """
+  Specifies an ascending order for a given orderBy argument.
+  """
+  ASC
+  """
+  Specifies a descending order for a given orderBy argument.
+  """
+  DESC
+}
+
+"""
+Search filter input for Decimal type.
+"""
+input DecimalFilterInput @oneOf {
+  """
+  The value is exactly the one given
+  """
+  eq: Decimal
+  """
+  The value is not the one given
+  """
+  ne: Decimal
+  """
+  The value is greater than the one given
+  """
+  gt: Decimal
+  """
+  The value is less than the one given
+  """
+  lt: Decimal
+  """
+  The value is greater than, or equal to the one given
+  """
+  gte: Decimal
+  """
+  The value is less than, or equal to the one given
+  """
+  lte: Decimal
+  """
+  The value is in the given array of values
+  """
+  in: [Decimal!]
+  """
+  The value is not in the given array of values
+  """
+  nin: [Decimal!]
+  """
+  A negation of the given filter
+  """
+  not: DecimalFilterInput
+}
+
+"""
+Update input for Decimal type.
+"""
+input DecimalUpdateInput @oneOf {
+  """
+  Replaces the value of a field with the specified value.
+  """
+  set: Decimal
+  """
+  Increments the value of a field by the specified value.
+  """
+  increment: Decimal
+  """
+  Decrements the value of a field by the specified value.
+  """
+  decrement: Decimal
+  """
+  Multiplies the value of a field by the specified value.
+  """
+  multiply: Decimal
+  """
+  Divides the value of a field by the specified value.
+  """
+  divide: Decimal
+}
+
+"""
+Search filter input for Money type.
+"""
+input MoneyFilterInput @oneOf {
+  """
+  The value is exactly the one given
+  """
+  eq: Money
+  """
+  The value is not the one given
+  """
+  ne: Money
+  """
+  The value is greater than the one given
+  """
+  gt: Money
+  """
+  The value is less than the one given
+  """
+  lt: Money
+  """
+  The value is greater than, or equal to the one given
+  """
+  gte: Money
+  """
+  The value is less than, or equal to the one given
+  """
+  lte: Money
+  """
+  The value is in the given array of values
+  """
+  in: [Money!]
+  """
+  The value is not in the given array of values
+  """
+  nin: [Money!]
+  """
+  A negation of the given filter
+  """
+  not: MoneyFilterInput
+}
+
+"""
+Update input for Money type.
+"""
+input MoneyUpdateInput @oneOf {
+  """
+  Replaces the value of a field with the specified value.
+  """
+  set: Money
+  """
+  Increments the value of a field by the specified value.
+  """
+  increment: Money
+  """
+  Decrements the value of a field by the specified value.
+  """
+  decrement: Money
+  """
+  Multiplies the value of a field by the specified value.
+  """
+  multiply: Money
+  """
+  Divides the value of a field by the specified value.
+  """
+  divide: Money
+}
+
+"""
+Filter input type for Product objects.
+"""
+input ProductFilterInput @oneOf {
+  """
+  Filter by the given id
+  """
+  id: UUIDFilterInput
+  """
+  Filter by the given sku
+  """
+  sku: StringFilterInput
+  """
+  Filter by the given name
+  """
+  name: StringFilterInput
+  """
+  Filter by the given slug
+  """
+  slug: StringFilterInput
+  """
+  Filter by the given description
+  """
+  description: StringFilterInput
+  """
+  Filter by the given price
+  """
+  price: DecimalFilterInput
+  """
+  Filter by the given createdAt
+  """
+  createdAt: TimestampFilterInput
+  """
+  Filter by the given updatedAt
+  """
+  updatedAt: TimestampFilterInput
+  """
+  Filter by the related Variant objects
+  """
+  variants: VariantCollectionFilterInput
+  """
+  All of the filters must match
+  """
+  ALL: [ProductFilterInput]
+  """
+  None of the filters must match
+  """
+  NONE: [ProductFilterInput]
+  """
+  At least one of the filters must match
+  """
+  ANY: [ProductFilterInput]
+}
+
+"""
+Input type to select a unique Product
+"""
+input ProductLookupInput @oneOf {
+  """
+  Select by the 'id' field
+  """
+  id: UUID
+  """
+  Select by the 'sku' field
+  """
+  sku: String
+  """
+  Select by the 'slug' field
+  """
+  slug: String
+}
+
+"""
+Lookup input type for Product objects for subgraph joins.
+"""
+input ProductManyLookupInput @oneOf @inaccessible {
+  """
+  Select by the 'id' field
+  """
+  id: [UUID!] @inaccessible
+  """
+  Select by the 'sku' field
+  """
+  sku: [String!] @inaccessible
+  """
+  Select by the 'slug' field
+  """
+  slug: [String!] @inaccessible
+}
+
+"""
+Specifies the ordering for Product results.
+"""
+input ProductOrderByInput @oneOf {
+  """
+  Order products by id
+  """
+  id: OrderDirection
+  """
+  Order products by sku
+  """
+  sku: OrderDirection
+  """
+  Order products by name
+  """
+  name: OrderDirection
+  """
+  Order products by slug
+  """
+  slug: OrderDirection
+  """
+  Order products by description
+  """
+  description: OrderDirection
+  """
+  Order products by price
+  """
+  price: OrderDirection
+  """
+  Order products by createdAt
+  """
+  createdAt: OrderDirection
+  """
+  Order products by updatedAt
+  """
+  updatedAt: OrderDirection
+}
+
+"""
+Input for creating a new Product
+"""
+input ProductsProductCreateInput {
+  """
+  Set field value for id
+  """
+  id: UUID
+  """
+  Set field value for sku
+  """
+  sku: String!
+  """
+  Set field value for name
+  """
+  name: String!
+  """
+  Set field value for slug
+  """
+  slug: String!
+  """
+  Set field value for description
+  """
+  description: String
+  """
+  Set field value for price
+  """
+  price: Decimal!
+  """
+  Set field value for createdAt
+  """
+  createdAt: Timestamp
+  """
+  Set field value for updatedAt
+  """
+  updatedAt: Timestamp
+}
+
+"""
+Input for updating an existing Product
+"""
+input ProductsProductUpdateInput {
+  """
+  Update field value for id
+  """
+  id: UUIDUpdateInput
+  """
+  Update field value for sku
+  """
+  sku: StringUpdateInput
+  """
+  Update field value for name
+  """
+  name: StringUpdateInput
+  """
+  Update field value for slug
+  """
+  slug: StringUpdateInput
+  """
+  Update field value for description
+  """
+  description: StringUpdateInput
+  """
+  Update field value for price
+  """
+  price: DecimalUpdateInput
+  """
+  Update field value for createdAt
+  """
+  createdAt: TimestampUpdateInput
+  """
+  Update field value for updatedAt
+  """
+  updatedAt: TimestampUpdateInput
+}
+
+"""
+Input for creating a new Variant
+"""
+input ProductsVariantCreateInput {
+  """
+  Set field value for id
+  """
+  id: UUID
+  """
+  Set field value for productId
+  """
+  productId: UUID!
+  """
+  Set field value for sku
+  """
+  sku: String!
+  """
+  Set field value for name
+  """
+  name: String
+  """
+  Set field value for price
+  """
+  price: Money
+  """
+  Set field value for createdAt
+  """
+  createdAt: Timestamp
+  """
+  Set field value for updatedAt
+  """
+  updatedAt: Timestamp
+}
+
+"""
+Input for updating an existing Variant
+"""
+input ProductsVariantUpdateInput {
+  """
+  Update field value for id
+  """
+  id: UUIDUpdateInput
+  """
+  Update field value for productId
+  """
+  productId: UUIDUpdateInput
+  """
+  Update field value for sku
+  """
+  sku: StringUpdateInput
+  """
+  Update field value for name
+  """
+  name: StringUpdateInput
+  """
+  Update field value for price
+  """
+  price: MoneyUpdateInput
+  """
+  Update field value for createdAt
+  """
+  createdAt: TimestampUpdateInput
+  """
+  Update field value for updatedAt
+  """
+  updatedAt: TimestampUpdateInput
+}
+
+"""
+Search filter input for String type.
+"""
+input StringFilterInput @oneOf {
+  """
+  The value is exactly the one given
+  """
+  eq: String
+  """
+  The value is not the one given
+  """
+  ne: String
+  """
+  The value is greater than the one given
+  """
+  gt: String
+  """
+  The value is less than the one given
+  """
+  lt: String
+  """
+  The value is greater than, or equal to the one given
+  """
+  gte: String
+  """
+  The value is less than, or equal to the one given
+  """
+  lte: String
+  """
+  The given input is part of the column value
+  """
+  like: String
+  """
+  The value is in the given array of values
+  """
+  in: [String!]
+  """
+  The value is not in the given array of values
+  """
+  nin: [String!]
+  """
+  A negation of the given filter
+  """
+  not: StringFilterInput
+}
+
+"""
+Update input for String type.
+"""
+input StringUpdateInput @oneOf {
+  """
+  Replaces the value of a field with the specified value.
+  """
+  set: String
+}
+
+"""
+Search filter input for Timestamp type.
+"""
+input TimestampFilterInput @oneOf {
+  """
+  The value is exactly the one given
+  """
+  eq: Timestamp
+  """
+  The value is not the one given
+  """
+  ne: Timestamp
+  """
+  The value is greater than the one given
+  """
+  gt: Timestamp
+  """
+  The value is less than the one given
+  """
+  lt: Timestamp
+  """
+  The value is greater than, or equal to the one given
+  """
+  gte: Timestamp
+  """
+  The value is less than, or equal to the one given
+  """
+  lte: Timestamp
+  """
+  The value is in the given array of values
+  """
+  in: [Timestamp!]
+  """
+  The value is not in the given array of values
+  """
+  nin: [Timestamp!]
+  """
+  A negation of the given filter
+  """
+  not: TimestampFilterInput
+}
+
+"""
+Update input for Timestamp type.
+"""
+input TimestampUpdateInput @oneOf {
+  """
+  Replaces the value of a field with the specified value.
+  """
+  set: Timestamp
+}
+
+"""
+Search filter input for UUID type.
+"""
+input UUIDFilterInput @oneOf {
+  """
+  The value is exactly the one given
+  """
+  eq: UUID
+  """
+  The value is not the one given
+  """
+  ne: UUID
+  """
+  The value is greater than the one given
+  """
+  gt: UUID
+  """
+  The value is less than the one given
+  """
+  lt: UUID
+  """
+  The value is greater than, or equal to the one given
+  """
+  gte: UUID
+  """
+  The value is less than, or equal to the one given
+  """
+  lte: UUID
+  """
+  The value is in the given array of values
+  """
+  in: [UUID!]
+  """
+  The value is not in the given array of values
+  """
+  nin: [UUID!]
+  """
+  A negation of the given filter
+  """
+  not: UUIDFilterInput
+}
+
+"""
+Update input for UUID type.
+"""
+input UUIDUpdateInput @oneOf {
+  """
+  Replaces the value of a field with the specified value.
+  """
+  set: UUID
+}
+
+"""
+Filter input type for Variant collections
+"""
+input VariantCollectionFilterInput {
+  """
+  The object is related to an object with the given fields
+  """
+  contains: VariantFilterInput
+}
+
+"""
+Filter input type for Variant objects.
+"""
+input VariantFilterInput @oneOf {
+  """
+  Filter by the given id
+  """
+  id: UUIDFilterInput
+  """
+  Filter by the given productId
+  """
+  productId: UUIDFilterInput
+  """
+  Filter by the given sku
+  """
+  sku: StringFilterInput
+  """
+  Filter by the given name
+  """
+  name: StringFilterInput
+  """
+  Filter by the given price
+  """
+  price: MoneyFilterInput
+  """
+  Filter by the given createdAt
+  """
+  createdAt: TimestampFilterInput
+  """
+  Filter by the given updatedAt
+  """
+  updatedAt: TimestampFilterInput
+  """
+  Filter by the related Product object
+  """
+  product: ProductFilterInput
+  """
+  All of the filters must match
+  """
+  ALL: [VariantFilterInput]
+  """
+  None of the filters must match
+  """
+  NONE: [VariantFilterInput]
+  """
+  At least one of the filters must match
+  """
+  ANY: [VariantFilterInput]
+}
+
+"""
+Input type to select a unique Variant
+"""
+input VariantLookupInput @oneOf {
+  """
+  Select by the 'id' field
+  """
+  id: UUID
+  """
+  Select by the 'sku' field
+  """
+  sku: String
+}
+
+"""
+Lookup input type for Variant objects for subgraph joins.
+"""
+input VariantManyLookupInput @oneOf @inaccessible {
+  """
+  Select by the 'id' field
+  """
+  id: [UUID!] @inaccessible
+  """
+  Select by the 'sku' field
+  """
+  sku: [String!] @inaccessible
+}
+
+"""
+Specifies the ordering for Variant results.
+"""
+input VariantOrderByInput @oneOf {
+  """
+  Order variants by id
+  """
+  id: OrderDirection
+  """
+  Order variants by productId
+  """
+  productId: OrderDirection
+  """
+  Order variants by sku
+  """
+  sku: OrderDirection
+  """
+  Order variants by name
+  """
+  name: OrderDirection
+  """
+  Order variants by price
+  """
+  price: OrderDirection
+  """
+  Order variants by createdAt
+  """
+  createdAt: OrderDirection
+  """
+  Order variants by updatedAt
+  """
+  updatedAt: OrderDirection
+  """
+  Order Variant results by Product fields
+  """
+  product: ProductOrderByInput
+}
+
+"""
+Information about pagination in a collection of objects
+"""
+type PageInfo
+  @shareable
+{
+  """
+  When paginating backwards, are there more items?
+  """
+  hasPreviousPage: Boolean! @shareable
+  """
+  When paginating forwards, are there more items?
+  """
+  hasNextPage: Boolean! @shareable
+  """
+  The cursor of the first item in the page
+  """
+  startCursor: String @shareable
+  """
+  The cursor of the last item in the page
+  """
+  endCursor: String @shareable
+}
+
+type Product
+  @key(fields: "id")
+  @key(fields: "sku")
+  @key(fields: "slug")
+  @pgTable(name: "products")
+  @pgKey(fields: ["id"], type: PRIMARY)
+  @pgKey(fields: ["sku"], type: UNIQUE)
+  @pgKey(fields: ["slug"], type: UNIQUE)
+{
+  id: UUID! @pgColumn(name: "id", type: UUID)
+  sku: String! @pgColumn(name: "sku", type: VARCHAR)
+  name: String! @pgColumn(name: "name", type: VARCHAR)
+  slug: String! @pgColumn(name: "slug", type: VARCHAR)
+  description: String @pgColumn(name: "description", type: TEXT)
+  price: Decimal! @pgColumn(name: "price", type: NUMERIC)
+  createdAt: Timestamp! @pgColumn(name: "created_at", type: TIMESTAMP)
+  updatedAt: Timestamp! @pgColumn(name: "updated_at", type: TIMESTAMP)
+  variants(
+    """
+    Filter the related Variant instances
+    """
+    filter: VariantFilterInput,
+    """
+    Select the first Variant instances
+    """
+    first: Int,
+    """
+    Select the last Variant instances
+    """
+    last: Int,
+    """
+    Select the Variant instances before the given cursor
+    """
+    before: String,
+    """
+    Select the Variant instances after the given cursor
+    """
+    after: String,
+    """
+    Order the Variant instances by the given fields
+    """
+    orderBy: [VariantOrderByInput!],
+  ): VariantConnection! @pgRelation(name: "variants_to_products")
+}
+
+"""
+The connection type for Product
+"""
+type ProductConnection
+  @pgConnection(type: "Product")
+{
+  """
+  A list of edges
+  """
+  edges: [ProductEdge!]! @shareable
+  """
+  Information to aid in pagination
+  """
+  pageInfo: PageInfo! @shareable
+}
+
+"""
+Return type when creating many products
+"""
+type ProductCreateManyPayload
+  @pgMutation(type: "Product")
+{
+  """
+  Returned item(s) from the mutation
+  """
+  returning: [ProductReturning]! @shareable
+  """
+  The number of rows mutated
+  """
+  rowCount: Int! @shareable
+}
+
+"""
+Return type when creating one Product
+"""
+type ProductCreatePayload
+  @pgMutation(type: "Product")
+{
+  """
+  Returned item(s) from the mutation
+  """
+  returning: ProductReturning @shareable
+  """
+  The number of rows mutated
+  """
+  rowCount: Int! @shareable
+}
+
+"""
+Return type when deleting many products
+"""
+type ProductDeleteManyPayload
+  @pgMutation(type: "Product")
+{
+  """
+  Returned item(s) from the mutation
+  """
+  returning: [ProductReturning]! @shareable
+  """
+  The number of rows mutated
+  """
+  rowCount: Int! @shareable
+}
+
+"""
+Return type when deleting one Product
+"""
+type ProductDeletePayload
+  @pgMutation(type: "Product")
+{
+  """
+  Returned item(s) from the mutation
+  """
+  returning: ProductReturning @shareable
+  """
+  The number of rows mutated
+  """
+  rowCount: Int! @shareable
+}
+
+"""
+An edge in a connection. Contains the node and its cursor
+"""
+type ProductEdge {
+  """
+  The item at the end of the edge
+  """
+  node: Product! @shareable
+  """
+  A cursor for use in pagination
+  """
+  cursor: String! @shareable
+}
+
+"""
+Return type containing fields of the mutated or created Product object
+"""
+type ProductReturning
+  @pgReturning(type: "Product")
+{
+  """
+  The value of the id field
+  """
+  id: UUID! @shareable
+  """
+  The value of the sku field
+  """
+  sku: String! @shareable
+  """
+  The value of the name field
+  """
+  name: String!
+  """
+  The value of the slug field
+  """
+  slug: String! @shareable
+  """
+  The value of the description field
+  """
+  description: String
+  """
+  The value of the price field
+  """
+  price: Decimal!
+  """
+  The value of the createdAt field
+  """
+  createdAt: Timestamp!
+  """
+  The value of the updatedAt field
+  """
+  updatedAt: Timestamp!
+}
+
+"""
+Return type when updating many products
+"""
+type ProductUpdateManyPayload
+  @pgMutation(type: "Product")
+{
+  """
+  Returned item(s) from the mutation
+  """
+  returning: [ProductReturning]! @shareable
+  """
+  The number of rows mutated
+  """
+  rowCount: Int! @shareable
+}
+
+"""
+Return type when updating one Product
+"""
+type ProductUpdatePayload
+  @pgMutation(type: "Product")
+{
+  """
+  Returned item(s) from the mutation
+  """
+  returning: ProductReturning @shareable
+  """
+  The number of rows mutated
+  """
+  rowCount: Int! @shareable
+}
+
+type Variant
+  @key(fields: "id")
+  @key(fields: "sku")
+  @pgTable(name: "variants")
+  @pgKey(fields: ["id"], type: PRIMARY)
+  @pgKey(fields: ["sku"], type: UNIQUE)
+{
+  id: UUID! @pgColumn(name: "id", type: UUID)
+  productId: UUID! @pgColumn(name: "product_id", type: UUID)
+  sku: String! @pgColumn(name: "sku", type: VARCHAR)
+  name: String @pgColumn(name: "name", type: VARCHAR)
+  price: Money @pgColumn(name: "price", type: MONEY)
+  createdAt: Timestamp! @pgColumn(name: "created_at", type: TIMESTAMP)
+  updatedAt: Timestamp! @pgColumn(name: "updated_at", type: TIMESTAMP)
+  product: Product! @pgRelation(name: "variants_to_products", fields: ["productId"], references: ["id"])
+}
+
+"""
+The connection type for Variant
+"""
+type VariantConnection
+  @pgConnection(type: "Variant")
+{
+  """
+  A list of edges
+  """
+  edges: [VariantEdge!]! @shareable
+  """
+  Information to aid in pagination
+  """
+  pageInfo: PageInfo! @shareable
+}
+
+"""
+Return type when creating many variants
+"""
+type VariantCreateManyPayload
+  @pgMutation(type: "Variant")
+{
+  """
+  Returned item(s) from the mutation
+  """
+  returning: [VariantReturning]! @shareable
+  """
+  The number of rows mutated
+  """
+  rowCount: Int! @shareable
+}
+
+"""
+Return type when creating one Variant
+"""
+type VariantCreatePayload
+  @pgMutation(type: "Variant")
+{
+  """
+  Returned item(s) from the mutation
+  """
+  returning: VariantReturning @shareable
+  """
+  The number of rows mutated
+  """
+  rowCount: Int! @shareable
+}
+
+"""
+Return type when deleting many variants
+"""
+type VariantDeleteManyPayload
+  @pgMutation(type: "Variant")
+{
+  """
+  Returned item(s) from the mutation
+  """
+  returning: [VariantReturning]! @shareable
+  """
+  The number of rows mutated
+  """
+  rowCount: Int! @shareable
+}
+
+"""
+Return type when deleting one Variant
+"""
+type VariantDeletePayload
+  @pgMutation(type: "Variant")
+{
+  """
+  Returned item(s) from the mutation
+  """
+  returning: VariantReturning @shareable
+  """
+  The number of rows mutated
+  """
+  rowCount: Int! @shareable
+}
+
+"""
+An edge in a connection. Contains the node and its cursor
+"""
+type VariantEdge {
+  """
+  The item at the end of the edge
+  """
+  node: Variant! @shareable
+  """
+  A cursor for use in pagination
+  """
+  cursor: String! @shareable
+}
+
+"""
+Return type containing fields of the mutated or created Variant object
+"""
+type VariantReturning
+  @pgReturning(type: "Variant")
+{
+  """
+  The value of the id field
+  """
+  id: UUID! @shareable
+  """
+  The value of the productId field
+  """
+  productId: UUID!
+  """
+  The value of the sku field
+  """
+  sku: String! @shareable
+  """
+  The value of the name field
+  """
+  name: String
+  """
+  The value of the price field
+  """
+  price: Money
+  """
+  The value of the createdAt field
+  """
+  createdAt: Timestamp!
+  """
+  The value of the updatedAt field
+  """
+  updatedAt: Timestamp!
+}
+
+"""
+Return type when updating many variants
+"""
+type VariantUpdateManyPayload
+  @pgMutation(type: "Variant")
+{
+  """
+  Returned item(s) from the mutation
+  """
+  returning: [VariantReturning]! @shareable
+  """
+  The number of rows mutated
+  """
+  rowCount: Int! @shareable
+}
+
+"""
+Return type when updating one Variant
+"""
+type VariantUpdatePayload
+  @pgMutation(type: "Variant")
+{
+  """
+  Returned item(s) from the mutation
+  """
+  returning: VariantReturning @shareable
+  """
+  The number of rows mutated
+  """
+  rowCount: Int! @shareable
+}
+
+type Query {
+  """
+  Query a unique Product
+  """
+  productsProduct(
+    """
+    Input for unique Product lookup
+    """
+    lookup: ProductLookupInput!,
+  ): Product @pgSelectOne
+  """
+  Query and paginate multiple products
+  """
+  productsProducts(
+    """
+    Filter for Product
+    """
+    filter: ProductFilterInput,
+    """
+    Limit the number of results, from the beginning
+    """
+    first: Int,
+    """
+    Limit the number of results, from the end
+    """
+    last: Int,
+    """
+    Cursor for pagination, select items before the cursor. Use together with `last`.
+    """
+    before: String,
+    """
+    Cursor for pagination, select items after the cursor. Use together with `first`.
+    """
+    after: String,
+    """
+    Order the results by selected fields
+    """
+    orderBy: [ProductOrderByInput!],
+  ): ProductConnection! @pgSelectMany
+  """
+  Lookup multiple products for subgraph joins
+  """
+  productsProductLookup(
+    """
+    Filter products with an array of keys
+    """
+    lookup: ProductManyLookupInput @inaccessible,
+  ): [Product]! @pgLookup @lookup @inaccessible
+  """
+  Query a unique Variant
+  """
+  productsVariant(
+    """
+    Input for unique Variant lookup
+    """
+    lookup: VariantLookupInput!,
+  ): Variant @pgSelectOne
+  """
+  Query and paginate multiple variants
+  """
+  productsVariants(
+    """
+    Filter for Variant
+    """
+    filter: VariantFilterInput,
+    """
+    Limit the number of results, from the beginning
+    """
+    first: Int,
+    """
+    Limit the number of results, from the end
+    """
+    last: Int,
+    """
+    Cursor for pagination, select items before the cursor. Use together with `last`.
+    """
+    before: String,
+    """
+    Cursor for pagination, select items after the cursor. Use together with `first`.
+    """
+    after: String,
+    """
+    Order the results by selected fields
+    """
+    orderBy: [VariantOrderByInput!],
+  ): VariantConnection! @pgSelectMany
+  """
+  Lookup multiple variants for subgraph joins
+  """
+  productsVariantLookup(
+    """
+    Filter variants with an array of keys
+    """
+    lookup: VariantManyLookupInput @inaccessible,
+  ): [Variant]! @pgLookup @lookup @inaccessible
+}
+
+type Mutation {
+  """
+  Create a single Product
+  """
+  productsProductCreate(
+    """
+    Input for creating a single Product
+    """
+    input: ProductsProductCreateInput!,
+  ): ProductCreatePayload! @pgInsertOne
+  """
+  Create multiple products
+  """
+  productsProductCreateMany(
+    """
+    Input for creating multiple Product instances
+    """
+    input: [ProductsProductCreateInput!]!,
+  ): ProductCreateManyPayload! @pgInsertMany
+  """
+  Update a unique Product
+  """
+  productsProductUpdate(
+    """
+    Lookup input for unique Product update
+    """
+    lookup: ProductLookupInput!,
+    """
+    Input for updating a Product
+    """
+    input: ProductsProductUpdateInput,
+  ): ProductUpdatePayload! @pgUpdateOne
+  """
+  Update multiple products
+  """
+  productsProductUpdateMany(
+    """
+    Filter for updating multiple Product instances
+    """
+    filter: ProductFilterInput,
+    """
+    Input for updating multiple Product instances
+    """
+    input: ProductsProductUpdateInput,
+  ): ProductUpdateManyPayload! @pgUpdateMany
+  """
+  Delete a unique Product
+  """
+  productsProductDelete(
+    """
+    Lookup input for unique Product deletion
+    """
+    lookup: ProductLookupInput!,
+  ): ProductDeletePayload! @pgDeleteOne
+  """
+  Delete multiple products
+  """
+  productsProductDeleteMany(
+    """
+    Filter for Product deletion
+    """
+    filter: ProductFilterInput,
+  ): ProductDeleteManyPayload! @pgDeleteMany
+  """
+  Create a single Variant
+  """
+  productsVariantCreate(
+    """
+    Input for creating a single Variant
+    """
+    input: ProductsVariantCreateInput!,
+  ): VariantCreatePayload! @pgInsertOne
+  """
+  Create multiple variants
+  """
+  productsVariantCreateMany(
+    """
+    Input for creating multiple Variant instances
+    """
+    input: [ProductsVariantCreateInput!]!,
+  ): VariantCreateManyPayload! @pgInsertMany
+  """
+  Update a unique Variant
+  """
+  productsVariantUpdate(
+    """
+    Lookup input for unique Variant update
+    """
+    lookup: VariantLookupInput!,
+    """
+    Input for updating a Variant
+    """
+    input: ProductsVariantUpdateInput,
+  ): VariantUpdatePayload! @pgUpdateOne
+  """
+  Update multiple variants
+  """
+  productsVariantUpdateMany(
+    """
+    Filter for updating multiple Variant instances
+    """
+    filter: VariantFilterInput,
+    """
+    Input for updating multiple Variant instances
+    """
+    input: ProductsVariantUpdateInput,
+  ): VariantUpdateManyPayload! @pgUpdateMany
+  """
+  Delete a unique Variant
+  """
+  productsVariantDelete(
+    """
+    Lookup input for unique Variant deletion
+    """
+    lookup: VariantLookupInput!,
+  ): VariantDeletePayload! @pgDeleteOne
+  """
+  Delete multiple variants
+  """
+  productsVariantDeleteMany(
+    """
+    Filter for Variant deletion
+    """
+    filter: VariantFilterInput,
+  ): VariantDeleteManyPayload! @pgDeleteMany
+}
+
+
