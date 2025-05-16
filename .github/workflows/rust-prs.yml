@@ -466,6 +466,7 @@ jobs:
           project: ${{ env.DEPOT_PROJECT }}
           token: ${{ secrets.DEPOT_TOKEN }}
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: ghcr.io/grafbase/gateway:${{ env.COMMIT_SHA }}
           file: ./gateway/Dockerfile
 
