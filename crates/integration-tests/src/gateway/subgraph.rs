@@ -55,11 +55,17 @@ impl Subgraphs {
         let docker_subgraphs_fut = docker_subgraphs
             .into_iter()
             .map(|subgraph| async move {
+                if let Some(sdl) = subgraph.schema() {
+                    return Subgraph::Docker { sdl, subgraph };
+                };
+
                 let request = IntrospectionQuery::with_capabilities(SpecificationVersion::October2021.capabilities());
+
                 #[derive(serde::Deserialize)]
                 struct Response {
                     data: IntrospectionQuery,
                 }
+
                 let sdl = reqwest::Client::new()
                     .post(subgraph.url())
                     .json(&request)

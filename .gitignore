@@ -17,7 +17,6 @@ target
 
 # misc
 .DS_Store
-*.pem
 .cargo/
 .zed
 

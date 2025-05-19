@@ -56,6 +56,7 @@ impl std::ops::Deref for MockSubgraph {
 pub enum DockerSubgraph {
     Sse,
     Gqlgen,
+    Mtls,
 }
 
 impl DockerSubgraph {
@@ -63,6 +64,7 @@ impl DockerSubgraph {
         match self {
             DockerSubgraph::Sse => "sse",
             DockerSubgraph::Gqlgen => "gqlgen",
+            DockerSubgraph::Mtls => "mtls-test-subgraph",
         }
     }
 
@@ -70,7 +72,18 @@ impl DockerSubgraph {
         match self {
             DockerSubgraph::Sse => Url::parse("http://localhost:4092/graphql").unwrap(),
             DockerSubgraph::Gqlgen => Url::parse("http://localhost:8080/query").unwrap(),
+            DockerSubgraph::Mtls => Url::parse("https://localhost:8081/graphql").unwrap(),
         }
+    }
+
+    pub fn schema(&self) -> Option<String> {
+        let DockerSubgraph::Mtls = self else {
+            return None;
+        };
+
+        let schema = include_str!("../../data/mtls-subgraph/subgraph.graphql");
+
+        Some(schema.to_string())
     }
 }
 

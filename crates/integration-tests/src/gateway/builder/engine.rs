@@ -39,9 +39,11 @@ pub(super) async fn build(
                                     .expect("schema to be well formed");
                                 subgraphs
                             });
+
                     subgraphs.ingest_loaded_extensions(extensions.into_iter().map(|(manifest, url)| {
                         graphql_composition::LoadedExtension::new(url.to_string(), manifest.name().to_string())
                     }));
+
                     graphql_composition::compose(&subgraphs)
                         .into_result()
                         .expect("schemas to compose succesfully")

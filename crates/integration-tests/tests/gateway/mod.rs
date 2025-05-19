@@ -15,6 +15,7 @@ mod introspection;
 mod issues;
 mod mcp;
 mod message_signing;
+mod mtls;
 mod response_extensions;
 mod router;
 mod subgraph_retries;

@@ -13,6 +13,17 @@ services:
     ports:
       - '8080:8080'
 
+  mtls-subgraph:
+    build:
+      context: ./data/mtls-subgraph
+    ports:
+      - '8081:3001'
+    volumes:
+      - ./data/mtls-subgraph/certs:/app/certs
+    restart: unless-stopped
+    environment:
+      - RUST_LOG=info
+
   # Pretty much copy pasted from
   # https://www.ory.sh/docs/hydra/5min-tutorial
   # https://github.com/ory/hydra/blob/master/quickstart.yml
