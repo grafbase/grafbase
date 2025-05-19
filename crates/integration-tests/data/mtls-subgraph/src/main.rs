@@ -7,8 +7,8 @@ use async_graphql::{EmptyMutation, EmptySubscription, Schema};
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
 use axum::{routing::post, Router};
 use axum_server::tls_rustls::RustlsConfig;
-use rustls::server::AllowAnyAuthenticatedClient;
-use rustls::{Certificate, PrivateKey, RootCertStore, ServerConfig};
+use rustls::{RootCertStore, ServerConfig};
+use rustls::server::WebPkiClientVerifier;
 use rustls_pemfile::{certs, pkcs8_private_keys};
 
 // Define the GraphQL schema root query type
@@ -61,31 +61,38 @@ fn configure_tls() -> Result<RustlsConfig, Box<dyn std::error::Error>> {
     // Load CA certificate for client verification
     let mut root_store = RootCertStore::empty();
     let mut ca_file = BufReader::new(File::open("certs/ca-cert.pem")?);
-    for cert in certs(&mut ca_file)? {
+
+    // Collect certificates into a Vec and add them to the root store
+    let ca_certs = certs(&mut ca_file)
+        .collect::<Result<Vec<_>, _>>()?;
+    
+    for cert in ca_certs {
         root_store
-            .add(&Certificate(cert))
+            .add(cert)
             .map_err(|e| format!("Failed to add CA cert: {:?}", e))?;
     }
 
     // Setup client certificate verifier that requires clients to authenticate
-    let client_auth = AllowAnyAuthenticatedClient::new(root_store);
+    let client_verifier = WebPkiClientVerifier::builder(root_store.into())
+        .build()
+        .map_err(|e| format!("Failed to build client verifier: {:?}", e))?;
 
     // Load server certificates
     let mut cert_file = BufReader::new(File::open("certs/server-cert.pem")?);
-    let server_certs = certs(&mut cert_file)?.into_iter().map(Certificate).collect();
+    let server_certs = certs(&mut cert_file)
+        .collect::<Result<Vec<_>, _>>()?;
 
     // Load server private key
     let mut key_file = BufReader::new(File::open("certs/server-key.pem")?);
-    let mut keys = pkcs8_private_keys(&mut key_file)?;
-    if keys.is_empty() {
-        return Err("No private key found".into());
-    }
+    let keys = pkcs8_private_keys(&mut key_file)
+        .collect::<Result<Vec<_>, _>>()?;
+    let key = keys.into_iter().next()
+        .ok_or("No private key found")?;
 
     // Create server config with client certificate verification
     let config = ServerConfig::builder()
-        .with_safe_defaults()
-        .with_client_cert_verifier(client_auth)
-        .with_single_cert(server_certs, PrivateKey(keys.remove(0)))
+        .with_client_cert_verifier(client_verifier)
+        .with_single_cert(server_certs, key.into())
         .map_err(|e| format!("TLS error: {:?}", e))?;
 
     Ok(RustlsConfig::from_config(Arc::new(config)))
