@@ -53,6 +53,7 @@ impl TestRuntimeBuilder {
             fetcher,
             extensions,
         } = self;
+
         let (extensions, catalog) = extensions
             .build_and_ingest_catalog_into_config(config, schema, shared_resources.clone())
             .await
@@ -71,6 +72,7 @@ impl TestRuntimeBuilder {
         } else {
             hooks.unwrap_or_default()
         };
+
         let kv = InMemoryKvStore::runtime();
         let authentication = engine_auth::AuthenticationService::new(config, &catalog, extensions.clone(), &kv);
 

@@ -8256,6 +8256,7 @@ dependencies = [
  "enumflags2",
  "extension-catalog",
  "futures-util",
+ "fxhash",
  "gateway-config",
  "governor",
  "grafbase-telemetry",

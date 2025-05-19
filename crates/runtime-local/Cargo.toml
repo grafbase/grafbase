@@ -33,6 +33,7 @@ engine-schema.workspace = true
 enumflags2.workspace = true
 extension-catalog.workspace = true
 futures-util.workspace = true
+fxhash.workspace = true
 gateway-config.workspace = true
 governor.workspace = true
 grafbase-telemetry.workspace = true

@@ -29,8 +29,10 @@ impl<R: Runtime> PrepareContext<'_, R> {
     ) -> Response<<R::Hooks as Hooks>::OnOperationResponseOutput> {
         let background_futures: FuturesUnordered<_> =
             std::mem::take(&mut self.background_futures).into_iter().collect();
+
         let background_fut = background_futures.collect::<Vec<_>>();
         let operation = Arc::new(operation);
+
         let ctx = ExecutionContext {
             engine: self.engine,
             request_context: self.request_context,
@@ -39,13 +41,16 @@ impl<R: Runtime> PrepareContext<'_, R> {
         };
 
         tracing::trace!("Starting execution...");
+
         if operation.plan.query_modifications.root_error_ids.is_empty() {
             let response_fut = ctx.execute(self.executed_operation_builder);
             let (response, _) = futures_util::join!(response_fut, background_fut);
+
             response
         } else {
             let response_fut = ctx.response_for_root_errors(self.executed_operation_builder);
             let (response, _) = futures_util::join!(response_fut, background_fut);
+
             response
         }
     }
@@ -57,9 +62,10 @@ impl<R: Runtime> PrepareContext<'_, R> {
     ) {
         let background_futures: FuturesUnordered<_> =
             std::mem::take(&mut self.background_futures).into_iter().collect();
-        let background_fut = background_futures.collect::<Vec<_>>();
 
+        let background_fut = background_futures.collect::<Vec<_>>();
         let operation = Arc::new(operation);
+
         let ctx = ExecutionContext {
             engine: self.engine,
             request_context: self.request_context,
@@ -68,12 +74,14 @@ impl<R: Runtime> PrepareContext<'_, R> {
         };
 
         tracing::trace!("Starting execution...");
+
         if operation.plan.query_modifications.root_error_ids.is_empty() {
             let subscription_fut = ctx.execute_subscription(self.executed_operation_builder, responses);
             futures_util::join!(subscription_fut, background_fut);
         } else {
             let response_fut = ctx.response_for_root_errors(self.executed_operation_builder);
             let (response, _) = futures_util::join!(response_fut, background_fut);
+
             responses.send(response).await.ok();
         }
     }
@@ -300,6 +308,7 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
     ) -> Response<<R::Hooks as Hooks>::OnOperationResponseOutput> {
         let futures = FuturesUnordered::new();
         let initial_plans = self.state.get_executable_plans().collect::<Vec<_>>();
+
         for plan in initial_plans {
             if let Some(fut) = self.create_plan_execution_future(plan) {
                 futures.push(fut);
@@ -307,8 +316,8 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
         }
 
         let mut state = State::Execution(self);
-
         futures_util::pin_mut!(futures);
+
         let this = loop {
             state = match state {
                 State::Ingestion(mut ingestion_fut) => {
@@ -316,6 +325,7 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
                         ingestion_result = ingestion_fut => TaskResult::Ingestion(ingestion_result),
                         execution_result = futures.next() => TaskResult::Execution(execution_result),
                     };
+
                     match task_result {
                         TaskResult::Ingestion((this, next_futures)) => {
                             for fut in next_futures {
@@ -428,6 +438,7 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
             "Found {} root response objects",
             parent_objects.len()
         );
+
         if parent_objects.is_empty() {
             return None;
         }

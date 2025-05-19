@@ -136,6 +136,7 @@ impl Loader {
 
             Ok(())
         }
+
         expand_dynamic_strings(&mut Vec::new(), &mut raw_config)?;
 
         let mut config =
@@ -403,6 +404,8 @@ pub struct SubgraphConfig {
     pub introspection_headers: Option<BTreeMap<String, String>>,
     /// The protocol used for subscriptions
     pub subscription_protocol: Option<SubscriptionProtocol>,
+    /// Mutual TLS (mTLS) configuration for the subgraph
+    pub mtls: Option<MtlsConfig>,
 }
 
 impl SubgraphConfig {
@@ -426,6 +429,7 @@ impl Default for SubgraphConfig {
             introspection_url: Default::default(),
             introspection_headers: Default::default(),
             subscription_protocol: Default::default(),
+            mtls: Default::default(),
         }
     }
 }
@@ -492,6 +496,38 @@ pub struct NetworkConfig {
 pub struct TlsConfig {
     pub certificate: PathBuf,
     pub key: PathBuf,
+}
+
+#[derive(Debug, serde::Deserialize, Clone, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct CertificateAuthority {
+    /// PEM-formatted root certificate
+    pub certificate: PathBuf,
+    /// Whether the certificate is a bundle or a single certificate
+    #[serde(default)]
+    pub is_bundle: bool,
+}
+
+/// Configuration for Mutual TLS (mTLS)
+#[derive(Debug, serde::Deserialize, Clone, Default, PartialEq)]
+#[serde(default, deny_unknown_fields)]
+pub struct MtlsConfig {
+    /// PEM-encoded private key and at least one PEM-encoded certificate.
+    /// The private key must be in RSA, SEC1 Elliptic Curve or PKCS#8 format.
+    pub identity: Option<PathBuf>,
+    /// PEM-formatted root certificate(s) for server verification
+    pub root: Option<CertificateAuthority>,
+    /// Whether to accept invalid certificates (not recommended for production)
+    #[serde(default)]
+    pub accept_invalid_certs: bool,
+}
+
+impl MtlsConfig {
+    /// Returns `true` if this mTLS config requires a dedicated connection due to having either
+    /// identity or root certificates configured.
+    pub fn requires_dedicated_connection(&self) -> bool {
+        self.identity.is_some() || self.root.is_some()
+    }
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -1735,6 +1771,7 @@ mod tests {
                 introspection_url: None,
                 introspection_headers: None,
                 subscription_protocol: None,
+                mtls: None,
             },
         }
         "#);
@@ -2196,6 +2233,7 @@ mod tests {
                 introspection_url: None,
                 introspection_headers: None,
                 subscription_protocol: None,
+                mtls: None,
             },
         }
         "#);
@@ -2558,6 +2596,57 @@ mod tests {
                 },
             ),
         }
+        "#);
+    }
+
+    #[test]
+    fn subgraph_mtls_ca() {
+        let input = indoc! {r#"
+            [subgraphs.products.mtls.root]
+            certificate = "/path/to/ca.pem"
+        "#};
+
+        let config: Config = toml::from_str(input).unwrap();
+
+        let subgraph = config.subgraphs.get("products").unwrap();
+
+        insta::assert_debug_snapshot!(&subgraph.mtls, @r#"
+        Some(
+            MtlsConfig {
+                identity: None,
+                root: Some(
+                    CertificateAuthority {
+                        certificate: "/path/to/ca.pem",
+                        is_bundle: false,
+                    },
+                ),
+                accept_invalid_certs: false,
+            },
+        )
+        "#);
+    }
+
+    #[test]
+    fn subgraph_mtls_identity() {
+        let input = indoc! {r#"
+            [subgraphs.products.mtls]
+            identity = "/path/to/ca.pem"
+        "#};
+
+        let config: Config = toml::from_str(input).unwrap();
+
+        let subgraph = config.subgraphs.get("products").unwrap();
+
+        insta::assert_debug_snapshot!(&subgraph.mtls, @r#"
+        Some(
+            MtlsConfig {
+                identity: Some(
+                    "/path/to/ca.pem",
+                ),
+                root: None,
+                accept_invalid_certs: false,
+            },
+        )
         "#);
     }
 }

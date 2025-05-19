@@ -1,39 +1,36 @@
 mod signing;
 
-use std::collections::HashMap;
 use std::future::Future;
+use std::time::Duration;
 
+use anyhow::bail;
 use bytes::Bytes;
 use futures_util::Stream;
 use futures_util::{StreamExt, TryStreamExt};
+use fxhash::FxHashMap;
 use gateway_config::Config;
-use reqwest::RequestBuilder;
+use reqwest::{Certificate, Identity, RequestBuilder};
 use reqwest_eventsource::RequestBuilderExt;
 use runtime::fetch::{FetchError, FetchRequest, FetchResult, Fetcher};
 use runtime::hooks::ResponseInfo;
 use signing::SigningParameters;
 
+const POOL_IDLE_TIMEOUT: Duration = Duration::from_secs(5);
+const ENABLE_HICKORY_DNS: bool = true;
+
 #[derive(Clone)]
 pub struct NativeFetcher {
     client: reqwest::Client,
+    dedicated_clients: FxHashMap<String, reqwest::Client>,
     default_signing_parameters: Option<SigningParameters>,
-    subgraph_signing_parameters: HashMap<String, Option<SigningParameters>>,
+    subgraph_signing_parameters: FxHashMap<String, Option<SigningParameters>>,
 }
 
 impl NativeFetcher {
     pub fn new(config: &Config) -> anyhow::Result<Self> {
         let default_signing_params = SigningParameters::from_config(&config.gateway.message_signatures, None)?;
-        let subgraph_signing_parameters = config
-            .subgraphs
-            .iter()
-            .filter_map(|(name, value)| Some((name, value.message_signatures.as_ref()?)))
-            .map(|(name, message_signatures)| {
-                Ok((
-                    name.clone(),
-                    SigningParameters::from_config(message_signatures, Some(&config.gateway.message_signatures))?,
-                ))
-            })
-            .collect::<anyhow::Result<_>>()?;
+        let subgraph_signing_parameters = generate_subgraph_signing_parameters(config)?;
+        let dedicated_clients = generate_dedicated_http_clients(config)?;
 
         Ok(NativeFetcher {
             client: reqwest::Client::builder()
@@ -45,32 +42,36 @@ impl NativeFetcher {
                 // A bit confusing, and I suspect I don't fully understand how Hyper is managing
                 // connections underneath. But seems like best choice we have right now, Apollo'
                 // router uses this same default value.
-                .pool_idle_timeout(Some(std::time::Duration::from_secs(5)))
-                .hickory_dns(true)
+                .pool_idle_timeout(Some(POOL_IDLE_TIMEOUT))
+                .hickory_dns(ENABLE_HICKORY_DNS)
                 .build()?,
             default_signing_parameters: default_signing_params,
             subgraph_signing_parameters,
+            dedicated_clients,
         })
+    }
+
+    pub fn client(&self, subgraph_name: &str) -> &reqwest::Client {
+        self.dedicated_clients.get(subgraph_name).unwrap_or(&self.client)
     }
 }
 
 impl Fetcher for NativeFetcher {
     async fn fetch(
         &self,
-        request: FetchRequest<'_, Bytes>,
+        fetch_req: FetchRequest<'_, Bytes>,
     ) -> (FetchResult<http::Response<Bytes>>, Option<ResponseInfo>) {
         let mut info = ResponseInfo::builder();
-        let subgraph_name = request.subgraph_name;
 
-        let request = into_reqwest(request);
+        let subgraph_name = fetch_req.subgraph_name;
+        let request = into_reqwest(fetch_req);
 
         let request = match self.sign_request(subgraph_name, request).await {
             Ok(request) => request,
             Err(error) => return (Err(error), None),
         };
 
-        let result = self.client.execute(request).await.map_err(Into::into);
-
+        let result = self.client(subgraph_name).execute(request).await.map_err(Into::into);
         info.track_connection();
 
         let mut resp = match result {
@@ -183,6 +184,114 @@ fn into_reqwest(request: FetchRequest<'_, Bytes>) -> reqwest::Request {
     *req.body_mut() = Some(request.body.into());
     *req.timeout_mut() = Some(request.timeout);
     req
+}
+
+/// Creates a HashMap of dedicated HTTP clients for subgraphs that require mTLS.
+fn generate_dedicated_http_clients(config: &Config) -> anyhow::Result<FxHashMap<String, reqwest::Client>> {
+    let mut clients = FxHashMap::default();
+
+    for (name, config) in &config.subgraphs {
+        let Some(mtls_config) = config.mtls.as_ref() else {
+            continue;
+        };
+
+        if mtls_config.root.is_none() && mtls_config.identity.is_none() {
+            continue;
+        }
+
+        let mut builder = reqwest::Client::builder()
+            .pool_idle_timeout(Some(POOL_IDLE_TIMEOUT))
+            .hickory_dns(ENABLE_HICKORY_DNS)
+            .danger_accept_invalid_certs(mtls_config.accept_invalid_certs);
+
+        if let Some(ref root) = mtls_config.root {
+            let ca_cert_bytes = match std::fs::read(&root.certificate) {
+                Ok(bytes) => bytes,
+                Err(e) => {
+                    bail!(
+                        "failed to open root certificate `{}` for subgraph `{name}`: {e}",
+                        root.certificate.display()
+                    );
+                }
+            };
+
+            if root.is_bundle {
+                let certificates = match Certificate::from_pem_bundle(&ca_cert_bytes) {
+                    Ok(certificates) => certificates,
+                    Err(e) => {
+                        bail!(
+                            "failed to parse root certificate `{}` for subgraph `{name}`: {e}",
+                            root.certificate.display()
+                        );
+                    }
+                };
+
+                for certificate in certificates {
+                    builder = builder.add_root_certificate(certificate);
+                }
+            } else {
+                let certificate = match Certificate::from_pem(&ca_cert_bytes) {
+                    Ok(certificate) => certificate,
+                    Err(e) => {
+                        bail!(
+                            "failed to parse root certificate `{}` for subgraph `{name}`: {e}",
+                            root.certificate.display()
+                        );
+                    }
+                };
+
+                builder = builder.add_root_certificate(certificate);
+            };
+        }
+
+        let Some(ref identity_path) = mtls_config.identity else {
+            clients.insert(name.clone(), builder.build()?);
+            continue;
+        };
+
+        let identity = match std::fs::read(identity_path) {
+            Ok(identity) => identity,
+            Err(e) => {
+                bail!(
+                    "failed to read identity file `{}` for subgraph `{name}`: {e}",
+                    identity_path.display()
+                );
+            }
+        };
+
+        let identity = match Identity::from_pem(&identity) {
+            Ok(identity) => identity,
+            Err(e) => {
+                bail!(
+                    "failed to parse identity file `{}` for subgraph `{name}`: {e}",
+                    identity_path.display()
+                )
+            }
+        };
+
+        builder = builder.identity(identity);
+        clients.insert(name.clone(), builder.build()?);
+    }
+
+    Ok(clients)
+}
+
+fn generate_subgraph_signing_parameters(
+    config: &Config,
+) -> Result<FxHashMap<String, Option<SigningParameters>>, anyhow::Error> {
+    let subgraph_signing_parameters = config
+        .subgraphs
+        .iter()
+        .filter_map(|(name, value)| Some((name, value.message_signatures.as_ref()?)))
+        .map(|(name, message_signatures)| {
+            Ok((
+                name.clone(),
+                SigningParameters::from_config(message_signatures, Some(&config.gateway.message_signatures))?,
+            ))
+        })
+        .collect::<anyhow::Result<_>>()?;
+
+    Ok(subgraph_signing_parameters)
 }
 
 #[derive(serde::Serialize)]
