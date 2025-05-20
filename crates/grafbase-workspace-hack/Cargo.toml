@@ -145,7 +145,7 @@ tungstenite = { version = "0.26", default-features = false, features = ["handsha
 ulid = { version = "1", features = ["serde"] }
 url = { version = "2", features = ["serde"] }
 uuid = { version = "1", features = ["serde", "v4"] }
-wasmparser = { version = "0.228" }
+wasmparser = { version = "0.228", default-features = false, features = ["component-model", "features", "serde", "simd", "std", "validate"] }
 zeroize = { version = "1", features = ["zeroize_derive"] }
 zstd = { version = "0.13", features = ["experimental"] }
 zstd-safe = { version = "7", default-features = false, features = ["arrays", "experimental", "legacy", "std", "zdict_builder"] }
@@ -279,7 +279,7 @@ tungstenite = { version = "0.26", default-features = false, features = ["handsha
 ulid = { version = "1", features = ["serde"] }
 url = { version = "2", features = ["serde"] }
 uuid = { version = "1", features = ["serde", "v4"] }
-wasmparser = { version = "0.228" }
+wasmparser = { version = "0.228", default-features = false, features = ["component-model", "features", "serde", "simd", "std", "validate"] }
 zeroize = { version = "1", features = ["zeroize_derive"] }
 zstd = { version = "0.13", features = ["experimental"] }
 zstd-safe = { version = "7", default-features = false, features = ["arrays", "experimental", "legacy", "std", "zdict_builder"] }

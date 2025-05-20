@@ -7,12 +7,7 @@
       "matchUpdateTypes": ["patch"]
     },
     {
-      "matchPackageNames": ["tonic"],
-      "matchFileNames": ["Cargo.toml"],
-      "matchUpdateTypes": ["patch"]
-    },
-    {
-      "matchPackageNames": ["async-tungstenite", "ory-client", "grafbase-sdk"],
+      "matchPackageNames": ["async-tungstenite", "ory-client", "grafbase-sdk", "tonic"],
       "enabled": false
     },
     {
