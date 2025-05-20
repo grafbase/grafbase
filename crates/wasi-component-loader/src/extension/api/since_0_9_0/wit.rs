@@ -1,7 +1,6 @@
 pub mod access_log;
 pub mod authorization;
 pub mod cache;
-mod compatibility;
 pub mod context;
 pub mod directive;
 pub mod error;

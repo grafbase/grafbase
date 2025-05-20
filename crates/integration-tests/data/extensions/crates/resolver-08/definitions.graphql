@@ -1,6 +1,0 @@
-"""
-Fill in here the directives and types that the extension needs.
-Remove this file and the definition in extension.toml if the extension does not need any directives.
-"""
-directive @config(id: Int!) repeatable on SCHEMA
-directive @resolve(name: String!) on FIELD_DEFINITION

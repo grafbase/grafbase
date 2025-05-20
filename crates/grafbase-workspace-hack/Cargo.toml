@@ -38,7 +38,7 @@ clap_builder = { version = "4", default-features = false, features = ["cargo", "
 combine = { version = "4", features = ["tokio"] }
 concurrent-queue = { version = "2" }
 console = { version = "0.15", default-features = false, features = ["ansi-parsing", "unicode-width"] }
-cranelift-bitset = { version = "0.117", default-features = false, features = ["enable-serde"] }
+cranelift-bitset = { version = "0.119", default-features = false, features = ["enable-serde"] }
 crc32fast = { version = "1" }
 criterion = { version = "0.5", features = ["async_tokio", "html_reports"] }
 crossbeam-channel = { version = "0.5" }
@@ -98,7 +98,7 @@ pkcs8 = { version = "0.10", default-features = false, features = ["pem", "std"] 
 portable-atomic = { version = "1", features = ["require-cas"] }
 proc-macro2 = { version = "1" }
 prost = { version = "0.13", features = ["prost-derive"] }
-pulley-interpreter = { version = "30", default-features = false, features = ["disas", "interp", "std"] }
+pulley-interpreter = { version = "32", default-features = false, features = ["disas", "interp", "std"] }
 quote = { version = "1" }
 rand-274715c4dabd11b0 = { package = "rand", version = "0.9" }
 rand-c38e5c1d305a1b54 = { package = "rand", version = "0.8", features = ["small_rng"] }
@@ -145,7 +145,7 @@ tungstenite = { version = "0.26", default-features = false, features = ["handsha
 ulid = { version = "1", features = ["serde"] }
 url = { version = "2", features = ["serde"] }
 uuid = { version = "1", features = ["serde", "v4"] }
-wasmparser = { version = "0.224", default-features = false, features = ["component-model", "features", "serde", "simd", "std", "validate"] }
+wasmparser = { version = "0.228" }
 zeroize = { version = "1", features = ["zeroize_derive"] }
 zstd = { version = "0.13", features = ["experimental"] }
 zstd-safe = { version = "7", default-features = false, features = ["arrays", "experimental", "legacy", "std", "zdict_builder"] }
@@ -171,7 +171,7 @@ clap_builder = { version = "4", default-features = false, features = ["cargo", "
 combine = { version = "4", features = ["tokio"] }
 concurrent-queue = { version = "2" }
 console = { version = "0.15", default-features = false, features = ["ansi-parsing", "unicode-width"] }
-cranelift-bitset = { version = "0.117", default-features = false, features = ["enable-serde"] }
+cranelift-bitset = { version = "0.119", default-features = false, features = ["enable-serde"] }
 crc32fast = { version = "1" }
 criterion = { version = "0.5", features = ["async_tokio", "html_reports"] }
 crossbeam-channel = { version = "0.5" }
@@ -231,7 +231,7 @@ pkcs8 = { version = "0.10", default-features = false, features = ["pem", "std"] 
 portable-atomic = { version = "1", features = ["require-cas"] }
 proc-macro2 = { version = "1" }
 prost = { version = "0.13", features = ["prost-derive"] }
-pulley-interpreter = { version = "30", default-features = false, features = ["disas", "interp", "std"] }
+pulley-interpreter = { version = "32", default-features = false, features = ["disas", "interp", "std"] }
 quote = { version = "1" }
 rand-274715c4dabd11b0 = { package = "rand", version = "0.9" }
 rand-c38e5c1d305a1b54 = { package = "rand", version = "0.8", features = ["small_rng"] }
@@ -279,7 +279,7 @@ tungstenite = { version = "0.26", default-features = false, features = ["handsha
 ulid = { version = "1", features = ["serde"] }
 url = { version = "2", features = ["serde"] }
 uuid = { version = "1", features = ["serde", "v4"] }
-wasmparser = { version = "0.224", default-features = false, features = ["component-model", "features", "serde", "simd", "std", "validate"] }
+wasmparser = { version = "0.228" }
 zeroize = { version = "1", features = ["zeroize_derive"] }
 zstd = { version = "0.13", features = ["experimental"] }
 zstd-safe = { version = "7", default-features = false, features = ["arrays", "experimental", "legacy", "std", "zdict_builder"] }
@@ -296,8 +296,8 @@ libc = { version = "0.2", features = ["extra_traits"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
-rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["event", "mm", "net", "param", "pipe", "process", "procfs", "termios", "thread", "time"] }
-rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["fs", "stdio", "termios", "time"] }
+rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["event", "net", "pipe", "process", "procfs", "termios", "time"] }
+rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["event", "fs", "mm", "net", "param", "process", "stdio", "termios", "thread", "time"] }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["timeout"] }
 
 [target.aarch64-apple-darwin.build-dependencies]
@@ -311,8 +311,8 @@ libc = { version = "0.2", features = ["extra_traits"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
-rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["event", "mm", "net", "param", "pipe", "process", "procfs", "termios", "thread", "time"] }
-rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["fs", "stdio", "termios", "time"] }
+rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["event", "net", "pipe", "process", "procfs", "termios", "time"] }
+rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["event", "fs", "mm", "net", "param", "process", "stdio", "termios", "thread", "time"] }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["timeout"] }
 
 [target.x86_64-apple-darwin.dependencies]
@@ -326,8 +326,8 @@ libc = { version = "0.2", features = ["extra_traits"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
-rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["event", "mm", "net", "param", "pipe", "process", "procfs", "termios", "thread", "time"] }
-rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["fs", "stdio", "termios", "time"] }
+rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["event", "net", "pipe", "process", "procfs", "termios", "time"] }
+rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["event", "fs", "mm", "net", "param", "process", "stdio", "termios", "thread", "time"] }
 spin = { version = "0.9" }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["timeout"] }
 
@@ -342,8 +342,8 @@ libc = { version = "0.2", features = ["extra_traits"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
-rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["event", "mm", "net", "param", "pipe", "process", "procfs", "termios", "thread", "time"] }
-rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["fs", "stdio", "termios", "time"] }
+rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["event", "net", "pipe", "process", "procfs", "termios", "time"] }
+rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["event", "fs", "mm", "net", "param", "process", "stdio", "termios", "thread", "time"] }
 spin = { version = "0.9" }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["timeout"] }
 
@@ -351,7 +351,7 @@ tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features 
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
 idna = { version = "1" }
-rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["event", "fs", "net"] }
+rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["fs", "net"] }
 spin = { version = "0.9" }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["timeout"] }
 winapi = { version = "0.3", default-features = false, features = ["consoleapi", "errhandlingapi", "fileapi", "handleapi", "impl-default", "knownfolders", "minwinbase", "minwindef", "objbase", "processenv", "processthreadsapi", "profileapi", "shlobj", "synchapi", "timezoneapi", "winbase", "winerror", "winnt", "winuser"] }
@@ -363,7 +363,7 @@ windows-sys-c8eced492e86ede7 = { package = "windows-sys", version = "0.48", feat
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
 idna = { version = "1" }
-rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["event", "fs", "net"] }
+rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["fs", "net"] }
 spin = { version = "0.9" }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["timeout"] }
 winapi = { version = "0.3", default-features = false, features = ["consoleapi", "errhandlingapi", "fileapi", "handleapi", "impl-default", "knownfolders", "minwinbase", "minwindef", "objbase", "processenv", "processthreadsapi", "profileapi", "shlobj", "synchapi", "timezoneapi", "winbase", "winerror", "winnt", "winuser"] }
@@ -379,12 +379,13 @@ hyper-rustls = { version = "0.27", default-features = false, features = ["http1"
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 idna = { version = "1" }
 libc = { version = "0.2", features = ["extra_traits"] }
-linux-raw-sys = { version = "0.4", default-features = false, features = ["elf", "errno", "general", "if_ether", "ioctl", "net", "netlink", "no_std", "prctl", "xdp"] }
+linux-raw-sys-274715c4dabd11b0 = { package = "linux-raw-sys", version = "0.9", default-features = false, features = ["elf", "errno", "general", "if_ether", "ioctl", "net", "netlink", "no_std", "prctl", "xdp"] }
+linux-raw-sys-9fbad63c4bcf4a8f = { package = "linux-raw-sys", version = "0.4", default-features = false, features = ["elf", "errno", "general", "if_ether", "ioctl", "net", "netlink", "no_std", "prctl", "xdp"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
-rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["event", "mm", "net", "param", "pipe", "process", "procfs", "termios", "thread", "time"] }
-rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["fs", "stdio", "termios", "time"] }
+rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["event", "net", "pipe", "process", "procfs", "termios", "time"] }
+rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["event", "fs", "mm", "net", "param", "process", "stdio", "termios", "thread", "time"] }
 spin = { version = "0.9" }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["timeout"] }
 
@@ -396,12 +397,13 @@ hyper-rustls = { version = "0.27", default-features = false, features = ["http1"
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 idna = { version = "1" }
 libc = { version = "0.2", features = ["extra_traits"] }
-linux-raw-sys = { version = "0.4", default-features = false, features = ["elf", "errno", "general", "if_ether", "ioctl", "net", "netlink", "no_std", "prctl", "xdp"] }
+linux-raw-sys-274715c4dabd11b0 = { package = "linux-raw-sys", version = "0.9", default-features = false, features = ["elf", "errno", "general", "if_ether", "ioctl", "net", "netlink", "no_std", "prctl", "xdp"] }
+linux-raw-sys-9fbad63c4bcf4a8f = { package = "linux-raw-sys", version = "0.4", default-features = false, features = ["elf", "errno", "general", "if_ether", "ioctl", "net", "netlink", "no_std", "prctl", "xdp"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
-rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["event", "mm", "net", "param", "pipe", "process", "procfs", "termios", "thread", "time"] }
-rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["fs", "stdio", "termios", "time"] }
+rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["event", "net", "pipe", "process", "procfs", "termios", "time"] }
+rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["event", "fs", "mm", "net", "param", "process", "stdio", "termios", "thread", "time"] }
 spin = { version = "0.9" }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["timeout"] }
 
@@ -413,12 +415,13 @@ hyper-rustls = { version = "0.27", default-features = false, features = ["http1"
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 idna = { version = "1" }
 libc = { version = "0.2", features = ["extra_traits"] }
-linux-raw-sys = { version = "0.4", default-features = false, features = ["elf", "errno", "general", "if_ether", "ioctl", "net", "netlink", "no_std", "prctl", "xdp"] }
+linux-raw-sys-274715c4dabd11b0 = { package = "linux-raw-sys", version = "0.9", default-features = false, features = ["elf", "errno", "general", "if_ether", "ioctl", "net", "netlink", "no_std", "prctl", "xdp"] }
+linux-raw-sys-9fbad63c4bcf4a8f = { package = "linux-raw-sys", version = "0.4", default-features = false, features = ["elf", "errno", "general", "if_ether", "ioctl", "net", "netlink", "no_std", "prctl", "xdp"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
-rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["event", "mm", "net", "param", "pipe", "process", "procfs", "termios", "thread", "time"] }
-rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["fs", "stdio", "termios", "time"] }
+rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["event", "net", "pipe", "process", "procfs", "termios", "time"] }
+rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["event", "fs", "mm", "net", "param", "process", "stdio", "termios", "thread", "time"] }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["timeout"] }
 
 [target.aarch64-unknown-linux-musl.build-dependencies]
@@ -429,12 +432,13 @@ hyper-rustls = { version = "0.27", default-features = false, features = ["http1"
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 idna = { version = "1" }
 libc = { version = "0.2", features = ["extra_traits"] }
-linux-raw-sys = { version = "0.4", default-features = false, features = ["elf", "errno", "general", "if_ether", "ioctl", "net", "netlink", "no_std", "prctl", "xdp"] }
+linux-raw-sys-274715c4dabd11b0 = { package = "linux-raw-sys", version = "0.9", default-features = false, features = ["elf", "errno", "general", "if_ether", "ioctl", "net", "netlink", "no_std", "prctl", "xdp"] }
+linux-raw-sys-9fbad63c4bcf4a8f = { package = "linux-raw-sys", version = "0.4", default-features = false, features = ["elf", "errno", "general", "if_ether", "ioctl", "net", "netlink", "no_std", "prctl", "xdp"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
-rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["event", "mm", "net", "param", "pipe", "process", "procfs", "termios", "thread", "time"] }
-rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["fs", "stdio", "termios", "time"] }
+rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["event", "net", "pipe", "process", "procfs", "termios", "time"] }
+rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["event", "fs", "mm", "net", "param", "process", "stdio", "termios", "thread", "time"] }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["timeout"] }
 
 ### END HAKARI SECTION

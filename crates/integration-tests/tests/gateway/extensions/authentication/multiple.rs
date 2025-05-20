@@ -20,15 +20,15 @@ fn double_authentication() {
                 "#,
             ))
             .with_extension(AuthorizationExt::new(InsertTokenAsHeader))
-            .with_extension("auth-08")
             .with_extension("auth-09")
+            .with_extension("auth-15")
             .with_toml_config(
                 r#"
-                [extensions.auth-08.config]
-                header_name = "auth08"
-
                 [extensions.auth-09.config]
                 header_name = "auth09"
+
+                [extensions.auth-15.config]
+                header_name = "auth15"
                 "#,
             )
             .build()
@@ -39,7 +39,7 @@ fn double_authentication() {
         {
           "errors": [
             {
-              "message": "Not passing through on my watch! SDK-08",
+              "message": "Not passing through on my watch! SDK-09",
               "extensions": {
                 "code": "UNAUTHENTICATED"
               }
@@ -53,12 +53,12 @@ fn double_authentication() {
 
         let response = engine
             .post(r#"query { header(name: "token") }"#)
-            .header("auth08", "valid")
+            .header("auth15", "valid")
             .await;
         insta::assert_json_snapshot!(response, @r#"
         {
           "data": {
-            "header": "ssdk08:valid:default"
+            "header": "sdk15:valid:default"
           }
         }
         "#);
@@ -78,7 +78,7 @@ fn double_authentication() {
         let response = engine
             .post(r#"query { header(name: "token") }"#)
             .header("auth09", "valid")
-            .header("auth08", "valid")
+            .header("auth15", "valid")
             .await;
         insta::assert_json_snapshot!(response, { ".data.header" => "ANYTHING" }, @r#"
         {
@@ -104,15 +104,15 @@ fn double_authentication_with_deny_default() {
                 "#,
             ))
             .with_extension(AuthorizationExt::new(InsertTokenAsHeader))
-            .with_extension("auth-08")
             .with_extension("auth-09")
+            .with_extension("auth-15")
             .with_toml_config(
                 r#"
                 [authentication]
                 default = "deny"
 
-                [extensions.auth-08.config]
-                header_name = "auth08"
+                [extensions.auth-15.config]
+                header_name = "auth15"
 
                 [extensions.auth-09.config]
                 header_name = "auth09"
@@ -126,7 +126,7 @@ fn double_authentication_with_deny_default() {
         {
           "errors": [
             {
-              "message": "Not passing through on my watch! SDK-08",
+              "message": "Not passing through on my watch! SDK-09",
               "extensions": {
                 "code": "UNAUTHENTICATED"
               }
@@ -140,12 +140,13 @@ fn double_authentication_with_deny_default() {
 
         let response = engine
             .post(r#"query { header(name: "token") }"#)
-            .header("auth08", "valid")
+            .header("auth15", "valid")
             .await;
+
         insta::assert_json_snapshot!(response, @r#"
         {
           "data": {
-            "header": "ssdk08:valid:default"
+            "header": "sdk15:valid:default"
           }
         }
         "#);
@@ -178,18 +179,18 @@ fn double_authentication_with_anonymous_default() {
                 "#,
             ))
             .with_extension(AuthorizationExt::new(InsertTokenAsHeader))
-            .with_extension("auth-08")
             .with_extension("auth-09")
+            .with_extension("auth-15")
             .with_toml_config(
                 r#"
                 [authentication]
                 default = "anonymous"
 
-                [extensions.auth-08.config]
-                header_name = "auth08"
-
                 [extensions.auth-09.config]
                 header_name = "auth09"
+
+                [extensions.auth-15.config]
+                header_name = "auth15"
                 "#,
             )
             .build()
@@ -206,24 +207,24 @@ fn double_authentication_with_anonymous_default() {
 
         let response = engine
             .post(r#"query { header(name: "token") }"#)
-            .header("auth08", "valid")
-            .await;
-        insta::assert_json_snapshot!(response, @r#"
-        {
-          "data": {
-            "header": "ssdk08:valid:default"
-          }
-        }
-        "#);
-
-        let response = engine
-            .post(r#"query { header(name: "token") }"#)
             .header("auth09", "valid")
             .await;
         insta::assert_json_snapshot!(response, @r#"
         {
           "data": {
             "header": "sdk09:valid:default"
+          }
+        }
+        "#);
+
+        let response = engine
+            .post(r#"query { header(name: "token") }"#)
+            .header("auth15", "valid")
+            .await;
+        insta::assert_json_snapshot!(response, @r#"
+        {
+          "data": {
+            "header": "sdk15:valid:default"
           }
         }
         "#);

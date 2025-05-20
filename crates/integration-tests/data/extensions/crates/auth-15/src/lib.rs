@@ -1,7 +1,10 @@
 use grafbase_sdk::{
-    AuthenticationExtension, Authenticator, Error, Extension, Headers,
-    host_io::cache::{self, CachedItem},
-    types::{Configuration, ErrorResponse, StatusCode, Token},
+    AuthenticationExtension,
+    host_io::{
+        cache::{self, CachedItem},
+        http::StatusCode,
+    },
+    types::{Configuration, Error, ErrorResponse, GatewayHeaders, Token},
 };
 
 #[derive(AuthenticationExtension)]
@@ -30,32 +33,27 @@ struct Jwks {
     key: String,
 }
 
-impl Extension for CachingProvider {
-    fn new(
-        _: Vec<grafbase_sdk::types::SchemaDirective>,
-        config: Configuration,
-    ) -> Result<Self, Box<dyn std::error::Error>>
-    where
-        Self: Sized,
-    {
+impl AuthenticationExtension for CachingProvider {
+    fn new(config: Configuration) -> Result<Self, Error> {
         let config: Option<ProviderConfig> = config.deserialize()?;
 
         Ok(Self {
             config: config.unwrap_or_default(),
         })
     }
-}
 
-impl Authenticator for CachingProvider {
-    fn authenticate(&mut self, headers: Headers) -> Result<Token, ErrorResponse> {
+    fn authenticate(&mut self, headers: &GatewayHeaders) -> Result<Token, ErrorResponse> {
         let auth = headers.get(&self.config.header_name).ok_or_else(|| {
             ErrorResponse::new(StatusCode::UNAUTHORIZED)
-                .with_error(Error::new("Not passing through on my watch! SDK-08"))
+                .with_error(Error::new("Not passing through on my watch! SDK-09"))
         })?;
 
-        let value = headers.get("value").unwrap_or_else(|| String::from("default"));
+        let value = headers
+            .get("value")
+            .and_then(|v| v.to_str().ok().map(String::from))
+            .unwrap_or_else(|| "default".to_string());
 
-        let cache_key = format!("{}:{auth}", self.config.cache_key_prefix);
+        let cache_key = format!("{}:{}", self.config.cache_key_prefix, auth.to_str().unwrap());
 
         let jwks: Jwks = cache::get(&cache_key, || {
             let jwks = Jwks { key: value };
@@ -65,6 +63,8 @@ impl Authenticator for CachingProvider {
         })
         .unwrap();
 
-        Ok(Token::new(format!("sdk08:{auth}:{}", jwks.key)))
+        Ok(Token::from_bytes(
+            format!("sdk15:{}:{}", auth.to_str().unwrap(), jwks.key).into(),
+        ))
     }
 }

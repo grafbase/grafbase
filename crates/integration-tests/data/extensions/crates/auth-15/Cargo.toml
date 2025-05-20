@@ -1,5 +1,5 @@
 [package]
-name = "auth-08"
+name = "auth-15"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -8,7 +8,7 @@ keywords.workspace = true
 repository.workspace = true
 
 [dependencies]
-grafbase-sdk = "0.8.0"
+grafbase-sdk = "0.15.6"
 serde.workspace = true
 serde_json.workspace = true
 
@@ -16,7 +16,4 @@ serde_json.workspace = true
 crate-type = ["cdylib"]
 
 [dev-dependencies]
-grafbase-sdk = { version = "0.8.0", features = ["test-utils"] }
-indoc = "2"
-insta = { version = "1.42.2", features = ["json"] }
-tokio = { version = "1", features = ["rt-multi-thread", "macros", "test-util"] }
+grafbase-sdk = { version = "0.15.6", features = ["test-utils"] }
