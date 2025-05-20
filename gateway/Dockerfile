@@ -1,7 +1,7 @@
 #
 # === Build image ===
 #
-FROM rust:1.86-bookworm AS chef
+FROM rust:1.87-bookworm AS chef
 
 COPY rust-toolchain.toml rust-toolchain.toml
 RUN cargo install --locked cargo-chef sccache

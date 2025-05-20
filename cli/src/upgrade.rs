@@ -154,7 +154,7 @@ async fn download_grafbase(
 
     let binary_stream = binary_response
         .bytes_stream()
-        .map(|result| result.map_err(|error| io::Error::new(io::ErrorKind::Other, error)));
+        .map(|result| result.map_err(io::Error::other));
 
     let mut temp_binary_file = BufWriter::new(
         File::create(&grafbase_temp_binary_path)

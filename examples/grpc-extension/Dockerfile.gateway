@@ -1,6 +1,6 @@
 # This file is not part of the example, it is only used in CI to test that the example keeps working.
 
-FROM rust:1.86.0-alpine3.20 AS builder
+FROM rust:1.87.0-alpine3.20 AS builder
 
 WORKDIR /var/lib/grafbase
 RUN apk --no-cache add curl bash musl-dev && curl -fsSL https://grafbase.com/downloads/cli | bash -s 0.93.4 && mv ~/.grafbase/bin/grafbase /usr/bin/grafbase

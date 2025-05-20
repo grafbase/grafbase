@@ -52,9 +52,7 @@ impl IntoFuture for SseStreamRequest {
             .or_insert(http::HeaderValue::from_static("text/event-stream"));
         Box::pin(async move {
             let (parts, body) = router.oneshot(request).await.unwrap().into_parts();
-            let stream = body
-                .into_data_stream()
-                .map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err));
+            let stream = body.into_data_stream().map_err(std::io::Error::other);
             let stream = async_sse::decode(stream.into_async_read())
                 .into_stream()
                 .try_take_while(|event| {

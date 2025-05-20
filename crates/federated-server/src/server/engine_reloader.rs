@@ -25,7 +25,7 @@ pub(crate) type GraphSender = mpsc::Sender<GraphDefinition>;
 
 enum Update {
     Graph(GraphDefinition),
-    Config(gateway_config::Config),
+    Config(Box<gateway_config::Config>),
 }
 
 impl GatewayEngineReloader {
@@ -68,7 +68,8 @@ impl GatewayEngineReloader {
 
         tokio::spawn(async move {
             let graph_stream = graph_stream.map(Update::Graph);
-            let config_stream = WatchStream::from_changes(gateway_config.clone()).map(Update::Config);
+            let config_stream =
+                WatchStream::from_changes(gateway_config.clone()).map(|config| Update::Config(Box::new(config)));
             let updates = graph_stream.race(config_stream);
             let current_config = gateway_config.borrow().clone();
 
@@ -108,7 +109,7 @@ async fn update_loop(
 
         match update {
             Update::Graph(new_graph) => graph_definition = new_graph,
-            Update::Config(config) => current_config = config,
+            Update::Config(config) => current_config = *config,
         }
 
         in_progress_reload = Some(tokio::spawn({
