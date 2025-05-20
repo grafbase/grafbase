@@ -118,7 +118,7 @@ impl HostNatsClient for WasiState {
 
         match consumer.messages().await {
             Ok(stream) => {
-                let subscriber = self.push_resource(NatsSubscriber::Stream(stream))?;
+                let subscriber = self.push_resource(NatsSubscriber::Stream(Box::new(stream)))?;
                 Ok(Ok(subscriber))
             }
             Err(err) => Ok(Err(err.to_string())),

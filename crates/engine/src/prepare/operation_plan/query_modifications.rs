@@ -138,7 +138,7 @@ where
                     })
                     .map(move |(directive_id, target)| {
                         let directive = directive_id.walk(operation_ctx);
-                        let element = match target {
+                        match &target {
                             QueryModifierTarget::FieldWithArguments(definition, argument_ids) => QueryElement {
                                 site: DirectiveSiteId::from(*definition).walk(operation_ctx),
                                 arguments: QueryOrStaticExtensionDirectiveArugmentsView::Query(
@@ -156,8 +156,7 @@ where
                                     directive.static_arguments(),
                                 ),
                             },
-                        };
-                        element
+                        }
                     }),
             )
             .boxed()

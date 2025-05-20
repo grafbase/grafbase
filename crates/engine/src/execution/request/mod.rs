@@ -30,6 +30,7 @@ use crate::{
 };
 
 impl<R: Runtime> Engine<R> {
+    #[allow(clippy::result_large_err)]
     pub(crate) fn unpack_http_request<B>(
         &self,
         request: http::Request<B>,

@@ -32,14 +32,14 @@ pub type PgTransaction = sqlx::Transaction<'static, Postgres>;
 pub type PgRow = sqlx::postgres::PgRow;
 
 pub enum NatsSubscriber {
-    Stream(async_nats::jetstream::consumer::pull::Stream),
+    Stream(Box<async_nats::jetstream::consumer::pull::Stream>),
     Subject(async_nats::Subscriber),
 }
 
 impl NatsSubscriber {
     pub async fn next(&mut self) -> Result<Option<async_nats::Message>, String> {
         match self {
-            NatsSubscriber::Stream(stream) => match stream.next().await {
+            NatsSubscriber::Stream(stream) => match stream.as_mut().next().await {
                 Some(Ok(message)) => Ok(Some(message.into())),
                 Some(Err(err)) => Err(err.to_string()),
                 None => Ok(None),
