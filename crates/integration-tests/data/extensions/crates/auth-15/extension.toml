@@ -1,6 +1,5 @@
 [extension]
-name = "auth-08"
+name = "auth-15"
 version = "1.0.0"
 kind = "authentication"
 description = ""
-

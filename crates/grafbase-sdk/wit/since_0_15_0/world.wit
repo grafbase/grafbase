@@ -22,7 +22,6 @@ world sdk {
     export field-resolver;
     export selection-set-resolver;
 
-    use directive.{schema-directive};
     use schema.{schema};
 
     // The extension registration function. Must be called before initialization.

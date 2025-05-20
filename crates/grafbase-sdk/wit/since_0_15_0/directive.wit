@@ -26,12 +26,6 @@ interface directive {
         items-range: tuple<u32, u32>
     }
 
-    record schema-directive {
-        subgraph-name: string,
-        name: string,
-        arguments: list<u8>
-    }
-
     record field-definition-directive {
         name: string,
         site: field-definition-directive-site,

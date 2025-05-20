@@ -271,18 +271,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "auth-08"
-version = "0.1.0"
-dependencies = [
- "grafbase-sdk 0.8.0",
- "indoc",
- "insta",
- "serde",
- "serde_json",
- "tokio",
-]
-
-[[package]]
 name = "auth-09"
 version = "0.1.0"
 dependencies = [
@@ -292,10 +280,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "auth-15"
+version = "0.1.0"
+dependencies = [
+ "grafbase-sdk 0.15.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "authenticated"
 version = "0.1.0"
 dependencies = [
- "grafbase-sdk 0.15.3",
+ "grafbase-sdk 0.15.6",
  "serde",
  "serde_json",
 ]
@@ -568,18 +565,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "console"
-version = "0.15.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "054ccb5b10f9f2cbf51eb355ca1d05c2d279ce1804688d0db74b4733a5aeafd8"
-dependencies = [
- "encode_unicode",
- "libc",
- "once_cell",
- "windows-sys 0.59.0",
-]
-
-[[package]]
 name = "core-foundation-sys"
 version = "0.8.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -627,18 +612,6 @@ dependencies = [
 
 [[package]]
 name = "cynic-parser"
-version = "0.8.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "86a21da88ae46f2be6a622880a72f968d05c50b5a797e525332d0c988f693f70"
-dependencies = [
- "ariadne",
- "indexmap 2.9.0",
- "lalrpop-util",
- "logos",
-]
-
-[[package]]
-name = "cynic-parser"
 version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cbb0f21f2f8d3134c2e887a16564c165694231f48b6ae2769193299081ecf662"
@@ -655,7 +628,7 @@ version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e4fabdc974620ca12f644fd77636cbcfc92c2de48ab7e701735489c3b44ddf2b"
 dependencies = [
- "cynic-parser 0.9.1",
+ "cynic-parser",
  "cynic-parser-deser-macros",
 ]
 
@@ -782,12 +755,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "edd0f118536f44f5ccd48bcb8b111bdc3de888b58c74639dfb034a357d0f206d"
 
 [[package]]
-name = "encode_unicode"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "34aa73646ffb006b8f5147f3dc182bd4bcb190227ce861fc4a4844bf8e3cb2c0"
-
-[[package]]
 name = "encoding_rs"
 version = "0.8.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -853,6 +820,12 @@ name = "fastrand"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "37909eebbb50d72f9059c3b6d82c0463f2ff062c9e95845c43a6c9c0355411be"
+
+[[package]]
+name = "fixedbitset"
+version = "0.5.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1d674e81391d1e1ab681a28d99df07927c6d4aa5b027d7da16ba32d1d21ecd99"
 
 [[package]]
 name = "flate2"
@@ -1063,42 +1036,6 @@ checksum = "07e28edb80900c19c28f1072f2e8aeca7fa06b23cd4169cefe1af5aa3260783f"
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f3790744fddcbd5073a1ed39582d037ba0907bf42466b6cfb5faf342ede289c4"
-dependencies = [
- "anyhow",
- "async-tungstenite",
- "duct",
- "fslock",
- "futures-util",
- "grafbase-sdk-derive 0.2.0",
- "grafbase-sdk-mock",
- "graphql-composition",
- "graphql-federated-graph",
- "graphql-ws-client",
- "http",
- "indoc",
- "minicbor",
- "minicbor-serde",
- "reqwest",
- "semver",
- "serde",
- "serde_json",
- "serde_urlencoded",
- "tempfile",
- "thiserror 2.0.12",
- "time",
- "tokio",
- "toml",
- "tungstenite 0.26.2",
- "url",
- "which",
- "wit-bindgen 0.39.0",
-]
-
-[[package]]
-name = "grafbase-sdk"
 version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "80741d7909f3ab78c54f28a7b19c59c5a011e6771d0bfe6c3f0138f34767e0ba"
@@ -1110,8 +1047,8 @@ dependencies = [
  "futures-util",
  "grafbase-sdk-derive 0.3.0",
  "grafbase-sdk-mock",
- "graphql-composition",
- "graphql-federated-graph",
+ "graphql-composition 0.6.2",
+ "graphql-federated-graph 0.6.1",
  "graphql-ws-client",
  "http",
  "indoc",
@@ -1130,7 +1067,7 @@ dependencies = [
  "tungstenite 0.26.2",
  "url",
  "which",
- "wit-bindgen 0.41.0",
+ "wit-bindgen",
 ]
 
 [[package]]
@@ -1150,12 +1087,12 @@ dependencies = [
  "thiserror 2.0.12",
  "time",
  "url",
- "wit-bindgen 0.41.0",
+ "wit-bindgen",
 ]
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.15.3"
+version = "0.15.6"
 dependencies = [
  "chrono",
  "document-features",
@@ -1168,24 +1105,57 @@ dependencies = [
  "semver",
  "serde",
  "serde_json",
+ "serde_path_to_error",
  "serde_urlencoded",
  "thiserror 2.0.12",
  "time",
  "url",
  "uuid",
- "wit-bindgen 0.41.0",
+ "wit-bindgen",
  "zerocopy",
 ]
 
 [[package]]
-name = "grafbase-sdk-derive"
-version = "0.2.0"
+name = "grafbase-sdk"
+version = "0.15.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f96f95e6f48fbf8a2f8e9e81bdebcbd6a720b4cecbc7d4308db2c94aa7f5efb"
+checksum = "ef3e0e124bcee37434056131a0d00e150f556446fc3e655abd54c08ef626f921"
 dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.100",
+ "anyhow",
+ "async-tungstenite",
+ "chrono",
+ "document-features",
+ "duct",
+ "fslock",
+ "futures-util",
+ "fxhash",
+ "grafbase-sdk-derive 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "grafbase-sdk-mock",
+ "graphql-composition 0.8.0",
+ "graphql-federated-graph 0.8.0",
+ "graphql-ws-client",
+ "http",
+ "indoc",
+ "minicbor-serde",
+ "postcard",
+ "reqwest",
+ "rust_decimal",
+ "semver",
+ "serde",
+ "serde_json",
+ "serde_path_to_error",
+ "serde_urlencoded",
+ "tempfile",
+ "thiserror 2.0.12",
+ "time",
+ "tokio",
+ "toml",
+ "tungstenite 0.26.2",
+ "url",
+ "uuid",
+ "which",
+ "wit-bindgen",
+ "zerocopy",
 ]
 
 [[package]]
@@ -1209,16 +1179,27 @@ dependencies = [
 ]
 
 [[package]]
-name = "grafbase-sdk-mock"
-version = "0.1.1"
+name = "grafbase-sdk-derive"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b42ec24b1e2964575e80bdeec4cfaf1bcd2a290db632099b620f21bbd115419"
+checksum = "090392542933501e5bf9abac3b2ae4eaa0018932eded82a527a3f2198b53394b"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.100",
+]
+
+[[package]]
+name = "grafbase-sdk-mock"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e0f3a2c04a5481bd4437c8425aa2ab957d101884415d59ba3ab76fc4fef8e2f3"
 dependencies = [
  "anyhow",
  "async-graphql",
  "async-graphql-axum",
  "axum",
- "cynic-parser 0.8.7",
+ "cynic-parser",
  "grafbase-workspace-hack",
  "serde",
  "serde_json",
@@ -1238,9 +1219,25 @@ version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "93340435553102d769e19893add506aef5e313eb3bf67e9a03dcde1b8c8c0dd4"
 dependencies = [
- "cynic-parser 0.9.1",
+ "cynic-parser",
  "cynic-parser-deser",
- "graphql-federated-graph",
+ "graphql-federated-graph 0.6.1",
+ "indexmap 2.9.0",
+ "itertools",
+ "url",
+]
+
+[[package]]
+name = "graphql-composition"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "58d6cc2b721f76a5dc608fefa610b3740d4c9d547eba3ffa8e79670a5dd73ed4"
+dependencies = [
+ "bitflags",
+ "cynic-parser",
+ "cynic-parser-deser",
+ "fixedbitset",
+ "graphql-federated-graph 0.8.0",
  "indexmap 2.9.0",
  "itertools",
  "url",
@@ -1253,10 +1250,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2ec235bbd27dc271777a6bcca6dda46132272788018bfadbe0b5b68b066eab73"
 dependencies = [
  "bitflags",
- "cynic-parser 0.9.1",
+ "cynic-parser",
  "cynic-parser-deser",
  "grafbase-workspace-hack",
- "graphql-wrapping-types",
+ "graphql-wrapping-types 0.2.0",
+ "indexmap 2.9.0",
+ "indoc",
+ "itertools",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "graphql-federated-graph"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7a04f965bbdf9037c41808615d9a9f743440c89c8ded5c328a8df8aad5eebef6"
+dependencies = [
+ "bitflags",
+ "cynic-parser",
+ "cynic-parser-deser",
+ "grafbase-workspace-hack",
+ "graphql-wrapping-types 0.3.0",
  "indexmap 2.9.0",
  "indoc",
  "itertools",
@@ -1269,6 +1284,16 @@ name = "graphql-wrapping-types"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "165aca8d4b7bba95daaac55f7e1e139475043a674768a659a4da80792ff74f96"
+dependencies = [
+ "grafbase-workspace-hack",
+ "serde",
+]
+
+[[package]]
+name = "graphql-wrapping-types"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "be5b0a74822603c5fd4d656eff8736a13806964cd74e49d5c64b544be2e430e0"
 dependencies = [
  "grafbase-workspace-hack",
  "serde",
@@ -1687,20 +1712,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f4c7245a08504955605670dbf141fceab975f15ca21570696aebe9d2e71576bd"
 
 [[package]]
-name = "insta"
-version = "1.42.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "50259abbaa67d11d2bcafc7ba1d094ed7a0c70e3ce893f0d0997f73558cb3084"
-dependencies = [
- "console",
- "linked-hash-map",
- "once_cell",
- "pin-project",
- "serde",
- "similar",
-]
-
-[[package]]
 name = "ipnet"
 version = "2.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1757,12 +1768,6 @@ name = "libc"
 version = "0.2.172"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d750af042f7ef4f724306de029d18836c26c1765a54a6a3f094cbd23a7267ffa"
-
-[[package]]
-name = "linked-hash-map"
-version = "0.5.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0717cef1bc8b636c6e1c1bbdefc09e6322da8a9321966e8928ef80d20f7f770f"
 
 [[package]]
 name = "linux-raw-sys"
@@ -2069,7 +2074,7 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 name = "placeholder"
 version = "0.1.0"
 dependencies = [
- "grafbase-sdk 0.15.3",
+ "grafbase-sdk 0.15.6",
  "serde",
  "serde_json",
 ]
@@ -2405,14 +2410,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "resolver-08"
-version = "1.0.0"
-dependencies = [
- "grafbase-sdk 0.8.0",
- "serde",
-]
-
-[[package]]
 name = "resolver-09"
 version = "0.1.0"
 dependencies = [
@@ -2614,7 +2611,7 @@ checksum = "1c107b6f4780854c8b126e228ea8869f4d7b71260f962fefb57b996b8959ba6b"
 name = "selection-set-resolver-014"
 version = "0.1.0"
 dependencies = [
- "grafbase-sdk 0.15.3",
+ "grafbase-sdk 0.15.6",
  "http",
  "rkyv 0.8.10",
  "serde",
@@ -2768,12 +2765,6 @@ name = "simdutf8"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3a9fe34e3e7a50316060351f37187a3f546bce95496156754b601a5fa71b76e"
-
-[[package]]
-name = "similar"
-version = "2.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bbbb5d9659141646ae647b42fe094daf6c6192d1620870b449d9557f748b2daa"
 
 [[package]]
 name = "slab"
@@ -3398,39 +3389,12 @@ dependencies = [
 
 [[package]]
 name = "wasm-encoder"
-version = "0.225.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6f7eac0445cac73bcf09e6a97f83248d64356dccf9f2b100199769b6b42464e5"
-dependencies = [
- "leb128fmt",
- "wasmparser 0.225.0",
-]
-
-[[package]]
-name = "wasm-encoder"
 version = "0.227.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "80bb72f02e7fbf07183443b27b0f3d4144abf8c114189f2e088ed95b696a7822"
 dependencies = [
  "leb128fmt",
- "wasmparser 0.227.1",
-]
-
-[[package]]
-name = "wasm-metadata"
-version = "0.225.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1d20d0bf2c73c32a5114cf35a5c10ccf9f9aa37a3a2c0114b3e11cbf6faac12"
-dependencies = [
- "anyhow",
- "indexmap 2.9.0",
- "serde",
- "serde_derive",
- "serde_json",
- "spdx",
- "url",
- "wasm-encoder 0.225.0",
- "wasmparser 0.225.0",
+ "wasmparser",
 ]
 
 [[package]]
@@ -3448,20 +3412,8 @@ dependencies = [
  "serde_json",
  "spdx",
  "url",
- "wasm-encoder 0.227.1",
- "wasmparser 0.227.1",
-]
-
-[[package]]
-name = "wasmparser"
-version = "0.225.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "36e5456165f81e64cb9908a0fe9b9d852c2c74582aa3fe2be3c2da57f937d3ae"
-dependencies = [
- "bitflags",
- "hashbrown 0.15.2",
- "indexmap 2.9.0",
- "semver",
+ "wasm-encoder",
+ "wasmparser",
 ]
 
 [[package]]
@@ -3781,33 +3733,12 @@ checksum = "d135d17ab770252ad95e9a872d365cf3090e3be864a34ab46f48555993efc904"
 
 [[package]]
 name = "wit-bindgen"
-version = "0.39.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e4dd9a372b25d6f35456b0a730d2adabeb0c4878066ba8f8089800349be6ecb5"
-dependencies = [
- "wit-bindgen-rt 0.39.0",
- "wit-bindgen-rust-macro 0.39.0",
-]
-
-[[package]]
-name = "wit-bindgen"
 version = "0.41.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "10fb6648689b3929d56bbc7eb1acf70c9a42a29eb5358c67c10f54dbd5d695de"
 dependencies = [
  "wit-bindgen-rt 0.41.0",
- "wit-bindgen-rust-macro 0.41.0",
-]
-
-[[package]]
-name = "wit-bindgen-core"
-version = "0.39.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f108fa9b77a346372858b30c11ea903680e7e2b9d820b1a5883e9d530bf51c7e"
-dependencies = [
- "anyhow",
- "heck",
- "wit-parser 0.225.0",
+ "wit-bindgen-rust-macro",
 ]
 
 [[package]]
@@ -3818,7 +3749,7 @@ checksum = "92fa781d4f2ff6d3f27f3cc9b74a73327b31ca0dc4a3ef25a0ce2983e0e5af9b"
 dependencies = [
  "anyhow",
  "heck",
- "wit-parser 0.227.1",
+ "wit-parser",
 ]
 
 [[package]]
@@ -3828,8 +3759,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6f42320e61fe2cfd34354ecb597f86f413484a798ba44a8ca1165c58d42da6c1"
 dependencies = [
  "bitflags",
- "futures",
- "once_cell",
 ]
 
 [[package]]
@@ -3845,22 +3774,6 @@ dependencies = [
 
 [[package]]
 name = "wit-bindgen-rust"
-version = "0.39.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e5ba5b852e976d35dbf6cb745746bf1bd4fc26782bab1e0c615fc71a7d8aac05"
-dependencies = [
- "anyhow",
- "heck",
- "indexmap 2.9.0",
- "prettyplease",
- "syn 2.0.100",
- "wasm-metadata 0.225.0",
- "wit-bindgen-core 0.39.0",
- "wit-component 0.225.0",
-]
-
-[[package]]
-name = "wit-bindgen-rust"
 version = "0.41.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9d0809dc5ba19e2e98661bf32fc0addc5a3ca5bf3a6a7083aa6ba484085ff3ce"
@@ -3870,24 +3783,9 @@ dependencies = [
  "indexmap 2.9.0",
  "prettyplease",
  "syn 2.0.100",
- "wasm-metadata 0.227.1",
- "wit-bindgen-core 0.41.0",
- "wit-component 0.227.1",
-]
-
-[[package]]
-name = "wit-bindgen-rust-macro"
-version = "0.39.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "401529c9af9304a20ed99fa01799e467b7d37727126f0c9a958895471268ad7a"
-dependencies = [
- "anyhow",
- "prettyplease",
- "proc-macro2",
- "quote",
- "syn 2.0.100",
- "wit-bindgen-core 0.39.0",
- "wit-bindgen-rust 0.39.0",
+ "wasm-metadata",
+ "wit-bindgen-core",
+ "wit-component",
 ]
 
 [[package]]
@@ -3901,27 +3799,8 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.100",
- "wit-bindgen-core 0.41.0",
- "wit-bindgen-rust 0.41.0",
-]
-
-[[package]]
-name = "wit-component"
-version = "0.225.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2505c917564c1d74774563bbcd3e4f8c216a6508050862fd5f449ee56e3c5125"
-dependencies = [
- "anyhow",
- "bitflags",
- "indexmap 2.9.0",
- "log",
- "serde",
- "serde_derive",
- "serde_json",
- "wasm-encoder 0.225.0",
- "wasm-metadata 0.225.0",
- "wasmparser 0.225.0",
- "wit-parser 0.225.0",
+ "wit-bindgen-core",
+ "wit-bindgen-rust",
 ]
 
 [[package]]
@@ -3937,28 +3816,10 @@ dependencies = [
  "serde",
  "serde_derive",
  "serde_json",
- "wasm-encoder 0.227.1",
- "wasm-metadata 0.227.1",
- "wasmparser 0.227.1",
- "wit-parser 0.227.1",
-]
-
-[[package]]
-name = "wit-parser"
-version = "0.225.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ebefaa234e47224f10ce60480c5bfdece7497d0f3b87a12b41ff39e5c8377a78"
-dependencies = [
- "anyhow",
- "id-arena",
- "indexmap 2.9.0",
- "log",
- "semver",
- "serde",
- "serde_derive",
- "serde_json",
- "unicode-xid",
- "wasmparser 0.225.0",
+ "wasm-encoder",
+ "wasm-metadata",
+ "wasmparser",
+ "wit-parser",
 ]
 
 [[package]]
@@ -3976,7 +3837,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "unicode-xid",
- "wasmparser 0.227.1",
+ "wasmparser",
 ]
 
 [[package]]
