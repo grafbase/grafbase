@@ -50,7 +50,7 @@ impl<R: Runtime> Engine<R> {
     where
         Doc: Into<OperationDocument<'doc>> + Send,
     {
-        tracing::info!("Warming operations");
+        tracing::debug!("Warming operations");
 
         let mut count = 0;
         for document in documents {
@@ -70,7 +70,7 @@ impl<R: Runtime> Engine<R> {
             }
         }
 
-        tracing::info!("Warming finished, {} operations were warmed", count);
+        tracing::info!("Finished warming {} operations", count);
     }
 
     pub async fn execute<F>(self: &Arc<Self>, request: http::Request<F>) -> http::Response<Body>
