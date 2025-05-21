@@ -1,6 +1,6 @@
 extend schema
   @link(
-    url: "https://grafbase.com/extensions/postgres/0.4.7",
+    url: "https://grafbase.com/extensions/postgres/0.4.8",
     import: [
       "@pgDatabase",
       "@pgTable",
@@ -30,7 +30,9 @@ extend schema
     url: "https://specs.grafbase.com/composite-schemas/v1",
     import: [
       "@lookup",
-      "@key"
+      "@key",
+      "@derive",
+      "@is"
     ]
   )
   @link(
@@ -770,6 +772,12 @@ input VariantOrderByInput @oneOf {
   product: ProductOrderByInput
 }
 
+type Inventory
+  @key(fields: "sku")
+{
+  sku: String!
+}
+
 """
 Information about pagination in a collection of objects
 """
@@ -1020,6 +1028,7 @@ type Variant
   createdAt: Timestamp! @pgColumn(name: "created_at", type: TIMESTAMP)
   updatedAt: Timestamp! @pgColumn(name: "updated_at", type: TIMESTAMP)
   product: Product! @pgRelation(name: "variants_to_products", fields: ["productId"], references: ["id"])
+  inventory: Inventory! @derive @is(field: "{ sku: sku }")
 }
 
 """

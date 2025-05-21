@@ -8,12 +8,6 @@ CREATE TABLE inventory (
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE VIEW variants AS
-SELECT
-  sku
-FROM
-  inventory;
-
 -- Inventory data based on variant SKUs from products.sql
 -- Product 1 (T-Shirt) variants
 INSERT INTO
