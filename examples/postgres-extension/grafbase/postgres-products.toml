@@ -1,5 +1,5 @@
 # The URL of the extension, which appears at the top of the GraphQL SDL.
-extension_url = "https://grafbase.com/extensions/postgres/0.4.7"
+extension_url = "https://grafbase.com/extensions/postgres/0.4.8"
 
 # The default schema, which we'll omit from the SDL output.
 # Defaults to "public" if you don't specify it
@@ -17,3 +17,7 @@ enable_mutations = true
 # Enable queries (read operations) globally for the whole database.
 # Defaults to true if you omit this setting.
 enable_queries = true
+
+[schemas.public.tables.variants.derives.inventory]
+referenced_type = "Inventory"
+fields = { sku = "sku" }

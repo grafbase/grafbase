@@ -4,13 +4,29 @@ directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT |
 
 directive @join__graph(name: String!, url: String) on ENUM_VALUE
 
-directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, overrideLabel: String) on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+directive @join__field(
+  graph: join__Graph
+  requires: join__FieldSet
+  provides: join__FieldSet
+  type: String
+  external: Boolean
+  override: String
+  overrideLabel: String
+) on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
 
-directive @join__type(graph: join__Graph, key: join__FieldSet, extension: Boolean = false, resolvable: Boolean = true, isInterfaceObject: Boolean = false) on SCALAR | OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT
+directive @join__type(
+  graph: join__Graph
+  key: join__FieldSet
+  extension: Boolean = false
+  resolvable: Boolean = true
+  isInterfaceObject: Boolean = false
+) on SCALAR | OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT
 
 directive @join__owner(graph: join__Graph!) on OBJECT
 
 directive @composite__lookup on FIELD_DEFINITION
+
+directive @composite__is(field: composite__FieldSelectionMap!) on FIELD_DEFINITION | ARGUMENT_DEFINITION
 
 """
 Timestamp data type represented as a string in ISO 8601 format (YYYY-MM-DDTHH:MM:SS.sss)
@@ -34,28 +50,76 @@ scalar Money
 
 scalar join__FieldSet
 
+scalar composite__FieldSelectionMap
+
 type Inventory
-  @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgTable", arguments: {name: "inventory"})
-  @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgKey", arguments: {fields: ["id"], type: PRIMARY})
-  @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgKey", arguments: {fields: ["sku"], type: UNIQUE})
+  @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgTable", arguments: { name: "inventory" })
+  @extension__directive(
+    graph: INVENTORY
+    extension: POSTGRES
+    name: "pgKey"
+    arguments: { fields: ["id"], type: PRIMARY }
+  )
+  @extension__directive(
+    graph: INVENTORY
+    extension: POSTGRES
+    name: "pgKey"
+    arguments: { fields: ["sku"], type: UNIQUE }
+  )
   @join__type(graph: INVENTORY, key: "id", resolvable: false)
   @join__type(graph: INVENTORY, key: "sku", resolvable: false)
-{
-  id: UUID! @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgColumn", arguments: {name: "id", type: UUID})
-  quantity: Int! @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgColumn", arguments: {name: "quantity", type: INT})
-  sku: String! @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgColumn", arguments: {name: "sku", type: VARCHAR})
-  updatedAt: Timestamp! @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgColumn", arguments: {name: "updated_at", type: TIMESTAMP})
-  variant: Variant @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgRelation", arguments: {name: "variant_to_inventory"})
-  warehouseLocation: String @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgColumn", arguments: {name: "warehouse_location", type: VARCHAR})
+  @join__type(graph: PRODUCTS, key: "sku", resolvable: false) {
+  id: UUID!
+    @extension__directive(
+      graph: INVENTORY
+      extension: POSTGRES
+      name: "pgColumn"
+      arguments: { name: "id", type: UUID }
+    )
+    @join__field(graph: INVENTORY)
+  quantity: Int!
+    @extension__directive(
+      graph: INVENTORY
+      extension: POSTGRES
+      name: "pgColumn"
+      arguments: { name: "quantity", type: INT }
+    )
+    @join__field(graph: INVENTORY)
+  sku: String!
+    @extension__directive(
+      graph: INVENTORY
+      extension: POSTGRES
+      name: "pgColumn"
+      arguments: { name: "sku", type: VARCHAR }
+    )
+  updatedAt: Timestamp!
+    @extension__directive(
+      graph: INVENTORY
+      extension: POSTGRES
+      name: "pgColumn"
+      arguments: { name: "updated_at", type: TIMESTAMP }
+    )
+    @join__field(graph: INVENTORY)
+  variant: Variant!
+    @composite__derive(graph: INVENTORY)
+    @composite__is(graph: INVENTORY, field: "{ sku: sku }")
+    @join__field(graph: INVENTORY)
+  warehouseLocation: String
+    @extension__directive(
+      graph: INVENTORY
+      extension: POSTGRES
+      name: "pgColumn"
+      arguments: { name: "warehouse_location", type: VARCHAR }
+    )
+    @join__field(graph: INVENTORY)
 }
 
 """
 The connection type for Inventory
 """
 type InventoryConnection
-  @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgConnection", arguments: {type: "Inventory"})
-  @join__type(graph: INVENTORY)
-{
+  @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgConnection", arguments: { type: "Inventory" })
+  @join__type(graph: INVENTORY) {
   """
   A list of edges
   """
@@ -70,9 +134,8 @@ type InventoryConnection
 Return type when creating many inventories
 """
 type InventoryCreateManyPayload
-  @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgMutation", arguments: {type: "Inventory"})
-  @join__type(graph: INVENTORY)
-{
+  @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgMutation", arguments: { type: "Inventory" })
+  @join__type(graph: INVENTORY) {
   """
   Returned item(s) from the mutation
   """
@@ -87,9 +150,8 @@ type InventoryCreateManyPayload
 Return type when creating one Inventory
 """
 type InventoryCreatePayload
-  @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgMutation", arguments: {type: "Inventory"})
-  @join__type(graph: INVENTORY)
-{
+  @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgMutation", arguments: { type: "Inventory" })
+  @join__type(graph: INVENTORY) {
   """
   Returned item(s) from the mutation
   """
@@ -104,9 +166,8 @@ type InventoryCreatePayload
 Return type when deleting many inventories
 """
 type InventoryDeleteManyPayload
-  @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgMutation", arguments: {type: "Inventory"})
-  @join__type(graph: INVENTORY)
-{
+  @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgMutation", arguments: { type: "Inventory" })
+  @join__type(graph: INVENTORY) {
   """
   Returned item(s) from the mutation
   """
@@ -121,9 +182,8 @@ type InventoryDeleteManyPayload
 Return type when deleting one Inventory
 """
 type InventoryDeletePayload
-  @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgMutation", arguments: {type: "Inventory"})
-  @join__type(graph: INVENTORY)
-{
+  @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgMutation", arguments: { type: "Inventory" })
+  @join__type(graph: INVENTORY) {
   """
   Returned item(s) from the mutation
   """
@@ -137,9 +197,7 @@ type InventoryDeletePayload
 """
 An edge in a connection. Contains the node and its cursor
 """
-type InventoryEdge
-  @join__type(graph: INVENTORY)
-{
+type InventoryEdge @join__type(graph: INVENTORY) {
   """
   A cursor for use in pagination
   """
@@ -154,9 +212,8 @@ type InventoryEdge
 Return type containing fields of the mutated or created Inventory object
 """
 type InventoryReturning
-  @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgReturning", arguments: {type: "Inventory"})
-  @join__type(graph: INVENTORY)
-{
+  @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgReturning", arguments: { type: "Inventory" })
+  @join__type(graph: INVENTORY) {
   """
   The value of the id field
   """
@@ -183,9 +240,8 @@ type InventoryReturning
 Return type when updating many inventories
 """
 type InventoryUpdateManyPayload
-  @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgMutation", arguments: {type: "Inventory"})
-  @join__type(graph: INVENTORY)
-{
+  @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgMutation", arguments: { type: "Inventory" })
+  @join__type(graph: INVENTORY) {
   """
   Returned item(s) from the mutation
   """
@@ -200,9 +256,8 @@ type InventoryUpdateManyPayload
 Return type when updating one Inventory
 """
 type InventoryUpdatePayload
-  @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgMutation", arguments: {type: "Inventory"})
-  @join__type(graph: INVENTORY)
-{
+  @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgMutation", arguments: { type: "Inventory" })
+  @join__type(graph: INVENTORY) {
   """
   Returned item(s) from the mutation
   """
@@ -216,10 +271,7 @@ type InventoryUpdatePayload
 """
 Information about pagination in a collection of objects
 """
-type PageInfo
-  @join__type(graph: INVENTORY)
-  @join__type(graph: PRODUCTS)
-{
+type PageInfo @join__type(graph: INVENTORY) @join__type(graph: PRODUCTS) {
   """
   The cursor of the last item in the page
   """
@@ -239,89 +291,188 @@ type PageInfo
 }
 
 type Variant
-  @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgTable", arguments: {name: "variants", kind: VIEW})
-  @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgKey", arguments: {fields: ["sku"], type: UNIQUE})
-  @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgTable", arguments: {name: "variants"})
-  @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgKey", arguments: {fields: ["id"], type: PRIMARY})
-  @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgKey", arguments: {fields: ["sku"], type: UNIQUE})
+  @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgTable", arguments: { name: "variants" })
+  @extension__directive(
+    graph: PRODUCTS
+    extension: POSTGRES
+    name: "pgKey"
+    arguments: { fields: ["id"], type: PRIMARY }
+  )
+  @extension__directive(
+    graph: PRODUCTS
+    extension: POSTGRES
+    name: "pgKey"
+    arguments: { fields: ["sku"], type: UNIQUE }
+  )
   @join__type(graph: INVENTORY, key: "sku", resolvable: false)
   @join__type(graph: PRODUCTS, key: "id", resolvable: false)
-  @join__type(graph: PRODUCTS, key: "sku", resolvable: false)
-{
-  createdAt: Timestamp! @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgColumn", arguments: {name: "created_at", type: TIMESTAMP}) @join__field(graph: PRODUCTS)
-  id: UUID! @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgColumn", arguments: {name: "id", type: UUID}) @join__field(graph: PRODUCTS)
-  inventory: Inventory! @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgRelation", arguments: {name: "variant_to_inventory", fields: ["sku"], references: ["sku"]}) @join__field(graph: INVENTORY)
-  name: String @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgColumn", arguments: {name: "name", type: VARCHAR}) @join__field(graph: PRODUCTS)
-  price: Money @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgColumn", arguments: {name: "price", type: MONEY}) @join__field(graph: PRODUCTS)
-  product: Product! @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgRelation", arguments: {name: "variants_to_products", fields: ["productId"], references: ["id"]}) @join__field(graph: PRODUCTS)
-  productId: UUID! @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgColumn", arguments: {name: "product_id", type: UUID}) @join__field(graph: PRODUCTS)
-  sku: String! @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgColumn", arguments: {name: "sku", type: VARCHAR}) @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgColumn", arguments: {name: "sku", type: VARCHAR})
-  updatedAt: Timestamp! @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgColumn", arguments: {name: "updated_at", type: TIMESTAMP}) @join__field(graph: PRODUCTS)
-}
-
-"""
-The connection type for Variant
-"""
-type VariantConnection
-  @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgConnection", arguments: {type: "Variant"})
-  @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgConnection", arguments: {type: "Variant"})
-  @join__type(graph: INVENTORY)
-  @join__type(graph: PRODUCTS)
-{
-  """
-  A list of edges
-  """
-  edges: [VariantEdge!]!
-  """
-  Information to aid in pagination
-  """
-  pageInfo: PageInfo!
-}
-
-"""
-An edge in a connection. Contains the node and its cursor
-"""
-type VariantEdge
-  @join__type(graph: INVENTORY)
-  @join__type(graph: PRODUCTS)
-{
-  """
-  A cursor for use in pagination
-  """
-  cursor: String!
-  """
-  The item at the end of the edge
-  """
-  node: Variant!
+  @join__type(graph: PRODUCTS, key: "sku", resolvable: false) {
+  createdAt: Timestamp!
+    @extension__directive(
+      graph: PRODUCTS
+      extension: POSTGRES
+      name: "pgColumn"
+      arguments: { name: "created_at", type: TIMESTAMP }
+    )
+    @join__field(graph: PRODUCTS)
+  id: UUID!
+    @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgColumn", arguments: { name: "id", type: UUID })
+    @join__field(graph: PRODUCTS)
+  inventory: Inventory!
+    @composite__derive(graph: PRODUCTS)
+    @composite__is(graph: PRODUCTS, field: "{ sku: sku }")
+    @join__field(graph: PRODUCTS)
+  name: String
+    @extension__directive(
+      graph: PRODUCTS
+      extension: POSTGRES
+      name: "pgColumn"
+      arguments: { name: "name", type: VARCHAR }
+    )
+    @join__field(graph: PRODUCTS)
+  price: Money
+    @extension__directive(
+      graph: PRODUCTS
+      extension: POSTGRES
+      name: "pgColumn"
+      arguments: { name: "price", type: MONEY }
+    )
+    @join__field(graph: PRODUCTS)
+  product: Product!
+    @extension__directive(
+      graph: PRODUCTS
+      extension: POSTGRES
+      name: "pgRelation"
+      arguments: { name: "variants_to_products", fields: ["productId"], references: ["id"] }
+    )
+    @join__field(graph: PRODUCTS)
+  productId: UUID!
+    @extension__directive(
+      graph: PRODUCTS
+      extension: POSTGRES
+      name: "pgColumn"
+      arguments: { name: "product_id", type: UUID }
+    )
+    @join__field(graph: PRODUCTS)
+  sku: String!
+    @extension__directive(
+      graph: PRODUCTS
+      extension: POSTGRES
+      name: "pgColumn"
+      arguments: { name: "sku", type: VARCHAR }
+    )
+  updatedAt: Timestamp!
+    @extension__directive(
+      graph: PRODUCTS
+      extension: POSTGRES
+      name: "pgColumn"
+      arguments: { name: "updated_at", type: TIMESTAMP }
+    )
+    @join__field(graph: PRODUCTS)
 }
 
 type Product
-  @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgTable", arguments: {name: "products"})
-  @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgKey", arguments: {fields: ["id"], type: PRIMARY})
-  @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgKey", arguments: {fields: ["sku"], type: UNIQUE})
-  @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgKey", arguments: {fields: ["slug"], type: UNIQUE})
+  @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgTable", arguments: { name: "products" })
+  @extension__directive(
+    graph: PRODUCTS
+    extension: POSTGRES
+    name: "pgKey"
+    arguments: { fields: ["id"], type: PRIMARY }
+  )
+  @extension__directive(
+    graph: PRODUCTS
+    extension: POSTGRES
+    name: "pgKey"
+    arguments: { fields: ["sku"], type: UNIQUE }
+  )
+  @extension__directive(
+    graph: PRODUCTS
+    extension: POSTGRES
+    name: "pgKey"
+    arguments: { fields: ["slug"], type: UNIQUE }
+  )
   @join__type(graph: PRODUCTS, key: "id", resolvable: false)
   @join__type(graph: PRODUCTS, key: "sku", resolvable: false)
-  @join__type(graph: PRODUCTS, key: "slug", resolvable: false)
-{
-  createdAt: Timestamp! @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgColumn", arguments: {name: "created_at", type: TIMESTAMP})
-  description: String @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgColumn", arguments: {name: "description", type: TEXT})
-  id: UUID! @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgColumn", arguments: {name: "id", type: UUID})
-  name: String! @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgColumn", arguments: {name: "name", type: VARCHAR})
-  price: Decimal! @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgColumn", arguments: {name: "price", type: NUMERIC})
-  sku: String! @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgColumn", arguments: {name: "sku", type: VARCHAR})
-  slug: String! @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgColumn", arguments: {name: "slug", type: VARCHAR})
-  updatedAt: Timestamp! @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgColumn", arguments: {name: "updated_at", type: TIMESTAMP})
-  variants("Filter the related Variant instances" filter: VariantFilterInput, "Select the first Variant instances" first: Int, "Select the last Variant instances" last: Int, "Select the Variant instances before the given cursor" before: String, "Select the Variant instances after the given cursor" after: String, "Order the Variant instances by the given fields" orderBy: [VariantOrderByInput!]): VariantConnection! @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgRelation", arguments: {name: "variants_to_products"})
+  @join__type(graph: PRODUCTS, key: "slug", resolvable: false) {
+  createdAt: Timestamp!
+    @extension__directive(
+      graph: PRODUCTS
+      extension: POSTGRES
+      name: "pgColumn"
+      arguments: { name: "created_at", type: TIMESTAMP }
+    )
+  description: String
+    @extension__directive(
+      graph: PRODUCTS
+      extension: POSTGRES
+      name: "pgColumn"
+      arguments: { name: "description", type: TEXT }
+    )
+  id: UUID!
+    @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgColumn", arguments: { name: "id", type: UUID })
+  name: String!
+    @extension__directive(
+      graph: PRODUCTS
+      extension: POSTGRES
+      name: "pgColumn"
+      arguments: { name: "name", type: VARCHAR }
+    )
+  price: Decimal!
+    @extension__directive(
+      graph: PRODUCTS
+      extension: POSTGRES
+      name: "pgColumn"
+      arguments: { name: "price", type: NUMERIC }
+    )
+  sku: String!
+    @extension__directive(
+      graph: PRODUCTS
+      extension: POSTGRES
+      name: "pgColumn"
+      arguments: { name: "sku", type: VARCHAR }
+    )
+  slug: String!
+    @extension__directive(
+      graph: PRODUCTS
+      extension: POSTGRES
+      name: "pgColumn"
+      arguments: { name: "slug", type: VARCHAR }
+    )
+  updatedAt: Timestamp!
+    @extension__directive(
+      graph: PRODUCTS
+      extension: POSTGRES
+      name: "pgColumn"
+      arguments: { name: "updated_at", type: TIMESTAMP }
+    )
+  variants(
+    "Filter the related Variant instances"
+    filter: VariantFilterInput
+    "Select the first Variant instances"
+    first: Int
+    "Select the last Variant instances"
+    last: Int
+    "Select the Variant instances before the given cursor"
+    before: String
+    "Select the Variant instances after the given cursor"
+    after: String
+    "Order the Variant instances by the given fields"
+    orderBy: [VariantOrderByInput!]
+  ): VariantConnection!
+    @extension__directive(
+      graph: PRODUCTS
+      extension: POSTGRES
+      name: "pgRelation"
+      arguments: { name: "variants_to_products" }
+    )
 }
 
 """
 The connection type for Product
 """
 type ProductConnection
-  @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgConnection", arguments: {type: "Product"})
-  @join__type(graph: PRODUCTS)
-{
+  @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgConnection", arguments: { type: "Product" })
+  @join__type(graph: PRODUCTS) {
   """
   A list of edges
   """
@@ -336,9 +487,8 @@ type ProductConnection
 Return type when creating many products
 """
 type ProductCreateManyPayload
-  @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgMutation", arguments: {type: "Product"})
-  @join__type(graph: PRODUCTS)
-{
+  @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgMutation", arguments: { type: "Product" })
+  @join__type(graph: PRODUCTS) {
   """
   Returned item(s) from the mutation
   """
@@ -353,9 +503,8 @@ type ProductCreateManyPayload
 Return type when creating one Product
 """
 type ProductCreatePayload
-  @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgMutation", arguments: {type: "Product"})
-  @join__type(graph: PRODUCTS)
-{
+  @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgMutation", arguments: { type: "Product" })
+  @join__type(graph: PRODUCTS) {
   """
   Returned item(s) from the mutation
   """
@@ -370,9 +519,8 @@ type ProductCreatePayload
 Return type when deleting many products
 """
 type ProductDeleteManyPayload
-  @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgMutation", arguments: {type: "Product"})
-  @join__type(graph: PRODUCTS)
-{
+  @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgMutation", arguments: { type: "Product" })
+  @join__type(graph: PRODUCTS) {
   """
   Returned item(s) from the mutation
   """
@@ -387,9 +535,8 @@ type ProductDeleteManyPayload
 Return type when deleting one Product
 """
 type ProductDeletePayload
-  @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgMutation", arguments: {type: "Product"})
-  @join__type(graph: PRODUCTS)
-{
+  @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgMutation", arguments: { type: "Product" })
+  @join__type(graph: PRODUCTS) {
   """
   Returned item(s) from the mutation
   """
@@ -403,9 +550,7 @@ type ProductDeletePayload
 """
 An edge in a connection. Contains the node and its cursor
 """
-type ProductEdge
-  @join__type(graph: PRODUCTS)
-{
+type ProductEdge @join__type(graph: PRODUCTS) {
   """
   A cursor for use in pagination
   """
@@ -420,9 +565,8 @@ type ProductEdge
 Return type containing fields of the mutated or created Product object
 """
 type ProductReturning
-  @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgReturning", arguments: {type: "Product"})
-  @join__type(graph: PRODUCTS)
-{
+  @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgReturning", arguments: { type: "Product" })
+  @join__type(graph: PRODUCTS) {
   """
   The value of the createdAt field
   """
@@ -461,9 +605,8 @@ type ProductReturning
 Return type when updating many products
 """
 type ProductUpdateManyPayload
-  @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgMutation", arguments: {type: "Product"})
-  @join__type(graph: PRODUCTS)
-{
+  @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgMutation", arguments: { type: "Product" })
+  @join__type(graph: PRODUCTS) {
   """
   Returned item(s) from the mutation
   """
@@ -478,9 +621,8 @@ type ProductUpdateManyPayload
 Return type when updating one Product
 """
 type ProductUpdatePayload
-  @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgMutation", arguments: {type: "Product"})
-  @join__type(graph: PRODUCTS)
-{
+  @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgMutation", arguments: { type: "Product" })
+  @join__type(graph: PRODUCTS) {
   """
   Returned item(s) from the mutation
   """
@@ -492,12 +634,27 @@ type ProductUpdatePayload
 }
 
 """
+The connection type for Variant
+"""
+type VariantConnection
+  @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgConnection", arguments: { type: "Variant" })
+  @join__type(graph: PRODUCTS) {
+  """
+  A list of edges
+  """
+  edges: [VariantEdge!]!
+  """
+  Information to aid in pagination
+  """
+  pageInfo: PageInfo!
+}
+
+"""
 Return type when creating many variants
 """
 type VariantCreateManyPayload
-  @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgMutation", arguments: {type: "Variant"})
-  @join__type(graph: PRODUCTS)
-{
+  @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgMutation", arguments: { type: "Variant" })
+  @join__type(graph: PRODUCTS) {
   """
   Returned item(s) from the mutation
   """
@@ -512,9 +669,8 @@ type VariantCreateManyPayload
 Return type when creating one Variant
 """
 type VariantCreatePayload
-  @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgMutation", arguments: {type: "Variant"})
-  @join__type(graph: PRODUCTS)
-{
+  @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgMutation", arguments: { type: "Variant" })
+  @join__type(graph: PRODUCTS) {
   """
   Returned item(s) from the mutation
   """
@@ -529,9 +685,8 @@ type VariantCreatePayload
 Return type when deleting many variants
 """
 type VariantDeleteManyPayload
-  @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgMutation", arguments: {type: "Variant"})
-  @join__type(graph: PRODUCTS)
-{
+  @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgMutation", arguments: { type: "Variant" })
+  @join__type(graph: PRODUCTS) {
   """
   Returned item(s) from the mutation
   """
@@ -546,9 +701,8 @@ type VariantDeleteManyPayload
 Return type when deleting one Variant
 """
 type VariantDeletePayload
-  @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgMutation", arguments: {type: "Variant"})
-  @join__type(graph: PRODUCTS)
-{
+  @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgMutation", arguments: { type: "Variant" })
+  @join__type(graph: PRODUCTS) {
   """
   Returned item(s) from the mutation
   """
@@ -560,12 +714,25 @@ type VariantDeletePayload
 }
 
 """
+An edge in a connection. Contains the node and its cursor
+"""
+type VariantEdge @join__type(graph: PRODUCTS) {
+  """
+  A cursor for use in pagination
+  """
+  cursor: String!
+  """
+  The item at the end of the edge
+  """
+  node: Variant!
+}
+
+"""
 Return type containing fields of the mutated or created Variant object
 """
 type VariantReturning
-  @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgReturning", arguments: {type: "Variant"})
-  @join__type(graph: PRODUCTS)
-{
+  @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgReturning", arguments: { type: "Variant" })
+  @join__type(graph: PRODUCTS) {
   """
   The value of the createdAt field
   """
@@ -600,9 +767,8 @@ type VariantReturning
 Return type when updating many variants
 """
 type VariantUpdateManyPayload
-  @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgMutation", arguments: {type: "Variant"})
-  @join__type(graph: PRODUCTS)
-{
+  @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgMutation", arguments: { type: "Variant" })
+  @join__type(graph: PRODUCTS) {
   """
   Returned item(s) from the mutation
   """
@@ -617,9 +783,8 @@ type VariantUpdateManyPayload
 Return type when updating one Variant
 """
 type VariantUpdatePayload
-  @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgMutation", arguments: {type: "Variant"})
-  @join__type(graph: PRODUCTS)
-{
+  @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgMutation", arguments: { type: "Variant" })
+  @join__type(graph: PRODUCTS) {
   """
   Returned item(s) from the mutation
   """
@@ -630,163 +795,310 @@ type VariantUpdatePayload
   rowCount: Int!
 }
 
-type Query
-{
+type Query {
   """
   Query and paginate multiple inventories
   """
-  inventoryInventories("Filter for Inventory" filter: InventoryFilterInput, "Limit the number of results, from the beginning" first: Int, "Limit the number of results, from the end" last: Int, "Cursor for pagination, select items before the cursor. Use together with `last`." before: String, "Cursor for pagination, select items after the cursor. Use together with `first`." after: String, "Order the results by selected fields" orderBy: [InventoryOrderByInput!]): InventoryConnection! @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgSelectMany", arguments: {}) @join__field(graph: INVENTORY)
+  inventoryInventories(
+    "Filter for Inventory"
+    filter: InventoryFilterInput
+    "Limit the number of results, from the beginning"
+    first: Int
+    "Limit the number of results, from the end"
+    last: Int
+    "Cursor for pagination, select items before the cursor. Use together with `last`."
+    before: String
+    "Cursor for pagination, select items after the cursor. Use together with `first`."
+    after: String
+    "Order the results by selected fields"
+    orderBy: [InventoryOrderByInput!]
+  ): InventoryConnection!
+    @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgSelectMany", arguments: {})
+    @join__field(graph: INVENTORY)
   """
   Query a unique Inventory
   """
-  inventoryInventory("Input for unique Inventory lookup" lookup: InventoryLookupInput!): Inventory @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgSelectOne", arguments: {}) @join__field(graph: INVENTORY)
+  inventoryInventory("Input for unique Inventory lookup" lookup: InventoryLookupInput!): Inventory
+    @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgSelectOne", arguments: {})
+    @join__field(graph: INVENTORY)
   """
   Lookup multiple inventories for subgraph joins
   """
-  inventoryInventoryLookup("Filter inventories with an array of keys" lookup: InventoryManyLookupInput @inaccessible): [Inventory]! @inaccessible @composite__lookup(graph: INVENTORY) @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgLookup", arguments: {}) @join__field(graph: INVENTORY)
-  """
-  Query a unique Variant
-  """
-  inventoryVariant("Input for unique Variant lookup" lookup: VariantLookupInput!): Variant @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgSelectOne", arguments: {}) @join__field(graph: INVENTORY)
-  """
-  Lookup multiple variants for subgraph joins
-  """
-  inventoryVariantLookup("Filter variants with an array of keys" lookup: VariantManyLookupInput @inaccessible): [Variant]! @inaccessible @composite__lookup(graph: INVENTORY) @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgLookup", arguments: {}) @join__field(graph: INVENTORY)
-  """
-  Query and paginate multiple variants
-  """
-  inventoryVariants("Filter for Variant" filter: VariantFilterInput, "Limit the number of results, from the beginning" first: Int, "Limit the number of results, from the end" last: Int, "Cursor for pagination, select items before the cursor. Use together with `last`." before: String, "Cursor for pagination, select items after the cursor. Use together with `first`." after: String, "Order the results by selected fields" orderBy: [VariantOrderByInput!]): VariantConnection! @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgSelectMany", arguments: {}) @join__field(graph: INVENTORY)
+  inventoryInventoryLookup(
+    "Filter inventories with an array of keys"
+    lookup: InventoryManyLookupInput @inaccessible
+  ): [Inventory]!
+    @inaccessible
+    @composite__lookup(graph: INVENTORY)
+    @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgLookup", arguments: {})
+    @join__field(graph: INVENTORY)
   """
   Query a unique Product
   """
-  productsProduct("Input for unique Product lookup" lookup: ProductLookupInput!): Product @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgSelectOne", arguments: {}) @join__field(graph: PRODUCTS)
+  productsProduct("Input for unique Product lookup" lookup: ProductLookupInput!): Product
+    @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgSelectOne", arguments: {})
+    @join__field(graph: PRODUCTS)
   """
   Lookup multiple products for subgraph joins
   """
-  productsProductLookup("Filter products with an array of keys" lookup: ProductManyLookupInput @inaccessible): [Product]! @inaccessible @composite__lookup(graph: PRODUCTS) @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgLookup", arguments: {}) @join__field(graph: PRODUCTS)
+  productsProductLookup(
+    "Filter products with an array of keys"
+    lookup: ProductManyLookupInput @inaccessible
+  ): [Product]!
+    @inaccessible
+    @composite__lookup(graph: PRODUCTS)
+    @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgLookup", arguments: {})
+    @join__field(graph: PRODUCTS)
   """
   Query and paginate multiple products
   """
-  productsProducts("Filter for Product" filter: ProductFilterInput, "Limit the number of results, from the beginning" first: Int, "Limit the number of results, from the end" last: Int, "Cursor for pagination, select items before the cursor. Use together with `last`." before: String, "Cursor for pagination, select items after the cursor. Use together with `first`." after: String, "Order the results by selected fields" orderBy: [ProductOrderByInput!]): ProductConnection! @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgSelectMany", arguments: {}) @join__field(graph: PRODUCTS)
+  productsProducts(
+    "Filter for Product"
+    filter: ProductFilterInput
+    "Limit the number of results, from the beginning"
+    first: Int
+    "Limit the number of results, from the end"
+    last: Int
+    "Cursor for pagination, select items before the cursor. Use together with `last`."
+    before: String
+    "Cursor for pagination, select items after the cursor. Use together with `first`."
+    after: String
+    "Order the results by selected fields"
+    orderBy: [ProductOrderByInput!]
+  ): ProductConnection!
+    @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgSelectMany", arguments: {})
+    @join__field(graph: PRODUCTS)
   """
   Query a unique Variant
   """
-  productsVariant("Input for unique Variant lookup" lookup: VariantLookupInput!): Variant @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgSelectOne", arguments: {}) @join__field(graph: PRODUCTS)
+  productsVariant("Input for unique Variant lookup" lookup: VariantLookupInput!): Variant
+    @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgSelectOne", arguments: {})
+    @join__field(graph: PRODUCTS)
   """
   Lookup multiple variants for subgraph joins
   """
-  productsVariantLookup("Filter variants with an array of keys" lookup: VariantManyLookupInput @inaccessible): [Variant]! @inaccessible @composite__lookup(graph: PRODUCTS) @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgLookup", arguments: {}) @join__field(graph: PRODUCTS)
+  productsVariantLookup(
+    "Filter variants with an array of keys"
+    lookup: VariantManyLookupInput @inaccessible
+  ): [Variant]!
+    @inaccessible
+    @composite__lookup(graph: PRODUCTS)
+    @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgLookup", arguments: {})
+    @join__field(graph: PRODUCTS)
   """
   Query and paginate multiple variants
   """
-  productsVariants("Filter for Variant" filter: VariantFilterInput, "Limit the number of results, from the beginning" first: Int, "Limit the number of results, from the end" last: Int, "Cursor for pagination, select items before the cursor. Use together with `last`." before: String, "Cursor for pagination, select items after the cursor. Use together with `first`." after: String, "Order the results by selected fields" orderBy: [VariantOrderByInput!]): VariantConnection! @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgSelectMany", arguments: {}) @join__field(graph: PRODUCTS)
+  productsVariants(
+    "Filter for Variant"
+    filter: VariantFilterInput
+    "Limit the number of results, from the beginning"
+    first: Int
+    "Limit the number of results, from the end"
+    last: Int
+    "Cursor for pagination, select items before the cursor. Use together with `last`."
+    before: String
+    "Cursor for pagination, select items after the cursor. Use together with `first`."
+    after: String
+    "Order the results by selected fields"
+    orderBy: [VariantOrderByInput!]
+  ): VariantConnection!
+    @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgSelectMany", arguments: {})
+    @join__field(graph: PRODUCTS)
 }
 
-type Mutation
-{
+type Mutation {
   """
   Create a single Inventory
   """
-  inventoryInventoryCreate("Input for creating a single Inventory" input: InventoryInventoryCreateInput!): InventoryCreatePayload! @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgInsertOne", arguments: {}) @join__field(graph: INVENTORY)
+  inventoryInventoryCreate(
+    "Input for creating a single Inventory"
+    input: InventoryInventoryCreateInput!
+  ): InventoryCreatePayload!
+    @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgInsertOne", arguments: {})
+    @join__field(graph: INVENTORY)
   """
   Create multiple inventories
   """
-  inventoryInventoryCreateMany("Input for creating multiple Inventory instances" input: [InventoryInventoryCreateInput!]!): InventoryCreateManyPayload! @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgInsertMany", arguments: {}) @join__field(graph: INVENTORY)
+  inventoryInventoryCreateMany(
+    "Input for creating multiple Inventory instances"
+    input: [InventoryInventoryCreateInput!]!
+  ): InventoryCreateManyPayload!
+    @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgInsertMany", arguments: {})
+    @join__field(graph: INVENTORY)
   """
   Delete a unique Inventory
   """
-  inventoryInventoryDelete("Lookup input for unique Inventory deletion" lookup: InventoryLookupInput!): InventoryDeletePayload! @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgDeleteOne", arguments: {}) @join__field(graph: INVENTORY)
+  inventoryInventoryDelete(
+    "Lookup input for unique Inventory deletion"
+    lookup: InventoryLookupInput!
+  ): InventoryDeletePayload!
+    @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgDeleteOne", arguments: {})
+    @join__field(graph: INVENTORY)
   """
   Delete multiple inventories
   """
-  inventoryInventoryDeleteMany("Filter for Inventory deletion" filter: InventoryFilterInput): InventoryDeleteManyPayload! @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgDeleteMany", arguments: {}) @join__field(graph: INVENTORY)
+  inventoryInventoryDeleteMany(
+    "Filter for Inventory deletion"
+    filter: InventoryFilterInput
+  ): InventoryDeleteManyPayload!
+    @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgDeleteMany", arguments: {})
+    @join__field(graph: INVENTORY)
   """
   Update a unique Inventory
   """
-  inventoryInventoryUpdate("Lookup input for unique Inventory update" lookup: InventoryLookupInput!, "Input for updating a Inventory" input: InventoryInventoryUpdateInput): InventoryUpdatePayload! @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgUpdateOne", arguments: {}) @join__field(graph: INVENTORY)
+  inventoryInventoryUpdate(
+    "Lookup input for unique Inventory update"
+    lookup: InventoryLookupInput!
+    "Input for updating a Inventory"
+    input: InventoryInventoryUpdateInput
+  ): InventoryUpdatePayload!
+    @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgUpdateOne", arguments: {})
+    @join__field(graph: INVENTORY)
   """
   Update multiple inventories
   """
-  inventoryInventoryUpdateMany("Filter for updating multiple Inventory instances" filter: InventoryFilterInput, "Input for updating multiple Inventory instances" input: InventoryInventoryUpdateInput): InventoryUpdateManyPayload! @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgUpdateMany", arguments: {}) @join__field(graph: INVENTORY)
+  inventoryInventoryUpdateMany(
+    "Filter for updating multiple Inventory instances"
+    filter: InventoryFilterInput
+    "Input for updating multiple Inventory instances"
+    input: InventoryInventoryUpdateInput
+  ): InventoryUpdateManyPayload!
+    @extension__directive(graph: INVENTORY, extension: POSTGRES, name: "pgUpdateMany", arguments: {})
+    @join__field(graph: INVENTORY)
   """
   Create a single Product
   """
-  productsProductCreate("Input for creating a single Product" input: ProductsProductCreateInput!): ProductCreatePayload! @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgInsertOne", arguments: {}) @join__field(graph: PRODUCTS)
+  productsProductCreate(
+    "Input for creating a single Product"
+    input: ProductsProductCreateInput!
+  ): ProductCreatePayload!
+    @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgInsertOne", arguments: {})
+    @join__field(graph: PRODUCTS)
   """
   Create multiple products
   """
-  productsProductCreateMany("Input for creating multiple Product instances" input: [ProductsProductCreateInput!]!): ProductCreateManyPayload! @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgInsertMany", arguments: {}) @join__field(graph: PRODUCTS)
+  productsProductCreateMany(
+    "Input for creating multiple Product instances"
+    input: [ProductsProductCreateInput!]!
+  ): ProductCreateManyPayload!
+    @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgInsertMany", arguments: {})
+    @join__field(graph: PRODUCTS)
   """
   Delete a unique Product
   """
-  productsProductDelete("Lookup input for unique Product deletion" lookup: ProductLookupInput!): ProductDeletePayload! @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgDeleteOne", arguments: {}) @join__field(graph: PRODUCTS)
+  productsProductDelete("Lookup input for unique Product deletion" lookup: ProductLookupInput!): ProductDeletePayload!
+    @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgDeleteOne", arguments: {})
+    @join__field(graph: PRODUCTS)
   """
   Delete multiple products
   """
-  productsProductDeleteMany("Filter for Product deletion" filter: ProductFilterInput): ProductDeleteManyPayload! @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgDeleteMany", arguments: {}) @join__field(graph: PRODUCTS)
+  productsProductDeleteMany("Filter for Product deletion" filter: ProductFilterInput): ProductDeleteManyPayload!
+    @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgDeleteMany", arguments: {})
+    @join__field(graph: PRODUCTS)
   """
   Update a unique Product
   """
-  productsProductUpdate("Lookup input for unique Product update" lookup: ProductLookupInput!, "Input for updating a Product" input: ProductsProductUpdateInput): ProductUpdatePayload! @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgUpdateOne", arguments: {}) @join__field(graph: PRODUCTS)
+  productsProductUpdate(
+    "Lookup input for unique Product update"
+    lookup: ProductLookupInput!
+    "Input for updating a Product"
+    input: ProductsProductUpdateInput
+  ): ProductUpdatePayload!
+    @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgUpdateOne", arguments: {})
+    @join__field(graph: PRODUCTS)
   """
   Update multiple products
   """
-  productsProductUpdateMany("Filter for updating multiple Product instances" filter: ProductFilterInput, "Input for updating multiple Product instances" input: ProductsProductUpdateInput): ProductUpdateManyPayload! @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgUpdateMany", arguments: {}) @join__field(graph: PRODUCTS)
+  productsProductUpdateMany(
+    "Filter for updating multiple Product instances"
+    filter: ProductFilterInput
+    "Input for updating multiple Product instances"
+    input: ProductsProductUpdateInput
+  ): ProductUpdateManyPayload!
+    @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgUpdateMany", arguments: {})
+    @join__field(graph: PRODUCTS)
   """
   Create a single Variant
   """
-  productsVariantCreate("Input for creating a single Variant" input: ProductsVariantCreateInput!): VariantCreatePayload! @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgInsertOne", arguments: {}) @join__field(graph: PRODUCTS)
+  productsVariantCreate(
+    "Input for creating a single Variant"
+    input: ProductsVariantCreateInput!
+  ): VariantCreatePayload!
+    @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgInsertOne", arguments: {})
+    @join__field(graph: PRODUCTS)
   """
   Create multiple variants
   """
-  productsVariantCreateMany("Input for creating multiple Variant instances" input: [ProductsVariantCreateInput!]!): VariantCreateManyPayload! @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgInsertMany", arguments: {}) @join__field(graph: PRODUCTS)
+  productsVariantCreateMany(
+    "Input for creating multiple Variant instances"
+    input: [ProductsVariantCreateInput!]!
+  ): VariantCreateManyPayload!
+    @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgInsertMany", arguments: {})
+    @join__field(graph: PRODUCTS)
   """
   Delete a unique Variant
   """
-  productsVariantDelete("Lookup input for unique Variant deletion" lookup: VariantLookupInput!): VariantDeletePayload! @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgDeleteOne", arguments: {}) @join__field(graph: PRODUCTS)
+  productsVariantDelete("Lookup input for unique Variant deletion" lookup: VariantLookupInput!): VariantDeletePayload!
+    @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgDeleteOne", arguments: {})
+    @join__field(graph: PRODUCTS)
   """
   Delete multiple variants
   """
-  productsVariantDeleteMany("Filter for Variant deletion" filter: VariantFilterInput): VariantDeleteManyPayload! @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgDeleteMany", arguments: {}) @join__field(graph: PRODUCTS)
+  productsVariantDeleteMany("Filter for Variant deletion" filter: VariantFilterInput): VariantDeleteManyPayload!
+    @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgDeleteMany", arguments: {})
+    @join__field(graph: PRODUCTS)
   """
   Update a unique Variant
   """
-  productsVariantUpdate("Lookup input for unique Variant update" lookup: VariantLookupInput!, "Input for updating a Variant" input: ProductsVariantUpdateInput): VariantUpdatePayload! @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgUpdateOne", arguments: {}) @join__field(graph: PRODUCTS)
+  productsVariantUpdate(
+    "Lookup input for unique Variant update"
+    lookup: VariantLookupInput!
+    "Input for updating a Variant"
+    input: ProductsVariantUpdateInput
+  ): VariantUpdatePayload!
+    @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgUpdateOne", arguments: {})
+    @join__field(graph: PRODUCTS)
   """
   Update multiple variants
   """
-  productsVariantUpdateMany("Filter for updating multiple Variant instances" filter: VariantFilterInput, "Input for updating multiple Variant instances" input: ProductsVariantUpdateInput): VariantUpdateManyPayload! @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgUpdateMany", arguments: {}) @join__field(graph: PRODUCTS)
+  productsVariantUpdateMany(
+    "Filter for updating multiple Variant instances"
+    filter: VariantFilterInput
+    "Input for updating multiple Variant instances"
+    input: ProductsVariantUpdateInput
+  ): VariantUpdateManyPayload!
+    @extension__directive(graph: PRODUCTS, extension: POSTGRES, name: "pgUpdateMany", arguments: {})
+    @join__field(graph: PRODUCTS)
 }
 
 """
 Specifies the direction for ordering results.
 """
-enum OrderDirection
-  @join__type(graph: INVENTORY)
-  @join__type(graph: PRODUCTS)
-{
+enum OrderDirection @join__type(graph: INVENTORY) @join__type(graph: PRODUCTS) {
   ASC
   DESC
 }
 
-enum join__Graph
-{
+enum join__Graph {
   INVENTORY @join__graph(name: "inventory")
   PRODUCTS @join__graph(name: "products")
 }
 
-enum extension__Link
-{
-  POSTGRES @extension__link(url: "https://grafbase.com/extensions/postgres/0.4.7", schemaDirectives: [{graph: INVENTORY, name: "pgDatabase", arguments: {name: "inventory"}}, {graph: PRODUCTS, name: "pgDatabase", arguments: {name: "products"}}])
+enum extension__Link {
+  POSTGRES
+    @extension__link(
+      url: "https://grafbase.com/extensions/postgres/0.4.8"
+      schemaDirectives: [
+        { graph: INVENTORY, name: "pgDatabase", arguments: { name: "inventory" } }
+        { graph: PRODUCTS, name: "pgDatabase", arguments: { name: "products" } }
+      ]
+    )
 }
 
 """
 Search filter input for Int type.
 """
-input IntFilterInput
-  @oneOf
-  @join__type(graph: INVENTORY)
-{
+input IntFilterInput @oneOf @join__type(graph: INVENTORY) {
   """
   The value is exactly the one given
   """
@@ -828,10 +1140,7 @@ input IntFilterInput
 """
 Update input for Int type.
 """
-input IntUpdateInput
-  @oneOf
-  @join__type(graph: INVENTORY)
-{
+input IntUpdateInput @oneOf @join__type(graph: INVENTORY) {
   """
   Replaces the value of a field with the specified value.
   """
@@ -857,10 +1166,7 @@ input IntUpdateInput
 """
 Filter input type for Inventory objects.
 """
-input InventoryFilterInput
-  @oneOf
-  @join__type(graph: INVENTORY)
-{
+input InventoryFilterInput @oneOf @join__type(graph: INVENTORY) {
   """
   Filter by the given id
   """
@@ -882,10 +1188,6 @@ input InventoryFilterInput
   """
   updatedAt: TimestampFilterInput
   """
-  Filter by the related Variant object
-  """
-  variant: VariantFilterInput
-  """
   All of the filters must match
   """
   ALL: [InventoryFilterInput]
@@ -902,9 +1204,7 @@ input InventoryFilterInput
 """
 Input for creating a new Inventory
 """
-input InventoryInventoryCreateInput
-  @join__type(graph: INVENTORY)
-{
+input InventoryInventoryCreateInput @join__type(graph: INVENTORY) {
   """
   Set field value for id
   """
@@ -930,9 +1230,7 @@ input InventoryInventoryCreateInput
 """
 Input for updating an existing Inventory
 """
-input InventoryInventoryUpdateInput
-  @join__type(graph: INVENTORY)
-{
+input InventoryInventoryUpdateInput @join__type(graph: INVENTORY) {
   """
   Update field value for id
   """
@@ -958,10 +1256,7 @@ input InventoryInventoryUpdateInput
 """
 Input type to select a unique Inventory
 """
-input InventoryLookupInput
-  @oneOf
-  @join__type(graph: INVENTORY)
-{
+input InventoryLookupInput @oneOf @join__type(graph: INVENTORY) {
   """
   Select by the 'id' field
   """
@@ -975,11 +1270,7 @@ input InventoryLookupInput
 """
 Lookup input type for Inventory objects for subgraph joins.
 """
-input InventoryManyLookupInput
-  @oneOf
-  @inaccessible
-  @join__type(graph: INVENTORY)
-{
+input InventoryManyLookupInput @oneOf @inaccessible @join__type(graph: INVENTORY) {
   """
   Select by the 'id' field
   """
@@ -993,10 +1284,7 @@ input InventoryManyLookupInput
 """
 Specifies the ordering for Inventory results.
 """
-input InventoryOrderByInput
-  @oneOf
-  @join__type(graph: INVENTORY)
-{
+input InventoryOrderByInput @oneOf @join__type(graph: INVENTORY) {
   """
   Order inventories by id
   """
@@ -1017,20 +1305,12 @@ input InventoryOrderByInput
   Order inventories by updatedAt
   """
   updatedAt: OrderDirection
-  """
-  Order Inventory results by Variant fields
-  """
-  variant: VariantOrderByInput
 }
 
 """
 Search filter input for String type.
 """
-input StringFilterInput
-  @oneOf
-  @join__type(graph: INVENTORY)
-  @join__type(graph: PRODUCTS)
-{
+input StringFilterInput @oneOf @join__type(graph: INVENTORY) @join__type(graph: PRODUCTS) {
   """
   The value is exactly the one given
   """
@@ -1076,11 +1356,7 @@ input StringFilterInput
 """
 Update input for String type.
 """
-input StringUpdateInput
-  @oneOf
-  @join__type(graph: INVENTORY)
-  @join__type(graph: PRODUCTS)
-{
+input StringUpdateInput @oneOf @join__type(graph: INVENTORY) @join__type(graph: PRODUCTS) {
   """
   Replaces the value of a field with the specified value.
   """
@@ -1090,11 +1366,7 @@ input StringUpdateInput
 """
 Search filter input for Timestamp type.
 """
-input TimestampFilterInput
-  @oneOf
-  @join__type(graph: INVENTORY)
-  @join__type(graph: PRODUCTS)
-{
+input TimestampFilterInput @oneOf @join__type(graph: INVENTORY) @join__type(graph: PRODUCTS) {
   """
   The value is exactly the one given
   """
@@ -1136,11 +1408,7 @@ input TimestampFilterInput
 """
 Update input for Timestamp type.
 """
-input TimestampUpdateInput
-  @oneOf
-  @join__type(graph: INVENTORY)
-  @join__type(graph: PRODUCTS)
-{
+input TimestampUpdateInput @oneOf @join__type(graph: INVENTORY) @join__type(graph: PRODUCTS) {
   """
   Replaces the value of a field with the specified value.
   """
@@ -1150,11 +1418,7 @@ input TimestampUpdateInput
 """
 Search filter input for UUID type.
 """
-input UUIDFilterInput
-  @oneOf
-  @join__type(graph: INVENTORY)
-  @join__type(graph: PRODUCTS)
-{
+input UUIDFilterInput @oneOf @join__type(graph: INVENTORY) @join__type(graph: PRODUCTS) {
   """
   The value is exactly the one given
   """
@@ -1196,11 +1460,7 @@ input UUIDFilterInput
 """
 Update input for UUID type.
 """
-input UUIDUpdateInput
-  @oneOf
-  @join__type(graph: INVENTORY)
-  @join__type(graph: PRODUCTS)
-{
+input UUIDUpdateInput @oneOf @join__type(graph: INVENTORY) @join__type(graph: PRODUCTS) {
   """
   Replaces the value of a field with the specified value.
   """
@@ -1208,81 +1468,9 @@ input UUIDUpdateInput
 }
 
 """
-Filter input type for Variant objects.
-"""
-input VariantFilterInput
-  @oneOf
-  @join__type(graph: INVENTORY)
-  @join__type(graph: PRODUCTS)
-{
-  """
-  Filter by the given sku
-  """
-  sku: StringFilterInput
-  """
-  All of the filters must match
-  """
-  ALL: [VariantFilterInput]
-  """
-  None of the filters must match
-  """
-  NONE: [VariantFilterInput]
-  """
-  At least one of the filters must match
-  """
-  ANY: [VariantFilterInput]
-}
-
-"""
-Input type to select a unique Variant
-"""
-input VariantLookupInput
-  @oneOf
-  @join__type(graph: INVENTORY)
-  @join__type(graph: PRODUCTS)
-{
-  """
-  Select by the 'sku' field
-  """
-  sku: String
-}
-
-"""
-Lookup input type for Variant objects for subgraph joins.
-"""
-input VariantManyLookupInput
-  @oneOf
-  @inaccessible
-  @join__type(graph: INVENTORY)
-  @join__type(graph: PRODUCTS)
-{
-  """
-  Select by the 'sku' field
-  """
-  sku: [String!] @inaccessible
-}
-
-"""
-Specifies the ordering for Variant results.
-"""
-input VariantOrderByInput
-  @oneOf
-  @join__type(graph: INVENTORY)
-  @join__type(graph: PRODUCTS)
-{
-  """
-  Order variants by sku
-  """
-  sku: OrderDirection
-}
-
-"""
 Search filter input for Decimal type.
 """
-input DecimalFilterInput
-  @oneOf
-  @join__type(graph: PRODUCTS)
-{
+input DecimalFilterInput @oneOf @join__type(graph: PRODUCTS) {
   """
   The value is exactly the one given
   """
@@ -1324,10 +1512,7 @@ input DecimalFilterInput
 """
 Update input for Decimal type.
 """
-input DecimalUpdateInput
-  @oneOf
-  @join__type(graph: PRODUCTS)
-{
+input DecimalUpdateInput @oneOf @join__type(graph: PRODUCTS) {
   """
   Replaces the value of a field with the specified value.
   """
@@ -1353,10 +1538,7 @@ input DecimalUpdateInput
 """
 Search filter input for Money type.
 """
-input MoneyFilterInput
-  @oneOf
-  @join__type(graph: PRODUCTS)
-{
+input MoneyFilterInput @oneOf @join__type(graph: PRODUCTS) {
   """
   The value is exactly the one given
   """
@@ -1398,10 +1580,7 @@ input MoneyFilterInput
 """
 Update input for Money type.
 """
-input MoneyUpdateInput
-  @oneOf
-  @join__type(graph: PRODUCTS)
-{
+input MoneyUpdateInput @oneOf @join__type(graph: PRODUCTS) {
   """
   Replaces the value of a field with the specified value.
   """
@@ -1427,10 +1606,7 @@ input MoneyUpdateInput
 """
 Filter input type for Product objects.
 """
-input ProductFilterInput
-  @oneOf
-  @join__type(graph: PRODUCTS)
-{
+input ProductFilterInput @oneOf @join__type(graph: PRODUCTS) {
   """
   Filter by the given name
   """
@@ -1443,10 +1619,6 @@ input ProductFilterInput
   Filter by the given sku
   """
   sku: StringFilterInput
-  """
-  Filter by the related Variant objects
-  """
-  variants: VariantCollectionFilterInput
   """
   Filter by the given updatedAt
   """
@@ -1468,6 +1640,10 @@ input ProductFilterInput
   """
   slug: StringFilterInput
   """
+  Filter by the related Variant objects
+  """
+  variants: VariantCollectionFilterInput
+  """
   Filter by the given description
   """
   description: StringFilterInput
@@ -1484,10 +1660,7 @@ input ProductFilterInput
 """
 Input type to select a unique Product
 """
-input ProductLookupInput
-  @oneOf
-  @join__type(graph: PRODUCTS)
-{
+input ProductLookupInput @oneOf @join__type(graph: PRODUCTS) {
   """
   Select by the 'id' field
   """
@@ -1505,11 +1678,7 @@ input ProductLookupInput
 """
 Lookup input type for Product objects for subgraph joins.
 """
-input ProductManyLookupInput
-  @oneOf
-  @inaccessible
-  @join__type(graph: PRODUCTS)
-{
+input ProductManyLookupInput @oneOf @inaccessible @join__type(graph: PRODUCTS) {
   """
   Select by the 'id' field
   """
@@ -1527,10 +1696,7 @@ input ProductManyLookupInput
 """
 Specifies the ordering for Product results.
 """
-input ProductOrderByInput
-  @oneOf
-  @join__type(graph: PRODUCTS)
-{
+input ProductOrderByInput @oneOf @join__type(graph: PRODUCTS) {
   """
   Order products by name
   """
@@ -1568,9 +1734,7 @@ input ProductOrderByInput
 """
 Input for creating a new Product
 """
-input ProductsProductCreateInput
-  @join__type(graph: PRODUCTS)
-{
+input ProductsProductCreateInput @join__type(graph: PRODUCTS) {
   """
   Set field value for name
   """
@@ -1608,9 +1772,7 @@ input ProductsProductCreateInput
 """
 Input for updating an existing Product
 """
-input ProductsProductUpdateInput
-  @join__type(graph: PRODUCTS)
-{
+input ProductsProductUpdateInput @join__type(graph: PRODUCTS) {
   """
   Update field value for name
   """
@@ -1648,9 +1810,7 @@ input ProductsProductUpdateInput
 """
 Input for creating a new Variant
 """
-input ProductsVariantCreateInput
-  @join__type(graph: PRODUCTS)
-{
+input ProductsVariantCreateInput @join__type(graph: PRODUCTS) {
   """
   Set field value for name
   """
@@ -1684,9 +1844,7 @@ input ProductsVariantCreateInput
 """
 Input for updating an existing Variant
 """
-input ProductsVariantUpdateInput
-  @join__type(graph: PRODUCTS)
-{
+input ProductsVariantUpdateInput @join__type(graph: PRODUCTS) {
   """
   Update field value for name
   """
@@ -1720,12 +1878,125 @@ input ProductsVariantUpdateInput
 """
 Filter input type for Variant collections
 """
-input VariantCollectionFilterInput
-  @join__type(graph: PRODUCTS)
-{
+input VariantCollectionFilterInput @join__type(graph: PRODUCTS) {
   """
   The object is related to an object with the given fields
   """
   contains: VariantFilterInput
 }
 
+"""
+Filter input type for Variant objects.
+"""
+input VariantFilterInput @oneOf @join__type(graph: PRODUCTS) {
+  """
+  Filter by the given name
+  """
+  name: StringFilterInput
+  """
+  Filter by the given id
+  """
+  id: UUIDFilterInput
+  """
+  Filter by the given sku
+  """
+  sku: StringFilterInput
+  """
+  Filter by the given updatedAt
+  """
+  updatedAt: TimestampFilterInput
+  """
+  All of the filters must match
+  """
+  ALL: [VariantFilterInput]
+  """
+  None of the filters must match
+  """
+  NONE: [VariantFilterInput]
+  """
+  At least one of the filters must match
+  """
+  ANY: [VariantFilterInput]
+  """
+  Filter by the given price
+  """
+  price: MoneyFilterInput
+  """
+  Filter by the given createdAt
+  """
+  createdAt: TimestampFilterInput
+  """
+  Filter by the given productId
+  """
+  productId: UUIDFilterInput
+  """
+  Filter by the related Product object
+  """
+  product: ProductFilterInput
+}
+
+"""
+Input type to select a unique Variant
+"""
+input VariantLookupInput @oneOf @join__type(graph: PRODUCTS) {
+  """
+  Select by the 'id' field
+  """
+  id: UUID
+  """
+  Select by the 'sku' field
+  """
+  sku: String
+}
+
+"""
+Lookup input type for Variant objects for subgraph joins.
+"""
+input VariantManyLookupInput @oneOf @inaccessible @join__type(graph: PRODUCTS) {
+  """
+  Select by the 'id' field
+  """
+  id: [UUID!] @inaccessible
+  """
+  Select by the 'sku' field
+  """
+  sku: [String!] @inaccessible
+}
+
+"""
+Specifies the ordering for Variant results.
+"""
+input VariantOrderByInput @oneOf @join__type(graph: PRODUCTS) {
+  """
+  Order variants by name
+  """
+  name: OrderDirection
+  """
+  Order variants by id
+  """
+  id: OrderDirection
+  """
+  Order variants by sku
+  """
+  sku: OrderDirection
+  """
+  Order variants by updatedAt
+  """
+  updatedAt: OrderDirection
+  """
+  Order variants by price
+  """
+  price: OrderDirection
+  """
+  Order variants by createdAt
+  """
+  createdAt: OrderDirection
+  """
+  Order variants by productId
+  """
+  productId: OrderDirection
+  """
+  Order Variant results by Product fields
+  """
+  product: ProductOrderByInput
+}
