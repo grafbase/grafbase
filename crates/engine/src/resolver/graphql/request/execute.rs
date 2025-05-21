@@ -142,7 +142,7 @@ pub(crate) async fn execute_subgraph_request<'ctx, R: Runtime>(
                     if http_response.status().is_success() {
                         Ok((http_response, ctx))
                     } else {
-                        tracing::error!(
+                        tracing::debug!(
                             "Subgraph request failed with status code: {}\n{}",
                             http_response.status().as_u16(),
                             String::from_utf8_lossy(http_response.body())
