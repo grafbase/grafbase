@@ -1,15 +1,20 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TABLE inventory (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4 (),
   sku VARCHAR(50) NOT NULL UNIQUE,
   quantity INTEGER NOT NULL DEFAULT 0,
   warehouse_location VARCHAR(100),
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- Inventory data based on variant SKUs from products.sql
+CREATE VIEW variants AS
+SELECT
+  sku
+FROM
+  inventory;
 
+-- Inventory data based on variant SKUs from products.sql
 -- Product 1 (T-Shirt) variants
 INSERT INTO
   inventory (sku, quantity, warehouse_location)
@@ -219,4 +224,4 @@ VALUES
   ('PILLOW-001-CONTOUR', 9, 'WAREHOUSE-A19'),
   ('PILLOW-001-TRAVEL', 12, 'WAREHOUSE-A19');
 
-CREATE INDEX idx_inventory_sku ON inventory(sku);
+CREATE INDEX idx_inventory_sku ON inventory (sku);

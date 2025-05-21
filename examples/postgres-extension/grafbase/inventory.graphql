@@ -27,7 +27,7 @@ extend schema
     ]
   )
   @link(
-    url: "https://specs.grafbase.com/composite-schema/v1",
+    url: "https://specs.grafbase.com/composite-schemas/v1",
     import: [
       "@lookup",
       "@key"
@@ -159,6 +159,10 @@ input InventoryFilterInput @oneOf {
   """
   updatedAt: TimestampFilterInput
   """
+  Filter by the related Variant object
+  """
+  variant: VariantFilterInput
+  """
   All of the filters must match
   """
   ALL: [InventoryFilterInput]
@@ -276,6 +280,10 @@ input InventoryOrderByInput @oneOf {
   Order inventories by updatedAt
   """
   updatedAt: OrderDirection
+  """
+  Order Inventory results by Variant fields
+  """
+  variant: VariantOrderByInput
 }
 
 """
@@ -438,6 +446,66 @@ input UUIDUpdateInput @oneOf {
   set: UUID
 }
 
+"""
+Filter input type for Variant objects.
+"""
+input VariantFilterInput @oneOf {
+  """
+  Filter by the given sku
+  """
+  sku: StringFilterInput
+  """
+  Filter by the related Inventory object
+  """
+  inventory: InventoryFilterInput
+  """
+  All of the filters must match
+  """
+  ALL: [VariantFilterInput]
+  """
+  None of the filters must match
+  """
+  NONE: [VariantFilterInput]
+  """
+  At least one of the filters must match
+  """
+  ANY: [VariantFilterInput]
+}
+
+"""
+Input type to select a unique Variant
+"""
+input VariantLookupInput @oneOf {
+  """
+  Select by the 'sku' field
+  """
+  sku: String
+}
+
+"""
+Lookup input type for Variant objects for subgraph joins.
+"""
+input VariantManyLookupInput @oneOf @inaccessible {
+  """
+  Select by the 'sku' field
+  """
+  sku: [String!] @inaccessible
+}
+
+"""
+Specifies the ordering for Variant results.
+"""
+input VariantOrderByInput @oneOf {
+  """
+  Order variants by sku
+  """
+  sku: OrderDirection
+  """
+  Order Variant results by Inventory fields
+  """
+  inventory: InventoryOrderByInput
+}
+
 type Inventory
   @key(fields: "id")
   @key(fields: "sku")
@@ -450,6 +518,7 @@ type Inventory
   quantity: Int! @pgColumn(name: "quantity", type: INT)
   warehouseLocation: String @pgColumn(name: "warehouse_location", type: VARCHAR)
   updatedAt: Timestamp! @pgColumn(name: "updated_at", type: TIMESTAMP)
+  variant: Variant @pgRelation(name: "variant_to_inventory")
 }
 
 """
@@ -630,6 +699,45 @@ type PageInfo
   endCursor: String @shareable
 }
 
+type Variant
+  @key(fields: "sku")
+  @pgTable(name: "variants", kind: VIEW)
+  @pgKey(fields: ["sku"], type: UNIQUE)
+{
+  sku: String! @pgColumn(name: "sku", type: VARCHAR)
+  inventory: Inventory! @pgRelation(name: "variant_to_inventory", fields: ["sku"], references: ["sku"])
+}
+
+"""
+The connection type for Variant
+"""
+type VariantConnection
+  @pgConnection(type: "Variant")
+{
+  """
+  A list of edges
+  """
+  edges: [VariantEdge!]! @shareable
+  """
+  Information to aid in pagination
+  """
+  pageInfo: PageInfo! @shareable
+}
+
+"""
+An edge in a connection. Contains the node and its cursor
+"""
+type VariantEdge {
+  """
+  The item at the end of the edge
+  """
+  node: Variant! @shareable
+  """
+  A cursor for use in pagination
+  """
+  cursor: String! @shareable
+}
+
 type Query {
   """
   Query a unique Inventory
@@ -678,6 +786,53 @@ type Query {
     """
     lookup: InventoryManyLookupInput @inaccessible,
   ): [Inventory]! @pgLookup @lookup @inaccessible
+  """
+  Query a unique Variant
+  """
+  inventoryVariant(
+    """
+    Input for unique Variant lookup
+    """
+    lookup: VariantLookupInput!,
+  ): Variant @pgSelectOne
+  """
+  Query and paginate multiple variants
+  """
+  inventoryVariants(
+    """
+    Filter for Variant
+    """
+    filter: VariantFilterInput,
+    """
+    Limit the number of results, from the beginning
+    """
+    first: Int,
+    """
+    Limit the number of results, from the end
+    """
+    last: Int,
+    """
+    Cursor for pagination, select items before the cursor. Use together with `last`.
+    """
+    before: String,
+    """
+    Cursor for pagination, select items after the cursor. Use together with `first`.
+    """
+    after: String,
+    """
+    Order the results by selected fields
+    """
+    orderBy: [VariantOrderByInput!],
+  ): VariantConnection! @pgSelectMany
+  """
+  Lookup multiple variants for subgraph joins
+  """
+  inventoryVariantLookup(
+    """
+    Filter variants with an array of keys
+    """
+    lookup: VariantManyLookupInput @inaccessible,
+  ): [Variant]! @pgLookup @lookup @inaccessible
 }
 
 type Mutation {

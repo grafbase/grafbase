@@ -59,7 +59,9 @@
                                 <th>SKU</th>
                                 <th>Name</th>
                                 <th>Price</th>
-                                <th>Actions</th>
+                                <th>Quantity</th>
+                                <th>Warehouse Location</th>
+                                <th>Updated At</th>
                             </tr>
                         </thead>
                         <tbody id="variants-body">
@@ -75,36 +77,7 @@
                 </div>
             </section>
 
-            <section id="inventory-section" class="hidden">
-                <div class="section-header">
-                    <h2>Inventory for <span id="variant-name"></span></h2>
-                    <div class="loading-indicator" id="inventory-loading">Loading...</div>
-                    <button id="back-to-variants" class="btn-back">← Back to Variants</button>
-                </div>
-                
-                <div class="table-container">
-                    <table id="inventory-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>SKU</th>
-                                <th>Quantity</th>
-                                <th>Warehouse Location</th>
-                                <th>Updated At</th>
-                            </tr>
-                        </thead>
-                        <tbody id="inventory-body">
-                            <!-- Inventory will be loaded here -->
-                        </tbody>
-                    </table>
-                </div>
 
-                <div class="pagination">
-                    <button id="inventory-prev" class="pagination-btn" disabled>Previous</button>
-                    <span id="inventory-page-info">Page 1</span>
-                    <button id="inventory-next" class="pagination-btn">Next</button>
-                </div>
-            </section>
         </main>
 
         <footer>
