@@ -14,7 +14,7 @@ pub struct Field<'a> {
 
 impl<'a> Field<'a> {
     /// Gets the alias of this field, if any
-    pub fn alias(&self) -> Option<&str> {
+    pub fn alias(&self) -> Option<&'a str> {
         self.field.alias.as_deref()
     }
 
