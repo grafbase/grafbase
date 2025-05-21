@@ -17,3 +17,12 @@ enable_mutations = true
 # Enable queries (read operations) globally for the whole database.
 # Defaults to true if you omit this setting.
 enable_queries = true
+
+[schemas.public.views.variants.columns.sku]
+unique = true
+nullable = false
+
+[schemas.public.views.variants.relations.variant_to_inventory]
+referenced_table = "inventory"
+referencing_columns = ["sku"]
+referenced_columns = ["sku"]
