@@ -242,7 +242,7 @@ impl GdnGraphUpdater {
                 }
             };
 
-            tracing::info!("Fetched new graph");
+            tracing::info!("Finished fetching new graph");
 
             let version_id = response.version_id;
 
