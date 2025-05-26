@@ -5,13 +5,13 @@ use super::*;
 /// object is used (through a variable) and not the specific field. We may want to go
 /// further in the future and check input object literals in queries, but most of the time,
 /// it will be variables.
-pub(super) fn remove_field(
+pub(super) fn remove_field<T: UsageProvider>(
     CheckArgs {
         check_params,
         change,
         used_input_types,
         ..
-    }: CheckArgs<'_, '_>,
+    }: CheckArgs<'_, '_, T>,
 ) -> Option<CheckDiagnostic> {
     let (type_name, field_name) = change.path.split_once('.').unwrap();
     let is_input_object = check_params.source.input_objects.contains(type_name);
@@ -64,10 +64,10 @@ pub(super) fn remove_field(
 }
 
 /// Adding an argument to a field is safe iff the new argument is optional.
-pub(super) fn add_field_argument(
+pub(super) fn add_field_argument<T: UsageProvider>(
     CheckArgs {
         change, check_params, ..
-    }: CheckArgs<'_, '_>,
+    }: CheckArgs<'_, '_, T>,
 ) -> Option<CheckDiagnostic> {
     if !check_params.field_is_used(trim_to_field_path(&change.path)) {
         return None;
@@ -98,13 +98,13 @@ pub(super) fn add_field_argument(
 
 /// Adding a field is breaking iff it is a required input object field. The input object has
 /// to be used, too.
-pub(super) fn add_field(
+pub(super) fn add_field<T: UsageProvider>(
     CheckArgs {
         change,
         check_params,
         used_input_types,
         ..
-    }: CheckArgs<'_, '_>,
+    }: CheckArgs<'_, '_, T>,
 ) -> Option<CheckDiagnostic> {
     let (type_name, field_name) = change.path.split_once('.').unwrap();
 
@@ -133,10 +133,10 @@ pub(super) fn add_field(
 
 /// Changing the type of an argument or removing an argument is safe iff the argument is not in
 /// use or if it was required and became optional (keeping the same inner type).
-pub(super) fn change_field_argument_type(
+pub(super) fn change_field_argument_type<T: UsageProvider>(
     CheckArgs {
         change, check_params, ..
-    }: CheckArgs<'_, '_>,
+    }: CheckArgs<'_, '_, T>,
 ) -> Option<CheckDiagnostic> {
     if !check_params.field_is_used(trim_to_field_path(&change.path)) {
         return None;
@@ -187,10 +187,10 @@ pub(super) fn change_field_argument_type(
     })
 }
 
-pub(super) fn remove_field_argument(
+pub(super) fn remove_field_argument<T: UsageProvider>(
     CheckArgs {
         change, check_params, ..
-    }: CheckArgs<'_, '_>,
+    }: CheckArgs<'_, '_, T>,
 ) -> Option<CheckDiagnostic> {
     if !check_params.argument_is_used(&change.path) {
         return None;
@@ -209,13 +209,13 @@ pub(super) fn remove_field_argument(
 ///
 /// - In input fields: if the field was required, and becomes optional.
 /// - In output fields: if the field was optional, and becomes required.
-pub(super) fn change_field_type(
+pub(super) fn change_field_type<T: UsageProvider>(
     CheckArgs {
         change,
         check_params,
         used_input_types,
         ..
-    }: CheckArgs<'_, '_>,
+    }: CheckArgs<'_, '_, T>,
 ) -> Option<CheckDiagnostic> {
     let (type_name, field_name) = change.path.split_once('.').unwrap();
     let source_field_id = check_params.source.find_field(type_name, field_name)?;
@@ -277,18 +277,17 @@ pub(super) fn change_field_type(
 
 /// Removing an `implements` is safe iff there is no inline fragment making use of the
 /// implementer on selections on the interface.
-pub(super) fn remove_interface_implementation(
+pub(super) fn remove_interface_implementation<T: UsageProvider>(
     CheckArgs {
         change, check_params, ..
-    }: CheckArgs<'_, '_>,
+    }: CheckArgs<'_, '_, T>,
 ) -> Option<CheckDiagnostic> {
     let (type_name, interface_name) = change.path.split_once('.')?;
     let interface_name = interface_name.trim_start_matches('&');
 
-    if !&check_params
+    if !check_params
         .field_usage
-        .type_condition_counts
-        .contains_key(&format!("{interface_name}.{type_name}"))
+        .type_condition_is_used(&format!("{interface_name}.{type_name}"))
     {
         return None;
     }
@@ -303,16 +302,12 @@ pub(super) fn remove_interface_implementation(
 
 /// Removing an union member is safe iff there is no inline fragment making use of the member on
 /// selections on the union.
-pub(super) fn remove_union_member(
+pub(super) fn remove_union_member<T: UsageProvider>(
     CheckArgs {
         change, check_params, ..
-    }: CheckArgs<'_, '_>,
+    }: CheckArgs<'_, '_, T>,
 ) -> Option<CheckDiagnostic> {
-    if !&check_params
-        .field_usage
-        .type_condition_counts
-        .contains_key(&change.path)
-    {
+    if !check_params.field_usage.type_condition_is_used(&change.path) {
         return None;
     }
 
@@ -329,7 +324,7 @@ pub(super) fn remove_union_member(
 /// for the fields that return it. But that isn't the case for the root
 /// query, mutation and subscription types, so we need to check for that
 /// case separately.
-pub(crate) fn remove_object_type(args: CheckArgs<'_, '_>) -> Option<CheckDiagnostic> {
+pub(crate) fn remove_object_type<T: UsageProvider>(args: CheckArgs<'_, '_, T>) -> Option<CheckDiagnostic> {
     let type_name = &args.change.path;
     let src = args.check_params.source;
 
@@ -338,8 +333,7 @@ pub(crate) fn remove_object_type(args: CheckArgs<'_, '_>) -> Option<CheckDiagnos
         if args
             .check_params
             .field_usage
-            .type_condition_counts
-            .contains_key(&format!("{interface_name}.{type_name}"))
+            .type_condition_is_used(&format!("{interface_name}.{type_name}"))
         {
             return Some(CheckDiagnostic {
                 message: format!(
@@ -379,7 +373,7 @@ pub(crate) fn remove_object_type(args: CheckArgs<'_, '_>) -> Option<CheckDiagnos
 }
 
 // Removing an enum value is safe iff it is not used explicitly as argument in any query.
-pub(crate) fn remove_enum_value(args: CheckArgs<'_, '_>) -> Option<CheckDiagnostic> {
+pub(crate) fn remove_enum_value<T: UsageProvider>(args: CheckArgs<'_, '_, T>) -> Option<CheckDiagnostic> {
     if !args.check_params.enum_value_is_used(&args.change.path) {
         return None;
     }
@@ -394,7 +388,7 @@ pub(crate) fn remove_enum_value(args: CheckArgs<'_, '_>) -> Option<CheckDiagnost
 }
 
 /// Only breaking if the argument is required and at least one query leaves it out.
-pub(crate) fn remove_field_argument_default(args: CheckArgs<'_, '_>) -> Option<CheckDiagnostic> {
+pub(crate) fn remove_field_argument_default<T: UsageProvider>(args: CheckArgs<'_, '_, T>) -> Option<CheckDiagnostic> {
     let path = &args.change.path;
 
     if !args.check_params.argument_is_left_out(path) {
