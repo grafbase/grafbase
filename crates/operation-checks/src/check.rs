@@ -1,6 +1,6 @@
 mod rules;
 
-use crate::{FieldUsage, Schema};
+use crate::{AssumeAllUsed, Schema, UsageProvider};
 use graphql_schema_diff::{Change, ChangeKind};
 use std::collections::HashSet;
 
@@ -23,7 +23,7 @@ pub enum Severity {
 }
 
 /// The arguments to [check()].
-pub struct CheckParams<'a> {
+pub struct CheckParams<'a, T: UsageProvider> {
     /// The source (old, previous) [Schema].
     pub source: &'a Schema,
     /// The target (new, next) [Schema].
@@ -31,10 +31,10 @@ pub struct CheckParams<'a> {
     /// The diff between source and target.
     pub diff: &'a [Change],
     /// Field usage from operations.
-    pub field_usage: &'a FieldUsage,
+    pub field_usage: &'a T,
 }
 
-impl CheckParams<'_> {
+impl<'a, T: UsageProvider> CheckParams<'a, T> {
     fn field_is_used(&self, type_and_field: &str) -> bool {
         let (type_name, field_name) = type_and_field.split_once('.').unwrap();
 
@@ -42,7 +42,7 @@ impl CheckParams<'_> {
             return false;
         };
 
-        self.field_usage.count_per_field.contains_key(&field_id)
+        self.field_usage.field_is_used(field_id)
     }
 
     fn argument_is_used(&self, path: &str) -> bool {
@@ -50,11 +50,11 @@ impl CheckParams<'_> {
             return false;
         };
 
-        self.field_usage.count_per_field_argument.contains_key(&argument_id)
+        self.field_usage.argument_is_used(argument_id)
     }
 
     fn enum_value_is_used(&self, path: &str) -> bool {
-        self.field_usage.count_per_enum_value.contains_key(path)
+        self.field_usage.enum_value_is_used(path)
     }
 
     fn argument_is_left_out(&self, path: &str) -> bool {
@@ -62,9 +62,7 @@ impl CheckParams<'_> {
             return false;
         };
 
-        self.field_usage
-            .arguments_with_defaults_left_out_count
-            .contains_key(&argument_id)
+        self.field_usage.argument_is_left_out(argument_id)
     }
 
     fn find_argument(&self, path: &str) -> Option<crate::schema::ArgumentId> {
@@ -78,7 +76,7 @@ impl CheckParams<'_> {
 }
 
 /// Perform operation checks.
-pub fn check(params: &CheckParams<'_>) -> Vec<CheckDiagnostic> {
+pub fn check<T: UsageProvider>(params: &CheckParams<'_, T>) -> Vec<CheckDiagnostic> {
     let mut used_input_types = None;
 
     params
@@ -94,13 +92,30 @@ pub fn check(params: &CheckParams<'_>) -> Vec<CheckDiagnostic> {
         .collect()
 }
 
-struct CheckArgs<'a, 'b> {
+/// Perform operation checks assuming all fields, arguments, and enum values are used.
+/// This is useful for checking breaking changes without requiring actual operation data.
+pub fn check_assuming_all_used(
+    source: &Schema,
+    target: &Schema,
+    diff: &[graphql_schema_diff::Change],
+) -> Vec<CheckDiagnostic> {
+    let usage_provider = AssumeAllUsed;
+    let params = CheckParams {
+        source,
+        target,
+        diff,
+        field_usage: &usage_provider,
+    };
+    check(&params)
+}
+
+struct CheckArgs<'a, 'b, T: UsageProvider> {
     change: &'a Change,
-    check_params: &'a CheckParams<'a>,
+    check_params: &'a CheckParams<'a, T>,
     used_input_types: &'b mut Option<HashSet<&'a str>>,
 }
 
-fn check_change(args: CheckArgs<'_, '_>) -> Option<CheckDiagnostic> {
+fn check_change<T: UsageProvider>(args: CheckArgs<'_, '_, T>) -> Option<CheckDiagnostic> {
     match args.change.kind {
         // Not relevant for federated graphs.
         ChangeKind::ChangeMutationType
@@ -183,10 +198,10 @@ fn trim_to_field_path(path: &str) -> &str {
     }
 }
 
-fn find_used_input_types<'a>(params: &CheckParams<'a>) -> HashSet<&'a str> {
-    fn find_used_input_types_rec<'a>(
+fn find_used_input_types<'a, T: UsageProvider>(params: &CheckParams<'a, T>) -> HashSet<&'a str> {
+    fn find_used_input_types_rec<'a, T: UsageProvider>(
         root_type: &'a str,
-        params: &CheckParams<'a>,
+        params: &CheckParams<'a, T>,
         used_input_types: &mut HashSet<&'a str>,
     ) {
         if !used_input_types.insert(root_type) {
@@ -200,8 +215,8 @@ fn find_used_input_types<'a>(params: &CheckParams<'a>) -> HashSet<&'a str> {
 
     let mut used_input_types = HashSet::new();
 
-    for arg in params.field_usage.count_per_field_argument.keys() {
-        let arg = &params.source[*arg];
+    for arg_id in params.field_usage.used_argument_ids() {
+        let arg = &params.source[arg_id];
         let arg_type = &arg.base_type;
 
         find_used_input_types_rec(arg_type, params, &mut used_input_types);

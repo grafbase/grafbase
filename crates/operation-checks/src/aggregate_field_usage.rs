@@ -1,6 +1,27 @@
 use crate::{operation::*, schema};
 use std::collections::HashMap;
 
+/// Trait for providing usage information about fields, arguments, enum values, and type conditions.
+pub trait UsageProvider {
+    /// Check if a field is used.
+    fn field_is_used(&self, field_id: schema::FieldId) -> bool;
+
+    /// Check if an argument is used.
+    fn argument_is_used(&self, argument_id: schema::ArgumentId) -> bool;
+
+    /// Check if an enum value is used.
+    fn enum_value_is_used(&self, enum_and_value: &str) -> bool;
+
+    /// Check if an argument with a default was left out.
+    fn argument_is_left_out(&self, argument_id: schema::ArgumentId) -> bool;
+
+    /// Check if a type condition is used.
+    fn type_condition_is_used(&self, type_condition: &str) -> bool;
+
+    /// Get all used argument IDs for finding used input types.
+    fn used_argument_ids(&self) -> Box<dyn Iterator<Item = schema::ArgumentId> + '_>;
+}
+
 /// Usage count of fields in a set of operations.
 #[derive(Debug)]
 pub struct FieldUsage {
@@ -17,6 +38,64 @@ pub struct FieldUsage {
     /// Usage of interface implementers and union members in type conditions. The key is a string
     /// of the form "parent_type_name.implementer_type_name"
     pub(crate) type_condition_counts: HashMap<String, u64>,
+}
+
+impl UsageProvider for FieldUsage {
+    fn field_is_used(&self, field_id: schema::FieldId) -> bool {
+        self.count_per_field.contains_key(&field_id)
+    }
+
+    fn argument_is_used(&self, argument_id: schema::ArgumentId) -> bool {
+        self.count_per_field_argument.contains_key(&argument_id)
+    }
+
+    fn enum_value_is_used(&self, enum_and_value: &str) -> bool {
+        self.count_per_enum_value.contains_key(enum_and_value)
+    }
+
+    fn argument_is_left_out(&self, argument_id: schema::ArgumentId) -> bool {
+        self.arguments_with_defaults_left_out_count.contains_key(&argument_id)
+    }
+
+    fn type_condition_is_used(&self, type_condition: &str) -> bool {
+        self.type_condition_counts.contains_key(type_condition)
+    }
+
+    fn used_argument_ids(&self) -> Box<dyn Iterator<Item = schema::ArgumentId> + '_> {
+        Box::new(self.count_per_field_argument.keys().copied())
+    }
+}
+
+/// A usage provider that assumes all fields, arguments, and enum values are used.
+/// This is useful for checking breaking changes without requiring actual operation data.
+#[derive(Debug, Default)]
+pub struct AssumeAllUsed;
+
+impl UsageProvider for AssumeAllUsed {
+    fn field_is_used(&self, _field_id: schema::FieldId) -> bool {
+        true
+    }
+
+    fn argument_is_used(&self, _argument_id: schema::ArgumentId) -> bool {
+        true
+    }
+
+    fn enum_value_is_used(&self, _enum_and_value: &str) -> bool {
+        true
+    }
+
+    fn argument_is_left_out(&self, _argument_id: schema::ArgumentId) -> bool {
+        // When assuming all usage, we also assume arguments with defaults might be left out
+        true
+    }
+
+    fn type_condition_is_used(&self, _type_condition: &str) -> bool {
+        true
+    }
+
+    fn used_argument_ids(&self) -> Box<dyn Iterator<Item = schema::ArgumentId> + '_> {
+        Box::new(std::iter::empty())
+    }
 }
 
 impl Default for FieldUsage {
