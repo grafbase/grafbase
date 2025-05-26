@@ -199,6 +199,11 @@ fn trim_to_field_path(path: &str) -> &str {
 }
 
 fn find_used_input_types<'a, T: UsageProvider>(params: &CheckParams<'a, T>) -> HashSet<&'a str> {
+    // Short-circuit if the usage provider assumes all input types are used
+    if params.field_usage.assume_all_input_types_used() {
+        return params.source.input_objects.iter().map(|s| s.as_str()).collect();
+    }
+
     fn find_used_input_types_rec<'a, T: UsageProvider>(
         root_type: &'a str,
         params: &CheckParams<'a, T>,

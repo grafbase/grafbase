@@ -20,6 +20,11 @@ pub trait UsageProvider {
 
     /// Get all used argument IDs for finding used input types.
     fn used_argument_ids(&self) -> Box<dyn Iterator<Item = schema::ArgumentId> + '_>;
+
+    /// Returns true if this provider assumes all input types are used.
+    fn assume_all_input_types_used(&self) -> bool {
+        false
+    }
 }
 
 /// Usage count of fields in a set of operations.
@@ -95,6 +100,10 @@ impl UsageProvider for AssumeAllUsed {
 
     fn used_argument_ids(&self) -> Box<dyn Iterator<Item = schema::ArgumentId> + '_> {
         Box::new(std::iter::empty())
+    }
+
+    fn assume_all_input_types_used(&self) -> bool {
+        true
     }
 }
 

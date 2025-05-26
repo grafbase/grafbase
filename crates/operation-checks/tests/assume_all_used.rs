@@ -102,4 +102,67 @@ mod tests {
         // Empty usage should find no breaking changes (since no fields are "used")
         assert_eq!(diagnostics_empty.len(), 0);
     }
+
+    #[test]
+    fn test_input_types() {
+        let source_schema = r#"
+            type Query {
+                createUser(input: UserInput!): User
+            }
+            
+            type User {
+                id: ID!
+                name: String!
+            }
+
+            input UserInput {
+                name: String!
+                email: String
+            }
+        "#;
+
+        let target_schema = r#"
+            type Query {
+                createUser(input: UserInput!): User
+            }
+            
+            type User {
+                id: ID!
+                name: String!
+            }
+
+            input UserInput {
+                name: String!
+                email: String!  # became required
+                age: Int!       # new required field
+            }
+        "#;
+
+        let source: Schema = async_graphql_parser::parse_schema(source_schema).unwrap().into();
+        let target: Schema = async_graphql_parser::parse_schema(target_schema).unwrap().into();
+        let diff = graphql_schema_diff::diff(source_schema, target_schema).unwrap();
+
+        let diagnostics_assume_all = check_assuming_all_used(&source, &target, &diff);
+        assert_eq!(diagnostics_assume_all.len(), 2);
+        assert!(
+            diagnostics_assume_all
+                .iter()
+                .any(|d| d.message.contains("UserInput.email") && d.message.contains("became required"))
+        );
+        assert!(
+            diagnostics_assume_all
+                .iter()
+                .any(|d| d.message.contains("UserInput.age") && d.message.contains("new required field"))
+        );
+
+        let empty_usage = FieldUsage::default();
+        let params_empty = CheckParams {
+            source: &source,
+            target: &target,
+            diff: &diff,
+            field_usage: &empty_usage,
+        };
+        let diagnostics_empty = check(&params_empty);
+        assert_eq!(diagnostics_empty.len(), 0);
+    }
 }
