@@ -41,6 +41,13 @@ pub(crate) struct ExtensionSdl {
 }
 
 impl<'a> ExtensionsContext<'a> {
+    pub(super) fn empty_with_catalog(catalog: &'a ExtensionCatalog) -> Self {
+        Self {
+            map: RapidHashMap::default(),
+            catalog,
+        }
+    }
+
     pub(super) async fn load<'sdl, 'ext>(
         current_dir: Option<&Path>,
         sdl: &'sdl Sdl<'sdl>,

@@ -70,14 +70,12 @@ pub(super) async fn generate(
 
     tracing::debug!("Building engine Schema.");
     let schema = Arc::new(
-        engine::Schema::build(
-            current_dir.as_deref(),
-            &federated_sdl,
-            gateway_config,
-            &extension_catalog,
-        )
-        .await
-        .map_err(|err| crate::Error::SchemaValidationError(err.to_string()))?,
+        engine::Schema::builder(&federated_sdl)
+            .config(gateway_config)
+            .extensions(current_dir.as_deref(), &extension_catalog)
+            .build()
+            .await
+            .map_err(|err| crate::Error::SchemaValidationError(err.to_string()))?,
     );
 
     let mut runtime = GatewayRuntime::build(

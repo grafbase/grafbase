@@ -1,7 +1,6 @@
 #![deny(clippy::future_not_send, unused_crate_dependencies)]
 
-use std::path::Path;
-
+use builder::Builder;
 use grafbase_workspace_hack as _;
 
 mod builder;
@@ -40,7 +39,7 @@ mod tests;
 pub use config::*;
 pub use directive::*;
 pub use extension::*;
-use extension_catalog::{ExtensionCatalog, ExtensionId};
+use extension_catalog::ExtensionId;
 pub use field::*;
 pub use field_set::*;
 pub use gateway_config::SubscriptionProtocol;
@@ -89,17 +88,11 @@ impl Schema {
     pub async fn from_sdl_or_panic(sdl: &str) -> Self {
         let mut config: gateway_config::Config = Default::default();
         config.graph.introspection = Some(true);
-        let extension_catalog = Default::default();
-        Self::build(None, sdl, &config, &extension_catalog).await.unwrap()
+        Self::builder(sdl).config(&config).build().await.unwrap()
     }
 
-    pub async fn build(
-        current_dir: Option<&Path>,
-        sdl: &str,
-        config: &gateway_config::Config,
-        extension_catalog: &ExtensionCatalog,
-    ) -> Result<Schema, String> {
-        builder::build(current_dir, sdl, config, extension_catalog).await
+    pub fn builder(sdl: &str) -> Builder<'_> {
+        Builder::new(sdl)
     }
 }
 

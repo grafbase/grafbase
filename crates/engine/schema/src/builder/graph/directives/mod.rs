@@ -4,7 +4,7 @@ mod federation;
 mod resolvers;
 mod supergraph;
 
-use crate::builder::{Error, sdl};
+use crate::builder::{Error, extension::ingest_extension_schema_directives, sdl};
 
 use super::*;
 
@@ -13,6 +13,7 @@ pub(crate) struct DirectivesIngester<'a, 'sdl> {
     pub sdl_definitions: &'a sdl::SdlDefinitions<'sdl>,
     pub possible_composite_entity_keys:
         FxHashMap<(EntityDefinitionId, SubgraphId), Vec<PossibleCompositeEntityKey<'sdl>>>,
+    pub for_operation_analytics_only: bool,
 }
 
 pub(crate) struct PossibleCompositeEntityKey<'sdl> {
@@ -37,11 +38,17 @@ impl std::ops::DerefMut for DirectivesIngester<'_, '_> {
 pub(crate) fn ingest_directives<'a>(
     builder: &mut GraphBuilder<'a>,
     sdl_definitions: &sdl::SdlDefinitions<'a>,
+    for_operation_analytics_only: bool,
 ) -> Result<(), Error> {
+    if !for_operation_analytics_only {
+        ingest_extension_schema_directives(builder)?;
+    }
+
     let mut ingester = DirectivesIngester {
         builder,
         sdl_definitions,
         possible_composite_entity_keys: Default::default(),
+        for_operation_analytics_only,
     };
 
     let mut directives = Vec::new();
@@ -65,22 +72,26 @@ pub(crate) fn ingest_directives<'a>(
     common::finalize_inaccessible(&mut ingester.graph);
 
     // Apollo federation entities, Composite Schema @lookup, extension, etc.
-    resolvers::generate(&mut ingester)?;
+    if !for_operation_analytics_only {
+        resolvers::generate(&mut ingester)?;
+    }
 
     // Resolvers may change federation data, so we do this last.
     federation::add_not_fully_implemented_in(&mut ingester.graph);
 
-    for def in ingester.sdl_definitions.values().copied() {
-        directives.clear();
-        directives.extend(def.directives());
-        if let Some(ext) = def
-            .as_type()
-            .and_then(|ty| ingester.builder.sdl.type_extensions.get(ty.name()))
-        {
-            directives.extend(ext.iter().flat_map(|ext| ext.directives()));
-        }
+    if !for_operation_analytics_only {
+        for def in ingester.sdl_definitions.values().copied() {
+            directives.clear();
+            directives.extend(def.directives());
+            if let Some(ext) = def
+                .as_type()
+                .and_then(|ty| ingester.builder.sdl.type_extensions.get(ty.name()))
+            {
+                directives.extend(ext.iter().flat_map(|ext| ext.directives()));
+            }
 
-        ingester.ingest_federation_aware_directives(def, &directives)?;
+            ingester.ingest_federation_aware_directives(def, &directives)?;
+        }
     }
 
     Ok(())

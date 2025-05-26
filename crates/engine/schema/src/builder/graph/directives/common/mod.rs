@@ -41,7 +41,7 @@ impl<'sdl> DirectivesIngester<'_, 'sdl> {
                     };
                     // Only directive to be processed immediately as rely on it for default values.
                 }
-                "extension__directive" => {
+                "extension__directive" if !self.for_operation_analytics_only => {
                     let dir = sdl::parse_extension_directive(directive)?;
                     let subgraph_id = self.subgraphs.try_get(dir.graph, directive.arguments_span())?;
                     let extension = self.extensions.get(dir.extension);
@@ -50,7 +50,7 @@ impl<'sdl> DirectivesIngester<'_, 'sdl> {
                         .map_err(|txt| (txt, directive.arguments_span()))?;
                     directive_ids.push(TypeSystemDirectiveId::Extension(id))
                 }
-                name if name.starts_with("composite__") => self
+                name if name.starts_with("composite__") && !self.for_operation_analytics_only => self
                     .ingest_composite_directive_before_federation(def, directive)
                     .map_err(|err| err.with_span_if_absent(directive.arguments_span()))?,
                 _ => {}
