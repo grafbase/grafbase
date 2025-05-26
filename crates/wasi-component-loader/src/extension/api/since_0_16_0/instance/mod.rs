@@ -2,13 +2,14 @@ mod authentication;
 mod authorization;
 mod field_resolver;
 mod selection_set_resolver;
-pub mod utils;
 
+use crate::extension::api::since_0_15_0::instance::utils::{
+    create_complete_subgraph_schemas, create_subgraph_schema_directives,
+};
 use anyhow::Context as _;
 use engine_schema::Schema;
 use extension_catalog::TypeDiscriminants;
 use std::sync::Arc;
-use utils::{create_complete_subgraph_schemas, create_subgraph_schema_directives};
 use wasmtime::{
     Store,
     component::{Component, Linker},
@@ -20,9 +21,9 @@ use crate::{
 };
 
 use super::wit;
-use wit::schema as ws;
+use crate::extension::api::since_0_15_0::wit::schema as ws;
 
-pub struct SdkPre0_15_0 {
+pub struct SdkPre0_16_0 {
     pre: wit::SdkPre<crate::WasiState>,
     guest_config: Vec<u8>,
     #[allow(unused)]
@@ -31,7 +32,7 @@ pub struct SdkPre0_15_0 {
     subgraph_schemas: Vec<(&'static str, ws::Schema<'static>)>,
 }
 
-impl SdkPre0_15_0 {
+impl SdkPre0_16_0 {
     pub(crate) fn new<T: serde::Serialize>(
         schema: Arc<Schema>,
         config: &ExtensionConfig<T>,
@@ -72,7 +73,7 @@ impl SdkPre0_15_0 {
             .call_init(&mut store, &self.subgraph_schemas, &self.guest_config)
             .await??;
 
-        let instance = ExtensionInstanceSince0_15_0 {
+        let instance = ExtensionInstanceSince0_16_0 {
             store,
             inner,
             poisoned: false,
@@ -82,13 +83,13 @@ impl SdkPre0_15_0 {
     }
 }
 
-struct ExtensionInstanceSince0_15_0 {
+struct ExtensionInstanceSince0_16_0 {
     store: Store<WasiState>,
     inner: super::wit::Sdk,
     poisoned: bool,
 }
 
-impl ExtensionInstance for ExtensionInstanceSince0_15_0 {
+impl ExtensionInstance for ExtensionInstanceSince0_16_0 {
     fn recycle(&mut self) -> Result<(), Error> {
         if self.poisoned {
             return Err(anyhow::anyhow!("this instance is poisoned").into());

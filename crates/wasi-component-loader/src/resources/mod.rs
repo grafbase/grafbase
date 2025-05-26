@@ -1,4 +1,5 @@
 mod headers;
+mod kafka_producer;
 
 use std::sync::Arc;
 
@@ -10,6 +11,7 @@ use sqlx::Postgres;
 pub use crate::access_log::AccessLogSender;
 pub use crate::context::SharedContext;
 pub use headers::*;
+pub use kafka_producer::*;
 
 #[derive(Clone)]
 pub struct SharedResources {

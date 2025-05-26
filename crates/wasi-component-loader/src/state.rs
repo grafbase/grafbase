@@ -46,7 +46,11 @@ pub(crate) struct WasiState {
     /// A map of PostgreSQL connection pools per named connection.
     postgres_pools: DashMap<String, sqlx::Pool<Postgres>>,
 
+    /// A map of gRPC clients per named connection.
     grpc_clients: DashMap<String, resources::GrpcClient>,
+
+    /// A map of Kafka producers per named connection.
+    kafka_producers: DashMap<String, resources::KafkaProducer>,
 }
 
 // Allows to define method for a resource that is either owned or an attribute from another one.
@@ -137,6 +141,7 @@ impl WasiState {
             network_enabled,
             postgres_pools: DashMap::new(),
             grpc_clients: DashMap::new(),
+            kafka_producers: DashMap::new(),
         }
     }
 
@@ -215,6 +220,11 @@ impl WasiState {
     /// Returns a reference to the map of PostgreSQL connection pools.
     pub fn postgres_pools(&self) -> &DashMap<String, sqlx::Pool<Postgres>> {
         &self.postgres_pools
+    }
+
+    /// Returns a reference to the map of Kafka producers.
+    pub fn kafka_producers(&self) -> &DashMap<String, resources::KafkaProducer> {
+        &self.kafka_producers
     }
 
     /// Returns a reference to the access log sender.

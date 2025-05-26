@@ -15,7 +15,9 @@ accepted = [
     "Unicode-DFS-2016",
     "Unlicense",
     "Zlib",
-    "zlib-acknowledgement"
+    "zlib-acknowledgement",
+    # https://cdla.dev/permissive-2-0/
+    "CDLA-Permissive-2.0",
 ]
 
 targets = [

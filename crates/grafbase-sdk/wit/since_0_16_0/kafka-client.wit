@@ -1,0 +1,152 @@
+interface kafka-client {
+    // Authentication methods supported by the Kafka client
+    //
+    // Kafka supports multiple authentication mechanisms for securing client connections.
+    // Choose the method that matches your Kafka cluster configuration.
+    variant kafka-authentication {
+        // SASL PLAIN authentication - simple username/password authentication
+        sasl-plain(kafka-sasl-plain-auth),
+        // SASL SCRAM authentication - challenge-response authentication with password hashing
+        sasl-scram(kafka-sasl-scram-auth),
+        // Mutual TLS authentication - certificate-based authentication
+        mtls(kafka-mtls-auth),
+    }
+
+    // SASL PLAIN authentication credentials
+    //
+    // Simple username and password authentication. Note that credentials
+    // are transmitted in base64 encoding, so TLS should be used for security.
+    record kafka-sasl-plain-auth {
+        // Username for authentication
+        username: string,
+        // Password for authentication
+        password: string,
+    }
+
+    // SASL SCRAM authentication credentials
+    //
+    // Salted Challenge Response Authentication Mechanism provides stronger
+    // security than PLAIN by using cryptographic hashing and salts.
+    record kafka-sasl-scram-auth {
+        // Username for authentication
+        username: string,
+        // Password for authentication
+        password: string,
+        // SCRAM mechanism variant to use (SHA-256 or SHA-512)
+        mechanism: kafka-scram-mechanism,
+    }
+
+    // Compression algorithms supported for message payloads
+    //
+    // Compression reduces network bandwidth and storage requirements but adds CPU overhead.
+    // Choose based on your performance requirements and network conditions.
+    enum kafka-producer-compression {
+        // No compression - fastest but largest message size
+        none,
+        // GZIP compression - good compression ratio, moderate CPU usage
+        gzip,
+        // Snappy compression - fast compression/decompression, moderate compression ratio
+        snappy,
+        // LZ4 compression - very fast, good for high-throughput scenarios
+        lz4,
+        // Zstandard compression - excellent compression ratio, configurable speed/ratio trade-off
+        zstd,
+    }
+
+    // SCRAM mechanism variants
+    //
+    // Different SHA algorithms used for SCRAM authentication.
+    // SHA-512 provides stronger security but may have slightly higher CPU overhead.
+    enum kafka-scram-mechanism {
+        // SCRAM-SHA-256 - widely supported, good security
+        sha256,
+        // SCRAM-SHA-512 - stronger security, may have higher CPU overhead
+        sha512,
+    }
+
+    // Mutual TLS authentication configuration
+    //
+    // Uses client certificates for authentication. Both the client certificate
+    // and private key files must be accessible at the specified paths.
+    record kafka-mtls-auth {
+        // Path to the client certificate file (PEM format)
+        client-cert-path: string,
+        // Path to the client private key file (PEM format)
+        client-key-path: string,
+    }
+
+    // Configuration options for the Kafka producer
+    record kafka-producer-config {
+        // Compression algorithm to use for message payloads
+        compression: kafka-producer-compression,
+        // Specific partitions to send messages to (if not specified, partitioning is automatic)
+        partitions: option<list<s32>>,
+        // Batching configuration to control how messages are grouped before sending
+        batching: option<kafka-batch-config>,
+        // TLS configuration for secure communication with Kafka brokers
+        tls: option<kafka-tls-config>,
+        // Authentication configuration for connecting to secured Kafka clusters
+        authentication: option<kafka-authentication>,
+    }
+
+    // Kafka producer batching configuration
+    //
+    // Controls how messages are batched together before being sent to improve throughput.
+    // Batching trades off latency for throughput by waiting to accumulate messages
+    // before sending them to the broker in a single request.
+    record kafka-batch-config {
+        // Maximum time in milliseconds to wait before sending a batch (for batching efficiency)
+        linger-ms: u64,
+        // Maximum size in bytes for a message batch before it's sent
+        batch-size-bytes: u64,
+    }
+
+    // TLS configuration options for Kafka connections
+    //
+    // Controls whether and how TLS encryption is used when connecting to Kafka brokers.
+    // Choose the appropriate option based on your security requirements and cluster setup.
+    variant kafka-tls-config {
+        // Use TLS with system CA certificates for verification
+        // This is the recommended option for most production deployments
+        system-ca,
+        // Use TLS with a custom CA certificate file for verification
+        // Useful when using self-signed certificates or private CAs
+        custom-ca(string),
+    }
+
+    // Kafka producer resource for sending messages to a Kafka topic
+    //
+    // The producer maintains a connection to the Kafka cluster and provides
+    // methods for sending messages with optional keys and configurable delivery semantics.
+    resource kafka-producer {
+        // Create a new Kafka producer and connect to the specified cluster
+        //
+        // # Parameters
+        // - `name`: A unique identifier for the producer instance
+        // - `servers`: List of Kafka broker addresses (host:port format)
+        // - `topic`: Name of the Kafka topic to produce messages to
+        // - `config`: Optional producer configuration settings
+        //
+        // # Returns
+        // Returns a connected producer instance or an error message if connection fails
+        connect: static func(
+            name: string,
+            servers: list<string>,
+            topic: string,
+            config: option<kafka-producer-config>,
+        ) -> result<kafka-producer, string>;
+
+        // Send a message to the configured Kafka topic
+        //
+        // # Parameters
+        // - `key`: Optional message key for partitioning and ordering
+        // - `value`: Message payload as bytes
+        //
+        // # Returns
+        // Returns success or an error message if the message could not be sent
+        produce: func(
+            key: option<string>,
+            value: list<u8>,
+        ) -> result<_, string>;
+    }
+}

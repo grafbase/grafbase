@@ -43,7 +43,7 @@ mod wit {
 
     wit_bindgen::generate!({
         skip: ["register-extension"],
-        path: "./wit/since_0_15_0/",
+        path: "./wit/since_0_16_0/",
         world: "sdk",
         additional_derives: [
             serde::Deserialize,
@@ -66,6 +66,7 @@ mod wit {
     pub use grafbase::sdk::grpc::*;
     pub use grafbase::sdk::headers::*;
     pub use grafbase::sdk::http_client::*;
+    pub use grafbase::sdk::kafka_client::*;
     pub use grafbase::sdk::nats_client::*;
     pub use grafbase::sdk::postgres::*;
     pub use grafbase::sdk::resolver_types::*;
