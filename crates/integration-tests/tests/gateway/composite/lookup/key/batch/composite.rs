@@ -1,6 +1,6 @@
 use integration_tests::{gateway::Gateway, runtime};
 
-use super::super::{EchoArgs, gql_ab, gql_ab_id_int};
+use super::super::super::{EchoArgs, gql_ab, gql_ab_id_int};
 
 #[test]
 fn arg_with_same_name() {

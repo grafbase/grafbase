@@ -106,9 +106,9 @@ impl<'a> State<'a> {
         let mut wrapping = match wrappers.peek() {
             Some(WrappingType::NonNull) => {
                 wrappers.next();
-                wrapping::Wrapping::new(true)
+                wrapping::Wrapping::default().non_null()
             }
-            _ => wrapping::Wrapping::new(false),
+            _ => wrapping::Wrapping::default(),
         };
 
         while let Some(next) = wrappers.next() {

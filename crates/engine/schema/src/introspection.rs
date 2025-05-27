@@ -222,10 +222,10 @@ pub struct DirectiveLocation {
 impl GraphBuilder<'_> {
     #[allow(non_snake_case)]
     pub(crate) fn create_introspection_subgraph(&mut self) -> IntrospectionSubgraph {
-        let nullable_string = self.field_type("String", ScalarType::String, Wrapping::nullable());
-        let required_string = self.field_type("String", ScalarType::String, Wrapping::required());
-        let required_boolean = self.field_type("Boolean", ScalarType::Boolean, Wrapping::required());
-        let nullable_boolean = self.field_type("Boolean", ScalarType::Boolean, Wrapping::nullable());
+        let nullable_string = self.field_type("String", ScalarType::String, Wrapping::default());
+        let required_string = self.field_type("String", ScalarType::String, Wrapping::default().non_null());
+        let required_boolean = self.field_type("Boolean", ScalarType::Boolean, Wrapping::default().non_null());
+        let nullable_boolean = self.field_type("Boolean", ScalarType::Boolean, Wrapping::default());
 
         /*
         enum __TypeKind {
@@ -364,7 +364,7 @@ impl GraphBuilder<'_> {
 
         let args = TypeRecord {
             definition_id: __input_value.into(),
-            wrapping: Wrapping::required().list_non_null(),
+            wrapping: Wrapping::default().non_null().list_non_null(),
         };
 
         /*
@@ -392,7 +392,7 @@ impl GraphBuilder<'_> {
 
         let locations = TypeRecord {
             definition_id: __directive_location.into(),
-            wrapping: Wrapping::required().list_non_null(),
+            wrapping: Wrapping::default().non_null().list_non_null(),
         };
 
         let __directive = self.insert_object_fields(
@@ -424,36 +424,36 @@ impl GraphBuilder<'_> {
 
         let kind = TypeRecord {
             definition_id: __type_kind.into(),
-            wrapping: Wrapping::required(),
+            wrapping: Wrapping::default().non_null(),
         };
         let input_fields = TypeRecord {
             definition_id: __input_value.into(),
-            wrapping: Wrapping::required().list(),
+            wrapping: Wrapping::default().non_null().list(),
         };
         let nullable__field_list = TypeRecord {
             definition_id: __field.into(),
-            wrapping: Wrapping::required().list(),
+            wrapping: Wrapping::default().non_null().list(),
         };
         let nullable__enum_value_list = TypeRecord {
             definition_id: __enum_value.id.into(),
-            wrapping: Wrapping::required().list(),
+            wrapping: Wrapping::default().non_null().list(),
         };
 
         let required__type = TypeRecord {
             definition_id: __type.into(),
-            wrapping: Wrapping::required(),
+            wrapping: Wrapping::default().non_null(),
         };
         let nullable__type = TypeRecord {
             definition_id: __type.into(),
-            wrapping: Wrapping::nullable(),
+            wrapping: Wrapping::default(),
         };
         let required__type_list = TypeRecord {
             definition_id: __type.into(),
-            wrapping: Wrapping::required().list_non_null(),
+            wrapping: Wrapping::default().non_null().list_non_null(),
         };
         let nullable__type_list = TypeRecord {
             definition_id: __type.into(),
-            wrapping: Wrapping::required().list(),
+            wrapping: Wrapping::default().non_null().list(),
         };
 
         let __type = self.insert_object_fields(
@@ -524,7 +524,7 @@ impl GraphBuilder<'_> {
         */
         let required__directive_list = TypeRecord {
             definition_id: __directive.id.into(),
-            wrapping: Wrapping::required().list_non_null(),
+            wrapping: Wrapping::default().non_null().list_non_null(),
         };
         let __schema = self.insert_object("__Schema");
 
@@ -550,7 +550,7 @@ impl GraphBuilder<'_> {
         */
         let field_type_id = TypeRecord {
             definition_id: __schema.id.into(),
-            wrapping: Wrapping::required(),
+            wrapping: Wrapping::default().non_null(),
         };
         let [Some(__schema_field_id), Some(__type_field_id)] = ["__schema", "__type"].map(|name| {
             self.graph[self.graph.root_operation_types_record.query_id]
@@ -568,7 +568,7 @@ impl GraphBuilder<'_> {
         */
         let field_type_id = TypeRecord {
             definition_id: __type.id.into(),
-            wrapping: Wrapping::nullable(),
+            wrapping: Wrapping::default(),
         };
         self.graph[__type_field_id].ty_record = field_type_id;
         self.graph[__type_field_id].resolver_ids = vec![resolver_definition_id];

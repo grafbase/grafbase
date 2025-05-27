@@ -1,9 +1,9 @@
 use integration_tests::{gateway::Gateway, runtime};
 
-use super::super::super::{EchoArgs, gql_id};
+use super::super::{EchoArgs, gql_id};
 
 #[test]
-fn arg_with_same_name() {
+fn basic() {
     runtime().block_on(async {
         let engine = Gateway::builder()
             .with_subgraph(gql_id())
@@ -12,15 +12,11 @@ fn arg_with_same_name() {
                 r#"
                 extend schema
                     @link(url: "static-1.0.0", import: ["@init"])
-                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@is"])
                     @init
 
                 type Query {
-                    productBatch(input: Lookup!): [Product!]! @lookup
-                }
-
-                input Lookup @oneOf {
-                    id: [ID!]
+                    productBatch(a: [ID!]! @is(field: "[id]"), b: [ID!]): [Product!]! @lookup
                 }
 
                 type Product @key(fields: "id") {
@@ -43,11 +39,9 @@ fn arg_with_same_name() {
               {
                 "id": "1",
                 "args": {
-                  "input": {
-                    "id": [
-                      "1"
-                    ]
-                  }
+                  "a": [
+                    "1"
+                  ]
                 }
               }
             ]
@@ -58,7 +52,7 @@ fn arg_with_same_name() {
 }
 
 #[test]
-fn nullable_lookup() {
+fn arg_type_compatibility_nullable_list() {
     runtime().block_on(async {
         let engine = Gateway::builder()
             .with_subgraph(gql_id())
@@ -67,15 +61,11 @@ fn nullable_lookup() {
                 r#"
                 extend schema
                     @link(url: "static-1.0.0", import: ["@init"])
-                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@is"])
                     @init
 
                 type Query {
-                    productBatch(input: Lookup): [Product!]! @lookup
-                }
-
-                input Lookup @oneOf {
-                    id: [ID!]
+                    productBatch(a: [ID!] @is(field: "[id]"), b: [ID!]): [Product!]! @lookup
                 }
 
                 type Product @key(fields: "id") {
@@ -98,11 +88,9 @@ fn nullable_lookup() {
               {
                 "id": "1",
                 "args": {
-                  "input": {
-                    "id": [
-                      "1"
-                    ]
-                  }
+                  "a": [
+                    "1"
+                  ]
                 }
               }
             ]
@@ -122,15 +110,11 @@ fn arg_type_compatibility_inner_nullable() {
                 r#"
                 extend schema
                     @link(url: "static-1.0.0", import: ["@init"])
-                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@is"])
                     @init
 
                 type Query {
-                    productBatch(input: Lookup!): [Product!]! @lookup
-                }
-
-                input Lookup @oneOf {
-                    id: [ID]
+                    productBatch(a: [ID]! @is(field: "[id]"), b: [ID!]): [Product!]! @lookup
                 }
 
                 type Product @key(fields: "id") {
@@ -153,11 +137,9 @@ fn arg_type_compatibility_inner_nullable() {
               {
                 "id": "1",
                 "args": {
-                  "input": {
-                    "id": [
-                      "1"
-                    ]
-                  }
+                  "a": [
+                    "1"
+                  ]
                 }
               }
             ]
@@ -168,7 +150,7 @@ fn arg_type_compatibility_inner_nullable() {
 }
 
 #[test]
-fn arg_with_same_name_and_extra_input_field_with_matching_type() {
+fn arg_type_compatibility_inner_and_list_nullable() {
     runtime().block_on(async {
         let engine = Gateway::builder()
             .with_subgraph(gql_id())
@@ -177,16 +159,11 @@ fn arg_with_same_name_and_extra_input_field_with_matching_type() {
                 r#"
                 extend schema
                     @link(url: "static-1.0.0", import: ["@init"])
-                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@is"])
                     @init
 
                 type Query {
-                    productBatch(input: Lookup!): [Product!]! @lookup
-                }
-
-                input Lookup @oneOf {
-                    id: [ID!]
-                    anything: [ID!]
+                    productBatch(a: [ID] @is(field: "[id]"), b: [ID!]): [Product!]! @lookup
                 }
 
                 type Product @key(fields: "id") {
@@ -209,11 +186,9 @@ fn arg_with_same_name_and_extra_input_field_with_matching_type() {
               {
                 "id": "1",
                 "args": {
-                  "input": {
-                    "id": [
-                      "1"
-                    ]
-                  }
+                  "a": [
+                    "1"
+                  ]
                 }
               }
             ]
@@ -224,7 +199,7 @@ fn arg_with_same_name_and_extra_input_field_with_matching_type() {
 }
 
 #[test]
-fn arg_with_different_name() {
+fn arg_with_default_value() {
     runtime().block_on(async {
         let engine = Gateway::builder()
             .with_subgraph(gql_id())
@@ -233,15 +208,11 @@ fn arg_with_different_name() {
                 r#"
                 extend schema
                     @link(url: "static-1.0.0", import: ["@init"])
-                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@is"])
                     @init
 
                 type Query {
-                    productBatch(input: Lookup!): [Product!]! @lookup
-                }
-
-                input Lookup @oneOf {
-                    ids: [ID!]
+                    productBatch(a: [ID]! @is(field: "[id]"), b: [ID!], extra: Boolean! = true): [Product!]! @lookup
                 }
 
                 type Product @key(fields: "id") {
@@ -256,19 +227,17 @@ fn arg_with_different_name() {
             .build()
             .await;
 
-        let response = engine.post("query { products { id args } }").await;
+        let response = engine.post("query { products { args } }").await;
         insta::assert_json_snapshot!(response, @r#"
         {
           "data": {
             "products": [
               {
-                "id": "1",
                 "args": {
-                  "input": {
-                    "ids": [
-                      "1"
-                    ]
-                  }
+                  "a": [
+                    "1"
+                  ],
+                  "extra": true
                 }
               }
             ]
@@ -279,7 +248,7 @@ fn arg_with_different_name() {
 }
 
 #[test]
-fn arg_with_different_name_and_extra_optional_arg_with_matching_name() {
+fn arg_with_default_value_coercion() {
     runtime().block_on(async {
         let engine = Gateway::builder()
             .with_subgraph(gql_id())
@@ -288,16 +257,11 @@ fn arg_with_different_name_and_extra_optional_arg_with_matching_name() {
                 r#"
                 extend schema
                     @link(url: "static-1.0.0", import: ["@init"])
-                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@is"])
                     @init
 
                 type Query {
-                    productBatch(input: Lookup!): [Product!]! @lookup
-                }
-
-                input Lookup @oneOf {
-                    ids: [ID!]
-                    id: ID
+                    productBatch(a: [ID]! @is(field: "[id]"), b: [ID!], extra: [Boolean!]! = true): [Product!]! @lookup
                 }
 
                 type Product @key(fields: "id") {
@@ -312,19 +276,19 @@ fn arg_with_different_name_and_extra_optional_arg_with_matching_name() {
             .build()
             .await;
 
-        let response = engine.post("query { products { id args } }").await;
+        let response = engine.post("query { products { args } }").await;
         insta::assert_json_snapshot!(response, @r#"
         {
           "data": {
             "products": [
               {
-                "id": "1",
                 "args": {
-                  "input": {
-                    "ids": [
-                      "1"
-                    ]
-                  }
+                  "a": [
+                    "1"
+                  ],
+                  "extra": [
+                    true
+                  ]
                 }
               }
             ]
@@ -335,7 +299,58 @@ fn arg_with_different_name_and_extra_optional_arg_with_matching_name() {
 }
 
 #[test]
-fn good_name_not_a_list() {
+fn multiple_injections() {
+    runtime().block_on(async {
+        let engine = Gateway::builder()
+            .with_subgraph(gql_id())
+            .with_subgraph_sdl(
+                "ext",
+                r#"
+                extend schema
+                    @link(url: "static-1.0.0", import: ["@init"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@is"])
+                    @init
+
+                type Query {
+                    productBatch(a: [ID!] @is(field: "[id]"), b: [ID!] @is(field: "[id]")): [Product!]! @lookup
+                }
+
+                type Product @key(fields: "id") {
+                    id: ID!
+                    args: JSON
+                }
+
+                scalar JSON
+                "#,
+            )
+            .with_extension(EchoArgs)
+            .build()
+            .await;
+
+        let response = engine.post("query { products { args } }").await;
+        insta::assert_json_snapshot!(response, @r#"
+        {
+          "data": {
+            "products": [
+              {
+                "args": {
+                  "a": [
+                    "1"
+                  ],
+                  "b": [
+                    "1"
+                  ]
+                }
+              }
+            ]
+          }
+        }
+        "#);
+    })
+}
+
+#[test]
+fn no_matching_key() {
     runtime().block_on(async {
         let result = Gateway::builder()
             .with_subgraph(gql_id())
@@ -344,19 +359,52 @@ fn good_name_not_a_list() {
                 r#"
                 extend schema
                     @link(url: "static-1.0.0", import: ["@init"])
-                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@is"])
                     @init
 
                 type Query {
-                    productBatch(id: Lookup!): [Product!]! @lookup
+                    productBatch(something: [JSON] @is(field: "[args]")): [Product!]! @lookup
                 }
 
-                input Lookup @oneOf {
+                type Product @key(fields: "id") {
+                    id: ID!
+                    args: JSON
+                }
+
+                scalar JSON
+                "#,
+            )
+            .with_extension(EchoArgs)
+            .try_build()
+            .await;
+
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        See schema at 33:3:
+        productBatch(something: [JSON] @composite__is(graph: EXT, field: "[args]")): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)
+        "#);
+    })
+}
+
+#[test]
+fn cannot_inject_nullable_into_required() {
+    runtime().block_on(async {
+        let result = Gateway::builder()
+            .with_subgraph(gql_id())
+            .with_subgraph_sdl(
+                "ext",
+                r#"
+                extend schema
+                    @link(url: "static-1.0.0", import: ["@init"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@is"])
+                    @init
+
+                type Query {
+                    productBatch(id: [ID!] @is(field: "[id]")): [Product!]! @lookup
+                }
+
+                type Product @key(fields: "id") {
                     id: ID
-                }
-
-                type Product @key(fields: "id") {
-                    id: ID!
                     args: JSON
                 }
 
@@ -368,15 +416,15 @@ fn good_name_not_a_list() {
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup no matching @key directive was found
-        See schema at 29:3:
-        productBatch(id: Lookup!): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)
+        At site Query.productBatch, for directive @lookup for associated @is directive: Incompatible wrapping, cannot map Product.id (ID) into Query.productBatch.id (ID!)
+        See schema at 33:40:
+        (graph: EXT, field: "[id]")
         "#);
     })
 }
 
 #[test]
-fn ambiguous_multiple_arg_matches() {
+fn bad_type() {
     runtime().block_on(async {
         let result = Gateway::builder()
             .with_subgraph(gql_id())
@@ -385,15 +433,11 @@ fn ambiguous_multiple_arg_matches() {
                 r#"
                 extend schema
                     @link(url: "static-1.0.0", import: ["@init"])
-                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@is"])
                     @init
 
                 type Query {
-                    productBatch(a: Lookup!, b: Lookup!): [Product!]! @lookup
-                }
-
-                input Lookup @oneOf {
-                    id: [ID!]
+                    productBatch(id: [Int] @is(field: "[id]")): [Product!]! @lookup
                 }
 
                 type Product @key(fields: "id") {
@@ -409,15 +453,15 @@ fn ambiguous_multiple_arg_matches() {
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup no matching @key directive was found
-        See schema at 29:3:
-        productBatch(a: Lookup!, b: Lookup!): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)
+        At site Query.productBatch, for directive @lookup for associated @is directive: Cannot map Product.id (ID!) into Query.productBatch.id (Int)
+        See schema at 33:40:
+        (graph: EXT, field: "[id]")
         "#);
     })
 }
 
 #[test]
-fn lookup_arg_in_a_list() {
+fn not_a_list() {
     runtime().block_on(async {
         let result = Gateway::builder()
             .with_subgraph(gql_id())
@@ -426,15 +470,11 @@ fn lookup_arg_in_a_list() {
                 r#"
                 extend schema
                     @link(url: "static-1.0.0", import: ["@init"])
-                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@is"])
                     @init
 
                 type Query {
-                    productBatch(lookup: [Lookup!]): [Product!]! @lookup
-                }
-
-                input Lookup @oneOf {
-                    id: [ID!]
+                    productBatch(id: ID! @is(field: "id")): [Product!]! @lookup
                 }
 
                 type Product @key(fields: "id") {
@@ -450,51 +490,9 @@ fn lookup_arg_in_a_list() {
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup no matching @key directive was found
-        See schema at 29:3:
-        productBatch(lookup: [Lookup!]): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)
-        "#);
-    })
-}
-
-#[test]
-fn ambiguous_multiple_oneof_field_matches() {
-    runtime().block_on(async {
-        let result = Gateway::builder()
-            .with_subgraph(gql_id())
-            .with_subgraph_sdl(
-                "ext",
-                r#"
-                extend schema
-                    @link(url: "static-1.0.0", import: ["@init"])
-                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
-                    @init
-
-                type Query {
-                    productBatch(lookup: Lookup!): [Product!]! @lookup
-                }
-
-                input Lookup @oneOf {
-                    id: ID
-                    b: ID
-                }
-
-                type Product @key(fields: "id") {
-                    id: ID!
-                    args: JSON
-                }
-
-                scalar JSON
-                "#,
-            )
-            .with_extension(EchoArgs)
-            .try_build()
-            .await;
-
-        insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup no matching @key directive was found
-        See schema at 29:3:
-        productBatch(lookup: Lookup!): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)
+        At site Query.productBatch, for directive @lookup for associated @is directive: Cannot select a field from [Product!]!, it's a list
+        See schema at 33:38:
+        (graph: EXT, field: "id")
         "#);
     })
 }
@@ -509,15 +507,11 @@ fn extra_required_argument() {
                 r#"
                 extend schema
                     @link(url: "static-1.0.0", import: ["@init"])
-                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@is"])
                     @init
 
                 type Query {
-                    productBatch(lookup: Lookup!, required: Boolean!): [Product!]! @lookup
-                }
-
-                input Lookup @oneOf {
-                    id: ID
+                    productBatch(ids: [ID!] @is(field: "[id]"), required: Boolean!): [Product!]! @lookup
                 }
 
                 type Product @key(fields: "id") {
@@ -534,8 +528,8 @@ fn extra_required_argument() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         At site Query.productBatch, for directive @lookup no matching @key directive was found
-        See schema at 29:3:
-        productBatch(lookup: Lookup!, required: Boolean!): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)
+        See schema at 33:3:
+        productBatch(ids: [ID!] @composite__is(graph: EXT, field: "[id]"), required: Boolean!): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)
         "#);
     })
 }

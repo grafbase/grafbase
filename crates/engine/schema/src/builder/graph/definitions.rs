@@ -561,7 +561,7 @@ impl<'a> Ingester<'a> {
                 description_id: None,
                 parent_entity_id: query_object_id.into(),
                 ty_record: TypeRecord {
-                    wrapping: Wrapping::required(),
+                    wrapping: Wrapping::default().non_null(),
                     // Replaced afterwards
                     definition_id: TypeDefinitionId::Object((u32::MAX - 1).into()),
                 },

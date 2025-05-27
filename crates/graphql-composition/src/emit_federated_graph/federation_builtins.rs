@@ -37,7 +37,7 @@ pub(super) fn emit_federation_builtins(ctx: &mut Context<'_>, join_graph_enum_id
             federated::InputValueDefinition {
                 name: graph_str,
                 r#type: federated::Type {
-                    wrapping: Wrapping::required(),
+                    wrapping: Wrapping::default().non_null(),
                     definition: federated::Definition::Enum(join_graph_enum_id),
                 },
                 directives: Vec::new(),
@@ -53,7 +53,7 @@ pub(super) fn emit_federation_builtins(ctx: &mut Context<'_>, join_graph_enum_id
             federated::InputValueDefinition {
                 name: member_str,
                 r#type: federated::Type {
-                    wrapping: Wrapping::required(),
+                    wrapping: Wrapping::default().non_null(),
                     definition: string_definition,
                 },
                 directives: Vec::new(),
@@ -79,7 +79,7 @@ pub(super) fn emit_federation_builtins(ctx: &mut Context<'_>, join_graph_enum_id
             federated::InputValueDefinition {
                 name: graph_str,
                 r#type: federated::Type {
-                    wrapping: Wrapping::required(),
+                    wrapping: Wrapping::default().non_null(),
                     definition: federated::Definition::Enum(join_graph_enum_id),
                 },
                 directives: Vec::new(),
@@ -95,7 +95,7 @@ pub(super) fn emit_federation_builtins(ctx: &mut Context<'_>, join_graph_enum_id
             federated::InputValueDefinition {
                 name: interface_str,
                 r#type: federated::Type {
-                    wrapping: Wrapping::required(),
+                    wrapping: Wrapping::default().non_null(),
                     definition: string_definition,
                 },
                 directives: Vec::new(),
@@ -120,7 +120,7 @@ pub(super) fn emit_federation_builtins(ctx: &mut Context<'_>, join_graph_enum_id
             federated::InputValueDefinition {
                 name: name_str,
                 r#type: federated::Type {
-                    wrapping: Wrapping::required(),
+                    wrapping: Wrapping::default().non_null(),
                     definition: string_definition,
                 },
                 directives: Vec::new(),
@@ -134,7 +134,7 @@ pub(super) fn emit_federation_builtins(ctx: &mut Context<'_>, join_graph_enum_id
             federated::InputValueDefinition {
                 name: url_str,
                 r#type: federated::Type {
-                    wrapping: Wrapping::nullable(),
+                    wrapping: Wrapping::default(),
                     definition: string_definition,
                 },
                 directives: Vec::new(),
@@ -171,7 +171,7 @@ pub(super) fn emit_federation_builtins(ctx: &mut Context<'_>, join_graph_enum_id
             federated::InputValueDefinition {
                 name: graph_str,
                 r#type: federated::Type {
-                    wrapping: Wrapping::new(false),
+                    wrapping: Wrapping::default(),
                     definition: federated::Definition::Enum(join_graph_enum_id),
                 },
                 directives: Vec::new(),
@@ -185,7 +185,7 @@ pub(super) fn emit_federation_builtins(ctx: &mut Context<'_>, join_graph_enum_id
             federated::InputValueDefinition {
                 name: requires_str,
                 r#type: federated::Type {
-                    wrapping: Wrapping::new(false),
+                    wrapping: Wrapping::default(),
                     definition: federated::Definition::Scalar(join_fieldset_scalar),
                 },
                 directives: Vec::new(),
@@ -199,7 +199,7 @@ pub(super) fn emit_federation_builtins(ctx: &mut Context<'_>, join_graph_enum_id
             federated::InputValueDefinition {
                 name: provides_str,
                 r#type: federated::Type {
-                    wrapping: Wrapping::new(false),
+                    wrapping: Wrapping::default(),
                     definition: federated::Definition::Scalar(join_fieldset_scalar),
                 },
                 directives: Vec::new(),
@@ -211,7 +211,7 @@ pub(super) fn emit_federation_builtins(ctx: &mut Context<'_>, join_graph_enum_id
         let argument = federated::InputValueDefinition {
             name: ctx.insert_str("type"),
             r#type: federated::Type {
-                wrapping: Wrapping::nullable(),
+                wrapping: Wrapping::default(),
                 definition: string_definition,
             },
             directives: Vec::new(),
@@ -224,7 +224,7 @@ pub(super) fn emit_federation_builtins(ctx: &mut Context<'_>, join_graph_enum_id
         let argument = federated::InputValueDefinition {
             name: ctx.insert_str("external"),
             r#type: federated::Type {
-                wrapping: Wrapping::nullable(),
+                wrapping: Wrapping::default(),
                 definition: boolean_definition,
             },
             directives: Vec::new(),
@@ -237,7 +237,7 @@ pub(super) fn emit_federation_builtins(ctx: &mut Context<'_>, join_graph_enum_id
         let argument = federated::InputValueDefinition {
             name: ctx.insert_str("override"),
             r#type: federated::Type {
-                wrapping: Wrapping::nullable(),
+                wrapping: Wrapping::default(),
                 definition: string_definition,
             },
             directives: Vec::new(),
@@ -250,7 +250,7 @@ pub(super) fn emit_federation_builtins(ctx: &mut Context<'_>, join_graph_enum_id
         let argument = federated::InputValueDefinition {
             name: ctx.insert_str("overrideLabel"),
             r#type: federated::Type {
-                wrapping: Wrapping::nullable(),
+                wrapping: Wrapping::default(),
                 definition: string_definition,
             },
             directives: Vec::new(),
@@ -292,7 +292,7 @@ pub(super) fn emit_federation_builtins(ctx: &mut Context<'_>, join_graph_enum_id
             federated::InputValueDefinition {
                 name: graph_str,
                 r#type: federated::Type {
-                    wrapping: Wrapping::new(false),
+                    wrapping: Wrapping::default(),
                     definition: federated::Definition::Enum(join_graph_enum_id),
                 },
                 directives: Vec::new(),
@@ -306,7 +306,7 @@ pub(super) fn emit_federation_builtins(ctx: &mut Context<'_>, join_graph_enum_id
             federated::InputValueDefinition {
                 name: key_str,
                 r#type: federated::Type {
-                    wrapping: Wrapping::new(false),
+                    wrapping: Wrapping::default(),
                     definition: federated::Definition::Scalar(join_fieldset_scalar),
                 },
                 directives: Vec::new(),
@@ -320,7 +320,7 @@ pub(super) fn emit_federation_builtins(ctx: &mut Context<'_>, join_graph_enum_id
             federated::InputValueDefinition {
                 name: extension_str,
                 r#type: federated::Type {
-                    wrapping: Wrapping::new(false),
+                    wrapping: Wrapping::default(),
                     definition: boolean_definition,
                 },
                 directives: Vec::new(),
@@ -334,7 +334,7 @@ pub(super) fn emit_federation_builtins(ctx: &mut Context<'_>, join_graph_enum_id
             federated::InputValueDefinition {
                 name: resolvable_str,
                 r#type: federated::Type {
-                    wrapping: Wrapping::new(false),
+                    wrapping: Wrapping::default(),
                     definition: boolean_definition,
                 },
                 directives: Vec::new(),
@@ -348,7 +348,7 @@ pub(super) fn emit_federation_builtins(ctx: &mut Context<'_>, join_graph_enum_id
             federated::InputValueDefinition {
                 name: is_interface_object_str,
                 r#type: federated::Type {
-                    wrapping: Wrapping::new(false),
+                    wrapping: Wrapping::default(),
                     definition: boolean_definition,
                 },
                 directives: Vec::new(),
@@ -374,7 +374,7 @@ pub(super) fn emit_federation_builtins(ctx: &mut Context<'_>, join_graph_enum_id
             federated::InputValueDefinition {
                 name: graph_str,
                 r#type: federated::Type {
-                    wrapping: Wrapping::required(),
+                    wrapping: Wrapping::default().non_null(),
                     definition: federated::Definition::Enum(join_graph_enum_id),
                 },
                 directives: Vec::new(),

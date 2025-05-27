@@ -414,7 +414,7 @@ impl<'schema> QueryValueCoercionContext<'_, 'schema, '_> {
                 variable.name(),
                 TypeRecord {
                     definition_id: TypeDefinitionId::Scalar(scalar.id),
-                    wrapping: Wrapping::nullable(),
+                    wrapping: Wrapping::default(),
                 }
                 .walk(self.schema),
             ),

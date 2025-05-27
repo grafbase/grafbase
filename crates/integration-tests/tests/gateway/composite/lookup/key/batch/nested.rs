@@ -1,6 +1,6 @@
 use integration_tests::{gateway::Gateway, runtime};
 
-use super::super::{EchoArgs, gql_nested};
+use super::super::super::{EchoArgs, gql_nested};
 
 #[test]
 fn arg_with_same_name() {
@@ -519,9 +519,7 @@ fn arg_with_default_value() {
                       "id": "1"
                     }
                   ],
-                  "extra": [
-                    true
-                  ]
+                  "extra": true
                 }
               }
             ]
@@ -585,9 +583,7 @@ fn arg_with_default_value_coercion() {
                     }
                   ],
                   "extra": [
-                    [
-                      true
-                    ]
+                    true
                   ]
                 }
               }

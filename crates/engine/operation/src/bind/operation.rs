@@ -375,7 +375,7 @@ impl<'schema, 'p> OperationBinder<'schema, 'p> {
 
         let ty = TypeRecord {
             definition_id: self.schema.type_definition_by_name("Boolean").expect("must exist").id(),
-            wrapping: schema::Wrapping::required(),
+            wrapping: schema::Wrapping::default().non_null(),
         }
         .walk(self.schema);
 
@@ -419,7 +419,7 @@ impl<'schema, 'p> OperationBinder<'schema, 'p> {
                     if ty.wrapping.is_list() {
                         ty.wrapping = ty.wrapping.list_non_null();
                     } else {
-                        ty.wrapping = Wrapping::required()
+                        ty.wrapping = Wrapping::default().non_null()
                     }
                 }
                 _ => (),

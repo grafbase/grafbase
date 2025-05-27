@@ -68,13 +68,8 @@ pub(super) fn ingest<'sdl>(
         possible_keys,
     };
 
-    let definition = if let Some((
-        is_directive,
-        sdl::IsDirective {
-            field: field_selection_map,
-            ..
-        },
-    )) = ingester.sdl_definitions[&DirectiveSiteId::Field(def.id)]
+    let sdl_field = ingester.sdl_definitions[&DirectiveSiteId::Field(def.id)];
+    let mut is_directives = sdl_field
         .directives()
         .filter(|dir| dir.name() == "composite__is")
         .map(|dir| {
@@ -82,9 +77,24 @@ pub(super) fn ingest<'sdl>(
                 .map_err(|err| (format!("for associated @is directive: {err}"), dir.arguments_span()))
                 .map(|args| (dir, args))
         })
-        .filter_ok(|(_, args)| args.graph == graph)
-        .next()
-        .transpose()?
+        .filter_ok(|(_, args)| args.graph == graph);
+
+    let is_directive = is_directives.next().transpose()?;
+    if is_directives.next().is_some() {
+        return Err((
+            "Multiple @composite__is directives on the same field are not supported.",
+            sdl_field.span(),
+        )
+            .into());
+    }
+
+    let definition = if let Some((
+        is_directive,
+        sdl::IsDirective {
+            field: field_selection_map,
+            ..
+        },
+    )) = is_directive
     {
         ctx.explicit_derive(is_directive, field_selection_map)
     } else {

@@ -24,7 +24,11 @@ impl Context<'_> {
                 )
             };
 
-            let mut wrapping = federated::Wrapping::new(field_type.inner_is_required());
+            let mut wrapping = federated::Wrapping::default();
+
+            if field_type.inner_is_required() {
+                wrapping = wrapping.non_null();
+            }
 
             for wrapper in field_type.iter_wrappers() {
                 wrapping = match wrapper {
