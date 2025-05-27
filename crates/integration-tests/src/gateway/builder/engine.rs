@@ -93,7 +93,10 @@ pub(super) async fn build(
     let mut config = Config::load(config_path).unwrap();
 
     let schema = Arc::new(
-        engine::Schema::build(Some(tmpdir), &federated_sdl, &config, runtime.extensions.catalog())
+        engine::Schema::builder(&federated_sdl)
+            .config(&config)
+            .extensions(Some(tmpdir), runtime.extensions.catalog())
+            .build()
             .await
             .map_err(|err| err.to_string())?,
     );

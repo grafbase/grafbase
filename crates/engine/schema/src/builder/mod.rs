@@ -8,10 +8,10 @@ mod interner;
 mod sdl;
 mod subgraphs;
 
-use std::path::Path;
+use std::{borrow::Cow, path::Path};
 
 use context::{BuildContext, Interners};
-use extension::{ExtensionsContext, ingest_extension_schema_directives};
+use extension::ExtensionsContext;
 use extension_catalog::ExtensionCatalog;
 use gateway_config::Config;
 use sdl::{Sdl, SpanTranslator};
@@ -22,50 +22,104 @@ pub(crate) use graph::*;
 
 use crate::*;
 
-pub(crate) async fn build(
-    current_dir: Option<&Path>,
-    sdl: &str,
-    config: &gateway_config::Config,
-    extension_catalog: &ExtensionCatalog,
-) -> Result<Schema, String> {
-    build_inner(current_dir, sdl, config, extension_catalog)
-        .await
-        .map_err(|err| {
+pub struct Builder<'a> {
+    pub sdl: &'a str,
+    pub current_dir: Option<&'a Path>,
+    pub config: Option<&'a gateway_config::Config>,
+    pub extension_catalog: Option<&'a ExtensionCatalog>,
+    pub for_operation_analytics_only: bool,
+}
+
+impl<'a> Builder<'a> {
+    pub fn new(sdl: &'a str) -> Self {
+        Self {
+            sdl,
+            current_dir: None,
+            config: None,
+            extension_catalog: None,
+            for_operation_analytics_only: false,
+        }
+    }
+
+    pub fn config<'b, 'out>(self, config: &'b gateway_config::Config) -> Builder<'out>
+    where
+        'a: 'out,
+        'b: 'out,
+    {
+        Builder {
+            config: Some(config),
+            ..self
+        }
+    }
+
+    pub fn extensions<'b, 'out>(self, current_dir: Option<&'b Path>, catalog: &'b ExtensionCatalog) -> Builder<'out>
+    where
+        'a: 'out,
+        'b: 'out,
+    {
+        Builder {
+            current_dir,
+            extension_catalog: Some(catalog),
+            ..self
+        }
+    }
+
+    pub fn for_operation_analytics_only(self) -> Self {
+        Builder {
+            for_operation_analytics_only: true,
+            ..self
+        }
+    }
+
+    pub async fn build(self) -> Result<Schema, String> {
+        let sdl = self.sdl;
+        self.build_inner().await.map_err(|err| {
             let translator = SpanTranslator::new(sdl);
             err.into_string(&translator)
         })
-}
+    }
 
-async fn build_inner(
-    current_dir: Option<&Path>,
-    sdl: &str,
-    config: &gateway_config::Config,
-    extension_catalog: &ExtensionCatalog,
-) -> Result<Schema, Error> {
-    if !sdl.trim().is_empty() {
-        let doc = &cynic_parser::parse_type_system_document(sdl).map_err(|err| Error::from(err.to_string()))?;
-        let sdl = Sdl::try_from((sdl, doc))?;
-        let extensions = ExtensionsContext::load(current_dir, &sdl, extension_catalog).await?;
+    async fn build_inner(self) -> Result<Schema, Error> {
+        let Self {
+            sdl,
+            current_dir,
+            config,
+            extension_catalog,
+            for_operation_analytics_only,
+        } = self;
+        let config = config.map(Cow::Borrowed).unwrap_or_default();
+        let extension_catalog = extension_catalog.map(Cow::Borrowed).unwrap_or_default();
 
-        BuildContext::new(&sdl, &extensions, config)?.build()
-    } else {
-        let sdl = Default::default();
-        let extensions = ExtensionsContext::load(current_dir, &sdl, extension_catalog).await?;
+        if !sdl.trim().is_empty() {
+            let doc = &cynic_parser::parse_type_system_document(sdl).map_err(|err| Error::from(err.to_string()))?;
+            let sdl = Sdl::try_from((sdl, doc))?;
+            let extensions = if for_operation_analytics_only {
+                ExtensionsContext::empty_with_catalog(&extension_catalog)
+            } else {
+                ExtensionsContext::load(current_dir, &sdl, &extension_catalog).await?
+            };
 
-        BuildContext::new(&sdl, &extensions, config)?.build()
+            BuildContext::new(&sdl, &extensions, &config)?.build(for_operation_analytics_only)
+        } else {
+            let sdl = Default::default();
+            let extensions = if for_operation_analytics_only {
+                ExtensionsContext::empty_with_catalog(&extension_catalog)
+            } else {
+                ExtensionsContext::load(current_dir, &sdl, &extension_catalog).await?
+            };
+
+            BuildContext::new(&sdl, &extensions, &config)?.build(for_operation_analytics_only)
+        }
     }
 }
 
 impl BuildContext<'_> {
-    fn build(self) -> Result<Schema, Error> {
+    fn build(self, for_operation_analytics_only: bool) -> Result<Schema, Error> {
         let (mut graph_builder, sdl_definitions, introspection) = ingest_definitions(self)?;
 
         // From this point on the definitions should have been all added and now we interpret the
         // directives.
-
-        ingest_extension_schema_directives(&mut graph_builder)?;
-
-        ingest_directives(&mut graph_builder, &sdl_definitions)?;
+        ingest_directives(&mut graph_builder, &sdl_definitions, for_operation_analytics_only)?;
 
         let GraphBuilder {
             ctx:

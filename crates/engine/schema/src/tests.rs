@@ -244,7 +244,7 @@ async fn serde_roundtrip(#[case] sdl: &str) {
     )
     .unwrap();
 
-    let schema = Schema::build(None, sdl, &config, &Default::default()).await.unwrap();
+    let schema = Schema::builder(sdl).config(&config).build().await.unwrap();
 
     let mut serializer = postcard::Serializer {
         output: postcard::ser_flavors::AllocVec::new(),
@@ -280,9 +280,11 @@ async fn consistent_hash() {
     )
     .unwrap();
 
-    let schema1 = Schema::build(None, SCHEMA, &config, &Default::default()).await.unwrap();
-    let schema1bis = Schema::build(None, SCHEMA, &config, &Default::default()).await.unwrap();
-    let schema2 = Schema::build(None, SCHEMA_WITH_INACCESSIBLES, &config, &Default::default())
+    let schema1 = Schema::builder(SCHEMA).config(&config).build().await.unwrap();
+    let schema1bis = Schema::builder(SCHEMA).config(&config).build().await.unwrap();
+    let schema2 = Schema::builder(SCHEMA_WITH_INACCESSIBLES)
+        .config(&config)
+        .build()
         .await
         .unwrap();
 
@@ -1204,4 +1206,63 @@ async fn debug() {
         write!(s, "{def:?}").unwrap();
         s.clear();
     }
+}
+
+const SCHEMA_WITH_EXTENSION: &str = r#"
+directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
+
+directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
+
+directive @join__graph(name: String!, url: String) on ENUM_VALUE
+
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, overrideLabel: String) on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+directive @join__type(graph: join__Graph, key: join__FieldSet, extension: Boolean = false, resolvable: Boolean = true, isInterfaceObject: Boolean = false) on SCALAR | OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+scalar JSON
+
+scalar join__FieldSet
+
+type Query
+{
+  echo(first: Int, limit: Int, after: String, filters: Filters): JSON @extension__directive(graph: A, extension: ECHO, name: "echo", arguments: {input: "*"}) @join__field(graph: A)
+}
+
+enum join__Graph
+{
+  A @join__graph(name: "a")
+}
+
+enum extension__Link
+{
+  ECHO @extension__link(url: "file:///tmp/.tmpv8mlGN/extensions/echo-1.0.0")
+}
+
+input Filters
+  @join__type(graph: A)
+{
+  latest: Boolean
+  nested: Nested
+}
+
+input Nested
+  @join__type(graph: A)
+{
+  id: ID
+  name: String
+}
+"#;
+
+#[tokio::test]
+async fn for_operation_analytics_only() {
+    assert!(Schema::builder(SCHEMA_WITH_EXTENSION).build().await.is_err());
+    assert!(
+        Schema::builder(SCHEMA_WITH_EXTENSION)
+            .for_operation_analytics_only()
+            .build()
+            .await
+            .is_ok()
+    );
 }

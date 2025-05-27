@@ -58,7 +58,7 @@ async fn direct_lookup_call() {
         url::Url::from_file_path(tmpdir.path()).unwrap()
     );
 
-    let schema = Schema::build(None, &sdl, &Default::default(), &catalog).await.unwrap();
+    let schema = Schema::builder(&sdl).extensions(None, &catalog).build().await.unwrap();
 
     assert_solving_snapshots!(
         "direct_lookup_call",
