@@ -21,6 +21,7 @@ wasmtime::component::bindgen!({
         "grafbase:sdk/authorization-types": crate::extension::api::since_0_14_0::wit::authorization_types,
         "grafbase:sdk/selection-set-resolver-types": crate::extension::api::since_0_14_0::wit::selection_set_resolver_types,
         "grafbase:sdk/kafka-client/kafka-producer": crate::resources::KafkaProducer,
+        "grafbase:sdk/kafka-client/kafka-consumer": crate::resources::KafkaConsumer,
     },
     trappable_imports: true,
     ownership: Borrowing {

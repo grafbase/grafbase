@@ -38,20 +38,16 @@
 //! TLS connections can be configured to use either the system's certificate authority
 //! store or a custom CA certificate file.
 
+mod consumer;
+mod producer;
+
+pub use consumer::{KafkaConsumer, KafkaConsumerConfig, KafkaMessage};
+pub use producer::{KafkaBatchConfig, KafkaProducer, KafkaProducerCompression, KafkaProducerConfig};
+
 use crate::{SdkError, wit};
-use std::{
-    path::{Path, PathBuf},
-    time::Duration,
-};
+use std::path::{Path, PathBuf};
 
 /// Connects to Kafka servers and creates a new Kafka producer.
-///
-/// # Arguments
-///
-/// * `name` - The name identifier for this producer
-/// * `servers` - An iterable of server addresses to connect to
-/// * `topic` - The Kafka topic to produce messages to
-/// * `config` - Configuration settings for the producer
 pub fn producer(
     name: &str,
     servers: impl IntoIterator<Item = impl ToString>,
@@ -60,151 +56,22 @@ pub fn producer(
 ) -> Result<KafkaProducer, SdkError> {
     let servers: Vec<_> = servers.into_iter().map(|s| s.to_string()).collect();
     let config = config.into();
-    let producer = wit::KafkaProducer::connect(name, &servers, topic, Some(&config))?;
+    let producer = wit::KafkaProducer::connect(name, &servers, topic, &config)?;
 
     Ok(KafkaProducer { inner: producer })
 }
 
-/// A Kafka producer client for publishing messages to Kafka topics.
-pub struct KafkaProducer {
-    inner: wit::KafkaProducer,
-}
+/// Connects to Kafka servers and creates a new Kafka consumer.
+pub fn consumer(
+    servers: impl IntoIterator<Item = impl ToString>,
+    topic: &str,
+    config: KafkaConsumerConfig,
+) -> Result<KafkaConsumer, SdkError> {
+    let servers: Vec<_> = servers.into_iter().map(|s| s.to_string()).collect();
+    let config = config.into();
+    let consumer = wit::KafkaConsumer::connect(&servers, topic, &config)?;
 
-impl KafkaProducer {
-    /// Produces a message to the Kafka topic.
-    ///
-    /// # Arguments
-    ///
-    /// * `key` - Optional message key for partitioning and message ordering
-    /// * `value` - The message payload as bytes
-    pub fn produce(&self, key: Option<&str>, value: &[u8]) -> Result<(), SdkError> {
-        self.inner.produce(key, value)?;
-        Ok(())
-    }
-}
-
-/// Configuration options for a Kafka producer.
-pub struct KafkaProducerConfig {
-    /// Compression algorithm to use for message batches
-    compression: wit::KafkaProducerCompression,
-    /// Optional list of specific partitions to produce to
-    partitions: Option<Vec<i32>>,
-    /// Optional batching configuration for message processing
-    batching: Option<KafkaBatchConfig>,
-    /// Optional TLS configuration for secure connections
-    tls: Option<wit::KafkaTlsConfig>,
-    /// Optional authentication configuration
-    authentication: Option<wit::KafkaAuthentication>,
-}
-
-impl KafkaProducerConfig {
-    /// Sets the compression algorithm to use for message batches.
-    ///
-    /// # Arguments
-    ///
-    /// * `compression` - The compression algorithm to apply to message batches
-    pub fn compression(&mut self, compression: KafkaProducerCompression) {
-        self.compression = compression.into();
-    }
-
-    /// Sets the specific partitions that this producer should send messages to.
-    ///
-    /// # Arguments
-    ///
-    /// * `partitions` - A list of partition IDs to produce messages to
-    pub fn partitions(&mut self, partitions: Vec<i32>) {
-        self.partitions = Some(partitions);
-    }
-
-    /// Sets the batching configuration for message processing.
-    ///
-    /// # Arguments
-    ///
-    /// * `batching` - The batching configuration settings to use
-    pub fn batching(&mut self, batching: KafkaBatchConfig) {
-        self.batching = Some(batching);
-    }
-
-    /// Sets the TLS configuration for secure connections to Kafka brokers.
-    pub fn tls(&mut self, tls: KafkaTlsConfig) {
-        self.tls = Some(tls.into());
-    }
-
-    /// Sets the authentication configuration for connecting to Kafka brokers.
-    ///
-    /// # Arguments
-    ///
-    /// * `authentication` - The authentication settings to use
-    pub fn authentication(&mut self, authentication: KafkaAuthentication) {
-        self.authentication = Some(authentication.into());
-    }
-}
-
-/// Configuration options for Kafka message batching.
-pub struct KafkaBatchConfig {
-    /// Maximum number of bytes to include in a single batch
-    pub max_size_bytes: u64,
-    /// Time to wait before sending a batch of messages
-    pub linger: Duration,
-}
-
-/// Compression algorithms available for Kafka message batches.
-pub enum KafkaProducerCompression {
-    /// No compression applied to messages
-    None,
-    /// Gzip compression algorithm
-    Gzip,
-    /// Snappy compression algorithm
-    Snappy,
-    /// LZ4 compression algorithm
-    Lz4,
-    /// Zstandard compression algorithm
-    Zstd,
-}
-
-impl From<KafkaProducerCompression> for wit::KafkaProducerCompression {
-    fn from(value: KafkaProducerCompression) -> Self {
-        match value {
-            KafkaProducerCompression::None => wit::KafkaProducerCompression::None,
-            KafkaProducerCompression::Gzip => wit::KafkaProducerCompression::Gzip,
-            KafkaProducerCompression::Snappy => wit::KafkaProducerCompression::Snappy,
-            KafkaProducerCompression::Lz4 => wit::KafkaProducerCompression::Lz4,
-            KafkaProducerCompression::Zstd => wit::KafkaProducerCompression::Zstd,
-        }
-    }
-}
-
-impl From<KafkaProducerConfig> for wit::KafkaProducerConfig {
-    fn from(value: KafkaProducerConfig) -> Self {
-        Self {
-            compression: value.compression,
-            partitions: value.partitions,
-            tls: value.tls,
-            authentication: value.authentication,
-            batching: value.batching.map(Into::into),
-        }
-    }
-}
-
-impl From<KafkaBatchConfig> for wit::KafkaBatchConfig {
-    fn from(value: KafkaBatchConfig) -> Self {
-        Self {
-            linger_ms: value.linger.as_millis() as u64,
-            batch_size_bytes: value.max_size_bytes,
-        }
-    }
-}
-
-impl Default for KafkaProducerConfig {
-    fn default() -> Self {
-        Self {
-            compression: wit::KafkaProducerCompression::None,
-            partitions: None,
-            batching: None,
-            tls: None,
-            authentication: None,
-        }
-    }
+    Ok(KafkaConsumer { inner: consumer })
 }
 
 /// TLS configuration options for Kafka connections.
