@@ -17,6 +17,8 @@ accepted = [
     "Unlicense",
     "Zlib",
     "zlib-acknowledgement",
+    # https://cdla.dev/permissive-2-0/
+    "CDLA-Permissive-2.0",
 ]
 
 targets = [

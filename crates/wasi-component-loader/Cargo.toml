@@ -26,7 +26,10 @@ grafbase-workspace-hack.workspace = true
 http.workspace = true
 minicbor-serde = { workspace = true, features = ["alloc"] }
 reqwest.workspace = true
+rskafka = { workspace = true, features = ["full"] }
 runtime.workspace = true
+rustls.workspace = true
+rustls-pemfile.workspace = true
 semver.workspace = true
 serde.workspace = true
 serde_json.workspace = true
@@ -56,6 +59,7 @@ uuid.workspace = true
 wasmtime.workspace = true
 wasmtime-wasi.workspace = true
 wasmtime-wasi-http.workspace = true
+webpki-roots.workspace = true
 
 [lints]
 workspace = true

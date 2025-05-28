@@ -39,7 +39,6 @@ combine = { version = "4", features = ["tokio"] }
 concurrent-queue = { version = "2" }
 console = { version = "0.15", default-features = false, features = ["ansi-parsing", "unicode-width"] }
 cranelift-bitset = { version = "0.119", default-features = false, features = ["enable-serde"] }
-crc32fast = { version = "1" }
 criterion = { version = "0.5", features = ["async_tokio", "html_reports"] }
 crossbeam-channel = { version = "0.5" }
 crossbeam-utils = { version = "0.8" }
@@ -172,7 +171,6 @@ combine = { version = "4", features = ["tokio"] }
 concurrent-queue = { version = "2" }
 console = { version = "0.15", default-features = false, features = ["ansi-parsing", "unicode-width"] }
 cranelift-bitset = { version = "0.119", default-features = false, features = ["enable-serde"] }
-crc32fast = { version = "1" }
 criterion = { version = "0.5", features = ["async_tokio", "html_reports"] }
 crossbeam-channel = { version = "0.5" }
 crossbeam-utils = { version = "0.8" }
