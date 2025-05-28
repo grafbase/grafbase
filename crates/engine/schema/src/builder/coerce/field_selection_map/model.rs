@@ -41,6 +41,13 @@ impl<Id> BoundSelectedValueEntry<Id> {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct BoundPath(pub Vec<FieldDefinitionId>);
 
+impl std::ops::Deref for BoundPath {
+    type Target = [FieldDefinitionId];
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 impl BoundPath {
     pub fn into_single(self) -> Option<FieldDefinitionId> {
         if self.0.len() == 1 {

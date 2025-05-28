@@ -388,7 +388,7 @@ pub(super) fn emit_list_size_directive_definition(ctx: &mut Context<'_>) {
         federated::InputValueDefinition {
             name: assumed_size_str,
             r#type: federated::Type {
-                wrapping: Wrapping::new(false),
+                wrapping: Wrapping::default(),
                 definition: int_definition,
             },
             directives: Vec::new(),
@@ -404,7 +404,7 @@ pub(super) fn emit_list_size_directive_definition(ctx: &mut Context<'_>) {
         federated::InputValueDefinition {
             name: slicing_arguments_str,
             r#type: federated::Type {
-                wrapping: Wrapping::required().list(),
+                wrapping: Wrapping::default().non_null().list(),
                 definition: string_definition,
             },
             directives: Vec::new(),
@@ -420,7 +420,7 @@ pub(super) fn emit_list_size_directive_definition(ctx: &mut Context<'_>) {
         federated::InputValueDefinition {
             name: sized_fields_str,
             r#type: federated::Type {
-                wrapping: Wrapping::required().list(),
+                wrapping: Wrapping::default().non_null().list(),
                 definition: string_definition,
             },
             directives: Vec::new(),
@@ -436,7 +436,7 @@ pub(super) fn emit_list_size_directive_definition(ctx: &mut Context<'_>) {
         federated::InputValueDefinition {
             name: require_one_slicing_argument_str,
             r#type: federated::Type {
-                wrapping: Wrapping::new(false),
+                wrapping: Wrapping::default(),
                 definition: boolean_definition,
             },
             directives: Vec::new(),
@@ -480,7 +480,7 @@ pub(super) fn emit_cost_directive_definition(ctx: &mut Context<'_>) {
         federated::InputValueDefinition {
             name: weight_str,
             r#type: federated::Type {
-                wrapping: Wrapping::required(),
+                wrapping: Wrapping::default().non_null(),
                 definition: int_definition,
             },
             directives: Vec::new(),
@@ -542,7 +542,7 @@ pub(super) fn emit_composite_spec_directive_definitions(ctx: &mut Context<'_>) {
             federated::InputValueDefinition {
                 name: field_str,
                 r#type: federated::Type {
-                    wrapping: Wrapping::required(),
+                    wrapping: Wrapping::default().non_null(),
                     definition: federated::Definition::Scalar(field_selection_map_id.unwrap()),
                 },
                 directives: vec![],
@@ -571,7 +571,7 @@ pub(super) fn emit_composite_spec_directive_definitions(ctx: &mut Context<'_>) {
             federated::InputValueDefinition {
                 name: field_str,
                 r#type: federated::Type {
-                    wrapping: Wrapping::required(),
+                    wrapping: Wrapping::default().non_null(),
                     definition: federated::Definition::Scalar(field_selection_map_id.unwrap()),
                 },
                 directives: vec![],

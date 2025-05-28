@@ -5,9 +5,9 @@ pub(crate) fn convert_wrappers(wrappers: impl IntoIterator<Item = WrappingType>)
     let mut wrappers = wrappers.into_iter().rev().peekable();
 
     let mut wrapping = if wrappers.next_if(|w| matches!(w, WrappingType::NonNull)).is_some() {
-        wrapping::Wrapping::required()
+        wrapping::Wrapping::default().non_null()
     } else {
-        wrapping::Wrapping::nullable()
+        wrapping::Wrapping::default()
     };
 
     while let Some(next) = wrappers.next() {

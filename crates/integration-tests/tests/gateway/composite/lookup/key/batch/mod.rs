@@ -5,7 +5,7 @@ mod oneof_composite;
 
 use integration_tests::{gateway::Gateway, runtime};
 
-use super::{EchoArgs, gql_id};
+use super::super::{EchoArgs, gql_id};
 
 #[test]
 fn arg_with_same_name() {
@@ -389,9 +389,7 @@ fn arg_with_default_value() {
                   "id": [
                     "1"
                   ],
-                  "extra": [
-                    true
-                  ]
+                  "extra": true
                 }
               }
             ]
@@ -441,9 +439,7 @@ fn arg_with_default_value_coercion() {
                     "1"
                   ],
                   "extra": [
-                    [
-                      true
-                    ]
+                    true
                   ]
                 }
               }

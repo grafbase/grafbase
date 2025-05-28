@@ -16,10 +16,9 @@ use crate::{
 use super::field_set::is_disjoint;
 
 impl GraphBuilder<'_> {
-    #[allow(unused)]
-    pub(crate) fn parse_field_selection_map_for_lookup_argument(
+    pub(crate) fn parse_field_selection_map_for_argument(
         &mut self,
-        source_id: EntityDefinitionId,
+        source: TypeRecord,
         target_field_id: FieldDefinitionId,
         target_argument_id: InputValueDefinitionId,
         field_selection_map: &str,
@@ -28,10 +27,7 @@ impl GraphBuilder<'_> {
         let wrapping = self.graph[target_argument_id].ty_record.wrapping;
         bind_selected_value(
             self,
-            TypeRecord {
-                definition_id: source_id.into(),
-                wrapping: Wrapping::required(),
-            },
+            source,
             (
                 InputTarget::Argument {
                     field_id: target_field_id,
@@ -56,7 +52,7 @@ impl GraphBuilder<'_> {
             self,
             TypeRecord {
                 definition_id: source_id.into(),
-                wrapping: Wrapping::required(),
+                wrapping: Wrapping::default().non_null(),
             },
             ((subgraph_id, target_field_id), wrapping),
             selected_value,
@@ -294,7 +290,7 @@ fn bind_selected_object_field<T: Target>(
             ctx,
             TypeRecord {
                 definition_id: source,
-                wrapping: Wrapping::required(),
+                wrapping: Wrapping::default().non_null(),
             },
             target,
             value,

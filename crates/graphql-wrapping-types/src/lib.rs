@@ -23,14 +23,8 @@ const INNER_IS_REQUIRED_FLAG: u16 = 0b1000_0000_0000_0000;
 /// The list_wrapping is stored from innermost to outermost and use the start and end
 /// as the positions within the list_wrapping bits. Acting like a simplified fixed capacity VecDeque.
 /// For simplicity of bit shifts the list wrapping is stored from right to left.
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
+#[derive(Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
 pub struct Wrapping(u16);
-
-impl Default for Wrapping {
-    fn default() -> Self {
-        Self::nullable()
-    }
-}
 
 impl Wrapping {
     /// Is the innermost type required?
@@ -80,14 +74,6 @@ impl Wrapping {
 
     pub fn to_mutable(self) -> MutableWrapping {
         self.into()
-    }
-
-    pub const fn nullable() -> Self {
-        Wrapping(0)
-    }
-
-    pub const fn required() -> Self {
-        Wrapping(INNER_IS_REQUIRED_FLAG)
     }
 
     #[must_use]
@@ -166,10 +152,6 @@ pub enum ListWrapping {
 }
 
 impl Wrapping {
-    pub fn new(required: bool) -> Self {
-        if required { Self::required() } else { Self::nullable() }
-    }
-
     pub fn is_nullable(self) -> bool {
         !self.is_required()
     }
@@ -234,13 +216,13 @@ mod tests {
 
     #[test]
     fn test_wrapping() {
-        let wrapping = Wrapping::required();
+        let wrapping = Wrapping::default().non_null();
         assert!(wrapping.inner_is_required());
         assert!(wrapping.is_required() && !wrapping.is_nullable());
         assert!(!wrapping.is_list());
         assert_eq!(wrapping.list_wrappings().collect::<Vec<_>>(), vec![]);
 
-        let mut wrapping = Wrapping::nullable();
+        let mut wrapping = Wrapping::default();
         assert!(!wrapping.inner_is_required());
         assert!(wrapping.is_nullable() && !wrapping.is_required());
         assert!(!wrapping.is_list());
@@ -325,7 +307,13 @@ mod tests {
             ]
         );
 
-        let wrapping = Wrapping::required().list().list().list_non_null().list().non_null();
+        let wrapping = Wrapping::default()
+            .non_null()
+            .list()
+            .list()
+            .list_non_null()
+            .list()
+            .non_null();
         assert!(wrapping.inner_is_required());
         assert_eq!(
             wrapping.list_wrappings().collect::<Vec<_>>(),
@@ -337,7 +325,13 @@ mod tests {
             ]
         );
 
-        let mut wrapping = Wrapping::required().list().list().list_non_null().list().to_mutable();
+        let mut wrapping = Wrapping::default()
+            .non_null()
+            .list()
+            .list()
+            .list_non_null()
+            .list()
+            .to_mutable();
         assert_eq!(wrapping.pop_outermost_list_wrapping(), Some(ListWrapping::NullableList));
         assert_eq!(wrapping.pop_outermost_list_wrapping(), Some(ListWrapping::RequiredList));
         assert_eq!(wrapping.pop_outermost_list_wrapping(), Some(ListWrapping::NullableList));
@@ -346,18 +340,18 @@ mod tests {
 
     #[test]
     fn back_and_forth() {
-        let original = Wrapping::required().list_non_null();
+        let original = Wrapping::default().non_null().list_non_null();
         let mut wrapping = original.to_mutable();
         let list_wrapping = wrapping.pop_outermost_list_wrapping().unwrap();
-        assert_eq!(Wrapping::from(wrapping.clone()), Wrapping::required());
+        assert_eq!(Wrapping::from(wrapping.clone()), Wrapping::default().non_null());
 
         wrapping.push_outermost_list_wrapping(list_wrapping);
         assert_eq!(Wrapping::from(wrapping), original);
 
-        let original = Wrapping::nullable().list();
+        let original = Wrapping::default().list();
         let mut wrapping = original.to_mutable();
         let list_wrapping = wrapping.pop_outermost_list_wrapping().unwrap();
-        assert_eq!(Wrapping::from(wrapping.clone()), Wrapping::nullable());
+        assert_eq!(Wrapping::from(wrapping.clone()), Wrapping::default());
 
         wrapping.push_outermost_list_wrapping(list_wrapping);
         assert_eq!(Wrapping::from(wrapping), original);
@@ -365,16 +359,16 @@ mod tests {
 
     #[test]
     fn test_is_equal_or_more_lenient_than() {
-        let non_null_list = Wrapping::required().list();
-        let non_null_list_non_null = Wrapping::required().list_non_null();
+        let non_null_list = Wrapping::default().non_null().list();
+        let non_null_list_non_null = Wrapping::default().non_null().list_non_null();
         assert!(non_null_list.is_equal_or_more_lenient_than(non_null_list_non_null));
         assert!(!non_null_list_non_null.is_equal_or_more_lenient_than(non_null_list));
 
-        let list = Wrapping::nullable().list();
+        let list = Wrapping::default().list();
         assert!(list.is_equal_or_more_lenient_than(non_null_list));
         assert!(!non_null_list.is_equal_or_more_lenient_than(list));
 
-        let list_non_null = Wrapping::nullable().list_non_null();
+        let list_non_null = Wrapping::default().list_non_null();
         assert!(!non_null_list.is_equal_or_more_lenient_than(list_non_null));
         assert!(!list_non_null.is_equal_or_more_lenient_than(non_null_list));
     }

@@ -208,12 +208,17 @@ impl serde::Serialize for PlanFieldArgumentsBatchView<'_> {
                     }
                 }
                 PlanValueRecord::Injection(injection) => match injection {
-                    ArgumentValueInjection::Value(injection) => {
-                        map.serialize_entry(
-                            arg.definition().name(),
-                            &self.parent_objects.clone().for_injection(injection),
-                        )?;
-                    }
+                    ArgumentValueInjection::Value(injection) => match injection {
+                        ValueInjection::Const(value) => {
+                            map.serialize_entry(arg.definition().name(), &value.walk(ctx))?;
+                        }
+                        injection => {
+                            map.serialize_entry(
+                                arg.definition().name(),
+                                &self.parent_objects.clone().for_injection(injection),
+                            )?;
+                        }
+                    },
                     ArgumentValueInjection::Nested { key, value } => {
                         map.serialize_entry(
                             arg.definition().name(),
@@ -263,9 +268,14 @@ impl serde::Serialize for PlanFieldArgumentsView<'_> {
                     }
                 }
                 PlanValueRecord::Injection(injection) => match injection {
-                    ArgumentValueInjection::Value(injection) => {
-                        map.serialize_entry(arg.definition().name(), &self.parent_object.for_injection(injection))?;
-                    }
+                    ArgumentValueInjection::Value(injection) => match injection {
+                        ValueInjection::Const(value) => {
+                            map.serialize_entry(arg.definition().name(), &value.walk(ctx))?;
+                        }
+                        injection => {
+                            map.serialize_entry(arg.definition().name(), &self.parent_object.for_injection(injection))?;
+                        }
+                    },
                     ArgumentValueInjection::Nested { key, value } => {
                         map.serialize_entry(
                             arg.definition().name(),
