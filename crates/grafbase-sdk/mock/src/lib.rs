@@ -64,7 +64,7 @@ impl DynamicSubgraph {
 }
 
 /// A subgraph that only contains extension definitions. We do not spawn a GraphQL server for this subgraph.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ExtensionOnlySubgraph {
     schema: DynamicSchema,
     name: String,
@@ -89,7 +89,7 @@ impl ExtensionOnlySubgraph {
 }
 
 /// A mock subgraph that can either be a full dynamic GraphQL service or just extension definitions.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum MockSubgraph {
     /// A full dynamic subgraph that can be started as a GraphQL server
     Dynamic(DynamicSubgraph),

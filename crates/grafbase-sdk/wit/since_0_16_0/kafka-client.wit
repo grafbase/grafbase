@@ -79,10 +79,61 @@ interface kafka-client {
     record kafka-producer-config {
         // Compression algorithm to use for message payloads
         compression: kafka-producer-compression,
-        // Specific partitions to send messages to (if not specified, partitioning is automatic)
-        partitions: option<list<s32>>,
         // Batching configuration to control how messages are grouped before sending
         batching: option<kafka-batch-config>,
+        // General client configuration options (TLS, authentication, partitions)
+        client-config: kafka-client-config,
+    }
+
+    // Configuration options for the Kafka consumer
+    //
+    // Controls how the consumer connects to Kafka brokers and consumes messages.
+    // These settings affect message retrieval behavior, batching, security, and
+    // starting position when beginning consumption from a topic.
+    record kafka-consumer-config {
+        // Minimum number of messages to wait for before returning a batch
+        // If not specified, the consumer will return immediately when any messages are available.
+        // Setting this helps ensure efficient batching for high-throughput scenarios.
+        min-batch-size: option<s32>,
+        // Maximum number of messages to return in a single batch
+        // Limits memory usage and processing time per batch. If not specified,
+        // the consumer may return all available messages up to internal limits.
+        max-batch-size: option<s32>,
+        // Maximum time in milliseconds to wait for messages before returning a batch
+        // Controls the trade-off between latency and batching efficiency. Lower values
+        // reduce latency but may decrease throughput. If not specified, uses reasonable defaults.
+        max-wait-ms: option<s32>,
+        // General client configuration options (TLS, authentication, partitions)
+        client-config: kafka-client-config,
+        // Starting position for message consumption when no previous offset is available
+        // Determines where to begin reading messages when starting a new consumer
+        start-offset: kafka-consumer-start-offset,
+    }
+
+    // Starting offset options for Kafka consumer
+    //
+    // Determines where the consumer begins reading messages when no committed offset
+    // is available. This typically applies to new consumers or when consuming from
+    // new partitions for the first time.
+    variant kafka-consumer-start-offset {
+        // Start consuming from the earliest available message in the partition
+        // Useful when you need to process all historical messages
+        earliest,
+        // Start consuming from the latest message in the partition
+        // Useful when you only want to process new messages going forward
+        latest,
+        // Start consuming from a specific offset position
+        // Allows precise control over where consumption begins
+        specific(s64),
+    }
+
+    // General Kafka client configuration options
+    //
+    // Contains common configuration settings shared between producers and consumers,
+    // including partition selection, security settings, and connection parameters.
+    record kafka-client-config {
+        // Specific partitions to consume from (if not specified, consumes from all partitions)
+        partitions: option<list<s32>>,
         // TLS configuration for secure communication with Kafka brokers
         tls: option<kafka-tls-config>,
         // Authentication configuration for connecting to secured Kafka clusters
@@ -125,7 +176,7 @@ interface kafka-client {
         // - `name`: A unique identifier for the producer instance
         // - `servers`: List of Kafka broker addresses (host:port format)
         // - `topic`: Name of the Kafka topic to produce messages to
-        // - `config`: Optional producer configuration settings
+        // - `config`: Producer configuration settings
         //
         // # Returns
         // Returns a connected producer instance or an error message if connection fails
@@ -133,7 +184,7 @@ interface kafka-client {
             name: string,
             servers: list<string>,
             topic: string,
-            config: option<kafka-producer-config>,
+            config: kafka-producer-config,
         ) -> result<kafka-producer, string>;
 
         // Send a message to the configured Kafka topic
@@ -148,5 +199,57 @@ interface kafka-client {
             key: option<string>,
             value: list<u8>,
         ) -> result<_, string>;
+    }
+
+    // Kafka message representation
+    //
+    // Represents a single message consumed from a Kafka topic, containing
+    // all the metadata and payload associated with the message.
+    record kafka-message {
+        // The offset of this message within its partition (unique per partition)
+        offset: s64,
+        // Optional message key used for partitioning and message ordering
+        key: option<list<u8>>,
+        // The message payload data
+        value: option<list<u8>>,
+        // Additional metadata headers as key-value pairs
+        headers: list<tuple<string, list<u8>>>,
+        // Message timestamp in milliseconds since Unix epoch
+        timestamp: s64,
+        // Offset that represents the latest message that has been successfully
+        // replicated across all in-sync replicas of the partition.
+        high-watermark: s64,
+    }
+
+    // Kafka consumer resource for reading messages from a Kafka topic
+    //
+    // The consumer maintains a connection to the Kafka cluster and provides
+    // methods for retrieving messages from specified partitions with configurable
+    // batching and offset management.
+    resource kafka-consumer {
+        // Create a new Kafka consumer and connect to the specified cluster
+        //
+        // # Parameters
+        // - `servers`: List of Kafka broker addresses (host:port format)
+        // - `topic`: Name of the Kafka topic to consume messages from
+        // - `config`: Optional consumer configuration settings
+        //
+        // # Returns
+        // Returns a connected consumer instance or an error message if connection fails
+        connect: static func(
+            servers: list<string>,
+            topic: string,
+            config: kafka-consumer-config,
+        ) -> result<kafka-consumer, string>;
+
+        // Retrieve the next available message from the subscribed topic
+        //
+        // This method will block until a message is available or return None
+        // if no messages are available within the configured timeout period.
+        //
+        // # Returns
+        // Returns the next message if available, None if no messages within timeout,
+        // or an error message if the operation fails
+        next: func() -> result<option<kafka-message>, string>;
     }
 }

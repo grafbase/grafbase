@@ -40,7 +40,7 @@ impl AsRef<str> for LogLevel {
 }
 
 /// Configuration for test cases.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TestConfig {
     pub(super) gateway_path: PathBuf,
     pub(super) cli_path: PathBuf,
