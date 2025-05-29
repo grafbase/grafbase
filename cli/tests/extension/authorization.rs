@@ -44,13 +44,13 @@ fn init() {
     codegen-units = 1
 
     [dependencies]
-    grafbase-sdk = "0.16.0"
+    grafbase-sdk = "0.16.1"
     serde = { version = "1", features = ["derive"] }
 
     [dev-dependencies]
     indoc = "2"
     insta = { version = "1", features = ["json"] }
-    grafbase-sdk = { version = "0.16.0", features = ["test-utils"] }
+    grafbase-sdk = { version = "0.16.1", features = ["test-utils"] }
     tokio = { version = "1", features = ["rt-multi-thread", "macros", "test-util"] }
     serde_json = "1"
     "#);

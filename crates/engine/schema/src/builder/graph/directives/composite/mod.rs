@@ -1,5 +1,7 @@
 mod derive;
+mod injection;
 mod lookup;
+mod require;
 
 use crate::{DirectiveSiteId, builder::sdl};
 
@@ -87,7 +89,7 @@ fn ingest_before_federation_directives<'sdl>(
         }
         "composite__is" => match def {
             sdl::SdlDefinition::FieldDefinition(def) => {
-                if ingester.sdl_definitions[&DirectiveSiteId::Field(def.id)]
+                if ingester.definitions.site_id_to_sdl[&DirectiveSiteId::Field(def.id)]
                     .directives()
                     .all(|dir| dir.name() != "composite__derive")
                 {
@@ -99,7 +101,7 @@ fn ingest_before_federation_directives<'sdl>(
                 }
             }
             sdl::SdlDefinition::ArgumentDefinition(def) => {
-                if ingester.sdl_definitions[&DirectiveSiteId::Field(def.field_id)]
+                if ingester.definitions.site_id_to_sdl[&DirectiveSiteId::Field(def.field_id)]
                     .directives()
                     .all(|dir| dir.name() != "composite__lookup")
                 {
