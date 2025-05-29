@@ -12,7 +12,7 @@ use crate::{
         BoundSelectedObjectField, BoundSelectedValue, BoundSelectedValueEntry, DirectivesIngester, Error, GraphBuilder,
         SelectedValueOrField,
         graph::{directives::PossibleCompositeEntityKey, selections::SelectionsBuilder},
-        sdl::{self, GraphName, IsDirective},
+        sdl::{self, IsDirective},
     },
 };
 
@@ -63,7 +63,7 @@ pub(super) fn ingest<'sdl>(
 
     let argument_ids = field_definition.argument_ids;
     let mut lookup_keys = Vec::new();
-    let mut builder = ValueInjectionBuilder {
+    let mut builder = InjectionsBuilder {
         subgraph_name,
         root_field_id: field.id,
         source: TypeRecord {
@@ -162,29 +162,28 @@ fn add_lookup_entity_resolvers(
         resolvers.clear();
     }
 }
-
-struct ValueInjectionBuilder<'a, 'b> {
-    builder: &'a mut GraphBuilder<'b>,
-    sdl_definitions: &'a sdl::SdlDefinitions<'a>,
-    subgraph_name: GraphName<'a>,
-    root_field_id: FieldDefinitionId,
-    source: TypeRecord,
-    last_selections_injection_state: [usize; 4],
+pub(crate) struct InjectionsBuilder<'a, 'b> {
+    pub builder: &'a mut GraphBuilder<'b>,
+    pub sdl_definitions: &'a sdl::SdlDefinitions<'a>,
+    pub subgraph_name: sdl::GraphName<'a>,
+    pub root_field_id: FieldDefinitionId,
+    pub source: TypeRecord,
+    pub last_selections_injection_state: [usize; 4],
 }
 
-impl<'b> std::ops::Deref for ValueInjectionBuilder<'_, 'b> {
+impl<'b> std::ops::Deref for InjectionsBuilder<'_, 'b> {
     type Target = GraphBuilder<'b>;
     fn deref(&self) -> &Self::Target {
         self.builder
     }
 }
 
-impl ValueInjectionBuilder<'_, '_> {
-    fn save(&mut self) {
+impl InjectionsBuilder<'_, '_> {
+    pub fn save(&mut self) {
         self.last_selections_injection_state = self.selections.current_injection_state();
     }
 
-    fn reset(&mut self) {
+    pub fn reset(&mut self) {
         self.builder
             .selections
             .reset_injection_state(self.last_selections_injection_state);
@@ -238,43 +237,13 @@ impl ValueInjectionBuilder<'_, '_> {
             }
 
             let sdl_arg = self.sdl_definitions[&DirectiveSiteId::from(argument_id)];
-            let mut is_directives = sdl_arg
-                .directives()
-                .filter(|dir| dir.name() == "composite__is")
-                .map(|dir| {
-                    dir.deserialize::<IsDirective>()
-                        .map_err(|err| (format!("for associated @is directive: {err}"), dir.arguments_span()))
-                        .map(|args| (dir, args))
-                })
-                .filter_ok(|(_, args)| args.graph == self.subgraph_name);
-
-            let field_selection_map = is_directives
-                .next()
-                .transpose()?
-                .map(
-                    |(
-                        is_directive,
-                        sdl::IsDirective {
-                            field: field_selection_map,
-                            ..
-                        },
-                    )| {
-                        self.builder
-                            .parse_field_selection_map_for_argument(
-                                self.source,
-                                self.root_field_id,
-                                argument_id,
-                                field_selection_map,
-                            )
-                            .map_err(|err| {
-                                (
-                                    format!("for associated @is directive: {err}"),
-                                    is_directive.arguments_span(),
-                                )
-                            })
-                    },
-                )
-                .transpose()?;
+            let _field_selection_map = self.builder.find_field_selection_map(
+                self.subgraph_name,
+                self.source,
+                self.root_field_id,
+                argument_id,
+                sdl_arg.directives(),
+            )?;
 
             let arg = &self.graph[argument_id];
             let input_object = &self.graph[input_object_id];
@@ -289,7 +258,7 @@ impl ValueInjectionBuilder<'_, '_> {
                         batch,
                         &key_fields[0],
                         input_object.input_field_ids,
-                        field_selection_map,
+                        None,
                     )? {
                         debug_assert_eq!(value.len(), 1);
                         let (input_field_id, value) = value.into_iter().next().unwrap();
@@ -383,58 +352,20 @@ impl ValueInjectionBuilder<'_, '_> {
         let mut argument_injections = Vec::new();
         for argument_id in argument_ids {
             let sdl_arg = self.sdl_definitions[&DirectiveSiteId::from(argument_id)];
-            let mut is_directives = sdl_arg
-                .directives()
-                .filter(|dir| dir.name() == "composite__is")
-                .map(|dir| {
-                    dir.deserialize::<IsDirective>()
-                        .map_err(|err| (format!("for associated @is directive: {err}"), dir.arguments_span()))
-                        .map(|args| (dir, args))
-                })
-                .filter_ok(|(_, args)| args.graph == self.subgraph_name);
-
-            let Some((
-                is_directive,
-                sdl::IsDirective {
-                    field: field_selection_map,
-                    ..
-                },
-            )) = is_directives.next().transpose()?
+            let Some((field_selection_map, is_directive)) = self.builder.find_field_selection_map(
+                self.subgraph_name,
+                self.source,
+                self.root_field_id,
+                argument_id,
+                sdl_arg.directives(),
+            )?
             else {
                 continue;
             };
 
-            tracing::trace!(
-                "Found @is(field: \"{field_selection_map}\") for {}",
-                self.ctx[self.graph[argument_id].name_id]
-            );
-
-            if is_directives.next().is_some() {
-                return Err((
-                    "Multiple @composite__is directives on the same argument are not supported.",
-                    sdl_arg.span(),
-                )
-                    .into());
-            }
-
-            let value = self
-                .builder
-                .parse_field_selection_map_for_argument(
-                    self.source,
-                    self.root_field_id,
-                    argument_id,
-                    field_selection_map,
-                )
-                .map_err(|err| {
-                    (
-                        format!("for associated @is directive: {err}"),
-                        is_directive.arguments_span(),
-                    )
-                })?;
-
             // @oneof arguments are treated separately. If we encounter one, we don't map arguments
             // at all.
-            let Some(value) = value.into_single() else {
+            let Some(value) = field_selection_map.into_single() else {
                 tracing::trace!("Skipping FieldSelectionMap with alternatives");
                 return Ok(None);
             };
@@ -457,17 +388,10 @@ impl ValueInjectionBuilder<'_, '_> {
             // We only take care of the case where individual fields are associated to arguments.
             // Composite keys injected in a single argument are treated separately.
             let (path, object) = match value {
-                BoundSelectedValueEntry::Path(path) if path.len() == 1 => (path, None),
-                BoundSelectedValueEntry::Object {
-                    path: Some(path),
-                    object,
-                } if path.len() == 1 => (path, Some(object)),
+                BoundSelectedValueEntry::Path(path) => (Some(path), None),
+                BoundSelectedValueEntry::Object { path, object } => (path, Some(object)),
                 _ => {
-                    return Err((
-                        "Unsupported FieldSelectionMap for @composite__is directive used in a @composite__lookup context.",
-                        is_directive.arguments_span(),
-                    )
-                    .into());
+                    return Ok(None);
                 }
             };
             let field = path.into_single().unwrap();
@@ -480,20 +404,21 @@ impl ValueInjectionBuilder<'_, '_> {
             };
             explicit_mapping |= 1 << pos;
             missing &= !(1 << pos);
+            let next_injection = if let Some(object) = object {
+                let Some(injection) =
+                    self.try_build_key_injection_from_field_selection_map(key_fields, object.fields)?
+                else {
+                    return Ok(None);
+                };
+                injection
+            } else {
+                ValueInjection::Identity
+            };
             argument_injections.push(ArgumentInjectionRecord {
                 definition_id: argument_id,
                 value: ArgumentValueInjection::Value(ValueInjection::Select {
                     field_id: key_fields[pos].field_id,
-                    next: if let Some(object) = object {
-                        let Some(injection) =
-                            self.try_build_key_injection_from_field_selection_map(key_fields, object.fields)?
-                        else {
-                            return Ok(None);
-                        };
-                        Some(self.builder.selections.push_injection(injection))
-                    } else {
-                        None
-                    },
+                    next: self.builder.selections.push_injection(next_injection),
                 }),
             });
         }
@@ -534,7 +459,7 @@ impl ValueInjectionBuilder<'_, '_> {
             if let Some(default_value_id) = self.graph[argument_id].default_value_id {
                 argument_injections.push(ArgumentInjectionRecord {
                     definition_id: argument_id,
-                    value: ArgumentValueInjection::Value(ValueInjection::Const(default_value_id)),
+                    value: ArgumentValueInjection::Value(ValueInjection::DefaultValue(default_value_id)),
                 });
             } else if self.graph[argument_id].ty_record.wrapping.is_required() {
                 tracing::trace!("A required input doesn't match any key.");
@@ -587,20 +512,21 @@ impl ValueInjectionBuilder<'_, '_> {
             };
 
             missing &= !(1 << pos);
+            let next_injection = if let Some(object) = object {
+                let Some(injection) =
+                    self.try_build_key_injection_from_field_selection_map(key_fields, object.fields)?
+                else {
+                    return Ok(None);
+                };
+                injection
+            } else {
+                ValueInjection::Identity
+            };
             key_value_injections.push(KeyValueInjectionRecord {
-                key_id: self.graph[field.field_id].name_id,
+                key_id: self.graph[field.id].name_id,
                 value: ValueInjection::Select {
                     field_id: key_fields[pos].field_id,
-                    next: if let Some(object) = object {
-                        let Some(injection) =
-                            self.try_build_key_injection_from_field_selection_map(key_fields, object.fields)?
-                        else {
-                            return Ok(None);
-                        };
-                        Some(self.builder.selections.push_injection(injection))
-                    } else {
-                        None
-                    },
+                    next: self.builder.selections.push_injection(next_injection),
                 },
             });
         }
@@ -717,30 +643,31 @@ impl ValueInjectionBuilder<'_, '_> {
                     })
             }
         }) {
+            let next_injection = if key_fields[pos].subselection_record.is_empty() {
+                ValueInjection::Identity
+            } else {
+                let Some(input_object_id) = input.ty_record.definition_id.as_input_object() else {
+                    return Ok(None);
+                };
+                let Some(injection) = self.try_build_input_object_injections(
+                    false,
+                    &key_fields[pos].subselection_record,
+                    self.graph[input_object_id].input_field_ids,
+                )?
+                else {
+                    return Ok(None);
+                };
+                injection
+            };
             Ok(Some((
                 Some(pos),
                 ValueInjection::Select {
                     field_id: key_fields[pos].field_id,
-                    next: if key_fields[pos].subselection_record.is_empty() {
-                        None
-                    } else {
-                        let Some(input_object_id) = input.ty_record.definition_id.as_input_object() else {
-                            return Ok(None);
-                        };
-                        let Some(injection) = self.try_build_input_object_injections(
-                            false,
-                            &key_fields[pos].subselection_record,
-                            self.graph[input_object_id].input_field_ids,
-                        )?
-                        else {
-                            return Ok(None);
-                        };
-                        Some(self.builder.selections.push_injection(injection))
-                    },
+                    next: self.builder.selections.push_injection(next_injection),
                 },
             )))
         } else if let Some(default_value_id) = input.default_value_id {
-            Ok(Some((None, ValueInjection::Const(default_value_id))))
+            Ok(Some((None, ValueInjection::DefaultValue(default_value_id))))
         } else {
             Ok(None)
         }

@@ -1,5 +1,6 @@
 mod derive;
 mod lookup;
+mod require;
 
 use crate::{DirectiveSiteId, builder::sdl};
 

@@ -1,3 +1,5 @@
+mod nested;
+
 use integration_tests::{gateway::Gateway, runtime};
 
 use super::super::{EchoArgs, gql_id};

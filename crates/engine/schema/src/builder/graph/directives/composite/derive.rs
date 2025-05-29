@@ -210,13 +210,13 @@ impl DeriveContext<'_, '_> {
                     if object.fields.len() != 1 {
                         return Err("A scalar key can only be mapped to a single field for @derive".into());
                     }
-                    let BoundSelectedObjectField { field_id: field, value } = object.fields.into_iter().next().unwrap();
+                    let BoundSelectedObjectField { id: field_id, value } = object.fields.into_iter().next().unwrap();
                     if value
                         .into_value()
                         .and_then(|value| value.into_single())
                         .is_some_and(|value| matches!(value, BoundSelectedValueEntry::Identity))
                     {
-                        DeriveMappingRecord::ScalarAsField(DeriveScalarAsFieldRecord { field_id: field })
+                        DeriveMappingRecord::ScalarAsField(DeriveScalarAsFieldRecord { field_id })
                     } else {
                         return Err("A scalar key can only be mapped to a single field for @derive".into());
                     }
@@ -425,7 +425,7 @@ fn create_explicit_object_mapping<'k>(
     keys: impl IntoIterator<Item = &'k FieldSetRecord>,
 ) -> Result<DeriveObjectRecord, Error> {
     let mut field_records = Vec::new();
-    for BoundSelectedObjectField { field_id: to_id, value } in object.fields {
+    for BoundSelectedObjectField { id: to_id, value } in object.fields {
         let from_id = match value {
             SelectedValueOrField::Value(value) => value
                 .into_single()

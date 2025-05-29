@@ -223,85 +223,6 @@ where
     }
 }
 
-impl serde::Serialize for ResponseValueView<'_, Option<ForInjection<'_>>> {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        match self.value {
-            ResponseValue::Null => serializer.serialize_none(),
-            ResponseValue::Inaccessible { id } => ResponseValueView {
-                ctx: self.ctx,
-                value: &self.ctx.response.data_parts[*id],
-                view: self.view,
-            }
-            .serialize(serializer),
-            &ResponseValue::List { id, .. } => {
-                let values = &self.ctx.response.data_parts[id];
-                serializer.collect_seq(values.iter().map(|value| ResponseValueView {
-                    ctx: self.ctx,
-                    value,
-                    view: self.view,
-                }))
-            }
-            ResponseValue::Unexpected => Err(S::Error::custom("Unexpected value")),
-
-            ResponseValue::Object { id, .. } => match self.view {
-                Some(view) => ResponseObjectView {
-                    ctx: self.ctx,
-                    response_object: &self.ctx.response.data_parts[*id],
-                    view,
-                }
-                .serialize(serializer),
-                None => {
-                    unreachable!("Is not a scalar");
-                }
-            },
-            ResponseValue::Boolean { value, .. } => {
-                debug_assert!(self.view.is_none());
-                value.serialize(serializer)
-            }
-            ResponseValue::Int { value, .. } => {
-                debug_assert!(self.view.is_none());
-                value.serialize(serializer)
-            }
-            ResponseValue::Float { value, .. } => {
-                debug_assert!(self.view.is_none());
-                value.serialize(serializer)
-            }
-            ResponseValue::String { value, .. } => {
-                debug_assert!(self.view.is_none());
-                value.serialize(serializer)
-            }
-            ResponseValue::StringId { id, .. } => {
-                debug_assert!(self.view.is_none());
-                self.ctx.response.schema[*id].serialize(serializer)
-            }
-            ResponseValue::I64 { value, .. } => {
-                debug_assert!(self.view.is_none());
-                value.serialize(serializer)
-            }
-            ResponseValue::U64 { value } => {
-                debug_assert!(self.view.is_none());
-                value.serialize(serializer)
-            }
-            ResponseValue::Map { id } => {
-                debug_assert!(self.view.is_none());
-                serializer.collect_map(self.ctx.response.data_parts[*id].iter().map(|(key, value)| {
-                    (
-                        key.as_str(),
-                        ResponseValueView {
-                            ctx: self.ctx,
-                            value,
-                            view: None,
-                        },
-                    )
-                }))
-            }
-        }
-    }
-}
-
 impl serde::Serialize for ResponseObjectView<'_, ForInjection<'_>> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -309,7 +230,6 @@ impl serde::Serialize for ResponseObjectView<'_, ForInjection<'_>> {
     {
         let schema = self.ctx.schema();
         match self.view.injection {
-            ValueInjection::Const(id) => id.walk(schema).serialize(serializer),
             ValueInjection::Select { field_id, next } => {
                 let Some(selection) = self
                     .view
@@ -332,10 +252,10 @@ impl serde::Serialize for ResponseObjectView<'_, ForInjection<'_>> {
                 ResponseValueView {
                     ctx: self.ctx,
                     value: field,
-                    view: next.map(|id| ForInjection {
-                        injection: schema[id],
+                    view: ForInjection {
+                        injection: schema[next],
                         requirements: selection.subselection(),
-                    }),
+                    },
                 }
                 .serialize(serializer)
             }
@@ -388,15 +308,18 @@ impl serde::Serialize for ResponseObjectView<'_, ForInjection<'_>> {
                                                 )));
                                             }
                                         };
-                                        let value = ResponseValueView {
-                                            ctx: self.ctx,
-                                            value,
-                                            view: next.map(|id| ForInjection {
-                                                injection: schema[id],
-                                                requirements: selection.subselection(),
-                                            }),
-                                        };
-                                        map.serialize_entry(&schema[key_id], &value)?;
+
+                                        map.serialize_entry(
+                                            &schema[key_id],
+                                            &ResponseValueView {
+                                                ctx: self.ctx,
+                                                value,
+                                                view: ForInjection {
+                                                    injection: schema[next],
+                                                    requirements: selection.subselection(),
+                                                },
+                                            },
+                                        )?;
 
                                         continue 'injections;
                                     }
@@ -405,6 +328,9 @@ impl serde::Serialize for ResponseObjectView<'_, ForInjection<'_>> {
                                     }
                                 }
                             }
+                        }
+                        ValueInjection::DefaultValue(id) => {
+                            map.serialize_entry(&schema[key_id], &id.walk(schema))?;
                         }
                         injection => {
                             map.serialize_entry(
@@ -423,6 +349,82 @@ impl serde::Serialize for ResponseObjectView<'_, ForInjection<'_>> {
                 }
 
                 map.end()
+            }
+            ValueInjection::DefaultValue(_) => unreachable!("handled within objects or when injecting arguments."),
+            ValueInjection::Identity => unreachable!("Only used for scalars which we aren't"),
+            ValueInjection::OneOf(_) => todo!(),
+        }
+    }
+}
+
+impl<'a> serde::Serialize for ResponseValueView<'a, ForInjection<'_>> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self.value {
+            ResponseValue::Object { id, .. } => ResponseObjectView {
+                ctx: self.ctx,
+                response_object: &self.ctx.response.data_parts[*id],
+                view: self.view,
+            }
+            .serialize(serializer),
+            ResponseValue::Null => serializer.serialize_none(),
+            ResponseValue::Inaccessible { id } => ResponseValueView {
+                ctx: self.ctx,
+                value: &self.ctx.response.data_parts[*id],
+                view: self.view,
+            }
+            .serialize(serializer),
+            ResponseValue::Boolean { value, .. } => {
+                debug_assert!(matches!(self.view.injection, ValueInjection::Identity));
+                value.serialize(serializer)
+            }
+            ResponseValue::Int { value, .. } => {
+                debug_assert!(matches!(self.view.injection, ValueInjection::Identity));
+                value.serialize(serializer)
+            }
+            ResponseValue::Float { value, .. } => {
+                debug_assert!(matches!(self.view.injection, ValueInjection::Identity));
+                value.serialize(serializer)
+            }
+            ResponseValue::String { value, .. } => {
+                debug_assert!(matches!(self.view.injection, ValueInjection::Identity));
+                value.serialize(serializer)
+            }
+            ResponseValue::StringId { id, .. } => {
+                debug_assert!(matches!(self.view.injection, ValueInjection::Identity));
+                self.ctx.response.schema[*id].serialize(serializer)
+            }
+            ResponseValue::I64 { value, .. } => {
+                debug_assert!(matches!(self.view.injection, ValueInjection::Identity));
+                value.serialize(serializer)
+            }
+            ResponseValue::List { id, .. } => {
+                let values = &self.ctx.response.data_parts[*id];
+                serializer.collect_seq(values.iter().map(|value| ResponseValueView {
+                    ctx: self.ctx,
+                    value,
+                    view: self.view,
+                }))
+            }
+            ResponseValue::Unexpected => Err(S::Error::custom("Unexpected value")),
+            ResponseValue::U64 { value } => {
+                debug_assert!(matches!(self.view.injection, ValueInjection::Identity));
+                value.serialize(serializer)
+            }
+            ResponseValue::Map { id } => {
+                debug_assert!(matches!(self.view.injection, ValueInjection::Identity));
+                serializer.collect_map(self.ctx.response.data_parts[*id].iter().map(|(key, value)| {
+                    (
+                        key.as_str(),
+                        ResponseValueView {
+                            ctx: self.ctx,
+                            value,
+                            view: self.view,
+                        },
+                    )
+                }))
             }
         }
     }

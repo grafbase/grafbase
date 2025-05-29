@@ -66,6 +66,12 @@ fn bind_selected_value<T: Target>(
     target: (T, Wrapping),
     selected_value: SelectedValue<'_>,
 ) -> Result<BoundSelectedValue<T::Id>, String> {
+    if selected_value.alternatives.len() > 1 && !target.0.is_one_of(ctx) {
+        return Err(format!(
+            "The | operator in FieldSelectionMap can only be used with @oneOf input types, not on {}",
+            target.0.display(ctx)
+        ));
+    }
     let alternatives = selected_value
         .alternatives
         .into_iter()
@@ -332,7 +338,7 @@ fn bind_selected_object_field<T: Target>(
     };
 
     Ok(BoundSelectedObjectField {
-        field_id: target.0.id(),
+        id: target.0.id(),
         value,
     })
 }

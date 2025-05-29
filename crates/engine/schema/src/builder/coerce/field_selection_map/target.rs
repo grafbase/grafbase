@@ -11,6 +11,7 @@ pub(super) trait Target: Copy {
     fn display(self, ctx: &GraphBuilder<'_>) -> String;
     fn type_definition(self, graph: &Graph) -> TypeDefinitionId;
     fn fields(self, ctx: &GraphBuilder<'_>) -> Vec<(StringId, (Self, Wrapping))>;
+    fn is_one_of(self, ctx: &GraphBuilder<'_>) -> bool;
 }
 
 #[derive(Clone, Copy)]
@@ -87,6 +88,15 @@ impl Target for InputTarget {
             })
             .unwrap_or_default()
     }
+
+    fn is_one_of(self, ctx: &GraphBuilder<'_>) -> bool {
+        ctx.graph[self.id()]
+            .ty_record
+            .definition_id
+            .as_input_object()
+            .map(|id| ctx.graph[id].is_one_of)
+            .unwrap_or_default()
+    }
 }
 
 impl Target for (SubgraphId, FieldDefinitionId) {
@@ -132,5 +142,9 @@ impl Target for (SubgraphId, FieldDefinitionId) {
                     .collect::<Vec<_>>()
             })
             .unwrap_or_default()
+    }
+
+    fn is_one_of(self, _ctx: &GraphBuilder<'_>) -> bool {
+        false
     }
 }

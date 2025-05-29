@@ -4,7 +4,10 @@ mod federation;
 mod resolvers;
 mod supergraph;
 
-use crate::builder::{Error, extension::ingest_extension_schema_directives, sdl};
+use cynic_parser_deser::ConstDeserializer as _;
+use itertools::Itertools as _;
+
+use crate::builder::{BoundSelectedValue, Error, extension::ingest_extension_schema_directives, sdl};
 
 use super::*;
 
@@ -95,4 +98,69 @@ pub(crate) fn ingest_directives<'a>(
     }
 
     Ok(())
+}
+
+impl GraphBuilder<'_> {
+    pub fn find_field_selection_map<'d>(
+        &mut self,
+        subgraph_name: sdl::GraphName<'_>,
+        source: TypeRecord,
+        field_definition_id: FieldDefinitionId,
+        argument_id: InputValueDefinitionId,
+        directives: impl Iterator<Item = sdl::Directive<'d>>,
+    ) -> Result<Option<(BoundSelectedValue<InputValueDefinitionId>, sdl::Directive<'d>)>, Error> {
+        let mut is_directives = directives
+            .filter(|dir| dir.name() == "composite__is")
+            .map(|dir| {
+                dir.deserialize::<sdl::IsDirective>()
+                    .map_err(|err| (format!("for associated @is directive: {err}"), dir.arguments_span()))
+                    .map(|args| (dir, args))
+            })
+            .filter_ok(|(_, args)| args.graph == subgraph_name);
+
+        let Some((field_selection_map, is_directive)) = is_directives
+            .next()
+            .transpose()?
+            .map(
+                |(
+                    is_directive,
+                    sdl::IsDirective {
+                        field: field_selection_map,
+                        ..
+                    },
+                )| {
+                    tracing::trace!(
+                        "Found @is(field: \"{field_selection_map}\") for {}",
+                        self.ctx[self.graph[argument_id].name_id]
+                    );
+                    self.parse_field_selection_map_for_argument(
+                        source,
+                        field_definition_id,
+                        argument_id,
+                        field_selection_map,
+                    )
+                    .map(|field_selection_map| (field_selection_map, is_directive))
+                    .map_err(|err| {
+                        (
+                            format!("for associated @is directive: {err}"),
+                            is_directive.arguments_span(),
+                        )
+                    })
+                },
+            )
+            .transpose()?
+        else {
+            return Ok(None);
+        };
+
+        if is_directives.next().is_some() {
+            return Err((
+                "Multiple @composite__is directives on the same argument are not supported.",
+                is_directive.name_span(),
+            )
+                .into());
+        }
+
+        Ok(Some((field_selection_map, is_directive)))
+    }
 }

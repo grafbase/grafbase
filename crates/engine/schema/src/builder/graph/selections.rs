@@ -8,10 +8,20 @@ use crate::{
     ValueInjection, ValueInjectionId,
 };
 
-#[derive(Default)]
 pub(crate) struct SelectionsBuilder {
     deduplicated_fields: BTreeMap<SchemaFieldRecord, SchemaFieldId>,
     pub inner: Selections,
+}
+
+impl Default for SelectionsBuilder {
+    fn default() -> Self {
+        let mut builder = Self {
+            deduplicated_fields: BTreeMap::new(),
+            inner: Default::default(),
+        };
+        builder.inner.injections.push(ValueInjection::Identity);
+        builder
+    }
 }
 
 impl std::ops::Deref for SelectionsBuilder {
@@ -65,9 +75,28 @@ impl SelectionsBuilder {
     }
 
     pub(crate) fn push_injection(&mut self, injection: ValueInjection) -> ValueInjectionId {
-        let id = self.inner.injections.len().into();
-        self.inner.injections.push(injection);
-        id
+        match injection {
+            ValueInjection::Identity => ValueInjectionId::from(0usize),
+            injection => {
+                let id = self.inner.injections.len().into();
+                self.inner.injections.push(injection);
+                id
+            }
+        }
+    }
+
+    pub(crate) fn push_injections(
+        &mut self,
+        injections: impl IntoIterator<Item = ValueInjection>,
+    ) -> IdRange<ValueInjectionId> {
+        let start = self.inner.injections.len();
+        self.inner.injections.extend(injections);
+        let end = self.inner.injections.len();
+        self.inner.injections[start..end].sort_unstable_by_key(|inj| match inj {
+            ValueInjection::Select { field_id, .. } => Some(*field_id),
+            _ => None,
+        });
+        IdRange::from(start..end)
     }
 
     pub(crate) fn push_key_value_injections(

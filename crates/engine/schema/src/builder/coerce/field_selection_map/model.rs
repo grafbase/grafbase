@@ -38,7 +38,7 @@ impl<Id> BoundSelectedValueEntry<Id> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct BoundPath(pub Vec<FieldDefinitionId>);
 
 impl std::ops::Deref for BoundPath {
@@ -65,7 +65,7 @@ pub(crate) struct BoundSelectedObjectValue<Id> {
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct BoundSelectedObjectField<Id> {
-    pub field_id: Id,
+    pub id: Id,
     pub value: SelectedValueOrField<Id>,
 }
 
