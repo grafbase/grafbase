@@ -1,16 +1,17 @@
 use wrapping::Wrapping;
 
 use crate::{
-    EntityDefinitionId, FieldDefinitionId, Graph, InputObjectDefinitionId, InputValueDefinitionId, StringId,
-    SubgraphId, TypeDefinitionId, builder::GraphBuilder,
+    EntityDefinitionId, FieldDefinitionId, Graph, InputObjectDefinitionId, InputValueDefinitionId, SchemaInputValueId,
+    StringId, SubgraphId, TypeDefinitionId, builder::GraphBuilder,
 };
 
 pub(super) trait Target: Copy {
-    type Id: Copy;
+    type Id: Copy + Eq;
     fn id(self) -> Self::Id;
     fn display(self, ctx: &GraphBuilder<'_>) -> String;
     fn type_definition(self, graph: &Graph) -> TypeDefinitionId;
     fn fields(self, ctx: &GraphBuilder<'_>) -> Vec<(StringId, (Self, Wrapping))>;
+    fn default_value(self, ctx: &GraphBuilder<'_>) -> Option<SchemaInputValueId>;
 }
 
 #[derive(Clone, Copy)]
@@ -87,6 +88,10 @@ impl Target for InputTarget {
             })
             .unwrap_or_default()
     }
+
+    fn default_value(self, ctx: &GraphBuilder<'_>) -> Option<SchemaInputValueId> {
+        ctx.graph[self.id()].default_value_id
+    }
 }
 
 impl Target for (SubgraphId, FieldDefinitionId) {
@@ -132,5 +137,9 @@ impl Target for (SubgraphId, FieldDefinitionId) {
                     .collect::<Vec<_>>()
             })
             .unwrap_or_default()
+    }
+
+    fn default_value(self, _ctx: &GraphBuilder<'_>) -> Option<SchemaInputValueId> {
+        None
     }
 }

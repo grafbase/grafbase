@@ -209,7 +209,7 @@ impl serde::Serialize for PlanFieldArgumentsBatchView<'_> {
                 }
                 PlanValueRecord::Injection(injection) => match injection {
                     ArgumentValueInjection::Value(injection) => match injection {
-                        ValueInjection::Const(value) => {
+                        ValueInjection::DefaultValue(value) => {
                             map.serialize_entry(arg.definition().name(), &value.walk(ctx))?;
                         }
                         injection => {
@@ -269,7 +269,7 @@ impl serde::Serialize for PlanFieldArgumentsView<'_> {
                 }
                 PlanValueRecord::Injection(injection) => match injection {
                     ArgumentValueInjection::Value(injection) => match injection {
-                        ValueInjection::Const(value) => {
+                        ValueInjection::DefaultValue(value) => {
                             map.serialize_entry(arg.definition().name(), &value.walk(ctx))?;
                         }
                         injection => {

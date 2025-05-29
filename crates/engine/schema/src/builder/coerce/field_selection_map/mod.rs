@@ -230,7 +230,7 @@ fn bind_selected_object_value<T: Target>(
 ) -> Result<BoundSelectedObjectValue<T::Id>, String> {
     if source.wrapping.is_list() {
         return Err(format!(
-            "Cannot select object fomr {}, it's a list",
+            "Cannot select object from {}, it's a list",
             ctx.type_name(source)
         ));
     }
@@ -244,22 +244,32 @@ fn bind_selected_object_value<T: Target>(
             target.display(ctx),
         ));
     }
-    let mut target_fields = target.fields(ctx);
-    if target_fields.is_empty() {
+    let mut nested_target_fields = target.fields(ctx);
+    if nested_target_fields.is_empty() {
         return Err(format!(
             "Cannot map object into {}, it's not an object nor an interface",
             target.display(ctx)
         ));
     }
-    let fields = object
+    let mut fields = object
         .fields
         .into_iter()
-        .map(|field| bind_selected_object_field(ctx, source.definition_id, target, &mut target_fields, field))
+        .map(|field| bind_selected_object_field(ctx, source.definition_id, target, &mut nested_target_fields, field))
         .collect::<Result<Vec<_>, _>>()?;
-    for (name_id, (_, wrapping)) in target_fields {
-        if wrapping.is_required() {
+    for (name_id, (target_field, wrapping)) in nested_target_fields {
+        let id = target_field.id();
+        if fields.iter().any(|field| field.id == id) {
+            continue;
+        }
+        if let Some(default_value) = target_field.default_value(ctx) {
+            fields.push(BoundSelectedObjectField {
+                id,
+                value: SelectedValueOrField::DefaultValue(default_value),
+            });
+            continue;
+        } else if wrapping.is_required() {
             return Err(format!(
-                "For {}, field '{}' is required but doesn't have any mapping",
+                "For {}, field '{}' is required but it's missing from the FieldSelectionMap",
                 target.display(ctx),
                 ctx[name_id]
             ));
@@ -332,7 +342,7 @@ fn bind_selected_object_field<T: Target>(
     };
 
     Ok(BoundSelectedObjectField {
-        field_id: target.0.id(),
+        id: target.0.id(),
         value,
     })
 }

@@ -1,30 +1,12 @@
 use cynic_parser::type_system::DirectiveLocation;
-use fxhash::FxHashMap;
 
 use crate::{
-    DirectiveSiteId, EntityDefinitionId, EnumDefinitionId, EnumValueId, FieldDefinitionId, InputObjectDefinitionId,
+    EntityDefinitionId, EnumDefinitionId, EnumValueId, FieldDefinitionId, InputObjectDefinitionId,
     InputValueDefinitionId, InterfaceDefinitionId, ObjectDefinitionId, ScalarDefinitionId, SubgraphId,
     UnionDefinitionId, builder::GraphBuilder,
 };
 
 use super::*;
-
-pub(crate) struct SdlDefinitions<'a> {
-    pub sites: FxHashMap<DirectiveSiteId, SdlDefinition<'a>>,
-}
-
-impl<'a> std::ops::Deref for SdlDefinitions<'a> {
-    type Target = FxHashMap<DirectiveSiteId, SdlDefinition<'a>>;
-    fn deref(&self) -> &Self::Target {
-        &self.sites
-    }
-}
-
-impl std::ops::DerefMut for SdlDefinitions<'_> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.sites
-    }
-}
 
 #[derive(Copy, Clone)]
 pub(crate) enum SdlDefinition<'a> {

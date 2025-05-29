@@ -1,9 +1,8 @@
 use crate::{
     EntityDefinitionId, EnumDefinitionId, EnumDefinitionRecord, EnumValueId, EnumValueRecord, FieldDefinitionId,
-    FieldDefinitionRecord, IdRange, InputValueDefinitionId, InputValueDefinitionRecord, ObjectDefinitionId,
-    ObjectDefinitionRecord, ResolverDefinitionId, ResolverDefinitionRecord, ScalarDefinitionId, ScalarType,
-    SchemaInputValueId, SchemaInputValueRecord, StringId, SubgraphId, TypeDefinitionId, TypeRecord, Wrapping,
-    builder::GraphBuilder,
+    FieldDefinitionRecord, IdRange, InputValueDefinitionRecord, ObjectDefinitionId, ObjectDefinitionRecord,
+    ResolverDefinitionId, ResolverDefinitionRecord, ScalarDefinitionId, ScalarType, SchemaInputValueId,
+    SchemaInputValueRecord, StringId, SubgraphId, TypeDefinitionId, TypeRecord, Wrapping, builder::GraphBuilder,
 };
 use strum::EnumCount;
 
@@ -708,8 +707,16 @@ impl GraphBuilder<'_> {
         );
         let start = self.graph.input_value_definitions.len();
 
-        for (name, r#type, default_value) in arguments {
-            self.insert_input_value(name, r#type, default_value);
+        for (name, ty_record, default_value_id) in arguments {
+            let name_id = self.ingest_str(name);
+            self.graph.input_value_definitions.push(InputValueDefinitionRecord {
+                name_id,
+                description_id: None,
+                default_value_id,
+                parent_id: field_id.into(),
+                ty_record,
+                directive_ids: Vec::new(),
+            });
         }
 
         let end = self.graph.input_value_definitions.len();
@@ -718,23 +725,6 @@ impl GraphBuilder<'_> {
             start: start.into(),
             end: end.into(),
         };
-    }
-
-    fn insert_input_value(
-        &mut self,
-        name: &str,
-        ty: TypeRecord,
-        default_value_id: Option<SchemaInputValueId>,
-    ) -> InputValueDefinitionId {
-        let name_id = self.ingest_str(name);
-        self.graph.input_value_definitions.push(InputValueDefinitionRecord {
-            name_id,
-            description_id: None,
-            default_value_id,
-            ty_record: ty,
-            directive_ids: Vec::new(),
-        });
-        InputValueDefinitionId::from(self.graph.input_value_definitions.len() - 1)
     }
 
     fn field_type(&mut self, scalar_name: &str, scalar_type: ScalarType, wrapping: Wrapping) -> TypeRecord {
