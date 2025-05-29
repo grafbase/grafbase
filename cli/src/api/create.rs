@@ -4,12 +4,25 @@ use super::graphql::mutations::{
     CurrentPlanLimitReachedError, GraphCreate, GraphCreateArguments, GraphCreateInput, GraphCreatePayload,
     SlugTooLongError,
 };
-use super::graphql::queries::viewer_for_create::Viewer;
+use super::graphql::{queries::fetch_organization_by_slug::*, queries::viewer_for_create::Viewer};
 use super::types::Account;
 use crate::common::environment::PlatformData;
 use cynic::Id;
 use cynic::http::ReqwestExt;
 use cynic::{MutationBuilder, QueryBuilder};
+
+/// Returns the organization id
+pub(crate) async fn fetch_organization_by_slug(slug: &str) -> Result<Option<String>, ApiError> {
+    let platform_data = PlatformData::get();
+    let client = create_client()?;
+    let query = <FetchOrganizationBySlug as QueryBuilder<_>>::build(FetchOrganizationBySlugArguments { slug });
+    let response = client.post(platform_data.api_url()).run_graphql(query).await?;
+
+    Ok(response
+        .data
+        .and_then(|data| data.account_by_slug)
+        .map(|account| account.id.into_inner()))
+}
 
 /// # Errors
 ///

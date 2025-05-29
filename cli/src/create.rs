@@ -34,16 +34,10 @@ pub async fn create_impl(arguments: &Option<CreateArguments<'_>>) -> Result<(), 
 async fn from_arguments(arguments: &CreateArguments<'_>) -> Result<(), CliError> {
     report::create();
 
-    // TODO do this with a separate mutation that accepts an account slug
-    let accounts = create::get_viewer_data_for_creation()
+    let account_id = crate::api::create::fetch_organization_by_slug(arguments.account_slug)
         .await
-        .map_err(CliError::BackendApiError)?;
-
-    let account_id = accounts
-        .into_iter()
-        .find(|account| account.slug == arguments.account_slug)
-        .ok_or(CliError::NoAccountFound)?
-        .id;
+        .map_err(CliError::BackendApiError)?
+        .ok_or(CliError::NoAccountFound)?;
 
     let (domains, graph_slug) = create::create(&account_id, arguments.name)
         .await

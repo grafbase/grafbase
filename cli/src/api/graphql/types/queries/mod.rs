@@ -1,4 +1,5 @@
 pub mod fetch_federated_graph_schema;
+pub mod fetch_organization_by_slug;
 pub mod fetch_subgraph_schema;
 pub mod list_branches;
 pub mod list_subgraphs;
