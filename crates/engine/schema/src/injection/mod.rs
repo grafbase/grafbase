@@ -1,5 +1,3 @@
-use std::num::NonZero;
-
 use id_newtypes::IdRange;
 
 use crate::{
@@ -37,15 +35,18 @@ pub enum ArgumentValueInjection {
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, id_derives::Id, serde::Serialize, serde::Deserialize)]
-pub struct ValueInjectionId(NonZero<u32>);
+pub struct ValueInjectionId(u32);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
 pub enum ValueInjection {
-    Const(SchemaInputValueId),
+    Identity,
+    DefaultValue(SchemaInputValueId),
     Select {
         field_id: SchemaFieldId,
-        next: Option<ValueInjectionId>,
+        next: ValueInjectionId,
     },
     // sorted by field_id if it exists.
     Object(IdRange<KeyValueInjectionId>),
+    // sorted by field_id if it exists.
+    OneOf(IdRange<ValueInjectionId>),
 }

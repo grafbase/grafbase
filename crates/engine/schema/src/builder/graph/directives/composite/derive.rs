@@ -47,7 +47,9 @@ pub(super) fn ingest<'sdl>(
         .possible_composite_entity_keys
         .get(&(target_entity_id, subgraph_id))
     else {
-        let ty = ingester.sdl_definitions[&target_entity_id.into()].as_type().unwrap();
+        let ty = ingester.definitions.site_id_to_sdl[&target_entity_id.into()]
+            .as_type()
+            .unwrap();
         return Err((
             format!(
                 "Type {} doesn't define any keys with @key directive that may be used for @derive",
@@ -68,7 +70,7 @@ pub(super) fn ingest<'sdl>(
         possible_keys,
     };
 
-    let sdl_field = ingester.sdl_definitions[&DirectiveSiteId::Field(def.id)];
+    let sdl_field = ctx.builder.definitions.site_id_to_sdl[&DirectiveSiteId::Field(def.id)];
     let mut is_directives = sdl_field
         .directives()
         .filter(|dir| dir.name() == "composite__is")
@@ -210,13 +212,13 @@ impl DeriveContext<'_, '_> {
                     if object.fields.len() != 1 {
                         return Err("A scalar key can only be mapped to a single field for @derive".into());
                     }
-                    let BoundSelectedObjectField { field_id: field, value } = object.fields.into_iter().next().unwrap();
+                    let BoundSelectedObjectField { id: field_id, value } = object.fields.into_iter().next().unwrap();
                     if value
                         .into_value()
                         .and_then(|value| value.into_single())
                         .is_some_and(|value| matches!(value, BoundSelectedValueEntry::Identity))
                     {
-                        DeriveMappingRecord::ScalarAsField(DeriveScalarAsFieldRecord { field_id: field })
+                        DeriveMappingRecord::ScalarAsField(DeriveScalarAsFieldRecord { field_id })
                     } else {
                         return Err("A scalar key can only be mapped to a single field for @derive".into());
                     }
@@ -425,7 +427,7 @@ fn create_explicit_object_mapping<'k>(
     keys: impl IntoIterator<Item = &'k FieldSetRecord>,
 ) -> Result<DeriveObjectRecord, Error> {
     let mut field_records = Vec::new();
-    for BoundSelectedObjectField { field_id: to_id, value } in object.fields {
+    for BoundSelectedObjectField { id: to_id, value } in object.fields {
         let from_id = match value {
             SelectedValueOrField::Value(value) => value
                 .into_single()
@@ -433,6 +435,7 @@ fn create_explicit_object_mapping<'k>(
                 .and_then(|path| path.into_single())
                 .ok_or("Derived object fields can only be mapped to parent scalar/enum fields")?,
             SelectedValueOrField::Field(id) => id,
+            SelectedValueOrField::DefaultValue(_) => unreachable!("Fields have no default values"),
         };
         field_records.push(DeriveObjectFieldRecord { from_id, to_id });
     }

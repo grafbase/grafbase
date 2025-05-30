@@ -71,6 +71,22 @@ fn gql_id() -> DynamicSubgraph {
     .into_subgraph("gql")
 }
 
+fn gql2_name() -> DynamicSubgraph {
+    DynamicSchema::builder(
+        r#"
+        type Query {
+            products2: [Product!]!
+        }
+
+        type Product @key(fields: "name") {
+            name: String!
+        }
+        "#,
+    )
+    .with_resolver("Query", "products2", json!([{"name": "name1"}]))
+    .into_subgraph("gql2")
+}
+
 fn gql_ab() -> DynamicSubgraph {
     DynamicSchema::builder(
         r#"

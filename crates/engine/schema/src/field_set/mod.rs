@@ -16,8 +16,19 @@ impl FieldSetRecord {
     }
 }
 
-#[derive(Default, Debug, serde::Serialize, serde::Deserialize, Clone)]
+#[derive(Default, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone)]
 pub struct FieldSetRecord(Vec<FieldSetItemRecord>);
+
+impl FieldSetRecord {
+    pub(crate) fn insert(&mut self, item: FieldSetItemRecord) {
+        match self.0.binary_search_by_key(&item.field_id, |i| i.field_id) {
+            Ok(idx) => {
+                self.0[idx].subselection_record = self.0[idx].subselection_record.union(&item.subselection_record);
+            }
+            Err(idx) => self.0.insert(idx, item),
+        }
+    }
+}
 
 impl std::ops::Deref for FieldSetRecord {
     type Target = [FieldSetItemRecord];
