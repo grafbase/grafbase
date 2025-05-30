@@ -1,4 +1,4 @@
-use crate::FieldDefinitionId;
+use crate::{FieldDefinitionId, SchemaInputValueId};
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct BoundSelectedValue<Id> {
@@ -73,6 +73,7 @@ pub(crate) struct BoundSelectedObjectField<Id> {
 pub(crate) enum SelectedValueOrField<Id> {
     Value(BoundSelectedValue<Id>),
     Field(FieldDefinitionId),
+    DefaultValue(SchemaInputValueId),
 }
 
 impl<Id> SelectedValueOrField<Id> {

@@ -1,4 +1,7 @@
+mod composite;
 mod nested;
+mod oneof;
+mod oneof_composite;
 
 use integration_tests::{gateway::Gateway, runtime};
 
@@ -529,7 +532,7 @@ fn extra_required_argument() {
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        At site Query.productBatch, for directive @lookup Argument 'required' is required but is not injected any @is directive.
         See schema at 33:3:
         productBatch(ids: [ID!] @composite__is(graph: EXT, field: "[id]"), required: Boolean!): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)
         "#);

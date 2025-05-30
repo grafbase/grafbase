@@ -16,7 +16,7 @@ impl FieldSetRecord {
     }
 }
 
-#[derive(Default, Debug, serde::Serialize, serde::Deserialize, Clone)]
+#[derive(Default, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, Clone)]
 pub struct FieldSetRecord(Vec<FieldSetItemRecord>);
 
 impl FieldSetRecord {

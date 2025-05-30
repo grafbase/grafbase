@@ -202,10 +202,15 @@ type InputObjectDefinition @meta(module: "input_object", debug: false) @indexed(
   exists_in_subgraphs: [Subgraph!]!
 }
 
+union InputValueParentDefinition @id @meta(module: "input_value/parent") @variants(remove_suffix: "Definition") =
+  | FieldDefinition
+  | InputObjectDefinition
+
 type InputValueDefinition @meta(module: "input_value") @indexed(id_size: "u32") {
   name: String!
   description: String
   ty: Type!
+  parent: InputValueParentDefinition!
   default_value: SchemaInputValue
   directives: [TypeSystemDirective!]!
 }

@@ -13,7 +13,6 @@ use super::*;
 
 pub(crate) struct DirectivesIngester<'a, 'sdl> {
     pub builder: &'a mut GraphBuilder<'sdl>,
-    pub sdl_definitions: &'a sdl::SdlDefinitions<'sdl>,
     pub possible_composite_entity_keys:
         FxHashMap<(EntityDefinitionId, SubgraphId), Vec<PossibleCompositeEntityKey<'sdl>>>,
     pub for_operation_analytics_only: bool,
@@ -40,7 +39,6 @@ impl std::ops::DerefMut for DirectivesIngester<'_, '_> {
 
 pub(crate) fn ingest_directives<'a>(
     builder: &mut GraphBuilder<'a>,
-    sdl_definitions: &sdl::SdlDefinitions<'a>,
     for_operation_analytics_only: bool,
 ) -> Result<(), Error> {
     if !for_operation_analytics_only {
@@ -49,13 +47,12 @@ pub(crate) fn ingest_directives<'a>(
 
     let mut ingester = DirectivesIngester {
         builder,
-        sdl_definitions,
         possible_composite_entity_keys: Default::default(),
         for_operation_analytics_only,
     };
 
     let mut directives = Vec::new();
-    for def in ingester.sdl_definitions.values().copied() {
+    for def in ingester.definitions.clone().site_id_to_sdl.values().copied() {
         directives.clear();
         directives.extend(def.directives());
         if let Some(ext) = def
@@ -83,7 +80,7 @@ pub(crate) fn ingest_directives<'a>(
     federation::add_not_fully_implemented_in(&mut ingester.graph);
 
     if !for_operation_analytics_only {
-        for def in ingester.sdl_definitions.values().copied() {
+        for def in ingester.definitions.clone().site_id_to_sdl.values().copied() {
             directives.clear();
             directives.extend(def.directives());
             if let Some(ext) = def

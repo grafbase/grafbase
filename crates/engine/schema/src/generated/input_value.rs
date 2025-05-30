@@ -3,11 +3,14 @@
 //! ===================
 //! Generated with: `cargo run -p engine-codegen`
 //! Source file: <engine-codegen dir>/domain/schema.graphql
+mod parent;
+
 use crate::{
     SchemaInputValue, SchemaInputValueId, StringId,
     generated::{Type, TypeRecord, TypeSystemDirective, TypeSystemDirectiveId},
     prelude::*,
 };
+pub use parent::*;
 #[allow(unused_imports)]
 use walker::{Iter, Walk};
 
@@ -18,6 +21,7 @@ use walker::{Iter, Walk};
 ///   name: String!
 ///   description: String
 ///   ty: Type!
+///   parent: InputValueParentDefinition!
 ///   default_value: SchemaInputValue
 ///   directives: [TypeSystemDirective!]!
 /// }
@@ -27,6 +31,7 @@ pub struct InputValueDefinitionRecord {
     pub name_id: StringId,
     pub description_id: Option<StringId>,
     pub ty_record: TypeRecord,
+    pub parent_id: InputValueParentDefinitionId,
     pub default_value_id: Option<SchemaInputValueId>,
     pub directive_ids: Vec<TypeSystemDirectiveId>,
 }
@@ -62,6 +67,9 @@ impl<'a> InputValueDefinition<'a> {
     pub fn ty(&self) -> Type<'a> {
         self.ty_record.walk(self.schema)
     }
+    pub fn parent(&self) -> InputValueParentDefinition<'a> {
+        self.parent_id.walk(self.schema)
+    }
     pub fn default_value(&self) -> Option<SchemaInputValue<'a>> {
         self.default_value_id.walk(self.schema)
     }
@@ -93,6 +101,7 @@ impl std::fmt::Debug for InputValueDefinition<'_> {
             .field("name", &self.name())
             .field("description", &self.description())
             .field("ty", &self.ty())
+            .field("parent", &self.parent())
             .field("default_value", &self.default_value())
             .field("directives", &self.directives())
             .finish()

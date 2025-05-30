@@ -47,7 +47,9 @@ pub(super) fn ingest<'sdl>(
         .possible_composite_entity_keys
         .get(&(target_entity_id, subgraph_id))
     else {
-        let ty = ingester.sdl_definitions[&target_entity_id.into()].as_type().unwrap();
+        let ty = ingester.definitions.site_id_to_sdl[&target_entity_id.into()]
+            .as_type()
+            .unwrap();
         return Err((
             format!(
                 "Type {} doesn't define any keys with @key directive that may be used for @derive",
@@ -68,7 +70,7 @@ pub(super) fn ingest<'sdl>(
         possible_keys,
     };
 
-    let sdl_field = ingester.sdl_definitions[&DirectiveSiteId::Field(def.id)];
+    let sdl_field = ctx.builder.definitions.site_id_to_sdl[&DirectiveSiteId::Field(def.id)];
     let mut is_directives = sdl_field
         .directives()
         .filter(|dir| dir.name() == "composite__is")
@@ -433,6 +435,7 @@ fn create_explicit_object_mapping<'k>(
                 .and_then(|path| path.into_single())
                 .ok_or("Derived object fields can only be mapped to parent scalar/enum fields")?,
             SelectedValueOrField::Field(id) => id,
+            SelectedValueOrField::DefaultValue(_) => unreachable!("Fields have no default values"),
         };
         field_records.push(DeriveObjectFieldRecord { from_id, to_id });
     }
