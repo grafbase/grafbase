@@ -34,7 +34,7 @@ impl GraphFetchMethod {
     ///
     /// This can happen in two ways: if providing a graph SDL, we return a new graph immediately.
     /// Alternatively, if a graph ref and access token is provided, the function returns
-    /// immediately, and runs a background process to fetch the graph definition from the GDN
+    /// immediately, and runs a background process to fetch the graph definition from object storage
     pub(crate) async fn into_stream(self) -> crate::Result<GraphStream> {
         #[cfg(feature = "lambda")]
         if matches!(self, GraphFetchMethod::FromGraphRef { .. }) {
@@ -51,9 +51,9 @@ impl GraphFetchMethod {
                 let (sender, receiver) = mpsc::channel(4);
 
                 tokio::spawn(async move {
-                    use super::graph_updater::GdnGraphUpdater;
+                    use super::graph_updater::ObjectStorageUpdater;
 
-                    GdnGraphUpdater::new(graph_ref, access_token, sender)?.poll().await;
+                    ObjectStorageUpdater::new(graph_ref, access_token, sender)?.poll().await;
 
                     Ok::<_, crate::Error>(())
                 });
