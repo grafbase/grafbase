@@ -8,5 +8,6 @@ bitflags! {
         const COMPOSITE_REQUIRE = 1 << 3;
         const COMPOSITE_IS = 1 << 4;
         const COMPOSITE_DERIVE = 1 << 5;
+        const COMPOSITE_INTERNAL = 1 << 6;
     }
 }

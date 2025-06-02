@@ -21,6 +21,8 @@ pub enum Directive {
         subgraph_id: federated::SubgraphId,
         field: subgraphs::StringId,
     },
+    /// @composite__internal
+    CompositeInternal(federated::SubgraphId),
     /// @composite__lookup
     CompositeLookup(federated::SubgraphId),
     /// @composite__derive

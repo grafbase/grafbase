@@ -117,6 +117,7 @@ fn match_composite_schemas_directive_by_original_name(original_name: &str) -> Di
         OVERRIDE => DirectiveNameMatch::Override,
         PROVIDES => DirectiveNameMatch::Provides,
         INACCESSIBLE => DirectiveNameMatch::Inaccessible,
+        INTERNAL => DirectiveNameMatch::Internal,
         _ => DirectiveNameMatch::NoMatch,
     }
 }
@@ -165,6 +166,7 @@ pub(in crate::ingest_subgraph) enum DirectiveNameMatch {
     Require,
     Is,
     KeyFromCompositeSchemas,
+    Internal,
 
     // Federation built-ins
     Authenticated,

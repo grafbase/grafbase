@@ -25,6 +25,9 @@ pub enum Directive {
     CompositeDerive {
         graph: SubgraphId,
     },
+    CompositeInternal {
+        graph: SubgraphId,
+    },
     CompositeRequire {
         graph: SubgraphId,
         field: StringId,
