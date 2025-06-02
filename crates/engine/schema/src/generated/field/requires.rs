@@ -5,7 +5,7 @@
 //! Source file: <engine-codegen dir>/domain/schema.graphql
 use crate::{
     FieldSet, FieldSetRecord,
-    generated::{Subgraph, SubgraphId},
+    generated::{ArgumentInjection, ArgumentInjectionId, Subgraph, SubgraphId},
     prelude::*,
 };
 #[allow(unused_imports)]
@@ -17,12 +17,14 @@ use walker::{Iter, Walk};
 /// type FieldRequires @meta(module: "field/requires") {
 ///   subgraph: Subgraph!
 ///   field_set: FieldSet!
+///   injections: [ArgumentInjection!]!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct FieldRequiresRecord {
     pub subgraph_id: SubgraphId,
     pub field_set_record: FieldSetRecord,
+    pub injection_ids: IdRange<ArgumentInjectionId>,
 }
 
 #[derive(Clone, Copy)]
@@ -49,6 +51,9 @@ impl<'a> FieldRequires<'a> {
     pub fn field_set(&self) -> FieldSet<'a> {
         self.as_ref().field_set_record.walk(self.schema)
     }
+    pub fn injections(&self) -> impl Iter<Item = ArgumentInjection<'a>> + 'a {
+        self.as_ref().injection_ids.walk(self.schema)
+    }
 }
 
 impl<'a> Walk<&'a Schema> for &FieldRequiresRecord {
@@ -74,6 +79,7 @@ impl std::fmt::Debug for FieldRequires<'_> {
         f.debug_struct("FieldRequires")
             .field("subgraph", &self.subgraph())
             .field("field_set", &self.field_set())
+            .field("injections", &self.injections())
             .finish()
     }
 }

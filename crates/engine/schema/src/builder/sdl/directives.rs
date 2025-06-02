@@ -15,6 +15,8 @@ pub(crate) struct IsDirective<'a> {
     pub field: &'a str,
 }
 
+pub type RequireDirective<'a> = IsDirective<'a>;
+
 // Cynic doesn't generate a good ValueDeserialize because of the `field` name which it relies upon
 // in the generated code and it doesn't respect rename for errors.
 impl<'a> ValueDeserialize<'a> for IsDirective<'a> {
