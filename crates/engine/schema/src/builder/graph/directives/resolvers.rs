@@ -1,11 +1,13 @@
-use std::mem::take;
+use std::{mem::take, ops::DerefMut};
+
+use extension_catalog::DirectiveType;
 
 use crate::{
-    EntityDefinitionId, FieldResolverExtensionDefinitionRecord, GraphqlFederationEntityResolverDefinitionRecord,
-    GraphqlRootFieldResolverDefinitionRecord, ResolverDefinitionId, ResolverDefinitionRecord,
-    SelectionSetResolverExtensionDefinitionRecord, SubgraphId, TypeSystemDirectiveId, VirtualSubgraphId,
+    EntityDefinitionId, ExtensionResolverDefinitionRecord, FieldResolverExtensionDefinitionRecord,
+    GraphqlFederationEntityResolverDefinitionRecord, GraphqlRootFieldResolverDefinitionRecord, ResolverDefinitionId,
+    ResolverDefinitionRecord, SubgraphId, TypeSystemDirectiveId, VirtualSubgraphId,
     builder::{
-        Error, GraphBuilder,
+        Error,
         sdl::{self, SdlDefinition},
     },
 };
@@ -14,9 +16,8 @@ use super::DirectivesIngester;
 
 pub(super) fn generate(ingester: &mut DirectivesIngester<'_, '_>) -> Result<(), Error> {
     create_root_graphql_resolvers(ingester);
-    create_extension_resolvers(ingester);
+    create_extension_resolvers(ingester)?;
     create_apollo_federation_entity_resolvers(ingester)?;
-    ingest_selection_set_resolvers(ingester)?;
     ingest_composite_schema_lookup(ingester)?;
     Ok(())
 }
@@ -54,7 +55,7 @@ fn create_root_graphql_resolvers(ingester: &mut DirectivesIngester<'_, '_>) {
     }
 }
 
-fn create_extension_resolvers(ingester: &mut DirectivesIngester<'_, '_>) {
+fn create_extension_resolvers(ingester: &mut DirectivesIngester<'_, '_>) -> Result<(), Error> {
     let graph = &mut ingester.builder.graph;
     for field in &mut graph.field_definitions {
         for id in &field.directive_ids {
@@ -62,22 +63,103 @@ fn create_extension_resolvers(ingester: &mut DirectivesIngester<'_, '_>) {
                 continue;
             };
             let directive = &graph.extension_directives[usize::from(id)];
-            if directive.ty.is_field_resolver() {
-                let subgraph_id = directive.subgraph_id;
-                if !field.exists_in_subgraph_ids.contains(&subgraph_id) {
-                    field.exists_in_subgraph_ids.push(subgraph_id);
+            match directive.ty {
+                DirectiveType::FieldResolver => {
+                    let subgraph_id = directive.subgraph_id;
+                    if !field.exists_in_subgraph_ids.contains(&subgraph_id) {
+                        field.exists_in_subgraph_ids.push(subgraph_id);
+                    }
+                    graph
+                        .resolver_definitions
+                        .push(ResolverDefinitionRecord::FieldResolverExtension(
+                            FieldResolverExtensionDefinitionRecord { directive_id: id },
+                        ));
+                    field
+                        .resolver_ids
+                        .push(ResolverDefinitionId::from(graph.resolver_definitions.len() - 1))
                 }
-                graph
-                    .resolver_definitions
-                    .push(ResolverDefinitionRecord::FieldResolverExtension(
-                        FieldResolverExtensionDefinitionRecord { directive_id: id },
+                DirectiveType::Resolver => {
+                    let subgraph_id = directive.subgraph_id;
+                    if !field.exists_in_subgraph_ids.contains(&subgraph_id) {
+                        field.exists_in_subgraph_ids.push(subgraph_id);
+                    }
+                    graph.resolver_definitions.push(ResolverDefinitionRecord::Extension(
+                        ExtensionResolverDefinitionRecord {
+                            directive_id: Some(id),
+                            subgraph_id: directive.subgraph_id.as_virtual().unwrap(),
+                            extension_id: directive.extension_id,
+                            guest_batch: false,
+                        },
                     ));
-                field
-                    .resolver_ids
-                    .push(ResolverDefinitionId::from(graph.resolver_definitions.len() - 1))
+                    field
+                        .resolver_ids
+                        .push(ResolverDefinitionId::from(graph.resolver_definitions.len() - 1))
+                }
+                _ => {}
             }
         }
     }
+
+    let builder = ingester.deref_mut();
+    // Ensure they're not mixed with field resolvers.
+    for resolver in &builder.graph.resolver_definitions {
+        if let Some(FieldResolverExtensionDefinitionRecord { directive_id }) = resolver.as_field_resolver_extension() {
+            let subgraph_id = builder.graph[*directive_id]
+                .subgraph_id
+                .as_virtual()
+                .expect("should have failed at directive creation");
+            if let Some(id) = builder.virtual_subgraph_to_selection_set_resolver[usize::from(subgraph_id)] {
+                return Err(format!(
+                    "Selection Set Resolver extension {} cannot be mixed with other resolvers in subgraph '{}', found {}",
+                    builder[id].manifest.id,
+                    builder[builder.subgraphs[subgraph_id].subgraph_name_id],
+                    builder[builder.graph[*directive_id].extension_id].manifest.id
+                ).into());
+            }
+        }
+    }
+
+    let field_ids_list = {
+        let mut list = vec![builder.graph[builder.graph.root_operation_types_record.query_id].field_ids];
+        if let Some(mutation_id) = builder.graph.root_operation_types_record.mutation_id {
+            list.push(builder.graph[mutation_id].field_ids);
+        }
+        if let Some(subscription_id) = builder.graph.root_operation_types_record.subscription_id {
+            list.push(builder.graph[subscription_id].field_ids);
+        }
+        list
+    };
+    let mut resolver_definitions = take(&mut builder.graph.resolver_definitions);
+    for (ix, extension_id) in take(&mut builder.virtual_subgraph_to_selection_set_resolver)
+        .into_iter()
+        .enumerate()
+    {
+        let Some(extension_id) = extension_id else {
+            continue;
+        };
+        let virtual_subgraph_id = VirtualSubgraphId::from(ix);
+        let subgraph_id = SubgraphId::from(virtual_subgraph_id);
+
+        for field_ids in &field_ids_list {
+            for field in &mut builder.graph[*field_ids] {
+                if field.exists_in_subgraph_ids.contains(&subgraph_id) {
+                    // Each field has its dedicated resolvers and they don't support batching
+                    // multiple fields for now.
+                    resolver_definitions.push(ResolverDefinitionRecord::Extension(ExtensionResolverDefinitionRecord {
+                        subgraph_id: virtual_subgraph_id,
+                        extension_id,
+                        directive_id: None,
+                        // Added later through `@require`
+                        guest_batch: false,
+                    }));
+                    field.resolver_ids.push((resolver_definitions.len() - 1).into());
+                }
+            }
+        }
+    }
+    builder.graph.resolver_definitions = resolver_definitions;
+
+    Ok(())
 }
 
 fn create_apollo_federation_entity_resolvers(ingester: &mut DirectivesIngester<'_, '_>) -> Result<(), Error> {
@@ -165,67 +247,6 @@ fn create_apollo_federation_entity_resolvers(ingester: &mut DirectivesIngester<'
             }
         }
     }
-
-    Ok(())
-}
-
-fn ingest_selection_set_resolvers(ctx: &mut GraphBuilder<'_>) -> Result<(), String> {
-    // Ensure they're not mixed with field resolvers.
-    for resolver in &ctx.graph.resolver_definitions {
-        if let Some(FieldResolverExtensionDefinitionRecord { directive_id }) = resolver.as_field_resolver_extension() {
-            let subgraph_id = ctx.graph[*directive_id]
-                .subgraph_id
-                .as_virtual()
-                .expect("should have failed at directive creation");
-            if let Some(id) = ctx.virtual_subgraph_to_selection_set_resolver[usize::from(subgraph_id)] {
-                return Err(format!(
-                    "Selection Set Resolver extension {} cannot be mixed with other resolvers in subgraph '{}', found {}",
-                    ctx[id].manifest.id,
-                    ctx[ctx.subgraphs[subgraph_id].subgraph_name_id],
-                    ctx[ctx.graph[*directive_id].extension_id].manifest.id
-                ));
-            }
-        }
-    }
-
-    let field_ids_list = {
-        let mut list = vec![ctx.graph[ctx.graph.root_operation_types_record.query_id].field_ids];
-        if let Some(mutation_id) = ctx.graph.root_operation_types_record.mutation_id {
-            list.push(ctx.graph[mutation_id].field_ids);
-        }
-        if let Some(subscription_id) = ctx.graph.root_operation_types_record.subscription_id {
-            list.push(ctx.graph[subscription_id].field_ids);
-        }
-        list
-    };
-    let mut resolver_definitions = take(&mut ctx.graph.resolver_definitions);
-    for (ix, extension_id) in take(&mut ctx.virtual_subgraph_to_selection_set_resolver)
-        .into_iter()
-        .enumerate()
-    {
-        let Some(extension_id) = extension_id else {
-            continue;
-        };
-        let virtual_subgraph_id = VirtualSubgraphId::from(ix);
-        let subgraph_id = SubgraphId::from(virtual_subgraph_id);
-
-        for field_ids in &field_ids_list {
-            for field in &mut ctx.graph[*field_ids] {
-                if field.exists_in_subgraph_ids.contains(&subgraph_id) {
-                    // Each field has its dedicated resolvers and they don't support batching
-                    // multiple fields for now.
-                    resolver_definitions.push(ResolverDefinitionRecord::SelectionSetResolverExtension(
-                        SelectionSetResolverExtensionDefinitionRecord {
-                            subgraph_id: virtual_subgraph_id,
-                            extension_id,
-                        },
-                    ));
-                    field.resolver_ids.push((resolver_definitions.len() - 1).into());
-                }
-            }
-        }
-    }
-    ctx.graph.resolver_definitions = resolver_definitions;
 
     Ok(())
 }

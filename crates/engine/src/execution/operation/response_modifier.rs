@@ -10,7 +10,7 @@ use crate::{
         PlanFieldArguments, ResponseModifier, ResponseModifierRule, ResponseModifierRuleTarget,
         create_extension_directive_response_view,
     },
-    response::{ErrorCode, GraphqlError, ParentObjects, ResponseBuilder, ResponseValueId},
+    response::{ErrorCode, GraphqlError, ParentObjectSet, ResponseBuilder, ResponseValueId},
 };
 
 use super::{ExecutionContext, state::OperationExecutionState};
@@ -27,9 +27,9 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                 continue;
             };
             let parent_objects = if self.operation.cached.query_plan[target.set_id].ty_id == target.ty_id {
-                ParentObjects::default().with_response_objects(refs.clone())
+                ParentObjectSet::default().with_response_objects(refs.clone())
             } else {
-                ParentObjects::default().with_filtered_response_objects(self.schema(), target.ty_id, refs.clone())
+                ParentObjectSet::default().with_filtered_response_objects(self.schema(), target.ty_id, refs.clone())
             };
 
             if parent_objects.is_empty() {

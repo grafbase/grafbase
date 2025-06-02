@@ -14,7 +14,7 @@ use crate::{
     execution::ExecutionContext,
     prepare::{Plan, PlanError, PlanQueryPartition, PlanResult, RootFieldsShapeId},
     resolver::graphql::request::{SubgraphGraphqlRequest, SubgraphVariables},
-    response::{ParentObjectId, ParentObjects, ParentObjectsView, ResponsePartBuilder},
+    response::{ParentObjectId, ParentObjectSet, ParentObjects, ResponsePartBuilder},
 };
 
 use super::{
@@ -65,7 +65,7 @@ impl FederationEntityResolver {
         &'ctx self,
         ctx: &SubgraphContext<'ctx, R>,
         plan: Plan<'ctx>,
-        parent_objects_view: ParentObjectsView<'_>,
+        parent_objects: ParentObjects<'_>,
         response_part: ResponsePartBuilder<'ctx>,
     ) -> FederationEntityExecutor<'ctx> {
         ctx.span().in_scope(|| {
@@ -73,9 +73,9 @@ impl FederationEntityResolver {
                 "__typename".into(),
                 serde_json::Value::String(plan.entity_definition().name().to_string()),
             )];
-            let parent_objects_view = parent_objects_view.with_extra_constant_fields(&extra_fields);
+            let parent_objects_view = parent_objects.with_extra_constant_fields(&extra_fields);
 
-            let mut entities_to_fetch = Vec::with_capacity(parent_objects_view.len());
+            let mut entities_to_fetch = Vec::with_capacity(parent_objects.len());
             let mut entities_without_expected_requirements = Vec::new();
 
             for (id, object) in parent_objects_view.iter_with_id() {
@@ -91,7 +91,7 @@ impl FederationEntityResolver {
 
             FederationEntityExecutor {
                 resolver: self,
-                parent_objects: parent_objects_view.into_object_set(),
+                parent_objects: parent_objects.into_object_set(),
                 response_part,
                 entities_to_fetch,
                 entities_without_expected_requirements,
@@ -112,7 +112,7 @@ struct EntityWithoutExpectedRequirements {
 
 pub(crate) struct FederationEntityExecutor<'ctx> {
     resolver: &'ctx FederationEntityResolver,
-    parent_objects: ParentObjects,
+    parent_objects: ParentObjectSet,
     response_part: ResponsePartBuilder<'ctx>,
     entities_to_fetch: Vec<EntityToFetch>,
     entities_without_expected_requirements: Vec<EntityWithoutExpectedRequirements>,
@@ -194,7 +194,7 @@ where
 
 pub(super) async fn fetch_entities_without_cache<'ctx, R: Runtime>(
     ctx: &mut SubgraphContext<'ctx, R>,
-    parent_objects: ParentObjects,
+    parent_objects: ParentObjectSet,
     subgraph_headers: http::HeaderMap,
     subgraph_operation: &PreparedFederationEntityOperation,
     entities_to_fetch: Vec<EntityToFetch>,
@@ -242,7 +242,7 @@ pub(super) async fn fetch_entities_without_cache<'ctx, R: Runtime>(
 
 pub(super) async fn fetch_entities_with_cache<'ctx, R: Runtime>(
     ctx: &mut SubgraphContext<'ctx, R>,
-    parent_objects: ParentObjects,
+    parent_objects: ParentObjectSet,
     subgraph_headers: http::HeaderMap,
     subgraph_operation: &PreparedFederationEntityOperation,
     entities_to_fetch: Vec<EntityToFetch>,

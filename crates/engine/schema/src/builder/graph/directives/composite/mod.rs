@@ -3,6 +3,8 @@ mod injection;
 mod lookup;
 mod require;
 
+use cynic_parser_deser::ConstDeserializer as _;
+
 use crate::{DirectiveSiteId, builder::sdl};
 
 use super::{DirectivesIngester, Error, FieldDefinitionId};
@@ -115,7 +117,7 @@ fn ingest_before_federation_directives<'sdl>(
             }
         },
         "composite__require" => {
-            if !matches!(def, sdl::SdlDefinition::ArgumentDefinition(_),) {
+            let sdl::SdlDefinition::ArgumentDefinition(def) = def else {
                 return Err((
                     format!(
                         "invalid location: {}, expected one of: {}",
@@ -125,14 +127,33 @@ fn ingest_before_federation_directives<'sdl>(
                     def.span(),
                 )
                     .into());
+            };
+            let sdl::RequireDirective { graph, .. } = dir.deserialize().map_err(|err| {
+                (
+                    format!(
+                        "At {}, invalid composite__require directive: {}",
+                        def.to_site_string(ingester),
+                        err
+                    ),
+                    dir.arguments_span(),
+                )
+            })?;
+            let subgraph_id = ingester.subgraphs.try_get(graph, dir.arguments_span())?;
+            if ingester.graph[def.id].is_internal_in_id.is_some() {
+                return Err((
+                    "cannot use @require multiple times on a argument within a subgraph".to_string(),
+                    dir.name_span(),
+                )
+                    .into());
             }
+            ingester.graph[def.id].is_internal_in_id = Some(subgraph_id);
         }
         _ => return Err("unknown or unsupported directive".into()),
     }
     Ok(())
 }
 
-pub(crate) fn ingest_composite_field_directives_after_federation(
+pub(crate) fn ingest_composite_field_directives_after_federation_and_resolvers(
     ingester: &mut DirectivesIngester<'_, '_>,
 ) -> Result<(), Error> {
     for id in 0..ingester.graph.field_definitions.len() {

@@ -7,14 +7,14 @@ use crate::{
         deserialize::{EntitiesDataSeed, EntityErrorPathConverter, GraphqlErrorsSeed, GraphqlResponseSeed},
         request::ResponseIngester,
     },
-    response::{Deserializable, GraphqlError, ParentObjects, ResponsePartBuilder},
+    response::{Deserializable, GraphqlError, ParentObjectSet, ResponsePartBuilder},
 };
 
 use super::EntityToFetch;
 
 pub(super) struct EntityIngester {
     pub shape_id: RootFieldsShapeId,
-    pub parent_objects: ParentObjects,
+    pub parent_objects: ParentObjectSet,
     pub fetched_entities: Vec<EntityToFetch>,
 }
 

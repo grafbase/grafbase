@@ -7,8 +7,8 @@ use crate::{
     mcp::McpResponseExtension,
     prepare::{Executable, OperationPlanContext, PlanId, PreparedOperation},
     resolver::{
-        FederationEntityResolver, FieldResolverExtension, GraphqlResolver, LookupProxiedResolver, Resolver,
-        SelectionSetResolverExtension,
+        ExtensionResolver, FederationEntityResolver, FieldResolverExtension, GraphqlResolver, LookupProxiedResolver,
+        Resolver,
     },
 };
 
@@ -150,11 +150,11 @@ impl From<(OperationPlanContext<'_>, &Resolver)> for QueryPlanNode {
             Resolver::Graphql(resolver) => (ctx, resolver).into(),
             Resolver::FederationEntity(resolver) => (ctx, resolver).into(),
             Resolver::FieldResolverExtension(resolver) => (ctx, resolver).into(),
-            Resolver::SelectionSetResolverExtension(resolver) => (ctx, resolver).into(),
+            Resolver::Extension(resolver) => (ctx, resolver).into(),
             Resolver::Lookup(resolver) => QueryPlanNode::Lookup(LookupNode {
                 node: Box::new(match &resolver.proxied {
                     LookupProxiedResolver::Graphql(resolver) => (ctx, resolver).into(),
-                    LookupProxiedResolver::SelectionSetResolverExtension(resolver) => (ctx, resolver).into(),
+                    LookupProxiedResolver::Extension(resolver) => (ctx, resolver).into(),
                 }),
             }),
         }
@@ -194,8 +194,8 @@ impl From<(OperationPlanContext<'_>, &FieldResolverExtension)> for QueryPlanNode
     }
 }
 
-impl From<(OperationPlanContext<'_>, &SelectionSetResolverExtension)> for QueryPlanNode {
-    fn from((ctx, resolver): (OperationPlanContext<'_>, &SelectionSetResolverExtension)) -> Self {
+impl From<(OperationPlanContext<'_>, &ExtensionResolver)> for QueryPlanNode {
+    fn from((ctx, resolver): (OperationPlanContext<'_>, &ExtensionResolver)) -> Self {
         QueryPlanNode::Extension(ExtensionNode {
             directive_name: None,
             id: ctx.schema[resolver.definition.extension_id].clone(),

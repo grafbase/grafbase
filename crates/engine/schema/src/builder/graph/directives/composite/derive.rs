@@ -156,7 +156,7 @@ fn get_subgraph_id(graph: &Graph, id: ResolverDefinitionId) -> SubgraphId {
         ResolverDefinitionRecord::GraphqlRootField(record) => record.endpoint_id.into(),
         ResolverDefinitionRecord::Introspection => SubgraphId::Introspection,
         ResolverDefinitionRecord::Lookup(id) => get_subgraph_id(graph, graph[*id].resolver_id),
-        ResolverDefinitionRecord::SelectionSetResolverExtension(record) => record.subgraph_id.into(),
+        ResolverDefinitionRecord::Extension(record) => record.subgraph_id.into(),
     }
 }
 

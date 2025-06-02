@@ -18,7 +18,7 @@ use crate::{
     execution::ExecutionContext,
     prepare::{Plan, PlanError, PlanResult, RootFieldsShapeId, SubgraphSelectionSet},
     resolver::graphql::request::SubgraphGraphqlRequest,
-    response::{Deserializable, ErrorPath, ErrorPathSegment, GraphqlError, ParentObjects, ResponsePartBuilder},
+    response::{Deserializable, ErrorPath, ErrorPathSegment, GraphqlError, ParentObjectSet, ResponsePartBuilder},
 };
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -71,7 +71,7 @@ impl GraphqlResolver {
         &'ctx self,
         ctx: &mut SubgraphContext<'ctx, R>,
         plan: Plan<'ctx>,
-        parent_objects: ParentObjects,
+        parent_objects: ParentObjectSet,
         mut response_part: ResponsePartBuilder<'ctx>,
     ) -> ResponsePartBuilder<'ctx> {
         let span = ctx.span().entered();
@@ -137,14 +137,14 @@ impl GraphqlResolver {
 
 async fn fetch_response_without_cache<'ctx, R: Runtime>(
     ctx: &mut SubgraphContext<'ctx, R>,
-    parent_objects: ParentObjects,
+    parent_objects: ParentObjectSet,
     subgraph_headers: http::HeaderMap,
     body: Vec<u8>,
     shape_id: RootFieldsShapeId,
     response_part: ResponsePartBuilder<'ctx>,
 ) -> ResponsePartBuilder<'ctx> {
     struct Ingester {
-        parent_objects: ParentObjects,
+        parent_objects: ParentObjectSet,
         shape_id: RootFieldsShapeId,
     }
 
@@ -189,7 +189,7 @@ async fn fetch_response_without_cache<'ctx, R: Runtime>(
 
 async fn fetch_response_with_cache<'ctx, R: Runtime>(
     ctx: &mut SubgraphContext<'ctx, R>,
-    parent_objects: ParentObjects,
+    parent_objects: ParentObjectSet,
     subgraph_headers: http::HeaderMap,
     body: Vec<u8>,
     shape_id: RootFieldsShapeId,
@@ -219,7 +219,7 @@ async fn fetch_response_with_cache<'ctx, R: Runtime>(
 
 struct GraphqlWithCachePutIngester<'ctx, R: Runtime> {
     ctx: ExecutionContext<'ctx, R>,
-    parent_objects: ParentObjects,
+    parent_objects: ParentObjectSet,
     shape_id: RootFieldsShapeId,
     subgraph_default_cache_ttl: Option<Duration>,
     cache_key: String,
@@ -278,7 +278,7 @@ where
 
 pub(super) fn ingest_graphql_data<'ctx, 'de>(
     response_part: ResponsePartBuilder<'ctx>,
-    parent_objects: &ParentObjects,
+    parent_objects: &ParentObjectSet,
     shape_id: RootFieldsShapeId,
     data: impl Into<Deserializable<'de>>,
 ) -> (Option<GraphqlResponseStatus>, ResponsePartBuilder<'ctx>) {

@@ -2,7 +2,7 @@ use engine_error::{ErrorCode, GraphqlError};
 use engine_schema::Subgraph;
 use extension_catalog::ExtensionId;
 use runtime::{
-    extension::{ArgumentsId, Data, Field as _, SelectionSet as _, SelectionSetResolverExtension},
+    extension::{ArgumentsId, Data, Field as _, ResolverExtension, SelectionSet as _},
     hooks::Anything,
 };
 
@@ -15,7 +15,7 @@ use crate::{
 };
 
 #[allow(clippy::manual_async_fn)]
-impl SelectionSetResolverExtension<SharedContext> for WasmExtensions {
+impl ResolverExtension<SharedContext> for WasmExtensions {
     async fn prepare<'ctx, F: runtime::extension::Field<'ctx>>(
         &'ctx self,
         extension_id: ExtensionId,
@@ -67,7 +67,7 @@ impl SelectionSetResolverExtension<SharedContext> for WasmExtensions {
             })?
     }
 
-    fn resolve_query_or_mutation_field<'ctx, 'resp, 'f>(
+    fn resolve<'ctx, 'resp, 'f>(
         &'ctx self,
         extension_id: ExtensionId,
         subgraph: Subgraph<'ctx>,

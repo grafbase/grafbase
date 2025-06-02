@@ -7,7 +7,7 @@ pub(crate) use query::*;
 pub(crate) use response::*;
 use schema::{ExtensionDirective, ExtensionDirectiveArgumentsStaticView, InjectionStage, Schema};
 
-use crate::response::ParentObjectsView;
+use crate::response::ParentObjects;
 
 use super::PlanFieldArguments;
 
@@ -38,7 +38,7 @@ pub(crate) fn create_extension_directive_response_view<'ctx, 'resp>(
     directive: ExtensionDirective<'ctx>,
     field_arguments: PlanFieldArguments<'ctx>,
     variables: &'ctx Variables,
-    response_objects_view: &'resp ParentObjectsView<'resp>,
+    parent_objects: &'resp ParentObjects<'resp>,
 ) -> ExtensionDirectiveArgumentsResponseObjectsView<'resp>
 where
     'ctx: 'resp,
@@ -56,7 +56,7 @@ where
     ExtensionDirectiveArgumentsResponseObjectsView {
         ctx,
         arguments,
-        response_objects_view,
+        parent_objects,
     }
 }
 

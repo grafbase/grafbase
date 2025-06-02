@@ -5,7 +5,7 @@ use walker::Walk as _;
 
 use crate::{
     prepare::{CachedOperationContext, PartitionFieldArgument, PartitionFieldArgumentRecord},
-    response::{ParentObjectsView, ResponseObjectView},
+    response::{ParentObjects, ResponseObjectView},
 };
 
 use super::PlanValueRecord;
@@ -54,15 +54,15 @@ impl<'ctx> PlanFieldArguments<'ctx> {
         }
     }
 
-    pub(crate) fn batch_view<'v, 'r, 'view>(
+    pub(crate) fn batch_view<'v, 'p, 'view>(
         &self,
         variables: &'v Variables,
-        parent_objects: ParentObjectsView<'r>,
+        parent_objects: &'p ParentObjects<'p>,
     ) -> PlanFieldArgumentsBatchView<'view>
     where
         'ctx: 'view,
         'v: 'view,
-        'r: 'view,
+        'p: 'view,
     {
         PlanFieldArgumentsBatchView {
             ctx: self.ctx,
@@ -72,7 +72,6 @@ impl<'ctx> PlanFieldArguments<'ctx> {
         }
     }
 
-    #[allow(unused)]
     pub(crate) fn view<'v, 'r, 'view>(
         &self,
         variables: &'v Variables,
@@ -180,7 +179,7 @@ impl serde::Serialize for PlanFieldArgumentsQueryView<'_> {
 pub(crate) struct PlanFieldArgumentsBatchView<'a> {
     pub(in crate::prepare::cached::query_plan) ctx: CachedOperationContext<'a>,
     pub(in crate::prepare::cached::query_plan) variables: &'a Variables,
-    parent_objects: ParentObjectsView<'a>,
+    parent_objects: &'a ParentObjects<'a>,
     arguments: &'a [PartitionFieldArgumentRecord],
 }
 
@@ -194,7 +193,7 @@ impl serde::Serialize for PlanFieldArgumentsBatchView<'_> {
             query_input_values: &self.ctx.cached.operation.query_input_values,
             variables: self.variables,
         };
-        let mut map = serializer.serialize_map(Some(self.arguments.len()))?;
+        let mut map = serializer.serialize_map(None)?;
         for arg in self.arguments.walk(self.ctx) {
             match arg.value_record {
                 PlanValueRecord::Value(id) => {
@@ -215,7 +214,7 @@ impl serde::Serialize for PlanFieldArgumentsBatchView<'_> {
                         injection => {
                             map.serialize_entry(
                                 arg.definition().name(),
-                                &self.parent_objects.clone().for_injection(injection),
+                                &self.parent_objects.for_injection(injection),
                             )?;
                         }
                     },
@@ -226,7 +225,7 @@ impl serde::Serialize for PlanFieldArgumentsBatchView<'_> {
                                 schema: self.ctx.schema,
                                 key,
                                 value,
-                                callback: &(|injection| self.parent_objects.clone().for_injection(injection)),
+                                callback: &(|injection| self.parent_objects.for_injection(injection)),
                             },
                         )?;
                     }
@@ -254,7 +253,7 @@ impl serde::Serialize for PlanFieldArgumentsView<'_> {
             query_input_values: &self.ctx.cached.operation.query_input_values,
             variables: self.variables,
         };
-        let mut map = serializer.serialize_map(Some(self.arguments.len()))?;
+        let mut map = serializer.serialize_map(None)?;
         for arg in self.arguments.walk(self.ctx) {
             match arg.value_record {
                 PlanValueRecord::Value(id) => {

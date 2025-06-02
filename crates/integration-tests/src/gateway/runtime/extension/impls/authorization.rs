@@ -232,7 +232,7 @@ impl AnyExtension for AuthorizationExt {
                 version: "1.0.0".parse().unwrap(),
             },
             r#type: extension_catalog::Type::Authorization(extension_catalog::AuthorizationType {
-                authorization_directives: None,
+                directives: None,
             }),
             sdl: self.sdl.or(Some(
                 r#"

@@ -151,7 +151,9 @@ pub(super) fn finalize_inaccessible(graph: &mut Graph) {
     }
 
     for (ix, input_value) in graph.input_value_definitions.iter().enumerate() {
-        if is_definition_inaccessible(graph, input_value.ty_record.definition_id) {
+        if is_definition_inaccessible(graph, input_value.ty_record.definition_id)
+            || input_value.is_internal_in_id.is_some()
+        {
             graph.inaccessible_input_value_definitions.set(ix.into(), true);
         }
     }

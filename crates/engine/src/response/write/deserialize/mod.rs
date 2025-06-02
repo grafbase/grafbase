@@ -1,5 +1,5 @@
-mod entity;
 mod r#enum;
+mod error;
 mod field;
 mod key;
 mod list;
@@ -8,19 +8,14 @@ mod root;
 mod scalar;
 mod state;
 
-use entity::EntityFields;
-use object::{ConcreteShapeFieldsSeed, ObjectValue};
+use object::{ConcreteShapeFieldsSeed, ObjectFields};
 use runtime::extension::Data;
 use serde::de::DeserializeSeed;
 
-use crate::{
-    prepare::SubgraphField,
-    response::{GraphqlError, ResponseObjectRef},
-};
+use crate::response::{GraphqlError, ResponseObjectRef};
 
 use self::r#enum::*;
 use list::ListSeed;
-pub(crate) use root::*;
 use scalar::*;
 pub(crate) use state::*;
 
@@ -92,26 +87,6 @@ impl<'parent> SeedState<'_, 'parent> {
                     None
                 }
             }),
-        }
-    }
-
-    pub fn ingest_fields(
-        &self,
-        parent_object: &'parent ResponseObjectRef,
-        fields: &mut Vec<(SubgraphField<'_>, Result<Data, GraphqlError>)>,
-    ) {
-        if let Err(err) = self
-            .parent_seed(parent_object)
-            .deserialize(EntityFields { state: self, fields })
-        {
-            if !self.bubbling_up_deser_error.replace(true) {
-                tracing::error!("Failed to deserialize subgraph response: {}", err);
-                self.response.borrow_mut().insert_error_update(
-                    parent_object,
-                    self.root_shape.id,
-                    GraphqlError::invalid_subgraph_response(),
-                );
-            }
         }
     }
 

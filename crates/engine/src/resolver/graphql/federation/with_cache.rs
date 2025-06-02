@@ -18,12 +18,12 @@ use crate::{
         deserialize::{EntitiesDataSeed, EntityErrorPathConverter, GraphqlErrorsSeed, GraphqlResponseSeed},
         request::ResponseIngester,
     },
-    response::{Deserializable, GraphqlError, ParentObjects, ResponsePartBuilder, SeedState},
+    response::{Deserializable, GraphqlError, ParentObjectSet, ResponsePartBuilder, SeedState},
 };
 
 pub(super) fn ingest_hits<'parent>(
     state: &SeedState<'_, 'parent>,
-    parent_objects: &'parent ParentObjects,
+    parent_objects: &'parent ParentObjectSet,
     hits: Vec<EntityCacheHit>,
 ) {
     for hit in hits {
@@ -39,7 +39,7 @@ pub(super) fn ingest_hits<'parent>(
 
 pub(super) struct PartiallyCachedEntitiesIngester<'ctx, R: Runtime> {
     pub ctx: ExecutionContext<'ctx, R>,
-    pub parent_objects: ParentObjects,
+    pub parent_objects: ParentObjectSet,
     pub cache_fetch_outcome: CacheFetchEntitiesOutcome,
     pub shape_id: RootFieldsShapeId,
     pub subgraph_default_cache_ttl: Option<Duration>,
@@ -137,7 +137,7 @@ where
 
 struct PartiallyCachedEntitiesSeed<'ctx, 'parent, 'state, 'de> {
     state: &'state SeedState<'ctx, 'parent>,
-    parent_objects: &'parent ParentObjects,
+    parent_objects: &'parent ParentObjectSet,
     cache_misses: &'state mut std::vec::IntoIter<EntityCacheMiss>,
     cache_updates: &'state mut Vec<(String, &'de RawValue)>,
 }

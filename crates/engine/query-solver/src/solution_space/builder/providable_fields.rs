@@ -239,15 +239,14 @@ where
             let providable_field_ix = self.query.graph.add_node(SpaceNode::ProvidableField(providable_field));
 
             // if the field has specific requirements for this subgraph we add it to the stack.
-            if let Some(required_field_set) = field_definition.requires_for_subgraph(resolver_definition.subgraph_id())
-            {
+            if let Some(requires) = field_definition.requires_for_subgraph(resolver_definition.subgraph_id()) {
                 self.create_requirement_task_stack.push(CreateRequirementTask {
                     petitioner_field_id: query_field_id,
                     dependent_ix: providable_field_ix,
                     indispensable: false,
                     parent_query_field_node_ix: parent.query_field_node_ix,
                     parent_output_type: parent.output_type,
-                    required_field_set,
+                    required_field_set: requires.field_set(),
                 })
             }
 

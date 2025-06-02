@@ -3,25 +3,25 @@ use std::borrow::Cow;
 use schema::{ExtensionInputValueRecord, InputValueSet};
 use walker::Walk;
 
-use crate::response::{ParentObjectsView, ResponseObjectView};
+use crate::response::{ParentObjects, ResponseObjectView};
 
 use super::{ArgumentsContext, template::JsonContent};
 
 pub struct ExtensionDirectiveArgumentsResponseObjectsView<'a> {
     pub(super) ctx: ArgumentsContext<'a>,
     pub(super) arguments: Vec<(&'a str, &'a ExtensionInputValueRecord)>,
-    pub(super) response_objects_view: &'a ParentObjectsView<'a>,
+    pub(super) parent_objects: &'a ParentObjects<'a>,
 }
 
 impl ExtensionDirectiveArgumentsResponseObjectsView<'_> {
     pub(crate) fn iter(&self) -> impl Iterator<Item = ExtensionDirectiveArgumentsResponseObjectView<'_>> + '_ {
-        self.response_objects_view.iter().map(move |response_object_view| {
-            ExtensionDirectiveArgumentsResponseObjectView {
+        self.parent_objects.iter().map(
+            move |response_object_view| ExtensionDirectiveArgumentsResponseObjectView {
                 ctx: &self.ctx,
                 filtered_arguments: &self.arguments,
                 response_object_view,
-            }
-        })
+            },
+        )
     }
 }
 

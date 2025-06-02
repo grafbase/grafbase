@@ -9,15 +9,15 @@ use tokio::sync::Mutex;
 
 use super::{
     AuthenticationTestExtension, AuthorizationTestExtension, FieldResolverTestExtension,
-    FieldResolverTestExtensionBuilder, SelectionSetResolverTestExtension, SelectionSetResolverTestExtensionBuilder,
+    FieldResolverTestExtensionBuilder, ResolverTestExtension, ResolverTestExtensionBuilder,
 };
 
 #[derive(Default)]
 pub struct TestExtensionsState {
     pub authentication: HashMap<ExtensionId, Arc<dyn AuthenticationTestExtension>>,
     pub authorization: HashMap<ExtensionId, Arc<dyn AuthorizationTestExtension>>,
-    pub selection_set_resolver_builders: HashMap<ExtensionId, Arc<dyn SelectionSetResolverTestExtensionBuilder>>,
-    pub selection_set_resolvers: HashMap<(ExtensionId, SubgraphId), Arc<dyn SelectionSetResolverTestExtension>>,
+    pub selection_set_resolver_builders: HashMap<ExtensionId, Arc<dyn ResolverTestExtensionBuilder>>,
+    pub selection_set_resolvers: HashMap<(ExtensionId, SubgraphId), Arc<dyn ResolverTestExtension>>,
     pub field_resolver_builders: HashMap<ExtensionId, Arc<dyn FieldResolverTestExtensionBuilder>>,
     pub field_resolvers: HashMap<(ExtensionId, SubgraphId), Arc<dyn FieldResolverTestExtension>>,
 }
@@ -46,7 +46,7 @@ impl TestExtensionsState {
         &mut self,
         extension_id: ExtensionId,
         subgraph: Subgraph<'_>,
-    ) -> Arc<dyn SelectionSetResolverTestExtension> {
+    ) -> Arc<dyn ResolverTestExtension> {
         self.selection_set_resolvers
             .entry((extension_id, subgraph.id()))
             .or_insert_with(|| {

@@ -243,7 +243,7 @@ fn build() {
         "name": "test-project",
         "version": "0.1.0"
       },
-      "kind": {
+      "type": {
         "Authorization": {}
       },
       "sdk_version": "<sdk_version>",

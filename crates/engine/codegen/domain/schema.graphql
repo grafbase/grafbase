@@ -95,7 +95,7 @@ type FieldDefinition @meta(module: "field", debug: false) @indexed(id_size: "u32
   subgraph_types: [SubgraphType!]!
   requires: [FieldRequires!]! @field(record_field_name: "requires_records")
   provides: [FieldProvides!]! @field(record_field_name: "provides_records")
-  "The arguments referenced by this range are sorted by their name (string)"
+  "The arguments referenced by this range are sorted by their name (string). Names are NOT unique because of @internal/@require"
   arguments: [InputValueDefinition!]!
   directives: [TypeSystemDirective!]!
   derives: [DeriveDefinition!]!
@@ -214,6 +214,7 @@ type InputValueDefinition @meta(module: "input_value", debug: false) @indexed(id
   parent: InputValueParentDefinition!
   default_value: SchemaInputValue
   directives: [TypeSystemDirective!]!
+  is_internal_in: Subgraph
 }
 
 # --------------
@@ -341,19 +342,13 @@ union ResolverDefinition
   @meta(module: "resolver")
   @variants(
     empty: ["Introspection"]
-    names: [
-      "GraphqlRootField"
-      "GraphqlFederationEntity"
-      "FieldResolverExtension"
-      "SelectionSetResolverExtension"
-      "Lookup"
-    ]
+    names: ["GraphqlRootField", "GraphqlFederationEntity", "FieldResolverExtension", "Extension", "Lookup"]
   )
   @indexed(deduplicated: true, id_size: "u32") =
   | GraphqlRootFieldResolverDefinition
   | GraphqlFederationEntityResolverDefinition
   | FieldResolverExtensionDefinition
-  | SelectionSetResolverExtensionDefinition
+  | ExtensionResolverDefinition
   | LookupResolverDefinition
 
 type GraphqlRootFieldResolverDefinition @meta(module: "resolver/graphql") @copy {
@@ -370,9 +365,11 @@ type FieldResolverExtensionDefinition @meta(module: "resolver/field_resolver_ext
 }
 
 "There will be one per field contrary to GraphqlRootFieldResolverDefinition"
-type SelectionSetResolverExtensionDefinition @meta(module: "resolver/selection_set_resolver_ext") @copy {
+type ExtensionResolverDefinition @meta(module: "resolver/extension") @copy {
   subgraph: VirtualSubgraph!
   extension_id: ExtensionId!
+  directive: ExtensionDirective
+  guest_batch: Boolean!
 }
 
 scalar InputValueInjection @indexed

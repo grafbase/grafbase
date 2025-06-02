@@ -33,13 +33,13 @@ const OBJECT_INDEX_MASK: u32 = (1 << SET_INDEX_SHIFT) - 1;
 /// response, any errors will include the index in the response path, so we need an easy way to
 /// find its respective path on our side.
 #[derive(Default, Clone)]
-pub(crate) struct ParentObjects {
+pub(crate) struct ParentObjectSet {
     sets: Vec<Arc<ResponseObjectSet>>,
     // Upper 8 bits in the set index, the 24 lower is the object index.
     indices: Vec<u32>,
 }
 
-impl ParentObjects {
+impl ParentObjectSet {
     pub fn with_response_objects(mut self, refs: Arc<ResponseObjectSet>) -> Self {
         let n = self.indices.len();
         self.indices.reserve_exact(refs.len());
@@ -133,21 +133,21 @@ impl ParentObjects {
 #[derive(Clone, Copy, PartialEq, Eq, id_derives::Id)]
 pub(crate) struct ParentObjectId(u32);
 
-impl std::ops::Index<ParentObjectId> for ParentObjects {
+impl std::ops::Index<ParentObjectId> for ParentObjectSet {
     type Output = ResponseObjectRef;
     fn index(&self, index: ParentObjectId) -> &Self::Output {
         self.get(usize::from(index)).expect("Out of bounds")
     }
 }
 
-impl std::ops::Index<usize> for ParentObjects {
+impl std::ops::Index<usize> for ParentObjectSet {
     type Output = ResponseObjectRef;
     fn index(&self, index: usize) -> &Self::Output {
         self.get(index).expect("Out of bounds")
     }
 }
 
-impl<'a> IntoIterator for &'a ParentObjects {
+impl<'a> IntoIterator for &'a ParentObjectSet {
     type Item = &'a ResponseObjectRef;
     type IntoIter = ParentObjectIter<'a>;
     fn into_iter(self) -> Self::IntoIter {
@@ -159,7 +159,7 @@ impl<'a> IntoIterator for &'a ParentObjects {
 }
 
 pub(crate) struct ParentObjectIter<'a> {
-    parent_objects: &'a ParentObjects,
+    parent_objects: &'a ParentObjectSet,
     indices_iter: std::slice::Iter<'a, u32>,
 }
 

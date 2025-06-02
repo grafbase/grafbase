@@ -76,7 +76,7 @@ pub(crate) fn ingest_directives<'a>(
     federation::add_not_fully_implemented_in(&mut ingester.graph);
 
     if !for_operation_analytics_only {
-        composite::ingest_composite_field_directives_after_federation(&mut ingester)?;
+        composite::ingest_composite_field_directives_after_federation_and_resolvers(&mut ingester)?;
     }
 
     Ok(())

@@ -3,9 +3,9 @@ use std::borrow::Cow;
 use walker::Walk;
 
 use crate::{
-    FieldResolverExtensionDefinition, FieldSet, GraphqlFederationEntityResolverDefinition,
+    ExtensionResolverDefinition, FieldResolverExtensionDefinition, FieldSet, GraphqlFederationEntityResolverDefinition,
     GraphqlRootFieldResolverDefinition, LookupResolverDefinition, ResolverDefinition, ResolverDefinitionVariant,
-    SelectionSetResolverExtensionDefinition, Subgraph, SubgraphId,
+    Subgraph, SubgraphId,
 };
 
 impl<'a> ResolverDefinition<'a> {
@@ -19,7 +19,7 @@ impl<'a> ResolverDefinition<'a> {
             ResolverDefinitionVariant::GraphqlRootField(resolver) => resolver.endpoint_id.into(),
             ResolverDefinitionVariant::Introspection(_) => SubgraphId::Introspection,
             ResolverDefinitionVariant::FieldResolverExtension(resolver) => resolver.directive().subgraph_id,
-            ResolverDefinitionVariant::SelectionSetResolverExtension(resolver) => resolver.subgraph_id.into(),
+            ResolverDefinitionVariant::Extension(resolver) => resolver.subgraph_id.into(),
             ResolverDefinitionVariant::Lookup(resolver) => resolver.resolver().subgraph_id(),
         }
     }
@@ -39,7 +39,7 @@ impl<'a> ResolverDefinition<'a> {
             ResolverDefinitionVariant::GraphqlRootField(resolver) => resolver.name().into(),
             ResolverDefinitionVariant::GraphqlFederationEntity(resolver) => resolver.name().into(),
             ResolverDefinitionVariant::FieldResolverExtension(resolver) => resolver.name().into(),
-            ResolverDefinitionVariant::SelectionSetResolverExtension(resolver) => resolver.name().into(),
+            ResolverDefinitionVariant::Extension(resolver) => resolver.name().into(),
             ResolverDefinitionVariant::Lookup(resolver) => resolver.name().into(),
         }
     }
@@ -69,7 +69,7 @@ impl LookupResolverDefinition<'_> {
     }
 }
 
-impl SelectionSetResolverExtensionDefinition<'_> {
+impl ExtensionResolverDefinition<'_> {
     pub fn name(&self) -> String {
         format!(
             "SelectionSetResolver#{}#{}",
