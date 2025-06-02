@@ -12,7 +12,7 @@ pub struct TrustedDocumentsConfig {
     /// See [BypassHeader]
     #[serde(flatten)]
     pub bypass_header: BypassHeader,
-    /// The log level to emit logs when a request contains a trusted document id, but the trusted document is not found in object storage. Default: INFO.
+    /// The log level to emit logs when a request contains a trusted document id, but the trusted document is not found in GDN. Default: INFO.
     pub document_id_unknown_log_level: LogLevel,
     /// The log level to emit logs when a request contains a trusted document id and an inline document in `query`, but the trusted document body does not match the inline document. Default: INFO.
     pub document_id_and_query_mismatch_log_level: LogLevel,
