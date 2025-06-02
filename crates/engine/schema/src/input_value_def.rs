@@ -15,3 +15,14 @@ impl std::fmt::Display for InputValueDefinition<'_> {
         Ok(())
     }
 }
+
+impl std::fmt::Debug for InputValueDefinition<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("InputValueDefinition")
+            .field("name", &self.name())
+            .field("ty", &self.ty())
+            .field("default_value", &self.default_value())
+            .field("directives", &self.directives())
+            .finish()
+    }
+}

@@ -81,7 +81,7 @@ fn create_extension_resolvers(ingester: &mut DirectivesIngester<'_, '_>) {
 }
 
 fn create_apollo_federation_entity_resolvers(ingester: &mut DirectivesIngester<'_, '_>) -> Result<(), Error> {
-    for ty in ingester.sdl_definitions.sites.values().copied() {
+    for ty in ingester.definitions.clone().site_id_to_sdl.values().copied() {
         let Some(entity) = ty.as_entity() else {
             continue;
         };
@@ -233,7 +233,8 @@ fn ingest_selection_set_resolvers(ctx: &mut GraphBuilder<'_>) -> Result<(), Stri
 fn ingest_composite_schema_lookup(ingester: &mut DirectivesIngester<'_, '_>) -> Result<(), Error> {
     let query_object_id = ingester.graph.root_operation_types_record.query_id;
     for field_id in ingester.graph[query_object_id].field_ids {
-        let Some(&SdlDefinition::FieldDefinition(field)) = ingester.sdl_definitions.get(&field_id.into()) else {
+        let Some(&SdlDefinition::FieldDefinition(field)) = ingester.definitions.site_id_to_sdl.get(&field_id.into())
+        else {
             // Introspection fields aren't part of the SDL.
             continue;
         };

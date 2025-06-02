@@ -2,6 +2,8 @@ mod definitions;
 mod directives;
 mod selections;
 
+use std::rc::Rc;
+
 use builder::ValuePathSegment;
 use extension_catalog::ExtensionId;
 use fxhash::FxHashMap;
@@ -11,17 +13,22 @@ use selections::SelectionsBuilder;
 
 use crate::*;
 
-use super::{BuildContext, Error, interner::Interner, sdl, value_path_to_string};
+use super::{
+    BuildContext, Error,
+    interner::Interner,
+    sdl::{self, SdlDefinition},
+    value_path_to_string,
+};
 
 pub(crate) use definitions::*;
 pub(crate) use directives::*;
 
 pub(crate) struct GraphBuilder<'a> {
     pub ctx: BuildContext<'a>,
+    pub definitions: Rc<GraphDefinitions<'a>>,
     pub graph: Graph,
     pub root_object_ids: Vec<ObjectDefinitionId>,
     pub required_scopes: Interner<RequiresScopesDirectiveRecord, RequiresScopesDirectiveId>,
-    pub type_definitions: RapidHashMap<&'a str, TypeDefinitionId>,
     pub selections: SelectionsBuilder,
 
     // -- used for coercion
@@ -43,13 +50,15 @@ impl std::ops::DerefMut for GraphBuilder<'_> {
     }
 }
 
-impl GraphBuilder<'_> {
-    pub(crate) fn value_path_string(&self) -> String {
-        value_path_to_string(&self.ctx, &self.value_path)
-    }
+#[derive(Default)]
+pub(crate) struct GraphDefinitions<'sdl> {
+    pub type_name_to_id: RapidHashMap<&'sdl str, TypeDefinitionId>,
+    pub site_id_to_sdl: FxHashMap<DirectiveSiteId, SdlDefinition<'sdl>>,
+}
 
+impl GraphDefinitions<'_> {
     fn get_type_id(&self, name: &str, span: sdl::Span) -> Result<TypeDefinitionId, Error> {
-        let Some(id) = self.type_definitions.get(name) else {
+        let Some(id) = self.type_name_to_id.get(name) else {
             return Err((format!("Unknown type {name}"), span).into());
         };
         Ok(*id)
@@ -69,6 +78,12 @@ impl GraphBuilder<'_> {
             return Err((format!("Type {} is not an interface", name), span).into());
         };
         Ok(id)
+    }
+}
+
+impl GraphBuilder<'_> {
+    pub(crate) fn value_path_string(&self) -> String {
+        value_path_to_string(&self.ctx, &self.value_path)
     }
 
     fn parse_type(&self, ty: &str, span: sdl::Span) -> Result<TypeRecord, Error> {
@@ -91,7 +106,7 @@ impl GraphBuilder<'_> {
             end -= 1;
         }
         Ok(TypeRecord {
-            definition_id: self.get_type_id(&ty[start..end], span)?,
+            definition_id: self.definitions.get_type_id(&ty[start..end], span)?,
             wrapping: sdl::convert_wrappers(wrappers),
         })
     }

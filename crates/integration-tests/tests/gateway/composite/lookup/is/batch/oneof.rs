@@ -3,7 +3,7 @@ use integration_tests::{gateway::Gateway, runtime};
 use super::super::super::{EchoArgs, gql_id, gql2_name};
 
 #[test]
-fn arg_with_same_name() {
+fn basic() {
     runtime().block_on(async {
         let engine = Gateway::builder()
             .with_subgraph(gql_id())
@@ -16,7 +16,7 @@ fn arg_with_same_name() {
                     @init
 
                 type Query {
-                    productBatch(input: Lookup!): [Product!]! @lookup
+                    productBatch(input: Lookup! @is(field: "{ id: [id] }")): [Product!]! @lookup
                 }
 
                 input Lookup @oneOf {
@@ -72,7 +72,7 @@ fn multiple_keys() {
                     @init
 
                 type Query {
-                    productBatch(input: Lookup!): [Product!]! @lookup
+                    productBatch(input: Lookup! @is(field: "{ id: [id] } | { name: [name] }")): [Product!]! @lookup
                 }
 
                 input Lookup @oneOf {
@@ -147,7 +147,7 @@ fn nullable_lookup() {
                     @init
 
                 type Query {
-                    productBatch(input: Lookup): [Product!]! @lookup
+                    productBatch(input: Lookup @is(field: "{ id: [id] }")): [Product!]! @lookup
                 }
 
                 input Lookup @oneOf {
@@ -202,7 +202,7 @@ fn arg_type_compatibility_inner_nullable() {
                     @init
 
                 type Query {
-                    productBatch(input: Lookup!): [Product!]! @lookup
+                    productBatch(input: Lookup! @is(field: "{ id: [id] }")): [Product!]! @lookup
                 }
 
                 input Lookup @oneOf {
@@ -257,7 +257,7 @@ fn arg_with_same_name_and_extra_input_field_with_matching_type() {
                     @init
 
                 type Query {
-                    productBatch(input: Lookup!): [Product!]! @lookup
+                    productBatch(input: Lookup! @is(field: "{ id: [id] }")): [Product!]! @lookup
                 }
 
                 input Lookup @oneOf {
@@ -313,7 +313,7 @@ fn arg_with_different_name() {
                     @init
 
                 type Query {
-                    productBatch(input: Lookup!): [Product!]! @lookup
+                    productBatch(input: Lookup! @is(field: "{ id: [id] }")): [Product!]! @lookup
                 }
 
                 input Lookup @oneOf {
@@ -355,7 +355,7 @@ fn arg_with_different_name() {
 }
 
 #[test]
-fn arg_with_different_name_and_extra_optional_arg_with_matching_name() {
+fn other_input_field() {
     runtime().block_on(async {
         let engine = Gateway::builder()
             .with_subgraph(gql_id())
@@ -368,7 +368,7 @@ fn arg_with_different_name_and_extra_optional_arg_with_matching_name() {
                     @init
 
                 type Query {
-                    productBatch(input: Lookup!): [Product!]! @lookup
+                    productBatch(input: Lookup! @is(field: "{ id: [id] }")): [Product!]! @lookup
                 }
 
                 input Lookup @oneOf {
@@ -411,7 +411,7 @@ fn arg_with_different_name_and_extra_optional_arg_with_matching_name() {
 }
 
 #[test]
-fn good_name_not_a_list() {
+fn invalid_batch() {
     runtime().block_on(async {
         let result = Gateway::builder()
             .with_subgraph(gql_id())
@@ -424,7 +424,7 @@ fn good_name_not_a_list() {
                     @init
 
                 type Query {
-                    productBatch(id: Lookup!): [Product!]! @lookup
+                    productBatch(id: Lookup! @is(field: "{ id: id }")): [Product!]! @lookup
                 }
 
                 input Lookup @oneOf {
@@ -452,7 +452,7 @@ fn good_name_not_a_list() {
 }
 
 #[test]
-fn ambiguous_multiple_arg_matches() {
+fn multiple_injections_oneof() {
     runtime().block_on(async {
         let result = Gateway::builder()
             .with_subgraph(gql_id())
@@ -465,7 +465,7 @@ fn ambiguous_multiple_arg_matches() {
                     @init
 
                 type Query {
-                    productBatch(a: Lookup!, b: Lookup!): [Product!]! @lookup
+                    productBatch(a: Lookup!  @is(field: "{ id: id }"), b: Lookup!  @is(field: "{ id: id }")): [Product!]! @lookup
                 }
 
                 input Lookup @oneOf {
@@ -493,7 +493,7 @@ fn ambiguous_multiple_arg_matches() {
 }
 
 #[test]
-fn lookup_arg_in_a_list() {
+fn multiple_oneof_single_is() {
     runtime().block_on(async {
         let result = Gateway::builder()
             .with_subgraph(gql_id())
@@ -506,7 +506,7 @@ fn lookup_arg_in_a_list() {
                     @init
 
                 type Query {
-                    productBatch(lookup: [Lookup!]): [Product!]! @lookup
+                    productBatch(a: Lookup! @is(field: "{ id: id }"), b: Lookup!): [Product!]! @lookup
                 }
 
                 input Lookup @oneOf {
@@ -528,49 +528,7 @@ fn lookup_arg_in_a_list() {
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         At site Query.productBatch, for directive @lookup no matching @key directive was found
         See schema at 29:3:
-        productBatch(lookup: [Lookup!]): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)
-        "#);
-    })
-}
-
-#[test]
-fn ambiguous_multiple_oneof_field_matches() {
-    runtime().block_on(async {
-        let result = Gateway::builder()
-            .with_subgraph(gql_id())
-            .with_subgraph_sdl(
-                "ext",
-                r#"
-                extend schema
-                    @link(url: "static-1.0.0", import: ["@init"])
-                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
-                    @init
-
-                type Query {
-                    productBatch(lookup: Lookup!): [Product!]! @lookup
-                }
-
-                input Lookup @oneOf {
-                    id: ID
-                    b: ID
-                }
-
-                type Product @key(fields: "id") {
-                    id: ID!
-                    args: JSON
-                }
-
-                scalar JSON
-                "#,
-            )
-            .with_extension(EchoArgs)
-            .try_build()
-            .await;
-
-        insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup no matching @key directive was found
-        See schema at 29:3:
-        productBatch(lookup: Lookup!): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)
+        productBatch(a: Lookup!, b: Lookup!): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)
         "#);
     })
 }
@@ -589,7 +547,7 @@ fn extra_required_argument() {
                     @init
 
                 type Query {
-                    productBatch(lookup: Lookup!, required: Boolean!): [Product!]! @lookup
+                    productBatch(lookup: Lookup! @is(field: "{ id: id }"), required: Boolean!): [Product!]! @lookup
                 }
 
                 input Lookup @oneOf {

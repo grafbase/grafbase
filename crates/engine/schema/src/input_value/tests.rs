@@ -149,7 +149,6 @@ async fn test_input_value() {
             (
                 InputValueDefinition {
                     name: "inputObject",
-                    description: None,
                     ty: Type {
                         definition: InputObjectDefinition {
                             name: "InputObject",
@@ -172,7 +171,6 @@ async fn test_input_value() {
                         (
                             InputValueDefinition {
                                 name: "fieldA",
-                                description: None,
                                 ty: Type {
                                     definition: EnumDefinition {
                                         name: "State",
@@ -215,7 +213,6 @@ async fn test_input_value() {
                         (
                             InputValueDefinition {
                                 name: "fieldB",
-                                description: None,
                                 ty: Type {
                                     definition: ScalarDefinition {
                                         name: "String",
@@ -244,7 +241,6 @@ async fn test_input_value() {
             (
                 InputValueDefinition {
                     name: "list",
-                    description: None,
                     ty: Type {
                         definition: ScalarDefinition {
                             name: "Any",
@@ -280,7 +276,6 @@ async fn test_input_value() {
             (
                 InputValueDefinition {
                     name: "object",
-                    description: None,
                     ty: Type {
                         definition: InputObjectDefinition {
                             name: "ComplexObject",
@@ -303,7 +298,6 @@ async fn test_input_value() {
                         (
                             InputValueDefinition {
                                 name: "null",
-                                description: None,
                                 ty: Type {
                                     definition: ScalarDefinition {
                                         name: "String",
@@ -327,7 +321,6 @@ async fn test_input_value() {
                         (
                             InputValueDefinition {
                                 name: "string",
-                                description: None,
                                 ty: Type {
                                     definition: ScalarDefinition {
                                         name: "String",
@@ -353,7 +346,6 @@ async fn test_input_value() {
                         (
                             InputValueDefinition {
                                 name: "enumValue",
-                                description: None,
                                 ty: Type {
                                     definition: EnumDefinition {
                                         name: "State",
@@ -396,7 +388,6 @@ async fn test_input_value() {
                         (
                             InputValueDefinition {
                                 name: "int",
-                                description: None,
                                 ty: Type {
                                     definition: ScalarDefinition {
                                         name: "Int",
@@ -422,7 +413,6 @@ async fn test_input_value() {
                         (
                             InputValueDefinition {
                                 name: "bigInt",
-                                description: None,
                                 ty: Type {
                                     definition: ScalarDefinition {
                                         name: "BigInt",
@@ -448,7 +438,6 @@ async fn test_input_value() {
                         (
                             InputValueDefinition {
                                 name: "float",
-                                description: None,
                                 ty: Type {
                                     definition: ScalarDefinition {
                                         name: "Float",
@@ -474,7 +463,6 @@ async fn test_input_value() {
                         (
                             InputValueDefinition {
                                 name: "boolean",
-                                description: None,
                                 ty: Type {
                                     definition: ScalarDefinition {
                                         name: "Boolean",

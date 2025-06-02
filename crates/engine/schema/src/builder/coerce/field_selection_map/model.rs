@@ -1,4 +1,4 @@
-use crate::FieldDefinitionId;
+use crate::{FieldDefinitionId, SchemaInputValueId};
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct BoundSelectedValue<Id> {
@@ -38,7 +38,7 @@ impl<Id> BoundSelectedValueEntry<Id> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct BoundPath(pub Vec<FieldDefinitionId>);
 
 impl std::ops::Deref for BoundPath {
@@ -65,7 +65,7 @@ pub(crate) struct BoundSelectedObjectValue<Id> {
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct BoundSelectedObjectField<Id> {
-    pub field_id: Id,
+    pub id: Id,
     pub value: SelectedValueOrField<Id>,
 }
 
@@ -73,6 +73,7 @@ pub(crate) struct BoundSelectedObjectField<Id> {
 pub(crate) enum SelectedValueOrField<Id> {
     Value(BoundSelectedValue<Id>),
     Field(FieldDefinitionId),
+    DefaultValue(SchemaInputValueId),
 }
 
 impl<Id> SelectedValueOrField<Id> {

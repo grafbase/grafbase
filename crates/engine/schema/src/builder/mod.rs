@@ -115,11 +115,11 @@ impl<'a> Builder<'a> {
 
 impl BuildContext<'_> {
     fn build(self, for_operation_analytics_only: bool) -> Result<Schema, Error> {
-        let (mut graph_builder, sdl_definitions, introspection) = ingest_definitions(self)?;
+        let (mut graph_builder, introspection) = ingest_definitions(self)?;
 
         // From this point on the definitions should have been all added and now we interpret the
         // directives.
-        ingest_directives(&mut graph_builder, &sdl_definitions, for_operation_analytics_only)?;
+        ingest_directives(&mut graph_builder, for_operation_analytics_only)?;
 
         let GraphBuilder {
             ctx:

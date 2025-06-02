@@ -2,7 +2,7 @@ use walker::Walk;
 
 use crate::{FieldSet, FieldSetRecord, Schema, SchemaField, SchemaFieldId};
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub struct FieldSetItemRecord {
     pub field_id: SchemaFieldId,
     pub subselection_record: FieldSetRecord,

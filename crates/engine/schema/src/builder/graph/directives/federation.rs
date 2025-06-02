@@ -113,7 +113,8 @@ impl<'sdl> DirectivesIngester<'_, 'sdl> {
             .map(|result| {
                 let (dir, span) = result?;
                 let subgraph_id = self.subgraphs.try_get(dir.graph, span)?;
-                self.get_interface_id(dir.interface, span)
+                self.definitions
+                    .get_interface_id(dir.interface, span)
                     .map(|interface_id| JoinImplementsDefinitionRecord {
                         subgraph_id,
                         interface_id,
@@ -172,7 +173,8 @@ impl<'sdl> DirectivesIngester<'_, 'sdl> {
             .map(|result| {
                 let (dir, span) = result?;
                 let subgraph_id = self.subgraphs.try_get(dir.graph, span)?;
-                self.get_object_id(dir.member, span)
+                self.definitions
+                    .get_object_id(dir.member, span)
                     .map(|member_id| JoinMemberDefinitionRecord { subgraph_id, member_id })
             })
             .collect::<Result<_, _>>()?;
