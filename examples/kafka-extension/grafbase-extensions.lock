@@ -1,0 +1,5 @@
+version = "1"
+
+[[extensions]]
+name = "kafka"
+version = "0.1.1"

@@ -1,0 +1,17 @@
+[graph]
+introspection = true
+
+[extensions.kafka]
+version = "0.1.1"
+
+[[extensions.kafka.config.endpoint]]
+bootstrap_servers = ["localhost:9094"]
+
+[extensions.kafka.config.endpoint.authentication]
+type = "sasl_scram"
+username = "testuser"
+password = "testuser-secret"
+mechanism = "sha512"
+
+[subgraphs.kafka]
+schema_path = "subgraph.graphql"
