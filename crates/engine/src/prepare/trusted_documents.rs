@@ -342,7 +342,7 @@ async fn handle_apq<'r, 'f>(
     ))
 }
 
-/// When a request contains a trusted document id, but the trusted document is not found in GDN. Default: INFO.
+/// When a request contains a trusted document id, but the trusted document is not found in object storage. Default: INFO.
 fn log_unknown_trusted_document_id<R: Runtime>(engine: &Engine<R>, document_id: &str) {
     const MESSAGE: &str = "Unknown trusted document";
 
