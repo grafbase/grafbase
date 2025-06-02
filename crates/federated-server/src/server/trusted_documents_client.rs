@@ -70,7 +70,7 @@ impl runtime::trusted_documents_client::TrustedDocumentsClient for TrustedDocume
         document_id: &str,
     ) -> runtime::trusted_documents_client::TrustedDocumentsResult<String> {
         let branch_id = self.branch_id;
-        let key = format!("trusted-documents/{branch_id}/{client_name}/{document_id}");
+        let key = format!("trusted-documents/branch/{branch_id}/{client_name}/{document_id}");
 
         let mut url = self.assets_host.clone();
         url.set_path(&key);

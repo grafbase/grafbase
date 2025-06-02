@@ -1,5 +1,5 @@
 use crate::{
-    GdnResponse,
+    ObjectStorageResponse,
     server::{engine_reloader::GraphSender, gateway::GraphDefinition},
 };
 
@@ -21,8 +21,8 @@ use url::Url;
 /// How often we poll updates to the graph.
 const TICK_INTERVAL: Duration = Duration::from_secs(10);
 
-/// How long we wait for a response from the schema registry.
-const GDN_TIMEOUT: Duration = Duration::from_secs(10);
+/// How long we wait for a response from object storage.
+const OBJECT_STORAGE_TIMEOUT: Duration = Duration::from_secs(10);
 
 /// How long we wait until a connection is successfully opened.
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
@@ -39,8 +39,11 @@ const KEEPALIVE_WHILE_IDLE: bool = true;
 /// The HTTP user-agent header we sent to the schema registry.
 const USER_AGENT: &str = "grafbase-cli";
 
-/// The CDN host we load the graphs from.
-const GDN_HOST: &str = "https://gdn.grafbase.com";
+/// The default CDN host we load the graphs from.
+const DEFAULT_OBJECT_STORAGE_HOST: &str = "https://object-storage.grafbase.com";
+
+/// The name of the environment variable used to read the object storage host from.
+const OBJECT_STORAGE_HOST_ENV_VAR: &str = "GRAFBASE_OBJECT_STORAGE_URL";
 
 #[derive(Debug, Clone, Copy)]
 enum ResponseKind {
@@ -51,7 +54,7 @@ enum ResponseKind {
     /// Indicates that an HTTP error occurred while fetching the graph.
     HttpError,
     /// Indicates that a Grafbase-specific error occurred.
-    GdnError,
+    ObjectStorageError,
 }
 
 impl ResponseKind {
@@ -60,12 +63,12 @@ impl ResponseKind {
             ResponseKind::New => "NEW",
             ResponseKind::Unchanged => "UNCHANGED",
             ResponseKind::HttpError => "HTTP_ERROR",
-            ResponseKind::GdnError => "GDN_ERROR",
+            ResponseKind::ObjectStorageError => "OBJECT_STORAGE_ERROR",
         }
     }
 }
 
-struct GdnFetchLatencyAttributes {
+struct ObjectStorageFetchLatencyAttributes {
     /// The kind of response received from the server.
     kind: ResponseKind,
     /// The HTTP status code of the response, if applicable.
@@ -73,23 +76,23 @@ struct GdnFetchLatencyAttributes {
 }
 
 /// A struct representing a GraphUpdater, which is responsible for polling updates
-/// from the Graph Delivery Network and managing the associated state.
-pub struct GdnGraphUpdater {
-    gdn_url: Url,
-    gdn_client: reqwest::Client,
+/// from object storage and managing the associated state.
+pub struct ObjectStorageUpdater {
+    object_storage_url: Url,
+    object_storage_client: reqwest::Client,
     access_token: AsciiString,
     sender: GraphSender,
     current_id: Option<Ulid>,
     latencies: Histogram<u64>,
 }
 
-impl GdnGraphUpdater {
+impl ObjectStorageUpdater {
     /// Creates a new instance of `GraphUpdater`.
     ///
     /// # Arguments
     ///
     /// * `graph_ref` - A reference to the graph to be updated.
-    /// * `access_token` - The access token for authentication with the GDN.
+    /// * `access_token` - The access token for authentication with the object storage service.
     /// * `sender` - The sender used to send a new instance of the gateway to the server.
     /// * `gateway_config` - Configuration settings for the gateway.
     /// * `hooks` - Hooks for custom behavior during operation execution.
@@ -98,8 +101,8 @@ impl GdnGraphUpdater {
     ///
     /// Returns an error if the HTTP client cannot be built or if the URL parsing fails.
     pub fn new(graph_ref: GraphRef, access_token: AsciiString, sender: GraphSender) -> crate::Result<Self> {
-        let gdn_client = reqwest::ClientBuilder::new()
-            .timeout(GDN_TIMEOUT)
+        let object_storage_client = reqwest::ClientBuilder::new()
+            .timeout(OBJECT_STORAGE_TIMEOUT)
             .connect_timeout(CONNECT_TIMEOUT)
             .http2_keep_alive_interval(Some(KEEPALIVE_INTERVAL))
             .http2_keep_alive_timeout(KEEPALIVE_TIMEOUT)
@@ -108,36 +111,38 @@ impl GdnGraphUpdater {
             .build()
             .map_err(|e| crate::Error::InternalError(e.to_string()))?;
 
-        let gdn_host = match std::env::var("GRAFBASE_GDN_URL") {
+        let object_storage_host = match std::env::var(OBJECT_STORAGE_HOST_ENV_VAR) {
             Ok(host) => Cow::Owned(host),
-            Err(_) => Cow::Borrowed(GDN_HOST),
+            Err(_) => Cow::Borrowed(DEFAULT_OBJECT_STORAGE_HOST),
         };
 
-        let gdn_url = match graph_ref {
-            GraphRef::LatestProductionVersion { graph_slug } => format!("{gdn_host}/graphs/{graph_slug}/current"),
+        let object_storage_url = match graph_ref {
+            GraphRef::LatestProductionVersion { graph_slug } => {
+                format!("{object_storage_host}/graphs/{graph_slug}")
+            }
             GraphRef::LatestVersion {
                 graph_slug,
                 branch_name,
-            } => format!("{gdn_host}/graphs/{graph_slug}/{branch_name}/current"),
+            } => format!("{object_storage_host}/graphs/{graph_slug}/branch/{branch_name}"),
             GraphRef::Id {
                 graph_slug,
                 branch_name,
                 version,
-            } => format!("{gdn_host}/graphs/{graph_slug}/{branch_name}/{version}"),
+            } => format!("{object_storage_host}/graphs/{graph_slug}/branch/{branch_name}/version/{version}"),
         };
 
-        let gdn_url = gdn_url
+        let object_storage_url = object_storage_url
             .parse::<Url>()
             .map_err(|e| crate::Error::InternalError(e.to_string()))?;
 
         Ok(Self {
-            gdn_url,
-            gdn_client,
+            object_storage_url,
+            object_storage_client,
             access_token,
             sender,
             current_id: None,
             latencies: meter_from_global_provider()
-                .u64_histogram("gdn.request.duration")
+                .u64_histogram("object_storage.request.duration")
                 .build(),
         })
     }
@@ -152,7 +157,7 @@ impl GdnGraphUpdater {
     pub async fn poll(&mut self) {
         let mut interval = tokio::time::interval(TICK_INTERVAL);
 
-        // if we have a slow connection, this prevents bursts of connections to the GDN
+        // if we have a slow connection, this prevents bursts of connections to object storage
         // for all the missed ticks.
         interval.set_missed_tick_behavior(MissedTickBehavior::Skip);
 
@@ -160,8 +165,8 @@ impl GdnGraphUpdater {
             interval.tick().await;
 
             let mut request = self
-                .gdn_client
-                .get(self.gdn_url.as_str())
+                .object_storage_client
+                .get(self.object_storage_url.as_str())
                 .bearer_auth(&self.access_token);
 
             if let Some(id) = self.current_id {
@@ -179,7 +184,7 @@ impl GdnGraphUpdater {
                 Ok(response) => response,
                 Err(e) => {
                     self.record_duration(
-                        GdnFetchLatencyAttributes {
+                        ObjectStorageFetchLatencyAttributes {
                             kind: ResponseKind::HttpError,
                             status_code: None,
                         },
@@ -193,7 +198,7 @@ impl GdnGraphUpdater {
 
             if response.status() == StatusCode::NOT_MODIFIED {
                 self.record_duration(
-                    GdnFetchLatencyAttributes {
+                    ObjectStorageFetchLatencyAttributes {
                         kind: ResponseKind::Unchanged,
                         status_code: Some(response.status()),
                     },
@@ -206,8 +211,8 @@ impl GdnGraphUpdater {
 
             if let Err(e) = response.error_for_status_ref() {
                 self.record_duration(
-                    GdnFetchLatencyAttributes {
-                        kind: ResponseKind::GdnError,
+                    ObjectStorageFetchLatencyAttributes {
+                        kind: ResponseKind::ObjectStorageError,
                         status_code: e.status(),
                     },
                     duration,
@@ -226,12 +231,12 @@ impl GdnGraphUpdater {
                 continue;
             }
 
-            let response: GdnResponse = match response.json().await {
+            let response: ObjectStorageResponse = match response.json().await {
                 Ok(response) => response,
                 Err(e) => {
                     self.record_duration(
-                        GdnFetchLatencyAttributes {
-                            kind: ResponseKind::GdnError,
+                        ObjectStorageFetchLatencyAttributes {
+                            kind: ResponseKind::ObjectStorageError,
                             status_code: e.status(),
                         },
                         duration,
@@ -247,7 +252,7 @@ impl GdnGraphUpdater {
             let version_id = response.version_id;
 
             self.record_duration(
-                GdnFetchLatencyAttributes {
+                ObjectStorageFetchLatencyAttributes {
                     kind: ResponseKind::New,
                     status_code: None,
                 },
@@ -257,7 +262,7 @@ impl GdnGraphUpdater {
             self.current_id = Some(version_id);
 
             self.sender
-                .send(GraphDefinition::Gdn(response))
+                .send(GraphDefinition::ObjectStorage(response))
                 .await
                 .expect("internal error: channel closed");
         }
@@ -265,12 +270,12 @@ impl GdnGraphUpdater {
 
     fn record_duration(
         &self,
-        GdnFetchLatencyAttributes { kind, status_code }: GdnFetchLatencyAttributes,
+        ObjectStorageFetchLatencyAttributes { kind, status_code }: ObjectStorageFetchLatencyAttributes,
         duration: Duration,
     ) {
         let mut attributes = vec![
-            KeyValue::new("server.address", self.gdn_url.to_string()),
-            KeyValue::new("gdn.response.kind", kind.as_str()),
+            KeyValue::new("server.address", self.object_storage_url.to_string()),
+            KeyValue::new("object_storage.response.kind", kind.as_str()),
         ];
 
         if let Some(status_code) = status_code {
