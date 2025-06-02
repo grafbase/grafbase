@@ -4,8 +4,8 @@
 
 mod hot_reload;
 pub use error::Error;
+pub use server::GdnResponse;
 pub use server::GraphFetchMethod;
-pub use server::ObjectStorageResponse;
 
 mod error;
 mod server;

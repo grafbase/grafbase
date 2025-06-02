@@ -6,7 +6,7 @@ use crate::{
 use indoc::formatdoc;
 
 #[test]
-fn object_storage_update() {
+fn gdn_update() {
     let service_name = format!("service_{}", ulid::Ulid::new());
     let schema = load_schema("big");
     let clickhouse = clickhouse_client();
@@ -52,7 +52,7 @@ fn object_storage_update() {
             FROM otel_metrics_exponential_histogram
             WHERE ServiceName = ?
                 AND ScopeName = 'grafbase'
-                AND MetricName = 'object_storage.request.duration'
+                AND MetricName = 'gdn.request.duration'
         "#};
 
         let row = clickhouse
@@ -64,13 +64,10 @@ fn object_storage_update() {
             .unwrap();
 
         assert_eq!(1, row.count);
-        assert_eq!(
-            Some("NEW"),
-            row.attributes.get("object_storage.response.kind").map(|s| s.as_str()),
-        );
+        assert_eq!(Some("NEW"), row.attributes.get("gdn.response.kind").map(|s| s.as_str()),);
 
         assert_eq!(
-            Some(&format!("http://{addr}/graphs/test_graph")),
+            Some(&format!("http://{addr}/graphs/test_graph/current")),
             row.attributes.get("server.address"),
         );
     });

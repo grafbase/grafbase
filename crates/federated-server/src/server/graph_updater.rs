@@ -1,5 +1,5 @@
-mod object_storage;
+mod gdn;
 mod schema_file;
 
-pub(super) use object_storage::ObjectStorageUpdater;
+pub(super) use gdn::GdnGraphUpdater;
 pub(super) use schema_file::SchemaFileGraphUpdater;
