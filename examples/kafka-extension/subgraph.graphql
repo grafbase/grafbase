@@ -1,0 +1,37 @@
+extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.0", import: ["@key", "@shareable"])
+  @link(
+    url: "https://grafbase.com/extensions/kafka/0.1.1"
+    import: ["@kafkaProducer", "@kafkaPublish", "@kafkaSubscription"]
+  )
+  @kafkaProducer(name: "test-producer", topic: "test-topic")
+
+type Query {
+  hello: String!
+}
+
+type Mutation {
+  publishUserEvent(id: Int!, input: UserEventInput!): Boolean!
+    @kafkaPublish(producer: "test-producer", key: "publish.user.{{args.id}}")
+}
+
+type Subscription {
+  allUserEvents: UserEvent @kafkaSubscription(topic: "test-topic", consumerConfig: { maxWaitTimeMs: 10000 })
+
+  filteredUserEvents(id: Int!): UserEvent
+    @kafkaSubscription(
+      topic: "test-producer"
+      keyFilter: "publish.user.{{args.filter}}"
+      consumerConfig: { maxWaitTimeMs: 10000 }
+    )
+}
+
+input UserEventInput {
+  email: String!
+  name: String!
+}
+
+type UserEvent {
+  email: String!
+  name: String!
+}

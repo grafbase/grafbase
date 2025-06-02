@@ -1,0 +1,147 @@
+services:
+  # Format storage for unified kafka
+  kafka-format:
+    image: confluentinc/cp-kafka:latest
+    command: |
+      bash -c "
+        kafka-storage format --config /tmp/server.properties --cluster-id test-kafka-cluster-unified --ignore-formatted || exit 0
+      "
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+      - ./docker/kafka/kraft-configs/kafka-unified.properties:/tmp/server.properties:ro
+    restart: 'no'
+
+  # Unified Kafka broker supporting multiple authentication methods (KRaft mode)
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      kafka-format:
+        condition: service_completed_successfully
+    ports:
+      - '9092:9092' # PLAINTEXT (no auth)
+      - '9093:9093' # SASL_PLAINTEXT (SASL/PLAIN)
+      - '9094:9094' # SASL_PLAINTEXT (SASL/SCRAM)
+    environment:
+      CLUSTER_ID: 'test-kafka-cluster-unified'
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:29091
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+
+      # Multiple listeners for different auth methods
+      KAFKA_LISTENERS: >-
+        PLAINTEXT://kafka:29092,
+        PLAINTEXT_HOST://0.0.0.0:9092,
+        SASL_PLAINTEXT://kafka:29093,
+        SASL_PLAINTEXT_HOST_PLAIN://0.0.0.0:9093,
+        SASL_PLAINTEXT_HOST_SCRAM://0.0.0.0:9094,
+        CONTROLLER://kafka:29091
+
+      KAFKA_ADVERTISED_LISTENERS: >-
+        PLAINTEXT://kafka:29092,
+        PLAINTEXT_HOST://localhost:9092,
+        SASL_PLAINTEXT://kafka:29093,
+        SASL_PLAINTEXT_HOST_PLAIN://localhost:9093,
+        SASL_PLAINTEXT_HOST_SCRAM://localhost:9094,
+
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: >-
+        PLAINTEXT:PLAINTEXT,
+        PLAINTEXT_HOST:PLAINTEXT,
+        SASL_PLAINTEXT:SASL_PLAINTEXT,
+        SASL_PLAINTEXT_HOST_PLAIN:SASL_PLAINTEXT,
+        SASL_PLAINTEXT_HOST_SCRAM:SASL_PLAINTEXT,
+        CONTROLLER:PLAINTEXT
+
+      # SASL Configuration
+      KAFKA_SASL_ENABLED_MECHANISMS: PLAIN,SCRAM-SHA-512
+      KAFKA_LISTENER_NAME_SASL_PLAINTEXT_HOST_PLAIN_SASL_ENABLED_MECHANISMS: PLAIN
+      KAFKA_LISTENER_NAME_SASL_PLAINTEXT_HOST_SCRAM_SASL_ENABLED_MECHANISMS: SCRAM-SHA-512
+      KAFKA_LISTENER_NAME_SASL_PLAINTEXT_SASL_ENABLED_MECHANISMS: PLAIN
+      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: PLAIN
+
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+
+      # Standard Kafka settings
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_NUM_PARTITIONS: 4
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+
+      KAFKA_OPTS: >-
+        -Djava.security.auth.login.config=/etc/kafka/kafka_server_jaas.conf
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+      - ./docker/kafka/config/kafka_server_jaas_unified.conf:/etc/kafka/kafka_server_jaas.conf
+      - ./docker/kafka/config/ssl:/etc/kafka/secrets
+    restart: unless-stopped
+    healthcheck:
+      test: |
+        nc -z localhost 9092 &&
+        nc -z localhost 9093 &&
+        nc -z localhost 9094 || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+
+  # Create SCRAM users
+  kafka-scram-users:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      kafka:
+        condition: service_healthy
+    command: |
+      bash -c "
+        echo 'Waiting for Kafka to be ready...' &&
+        sleep 3 &&
+        echo 'Creating SCRAM users using PLAIN authentication...' &&
+        kafka-configs --bootstrap-server localhost:9093 --command-config /tmp/admin_client.properties --alter --add-config 'SCRAM-SHA-512=[password=admin-secret]' --entity-type users --entity-name admin &&
+        kafka-configs --bootstrap-server localhost:9093 --command-config /tmp/admin_client.properties --alter --add-config 'SCRAM-SHA-512=[password=testuser-secret]' --entity-type users --entity-name testuser &&
+        echo 'SCRAM users created successfully'
+      "
+    volumes:
+      - ./docker/kafka/config/kafka_admin_client_plain.conf:/tmp/admin_client.properties
+    network_mode: 'service:kafka'
+    restart: 'no'
+
+  # Topic creation for all authentication methods
+  kafka-topics:
+    image: confluentinc/cp-kafka:latest
+    container_name: kafka-topics
+    depends_on:
+      kafka-scram-users:
+        condition: service_completed_successfully
+    command: |
+      bash -c "
+        echo 'Creating topics for all authentication methods...' &&
+
+        # Create topic using PLAINTEXT
+        kafka-topics --bootstrap-server localhost:9092 --create --topic test-topic --partitions 4 --replication-factor 1 --if-not-exists &&
+        echo 'Topic created'
+
+        # Verify topic creation
+        kafka-topics --bootstrap-server localhost:9093 --list --command-config /tmp/sasl_plain_client.properties &&
+
+        echo 'All topic operations completed successfully'
+      "
+    volumes:
+      - ./docker/kafka/config/kafka_client_jaas_plain.conf:/tmp/sasl_plain_client.properties
+      - ./docker/kafka/config/kafka_client_jaas_scram.conf:/tmp/sasl_scram_client.properties
+    network_mode: 'service:kafka'
+    restart: 'no'
+
+networks:
+  hydra:
+  hydra-2:
+  nats:
+  postgres:
+
+volumes:
+  hydra-sqlite:
+  hydra-2-sqlite:
+  postgres-data:
+  kafka-data:
