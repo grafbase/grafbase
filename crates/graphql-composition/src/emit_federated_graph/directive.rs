@@ -123,6 +123,10 @@ fn transform_common_directive(ctx: &mut Context<'_>, directive: &ir::Directive) 
             ctx.used_directives |= UsedDirectives::COMPOSITE_DERIVE;
             federated::Directive::CompositeDerive { graph: *subgraph_id }
         }
+        ir::Directive::CompositeInternal(subgraph_id) => {
+            ctx.used_directives |= UsedDirectives::COMPOSITE_INTERNAL;
+            federated::Directive::CompositeInternal { graph: *subgraph_id }
+        }
         ir::Directive::CompositeRequire { subgraph_id, field } => {
             ctx.used_directives |= UsedDirectives::COMPOSITE_REQUIRE;
             let field = ctx.insert_string(ctx.subgraphs.walk(*field));
@@ -496,6 +500,7 @@ pub(super) fn emit_composite_spec_directive_definitions(ctx: &mut Context<'_>) {
     let require_str = ctx.insert_str("require");
     let is_str = ctx.insert_str("is");
     let field_str = ctx.insert_str("field");
+    let internal_str = ctx.insert_str("internal");
 
     if ctx.used_directives.contains(UsedDirectives::COMPOSITE_LOOKUP) {
         // directive @lookup on FIELD_DEFINITION
@@ -579,5 +584,17 @@ pub(super) fn emit_composite_spec_directive_definitions(ctx: &mut Context<'_>) {
                 default: None,
             },
         );
+    }
+
+    if ctx.used_directives.contains(UsedDirectives::COMPOSITE_INTERNAL) {
+        // https://github.com/graphql/composite-schemas-spec/blob/main/spec/Section%202%20--%20Source%20Schema.md#internal
+        // directive @internal on OBJECT | FIELD_DEFINITION
+
+        ctx.out.push_directive_definition(federated::DirectiveDefinitionRecord {
+            namespace: composite_namespace,
+            name: internal_str,
+            locations: federated::DirectiveLocations::OBJECT | federated::DirectiveLocations::FIELD_DEFINITION,
+            repeatable: false,
+        });
     }
 }

@@ -1,3 +1,6 @@
+mod visibility;
+
+use self::visibility::*;
 use super::{directive::write_directive, directive_definition::display_directive_definitions, display_utils::*};
 use crate::{FederatedGraph, directives::*, federated_graph::*};
 use std::fmt::{self, Write as _};
@@ -33,7 +36,7 @@ impl fmt::Display for Renderer<'_> {
         display_directive_definitions(|def| def.namespace.is_none(), public_directives_filter, graph, f)?;
 
         for r#enum in graph.iter_enum_definitions() {
-            if has_inaccessible(&r#enum.directives) || r#enum.namespace.is_some() {
+            if is_inaccessible(&r#enum.directives) || r#enum.namespace.is_some() {
                 continue;
             }
 
@@ -47,7 +50,7 @@ impl fmt::Display for Renderer<'_> {
 
             write_block(f, |f| {
                 for variant in graph.iter_enum_values(r#enum.id()) {
-                    if has_inaccessible(&variant.directives) {
+                    if is_inaccessible(&variant.directives) {
                         continue;
                     }
 
@@ -61,13 +64,13 @@ impl fmt::Display for Renderer<'_> {
         }
 
         for object in graph.iter_objects() {
-            if has_inaccessible(&object.directives) {
+            if is_inaccessible(&object.directives) {
                 continue;
             }
 
             if graph[object.fields.clone()].iter().all(|field| {
                 let field_name = &graph[field.name];
-                field_name.starts_with("__") || has_inaccessible(&field.directives)
+                field_name.starts_with("__") || is_inaccessible(&field.directives)
             }) {
                 continue;
             }
@@ -84,7 +87,7 @@ impl fmt::Display for Renderer<'_> {
                 for field in &graph[object.fields.clone()] {
                     let field_name = &graph[field.name];
 
-                    if field_name.starts_with("__") || has_inaccessible(&field.directives) {
+                    if field_name.starts_with("__") || is_inaccessible(&field.directives) {
                         continue;
                     }
 
@@ -105,7 +108,7 @@ impl fmt::Display for Renderer<'_> {
         }
 
         for interface in &graph.interfaces {
-            if has_inaccessible(&interface.directives) {
+            if is_inaccessible(&interface.directives) {
                 continue;
             }
 
@@ -119,7 +122,7 @@ impl fmt::Display for Renderer<'_> {
 
             write_block(f, |f| {
                 for field in &graph[interface.fields.clone()] {
-                    if has_inaccessible(&field.directives) {
+                    if is_inaccessible(&field.directives) {
                         continue;
                     }
 
@@ -141,7 +144,7 @@ impl fmt::Display for Renderer<'_> {
         }
 
         for input_object in &graph.input_objects {
-            if has_inaccessible(&input_object.directives) {
+            if is_inaccessible(&input_object.directives) {
                 continue;
             }
 
@@ -156,7 +159,7 @@ impl fmt::Display for Renderer<'_> {
 
             write_block(f, |f| {
                 for field in &graph[input_object.fields] {
-                    if has_inaccessible(&field.directives) {
+                    if is_inaccessible(&field.directives) {
                         continue;
                     }
 
@@ -182,7 +185,7 @@ impl fmt::Display for Renderer<'_> {
         }
 
         for union in &graph.unions {
-            if has_inaccessible(&union.directives) {
+            if is_inaccessible(&union.directives) {
                 continue;
             }
 
@@ -215,7 +218,7 @@ impl fmt::Display for Renderer<'_> {
                 continue;
             }
 
-            if BUILTIN_SCALARS.contains(&scalar_name) || has_inaccessible(&scalar.directives) {
+            if BUILTIN_SCALARS.contains(&scalar_name) || is_inaccessible(&scalar.directives) {
                 continue;
             }
 
@@ -231,12 +234,6 @@ impl fmt::Display for Renderer<'_> {
 
         Ok(())
     }
-}
-
-fn has_inaccessible(directives: &[Directive]) -> bool {
-    directives
-        .iter()
-        .any(|directive| matches!(directive, Directive::Inaccessible))
 }
 
 fn public_directives_filter(directive: &Directive, graph: &FederatedGraph) -> bool {
@@ -258,7 +255,8 @@ fn public_directives_filter(directive: &Directive, graph: &FederatedGraph) -> bo
         | Directive::CompositeDerive { .. }
         | Directive::CompositeRequire { .. }
         | Directive::CompositeIs { .. }
-        | Directive::ExtensionDirective { .. } => false,
+        | Directive::ExtensionDirective { .. }
+        | Directive::CompositeInternal { .. } => false,
 
         Directive::Other { name, .. } if graph[*name] == "tag" => false,
         Directive::Deprecated { .. } | Directive::Other { .. } => true,

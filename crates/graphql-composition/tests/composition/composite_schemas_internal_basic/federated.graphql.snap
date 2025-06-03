@@ -1,0 +1,56 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: "Internal fields should not appear in the composite schema, but they should be represented in the composite execution schema.\n\nAlso, internal fields do not count toward field collisions"
+input_file: crates/graphql-composition/tests/composition/composite_schemas_internal_basic/test.md
+---
+directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
+
+directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
+
+directive @join__graph(name: String!, url: String) on ENUM_VALUE
+
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, overrideLabel: String) on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+directive @join__type(graph: join__Graph, key: join__FieldSet, extension: Boolean = false, resolvable: Boolean = true, isInterfaceObject: Boolean = false) on SCALAR | OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+directive @composite__lookup on FIELD_DEFINITION
+
+directive @composite__internal on OBJECT | FIELD_DEFINITION
+
+scalar join__FieldSet
+
+type Garlic
+  @join__type(graph: BASE, key: "id", resolvable: false)
+  @join__type(graph: ORIGIN, key: "id", resolvable: false)
+{
+  barCode: Int @composite__internal(graph: BASE) @join__field(graph: BASE)
+  cloveCount: Int @join__field(graph: BASE)
+  color: String @join__field(graph: BASE)
+  id: ID!
+  origin: String @join__field(graph: ORIGIN)
+  size: Size @join__field(graph: BASE)
+  variety: String! @composite__internal(graph: ORIGIN)
+}
+
+type Query
+{
+  allGarlics: [Garlic!]! @join__field(graph: ORIGIN)
+  plant(id: ID!): Garlic @composite__internal(graph: BASE) @composite__lookup(graph: BASE) @composite__lookup(graph: ORIGIN) @join__field(graph: BASE) @join__field(graph: ORIGIN)
+  searchGarlicsByVariety(term: String!): [Garlic!]! @join__field(graph: ORIGIN)
+}
+
+enum Size
+  @join__type(graph: BASE)
+{
+  SMALL
+  MEDIUM
+  LARGE
+}
+
+enum join__Graph
+{
+  BASE @join__graph(name: "base", url: "http://example.com/base")
+  ORIGIN @join__graph(name: "origin", url: "http://example.com/origin")
+}

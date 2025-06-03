@@ -4,11 +4,11 @@ mod match_name;
 
 pub(super) use match_name::*;
 
-use cynic_parser_deser::ConstDeserializer;
-use graphql_federated_graph::directives::{CostDirective, DeprecatedDirective, ListSizeDirective};
-
 use self::consts::*;
 use super::*;
+use crate::composition_ir as ir;
+use cynic_parser_deser::ConstDeserializer;
+use graphql_federated_graph::directives::{CostDirective, DeprecatedDirective, ListSizeDirective};
 
 pub(super) fn ingest_directives(
     ctx: &mut Context<'_>,
@@ -123,6 +123,12 @@ pub(super) fn ingest_directives(
             }
             DirectiveNameMatch::Inaccessible => {
                 ctx.subgraphs.set_inaccessible(directive_site_id);
+            }
+            DirectiveNameMatch::Internal => {
+                ctx.subgraphs.push_ir_directive(
+                    directive_site_id,
+                    ir::Directive::CompositeInternal(ctx.subgraph_id.idx().into()),
+                );
             }
             DirectiveNameMatch::OneOf => {
                 ctx.subgraphs.set_one_of(directive_site_id);

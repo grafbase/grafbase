@@ -1,0 +1,14 @@
+extend schema
+  @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@is", "@internal"])
+
+type Garlic @key(fields: "id") {
+  id: ID!
+  variety: String! @internal
+  origin: String
+}
+
+type Query {
+  plant(id: ID!): Garlic @lookup
+  allGarlics: [Garlic!]!
+  searchGarlicsByVariety(term: String!): [Garlic!]!
+}

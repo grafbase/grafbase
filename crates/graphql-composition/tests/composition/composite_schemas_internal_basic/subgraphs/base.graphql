@@ -1,0 +1,21 @@
+extend schema
+  @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@internal", "@lookup", "@key", "@is"])
+
+type Garlic @key(fields: "id") {
+  id: ID!
+  variety: String!
+  color: String
+  size: Size
+  cloveCount: Int
+  barCode: Int @internal
+}
+
+enum Size {
+  SMALL
+  MEDIUM
+  LARGE
+}
+
+type Query {
+  plant(id: ID!): Garlic @internal @lookup
+}

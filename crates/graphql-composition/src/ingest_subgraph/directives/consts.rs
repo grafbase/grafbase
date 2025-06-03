@@ -5,6 +5,7 @@ pub(super) const COST: &str = "cost";
 pub(super) const EXTERNAL: &str = "external";
 pub(super) const INACCESSIBLE: &str = "inaccessible";
 pub(super) const INTERFACE_OBJECT: &str = "interfaceObject";
+pub(super) const INTERNAL: &str = "internal";
 pub(super) const KEY: &str = "key";
 pub(super) const LINK: &str = "link";
 pub(super) const LIST_SIZE: &str = "listSize";

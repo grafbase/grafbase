@@ -198,7 +198,12 @@ pub(super) fn compose_field<'a>(
             .iter()
             .filter(|f| {
                 let d = f.directives();
-                !(d.shareable() || d.external() || f.is_part_of_key() || d.r#override().is_some())
+                !(d.shareable()
+                    || d.external()
+                    || f.is_part_of_key()
+                    || d.iter_ir_directives()
+                        .any(|d| matches!(d, ir::Directive::CompositeInternal(_)))
+                    || d.r#override().is_some())
             })
             .count()
             > 1

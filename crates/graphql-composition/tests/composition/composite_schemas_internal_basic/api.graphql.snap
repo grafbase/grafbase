@@ -1,0 +1,25 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: actual_api_sdl
+input_file: crates/graphql-composition/tests/composition/composite_schemas_internal_basic/test.md
+---
+enum Size {
+  SMALL
+  MEDIUM
+  LARGE
+}
+
+type Garlic {
+  cloveCount: Int
+  color: String
+  id: ID!
+  origin: String
+  size: Size
+  variety: String!
+}
+
+type Query {
+  allGarlics: [Garlic!]!
+  plant(id: ID!): Garlic
+  searchGarlicsByVariety(term: String!): [Garlic!]!
+}
