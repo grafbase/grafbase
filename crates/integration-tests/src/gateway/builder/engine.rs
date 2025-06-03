@@ -18,7 +18,7 @@ pub(super) async fn build(
 ) -> Result<(Arc<Engine<TestRuntime>>, TestRuntimeContext), String> {
     let federated_sdl = {
         let mut federated_graph = match federated_sdl {
-            Some(sdl) => federated_graph::FederatedGraph::from_sdl(&sdl).unwrap(),
+            Some(sdl) => graphql_composition::FederatedGraph::from_sdl(&sdl).unwrap(),
             None => {
                 if !subgraphs.is_empty() {
                     let extensions = runtime.extensions.iter_with_url().collect::<Vec<_>>();
@@ -48,7 +48,7 @@ pub(super) async fn build(
                         .into_result()
                         .expect("schemas to compose succesfully")
                 } else {
-                    federated_graph::FederatedGraph::default()
+                    graphql_composition::FederatedGraph::default()
                 }
             }
         };
@@ -65,7 +65,7 @@ pub(super) async fn build(
         }
 
         // Ensure SDL/JSON serialization work as a expected
-        let sdl = federated_graph::render_federated_sdl(&federated_graph).expect("render_federated_sdl()");
+        let sdl = graphql_composition::render_federated_sdl(&federated_graph).expect("render_federated_sdl()");
         println!("=== SDL ===\n{sdl}\n");
         sdl
     };

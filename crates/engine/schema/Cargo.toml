@@ -18,7 +18,6 @@ blake3.workspace = true
 cynic-parser.workspace = true
 cynic-parser-deser.workspace = true
 extension-catalog.workspace = true
-federated-graph.workspace = true
 field-selection-map = { path = "../field-selection-map", package = "engine-field-selection-map" }
 fxhash.workspace = true
 gateway-config.workspace = true

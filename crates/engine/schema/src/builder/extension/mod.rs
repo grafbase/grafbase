@@ -1,7 +1,8 @@
 mod directive;
+mod link_directive;
 
+use self::link_directive::*;
 use extension_catalog::{ExtensionCatalog, ExtensionId, Manifest};
-use federated_graph::link::LinkDirective;
 use rapidhash::RapidHashMap;
 use std::{path::Path, str::FromStr as _};
 use strum::IntoEnumIterator as _;
@@ -111,8 +112,8 @@ impl<'a> ExtensionsContext<'a> {
                             grafbase_scalars.extend(GrafbaseScalar::iter().map(|s| (format!("{namespace}__{s}"), s)));
                             for import in link.import.unwrap_or_default() {
                                 let (name, alias) = match import {
-                                    federated_graph::link::Import::String(name) => (name, name),
-                                    federated_graph::link::Import::Qualified(q) => (q.name, q.r#as.unwrap_or(q.name)),
+                                    Import::String(name) => (name, name),
+                                    Import::Qualified(q) => (q.name, q.r#as.unwrap_or(q.name)),
                                 };
                                 let scalar = GrafbaseScalar::from_str(name).map_err(|_| {
                                     format!(

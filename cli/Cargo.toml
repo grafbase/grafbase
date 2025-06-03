@@ -77,7 +77,6 @@ engine.workspace = true
 engine-auth.workspace = true
 extension.workspace = true
 extension-catalog.workspace = true
-federated-graph.workspace = true
 federated-server.workspace = true
 gateway-config.workspace = true
 grafbase-graphql-introspection.workspace = true

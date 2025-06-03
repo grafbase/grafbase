@@ -62,7 +62,7 @@ pub(crate) async fn run(args: McpCommand) -> anyhow::Result<()> {
                     diagnostics.iter_messages().collect::<Vec<_>>().join("\n")
                 )
             })?;
-        let sdl = federated_graph::render_federated_sdl(&federated_graph).expect("render_federated_sdl()");
+        let sdl = graphql_composition::render_federated_sdl(&federated_graph).expect("render_federated_sdl()");
         let current_dir = std::env::current_dir().ok();
         engine::Schema::builder(&sdl)
             .config(&config)

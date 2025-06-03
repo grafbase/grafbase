@@ -23,7 +23,6 @@ engine-auth.workspace = true
 engine-axum.workspace = true
 engine-schema.workspace = true
 extension-catalog.workspace = true
-federated-graph.workspace = true
 federated-server.workspace = true
 futures.workspace = true
 futures-util.workspace = true
