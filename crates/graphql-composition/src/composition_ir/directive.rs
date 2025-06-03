@@ -1,6 +1,6 @@
 use crate::{
     federated_graph::{self as federated, OverrideLabel, OverrideSource},
-    subgraphs::{self, DirectiveSiteId, FieldId, FieldTuple, FieldTypeId, KeyId},
+    subgraphs::{self, FieldId, FieldTuple, FieldTypeId, KeyId},
 };
 
 #[derive(Clone, PartialEq)]
@@ -40,15 +40,9 @@ pub enum Directive {
     JoinField(JoinFieldDirective),
     JoinEntityInterfaceField,
     JoinInputField(JoinInputFieldDirective),
-    Authorized(AuthorizedDirective),
     JoinType(JoinTypeDirective),
     ListSize(federated::ListSizeDirective),
     JoinUnionMember(JoinUnionMemberDirective),
-}
-
-#[derive(PartialEq, PartialOrd, Clone)]
-pub struct AuthorizedDirective {
-    pub source: DirectiveSiteId,
 }
 
 #[derive(PartialEq, PartialOrd, Clone)]

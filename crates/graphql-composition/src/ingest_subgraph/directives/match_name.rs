@@ -84,8 +84,6 @@ fn match_directive_name_inner(
     }
 
     match directive_name {
-        // FIXME: built-in, and has no schema url to import from. We should change that.
-        AUTHORIZED => return DirectiveNameMatch::Authorized,
         // Built-ins
         LINK => return DirectiveNameMatch::Link,
         "deprecated" => return DirectiveNameMatch::Deprecated,
@@ -153,8 +151,6 @@ pub(in crate::ingest_subgraph) enum DirectiveNameMatch {
     Imported {
         linked_definition_id: subgraphs::LinkedDefinitionId,
     },
-
-    Authorized,
 
     // GraphQL built-ins
     Deprecated,

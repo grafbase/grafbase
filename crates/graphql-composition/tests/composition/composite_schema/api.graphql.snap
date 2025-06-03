@@ -11,7 +11,7 @@ type User {
 type Account {
   id: ID!
   id2: ID!
-  name(case: String): String
+  name: String
 }
 
 type Query {

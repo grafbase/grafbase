@@ -296,12 +296,19 @@ fn write_field_arguments<'a, 'b: 'a>(
     args: &[InputValueDefinition],
     graph: &'a FederatedGraph,
 ) -> fmt::Result {
-    if args.is_empty() {
+    fn has_composite_require(arg: &InputValueDefinition) -> bool {
+        arg.directives
+            .iter()
+            .any(|directive| matches!(directive, Directive::CompositeRequire { .. }))
+    }
+
+    if args.iter().all(has_composite_require) {
         return Ok(());
     }
 
     let mut inner = args
         .iter()
+        .filter(|arg| !has_composite_require(arg))
         .map(|arg| {
             let name = &graph[arg.name];
             let r#type = render_field_type(&arg.r#type, graph);

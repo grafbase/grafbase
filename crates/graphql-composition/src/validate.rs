@@ -2,7 +2,6 @@ use crate::{federated_graph::OverrideLabel, subgraphs};
 
 mod compose_directive;
 mod extension_names;
-mod input_selection;
 mod selection;
 mod subgraph_names;
 
@@ -32,7 +31,6 @@ fn validate_fields(ctx: &mut ValidateContext<'_>) {
     for field in ctx.subgraphs.iter_all_fields() {
         selection::validate_selections(ctx, field);
         validate_override_labels(ctx, field);
-        input_selection::validate_input_selections(ctx, field);
     }
 }
 

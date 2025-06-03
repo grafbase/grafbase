@@ -1,0 +1,19 @@
+extend schema
+  @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@require", "@shareable"])
+
+type Query {
+  productById(id: ID!): Product @lookup @shareable
+}
+
+type Product @key(fields: "id") {
+  id: ID!
+  priceCents(
+    cost: Int! @require(field: "productCost")
+    stock: ProductStock @require(field: "stock { warehouseA }")
+    currency: String!
+  ): Int
+}
+
+input ProductStock {
+  warehouseA: Int
+}

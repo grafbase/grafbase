@@ -41,7 +41,6 @@ pub(super) struct Directives {
     r#override: BTreeMap<DirectiveSiteId, OverrideDirective>,
     provides: BTreeMap<DirectiveSiteId, Vec<Selection>>,
     requires: BTreeMap<DirectiveSiteId, Vec<Selection>>,
-    authorized: BTreeMap<DirectiveSiteId, AuthorizedDirective>,
 
     requires_scopes: BTreeSet<(DirectiveSiteId, Vec<StringId>)>,
     policies: BTreeSet<(DirectiveSiteId, Vec<StringId>)>,
@@ -76,16 +75,7 @@ impl Subgraphs {
         self.directives.authenticated.insert(id);
     }
 
-    pub(crate) fn insert_authorized(&mut self, id: DirectiveSiteId, directive: AuthorizedDirective) {
-        self.directives.authorized.insert(id, directive);
-    }
-
     pub(crate) fn insert_composed_directive(&mut self, subgraph_id: SubgraphId, directive_name: &str) {
-        // The `@authorized` directive is an exception. Directives used in subgraph schemas are either built-in federation directives (`@requires`, `@key`, etc.) or custom, composed directives with `@composeDirective`. Since `@authorized` is not part of the federation spec, some frameworks like async-graphql (Rust) will produce an `@composeDirective` with the `@authorized` directive. We should not consider `@authorized` as a composed directive however, because that means we would emit it again.
-        if directive_name == "authorized" {
-            return;
-        }
-
         let directive_name = self.strings.intern(directive_name);
 
         self.directives
@@ -209,10 +199,6 @@ pub(crate) type DirectiveSiteWalker<'a> = Walker<'a, DirectiveSiteId>;
 impl<'a> DirectiveSiteWalker<'a> {
     pub(crate) fn authenticated(self) -> bool {
         self.subgraphs.directives.authenticated.contains(&self.id)
-    }
-
-    pub(crate) fn authorized(self) -> Option<&'a AuthorizedDirective> {
-        self.subgraphs.directives.authorized.get(&self.id)
     }
 
     pub(crate) fn deprecated(self) -> Option<DeprecatedWalker<'a>> {
@@ -356,14 +342,6 @@ impl<'a> DirectiveSiteWalker<'a> {
 pub(crate) struct OverrideDirective {
     pub(crate) from: StringId,
     pub(crate) label: Option<StringId>,
-}
-
-#[derive(Debug)]
-pub(crate) struct AuthorizedDirective {
-    pub(crate) arguments: Option<Vec<Selection>>,
-    pub(crate) fields: Option<Vec<Selection>>,
-    pub(crate) node: Option<Vec<Selection>>,
-    pub(crate) metadata: Option<Value>,
 }
 
 /// Corresponds to an `@deprecated` directive.

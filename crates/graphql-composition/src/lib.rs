@@ -1,5 +1,4 @@
 #![deny(unsafe_code, missing_docs, rust_2018_idioms)]
-#![allow(clippy::option_option)]
 #![doc = include_str!("../README.md")]
 
 mod compose;

@@ -5,7 +5,12 @@
 ### Improvements
 
 - Implemented support for the `@internal` directive from the composite schemas spec (https://github.com/grafbase/grafbase/pull/3185)
+- Implemented support for the `@require` directive from the composite schemas spec (https://github.com/grafbase/grafbase/pull/3189)
+
+## Breaking changes
+
 - The graphql-federated-graph dependency, which was always an implementation detail, is now deprecated. Its functionality has been folded into graphql-composition, as a module. As a result, the crate does not re-export the `graphql_federated_graph` crate anymore, just a select few items. Most fields of `FederatedGraph` have also become private. Please get in touch if this is something you were relying on.
+- The Grafbase-specific, non-standard `@authorized` directive is no longer getting special treatment (https://github.com/grafbase/grafbase/pull/3189).
 
 ## 0.8.0 - 2025-05-16
 
