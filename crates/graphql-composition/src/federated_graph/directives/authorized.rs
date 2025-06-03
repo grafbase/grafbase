@@ -1,4 +1,4 @@
-use crate::{InputValueDefinitionSet, SelectionSet, Value};
+use crate::federated_graph::{InputValueDefinitionSet, SelectionSet, Value};
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct AuthorizedDirective {

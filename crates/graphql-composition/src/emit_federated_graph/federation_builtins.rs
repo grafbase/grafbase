@@ -1,5 +1,5 @@
 use super::*;
-use graphql_federated_graph::Wrapping;
+use wrapping::Wrapping;
 
 pub(super) fn emit_federation_builtins(ctx: &mut Context<'_>, join_graph_enum_id: federated::EnumDefinitionId) {
     let string_definition = ctx.definitions[&ctx.lookup_str("String").expect("String to be defined")];

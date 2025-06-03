@@ -1,7 +1,7 @@
 use itertools::Itertools;
 
 use super::{directive::write_directive, directive_definition::display_directive_definitions, display_utils::*};
-use crate::{directives::*, federated_graph::*};
+use crate::federated_graph::*;
 use std::fmt::{self, Display, Write};
 
 /// Render a GraphQL SDL string for a federated graph. It includes [join spec

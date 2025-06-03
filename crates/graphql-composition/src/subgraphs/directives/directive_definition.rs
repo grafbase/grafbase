@@ -1,5 +1,5 @@
 use super::*;
-use graphql_federated_graph::DirectiveLocations;
+use crate::federated_graph::{DirectiveLocations, display_graphql_string_literal};
 use std::fmt::Display;
 
 pub(crate) struct DirectiveDefinition {
@@ -48,9 +48,7 @@ impl Display for Walker<'_, &'_ Value> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let subgraphs = self.subgraphs;
         match self.id {
-            Value::String(string_id) => {
-                graphql_federated_graph::display_graphql_string_literal(subgraphs.walk(*string_id).as_str(), f)
-            }
+            Value::String(string_id) => display_graphql_string_literal(subgraphs.walk(*string_id).as_str(), f),
             Value::Int(int) => Display::fmt(int, f),
             Value::Float(float) => Display::fmt(float, f),
             Value::Boolean(b) => Display::fmt(b, f),

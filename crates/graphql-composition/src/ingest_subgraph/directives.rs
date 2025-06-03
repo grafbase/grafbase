@@ -7,8 +7,8 @@ pub(super) use match_name::*;
 use self::consts::*;
 use super::*;
 use crate::composition_ir as ir;
+use crate::federated_graph::{CostDirective, DeprecatedDirective, IsDirective, ListSizeDirective, RequireDirective};
 use cynic_parser_deser::ConstDeserializer;
-use graphql_federated_graph::directives::{CostDirective, DeprecatedDirective, ListSizeDirective};
 
 pub(super) fn ingest_directives(
     ctx: &mut Context<'_>,
@@ -240,8 +240,7 @@ pub(super) fn ingest_directives(
                 );
             }
             DirectiveNameMatch::Require => {
-                let directive: graphql_federated_graph::directives::RequireDirective<'_> = match directive.deserialize()
-                {
+                let directive: RequireDirective<'_> = match directive.deserialize() {
                     Ok(directive) => directive,
                     Err(err) => {
                         ctx.subgraphs
@@ -261,8 +260,7 @@ pub(super) fn ingest_directives(
                 )
             }
             DirectiveNameMatch::Is => {
-                let directive: graphql_federated_graph::directives::RequireDirective<'_> = match directive.deserialize()
-                {
+                let directive: IsDirective<'_> = match directive.deserialize() {
                     Ok(directive) => directive,
                     Err(err) => {
                         ctx.subgraphs

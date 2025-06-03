@@ -19,10 +19,12 @@ bitflags.workspace = true
 cynic-parser = { workspace = true, features = ["report"] }
 cynic-parser-deser.workspace = true
 fixedbitset.workspace = true
-graphql-federated-graph = { path = "../graphql-federated-graph", version = "0.8.0" }
 indexmap.workspace = true
 itertools.workspace = true
+serde.workspace = true
+serde_json.workspace = true
 url.workspace = true
+wrapping.workspace = true
 
 [dev-dependencies]
 anyhow.workspace = true
@@ -31,4 +33,5 @@ graphql-schema-validation.workspace = true
 insta.workspace = true
 pretty_assertions.workspace = true
 serde.workspace = true
+tokio.workspace = true
 toml.workspace = true

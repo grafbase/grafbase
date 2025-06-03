@@ -15,11 +15,10 @@ pub(crate) use self::context::Context as ComposeContext;
 
 use self::{context::Context, directives::collect_composed_directives, input_object::*};
 use crate::{
-    composition_ir as ir,
+    composition_ir as ir, federated_graph as federated,
     subgraphs::{self, DefinitionKind, DefinitionWalker, FieldWalker, StringId},
 };
 use directives::create_join_type_from_definitions;
-use graphql_federated_graph as federated;
 use itertools::Itertools;
 use std::collections::{BTreeSet, HashSet};
 

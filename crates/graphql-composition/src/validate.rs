@@ -1,4 +1,4 @@
-use crate::subgraphs;
+use crate::{federated_graph::OverrideLabel, subgraphs};
 
 mod compose_directive;
 mod extension_names;
@@ -41,12 +41,7 @@ fn validate_override_labels(ctx: &mut ValidateContext<'_>, field: subgraphs::Fie
         return;
     };
 
-    let Err(err) = ctx
-        .subgraphs
-        .walk(label)
-        .as_str()
-        .parse::<graphql_federated_graph::OverrideLabel>()
-    else {
+    let Err(err) = ctx.subgraphs.walk(label).as_str().parse::<OverrideLabel>() else {
         return;
     };
 

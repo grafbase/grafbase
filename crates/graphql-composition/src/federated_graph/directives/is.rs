@@ -1,13 +1,15 @@
 use cynic_parser_deser::{ConstDeserializer as _, ValueDeserialize};
 
-/// The composite spec `@require` directive, but in the context of a federated schema. Not to be confused with the federation `@requires` directive.
+/// The composite spec `@is` directive, but in the context of a federated schema.
 ///
-/// Reference: https://github.com/graphql/composite-schemas-spec/blob/main/spec/Section%202%20--%20Source%20Schema.md#require
-pub struct RequireDirective<'a> {
+/// `directive @is(field: FieldSelectionMap!) on ARGUMENT_DEFINITION`
+///
+/// Reference: https://github.com/graphql/composite-schemas-spec/blob/main/spec/Section%202%20--%20Source%20Schema.md#is
+pub struct IsDirective<'a> {
     pub field: &'a str,
 }
 
-impl<'a> ValueDeserialize<'a> for RequireDirective<'a> {
+impl<'a> ValueDeserialize<'a> for IsDirective<'a> {
     fn deserialize(input: cynic_parser_deser::DeserValue<'a>) -> Result<Self, cynic_parser_deser::Error> {
         let cynic_parser_deser::DeserValue::Object(obj) = input else {
             return Err(cynic_parser_deser::Error::unexpected_type(
@@ -38,19 +40,18 @@ impl<'a> ValueDeserialize<'a> for RequireDirective<'a> {
             });
         };
 
-        Ok(RequireDirective { field })
+        Ok(IsDirective { field })
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::directives::{directive_test_document, parse_from_test_document};
+    use super::{super::*, *};
 
     #[test]
-    fn test_require_directive() {
-        let doc = directive_test_document("@require(field: \"someField\")");
-        let value = parse_from_test_document::<RequireDirective<'_>>(&doc).unwrap();
+    fn test_is_directive() {
+        let doc = directive_test_document("@is(field: \"someField\")");
+        let value = parse_from_test_document::<IsDirective<'_>>(&doc).unwrap();
 
         assert_eq!(value.field, "someField");
     }

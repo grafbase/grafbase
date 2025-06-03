@@ -1,5 +1,5 @@
 use super::*;
-use graphql_federated_graph::DirectiveLocations;
+use crate::federated_graph::DirectiveLocations;
 
 pub(super) fn ingest_directive_definition(
     ctx: &mut Context<'_>,

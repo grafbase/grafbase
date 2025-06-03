@@ -2,7 +2,7 @@ mod visibility;
 
 use self::visibility::*;
 use super::{directive::write_directive, directive_definition::display_directive_definitions, display_utils::*};
-use crate::{FederatedGraph, directives::*, federated_graph::*};
+use crate::{FederatedGraph, federated_graph::*};
 use std::fmt::{self, Write as _};
 
 /// Render a GraphQL SDL string for a federated graph. It does not include any

@@ -1,5 +1,7 @@
-use crate::subgraphs::{self, DirectiveSiteId, FieldId, FieldTuple, FieldTypeId, KeyId};
-use graphql_federated_graph::{self as federated, OverrideLabel, OverrideSource};
+use crate::{
+    federated_graph::{self as federated, OverrideLabel, OverrideSource},
+    subgraphs::{self, DirectiveSiteId, FieldId, FieldTuple, FieldTypeId, KeyId},
+};
 
 #[derive(Clone, PartialEq)]
 pub enum Directive {

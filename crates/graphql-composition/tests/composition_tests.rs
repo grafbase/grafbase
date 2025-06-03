@@ -49,8 +49,8 @@ fn run_test(test_path: &Path) -> anyhow::Result<()> {
 
     let (federated_sdl, api_sdl) = match graphql_composition::compose(&subgraphs).into_result() {
         Ok(federated_graph) => (
-            graphql_federated_graph::render_federated_sdl(&federated_graph).expect("rendering federated SDL"),
-            Some(graphql_federated_graph::render_api_sdl(&federated_graph)),
+            graphql_composition::render_federated_sdl(&federated_graph).expect("rendering federated SDL"),
+            Some(graphql_composition::render_api_sdl(&federated_graph)),
         ),
         Err(diagnostics) => (
             format!(
@@ -107,7 +107,7 @@ fn check_federated_sdl(federated_sdl: &str, test_path: &Path) -> anyhow::Result<
 
     let rendered = FederatedGraph::from_sdl(federated_sdl)
         .map_err(|err| anyhow::anyhow!("Error ingesting SDL: {err}\n\nSDL:\n{federated_sdl}"))?;
-    let roundtripped = graphql_federated_graph::render_federated_sdl(&rendered)?;
+    let roundtripped = graphql_composition::render_federated_sdl(&rendered)?;
 
     pretty_assertions::assert_eq!(
         federated_sdl,

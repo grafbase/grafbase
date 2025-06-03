@@ -247,10 +247,10 @@ impl SubgraphCache {
 
         let (schemas, result) = match result {
             Ok(graph) => {
-                let federated_schema = graphql_composition::graphql_federated_graph::render_federated_sdl(&graph)?;
+                let federated_schema = graphql_composition::render_federated_sdl(&graph)?;
                 (
                     DataJsonSchemas {
-                        api_schema: Some(graphql_composition::graphql_federated_graph::render_api_sdl(&graph)),
+                        api_schema: Some(graphql_composition::render_api_sdl(&graph)),
                         federated_schema: Some(federated_schema.clone()),
                         subgraphs: all_subgraphs,
                         errors: vec![],

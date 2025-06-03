@@ -1,4 +1,6 @@
-use crate::{InterfaceId, ObjectId, OverrideLabel, OverrideSource, SelectionSet, StringId, SubgraphId, Type};
+use crate::federated_graph::{
+    InterfaceId, ObjectId, OverrideLabel, OverrideSource, SelectionSet, StringId, SubgraphId, Type,
+};
 
 ///```ignore,graphql
 /// directive @join__type(

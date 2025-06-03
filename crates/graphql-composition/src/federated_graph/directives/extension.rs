@@ -1,4 +1,4 @@
-use crate::{ExtensionId, StringId, SubgraphId, Value};
+use crate::federated_graph::{ExtensionId, StringId, SubgraphId, Value};
 
 pub const EXTENSION_LINK_ENUM: &str = "extension__Link";
 pub const EXTENSION_LINK_DIRECTIVE: &str = "extension__link";

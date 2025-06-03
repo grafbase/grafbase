@@ -4,8 +4,7 @@ mod field_ir;
 
 pub(crate) use self::{directive::*, directive_definition::*, field_ir::*};
 
-use crate::subgraphs::{self};
-use graphql_federated_graph::{self as federated};
+use crate::{federated_graph as federated, subgraphs};
 use std::collections::{BTreeSet, HashMap};
 
 /// The intermediate representation of the schema that is produced by composition. This data

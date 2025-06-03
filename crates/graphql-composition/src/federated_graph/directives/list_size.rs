@@ -1,4 +1,4 @@
-use crate::{FieldId, InputValueDefinitionId};
+use crate::federated_graph::{FieldId, InputValueDefinitionId};
 
 #[derive(Clone, PartialEq, PartialOrd, Debug)]
 pub struct ListSize {

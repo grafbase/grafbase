@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::{
+use crate::federated_graph::{
     Directive, EXTENSION_DIRECTIVE_DIRECTIVE, FederatedGraph, OverrideLabel, OverrideSource, StringId, Value,
     directives::*, render_sdl::display_utils::render_field_type,
 };

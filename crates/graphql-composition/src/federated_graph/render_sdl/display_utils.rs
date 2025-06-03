@@ -1,6 +1,6 @@
 use itertools::Itertools;
 
-use crate::*;
+use crate::federated_graph::*;
 use std::{
     borrow::Cow,
     fmt::{self, Display, Write},
@@ -10,7 +10,7 @@ pub(super) const BUILTIN_SCALARS: &[&str] = &["ID", "String", "Int", "Float", "B
 pub(super) const INDENT: &str = "  ";
 
 /// Lets you take a routine that expects a formatter, and use it on a string.
-pub(in crate::render_sdl) fn with_formatter<F>(out: &mut String, action: F) -> fmt::Result
+pub(in crate::federated_graph::render_sdl) fn with_formatter<F>(out: &mut String, action: F) -> fmt::Result
 where
     F: Fn(&mut fmt::Formatter<'_>) -> fmt::Result,
 {
@@ -28,8 +28,7 @@ where
     out.write_fmt(format_args!("{}", Helper(action)))
 }
 
-#[doc(hidden)]
-pub fn display_graphql_string_literal(string: &str, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+pub(crate) fn display_graphql_string_literal(string: &str, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     f.write_char('"')?;
     for c in string.chars() {
         match c {
@@ -87,22 +86,22 @@ impl fmt::Display for Description<'_> {
     }
 }
 
-pub(super) struct ValueDisplay<'a>(pub &'a crate::Value, pub &'a FederatedGraph);
+pub(super) struct ValueDisplay<'a>(pub &'a Value, pub &'a FederatedGraph);
 
 impl fmt::Display for ValueDisplay<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let ValueDisplay(value, graph) = self;
 
         match value {
-            crate::Value::Null => f.write_str("null"),
-            crate::Value::String(s) => display_graphql_string_literal(&graph[*s], f),
-            crate::Value::Int(i) => Display::fmt(i, f),
-            crate::Value::Float(val) => Display::fmt(val, f),
-            crate::Value::UnboundEnumValue(val) => f.write_str(&graph[*val]),
-            crate::Value::EnumValue(val) => f.write_str(&graph[graph[*val].value]),
-            crate::Value::Boolean(true) => f.write_str("true"),
-            crate::Value::Boolean(false) => f.write_str("false"),
-            crate::Value::Object(key_values) => {
+            Value::Null => f.write_str("null"),
+            Value::String(s) => display_graphql_string_literal(&graph[*s], f),
+            Value::Int(i) => Display::fmt(i, f),
+            Value::Float(val) => Display::fmt(val, f),
+            Value::UnboundEnumValue(val) => f.write_str(&graph[*val]),
+            Value::EnumValue(val) => f.write_str(&graph[graph[*val].value]),
+            Value::Boolean(true) => f.write_str("true"),
+            Value::Boolean(false) => f.write_str("false"),
+            Value::Object(key_values) => {
                 let mut key_values = key_values.iter().peekable();
 
                 f.write_char('{')?;
@@ -116,7 +115,7 @@ impl fmt::Display for ValueDisplay<'_> {
                 }
                 f.write_char('}')
             }
-            crate::Value::List(values) => {
+            Value::List(values) => {
                 f.write_char('[')?;
 
                 let mut values = values.as_ref().iter().peekable();
@@ -203,7 +202,7 @@ impl Display for Arguments<'_> {
 }
 
 /// Displays a field set inside quotes
-pub(super) struct SelectionSetDisplay<'a>(pub &'a crate::SelectionSet, pub &'a FederatedGraph);
+pub(super) struct SelectionSetDisplay<'a>(pub &'a crate::federated_graph::SelectionSet, pub &'a FederatedGraph);
 
 impl Display for SelectionSetDisplay<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -212,7 +211,7 @@ impl Display for SelectionSetDisplay<'_> {
     }
 }
 
-pub(super) struct BareSelectionSetDisplay<'a>(pub &'a crate::SelectionSet, pub &'a FederatedGraph);
+pub(super) struct BareSelectionSetDisplay<'a>(pub &'a crate::federated_graph::SelectionSet, pub &'a FederatedGraph);
 
 impl Display for BareSelectionSetDisplay<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -262,7 +261,10 @@ impl Display for BareSelectionSetDisplay<'_> {
 }
 
 /// Displays a input value definition set inside quotes
-pub(super) struct InputValueDefinitionSetDisplay<'a>(pub &'a crate::InputValueDefinitionSet, pub &'a FederatedGraph);
+pub(super) struct InputValueDefinitionSetDisplay<'a>(
+    pub &'a crate::federated_graph::InputValueDefinitionSet,
+    pub &'a FederatedGraph,
+);
 
 impl Display for InputValueDefinitionSetDisplay<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -272,7 +274,7 @@ impl Display for InputValueDefinitionSetDisplay<'_> {
 }
 
 pub(super) struct BareInputValueDefinitionSetDisplay<'a>(
-    pub &'a crate::InputValueDefinitionSet,
+    pub &'a crate::federated_graph::InputValueDefinitionSet,
     pub &'a FederatedGraph,
 );
 

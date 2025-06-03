@@ -5,7 +5,7 @@ mod record;
 pub(crate) use self::{directive_definition::*, link::*, record::*};
 
 use super::*;
-use graphql_federated_graph::directives::ListSizeDirective;
+use crate::federated_graph::ListSizeDirective;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct DirectiveSiteId(usize);

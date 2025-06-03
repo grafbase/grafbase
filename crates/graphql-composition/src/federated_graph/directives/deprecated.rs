@@ -7,8 +7,7 @@ pub struct DeprecatedDirective<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::directives::{directive_test_document, parse_from_test_document};
+    use super::{super::*, *};
 
     #[test]
     fn test_parsing_no_reason() {

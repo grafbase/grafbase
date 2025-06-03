@@ -2,7 +2,7 @@ use super::{
     directive::write_directive,
     display_utils::{INDENT, ValueDisplay, render_field_type, write_description},
 };
-use crate::{Directive, FederatedGraph, InputValueDefinition};
+use crate::federated_graph::{Directive, FederatedGraph, InputValueDefinition};
 use std::fmt;
 
 pub(crate) fn display_input_value_definition(
