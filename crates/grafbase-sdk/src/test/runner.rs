@@ -83,7 +83,7 @@ impl TestRunner {
         }
 
         let federated_graph = graphql_composition::compose(&subgraphs).into_result().unwrap();
-        let federated_graph = graphql_federated_graph::render_federated_sdl(&federated_graph)?;
+        let federated_graph = graphql_composition::render_federated_sdl(&federated_graph)?;
 
         let mut this = Self {
             http_client: reqwest::Client::new(),
