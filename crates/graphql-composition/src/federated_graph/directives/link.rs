@@ -16,6 +16,7 @@ pub struct LinkDirective<'a> {
     pub url: &'a str,
     pub r#as: Option<&'a str>,
     pub import: Option<Vec<Import<'a>>>,
+    #[expect(unused)]
     pub r#for: Option<Purpose>,
 }
 

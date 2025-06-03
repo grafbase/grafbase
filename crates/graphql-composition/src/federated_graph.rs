@@ -1,3 +1,7 @@
+//! A structured representation of a federated GraphQL schema. Can be instantiated by [composition](https://crates.io/crates/graphql-composition) or [from SDL](`from_sdl()`).
+
+#![expect(missing_docs)]
+
 mod debug;
 mod directive_definitions;
 mod directives;
@@ -5,66 +9,67 @@ mod entity;
 mod enum_definitions;
 mod enum_values;
 mod extensions;
+mod from_sdl;
 mod ids;
 mod input_value_definitions;
 mod objects;
-mod root_operation_types;
+mod render_sdl;
 mod scalar_definitions;
 mod r#type;
 mod view;
 
 pub use self::{
+    from_sdl::DomainError,
+    render_sdl::{render_api_sdl, render_federated_sdl},
+};
+
+pub(crate) use self::{
     directive_definitions::*,
     directives::*,
     entity::*,
     enum_definitions::EnumDefinitionRecord,
-    enum_values::{EnumValue, EnumValueRecord},
+    enum_values::EnumValueRecord,
     extensions::*,
     ids::*,
-    root_operation_types::RootOperationTypes,
+    render_sdl::display_graphql_string_literal,
     scalar_definitions::ScalarDefinitionRecord,
     r#type::{Definition, Type},
     view::{View, ViewNested},
 };
-pub use std::fmt;
-pub use wrapping::Wrapping;
 
-use crate::directives::*;
 use enum_definitions::EnumDefinition;
 use scalar_definitions::ScalarDefinition;
-use std::ops::Range;
+use std::{fmt, ops::Range};
 
 #[derive(Clone, Default)]
 pub struct FederatedGraph {
-    pub subgraphs: Vec<Subgraph>,
+    pub(crate) subgraphs: Vec<Subgraph>,
     pub extensions: Vec<Extension>,
-    pub root_operation_types: RootOperationTypes,
-    pub objects: Vec<Object>,
-    pub interfaces: Vec<Interface>,
-    pub fields: Vec<Field>,
+    pub(crate) objects: Vec<Object>,
+    pub(crate) interfaces: Vec<Interface>,
+    pub(crate) fields: Vec<Field>,
 
-    pub directive_definitions: Vec<DirectiveDefinitionRecord>,
-    pub directive_definition_arguments: Vec<DirectiveDefinitionArgument>,
-    pub scalar_definitions: Vec<ScalarDefinitionRecord>,
-    pub enum_definitions: Vec<EnumDefinitionRecord>,
-    pub unions: Vec<Union>,
-    pub input_objects: Vec<InputObject>,
-    pub enum_values: Vec<EnumValueRecord>,
+    pub(crate) directive_definitions: Vec<DirectiveDefinitionRecord>,
+    pub(crate) directive_definition_arguments: Vec<DirectiveDefinitionArgument>,
+    pub(crate) scalar_definitions: Vec<ScalarDefinitionRecord>,
+    pub(crate) enum_definitions: Vec<EnumDefinitionRecord>,
+    pub(crate) unions: Vec<Union>,
+    pub(crate) input_objects: Vec<InputObject>,
+    pub(crate) enum_values: Vec<EnumValueRecord>,
 
     /// All [input value definitions](http://spec.graphql.org/October2021/#InputValueDefinition) in the federated graph. Concretely, these are arguments of output fields, and input object fields.
-    pub input_value_definitions: Vec<InputValueDefinition>,
+    pub(crate) input_value_definitions: Vec<InputValueDefinition>,
 
     /// All the strings in the federated graph, deduplicated.
     pub strings: Vec<String>,
 }
 
 impl FederatedGraph {
-    #[cfg(feature = "from_sdl")]
     pub fn from_sdl(sdl: &str) -> Result<Self, crate::DomainError> {
         if sdl.trim().is_empty() {
             return Ok(Default::default());
         }
-        crate::from_sdl::from_sdl(sdl)
+        from_sdl::from_sdl(sdl)
     }
 
     pub fn definition_name(&self, definition: Definition) -> &str {
@@ -193,20 +198,6 @@ pub struct InputValueDefinition {
     pub default: Option<Value>,
 }
 
-/// Represents an `@provides` directive on a field in a subgraph.
-#[derive(Clone)]
-pub struct FieldProvides {
-    pub subgraph_id: SubgraphId,
-    pub fields: SelectionSet,
-}
-
-/// Represents an `@requires` directive on a field in a subgraph.
-#[derive(Clone)]
-pub struct FieldRequires {
-    pub subgraph_id: SubgraphId,
-    pub fields: SelectionSet,
-}
-
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub struct SelectionSet(pub Vec<Selection>);
 
@@ -266,20 +257,6 @@ pub struct FieldSelection {
     pub field_id: FieldId,
     pub arguments: Vec<(InputValueDefinitionId, Value)>,
     pub subselection: SelectionSet,
-}
-
-#[derive(Clone, Debug)]
-pub struct Key {
-    /// The subgraph that can resolve the entity with the fields in [Key::fields].
-    pub subgraph_id: SubgraphId,
-
-    /// Corresponds to the fields argument in an `@key` directive.
-    pub fields: SelectionSet,
-
-    /// Correspond to the `@join__type(isInterfaceObject: true)` directive argument.
-    pub is_interface_object: bool,
-
-    pub resolvable: bool,
 }
 
 impl std::ops::Index<InputValueDefinitions> for FederatedGraph {

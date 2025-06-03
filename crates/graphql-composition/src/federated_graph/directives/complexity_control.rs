@@ -5,20 +5,6 @@ pub struct CostDirective {
     pub weight: i32,
 }
 
-impl CostDirective {
-    pub fn definition() -> &'static str {
-        indoc::indoc! {r#"
-            directive @cost(weight: Int!) on
-                ARGUMENT_DEFINITION
-              | ENUM
-              | FIELD_DEFINITION
-              | INPUT_FIELD_DEFINITION
-              | OBJECT
-              | SCALAR
-        "#}
-    }
-}
-
 #[derive(ValueDeserialize, PartialEq, PartialOrd, Clone, Debug)]
 #[deser(rename_all = "camelCase", default)]
 pub struct ListSizeDirective {
@@ -30,17 +16,6 @@ pub struct ListSizeDirective {
 }
 
 impl ListSizeDirective {
-    pub fn definition() -> &'static str {
-        indoc::indoc! {r#"
-            directive @listSize(
-              assumedSize: Int,
-              slicingArguments: [String!],
-              sizedFields: [String!],
-              requireOneSlicingArgument: Boolean = true
-            ) on FIELD_DEFINITION
-        "#}
-    }
-
     pub fn merge(self, other: ListSizeDirective) -> Self {
         let mut slicing_arguments = self.slicing_arguments;
         slicing_arguments.extend(other.slicing_arguments);
@@ -62,8 +37,7 @@ impl ListSizeDirective {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::directives::parse_directive;
+    use super::{super::*, *};
 
     #[test]
     fn test_parsing_cost() {

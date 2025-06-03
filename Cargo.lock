@@ -4374,35 +4374,16 @@ dependencies = [
  "cynic-parser-deser",
  "fixedbitset",
  "grafbase-workspace-hack",
- "graphql-federated-graph",
  "graphql-schema-validation",
- "indexmap 2.9.0",
- "insta",
- "itertools 0.14.0",
- "pretty_assertions",
- "serde",
- "toml",
- "url",
-]
-
-[[package]]
-name = "graphql-federated-graph"
-version = "0.8.0"
-dependencies = [
- "bitflags 2.9.0",
- "cynic-parser",
- "cynic-parser-deser",
- "grafbase-workspace-hack",
  "graphql-wrapping-types",
  "indexmap 2.9.0",
- "indoc",
  "insta",
  "itertools 0.14.0",
  "pretty_assertions",
  "serde",
  "serde_json",
- "tempfile",
  "tokio",
+ "toml",
  "url",
 ]
 

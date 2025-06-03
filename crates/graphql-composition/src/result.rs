@@ -1,6 +1,4 @@
-use graphql_federated_graph::FederatedGraph;
-
-use crate::Diagnostics;
+use crate::{Diagnostics, federated_graph::FederatedGraph};
 
 /// The result of a [`compose()`](crate::compose()) invocation.
 pub struct CompositionResult {

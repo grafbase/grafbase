@@ -1,4 +1,4 @@
-use crate::{StringId, SubgraphId};
+use crate::federated_graph::{StringId, SubgraphId};
 
 /// Represents an `@override(graph: .., from: ...)` directive on a field in a subgraph.
 #[derive(serde::Serialize, serde::Deserialize, Clone)]

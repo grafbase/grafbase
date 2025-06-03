@@ -1,6 +1,5 @@
-use super::{
-    EntityDefinitionId, EnumDefinitionId, InputObjectId, InterfaceId, ObjectId, ScalarDefinitionId, UnionId, Wrapping,
-};
+use super::{EntityDefinitionId, EnumDefinitionId, InputObjectId, InterfaceId, ObjectId, ScalarDefinitionId, UnionId};
+use wrapping::Wrapping;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Debug)]
 pub struct Type {

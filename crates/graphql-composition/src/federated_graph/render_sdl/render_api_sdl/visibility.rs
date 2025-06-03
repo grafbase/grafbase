@@ -1,4 +1,4 @@
-use crate::Directive;
+use crate::federated_graph::Directive;
 
 pub(super) fn is_inaccessible(directives: &[Directive]) -> bool {
     if directives

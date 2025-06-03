@@ -3,18 +3,26 @@ mod complexity_control;
 mod deprecated;
 mod extension;
 mod federation;
+mod is;
+mod link;
+mod list_size;
+mod r#override;
 mod require;
 
-use crate::{ListSize, StringId, SubgraphId, Value};
+use crate::federated_graph::{StringId, SubgraphId, Value};
 
-pub use self::{
+pub(crate) use self::{
+    authorized::*,
     complexity_control::{CostDirective, ListSizeDirective},
     deprecated::DeprecatedDirective,
-    require::RequireDirective,
+    extension::*,
+    federation::*,
+    is::IsDirective,
+    link::*,
+    list_size::*,
+    r#override::*,
+    require::*,
 };
-pub use authorized::*;
-pub use extension::*;
-pub use federation::*;
 
 #[derive(PartialEq, PartialOrd, Clone, Debug)]
 pub enum Directive {
@@ -58,6 +66,7 @@ pub enum Directive {
     },
     ListSize(ListSize),
 
+    #[expect(clippy::enum_variant_names)]
     ExtensionDirective(ExtensionDirective),
 }
 

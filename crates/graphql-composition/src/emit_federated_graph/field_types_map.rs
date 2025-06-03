@@ -1,8 +1,9 @@
 #![allow(clippy::panic)]
 
+use wrapping::Wrapping;
+
 use super::Context;
-use crate::subgraphs;
-use graphql_federated_graph as federated;
+use crate::{federated_graph as federated, subgraphs};
 use std::collections::HashMap;
 
 /// Responsible for mapping field types between the subgraphs and the federated graph. See
@@ -24,7 +25,7 @@ impl Context<'_> {
                 )
             };
 
-            let mut wrapping = federated::Wrapping::default();
+            let mut wrapping = Wrapping::default();
 
             if field_type.inner_is_required() {
                 wrapping = wrapping.non_null();

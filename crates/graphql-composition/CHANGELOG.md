@@ -5,6 +5,7 @@
 ### Improvements
 
 - Implemented support for the `@internal` directive from the composite schemas spec (https://github.com/grafbase/grafbase/pull/3185)
+- The graphql-federated-graph dependency, which was always an implementation detail, is now deprecated. Its functionality has been folded into graphql-composition, as a module. As a result, the crate does not re-export the `graphql_federated_graph` crate anymore, just a select few items. Most fields of `FederatedGraph` have also become private. Please get in touch if this is something you were relying on.
 
 ## 0.8.0 - 2025-05-16
 

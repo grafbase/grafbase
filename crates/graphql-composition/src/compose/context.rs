@@ -3,9 +3,9 @@ use std::collections::HashMap;
 use crate::{
     Diagnostics, VecExt,
     composition_ir::{self as ir, CompositionIr},
+    federated_graph as federated,
     subgraphs::{self, StringWalker},
 };
-use graphql_federated_graph::{self as federated};
 
 /// Context for [`compose`](crate::compose::compose).
 pub(crate) struct Context<'a> {

@@ -3,8 +3,7 @@ mod used_directives;
 pub(super) use self::used_directives::UsedDirectives;
 
 use super::field_types_map::FieldTypesMap;
-use crate::{composition_ir as ir, subgraphs};
-use graphql_federated_graph as federated;
+use crate::{composition_ir as ir, federated_graph as federated, subgraphs};
 use std::collections::HashMap;
 
 pub(super) struct Context<'a> {

@@ -20,9 +20,8 @@ use self::{
 use crate::{
     Subgraphs, VecExt,
     composition_ir::{CompositionIr, FieldIr, InputValueDefinitionIr},
-    subgraphs,
+    federated_graph as federated, subgraphs,
 };
-use graphql_federated_graph::{self as federated};
 use itertools::Itertools;
 use std::collections::BTreeSet;
 
@@ -36,11 +35,6 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
         interfaces: ir.interfaces.iter().map(|(iface, _directives)| iface.clone()).collect(),
         unions: ir.unions.iter().map(|u| u.federated.clone()).collect(),
         input_objects: ir.input_objects.iter().map(|io| io.federated.clone()).collect(),
-        root_operation_types: federated::RootOperationTypes {
-            query: ir.query_type,
-            mutation: ir.mutation_type,
-            subscription: ir.subscription_type,
-        },
         subgraphs: vec![],
         directive_definitions: vec![],
         directive_definition_arguments: vec![],

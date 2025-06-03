@@ -1,5 +1,7 @@
+use wrapping::Wrapping;
+
 use crate::composition_ir as ir;
-use graphql_federated_graph::{self as federated, Definition, EntityDefinitionId, Wrapping};
+use crate::federated_graph::{self as federated, Definition, EntityDefinitionId};
 
 use super::{
     attach_argument_selection::attach_argument_selection,

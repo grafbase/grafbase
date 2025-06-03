@@ -5,7 +5,7 @@ mod input_value_definition;
 mod value;
 
 use self::{arguments::*, value::*};
-use crate::{directives::*, federated_graph::*};
+use crate::federated_graph::*;
 use cynic_parser::{
     common::WrappingType, executable as executable_ast, type_system as ast, values::ConstValue as ParserValue,
 };
@@ -171,26 +171,6 @@ impl<'a> State<'a> {
         }
     }
 
-    fn root_operation_types(&self) -> Result<RootOperationTypes, DomainError> {
-        fn get_object_id(state: &State<'_>, name: &str) -> Option<ObjectId> {
-            state
-                .definition_names
-                .get(name)
-                .and_then(|definition| match definition {
-                    Definition::Object(object_id) => Some(*object_id),
-                    _ => None,
-                })
-        }
-        let query_type_name = self.query_type_name.as_deref().unwrap_or("Query");
-        let mutation_type_name = self.mutation_type_name.as_deref().unwrap_or("Mutation");
-        let subscription_type_name = self.subscription_type_name.as_deref().unwrap_or("Subscription");
-        Ok(RootOperationTypes {
-            query: get_object_id(self, query_type_name),
-            mutation: get_object_id(self, mutation_type_name),
-            subscription: get_object_id(self, subscription_type_name),
-        })
-    }
-
     fn get_definition_name(&self, definition: Definition) -> &str {
         let name = match definition {
             Definition::Object(object_id) => self.graph.at(object_id).name,
@@ -224,7 +204,6 @@ pub(crate) fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
     let mut graph = FederatedGraph {
         directive_definitions: std::mem::take(&mut state.graph.directive_definitions),
         directive_definition_arguments: std::mem::take(&mut state.graph.directive_definition_arguments),
-        root_operation_types: state.root_operation_types()?,
         strings: state.strings.into_iter().collect(),
         ..state.graph
     };
@@ -1422,7 +1401,8 @@ fn test_join_field_type() {
     }
     "###;
 
-    let actual = crate::render_sdl::render_federated_sdl(&FederatedGraph::from_sdl(sdl).unwrap()).unwrap();
+    let actual =
+        crate::federated_graph::render_sdl::render_federated_sdl(&FederatedGraph::from_sdl(sdl).unwrap()).unwrap();
 
     insta::assert_snapshot!(
         &actual,
@@ -1536,7 +1516,7 @@ async fn load_with_extensions() {
         }
         "###;
 
-    let rendered_sdl = crate::render_sdl::render_federated_sdl(&FederatedGraph::from_sdl(sdl).unwrap()).unwrap();
+    let rendered_sdl = crate::render_federated_sdl(&FederatedGraph::from_sdl(sdl).unwrap()).unwrap();
 
     insta::assert_snapshot!(rendered_sdl, @r#"
         directive @join__type(graph: join__Graph!, key: join__FieldSet, resolvable: Boolean = true) on OBJECT | INTERFACE
