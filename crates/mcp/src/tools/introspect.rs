@@ -25,6 +25,10 @@ impl<R: engine::Runtime> Tool for IntrospectTool<R> {
     async fn call(&self, parameters: Self::Parameters) -> anyhow::Result<CallToolResult> {
         Ok(self.introspect(parameters.types).into())
     }
+
+    fn annotations(&self) -> rmcp::model::ToolAnnotations {
+        rmcp::model::ToolAnnotations::new().read_only(true)
+    }
 }
 
 #[derive(Deserialize, JsonSchema)]

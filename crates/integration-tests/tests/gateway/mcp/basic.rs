@@ -100,7 +100,9 @@ fn list_tools() {
                 }
               }
             },
-            "annotations": null
+            "annotations": {
+              "readOnlyHint": true
+            }
           },
           {
             "name": "search",
@@ -121,7 +123,9 @@ fn list_tools() {
                 }
               }
             },
-            "annotations": null
+            "annotations": {
+              "readOnlyHint": true
+            }
           },
           {
             "name": "execute",
@@ -144,7 +148,10 @@ fn list_tools() {
                 }
               }
             },
-            "annotations": null
+            "annotations": {
+              "destructiveHint": true,
+              "openWorldHint": true
+            }
           }
         ]
       }

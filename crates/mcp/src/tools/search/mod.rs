@@ -50,6 +50,10 @@ impl<R: engine::Runtime> Tool for SearchTool<R> {
         }
         .into())
     }
+
+    fn annotations(&self) -> rmcp::model::ToolAnnotations {
+        rmcp::model::ToolAnnotations::new().read_only(true)
+    }
 }
 
 #[derive(Deserialize, JsonSchema)]
