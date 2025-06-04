@@ -1,0 +1,105 @@
+interface schema {
+    record schema {
+        // The IDs and this list have no relationship. They're not indices within this list.
+        type-definitions: list<type-definition>,
+        directives: list<directive>,
+        root-types: root-types,
+    }
+
+    record root-types {
+        query-id: option<definition-id>,
+        mutation-id: option<definition-id>,
+        subscription-id: option<definition-id>
+    }
+
+    type definition-id = u32;
+
+    variant type-definition {
+        scalar(scalar-definition),
+        object(object-definition),
+        %interface(interface-definition),
+        union(union-definition),
+        %enum(enum-definition),
+        input-object(input-object-definition),
+    }
+
+    record scalar-definition {
+        id: definition-id,
+        name: string,
+        specified-by-url: option<string>,
+        directives: list<directive>
+    }
+
+    record object-definition {
+        id: definition-id,
+        name: string,
+        interfaces: list<definition-id>,
+        fields: list<field-definition>,
+        directives: list<directive>
+    }
+
+    record interface-definition {
+        id: definition-id,
+        name: string,
+        interfaces: list<definition-id>,
+        fields: list<field-definition>,
+        directives: list<directive>
+    }
+
+    record union-definition {
+        id: definition-id,
+        name: string,
+        member-types: list<definition-id>,
+        directives: list<directive>
+    }
+
+    record enum-definition {
+        id: definition-id,
+        name: string,
+        values: list<enum-value>,
+        directives: list<directive>
+    }
+
+    record input-object-definition {
+        id: definition-id,
+        name: string,
+        input-fields: list<input-value-definition>,
+        directives: list<directive>
+    }
+
+    record field-definition {
+        id: definition-id,
+        name: string,
+        ty: ty,
+        arguments: list<input-value-definition>,
+        directives: list<directive>
+    }
+
+    record ty {
+        wrapping: list<wrapping-type>,
+        definition-id: definition-id
+    }
+
+    enum wrapping-type {
+        non-null,
+        %list
+    }
+
+    record input-value-definition {
+        id: definition-id,
+        name: string,
+        ty: ty,
+        directives: list<directive>
+    }
+
+    record enum-value {
+        name: string,
+        directives: list<directive>
+    }
+
+    record directive {
+        name: string,
+        // encoded in CBOR
+        arguments: list<u8>,
+    }
+}
