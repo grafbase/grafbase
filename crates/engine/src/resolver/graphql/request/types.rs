@@ -2,7 +2,7 @@ use operation::InputValueContext;
 use serde::ser::SerializeMap;
 use walker::Walk;
 
-use super::QueryVariables;
+use super::QueryVariable;
 
 pub(crate) struct SubgraphGraphqlRequest<'a, Input> {
     pub query: &'a str,
@@ -26,7 +26,7 @@ where
 
 pub(crate) struct SubgraphVariables<'a, ExtraVariable> {
     pub ctx: InputValueContext<'a>,
-    pub variables: &'a QueryVariables,
+    pub variables: &'a Vec<QueryVariable>,
     pub extra_variables: Vec<(&'a str, ExtraVariable)>,
 }
 
@@ -39,10 +39,10 @@ where
         S: serde::Serializer,
     {
         let mut map = serializer.serialize_map(None)?;
-        for (name, value) in self.variables.iter() {
-            let value = value.as_schema_or_query_input_value().unwrap().walk(self.ctx);
+        for var in self.variables {
+            let value = var.value.as_schema_or_query_input_value().unwrap().walk(self.ctx);
             if !value.is_undefined() {
-                map.serialize_entry(&name, &value)?;
+                map.serialize_entry(&var.name, &value)?;
             }
         }
         for (key, response_objects) in &self.extra_variables {

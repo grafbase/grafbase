@@ -2,6 +2,7 @@ use std::{borrow::Cow, time::Duration};
 
 use bytes::Bytes;
 use grafbase_telemetry::{graphql::GraphqlResponseStatus, span::subgraph::SubgraphRequestSpanBuilder};
+use operation::OperationContext;
 use schema::{GraphqlEndpointId, GraphqlRootFieldResolverDefinition};
 use tracing::Instrument;
 use walker::Walk;
@@ -15,7 +16,7 @@ use super::{
 use crate::{
     Runtime,
     execution::ExecutionContext,
-    prepare::{Plan, PlanError, PlanResult, PrepareContext, RootFieldsShapeId, SubgraphSelectionSet},
+    prepare::{Plan, PlanError, PlanResult, RootFieldsShapeId, SubgraphSelectionSet},
     resolver::graphql::request::SubgraphGraphqlRequest,
     response::{Deserializable, ErrorPath, ErrorPathSegment, GraphqlError, ParentObjects, ResponsePartBuilder},
 };
@@ -28,7 +29,7 @@ pub(crate) struct GraphqlResolver {
 
 impl GraphqlResolver {
     pub fn prepare(
-        ctx: &PrepareContext<'_, impl Runtime>,
+        ctx: OperationContext<'_>,
         definition: GraphqlRootFieldResolverDefinition<'_>,
         selection_set: SubgraphSelectionSet<'_>,
     ) -> PlanResult<Self> {
@@ -38,14 +39,15 @@ impl GraphqlResolver {
             .and_then(|field| field.definition().parent_entity().as_object())
             // FIXME: this is a workaround, we likely require a __typename which should even reach
             // this resolver.
-            .unwrap_or_else(|| ctx.schema().query());
+            .unwrap_or_else(|| ctx.schema.query());
 
         let subgraph_operation =
-            PreparedGraphqlOperation::build(ctx.schema(), definition.endpoint_id, parent_object, selection_set)
-                .map_err(|err| {
+            PreparedGraphqlOperation::build(ctx, definition.endpoint_id, parent_object, selection_set).map_err(
+                |err| {
                     tracing::error!("Failed to build query: {err}");
                     PlanError::Internal
-                })?;
+                },
+            )?;
         Ok(Self {
             endpoint_id: definition.endpoint().id,
             subgraph_operation,

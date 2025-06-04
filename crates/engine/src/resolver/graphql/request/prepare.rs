@@ -1,11 +1,10 @@
-use std::{
-    collections::HashMap,
-    fmt::{Error, Write},
-};
+use std::fmt::{Error, Write};
 
 use grafbase_telemetry::graphql::OperationType;
 use itertools::Itertools;
-use schema::{CompositeType, EntityDefinition, GraphqlEndpointId, ObjectDefinition, Schema, SubgraphId};
+use operation::{OperationContext, QueryInputValueRecord, QueryOrSchemaInputValueId};
+use schema::{CompositeType, EntityDefinition, GraphqlEndpointId, ObjectDefinition, SubgraphId, Type, TypeRecord};
+use walker::Walk;
 
 use crate::prepare::{PlanFieldArguments, PlanQueryPartition, PlanValueRecord, SubgraphField, SubgraphSelectionSet};
 
@@ -15,23 +14,23 @@ const VARIABLE_PREFIX: &str = "var";
 pub(crate) struct PreparedGraphqlOperation {
     pub ty: OperationType,
     pub query: String,
-    pub variables: QueryVariables,
+    pub variables: Vec<QueryVariable>,
 }
 
 impl PreparedGraphqlOperation {
     pub(crate) fn build(
-        schema: &Schema,
+        ctx: OperationContext<'_>,
         endpoint_id: GraphqlEndpointId,
         parent_object: ObjectDefinition<'_>,
         selection_set: SubgraphSelectionSet<'_>,
     ) -> Result<PreparedGraphqlOperation, Error> {
-        let mut ctx = QueryBuilderContext::new(endpoint_id.into());
+        let mut builder = QueryBuilderContext::new(ctx, endpoint_id.into());
         let parent_object_id = Some(parent_object.id);
-        let operation_type = if parent_object_id == Some(schema.query().id) {
+        let operation_type = if parent_object_id == Some(ctx.schema.query().id) {
             OperationType::Query
-        } else if parent_object_id == schema.mutation().map(|m| m.id) {
+        } else if parent_object_id == ctx.schema.mutation().map(|m| m.id) {
             OperationType::Mutation
-        } else if parent_object_id == schema.subscription().map(|s| s.id) {
+        } else if parent_object_id == ctx.schema.subscription().map(|s| s.id) {
             OperationType::Subscription
         } else {
             tracing::error!("Root GraphQL query on a non-root object?");
@@ -40,22 +39,22 @@ impl PreparedGraphqlOperation {
 
         // Generating the selection set first as this will define all the operation arguments
         let mut buffer = String::with_capacity(256);
-        ctx.write_selection_set(
+        builder.write_selection_set(
             ParentType::CompositeType(parent_object.into()),
             &mut buffer,
             selection_set,
         )?;
 
-        let mut query = String::with_capacity(buffer.len() + 14 + ctx.estimated_variable_definitions_string_len);
+        let mut query = String::with_capacity(buffer.len() + 14 + builder.estimated_variable_definitions_string_len);
         match operation_type {
             OperationType::Query => write!(query, "query")?,
             OperationType::Mutation => write!(query, "mutation")?,
             OperationType::Subscription => write!(query, "subscription")?,
         };
 
-        if !ctx.variables.is_empty() {
+        if !builder.variables.is_empty() {
             query.push('(');
-            ctx.write_operation_arguments_without_parenthesis(&mut query)?;
+            builder.write_operation_arguments_without_parenthesis(&mut query)?;
             query.push(')');
         }
 
@@ -64,7 +63,7 @@ impl PreparedGraphqlOperation {
         Ok(PreparedGraphqlOperation {
             ty: operation_type,
             query,
-            variables: ctx.into_query_variables(),
+            variables: builder.into_query_variables(),
         })
     }
 }
@@ -73,33 +72,39 @@ impl PreparedGraphqlOperation {
 pub(crate) struct PreparedFederationEntityOperation {
     pub query: String,
     pub entities_variable_name: String,
-    pub variables: QueryVariables,
+    pub variables: Vec<QueryVariable>,
 }
 
 impl PreparedFederationEntityOperation {
-    pub(crate) fn build(plan_query_partition: PlanQueryPartition<'_>) -> Result<Self, Error> {
-        let mut ctx = QueryBuilderContext::new(plan_query_partition.resolver_definition().subgraph_id());
+    pub(crate) fn build(
+        ctx: OperationContext<'_>,
+        plan_query_partition: PlanQueryPartition<'_>,
+    ) -> Result<Self, Error> {
+        let mut builder = QueryBuilderContext::new(ctx, plan_query_partition.resolver_definition().subgraph_id());
 
         // Generating the selection set first as this will define all the operation arguments
         let mut selection_set = String::with_capacity(256);
-        ctx.write_selection_set(
+        builder.write_selection_set(
             ParentType::Any,
             &mut selection_set,
             plan_query_partition.selection_set(),
         )?;
 
-        let entities_variable_name = format!("{VARIABLE_PREFIX}{}", ctx.variables.len());
+        let entities_variable_name = format!("{VARIABLE_PREFIX}{}", builder.variables.len());
         let mut query = String::with_capacity(
             // Rough approximation of the final string length counted by hand
-            selection_set.len() + 60 + ctx.estimated_variable_definitions_string_len + 2 * entities_variable_name.len(),
+            selection_set.len()
+                + 60
+                + builder.estimated_variable_definitions_string_len
+                + 2 * entities_variable_name.len(),
         );
         query.push_str("query");
         query.push('(');
         write!(query, "${entities_variable_name}: [_Any!]!")?;
 
-        if !ctx.variables.is_empty() {
+        if !builder.variables.is_empty() {
             query.push(',');
-            ctx.write_operation_arguments_without_parenthesis(&mut query)?;
+            builder.write_operation_arguments_without_parenthesis(&mut query)?;
         }
         query.push(')');
 
@@ -111,33 +116,22 @@ impl PreparedFederationEntityOperation {
         Ok(PreparedFederationEntityOperation {
             query,
             entities_variable_name,
-            variables: ctx.into_query_variables(),
+            variables: builder.into_query_variables(),
         })
     }
 }
 
-/// All variables associated with a subgraph query. Each one is associated with the variable name
-/// "{$VARIABLE_PREFIX}{idx}" with `idx` being the position of the input value in the inner vec.
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub(crate) struct QueryVariables(Vec<PlanValueRecord>);
-
-impl QueryVariables {
-    pub fn iter(&self) -> impl Iterator<Item = (String, PlanValueRecord)> + '_ {
-        self.0
-            .iter()
-            .enumerate()
-            .map(|(idx, &record)| (format!("{VARIABLE_PREFIX}{}", idx), record))
-    }
+pub(crate) struct QueryVariable {
+    pub name: String,
+    pub ty: TypeRecord,
+    pub value: PlanValueRecord,
 }
 
-struct QueryVariable {
-    idx: usize,
-    ty: String,
-}
-
-struct QueryBuilderContext {
+struct QueryBuilderContext<'ctx> {
+    ctx: OperationContext<'ctx>,
     subgraph_id: SubgraphId,
-    variables: HashMap<PlanValueRecord, QueryVariable>,
+    variables: Vec<QueryVariable>,
     estimated_variable_definitions_string_len: usize,
 }
 
@@ -146,31 +140,27 @@ enum ParentType<'a> {
     CompositeType(CompositeType<'a>),
 }
 
-impl QueryBuilderContext {
-    fn new(subgraph_id: SubgraphId) -> Self {
+impl<'ctx> QueryBuilderContext<'ctx> {
+    fn new(ctx: OperationContext<'ctx>, subgraph_id: SubgraphId) -> Self {
         Self {
+            ctx,
             subgraph_id,
-            variables: HashMap::new(),
+            variables: Vec::new(),
             estimated_variable_definitions_string_len: 0,
         }
     }
 
-    fn into_query_variables(self) -> QueryVariables {
-        let mut vars = vec![None; self.variables.len()];
-        for (input_value_id, var) in self.variables {
-            vars[var.idx] = Some(input_value_id);
-        }
-
-        QueryVariables(vars.into_iter().map(Option::unwrap).collect())
+    fn into_query_variables(self) -> Vec<QueryVariable> {
+        self.variables
     }
 
     fn write_operation_arguments_without_parenthesis(&self, out: &mut String) -> Result<(), Error> {
         write!(
             out,
             "{}",
-            self.variables.values().format_with(", ", |var, f| {
+            self.variables.iter().format_with(", ", |var, f| {
                 // no need to add the default value, we'll always provide the variable.
-                f(&format_args!("${VARIABLE_PREFIX}{}: {}", var.idx, var.ty))
+                f(&format_args!("${}: {}", var.name, var.ty.walk(self.ctx)))
             })
         )
     }
@@ -364,22 +354,78 @@ impl QueryBuilderContext {
                     if let Some(value) = arg.value_as_sanitized_query_const_value_str() {
                         f(&format_args!("{}: {}", arg.definition().name(), value))
                     } else {
-                        let idx = self.variables.len();
-                        let var = self.variables.entry(arg.value_record).or_insert_with(|| {
-                            let ty = arg.definition().ty().to_string();
-                            // prefix + ': ' + index (2) + ',' + ty.len()
-                            self.estimated_variable_definitions_string_len += VARIABLE_PREFIX.len() + 5 + ty.len();
-                            QueryVariable { idx, ty }
-                        });
+                        let idx = self.get_or_insert_var(arg.definition().ty(), arg.value_record);
                         f(&format_args!(
-                            "{}: ${VARIABLE_PREFIX}{}",
+                            "{}: ${}",
                             arg.definition().name(),
-                            var.idx
+                            self.variables[idx].name
                         ))
                     }
                 })
             )?;
         }
         Ok(())
+    }
+
+    fn get_or_insert_var(&mut self, ty: Type<'_>, value: PlanValueRecord) -> usize {
+        let pos = self.variables.iter().position(|var| {
+            if &var.ty != ty.as_ref() {
+                return false;
+            }
+            let ctx = self.ctx;
+            match (var.value, value) {
+                (PlanValueRecord::Value(l), PlanValueRecord::Value(r)) => match (l, r) {
+                    (QueryOrSchemaInputValueId::Query(lid), QueryOrSchemaInputValueId::Query(rid)) => {
+                        operation::are_query_value_equivalent(ctx, &ctx.operation[lid], &ctx.operation[rid])
+                    }
+                    (QueryOrSchemaInputValueId::Query(qid), QueryOrSchemaInputValueId::Schema(sid))
+                    | (QueryOrSchemaInputValueId::Schema(sid), QueryOrSchemaInputValueId::Query(qid)) => {
+                        operation::is_query_value_equivalent_schema_value(ctx, &ctx.operation[qid], &ctx.schema[sid])
+                    }
+                    // Those are default values, so id equality should be enough
+                    (QueryOrSchemaInputValueId::Schema(lid), QueryOrSchemaInputValueId::Schema(rid)) => lid == rid,
+                },
+                (PlanValueRecord::Injection(l), PlanValueRecord::Injection(r)) => l == r,
+                _ => false,
+            }
+        });
+        if let Some(pos) = pos {
+            pos
+        } else {
+            let name = match value {
+                PlanValueRecord::Value(QueryOrSchemaInputValueId::Query(id)) => {
+                    if let QueryInputValueRecord::Variable(id) = self.ctx.operation[id] {
+                        Some(self.ctx.operation[id].name.clone())
+                    } else {
+                        None
+                    }
+                }
+                _ => None,
+            }
+            .unwrap_or_else(|| {
+                let mut prefix = String::new();
+                loop {
+                    let candidate = format!("{}{VARIABLE_PREFIX}{}", prefix, self.variables.len());
+                    if self
+                        .ctx
+                        .operation
+                        .variable_definitions
+                        .iter()
+                        .all(|def| def.name != candidate)
+                    {
+                        break candidate;
+                    }
+                    prefix.push('_');
+                }
+            });
+            self.estimated_variable_definitions_string_len +=
+                "$".len() + name.len() + ": ".len() + ty.definition().name().len() + "[!]!, ".len();
+            self.variables.push(QueryVariable {
+                name,
+                ty: ty.into(),
+                value,
+            });
+            self.variables.len() - 1
+        }
     }
 }

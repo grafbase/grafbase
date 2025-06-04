@@ -1,4 +1,5 @@
 use futures::{FutureExt as _, future::BoxFuture};
+use operation::{Operation, OperationContext};
 use runtime::hooks::Hooks;
 use schema::{LookupResolverDefinition, ResolverDefinitionVariant};
 
@@ -26,11 +27,16 @@ pub(crate) enum LookupProxiedResolver {
 impl LookupResolver {
     pub(in crate::resolver) async fn prepare(
         ctx: &PrepareContext<'_, impl Runtime>,
+        operation: &Operation,
         definition: LookupResolverDefinition<'_>,
         plan_query_partition: PlanQueryPartition<'_>,
     ) -> PlanResult<Self> {
         let proxied = match definition.resolver().variant() {
             ResolverDefinitionVariant::GraphqlRootField(definition) => {
+                let ctx = OperationContext {
+                    schema: ctx.schema(),
+                    operation,
+                };
                 GraphqlResolver::prepare(ctx, definition, plan_query_partition.selection_set())
                     .map(LookupProxiedResolver::Graphql)
             }

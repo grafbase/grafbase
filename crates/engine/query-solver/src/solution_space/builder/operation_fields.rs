@@ -124,13 +124,23 @@ where
 
                     let n = self.parent_directive_ids.len();
                     self.parent_directive_ids.extend_from_slice(&spread.directive_ids);
-                    self.parent_type_conditions.push(ty);
-                    self.rec_ingest_selection_set(
-                        parent_query_field_node_ix,
-                        parent_output_type,
-                        fragment.selection_set(),
-                    )?;
-                    self.parent_type_conditions.pop();
+                    // If it's exactly the same as the parent output type, we don't need to keep
+                    // the type condition.
+                    if parent_output_type == ty {
+                        self.rec_ingest_selection_set(
+                            parent_query_field_node_ix,
+                            parent_output_type,
+                            fragment.selection_set(),
+                        )?;
+                    } else {
+                        self.parent_type_conditions.push(ty);
+                        self.rec_ingest_selection_set(
+                            parent_query_field_node_ix,
+                            parent_output_type,
+                            fragment.selection_set(),
+                        )?;
+                        self.parent_type_conditions.pop();
+                    }
                     self.parent_directive_ids.truncate(n);
                 }
                 operation::Selection::InlineFragment(fragment) => {
@@ -144,13 +154,23 @@ where
 
                         let n = self.parent_directive_ids.len();
                         self.parent_directive_ids.extend_from_slice(&fragment.directive_ids);
-                        self.parent_type_conditions.push(ty);
-                        self.rec_ingest_selection_set(
-                            parent_query_field_node_ix,
-                            parent_output_type,
-                            fragment.selection_set(),
-                        )?;
-                        self.parent_type_conditions.pop();
+                        // If it's exactly the same as the parent output type, we don't need to keep
+                        // the type condition.
+                        if parent_output_type == ty {
+                            self.rec_ingest_selection_set(
+                                parent_query_field_node_ix,
+                                parent_output_type,
+                                fragment.selection_set(),
+                            )?;
+                        } else {
+                            self.parent_type_conditions.push(ty);
+                            self.rec_ingest_selection_set(
+                                parent_query_field_node_ix,
+                                parent_output_type,
+                                fragment.selection_set(),
+                            )?;
+                            self.parent_type_conditions.pop();
+                        }
                         self.parent_directive_ids.truncate(n);
                     } else {
                         let n = self.parent_directive_ids.len();
@@ -232,6 +252,7 @@ where
                         location2: field.location(),
                     });
                 }
+
                 // Merging fields if they have similar type conditions and @skip/@include. We could
                 // merge the later, the former is hard.
                 if self.builder.query[query_field.type_conditions] == self.builder.query[type_conditions]
