@@ -44,6 +44,7 @@ multipart-stream.workspace = true
 openidconnect.workspace = true
 ory-client.workspace = true # overridden by patch, pointing to their last release on GitHub
 reqwest.workspace = true
+rmcp.workspace = true
 runtime = { workspace = true, features = ["test-utils"] }
 runtime-local = { workspace = true, features = ["wasi", "redis"] }
 rustls = { workspace = true, features = ["aws-lc-rs"] }
@@ -52,7 +53,7 @@ serde.workspace = true
 serde_json.workspace = true
 serde_urlencoded.workspace = true
 serde_with = { workspace = true, features = ["hex"] }
-sse-stream = "0.1.3"
+sse-stream.workspace = true
 tempfile.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["full"] }

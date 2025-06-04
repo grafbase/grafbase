@@ -17,7 +17,7 @@ fn search_org_analytics() {
             .build()
             .await;
 
-        let mut stream = engine.mcp("/mcp").await;
+        let mut stream = engine.mcp_http("/mcp").await;
         let response = stream
             .call_tool(
                 "search",
@@ -297,7 +297,7 @@ fn search_analytics() {
             .build()
             .await;
 
-        let mut stream = engine.mcp("/mcp").await;
+        let mut stream = engine.mcp_http("/mcp").await;
         let response = stream
             .call_tool(
                 "search",
@@ -606,7 +606,7 @@ fn verify_analytics() {
             .build()
             .await;
 
-        let mut stream = engine.mcp("/mcp").await;
+        let mut stream = engine.mcp_http("/mcp").await;
         let response = stream
             .call_tool(
                 "execute",

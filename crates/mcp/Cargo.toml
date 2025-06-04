@@ -26,10 +26,7 @@ itertools.workspace = true
 minicbor-serde.workspace = true
 ordered-float.workspace = true
 priority-queue.workspace = true
-rmcp = { git = "https://github.com/modelcontextprotocol/rust-sdk", features = [
-    "transport-sse-server",
-    "transport-streamable-http-server",
-] }
+rmcp.workspace = true
 schemars.workspace = true
 serde.workspace = true
 serde_json.workspace = true
