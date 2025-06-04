@@ -31,7 +31,7 @@ bitflags = { version = "2", default-features = false, features = ["std"] }
 bumpalo = { version = "3", features = ["allocator-api2"] }
 byteorder = { version = "1" }
 bytes = { version = "1", features = ["serde"] }
-chrono = { version = "0.4", features = ["serde"] }
+chrono = { version = "0.4", default-features = false, features = ["clock", "serde", "wasmbind"] }
 ciborium = { version = "0.2" }
 clap = { version = "4", features = ["cargo", "derive", "env", "wrap_help"] }
 clap_builder = { version = "4", default-features = false, features = ["cargo", "color", "env", "std", "suggestions", "usage", "wrap_help"] }
@@ -163,7 +163,7 @@ bumpalo = { version = "3", features = ["allocator-api2"] }
 byteorder = { version = "1" }
 bytes = { version = "1", features = ["serde"] }
 cc = { version = "1", default-features = false, features = ["parallel"] }
-chrono = { version = "0.4", features = ["serde"] }
+chrono = { version = "0.4", default-features = false, features = ["clock", "serde", "wasmbind"] }
 ciborium = { version = "0.2" }
 clap = { version = "4", features = ["cargo", "derive", "env", "wrap_help"] }
 clap_builder = { version = "4", default-features = false, features = ["cargo", "color", "env", "std", "suggestions", "usage", "wrap_help"] }
@@ -285,6 +285,7 @@ zstd-sys = { version = "2", default-features = false, features = ["experimental"
 
 [target.aarch64-apple-darwin.dependencies]
 addr2line = { version = "0.24", default-features = false, features = ["std"] }
+chrono = { version = "0.4" }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
@@ -300,6 +301,7 @@ tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features 
 
 [target.aarch64-apple-darwin.build-dependencies]
 addr2line = { version = "0.24", default-features = false, features = ["std"] }
+chrono = { version = "0.4" }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
@@ -315,6 +317,7 @@ tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features 
 
 [target.x86_64-apple-darwin.dependencies]
 addr2line = { version = "0.24", default-features = false, features = ["std"] }
+chrono = { version = "0.4" }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
@@ -331,6 +334,7 @@ tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features 
 
 [target.x86_64-apple-darwin.build-dependencies]
 addr2line = { version = "0.24", default-features = false, features = ["std"] }
+chrono = { version = "0.4" }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
@@ -346,6 +350,7 @@ spin = { version = "0.9" }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["timeout"] }
 
 [target.x86_64-pc-windows-msvc.dependencies]
+chrono = { version = "0.4" }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
 idna = { version = "1" }
@@ -358,6 +363,7 @@ windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", feat
 windows-sys-c8eced492e86ede7 = { package = "windows-sys", version = "0.48", features = ["Win32_Foundation", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Diagnostics_Debug", "Win32_System_Registry", "Win32_System_Time", "Win32_UI_Shell"] }
 
 [target.x86_64-pc-windows-msvc.build-dependencies]
+chrono = { version = "0.4" }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
 idna = { version = "1" }
@@ -371,6 +377,7 @@ windows-sys-c8eced492e86ede7 = { package = "windows-sys", version = "0.48", feat
 
 [target.x86_64-unknown-linux-musl.dependencies]
 addr2line = { version = "0.24", default-features = false, features = ["std"] }
+chrono = { version = "0.4" }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
@@ -389,6 +396,7 @@ tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features 
 
 [target.x86_64-unknown-linux-musl.build-dependencies]
 addr2line = { version = "0.24", default-features = false, features = ["std"] }
+chrono = { version = "0.4" }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
@@ -407,6 +415,7 @@ tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features 
 
 [target.aarch64-unknown-linux-musl.dependencies]
 addr2line = { version = "0.24", default-features = false, features = ["std"] }
+chrono = { version = "0.4" }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
@@ -424,6 +433,7 @@ tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features 
 
 [target.aarch64-unknown-linux-musl.build-dependencies]
 addr2line = { version = "0.24", default-features = false, features = ["std"] }
+chrono = { version = "0.4" }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }

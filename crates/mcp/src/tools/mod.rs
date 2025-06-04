@@ -1,4 +1,3 @@
-#![allow(refining_impl_trait)]
 mod execute;
 mod introspect;
 mod sdl;
@@ -10,16 +9,17 @@ pub use introspect::*;
 pub use search::*;
 use std::borrow::Cow;
 
-use rmcp::model::{CallToolResult, Content, ErrorCode, ErrorData, JsonObject};
+use rmcp::model::{CallToolResult, Content, ErrorCode, ErrorData, JsonObject, ToolAnnotations};
 
-pub trait Tool: Send + Sync + 'static {
+pub(crate) trait Tool: Send + Sync + 'static {
     type Parameters: serde::de::DeserializeOwned + schemars::JsonSchema;
     fn name() -> &'static str;
     fn description(&self) -> Cow<'_, str>;
     fn call(&self, parameters: Self::Parameters) -> impl Future<Output = anyhow::Result<CallToolResult>> + Send;
+    fn annotations(&self) -> ToolAnnotations;
 }
 
-pub trait RmcpTool: Send + Sync + 'static {
+pub(crate) trait RmcpTool: Send + Sync + 'static {
     fn name(&self) -> &str;
     fn to_tool(&self) -> rmcp::model::Tool;
     fn call(&self, parameters: Option<JsonObject>) -> BoxFuture<'_, Result<CallToolResult, ErrorData>>;
@@ -37,6 +37,7 @@ impl<T: Tool> RmcpTool for T {
             unreachable!()
         };
         rmcp::model::Tool::new(self.name().to_string(), self.description().into_owned(), schema)
+            .annotate(self.annotations())
     }
 
     fn call(&self, parameters: Option<JsonObject>) -> BoxFuture<'_, Result<CallToolResult, ErrorData>> {

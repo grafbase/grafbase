@@ -93,6 +93,10 @@ impl<R: engine::Runtime> Tool for ExecuteTool<R> {
             is_error: None,
         })
     }
+
+    fn annotations(&self) -> rmcp::model::ToolAnnotations {
+        rmcp::model::ToolAnnotations::new().destructive(true).open_world(true)
+    }
 }
 
 struct EngineResponse {

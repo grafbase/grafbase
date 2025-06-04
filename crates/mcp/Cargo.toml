@@ -26,9 +26,9 @@ itertools.workspace = true
 minicbor-serde.workspace = true
 ordered-float.workspace = true
 priority-queue.workspace = true
-rmcp = { git = "https://github.com/grafbase/rust-sdk", branch = "reduce-logging", features = [
-    "transport-sse",
+rmcp = { git = "https://github.com/modelcontextprotocol/rust-sdk", features = [
     "transport-sse-server",
+    "transport-streamable-http-server",
 ] }
 schemars.workspace = true
 serde.workspace = true
