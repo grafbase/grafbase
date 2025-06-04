@@ -1,4 +1,3 @@
-mod authorized;
 mod consts;
 mod match_name;
 
@@ -72,15 +71,6 @@ pub(super) fn ingest_directives(
                 ctx.subgraphs.push_directive(record);
             }
 
-            DirectiveNameMatch::Authorized => {
-                if let Err(err) = authorized::ingest(directive_site_id, directive, ctx.subgraphs) {
-                    let location = location(ctx.subgraphs);
-                    ctx.subgraphs.push_ingestion_diagnostic(
-                        ctx.subgraph_id,
-                        format!("Error validating the @authorized directive at {location}: {err}",),
-                    );
-                };
-            }
             DirectiveNameMatch::Cost => match directive.deserialize::<CostDirective>() {
                 Ok(cost) => {
                     ctx.subgraphs.set_cost(directive_site_id, cost.weight);

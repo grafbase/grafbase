@@ -3,6 +3,8 @@ source: crates/graphql-composition/tests/composition_tests.rs
 expression: actual_api_sdl
 input_file: crates/graphql-composition/tests/composition/authorized_with_composeDirective/test.md
 ---
+directive @authorized(arguments: String, fields: String, node: String, metadata: _Any) on OBJECT | FIELD_DEFINITION
+
 type Pet {
   age: String!
   id: Int!
@@ -10,7 +12,7 @@ type Pet {
 }
 
 type User {
-  address: Address
+  address: Address @authorized(fields: "id")
   id: Int!
   name: String!
   pets: [Pet!]!
@@ -22,8 +24,8 @@ type Address {
 
 type Query {
   pets: [Pet]!
-  user(id: Int!): User
-  users: [User]!
+  user(id: Int!): User @authorized(arguments: "id")
+  users: [User]! @authorized(node: "id", metadata: {role: "admin"})
 }
 
 scalar _Any

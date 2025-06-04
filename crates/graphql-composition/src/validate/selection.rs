@@ -7,14 +7,6 @@ pub(super) fn validate_selections(ctx: &mut ValidateContext<'_>, field: subgraph
         .into_iter()
         .flatten()
         .map(|selection| (selection, "requires"))
-        .chain(
-            directives
-                .authorized()
-                .into_iter()
-                .flat_map(|auth| auth.fields.iter())
-                .flatten()
-                .map(|selection| (selection, "authorized")),
-        )
     {
         let directive_path = || {
             format!(

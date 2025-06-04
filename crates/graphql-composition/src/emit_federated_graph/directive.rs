@@ -1,10 +1,9 @@
 use wrapping::Wrapping;
 
 use crate::composition_ir as ir;
-use crate::federated_graph::{self as federated, Definition, EntityDefinitionId};
+use crate::federated_graph::{self as federated, Definition};
 
 use super::{
-    attach_argument_selection::attach_argument_selection,
     attach_selection,
     context::{Context, UsedDirectives},
 };
@@ -70,12 +69,6 @@ pub(super) fn transform_type_directives(
     directives
         .iter()
         .filter_map(|directive| match (directive, parent) {
-            (ir::Directive::Authorized(dir), Definition::Object(id)) => {
-                Some(transform_authorized_entity_directive(ctx, id.into(), dir))
-            }
-            (ir::Directive::Authorized(dir), Definition::Interface(id)) => {
-                Some(transform_authorized_entity_directive(ctx, id.into(), dir))
-            }
             (ir::Directive::JoinUnionMember(dir), Definition::Union(_)) => {
                 transform_join_union_member_directive(ctx, dir)
             }
@@ -97,7 +90,6 @@ pub(super) fn transform_field_directives(
             ir::Directive::JoinEntityInterfaceField => {
                 Some(federated::Directive::JoinField(federated::JoinFieldDirective::default()))
             }
-            ir::Directive::Authorized(dir) => Some(transform_authorized_field_directive(ctx, field_id, dir)),
             ir::Directive::ListSize(dir) => Some(transform_list_size_directive(ctx, field_id, dir)),
             dir => transform_common_directive(ctx, dir),
         })
@@ -181,7 +173,6 @@ fn transform_common_directive(ctx: &mut Context<'_>, directive: &ir::Directive) 
             })
         }
         ir::Directive::JoinField(_)
-        | ir::Directive::Authorized(_)
         | ir::Directive::JoinType(_)
         | ir::Directive::ListSize(_)
         | ir::Directive::JoinUnionMember(_)
@@ -255,26 +246,6 @@ fn transform_list_size_directive(
     })
 }
 
-fn transform_authorized_entity_directive(
-    ctx: &mut Context<'_>,
-    parent: EntityDefinitionId,
-    directive: &ir::AuthorizedDirective,
-) -> federated::Directive {
-    let authorized = ctx.subgraphs.walk(directive.source).authorized().unwrap();
-    let metadata = authorized.metadata.as_ref().map(|metadata| ctx.insert_value(metadata));
-    let fields = authorized
-        .fields
-        .as_ref()
-        .map(|fields| attach_selection(fields, parent.into(), ctx));
-
-    federated::Directive::Authorized(federated::AuthorizedDirective {
-        fields,
-        node: None,
-        arguments: None,
-        metadata,
-    })
-}
-
 fn transform_join_type_directive(
     ctx: &mut Context<'_>,
     parent: Definition,
@@ -331,35 +302,6 @@ fn transform_join_field_directive(
         external: *external,
         r#override: r#override.clone(),
         override_label: override_label.clone(),
-    })
-}
-
-fn transform_authorized_field_directive(
-    ctx: &mut Context<'_>,
-    field_id: federated::FieldId,
-    directive: &ir::AuthorizedDirective,
-) -> federated::Directive {
-    let directive = ctx.subgraphs.walk(directive.source).authorized().unwrap();
-    let fields = directive
-        .fields
-        .as_ref()
-        .map(|field_set| attach_selection(field_set, ctx.out[field_id].parent_entity_id.into(), ctx));
-    let node = directive
-        .node
-        .as_ref()
-        .map(|field_set| attach_selection(field_set, ctx.out[field_id].r#type.definition, ctx));
-    let metadata = directive.metadata.as_ref().map(|metadata| ctx.insert_value(metadata));
-
-    let arguments = directive
-        .arguments
-        .as_ref()
-        .map(|args| attach_argument_selection(args, field_id, ctx));
-
-    federated::Directive::Authorized(federated::AuthorizedDirective {
-        fields,
-        node,
-        arguments,
-        metadata,
     })
 }
 

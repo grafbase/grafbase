@@ -29,14 +29,6 @@ pub(super) fn collect_composed_directives<'a>(
     let mut extra_directives = Vec::new();
     let mut out = Vec::new();
 
-    out.extend(sites.clone().filter_map(|dir| {
-        if dir.authorized().is_some() {
-            Some(ir::Directive::Authorized(ir::AuthorizedDirective { source: dir.id }))
-        } else {
-            None
-        }
-    }));
-
     out.extend(
         sites
             .clone()

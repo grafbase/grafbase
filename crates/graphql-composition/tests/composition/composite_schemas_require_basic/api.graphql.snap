@@ -1,0 +1,25 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: actual_api_sdl
+input_file: crates/graphql-composition/tests/composition/composite_schemas_require_basic/test.md
+---
+type Product {
+  id: ID!
+  priceCents(currency: String!): Int
+  productCost: Int!
+  stock: Stock
+  type: String!
+}
+
+type Stock {
+  warehouseA: Int
+  warehouseB: Int
+}
+
+type Query {
+  productById(id: ID!): Product
+}
+
+input ProductStock {
+  warehouseA: Int
+}
