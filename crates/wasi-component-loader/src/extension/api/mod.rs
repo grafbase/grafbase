@@ -2,6 +2,7 @@ mod since_0_10_0;
 mod since_0_14_0;
 mod since_0_15_0;
 mod since_0_16_0;
+mod since_0_17_0;
 mod since_0_9_0;
 
 use std::sync::Arc;
@@ -12,7 +13,8 @@ use since_0_10_0::SdkPre0_10_0;
 use since_0_14_0::SdkPre0_14_0;
 use since_0_15_0::SdkPre0_15_0;
 use since_0_16_0::SdkPre0_16_0;
-pub use since_0_16_0::world as wit;
+use since_0_17_0::SdkPre0_17_0;
+pub use since_0_17_0::world as wit;
 
 use super::{ExtensionConfig, ExtensionInstance};
 use crate::WasiState;
@@ -25,6 +27,7 @@ pub(crate) enum SdkPre {
     Since0_14_0(SdkPre0_14_0),
     Since0_15_0(SdkPre0_15_0),
     Since0_16_0(SdkPre0_16_0),
+    Since0_17_0(SdkPre0_17_0),
 }
 
 impl SdkPre {
@@ -46,7 +49,10 @@ impl SdkPre {
             v if v < &Version::new(0, 16, 0) => {
                 SdkPre::Since0_15_0(SdkPre0_15_0::new(schema, config, component, linker)?)
             }
-            _ => SdkPre::Since0_16_0(SdkPre0_16_0::new(schema, config, component, linker)?),
+            v if v < &Version::new(0, 17, 0) => {
+                SdkPre::Since0_16_0(SdkPre0_16_0::new(schema, config, component, linker)?)
+            }
+            _ => SdkPre::Since0_17_0(SdkPre0_17_0::new(schema, config, component, linker)?),
         })
     }
 
@@ -57,6 +63,7 @@ impl SdkPre {
             SdkPre::Since0_14_0(sdk_pre) => sdk_pre.instantiate(state).await,
             SdkPre::Since0_15_0(sdk_pre) => sdk_pre.instantiate(state).await,
             SdkPre::Since0_16_0(sdk_pre) => sdk_pre.instantiate(state).await,
+            SdkPre::Since0_17_0(sdk_pre) => sdk_pre.instantiate(state).await,
         }
     }
 }
