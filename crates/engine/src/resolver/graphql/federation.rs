@@ -3,6 +3,7 @@ mod without_cache;
 
 use error::GraphqlError;
 use grafbase_telemetry::{graphql::OperationType, span::subgraph::SubgraphRequestSpanBuilder};
+use operation::OperationContext;
 use schema::{GraphqlEndpointId, GraphqlFederationEntityResolverDefinition};
 use serde_json::value::RawValue;
 use tracing::Instrument;
@@ -30,13 +31,15 @@ pub(crate) struct FederationEntityResolver {
 
 impl FederationEntityResolver {
     pub fn prepare(
+        ctx: OperationContext<'_>,
         definition: GraphqlFederationEntityResolverDefinition<'_>,
         plan_query_partition: PlanQueryPartition<'_>,
     ) -> PlanResult<Self> {
-        let subgraph_operation = PreparedFederationEntityOperation::build(plan_query_partition).map_err(|err| {
-            tracing::error!("Failed to build query: {err}");
-            PlanError::Internal
-        })?;
+        let subgraph_operation =
+            PreparedFederationEntityOperation::build(ctx, plan_query_partition).map_err(|err| {
+                tracing::error!("Failed to build query: {err}");
+                PlanError::Internal
+            })?;
 
         Ok(Self {
             endpoint_id: definition.endpoint().id,

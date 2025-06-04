@@ -269,7 +269,12 @@ impl<'op, R: Runtime> Builder<'op, '_, R> {
     }
 
     async fn prepare_resolver(&mut self, query_partition: QueryPartition<'_>) -> PlanResult<Resolver> {
-        Resolver::prepare(self.ctx, self.view_plan_query_partition(query_partition.id)).await
+        Resolver::prepare(
+            self.ctx,
+            &self.operation.operation,
+            self.view_plan_query_partition(query_partition.id),
+        )
+        .await
     }
 
     pub(crate) fn view_plan_query_partition(&self, id: QueryPartitionId) -> PlanQueryPartition<'_> {

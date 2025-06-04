@@ -9,6 +9,7 @@ use futures_util::stream::BoxStream;
 pub(crate) use graphql::{FederationEntityResolver, GraphqlResolver};
 use introspection::IntrospectionResolver;
 pub(crate) use lookup::{LookupProxiedResolver, LookupResolver};
+use operation::{Operation, OperationContext};
 use runtime::hooks::Hooks;
 use schema::ResolverDefinitionVariant;
 
@@ -32,15 +33,21 @@ pub(crate) enum Resolver {
 impl Resolver {
     pub async fn prepare(
         ctx: &PrepareContext<'_, impl Runtime>,
+        // TODO: Should be part of the context in some way.
+        operation: &Operation,
         plan_query_partition: PlanQueryPartition<'_>,
     ) -> PlanResult<Self> {
+        let opctx = OperationContext {
+            schema: ctx.schema(),
+            operation,
+        };
         match plan_query_partition.resolver_definition().variant() {
             ResolverDefinitionVariant::Introspection(_) => Ok(Resolver::Introspection(IntrospectionResolver)),
             ResolverDefinitionVariant::GraphqlRootField(definition) => {
-                GraphqlResolver::prepare(ctx, definition, plan_query_partition.selection_set()).map(Self::Graphql)
+                GraphqlResolver::prepare(opctx, definition, plan_query_partition.selection_set()).map(Self::Graphql)
             }
             ResolverDefinitionVariant::GraphqlFederationEntity(definition) => {
-                FederationEntityResolver::prepare(definition, plan_query_partition).map(Self::FederationEntity)
+                FederationEntityResolver::prepare(opctx, definition, plan_query_partition).map(Self::FederationEntity)
             }
             ResolverDefinitionVariant::FieldResolverExtension(definition) => {
                 FieldResolverExtension::prepare(ctx, definition, plan_query_partition.selection_set())
@@ -53,7 +60,7 @@ impl Resolver {
                     .map(Self::SelectionSetResolverExtension)
             }
             ResolverDefinitionVariant::Lookup(definition) => {
-                LookupResolver::prepare(ctx, definition, plan_query_partition)
+                LookupResolver::prepare(ctx, operation, definition, plan_query_partition)
                     .await
                     .map(Self::Lookup)
             }

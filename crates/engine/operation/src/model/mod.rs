@@ -15,7 +15,7 @@ use grafbase_telemetry::graphql::{GraphqlOperationAttributes, OperationName, Ope
 pub use input_value::*;
 pub use location::*;
 pub use response_key::*;
-use schema::{ObjectDefinition, ObjectDefinitionId, Schema};
+use schema::{InputValueDefinitionId, ObjectDefinition, ObjectDefinitionId, Schema};
 pub use selection_set::*;
 use walker::{Iter, Walk};
 
@@ -44,6 +44,12 @@ pub struct Operation {
     pub query_input_values: QueryInputValues,
     #[indexed_by(SelectionIdSharedVecId)]
     pub shared_selection_ids: Vec<SelectionId>,
+}
+
+id_newtypes::forward_with_range! {
+    impl Index<QueryInputValueId, Output = QueryInputValueRecord> for Operation.query_input_values,
+    impl Index<QueryInputObjectFieldValueId, Output = (InputValueDefinitionId, QueryInputValueRecord)> for Operation.query_input_values,
+    impl Index<QueryInputKeyValueId, Output = (String, QueryInputValueRecord)> for Operation.query_input_values,
 }
 
 /// The set of Operation attributes that can be cached and kept in metrics/traces

@@ -283,7 +283,7 @@ dependencies = [
 name = "auth-15"
 version = "0.1.0"
 dependencies = [
- "grafbase-sdk 0.15.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "grafbase-sdk 0.15.6",
  "serde",
  "serde_json",
 ]
@@ -292,7 +292,7 @@ dependencies = [
 name = "authenticated"
 version = "0.1.0"
 dependencies = [
- "grafbase-sdk 0.15.6",
+ "grafbase-sdk 0.16.1",
  "serde",
  "serde_json",
 ]
@@ -1093,31 +1093,6 @@ dependencies = [
 [[package]]
 name = "grafbase-sdk"
 version = "0.15.6"
-dependencies = [
- "chrono",
- "document-features",
- "fxhash",
- "grafbase-sdk-derive 0.4.0",
- "http",
- "minicbor-serde",
- "postcard",
- "rust_decimal",
- "semver",
- "serde",
- "serde_json",
- "serde_path_to_error",
- "serde_urlencoded",
- "thiserror 2.0.12",
- "time",
- "url",
- "uuid",
- "wit-bindgen",
- "zerocopy",
-]
-
-[[package]]
-name = "grafbase-sdk"
-version = "0.15.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ef3e0e124bcee37434056131a0d00e150f556446fc3e655abd54c08ef626f921"
 dependencies = [
@@ -1154,6 +1129,31 @@ dependencies = [
  "url",
  "uuid",
  "which",
+ "wit-bindgen",
+ "zerocopy",
+]
+
+[[package]]
+name = "grafbase-sdk"
+version = "0.16.1"
+dependencies = [
+ "chrono",
+ "document-features",
+ "fxhash",
+ "grafbase-sdk-derive 0.4.0",
+ "http",
+ "minicbor-serde",
+ "postcard",
+ "rust_decimal",
+ "semver",
+ "serde",
+ "serde_json",
+ "serde_path_to_error",
+ "serde_urlencoded",
+ "thiserror 2.0.12",
+ "time",
+ "url",
+ "uuid",
  "wit-bindgen",
  "zerocopy",
 ]
@@ -2074,7 +2074,7 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 name = "placeholder"
 version = "0.1.0"
 dependencies = [
- "grafbase-sdk 0.15.6",
+ "grafbase-sdk 0.16.1",
  "serde",
  "serde_json",
 ]
@@ -2611,7 +2611,7 @@ checksum = "1c107b6f4780854c8b126e228ea8869f4d7b71260f962fefb57b996b8959ba6b"
 name = "selection-set-resolver-014"
 version = "0.1.0"
 dependencies = [
- "grafbase-sdk 0.15.6",
+ "grafbase-sdk 0.16.1",
  "http",
  "rkyv 0.8.10",
  "serde",
