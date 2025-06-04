@@ -13,7 +13,7 @@ use wiremock::{Mock, ResponseTemplate, matchers::method};
 use crate::{Client, clickhouse_client, load_schema, runtime, with_static_server};
 
 mod access_log;
-mod gdn;
+mod object_storage;
 mod operation;
 mod request;
 

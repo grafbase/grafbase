@@ -1,7 +1,6 @@
 use runtime::trusted_documents_client::TrustedDocumentsEnforcementMode;
 
-const GRAFBASE_PRODUCTION_TRUSTED_DOCUMENTS_CDN: &str = "https://assets.grafbase.com";
-const GRAFBASE_ASSETS_URL_ENV_VAR: &str = "GRAFBASE_ASSETS_URL";
+use super::graph_updater::{DEFAULT_OBJECT_STORAGE_HOST, OBJECT_STORAGE_HOST_ENV_VAR};
 
 pub(crate) struct TrustedDocumentsClient {
     /// The base URL for the assets host.
@@ -37,8 +36,8 @@ impl TrustedDocumentsClient {
         bypass_header: Option<(String, String)>,
         enforcement_mode: TrustedDocumentsEnforcementMode,
     ) -> Self {
-        let assets_host: url::Url = std::env::var(GRAFBASE_ASSETS_URL_ENV_VAR)
-            .unwrap_or(GRAFBASE_PRODUCTION_TRUSTED_DOCUMENTS_CDN.to_string())
+        let assets_host: url::Url = std::env::var(OBJECT_STORAGE_HOST_ENV_VAR)
+            .unwrap_or_else(|_| DEFAULT_OBJECT_STORAGE_HOST.to_owned())
             .parse()
             .expect("assets url should be valid");
 
@@ -70,7 +69,7 @@ impl runtime::trusted_documents_client::TrustedDocumentsClient for TrustedDocume
         document_id: &str,
     ) -> runtime::trusted_documents_client::TrustedDocumentsResult<String> {
         let branch_id = self.branch_id;
-        let key = format!("trusted-documents/{branch_id}/{client_name}/{document_id}");
+        let key = format!("trusted-documents/branch/{branch_id}/{client_name}/{document_id}");
 
         let mut url = self.assets_host.clone();
         url.set_path(&key);
