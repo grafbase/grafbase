@@ -1,1 +1,1 @@
-pub(crate) mod gdn;
+pub(crate) mod object_storage;
