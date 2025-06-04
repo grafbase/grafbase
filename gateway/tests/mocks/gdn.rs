@@ -3,21 +3,21 @@ use std::str::FromStr;
 
 use ulid::Ulid;
 
-use federated_server::ObjectStorageResponse;
+use federated_server::GdnResponse;
 
 #[derive(serde::Serialize, serde::Deserialize)]
-pub(crate) struct ObjectStorageResponseMock(ObjectStorageResponse);
-impl Deref for ObjectStorageResponseMock {
-    type Target = ObjectStorageResponse;
+pub(crate) struct GdnResponseMock(GdnResponse);
+impl Deref for GdnResponseMock {
+    type Target = GdnResponse;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl ObjectStorageResponseMock {
-    pub(crate) fn mock(sdl: &str) -> ObjectStorageResponseMock {
-        ObjectStorageResponseMock(ObjectStorageResponse {
+impl GdnResponseMock {
+    pub(crate) fn mock(sdl: &str) -> GdnResponseMock {
+        GdnResponseMock(GdnResponse {
             account_id: Ulid::from_str("01HR7NP3A4NDVWC10PZW6ZMC5P").unwrap(),
             graph_id: Ulid::from_str("01HR7NPB8E3YW29S5PPSY1AQKR").unwrap(),
             branch: "main".to_string(),

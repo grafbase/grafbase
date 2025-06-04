@@ -15,7 +15,7 @@ use std::{
     time::{Duration, SystemTime},
 };
 
-use crate::mocks::object_storage::ObjectStorageResponseMock;
+use crate::mocks::gdn::GdnResponseMock;
 use duct::{Handle, cmd};
 use futures_util::future::BoxFuture;
 use futures_util::{Future, FutureExt};
@@ -583,7 +583,7 @@ fn with_static_server<'a, F, T>(
 
 fn with_hybrid_server<F, T>(config: &str, graph_ref: &str, sdl: &str, test: T)
 where
-    T: FnOnce(Arc<Client>, ObjectStorageResponseMock, SocketAddr) -> F,
+    T: FnOnce(Arc<Client>, GdnResponseMock, SocketAddr) -> F,
     F: Future<Output = ()>,
 {
     let temp_dir = tempdir().unwrap();
@@ -593,14 +593,14 @@ where
 
     let addr = listen_address();
 
-    let gdn_response = ObjectStorageResponseMock::mock(sdl);
+    let gdn_response = GdnResponseMock::mock(sdl);
 
     let res = runtime().block_on(async {
         let response = ResponseTemplate::new(200).set_body_string(gdn_response.as_json().to_string());
         let server = wiremock::MockServer::start().await;
 
         Mock::given(method("GET"))
-            .and(path(format!("/graphs/{graph_ref}")))
+            .and(path(format!("/graphs/{graph_ref}/current")))
             .and(header("Authorization", format!("Bearer {ACCESS_TOKEN}")))
             .respond_with(response)
             .mount(&server)
@@ -617,7 +617,7 @@ where
         )
         .stdout_null()
         .stderr_null()
-        .env("GRAFBASE_OBJECT_STORAGE_URL", format!("http://{}", server.address()))
+        .env("GRAFBASE_GDN_URL", format!("http://{}", server.address()))
         .env("GRAFBASE_ACCESS_TOKEN", ACCESS_TOKEN);
 
         let mut commands = CommandHandles::new();

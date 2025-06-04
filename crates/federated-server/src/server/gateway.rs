@@ -4,7 +4,7 @@ mod gateway_runtime;
 pub use self::{create_extension_catalog::Error as CreateExtensionCatalogError, gateway_runtime::GatewayRuntime};
 
 use self::create_extension_catalog::create_extension_catalog;
-use super::ObjectStorageResponse;
+use super::GdnResponse;
 use engine::Engine;
 use gateway_config::Config;
 use runtime::trusted_documents_client::{Client, TrustedDocumentsEnforcementMode};
@@ -23,8 +23,8 @@ pub(crate) type EngineWatcher<R> = watch::Receiver<Arc<Engine<R>>>;
 
 #[derive(Clone)]
 pub(crate) enum GraphDefinition {
-    /// Response from object storage.
-    ObjectStorage(ObjectStorageResponse),
+    /// Response from GDN.
+    Gdn(GdnResponse),
     /// Response from static file.
     Sdl(Option<PathBuf>, String),
 }
@@ -37,12 +37,12 @@ struct Graph {
 
 /// Generates a new gateway from the provided graph definition.
 ///
-/// This function takes a `GraphDefinition`, which can be either a response from object storage or a static SDL string,
+/// This function takes a `GraphDefinition`, which can be either a response from GDN or a static SDL string,
 /// and constructs an `Engine<GatewayRuntime>` based on the provided gateway configuration and optional hot reload settings.
 ///
 /// # Arguments
 ///
-/// - `graph_definition`: The definition of the graph, either from object storage or a static SDL string.
+/// - `graph_definition`: The definition of the graph, either from GDN or a static SDL string.
 /// - `gateway_config`: The configuration settings for the gateway.
 /// - `hot_reload_config_path`: An optional path for hot reload configuration.
 /// - `hooks`: The hooks to be used in the gateway.
@@ -61,9 +61,7 @@ pub(super) async fn generate(
             trusted_documents,
         },
     ) = match graph_definition {
-        GraphDefinition::ObjectStorage(object_storage_response) => {
-            (None, graph_from_object_storage(gateway_config, object_storage_response))
-        }
+        GraphDefinition::Gdn(gdn_response) => (None, gdn_graph(gateway_config, gdn_response)),
         GraphDefinition::Sdl(current_dir, federated_sdl) => (current_dir, sdl_graph(federated_sdl)),
     };
 
@@ -107,14 +105,14 @@ fn sdl_graph(federated_sdl: String) -> Graph {
     }
 }
 
-fn graph_from_object_storage(
+fn gdn_graph(
     gateway_config: &Config,
-    ObjectStorageResponse {
+    GdnResponse {
         branch_id,
         sdl,
         version_id,
         ..
-    }: ObjectStorageResponse,
+    }: GdnResponse,
 ) -> Graph {
     let trusted_documents = if gateway_config.trusted_documents.enabled {
         let enforcement_mode = if gateway_config.trusted_documents.enforced {
