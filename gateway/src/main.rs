@@ -5,7 +5,7 @@ use clap::crate_version;
 use mimalloc::MiMalloc;
 use tokio::{runtime, sync::watch};
 
-use federated_server::ServeConfig;
+use federated_server::{AccessToken, ServeConfig};
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
@@ -64,6 +64,7 @@ fn main() -> anyhow::Result<()> {
             config_path: args.config_path().map(|p| p.to_owned()),
             config_hot_reload: args.hot_reload(),
             fetch_method: args.fetch_method()?,
+            grafbase_access_token: args.grafbase_access_token().map(|token| AccessToken(token.to_owned()))
         };
 
         let server_runtime = server_runtime::build(telemetry.clone());

@@ -1,10 +1,10 @@
 use runtime::trusted_documents_client::TrustedDocumentsEnforcementMode;
 
-use super::graph_updater::{DEFAULT_OBJECT_STORAGE_HOST, OBJECT_STORAGE_HOST_ENV_VAR};
+use super::AccessToken;
 
 pub(crate) struct TrustedDocumentsClient {
     /// The base URL for the object storage service.
-    object_storage_host: url::Url,
+    object_storage_url: url::Url,
 
     /// The HTTP client used for making requests.
     http_client: reqwest::Client,
@@ -31,18 +31,27 @@ impl TrustedDocumentsClient {
     ///
     /// A new instance of `TrustedDocumentsClient`.
     pub(crate) fn new(
-        http_client: reqwest::Client,
         branch_id: ulid::Ulid,
         bypass_header: Option<(String, String)>,
         enforcement_mode: TrustedDocumentsEnforcementMode,
+        object_storage_url: url::Url,
+        access_token: &AccessToken,
     ) -> Self {
-        let object_storage_host: url::Url = std::env::var(OBJECT_STORAGE_HOST_ENV_VAR)
-            .unwrap_or_else(|_| DEFAULT_OBJECT_STORAGE_HOST.to_owned())
-            .parse()
-            .expect("object storage url should be valid");
+        let mut headers = http::HeaderMap::new();
+        headers.insert(
+            "Authorization",
+            format!("Bearer {}", access_token.0)
+                .parse()
+                .expect("Access token to be a valid header value"),
+        );
+
+        let http_client = reqwest::ClientBuilder::new()
+            .default_headers(headers)
+            .build()
+            .expect("Trusted documents HTTP client to initialize");
 
         Self {
-            object_storage_host,
+            object_storage_url,
             http_client,
             branch_id,
             bypass_header,
@@ -69,7 +78,7 @@ impl runtime::trusted_documents_client::TrustedDocumentsClient for TrustedDocume
         document_id: &str,
     ) -> runtime::trusted_documents_client::TrustedDocumentsResult<String> {
         let branch_id = self.branch_id;
-        let url = trusted_document_url(&self.object_storage_host, branch_id, client_name, document_id);
+        let url = trusted_document_url(&self.object_storage_url, branch_id, client_name, document_id);
 
         let response = self
             .http_client

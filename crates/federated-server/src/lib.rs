@@ -13,4 +13,4 @@ mod server;
 /// The crate result type.
 pub type Result<T> = std::result::Result<T, Error>;
 
-pub use server::{ServeConfig, ServerRuntime, router, serve};
+pub use server::{AccessToken, ServeConfig, ServerRuntime, router, serve};
