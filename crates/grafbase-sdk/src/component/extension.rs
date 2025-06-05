@@ -1,3 +1,5 @@
+use url::Url;
+
 use crate::{
     extension::field_resolver::Subscription,
     types::{
@@ -69,5 +71,13 @@ pub(crate) trait AnyExtension {
         elements: ResponseElements<'_>,
     ) -> Result<AuthorizationDecisions, Error> {
         Err("Authorization extension not initialized correctly.".into())
+    }
+
+    fn on_request(&mut self, url: Url, method: http::Method, headers: GatewayHeaders) -> Result<(), ErrorResponse> {
+        Err(ErrorResponse::internal_server_error().with_error("Hooks extension not initialized correctly."))
+    }
+
+    fn on_response(&mut self, status: http::StatusCode, headers: GatewayHeaders) -> Result<(), ErrorResponse> {
+        Err(ErrorResponse::internal_server_error().with_error("Hooks extension not initialized correctly."))
     }
 }

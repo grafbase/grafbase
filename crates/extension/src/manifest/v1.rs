@@ -48,6 +48,10 @@ impl Manifest {
         matches!(self.r#type, Type::Authentication(_))
     }
 
+    pub fn is_hooks(&self) -> bool {
+        matches!(self.r#type, Type::Hooks(_))
+    }
+
     pub fn network_enabled(&self) -> bool {
         self.permissions.contains(ExtensionPermission::Network)
     }
@@ -86,7 +90,7 @@ impl Manifest {
                     Some(DirectiveType::Authorization)
                 }
             }
-            Type::Authentication(_) => Default::default(),
+            Type::Authentication(_) | Type::Hooks(_) => Default::default(),
             Type::SelectionSetResolver(_) => Some(DirectiveType::SelectionSetResolver),
             Type::Resolver(ResolverType { directives }) => directives
                 .as_ref()
@@ -105,6 +109,7 @@ pub enum Type {
     #[serde(alias = "Authenticator")]
     Authentication(Empty),
     Authorization(AuthorizationType),
+    Hooks(Empty),
 }
 
 impl Type {

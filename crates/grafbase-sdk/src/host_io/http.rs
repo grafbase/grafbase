@@ -78,6 +78,22 @@ impl From<http::Method> for HttpMethod {
     }
 }
 
+impl From<HttpMethod> for http::Method {
+    fn from(value: HttpMethod) -> Self {
+        match value {
+            HttpMethod::Get => http::Method::GET,
+            HttpMethod::Post => http::Method::POST,
+            HttpMethod::Put => http::Method::PUT,
+            HttpMethod::Delete => http::Method::DELETE,
+            HttpMethod::Patch => http::Method::PATCH,
+            HttpMethod::Head => http::Method::HEAD,
+            HttpMethod::Options => http::Method::OPTIONS,
+            HttpMethod::Connect => http::Method::CONNECT,
+            HttpMethod::Trace => http::Method::TRACE,
+        }
+    }
+}
+
 /// A struct that represents an HTTP request.
 #[derive(Debug)]
 pub struct HttpRequest(crate::wit::HttpRequest);

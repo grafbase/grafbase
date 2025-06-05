@@ -1,5 +1,5 @@
 wasmtime::component::bindgen!({
-    path: "../grafbase-sdk/wit/since_0_16_0/",
+    path: "../grafbase-sdk/wit/since_0_17_0/",
     world: "sdk",
     async: true,
     with: {

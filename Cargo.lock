@@ -2903,6 +2903,7 @@ dependencies = [
  "hyper 1.6.0",
  "lambda_http",
  "runtime",
+ "serde",
  "serde_json",
  "sonic-rs",
  "tokio",

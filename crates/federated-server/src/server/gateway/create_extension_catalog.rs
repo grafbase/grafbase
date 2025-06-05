@@ -16,7 +16,7 @@ pub enum Error {
     Io { context: String, err: io::Error },
 }
 
-pub(super) async fn create_extension_catalog(gateway_config: &Config) -> Result<ExtensionCatalog, Error> {
+pub(crate) async fn create_extension_catalog(gateway_config: &Config) -> Result<ExtensionCatalog, Error> {
     let cwd = env::current_dir().map_err(|e| Error::Io {
         context: "Failed to get current directory".to_string(),
         err: e,

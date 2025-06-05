@@ -28,6 +28,7 @@ http-body-util.workspace = true
 hyper = { workspace = true, optional = true }
 lambda_http = { workspace = true, optional = true }
 runtime.workspace = true
+serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 sonic-rs.workspace = true
 tokio.workspace = true

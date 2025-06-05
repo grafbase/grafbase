@@ -1,6 +1,7 @@
 pub mod authentication;
 pub mod authorization;
 pub mod field_resolver;
+pub mod hooks;
 pub mod selection_set_resolver;
 
 pub use authentication::AuthenticationExtension;

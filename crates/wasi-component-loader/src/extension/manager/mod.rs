@@ -1,4 +1,5 @@
 mod config;
+mod hooks;
 mod instance;
 mod loader;
 mod pool;
@@ -15,6 +16,8 @@ use gateway_config::Config;
 use runtime::extension::Data;
 use std::sync::Arc;
 use tokio::sync::broadcast;
+
+pub use hooks::*;
 
 pub(crate) use config::*;
 pub(crate) use instance::*;
@@ -35,14 +38,15 @@ struct WasiExtensionsInner {
 
 impl WasmExtensions {
     pub async fn new(
-        shared_resources: SharedResources,
+        shared_resources: &SharedResources,
         extension_catalog: &ExtensionCatalog,
         gateway_config: &Config,
         schema: &Arc<Schema>,
     ) -> crate::Result<Self> {
         let extensions = config::load_extensions_config(extension_catalog, gateway_config);
+
         Ok(Self(Arc::new(WasiExtensionsInner {
-            instance_pools: create_pools(schema, &shared_resources, extensions).await?,
+            instance_pools: create_pools(schema, shared_resources, extensions).await?,
             subscriptions: Default::default(),
         })))
     }

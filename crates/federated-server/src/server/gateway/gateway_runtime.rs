@@ -95,7 +95,7 @@ impl GatewayRuntime {
 
         tracing::debug!("Building extensions");
         let extensions = WasmExtensions::new(
-            SharedResources { access_log },
+            &SharedResources { access_log },
             extension_catalog,
             gateway_config,
             schema,

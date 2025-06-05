@@ -1,7 +1,9 @@
 mod authentication;
 mod authorization;
 mod field_resolver;
+mod hooks;
 mod selection_set_resolver;
+
 pub mod utils;
 
 use anyhow::Context as _;
@@ -39,7 +41,9 @@ impl SdkPre0_15_0 {
         mut linker: Linker<WasiState>,
     ) -> crate::Result<Self> {
         let subgraph_schemas: Vec<(&str, ws::Schema<'_>)> = match config.r#type {
-            TypeDiscriminants::Authentication | TypeDiscriminants::Authorization => Vec::new(),
+            TypeDiscriminants::Authentication | TypeDiscriminants::Authorization | TypeDiscriminants::Hooks => {
+                Vec::new()
+            }
             TypeDiscriminants::FieldResolver => create_subgraph_schema_directives(&schema, config.id),
             TypeDiscriminants::Resolver | TypeDiscriminants::SelectionSetResolver => {
                 create_complete_subgraph_schemas(&schema, config.id)
