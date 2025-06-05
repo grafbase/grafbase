@@ -188,6 +188,7 @@ impl<'a> Ingester<'a> {
                     // Added afterwards
                     default_value_id: None,
                     directive_ids: Default::default(),
+                    is_internal_in_id: None,
                 });
             }
             let argument_ids = (args_start..self.graph.input_value_definitions.len()).into();
@@ -354,6 +355,7 @@ impl<'a> Ingester<'a> {
                 },
                 default_value_id: None,
                 directive_ids: Default::default(),
+                is_internal_in_id: None,
             });
         }
         let input_field_ids: IdRange<InputValueDefinitionId> = (start..self.graph.input_value_definitions.len()).into();

@@ -7,10 +7,10 @@ use crate::{
     Runtime,
     execution::ExecutionContext,
     prepare::{Plan, PlanError, PlanQueryPartition, PlanResult, PrepareContext},
-    response::{ParentObjectsView, ResponsePartBuilder},
+    response::{ParentObjects, ResponsePartBuilder},
 };
 
-use super::{ResolverResult, extension::SelectionSetResolverExtension, graphql::GraphqlResolver};
+use super::{ResolverResult, extension::ExtensionResolver, graphql::GraphqlResolver};
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct LookupResolver {
@@ -21,7 +21,7 @@ pub(crate) struct LookupResolver {
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) enum LookupProxiedResolver {
     Graphql(GraphqlResolver),
-    SelectionSetResolverExtension(SelectionSetResolverExtension),
+    Extension(ExtensionResolver),
 }
 
 impl LookupResolver {
@@ -40,10 +40,10 @@ impl LookupResolver {
                 GraphqlResolver::prepare(ctx, definition, plan_query_partition.selection_set())
                     .map(LookupProxiedResolver::Graphql)
             }
-            ResolverDefinitionVariant::SelectionSetResolverExtension(definition) => {
-                SelectionSetResolverExtension::prepare(ctx, definition, plan_query_partition.selection_set())
+            ResolverDefinitionVariant::Extension(definition) => {
+                ExtensionResolver::prepare(ctx, definition, plan_query_partition.selection_set())
                     .await
-                    .map(LookupProxiedResolver::SelectionSetResolverExtension)
+                    .map(LookupProxiedResolver::Extension)
             }
             ResolverDefinitionVariant::Lookup(_)
             | ResolverDefinitionVariant::Introspection(_)
@@ -63,7 +63,7 @@ impl LookupResolver {
         &'ctx self,
         ctx: ExecutionContext<'ctx, R>,
         plan: Plan<'ctx>,
-        parent_objects_view: ParentObjectsView<'_>,
+        parent_objects_view: ParentObjects<'_>,
         subgraph_response: ResponsePartBuilder<'ctx>,
     ) -> BoxFuture<'f, ResolverResult<'ctx, <R::Hooks as Hooks>::OnSubgraphResponseOutput>>
     where
@@ -71,7 +71,7 @@ impl LookupResolver {
     {
         match &self.proxied {
             LookupProxiedResolver::Graphql(_) => unimplemented!("GB-8942"),
-            LookupProxiedResolver::SelectionSetResolverExtension(resolver) => {
+            LookupProxiedResolver::Extension(resolver) => {
                 let fut = resolver.execute_batch_lookup(ctx, plan, parent_objects_view, subgraph_response);
                 async move {
                     let response_part = fut.await;

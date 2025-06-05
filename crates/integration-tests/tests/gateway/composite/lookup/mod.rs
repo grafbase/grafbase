@@ -12,12 +12,12 @@ use engine::GraphqlError;
 use engine_schema::Subgraph;
 use extension_catalog::{ExtensionId, Id};
 use graphql_mocks::dynamic::{DynamicSchema, DynamicSubgraph};
-use integration_tests::gateway::{AnyExtension, SelectionSetResolverTestExtension, TestManifest};
+use integration_tests::gateway::{AnyExtension, ResolverTestExtension, TestManifest};
 use runtime::extension::{ArgumentsId, Data};
 use serde_json::json;
 
 #[derive(Clone)]
-struct EchoArgs;
+pub struct EchoArgs;
 
 impl AnyExtension for EchoArgs {
     fn register(self, state: &mut integration_tests::gateway::ExtensionsBuilder) {
@@ -31,14 +31,14 @@ impl AnyExtension for EchoArgs {
         });
         state.test.selection_set_resolver_builders.insert(
             id,
-            Arc::new(move || -> Arc<dyn SelectionSetResolverTestExtension> { Arc::new(self.clone()) }),
+            Arc::new(move || -> Arc<dyn ResolverTestExtension> { Arc::new(self.clone()) }),
         );
     }
 }
 
 #[async_trait::async_trait]
-impl SelectionSetResolverTestExtension for EchoArgs {
-    async fn resolve_field(
+impl ResolverTestExtension for EchoArgs {
+    async fn resolve(
         &self,
         _extension_id: ExtensionId,
         _subgraph: Subgraph<'_>,
@@ -46,7 +46,6 @@ impl SelectionSetResolverTestExtension for EchoArgs {
         _subgraph_headers: http::HeaderMap,
         mut arguments: Vec<(ArgumentsId, serde_json::Value)>,
     ) -> Result<Data, GraphqlError> {
-        println!("{arguments:#?}");
         assert!(arguments.len() == 1);
         let (_, arg) = arguments.pop().unwrap();
         Ok(Data::Json(

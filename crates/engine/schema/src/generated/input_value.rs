@@ -7,7 +7,7 @@ mod parent;
 
 use crate::{
     SchemaInputValue, SchemaInputValueId, StringId,
-    generated::{Type, TypeRecord, TypeSystemDirective, TypeSystemDirectiveId},
+    generated::{Subgraph, SubgraphId, Type, TypeRecord, TypeSystemDirective, TypeSystemDirectiveId},
     prelude::*,
 };
 pub use parent::*;
@@ -24,6 +24,7 @@ use walker::{Iter, Walk};
 ///   parent: InputValueParentDefinition!
 ///   default_value: SchemaInputValue
 ///   directives: [TypeSystemDirective!]!
+///   is_internal_in: Subgraph
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -34,6 +35,7 @@ pub struct InputValueDefinitionRecord {
     pub parent_id: InputValueParentDefinitionId,
     pub default_value_id: Option<SchemaInputValueId>,
     pub directive_ids: Vec<TypeSystemDirectiveId>,
+    pub is_internal_in_id: Option<SubgraphId>,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
@@ -75,6 +77,9 @@ impl<'a> InputValueDefinition<'a> {
     }
     pub fn directives(&self) -> impl Iter<Item = TypeSystemDirective<'a>> + 'a {
         self.as_ref().directive_ids.walk(self.schema)
+    }
+    pub fn is_internal_in(&self) -> Option<Subgraph<'a>> {
+        self.as_ref().is_internal_in_id.walk(self.schema)
     }
 }
 

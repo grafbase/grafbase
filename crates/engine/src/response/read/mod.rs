@@ -1,21 +1,17 @@
 use crate::prepare::RequiredFieldSet;
 
-use super::{ParentObjects, ResponseBuilder};
+use super::{ParentObjectSet, ResponseBuilder};
 mod ser;
 mod view;
 
 pub(crate) use view::*;
 
 impl ResponseBuilder<'_> {
-    pub fn read<'a>(
-        &'a self,
-        response_object_set: ParentObjects,
-        selection_set: RequiredFieldSet<'a>,
-    ) -> ParentObjectsView<'a> {
-        ParentObjectsView {
+    pub fn read<'a>(&'a self, object_set: ParentObjectSet, requirements: RequiredFieldSet<'a>) -> ParentObjects<'a> {
+        ParentObjects {
             ctx: ViewContext { response: self },
-            parent_objects: response_object_set,
-            view: selection_set,
+            object_set,
+            requirements,
         }
     }
 }

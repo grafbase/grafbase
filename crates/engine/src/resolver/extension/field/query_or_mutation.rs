@@ -10,7 +10,7 @@ use crate::{
         Plan, RootFieldsShapeId, SubgraphField, create_extension_directive_query_view,
         create_extension_directive_response_view,
     },
-    response::{GraphqlError, ParentObjects, ParentObjectsView, ResponsePartBuilder},
+    response::{GraphqlError, ParentObjectSet, ParentObjects, ResponsePartBuilder},
 };
 
 impl super::FieldResolverExtension {
@@ -18,7 +18,7 @@ impl super::FieldResolverExtension {
         &'ctx self,
         ctx: ExecutionContext<'ctx, R>,
         plan: Plan<'ctx>,
-        parent_objects_view: ParentObjectsView<'_>,
+        parent_objects_view: ParentObjects<'_>,
         subgraph_response: ResponsePartBuilder<'ctx>,
     ) -> Executor<'ctx> {
         let directive = self.directive_id.walk(ctx.schema());
@@ -75,7 +75,7 @@ impl super::FieldResolverExtension {
 pub(in crate::resolver) struct Executor<'ctx> {
     shape_id: RootFieldsShapeId,
     response_part: ResponsePartBuilder<'ctx>,
-    parent_objects: ParentObjects,
+    parent_objects: ParentObjectSet,
     fields: Vec<SubgraphField<'ctx>>,
     #[allow(clippy::type_complexity)] // should be better with resolver rework... hopefully.
     futures: Vec<BoxFuture<'ctx, Result<Vec<Result<Data, GraphqlError>>, GraphqlError>>>,
@@ -115,7 +115,7 @@ impl<'ctx> Executor<'ctx> {
 
         state.ingest_fields(
             parent_objects.iter().next().expect("Have at least one parent object"),
-            &mut entity_fields,
+            entity_fields,
         );
         state.into_response_part()
     }

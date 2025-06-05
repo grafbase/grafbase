@@ -250,7 +250,7 @@ fn parse_manifest(source_dir: &Path, wasm_path: &Path) -> anyhow::Result<Manifes
         }),
         ExtensionType::Authentication => Type::Authentication(Default::default()),
         ExtensionType::Authorization => Type::Authorization(extension::AuthorizationType {
-            authorization_directives: extension_toml.directives.authorization,
+            directives: extension_toml.directives.authorization,
         }),
         ExtensionType::SelectionSetResolver => Type::SelectionSetResolver(Default::default()),
     };

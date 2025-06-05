@@ -6,17 +6,33 @@ use serde::{
 
 use crate::response::{ResponseObjectRef, SeedState};
 
-use super::RootFieldsSeed;
-
-#[derive(Clone, Copy)]
-pub(crate) struct BatchRootFieldsSeed<'ctx, 'parent, 'state, ParentObjects> {
-    pub(in crate::response::write::deserialize) state: &'state SeedState<'ctx, 'parent>,
-    pub(in crate::response::write::deserialize) parent_objects: ParentObjects,
+impl<'ctx, 'parent> SeedState<'ctx, 'parent> {
+    pub fn parent_list_seed<ParentObjects>(
+        &self,
+        parent_objects: ParentObjects,
+    ) -> BatchRootObjectsSeed<'ctx, 'parent, '_, ParentObjects>
+    where
+        ParentObjects: IntoIterator<
+                IntoIter: ExactSizeIterator<Item = &'parent ResponseObjectRef>,
+                Item = &'parent ResponseObjectRef,
+            >,
+    {
+        BatchRootObjectsSeed {
+            state: self,
+            parent_objects,
+        }
+    }
 }
 
-impl<'de, 'parent, Parents> DeserializeSeed<'de> for BatchRootFieldsSeed<'_, 'parent, '_, Parents>
+#[derive(Clone, Copy)]
+pub(crate) struct BatchRootObjectsSeed<'ctx, 'parent, 'state, ParentObjects> {
+    state: &'state SeedState<'ctx, 'parent>,
+    parent_objects: ParentObjects,
+}
+
+impl<'de, 'parent, ParentObjects> DeserializeSeed<'de> for BatchRootObjectsSeed<'_, 'parent, '_, ParentObjects>
 where
-    Parents:
+    ParentObjects:
         IntoIterator<IntoIter: ExactSizeIterator<Item = &'parent ResponseObjectRef>, Item = &'parent ResponseObjectRef>,
 {
     type Value = ();
@@ -29,9 +45,9 @@ where
     }
 }
 
-impl<'de, 'parent, Parents> Visitor<'de> for BatchRootFieldsSeed<'_, 'parent, '_, Parents>
+impl<'de, 'parent, ParentObjects> Visitor<'de> for BatchRootObjectsSeed<'_, 'parent, '_, ParentObjects>
 where
-    Parents:
+    ParentObjects:
         IntoIterator<IntoIter: ExactSizeIterator<Item = &'parent ResponseObjectRef>, Item = &'parent ResponseObjectRef>,
 {
     type Value = ();
@@ -48,7 +64,7 @@ where
         let mut result = Ok(());
         let mut parent_objects = parent_objects.into_iter();
         for parent_object in parent_objects.by_ref() {
-            let seed = RootFieldsSeed { state, parent_object };
+            let seed = state.parent_seed(parent_object);
             match seq.next_element_seed(seed) {
                 Ok(Some(())) => (),
                 Ok(None) => {

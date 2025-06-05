@@ -298,13 +298,11 @@ impl<'de> Visitor<'de> for PolymorphicShapeSeed<'_, '_, '_> {
         }
     }
 
-    fn visit_newtype_struct<D>(self, _: D) -> Result<Self::Value, D::Error>
+    fn visit_newtype_struct<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
     where
         D: Deserializer<'de>,
     {
-        // newtype_struct are used by custom deserializers to indicate that an error happened, but
-        // was already treated.
-        Ok(ResponseValue::Unexpected)
+        deserializer.deserialize_any(self)
     }
 
     fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>

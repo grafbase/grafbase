@@ -45,7 +45,7 @@ impl From<ArgumentsId> for u16 {
     }
 }
 
-pub trait SelectionSetResolverExtension<Context: Send + Sync + 'static>: Send + Sync + 'static {
+pub trait ResolverExtension<Context: Send + Sync + 'static>: Send + Sync + 'static {
     fn prepare<'ctx, F: Field<'ctx>>(
         &'ctx self,
         extension_id: ExtensionId,
@@ -53,7 +53,7 @@ pub trait SelectionSetResolverExtension<Context: Send + Sync + 'static>: Send + 
         field: F,
     ) -> impl Future<Output = Result<Vec<u8>, GraphqlError>> + Send;
 
-    fn resolve_query_or_mutation_field<'ctx, 'resp, 'f>(
+    fn resolve<'ctx, 'resp, 'f>(
         &'ctx self,
         extension_id: ExtensionId,
         subgraph: Subgraph<'ctx>,

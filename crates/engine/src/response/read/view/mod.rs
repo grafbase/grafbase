@@ -6,7 +6,7 @@ use schema::{FieldSetRecord, Schema, ValueInjection};
 
 use crate::{
     prepare::RequiredFieldSet,
-    response::{ParentObjectId, ParentObjects, ResponseBuilder, ResponseObject, ResponseValue},
+    response::{ParentObjectId, ParentObjectSet, ResponseBuilder, ResponseObject, ResponseValue},
 };
 
 // A struct to wrap this ref is overkill, but I've changed this so many times that I'm keeping
@@ -22,20 +22,90 @@ impl<'a> ViewContext<'a> {
     }
 }
 
-#[derive(Clone)]
+pub(crate) struct ParentObjects<'a> {
+    pub(super) ctx: ViewContext<'a>,
+    pub(super) object_set: ParentObjectSet,
+    pub(super) requirements: RequiredFieldSet<'a>,
+}
+
+impl<'a> ParentObjects<'a> {
+    pub fn len(&self) -> usize {
+        self.object_set.len()
+    }
+
+    pub fn into_object_set(self) -> ParentObjectSet {
+        self.object_set
+    }
+
+    pub fn with_extra_constant_fields<'s, 'b, 'view>(
+        &'s self,
+        extra_constant_fields: &'b [(Cow<'static, str>, serde_json::Value)],
+    ) -> ParentObjectsView<'view, WithExtraFields<'view>>
+    where
+        'b: 'view,
+        'a: 'view,
+        's: 'view,
+    {
+        ParentObjectsView {
+            ctx: self.ctx,
+            object_set: &self.object_set,
+            view: WithExtraFields {
+                requirements: self.requirements,
+                extra_constant_fields,
+            },
+        }
+    }
+
+    pub fn for_injection<'s, 'view>(
+        &'s self,
+        injection: ValueInjection,
+    ) -> ParentObjectsView<'view, ForInjection<'view>>
+    where
+        'a: 'view,
+        's: 'view,
+    {
+        ParentObjectsView {
+            ctx: self.ctx,
+            object_set: &self.object_set,
+            view: ForInjection {
+                requirements: self.requirements,
+                injection,
+            },
+        }
+    }
+
+    pub fn iter_with_id(&self) -> impl Iterator<Item = (ParentObjectId, ResponseObjectView<'a>)> + '_ {
+        self.object_set.iter_with_id().map(|(id, obj_ref)| {
+            (
+                id,
+                ResponseObjectView {
+                    ctx: self.ctx,
+                    response_object: &self.ctx.response.data_parts[obj_ref.id],
+                    view: self.requirements,
+                },
+            )
+        })
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = ResponseObjectView<'a, RequiredFieldSet<'a>>> + '_ {
+        self.object_set.iter().map(|obj_ref| ResponseObjectView {
+            ctx: self.ctx,
+            response_object: &self.ctx.response.data_parts[obj_ref.id],
+            view: self.requirements,
+        })
+    }
+}
+
+#[derive(Clone, Copy)]
 pub(crate) struct ParentObjectsView<'a, View = RequiredFieldSet<'a>> {
     pub(super) ctx: ViewContext<'a>,
-    pub(super) parent_objects: ParentObjects,
+    pub(super) object_set: &'a ParentObjectSet,
     pub(super) view: View,
 }
 
 impl<'a, View: Copy> ParentObjectsView<'a, View> {
-    pub fn len(&self) -> usize {
-        self.parent_objects.len()
-    }
-
     pub fn iter_with_id(&self) -> impl Iterator<Item = (ParentObjectId, ResponseObjectView<'a, View>)> + '_ {
-        self.parent_objects.iter_with_id().map(|(id, obj_ref)| {
+        self.object_set.iter_with_id().map(|(id, obj_ref)| {
             (
                 id,
                 ResponseObjectView {
@@ -47,43 +117,12 @@ impl<'a, View: Copy> ParentObjectsView<'a, View> {
         })
     }
 
-    pub fn into_object_set(self) -> ParentObjects {
-        self.parent_objects
-    }
-
     pub fn iter(&self) -> impl Iterator<Item = ResponseObjectView<'a, View>> + '_ {
-        self.iter_with_id().map(|(_, view)| view)
-    }
-}
-
-impl<'a> ParentObjectsView<'a, RequiredFieldSet<'a>> {
-    pub fn with_extra_constant_fields<'b, 'c>(
-        self,
-        extra_constant_fields: &'b [(Cow<'static, str>, serde_json::Value)],
-    ) -> ParentObjectsView<'c, WithExtraFields<'c>>
-    where
-        'b: 'c,
-        'a: 'c,
-    {
-        ParentObjectsView {
+        self.object_set.iter().map(|obj_ref| ResponseObjectView {
             ctx: self.ctx,
-            parent_objects: self.parent_objects,
-            view: WithExtraFields {
-                requirements: self.view,
-                extra_constant_fields,
-            },
-        }
-    }
-
-    pub fn for_injection(self, injection: ValueInjection) -> ParentObjectsView<'a, ForInjection<'a>> {
-        ParentObjectsView {
-            ctx: self.ctx,
-            parent_objects: self.parent_objects,
-            view: ForInjection {
-                requirements: self.view,
-                injection,
-            },
-        }
+            response_object: &self.ctx.response.data_parts[obj_ref.id],
+            view: self.view,
+        })
     }
 }
 

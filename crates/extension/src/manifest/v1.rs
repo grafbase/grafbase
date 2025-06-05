@@ -8,7 +8,7 @@ use crate::Id;
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Manifest {
     pub id: Id,
-    #[serde(rename = "kind")]
+    #[serde(alias = "kind")]
     pub r#type: Type,
     pub sdk_version: semver::Version,
     pub minimum_gateway_version: semver::Version,
@@ -76,9 +76,7 @@ impl Manifest {
                     Some(DirectiveType::FieldResolver)
                 }
             }
-            Type::Authorization(AuthorizationType {
-                authorization_directives: directives,
-            }) => {
+            Type::Authorization(AuthorizationType { directives }) => {
                 if let Some(directives) = directives {
                     directives
                         .iter()
@@ -90,6 +88,10 @@ impl Manifest {
             }
             Type::Authentication(_) => Default::default(),
             Type::SelectionSetResolver(_) => Some(DirectiveType::SelectionSetResolver),
+            Type::Resolver(ResolverType { directives }) => directives
+                .as_ref()
+                .and_then(|dirs| dirs.iter().any(|dir| dir == name).then_some(DirectiveType::Resolver))
+                .or(Some(DirectiveType::Resolver)),
         }
         .unwrap_or_default()
     }
@@ -99,9 +101,16 @@ impl Manifest {
 pub enum Type {
     FieldResolver(FieldResolverType),
     SelectionSetResolver(Empty),
-    #[serde(rename = "Authenticator")]
+    Resolver(ResolverType),
+    #[serde(alias = "Authenticator")]
     Authentication(Empty),
     Authorization(AuthorizationType),
+}
+
+impl Type {
+    pub fn is_resolver(&self) -> bool {
+        matches!(self, Type::Resolver(_))
+    }
 }
 
 #[derive(Debug, Clone, Copy, Default, serde::Serialize, serde::Deserialize)]
@@ -109,6 +118,7 @@ pub enum DirectiveType {
     #[default]
     Unknown,
     FieldResolver,
+    Resolver,
     SelectionSetResolver,
     Authorization,
 }
@@ -118,16 +128,20 @@ impl DirectiveType {
         matches!(self, DirectiveType::Authorization)
     }
 
-    pub fn is_resolver(&self) -> bool {
-        matches!(self, DirectiveType::FieldResolver | DirectiveType::SelectionSetResolver)
-    }
-
     pub fn is_field_resolver(&self) -> bool {
         matches!(self, DirectiveType::FieldResolver)
     }
 
+    pub fn is_resolver(&self) -> bool {
+        matches!(self, DirectiveType::Resolver)
+    }
+
     pub fn is_selection_set_resolver(&self) -> bool {
         matches!(self, DirectiveType::SelectionSetResolver)
+    }
+
+    pub fn is_unknown(&self) -> bool {
+        matches!(self, DirectiveType::Unknown)
     }
 }
 
@@ -139,8 +153,14 @@ pub struct FieldResolverType {
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct AuthorizationType {
+    #[serde(skip_serializing_if = "Option::is_none", alias = "authorization_directives")]
+    pub directives: Option<Vec<String>>,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct ResolverType {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub authorization_directives: Option<Vec<String>>,
+    pub directives: Option<Vec<String>>,
 }
 
 // Allows us to add fields later, as adding a value to an enum that doesn't have one would be
@@ -311,8 +331,44 @@ mod tests {
     }
 
     #[test]
-    fn authorization_compatibility() {
+    fn authentication_empty_compatibility() {
+        // Test authenticator with empty object (previous versions might have had different structures)
         let json = json!({
+            "id": {"name": "auth", "version": "2.0.0"},
+            "kind": {
+                "Authentication": {}
+            },
+            "sdk_version": "0.1.0",
+            "minimum_gateway_version": "0.1.0",
+            "description": "An extension in a test",
+            "homepage_url": "http://example.com/my-extension"
+        });
+
+        let manifest: Manifest = serde_json::from_value(json).unwrap();
+
+        let expected = Manifest {
+            id: Id {
+                name: "auth".to_string(),
+                version: semver::Version::new(2, 0, 0),
+            },
+            r#type: Type::Authentication(Empty {}),
+            sdk_version: semver::Version::new(0, 1, 0),
+            minimum_gateway_version: semver::Version::new(0, 1, 0),
+            sdl: None,
+            description: "An extension in a test".to_owned(),
+            readme: None,
+            homepage_url: Some("http://example.com/my-extension".parse().unwrap()),
+            repository_url: None,
+            license: None,
+            permissions: BitFlags::empty(),
+        };
+
+        assert_eq!(manifest, expected,)
+    }
+
+    #[test]
+    fn authorization_compatibility() {
+        let manifest: Manifest = serde_json::from_value(json!({
             "id": {"name": "authz", "version": "1.0.0"},
             "kind": {
                 "Authorization": {
@@ -323,9 +379,8 @@ mod tests {
             "minimum_gateway_version": "0.1.0",
             "description": "An authorization extension test",
             "homepage_url": "http://example.com/my-extension"
-        });
-
-        let manifest: Manifest = serde_json::from_value(json).unwrap();
+        }))
+        .unwrap();
 
         let expected = Manifest {
             id: Id {
@@ -333,7 +388,7 @@ mod tests {
                 version: semver::Version::new(1, 0, 0),
             },
             r#type: Type::Authorization(AuthorizationType {
-                authorization_directives: Some(vec!["authorized".to_string(), "authenticated".to_string()]),
+                directives: Some(vec!["authorized".to_string(), "authenticated".to_string()]),
             }),
             sdk_version: semver::Version::new(0, 1, 0),
             minimum_gateway_version: semver::Version::new(0, 1, 0),
@@ -345,8 +400,22 @@ mod tests {
             license: None,
             permissions: BitFlags::empty(),
         };
-
         assert_eq!(manifest, expected);
+
+        let manifest2: Manifest = serde_json::from_value(json!({
+            "id": {"name": "authz", "version": "1.0.0"},
+            "kind": {
+                "Authorization": {
+                    "directives": ["authorized", "authenticated"]
+                }
+            },
+            "sdk_version": "0.1.0",
+            "minimum_gateway_version": "0.1.0",
+            "description": "An authorization extension test",
+            "homepage_url": "http://example.com/my-extension"
+        }))
+        .unwrap();
+        assert_eq!(manifest, manifest2);
     }
 
     #[test]
@@ -369,9 +438,7 @@ mod tests {
                 name: "authz".to_string(),
                 version: semver::Version::new(1, 0, 0),
             },
-            r#type: Type::Authorization(AuthorizationType {
-                authorization_directives: None,
-            }),
+            r#type: Type::Authorization(AuthorizationType { directives: None }),
             sdk_version: semver::Version::new(0, 1, 0),
             minimum_gateway_version: semver::Version::new(0, 1, 0),
             sdl: None,
@@ -404,7 +471,72 @@ mod tests {
                 name: "selection-set".to_string(),
                 version: semver::Version::new(1, 0, 0),
             },
-            r#type: Type::SelectionSetResolver(Empty {}),
+            r#type: Type::SelectionSetResolver(Default::default()),
+            sdk_version: semver::Version::new(0, 1, 0),
+            minimum_gateway_version: semver::Version::new(0, 1, 0),
+            sdl: None,
+            description: "A selection-set resolver test".to_owned(),
+            readme: None,
+            homepage_url: Some("http://example.com/my-extension".parse().unwrap()),
+            repository_url: None,
+            license: None,
+            permissions: BitFlags::empty(),
+        };
+        assert_eq!(manifest, expected);
+    }
+
+    #[test]
+    fn resolver_compatbility() {
+        let json = json!({
+            "id": {"name": "selection-set", "version": "1.0.0"},
+            "kind": {
+                "Resolver": {}
+            },
+            "sdk_version": "0.1.0",
+            "minimum_gateway_version": "0.1.0",
+            "description": "A selection-set resolver test",
+            "homepage_url": "http://example.com/my-extension"
+        });
+        let manifest: Manifest = serde_json::from_value(json).unwrap();
+        let expected = Manifest {
+            id: Id {
+                name: "selection-set".to_string(),
+                version: semver::Version::new(1, 0, 0),
+            },
+            r#type: Type::Resolver(Default::default()),
+            sdk_version: semver::Version::new(0, 1, 0),
+            minimum_gateway_version: semver::Version::new(0, 1, 0),
+            sdl: None,
+            description: "A selection-set resolver test".to_owned(),
+            readme: None,
+            homepage_url: Some("http://example.com/my-extension".parse().unwrap()),
+            repository_url: None,
+            license: None,
+            permissions: BitFlags::empty(),
+        };
+        assert_eq!(manifest, expected);
+
+        let json = json!({
+            "id": {"name": "selection-set", "version": "1.0.0"},
+            "kind": {
+                "Resolver": {
+                    "directives": ["rest"]
+                }
+            },
+            "sdk_version": "0.1.0",
+            "minimum_gateway_version": "0.1.0",
+            "description": "A selection-set resolver test",
+            "homepage_url": "http://example.com/my-extension"
+        });
+        let manifest: Manifest = serde_json::from_value(json).unwrap();
+        let expected = Manifest {
+            id: Id {
+                name: "selection-set".to_string(),
+                version: semver::Version::new(1, 0, 0),
+            },
+            r#type: Type::Resolver(ResolverType {
+                directives: Some(vec!["rest".to_string()]),
+            }),
             sdk_version: semver::Version::new(0, 1, 0),
             minimum_gateway_version: semver::Version::new(0, 1, 0),
             sdl: None,

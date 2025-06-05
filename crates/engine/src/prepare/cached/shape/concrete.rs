@@ -1,10 +1,10 @@
 use id_newtypes::IdRange;
 use schema::{InterfaceDefinitionId, ObjectDefinitionId, UnionDefinitionId};
-use walker::Walk;
+use walker::{Iter, Walk};
 
 use crate::prepare::{OperationPlanContext, ResponseObjectSetDefinitionId};
 
-use super::{FieldShapeId, TypenameShapeId};
+use super::{FieldShape, FieldShapeId, TypenameShapeId};
 
 /// Being concrete does not mean it's only associated with a single object definition id
 /// only that we know exactly which fields must be present.
@@ -57,11 +57,14 @@ pub(crate) struct ConcreteShape<'a> {
 impl<'a> ConcreteShape<'a> {
     /// Prefer using Deref unless you need the 'a lifetime.
     #[allow(clippy::should_implement_trait)]
-    pub(crate) fn as_ref(&self) -> &'a ConcreteShapeRecord {
+    pub fn as_ref(&self) -> &'a ConcreteShapeRecord {
         &self.ctx.cached.shapes[self.id]
     }
-    pub(crate) fn has_errors(&self) -> bool {
+    pub fn has_errors(&self) -> bool {
         self.ctx.plan.query_modifications.concrete_shape_has_error[self.id]
+    }
+    pub fn fields(&self) -> impl Iter<Item = FieldShape<'a>> + 'a {
+        self.field_shape_ids.walk(self.ctx)
     }
 }
 

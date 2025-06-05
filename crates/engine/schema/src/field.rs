@@ -3,8 +3,8 @@ mod derive;
 pub use derive::*;
 
 use crate::{
-    CostDirective, DeprecatedDirective, FieldDefinition, FieldSet, InputValueDefinition, ListSizeDirective, SubgraphId,
-    TypeSystemDirective,
+    CostDirective, DeprecatedDirective, FieldDefinition, FieldRequires, FieldSet, InputValueDefinition,
+    ListSizeDirective, SubgraphId, TypeSystemDirective,
 };
 
 impl std::fmt::Display for FieldDefinition<'_> {
@@ -28,14 +28,9 @@ impl<'a> FieldDefinition<'a> {
         })
     }
 
-    pub fn requires_for_subgraph(&self, subgraph_id: SubgraphId) -> Option<FieldSet<'a>> {
-        self.requires().find_map(|requires| {
-            if requires.as_ref().subgraph_id == subgraph_id {
-                Some(requires.field_set())
-            } else {
-                None
-            }
-        })
+    pub fn requires_for_subgraph(&self, subgraph_id: SubgraphId) -> Option<FieldRequires<'a>> {
+        self.requires()
+            .find(|requires| requires.as_ref().subgraph_id == subgraph_id)
     }
 
     pub fn is_inaccessible(&self) -> bool {

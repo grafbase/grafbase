@@ -159,7 +159,7 @@ impl<'a> Solver<'a> {
     ) {
         let query_partition_id = QueryPartitionId::from(self.output.query_plan.partitions.len());
         let subgraph_id = resolver_definition_id.walk(self.schema).subgraph_id();
-        let (_, selection_set_record) = self.generate_selection_set(subgraph_id, query_partition_id, source_ix);
+        let (_, selection_set_record) = self.generate_selection_set(subgraph_id, query_partition_id, source_ix, true);
 
         let selection_set_record =
             if let ResolverDefinitionVariant::Lookup(resolver) = resolver_definition_id.walk(self.schema).variant() {
@@ -227,6 +227,7 @@ impl<'a> Solver<'a> {
         subgraph_id: SubgraphId,
         query_partition_id: QueryPartitionId,
         source_ix: NodeIndex,
+        is_root_selection_set: bool,
     ) -> (Option<ResponseObjectSetDefinitionId>, PartitionSelectionSetRecord) {
         let mut response_object_set_id: Option<ResponseObjectSetDefinitionId> = None;
         let mut fields_buffer = self.nested_fields_buffer_pool.pop();
@@ -258,11 +259,33 @@ impl<'a> Solver<'a> {
                     match to_data_field_or_typename_field(
                         self.schema,
                         &mut self.output,
-                        &self.solution[id],
                         query_partition_id,
+                        &self.solution[id],
                     ) {
                         None => continue,
                         Some(PartitionFieldRecord::Data(mut record)) => {
+                            if is_root_selection_set {
+                                debug_assert_eq!(
+                                    usize::from(record.argument_ids.end),
+                                    self.output.query_plan.field_arguments.len()
+                                );
+                                if let Some(requires) = record
+                                    .definition_id
+                                    .walk(self.schema)
+                                    .requires_for_subgraph(subgraph_id)
+                                {
+                                    for injection in requires.injections() {
+                                        self.output
+                                            .query_plan
+                                            .field_arguments
+                                            .push(PartitionFieldArgumentRecord {
+                                                definition_id: injection.definition_id,
+                                                value_record: PlanValueRecord::Injection(injection.value),
+                                            });
+                                    }
+                                }
+                                record.argument_ids.end = self.output.query_plan.field_arguments.len().into();
+                            }
                             if record
                                 .definition_id
                                 .walk(self.schema)
@@ -271,7 +294,7 @@ impl<'a> Solver<'a> {
                                 .is_composite_type()
                             {
                                 let (nested_response_object_set_id, selection_set) =
-                                    self.generate_selection_set(subgraph_id, query_partition_id, target_ix);
+                                    self.generate_selection_set(subgraph_id, query_partition_id, target_ix, false);
                                 record.output_id = nested_response_object_set_id;
                                 record.selection_set_record = selection_set;
                             }
@@ -481,8 +504,8 @@ enum PartitionFieldRecord {
 fn to_data_field_or_typename_field(
     schema: &Schema,
     output: &mut CachedOperation,
-    field: &QueryField,
     query_partition_id: QueryPartitionId,
+    field: &QueryField,
 ) -> Option<PartitionFieldRecord> {
     let response_key = field.response_key?;
     if let Some(definition_id) = field.definition_id {

@@ -38,18 +38,19 @@ impl serde::Serialize for SerializableResponseObject<'_> {
     where
         S: serde::Serializer,
     {
-        let mut map = serializer.serialize_map(Some(self.object.len()))?;
+        let mut map = serializer.serialize_map(None)?;
         // Fields are ordered by their query_position, so ones without are first.
         let mut fields = self.object.fields();
         for ResponseObjectField { key, value, .. } in fields.by_ref() {
             if key.query_position.is_some() {
                 map.serialize_key(&self.ctx.keys[key.response_key])?;
                 map.serialize_value(&SerializableResponseValue { ctx: self.ctx, value })?;
+                for ResponseObjectField { key, value, .. } in fields.by_ref() {
+                    map.serialize_key(&self.ctx.keys[key.response_key])?;
+                    map.serialize_value(&SerializableResponseValue { ctx: self.ctx, value })?;
+                }
+                break;
             };
-        }
-        for ResponseObjectField { key, value, .. } in fields.by_ref() {
-            map.serialize_key(&self.ctx.keys[key.response_key])?;
-            map.serialize_value(&SerializableResponseValue { ctx: self.ctx, value })?;
         }
         map.end()
     }

@@ -716,6 +716,7 @@ impl GraphBuilder<'_> {
                 parent_id: field_id.into(),
                 ty_record,
                 directive_ids: Vec::new(),
+                is_internal_in_id: None,
             });
         }
 

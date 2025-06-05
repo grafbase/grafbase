@@ -3,22 +3,31 @@ use serde::{Deserializer, de::DeserializeSeed};
 
 use crate::response::{
     ResponseObjectRef, SeedState,
-    write::deserialize::{ConcreteShapeFieldsSeed, ObjectValue},
+    write::deserialize::{ConcreteShapeFieldsSeed, ObjectFields},
 };
 
-pub(crate) struct RootFieldsSeed<'ctx, 'parent, 'state> {
-    pub(in crate::response::write::deserialize) state: &'state SeedState<'ctx, 'parent>,
-    pub(in crate::response::write::deserialize) parent_object: &'parent ResponseObjectRef,
+impl<'ctx, 'parent> SeedState<'ctx, 'parent> {
+    pub fn parent_seed(&self, parent_object: &'parent ResponseObjectRef) -> RootObjectSeed<'ctx, 'parent, '_> {
+        RootObjectSeed {
+            state: self,
+            parent_object,
+        }
+    }
 }
 
-impl<'de> DeserializeSeed<'de> for RootFieldsSeed<'_, '_, '_> {
+pub(crate) struct RootObjectSeed<'ctx, 'parent, 'state> {
+    state: &'state SeedState<'ctx, 'parent>,
+    parent_object: &'parent ResponseObjectRef,
+}
+
+impl<'de> DeserializeSeed<'de> for RootObjectSeed<'_, '_, '_> {
     type Value = ();
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
     where
         D: Deserializer<'de>,
     {
-        let RootFieldsSeed { state, parent_object } = self;
+        let RootObjectSeed { state, parent_object } = self;
 
         let fields_seed = {
             ConcreteShapeFieldsSeed::new(
@@ -33,15 +42,11 @@ impl<'de> DeserializeSeed<'de> for RootFieldsSeed<'_, '_, '_> {
         deserializer
             .deserialize_any(fields_seed)
             .map(|value| match value {
-                ObjectValue::Some { fields, .. } => {
+                ObjectFields::Some { fields, .. } => {
                     state.response.borrow_mut().insert_fields_update(parent_object, fields)
                 }
-                ObjectValue::Null => state.insert_empty_update(parent_object),
-                // Errors have already been handled.
-                ObjectValue::Unexpected => {
-                    state.insert_propagated_empty_update(parent_object);
-                }
-                ObjectValue::Error(error) => {
+                ObjectFields::Null => state.insert_empty_update(parent_object),
+                ObjectFields::Error(error) => {
                     state.insert_error_update(parent_object, error);
                 }
             })

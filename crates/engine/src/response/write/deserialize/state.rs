@@ -5,14 +5,12 @@ use crate::{
         CachedOperationContext, DataOrLookupFieldId, FieldShapeRecord, OperationPlanContext, PreparedOperation,
         RootFieldsShape, RootFieldsShapeId,
     },
-    response::{ResponseObjectRef, ResponsePartBuilder, ResponseValueId},
+    response::{ResponsePartBuilder, ResponseValueId},
 };
 use itertools::Itertools;
 use operation::ResponseKeys;
 use schema::Schema;
 use walker::Walk as _;
-
-use super::{BatchRootFieldsSeed, RootFieldsSeed};
 
 pub(crate) struct SeedState<'ctx, 'parent> {
     pub schema: &'ctx Schema,
@@ -64,26 +62,6 @@ impl<'ctx, 'parent> SeedState<'ctx, 'parent> {
             bubbling_up_deser_error: Default::default(),
             local_path: Default::default(),
             parent_path: Default::default(),
-        }
-    }
-
-    pub fn parent_list_seed<ParentObjects>(
-        &self,
-        parent_objects: ParentObjects,
-    ) -> BatchRootFieldsSeed<'ctx, 'parent, '_, ParentObjects>
-    where
-        ParentObjects: IntoIterator<Item = &'parent ResponseObjectRef>,
-    {
-        BatchRootFieldsSeed {
-            state: self,
-            parent_objects,
-        }
-    }
-
-    pub fn parent_seed(&self, parent_object: &'parent ResponseObjectRef) -> RootFieldsSeed<'ctx, 'parent, '_> {
-        RootFieldsSeed {
-            state: self,
-            parent_object,
         }
     }
 

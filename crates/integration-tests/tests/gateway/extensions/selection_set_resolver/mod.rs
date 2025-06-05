@@ -11,7 +11,7 @@ use engine::GraphqlError;
 use engine_schema::Subgraph;
 use extension_catalog::{ExtensionId, Id};
 use integration_tests::{
-    gateway::{AnyExtension, Gateway, SelectionSetResolverTestExtension, TestManifest},
+    gateway::{AnyExtension, Gateway, ResolverTestExtension, TestManifest},
     runtime,
 };
 use runtime::extension::{ArgumentsId, Data};
@@ -51,14 +51,14 @@ impl AnyExtension for StaticSelectionSetResolverExt {
         });
         state.test.selection_set_resolver_builders.insert(
             id,
-            Arc::new(move || -> Arc<dyn SelectionSetResolverTestExtension> { Arc::new(self.clone()) }),
+            Arc::new(move || -> Arc<dyn ResolverTestExtension> { Arc::new(self.clone()) }),
         );
     }
 }
 
 #[async_trait::async_trait]
-impl SelectionSetResolverTestExtension for StaticSelectionSetResolverExt {
-    async fn resolve_field(
+impl ResolverTestExtension for StaticSelectionSetResolverExt {
+    async fn resolve(
         &self,
         _extension_id: ExtensionId,
         _subgraph: Subgraph<'_>,

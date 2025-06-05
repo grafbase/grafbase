@@ -76,7 +76,7 @@ impl super::FieldResolverExtension {
             let mut response = new_response();
             let (parent_object, part) = response.create_root_part();
             let state = part.into_seed_state(plan.shape().id);
-            state.ingest_fields(&parent_object, &mut vec![(field, result)]);
+            state.ingest_fields(&parent_object, vec![(field, result)]);
             (response, state.into_response_part())
         });
 

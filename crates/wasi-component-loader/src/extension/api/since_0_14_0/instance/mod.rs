@@ -41,7 +41,9 @@ impl SdkPre0_14_0 {
         let subgraph_schemas: Vec<(&str, ws::Schema<'_>)> = match config.r#type {
             TypeDiscriminants::Authentication | TypeDiscriminants::Authorization => Vec::new(),
             TypeDiscriminants::FieldResolver => create_subgraph_schema_directives(&schema, config.id),
-            TypeDiscriminants::SelectionSetResolver => create_complete_subgraph_schemas(&schema, config.id),
+            TypeDiscriminants::Resolver | TypeDiscriminants::SelectionSetResolver => {
+                create_complete_subgraph_schemas(&schema, config.id)
+            }
         };
 
         // SAFETY: We keep an owned Arc<Schema> which is immutable (without inner

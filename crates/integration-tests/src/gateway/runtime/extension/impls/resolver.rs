@@ -5,14 +5,14 @@ use engine_schema::Subgraph;
 use extension_catalog::ExtensionId;
 use futures::FutureExt as _;
 use runtime::{
-    extension::{ArgumentsId, Data, DynField, Field, SelectionSetResolverExtension},
+    extension::{ArgumentsId, Data, DynField, Field, ResolverExtension},
     hooks::Anything,
 };
 
 use crate::gateway::{DispatchRule, DynHookContext, ExtContext, ExtensionsDispatcher, TestExtensions};
 
 #[allow(clippy::manual_async_fn, unused_variables)]
-impl SelectionSetResolverExtension<ExtContext> for ExtensionsDispatcher {
+impl ResolverExtension<ExtContext> for ExtensionsDispatcher {
     async fn prepare<'ctx, F: Field<'ctx>>(
         &'ctx self,
         extension_id: ExtensionId,
@@ -25,7 +25,7 @@ impl SelectionSetResolverExtension<ExtContext> for ExtensionsDispatcher {
         }
     }
 
-    fn resolve_query_or_mutation_field<'ctx, 'resp, 'f>(
+    fn resolve<'ctx, 'resp, 'f>(
         &'ctx self,
         extension_id: ExtensionId,
         subgraph: Subgraph<'ctx>,
@@ -39,18 +39,18 @@ impl SelectionSetResolverExtension<ExtContext> for ExtensionsDispatcher {
         match self.dispatch[&extension_id] {
             DispatchRule::Wasm => self
                 .wasm
-                .resolve_query_or_mutation_field(extension_id, subgraph, prepared_data, subgraph_headers, arguments)
+                .resolve(extension_id, subgraph, prepared_data, subgraph_headers, arguments)
                 .boxed(),
             DispatchRule::Test => self
                 .test
-                .resolve_query_or_mutation_field(extension_id, subgraph, prepared_data, subgraph_headers, arguments)
+                .resolve(extension_id, subgraph, prepared_data, subgraph_headers, arguments)
                 .boxed(),
         }
     }
 }
 
 #[allow(clippy::manual_async_fn, unused_variables)]
-impl SelectionSetResolverExtension<DynHookContext> for TestExtensions {
+impl ResolverExtension<DynHookContext> for TestExtensions {
     async fn prepare<'ctx, F: Field<'ctx>>(
         &'ctx self,
         extension_id: ExtensionId,
@@ -65,7 +65,7 @@ impl SelectionSetResolverExtension<DynHookContext> for TestExtensions {
             .await
     }
 
-    fn resolve_query_or_mutation_field<'ctx, 'resp, 'f>(
+    fn resolve<'ctx, 'resp, 'f>(
         &'ctx self,
         extension_id: ExtensionId,
         subgraph: Subgraph<'ctx>,
@@ -85,27 +85,25 @@ impl SelectionSetResolverExtension<DynHookContext> for TestExtensions {
                 .lock()
                 .await
                 .get_selection_set_resolver_ext(extension_id, subgraph)
-                .resolve_field(extension_id, subgraph, prepared_data, subgraph_headers, arguments)
+                .resolve(extension_id, subgraph, prepared_data, subgraph_headers, arguments)
                 .await
         }
     }
 }
 
-pub trait SelectionSetResolverTestExtensionBuilder: Send + Sync + 'static {
-    fn build(&self, schema_directives: Vec<(&str, serde_json::Value)>) -> Arc<dyn SelectionSetResolverTestExtension>;
+pub trait ResolverTestExtensionBuilder: Send + Sync + 'static {
+    fn build(&self, schema_directives: Vec<(&str, serde_json::Value)>) -> Arc<dyn ResolverTestExtension>;
 }
 
-impl<F: Fn() -> Arc<dyn SelectionSetResolverTestExtension> + Send + Sync + 'static>
-    SelectionSetResolverTestExtensionBuilder for F
-{
-    fn build(&self, _schema_directives: Vec<(&str, serde_json::Value)>) -> Arc<dyn SelectionSetResolverTestExtension> {
+impl<F: Fn() -> Arc<dyn ResolverTestExtension> + Send + Sync + 'static> ResolverTestExtensionBuilder for F {
+    fn build(&self, _schema_directives: Vec<(&str, serde_json::Value)>) -> Arc<dyn ResolverTestExtension> {
         self()
     }
 }
 
 #[allow(unused_variables)] // makes it easier to copy-paste relevant functions
 #[async_trait::async_trait]
-pub trait SelectionSetResolverTestExtension: Send + Sync + 'static {
+pub trait ResolverTestExtension: Send + Sync + 'static {
     async fn prepare<'ctx>(
         &self,
         extension_id: ExtensionId,
@@ -115,7 +113,7 @@ pub trait SelectionSetResolverTestExtension: Send + Sync + 'static {
         Ok(Vec::new())
     }
 
-    async fn resolve_field(
+    async fn resolve(
         &self,
         extension_id: ExtensionId,
         subgraph: Subgraph<'_>,

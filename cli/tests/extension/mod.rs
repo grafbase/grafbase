@@ -257,7 +257,7 @@ fn build_resolver() {
         "name": "test-project",
         "version": "0.1.0"
       },
-      "kind": {
+      "type": {
         "FieldResolver": {}
       },
       "sdk_version": "<sdk_version>",
@@ -494,8 +494,8 @@ fn build_auth() {
         "name": "test-project",
         "version": "0.1.0"
       },
-      "kind": {
-        "Authenticator": {}
+      "type": {
+        "Authentication": {}
       },
       "sdk_version": "<sdk_version>",
       "minimum_gateway_version": "<minimum_gateway_version>",

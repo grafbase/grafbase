@@ -25,10 +25,6 @@ impl ResponseObject {
         }
     }
 
-    pub fn len(&self) -> usize {
-        self.fields_sorted_by_key.len()
-    }
-
     pub fn fields(&self) -> impl Iterator<Item = &ResponseObjectField> {
         self.fields_sorted_by_key.iter()
     }

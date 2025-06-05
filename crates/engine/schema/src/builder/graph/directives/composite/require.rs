@@ -3,7 +3,8 @@ use itertools::Itertools as _;
 use wrapping::Wrapping;
 
 use crate::{
-    ArgumentInjectionRecord, ArgumentValueInjection, DirectiveSiteId, FieldRequiresRecord, TypeRecord,
+    ArgumentInjectionRecord, ArgumentValueInjection, DirectiveSiteId, FieldRequiresRecord, ResolverDefinitionRecord,
+    SubgraphId, TypeRecord,
     builder::{
         DirectivesIngester, Error, graph::directives::composite::injection::create_requirements_and_injection, sdl,
     },
@@ -105,7 +106,17 @@ pub(super) fn ingest_field<'sdl>(
                     injection_ids,
                 });
         }
+        for id in &ingester.builder.graph.field_definitions[usize::from(def.id)].resolver_ids {
+            let ResolverDefinitionRecord::Extension(record) =
+                &mut ingester.builder.graph.resolver_definitions[usize::from(*id)]
+            else {
+                continue;
+            };
+            if SubgraphId::from(record.subgraph_id) == subgraph_id {
+                record.guest_batch = batch;
+            }
+        }
     }
 
-    todo!()
+    Ok(())
 }

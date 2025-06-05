@@ -4,7 +4,7 @@ use crate::{
     Runtime,
     execution::ExecutionContext,
     prepare::Plan,
-    response::{ParentObjects, ResponsePartBuilder},
+    response::{ParentObjectSet, ResponsePartBuilder},
 };
 
 mod writer;
@@ -18,7 +18,7 @@ impl IntrospectionResolver {
         &'ctx self,
         ctx: ExecutionContext<'ctx, R>,
         plan: Plan<'ctx>,
-        parent_objects: ParentObjects,
+        parent_objects: ParentObjectSet,
         response: ResponsePartBuilder<'ctx>,
     ) -> ResponsePartBuilder<'ctx> {
         let response = RefCell::new(response);

@@ -217,7 +217,7 @@ trait WebsocketExt {
                 Ok(ws::Message::Text(contents)) => Some(contents.to_string()),
                 Ok(ws::Message::Binary(contents)) => String::from_utf8(contents.into()).ok(),
                 Err(error) => {
-                    tracing::warn!("Error receiving websocket message: {error:?}");
+                    tracing::debug!("Error receiving websocket message: {error:?}");
                     None
                 }
             };

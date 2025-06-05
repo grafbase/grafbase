@@ -2,22 +2,22 @@ use std::borrow::Cow;
 
 use futures::{FutureExt as _, StreamExt, stream::FuturesUnordered};
 use itertools::Itertools as _;
-use runtime::extension::{Data, SelectionSetResolverExtension};
+use runtime::extension::{Data, ResolverExtension};
 use walker::Walk;
 
 use crate::{
     Runtime,
     execution::ExecutionContext,
     prepare::Plan,
-    response::{ParentObjectsView, ResponsePartBuilder},
+    response::{ParentObjects, ResponsePartBuilder},
 };
 
-impl super::SelectionSetResolverExtension {
+impl super::ExtensionResolver {
     pub(in crate::resolver) fn execute_batch_lookup<'ctx, 'f, R: Runtime>(
         &'ctx self,
         ctx: ExecutionContext<'ctx, R>,
         plan: Plan<'ctx>,
-        parent_objects_view: ParentObjectsView<'_>,
+        parent_objects: ParentObjects<'_>,
         response_part: ResponsePartBuilder<'ctx>,
     ) -> impl Future<Output = ResponsePartBuilder<'ctx>> + Send + 'f
     where
@@ -33,7 +33,7 @@ impl super::SelectionSetResolverExtension {
                 let field = plan.get_field(prepared.id);
                 ctx.runtime()
                     .extensions()
-                    .resolve_query_or_mutation_field(
+                    .resolve(
                         definition.extension_id,
                         definition.subgraph().into(),
                         &prepared.extension_data,
@@ -42,9 +42,7 @@ impl super::SelectionSetResolverExtension {
                         prepared.arguments.iter().map(|(id, argument_ids)| {
                             (
                                 *id,
-                                argument_ids
-                                    .walk(&ctx)
-                                    .batch_view(ctx.variables(), parent_objects_view.clone()),
+                                argument_ids.walk(&ctx).batch_view(ctx.variables(), &parent_objects),
                             )
                         }),
                     )
@@ -53,7 +51,7 @@ impl super::SelectionSetResolverExtension {
             })
             .collect::<FuturesUnordered<_>>();
 
-        let parent_objects = parent_objects_view.into_object_set();
+        let parent_objects = parent_objects.into_object_set();
         async move {
             let results = futures.collect::<Vec<_>>().await;
 

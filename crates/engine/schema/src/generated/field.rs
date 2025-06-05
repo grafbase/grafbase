@@ -37,7 +37,7 @@ use walker::{Iter, Walk};
 ///   subgraph_types: [SubgraphType!]!
 ///   requires: [FieldRequires!]! @field(record_field_name: "requires_records")
 ///   provides: [FieldProvides!]! @field(record_field_name: "provides_records")
-///   "The arguments referenced by this range are sorted by their name (string)"
+///   "The arguments referenced by this range are sorted by their name (string). Names are NOT unique because of @internal/@require"
 ///   arguments: [InputValueDefinition!]!
 ///   directives: [TypeSystemDirective!]!
 ///   derives: [DeriveDefinition!]!
@@ -55,7 +55,7 @@ pub struct FieldDefinitionRecord {
     pub subgraph_type_records: Vec<SubgraphTypeRecord>,
     pub requires_records: Vec<FieldRequiresRecord>,
     pub provides_records: Vec<FieldProvidesRecord>,
-    /// The arguments referenced by this range are sorted by their name (string)
+    /// The arguments referenced by this range are sorted by their name (string). Names are NOT unique because of @internal/@require
     pub argument_ids: IdRange<InputValueDefinitionId>,
     pub directive_ids: Vec<TypeSystemDirectiveId>,
     pub derive_ids: IdRange<DeriveDefinitionId>,
@@ -111,7 +111,7 @@ impl<'a> FieldDefinition<'a> {
     pub fn provides(&self) -> impl Iter<Item = FieldProvides<'a>> + 'a {
         self.as_ref().provides_records.walk(self.schema)
     }
-    /// The arguments referenced by this range are sorted by their name (string)
+    /// The arguments referenced by this range are sorted by their name (string). Names are NOT unique because of @internal/@require
     pub fn arguments(&self) -> impl Iter<Item = InputValueDefinition<'a>> + 'a {
         self.as_ref().argument_ids.walk(self.schema)
     }

@@ -3,7 +3,7 @@ mod graphql;
 mod introspection;
 mod lookup;
 
-pub(crate) use extension::{FieldResolverExtension, SelectionSetResolverExtension};
+pub(crate) use extension::{ExtensionResolver, FieldResolverExtension};
 use futures::{FutureExt, future::BoxFuture};
 use futures_util::stream::BoxStream;
 pub(crate) use graphql::{FederationEntityResolver, GraphqlResolver};
@@ -17,7 +17,7 @@ use crate::{
     Runtime,
     execution::ExecutionContext,
     prepare::{Plan, PlanQueryPartition, PlanResult, PrepareContext},
-    response::{ParentObjectsView, ResponseBuilder, ResponsePartBuilder},
+    response::{ParentObjects, ResponseBuilder, ResponsePartBuilder},
 };
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -26,7 +26,7 @@ pub(crate) enum Resolver {
     FederationEntity(FederationEntityResolver),
     Introspection(IntrospectionResolver),
     FieldResolverExtension(FieldResolverExtension),
-    SelectionSetResolverExtension(SelectionSetResolverExtension),
+    Extension(ExtensionResolver),
     Lookup(LookupResolver),
 }
 
@@ -54,10 +54,10 @@ impl Resolver {
                     .await
                     .map(Self::FieldResolverExtension)
             }
-            ResolverDefinitionVariant::SelectionSetResolverExtension(definition) => {
-                SelectionSetResolverExtension::prepare(ctx, definition, plan_query_partition.selection_set())
+            ResolverDefinitionVariant::Extension(definition) => {
+                ExtensionResolver::prepare(ctx, definition, plan_query_partition.selection_set())
                     .await
-                    .map(Self::SelectionSetResolverExtension)
+                    .map(Self::Extension)
             }
             ResolverDefinitionVariant::Lookup(definition) => {
                 LookupResolver::prepare(ctx, operation, definition, plan_query_partition)
@@ -81,7 +81,7 @@ impl Resolver {
         // This cannot be kept in the future, it locks the whole the response to have this view.
         // So an executor is expected to prepare whatever it required from the response before
         // awaiting anything.
-        parent_objects_view: ParentObjectsView<'_>,
+        parent_objects_view: ParentObjects<'_>,
         response_part: ResponsePartBuilder<'ctx>,
     ) -> BoxFuture<'fut, ResolverResult<'ctx, <R::Hooks as Hooks>::OnSubgraphResponseOutput>>
     where
@@ -129,10 +129,10 @@ impl Resolver {
                 }
                 .boxed()
             }
-            Resolver::SelectionSetResolverExtension(prepared) => {
-                let parent_objects = parent_objects_view.into_object_set();
+            Resolver::Extension(prepared) => {
+                let fut = prepared.execute(ctx, plan, parent_objects_view, response_part);
                 async move {
-                    let response_part = prepared.execute(ctx, plan, parent_objects, response_part).await;
+                    let response_part = fut.await;
                     ResolverResult {
                         response_part,
                         on_subgraph_response_hook_output: None,
@@ -161,7 +161,7 @@ impl Resolver {
             Resolver::Lookup(_)
             | Resolver::Introspection(_)
             | Resolver::FederationEntity(_)
-            | Resolver::SelectionSetResolverExtension(_) => {
+            | Resolver::Extension(_) => {
                 unreachable!("Unsupported subscription resolver")
             }
         }
