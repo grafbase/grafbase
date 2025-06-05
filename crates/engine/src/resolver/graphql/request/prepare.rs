@@ -368,6 +368,21 @@ impl<'ctx> QueryBuilderContext<'ctx> {
     }
 
     fn get_or_insert_var(&mut self, ty: Type<'_>, value: PlanValueRecord) -> usize {
+        // For variables we re-use its name for clarity and its type. The latter is important to
+        // avoid duplicate variables, as the argument may have a different type than the variable
+        // and compare the type first to avoid expensive value comparison in the next step.
+        let (name, ty) = match value {
+            PlanValueRecord::Value(QueryOrSchemaInputValueId::Query(id)) => {
+                if let QueryInputValueRecord::Variable(id) = self.ctx.operation[id] {
+                    let var = &self.ctx.operation[id];
+                    (Some(&var.name), var.ty_record.walk(self.ctx))
+                } else {
+                    (None, ty)
+                }
+            }
+            _ => (None, ty),
+        };
+
         let pos = self.variables.iter().position(|var| {
             if &var.ty != ty.as_ref() {
                 return false;
@@ -392,17 +407,7 @@ impl<'ctx> QueryBuilderContext<'ctx> {
         if let Some(pos) = pos {
             pos
         } else {
-            let name = match value {
-                PlanValueRecord::Value(QueryOrSchemaInputValueId::Query(id)) => {
-                    if let QueryInputValueRecord::Variable(id) = self.ctx.operation[id] {
-                        Some(self.ctx.operation[id].name.clone())
-                    } else {
-                        None
-                    }
-                }
-                _ => None,
-            }
-            .unwrap_or_else(|| {
+            let name = name.cloned().unwrap_or_else(|| {
                 let mut prefix = String::new();
                 loop {
                     let candidate = format!("{}{VARIABLE_PREFIX}{}", prefix, self.variables.len());

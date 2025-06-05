@@ -1,4 +1,4 @@
-use graphql_mocks::FakeGithubSchema;
+use graphql_mocks::{FakeGithubSchema, dynamic::DynamicSchema};
 use integration_tests::{gateway::Gateway, runtime};
 use serde_json::json;
 
@@ -145,6 +145,49 @@ fn skip_include() {
               },
               {}
             ]
+          }
+        }
+        "#);
+    });
+}
+
+#[test]
+fn variable_with_different_usage() {
+    runtime().block_on(async move {
+        let engine = Gateway::builder()
+            .with_subgraph(
+                DynamicSchema::builder(
+                    r#"
+                    type Query {
+                        first(id: ID!): String!
+                        second(id: ID): String!
+                    }
+                "#,
+                )
+                .with_resolver("Query", "first", json!("1"))
+                .with_resolver("Query", "second", json!("2"))
+                .into_subgraph("x"),
+            )
+            .build()
+            .await;
+
+        let response = engine
+            .post(
+                r#"
+                query Test($id: ID!) {
+                    first(id: $id)
+                    second(id: $id)
+                }
+                "#,
+            )
+            .variables(json!({"id": "x"}))
+            .await;
+
+        insta::assert_json_snapshot!(response, @r#"
+        {
+          "data": {
+            "first": "1",
+            "second": "2"
           }
         }
         "#);
