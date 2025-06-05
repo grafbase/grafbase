@@ -69,7 +69,7 @@ where
                 Ok(Some(())) => (),
                 Ok(None) => {
                     tracing::error!("Received less entities than expected");
-                    state.insert_error_update(parent_object, GraphqlError::invalid_subgraph_response());
+                    state.insert_error_update(parent_object, [GraphqlError::invalid_subgraph_response()]);
 
                     break;
                 }
@@ -81,7 +81,7 @@ where
                                 "Deserialization failure of subgraph response at path '{}': {err}",
                                 state.display_path()
                             );
-                            state.insert_error_update(parent_object, GraphqlError::invalid_subgraph_response());
+                            state.insert_error_update(parent_object, [GraphqlError::invalid_subgraph_response()]);
                         }
                     }
 

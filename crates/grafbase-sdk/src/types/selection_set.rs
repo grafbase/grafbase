@@ -1,9 +1,5 @@
-mod serde;
-use std::borrow::Cow;
-
-use ::serde::{Deserialize, de::DeserializeSeed};
-
-use crate::{SdkError, wit::selection_set_resolver_types as wit};
+use crate::{SdkError, wit};
+use serde::{Deserialize, de::DeserializeSeed};
 
 use super::DefinitionId;
 
@@ -31,24 +27,24 @@ impl<'a> Field<'a> {
     }
 
     /// Deserializes the arguments of this field into the specified type
-    pub fn arguments<'de, T>(&self, values: ArgumentValues<'de>) -> Result<T, SdkError>
+    pub fn arguments<'de, T>(&self, variables: &'de Variables) -> Result<T, SdkError>
     where
         T: Deserialize<'de>,
     {
         match self.field.arguments {
-            Some(id) => values.get(id.into()),
+            Some(id) => variables.get(id.into()),
             None => Ok(T::deserialize(serde_json::json!({}))?),
         }
     }
 
     /// Deserializes the arguments of this field into the specified type with the given seed.
-    pub fn arguments_seed<'de, Seed>(&self, seed: Seed, values: ArgumentValues<'de>) -> Result<Seed::Value, SdkError>
+    pub fn arguments_seed<'de, Seed>(&self, variables: &'de Variables, seed: Seed) -> Result<Seed::Value, SdkError>
     where
         Seed: DeserializeSeed<'de>,
     {
         match self.field.arguments {
-            Some(id) => values.get_seed(id.into(), seed),
-            None => Err(SdkError::from("Field has no arguments".to_string())),
+            Some(id) => variables.get_seed(id.into(), seed),
+            None => Ok(seed.deserialize(serde_json::json!({}))?),
         }
     }
 
@@ -68,51 +64,6 @@ impl<'a> Field<'a> {
                 },
             })
     }
-
-    /// Serialize the field and its selection set
-    pub fn into_bytes(&self) -> Vec<u8> {
-        postcard::to_stdvec(&Data {
-            fields: Cow::Borrowed(self.fields),
-            ix: element_offset(self.fields, self.field).unwrap(),
-        })
-        .unwrap()
-    }
-
-    /// Deserialize a field and its selection set
-    pub fn with_bytes<T>(data: &[u8], f: impl FnOnce(Field<'_>) -> T) -> Result<T, SdkError> {
-        match postcard::from_bytes(data) {
-            Ok(Data { fields, ix }) => {
-                let field = fields.get(ix).ok_or("Field index out of bounds")?;
-                Ok(f(Field {
-                    fields: fields.as_ref(),
-                    field,
-                }))
-            }
-            Err(err) => Err(format!("Failed to deserialize field data: {err}").into()),
-        }
-    }
-}
-
-// std::lice::element_offset which is unstable
-fn element_offset(slice: &[wit::Field], element: &wit::Field) -> Option<usize> {
-    let self_start = slice.as_ptr().addr();
-    let elem_start = std::ptr::from_ref(element).addr();
-
-    let byte_offset = elem_start.wrapping_sub(self_start);
-
-    if byte_offset % std::mem::size_of::<wit::Field>() != 0 {
-        return None;
-    }
-
-    let offset = byte_offset / std::mem::size_of::<wit::Field>();
-
-    if offset < slice.len() { Some(offset) } else { None }
-}
-
-#[derive(::serde::Serialize, ::serde::Deserialize)]
-struct Data<'a> {
-    fields: Cow<'a, [wit::Field]>,
-    ix: usize,
 }
 
 /// Represents a selection set in a GraphQL query
@@ -166,29 +117,40 @@ impl From<wit::ArgumentsId> for ArgumentsId {
 }
 
 /// All argument values for a given selection set, to be used with [Field].
-#[derive(Clone, Copy)]
-pub struct ArgumentValues<'a>(pub(crate) &'a [(wit::ArgumentsId, Vec<u8>)]);
+pub struct Variables(Vec<(wit::ArgumentsId, Vec<u8>)>);
 
-impl<'a> ArgumentValues<'a> {
+impl std::fmt::Debug for Variables {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Variables").finish_non_exhaustive()
+    }
+}
+
+impl From<Vec<(wit::ArgumentsId, Vec<u8>)>> for Variables {
+    fn from(values: Vec<(wit::ArgumentsId, Vec<u8>)>) -> Self {
+        Self(values)
+    }
+}
+
+impl Variables {
     /// Deserializes the arguments of this field into the specified type
-    pub fn get<T>(&self, id: ArgumentsId) -> Result<T, SdkError>
+    pub fn get<'de, T>(&'de self, id: ArgumentsId) -> Result<T, SdkError>
     where
-        T: Deserialize<'a>,
+        T: Deserialize<'de>,
     {
         let bytes = self.get_bytes(id);
         crate::cbor::from_slice(bytes).map_err(Into::into)
     }
 
     /// Deserializes the arguments of this field into the specified type with the given seed.
-    pub fn get_seed<Seed>(&self, id: ArgumentsId, seed: Seed) -> Result<Seed::Value, SdkError>
+    pub fn get_seed<'de, Seed>(&'de self, id: ArgumentsId, seed: Seed) -> Result<Seed::Value, SdkError>
     where
-        Seed: DeserializeSeed<'a>,
+        Seed: DeserializeSeed<'de>,
     {
         let bytes = self.get_bytes(id);
         crate::cbor::from_slice_with_seed(bytes, seed).map_err(Into::into)
     }
 
-    fn get_bytes(&self, id: ArgumentsId) -> &'a [u8] {
+    fn get_bytes(&self, id: ArgumentsId) -> &[u8] {
         self.0
             .iter()
             .find_map(|(args_id, args)| if *args_id == id.0 { Some(args.as_slice()) } else { None })

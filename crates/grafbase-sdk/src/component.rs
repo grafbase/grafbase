@@ -2,9 +2,8 @@ mod authentication;
 mod authorization;
 mod error;
 mod extension;
-mod field_resolver;
 mod hooks;
-mod selection_set_resolver;
+mod resolver;
 mod state;
 
 use crate::{
@@ -13,7 +12,7 @@ use crate::{
 };
 
 pub use error::SdkError;
-pub(crate) use extension::AnyExtension;
+pub(crate) use extension::*;
 pub(crate) use state::{queue_event, register_extension};
 
 pub(crate) struct Component;

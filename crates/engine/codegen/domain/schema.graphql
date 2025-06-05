@@ -342,12 +342,20 @@ union ResolverDefinition
   @meta(module: "resolver")
   @variants(
     empty: ["Introspection"]
-    names: ["GraphqlRootField", "GraphqlFederationEntity", "FieldResolverExtension", "Extension", "Lookup"]
+    names: [
+      "GraphqlRootField"
+      "GraphqlFederationEntity"
+      "FieldResolverExtension"
+      "SelectionSetResolverExtension"
+      "Extension"
+      "Lookup"
+    ]
   )
   @indexed(deduplicated: true, id_size: "u32") =
   | GraphqlRootFieldResolverDefinition
   | GraphqlFederationEntityResolverDefinition
   | FieldResolverExtensionDefinition
+  | SelectionSetResolverExtensionDefinition
   | ExtensionResolverDefinition
   | LookupResolverDefinition
 
@@ -364,11 +372,15 @@ type FieldResolverExtensionDefinition @meta(module: "resolver/field_resolver_ext
   directive: ExtensionDirective!
 }
 
-"There will be one per field contrary to GraphqlRootFieldResolverDefinition"
+type SelectionSetResolverExtensionDefinition @meta(module: "resolver/selection_set_ext") @copy {
+  subgraph: VirtualSubgraph!
+  extension_id: ExtensionId!
+}
+
 type ExtensionResolverDefinition @meta(module: "resolver/extension") @copy {
   subgraph: VirtualSubgraph!
   extension_id: ExtensionId!
-  directive: ExtensionDirective
+  directive: ExtensionDirective!
   guest_batch: Boolean!
 }
 

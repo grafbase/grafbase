@@ -1,177 +1,94 @@
-use serde::{Deserialize, Serialize};
+use std::borrow::Cow;
 
-use crate::{SdkError, cbor, wit};
+use serde::{Deserialize, de::DeserializeSeed};
 
-use super::Error;
+use crate::{
+    SdkError,
+    types::{ArgumentsId, DefinitionId, Directive, Field, SelectionSet, Variables},
+    wit,
+};
 
-/// List of resolver inputs, each containing the relevant response data associated with the
-/// resolved item.
-#[derive(Clone, Copy)]
-pub struct FieldInputs<'a>(pub(crate) &'a [Vec<u8>]);
+/// Represents a resolved field in the context of a subgraph and its parent type
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct ResolvedField<'a> {
+    #[serde(borrow)]
+    pub(crate) subgraph_name: Cow<'a, str>,
+    #[serde(borrow)]
+    pub(crate) directive_name: Cow<'a, str>,
+    #[serde(borrow)]
+    pub(crate) directive_arguments: Cow<'a, [u8]>,
+    pub(crate) fields: Cow<'a, [wit::Field]>,
+    pub(crate) root_field_ix: usize,
+}
 
-impl<'a> From<&'a Vec<Vec<u8>>> for FieldInputs<'a> {
-    fn from(inputs: &'a Vec<Vec<u8>>) -> Self {
-        FieldInputs(inputs.as_slice())
+impl<'a> TryFrom<&'a [u8]> for ResolvedField<'a> {
+    type Error = SdkError;
+    fn try_from(value: &'a [u8]) -> Result<Self, Self::Error> {
+        postcard::from_bytes(value).map_err(|err| format!("Failed to deserialize field data: {err}").into())
     }
 }
 
-impl std::fmt::Debug for FieldInputs<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("FieldInputs").finish_non_exhaustive()
+impl From<ResolvedField<'_>> for Vec<u8> {
+    fn from(value: ResolvedField<'_>) -> Self {
+        postcard::to_stdvec(&value).expect("Failed to serialize ResolvedField")
     }
 }
 
-impl<'a> FieldInputs<'a> {
-    /// Number of items to be resolved.
-    #[allow(clippy::len_without_is_empty)] // Never empty.
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    /// Deserialize each byte slice in the `FieldInputs` to a collection of items.
-    pub fn deserialize<T>(&self) -> Result<Vec<T>, SdkError>
-    where
-        T: Deserialize<'a>,
-    {
-        self.0
-            .iter()
-            .map(|input| cbor::from_slice(input).map_err(Into::into))
-            .collect()
-    }
-}
-
-impl<'a> IntoIterator for FieldInputs<'a> {
-    type Item = FieldInput<'a>;
-
-    type IntoIter = FieldInputsIterator<'a>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        FieldInputsIterator(self.0.iter().enumerate())
-    }
-}
-
-/// Iterator over the resolver inputs.
-pub struct FieldInputsIterator<'a>(std::iter::Enumerate<std::slice::Iter<'a, Vec<u8>>>);
-
-impl<'a> Iterator for FieldInputsIterator<'a> {
-    type Item = FieldInput<'a>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.0.next().map(|(i, data)| FieldInput { data, ix: i as u32 })
-    }
-}
-
-/// Response data, if any, for an item to resolve.
-#[derive(Clone, Copy)]
-pub struct FieldInput<'a> {
-    data: &'a [u8],
-    ix: u32,
-}
-
-impl std::fmt::Debug for FieldInput<'_> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("FieldInput").finish_non_exhaustive()
-    }
-}
-
-impl<'a> FieldInput<'a> {
-    /// Deserialize a resolver input.
-    pub fn deserialize<T>(&self) -> Result<T, SdkError>
-    where
-        T: Deserialize<'a>,
-    {
-        cbor::from_slice(self.data).map_err(Into::into)
-    }
-}
-
-/// Output for a resolver
-pub struct FieldOutputs(wit::FieldOutput);
-
-impl FieldOutputs {
-    /// If your resolver doesn't depend on response data, this function provides a convenient way
-    /// to create a FieldOutput from a single element.
-    pub fn new<T: Serialize>(inputs: FieldInputs<'_>, data: T) -> Result<FieldOutputs, SdkError> {
-        let data = cbor::to_vec(data)?;
-        let outputs = if inputs.len() > 1 {
-            inputs.0.iter().map(|_| Ok(data.clone())).collect()
-        } else {
-            vec![Ok(data)]
-        };
-        Ok(FieldOutputs(wit::FieldOutput { outputs }))
-    }
-
-    /// If your resolver doesn't depend on response data, this function provides a convenient way
-    /// to create a FieldOutput from an error.
-    pub fn error(inputs: FieldInputs<'_>, error: impl Into<Error>) -> FieldOutputs {
-        let error: wit::Error = Into::<Error>::into(error).into();
-        let outputs = if inputs.len() > 1 {
-            inputs.0.iter().map(|_| Err(error.clone())).collect()
-        } else {
-            vec![Err(error)]
-        };
-        FieldOutputs(wit::FieldOutput { outputs })
-    }
-
-    /// Construct a new `FieldOutput` through an accumulator which allows setting the
-    /// output individually for each `FieldInput`.
-    pub fn builder(inputs: FieldInputs<'_>) -> FieldOutputsBuilder {
-        FieldOutputsBuilder {
-            items: vec![Ok(Vec::new()); inputs.len()],
+impl<'a> ResolvedField<'a> {
+    /// Reference to the root field
+    pub fn as_ref(&self) -> Field<'_> {
+        Field {
+            fields: &self.fields,
+            field: &self.fields[self.root_field_ix],
         }
     }
-}
 
-/// Accumulator for setting the output individually for each `FieldInput`.
-pub struct FieldOutputsBuilder {
-    items: Vec<Result<Vec<u8>, wit::Error>>,
-}
-
-impl FieldOutputsBuilder {
-    /// Push the output for a given `FieldInput`.
-    pub fn insert<T: Serialize>(&mut self, input: FieldInput<'_>, data: T) -> Result<(), SdkError> {
-        let data = cbor::to_vec(data)?;
-        self.items[input.ix as usize] = Ok(data);
-        Ok(())
+    /// Returns the name of the subgraph this field belongs to.
+    pub fn subgraph_name(&self) -> &str {
+        &self.subgraph_name
     }
 
-    /// Push an error for a given `FieldInput`.
-    pub fn insert_error(&mut self, input: FieldInput<'_>, error: impl Into<Error>) {
-        self.items[input.ix as usize] = Err(Into::<Error>::into(error).into());
+    /// Gets the alias of this field, if any
+    pub fn alias(&self) -> Option<&str> {
+        self.as_ref().alias()
     }
 
-    /// Build the `FieldOutput`.
-    pub fn build(self) -> FieldOutputs {
-        FieldOutputs(wit::FieldOutput { outputs: self.items })
+    /// Gets the arguments ID of this field, if any
+    pub fn arguments_id(&self) -> Option<ArgumentsId> {
+        self.as_ref().arguments_id()
     }
-}
 
-impl From<FieldOutputs> for wit::FieldOutput {
-    fn from(value: FieldOutputs) -> Self {
-        value.0
+    /// Field definition id.
+    pub fn definition_id(&self) -> DefinitionId {
+        self.as_ref().definition_id()
     }
-}
 
-/// Data serialized in either JSON or CBOR
-pub enum Data {
-    /// JSON bytes
-    Json(Vec<u8>),
-    /// CBOR bytes
-    Cbor(Vec<u8>),
-}
-
-impl Data {
-    /// Serialize a type into the most efficient supported serialization
-    pub fn new<T: Serialize>(data: T) -> Result<Self, SdkError> {
-        let bytes = cbor::to_vec(&data)?;
-        Ok(Data::Cbor(bytes))
+    /// Deserializes the arguments of this field into the specified type
+    pub fn arguments<'de, T>(&self, variables: &'de Variables) -> Result<T, SdkError>
+    where
+        T: Deserialize<'de>,
+    {
+        self.as_ref().arguments(variables)
     }
-}
 
-impl From<Data> for wit::Data {
-    fn from(value: Data) -> Self {
-        match value {
-            Data::Json(bytes) => wit::Data::Json(bytes),
-            Data::Cbor(bytes) => wit::Data::Cbor(bytes),
-        }
+    /// Deserializes the arguments of this field into the specified type with the given seed.
+    pub fn arguments_seed<'de, Seed>(&self, variables: &'de Variables, seed: Seed) -> Result<Seed::Value, SdkError>
+    where
+        Seed: DeserializeSeed<'de>,
+    {
+        self.as_ref().arguments_seed(variables, seed)
+    }
+
+    /// Gets the selection set of this field
+    pub fn selection_set(&self) -> SelectionSet<'_> {
+        self.as_ref().selection_set()
+    }
+
+    /// Returns the resolver directive associated with this field
+    pub fn directive(&self) -> Directive<'_> {
+        Directive(super::DirectiveInner::NameAndArgs {
+            name: &self.directive_name,
+            arguments: &self.directive_arguments,
+        })
     }
 }

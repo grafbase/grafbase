@@ -2,11 +2,10 @@ mod authentication;
 mod authorization;
 mod field_resolver;
 mod hooks;
+mod resolver;
 mod selection_set_resolver;
 
-use crate::extension::api::since_0_15_0::instance::utils::{
-    create_complete_subgraph_schemas, create_subgraph_schema_directives,
-};
+use crate::extension::api::since_0_15_0::instance::utils::create_complete_subgraph_schemas;
 use anyhow::Context as _;
 use engine_schema::Schema;
 use extension_catalog::TypeDiscriminants;
@@ -44,9 +43,10 @@ impl SdkPre0_17_0 {
             TypeDiscriminants::Authentication | TypeDiscriminants::Authorization | TypeDiscriminants::Hooks => {
                 Vec::new()
             }
-            TypeDiscriminants::FieldResolver => create_subgraph_schema_directives(&schema, config.id),
-            TypeDiscriminants::SelectionSetResolver => create_complete_subgraph_schemas(&schema, config.id),
-            TypeDiscriminants::Resolver => create_subgraph_schema_directives(&schema, config.id),
+            TypeDiscriminants::Resolver => create_complete_subgraph_schemas(&schema, config.id),
+            TypeDiscriminants::FieldResolver | TypeDiscriminants::SelectionSetResolver => {
+                unreachable!("Not supported anymore in the SDK.")
+            }
         };
 
         // SAFETY: We keep an owned Arc<Schema> which is immutable (without inner

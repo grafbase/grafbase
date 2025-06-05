@@ -80,7 +80,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                         if let Err(err) = result {
                             // If the current field is required, the error must be propagated upwards,
                             // so the parent object path is enough.
-                            if definition.ty().wrapping.is_required() {
+                            if definition.ty().wrapping.is_non_null() {
                                 response.propagate_null(&obj_ref.path);
                             } else {
                                 // Otherwise we don't need to propagate anything and just need to mark
@@ -182,7 +182,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                         }) => {
                             // If the current field is required, the error must be propagated upwards,
                             // so the parent object path is enough.
-                            if target_field.definition().ty().wrapping.is_required() {
+                            if target_field.definition().ty().wrapping.is_non_null() {
                                 for (element_ix, error_ix) in element_to_error {
                                     let obj_ref = &parent_objects[element_ix as usize];
                                     let err = errors[error_ix as usize].clone();
@@ -216,7 +216,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                         Ok(AuthorizationDecisions::DenyAll(err)) | Err(err) => {
                             // If the current field is required, the error must be propagated upwards,
                             // so the parent object path is enough.
-                            if target_field.definition().ty().wrapping.is_required() {
+                            if target_field.definition().ty().wrapping.is_non_null() {
                                 for obj_ref in parent_objects.iter() {
                                     response.propagate_null(&obj_ref.path);
                                     response.push_error(

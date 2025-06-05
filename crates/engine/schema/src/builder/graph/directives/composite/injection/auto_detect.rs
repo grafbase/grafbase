@@ -194,7 +194,7 @@ fn try_auto_detect_arguments_injections(
                 definition_id: argument_id,
                 value: ArgumentValueInjection::Value(ValueInjection::DefaultValue(default_value)),
             })
-        } else if builder.graph[argument_id].ty_record.wrapping.is_required() {
+        } else if builder.graph[argument_id].ty_record.wrapping.is_non_null() {
             tracing::trace!("A required argument doesn't match any key.");
             return Ok(None);
         }
@@ -233,7 +233,7 @@ fn try_auto_detect_input_object_injections(
                 key_id: builder.graph[input_id].name_id,
                 value: ValueInjection::DefaultValue(default_value),
             })
-        } else if builder.graph[input_id].ty_record.wrapping.is_required() {
+        } else if builder.graph[input_id].ty_record.wrapping.is_non_null() {
             tracing::trace!("A required argument doesn't match any key.");
             return Ok(None);
         }
@@ -264,7 +264,7 @@ fn try_auto_detect_oneof_input_object_with_single_key(
             input_id,
         )? {
             input_values.push((input_id, value));
-        } else if builder.graph[input_id].ty_record.wrapping.is_required() {
+        } else if builder.graph[input_id].ty_record.wrapping.is_non_null() {
             tracing::trace!("A required input doesn't match any key.");
             return Ok(None);
         }

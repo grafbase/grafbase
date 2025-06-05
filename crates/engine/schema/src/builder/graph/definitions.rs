@@ -363,7 +363,7 @@ impl<'a> Ingester<'a> {
         // Only directive to be processed immediately as rely on it for default values.
         let is_one_of = if let Some(dir) = input_object.directives().find(|dir| dir.name() == "oneOf") {
             for input_field in &self.graph[input_field_ids] {
-                if input_field.ty_record.wrapping.is_required() {
+                if input_field.ty_record.wrapping.is_non_null() {
                     return Err((
                         format!(
                             "@oneOf requires that all input fields of {} must be nullable, {} isn't.",

@@ -5,7 +5,8 @@ use extension_catalog::DirectiveType;
 use crate::{
     EntityDefinitionId, ExtensionResolverDefinitionRecord, FieldResolverExtensionDefinitionRecord,
     GraphqlFederationEntityResolverDefinitionRecord, GraphqlRootFieldResolverDefinitionRecord, ResolverDefinitionId,
-    ResolverDefinitionRecord, SubgraphId, TypeSystemDirectiveId, VirtualSubgraphId,
+    ResolverDefinitionRecord, SelectionSetResolverExtensionDefinitionRecord, SubgraphId, TypeSystemDirectiveId,
+    VirtualSubgraphId,
     builder::{
         Error,
         sdl::{self, SdlDefinition},
@@ -85,7 +86,7 @@ fn create_extension_resolvers(ingester: &mut DirectivesIngester<'_, '_>) -> Resu
                     }
                     graph.resolver_definitions.push(ResolverDefinitionRecord::Extension(
                         ExtensionResolverDefinitionRecord {
-                            directive_id: Some(id),
+                            directive_id: id,
                             subgraph_id: directive.subgraph_id.as_virtual().unwrap(),
                             extension_id: directive.extension_id,
                             guest_batch: false,
@@ -145,13 +146,12 @@ fn create_extension_resolvers(ingester: &mut DirectivesIngester<'_, '_>) -> Resu
                 if field.exists_in_subgraph_ids.contains(&subgraph_id) {
                     // Each field has its dedicated resolvers and they don't support batching
                     // multiple fields for now.
-                    resolver_definitions.push(ResolverDefinitionRecord::Extension(ExtensionResolverDefinitionRecord {
-                        subgraph_id: virtual_subgraph_id,
-                        extension_id,
-                        directive_id: None,
-                        // Added later through `@require`
-                        guest_batch: false,
-                    }));
+                    resolver_definitions.push(ResolverDefinitionRecord::SelectionSetResolverExtension(
+                        SelectionSetResolverExtensionDefinitionRecord {
+                            subgraph_id: virtual_subgraph_id,
+                            extension_id,
+                        },
+                    ));
                     field.resolver_ids.push((resolver_definitions.len() - 1).into());
                 }
             }

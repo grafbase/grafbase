@@ -14,7 +14,7 @@ impl From<Type<'_>> for TypeRecord {
 
 impl TypeRecord {
     pub fn is_required(&self) -> bool {
-        self.wrapping.is_required()
+        self.wrapping.is_non_null()
     }
 
     pub fn is_list(&self) -> bool {

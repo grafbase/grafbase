@@ -553,7 +553,7 @@ dependencies = [
 name = "auth-15"
 version = "0.1.0"
 dependencies = [
- "grafbase-sdk 0.15.6",
+ "grafbase-sdk 0.15.7",
  "serde",
  "serde_json",
 ]
@@ -2143,9 +2143,9 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.15.6"
+version = "0.15.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ef3e0e124bcee37434056131a0d00e150f556446fc3e655abd54c08ef626f921"
+checksum = "f48a90116502b92e192a62995c55c40b9e4e095585dc0bd3d39531f1a0fc53ca"
 dependencies = [
  "anyhow",
  "async-tungstenite",
@@ -4859,10 +4859,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "selection-set-resolver-014"
+name = "selection-set-resolver-015"
 version = "0.1.0"
 dependencies = [
- "grafbase-sdk 0.17.0",
+ "grafbase-sdk 0.15.7",
  "http",
  "rkyv 0.8.10",
  "serde",

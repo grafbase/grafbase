@@ -95,7 +95,7 @@ impl FieldResolverExtensionInstance for super::ExtensionInstanceSince0_15_0 {
         })
     }
 
-    fn resolve_next_subscription_item(
+    fn field_resolver_resolve_next_subscription_item(
         &mut self,
     ) -> BoxFuture<'_, Result<Option<Vec<Result<Data, GraphqlError>>>, Error>> {
         Box::pin(async move {

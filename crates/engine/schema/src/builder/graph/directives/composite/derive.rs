@@ -157,6 +157,7 @@ fn get_subgraph_id(graph: &Graph, id: ResolverDefinitionId) -> SubgraphId {
         ResolverDefinitionRecord::Introspection => SubgraphId::Introspection,
         ResolverDefinitionRecord::Lookup(id) => get_subgraph_id(graph, graph[*id].resolver_id),
         ResolverDefinitionRecord::Extension(record) => record.subgraph_id.into(),
+        ResolverDefinitionRecord::SelectionSetResolverExtension(record) => record.subgraph_id.into(),
     }
 }
 

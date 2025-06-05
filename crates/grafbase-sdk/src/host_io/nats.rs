@@ -6,9 +6,8 @@
 //! It supports both authenticated and unauthenticated connections to one or more NATS servers.
 
 use crate::{
-    SdkError,
-    extension::field_resolver::Subscription,
-    types::{Error, SubscriptionOutput},
+    SdkError, Subscription,
+    types::{Error, Response, SubscriptionItem},
     wit,
 };
 use std::time::Duration;
@@ -341,22 +340,12 @@ pub fn connect_with_auth(
 }
 
 impl Subscription for NatsSubscription {
-    fn next(&mut self) -> Result<Option<SubscriptionOutput>, Error> {
-        let item = match NatsSubscription::next(self) {
-            Ok(Some(item)) => item,
-            Ok(None) => return Ok(None),
-            Err(e) => return Err(format!("Error receiving NATS message: {e}").into()),
-        };
-
-        let mut builder = SubscriptionOutput::builder();
-
-        let payload: serde_json::Value = item
-            .payload()
-            .map_err(|e| format!("Error parsing NATS value as JSON: {e}"))?;
-
-        builder.push(payload)?;
-
-        Ok(Some(builder.build()))
+    fn next(&mut self) -> Result<Option<SubscriptionItem>, Error> {
+        match NatsSubscription::next(self) {
+            Ok(Some(msg)) => Ok(Some(Response::json(msg.inner.payload).into())),
+            Ok(None) => Ok(None),
+            Err(err) => Err(format!("Error receiving NATS message: {err}").into()),
+        }
     }
 }
 

@@ -47,7 +47,7 @@ impl<'de> DeserializeSeed<'de> for RootObjectSeed<'_, '_, '_> {
                 }
                 ObjectFields::Null => state.insert_empty_update(parent_object),
                 ObjectFields::Error(error) => {
-                    state.insert_error_update(parent_object, error);
+                    state.insert_error_update(parent_object, [error]);
                 }
             })
             .inspect_err(|err| match state.bubbling_up_deser_error.replace(true) {
@@ -57,7 +57,7 @@ impl<'de> DeserializeSeed<'de> for RootObjectSeed<'_, '_, '_> {
                         "Deserialization failure of subgraph response at path '{}': {err}",
                         state.display_path()
                     );
-                    state.insert_error_update(parent_object, GraphqlError::invalid_subgraph_response());
+                    state.insert_error_update(parent_object, [GraphqlError::invalid_subgraph_response()]);
                 }
             })
     }

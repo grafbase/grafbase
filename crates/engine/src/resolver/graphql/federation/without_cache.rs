@@ -33,7 +33,7 @@ impl ResponseIngester for EntityIngester {
         let http_response = match result {
             Ok(http_response) => http_response,
             Err(err) => {
-                response_part.insert_error_updates(&parent_objects, shape_id, err);
+                response_part.insert_error_updates(&parent_objects, shape_id, [err]);
                 return (None, response_part);
             }
         };
@@ -56,7 +56,7 @@ impl ResponseIngester for EntityIngester {
             Ok(status) => Some(status),
             Err(err) => {
                 if let Some(error) = err {
-                    state.insert_error_updates(&parent_objects, error);
+                    state.insert_error_updates(&parent_objects, [error]);
                 }
                 None
             }

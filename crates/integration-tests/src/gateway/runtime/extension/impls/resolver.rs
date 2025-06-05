@@ -1,78 +1,101 @@
 use std::sync::Arc;
 
 use engine::GraphqlError;
-use engine_schema::Subgraph;
-use extension_catalog::ExtensionId;
-use futures::FutureExt as _;
+use engine_schema::ExtensionDirective;
+use futures::{FutureExt as _, stream::BoxStream};
 use runtime::{
-    extension::{ArgumentsId, Data, DynField, Field, ResolverExtension},
+    extension::{ArgumentsId, DynField, Field, ResolverExtension, Response},
     hooks::Anything,
 };
 
-use crate::gateway::{DispatchRule, DynHookContext, ExtContext, ExtensionsDispatcher, TestExtensions};
+use crate::gateway::{DispatchRule, ExtensionsDispatcher, TestExtensions};
 
 #[allow(clippy::manual_async_fn, unused_variables)]
-impl ResolverExtension<ExtContext> for ExtensionsDispatcher {
+impl ResolverExtension for ExtensionsDispatcher {
     async fn prepare<'ctx, F: Field<'ctx>>(
         &'ctx self,
-        extension_id: ExtensionId,
-        subgraph: Subgraph<'ctx>,
+        directive: ExtensionDirective<'ctx>,
+        directive_arguments: impl Anything<'ctx>,
         field: F,
     ) -> Result<Vec<u8>, GraphqlError> {
-        match self.dispatch[&extension_id] {
-            DispatchRule::Wasm => self.wasm.prepare(extension_id, subgraph, field).await,
-            DispatchRule::Test => self.test.prepare(extension_id, subgraph, field).await,
+        match self.dispatch[&directive.extension_id] {
+            DispatchRule::Wasm => self.wasm.prepare(directive, directive_arguments, field).await,
+            DispatchRule::Test => self.test.prepare(directive, directive_arguments, field).await,
         }
     }
 
     fn resolve<'ctx, 'resp, 'f>(
         &'ctx self,
-        extension_id: ExtensionId,
-        subgraph: Subgraph<'ctx>,
+        directive: ExtensionDirective<'ctx>,
         prepared_data: &'ctx [u8],
         subgraph_headers: http::HeaderMap,
         arguments: impl Iterator<Item = (ArgumentsId, impl Anything<'resp>)> + Send,
-    ) -> impl Future<Output = Result<Data, GraphqlError>> + Send + 'f
+    ) -> impl Future<Output = Response> + Send + 'f
     where
         'ctx: 'f,
     {
-        match self.dispatch[&extension_id] {
+        match self.dispatch[&directive.extension_id] {
             DispatchRule::Wasm => self
                 .wasm
-                .resolve(extension_id, subgraph, prepared_data, subgraph_headers, arguments)
+                .resolve(directive, prepared_data, subgraph_headers, arguments)
                 .boxed(),
             DispatchRule::Test => self
                 .test
-                .resolve(extension_id, subgraph, prepared_data, subgraph_headers, arguments)
+                .resolve(directive, prepared_data, subgraph_headers, arguments)
+                .boxed(),
+        }
+    }
+
+    fn resolve_subscription<'ctx, 'resp, 'f>(
+        &'ctx self,
+        directive: ExtensionDirective<'ctx>,
+        prepared_data: &'ctx [u8],
+        subgraph_headers: http::HeaderMap,
+        arguments: impl Iterator<Item = (ArgumentsId, impl Anything<'resp>)> + Send,
+    ) -> impl Future<Output = BoxStream<'f, Response>> + Send + 'f
+    where
+        'ctx: 'f,
+    {
+        match self.dispatch[&directive.extension_id] {
+            DispatchRule::Wasm => self
+                .wasm
+                .resolve_subscription(directive, prepared_data, subgraph_headers, arguments)
+                .boxed(),
+            DispatchRule::Test => self
+                .test
+                .resolve_subscription(directive, prepared_data, subgraph_headers, arguments)
                 .boxed(),
         }
     }
 }
 
 #[allow(clippy::manual_async_fn, unused_variables)]
-impl ResolverExtension<DynHookContext> for TestExtensions {
+impl ResolverExtension for TestExtensions {
     async fn prepare<'ctx, F: Field<'ctx>>(
         &'ctx self,
-        extension_id: ExtensionId,
-        subgraph: Subgraph<'ctx>,
+        directive: ExtensionDirective<'ctx>,
+        directive_arguments: impl Anything<'ctx>,
         field: F,
     ) -> Result<Vec<u8>, GraphqlError> {
         self.state
             .lock()
             .await
-            .get_selection_set_resolver_ext(extension_id, subgraph)
-            .prepare(extension_id, subgraph, field.as_dyn())
+            .get_resolver_ext(directive.extension_id, directive.subgraph())
+            .prepare(
+                directive,
+                serde_json::to_value(directive_arguments).unwrap(),
+                field.as_dyn(),
+            )
             .await
     }
 
     fn resolve<'ctx, 'resp, 'f>(
         &'ctx self,
-        extension_id: ExtensionId,
-        subgraph: Subgraph<'ctx>,
+        directive: ExtensionDirective<'ctx>,
         prepared_data: &'ctx [u8],
         subgraph_headers: http::HeaderMap,
         arguments: impl Iterator<Item = (ArgumentsId, impl Anything<'resp>)> + Send,
-    ) -> impl Future<Output = Result<Data, GraphqlError>> + Send + 'f
+    ) -> impl Future<Output = Response> + Send + 'f
     where
         'ctx: 'f,
     {
@@ -84,8 +107,32 @@ impl ResolverExtension<DynHookContext> for TestExtensions {
             self.state
                 .lock()
                 .await
-                .get_selection_set_resolver_ext(extension_id, subgraph)
-                .resolve(extension_id, subgraph, prepared_data, subgraph_headers, arguments)
+                .get_resolver_ext(directive.extension_id, directive.subgraph())
+                .resolve(directive, prepared_data, subgraph_headers, arguments)
+                .await
+        }
+    }
+
+    fn resolve_subscription<'ctx, 'resp, 'f>(
+        &'ctx self,
+        directive: ExtensionDirective<'ctx>,
+        prepared_data: &'ctx [u8],
+        subgraph_headers: http::HeaderMap,
+        arguments: impl Iterator<Item = (ArgumentsId, impl Anything<'resp>)> + Send,
+    ) -> impl Future<Output = BoxStream<'f, Response>> + Send + 'f
+    where
+        'ctx: 'f,
+    {
+        let arguments = arguments
+            .into_iter()
+            .map(|(id, args)| (id, serde_json::to_value(args).unwrap()))
+            .collect::<Vec<_>>();
+        async move {
+            self.state
+                .lock()
+                .await
+                .get_resolver_ext(directive.extension_id, directive.subgraph())
+                .resolve_subscription(directive, prepared_data, subgraph_headers, arguments)
                 .await
         }
     }
@@ -106,8 +153,8 @@ impl<F: Fn() -> Arc<dyn ResolverTestExtension> + Send + Sync + 'static> Resolver
 pub trait ResolverTestExtension: Send + Sync + 'static {
     async fn prepare<'ctx>(
         &self,
-        extension_id: ExtensionId,
-        subgraph: Subgraph<'ctx>,
+        directive: ExtensionDirective<'ctx>,
+        directive_arguments: serde_json::Value,
         field: Box<dyn DynField<'ctx>>,
     ) -> Result<Vec<u8>, GraphqlError> {
         Ok(Vec::new())
@@ -115,10 +162,19 @@ pub trait ResolverTestExtension: Send + Sync + 'static {
 
     async fn resolve(
         &self,
-        extension_id: ExtensionId,
-        subgraph: Subgraph<'_>,
+        directive: ExtensionDirective<'_>,
         prepared_data: &[u8],
         subgraph_headers: http::HeaderMap,
         arguments: Vec<(ArgumentsId, serde_json::Value)>,
-    ) -> Result<Data, GraphqlError>;
+    ) -> Response;
+
+    async fn resolve_subscription<'ctx>(
+        &self,
+        directive: ExtensionDirective<'ctx>,
+        prepared_data: &'ctx [u8],
+        subgraph_headers: http::HeaderMap,
+        arguments: Vec<(ArgumentsId, serde_json::Value)>,
+    ) -> BoxStream<'ctx, Response> {
+        unimplemented!()
+    }
 }

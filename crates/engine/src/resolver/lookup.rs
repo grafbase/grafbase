@@ -7,6 +7,7 @@ use crate::{
     Runtime,
     execution::ExecutionContext,
     prepare::{Plan, PlanError, PlanQueryPartition, PlanResult, PrepareContext},
+    resolver::extension::SelectionSetExtensionResolver,
     response::{ParentObjects, ResponsePartBuilder},
 };
 
@@ -22,6 +23,7 @@ pub(crate) struct LookupResolver {
 pub(crate) enum LookupProxiedResolver {
     Graphql(GraphqlResolver),
     Extension(ExtensionResolver),
+    SelectionSetExtension(SelectionSetExtensionResolver),
 }
 
 impl LookupResolver {
@@ -39,6 +41,11 @@ impl LookupResolver {
                 };
                 GraphqlResolver::prepare(ctx, definition, plan_query_partition.selection_set())
                     .map(LookupProxiedResolver::Graphql)
+            }
+            ResolverDefinitionVariant::SelectionSetResolverExtension(definition) => {
+                SelectionSetExtensionResolver::prepare(ctx, definition, plan_query_partition.selection_set())
+                    .await
+                    .map(LookupProxiedResolver::SelectionSetExtension)
             }
             ResolverDefinitionVariant::Extension(definition) => {
                 ExtensionResolver::prepare(ctx, definition, plan_query_partition.selection_set())
@@ -63,8 +70,8 @@ impl LookupResolver {
         &'ctx self,
         ctx: ExecutionContext<'ctx, R>,
         plan: Plan<'ctx>,
-        parent_objects_view: ParentObjects<'_>,
-        subgraph_response: ResponsePartBuilder<'ctx>,
+        parent_objects: ParentObjects<'_>,
+        response_part: ResponsePartBuilder<'ctx>,
     ) -> BoxFuture<'f, ResolverResult<'ctx, <R::Hooks as Hooks>::OnSubgraphResponseOutput>>
     where
         'ctx: 'f,
@@ -72,7 +79,18 @@ impl LookupResolver {
         match &self.proxied {
             LookupProxiedResolver::Graphql(_) => unimplemented!("GB-8942"),
             LookupProxiedResolver::Extension(resolver) => {
-                let fut = resolver.execute_batch_lookup(ctx, plan, parent_objects_view, subgraph_response);
+                let fut = resolver.execute_batch_lookup(ctx, plan, parent_objects, response_part);
+                async move {
+                    let response_part = fut.await;
+                    ResolverResult {
+                        response_part,
+                        on_subgraph_response_hook_output: None,
+                    }
+                }
+                .boxed()
+            }
+            LookupProxiedResolver::SelectionSetExtension(resolver) => {
+                let fut = resolver.execute_batch_lookup(ctx, plan, parent_objects, response_part);
                 async move {
                     let response_part = fut.await;
                     ResolverResult {

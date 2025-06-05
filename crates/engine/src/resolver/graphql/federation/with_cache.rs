@@ -32,7 +32,7 @@ pub(super) fn ingest_hits<'parent>(
             .deserialize(&mut sonic_rs::Deserializer::from_slice(&hit.data))
         {
             tracing::error!("Deserialization failure: {error}");
-            state.insert_error_update(&parent_objects[hit.id], GraphqlError::invalid_subgraph_response());
+            state.insert_error_update(&parent_objects[hit.id], [GraphqlError::invalid_subgraph_response()]);
         }
     }
 }
@@ -65,7 +65,7 @@ where
         let http_response = match result {
             Ok(http_response) => http_response,
             Err(err) => {
-                response_part.insert_error_updates(&parent_objects, shape_id, err);
+                response_part.insert_error_updates(&parent_objects, shape_id, [err]);
                 return (None, response_part);
             }
         };
@@ -109,7 +109,7 @@ where
                 Ok(status) => Some(status),
                 Err(err) => {
                     if let Some(error) = err {
-                        state.insert_error_updates(cache_misses.map(|miss| &parent_objects[miss.id]), error);
+                        state.insert_error_updates(cache_misses.map(|miss| &parent_objects[miss.id]), [error]);
                     }
                     None
                 }
@@ -179,7 +179,7 @@ impl<'de> Visitor<'de> for PartiallyCachedEntitiesSeed<'_, '_, '_, 'de> {
                 Ok(Some(value)) => value,
                 Ok(None) => {
                     tracing::error!("Received less entities than expected");
-                    state.insert_error_update(parent_object, GraphqlError::invalid_subgraph_response());
+                    state.insert_error_update(parent_object, [GraphqlError::invalid_subgraph_response()]);
 
                     break;
                 }
@@ -191,7 +191,7 @@ impl<'de> Visitor<'de> for PartiallyCachedEntitiesSeed<'_, '_, '_, 'de> {
                                 "Deserialization failure of subgraph response at path '{}': {err}",
                                 state.display_path()
                             );
-                            state.insert_error_update(parent_object, GraphqlError::invalid_subgraph_response());
+                            state.insert_error_update(parent_object, [GraphqlError::invalid_subgraph_response()]);
                         }
                     }
 
@@ -208,7 +208,7 @@ impl<'de> Visitor<'de> for PartiallyCachedEntitiesSeed<'_, '_, '_, 'de> {
                             "Deserialization failure of subgraph response at path '{}': {err}",
                             state.display_path()
                         );
-                        state.insert_error_update(parent_object, GraphqlError::invalid_subgraph_response());
+                        state.insert_error_update(parent_object, [GraphqlError::invalid_subgraph_response()]);
                     }
                 }
 

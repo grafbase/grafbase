@@ -261,7 +261,7 @@ fn convert_field_arguments(
                 definition_id: argument_def_id,
                 value_id,
             });
-        } else if ty_record.wrapping.is_required() {
+        } else if ty_record.wrapping.is_non_null() {
             return Err(InputValueError::MissingRequiredArgument(ctx.ctx[name_id].clone()));
         }
     }

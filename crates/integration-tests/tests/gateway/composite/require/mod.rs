@@ -4,11 +4,11 @@ mod single;
 use std::sync::Arc;
 
 use engine::GraphqlError;
-use engine_schema::Subgraph;
-use extension_catalog::{ExtensionId, Id};
+use engine_schema::ExtensionDirective;
+use extension_catalog::Id;
 use graphql_mocks::dynamic::{DynamicSchema, DynamicSubgraph};
 use integration_tests::gateway::{AnyExtension, ResolverTestExtension, TestManifest};
-use runtime::extension::{ArgumentsId, Data};
+use runtime::extension::{ArgumentsId, Data, Response};
 use serde_json::json;
 
 #[derive(Clone)]
@@ -32,10 +32,10 @@ impl AnyExtension for Resolve {
                 name: "resolver".to_string(),
                 version: "1.0.0".parse().unwrap(),
             },
-            r#type: extension_catalog::Type::Resolver(extension_catalog::ResolverType { directives: None }),
+            r#type: extension_catalog::Type::Resolver(Default::default()),
             sdl: Some(r#"directive @resolve on FIELD_DEFINITION"#),
         });
-        state.test.selection_set_resolver_builders.insert(
+        state.test.resolver_builders.insert(
             id,
             Arc::new(move || -> Arc<dyn ResolverTestExtension> { Arc::new(self.clone()) }),
         );
@@ -46,15 +46,14 @@ impl AnyExtension for Resolve {
 impl ResolverTestExtension for Resolve {
     async fn resolve(
         &self,
-        _extension_id: ExtensionId,
-        _subgraph: Subgraph<'_>,
+        _directive: ExtensionDirective<'_>,
         _prepared_data: &[u8],
         _subgraph_headers: http::HeaderMap,
         mut arguments: Vec<(ArgumentsId, serde_json::Value)>,
-    ) -> Result<Data, GraphqlError> {
+    ) -> Response {
         assert!(arguments.len() == 1);
         let (_, arg) = arguments.pop().unwrap();
-        (self.resolve)(arg).map(|value| Data::Json(serde_json::to_vec(&value).unwrap().into()))
+        Response::from((self.resolve)(arg).map(|value| Data::Json(serde_json::to_vec(&value).unwrap().into())))
     }
 }
 

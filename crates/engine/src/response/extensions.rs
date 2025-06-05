@@ -8,7 +8,7 @@ use crate::{
     prepare::{Executable, OperationPlanContext, PlanId, PreparedOperation},
     resolver::{
         ExtensionResolver, FederationEntityResolver, FieldResolverExtension, GraphqlResolver, LookupProxiedResolver,
-        Resolver,
+        Resolver, SelectionSetExtensionResolver,
     },
 };
 
@@ -155,7 +155,13 @@ impl From<(OperationPlanContext<'_>, &Resolver)> for QueryPlanNode {
                 node: Box::new(match &resolver.proxied {
                     LookupProxiedResolver::Graphql(resolver) => (ctx, resolver).into(),
                     LookupProxiedResolver::Extension(resolver) => (ctx, resolver).into(),
+                    LookupProxiedResolver::SelectionSetExtension(resolver) => (ctx, resolver).into(),
                 }),
+            }),
+            Resolver::SelectionSetExtension(resolver) => QueryPlanNode::Extension(ExtensionNode {
+                directive_name: None,
+                id: ctx.schema[resolver.definition.extension_id].clone(),
+                subgraph_name: resolver.definition.subgraph_id.walk(ctx).subgraph_name().to_string(),
             }),
         }
     }
@@ -196,6 +202,15 @@ impl From<(OperationPlanContext<'_>, &FieldResolverExtension)> for QueryPlanNode
 
 impl From<(OperationPlanContext<'_>, &ExtensionResolver)> for QueryPlanNode {
     fn from((ctx, resolver): (OperationPlanContext<'_>, &ExtensionResolver)) -> Self {
+        QueryPlanNode::Extension(ExtensionNode {
+            directive_name: None,
+            id: ctx.schema[resolver.definition.extension_id].clone(),
+            subgraph_name: resolver.definition.subgraph_id.walk(ctx).subgraph_name().to_string(),
+        })
+    }
+}
+impl From<(OperationPlanContext<'_>, &SelectionSetExtensionResolver)> for QueryPlanNode {
+    fn from((ctx, resolver): (OperationPlanContext<'_>, &SelectionSetExtensionResolver)) -> Self {
         QueryPlanNode::Extension(ExtensionNode {
             directive_name: None,
             id: ctx.schema[resolver.definition.extension_id].clone(),

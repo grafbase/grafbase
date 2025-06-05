@@ -5,7 +5,7 @@ use walker::Walk;
 use crate::{
     ExtensionResolverDefinition, FieldResolverExtensionDefinition, FieldSet, GraphqlFederationEntityResolverDefinition,
     GraphqlRootFieldResolverDefinition, LookupResolverDefinition, ResolverDefinition, ResolverDefinitionVariant,
-    Subgraph, SubgraphId,
+    SelectionSetResolverExtensionDefinition, Subgraph, SubgraphId,
 };
 
 impl<'a> ResolverDefinition<'a> {
@@ -20,6 +20,7 @@ impl<'a> ResolverDefinition<'a> {
             ResolverDefinitionVariant::Introspection(_) => SubgraphId::Introspection,
             ResolverDefinitionVariant::FieldResolverExtension(resolver) => resolver.directive().subgraph_id,
             ResolverDefinitionVariant::Extension(resolver) => resolver.subgraph_id.into(),
+            ResolverDefinitionVariant::SelectionSetResolverExtension(resolver) => resolver.subgraph_id.into(),
             ResolverDefinitionVariant::Lookup(resolver) => resolver.resolver().subgraph_id(),
         }
     }
@@ -41,6 +42,7 @@ impl<'a> ResolverDefinition<'a> {
             ResolverDefinitionVariant::FieldResolverExtension(resolver) => resolver.name().into(),
             ResolverDefinitionVariant::Extension(resolver) => resolver.name().into(),
             ResolverDefinitionVariant::Lookup(resolver) => resolver.name().into(),
+            ResolverDefinitionVariant::SelectionSetResolverExtension(resolver) => resolver.name().into(),
         }
     }
 }
@@ -65,11 +67,22 @@ impl GraphqlFederationEntityResolverDefinition<'_> {
 
 impl LookupResolverDefinition<'_> {
     pub fn name(&self) -> String {
-        format!("Lookup#{}", self.resolver().name())
+        format!("Lookup/{}", self.resolver().name())
     }
 }
 
 impl ExtensionResolverDefinition<'_> {
+    pub fn name(&self) -> String {
+        format!(
+            "{}/{}#{}",
+            self.directive().name(),
+            self.schema[self.extension_id],
+            self.subgraph().subgraph_name()
+        )
+    }
+}
+
+impl SelectionSetResolverExtensionDefinition<'_> {
     pub fn name(&self) -> String {
         format!(
             "SelectionSetResolver#{}#{}",

@@ -153,10 +153,10 @@ pub enum ListWrapping {
 
 impl Wrapping {
     pub fn is_nullable(self) -> bool {
-        !self.is_required()
+        !self.is_non_null()
     }
 
-    pub fn is_required(self) -> bool {
+    pub fn is_non_null(self) -> bool {
         self.list_wrappings()
             .next_back()
             .map(|lw| matches!(lw, ListWrapping::ListNonNull))
@@ -218,25 +218,25 @@ mod tests {
     fn test_wrapping() {
         let wrapping = Wrapping::default().non_null();
         assert!(wrapping.inner_is_required());
-        assert!(wrapping.is_required() && !wrapping.is_nullable());
+        assert!(wrapping.is_non_null() && !wrapping.is_nullable());
         assert!(!wrapping.is_list());
         assert_eq!(wrapping.list_wrappings().collect::<Vec<_>>(), vec![]);
 
         let mut wrapping = Wrapping::default();
         assert!(!wrapping.inner_is_required());
-        assert!(wrapping.is_nullable() && !wrapping.is_required());
+        assert!(wrapping.is_nullable() && !wrapping.is_non_null());
         assert!(!wrapping.is_list());
         assert_eq!(wrapping.list_wrappings().collect::<Vec<_>>(), vec![]);
 
         wrapping = wrapping.list();
         assert!(!wrapping.inner_is_required());
-        assert!(wrapping.is_nullable() && !wrapping.is_required());
+        assert!(wrapping.is_nullable() && !wrapping.is_non_null());
         assert!(wrapping.is_list());
         assert_eq!(wrapping.list_wrappings().collect::<Vec<_>>(), vec![ListWrapping::List]);
 
         wrapping = wrapping.list_non_null();
         assert!(!wrapping.inner_is_required());
-        assert!(wrapping.is_required() && !wrapping.is_nullable());
+        assert!(wrapping.is_non_null() && !wrapping.is_nullable());
         assert!(wrapping.is_list());
         assert_eq!(
             wrapping.list_wrappings().collect::<Vec<_>>(),
@@ -245,7 +245,7 @@ mod tests {
 
         wrapping = wrapping.list();
         assert!(!wrapping.inner_is_required());
-        assert!(wrapping.is_nullable() && !wrapping.is_required());
+        assert!(wrapping.is_nullable() && !wrapping.is_non_null());
         assert!(wrapping.is_list());
         assert_eq!(
             wrapping.list_wrappings().collect::<Vec<_>>(),

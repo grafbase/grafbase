@@ -237,7 +237,7 @@ fn bind_selected_object_value<T: Target>(
     if target_wrapping.is_list() {
         return Err(format!("Cannot map object into {}, it's a list", target.display(ctx)));
     }
-    if target_wrapping.is_required() && source.wrapping.is_nullable() {
+    if target_wrapping.is_non_null() && source.wrapping.is_nullable() {
         return Err(format!(
             "Cannot map nullable object {} into required one {}",
             ctx.type_name(source),
@@ -267,7 +267,7 @@ fn bind_selected_object_value<T: Target>(
                 value: SelectedValueOrField::DefaultValue(default_value),
             });
             continue;
-        } else if wrapping.is_required() {
+        } else if wrapping.is_non_null() {
             return Err(format!(
                 "For {}, field '{}' is required but it's missing from the FieldSelectionMap",
                 target.display(ctx),
@@ -353,7 +353,7 @@ fn bind_selected_list_value<T: Target>(
     (target, target_wrapping): (T, Wrapping),
     list: SelectedListValue<'_>,
 ) -> Result<BoundSelectedListValue<T::Id>, String> {
-    if target_wrapping.is_required() && source.wrapping.is_nullable() {
+    if target_wrapping.is_non_null() && source.wrapping.is_nullable() {
         return Err(format!(
             "Cannot map nullable list {} into required one {}",
             ctx.type_name(source),

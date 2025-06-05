@@ -2,6 +2,7 @@ mod authentication;
 mod authorization;
 mod field_resolver;
 mod hooks;
+mod resolver;
 mod selection_set_resolver;
 mod utils;
 
@@ -44,9 +45,8 @@ impl SdkPre0_14_0 {
                 Vec::new()
             }
             TypeDiscriminants::FieldResolver => create_subgraph_schema_directives(&schema, config.id),
-            TypeDiscriminants::Resolver | TypeDiscriminants::SelectionSetResolver => {
-                create_complete_subgraph_schemas(&schema, config.id)
-            }
+            TypeDiscriminants::SelectionSetResolver => create_complete_subgraph_schemas(&schema, config.id),
+            TypeDiscriminants::Resolver => unreachable!("Not part of SDK 0.14"),
         };
 
         // SAFETY: We keep an owned Arc<Schema> which is immutable (without inner

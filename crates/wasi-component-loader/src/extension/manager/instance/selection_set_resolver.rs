@@ -8,7 +8,7 @@ use crate::{
 };
 
 pub(crate) trait SelectionSetResolverExtensionInstance {
-    fn prepare<'a>(
+    fn selection_set_resolver_prepare<'a>(
         &'a mut self,
         subgraph_name: &'a str,
         field_id: FieldId,

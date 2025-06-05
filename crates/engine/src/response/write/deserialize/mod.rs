@@ -114,10 +114,14 @@ impl<'parent> SeedState<'_, 'parent> {
             .insert_propagated_empty_update(parent_object, self.root_shape.id);
     }
 
-    pub fn insert_error_update(&self, parent_object: &'parent ResponseObjectRef, error: GraphqlError) {
+    pub fn insert_error_update(
+        &self,
+        parent_object: &'parent ResponseObjectRef,
+        errors: impl IntoIterator<Item = GraphqlError>,
+    ) {
         self.response
             .borrow_mut()
-            .insert_error_update(parent_object, self.root_shape.id, error);
+            .insert_error_update(parent_object, self.root_shape.id, errors);
     }
 
     pub fn insert_error_updates(
@@ -126,10 +130,20 @@ impl<'parent> SeedState<'_, 'parent> {
             IntoIter: ExactSizeIterator<Item = &'parent ResponseObjectRef>,
             Item = &'parent ResponseObjectRef,
         >,
-        error: GraphqlError,
+        errors: impl IntoIterator<Item = GraphqlError>,
     ) {
         self.response
             .borrow_mut()
-            .insert_error_updates(parent_objects, self.root_shape.id, error);
+            .insert_error_updates(parent_objects, self.root_shape.id, errors);
+    }
+
+    pub fn insert_errors(
+        &self,
+        parent_object: &'parent ResponseObjectRef,
+        errors: impl IntoIterator<Item = GraphqlError>,
+    ) {
+        self.response
+            .borrow_mut()
+            .insert_errors(parent_object, self.root_shape.id, errors);
     }
 }

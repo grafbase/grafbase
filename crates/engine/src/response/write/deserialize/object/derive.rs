@@ -83,7 +83,7 @@ fn handle_list_derive(
                             .with_location(ctx.field.partition_field().location()),
                     );
                 }
-                if ctx.field.wrapping.is_required() {
+                if ctx.field.wrapping.is_non_null() {
                     ctx.resp.propagate_null(&path)
                 }
             }
@@ -136,7 +136,7 @@ fn handle_derive_scalar_list(
             ctx.resp
                 .errors
                 .push_query_error(error_id, location, (&path, scalar_field.response_key));
-            if scalar_field.wrapping.is_required() {
+            if scalar_field.wrapping.is_non_null() {
                 ctx.resp.propagate_null(&path);
             }
         }
@@ -299,7 +299,7 @@ fn handle_object_derive(
                     ctx.resp
                         .errors
                         .push_query_error(error_id, location, (&path, field.response_key));
-                    if field.wrapping.is_required() {
+                    if field.wrapping.is_non_null() {
                         ctx.resp.propagate_null(&path);
                     }
                 }
@@ -334,7 +334,7 @@ fn handle_object_derive(
                         }
                         // If not required, we don't need to propagate as Unexpected is equivalent to
                         // null for users.
-                        if field.wrapping.is_required() {
+                        if field.wrapping.is_non_null() {
                             ctx.resp.propagate_null(&path);
                         }
                     }

@@ -7,17 +7,17 @@ fn can_read_config() {
             .with_subgraph_sdl(
                 "echo-config",
                 r#"
-                extend schema @link(url: "selection-set-resolver-014-1.0.0", import: ["@init"]) @init
+                extend schema @link(url: "selection-set-resolver-015-1.0.0", import: ["@init"]) @init
                 scalar JSON
                 type Query {
                     test: JSON
                 }
                 "#,
             )
-            .with_extension("selection-set-resolver-014")
+            .with_extension("selection-set-resolver-015")
             .with_toml_config(
                 r#"
-                [extensions.selection-set-resolver-014.config]
+                [extensions.selection-set-resolver-015.config]
                 value = "Hi there!"
                 other = { complex = [2, {test = 3}]}
                 "#,
@@ -53,17 +53,17 @@ fn can_fail_reading_config_with_nullable_field() {
             .with_subgraph_sdl(
                 "echo-config",
                 r#"
-                extend schema @link(url: "selection-set-resolver-014-1.0.0", import: ["@init"]) @init
+                extend schema @link(url: "selection-set-resolver-015-1.0.0", import: ["@init"]) @init
                 scalar JSON
                 type Query {
                     test: JSON
                 }
                 "#,
             )
-            .with_extension("selection-set-resolver-014")
+            .with_extension("selection-set-resolver-015")
             .with_toml_config(
                 r#"
-                [extensions.selection-set-resolver-014.config]
+                [extensions.selection-set-resolver-015.config]
                 error = "This is an error"
                 "#,
             )
@@ -81,17 +81,17 @@ fn can_fail_reading_config_with_required_field() {
             .with_subgraph_sdl(
                 "echo-config",
                 r#"
-                extend schema @link(url: "selection-set-resolver-014-1.0.0", import: ["@init"]) @init
+                extend schema @link(url: "selection-set-resolver-015-1.0.0", import: ["@init"]) @init
                 scalar JSON
                 type Query {
                     test: JSON!
                 }
                 "#,
             )
-            .with_extension("selection-set-resolver-014")
+            .with_extension("selection-set-resolver-015")
             .with_toml_config(
                 r#"
-                [extensions.selection-set-resolver-014.config]
+                [extensions.selection-set-resolver-015.config]
                 error = "This is an error"
                 "#,
             )

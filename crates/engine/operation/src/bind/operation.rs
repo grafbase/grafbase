@@ -203,7 +203,7 @@ impl<'schema, 'p> OperationBinder<'schema, 'p> {
                         .query_input_values
                         .push_value(QueryInputValueRecord::DefaultValue(id)),
                 });
-            } else if argument_def.ty().wrapping.is_required() {
+            } else if argument_def.ty().wrapping.is_non_null() {
                 self.errors.push(BindError::MissingArgument {
                     field: definition.name().to_string(),
                     name: argument_def.name().to_string(),

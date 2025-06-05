@@ -1,5 +1,6 @@
 use engine_error::{ErrorCode, GraphqlError};
 use engine_schema::Subgraph;
+use runtime::extension::Response;
 use tokio::sync::broadcast;
 use tokio_stream::{StreamExt, wrappers::BroadcastStream};
 
@@ -46,7 +47,7 @@ impl<'ctx> DeduplicatedSubscription<'ctx, '_> {
                 let receiver = occupied_entry.get().subscribe();
 
                 let stream = BroadcastStream::new(receiver).map(|result| match result {
-                    Ok(data) => data,
+                    Ok(resp) => resp.legacy_into_result(),
                     Err(_) => Err(stream_lag_error()),
                 });
 
@@ -82,7 +83,7 @@ impl<'ctx> DeduplicatedSubscription<'ctx, '_> {
                         return;
                     }
 
-                    match instance.resolve_next_subscription_item().await {
+                    match instance.field_resolver_resolve_next_subscription_item().await {
                         Ok(Some(items)) if items.is_empty() => {
                             continue;
                         }
@@ -106,8 +107,8 @@ impl<'ctx> DeduplicatedSubscription<'ctx, '_> {
                     }
                 };
 
-                for data in items {
-                    if sender.send(data).is_err() {
+                for result in items {
+                    if sender.send(Response::from(result)).is_err() {
                         tracing::debug!("all subscribers are gone");
                         extensions.subscriptions().remove(&key);
 
@@ -124,7 +125,7 @@ impl<'ctx> DeduplicatedSubscription<'ctx, '_> {
         });
 
         let stream = BroadcastStream::new(receiver).map(|result| match result {
-            Ok(data) => data,
+            Ok(resp) => resp.legacy_into_result(),
             Err(_) => Err(stream_lag_error()),
         });
 

@@ -11,7 +11,7 @@ use crate::{
 };
 
 impl SelectionSetResolverExtensionInstance for super::ExtensionInstanceSince0_10_0 {
-    fn prepare(
+    fn selection_set_resolver_prepare(
         &mut self,
         _subgraph_name: &str,
         _field_id: FieldId,

@@ -13,7 +13,7 @@ use extension_catalog::{ExtensionCatalog, ExtensionId};
 use futures::TryStreamExt;
 use futures_util::{StreamExt, stream};
 use gateway_config::Config;
-use runtime::extension::Data;
+use runtime::extension::Response;
 use std::sync::Arc;
 use tokio::sync::broadcast;
 
@@ -27,7 +27,7 @@ pub(crate) use pool::*;
 #[derive(Clone, Default)]
 pub struct WasmExtensions(Arc<WasiExtensionsInner>);
 
-pub(crate) type Subscriptions = DashMap<Vec<u8>, broadcast::Sender<Result<Data, GraphqlError>>>;
+pub(crate) type Subscriptions = DashMap<Vec<u8>, broadcast::Sender<Response>>;
 
 #[derive(Default)]
 struct WasiExtensionsInner {

@@ -12,7 +12,7 @@ use engine::GraphqlError;
 use engine_schema::Subgraph;
 use extension_catalog::{ExtensionId, Id};
 use graphql_mocks::dynamic::{DynamicSchema, DynamicSubgraph};
-use integration_tests::gateway::{AnyExtension, ResolverTestExtension, TestManifest};
+use integration_tests::gateway::{AnyExtension, SelectionSetResolverTestExtension, TestManifest};
 use runtime::extension::{ArgumentsId, Data};
 use serde_json::json;
 
@@ -31,13 +31,13 @@ impl AnyExtension for EchoArgs {
         });
         state.test.selection_set_resolver_builders.insert(
             id,
-            Arc::new(move || -> Arc<dyn ResolverTestExtension> { Arc::new(self.clone()) }),
+            Arc::new(move || -> Arc<dyn SelectionSetResolverTestExtension> { Arc::new(self.clone()) }),
         );
     }
 }
 
 #[async_trait::async_trait]
-impl ResolverTestExtension for EchoArgs {
+impl SelectionSetResolverTestExtension for EchoArgs {
     async fn resolve(
         &self,
         _extension_id: ExtensionId,

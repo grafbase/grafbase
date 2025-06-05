@@ -48,7 +48,6 @@ impl super::FieldResolverExtension {
                     .resolve_field(
                         directive,
                         field_definition,
-                        &prepared.extension_data,
                         // TODO: use Arc instead of clone?
                         subgraph_headers.clone(),
                         query_view,

@@ -1,8 +1,5 @@
-use std::borrow::Cow;
-
-use futures::{FutureExt as _, StreamExt, stream::FuturesUnordered};
-use itertools::Itertools as _;
-use runtime::extension::{Data, ResolverExtension};
+use futures::FutureExt as _;
+use runtime::extension::{ResolverExtension, Response};
 use walker::Walk;
 
 use crate::{
@@ -23,71 +20,58 @@ impl super::ExtensionResolver {
     where
         'ctx: 'f,
     {
+        debug_assert!(
+            self.prepared_fields.len() == 1,
+            "Expected exactly one prepared field for a lookup"
+        );
+
         let definition = self.definition.walk(&ctx);
         let subgraph_headers = ctx.subgraph_headers_with_rules(definition.subgraph().header_rules());
+        let prepared = self.prepared_fields.first().unwrap();
+        let field = plan.get_field(prepared.id);
 
-        let futures = self
-            .prepared_fields
-            .iter()
-            .map(|prepared| {
-                let field = plan.get_field(prepared.id);
-                ctx.runtime()
-                    .extensions()
-                    .resolve(
-                        definition.extension_id,
-                        definition.subgraph().into(),
-                        &prepared.extension_data,
-                        // TODO: use Arc instead of clone?
-                        subgraph_headers.clone(),
-                        prepared.arguments.iter().map(|(id, argument_ids)| {
-                            (
-                                *id,
-                                argument_ids.walk(&ctx).batch_view(ctx.variables(), &parent_objects),
-                            )
-                        }),
+        let fut = ctx
+            .runtime()
+            .extensions()
+            .resolve(
+                definition.directive(),
+                &prepared.extension_data,
+                // TODO: use Arc instead of clone?
+                subgraph_headers.clone(),
+                prepared.arguments.iter().map(|(id, argument_ids)| {
+                    (
+                        *id,
+                        argument_ids.walk(&ctx).batch_view(ctx.variables(), &parent_objects),
                     )
-                    .boxed()
-                    .map(move |result| (field, result))
-            })
-            .collect::<FuturesUnordered<_>>();
+                }),
+            )
+            .boxed();
 
         let parent_objects = parent_objects.into_object_set();
         async move {
-            let results = futures.collect::<Vec<_>>().await;
-
-            tracing::debug!(
-                "Received:\n{}",
-                results
-                    .iter()
-                    .flat_map(|(field, result)| [
-                        field.subgraph_response_key_str().into(),
-                        match result {
-                            Ok(Data::Json(bytes)) => String::from_utf8_lossy(bytes),
-                            Ok(Data::Cbor(bytes)) => {
-                                minicbor_serde::from_slice(bytes)
-                                    .ok()
-                                    .and_then(|v: sonic_rs::Value| sonic_rs::to_string_pretty(&v).ok().map(Into::into))
-                                    .unwrap_or_else(|| "<error>".into())
-                            }
-                            Err(_) => Cow::Borrowed("<error>"),
-                        }
-                    ])
-                    .join("\n")
-            );
+            let response = fut.await;
+            tracing::debug!("Received for '{}':\n{}", field.subgraph_response_key_str(), response);
 
             let state = response_part.into_seed_state(plan.shape().id);
-            for (_, result) in results {
-                match result {
-                    Ok(data) => {
-                        if let Err(Some(error)) =
-                            state.deserialize_data_with(&data, state.parent_list_seed(&parent_objects))
-                        {
-                            state.insert_error_updates(&parent_objects, error);
-                        }
+            match response {
+                Response {
+                    data: Some(data),
+                    mut errors,
+                } => {
+                    if let Err(Some(error)) =
+                        state.deserialize_data_with(&data, state.parent_list_seed(&parent_objects))
+                    {
+                        errors.push(error);
+                        state.insert_errors(parent_objects.iter().next().unwrap(), errors);
+                    } else {
+                        state.insert_errors(parent_objects.iter().next().unwrap(), errors);
                     }
-                    Err(error) => state.insert_error_updates(&parent_objects, error),
                 }
-            }
+                Response { data: None, errors } => {
+                    state.insert_error_updates(&parent_objects, errors);
+                }
+            };
+
             state.into_response_part()
         }
     }

@@ -3,7 +3,7 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::{fmt, hash::BuildHasherDefault};
 
-use crate::{SdkError, wit};
+use crate::{SdkError, cbor, wit};
 
 #[derive(Clone)]
 pub(crate) struct IndexedSchema {
@@ -44,7 +44,7 @@ pub struct SubgraphSchema<'a>(pub(crate) &'a IndexedSchema);
 impl fmt::Debug for SubgraphSchema<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("SubgraphSchema")
-            .field("name", &self.name())
+            .field("name", &self.subgraph_name())
             .field(
                 "type_definitions",
                 &format!("<{} type definitions>", self.type_definitions().len()),
@@ -54,32 +54,54 @@ impl fmt::Debug for SubgraphSchema<'_> {
     }
 }
 
-impl SubgraphSchema<'_> {
+impl<'a> SubgraphSchema<'a> {
     /// Name of the subgraph this schema belongs to
-    pub fn name(&self) -> &str {
+    pub fn subgraph_name(&self) -> &'a str {
         &self.0.name
     }
 
     /// Iterator over the definitions in this schema
-    pub fn type_definitions(&self) -> impl ExactSizeIterator<Item = TypeDefinition<'_>> + '_ {
+    pub fn type_definitions(&self) -> impl ExactSizeIterator<Item = TypeDefinition<'a>> + 'a {
         let schema = self.0;
         self.0.type_definitions.values().map(move |def| (schema, def).into())
     }
 
+    /// Iterator over all object and interface fields in the schema
+    pub fn iter_fields(&self) -> impl Iterator<Item = FieldDefinition<'a>> + 'a {
+        let schema = self.0;
+        self.0
+            .type_definitions
+            .values()
+            .filter_map(move |def| match def {
+                wit::TypeDefinition::Object(obj) => Some((EntityDefinition::Object((schema, obj).into()), &obj.fields)),
+                wit::TypeDefinition::Interface(inf) => {
+                    Some((EntityDefinition::Interface((schema, inf).into()), &inf.fields))
+                }
+                _ => None,
+            })
+            .flat_map(move |(parent_entity, fields)| {
+                fields.iter().map(move |definition| FieldDefinition {
+                    definition,
+                    parent_entity,
+                    schema,
+                })
+            })
+    }
+
     /// Retrieves a specific type definition by its unique identifier.
-    pub fn type_definition(&self, id: &DefinitionId) -> Option<TypeDefinition<'_>> {
+    pub fn type_definition(&self, id: &DefinitionId) -> Option<TypeDefinition<'a>> {
         let schema = self.0;
         self.0.type_definitions.get(id).map(move |def| (schema, def).into())
     }
 
     /// Iterator over the directives applied to this schema
-    pub fn directives(&self) -> impl ExactSizeIterator<Item = Directive<'_>> + '_ {
+    pub fn directives(&self) -> impl ExactSizeIterator<Item = Directive<'a>> + 'a {
         self.0.directives.iter().map(Into::into)
     }
 
     /// Query type id definition if any. Subgraph schema may only contain mutations or add fields
     /// to external objects.
-    pub fn query(&self) -> Option<ObjectDefinition<'_>> {
+    pub fn query(&self) -> Option<ObjectDefinition<'a>> {
         self.0.root_types.query_id.map(|id| {
             let Some(wit::TypeDefinition::Object(def)) = self.0.type_definitions.get(&DefinitionId(id)) else {
                 unreachable!("Inconsitent schema");
@@ -89,7 +111,7 @@ impl SubgraphSchema<'_> {
     }
 
     /// Mutation type definition id if any
-    pub fn mutation(&self) -> Option<ObjectDefinition<'_>> {
+    pub fn mutation(&self) -> Option<ObjectDefinition<'a>> {
         self.0.root_types.mutation_id.map(|id| {
             let Some(wit::TypeDefinition::Object(def)) = self.0.type_definitions.get(&DefinitionId(id)) else {
                 unreachable!("Inconsitent schema");
@@ -99,7 +121,7 @@ impl SubgraphSchema<'_> {
     }
 
     /// Subscription type definition id if any
-    pub fn subscription(&self) -> Option<ObjectDefinition<'_>> {
+    pub fn subscription(&self) -> Option<ObjectDefinition<'a>> {
         self.0.root_types.subscription_id.map(|id| {
             let Some(wit::TypeDefinition::Object(def)) = self.0.type_definitions.get(&DefinitionId(id)) else {
                 unreachable!("Inconsitent schema");
@@ -153,6 +175,12 @@ impl fmt::Debug for TypeDefinition<'_> {
             TypeDefinition::Enum(def) => f.debug_tuple("Enum").field(def).finish(),
             TypeDefinition::InputObject(def) => f.debug_tuple("InputObject").field(def).finish(),
         }
+    }
+}
+
+impl std::fmt::Display for TypeDefinition<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.name())
     }
 }
 
@@ -214,6 +242,12 @@ impl fmt::Debug for ScalarDefinition<'_> {
     }
 }
 
+impl std::fmt::Display for ScalarDefinition<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.name())
+    }
+}
+
 impl<'a> From<(&'a IndexedSchema, &'a wit::ScalarDefinition)> for ScalarDefinition<'a> {
     fn from((_, definition): (&'a IndexedSchema, &'a wit::ScalarDefinition)) -> Self {
         Self { definition }
@@ -267,6 +301,12 @@ impl fmt::Debug for ObjectDefinition<'_> {
     }
 }
 
+impl std::fmt::Display for ObjectDefinition<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.name())
+    }
+}
+
 impl<'a> From<(&'a IndexedSchema, &'a wit::ObjectDefinition)> for ObjectDefinition<'a> {
     fn from((schema, definition): (&'a IndexedSchema, &'a wit::ObjectDefinition)) -> Self {
         Self { schema, definition }
@@ -286,8 +326,11 @@ impl<'a> ObjectDefinition<'a> {
 
     /// Iterator over the fields defined in this object
     pub fn fields(&self) -> impl ExactSizeIterator<Item = FieldDefinition<'a>> + 'a {
-        self.definition.fields.iter().map(|field| FieldDefinition {
-            schema: self.schema,
+        let schema = self.schema;
+        let parent_entity = EntityDefinition::Object(*self);
+        self.definition.fields.iter().map(move |field| FieldDefinition {
+            schema,
+            parent_entity,
             definition: field,
         })
     }
@@ -334,6 +377,12 @@ impl fmt::Debug for InterfaceDefinition<'_> {
     }
 }
 
+impl std::fmt::Display for InterfaceDefinition<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.name())
+    }
+}
+
 impl<'a> From<(&'a IndexedSchema, &'a wit::InterfaceDefinition)> for InterfaceDefinition<'a> {
     fn from((schema, definition): (&'a IndexedSchema, &'a wit::InterfaceDefinition)) -> Self {
         Self { schema, definition }
@@ -353,9 +402,12 @@ impl<'a> InterfaceDefinition<'a> {
 
     /// Iterator over the fields defined in this interface
     pub fn fields(&self) -> impl ExactSizeIterator<Item = FieldDefinition<'a>> + 'a {
-        self.definition.fields.iter().map(|field| FieldDefinition {
+        let schema = self.schema;
+        let parent_entity = EntityDefinition::Interface(*self);
+        self.definition.fields.iter().map(move |field| FieldDefinition {
             definition: field,
-            schema: self.schema,
+            parent_entity,
+            schema,
         })
     }
 
@@ -373,6 +425,34 @@ impl<'a> InterfaceDefinition<'a> {
     /// Iterator over the directives applied to this interface
     pub fn directives(&self) -> impl ExactSizeIterator<Item = Directive<'a>> + 'a {
         self.definition.directives.iter().map(Into::into)
+    }
+}
+
+/// Represents a GraphQL entity definition, which can be either an object or an interface
+/// It does not imply that this is a _federated_ entity with a `@key` directive.
+#[derive(Clone, Copy)]
+pub enum EntityDefinition<'a> {
+    /// An object type definition
+    Object(ObjectDefinition<'a>),
+    /// An interface type definition
+    Interface(InterfaceDefinition<'a>),
+}
+
+impl fmt::Debug for EntityDefinition<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            EntityDefinition::Object(def) => f.debug_tuple("Object").field(def).finish(),
+            EntityDefinition::Interface(def) => f.debug_tuple("Interface").field(def).finish(),
+        }
+    }
+}
+
+impl std::fmt::Display for EntityDefinition<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            EntityDefinition::Object(def) => write!(f, "{}", def.name()),
+            EntityDefinition::Interface(def) => write!(f, "{}", def.name()),
+        }
     }
 }
 
@@ -396,6 +476,12 @@ impl fmt::Debug for UnionDefinition<'_> {
             )
             .field("directives", &self.directives().collect::<Vec<_>>())
             .finish()
+    }
+}
+
+impl std::fmt::Display for UnionDefinition<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.name())
     }
 }
 
@@ -452,6 +538,12 @@ impl fmt::Debug for EnumDefinition<'_> {
     }
 }
 
+impl std::fmt::Display for EnumDefinition<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name())
+    }
+}
+
 impl<'a> From<(&'a IndexedSchema, &'a wit::EnumDefinition)> for EnumDefinition<'a> {
     fn from((_, definition): (&'a IndexedSchema, &'a wit::EnumDefinition)) -> Self {
         Self { definition }
@@ -501,6 +593,12 @@ impl fmt::Debug for InputObjectDefinition<'_> {
     }
 }
 
+impl std::fmt::Display for InputObjectDefinition<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.name())
+    }
+}
+
 impl<'a> From<(&'a IndexedSchema, &'a wit::InputObjectDefinition)> for InputObjectDefinition<'a> {
     fn from((schema, definition): (&'a IndexedSchema, &'a wit::InputObjectDefinition)) -> Self {
         Self { schema, definition }
@@ -539,6 +637,7 @@ impl<'a> InputObjectDefinition<'a> {
 #[derive(Clone, Copy)]
 pub struct FieldDefinition<'a> {
     pub(crate) schema: &'a IndexedSchema,
+    pub(crate) parent_entity: EntityDefinition<'a>,
     pub(crate) definition: &'a wit::FieldDefinition,
 }
 
@@ -554,9 +653,9 @@ impl fmt::Debug for FieldDefinition<'_> {
     }
 }
 
-impl<'a> From<(&'a IndexedSchema, &'a wit::FieldDefinition)> for FieldDefinition<'a> {
-    fn from((schema, definition): (&'a IndexedSchema, &'a wit::FieldDefinition)) -> Self {
-        Self { schema, definition }
+impl std::fmt::Display for FieldDefinition<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}.{}", self.parent_entity(), self.name())
     }
 }
 
@@ -569,6 +668,11 @@ impl<'a> FieldDefinition<'a> {
     /// Name of the field
     pub fn name(&self) -> &'a str {
         self.definition.name.as_str()
+    }
+
+    /// Parent entity that this field belongs to
+    pub fn parent_entity(&self) -> EntityDefinition<'a> {
+        self.parent_entity
     }
 
     /// Type of value this field returns
@@ -746,7 +850,14 @@ impl<'a> EnumValue<'a> {
 /// Directives provide a way to describe alternate runtime execution and type validation
 /// behavior in a GraphQL document.
 #[derive(Clone, Copy)]
-pub struct Directive<'a>(&'a wit::Directive);
+pub struct Directive<'a>(pub(crate) DirectiveInner<'a>);
+
+// TODO: write explicitly wit::Directive to use Cow instead of this enum.
+#[derive(Clone, Copy)]
+pub(crate) enum DirectiveInner<'a> {
+    Wit(&'a wit::Directive),
+    NameAndArgs { name: &'a str, arguments: &'a [u8] },
+}
 
 impl fmt::Debug for Directive<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -759,14 +870,17 @@ impl fmt::Debug for Directive<'_> {
 
 impl<'a> From<&'a wit::Directive> for Directive<'a> {
     fn from(directive: &'a wit::Directive) -> Self {
-        Self(directive)
+        Self(DirectiveInner::Wit(directive))
     }
 }
 
 impl<'a> Directive<'a> {
     /// Name of the directive
     pub fn name(&self) -> &'a str {
-        self.0.name.as_str()
+        match &self.0 {
+            DirectiveInner::Wit(directive) => directive.name.as_str(),
+            DirectiveInner::NameAndArgs { name, .. } => name,
+        }
     }
 
     /// Deserializes the directive's arguments into the specified type.
@@ -774,6 +888,23 @@ impl<'a> Directive<'a> {
     where
         T: Deserialize<'a>,
     {
-        minicbor_serde::from_slice(&self.0.arguments).map_err(Into::into)
+        cbor::from_slice::<T>(self.arguments_bytes()).map_err(Into::into)
+    }
+
+    /// Deserialize the arguments of the directive using a `DeserializeSeed`.
+    #[inline]
+    pub fn arguments_seed<T>(&self, seed: T) -> Result<T::Value, SdkError>
+    where
+        T: serde::de::DeserializeSeed<'a>,
+    {
+        cbor::from_slice_with_seed(self.arguments_bytes(), seed).map_err(Into::into)
+    }
+
+    /// Serialized argument bytes, nothing in particular is guaranteed on the bytes.
+    pub fn arguments_bytes(&self) -> &'a [u8] {
+        match &self.0 {
+            DirectiveInner::Wit(directive) => &directive.arguments,
+            DirectiveInner::NameAndArgs { arguments, .. } => arguments,
+        }
     }
 }
