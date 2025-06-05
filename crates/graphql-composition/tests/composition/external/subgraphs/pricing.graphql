@@ -1,0 +1,11 @@
+extend schema @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@key", "@require"])
+
+type Product @key(fields: "id") {
+  id: ID!
+  details: ProductDetails @external
+  test(details: Int @require(field: "details.warehouseA")): String
+}
+
+type ProductDetails @external {
+  warehouseA: Int
+}

@@ -199,7 +199,7 @@ pub(super) fn compose_field<'a>(
             .filter(|f| {
                 let d = f.directives();
                 !(d.shareable()
-                    || d.external()
+                    || f.is_external()
                     || f.is_part_of_key()
                     || d.iter_ir_directives()
                         .any(|d| matches!(d, ir::Directive::CompositeInternal(_)))
@@ -276,7 +276,7 @@ fn ingest_join_field_directives(
             source_field: field.id,
             r#override: None,
             override_label: None,
-            external: field.directives().external() && !field.is_part_of_key(),
+            external: field.is_external() && !field.is_part_of_key(),
             r#type: if field.r#type() != composed_field_type {
                 Some(field.r#type().id)
             } else {
@@ -318,7 +318,7 @@ fn ingest_join_field_directives(
             }
         }
 
-        if field.directives().requires().is_some() && field.directives().external() {
+        if field.directives().requires().is_some() && field.is_external() {
             ctx.diagnostics.push_fatal(format!(
                 "field `{}` on `{}` declared as `@external` in subgraph `{}` cannot have a `@requires`.",
                 field.name().as_str(),
@@ -327,7 +327,7 @@ fn ingest_join_field_directives(
             ));
         }
 
-        if field.directives().provides().is_some() && field.directives().external() {
+        if field.directives().provides().is_some() && field.is_external() {
             ctx.diagnostics.push_fatal(format!(
                 "field `{}` on `{}` declared as `@external` in subgraph `{}` cannot have a `@provides`.",
                 field.name().as_str(),

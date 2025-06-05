@@ -206,8 +206,13 @@ where
                     response_fields.push(ResponseObjectField { key, value });
                 }
                 None => {
+                    let mut resp = state.response.borrow_mut();
+                    resp.errors.push(
+                        GraphqlError::invalid_subgraph_response()
+                            .with_path((parent_object.path.as_slice(), key))
+                            .with_location(field.id.walk(state).location()),
+                    );
                     if field.wrapping.is_required() {
-                        let mut resp = state.response.borrow_mut();
                         resp.propagate_null_parent_path(&parent_object.path);
                         response_fields.push(ResponseObjectField {
                             key,
@@ -313,7 +318,9 @@ where
     where
         E: serde::de::Error,
     {
-        Ok(self.unexpected_type(Unexpected::Option))
+        Ok(serde_json::Value::Array(Vec::new())
+            .deserialize_any(self)
+            .expect("serde_json::Value deserializer never fails"))
     }
 
     fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
