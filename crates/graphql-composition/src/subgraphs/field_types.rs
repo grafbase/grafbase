@@ -1,95 +1,47 @@
 use cynic_parser::type_system as ast;
-use indexmap::IndexSet;
+use wrapping::{ListWrapping, Wrapping};
 
 use super::*;
 
-/// All the field types in the schema. Interned. Comparing two field's type has the same cost as
-/// comparing two `usize`s.
-#[derive(Default)]
-pub(super) struct FieldTypes {
-    inner_types: IndexSet<InnerFieldType>,
-    wrappers: IndexSet<WrapperType>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Hash)]
-pub(crate) struct FieldTypeId(usize);
-
-#[derive(Hash, PartialEq, Eq, Clone, Copy)]
-struct WrapperTypeId(usize);
-
-#[derive(Hash, PartialEq, Eq, Clone, Copy, Debug)]
-pub(crate) enum WrapperTypeKind {
-    List,
-    NonNullList,
-}
-
-#[derive(Hash, PartialEq, Eq)]
-struct WrapperType {
-    kind: WrapperTypeKind,
-    outer: Option<WrapperTypeId>,
-}
-
-#[derive(Hash, PartialEq, Eq)]
-struct InnerFieldType {
-    name: StringId,
-    wrapper: Option<WrapperTypeId>,
-    is_required: bool,
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub(crate) struct FieldType {
+    pub definition_name_id: StringId,
+    pub wrapping: Wrapping,
 }
 
 impl Subgraphs {
-    pub(crate) fn intern_field_type(&mut self, field_type: ast::Type<'_>) -> FieldTypeId {
-        use cynic_parser::common::WrappingType as AstWrapper;
+    pub(crate) fn intern_field_type(&mut self, field_type: ast::Type<'_>) -> FieldType {
+        use cynic_parser::common::WrappingType;
 
-        let mut wrapper_type_id = None;
-        let mut inner_is_non_null = true;
+        let wrappers = field_type.wrappers().collect::<Vec<_>>();
+        let mut wrappers = wrappers.into_iter().rev().peekable();
 
-        let mut ast_wrappers = field_type.wrappers().peekable();
-        while let Some(ast_wrapper) = ast_wrappers.next() {
-            match (ast_wrapper, ast_wrappers.peek()) {
-                (AstWrapper::NonNull, None) => {
-                    inner_is_non_null = false;
-                    continue;
-                }
-                (AstWrapper::NonNull, Some(AstWrapper::List)) => {
-                    ast_wrappers.next();
+        let mut wrapping = if wrappers.next_if(|w| matches!(w, WrappingType::NonNull)).is_some() {
+            wrapping::Wrapping::default().non_null()
+        } else {
+            wrapping::Wrapping::default()
+        };
 
-                    let wrapper = WrapperType {
-                        kind: WrapperTypeKind::NonNullList,
-                        outer: wrapper_type_id,
-                    };
-                    wrapper_type_id = Some(WrapperTypeId(self.field_types.wrappers.insert_full(wrapper).0));
-                }
-                (AstWrapper::List, _) => {
-                    let wrapper = WrapperType {
-                        kind: WrapperTypeKind::List,
-                        outer: wrapper_type_id,
-                    };
-                    wrapper_type_id = Some(WrapperTypeId(self.field_types.wrappers.insert_full(wrapper).0));
-                }
-                (AstWrapper::NonNull, Some(AstWrapper::NonNull)) => {
-                    // Pretty sure this shouldn't be possible...?
-                    unreachable!()
-                }
+        while let Some(next) = wrappers.next() {
+            debug_assert_eq!(next, WrappingType::List, "double non-null wrapping type not possible");
+
+            wrapping = if wrappers.next_if(|w| matches!(w, WrappingType::NonNull)).is_some() {
+                wrapping.list_non_null()
+            } else {
+                wrapping.list()
             }
         }
 
-        let ty = InnerFieldType {
-            is_required: !inner_is_non_null,
-            name: self.strings.intern(field_type.name()),
-            wrapper: wrapper_type_id,
-        };
-
-        FieldTypeId(self.field_types.inner_types.insert_full(ty).0)
+        FieldType {
+            definition_name_id: self.strings.intern(field_type.name()),
+            wrapping,
+        }
     }
 }
 
-pub(crate) type FieldTypeWalker<'a> = Walker<'a, FieldTypeId>;
+pub(crate) type FieldTypeWalker<'a> = Walker<'a, FieldType>;
 
 impl<'a> FieldTypeWalker<'a> {
-    fn inner(self) -> &'a InnerFieldType {
-        self.subgraphs.field_types.inner_types.get_index(self.id.0).unwrap()
-    }
-
     /// The definition with the name returned by `type_name` in `subgraph`.
     pub(crate) fn definition(self, subgraph: SubgraphId) -> Option<DefinitionWalker<'a>> {
         self.subgraphs
@@ -116,12 +68,12 @@ impl<'a> FieldTypeWalker<'a> {
             return Some(true); // true or false doesn't matter, they're identical
         }
 
-        if self.inner().name != other.inner().name {
+        if self.id.definition_name_id != other.id.definition_name_id {
             return None;
         }
 
-        let mut self_wrappers = self.iter_wrappers();
-        let mut other_wrappers = other.iter_wrappers();
+        let mut self_wrappers = self.id.wrapping.list_wrappings();
+        let mut other_wrappers = other.id.wrapping.list_wrappings();
         let mut zipped_wrappers = (&mut self_wrappers).zip(&mut other_wrappers).peekable();
 
         // Check that the inner requiredness matches if there are wrappers.
@@ -137,7 +89,7 @@ impl<'a> FieldTypeWalker<'a> {
                 }
 
                 // We reached the outermost list wrappers: return which is required.
-                return Some(matches!(other_wrapper, WrapperTypeKind::NonNullList));
+                return Some(matches!(other_wrapper, ListWrapping::ListNonNull));
             }
 
             // Inner list wrappers do not match in nullability.
@@ -150,7 +102,7 @@ impl<'a> FieldTypeWalker<'a> {
     }
 
     pub(crate) fn is_list(self) -> bool {
-        self.iter_wrappers().next().is_some()
+        self.id.wrapping.is_list()
     }
 
     /// ```ignore,graphql
@@ -161,72 +113,26 @@ impl<'a> FieldTypeWalker<'a> {
     /// }
     /// ```
     pub(crate) fn type_name(self) -> StringWalker<'a> {
-        self.walk(self.inner().name)
-    }
-
-    /// Iterate wrapper types from the innermost to the outermost.
-    pub(crate) fn iter_wrappers(self) -> impl Iterator<Item = WrapperTypeKind> + 'a {
-        let inner = self.inner();
-        let mut wrapper = inner.wrapper;
-        std::iter::from_fn(move || {
-            let next = self.subgraphs.field_types.wrappers.get_index(wrapper?.0)?;
-            wrapper = next.outer;
-            Some(next.kind)
-        })
+        self.walk(self.id.definition_name_id)
     }
 
     pub(crate) fn inner_is_required(self) -> bool {
-        self.inner().is_required
+        self.id.wrapping.inner_is_required()
     }
 
     pub(crate) fn is_required(self) -> bool {
-        self.iter_wrappers()
-            .last()
-            .map(|wrapper| match wrapper {
-                WrapperTypeKind::List => false,
-                WrapperTypeKind::NonNullList => true,
-            })
-            .unwrap_or_else(|| self.inner().is_required)
+        self.id.wrapping.is_required()
     }
 }
 
 impl std::fmt::Display for FieldTypeWalker<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut out = self.type_name().as_str().to_owned();
-
-        if self.inner_is_required() {
-            out = format!("{}!", out);
-        }
-
-        for wrapper in self.iter_wrappers() {
-            out = match wrapper {
-                WrapperTypeKind::List => format!("[{out}]"),
-                WrapperTypeKind::NonNullList => format!("[{out}]!"),
-            };
-        }
-
-        f.write_str(&out)
+        write!(f, "{}", self.id.wrapping.type_display(self.type_name().as_str()))
     }
 }
 
 impl PartialEq for FieldTypeWalker<'_> {
     fn eq(&self, other: &Self) -> bool {
-        if self.id != other.id {
-            return false;
-        }
-        if self.inner().name != other.inner().name {
-            return false;
-        }
-        if self.inner_is_required() != other.inner_is_required() {
-            return false;
-        }
-        let mut self_wrappers = self.iter_wrappers();
-        let mut other_wrappers = other.iter_wrappers();
-        while let (Some(self_wrapper), Some(other_wrapper)) = (self_wrappers.next(), other_wrappers.next()) {
-            if self_wrapper != other_wrapper {
-                return false;
-            }
-        }
-        self_wrappers.next().is_none() && other_wrappers.next().is_none()
+        self.id == other.id
     }
 }

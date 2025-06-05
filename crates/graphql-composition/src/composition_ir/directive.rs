@@ -1,6 +1,6 @@
 use crate::{
     federated_graph::{self as federated, OverrideLabel, OverrideSource},
-    subgraphs::{self, FieldId, FieldTuple, FieldTypeId, KeyId},
+    subgraphs::{self, FieldId, FieldTuple, FieldType, KeyId},
 };
 
 #[derive(Clone, PartialEq)]
@@ -53,13 +53,13 @@ pub struct JoinUnionMemberDirective {
 #[derive(PartialEq, PartialOrd, Clone)]
 pub struct JoinInputFieldDirective {
     pub subgraph_id: federated::SubgraphId,
-    pub r#type: Option<FieldTypeId>,
+    pub r#type: Option<FieldType>,
 }
 
 #[derive(PartialEq, PartialOrd, Clone)]
 pub struct JoinFieldDirective {
     pub source_field: (FieldId, FieldTuple),
-    pub r#type: Option<FieldTypeId>,
+    pub r#type: Option<FieldType>,
     pub external: bool,
     pub r#override: Option<OverrideSource>,
     pub override_label: Option<OverrideLabel>,

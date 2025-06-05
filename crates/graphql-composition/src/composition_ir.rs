@@ -65,7 +65,7 @@ pub(crate) struct UnionIr {
 
 pub(crate) struct InputValueDefinitionIr {
     pub(crate) name: federated::StringId,
-    pub(crate) r#type: subgraphs::FieldTypeId,
+    pub(crate) r#type: subgraphs::FieldType,
     pub(crate) directives: Vec<Directive>,
     pub(crate) description: Option<federated::StringId>,
     pub(crate) default: Option<subgraphs::Value>,

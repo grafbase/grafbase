@@ -18,7 +18,7 @@ fn nested_field() {
                     id: ID!
                     details: ProductDetails @external
                     categories: [String!]! @external
-                    dummy(code: [String] @require(field: "[details.code]")): JSON @resolve
+                    dummy(code: [String] @require(field: "[details.code]")): [JSON] @resolve
                 }
 
                 type ProductDetails @external {
@@ -68,7 +68,7 @@ fn list() {
                     id: ID!
                     details: ProductDetails @external
                     categories: [String!]! @external
-                    dummy(categories: [[String]] @require(field: "[categories]")): JSON @resolve
+                    dummy(categories: [[String]] @require(field: "[categories]")): [JSON] @resolve
                 }
 
                 type ProductDetails @external {
@@ -124,7 +124,7 @@ fn input_object() {
                     id: ID!
                     details: ProductDetails @external
                     categories: [String!]! @external
-                    dummy(input: [ProductInput!] @require(field: "[{ productCode: details.code productCategories: categories }]")): JSON @resolve
+                    dummy(input: [ProductInput!] @require(field: "[{ productCode: details.code productCategories: categories }]")): [JSON] @resolve
                 }
 
                 type ProductDetails @external {

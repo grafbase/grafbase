@@ -4,7 +4,7 @@ use super::*;
 pub(crate) struct FieldIr {
     pub(crate) parent_definition_name: federated::StringId,
     pub(crate) field_name: federated::StringId,
-    pub(crate) field_type: subgraphs::FieldTypeId,
+    pub(crate) field_type: subgraphs::FieldType,
     pub(crate) arguments: federated::InputValueDefinitions,
 
     pub(crate) directives: Vec<Directive>,

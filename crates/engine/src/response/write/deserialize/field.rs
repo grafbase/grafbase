@@ -29,7 +29,7 @@ impl<'de> DeserializeSeed<'de> for FieldSeed<'_, '_, '_> {
                 state: self.state,
                 field: self.field,
                 seed: &self,
-                is_required: matches!(list_wrapping, ListWrapping::RequiredList),
+                is_required: matches!(list_wrapping, ListWrapping::ListNonNull),
                 element_is_nullable: self.wrapping.is_nullable(),
             }
             .deserialize(deserializer)

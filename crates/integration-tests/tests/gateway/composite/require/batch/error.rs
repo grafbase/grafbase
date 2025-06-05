@@ -18,7 +18,7 @@ fn resolver_error() {
 
                 type Product @key(fields: "id") {
                     id: ID!
-                    dummy(id: [ID] @require(field: "[id]")): JSON @resolve
+                    dummy(id: [ID] @require(field: "[id]")): [JSON] @resolve
                 }
 
                 scalar JSON
@@ -83,7 +83,7 @@ fn invalid_subgraph_response_for_one_element() {
 
                 type Product @key(fields: "id") {
                     id: ID!
-                    dummy(id: [ID] @require(field: "[id]")): Int @resolve
+                    dummy(id: [ID] @require(field: "[id]")): [Int] @resolve
                 }
 
                 "#,
@@ -153,7 +153,7 @@ fn invalid_subgraph_response_missing_one_element() {
 
                 type Product @key(fields: "id") {
                     id: ID!
-                    dummy(id: [ID] @require(field: "[id]")): String @resolve
+                    dummy(id: [ID] @require(field: "[id]")): [String] @resolve
                 }
 
                 "#,
@@ -218,7 +218,7 @@ fn invalid_subgraph_response_missing_two_elements() {
 
                 type Product @key(fields: "id") {
                     id: ID!
-                    dummy(id: [ID] @require(field: "[id]")): String @resolve
+                    dummy(id: [ID] @require(field: "[id]")): [String] @resolve
                 }
 
                 "#,
@@ -282,7 +282,7 @@ fn invalid_subgraph_response_null_response_for_nullable_field() {
 
                 type Product @key(fields: "id") {
                     id: ID!
-                    dummy(id: [ID] @require(field: "[id]")): Int @resolve
+                    dummy(id: [ID] @require(field: "[id]")): [Int] @resolve
                 }
 
                 "#,
@@ -346,7 +346,7 @@ fn invalid_subgraph_response_returns_null() {
 
                 type Product @key(fields: "id") {
                     id: ID!
-                    dummy(id: [ID] @require(field: "[id]")): Int! @resolve
+                    dummy(id: [ID] @require(field: "[id]")): [Int!] @resolve
                 }
 
                 "#,
@@ -404,7 +404,7 @@ fn invalid_subgraph_response_returns_not_a_list_nor_null() {
 
                 type Product @key(fields: "id") {
                     id: ID!
-                    dummy(id: [ID] @require(field: "[id]")): Int @resolve
+                    dummy(id: [ID] @require(field: "[id]")): [Int] @resolve
                 }
 
                 "#,
@@ -468,7 +468,7 @@ fn null_propagation() {
 
                 type Product @key(fields: "id") {
                     id: ID!
-                    dummy(id: [ID] @require(field: "[id]")): Int! @resolve
+                    dummy(id: [ID] @require(field: "[id]")): [Int!] @resolve
                 }
                 "#,
             )
