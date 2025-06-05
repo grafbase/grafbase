@@ -1,11 +1,10 @@
 use runtime::trusted_documents_client::TrustedDocumentsEnforcementMode;
 
-const GRAFBASE_PRODUCTION_TRUSTED_DOCUMENTS_CDN: &str = "https://assets.grafbase.com";
-const GRAFBASE_ASSETS_URL_ENV_VAR: &str = "GRAFBASE_ASSETS_URL";
+use super::graph_updater::{DEFAULT_OBJECT_STORAGE_HOST, OBJECT_STORAGE_HOST_ENV_VAR};
 
 pub(crate) struct TrustedDocumentsClient {
-    /// The base URL for the assets host.
-    assets_host: url::Url,
+    /// The base URL for the object storage service.
+    object_storage_host: url::Url,
 
     /// The HTTP client used for making requests.
     http_client: reqwest::Client,
@@ -37,13 +36,13 @@ impl TrustedDocumentsClient {
         bypass_header: Option<(String, String)>,
         enforcement_mode: TrustedDocumentsEnforcementMode,
     ) -> Self {
-        let assets_host: url::Url = std::env::var(GRAFBASE_ASSETS_URL_ENV_VAR)
-            .unwrap_or(GRAFBASE_PRODUCTION_TRUSTED_DOCUMENTS_CDN.to_string())
+        let object_storage_host: url::Url = std::env::var(OBJECT_STORAGE_HOST_ENV_VAR)
+            .unwrap_or_else(|_| DEFAULT_OBJECT_STORAGE_HOST.to_owned())
             .parse()
-            .expect("assets url should be valid");
+            .expect("object storage url should be valid");
 
         Self {
-            assets_host,
+            object_storage_host,
             http_client,
             branch_id,
             bypass_header,
@@ -70,14 +69,11 @@ impl runtime::trusted_documents_client::TrustedDocumentsClient for TrustedDocume
         document_id: &str,
     ) -> runtime::trusted_documents_client::TrustedDocumentsResult<String> {
         let branch_id = self.branch_id;
-        let key = format!("trusted-documents/{branch_id}/{client_name}/{document_id}");
-
-        let mut url = self.assets_host.clone();
-        url.set_path(&key);
+        let url = trusted_document_url(&self.object_storage_host, branch_id, client_name, document_id);
 
         let response = self
             .http_client
-            .get(url.to_string())
+            .get(url)
             .send()
             .await
             .map_err(|err| runtime::trusted_documents_client::TrustedDocumentsError::RetrievalError(err.into()))?;
@@ -92,5 +88,43 @@ impl runtime::trusted_documents_client::TrustedDocumentsClient for TrustedDocume
             .map_err(|err| runtime::trusted_documents_client::TrustedDocumentsError::RetrievalError(err.into()))?;
 
         Ok(document)
+    }
+}
+
+fn trusted_document_url(assets_host: &url::Url, branch_id: ulid::Ulid, client_name: &str, document_id: &str) -> String {
+    let mut url = assets_host.clone();
+    let path = format!("trusted-documents/branch/{branch_id}/{client_name}/{document_id}");
+    url.set_path(&path);
+    url.to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn trusted_documents_object_storage_path_basic() {
+        let assets_host: url::Url = "http://example.com".parse().unwrap();
+        let branch_id = ulid::Ulid::from_parts(1394832, 912849832);
+        let client_name = "my-demo-client";
+        let document_id = "b1249cf1281";
+
+        assert_eq!(
+            trusted_document_url(&assets_host, branch_id, client_name, document_id),
+            "http://example.com/trusted-documents/branch/000001AJ4G0000000000V6HYX8/my-demo-client/b1249cf1281"
+        )
+    }
+
+    #[test]
+    fn trusted_documents_object_storage_path_with_space() {
+        let assets_host: url::Url = "http://example.com".parse().unwrap();
+        let branch_id = ulid::Ulid::from_parts(1394832, 912849832);
+        let client_name = "Grafbase Dashboard";
+        let document_id = "b1249cf1281ffffffff";
+
+        assert_eq!(
+            trusted_document_url(&assets_host, branch_id, client_name, document_id),
+            "http://example.com/trusted-documents/branch/000001AJ4G0000000000V6HYX8/Grafbase%20Dashboard/b1249cf1281ffffffff"
+        )
     }
 }

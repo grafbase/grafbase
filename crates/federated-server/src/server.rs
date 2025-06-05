@@ -381,7 +381,7 @@ async fn graceful_shutdown(handle: axum_server::Handle) {
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 #[allow(dead_code)]
 /// Response from the API containing graph information
-pub struct GdnResponse {
+pub struct ObjectStorageResponse {
     /// Account id of the owner of the referenced graph
     pub account_id: Ulid,
     /// The id of the graph
