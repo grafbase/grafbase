@@ -45,6 +45,16 @@ pub struct ServeConfig {
     pub config_hot_reload: bool,
     /// The way of loading the graph for the gateway.
     pub fetch_method: GraphFetchMethod,
+    pub grafbase_access_token: Option<AccessToken>,
+}
+
+#[derive(Clone)]
+pub struct AccessToken(pub String);
+
+impl std::fmt::Debug for AccessToken {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("AccessToken").field(&"<REDACTED>").finish()
+    }
 }
 
 /// Trait for server runtime.
@@ -87,6 +97,7 @@ pub async fn serve(
         config_path,
         config_hot_reload,
         fetch_method,
+        grafbase_access_token,
     }: ServeConfig,
     server_runtime: impl ServerRuntime,
 ) -> crate::Result<()> {
@@ -124,6 +135,7 @@ pub async fn serve(
         config_hot_reload.then_some(config_path).flatten(),
         hooks.clone(),
         access_log_sender.clone(),
+        grafbase_access_token,
     )
     .await?;
 

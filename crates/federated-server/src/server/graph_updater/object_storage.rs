@@ -40,10 +40,10 @@ const KEEPALIVE_WHILE_IDLE: bool = true;
 const USER_AGENT: &str = "grafbase-cli";
 
 /// The default CDN host we load the graphs from.
-pub(crate) const DEFAULT_OBJECT_STORAGE_HOST: &str = "https://object-storage.grafbase.com";
+const DEFAULT_OBJECT_STORAGE_HOST: &str = "https://object-storage.grafbase.com";
 
 /// The name of the environment variable used to read the object storage host from.
-pub(crate) const OBJECT_STORAGE_HOST_ENV_VAR: &str = "GRAFBASE_OBJECT_STORAGE_URL";
+const OBJECT_STORAGE_HOST_ENV_VAR: &str = "GRAFBASE_OBJECT_STORAGE_URL";
 
 #[derive(Debug, Clone, Copy)]
 enum ResponseKind {
@@ -262,7 +262,10 @@ impl ObjectStorageUpdater {
             self.current_id = Some(version_id);
 
             self.sender
-                .send(GraphDefinition::ObjectStorage(response))
+                .send(GraphDefinition::ObjectStorage {
+                    response,
+                    object_storage_base_url: self.object_storage_url.clone(),
+                })
                 .await
                 .expect("internal error: channel closed");
         }

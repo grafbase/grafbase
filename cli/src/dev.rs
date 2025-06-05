@@ -141,6 +141,7 @@ async fn start(args: DevCommand) -> anyhow::Result<()> {
             current_dir,
             sdl_receiver,
         },
+        grafbase_access_token: None,
     };
 
     federated_server::serve(

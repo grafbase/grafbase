@@ -12,6 +12,7 @@ use tokio_stream::{Stream, wrappers::WatchStream};
 use crate::server::gateway;
 
 use super::{
+    AccessToken,
     gateway::{EngineSender, EngineWatcher, GatewayRuntime, GraphDefinition},
     graph_fetch_method::GraphStream,
 };
@@ -40,11 +41,13 @@ impl GatewayEngineReloader {
         hot_reload_config_path: Option<PathBuf>,
         hooks: HooksWasi,
         access_log: AccessLogSender,
+        access_token: Option<AccessToken>,
     ) -> crate::Result<Self> {
         let context = Context {
             hot_reload_config_path,
             hooks,
             access_log,
+            access_token,
         };
 
         tracing::debug!("Waiting for a graph...");
@@ -89,6 +92,7 @@ struct Context {
     hot_reload_config_path: Option<PathBuf>,
     hooks: HooksWasi,
     access_log: AccessLogSender,
+    access_token: Option<AccessToken>,
 }
 
 async fn update_loop(
@@ -148,6 +152,7 @@ async fn build_new_engine(
         context.hot_reload_config_path,
         context.hooks,
         context.access_log,
+        context.access_token.as_ref(),
     )
     .await?;
 

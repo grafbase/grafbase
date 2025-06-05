@@ -4,7 +4,7 @@ mod gateway_runtime;
 pub use self::{create_extension_catalog::Error as CreateExtensionCatalogError, gateway_runtime::GatewayRuntime};
 
 use self::create_extension_catalog::create_extension_catalog;
-use super::ObjectStorageResponse;
+use super::{AccessToken, ObjectStorageResponse};
 use engine::Engine;
 use gateway_config::Config;
 use runtime::trusted_documents_client::{Client, TrustedDocumentsEnforcementMode};
@@ -24,7 +24,10 @@ pub(crate) type EngineWatcher<R> = watch::Receiver<Arc<Engine<R>>>;
 #[derive(Clone)]
 pub(crate) enum GraphDefinition {
     /// Response from object storage.
-    ObjectStorage(ObjectStorageResponse),
+    ObjectStorage {
+        response: ObjectStorageResponse,
+        object_storage_base_url: url::Url,
+    },
     /// Response from static file.
     Sdl(Option<PathBuf>, String),
 }
@@ -52,6 +55,7 @@ pub(super) async fn generate(
     hot_reload_config_path: Option<PathBuf>,
     hooks: HooksWasi,
     access_log: AccessLogSender,
+    access_token: Option<&AccessToken>,
 ) -> crate::Result<Engine<GatewayRuntime>> {
     let (
         current_dir,
@@ -61,9 +65,18 @@ pub(super) async fn generate(
             trusted_documents,
         },
     ) = match graph_definition {
-        GraphDefinition::ObjectStorage(object_storage_response) => {
-            (None, graph_from_object_storage(gateway_config, object_storage_response))
-        }
+        GraphDefinition::ObjectStorage {
+            response: object_storage_response,
+            object_storage_base_url,
+        } => (
+            None,
+            graph_from_object_storage(
+                gateway_config,
+                object_storage_response,
+                object_storage_base_url,
+                access_token,
+            ),
+        ),
         GraphDefinition::Sdl(current_dir, federated_sdl) => (current_dir, sdl_graph(federated_sdl)),
     };
 
@@ -115,8 +128,11 @@ fn graph_from_object_storage(
         version_id,
         ..
     }: ObjectStorageResponse,
+    object_storage_url: url::Url,
+    access_token: Option<&AccessToken>,
 ) -> Graph {
-    let trusted_documents = if gateway_config.trusted_documents.enabled {
+    let trusted_documents = if let (Some(access_token), true) = (access_token, gateway_config.trusted_documents.enabled)
+    {
         let enforcement_mode = if gateway_config.trusted_documents.enforced {
             TrustedDocumentsEnforcementMode::Enforce
         } else {
@@ -125,7 +141,6 @@ fn graph_from_object_storage(
 
         Some(runtime::trusted_documents_client::Client::new(
             super::trusted_documents_client::TrustedDocumentsClient::new(
-                Default::default(),
                 branch_id,
                 gateway_config
                     .trusted_documents
@@ -141,6 +156,8 @@ fn graph_from_object_storage(
                     )
                     .map(|(name, value)| (name.clone().into(), String::from(value.as_str()))),
                 enforcement_mode,
+                object_storage_url,
+                access_token,
             ),
         ))
     } else {
