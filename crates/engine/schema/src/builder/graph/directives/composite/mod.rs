@@ -5,7 +5,7 @@ mod require;
 
 use crate::{DirectiveSiteId, builder::sdl};
 
-use super::{DirectivesIngester, Error};
+use super::{DirectivesIngester, Error, FieldDefinitionId};
 
 impl<'sdl> DirectivesIngester<'_, 'sdl> {
     pub(crate) fn ingest_composite_directive_before_federation(
@@ -18,20 +18,6 @@ impl<'sdl> DirectivesIngester<'_, 'sdl> {
                 "At site {}, for directive @{}:",
                 def.to_site_string(self),
                 dir.name(),
-            ))
-        })
-    }
-
-    pub(crate) fn ingest_composite_directive_after_federation(
-        &mut self,
-        def: sdl::SdlDefinition<'sdl>,
-        dir: sdl::Directive<'sdl>,
-    ) -> Result<(), Error> {
-        ingest_after_federation_directives(self, def, dir).map_err(|err| {
-            err.with_prefix(format!(
-                "At site {}, for directive @{}: ",
-                def.to_site_string(self),
-                dir.name()
             ))
         })
     }
@@ -146,13 +132,31 @@ fn ingest_before_federation_directives<'sdl>(
     Ok(())
 }
 
-fn ingest_after_federation_directives<'sdl>(
-    ingester: &mut DirectivesIngester<'_, 'sdl>,
-    def: sdl::SdlDefinition<'sdl>,
-    dir: sdl::Directive<'sdl>,
+pub(crate) fn ingest_composite_field_directives_after_federation(
+    ingester: &mut DirectivesIngester<'_, '_>,
 ) -> Result<(), Error> {
-    match (dir.name(), def) {
-        ("composite__derive", sdl::SdlDefinition::FieldDefinition(def)) => derive::ingest(ingester, def, dir),
-        _ => Ok(()),
+    for id in 0..ingester.graph.field_definitions.len() {
+        let id = FieldDefinitionId::from(id);
+        let Some(&sdl::SdlDefinition::FieldDefinition(field)) = ingester.definitions.site_id_to_sdl.get(&id.into())
+        else {
+            // Introspection fields aren't part of the SDL.
+            continue;
+        };
+        require::ingest_field(ingester, field).map_err(|err| {
+            err.with_prefix(format!("At site {}: ", field.to_site_string(ingester)))
+                .with_span_if_absent(field.name_span())
+        })?;
+        for directive in field.directives() {
+            if let "composite__derive" = directive.name() {
+                derive::ingest(ingester, field, directive).map_err(|err| {
+                    err.with_prefix(format!(
+                        "At site {}, for directive @composite__derive: ",
+                        field.to_site_string(ingester)
+                    ))
+                    .with_span_if_absent(directive.arguments_span())
+                })?
+            }
+        }
     }
+    Ok(())
 }

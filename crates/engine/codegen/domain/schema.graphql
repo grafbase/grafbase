@@ -114,6 +114,7 @@ type FieldProvides @meta(module: "field/provides") {
 type FieldRequires @meta(module: "field/requires") {
   subgraph: Subgraph!
   field_set: FieldSet!
+  injections: [ArgumentInjection!]!
 }
 
 type DeriveDefinition @meta(module: "field/derive") @indexed(id_size: "u32") {

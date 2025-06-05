@@ -272,6 +272,7 @@ impl<'sdl> DirectivesIngester<'_, 'sdl> {
                         requires_records.push(FieldRequiresRecord {
                             subgraph_id,
                             field_set_record: requires,
+                            injection_ids: Default::default(),
                         });
                     }
                     resolvable_in.insert(subgraph_id);

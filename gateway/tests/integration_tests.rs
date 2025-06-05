@@ -120,7 +120,7 @@ impl<Response> GqlRequestBuilder<Response> {
     {
         let json = serde_json::to_value(&self).expect("to be able to serialize gql request");
 
-        if let Some(bearer) = self.bearer {
+        let value = if let Some(bearer) = self.bearer {
             self.reqwest_builder.header("authorization", bearer)
         } else {
             self.reqwest_builder
@@ -129,9 +129,11 @@ impl<Response> GqlRequestBuilder<Response> {
         .send()
         .await
         .unwrap()
-        .json::<Response>()
+        .json::<serde_json::Value>()
         .await
-        .unwrap()
+        .unwrap();
+        println!("Received response:\n{}", serde_json::to_string_pretty(&value).unwrap());
+        serde_json::from_value(value).expect("to be able to deserialize gql response")
     }
 
     pub async fn request(self) -> reqwest::Response {

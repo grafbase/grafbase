@@ -188,11 +188,17 @@ fn detect_explicit_is_directive_injections(
             .into_iter()
             .map(|argument_id| {
                 let sdl_arg = builder.definitions.site_id_to_sdl[&DirectiveSiteId::from(argument_id)];
-                builder
-                    .find_field_selection_map(subgraph_name, source, field.id, argument_id, sdl_arg.directives())
-                    .map(|opt| {
-                        opt.map(|(field_selection_map, is_directive)| (argument_id, field_selection_map, is_directive))
-                    })
+                find_field_selection_map(
+                    builder,
+                    subgraph_name,
+                    source,
+                    field.id,
+                    argument_id,
+                    sdl_arg.directives(),
+                )
+                .map(|opt| {
+                    opt.map(|(field_selection_map, is_directive)| (argument_id, field_selection_map, is_directive))
+                })
             })
             .filter_map_ok(|x| x)
             .collect::<Result<_, _>>()
@@ -342,4 +348,68 @@ enum ExplicitKeyInjection {
     Exact(FieldSetRecord, IdRange<ArgumentInjectionId>),
     OneOf(Vec<(FieldSetRecord, IdRange<ArgumentInjectionId>)>),
     None,
+}
+
+fn find_field_selection_map<'d>(
+    builder: &mut GraphBuilder<'_>,
+    subgraph_name: sdl::GraphName<'_>,
+    source: TypeRecord,
+    field_definition_id: FieldDefinitionId,
+    argument_id: InputValueDefinitionId,
+    directives: impl Iterator<Item = sdl::Directive<'d>>,
+) -> Result<Option<(BoundSelectedValue<InputValueDefinitionId>, sdl::Directive<'d>)>, Error> {
+    let mut is_directives = directives
+        .filter(|dir| dir.name() == "composite__is")
+        .map(|dir| {
+            dir.deserialize::<sdl::IsDirective>()
+                .map_err(|err| (format!("for associated @is directive: {err}"), dir.arguments_span()))
+                .map(|args| (dir, args))
+        })
+        .filter_ok(|(_, args)| args.graph == subgraph_name);
+
+    let Some((field_selection_map, is_directive)) = is_directives
+        .next()
+        .transpose()?
+        .map(
+            |(
+                is_directive,
+                sdl::IsDirective {
+                    field: field_selection_map,
+                    ..
+                },
+            )| {
+                tracing::trace!(
+                    "Found @is(field: \"{field_selection_map}\") for {}",
+                    builder.ctx[builder.graph[argument_id].name_id]
+                );
+                builder
+                    .parse_field_selection_map_for_argument(
+                        source,
+                        field_definition_id,
+                        argument_id,
+                        field_selection_map,
+                    )
+                    .map(|field_selection_map| (field_selection_map, is_directive))
+                    .map_err(|err| {
+                        (
+                            format!("for associated @is directive: {err}"),
+                            is_directive.arguments_span(),
+                        )
+                    })
+            },
+        )
+        .transpose()?
+    else {
+        return Ok(None);
+    };
+
+    if is_directives.next().is_some() {
+        return Err((
+            "Multiple @composite__is directives on the same argument are not supported.",
+            is_directive.name_span(),
+        )
+            .into());
+    }
+
+    Ok(Some((field_selection_map, is_directive)))
 }
