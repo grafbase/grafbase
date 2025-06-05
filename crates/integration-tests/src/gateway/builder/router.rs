@@ -9,7 +9,7 @@ use super::TestRuntime;
 pub(super) async fn build(engine: Arc<Engine<TestRuntime>>, config: Config) -> Router {
     let (_, engine_watcher) = tokio::sync::watch::channel(engine.clone());
 
-    let (router, _) = federated_server::router(config, engine_watcher, (), |r| r)
+    let (router, _) = federated_server::router(config, engine_watcher, (), (), |r| r)
         .await
         .unwrap();
 

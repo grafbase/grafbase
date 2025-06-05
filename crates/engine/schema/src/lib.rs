@@ -88,7 +88,12 @@ impl Schema {
     pub async fn from_sdl_or_panic(sdl: &str) -> Self {
         let mut config: gateway_config::Config = Default::default();
         config.graph.introspection = Some(true);
+
         Self::builder(sdl).config(&config).build().await.unwrap()
+    }
+
+    pub async fn empty() -> Self {
+        Self::from_sdl_or_panic("").await
     }
 
     pub fn builder(sdl: &str) -> Builder<'_> {

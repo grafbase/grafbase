@@ -3,6 +3,7 @@ mod authorization;
 mod error;
 mod extension;
 mod field_resolver;
+mod hooks;
 mod selection_set_resolver;
 mod state;
 

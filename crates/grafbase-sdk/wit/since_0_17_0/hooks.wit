@@ -1,0 +1,24 @@
+interface hooks {
+    use http-client.{http-method};
+    use error.{error-response};
+    use headers.{headers};
+
+    /// Hook function called when processing an incoming request
+    ///
+    /// This allows middleware to inspect and potentially modify the request
+    /// before it continues through the processing pipeline.
+    on-request: func(
+        url: string,
+        method: http-method,
+        headers: headers,
+    ) -> result<_, error-response>;
+
+    /// Hook function called when processing an outgoing response
+    ///
+    /// This allows middleware to inspect and potentially modify the response
+    /// before it is sent back to the client.
+    on-response: func(
+        status: u16,
+        headers: headers,
+    ) -> result<_, error-response>;
+}

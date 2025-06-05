@@ -55,6 +55,7 @@ mod wit {
     pub use exports::grafbase::sdk::authentication::Guest as AuthenticationGuest;
     pub use exports::grafbase::sdk::authorization::Guest as AuthorizationGuest;
     pub use exports::grafbase::sdk::field_resolver::Guest as FieldResolverGuest;
+    pub use exports::grafbase::sdk::hooks::Guest as HooksGuest;
     pub use exports::grafbase::sdk::selection_set_resolver::Guest as SelectionSetResolverGuest;
 
     pub use grafbase::sdk::access_log::*;

@@ -3,6 +3,17 @@ interface authentication {
     use error.{error-response};
     use token.{token};
 
+    /// Authenticates a request using the provided headers.
+    ///
+    /// This function validates authentication credentials found in the request headers
+    /// and returns an authentication token if successful.
+    ///
+    /// # Parameters
+    /// - `headers`: Immutable HTTP headers
+    ///
+    /// # Returns
+    /// - `Ok(token)`: Authentication successful, returns a valid token
+    /// - `Err(error-response)`: Authentication failed, returns error details
     authenticate: func(
         headers: headers,
     ) -> result<token, error-response>;

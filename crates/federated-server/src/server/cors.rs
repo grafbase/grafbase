@@ -27,16 +27,16 @@ pub(super) fn generate(
         allow_headers,
         expose_headers,
         allow_private_network,
-    }: CorsConfig,
+    }: &CorsConfig,
 ) -> CorsLayer {
     let mut cors_layer = CorsLayer::new()
-        .allow_credentials(allow_credentials)
-        .allow_private_network(allow_private_network);
+        .allow_credentials(*allow_credentials)
+        .allow_private_network(*allow_private_network);
 
     if let Some(allow_origins) = allow_origins {
         cors_layer = cors_layer.allow_origin(match allow_origins {
             AnyOrUrlArray::Any => AllowOrigin::any(),
-            AnyOrUrlArray::Explicit(ref origins) => {
+            AnyOrUrlArray::Explicit(origins) => {
                 let mut constants = Vec::new();
                 let mut globs = Vec::new();
                 for origin in origins {
@@ -81,7 +81,7 @@ pub(super) fn generate(
     }
 
     if let Some(max_age) = max_age {
-        cors_layer = cors_layer.max_age(max_age);
+        cors_layer = cors_layer.max_age(*max_age);
     }
 
     if let Some(allow_methods) = allow_methods {
