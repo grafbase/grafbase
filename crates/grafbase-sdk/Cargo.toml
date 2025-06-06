@@ -1,6 +1,6 @@
 [package]
 name = "grafbase-sdk"
-version = "0.16.1"
+version = "0.17.0"
 description = "An SDK to implement extensions for the Grafbase Gateway"
 edition = "2024"
 license.workspace = true
@@ -42,7 +42,7 @@ jq-selection = [
 [dependencies]
 document-features = { version = "0.2" }
 fxhash = "0.2"
-grafbase-sdk-derive = { version = "0.4.0", path = "derive" }
+grafbase-sdk-derive = { version = "0.5.0", path = "derive" }
 http = "1"
 minicbor-serde = { version = "0.4.1", features = ["alloc"] }
 postcard = { version = "1", features = ["use-std"] }

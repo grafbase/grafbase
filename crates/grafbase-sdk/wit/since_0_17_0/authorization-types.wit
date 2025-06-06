@@ -1,0 +1,15 @@
+interface authorization-types {
+    use error.{error};
+
+    variant authorization-decisions {
+        grant-all,
+        deny-all(error),
+        deny-some(authorization-decisions-deny-some)
+    }
+
+    record authorization-decisions-deny-some {
+        // For elements
+        element-to-error: list<tuple<u32, u32>>,
+        errors: list<error>
+    }
+}

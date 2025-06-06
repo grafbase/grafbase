@@ -1,6 +1,7 @@
 use std::{path::PathBuf, sync::Arc};
 
 use engine::{CachedOperation, Engine};
+use extension_catalog::ExtensionCatalog;
 use futures_lite::{StreamExt, pin};
 use runtime_local::wasi::hooks::{AccessLogSender, HooksWasi};
 use tokio::{
@@ -42,6 +43,7 @@ impl GatewayEngineReloader {
         hooks: HooksWasi,
         access_log: AccessLogSender,
         access_token: Option<AccessToken>,
+        extension_catalog: &ExtensionCatalog,
     ) -> crate::Result<Self> {
         let context = Context {
             hot_reload_config_path,
@@ -64,6 +66,7 @@ impl GatewayEngineReloader {
             graph_definition.clone(),
             context.clone(),
             vec![],
+            Some(extension_catalog),
         )
         .await?;
 
@@ -125,7 +128,7 @@ async fn update_loop(
             async move {
                 let operations_to_warm = extract_operations_to_warm(&current_config, &engine_sender);
 
-                match build_new_engine(current_config, graph_definition, context, operations_to_warm).await {
+                match build_new_engine(current_config, graph_definition, context, operations_to_warm, None).await {
                     Ok(engine) => {
                         if let Err(err) = engine_sender.send(engine) {
                             tracing::error!("Could not send engine: {err:?}");
@@ -145,6 +148,7 @@ async fn build_new_engine(
     graph_definition: GraphDefinition,
     context: Context,
     operations_to_warm: Vec<Arc<CachedOperation>>,
+    extension_catalog: Option<&ExtensionCatalog>,
 ) -> crate::Result<Arc<Engine<GatewayRuntime>>> {
     let engine = gateway::generate(
         graph_definition,
@@ -153,6 +157,7 @@ async fn build_new_engine(
         context.hooks,
         context.access_log,
         context.access_token.as_ref(),
+        extension_catalog,
     )
     .await?;
 

@@ -1,6 +1,7 @@
 mod authentication;
 mod authorization;
 mod field_resolver;
+mod hooks;
 mod selection_set_resolver;
 mod subscription;
 

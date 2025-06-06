@@ -1,0 +1,77 @@
+interface directive {
+    record query-elements {
+        // Tuple of directive name and a range over the `elements` list it's associated with.
+        directive-names: list<tuple<string, u32, u32>>,
+        // Represents an element of the query associated with the directive
+        elements: list<query-element>
+    }
+
+    record query-element {
+        // Unique id.
+        id: u32,
+        site: directive-site,
+        // encoded in CBOR.
+        arguments: list<u8>
+    }
+
+    record response-elements {
+        directive-names: list<tuple<string, u32, u32>>,
+        elements: list<response-element>,
+        // encoded in CBOR.
+        items: list<list<u8>>
+    }
+
+    record response-element {
+        query-element-id: u32,
+        items-range: tuple<u32, u32>
+    }
+
+    record field-definition-directive {
+        name: string,
+        site: field-definition-directive-site,
+        // serialized in CBOR
+        arguments: list<u8>
+    }
+
+    // Where and how the directive is applied
+    // Each variant matches a GraphQL directive location
+    variant directive-site {
+        scalar(scalar-directive-site),
+        object(object-directive-site),
+        field-definition(field-definition-directive-site),
+        %interface(interface-directive-site),
+        union(union-directive-site),
+        %enum(enum-directive-site)
+    }
+
+    // Site for a directive applied on a OBJECT location
+    record object-directive-site {
+        object-name: string,
+    }
+
+    // Site for a directive applied on a FIELD_DEFINITION location
+    record field-definition-directive-site {
+        parent-type-name: string,
+        field-name: string,
+    }
+
+    // Site for a directive applied on a UNION location
+    record union-directive-site {
+        union-name: string,
+    }
+
+    // Site for a directive applied on a INTERFACE location
+    record interface-directive-site {
+        interface-name: string,
+    }
+
+    // Site for a directive applied on a ENUM location
+    record enum-directive-site {
+        enum-name: string,
+    }
+
+    // Site for a directive applied on a SCALAR location
+    record scalar-directive-site {
+        scalar-name: string,
+    }
+}
