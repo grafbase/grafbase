@@ -167,7 +167,7 @@ impl ExtensionsBuilder {
 
             WasmExtensions::new(shared_resources, &self.catalog, config, schema)
                 .await
-                .unwrap()
+                .map_err(|err| err.to_string())?
         } else {
             // If no real wasm extensions was used, we skip the initialization as it would compile
             // the placeholder extension for nothing and we have a lot of extension tests, most of

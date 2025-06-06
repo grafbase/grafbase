@@ -46,7 +46,7 @@ impl TestRuntimeBuilder {
         config: &mut Config,
         schema: &Arc<Schema>,
         shared_resources: SharedResources,
-    ) -> TestRuntime {
+    ) -> Result<TestRuntime, String> {
         let TestRuntimeBuilder {
             trusted_documents,
             hooks,
@@ -56,8 +56,7 @@ impl TestRuntimeBuilder {
 
         let (extensions, catalog) = extensions
             .build_and_ingest_catalog_into_config(config, schema, shared_resources.clone())
-            .await
-            .unwrap();
+            .await?;
 
         let hooks = if let Some(hooks_config) = config.hooks.clone() {
             let loader = ComponentLoader::hooks(hooks_config)
@@ -78,7 +77,7 @@ impl TestRuntimeBuilder {
 
         let (_, rx) = watch::channel(Default::default());
 
-        TestRuntime {
+        Ok(TestRuntime {
             fetcher: fetcher.unwrap_or_else(|| {
                 DynamicFetcher::wrap(NativeFetcher::new(config).expect("couldnt construct NativeFetcher"))
             }),
@@ -91,7 +90,7 @@ impl TestRuntimeBuilder {
             operation_cache: InMemoryOperationCache::default(),
             extensions,
             authentication,
-        }
+        })
     }
 }
 
