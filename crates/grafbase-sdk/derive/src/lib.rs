@@ -42,6 +42,12 @@ pub fn authorization_extension(input: TokenStream) -> TokenStream {
     expand(authorization_init(ast))
 }
 
+#[proc_macro_derive(HooksExtension)]
+pub fn hooks_extension(input: TokenStream) -> TokenStream {
+    let ast = syn::parse_macro_input!(input as DeriveInput);
+    expand(hooks_init(ast))
+}
+
 fn expand(init: proc_macro2::TokenStream) -> TokenStream {
     let token_stream = quote! {
         #[doc(hidden)]
@@ -91,5 +97,15 @@ fn authorization_init(ast: DeriveInput) -> proc_macro2::TokenStream {
 
     quote! {
         grafbase_sdk::extension::authorization::register::<#name #ty_generics>();
+    }
+}
+
+fn hooks_init(ast: DeriveInput) -> proc_macro2::TokenStream {
+    let name = &ast.ident;
+
+    let (_, ty_generics, _) = ast.generics.split_for_impl();
+
+    quote! {
+        grafbase_sdk::extension::hooks::register::<#name #ty_generics>();
     }
 }

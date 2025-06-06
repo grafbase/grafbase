@@ -10,5 +10,6 @@ There exist four kinds of extensions today:
 - [AuthorizationExtension]: Control access to certain fields, objects, interfaces, scalars or enums.
 - [FieldResolverExtension]: Called by the gateway to resolve data for a field, replacing or augmenting a GraphQL subgraph.
 - [SelectionSetResolverExtension]: Called by the gateway to resolve data downstream from a field, replacing or augmenting a GraphQL subgraph. These extensions have access to the selection set on the field and to the whole GraphQL schema.
+- [HooksExtension]: Called by the gateway to perform actions before receiving a request, or right before sending a response.
 
 Each extension has its dedicated documentation and tutorial you can follow through.
