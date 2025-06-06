@@ -27,7 +27,7 @@ fn unparseable_query() {
             .build()
             .await;
 
-        let mut stream = engine.mcp("/mcp").await;
+        let mut stream = engine.mcp_http("/mcp").await;
 
         let response = stream.call_tool("execute", json!({"query": "}"})).await;
 
@@ -83,7 +83,7 @@ fn unknown_field() {
             .build()
             .await;
 
-        let mut stream = engine.mcp("/mcp").await;
+        let mut stream = engine.mcp_http("/mcp").await;
 
         let response = stream
             .call_tool(
@@ -152,7 +152,7 @@ fn invalid_query_structure() {
             .build()
             .await;
 
-        let mut stream = engine.mcp("/mcp").await;
+        let mut stream = engine.mcp_http("/mcp").await;
 
         let response = stream
             .call_tool(
@@ -216,7 +216,7 @@ fn incorrect_variable_type() {
             .build()
             .await;
 
-        let mut stream = engine.mcp("/mcp").await;
+        let mut stream = engine.mcp_http("/mcp").await;
 
         let response = stream
             .call_tool(
@@ -275,7 +275,7 @@ fn unknown_variable() {
             .build()
             .await;
 
-        let mut stream = engine.mcp("/mcp").await;
+        let mut stream = engine.mcp_http("/mcp").await;
 
         let response = stream
             .call_tool(

@@ -27,7 +27,51 @@ fn simple() {
             .build()
             .await;
 
-        let mut stream = engine.mcp("/mcp").await;
+        let mut stream = engine.mcp_http("/mcp").await;
+
+        let response = stream.call_tool("search", json!({"keywords": ["User"]})).await;
+        insta::assert_snapshot!(&response, @r##"
+        # Incomplete fields
+        type Query {
+          user: User
+        }
+
+        type User {
+          id: ID!
+          name: String!
+        }
+        "##);
+    });
+}
+
+#[test]
+fn simple_sse() {
+    runtime().block_on(async move {
+        let engine = Gateway::builder()
+            .with_subgraph_sdl(
+                "x",
+                r#"
+            type Query {
+                user: User
+            }
+
+            type User {
+                id: ID!
+                name: String!
+            }
+            "#,
+            )
+            .with_toml_config(
+                r#"
+                [mcp]
+                enabled = true
+                transport = "sse"
+            "#,
+            )
+            .build()
+            .await;
+
+        let mut stream = engine.mcp_sse("/mcp").await;
 
         let response = stream.call_tool("search", json!({"keywords": ["User"]})).await;
         insta::assert_snapshot!(&response, @r##"
@@ -70,7 +114,7 @@ fn camel_case_type() {
             .build()
             .await;
 
-        let mut stream = engine.mcp("/mcp").await;
+        let mut stream = engine.mcp_http("/mcp").await;
 
         let response = stream.call_tool("search", json!({"keywords": ["User"]})).await;
         insta::assert_snapshot!(&response, @r##"
@@ -112,7 +156,7 @@ fn camel_case_field() {
             .build()
             .await;
 
-        let mut stream = engine.mcp("/mcp").await;
+        let mut stream = engine.mcp_http("/mcp").await;
 
         let response = stream.call_tool("search", json!({"keywords": ["User"]})).await;
         insta::assert_snapshot!(&response, @r##"
@@ -153,7 +197,7 @@ fn acronym_type() {
             .build()
             .await;
 
-        let mut stream = engine.mcp("/mcp").await;
+        let mut stream = engine.mcp_http("/mcp").await;
 
         let response = stream.call_tool("search", json!({"keywords": ["http"]})).await;
         insta::assert_snapshot!(&response, @r##"
@@ -196,7 +240,7 @@ fn with_required_arguments() {
             .build()
             .await;
 
-        let mut stream = engine.mcp("/mcp").await;
+        let mut stream = engine.mcp_http("/mcp").await;
 
         let response = stream.call_tool("search", json!({"keywords": ["user"]})).await;
         insta::assert_snapshot!(&response, @r##"
@@ -256,7 +300,7 @@ fn with_nested_types() {
             .build()
             .await;
 
-        let mut stream = engine.mcp("/mcp").await;
+        let mut stream = engine.mcp_http("/mcp").await;
 
         let response = stream.call_tool("search", json!({"keywords": ["post"]})).await;
         insta::assert_snapshot!(&response, @r##"
@@ -365,7 +409,7 @@ fn with_input_types() {
             .build()
             .await;
 
-        let mut stream = engine.mcp("/mcp").await;
+        let mut stream = engine.mcp_http("/mcp").await;
 
         let response = stream.call_tool("search", json!({"keywords": ["searchPosts"]})).await;
         insta::assert_snapshot!(&response, @r##"
@@ -451,7 +495,7 @@ fn fuzzy_search() {
             .build()
             .await;
 
-        let mut stream = engine.mcp("/mcp").await;
+        let mut stream = engine.mcp_http("/mcp").await;
 
         // Test 4-7 character words with 1 typo
         let response = stream.call_tool("search", json!({"keywords": ["user"]})).await;
@@ -541,7 +585,7 @@ fn case_insensitive_search() {
             .build()
             .await;
 
-        let mut stream = engine.mcp("/mcp").await;
+        let mut stream = engine.mcp_http("/mcp").await;
 
         // Test case insensitive search
         let response = stream.call_tool("search", json!({"keywords": ["USER"]})).await;
@@ -597,7 +641,7 @@ fn multiple_keywords() {
             .build()
             .await;
 
-        let mut stream = engine.mcp("/mcp").await;
+        let mut stream = engine.mcp_http("/mcp").await;
 
         // Test search with multiple keywords
         let response = stream.call_tool("search", json!({"keywords": ["user", "post"]})).await;
@@ -660,7 +704,7 @@ fn shallow_depth_should_be_first() {
             .build()
             .await;
 
-        let mut stream = engine.mcp("/mcp").await;
+        let mut stream = engine.mcp_http("/mcp").await;
 
         // Test search with multiple keywords
         let response = stream.call_tool("search", json!({"keywords": ["author"]})).await;
@@ -718,7 +762,7 @@ fn recursive_query() {
             .build()
             .await;
 
-        let mut stream = engine.mcp("/mcp").await;
+        let mut stream = engine.mcp_http("/mcp").await;
 
         let response = stream.call_tool("search", json!({"keywords": ["User"]})).await;
         insta::assert_snapshot!(&response, @r##"
@@ -804,7 +848,7 @@ fn search_descriptions() {
             .build()
             .await;
 
-        let mut stream = engine.mcp("/mcp").await;
+        let mut stream = engine.mcp_http("/mcp").await;
 
         // Search for a term that appears in descriptions
         let response = stream.call_tool("search", json!({"keywords": ["blog"]})).await;

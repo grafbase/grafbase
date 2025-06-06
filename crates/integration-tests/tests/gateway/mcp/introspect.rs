@@ -27,7 +27,7 @@ fn test_object() {
             .build()
             .await;
 
-        let mut stream = engine.mcp("/mcp").await;
+        let mut stream = engine.mcp_http("/mcp").await;
 
         let response = stream.call_tool("introspect", json!({"types": ["User"]})).await;
 
@@ -73,7 +73,7 @@ fn test_union() {
             .build()
             .await;
 
-        let mut stream = engine.mcp("/mcp").await;
+        let mut stream = engine.mcp_http("/mcp").await;
 
         let response = stream.call_tool("introspect", json!({"types": ["SearchResult"]})).await;
 
@@ -128,7 +128,7 @@ fn test_interface() {
             .build()
             .await;
 
-        let mut stream = engine.mcp("/mcp").await;
+        let mut stream = engine.mcp_http("/mcp").await;
 
         let response = stream.call_tool("introspect", json!({"types": ["Node"]})).await;
 
@@ -177,7 +177,7 @@ fn test_enum() {
             .build()
             .await;
 
-        let mut stream = engine.mcp("/mcp").await;
+        let mut stream = engine.mcp_http("/mcp").await;
 
         let response = stream.call_tool("introspect", json!({"types": ["Status"]})).await;
 
@@ -214,7 +214,7 @@ fn test_scalar() {
             .build()
             .await;
 
-        let mut stream = engine.mcp("/mcp").await;
+        let mut stream = engine.mcp_http("/mcp").await;
 
         let response = stream.call_tool("introspect", json!({"types": ["DateTime"]})).await;
 
@@ -249,7 +249,7 @@ fn test_input_object() {
             .build()
             .await;
 
-        let mut stream = engine.mcp("/mcp").await;
+        let mut stream = engine.mcp_http("/mcp").await;
 
         let response = stream.call_tool("introspect", json!({"types": ["SearchFilter"]})).await;
 
@@ -278,7 +278,7 @@ fn test_object_with_field_arguments() {
                     id: ID!
                     posts(
                         first: Int = 10
-                        offset: Int! 
+                        offset: Int!
                         status: PostStatus = PUBLISHED
                     ): [Post!]!
                 }
@@ -303,7 +303,7 @@ fn test_object_with_field_arguments() {
             .build()
             .await;
 
-        let mut stream = engine.mcp("/mcp").await;
+        let mut stream = engine.mcp_http("/mcp").await;
 
         let response = stream.call_tool("introspect", json!({"types": ["User"]})).await;
 
@@ -354,7 +354,7 @@ fn test_input_object_with_defaults() {
             .build()
             .await;
 
-        let mut stream = engine.mcp("/mcp").await;
+        let mut stream = engine.mcp_http("/mcp").await;
 
         let response = stream
             .call_tool("introspect", json!({"types": ["SearchFilterWithDefaults"]}))
@@ -401,7 +401,7 @@ fn should_show_mutations() {
             .build()
             .await;
 
-        let mut stream = engine.mcp("/mcp").await;
+        let mut stream = engine.mcp_http("/mcp").await;
 
         let response = stream.call_tool("introspect", json!({"types": ["Mutation"]})).await;
 
@@ -546,7 +546,7 @@ fn test_descriptions() {
             .build()
             .await;
 
-        let mut stream = engine.mcp("/mcp").await;
+        let mut stream = engine.mcp_http("/mcp").await;
 
         let response = stream.call_tool("introspect", json!({"types": ["User", "Post", "Comment", "Node", "SearchResult", "DateTime", "PostFilter", "PostStatus"]})).await;
 

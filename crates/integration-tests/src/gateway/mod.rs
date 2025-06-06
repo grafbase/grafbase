@@ -100,8 +100,12 @@ impl Gateway {
         self.execute(http::Method::POST, "/graphql", request)
     }
 
-    pub async fn mcp(&self, path: &str) -> McpStream {
+    pub async fn mcp_sse(&self, path: &str) -> McpStream {
         McpStream::new(self.router.clone(), path).await
+    }
+
+    pub async fn mcp_http(&self, path: &str) -> McpHttpClient {
+        McpHttpClient::new(self.router.clone(), path).await
     }
 
     pub fn execute(&self, method: http::Method, path: &str, request: impl Into<GraphQlRequest>) -> TestRequest {

@@ -215,7 +215,7 @@ pub async fn router<R: engine::Runtime, SR: ServerRuntime>(
         Some(mcp_config) if mcp_config.enabled => {
             let (mcp_router, ct) = grafbase_mcp::router(engine, mcp_config);
             router = router.merge(mcp_router);
-            Some(ct)
+            ct
         }
         _ => None,
     };

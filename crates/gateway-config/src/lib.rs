@@ -31,7 +31,10 @@ use std::{
 };
 
 pub use self::{
-    log_level::*, subscription_protocol::SubscriptionProtocol, trusted_documents::*,
+    log_level::*,
+    mcp::{McpTransport, ModelControlProtocolConfig},
+    subscription_protocol::SubscriptionProtocol,
+    trusted_documents::*,
     websockets_config::WebsocketsConfig,
 };
 pub use authentication::*;
@@ -42,7 +45,6 @@ pub use extensions::*;
 pub use header::*;
 pub use health::*;
 pub use hooks::*;
-pub use mcp::ModelControlProtocolConfig;
 pub use message_signatures::MessageSignaturesConfig;
 pub use rate_limit::*;
 use size::Size;
@@ -2512,6 +2514,28 @@ mod tests {
                 enabled: false,
                 path: "/mcp",
                 execute_mutations: false,
+                transport: StreamingHttp,
+            },
+        )
+        "#);
+    }
+
+    #[test]
+    fn mcp_sse_transport() {
+        let input = indoc! {r#"
+            [mcp]
+            transport = "sse"
+        "#};
+
+        let config: Config = toml::from_str(input).unwrap();
+
+        insta::assert_debug_snapshot!(&config.mcp, @r#"
+        Some(
+            ModelControlProtocolConfig {
+                enabled: false,
+                path: "/mcp",
+                execute_mutations: false,
+                transport: Sse,
             },
         )
         "#);

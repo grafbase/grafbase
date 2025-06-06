@@ -94,6 +94,10 @@ pub(crate) async fn run(args: McpCommand) -> anyhow::Result<()> {
     let mcp_config = gateway_config::ModelControlProtocolConfig {
         enabled: true,
         execute_mutations: args.execute_mutations,
+        transport: match args.transport {
+            crate::cli_input::McpTransport::StreamingHttp => gateway_config::McpTransport::StreamingHttp,
+            crate::cli_input::McpTransport::Sse => gateway_config::McpTransport::Sse,
+        },
         ..Default::default()
     };
 
@@ -107,7 +111,9 @@ pub(crate) async fn run(args: McpCommand) -> anyhow::Result<()> {
     let server = axum::serve(listener, router).with_graceful_shutdown(async move {
         let _ = tokio::signal::ctrl_c().await;
         tracing::info!("Shutting down...");
-        ct.cancel();
+        if let Some(ct) = ct {
+            ct.cancel();
+        }
     });
 
     stdout().queue(MoveUp(2))?.queue(Clear(ClearType::CurrentLine))?;

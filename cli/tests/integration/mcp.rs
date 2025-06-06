@@ -13,7 +13,14 @@ async fn test_mcp() {
 
     let _handle = cmd(
         cargo_bin("grafbase"),
-        &["mcp", subgraph.url().as_str(), "--port", &port.to_string()],
+        &[
+            "mcp",
+            subgraph.url().as_str(),
+            "--port",
+            &port.to_string(),
+            "--transport",
+            "sse",
+        ],
     )
     .unchecked()
     .start()
