@@ -1,0 +1,18 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: actual_api_sdl
+input_file: crates/graphql-composition/tests/composition/external/test.md
+---
+type Product {
+  details: ProductDetails
+  id: ID!
+  test: String
+}
+
+type ProductDetails {
+  warehouseA: Int
+}
+
+type Query {
+  product(id: ID!): Product
+}

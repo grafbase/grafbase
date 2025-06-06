@@ -1,0 +1,14 @@
+extend schema @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@external"])
+
+type Query {
+  product(id: ID!): Product @lookup
+}
+
+type Product @key(fields: "id") {
+  id: ID!
+  details: ProductDetails
+}
+
+type ProductDetails {
+  warehouseA: Int
+}

@@ -197,6 +197,10 @@ impl<'a> FieldWalker<'a> {
         let (_, tuple) = self.id;
         self.walk(tuple.r#type)
     }
+
+    pub(crate) fn is_external(self) -> bool {
+        self.directives().external() || self.parent_definition().directives().external()
+    }
 }
 
 impl<'a> DefinitionWalker<'a> {

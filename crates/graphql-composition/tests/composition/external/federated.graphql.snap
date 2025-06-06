@@ -1,0 +1,51 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: "The `@require` directive on arguments makes arguments disappear in the composite schema, but not the composite execution schema."
+input_file: crates/graphql-composition/tests/composition/external/test.md
+---
+directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
+
+directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
+
+directive @join__graph(name: String!, url: String) on ENUM_VALUE
+
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, overrideLabel: String) on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+directive @join__type(graph: join__Graph, key: join__FieldSet, extension: Boolean = false, resolvable: Boolean = true, isInterfaceObject: Boolean = false) on SCALAR | OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+directive @composite__lookup on FIELD_DEFINITION
+
+directive @composite__require(field: composite__FieldSelectionMap!) on ARGUMENT_DEFINITION
+
+scalar join__FieldSet
+
+scalar composite__FieldSelectionMap
+
+type Product
+  @join__type(graph: INVENTORY, key: "id", resolvable: false)
+  @join__type(graph: PRICING, key: "id", resolvable: false)
+{
+  details: ProductDetails @join__field(graph: INVENTORY) @join__field(graph: PRICING, external: true)
+  id: ID!
+  test(details: Int @composite__require(graph: PRICING, field: "details.warehouseA")): String @join__field(graph: PRICING)
+}
+
+type ProductDetails
+  @join__type(graph: INVENTORY)
+  @join__type(graph: PRICING)
+{
+  warehouseA: Int @join__field(graph: INVENTORY) @join__field(graph: PRICING, external: true)
+}
+
+type Query
+{
+  product(id: ID!): Product @composite__lookup(graph: INVENTORY) @join__field(graph: INVENTORY)
+}
+
+enum join__Graph
+{
+  INVENTORY @join__graph(name: "inventory", url: "http://example.com/inventory")
+  PRICING @join__graph(name: "pricing", url: "http://example.com/pricing")
+}

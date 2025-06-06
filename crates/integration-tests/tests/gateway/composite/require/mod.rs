@@ -1,13 +1,13 @@
+mod batch;
+mod single;
+
 use std::sync::Arc;
 
 use engine::GraphqlError;
 use engine_schema::Subgraph;
 use extension_catalog::{ExtensionId, Id};
 use graphql_mocks::dynamic::{DynamicSchema, DynamicSubgraph};
-use integration_tests::{
-    gateway::{AnyExtension, Gateway, ResolverTestExtension, TestManifest},
-    runtime,
-};
+use integration_tests::gateway::{AnyExtension, ResolverTestExtension, TestManifest};
 use runtime::extension::{ArgumentsId, Data};
 use serde_json::json;
 
@@ -62,108 +62,27 @@ fn gql_product() -> DynamicSubgraph {
     DynamicSchema::builder(
         r#"
         type Query {
-            products: [Product!]!
+            products: [Product]!
         }
 
         type Product @key(fields: "id") {
             id: ID!
+            details: ProductDetails
+            categories: [String!]!
+        }
+
+        type ProductDetails {
+            code: String!
         }
         "#,
     )
-    .with_resolver("Query", "products", json!([{"id": "1"}, {"id": "2"}]))
+    .with_resolver(
+        "Query",
+        "products",
+        json!([
+            {"id": "1", "details": {"code": "I1"}, "categories": ["C1", "C11"]},
+            {"id": "2", "details": {"code": "I2"}, "categories": ["C2", "C22"]}
+        ]),
+    )
     .into_subgraph("gql")
-}
-
-#[test]
-fn basic() {
-    runtime().block_on(async {
-        let engine = Gateway::builder()
-            .with_subgraph(gql_product())
-            .with_subgraph_sdl(
-                "ext",
-                r#"
-                extend schema
-                    @link(url: "resolver-1.0.0", import: ["@resolve"])
-                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@require", "@key"])
-                    @init
-
-                type Product @key(fields: "id") {
-                    id: ID!
-                    dummy(id: ID! @require(field: "id")): JSON @resolve
-                }
-
-                scalar JSON
-                "#,
-            )
-            .with_extension(Resolve::with(Ok))
-            .build()
-            .await;
-
-        let response = engine.post("query { products { id dummy } }").await;
-        insta::assert_json_snapshot!(response, @r#"
-        {
-          "data": {
-            "products": [
-              {
-                "id": "1",
-                "dummy": {
-                  "id": "1"
-                }
-              },
-              {
-                "id": "2",
-                "dummy": {
-                  "id": "2"
-                }
-              }
-            ]
-          }
-        }
-        "#);
-    })
-}
-
-#[test]
-fn basic_batch() {
-    runtime().block_on(async {
-        let engine = Gateway::builder()
-            .with_subgraph(gql_product())
-            .with_subgraph_sdl(
-                "ext",
-                r#"
-                extend schema
-                    @link(url: "resolver-1.0.0", import: ["@resolve"])
-                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@require", "@key"])
-                    @init
-
-                type Product @key(fields: "id") {
-                    id: ID!
-                    dummy(id: [ID!]! @require(field: "[id]")): JSON @resolve
-                }
-
-                scalar JSON
-                "#,
-            )
-            .with_extension(Resolve::with(|args| Ok(args["id"].clone())))
-            .build()
-            .await;
-
-        let response = engine.post("query { products { id dummy } }").await;
-        insta::assert_json_snapshot!(response, @r#"
-        {
-          "data": {
-            "products": [
-              {
-                "id": "1",
-                "dummy": "1"
-              },
-              {
-                "id": "2",
-                "dummy": "2"
-              }
-            ]
-          }
-        }
-        "#);
-    })
 }
