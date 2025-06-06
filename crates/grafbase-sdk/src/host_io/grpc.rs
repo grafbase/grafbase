@@ -127,7 +127,7 @@ impl GrpcClient {
 
 /// Response status of gRPC requests.
 ///
-/// Reference: https://github.com/grpc/grpc/blob/master/doc/statuscodes.md#status-codes-and-their-use-in-grpc
+/// Reference: <https://github.com/grpc/grpc/blob/master/doc/statuscodes.md#status-codes-and-their-use-in-grpc>
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum GrpcStatusCode {
     /// 0. Not an error; returned on success.

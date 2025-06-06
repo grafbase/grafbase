@@ -16,7 +16,7 @@ pub mod types;
 
 pub use component::SdkError;
 pub use extension::{
-    AuthenticationExtension, AuthorizationExtension, FieldResolverExtension, IntoQueryAuthorization,
+    AuthenticationExtension, AuthorizationExtension, FieldResolverExtension, HooksExtension, IntoQueryAuthorization,
     SelectionSetResolverExtension, Subscription,
 };
 pub use grafbase_sdk_derive::{
