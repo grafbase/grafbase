@@ -28,7 +28,13 @@ impl Configuration {
                     .iter()
                     .all(|seg| matches!(seg, serde_path_to_error::Segment::Unknown))
             {
-                err.into_inner().into()
+                if let Ok(serde_json::Value::Null) =
+                    serde_json::Value::deserialize(&mut minicbor_serde::Deserializer::new(&self.0))
+                {
+                    "Missing configuration".into()
+                } else {
+                    err.into_inner().into()
+                }
             } else {
                 format!("Failed to deserialize configuration at {}", err).into()
             }
@@ -89,5 +95,12 @@ mod tests {
         let err = invalid_configuration.deserialize::<TestConfig<Settings>>().unwrap_err();
 
         insta::assert_snapshot!(err, @"Failed to deserialize configuration at settings.enabled: unexpected type string at position 29: expected bool");
+
+        // Test error with absent config
+        let invalid_bytes = crate::cbor::to_vec(serde_json::Value::Null).unwrap();
+        let invalid_configuration = Configuration::new(invalid_bytes);
+        let err = invalid_configuration.deserialize::<TestConfig<Settings>>().unwrap_err();
+
+        insta::assert_snapshot!(err, @"Missing configuration");
     }
 }

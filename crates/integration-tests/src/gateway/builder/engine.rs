@@ -109,7 +109,7 @@ pub(super) async fn build(
                 access_log: access_log_sender,
             },
         )
-        .await;
+        .await?;
 
     println!("=== CONFIG ===\n{:#?}\n", config);
 

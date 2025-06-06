@@ -87,7 +87,13 @@ async fn create_pools(
 
         let id = config.id;
         let max_pool_size = config.pool.max_size;
-        ExtensionLoader::new(Arc::clone(schema), shared, config).map(|loader| (id, Pool::new(loader, max_pool_size)))
+        let loader = ExtensionLoader::new(Arc::clone(schema), shared, config)?;
+        let pool = Pool::new(loader, max_pool_size);
+
+        // Load immediately an instance to check they can initialize themselves correctly.
+        let _ = pool.get().await?;
+
+        crate::Result::Ok((id, pool))
     }))
     .buffer_unordered(parallelism)
     .try_collect::<Vec<_>>()

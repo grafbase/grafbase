@@ -49,7 +49,7 @@ fn can_read_config() {
 #[test]
 fn can_fail_reading_config_with_nullable_field() {
     runtime().block_on(async move {
-        let engine = Gateway::builder()
+        let result = Gateway::builder()
             .with_subgraph_sdl(
                 "echo-config",
                 r#"
@@ -67,29 +67,17 @@ fn can_fail_reading_config_with_nullable_field() {
                 error = "This is an error"
                 "#,
             )
-            .build()
+            .try_build()
             .await;
 
-        let response = engine.post(r#"query { test }"#).await;
-        insta::assert_json_snapshot!(response, @r#"
-        {
-          "errors": [
-            {
-              "message": "Internal extension error",
-              "extensions": {
-                "code": "EXTENSION_ERROR"
-              }
-            }
-          ]
-        }
-        "#);
+        insta::assert_snapshot!(result.unwrap_err(), @r#"Error { extensions: [], message: "This is an error" }"#);
     });
 }
 
 #[test]
 fn can_fail_reading_config_with_required_field() {
     runtime().block_on(async move {
-        let engine = Gateway::builder()
+        let result = Gateway::builder()
             .with_subgraph_sdl(
                 "echo-config",
                 r#"
@@ -107,21 +95,9 @@ fn can_fail_reading_config_with_required_field() {
                 error = "This is an error"
                 "#,
             )
-            .build()
+            .try_build()
             .await;
 
-        let response = engine.post(r#"query { test }"#).await;
-        insta::assert_json_snapshot!(response, @r#"
-        {
-          "errors": [
-            {
-              "message": "Internal extension error",
-              "extensions": {
-                "code": "EXTENSION_ERROR"
-              }
-            }
-          ]
-        }
-        "#);
+        insta::assert_snapshot!(result.unwrap_err(), @r#"Error { extensions: [], message: "This is an error" }"#);
     });
 }

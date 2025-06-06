@@ -42,12 +42,10 @@ impl Pool {
 
     pub(super) async fn get(&self) -> crate::Result<ExtensionGuard> {
         let span = info_span!("get extension from pool");
-        let inner = self
-            .inner
-            .get()
-            .instrument(span)
-            .await
-            .map_err(|err| crate::Error::Internal(err.into()))?;
+        let inner = self.inner.get().instrument(span).await.map_err(|err| match err {
+            managed::PoolError::Backend(err) => err,
+            err => crate::Error::Internal(err.into()),
+        })?;
 
         Ok(ExtensionGuard { inner })
     }
