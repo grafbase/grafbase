@@ -23,6 +23,12 @@ struct AuthorizationTemplate<'a> {
     name: &'a str,
 }
 
+#[derive(askama::Template)]
+#[template(path = "extension/src/hooks.rs.template", escape = "none")]
+struct HooksTemplate<'a> {
+    name: &'a str,
+}
+
 #[derive(serde::Deserialize)]
 struct SdkCargoToml {
     package: SdkCargoTomlPackage,
@@ -103,6 +109,7 @@ fn init_rust_files(path: &Path, extension_type: ExtensionType, extension_name: &
         ExtensionType::Resolver => ResolverTemplate { name: &struct_name }.write_into(&mut writer)?,
         ExtensionType::Authentication => AuthenticationTemplate { name: &struct_name }.write_into(&mut writer)?,
         ExtensionType::Authorization => AuthorizationTemplate { name: &struct_name }.write_into(&mut writer)?,
+        ExtensionType::Hooks => HooksTemplate { name: &struct_name }.write_into(&mut writer)?,
     }
 
     let tests_path = path.join("tests");

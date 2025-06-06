@@ -2,17 +2,20 @@ mod bench;
 mod engine;
 mod router;
 
-use std::{any::TypeId, collections::HashSet, fmt::Display, sync::Arc};
+use std::{any::TypeId, collections::HashSet, fmt::Display, fs, path::PathBuf, sync::Arc};
 
 use crate::{TestTrustedDocument, mock_trusted_documents::MockTrustedDocumentsClient};
 pub use bench::*;
+use extension_catalog::{Extension, ExtensionCatalog};
 use futures::{FutureExt, future::BoxFuture};
+use grafbase_telemetry::otel::opentelemetry::global;
 use graphql_mocks::MockGraphQlServer;
 use runtime::{
     fetch::dynamic::DynamicFetcher,
     trusted_documents_client::{self, TrustedDocumentsEnforcementMode},
 };
 use tempfile::TempDir;
+use wasi_component_loader::{create_access_log_channel, extension::WasmHooks, resources::SharedResources};
 
 use super::{
     AnyExtension, DockerSubgraph, DynamicHooks, ExtensionsBuilder, Gateway, TestRuntime, TestRuntimeBuilder,
@@ -51,6 +54,7 @@ impl Default for GatewayBuilder {
                 hooks: Default::default(),
                 fetcher: Default::default(),
                 extensions: ExtensionsBuilder::new(extensions_dir),
+                hooks_extension: None,
             },
             tmpdir,
         }
@@ -113,6 +117,33 @@ impl GatewayBuilder {
         self
     }
 
+    pub async fn with_hook_extension(mut self, path: impl Into<PathBuf>) -> Self {
+        let path = path.into();
+        let (access_log, _) = create_access_log_channel(true, global::meter("kekw").i64_up_down_counter("lol").build());
+
+        let mut catalog = ExtensionCatalog::default();
+
+        let manifest_path = path.join("manifest.json");
+        let manifest = fs::read_to_string(manifest_path).unwrap();
+        let manifest = serde_json::from_str(&manifest).unwrap();
+
+        let extension = Extension {
+            manifest,
+            wasm_path: path.join("extension.wasm"),
+        };
+
+        catalog.push(extension);
+
+        let config = toml::from_str(&self.config.toml).unwrap();
+        let hooks = WasmHooks::new(&SharedResources { access_log }, &catalog, &config)
+            .await
+            .unwrap();
+
+        self.runtime.hooks_extension = Some(hooks);
+
+        self
+    }
+
     pub fn with_mock_hooks(mut self, hooks: impl Into<DynamicHooks>) -> Self {
         self.runtime.hooks = Some(hooks.into());
         self
@@ -151,8 +182,10 @@ impl GatewayBuilder {
         )
         .await;
 
+        let hooks_extension = runtime.hooks_extension.clone();
         let (engine, context) = self::engine::build(tmpdir.path(), federated_sdl, config, runtime, &subgraphs).await?;
-        let router = self::router::build(engine.clone(), gateway_config).await;
+
+        let router = self::router::build(engine.clone(), gateway_config, hooks_extension).await;
 
         Ok(Gateway {
             tmpdir: Arc::new(tmpdir),

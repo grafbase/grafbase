@@ -3,7 +3,7 @@
 use std::string::FromUtf8Error;
 
 pub use crate::wit::{HttpError, HttpMethod, HttpVersion};
-pub use http::StatusCode;
+pub use http::{HeaderName, HeaderValue, Method, StatusCode};
 pub use serde_json::Error as JsonDeserializeError;
 pub use url::Url;
 

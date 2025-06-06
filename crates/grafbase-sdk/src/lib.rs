@@ -20,7 +20,8 @@ pub use extension::{
     SelectionSetResolverExtension, Subscription,
 };
 pub use grafbase_sdk_derive::{
-    AuthenticationExtension, AuthorizationExtension, FieldResolverExtension, SelectionSetResolverExtension,
+    AuthenticationExtension, AuthorizationExtension, FieldResolverExtension, HooksExtension,
+    SelectionSetResolverExtension,
 };
 
 use component::Component;

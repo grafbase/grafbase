@@ -9,7 +9,6 @@ mod health;
 mod state;
 mod trusted_documents_client;
 
-use engine::Schema;
 pub(crate) use gateway::CreateExtensionCatalogError;
 use gateway::{EngineWatcher, create_extension_catalog::create_extension_catalog};
 pub use graph_fetch_method::GraphFetchMethod;
@@ -27,7 +26,7 @@ use engine_axum::{
 };
 use engine_reloader::GatewayEngineReloader;
 use gateway_config::{Config, TlsConfig};
-use std::{net::SocketAddr, path::PathBuf, sync::Arc};
+use std::{net::SocketAddr, path::PathBuf};
 use tokio::sync::mpsc;
 use tokio::{signal, sync::watch};
 use tower_http::{
@@ -159,7 +158,6 @@ pub async fn serve(
         },
         &extension_catalog,
         &config,
-        &Arc::new(Schema::empty().await),
     )
     .await
     .map_err(|e| crate::Error::InternalError(e.to_string()))?;

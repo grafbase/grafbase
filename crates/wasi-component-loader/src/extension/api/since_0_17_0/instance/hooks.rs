@@ -4,7 +4,7 @@ use http::{request, response};
 use crate::{
     ErrorResponse,
     extension::{HooksInstance, api::wit::HttpMethod},
-    resources::Headers,
+    resources::{Headers, Lease},
 };
 
 impl HooksInstance for super::ExtensionInstanceSince0_17_0 {
@@ -15,6 +15,7 @@ impl HooksInstance for super::ExtensionInstanceSince0_17_0 {
             let headers = std::mem::take(&mut parts.headers);
             let url = parts.uri.to_string();
 
+            let headers = Lease::Singleton(headers);
             let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
             let headers_rep = headers.rep();
 
@@ -63,6 +64,7 @@ impl HooksInstance for super::ExtensionInstanceSince0_17_0 {
             let headers = std::mem::take(&mut parts.headers);
             let status = parts.status.as_u16();
 
+            let headers = Lease::Singleton(headers);
             let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
             let headers_rep = headers.rep();
 

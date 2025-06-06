@@ -27,6 +27,7 @@ impl HooksExtension for WasmHooks {
                 )],
             },
             crate::ErrorResponse::Guest(err) => {
+                dbg!(1);
                 err.into_graphql_error_response(engine_error::ErrorCode::ExtensionError)
             }
         })

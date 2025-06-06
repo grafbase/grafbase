@@ -21,7 +21,6 @@ impl WasmHooks {
         shared_resources: &SharedResources,
         extension_catalog: &ExtensionCatalog,
         gateway_config: &Config,
-        schema: &Arc<Schema>,
     ) -> crate::Result<Self> {
         let extensions = config::load_extensions_config(extension_catalog, gateway_config);
         let mut selected_config = None;
@@ -46,8 +45,9 @@ impl WasmHooks {
         let pool = match selected_config {
             Some(config) => {
                 let max_pool_size = config.pool.max_size;
+                let schema = Schema::empty().await;
 
-                let loader = ExtensionLoader::new(Arc::clone(schema), shared_resources.clone(), config)?;
+                let loader = ExtensionLoader::new(Arc::new(schema), shared_resources.clone(), config)?;
 
                 Some(Pool::new(loader, max_pool_size))
             }

@@ -2,6 +2,7 @@ use url::Url;
 
 use crate::{
     component::AnyExtension,
+    host_io::http::{Method, StatusCode},
     types::{Configuration, Error, ErrorResponse, GatewayHeaders},
 };
 
@@ -21,6 +22,7 @@ use crate::{
 /// };
 /// use url::Url;
 ///
+/// #[derive(HooksExtension)]
 /// struct MyHooks {
 ///     config: Config,
 /// }
@@ -94,11 +96,11 @@ pub fn register<T: HooksExtension>() {
     pub(super) struct Proxy<T: HooksExtension>(T);
 
     impl<T: HooksExtension> AnyExtension for Proxy<T> {
-        fn on_request(&mut self, url: Url, method: http::Method, headers: GatewayHeaders) -> Result<(), ErrorResponse> {
+        fn on_request(&mut self, url: Url, method: Method, headers: GatewayHeaders) -> Result<(), ErrorResponse> {
             HooksExtension::on_request(&mut self.0, url, method, headers)
         }
 
-        fn on_response(&mut self, status: http::StatusCode, headers: GatewayHeaders) -> Result<(), ErrorResponse> {
+        fn on_response(&mut self, status: StatusCode, headers: GatewayHeaders) -> Result<(), ErrorResponse> {
             HooksExtension::on_response(&mut self.0, status, headers)
         }
     }

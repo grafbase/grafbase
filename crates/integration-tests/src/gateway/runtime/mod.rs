@@ -18,7 +18,7 @@ use tokio::sync::watch;
 pub use context::*;
 pub use extension::*;
 pub use hooks::*;
-use wasi_component_loader::{ComponentLoader, resources::SharedResources};
+use wasi_component_loader::{ComponentLoader, extension::WasmHooks, resources::SharedResources};
 
 pub struct TestRuntime {
     pub fetcher: DynamicFetcher,
@@ -27,6 +27,7 @@ pub struct TestRuntime {
     pub operation_cache: InMemoryOperationCache<Arc<CachedOperation>>,
     pub metrics: EngineMetrics,
     pub hooks: DynamicHooks,
+    pub hooks_extension: Option<WasmHooks>,
     pub rate_limiter: runtime::rate_limiting::RateLimiter,
     pub entity_cache: InMemoryEntityCache,
     pub extensions: ExtensionsDispatcher,
@@ -36,6 +37,7 @@ pub struct TestRuntime {
 pub(super) struct TestRuntimeBuilder {
     pub trusted_documents: Option<trusted_documents_client::Client>,
     pub hooks: Option<DynamicHooks>,
+    pub hooks_extension: Option<WasmHooks>,
     pub fetcher: Option<DynamicFetcher>,
     pub extensions: ExtensionsBuilder,
 }
@@ -50,6 +52,7 @@ impl TestRuntimeBuilder {
         let TestRuntimeBuilder {
             trusted_documents,
             hooks,
+            hooks_extension,
             fetcher,
             extensions,
         } = self;
@@ -85,6 +88,7 @@ impl TestRuntimeBuilder {
             kv,
             metrics: EngineMetrics::build(&metrics::meter_from_global_provider(), None),
             hooks,
+            hooks_extension,
             rate_limiter: InMemoryRateLimiter::runtime_with_watcher(rx),
             entity_cache: InMemoryEntityCache::default(),
             operation_cache: InMemoryOperationCache::default(),
@@ -114,6 +118,7 @@ impl Default for TestRuntime {
             operation_cache: InMemoryOperationCache::default(),
             metrics: EngineMetrics::build(&metrics::meter_from_global_provider(), None),
             hooks,
+            hooks_extension: None,
             rate_limiter: InMemoryRateLimiter::runtime_with_watcher(rx),
             entity_cache: InMemoryEntityCache::default(),
             extensions: ExtensionsDispatcher::default(),

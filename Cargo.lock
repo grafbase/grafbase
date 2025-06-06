@@ -5442,6 +5442,7 @@ dependencies = [
  "bytes",
  "cfg-if",
  "criterion",
+ "crossbeam",
  "crossbeam-queue",
  "ctor",
  "cynic",

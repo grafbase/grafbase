@@ -44,6 +44,8 @@ pub(crate) enum ExtensionType {
     Authentication,
     /// An extension for authorization
     Authorization,
+    /// An extension for hooks
+    Hooks,
 }
 
 #[derive(Debug, Parser)]
