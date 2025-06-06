@@ -154,19 +154,17 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
     ) -> ResponseValue {
         match wrapping.pop_outermost_list_wrapping() {
             Some(list_wrapping) => match list_wrapping {
-                ListWrapping::RequiredList => {
-                    wrapping.push_outermost_list_wrapping(ListWrapping::NullableList);
+                ListWrapping::ListNonNull => {
+                    wrapping.push_outermost_list_wrapping(ListWrapping::List);
                     self.__type_required_wrapping(definition, wrapping, shape_id)
                 }
-                ListWrapping::NullableList => {
-                    self.object(&self.metadata.__type, shape_id, |field, __type| match __type {
-                        __Type::Kind => self.metadata.type_kind.list.into(),
-                        __Type::OfType => {
-                            self.__type_list_wrapping(definition, wrapping.clone(), field.shape.as_concrete().unwrap())
-                        }
-                        _ => ResponseValue::Null,
-                    })
-                }
+                ListWrapping::List => self.object(&self.metadata.__type, shape_id, |field, __type| match __type {
+                    __Type::Kind => self.metadata.type_kind.list.into(),
+                    __Type::OfType => {
+                        self.__type_list_wrapping(definition, wrapping.clone(), field.shape.as_concrete().unwrap())
+                    }
+                    _ => ResponseValue::Null,
+                }),
             },
             None => {
                 if wrapping.is_required() {

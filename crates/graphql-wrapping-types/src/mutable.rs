@@ -22,9 +22,9 @@ impl MutableWrapping {
         // end is exclusive
         let bit_mask = 1u16 << (end - 1);
         let list_wrapping = if self.inner.0 & bit_mask != 0 {
-            Some(ListWrapping::RequiredList)
+            Some(ListWrapping::ListNonNull)
         } else {
-            Some(ListWrapping::NullableList)
+            Some(ListWrapping::List)
         };
         self.inner.set_list_length(end - 1);
         list_wrapping
@@ -32,8 +32,8 @@ impl MutableWrapping {
 
     pub fn push_outermost_list_wrapping(&mut self, list_wrapping: ListWrapping) {
         self.inner = match list_wrapping {
-            ListWrapping::RequiredList => self.inner.list_non_null(),
-            ListWrapping::NullableList => self.inner.list(),
+            ListWrapping::ListNonNull => self.inner.list_non_null(),
+            ListWrapping::List => self.inner.list(),
         };
     }
 }

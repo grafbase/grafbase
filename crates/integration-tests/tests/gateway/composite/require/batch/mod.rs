@@ -19,7 +19,7 @@ fn basic() {
 
                 type Product @key(fields: "id") {
                     id: ID!
-                    dummy(id: [ID!]! @require(field: "[id]")): JSON @resolve
+                    dummy(id: [ID!]! @require(field: "[id]")): [JSON] @resolve
                 }
 
                 scalar JSON

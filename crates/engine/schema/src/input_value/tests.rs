@@ -253,7 +253,7 @@ async fn test_input_value() {
                         wrapping: Wrapping {
                             inner_is_required: false,
                             list_wrappings: [
-                                NullableList,
+                                List,
                             ],
                             binary: "0000100000000000",
                         },

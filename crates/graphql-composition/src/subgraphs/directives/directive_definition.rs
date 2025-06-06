@@ -13,7 +13,7 @@ pub(crate) struct DirectiveDefinition {
 #[derive(Debug, PartialEq, Clone)]
 pub(crate) struct InputValueDefinition {
     pub(crate) name: StringId,
-    pub(crate) r#type: FieldTypeId,
+    pub(crate) r#type: FieldType,
     pub(crate) default_value: Option<Value>,
     pub(crate) directives: Vec<InputValueDefinitionDirective>,
 }

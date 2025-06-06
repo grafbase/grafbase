@@ -170,7 +170,7 @@ impl<'schema> QueryValueCoercionContext<'_, 'schema, '_> {
         };
 
         match (value, list_wrapping) {
-            (Value::Null(_), ListWrapping::RequiredList) => Err(InputValueError::UnexpectedNull {
+            (Value::Null(_), ListWrapping::ListNonNull) => Err(InputValueError::UnexpectedNull {
                 expected: TypeRecord {
                     definition_id: definition.id(),
                     wrapping: {
@@ -183,7 +183,7 @@ impl<'schema> QueryValueCoercionContext<'_, 'schema, '_> {
                 path: self.path(),
                 location: self.location,
             }),
-            (Value::Null(_), ListWrapping::NullableList) => Ok(QueryInputValueRecord::Null),
+            (Value::Null(_), ListWrapping::List) => Ok(QueryInputValueRecord::Null),
             (Value::List(array), _) => {
                 let ids = self.input_values().reserve_list(array.len());
                 for ((idx, value), id) in array.into_iter().enumerate().zip(ids) {

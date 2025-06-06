@@ -1,7 +1,5 @@
 #![allow(clippy::panic)]
 
-use wrapping::Wrapping;
-
 use super::Context;
 use crate::{federated_graph as federated, subgraphs};
 use std::collections::HashMap;
@@ -10,7 +8,7 @@ use std::collections::HashMap;
 /// [Context::insert_field_type()].
 #[derive(Default)]
 pub(super) struct FieldTypesMap {
-    map: HashMap<subgraphs::FieldTypeId, federated::Type>,
+    map: HashMap<subgraphs::FieldType, federated::Type>,
 }
 
 impl Context<'_> {
@@ -25,20 +23,10 @@ impl Context<'_> {
                 )
             };
 
-            let mut wrapping = Wrapping::default();
-
-            if field_type.inner_is_required() {
-                wrapping = wrapping.non_null();
+            federated::Type {
+                definition,
+                wrapping: field_type.id.wrapping,
             }
-
-            for wrapper in field_type.iter_wrappers() {
-                wrapping = match wrapper {
-                    subgraphs::WrapperTypeKind::List => wrapping.list(),
-                    subgraphs::WrapperTypeKind::NonNullList => wrapping.list_non_null(),
-                };
-            }
-
-            federated::Type { definition, wrapping }
         })
     }
 }

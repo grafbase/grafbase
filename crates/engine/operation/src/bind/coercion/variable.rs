@@ -73,7 +73,7 @@ impl<'a> VariableCoercionContext<'a> {
         };
 
         match (value, list_wrapping) {
-            (Value::Null, ListWrapping::RequiredList) => Err(InputValueError::UnexpectedNull {
+            (Value::Null, ListWrapping::ListNonNull) => Err(InputValueError::UnexpectedNull {
                 expected: TypeRecord {
                     definition_id: definition.id(),
                     wrapping: {
@@ -86,7 +86,7 @@ impl<'a> VariableCoercionContext<'a> {
                 path: self.path(),
                 location: self.location,
             }),
-            (Value::Null, ListWrapping::NullableList) => Ok(VariableInputValueRecord::Null),
+            (Value::Null, ListWrapping::List) => Ok(VariableInputValueRecord::Null),
             (Value::Array(array), _) => {
                 let ids = self.input_values.reserve_list(array.len());
                 for ((idx, value), id) in array.into_iter().enumerate().zip(ids) {

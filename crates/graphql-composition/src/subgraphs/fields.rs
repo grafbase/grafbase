@@ -22,7 +22,7 @@ pub(crate) struct Fields {
 /// A field in an object, interface or input object type.
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
 pub(crate) struct FieldTuple {
-    r#type: FieldTypeId,
+    r#type: FieldType,
     description: Option<StringId>,
     directives: DirectiveSiteId,
 }
@@ -73,7 +73,7 @@ impl Subgraphs {
         &mut self,
         FieldId(definition_id, field_name): FieldId,
         argument_name: StringId,
-        r#type: FieldTypeId,
+        r#type: FieldType,
         directives: DirectiveSiteId,
         description: Option<StringId>,
         default: Option<Value>,
@@ -115,7 +115,7 @@ impl Subgraphs {
 pub(crate) struct FieldIngest<'a> {
     pub(crate) parent_definition_id: DefinitionId,
     pub(crate) field_name: &'a str,
-    pub(crate) field_type: FieldTypeId,
+    pub(crate) field_type: FieldType,
     pub(crate) description: Option<StringId>,
     pub(crate) directives: DirectiveSiteId,
     pub(crate) default: Option<Value>,

@@ -526,7 +526,7 @@ pub(super) fn render_field_type(field_type: &Type, graph: &FederatedGraph) -> St
 
     for wrapping in field_type.wrapping.list_wrappings() {
         out.push(']');
-        if wrapping == wrapping::ListWrapping::RequiredList {
+        if wrapping == wrapping::ListWrapping::ListNonNull {
             out.push('!');
         }
     }

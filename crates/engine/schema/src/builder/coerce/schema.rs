@@ -61,7 +61,7 @@ fn coerce_type_value(
     };
 
     match (value, list_wrapping) {
-        (ConstValue::Null(_), ListWrapping::RequiredList) => Err(InputValueError::UnexpectedNull {
+        (ConstValue::Null(_), ListWrapping::ListNonNull) => Err(InputValueError::UnexpectedNull {
             expected: builder.type_name(TypeRecord {
                 definition_id,
                 wrapping: {
@@ -71,7 +71,7 @@ fn coerce_type_value(
             }),
             path: builder.value_path_string(),
         }),
-        (ConstValue::Null(_), ListWrapping::NullableList) => Ok(SchemaInputValueRecord::Null),
+        (ConstValue::Null(_), ListWrapping::List) => Ok(SchemaInputValueRecord::Null),
         (ConstValue::List(array), _) => {
             let ids = builder.graph.input_values.reserve_list(array.len());
             for ((idx, value), id) in array.into_iter().enumerate().zip(ids) {

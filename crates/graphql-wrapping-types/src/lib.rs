@@ -23,7 +23,7 @@ const INNER_IS_REQUIRED_FLAG: u16 = 0b1000_0000_0000_0000;
 /// The list_wrapping is stored from innermost to outermost and use the start and end
 /// as the positions within the list_wrapping bits. Acting like a simplified fixed capacity VecDeque.
 /// For simplicity of bit shifts the list wrapping is stored from right to left.
-#[derive(Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
+#[derive(Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
 pub struct Wrapping(u16);
 
 impl Wrapping {
@@ -45,9 +45,9 @@ impl Wrapping {
     ) -> impl DoubleEndedIterator<Item = ListWrapping> + ExactSizeIterator<Item = ListWrapping> {
         (0..self.get_list_length()).map(move |i| {
             if self.0 & (1 << i) == 0 {
-                ListWrapping::NullableList
+                ListWrapping::List
             } else {
-                ListWrapping::RequiredList
+                ListWrapping::ListNonNull
             }
         })
     }
@@ -57,8 +57,8 @@ impl Wrapping {
         [self.inner_is_required().then_some(WrappingType::NonNull)]
             .into_iter()
             .chain(self.list_wrappings().flat_map(|lw| match lw {
-                ListWrapping::NullableList => [Some(WrappingType::List), None],
-                ListWrapping::RequiredList => [Some(WrappingType::List), Some(WrappingType::NonNull)],
+                ListWrapping::List => [Some(WrappingType::List), None],
+                ListWrapping::ListNonNull => [Some(WrappingType::List), Some(WrappingType::NonNull)],
             }))
             .flatten()
     }
@@ -112,7 +112,7 @@ impl Wrapping {
             return false;
         }
         for (s, o) in self.list_wrappings().zip(other.list_wrappings()) {
-            if s == ListWrapping::RequiredList && o == ListWrapping::NullableList {
+            if s == ListWrapping::ListNonNull && o == ListWrapping::List {
                 return false;
             }
         }
@@ -130,7 +130,7 @@ impl Wrapping {
         } else if self.is_list() {
             let mut wrapping = self.to_mutable();
             wrapping.pop_outermost_list_wrapping();
-            wrapping.push_outermost_list_wrapping(ListWrapping::NullableList);
+            wrapping.push_outermost_list_wrapping(ListWrapping::List);
             wrapping.into()
         } else {
             self.0 &= !INNER_IS_REQUIRED_FLAG;
@@ -147,8 +147,8 @@ pub enum WrappingType {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ListWrapping {
-    RequiredList,
-    NullableList,
+    ListNonNull,
+    List,
 }
 
 impl Wrapping {
@@ -159,7 +159,7 @@ impl Wrapping {
     pub fn is_required(self) -> bool {
         self.list_wrappings()
             .next_back()
-            .map(|lw| matches!(lw, ListWrapping::RequiredList))
+            .map(|lw| matches!(lw, ListWrapping::ListNonNull))
             .unwrap_or(self.inner_is_required())
     }
 
@@ -191,8 +191,8 @@ impl std::fmt::Display for WrappingDisplay<'_> {
 
         for wrapping in self.wrapping.list_wrappings() {
             match wrapping {
-                ListWrapping::RequiredList => write!(f, "]!")?,
-                ListWrapping::NullableList => write!(f, "]")?,
+                ListWrapping::ListNonNull => write!(f, "]!")?,
+                ListWrapping::List => write!(f, "]")?,
             };
         }
 
@@ -232,10 +232,7 @@ mod tests {
         assert!(!wrapping.inner_is_required());
         assert!(wrapping.is_nullable() && !wrapping.is_required());
         assert!(wrapping.is_list());
-        assert_eq!(
-            wrapping.list_wrappings().collect::<Vec<_>>(),
-            vec![ListWrapping::NullableList]
-        );
+        assert_eq!(wrapping.list_wrappings().collect::<Vec<_>>(), vec![ListWrapping::List]);
 
         wrapping = wrapping.list_non_null();
         assert!(!wrapping.inner_is_required());
@@ -243,7 +240,7 @@ mod tests {
         assert!(wrapping.is_list());
         assert_eq!(
             wrapping.list_wrappings().collect::<Vec<_>>(),
-            vec![ListWrapping::NullableList, ListWrapping::RequiredList]
+            vec![ListWrapping::List, ListWrapping::ListNonNull]
         );
 
         wrapping = wrapping.list();
@@ -252,11 +249,7 @@ mod tests {
         assert!(wrapping.is_list());
         assert_eq!(
             wrapping.list_wrappings().collect::<Vec<_>>(),
-            vec![
-                ListWrapping::NullableList,
-                ListWrapping::RequiredList,
-                ListWrapping::NullableList
-            ]
+            vec![ListWrapping::List, ListWrapping::ListNonNull, ListWrapping::List]
         );
     }
 
@@ -270,13 +263,13 @@ mod tests {
             .to_mutable();
 
         assert!(wrapping.is_nullable());
-        assert_eq!(wrapping.pop_outermost_list_wrapping(), Some(ListWrapping::NullableList));
+        assert_eq!(wrapping.pop_outermost_list_wrapping(), Some(ListWrapping::List));
 
         assert!(wrapping.is_required());
-        assert_eq!(wrapping.pop_outermost_list_wrapping(), Some(ListWrapping::RequiredList));
+        assert_eq!(wrapping.pop_outermost_list_wrapping(), Some(ListWrapping::ListNonNull));
 
         assert!(wrapping.is_nullable());
-        assert_eq!(wrapping.pop_outermost_list_wrapping(), Some(ListWrapping::NullableList));
+        assert_eq!(wrapping.pop_outermost_list_wrapping(), Some(ListWrapping::List));
 
         assert!(wrapping.is_required());
         assert_eq!(wrapping.pop_outermost_list_wrapping(), None);
@@ -284,10 +277,10 @@ mod tests {
         let mut wrapping = Wrapping::default().list().list_non_null().to_mutable();
 
         assert!(wrapping.is_required());
-        assert_eq!(wrapping.pop_outermost_list_wrapping(), Some(ListWrapping::RequiredList));
+        assert_eq!(wrapping.pop_outermost_list_wrapping(), Some(ListWrapping::ListNonNull));
 
         assert!(wrapping.is_nullable());
-        assert_eq!(wrapping.pop_outermost_list_wrapping(), Some(ListWrapping::NullableList));
+        assert_eq!(wrapping.pop_outermost_list_wrapping(), Some(ListWrapping::List));
 
         assert!(wrapping.is_nullable());
         assert_eq!(wrapping.pop_outermost_list_wrapping(), None);
@@ -300,10 +293,10 @@ mod tests {
         assert_eq!(
             wrapping.list_wrappings().collect::<Vec<_>>(),
             vec![
-                ListWrapping::NullableList,
-                ListWrapping::NullableList,
-                ListWrapping::RequiredList,
-                ListWrapping::NullableList
+                ListWrapping::List,
+                ListWrapping::List,
+                ListWrapping::ListNonNull,
+                ListWrapping::List
             ]
         );
 
@@ -318,10 +311,10 @@ mod tests {
         assert_eq!(
             wrapping.list_wrappings().collect::<Vec<_>>(),
             vec![
-                ListWrapping::NullableList,
-                ListWrapping::NullableList,
-                ListWrapping::RequiredList,
-                ListWrapping::RequiredList
+                ListWrapping::List,
+                ListWrapping::List,
+                ListWrapping::ListNonNull,
+                ListWrapping::ListNonNull
             ]
         );
 
@@ -332,10 +325,10 @@ mod tests {
             .list_non_null()
             .list()
             .to_mutable();
-        assert_eq!(wrapping.pop_outermost_list_wrapping(), Some(ListWrapping::NullableList));
-        assert_eq!(wrapping.pop_outermost_list_wrapping(), Some(ListWrapping::RequiredList));
-        assert_eq!(wrapping.pop_outermost_list_wrapping(), Some(ListWrapping::NullableList));
-        assert_eq!(wrapping.pop_outermost_list_wrapping(), Some(ListWrapping::NullableList));
+        assert_eq!(wrapping.pop_outermost_list_wrapping(), Some(ListWrapping::List));
+        assert_eq!(wrapping.pop_outermost_list_wrapping(), Some(ListWrapping::ListNonNull));
+        assert_eq!(wrapping.pop_outermost_list_wrapping(), Some(ListWrapping::List));
+        assert_eq!(wrapping.pop_outermost_list_wrapping(), Some(ListWrapping::List));
     }
 
     #[test]
