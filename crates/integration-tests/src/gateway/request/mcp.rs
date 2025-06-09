@@ -1,15 +1,254 @@
-use std::{collections::HashMap, pin::Pin, sync::LazyLock};
-
 use axum::{Router, body::Body};
 use futures::{Stream, StreamExt};
 use http::{
     Method, Request,
     header::{ACCEPT, CONTENT_TYPE},
 };
+use rmcp::{
+    ServiceExt,
+    model::{ProtocolVersion, ServerJsonRpcMessage},
+    transport::{
+        StreamableHttpClientTransport,
+        common::{
+            client_side_sse::ExponentialBackoff,
+            http_header::{EVENT_STREAM_MIME_TYPE, HEADER_LAST_EVENT_ID, HEADER_SESSION_ID, JSON_MIME_TYPE},
+        },
+        streamable_http_client::{
+            StreamableHttpClientTransportConfig, StreamableHttpError, StreamableHttpPostResponse,
+        },
+    },
+};
+use rmcp::{model::ServerCapabilities, transport::streamable_http_client::StreamableHttpClient};
 use sse_stream::{Sse, SseStream};
+use std::{
+    collections::HashMap,
+    pin::Pin,
+    sync::{Arc, LazyLock},
+};
 use tower::Service;
 
 const BASE_URL: &str = "http://127.0.0.1";
+
+pub struct McpHttpClient {
+    client: rmcp::service::RunningService<rmcp::service::RoleClient, rmcp::model::InitializeRequestParam>,
+}
+
+#[derive(Debug, Clone)]
+struct RouterClient(Router);
+
+impl StreamableHttpClient for RouterClient {
+    type Error = std::io::Error;
+
+    async fn post_message(
+        &self,
+        uri: std::sync::Arc<str>,
+        message: rmcp::model::ClientJsonRpcMessage,
+        session_id: Option<std::sync::Arc<str>>,
+        auth_header: Option<String>,
+    ) -> Result<
+        rmcp::transport::streamable_http_client::StreamableHttpPostResponse,
+        rmcp::transport::streamable_http_client::StreamableHttpError<Self::Error>,
+    > {
+        let mut request_builder = http::Request::builder()
+            .method(Method::POST)
+            .uri(uri.as_ref())
+            .header(ACCEPT, [EVENT_STREAM_MIME_TYPE, JSON_MIME_TYPE].join(", "))
+            .header(CONTENT_TYPE, JSON_MIME_TYPE);
+        if let Some(auth_header) = auth_header {
+            request_builder = request_builder.header("Authorization", format!("Bearer {auth_header}"));
+        }
+        if let Some(session_id) = session_id {
+            request_builder = request_builder.header(HEADER_SESSION_ID, session_id.as_ref());
+        }
+
+        let request = request_builder
+            .body(Body::from(serde_json::to_vec(&message).unwrap()))
+            .unwrap();
+
+        let mut router = self.0.clone();
+        let Ok(response) = router.as_service().call(request).await;
+
+        if !response.status().is_success() {
+            panic!("Non-200 response from MCP: {}", response.status())
+        }
+
+        if response.status() == reqwest::StatusCode::ACCEPTED {
+            return Ok(StreamableHttpPostResponse::Accepted);
+        }
+        let content_type = response.headers().get(reqwest::header::CONTENT_TYPE);
+        let session_id = response.headers().get(HEADER_SESSION_ID);
+        let session_id = session_id.and_then(|v| v.to_str().ok()).map(|s| s.to_string());
+        match content_type {
+            Some(ct) if ct.as_bytes().starts_with(EVENT_STREAM_MIME_TYPE.as_bytes()) => {
+                let event_stream = SseStream::from_byte_stream(response.into_body().into_data_stream()).boxed();
+                Ok(StreamableHttpPostResponse::Sse(event_stream, session_id))
+            }
+            Some(ct) if ct.as_bytes().starts_with(JSON_MIME_TYPE.as_bytes()) => {
+                let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+                let message: ServerJsonRpcMessage = serde_json::from_slice(body.as_ref()).unwrap();
+                Ok(StreamableHttpPostResponse::Json(message, session_id))
+            }
+            _ => {
+                // unexpected content type
+                tracing::error!("unexpected content type: {:?}", content_type);
+                Err(StreamableHttpError::UnexpectedContentType(
+                    content_type.map(|ct| String::from_utf8_lossy(ct.as_bytes()).to_string()),
+                ))
+            }
+        }
+    }
+
+    async fn delete_session(
+        &self,
+        uri: std::sync::Arc<str>,
+        session_id: std::sync::Arc<str>,
+        auth_header: Option<String>,
+    ) -> Result<(), rmcp::transport::streamable_http_client::StreamableHttpError<Self::Error>> {
+        let mut request_builder = http::Request::builder().method(Method::DELETE).uri(uri.as_ref());
+        if let Some(auth_header) = auth_header {
+            request_builder = request_builder.header("Authorization", format!("Bearer {auth_header}"));
+        }
+        let request = request_builder
+            .header(HEADER_SESSION_ID, session_id.as_ref())
+            .body(Body::empty())
+            .unwrap();
+
+        let mut router = self.0.clone();
+        let Ok(response) = router.as_service().call(request).await;
+
+        if response.status() == reqwest::StatusCode::METHOD_NOT_ALLOWED {
+            tracing::debug!("this server doesn't support deleting session");
+            return Ok(());
+        }
+
+        if !response.status().is_success() {
+            panic!("Non-200 response from MCP: {}", response.status())
+        }
+
+        Ok(())
+    }
+
+    async fn get_stream(
+        &self,
+        uri: std::sync::Arc<str>,
+        session_id: std::sync::Arc<str>,
+        last_event_id: Option<String>,
+        auth_header: Option<String>,
+    ) -> Result<
+        futures::stream::BoxStream<'static, Result<Sse, sse_stream::Error>>,
+        rmcp::transport::streamable_http_client::StreamableHttpError<Self::Error>,
+    > {
+        let mut request_builder = http::Request::builder()
+            .method(http::Method::GET)
+            .uri(uri.as_ref())
+            .header(ACCEPT, EVENT_STREAM_MIME_TYPE)
+            .header(HEADER_SESSION_ID, session_id.as_ref());
+        if let Some(last_event_id) = last_event_id {
+            request_builder = request_builder.header(HEADER_LAST_EVENT_ID, last_event_id);
+        }
+        if let Some(auth_header) = auth_header {
+            request_builder = request_builder.header("Authorization", format!("Bearer {auth_header}"));
+        }
+        let request = request_builder.body(Body::empty()).unwrap();
+        let mut router = self.0.clone();
+        let Ok(response) = router.as_service().call(request).await;
+        if response.status() == reqwest::StatusCode::METHOD_NOT_ALLOWED {
+            return Err(StreamableHttpError::SeverDoesNotSupportSse);
+        }
+
+        if !response.status().is_success() {
+            panic!("non-200 response from mcp: {}", response.status());
+        }
+
+        match response.headers().get(reqwest::header::CONTENT_TYPE) {
+            Some(ct) => {
+                if !ct.as_bytes().starts_with(EVENT_STREAM_MIME_TYPE.as_bytes()) {
+                    return Err(StreamableHttpError::UnexpectedContentType(Some(
+                        String::from_utf8_lossy(ct.as_bytes()).to_string(),
+                    )));
+                }
+            }
+            None => {
+                return Err(StreamableHttpError::UnexpectedContentType(None));
+            }
+        }
+        let event_stream = SseStream::from_byte_stream(response.into_body().into_data_stream()).boxed();
+        Ok(event_stream)
+    }
+}
+
+impl McpHttpClient {
+    pub(crate) async fn new(router: Router, path: &str) -> Self {
+        let transport = StreamableHttpClientTransport::with_client(
+            RouterClient(router),
+            StreamableHttpClientTransportConfig {
+                uri: Arc::from(format!("http://127.0.0.1{path}").into_boxed_str()),
+                retry_config: Arc::new(ExponentialBackoff::default()),
+                channel_buffer_capacity: 4096 * 10,
+                allow_stateless: true,
+            },
+        );
+        let client_info = rmcp::model::ClientInfo {
+            protocol_version: rmcp::model::ProtocolVersion::V_2025_03_26,
+            capabilities: rmcp::model::ClientCapabilities::default(),
+            client_info: rmcp::model::Implementation {
+                name: "grafbase-test-client".to_owned(),
+                version: "1.0.0".to_owned(),
+            },
+        };
+
+        let client = client_info.serve(transport).await.unwrap();
+
+        McpHttpClient { client }
+    }
+
+    pub fn server_info(&self) -> McpResponse<InitializeResponse> {
+        let response = self.client.peer_info().unwrap().clone();
+        McpResponse::Result {
+            result: InitializeResponse {
+                capabilities: response.capabilities,
+                instructions: response.instructions,
+                protocol_version: response.protocol_version,
+                server_info: response.server_info,
+            },
+        }
+    }
+
+    pub async fn list_tools(&mut self) -> McpResponse<rmcp::model::ListToolsResult> {
+        let result = self.client.list_tools(None).await.unwrap();
+        McpResponse::Result { result }
+    }
+
+    pub async fn call_tool(&mut self, name: &'static str, arguments: serde_json::Value) -> McpResponse<ToolResponse> {
+        let result = self
+            .client
+            .call_tool(rmcp::model::CallToolRequestParam {
+                name: name.into(),
+                arguments: match arguments {
+                    serde_json::Value::Object(map) => Some(map),
+                    _ => panic!("bad arguments to call_tool"),
+                },
+            })
+            .await
+            .unwrap();
+
+        McpResponse::Result {
+            result: ToolResponse {
+                content: result
+                    .content
+                    .into_iter()
+                    .map(|item| match item.raw {
+                        rmcp::model::RawContent::Text(raw_text_content) => serde_json::from_str(&raw_text_content.text)
+                            .map(Content::Json)
+                            .unwrap_or(Content::Text(raw_text_content.text)),
+                        _ => unreachable!("Non-text tool response"),
+                    })
+                    .collect(),
+                is_error: result.is_error,
+            },
+        }
+    }
+}
 
 pub struct McpStream {
     router: Router,
@@ -46,23 +285,10 @@ struct Initialize {
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct InitializeResponse {
-    pub protocol_version: String,
+    pub protocol_version: ProtocolVersion,
     pub capabilities: ServerCapabilities,
-    pub server_info: ServerInfo,
+    pub server_info: rmcp::model::Implementation,
     pub instructions: Option<String>,
-}
-
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ServerCapabilities {
-    pub tools: Option<HashMap<String, serde_json::Value>>,
-}
-
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ServerInfo {
-    pub name: String,
-    pub version: String,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]

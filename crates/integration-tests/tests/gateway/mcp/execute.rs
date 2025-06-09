@@ -31,7 +31,7 @@ fn execute_valid_graphql_query() {
             .build()
             .await;
 
-        let mut stream = engine.mcp("/mcp").await;
+        let mut stream = engine.mcp_http("/mcp").await;
 
         let response = stream
             .call_tool("execute", json!({"query": "query { user { name } }"}))
@@ -87,7 +87,7 @@ fn execute_mutation_is_rejected() {
             .build()
             .await;
 
-        let mut stream = engine.mcp("/mcp").await;
+        let mut stream = engine.mcp_http("/mcp").await;
 
         let response = stream
             .call_tool(
@@ -151,7 +151,7 @@ fn execute_mutation_is_acepted_if_configured() {
             .build()
             .await;
 
-        let mut stream = engine.mcp("/mcp").await;
+        let mut stream = engine.mcp_http("/mcp").await;
 
         let response = stream
             .call_tool(

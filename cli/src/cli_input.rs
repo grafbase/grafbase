@@ -19,7 +19,7 @@ mod sub_command;
 mod subgraphs;
 mod trust;
 
-pub(crate) use self::{check::CheckCommand, compose::*, extension::*, trust::TrustCommand};
+pub(crate) use self::{check::CheckCommand, compose::*, extension::*, mcp::*, trust::TrustCommand};
 pub(crate) use branch::BranchSubCommand;
 pub(crate) use branch_ref::BranchRef;
 pub(crate) use completions::CompletionsCommand;
@@ -29,7 +29,6 @@ pub(crate) use graph_ref::FullGraphRef;
 pub(crate) use introspect::IntrospectCommand;
 pub(crate) use lint::LintCommand;
 pub(crate) use login::LoginCommand;
-pub(crate) use mcp::McpCommand;
 pub(crate) use publish::PublishCommand;
 pub(crate) use schema::SchemaCommand;
 pub(crate) use sub_command::RequiresLogin;

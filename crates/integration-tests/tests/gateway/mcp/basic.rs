@@ -26,7 +26,7 @@ fn server_info() {
             .build()
             .await;
 
-        let stream = engine.mcp("/mcp").await;
+        let stream = engine.mcp_http("/mcp").await;
         stream.server_info()
     });
 
@@ -73,7 +73,7 @@ fn list_tools() {
             .build()
             .await;
 
-        let mut stream = engine.mcp("/mcp").await;
+        let mut stream = engine.mcp_http("/mcp").await;
         stream.list_tools().await
     });
 
