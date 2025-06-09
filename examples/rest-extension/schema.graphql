@@ -8,5 +8,5 @@ type Country {
 
 type Query {
   countries: [Country!]!
-    @rest(method: GET, endpoint: "countries", path: "/all", selection: "[.[] | { name: .name.official }]")
+    @rest(method: GET, endpoint: "countries", path: "/all?fields=name", selection: "[.[] | { name: .name.official }]")
 }
