@@ -116,6 +116,10 @@ impl Type {
     pub fn is_resolver(&self) -> bool {
         matches!(self, Type::Resolver(_))
     }
+
+    pub fn is_hooks(&self) -> bool {
+        matches!(self, Type::Hooks(_))
+    }
 }
 
 #[derive(Debug, Clone, Copy, Default, serde::Serialize, serde::Deserialize)]

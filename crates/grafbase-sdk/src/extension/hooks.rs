@@ -1,5 +1,3 @@
-use url::Url;
-
 use crate::{
     component::AnyExtension,
     host_io::http::{Method, StatusCode},
@@ -20,7 +18,6 @@ use crate::{
 ///     HooksExtension,
 ///     types::{GatewayHeaders, Configuration, Error, ErrorResponse}
 /// };
-/// use url::Url;
 ///
 /// #[derive(HooksExtension)]
 /// struct MyHooks {
@@ -40,7 +37,7 @@ use crate::{
 ///         Ok(Self { config })
 ///     }
 ///
-///     fn on_request(&mut self, url: Url, method: http::Method, headers: GatewayHeaders) -> Result<(), ErrorResponse> {
+///     fn on_request(&mut self, url: &str, method: http::Method, headers: GatewayHeaders) -> Result<(), ErrorResponse> {
 ///         // Implement your request hook logic here.
 ///         Ok(())
 ///     }
@@ -83,7 +80,7 @@ pub trait HooksExtension: Sized + 'static {
     /// Called immediately when a request is received, before entering the GraphQL engine.
     ///
     /// This hook can be used to modify the request headers before they are processed by the GraphQL engine, and provides a way to audit the headers, URL, and method before processing the operation.
-    fn on_request(&mut self, url: Url, method: http::Method, headers: GatewayHeaders) -> Result<(), ErrorResponse>;
+    fn on_request(&mut self, url: &str, method: http::Method, headers: GatewayHeaders) -> Result<(), ErrorResponse>;
 
     /// Called right before the response is sent back to the client.
     ///
@@ -96,7 +93,7 @@ pub fn register<T: HooksExtension>() {
     pub(super) struct Proxy<T: HooksExtension>(T);
 
     impl<T: HooksExtension> AnyExtension for Proxy<T> {
-        fn on_request(&mut self, url: Url, method: Method, headers: GatewayHeaders) -> Result<(), ErrorResponse> {
+        fn on_request(&mut self, url: &str, method: Method, headers: GatewayHeaders) -> Result<(), ErrorResponse> {
             HooksExtension::on_request(&mut self.0, url, method, headers)
         }
 

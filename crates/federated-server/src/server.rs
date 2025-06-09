@@ -133,7 +133,7 @@ pub async fn serve(
 
     let graph_stream = fetch_method.into_stream().await?;
 
-    let extension_catalog = create_extension_catalog(&config).await?;
+    let (extension_catalog, hooks_extension) = create_extension_catalog(&config).await?;
 
     let update_handler = GatewayEngineReloader::spawn(
         config_receiver,
@@ -156,8 +156,8 @@ pub async fn serve(
         &SharedResources {
             access_log: access_log_sender.clone(),
         },
-        &extension_catalog,
         &config,
+        hooks_extension,
     )
     .await
     .map_err(|e| crate::Error::InternalError(e.to_string()))?;

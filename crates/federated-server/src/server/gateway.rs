@@ -86,7 +86,7 @@ pub(super) async fn generate(
         Some(catalog) => Cow::Borrowed(catalog),
         None => {
             tracing::debug!("Creating extension catalog.");
-            let catalog = create_extension_catalog(gateway_config).await?;
+            let (catalog, _) = create_extension_catalog(gateway_config).await?;
 
             Cow::Owned(catalog)
         }

@@ -1,13 +1,10 @@
 use super::{Component, state};
 use crate::wit;
-use url::Url;
 
 impl wit::HooksGuest for Component {
     fn on_request(url: String, method: wit::HttpMethod, headers: wit::Headers) -> Result<(), wit::ErrorResponse> {
-        let url = Url::parse(&url).expect("this is generated from a Url in the host, this cannot be invalid");
-
         state::extension()?
-            .on_request(url, method.into(), headers.into())
+            .on_request(&url, method.into(), headers.into())
             .map_err(Into::into)
     }
 

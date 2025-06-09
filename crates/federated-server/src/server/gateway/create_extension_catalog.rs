@@ -16,19 +16,23 @@ pub enum Error {
     Io { context: String, err: io::Error },
 }
 
-pub(crate) async fn create_extension_catalog(gateway_config: &Config) -> Result<ExtensionCatalog, Error> {
+pub(crate) async fn create_extension_catalog(
+    gateway_config: &Config,
+) -> Result<(ExtensionCatalog, Option<Extension>), Error> {
     let cwd = env::current_dir().map_err(|e| Error::Io {
         context: "Failed to get current directory".to_string(),
         err: e,
     })?;
 
-    let catalog = create_extension_catalog_impl(gateway_config, &cwd).await?;
-
-    Ok(catalog)
+    create_extension_catalog_impl(gateway_config, &cwd).await
 }
 
-async fn create_extension_catalog_impl(gateway_config: &Config, cwd: &Path) -> Result<ExtensionCatalog, Error> {
+async fn create_extension_catalog_impl(
+    gateway_config: &Config,
+    cwd: &Path,
+) -> Result<(ExtensionCatalog, Option<Extension>), Error> {
     let mut catalog = ExtensionCatalog::default();
+    let mut hooks = None;
 
     let grafbase_extensions_dir = cwd.join(EXTENSION_DIR_NAME);
 
@@ -44,10 +48,14 @@ async fn create_extension_catalog_impl(gateway_config: &Config, cwd: &Path) -> R
             None => find_matching_extensions_in_dir(config, &grafbase_extensions_dir, name).await?,
         };
 
-        catalog.push(extension);
+        if extension.manifest.r#type.is_hooks() && hooks.is_none() {
+            hooks = Some(extension);
+        } else {
+            catalog.push(extension);
+        }
     }
 
-    Ok(catalog)
+    Ok((catalog, hooks))
 }
 
 async fn find_matching_extensions_in_dir(
@@ -56,6 +64,7 @@ async fn find_matching_extensions_in_dir(
     name: &str,
 ) -> Result<Extension, Error> {
     let all_versions_for_this_extension_dir = grafbase_extensions_dir.join(name);
+
     let mut entries = fs::read_dir(&all_versions_for_this_extension_dir)
         .await
         .map_err(|err| Error::Message(format!("Could not load the extensions directory, did you use `grafbase extension install`? (Failed to read {}: {err})", all_versions_for_this_extension_dir.display()))
@@ -186,6 +195,7 @@ mod tests {
         let config = toml::from_str(config).unwrap();
 
         rt.block_on(create_extension_catalog_impl(&config, cwd))
+            .map(|(catalog, _)| catalog)
     }
 
     fn make_manifest(name: &str, version: &str) -> VersionedManifest {

@@ -43,7 +43,6 @@ async fn single_call_caching_auth() {
             guest_config: Some(json!({
                 "cache_config": "test"
             })),
-            extension_name: "caching_auth".to_string(),
         },
     )
     .unwrap();
@@ -99,7 +98,6 @@ async fn single_call_caching_auth_invalid() {
             guest_config: Some(json!({
                 "cache_config": "test"
             })),
-            extension_name: "caching_auth".to_string(),
         },
     )
     .unwrap();
@@ -153,7 +151,6 @@ async fn multiple_cache_calls() {
             guest_config: Some(json!({
                 "cache_config": "test"
             })),
-            extension_name: "caching_auth".to_string(),
         },
     )
     .unwrap();
@@ -243,7 +240,6 @@ async fn on_request_hook() {
             pool: Default::default(),
             wasm: config,
             guest_config: Option::<toml::Value>::None,
-            extension_name: "simple_hooks".to_string(),
         },
     )
     .unwrap();
@@ -279,7 +275,6 @@ async fn on_response_hook() {
             pool: Default::default(),
             wasm: config,
             guest_config: Option::<toml::Value>::None,
-            extension_name: "simple_hooks".to_string(),
         },
     )
     .unwrap();

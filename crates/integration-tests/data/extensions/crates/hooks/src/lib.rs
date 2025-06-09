@@ -1,6 +1,6 @@
 use grafbase_sdk::{
     HooksExtension,
-    host_io::http::{HeaderValue, Method, StatusCode, Url},
+    host_io::http::{HeaderValue, Method, StatusCode},
     types::{Configuration, Error, ErrorResponse, GatewayHeaders},
 };
 
@@ -28,7 +28,7 @@ impl HooksExtension for Hooks {
         Ok(Self { config })
     }
 
-    fn on_request(&mut self, _: Url, _: Method, mut headers: GatewayHeaders) -> Result<(), ErrorResponse> {
+    fn on_request(&mut self, _: &str, _: Method, mut headers: GatewayHeaders) -> Result<(), ErrorResponse> {
         if let Some(ref header_test) = self.config.incoming_header {
             headers.append(
                 header_test.key.as_str(),

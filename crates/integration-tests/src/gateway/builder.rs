@@ -6,7 +6,7 @@ use std::{any::TypeId, collections::HashSet, fmt::Display, fs, path::PathBuf, sy
 
 use crate::{TestTrustedDocument, mock_trusted_documents::MockTrustedDocumentsClient};
 pub use bench::*;
-use extension_catalog::{Extension, ExtensionCatalog};
+use extension_catalog::Extension;
 use futures::{FutureExt, future::BoxFuture};
 use grafbase_telemetry::otel::opentelemetry::global;
 use graphql_mocks::MockGraphQlServer;
@@ -121,8 +121,6 @@ impl GatewayBuilder {
         let path = path.into();
         let (access_log, _) = create_access_log_channel(true, global::meter("kekw").i64_up_down_counter("lol").build());
 
-        let mut catalog = ExtensionCatalog::default();
-
         let manifest_path = path.join("manifest.json");
         let manifest = fs::read_to_string(manifest_path).unwrap();
         let manifest = serde_json::from_str(&manifest).unwrap();
@@ -132,10 +130,8 @@ impl GatewayBuilder {
             wasm_path: path.join("extension.wasm"),
         };
 
-        catalog.push(extension);
-
         let config = toml::from_str(&self.config.toml).unwrap();
-        let hooks = WasmHooks::new(&SharedResources { access_log }, &catalog, &config)
+        let hooks = WasmHooks::new(&SharedResources { access_log }, &config, Some(extension))
             .await
             .unwrap();
 

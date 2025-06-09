@@ -1,7 +1,7 @@
 use grafbase_sdk::{
     HooksExtension,
     types::{Configuration, Error, ErrorResponse, GatewayHeaders},
-    host_io::http::{Method, StatusCode, Url},
+    host_io::http::{Method, StatusCode},
 };
 
 #[derive(HooksExtension)]
@@ -12,7 +12,7 @@ impl HooksExtension for {{name}} {
         Ok(Self)
     }
 
-    fn on_request(&mut self, url: Url, method: Method, headers: GatewayHeaders) -> Result<(), ErrorResponse> {
+    fn on_request(&mut self, url: &str, method: Method, headers: GatewayHeaders) -> Result<(), ErrorResponse> {
         Ok(())
     }
 

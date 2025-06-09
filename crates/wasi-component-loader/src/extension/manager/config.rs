@@ -12,7 +12,6 @@ pub(crate) struct ExtensionConfig<T = toml::Value> {
     pub pool: PoolConfig,
     pub wasm: WasmConfig,
     pub guest_config: Option<T>,
-    pub extension_name: String,
 }
 
 #[derive(Default)]
@@ -59,7 +58,6 @@ pub(super) fn load_extensions_config(extension_catalog: &ExtensionCatalog, confi
             wasm: wasi_config,
             guest_config: extension_config.config().cloned(),
             sdk_version: manifest.sdk_version.clone(),
-            extension_name: manifest.name().to_string(),
         });
     }
 

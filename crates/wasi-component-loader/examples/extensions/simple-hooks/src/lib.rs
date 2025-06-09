@@ -1,6 +1,6 @@
 use grafbase_sdk::{
     HooksExtension,
-    host_io::http::{Method, StatusCode, Url},
+    host_io::http::{Method, StatusCode},
     types::{Configuration, Error, ErrorResponse, GatewayHeaders},
 };
 
@@ -12,7 +12,7 @@ impl HooksExtension for SimpleHooks {
         Ok(Self)
     }
 
-    fn on_request(&mut self, _: Url, _: Method, _: GatewayHeaders) -> Result<(), ErrorResponse> {
+    fn on_request(&mut self, _: &str, _: Method, _: GatewayHeaders) -> Result<(), ErrorResponse> {
         Ok(())
     }
 

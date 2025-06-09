@@ -1,12 +1,13 @@
 use std::sync::Arc;
 
 use engine_schema::Schema;
-use extension_catalog::{ExtensionCatalog, TypeDiscriminants};
+use extension_catalog::{Extension, ExtensionId};
 use gateway_config::Config;
+use strum::IntoDiscriminant;
 
 use crate::resources::SharedResources;
 
-use super::{ExtensionLoader, Pool, config};
+use super::{ExtensionConfig, ExtensionLoader, Pool, PoolConfig, WasmConfig};
 
 #[derive(Clone)]
 pub struct WasmHooks(Arc<WasiHooksInner>);
@@ -19,42 +20,47 @@ struct WasiHooksInner {
 impl WasmHooks {
     pub async fn new(
         shared_resources: &SharedResources,
-        extension_catalog: &ExtensionCatalog,
         gateway_config: &Config,
+        extension: Option<Extension>,
     ) -> crate::Result<Self> {
-        let extensions = config::load_extensions_config(extension_catalog, gateway_config);
-        let mut selected_config = None;
-
-        for config in extensions.into_iter() {
-            if matches!(config.r#type, TypeDiscriminants::Hooks) {
-                match selected_config {
-                    None => {
-                        selected_config = Some(config);
-                    }
-                    Some(ref selected_config) => {
-                        tracing::warn!(
-                            "detected multiple hooks extensions, using the previously selected extension '{}' and skipping '{}' since only one hooks extension can be loaded at a time",
-                            selected_config.extension_name,
-                            config.extension_name,
-                        );
-                    }
-                }
-            }
-        }
-
-        let pool = match selected_config {
-            Some(config) => {
-                let max_pool_size = config.pool.max_size;
-                let schema = Schema::empty().await;
-
-                let loader = ExtensionLoader::new(Arc::new(schema), shared_resources.clone(), config)?;
-
-                Some(Pool::new(loader, max_pool_size))
-            }
-            None => None,
+        let Some(extension) = extension else {
+            return Ok(Self(Arc::new(WasiHooksInner { pool: None })));
         };
 
-        Ok(Self(Arc::new(WasiHooksInner { pool })))
+        let mut selected_config = None;
+
+        for (name, config) in gateway_config.extensions.iter() {
+            if name != extension.manifest.name() {
+                continue;
+            }
+
+            selected_config = Some(config);
+        }
+
+        let extension_config = ExtensionConfig {
+            id: ExtensionId::from(0_u16),
+            manifest_id: extension.manifest.id.clone(),
+            r#type: extension.manifest.r#type.discriminant(),
+            sdk_version: extension.manifest.sdk_version.clone(),
+            pool: PoolConfig {
+                max_size: selected_config.and_then(|c| c.max_pool_size()),
+            },
+            wasm: WasmConfig {
+                location: extension.wasm_path,
+                networking: extension.manifest.network_enabled(),
+                stdout: extension.manifest.stdout_enabled(),
+                stderr: extension.manifest.stderr_enabled(),
+                environment_variables: extension.manifest.environment_variables_enabled(),
+            },
+            guest_config: selected_config.and_then(|c| c.config().cloned()),
+        };
+
+        let max_pool_size = extension_config.pool.max_size;
+        let schema = Schema::empty().await;
+        let loader = ExtensionLoader::new(Arc::new(schema), shared_resources.clone(), extension_config)?;
+        let pool = Pool::new(loader, max_pool_size);
+
+        Ok(Self(Arc::new(WasiHooksInner { pool: Some(pool) })))
     }
 
     pub(crate) fn pool(&self) -> Option<&Pool> {
