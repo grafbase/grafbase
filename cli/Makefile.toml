@@ -109,9 +109,10 @@ mac_alias = "mac-profile-dev"
 description = "Fetch the cli-app tar.gz"
 script = '''
 CACHE_BREAKER=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 10 | head -n 1)
-pushd ./assets
-curl -o cli-app.tar.gz -H "Cache-Control: must-revalidate, post-check=0, pre-check=0" http://assets.grafbase.com/cli-app/cli-app.tar.gz?cache=$CACHE_BREAKER
-popd
+ORIGINAL_DIR=$(pwd)
+cd ./assets || exit 1
+curl -o cli-app.tar.gz -H "Cache-Control: must-revalidate, post-check=0, pre-check=0" http://assets.grafbase.com/cli-app/cli-app.tar.gz?cache=$CACHE_BREAKER || { cd "$ORIGINAL_DIR"; exit 1; }
+cd "$ORIGINAL_DIR"
 '''
 
 
