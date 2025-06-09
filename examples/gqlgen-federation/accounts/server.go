@@ -1,4 +1,4 @@
-//go:generate go run ../../../testdata/gqlgen.go
+//go:generate go run github.com/99designs/gqlgen generate
 package main
 
 import (
@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/99designs/gqlgen/_examples/federation/accounts/graph"
+	"github.com/grafbase/grafbase/examples/gqlgen-federation/accounts/graph"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/debug"
 	"github.com/99designs/gqlgen/graphql/playground"
