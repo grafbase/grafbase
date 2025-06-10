@@ -28,7 +28,7 @@ impl HooksExtension for Hooks {
         Ok(Self { config })
     }
 
-    fn on_request(&mut self, _: &str, _: Method, mut headers: GatewayHeaders) -> Result<(), ErrorResponse> {
+    fn on_request(&mut self, _: &str, _: Method, headers: &mut GatewayHeaders) -> Result<(), ErrorResponse> {
         if let Some(ref header_test) = self.config.incoming_header {
             headers.append(
                 header_test.key.as_str(),
@@ -39,7 +39,7 @@ impl HooksExtension for Hooks {
         Ok(())
     }
 
-    fn on_response(&mut self, _: StatusCode, mut headers: GatewayHeaders) -> Result<(), String> {
+    fn on_response(&mut self, _: StatusCode, headers: &mut GatewayHeaders) -> Result<(), String> {
         if let Some(ref header_test) = self.config.outgoing_header {
             headers.append(
                 header_test.key.as_str(),

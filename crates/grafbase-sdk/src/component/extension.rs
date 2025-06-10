@@ -71,11 +71,16 @@ pub(crate) trait AnyExtension {
         Err("Authorization extension not initialized correctly.".into())
     }
 
-    fn on_request(&mut self, url: &str, method: http::Method, headers: GatewayHeaders) -> Result<(), ErrorResponse> {
+    fn on_request(
+        &mut self,
+        url: &str,
+        method: http::Method,
+        headers: &mut GatewayHeaders,
+    ) -> Result<(), ErrorResponse> {
         Err(ErrorResponse::internal_server_error().with_error("Hooks extension not initialized correctly."))
     }
 
-    fn on_response(&mut self, status: http::StatusCode, headers: GatewayHeaders) -> Result<(), String> {
+    fn on_response(&mut self, status: http::StatusCode, headers: &mut GatewayHeaders) -> Result<(), String> {
         Err("Hooks extension not initialized correctly.".to_string())
     }
 }

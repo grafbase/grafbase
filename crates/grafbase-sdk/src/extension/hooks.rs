@@ -37,12 +37,12 @@ use crate::{
 ///         Ok(Self { config })
 ///     }
 ///
-///     fn on_request(&mut self, url: &str, method: http::Method, headers: GatewayHeaders) -> Result<(), ErrorResponse> {
+///     fn on_request(&mut self, url: &str, method: http::Method, headers: &mut GatewayHeaders) -> Result<(), ErrorResponse> {
 ///         // Implement your request hook logic here.
 ///         Ok(())
 ///     }
 ///
-///     fn on_response(&mut self, status: http::StatusCode, headers: GatewayHeaders) -> Result<(), ErrorResponse> {
+///     fn on_response(&mut self, status: http::StatusCode, headers: &mut GatewayHeaders) -> Result<(), String> {
 ///         // Implement your response hook logic here.
 ///         Ok(())
 ///     }
@@ -80,12 +80,17 @@ pub trait HooksExtension: Sized + 'static {
     /// Called immediately when a request is received, before entering the GraphQL engine.
     ///
     /// This hook can be used to modify the request headers before they are processed by the GraphQL engine, and provides a way to audit the headers, URL, and method before processing the operation.
-    fn on_request(&mut self, url: &str, method: http::Method, headers: GatewayHeaders) -> Result<(), ErrorResponse>;
+    fn on_request(
+        &mut self,
+        url: &str,
+        method: http::Method,
+        headers: &mut GatewayHeaders,
+    ) -> Result<(), ErrorResponse>;
 
     /// Called right before the response is sent back to the client.
     ///
     /// This hook can be used to modify the response headers before the response is sent back to the client.
-    fn on_response(&mut self, status: http::StatusCode, headers: GatewayHeaders) -> Result<(), String>;
+    fn on_response(&mut self, status: http::StatusCode, headers: &mut GatewayHeaders) -> Result<(), String>;
 }
 
 #[doc(hidden)]
@@ -93,11 +98,11 @@ pub fn register<T: HooksExtension>() {
     pub(super) struct Proxy<T: HooksExtension>(T);
 
     impl<T: HooksExtension> AnyExtension for Proxy<T> {
-        fn on_request(&mut self, url: &str, method: Method, headers: GatewayHeaders) -> Result<(), ErrorResponse> {
+        fn on_request(&mut self, url: &str, method: Method, headers: &mut GatewayHeaders) -> Result<(), ErrorResponse> {
             HooksExtension::on_request(&mut self.0, url, method, headers)
         }
 
-        fn on_response(&mut self, status: StatusCode, headers: GatewayHeaders) -> Result<(), String> {
+        fn on_response(&mut self, status: StatusCode, headers: &mut GatewayHeaders) -> Result<(), String> {
             HooksExtension::on_response(&mut self.0, status, headers)
         }
     }
