@@ -1,7 +1,9 @@
+mod serde;
 use std::borrow::Cow;
 
+use ::serde::{Deserialize, de::DeserializeSeed};
+
 use crate::{SdkError, wit::selection_set_resolver_types as wit};
-use serde::{Deserialize, de::DeserializeSeed};
 
 use super::DefinitionId;
 
@@ -107,7 +109,7 @@ fn element_offset(slice: &[wit::Field], element: &wit::Field) -> Option<usize> {
     if offset < slice.len() { Some(offset) } else { None }
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(::serde::Serialize, ::serde::Deserialize)]
 struct Data<'a> {
     fields: Cow<'a, [wit::Field]>,
     ix: usize,

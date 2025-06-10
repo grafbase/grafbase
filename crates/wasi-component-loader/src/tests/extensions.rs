@@ -14,7 +14,7 @@ use http::{HeaderMap, HeaderValue, Request, Response};
 use runtime::extension::Token;
 use serde_json::json;
 
-const LATEST_SDK: semver::Version = semver::Version::new(0, 14, 0);
+const LATEST_SDK: semver::Version = semver::Version::new(0, 17, 0);
 
 #[tokio::test]
 async fn single_call_caching_auth() {
@@ -86,7 +86,7 @@ async fn single_call_caching_auth_invalid() {
     let (shared, _) = create_shared_resources();
 
     let loader = ExtensionLoader::new(
-        Arc::new(Schema::from_sdl_or_panic("").await),
+        Arc::new(Schema::empty().await),
         shared,
         ExtensionConfig {
             id: ExtensionId::from(0usize),
@@ -236,7 +236,7 @@ async fn on_request_hook() {
             id: ExtensionId::from(0usize),
             r#type: TypeDiscriminants::Hooks,
             manifest_id: "simple-hooks-1.0.0".parse().unwrap(),
-            sdk_version: semver::Version::new(0, 17, 0),
+            sdk_version: LATEST_SDK,
             pool: Default::default(),
             wasm: config,
             guest_config: Option::<toml::Value>::None,
@@ -271,7 +271,7 @@ async fn on_response_hook() {
             id: ExtensionId::from(0usize),
             r#type: TypeDiscriminants::Hooks,
             manifest_id: "simple-hooks-1.0.0".parse().unwrap(),
-            sdk_version: semver::Version::new(0, 17, 0),
+            sdk_version: LATEST_SDK,
             pool: Default::default(),
             wasm: config,
             guest_config: Option::<toml::Value>::None,

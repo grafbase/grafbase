@@ -35,6 +35,8 @@ pub type PgConnection = sqlx::pool::PoolConnection<Postgres>;
 pub type PgTransaction = sqlx::Transaction<'static, Postgres>;
 pub type PgRow = sqlx::postgres::PgRow;
 
+pub type AuditLogs = (); // TODO
+
 pub enum NatsSubscriber {
     Stream(Box<async_nats::jetstream::consumer::pull::Stream>),
     Subject(async_nats::Subscriber),

@@ -1,3 +1,5 @@
+pub mod audit_logs;
+
 wasmtime::component::bindgen!({
     path: "../grafbase-sdk/wit/since_0_17_0/",
     world: "sdk",
@@ -19,6 +21,7 @@ wasmtime::component::bindgen!({
         "grafbase:sdk/authorization-types": crate::extension::api::since_0_14_0::wit::authorization_types,
         "grafbase:sdk/selection-set-resolver-types": crate::extension::api::since_0_14_0::wit::selection_set_resolver_types,
         "grafbase:sdk/kafka-client": crate::extension::api::since_0_16_0::wit::kafka_client,
+        "grafbase:sdk/audit-logs/audit-logs": crate::resources::AuditLogs,
     },
     trappable_imports: true,
     ownership: Borrowing {

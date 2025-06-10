@@ -2,6 +2,7 @@ interface hooks {
     use http-client.{http-method};
     use error.{error-response};
     use headers.{headers};
+    use audit-logs.{audit-logs};
 
     /// Hook function called when processing an incoming request
     ///
@@ -20,5 +21,6 @@ interface hooks {
     on-response: func(
         status: u16,
         headers: headers,
+        audit-logs: audit-logs,
     ) -> result<_, string>;
 }

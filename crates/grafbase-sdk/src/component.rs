@@ -9,19 +9,23 @@ mod state;
 
 use crate::{
     types::Configuration,
-    wit::{Error, ErrorResponse, Guest, Schema},
+    wit::{AuditLogs, Error, ErrorResponse, Guest, Schema},
 };
 
 pub use error::SdkError;
 pub(crate) use extension::AnyExtension;
-pub(crate) use state::register_extension;
+pub(crate) use state::{log_audit, register_extension};
 
 pub(crate) struct Component;
 
 impl Guest for Component {
-    fn init(subgraph_schemas: Vec<(String, Schema)>, configuration: Vec<u8>) -> Result<(), String> {
+    fn init(
+        subgraph_schemas: Vec<(String, Schema)>,
+        configuration: Vec<u8>,
+        audit_logs: AuditLogs,
+    ) -> Result<(), String> {
         let config = Configuration::new(configuration);
-        state::init(subgraph_schemas, config).map_err(|e| e.to_string())
+        state::init(subgraph_schemas, config, audit_logs).map_err(|e| e.to_string())
     }
 }
 
