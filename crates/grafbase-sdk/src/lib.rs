@@ -16,11 +16,12 @@ pub mod types;
 
 pub use component::SdkError;
 pub use extension::{
-    AuthenticationExtension, AuthorizationExtension, FieldResolverExtension, IntoQueryAuthorization,
+    AuthenticationExtension, AuthorizationExtension, FieldResolverExtension, HooksExtension, IntoQueryAuthorization,
     SelectionSetResolverExtension, Subscription,
 };
 pub use grafbase_sdk_derive::{
-    AuthenticationExtension, AuthorizationExtension, FieldResolverExtension, SelectionSetResolverExtension,
+    AuthenticationExtension, AuthorizationExtension, FieldResolverExtension, HooksExtension,
+    SelectionSetResolverExtension,
 };
 
 use component::Component;
@@ -43,7 +44,7 @@ mod wit {
 
     wit_bindgen::generate!({
         skip: ["register-extension"],
-        path: "./wit/since_0_16_0/",
+        path: "./wit/since_0_17_0/",
         world: "sdk",
         additional_derives: [
             serde::Deserialize,
@@ -55,6 +56,7 @@ mod wit {
     pub use exports::grafbase::sdk::authentication::Guest as AuthenticationGuest;
     pub use exports::grafbase::sdk::authorization::Guest as AuthorizationGuest;
     pub use exports::grafbase::sdk::field_resolver::Guest as FieldResolverGuest;
+    pub use exports::grafbase::sdk::hooks::Guest as HooksGuest;
     pub use exports::grafbase::sdk::selection_set_resolver::Guest as SelectionSetResolverGuest;
 
     pub use grafbase::sdk::access_log::*;

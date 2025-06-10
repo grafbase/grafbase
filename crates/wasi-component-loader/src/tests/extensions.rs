@@ -10,7 +10,7 @@ use futures::{
     StreamExt, TryStreamExt,
     stream::{FuturesOrdered, FuturesUnordered},
 };
-use http::{HeaderMap, HeaderValue};
+use http::{HeaderMap, HeaderValue, Request, Response};
 use runtime::extension::Token;
 use serde_json::json;
 
@@ -213,4 +213,74 @@ async fn multiple_cache_calls() {
         }
         "#);
     }
+}
+
+#[tokio::test]
+async fn on_request_hook() {
+    let config = WasmConfig {
+        location: PathBuf::from("examples/target/wasm32-wasip2/debug/simple_hooks.wasm"),
+        networking: false,
+        stdout: true,
+        stderr: true,
+        environment_variables: false,
+    };
+
+    assert!(config.location.exists());
+
+    let (shared, _) = create_shared_resources();
+
+    let loader = ExtensionLoader::new(
+        Arc::new(Schema::from_sdl_or_panic("").await),
+        shared,
+        ExtensionConfig {
+            id: ExtensionId::from(0usize),
+            r#type: TypeDiscriminants::Hooks,
+            manifest_id: "simple-hooks-1.0.0".parse().unwrap(),
+            sdk_version: semver::Version::new(0, 17, 0),
+            pool: Default::default(),
+            wasm: config,
+            guest_config: Option::<toml::Value>::None,
+        },
+    )
+    .unwrap();
+
+    let request = Request::builder().uri("https://example.com").body(()).unwrap();
+    let (parts, _) = request.into_parts();
+
+    loader.instantiate().await.unwrap().on_request(parts).await.unwrap();
+}
+
+#[tokio::test]
+async fn on_response_hook() {
+    let config = WasmConfig {
+        location: PathBuf::from("examples/target/wasm32-wasip2/debug/simple_hooks.wasm"),
+        networking: false,
+        stdout: true,
+        stderr: true,
+        environment_variables: false,
+    };
+
+    assert!(config.location.exists());
+
+    let (shared, _) = create_shared_resources();
+
+    let loader = ExtensionLoader::new(
+        Arc::new(Schema::from_sdl_or_panic("").await),
+        shared,
+        ExtensionConfig {
+            id: ExtensionId::from(0usize),
+            r#type: TypeDiscriminants::Hooks,
+            manifest_id: "simple-hooks-1.0.0".parse().unwrap(),
+            sdk_version: semver::Version::new(0, 17, 0),
+            pool: Default::default(),
+            wasm: config,
+            guest_config: Option::<toml::Value>::None,
+        },
+    )
+    .unwrap();
+
+    let response = Response::builder().status(200).body(()).unwrap();
+    let (parts, _) = response.into_parts();
+
+    loader.instantiate().await.unwrap().on_response(parts).await.unwrap();
 }

@@ -2903,6 +2903,7 @@ dependencies = [
  "hyper 1.6.0",
  "lambda_http",
  "runtime",
+ "serde",
  "serde_json",
  "sonic-rs",
  "tokio",
@@ -4096,7 +4097,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.16.1"
+version = "0.17.0"
 dependencies = [
  "anyhow",
  "async-tungstenite",
@@ -4141,7 +4142,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk-derive"
-version = "0.4.0"
+version = "0.5.0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5441,6 +5442,7 @@ dependencies = [
  "bytes",
  "cfg-if",
  "criterion",
+ "crossbeam",
  "crossbeam-queue",
  "ctor",
  "cynic",

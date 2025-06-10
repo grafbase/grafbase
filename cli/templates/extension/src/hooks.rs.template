@@ -1,0 +1,22 @@
+use grafbase_sdk::{
+    HooksExtension,
+    types::{Configuration, Error, ErrorResponse, GatewayHeaders},
+    host_io::http::{Method, StatusCode},
+};
+
+#[derive(HooksExtension)]
+struct {{name}};
+
+impl HooksExtension for {{name}} {
+    fn new(config: Configuration) -> Result<Self, Error> {
+        Ok(Self)
+    }
+
+    fn on_request(&mut self, url: &str, method: Method, headers: &mut GatewayHeaders) -> Result<(), ErrorResponse> {
+        Ok(())
+    }
+
+    fn on_response(&mut self, status: StatusCode, headers: &mut GatewayHeaders) -> Result<(), String> {
+        Ok(())
+    }
+}

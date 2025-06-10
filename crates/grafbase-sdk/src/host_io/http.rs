@@ -3,7 +3,7 @@
 use std::string::FromUtf8Error;
 
 pub use crate::wit::{HttpError, HttpMethod, HttpVersion};
-pub use http::StatusCode;
+pub use http::{HeaderName, HeaderValue, Method, StatusCode};
 pub use serde_json::Error as JsonDeserializeError;
 pub use url::Url;
 
@@ -74,6 +74,22 @@ impl From<http::Method> for HttpMethod {
             Self::Patch
         } else {
             unreachable!()
+        }
+    }
+}
+
+impl From<HttpMethod> for http::Method {
+    fn from(value: HttpMethod) -> Self {
+        match value {
+            HttpMethod::Get => http::Method::GET,
+            HttpMethod::Post => http::Method::POST,
+            HttpMethod::Put => http::Method::PUT,
+            HttpMethod::Delete => http::Method::DELETE,
+            HttpMethod::Patch => http::Method::PATCH,
+            HttpMethod::Head => http::Method::HEAD,
+            HttpMethod::Options => http::Method::OPTIONS,
+            HttpMethod::Connect => http::Method::CONNECT,
+            HttpMethod::Trace => http::Method::TRACE,
         }
     }
 }

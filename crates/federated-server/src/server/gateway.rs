@@ -1,4 +1,4 @@
-mod create_extension_catalog;
+pub(crate) mod create_extension_catalog;
 mod gateway_runtime;
 
 pub use self::{create_extension_catalog::Error as CreateExtensionCatalogError, gateway_runtime::GatewayRuntime};
@@ -6,10 +6,11 @@ pub use self::{create_extension_catalog::Error as CreateExtensionCatalogError, g
 use self::create_extension_catalog::create_extension_catalog;
 use super::{AccessToken, ObjectStorageResponse};
 use engine::Engine;
+use extension_catalog::ExtensionCatalog;
 use gateway_config::Config;
 use runtime::trusted_documents_client::{Client, TrustedDocumentsEnforcementMode};
 use runtime_local::wasi::hooks::{AccessLogSender, HooksWasi};
-use std::{path::PathBuf, sync::Arc};
+use std::{borrow::Cow, path::PathBuf, sync::Arc};
 use tokio::sync::watch;
 use ulid::Ulid;
 
@@ -56,6 +57,7 @@ pub(super) async fn generate(
     hooks: HooksWasi,
     access_log: AccessLogSender,
     access_token: Option<&AccessToken>,
+    extension_catalog: Option<&ExtensionCatalog>,
 ) -> crate::Result<Engine<GatewayRuntime>> {
     let (
         current_dir,
@@ -80,10 +82,18 @@ pub(super) async fn generate(
         GraphDefinition::Sdl(current_dir, federated_sdl) => (current_dir, sdl_graph(federated_sdl)),
     };
 
-    tracing::debug!("Creating extension catalog.");
-    let extension_catalog = create_extension_catalog(gateway_config).await?;
+    let extension_catalog = match extension_catalog {
+        Some(catalog) => Cow::Borrowed(catalog),
+        None => {
+            tracing::debug!("Creating extension catalog.");
+            let (catalog, _) = create_extension_catalog(gateway_config).await?;
+
+            Cow::Owned(catalog)
+        }
+    };
 
     tracing::debug!("Building engine Schema.");
+
     let schema = Arc::new(
         engine::Schema::builder(&federated_sdl)
             .config(gateway_config)

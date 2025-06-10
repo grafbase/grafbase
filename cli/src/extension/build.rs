@@ -87,6 +87,7 @@ enum ExtensionType {
     Authentication,
     Authorization,
     SelectionSetResolver,
+    Hooks,
 }
 
 #[derive(Default, serde::Deserialize)]
@@ -253,6 +254,7 @@ fn parse_manifest(source_dir: &Path, wasm_path: &Path) -> anyhow::Result<Manifes
             directives: extension_toml.directives.authorization,
         }),
         ExtensionType::SelectionSetResolver => Type::SelectionSetResolver(Default::default()),
+        ExtensionType::Hooks => Type::Hooks(Default::default()),
     };
 
     let sdl_path = extension_toml
@@ -263,6 +265,7 @@ fn parse_manifest(source_dir: &Path, wasm_path: &Path) -> anyhow::Result<Manifes
             let path = source_dir.join("definitions.graphql");
             path.exists().then_some(path)
         });
+
     let sdl = match sdl_path {
         Some(ref path) => {
             let Ok(sdl) = std::fs::read_to_string(path) else {

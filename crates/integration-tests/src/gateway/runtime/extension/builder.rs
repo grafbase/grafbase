@@ -165,7 +165,7 @@ impl ExtensionsBuilder {
                 }
             }
 
-            WasmExtensions::new(shared_resources, &self.catalog, config, schema)
+            WasmExtensions::new(&shared_resources, &self.catalog, config, schema)
                 .await
                 .map_err(|err| err.to_string())?
         } else {

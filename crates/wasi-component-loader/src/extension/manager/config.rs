@@ -48,14 +48,13 @@ pub(super) fn load_extensions_config(extension_catalog: &ExtensionCatalog, confi
                 .unwrap_or(manifest.environment_variables_enabled()),
         };
 
-        let max_pool_size = extension_config.max_pool_size();
+        let max_size = extension_config.max_pool_size();
+
         wasm_extensions.push(ExtensionConfig {
             id,
             manifest_id: manifest.id.clone(),
             r#type: manifest.r#type.clone().into(),
-            pool: PoolConfig {
-                max_size: max_pool_size,
-            },
+            pool: PoolConfig { max_size },
             wasm: wasi_config,
             guest_config: extension_config.config().cloned(),
             sdk_version: manifest.sdk_version.clone(),

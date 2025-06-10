@@ -4,6 +4,13 @@ use axum::{Json, response::IntoResponse};
 use engine::{Body, Engine, ErrorCode, Runtime};
 use futures_util::TryFutureExt;
 
+/// Utilities for converting GraphQL ErrorResponse to HTTP responses.
+///
+/// This module provides functions to serialize `ErrorResponse` objects into proper
+/// HTTP responses with JSON-formatted GraphQL errors. It respects the Accept header
+/// to determine the appropriate Content-Type and status code handling according to
+/// the GraphQL-over-HTTP specification.
+pub mod error_response;
 #[cfg(feature = "lambda")]
 pub mod lambda;
 pub mod middleware;

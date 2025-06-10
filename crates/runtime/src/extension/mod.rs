@@ -1,12 +1,14 @@
 mod authentication;
 mod authorization;
 mod field_resolver;
+mod hooks;
 mod selection_set_resolver;
 
 pub use authentication::*;
 pub use authorization::*;
 use bytes::Bytes;
 pub use field_resolver::*;
+pub use hooks::*;
 pub use selection_set_resolver::*;
 
 pub trait ExtensionRuntime:

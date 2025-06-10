@@ -1,0 +1,18 @@
+interface authorization {
+    use directive.{query-elements, response-elements};
+    use error.{error, error-response};
+    use headers.{headers};
+    use token.{token};
+    use authorization-types.{authorization-decisions};
+
+    authorize-query: func(
+        headers: headers,
+        token: token,
+        elements: query-elements
+    ) -> result<tuple<authorization-decisions, list<u8>>, error-response>;
+
+    authorize-response: func(
+        state: list<u8>,
+        elements: response-elements
+    ) -> result<authorization-decisions, error>;
+}
