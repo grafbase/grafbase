@@ -20,5 +20,5 @@ interface hooks {
     on-response: func(
         status: u16,
         headers: headers,
-    ) -> result<_, error-response>;
+    ) -> result<_, string>;
 }

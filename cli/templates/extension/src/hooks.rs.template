@@ -16,7 +16,7 @@ impl HooksExtension for {{name}} {
         Ok(())
     }
 
-    fn on_response(&mut self, status: StatusCode, headers: GatewayHeaders) -> Result<(), ErrorResponse> {
+    fn on_response(&mut self, status: StatusCode, headers: GatewayHeaders) -> Result<(), String> {
         Ok(())
     }
 }

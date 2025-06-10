@@ -7,7 +7,13 @@ use http::{
 };
 
 #[derive(serde::Serialize)]
-struct ErrorResponseWrapper {
+struct OnRequestErrorResponseWrapper {
+    errors: Vec<GraphqlErrorWrapper>,
+}
+
+#[derive(serde::Serialize)]
+struct OnResponseErrorResponseWrapper {
+    data: Option<sonic_rs::Value>,
     errors: Vec<GraphqlErrorWrapper>,
 }
 
@@ -17,7 +23,7 @@ struct GraphqlErrorWrapper {
     extensions: Vec<(Cow<'static, str>, serde_json::Value)>,
 }
 
-impl From<ErrorResponse> for ErrorResponseWrapper {
+impl From<ErrorResponse> for OnRequestErrorResponseWrapper {
     fn from(value: ErrorResponse) -> Self {
         Self {
             errors: value.errors.into_iter().map(GraphqlErrorWrapper::from).collect(),
@@ -35,7 +41,7 @@ impl From<GraphqlError> for GraphqlErrorWrapper {
 }
 
 /// Converts an ErrorResponse into an HTTP Response, respecting the Accept header
-pub(crate) fn error_response_to_http<B>(
+pub(crate) fn request_error_response_to_http<B>(
     response_format: ResponseFormat,
     error_response: ErrorResponse,
 ) -> http::Response<B>
@@ -43,7 +49,35 @@ where
     B: From<Vec<u8>>,
 {
     let status = error_response.status;
-    let error_response = ErrorResponseWrapper::from(error_response);
+    let error_response = OnRequestErrorResponseWrapper::from(error_response);
+
+    create_response(response_format, status, error_response)
+}
+
+pub(crate) fn response_error_response_to_http<B>(response_format: ResponseFormat, message: String) -> http::Response<B>
+where
+    B: From<Vec<u8>>,
+{
+    let error_response = OnResponseErrorResponseWrapper {
+        data: None,
+        errors: vec![GraphqlErrorWrapper {
+            message: message.into(),
+            extensions: Vec::new(),
+        }],
+    };
+
+    create_response(response_format, http::StatusCode::INTERNAL_SERVER_ERROR, error_response)
+}
+
+fn create_response<B, S>(
+    response_format: ResponseFormat,
+    status: http::StatusCode,
+    error_response: S,
+) -> http::Response<B>
+where
+    B: From<Vec<u8>>,
+    S: serde::Serialize,
+{
     let bytes = sonic_rs::to_vec(&error_response).unwrap();
 
     // Build response with appropriate content type

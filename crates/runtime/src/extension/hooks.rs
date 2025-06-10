@@ -8,10 +8,7 @@ pub trait HooksExtension: Send + Sync + 'static {
 
     fn on_request(&self, parts: request::Parts) -> impl Future<Output = Result<request::Parts, ErrorResponse>> + Send;
 
-    fn on_response(
-        &self,
-        parts: response::Parts,
-    ) -> impl Future<Output = Result<response::Parts, ErrorResponse>> + Send;
+    fn on_response(&self, parts: response::Parts) -> impl Future<Output = Result<response::Parts, String>> + Send;
 }
 
 impl HooksExtension for () {
@@ -21,7 +18,7 @@ impl HooksExtension for () {
         Ok(parts)
     }
 
-    async fn on_response(&self, parts: response::Parts) -> Result<response::Parts, ErrorResponse> {
+    async fn on_response(&self, parts: response::Parts) -> Result<response::Parts, String> {
         Ok(parts)
     }
 }

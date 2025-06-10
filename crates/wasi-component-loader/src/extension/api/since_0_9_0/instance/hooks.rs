@@ -10,10 +10,7 @@ impl HooksInstance for super::ExtensionInstanceSince090 {
         Box::pin(async { unreachable!("Not supported by this SDK") })
     }
 
-    fn on_response(
-        &mut self,
-        _: http::response::Parts,
-    ) -> BoxFuture<'_, Result<http::response::Parts, crate::ErrorResponse>> {
+    fn on_response(&mut self, _: http::response::Parts) -> BoxFuture<'_, anyhow::Result<http::response::Parts>> {
         Box::pin(async { unreachable!("Not supported by this SDK") })
     }
 }

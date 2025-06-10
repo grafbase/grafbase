@@ -79,8 +79,7 @@ where
             let parts = match hooks.on_request(parts).await {
                 Ok(parts) => parts,
                 Err(err) => {
-                    // Use the error response helper that respects Accept header
-                    let error_response = crate::error_response::error_response_to_http(response_format, err);
+                    let error_response = crate::error_response::request_error_response_to_http(response_format, err);
                     return Ok(error_response);
                 }
             };
@@ -99,8 +98,10 @@ where
             let parts = match hooks.on_response(parts).await {
                 Ok(parts) => parts,
                 Err(err) => {
-                    // Use the error response helper that respects Accept header
-                    let error_response = crate::error_response::error_response_to_http(response_format, err);
+                    tracing::error!("Error in on_response hook: {err}");
+
+                    let error_response = crate::error_response::response_error_response_to_http(response_format, err);
+
                     return Ok(error_response);
                 }
             };

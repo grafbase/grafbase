@@ -85,7 +85,7 @@ pub trait HooksExtension: Sized + 'static {
     /// Called right before the response is sent back to the client.
     ///
     /// This hook can be used to modify the response headers before the response is sent back to the client.
-    fn on_response(&mut self, status: http::StatusCode, headers: GatewayHeaders) -> Result<(), ErrorResponse>;
+    fn on_response(&mut self, status: http::StatusCode, headers: GatewayHeaders) -> Result<(), String>;
 }
 
 #[doc(hidden)]
@@ -97,7 +97,7 @@ pub fn register<T: HooksExtension>() {
             HooksExtension::on_request(&mut self.0, url, method, headers)
         }
 
-        fn on_response(&mut self, status: StatusCode, headers: GatewayHeaders) -> Result<(), ErrorResponse> {
+        fn on_response(&mut self, status: StatusCode, headers: GatewayHeaders) -> Result<(), String> {
             HooksExtension::on_response(&mut self.0, status, headers)
         }
     }

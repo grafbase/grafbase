@@ -16,7 +16,7 @@ impl HooksExtension for SimpleHooks {
         Ok(())
     }
 
-    fn on_response(&mut self, _: StatusCode, _: GatewayHeaders) -> Result<(), ErrorResponse> {
+    fn on_response(&mut self, _: StatusCode, _: GatewayHeaders) -> Result<(), String> {
         Ok(())
     }
 }

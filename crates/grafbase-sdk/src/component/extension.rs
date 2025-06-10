@@ -75,7 +75,7 @@ pub(crate) trait AnyExtension {
         Err(ErrorResponse::internal_server_error().with_error("Hooks extension not initialized correctly."))
     }
 
-    fn on_response(&mut self, status: http::StatusCode, headers: GatewayHeaders) -> Result<(), ErrorResponse> {
-        Err(ErrorResponse::internal_server_error().with_error("Hooks extension not initialized correctly."))
+    fn on_response(&mut self, status: http::StatusCode, headers: GatewayHeaders) -> Result<(), String> {
+        Err("Hooks extension not initialized correctly.".to_string())
     }
 }

@@ -57,7 +57,7 @@ impl HooksInstance for super::ExtensionInstanceSince0_17_0 {
         })
     }
 
-    fn on_response(&mut self, mut parts: response::Parts) -> BoxFuture<'_, Result<response::Parts, ErrorResponse>> {
+    fn on_response(&mut self, mut parts: response::Parts) -> BoxFuture<'_, anyhow::Result<response::Parts>> {
         Box::pin(async move {
             self.poisoned = true;
 
@@ -85,9 +85,10 @@ impl HooksInstance for super::ExtensionInstanceSince0_17_0 {
 
             self.poisoned = false;
 
-            result?;
-
-            Ok(parts)
+            match result {
+                Ok(()) => Ok(parts),
+                Err(err) => Err(anyhow::Error::msg(err)),
+            }
         })
     }
 }
