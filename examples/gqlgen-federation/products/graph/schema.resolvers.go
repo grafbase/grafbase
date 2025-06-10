@@ -7,7 +7,7 @@ package graph
 import (
 	"context"
 
-	"github.com/99designs/gqlgen/_examples/federation/products/graph/model"
+	"github.com/grafbase/grafbase/examples/gqlgen-federation/products/graph/model"
 )
 
 // TopProducts is the resolver for the topProducts field.
