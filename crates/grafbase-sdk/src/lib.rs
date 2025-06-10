@@ -46,11 +46,6 @@ mod wit {
         skip: ["register-extension"],
         path: "./wit/since_0_17_0/",
         world: "sdk",
-        additional_derives: [
-            serde::Deserialize,
-            serde::Serialize,
-            PartialEq,
-        ]
     });
 
     pub use exports::grafbase::sdk::authentication::Guest as AuthenticationGuest;
@@ -60,6 +55,10 @@ mod wit {
     pub use exports::grafbase::sdk::selection_set_resolver::Guest as SelectionSetResolverGuest;
 
     pub use grafbase::sdk::access_log::*;
+    pub use grafbase::sdk::audit_logs::{
+        CacheStatus, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, FieldError,
+        GraphqlResponseStatus, LogEntry, RequestError, SubgraphRequestExecutionKind, SubgraphResponse,
+    };
     pub use grafbase::sdk::authorization_types::{AuthorizationDecisions, AuthorizationDecisionsDenySome};
     pub use grafbase::sdk::cache::*;
     pub use grafbase::sdk::directive::*;

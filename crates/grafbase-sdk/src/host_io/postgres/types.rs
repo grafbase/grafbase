@@ -68,7 +68,7 @@ pub trait DatabaseType {
 ///
 /// This holds both the value itself and optional array-related value information
 /// when the value represents an array of values.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct DatabaseValue {
     pub(crate) value: wit::PgBoundValue,
     pub(crate) array_values: Option<wit::PgValueTree>,

@@ -73,8 +73,11 @@ impl SdkPre0_17_0 {
         let inner = self.pre.instantiate_async(&mut store).await?;
         inner.call_register_extension(&mut store).await?;
 
+        // TODO: Actual implementation
+        let access_log = store.data_mut().push_resource(())?;
+
         inner
-            .call_init(&mut store, &self.subgraph_schemas, &self.guest_config)
+            .call_init(&mut store, &self.subgraph_schemas, &self.guest_config, access_log)
             .await??;
 
         let instance = ExtensionInstanceSince0_17_0 {

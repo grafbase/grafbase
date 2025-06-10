@@ -1,6 +1,9 @@
 use crate::{
     component::AnyExtension,
-    host_io::http::{Method, StatusCode},
+    host_io::{
+        audit_logs::AuditLogs,
+        http::{Method, StatusCode},
+    },
     types::{Configuration, Error, ErrorResponse, GatewayHeaders},
 };
 
@@ -16,7 +19,8 @@ use crate::{
 /// ```rust
 /// use grafbase_sdk::{
 ///     HooksExtension,
-///     types::{GatewayHeaders, Configuration, Error, ErrorResponse}
+///     types::{GatewayHeaders, Configuration, Error, ErrorResponse},
+///     host_io::audit_logs::AuditLogs,
 /// };
 ///
 /// #[derive(HooksExtension)]
@@ -42,7 +46,12 @@ use crate::{
 ///         Ok(())
 ///     }
 ///
-///     fn on_response(&mut self, status: http::StatusCode, headers: &mut GatewayHeaders) -> Result<(), String> {
+///     fn on_response(
+///         &mut self,
+///         status: http::StatusCode,
+///         headers: &mut GatewayHeaders,
+///         audit_logs: AuditLogs,
+///     ) -> Result<(), String> {
 ///         // Implement your response hook logic here.
 ///         Ok(())
 ///     }
@@ -90,7 +99,12 @@ pub trait HooksExtension: Sized + 'static {
     /// Called right before the response is sent back to the client.
     ///
     /// This hook can be used to modify the response headers before the response is sent back to the client.
-    fn on_response(&mut self, status: http::StatusCode, headers: &mut GatewayHeaders) -> Result<(), String>;
+    fn on_response(
+        &mut self,
+        status: http::StatusCode,
+        headers: &mut GatewayHeaders,
+        audit_logs: AuditLogs,
+    ) -> Result<(), String>;
 }
 
 #[doc(hidden)]
@@ -102,8 +116,13 @@ pub fn register<T: HooksExtension>() {
             HooksExtension::on_request(&mut self.0, url, method, headers)
         }
 
-        fn on_response(&mut self, status: StatusCode, headers: &mut GatewayHeaders) -> Result<(), String> {
-            HooksExtension::on_response(&mut self.0, status, headers)
+        fn on_response(
+            &mut self,
+            status: StatusCode,
+            headers: &mut GatewayHeaders,
+            audit_logs: AuditLogs,
+        ) -> Result<(), String> {
+            HooksExtension::on_response(&mut self.0, status, headers, audit_logs)
         }
     }
 

@@ -68,10 +68,12 @@ impl HooksInstance for super::ExtensionInstanceSince0_17_0 {
             let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
             let headers_rep = headers.rep();
 
+            let audit_logs = self.store.data_mut().push_resource(())?; // TODO
+
             let result = self
                 .inner
                 .grafbase_sdk_hooks()
-                .call_on_response(&mut self.store, status, headers)
+                .call_on_response(&mut self.store, status, headers, audit_logs)
                 .await?;
 
             parts.headers = self
