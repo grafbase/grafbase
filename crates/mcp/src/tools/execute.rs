@@ -19,6 +19,8 @@ pub struct ExecuteTool<R: engine::Runtime> {
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct Request {
     pub query: String,
+    // Note: accept empty variables, in case the LLM fails to send variables, although they are required.
+    #[serde(default)]
     pub variables: RawVariables,
 }
 
@@ -46,11 +48,12 @@ impl schemars::JsonSchema for Request {
                 );
             }
             {
+                // Note: variables must be required. Cursor 1.0 does not deal well with them being optional, but it can happily send an empty object.
                 schemars::_private::insert_object_property::<serde_json::Map<String, serde_json::Value>>(
                     object_validation,
                     "variables",
                     false,
-                    false,
+                    true,
                     generator.subschema_for::<serde_json::Map<String, serde_json::Value>>(),
                 );
             }
