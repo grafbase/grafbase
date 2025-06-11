@@ -168,18 +168,18 @@ impl Resolver {
         new_response: impl Fn() -> ResponseBuilder<'ctx> + Send + Copy + 'ctx,
     ) -> BoxStream<'ctx, (ResponseBuilder<'ctx>, ResponsePartBuilder<'ctx>)> {
         match self {
-            Resolver::Graphql(prepared) => {
+            Resolver::Graphql(resolver) => {
                 // TODO: for now we do not finalize this, e.g. we do not call the subgraph response hook. We should figure
                 // out later what kind of data that hook would contain.
-                let mut ctx = prepared.build_subgraph_context(ctx);
-                prepared.execute_subscription(&mut ctx, plan, new_response).await
+                let mut ctx = resolver.build_subgraph_context(ctx);
+                resolver.execute_subscription(&mut ctx, plan, new_response).await
             }
-            Resolver::FieldResolverExtension(prepared) => prepared.execute_subscription(ctx, plan, new_response).await,
+            Resolver::FieldResolverExtension(resolver) => resolver.execute_subscription(ctx, plan, new_response).await,
+            Resolver::Extension(resolver) => resolver.execute_subscription(ctx, plan, new_response).await,
             Resolver::Lookup(_)
             | Resolver::SelectionSetExtension(_)
             | Resolver::Introspection(_)
-            | Resolver::FederationEntity(_)
-            | Resolver::Extension(_) => {
+            | Resolver::FederationEntity(_) => {
                 unreachable!("Unsupported subscription resolver")
             }
         }

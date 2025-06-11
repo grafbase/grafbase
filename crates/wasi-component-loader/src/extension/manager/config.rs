@@ -11,7 +11,7 @@ pub(crate) struct ExtensionConfig<T = toml::Value> {
     pub sdk_version: Version,
     pub pool: PoolConfig,
     pub wasm: WasmConfig,
-    pub guest_config: Option<T>,
+    pub guest_config: T,
 }
 
 #[derive(Default)]
@@ -56,7 +56,10 @@ pub(super) fn load_extensions_config(extension_catalog: &ExtensionCatalog, confi
             r#type: manifest.r#type.clone().into(),
             pool: PoolConfig { max_size },
             wasm: wasi_config,
-            guest_config: extension_config.config().cloned(),
+            guest_config: extension_config
+                .config()
+                .cloned()
+                .unwrap_or_else(|| toml::Value::Table(Default::default())),
             sdk_version: manifest.sdk_version.clone(),
         });
     }
