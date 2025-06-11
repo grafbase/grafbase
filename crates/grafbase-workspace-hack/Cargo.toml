@@ -38,7 +38,7 @@ clap_builder = { version = "4", default-features = false, features = ["cargo", "
 combine = { version = "4", features = ["tokio"] }
 concurrent-queue = { version = "2" }
 console = { version = "0.15", default-features = false, features = ["ansi-parsing", "unicode-width"] }
-cranelift-bitset = { version = "0.119", default-features = false, features = ["enable-serde"] }
+cranelift-bitset = { version = "0.120", default-features = false, features = ["enable-serde"] }
 criterion = { version = "0.5", features = ["async_tokio", "html_reports"] }
 crossbeam-channel = { version = "0.5" }
 crossbeam-utils = { version = "0.8" }
@@ -97,7 +97,7 @@ pkcs8 = { version = "0.10", default-features = false, features = ["pem", "std"] 
 portable-atomic = { version = "1", features = ["require-cas"] }
 proc-macro2 = { version = "1" }
 prost = { version = "0.13", features = ["prost-derive"] }
-pulley-interpreter = { version = "32", default-features = false, features = ["disas", "interp", "std"] }
+pulley-interpreter = { version = "33", default-features = false, features = ["disas", "interp", "std"] }
 quote = { version = "1" }
 rand-274715c4dabd11b0 = { package = "rand", version = "0.9" }
 rand-c38e5c1d305a1b54 = { package = "rand", version = "0.8", features = ["small_rng"] }
@@ -144,7 +144,7 @@ tungstenite = { version = "0.26", default-features = false, features = ["handsha
 ulid = { version = "1", features = ["serde"] }
 url = { version = "2", features = ["serde"] }
 uuid = { version = "1", features = ["serde", "v4"] }
-wasmparser = { version = "0.228", default-features = false, features = ["component-model", "features", "serde", "simd", "std", "validate"] }
+wasmparser = { version = "0.229", default-features = false, features = ["component-model", "features", "serde", "simd", "std", "validate"] }
 zeroize = { version = "1", features = ["zeroize_derive"] }
 zstd = { version = "0.13", features = ["experimental"] }
 zstd-safe = { version = "7", default-features = false, features = ["arrays", "experimental", "legacy", "std", "zdict_builder"] }
@@ -170,7 +170,7 @@ clap_builder = { version = "4", default-features = false, features = ["cargo", "
 combine = { version = "4", features = ["tokio"] }
 concurrent-queue = { version = "2" }
 console = { version = "0.15", default-features = false, features = ["ansi-parsing", "unicode-width"] }
-cranelift-bitset = { version = "0.119", default-features = false, features = ["enable-serde"] }
+cranelift-bitset = { version = "0.120", default-features = false, features = ["enable-serde"] }
 criterion = { version = "0.5", features = ["async_tokio", "html_reports"] }
 crossbeam-channel = { version = "0.5" }
 crossbeam-utils = { version = "0.8" }
@@ -229,7 +229,7 @@ pkcs8 = { version = "0.10", default-features = false, features = ["pem", "std"] 
 portable-atomic = { version = "1", features = ["require-cas"] }
 proc-macro2 = { version = "1" }
 prost = { version = "0.13", features = ["prost-derive"] }
-pulley-interpreter = { version = "32", default-features = false, features = ["disas", "interp", "std"] }
+pulley-interpreter = { version = "33", default-features = false, features = ["disas", "interp", "std"] }
 quote = { version = "1" }
 rand-274715c4dabd11b0 = { package = "rand", version = "0.9" }
 rand-c38e5c1d305a1b54 = { package = "rand", version = "0.8", features = ["small_rng"] }
@@ -277,7 +277,7 @@ tungstenite = { version = "0.26", default-features = false, features = ["handsha
 ulid = { version = "1", features = ["serde"] }
 url = { version = "2", features = ["serde"] }
 uuid = { version = "1", features = ["serde", "v4"] }
-wasmparser = { version = "0.228", default-features = false, features = ["component-model", "features", "serde", "simd", "std", "validate"] }
+wasmparser = { version = "0.229", default-features = false, features = ["component-model", "features", "serde", "simd", "std", "validate"] }
 zeroize = { version = "1", features = ["zeroize_derive"] }
 zstd = { version = "0.13", features = ["experimental"] }
 zstd-safe = { version = "7", default-features = false, features = ["arrays", "experimental", "legacy", "std", "zdict_builder"] }
@@ -295,7 +295,7 @@ libc = { version = "0.2", features = ["extra_traits"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
-rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["event", "net", "pipe", "process", "procfs", "termios", "time"] }
+rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["event", "fs", "net", "pipe", "process", "time"] }
 rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["event", "fs", "mm", "net", "param", "process", "stdio", "termios", "thread", "time"] }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["timeout"] }
 
@@ -311,7 +311,7 @@ libc = { version = "0.2", features = ["extra_traits"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
-rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["event", "net", "pipe", "process", "procfs", "termios", "time"] }
+rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["event", "fs", "net", "pipe", "process", "time"] }
 rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["event", "fs", "mm", "net", "param", "process", "stdio", "termios", "thread", "time"] }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["timeout"] }
 
@@ -327,7 +327,7 @@ libc = { version = "0.2", features = ["extra_traits"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
-rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["event", "net", "pipe", "process", "procfs", "termios", "time"] }
+rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["event", "fs", "net", "pipe", "process", "time"] }
 rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["event", "fs", "mm", "net", "param", "process", "stdio", "termios", "thread", "time"] }
 spin = { version = "0.9" }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["timeout"] }
@@ -344,7 +344,7 @@ libc = { version = "0.2", features = ["extra_traits"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
-rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["event", "net", "pipe", "process", "procfs", "termios", "time"] }
+rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["event", "fs", "net", "pipe", "process", "time"] }
 rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["event", "fs", "mm", "net", "param", "process", "stdio", "termios", "thread", "time"] }
 spin = { version = "0.9" }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["timeout"] }
@@ -354,26 +354,24 @@ chrono = { version = "0.4" }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
 idna = { version = "1" }
-rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["fs", "net"] }
 spin = { version = "0.9" }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["timeout"] }
 winapi = { version = "0.3", default-features = false, features = ["consoleapi", "errhandlingapi", "fileapi", "handleapi", "impl-default", "knownfolders", "minwinbase", "minwindef", "objbase", "processenv", "processthreadsapi", "profileapi", "shlobj", "synchapi", "timezoneapi", "winbase", "winerror", "winnt", "winuser"] }
-windows-sys-73dcd821b1037cfd = { package = "windows-sys", version = "0.59", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Win32_Globalization", "Win32_NetworkManagement_IpHelper", "Win32_Networking_WinSock", "Win32_Security_Authentication_Identity", "Win32_Security_Credentials", "Win32_Security_Cryptography", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_IO", "Win32_System_Ioctl", "Win32_System_Kernel", "Win32_System_LibraryLoader", "Win32_System_Memory", "Win32_System_Performance", "Win32_System_Pipes", "Win32_System_SystemInformation", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell"] }
-windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Wdk_System_IO", "Win32_Foundation", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_IO", "Win32_System_Pipes", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming"] }
-windows-sys-c8eced492e86ede7 = { package = "windows-sys", version = "0.48", features = ["Win32_Foundation", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Diagnostics_Debug", "Win32_System_Registry", "Win32_System_Time", "Win32_UI_Shell"] }
+windows-sys-73dcd821b1037cfd = { package = "windows-sys", version = "0.59", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Win32_Globalization", "Win32_Networking_WinSock", "Win32_Security_Authentication_Identity", "Win32_Security_Credentials", "Win32_Security_Cryptography", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_IO", "Win32_System_Kernel", "Win32_System_LibraryLoader", "Win32_System_Memory", "Win32_System_Pipes", "Win32_System_SystemInformation", "Win32_System_Threading", "Win32_System_WindowsProgramming", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell"] }
+windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Wdk_System_IO", "Win32_Foundation", "Win32_NetworkManagement_IpHelper", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_IO", "Win32_System_Ioctl", "Win32_System_Kernel", "Win32_System_LibraryLoader", "Win32_System_Performance", "Win32_System_Pipes", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming"] }
+windows-sys-c8eced492e86ede7 = { package = "windows-sys", version = "0.48", features = ["Win32_Foundation", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_Registry", "Win32_System_SystemInformation", "Win32_System_Time", "Win32_UI_Shell"] }
 
 [target.x86_64-pc-windows-msvc.build-dependencies]
 chrono = { version = "0.4" }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
 idna = { version = "1" }
-rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["fs", "net"] }
 spin = { version = "0.9" }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["timeout"] }
 winapi = { version = "0.3", default-features = false, features = ["consoleapi", "errhandlingapi", "fileapi", "handleapi", "impl-default", "knownfolders", "minwinbase", "minwindef", "objbase", "processenv", "processthreadsapi", "profileapi", "shlobj", "synchapi", "timezoneapi", "winbase", "winerror", "winnt", "winuser"] }
-windows-sys-73dcd821b1037cfd = { package = "windows-sys", version = "0.59", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Win32_Globalization", "Win32_NetworkManagement_IpHelper", "Win32_Networking_WinSock", "Win32_Security_Authentication_Identity", "Win32_Security_Credentials", "Win32_Security_Cryptography", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_IO", "Win32_System_Ioctl", "Win32_System_Kernel", "Win32_System_LibraryLoader", "Win32_System_Memory", "Win32_System_Performance", "Win32_System_Pipes", "Win32_System_SystemInformation", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell"] }
-windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Wdk_System_IO", "Win32_Foundation", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_IO", "Win32_System_Pipes", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming"] }
-windows-sys-c8eced492e86ede7 = { package = "windows-sys", version = "0.48", features = ["Win32_Foundation", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Diagnostics_Debug", "Win32_System_Registry", "Win32_System_Time", "Win32_UI_Shell"] }
+windows-sys-73dcd821b1037cfd = { package = "windows-sys", version = "0.59", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Win32_Globalization", "Win32_Networking_WinSock", "Win32_Security_Authentication_Identity", "Win32_Security_Credentials", "Win32_Security_Cryptography", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_IO", "Win32_System_Kernel", "Win32_System_LibraryLoader", "Win32_System_Memory", "Win32_System_Pipes", "Win32_System_SystemInformation", "Win32_System_Threading", "Win32_System_WindowsProgramming", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell"] }
+windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Wdk_System_IO", "Win32_Foundation", "Win32_NetworkManagement_IpHelper", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_IO", "Win32_System_Ioctl", "Win32_System_Kernel", "Win32_System_LibraryLoader", "Win32_System_Performance", "Win32_System_Pipes", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming"] }
+windows-sys-c8eced492e86ede7 = { package = "windows-sys", version = "0.48", features = ["Win32_Foundation", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_Registry", "Win32_System_SystemInformation", "Win32_System_Time", "Win32_UI_Shell"] }
 
 [target.x86_64-unknown-linux-musl.dependencies]
 addr2line = { version = "0.24", default-features = false, features = ["std"] }
@@ -389,7 +387,7 @@ linux-raw-sys-9fbad63c4bcf4a8f = { package = "linux-raw-sys", version = "0.4", d
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
-rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["event", "net", "pipe", "process", "procfs", "termios", "time"] }
+rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["event", "fs", "net", "pipe", "process", "time"] }
 rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["event", "fs", "mm", "net", "param", "process", "stdio", "termios", "thread", "time"] }
 spin = { version = "0.9" }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["timeout"] }
@@ -408,7 +406,7 @@ linux-raw-sys-9fbad63c4bcf4a8f = { package = "linux-raw-sys", version = "0.4", d
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
-rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["event", "net", "pipe", "process", "procfs", "termios", "time"] }
+rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["event", "fs", "net", "pipe", "process", "time"] }
 rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["event", "fs", "mm", "net", "param", "process", "stdio", "termios", "thread", "time"] }
 spin = { version = "0.9" }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["timeout"] }
@@ -427,7 +425,7 @@ linux-raw-sys-9fbad63c4bcf4a8f = { package = "linux-raw-sys", version = "0.4", d
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
-rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["event", "net", "pipe", "process", "procfs", "termios", "time"] }
+rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["event", "fs", "net", "pipe", "process", "time"] }
 rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["event", "fs", "mm", "net", "param", "process", "stdio", "termios", "thread", "time"] }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["timeout"] }
 
@@ -445,7 +443,7 @@ linux-raw-sys-9fbad63c4bcf4a8f = { package = "linux-raw-sys", version = "0.4", d
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
-rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["event", "net", "pipe", "process", "procfs", "termios", "time"] }
+rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["event", "fs", "net", "pipe", "process", "time"] }
 rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["event", "fs", "mm", "net", "param", "process", "stdio", "termios", "thread", "time"] }
 tower-d8f496e17d97b5cb = { package = "tower", version = "0.5", default-features = false, features = ["timeout"] }
 

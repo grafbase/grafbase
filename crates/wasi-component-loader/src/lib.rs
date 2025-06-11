@@ -124,7 +124,7 @@ impl ComponentLoader {
                 let mut linker = Linker::<WasiState>::new(&engine);
 
                 // adds the wasi interfaces to our component
-                wasmtime_wasi::add_to_linker_async(&mut linker)?;
+                wasmtime_wasi::p2::add_to_linker_async(&mut linker)?;
 
                 if networking {
                     // adds the wasi http interfaces to our component
@@ -192,7 +192,7 @@ impl ComponentLoader {
 
     /// Checks if the WebAssembly component implements a specific interface.
     pub fn implements_interface(&self, interface_name: &'static str) -> bool {
-        self.component.export_index(None, interface_name).is_some()
+        self.component.get_export_index(None, interface_name).is_some()
     }
 
     /// Shared cache between component instances.

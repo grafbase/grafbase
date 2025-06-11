@@ -7,7 +7,7 @@ use crate::{
 };
 use engine_schema::Schema;
 use wasmtime::{
-    Engine,
+    CacheConfig, Engine,
     component::{Component, Linker},
 };
 
@@ -24,12 +24,31 @@ impl ExtensionLoader {
         shared: SharedResources,
         config: ExtensionConfig<T>,
     ) -> crate::Result<Self> {
-        let mut engine_config = wasmtime::Config::new();
+        let mut wasm_config = wasmtime::Config::new();
 
-        engine_config.wasm_component_model(true);
-        engine_config.async_support(true);
+        wasm_config.wasm_component_model(true).async_support(true).cache(
+            config
+                .wasm
+                .location
+                .parent()
+                // TODO: Properly expose Wasm cache. This is just a hack for our extensive
+                // extension tests suite... Wasmtime create a thread per cache, so we should just
+                // have one. In extensions test this doesn't matter as there is only one extension
+                // anyway.
+                .filter(|_| std::env::var("LOCAL_EXTENSION_WASM_CACHE").is_ok())
+                .and_then(|parent| {
+                    let dir = parent.join("cache");
+                    if std::fs::create_dir(&dir).is_ok() || std::fs::read_dir(&dir).is_ok() {
+                        let mut cfg = CacheConfig::new();
+                        cfg.with_directory(dir);
+                        wasmtime::Cache::new(cfg).ok()
+                    } else {
+                        None
+                    }
+                }),
+        );
 
-        let engine = Engine::new(&engine_config)?;
+        let engine = Engine::new(&wasm_config)?;
         let component = Component::from_file(&engine, &config.wasm.location)?;
 
         tracing::debug!(
@@ -40,7 +59,7 @@ impl ExtensionLoader {
         let mut linker = Linker::<WasiState>::new(&engine);
 
         // adds the wasi interfaces to our component
-        wasmtime_wasi::add_to_linker_async(&mut linker)?;
+        wasmtime_wasi::p2::add_to_linker_async(&mut linker)?;
 
         if config.wasm.networking {
             // adds the wasi http interfaces to our component
