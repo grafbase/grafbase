@@ -20,6 +20,7 @@ async-trait.workspace = true
 bytes.workspace = true
 engine-schema.workspace = true
 error = { path = "../engine/error", package = "engine-error" }
+event-queue.workspace = true
 extension.workspace = true
 extension-catalog.workspace = true
 fixedbitset.workspace = true

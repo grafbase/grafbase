@@ -310,7 +310,7 @@ async fn authorize_edge_pre_execution_error() {
         field_name: String::new(),
     };
 
-    let context = SharedContext::new(Arc::new(kv), TraceId::INVALID);
+    let context = SharedContext::new(Arc::new(kv), TraceId::INVALID, Default::default());
 
     let value = json!({
         "value": "lol"
@@ -361,7 +361,7 @@ async fn authorize_edge_pre_execution_success() {
         field_name: String::new(),
     };
 
-    let context = SharedContext::new(Arc::new(context), TraceId::INVALID);
+    let context = SharedContext::new(Arc::new(context), TraceId::INVALID, Default::default());
 
     let value = json!({
         "value": "kekw"
@@ -401,7 +401,7 @@ async fn authorize_node_pre_execution_error() {
         type_name: String::new(),
     };
 
-    let context = SharedContext::new(Arc::new(context), TraceId::INVALID);
+    let context = SharedContext::new(Arc::new(context), TraceId::INVALID, Default::default());
 
     let metadata = json!({
         "role": "lol"
@@ -446,7 +446,7 @@ async fn authorize_node_pre_execution_success() {
         type_name: String::new(),
     };
 
-    let context = SharedContext::new(Arc::new(context), TraceId::INVALID);
+    let context = SharedContext::new(Arc::new(context), TraceId::INVALID, Default::default());
 
     let metadata = json!({
         "role": "kekw"
@@ -487,7 +487,7 @@ async fn authorize_parent_edge_post_execution() {
         serde_json::to_string(&json!({ "value": "lol" })).unwrap(),
     ];
 
-    let context = SharedContext::new(Arc::new(context), TraceId::INVALID);
+    let context = SharedContext::new(Arc::new(context), TraceId::INVALID, Default::default());
 
     let metadata = json!({
         "role": "kekw"
@@ -543,7 +543,7 @@ async fn authorize_edge_node_post_execution() {
         serde_json::to_string(&json!({ "value": "lol" })).unwrap(),
     ];
 
-    let context = SharedContext::new(Arc::new(context), TraceId::INVALID);
+    let context = SharedContext::new(Arc::new(context), TraceId::INVALID, Default::default());
 
     let result = hook
         .authorize_edge_node_post_execution(context, definition, nodes, String::new())
@@ -609,7 +609,7 @@ async fn authorize_edge_post_execution() {
         serde_json::to_string(&json!({ "value": "lol" })).unwrap(),
     ];
 
-    let context = SharedContext::new(Arc::new(context), TraceId::INVALID);
+    let context = SharedContext::new(Arc::new(context), TraceId::INVALID, Default::default());
 
     let result = hook
         .authorize_edge_post_execution(
@@ -665,7 +665,7 @@ async fn on_subgraph_request() {
     let mut hook = HooksComponentInstance::new(&loader, access_log).await.unwrap();
     let (context, headers) = hook.on_gateway_request(HashMap::new(), "", headers).await.unwrap();
 
-    let context = SharedContext::new(Arc::new(context), TraceId::INVALID);
+    let context = SharedContext::new(Arc::new(context), TraceId::INVALID, Default::default());
 
     let request = hook
         .on_subgraph_request(
@@ -704,9 +704,7 @@ async fn on_subgraph_request() {
     "#);
 
     let context = HashMap::from_iter([("should-fail".into(), "yes".into())]);
-
-    let context = SharedContext::new(Arc::new(context), TraceId::INVALID);
-
+    let context = SharedContext::new(Arc::new(context), TraceId::INVALID, Default::default());
     let error = hook.on_subgraph_request(context, "dummy", request).await.unwrap_err();
 
     insta::assert_debug_snapshot!(error, @r#"
@@ -735,7 +733,7 @@ async fn response_hooks() {
     let (access_log, receiver) = create_test_access_log();
     let mut hook = HooksComponentInstance::new(&loader, access_log).await.unwrap();
 
-    let context = SharedContext::new(Arc::new(HashMap::new()), TraceId::INVALID);
+    let context = SharedContext::new(Arc::new(HashMap::new()), TraceId::INVALID, Default::default());
 
     let request = ExecutedSubgraphRequest {
         subgraph_name: String::from("kekw"),

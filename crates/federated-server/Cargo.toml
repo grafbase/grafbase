@@ -24,6 +24,7 @@ engine.workspace = true
 engine-auth.workspace = true
 engine-axum.workspace = true
 engine-schema.workspace = true
+event-queue.workspace = true
 futures-lite.workspace = true
 futures-util.workspace = true
 gateway-config.workspace = true

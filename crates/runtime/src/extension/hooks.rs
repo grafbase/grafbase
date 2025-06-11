@@ -4,21 +4,33 @@ use error::ErrorResponse;
 use http::{request, response};
 
 pub trait HooksExtension: Send + Sync + 'static {
-    type Context: Send + Sync + 'static;
+    type Context: Clone + Send + Sync + 'static;
 
-    fn on_request(&self, parts: request::Parts) -> impl Future<Output = Result<request::Parts, ErrorResponse>> + Send;
+    fn new_context(&self) -> Self::Context;
 
-    fn on_response(&self, parts: response::Parts) -> impl Future<Output = Result<response::Parts, String>> + Send;
+    fn on_request(
+        &self,
+        context: Self::Context,
+        parts: request::Parts,
+    ) -> impl Future<Output = Result<request::Parts, ErrorResponse>> + Send;
+
+    fn on_response(
+        &self,
+        context: Self::Context,
+        parts: response::Parts,
+    ) -> impl Future<Output = Result<response::Parts, String>> + Send;
 }
 
 impl HooksExtension for () {
     type Context = ();
 
-    async fn on_request(&self, parts: request::Parts) -> Result<request::Parts, ErrorResponse> {
+    fn new_context(&self) -> Self::Context {}
+
+    async fn on_request(&self, _: Self::Context, parts: request::Parts) -> Result<request::Parts, ErrorResponse> {
         Ok(parts)
     }
 
-    async fn on_response(&self, parts: response::Parts) -> Result<response::Parts, String> {
+    async fn on_response(&self, _: Self::Context, parts: response::Parts) -> Result<response::Parts, String> {
         Ok(parts)
     }
 }

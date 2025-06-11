@@ -58,6 +58,7 @@ impl WasmExtensions {
             .instance_pools
             .get(usize::from(id))
             .ok_or_else(GraphqlError::internal_extension_error)?;
+
         pool.get().await.map_err(|err| {
             tracing::error!("Failed to retrieve extension: {err}");
             GraphqlError::internal_extension_error()

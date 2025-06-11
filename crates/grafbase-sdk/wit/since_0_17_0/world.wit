@@ -18,6 +18,7 @@ world sdk {
     import field-resolver-types;
     import selection-set-resolver-types;
     import event-queue;
+    import shared-context;
 
     export authentication;
     export authorization;
@@ -38,6 +39,5 @@ world sdk {
         // Schema for each subgraph, with relevant data for each extension type.
         schema: list<tuple<string, schema>>,
         configuration: list<u8>,
-        event-queue: event-queue,
     ) -> result<_, string>;
 }

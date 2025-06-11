@@ -12,6 +12,7 @@ use crate::{
         CONTEXT_DELETE_METHOD, CONTEXT_GET_METHOD, CONTEXT_RESOURCE, CONTEXT_SET_METHOD, SHARED_CONTEXT_GET_METHOD,
         SHARED_CONTEXT_RESOURCE, SHARED_CONTEXT_TRACE_ID_METHOD,
     },
+    resources::EventQueue,
     state::WasiState,
 };
 
@@ -28,26 +29,29 @@ pub struct SharedContext {
     pub(crate) authorization_state: AuthorizationState,
     /// A log channel for access logs.
     pub(crate) trace_id: TraceId,
+    pub(crate) event_queue: EventQueue,
 }
 
 // FIXME: Remove me once hooks & extensions context are merged.
 impl Default for SharedContext {
     fn default() -> Self {
         Self {
-            kv: Arc::new(HashMap::new()),
+            kv: Default::default(),
             authorization_state: Default::default(),
             trace_id: TraceId::INVALID,
+            event_queue: Default::default(),
         }
     }
 }
 
 impl SharedContext {
     /// Creates a new shared context.
-    pub fn new(kv: Arc<HashMap<String, String>>, trace_id: TraceId) -> Self {
+    pub fn new(kv: Arc<HashMap<String, String>>, trace_id: TraceId, event_queue: EventQueue) -> Self {
         Self {
             kv,
-            authorization_state: Default::default(),
             trace_id,
+            event_queue,
+            ..Default::default()
         }
     }
 }

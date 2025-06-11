@@ -247,7 +247,13 @@ async fn on_request_hook() {
     let request = Request::builder().uri("https://example.com").body(()).unwrap();
     let (parts, _) = request.into_parts();
 
-    loader.instantiate().await.unwrap().on_request(parts).await.unwrap();
+    loader
+        .instantiate()
+        .await
+        .unwrap()
+        .on_request(Default::default(), parts)
+        .await
+        .unwrap();
 }
 
 #[tokio::test]
@@ -282,5 +288,11 @@ async fn on_response_hook() {
     let response = Response::builder().status(200).body(()).unwrap();
     let (parts, _) = response.into_parts();
 
-    loader.instantiate().await.unwrap().on_response(parts).await.unwrap();
+    loader
+        .instantiate()
+        .await
+        .unwrap()
+        .on_response(Default::default(), parts)
+        .await
+        .unwrap();
 }

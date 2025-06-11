@@ -17,6 +17,7 @@ either.workspace = true
 engine-error.workspace = true
 engine-schema.workspace = true
 enumflags2.workspace = true
+event-queue.workspace = true
 extension-catalog.workspace = true
 futures.workspace = true
 futures-util.workspace = true

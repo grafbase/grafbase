@@ -6,25 +6,25 @@ use runtime::extension::HooksExtension;
 use tower::Layer;
 
 #[derive(Clone)]
-pub struct HooksLayer<Extension> {
-    hooks: Extension,
+pub struct HooksLayer<Hooks> {
+    hooks: Hooks,
 }
 
-impl<Extension> HooksLayer<Extension>
+impl<Hooks> HooksLayer<Hooks>
 where
-    Extension: HooksExtension,
+    Hooks: HooksExtension,
 {
-    pub fn new(hooks: Extension) -> Self {
+    pub fn new(hooks: Hooks) -> Self {
         Self { hooks }
     }
 }
 
-impl<Service, Extension> Layer<Service> for HooksLayer<Extension>
+impl<Service, Hooks> Layer<Service> for HooksLayer<Hooks>
 where
-    Extension: HooksExtension + Clone,
+    Hooks: HooksExtension + Clone,
     Service: Send + Clone,
 {
-    type Service = HooksService<Service, Extension>;
+    type Service = HooksService<Service, Hooks>;
 
     fn layer(&self, inner: Service) -> Self::Service {
         HooksService {
@@ -35,26 +35,16 @@ where
 }
 
 #[derive(Clone)]
-pub struct HooksService<Service, Extension> {
+pub struct HooksService<Service, Hooks> {
     inner: Service,
-    hooks: Extension,
+    hooks: Hooks,
 }
 
-impl<Service, Extension> HooksService<Service, Extension>
-where
-    Extension: HooksExtension + Clone,
-    Service: Send + Clone,
-{
-    pub fn new(inner: Service, hooks: Extension) -> Self {
-        Self { inner, hooks }
-    }
-}
-
-impl<Service, Extension, ReqBody, ResBody> tower::Service<Request<ReqBody>> for HooksService<Service, Extension>
+impl<Service, Hooks, ReqBody, ResBody> tower::Service<Request<ReqBody>> for HooksService<Service, Hooks>
 where
     Service: tower::Service<Request<ReqBody>, Response = Response<ResBody>> + Send + Clone + 'static,
     Service::Future: Send,
-    Extension: HooksExtension + Clone,
+    Hooks: HooksExtension + Clone,
     Service::Error: Display + 'static,
     ReqBody: Body + Send + 'static,
     ResBody: Body + Send + Default + From<Vec<u8>> + 'static,
@@ -70,13 +60,14 @@ where
     fn call(&mut self, req: Request<ReqBody>) -> Self::Future {
         let mut inner = self.inner.clone();
         let hooks = self.hooks.clone();
+        let context = hooks.new_context();
 
         Box::pin(async move {
             let (parts, body) = req.into_parts();
 
             let response_format = crate::error_response::extract_response_format(&parts.headers);
 
-            let parts = match hooks.on_request(parts).await {
+            let parts = match hooks.on_request(context.clone(), parts).await {
                 Ok(parts) => parts,
                 Err(err) => {
                     let error_response = crate::error_response::request_error_response_to_http(response_format, err);
@@ -95,7 +86,7 @@ where
 
             let (parts, body) = response.into_parts();
 
-            let parts = match hooks.on_response(parts).await {
+            let parts = match hooks.on_response(context.clone(), parts).await {
                 Ok(parts) => parts,
                 Err(err) => {
                     tracing::error!("Error in on_response hook: {err}");

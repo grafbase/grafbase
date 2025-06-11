@@ -14,29 +14,49 @@ type InitFn =
 static mut INIT_FN: Option<InitFn> = None;
 static mut EXTENSION: Option<Box<dyn AnyExtension>> = None;
 static mut SUBSCRIPTION: Option<Box<dyn Subscription>> = None;
-static mut EVENT_QUEUE: Option<wit::EventQueue> = None;
+static mut CONTEXT: Option<wit::SharedContext> = None;
 
 /// Initializes the resolver extension with the provided directives using the closure
 /// function created with the `register_extension!` macro.
-pub(super) fn init(
-    subgraph_schemas: Vec<(String, wit::Schema)>,
-    config: Configuration,
-    event_queue: wit::EventQueue,
-) -> Result<(), Error> {
+pub(super) fn init(subgraph_schemas: Vec<(String, wit::Schema)>, config: Configuration) -> Result<(), Error> {
     // Safety: This function is only called from the SDK macro, so we can assume that there is only one caller at a time.
     unsafe {
         let init = INIT_FN.as_ref().expect("Resolver extension not initialized correctly.");
         EXTENSION = Some(init(subgraph_schemas, config)?);
-        EVENT_QUEUE = Some(event_queue);
     }
 
     Ok(())
 }
 
+pub(crate) fn with_context<F, T>(context: wit::SharedContext, f: F) -> T
+where
+    F: FnOnce() -> T,
+{
+    // Safety: This function is only called from extension functions by us.
+    unsafe {
+        CONTEXT = Some(context);
+    }
+
+    // Safety: if this panics, the whole extension will be poisoned.
+    let res = f();
+
+    // Safety: This function is only called from extension functions by us.
+    unsafe {
+        CONTEXT = None;
+    }
+
+    res
+}
+
+pub(crate) fn current_context() -> &'static wit::SharedContext {
+    // SAFETY: We are in a single-threaded environment, this function is internal.
+    unsafe { CONTEXT.as_ref().expect("Context not initialized") }
+}
+
 pub(crate) fn queue_event(name: &str, log: &[u8]) {
-    // SAFETY: This is mutated only on init, and is safe to ref afterwards.
-    if let Some(event_queue) = unsafe { EVENT_QUEUE.as_ref() } {
-        event_queue.push(name, log);
+    // SAFETY: This is mutated only by us before extension is called.
+    if let Some(queue) = unsafe { CONTEXT.as_ref().map(|q| q.event_queue()) } {
+        queue.push(name, log);
     }
 }
 

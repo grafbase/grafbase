@@ -8,6 +8,8 @@
 
 mod events;
 
+use std::sync::Arc;
+
 pub use events::*;
 
 use crossbeam_queue::SegQueue;
@@ -21,9 +23,32 @@ use extension_catalog::{EventFilter, EventFilterType, Extension};
 ///
 /// Events are only collected if an extension is configured and interested in receiving them,
 /// as determined by the event filter configuration.
+#[derive(Debug, Clone)]
 pub struct EventQueue {
+    inner: Arc<InnerQueue>,
+}
+
+#[derive(Debug)]
+struct InnerQueue {
     queue: SegQueue<Event>,
     filter: Option<EventFilter>,
+}
+
+impl Default for InnerQueue {
+    fn default() -> Self {
+        Self {
+            queue: SegQueue::new(),
+            filter: None,
+        }
+    }
+}
+
+impl Default for EventQueue {
+    fn default() -> Self {
+        Self {
+            inner: Arc::new(InnerQueue::default()),
+        }
+    }
 }
 
 impl EventQueue {
@@ -42,7 +67,9 @@ impl EventQueue {
         let filter = hooks.as_ref().and_then(|hooks| hooks.manifest.event_filter);
         let queue = SegQueue::new();
 
-        Self { queue, filter }
+        let inner = InnerQueue { queue, filter };
+
+        Self { inner: Arc::new(inner) }
     }
 
     /// Pushes a GraphQL operation execution event to the queue.
@@ -62,7 +89,7 @@ impl EventQueue {
             return;
         }
 
-        self.queue.push(Event::Operation(builder.build()));
+        self.inner.queue.push(Event::Operation(builder.build()));
     }
 
     /// Pushes a subgraph request event to the queue.
@@ -82,7 +109,7 @@ impl EventQueue {
             return;
         }
 
-        self.queue.push(Event::Subgraph(builder.build()));
+        self.inner.queue.push(Event::Subgraph(builder.build()));
     }
 
     /// Pushes an HTTP request event to the queue.
@@ -102,7 +129,7 @@ impl EventQueue {
             return;
         }
 
-        self.queue.push(Event::Http(builder.build()));
+        self.inner.queue.push(Event::Http(builder.build()));
     }
 
     /// Pushes a custom extension event to the queue.
@@ -122,7 +149,7 @@ impl EventQueue {
             return;
         }
 
-        self.queue.push(Event::Extension(builder.build()));
+        self.inner.queue.push(Event::Extension(builder.build()));
     }
 
     /// Pops an event from the queue.
@@ -134,12 +161,12 @@ impl EventQueue {
     ///
     /// `Some(Event)` if an event was available, `None` if the queue is empty or inactive
     pub fn pop_event(&self) -> Option<Event> {
-        self.queue.pop()
+        self.inner.queue.pop()
     }
 
     /// Checks whether a given event type is allowed by the current filter configuration.
     fn must_keep_event(&self, event_type: EventFilterType) -> bool {
-        match &self.filter {
+        match &self.inner.filter {
             Some(EventFilter::All) => true,
             Some(EventFilter::Types(types)) => types.contains(event_type),
             None => false,
