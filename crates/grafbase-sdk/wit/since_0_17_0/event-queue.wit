@@ -1,16 +1,16 @@
-interface audit-logs {
+interface event-queue {
     use http-client.{http-method};
     use headers.{headers};
 
-    // Represents different types of audit log entries that can be recorded.
-    variant log-entry {
-        // An operation execution audit log entry. Sent right after a GraphQL operation is executed.
+    // Represents different types of events that can be queued.
+    variant event {
+        // A GraphQL operation execution event.
         operation(executed-operation),
-        // A subgraph request execution audit log entry. Sent right after a subgraph request is executed (failing, or not).
+        // A subgraph request execution event.
         subgraph(executed-subgraph-request),
-        // An HTTP request execution audit log entry. Sent right after an HTTP request is executed.
+        // An HTTP request execution event.
         http(executed-http-request),
-        // Extension data for custom audit log entries. Custom data sent from the Grafbase SDK.
+        // Extension event data as raw bytes.
         extension(list<u8>),
     }
 
@@ -118,11 +118,11 @@ interface audit-logs {
         miss,
     }
 
-    resource audit-logs {
-        /// Pushes a new log entry to the end of the request audit logs.
-        push: func(log: list<u8>);
+    resource event-queue {
+        /// Pushes a new event to the end of the request event queue.
+        push: func(name: string, event: list<u8>);
 
-        /// Returns the oldest log entry from the request audit logs.
-        pop: func() -> option<log-entry>;
+        /// Returns the oldest log entry from the request event queue.
+        pop: func() -> option<event>;
     }
 }

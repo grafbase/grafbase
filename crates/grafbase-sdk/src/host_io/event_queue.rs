@@ -1,12 +1,12 @@
-//! Audit logging functionality for tracking and recording system events.
+//! Event queuing functionality for tracking and recording request events.
 //!
-//! This module provides comprehensive audit logging capabilities for tracking various
-//! types of operations and requests within the Grafbase system. It supports logging
+//! This module provides comprehensive event queuing capabilities for tracking various
+//! types of operations and requests within the Grafbase Gateway system. It supports tracking
 //! of GraphQL operations, subgraph requests, HTTP requests, and custom extension logs.
 //!
 //! # Overview
 //!
-//! The audit logging system is designed to capture detailed information about:
+//! The event queue system is designed to capture detailed information about:
 //! - GraphQL operation execution (including timing, caching, and status)
 //! - Subgraph request details (including retries, caching, and response times)
 //! - HTTP request execution
@@ -15,43 +15,44 @@
 //! # Example
 //!
 //! ```no_run
-//! use grafbase_sdk::host_io::audit_logs;
+//! use grafbase_sdk::host_io::event_queue;
 //! use serde::Serialize;
 //!
 //! #[derive(Serialize)]
-//! struct CustomAuditLog {
+//! struct CustomEvent {
 //!     user_id: String,
 //!     action: String,
 //!     timestamp: u64,
 //! }
 //!
-//! // Send a custom audit log
-//! let log = CustomAuditLog {
+//! // Send a custom event
+//! let log = CustomEvent {
 //!     user_id: "user123".to_string(),
 //!     action: "query_execution".to_string(),
 //!     timestamp: 1234567890,
 //! };
 //!
-//! audit_logs::send(log).expect("Failed to send audit log");
+//! event_queue::send("custom_event", log).expect("Failed to send event");
 //! ```
 //!
 //! # Log Aggregation
 //!
-//! By itself, audit log calls do nothing in the Grafbase Gateway. You must implement
-//! an [`AuditExtension`] type of an extension, which will be called after a response
-//! is sent back to the user.
+//! By itself, event queue calls do nothing in the Grafbase Gateway. You must implement
+//! an [`Hosts`] type of an extension with event filtering, which will be called after
+//! a response is sent back to the user.
 
 use std::time::Duration;
 
 use crate::{SdkError, wit};
 
-/// Sends an audit log entry to the system.
+/// Sends an event queue entry to the system.
 ///
-/// This function serializes the provided log data and sends it to the audit logging
+/// This function serializes the provided log data and sends it to the event queue
 /// system. The log data can be any type that implements `serde::Serialize`.
 ///
 /// # Arguments
 ///
+/// * `event_name` - The name of the event to be logged. Used in event filtering.
 /// * `log` - The log data to be sent. Must implement `serde::Serialize`.
 ///
 /// # Returns
@@ -62,7 +63,7 @@ use crate::{SdkError, wit};
 ///
 /// ```no_run
 /// use serde::Serialize;
-/// use grafbase_sdk::host_io::audit_logs;
+/// use grafbase_sdk::host_io::event_queue;
 ///
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// #[derive(Serialize)]
@@ -76,44 +77,44 @@ use crate::{SdkError, wit};
 ///     user_id: "user123".to_string(),
 /// };
 ///
-/// audit_logs::send(action)?;
+/// event_queue::send("user_action", action)?;
 /// # Ok(())
 /// # }
 /// ```
-pub fn send<T>(log: T) -> Result<(), SdkError>
+pub fn send<T>(event_name: &str, log: T) -> Result<(), SdkError>
 where
     T: serde::Serialize,
 {
     let log = minicbor_serde::to_vec(log)?;
-    crate::component::log_audit(&log);
+    crate::component::queue_event(event_name, &log);
 
     Ok(())
 }
 
-/// A queue of audit logs per request from the engine.
+/// A queue of event queue per request from the engine.
 ///
-/// This struct provides access to audit logs that have been generated during
+/// This struct provides access to event queue that have been generated during
 /// request processing. Logs can be retrieved and processed using the `pop` method.
-pub struct AuditLogs(wit::AuditLogs);
+pub struct EventQueue(wit::EventQueue);
 
-impl From<wit::AuditLogs> for AuditLogs {
-    fn from(value: wit::AuditLogs) -> Self {
+impl From<wit::EventQueue> for EventQueue {
+    fn from(value: wit::EventQueue) -> Self {
         Self(value)
     }
 }
 
-impl AuditLogs {
+impl EventQueue {
     /// Retrieves and removes the next log entry from the queue.
-    pub fn pop(&self) -> Option<LogEntry> {
+    pub fn pop(&self) -> Option<Event> {
         self.0.pop().map(Into::into)
     }
 }
 
-/// Represents different types of audit log entries.
+/// Represents different types of event queue entries.
 ///
 /// This enum categorizes the various types of operations and requests that can be
-/// logged in the audit system.
-pub enum LogEntry {
+/// logged in the event queue system.
+pub enum Event {
     /// A GraphQL operation that was executed.
     Operation(ExecutedOperation),
     /// A request made to a subgraph.
@@ -124,13 +125,13 @@ pub enum LogEntry {
     Extension(ExtensionLogEntry),
 }
 
-impl From<wit::LogEntry> for LogEntry {
-    fn from(value: wit::LogEntry) -> Self {
+impl From<wit::Event> for Event {
+    fn from(value: wit::Event) -> Self {
         match value {
-            wit::LogEntry::Operation(executed_operation) => Self::Operation(executed_operation.into()),
-            wit::LogEntry::Subgraph(executed_subgraph_request) => Self::Subgraph(executed_subgraph_request.into()),
-            wit::LogEntry::Http(executed_http_request) => Self::Http(executed_http_request.into()),
-            wit::LogEntry::Extension(items) => Self::Extension(ExtensionLogEntry(items)),
+            wit::Event::Operation(executed_operation) => Self::Operation(executed_operation.into()),
+            wit::Event::Subgraph(executed_subgraph_request) => Self::Subgraph(executed_subgraph_request.into()),
+            wit::Event::Http(executed_http_request) => Self::Http(executed_http_request.into()),
+            wit::Event::Extension(items) => Self::Extension(ExtensionLogEntry(items)),
         }
     }
 }
@@ -386,7 +387,7 @@ impl From<wit::ExecutedHttpRequest> for ExecutedHttpRequest {
 
 /// Represents a custom extension log entry with serialized data.
 ///
-/// Extension logs allow custom data to be included in the audit log stream.
+/// Extension logs allow custom data to be included in the event queue stream.
 /// The data is serialized using CBOR format and can be deserialized into
 /// the appropriate type.
 pub struct ExtensionLogEntry(Vec<u8>);
@@ -407,7 +408,7 @@ impl ExtensionLogEntry {
     ///
     /// ```ignore
     /// use serde::Deserialize;
-    /// use grafbase_sdk::host_io::audit_logs::ExtensionLogEntry;
+    /// use grafbase_sdk::host_io::event_queue::Event;
     ///
     /// #[derive(Deserialize)]
     /// struct CustomLog {

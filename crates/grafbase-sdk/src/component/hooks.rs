@@ -10,7 +10,7 @@ impl wit::HooksGuest for Component {
             .map_err(Into::into)
     }
 
-    fn on_response(status: u16, headers: wit::Headers, audit_logs: wit::AuditLogs) -> Result<(), String> {
+    fn on_response(status: u16, headers: wit::Headers, event_queue: wit::EventQueue) -> Result<(), String> {
         let status = http::StatusCode::from_u16(status)
             .expect("we converted this from http::StatusCode in the host, this cannot be invalid");
 
@@ -18,6 +18,6 @@ impl wit::HooksGuest for Component {
 
         state::extension()
             .map_err(|e| e.message)?
-            .on_response(status, &mut headers, audit_logs.into())
+            .on_response(status, &mut headers, event_queue.into())
     }
 }

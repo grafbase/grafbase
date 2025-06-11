@@ -1,6 +1,6 @@
 use grafbase_sdk::{
     HooksExtension,
-    host_io::audit_logs::AuditLogs,
+    host_io::event_queue::EventQueue,
     host_io::http::{HeaderValue, Method, StatusCode},
     types::{Configuration, Error, ErrorResponse, GatewayHeaders},
 };
@@ -40,7 +40,7 @@ impl HooksExtension for Hooks {
         Ok(())
     }
 
-    fn on_response(&mut self, _: StatusCode, headers: &mut GatewayHeaders, _: AuditLogs) -> Result<(), String> {
+    fn on_response(&mut self, _: StatusCode, headers: &mut GatewayHeaders, _: EventQueue) -> Result<(), String> {
         if let Some(ref header_test) = self.config.outgoing_header {
             headers.append(
                 header_test.key.as_str(),

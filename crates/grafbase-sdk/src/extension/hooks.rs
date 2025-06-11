@@ -1,7 +1,7 @@
 use crate::{
     component::AnyExtension,
     host_io::{
-        audit_logs::AuditLogs,
+        event_queue::EventQueue,
         http::{Method, StatusCode},
     },
     types::{Configuration, Error, ErrorResponse, GatewayHeaders},
@@ -20,7 +20,7 @@ use crate::{
 /// use grafbase_sdk::{
 ///     HooksExtension,
 ///     types::{GatewayHeaders, Configuration, Error, ErrorResponse},
-///     host_io::audit_logs::AuditLogs,
+///     host_io::event_queue::EventQueue,
 /// };
 ///
 /// #[derive(HooksExtension)]
@@ -50,7 +50,7 @@ use crate::{
 ///         &mut self,
 ///         status: http::StatusCode,
 ///         headers: &mut GatewayHeaders,
-///         audit_logs: AuditLogs,
+///         event_queue: EventQueue,
 ///     ) -> Result<(), String> {
 ///         // Implement your response hook logic here.
 ///         Ok(())
@@ -103,7 +103,7 @@ pub trait HooksExtension: Sized + 'static {
         &mut self,
         status: http::StatusCode,
         headers: &mut GatewayHeaders,
-        audit_logs: AuditLogs,
+        event_queue: EventQueue,
     ) -> Result<(), String>;
 }
 
@@ -120,9 +120,9 @@ pub fn register<T: HooksExtension>() {
             &mut self,
             status: StatusCode,
             headers: &mut GatewayHeaders,
-            audit_logs: AuditLogs,
+            event_queue: EventQueue,
         ) -> Result<(), String> {
-            HooksExtension::on_response(&mut self.0, status, headers, audit_logs)
+            HooksExtension::on_response(&mut self.0, status, headers, event_queue)
         }
     }
 

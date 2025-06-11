@@ -9,12 +9,12 @@ mod state;
 
 use crate::{
     types::Configuration,
-    wit::{AuditLogs, Error, ErrorResponse, Guest, Schema},
+    wit::{Error, ErrorResponse, EventQueue, Guest, Schema},
 };
 
 pub use error::SdkError;
 pub(crate) use extension::AnyExtension;
-pub(crate) use state::{log_audit, register_extension};
+pub(crate) use state::{queue_event, register_extension};
 
 pub(crate) struct Component;
 
@@ -22,10 +22,10 @@ impl Guest for Component {
     fn init(
         subgraph_schemas: Vec<(String, Schema)>,
         configuration: Vec<u8>,
-        audit_logs: AuditLogs,
+        event_queue: EventQueue,
     ) -> Result<(), String> {
         let config = Configuration::new(configuration);
-        state::init(subgraph_schemas, config, audit_logs).map_err(|e| e.to_string())
+        state::init(subgraph_schemas, config, event_queue).map_err(|e| e.to_string())
     }
 }
 
