@@ -14,29 +14,29 @@ type InitFn =
 static mut INIT_FN: Option<InitFn> = None;
 static mut EXTENSION: Option<Box<dyn AnyExtension>> = None;
 static mut SUBSCRIPTION: Option<Box<dyn Subscription>> = None;
-static mut AUDIT_LOGS: Option<wit::AuditLogs> = None;
+static mut EVENT_QUEUE: Option<wit::EventQueue> = None;
 
 /// Initializes the resolver extension with the provided directives using the closure
 /// function created with the `register_extension!` macro.
 pub(super) fn init(
     subgraph_schemas: Vec<(String, wit::Schema)>,
     config: Configuration,
-    audit_logs: wit::AuditLogs,
+    event_queue: wit::EventQueue,
 ) -> Result<(), Error> {
     // Safety: This function is only called from the SDK macro, so we can assume that there is only one caller at a time.
     unsafe {
         let init = INIT_FN.as_ref().expect("Resolver extension not initialized correctly.");
         EXTENSION = Some(init(subgraph_schemas, config)?);
-        AUDIT_LOGS = Some(audit_logs);
+        EVENT_QUEUE = Some(event_queue);
     }
 
     Ok(())
 }
 
-pub(crate) fn log_audit(log: &[u8]) {
+pub(crate) fn queue_event(name: &str, log: &[u8]) {
     // SAFETY: This is mutated only on init, and is safe to ref afterwards.
-    if let Some(audit_logs) = unsafe { AUDIT_LOGS.as_ref() } {
-        audit_logs.push(log);
+    if let Some(event_queue) = unsafe { EVENT_QUEUE.as_ref() } {
+        event_queue.push(name, log);
     }
 }
 

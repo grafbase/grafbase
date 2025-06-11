@@ -17,7 +17,7 @@ world sdk {
     import resolver-types;
     import field-resolver-types;
     import selection-set-resolver-types;
-    import audit-logs;
+    import event-queue;
 
     export authentication;
     export authorization;
@@ -26,7 +26,7 @@ world sdk {
     export hooks;
 
     use schema.{schema};
-    use audit-logs.{audit-logs};
+    use event-queue.{event-queue};
 
     // The extension registration function. Must be called before initialization.
     export register-extension: func();
@@ -38,6 +38,6 @@ world sdk {
         // Schema for each subgraph, with relevant data for each extension type.
         schema: list<tuple<string, schema>>,
         configuration: list<u8>,
-        audit-logs: audit-logs,
+        event-queue: event-queue,
     ) -> result<_, string>;
 }

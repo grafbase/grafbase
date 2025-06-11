@@ -1,6 +1,6 @@
 use crate::{
     extension::field_resolver::Subscription,
-    host_io::audit_logs::AuditLogs,
+    host_io::event_queue::EventQueue,
     types::{
         ArgumentValues, AuthorizationDecisions, Data, Error, ErrorResponse, Field, FieldDefinitionDirective,
         FieldInputs, FieldOutputs, GatewayHeaders, QueryElements, ResponseElements, SubgraphHeaders, Token,
@@ -85,7 +85,7 @@ pub(crate) trait AnyExtension {
         &mut self,
         status: http::StatusCode,
         headers: &mut GatewayHeaders,
-        audit_logs: AuditLogs,
+        event_queue: EventQueue,
     ) -> Result<(), String> {
         Err("Hooks extension not initialized correctly.".to_string())
     }
