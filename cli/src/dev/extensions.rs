@@ -124,6 +124,7 @@ mod tests {
             license: None,
             readme: None,
             permissions: Default::default(),
+            event_filter: None,
         }
         .into_versioned();
 
