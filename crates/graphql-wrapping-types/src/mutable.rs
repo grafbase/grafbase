@@ -11,7 +11,7 @@ impl MutableWrapping {
     }
 
     pub fn is_required(&self) -> bool {
-        self.inner.is_required()
+        self.inner.is_non_null()
     }
 
     pub fn pop_outermost_list_wrapping(&mut self) -> Option<ListWrapping> {

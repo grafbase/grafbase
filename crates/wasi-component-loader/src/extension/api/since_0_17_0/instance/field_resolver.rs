@@ -5,9 +5,10 @@ use runtime::extension::Data;
 use crate::{
     Error,
     extension::{FieldResolverExtensionInstance, InputList, api::wit::FieldDefinitionDirective},
-    resources::{Headers, Lease},
+    resources::Lease,
 };
 
+#[allow(unused_variables)]
 impl FieldResolverExtensionInstance for super::ExtensionInstanceSince0_17_0 {
     fn resolve_field<'a>(
         &'a mut self,
@@ -16,24 +17,7 @@ impl FieldResolverExtensionInstance for super::ExtensionInstanceSince0_17_0 {
         directive: FieldDefinitionDirective<'a>,
         inputs: InputList,
     ) -> BoxFuture<'a, Result<Vec<Result<Data, GraphqlError>>, Error>> {
-        Box::pin(async move {
-            // Futures may be canceled, so we pro-actively mark the instance as poisoned until proven
-            // otherwise.
-            self.poisoned = true;
-
-            let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
-            let inputs = inputs.0.iter().map(Vec::as_slice).collect::<Vec<_>>();
-
-            let result = self
-                .inner
-                .grafbase_sdk_field_resolver()
-                .call_resolve_field(&mut self.store, headers, subgraph_name, directive, &inputs)
-                .await?;
-
-            self.poisoned = false;
-
-            Ok(result?.into())
-        })
+        Box::pin(async { unreachable!("Not supported by this SDK") })
     }
 
     fn subscription_key<'a>(
@@ -42,32 +26,7 @@ impl FieldResolverExtensionInstance for super::ExtensionInstanceSince0_17_0 {
         subgraph_name: &'a str,
         directive: FieldDefinitionDirective<'a>,
     ) -> BoxFuture<'a, Result<(Lease<http::HeaderMap>, Option<Vec<u8>>), Error>> {
-        Box::pin(async move {
-            // Futures may be canceled, so we pro-actively mark the instance as poisoned until proven
-            // otherwise.
-            self.poisoned = true;
-
-            let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
-            let headers_rep = headers.rep();
-
-            let result = self
-                .inner
-                .grafbase_sdk_field_resolver()
-                .call_subscription_key(&mut self.store, headers, subgraph_name, directive)
-                .await?;
-
-            let headers = self
-                .store
-                .data_mut()
-                .take_resource::<Headers>(headers_rep)?
-                .into_lease()
-                .unwrap();
-
-            self.poisoned = false;
-
-            let key = result?;
-            Ok((headers, key))
-        })
+        Box::pin(async { unreachable!("Not supported by this SDK") })
     }
 
     fn resolve_subscription<'a>(
@@ -76,42 +35,12 @@ impl FieldResolverExtensionInstance for super::ExtensionInstanceSince0_17_0 {
         subgraph_name: &'a str,
         directive: FieldDefinitionDirective<'a>,
     ) -> BoxFuture<'a, Result<(), Error>> {
-        Box::pin(async move {
-            // Futures may be canceled, so we pro-actively mark the instance as poisoned until proven
-            // otherwise.
-            self.poisoned = true;
-
-            let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
-
-            let result = self
-                .inner
-                .grafbase_sdk_field_resolver()
-                .call_resolve_subscription(&mut self.store, headers, subgraph_name, directive)
-                .await?;
-
-            self.poisoned = false;
-
-            result.map_err(Into::into)
-        })
+        Box::pin(async { unreachable!("Not supported by this SDK") })
     }
 
-    fn resolve_next_subscription_item(
+    fn field_resolver_resolve_next_subscription_item(
         &mut self,
     ) -> BoxFuture<'_, Result<Option<Vec<Result<Data, GraphqlError>>>, Error>> {
-        Box::pin(async move {
-            // Futures may be canceled, so we pro-actively mark the instance as poisoned until proven
-            // otherwise.
-            self.poisoned = true;
-
-            let result = self
-                .inner
-                .grafbase_sdk_field_resolver()
-                .call_resolve_next_subscription_item(&mut self.store)
-                .await?;
-
-            self.poisoned = false;
-
-            Ok(result?.map(Into::into))
-        })
+        Box::pin(async { unreachable!("Not supported by this SDK") })
     }
 }

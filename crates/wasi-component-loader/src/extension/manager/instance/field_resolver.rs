@@ -46,5 +46,7 @@ pub(crate) trait FieldResolverExtensionInstance {
         directive: FieldDefinitionDirective<'a>,
     ) -> BoxFuture<'a, Result<(), Error>>;
 
-    fn resolve_next_subscription_item(&mut self) -> BoxFuture<'_, Result<Option<SubscriptionItem>, Error>>;
+    fn field_resolver_resolve_next_subscription_item(
+        &mut self,
+    ) -> BoxFuture<'_, Result<Option<SubscriptionItem>, Error>>;
 }

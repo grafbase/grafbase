@@ -1,5 +1,5 @@
 use error::GraphqlError;
-use runtime::extension::Data;
+use runtime::extension::{Data, Response};
 use serde::{
     Deserializer,
     de::{DeserializeSeed as _, IgnoredAny, SeqAccess, Unexpected, Visitor},
@@ -19,8 +19,8 @@ impl<'ctx, 'parent> SeedState<'ctx, 'parent> {
         &self,
         parent_objects: ParentObjects,
         batched_field_results: impl IntoIterator<
-            IntoIter: ExactSizeIterator<Item = (SubgraphField<'ctx>, Result<Data, GraphqlError>)>,
-            Item = (SubgraphField<'ctx>, Result<Data, GraphqlError>),
+            IntoIter: ExactSizeIterator<Item = (SubgraphField<'ctx>, Response)>,
+            Item = (SubgraphField<'ctx>, Response),
         >,
     ) where
         ParentObjects: IntoIterator<
@@ -33,15 +33,18 @@ impl<'ctx, 'parent> SeedState<'ctx, 'parent> {
         let mut batch_response_fields =
             vec![Vec::with_capacity(batched_field_results.len()); parent_objects.clone().into_iter().len()];
 
-        for (partition_field, result) in batched_field_results {
+        for (partition_field, response) in batched_field_results {
             let field = object_shape
                 .fields()
                 .find(|field_shape| field_shape.as_ref().id == partition_field.id)
                 .unwrap();
             let mut parents = parent_objects.clone().into_iter().zip(batch_response_fields.iter_mut());
 
-            let err = match result {
-                Ok(data) => {
+            let errors = match response {
+                Response {
+                    data: Some(data),
+                    mut errors,
+                } => {
                     let seed = BatchFieldsSeed {
                         state: self,
                         parents: &mut parents,
@@ -57,20 +60,25 @@ impl<'ctx, 'parent> SeedState<'ctx, 'parent> {
                     };
 
                     match result {
-                        Ok(true) => continue,
-                        Ok(false) => GraphqlError::invalid_subgraph_response(),
+                        Ok(true) => {}
+                        Ok(false) => {
+                            errors.push(GraphqlError::invalid_subgraph_response());
+                        }
                         Err(err) => {
                             tracing::error!(
                                 "Deserialization failure of for the batch field '{}': {err}",
                                 field.partition_field().definition()
                             );
-                            err.into()
+                            errors.push(err.into());
                         }
                     }
+                    errors
                 }
-                Err(err) => err,
+                Response { data: None, errors } => errors,
             };
-            write_field_error(self, field, parents, err);
+            if !errors.is_empty() {
+                write_field_errors(self, field, parents, errors);
+            }
         }
 
         let ctx = ConcreteShapeFieldsContext::new(self, object_shape);
@@ -81,30 +89,36 @@ impl<'ctx, 'parent> SeedState<'ctx, 'parent> {
     }
 }
 
-fn write_field_error<'ctx, 'parent, 'a>(
+fn write_field_errors<'ctx, 'parent, 'a>(
     state: &SeedState<'ctx, 'parent>,
     field: FieldShape<'ctx>,
     mut parents: impl Iterator<Item = (&'parent ResponseObjectRef, &'a mut Vec<ResponseObjectField>)>,
-    err: GraphqlError,
+    errors: Vec<GraphqlError>,
 ) {
     let key = field.key();
     if key.query_position.is_some() {
         let field = field.as_ref();
         let mut resp = state.response.borrow_mut();
-        if field.wrapping.is_required() {
-            let mut err = Some(err);
+        if field.wrapping.is_non_null() {
+            if let Some((parent_object, response_fields)) = parents.next() {
+                response_fields.push(ResponseObjectField {
+                    key,
+                    value: ResponseValue::Unexpected,
+                });
+                resp.propagate_null_parent_path(&parent_object.path);
+                for err in errors {
+                    resp.errors.push(
+                        err.with_path((parent_object.path.as_slice(), key))
+                            .with_location(field.id.walk(state).location()),
+                    );
+                }
+            }
             for (parent_object, response_fields) in parents {
                 response_fields.push(ResponseObjectField {
                     key,
                     value: ResponseValue::Unexpected,
                 });
                 resp.propagate_null_parent_path(&parent_object.path);
-                if let Some(err) = err.take() {
-                    resp.errors.push(
-                        err.with_path((parent_object.path.as_slice(), key))
-                            .with_location(field.id.walk(state).location()),
-                    );
-                }
             }
         } else {
             if let Some((parent_object, response_fields)) = parents.next() {
@@ -112,10 +126,12 @@ fn write_field_error<'ctx, 'parent, 'a>(
                     key,
                     value: ResponseValue::Null,
                 });
-                resp.errors.push(
-                    err.with_path((parent_object.path.as_slice(), key))
-                        .with_location(field.id.walk(state).location()),
-                );
+                for err in errors {
+                    resp.errors.push(
+                        err.with_path((parent_object.path.as_slice(), key))
+                            .with_location(field.id.walk(state).location()),
+                    );
+                }
             }
             for (_, response_fields) in parents {
                 response_fields.push(ResponseObjectField {
@@ -212,7 +228,7 @@ where
                             .with_path((parent_object.path.as_slice(), key))
                             .with_location(field.id.walk(state).location()),
                     );
-                    if field.wrapping.is_required() {
+                    if field.wrapping.is_non_null() {
                         resp.propagate_null_parent_path(&parent_object.path);
                         response_fields.push(ResponseObjectField {
                             key,

@@ -1,4 +1,4 @@
-use engine_schema::{Schema, SubgraphId, TypeDefinition, TypeSystemDirective};
+use engine_schema::{ResolverDefinitionVariant, Schema, SubgraphId, TypeDefinition, TypeSystemDirective};
 use extension_catalog::ExtensionId;
 
 use crate::{cbor, extension::api::since_0_15_0::wit::schema as ws};
@@ -40,9 +40,10 @@ pub fn create_complete_subgraph_schemas(schema: &Schema, extension_id: Extension
         let mut ids = schema
             .resolver_definitions()
             .filter_map(|resolver| match resolver.variant() {
-                engine_schema::ResolverDefinitionVariant::Extension(res) if res.extension_id == extension_id => {
+                ResolverDefinitionVariant::SelectionSetResolverExtension(res) if res.extension_id == extension_id => {
                     Some(res.subgraph_id)
                 }
+                ResolverDefinitionVariant::Extension(res) if res.extension_id == extension_id => Some(res.subgraph_id),
                 _ => None,
             })
             .collect::<Vec<_>>();

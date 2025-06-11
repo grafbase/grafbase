@@ -1,5 +1,5 @@
 use error::GraphqlError;
-use runtime::extension::Data;
+use runtime::extension::{Data, Response};
 use serde::de::DeserializeSeed as _;
 
 use crate::{
@@ -16,12 +16,12 @@ impl<'ctx, 'parent> SeedState<'ctx, 'parent> {
         &self,
         parent_objects: &'parent ParentObjectSet,
         fields_count: usize,
-        field_results: impl IntoIterator<Item = (DataOrLookupFieldId, ParentObjectId, Result<Data, GraphqlError>)>,
+        field_results: impl IntoIterator<Item = (DataOrLookupFieldId, ParentObjectId, Response)>,
     ) {
         let object_shape = self.root_shape.concrete_shape();
         let mut batch_response_fields = vec![Vec::with_capacity(fields_count); parent_objects.len()];
 
-        for (partition_field_id, parent_object_id, result) in field_results {
+        for (partition_field_id, parent_object_id, response) in field_results {
             let field = object_shape
                 .fields()
                 .find(|field_shape| field_shape.as_ref().id == partition_field_id)
@@ -41,8 +41,11 @@ impl<'ctx, 'parent> SeedState<'ctx, 'parent> {
                 field: field.as_ref(),
                 wrapping: field.wrapping.to_mutable(),
             };
-            match result {
-                Ok(data) => {
+            match response {
+                Response {
+                    data: Some(data),
+                    errors,
+                } => {
                     let result = match &data {
                         Data::Json(bytes) => seed
                             .deserialize(&mut sonic_rs::Deserializer::from_slice(bytes))
@@ -77,20 +80,48 @@ impl<'ctx, 'parent> SeedState<'ctx, 'parent> {
                             }
                         }
                     };
-                }
-                Err(err) => {
-                    response_fields.push(ResponseObjectField {
-                        key,
-                        value: ResponseValue::Unexpected,
-                    });
+
                     if key.query_position.is_some() {
                         let mut resp = self.response.borrow_mut();
-                        let path = self.path();
-                        resp.propagate_null(&path);
-                        resp.errors.push(
-                            err.with_path(self.path())
-                                .with_location(field.partition_field().location()),
-                        );
+                        for err in errors {
+                            resp.errors.push(
+                                err.with_path(self.path())
+                                    .with_location(field.partition_field().location()),
+                            );
+                        }
+                    }
+                }
+                Response { data: None, errors } => {
+                    if field.wrapping.is_nullable() {
+                        response_fields.push(ResponseObjectField {
+                            key,
+                            value: ResponseValue::Null,
+                        });
+                        if key.query_position.is_some() {
+                            let mut resp = self.response.borrow_mut();
+                            for err in errors {
+                                resp.errors.push(
+                                    err.with_path(self.path())
+                                        .with_location(field.partition_field().location()),
+                                );
+                            }
+                        }
+                    } else {
+                        response_fields.push(ResponseObjectField {
+                            key,
+                            value: ResponseValue::Unexpected,
+                        });
+                        if key.query_position.is_some() {
+                            let mut resp = self.response.borrow_mut();
+                            let path = self.path();
+                            resp.propagate_null(&path);
+                            for err in errors {
+                                resp.errors.push(
+                                    err.with_path(self.path())
+                                        .with_location(field.partition_field().location()),
+                                );
+                            }
+                        }
                     }
                 }
             };

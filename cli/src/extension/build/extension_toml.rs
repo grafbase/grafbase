@@ -22,6 +22,7 @@ pub struct ExtensionTomlHooks {
 pub struct ExtensionTomlDirectives {
     pub definitions: Option<String>,
     pub field_resolvers: Option<Vec<String>>,
+    pub resolvers: Option<Vec<String>>,
     pub authorization: Option<Vec<String>>,
 }
 

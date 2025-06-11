@@ -447,7 +447,7 @@ impl<'ctx> ConcreteShapeFieldsContext<'ctx, '_, '_> {
                     resp.errors
                         .push_query_error(error_id, location, (&path, field_shape.response_key));
 
-                    if !propagated && field_shape.wrapping.is_required() {
+                    if !propagated && field_shape.wrapping.is_non_null() {
                         propagated = true;
                         resp.propagate_null(&path);
                     }
@@ -479,7 +479,7 @@ impl<'ctx> ConcreteShapeFieldsContext<'ctx, '_, '_> {
                 }
                 let key = field_shape.key();
                 if !response_fields[0..n].iter().any(|field| field.key == key) {
-                    if field_shape.wrapping.is_required() {
+                    if field_shape.wrapping.is_non_null() {
                         // If part of the query fields the user requested. We don't propagate null
                         // for extra fields.
                         if key.query_position.is_some() {
@@ -547,7 +547,7 @@ impl<'ctx> ConcreteShapeFieldsContext<'ctx, '_, '_> {
                             let path = (parent_path, local_path.as_slice());
                             resp.errors
                                 .push_query_error(error_id, location, (&path, field_shape.response_key));
-                            if field_shape.wrapping.is_required() {
+                            if field_shape.wrapping.is_non_null() {
                                 resp.propagate_null(&path);
                             }
                         }

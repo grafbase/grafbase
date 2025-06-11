@@ -289,12 +289,12 @@ impl HttpRequestBuilder {
     /// * `body` - The data to be serialized into JSON format and set as the body of the request.
     ///
     /// This method constructs a new `HttpRequest` with a JSON payload, returning it for execution.
-    pub fn json<T: Serialize + ?Sized>(mut self, body: &T) -> HttpRequest {
+    pub fn json<T: Serialize>(mut self, body: T) -> HttpRequest {
         self.0
             .headers
             .push(("Content-Type".to_string(), "application/json".to_string()));
 
-        self.body(serde_json::to_vec(body).unwrap())
+        self.body(serde_json::to_vec(&body).unwrap())
     }
 
     /// Sets a form-encoded body for the HTTP request and adds the appropriate `Content-Type` header.
@@ -308,13 +308,13 @@ impl HttpRequestBuilder {
     /// * `body` - The data to be serialized into form-urlencoded format and set as the body of the request.
     ///
     /// This method constructs a new `HttpRequest` with a URL-encoded payload, returning it for execution.
-    pub fn form<T: Serialize + ?Sized>(mut self, body: &T) -> HttpRequest {
+    pub fn form<T: Serialize>(mut self, body: T) -> HttpRequest {
         self.0.headers.push((
             "Content-Type".to_string(),
             "application/x-www-form-urlencoded".to_string(),
         ));
 
-        self.body(serde_urlencoded::to_string(body).unwrap().into_bytes())
+        self.body(serde_urlencoded::to_string(&body).unwrap().into_bytes())
     }
 
     /// Sets a raw byte array as the body for the HTTP request.
@@ -387,6 +387,11 @@ impl HttpResponse {
     /// Returns the body of the HTTP response.
     pub fn body(&self) -> &[u8] {
         &self.0.body
+    }
+
+    /// Converts the HTTP response body into a `Vec<u8>`.
+    pub fn into_bytes(self) -> Vec<u8> {
+        self.0.body
     }
 
     /// Attempts to convert the HTTP response body into a UTF-8 encoded `String`.

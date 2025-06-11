@@ -12,7 +12,7 @@ use crate::{
 };
 
 impl SelectionSetResolverExtensionInstance for super::ExtensionInstanceSince0_16_0 {
-    fn prepare<'a>(
+    fn selection_set_resolver_prepare<'a>(
         &'a mut self,
         subgraph_name: &'a str,
         field_id: FieldId,

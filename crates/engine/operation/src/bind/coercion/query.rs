@@ -299,7 +299,7 @@ impl<'schema> QueryValueCoercionContext<'_, 'schema, '_> {
                     self.value_path.pop();
                 } else if let Some(default_value_id) = input_field.as_ref().default_value_id {
                     fields_buffer.push((input_field.id, QueryInputValueRecord::DefaultValue(default_value_id)));
-                } else if input_field.ty().wrapping.is_required() {
+                } else if input_field.ty().wrapping.is_non_null() {
                     self.value_path.push(input_field.as_ref().name_id.into());
                     return Err(InputValueError::UnexpectedNull {
                         expected: input_field.ty().to_string(),
@@ -444,7 +444,7 @@ fn are_type_compatibles(ty: Type<'_>, used_as: Type<'_>) -> bool {
         && (used_as.wrapping.is_equal_or_more_lenient_than(ty.wrapping)
                 // if not a list, the current type can be coerced into the proper list wrapping.
             || (
-                !ty.wrapping.is_list() && (used_as.wrapping.is_nullable() || ty.wrapping.is_required())
+                !ty.wrapping.is_list() && (used_as.wrapping.is_nullable() || ty.wrapping.is_non_null())
             ))
 }
 

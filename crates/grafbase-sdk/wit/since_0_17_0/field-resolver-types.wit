@@ -1,8 +1,0 @@
-interface field-resolver-types {
-    use error.{error};
-
-    record field-output {
-        // list in the same order as input.edges with data serialized in CBOR
-        outputs: list<result<list<u8>, error>>
-    }
-}

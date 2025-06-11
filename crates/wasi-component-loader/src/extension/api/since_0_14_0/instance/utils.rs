@@ -40,7 +40,9 @@ pub fn create_complete_subgraph_schemas(schema: &Schema, extension_id: Extension
         let mut ids = schema
             .resolver_definitions()
             .filter_map(|resolver| match resolver.variant() {
-                engine_schema::ResolverDefinitionVariant::Extension(res) if res.extension_id == extension_id => {
+                engine_schema::ResolverDefinitionVariant::SelectionSetResolverExtension(res)
+                    if res.extension_id == extension_id =>
+                {
                     Some(res.subgraph_id)
                 }
                 _ => None,

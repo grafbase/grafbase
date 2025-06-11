@@ -10,14 +10,17 @@ use tokio::sync::Mutex;
 use super::{
     AuthenticationTestExtension, AuthorizationTestExtension, FieldResolverTestExtension,
     FieldResolverTestExtensionBuilder, ResolverTestExtension, ResolverTestExtensionBuilder,
+    SelectionSetResolverTestExtension, SelectionSetResolverTestExtensionBuilder,
 };
 
 #[derive(Default)]
 pub struct TestExtensionsState {
     pub authentication: HashMap<ExtensionId, Arc<dyn AuthenticationTestExtension>>,
     pub authorization: HashMap<ExtensionId, Arc<dyn AuthorizationTestExtension>>,
-    pub selection_set_resolver_builders: HashMap<ExtensionId, Arc<dyn ResolverTestExtensionBuilder>>,
-    pub selection_set_resolvers: HashMap<(ExtensionId, SubgraphId), Arc<dyn ResolverTestExtension>>,
+    pub resolver_builders: HashMap<ExtensionId, Arc<dyn ResolverTestExtensionBuilder>>,
+    pub resolvers: HashMap<(ExtensionId, SubgraphId), Arc<dyn ResolverTestExtension>>,
+    pub selection_set_resolver_builders: HashMap<ExtensionId, Arc<dyn SelectionSetResolverTestExtensionBuilder>>,
+    pub selection_set_resolvers: HashMap<(ExtensionId, SubgraphId), Arc<dyn SelectionSetResolverTestExtension>>,
     pub field_resolver_builders: HashMap<ExtensionId, Arc<dyn FieldResolverTestExtensionBuilder>>,
     pub field_resolvers: HashMap<(ExtensionId, SubgraphId), Arc<dyn FieldResolverTestExtension>>,
 }
@@ -46,11 +49,30 @@ impl TestExtensionsState {
         &mut self,
         extension_id: ExtensionId,
         subgraph: Subgraph<'_>,
-    ) -> Arc<dyn ResolverTestExtension> {
+    ) -> Arc<dyn SelectionSetResolverTestExtension> {
         self.selection_set_resolvers
             .entry((extension_id, subgraph.id()))
             .or_insert_with(|| {
                 self.selection_set_resolver_builders.get(&extension_id).unwrap().build(
+                    subgraph
+                        .extension_schema_directives()
+                        .filter(|dir| dir.extension_id == extension_id)
+                        .map(|dir| (dir.name(), serde_json::to_value(dir.static_arguments()).unwrap()))
+                        .collect(),
+                )
+            })
+            .clone()
+    }
+
+    pub(super) fn get_resolver_ext(
+        &mut self,
+        extension_id: ExtensionId,
+        subgraph: Subgraph<'_>,
+    ) -> Arc<dyn ResolverTestExtension> {
+        self.resolvers
+            .entry((extension_id, subgraph.id()))
+            .or_insert_with(|| {
+                self.resolver_builders.get(&extension_id).unwrap().build(
                     subgraph
                         .extension_schema_directives()
                         .filter(|dir| dir.extension_id == extension_id)

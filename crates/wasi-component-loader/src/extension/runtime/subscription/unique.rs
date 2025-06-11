@@ -48,7 +48,7 @@ impl<'ctx> UniqueSubscription<'ctx, '_> {
             }
 
             let items = loop {
-                match instance.resolve_next_subscription_item().await {
+                match instance.field_resolver_resolve_next_subscription_item().await {
                     Ok(Some(items)) if items.is_empty() => {
                         continue;
                     }

@@ -11,23 +11,18 @@ world sdk {
     import nats-client;
     import postgres;
     import token;
-    import directive;
     import schema;
     import authorization-types;
     import resolver-types;
-    import field-resolver-types;
-    import selection-set-resolver-types;
     import event-queue;
     import shared-context;
 
     export authentication;
     export authorization;
-    export field-resolver;
-    export selection-set-resolver;
     export hooks;
+    export resolver;
 
     use schema.{schema};
-    use event-queue.{event-queue};
 
     // The extension registration function. Must be called before initialization.
     export register-extension: func();
@@ -37,7 +32,7 @@ world sdk {
     // Receives a list of schema directives associated with the extension
     export init: func(
         // Schema for each subgraph, with relevant data for each extension type.
-        schema: list<tuple<string, schema>>,
+        schemas: list<tuple<string, schema>>,
         configuration: list<u8>,
     ) -> result<_, string>;
 }

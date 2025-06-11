@@ -1,8 +1,10 @@
 mod field;
 mod lookup;
 mod query_or_mutation;
+mod selection_set;
 
 pub(crate) use field::*;
+pub(crate) use selection_set::*;
 
 use futures::{FutureExt, TryStreamExt as _, stream::FuturesUnordered};
 use id_newtypes::IdRange;
@@ -36,10 +38,11 @@ impl ExtensionResolver {
         let prepared_fields = selection_set
             .fields()
             .map(|field| async move {
+                let directive = definition.directive();
                 let prepared_data = ctx
                     .runtime()
                     .extensions()
-                    .prepare(definition.extension_id, definition.subgraph().into(), field)
+                    .prepare(directive, directive.static_arguments(), field)
                     // FIXME: Unfortunately, boxing seems to be the only solution for the bug explained here:
                     //        https://github.com/rust-lang/rust/issues/110338#issuecomment-1513761297
                     .boxed()

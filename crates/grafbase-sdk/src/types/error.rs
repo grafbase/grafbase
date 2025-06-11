@@ -47,7 +47,7 @@ impl Error {
 
     /// Add an extension key value pair to the error.
     #[inline]
-    pub fn with_extension(mut self, key: impl Into<String>, value: impl serde::Serialize) -> Result<Self, SdkError> {
+    pub fn extension(mut self, key: impl Into<String>, value: impl serde::Serialize) -> Result<Self, SdkError> {
         let value = crate::cbor::to_vec(&value)?;
         self.0.extensions.push((key.into(), value));
         Ok(self)

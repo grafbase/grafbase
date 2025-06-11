@@ -226,7 +226,7 @@ pub(super) async fn fetch_entities_without_cache<'ctx, R: Runtime>(
         Ok(body) => body,
         Err(err) => {
             tracing::error!("Failed to serialize query: {err}");
-            response_part.insert_error_updates(&parent_objects, shape_id, GraphqlError::internal_server_error());
+            response_part.insert_error_updates(&parent_objects, shape_id, [GraphqlError::internal_server_error()]);
             return response_part;
         }
     };
@@ -291,7 +291,7 @@ pub(super) async fn fetch_entities_with_cache<'ctx, R: Runtime>(
         Ok(body) => body,
         Err(err) => {
             tracing::error!("Failed to serialize query: {err}");
-            response_part.insert_error_updates(&parent_objects, shape_id, GraphqlError::internal_server_error());
+            response_part.insert_error_updates(&parent_objects, shape_id, [GraphqlError::internal_server_error()]);
             return response_part;
         }
     };

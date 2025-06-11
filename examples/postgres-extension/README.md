@@ -25,8 +25,8 @@ curl -fsSL https://grafbase.com/downloads/cli | bash
 2. Make sure you have the Grafbase Postgres extension example running:
 
 ```bash
-cd grafbase
 docker compose up -d
+cd grafbase
 grafbase dev
 ```
 

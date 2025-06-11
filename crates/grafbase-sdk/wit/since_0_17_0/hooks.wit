@@ -2,7 +2,6 @@ interface hooks {
     use http-client.{http-method};
     use error.{error-response};
     use headers.{headers};
-    use event-queue.{event-queue};
     use shared-context.{shared-context};
 
     /// Hook function called when processing an incoming request

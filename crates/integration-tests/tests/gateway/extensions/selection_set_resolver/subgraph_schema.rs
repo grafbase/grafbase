@@ -8,7 +8,7 @@ fn receive_subgraph_schema() {
                 "echo-schema",
                 r#"
                 extend schema
-                    @link(url: "selection-set-resolver-014-1.0.0", import: ["@init", "@meta"]) @init @meta(data: "Schema")
+                    @link(url: "selection-set-resolver-015-1.0.0", import: ["@init", "@meta"]) @init @meta(data: "Schema")
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@key"])
 
                 # Scalar types
@@ -173,7 +173,7 @@ fn receive_subgraph_schema() {
                 }
                 "#,
             )
-            .with_extension("selection-set-resolver-014")
+            .with_extension("selection-set-resolver-015")
             .build()
             .await;
 

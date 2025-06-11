@@ -15,31 +15,10 @@ use crate::gateway::{
 };
 
 impl FieldResolverExtension<ExtContext> for ExtensionsDispatcher {
-    async fn prepare<'ctx>(
-        &'ctx self,
-        directive: ExtensionDirective<'ctx>,
-        field_definition: FieldDefinition<'ctx>,
-        directive_arguments: impl Anything<'ctx>,
-    ) -> Result<Vec<u8>, GraphqlError> {
-        match self.dispatch[&directive.extension_id] {
-            DispatchRule::Wasm => {
-                self.wasm
-                    .prepare(directive, field_definition, directive_arguments)
-                    .await
-            }
-            DispatchRule::Test => {
-                self.test
-                    .prepare(directive, field_definition, directive_arguments)
-                    .await
-            }
-        }
-    }
-
     fn resolve_field<'ctx, 'resp, 'f>(
         &'ctx self,
         directive: ExtensionDirective<'ctx>,
         field_definition: FieldDefinition<'ctx>,
-        prepared_data: &'ctx [u8],
         subgraph_headers: http::HeaderMap,
         directive_arguments: impl Anything<'ctx>,
         inputs: impl Iterator<Item: Anything<'resp>> + Send,
@@ -53,7 +32,6 @@ impl FieldResolverExtension<ExtContext> for ExtensionsDispatcher {
                 .resolve_field(
                     directive,
                     field_definition,
-                    prepared_data,
                     subgraph_headers,
                     directive_arguments,
                     inputs,
@@ -64,7 +42,6 @@ impl FieldResolverExtension<ExtContext> for ExtensionsDispatcher {
                 .resolve_field(
                     directive,
                     field_definition,
-                    prepared_data,
                     subgraph_headers,
                     directive_arguments,
                     inputs,
@@ -77,7 +54,6 @@ impl FieldResolverExtension<ExtContext> for ExtensionsDispatcher {
         &'ctx self,
         directive: ExtensionDirective<'ctx>,
         field_definition: FieldDefinition<'ctx>,
-        prepared_data: &'ctx [u8],
         subgraph_headers: http::HeaderMap,
         directive_arguments: impl Anything<'ctx>,
     ) -> Result<BoxStream<'f, Result<Data, GraphqlError>>, GraphqlError>
@@ -87,24 +63,12 @@ impl FieldResolverExtension<ExtContext> for ExtensionsDispatcher {
         match self.dispatch[&directive.extension_id] {
             DispatchRule::Wasm => {
                 self.wasm
-                    .resolve_subscription_field(
-                        directive,
-                        field_definition,
-                        prepared_data,
-                        subgraph_headers,
-                        directive_arguments,
-                    )
+                    .resolve_subscription_field(directive, field_definition, subgraph_headers, directive_arguments)
                     .await
             }
             DispatchRule::Test => {
                 self.test
-                    .resolve_subscription_field(
-                        directive,
-                        field_definition,
-                        prepared_data,
-                        subgraph_headers,
-                        directive_arguments,
-                    )
+                    .resolve_subscription_field(directive, field_definition, subgraph_headers, directive_arguments)
                     .await
             }
         }
@@ -112,31 +76,10 @@ impl FieldResolverExtension<ExtContext> for ExtensionsDispatcher {
 }
 
 impl FieldResolverExtension<DynHookContext> for TestExtensions {
-    async fn prepare<'ctx>(
-        &'ctx self,
-        directive: ExtensionDirective<'ctx>,
-        field_definition: FieldDefinition<'ctx>,
-        directive_arguments: impl Anything<'ctx>,
-    ) -> Result<Vec<u8>, GraphqlError> {
-        let instance = self
-            .state
-            .lock()
-            .await
-            .get_field_resolver_ext(directive.extension_id, directive.subgraph());
-        instance
-            .prepare(
-                directive,
-                field_definition,
-                serde_json::to_value(directive_arguments).unwrap(),
-            )
-            .await
-    }
-
     fn resolve_field<'ctx, 'resp, 'f>(
         &'ctx self,
         directive: ExtensionDirective<'ctx>,
         field_definition: FieldDefinition<'ctx>,
-        prepared_data: &'ctx [u8],
         subgraph_headers: http::HeaderMap,
         directive_arguments: impl Anything<'ctx>,
         inputs: impl Iterator<Item: Anything<'resp>> + Send,
@@ -160,7 +103,6 @@ impl FieldResolverExtension<DynHookContext> for TestExtensions {
                 .resolve_field(
                     directive,
                     field_definition,
-                    prepared_data,
                     subgraph_headers,
                     directive_arguments,
                     inputs,
@@ -173,7 +115,6 @@ impl FieldResolverExtension<DynHookContext> for TestExtensions {
         &'ctx self,
         _directive: ExtensionDirective<'ctx>,
         _field_definition: FieldDefinition<'ctx>,
-        _prepared_data: &'ctx [u8],
         _subgraph_headers: http::HeaderMap,
         _directive_arguments: impl Anything<'ctx>,
     ) -> Result<BoxStream<'f, Result<Data, GraphqlError>>, GraphqlError>
@@ -247,20 +188,10 @@ impl<F: Fn() -> Arc<dyn FieldResolverTestExtension> + Send + Sync + 'static> Fie
 #[allow(unused_variables)] // makes it easier to copy-paste relevant functions
 #[async_trait::async_trait]
 pub trait FieldResolverTestExtension: Send + Sync + 'static {
-    async fn prepare<'ctx>(
-        &self,
-        directive: ExtensionDirective<'ctx>,
-        field_definition: FieldDefinition<'ctx>,
-        directive_arguments: serde_json::Value,
-    ) -> Result<Vec<u8>, GraphqlError> {
-        Ok(Vec::new())
-    }
-
     async fn resolve_field(
         &self,
         directive: ExtensionDirective<'_>,
         field_definition: FieldDefinition<'_>,
-        prepared_data: &[u8],
         subgraph_headers: http::HeaderMap,
         directive_arguments: serde_json::Value,
         inputs: Vec<serde_json::Value>,

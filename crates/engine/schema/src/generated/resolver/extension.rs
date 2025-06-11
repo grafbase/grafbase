@@ -10,16 +10,13 @@ use crate::{
 #[allow(unused_imports)]
 use walker::{Iter, Walk};
 
-/// There will be one per field contrary to GraphqlRootFieldResolverDefinition
-///
-/// --------------
 /// Generated from:
 ///
 /// ```custom,{.language-graphql}
 /// type ExtensionResolverDefinition @meta(module: "resolver/extension") @copy {
 ///   subgraph: VirtualSubgraph!
 ///   extension_id: ExtensionId!
-///   directive: ExtensionDirective
+///   directive: ExtensionDirective!
 ///   guest_batch: Boolean!
 /// }
 /// ```
@@ -27,11 +24,10 @@ use walker::{Iter, Walk};
 pub struct ExtensionResolverDefinitionRecord {
     pub subgraph_id: VirtualSubgraphId,
     pub extension_id: ExtensionId,
-    pub directive_id: Option<ExtensionDirectiveId>,
+    pub directive_id: ExtensionDirectiveId,
     pub guest_batch: bool,
 }
 
-/// There will be one per field contrary to GraphqlRootFieldResolverDefinition
 #[derive(Clone, Copy)]
 pub struct ExtensionResolverDefinition<'a> {
     pub(crate) schema: &'a Schema,
@@ -53,7 +49,7 @@ impl<'a> ExtensionResolverDefinition<'a> {
     pub fn subgraph(&self) -> VirtualSubgraph<'a> {
         self.subgraph_id.walk(self.schema)
     }
-    pub fn directive(&self) -> Option<ExtensionDirective<'a>> {
+    pub fn directive(&self) -> ExtensionDirective<'a> {
         self.directive_id.walk(self.schema)
     }
 }

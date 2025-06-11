@@ -145,7 +145,7 @@ impl<'ctx> ShapesBuilder<'ctx> {
                 .walk(self.ctx)
                 .expect("We shouldn't generate errors for lookup fields");
             location_and_key.get_or_insert_with(|| (field.location, field.response_key));
-            if propagate_null | field_shape.wrapping.is_required() {
+            if propagate_null | field_shape.wrapping.is_non_null() {
                 propagate_null = true;
                 continue;
             }

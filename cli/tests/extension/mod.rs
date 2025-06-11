@@ -97,35 +97,37 @@ fn init_resolver() {
 
     insta::assert_snapshot!(&lib_rs, @r##"
     use grafbase_sdk::{
-        types::{Configuration, SchemaDirective, FieldDefinitionDirective, FieldInputs, FieldOutputs, Error, SubgraphHeaders},
-        FieldResolverExtension, Subscription
+        ResolverExtension,
+        types::{Configuration, Error, ResolvedField, Response, SubgraphHeaders, SubgraphSchema, Variables},
     };
 
-    #[derive(FieldResolverExtension)]
-    struct TestProject;
+    #[derive(ResolverExtension)]
+    struct TestProject {
+        config: Config
+    }
 
-    impl FieldResolverExtension for TestProject {
-        fn new(schema_directives: Vec<SchemaDirective>, config: Configuration) -> Result<Self, Error> {
-            Ok(Self)
+    // Configuration in the TOML for this extension
+    #[derive(serde::Deserialize)]
+    struct Config {
+        #[serde(default)]
+        key: Option<String>
+    }
+
+    impl ResolverExtension for TestProject {
+        fn new(subgraph_schemas: Vec<SubgraphSchema<'_>>, config: Configuration) -> Result<Self, Error> {
+            let config: Config = config.deserialize()?;
+            Ok(Self { config })
         }
 
-        fn resolve_field(
+        fn resolve(
             &mut self,
+            prepared: &[u8],
             headers: SubgraphHeaders,
-            subgraph_name: &str,
-            directive: FieldDefinitionDirective<'_>,
-            inputs: FieldInputs,
-        ) -> Result<FieldOutputs, Error> {
-            todo!()
-        }
-
-        fn resolve_subscription<'a>(
-            &'a mut self,
-            headers: SubgraphHeaders,
-            subgraph_name: &str,
-            directive: FieldDefinitionDirective<'_>,
-        ) -> Result<Box<dyn Subscription + 'a>, Error> {
-            todo!()
+            variables: Variables,
+        ) -> Result<Response, Error> {
+            // field which must be resolved. The prepared bytes can be customized to store anything you need in the operation cache.
+            let field = ResolvedField::try_from(prepared)?;
+            Ok(Response::null())
         }
     }
     "##);
@@ -258,7 +260,7 @@ fn build_resolver() {
         "version": "0.1.0"
       },
       "type": {
-        "FieldResolver": {}
+        "Resolver": {}
       },
       "sdk_version": "<sdk_version>",
       "minimum_gateway_version": "<minimum_gateway_version>",

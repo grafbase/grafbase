@@ -8,7 +8,7 @@ fn type_conditions() {
                 "echo-selection-set",
                 r#"
                 extend schema
-                    @link(url: "selection-set-resolver-014-1.0.0", import: ["@init"])
+                    @link(url: "selection-set-resolver-015-1.0.0", import: ["@init"])
                     @init
 
                 interface Character {
@@ -38,7 +38,7 @@ fn type_conditions() {
                 }
                 "#,
             )
-            .with_extension("selection-set-resolver-014")
+            .with_extension("selection-set-resolver-015")
             .build()
             .await;
 
@@ -366,7 +366,7 @@ fn complex_arguments() {
                 "echo-selection-set",
                 r#"
                 extend schema
-                    @link(url: "selection-set-resolver-014-1.0.0", import: ["@init"])
+                    @link(url: "selection-set-resolver-015-1.0.0", import: ["@init"])
                     @init
 
                 input BookFilter {
@@ -438,7 +438,7 @@ fn complex_arguments() {
                 }
                 "#,
             )
-            .with_extension("selection-set-resolver-014")
+            .with_extension("selection-set-resolver-015")
             .build()
             .await;
 
@@ -793,7 +793,7 @@ fn variables() {
                 "echo-selection-set",
                 r#"
                 extend schema
-                    @link(url: "selection-set-resolver-014-1.0.0", import: ["@init"])
+                    @link(url: "selection-set-resolver-015-1.0.0", import: ["@init"])
                     @init
 
                 input Filters {
@@ -810,7 +810,7 @@ fn variables() {
                 }
                 "#,
             )
-            .with_extension("selection-set-resolver-014")
+            .with_extension("selection-set-resolver-015")
             .build()
             .await;
 
@@ -1246,7 +1246,7 @@ fn simple_object_selection_set() {
                 "echo-selection-set",
                 r#"
                 extend schema
-                    @link(url: "selection-set-resolver-014-1.0.0", import: ["@init"])
+                    @link(url: "selection-set-resolver-015-1.0.0", import: ["@init"])
                     @init
 
                 type Book {
@@ -1273,7 +1273,7 @@ fn simple_object_selection_set() {
                 }
                 "#,
             )
-            .with_extension("selection-set-resolver-014")
+            .with_extension("selection-set-resolver-015")
             .build()
             .await;
 
@@ -1636,7 +1636,7 @@ fn nested_type_conditions() {
                 "echo-selection-set",
                 r#"
                 extend schema
-                    @link(url: "selection-set-resolver-014-1.0.0", import: ["@init"])
+                    @link(url: "selection-set-resolver-015-1.0.0", import: ["@init"])
                     @init
 
                 interface Node {
@@ -1676,7 +1676,7 @@ fn nested_type_conditions() {
                 }
                 "#,
             )
-            .with_extension("selection-set-resolver-014")
+            .with_extension("selection-set-resolver-015")
             .build()
             .await;
 

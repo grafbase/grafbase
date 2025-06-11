@@ -2,12 +2,12 @@ use engine_error::{ErrorCode, GraphqlError};
 use engine_schema::Subgraph;
 use extension_catalog::ExtensionId;
 use runtime::{
-    extension::{ArgumentsId, Data, Field as _, ResolverExtension, SelectionSet as _},
+    extension::{ArgumentsId, Data, Field as _, SelectionSet as _, SelectionSetResolverExtension},
     hooks::Anything,
 };
 
 use crate::{
-    Error, SharedContext, cbor,
+    Error, cbor,
     extension::{
         WasmExtensions,
         api::wit::{self, Field, SelectionSet},
@@ -15,7 +15,7 @@ use crate::{
 };
 
 #[allow(clippy::manual_async_fn)]
-impl ResolverExtension<SharedContext> for WasmExtensions {
+impl SelectionSetResolverExtension for WasmExtensions {
     async fn prepare<'ctx, F: runtime::extension::Field<'ctx>>(
         &'ctx self,
         extension_id: ExtensionId,
@@ -56,7 +56,7 @@ impl ResolverExtension<SharedContext> for WasmExtensions {
         }
 
         instance
-            .prepare(subgraph.name(), 0, &fields)
+            .selection_set_resolver_prepare(subgraph.name(), 0, &fields)
             .await
             .map_err(|err| match err {
                 Error::Internal(err) => {

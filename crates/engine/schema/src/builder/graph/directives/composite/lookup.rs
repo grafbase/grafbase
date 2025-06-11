@@ -277,7 +277,7 @@ fn detect_explicit_is_directive_injections(
                                 definition_id: id,
                                 value: ArgumentValueInjection::Value(ValueInjection::DefaultValue(default_value_id)),
                             });
-                        } else if arg.ty_record.wrapping.is_required() {
+                        } else if arg.ty_record.wrapping.is_non_null() {
                             return Err((
                                 format!(
                                     "Argument '{}' is required but is not injected with any @is directive.",
@@ -324,7 +324,7 @@ fn detect_explicit_is_directive_injections(
                         definition_id: id,
                         value: ArgumentValueInjection::Value(ValueInjection::DefaultValue(default_value_id)),
                     });
-                } else if arg.ty_record.wrapping.is_required() {
+                } else if arg.ty_record.wrapping.is_non_null() {
                     return Err((
                         format!(
                             "Argument '{}' is required but is not injected any @is directive.",

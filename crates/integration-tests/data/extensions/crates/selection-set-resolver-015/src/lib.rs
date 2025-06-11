@@ -233,11 +233,17 @@ impl SelectionSetResolverExtension for Resolver {
                 .collect::<Vec<_>>();
 
             type_definitions.sort_by(|a, b| {
-                a.as_object()
-                    .unwrap()
-                    .keys()
-                    .next()
-                    .cmp(&b.as_object().unwrap().keys().next())
+                let a = a
+                    .as_object()
+                    .and_then(|obj| obj.keys().next())
+                    .map(String::as_str)
+                    .unwrap_or("");
+                let b = b
+                    .as_object()
+                    .and_then(|obj| obj.keys().next())
+                    .map(String::as_str)
+                    .unwrap_or("");
+                a.cmp(b)
             });
 
             let query = subgraph_schema.query().map(|obj| obj.name());
@@ -282,7 +288,7 @@ impl SelectionSetResolverExtension for Resolver {
             .field_names_by_subgraph_name
             .iter()
             .find_map(|(name, field_names)| if name == subgraph_name { Some(field_names) } else { None })
-            .unwrap();
+            .ok_or_else(|| Error::new(format!("Unknown subgraph '{subgraph_name}'")))?;
 
         struct Ctx<'a> {
             field_names: &'a HashMap<DefinitionId, String>,

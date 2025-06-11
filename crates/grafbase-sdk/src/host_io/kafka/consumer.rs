@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 
 use crate::{
     SdkError, Subscription,
-    types::{Error, SubscriptionOutput},
+    types::{Error, Response, SubscriptionItem},
     wit,
 };
 
@@ -27,29 +27,14 @@ impl KafkaConsumer {
 }
 
 impl Subscription for KafkaConsumer {
-    fn next(&mut self) -> Result<Option<SubscriptionOutput>, Error> {
-        let item = match KafkaConsumer::next(self) {
-            Ok(Some(item)) => item,
-            Ok(None) => return Ok(None),
-            Err(e) => return Err(format!("Error receiving Kafka message: {e}").into()),
-        };
-
-        let mut builder = SubscriptionOutput::builder();
-
-        let message: Option<serde_json::Value> = item
-            .value()
-            .map_err(|e| format!("Error parsing Kafka message as JSON: {e}"))?;
-
-        match message {
-            Some(message) => {
-                builder.push(message)?;
-            }
-            None => {
-                builder.push(serde_json::Value::Null)?;
-            }
+    fn next(&mut self) -> Result<Option<SubscriptionItem>, Error> {
+        match KafkaConsumer::next(self) {
+            Ok(Some(msg)) => Ok(Some(
+                Response::json(msg.inner.value.unwrap_or_else(|| b"null".into())).into(),
+            )),
+            Ok(None) => Ok(None),
+            Err(err) => Err(format!("Error receiving Kafka message: {err}").into()),
         }
-
-        Ok(Some(builder.build()))
     }
 }
 
@@ -89,6 +74,11 @@ impl KafkaMessage {
     /// This provides access to the unprocessed message value without any JSON deserialization.
     pub fn raw_value(&self) -> Option<&[u8]> {
         self.inner.value.as_deref()
+    }
+
+    /// Consumes the message and returns the raw value as a `Vec<u8>`, if present.
+    pub fn into_raw_value(self) -> Option<Vec<u8>> {
+        self.inner.value
     }
 
     /// Returns the message offset within the partition.

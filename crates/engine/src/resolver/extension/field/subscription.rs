@@ -24,10 +24,7 @@ impl super::FieldResolverExtension {
         let directive = self.directive_id.walk(ctx.schema());
         let subgraph_headers = ctx.subgraph_headers_with_rules(directive.subgraph().header_rules());
 
-        let PreparedField {
-            field_id,
-            extension_data,
-        } = self.prepared.first().unwrap();
+        let PreparedField { field_id } = self.prepared.first().unwrap();
         let field = plan.get_field(*field_id);
         let field_definition = field.definition();
 
@@ -37,13 +34,7 @@ impl super::FieldResolverExtension {
         let stream = match ctx
             .runtime()
             .extensions()
-            .resolve_subscription_field(
-                directive,
-                field_definition,
-                extension_data,
-                subgraph_headers,
-                query_view,
-            )
+            .resolve_subscription_field(directive, field_definition, subgraph_headers, query_view)
             .boxed()
             .await
         {

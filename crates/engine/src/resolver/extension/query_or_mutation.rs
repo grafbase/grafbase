@@ -1,8 +1,6 @@
-use std::borrow::Cow;
-
 use futures::{FutureExt as _, StreamExt, future::BoxFuture, stream::FuturesUnordered};
 use itertools::Itertools as _;
-use runtime::extension::{Data, ResolverExtension};
+use runtime::extension::ResolverExtension;
 use walker::Walk;
 
 use crate::{
@@ -45,8 +43,7 @@ impl super::ExtensionResolver {
                 ctx.runtime()
                     .extensions()
                     .resolve(
-                        definition.extension_id,
-                        definition.subgraph().into(),
+                        definition.directive(),
                         &prepared.extension_data,
                         // TODO: use Arc instead of clone?
                         subgraph_headers.clone(),
@@ -65,22 +62,9 @@ impl super::ExtensionResolver {
             let batched_field_results = futures.collect::<Vec<_>>().await;
             tracing::debug!(
                 "Received:\n{}",
-                batched_field_results
-                    .iter()
-                    .flat_map(|(field, result)| [
-                        field.subgraph_response_key_str().into(),
-                        match result {
-                            Ok(Data::Json(bytes)) => String::from_utf8_lossy(bytes),
-                            Ok(Data::Cbor(bytes)) => {
-                                minicbor_serde::from_slice(bytes)
-                                    .ok()
-                                    .and_then(|v: sonic_rs::Value| sonic_rs::to_string_pretty(&v).ok().map(Into::into))
-                                    .unwrap_or_else(|| "<error>".into())
-                            }
-                            Err(_) => Cow::Borrowed("<error>"),
-                        }
-                    ])
-                    .join("\n")
+                batched_field_results.iter().format_with("\n", |(field, result), f| {
+                    f(&format_args!("{}: {}", field.subgraph_response_key_str(), result))
+                })
             );
 
             let state = response_part.into_seed_state(plan.shape().id);
@@ -106,8 +90,7 @@ impl super::ExtensionResolver {
                     ctx.runtime()
                         .extensions()
                         .resolve(
-                            definition.extension_id,
-                            definition.subgraph().into(),
+                            definition.directive(),
                             &prepared.extension_data,
                             // TODO: use Arc instead of clone?
                             subgraph_headers.clone(),
@@ -129,25 +112,15 @@ impl super::ExtensionResolver {
                 "Received:\n{}",
                 batched_field_results
                     .iter()
-                    .flat_map(|(field_id, parent_object_id, result)| [
-                        format!(
-                            "{} - {}",
-                            plan.get_field(*field_id).subgraph_response_key_str(),
-                            usize::from(*parent_object_id)
-                        )
-                        .into(),
-                        match result {
-                            Ok(Data::Json(bytes)) => String::from_utf8_lossy(bytes),
-                            Ok(Data::Cbor(bytes)) => {
-                                minicbor_serde::from_slice(bytes)
-                                    .ok()
-                                    .and_then(|v: sonic_rs::Value| sonic_rs::to_string_pretty(&v).ok().map(Into::into))
-                                    .unwrap_or_else(|| "<error>".into())
-                            }
-                            Err(_) => Cow::Borrowed("<error>"),
-                        }
-                    ])
-                    .join("\n")
+                    .format_with("\n", |(field_id, parent_object_id, result), f| {
+                        let field = plan.get_field(*field_id);
+                        f(&format_args!(
+                            "{} - {}\n{}",
+                            field.subgraph_response_key_str(),
+                            parent_object_id,
+                            result
+                        ))
+                    })
             );
 
             let state = response_part.into_seed_state(plan.shape().id);

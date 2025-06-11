@@ -98,7 +98,7 @@ impl GraphqlResolver {
                 response_part.insert_error_updates(
                     &parent_objects,
                     plan.shape().id,
-                    GraphqlError::internal_server_error(),
+                    [GraphqlError::internal_server_error()],
                 );
                 return response_part;
             }
@@ -167,7 +167,7 @@ async fn fetch_response_without_cache<'ctx, R: Runtime>(
                     Deserializable::Json(http_response.body().as_ref()),
                 ),
                 Err(error) => {
-                    response_part.insert_error_updates(&parent_objects, shape_id, error);
+                    response_part.insert_error_updates(&parent_objects, shape_id, [error]);
                     (None, response_part)
                 }
             }
@@ -245,7 +245,7 @@ where
         let http_response = match result {
             Ok(http_response) => http_response,
             Err(err) => {
-                response_part.insert_error_updates(&parent_objects, shape_id, err);
+                response_part.insert_error_updates(&parent_objects, shape_id, [err]);
                 return (None, response_part);
             }
         };
@@ -293,7 +293,7 @@ pub(super) fn ingest_graphql_data<'ctx, 'de>(
         Ok(status) => Some(status),
         Err(err) => {
             if let Some(error) = err {
-                state.insert_error_update(parent_object, error);
+                state.insert_error_update(parent_object, [error]);
             }
             None
         }

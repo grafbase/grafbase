@@ -121,7 +121,7 @@ impl<'a> FieldTypeWalker<'a> {
     }
 
     pub(crate) fn is_required(self) -> bool {
-        self.id.wrapping.is_required()
+        self.id.wrapping.is_non_null()
     }
 }
 

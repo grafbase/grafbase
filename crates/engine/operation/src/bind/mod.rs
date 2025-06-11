@@ -147,7 +147,7 @@ pub(crate) fn bind_variables(
             None => {
                 if let Some(default_value_id) = definition.default_value_id {
                     variables[definition.id] = VariableValueRecord::DefaultValue(default_value_id);
-                } else if definition.ty_record.wrapping.is_required() {
+                } else if definition.ty_record.wrapping.is_non_null() {
                     errors.push(
                         Error::validation(format!("Variable {} is missing", definition.name))
                             .with_location(definition.name_location),

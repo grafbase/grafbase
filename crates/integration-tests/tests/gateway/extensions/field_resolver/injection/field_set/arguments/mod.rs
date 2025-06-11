@@ -51,7 +51,6 @@ impl FieldResolverTestExtension for DoubleEchoExt {
         &self,
         directive: ExtensionDirective<'_>,
         _field_definition: FieldDefinition<'_>,
-        _prepared_data: &[u8],
         _subgraph_headers: http::HeaderMap,
         directive_arguments: serde_json::Value,
         inputs: Vec<serde_json::Value>,

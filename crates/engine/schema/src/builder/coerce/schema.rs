@@ -169,7 +169,7 @@ fn coerce_input_object_value(
                 coerce_input_value(builder, ty_record, field.value())?
             } else if let Some(default_value_id) = default_value_id {
                 builder.graph.input_values[default_value_id]
-            } else if ty_record.wrapping.is_required() {
+            } else if ty_record.wrapping.is_non_null() {
                 return Err(InputValueError::UnexpectedNull {
                     expected: builder.type_name(ty_record),
                     path: builder.value_path_string(),

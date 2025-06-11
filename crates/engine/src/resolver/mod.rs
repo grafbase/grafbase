@@ -3,7 +3,7 @@ mod graphql;
 mod introspection;
 mod lookup;
 
-pub(crate) use extension::{ExtensionResolver, FieldResolverExtension};
+pub(crate) use extension::{ExtensionResolver, FieldResolverExtension, SelectionSetExtensionResolver};
 use futures::{FutureExt, future::BoxFuture};
 use futures_util::stream::BoxStream;
 pub(crate) use graphql::{FederationEntityResolver, GraphqlResolver};
@@ -26,6 +26,7 @@ pub(crate) enum Resolver {
     FederationEntity(FederationEntityResolver),
     Introspection(IntrospectionResolver),
     FieldResolverExtension(FieldResolverExtension),
+    SelectionSetExtension(SelectionSetExtensionResolver),
     Extension(ExtensionResolver),
     Lookup(LookupResolver),
 }
@@ -58,6 +59,11 @@ impl Resolver {
                 ExtensionResolver::prepare(ctx, definition, plan_query_partition.selection_set())
                     .await
                     .map(Self::Extension)
+            }
+            ResolverDefinitionVariant::SelectionSetResolverExtension(definition) => {
+                SelectionSetExtensionResolver::prepare(ctx, definition, plan_query_partition.selection_set())
+                    .await
+                    .map(Self::SelectionSetExtension)
             }
             ResolverDefinitionVariant::Lookup(definition) => {
                 LookupResolver::prepare(ctx, operation, definition, plan_query_partition)
@@ -140,6 +146,17 @@ impl Resolver {
                 }
                 .boxed()
             }
+            Resolver::SelectionSetExtension(prepared) => {
+                let fut = prepared.execute(ctx, plan, parent_objects_view.into_object_set(), response_part);
+                async move {
+                    let response_part = fut.await;
+                    ResolverResult {
+                        response_part,
+                        on_subgraph_response_hook_output: None,
+                    }
+                }
+                .boxed()
+            }
             Resolver::Lookup(resolver) => resolver.execute(ctx, plan, parent_objects_view, response_part),
         }
     }
@@ -159,6 +176,7 @@ impl Resolver {
             }
             Resolver::FieldResolverExtension(prepared) => prepared.execute_subscription(ctx, plan, new_response).await,
             Resolver::Lookup(_)
+            | Resolver::SelectionSetExtension(_)
             | Resolver::Introspection(_)
             | Resolver::FederationEntity(_)
             | Resolver::Extension(_) => {

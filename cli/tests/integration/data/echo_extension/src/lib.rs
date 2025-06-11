@@ -1,11 +1,9 @@
 use grafbase_sdk::{
-    FieldResolverExtension, Subscription,
-    types::{
-        Configuration, Error, FieldDefinitionDirective, FieldInputs, FieldOutputs, SchemaDirective, SubgraphHeaders,
-    },
+    ResolverExtension,
+    types::{Configuration, Error, ResolvedField, Response, SubgraphHeaders, SubgraphSchema, Variables},
 };
 
-#[derive(FieldResolverExtension)]
+#[derive(ResolverExtension)]
 struct EchoExtension;
 
 #[derive(serde::Deserialize)]
@@ -13,35 +11,27 @@ struct HelloArguments {
     to: String,
 }
 
-impl FieldResolverExtension for EchoExtension {
-    fn new(_schema_directives: Vec<SchemaDirective>, _config: Configuration) -> Result<Self, Error> {
+impl ResolverExtension for EchoExtension {
+    fn new(_subgraph_schemas: Vec<SubgraphSchema<'_>>, _config: Configuration) -> Result<Self, Error> {
         Ok(Self)
     }
 
-    fn resolve_field(
+    fn resolve(
         &mut self,
+        prepared: &[u8],
         _headers: SubgraphHeaders,
-        _subgraph_name: &str,
-        directive: FieldDefinitionDirective<'_>,
-        inputs: FieldInputs,
-    ) -> Result<FieldOutputs, Error> {
-        let value = match directive.name() {
+        _variables: Variables,
+    ) -> Result<Response, Error> {
+        let field = ResolvedField::try_from(prepared)?;
+
+        let value = match field.directive().name() {
             "hello" => {
-                let args: HelloArguments = directive.arguments().map_err(|err| err.to_string())?;
+                let args: HelloArguments = field.directive().arguments().map_err(|err| err.to_string())?;
                 format!("Hello, {}", args.to)
             }
             other => format!("unknown directive `{other}`"),
         };
 
-        Ok(FieldOutputs::new(inputs, serde_json::json!(value))?)
-    }
-
-    fn resolve_subscription(
-        &mut self,
-        _: SubgraphHeaders,
-        _: &str,
-        _: FieldDefinitionDirective<'_>,
-    ) -> Result<Box<dyn Subscription>, Error> {
-        todo!()
+        Ok(Response::data(serde_json::json!(value)))
     }
 }

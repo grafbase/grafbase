@@ -139,23 +139,27 @@ impl<'ctx> ResponsePartBuilder<'ctx> {
         &mut self,
         parent_object: &ResponseObjectRef,
         shape_id: RootFieldsShapeId,
-        error: GraphqlError,
+        errors: impl IntoIterator<Item = GraphqlError>,
     ) {
         let shape = shape_id.walk((self.schema, self.operation));
         match shape.on_error {
             OnRootFieldsError::PropagateNull {
                 error_location_and_key: (location, key),
             } => {
-                self.errors
-                    .push(error.with_location(location).with_path((&parent_object.path, key)));
+                for err in errors {
+                    self.errors
+                        .push(err.with_location(location).with_path((&parent_object.path, key)));
+                }
                 self.propagate_null_parent_path(&parent_object.path);
             }
             OnRootFieldsError::Default {
                 error_location_and_key: (location, key),
                 fields_sorted_by_key,
             } => {
-                self.errors
-                    .push(error.with_location(location).with_path((&parent_object.path, key)));
+                for err in errors {
+                    self.errors
+                        .push(err.with_location(location).with_path((&parent_object.path, key)));
+                }
                 self.object_updates
                     .push(ObjectUpdate::Default(parent_object.id, fields_sorted_by_key));
             }
@@ -170,7 +174,7 @@ impl<'ctx> ResponsePartBuilder<'ctx> {
             Item = &'a ResponseObjectRef,
         >,
         shape_id: RootFieldsShapeId,
-        error: GraphqlError,
+        errors: impl IntoIterator<Item = GraphqlError>,
     ) {
         let mut parent_objects = parent_objects.into_iter();
         let shape = shape_id.walk((self.schema, self.operation));
@@ -179,11 +183,10 @@ impl<'ctx> ResponsePartBuilder<'ctx> {
                 OnRootFieldsError::PropagateNull {
                     error_location_and_key: (location, key),
                 } => {
-                    self.errors.push(
-                        error
-                            .with_location(location)
-                            .with_path((&first_parent_object.path, key)),
-                    );
+                    for err in errors {
+                        self.errors
+                            .push(err.with_location(location).with_path((&first_parent_object.path, key)));
+                    }
                     self.propagated_null_at.reserve(parent_objects.len() + 1);
                     self.propagate_null_parent_path(&first_parent_object.path);
                     for parent_object in parent_objects {
@@ -194,11 +197,10 @@ impl<'ctx> ResponsePartBuilder<'ctx> {
                     fields_sorted_by_key,
                     error_location_and_key: (location, key),
                 } => {
-                    self.errors.push(
-                        error
-                            .with_location(location)
-                            .with_path((&first_parent_object.path, key)),
-                    );
+                    for err in errors {
+                        self.errors
+                            .push(err.with_location(location).with_path((&first_parent_object.path, key)));
+                    }
                     self.object_updates.reserve(parent_objects.len() + 1);
                     self.object_updates
                         .push(ObjectUpdate::Default(first_parent_object.id, fields_sorted_by_key));
@@ -209,6 +211,35 @@ impl<'ctx> ResponsePartBuilder<'ctx> {
                 }
                 OnRootFieldsError::Skip => {}
             }
+        }
+    }
+
+    pub fn insert_errors(
+        &mut self,
+        parent_object: &ResponseObjectRef,
+        shape_id: RootFieldsShapeId,
+        errors: impl IntoIterator<Item = GraphqlError>,
+    ) {
+        let shape = shape_id.walk((self.schema, self.operation));
+        match shape.on_error {
+            OnRootFieldsError::PropagateNull {
+                error_location_and_key: (location, key),
+            } => {
+                for err in errors {
+                    self.errors
+                        .push(err.with_location(location).with_path((&parent_object.path, key)));
+                }
+            }
+            OnRootFieldsError::Default {
+                error_location_and_key: (location, key),
+                ..
+            } => {
+                for err in errors {
+                    self.errors
+                        .push(err.with_location(location).with_path((&parent_object.path, key)));
+                }
+            }
+            OnRootFieldsError::Skip => {}
         }
     }
 

@@ -145,10 +145,10 @@ impl GraphqlResolver {
                             GraphqlErrorsSeed::new(&state, convert_root_error_path),
                         );
                         if let Err(Some(error)) = state.deserialize_data_with(data, seed) {
-                            state.insert_error_update(&parent_object, error);
+                            state.insert_error_update(&parent_object, [error]);
                         }
                     }
-                    Err(error) => state.insert_error_update(&parent_object, error),
+                    Err(error) => state.insert_error_update(&parent_object, [error]),
                 }
 
                 (response, state.into_response_part())
@@ -242,10 +242,10 @@ impl GraphqlResolver {
                             GraphqlErrorsSeed::new(&state, convert_root_error_path),
                         );
                         if let Err(Some(error)) = state.deserialize_data_with(&Data::Json(bytes), seed) {
-                            state.insert_error_update(&parent_object, error);
+                            state.insert_error_update(&parent_object, [error]);
                         }
                     }
-                    Err(error) => state.insert_error_update(&parent_object, error),
+                    Err(error) => state.insert_error_update(&parent_object, [error]),
                 }
 
                 (response, state.into_response_part())

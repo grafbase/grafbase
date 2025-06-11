@@ -7,7 +7,7 @@ use std::{
 };
 
 use anyhow::Context;
-use extension::{BitFlags, ExtensionPermission, FieldResolverType, Manifest, Type};
+use extension::{BitFlags, ExtensionPermission, FieldResolverType, Manifest, ResolverType, Type};
 use extension_toml::{ExtensionToml, ExtensionType};
 use semver::Version;
 
@@ -196,8 +196,13 @@ fn parse_manifest(source_dir: &Path, wasm_path: &Path) -> anyhow::Result<Manifes
     let versions = parse_versions(&wasm_bytes)?;
 
     let extension_type = match extension_toml.extension.r#type {
-        ExtensionType::Resolver => Type::FieldResolver(FieldResolverType {
-            resolver_directives: extension_toml.directives.field_resolvers,
+        ExtensionType::Resolver if versions.sdk_version < Version::new(0, 17, 0) => {
+            Type::FieldResolver(FieldResolverType {
+                resolver_directives: extension_toml.directives.field_resolvers,
+            })
+        }
+        ExtensionType::Resolver => Type::Resolver(ResolverType {
+            directives: extension_toml.directives.resolvers,
         }),
         ExtensionType::Authentication => Type::Authentication(Default::default()),
         ExtensionType::Authorization => Type::Authorization(extension::AuthorizationType {

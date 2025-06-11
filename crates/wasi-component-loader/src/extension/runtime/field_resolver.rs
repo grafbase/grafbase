@@ -19,21 +19,11 @@ use runtime::{
 use std::future::Future;
 
 impl FieldResolverExtension<SharedContext> for WasmExtensions {
-    async fn prepare<'ctx>(
-        &'ctx self,
-        _directive: ExtensionDirective<'ctx>,
-        _field_definition: FieldDefinition<'ctx>,
-        _directive_arguments: impl Anything<'ctx>,
-    ) -> Result<Vec<u8>, GraphqlError> {
-        Ok(Vec::new())
-    }
-
     #[allow(clippy::manual_async_fn)]
     fn resolve_field<'ctx, 'resp, 'f>(
         &'ctx self,
         directive: ExtensionDirective<'ctx>,
         field_definition: FieldDefinition<'ctx>,
-        _prepared_data: &'ctx [u8],
         subgraph_headers: http::HeaderMap,
         directive_arguments: impl Anything<'ctx>,
         inputs: impl Iterator<Item: Anything<'resp>> + Send,
@@ -73,7 +63,6 @@ impl FieldResolverExtension<SharedContext> for WasmExtensions {
         &'ctx self,
         directive: ExtensionDirective<'ctx>,
         field_definition: FieldDefinition<'ctx>,
-        _prepared_data: &'ctx [u8],
         subgraph_headers: http::HeaderMap,
         directive_arguments: impl Anything<'ctx>,
     ) -> Result<BoxStream<'f, Result<Data, GraphqlError>>, GraphqlError>
