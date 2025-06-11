@@ -1,3 +1,5 @@
+mod extension_toml;
+
 use std::{
     fs,
     path::{Path, PathBuf},
@@ -6,8 +8,8 @@ use std::{
 
 use anyhow::Context;
 use extension::{BitFlags, ExtensionPermission, FieldResolverType, Manifest, Type};
+use extension_toml::{ExtensionToml, ExtensionType};
 use semver::Version;
-use serde_valid::Validate;
 
 use crate::{cli_input::ExtensionBuildCommand, output::report};
 
@@ -55,58 +57,6 @@ struct CargoToml {
 #[derive(serde::Deserialize)]
 struct CargoTomlPackage {
     name: String,
-}
-
-#[derive(serde::Deserialize)]
-struct ExtensionToml {
-    extension: ExtensionTomlExtension,
-    #[serde(default)]
-    directives: ExtensionTomlDirectives,
-    #[serde(default)]
-    permissions: ExtensionTomlPermissions,
-}
-
-#[derive(serde::Deserialize, Validate)]
-struct ExtensionTomlExtension {
-    #[validate(pattern = "^[a-z0-9-]+$")]
-    name: String,
-    version: Version,
-    // backwards compatibility for now.
-    #[serde(alias = "kind")]
-    r#type: ExtensionType,
-    description: String,
-    homepage_url: Option<url::Url>,
-    repository_url: Option<url::Url>,
-    license: Option<String>,
-}
-
-#[derive(serde::Deserialize)]
-#[serde(rename_all = "snake_case")]
-enum ExtensionType {
-    Resolver,
-    Authentication,
-    Authorization,
-    SelectionSetResolver,
-    Hooks,
-}
-
-#[derive(Default, serde::Deserialize)]
-struct ExtensionTomlDirectives {
-    definitions: Option<String>,
-    field_resolvers: Option<Vec<String>>,
-    authorization: Option<Vec<String>>,
-}
-
-#[derive(Default, serde::Deserialize)]
-struct ExtensionTomlPermissions {
-    #[serde(default)]
-    network: bool,
-    #[serde(default)]
-    stdout: bool,
-    #[serde(default)]
-    stderr: bool,
-    #[serde(default)]
-    environment_variables: bool,
 }
 
 struct Versions {
@@ -315,6 +265,7 @@ fn parse_manifest(source_dir: &Path, wasm_path: &Path) -> anyhow::Result<Manifes
         repository_url: extension_toml.extension.repository_url,
         license: extension_toml.extension.license,
         permissions,
+        event_filter: extension_toml.hooks.events,
     };
 
     Ok(manifest)

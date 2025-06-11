@@ -65,6 +65,7 @@ mod tests {
             homepage_url: None,
             repository_url: None,
             permissions: Default::default(),
+            event_filter: Default::default(),
         };
         tokio::fs::write(
             &manifest_path,

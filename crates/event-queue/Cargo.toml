@@ -1,0 +1,21 @@
+[package]
+name = "event-queue"
+version = "0.1.0"
+description = "Thread-safe event queue for collecting and managing GraphQL gateway execution events"
+documentation = "https://docs.rs/event-queue"
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+repository.workspace = true
+
+[dependencies]
+crossbeam-queue.workspace = true
+extension-catalog.workspace = true
+grafbase-telemetry.workspace = true
+grafbase-workspace-hack.workspace = true
+http.workspace = true
+serde.workspace = true
+
+[lints]
+workspace = true

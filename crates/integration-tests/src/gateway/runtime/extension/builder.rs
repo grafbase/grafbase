@@ -103,6 +103,7 @@ impl ExtensionsBuilder {
             readme: None,
             repository_url: None,
             permissions: Default::default(),
+            event_filter: None,
         };
 
         let dir = self.tmpdir.join(manifest.id.to_string());

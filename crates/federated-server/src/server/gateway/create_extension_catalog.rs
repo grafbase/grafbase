@@ -216,6 +216,7 @@ mod tests {
             repository_url: None,
             license: None,
             permissions: Default::default(),
+            event_filter: Default::default(),
         })
     }
 

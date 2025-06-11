@@ -1,6 +1,8 @@
+mod event_filter;
 mod permissions;
 
 pub use enumflags2::BitFlags;
+pub use event_filter::{EventFilter, EventFilterType};
 pub use permissions::ExtensionPermission;
 
 use crate::Id;
@@ -25,6 +27,8 @@ pub struct Manifest {
     pub license: Option<String>,
     #[serde(default, with = "permissions::serializing")]
     pub permissions: BitFlags<ExtensionPermission>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub event_filter: Option<EventFilter>,
 }
 
 impl Manifest {
@@ -218,6 +222,7 @@ mod tests {
             repository_url: None,
             license: None,
             permissions: BitFlags::all(),
+            event_filter: None,
         };
 
         assert_eq!(manifest, expected,);
@@ -259,6 +264,7 @@ mod tests {
             repository_url: None,
             license: None,
             permissions: BitFlags::empty(),
+            event_filter: None,
         };
 
         assert_eq!(manifest, expected,);
@@ -298,6 +304,7 @@ mod tests {
             repository_url: None,
             license: None,
             permissions: BitFlags::empty(),
+            event_filter: None,
         };
 
         assert_eq!(manifest, expected,);
@@ -334,6 +341,7 @@ mod tests {
             repository_url: None,
             license: None,
             permissions: BitFlags::empty(),
+            event_filter: None,
         };
 
         assert_eq!(manifest, expected,)
@@ -370,6 +378,7 @@ mod tests {
             repository_url: None,
             license: None,
             permissions: BitFlags::empty(),
+            event_filter: None,
         };
 
         assert_eq!(manifest, expected,)
@@ -408,6 +417,7 @@ mod tests {
             repository_url: None,
             license: None,
             permissions: BitFlags::empty(),
+            event_filter: None,
         };
         assert_eq!(manifest, expected);
 
@@ -457,6 +467,7 @@ mod tests {
             repository_url: None,
             license: None,
             permissions: BitFlags::empty(),
+            event_filter: None,
         };
 
         assert_eq!(manifest, expected);
@@ -490,6 +501,7 @@ mod tests {
             repository_url: None,
             license: None,
             permissions: BitFlags::empty(),
+            event_filter: None,
         };
         assert_eq!(manifest, expected);
     }
@@ -522,6 +534,7 @@ mod tests {
             repository_url: None,
             license: None,
             permissions: BitFlags::empty(),
+            event_filter: None,
         };
         assert_eq!(manifest, expected);
 
@@ -555,6 +568,7 @@ mod tests {
             repository_url: None,
             license: None,
             permissions: BitFlags::empty(),
+            event_filter: None,
         };
         assert_eq!(manifest, expected);
     }

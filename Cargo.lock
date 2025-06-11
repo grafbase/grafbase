@@ -3192,6 +3192,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "event-queue"
+version = "0.1.0"
+dependencies = [
+ "crossbeam-queue",
+ "extension-catalog",
+ "grafbase-telemetry",
+ "grafbase-workspace-hack",
+ "http 1.3.1",
+ "serde",
+]
+
+[[package]]
 name = "eventsource-stream"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
