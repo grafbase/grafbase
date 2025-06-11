@@ -5,7 +5,10 @@ use dashmap::DashMap;
 use grafbase_telemetry::{metrics::meter_from_global_provider, otel::opentelemetry::metrics::Histogram};
 use sqlx::Postgres;
 use wasmtime::component::Resource;
-use wasmtime_wasi::{IoView, ResourceTable, WasiCtx, WasiView};
+use wasmtime_wasi::{
+    ResourceTable,
+    p2::{IoView, WasiCtx, WasiView},
+};
 use wasmtime_wasi_http::{WasiHttpCtx, WasiHttpView};
 
 use crate::{

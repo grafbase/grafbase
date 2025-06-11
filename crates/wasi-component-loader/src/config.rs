@@ -1,5 +1,5 @@
 use gateway_config::hooks::HooksWasiConfig;
-use wasmtime_wasi::{DirPerms, FilePerms, WasiCtx, WasiCtxBuilder};
+use wasmtime_wasi::{DirPerms, FilePerms, p2::WasiCtx, p2::WasiCtxBuilder};
 
 use crate::extension::WasmConfig;
 
