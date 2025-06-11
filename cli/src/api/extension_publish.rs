@@ -13,7 +13,7 @@ pub(crate) enum ExtensionPublishOutcome {
 }
 
 // FIXME: this is a temporary state of affairs. The gateway does not support GraphQL multipart uploads yet. Issue: GB-8590.
-const API_URL_FOR_EXTENSION_REGISTRY: &str = "https://api.ep.grafbase.com/graphql";
+const API_URL_FOR_EXTENSION_REGISTRY: &str = "https://upload.grafbase.com/graphql";
 
 pub(crate) async fn extension_publish(
     manifest: VersionedManifest,
