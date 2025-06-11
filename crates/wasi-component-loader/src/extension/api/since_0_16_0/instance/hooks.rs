@@ -1,16 +1,21 @@
 use futures::future::BoxFuture;
 
-use crate::extension::HooksInstance;
+use crate::{SharedContext, extension::HooksInstance};
 
 impl HooksInstance for super::ExtensionInstanceSince0_16_0 {
     fn on_request(
         &mut self,
+        _: SharedContext,
         _: http::request::Parts,
     ) -> BoxFuture<'_, Result<http::request::Parts, crate::ErrorResponse>> {
         Box::pin(async { unreachable!("Not supported by this SDK") })
     }
 
-    fn on_response(&mut self, _: http::response::Parts) -> BoxFuture<'_, anyhow::Result<http::response::Parts>> {
+    fn on_response(
+        &mut self,
+        _: SharedContext,
+        _: http::response::Parts,
+    ) -> BoxFuture<'_, anyhow::Result<http::response::Parts>> {
         Box::pin(async { unreachable!("Not supported by this SDK") })
     }
 }

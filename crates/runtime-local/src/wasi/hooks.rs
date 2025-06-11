@@ -170,7 +170,7 @@ impl Hooks for HooksWasi {
     fn new_context(&self) -> Self::Context {
         let kv = HashMap::new();
         let trace_id = Span::current().context().span().span_context().trace_id();
-        SharedContext::new(Arc::new(kv), trace_id)
+        SharedContext::new(Arc::new(kv), trace_id, Default::default())
     }
 
     async fn on_gateway_request(
@@ -182,11 +182,11 @@ impl Hooks for HooksWasi {
         let trace_id = Span::current().context().span().span_context().trace_id();
 
         let Some(ref inner) = self.0 else {
-            return Ok((SharedContext::new(Arc::new(kv), trace_id), headers));
+            return Ok((SharedContext::new(Arc::new(kv), trace_id, Default::default()), headers));
         };
 
         if !inner.implemented_hooks.contains(HookImplementation::OnGatewayRequest) {
-            return Ok((SharedContext::new(Arc::new(kv), trace_id), headers));
+            return Ok((SharedContext::new(Arc::new(kv), trace_id, Default::default()), headers));
         }
 
         let span = info_span!("hook: on-gateway-request");
@@ -196,9 +196,9 @@ impl Hooks for HooksWasi {
             .run_and_measure("on-gateway-request", hook.on_gateway_request(kv, url, headers))
             .instrument(span)
             .await
-            .map(|(kv, headers)| (SharedContext::new(Arc::new(kv), trace_id), headers))
+            .map(|(kv, headers)| (SharedContext::new(Arc::new(kv), trace_id, Default::default()), headers))
             .map_err(|err| {
-                let context = SharedContext::new(Arc::new(HashMap::new()), trace_id);
+                let context = SharedContext::new(Arc::new(HashMap::new()), trace_id, Default::default());
 
                 match err {
                     wasi_component_loader::ErrorResponse::Internal(err) => {

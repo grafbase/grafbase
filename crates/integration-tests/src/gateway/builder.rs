@@ -8,14 +8,12 @@ use crate::{TestTrustedDocument, mock_trusted_documents::MockTrustedDocumentsCli
 pub use bench::*;
 use extension_catalog::Extension;
 use futures::{FutureExt, future::BoxFuture};
-use grafbase_telemetry::otel::opentelemetry::global;
 use graphql_mocks::MockGraphQlServer;
 use runtime::{
     fetch::dynamic::DynamicFetcher,
     trusted_documents_client::{self, TrustedDocumentsEnforcementMode},
 };
 use tempfile::TempDir;
-use wasi_component_loader::{create_access_log_channel, extension::WasmHooks, resources::SharedResources};
 
 use super::{
     AnyExtension, DockerSubgraph, DynamicHooks, ExtensionsBuilder, Gateway, TestRuntime, TestRuntimeBuilder,
@@ -119,7 +117,6 @@ impl GatewayBuilder {
 
     pub async fn with_hook_extension(mut self, path: impl Into<PathBuf>) -> Self {
         let path = path.into();
-        let (access_log, _) = create_access_log_channel(true, global::meter("kekw").i64_up_down_counter("lol").build());
 
         let manifest_path = path.join("manifest.json");
         let manifest = fs::read_to_string(manifest_path).unwrap();
@@ -130,12 +127,7 @@ impl GatewayBuilder {
             wasm_path: path.join("extension.wasm"),
         };
 
-        let config = toml::from_str(&self.config.toml).unwrap();
-        let hooks = WasmHooks::new(&SharedResources { access_log }, &config, Some(extension))
-            .await
-            .unwrap();
-
-        self.runtime.hooks_extension = Some(hooks);
+        self.runtime.hooks_extension = Some(extension);
 
         self
     }

@@ -1,4 +1,5 @@
 pub mod event_queue;
+pub mod shared_context;
 
 wasmtime::component::bindgen!({
     path: "../grafbase-sdk/wit/since_0_17_0/",
@@ -22,6 +23,7 @@ wasmtime::component::bindgen!({
         "grafbase:sdk/selection-set-resolver-types": crate::extension::api::since_0_14_0::wit::selection_set_resolver_types,
         "grafbase:sdk/kafka-client": crate::extension::api::since_0_16_0::wit::kafka_client,
         "grafbase:sdk/event-queue/event-queue": crate::resources::EventQueue,
+        "grafbase:sdk/shared-context/shared-context": crate::resources::SharedContext,
     },
     trappable_imports: true,
     ownership: Borrowing {

@@ -2,13 +2,17 @@ use futures::future::BoxFuture;
 use http::{request, response};
 
 use crate::{
-    ErrorResponse,
+    ErrorResponse, SharedContext,
     extension::{HooksInstance, api::wit::HttpMethod},
     resources::{Headers, Lease},
 };
 
 impl HooksInstance for super::ExtensionInstanceSince0_17_0 {
-    fn on_request(&mut self, mut parts: request::Parts) -> BoxFuture<'_, Result<request::Parts, ErrorResponse>> {
+    fn on_request(
+        &mut self,
+        context: SharedContext,
+        mut parts: request::Parts,
+    ) -> BoxFuture<'_, Result<request::Parts, ErrorResponse>> {
         Box::pin(async move {
             self.poisoned = true;
 
@@ -18,6 +22,8 @@ impl HooksInstance for super::ExtensionInstanceSince0_17_0 {
             let headers = Lease::Singleton(headers);
             let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
             let headers_rep = headers.rep();
+
+            let context = self.store.data_mut().push_resource(context)?;
 
             let method = match &parts.method {
                 m if m == http::Method::GET => HttpMethod::Get,
@@ -37,7 +43,7 @@ impl HooksInstance for super::ExtensionInstanceSince0_17_0 {
             let result = self
                 .inner
                 .grafbase_sdk_hooks()
-                .call_on_request(&mut self.store, &url, method, headers)
+                .call_on_request(&mut self.store, context, &url, method, headers)
                 .await?;
 
             parts.headers = self
@@ -57,7 +63,11 @@ impl HooksInstance for super::ExtensionInstanceSince0_17_0 {
         })
     }
 
-    fn on_response(&mut self, mut parts: response::Parts) -> BoxFuture<'_, anyhow::Result<response::Parts>> {
+    fn on_response(
+        &mut self,
+        context: SharedContext,
+        mut parts: response::Parts,
+    ) -> BoxFuture<'_, anyhow::Result<response::Parts>> {
         Box::pin(async move {
             self.poisoned = true;
 
@@ -68,12 +78,12 @@ impl HooksInstance for super::ExtensionInstanceSince0_17_0 {
             let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
             let headers_rep = headers.rep();
 
-            let audit_logs = self.store.data_mut().push_resource(())?; // TODO
+            let context = self.store.data_mut().push_resource(context)?;
 
             let result = self
                 .inner
                 .grafbase_sdk_hooks()
-                .call_on_response(&mut self.store, status, headers, audit_logs)
+                .call_on_response(&mut self.store, context, status, headers)
                 .await?;
 
             parts.headers = self

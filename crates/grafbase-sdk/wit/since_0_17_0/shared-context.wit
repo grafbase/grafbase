@@ -1,0 +1,11 @@
+interface shared-context {
+    use event-queue.{event-queue};
+
+    /// A shared context resource that provides access to tracing and event handling capabilities
+    resource shared-context {
+        /// Returns the request trace identifier as a string
+        trace-id: func() -> string;
+        /// Returns the request event queue
+        event-queue: func() -> event-queue;
+    }
+}

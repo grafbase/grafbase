@@ -9,7 +9,7 @@ mod state;
 
 use crate::{
     types::Configuration,
-    wit::{Error, ErrorResponse, EventQueue, Guest, Schema},
+    wit::{Error, ErrorResponse, Guest, Schema},
 };
 
 pub use error::SdkError;
@@ -19,13 +19,9 @@ pub(crate) use state::{queue_event, register_extension};
 pub(crate) struct Component;
 
 impl Guest for Component {
-    fn init(
-        subgraph_schemas: Vec<(String, Schema)>,
-        configuration: Vec<u8>,
-        event_queue: EventQueue,
-    ) -> Result<(), String> {
+    fn init(subgraph_schemas: Vec<(String, Schema)>, configuration: Vec<u8>) -> Result<(), String> {
         let config = Configuration::new(configuration);
-        state::init(subgraph_schemas, config, event_queue).map_err(|e| e.to_string())
+        state::init(subgraph_schemas, config).map_err(|e| e.to_string())
     }
 }
 

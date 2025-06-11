@@ -17,6 +17,7 @@ impl HostEventQueue for WasiState {
 
     async fn drop(&mut self, res: Resource<EventQueue>) -> wasmtime::Result<()> {
         self.table.delete(res)?;
+
         Ok(())
     }
 }

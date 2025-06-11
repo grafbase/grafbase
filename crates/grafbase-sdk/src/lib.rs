@@ -60,7 +60,7 @@ mod wit {
     pub use grafbase::sdk::directive::*;
     pub use grafbase::sdk::error::*;
     pub use grafbase::sdk::event_queue::{
-        CacheStatus, Event, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, FieldError,
+        CacheStatus, Event, EventQueue, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, FieldError,
         GraphqlResponseStatus, RequestError, SubgraphRequestExecutionKind, SubgraphResponse,
     };
     pub use grafbase::sdk::field_resolver_types::FieldOutput;
@@ -73,6 +73,7 @@ mod wit {
     pub use grafbase::sdk::resolver_types::*;
     pub use grafbase::sdk::schema::*;
     pub use grafbase::sdk::selection_set_resolver_types;
+    pub use grafbase::sdk::shared_context::SharedContext;
     pub use grafbase::sdk::token::*;
 }
 
