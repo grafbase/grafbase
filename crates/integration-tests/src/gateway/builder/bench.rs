@@ -5,14 +5,12 @@ use std::sync::{
 
 use bytes::Bytes;
 use engine::Body;
+use event_queue::SubgraphResponseBuilder;
 use futures::{StreamExt, TryStreamExt};
-use runtime::{
-    fetch::{FetchRequest, FetchResult, dynamic::DynFetcher},
-    hooks::ResponseInfo,
-};
+use runtime::fetch::{FetchRequest, FetchResult, dynamic::DynFetcher};
 use runtime_local::InMemoryOperationCache;
 
-use crate::gateway::{DynamicHooks, GraphqlResponse, GraphqlStreamingResponse};
+use crate::gateway::{GraphqlResponse, GraphqlStreamingResponse};
 
 use super::TestRuntime;
 
@@ -40,11 +38,6 @@ impl DeterministicEngineBuilder<'_> {
     }
 
     #[must_use]
-    pub fn with_hooks(mut self, hooks: impl Into<DynamicHooks>) -> Self {
-        self.runtime.hooks = hooks.into();
-        self
-    }
-
     pub fn without_operation_cache(mut self) -> Self {
         self.runtime.operation_cache = InMemoryOperationCache::inactive();
         self
@@ -167,7 +160,7 @@ impl DynFetcher for DummyFetcher {
     async fn fetch(
         &self,
         _request: FetchRequest<'_, Bytes>,
-    ) -> (FetchResult<http::Response<Bytes>>, Option<ResponseInfo>) {
+    ) -> (FetchResult<http::Response<Bytes>>, Option<SubgraphResponseBuilder>) {
         let result = Ok(self
             .responses
             .get(self.index.fetch_add(1, Ordering::Relaxed))

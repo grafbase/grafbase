@@ -1,10 +1,7 @@
 use std::sync::Arc;
 
 use super::{ExtensionConfig, ExtensionInstance, WasmConfig};
-use crate::{
-    cache::Cache, config::build_extensions_context, extension::api::SdkPre, resources::SharedResources,
-    state::WasiState,
-};
+use crate::{cache::Cache, config::build_context, extension::api::SdkPre, state::WasiState};
 use engine_schema::Schema;
 use wasmtime::{
     CacheConfig, Engine,
@@ -15,15 +12,10 @@ pub(crate) struct ExtensionLoader {
     wasm_config: WasmConfig,
     pre: SdkPre,
     cache: Arc<Cache>,
-    shared: SharedResources,
 }
 
 impl ExtensionLoader {
-    pub(crate) fn new<T: serde::Serialize>(
-        schema: Arc<Schema>,
-        shared: SharedResources,
-        config: ExtensionConfig<T>,
-    ) -> crate::Result<Self> {
+    pub(crate) fn new<T: serde::Serialize>(schema: Arc<Schema>, config: ExtensionConfig<T>) -> crate::Result<Self> {
         let mut wasm_config = wasmtime::Config::new();
 
         wasm_config.wasm_component_model(true).async_support(true).cache(
@@ -69,7 +61,6 @@ impl ExtensionLoader {
         let pre = SdkPre::new(schema, &config, component, linker)?;
 
         Ok(Self {
-            shared,
             wasm_config: config.wasm,
             pre,
             cache: Arc::new(Cache::new()),
@@ -78,8 +69,7 @@ impl ExtensionLoader {
 
     pub async fn instantiate(&self) -> crate::Result<Box<dyn ExtensionInstance>> {
         let state = WasiState::new(
-            build_extensions_context(&self.wasm_config),
-            self.shared.access_log.clone(),
+            build_context(&self.wasm_config),
             self.cache.clone(),
             self.wasm_config.networking,
         );

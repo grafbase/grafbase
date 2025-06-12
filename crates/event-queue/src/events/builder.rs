@@ -1,4 +1,7 @@
-use std::{sync::Arc, time::Duration};
+use std::{
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
 use grafbase_telemetry::graphql::GraphqlResponseStatus;
 
@@ -8,11 +11,12 @@ use super::{
 };
 
 /// Builder for constructing [`ExecutedOperation`] instances.
+#[derive(Debug, Clone)]
 pub struct ExecutedOperationBuilder<'a> {
     pub(super) name: Option<&'a str>,
-    pub(super) document: Arc<str>,
-    pub(super) prepare_duration: Duration,
-    pub(super) duration: Duration,
+    pub(super) document: Option<&'a Arc<str>>,
+    pub(super) start_time: Instant,
+    pub(super) prepare_duration: Option<Duration>,
     pub(super) cached_plan: bool,
     pub(super) status: GraphqlResponseStatus,
 }
@@ -25,33 +29,30 @@ impl<'a> ExecutedOperationBuilder<'a> {
     /// # Arguments
     ///
     /// * `name` - The operation name
-    pub fn name(mut self, name: &'a str) -> Self {
+    pub fn name(&mut self, name: &'a str) {
         self.name = Some(name);
-        self
     }
 
-    /// Sets the time spent preparing the operation.
+    /// Sets the GraphQL document for the operation.
     ///
-    /// This includes parsing, validation, and query planning time.
+    /// This should contain the complete GraphQL query, mutation, or subscription document.
     ///
     /// # Arguments
     ///
-    /// * `duration` - The preparation duration
-    pub fn prepare_duration(mut self, duration: Duration) -> Self {
-        self.prepare_duration = duration;
-        self
+    /// * `document` - The GraphQL document as a string
+    pub fn document(&mut self, document: &'a Arc<str>) {
+        self.document = Some(document);
     }
 
-    /// Sets the total execution duration for the operation.
+    /// Records the duration of the preparation phase.
     ///
-    /// This is the end-to-end time from receiving the request to sending the response.
-    ///
-    /// # Arguments
-    ///
-    /// * `duration` - The total execution duration
-    pub fn duration(mut self, duration: Duration) -> Self {
-        self.duration = duration;
-        self
+    /// This should be called when the operation preparation (parsing, validation,
+    /// planning) is complete. It captures the elapsed time since the operation started.
+    pub fn track_prepare(&mut self) -> Duration {
+        let elapsed = self.start_time.elapsed();
+        self.prepare_duration = Some(elapsed);
+
+        elapsed
     }
 
     /// Sets whether a cached query plan was used.
@@ -61,9 +62,8 @@ impl<'a> ExecutedOperationBuilder<'a> {
     /// # Arguments
     ///
     /// * `cached` - `true` if a cached plan was used, `false` otherwise
-    pub fn cached_plan(mut self, cached: bool) -> Self {
+    pub fn cached_plan(&mut self, cached: bool) {
         self.cached_plan = cached;
-        self
     }
 
     /// Sets the response status for the operation.
@@ -74,18 +74,17 @@ impl<'a> ExecutedOperationBuilder<'a> {
     /// # Arguments
     ///
     /// * `status` - The GraphQL response status
-    pub fn status(mut self, status: GraphqlResponseStatus) -> Self {
+    pub fn status(&mut self, status: GraphqlResponseStatus) {
         self.status = status;
-        self
     }
 
     /// Consumes the builder and creates an [`ExecutedOperation`].
     pub fn build(self) -> ExecutedOperation {
         ExecutedOperation {
             name: self.name.map(|s| s.to_string()),
-            document: self.document,
-            prepare_duration: self.prepare_duration,
-            duration: self.duration,
+            document: self.document.map(Clone::clone).unwrap_or_default(),
+            prepare_duration: self.prepare_duration.unwrap_or_default(),
+            duration: self.start_time.elapsed(),
             cached_plan: self.cached_plan,
             status: self.status,
         }
@@ -93,6 +92,7 @@ impl<'a> ExecutedOperationBuilder<'a> {
 }
 
 /// Builder for constructing [`ExecutedSubgraphRequest`] instances.
+#[derive(Debug, Clone)]
 pub struct ExecutedSubgraphRequestBuilder<'a> {
     pub(super) subgraph_name: &'a str,
     pub(super) method: http::Method,
@@ -101,6 +101,7 @@ pub struct ExecutedSubgraphRequestBuilder<'a> {
     pub(super) cache_status: CacheStatus,
     pub(super) total_duration: Duration,
     pub(super) has_errors: bool,
+    pub(super) graphql_response_status: GraphqlResponseStatus,
 }
 
 impl<'a> ExecutedSubgraphRequestBuilder<'a> {
@@ -111,9 +112,8 @@ impl<'a> ExecutedSubgraphRequestBuilder<'a> {
     /// # Arguments
     ///
     /// * `executions` - Slice of execution attempts
-    pub fn push_execution(mut self, execution: RequestExecution) -> Self {
+    pub fn push_execution(&mut self, execution: RequestExecution) {
         self.executions.push(execution);
-        self
     }
 
     /// Sets the cache status for this request.
@@ -123,9 +123,8 @@ impl<'a> ExecutedSubgraphRequestBuilder<'a> {
     /// # Arguments
     ///
     /// * `status` - The cache status (hit, partial hit, or miss)
-    pub fn cache_status(mut self, status: CacheStatus) -> Self {
+    pub fn cache_status(&mut self, status: CacheStatus) {
         self.cache_status = status;
-        self
     }
 
     /// Sets the total duration for all execution attempts.
@@ -135,9 +134,8 @@ impl<'a> ExecutedSubgraphRequestBuilder<'a> {
     /// # Arguments
     ///
     /// * `duration` - The total duration across all attempts
-    pub fn total_duration(mut self, duration: Duration) -> Self {
+    pub fn total_duration(&mut self, duration: Duration) {
         self.total_duration = duration;
-        self
     }
 
     /// Sets whether any errors occurred during execution.
@@ -147,9 +145,8 @@ impl<'a> ExecutedSubgraphRequestBuilder<'a> {
     /// # Arguments
     ///
     /// * `has_errors` - `true` if any errors occurred
-    pub fn has_errors(mut self, has_errors: bool) -> Self {
+    pub fn has_errors(&mut self, has_errors: bool) {
         self.has_errors = has_errors;
-        self
     }
 
     /// Consumes the builder and creates an [`ExecutedSubgraphRequest`].
@@ -168,10 +165,23 @@ impl<'a> ExecutedSubgraphRequestBuilder<'a> {
             has_errors: self.has_errors,
         }
     }
+
+    /// Sets the GraphQL response status for this subgraph request.
+    ///
+    /// This indicates whether the subgraph request completed successfully, had field errors,
+    /// or encountered request-level errors.
+    ///
+    /// # Arguments
+    ///
+    /// * `status` - The GraphQL response status
+    pub fn graphql_response_status(&mut self, status: GraphqlResponseStatus) {
+        self.graphql_response_status = status;
+    }
 }
 
 /// Builder for constructing [`SubgraphResponse`] instances.
 pub struct SubgraphResponseBuilder {
+    pub(super) start_time: Instant,
     pub(super) connection_time: Duration,
     pub(super) response_time: Duration,
     pub(super) status: http::StatusCode,
@@ -179,30 +189,6 @@ pub struct SubgraphResponseBuilder {
 }
 
 impl SubgraphResponseBuilder {
-    /// Sets the time taken to establish the connection.
-    ///
-    /// This helps identify network latency issues.
-    ///
-    /// # Arguments
-    ///
-    /// * `duration` - The connection establishment time
-    pub fn connection_time(mut self, duration: Duration) -> Self {
-        self.connection_time = duration;
-        self
-    }
-
-    /// Sets the time from request sent to response received.
-    ///
-    /// This measures the subgraph's processing time.
-    ///
-    /// # Arguments
-    ///
-    /// * `duration` - The response generation time
-    pub fn response_time(mut self, duration: Duration) -> Self {
-        self.response_time = duration;
-        self
-    }
-
     /// Consumes the builder and creates a [`SubgraphResponse`].
     ///
     /// # Returns
@@ -215,6 +201,33 @@ impl SubgraphResponseBuilder {
             status: self.status,
             headers: self.headers,
         }
+    }
+
+    /// Sets the HTTP headers for the response.
+    ///
+    /// This captures the headers returned by the subgraph in the HTTP response.
+    ///
+    /// # Arguments
+    ///
+    /// * `headers` - The HTTP headers from the response
+    pub fn headers(&mut self, headers: http::HeaderMap) {
+        self.headers = headers;
+    }
+
+    /// Records the connection establishment time.
+    ///
+    /// This should be called when the connection to the subgraph is established.
+    /// It captures the elapsed time since the request started.
+    pub fn track_connection(&mut self) {
+        self.connection_time = self.start_time.elapsed();
+    }
+
+    /// Records the response completion time.
+    ///
+    /// This should be called when the complete response is received from the subgraph.
+    /// It captures the elapsed time since the request started.
+    pub fn track_response(&mut self) {
+        self.response_time = self.start_time.elapsed();
     }
 }
 

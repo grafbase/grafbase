@@ -9,7 +9,6 @@ use engine::Engine;
 use extension_catalog::ExtensionCatalog;
 use gateway_config::Config;
 use runtime::trusted_documents_client::{Client, TrustedDocumentsEnforcementMode};
-use runtime_local::wasi::hooks::{AccessLogSender, HooksWasi};
 use std::{borrow::Cow, path::PathBuf, sync::Arc};
 use tokio::sync::watch;
 use ulid::Ulid;
@@ -54,8 +53,6 @@ pub(super) async fn generate(
     graph_definition: GraphDefinition,
     gateway_config: &Config,
     hot_reload_config_path: Option<PathBuf>,
-    hooks: HooksWasi,
-    access_log: AccessLogSender,
     access_token: Option<&AccessToken>,
     extension_catalog: Option<&ExtensionCatalog>,
 ) -> crate::Result<Engine<GatewayRuntime>> {
@@ -109,8 +106,6 @@ pub(super) async fn generate(
         &schema,
         hot_reload_config_path,
         version_id,
-        hooks,
-        access_log,
     )
     .await?;
 

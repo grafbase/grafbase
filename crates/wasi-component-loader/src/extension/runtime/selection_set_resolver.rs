@@ -1,10 +1,7 @@
 use engine_error::{ErrorCode, GraphqlError};
 use engine_schema::Subgraph;
 use extension_catalog::ExtensionId;
-use runtime::{
-    extension::{ArgumentsId, Data, Field as _, SelectionSet as _, SelectionSetResolverExtension},
-    hooks::Anything,
-};
+use runtime::extension::{Anything, ArgumentsId, Data, Field as _, SelectionSet as _, SelectionSetResolverExtension};
 
 use crate::{
     Error, cbor,

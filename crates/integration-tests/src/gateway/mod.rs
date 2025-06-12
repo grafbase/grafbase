@@ -13,7 +13,6 @@ use graphql_mocks::{MockGraphQlServer, ReceivedRequest};
 use http_body_util::BodyExt;
 pub use request::*;
 pub use runtime::*;
-use runtime_local::wasi::hooks::AccessLogReceiver;
 use tower::ServiceExt;
 use url::Url;
 use websocket_request::WebsocketRequest;
@@ -25,8 +24,6 @@ pub struct Gateway {
     router: axum::Router,
     #[allow(unused)]
     engine: Arc<engine::Engine<TestRuntime>>,
-    #[allow(unused)]
-    context: Arc<TestRuntimeContext>,
     subgraphs: subgraph::Subgraphs,
 }
 
@@ -34,10 +31,6 @@ impl std::fmt::Debug for Gateway {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Gateway").finish_non_exhaustive()
     }
-}
-
-pub struct TestRuntimeContext {
-    pub access_log_receiver: AccessLogReceiver,
 }
 
 pub struct MockSubgraph {

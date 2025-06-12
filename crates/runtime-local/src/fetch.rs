@@ -5,6 +5,7 @@ use std::time::Duration;
 
 use anyhow::bail;
 use bytes::Bytes;
+use event_queue::{SubgraphResponse, SubgraphResponseBuilder};
 use futures_util::Stream;
 use futures_util::{StreamExt, TryStreamExt};
 use fxhash::FxHashMap;
@@ -12,7 +13,6 @@ use gateway_config::Config;
 use reqwest::{Certificate, Identity, RequestBuilder};
 use reqwest_eventsource::RequestBuilderExt;
 use runtime::fetch::{FetchError, FetchRequest, FetchResult, Fetcher};
-use runtime::hooks::ResponseInfo;
 use signing::SigningParameters;
 
 const POOL_IDLE_TIMEOUT: Duration = Duration::from_secs(5);
@@ -60,8 +60,8 @@ impl Fetcher for NativeFetcher {
     async fn fetch(
         &self,
         fetch_req: FetchRequest<'_, Bytes>,
-    ) -> (FetchResult<http::Response<Bytes>>, Option<ResponseInfo>) {
-        let mut info = ResponseInfo::builder();
+    ) -> (FetchResult<http::Response<Bytes>>, Option<SubgraphResponseBuilder>) {
+        let mut info = SubgraphResponse::builder();
 
         let subgraph_name = fetch_req.subgraph_name;
         let request = into_reqwest(fetch_req);
@@ -77,7 +77,7 @@ impl Fetcher for NativeFetcher {
         let mut resp = match result {
             Ok(response) => response,
             Err(e) => {
-                return (Err(e), Some(info.build(None)));
+                return (Err(e), Some(info));
             }
         };
 
@@ -91,7 +91,7 @@ impl Fetcher for NativeFetcher {
 
         let bytes = match result {
             Ok(bytes) => bytes,
-            Err(e) => return (Err(e.into()), Some(info.build(None))),
+            Err(e) => return (Err(e.into()), Some(info)),
         };
 
         // reqwest transforms the body into a stream with Into
@@ -101,7 +101,7 @@ impl Fetcher for NativeFetcher {
         *response.extensions_mut() = extensions;
         *response.headers_mut() = headers;
 
-        (Ok(response), Some(info.build(Some(status))))
+        (Ok(response), Some(info))
     }
 
     async fn graphql_over_sse_stream(

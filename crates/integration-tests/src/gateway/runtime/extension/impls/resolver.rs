@@ -4,8 +4,8 @@ use engine::GraphqlError;
 use engine_schema::ExtensionDirective;
 use futures::{FutureExt as _, stream::BoxStream};
 use runtime::{
+    extension::Anything,
     extension::{ArgumentsId, DynField, Field, ResolverExtension, Response},
-    hooks::Anything,
 };
 
 use crate::gateway::{DispatchRule, DynHookContext, ExtContext, ExtensionsDispatcher, TestExtensions};

@@ -1,67 +1,11 @@
-use crate::{
-    extension::api::wit::{HttpError, HttpRequest, HttpResponse},
-    names::{HTTP_CLIENT_EXECUTE_FUNCTION, HTTP_CLIENT_EXECUTE_MANY_FUNCTION, HTTP_CLIENT_RESOURCE},
-    state::WasiState,
-};
-use anyhow::bail;
-use futures::FutureExt;
+use crate::extension::api::wit::{HttpError, HttpRequest, HttpResponse};
 use grafbase_telemetry::otel::opentelemetry::{KeyValue, metrics::Histogram};
 use http::{HeaderName, HeaderValue};
 use std::{
-    future::Future,
     str::FromStr,
     time::{Duration, Instant},
 };
 use tracing::{Instrument, field::Empty, info_span};
-use wasmtime::{
-    StoreContextMut,
-    component::{LinkerInstance, ResourceType},
-};
-
-pub(crate) fn inject_mapping(types: &mut LinkerInstance<'_, WasiState>) -> crate::Result<()> {
-    types.resource(HTTP_CLIENT_RESOURCE, ResourceType::host::<()>(), |_, _| Ok(()))?;
-
-    types.func_wrap_async(HTTP_CLIENT_EXECUTE_FUNCTION, execute)?;
-    types.func_wrap_async(HTTP_CLIENT_EXECUTE_MANY_FUNCTION, execute_many)?;
-
-    Ok(())
-}
-
-type HttpResult<'a> = Box<dyn Future<Output = anyhow::Result<(Result<HttpResponse, HttpError>,)>> + Send + 'a>;
-type HttpManyResult<'a> = Box<dyn Future<Output = anyhow::Result<(Vec<Result<HttpResponse, HttpError>>,)>> + Send + 'a>;
-
-fn execute(ctx: StoreContextMut<'_, WasiState>, (request,): (HttpRequest,)) -> HttpResult<'_> {
-    let request_durations = ctx.data().request_durations().clone();
-    let http_client = ctx.data().http_client().clone();
-
-    Box::new(async move {
-        if !ctx.data().network_enabled() {
-            bail!("Network operations are disabled");
-        }
-
-        Ok((send_request(http_client, request_durations, request).await,))
-    })
-}
-
-fn execute_many(ctx: StoreContextMut<'_, WasiState>, (requests,): (Vec<HttpRequest>,)) -> HttpManyResult<'_> {
-    Box::new(async move {
-        if !ctx.data().network_enabled() {
-            bail!("Network operations are disabled");
-        }
-
-        let request_durations = ctx.data().request_durations();
-        let http_client = ctx.data().http_client();
-
-        let futures = requests
-            .into_iter()
-            .map(|request| send_request(http_client.clone(), request_durations.clone(), request).boxed())
-            .collect::<Vec<_>>();
-
-        let responses = futures::future::join_all(futures).await;
-
-        Ok((responses,))
-    })
-}
 
 pub(crate) async fn send_request(
     http_client: reqwest::Client,

@@ -4,9 +4,7 @@ use engine_schema::DirectiveSite;
 use error::{ErrorResponse, GraphqlError};
 use extension_catalog::ExtensionId;
 
-use crate::hooks::Anything;
-
-use super::TokenRef;
+use super::{Anything, TokenRef};
 
 pub trait AuthorizationExtension<Context: Send + Sync + 'static>: Send + Sync + 'static {
     fn authorize_query<'ctx, 'fut, Extensions, Arguments>(

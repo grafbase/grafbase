@@ -16,11 +16,11 @@ use crate::{
 };
 
 #[tracing::instrument(name = "plan", level = "debug", skip_all)]
-pub async fn plan<OnOperationResponseHookOutput>(
+pub async fn plan(
     ctx: &mut PrepareContext<'_, impl Runtime>,
     operation: &CachedOperation,
     variables: &Variables,
-) -> Result<OperationPlan, Response<OnOperationResponseHookOutput>> {
+) -> Result<OperationPlan, Response> {
     async move {
         let query_modifications = QueryModifications::build(ctx, operation, variables).await?;
         OperationPlan::plan(ctx, operation, query_modifications).await

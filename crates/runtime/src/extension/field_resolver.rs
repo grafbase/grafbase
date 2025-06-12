@@ -4,9 +4,7 @@ use engine_schema::{ExtensionDirective, FieldDefinition};
 use error::GraphqlError;
 use futures_util::stream::BoxStream;
 
-use crate::hooks::Anything;
-
-use super::Data;
+use super::{Anything, Data};
 
 pub trait FieldResolverExtension<Context: Send + Sync + 'static>: Send + Sync + 'static {
     /// Resolve a field through an extension. Lifetime 'ctx will be available for as long as the

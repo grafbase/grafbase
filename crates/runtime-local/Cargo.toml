@@ -31,6 +31,7 @@ elliptic-curve = { workspace = true, features = ["jwk"] }
 engine.workspace = true
 engine-schema.workspace = true
 enumflags2.workspace = true
+event-queue.workspace = true
 extension-catalog.workspace = true
 futures-util.workspace = true
 fxhash.workspace = true

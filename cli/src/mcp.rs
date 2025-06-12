@@ -14,9 +14,7 @@ use engine_auth::AuthenticationService;
 use gateway_config::{Config, HeaderInsert, HeaderRule};
 use grafbase_telemetry::metrics::{EngineMetrics, meter_from_global_provider};
 use runtime::{entity_cache::EntityCache, kv::KvStore, rate_limiting::RateLimiter, trusted_documents_client};
-use runtime_local::{
-    InMemoryEntityCache, InMemoryKvStore, InMemoryOperationCache, NativeFetcher, wasi::hooks::HooksWasi,
-};
+use runtime_local::{InMemoryEntityCache, InMemoryKvStore, InMemoryOperationCache, NativeFetcher};
 use std::io::stdout;
 use wasi_component_loader::extension::WasmExtensions;
 
@@ -80,7 +78,6 @@ pub(crate) async fn run(args: McpCommand) -> anyhow::Result<()> {
         trusted_documents: trusted_documents_client::Client::new(()),
         kv,
         metrics: EngineMetrics::build(&meter_from_global_provider(), None),
-        hooks: Default::default(),
         extensions,
         rate_limiter: Default::default(),
         entity_cache: Default::default(),
@@ -131,7 +128,6 @@ struct MinimalRuntime {
     trusted_documents: trusted_documents_client::Client,
     kv: KvStore,
     metrics: EngineMetrics,
-    hooks: HooksWasi,
     extensions: WasmExtensions,
     rate_limiter: RateLimiter,
     entity_cache: InMemoryEntityCache,
@@ -140,7 +136,6 @@ struct MinimalRuntime {
 }
 
 impl engine::Runtime for MinimalRuntime {
-    type Hooks = HooksWasi;
     type Fetcher = NativeFetcher;
     type OperationCache = InMemoryOperationCache<Arc<CachedOperation>>;
     type Extensions = WasmExtensions;
@@ -156,10 +151,6 @@ impl engine::Runtime for MinimalRuntime {
 
     fn trusted_documents(&self) -> &trusted_documents_client::Client {
         &self.trusted_documents
-    }
-
-    fn hooks(&self) -> &Self::Hooks {
-        &self.hooks
     }
 
     fn operation_cache(&self) -> &Self::OperationCache {

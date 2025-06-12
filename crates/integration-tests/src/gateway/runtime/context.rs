@@ -4,15 +4,35 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use event_queue::EventQueue;
+use runtime::extension::ExtensionContext;
+
 #[derive(Default, Clone)]
 pub struct ExtContext {
     pub wasm: wasi_component_loader::SharedContext,
     pub test: DynHookContext,
 }
+
+impl ExtensionContext for ExtContext {
+    type EventQueue = EventQueue;
+
+    fn event_queue(&self) -> &Self::EventQueue {
+        self.wasm.event_queue()
+    }
+}
+
 #[derive(Default, Clone)]
 pub struct DynHookContext {
     by_type: HashMap<TypeId, Arc<dyn Any + Sync + Send>>,
     by_name: Arc<Mutex<HashMap<String, serde_json::Value>>>,
+}
+
+impl ExtensionContext for DynHookContext {
+    type EventQueue = ();
+
+    fn event_queue(&self) -> &Self::EventQueue {
+        &()
+    }
 }
 
 impl DynHookContext {

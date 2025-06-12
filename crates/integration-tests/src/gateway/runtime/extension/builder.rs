@@ -6,7 +6,7 @@ use std::{
 
 use extension_catalog::{Extension, ExtensionCatalog, ExtensionId, Manifest};
 use url::Url;
-use wasi_component_loader::{extension::WasmExtensions, resources::SharedResources};
+use wasi_component_loader::extension::WasmExtensions;
 
 use crate::gateway::DispatchRule;
 
@@ -135,7 +135,6 @@ impl ExtensionsBuilder {
         self,
         config: &mut gateway_config::Config,
         schema: &Arc<engine::Schema>,
-        shared_resources: SharedResources,
     ) -> Result<(ExtensionsDispatcher, ExtensionCatalog), String> {
         let wasm_extensions = if self.has_wasm_extension {
             for ext in self.catalog.iter() {
@@ -166,7 +165,7 @@ impl ExtensionsBuilder {
                 }
             }
 
-            WasmExtensions::new(&shared_resources, &self.catalog, config, schema)
+            WasmExtensions::new(&self.catalog, config, schema)
                 .await
                 .map_err(|err| err.to_string())?
         } else {

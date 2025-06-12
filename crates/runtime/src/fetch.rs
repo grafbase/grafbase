@@ -1,9 +1,8 @@
 use std::{borrow::Cow, future::Future, time::Duration};
 
 use bytes::Bytes;
+use event_queue::SubgraphResponseBuilder;
 use futures_util::{stream::BoxStream, Stream, StreamExt, TryFutureExt};
-
-use crate::hooks::ResponseInfo;
 
 #[derive(Debug, thiserror::Error)]
 pub enum FetchError {
@@ -63,7 +62,7 @@ pub trait Fetcher: Send + Sync + 'static {
     fn fetch(
         &self,
         request: FetchRequest<'_, Bytes>,
-    ) -> impl Future<Output = (FetchResult<http::Response<Bytes>>, Option<ResponseInfo>)> + Send;
+    ) -> impl Future<Output = (FetchResult<http::Response<Bytes>>, Option<SubgraphResponseBuilder>)> + Send;
 
     fn graphql_over_sse_stream(
         &self,
@@ -88,7 +87,7 @@ pub mod dynamic {
         async fn fetch(
             &self,
             request: FetchRequest<'_, Bytes>,
-        ) -> (FetchResult<http::Response<Bytes>>, Option<ResponseInfo>);
+        ) -> (FetchResult<http::Response<Bytes>>, Option<SubgraphResponseBuilder>);
 
         async fn graphql_over_sse_stream(
             &self,
@@ -127,7 +126,7 @@ pub mod dynamic {
         async fn fetch(
             &self,
             request: FetchRequest<'_, Bytes>,
-        ) -> (FetchResult<http::Response<Bytes>>, Option<ResponseInfo>) {
+        ) -> (FetchResult<http::Response<Bytes>>, Option<SubgraphResponseBuilder>) {
             self.0.fetch(request).await
         }
 
@@ -166,7 +165,7 @@ pub mod dynamic {
         async fn fetch(
             &self,
             request: FetchRequest<'_, Bytes>,
-        ) -> (FetchResult<http::Response<Bytes>>, Option<ResponseInfo>) {
+        ) -> (FetchResult<http::Response<Bytes>>, Option<SubgraphResponseBuilder>) {
             self.0.fetch(request).await
         }
 
