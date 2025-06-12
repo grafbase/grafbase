@@ -21,6 +21,7 @@ blake3.workspace = true
 bytes.workspace = true
 crossbeam-queue.workspace = true
 error = { path = "./error", package = "engine-error" }
+event-queue.workspace = true
 extension-catalog.workspace = true
 fixedbitset.workspace = true
 futures.workspace = true

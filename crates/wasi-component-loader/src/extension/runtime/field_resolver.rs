@@ -12,10 +12,7 @@ use super::{
 use engine_error::{ErrorCode, GraphqlError};
 use engine_schema::{ExtensionDirective, FieldDefinition};
 use futures::stream::BoxStream;
-use runtime::{
-    extension::{Data, FieldResolverExtension},
-    hooks::Anything,
-};
+use runtime::extension::{Anything, Data, FieldResolverExtension};
 use std::future::Future;
 
 impl FieldResolverExtension<SharedContext> for WasmExtensions {

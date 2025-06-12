@@ -3,7 +3,7 @@ pub mod mcp;
 mod retry_budget;
 mod runtime;
 
-use ::runtime::{hooks::Hooks as _, operation_cache::OperationCache};
+use ::runtime::operation_cache::OperationCache;
 use bytes::Bytes;
 use cache::CacheKey;
 use futures::{StreamExt, TryFutureExt};
@@ -13,7 +13,7 @@ use schema::Schema;
 use std::{borrow::Cow, future::Future, sync::Arc};
 
 use crate::{
-    Body, HooksExtension,
+    Body,
     execution::{EarlyHttpContext, RequestContext, StreamResponse},
     graphql_over_http::{ContentType, Http, ResponseFormat, StreamingResponseFormat},
     prepare::OperationDocument,
@@ -53,10 +53,12 @@ impl<R: Runtime> Engine<R> {
         tracing::debug!("Warming operations");
 
         let mut count = 0;
+
         for document in documents {
             let document: OperationDocument<'_> = document.into();
             let name = document.operation_name().map(|s| s.to_owned());
             let cache_key = CacheKey::document(&self.schema, &document.key).to_string();
+
             match self.warm_operation(document) {
                 Ok(cached) => {
                     count += 1;
@@ -91,34 +93,20 @@ impl<R: Runtime> Engine<R> {
 
         let context_fut = self
             .create_graphql_context(&ctx, headers, None, extension_ctx)
-            .map_err(|(response, wasm_context)| (response, Some(wasm_context)));
+            .map_err(|response| response);
 
         let request_fut = self
             .extract_well_formed_graphql_over_http_request(&ctx, body)
-            .map_err(|response| (response, None));
+            .map_err(|response| response);
 
         // Retrieve the request body while processing the headers
         match self
             .with_gateway_timeout(async { futures::try_join!(context_fut, request_fut) })
             .await
-            .unwrap_or_else(|| Err((crate::execution::errors::response::gateway_timeout(), None)))
+            .unwrap_or_else(|| Err(crate::execution::errors::response::gateway_timeout()))
         {
-            Ok(((request_context, wasm_context), request)) => {
-                self.execute_well_formed_graphql_request(request_context, wasm_context, request)
-                    .await
-            }
-            Err((mut response, wasm_context)) => {
-                let context = wasm_context.unwrap_or_else(|| self.runtime.hooks().new_context());
-                let on_operation_response_output = response.take_on_operation_response_output();
-                let mut http_response = Http::error(ctx.response_format, response);
-
-                http_response.extensions_mut().insert(HooksExtension::Single {
-                    context,
-                    on_operation_response_output,
-                });
-
-                http_response
-            }
+            Ok((request_context, request)) => self.execute_well_formed_graphql_request(request_context, request).await,
+            Err(response) => Http::error(ctx.response_format, response),
         }
     }
 
@@ -141,10 +129,10 @@ impl<R: Runtime> Engine<R> {
         // Did you insert the context there?
         let extension_context = parts.extensions.remove::<WasmExtensionContext<R>>().unwrap_or_default();
 
-        let (request_context, wasm_context) = self
+        let request_context = self
             .create_graphql_context(&ctx, parts.headers, Some(payload), extension_context)
             .await
-            .map_err(|(response, _)| {
+            .map_err(|response| {
                 response
                     .pre_execution_errors()
                     .first()
@@ -155,7 +143,6 @@ impl<R: Runtime> Engine<R> {
         Ok(WebsocketSession {
             engine: self.clone(),
             request_context,
-            wasm_context,
         })
     }
 
@@ -167,7 +154,6 @@ impl<R: Runtime> Engine<R> {
 pub struct WebsocketSession<R: Runtime> {
     engine: Arc<Engine<R>>,
     request_context: Arc<RequestContext<WasmExtensionContext<R>>>,
-    wasm_context: WasmContext<R>,
 }
 
 impl<R: Runtime> Clone for WebsocketSession<R> {
@@ -175,20 +161,17 @@ impl<R: Runtime> Clone for WebsocketSession<R> {
         Self {
             engine: self.engine.clone(),
             request_context: self.request_context.clone(),
-            wasm_context: self.wasm_context.clone(),
         }
     }
 }
 
 impl<R: Runtime> WebsocketSession<R> {
-    pub fn execute(&self, event: websocket::SubscribeEvent) -> impl Stream<Item = websocket::Message<R>> + 'static {
+    pub fn execute(&self, event: websocket::SubscribeEvent) -> impl Stream<Item = websocket::Message> + 'static {
         let websocket::SubscribeEvent { id, payload } = event;
         // TODO: Call a websocket hook?
-        let StreamResponse { stream, .. } = self.engine.execute_websocket_well_formed_graphql_request(
-            self.request_context.clone(),
-            self.wasm_context.clone(),
-            payload.0,
-        );
+        let StreamResponse { stream, .. } = self
+            .engine
+            .execute_websocket_well_formed_graphql_request(self.request_context.clone(), payload.0);
 
         stream.map(move |response| match response {
             Response::RefusedRequest(_) => websocket::Message::Error {

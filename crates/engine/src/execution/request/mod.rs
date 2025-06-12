@@ -13,16 +13,15 @@ pub(crate) use response_extension::*;
 use runtime::authentication::Authenticate as _;
 pub(crate) use stream::*;
 
-use ::runtime::{hooks::Hooks, rate_limiting::RateLimitKey};
+use ::runtime::rate_limiting::RateLimitKey;
 use bytes::Bytes;
-use error::ErrorResponse;
 use grafbase_telemetry::grafbase_client::Client;
 use operation::{BatchRequest, QueryParamsRequest};
 use std::{future::Future, sync::Arc};
 
 use crate::{
     Body, Engine, Runtime,
-    engine::{WasmContext, WasmExtensionContext},
+    engine::WasmExtensionContext,
     graphql_over_http::{ContentType, ResponseFormat},
     mcp::McpRequestContext,
     response::Response,
@@ -87,19 +86,7 @@ impl<R: Runtime> Engine<R> {
         headers: http::HeaderMap,
         websocket_init_payload: Option<InitPayload>,
         extension_context: WasmExtensionContext<R>,
-    ) -> Result<
-        (Arc<RequestContext<WasmExtensionContext<R>>>, WasmContext<R>),
-        (Response<<R::Hooks as Hooks>::OnOperationResponseOutput>, WasmContext<R>),
-    > {
-        let (wasm_context, headers) = self
-            .runtime
-            .hooks()
-            .on_gateway_request(&ctx.uri.to_string(), headers)
-            .await
-            .map_err(|(context, ErrorResponse { status, errors })| {
-                (Response::refuse_request_with(status, errors), context)
-            })?;
-
+    ) -> Result<Arc<RequestContext<WasmExtensionContext<R>>>, Response> {
         let client = Client::extract_from(&headers);
 
         let (headers, token) = match self
@@ -111,13 +98,13 @@ impl<R: Runtime> Engine<R> {
             Ok((headers, token)) => (headers, token),
             Err(resp) => {
                 let response = Response::refuse_request_with(resp.status, resp.errors);
-                return Err((response, wasm_context));
+                return Err(response);
             }
         };
 
         // Currently it doesn't rely on authentication, but likely will at some point.
         if self.runtime.rate_limiter().limit(&RateLimitKey::Global).await.is_err() {
-            return Err((errors::response::gateway_rate_limited(), wasm_context));
+            return Err(errors::response::gateway_rate_limited());
         }
 
         let mut subgraph_default_headers = http::HeaderMap::new();
@@ -140,14 +127,14 @@ impl<R: Runtime> Engine<R> {
             extension_context,
         };
 
-        Ok((Arc::new(request_context), wasm_context))
+        Ok(Arc::new(request_context))
     }
 
     pub(crate) async fn extract_well_formed_graphql_over_http_request<F>(
         &self,
         ctx: &EarlyHttpContext,
         body: F,
-    ) -> Result<BatchRequest, Response<<R::Hooks as Hooks>::OnOperationResponseOutput>>
+    ) -> Result<BatchRequest, Response>
     where
         F: Future<Output = Result<Bytes, (http::StatusCode, String)>> + Send,
     {

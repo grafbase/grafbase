@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use bytes::Bytes;
-use futures::{FutureExt, TryStreamExt};
+use futures::TryStreamExt;
 use futures_util::{StreamExt, stream::BoxStream};
 use headers::HeaderMapExt;
 use runtime::{
@@ -79,24 +79,17 @@ impl GraphqlResolver {
         };
 
         let headers = ctx.subgraph_headers_with_rules(endpoint.header_rules());
-        let req = runtime::hooks::SubgraphRequest {
-            method: http::Method::POST,
-            url: url.into_owned(),
-            headers,
-        };
-        let runtime::hooks::SubgraphRequest { method, url, headers } =
-            ctx.hooks().on_subgraph_request(endpoint.subgraph_name(), req).await?;
 
         let request = FetchRequest {
             subgraph_name: endpoint.subgraph_name(),
-            url: Cow::Owned(url),
+            url,
             websocket_init_payload: ctx
                 .request_context
                 .websocket_init_payload
                 .as_ref()
                 .filter(|_| ctx.schema().settings.websocket_forward_connection_init_payload)
                 .cloned(),
-            method,
+            method: http::Method::POST,
             headers,
             body: &SubgraphGraphqlRequest {
                 query: &self.subgraph_operation.query,
@@ -116,7 +109,6 @@ impl GraphqlResolver {
         let stream = retrying_fetch(ctx, move || {
             fetcher
                 .graphql_over_websocket_stream(request.clone())
-                .then(|res| async { (res, None) })
                 .instrument(http_span1.span())
         })
         .await;
@@ -179,25 +171,16 @@ impl GraphqlResolver {
                 GraphqlError::internal_server_error()
             })?;
 
-            let headers = ctx.subgraph_headers_with_rules(endpoint.header_rules());
-            let req = runtime::hooks::SubgraphRequest {
-                method: http::Method::POST,
-                url: endpoint.url().clone(),
-                headers,
-            };
-            let runtime::hooks::SubgraphRequest {
-                method,
-                url,
-                mut headers,
-            } = ctx.hooks().on_subgraph_request(endpoint.subgraph_name(), req).await?;
+            let mut headers = ctx.subgraph_headers_with_rules(endpoint.header_rules());
 
             headers.typed_insert(headers::ContentType::json());
             headers.typed_insert(headers::ContentLength(body.len() as u64));
+
             FetchRequest {
                 websocket_init_payload: None,
                 subgraph_name: endpoint.subgraph_name(),
-                url: Cow::Owned(url),
-                method,
+                url: Cow::Owned(endpoint.url().clone()),
+                method: http::Method::POST,
                 headers,
                 body: Bytes::from(body),
                 timeout: endpoint.config.timeout,
@@ -213,7 +196,6 @@ impl GraphqlResolver {
         let stream = retrying_fetch(ctx, move || {
             fetcher
                 .graphql_over_sse_stream(request.clone())
-                .then(|result| async { (result, None) })
                 .instrument(http_span1.span())
         })
         .await;

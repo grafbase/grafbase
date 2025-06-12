@@ -5,8 +5,8 @@ use engine_schema::DirectiveSite;
 use extension_catalog::{ExtensionId, Id};
 use futures::{FutureExt as _, TryFutureExt as _, TryStreamExt as _, stream::FuturesUnordered};
 use runtime::{
+    extension::Anything,
     extension::{AuthorizationDecisions, AuthorizationExtension, QueryAuthorizationDecisions, QueryElement, TokenRef},
-    hooks::Anything,
 };
 use tokio::sync::RwLock;
 

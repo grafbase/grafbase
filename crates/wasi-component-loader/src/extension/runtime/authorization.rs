@@ -6,9 +6,8 @@ use engine_error::{ErrorCode, ErrorResponse, GraphqlError};
 use engine_schema::DirectiveSite;
 use extension_catalog::ExtensionId;
 use futures::{TryStreamExt, stream::FuturesUnordered};
-use runtime::{
-    extension::{AuthorizationDecisions, AuthorizationExtension, QueryAuthorizationDecisions, QueryElement, TokenRef},
-    hooks::Anything,
+use runtime::extension::{
+    Anything, AuthorizationDecisions, AuthorizationExtension, QueryAuthorizationDecisions, QueryElement, TokenRef,
 };
 use std::{future::Future, ops::Range, sync::Arc};
 

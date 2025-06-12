@@ -1,4 +1,4 @@
-use std::{any::Any, sync::Arc};
+use std::sync::Arc;
 
 use super::cache::Cache;
 use dashmap::DashMap;
@@ -11,10 +11,7 @@ use wasmtime_wasi::{
 };
 use wasmtime_wasi_http::{WasiHttpCtx, WasiHttpView};
 
-use crate::{
-    AccessLogSender,
-    resources::{self, GrpcClient},
-};
+use crate::resources::{self, GrpcClient};
 
 /// Represents the state of the WASI environment.
 ///
@@ -37,9 +34,6 @@ pub(crate) struct WasiState {
     /// A client for making HTTP requests from the guest.
     http_client: reqwest::Client,
 
-    /// A sender for the access log channel.
-    access_log: AccessLogSender,
-
     /// A cache to be used for storing data between calls to different instances of the same extension.
     cache: Arc<Cache>,
 
@@ -56,67 +50,6 @@ pub(crate) struct WasiState {
     kafka_producers: DashMap<String, resources::KafkaProducer>,
 }
 
-// Allows to define method for a resource that is either owned or an attribute from another one.
-// In the later case we need the parent resource id and a method to retrieve our data.
-// This is for SubgraphRequest and Headers typically, the former holds the actual http::HeaderMap,
-// so for the guest to access it, we provide a "Ref" variant, but in other places we provide an
-// "Owned" variant instead. For the guest, it's transparent.
-pub enum WasmOwnedOrBorrowed<T> {
-    /// Borrowed within the guest, typically accessing a resource from another resource.
-    GuestBorrowed {
-        parent: u32,
-        get: for<'a> fn(elem: &'a mut (dyn Any + 'static)) -> &'a mut T,
-    },
-    /// Borrowed from the host, the instance will be provided with T, but it should not be dropped.
-    /// The caller will remove it himself from the store.
-    HostBorrowed(T),
-    /// Fully owned by the guest
-    #[allow(unused)]
-    Owned(T),
-}
-
-impl<T> WasmOwnedOrBorrowed<T> {
-    pub fn borrow(data: T) -> Self {
-        Self::HostBorrowed(data)
-    }
-
-    pub fn is_guest_borrowed(&self) -> bool {
-        matches!(self, Self::GuestBorrowed { .. })
-    }
-
-    pub fn into_owned(self) -> Option<T> {
-        match self {
-            Self::Owned(data) | Self::HostBorrowed(data) => Some(data),
-            _ => None,
-        }
-    }
-}
-
-// Simple macro to create a ref resource for a field of an existing resource.
-macro_rules! get_child_ref {
-    ($store: ident, $resource: ident: $rty: ty => $field: ident: $ty: ty) => {{
-        let store = $store.data_mut();
-
-        let _ = store.get(&$resource)?;
-
-        fn get(elem: &mut dyn std::any::Any) -> &mut $ty {
-            &mut elem.downcast_mut::<$rty>().unwrap().$field
-        }
-
-        let field_ref = store.table.push_child(
-            $crate::WasmOwnedOrBorrowed::GuestBorrowed {
-                parent: $resource.rep(),
-                get,
-            },
-            &$resource,
-        )?;
-
-        field_ref
-    }};
-}
-
-pub(crate) use get_child_ref;
-
 impl WasiState {
     /// Creates a new instance of `WasiState` with the given WASI context.
     ///
@@ -128,7 +61,7 @@ impl WasiState {
     ///
     /// A new `WasiState` instance initialized with the provided context and default
     /// HTTP and resource table contexts.
-    pub fn new(ctx: WasiCtx, access_log: AccessLogSender, cache: Arc<Cache>, network_enabled: bool) -> Self {
+    pub fn new(ctx: WasiCtx, cache: Arc<Cache>, network_enabled: bool) -> Self {
         let meter = meter_from_global_provider();
         let request_durations = meter.u64_histogram("grafbase.hook.http_request.duration").build();
         let http_client = reqwest::Client::new();
@@ -139,7 +72,6 @@ impl WasiState {
             table: ResourceTable::new(),
             request_durations,
             http_client,
-            access_log,
             cache,
             network_enabled,
             postgres_pools: DashMap::new(),
@@ -177,34 +109,6 @@ impl WasiState {
         Ok(entry)
     }
 
-    pub fn get_ref_mut<T: 'static>(&mut self, resource: &Resource<WasmOwnedOrBorrowed<T>>) -> crate::Result<&mut T> {
-        let data = self.table.get(resource).map_err(anyhow::Error::from)?;
-
-        if let WasmOwnedOrBorrowed::GuestBorrowed { parent, get } = *data {
-            let data = self.table.get_any_mut(parent).map_err(anyhow::Error::from)?;
-            return Ok(get(data));
-        }
-
-        match self.table.get_mut(resource).map_err(anyhow::Error::from)? {
-            WasmOwnedOrBorrowed::Owned(data) | WasmOwnedOrBorrowed::HostBorrowed(data) => Ok(data),
-            _ => unreachable!(),
-        }
-    }
-
-    pub fn get_ref<T: 'static>(&mut self, resource: &Resource<WasmOwnedOrBorrowed<T>>) -> crate::Result<&T> {
-        let data = self.table.get(resource).map_err(anyhow::Error::from)?;
-
-        if let WasmOwnedOrBorrowed::GuestBorrowed { parent, get } = *data {
-            let data = self.table.get_any_mut(parent).map_err(anyhow::Error::from)?;
-            return Ok(get(data));
-        }
-
-        match self.table.get(resource).map_err(anyhow::Error::from)? {
-            WasmOwnedOrBorrowed::Owned(data) | WasmOwnedOrBorrowed::HostBorrowed(data) => Ok(data),
-            _ => unreachable!(),
-        }
-    }
-
     /// Returns a reference to the histogram tracking request durations.
     pub fn request_durations(&self) -> &Histogram<u64> {
         &self.request_durations
@@ -228,11 +132,6 @@ impl WasiState {
     /// Returns a reference to the map of Kafka producers.
     pub fn kafka_producers(&self) -> &DashMap<String, resources::KafkaProducer> {
         &self.kafka_producers
-    }
-
-    /// Returns a reference to the access log sender.
-    pub fn access_log(&self) -> &AccessLogSender {
-        &self.access_log
     }
 
     /// Returns a reference to the cache.

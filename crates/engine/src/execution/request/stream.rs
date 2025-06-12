@@ -12,12 +12,11 @@ use grafbase_telemetry::{
     span::graphql::GraphqlOperationSpan,
 };
 use operation::Request;
-use runtime::hooks::Hooks;
 use tracing::Instrument;
 
 use crate::{
     Engine, Runtime,
-    engine::{WasmContext, WasmExtensionContext},
+    engine::WasmExtensionContext,
     execution::{ResponseSender, default_response_extensions, errors, response_extension_for_prepared_operation},
     prepare::PrepareContext,
     response::{ErrorCode, ErrorCodeCounter, Response, ResponseExtensions},
@@ -26,8 +25,8 @@ use crate::{
 
 use super::RequestContext;
 
-pub(crate) struct StreamResponse<OnOperationResponseOutput> {
-    pub stream: BoxStream<'static, Response<OnOperationResponseOutput>>,
+pub(crate) struct StreamResponse {
+    pub stream: BoxStream<'static, Response>,
     pub telemetry: oneshot::Receiver<GraphqlExecutionTelemetry<ErrorCode>>,
 }
 
@@ -35,9 +34,8 @@ impl<R: Runtime> Engine<R> {
     pub(super) fn execute_stream(
         self: &Arc<Self>,
         request_context: Arc<RequestContext<WasmExtensionContext<R>>>,
-        wasm_context: WasmContext<R>,
         request: Request,
-    ) -> StreamResponse<<R::Hooks as Hooks>::OnOperationResponseOutput> {
+    ) -> StreamResponse {
         let engine = self.clone();
 
         let start = Instant::now();
@@ -51,19 +49,19 @@ impl<R: Runtime> Engine<R> {
         let stream = response_receiver
             .join(
                 async move {
-                    let ctx = PrepareContext::new(&engine, &request_context, wasm_context);
+                    let ctx = PrepareContext::new(&engine, &request_context);
                     let mut status = GraphqlResponseStatus::Success;
                     let mut error_code_counter = ErrorCodeCounter::default();
 
-                    struct Sender<'a, O> {
+                    struct Sender<'a> {
                         status: &'a mut GraphqlResponseStatus,
                         error_code_counter: &'a mut ErrorCodeCounter,
-                        response_sender: mpsc::Sender<Response<O>>,
+                        response_sender: mpsc::Sender<Response>,
                     }
 
-                    impl<O: Send + 'static> ResponseSender<O> for Sender<'_, O> {
+                    impl ResponseSender for Sender<'_> {
                         type Error = mpsc::SendError;
-                        async fn send(&mut self, response: Response<O>) -> Result<(), Self::Error> {
+                        async fn send(&mut self, response: Response) -> Result<(), Self::Error> {
                             *self.status = self.status.union(response.graphql_status());
                             self.error_code_counter.add(response.error_code_counter());
                             self.response_sender.send(response).await
@@ -129,7 +127,7 @@ impl<R: Runtime> Engine<R> {
 impl<R: Runtime> PrepareContext<'_, R> {
     async fn execute_stream<S>(mut self, request: Request, mut sender: S) -> Option<GraphqlOperationAttributes>
     where
-        S: ResponseSender<<R::Hooks as Hooks>::OnOperationResponseOutput, Error = mpsc::SendError>,
+        S: ResponseSender<Error = mpsc::SendError>,
     {
         let schema = self.schema();
         let request_context = self.request_context;
@@ -189,9 +187,9 @@ impl<R: Runtime> PrepareContext<'_, R> {
             extensions: Option<ResponseExtensions>,
         }
 
-        impl<O: 'static + Send, S: ResponseSender<O>> ResponseSender<O> for AddExtToFirstResponse<S> {
+        impl<S: ResponseSender> ResponseSender for AddExtToFirstResponse<S> {
             type Error = S::Error;
-            async fn send(&mut self, response: Response<O>) -> Result<(), Self::Error> {
+            async fn send(&mut self, response: Response) -> Result<(), Self::Error> {
                 let response = if let Some(extensions) = self.extensions.take() {
                     response.with_extensions(extensions)
                 } else {

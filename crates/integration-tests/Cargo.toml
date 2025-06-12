@@ -23,6 +23,7 @@ engine.workspace = true
 engine-auth.workspace = true
 engine-axum.workspace = true
 engine-schema.workspace = true
+event-queue.workspace = true
 extension-catalog.workspace = true
 federated-server.workspace = true
 futures.workspace = true

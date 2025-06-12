@@ -4,7 +4,7 @@ use engine_schema::{ExtensionDirective, FieldDefinition};
 use error::GraphqlError;
 use futures_util::stream::BoxStream;
 
-use crate::{extension::Response, hooks::Anything};
+use crate::extension::{Anything, Response};
 
 pub trait SelectionSet<'a>: Sized + Send + 'a {
     type Field: Field<'a, SelectionSet = Self>;

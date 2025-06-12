@@ -3,11 +3,10 @@ use std::sync::Arc;
 use error::{ErrorCode, GraphqlError};
 use futures::StreamExt;
 use operation::{BatchRequest, Request};
-use runtime::hooks::Hooks;
 
 use crate::{
     Body, Engine,
-    engine::{WasmContext, WasmExtensionContext},
+    engine::WasmExtensionContext,
     graphql_over_http::{Http, ResponseFormat},
     response::Response,
 };
@@ -18,28 +17,22 @@ impl<R: Runtime> Engine<R> {
     pub(crate) async fn execute_well_formed_graphql_request(
         self: &Arc<Self>,
         request_context: Arc<RequestContext<WasmExtensionContext<R>>>,
-        wasm_context: WasmContext<R>,
         request: BatchRequest,
     ) -> http::Response<Body> {
         match request {
             BatchRequest::Single(request) => match request_context.response_format {
                 ResponseFormat::Streaming(format) => {
-                    Http::stream(
-                        format,
-                        wasm_context.clone(),
-                        self.execute_stream(request_context, wasm_context, request),
-                    )
-                    .await
+                    Http::stream(format, self.execute_stream(request_context, request)).await
                 }
                 ResponseFormat::Complete(format) => {
                     let Some(response) = self
-                        .with_gateway_timeout(self.execute_single(&request_context, wasm_context.clone(), request))
+                        .with_gateway_timeout(self.execute_single(&request_context, request))
                         .await
                     else {
                         return self.gateway_timeout_error(&request_context);
                     };
 
-                    Http::single(format, wasm_context, response)
+                    Http::single(format, response)
                 }
             },
             BatchRequest::Batch(requests) => {
@@ -71,7 +64,7 @@ impl<R: Runtime> Engine<R> {
                 let Some(responses) = self
                     .with_gateway_timeout(
                         futures_util::stream::iter(requests.into_iter())
-                            .then(|request| self.execute_single(&request_context, wasm_context.clone(), request))
+                            .then(|request| self.execute_single(&request_context, request))
                             .collect::<Vec<_>>(),
                     )
                     .await
@@ -79,7 +72,7 @@ impl<R: Runtime> Engine<R> {
                     return self.gateway_timeout_error(&request_context);
                 };
 
-                Http::batch(format, wasm_context, responses)
+                Http::batch(format, responses)
             }
         }
     }
@@ -87,10 +80,9 @@ impl<R: Runtime> Engine<R> {
     pub(crate) fn execute_websocket_well_formed_graphql_request(
         self: &Arc<Self>,
         request_context: Arc<RequestContext<WasmExtensionContext<R>>>,
-        wasm_context: WasmContext<R>,
         request: Request,
-    ) -> StreamResponse<<R::Hooks as Hooks>::OnOperationResponseOutput> {
-        self.execute_stream(request_context, wasm_context, request)
+    ) -> StreamResponse {
+        self.execute_stream(request_context, request)
     }
 
     fn bad_request_but_well_formed_graphql_over_http_request(
@@ -101,7 +93,7 @@ impl<R: Runtime> Engine<R> {
         let error = GraphqlError::new(format!("Bad request: {message}"), ErrorCode::BadRequest);
         Http::error(
             request_context.response_format,
-            Response::<()>::request_error([error])
+            Response::request_error([error])
                 .with_extensions(default_response_extensions::<R>(&self.schema, request_context)),
         )
     }
@@ -109,7 +101,7 @@ impl<R: Runtime> Engine<R> {
     fn gateway_timeout_error(&self, request_context: &RequestContext<WasmExtensionContext<R>>) -> http::Response<Body> {
         Http::error(
             request_context.response_format,
-            super::errors::response::gateway_timeout::<()>()
+            super::errors::response::gateway_timeout()
                 .with_extensions(default_response_extensions::<R>(&self.schema, request_context)),
         )
     }

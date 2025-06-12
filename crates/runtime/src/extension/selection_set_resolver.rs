@@ -4,9 +4,7 @@ use engine_schema::Subgraph;
 use error::GraphqlError;
 use extension_catalog::ExtensionId;
 
-use crate::hooks::Anything;
-
-use super::{ArgumentsId, Data, Field};
+use super::{Anything, ArgumentsId, Data, Field};
 
 pub trait SelectionSetResolverExtension: Send + Sync + 'static {
     fn prepare<'ctx, F: Field<'ctx>>(

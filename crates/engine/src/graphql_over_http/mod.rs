@@ -53,27 +53,9 @@ impl Default for TelemetryExtension {
     }
 }
 
-pub enum HooksExtension<Context, OnOperationResponseOutput> {
-    Single {
-        context: Context,
-        on_operation_response_output: Option<OnOperationResponseOutput>,
-    },
-    Batch {
-        context: Context,
-        on_operation_response_outputs: Vec<OnOperationResponseOutput>,
-    },
-}
-
 // Required to be part of the request.extensions
 impl Clone for TelemetryExtension {
     fn clone(&self) -> Self {
         unreachable!("TelemetryExtension is not meant to be cloned.")
-    }
-}
-
-// Required to be part of the request.extensions
-impl<C, O> Clone for HooksExtension<C, O> {
-    fn clone(&self) -> Self {
-        unreachable!("HooksExtensions is not meant to be cloned.")
     }
 }

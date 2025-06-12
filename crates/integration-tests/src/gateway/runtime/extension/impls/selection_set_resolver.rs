@@ -5,8 +5,8 @@ use engine_schema::Subgraph;
 use extension_catalog::ExtensionId;
 use futures::FutureExt as _;
 use runtime::{
+    extension::Anything,
     extension::{ArgumentsId, Data, DynField, Field, SelectionSetResolverExtension},
-    hooks::Anything,
 };
 
 use crate::gateway::{DispatchRule, ExtensionsDispatcher, TestExtensions};

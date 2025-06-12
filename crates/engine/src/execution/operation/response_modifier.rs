@@ -1,5 +1,4 @@
 use futures::FutureExt as _;
-use itertools::Itertools;
 use runtime::extension::{AuthorizationDecisions, AuthorizationExtension as _};
 use schema::DirectiveSiteId;
 use walker::Walk;
@@ -10,7 +9,7 @@ use crate::{
         PlanFieldArguments, ResponseModifier, ResponseModifierRule, ResponseModifierRuleTarget,
         create_extension_directive_response_view,
     },
-    response::{ErrorCode, GraphqlError, ParentObjectSet, ResponseBuilder, ResponseValueId},
+    response::{ParentObjectSet, ResponseBuilder, ResponseValueId},
 };
 
 use super::{ExecutionContext, state::OperationExecutionState};
@@ -26,6 +25,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
             let Some(refs) = state[target.set_id].as_ref() else {
                 continue;
             };
+
             let parent_objects = if self.operation.cached.query_plan[target.set_id].ty_id == target.ty_id {
                 ParentObjectSet::default().with_response_objects(refs.clone())
             } else {
@@ -41,102 +41,11 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
 
             // Now we can execute the hook and propagate any errors.
             match response_modifier.rule {
-                ResponseModifierRule::AuthorizedParentEdge {
-                    directive_id,
-                    definition_id,
-                } => {
-                    let definition = definition_id.walk(self);
-                    let directive = directive_id.walk(self);
-                    let parents = response.read(
-                        parent_objects,
-                        // FIXME: Total hack, assumes there is only one authorized directive on the field. Need
-                        target_field.required_fields_by_supergraph(),
-                    );
-                    let result = self
-                        .hooks()
-                        .authorize_parent_edge_post_execution(definition, &parents, directive.metadata())
-                        .await;
-                    let parent_objects = parents.into_object_set();
-                    tracing::debug!("Authorized result: {result:#?}");
-                    // FIXME: make this efficient
-                    let result = match result {
-                        Ok(result) => {
-                            if result.len() == parent_objects.len() {
-                                result
-                            } else if result.len() == 1 {
-                                let res = result.into_iter().next().unwrap();
-                                (0..parent_objects.len()).map(|_| res.clone()).collect()
-                            } else {
-                                tracing::error!("Incorrect number of authorization replies");
-                                (0..parent_objects.len())
-                                    .map(|_| Err(GraphqlError::new("Authorization failure", ErrorCode::HookError)))
-                                    .collect()
-                            }
-                        }
-                        Err(err) => (0..parent_objects.len()).map(|_| Err(err.clone())).collect(),
-                    };
-
-                    for (obj_ref, result) in parent_objects.iter().zip_eq(result) {
-                        if let Err(err) = result {
-                            // If the current field is required, the error must be propagated upwards,
-                            // so the parent object path is enough.
-                            if definition.ty().wrapping.is_non_null() {
-                                response.propagate_null(&obj_ref.path);
-                            } else {
-                                // Otherwise we don't need to propagate anything and just need to mark
-                                // the current value as inaccessible. So null for the client, but
-                                // available for requirements to be sent to subgraphs.
-                                response.make_inacessible(ResponseValueId::Field {
-                                    object_id: obj_ref.id,
-                                    key: target_field.key(),
-                                    nullable: true,
-                                });
-                            }
-                            response.push_error(err.clone().with_path((&obj_ref.path, target_field.response_key)));
-                        }
-                    }
+                ResponseModifierRule::AuthorizedParentEdge { .. } => {
+                    unreachable!("maybe we can delete the whole variant at some point?")
                 }
-                ResponseModifierRule::AuthorizedEdgeChild {
-                    directive_id,
-                    definition_id,
-                } => {
-                    let definition = self.schema().walk(definition_id);
-                    let directive = self.schema().walk(directive_id);
-                    let nodes = response.read(
-                        parent_objects,
-                        // FIXME: Total hack, assumes there is only one authorized directive on the field. Need
-                        target_field.required_fields_by_supergraph(),
-                    );
-                    let result = self
-                        .hooks()
-                        .authorize_edge_node_post_execution(definition, &nodes, directive.metadata())
-                        .await;
-                    let parent_objects = nodes.into_object_set();
-                    tracing::debug!("Authorized result: {result:#?}");
-                    // FIXME: make this efficient
-                    let result = match result {
-                        Ok(result) => {
-                            if result.len() == parent_objects.len() {
-                                result
-                            } else if result.len() == 1 {
-                                let res = result.into_iter().next().unwrap();
-                                (0..parent_objects.len()).map(|_| res.clone()).collect()
-                            } else {
-                                tracing::error!("Incorrect number of authorization replies");
-                                (0..parent_objects.len())
-                                    .map(|_| Err(GraphqlError::new("Authorization failure", ErrorCode::HookError)))
-                                    .collect()
-                            }
-                        }
-                        Err(err) => (0..parent_objects.len()).map(|_| Err(err.clone())).collect(),
-                    };
-
-                    for (obj_ref, result) in parent_objects.iter().zip_eq(result) {
-                        if let Err(err) = result {
-                            response.propagate_null(&obj_ref.path);
-                            response.push_error(err.clone().with_path(&obj_ref.path));
-                        }
-                    }
+                ResponseModifierRule::AuthorizedEdgeChild { .. } => {
+                    unreachable!("maybe we can delete the whole variant at some point?")
                 }
                 ResponseModifierRule::Extension {
                     directive_id,

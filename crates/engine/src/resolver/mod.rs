@@ -10,7 +10,6 @@ pub(crate) use graphql::{FederationEntityResolver, GraphqlResolver};
 use introspection::IntrospectionResolver;
 pub(crate) use lookup::{LookupProxiedResolver, LookupResolver};
 use operation::{Operation, OperationContext};
-use runtime::hooks::Hooks;
 use schema::ResolverDefinitionVariant;
 
 use crate::{
@@ -74,9 +73,8 @@ impl Resolver {
     }
 }
 
-pub struct ResolverResult<'ctx, OnSubgraphResponseHookOutput> {
+pub struct ResolverResult<'ctx> {
     pub response_part: ResponsePartBuilder<'ctx>,
-    pub on_subgraph_response_hook_output: Option<OnSubgraphResponseHookOutput>,
 }
 
 impl Resolver {
@@ -89,7 +87,7 @@ impl Resolver {
         // awaiting anything.
         parent_objects_view: ParentObjects<'_>,
         response_part: ResponsePartBuilder<'ctx>,
-    ) -> BoxFuture<'fut, ResolverResult<'ctx, <R::Hooks as Hooks>::OnSubgraphResponseOutput>>
+    ) -> BoxFuture<'fut, ResolverResult<'ctx>>
     where
         'ctx: 'fut,
     {
@@ -118,10 +116,7 @@ impl Resolver {
                 async move {
                     let response_part = prepared.execute(ctx, plan, parent_objects, response_part);
 
-                    ResolverResult {
-                        response_part,
-                        on_subgraph_response_hook_output: None,
-                    }
+                    ResolverResult { response_part }
                 }
             }
             .boxed(),
@@ -130,7 +125,6 @@ impl Resolver {
                 async move {
                     ResolverResult {
                         response_part: executor.execute().await,
-                        on_subgraph_response_hook_output: None,
                     }
                 }
                 .boxed()
@@ -139,10 +133,7 @@ impl Resolver {
                 let fut = prepared.execute(ctx, plan, parent_objects_view, response_part);
                 async move {
                     let response_part = fut.await;
-                    ResolverResult {
-                        response_part,
-                        on_subgraph_response_hook_output: None,
-                    }
+                    ResolverResult { response_part }
                 }
                 .boxed()
             }
@@ -150,10 +141,7 @@ impl Resolver {
                 let fut = prepared.execute(ctx, plan, parent_objects_view.into_object_set(), response_part);
                 async move {
                     let response_part = fut.await;
-                    ResolverResult {
-                        response_part,
-                        on_subgraph_response_hook_output: None,
-                    }
+                    ResolverResult { response_part }
                 }
                 .boxed()
             }

@@ -15,7 +15,7 @@ pub(crate) use operation_plan::*;
 use ::operation::{ComplexityCost, Request, Variables};
 use futures::FutureExt;
 use grafbase_telemetry::graphql::{GraphqlOperationAttributes, OperationName, OperationType};
-use runtime::{hooks::Hooks, operation_cache::OperationCache};
+use runtime::operation_cache::OperationCache;
 use tracing::{Instrument, info_span};
 
 use crate::{
@@ -33,10 +33,7 @@ impl<R: Runtime> Engine<R> {
 }
 
 impl<R: Runtime> PrepareContext<'_, R> {
-    pub(crate) async fn prepare_operation(
-        &mut self,
-        request: Request,
-    ) -> Result<PreparedOperation, Response<<R::Hooks as Hooks>::OnOperationResponseOutput>> {
+    pub(crate) async fn prepare_operation(&mut self, request: Request) -> Result<PreparedOperation, Response> {
         let span = info_span!("prepare operation");
         let result = self.prepare_operation_inner(request).instrument(span).await;
         let duration = self.executed_operation_builder.track_prepare();
@@ -60,7 +57,7 @@ impl<R: Runtime> PrepareContext<'_, R> {
     pub(super) async fn prepare_operation_inner(
         &mut self,
         mut request: Request,
-    ) -> Result<PreparedOperation, Response<<R::Hooks as Hooks>::OnOperationResponseOutput>> {
+    ) -> Result<PreparedOperation, Response> {
         let variables = std::mem::take(&mut request.variables);
         let cache_result = {
             let extracted = match self.extract_operation_document(&request).await {
@@ -74,7 +71,7 @@ impl<R: Runtime> PrepareContext<'_, R> {
 
             let cache_key = CacheKey::document(self.schema(), &extracted.key);
             if let Some(operation) = self.operation_cache().get(&cache_key).await {
-                self.executed_operation_builder.set_cached_plan();
+                self.executed_operation_builder.cached_plan(true);
                 self.metrics().record_operation_cache_hit();
 
                 OpCache::Hit(operation)
@@ -134,7 +131,7 @@ impl PreparedOperation {
     }
 }
 
-fn mutation_not_allowed_with_safe_method<OnOperationResponseHookOutput>() -> Response<OnOperationResponseHookOutput> {
+fn mutation_not_allowed_with_safe_method() -> Response {
     Response::refuse_request_with(
         http::StatusCode::METHOD_NOT_ALLOWED,
         [GraphqlError::new(

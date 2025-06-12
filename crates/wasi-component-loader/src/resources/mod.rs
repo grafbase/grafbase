@@ -9,16 +9,10 @@ use futures::StreamExt;
 use runtime::extension::Token;
 use sqlx::Postgres;
 
-pub use crate::access_log::AccessLogSender;
 pub use crate::context::SharedContext;
 pub use headers::*;
 pub use kafka_consumer::*;
 pub use kafka_producer::*;
-
-#[derive(Clone)]
-pub struct SharedResources {
-    pub access_log: AccessLogSender,
-}
 
 pub type GrpcClient = tonic::client::Grpc<tonic::transport::Channel>;
 pub type GrpcStreamingResponse = (
@@ -36,6 +30,7 @@ pub type PgTransaction = sqlx::Transaction<'static, Postgres>;
 pub type PgRow = sqlx::postgres::PgRow;
 
 pub type EventQueue = event_queue::EventQueue;
+pub type AccessLogSender = ();
 
 pub enum NatsSubscriber {
     Stream(Box<async_nats::jetstream::consumer::pull::Stream>),

@@ -3,7 +3,10 @@ mod builder;
 pub use builder::*;
 
 use grafbase_telemetry::graphql::GraphqlResponseStatus;
-use std::{sync::Arc, time::Duration};
+use std::{
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
 /// Represents the different types of events that can be collected by the event queue.
 pub enum Event {
@@ -34,12 +37,12 @@ impl ExecutedOperation {
     /// # Arguments
     ///
     /// * `document` - The GraphQL document that was executed
-    pub fn builder<'a>(document: Arc<str>) -> ExecutedOperationBuilder<'a> {
+    pub fn builder<'a>() -> ExecutedOperationBuilder<'a> {
         ExecutedOperationBuilder {
             name: None,
-            document,
-            prepare_duration: Duration::default(),
-            duration: Duration::default(),
+            document: None,
+            start_time: Instant::now(),
+            prepare_duration: None,
             cached_plan: false,
             status: GraphqlResponseStatus::Success,
         }
@@ -79,6 +82,7 @@ impl ExecutedSubgraphRequest {
             cache_status: CacheStatus::Miss,
             total_duration: Duration::default(),
             has_errors: false,
+            graphql_response_status: GraphqlResponseStatus::Success,
         }
     }
 }
@@ -112,17 +116,19 @@ impl SubgraphResponse {
     /// # Arguments
     ///
     /// * `status` - The HTTP status code of the response
-    pub fn builder(status: http::StatusCode, headers: http::HeaderMap) -> SubgraphResponseBuilder {
+    pub fn builder() -> SubgraphResponseBuilder {
         SubgraphResponseBuilder {
             connection_time: Duration::default(),
             response_time: Duration::default(),
-            status,
-            headers,
+            status: http::StatusCode::OK,
+            headers: http::HeaderMap::new(),
+            start_time: Instant::now(),
         }
     }
 }
 
 /// Indicates whether a subgraph response was served from cache.
+#[derive(Debug, Clone, Copy)]
 pub enum CacheStatus {
     /// The entire response was served from cache
     Hit,

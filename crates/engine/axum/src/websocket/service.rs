@@ -115,7 +115,7 @@ pub trait MessageConvert {
     fn to_axum_message(self) -> Result<ws::Message, sonic_rs::Error>;
 }
 
-impl<R: engine::Runtime> MessageConvert for Message<R> {
+impl MessageConvert for Message {
     fn to_axum_message(self) -> Result<ws::Message, sonic_rs::Error> {
         match self {
             Message::Close { code, reason } => Ok(ws::Message::Close(Some(ws::CloseFrame {

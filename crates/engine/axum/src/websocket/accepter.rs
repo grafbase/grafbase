@@ -42,7 +42,7 @@ impl<R: Runtime> WebsocketAccepter<R> {
                         tracing::info!("Connection wasn't initialised on time, dropping");
                         websocket
                             .send(
-                                Message::<R>::close(4408, "Connection initialisation timeout")
+                                Message::close(4408, "Connection initialisation timeout")
                                     .to_axum_message()
                                     .unwrap(),
                             )
@@ -62,7 +62,7 @@ async fn websocket_loop<R: Runtime>(websocket: WebSocket, session: WebsocketSess
 
         // The WebSocket sender isn't clone, so we switch it for an mpsc and
         // spawn a message pumping task to hook up the mpsc & the sender.
-        let (message_sender, mut message_receiver) = mpsc::channel::<Message<R>>(16);
+        let (message_sender, mut message_receiver) = mpsc::channel::<Message>(16);
         tokio::spawn(async move {
             while let Some(message) = message_receiver.recv().await {
                 let message = match message.to_axum_message() {
@@ -105,10 +105,10 @@ async fn websocket_loop<R: Runtime>(websocket: WebSocket, session: WebsocketSess
 async fn handle_incoming_event<R: Runtime>(
     text: String,
     session: &WebsocketSession<R>,
-    sender: &tokio::sync::mpsc::Sender<Message<R>>,
+    sender: &tokio::sync::mpsc::Sender<Message>,
     tasks: &mut tokio::task::JoinSet<()>,
     subscriptions: &mut HashMap<String, tokio::task::AbortHandle>,
-) -> Option<Message<R>> {
+) -> Option<Message> {
     let event: Event = sonic_rs::from_str(&text).ok()?;
     match event {
         Event::Subscribe(event) => {
@@ -141,11 +141,7 @@ async fn handle_incoming_event<R: Runtime>(
     }
 }
 
-async fn subscription_loop<R: engine::Runtime>(
-    stream: impl Stream<Item = Message<R>>,
-    id: String,
-    sender: mpsc::Sender<Message<R>>,
-) {
+async fn subscription_loop(stream: impl Stream<Item = Message>, id: String, sender: mpsc::Sender<Message>) {
     pin_mut!(stream);
     while let Some(message) = stream.next().await {
         if sender.send(message).await.is_err() {
@@ -169,14 +165,14 @@ async fn accept_websocket<R: Runtime>(
 
                 let Ok(session) = engine.create_websocket_session(parts, payload).await else {
                     websocket
-                        .send(Message::<R>::close(4403, "Forbidden").to_axum_message().unwrap())
+                        .send(Message::close(4403, "Forbidden").to_axum_message().unwrap())
                         .await
                         .ok();
                     return None;
                 };
 
                 websocket
-                    .send(Message::<R>::ConnectionAck { payload: None }.to_axum_message().unwrap())
+                    .send(Message::ConnectionAck { payload: None }.to_axum_message().unwrap())
                     .await
                     .ok()?;
 
@@ -185,7 +181,7 @@ async fn accept_websocket<R: Runtime>(
             Event::Ping { .. } => {
                 websocket
                     .send(
-                        Message::<R>::Ping { payload: None }
+                        Message::Ping { payload: None }
                             .to_axum_message()
                             .expect("ping should always be serializable"),
                     )
@@ -194,7 +190,7 @@ async fn accept_websocket<R: Runtime>(
             }
             Event::Subscribe { .. } => {
                 websocket
-                    .send(Message::<R>::close(4401, "Unauthorized").to_axum_message().unwrap())
+                    .send(Message::close(4401, "Unauthorized").to_axum_message().unwrap())
                     .await
                     .ok();
                 return None;

@@ -3,9 +3,6 @@
 //! [1]: https://github.com/graphql/graphql-over-http/blob/main/rfcs/GraphQLOverWebSocket.md
 
 use operation::Request;
-use runtime::hooks::Hooks;
-
-use crate::Runtime;
 
 #[derive(serde::Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
@@ -40,14 +37,14 @@ pub struct InitPayload(pub(crate) Option<serde_json::Map<String, serde_json::Val
 
 #[derive(serde::Serialize, Debug)]
 #[serde(tag = "type", rename_all = "snake_case", bound = "")]
-pub enum Message<R: Runtime> {
+pub enum Message {
     Next {
         id: String,
-        payload: ResponsePayload<<R::Hooks as Hooks>::OnOperationResponseOutput>,
+        payload: ResponsePayload,
     },
     Error {
         id: String,
-        payload: ResponsePayload<<R::Hooks as Hooks>::OnOperationResponseOutput>,
+        payload: ResponsePayload,
     },
     Complete {
         id: String,
@@ -72,23 +69,15 @@ pub enum Message<R: Runtime> {
 
 #[derive(serde::Serialize)]
 #[serde(bound = "")]
-pub struct ResponsePayload<OnOperationResponseHookOutput>(
-    pub(super) crate::response::Response<OnOperationResponseHookOutput>,
-);
+pub struct ResponsePayload(pub(super) crate::response::Response);
 
-impl<O> std::fmt::Debug for ResponsePayload<O> {
+impl std::fmt::Debug for ResponsePayload {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ResponsePayload").finish_non_exhaustive()
     }
 }
 
-impl<OnOperationResponseHookOutput> ResponsePayload<OnOperationResponseHookOutput> {
-    pub fn take_on_operation_response_output(&mut self) -> Option<OnOperationResponseHookOutput> {
-        self.0.take_on_operation_response_output()
-    }
-}
-
-impl<R: Runtime> Message<R> {
+impl Message {
     pub fn close(code: u16, reason: impl Into<String>) -> Self {
         Self::Close {
             code,
