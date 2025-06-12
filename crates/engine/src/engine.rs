@@ -73,17 +73,24 @@ impl<R: Runtime> Engine<R> {
         tracing::info!("Finished warming {} operations", count);
     }
 
-    pub async fn execute<F>(self: &Arc<Self>, request: http::Request<F>) -> http::Response<Body>
+    pub async fn execute<F>(self: &Arc<Self>, mut request: http::Request<F>) -> http::Response<Body>
     where
         F: Future<Output = Result<Bytes, (http::StatusCode, String)>> + Send,
     {
+        // Hey, you. If this returns the default, go check in the engine-axum crate the hooks middleware.
+        // Did you insert the context there?
+        let extension_ctx = request
+            .extensions_mut()
+            .remove::<WasmExtensionContext<R>>()
+            .unwrap_or_default();
+
         let (ctx, headers, body) = match self.unpack_http_request(request) {
             Ok(req) => req,
             Err(response) => return response,
         };
 
         let context_fut = self
-            .create_graphql_context(&ctx, headers, None)
+            .create_graphql_context(&ctx, headers, None, extension_ctx)
             .map_err(|(response, wasm_context)| (response, Some(wasm_context)));
 
         let request_fut = self
@@ -117,7 +124,7 @@ impl<R: Runtime> Engine<R> {
 
     pub async fn create_websocket_session(
         self: &Arc<Self>,
-        parts: http::request::Parts,
+        mut parts: http::request::Parts,
         payload: InitPayload,
     ) -> Result<WebsocketSession<R>, Cow<'static, str>> {
         let ctx = EarlyHttpContext {
@@ -130,8 +137,12 @@ impl<R: Runtime> Engine<R> {
             content_type: ContentType::Json,
         };
 
+        // Hey, you. If this returns the default, go check in the engine-axum crate the hooks middleware.
+        // Did you insert the context there?
+        let extension_context = parts.extensions.remove::<WasmExtensionContext<R>>().unwrap_or_default();
+
         let (request_context, wasm_context) = self
-            .create_graphql_context(&ctx, parts.headers, Some(payload))
+            .create_graphql_context(&ctx, parts.headers, Some(payload), extension_context)
             .await
             .map_err(|(response, _)| {
                 response
@@ -155,7 +166,7 @@ impl<R: Runtime> Engine<R> {
 
 pub struct WebsocketSession<R: Runtime> {
     engine: Arc<Engine<R>>,
-    request_context: Arc<RequestContext>,
+    request_context: Arc<RequestContext<WasmExtensionContext<R>>>,
     wasm_context: WasmContext<R>,
 }
 

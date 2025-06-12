@@ -2,6 +2,7 @@ use grafbase_telemetry::otel::{opentelemetry::trace::TraceContextExt, tracing_op
 use schema::{AccessControl, HeaderAccessControl, Schema};
 
 use crate::{
+    engine::{Runtime, WasmExtensionContext},
     prepare::PreparedOperation,
     response::{GrafbaseResponseExtension, ResponseExtensions},
 };
@@ -32,7 +33,10 @@ pub(crate) fn should_include_grafbase_response_extension(schema: &Schema, header
         })
 }
 
-pub(crate) fn default_response_extensions(schema: &Schema, ctx: &RequestContext) -> ResponseExtensions {
+pub(crate) fn default_response_extensions<R: Runtime>(
+    schema: &Schema,
+    ctx: &RequestContext<WasmExtensionContext<R>>,
+) -> ResponseExtensions {
     let mut ext = ResponseExtensions::default();
     if ctx.include_grafbase_response_extension {
         ext.grafbase = Some(if schema.settings.response_extension.include_trace_id {
@@ -45,12 +49,12 @@ pub(crate) fn default_response_extensions(schema: &Schema, ctx: &RequestContext)
     ext
 }
 
-pub(crate) fn response_extension_for_prepared_operation(
+pub(crate) fn response_extension_for_prepared_operation<R: Runtime>(
     schema: &Schema,
-    ctx: &RequestContext,
+    ctx: &RequestContext<WasmExtensionContext<R>>,
     operation: &PreparedOperation,
 ) -> ResponseExtensions {
-    let mut ext = default_response_extensions(schema, ctx);
+    let mut ext = default_response_extensions::<R>(schema, ctx);
     if ctx.include_grafbase_response_extension && schema.settings.response_extension.include_query_plan {
         ext.grafbase = Some(ext.grafbase.unwrap_or_default().with_query_plan(schema, operation))
     };

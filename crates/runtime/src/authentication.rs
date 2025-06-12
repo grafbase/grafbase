@@ -66,9 +66,10 @@ impl LegacyToken {
     }
 }
 
-pub trait Authenticate {
+pub trait Authenticate<Context> {
     fn authenticate(
         &self,
+        context: &Context,
         headers: http::HeaderMap,
     ) -> impl Future<Output = Result<(http::HeaderMap, LegacyToken), ErrorResponse>> + Send;
 }

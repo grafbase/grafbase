@@ -2,7 +2,7 @@ use futures::future::BoxFuture;
 use runtime::extension::Token;
 
 use crate::{
-    ErrorResponse,
+    ErrorResponse, SharedContext,
     extension::AuthenticationExtensionInstance,
     resources::{Headers, Lease},
 };
@@ -10,6 +10,7 @@ use crate::{
 impl AuthenticationExtensionInstance for super::ExtensionInstanceSince0_14_0 {
     fn authenticate(
         &mut self,
+        _: SharedContext,
         headers: Lease<http::HeaderMap>,
     ) -> BoxFuture<'_, Result<(Lease<http::HeaderMap>, Token), ErrorResponse>> {
         Box::pin(async move {

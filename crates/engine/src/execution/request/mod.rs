@@ -22,7 +22,7 @@ use std::{future::Future, sync::Arc};
 
 use crate::{
     Body, Engine, Runtime,
-    engine::WasmContext,
+    engine::{WasmContext, WasmExtensionContext},
     graphql_over_http::{ContentType, ResponseFormat},
     mcp::McpRequestContext,
     response::Response,
@@ -36,6 +36,7 @@ impl<R: Runtime> Engine<R> {
         request: http::Request<B>,
     ) -> Result<(EarlyHttpContext, http::HeaderMap, B), http::Response<Body>> {
         let (parts, body) = request.into_parts();
+
         let Some(response_format) = ResponseFormat::extract_from(&parts.headers, self.default_response_format) else {
             // GraphQL-over-HTTP spec:
             //   In alignment with the HTTP 1.1 Accept specification, when a client does not include at least one supported media type in the Accept HTTP header, the server MUST either:
@@ -61,6 +62,7 @@ impl<R: Runtime> Engine<R> {
 
         let include_grafbase_response_extension =
             should_include_grafbase_response_extension(&self.schema, &parts.headers);
+
         let mut ctx = EarlyHttpContext {
             can_mutate: !parts.method.is_safe(),
             method: parts.method,
@@ -70,6 +72,7 @@ impl<R: Runtime> Engine<R> {
             include_grafbase_response_extension,
             include_mcp_response_extension: false,
         };
+
         if let Some(mcp) = parts.extensions.get::<McpRequestContext>() {
             ctx.can_mutate &= mcp.execute_mutations;
             ctx.include_mcp_response_extension = true;
@@ -83,8 +86,9 @@ impl<R: Runtime> Engine<R> {
         ctx: &EarlyHttpContext,
         headers: http::HeaderMap,
         websocket_init_payload: Option<InitPayload>,
+        extension_context: WasmExtensionContext<R>,
     ) -> Result<
-        (Arc<RequestContext>, WasmContext<R>),
+        (Arc<RequestContext<WasmExtensionContext<R>>>, WasmContext<R>),
         (Response<<R::Hooks as Hooks>::OnOperationResponseOutput>, WasmContext<R>),
     > {
         let (wasm_context, headers) = self
@@ -98,7 +102,12 @@ impl<R: Runtime> Engine<R> {
 
         let client = Client::extract_from(&headers);
 
-        let (headers, token) = match self.runtime.authentication().authenticate(headers).await {
+        let (headers, token) = match self
+            .runtime
+            .authentication()
+            .authenticate(&extension_context, headers)
+            .await
+        {
             Ok((headers, token)) => (headers, token),
             Err(resp) => {
                 let response = Response::refuse_request_with(resp.status, resp.errors);
@@ -117,6 +126,7 @@ impl<R: Runtime> Engine<R> {
             self.schema.default_header_rules(),
             &mut subgraph_default_headers,
         );
+
         let request_context = RequestContext {
             websocket_init_payload: websocket_init_payload.and_then(|payload| payload.0),
             can_mutate: ctx.can_mutate,
@@ -127,6 +137,7 @@ impl<R: Runtime> Engine<R> {
             subgraph_default_headers,
             include_grafbase_response_extension: ctx.include_grafbase_response_extension,
             include_mcp_response_extension: ctx.include_mcp_response_extension,
+            extension_context,
         };
 
         Ok((Arc::new(request_context), wasm_context))

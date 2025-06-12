@@ -95,6 +95,6 @@ mod tests {
         let invalid_configuration = Configuration::new(invalid_bytes);
         let err = invalid_configuration.deserialize::<TestConfig<Settings>>().unwrap_err();
 
-        insta::assert_snapshot!(err, @"Missing configuration");
+        insta::assert_snapshot!(err, @"Failed to deserialize configuration: unexpected type null at position 0: expected map");
     }
 }

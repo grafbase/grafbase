@@ -11,7 +11,7 @@ use tracing::Instrument;
 
 use crate::{
     Engine, Runtime,
-    engine::WasmContext,
+    engine::{WasmContext, WasmExtensionContext},
     prepare::PrepareContext,
     response::{ErrorCode, GraphqlError, Response},
 };
@@ -21,7 +21,7 @@ use super::{RequestContext, default_response_extensions, response_extension_for_
 impl<R: Runtime> Engine<R> {
     pub(super) async fn execute_single(
         self: &Arc<Self>,
-        request_context: &Arc<RequestContext>,
+        request_context: &Arc<RequestContext<WasmExtensionContext<R>>>,
         wasm_context: WasmContext<R>,
         request: Request,
     ) -> Response<<R::Hooks as Hooks>::OnOperationResponseOutput> {
@@ -71,12 +71,13 @@ impl<R: Runtime> PrepareContext<'_, R> {
         let operation = match self.prepare_operation(request).await {
             Ok(operation) => operation,
             Err(response) => {
-                return response.with_extensions(default_response_extensions(self.schema(), self.request_context));
+                return response.with_extensions(default_response_extensions::<R>(self.schema(), self.request_context));
             }
         };
 
         let attributes = operation.attributes();
-        let extensions = response_extension_for_prepared_operation(self.schema(), self.request_context, &operation);
+        let extensions =
+            response_extension_for_prepared_operation::<R>(self.schema(), self.request_context, &operation);
 
         if matches!(operation.cached.ty(), OperationType::Subscription) {
             let error = GraphqlError::new(

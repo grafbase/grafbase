@@ -21,7 +21,7 @@ pub(crate) struct EarlyHttpContext {
 
 /// Context associated with the HTTP request. For batch requests and a websocket session, a single RequestContext is
 /// created and shared.
-pub(crate) struct RequestContext {
+pub(crate) struct RequestContext<ExtensionContext> {
     pub can_mutate: bool,
     pub headers: http::HeaderMap,
     pub websocket_init_payload: Option<serde_json::Map<String, serde_json::Value>>,
@@ -31,6 +31,7 @@ pub(crate) struct RequestContext {
     pub subgraph_default_headers: http::HeaderMap,
     pub include_grafbase_response_extension: bool,
     pub include_mcp_response_extension: bool,
+    pub extension_context: ExtensionContext,
 }
 
 /// Context associated with a single operation within an HTTP request.

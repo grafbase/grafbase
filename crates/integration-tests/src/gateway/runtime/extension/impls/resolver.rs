@@ -8,24 +8,34 @@ use runtime::{
     hooks::Anything,
 };
 
-use crate::gateway::{DispatchRule, ExtensionsDispatcher, TestExtensions};
+use crate::gateway::{DispatchRule, DynHookContext, ExtContext, ExtensionsDispatcher, TestExtensions};
 
 #[allow(clippy::manual_async_fn, unused_variables)]
-impl ResolverExtension for ExtensionsDispatcher {
+impl ResolverExtension<ExtContext> for ExtensionsDispatcher {
     async fn prepare<'ctx, F: Field<'ctx>>(
         &'ctx self,
+        context: &ExtContext,
         directive: ExtensionDirective<'ctx>,
         directive_arguments: impl Anything<'ctx>,
         field: F,
     ) -> Result<Vec<u8>, GraphqlError> {
         match self.dispatch[&directive.extension_id] {
-            DispatchRule::Wasm => self.wasm.prepare(directive, directive_arguments, field).await,
-            DispatchRule::Test => self.test.prepare(directive, directive_arguments, field).await,
+            DispatchRule::Wasm => {
+                self.wasm
+                    .prepare(&context.wasm, directive, directive_arguments, field)
+                    .await
+            }
+            DispatchRule::Test => {
+                self.test
+                    .prepare(&context.test, directive, directive_arguments, field)
+                    .await
+            }
         }
     }
 
     fn resolve<'ctx, 'resp, 'f>(
         &'ctx self,
+        context: &ExtContext,
         directive: ExtensionDirective<'ctx>,
         prepared_data: &'ctx [u8],
         subgraph_headers: http::HeaderMap,
@@ -37,17 +47,18 @@ impl ResolverExtension for ExtensionsDispatcher {
         match self.dispatch[&directive.extension_id] {
             DispatchRule::Wasm => self
                 .wasm
-                .resolve(directive, prepared_data, subgraph_headers, arguments)
+                .resolve(&context.wasm, directive, prepared_data, subgraph_headers, arguments)
                 .boxed(),
             DispatchRule::Test => self
                 .test
-                .resolve(directive, prepared_data, subgraph_headers, arguments)
+                .resolve(&context.test, directive, prepared_data, subgraph_headers, arguments)
                 .boxed(),
         }
     }
 
     fn resolve_subscription<'ctx, 'resp, 'f>(
         &'ctx self,
+        context: &ExtContext,
         directive: ExtensionDirective<'ctx>,
         prepared_data: &'ctx [u8],
         subgraph_headers: http::HeaderMap,
@@ -59,20 +70,21 @@ impl ResolverExtension for ExtensionsDispatcher {
         match self.dispatch[&directive.extension_id] {
             DispatchRule::Wasm => self
                 .wasm
-                .resolve_subscription(directive, prepared_data, subgraph_headers, arguments)
+                .resolve_subscription(&context.wasm, directive, prepared_data, subgraph_headers, arguments)
                 .boxed(),
             DispatchRule::Test => self
                 .test
-                .resolve_subscription(directive, prepared_data, subgraph_headers, arguments)
+                .resolve_subscription(&context.test, directive, prepared_data, subgraph_headers, arguments)
                 .boxed(),
         }
     }
 }
 
 #[allow(clippy::manual_async_fn, unused_variables)]
-impl ResolverExtension for TestExtensions {
+impl ResolverExtension<DynHookContext> for TestExtensions {
     async fn prepare<'ctx, F: Field<'ctx>>(
         &'ctx self,
+        _: &DynHookContext,
         directive: ExtensionDirective<'ctx>,
         directive_arguments: impl Anything<'ctx>,
         field: F,
@@ -91,6 +103,7 @@ impl ResolverExtension for TestExtensions {
 
     fn resolve<'ctx, 'resp, 'f>(
         &'ctx self,
+        _: &DynHookContext,
         directive: ExtensionDirective<'ctx>,
         prepared_data: &'ctx [u8],
         subgraph_headers: http::HeaderMap,
@@ -103,6 +116,7 @@ impl ResolverExtension for TestExtensions {
             .into_iter()
             .map(|(id, args)| (id, serde_json::to_value(args).unwrap()))
             .collect::<Vec<_>>();
+
         async move {
             self.state
                 .lock()
@@ -115,6 +129,7 @@ impl ResolverExtension for TestExtensions {
 
     fn resolve_subscription<'ctx, 'resp, 'f>(
         &'ctx self,
+        context: &DynHookContext,
         directive: ExtensionDirective<'ctx>,
         prepared_data: &'ctx [u8],
         subgraph_headers: http::HeaderMap,
@@ -127,6 +142,7 @@ impl ResolverExtension for TestExtensions {
             .into_iter()
             .map(|(id, args)| (id, serde_json::to_value(args).unwrap()))
             .collect::<Vec<_>>();
+
         async move {
             self.state
                 .lock()

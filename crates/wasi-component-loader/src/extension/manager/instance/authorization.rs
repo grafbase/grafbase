@@ -2,7 +2,7 @@ use futures::future::BoxFuture;
 use runtime::extension::{AuthorizationDecisions, TokenRef};
 
 use crate::{
-    Error, ErrorResponse,
+    Error, ErrorResponse, SharedContext,
     extension::api::wit::{QueryElements, ResponseElements},
     resources::Lease,
 };
@@ -13,6 +13,7 @@ pub(crate) type QueryAuthorizationResult =
 pub(crate) trait AuthorizationExtensionInstance {
     fn authorize_query<'a>(
         &'a mut self,
+        context: SharedContext,
         headers: Lease<http::HeaderMap>,
         token: TokenRef<'a>,
         elements: QueryElements<'a>,
@@ -20,6 +21,7 @@ pub(crate) trait AuthorizationExtensionInstance {
 
     fn authorize_response<'a>(
         &'a mut self,
+        context: SharedContext,
         state: &'a [u8],
         elements: ResponseElements<'a>,
     ) -> BoxFuture<'a, Result<AuthorizationDecisions, Error>>;

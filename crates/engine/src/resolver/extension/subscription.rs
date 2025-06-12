@@ -26,6 +26,7 @@ impl super::ExtensionResolver {
             .runtime()
             .extensions()
             .resolve_subscription(
+                &ctx.request_context.extension_context,
                 definition.directive(),
                 &prepared.extension_data,
                 subgraph_headers,

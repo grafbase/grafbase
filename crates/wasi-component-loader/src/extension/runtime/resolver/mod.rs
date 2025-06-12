@@ -9,7 +9,7 @@ use runtime::{
 };
 
 use crate::{
-    Error, cbor,
+    Error, SharedContext, cbor,
     extension::{
         WasmExtensions,
         api::wit::{self, Field, SelectionSet},
@@ -17,9 +17,10 @@ use crate::{
 };
 
 #[allow(clippy::manual_async_fn)]
-impl ResolverExtension for WasmExtensions {
+impl ResolverExtension<SharedContext> for WasmExtensions {
     async fn prepare<'ctx, F: runtime::extension::Field<'ctx>>(
         &'ctx self,
+        context: &SharedContext,
         directive: ExtensionDirective<'ctx>,
         directive_arguments: impl Anything<'ctx>,
         field: F,
@@ -61,8 +62,9 @@ impl ResolverExtension for WasmExtensions {
             name: directive.name(),
             arguments: cbor::to_vec(directive_arguments).unwrap(),
         };
+
         instance
-            .prepare(directive.subgraph().name(), dir, 0, &fields)
+            .prepare(context.clone(), directive.subgraph().name(), dir, 0, &fields)
             .await
             .map_err(|err| match err {
                 Error::Internal(err) => {
@@ -75,6 +77,7 @@ impl ResolverExtension for WasmExtensions {
 
     fn resolve<'ctx, 'resp, 'f>(
         &'ctx self,
+        context: &SharedContext,
         directive: ExtensionDirective<'ctx>,
         prepared_data: &'ctx [u8],
         subgraph_headers: http::HeaderMap,
@@ -86,6 +89,9 @@ impl ResolverExtension for WasmExtensions {
         let arguments = arguments
             .map(|(id, value)| (id.into(), cbor::to_vec(&value).unwrap()))
             .collect::<Vec<(wit::ArgumentsId, Vec<u8>)>>();
+
+        let context = context.clone();
+
         async move {
             let mut instance = match self.get(directive.extension_id).await {
                 Ok(instance) => instance,
@@ -97,12 +103,14 @@ impl ResolverExtension for WasmExtensions {
                     };
                 }
             };
+
             let arguments_refs = arguments
                 .iter()
                 .map(|(id, value)| (*id, value.as_slice()))
                 .collect::<Vec<_>>();
+
             let result = instance
-                .resolve(subgraph_headers, prepared_data, &arguments_refs)
+                .resolve(context, subgraph_headers, prepared_data, &arguments_refs)
                 .await
                 .map_err(|err| match err {
                     Error::Internal(err) => {
@@ -111,6 +119,7 @@ impl ResolverExtension for WasmExtensions {
                     }
                     Error::Guest(err) => err.into_graphql_error(ErrorCode::ExtensionError),
                 });
+
             match result {
                 Ok(response) => response.into(),
                 Err(err) => Response {
@@ -123,6 +132,7 @@ impl ResolverExtension for WasmExtensions {
 
     fn resolve_subscription<'ctx, 'resp, 'f>(
         &'ctx self,
+        context: &SharedContext,
         directive: ExtensionDirective<'ctx>,
         prepared_data: &'ctx [u8],
         subgraph_headers: http::HeaderMap,
@@ -134,6 +144,9 @@ impl ResolverExtension for WasmExtensions {
         let arguments = arguments
             .map(|(id, value)| (id.into(), cbor::to_vec(&value).unwrap()))
             .collect::<Vec<(wit::ArgumentsId, Vec<u8>)>>();
+
+        let context = context.clone();
+
         async move {
             let mut instance = match self.get(directive.extension_id).await {
                 Ok(instance) => instance,
@@ -146,12 +159,14 @@ impl ResolverExtension for WasmExtensions {
                     return futures::stream::once(std::future::ready(response)).boxed();
                 }
             };
+
             let arguments_refs = arguments
                 .iter()
                 .map(|(id, value)| (*id, value.as_slice()))
                 .collect::<Vec<_>>();
+
             let result = instance
-                .create_subscription(subgraph_headers, prepared_data, &arguments_refs)
+                .create_subscription(context.clone(), subgraph_headers, prepared_data, &arguments_refs)
                 .await
                 .map_err(|err| match err {
                     Error::Internal(err) => {
@@ -160,6 +175,7 @@ impl ResolverExtension for WasmExtensions {
                     }
                     Error::Guest(err) => err.into_graphql_error(ErrorCode::ExtensionError),
                 });
+
             match result {
                 Ok(Ok(key)) => match key {
                     Some(key) => {
@@ -167,11 +183,12 @@ impl ResolverExtension for WasmExtensions {
                             extensions: self.clone(),
                             key,
                             instance,
+                            context,
                         }
                         .resolve()
                         .await
                     }
-                    None => subscription::UniqueSubscription { instance }.resolve().await,
+                    None => subscription::UniqueSubscription { instance }.resolve(context).await,
                 },
                 Ok(Err(err)) => {
                     let response = Response {

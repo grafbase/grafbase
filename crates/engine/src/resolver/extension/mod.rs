@@ -40,20 +40,29 @@ impl ExtensionResolver {
             .fields()
             .map(|field| async move {
                 let directive = definition.directive();
+
                 let prepared_data = ctx
                     .runtime()
                     .extensions()
-                    .prepare(directive, directive.static_arguments(), field)
+                    .prepare(
+                        &ctx.request_context.extension_context,
+                        directive,
+                        directive.static_arguments(),
+                        field,
+                    )
                     // FIXME: Unfortunately, boxing seems to be the only solution for the bug explained here:
                     //        https://github.com/rust-lang/rust/issues/110338#issuecomment-1513761297
                     .boxed()
                     .await?;
 
                 let mut arguments = Vec::new();
+
                 if let Some(id) = runtime::extension::Field::arguments(&field) {
                     arguments.push((id, field.argument_ids()))
                 }
+
                 let mut stack = vec![field.selection_set()];
+
                 while let Some(selection_set) = stack.pop() {
                     for field in selection_set.fields() {
                         if let Some(id) = runtime::extension::Field::arguments(&field) {

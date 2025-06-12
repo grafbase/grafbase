@@ -3,8 +3,10 @@ interface resolver {
     use schema.{definition-id, directive};
     use resolver-types.{response, field-id, field, arguments-id, subscription-item};
     use headers.{headers};
+    use shared-context.{shared-context};
 
     prepare: func(
+        context: shared-context,
         subgraph-name: string,
         directive: directive,
         root-field-id: field-id,
@@ -12,12 +14,14 @@ interface resolver {
     ) -> result<list<u8>, error>;
 
     resolve: func(
+        context: shared-context,
         prepared: list<u8>,
         headers: headers,
         arguments: list<tuple<arguments-id, list<u8>>>
     ) -> response;
 
     create-subscription: func(
+        context: shared-context,
         prepared: list<u8>,
         headers: headers,
         arguments: list<tuple<arguments-id, list<u8>>>
@@ -25,9 +29,13 @@ interface resolver {
 
     // resolves the next item in a subscription stream. Must be called after resolve-subscription
     // If data is null, it means the subscription is done and no more items will be requested.
-    resolve-next-subscription-item: func() -> result<option<subscription-item>, error>;
+    resolve-next-subscription-item: func(
+        context: shared-context,
+    ) -> result<option<subscription-item>, error>;
 
     // Called if the key provided by resolve-subscription is enough and any stored state can be dropped.
     // This implies resolve-next-subscription-item will never be called.
-    drop-subscription: func();
+    drop-subscription: func(
+        context: shared-context,
+    );
 }

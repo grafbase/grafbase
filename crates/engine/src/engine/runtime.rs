@@ -1,18 +1,19 @@
 use std::{future::Future, sync::Arc};
 
 use grafbase_telemetry::metrics::EngineMetrics;
-use runtime::{entity_cache::EntityCache, kv::KvStore, rate_limiting::RateLimiter};
+use runtime::{entity_cache::EntityCache, extension::ExtensionRuntime, kv::KvStore, rate_limiting::RateLimiter};
 
 use crate::CachedOperation;
 
 pub type WasmContext<R> = <<R as Runtime>::Hooks as runtime::hooks::Hooks>::Context;
+pub type WasmExtensionContext<R> = <<R as Runtime>::Extensions as ExtensionRuntime>::Context;
 
 pub trait Runtime: Send + Sync + 'static {
     type Hooks: runtime::hooks::Hooks;
     type Fetcher: runtime::fetch::Fetcher;
     type OperationCache: runtime::operation_cache::OperationCache<Arc<CachedOperation>>;
-    type Extensions: runtime::extension::ExtensionRuntime<Context = <Self::Hooks as runtime::hooks::Hooks>::Context>;
-    type Authenticate: runtime::authentication::Authenticate;
+    type Extensions: ExtensionRuntime<Context = <Self::Hooks as runtime::hooks::Hooks>::Context>;
+    type Authenticate: runtime::authentication::Authenticate<WasmExtensionContext<Self>>;
 
     fn fetcher(&self) -> &Self::Fetcher;
     fn kv(&self) -> &KvStore;
