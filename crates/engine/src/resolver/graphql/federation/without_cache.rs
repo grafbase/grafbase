@@ -1,5 +1,5 @@
 use bytes::Bytes;
-use runtime::hooks::GraphqlResponseStatus;
+use grafbase_telemetry::graphql::GraphqlResponseStatus;
 
 use crate::{
     prepare::RootFieldsShapeId,

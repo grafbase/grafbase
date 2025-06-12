@@ -9,9 +9,7 @@ use crate::{
     response::{ErrorCode, ErrorCodeCounter, Response},
 };
 
-use super::{
-    Body, CompleteResponseFormat, HooksExtension, ResponseFormat, StreamingResponseFormat, TelemetryExtension,
-};
+use super::{Body, CompleteResponseFormat, ResponseFormat, StreamingResponseFormat, TelemetryExtension};
 
 mod stream;
 
@@ -22,34 +20,28 @@ const APPLICATION_GRAPHQL_RESPONSE_JSON: http::HeaderValue =
 pub(crate) struct Http;
 
 impl Http {
-    pub(crate) fn error<O: Send + 'static>(format: ResponseFormat, response: Response<O>) -> http::Response<Body> {
+    pub(crate) fn error(format: ResponseFormat, response: Response) -> http::Response<Body> {
         match format {
             ResponseFormat::Complete(format) => Self::from_complete_response_with_telemetry(format, &response),
             ResponseFormat::Streaming(format) => {
                 let telemetry = TelemetryExtension::Ready(response.execution_telemetry());
+
                 let mut http_response = Self::stream_from_first_response_and_rest_without_extensions(
                     format,
                     response,
                     futures_util::stream::empty(),
                 );
+
                 http_response.extensions_mut().insert(telemetry);
                 http_response
             }
         }
     }
 
-    pub(crate) fn single<C: Send + Sync + 'static, O: Send + Sync + 'static>(
-        format: CompleteResponseFormat,
-        wasm_context: C,
-        mut response: Response<O>,
-    ) -> http::Response<Body> {
+    pub(crate) fn single(format: CompleteResponseFormat, mut response: Response) -> http::Response<Body> {
         let mcp_ext = response.extensions_mut().mcp.take();
         let mut http_response = Self::from_complete_response_with_telemetry(format, &response);
 
-        http_response.extensions_mut().insert(HooksExtension::Single {
-            context: wasm_context,
-            on_operation_response_output: response.take_on_operation_response_output(),
-        });
         if let Some(mcp_ext) = mcp_ext {
             http_response.extensions_mut().insert(mcp_ext);
         }
@@ -57,11 +49,7 @@ impl Http {
         http_response
     }
 
-    pub(crate) fn batch<C: Send + Sync + 'static, O: Send + Sync + 'static>(
-        format: CompleteResponseFormat,
-        wasm_context: C,
-        mut responses: Vec<Response<O>>,
-    ) -> http::Response<Body> {
+    pub(crate) fn batch(format: CompleteResponseFormat, responses: Vec<Response>) -> http::Response<Body> {
         let bytes = match sonic_rs::to_vec(&responses) {
             Ok(bytes) => Bytes::from(bytes),
             Err(err) => {
@@ -97,15 +85,8 @@ impl Http {
             })
         };
 
-        let hooks = HooksExtension::Batch {
-            context: wasm_context,
-            on_operation_response_outputs: responses
-                .iter_mut()
-                .filter_map(|response| response.take_on_operation_response_output())
-                .collect(),
-        };
-
         let mut headers = http::HeaderMap::new();
+
         headers.insert(
             http::header::CONTENT_TYPE,
             match format {
@@ -113,51 +94,46 @@ impl Http {
                 CompleteResponseFormat::GraphqlResponseJson => APPLICATION_GRAPHQL_RESPONSE_JSON,
             },
         );
+
         headers.typed_insert(headers::ContentLength(bytes.len() as u64));
 
         let mut http_response = http::Response::new(Body::Bytes(bytes));
+
         *http_response.status_mut() = status_code;
         *http_response.headers_mut() = headers;
         http_response.extensions_mut().insert(telemetry);
-        http_response.extensions_mut().insert(hooks);
 
         http_response
     }
 
-    pub(crate) async fn stream<C: Send + Sync + 'static, O: Send + Sync + 'static>(
-        format: StreamingResponseFormat,
-        wasm_context: C,
-        stream: StreamResponse<O>,
-    ) -> http::Response<Body> {
+    pub(crate) async fn stream(format: StreamingResponseFormat, stream: StreamResponse) -> http::Response<Body> {
         let StreamResponse { mut stream, telemetry } = stream;
+
         let Some(mut first_response) = stream.next().await else {
             tracing::error!("Empty stream");
             return internal_server_error();
         };
+
         let mcp_ext = first_response.extensions_mut().mcp.take();
-        let on_operation_response_output = first_response.take_on_operation_response_output();
 
         let mut http_response =
             Self::stream_from_first_response_and_rest_without_extensions(format, first_response, stream);
+
         http_response
             .extensions_mut()
             .insert(TelemetryExtension::Future(telemetry));
+
         if let Some(mcp_ext) = mcp_ext {
             http_response.extensions_mut().insert(mcp_ext);
         }
-        // TODO: Currently we only handle query/mutations which return the complete
-        // response at once and errors.
-        http_response.extensions_mut().insert(HooksExtension::Single {
-            context: wasm_context,
-            on_operation_response_output,
-        });
+
         http_response
     }
 
-    fn stream_from_first_response_and_rest_without_extensions<O: Send + 'static>(
+    fn stream_from_first_response_and_rest_without_extensions(
         format: StreamingResponseFormat,
-        response: Response<O>,
-        rest: impl Stream<Item = Response<O>> + 'static + Send,
+        response: Response,
+        rest: impl Stream<Item = Response> + 'static + Send,
     ) -> http::Response<Body> {
         let status = compute_status_code(ResponseFormat::Streaming(format), &response);
 
@@ -174,9 +150,9 @@ impl Http {
         http_response
     }
 
-    fn from_complete_response_with_telemetry<O>(
+    fn from_complete_response_with_telemetry(
         format: CompleteResponseFormat,
-        response: &Response<O>,
+        response: &Response,
     ) -> http::Response<Body> {
         let telemetry = TelemetryExtension::Ready(response.execution_telemetry());
         let bytes = match sonic_rs::to_vec(response) {
@@ -201,7 +177,7 @@ impl Http {
     }
 }
 
-fn compute_status_code<O>(format: ResponseFormat, response: &Response<O>) -> http::StatusCode {
+fn compute_status_code(format: ResponseFormat, response: &Response) -> http::StatusCode {
     match response {
         // GraphQL-over-HTTP spec:
         //   A server MAY forbid individual requests by a client to any endpoint for any reason, for example
@@ -264,12 +240,15 @@ fn internal_server_error() -> http::Response<Body> {
     let body = Bytes::from_static(
         br###"{"errors":[{"message":"Internal server error","extensions":{"code":"INTERNAL_SERVER_ERROR"}}]}"###,
     );
+
     let mut headers = http::HeaderMap::new();
     headers.insert(http::header::CONTENT_TYPE, APPLICATION_JSON.clone());
     headers.typed_insert(headers::ContentLength(body.len() as u64));
+
     let mut response = http::Response::new(Body::Bytes(body));
     *response.status_mut() = http::StatusCode::INTERNAL_SERVER_ERROR;
     *response.headers_mut() = headers;
+
     response
         .extensions_mut()
         .insert(TelemetryExtension::Ready(GraphqlExecutionTelemetry {

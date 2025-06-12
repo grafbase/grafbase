@@ -16,7 +16,7 @@ use runtime::{
 use tempfile::TempDir;
 
 use super::{
-    AnyExtension, DockerSubgraph, DynamicHooks, ExtensionsBuilder, Gateway, TestRuntime, TestRuntimeBuilder,
+    AnyExtension, DockerSubgraph, ExtensionsBuilder, Gateway, TestRuntime, TestRuntimeBuilder,
     subgraph::{Subgraph, Subgraphs},
 };
 
@@ -49,7 +49,6 @@ impl Default for GatewayBuilder {
             config: Default::default(),
             runtime: TestRuntimeBuilder {
                 trusted_documents: Default::default(),
-                hooks: Default::default(),
                 fetcher: Default::default(),
                 extensions: ExtensionsBuilder::new(extensions_dir),
                 hooks_extension: None,
@@ -132,11 +131,6 @@ impl GatewayBuilder {
         self
     }
 
-    pub fn with_mock_hooks(mut self, hooks: impl Into<DynamicHooks>) -> Self {
-        self.runtime.hooks = Some(hooks.into());
-        self
-    }
-
     pub fn with_mock_fetcher(mut self, fetcher: impl Into<DynamicFetcher>) -> Self {
         self.runtime.fetcher = Some(fetcher.into());
         self
@@ -171,15 +165,13 @@ impl GatewayBuilder {
         .await;
 
         let hooks_extension = runtime.hooks_extension.clone();
-        let (engine, context) = self::engine::build(tmpdir.path(), federated_sdl, config, runtime, &subgraphs).await?;
-
+        let engine = self::engine::build(tmpdir.path(), federated_sdl, config, runtime, &subgraphs).await?;
         let router = self::router::build(engine.clone(), gateway_config, hooks_extension).await;
 
         Ok(Gateway {
             tmpdir: Arc::new(tmpdir),
             router,
             engine,
-            context: Arc::new(context),
             subgraphs,
         })
     }

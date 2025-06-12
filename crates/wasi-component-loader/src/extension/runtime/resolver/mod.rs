@@ -3,10 +3,7 @@ mod subscription;
 use engine_error::{ErrorCode, GraphqlError};
 use engine_schema::ExtensionDirective;
 use futures::{StreamExt as _, stream::BoxStream};
-use runtime::{
-    extension::{ArgumentsId, Field as _, ResolverExtension, Response, SelectionSet as _},
-    hooks::Anything,
-};
+use runtime::extension::{Anything, ArgumentsId, Field as _, ResolverExtension, Response, SelectionSet as _};
 
 use crate::{
     Error, SharedContext, cbor,

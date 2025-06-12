@@ -5,8 +5,6 @@ use extension_catalog::{Extension, ExtensionId};
 use gateway_config::Config;
 use strum::IntoDiscriminant;
 
-use crate::resources::SharedResources;
-
 use super::{ExtensionConfig, ExtensionLoader, Pool, PoolConfig, WasmConfig};
 
 #[derive(Clone)]
@@ -19,11 +17,7 @@ struct WasiHooksInner {
 }
 
 impl WasmHooks {
-    pub async fn new(
-        shared_resources: &SharedResources,
-        gateway_config: &Config,
-        extension: Option<Extension>,
-    ) -> crate::Result<Self> {
+    pub async fn new(gateway_config: &Config, extension: Option<Extension>) -> crate::Result<Self> {
         let Some(extension) = extension else {
             return Ok(Self(Arc::new(WasiHooksInner {
                 pool: None,
@@ -61,7 +55,7 @@ impl WasmHooks {
 
         let max_pool_size = extension_config.pool.max_size;
         let schema = Schema::empty().await;
-        let loader = ExtensionLoader::new(Arc::new(schema), shared_resources.clone(), extension_config)?;
+        let loader = ExtensionLoader::new(Arc::new(schema), extension_config)?;
         let pool = Pool::new(loader, max_pool_size);
 
         Ok(Self(Arc::new(WasiHooksInner {

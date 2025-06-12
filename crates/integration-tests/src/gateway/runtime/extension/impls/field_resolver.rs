@@ -5,8 +5,8 @@ use engine_schema::{ExtensionDirective, FieldDefinition};
 use extension_catalog::Id;
 use futures::{FutureExt as _, stream::BoxStream};
 use runtime::{
+    extension::Anything,
     extension::{Data, FieldResolverExtension},
-    hooks::Anything,
 };
 
 use crate::gateway::{

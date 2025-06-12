@@ -15,9 +15,9 @@ use crate::{
     execution::find_matching_denied_header,
     prepare::{
         CachedOperation, CachedOperationContext, ConcreteShapeId, DataFieldId, Derive, ErrorCode, FieldShapeId,
-        GraphqlError, PartitionField, PlanFieldArguments, PrepareContext, QueryModifierId, QueryModifierRecord,
-        QueryModifierRule, QueryModifierTarget, QueryOrStaticExtensionDirectiveArugmentsView, RequiredFieldSetRecord,
-        TypenameFieldId, create_extension_directive_query_view,
+        GraphqlError, PartitionField, PrepareContext, QueryModifierId, QueryModifierRecord, QueryModifierRule,
+        QueryModifierTarget, QueryOrStaticExtensionDirectiveArugmentsView, RequiredFieldSetRecord, TypenameFieldId,
+        create_extension_directive_query_view,
     },
 };
 
@@ -244,63 +244,14 @@ where
                         continue;
                     };
                 }
-                QueryModifierRule::AuthorizedField {
-                    directive_id,
-                    definition_id,
-                } => {
-                    let directive = directive_id.walk(self.ctx.schema());
-                    let verdict = self
-                        .ctx
-                        .hooks()
-                        .authorize_edge_pre_execution(
-                            definition_id.walk(self.ctx.schema()),
-                            PlanFieldArguments::empty(self.operation_ctx)
-                                .query_view(&directive.arguments, self.input_value_ctx.variables),
-                            directive.metadata(),
-                        )
-                        .await;
-                    if let Err(error) = verdict {
-                        let error_id = self.push_error(error);
-                        self.deny_field(modifier, error_id);
-                    }
+                QueryModifierRule::AuthorizedField { .. } => {
+                    unreachable!("maybe it's time to let go of this variant?")
                 }
-                QueryModifierRule::AuthorizedFieldWithArguments {
-                    directive_id,
-                    definition_id,
-                    argument_ids,
-                } => {
-                    let directive = directive_id.walk(self.ctx.schema());
-                    let verdict = self
-                        .ctx
-                        .hooks()
-                        .authorize_edge_pre_execution(
-                            definition_id.walk(self.ctx.schema()),
-                            argument_ids
-                                .walk(self.operation_ctx)
-                                .query_view(&directive.arguments, self.input_value_ctx.variables),
-                            directive.metadata(),
-                        )
-                        .await;
-                    if let Err(error) = verdict {
-                        let error_id = self.push_error(error);
-                        self.deny_field(modifier, error_id);
-                    }
+                QueryModifierRule::AuthorizedFieldWithArguments { .. } => {
+                    unreachable!("maybe it's time to let go of this variant?")
                 }
-                QueryModifierRule::AuthorizedDefinition {
-                    directive_id,
-                    definition_id: definition,
-                } => {
-                    let directive = directive_id.walk(self.ctx.schema());
-                    let result = self
-                        .ctx
-                        .hooks()
-                        .authorize_node_pre_execution(definition.walk(self.ctx.schema()), directive.metadata())
-                        .await;
-
-                    if let Err(error) = result {
-                        let error_id = self.push_error(error);
-                        self.deny_field(modifier, error_id);
-                    }
+                QueryModifierRule::AuthorizedDefinition { .. } => {
+                    unreachable!("maybe it's time to let go of this variant?")
                 }
                 QueryModifierRule::Executable { directives } => {
                     // GraphQL spec:

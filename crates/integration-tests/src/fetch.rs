@@ -4,11 +4,9 @@ use std::{
 };
 
 use bytes::Bytes;
+use event_queue::SubgraphResponseBuilder;
 use graphql_mocks::ReceivedRequest;
-use runtime::{
-    fetch::{FetchError, FetchRequest, FetchResult, dynamic::DynFetcher},
-    hooks::ResponseInfo,
-};
+use runtime::fetch::{FetchError, FetchRequest, FetchResult, dynamic::DynFetcher};
 
 #[derive(Clone, Default)]
 pub struct MockFetch {
@@ -38,7 +36,7 @@ impl DynFetcher for MockFetch {
     async fn fetch(
         &self,
         request: FetchRequest<'_, Bytes>,
-    ) -> (FetchResult<http::Response<Bytes>>, Option<ResponseInfo>) {
+    ) -> (FetchResult<http::Response<Bytes>>, Option<SubgraphResponseBuilder>) {
         let host = request.url.host_str().unwrap();
         self.requests.push((
             host.to_string(),

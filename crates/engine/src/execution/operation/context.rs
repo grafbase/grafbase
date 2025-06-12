@@ -2,13 +2,16 @@ use std::sync::Arc;
 
 use grafbase_telemetry::metrics::EngineMetrics;
 use operation::{InputValueContext, Variables};
-use runtime::authentication::LegacyToken;
+use runtime::{
+    authentication::LegacyToken,
+    extension::{ExtensionContext, ExtensionRuntime},
+};
 use schema::{HeaderRule, Schema};
 
 use crate::{
     Engine, Runtime,
     engine::WasmExtensionContext,
-    execution::{GraphqlRequestContext, RequestContext, RequestHooks, apply_header_rules},
+    execution::{GraphqlRequestContext, RequestContext, apply_header_rules},
     prepare::{CachedOperationContext, OperationPlanContext, PreparedOperation, Shapes},
 };
 
@@ -17,7 +20,7 @@ pub(crate) struct ExecutionContext<'ctx, R: Runtime> {
     pub engine: &'ctx Arc<Engine<R>>,
     pub request_context: &'ctx Arc<RequestContext<WasmExtensionContext<R>>>,
     pub operation: &'ctx Arc<PreparedOperation>,
-    pub gql_context: &'ctx GraphqlRequestContext<R>,
+    pub gql_context: &'ctx GraphqlRequestContext,
 }
 
 impl<R: Runtime> Clone for ExecutionContext<'_, R> {
@@ -34,6 +37,10 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
         &self.request_context.token
     }
 
+    pub fn event_queue(&self) -> &<<R::Extensions as ExtensionRuntime>::Context as ExtensionContext>::EventQueue {
+        self.request_context.extension_context.event_queue()
+    }
+
     pub fn subgraph_headers_with_rules(&self, rules: impl Iterator<Item = HeaderRule<'ctx>>) -> http::HeaderMap {
         let mut subgraph_headers = self
             .gql_context
@@ -43,11 +50,6 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
             .clone();
         apply_header_rules(&self.request_context.headers, rules, &mut subgraph_headers);
         subgraph_headers
-    }
-
-    #[allow(unused)]
-    pub fn hooks(&self) -> RequestHooks<'ctx, R::Hooks> {
-        self.into()
     }
 
     pub fn extensions(&self) -> &'ctx R::Extensions {
