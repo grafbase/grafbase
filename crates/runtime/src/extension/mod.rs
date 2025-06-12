@@ -19,7 +19,7 @@ pub trait ExtensionRuntime:
     + AuthorizationExtension<Self::Context>
     + FieldResolverExtension<Self::Context>
     + SelectionSetResolverExtension
-    + ResolverExtension
+    + ResolverExtension<Self::Context>
     + Send
     + Sync
     + 'static

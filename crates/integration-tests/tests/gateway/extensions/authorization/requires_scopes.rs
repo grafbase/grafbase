@@ -21,7 +21,7 @@ struct Arguments {
 impl AuthorizationTestExtension for RequiresScopes {
     async fn authorize_query(
         &self,
-        _wasm_context: &DynHookContext,
+        _wasm_context: DynHookContext,
         _headers: &tokio::sync::RwLock<http::HeaderMap>,
         token: TokenRef<'_>,
         elements_grouped_by_directive_name: Vec<(&str, Vec<QueryElement<'_, serde_json::Value>>)>,

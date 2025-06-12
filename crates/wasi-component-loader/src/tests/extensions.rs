@@ -1,6 +1,7 @@
 use std::{path::PathBuf, sync::Arc};
 
 use crate::{
+    SharedContext,
     extension::{ExtensionConfig, ExtensionLoader, WasmConfig},
     tests::create_shared_resources,
 };
@@ -50,16 +51,21 @@ async fn single_call_caching_auth() {
     let mut headers = HeaderMap::new();
     headers.insert("Authorization", HeaderValue::from_static("valid"));
 
+    let context = SharedContext::default();
+
     let (headers, token) = loader
         .instantiate()
         .await
         .unwrap()
-        .authenticate(headers.into())
+        .authenticate(context, headers.into())
         .await
         .unwrap();
+
     let headers = headers.into_inner().unwrap();
+
     assert!(headers.len() == 1);
     assert_eq!(Some(&HeaderValue::from_static("valid")), headers.get("Authorization"));
+
     let claims = match token {
         Token::Anonymous => serde_json::Value::Null,
         Token::Bytes(bytes) => serde_json::from_slice(&bytes).unwrap(),
@@ -105,11 +111,13 @@ async fn single_call_caching_auth_invalid() {
     let mut headers = HeaderMap::new();
     headers.insert("Authorization", HeaderValue::from_static("valid"));
 
+    let context = SharedContext::default();
+
     let err = loader
         .instantiate()
         .await
         .unwrap()
-        .authenticate(http::HeaderMap::new().into())
+        .authenticate(context, http::HeaderMap::new().into())
         .await
         .err();
 
@@ -170,7 +178,10 @@ async fn multiple_cache_calls() {
             headers.insert("Authorization", HeaderValue::from_static("valid"));
             headers.insert("value", HeaderValue::from_str(&format!("value_{i}")).unwrap());
 
-            let (_, token) = extension.authenticate(headers.into()).await.unwrap();
+            let context = SharedContext::default();
+
+            let (_, token) = extension.authenticate(context, headers.into()).await.unwrap();
+
             let claims = match token {
                 Token::Anonymous => serde_json::Value::Null,
                 Token::Bytes(bytes) => serde_json::from_slice(&bytes).unwrap(),
@@ -194,13 +205,17 @@ async fn multiple_cache_calls() {
 
     let mut headers = HeaderMap::new();
     headers.insert("Authorization", HeaderValue::from_static("nonvalid"));
+
+    let context = SharedContext::default();
+
     let (_, token) = loader
         .instantiate()
         .await
         .unwrap()
-        .authenticate(headers.into())
+        .authenticate(context, headers.into())
         .await
         .unwrap();
+
     let claims = match token {
         Token::Anonymous => serde_json::Value::Null,
         Token::Bytes(bytes) => serde_json::from_slice(&bytes).unwrap(),

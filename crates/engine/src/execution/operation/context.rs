@@ -7,6 +7,7 @@ use schema::{HeaderRule, Schema};
 
 use crate::{
     Engine, Runtime,
+    engine::WasmExtensionContext,
     execution::{GraphqlRequestContext, RequestContext, RequestHooks, apply_header_rules},
     prepare::{CachedOperationContext, OperationPlanContext, PreparedOperation, Shapes},
 };
@@ -14,7 +15,7 @@ use crate::{
 /// Context for a single prepared operation that only needs to be executed.
 pub(crate) struct ExecutionContext<'ctx, R: Runtime> {
     pub engine: &'ctx Arc<Engine<R>>,
-    pub request_context: &'ctx Arc<RequestContext>,
+    pub request_context: &'ctx Arc<RequestContext<WasmExtensionContext<R>>>,
     pub operation: &'ctx Arc<PreparedOperation>,
     pub gql_context: &'ctx GraphqlRequestContext<R>,
 }

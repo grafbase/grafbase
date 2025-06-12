@@ -17,7 +17,11 @@ impl HooksExtension for WasmHooks {
         }
     }
 
-    async fn on_request(&self, context: Self::Context, parts: request::Parts) -> Result<request::Parts, ErrorResponse> {
+    async fn on_request(
+        &self,
+        context: &Self::Context,
+        parts: request::Parts,
+    ) -> Result<request::Parts, ErrorResponse> {
         let Some(pool) = self.pool() else { return Ok(parts) };
 
         let mut instance = pool.get().await.map_err(|e| ErrorResponse {
@@ -28,7 +32,7 @@ impl HooksExtension for WasmHooks {
             )],
         })?;
 
-        instance.on_request(context, parts).await.map_err(|e| match e {
+        instance.on_request(context.clone(), parts).await.map_err(|e| match e {
             crate::ErrorResponse::Internal(err) => ErrorResponse {
                 status: http::StatusCode::INTERNAL_SERVER_ERROR,
                 errors: vec![engine_error::GraphqlError::new(
@@ -42,10 +46,13 @@ impl HooksExtension for WasmHooks {
         })
     }
 
-    async fn on_response(&self, context: Self::Context, parts: response::Parts) -> Result<response::Parts, String> {
+    async fn on_response(&self, context: &Self::Context, parts: response::Parts) -> Result<response::Parts, String> {
         let Some(pool) = self.pool() else { return Ok(parts) };
-
         let mut instance = pool.get().await.map_err(|e| e.to_string())?;
-        instance.on_response(context, parts).await.map_err(|e| e.to_string())
+
+        instance
+            .on_response(context.clone(), parts)
+            .await
+            .map_err(|e| e.to_string())
     }
 }

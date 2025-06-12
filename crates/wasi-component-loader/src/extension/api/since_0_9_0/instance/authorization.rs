@@ -3,7 +3,7 @@ use futures::future::BoxFuture;
 use runtime::extension::{AuthorizationDecisions, TokenRef};
 
 use crate::{
-    Error,
+    Error, SharedContext,
     extension::{
         AuthorizationExtensionInstance, QueryAuthorizationResult,
         api::wit::{QueryElements, ResponseElements},
@@ -14,6 +14,7 @@ use crate::{
 impl AuthorizationExtensionInstance for super::ExtensionInstanceSince090 {
     fn authorize_query<'a>(
         &'a mut self,
+        _: SharedContext,
         headers: Lease<http::HeaderMap>,
         token: TokenRef<'a>,
         elements: QueryElements<'a>,
@@ -48,6 +49,7 @@ impl AuthorizationExtensionInstance for super::ExtensionInstanceSince090 {
 
     fn authorize_response<'a>(
         &'a mut self,
+        _: SharedContext,
         _: &'a [u8],
         _: ResponseElements<'a>,
     ) -> BoxFuture<'a, Result<AuthorizationDecisions, Error>> {

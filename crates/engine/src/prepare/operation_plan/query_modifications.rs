@@ -104,7 +104,9 @@ where
         let schema = self.ctx.schema();
         let operation_ctx = self.operation_ctx;
         let variables = &self.input_value_ctx.variables;
+
         let subgraph_default_headers_override = self.ctx.request_context.subgraph_default_headers.clone();
+
         let extensions = modifiers
             .by_extension
             .iter()
@@ -113,11 +115,12 @@ where
                 (extension_id, directive_range.into(), query_elements_range.into())
             })
             .collect::<Vec<_>>();
+
         let (mut subgraph_default_headers_override, decisions) = self
             .ctx
             .extensions()
             .authorize_query(
-                &self.ctx.gql_context.wasm_context,
+                &self.ctx.request_context.extension_context,
                 subgraph_default_headers_override,
                 self.ctx.access_token().as_ref(),
                 extensions,

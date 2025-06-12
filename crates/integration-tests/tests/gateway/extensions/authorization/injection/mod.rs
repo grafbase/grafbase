@@ -16,7 +16,7 @@ impl AuthorizationTestExtension for EchoInjections {
     #[allow(clippy::manual_async_fn)]
     async fn authorize_query(
         &self,
-        wasm_context: &DynHookContext,
+        wasm_context: DynHookContext,
         _headers: &tokio::sync::RwLock<http::HeaderMap>,
         _token: TokenRef<'_>,
         elements_grouped_by_directive_name: Vec<(&str, Vec<QueryElement<'_, serde_json::Value>>)>,
@@ -40,7 +40,7 @@ impl AuthorizationTestExtension for EchoInjections {
 
     async fn authorize_response(
         &self,
-        ctx: &DynHookContext,
+        ctx: DynHookContext,
         directive_name: &str,
         directive_site: DirectiveSite<'_>,
         items: Vec<serde_json::Value>,

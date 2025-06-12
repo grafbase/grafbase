@@ -5,7 +5,7 @@ use tokio::sync::broadcast;
 use tokio_stream::{StreamExt, wrappers::BroadcastStream};
 
 use crate::{
-    Error,
+    Error, SharedContext,
     extension::{ExtensionGuard, WasmExtensions, api::wit::SubscriptionItem},
 };
 
@@ -21,6 +21,7 @@ pub struct DeduplicatedSubscription {
     pub extensions: WasmExtensions,
     pub key: Vec<u8>,
     pub instance: ExtensionGuard,
+    pub context: SharedContext,
 }
 
 impl DeduplicatedSubscription {
@@ -29,6 +30,7 @@ impl DeduplicatedSubscription {
             extensions,
             key,
             mut instance,
+            context,
         } = self;
 
         let (sender, receiver) = match extensions.subscriptions().entry(key.clone()) {
@@ -57,7 +59,7 @@ impl DeduplicatedSubscription {
 
             loop {
                 let next = instance
-                    .resolve_next_subscription_item()
+                    .resolve_next_subscription_item(context.clone())
                     .await
                     .map_err(|err| match err {
                         Error::Internal(err) => {
@@ -76,7 +78,7 @@ impl DeduplicatedSubscription {
                         SubscriptionItem::Multiple(items) => items,
                     },
                     Ok(Ok(None)) => {
-                        if let Err(err) = instance.drop_subscription().await {
+                        if let Err(err) = instance.drop_subscription(context).await {
                             tracing::error!("Error dropping subscription: {err}");
                         }
                         if !client_registrations_closed {
@@ -85,7 +87,7 @@ impl DeduplicatedSubscription {
                         return;
                     }
                     Ok(Err(err)) => {
-                        if let Err(err) = instance.drop_subscription().await {
+                        if let Err(err) = instance.drop_subscription(context).await {
                             tracing::error!("Error dropping subscription: {err}");
                         }
                         let _ = sender.send(Response::error(err));
@@ -96,7 +98,7 @@ impl DeduplicatedSubscription {
                     }
                     Err(err) => {
                         tracing::error!("Error resolving subscription item: {err}");
-                        if let Err(err) = instance.drop_subscription().await {
+                        if let Err(err) = instance.drop_subscription(context).await {
                             tracing::error!("Error dropping subscription: {err}");
                         }
                         let _ = sender.send(Response::error(GraphqlError::internal_extension_error()));
@@ -111,7 +113,7 @@ impl DeduplicatedSubscription {
                     if sender.send(item.into()).is_err() {
                         tracing::debug!("all subscribers are gone");
                         if client_registrations_closed {
-                            if let Err(err) = instance.drop_subscription().await {
+                            if let Err(err) = instance.drop_subscription(context.clone()).await {
                                 tracing::error!("Error dropping subscription: {err}");
                             }
                             return;

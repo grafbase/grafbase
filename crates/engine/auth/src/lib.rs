@@ -85,13 +85,20 @@ impl<Extensions> AuthenticationService<Extensions> {
     }
 }
 
-impl<Extensions: ExtensionRuntime> runtime::authentication::Authenticate for AuthenticationService<Extensions> {
-    async fn authenticate(&self, headers: http::HeaderMap) -> Result<(http::HeaderMap, LegacyToken), ErrorResponse> {
+impl<Extensions: ExtensionRuntime> runtime::authentication::Authenticate<Extensions::Context>
+    for AuthenticationService<Extensions>
+{
+    async fn authenticate(
+        &self,
+        context: &Extensions::Context,
+        headers: http::HeaderMap,
+    ) -> Result<(http::HeaderMap, LegacyToken), ErrorResponse> {
         if !self.authentication_extension_ids.is_empty() {
             let (headers, result) = self
                 .extensions
-                .authenticate(&self.authentication_extension_ids, headers)
+                .authenticate(context, &self.authentication_extension_ids, headers)
                 .await;
+
             match result {
                 Ok(token) => Ok((headers, LegacyToken::Extension(token))),
                 Err(error) => match self.legacy_authorizers(&headers).await {

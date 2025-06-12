@@ -46,7 +46,7 @@ pub struct SubgraphRequest {
 
 #[allow(unused)]
 pub trait Hooks: Send + Sync + 'static {
-    type Context: Clone + Send + Sync + 'static;
+    type Context: Default + Clone + Send + Sync + 'static;
     type OnSubgraphResponseOutput: Send + Sync + 'static;
     type OnOperationResponseOutput: Send + Sync + 'static;
 

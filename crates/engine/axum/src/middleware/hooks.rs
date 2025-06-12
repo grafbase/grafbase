@@ -67,7 +67,7 @@ where
 
             let response_format = crate::error_response::extract_response_format(&parts.headers);
 
-            let parts = match hooks.on_request(context.clone(), parts).await {
+            let parts = match hooks.on_request(&context, parts).await {
                 Ok(parts) => parts,
                 Err(err) => {
                     let error_response = crate::error_response::request_error_response_to_http(response_format, err);
@@ -75,7 +75,8 @@ where
                 }
             };
 
-            let request = Request::from_parts(parts, body);
+            let mut request = Request::from_parts(parts, body);
+            request.extensions_mut().insert(context.clone());
 
             let response = match inner.call(request).await {
                 Ok(response) => response,
@@ -86,7 +87,7 @@ where
 
             let (parts, body) = response.into_parts();
 
-            let parts = match hooks.on_response(context.clone(), parts).await {
+            let parts = match hooks.on_response(&context, parts).await {
                 Ok(parts) => parts,
                 Err(err) => {
                     tracing::error!("Error in on_response hook: {err}");

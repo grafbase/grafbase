@@ -2,7 +2,7 @@ use futures::future::BoxFuture;
 use runtime::extension::Token;
 
 use crate::{
-    ErrorResponse,
+    ErrorResponse, SharedContext,
     extension::AuthenticationExtensionInstance,
     resources::{Headers, Lease},
 };
@@ -10,6 +10,7 @@ use crate::{
 impl AuthenticationExtensionInstance for super::ExtensionInstanceSince0_17_0 {
     fn authenticate(
         &mut self,
+        context: SharedContext,
         headers: Lease<http::HeaderMap>,
     ) -> BoxFuture<'_, Result<(Lease<http::HeaderMap>, Token), ErrorResponse>> {
         Box::pin(async move {
@@ -20,10 +21,12 @@ impl AuthenticationExtensionInstance for super::ExtensionInstanceSince0_17_0 {
             let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
             let headers_rep = headers.rep();
 
+            let context = self.store.data_mut().push_resource(context)?;
+
             let result = self
                 .inner
                 .grafbase_sdk_authentication()
-                .call_authenticate(&mut self.store, headers)
+                .call_authenticate(&mut self.store, context, headers)
                 .await?;
 
             let headers = self

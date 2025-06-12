@@ -9,6 +9,7 @@ use runtime::extension::{AuthenticationExtension, Token};
 impl AuthenticationExtension<SharedContext> for WasmExtensions {
     async fn authenticate(
         &self,
+        context: &SharedContext,
         extension_ids: &[ExtensionId],
         gateway_headers: http::HeaderMap,
     ) -> (http::HeaderMap, Result<Token, ErrorResponse>) {
@@ -22,7 +23,7 @@ impl AuthenticationExtension<SharedContext> for WasmExtensions {
                 let mut instance = self.get(*id).await?;
 
                 instance
-                    .authenticate(Lease::Shared(headers.clone()))
+                    .authenticate(context.clone(), Lease::Shared(headers.clone()))
                     .await
                     .map(|(_, token)| token)
                     .map_err(|err| match err {

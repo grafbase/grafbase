@@ -13,6 +13,7 @@ use crate::gateway::{
 impl AuthenticationExtension<ExtContext> for ExtensionsDispatcher {
     async fn authenticate(
         &self,
+        context: &ExtContext,
         extension_ids: &[ExtensionId],
         gateway_headers: http::HeaderMap,
     ) -> (http::HeaderMap, Result<Token, ErrorResponse>) {
@@ -31,9 +32,13 @@ impl AuthenticationExtension<ExtContext> for ExtensionsDispatcher {
         );
 
         if !wasm_extensions.is_empty() {
-            self.wasm.authenticate(&wasm_extensions, gateway_headers).await
+            self.wasm
+                .authenticate(&context.wasm, &wasm_extensions, gateway_headers)
+                .await
         } else {
-            self.test.authenticate(&test_extensions, gateway_headers).await
+            self.test
+                .authenticate(&context.test, &test_extensions, gateway_headers)
+                .await
         }
     }
 }
@@ -41,6 +46,7 @@ impl AuthenticationExtension<ExtContext> for ExtensionsDispatcher {
 impl AuthenticationExtension<DynHookContext> for TestExtensions {
     async fn authenticate(
         &self,
+        _: &DynHookContext,
         extension_ids: &[ExtensionId],
         headers: http::HeaderMap,
     ) -> (http::HeaderMap, Result<Token, ErrorResponse>) {
@@ -66,6 +72,7 @@ impl AuthenticationExtension<DynHookContext> for TestExtensions {
         }
 
         drop(futures);
+
         (headers, Err(last_error.unwrap()))
     }
 }

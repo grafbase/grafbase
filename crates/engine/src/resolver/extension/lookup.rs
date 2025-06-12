@@ -34,6 +34,7 @@ impl super::ExtensionResolver {
             .runtime()
             .extensions()
             .resolve(
+                &ctx.request_context.extension_context,
                 definition.directive(),
                 &prepared.extension_data,
                 // TODO: use Arc instead of clone?

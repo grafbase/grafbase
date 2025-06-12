@@ -2,7 +2,7 @@ use engine_error::GraphqlError;
 use futures::future::BoxFuture;
 
 use crate::{
-    Error,
+    Error, SharedContext,
     extension::api::wit::{ArgumentsId, Directive, Field, FieldId, Response, SubscriptionItem},
 };
 
@@ -10,6 +10,7 @@ use crate::{
 pub(crate) trait ResolverExtensionInstance {
     fn prepare<'a>(
         &'a mut self,
+        context: SharedContext,
         subgraph_name: &'a str,
         directive: Directive<'a>,
         field_id: FieldId,
@@ -20,6 +21,7 @@ pub(crate) trait ResolverExtensionInstance {
 
     fn resolve<'a>(
         &'a mut self,
+        context: SharedContext,
         headers: http::HeaderMap,
         prepared: &'a [u8],
         arguments: &'a [(ArgumentsId, &'a [u8])],
@@ -30,6 +32,7 @@ pub(crate) trait ResolverExtensionInstance {
     #[allow(clippy::type_complexity)]
     fn create_subscription<'a>(
         &'a mut self,
+        context: SharedContext,
         headers: http::HeaderMap,
         prepared: &'a [u8],
         arguments: &'a [(ArgumentsId, &'a [u8])],
@@ -37,12 +40,13 @@ pub(crate) trait ResolverExtensionInstance {
         Box::pin(async { unreachable!("Not supported by this SDK") })
     }
 
-    fn drop_subscription<'a>(&'a mut self) -> BoxFuture<'a, Result<(), Error>> {
+    fn drop_subscription<'a>(&'a mut self, context: SharedContext) -> BoxFuture<'a, Result<(), Error>> {
         Box::pin(async { unreachable!("Not supported by this SDK") })
     }
 
     fn resolve_next_subscription_item(
         &mut self,
+        context: SharedContext,
     ) -> BoxFuture<'_, Result<Result<Option<SubscriptionItem>, GraphqlError>, Error>> {
         Box::pin(async { unreachable!("Not supported by this SDK") })
     }

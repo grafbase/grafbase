@@ -17,7 +17,7 @@ use tracing::Instrument;
 
 use crate::{
     Engine, Runtime,
-    engine::WasmContext,
+    engine::{WasmContext, WasmExtensionContext},
     execution::{ResponseSender, default_response_extensions, errors, response_extension_for_prepared_operation},
     prepare::PrepareContext,
     response::{ErrorCode, ErrorCodeCounter, Response, ResponseExtensions},
@@ -34,7 +34,7 @@ pub(crate) struct StreamResponse<OnOperationResponseOutput> {
 impl<R: Runtime> Engine<R> {
     pub(super) fn execute_stream(
         self: &Arc<Self>,
-        request_context: Arc<RequestContext>,
+        request_context: Arc<RequestContext<WasmExtensionContext<R>>>,
         wasm_context: WasmContext<R>,
         request: Request,
     ) -> StreamResponse<<R::Hooks as Hooks>::OnOperationResponseOutput> {
@@ -137,24 +137,25 @@ impl<R: Runtime> PrepareContext<'_, R> {
         let result = self
             .engine
             .with_gateway_timeout(async {
-                let operation = match self.prepare_operation(request).await {
-                    Ok(operation_plan) => operation_plan,
-                    Err(response) => {
-                        let attributes = response.operation_attributes().cloned();
-                        sender
-                            .send(
-                                response
-                                    .with_extensions(default_response_extensions(self.schema(), self.request_context)),
-                            )
-                            .await
-                            .ok();
-                        return Err(attributes);
-                    }
-                };
+                let operation =
+                    match self.prepare_operation(request).await {
+                        Ok(operation_plan) => operation_plan,
+                        Err(response) => {
+                            let attributes = response.operation_attributes().cloned();
+                            sender
+                                .send(response.with_extensions(default_response_extensions::<R>(
+                                    self.schema(),
+                                    self.request_context,
+                                )))
+                                .await
+                                .ok();
+                            return Err(attributes);
+                        }
+                    };
 
                 if matches!(operation.cached.ty(), OperationType::Query | OperationType::Mutation) {
                     let extensions =
-                        response_extension_for_prepared_operation(self.schema(), self.request_context, &operation);
+                        response_extension_for_prepared_operation::<R>(self.schema(), self.request_context, &operation);
                     let response = self.execute_query_or_mutation(operation).await;
 
                     let attributes = response.operation_attributes().cloned();
@@ -171,7 +172,7 @@ impl<R: Runtime> PrepareContext<'_, R> {
             Some(Ok((ctx, operation))) => (ctx, operation),
             Some(Err(attributes)) => return attributes,
             None => {
-                let extensions = default_response_extensions(schema, request_context);
+                let extensions = default_response_extensions::<R>(schema, request_context);
 
                 sender
                     .send(errors::response::gateway_timeout().with_extensions(extensions))
@@ -200,7 +201,7 @@ impl<R: Runtime> PrepareContext<'_, R> {
             }
         }
 
-        let extensions = response_extension_for_prepared_operation(schema, request_context, &operation);
+        let extensions = response_extension_for_prepared_operation::<R>(schema, request_context, &operation);
         ctx.execute_subscription(
             operation,
             AddExtToFirstResponse {

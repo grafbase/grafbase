@@ -6,6 +6,7 @@ use extension_catalog::ExtensionId;
 pub trait AuthenticationExtension<Context: Send + Sync + 'static>: Send + Sync + 'static {
     fn authenticate(
         &self,
+        context: &Context,
         extension_ids: &[ExtensionId],
         gateway_headers: http::HeaderMap,
     ) -> impl Future<Output = (http::HeaderMap, Result<Token, ErrorResponse>)> + Send;

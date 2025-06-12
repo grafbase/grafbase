@@ -15,7 +15,7 @@ impl AuthorizationTestExtension for GrantAll {
     #[allow(clippy::manual_async_fn)]
     async fn authorize_query(
         &self,
-        _wasm_context: &DynHookContext,
+        _wasm_context: DynHookContext,
         _headers: &tokio::sync::RwLock<http::HeaderMap>,
         _token: TokenRef<'_>,
         _elements_grouped_by_directive_name: Vec<(&str, Vec<QueryElement<'_, serde_json::Value>>)>,
@@ -25,7 +25,7 @@ impl AuthorizationTestExtension for GrantAll {
 
     async fn authorize_response(
         &self,
-        _wasm_context: &DynHookContext,
+        _wasm_context: DynHookContext,
         _directive_name: &str,
         _directive_site: DirectiveSite<'_>,
         _items: Vec<serde_json::Value>,

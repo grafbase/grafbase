@@ -14,7 +14,7 @@ impl AuthorizationTestExtension for Failure {
     #[allow(clippy::manual_async_fn)]
     async fn authorize_query(
         &self,
-        _wasm_context: &DynHookContext,
+        _wasm_context: DynHookContext,
         _headers: &tokio::sync::RwLock<http::HeaderMap>,
         _token: TokenRef<'_>,
         _elements_grouped_by_directive_name: Vec<(&str, Vec<QueryElement<'_, serde_json::Value>>)>,

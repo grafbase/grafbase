@@ -2,7 +2,7 @@ use futures::future::BoxFuture;
 use runtime::extension::{AuthorizationDecisions, TokenRef};
 
 use crate::{
-    Error,
+    Error, SharedContext,
     extension::{
         AuthorizationExtensionInstance, QueryAuthorizationResult,
         api::wit::{Headers, QueryElements, ResponseElements, TokenParam},
@@ -13,6 +13,7 @@ use crate::{
 impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_17_0 {
     fn authorize_query<'a>(
         &'a mut self,
+        context: SharedContext,
         headers: Lease<http::HeaderMap>,
         token: TokenRef<'a>,
         elements: QueryElements<'a>,
@@ -22,14 +23,16 @@ impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_17_0 {
             // otherwise.
             self.poisoned = true;
 
+            let context = self.store.data_mut().push_resource(context)?;
             let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
             let headers_rep = headers.rep();
 
             let token_param = token.as_bytes().map(TokenParam::Bytes).unwrap_or(TokenParam::Anonymous);
+
             let result = self
                 .inner
                 .grafbase_sdk_authorization()
-                .call_authorize_query(&mut self.store, headers, token_param, elements)
+                .call_authorize_query(&mut self.store, context, headers, token_param, elements)
                 .await?;
 
             let headers = self
@@ -40,6 +43,7 @@ impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_17_0 {
                 .unwrap();
 
             self.poisoned = false;
+
             result
                 .map(|(decisions, state)| (headers, decisions.into(), state))
                 .map_err(Into::into)
@@ -48,6 +52,7 @@ impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_17_0 {
 
     fn authorize_response<'a>(
         &'a mut self,
+        context: SharedContext,
         state: &'a [u8],
         elements: ResponseElements<'a>,
     ) -> BoxFuture<'a, Result<AuthorizationDecisions, Error>> {
@@ -56,10 +61,12 @@ impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_17_0 {
             // otherwise.
             self.poisoned = true;
 
+            let context = self.store.data_mut().push_resource(context)?;
+
             let result = self
                 .inner
                 .grafbase_sdk_authorization()
-                .call_authorize_response(&mut self.store, state, elements)
+                .call_authorize_response(&mut self.store, context, state, elements)
                 .await?;
 
             self.poisoned = false;

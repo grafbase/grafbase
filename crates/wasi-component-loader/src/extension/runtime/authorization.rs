@@ -15,7 +15,7 @@ use std::{future::Future, ops::Range, sync::Arc};
 impl AuthorizationExtension<SharedContext> for WasmExtensions {
     fn authorize_query<'ctx, 'fut, Extensions, Arguments>(
         &'ctx self,
-        wasm_context: &'ctx SharedContext,
+        context: &SharedContext,
         headers: http::HeaderMap,
         token: TokenRef<'ctx>,
         extensions: Extensions,
@@ -77,6 +77,7 @@ impl AuthorizationExtension<SharedContext> for WasmExtensions {
         }
 
         let headers = Arc::new(tokio::sync::RwLock::new(headers));
+        let context = context.clone();
 
         async move {
             let headers_ref = &headers;
@@ -84,11 +85,13 @@ impl AuthorizationExtension<SharedContext> for WasmExtensions {
             let elements = &elements;
             let decisions = extensions
                 .into_iter()
-                .map(
-                    move |(extension_id, directive_range, query_elements_range)| async move {
+                .map(move |(extension_id, directive_range, query_elements_range)| {
+                    let context = context.clone();
+                    async move {
                         let mut instance = self.get(extension_id).await?;
                         match instance
                             .authorize_query(
+                                context.clone(),
                                 Lease::SharedMut(headers_ref.clone()),
                                 token,
                                 wit::QueryElements {
@@ -100,11 +103,7 @@ impl AuthorizationExtension<SharedContext> for WasmExtensions {
                         {
                             Ok((_, decisions, state)) => {
                                 if !state.is_empty() {
-                                    wasm_context
-                                        .authorization_state
-                                        .write()
-                                        .await
-                                        .push((extension_id, state));
+                                    context.authorization_state.write().await.push((extension_id, state));
                                 }
                                 Ok(QueryAuthorizationDecisions {
                                     extension_id,
@@ -122,8 +121,8 @@ impl AuthorizationExtension<SharedContext> for WasmExtensions {
                                 }
                             }),
                         }
-                    },
-                )
+                    }
+                })
                 .collect::<FuturesUnordered<_>>()
                 .try_collect::<Vec<_>>()
                 .await?;
@@ -135,8 +134,8 @@ impl AuthorizationExtension<SharedContext> for WasmExtensions {
 
     fn authorize_response<'ctx, 'fut>(
         &'ctx self,
+        context: &SharedContext,
         extension_id: ExtensionId,
-        wasm_context: &'ctx SharedContext,
         directive_name: &'ctx str,
         directive_site: DirectiveSite<'ctx>,
         items: impl IntoIterator<Item: Anything<'ctx>>,
@@ -148,8 +147,12 @@ impl AuthorizationExtension<SharedContext> for WasmExtensions {
             .into_iter()
             .map(|item| cbor::to_vec(item).unwrap())
             .collect::<Vec<_>>();
+
+        let context = context.clone();
+
         async move {
-            let guard = wasm_context.authorization_state.read().await;
+            let guard = context.authorization_state.read().await;
+
             let state = guard
                 .iter()
                 .find_map(|(id, state)| {
@@ -160,9 +163,12 @@ impl AuthorizationExtension<SharedContext> for WasmExtensions {
                     }
                 })
                 .unwrap_or(&[]);
+
             let mut instance = self.get(extension_id).await?;
+
             instance
                 .authorize_response(
+                    context.clone(),
                     state,
                     wit::ResponseElements {
                         directive_names: vec![(directive_name, 0, 1)],
