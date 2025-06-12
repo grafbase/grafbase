@@ -74,7 +74,6 @@ fn basic() {
                 r#"
                 extend schema
                     @link(url: "sub-1.0.0", import: ["@resolve"])
-                    @init
 
                 scalar JSON
 

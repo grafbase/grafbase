@@ -1,6 +1,6 @@
 use integration_tests::{gateway::Gateway, runtime};
 
-use super::super::super::{EchoArgs, gql_ab, gql_ab_id_int};
+use super::super::super::{EchoLookup, gql_ab, gql_ab_id_int};
 
 #[test]
 fn arg_with_same_name() {
@@ -11,12 +11,12 @@ fn arg_with_same_name() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@init"])
+                    @link(url: "echo-1.0.0", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
-                    @init
+
 
                 type Query {
-                    productBatch(key: [Key!]!): [Product!]! @lookup
+                    productBatch(key: [Key!]!): [Product!]! @lookup @echo
                 }
 
                 input Key {
@@ -33,7 +33,7 @@ fn arg_with_same_name() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoArgs)
+            .with_extension(EchoLookup { batch: true })
             .build()
             .await;
 
@@ -68,12 +68,12 @@ fn arg_type_compatibility_nullable_list() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@init"])
+                    @link(url: "echo-1.0.0", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
-                    @init
+
 
                 type Query {
-                    productBatch(key: [Key!]): [Product!]! @lookup
+                    productBatch(key: [Key!]): [Product!]! @lookup @echo
                 }
 
                 input Key {
@@ -90,7 +90,7 @@ fn arg_type_compatibility_nullable_list() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoArgs)
+            .with_extension(EchoLookup { batch: true })
             .build()
             .await;
 
@@ -125,12 +125,12 @@ fn arg_type_compatibility_inner_nullable() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@init"])
+                    @link(url: "echo-1.0.0", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
-                    @init
+
 
                 type Query {
-                    productBatch(key: [Key]!): [Product!]! @lookup
+                    productBatch(key: [Key]!): [Product!]! @lookup @echo
                 }
 
                 input Key {
@@ -147,7 +147,7 @@ fn arg_type_compatibility_inner_nullable() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoArgs)
+            .with_extension(EchoLookup { batch: true })
             .build()
             .await;
 
@@ -182,12 +182,12 @@ fn arg_type_compatibility_inner_and_list_nullable() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@init"])
+                    @link(url: "echo-1.0.0", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
-                    @init
+
 
                 type Query {
-                    productBatch(key: [Key]): [Product!]! @lookup
+                    productBatch(key: [Key]): [Product!]! @lookup @echo
                 }
 
                 input Key {
@@ -204,7 +204,7 @@ fn arg_type_compatibility_inner_and_list_nullable() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoArgs)
+            .with_extension(EchoLookup { batch: true })
             .build()
             .await;
 
@@ -239,12 +239,12 @@ fn arg_with_same_name_and_extra_optional_input_argument() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@init"])
+                    @link(url: "echo-1.0.0", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
-                    @init
+
 
                 type Query {
-                    productBatch(key: [Key!]!, x: [ID!]): [Product!]! @lookup
+                    productBatch(key: [Key!]!, x: [ID!]): [Product!]! @lookup @echo
                 }
 
                 input Key {
@@ -261,7 +261,7 @@ fn arg_with_same_name_and_extra_optional_input_argument() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoArgs)
+            .with_extension(EchoLookup { batch: true })
             .build()
             .await;
 
@@ -296,12 +296,12 @@ fn arg_with_same_name_and_extra_optional_input_field_with_matching_type() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@init"])
+                    @link(url: "echo-1.0.0", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
-                    @init
+
 
                 type Query {
-                    productBatch(key: [Key!]!): [Product!]! @lookup
+                    productBatch(key: [Key!]!): [Product!]! @lookup @echo
                 }
 
                 input Key {
@@ -319,7 +319,7 @@ fn arg_with_same_name_and_extra_optional_input_field_with_matching_type() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoArgs)
+            .with_extension(EchoLookup { batch: true })
             .build()
             .await;
 
@@ -354,12 +354,12 @@ fn arg_with_different_name() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@init"])
+                    @link(url: "echo-1.0.0", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
-                    @init
+
 
                 type Query {
-                    productBatch(key: [Key!]!): [Product!]! @lookup
+                    productBatch(keys: [Key!]!): [Product!]! @lookup @echo
                 }
 
                 input Key {
@@ -376,7 +376,7 @@ fn arg_with_different_name() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoArgs)
+            .with_extension(EchoLookup { batch: true })
             .build()
             .await;
 
@@ -387,7 +387,7 @@ fn arg_with_different_name() {
             "products": [
               {
                 "args": {
-                  "key": [
+                  "keys": [
                     {
                       "c": "A1",
                       "d": 1
@@ -411,12 +411,12 @@ fn arg_with_different_name_and_extra_optional_arg_with_matching_name() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@init"])
+                    @link(url: "echo-1.0.0", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
-                    @init
+
 
                 type Query {
-                    productBatch(key: [Key!]!): [Product!]! @lookup
+                    productBatch(keys: [Key!]!): [Product!]! @lookup @echo
                 }
 
                 input Key {
@@ -435,7 +435,7 @@ fn arg_with_different_name_and_extra_optional_arg_with_matching_name() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoArgs)
+            .with_extension(EchoLookup { batch: true })
             .build()
             .await;
 
@@ -446,7 +446,7 @@ fn arg_with_different_name_and_extra_optional_arg_with_matching_name() {
             "products": [
               {
                 "args": {
-                  "key": [
+                  "keys": [
                     {
                       "c": "A1",
                       "d": 1
@@ -470,12 +470,12 @@ fn field_with_default_value() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@init"])
+                    @link(url: "echo-1.0.0", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
-                    @init
+
 
                 type Query {
-                    productBatch(key: [Key!]!): [Product!]! @lookup
+                    productBatch(key: [Key!]!, x: Int = 0): [Product!]! @lookup @echo
                 }
 
                 input Key {
@@ -493,7 +493,7 @@ fn field_with_default_value() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoArgs)
+            .with_extension(EchoLookup { batch: true })
             .build()
             .await;
 
@@ -529,12 +529,12 @@ fn field_with_default_value_coercion() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@init"])
+                    @link(url: "echo-1.0.0", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
-                    @init
+
 
                 type Query {
-                    productBatch(key: [Key!]!): [Product!]! @lookup
+                    productBatch(key: [Key!]!, x: [Int!] = 0): [Product!]! @lookup @echo
                 }
 
                 input Key {
@@ -552,7 +552,7 @@ fn field_with_default_value_coercion() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoArgs)
+            .with_extension(EchoLookup { batch: true })
             .build()
             .await;
 
@@ -590,12 +590,12 @@ fn no_arguments() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@init"])
+                    @link(url: "echo-1.0.0", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
-                    @init
+
 
                 type Query {
-                    productBatch: [Product!]! @lookup
+                    productBatch: [Product!]! @lookup @echo
                 }
 
                 type Product @key(fields: "a b") {
@@ -607,14 +607,14 @@ fn no_arguments() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoArgs)
+            .with_extension(EchoLookup { batch: true })
             .try_build()
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         At site Query.productBatch, for directive @lookup no matching @key directive was found
         See schema at 30:3:
-        productBatch: [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)
+        productBatch: [Product!]! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
         "#);
     })
 }
@@ -628,12 +628,12 @@ fn no_matching_argument() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@init"])
+                    @link(url: "echo-1.0.0", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
-                    @init
+
 
                 type Query {
-                    productBatch(somethign: Int): [Product!]! @lookup
+                    productBatch(somethign: Int): [Product!]! @lookup @echo
                 }
 
                 type Product @key(fields: "a b") {
@@ -645,14 +645,14 @@ fn no_matching_argument() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoArgs)
+            .with_extension(EchoLookup { batch: true })
             .try_build()
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         At site Query.productBatch, for directive @lookup no matching @key directive was found
         See schema at 30:3:
-        productBatch(somethign: Int): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)
+        productBatch(somethign: Int): [Product!]! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
         "#);
     })
 }
@@ -666,12 +666,12 @@ fn good_name_bad_type() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@init"])
+                    @link(url: "echo-1.0.0", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
-                    @init
+
 
                 type Query {
-                    productBatch(key: [Key!]): [Product!]! @lookup
+                    productBatch(key: [Key!]): [Product!]! @lookup @echo
                 }
 
                 type Key {
@@ -688,14 +688,14 @@ fn good_name_bad_type() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoArgs)
+            .with_extension(EchoLookup { batch: true })
             .try_build()
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         At site Query.productBatch, for directive @lookup no matching @key directive was found
         See schema at 37:3:
-        productBatch(key: [Key!]): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)
+        productBatch(key: [Key!]): [Product!]! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
         "#);
     })
 }
@@ -709,12 +709,12 @@ fn good_name_not_a_list() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@init"])
+                    @link(url: "echo-1.0.0", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
-                    @init
+
 
                 type Query {
-                    productBatch(key: Key): [Product!]! @lookup
+                    productBatch(key: Key): [Product!]! @lookup @echo
                 }
 
                 input Key {
@@ -731,14 +731,14 @@ fn good_name_not_a_list() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoArgs)
+            .with_extension(EchoLookup { batch: true })
             .try_build()
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         At site Query.productBatch, for directive @lookup no matching @key directive was found
         See schema at 30:3:
-        productBatch(key: Key): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)
+        productBatch(key: Key): [Product!]! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
         "#);
     })
 }
@@ -752,12 +752,12 @@ fn cannot_inject_nullable_field_into_required() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@init"])
+                    @link(url: "echo-1.0.0", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
-                    @init
+
 
                 type Query {
-                    productBatch(key: [Key!]): [Product!]! @lookup
+                    productBatch(key: [Key!]): [Product!]! @lookup @echo
                 }
 
                 input Key {
@@ -774,14 +774,14 @@ fn cannot_inject_nullable_field_into_required() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoArgs)
+            .with_extension(EchoLookup { batch: true })
             .try_build()
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         At site Query.productBatch, for directive @lookup no matching @key directive was found
         See schema at 30:3:
-        productBatch(key: [Key!]): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)
+        productBatch(key: [Key!]): [Product!]! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
         "#);
     })
 }
@@ -795,12 +795,12 @@ fn ambiguous_multiple_arg_matches() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@init"])
+                    @link(url: "echo-1.0.0", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
-                    @init
+
 
                 type Query {
-                    productBatch(a: [Key!], b: [Key!]): [Product!]! @lookup
+                    productBatch(a: [Key!], b: [Key!]): [Product!]! @lookup @echo
                 }
 
                 input Key {
@@ -817,14 +817,14 @@ fn ambiguous_multiple_arg_matches() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoArgs)
+            .with_extension(EchoLookup { batch: true })
             .try_build()
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         At site Query.productBatch, for directive @lookup no matching @key directive was found
         See schema at 30:3:
-        productBatch(a: [Key!], b: [Key!]): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)
+        productBatch(a: [Key!], b: [Key!]): [Product!]! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
         "#);
     })
 }
@@ -838,12 +838,12 @@ fn ambiguous_multiple_input_field_matches() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@init"])
+                    @link(url: "echo-1.0.0", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
-                    @init
+
 
                 type Query {
-                    productBatch(key: [Key!]): [Product!]! @lookup
+                    productBatch(key: [Key!]): [Product!]! @lookup @echo
                 }
 
                 input Key {
@@ -861,14 +861,14 @@ fn ambiguous_multiple_input_field_matches() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoArgs)
+            .with_extension(EchoLookup { batch: true })
             .try_build()
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         At site Query.productBatch, for directive @lookup no matching @key directive was found
         See schema at 30:3:
-        productBatch(key: [Key!]): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)
+        productBatch(key: [Key!]): [Product!]! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
         "#);
     })
 }
@@ -882,12 +882,12 @@ fn extra_required_argument() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@init"])
+                    @link(url: "echo-1.0.0", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
-                    @init
+
 
                 type Query {
-                    productBatch(ids: [Key!], required: Boolean!): [Product!]! @lookup
+                    productBatch(ids: [Key!], required: Boolean!): [Product!]! @lookup @echo
                 }
 
                 input Key {
@@ -904,14 +904,14 @@ fn extra_required_argument() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoArgs)
+            .with_extension(EchoLookup { batch: true })
             .try_build()
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         At site Query.productBatch, for directive @lookup no matching @key directive was found
         See schema at 30:3:
-        productBatch(ids: [Key!], required: Boolean!): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)
+        productBatch(ids: [Key!], required: Boolean!): [Product!]! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
         "#);
     })
 }
@@ -925,12 +925,12 @@ fn extra_required_field() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@init"])
+                    @link(url: "echo-1.0.0", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
-                    @init
+
 
                 type Query {
-                    productBatch(key: [Key!]): [Product!]! @lookup
+                    productBatch(key: [Key!]): [Product!]! @lookup @echo
                 }
 
                 input Key {
@@ -948,14 +948,14 @@ fn extra_required_field() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoArgs)
+            .with_extension(EchoLookup { batch: true })
             .try_build()
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         At site Query.productBatch, for directive @lookup no matching @key directive was found
         See schema at 30:3:
-        productBatch(key: [Key!]): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)
+        productBatch(key: [Key!]): [Product!]! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
         "#);
     })
 }

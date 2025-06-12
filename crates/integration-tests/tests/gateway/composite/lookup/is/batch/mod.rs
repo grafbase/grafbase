@@ -5,7 +5,7 @@ mod oneof_composite;
 
 use integration_tests::{gateway::Gateway, runtime};
 
-use super::super::{EchoArgs, gql_id};
+use super::super::{EchoLookup, gql_id};
 
 #[test]
 fn basic() {
@@ -16,12 +16,12 @@ fn basic() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@init"])
+                    @link(url: "echo-1.0.0", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@is"])
-                    @init
+
 
                 type Query {
-                    productBatch(a: [ID!]! @is(field: "[id]"), b: [ID!]): [Product!]! @lookup
+                    productBatch(a: [ID!]! @is(field: "[id]"), b: [ID!]): [Product!]! @lookup @echo
                 }
 
                 type Product @key(fields: "id") {
@@ -32,7 +32,7 @@ fn basic() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoArgs)
+            .with_extension(EchoLookup { batch: true })
             .build()
             .await;
 
@@ -65,12 +65,12 @@ fn arg_type_compatibility_nullable_list() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@init"])
+                    @link(url: "echo-1.0.0", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@is"])
-                    @init
+
 
                 type Query {
-                    productBatch(a: [ID!] @is(field: "[id]"), b: [ID!]): [Product!]! @lookup
+                    productBatch(a: [ID!] @is(field: "[id]"), b: [ID!]): [Product!]! @lookup @echo
                 }
 
                 type Product @key(fields: "id") {
@@ -81,7 +81,7 @@ fn arg_type_compatibility_nullable_list() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoArgs)
+            .with_extension(EchoLookup { batch: true })
             .build()
             .await;
 
@@ -114,12 +114,12 @@ fn arg_type_compatibility_inner_nullable() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@init"])
+                    @link(url: "echo-1.0.0", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@is"])
-                    @init
+
 
                 type Query {
-                    productBatch(a: [ID]! @is(field: "[id]"), b: [ID!]): [Product!]! @lookup
+                    productBatch(a: [ID]! @is(field: "[id]"), b: [ID!]): [Product!]! @lookup @echo
                 }
 
                 type Product @key(fields: "id") {
@@ -130,7 +130,7 @@ fn arg_type_compatibility_inner_nullable() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoArgs)
+            .with_extension(EchoLookup { batch: true })
             .build()
             .await;
 
@@ -163,12 +163,12 @@ fn arg_type_compatibility_inner_and_list_nullable() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@init"])
+                    @link(url: "echo-1.0.0", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@is"])
-                    @init
+
 
                 type Query {
-                    productBatch(a: [ID] @is(field: "[id]"), b: [ID!]): [Product!]! @lookup
+                    productBatch(a: [ID] @is(field: "[id]"), b: [ID!]): [Product!]! @lookup @echo
                 }
 
                 type Product @key(fields: "id") {
@@ -179,7 +179,7 @@ fn arg_type_compatibility_inner_and_list_nullable() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoArgs)
+            .with_extension(EchoLookup { batch: true })
             .build()
             .await;
 
@@ -212,12 +212,12 @@ fn arg_with_default_value() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@init"])
+                    @link(url: "echo-1.0.0", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@is"])
-                    @init
+
 
                 type Query {
-                    productBatch(a: [ID]! @is(field: "[id]"), b: [ID!], extra: Boolean! = true): [Product!]! @lookup
+                    productBatch(a: [ID]! @is(field: "[id]"), b: [ID!], extra: Boolean! = true): [Product!]! @lookup @echo
                 }
 
                 type Product @key(fields: "id") {
@@ -228,7 +228,7 @@ fn arg_with_default_value() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoArgs)
+            .with_extension(EchoLookup { batch: true })
             .build()
             .await;
 
@@ -261,12 +261,12 @@ fn arg_with_default_value_coercion() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@init"])
+                    @link(url: "echo-1.0.0", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@is"])
-                    @init
+
 
                 type Query {
-                    productBatch(a: [ID]! @is(field: "[id]"), b: [ID!], extra: [Boolean!]! = true): [Product!]! @lookup
+                    productBatch(a: [ID]! @is(field: "[id]"), b: [ID!], extra: [Boolean!]! = true): [Product!]! @lookup @echo
                 }
 
                 type Product @key(fields: "id") {
@@ -277,7 +277,7 @@ fn arg_with_default_value_coercion() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoArgs)
+            .with_extension(EchoLookup { batch: true })
             .build()
             .await;
 
@@ -312,12 +312,12 @@ fn multiple_injections() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@init"])
+                    @link(url: "echo-1.0.0", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@is"])
-                    @init
+
 
                 type Query {
-                    productBatch(a: [ID!] @is(field: "[id]"), b: [ID!] @is(field: "[id]")): [Product!]! @lookup
+                    productBatch(a: [ID!] @is(field: "[id]"), b: [ID!] @is(field: "[id]")): [Product!]! @lookup @echo
                 }
 
                 type Product @key(fields: "id") {
@@ -328,7 +328,7 @@ fn multiple_injections() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoArgs)
+            .with_extension(EchoLookup { batch: true })
             .build()
             .await;
 
@@ -363,12 +363,12 @@ fn no_matching_key() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@init"])
+                    @link(url: "echo-1.0.0", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@is"])
-                    @init
+
 
                 type Query {
-                    productBatch(something: [JSON] @is(field: "[args]")): [Product!]! @lookup
+                    productBatch(something: [JSON] @is(field: "[args]")): [Product!]! @lookup @echo
                 }
 
                 type Product @key(fields: "id") {
@@ -379,14 +379,14 @@ fn no_matching_key() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoArgs)
+            .with_extension(EchoLookup { batch: true })
             .try_build()
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         At site Query.productBatch, for directive @lookup no matching @key directive was found
         See schema at 33:3:
-        productBatch(something: [JSON] @composite__is(graph: EXT, field: "[args]")): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)
+        productBatch(something: [JSON] @composite__is(graph: EXT, field: "[args]")): [Product!]! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
         "#);
     })
 }
@@ -400,12 +400,12 @@ fn cannot_inject_nullable_into_required() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@init"])
+                    @link(url: "echo-1.0.0", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@is"])
-                    @init
+
 
                 type Query {
-                    productBatch(id: [ID!] @is(field: "[id]")): [Product!]! @lookup
+                    productBatch(id: [ID!] @is(field: "[id]")): [Product!]! @lookup @echo
                 }
 
                 type Product @key(fields: "id") {
@@ -416,7 +416,7 @@ fn cannot_inject_nullable_into_required() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoArgs)
+            .with_extension(EchoLookup { batch: true })
             .try_build()
             .await;
 
@@ -437,12 +437,12 @@ fn bad_type() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@init"])
+                    @link(url: "echo-1.0.0", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@is"])
-                    @init
+
 
                 type Query {
-                    productBatch(id: [Int] @is(field: "[id]")): [Product!]! @lookup
+                    productBatch(id: [Int] @is(field: "[id]")): [Product!]! @lookup @echo
                 }
 
                 type Product @key(fields: "id") {
@@ -453,7 +453,7 @@ fn bad_type() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoArgs)
+            .with_extension(EchoLookup { batch: true })
             .try_build()
             .await;
 
@@ -474,12 +474,12 @@ fn not_a_list() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@init"])
+                    @link(url: "echo-1.0.0", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@is"])
-                    @init
+
 
                 type Query {
-                    productBatch(id: ID! @is(field: "id")): [Product!]! @lookup
+                    productBatch(id: ID! @is(field: "id")): [Product!]! @lookup @echo
                 }
 
                 type Product @key(fields: "id") {
@@ -490,7 +490,7 @@ fn not_a_list() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoArgs)
+            .with_extension(EchoLookup { batch: true })
             .try_build()
             .await;
 
@@ -511,12 +511,12 @@ fn extra_required_argument() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@init"])
+                    @link(url: "echo-1.0.0", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@is"])
-                    @init
+
 
                 type Query {
-                    productBatch(ids: [ID!] @is(field: "[id]"), required: Boolean!): [Product!]! @lookup
+                    productBatch(ids: [ID!] @is(field: "[id]"), required: Boolean!): [Product!]! @lookup @echo
                 }
 
                 type Product @key(fields: "id") {
@@ -527,14 +527,14 @@ fn extra_required_argument() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoArgs)
+            .with_extension(EchoLookup { batch: true })
             .try_build()
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup Argument 'required' is required but is not injected any @is directive.
+        At site Query.productBatch, for directive @lookup Argument 'required' is required but is not injected by any @is directive.
         See schema at 33:3:
-        productBatch(ids: [ID!] @composite__is(graph: EXT, field: "[id]"), required: Boolean!): [Product!]! @composite__lookup(graph: EXT) @join__field(graph: EXT)
+        productBatch(ids: [ID!] @composite__is(graph: EXT, field: "[id]"), required: Boolean!): [Product!]! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
         "#);
     })
 }

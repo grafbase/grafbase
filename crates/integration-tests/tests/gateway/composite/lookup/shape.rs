@@ -2,7 +2,7 @@ use graphql_mocks::dynamic::DynamicSchema;
 use integration_tests::{gateway::Gateway, runtime};
 use serde_json::json;
 
-use crate::gateway::extensions::selection_set_resolver::StaticSelectionSetResolverExt;
+use crate::gateway::extensions::resolver::ResolverExt;
 
 #[test]
 fn generate_the_correct_lookup_field_shape() {
@@ -28,12 +28,12 @@ fn generate_the_correct_lookup_field_shape() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@init"])
+                    @link(url: "resolver-1.0.0", import: ["@resolve"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
-                    @init
+
 
                 type Query {
-                    userLookup(ids: [Int!]!): [User!]! @lookup
+                    userLookup(ids: [Int!]!): [User!]! @lookup @resolve
                 }
 
                 type User @key(fields: "id") {
@@ -58,7 +58,7 @@ fn generate_the_correct_lookup_field_shape() {
                 }
                 "#,
             )
-            .with_extension(StaticSelectionSetResolverExt::json(json!([
+            .with_extension(ResolverExt::json(json!([
                {
                   "id":3,
                   "name":"Pentti",

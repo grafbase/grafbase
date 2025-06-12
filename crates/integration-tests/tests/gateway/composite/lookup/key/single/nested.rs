@@ -3,7 +3,7 @@ use integration_tests::{gateway::Gateway, runtime};
 use super::super::super::{EchoLookup, gql_nested};
 
 #[test]
-fn object_input() {
+fn arg_with_same_name() {
     runtime().block_on(async {
         let engine = Gateway::builder()
             .with_subgraph(gql_nested())
@@ -12,16 +12,15 @@ fn object_input() {
                 r#"
                 extend schema
                     @link(url: "echo-1.0.0", import: ["@echo"])
-                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@is", "@key", "@shareable"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@shareable"])
 
 
                 type Query {
-                    productBatch(input: [DummyInput!]! @is(field: "[{ a: nested.id }]")): [Product!]! @lookup @echo
+                    productBatch(nested: NestedInput!): Product! @lookup @echo
                 }
 
-                input DummyInput {
-                    a: ID!
-                    b: ID
+                input NestedInput {
+                    id: ID!
                 }
 
                 type Product @key(fields: "nested { id }") {
@@ -36,7 +35,7 @@ fn object_input() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup { batch: false })
             .build()
             .await;
 
@@ -47,11 +46,9 @@ fn object_input() {
             "products": [
               {
                 "args": {
-                  "input": [
-                    {
-                      "a": "1"
-                    }
-                  ]
+                  "nested": {
+                    "id": "1"
+                  }
                 }
               }
             ]
@@ -62,7 +59,7 @@ fn object_input() {
 }
 
 #[test]
-fn list_input() {
+fn arg_type_compatibility_nullable() {
     runtime().block_on(async {
         let engine = Gateway::builder()
             .with_subgraph(gql_nested())
@@ -71,11 +68,15 @@ fn list_input() {
                 r#"
                 extend schema
                     @link(url: "echo-1.0.0", import: ["@echo"])
-                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@is", "@key", "@shareable"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@shareable"])
 
 
                 type Query {
-                    productBatch(ids: [ID!]! @is(field: "[nested.id]")): [Product!]! @lookup @echo
+                    productBatch(nested: NestedInput): Product! @lookup @echo
+                }
+
+                input NestedInput {
+                    id: ID!
                 }
 
                 type Product @key(fields: "nested { id }") {
@@ -90,7 +91,7 @@ fn list_input() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup { batch: false })
             .build()
             .await;
 
@@ -101,9 +102,9 @@ fn list_input() {
             "products": [
               {
                 "args": {
-                  "ids": [
-                    "1"
-                  ]
+                  "nested": {
+                    "id": "1"
+                  }
                 }
               }
             ]
@@ -114,7 +115,7 @@ fn list_input() {
 }
 
 #[test]
-fn object_input_arg_type_compatibility_nullable_list() {
+fn arg_type_compatibility_nested_nullable() {
     runtime().block_on(async {
         let engine = Gateway::builder()
             .with_subgraph(gql_nested())
@@ -123,477 +124,30 @@ fn object_input_arg_type_compatibility_nullable_list() {
                 r#"
                 extend schema
                     @link(url: "echo-1.0.0", import: ["@echo"])
-                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@is", "@key", "@shareable"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@shareable"])
 
 
                 type Query {
-                    productBatch(input: [DummyInput!] @is(field: "[{ a: nested.id }]")): [Product!]! @lookup @echo
+                    productBatch(nested: NestedInput!): Product! @lookup @echo
                 }
 
-                input DummyInput {
-                    a: ID!
-                    b: ID
-                }
-
-                type Product @key(fields: "nested { id }") {
-                    nested: Nested!
-                    args: JSON
-                }
-
-                type Nested @shareable {
-                    id: ID!
-                }
-
-                scalar JSON
-                "#,
-            )
-            .with_extension(EchoLookup { batch: true })
-            .build()
-            .await;
-
-        let response = engine.post("query { products { args } }").await;
-        insta::assert_json_snapshot!(response, @r#"
-        {
-          "data": {
-            "products": [
-              {
-                "args": {
-                  "input": [
-                    {
-                      "a": "1"
-                    }
-                  ]
-                }
-              }
-            ]
-          }
-        }
-        "#);
-    })
-}
-
-#[test]
-fn list_input_arg_type_compatibility_nullable_list() {
-    runtime().block_on(async {
-        let engine = Gateway::builder()
-            .with_subgraph(gql_nested())
-            .with_subgraph_sdl(
-                "ext",
-                r#"
-                extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
-                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@is", "@key", "@shareable"])
-
-
-                type Query {
-                    productBatch(ids: [ID!] @is(field: "[nested.id]")): [Product!]! @lookup @echo
-                }
-
-                type Product @key(fields: "nested { id }") {
-                    nested: Nested!
-                    args: JSON
-                }
-
-                type Nested @shareable {
-                    id: ID!
-                }
-
-                scalar JSON
-                "#,
-            )
-            .with_extension(EchoLookup { batch: true })
-            .build()
-            .await;
-
-        let response = engine.post("query { products { args } }").await;
-        insta::assert_json_snapshot!(response, @r#"
-        {
-          "data": {
-            "products": [
-              {
-                "args": {
-                  "ids": [
-                    "1"
-                  ]
-                }
-              }
-            ]
-          }
-        }
-        "#);
-    })
-}
-
-#[test]
-fn object_input_arg_type_compatibility_inner_nullable() {
-    runtime().block_on(async {
-        let engine = Gateway::builder()
-            .with_subgraph(gql_nested())
-            .with_subgraph_sdl(
-                "ext",
-                r#"
-                extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
-                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@is", "@key", "@shareable"])
-
-
-                type Query {
-                    productBatch(input: [DummyInput]! @is(field: "[{ a: nested.id }]")): [Product!]! @lookup @echo
-                }
-
-                input DummyInput {
-                    a: ID!
-                    b: ID
-                }
-
-                type Product @key(fields: "nested { id }") {
-                    nested: Nested!
-                    args: JSON
-                }
-
-                type Nested @shareable {
-                    id: ID!
-                }
-
-                scalar JSON
-                "#,
-            )
-            .with_extension(EchoLookup { batch: true })
-            .build()
-            .await;
-
-        let response = engine.post("query { products { args } }").await;
-        insta::assert_json_snapshot!(response, @r#"
-        {
-          "data": {
-            "products": [
-              {
-                "args": {
-                  "input": [
-                    {
-                      "a": "1"
-                    }
-                  ]
-                }
-              }
-            ]
-          }
-        }
-        "#);
-    })
-}
-
-#[test]
-fn list_input_arg_type_compatibility_inner_nullable() {
-    runtime().block_on(async {
-        let engine = Gateway::builder()
-            .with_subgraph(gql_nested())
-            .with_subgraph_sdl(
-                "ext",
-                r#"
-                extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
-                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@is", "@key", "@shareable"])
-
-
-                type Query {
-                    productBatch(ids: [ID!]! @is(field: "[nested.id]")): [Product!]! @lookup @echo
-                }
-
-                type Product @key(fields: "nested { id }") {
-                    nested: Nested!
-                    args: JSON
-                }
-
-                type Nested @shareable {
-                    id: ID!
-                }
-
-                scalar JSON
-                "#,
-            )
-            .with_extension(EchoLookup { batch: true })
-            .build()
-            .await;
-
-        let response = engine.post("query { products { args } }").await;
-        insta::assert_json_snapshot!(response, @r#"
-        {
-          "data": {
-            "products": [
-              {
-                "args": {
-                  "ids": [
-                    "1"
-                  ]
-                }
-              }
-            ]
-          }
-        }
-        "#);
-    })
-}
-
-#[test]
-fn object_input_arg_type_compatibility_nested_input_field_nullable() {
-    runtime().block_on(async {
-        let engine = Gateway::builder()
-            .with_subgraph(gql_nested())
-            .with_subgraph_sdl(
-                "ext",
-                r#"
-                extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
-                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@is", "@key", "@shareable"])
-
-
-                type Query {
-                    productBatch(input: [DummyInput!]! @is(field: "[{ a: nested.id }]")): [Product!]! @lookup @echo
-                }
-
-                input DummyInput {
-                    a: ID
-                    b: ID
-                }
-
-                type Product @key(fields: "nested { id }") {
-                    nested: Nested!
-                    args: JSON
-                }
-
-                type Nested @shareable {
-                    id: ID!
-                }
-
-                scalar JSON
-                "#,
-            )
-            .with_extension(EchoLookup { batch: true })
-            .build()
-            .await;
-
-        let response = engine.post("query { products { args } }").await;
-        insta::assert_json_snapshot!(response, @r#"
-        {
-          "data": {
-            "products": [
-              {
-                "args": {
-                  "input": [
-                    {
-                      "a": "1"
-                    }
-                  ]
-                }
-              }
-            ]
-          }
-        }
-        "#);
-    })
-}
-
-#[test]
-fn object_input_arg_type_compatibility_nested_field_nullable_with_nullable_input_field() {
-    runtime().block_on(async {
-        let engine = Gateway::builder()
-            .with_subgraph(gql_nested())
-            .with_subgraph_sdl(
-                "ext",
-                r#"
-                extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
-                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@is", "@key", "@shareable"])
-
-
-                type Query {
-                    productBatch(input: [DummyInput!]! @is(field: "[{ a: nested.id }]")): [Product!]! @lookup @echo
-                }
-
-                input DummyInput {
-                    a: ID
-                    b: ID
-                }
-
-                type Product @key(fields: "nested { id }") {
-                    nested: Nested!
-                    args: JSON
-                }
-
-                type Nested @shareable {
+                input NestedInput {
                     id: ID
                 }
 
-                scalar JSON
-                "#,
-            )
-            .with_extension(EchoLookup { batch: true })
-            .build()
-            .await;
-
-        let response = engine.post("query { products { args } }").await;
-        insta::assert_json_snapshot!(response, @r#"
-        {
-          "data": {
-            "products": [
-              {
-                "args": {
-                  "input": [
-                    {
-                      "a": "1"
-                    }
-                  ]
-                }
-              }
-            ]
-          }
-        }
-        "#);
-    })
-}
-
-#[test]
-fn object_input_arg_type_compatibility_nested_type_nullable_with_nullable_input_object() {
-    runtime().block_on(async {
-        let engine = Gateway::builder()
-            .with_subgraph(gql_nested())
-            .with_subgraph_sdl(
-                "ext",
-                r#"
-                extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
-                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@is", "@key", "@shareable"])
-
-
-                type Query {
-                    productBatch(input: [DummyInput]! @is(field: "[{ a: nested.id }]")): [Product!]! @lookup @echo
-                }
-
-                input DummyInput {
-                    a: ID!
-                    b: ID
-                }
-
-                type Product @key(fields: "nested { id }") {
-                    nested: Nested
-                    args: JSON
-                }
-
-                type Nested @shareable {
-                    id: ID!
-                }
-
-                scalar JSON
-                "#,
-            )
-            .with_extension(EchoLookup { batch: true })
-            .build()
-            .await;
-
-        let response = engine.post("query { products { args } }").await;
-        insta::assert_json_snapshot!(response, @r#"
-        {
-          "data": {
-            "products": [
-              {
-                "args": {
-                  "input": [
-                    {
-                      "a": "1"
-                    }
-                  ]
-                }
-              }
-            ]
-          }
-        }
-        "#);
-    })
-}
-
-#[test]
-fn list_input_arg_type_compatibility_nested_type_nullable() {
-    runtime().block_on(async {
-        let engine = Gateway::builder()
-            .with_subgraph(gql_nested())
-            .with_subgraph_sdl(
-                "ext",
-                r#"
-                extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
-                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@is", "@key", "@shareable"])
-
-
-                type Query {
-                    productBatch(input: [ID]! @is(field: "[nested.id]")): [Product!]! @lookup @echo
-                }
-
-                type Product @key(fields: "nested { id }") {
-                    nested: Nested
-                    args: JSON
-                }
-
-                type Nested @shareable {
-                    id: ID!
-                }
-
-                scalar JSON
-                "#,
-            )
-            .with_extension(EchoLookup { batch: true })
-            .build()
-            .await;
-
-        let response = engine.post("query { products { args } }").await;
-        insta::assert_json_snapshot!(response, @r#"
-        {
-          "data": {
-            "products": [
-              {
-                "args": {
-                  "input": [
-                    "1"
-                  ]
-                }
-              }
-            ]
-          }
-        }
-        "#);
-    })
-}
-
-#[test]
-fn list_input_arg_type_compatibility_nested_field_nullable() {
-    runtime().block_on(async {
-        let engine = Gateway::builder()
-            .with_subgraph(gql_nested())
-            .with_subgraph_sdl(
-                "ext",
-                r#"
-                extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
-                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@is", "@key", "@shareable"])
-
-
-                type Query {
-                    productBatch(input: [ID]! @is(field: "[nested.id]")): [Product!]! @lookup @echo
-                }
-
                 type Product @key(fields: "nested { id }") {
                     nested: Nested!
                     args: JSON
                 }
 
                 type Nested @shareable {
-                    id: ID
+                    id: ID!
                 }
 
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup { batch: false })
             .build()
             .await;
 
@@ -604,9 +158,9 @@ fn list_input_arg_type_compatibility_nested_field_nullable() {
             "products": [
               {
                 "args": {
-                  "input": [
-                    "1"
-                  ]
+                  "nested": {
+                    "id": "1"
+                  }
                 }
               }
             ]
@@ -617,7 +171,7 @@ fn list_input_arg_type_compatibility_nested_field_nullable() {
 }
 
 #[test]
-fn object_input_arg_type_compatibility_all_nullable() {
+fn arg_type_compatibility_all_nullable() {
     runtime().block_on(async {
         let engine = Gateway::builder()
             .with_subgraph(gql_nested())
@@ -626,127 +180,15 @@ fn object_input_arg_type_compatibility_all_nullable() {
                 r#"
                 extend schema
                     @link(url: "echo-1.0.0", import: ["@echo"])
-                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@is", "@key", "@shareable"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@shareable"])
 
 
                 type Query {
-                    productBatch(input: [DummyInput] @is(field: "[{ a: nested.id }]")): [Product!]! @lookup @echo
+                    productBatch(nested: NestedInput): Product! @lookup @echo
                 }
 
-                input DummyInput {
-                    a: ID
-                    b: ID
-                }
-
-                type Product @key(fields: "nested { id }") {
-                    nested: Nested
-                    args: JSON
-                }
-
-                type Nested @shareable {
+                input NestedInput {
                     id: ID
-                }
-
-                scalar JSON
-                "#,
-            )
-            .with_extension(EchoLookup { batch: true })
-            .build()
-            .await;
-
-        let response = engine.post("query { products { args } }").await;
-        insta::assert_json_snapshot!(response, @r#"
-        {
-          "data": {
-            "products": [
-              {
-                "args": {
-                  "input": [
-                    {
-                      "a": "1"
-                    }
-                  ]
-                }
-              }
-            ]
-          }
-        }
-        "#);
-    })
-}
-
-#[test]
-fn list_input_arg_type_compatibility_all_nullable() {
-    runtime().block_on(async {
-        let engine = Gateway::builder()
-            .with_subgraph(gql_nested())
-            .with_subgraph_sdl(
-                "ext",
-                r#"
-                extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
-                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@is", "@key", "@shareable"])
-
-
-                type Query {
-                    productBatch(ids: [ID] @is(field: "[nested.id]")): [Product!]! @lookup @echo
-                }
-
-                type Product @key(fields: "nested { id }") {
-                    nested: Nested
-                    args: JSON
-                }
-
-                type Nested @shareable {
-                    id: ID
-                }
-
-                scalar JSON
-                "#,
-            )
-            .with_extension(EchoLookup { batch: true })
-            .build()
-            .await;
-
-        let response = engine.post("query { products { args } }").await;
-        insta::assert_json_snapshot!(response, @r#"
-        {
-          "data": {
-            "products": [
-              {
-                "args": {
-                  "ids": [
-                    "1"
-                  ]
-                }
-              }
-            ]
-          }
-        }
-        "#);
-    })
-}
-
-#[test]
-fn object_input_extra_optional_argument() {
-    runtime().block_on(async {
-        let engine = Gateway::builder()
-            .with_subgraph(gql_nested())
-            .with_subgraph_sdl(
-                "ext",
-                r#"
-                extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
-                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@is", "@key", "@shareable"])
-
-
-                type Query {
-                    productBatch(input: [DummyInput] @is(field: "[{ a: nested.id }]"), extra: Boolean): [Product!]! @lookup @echo
-                }
-
-                input DummyInput {
-                    a: ID!
-                    b: ID
                 }
 
                 type Product @key(fields: "nested { id }") {
@@ -761,7 +203,7 @@ fn object_input_extra_optional_argument() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup { batch: false })
             .build()
             .await;
 
@@ -772,11 +214,179 @@ fn object_input_extra_optional_argument() {
             "products": [
               {
                 "args": {
-                  "input": [
-                    {
-                      "a": "1"
-                    }
-                  ]
+                  "nested": {
+                    "id": "1"
+                  }
+                }
+              }
+            ]
+          }
+        }
+        "#);
+    })
+}
+
+#[test]
+fn arg_with_same_name_and_extra_optional_arg_with_matching_type() {
+    runtime().block_on(async {
+        let engine = Gateway::builder()
+            .with_subgraph(gql_nested())
+            .with_subgraph_sdl(
+                "ext",
+                r#"
+                extend schema
+                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@shareable"])
+
+
+                type Query {
+                    productBatch(nested: NestedInput!, anything: NestedInput): Product! @lookup @echo
+                }
+
+                input NestedInput {
+                    id: ID!
+                    something: ID
+                }
+
+                type Product @key(fields: "nested { id }") {
+                    nested: Nested!
+                    args: JSON
+                }
+
+                type Nested @shareable {
+                    id: ID!
+                }
+
+                scalar JSON
+                "#,
+            )
+            .with_extension(EchoLookup { batch: false })
+            .build()
+            .await;
+
+        let response = engine.post("query { products { args } }").await;
+        insta::assert_json_snapshot!(response, @r#"
+        {
+          "data": {
+            "products": [
+              {
+                "args": {
+                  "nested": {
+                    "id": "1"
+                  }
+                }
+              }
+            ]
+          }
+        }
+        "#);
+    })
+}
+
+#[test]
+fn arg_with_different_name() {
+    runtime().block_on(async {
+        let engine = Gateway::builder()
+            .with_subgraph(gql_nested())
+            .with_subgraph_sdl(
+                "ext",
+                r#"
+                extend schema
+                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@shareable"])
+
+
+                type Query {
+                    productBatch(x: NestedInput!): Product! @lookup @echo
+                }
+
+                input NestedInput {
+                    y: ID!
+                }
+
+                type Product @key(fields: "nested { id }") {
+                    nested: Nested!
+                    args: JSON
+                }
+
+                type Nested @shareable {
+                    id: ID!
+                }
+
+                scalar JSON
+                "#,
+            )
+            .with_extension(EchoLookup { batch: false })
+            .build()
+            .await;
+
+        let response = engine.post("query { products { args } }").await;
+        insta::assert_json_snapshot!(response, @r#"
+        {
+          "data": {
+            "products": [
+              {
+                "args": {
+                  "x": {
+                    "y": "1"
+                  }
+                }
+              }
+            ]
+          }
+        }
+        "#);
+    })
+}
+
+#[test]
+fn arg_with_different_name_and_extra_optional_arg_with_matching_name() {
+    runtime().block_on(async {
+        let engine = Gateway::builder()
+            .with_subgraph(gql_nested())
+            .with_subgraph_sdl(
+                "ext",
+                r#"
+                extend schema
+                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@shareable"])
+
+
+                type Query {
+                    productBatch(x: NestedInput!, nested: ID): Product! @lookup @echo
+                }
+
+                input NestedInput {
+                    y: ID!
+                    id: Int
+                }
+
+                type Product @key(fields: "nested { id }") {
+                    nested: Nested!
+                    args: JSON
+                }
+
+                type Nested @shareable {
+                    id: ID!
+                }
+
+                scalar JSON
+                "#,
+            )
+            .with_extension(EchoLookup { batch: false })
+            .build()
+            .await;
+
+        let response = engine.post("query { products { args } }").await;
+        insta::assert_json_snapshot!(response, @r#"
+        {
+          "data": {
+            "products": [
+              {
+                "args": {
+                  "x": {
+                    "y": "1"
+                  }
                 }
               }
             ]
@@ -796,15 +406,15 @@ fn arg_with_default_value() {
                 r#"
                 extend schema
                     @link(url: "echo-1.0.0", import: ["@echo"])
-                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@is", "@key", "@shareable"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@shareable"])
 
 
                 type Query {
-                    productBatch(input: [DummyInput] @is(field: "[{ a: nested.id }]"), extra: Boolean! = true): [Product!]! @lookup @echo
+                    productBatch(nested: NestedInput!, extra: Boolean! = true): Product! @lookup @echo
                 }
 
-                input DummyInput {
-                    a: ID!
+                input NestedInput {
+                    id: ID!
                     extra: Boolean! = true
                 }
 
@@ -820,7 +430,7 @@ fn arg_with_default_value() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup { batch: false })
             .build()
             .await;
 
@@ -831,12 +441,10 @@ fn arg_with_default_value() {
             "products": [
               {
                 "args": {
-                  "input": [
-                    {
-                      "extra": true,
-                      "a": "1"
-                    }
-                  ],
+                  "nested": {
+                    "extra": true,
+                    "id": "1"
+                  },
                   "extra": true
                 }
               }
@@ -857,15 +465,15 @@ fn arg_with_default_value_coercion() {
                 r#"
                 extend schema
                     @link(url: "echo-1.0.0", import: ["@echo"])
-                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@is", "@key", "@shareable"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@shareable"])
 
 
                 type Query {
-                    productBatch(input: [DummyInput] @is(field: "[{ a: nested.id }]"), extra: [Boolean!]! = true): [Product!]! @lookup @echo
+                    productBatch(nested: NestedInput!, extra: [Boolean!]! = true): Product! @lookup @echo
                 }
 
-                input DummyInput {
-                    a: ID!
+                input NestedInput {
+                    id: ID!
                     extra: [Boolean!]! = true
                 }
 
@@ -881,7 +489,7 @@ fn arg_with_default_value_coercion() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup { batch: false })
             .build()
             .await;
 
@@ -892,14 +500,12 @@ fn arg_with_default_value_coercion() {
             "products": [
               {
                 "args": {
-                  "input": [
-                    {
-                      "extra": [
-                        true
-                      ],
-                      "a": "1"
-                    }
-                  ],
+                  "nested": {
+                    "extra": [
+                      true
+                    ],
+                    "id": "1"
+                  },
                   "extra": [
                     true
                   ]
@@ -913,27 +519,335 @@ fn arg_with_default_value_coercion() {
 }
 
 #[test]
-fn multiple_injections() {
+fn no_arguments() {
     runtime().block_on(async {
-        let engine = Gateway::builder()
+        let result = Gateway::builder()
             .with_subgraph(gql_nested())
             .with_subgraph_sdl(
                 "ext",
                 r#"
                 extend schema
                     @link(url: "echo-1.0.0", import: ["@echo"])
-                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@is", "@key", "@shareable"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@shareable"])
 
 
                 type Query {
-                    productBatch(
-                        input: [DummyInput!]! @is(field: "[{ a: nested.id }]"),
-                        ids: [ID!]! @is(field: "[nested.id]")
-                    ): [Product!]! @lookup @echo
+                    productBatch: Product! @lookup @echo
                 }
 
-                input DummyInput {
-                    a: ID!
+                input NestedInput {
+                    id: ID!
+                }
+
+                type Product @key(fields: "nested { id }") {
+                    nested: Nested!
+                    args: JSON
+                }
+
+                type Nested @shareable {
+                    id: ID!
+                }
+
+                scalar JSON
+                "#,
+            )
+            .with_extension(EchoLookup { batch: false })
+            .try_build()
+            .await;
+
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        See schema at 36:3:
+        productBatch: Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        "#);
+    })
+}
+
+#[test]
+fn no_matching_argument() {
+    runtime().block_on(async {
+        let result = Gateway::builder()
+            .with_subgraph(gql_nested())
+            .with_subgraph_sdl(
+                "ext",
+                r#"
+                extend schema
+                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@shareable"])
+
+
+                type Query {
+                    productBatch(somethign: Int): Product! @lookup @echo
+                }
+
+                input NestedInput {
+                    id: ID!
+                }
+
+                type Product @key(fields: "nested { id }") {
+                    nested: Nested!
+                    args: JSON
+                }
+
+                type Nested @shareable {
+                    id: ID!
+                }
+
+                scalar JSON
+                "#,
+            )
+            .with_extension(EchoLookup { batch: false })
+            .try_build()
+            .await;
+
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        See schema at 36:3:
+        productBatch(somethign: Int): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        "#);
+    })
+}
+
+#[test]
+fn no_matching_nested_field() {
+    runtime().block_on(async {
+        let result = Gateway::builder()
+            .with_subgraph(gql_nested())
+            .with_subgraph_sdl(
+                "ext",
+                r#"
+                extend schema
+                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@shareable"])
+
+
+                type Query {
+                    productBatch(nested: NestedInput!): Product! @lookup @echo
+                }
+
+                input NestedInput {
+                    something: Int
+                }
+
+                type Product @key(fields: "nested { id }") {
+                    nested: Nested!
+                    args: JSON
+                }
+
+                type Nested @shareable {
+                    id: ID!
+                }
+
+                scalar JSON
+                "#,
+            )
+            .with_extension(EchoLookup { batch: false })
+            .try_build()
+            .await;
+
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        See schema at 36:3:
+        productBatch(nested: NestedInput!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        "#);
+    })
+}
+
+#[test]
+fn arg_good_name_bad_type() {
+    runtime().block_on(async {
+        let result = Gateway::builder()
+            .with_subgraph(gql_nested())
+            .with_subgraph_sdl(
+                "ext",
+                r#"
+                extend schema
+                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@shareable"])
+
+
+                type Query {
+                    productBatch(nested: Int): Product! @lookup @echo
+                }
+
+                type Product @key(fields: "nested { id }") {
+                    nested: Nested!
+                    args: JSON
+                }
+
+                type Nested @shareable {
+                    id: ID!
+                }
+
+                scalar JSON
+                "#,
+            )
+            .with_extension(EchoLookup { batch: false })
+            .try_build()
+            .await;
+
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        See schema at 36:3:
+        productBatch(nested: Int): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        "#);
+    })
+}
+
+#[test]
+fn field_good_name_bad_type() {
+    runtime().block_on(async {
+        let result = Gateway::builder()
+            .with_subgraph(gql_nested())
+            .with_subgraph_sdl(
+                "ext",
+                r#"
+                extend schema
+                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@shareable"])
+
+
+                type Query {
+                    productBatch(nested: NestedInput!): Product! @lookup @echo
+                }
+
+                input NestedInput {
+                    id: Int!
+                }
+
+                type Product @key(fields: "nested { id }") {
+                    nested: Nested!
+                    args: JSON
+                }
+
+                type Nested @shareable {
+                    id: ID!
+                }
+
+                scalar JSON
+                "#,
+            )
+            .with_extension(EchoLookup { batch: false })
+            .try_build()
+            .await;
+
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        See schema at 36:3:
+        productBatch(nested: NestedInput!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        "#);
+    })
+}
+
+#[test]
+fn good_name_but_a_list() {
+    runtime().block_on(async {
+        let result = Gateway::builder()
+            .with_subgraph(gql_nested())
+            .with_subgraph_sdl(
+                "ext",
+                r#"
+                extend schema
+                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@shareable"])
+
+
+                type Query {
+                    productBatch(nested: [NestedInput!]): Product! @lookup @echo
+                }
+
+                input NestedInput {
+                    id: ID!
+                }
+
+                type Product @key(fields: "nested { id }") {
+                    nested: Nested!
+                    args: JSON
+                }
+
+                type Nested @shareable {
+                    id: ID!
+                }
+
+                scalar JSON
+                "#,
+            )
+            .with_extension(EchoLookup { batch: false })
+            .try_build()
+            .await;
+
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        See schema at 36:3:
+        productBatch(nested: [NestedInput!]): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        "#);
+    })
+}
+
+#[test]
+fn ambiguous_multiple_arg_matches() {
+    runtime().block_on(async {
+        let result = Gateway::builder()
+            .with_subgraph(gql_nested())
+            .with_subgraph_sdl(
+                "ext",
+                r#"
+                extend schema
+                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@shareable"])
+
+
+                type Query {
+                    productBatch(a: NestedInput!, b: NestedInput!): Product! @lookup @echo
+                }
+
+                input NestedInput {
+                    id: ID!
+                }
+
+                type Product @key(fields: "nested { id }") {
+                    nested: Nested!
+                    args: JSON
+                }
+
+                type Nested @shareable {
+                    id: ID!
+                }
+
+                scalar JSON
+                "#,
+            )
+            .with_extension(EchoLookup { batch: false })
+            .try_build()
+            .await;
+
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        See schema at 36:3:
+        productBatch(a: NestedInput!, b: NestedInput!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        "#);
+    })
+}
+
+#[test]
+fn ambiguous_multiple_field_matches() {
+    runtime().block_on(async {
+        let result = Gateway::builder()
+            .with_subgraph(gql_nested())
+            .with_subgraph_sdl(
+                "ext",
+                r#"
+                extend schema
+                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@shareable"])
+
+
+                type Query {
+                    productBatch(a: NestedInput!): Product! @lookup @echo
+                }
+
+                input NestedInput {
+                    a: ID
                     b: ID
                 }
 
@@ -949,71 +863,14 @@ fn multiple_injections() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
-            .build()
-            .await;
-
-        let response = engine.post("query { products { args } }").await;
-        insta::assert_json_snapshot!(response, @r#"
-        {
-          "data": {
-            "products": [
-              {
-                "args": {
-                  "input": [
-                    {
-                      "a": "1"
-                    }
-                  ],
-                  "ids": [
-                    "1"
-                  ]
-                }
-              }
-            ]
-          }
-        }
-        "#);
-    })
-}
-
-#[test]
-fn no_matching_argument() {
-    runtime().block_on(async {
-        let result = Gateway::builder()
-            .with_subgraph(gql_nested())
-            .with_subgraph_sdl(
-                "ext",
-                r#"
-                extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
-                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@is", "@key", "@shareable"])
-
-
-                type Query {
-                    productBatch(something: [JSON] @is(field: "[args]")): [Product!]! @lookup @echo
-                }
-
-                type Product @key(fields: "nested { id }") {
-                    nested: Nested!
-                    args: JSON
-                }
-
-                type Nested @shareable {
-                    id: ID!
-                }
-
-                scalar JSON
-                "#,
-            )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup { batch: false })
             .try_build()
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         At site Query.productBatch, for directive @lookup no matching @key directive was found
-        See schema at 40:3:
-        productBatch(something: [JSON] @composite__is(graph: EXT, field: "[args]")): [Product!]! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        See schema at 36:3:
+        productBatch(a: NestedInput!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
         "#);
     })
 }
@@ -1028,15 +885,15 @@ fn extra_required_argument() {
                 r#"
                 extend schema
                     @link(url: "echo-1.0.0", import: ["@echo"])
-                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@is", "@key", "@shareable"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@shareable"])
 
 
                 type Query {
-                    productBatch(input: [DummyInput!] @is(field: "[{ a: nested.id }]"), required: Boolean!): [Product!]! @lookup @echo
+                    productBatch(nested: NestedInput!, required: Boolean!): Product! @lookup @echo
                 }
 
-                input DummyInput {
-                    a: ID!
+                input NestedInput {
+                    id: ID!
                 }
 
                 type Product @key(fields: "nested { id }") {
@@ -1051,14 +908,14 @@ fn extra_required_argument() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup { batch: false })
             .try_build()
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup Argument 'required' is required but is not injected by any @is directive.
-        See schema at 40:3:
-        productBatch(input: [DummyInput!] @composite__is(graph: EXT, field: "[{ a: nested.id }]"), required: Boolean!): [Product!]! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        See schema at 36:3:
+        productBatch(nested: NestedInput!, required: Boolean!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
         "#);
     })
 }
@@ -1073,15 +930,15 @@ fn extra_required_field() {
                 r#"
                 extend schema
                     @link(url: "echo-1.0.0", import: ["@echo"])
-                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@is", "@key", "@shareable"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@shareable"])
 
 
                 type Query {
-                    productBatch(input: [DummyInput!] @is(field: "[{ a: nested.id }]")): [Product!]! @lookup @echo
+                    productBatch(nested: NestedInput!): Product! @lookup @echo
                 }
 
-                input DummyInput {
-                    a: ID!
+                input NestedInput {
+                    id: ID!
                     required: Boolean!
                 }
 
@@ -1097,59 +954,14 @@ fn extra_required_field() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup { batch: false })
             .try_build()
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup for associated @is directive: For Query.productBatch.input, field 'required' is required but it's missing from the FieldSelectionMap
-        See schema at 40:51:
-        (graph: EXT, field: "[{ a: nested.id }]")
-        "#);
-    })
-}
-
-#[test]
-fn invalid_batch() {
-    runtime().block_on(async {
-        let result = Gateway::builder()
-            .with_subgraph(gql_nested())
-            .with_subgraph_sdl(
-                "ext",
-                r#"
-                extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
-                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@is", "@key", "@shareable"])
-
-
-                type Query {
-                    productBatch(input: DummyInput! @is(field: "{ a: nested.id }")): [Product!]! @lookup @echo
-                }
-
-                input DummyInput {
-                    a: ID!
-                }
-
-                type Product @key(fields: "nested { id }") {
-                    nested: Nested!
-                    args: JSON
-                }
-
-                type Nested @shareable {
-                    id: ID!
-                }
-
-                scalar JSON
-                "#,
-            )
-            .with_extension(EchoLookup { batch: true })
-            .try_build()
-            .await;
-
-        insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup for associated @is directive: Cannot select a field from [Product!]!, it's a list
-        See schema at 40:49:
-        (graph: EXT, field: "{ a: nested.id }")
+        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        See schema at 36:3:
+        productBatch(nested: NestedInput!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
         "#);
     })
 }
