@@ -2,6 +2,7 @@ mod field;
 mod lookup;
 mod query_or_mutation;
 mod selection_set;
+mod subscription;
 
 pub(crate) use field::*;
 pub(crate) use selection_set::*;

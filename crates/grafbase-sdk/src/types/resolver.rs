@@ -11,12 +11,9 @@ use crate::{
 /// Represents a resolved field in the context of a subgraph and its parent type
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct ResolvedField<'a> {
-    #[serde(borrow)]
-    pub(crate) subgraph_name: Cow<'a, str>,
-    #[serde(borrow)]
-    pub(crate) directive_name: Cow<'a, str>,
-    #[serde(borrow)]
-    pub(crate) directive_arguments: Cow<'a, [u8]>,
+    pub(crate) subgraph_name: &'a str,
+    pub(crate) directive_name: &'a str,
+    pub(crate) directive_arguments: &'a [u8],
     pub(crate) fields: Cow<'a, [wit::Field]>,
     pub(crate) root_field_ix: usize,
 }
@@ -44,8 +41,8 @@ impl<'a> ResolvedField<'a> {
     }
 
     /// Returns the name of the subgraph this field belongs to.
-    pub fn subgraph_name(&self) -> &str {
-        &self.subgraph_name
+    pub fn subgraph_name(&self) -> &'a str {
+        self.subgraph_name
     }
 
     /// Gets the alias of this field, if any
@@ -85,10 +82,10 @@ impl<'a> ResolvedField<'a> {
     }
 
     /// Returns the resolver directive associated with this field
-    pub fn directive(&self) -> Directive<'_> {
+    pub fn directive(&self) -> Directive<'a> {
         Directive(super::DirectiveInner::NameAndArgs {
-            name: &self.directive_name,
-            arguments: &self.directive_arguments,
+            name: self.directive_name,
+            arguments: self.directive_arguments,
         })
     }
 }

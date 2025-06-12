@@ -9,9 +9,9 @@ impl ResolverGuest for Component {
         fields: Vec<Field>,
     ) -> Result<Vec<u8>, Error> {
         let result = state::extension()?.prepare(crate::types::ResolvedField {
-            subgraph_name: subgraph_name.into(),
-            directive_name: directive.name.into(),
-            directive_arguments: directive.arguments.into(),
+            subgraph_name: &subgraph_name,
+            directive_name: &directive.name,
+            directive_arguments: &directive.arguments,
             fields: fields.into(),
             root_field_ix: root_field_id as usize,
         });

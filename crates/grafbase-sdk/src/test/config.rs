@@ -21,6 +21,8 @@ pub enum LogLevel {
     Error,
     /// Show all output from engine, debug upwards.
     EngineDebug,
+    /// Extra verbose logs, show all output from engine, trace upwards.
+    EngineTrace,
     /// LOL
     WasiDebug,
 }
@@ -34,6 +36,7 @@ impl AsRef<str> for LogLevel {
             LogLevel::Warn => "warn",
             LogLevel::Error => "error",
             LogLevel::EngineDebug => "engine=debug",
+            LogLevel::EngineTrace => "engine=trace",
             LogLevel::WasiDebug => "wasi_component_loader=debug",
         }
     }

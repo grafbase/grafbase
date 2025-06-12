@@ -96,10 +96,16 @@ impl Manifest {
             }
             Type::Authentication(_) | Type::Hooks(_) => Default::default(),
             Type::SelectionSetResolver(_) => Some(DirectiveType::SelectionSetResolver),
-            Type::Resolver(ResolverType { directives }) => directives
-                .as_ref()
-                .and_then(|dirs| dirs.iter().any(|dir| dir == name).then_some(DirectiveType::Resolver))
-                .or(Some(DirectiveType::Resolver)),
+            Type::Resolver(ResolverType { directives }) => {
+                if let Some(directives) = directives {
+                    directives
+                        .iter()
+                        .any(|dir| dir == name)
+                        .then_some(DirectiveType::Resolver)
+                } else {
+                    Some(DirectiveType::Resolver)
+                }
+            }
         }
         .unwrap_or_default()
     }

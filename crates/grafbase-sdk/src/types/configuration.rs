@@ -28,13 +28,7 @@ impl Configuration {
                     .iter()
                     .all(|seg| matches!(seg, serde_path_to_error::Segment::Unknown))
             {
-                if let Ok(serde_json::Value::Null) =
-                    serde_json::Value::deserialize(&mut minicbor_serde::Deserializer::new(&self.0))
-                {
-                    "Missing configuration".into()
-                } else {
-                    err.into_inner().into()
-                }
+                format!("Failed to deserialize configuration: {}", err.into_inner()).into()
             } else {
                 format!("Failed to deserialize configuration at {}", err).into()
             }

@@ -900,8 +900,7 @@ impl<'a> Directive<'a> {
         cbor::from_slice_with_seed(self.arguments_bytes(), seed).map_err(Into::into)
     }
 
-    /// Serialized argument bytes, nothing in particular is guaranteed on the bytes.
-    pub fn arguments_bytes(&self) -> &'a [u8] {
+    fn arguments_bytes(&self) -> &'a [u8] {
         match &self.0 {
             DirectiveInner::Wit(directive) => &directive.arguments,
             DirectiveInner::NameAndArgs { arguments, .. } => arguments,

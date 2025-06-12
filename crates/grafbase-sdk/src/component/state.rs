@@ -104,6 +104,9 @@ pub(super) fn subscription() -> Result<&'static mut dyn Subscription, Error> {
     unsafe {
         let state = std::mem::take(&mut SUBSCRIPTION);
         match state {
+            Some(SubscriptionState::Initialized(_)) => {
+                SUBSCRIPTION = state; // Restore the state
+            }
             Some(SubscriptionState::Uninitialized { prepared, callback }) => {
                 SUBSCRIPTION = Some(SubscriptionState::Initialized(callback()?));
                 // Must be dropped *after* callback as callback may keep a reference to it
@@ -115,7 +118,6 @@ pub(super) fn subscription() -> Result<&'static mut dyn Subscription, Error> {
                     extensions: Vec::new(),
                 });
             }
-            _ => {}
         }
         let Some(SubscriptionState::Initialized(subscription)) = SUBSCRIPTION.as_mut() else {
             unreachable!();
