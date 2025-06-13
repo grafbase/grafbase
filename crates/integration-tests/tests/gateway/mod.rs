@@ -9,7 +9,6 @@ mod deser;
 mod entity_caching;
 mod extensions;
 mod graphql_over_http;
-mod hooks;
 mod inaccessible;
 mod introspection;
 mod issues;

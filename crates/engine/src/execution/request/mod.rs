@@ -21,7 +21,7 @@ use std::{future::Future, sync::Arc};
 
 use crate::{
     Body, Engine, Runtime,
-    engine::WasmExtensionContext,
+    engine::ExtensionContext,
     graphql_over_http::{ContentType, ResponseFormat},
     mcp::McpRequestContext,
     response::Response,
@@ -85,8 +85,8 @@ impl<R: Runtime> Engine<R> {
         ctx: &EarlyHttpContext,
         headers: http::HeaderMap,
         websocket_init_payload: Option<InitPayload>,
-        extension_context: WasmExtensionContext<R>,
-    ) -> Result<Arc<RequestContext<WasmExtensionContext<R>>>, Response> {
+        extension_context: ExtensionContext<R>,
+    ) -> Result<Arc<RequestContext<ExtensionContext<R>>>, Response> {
         let client = Client::extract_from(&headers);
 
         let (headers, token) = match self

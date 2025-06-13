@@ -83,7 +83,8 @@ impl<R: Runtime> Engine<R> {
         // Did you insert the context there?
         let extension_ctx = request
             .extensions_mut()
-            .remove::<WasmExtensionContext<R>>()
+            .remove::<ExtensionContext<R>>()
+            // FIXME: mcp should should go through the hooks...
             .unwrap_or_default();
 
         let (ctx, headers, body) = match self.unpack_http_request(request) {
@@ -127,7 +128,10 @@ impl<R: Runtime> Engine<R> {
 
         // Hey, you. If this returns the default, go check in the engine-axum crate the hooks middleware.
         // Did you insert the context there?
-        let extension_context = parts.extensions.remove::<WasmExtensionContext<R>>().unwrap_or_default();
+        let extension_context = parts
+            .extensions
+            .remove::<ExtensionContext<R>>()
+            .expect("Missing Wasm context");
 
         let request_context = self
             .create_graphql_context(&ctx, parts.headers, Some(payload), extension_context)
@@ -153,7 +157,7 @@ impl<R: Runtime> Engine<R> {
 
 pub struct WebsocketSession<R: Runtime> {
     engine: Arc<Engine<R>>,
-    request_context: Arc<RequestContext<WasmExtensionContext<R>>>,
+    request_context: Arc<RequestContext<ExtensionContext<R>>>,
 }
 
 impl<R: Runtime> Clone for WebsocketSession<R> {

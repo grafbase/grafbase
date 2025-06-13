@@ -5,7 +5,7 @@ mod object;
 
 use engine::{ErrorResponse, GraphqlError};
 use engine_schema::DirectiveSite;
-use integration_tests::gateway::{AuthorizationTestExtension, DynHookContext};
+use integration_tests::gateway::{AuthorizationTestExtension, ExtContext};
 use runtime::extension::{AuthorizationDecisions, QueryElement, TokenRef};
 
 #[derive(Default)]
@@ -16,12 +16,12 @@ impl AuthorizationTestExtension for EchoInjections {
     #[allow(clippy::manual_async_fn)]
     async fn authorize_query(
         &self,
-        wasm_context: DynHookContext,
+        ctx: &ExtContext,
         _headers: &tokio::sync::RwLock<http::HeaderMap>,
         _token: TokenRef<'_>,
         elements_grouped_by_directive_name: Vec<(&str, Vec<QueryElement<'_, serde_json::Value>>)>,
     ) -> Result<AuthorizationDecisions, ErrorResponse> {
-        wasm_context.insert(
+        ctx.insert(
             "query",
             elements_grouped_by_directive_name
                 .into_iter()
@@ -40,7 +40,7 @@ impl AuthorizationTestExtension for EchoInjections {
 
     async fn authorize_response(
         &self,
-        ctx: DynHookContext,
+        ctx: &ExtContext,
         directive_name: &str,
         directive_site: DirectiveSite<'_>,
         items: Vec<serde_json::Value>,

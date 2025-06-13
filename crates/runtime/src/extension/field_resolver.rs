@@ -6,7 +6,7 @@ use futures_util::stream::BoxStream;
 
 use super::{Anything, Data};
 
-pub trait FieldResolverExtension<Context: Send + Sync + 'static>: Send + Sync + 'static {
+pub trait FieldResolverExtension: Send + Sync + 'static {
     /// Resolve a field through an extension. Lifetime 'ctx will be available for as long as the
     /// future lives, but 'resp lifetime won't. It provides access to the response data that is
     /// shared, without lock, so it's only temporarily available.

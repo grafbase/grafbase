@@ -6,8 +6,7 @@ use std::{
 use grafbase_telemetry::graphql::GraphqlResponseStatus;
 
 use super::{
-    CacheStatus, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, ExtensionEvent, RequestExecution,
-    SubgraphResponse,
+    CacheStatus, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, RequestExecution, SubgraphResponse,
 };
 
 /// Builder for constructing [`ExecutedOperation`] instances.
@@ -29,8 +28,9 @@ impl<'a> ExecutedOperationBuilder<'a> {
     /// # Arguments
     ///
     /// * `name` - The operation name
-    pub fn name(&mut self, name: &'a str) {
+    pub fn name(&mut self, name: &'a str) -> &mut Self {
         self.name = Some(name);
+        self
     }
 
     /// Sets the GraphQL document for the operation.
@@ -40,8 +40,9 @@ impl<'a> ExecutedOperationBuilder<'a> {
     /// # Arguments
     ///
     /// * `document` - The GraphQL document as a string
-    pub fn document(&mut self, document: &'a Arc<str>) {
+    pub fn document(&mut self, document: &'a Arc<str>) -> &mut Self {
         self.document = Some(document);
+        self
     }
 
     /// Records the duration of the preparation phase.
@@ -74,8 +75,9 @@ impl<'a> ExecutedOperationBuilder<'a> {
     /// # Arguments
     ///
     /// * `status` - The GraphQL response status
-    pub fn status(&mut self, status: GraphqlResponseStatus) {
+    pub fn status(&mut self, status: GraphqlResponseStatus) -> &mut Self {
         self.status = status;
+        self
     }
 
     /// Consumes the builder and creates an [`ExecutedOperation`].
@@ -273,40 +275,6 @@ impl<'a> ExecutedHttpRequestBuilder<'a> {
             url: self.url.to_string(),
             method: self.method,
             response_status: self.response_status,
-        }
-    }
-}
-
-/// Builder for constructing [`ExtensionEvent`] instances.
-pub struct ExtensionEventBuilder<'a> {
-    pub(super) extension_name: &'a str,
-    pub(super) event_name: &'a str,
-    pub(super) data: Vec<u8>,
-}
-
-impl<'a> ExtensionEventBuilder<'a> {
-    /// Sets the binary data payload for the event.
-    ///
-    /// Extensions can use this to attach arbitrary data to their events.
-    ///
-    /// # Arguments
-    ///
-    /// * `data` - The binary data to attach to the event
-    pub fn data(mut self, data: Vec<u8>) -> Self {
-        self.data = data;
-        self
-    }
-
-    /// Consumes the builder and creates an [`ExtensionEvent`].
-    ///
-    /// # Returns
-    ///
-    /// A new `ExtensionEvent` instance with the configured values.
-    pub fn build(self) -> ExtensionEvent {
-        ExtensionEvent {
-            extension_name: self.extension_name.to_string(),
-            event_name: self.event_name.to_string(),
-            data: self.data,
         }
     }
 }

@@ -6,14 +6,14 @@ use futures::{StreamExt as _, stream::FuturesUnordered};
 use runtime::extension::{AuthenticationExtension, Token};
 
 use crate::gateway::{
-    DispatchRule, DynHookContext, ExtContext, ExtensionsBuilder, ExtensionsDispatcher, TestExtensions, TestManifest,
+    DispatchRule, ExtContext, ExtensionsBuilder, ExtensionsDispatcher, TestExtensions, TestManifest,
     runtime::extension::builder::AnyExtension,
 };
 
 impl AuthenticationExtension<ExtContext> for ExtensionsDispatcher {
     async fn authenticate(
         &self,
-        context: &ExtContext,
+        ctx: &ExtContext,
         extension_ids: &[ExtensionId],
         gateway_headers: http::HeaderMap,
     ) -> (http::HeaderMap, Result<Token, ErrorResponse>) {
@@ -33,20 +33,18 @@ impl AuthenticationExtension<ExtContext> for ExtensionsDispatcher {
 
         if !wasm_extensions.is_empty() {
             self.wasm
-                .authenticate(&context.wasm, &wasm_extensions, gateway_headers)
+                .authenticate(&ctx.wasm, &wasm_extensions, gateway_headers)
                 .await
         } else {
-            self.test
-                .authenticate(&context.test, &test_extensions, gateway_headers)
-                .await
+            self.test.authenticate(ctx, &test_extensions, gateway_headers).await
         }
     }
 }
 
-impl AuthenticationExtension<DynHookContext> for TestExtensions {
+impl AuthenticationExtension<ExtContext> for TestExtensions {
     async fn authenticate(
         &self,
-        _: &DynHookContext,
+        _ctx: &ExtContext,
         extension_ids: &[ExtensionId],
         headers: http::HeaderMap,
     ) -> (http::HeaderMap, Result<Token, ErrorResponse>) {

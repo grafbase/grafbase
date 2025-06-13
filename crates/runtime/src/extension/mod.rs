@@ -9,10 +9,7 @@ pub use authentication::*;
 pub use authorization::*;
 use bytes::Bytes;
 use error::GraphqlError;
-use event_queue::{
-    EventQueue, ExecutedHttpRequestBuilder, ExecutedOperationBuilder, ExecutedSubgraphRequestBuilder,
-    ExtensionEventBuilder,
-};
+use event_queue::EventQueue;
 pub use field_resolver::*;
 pub use hooks::*;
 pub use resolver::*;
@@ -24,52 +21,18 @@ impl<'a, T> Anything<'a> for T where T: serde::Serialize + Send + 'a {}
 pub trait ExtensionRuntime:
     AuthenticationExtension<Self::Context>
     + AuthorizationExtension<Self::Context>
-    + FieldResolverExtension<Self::Context>
+    + FieldResolverExtension
     + SelectionSetResolverExtension
     + ResolverExtension<Self::Context>
     + Send
     + Sync
     + 'static
 {
-    type Context: ExtensionContext + Default + Send + Sync + 'static;
+    type Context: ExtensionContext;
 }
 
-pub trait ExtensionContext {
-    type EventQueue: ExtensionEventQueue + Clone + Send + Sync + 'static;
-
-    fn event_queue(&self) -> &Self::EventQueue;
-}
-
-pub trait ExtensionEventQueue {
-    fn push_operation(&self, builder: ExecutedOperationBuilder<'_>);
-    fn push_subgraph_request(&self, builder: ExecutedSubgraphRequestBuilder<'_>);
-    fn push_http_request(&self, builder: ExecutedHttpRequestBuilder<'_>);
-    fn push_extension_event(&self, builder: ExtensionEventBuilder<'_>);
-}
-
-impl ExtensionEventQueue for () {
-    fn push_operation(&self, _builder: ExecutedOperationBuilder<'_>) {}
-    fn push_subgraph_request(&self, _builder: ExecutedSubgraphRequestBuilder<'_>) {}
-    fn push_http_request(&self, _builder: ExecutedHttpRequestBuilder<'_>) {}
-    fn push_extension_event(&self, _builder: ExtensionEventBuilder<'_>) {}
-}
-
-impl ExtensionEventQueue for EventQueue {
-    fn push_operation(&self, builder: ExecutedOperationBuilder<'_>) {
-        self.push_operation(builder);
-    }
-
-    fn push_subgraph_request(&self, builder: ExecutedSubgraphRequestBuilder<'_>) {
-        self.push_subgraph_request(builder);
-    }
-
-    fn push_http_request(&self, builder: ExecutedHttpRequestBuilder<'_>) {
-        self.push_http_request(builder);
-    }
-
-    fn push_extension_event(&self, builder: ExtensionEventBuilder<'_>) {
-        self.push_extension_event(builder);
-    }
+pub trait ExtensionContext: Default + Send + Sync + 'static {
+    fn event_queue(&self) -> &EventQueue;
 }
 
 #[derive(Debug, Clone)]

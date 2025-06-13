@@ -1,11 +1,12 @@
 use std::{collections::HashMap, sync::Arc};
 
-use crate::gateway::DynHookContext;
 use engine_schema::{Subgraph, SubgraphId};
 use extension_catalog::{ExtensionId, Id};
 use runtime::extension::Data;
 use serde::Serialize;
 use tokio::sync::Mutex;
+
+use crate::gateway::ExtContext;
 
 use super::{
     AuthenticationTestExtension, AuthorizationTestExtension, FieldResolverTestExtension,
@@ -104,7 +105,7 @@ pub struct TestExtensions {
 }
 
 impl runtime::extension::ExtensionRuntime for TestExtensions {
-    type Context = DynHookContext;
+    type Context = ExtContext;
 }
 
 pub fn json_data(value: impl Serialize) -> Data {

@@ -6,7 +6,7 @@ use operation::{BatchRequest, Request};
 
 use crate::{
     Body, Engine,
-    engine::WasmExtensionContext,
+    engine::ExtensionContext,
     graphql_over_http::{Http, ResponseFormat},
     response::Response,
 };
@@ -16,7 +16,7 @@ use super::{RequestContext, Runtime, response_extension::default_response_extens
 impl<R: Runtime> Engine<R> {
     pub(crate) async fn execute_well_formed_graphql_request(
         self: &Arc<Self>,
-        request_context: Arc<RequestContext<WasmExtensionContext<R>>>,
+        request_context: Arc<RequestContext<ExtensionContext<R>>>,
         request: BatchRequest,
     ) -> http::Response<Body> {
         match request {
@@ -79,7 +79,7 @@ impl<R: Runtime> Engine<R> {
 
     pub(crate) fn execute_websocket_well_formed_graphql_request(
         self: &Arc<Self>,
-        request_context: Arc<RequestContext<WasmExtensionContext<R>>>,
+        request_context: Arc<RequestContext<ExtensionContext<R>>>,
         request: Request,
     ) -> StreamResponse {
         self.execute_stream(request_context, request)
@@ -87,7 +87,7 @@ impl<R: Runtime> Engine<R> {
 
     fn bad_request_but_well_formed_graphql_over_http_request(
         &self,
-        request_context: &RequestContext<WasmExtensionContext<R>>,
+        request_context: &RequestContext<ExtensionContext<R>>,
         message: impl std::fmt::Display,
     ) -> http::Response<Body> {
         let error = GraphqlError::new(format!("Bad request: {message}"), ErrorCode::BadRequest);
@@ -98,7 +98,7 @@ impl<R: Runtime> Engine<R> {
         )
     }
 
-    fn gateway_timeout_error(&self, request_context: &RequestContext<WasmExtensionContext<R>>) -> http::Response<Body> {
+    fn gateway_timeout_error(&self, request_context: &RequestContext<ExtensionContext<R>>) -> http::Response<Body> {
         Http::error(
             request_context.response_format,
             super::errors::response::gateway_timeout()

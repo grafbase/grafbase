@@ -14,7 +14,7 @@ use std::{future::Future, ops::Range, sync::Arc};
 impl AuthorizationExtension<SharedContext> for WasmExtensions {
     fn authorize_query<'ctx, 'fut, Extensions, Arguments>(
         &'ctx self,
-        context: &SharedContext,
+        ctx: &'ctx SharedContext,
         headers: http::HeaderMap,
         token: TokenRef<'ctx>,
         extensions: Extensions,
@@ -76,21 +76,19 @@ impl AuthorizationExtension<SharedContext> for WasmExtensions {
         }
 
         let headers = Arc::new(tokio::sync::RwLock::new(headers));
-        let context = context.clone();
 
         async move {
             let headers_ref = &headers;
             let directive_names = &directive_names;
             let elements = &elements;
-            let decisions = extensions
+            let (decisions, state): (Vec<_>, Vec<_>) = extensions
                 .into_iter()
-                .map(move |(extension_id, directive_range, query_elements_range)| {
-                    let context = context.clone();
-                    async move {
+                .map(
+                    move |(extension_id, directive_range, query_elements_range)| async move {
                         let mut instance = self.get(extension_id).await?;
                         match instance
                             .authorize_query(
-                                context.clone(),
+                                ctx.clone(),
                                 Lease::SharedMut(headers_ref.clone()),
                                 token,
                                 wit::QueryElements {
@@ -100,16 +98,14 @@ impl AuthorizationExtension<SharedContext> for WasmExtensions {
                             )
                             .await
                         {
-                            Ok((_, decisions, state)) => {
-                                if !state.is_empty() {
-                                    context.authorization_state.write().await.push((extension_id, state));
-                                }
-                                Ok(QueryAuthorizationDecisions {
+                            Ok((_, decisions, state)) => Ok((
+                                QueryAuthorizationDecisions {
                                     extension_id,
                                     query_elements_range,
                                     decisions,
-                                })
-                            }
+                                },
+                                (extension_id, state),
+                            )),
                             Err(err) => Err(match err {
                                 crate::ErrorResponse::Internal(err) => {
                                     tracing::error!("Wasm error: {err}");
@@ -120,11 +116,17 @@ impl AuthorizationExtension<SharedContext> for WasmExtensions {
                                 }
                             }),
                         }
-                    }
-                })
+                    },
+                )
                 .collect::<FuturesUnordered<_>>()
                 .try_collect::<Vec<_>>()
-                .await?;
+                .await?
+                .into_iter()
+                .unzip();
+
+            ctx.authorization_states
+                .set(state)
+                .expect("Failed to set authorization states");
 
             let headers = Arc::into_inner(headers).unwrap().into_inner();
             Ok((headers, decisions))
@@ -133,7 +135,7 @@ impl AuthorizationExtension<SharedContext> for WasmExtensions {
 
     fn authorize_response<'ctx, 'fut>(
         &'ctx self,
-        context: &SharedContext,
+        ctx: &'ctx SharedContext,
         extension_id: ExtensionId,
         directive_name: &'ctx str,
         directive_site: DirectiveSite<'ctx>,
@@ -147,19 +149,18 @@ impl AuthorizationExtension<SharedContext> for WasmExtensions {
             .map(|item| cbor::to_vec(item).unwrap())
             .collect::<Vec<_>>();
 
-        let context = context.clone();
-
         async move {
-            let guard = context.authorization_state.read().await;
-
-            let state = guard
-                .iter()
-                .find_map(|(id, state)| {
-                    if *id == extension_id {
-                        Some(state.as_slice())
-                    } else {
-                        None
-                    }
+            let state = ctx
+                .authorization_states
+                .get()
+                .and_then(|states| {
+                    states.iter().find_map(|(id, state)| {
+                        if *id == extension_id {
+                            Some(state.as_slice())
+                        } else {
+                            None
+                        }
+                    })
                 })
                 .unwrap_or(&[]);
 
@@ -167,7 +168,7 @@ impl AuthorizationExtension<SharedContext> for WasmExtensions {
 
             instance
                 .authorize_response(
-                    context.clone(),
+                    ctx.clone(),
                     state,
                     wit::ResponseElements {
                         directive_names: vec![(directive_name, 0, 1)],

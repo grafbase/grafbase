@@ -8,7 +8,7 @@ use schema::Schema;
 
 use crate::{
     Engine, Runtime,
-    engine::WasmExtensionContext,
+    engine::ExtensionContext,
     execution::{GraphqlRequestContext, RequestContext},
 };
 
@@ -17,7 +17,7 @@ use crate::{
 /// if and only if operation preparation succeeds.
 pub(crate) struct PrepareContext<'ctx, R: Runtime> {
     pub engine: &'ctx Arc<Engine<R>>,
-    pub request_context: &'ctx Arc<RequestContext<WasmExtensionContext<R>>>,
+    pub request_context: &'ctx Arc<RequestContext<ExtensionContext<R>>>,
     pub gql_context: GraphqlRequestContext,
     pub executed_operation_builder: ExecutedOperationBuilder<'ctx>,
     // needs to be Send so that futures are Send.
@@ -25,10 +25,7 @@ pub(crate) struct PrepareContext<'ctx, R: Runtime> {
 }
 
 impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
-    pub fn new(
-        engine: &'ctx Arc<Engine<R>>,
-        request_context: &'ctx Arc<RequestContext<WasmExtensionContext<R>>>,
-    ) -> Self {
+    pub fn new(engine: &'ctx Arc<Engine<R>>, request_context: &'ctx Arc<RequestContext<ExtensionContext<R>>>) -> Self {
         Self {
             engine,
             request_context,

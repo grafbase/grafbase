@@ -4,7 +4,7 @@ use http::{request, response};
 use crate::{
     ErrorResponse, SharedContext,
     extension::{HooksInstance, api::wit::HttpMethod},
-    resources::{Headers, Lease},
+    resources::{EventQueueProxy, Headers, Lease},
 };
 
 impl HooksInstance for super::ExtensionInstanceSince0_17_0 {
@@ -78,12 +78,13 @@ impl HooksInstance for super::ExtensionInstanceSince0_17_0 {
             let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
             let headers_rep = headers.rep();
 
+            let queue = self.store.data_mut().push_resource(EventQueueProxy(context.clone()))?;
             let context = self.store.data_mut().push_resource(context)?;
 
             let result = self
                 .inner
                 .grafbase_sdk_hooks()
-                .call_on_response(&mut self.store, context, status, headers)
+                .call_on_response(&mut self.store, context, status, headers, queue)
                 .await?;
 
             parts.headers = self

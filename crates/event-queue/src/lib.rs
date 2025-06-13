@@ -7,13 +7,12 @@
 //! an event filter in its configuration. Otherwise every event push is a no-op.
 
 mod events;
-
-use std::sync::Arc;
+mod filter;
 
 pub use events::*;
+pub use filter::*;
 
 use crossbeam_queue::SegQueue;
-use extension_catalog::{EventFilter, EventFilterType, Extension};
 
 /// A thread-safe queue for collecting events during gateway operation execution.
 ///
@@ -23,30 +22,17 @@ use extension_catalog::{EventFilter, EventFilterType, Extension};
 ///
 /// Events are only collected if an extension is configured and interested in receiving them,
 /// as determined by the event filter configuration.
-#[derive(Debug, Clone)]
-pub struct EventQueue {
-    inner: Arc<InnerQueue>,
-}
-
 #[derive(Debug)]
-struct InnerQueue {
+pub struct EventQueue {
     queue: SegQueue<Event>,
     filter: Option<EventFilter>,
-}
-
-impl Default for InnerQueue {
-    fn default() -> Self {
-        Self {
-            queue: SegQueue::new(),
-            filter: None,
-        }
-    }
 }
 
 impl Default for EventQueue {
     fn default() -> Self {
         Self {
-            inner: Arc::new(InnerQueue::default()),
+            queue: SegQueue::new(),
+            filter: None,
         }
     }
 }
@@ -63,13 +49,10 @@ impl EventQueue {
     ///
     /// A new `EventQueue` instance. If no extension is provided, the queue will be inactive
     /// and won't collect any events.
-    pub fn new(hooks: &Option<Extension>) -> Self {
-        let filter = hooks.as_ref().and_then(|hooks| hooks.manifest.event_filter);
+    pub fn new(filter: Option<EventFilter>) -> Self {
         let queue = SegQueue::new();
 
-        let inner = InnerQueue { queue, filter };
-
-        Self { inner: Arc::new(inner) }
+        Self { queue, filter }
     }
 
     /// Pushes a GraphQL operation execution event to the queue.
@@ -89,7 +72,7 @@ impl EventQueue {
             return;
         }
 
-        self.inner.queue.push(Event::Operation(builder.build()));
+        self.queue.push(Event::Operation(builder.build()));
     }
 
     /// Pushes a subgraph request event to the queue.
@@ -109,7 +92,7 @@ impl EventQueue {
             return;
         }
 
-        self.inner.queue.push(Event::Subgraph(builder.build()));
+        self.queue.push(Event::Subgraph(builder.build()));
     }
 
     /// Pushes an HTTP request event to the queue.
@@ -129,7 +112,7 @@ impl EventQueue {
             return;
         }
 
-        self.inner.queue.push(Event::Http(builder.build()));
+        self.queue.push(Event::Http(builder.build()));
     }
 
     /// Pushes a custom extension event to the queue.
@@ -138,18 +121,13 @@ impl EventQueue {
     /// to emit their own events with arbitrary data payloads.
     ///
     /// The event is only queued if extension events are allowed by the current filter configuration.
-    /// The builder is only consumed and built if the event will actually be pushed, avoiding
-    /// expensive operations when events are filtered out.
-    ///
-    /// # Arguments
-    ///
-    /// * `builder` - The extension event builder
-    pub fn push_extension_event(&self, builder: ExtensionEventBuilder<'_>) {
+    pub fn push_extension_event<E>(&self, f: impl FnOnce() -> Result<ExtensionEvent, E>) -> Result<(), E> {
         if !self.must_keep_event(EventFilterType::Extension) {
-            return;
+            return Ok(());
         }
 
-        self.inner.queue.push(Event::Extension(builder.build()));
+        self.queue.push(Event::Extension(f()?));
+        Ok(())
     }
 
     /// Pops an event from the queue.
@@ -160,13 +138,13 @@ impl EventQueue {
     /// # Returns
     ///
     /// `Some(Event)` if an event was available, `None` if the queue is empty or inactive
-    pub fn pop_event(&self) -> Option<Event> {
-        self.inner.queue.pop()
+    pub fn pop(&self) -> Option<Event> {
+        self.queue.pop()
     }
 
     /// Checks whether a given event type is allowed by the current filter configuration.
     fn must_keep_event(&self, event_type: EventFilterType) -> bool {
-        match &self.inner.filter {
+        match &self.filter {
             Some(EventFilter::All) => true,
             Some(EventFilter::Types(types)) => types.contains(event_type),
             None => false,

@@ -40,6 +40,7 @@ async fn single_call_caching_auth() {
             guest_config: Some(json!({
                 "cache_config": "test"
             })),
+            can_skip_sending_events: false,
         },
     )
     .unwrap();
@@ -97,6 +98,7 @@ async fn single_call_caching_auth_invalid() {
             guest_config: Some(json!({
                 "cache_config": "test"
             })),
+            can_skip_sending_events: false,
         },
     )
     .unwrap();
@@ -149,6 +151,7 @@ async fn multiple_cache_calls() {
             guest_config: Some(json!({
                 "cache_config": "test"
             })),
+            can_skip_sending_events: false,
         },
     )
     .unwrap();
@@ -242,6 +245,7 @@ async fn on_request_hook() {
             pool: Default::default(),
             wasm: config,
             guest_config: Option::<toml::Value>::None,
+            can_skip_sending_events: false,
         },
     )
     .unwrap();
@@ -280,6 +284,7 @@ async fn on_response_hook() {
             pool: Default::default(),
             wasm: config,
             guest_config: Option::<toml::Value>::None,
+            can_skip_sending_events: false,
         },
     )
     .unwrap();

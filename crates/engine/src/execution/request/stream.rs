@@ -16,7 +16,7 @@ use tracing::Instrument;
 
 use crate::{
     Engine, Runtime,
-    engine::WasmExtensionContext,
+    engine::ExtensionContext,
     execution::{ResponseSender, default_response_extensions, errors, response_extension_for_prepared_operation},
     prepare::PrepareContext,
     response::{ErrorCode, ErrorCodeCounter, Response, ResponseExtensions},
@@ -33,7 +33,7 @@ pub(crate) struct StreamResponse {
 impl<R: Runtime> Engine<R> {
     pub(super) fn execute_stream(
         self: &Arc<Self>,
-        request_context: Arc<RequestContext<WasmExtensionContext<R>>>,
+        request_context: Arc<RequestContext<ExtensionContext<R>>>,
         request: Request,
     ) -> StreamResponse {
         let engine = self.clone();

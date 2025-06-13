@@ -8,10 +8,10 @@ mod health;
 mod state;
 mod trusted_documents_client;
 
-use extension_catalog::Extension;
 pub(crate) use gateway::CreateExtensionCatalogError;
 use gateway::{EngineWatcher, create_extension_catalog::create_extension_catalog};
 pub use graph_fetch_method::GraphFetchMethod;
+use runtime::extension::HooksExtension;
 pub use state::ServerState;
 
 use tokio_util::sync::CancellationToken;
@@ -123,11 +123,15 @@ pub async fn serve(
         .filter(|m| m.enabled)
         .map(|m| format!("http://{listen_address}{}", m.path));
 
+    let hooks = WasmHooks::new(&config, hooks_extension)
+        .await
+        .map_err(|e| crate::Error::InternalError(e.to_string()))?;
+
     let (router, ct) = router(
         config,
         update_handler.engine_watcher(),
         server_runtime.clone(),
-        hooks_extension,
+        hooks,
         |router| {
             // Currently we're doing those after CORS handling in the request as we don't care
             // about pre-flight requests.
@@ -154,11 +158,11 @@ pub async fn serve(
     result
 }
 
-pub async fn router<R: engine::Runtime, SR: ServerRuntime>(
+pub async fn router<R: engine::Runtime, SR: ServerRuntime, H: HooksExtension>(
     config: gateway_config::Config,
     engine: EngineWatcher<R>,
     server_runtime: SR,
-    hooks_extension: Option<Extension>,
+    hooks: H,
     inject_layers_before_cors: impl FnOnce(axum::Router<()>) -> axum::Router<()>,
 ) -> crate::Result<(axum::Router, Option<CancellationToken>)> {
     let path = &config.graph.path;
@@ -213,10 +217,6 @@ pub async fn router<R: engine::Runtime, SR: ServerRuntime>(
     if config.csrf.enabled {
         router = csrf::inject_layer(router, &config.csrf);
     }
-
-    let hooks = WasmHooks::new(&config, hooks_extension)
-        .await
-        .map_err(|e| crate::Error::InternalError(e.to_string()))?;
 
     router = router.layer(HooksLayer::new(hooks));
 

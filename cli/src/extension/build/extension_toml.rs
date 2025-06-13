@@ -1,5 +1,6 @@
-use extension::EventFilter;
+use extension::{EventFilter, EventType};
 use semver::Version;
+use serde::Deserializer;
 use serde_valid::Validate;
 
 #[derive(serde::Deserialize)]
@@ -15,6 +16,7 @@ pub struct ExtensionToml {
 
 #[derive(Default, serde::Deserialize)]
 pub struct ExtensionTomlHooks {
+    #[serde(default, deserialize_with = "deserialize_event_filter")]
     pub events: Option<EventFilter>,
 }
 
@@ -60,4 +62,60 @@ pub enum ExtensionType {
     Authorization,
     SelectionSetResolver,
     Hooks,
+}
+
+fn deserialize_event_filter<'de, D>(deserializer: D) -> Result<Option<EventFilter>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    struct EventFilterVisitor;
+
+    impl<'de> serde::de::Visitor<'de> for EventFilterVisitor {
+        type Value = Option<EventFilter>;
+
+        fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            formatter.write_str("expecting string \"*\", or an array of values")
+        }
+
+        fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            if value == "*" {
+                Ok(Some(EventFilter::All))
+            } else {
+                value
+                    .parse()
+                    .map_err(|err| E::custom(err))
+                    .map(|value| Some(EventFilter::Types(vec![value])))
+            }
+        }
+
+        fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+        where
+            A: serde::de::SeqAccess<'de>,
+        {
+            let mut array = Vec::new();
+            while let Some(value) = seq.next_element::<EventType>()? {
+                array.push(value);
+            }
+            Ok(Some(EventFilter::Types(array)))
+        }
+
+        fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+            deserializer.deserialize_any(self)
+        }
+
+        fn visit_none<E>(self) -> Result<Self::Value, E>
+        where
+            E: serde::de::Error,
+        {
+            Ok(None)
+        }
+    }
+
+    deserializer.deserialize_any(EventFilterVisitor)
 }

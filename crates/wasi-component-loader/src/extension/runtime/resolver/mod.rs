@@ -17,7 +17,7 @@ use crate::{
 impl ResolverExtension<SharedContext> for WasmExtensions {
     async fn prepare<'ctx, F: runtime::extension::Field<'ctx>>(
         &'ctx self,
-        context: &SharedContext,
+        ctx: &'ctx SharedContext,
         directive: ExtensionDirective<'ctx>,
         directive_arguments: impl Anything<'ctx>,
         field: F,
@@ -61,7 +61,7 @@ impl ResolverExtension<SharedContext> for WasmExtensions {
         };
 
         instance
-            .prepare(context.clone(), directive.subgraph().name(), dir, 0, &fields)
+            .prepare(ctx.clone(), directive.subgraph().name(), dir, 0, &fields)
             .await
             .map_err(|err| match err {
                 Error::Internal(err) => {
@@ -74,7 +74,7 @@ impl ResolverExtension<SharedContext> for WasmExtensions {
 
     fn resolve<'ctx, 'resp, 'f>(
         &'ctx self,
-        context: &SharedContext,
+        ctx: &'ctx SharedContext,
         directive: ExtensionDirective<'ctx>,
         prepared_data: &'ctx [u8],
         subgraph_headers: http::HeaderMap,
@@ -86,8 +86,6 @@ impl ResolverExtension<SharedContext> for WasmExtensions {
         let arguments = arguments
             .map(|(id, value)| (id.into(), cbor::to_vec(&value).unwrap()))
             .collect::<Vec<(wit::ArgumentsId, Vec<u8>)>>();
-
-        let context = context.clone();
 
         async move {
             let mut instance = match self.get(directive.extension_id).await {
@@ -107,7 +105,7 @@ impl ResolverExtension<SharedContext> for WasmExtensions {
                 .collect::<Vec<_>>();
 
             let result = instance
-                .resolve(context, subgraph_headers, prepared_data, &arguments_refs)
+                .resolve(ctx.clone(), subgraph_headers, prepared_data, &arguments_refs)
                 .await
                 .map_err(|err| match err {
                     Error::Internal(err) => {
@@ -129,7 +127,7 @@ impl ResolverExtension<SharedContext> for WasmExtensions {
 
     fn resolve_subscription<'ctx, 'resp, 'f>(
         &'ctx self,
-        context: &SharedContext,
+        ctx: &'ctx SharedContext,
         directive: ExtensionDirective<'ctx>,
         prepared_data: &'ctx [u8],
         subgraph_headers: http::HeaderMap,
@@ -141,8 +139,6 @@ impl ResolverExtension<SharedContext> for WasmExtensions {
         let arguments = arguments
             .map(|(id, value)| (id.into(), cbor::to_vec(&value).unwrap()))
             .collect::<Vec<(wit::ArgumentsId, Vec<u8>)>>();
-
-        let context = context.clone();
 
         async move {
             let mut instance = match self.get(directive.extension_id).await {
@@ -163,7 +159,7 @@ impl ResolverExtension<SharedContext> for WasmExtensions {
                 .collect::<Vec<_>>();
 
             let result = instance
-                .create_subscription(context.clone(), subgraph_headers, prepared_data, &arguments_refs)
+                .create_subscription(ctx.clone(), subgraph_headers, prepared_data, &arguments_refs)
                 .await
                 .map_err(|err| match err {
                     Error::Internal(err) => {
@@ -180,12 +176,12 @@ impl ResolverExtension<SharedContext> for WasmExtensions {
                             extensions: self.clone(),
                             key,
                             instance,
-                            context,
+                            context: ctx.clone(),
                         }
                         .resolve()
                         .await
                     }
-                    None => subscription::UniqueSubscription { instance }.resolve(context).await,
+                    None => subscription::UniqueSubscription { instance }.resolve(ctx.clone()).await,
                 },
                 Ok(Err(err)) => {
                     let response = Response {

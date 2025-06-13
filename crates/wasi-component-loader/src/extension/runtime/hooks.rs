@@ -9,12 +9,9 @@ impl HooksExtension for WasmHooks {
     type Context = SharedContext;
 
     fn new_context(&self) -> Self::Context {
-        let event_queue = EventQueue::new(self.extension());
+        let event_queue = EventQueue::new(self.event_filter());
 
-        SharedContext {
-            event_queue,
-            ..Default::default()
-        }
+        SharedContext::new(event_queue)
     }
 
     async fn on_request(

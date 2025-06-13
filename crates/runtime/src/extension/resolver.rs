@@ -46,7 +46,7 @@ impl From<ArgumentsId> for u16 {
 pub trait ResolverExtension<Context: Send + Sync + 'static>: Send + Sync + 'static {
     fn prepare<'ctx, F: Field<'ctx>>(
         &'ctx self,
-        context: &Context,
+        ctx: &'ctx Context,
         directive: ExtensionDirective<'ctx>,
         directive_arguments: impl Anything<'ctx>,
         field: F,
@@ -54,7 +54,7 @@ pub trait ResolverExtension<Context: Send + Sync + 'static>: Send + Sync + 'stat
 
     fn resolve<'ctx, 'resp, 'f>(
         &'ctx self,
-        context: &Context,
+        ctx: &'ctx Context,
         directive: ExtensionDirective<'ctx>,
         prepared_data: &'ctx [u8],
         subgraph_headers: http::HeaderMap,
@@ -65,7 +65,7 @@ pub trait ResolverExtension<Context: Send + Sync + 'static>: Send + Sync + 'stat
 
     fn resolve_subscription<'ctx, 'resp, 'f>(
         &'ctx self,
-        context: &Context,
+        ctx: &'ctx Context,
         directive: ExtensionDirective<'ctx>,
         prepared_data: &'ctx [u8],
         subgraph_headers: http::HeaderMap,

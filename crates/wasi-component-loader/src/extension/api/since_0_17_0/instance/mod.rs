@@ -30,6 +30,7 @@ pub struct SdkPre0_17_0 {
     schema: Arc<Schema>,
     // self-reference to schema
     subgraph_schemas: Vec<(&'static str, ws::Schema<'static>)>,
+    can_skip_sending_events: bool,
 }
 
 impl SdkPre0_17_0 {
@@ -56,7 +57,9 @@ impl SdkPre0_17_0 {
         let subgraph_schemas: Vec<(&'static str, ws::Schema<'static>)> =
             unsafe { std::mem::transmute(subgraph_schemas) };
 
+        super::wit::shared_context::add_to_linker_impl(&mut linker)?;
         wit::Sdk::add_to_linker(&mut linker, |state| state)?;
+
         let instance_pre = linker.instantiate_pre(&component)?;
 
         Ok(Self {
@@ -64,6 +67,7 @@ impl SdkPre0_17_0 {
             guest_config: cbor::to_vec(&config.guest_config).context("Could not serialize configuration")?,
             schema,
             subgraph_schemas,
+            can_skip_sending_events: config.can_skip_sending_events,
         })
     }
 
@@ -74,7 +78,12 @@ impl SdkPre0_17_0 {
         inner.call_register_extension(&mut store).await?;
 
         inner
-            .call_init(&mut store, &self.subgraph_schemas, &self.guest_config)
+            .call_init(
+                &mut store,
+                &self.subgraph_schemas,
+                &self.guest_config,
+                self.can_skip_sending_events,
+            )
             .await??;
 
         let instance = ExtensionInstanceSince0_17_0 {

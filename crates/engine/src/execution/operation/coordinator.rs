@@ -4,7 +4,6 @@ use event_queue::{ExecutedOperation, ExecutedOperationBuilder};
 use futures::{Future, FutureExt, Stream, stream::FuturesOrdered};
 use futures_util::{StreamExt, future::BoxFuture, stream::FuturesUnordered};
 use grafbase_telemetry::graphql::{GraphqlResponseStatus, OperationType};
-use runtime::extension::ExtensionEventQueue;
 use tracing::Instrument;
 use walker::Walk;
 
@@ -272,7 +271,7 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
     async fn run(mut self, mut results: VecDeque<PlanExecutionResult<'ctx>>) -> Response {
         let futures = FuturesUnordered::new();
         let initial_plans = self.state.get_executable_plans().collect::<Vec<_>>();
-        let event_queue = self.ctx.event_queue().clone();
+        let event_queue = self.ctx.event_queue();
 
         for plan in initial_plans {
             if let Some(fut) = self.create_plan_execution_future(plan) {
@@ -331,8 +330,8 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
         }
 
         this.executed_operation_builder
-            .document(&operation.cached.operation.attributes.sanitized_query);
-        this.executed_operation_builder.status(this.response.graphql_status());
+            .document(&operation.cached.operation.attributes.sanitized_query)
+            .status(this.response.graphql_status());
 
         event_queue.push_operation(this.executed_operation_builder);
 

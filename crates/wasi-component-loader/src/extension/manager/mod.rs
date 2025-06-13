@@ -40,7 +40,9 @@ impl WasmExtensions {
         gateway_config: &Config,
         schema: &Arc<Schema>,
     ) -> crate::Result<Self> {
-        let extensions = config::load_extensions_config(extension_catalog, gateway_config);
+        // FIXME: Rely on hook configuration to define whether events can be skipped or not
+        let can_skip_sending_events = false;
+        let extensions = config::load_extensions_config(extension_catalog, gateway_config, can_skip_sending_events);
 
         Ok(Self(Arc::new(WasiExtensionsInner {
             instance_pools: create_pools(schema, extensions).await?,

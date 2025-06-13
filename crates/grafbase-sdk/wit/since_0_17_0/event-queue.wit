@@ -11,7 +11,7 @@ interface event-queue {
         // An HTTP request execution event.
         http(executed-http-request),
         // Extension event data as raw bytes.
-        extension(list<u8>),
+        extension(extension-event),
     }
 
     // Info about an executed HTTP request.
@@ -39,9 +39,9 @@ interface event-queue {
     // Information on a response
     record subgraph-response {
         // The milliseconds it took to connect to the host.
-        connection-time-ms: u64,
+        connection-time-ns: u64,
         // The milliseconds it took for the host to respond with data.
-        response-time-ms: u64,
+        response-time-ns: u64,
         // The response status code
         status-code: u16
     }
@@ -59,7 +59,7 @@ interface event-queue {
         // The cache status of the subgraph call.
         cache-status: cache-status,
         // The time in milliseconds taken for the whole operation.
-        total-duration-ms: u64,
+        total-duration-ns: u64,
         // True, if the subgraph returned any errors.
         has-errors: bool,
         // The subgraph response headers.
@@ -73,11 +73,11 @@ interface event-queue {
         // The operation document in sanitized form.
         document: string,
         // The time taken in preparing.
-        prepare-duration-ms: u64,
+        prepare-duration-ns: u64,
         // True, if the plan was taken from cache.
         cached-plan: bool,
         // Time in milliseconds spent executing the operation.
-        duration-ms: u64,
+        duration-ns: u64,
         // The status of the operation.
         status: graphql-response-status,
     }
@@ -118,10 +118,13 @@ interface event-queue {
         miss,
     }
 
-    resource event-queue {
-        /// Pushes a new event to the end of the request event queue.
-        push: func(name: string, event: list<u8>);
+    record extension-event {
+        extension-name: string,
+        event-name: string,
+        data: list<u8>
+    }
 
+    resource event-queue {
         /// Returns the oldest log entry from the request event queue.
         pop: func() -> option<event>;
     }

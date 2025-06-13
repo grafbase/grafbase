@@ -15,3 +15,7 @@ network = false
 stdout = false
 stderr = false
 environment_variables = false
+
+
+[hooks]
+events = "*"

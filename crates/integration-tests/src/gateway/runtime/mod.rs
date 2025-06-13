@@ -1,5 +1,6 @@
 mod context;
 mod extension;
+mod hooks;
 
 use std::sync::Arc;
 
@@ -17,6 +18,7 @@ use tokio::sync::watch;
 
 pub use context::*;
 pub use extension::*;
+pub use hooks::*;
 
 pub struct TestRuntime {
     pub fetcher: DynamicFetcher,
@@ -24,17 +26,17 @@ pub struct TestRuntime {
     pub kv: runtime::kv::KvStore,
     pub operation_cache: InMemoryOperationCache<Arc<CachedOperation>>,
     pub metrics: EngineMetrics,
-    pub hooks_extension: Option<Extension>,
     pub rate_limiter: runtime::rate_limiting::RateLimiter,
     pub entity_cache: InMemoryEntityCache,
     pub extensions: ExtensionsDispatcher,
     pub authentication: engine_auth::AuthenticationService<ExtensionsDispatcher>,
+    pub hooks: TestHooks,
 }
 
 pub(super) struct TestRuntimeBuilder {
     pub trusted_documents: Option<trusted_documents_client::Client>,
-    pub hooks_extension: Option<Extension>,
     pub fetcher: Option<DynamicFetcher>,
+    pub hooks_extension: Option<Extension>,
     pub extensions: ExtensionsBuilder,
 }
 
@@ -65,12 +67,12 @@ impl TestRuntimeBuilder {
             trusted_documents: trusted_documents.unwrap_or_else(|| trusted_documents_client::Client::new(())),
             kv,
             metrics: EngineMetrics::build(&metrics::meter_from_global_provider(), None),
-            hooks_extension,
             rate_limiter: InMemoryRateLimiter::runtime_with_watcher(rx),
             entity_cache: InMemoryEntityCache::default(),
             operation_cache: InMemoryOperationCache::default(),
             extensions,
             authentication,
+            hooks: TestHooks::new(config, hooks_extension).await,
         })
     }
 }
@@ -97,10 +99,10 @@ impl Default for TestRuntime {
             kv,
             operation_cache: InMemoryOperationCache::default(),
             metrics: EngineMetrics::build(&metrics::meter_from_global_provider(), None),
-            hooks_extension: None,
             rate_limiter: InMemoryRateLimiter::runtime_with_watcher(rx),
             entity_cache: InMemoryEntityCache::default(),
             extensions: ExtensionsDispatcher::default(),
+            hooks: TestHooks::default(),
             authentication,
         }
     }

@@ -23,8 +23,8 @@ wasmtime::component::bindgen!({
         "grafbase:sdk/authorization-types": crate::extension::api::since_0_14_0::wit::authorization_types,
         "grafbase:sdk/resolver-types": resolver_types,
         "grafbase:sdk/authorization-types": authorization_types,
-        "grafbase:sdk/event-queue/event-queue": crate::resources::EventQueue,
-        "grafbase:sdk/shared-context/shared-context": crate::resources::SharedContext,
+        "grafbase:sdk/event-queue/event-queue": crate::resources::EventQueueProxy,
+        "grafbase:sdk/shared-context": shared_context
     },
     trappable_imports: true,
     ownership: Borrowing {

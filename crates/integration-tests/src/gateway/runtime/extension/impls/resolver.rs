@@ -8,13 +8,13 @@ use runtime::{
     extension::{ArgumentsId, DynField, Field, ResolverExtension, Response},
 };
 
-use crate::gateway::{DispatchRule, DynHookContext, ExtContext, ExtensionsDispatcher, TestExtensions};
+use crate::gateway::{DispatchRule, ExtContext, ExtensionsDispatcher, TestExtensions};
 
 #[allow(clippy::manual_async_fn, unused_variables)]
 impl ResolverExtension<ExtContext> for ExtensionsDispatcher {
     async fn prepare<'ctx, F: Field<'ctx>>(
         &'ctx self,
-        context: &ExtContext,
+        ctx: &'ctx ExtContext,
         directive: ExtensionDirective<'ctx>,
         directive_arguments: impl Anything<'ctx>,
         field: F,
@@ -22,20 +22,16 @@ impl ResolverExtension<ExtContext> for ExtensionsDispatcher {
         match self.dispatch[&directive.extension_id] {
             DispatchRule::Wasm => {
                 self.wasm
-                    .prepare(&context.wasm, directive, directive_arguments, field)
+                    .prepare(&ctx.wasm, directive, directive_arguments, field)
                     .await
             }
-            DispatchRule::Test => {
-                self.test
-                    .prepare(&context.test, directive, directive_arguments, field)
-                    .await
-            }
+            DispatchRule::Test => self.test.prepare(ctx, directive, directive_arguments, field).await,
         }
     }
 
     fn resolve<'ctx, 'resp, 'f>(
         &'ctx self,
-        context: &ExtContext,
+        ctx: &'ctx ExtContext,
         directive: ExtensionDirective<'ctx>,
         prepared_data: &'ctx [u8],
         subgraph_headers: http::HeaderMap,
@@ -47,18 +43,18 @@ impl ResolverExtension<ExtContext> for ExtensionsDispatcher {
         match self.dispatch[&directive.extension_id] {
             DispatchRule::Wasm => self
                 .wasm
-                .resolve(&context.wasm, directive, prepared_data, subgraph_headers, arguments)
+                .resolve(&ctx.wasm, directive, prepared_data, subgraph_headers, arguments)
                 .boxed(),
             DispatchRule::Test => self
                 .test
-                .resolve(&context.test, directive, prepared_data, subgraph_headers, arguments)
+                .resolve(ctx, directive, prepared_data, subgraph_headers, arguments)
                 .boxed(),
         }
     }
 
     fn resolve_subscription<'ctx, 'resp, 'f>(
         &'ctx self,
-        context: &ExtContext,
+        ctx: &'ctx ExtContext,
         directive: ExtensionDirective<'ctx>,
         prepared_data: &'ctx [u8],
         subgraph_headers: http::HeaderMap,
@@ -70,21 +66,21 @@ impl ResolverExtension<ExtContext> for ExtensionsDispatcher {
         match self.dispatch[&directive.extension_id] {
             DispatchRule::Wasm => self
                 .wasm
-                .resolve_subscription(&context.wasm, directive, prepared_data, subgraph_headers, arguments)
+                .resolve_subscription(&ctx.wasm, directive, prepared_data, subgraph_headers, arguments)
                 .boxed(),
             DispatchRule::Test => self
                 .test
-                .resolve_subscription(&context.test, directive, prepared_data, subgraph_headers, arguments)
+                .resolve_subscription(ctx, directive, prepared_data, subgraph_headers, arguments)
                 .boxed(),
         }
     }
 }
 
 #[allow(clippy::manual_async_fn, unused_variables)]
-impl ResolverExtension<DynHookContext> for TestExtensions {
+impl ResolverExtension<ExtContext> for TestExtensions {
     async fn prepare<'ctx, F: Field<'ctx>>(
         &'ctx self,
-        _: &DynHookContext,
+        ctx: &'ctx ExtContext,
         directive: ExtensionDirective<'ctx>,
         directive_arguments: impl Anything<'ctx>,
         field: F,
@@ -103,7 +99,7 @@ impl ResolverExtension<DynHookContext> for TestExtensions {
 
     fn resolve<'ctx, 'resp, 'f>(
         &'ctx self,
-        _: &DynHookContext,
+        ctx: &'ctx ExtContext,
         directive: ExtensionDirective<'ctx>,
         prepared_data: &'ctx [u8],
         subgraph_headers: http::HeaderMap,
@@ -129,7 +125,7 @@ impl ResolverExtension<DynHookContext> for TestExtensions {
 
     fn resolve_subscription<'ctx, 'resp, 'f>(
         &'ctx self,
-        context: &DynHookContext,
+        ctx: &'ctx ExtContext,
         directive: ExtensionDirective<'ctx>,
         prepared_data: &'ctx [u8],
         subgraph_headers: http::HeaderMap,

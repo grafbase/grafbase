@@ -1,16 +1,14 @@
 use std::sync::Arc;
 
+use event_queue::EventQueue;
 use grafbase_telemetry::metrics::EngineMetrics;
 use operation::{InputValueContext, Variables};
-use runtime::{
-    authentication::LegacyToken,
-    extension::{ExtensionContext, ExtensionRuntime},
-};
+use runtime::{authentication::LegacyToken, extension::ExtensionContext as _};
 use schema::{HeaderRule, Schema};
 
 use crate::{
     Engine, Runtime,
-    engine::WasmExtensionContext,
+    engine::ExtensionContext,
     execution::{GraphqlRequestContext, RequestContext, apply_header_rules},
     prepare::{CachedOperationContext, OperationPlanContext, PreparedOperation, Shapes},
 };
@@ -18,7 +16,7 @@ use crate::{
 /// Context for a single prepared operation that only needs to be executed.
 pub(crate) struct ExecutionContext<'ctx, R: Runtime> {
     pub engine: &'ctx Arc<Engine<R>>,
-    pub request_context: &'ctx Arc<RequestContext<WasmExtensionContext<R>>>,
+    pub request_context: &'ctx Arc<RequestContext<ExtensionContext<R>>>,
     pub operation: &'ctx Arc<PreparedOperation>,
     pub gql_context: &'ctx GraphqlRequestContext,
 }
@@ -37,7 +35,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
         &self.request_context.token
     }
 
-    pub fn event_queue(&self) -> &<<R::Extensions as ExtensionRuntime>::Context as ExtensionContext>::EventQueue {
+    pub fn event_queue(&self) -> &'ctx EventQueue {
         self.request_context.extension_context.event_queue()
     }
 

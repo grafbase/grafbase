@@ -10,11 +10,10 @@ use runtime::{
 };
 
 use crate::gateway::{
-    AnyExtension, DispatchRule, DynHookContext, ExtContext, ExtensionsBuilder, ExtensionsDispatcher, TestExtensions,
-    TestManifest,
+    AnyExtension, DispatchRule, ExtensionsBuilder, ExtensionsDispatcher, TestExtensions, TestManifest,
 };
 
-impl FieldResolverExtension<ExtContext> for ExtensionsDispatcher {
+impl FieldResolverExtension for ExtensionsDispatcher {
     fn resolve_field<'ctx, 'resp, 'f>(
         &'ctx self,
         directive: ExtensionDirective<'ctx>,
@@ -75,7 +74,7 @@ impl FieldResolverExtension<ExtContext> for ExtensionsDispatcher {
     }
 }
 
-impl FieldResolverExtension<DynHookContext> for TestExtensions {
+impl FieldResolverExtension for TestExtensions {
     fn resolve_field<'ctx, 'resp, 'f>(
         &'ctx self,
         directive: ExtensionDirective<'ctx>,

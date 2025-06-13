@@ -11,14 +11,14 @@ use runtime::{
 use tokio::sync::RwLock;
 
 use crate::gateway::{
-    DispatchRule, DynHookContext, ExtContext, ExtensionsBuilder, ExtensionsDispatcher, TestExtensions, TestManifest,
+    DispatchRule, ExtContext, ExtensionsBuilder, ExtensionsDispatcher, TestExtensions, TestManifest,
     runtime::extension::builder::AnyExtension,
 };
 
 impl AuthorizationExtension<ExtContext> for ExtensionsDispatcher {
     fn authorize_query<'ctx, 'fut, Extensions, Arguments>(
         &'ctx self,
-        context: &ExtContext,
+        ctx: &'ctx ExtContext,
         subgraph_headers: http::HeaderMap,
         token: TokenRef<'ctx>,
         extensions: Extensions,
@@ -55,7 +55,7 @@ impl AuthorizationExtension<ExtContext> for ExtensionsDispatcher {
         if !wasm_extensions.is_empty() {
             self.wasm
                 .authorize_query(
-                    &context.wasm,
+                    &ctx.wasm,
                     subgraph_headers,
                     token,
                     wasm_extensions,
@@ -66,7 +66,7 @@ impl AuthorizationExtension<ExtContext> for ExtensionsDispatcher {
         } else {
             self.test
                 .authorize_query(
-                    &context.test,
+                    ctx,
                     subgraph_headers,
                     token,
                     test_extensions,
@@ -79,7 +79,7 @@ impl AuthorizationExtension<ExtContext> for ExtensionsDispatcher {
 
     fn authorize_response<'ctx, 'fut>(
         &'ctx self,
-        context: &ExtContext,
+        ctx: &'ctx ExtContext,
         extension_id: ExtensionId,
         directive_name: &'ctx str,
         directive_site: DirectiveSite<'ctx>,
@@ -91,21 +91,21 @@ impl AuthorizationExtension<ExtContext> for ExtensionsDispatcher {
         match self.dispatch[&extension_id] {
             DispatchRule::Wasm => self
                 .wasm
-                .authorize_response(&context.wasm, extension_id, directive_name, directive_site, items)
+                .authorize_response(&ctx.wasm, extension_id, directive_name, directive_site, items)
                 .boxed(),
             DispatchRule::Test => self
                 .test
-                .authorize_response(&context.test, extension_id, directive_name, directive_site, items)
+                .authorize_response(ctx, extension_id, directive_name, directive_site, items)
                 .boxed(),
         }
     }
 }
 
-impl AuthorizationExtension<DynHookContext> for TestExtensions {
+impl AuthorizationExtension<ExtContext> for TestExtensions {
     #[allow(clippy::manual_async_fn)]
     fn authorize_query<'ctx, 'fut, Extensions, Arguments>(
         &'ctx self,
-        context: &DynHookContext,
+        ctx: &'ctx ExtContext,
         headers: http::HeaderMap,
         token: TokenRef<'ctx>,
         extensions: Extensions,
@@ -133,8 +133,6 @@ impl AuthorizationExtension<DynHookContext> for TestExtensions {
             })
             .collect::<Vec<_>>();
 
-        let context = context.clone();
-
         async move {
             let headers = RwLock::new(headers);
             let headers_ref = &headers;
@@ -143,14 +141,13 @@ impl AuthorizationExtension<DynHookContext> for TestExtensions {
 
             let decisions = extensions
                 .into_iter()
-                .map(move |(extension_id, directive_range, query_elements_range)| {
-                    let context = context.clone();
-                    async move {
+                .map(
+                    move |(extension_id, directive_range, query_elements_range)| async move {
                         let instance = self.state.lock().await.get_authorization_ext(extension_id);
 
                         instance
                             .authorize_query(
-                                context,
+                                ctx,
                                 headers_ref,
                                 token,
                                 directives[directive_range]
@@ -166,8 +163,8 @@ impl AuthorizationExtension<DynHookContext> for TestExtensions {
                                 })
                             })
                             .await
-                    }
-                })
+                    },
+                )
                 .collect::<FuturesUnordered<_>>()
                 .try_collect()
                 .await?;
@@ -179,7 +176,7 @@ impl AuthorizationExtension<DynHookContext> for TestExtensions {
 
     fn authorize_response<'ctx, 'fut>(
         &'ctx self,
-        context: &DynHookContext,
+        ctx: &'ctx ExtContext,
         extension_id: ExtensionId,
         directive_name: &'ctx str,
         directive_site: DirectiveSite<'ctx>,
@@ -193,11 +190,10 @@ impl AuthorizationExtension<DynHookContext> for TestExtensions {
             .map(serde_json::to_value)
             .collect::<Result<Vec<_>, _>>()
             .unwrap();
-        let context = context.clone();
         async move {
             let instance = self.state.lock().await.get_authorization_ext(extension_id);
             instance
-                .authorize_response(context, directive_name, directive_site, items)
+                .authorize_response(ctx, directive_name, directive_site, items)
                 .await
         }
         .boxed()
@@ -264,7 +260,7 @@ impl AnyExtension for AuthorizationExt {
 pub trait AuthorizationTestExtension: Send + Sync + 'static {
     async fn authorize_query(
         &self,
-        wasm_context: DynHookContext,
+        ctx: &ExtContext,
         headers: &RwLock<http::HeaderMap>,
         token: TokenRef<'_>,
         elements_grouped_by_directive_name: Vec<(&str, Vec<QueryElement<'_, serde_json::Value>>)>,
@@ -273,7 +269,7 @@ pub trait AuthorizationTestExtension: Send + Sync + 'static {
     #[allow(clippy::manual_async_fn)]
     async fn authorize_response(
         &self,
-        wasm_context: DynHookContext,
+        ctx: &ExtContext,
         directive_name: &str,
         directive_site: DirectiveSite<'_>,
         items: Vec<serde_json::Value>,

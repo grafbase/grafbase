@@ -21,7 +21,6 @@ pub enum Event {
 }
 
 /// Represents a completed GraphQL operation execution.
-#[non_exhaustive]
 pub struct ExecutedOperation {
     pub name: Option<String>,
     pub document: Arc<str>,
@@ -50,7 +49,6 @@ impl ExecutedOperation {
 }
 
 /// Represents a completed request to a federated subgraph.
-#[non_exhaustive]
 pub struct ExecutedSubgraphRequest {
     pub subgraph_name: String,
     pub method: http::Method,
@@ -101,7 +99,6 @@ pub enum RequestExecution {
 }
 
 /// Details about a successful subgraph response.
-#[non_exhaustive]
 #[derive(Debug, Clone)]
 pub struct SubgraphResponse {
     pub connection_time: Duration,
@@ -139,7 +136,6 @@ pub enum CacheStatus {
 }
 
 /// Represents a completed HTTP request of the complete operation.
-#[non_exhaustive]
 pub struct ExecutedHttpRequest {
     pub method: http::Method,
     pub url: String,
@@ -162,25 +158,8 @@ impl ExecutedHttpRequest {
 }
 
 /// Represents a custom event emitted by an extension.
-#[non_exhaustive]
 pub struct ExtensionEvent {
     pub extension_name: String,
     pub event_name: String,
     pub data: Vec<u8>,
-}
-
-impl ExtensionEvent {
-    /// Creates a new builder for constructing an `ExtensionEvent`.
-    ///
-    /// # Arguments
-    ///
-    /// * `extension_name` - The name of the extension emitting the event
-    /// * `event_name` - The custom event identifier
-    pub fn builder<'a>(extension_name: &'a str, event_name: &'a str) -> ExtensionEventBuilder<'a> {
-        ExtensionEventBuilder {
-            extension_name,
-            event_name,
-            data: Vec::new(),
-        }
-    }
 }

@@ -10,7 +10,7 @@ use tracing::Instrument;
 
 use crate::{
     Engine, Runtime,
-    engine::WasmExtensionContext,
+    engine::ExtensionContext,
     prepare::PrepareContext,
     response::{ErrorCode, GraphqlError, Response},
 };
@@ -20,7 +20,7 @@ use super::{RequestContext, default_response_extensions, response_extension_for_
 impl<R: Runtime> Engine<R> {
     pub(super) async fn execute_single(
         self: &Arc<Self>,
-        request_context: &Arc<RequestContext<WasmExtensionContext<R>>>,
+        request_context: &Arc<RequestContext<ExtensionContext<R>>>,
         request: Request,
     ) -> Response {
         let start = Instant::now();

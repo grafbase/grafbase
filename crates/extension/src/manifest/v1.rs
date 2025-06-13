@@ -1,8 +1,7 @@
 mod event_filter;
 mod permissions;
 
-pub use enumflags2::BitFlags;
-pub use event_filter::{EventFilter, EventFilterType};
+pub use event_filter::*;
 pub use permissions::ExtensionPermission;
 
 use crate::Id;
@@ -25,8 +24,8 @@ pub struct Manifest {
     pub repository_url: Option<url::Url>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub license: Option<String>,
-    #[serde(default, with = "permissions::serializing")]
-    pub permissions: BitFlags<ExtensionPermission>,
+    #[serde(default)]
+    pub permissions: Vec<ExtensionPermission>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub event_filter: Option<EventFilter>,
 }
@@ -57,19 +56,19 @@ impl Manifest {
     }
 
     pub fn network_enabled(&self) -> bool {
-        self.permissions.contains(ExtensionPermission::Network)
+        self.permissions.contains(&ExtensionPermission::Network)
     }
 
     pub fn stdout_enabled(&self) -> bool {
-        self.permissions.contains(ExtensionPermission::Stdout)
+        self.permissions.contains(&ExtensionPermission::Stdout)
     }
 
     pub fn stderr_enabled(&self) -> bool {
-        self.permissions.contains(ExtensionPermission::Stderr)
+        self.permissions.contains(&ExtensionPermission::Stderr)
     }
 
     pub fn environment_variables_enabled(&self) -> bool {
-        self.permissions.contains(ExtensionPermission::EnvironmentVariables)
+        self.permissions.contains(&ExtensionPermission::EnvironmentVariables)
     }
 
     pub fn get_directive_type(&self, name: &str) -> DirectiveType {
@@ -227,7 +226,12 @@ mod tests {
             homepage_url: Some("http://example.com/my-extension".parse().unwrap()),
             repository_url: None,
             license: None,
-            permissions: BitFlags::all(),
+            permissions: vec![
+                ExtensionPermission::Stdout,
+                ExtensionPermission::Stderr,
+                ExtensionPermission::EnvironmentVariables,
+                ExtensionPermission::Network,
+            ],
             event_filter: None,
         };
 
@@ -269,7 +273,7 @@ mod tests {
             homepage_url: Some("http://example.com/my-extension".parse().unwrap()),
             repository_url: None,
             license: None,
-            permissions: BitFlags::empty(),
+            permissions: Default::default(),
             event_filter: None,
         };
 
@@ -309,7 +313,7 @@ mod tests {
             homepage_url: Some("http://example.com/my-extension".parse().unwrap()),
             repository_url: None,
             license: None,
-            permissions: BitFlags::empty(),
+            permissions: Default::default(),
             event_filter: None,
         };
 
@@ -346,7 +350,7 @@ mod tests {
             homepage_url: Some("http://example.com/my-extension".parse().unwrap()),
             repository_url: None,
             license: None,
-            permissions: BitFlags::empty(),
+            permissions: Default::default(),
             event_filter: None,
         };
 
@@ -383,7 +387,7 @@ mod tests {
             homepage_url: Some("http://example.com/my-extension".parse().unwrap()),
             repository_url: None,
             license: None,
-            permissions: BitFlags::empty(),
+            permissions: Default::default(),
             event_filter: None,
         };
 
@@ -422,7 +426,7 @@ mod tests {
             homepage_url: Some("http://example.com/my-extension".parse().unwrap()),
             repository_url: None,
             license: None,
-            permissions: BitFlags::empty(),
+            permissions: Default::default(),
             event_filter: None,
         };
         assert_eq!(manifest, expected);
@@ -472,7 +476,7 @@ mod tests {
             homepage_url: Some("http://example.com/my-extension".parse().unwrap()),
             repository_url: None,
             license: None,
-            permissions: BitFlags::empty(),
+            permissions: Default::default(),
             event_filter: None,
         };
 
@@ -506,7 +510,7 @@ mod tests {
             homepage_url: Some("http://example.com/my-extension".parse().unwrap()),
             repository_url: None,
             license: None,
-            permissions: BitFlags::empty(),
+            permissions: Default::default(),
             event_filter: None,
         };
         assert_eq!(manifest, expected);
@@ -539,7 +543,7 @@ mod tests {
             homepage_url: Some("http://example.com/my-extension".parse().unwrap()),
             repository_url: None,
             license: None,
-            permissions: BitFlags::empty(),
+            permissions: Default::default(),
             event_filter: None,
         };
         assert_eq!(manifest, expected);
@@ -573,7 +577,7 @@ mod tests {
             homepage_url: Some("http://example.com/my-extension".parse().unwrap()),
             repository_url: None,
             license: None,
-            permissions: BitFlags::empty(),
+            permissions: Default::default(),
             event_filter: None,
         };
         assert_eq!(manifest, expected);

@@ -1,55 +1,61 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{
+    collections::HashMap,
+    sync::{Arc, OnceLock},
+};
 
+use event_queue::EventQueue;
 use extension_catalog::ExtensionId;
 use grafbase_telemetry::otel::opentelemetry::trace::TraceId;
 use runtime::extension::ExtensionContext;
 
-use crate::resources::EventQueue;
-
 /// The internal per-request context storage. Accessible from all hooks throughout a single request
 pub type ContextMap = HashMap<String, String>;
 
-type AuthorizationState = Arc<tokio::sync::RwLock<Vec<(ExtensionId, Vec<u8>)>>>;
-
 /// The internal per-request context storage, read-only.
 #[derive(Clone)]
-pub struct SharedContext {
-    /// Key-value storage.
+pub struct SharedContext(Arc<SharedContextInner>);
+
+impl std::ops::Deref for SharedContext {
+    type Target = SharedContextInner;
+    fn deref(&self) -> &Self::Target {
+        self.0.as_ref()
+    }
+}
+
+pub struct SharedContextInner {
+    pub(crate) authorization_states: OnceLock<Vec<(ExtensionId, Vec<u8>)>>,
+    // FIXME: legacy kv for sdk 0.9
     pub(crate) kv: Arc<HashMap<String, String>>,
-    pub(crate) authorization_state: AuthorizationState,
     /// A log channel for access logs.
     pub(crate) trace_id: TraceId,
     pub(crate) event_queue: EventQueue,
 }
 
 impl ExtensionContext for SharedContext {
-    type EventQueue = EventQueue;
-
-    fn event_queue(&self) -> &Self::EventQueue {
+    fn event_queue(&self) -> &EventQueue {
         &self.event_queue
     }
 }
 
-// FIXME: Remove me once hooks & extensions context are merged.
 impl Default for SharedContext {
     fn default() -> Self {
-        Self {
+        Self(Arc::new(SharedContextInner {
             kv: Default::default(),
-            authorization_state: Default::default(),
+            authorization_states: Default::default(),
             trace_id: TraceId::INVALID,
             event_queue: Default::default(),
-        }
+        }))
     }
 }
 
 impl SharedContext {
     /// Creates a new shared context.
-    pub fn new(kv: Arc<HashMap<String, String>>, trace_id: TraceId, event_queue: EventQueue) -> Self {
-        Self {
-            kv,
-            trace_id,
+    pub fn new(event_queue: EventQueue) -> Self {
+        Self(Arc::new(SharedContextInner {
             event_queue,
-            ..Default::default()
-        }
+            kv: Default::default(),
+            authorization_states: Default::default(),
+            trace_id: TraceId::INVALID,
+        }))
     }
 }

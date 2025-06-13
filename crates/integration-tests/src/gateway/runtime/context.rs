@@ -1,5 +1,4 @@
 use std::{
-    any::{Any, TypeId},
     collections::HashMap,
     sync::{Arc, Mutex},
 };
@@ -10,53 +9,21 @@ use runtime::extension::ExtensionContext;
 #[derive(Default, Clone)]
 pub struct ExtContext {
     pub wasm: wasi_component_loader::SharedContext,
-    pub test: DynHookContext,
+    pub kv: Arc<Mutex<HashMap<String, serde_json::Value>>>,
 }
 
 impl ExtensionContext for ExtContext {
-    type EventQueue = EventQueue;
-
-    fn event_queue(&self) -> &Self::EventQueue {
+    fn event_queue(&self) -> &EventQueue {
         self.wasm.event_queue()
     }
 }
 
-#[derive(Default, Clone)]
-pub struct DynHookContext {
-    by_type: HashMap<TypeId, Arc<dyn Any + Sync + Send>>,
-    by_name: Arc<Mutex<HashMap<String, serde_json::Value>>>,
-}
-
-impl ExtensionContext for DynHookContext {
-    type EventQueue = ();
-
-    fn event_queue(&self) -> &Self::EventQueue {
-        &()
-    }
-}
-
-impl DynHookContext {
-    pub fn typed_get<T>(&self) -> Option<&T>
-    where
-        T: 'static + Send + Sync,
-    {
-        self.by_type
-            .get(&TypeId::of::<T>())
-            .and_then(|value| value.downcast_ref::<T>())
-    }
-
-    pub fn typed_insert<T>(&mut self, value: T)
-    where
-        T: 'static + Send + Sync,
-    {
-        self.by_type.insert(TypeId::of::<T>(), Arc::new(value));
-    }
-
+impl ExtContext {
     pub fn get(&self, name: &str) -> Option<serde_json::Value> {
-        self.by_name.lock().unwrap().get(name).cloned()
+        self.kv.lock().unwrap().get(name).cloned()
     }
 
     pub fn insert(&self, name: impl Into<String>, value: impl Into<serde_json::Value>) {
-        self.by_name.lock().unwrap().insert(name.into(), value.into());
+        self.kv.lock().unwrap().insert(name.into(), value.into());
     }
 }
