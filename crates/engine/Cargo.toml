@@ -26,6 +26,7 @@ fixedbitset.workspace = true
 futures.workspace = true
 futures-lite.workspace = true
 futures-util.workspace = true
+fxhash.workspace = true
 grafbase-telemetry.workspace = true
 grafbase-workspace-hack.workspace = true
 headers.workspace = true

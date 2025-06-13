@@ -4,7 +4,7 @@ use operation::{OperationContext, QueryInputValueRecord};
 use petgraph::{Direction, stable_graph::NodeIndex, visit::EdgeRef};
 use schema::{
     CompositeType, CompositeTypeId, DeriveMapping, EntityDefinition, FieldDefinition, FieldSet, FieldSetItem,
-    FieldSetRecord, SchemaInputValueRecord, SubgraphId,
+    FieldSetRecord, ResolverDefinitionRecord, SchemaInputValueRecord, SubgraphId,
 };
 use walker::Walk;
 
@@ -141,7 +141,7 @@ where
         // Try to plan this field with alternative resolvers if any exist.
         // --
         for resolver_definition in field_definition.resolvers() {
-            // If within the same subgraph, we skip it. Resolvers are entrypoints.
+            // If we could provide from the current resolver within the same subgraph, we skip it.
             if could_be_provided_from_parent && Some(resolver_definition.subgraph_id()) == parent_subgraph_id {
                 continue;
             };
@@ -353,7 +353,22 @@ where
                 parent_output,
                 field_definition,
             );
+
+            // Either it's a GraphQL endpoint and anything we can reach (within the subgraph) is necessarily provideable or it's a virtual
+            // one and we need to ensure there isn't any extension resolver defined for this field.
+            let doesnt_require_dedicated_resolver = subgraph_id.is_graphql_endpoint()
+                || field_definition.resolvers().all(|r| {
+                    r.subgraph_id() != subgraph_id
+                        || !matches!(
+                            r.as_ref(),
+                            ResolverDefinitionRecord::Extension(_)
+                                | ResolverDefinitionRecord::FieldResolverExtension(_)
+                                | ResolverDefinitionRecord::SelectionSetResolverExtension(_)
+                        )
+                });
+
             if is_reachable
+                && doesnt_require_dedicated_resolver
                 && self.is_field_providable_in_subgraph(subgraph_id, field_definition)
                 && field_definition.requires_for_subgraph(subgraph_id).is_none()
             {

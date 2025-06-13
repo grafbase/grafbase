@@ -29,6 +29,7 @@ type QueryPartition @indexed(id_size: "u16") @meta(module: "query_partition") {
 
 type ResponseObjectSetDefinition @meta(module: "response_object_set") @indexed(id_size: "u16", deduplicated: true) {
   ty: CompositeType!
+  query_partition: [QueryPartition!]! @vec
 }
 
 # ----------------
