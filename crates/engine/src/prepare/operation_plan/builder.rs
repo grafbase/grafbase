@@ -215,7 +215,13 @@ impl<'op, R: Runtime> Builder<'op, '_, R> {
         self.partition_to_plan[usize::from(query_partition.id)] = Some(plan_id);
         let required_fields_record = self.create_required_field_set_for_query_partition(query_partition);
 
-        self.register_dependencies(plan_id.into(), required_fields_record.walk(self.cached_ctx));
+        if required_fields_record.is_empty() {
+            if let Some(parent_query_partition_id) = query_partition.input().query_partition_ids.first() {
+                self.dependencies.push((plan_id.into(), *parent_query_partition_id));
+            }
+        } else {
+            self.register_dependencies(plan_id.into(), required_fields_record.walk(self.cached_ctx));
+        }
         let plan_resolver = PlanRecord {
             query_partition_id: query_partition.id,
             required_fields_record,

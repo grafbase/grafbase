@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use engine::GraphqlError;
+use engine::{ErrorCode, GraphqlError};
 use engine_schema::ExtensionDirective;
 use futures::{FutureExt as _, stream::BoxStream};
 use runtime::{
@@ -173,7 +173,12 @@ pub trait ResolverTestExtension: Send + Sync + 'static {
         directive_arguments: serde_json::Value,
         field: Box<dyn DynField<'ctx>>,
     ) -> Result<Vec<u8>, GraphqlError> {
-        Ok(Vec::new())
+        serde_json::to_vec(&directive_arguments).map_err(|e| {
+            GraphqlError::new(
+                format!("Failed to serialize directive arguments: {}", e),
+                ErrorCode::ExtensionError,
+            )
+        })
     }
 
     async fn resolve(

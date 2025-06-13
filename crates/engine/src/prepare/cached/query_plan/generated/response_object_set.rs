@@ -3,7 +3,10 @@
 //! ===================
 //! Generated with: `cargo run -p engine-codegen`
 //! Source file: <engine-codegen dir>/domain/query_plan.graphql
-use crate::prepare::cached::query_plan::prelude::*;
+use crate::prepare::cached::query_plan::{
+    generated::{QueryPartition, QueryPartitionId},
+    prelude::*,
+};
 use schema::{CompositeType, CompositeTypeId};
 #[allow(unused_imports)]
 use walker::{Iter, Walk};
@@ -13,11 +16,13 @@ use walker::{Iter, Walk};
 /// ```custom,{.language-graphql}
 /// type ResponseObjectSetDefinition @meta(module: "response_object_set") @indexed(id_size: "u16", deduplicated: true) {
 ///   ty: CompositeType!
+///   query_partition: [QueryPartition!]! @vec
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct ResponseObjectSetDefinitionRecord {
     pub ty_id: CompositeTypeId,
+    pub query_partition_ids: Vec<QueryPartitionId>,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
@@ -46,6 +51,9 @@ impl<'a> ResponseObjectSetDefinition<'a> {
     pub(crate) fn ty(&self) -> CompositeType<'a> {
         self.ty_id.walk(self.ctx)
     }
+    pub(crate) fn query_partition(&self) -> impl Iter<Item = QueryPartition<'a>> + 'a {
+        self.as_ref().query_partition_ids.walk(self.ctx)
+    }
 }
 
 impl<'a> Walk<CachedOperationContext<'a>> for ResponseObjectSetDefinitionId {
@@ -69,6 +77,7 @@ impl std::fmt::Debug for ResponseObjectSetDefinition<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ResponseObjectSetDefinition")
             .field("ty", &self.ty())
+            .field("query_partition", &self.query_partition())
             .finish()
     }
 }

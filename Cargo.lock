@@ -2816,6 +2816,7 @@ dependencies = [
  "futures",
  "futures-lite 2.6.0",
  "futures-util",
+ "fxhash",
  "grafbase-telemetry",
  "grafbase-workspace-hack",
  "headers",
