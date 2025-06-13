@@ -30,7 +30,7 @@ pub struct LookupResolverDefinitionRecord {
     pub key_record: FieldSetRecord,
     pub field_definition_id: FieldDefinitionId,
     pub resolver_id: ResolverDefinitionId,
-    pub batch: bool,
+    pub guest_batch: bool,
     pub injection_ids: IdRange<ArgumentInjectionId>,
 }
 
@@ -93,7 +93,7 @@ impl std::fmt::Debug for LookupResolverDefinition<'_> {
             .field("key", &self.key())
             .field("field_definition", &self.field_definition())
             .field("resolver", &self.resolver())
-            .field("batch", &self.batch)
+            .field("guest_batch", &self.guest_batch)
             .field("injections", &self.injections())
             .finish()
     }

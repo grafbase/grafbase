@@ -82,7 +82,10 @@ impl TestRunner {
             }
         }
 
-        let federated_graph = graphql_composition::compose(&subgraphs).into_result().unwrap();
+        let federated_graph = graphql_composition::compose(&subgraphs)
+            .warnings_are_fatal()
+            .into_result()
+            .unwrap();
         let federated_graph = graphql_composition::render_federated_sdl(&federated_graph)?;
 
         let mut this = Self {

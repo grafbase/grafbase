@@ -7,6 +7,13 @@ pub struct CompositionResult {
 }
 
 impl CompositionResult {
+    /// Treat all warnings as fatal.
+    pub fn warnings_are_fatal(mut self) -> Self {
+        if !self.diagnostics.is_empty() {
+            self.federated_graph = None;
+        }
+        self
+    }
     /// Simplify the result data to a yes-no answer: did composition succeed?
     ///
     /// `Ok()` contains the [FederatedGraph].

@@ -113,7 +113,7 @@ fn receive_subgraph_schema() {
             .with_subgraph_sdl(
                 "echo-config",
                 r#"
-                extend schema @link(url: "https://specs.apollo.dev/federation/v2.0", import: ["@key"])
+                extend schema @link(url: "https://specs.apollo.dev/federation/v2.0", import: ["@key", "@external"])
 
                 type Query {
                     config: Config!
@@ -146,7 +146,7 @@ fn receive_subgraph_schema() {
             .with_subgraph_sdl(
                 "other",
                 r#"
-                extend schema @link(url: "https://specs.apollo.dev/federation/v2.0", import: ["@key"])
+                extend schema @link(url: "https://specs.apollo.dev/federation/v2.0", import: ["@key", "@external"])
 
                 type Query {
                     metrics: Metrics!

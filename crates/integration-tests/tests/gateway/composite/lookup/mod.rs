@@ -4,53 +4,59 @@ mod shape;
 
 use integration_tests::{gateway::Gateway, runtime};
 
-use crate::gateway::extensions::selection_set_resolver::StaticSelectionSetResolverExt;
+use crate::gateway::extensions::resolver::ResolverExt;
 
 use std::sync::Arc;
 
-use engine::GraphqlError;
-use engine_schema::Subgraph;
-use extension_catalog::{ExtensionId, Id};
+use engine_schema::ExtensionDirective;
+use extension_catalog::Id;
 use graphql_mocks::dynamic::{DynamicSchema, DynamicSubgraph};
-use integration_tests::gateway::{AnyExtension, SelectionSetResolverTestExtension, TestManifest};
-use runtime::extension::{ArgumentsId, Data};
+use integration_tests::gateway::{AnyExtension, ResolverTestExtension, TestManifest};
+use runtime::extension::{ArgumentsId, Data, Response};
 use serde_json::json;
 
 #[derive(Clone)]
-pub struct EchoArgs;
+struct EchoLookup {
+    pub batch: bool,
+}
 
-impl AnyExtension for EchoArgs {
+impl AnyExtension for EchoLookup {
     fn register(self, state: &mut integration_tests::gateway::ExtensionsBuilder) {
         let id = state.push_test_extension(TestManifest {
             id: Id {
-                name: "static".to_string(),
+                name: "echo".to_string(),
                 version: "1.0.0".parse().unwrap(),
             },
-            r#type: extension_catalog::Type::SelectionSetResolver(Default::default()),
-            sdl: Some(r#"directive @init on SCHEMA"#),
+            r#type: extension_catalog::Type::Resolver(Default::default()),
+            sdl: Some(r#"directive @echo on FIELD_DEFINITION"#),
         });
-        state.test.selection_set_resolver_builders.insert(
+        state.test.resolver_builders.insert(
             id,
-            Arc::new(move || -> Arc<dyn SelectionSetResolverTestExtension> { Arc::new(self.clone()) }),
+            Arc::new(move || -> Arc<dyn ResolverTestExtension> { Arc::new(self.clone()) }),
         );
     }
 }
 
 #[async_trait::async_trait]
-impl SelectionSetResolverTestExtension for EchoArgs {
+impl ResolverTestExtension for EchoLookup {
     async fn resolve(
         &self,
-        _extension_id: ExtensionId,
-        _subgraph: Subgraph<'_>,
+        _directive: ExtensionDirective<'_>,
         _prepared_data: &[u8],
         _subgraph_headers: http::HeaderMap,
         mut arguments: Vec<(ArgumentsId, serde_json::Value)>,
-    ) -> Result<Data, GraphqlError> {
+    ) -> Response {
         assert!(arguments.len() == 1);
         let (_, arg) = arguments.pop().unwrap();
-        Ok(Data::Json(
-            serde_json::to_vec(&serde_json::json!([{"args": arg}])).unwrap().into(),
-        ))
+        if self.batch {
+            Response::data(Data::Json(
+                serde_json::to_vec(&serde_json::json!([{"args": arg}])).unwrap().into(),
+            ))
+        } else {
+            Response::data(Data::Json(
+                serde_json::to_vec(&serde_json::json!({"args": arg})).unwrap().into(),
+            ))
+        }
     }
 }
 
@@ -161,12 +167,12 @@ fn basic() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@init"])
+                    @link(url: "resolver-1.0.0", import: ["@resolve"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
-                    @init
+
 
                 type Query {
-                    productBatch(ids: [ID!]!): [Product!]! @lookup
+                    productBatch(ids: [ID!]!): [Product!]! @lookup @resolve
                 }
 
                 type Product @key(fields: "id") {
@@ -175,9 +181,7 @@ fn basic() {
                 }
                 "#,
             )
-            .with_extension(StaticSelectionSetResolverExt::json(
-                json!([{"code": "C1"}, {"code": "C2"}]),
-            ))
+            .with_extension(ResolverExt::json(json!([{"code": "C1"}, {"code": "C2"}])))
             .build()
             .await;
 

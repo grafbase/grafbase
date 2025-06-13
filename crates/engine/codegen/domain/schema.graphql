@@ -390,7 +390,7 @@ type LookupResolverDefinition @meta(module: "resolver/lookup") @indexed(id_size:
   key: FieldSet!
   field_definition: FieldDefinition!
   resolver: ResolverDefinition!
-  batch: Boolean!
+  guest_batch: Boolean!
   injections: [ArgumentInjection!]!
 }
 

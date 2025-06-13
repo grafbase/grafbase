@@ -86,7 +86,13 @@ pub(super) fn collect_composed_directives<'a>(
                         })
                     }
                     (None, true) => Some(ir::DirectiveProvenance::ComposeDirective),
-                    (None, false) => None,
+                    (None, false) => {
+                        ctx.diagnostics.push_warning(format!(
+                            "Directive `{}` is not defined in any extension or composed directive",
+                            &ctx[directive.name]
+                        ));
+                        None
+                    }
                 },
             };
 

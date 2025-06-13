@@ -29,35 +29,15 @@ fn authenticated() {}
 )]
 fn requires_scopes(scopes: Vec<Vec<String>>) {}
 
-#[TypeDirective(
-    name = "authorized",
-    location = "FieldDefinition",
-    location = "Object",
-    composable = "https://custom.spec.dev/extension/v1.0"
-)]
-fn authorized(
-    arguments: Option<String>,
-    fields: Option<String>,
-    node: Option<String>,
-    metadata: Option<Vec<Vec<String>>>,
-) {
-}
-
 #[derive(Default)]
 pub struct Query;
 
 #[derive(Default, SimpleObject)]
-#[graphql(
-    directive = authorized::apply(None,  None,None, None)
-)]
 pub struct AuthorizedNode {
     pub id: String,
 }
 
 #[derive(Default, SimpleObject)]
-#[graphql(
-    directive = authorized::apply(None, None,  None,Some(vec![vec!["admin".into()]]))
-)]
 pub struct AuthorizedWithMetdataNode {
     pub id: String,
 }
@@ -97,16 +77,10 @@ impl AuthorizedEdgeWithFields {
         &self.id
     }
 
-    #[graphql(
-        directive = authorized::apply(None, Some("id".to_string()),  None,None)
-    )]
     async fn with_id(&self) -> &'static str {
         "You have access"
     }
 
-    #[graphql(
-        directive = authorized::apply(None, Some("id".to_string()),  None,Some(vec![vec!["rusty".to_string()]]))
-    )]
     async fn with_id_and_metadata(&self) -> &'static str {
         "You have access"
     }
@@ -123,57 +97,36 @@ struct DummyNode {
 
 #[Object]
 impl AuthorizedEdgeWithNode {
-    #[graphql(
-        directive = authorized::apply(None, None, Some("id".to_string()), None)
-    )]
     async fn with_id(&self) -> DummyNode {
         DummyNode {
             id: self.ids.first().cloned().unwrap_or_default(),
         }
     }
 
-    #[graphql(
-        directive = authorized::apply(None, None, Some("id".to_string()), Some(vec![vec!["rusty".to_string()]]))
-    )]
     async fn with_id_and_metadata(&self) -> DummyNode {
         DummyNode {
             id: self.ids.first().cloned().unwrap_or_default(),
         }
     }
 
-    #[graphql(
-        directive = authorized::apply(None, None, Some("id".to_string()), None)
-    )]
     async fn nullable_with_id(&self) -> Option<DummyNode> {
         Some(DummyNode {
             id: self.ids.first().cloned().unwrap_or_default(),
         })
     }
 
-    #[graphql(
-        directive = authorized::apply(None, None, Some("id".to_string()), None)
-    )]
     async fn list_with_id(&self) -> Vec<DummyNode> {
         self.ids.clone().into_iter().map(|id| DummyNode { id }).collect()
     }
 
-    #[graphql(
-        directive = authorized::apply(None, None, Some("id".to_string()), None)
-    )]
     async fn list_nullable_with_id(&self) -> Vec<Option<DummyNode>> {
         self.ids.clone().into_iter().map(|id| Some(DummyNode { id })).collect()
     }
 
-    #[graphql(
-        directive = authorized::apply(None, None, Some("id".to_string()), None)
-    )]
     async fn list_list_with_id(&self) -> Vec<Vec<DummyNode>> {
         self.ids.clone().into_iter().map(|id| vec![DummyNode { id }]).collect()
     }
 
-    #[graphql(
-        directive = authorized::apply(None, None, Some("id".to_string()), None)
-    )]
     async fn list_nullable_list_with_id(&self) -> Vec<Option<Vec<DummyNode>>> {
         self.ids
             .clone()
@@ -182,9 +135,6 @@ impl AuthorizedEdgeWithNode {
             .collect()
     }
 
-    #[graphql(
-        directive = authorized::apply(None, None, Some("id".to_string()), None)
-    )]
     async fn list_list_nullable_with_id(&self) -> Vec<Vec<Option<DummyNode>>> {
         self.ids
             .clone()
@@ -257,23 +207,14 @@ impl Check {
     }
 
     // -- @authorized -- //
-    #[graphql(
-        directive = authorized::apply(None, None, None, None)
-    )]
     async fn authorized(&self) -> &'static str {
         "You have access"
     }
 
-    #[graphql(
-        directive = authorized::apply(None, None, None, Some(vec![vec!["admin".into()]]))
-    )]
     async fn authorized_with_metadata(&self) -> &'static str {
         "You have access"
     }
 
-    #[graphql(
-        directive = authorized::apply(Some("id".into()), None, None, None)
-    )]
     async fn authorized_with_id(&self, id: i64) -> &'static str {
         let _ = id;
         "You have access to the sensistive data"
@@ -284,16 +225,10 @@ pub struct OtherCheck;
 
 #[Object]
 impl OtherCheck {
-    #[graphql(
-        directive = authorized::apply(None, None, None, None)
-    )]
     async fn authorized(&self) -> &'static str {
         "Other: You have access"
     }
 
-    #[graphql(
-        directive = authorized::apply(None, None, None, Some(vec![vec!["admin".into()]]))
-    )]
     async fn authorized_with_metadata(&self) -> &'static str {
         "You have access"
     }

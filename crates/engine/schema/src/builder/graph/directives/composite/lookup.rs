@@ -140,7 +140,7 @@ fn add_lookup_entity_resolvers(
                 key_record: key.clone(),
                 field_definition_id: lookup_field_id,
                 resolver_id,
-                batch,
+                guest_batch: batch,
                 injection_ids,
             });
             resolvers.push(graph.resolver_definitions.len().into());
@@ -215,7 +215,7 @@ fn detect_explicit_is_directive_injections(
 
     match is_directive_injections.len() {
         0 => Ok(ExplicitKeyInjection::None),
-        1 if has_one_of && is_directive_injections.is_empty() => {
+        1 if has_one_of => {
             let Some((argument_id, field_selection_map, directive)) = is_directive_injections.into_iter().next() else {
                 unreachable!()
             };
@@ -280,7 +280,7 @@ fn detect_explicit_is_directive_injections(
                         } else if arg.ty_record.wrapping.is_non_null() {
                             return Err((
                                 format!(
-                                    "Argument '{}' is required but is not injected with any @is directive.",
+                                    "Argument '{}' is required but is not injected by any @is directive.",
                                     builder.ctx[arg.name_id]
                                 ),
                                 field.span(),
@@ -327,7 +327,7 @@ fn detect_explicit_is_directive_injections(
                 } else if arg.ty_record.wrapping.is_non_null() {
                     return Err((
                         format!(
-                            "Argument '{}' is required but is not injected any @is directive.",
+                            "Argument '{}' is required but is not injected by any @is directive.",
                             builder.ctx[arg.name_id]
                         ),
                         field.span(),

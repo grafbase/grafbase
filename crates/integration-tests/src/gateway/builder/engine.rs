@@ -45,6 +45,7 @@ pub(super) async fn build(
                     }));
 
                     graphql_composition::compose(&subgraphs)
+                        .warnings_are_fatal()
                         .into_result()
                         .expect("schemas to compose succesfully")
                 } else {

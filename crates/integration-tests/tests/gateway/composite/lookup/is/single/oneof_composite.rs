@@ -16,11 +16,11 @@ fn basic() {
 
 
                 type Query {
-                    productBatch(input: Lookup! @is(field: "{ key: [{ a b }]}")): [Product!]! @lookup @echo
+                    productBatch(input: Lookup! @is(field: "{ key: { a b } }")): Product! @lookup @echo
                 }
 
                 input Lookup @oneOf {
-                    key: [Key!]
+                    key: Key
                 }
 
                 input Key {
@@ -37,7 +37,7 @@ fn basic() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup { batch: false })
             .build()
             .await;
 
@@ -49,12 +49,10 @@ fn basic() {
               {
                 "args": {
                   "input": {
-                    "key": [
-                      {
-                        "a": "A1",
-                        "b": "B1"
-                      }
-                    ]
+                    "key": {
+                      "a": "A1",
+                      "b": "B1"
+                    }
                   }
                 }
               }
@@ -79,11 +77,11 @@ fn nullable_lookup() {
 
 
                 type Query {
-                    productBatch(input: Lookup @is(field: "{ key: [{ a b }]}")): [Product!]! @lookup @echo
+                    productBatch(input: Lookup @is(field: "{ key: { a b } }")): Product! @lookup @echo
                 }
 
                 input Lookup @oneOf {
-                    key: [Key!]
+                    key: Key
                 }
 
                 input Key {
@@ -100,7 +98,7 @@ fn nullable_lookup() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup { batch: false })
             .build()
             .await;
 
@@ -112,75 +110,10 @@ fn nullable_lookup() {
               {
                 "args": {
                   "input": {
-                    "key": [
-                      {
-                        "a": "A1",
-                        "b": "B1"
-                      }
-                    ]
-                  }
-                }
-              }
-            ]
-          }
-        }
-        "#);
-    })
-}
-
-#[test]
-fn arg_type_compatibility_inner_nullable() {
-    runtime().block_on(async {
-        let engine = Gateway::builder()
-            .with_subgraph(gql_ab())
-            .with_subgraph_sdl(
-                "ext",
-                r#"
-                extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
-                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@is"])
-
-
-                type Query {
-                    productBatch(input: Lookup! @is(field: "{ key: [{ a b }]}")): [Product!]! @lookup @echo
-                }
-
-                input Lookup @oneOf {
-                    key: [Key]
-                }
-
-                input Key {
-                    a: ID!
-                    b: ID!
-                }
-
-                type Product @key(fields: "a b") {
-                    a: ID!
-                    b: ID!
-                    args: JSON
-                }
-
-                scalar JSON
-                "#,
-            )
-            .with_extension(EchoLookup { batch: true })
-            .build()
-            .await;
-
-        let response = engine.post("query { products { args } }").await;
-        insta::assert_json_snapshot!(response, @r#"
-        {
-          "data": {
-            "products": [
-              {
-                "args": {
-                  "input": {
-                    "key": [
-                      {
-                        "a": "A1",
-                        "b": "B1"
-                      }
-                    ]
+                    "key": {
+                      "a": "A1",
+                      "b": "B1"
+                    }
                   }
                 }
               }
@@ -205,12 +138,12 @@ fn arg_with_same_name_and_extra_input_field() {
 
 
                 type Query {
-                    productBatch(input: Lookup! @is(field: "{ key: [{ a b }]}")): [Product!]! @lookup @echo
+                    productBatch(input: Lookup! @is(field: "{ key: { a b } }")): Product! @lookup @echo
                 }
 
                 input Lookup @oneOf {
-                    key: [Key!]
-                    anything: [ID!]
+                    key: Key
+                    anything: ID
                 }
 
                 input Key {
@@ -227,7 +160,7 @@ fn arg_with_same_name_and_extra_input_field() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup { batch: false })
             .build()
             .await;
 
@@ -239,12 +172,10 @@ fn arg_with_same_name_and_extra_input_field() {
               {
                 "args": {
                   "input": {
-                    "key": [
-                      {
-                        "a": "A1",
-                        "b": "B1"
-                      }
-                    ]
+                    "key": {
+                      "a": "A1",
+                      "b": "B1"
+                    }
                   }
                 }
               }
@@ -269,11 +200,11 @@ fn arg_with_different_name() {
 
 
                 type Query {
-                    productBatch(input: Lookup! @is(field: "{ key: [{ c: a d: b }]}")): [Product!]! @lookup @echo
+                    productBatch(input: Lookup! @is(field: "{ key: { c: a d: b } }")): Product! @lookup @echo
                 }
 
                 input Lookup @oneOf {
-                    key: [Key!]
+                    key: Key
                 }
 
                 input Key {
@@ -290,7 +221,7 @@ fn arg_with_different_name() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup { batch: false })
             .build()
             .await;
 
@@ -302,12 +233,10 @@ fn arg_with_different_name() {
               {
                 "args": {
                   "input": {
-                    "key": [
-                      {
-                        "c": "A1",
-                        "d": 1
-                      }
-                    ]
+                    "key": {
+                      "c": "A1",
+                      "d": 1
+                    }
                   }
                 }
               }
@@ -319,7 +248,7 @@ fn arg_with_different_name() {
 }
 
 #[test]
-fn invalid_batch() {
+fn invalid_single() {
     runtime().block_on(async {
         let result = Gateway::builder()
             .with_subgraph(gql_ab_id_int())
@@ -332,7 +261,54 @@ fn invalid_batch() {
 
 
                 type Query {
-                    productBatch(input: Lookup! @is(field: "{ key: { a b } }")): [Product!]! @lookup @echo
+                    productBatch(input: Lookup! @is(field: "{ key: [{ a b }] }")): Product! @lookup @echo
+                }
+
+                input Lookup @oneOf {
+                    key: [Key!]
+                }
+
+                input Key {
+                    a: ID!
+                    b: Int!
+                }
+
+                type Product @key(fields: "a b") {
+                    a: ID!
+                    b: Int!
+                    args: JSON
+                }
+
+                scalar JSON
+                "#,
+            )
+            .with_extension(EchoLookup { batch: false })
+            .try_build()
+            .await;
+
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site Query.productBatch, for directive @lookup for associated @is directive: Product! is not a list but treated as such
+        See schema at 34:45:
+        (graph: EXT, field: "{ key: [{ a b }] }")
+        "#);
+    })
+}
+
+#[test]
+fn extra_required_argument() {
+    runtime().block_on(async {
+        let result = Gateway::builder()
+            .with_subgraph(gql_ab_id_int())
+            .with_subgraph_sdl(
+                "ext",
+                r#"
+                extend schema
+                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@is"])
+
+
+                type Query {
+                    productBatch(lookup: Lookup! @is(field: "{ key: { a b } }"), required: Boolean!): Product! @lookup @echo
                 }
 
                 input Lookup @oneOf {
@@ -353,61 +329,14 @@ fn invalid_batch() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
-            .try_build()
-            .await;
-
-        insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup for associated @is directive: Cannot select a field from [Product!]!, it's a list
-        See schema at 34:45:
-        (graph: EXT, field: "{ key: { a b } }")
-        "#);
-    })
-}
-
-#[test]
-fn extra_required_argument() {
-    runtime().block_on(async {
-        let result = Gateway::builder()
-            .with_subgraph(gql_ab_id_int())
-            .with_subgraph_sdl(
-                "ext",
-                r#"
-                extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
-                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@is"])
-
-
-                type Query {
-                    productBatch(lookup: Lookup! @is(field: "{ key: [{ a b }]}"), required: Boolean!): [Product!]! @lookup @echo
-                }
-
-                input Lookup @oneOf {
-                    key: [Key!]
-                }
-
-                input Key {
-                    a: ID!
-                    b: Int!
-                }
-
-                type Product @key(fields: "a b") {
-                    a: ID!
-                    b: Int!
-                    args: JSON
-                }
-
-                scalar JSON
-                "#,
-            )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup { batch: false })
             .try_build()
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         At site Query.productBatch, for directive @lookup Argument 'required' is required but is not injected by any @is directive.
         See schema at 34:3:
-        productBatch(lookup: Lookup! @composite__is(graph: EXT, field: "{ key: [{ a b }]}"), required: Boolean!): [Product!]! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        productBatch(lookup: Lookup! @composite__is(graph: EXT, field: "{ key: { a b } }"), required: Boolean!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
         "#);
     })
 }
@@ -426,11 +355,11 @@ fn extra_required_field() {
 
 
                 type Query {
-                    productBatch(lookup: Lookup! @is(field: "{ key: [{ a b }]}")): [Product!]! @lookup @echo
+                    productBatch(lookup: Lookup! @is(field: "{ key: { a b } }")): Product! @lookup @echo
                 }
 
                 input Lookup @oneOf {
-                    key: [Key!]
+                    key: Key
                 }
 
                 input Key {
@@ -448,14 +377,14 @@ fn extra_required_field() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup { batch: false })
             .try_build()
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         At site Query.productBatch, for directive @lookup for associated @is directive: For Lookup.key, field 'x' is required but it's missing from the FieldSelectionMap
         See schema at 34:46:
-        (graph: EXT, field: "{ key: [{ a b }]}")
+        (graph: EXT, field: "{ key: { a b } }")
         "#);
     })
 }

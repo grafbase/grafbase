@@ -15,7 +15,7 @@ use super::{ResolverResult, extension::ExtensionResolver, graphql::GraphqlResolv
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct LookupResolver {
-    batch: bool,
+    guest_batch: bool,
     pub proxied: LookupProxiedResolver,
 }
 
@@ -61,7 +61,7 @@ impl LookupResolver {
             }
         }?;
         Ok(LookupResolver {
-            batch: definition.batch,
+            guest_batch: definition.guest_batch,
             proxied,
         })
     }
@@ -76,29 +76,49 @@ impl LookupResolver {
     where
         'ctx: 'f,
     {
-        match &self.proxied {
-            LookupProxiedResolver::Graphql(_) => unimplemented!("GB-8942"),
-            LookupProxiedResolver::Extension(resolver) => {
-                let fut = resolver.execute_batch_lookup(ctx, plan, parent_objects, response_part);
-                async move {
-                    let response_part = fut.await;
-                    ResolverResult {
-                        response_part,
-                        on_subgraph_response_hook_output: None,
+        if self.guest_batch {
+            match &self.proxied {
+                LookupProxiedResolver::Graphql(_) => unimplemented!("GB-8942"),
+                LookupProxiedResolver::Extension(resolver) => {
+                    let fut = resolver.execute_guest_batch_lookup(ctx, plan, parent_objects, response_part);
+                    async move {
+                        let response_part = fut.await;
+                        ResolverResult {
+                            response_part,
+                            on_subgraph_response_hook_output: None,
+                        }
                     }
+                    .boxed()
                 }
-                .boxed()
+                LookupProxiedResolver::SelectionSetExtension(resolver) => {
+                    let fut = resolver.execute_batch_lookup(ctx, plan, parent_objects, response_part);
+                    async move {
+                        let response_part = fut.await;
+                        ResolverResult {
+                            response_part,
+                            on_subgraph_response_hook_output: None,
+                        }
+                    }
+                    .boxed()
+                }
             }
-            LookupProxiedResolver::SelectionSetExtension(resolver) => {
-                let fut = resolver.execute_batch_lookup(ctx, plan, parent_objects, response_part);
-                async move {
-                    let response_part = fut.await;
-                    ResolverResult {
-                        response_part,
-                        on_subgraph_response_hook_output: None,
+        } else {
+            match &self.proxied {
+                LookupProxiedResolver::Graphql(_) => unimplemented!("GB-8942"),
+                LookupProxiedResolver::Extension(resolver) => {
+                    let fut = resolver.execute_host_batch_lookup(ctx, plan, parent_objects, response_part);
+                    async move {
+                        let response_part = fut.await;
+                        ResolverResult {
+                            response_part,
+                            on_subgraph_response_hook_output: None,
+                        }
                     }
+                    .boxed()
                 }
-                .boxed()
+                LookupProxiedResolver::SelectionSetExtension(_) => {
+                    unimplemented!("Please update the extension to the latest Grafbase SDK.")
+                }
             }
         }
     }

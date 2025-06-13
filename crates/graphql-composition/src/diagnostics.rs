@@ -8,6 +8,11 @@ impl Diagnostics {
         self.0.iter().any(|diagnostic| diagnostic.is_fatal)
     }
 
+    /// Is there any diagnostic warning or error
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
     /// Iterate non-fatal diagnostics.
     pub fn iter_warnings(&self) -> impl Iterator<Item = &str> {
         self.0

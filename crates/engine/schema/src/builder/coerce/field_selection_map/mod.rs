@@ -228,12 +228,6 @@ fn bind_selected_object_value<T: Target>(
     (target, target_wrapping): (T, Wrapping),
     object: SelectedObjectValue<'_>,
 ) -> Result<BoundSelectedObjectValue<T::Id>, String> {
-    if source.wrapping.is_list() {
-        return Err(format!(
-            "Cannot select object from {}, it's a list",
-            ctx.type_name(source)
-        ));
-    }
     if target_wrapping.is_list() {
         return Err(format!("Cannot map object into {}, it's a list", target.display(ctx)));
     }
@@ -254,7 +248,7 @@ fn bind_selected_object_value<T: Target>(
     let mut fields = object
         .fields
         .into_iter()
-        .map(|field| bind_selected_object_field(ctx, source.definition_id, target, &mut nested_target_fields, field))
+        .map(|field| bind_selected_object_field(ctx, source, target, &mut nested_target_fields, field))
         .collect::<Result<Vec<_>, _>>()?;
     for (name_id, (target_field, wrapping)) in nested_target_fields {
         let id = target_field.id();
@@ -280,7 +274,7 @@ fn bind_selected_object_value<T: Target>(
 
 fn bind_selected_object_field<T: Target>(
     ctx: &mut GraphBuilder<'_>,
-    source: TypeDefinitionId,
+    source: TypeRecord,
     parent_target: T,
     target_fields: &mut Vec<(StringId, (T, Wrapping))>,
     field: SelectedObjectField<'_>,
@@ -296,17 +290,15 @@ fn bind_selected_object_field<T: Target>(
 
     let value = if let Some(value) = field.value {
         // The parent wrapping doesn't matter anymore, it was already handled.
-        SelectedValueOrField::Value(bind_selected_value(
-            ctx,
-            TypeRecord {
-                definition_id: source,
-                wrapping: Wrapping::default().non_null(),
-            },
-            target,
-            value,
-        )?)
+        SelectedValueOrField::Value(bind_selected_value(ctx, source, target, value)?)
     } else {
-        let field_ids = match source.as_composite_type() {
+        if source.wrapping.is_list() {
+            return Err(format!(
+                "Cannot select a field from {}, it's a list",
+                ctx.type_name(source)
+            ));
+        }
+        let field_ids = match source.definition_id.as_composite_type() {
             Some(CompositeTypeId::Interface(id)) => ctx.graph[id].field_ids,
             Some(CompositeTypeId::Object(id)) => ctx.graph[id].field_ids,
             Some(CompositeTypeId::Union(id)) => {
@@ -318,7 +310,7 @@ fn bind_selected_object_field<T: Target>(
             None => {
                 return Err(format!(
                     "Type {} does not have any fields",
-                    ctx[ctx.definition_name_id(source)]
+                    ctx[ctx.definition_name_id(source.definition_id)]
                 ));
             }
         };
@@ -328,7 +320,7 @@ fn bind_selected_object_field<T: Target>(
             .ok_or_else(|| {
                 format!(
                     "Type {} does not have a field named '{}'",
-                    ctx[ctx.definition_name_id(source)],
+                    ctx[ctx.definition_name_id(source.definition_id)],
                     field.key
                 )
             })?;
@@ -364,7 +356,7 @@ fn bind_selected_list_value<T: Target>(
         return Err(format!("Cannot map a list into {}", target.display(ctx)));
     };
     let Some(wrapping) = source.wrapping.without_list() else {
-        return Err(format!("Cannot select a list in {}", ctx.type_name(source)));
+        return Err(format!("{} is not a list but treated as such", ctx.type_name(source)));
     };
     let value = bind_selected_value(
         ctx,

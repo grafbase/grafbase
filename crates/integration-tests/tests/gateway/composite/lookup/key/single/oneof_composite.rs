@@ -1,12 +1,12 @@
 use integration_tests::{gateway::Gateway, runtime};
 
-use super::super::super::{EchoLookup, gql_id, gql2_name};
+use super::super::super::{EchoLookup, gql_ab, gql_ab_id_int};
 
 #[test]
 fn arg_with_same_name() {
     runtime().block_on(async {
         let engine = Gateway::builder()
-            .with_subgraph(gql_id())
+            .with_subgraph(gql_ab())
             .with_subgraph_sdl(
                 "ext",
                 r#"
@@ -16,80 +16,28 @@ fn arg_with_same_name() {
 
 
                 type Query {
-                    productBatch(input: Lookup!): [Product!]! @lookup @echo
+                    productBatch(input: Lookup!): Product! @lookup @echo
                 }
 
                 input Lookup @oneOf {
-                    id: [ID!]
+                    key: Key
                 }
 
-                type Product @key(fields: "id") {
-                    id: ID!
+                input Key {
+                    a: ID!
+                    b: ID!
+                }
+
+                type Product @key(fields: "a b") {
+                    a: ID!
+                    b: ID!
                     args: JSON
                 }
 
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
-            .build()
-            .await;
-
-        let response = engine.post("query { products { id args } }").await;
-        insta::assert_json_snapshot!(response, @r#"
-        {
-          "data": {
-            "products": [
-              {
-                "id": "1",
-                "args": {
-                  "input": {
-                    "id": [
-                      "1"
-                    ]
-                  }
-                }
-              }
-            ]
-          }
-        }
-        "#);
-    })
-}
-
-#[test]
-fn multiple_keys() {
-    runtime().block_on(async {
-        let engine = Gateway::builder()
-            .with_subgraph(gql_id())
-            .with_subgraph(gql2_name())
-            .with_subgraph_sdl(
-                "ext",
-                r#"
-                extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
-                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
-
-
-                type Query {
-                    productBatch(input: Lookup!): [Product!]! @lookup @echo
-                }
-
-                input Lookup @oneOf {
-                    id: [ID!]
-                    name: [String!]
-                }
-
-                type Product @key(fields: "id") @key(fields: "name") {
-                    id: ID!
-                    name: String!
-                    args: JSON
-                }
-
-                scalar JSON
-                "#,
-            )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup { batch: false })
             .build()
             .await;
 
@@ -101,28 +49,10 @@ fn multiple_keys() {
               {
                 "args": {
                   "input": {
-                    "id": [
-                      "1"
-                    ]
-                  }
-                }
-              }
-            ]
-          }
-        }
-        "#);
-
-        let response = engine.post("query { products2 { args } }").await;
-        insta::assert_json_snapshot!(response, @r#"
-        {
-          "data": {
-            "products2": [
-              {
-                "args": {
-                  "input": {
-                    "name": [
-                      "name1"
-                    ]
+                    "key": {
+                      "a": "A1",
+                      "b": "B1"
+                    }
                   }
                 }
               }
@@ -137,7 +67,7 @@ fn multiple_keys() {
 fn nullable_lookup() {
     runtime().block_on(async {
         let engine = Gateway::builder()
-            .with_subgraph(gql_id())
+            .with_subgraph(gql_ab())
             .with_subgraph_sdl(
                 "ext",
                 r#"
@@ -147,37 +77,43 @@ fn nullable_lookup() {
 
 
                 type Query {
-                    productBatch(input: Lookup): [Product!]! @lookup @echo
+                    productBatch(input: Lookup): Product! @lookup @echo
                 }
 
                 input Lookup @oneOf {
-                    id: [ID!]
+                    key: Key
                 }
 
-                type Product @key(fields: "id") {
-                    id: ID!
+                input Key {
+                    a: ID!
+                    b: ID!
+                }
+
+                type Product @key(fields: "a b") {
+                    a: ID!
+                    b: ID!
                     args: JSON
                 }
 
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup { batch: false })
             .build()
             .await;
 
-        let response = engine.post("query { products { id args } }").await;
+        let response = engine.post("query { products { args } }").await;
         insta::assert_json_snapshot!(response, @r#"
         {
           "data": {
             "products": [
               {
-                "id": "1",
                 "args": {
                   "input": {
-                    "id": [
-                      "1"
-                    ]
+                    "key": {
+                      "a": "A1",
+                      "b": "B1"
+                    }
                   }
                 }
               }
@@ -189,10 +125,10 @@ fn nullable_lookup() {
 }
 
 #[test]
-fn arg_type_compatibility_inner_nullable() {
+fn arg_with_same_name_and_extra_input_field() {
     runtime().block_on(async {
         let engine = Gateway::builder()
-            .with_subgraph(gql_id())
+            .with_subgraph(gql_ab())
             .with_subgraph_sdl(
                 "ext",
                 r#"
@@ -202,93 +138,44 @@ fn arg_type_compatibility_inner_nullable() {
 
 
                 type Query {
-                    productBatch(input: Lookup!): [Product!]! @lookup @echo
+                    productBatch(input: Lookup!): Product! @lookup @echo
                 }
 
                 input Lookup @oneOf {
-                    id: [ID]
+                    key: Key
+                    anything: ID
                 }
 
-                type Product @key(fields: "id") {
-                    id: ID!
+                input Key {
+                    a: ID!
+                    b: ID!
+                }
+
+                type Product @key(fields: "a b") {
+                    a: ID!
+                    b: ID!
                     args: JSON
                 }
 
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup { batch: false })
             .build()
             .await;
 
-        let response = engine.post("query { products { id args } }").await;
+        let response = engine.post("query { products { args } }").await;
         insta::assert_json_snapshot!(response, @r#"
         {
           "data": {
             "products": [
               {
-                "id": "1",
                 "args": {
                   "input": {
-                    "id": [
-                      "1"
-                    ]
-                  }
-                }
-              }
-            ]
-          }
-        }
-        "#);
-    })
-}
-
-#[test]
-fn arg_with_same_name_and_extra_input_field_with_matching_type() {
-    runtime().block_on(async {
-        let engine = Gateway::builder()
-            .with_subgraph(gql_id())
-            .with_subgraph_sdl(
-                "ext",
-                r#"
-                extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
-                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
-
-
-                type Query {
-                    productBatch(input: Lookup!): [Product!]! @lookup @echo
-                }
-
-                input Lookup @oneOf {
-                    id: [ID!]
-                    anything: [ID!]
-                }
-
-                type Product @key(fields: "id") {
-                    id: ID!
-                    args: JSON
-                }
-
-                scalar JSON
-                "#,
-            )
-            .with_extension(EchoLookup { batch: true })
-            .build()
-            .await;
-
-        let response = engine.post("query { products { id args } }").await;
-        insta::assert_json_snapshot!(response, @r#"
-        {
-          "data": {
-            "products": [
-              {
-                "id": "1",
-                "args": {
-                  "input": {
-                    "id": [
-                      "1"
-                    ]
+                    "key": {
+                      "a": "A1",
+                      "b": "B1"
+                    }
                   }
                 }
               }
@@ -303,7 +190,7 @@ fn arg_with_same_name_and_extra_input_field_with_matching_type() {
 fn arg_with_different_name() {
     runtime().block_on(async {
         let engine = Gateway::builder()
-            .with_subgraph(gql_id())
+            .with_subgraph(gql_ab_id_int())
             .with_subgraph_sdl(
                 "ext",
                 r#"
@@ -313,37 +200,43 @@ fn arg_with_different_name() {
 
 
                 type Query {
-                    productBatch(input: Lookup!): [Product!]! @lookup @echo
+                    productBatch(input: Lookup!): Product! @lookup @echo
                 }
 
                 input Lookup @oneOf {
-                    ids: [ID!]
+                    key: Key
                 }
 
-                type Product @key(fields: "id") {
-                    id: ID!
+                input Key {
+                    c: ID!
+                    d: Int!
+                }
+
+                type Product @key(fields: "a b") {
+                    a: ID!
+                    b: Int!
                     args: JSON
                 }
 
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup { batch: false })
             .build()
             .await;
 
-        let response = engine.post("query { products { id args } }").await;
+        let response = engine.post("query { products { args } }").await;
         insta::assert_json_snapshot!(response, @r#"
         {
           "data": {
             "products": [
               {
-                "id": "1",
                 "args": {
                   "input": {
-                    "ids": [
-                      "1"
-                    ]
+                    "key": {
+                      "c": "A1",
+                      "d": 1
+                    }
                   }
                 }
               }
@@ -358,7 +251,7 @@ fn arg_with_different_name() {
 fn arg_with_different_name_and_extra_optional_arg_with_matching_name() {
     runtime().block_on(async {
         let engine = Gateway::builder()
-            .with_subgraph(gql_id())
+            .with_subgraph(gql_ab_id_int())
             .with_subgraph_sdl(
                 "ext",
                 r#"
@@ -368,38 +261,45 @@ fn arg_with_different_name_and_extra_optional_arg_with_matching_name() {
 
 
                 type Query {
-                    productBatch(input: Lookup!): [Product!]! @lookup @echo
+                    productBatch(input: Lookup!): Product! @lookup @echo
                 }
 
                 input Lookup @oneOf {
-                    ids: [ID!]
-                    id: ID
+                    key: Key
                 }
 
-                type Product @key(fields: "id") {
-                    id: ID!
+                input Key {
+                    c: ID!
+                    d: Int!
+                    a: String
+                    b: Float
+                }
+
+                type Product @key(fields: "a b") {
+                    a: ID!
+                    b: Int!
                     args: JSON
                 }
 
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup { batch: false })
             .build()
             .await;
 
-        let response = engine.post("query { products { id args } }").await;
+        let response = engine.post("query { products { args } }").await;
         insta::assert_json_snapshot!(response, @r#"
         {
           "data": {
             "products": [
               {
-                "id": "1",
                 "args": {
                   "input": {
-                    "ids": [
-                      "1"
-                    ]
+                    "key": {
+                      "c": "A1",
+                      "d": 1
+                    }
                   }
                 }
               }
@@ -411,10 +311,10 @@ fn arg_with_different_name_and_extra_optional_arg_with_matching_name() {
 }
 
 #[test]
-fn good_name_not_a_list() {
+fn is_a_list() {
     runtime().block_on(async {
         let result = Gateway::builder()
-            .with_subgraph(gql_id())
+            .with_subgraph(gql_ab_id_int())
             .with_subgraph_sdl(
                 "ext",
                 r#"
@@ -424,29 +324,35 @@ fn good_name_not_a_list() {
 
 
                 type Query {
-                    productBatch(id: Lookup!): [Product!]! @lookup @echo
+                    productBatch(input: Lookup!): Product! @lookup @echo
                 }
 
                 input Lookup @oneOf {
-                    id: ID
+                    key: [Key!]
                 }
 
-                type Product @key(fields: "id") {
-                    id: ID!
+                input Key {
+                    a: ID!
+                    b: Int!
+                }
+
+                type Product @key(fields: "a b") {
+                    a: ID!
+                    b: Int!
                     args: JSON
                 }
 
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup { batch: false })
             .try_build()
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         At site Query.productBatch, for directive @lookup no matching @key directive was found
-        See schema at 29:3:
-        productBatch(id: Lookup!): [Product!]! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        See schema at 30:3:
+        productBatch(input: Lookup!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
         "#);
     })
 }
@@ -455,7 +361,7 @@ fn good_name_not_a_list() {
 fn ambiguous_multiple_arg_matches() {
     runtime().block_on(async {
         let result = Gateway::builder()
-            .with_subgraph(gql_id())
+            .with_subgraph(gql_ab_id_int())
             .with_subgraph_sdl(
                 "ext",
                 r#"
@@ -465,38 +371,44 @@ fn ambiguous_multiple_arg_matches() {
 
 
                 type Query {
-                    productBatch(a: Lookup!, b: Lookup!): [Product!]! @lookup @echo
+                    productBatch(a: Lookup!, b: Lookup!): Product! @lookup @echo
                 }
 
                 input Lookup @oneOf {
-                    id: [ID!]
+                    key: Key
                 }
 
-                type Product @key(fields: "id") {
-                    id: ID!
+                input Key {
+                    a: ID!
+                    b: Int!
+                }
+
+                type Product @key(fields: "a b") {
+                    a: ID!
+                    b: Int!
                     args: JSON
                 }
 
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup { batch: false })
             .try_build()
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         At site Query.productBatch, for directive @lookup no matching @key directive was found
-        See schema at 29:3:
-        productBatch(a: Lookup!, b: Lookup!): [Product!]! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        See schema at 30:3:
+        productBatch(a: Lookup!, b: Lookup!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
         "#);
     })
 }
 
 #[test]
-fn lookup_arg_in_a_list() {
+fn ambiguous_multiple_oneof_input_field_matches() {
     runtime().block_on(async {
         let result = Gateway::builder()
-            .with_subgraph(gql_id())
+            .with_subgraph(gql_ab_id_int())
             .with_subgraph_sdl(
                 "ext",
                 r#"
@@ -506,38 +418,45 @@ fn lookup_arg_in_a_list() {
 
 
                 type Query {
-                    productBatch(lookup: [Lookup!]): [Product!]! @lookup @echo
+                    productBatch(lookup: Lookup!): Product! @lookup @echo
                 }
 
                 input Lookup @oneOf {
-                    id: [ID!]
+                    key: Key
+                    key2: Key
                 }
 
-                type Product @key(fields: "id") {
-                    id: ID!
+                input Key {
+                    a: ID!
+                    b: Int!
+                }
+
+                type Product @key(fields: "a b") {
+                    a: ID!
+                    b: Int!
                     args: JSON
                 }
 
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup { batch: false })
             .try_build()
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         At site Query.productBatch, for directive @lookup no matching @key directive was found
-        See schema at 29:3:
-        productBatch(lookup: [Lookup!]): [Product!]! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        See schema at 30:3:
+        productBatch(lookup: Lookup!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
         "#);
     })
 }
 
 #[test]
-fn ambiguous_multiple_oneof_field_matches() {
+fn ambiguous_multiple_input_field_matches() {
     runtime().block_on(async {
         let result = Gateway::builder()
-            .with_subgraph(gql_id())
+            .with_subgraph(gql_ab_id_int())
             .with_subgraph_sdl(
                 "ext",
                 r#"
@@ -547,30 +466,36 @@ fn ambiguous_multiple_oneof_field_matches() {
 
 
                 type Query {
-                    productBatch(lookup: Lookup!): [Product!]! @lookup @echo
+                    productBatch(lookup: Lookup!): Product! @lookup @echo
                 }
 
                 input Lookup @oneOf {
-                    a: [ID!]
-                    b: [ID!]
+                    key: Key
                 }
 
-                type Product @key(fields: "id") {
-                    id: ID!
+                input Key {
+                    x: ID
+                    y: ID
+                    b: Int
+                }
+
+                type Product @key(fields: "a b") {
+                    a: ID!
+                    b: Int!
                     args: JSON
                 }
 
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup { batch: false })
             .try_build()
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         At site Query.productBatch, for directive @lookup no matching @key directive was found
-        See schema at 29:3:
-        productBatch(lookup: Lookup!): [Product!]! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        See schema at 30:3:
+        productBatch(lookup: Lookup!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
         "#);
     })
 }
@@ -579,7 +504,7 @@ fn ambiguous_multiple_oneof_field_matches() {
 fn extra_required_argument() {
     runtime().block_on(async {
         let result = Gateway::builder()
-            .with_subgraph(gql_id())
+            .with_subgraph(gql_ab_id_int())
             .with_subgraph_sdl(
                 "ext",
                 r#"
@@ -589,29 +514,83 @@ fn extra_required_argument() {
 
 
                 type Query {
-                    productBatch(lookup: Lookup!, required: Boolean!): [Product!]! @lookup @echo
+                    productBatch(lookup: Lookup!, required: Boolean!): Product! @lookup @echo
                 }
 
                 input Lookup @oneOf {
-                    id: [ID!]
+                    key: Key
                 }
 
-                type Product @key(fields: "id") {
-                    id: ID!
+                input Key {
+                    a: ID!
+                    b: Int!
+                }
+
+                type Product @key(fields: "a b") {
+                    a: ID!
+                    b: Int!
                     args: JSON
                 }
 
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup { batch: false })
             .try_build()
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         At site Query.productBatch, for directive @lookup no matching @key directive was found
-        See schema at 29:3:
-        productBatch(lookup: Lookup!, required: Boolean!): [Product!]! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        See schema at 30:3:
+        productBatch(lookup: Lookup!, required: Boolean!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        "#);
+    })
+}
+
+#[test]
+fn extra_required_field() {
+    runtime().block_on(async {
+        let result = Gateway::builder()
+            .with_subgraph(gql_ab_id_int())
+            .with_subgraph_sdl(
+                "ext",
+                r#"
+                extend schema
+                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
+
+
+                type Query {
+                    productBatch(lookup: Lookup!): Product! @lookup @echo
+                }
+
+                input Lookup @oneOf {
+                    key: Key
+                }
+
+                input Key {
+                    a: ID!
+                    c: Int!
+                    x: Boolean!
+                }
+
+                type Product @key(fields: "a b") {
+                    a: ID!
+                    b: Int!
+                    args: JSON
+                }
+
+                scalar JSON
+                "#,
+            )
+            .with_extension(EchoLookup { batch: false })
+            .try_build()
+            .await;
+
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        See schema at 30:3:
+        productBatch(lookup: Lookup!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
         "#);
     })
 }
