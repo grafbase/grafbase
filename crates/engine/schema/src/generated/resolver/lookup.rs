@@ -21,7 +21,7 @@ use walker::{Iter, Walk};
 ///   key: FieldSet!
 ///   field_definition: FieldDefinition!
 ///   resolver: ResolverDefinition!
-///   batch: Boolean!
+///   guest_batch: Boolean!
 ///   injections: [ArgumentInjection!]!
 /// }
 /// ```

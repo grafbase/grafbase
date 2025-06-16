@@ -1,3 +1,4 @@
+mod nested;
 mod subscription;
 
 use std::sync::Arc;
@@ -11,15 +12,18 @@ use integration_tests::{
 use runtime::extension::{ArgumentsId, Data, Response};
 
 #[derive(Clone)]
-pub struct ResolverExt {
-    response: Response,
+pub enum ResolverExt {
+    Response(Response),
+    EchoData,
 }
 
 impl ResolverExt {
     pub fn json(value: impl serde::Serialize) -> Self {
-        Self {
-            response: Response::data(Data::Json(serde_json::to_vec(&value).unwrap().into())),
-        }
+        Self::Response(Response::data(Data::Json(serde_json::to_vec(&value).unwrap().into())))
+    }
+
+    pub fn echo_data() -> Self {
+        Self::EchoData
     }
 }
 
@@ -33,7 +37,12 @@ impl AnyExtension for ResolverExt {
             r#type: extension_catalog::Type::Resolver(extension_catalog::ResolverType {
                 directives: Some(vec!["resolve".into()]),
             }),
-            sdl: Some(r#"directive @resolve on FIELD_DEFINITION"#),
+            sdl: Some(
+                r#"
+                scalar JSON
+                directive @resolve(data: JSON) on FIELD_DEFINITION
+                "#,
+            ),
         });
         state.test.resolver_builders.insert(
             id,
@@ -47,11 +56,17 @@ impl ResolverTestExtension for ResolverExt {
     async fn resolve(
         &self,
         _directive: ExtensionDirective<'_>,
-        _prepared_data: &[u8],
+        prepared_data: &[u8],
         _subgraph_headers: http::HeaderMap,
         _arguments: Vec<(ArgumentsId, serde_json::Value)>,
     ) -> Response {
-        self.response.clone()
+        match self {
+            Self::Response(response) => response.clone(),
+            Self::EchoData => {
+                let value: serde_json::Value = serde_json::from_slice(prepared_data).unwrap();
+                Response::data(Data::Json(serde_json::to_vec(&value["data"]).unwrap().into()))
+            }
+        }
     }
 }
 

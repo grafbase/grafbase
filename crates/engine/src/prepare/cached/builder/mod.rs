@@ -2,8 +2,9 @@ mod modifiers;
 mod requires;
 mod shapes;
 
-use std::cmp::Ordering;
+use std::{cmp::Ordering, hash::BuildHasherDefault};
 
+use fxhash::FxHasher32;
 use id_newtypes::{BitSet, IdRange};
 use im::HashMap;
 use operation::Operation;
@@ -23,7 +24,8 @@ pub(super) struct Solver<'a> {
     solution: SolvedQuery,
     nested_fields_buffer_pool: BufferPool<NestedField>,
     query_partitions_to_create_stack: Vec<QueryPartitionToCreate>,
-    query_field_node_to_response_object_set: HashMap<NodeIndex, ResponseObjectSetDefinitionId>,
+    query_field_node_to_response_object_set:
+        HashMap<NodeIndex, ResponseObjectSetDefinitionId, BuildHasherDefault<FxHasher32>>,
     // one to one
     node_to_field: Vec<Option<PartitionFieldId>>,
     derived_entities_roots: Vec<(DataFieldId, NodeIndex, Option<NodeIndex>)>,
@@ -71,6 +73,7 @@ impl<'a> Solver<'a> {
                     root_response_object_set_id: ResponseObjectSetDefinitionId::from(0usize),
                     response_object_set_definitions: vec![ResponseObjectSetDefinitionRecord {
                         ty_id: operation.root_object_id.into(),
+                        query_partition_ids: Vec::new(),
                     }],
                     response_data_fields: Default::default(),
                     response_typename_fields: Default::default(),
@@ -87,7 +90,7 @@ impl<'a> Solver<'a> {
             nested_fields_buffer_pool: BufferPool::default(),
             query_partitions_to_create_stack: Vec::new(),
             query_partition_to_node: Vec::new(),
-            query_field_node_to_response_object_set: HashMap::new(),
+            query_field_node_to_response_object_set: Default::default(),
         })
     }
 
@@ -244,8 +247,11 @@ impl<'a> Solver<'a> {
                         continue;
                     };
                     let new_partition = QueryPartitionToCreate {
-                        input_id: *response_object_set_id
-                            .get_or_insert_with(|| self.create_new_response_object_set_definition(source_ix)),
+                        input_id: *response_object_set_id.get_or_insert_with(|| {
+                            let id = self.create_new_response_object_set_definition(source_ix);
+                            self.output.query_plan[id].query_partition_ids.push(query_partition_id);
+                            id
+                        }),
                         source_ix: target_ix,
                         resolver_definition_id,
                         entity_definition_id,
@@ -396,6 +402,7 @@ impl<'a> Solver<'a> {
                             .definition_id
                             .and_then(|def| def.walk(self.schema).ty().definition_id.as_composite_type())
                             .expect("Could not have a child resolver if it wasn't a composite type"),
+                        query_partition_ids: Vec::new(),
                     });
                 ResponseObjectSetDefinitionId::from(self.output.query_plan.response_object_set_definitions.len() - 1)
             })
