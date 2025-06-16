@@ -1,5 +1,5 @@
 #![doc(hidden)]
-#![allow(clippy::too_many_arguments)]
+#![allow(clippy::too_many_arguments, unused)]
 #![expect(missing_docs)]
 
 // Manually defining resolver_types to add some derives on the struct
@@ -32,7 +32,7 @@ pub use grafbase::sdk::event_queue::{
     FieldError, GraphqlResponseStatus, RequestError, SubgraphRequestExecutionKind, SubgraphResponse,
 };
 pub use grafbase::sdk::grpc::*;
-pub use grafbase::sdk::headers::*;
+pub use grafbase::sdk::headers::HeaderError;
 pub use grafbase::sdk::http_client::*;
 pub use grafbase::sdk::kafka_client::*;
 pub use grafbase::sdk::nats_client::*;

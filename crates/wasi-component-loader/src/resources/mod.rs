@@ -87,6 +87,13 @@ impl<T> Lease<T> {
 }
 
 impl<T> WasmOwnedOrLease<T> {
+    pub(crate) fn into_inner(self) -> Option<T> {
+        match self {
+            Self::Owned(v) => Some(v),
+            Self::Lease(lease) => lease.into_inner(),
+        }
+    }
+
     pub(crate) fn is_owned(&self) -> bool {
         matches!(self, Self::Owned(_))
     }

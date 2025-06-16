@@ -1,10 +1,22 @@
-use as_header_name::AsHeaderName;
-use into_header_name::IntoHeaderName;
+pub(crate) use as_header_name::AsHeaderName;
+pub(crate) use as_header_value::AsHeaderValue;
 
 use crate::wit;
 
 /// HTTP headers.
 pub struct HttpHeaders(wit::Headers);
+
+impl From<wit::Headers> for HttpHeaders {
+    fn from(headers: wit::Headers) -> Self {
+        Self(headers)
+    }
+}
+
+impl From<HttpHeaders> for wit::Headers {
+    fn from(headers: HttpHeaders) -> Self {
+        headers.0
+    }
+}
 
 /// HTTP headers for the gateway request.
 pub struct GatewayHeaders(HttpHeaders);
@@ -30,6 +42,12 @@ impl std::ops::DerefMut for GatewayHeaders {
 
 /// HTTP headers for the subgraph request.
 pub struct SubgraphHeaders(HttpHeaders);
+
+impl From<SubgraphHeaders> for HttpHeaders {
+    fn from(headers: SubgraphHeaders) -> Self {
+        headers.0
+    }
+}
 
 impl From<wit::Headers> for SubgraphHeaders {
     fn from(headers: wit::Headers) -> Self {
@@ -80,8 +98,7 @@ impl HttpHeaders {
 
     /// Set all of the values for a name. Clears any existing values for that
     /// name, if they have been set.
-    pub fn set(&mut self, name: impl IntoHeaderName, values: impl IntoIterator<Item = http::HeaderValue>) {
-        let name = name.into_header_name();
+    pub fn set<V: AsHeaderValue>(&mut self, name: impl AsHeaderName, values: impl IntoIterator<Item = V>) {
         let values = values
             .into_iter()
             .map(|value| value.as_bytes().to_vec())
@@ -102,7 +119,7 @@ impl HttpHeaders {
 
     /// Append a value for a name. Does not change or delete any existing
     /// values for that name.
-    pub fn append(&mut self, name: impl AsHeaderName, value: http::HeaderValue) {
+    pub fn append(&mut self, name: impl AsHeaderName, value: impl AsHeaderValue) {
         self.0
             .append(name.as_str(), value.as_bytes())
             .expect("We have a mut ref & validated name and values.");
@@ -141,56 +158,6 @@ impl From<SubgraphHeaders> for http::HeaderMap {
 *
 * ===== impl IntoHeaderName / AsHeaderName =====
 */
-
-mod into_header_name {
-    use http::HeaderName;
-
-    /// A marker trait used to identify values that can be used as insert keys
-    /// to a `HttpHeaders`.
-    pub trait IntoHeaderName: Sealed {}
-
-    // All methods are on this pub(super) trait, instead of `IntoHeaderName`,
-    // so that they aren't publicly exposed to the world.
-    //
-    // Being on the `IntoHeaderName` trait would mean users could call
-    // `"host".insert(&mut map, "localhost")`.
-    //
-    // Ultimately, this allows us to adjust the signatures of these methods
-    // without breaking any external crate.
-    pub trait Sealed {
-        #[doc(hidden)]
-        fn into_header_name(self) -> HeaderName;
-    }
-
-    // ==== impls ====
-
-    impl Sealed for HeaderName {
-        #[inline]
-        fn into_header_name(self) -> HeaderName {
-            self
-        }
-    }
-
-    impl IntoHeaderName for HeaderName {}
-
-    impl Sealed for &HeaderName {
-        #[inline]
-        fn into_header_name(self) -> HeaderName {
-            self.clone()
-        }
-    }
-
-    impl IntoHeaderName for &HeaderName {}
-
-    impl Sealed for &'static str {
-        #[inline]
-        fn into_header_name(self) -> HeaderName {
-            HeaderName::from_static(self)
-        }
-    }
-
-    impl IntoHeaderName for &'static str {}
-}
 
 mod as_header_name {
     use http::HeaderName;
@@ -258,4 +225,108 @@ mod as_header_name {
     }
 
     impl AsHeaderName for &String {}
+}
+
+mod as_header_value {
+    use http::HeaderValue;
+
+    /// A marker trait used to identify values that can be used as search keys
+    /// to a `HttpHeaders`.
+    pub trait AsHeaderValue: Sealed {}
+
+    // All methods are on this pub(super) trait, instead of `AsHeaderValue`,
+    // so that they aren't publicly exposed to the world.
+    //
+    // Being on the `AsHeaderValue` trait would mean users could call
+    // `"host".find(&map)`.
+    //
+    // Ultimately, this allows us to adjust the signatures of these methods
+    // without breaking any external crate.
+    pub trait Sealed: Sized {
+        #[doc(hidden)]
+        fn as_bytes(&self) -> &[u8];
+        fn into_bytes(self) -> Vec<u8> {
+            self.as_bytes().to_vec()
+        }
+    }
+
+    // ==== impls ====
+
+    impl Sealed for HeaderValue {
+        #[inline]
+        fn as_bytes(&self) -> &[u8] {
+            HeaderValue::as_bytes(self)
+        }
+    }
+
+    impl AsHeaderValue for HeaderValue {}
+
+    impl Sealed for &HeaderValue {
+        #[inline]
+        fn as_bytes(&self) -> &[u8] {
+            HeaderValue::as_bytes(self)
+        }
+    }
+
+    impl AsHeaderValue for &HeaderValue {}
+
+    impl Sealed for &[u8] {
+        #[inline]
+        fn as_bytes(&self) -> &[u8] {
+            self
+        }
+    }
+
+    impl AsHeaderValue for &[u8] {}
+
+    impl Sealed for &str {
+        #[inline]
+        fn as_bytes(&self) -> &[u8] {
+            str::as_bytes(self)
+        }
+    }
+
+    impl AsHeaderValue for &str {}
+
+    impl Sealed for String {
+        #[inline]
+        fn as_bytes(&self) -> &[u8] {
+            String::as_bytes(self)
+        }
+        fn into_bytes(self) -> Vec<u8> {
+            String::into_bytes(self)
+        }
+    }
+
+    impl AsHeaderValue for String {}
+
+    impl Sealed for &String {
+        #[inline]
+        fn as_bytes(&self) -> &[u8] {
+            String::as_bytes(self)
+        }
+    }
+
+    impl AsHeaderValue for &String {}
+
+    impl Sealed for Vec<u8> {
+        #[inline]
+        fn as_bytes(&self) -> &[u8] {
+            Vec::<u8>::as_ref(self)
+        }
+        fn into_bytes(self) -> Vec<u8> {
+            self
+        }
+    }
+
+    impl AsHeaderValue for Vec<u8> {}
+
+    impl Sealed for &Vec<u8> {
+        #[inline]
+        fn as_bytes(&self) -> &[u8] {
+            Vec::<u8>::as_ref(self)
+        }
+    }
+
+    impl AsHeaderValue for &Vec<u8> {}
 }
